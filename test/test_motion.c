@@ -32,7 +32,10 @@ static void TestExpIsAccurate(void)
     CHECK(RelativeError(muiExp(-744.0), exp(-744.0)) < 1e-3, "into the subnormals");
     CHECK(RelativeError(muiExp(-720.0), exp(-720.0)) < 1e-9, "near them");
     CHECK(RelativeError(muiExp(709.0), exp(709.0)) <= 4.0 * DBL_EPSILON, "near the top");
-    CHECK(muiExp(-746.0) == 0.0 && isinf(muiExp(710.0)), "past the ends");
+    CHECK(RelativeError(muiExp(709.78), exp(709.78)) <= 4.0 * DBL_EPSILON,
+          "up to the largest double");
+    CHECK(muiExp(-746.0) == 0.0 && isinf(muiExp(709.79)), "past the ends");
+    CHECK(isinf(muiExp(800.0)) && isinf(muiExp(1e6)), "far past the top");
     CHECK(isnan(muiExp((double)NAN)), "NaN stays NaN");
 }
 
@@ -113,7 +116,9 @@ static void TestCurvesMatchTheirDefinition(void)
             double error = fabs(muiEase(&curve, x) - ReferenceEase(p[0], p[1], p[2], p[3], x));
             worst = error > worst ? error : worst;
         }
-        CHECK(worst < 1e-5, "y within 1e-5 of the curve");
+        // The last curve's x has a flat point at the middle, where t, and so
+        // y, is known only to the cube root of a double's rounding.
+        CHECK(worst < (c == 5 ? 1e-5 : 1e-9), "y on the curve");
         CHECK(muiEase(&curve, 0.0) == 0.0 && muiEase(&curve, 1.0) == 1.0, "fixed ends");
         CHECK(muiEase(&curve, -1.0) == 0.0 && muiEase(&curve, 2.0) == 1.0, "clamped outside");
     }

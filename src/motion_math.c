@@ -49,7 +49,8 @@ double muiExp(double x)
     {
         return x;
     }
-    if (x > 709.0)
+    // Past ln(DBL_MAX) the result is not a finite double.
+    if (x > 7.09782712893383973096e+02)
     {
         return (double)INFINITY;
     }

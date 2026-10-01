@@ -8,12 +8,12 @@
 #ifndef MAUL_UI_SRC_MOTION_MATH_H
 #define MAUL_UI_SRC_MOTION_MATH_H
 
-// e to the x, within about two units in the last place. Underflows to 0
-// below -745 and overflows to infinity above 709.
+// e to the x, within a few units in the last place. Underflows to 0
+// below -745 and overflows to infinity above ln(DBL_MAX).
 double muiExp(double x);
 
-// The sine and cosine of x, within about two units in the last place for
-// |x| up to 2^20; larger arguments lose accuracy. A spring's argument
+// The sine and cosine of x, within 1e-14 for |x| up to 2000 and exact
+// reduction up to 2^20; larger arguments lose accuracy. A spring's argument
 // stays far below.
 void muiSinCos(double x, double* sineOut, double* cosineOut);
 

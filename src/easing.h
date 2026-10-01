@@ -2,8 +2,8 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Cubic Bezier easing curves from (0, 0) to (1, 1), as CSS defines them,
-// solved as Chromium solves them with fixed iteration counts, so the same
-// input gives the same bits everywhere.
+// solved by a fixed number of bisection steps, so the same input gives the
+// same bits everywhere.
 
 #ifndef MAUL_UI_SRC_EASING_H
 #define MAUL_UI_SRC_EASING_H
