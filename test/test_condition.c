@@ -717,6 +717,118 @@ static void TestNotificationsPastTheLimitAreCounted(void)
     muiDestroyContext(context);
 }
 
+static void TestNotificationsKeepTheirOrder(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId root = MakeNode(context);
+    muiStyleId style = MakeWidening(context);
+    muiNodeId first = MakeOscillator(context, root, style);
+    muiNodeId second = MakeOscillator(context, root, style);
+    RunWhilePending(context, root);
+    muiNotification record = {0};
+    CHECK(muiNextNotification(context, &record) == mui_success &&
+              record.nodeId.index1 == first.index1,
+          "the first");
+    CHECK(muiNextNotification(context, &record) == mui_success &&
+              record.nodeId.index1 == second.index1,
+          "then the second");
+    muiDestroyContext(context);
+    // With room for one: a record lost keeps later ones from overtaking
+    // its count.
+    muiLimits limits = muiDefaultContextDef().limits;
+    limits.notifications = 1;
+    context = MakeContextWith(limits);
+    root = MakeNode(context);
+    style = MakeWidening(context);
+    first = MakeOscillator(context, root, style);
+    RunWhilePending(context, root);
+    MakeOscillator(context, root, style);
+    RunWhilePending(context, root);
+    CHECK(muiNextNotification(context, &record) == mui_success &&
+              record.nodeId.index1 == first.index1,
+          "the one kept");
+    MakeOscillator(context, root, style);
+    RunWhilePending(context, root);
+    CHECK(muiNextNotification(context, &record) == mui_success &&
+              record.kind == mui_notificationDropped && record.count == 2,
+          "the later one counts with the lost one, though there was room");
+    CHECK(muiNextNotification(context, &record) == mui_empty, "nothing after");
+    muiDestroyContext(context);
+}
+
+static void TestAlternatingSizesWithOneOutcomeAreNotOscillation(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId root = MakeNode(context);
+    muiLayoutStyle column = muiDefaultLayoutStyle();
+    column.container.direction = mui_flexColumn;
+    CHECK(muiNode_SetLayoutValues(context, root, &column,
+                                  MUI_PROPERTY_BIT(mui_propertyFlexDirection)) == mui_success,
+          "column");
+    muiNodeId node = MakeNode(context);
+    CHECK(muiNode_InsertChild(context, root, node, s_nullNode) == mui_success, "insert");
+    muiStyleId style = MakeStyle(context);
+    muiCondition any = muiDefaultCondition();
+    any.width = (muiRange){0.0f, 200.0f};
+    AddPadding(context, style, &any, 5.0f);
+    CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
+    for (int i = 0; i < 8; i++)
+    {
+        // The parent's width, not the node's, so its stylings are its
+        // layout's doing.
+        SetWidth(context, root, i % 2 == 0 ? 90.0f : 110.0f);
+        Compute(context, root);
+        Compute(context, root);
+    }
+    muiNotification record;
+    CHECK(muiNextNotification(context, &record) == mui_empty,
+          "sizes in turn with no flip of the outcome");
+    muiDestroyContext(context);
+}
+
+static void TestHostEditsStartTheHistoryAgain(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId root = MakeNode(context);
+    muiStyleId style = MakeWidening(context);
+    muiNodeId node = MakeOscillator(context, root, style);
+    for (int i = 0; i < 3; i++)
+    {
+        Compute(context, root);
+    }
+    muiStyleId unrelated = MakeStyle(context);
+    muiLayoutStyle values = muiDefaultLayoutStyle();
+    CHECK(muiStyle_SetLayoutValues(context, unrelated, mui_variantBase, &values, WIDTH) ==
+              mui_success,
+          "edit another class");
+    CHECK(RunWhilePending(context, root) == 4, "a class edit is the host's");
+    ExpectOscillation(context, node);
+    CHECK(muiNode_SetStates(context, node, mui_stateFocused) == mui_success, "release");
+    for (int i = 0; i < 3; i++)
+    {
+        Compute(context, root);
+    }
+    CHECK(muiNode_Detach(context, node) == mui_success, "detach");
+    CHECK(muiNode_InsertChild(context, root, node, s_nullNode) == mui_success, "insert again");
+    CHECK(RunWhilePending(context, root) == 4, "so is inserting the node");
+    ExpectOscillation(context, node);
+    muiDestroyContext(context);
+}
+
+static void TestFlipsBetweenConditionsAreOscillation(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId root = MakeNode(context);
+    muiStyleId style = MakeWidening(context);
+    muiCondition wide = muiDefaultCondition();
+    wide.width = (muiRange){100.0f, INFINITY};
+    AddPadding(context, style, &wide, 0.0f);
+    muiNodeId node = MakeOscillator(context, root, style);
+    RunWhilePending(context, root);
+    ExpectOscillation(context, node);
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestDefaults();
@@ -734,5 +846,9 @@ int main(void)
     TestOscillationIsReportedAndHeld();
     TestHostEditsAreNotOscillation();
     TestNotificationsPastTheLimitAreCounted();
+    TestNotificationsKeepTheirOrder();
+    TestAlternatingSizesWithOneOutcomeAreNotOscillation();
+    TestHostEditsStartTheHistoryAgain();
+    TestFlipsBetweenConditionsAreOscillation();
     return s_failures == 0 ? 0 : 1;
 }

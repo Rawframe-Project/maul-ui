@@ -69,7 +69,7 @@ static void ApplyVariant(const muiStyleStore* store, const Classes* classes, mui
 // Applies the conditional values that hold, in class order and then
 // condition order, sampling the node's last layout; records what was
 // read and returns the run: which held, as one bit per condition with
-// values in that order (folded past 64), and the sample.
+// values in that order (folded past 64), and the size read.
 static muiConditionRun ApplyConditions(muiContext* context, uint32_t slot, const Classes* classes,
                                        muiPropertyMask free, muiLayoutStyle* values)
 {
@@ -81,7 +81,7 @@ static muiConditionRun ApplyConditions(muiContext* context, uint32_t slot, const
         .rtl = layout->rtl,
         .environment = &context->environment,
     };
-    muiConditionRun run = {.width = sample.width, .height = sample.height, .rtl = sample.rtl};
+    muiConditionRun run = {.width = sample.width, .height = sample.height};
     muiConditionReads reads = 0;
     uint32_t position = 0;
     for (uint32_t i = 0; i < classes->count; i++)
@@ -110,28 +110,28 @@ static muiConditionRun ApplyConditions(muiContext* context, uint32_t slot, const
     return run;
 }
 
-static bool IsSameSample(const muiConditionRun* a, const muiConditionRun* b)
+static bool IsSameSize(const muiConditionRun* a, const muiConditionRun* b)
 {
-    return a->width == b->width && a->height == b->height && a->rtl == b->rtl;
+    return a->width == b->width && a->height == b->height;
 }
 
 // Adds a styling to the node's history and reports an oscillation: the
 // last four stylings, none the host's but perhaps the first, read two
-// samples in turn and their outcomes flipped with them. Its conditions
+// sizes in turn and their outcomes flipped with them. Its conditions
 // are then held at this outcome (record mui-0004).
 static void Watch(muiContext* context, uint32_t slot, const muiConditionRun* run)
 {
     muiNodeStyle* node = &context->style.nodes[slot - 1];
     muiConditionRun* history = node->history;
-    if (node->historyCount == MUI_CONDITION_HISTORY && IsSameSample(run, &history[1]) &&
-        IsSameSample(&history[0], &history[2]) && !IsSameSample(run, &history[0]) &&
-        run->outcome != history[0].outcome)
+    // A styling the layout asked for reads a size the one before did not,
+    // so two in a row never read the same.
+    if (node->historyCount == MUI_CONDITION_HISTORY && IsSameSize(run, &history[1]) &&
+        IsSameSize(&history[0], &history[2]) && run->outcome != history[0].outcome)
     {
         muiLayoutNode* layout = &context->layout[slot - 1];
         layout->held = true;
         layout->heldSizes[0] = (muiSize){run->width, run->height};
         layout->heldSizes[1] = (muiSize){history[0].width, history[0].height};
-        node->historyCount = 0;
         const muiNotification record = {
             .kind = mui_notificationOscillation,
             .nodeId = muiTreeIdOf(&context->tree, slot),

@@ -40,13 +40,13 @@ typedef struct muiClassList
 } muiClassList;
 
 // One styling of a node with conditions: which held, as a signature, and
-// the size and direction they read.
+// the size they read. Direction is left out: no style value changes a
+// size by way of direction, so it cannot oscillate on its own.
 typedef struct muiConditionRun
 {
     uint64_t outcome;
     float width;
     float height;
-    bool rtl;
 } muiConditionRun;
 
 enum
