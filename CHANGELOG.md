@@ -71,4 +71,5 @@ format.
   shadows and images in paint order with clip chains, linear
   premultiplied colors and per-kind pixel snapping, checked against
   golden lists; new `drawCommands`, `drawClips` and `drawGradients`
-  limits.
+  limits. A static frame keeps the last list, and a build copies the
+  subtrees that did not change from it.

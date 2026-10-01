@@ -116,6 +116,7 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
         .measureUser = input->measureUser,
         .solve = muiSolveNode,
         .restyle = &context->tree,
+        .painted = context->draw.states,
     };
     muiSizingInput sizingInput = muiRootInput(&context->layout[root - 1].style,
                                               input->availableWidth, input->availableHeight);
@@ -125,7 +126,12 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
     sizingInput.height = (muiMeasureAxis){size.height, mui_measureExact};
     (void)muiSolveNode(&solver, root, &sizingInput, true);
     context->measuring = false;
-    context->layout[root - 1].rect = (muiRect){0.0f, 0.0f, size.width, size.height};
+    const muiRect rect = {0.0f, 0.0f, size.width, size.height};
+    context->layout[root - 1].rect = rect;
+    if (!muiIsSameRect(rect, context->draw.states[root - 1].rect))
+    {
+        muiTreeMark(&context->tree, root, mui_stagePaint);
+    }
     return mui_success;
 }
 

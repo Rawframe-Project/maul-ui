@@ -9,7 +9,8 @@
 // deep with three children per node (9,841 nodes). For each: a cold
 // layout, a static frame, one change (a label's content, or for the
 // styled lists a row hovered), and a new width; for the painted list,
-// a draw list built after them.
+// draw lists built after them: the first, a static frame, and one after
+// a change.
 // Prints the best of five runs in microseconds, and how many times the
 // host was asked to measure, which does not depend on the machine.
 
@@ -234,6 +235,31 @@ static double Time(Scene* scene, float width, bool changeLeaf)
     return elapsed * 1e6;
 }
 
+// Times three draw-list builds: the first, one with nothing changed, and
+// one after a row is unhovered and laid out again; keeps the best of
+// each in best.
+static void DrawFrames(Scene* scene, double best[3], uint32_t* commandsOut)
+{
+    const muiDrawInput input = {1, 1.0f};
+    for (int i = 0; i < 3; i++)
+    {
+        if (i == 2)
+        {
+            Check(muiNode_SetStates(scene->context, scene->row, 0), "unhover");
+            // The width of the last frame Run timed, so only the row changes.
+            muiLayoutInput layout = {640.0f, 100000.0f, MeasureLabel, &scene->measured, 0};
+            Check(muiComputeLayout(scene->context, scene->root, &layout), "layout");
+        }
+        double start = Seconds();
+        Check(muiBuildDrawList(scene->context, scene->root, &input), "draw");
+        double time = (Seconds() - start) * 1e6;
+        best[i] = time < best[i] ? time : best[i];
+    }
+    muiDrawList list;
+    Check(muiGetDrawList(scene->context, &list), "list");
+    *commandsOut = list.commandCount;
+}
+
 typedef uint8_t Kind;
 
 enum
@@ -248,7 +274,7 @@ static void Run(const char* name, Kind kind)
 {
     double best[4] = {1e30, 1e30, 1e30, 1e30};
     long measured[4] = {0};
-    double drawn = 1e30;
+    double drawn[3] = {1e30, 1e30, 1e30};
     uint32_t commands = 0;
     for (int run = 0; run < RUNS; run++)
     {
@@ -275,14 +301,7 @@ static void Run(const char* name, Kind kind)
         }
         if (kind == kindPainted)
         {
-            double start = Seconds();
-            const muiDrawInput input = {1, 1.0f};
-            Check(muiBuildDrawList(scene.context, scene.root, &input), "draw");
-            double time = (Seconds() - start) * 1e6;
-            drawn = time < drawn ? time : drawn;
-            muiDrawList list;
-            Check(muiGetDrawList(scene.context, &list), "list");
-            commands = list.commandCount;
+            DrawFrames(&scene, drawn, &commands);
         }
         muiDestroyContext(scene.context);
     }
@@ -293,7 +312,11 @@ static void Run(const char* name, Kind kind)
     }
     if (kind == kindPainted)
     {
-        printf("%-7s %-10s %12.1f us %8u commands\n", name, "draw", drawn, commands);
+        const char* frames[3] = {"draw cold", "draw static", "draw change"};
+        for (int i = 0; i < 3; i++)
+        {
+            printf("%-7s %-11s %11.1f us %8u commands\n", name, frames[i], drawn[i], commands);
+        }
     }
 }
 

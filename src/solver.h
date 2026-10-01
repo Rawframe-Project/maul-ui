@@ -8,6 +8,7 @@
 #ifndef MAUL_UI_SRC_SOLVER_H
 #define MAUL_UI_SRC_SOLVER_H
 
+#include "draw_store.h"
 #include "layout_node.h"
 #include "tree.h"
 
@@ -26,8 +27,11 @@ struct muiSolver
     void* measureUser;
     muiSolveFunction solve;
     // Where the solver requests style for the next pass, on nodes whose
-    // conditions read a size or direction their layout changed.
+    // conditions read a size or direction their layout changed, and paint
+    // on nodes whose rectangle or direction is not what was last painted.
     muiTree* restyle;
+    // What each node was last painted as, parallel to the tree's slots.
+    const muiPaintState* painted;
 };
 
 #endif // MAUL_UI_SRC_SOLVER_H

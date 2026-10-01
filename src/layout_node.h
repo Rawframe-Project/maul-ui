@@ -106,6 +106,11 @@ typedef struct muiLayoutNode
     muiSize heldSizes[2];
 } muiLayoutNode;
 
+static inline bool muiIsSameRect(muiRect a, muiRect b)
+{
+    return a.x == b.x && a.y == b.y && a.width == b.width && a.height == b.height;
+}
+
 // Brings the values kept beside a node's style up to date after the
 // style changes.
 static inline void muiSyncLayoutNode(muiLayoutNode* node)

@@ -136,6 +136,21 @@ static void Mirror(const muiSolver* solver, uint32_t node, float width)
     }
 }
 
+// Requests paint on the children whose rectangles are not what was last
+// painted: a draw list built from the last one copies only what did not
+// move.
+static void MarkMoved(const muiSolver* solver, uint32_t node)
+{
+    for (uint32_t c = muiTreeAt(solver->tree, node)->links.firstChild; c != 0;
+         c = muiTreeAt(solver->tree, c)->links.next)
+    {
+        if (!muiIsSameRect(solver->nodes[c - 1].rect, solver->painted[c - 1].rect))
+        {
+            muiTreeMark(solver->restyle, c, mui_stagePaint);
+        }
+    }
+}
+
 // Lays a container out in logical coordinates, start on the left, and
 // mirrors it when its direction is right to left (record mui-0003).
 static muiSize SizeContainer(const muiSolver* solver, uint32_t node, const muiSizingInput* input,
@@ -149,6 +164,7 @@ static muiSize SizeContainer(const muiSolver* solver, uint32_t node, const muiSi
         {
             Mirror(solver, node, size.width);
         }
+        MarkMoved(solver, node);
     }
     return size;
 }
@@ -231,6 +247,11 @@ static bool IsSameSize(muiSize a, muiSize b)
 static void Published(const muiSolver* solver, uint32_t node, muiSize size, bool rtl)
 {
     muiLayoutNode* layout = &solver->nodes[node - 1];
+    // Corners and sides are physical in the draw list.
+    if (rtl != layout->rtl)
+    {
+        muiTreeMark(solver->restyle, node, mui_stagePaint);
+    }
     layout->rtl = rtl;
     if (layout->held)
     {

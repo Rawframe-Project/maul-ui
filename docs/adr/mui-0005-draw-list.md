@@ -52,6 +52,18 @@ clip chain evaluated in its shaders, which keeps batches whole.
   adjacent boxes share an edge, and a non-zero size keeps at least one
   device pixel; border widths go to whole device pixels, at least one.
   Shadows and radii keep their exact values.
+- **Retained emission:** the context keeps two of each table, the
+  list shown and the one the next build writes. A build with no paint
+  requested below the root, of the same root, surface and scale as the
+  last, keeps the list and its generation. Otherwise each node's spans
+  of the tables are recorded; a subtree no paint request reaches, at
+  the origin and opacity it was painted at, copies its spans from the
+  last list, renumbering its clips and gradients and its descendants'
+  spans. Layout requests paint on every node whose rectangle or
+  direction is not what was last painted, so a copy is never stale; a
+  test checks over hundreds of random edits that a list built from the
+  last equals one built whole. Memory is the two lists the limits
+  reserve, so nothing is evicted.
 - **Golden lists:** the tests describe lists in text, floats with nine
   significant digits, and compare them against checked-in lists; each
   list is also built twice and its bytes compared.
@@ -59,7 +71,11 @@ clip chain evaluated in its shaders, which keeps batches whole.
 ## Consequences
 
 A renderer draws the list in order, binds the clip chain and transform
-per command, and batches across both. Byte-identical output lets a host
+per command, and batches across both. A static frame costs nothing,
+and a frame with one change copies the rest of the list, which still
+takes time in proportion to it (a third of a build for the benchmark's
+40,001 nodes); scroll offsets as transforms may later spare moved
+subtrees their repaint. Byte-identical output lets a host
 skip a frame whose list did not change, and lets a test pin a scene.
 Per-command opacity is cheaper than a layer and wrong where a faded
 subtree overlaps itself; a group command may come later. Fixed records

@@ -97,10 +97,11 @@ static bool IsPaintMarked(muiContext* context, muiNodeId node)
     return (muiTreeAt(&context->tree, slot)->dirty.request & mui_stagePaint) != 0;
 }
 
-// Paint is not drawn yet, so nothing sweeps its marks but the test.
+// Drawing clears paint marks, and records the rectangles painted.
 static void ClearPaint(muiContext* context, muiNodeId root)
 {
-    (void)muiTreeSweep(&context->tree, muiTreeResolve(&context->tree, root), mui_stagePaint);
+    const muiDrawInput input = {1, 1.0f};
+    CHECK(muiBuildDrawList(context, root, &input) == mui_success, "drawn");
 }
 
 static bool SameColor(muiColor a, muiColor b)

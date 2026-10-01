@@ -213,7 +213,12 @@ extern "C"
     } muiDrawInput;
 
     /// Paints a root's subtree, as its last muiComputeLayout left it, into
-    /// the context's list, and clears the subtree's paint requests. Per node, in paint order: its
+    /// the context's list, and clears the subtree's paint requests. When
+    /// nothing below the root asked for paint since the last build of the
+    /// same root, surface and scale, the list stays as it is, generation
+    /// and all; otherwise subtrees nothing asked to repaint, at the origin
+    /// and opacity they were painted at, copy their commands from the last
+    /// list, which gives the bytes a build from nothing would. Per node, in paint order: its
     /// outer shadow, its box, its inner shadow and its image, then its children, depth first; a
     /// node that clips draws its children inside its rounded border box. Opacity multiplies down
     /// the subtree into every command's colors. At the identity transform, box and image edges and

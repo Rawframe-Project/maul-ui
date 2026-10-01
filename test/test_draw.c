@@ -300,7 +300,9 @@ static muiDrawList Build(muiContext* context, muiNodeId root, float scale)
     return list;
 }
 
-// Builds twice and compares the bytes of every table.
+// Builds again with nothing changed, which keeps the list, then with
+// the root asked to repaint, which copies its children, and compares the
+// bytes of the commands each time.
 static void CheckBytesRepeat(muiContext* context, muiNodeId root, float scale)
 {
     muiDrawList first = Build(context, root, scale);
@@ -313,9 +315,18 @@ static void CheckBytesRepeat(muiContext* context, muiNodeId root, float scale)
     }
     memcpy(copy, first.commands, size);
     muiDrawList second = Build(context, root, scale);
-    CHECK(second.commandCount == first.commandCount && memcmp(copy, second.commands, size) == 0 &&
-              second.header.generation == first.header.generation + 1,
-          "the same bytes, a new generation");
+    CHECK(second.commands == first.commands && second.header.generation == first.header.generation,
+          "a static frame keeps the list");
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    CHECK(muiNode_GetVisualStyle(context, root, &visual) == mui_success &&
+              muiNode_SetVisualValues(context, root, &visual,
+                                      MUI_PROPERTY_BIT(mui_propertyOpacity)) == mui_success,
+          "the same opacity, which asks for paint");
+    muiDrawList third = Build(context, root, scale);
+    CHECK(third.commands != first.commands &&
+              third.header.generation == first.header.generation + 1 &&
+              third.commandCount == first.commandCount && memcmp(copy, third.commands, size) == 0,
+          "a rebuild from the last list gives the same bytes");
     free(copy);
 }
 
@@ -649,6 +660,190 @@ static void TestEdgeCases(void)
     muiDestroyContext(fresh);
 }
 
+// The list a build takes from the last one equals one built whole, over
+// a run of edits of every kind a list depends on.
+typedef struct Random
+{
+    uint32_t state;
+} Random;
+
+static uint32_t NextRandom(Random* random, uint32_t below)
+{
+    random->state = random->state * 1664525u + 1013904223u;
+    return (random->state >> 8) % below;
+}
+
+static bool SameTables(const muiDrawList* a, const muiDrawList* b)
+{
+    return a->commandCount == b->commandCount && a->clipCount == b->clipCount &&
+           a->gradientCount == b->gradientCount &&
+           memcmp(a->commands, b->commands, a->commandCount * sizeof(muiDrawCommand)) == 0 &&
+           memcmp(a->clips, b->clips, a->clipCount * sizeof(muiDrawClip)) == 0 &&
+           memcmp(a->gradients, b->gradients, a->gradientCount * sizeof(muiDrawGradient)) == 0;
+}
+
+// Copies a list's tables, which the next build may write over.
+typedef struct Snapshot
+{
+    muiDrawList list;
+    muiDrawCommand commands[256];
+    muiDrawClip clips[64];
+    muiDrawGradient gradients[64];
+} Snapshot;
+
+static void Take(Snapshot* snapshot, const muiDrawList* list)
+{
+    CHECK(list->commandCount <= 256 && list->clipCount <= 64 && list->gradientCount <= 64,
+          "the snapshot holds it");
+    snapshot->list = *list;
+    memcpy(snapshot->commands, list->commands, list->commandCount * sizeof(muiDrawCommand));
+    memcpy(snapshot->clips, list->clips, list->clipCount * sizeof(muiDrawClip));
+    memcpy(snapshot->gradients, list->gradients, list->gradientCount * sizeof(muiDrawGradient));
+    snapshot->list.commands = snapshot->commands;
+    snapshot->list.clips = snapshot->clips;
+    snapshot->list.gradients = snapshot->gradients;
+}
+
+// Whether ancestor is node or above it.
+static bool IsAtOrAbove(const muiContext* context, muiNodeId ancestor, muiNodeId node)
+{
+    for (muiNodeId at = node; at.index1 != 0; at = muiNode_GetParent(context, at))
+    {
+        if (at.index1 == ancestor.index1 && at.generation == ancestor.generation)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void Edit(muiContext* context, muiNodeId* nodes, uint32_t count, Random* random,
+                 float* available)
+{
+    muiNodeId node = nodes[NextRandom(random, count)];
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    CHECK(muiNode_GetVisualStyle(context, node, &visual) == mui_success, "read");
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    CHECK(muiNode_GetLayoutStyle(context, node, &layout) == mui_success, "read");
+    const float shades[4] = {0.0f, 0.25f, 0.5f, 1.0f};
+    switch (NextRandom(random, 10))
+    {
+    case 0:
+        visual.background = (muiColor){shades[NextRandom(random, 4)], 0.5f, 0.2f, 1.0f};
+        SetVisual(context, node, &visual, MUI_PROPERTY_BIT(mui_propertyBackground));
+        break;
+    case 1:
+        visual.clip = !visual.clip;
+        visual.radius.topStart = Length((float)NextRandom(random, 6));
+        SetVisual(context, node, &visual,
+                  MUI_PROPERTY_BIT(mui_propertyClip) |
+                      MUI_PROPERTY_BIT(mui_propertyRadiusTopStart));
+        break;
+    case 2:
+        visual.opacity = shades[NextRandom(random, 4)];
+        SetVisual(context, node, &visual, MUI_PROPERTY_BIT(mui_propertyOpacity));
+        break;
+    case 3:
+        visual.gradient =
+            NextRandom(random, 2) == 0
+                ? (muiGradient){0}
+                : (muiGradient){mui_gradientLinear, 2, 45.0f, {{s_red, 0.0f}, {s_blue, 1.0f}}};
+        SetVisual(context, node, &visual, MUI_PROPERTY_BIT(mui_propertyGradient));
+        break;
+    case 4:
+        layout.padding.start = (float)NextRandom(random, 5) * 1.5f;
+        CHECK(muiNode_SetLayoutValues(context, node, &layout,
+                                      MUI_PROPERTY_BIT(mui_propertyPaddingStart)) == mui_success,
+              "padding");
+        break;
+    case 5:
+        layout.sizing.width = Length(10.0f + (float)NextRandom(random, 40));
+        CHECK(muiNode_SetLayoutValues(context, node, &layout, WIDTH) == mui_success, "width");
+        break;
+    case 6:
+        layout.textDirection =
+            layout.textDirection == mui_textRightToLeft ? mui_textInherit : mui_textRightToLeft;
+        CHECK(muiNode_SetLayoutValues(context, node, &layout,
+                                      MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
+              "direction");
+        break;
+    case 7:
+        *available = 300.0f + (float)NextRandom(random, 200);
+        break;
+    case 8:
+    {
+        // A node other than the root moves under another that is not
+        // below it.
+        muiNodeId parent = nodes[NextRandom(random, count)];
+        if (node.index1 != nodes[0].index1 && !IsAtOrAbove(context, node, parent))
+        {
+            CHECK(muiNode_Detach(context, node) == mui_success &&
+                      muiNode_InsertChild(context, parent, node, s_nullNode) == mui_success,
+                  "moved");
+        }
+        break;
+    }
+    default:
+        visual.outerShadow.color.a = visual.outerShadow.color.a > 0.0f ? 0.0f : 0.5f;
+        visual.outerShadow.blur = 3.0f;
+        SetVisual(context, node, &visual, MUI_PROPERTY_BIT(mui_propertyOuterShadow));
+        break;
+    }
+}
+
+static void TestBuildsFromTheLastListMatchWholeOnes(void)
+{
+    muiContext* context = MakeContext();
+    enum
+    {
+        COUNT = 24
+    };
+    muiNodeId nodes[COUNT];
+    nodes[0] = Add(context, s_nullNode, 400.0f, 300.0f, (muiEdges){4.0f, 0.0f, 4.0f, 0.0f});
+    muiLayoutStyle wrap = muiDefaultLayoutStyle();
+    wrap.container.wrap = mui_wrapWrap;
+    CHECK(muiNode_SetLayoutValues(context, nodes[0], &wrap,
+                                  MUI_PROPERTY_BIT(mui_propertyFlexWrap)) == mui_success,
+          "wrap");
+    for (uint32_t i = 1; i < COUNT; i++)
+    {
+        muiNodeId parent = nodes[(i - 1) / 3];
+        nodes[i] = Add(context, parent, 20.0f + (float)(i % 5) * 7.5f, 16.0f,
+                       (muiEdges){1.0f, 0.0f, 1.0f, 0.0f});
+        muiVisualStyle visual = muiDefaultVisualStyle();
+        visual.background = (muiColor){(float)(i % 3) * 0.4f, 0.3f, 0.6f, 1.0f};
+        SetVisual(context, nodes[i], &visual, MUI_PROPERTY_BIT(mui_propertyBackground));
+    }
+    Random random = {12345u};
+    float available = 400.0f;
+    Snapshot retained;
+    for (int step = 0; step < 300; step++)
+    {
+        Edit(context, nodes, COUNT, &random, &available);
+        const muiLayoutInput layout = {available, 1000.0f, NULL, NULL, 0};
+        CHECK(muiComputeLayout(context, nodes[0], &layout) == mui_success, "layout");
+        CHECK(muiBuildDrawList(context, nodes[0], &(muiDrawInput){7, 1.0f}) == mui_success,
+              "build from the last");
+        muiDrawList list;
+        CHECK(muiGetDrawList(context, &list) == mui_success, "get");
+        Take(&retained, &list);
+        // A build at another scale cannot take from the last list, and the
+        // one after it at scale 1 cannot take from that one.
+        CHECK(muiBuildDrawList(context, nodes[0], &(muiDrawInput){7, 2.0f}) == mui_success &&
+                  muiBuildDrawList(context, nodes[0], &(muiDrawInput){7, 1.0f}) == mui_success,
+              "builds whole");
+        CHECK(muiGetDrawList(context, &list) == mui_success, "get");
+        bool same = SameTables(&retained.list, &list);
+        CHECK(same, "taken equals whole");
+        if (!same)
+        {
+            printf("step %d\n", step);
+            break;
+        }
+    }
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestBoxes();
@@ -658,6 +853,7 @@ int main(void)
     TestRightToLeft();
     TestArgumentsAndLimits();
     TestEdgeCases();
+    TestBuildsFromTheLastListMatchWholeOnes();
     if (getenv(UPDATE_VARIABLE) != NULL)
     {
         WriteGolden();

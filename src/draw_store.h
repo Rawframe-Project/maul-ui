@@ -1,41 +1,71 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The context's draw list: its tables, reserved by the context's limits,
-// and the state painting keeps per node (record mui-0005).
+// The context's draw lists: two of each table, the last list and the one
+// being built from it, reserved by the context's limits, and what each
+// node was last painted as, so that a clean subtree copies its commands
+// (record mui-0005).
 
 #ifndef MAUL_UI_SRC_DRAW_STORE_H
 #define MAUL_UI_SRC_DRAW_STORE_H
 
 #include "maul-ui/draw.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 
-// What a node passes to its children while it is painted: its border
-// box's origin on the surface, the clip they are drawn in, and the
-// opacity they are multiplied by.
+// A span of a table: from first up to, not including, end.
+typedef struct muiDrawRange
+{
+    uint32_t first;
+    uint32_t end;
+} muiDrawRange;
+
+// A node as the build numbered build painted it: its border box
+// relative to its parent, its origin on the surface, the opacity and
+// clip it passes to its children, the opacity it was painted in, and
+// the spans of the tables its subtree filled.
 typedef struct muiPaintState
 {
+    uint64_t build;
+    muiRect rect;
     float x;
     float y;
     uint32_t clip;
     float opacity;
+    float inherited;
+    muiDrawRange commands;
+    muiDrawRange clips;
+    muiDrawRange gradients;
 } muiPaintState;
+
+// One list's tables. Entry 0 of the clips and gradients is the
+// placeholder for none.
+typedef struct muiDrawTables
+{
+    muiDrawCommand* commands;
+    muiDrawClip* clips;
+    muiDrawGradient* gradients;
+    uint32_t commandCount;
+    uint32_t clipCount;
+    uint32_t gradientCount;
+} muiDrawTables;
 
 typedef struct muiDrawStore
 {
     muiDrawHeader header;
-    muiDrawCommand* commands;
-    uint32_t commandCount;
+    // The list shown, and the other, which the next build writes.
+    muiDrawTables tables[2];
+    uint32_t current;
+    // Capacities; those of clips and gradients count the placeholder.
     uint32_t commandCapacity;
-    // Entry 0 of the clips and gradients is the placeholder for none, so
-    // their capacities count it.
-    muiDrawClip* clips;
-    uint32_t clipCount;
     uint32_t clipCapacity;
-    muiDrawGradient* gradients;
-    uint32_t gradientCount;
     uint32_t gradientCapacity;
+    // Whether the shown list was built whole, and of which root, so that
+    // the next build may take from it.
+    bool complete;
+    uint32_t rootIndex;
+    uint32_t rootGeneration;
     muiDrawTransform identity;
     // Per node, parallel to the tree's slots.
     muiPaintState* states;

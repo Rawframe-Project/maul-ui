@@ -1,16 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Painting a subtree into the draw list (record mui-0005). The walk is
-// preorder over the tree's links, each node reading what its parent left
-// in the per-node paint state, so it needs no stack. Records are zeroed
-// before their fields are written, so equal trees give equal bytes.
+// Painting one node (record mui-0005). Records are zeroed before their
+// fields are written, so equal trees give equal bytes.
+
+#include "paint.h"
 
 #include "color.h"
-#include "context.h"
-#include "draw_store.h"
 #include "layout_node.h"
-#include "tree.h"
 
 #include "maul-ui/draw.h"
 
@@ -23,35 +20,9 @@ static_assert(sizeof(muiDrawBox) == 136 && sizeof(muiDrawShadow) == 68 &&
                   sizeof(muiDrawClip) == 44 && sizeof(muiDrawGradient) == 96,
               "draw records have no padding");
 
-enum
-{
-    // Colors converted in a build, kept by a hash of their bits: nodes
-    // share colors through their classes, and a conversion takes three
-    // powers.
-    COLOR_CACHE = 64
-};
-
-// A color's bits and its red, green and blue in linear light. A zeroed
-// entry holds clear black, whose are 0.
-typedef struct CachedColor
-{
-    uint32_t bits[4];
-    double rgb[3];
-} CachedColor;
-
-// What one build writes to, and whether something did not fit.
-typedef struct Painter
-{
-    muiContext* context;
-    muiDrawStore* store;
-    float scale;
-    bool full;
-    CachedColor colors[COLOR_CACHE];
-} Painter;
-
 // A color in linear light times opacity, converted from the cache when a
 // node before converted the same bits.
-static muiLinearColor Linear(Painter* painter, muiColor color, float opacity)
+static muiLinearColor Linear(muiPainter* painter, muiColor color, float opacity)
 {
     uint32_t words[4];
     memcpy(words, &color, sizeof color);
@@ -60,7 +31,7 @@ static muiLinearColor Linear(Painter* painter, muiColor color, float opacity)
     {
         hash = (hash ^ words[i]) * 16777619u;
     }
-    CachedColor* entry = &painter->colors[hash % COLOR_CACHE];
+    muiCachedColor* entry = &painter->colors[hash % MUI_PAINT_COLOR_CACHE];
     if (memcmp(entry->bits, words, sizeof words) != 0)
     {
         memcpy(entry->bits, words, sizeof words);
@@ -127,31 +98,31 @@ static muiCorners Radii(const muiCornerRadii* radii, muiRect rect, bool rtl)
                : (muiCorners){topStart, topEnd, bottomEnd, bottomStart};
 }
 
-static muiDrawCommand* TakeCommand(Painter* painter, muiDrawKind kind, uint32_t clip)
+static muiDrawCommand* TakeCommand(muiPainter* painter, muiDrawKind kind, uint32_t clip)
 {
-    muiDrawStore* store = painter->store;
-    if (store->commandCount == store->commandCapacity)
+    muiDrawTables* out = painter->out;
+    if (out->commandCount == painter->commandCapacity)
     {
         painter->full = true;
         return nullptr;
     }
-    muiDrawCommand* command = &store->commands[store->commandCount++];
+    muiDrawCommand* command = &out->commands[out->commandCount++];
     memset(command, 0, sizeof *command);
     command->kind = kind;
     command->clip = clip;
     return command;
 }
 
-static uint32_t AddGradient(Painter* painter, const muiGradient* gradient, float opacity)
+static uint32_t AddGradient(muiPainter* painter, const muiGradient* gradient, float opacity)
 {
-    muiDrawStore* store = painter->store;
-    if (store->gradientCount == store->gradientCapacity)
+    muiDrawTables* out = painter->out;
+    if (out->gradientCount == painter->gradientCapacity)
     {
         painter->full = true;
         return 0;
     }
-    uint32_t index = store->gradientCount++;
-    muiDrawGradient* entry = &store->gradients[index];
+    uint32_t index = out->gradientCount++;
+    muiDrawGradient* entry = &out->gradients[index];
     memset(entry, 0, sizeof *entry);
     entry->kind = gradient->kind;
     entry->stopCount = gradient->stopCount;
@@ -165,7 +136,7 @@ static uint32_t AddGradient(Painter* painter, const muiGradient* gradient, float
     return index;
 }
 
-static void AddShadow(Painter* painter, const muiShadow* shadow, muiRect rect, muiCorners radii,
+static void AddShadow(muiPainter* painter, const muiShadow* shadow, muiRect rect, muiCorners radii,
                       bool inset, const muiPaintState* state)
 {
     if (shadow->color.a <= 0.0f)
@@ -228,7 +199,7 @@ static bool HasVisibleBorder(const Borders* borders)
     return false;
 }
 
-static void AddBox(Painter* painter, const muiVisualStyle* visual, const Borders* borders,
+static void AddBox(muiPainter* painter, const muiVisualStyle* visual, const Borders* borders,
                    muiRect rect, muiCorners radii, const muiPaintState* state)
 {
     bool gradient = visual->gradient.kind != mui_gradientNone;
@@ -258,7 +229,7 @@ static void AddBox(Painter* painter, const muiVisualStyle* visual, const Borders
     }
 }
 
-static void AddImage(Painter* painter, const muiVisualStyle* visual, muiRect rect,
+static void AddImage(muiPainter* painter, const muiVisualStyle* visual, muiRect rect,
                      const muiPaintState* state)
 {
     if (visual->image == 0)
@@ -295,16 +266,16 @@ static void PaddingBox(muiRect* rect, muiCorners* radii, const muiSides* widths)
 
 // A clip of the node's rounded border box for its children, inside the
 // clip it is drawn in; that clip when none fits.
-static uint32_t AddClip(Painter* painter, muiRect rect, muiCorners radii, uint32_t parent)
+static uint32_t AddClip(muiPainter* painter, muiRect rect, muiCorners radii, uint32_t parent)
 {
-    muiDrawStore* store = painter->store;
-    if (store->clipCount == store->clipCapacity)
+    muiDrawTables* out = painter->out;
+    if (out->clipCount == painter->clipCapacity)
     {
         painter->full = true;
         return parent;
     }
-    uint32_t index = store->clipCount++;
-    muiDrawClip* clip = &store->clips[index];
+    uint32_t index = out->clipCount++;
+    muiDrawClip* clip = &out->clips[index];
     memset(clip, 0, sizeof *clip);
     clip->rect = SnapRect(rect, painter->scale);
     clip->radii = radii;
@@ -312,16 +283,12 @@ static uint32_t AddClip(Painter* painter, muiRect rect, muiCorners radii, uint32
     return index;
 }
 
-// Paints one node from its parent's state into its own; false when the
-// node and its subtree draw nothing.
-static bool PaintNode(Painter* painter, uint32_t slot, const muiPaintState* parent)
+bool muiPaintNode(muiPainter* painter, uint32_t slot, muiPaintState* state)
 {
-    muiContext* context = painter->context;
+    const muiContext* context = painter->context;
     const muiLayoutNode* layout = &context->layout[slot - 1];
     const muiVisualStyle* visual = &context->visual[slot - 1];
-    muiPaintState* state = &painter->store->states[slot - 1];
-    *state = (muiPaintState){parent->x + layout->rect.x, parent->y + layout->rect.y, parent->clip,
-                             parent->opacity * visual->opacity};
+    state->opacity = state->inherited * visual->opacity;
     if (state->opacity <= 0.0f)
     {
         return false;
@@ -341,106 +308,4 @@ static bool PaintNode(Painter* painter, uint32_t slot, const muiPaintState* pare
         state->clip = AddClip(painter, rect, radii, state->clip);
     }
     return true;
-}
-
-// The node after at in preorder below root, skipping at's subtree when
-// descend is false; 0 at the end.
-static uint32_t Next(const muiTree* tree, uint32_t root, uint32_t at, bool descend)
-{
-    if (descend && muiTreeAt(tree, at)->links.firstChild != 0)
-    {
-        return muiTreeAt(tree, at)->links.firstChild;
-    }
-    while (at != root && muiTreeAt(tree, at)->links.next == 0)
-    {
-        at = muiTreeAt(tree, at)->links.parent;
-    }
-    return at == root ? 0 : muiTreeAt(tree, at)->links.next;
-}
-
-static void Paint(Painter* painter, uint32_t root)
-{
-    const muiTree* tree = &painter->context->tree;
-    const muiPaintState top = {0.0f, 0.0f, 0, 1.0f};
-    for (uint32_t at = root; at != 0 && !painter->full;)
-    {
-        uint32_t parent = at == root ? 0 : muiTreeAt(tree, at)->links.parent;
-        const muiPaintState* above = parent != 0 ? &painter->store->states[parent - 1] : &top;
-        bool drawn = PaintNode(painter, at, above);
-        at = Next(tree, root, at, drawn);
-    }
-}
-
-static void Clear(muiDrawStore* store)
-{
-    store->header = (muiDrawHeader){0};
-    store->commandCount = 0;
-    store->clipCount = 1;
-    store->gradientCount = 1;
-}
-
-muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawInput* input)
-{
-    if (context == nullptr)
-    {
-        return mui_errorInvalid;
-    }
-    if (input == nullptr || rootId.index1 == 0 || !isfinite(input->scale) || input->scale <= 0.0f ||
-        muiIsMeasuring(context))
-    {
-        return muiRefuse(context);
-    }
-    uint32_t root = muiTreeResolve(&context->tree, rootId);
-    if (root == 0)
-    {
-        return mui_errorStale;
-    }
-    muiDrawStore* store = &context->draw;
-    uint64_t generation = store->header.generation + 1;
-    Clear(store);
-    // Large for the stack, so it is cleared here once rather than built.
-    static_assert(sizeof(Painter) < 8192, "a painter fits a stack frame");
-    Painter painter;
-    memset(&painter, 0, sizeof painter);
-    painter.context = context;
-    painter.store = store;
-    painter.scale = input->scale;
-    Paint(&painter, root);
-    if (painter.full)
-    {
-        Clear(store);
-        store->header.generation = generation;
-        return mui_errorCapacity;
-    }
-    const muiRect* rect = &context->layout[root - 1].rect;
-    store->header = (muiDrawHeader){
-        .surface = input->surface,
-        .generation = generation,
-        .width = rect->width,
-        .height = rect->height,
-        .scale = input->scale,
-    };
-    (void)muiTreeSweep(&context->tree, root, mui_stagePaint);
-    return mui_success;
-}
-
-muiResult muiGetDrawList(const muiContext* context, muiDrawList* listOut)
-{
-    if (context == nullptr || listOut == nullptr)
-    {
-        return mui_errorInvalid;
-    }
-    const muiDrawStore* store = &context->draw;
-    *listOut = (muiDrawList){
-        .header = store->header,
-        .commands = store->commands,
-        .commandCount = store->commandCount,
-        .clipCount = store->clipCount,
-        .clips = store->clips,
-        .transforms = &store->identity,
-        .transformCount = 1,
-        .gradientCount = store->gradientCount,
-        .gradients = store->gradients,
-    };
-    return mui_success;
 }

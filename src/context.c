@@ -148,12 +148,13 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
                                   alignof(muiThemeOverride)),
         .paintStates =
             muiLayoutAdd(layout, limits->nodes, sizeof(muiPaintState), alignof(muiPaintState)),
-        .drawCommands = muiLayoutAdd(layout, limits->drawCommands, sizeof(muiDrawCommand),
-                                     alignof(muiDrawCommand)),
-        // Clips and gradients have the placeholder for none at 0.
-        .drawClips = muiLayoutAdd(layout, (size_t)limits->drawClips + 1, sizeof(muiDrawClip),
+        // Two lists: the last, and the one built from it. Clips and
+        // gradients have the placeholder for none at 0.
+        .drawCommands = muiLayoutAdd(layout, (size_t)limits->drawCommands * 2,
+                                     sizeof(muiDrawCommand), alignof(muiDrawCommand)),
+        .drawClips = muiLayoutAdd(layout, ((size_t)limits->drawClips + 1) * 2, sizeof(muiDrawClip),
                                   alignof(muiDrawClip)),
-        .drawGradients = muiLayoutAdd(layout, (size_t)limits->drawGradients + 1,
+        .drawGradients = muiLayoutAdd(layout, ((size_t)limits->drawGradients + 1) * 2,
                                       sizeof(muiDrawGradient), alignof(muiDrawGradient)),
     };
 }
@@ -219,14 +220,20 @@ muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut)
     themes->overrides = (muiThemeOverride*)(block + parts.overrides);
     muiDrawStore* draw = &context->draw;
     draw->states = (muiPaintState*)(block + parts.paintStates);
-    draw->commands = (muiDrawCommand*)(block + parts.drawCommands);
     draw->commandCapacity = def->limits.drawCommands;
-    draw->clips = (muiDrawClip*)(block + parts.drawClips);
     draw->clipCapacity = def->limits.drawClips + 1;
-    draw->clipCount = 1;
-    draw->gradients = (muiDrawGradient*)(block + parts.drawGradients);
     draw->gradientCapacity = def->limits.drawGradients + 1;
-    draw->gradientCount = 1;
+    for (uint32_t i = 0; i < 2; i++)
+    {
+        draw->tables[i] = (muiDrawTables){
+            .commands = (muiDrawCommand*)(block + parts.drawCommands) + i * draw->commandCapacity,
+            .clips = (muiDrawClip*)(block + parts.drawClips) + i * draw->clipCapacity,
+            .gradients =
+                (muiDrawGradient*)(block + parts.drawGradients) + i * draw->gradientCapacity,
+            .clipCount = 1,
+            .gradientCount = 1,
+        };
+    }
     draw->identity = (muiDrawTransform){1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
     *contextOut = context;
     return mui_success;
