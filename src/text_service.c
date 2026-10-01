@@ -33,7 +33,7 @@ enum
 static void* FreeTypeAlloc(FT_Memory memory, long size)
 {
     const muiTextService* service = memory->user;
-    if (size <= 0 || (unsigned long)size > SIZE_MAX - HEADER)
+    if (size <= 0 || (size_t)size > SIZE_MAX - HEADER)
     {
         return nullptr;
     }
