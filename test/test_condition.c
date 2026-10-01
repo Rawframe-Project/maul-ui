@@ -489,6 +489,107 @@ static void TestDirectionClauseReadsTheLastLayout(void)
     muiDestroyContext(context);
 }
 
+static void SetSize(muiContext* context, muiNodeId node, float width, float height)
+{
+    muiLayoutStyle values = muiDefaultLayoutStyle();
+    values.sizing.width = Length(width);
+    values.sizing.height = Length(height);
+    CHECK(muiNode_SetLayoutValues(context, node, &values,
+                                  WIDTH | MUI_PROPERTY_BIT(mui_propertyHeight)) == mui_success,
+          "size");
+}
+
+// Lays root out until nothing is pending, at most three times.
+static void Settle(muiContext* context, muiNodeId root)
+{
+    for (int i = 0; i < 3 && muiIsUpdatePending(context, root); i++)
+    {
+        Compute(context, root);
+    }
+    CHECK(!muiIsUpdatePending(context, root), "settles");
+}
+
+static void TestAspectAndHeightClausesFollowLayout(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId node = MakeNode(context);
+    SetSize(context, node, 100.0f, 100.0f);
+    muiStyleId style = MakeStyle(context);
+    muiCondition wide = muiDefaultCondition();
+    wide.aspect = (muiRange){2.0f, INFINITY};
+    AddPadding(context, style, &wide, 5.0f);
+    CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
+    Settle(context, node);
+    CHECK(PaddingOf(context, node) == 0.0f, "square");
+    SetSize(context, node, 300.0f, 100.0f);
+    Settle(context, node);
+    CHECK(PaddingOf(context, node) == 5.0f, "an aspect clause alone follows a width change");
+    muiCondition low = muiDefaultCondition();
+    low.height = (muiRange){0.0f, 50.0f};
+    AddPadding(context, style, &low, 7.0f);
+    Settle(context, node);
+    CHECK(PaddingOf(context, node) == 5.0f, "tall");
+    SetSize(context, node, 300.0f, 40.0f);
+    Settle(context, node);
+    CHECK(PaddingOf(context, node) == 7.0f, "a height change alone is followed");
+    muiDestroyContext(context);
+}
+
+static void TestOnlyConditionsThatApplyAreWatched(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId node = MakeNode(context);
+    SetSize(context, node, 100.0f, 100.0f);
+    muiStyleId style = MakeStyle(context);
+    muiCondition narrow = muiDefaultCondition();
+    narrow.width = (muiRange){0.0f, 150.0f};
+    muiVariant variant = mui_variantBase;
+    CHECK(muiStyle_AddCondition(context, style, &narrow, &variant) == mui_success,
+          "a condition with no values");
+    CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
+    Settle(context, node);
+    SetSize(context, node, 200.0f, 100.0f);
+    Compute(context, node);
+    CHECK(!muiIsUpdatePending(context, node), "a condition without values reads nothing");
+    // A node whose every property is direct reads nothing either, once
+    // it is styled again.
+    muiStyleId watched = MakeStyle(context);
+    AddPadding(context, watched, &narrow, 4.0f);
+    CHECK(muiNode_SetClasses(context, node, &watched, 1) == mui_success, "watched class");
+    Settle(context, node);
+    muiLayoutStyle all = muiDefaultLayoutStyle();
+    all.sizing.width = Length(120.0f);
+    CHECK(muiNode_SetLayoutStyle(context, node, &all) == mui_success, "every property direct");
+    CHECK(muiNode_SetStates(context, node, mui_stateHovered) == mui_success, "restyle");
+    Settle(context, node);
+    SetSize(context, node, 130.0f, 0.0f);
+    Compute(context, node);
+    CHECK(!muiIsUpdatePending(context, node), "an all-direct node is not watched");
+    muiDestroyContext(context);
+}
+
+static void TestDirectValuesSurviveAConditionWrite(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId node = MakeNode(context);
+    muiStyleId style = MakeStyle(context);
+    muiVariant variant = mui_variantBase;
+    muiCondition always = muiDefaultCondition();
+    CHECK(muiStyle_AddCondition(context, style, &always, &variant) == mui_success, "add");
+    muiLayoutStyle values = muiDefaultLayoutStyle();
+    values.sizing.width = Length(25.0f);
+    values.padding.start = 2.0f;
+    CHECK(muiStyle_SetLayoutValues(context, style, variant, &values, WIDTH | PADDING_START) ==
+              mui_success,
+          "width and padding");
+    CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
+    SetWidth(context, node, 50.0f);
+    Compute(context, node);
+    CHECK(PaddingOf(context, node) == 2.0f, "the condition's padding");
+    CHECK(muiNode_GetRect(context, node).width == 50.0f, "beside the direct width");
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestDefaults();
@@ -500,5 +601,8 @@ int main(void)
     TestConditionsLayerAboveStates();
     TestSizeClausesReadTheLastLayout();
     TestDirectionClauseReadsTheLastLayout();
+    TestAspectAndHeightClausesFollowLayout();
+    TestOnlyConditionsThatApplyAreWatched();
+    TestDirectValuesSurviveAConditionWrite();
     return s_failures == 0 ? 0 : 1;
 }
