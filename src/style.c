@@ -16,6 +16,8 @@
 #include "style_store.h"
 #include "tree.h"
 
+#include "maul-ui/visual.h"
+
 // The condition of a variant that has one, or NULL.
 static const muiCondition* ConditionOf(const muiStyleClass* class, muiVariant variant)
 {
@@ -76,14 +78,15 @@ muiResult muiDestroyStyle(muiContext* context, muiStyleId styleId)
     return mui_success;
 }
 
-muiResult muiStyle_SetLayoutValues(muiContext* context, muiStyleId styleId, muiVariant variant,
-                                   const muiLayoutStyle* values, muiPropertyMask mask)
+// Sets the properties mask names, within allowed, from values.
+static muiResult SetValues(muiContext* context, muiStyleId styleId, muiVariant variant,
+                           muiConstValuesRef values, muiPropertyMask mask, muiPropertyMask allowed)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
-    if (values == nullptr || !muiArePropertiesValid(values, mask))
+    if ((mask & ~allowed) != 0 || !muiArePropertiesValid(values, mask))
     {
         return muiRefuse(context);
     }
@@ -106,10 +109,33 @@ muiResult muiStyle_SetLayoutValues(muiContext* context, muiStyleId styleId, muiV
     {
         return mui_errorCapacity;
     }
-    muiApplyProperties(&target->values, values, mask);
+    muiApplyProperties(muiRefOf(&target->values), values, mask);
     target->mask |= mask;
+    store->reach |= mask;
     muiRestyleAll(context);
     return mui_success;
+}
+
+muiResult muiStyle_SetLayoutValues(muiContext* context, muiStyleId styleId, muiVariant variant,
+                                   const muiLayoutStyle* values, muiPropertyMask mask)
+{
+    if (values == nullptr)
+    {
+        return context != nullptr ? muiRefuse(context) : mui_errorInvalid;
+    }
+    return SetValues(context, styleId, variant, (muiConstValuesRef){values, nullptr}, mask,
+                     MUI_LAYOUT_PROPERTIES);
+}
+
+muiResult muiStyle_SetVisualValues(muiContext* context, muiStyleId styleId, muiVariant variant,
+                                   const muiVisualStyle* values, muiPropertyMask mask)
+{
+    if (values == nullptr)
+    {
+        return context != nullptr ? muiRefuse(context) : mui_errorInvalid;
+    }
+    return SetValues(context, styleId, variant, (muiConstValuesRef){nullptr, values}, mask,
+                     MUI_VISUAL_PROPERTIES);
 }
 
 muiResult muiStyle_ResetProperties(muiContext* context, muiStyleId styleId, muiVariant variant,
@@ -119,7 +145,7 @@ muiResult muiStyle_ResetProperties(muiContext* context, muiStyleId styleId, muiV
     {
         return mui_errorInvalid;
     }
-    if ((mask & ~MUI_LAYOUT_PROPERTIES) != 0)
+    if ((mask & ~MUI_ALL_PROPERTIES) != 0)
     {
         return muiRefuse(context);
     }
@@ -144,11 +170,12 @@ muiResult muiStyle_ResetProperties(muiContext* context, muiStyleId styleId, muiV
     return mui_success;
 }
 
-muiResult muiStyle_GetLayoutValues(const muiContext* context, muiStyleId styleId,
-                                   muiVariant variant, muiLayoutStyle* valuesOut,
-                                   muiPropertyMask* maskOut)
+// Reads the values a variant sets among allowed into out, which holds the
+// defaults for the rest.
+static muiResult GetValues(const muiContext* context, muiStyleId styleId, muiVariant variant,
+                           muiValuesRef out, muiPropertyMask allowed, muiPropertyMask* maskOut)
 {
-    if (context == nullptr || valuesOut == nullptr || maskOut == nullptr || styleId.index1 == 0)
+    if (context == nullptr || maskOut == nullptr || styleId.index1 == 0)
     {
         return mui_errorInvalid;
     }
@@ -162,15 +189,45 @@ muiResult muiStyle_GetLayoutValues(const muiContext* context, muiStyleId styleId
     {
         return mui_errorInvalid;
     }
-    *valuesOut = muiDefaultLayoutStyle();
     *maskOut = 0;
     uint32_t set = store->classes[slot - 1].sets[variant];
     if (set != 0)
     {
-        muiApplyProperties(valuesOut, &store->sets[set - 1].values, store->sets[set - 1].mask);
-        *maskOut = store->sets[set - 1].mask;
+        *maskOut = store->sets[set - 1].mask & allowed;
+        muiApplyProperties(out, muiConstRefOf(&store->sets[set - 1].values), *maskOut);
     }
     return mui_success;
+}
+
+muiResult muiStyle_GetLayoutValues(const muiContext* context, muiStyleId styleId,
+                                   muiVariant variant, muiLayoutStyle* valuesOut,
+                                   muiPropertyMask* maskOut)
+{
+    if (valuesOut == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    *valuesOut = muiDefaultLayoutStyle();
+    return GetValues(context, styleId, variant, (muiValuesRef){valuesOut, nullptr},
+                     MUI_LAYOUT_PROPERTIES, maskOut);
+}
+
+muiResult muiStyle_GetVisualValues(const muiContext* context, muiStyleId styleId,
+                                   muiVariant variant, muiVisualStyle* valuesOut,
+                                   muiPropertyMask* maskOut)
+{
+    if (valuesOut == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    *valuesOut = muiDefaultVisualStyle();
+    return GetValues(context, styleId, variant, (muiValuesRef){nullptr, valuesOut},
+                     MUI_VISUAL_PROPERTIES, maskOut);
+}
+
+muiVisualStyle muiDefaultVisualStyle(void)
+{
+    return *muiVisualDefaults();
 }
 
 muiResult muiStyle_AddCondition(muiContext* context, muiStyleId styleId,

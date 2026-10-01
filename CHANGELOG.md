@@ -53,3 +53,9 @@ format.
   host's `muiLayoutInput.timeNs`, with CSS reversal shortening, springs
   that keep their speed, reduced motion, and new `transitions` and
   `animations` limits.
+- Visual values (`maul-ui/visual.h`): background, gradient, corner
+  radii, border colors, shadows, image with 9-slice and tint, opacity
+  and clipping, set through the same classes, variants, conditions,
+  transitions and direct writes as layout values and marking paint
+  only. `MUI_VISUAL_PROPERTIES` and `MUI_ALL_PROPERTIES` join
+  `MUI_LAYOUT_PROPERTIES`. The benchmark gains a painted list.

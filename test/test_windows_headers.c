@@ -12,6 +12,8 @@
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
+#include "maul-ui/transition.h"
+#include "maul-ui/visual.h"
 
 #include <windows.h>
 

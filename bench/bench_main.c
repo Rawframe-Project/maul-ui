@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Layout timings over three trees: a list of 10,000 rows (an icon, a
+// Layout timings over four trees: a list of 10,000 rows (an icon, a
 // label of host content and a growing spacer each, 40,001 nodes), the
 // same list styled through node types and a hovered variant instead of
-// direct writes, and a tree nine levels deep with three children per
-// node (9,841 nodes). For each: a cold layout, a static frame, one
-// change (a label's content, or for the styled list a row hovered), and
-// a new width.
+// direct writes, the styled list painted too (a background, corner radii
+// and border colors, and a hovered background), and a tree nine levels
+// deep with three children per node (9,841 nodes). For each: a cold
+// layout, a static frame, one change (a label's content, or for the
+// styled lists a row hovered), and a new width.
 // Prints the best of five runs in microseconds, and how many times the
 // host was asked to measure, which does not depend on the machine.
 
@@ -15,6 +16,7 @@
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
+#include "maul-ui/visual.h"
 
 #include <stdio.h>
 #include <time.h>
@@ -83,11 +85,21 @@ static muiNodeId Add(muiContext* context, muiNodeId parent, const muiLayoutStyle
     return node;
 }
 
+// The visual properties a painted class sets in its base variant.
+#define PAINTED                                                                                    \
+    (MUI_PROPERTY_BIT(mui_propertyBackground) | MUI_PROPERTY_BIT(mui_propertyRadiusTopStart) |     \
+     MUI_PROPERTY_BIT(mui_propertyRadiusTopEnd) | MUI_PROPERTY_BIT(mui_propertyRadiusBottomEnd) |  \
+     MUI_PROPERTY_BIT(mui_propertyRadiusBottomStart) |                                             \
+     MUI_PROPERTY_BIT(mui_propertyBorderColorStart) |                                              \
+     MUI_PROPERTY_BIT(mui_propertyBorderColorEnd) | MUI_PROPERTY_BIT(mui_propertyBorderColorTop) | \
+     MUI_PROPERTY_BIT(mui_propertyBorderColorBottom))
+
 // A node type with one class that sets every layout property from style,
 // the most resolution can apply, and a hovered variant with hovered's
-// start padding when hovered is not NULL.
+// start padding when hovered is not NULL. Painted, the class also sets a
+// background, radii and border colors, and hovered a background.
 static muiNodeTypeId MakeType(muiContext* context, const muiLayoutStyle* style,
-                              const muiLayoutStyle* hovered)
+                              const muiLayoutStyle* hovered, bool painted)
 {
     muiStyleId class = {0, 0};
     Check(muiCreateStyle(context, &class), "class");
@@ -99,6 +111,21 @@ static muiNodeTypeId MakeType(muiContext* context, const muiLayoutStyle* style,
                                        MUI_PROPERTY_BIT(mui_propertyPaddingStart)),
               "hovered");
     }
+    if (painted)
+    {
+        muiVisualStyle visual = muiDefaultVisualStyle();
+        visual.background = (muiColor){0.95f, 0.95f, 0.97f, 1.0f};
+        const muiDimension radius = {0.0f, 4.0f, mui_dimensionValue};
+        visual.radius = (muiCornerRadii){radius, radius, radius, radius};
+        const muiColor edge = {0.8f, 0.8f, 0.85f, 1.0f};
+        visual.borderColor = (muiEdgeColors){edge, edge, edge, edge};
+        Check(muiStyle_SetVisualValues(context, class, mui_variantBase, &visual, PAINTED),
+              "painted");
+        visual.background = (muiColor){0.85f, 0.9f, 1.0f, 1.0f};
+        Check(muiStyle_SetVisualValues(context, class, mui_variantHovered, &visual,
+                                       MUI_PROPERTY_BIT(mui_propertyBackground)),
+              "painted hovered");
+    }
     muiNodeTypeId type = {0, 0};
     Check(muiCreateNodeType(context, &class, 1, &type), "type");
     return type;
@@ -106,8 +133,9 @@ static muiNodeTypeId MakeType(muiContext* context, const muiLayoutStyle* style,
 
 // Returns the root; the label of the middle row in labelOut and the row
 // in rowOut. With styled set, rows, icons, labels and spacers take their
-// values from node types.
-static muiNodeId BuildList(muiContext* context, bool styled, muiNodeId* labelOut, muiNodeId* rowOut)
+// values from node types, and with painted set too, visual values.
+static muiNodeId BuildList(muiContext* context, bool styled, bool painted, muiNodeId* labelOut,
+                           muiNodeId* rowOut)
 {
     const muiNodeTypeId none = {0, 0};
     muiLayoutStyle column = muiDefaultLayoutStyle();
@@ -127,10 +155,10 @@ static muiNodeId BuildList(muiContext* context, bool styled, muiNodeId* labelOut
     label.content = mui_contentHost;
     muiLayoutStyle spacer = muiDefaultLayoutStyle();
     spacer.item.grow = 1.0f;
-    muiNodeTypeId rowType = styled ? MakeType(context, &row, &hovered) : none;
-    muiNodeTypeId iconType = styled ? MakeType(context, &icon, NULL) : none;
-    muiNodeTypeId labelType = styled ? MakeType(context, &label, NULL) : none;
-    muiNodeTypeId spacerType = styled ? MakeType(context, &spacer, NULL) : none;
+    muiNodeTypeId rowType = styled ? MakeType(context, &row, &hovered, painted) : none;
+    muiNodeTypeId iconType = styled ? MakeType(context, &icon, NULL, painted) : none;
+    muiNodeTypeId labelType = styled ? MakeType(context, &label, NULL, false) : none;
+    muiNodeTypeId spacerType = styled ? MakeType(context, &spacer, NULL, false) : none;
     for (uint64_t i = 0; i < ROWS; i++)
     {
         muiNodeId line = Add(context, root, &row, rowType, 0);
@@ -210,6 +238,7 @@ enum
 {
     kindList,
     kindStyled,
+    kindPainted,
     kindDeep,
 };
 
@@ -228,10 +257,10 @@ static void Run(const char* name, Kind kind)
             return;
         }
         muiNodeId row = {0, 0};
-        scene.root = kind == kindDeep
-                         ? BuildDeep(scene.context, (muiNodeId){0, 0}, 0, &scene.leaf)
-                         : BuildList(scene.context, kind == kindStyled, &scene.leaf, &row);
-        scene.row = kind == kindStyled ? row : (muiNodeId){0, 0};
+        scene.root = kind == kindDeep ? BuildDeep(scene.context, (muiNodeId){0, 0}, 0, &scene.leaf)
+                                      : BuildList(scene.context, kind != kindList,
+                                                  kind == kindPainted, &scene.leaf, &row);
+        scene.row = kind == kindStyled || kind == kindPainted ? row : (muiNodeId){0, 0};
         const float widths[4] = {800.0f, 800.0f, 800.0f, 640.0f};
         for (int i = 0; i < 4; i++)
         {
@@ -244,7 +273,7 @@ static void Run(const char* name, Kind kind)
     const char* labels[4] = {"cold", "static", "one change", "resize"};
     for (int i = 0; i < 4; i++)
     {
-        printf("%-6s %-10s %12.1f us %8ld measured\n", name, labels[i], best[i], measured[i]);
+        printf("%-7s %-10s %12.1f us %8ld measured\n", name, labels[i], best[i], measured[i]);
     }
 }
 
@@ -252,6 +281,7 @@ int main(void)
 {
     Run("list", kindList);
     Run("styled", kindStyled);
+    Run("painted", kindPainted);
     Run("deep", kindDeep);
     return 0;
 }

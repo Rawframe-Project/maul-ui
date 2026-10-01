@@ -37,6 +37,25 @@ uint32_t muiFindAnimation(const muiMotion* motion, uint32_t node, muiProperty pr
     return 0;
 }
 
+static muiValuesRef NodeValues(const muiMotion* motion, uint32_t node)
+{
+    return (muiValuesRef){&motion->nodes[node - 1].style, &motion->visuals[node - 1]};
+}
+
+// A moved layout property lays the node out again; a visual one only
+// paints it again.
+static void MarkMoved(const muiMotion* motion, uint32_t node, muiProperty property)
+{
+    if ((MUI_LAYOUT_PROPERTIES & MUI_PROPERTY_BIT(property)) != 0)
+    {
+        muiTreeMarkLayout(motion->tree, node);
+    }
+    else
+    {
+        muiTreeMark(motion->tree, node, mui_stagePaint);
+    }
+}
+
 static void Unlink(const muiMotion* motion, uint32_t node, uint32_t record)
 {
     uint32_t* link = &motion->styles[node - 1].firstAnimation;
@@ -149,7 +168,8 @@ bool muiStartAnimation(const muiMotion* motion, uint32_t node, muiProperty prope
                        const float target[2], const muiTransitionSpec* spec, uint64_t nowNs)
 {
     float current[2] = {0.0f, 0.0f};
-    uint32_t channels = muiPropertyChannels(&motion->nodes[node - 1].style, property, current);
+    uint32_t channels =
+        muiPropertyChannels(muiConstRef(NodeValues(motion, node)), property, current);
     uint32_t running = muiFindAnimation(motion, node, property);
     double velocity[2] = {0.0, 0.0};
     float reversingStart[2] = {current[0], current[1]};
@@ -234,8 +254,8 @@ void muiAdvanceAnimations(const muiMotion* motion, uint64_t nowNs, bool finish)
             value[0] = animation->to[0];
             value[1] = animation->to[1];
         }
-        muiSetPropertyChannels(&motion->nodes[node - 1].style, animation->property, value);
-        muiTreeMarkLayout(motion->tree, node);
+        muiSetPropertyChannels(NodeValues(motion, node), animation->property, value);
+        MarkMoved(motion, node, animation->property);
         if (arrived)
         {
             Release(motion, node, record);

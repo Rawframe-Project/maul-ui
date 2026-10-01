@@ -63,13 +63,14 @@ typedef struct muiAnimationStore
     uint32_t running;
 } muiAnimationStore;
 
-// What transitions work on: the store, the nodes' values, the nodes'
-// style data (which holds each node's first record) and the tree they
-// mark.
+// What transitions work on: the store, the nodes' layout and visual
+// values, their style data (which holds each node's first record) and the
+// tree they mark.
 typedef struct muiMotion
 {
     muiAnimationStore* store;
     muiLayoutNode* nodes;
+    muiVisualStyle* visuals;
     muiNodeStyle* styles;
     muiTree* tree;
 } muiMotion;

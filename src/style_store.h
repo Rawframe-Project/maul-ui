@@ -91,6 +91,10 @@ typedef struct muiStyleStore
     muiPropertySet* sets;
     // Per node, parallel to the node store's slots.
     muiNodeStyle* nodes;
+    // Every property a class has given a value or a node has reset, never
+    // cleared: any other property holds its default or a direct write,
+    // so resolution passes it by.
+    muiPropertyMask reach;
 } muiStyleStore;
 
 // Whether classes and count make a list a node or a type may hold.

@@ -39,8 +39,8 @@ extern "C"
         uint32_t generation;
     } muiNodeTypeId;
 
-    // One value a style can set, named after the muiLayoutStyle field it
-    // sets.
+    // One value a style can set, named after the muiLayoutStyle or
+    // muiVisualStyle field it sets.
     typedef uint8_t muiProperty;
 
     enum
@@ -98,15 +98,41 @@ extern "C"
         // Enumerators.
         mui_propertyTextDirection = 38,
         mui_propertyContent = 39,
-        mui_propertyCount = 40,
+        // Visual properties, named after the muiVisualStyle field they set
+        // (maul-ui/visual.h). Colors.
+        mui_propertyBackground = 40,
+        mui_propertyGradient = 41,
+        // Dimensions.
+        mui_propertyRadiusTopStart = 42,
+        mui_propertyRadiusTopEnd = 43,
+        mui_propertyRadiusBottomEnd = 44,
+        mui_propertyRadiusBottomStart = 45,
+        // Colors.
+        mui_propertyBorderColorStart = 46,
+        mui_propertyBorderColorEnd = 47,
+        mui_propertyBorderColorTop = 48,
+        mui_propertyBorderColorBottom = 49,
+        // Shadows.
+        mui_propertyOuterShadow = 50,
+        mui_propertyInnerShadow = 51,
+        // A host key, insets and a color.
+        mui_propertyImage = 52,
+        mui_propertyImageSlice = 53,
+        mui_propertyImageTint = 54,
+        // A number from 0 to 1, and a flag.
+        mui_propertyOpacity = 55,
+        mui_propertyClip = 56,
+        mui_propertyCount = 57,
     };
 
     // A set of properties, one bit each.
     typedef uint64_t muiPropertyMask;
 
 #define MUI_PROPERTY_BIT(property) ((muiPropertyMask)1 << (property))
-// Every layout property.
+// Every layout property, every visual one, and both.
 #define MUI_LAYOUT_PROPERTIES ((muiPropertyMask)0xFFFFFFFFFFull)
+#define MUI_VISUAL_PROPERTIES ((muiPropertyMask)0x1FFFF0000000000ull)
+#define MUI_ALL_PROPERTIES    (MUI_LAYOUT_PROPERTIES | MUI_VISUAL_PROPERTIES)
 
     // The states a node can be in, as bits, weakest first: a later
     // state's variant wins over an earlier one's.
@@ -324,7 +350,7 @@ extern "C"
     /// @param context  The context.
     /// @param styleId  The class.
     /// @param variant  The variant.
-    /// @param mask     The properties, within MUI_LAYOUT_PROPERTIES.
+    /// @param mask     The properties, within MUI_ALL_PROPERTIES.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
     ///         null id, an unknown variant or property bit or a call from a
     ///         measure function; `mui_errorStale` for an id whose class is
@@ -547,7 +573,7 @@ extern "C"
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
-    /// @param mask     The properties, within MUI_LAYOUT_PROPERTIES.
+    /// @param mask     The properties, within MUI_ALL_PROPERTIES.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
     ///         null id, an unknown property bit or a call from a measure
     ///         function; `mui_errorStale` for a node that is gone.

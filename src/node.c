@@ -12,6 +12,7 @@
 #include "tree.h"
 
 #include "maul-ui/layout.h"
+#include "maul-ui/visual.h"
 
 #define NODE_DEF_COOKIE 0x6D756E64u // "mund"
 
@@ -53,6 +54,7 @@ muiResult muiCreateNode(muiContext* context, const muiNodeDef* def, muiNodeId* n
     }
     context->layout[slot - 1] = (muiLayoutNode){.style = muiDefaultLayoutStyle()};
     context->style.nodes[slot - 1] = (muiNodeStyle){0};
+    context->visual[slot - 1] = muiDefaultVisualStyle();
     *nodeIdOut = muiTreeIdOf(&context->tree, slot);
     return mui_success;
 }

@@ -132,7 +132,7 @@ extern "C"
     /// @param styleId       The class.
     /// @param variant       The variant.
     /// @param transitionId  The spec, or the null id.
-    /// @param mask          The properties, within MUI_LAYOUT_PROPERTIES.
+    /// @param mask          The properties, within MUI_ALL_PROPERTIES.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
     ///         null class id, an unknown variant or property bit or a call
     ///         from a measure function; `mui_errorStale` for a class or a

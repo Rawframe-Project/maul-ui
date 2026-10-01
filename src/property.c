@@ -2,7 +2,8 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // The property table. Rows follow the muiProperty numbering, which a
-// static assertion ties to the table's length.
+// static assertion ties to the table's length; each row names its struct,
+// layout's or visual's, and its place there.
 
 #include "property.h"
 
@@ -20,8 +21,28 @@ enum
     kindFinite,
     kindLength,
     kindFraction,
-    // A uint8_t enumerator from low to high.
+    // A uint8_t enumerator, or a bool, from low to high.
     kindEnum,
+    // A muiColor.
+    kindColor,
+    // A muiGradient.
+    kindGradient,
+    // A Scale+Offset muiDimension of 0 or more.
+    kindRadius,
+    // A muiShadow.
+    kindShadow,
+    // A uint64_t host key: any value.
+    kindKey,
+    // A muiEdges of lengths.
+    kindEdges,
+};
+
+typedef uint8_t Group;
+
+enum
+{
+    groupLayout,
+    groupVisual,
 };
 
 typedef struct Row
@@ -30,15 +51,19 @@ typedef struct Row
     // The field's size in bytes.
     uint8_t size;
     Kind kind;
+    Group group;
     // For kindEnum, the values allowed.
     uint8_t low;
     uint8_t high;
 } Row;
 
-#define FIELD(field, type)     (uint16_t)offsetof(muiLayoutStyle, field), (uint8_t)sizeof(type)
-#define DIMENSION(field)       {FIELD(field, muiDimension), kindDimension, 0, 0}
-#define NUMBER(field, kind)    {FIELD(field, float), kind, 0, 0}
-#define ENUM(field, low, high) {FIELD(field, uint8_t), kindEnum, low, high}
+#define LAYOUT(field, type, kind, low, high)                                                       \
+    {(uint16_t)offsetof(muiLayoutStyle, field), (uint8_t)sizeof(type), kind, groupLayout, low, high}
+#define VISUAL(field, type, kind)                                                                  \
+    {(uint16_t)offsetof(muiVisualStyle, field), (uint8_t)sizeof(type), kind, groupVisual, 0, 0}
+#define DIMENSION(field)       LAYOUT(field, muiDimension, kindDimension, 0, 0)
+#define NUMBER(field, kind)    LAYOUT(field, float, kind, 0, 0)
+#define ENUM(field, low, high) LAYOUT(field, uint8_t, kindEnum, low, high)
 
 static const Row s_rows[] = {
     DIMENSION(sizing.width),
@@ -82,14 +107,37 @@ static const Row s_rows[] = {
     NUMBER(placement.anchorY, kindFraction),
     ENUM(textDirection, mui_textInherit, mui_textRightToLeft),
     ENUM(content, mui_contentNone, mui_contentHost),
+    VISUAL(background, muiColor, kindColor),
+    VISUAL(gradient, muiGradient, kindGradient),
+    VISUAL(radius.topStart, muiDimension, kindRadius),
+    VISUAL(radius.topEnd, muiDimension, kindRadius),
+    VISUAL(radius.bottomEnd, muiDimension, kindRadius),
+    VISUAL(radius.bottomStart, muiDimension, kindRadius),
+    VISUAL(borderColor.start, muiColor, kindColor),
+    VISUAL(borderColor.end, muiColor, kindColor),
+    VISUAL(borderColor.top, muiColor, kindColor),
+    VISUAL(borderColor.bottom, muiColor, kindColor),
+    VISUAL(outerShadow, muiShadow, kindShadow),
+    VISUAL(innerShadow, muiShadow, kindShadow),
+    VISUAL(image, uint64_t, kindKey),
+    VISUAL(imageSlice, muiEdges, kindEdges),
+    VISUAL(imageTint, muiColor, kindColor),
+    VISUAL(opacity, float, kindFraction),
+    {(uint16_t)offsetof(muiVisualStyle, clip), (uint8_t)sizeof(bool), kindEnum, groupVisual, 0, 1},
 };
 
 static_assert(sizeof s_rows / sizeof s_rows[0] == mui_propertyCount, "one row per property");
-static_assert(sizeof(muiDimension) <= UINT8_MAX, "sizes fit a row");
-static_assert(MUI_LAYOUT_PROPERTIES == (((muiPropertyMask)1 << mui_propertyCount) - 1),
-              "the layout mask names every property");
+static_assert(sizeof(muiGradient) <= UINT8_MAX, "sizes fit a row");
+static_assert(sizeof(bool) == 1, "a flag is one byte, as an enumerator");
+static_assert(sizeof(muiColor) == 4 * sizeof(float) && sizeof(muiShadow) == 8 * sizeof(float) &&
+                  sizeof(muiEdges) == 4 * sizeof(float) &&
+                  sizeof(muiGradientStop) == 5 * sizeof(float),
+              "compared as floats alone");
+static_assert(MUI_ALL_PROPERTIES == (((muiPropertyMask)1 << mui_propertyCount) - 1),
+              "the masks name every property");
+static_assert((MUI_LAYOUT_PROPERTIES & MUI_VISUAL_PROPERTIES) == 0, "the masks part");
 
-static const muiLayoutStyle s_defaults = {
+static const muiLayoutStyle s_layoutDefaults = {
     .container = {.direction = mui_flexRow,
                   .wrap = mui_wrapNone,
                   .justify = mui_justifyStart,
@@ -98,9 +146,27 @@ static const muiLayoutStyle s_defaults = {
     .item = {.shrink = 1.0f, .alignSelf = mui_alignAuto},
 };
 
+static const muiVisualStyle s_visualDefaults = {
+    .radius = {{0.0f, 0.0f, mui_dimensionValue},
+               {0.0f, 0.0f, mui_dimensionValue},
+               {0.0f, 0.0f, mui_dimensionValue},
+               {0.0f, 0.0f, mui_dimensionValue}},
+    .borderColor = {{0.0f, 0.0f, 0.0f, 1.0f},
+                    {0.0f, 0.0f, 0.0f, 1.0f},
+                    {0.0f, 0.0f, 0.0f, 1.0f},
+                    {0.0f, 0.0f, 0.0f, 1.0f}},
+    .imageTint = {1.0f, 1.0f, 1.0f, 1.0f},
+    .opacity = 1.0f,
+};
+
 const muiLayoutStyle* muiLayoutDefaults(void)
 {
-    return &s_defaults;
+    return &s_layoutDefaults;
+}
+
+const muiVisualStyle* muiVisualDefaults(void)
+{
+    return &s_visualDefaults;
 }
 
 // The index of the lowest set bit of a mask that is not 0, by a de Bruijn
@@ -114,74 +180,215 @@ static uint32_t LowestBit(muiPropertyMask mask)
     return index[((mask & (~mask + 1)) * 0x03F79D71B4CB0A89ull) >> 58];
 }
 
-static const void* At(const muiLayoutStyle* style, const Row* row)
+static const void* At(muiConstValuesRef values, const Row* row)
 {
-    return (const unsigned char*)style + row->offset;
+    const void* base =
+        row->group == groupLayout ? (const void*)values.layout : (const void*)values.visual;
+    return (const unsigned char*)base + row->offset;
 }
 
-static void* AtMutable(muiLayoutStyle* style, const Row* row)
+static void* AtMutable(muiValuesRef values, const Row* row)
 {
-    return (unsigned char*)style + row->offset;
+    void* base = row->group == groupLayout ? (void*)values.layout : (void*)values.visual;
+    return (unsigned char*)base + row->offset;
 }
 
-static float NumberAt(const muiLayoutStyle* style, const Row* row)
+static float NumberAt(muiConstValuesRef values, const Row* row)
 {
     float value = 0.0f;
-    memcpy(&value, At(style, row), sizeof value);
+    memcpy(&value, At(values, row), sizeof value);
     return value;
 }
 
-static muiDimension DimensionAt(const muiLayoutStyle* style, const Row* row)
+static muiDimension DimensionAt(muiConstValuesRef values, const Row* row)
 {
     muiDimension value = {0};
-    memcpy(&value, At(style, row), sizeof value);
+    memcpy(&value, At(values, row), sizeof value);
     return value;
 }
 
-static bool IsValid(const muiLayoutStyle* values, const Row* row)
+static bool IsUnit(float value)
+{
+    return value >= 0.0f && value <= 1.0f;
+}
+
+static bool IsLength(float value)
+{
+    return isfinite(value) && value >= 0.0f;
+}
+
+static bool IsColorValid(muiColor color)
+{
+    return IsUnit(color.r) && IsUnit(color.g) && IsUnit(color.b) && IsUnit(color.a);
+}
+
+static bool IsDimensionValid(muiDimension value)
+{
+    return value.kind <= mui_dimensionValue && isfinite(value.scale) && isfinite(value.offset);
+}
+
+// None with no stops, or a linear or radial gradient with 2 or more
+// stops in order from 0 to 1.
+static bool IsGradientValid(const muiGradient* gradient)
+{
+    if (gradient->kind == mui_gradientNone)
+    {
+        return gradient->stopCount == 0;
+    }
+    if (gradient->kind > mui_gradientRadial || gradient->stopCount < 2 ||
+        gradient->stopCount > MUI_MAX_GRADIENT_STOPS || !isfinite(gradient->angle))
+    {
+        return false;
+    }
+    float previous = 0.0f;
+    for (uint32_t i = 0; i < gradient->stopCount; i++)
+    {
+        const muiGradientStop* stop = &gradient->stops[i];
+        if (!IsColorValid(stop->color) || !IsUnit(stop->position) || stop->position < previous)
+        {
+            return false;
+        }
+        previous = stop->position;
+    }
+    return true;
+}
+
+static bool IsShadowValid(const muiShadow* shadow)
+{
+    return IsColorValid(shadow->color) && isfinite(shadow->offsetX) && isfinite(shadow->offsetY) &&
+           IsLength(shadow->blur) && isfinite(shadow->spread);
+}
+
+// The visual kinds, which a struct of their own holds.
+static bool IsCompoundValid(muiConstValuesRef values, const Row* row)
+{
+    const void* at = At(values, row);
+    switch (row->kind)
+    {
+    case kindColor:
+    {
+        muiColor color;
+        memcpy(&color, at, sizeof color);
+        return IsColorValid(color);
+    }
+    case kindGradient:
+    {
+        muiGradient gradient;
+        memcpy(&gradient, at, sizeof gradient);
+        return IsGradientValid(&gradient);
+    }
+    case kindShadow:
+    {
+        muiShadow shadow;
+        memcpy(&shadow, at, sizeof shadow);
+        return IsShadowValid(&shadow);
+    }
+    case kindEdges:
+    {
+        muiEdges edges;
+        memcpy(&edges, at, sizeof edges);
+        return IsLength(edges.start) && IsLength(edges.end) && IsLength(edges.top) &&
+               IsLength(edges.bottom);
+    }
+    default:
+        // A host key: any value.
+        return true;
+    }
+}
+
+static bool IsValid(muiConstValuesRef values, const Row* row)
 {
     switch (row->kind)
     {
     case kindDimension:
+        return IsDimensionValid(DimensionAt(values, row));
+    case kindRadius:
     {
+        // A corner has no automatic radius.
         muiDimension value = DimensionAt(values, row);
-        return value.kind <= mui_dimensionValue && isfinite(value.scale) && isfinite(value.offset);
+        return value.kind == mui_dimensionValue && IsLength(value.scale) && IsLength(value.offset);
     }
     case kindFinite:
         return isfinite(NumberAt(values, row));
     case kindLength:
-    {
-        float value = NumberAt(values, row);
-        return isfinite(value) && value >= 0.0f;
-    }
+        return IsLength(NumberAt(values, row));
     case kindFraction:
-    {
-        float value = NumberAt(values, row);
-        return value >= 0.0f && value <= 1.0f;
-    }
-    default:
+        return IsUnit(NumberAt(values, row));
+    case kindEnum:
     {
         uint8_t value = *(const uint8_t*)At(values, row);
         return value >= row->low && value <= row->high;
     }
+    default:
+        return IsCompoundValid(values, row);
     }
 }
 
-static bool AreEqual(const muiLayoutStyle* a, const muiLayoutStyle* b, const Row* row)
+// Whether count floats at a and b are equal by value, as 0 and -0 are.
+static bool AreFloatsEqual(const void* a, const void* b, uint32_t count)
 {
-    if (row->kind == kindDimension)
+    for (uint32_t i = 0; i < count; i++)
+    {
+        float x = 0.0f;
+        float y = 0.0f;
+        memcpy(&x, (const float*)a + i, sizeof x);
+        memcpy(&y, (const float*)b + i, sizeof y);
+        if (x != y)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool AreGradientsEqual(const muiGradient* a, const muiGradient* b)
+{
+    if (a->kind != b->kind || a->stopCount != b->stopCount || a->angle != b->angle)
+    {
+        return false;
+    }
+    for (uint32_t i = 0; i < a->stopCount && i < MUI_MAX_GRADIENT_STOPS; i++)
+    {
+        if (!AreFloatsEqual(&a->stops[i], &b->stops[i], sizeof(muiGradientStop) / sizeof(float)))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool AreEqual(muiConstValuesRef a, muiConstValuesRef b, const Row* row)
+{
+    switch (row->kind)
+    {
+    case kindDimension:
+    case kindRadius:
     {
         // Compared by field: a dimension has padding bytes.
         muiDimension x = DimensionAt(a, row);
         muiDimension y = DimensionAt(b, row);
         return x.kind == y.kind && x.scale == y.scale && x.offset == y.offset;
     }
-    return memcmp(At(a, row), At(b, row), row->size) == 0;
+    case kindGradient:
+    {
+        muiGradient x;
+        muiGradient y;
+        memcpy(&x, At(a, row), sizeof x);
+        memcpy(&y, At(b, row), sizeof y);
+        return AreGradientsEqual(&x, &y);
+    }
+    case kindEnum:
+    case kindKey:
+        return memcmp(At(a, row), At(b, row), row->size) == 0;
+    default:
+        // A number, or a struct of floats alone.
+        return AreFloatsEqual(At(a, row), At(b, row), row->size / (uint32_t)sizeof(float));
+    }
 }
 
-bool muiArePropertiesValid(const muiLayoutStyle* values, muiPropertyMask mask)
+bool muiArePropertiesValid(muiConstValuesRef values, muiPropertyMask mask)
 {
-    if ((mask & ~MUI_LAYOUT_PROPERTIES) != 0)
+    if ((mask & ~MUI_ALL_PROPERTIES) != 0)
     {
         return false;
     }
@@ -195,12 +402,12 @@ bool muiArePropertiesValid(const muiLayoutStyle* values, muiPropertyMask mask)
     return true;
 }
 
-void muiApplyProperties(muiLayoutStyle* target, const muiLayoutStyle* source, muiPropertyMask mask)
+void muiApplyProperties(muiValuesRef target, muiConstValuesRef source, muiPropertyMask mask)
 {
     for (muiPropertyMask left = mask; left != 0; left &= left - 1)
     {
         const Row* row = &s_rows[LowestBit(left)];
-        // Constant sizes, so each copy compiles to a move.
+        // Constant sizes for layout's kinds, so each copy compiles to a move.
         switch (row->kind)
         {
         case kindDimension:
@@ -209,14 +416,19 @@ void muiApplyProperties(muiLayoutStyle* target, const muiLayoutStyle* source, mu
         case kindEnum:
             memcpy(AtMutable(target, row), At(source, row), sizeof(uint8_t));
             break;
-        default:
+        case kindFinite:
+        case kindLength:
+        case kindFraction:
             memcpy(AtMutable(target, row), At(source, row), sizeof(float));
+            break;
+        default:
+            memcpy(AtMutable(target, row), At(source, row), row->size);
             break;
         }
     }
 }
 
-bool muiDoPropertiesDiffer(const muiLayoutStyle* a, const muiLayoutStyle* b, muiPropertyMask mask)
+bool muiDoPropertiesDiffer(muiConstValuesRef a, muiConstValuesRef b, muiPropertyMask mask)
 {
     for (muiPropertyMask left = mask; left != 0; left &= left - 1)
     {
@@ -228,16 +440,15 @@ bool muiDoPropertiesDiffer(const muiLayoutStyle* a, const muiLayoutStyle* b, mui
     return false;
 }
 
-uint32_t muiPropertyChannels(const muiLayoutStyle* style, muiProperty property, float out[2])
+uint32_t muiPropertyChannels(muiConstValuesRef values, muiProperty property, float out[2])
 {
     const Row* row = &s_rows[property];
     switch (row->kind)
     {
-    case kindEnum:
-        return 0;
     case kindDimension:
+    case kindRadius:
     {
-        muiDimension value = DimensionAt(style, row);
+        muiDimension value = DimensionAt(values, row);
         if (value.kind != mui_dimensionValue)
         {
             return 0;
@@ -246,41 +457,52 @@ uint32_t muiPropertyChannels(const muiLayoutStyle* style, muiProperty property, 
         out[1] = value.offset;
         return 2;
     }
-    default:
-        out[0] = NumberAt(style, row);
+    case kindFinite:
+    case kindLength:
+    case kindFraction:
+        out[0] = NumberAt(values, row);
         return 1;
+    default:
+        return 0;
     }
 }
 
-void muiSetPropertyChannels(muiLayoutStyle* style, muiProperty property, const float values[2])
+void muiSetPropertyChannels(muiValuesRef values, muiProperty property, const float channels[2])
 {
     const Row* row = &s_rows[property];
-    void* at = AtMutable(style, row);
+    void* at = AtMutable(values, row);
     switch (row->kind)
     {
-    case kindEnum:
-        break;
     case kindDimension:
     {
-        const muiDimension value = {values[0], values[1], mui_dimensionValue};
+        const muiDimension value = {channels[0], channels[1], mui_dimensionValue};
+        memcpy(at, &value, sizeof value);
+        break;
+    }
+    case kindRadius:
+    {
+        const muiDimension value = {fmaxf(channels[0], 0.0f), fmaxf(channels[1], 0.0f),
+                                    mui_dimensionValue};
         memcpy(at, &value, sizeof value);
         break;
     }
     case kindLength:
     {
         // A spring can overshoot below 0.
-        const float value = fmaxf(values[0], 0.0f);
+        const float value = fmaxf(channels[0], 0.0f);
         memcpy(at, &value, sizeof value);
         break;
     }
     case kindFraction:
     {
-        const float value = fminf(fmaxf(values[0], 0.0f), 1.0f);
+        const float value = fminf(fmaxf(channels[0], 0.0f), 1.0f);
         memcpy(at, &value, sizeof value);
         break;
     }
+    case kindFinite:
+        memcpy(at, &channels[0], sizeof channels[0]);
+        break;
     default:
-        memcpy(at, &values[0], sizeof values[0]);
         break;
     }
 }

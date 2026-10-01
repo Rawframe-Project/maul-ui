@@ -98,6 +98,22 @@ for a fixed order in which a later layer always wins.
   write takes effect at once, and resolution leaves those properties
   alone. `muiNode_SetLayoutStyle` writes every layout property this
   way.
+- **Visual values are style properties too** (`maul-ui/visual.h`): a
+  background color and a gradient of up to four stops, corner radii as
+  Scale+Offset of the border box's shorter side (held to half of it, so
+  a large one makes a pill, as Roblox's `UICorner`), border colors per
+  side (the widths stay layout's), an outer and an inner shadow, an
+  image by host key with 9-slice insets and a tint, opacity, and
+  clipping. Their ids follow layout's in the same masks, so classes,
+  variants, conditions, transitions and direct writes reach them
+  unchanged; `muiVisualStyle` holds them apart from `muiLayoutStyle`,
+  which the solver reads. A changed visual value marks the node's
+  paint, never its layout. Colors are sRGB-encoded with straight alpha,
+  and apply at once until they interpolate in Oklab.
+- **Resolution passes by what no class names.** The context keeps the
+  properties any class has given a value or any node has reset; every
+  other property can hold only its default or a direct write, so
+  resolution does not visit it.
 - **The style pass runs first in `muiComputeLayout`,** over the nodes
   whose style was requested: a change of type, classes or states, a
   reset, or insertion. Any change to a class or a node type requests
@@ -111,8 +127,9 @@ selector to evaluate and no tie to break. A state that changes only
 values a node does not use, or a class no node lists, costs a style
 pass and no layout. Restyling every node on a class edit costs a pass
 over the tree, which a theme switch costs anyway, and keeps no index
-from classes to nodes. Nodes that write every property directly skip
-resolution. A size or direction condition shows its effect one run
+from classes to nodes. Nodes that write directly every property a class
+names skip resolution, as do visual values in a context whose classes
+set none. A size or direction condition shows its effect one run
 after the layout that changes what it reads, and a node never seen
 laid out reads a size of 0; in exchange no stage feeds an earlier one
 within a run. A rule that feeds its own condition through layout (a

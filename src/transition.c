@@ -182,7 +182,7 @@ muiResult muiStyle_SetTransition(muiContext* context, muiStyleId styleId, muiVar
     {
         return mui_errorInvalid;
     }
-    if ((mask & ~MUI_LAYOUT_PROPERTIES) != 0)
+    if ((mask & ~MUI_ALL_PROPERTIES) != 0)
     {
         return muiRefuse(context);
     }

@@ -22,6 +22,9 @@ struct muiContext
     muiTree tree;
     // Layout's values per node, parallel to the tree's slots.
     muiLayoutNode* layout;
+    // Resolved visual values per node, parallel to the tree's slots: paint
+    // reads them, layout never.
+    muiVisualStyle* visual;
     muiStyleStore style;
     // What conditions read of the world outside the tree.
     muiEnvironment environment;

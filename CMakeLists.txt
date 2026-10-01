@@ -82,6 +82,7 @@ if(MAUL_UI_BUILD_TESTS)
     maul_add_test(style)
     maul_add_test(transition)
     maul_add_test(tree WHITEBOX)
+    maul_add_test(visual WHITEBOX)
     # winnls.h defines MUI_ macros; this checks that none clash (family
     # record 0007).
     if(WIN32)
