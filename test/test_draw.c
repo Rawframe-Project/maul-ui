@@ -6,6 +6,10 @@
 // (record mui-0005). Run with MAUL_UI_UPDATE_GOLDEN=1 to rewrite
 // test/draw_golden.inc from the current output.
 
+// The update path reads the environment and writes a file with the C
+// library's portable calls, which Microsoft's C library marks deprecated.
+#define _CRT_SECURE_NO_WARNINGS
+
 #include "test_harness.h"
 
 #include "maul-ui/context.h"
@@ -198,7 +202,8 @@ static void WriteGolden(void)
     size_t directory = slash != NULL ? (size_t)(slash - file + 1) : 0;
     CHECK(directory + 32 < sizeof path, "path fits");
     memcpy(path, file, directory);
-    strcpy(path + directory, "draw_golden.inc");
+    const char name[] = "draw_golden.inc";
+    memcpy(path + directory, name, sizeof name);
     FILE* out = fopen(path, "w");
     CHECK(out != NULL, "open the golden file");
     if (out == NULL)
