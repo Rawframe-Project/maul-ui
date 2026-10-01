@@ -93,9 +93,9 @@ static void Shift(muiDrawRange* range, uint32_t from, uint32_t to)
 }
 
 // Brings the paint states of a copied node's descendants up to this
-// build: their spans move with the copy, and so do their clips.
+// build: their spans move with the copy.
 static void Renumber(Build* build, uint32_t node, const muiPaintState* old,
-                     const muiPaintState* now, const Renumbering* renumbering)
+                     const muiPaintState* now)
 {
     const muiTree* tree = &build->painter.context->tree;
     muiPaintState* states = build->store->states;
@@ -108,7 +108,6 @@ static void Renumber(Build* build, uint32_t node, const muiPaintState* old,
             Shift(&state->commands, old->commands.first, now->commands.first);
             Shift(&state->clips, old->clips.first, now->clips.first);
             Shift(&state->gradients, old->gradients.first, now->gradients.first);
-            state->clip = ClipOf(renumbering, state->clip);
         }
         // The next node in preorder below node.
         if (muiTreeAt(tree, at)->links.firstChild != 0)
@@ -124,9 +123,9 @@ static void Renumber(Build* build, uint32_t node, const muiPaintState* old,
     }
 }
 
-// Takes a node's subtree from the last list into state; false when it
-// does not fit.
-static bool Copy(Build* build, uint32_t node, muiPaintState* state)
+// Takes a node's subtree, painted in entryClip now, from the last list
+// into state; false when it does not fit.
+static bool Copy(Build* build, uint32_t node, muiPaintState* state, uint32_t entryClip)
 {
     const muiPaintState old = *state;
     muiDrawTables* to = build->painter.out;
@@ -138,7 +137,7 @@ static bool Copy(Build* build, uint32_t node, muiPaintState* state)
         painter->full = true;
         return false;
     }
-    const Renumbering renumbering = {old.clips, to->clipCount, state->clip, old.gradients,
+    const Renumbering renumbering = {old.clips, to->clipCount, entryClip, old.gradients,
                                      to->gradientCount};
     state->commands = (muiDrawRange){to->commandCount, 0};
     state->clips = (muiDrawRange){to->clipCount, 0};
@@ -147,10 +146,8 @@ static bool Copy(Build* build, uint32_t node, muiPaintState* state)
     state->commands.end = to->commandCount;
     state->clips.end = to->clipCount;
     state->gradients.end = to->gradientCount;
-    state->clip = ClipOf(&renumbering, old.clip);
-    state->opacity = old.opacity;
     state->build = build->build;
-    Renumber(build, node, &old, state, &renumbering);
+    Renumber(build, node, &old, state);
     return true;
 }
 
@@ -175,8 +172,7 @@ static bool Visit(Build* build, uint32_t root, uint32_t at)
     };
     if (CanCopy(build, at, state, &now))
     {
-        state->clip = now.clip;
-        (void)Copy(build, at, state);
+        (void)Copy(build, at, state, now.clip);
         return false;
     }
     const muiDrawTables* out = build->painter.out;
@@ -232,13 +228,14 @@ static void Empty(muiDrawTables* tables)
     tables->gradientCount = 1;
 }
 
-// Whether the last list stands for this build: built whole, of this
-// root, surface and scale, with no paint requested below the root.
-static bool IsUnchanged(const muiDrawStore* store, const muiTree* tree, muiNodeId rootId,
-                        uint32_t root, const muiDrawInput* input)
+// Whether the last list stands for this build: of this root, surface and
+// scale, with no paint requested below the root. A failed build left a
+// header of scale 0, which no build has. A new node in the root's slot
+// is requested every stage until a build of it, which records it.
+static bool IsUnchanged(const muiDrawStore* store, const muiTree* tree, uint32_t root,
+                        const muiDrawInput* input)
 {
-    return store->complete && store->rootIndex == rootId.index1 &&
-           store->rootGeneration == rootId.generation && store->header.surface == input->surface &&
+    return store->rootIndex == root && store->header.surface == input->surface &&
            store->header.scale == input->scale &&
            (muiTreeAt(tree, root)->dirty.subtree & mui_stagePaint) == 0;
 }
@@ -260,12 +257,14 @@ muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawI
         return mui_errorStale;
     }
     muiDrawStore* store = &context->draw;
-    if (IsUnchanged(store, &context->tree, rootId, root, input))
+    if (IsUnchanged(store, &context->tree, root, input))
     {
         return mui_success;
     }
-    bool takes = store->complete && store->rootIndex == rootId.index1 &&
-                 store->rootGeneration == rootId.generation && store->header.scale == input->scale;
+    // Spans are taken only at the origin and opacity they were painted
+    // at, so the last list may be of another root; a list of scale 0 is
+    // none.
+    bool takes = store->header.scale == input->scale;
     uint32_t next = 1 - store->current;
     // Large for the stack frame of a public call, so it is cleared once.
     static_assert(sizeof(Build) < 8192, "a build fits a stack frame");
@@ -288,7 +287,6 @@ muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawI
     {
         Empty(build.painter.out);
         store->header = (muiDrawHeader){.generation = build.build};
-        store->complete = false;
         return mui_errorCapacity;
     }
     const muiRect* rect = &context->layout[root - 1].rect;
@@ -299,9 +297,7 @@ muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawI
         .height = rect->height,
         .scale = input->scale,
     };
-    store->complete = true;
-    store->rootIndex = rootId.index1;
-    store->rootGeneration = rootId.generation;
+    store->rootIndex = root;
     (void)muiTreeSweep(&context->tree, root, mui_stagePaint);
     return mui_success;
 }

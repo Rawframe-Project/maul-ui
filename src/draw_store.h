@@ -22,9 +22,10 @@ typedef struct muiDrawRange
 } muiDrawRange;
 
 // A node as the build numbered build painted it: its border box
-// relative to its parent, its origin on the surface, the opacity and
-// clip it passes to its children, the opacity it was painted in, and
-// the spans of the tables its subtree filled.
+// relative to its parent, its origin on the surface, the opacity it was
+// painted in, and the spans of the tables its subtree filled; and,
+// during the build that paints it, the clip and opacity it passes to its
+// children. A copied node's are not set, as its children are not visited.
 typedef struct muiPaintState
 {
     uint64_t build;
@@ -61,11 +62,10 @@ typedef struct muiDrawStore
     uint32_t commandCapacity;
     uint32_t clipCapacity;
     uint32_t gradientCapacity;
-    // Whether the shown list was built whole, and of which root, so that
-    // the next build may take from it.
-    bool complete;
+    // The root slot of the shown list. Its header's scale is 0 when there
+    // is no list to take from: none was built yet, or the last build
+    // failed.
     uint32_t rootIndex;
-    uint32_t rootGeneration;
     muiDrawTransform identity;
     // Per node, parallel to the tree's slots.
     muiPaintState* states;

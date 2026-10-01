@@ -824,6 +824,12 @@ static void TestBuildsFromTheLastListMatchWholeOnes(void)
         CHECK(muiComputeLayout(context, nodes[0], &layout) == mui_success, "layout");
         CHECK(muiBuildDrawList(context, nodes[0], &(muiDrawInput){7, 1.0f}) == mui_success,
               "build from the last");
+        // Builds between checks take from lists that were themselves
+        // taken from others.
+        if (step % 7 != 6)
+        {
+            continue;
+        }
         muiDrawList list;
         CHECK(muiGetDrawList(context, &list) == mui_success, "get");
         Take(&retained, &list);
@@ -844,6 +850,202 @@ static void TestBuildsFromTheLastListMatchWholeOnes(void)
     muiDestroyContext(context);
 }
 
+static muiDrawList BuildAt(muiContext* context, muiNodeId root, float available, uint64_t surface)
+{
+    const muiLayoutInput layout = {available, 1000.0f, NULL, NULL, 0};
+    CHECK(muiComputeLayout(context, root, &layout) == mui_success, "layout");
+    CHECK(muiBuildDrawList(context, root, &(muiDrawInput){surface, 1.0f}) == mui_success, "build");
+    muiDrawList list;
+    CHECK(muiGetDrawList(context, &list) == mui_success, "get");
+    return list;
+}
+
+// Builds from the last list and checks it against a build from nothing.
+static void CheckRetained(muiContext* context, muiNodeId root, const char* what)
+{
+    static Snapshot retained;
+    muiDrawList list = BuildAt(context, root, 1000.0f, 7);
+    Take(&retained, &list);
+    CHECK(muiBuildDrawList(context, root, &(muiDrawInput){7, 2.0f}) == mui_success &&
+              muiBuildDrawList(context, root, &(muiDrawInput){7, 1.0f}) == mui_success,
+          "builds whole");
+    CHECK(muiGetDrawList(context, &list) == mui_success && SameTables(&retained.list, &list), what);
+}
+
+static void Paint(muiContext* context, muiNodeId node, muiColor color)
+{
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    CHECK(muiNode_GetVisualStyle(context, node, &visual) == mui_success, "read");
+    visual.background = color;
+    SetVisual(context, node, &visual, MUI_PROPERTY_BIT(mui_propertyBackground));
+}
+
+static void SetOpacity(muiContext* context, muiNodeId node, float opacity)
+{
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.opacity = opacity;
+    SetVisual(context, node, &visual, MUI_PROPERTY_BIT(mui_propertyOpacity));
+}
+
+static void AddShadowTo(muiContext* context, muiNodeId node)
+{
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.outerShadow = (muiShadow){{0.0f, 0.0f, 0.0f, 0.5f}, 0.0f, 1.0f, 2.0f, 0.0f};
+    SetVisual(context, node, &visual, MUI_PROPERTY_BIT(mui_propertyOuterShadow));
+}
+
+static void TestRetainedEdges(void)
+{
+    const muiEdges none = {0};
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    // A subtree hidden, then shown after the list before it changed: its
+    // spans from before it was hidden are not taken.
+    muiContext* context = MakeContext();
+    muiNodeId root = Add(context, s_nullNode, 300.0f, 100.0f, none);
+    muiNodeId before = Add(context, root, 20.0f, 20.0f, none);
+    muiNodeId shown = Add(context, root, 40.0f, 40.0f, none);
+    muiNodeId inner = Add(context, shown, 10.0f, 10.0f, none);
+    Paint(context, before, s_gray);
+    Paint(context, shown, s_red);
+    Paint(context, inner, s_blue);
+    (void)BuildAt(context, root, 1000.0f, 7);
+    SetOpacity(context, shown, 0.0f);
+    (void)BuildAt(context, root, 1000.0f, 7);
+    AddShadowTo(context, before);
+    (void)BuildAt(context, root, 1000.0f, 7);
+    // A build more, so that the list taken from is not the one the
+    // hidden subtree's commands were last in.
+    Paint(context, before, s_red);
+    (void)BuildAt(context, root, 1000.0f, 7);
+    SetOpacity(context, shown, 1.0f);
+    CheckRetained(context, root, "shown again");
+    muiDestroyContext(context);
+
+    // A hidden node inside a copied subtree keeps no spans it never had.
+    context = MakeContext();
+    root = Add(context, s_nullNode, 300.0f, 100.0f, none);
+    before = Add(context, root, 20.0f, 20.0f, none);
+    muiNodeId copied = Add(context, root, 60.0f, 60.0f, none);
+    muiNodeId hidden = Add(context, copied, 30.0f, 30.0f, none);
+    muiNodeId leaf = Add(context, hidden, 10.0f, 10.0f, none);
+    Paint(context, before, s_gray);
+    Paint(context, copied, s_red);
+    Paint(context, leaf, s_blue);
+    (void)BuildAt(context, root, 1000.0f, 7);
+    SetOpacity(context, hidden, 0.0f);
+    (void)BuildAt(context, root, 1000.0f, 7);
+    AddShadowTo(context, before);
+    (void)BuildAt(context, root, 1000.0f, 7);
+    SetOpacity(context, hidden, 1.0f);
+    CheckRetained(context, root, "shown inside a copied subtree");
+
+    // A subtree whose parent moves down, its own rectangle as it was.
+    muiNodeId column = Add(context, s_nullNode, 100.0f, 200.0f, none);
+    layout = muiDefaultLayoutStyle();
+    layout.container.direction = mui_flexColumn;
+    CHECK(muiNode_SetLayoutValues(context, column, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyFlexDirection)) == mui_success,
+          "a column");
+    muiNodeId top = Add(context, column, 50.0f, 10.0f, none);
+    muiNodeId box = Add(context, column, 50.0f, 50.0f, none);
+    Paint(context, Add(context, box, 20.0f, 20.0f, none), s_blue);
+    (void)BuildAt(context, column, 1000.0f, 7);
+    layout = muiDefaultLayoutStyle();
+    layout.sizing.height = Length(30.0f);
+    CHECK(muiNode_SetLayoutValues(context, top, &layout, HEIGHT) == mui_success, "taller");
+    CheckRetained(context, column, "moved down");
+
+    // A child whose rectangle a direction change leaves as it is still
+    // turns its corners.
+    muiNodeId full = Add(context, s_nullNode, 100.0f, 20.0f, none);
+    muiNodeId child = Add(context, full, 100.0f, 20.0f, none);
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.background = s_gray;
+    visual.radius.topStart = Length(10.0f);
+    SetVisual(context, child, &visual,
+              MUI_PROPERTY_BIT(mui_propertyBackground) |
+                  MUI_PROPERTY_BIT(mui_propertyRadiusTopStart));
+    muiDrawList list = BuildAt(context, full, 1000.0f, 7);
+    CHECK(list.commands[0].box.radii.topLeft == 10.0f, "left to right");
+    layout = muiDefaultLayoutStyle();
+    layout.textDirection = mui_textRightToLeft;
+    CHECK(muiNode_SetLayoutValues(context, full, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
+          "right to left");
+    list = BuildAt(context, full, 1000.0f, 7);
+    CHECK(list.commands[0].box.radii.topRight == 10.0f &&
+              list.commands[0].box.radii.topLeft == 0.0f,
+          "the corner turns");
+
+    // Another surface, and another root, are built anew.
+    list = BuildAt(context, full, 1000.0f, 8);
+    CHECK(list.header.surface == 8, "another surface");
+    list = BuildAt(context, root, 1000.0f, 8);
+    CHECK(list.header.width == 300.0f, "another root");
+    muiDestroyContext(context);
+
+    // A root sized by the space alone repaints when the space changes.
+    context = MakeContext();
+    root = Add(context, s_nullNode, 0.0f, 50.0f, none);
+    layout = muiDefaultLayoutStyle();
+    layout.sizing.width = (muiDimension){1.0f, 0.0f, mui_dimensionValue};
+    CHECK(muiNode_SetLayoutValues(context, root, &layout, WIDTH) == mui_success, "full width");
+    Paint(context, root, s_gray);
+    list = BuildAt(context, root, 400.0f, 7);
+    CHECK(list.commands[0].box.rect.width == 400.0f, "400");
+    list = BuildAt(context, root, 500.0f, 7);
+    CHECK(list.header.width == 500.0f && list.commands[0].box.rect.width == 500.0f, "500");
+    muiDestroyContext(context);
+
+    // A build that fails inside a subtree it visited only for a new
+    // opacity leaves that subtree no spans to take, though nothing asks it
+    // to repaint after.
+    muiLimits limits = muiDefaultContextDef().limits;
+    limits.drawCommands = 3;
+    context = MakeContextWith(limits);
+    root = Add(context, s_nullNode, 300.0f, 100.0f, none);
+    muiNodeId faded = Add(context, root, 200.0f, 80.0f, none);
+    muiNodeId inside = Add(context, faded, 100.0f, 50.0f, none);
+    Paint(context, Add(context, inside, 10.0f, 10.0f, none), s_red);
+    Paint(context, Add(context, inside, 10.0f, 10.0f, none), s_blue);
+    (void)BuildAt(context, root, 1000.0f, 7);
+    SetOpacity(context, faded, 0.5f);
+    AddShadowTo(context, root);
+    Paint(context, root, s_gray);
+    CHECK(muiComputeLayout(context, root, &(muiLayoutInput){1000.0f, 1000.0f, NULL, NULL, 0}) ==
+                  mui_success &&
+              muiBuildDrawList(context, root, &(muiDrawInput){7, 1.0f}) == mui_errorCapacity,
+          "four do not fit");
+    visual = muiDefaultVisualStyle();
+    SetVisual(context, root, &visual, MUI_PROPERTY_BIT(mui_propertyOuterShadow));
+    CheckRetained(context, root, "three fit, none taken from the failure");
+    muiDestroyContext(context);
+
+    // A copy that does not fit fails the build.
+    limits = muiDefaultContextDef().limits;
+    limits.drawCommands = 3;
+    context = MakeContextWith(limits);
+    root = Add(context, s_nullNode, 100.0f, 100.0f, none);
+    muiNodeId a = Add(context, root, 50.0f, 50.0f, none);
+    muiNodeId b = Add(context, a, 20.0f, 20.0f, none);
+    Paint(context, root, s_gray);
+    Paint(context, a, s_red);
+    Paint(context, b, s_blue);
+    (void)BuildAt(context, root, 1000.0f, 7);
+    AddShadowTo(context, root);
+    const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0};
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiBuildDrawList(context, root, &(muiDrawInput){7, 1.0f}) == mui_errorCapacity,
+          "the copy does not fit");
+    // Without the shadow it fits again, built from nothing the failure
+    // left.
+    visual = muiDefaultVisualStyle();
+    SetVisual(context, root, &visual, MUI_PROPERTY_BIT(mui_propertyOuterShadow));
+    list = BuildAt(context, root, 1000.0f, 7);
+    CHECK(list.commandCount == 3 && list.commands[2].box.fill.b == 1.0f, "rebuilt after it");
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestBoxes();
@@ -854,6 +1056,7 @@ int main(void)
     TestArgumentsAndLimits();
     TestEdgeCases();
     TestBuildsFromTheLastListMatchWholeOnes();
+    TestRetainedEdges();
     if (getenv(UPDATE_VARIABLE) != NULL)
     {
         WriteGolden();
