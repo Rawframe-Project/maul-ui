@@ -458,6 +458,18 @@ static void TestNameLimit(void)
     CHECK(muiStyle_SetLayoutValues(context, other, mui_variantBase, &layout,
                                    MUI_PROPERTY_BIT(mui_propertyWidth)) == mui_success,
           "a set left");
+    // A set whose last name goes is given back.
+    CHECK(muiStyle_SetToken(context, style, mui_variantBase, mui_propertyPaddingStart,
+                            s_nullToken) == mui_success,
+          "unnamed");
+    muiStyleId third = MakeStyle(context);
+    CHECK(muiStyle_SetLayoutValues(context, third, mui_variantBase, &layout,
+                                   MUI_PROPERTY_BIT(mui_propertyWidth)) == mui_success,
+          "its set taken by another class");
+    CHECK(muiDestroyStyle(context, third) == mui_success, "and given back");
+    CHECK(muiStyle_SetToken(context, style, mui_variantBase, mui_propertyPaddingStart, gap) ==
+              mui_success,
+          "named again");
     // A destroyed class gives its names back.
     CHECK(muiDestroyStyle(context, style) == mui_success, "destroy the class");
     CHECK(muiStyle_SetToken(context, other, mui_variantBase, mui_propertyPaddingEnd, gap) ==
@@ -480,6 +492,84 @@ static void TestNameLimit(void)
     muiDestroyContext(context);
 }
 
+// Edge cases of names beside the rest of the style system.
+static void TestNamesAmongTheRest(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId node = MakeNode(context);
+    muiStyleId style = MakeStyle(context);
+    muiTokenId gap = MakeToken(context, Number(4.0f));
+    muiTokenId half = MakeToken(context, Number(0.5f));
+    muiTokenId blue = MakeToken(context, Color(s_blue));
+    CHECK(muiStyle_SetToken(context, style, mui_variantBase, mui_propertyPaddingStart, gap) ==
+                  mui_success &&
+              muiStyle_SetToken(context, style, mui_variantBase, mui_propertyOpacity, half) ==
+                  mui_success,
+          "padding and opacity");
+    CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
+    Layout(context, node, T0);
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    CHECK(muiNode_GetVisualStyle(context, node, &visual) == mui_success && visual.opacity == 0.5f,
+          "an opacity token");
+    muiTokenValue value = Number(1.5f);
+    CHECK(muiSetTokenValue(context, half, &value) == mui_success, "1.5");
+    Layout(context, node, T0);
+    CHECK(muiNode_GetVisualStyle(context, node, &visual) == mui_success && visual.opacity == 1.0f,
+          "too much for an opacity: silent");
+
+    // A direct write wins over a name.
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.padding.start = 7.0f;
+    CHECK(muiNode_SetLayoutValues(context, node, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyPaddingStart)) == mui_success,
+          "direct");
+    // Hovered changes another layout value, so the node's layout values
+    // are written as a whole.
+    layout.padding.end = 3.0f;
+    CHECK(muiStyle_SetLayoutValues(context, style, mui_variantHovered, &layout,
+                                   MUI_PROPERTY_BIT(mui_propertyPaddingEnd)) == mui_success,
+          "hovered padding end");
+    CHECK(muiNode_SetStates(context, node, mui_stateHovered) == mui_success, "restyle");
+    Layout(context, node, T0);
+    CHECK(PaddingStart(context, node) == 7.0f, "the direct write stands");
+
+    // A variant holding only a name keeps its set when its transitions go.
+    CHECK(muiStyle_SetToken(context, style, mui_variantHovered, mui_propertyBackground, blue) ==
+              mui_success,
+          "hovered background");
+    muiTransitionDef def = muiDefaultTransitionDef();
+    muiTransitionId transition = {0, 0};
+    CHECK(muiCreateTransition(context, &def, &transition) == mui_success, "transition");
+    const muiTransitionId none = {0, 0};
+    CHECK(muiStyle_SetTransition(context, style, mui_variantHovered, transition,
+                                 MUI_PROPERTY_BIT(mui_propertyWidth)) == mui_success &&
+              muiStyle_SetTransition(context, style, mui_variantHovered, none,
+                                     MUI_PROPERTY_BIT(mui_propertyWidth)) == mui_success,
+          "a transition named and taken away");
+    Layout(context, node, T0);
+    CHECK(SameColor(Background(context, node), s_blue), "the name stays");
+
+    // A condition's variant with names alone applies them.
+    muiStyleId scaled = MakeStyle(context);
+    muiCondition large = muiDefaultCondition();
+    large.textScale = (muiRange){2.0f, INFINITY};
+    muiVariant variant = mui_variantBase;
+    CHECK(muiStyle_AddCondition(context, scaled, &large, &variant) == mui_success &&
+              muiStyle_SetToken(context, scaled, variant, mui_propertyBorderColorTop, blue) ==
+                  mui_success,
+          "a conditional name");
+    muiNodeId other = MakeNode(context);
+    CHECK(muiNode_SetClasses(context, other, &scaled, 1) == mui_success, "class");
+    muiEnvironment environment = muiDefaultEnvironment();
+    environment.textScale = 2.0f;
+    CHECK(muiSetContextEnvironment(context, &environment) == mui_success, "large text");
+    Layout(context, other, T0);
+    CHECK(muiNode_GetVisualStyle(context, other, &visual) == mui_success &&
+              SameColor(visual.borderColor.top, s_blue),
+          "applied");
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestTokensAreChecked();
@@ -488,5 +578,6 @@ int main(void)
     TestResolutionReadsTokens();
     TestThemeSwitchesMove();
     TestNameLimit();
+    TestNamesAmongTheRest();
     return s_failures == 0 ? 0 : 1;
 }
