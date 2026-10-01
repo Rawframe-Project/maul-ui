@@ -300,6 +300,14 @@ static void TestColorsThroughOklab(void)
     }
     CHECK(worst < 2e-5, "there and back within a 50,000th");
 
+    // A dark gray takes the transfer function's linear part both ways.
+    muiColorToChannels((muiColor){0.02f, 0.02f, 0.02f, 1.0f}, channels);
+    CHECK(Near(channels[0], 0.1156793, 1e-6), "a dark gray's lightness");
+    muiColor dark = muiColorFromChannels(channels);
+    CHECK(Near(dark.r, 0.02, 1e-6) && Near(dark.b, 0.02, 1e-6), "and back");
+    muiColorToChannels((muiColor){0.002f, 0.0f, 0.0f, 1.0f}, channels);
+    CHECK(Near(muiColorFromChannels(channels).r, 0.002, 1e-6), "darker still");
+
     const float clear[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     muiColor none = muiColorFromChannels(clear);
     CHECK(none.r == 0.0f && none.g == 0.0f && none.b == 0.0f && none.a == 0.0f, "clear");

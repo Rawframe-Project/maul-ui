@@ -57,11 +57,11 @@ muiColor muiColorFromChannels(const float channels[4])
     l = l * l * l;
     m = m * m * m;
     s = s * s * s;
-    // Linear light past the gamut is held to it before the transfer
-    // function, which is defined on 0 to 1.
-    double red = Unit(4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s);
-    double green = Unit(-1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s);
-    double blue = Unit(-0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s);
+    // Linear light below 0 takes the transfer function's linear part, and
+    // the result is held to the gamut after it.
+    double red = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+    double green = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+    double blue = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
     return (muiColor){(float)Unit(FromLinear(red)), (float)Unit(FromLinear(green)),
                       (float)Unit(FromLinear(blue)), (float)alpha};
 }

@@ -671,6 +671,22 @@ static void TestSpringRetargetedInPlaceRests(void)
     muiDestroyContext(scene.context);
 }
 
+// A running width whose target becomes automatic stops there at once.
+static void TestRunningToAutomaticStops(void)
+{
+    Scene scene = MakeScene(muiDefaultContextDef().limits);
+    Bind(scene.context, scene.style, mui_variantBase,
+         MakeTimed(scene.context, 100 * MS, mui_easingLinear, 0), WIDTH);
+    Hover(&scene, true);
+    (void)WidthAt(scene.context, scene.node, T0);
+    CHECK(WidthAt(scene.context, scene.node, T0 + 50 * MS) == 150.0f, "running");
+    SetWidth(scene.context, scene.style, mui_variantHovered,
+             (muiDimension){0.0f, 0.0f, mui_dimensionAuto});
+    CHECK(WidthAt(scene.context, scene.node, T0 + 50 * MS) == 0.0f, "automatic, at once");
+    CHECK(!muiNode_IsTransitioning(scene.context, scene.node, mui_propertyWidth), "stopped");
+    muiDestroyContext(scene.context);
+}
+
 int main(void)
 {
     TestDefaultsAndChecks();
@@ -691,5 +707,6 @@ int main(void)
     TestOvershootingReversalTakesNoLonger();
     TestLongSpringsAreCut();
     TestSpringRetargetedInPlaceRests();
+    TestRunningToAutomaticStops();
     return s_failures == 0 ? 0 : 1;
 }

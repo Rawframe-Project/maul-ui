@@ -579,6 +579,81 @@ static void TestRadiusSpringStaysAtZero(void)
     muiDestroyContext(context);
 }
 
+// A spring on a shadow and on slice insets overshoots, and stops at 0.
+static void TestShadowAndSliceSpringsStayAtZero(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId node = MakeNode(context);
+    muiStyleId style = MakeStyle(context);
+    const muiPropertyMask moved =
+        MUI_PROPERTY_BIT(mui_propertyOuterShadow) | MUI_PROPERTY_BIT(mui_propertyImageSlice);
+    muiVisualStyle values = muiDefaultVisualStyle();
+    values.outerShadow = (muiShadow){{0.0f, 0.0f, 0.0f, 0.5f}, 0.0f, 0.0f, 8.0f, 0.0f};
+    values.imageSlice = (muiEdges){8.0f, 8.0f, 8.0f, 8.0f};
+    CHECK(muiStyle_SetVisualValues(context, style, mui_variantBase, &values, moved) == mui_success,
+          "base");
+    values.outerShadow.blur = 0.0f;
+    values.imageSlice = (muiEdges){0.0f, 0.0f, 0.0f, 0.0f};
+    CHECK(muiStyle_SetVisualValues(context, style, mui_variantHovered, &values, moved) ==
+              mui_success,
+          "hovered");
+    muiTransitionDef def = muiDefaultTransitionDef();
+    def.kind = mui_transitionSpring;
+    def.frequency = 3.0f;
+    def.dampingRatio = 0.2f;
+    muiTransitionId spring = s_nullTransition;
+    CHECK(muiCreateTransition(context, &def, &spring) == mui_success, "spring");
+    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, spring, moved) == mui_success,
+          "named");
+    CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
+    Layout(context, node, T0);
+    CHECK(muiNode_SetStates(context, node, mui_stateHovered) == mui_success, "hover");
+    bool negative = false;
+    for (uint64_t t = 0; t <= 1000 * MS; t += 8 * MS)
+    {
+        Layout(context, node, T0 + t);
+        muiVisualStyle read = Read(context, node);
+        negative = negative || read.outerShadow.blur < 0.0f || read.imageSlice.start < 0.0f ||
+                   read.imageSlice.bottom < 0.0f;
+    }
+    CHECK(!negative, "a blur and insets stop at 0");
+    muiDestroyContext(context);
+}
+
+// A running shadow given a new blur alone, its seventh channel, takes it.
+static void TestRetargetOnALaterChannel(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId node = MakeNode(context);
+    muiStyleId style = MakeStyle(context);
+    const muiPropertyMask shadow = MUI_PROPERTY_BIT(mui_propertyOuterShadow);
+    muiVisualStyle values = muiDefaultVisualStyle();
+    values.outerShadow = (muiShadow){{0.0f, 0.0f, 0.0f, 0.5f}, 0.0f, 4.0f, 8.0f, 0.0f};
+    CHECK(muiStyle_SetVisualValues(context, style, mui_variantHovered, &values, shadow) ==
+              mui_success,
+          "hovered");
+    muiTransitionDef def = muiDefaultTransitionDef();
+    def.durationNs = 100 * MS;
+    def.easing = mui_easingLinear;
+    muiTransitionId linear = s_nullTransition;
+    CHECK(muiCreateTransition(context, &def, &linear) == mui_success, "transition");
+    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, linear, shadow) == mui_success,
+          "named");
+    CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
+    Layout(context, node, T0);
+    CHECK(muiNode_SetStates(context, node, mui_stateHovered) == mui_success, "hover");
+    Layout(context, node, T0);
+    Layout(context, node, T0 + 50 * MS);
+    values.outerShadow.blur = 16.0f;
+    CHECK(muiStyle_SetVisualValues(context, style, mui_variantHovered, &values, shadow) ==
+              mui_success,
+          "a larger blur");
+    Layout(context, node, T0 + 50 * MS);
+    Layout(context, node, T0 + 200 * MS);
+    CHECK(Read(context, node).outerShadow.blur == 16.0f, "ends on the new blur");
+    muiDestroyContext(context);
+}
+
 static void TestGradientsCompareUsedStops(void)
 {
     muiContext* context = MakeContext();
@@ -637,5 +712,7 @@ int main(void)
     TestGradientsCompareUsedStops();
     TestRadiusSpringStaysAtZero();
     TestColorsAndShadowsMove();
+    TestShadowAndSliceSpringsStayAtZero();
+    TestRetargetOnALaterChannel();
     return s_failures == 0 ? 0 : 1;
 }
