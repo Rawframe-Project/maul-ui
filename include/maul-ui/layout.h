@@ -310,8 +310,10 @@ extern "C"
     /// Safe from any thread.
     MUI_API muiLayoutStyle muiDefaultLayoutStyle(void);
 
-    /// Sets every authored layout value of a node. The node and its parent
-    /// are laid out again at the next muiComputeLayout.
+    /// Writes every layout property of a node directly, so that they win
+    /// over its style classes until reset (muiNode_SetLayoutValues in
+    /// maul-ui/style.h writes some). The node and its parent are laid out
+    /// again at the next muiComputeLayout.
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
@@ -327,7 +329,9 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiNode_SetLayoutStyle(muiContext* context, muiNodeId nodeId,
                                                            const muiLayoutStyle* style);
 
-    /// Reads a node's authored layout values.
+    /// Reads a node's resolved layout values: its direct writes, and for
+    /// the other properties what its classes and states gave at the last
+    /// muiComputeLayout that reached it.
     ///
     /// @param context   The context.
     /// @param nodeId    The node.

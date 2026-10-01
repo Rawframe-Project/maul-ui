@@ -105,6 +105,13 @@ void muiTreeDestroy(muiTree* tree, uint32_t node);
 // the first that has them already.
 void muiTreeMark(muiTree* tree, uint32_t node, muiStages stages);
 
+// Requests stages on every live node.
+void muiTreeMarkAll(muiTree* tree, muiStages stages);
+
+// Requests layout and paint on node and its parent: a change to a node's
+// size changes its parent's layout too.
+void muiTreeMarkLayout(muiTree* tree, uint32_t node);
+
 // The node after at, in preorder from root, among the nodes whose subtree
 // flags hold one of stages, descending only into those; at 0 starts at
 // root. Returns 0 at the end. Clearing at's flags before the call does not

@@ -22,8 +22,14 @@ extern "C"
     typedef struct muiLimits
     {
         // Nodes that exist at once. The context reserves them when it is
-        // created.
+        // created, as it reserves every limit.
         uint32_t nodes;
+        // Style classes and node types that exist at once.
+        uint32_t styles;
+        uint32_t nodeTypes;
+        // The variants of all classes together that have values set: a
+        // class's base values, and each state variant it sets, are one.
+        uint32_t propertySets;
     } muiLimits;
 
     // How a context is made. Build it with muiDefaultContextDef.
@@ -34,8 +40,8 @@ extern "C"
         muiLimits limits;
     } muiContextDef;
 
-    /// Returns the default context def: 4,096 nodes and the C library's
-    /// allocator.
+    /// Returns the default context def: 4,096 nodes, 256 styles, 64 node
+    /// types, 1,024 property sets and the C library's allocator.
     ///
     /// @return The def, with a valid cookie.
     /// @par Thread safety
@@ -46,7 +52,7 @@ extern "C"
     ///
     /// @param def         The context: a valid cookie, an allocator with both
     ///                    functions or neither, a node limit from 1 to
-    ///                    2^31 - 1.
+    ///                    2^31 - 1 and other limits from 0 to 2^31 - 1.
     /// @param contextOut  Receives the context; set to NULL on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
     ///         cookie, a half-set allocator or a limit out of range;

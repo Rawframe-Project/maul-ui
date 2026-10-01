@@ -93,6 +93,13 @@ typedef struct muiLayoutNode
     bool absolute;
 } muiLayoutNode;
 
+// Brings the values kept beside a node's style up to date after the
+// style changes.
+static inline void muiSyncLayoutNode(muiLayoutNode* node)
+{
+    node->absolute = node->style.placement.position == mui_positionAbsolute;
+}
+
 // The first child of a container that takes part in its flex layout, and
 // the next after child: absolute children are skipped. 0 at the end.
 static inline uint32_t muiFirstFlowAt(const muiTree* tree, const muiLayoutNode* nodes,

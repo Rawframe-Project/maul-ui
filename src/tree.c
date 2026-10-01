@@ -93,6 +93,27 @@ void muiTreeMark(muiTree* tree, uint32_t node, muiStages stages)
     MarkSubtree(tree, node, stages);
 }
 
+void muiTreeMarkAll(muiTree* tree, muiStages stages)
+{
+    for (uint32_t slot = 1; slot <= tree->used; slot++)
+    {
+        if (muiTreeAt(tree, slot)->live)
+        {
+            muiTreeMark(tree, slot, stages);
+        }
+    }
+}
+
+void muiTreeMarkLayout(muiTree* tree, uint32_t node)
+{
+    muiTreeMark(tree, node, mui_stageLayout | mui_stagePaint);
+    uint32_t parent = muiTreeAt(tree, node)->links.parent;
+    if (parent != 0)
+    {
+        muiTreeMark(tree, parent, mui_stageLayout | mui_stagePaint);
+    }
+}
+
 void muiTreeInsert(muiTree* tree, uint32_t parent, uint32_t child, uint32_t before)
 {
     muiTreeNode* parentNode = muiTreeAt(tree, parent);

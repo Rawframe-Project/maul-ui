@@ -8,27 +8,18 @@
 
 #include "context.h"
 #include "layout_node.h"
+#include "property.h"
+#include "restyle.h"
 #include "solve.h"
 #include "tree.h"
+
+#include "maul-ui/style.h"
 
 #include <math.h>
 
 muiLayoutStyle muiDefaultLayoutStyle(void)
 {
-    return (muiLayoutStyle){
-        .container = {.direction = mui_flexRow,
-                      .wrap = mui_wrapNone,
-                      .justify = mui_justifyStart,
-                      .alignItems = mui_alignStretch,
-                      .alignContent = mui_alignContentStretch},
-        .item = {.shrink = 1.0f, .alignSelf = mui_alignAuto},
-    };
-}
-
-static bool IsDimensionValid(muiDimension dimension)
-{
-    return dimension.kind <= mui_dimensionValue && isfinite(dimension.scale) &&
-           isfinite(dimension.offset);
+    return *muiLayoutDefaults();
 }
 
 static bool IsLength(float value)
@@ -36,101 +27,9 @@ static bool IsLength(float value)
     return isfinite(value) && value >= 0.0f;
 }
 
-static bool IsSizingValid(const muiSizing* sizing)
-{
-    return IsLength(sizing->aspectRatio) && IsDimensionValid(sizing->width) &&
-           IsDimensionValid(sizing->height) && IsDimensionValid(sizing->minWidth) &&
-           IsDimensionValid(sizing->minHeight) && IsDimensionValid(sizing->maxWidth) &&
-           IsDimensionValid(sizing->maxHeight);
-}
-
-static bool AreEdgesValid(const muiEdges* edges, bool negativeAllowed)
-{
-    const float values[] = {edges->start, edges->end, edges->top, edges->bottom};
-    for (int i = 0; i < 4; i++)
-    {
-        if (!isfinite(values[i]) || (!negativeAllowed && values[i] < 0.0f))
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-static bool IsFraction(float value)
-{
-    return value >= 0.0f && value <= 1.0f;
-}
-
-static bool IsPlacementValid(const muiPlacement* placement)
-{
-    const muiInsets* inset = &placement->inset;
-    return placement->position <= mui_positionAbsolute && IsDimensionValid(inset->start) &&
-           IsDimensionValid(inset->end) && IsDimensionValid(inset->top) &&
-           IsDimensionValid(inset->bottom) && IsFraction(placement->anchorX) &&
-           IsFraction(placement->anchorY);
-}
-
-static bool IsStyleValid(const muiLayoutStyle* style)
-{
-    const muiFlexContainer* container = &style->container;
-    const muiFlexItem* item = &style->item;
-    return IsSizingValid(&style->sizing) && container->direction <= mui_flexColumnReverse &&
-           container->wrap <= mui_wrapReverse &&
-           container->alignContent <= mui_alignContentSpaceEvenly &&
-           container->justify <= mui_justifySpaceEvenly && container->alignItems != mui_alignAuto &&
-           container->alignItems <= mui_alignCenter && IsLength(container->rowGap) &&
-           IsLength(container->columnGap) && IsLength(item->grow) && IsLength(item->shrink) &&
-           IsDimensionValid(item->basis) && item->alignSelf <= mui_alignCenter &&
-           AreEdgesValid(&style->margin, true) && AreEdgesValid(&style->border, false) &&
-           AreEdgesValid(&style->padding, false) && style->marginAuto <= 0xF &&
-           IsPlacementValid(&style->placement) && style->textDirection <= mui_textRightToLeft &&
-           style->content <= mui_contentHost;
-}
-
-// The slot of a live node for an edit, or 0 with the status in statusOut.
-static uint32_t ResolveEdit(muiContext* context, muiNodeId nodeId, muiResult* statusOut)
-{
-    if (nodeId.index1 == 0 || muiIsMeasuring(context))
-    {
-        *statusOut = muiRefuse(context);
-        return 0;
-    }
-    uint32_t slot = muiTreeResolve(&context->tree, nodeId);
-    *statusOut = slot != 0 ? mui_success : mui_errorStale;
-    return slot;
-}
-
-// A change to a node's size changes its parent's layout too.
-static void MarkLayout(muiContext* context, uint32_t slot)
-{
-    muiTreeMark(&context->tree, slot, mui_stageLayout | mui_stagePaint);
-    uint32_t parent = muiTreeAt(&context->tree, slot)->links.parent;
-    if (parent != 0)
-    {
-        muiTreeMark(&context->tree, parent, mui_stageLayout | mui_stagePaint);
-    }
-}
-
 muiResult muiNode_SetLayoutStyle(muiContext* context, muiNodeId nodeId, const muiLayoutStyle* style)
 {
-    if (context == nullptr)
-    {
-        return mui_errorInvalid;
-    }
-    if (style == nullptr || !IsStyleValid(style))
-    {
-        return muiRefuse(context);
-    }
-    muiResult status = mui_success;
-    uint32_t slot = ResolveEdit(context, nodeId, &status);
-    if (slot != 0)
-    {
-        context->layout[slot - 1].style = *style;
-        context->layout[slot - 1].absolute = style->placement.position == mui_positionAbsolute;
-        MarkLayout(context, slot);
-    }
-    return status;
+    return muiNode_SetLayoutValues(context, nodeId, style, MUI_LAYOUT_PROPERTIES);
 }
 
 muiResult muiNode_GetLayoutStyle(const muiContext* context, muiNodeId nodeId,
@@ -156,10 +55,10 @@ muiResult muiNode_MarkContentChanged(muiContext* context, muiNodeId nodeId)
         return mui_errorInvalid;
     }
     muiResult status = mui_success;
-    uint32_t slot = ResolveEdit(context, nodeId, &status);
+    uint32_t slot = muiResolveEdit(context, nodeId, &status);
     if (slot != 0)
     {
-        MarkLayout(context, slot);
+        muiTreeMarkLayout(&context->tree, slot);
     }
     return status;
 }
@@ -188,7 +87,7 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
         return muiRefuse(context);
     }
     muiResult status = mui_success;
-    uint32_t root = ResolveEdit(context, rootId, &status);
+    uint32_t root = muiResolveEdit(context, rootId, &status);
     if (root == 0)
     {
         return status;
@@ -197,6 +96,7 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
     {
         return muiRefuse(context);
     }
+    muiRestyle(context, root);
     Invalidate(context, root);
     muiSolver solver = {
         .tree = &context->tree,

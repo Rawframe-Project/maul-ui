@@ -48,7 +48,12 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/flex_resolve.c
     src/layout.c
     src/node.c
+    src/node_style.c
+    src/pool.c
+    src/property.c
+    src/restyle.c
     src/solve.c
+    src/style.c
     src/tree.c)
 maul_configure_library(maul-ui)
 # fmaxf, fminf and fabsf, the exactly rounded functions the solver takes
@@ -64,6 +69,7 @@ if(MAUL_UI_BUILD_TESTS)
     maul_add_test(layout)
     maul_add_test(layout_fixtures)
     maul_add_test(node)
+    maul_add_test(style)
     maul_add_test(tree WHITEBOX)
     # winnls.h defines MUI_ macros; this checks that none clash (family
     # record 0007).

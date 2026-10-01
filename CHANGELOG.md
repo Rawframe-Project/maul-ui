@@ -33,3 +33,8 @@ format.
   fixtures from Chrome; the oracle now writes CSS's logical properties.
 - Aspect ratio (`muiSizing.aspectRatio`), with 10 more fixtures from
   Chrome.
+- Style classes with state variants, node types and direct writes
+  (`maul-ui/style.h`), resolved in fixed layers before layout (record
+  mui-0004); new context limits for styles, node types and property
+  sets. `muiNode_SetLayoutStyle` now writes every layout property
+  directly. The benchmark gains a list styled through node types.

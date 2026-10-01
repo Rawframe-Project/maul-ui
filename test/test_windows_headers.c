@@ -8,6 +8,10 @@
 #include "test_harness.h"
 
 #include "maul-ui/base.h"
+#include "maul-ui/context.h"
+#include "maul-ui/layout.h"
+#include "maul-ui/node.h"
+#include "maul-ui/style.h"
 
 #include <windows.h>
 

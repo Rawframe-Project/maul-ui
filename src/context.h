@@ -7,6 +7,7 @@
 #define MAUL_UI_SRC_CONTEXT_H
 
 #include "layout_node.h"
+#include "style_store.h"
 #include "tree.h"
 
 #include "maul-ui/context.h"
@@ -19,6 +20,7 @@ struct muiContext
     muiTree tree;
     // Layout's values per node, parallel to the tree's slots.
     muiLayoutNode* layout;
+    muiStyleStore style;
     uint64_t misuse;
     // Set while a measure function runs; edits are refused then.
     bool measuring;
@@ -29,5 +31,10 @@ muiResult muiRefuse(muiContext* context);
 
 // Whether an edit must be refused because a measure function is running.
 bool muiIsMeasuring(const muiContext* context);
+
+// The slot of a live node for an edit, or 0 with the status to return in
+// statusOut: misuse for the null id or an edit from a measure function,
+// stale for a gone node.
+uint32_t muiResolveEdit(muiContext* context, muiNodeId nodeId, muiResult* statusOut);
 
 #endif // MAUL_UI_SRC_CONTEXT_H

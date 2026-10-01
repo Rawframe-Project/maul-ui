@@ -8,6 +8,7 @@
 
 #include "context.h"
 #include "layout_node.h"
+#include "style_store.h"
 #include "tree.h"
 
 #include "maul-ui/layout.h"
@@ -17,21 +18,6 @@
 static bool IsNull(muiNodeId nodeId)
 {
     return nodeId.index1 == 0;
-}
-
-// The slot of a live node for an edit, or 0 with the status to return in
-// statusOut: misuse for the null id or an edit from a measure function,
-// stale for a gone node.
-static uint32_t ResolveLive(muiContext* context, muiNodeId nodeId, muiResult* statusOut)
-{
-    if (IsNull(nodeId) || muiIsMeasuring(context))
-    {
-        *statusOut = muiRefuse(context);
-        return 0;
-    }
-    uint32_t slot = muiTreeResolve(&context->tree, nodeId);
-    *statusOut = slot != 0 ? mui_success : mui_errorStale;
-    return slot;
 }
 
 // The slot of a live node for a query, or 0.
@@ -66,6 +52,7 @@ muiResult muiCreateNode(muiContext* context, const muiNodeDef* def, muiNodeId* n
         return mui_errorCapacity;
     }
     context->layout[slot - 1] = (muiLayoutNode){.style = muiDefaultLayoutStyle()};
+    context->style.nodes[slot - 1] = (muiNodeStyle){0};
     *nodeIdOut = muiTreeIdOf(&context->tree, slot);
     return mui_success;
 }
@@ -77,7 +64,7 @@ muiResult muiDestroyNode(muiContext* context, muiNodeId nodeId)
         return mui_errorInvalid;
     }
     muiResult status = mui_success;
-    uint32_t slot = ResolveLive(context, nodeId, &status);
+    uint32_t slot = muiResolveEdit(context, nodeId, &status);
     if (slot != 0)
     {
         muiTreeDestroy(&context->tree, slot);
@@ -98,12 +85,12 @@ muiResult muiNode_InsertChild(muiContext* context, muiNodeId parentId, muiNodeId
         return mui_errorInvalid;
     }
     muiResult status = mui_success;
-    uint32_t parent = ResolveLive(context, parentId, &status);
+    uint32_t parent = muiResolveEdit(context, parentId, &status);
     if (parent == 0)
     {
         return status;
     }
-    uint32_t child = ResolveLive(context, childId, &status);
+    uint32_t child = muiResolveEdit(context, childId, &status);
     if (child == 0)
     {
         return status;
@@ -134,7 +121,7 @@ muiResult muiNode_Detach(muiContext* context, muiNodeId nodeId)
         return mui_errorInvalid;
     }
     muiResult status = mui_success;
-    uint32_t slot = ResolveLive(context, nodeId, &status);
+    uint32_t slot = muiResolveEdit(context, nodeId, &status);
     if (slot != 0)
     {
         muiTreeDetach(&context->tree, slot);

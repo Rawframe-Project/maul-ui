@@ -13,11 +13,61 @@
 #define CONTEXT_DEF_COOKIE 0x6D756378u // "mucx"
 
 // Slots are 1-based uint32_t values with room for a parent link count.
-#define MAX_NODES 0x7FFFFFFFu
+#define MAX_SLOTS 0x7FFFFFFFu
 
 muiContextDef muiDefaultContextDef(void)
 {
-    return (muiContextDef){.cookie = CONTEXT_DEF_COOKIE, .limits = {.nodes = 4096}};
+    return (muiContextDef){
+        .cookie = CONTEXT_DEF_COOKIE,
+        .limits = {.nodes = 4096, .styles = 256, .nodeTypes = 64, .propertySets = 1024},
+    };
+}
+
+static bool AreLimitsValid(const muiLimits* limits)
+{
+    return limits->nodes != 0 && limits->nodes <= MAX_SLOTS && limits->styles <= MAX_SLOTS &&
+           limits->nodeTypes <= MAX_SLOTS && limits->propertySets <= MAX_SLOTS;
+}
+
+// Where each part of the context's block starts.
+typedef struct Parts
+{
+    size_t nodes;
+    size_t layout;
+    size_t nodeStyles;
+    size_t classSlots;
+    size_t classes;
+    size_t typeSlots;
+    size_t types;
+    size_t setSlots;
+    size_t sets;
+} Parts;
+
+static Parts LayOut(muiLayout* layout, const muiLimits* limits)
+{
+    // The context opens the block, so the block is freed through it.
+    size_t contextOffset = muiLayoutAdd(layout, 1, sizeof(muiContext), alignof(muiContext));
+    MUI_ASSERT(contextOffset == 0);
+    (void)contextOffset;
+    return (Parts){
+        .nodes = muiLayoutAdd(layout, limits->nodes, sizeof(muiTreeNode), alignof(muiTreeNode)),
+        .layout =
+            muiLayoutAdd(layout, limits->nodes, sizeof(muiLayoutNode), alignof(muiLayoutNode)),
+        .nodeStyles =
+            muiLayoutAdd(layout, limits->nodes, sizeof(muiNodeStyle), alignof(muiNodeStyle)),
+        .classSlots =
+            muiLayoutAdd(layout, limits->styles, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
+        .classes =
+            muiLayoutAdd(layout, limits->styles, sizeof(muiStyleClass), alignof(muiStyleClass)),
+        .typeSlots =
+            muiLayoutAdd(layout, limits->nodeTypes, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
+        .types =
+            muiLayoutAdd(layout, limits->nodeTypes, sizeof(muiClassList), alignof(muiClassList)),
+        .setSlots =
+            muiLayoutAdd(layout, limits->propertySets, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
+        .sets = muiLayoutAdd(layout, limits->propertySets, sizeof(muiPropertySet),
+                             alignof(muiPropertySet)),
+    };
 }
 
 muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut)
@@ -27,17 +77,12 @@ muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut)
         *contextOut = nullptr;
     }
     if (def == nullptr || contextOut == nullptr || def->cookie != CONTEXT_DEF_COOKIE ||
-        !muiIsAllocatorValid(&def->allocator) || def->limits.nodes == 0 ||
-        def->limits.nodes > MAX_NODES)
+        !muiIsAllocatorValid(&def->allocator) || !AreLimitsValid(&def->limits))
     {
         return mui_errorInvalid;
     }
     muiLayout layout = {0};
-    size_t contextOffset = muiLayoutAdd(&layout, 1, sizeof(muiContext), alignof(muiContext));
-    size_t nodesOffset =
-        muiLayoutAdd(&layout, def->limits.nodes, sizeof(muiTreeNode), alignof(muiTreeNode));
-    size_t layoutOffset =
-        muiLayoutAdd(&layout, def->limits.nodes, sizeof(muiLayoutNode), alignof(muiLayoutNode));
+    Parts parts = LayOut(&layout, &def->limits);
     if (layout.overflow)
     {
         return mui_errorCapacity;
@@ -48,13 +93,19 @@ muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut)
         return mui_errorCapacity;
     }
     memset(block, 0, layout.size);
-    // The context opens the block, so the block is freed through it.
-    MUI_ASSERT(contextOffset == 0);
     muiContext* context = (muiContext*)block;
     context->allocator = def->allocator;
     context->blockSize = layout.size;
-    muiTreeInit(&context->tree, (muiTreeNode*)(block + nodesOffset), def->limits.nodes);
-    context->layout = (muiLayoutNode*)(block + layoutOffset);
+    muiTreeInit(&context->tree, (muiTreeNode*)(block + parts.nodes), def->limits.nodes);
+    context->layout = (muiLayoutNode*)(block + parts.layout);
+    muiStyleStore* style = &context->style;
+    style->nodes = (muiNodeStyle*)(block + parts.nodeStyles);
+    muiPoolInit(&style->classPool, (muiPoolSlot*)(block + parts.classSlots), def->limits.styles);
+    style->classes = (muiStyleClass*)(block + parts.classes);
+    muiPoolInit(&style->typePool, (muiPoolSlot*)(block + parts.typeSlots), def->limits.nodeTypes);
+    style->types = (muiClassList*)(block + parts.types);
+    muiPoolInit(&style->setPool, (muiPoolSlot*)(block + parts.setSlots), def->limits.propertySets);
+    style->sets = (muiPropertySet*)(block + parts.sets);
     *contextOut = context;
     return mui_success;
 }
@@ -83,4 +134,16 @@ muiResult muiRefuse(muiContext* context)
 bool muiIsMeasuring(const muiContext* context)
 {
     return context->measuring;
+}
+
+uint32_t muiResolveEdit(muiContext* context, muiNodeId nodeId, muiResult* statusOut)
+{
+    if (nodeId.index1 == 0 || muiIsMeasuring(context))
+    {
+        *statusOut = muiRefuse(context);
+        return 0;
+    }
+    uint32_t slot = muiTreeResolve(&context->tree, nodeId);
+    *statusOut = slot != 0 ? mui_success : mui_errorStale;
+    return slot;
 }
