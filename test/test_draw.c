@@ -566,6 +566,89 @@ static void TestArgumentsAndLimits(void)
     }
 }
 
+// Edges of what a node draws, and of what a context keeps between builds.
+static void TestEdgeCases(void)
+{
+    muiContext* context = MakeContext();
+    const muiEdges none = {0};
+    muiNodeId root = Add(context, s_nullNode, 100.0f, 100.0f, (muiEdges){0.5f, 0.0f, 0.5f, 0.0f});
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    // Borders alone draw, unless their colors are clear.
+    muiNodeId framed = Add(context, root, 20.0f, 20.0f, none);
+    SetBorder(context, framed, (muiEdges){1.0f, 1.0f, 1.0f, 1.0f});
+    muiNodeId clear = Add(context, root, 20.0f, 20.0f, none);
+    SetBorder(context, clear, (muiEdges){1.0f, 1.0f, 1.0f, 1.0f});
+    const muiColor transparent = {0.0f, 0.0f, 0.0f, 0.0f};
+    visual.borderColor = (muiEdgeColors){transparent, transparent, transparent, transparent};
+    SetVisual(context, clear, &visual,
+              MUI_PROPERTY_BIT(mui_propertyBorderColorStart) |
+                  MUI_PROPERTY_BIT(mui_propertyBorderColorEnd) |
+                  MUI_PROPERTY_BIT(mui_propertyBorderColorTop) |
+                  MUI_PROPERTY_BIT(mui_propertyBorderColorBottom));
+    // An empty box stays empty.
+    muiNodeId empty = Add(context, root, 0.0f, 10.0f, none);
+    visual = muiDefaultVisualStyle();
+    visual.background = s_gray;
+    SetVisual(context, empty, &visual, MUI_PROPERTY_BIT(mui_propertyBackground));
+    // Borders snapped wider than the box leave an empty padding box.
+    muiNodeId thin = Add(context, root, 0.6f, 10.0f, none);
+    SetBorder(context, thin, (muiEdges){0.3f, 0.3f, 0.0f, 0.0f});
+    visual.innerShadow = (muiShadow){{0.0f, 0.0f, 0.0f, 1.0f}, 0.0f, 0.0f, 1.0f, 0.0f};
+    SetVisual(context, thin, &visual,
+              MUI_PROPERTY_BIT(mui_propertyBackground) | MUI_PROPERTY_BIT(mui_propertyInnerShadow));
+    // A clip at a fraction of a pixel snaps.
+    muiNodeId clipping = Add(context, root, 10.25f, 10.0f, none);
+    visual = muiDefaultVisualStyle();
+    visual.clip = true;
+    SetVisual(context, clipping, &visual, MUI_PROPERTY_BIT(mui_propertyClip));
+    muiDrawList list = Build(context, root, 1.0f);
+    CHECK(list.commandCount == 4, "a framed box, an empty one, and a thin one with its shadow");
+    CHECK(list.commands[0].box.borderWidths.top == 1.0f && list.commands[0].box.fill.a == 0.0f,
+          "the frame");
+    CHECK(list.commands[1].box.rect.width == 0.0f, "the empty box");
+    CHECK(list.commands[3].kind == mui_drawShadow && list.commands[3].shadow.rect.width == 0.0f,
+          "an inner shadow of no width");
+    CHECK(list.clipCount == 2 && list.clips[1].rect.x == 41.0f && list.clips[1].rect.width == 10.0f,
+          "a snapped clip");
+    muiDestroyContext(context);
+
+    // A context that drew larger records before writes the same bytes as
+    // a new one.
+    muiContext* used = MakeContext();
+    muiNodeId first = Add(used, s_nullNode, 50.0f, 50.0f, none);
+    visual = muiDefaultVisualStyle();
+    visual.background = s_red;
+    visual.gradient = (muiGradient){mui_gradientLinear,
+                                    4,
+                                    0.0f,
+                                    {{s_red, 0.0f}, {s_blue, 0.3f}, {s_red, 0.6f}, {s_blue, 1.0f}}};
+    SetVisual(used, first, &visual,
+              MUI_PROPERTY_BIT(mui_propertyBackground) | MUI_PROPERTY_BIT(mui_propertyGradient));
+    (void)Build(used, first, 1.0f);
+    muiContext* fresh = MakeContext();
+    muiNodeId roots[2] = {first, Add(fresh, s_nullNode, 50.0f, 50.0f, none)};
+    muiContext* contexts[2] = {used, fresh};
+    muiDrawList lists[2];
+    for (int i = 0; i < 2; i++)
+    {
+        muiNodeId node = i == 0 ? Add(used, s_nullNode, 50.0f, 50.0f, none) : roots[1];
+        visual = muiDefaultVisualStyle();
+        visual.outerShadow = (muiShadow){{0.0f, 0.0f, 0.0f, 0.5f}, 1.0f, 1.0f, 4.0f, 0.0f};
+        visual.gradient =
+            (muiGradient){mui_gradientRadial, 2, 0.0f, {{s_blue, 0.0f}, {s_red, 1.0f}}};
+        SetVisual(contexts[i], node, &visual,
+                  MUI_PROPERTY_BIT(mui_propertyOuterShadow) |
+                      MUI_PROPERTY_BIT(mui_propertyGradient));
+        lists[i] = Build(contexts[i], node, 1.0f);
+    }
+    CHECK(lists[0].commandCount == 2 && lists[1].commandCount == 2 &&
+              memcmp(lists[0].commands, lists[1].commands, 2 * sizeof(muiDrawCommand)) == 0 &&
+              memcmp(&lists[0].gradients[1], &lists[1].gradients[1], sizeof(muiDrawGradient)) == 0,
+          "no bytes of the earlier list are left");
+    muiDestroyContext(used);
+    muiDestroyContext(fresh);
+}
+
 int main(void)
 {
     TestBoxes();
@@ -574,6 +657,7 @@ int main(void)
     TestColorsAndOpacity();
     TestRightToLeft();
     TestArgumentsAndLimits();
+    TestEdgeCases();
     if (getenv(UPDATE_VARIABLE) != NULL)
     {
         WriteGolden();

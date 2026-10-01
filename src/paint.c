@@ -73,11 +73,10 @@ static float SnapWidth(float width, float scale)
 }
 
 // A radius of the border box: scale times its shorter side plus offset,
-// held to half that side.
+// both of which are at least 0, held to half that side.
 static float Radius(muiDimension radius, float shorter)
 {
-    float value = radius.scale * shorter + radius.offset;
-    return fminf(fmaxf(value, 0.0f), shorter * 0.5f);
+    return fminf(radius.scale * shorter + radius.offset, shorter * 0.5f);
 }
 
 static muiCorners Radii(const muiCornerRadii* radii, muiRect rect, bool rtl)

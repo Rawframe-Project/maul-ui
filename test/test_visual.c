@@ -11,6 +11,7 @@
 #include "tree.h"
 
 #include "maul-ui/context.h"
+#include "maul-ui/draw.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
@@ -700,6 +701,21 @@ static void TestGradientsCompareUsedStops(void)
     muiDestroyContext(context);
 }
 
+static void TestDrawingClearsPaint(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId node = MakeNode(context);
+    Layout(context, node, T0);
+    muiVisualStyle values = muiDefaultVisualStyle();
+    values.background = s_red;
+    CHECK(muiNode_SetVisualValues(context, node, &values, BACKGROUND) == mui_success, "red");
+    CHECK(IsPaintMarked(context, node), "paint marked");
+    const muiDrawInput input = {1, 1.0f};
+    CHECK(muiBuildDrawList(context, node, &input) == mui_success, "drawn");
+    CHECK(!IsPaintMarked(context, node), "and cleared");
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestDefaults();
@@ -712,6 +728,7 @@ int main(void)
     TestGradientsCompareUsedStops();
     TestRadiusSpringStaysAtZero();
     TestColorsAndShadowsMove();
+    TestDrawingClearsPaint();
     TestShadowAndSliceSpringsStayAtZero();
     TestRetargetOnALaterChannel();
     return s_failures == 0 ? 0 : 1;
