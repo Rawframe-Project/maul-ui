@@ -82,20 +82,6 @@ static bool IsStretched(const Frame* frame, const muiLayoutStyle* child)
            !muiIsMarginAutoEnd(child, !frame->row);
 }
 
-// A child's main and cross sizes and limits against the container's
-// content extents, with its aspect ratio applied.
-static void ItemSizes(const Frame* frame, const muiLayoutStyle* child, muiAxisSizing* mainOut,
-                      muiAxisSizing* crossOut)
-{
-    muiAxisSizing width;
-    muiAxisSizing height;
-    float extentWidth = frame->row ? frame->extentMain : frame->extentCross;
-    float extentHeight = frame->row ? frame->extentCross : frame->extentMain;
-    muiResolveSizes(&child->sizing, extentWidth, extentHeight, &width, &height);
-    *mainOut = frame->row ? width : height;
-    *crossOut = frame->row ? height : width;
-}
-
 // The constraint a child is sized under on the cross axis: its own
 // definite size; with stretch, the line's size when the container's cross
 // size is definite; otherwise fit-content within the container.
@@ -136,14 +122,14 @@ static float ContentMain(const Frame* frame, uint32_t child, muiMeasureMode mode
 }
 
 // CSS Flexbox section 4.5: the smaller of the specified size and the
-// min-content size, each within the maximum. A size that came through
-// the aspect ratio is not a specified size: the content wins over it, as
-// CSS Sizing 4 says for the ratio-dependent axis.
+// min-content size, each within the maximum. A size the aspect ratio
+// gives is not a specified size: the content wins over it, as CSS Sizing
+// 4 says for the ratio-dependent axis.
 static float AutomaticMinimum(const Frame* frame, uint32_t child, const muiAxisSizing* main,
                               muiMeasureAxis cross)
 {
     float content = fminf(ContentMain(frame, child, mui_measureMinContent, cross), main->maximum);
-    if (main->definite && !main->transferred)
+    if (main->definite)
     {
         content = fminf(content, fminf(main->size, main->maximum));
     }
@@ -157,9 +143,8 @@ static void PrepareItem(const Frame* frame, uint32_t child)
     muiLayoutNode* layout = &frame->solver->nodes[child - 1];
     const muiLayoutStyle* style = &layout->style;
     muiFlexItemState* item = &layout->item;
-    muiAxisSizing main;
-    muiAxisSizing cross;
-    ItemSizes(frame, style, &main, &cross);
+    muiAxisSizing main = muiResolveAxis(&style->sizing, frame->row, frame->extentMain);
+    muiAxisSizing cross = muiResolveAxis(&style->sizing, !frame->row, frame->extentCross);
     float boxMain = muiBoxSum(style, frame->row);
     muiMeasureAxis crossConstraint = CrossConstraint(frame, style, &cross, true);
     muiEdges margins = muiMarginsOf(style);
@@ -177,8 +162,8 @@ static void PrepareItem(const Frame* frame, uint32_t child)
         muiMeasureMode mode = frame->mainIn.mode == mui_measureMinContent ? mui_measureMinContent
                                                                           : mui_measureMaxContent;
         // A definite cross size gives the base through the aspect ratio
-        // (section 9.2.3 B) when the child is sized: it then has an exact
-        // cross size and an automatic main one.
+        // (section 9.2.3 B) when the child is sized with an exact cross
+        // size and an automatic main one.
         fromContent = !main.definite;
         base = main.definite ? main.size : ContentMain(frame, child, mode, crossConstraint);
     }
@@ -235,9 +220,8 @@ static void ResolvePendingMinimums(const Frame* frame, uint32_t first, uint32_t 
             continue;
         }
         const muiLayoutStyle* style = &layout->style;
-        muiAxisSizing main;
-        muiAxisSizing cross;
-        ItemSizes(frame, style, &main, &cross);
+        muiAxisSizing main = muiResolveAxis(&style->sizing, frame->row, frame->extentMain);
+        muiAxisSizing cross = muiResolveAxis(&style->sizing, !frame->row, frame->extentCross);
         muiMeasureAxis crossConstraint = CrossConstraint(frame, style, &cross, true);
         float minimum = AutomaticMinimum(frame, c, &main, crossConstraint);
         item->minMain = fmaxf(minimum, muiBoxSum(style, frame->row));

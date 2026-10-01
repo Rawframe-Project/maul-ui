@@ -60,11 +60,8 @@ static Insets InsetsOf(const muiInsets* inset, bool horizontal, float extent)
 static bool FixedSize(const muiLayoutStyle* style, bool horizontal, const Span* spanX,
                       const Span* spanY, const Insets* insets, float* sizeOut)
 {
-    muiAxisSizing width;
-    muiAxisSizing height;
-    muiResolveSizes(&style->sizing, spanX->paddingSize, spanY->paddingSize, &width, &height);
-    muiAxisSizing axis = horizontal ? width : height;
     const Span* span = horizontal ? spanX : spanY;
+    muiAxisSizing axis = muiResolveAxis(&style->sizing, horizontal, span->paddingSize);
     muiEdges margins = muiMarginsOf(style);
     float box = muiBoxSum(style, horizontal);
     if (axis.definite)
