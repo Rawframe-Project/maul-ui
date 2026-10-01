@@ -13,10 +13,6 @@ uint32_t* muiThemeEntry(const muiThemeStore* store, uint32_t theme, uint32_t tok
 const muiThemeOverride* muiFindOverride(const muiThemeStore* store, uint32_t theme,
                                         muiTokenId token)
 {
-    if (token.index1 == 0 || token.index1 > store->tokenCapacity)
-    {
-        return nullptr;
-    }
     uint32_t record = *muiThemeEntry(store, theme, token.index1);
     // The generation tells this token from a later one in its slot.
     if (record == 0 || store->overrides[record - 1].token.generation != token.generation)

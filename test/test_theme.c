@@ -163,6 +163,14 @@ static void TestThemesAreChecked(void)
     muiThemeId other = MakeTheme(context);
     CHECK(muiTheme_SetTokenAlias(context, other, surface, brand) == mui_errorInvalid,
           "a cycle through a theme");
+    // A cycle through the theme's own overrides: the accent is the
+    // surface there, and the surface may not then be the accent.
+    muiTokenId accent = MakeToken(context, s_red);
+    muiThemeId third = MakeTheme(context);
+    CHECK(muiTheme_SetTokenAlias(context, third, accent, surface) == mui_success,
+          "the accent is the surface");
+    CHECK(muiTheme_SetTokenAlias(context, third, surface, accent) == mui_errorInvalid,
+          "a cycle through the theme's own overrides");
     CHECK(muiTheme_SetTokenAlias(context, other, surface, s_nullToken) == mui_errorInvalid &&
               muiTheme_SetTokenAlias(NULL, other, surface, brand) == mui_errorInvalid,
           "bad aliases");
@@ -217,6 +225,9 @@ static void TestLimits(void)
     CHECK(muiTheme_GetToken(context, theme, reused, &read, NULL) == mui_empty,
           "the new token is not overridden");
     Override(context, theme, reused, s_dark);
+    // A reset gives the record back.
+    CHECK(muiTheme_ResetToken(context, theme, reused) == mui_success, "reset");
+    Override(context, theme, next, s_dark);
     CHECK(muiDestroyTheme(context, theme) == mui_success, "destroy");
     theme = MakeTheme(context);
     Override(context, theme, next, s_dark);
@@ -264,6 +275,11 @@ static void TestSubtreesReadTheirTheme(void)
     Override(context, dark, surface, s_blue);
     Layout(context, root);
     CHECK(SameColor(Background(context, item), s_blue), "edited");
+    // A reset restyles too.
+    CHECK(muiTheme_ResetToken(context, dark, surface) == mui_success, "reset");
+    Layout(context, root);
+    CHECK(SameColor(Background(context, item), s_light), "reset to the context");
+    Override(context, dark, surface, s_blue);
     // The content moves into the sidebar, and back out.
     CHECK(muiNode_Detach(context, content) == mui_success &&
               muiNode_InsertChild(context, sidebar, content, s_nullNode) == mui_success,
@@ -355,6 +371,7 @@ static void TestDepth(void)
     muiContext* context = MakeContext();
     muiTokenId surface = MakeToken(context, s_light);
     muiTokenId accent = MakeToken(context, s_red);
+    muiTokenId edge = MakeToken(context, s_red);
     muiNodeId nodes[MUI_MAX_THEME_DEPTH + 1];
     muiNodeId parent = s_nullNode;
     for (uint32_t i = 0; i <= MUI_MAX_THEME_DEPTH; i++)
@@ -363,12 +380,14 @@ static void TestDepth(void)
         parent = nodes[i];
         muiThemeId theme = MakeTheme(context);
         CHECK(muiNode_SetTheme(context, nodes[i], theme) == mui_success, "themed");
-        // The outermost theme sets the accent; the next eight the surface.
-        Override(context, theme, i == 0 ? accent : surface, s_dark);
+        // The outermost theme sets the accent, the next the edge, and the
+        // rest the surface.
+        Override(context, theme, i == 0 ? accent : (i == 1 ? edge : surface), s_dark);
     }
     Layout(context, nodes[0]);
     muiNodeId leaf = nodes[MUI_MAX_THEME_DEPTH];
     CHECK(SameColor(Read(context, leaf, surface), s_dark), "the nearest eight");
+    CHECK(SameColor(Read(context, leaf, edge), s_dark), "the eighth nearest among them");
     CHECK(SameColor(Read(context, leaf, accent), s_red), "the ninth is passed by");
     CHECK(SameColor(Read(context, nodes[1], accent), s_dark), "within eight, it is read");
     muiDestroyContext(context);
