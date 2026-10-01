@@ -23,6 +23,22 @@ static_assert(sizeof(muiDrawBox) == 136 && sizeof(muiDrawShadow) == 68 &&
                   sizeof(muiDrawClip) == 44 && sizeof(muiDrawGradient) == 96,
               "draw records have no padding");
 
+enum
+{
+    // Colors converted in a build, kept by a hash of their bits: nodes
+    // share colors through their classes, and a conversion takes three
+    // powers.
+    COLOR_CACHE = 64
+};
+
+typedef struct CachedColor
+{
+    muiColor color;
+    float opacity;
+    muiLinearColor linear;
+    bool used;
+} CachedColor;
+
 // What one build writes to, and whether something did not fit.
 typedef struct Painter
 {
@@ -30,7 +46,34 @@ typedef struct Painter
     muiDrawStore* store;
     float scale;
     bool full;
+    CachedColor colors[COLOR_CACHE];
 } Painter;
+
+static bool SameBits(const void* a, const void* b, size_t size)
+{
+    return memcmp(a, b, size) == 0;
+}
+
+// A color in linear light times opacity, from the cache when a node
+// before converted the same bits.
+static muiLinearColor Linear(Painter* painter, muiColor color, float opacity)
+{
+    uint32_t words[5];
+    memcpy(words, &color, sizeof color);
+    memcpy(&words[4], &opacity, sizeof opacity);
+    uint32_t hash = 2166136261u;
+    for (uint32_t i = 0; i < 5; i++)
+    {
+        hash = (hash ^ words[i]) * 16777619u;
+    }
+    CachedColor* entry = &painter->colors[hash % COLOR_CACHE];
+    if (!entry->used || !SameBits(&entry->color, &color, sizeof color) ||
+        !SameBits(&entry->opacity, &opacity, sizeof opacity))
+    {
+        *entry = (CachedColor){color, opacity, muiColorToLinear(color, opacity), true};
+    }
+    return entry->linear;
+}
 
 // An edge at the nearest device pixel, halves away from the origin's
 // left.
@@ -122,7 +165,7 @@ static uint32_t AddGradient(Painter* painter, const muiGradient* gradient, float
     entry->angle = gradient->angle;
     for (uint32_t i = 0; i < gradient->stopCount; i++)
     {
-        entry->colors[i] = muiColorToLinear(gradient->stops[i].color, opacity);
+        entry->colors[i] = Linear(painter, gradient->stops[i].color, opacity);
         entry->positions[i] = gradient->stops[i].position;
     }
     return index;
@@ -142,7 +185,7 @@ static void AddShadow(Painter* painter, const muiShadow* shadow, muiRect rect, m
     }
     command->shadow.rect = rect;
     command->shadow.radii = radii;
-    command->shadow.color = muiColorToLinear(shadow->color, state->opacity);
+    command->shadow.color = Linear(painter, shadow->color, state->opacity);
     command->shadow.offsetX = shadow->offsetX;
     command->shadow.offsetY = shadow->offsetY;
     command->shadow.blur = shadow->blur;
@@ -206,12 +249,18 @@ static void AddBox(Painter* painter, const muiVisualStyle* visual, const Borders
     }
     command->box.rect = SnapRect(rect, painter->scale);
     command->box.radii = radii;
-    command->box.fill = muiColorToLinear(visual->background, state->opacity);
+    command->box.fill = Linear(painter, visual->background, state->opacity);
     command->box.gradient = gradient ? AddGradient(painter, &visual->gradient, state->opacity) : 0;
     command->box.borderWidths = borders->widths;
+    // A side of no width draws no color, so it carries none.
+    const float widths[4] = {borders->widths.top, borders->widths.right, borders->widths.bottom,
+                             borders->widths.left};
     for (uint32_t i = 0; i < 4; i++)
     {
-        command->box.borderColors[i] = muiColorToLinear(borders->colors[i], state->opacity);
+        if (widths[i] > 0.0f)
+        {
+            command->box.borderColors[i] = Linear(painter, borders->colors[i], state->opacity);
+        }
     }
 }
 
@@ -234,7 +283,7 @@ static void AddImage(Painter* painter, const muiVisualStyle* visual, muiRect rec
     // An image does not mirror: its slice's start and end are its left and
     // right.
     command->image.slice = (muiSides){slice->top, slice->end, slice->bottom, slice->start};
-    command->image.tint = muiColorToLinear(visual->imageTint, state->opacity);
+    command->image.tint = Linear(painter, visual->imageTint, state->opacity);
 }
 
 // The padding box of a border box, and its corners' radii.
@@ -355,7 +404,13 @@ muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawI
     muiDrawStore* store = &context->draw;
     uint64_t generation = store->header.generation + 1;
     Clear(store);
-    Painter painter = {context, store, input->scale, false};
+    // Large for the stack, so it is cleared here once rather than built.
+    static_assert(sizeof(Painter) < 8192, "a painter fits a stack frame");
+    Painter painter;
+    memset(&painter, 0, sizeof painter);
+    painter.context = context;
+    painter.store = store;
+    painter.scale = input->scale;
     Paint(&painter, root);
     if (painter.full)
     {

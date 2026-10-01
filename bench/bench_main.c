@@ -8,11 +8,13 @@
 // and border colors, and a hovered background), and a tree nine levels
 // deep with three children per node (9,841 nodes). For each: a cold
 // layout, a static frame, one change (a label's content, or for the
-// styled lists a row hovered), and a new width.
+// styled lists a row hovered), and a new width; for the painted list,
+// a draw list built after them.
 // Prints the best of five runs in microseconds, and how many times the
 // host was asked to measure, which does not depend on the machine.
 
 #include "maul-ui/context.h"
+#include "maul-ui/draw.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
@@ -246,10 +248,13 @@ static void Run(const char* name, Kind kind)
 {
     double best[4] = {1e30, 1e30, 1e30, 1e30};
     long measured[4] = {0};
+    double drawn = 1e30;
+    uint32_t commands = 0;
     for (int run = 0; run < RUNS; run++)
     {
         muiContextDef def = muiDefaultContextDef();
         def.limits.nodes = NODE_LIMIT;
+        def.limits.drawCommands = NODE_LIMIT;
         Scene scene = {.name = name};
         if (muiCreateContext(&def, &scene.context) != mui_success)
         {
@@ -268,12 +273,27 @@ static void Run(const char* name, Kind kind)
             best[i] = time < best[i] ? time : best[i];
             measured[i] = scene.measured;
         }
+        if (kind == kindPainted)
+        {
+            double start = Seconds();
+            const muiDrawInput input = {1, 1.0f};
+            Check(muiBuildDrawList(scene.context, scene.root, &input), "draw");
+            double time = (Seconds() - start) * 1e6;
+            drawn = time < drawn ? time : drawn;
+            muiDrawList list;
+            Check(muiGetDrawList(scene.context, &list), "list");
+            commands = list.commandCount;
+        }
         muiDestroyContext(scene.context);
     }
     const char* labels[4] = {"cold", "static", "one change", "resize"};
     for (int i = 0; i < 4; i++)
     {
         printf("%-7s %-10s %12.1f us %8ld measured\n", name, labels[i], best[i], measured[i]);
+    }
+    if (kind == kindPainted)
+    {
+        printf("%-7s %-10s %12.1f us %8u commands\n", name, "draw", drawn, commands);
     }
 }
 
