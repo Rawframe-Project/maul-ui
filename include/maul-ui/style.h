@@ -6,8 +6,9 @@
 // A node's values resolve in fixed layers, each later one winning: the
 // defaults, every class's base values in order, the state variants (the
 // states in the order of muiState, weakest first, and the classes in
-// order within each), and the node's direct writes. A node's classes are
-// its type's, then its own.
+// order within each), the conditions that hold (classes in order, then
+// each class's conditions in order), and the node's direct writes. A
+// node's classes are its type's, then its own.
 
 #ifndef MAUL_UI_STYLE_H
 #define MAUL_UI_STYLE_H
@@ -15,6 +16,8 @@
 #include "maul-ui/base.h"
 #include "maul-ui/context.h"
 #include "maul-ui/layout.h"
+
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -120,8 +123,8 @@ extern "C"
         mui_stateExiting = 64,
     };
 
-    // Which values of a class a call reads or writes: its base values, or
-    // the variant one state brings.
+    // Which values of a class a call reads or writes: its base values, the
+    // variant one state brings, or the values of one of its conditions.
     typedef uint8_t muiVariant;
 
     enum
@@ -134,14 +137,139 @@ extern "C"
         mui_variantPressed = 5,
         mui_variantDisabled = 6,
         mui_variantExiting = 7,
-        mui_variantCount = 8,
+        // The values of the class's first condition; condition i has
+        // mui_variantCondition0 + i.
+        mui_variantCondition0 = 8,
     };
 
     enum
     {
         // The classes a node or a node type lists.
-        MUI_MAX_CLASSES = 8
+        MUI_MAX_CLASSES = 8,
+        // The conditions of one class.
+        MUI_MAX_CONDITIONS = 8,
     };
+
+    // The size of the screen or window a UI is shown on, as the host
+    // classes it, as bits.
+    typedef uint8_t muiViewportClass;
+
+    enum
+    {
+        // Most phones and tablets.
+        mui_viewportSmall = 1,
+        // Most laptops and monitors.
+        mui_viewportMedium = 2,
+        // Most televisions and larger.
+        mui_viewportLarge = 4,
+    };
+
+    // How the user is controlling the UI, as bits.
+    typedef uint8_t muiInputModality;
+
+    enum
+    {
+        // A mouse, touchpad or pen with a keyboard.
+        mui_inputPointer = 1,
+        mui_inputTouch = 2,
+        mui_inputGamepad = 4,
+    };
+
+    // What a condition asks of the reduced-motion setting.
+    typedef uint8_t muiMotionMatch;
+
+    enum
+    {
+        mui_motionAny = 0,
+        // Holds when motion is not reduced.
+        mui_motionFull = 1,
+        mui_motionReduced = 2,
+    };
+
+    // What a condition asks of a node's resolved text direction.
+    typedef uint8_t muiDirectionMatch;
+
+    enum
+    {
+        mui_directionAny = 0,
+        mui_directionLeftToRight = 1,
+        mui_directionRightToLeft = 2,
+    };
+
+    // Values from min up to, but not including, max; max may be infinite.
+    typedef struct muiRange
+    {
+        float min;
+        float max;
+    } muiRange;
+
+    // When a class's conditional values apply: when every clause holds. A
+    // clause at its default (the range [0, inf), every bit, any) holds
+    // always and reads nothing. Build it with muiDefaultCondition.
+    typedef struct muiCondition
+    {
+        // The node's border box from its last layout. Aspect is width over
+        // height: infinite for a zero height, 0 for an empty box.
+        muiRange width;
+        muiRange height;
+        muiRange aspect;
+        // The environment's text scale.
+        muiRange textScale;
+        // The viewport classes and input modalities it holds for.
+        muiViewportClass viewports;
+        muiInputModality inputs;
+        muiMotionMatch motion;
+        // The node's resolved direction from its last layout.
+        muiDirectionMatch direction;
+    } muiCondition;
+
+    // What the host tells the context about where its UI is shown.
+    typedef struct muiEnvironment
+    {
+        // One viewport class bit.
+        muiViewportClass viewport;
+        // One input modality bit.
+        muiInputModality input;
+        // The user's text size over the default, more than 0.
+        float textScale;
+        bool reducedMotion;
+    } muiEnvironment;
+
+    /// Returns the condition that always holds.
+    ///
+    /// @return The condition.
+    /// @par Thread safety
+    /// Safe from any thread.
+    MUI_API muiCondition muiDefaultCondition(void);
+
+    /// Returns the environment of a new context: a medium viewport, a
+    /// pointer, a text scale of 1 and full motion.
+    ///
+    /// @return The environment.
+    /// @par Thread safety
+    /// Safe from any thread.
+    MUI_API muiEnvironment muiDefaultEnvironment(void);
+
+    /// Sets the environment conditions read. Every node is styled again at
+    /// the next muiComputeLayout when it changes.
+    ///
+    /// @param context      The context.
+    /// @param environment  One viewport class bit, one input modality bit
+    ///                     and a finite text scale above 0.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
+    ///         value outside the above or a call from a measure function.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiSetContextEnvironment(muiContext* context,
+                                                             const muiEnvironment* environment);
+
+    /// Returns the environment conditions read.
+    ///
+    /// @param context  The context.
+    /// @return The environment; muiDefaultEnvironment's for a NULL context.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_API muiEnvironment muiGetContextEnvironment(const muiContext* context);
 
     /// Creates a style class with no values set.
     ///
@@ -177,7 +305,9 @@ extern "C"
     /// @param mask     The properties, within MUI_LAYOUT_PROPERTIES.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id, an unknown variant or property bit, a value outside
-    ///         the above or a call from a measure function, which changes
+    ///         the above, a property the variant's condition reads (its
+    ///         axis's sizes and limits, the aspect ratio, the text
+    ///         direction) or a call from a measure function, which changes
     ///         nothing; `mui_errorStale` for an id whose class is gone;
     ///         `mui_errorCapacity` when the variant had no values and the
     ///         context's limit of property sets is reached.
@@ -222,6 +352,74 @@ extern "C"
                                                              muiStyleId styleId, muiVariant variant,
                                                              muiLayoutStyle* valuesOut,
                                                              muiPropertyMask* maskOut);
+
+    /// Adds a condition to a class, after its others. Its values are then
+    /// set through the variant it gives. Every node is styled again at the
+    /// next muiComputeLayout.
+    ///
+    /// @param context     The context.
+    /// @param styleId     The class.
+    /// @param condition   Ranges with a finite minimum of 0 or more and a
+    ///                    maximum not below it, known bits and choices.
+    /// @param variantOut  Receives the condition's variant; set to
+    ///                    mui_variantBase on failure.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
+    ///         null id, a condition outside the above or a call from a
+    ///         measure function; `mui_errorStale` for an id whose class is
+    ///         gone; `mui_errorCapacity` when the class has
+    ///         MUI_MAX_CONDITIONS.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiStyle_AddCondition(muiContext* context, muiStyleId styleId,
+                                                          const muiCondition* condition,
+                                                          muiVariant* variantOut);
+
+    /// Replaces one of a class's conditions, keeping its values. Every node
+    /// is styled again at the next muiComputeLayout.
+    ///
+    /// @param context    The context.
+    /// @param styleId    The class.
+    /// @param variant    The condition's variant.
+    /// @param condition  As muiStyle_AddCondition takes it, reading nothing
+    ///                   the condition's values set.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
+    ///         null id, a variant that is not one of the class's
+    ///         conditions, a condition outside the above or a call from a
+    ///         measure function; `mui_errorStale` for an id whose class is
+    ///         gone.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiStyle_SetCondition(muiContext* context, muiStyleId styleId,
+                                                          muiVariant variant,
+                                                          const muiCondition* condition);
+
+    /// Reads one of a class's conditions.
+    ///
+    /// @param context       The context.
+    /// @param styleId       The class.
+    /// @param variant       The condition's variant.
+    /// @param conditionOut  Receives the condition.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
+    ///         null id or a variant that is not one of the class's
+    ///         conditions; `mui_errorStale` for an id whose class is gone.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiStyle_GetCondition(const muiContext* context,
+                                                          muiStyleId styleId, muiVariant variant,
+                                                          muiCondition* conditionOut);
+
+    /// Removes every condition of a class and its values. Every node is
+    /// styled again at the next muiComputeLayout.
+    ///
+    /// @param context  The context.
+    /// @param styleId  The class.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
+    ///         null id or a call from a measure function; `mui_errorStale`
+    ///         for an id whose class is gone.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiStyle_ClearConditions(muiContext* context,
+                                                             muiStyleId styleId);
 
     /// Creates a node type with an ordered list of classes.
     ///

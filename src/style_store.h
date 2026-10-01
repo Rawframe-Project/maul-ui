@@ -17,11 +17,20 @@
 
 #include <stdbool.h>
 
+enum
+{
+    // The variants a class can have: its base, its states and its
+    // conditions.
+    MUI_VARIANT_SLOTS = mui_variantCondition0 + MUI_MAX_CONDITIONS
+};
+
 typedef struct muiStyleClass
 {
     // The property set of each variant, a slot of the set pool; 0 for
     // none.
-    uint32_t sets[mui_variantCount];
+    uint32_t sets[MUI_VARIANT_SLOTS];
+    muiCondition conditions[MUI_MAX_CONDITIONS];
+    uint32_t conditionCount;
 } muiStyleClass;
 
 typedef struct muiClassList

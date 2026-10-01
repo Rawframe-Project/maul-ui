@@ -104,6 +104,7 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
         .measure = input->measure,
         .measureUser = input->measureUser,
         .solve = muiSolveNode,
+        .restyle = &context->tree,
     };
     muiSizingInput sizingInput = muiRootInput(&context->layout[root - 1].style,
                                               input->availableWidth, input->availableHeight);
@@ -121,4 +122,11 @@ muiRect muiNode_GetRect(const muiContext* context, muiNodeId nodeId)
 {
     uint32_t slot = context != nullptr ? muiTreeResolve(&context->tree, nodeId) : 0;
     return slot != 0 ? context->layout[slot - 1].rect : (muiRect){0.0f, 0.0f, 0.0f, 0.0f};
+}
+
+bool muiIsUpdatePending(const muiContext* context, muiNodeId rootId)
+{
+    uint32_t slot = context != nullptr ? muiTreeResolve(&context->tree, rootId) : 0;
+    return slot != 0 && (muiTreeAt(&context->tree, slot)->dirty.subtree &
+                         (mui_stageStyle | mui_stageLayout)) != 0;
 }

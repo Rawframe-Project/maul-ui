@@ -176,7 +176,7 @@ static void TestClassValuesAreCheckedAndRead(void)
     CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, &values, WIDTH) == mui_success,
           "fields outside the mask are not read");
     values = WithWidth(7.0f);
-    CHECK(muiStyle_SetLayoutValues(context, style, mui_variantCount, &values, WIDTH) ==
+    CHECK(muiStyle_SetLayoutValues(context, style, mui_variantCondition0, &values, WIDTH) ==
               mui_errorInvalid,
           "unknown variant");
     CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, &values,
@@ -202,7 +202,7 @@ static void TestClassValuesAreCheckedAndRead(void)
                   mui_success &&
               mask == 0,
           "an unset variant has nothing");
-    CHECK(muiStyle_GetLayoutValues(context, style, mui_variantCount, &read, &mask) ==
+    CHECK(muiStyle_GetLayoutValues(context, style, mui_variantCondition0, &read, &mask) ==
               mui_errorInvalid,
           "unknown variant read");
     CHECK(muiStyle_GetLayoutValues(context, style, mui_variantBase, NULL, &mask) ==
@@ -250,7 +250,8 @@ static void TestResetGivesSetsBack(void)
           "an empty variant gave its set back");
     CHECK(muiStyle_ResetProperties(context, first, mui_variantPressed, WIDTH) == mui_success,
           "resetting an unset variant does nothing");
-    CHECK(muiStyle_ResetProperties(context, first, mui_variantCount, WIDTH) == mui_errorInvalid,
+    CHECK(muiStyle_ResetProperties(context, first, mui_variantCondition0, WIDTH) ==
+              mui_errorInvalid,
           "unknown variant reset");
     CHECK(muiStyle_ResetProperties(context, first, mui_variantBase,
                                    MUI_PROPERTY_BIT(mui_propertyCount)) == mui_errorInvalid,

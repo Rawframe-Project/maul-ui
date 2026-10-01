@@ -3,11 +3,12 @@
 //
 // Resolution in the fixed layers of record mui-0004: the defaults, every
 // class's base values in order, the state variants (states weakest
-// first, classes in order within each), then the direct writes, which
-// the node's resolved values already hold.
+// first, classes in order within each), the conditions that hold, then
+// the direct writes, which the node's resolved values already hold.
 
 #include "restyle.h"
 
+#include "condition.h"
 #include "layout_node.h"
 #include "pool.h"
 #include "property.h"
@@ -64,6 +65,44 @@ static void ApplyVariant(const muiStyleStore* store, const Classes* classes, mui
     }
 }
 
+// Applies the conditional values that hold, in class order and then
+// condition order, sampling the node's last layout, and records what was
+// read.
+static void ApplyConditions(muiContext* context, uint32_t slot, const Classes* classes,
+                            muiPropertyMask free, muiLayoutStyle* values)
+{
+    const muiStyleStore* store = &context->style;
+    muiLayoutNode* layout = &context->layout[slot - 1];
+    const muiConditionSample sample = {
+        .width = layout->rect.width,
+        .height = layout->rect.height,
+        .rtl = layout->rtl,
+        .environment = &context->environment,
+    };
+    muiConditionReads reads = 0;
+    for (uint32_t i = 0; i < classes->count; i++)
+    {
+        const muiStyleClass* class = &store->classes[classes->slots[i] - 1];
+        for (uint32_t k = 0; k < class->conditionCount; k++)
+        {
+            uint32_t set = class->sets[mui_variantCondition0 + k];
+            if (set == 0)
+            {
+                continue;
+            }
+            reads |= muiConditionReadsOf(&class->conditions[k]);
+            if (muiConditionHolds(&class->conditions[k], &sample))
+            {
+                const muiPropertySet* source = &store->sets[set - 1];
+                muiApplyProperties(values, &source->values, source->mask & free);
+            }
+        }
+    }
+    layout->conditionReads = reads;
+    layout->conditionSize = (muiSize){sample.width, sample.height};
+    layout->conditionRtl = sample.rtl;
+}
+
 // Resolves the properties a node does not write directly; the direct
 // ones already hold their values, which are carried over.
 static void Resolve(muiContext* context, uint32_t slot)
@@ -71,16 +110,17 @@ static void Resolve(muiContext* context, uint32_t slot)
     const muiStyleStore* store = &context->style;
     const muiNodeStyle* node = &store->nodes[slot - 1];
     muiPropertyMask free = MUI_LAYOUT_PROPERTIES & ~node->direct;
+    muiLayoutNode* layout = &context->layout[slot - 1];
+    layout->conditionReads = 0;
     if (free == 0)
     {
         return;
     }
-    muiLayoutNode* layout = &context->layout[slot - 1];
     muiLayoutStyle values = *muiLayoutDefaults();
     muiApplyProperties(&values, &layout->style, node->direct);
     Classes classes = ClassesOf(store, node);
     ApplyVariant(store, &classes, mui_variantBase, free, &values);
-    for (uint32_t v = mui_variantChecked; v < mui_variantCount; v++)
+    for (uint32_t v = mui_variantChecked; v < mui_variantCondition0; v++)
     {
         // Variant v belongs to state bit v - 1.
         if ((node->states & (1u << (v - 1))) != 0)
@@ -88,6 +128,7 @@ static void Resolve(muiContext* context, uint32_t slot)
             ApplyVariant(store, &classes, (muiVariant)v, free, &values);
         }
     }
+    ApplyConditions(context, slot, &classes, free, &values);
     if (muiDoPropertiesDiffer(&values, &layout->style, free))
     {
         layout->style = values;

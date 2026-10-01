@@ -7,6 +7,7 @@
 #include "solve.h"
 
 #include "absolute.h"
+#include "condition.h"
 #include "flex.h"
 #include "invariant.h"
 #include "sizing.h"
@@ -217,6 +218,25 @@ static muiSizingInput OwnDirection(const muiLayoutStyle* style, const muiSizingI
     return own;
 }
 
+// Records the direction a node was laid out in and, when its conditions
+// read a size or direction this layout changed, requests its style for
+// the next pass: conditions read the state before the pass (record
+// mui-0004).
+static void Published(const muiSolver* solver, uint32_t node, muiSize size, bool rtl)
+{
+    muiLayoutNode* layout = &solver->nodes[node - 1];
+    layout->rtl = rtl;
+    bool sizeChanged =
+        (layout->conditionReads & mui_readsSize) != 0 &&
+        (size.width != layout->conditionSize.width || size.height != layout->conditionSize.height);
+    bool directionChanged =
+        (layout->conditionReads & mui_readsDirection) != 0 && rtl != layout->conditionRtl;
+    if (sizeChanged || directionChanged)
+    {
+        muiTreeMark(solver->restyle, node, mui_stageStyle);
+    }
+}
+
 muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInput* input,
                      bool perform)
 {
@@ -255,6 +275,7 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
         cache->finalValid = true;
         cache->finalRtl = input->rtl;
         cache->finalSize = size;
+        Published(solver, node, size, own.rtl);
     }
     else
     {

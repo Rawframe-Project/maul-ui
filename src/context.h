@@ -21,6 +21,8 @@ struct muiContext
     // Layout's values per node, parallel to the tree's slots.
     muiLayoutNode* layout;
     muiStyleStore style;
+    // What conditions read of the world outside the tree.
+    muiEnvironment environment;
     uint64_t misuse;
     // Set while a measure function runs; edits are refused then.
     bool measuring;

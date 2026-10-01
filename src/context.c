@@ -8,6 +8,8 @@
 #include "allocator.h"
 #include "invariant.h"
 
+#include "maul-ui/style.h"
+
 #include <string.h>
 
 #define CONTEXT_DEF_COOKIE 0x6D756378u // "mucx"
@@ -98,6 +100,7 @@ muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut)
     context->blockSize = layout.size;
     muiTreeInit(&context->tree, (muiTreeNode*)(block + parts.nodes), def->limits.nodes);
     context->layout = (muiLayoutNode*)(block + parts.layout);
+    context->environment = muiDefaultEnvironment();
     muiStyleStore* style = &context->style;
     style->nodes = (muiNodeStyle*)(block + parts.nodeStyles);
     muiPoolInit(&style->classPool, (muiPoolSlot*)(block + parts.classSlots), def->limits.styles);

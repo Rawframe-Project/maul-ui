@@ -91,6 +91,14 @@ typedef struct muiLayoutNode
     // style.placement.position == mui_positionAbsolute, kept beside item
     // because every walk over a container's flex items reads it.
     bool absolute;
+    // The direction the node was last laid out in: right to left when set.
+    bool rtl;
+    // What the node's conditions read when it was last styled (bits of
+    // muiConditionReads) and the size and direction they read, so that a
+    // layout that changes them styles the node again.
+    uint8_t conditionReads;
+    bool conditionRtl;
+    muiSize conditionSize;
 } muiLayoutNode;
 
 // Brings the values kept beside a node's style up to date after the

@@ -38,6 +38,24 @@ for a fixed order in which a later layer always wins.
   order within each; then the node's direct writes. A later layer wins
   whatever class it comes from, so a hovered value of the first class
   beats the base value of the last.
+- **Conditions are a layer of their own,** between the state variants
+  and the direct writes. A class holds up to eight, each a conjunction
+  of typed clauses with its own values: half-open ranges over the
+  node's border-box width, height and aspect and the text scale, sets
+  of viewport classes and input modalities, and choices for reduced
+  motion and text direction. A clause at its default reads nothing.
+  Conditions apply in class order, then in each class's order.
+- **Conditions read the state before the pass.** Size and direction
+  come from the node's last layout; the viewport class, input modality,
+  text scale and reduced motion are the environment the host sets on
+  the context, and a change to it restyles every node. When a layout
+  changes a size or direction a node's conditions read, the node's
+  style is requested for the next run, and `muiIsUpdatePending` tells
+  the host a run is owed.
+- **A condition's values may not set what it reads:** the sizes and
+  limits of an axis it reads, the aspect ratio when it reads either
+  axis, and the text direction when it reads direction. A write or a
+  replacement condition that would is refused.
 - **Direct writes win until reset.** The node keeps which properties
   it writes directly, and their values are its resolved ones: a direct
   write takes effect at once, and resolution leaves those properties
@@ -57,5 +75,8 @@ values a node does not use, or a class no node lists, costs a style
 pass and no layout. Restyling every node on a class edit costs a pass
 over the tree, which a theme switch costs anyway, and keeps no index
 from classes to nodes. Nodes that write every property directly skip
-resolution. Conditions and transitions are layers of their own, added
-by later records.
+resolution. A size or direction condition shows its effect one run
+after the layout that changes what it reads, and a node never seen
+laid out reads a size of 0; in exchange no stage feeds an earlier one
+within a run. A rule that feeds its own condition through layout (a
+narrow node made wider) can only be seen across runs.

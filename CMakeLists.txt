@@ -43,6 +43,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/absolute.c
     src/allocator.c
     src/base.c
+    src/condition.c
     src/context.c
     src/flex.c
     src/flex_resolve.c
@@ -65,6 +66,7 @@ endif()
 if(MAUL_UI_BUILD_TESTS)
     enable_testing()
     maul_add_test(base)
+    maul_add_test(condition)
     maul_add_test(context)
     maul_add_test(layout)
     maul_add_test(layout_fixtures)

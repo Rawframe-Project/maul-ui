@@ -25,6 +25,9 @@ struct muiSolver
     muiMeasureFunction measure;
     void* measureUser;
     muiSolveFunction solve;
+    // Where the solver requests style for the next pass, on nodes whose
+    // conditions read a size or direction their layout changed.
+    muiTree* restyle;
 };
 
 #endif // MAUL_UI_SRC_SOLVER_H

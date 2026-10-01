@@ -38,3 +38,6 @@ format.
   mui-0004); new context limits for styles, node types and property
   sets. `muiNode_SetLayoutStyle` now writes every layout property
   directly. The benchmark gains a list styled through node types.
+- Style conditions over a node's last size and direction and over the
+  environment (`muiCondition`, `muiSetContextEnvironment`), with values
+  that may not set what their condition reads; `muiIsUpdatePending`.

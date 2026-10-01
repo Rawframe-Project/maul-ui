@@ -13,6 +13,8 @@
 #include "maul-ui/base.h"
 #include "maul-ui/context.h"
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -371,6 +373,18 @@ extern "C"
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiComputeLayout(muiContext* context, muiNodeId rootId,
                                                      const muiLayoutInput* input);
+
+    /// Returns whether muiComputeLayout on a root has work to do: an edit
+    /// below it since its last run, or a node whose conditions read a size
+    /// or direction that run changed, which a following run styles again.
+    ///
+    /// @param context  The context.
+    /// @param rootId   The root.
+    /// @return Whether work is pending; false for a stale id or a NULL
+    ///         context.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_API bool muiIsUpdatePending(const muiContext* context, muiNodeId rootId);
 
     /// Returns a node's border box from the last muiComputeLayout that
     /// reached it, relative to its parent's border box.
