@@ -25,6 +25,12 @@ format.
 
 ### Added
 
+- Text blocks (`maul-ui/text_block.h`): UTF-8 text the text service
+  lays out as host content, measured by `muiMeasureText` and painted
+  by `muiPaintText` in the node's text style: lines broken by UAX #14,
+  bidi order by UAX #9, glyphs shaped by HarfBuzz; font keys and a
+  default font; `muiNode_IsRightToLeft`; a `textBlocks` limit
+  (record mui-0006).
 - Glyph runs in the draw list: `muiDrawInput` gains a paint function
   for host content (`muiPaintFunction`), which adds runs with
   `muiDrawSink_AddGlyphRun`; the list gains `mui_drawGlyphRun`

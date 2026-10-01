@@ -9,6 +9,7 @@
 #define MAUL_UI_SRC_TEXT_SERVICE_H
 
 #include "font_store.h"
+#include "text_block.h"
 
 #include "maul-ui/text.h"
 
@@ -28,6 +29,17 @@ struct muiTextService
     FT_Library freetype;
     hb_unicode_funcs_t* unicode;
     muiFontStore fonts;
+    muiTextBlockStore blocks;
+    // What font key 0 names; the null id for none.
+    muiFontId defaultFont;
+    // Blocks that could not be laid out for want of memory.
+    uint64_t failures;
+    // Scratch for laying out and painting: lines, bidi runs, glyphs and
+    // bidi resolution's workspace.
+    muiBuffer lines;
+    muiBuffer runs;
+    muiBuffer glyphs;
+    muiBuffer workspace;
 };
 
 #endif // MAUL_UI_SRC_TEXT_SERVICE_H

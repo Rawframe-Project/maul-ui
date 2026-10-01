@@ -7,7 +7,12 @@
 target_sources(maul-ui PRIVATE
     src/font.c
     src/font_store.c
+    src/line_break.c
+    src/text_block.c
+    src/text_blocks.c
+    src/text_layout.c
     src/text_service.c
+    src/text_shape.c
     $<TARGET_OBJECTS:maul-unicode>
     $<TARGET_OBJECTS:maul-unicode-harfbuzz>)
 target_include_directories(maul-ui SYSTEM PRIVATE

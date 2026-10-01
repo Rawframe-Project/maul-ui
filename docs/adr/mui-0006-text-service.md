@@ -24,9 +24,31 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   caller who keeps them unchanged until the font is destroyed.
 - **The boundary:** the core reaches text through host content only:
   the measure function, a paint function, and later a baseline
-  function, which the text service provides with a host key naming a
-  text block. The service reads a node's resolved text style through
-  public getters.
+  function. The text service provides the first two
+  (`muiMeasureText`, `muiPaintText`, whose user pointer names the
+  service and the context); a node's host key is a text block's key,
+  and a text style's font is a font's key, 0 being the service's
+  default font. The service reads a node's resolved text style and
+  direction through public getters.
+- **Text blocks** (`maul-ui/text_block.h`) hold UTF-8 text the service
+  copies. When the text is set, its line break opportunities (UAX #14)
+  and script runs are found; on first use with a font and direction,
+  its paragraphs get bidi levels (UAX #9), are split into items of one
+  level and script, and each item is shaped by HarfBuzz with the whole
+  text as context, without a language, so the result does not depend
+  on the process's locale. That shaping is kept until the text, font or
+  direction changes; sizes and widths only scale and break it.
+- **Lines** break greedily at opportunities from the shaped advances;
+  the text's own line breaks end lines, white space is kept as written,
+  spaces ending a wrapped line hang, and a word wider than the line
+  overflows. Max-content keeps only the text's line breaks;
+  min-content breaks at every opportunity. A text ending in a line
+  break has an empty last line. Letter spacing follows each cluster.
+  The line height is the style's, or the font's ascent, descent and
+  line gap, with the leading split above and below. Painting reorders
+  each line by UAX #9 rules L1 and L2, aligns it by the paragraph
+  direction, and draws a glyph run per line and item; default
+  ignorables, such as bidi controls, draw no glyph.
 - **Style:** text properties (color, font, size, weight, slant, line
   height, letter spacing, alignment, wrapping) belong to the core's
   style and are inherited, so classes, states, tokens, themes and

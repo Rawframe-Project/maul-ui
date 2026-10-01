@@ -350,6 +350,19 @@ extern "C"
                                                            muiNodeId nodeId,
                                                            muiLayoutStyle* styleOut);
 
+    /// Whether a node's content runs right to left: the direction its own
+    /// resolved layout values give, else the nearest ancestor's that gives
+    /// one, else left to right. It reads the values as they are at the
+    /// call, so a measure function sees the direction layout uses.
+    ///
+    /// @param context  The context.
+    /// @param nodeId   The node.
+    /// @return true for right to left; false for left to right, a NULL
+    ///         context, the null id or a node that is gone.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_API bool muiNode_IsRightToLeft(const muiContext* context, muiNodeId nodeId);
+
     /// Tells the solver a node's host content changed size, so it is
     /// measured again at the next muiComputeLayout.
     ///

@@ -20,7 +20,8 @@
 
 enum
 {
-    MAX_FONTS = 65536
+    MAX_FONTS = 65536,
+    MAX_BLOCKS = 1 << 24,
 };
 
 // FreeType's memory through the service's allocator. FreeType does not
@@ -87,7 +88,7 @@ muiTextServiceDef muiDefaultTextServiceDef(void)
 {
     return (muiTextServiceDef){
         .cookie = TEXT_SERVICE_DEF_COOKIE,
-        .limits = {.fonts = 64},
+        .limits = {.fonts = 64, .textBlocks = 1024},
     };
 }
 
@@ -95,6 +96,8 @@ typedef struct Parts
 {
     size_t fontSlots;
     size_t fonts;
+    size_t blockSlots;
+    size_t blocks;
 } Parts;
 
 static Parts LayOut(muiLayout* layout, const muiTextLimits* limits)
@@ -104,6 +107,10 @@ static Parts LayOut(muiLayout* layout, const muiTextLimits* limits)
     parts.fontSlots =
         muiLayoutAdd(layout, limits->fonts, sizeof(muiPoolSlot), alignof(muiPoolSlot));
     parts.fonts = muiLayoutAdd(layout, limits->fonts, sizeof(muiFont), alignof(muiFont));
+    parts.blockSlots =
+        muiLayoutAdd(layout, limits->textBlocks, sizeof(muiPoolSlot), alignof(muiPoolSlot));
+    parts.blocks =
+        muiLayoutAdd(layout, limits->textBlocks, sizeof(muiTextBlock), alignof(muiTextBlock));
     return parts;
 }
 
@@ -124,6 +131,10 @@ static bool HasModules(FT_Library library)
 
 static void Release(muiTextService* service)
 {
+    muiFreeBuffer(&service->allocator, &service->lines);
+    muiFreeBuffer(&service->allocator, &service->runs);
+    muiFreeBuffer(&service->allocator, &service->glyphs);
+    muiFreeBuffer(&service->allocator, &service->workspace);
     if (service->unicode != nullptr)
     {
         hb_unicode_funcs_destroy(service->unicode);
@@ -144,7 +155,7 @@ muiResult muiCreateTextService(const muiTextServiceDef* def, muiTextService** se
     }
     if (def == nullptr || serviceOut == nullptr || def->cookie != TEXT_SERVICE_DEF_COOKIE ||
         !muiIsAllocatorValid(&def->allocator) || def->limits.fonts == 0 ||
-        def->limits.fonts > MAX_FONTS)
+        def->limits.fonts > MAX_FONTS || def->limits.textBlocks > MAX_BLOCKS)
     {
         return mui_errorInvalid;
     }
@@ -166,6 +177,9 @@ muiResult muiCreateTextService(const muiTextServiceDef* def, muiTextService** se
     service->limits = def->limits;
     muiPoolInit(&service->fonts.pool, (muiPoolSlot*)(block + parts.fontSlots), def->limits.fonts);
     service->fonts.fonts = (muiFont*)(block + parts.fonts);
+    muiPoolInit(&service->blocks.pool, (muiPoolSlot*)(block + parts.blockSlots),
+                def->limits.textBlocks);
+    service->blocks.blocks = (muiTextBlock*)(block + parts.blocks);
     service->memory = (struct FT_MemoryRec_){
         .user = service,
         .alloc = FreeTypeAlloc,
@@ -208,6 +222,13 @@ void muiDestroyTextService(muiTextService* service)
         if (service->fonts.pool.slots[slot - 1].live)
         {
             muiReleaseFont(&service->allocator, &service->fonts.fonts[slot - 1]);
+        }
+    }
+    for (uint32_t slot = 1; slot <= service->blocks.pool.used; slot++)
+    {
+        if (service->blocks.pool.slots[slot - 1].live)
+        {
+            muiReleaseTextBlock(&service->allocator, &service->blocks.blocks[slot - 1]);
         }
     }
     Release(service);

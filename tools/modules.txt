@@ -38,7 +38,12 @@ absolute: layout_node sizing solver tree
 solve: absolute condition flex invariant layout_node sizing solver tree draw_store
 layout: animation context layout_node property restyle solve solver tree
 font_store: allocator pool
-text_service: allocator font_store pool
+text_service: allocator font_store pool text_block
+text_block: allocator pool
+text_blocks: text_block text_service
+text_shape: font_store text_block text_service
+line_break: text_block
+text_layout: line_break text_block text_service text_shape
 font: allocator font_store pool text_service
 property_bits:
 inherit: layout_node property tree

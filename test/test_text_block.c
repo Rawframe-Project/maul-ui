@@ -1,0 +1,465 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Sirac Ozmen
+//
+// Text blocks (record mui-0006): their lifetime and keys, measuring
+// lines at every kind of width request, line height and letter spacing,
+// painting glyph runs aligned and in bidi order, and memory running out.
+// Ahem draws every glyph as a box one em wide, ascent 0.8 em and descent
+// 0.2 em, so every value is exact.
+
+#include "test_harness.h"
+
+#include "maul-ui/context.h"
+#include "maul-ui/draw.h"
+#include "maul-ui/font.h"
+#include "maul-ui/layout.h"
+#include "maul-ui/node.h"
+#include "maul-ui/text.h"
+#include "maul-ui/text_block.h"
+#include "maul-ui/text_style.h"
+
+#include <stdalign.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "ahem.inc"
+
+static const muiNodeId s_nullNode = {0, 0};
+
+#define SIZE    MUI_PROPERTY_BIT(mui_propertyFontSize)
+#define LINE    MUI_PROPERTY_BIT(mui_propertyLineHeight)
+#define SPACING MUI_PROPERTY_BIT(mui_propertyLetterSpacing)
+#define ALIGN   MUI_PROPERTY_BIT(mui_propertyTextAlign)
+#define WRAP    MUI_PROPERTY_BIT(mui_propertyTextWrap)
+#define FONT    MUI_PROPERTY_BIT(mui_propertyFont)
+#define GLYPH_A 67u
+#define GLYPH_B 68u
+#define GLYPH_C 69u
+
+// An allocator that fails its allocation number failAt (from 1; 0
+// never), counting from when failAt was set.
+typedef struct FailingAllocator
+{
+    int allocations;
+    int failAt;
+} FailingAllocator;
+
+static void* FailingAlloc(size_t size, size_t alignment, void* context)
+{
+    FailingAllocator* failing = context;
+    failing->allocations++;
+    if (failing->failAt != 0 && failing->allocations == failing->failAt)
+    {
+        return NULL;
+    }
+    return alignment <= alignof(max_align_t) ? malloc(size) : NULL;
+}
+
+static void FailingFree(void* memory, size_t size, size_t alignment, void* context)
+{
+    (void)size;
+    (void)alignment;
+    (void)context;
+    free(memory);
+}
+
+typedef struct Scene
+{
+    muiTextService* service;
+    muiFontId font;
+    muiContext* context;
+    muiTextHost host;
+} Scene;
+
+static Scene MakeScene(FailingAllocator* failing)
+{
+    Scene scene = {0};
+    muiTextServiceDef def = muiDefaultTextServiceDef();
+    if (failing != NULL)
+    {
+        def.allocator = (muiAllocator){FailingAlloc, FailingFree, failing};
+    }
+    CHECK(muiCreateTextService(&def, &scene.service) == mui_success, "service");
+    muiFontDef font = muiDefaultFontDef();
+    font.data = s_ahem;
+    font.size = sizeof s_ahem;
+    CHECK(muiCreateFont(scene.service, &font, &scene.font) == mui_success &&
+              muiSetDefaultFont(scene.service, scene.font) == mui_success,
+          "the default font");
+    muiContextDef context = muiDefaultContextDef();
+    CHECK(muiCreateContext(&context, &scene.context) == mui_success, "context");
+    scene.host = (muiTextHost){scene.service, scene.context};
+    return scene;
+}
+
+static void FreeScene(Scene* scene)
+{
+    muiDestroyContext(scene->context);
+    muiDestroyTextService(scene->service);
+}
+
+// A node showing text at size 10, its key's block made for it.
+static muiNodeId AddText(Scene* scene, muiNodeId parent, const char* text)
+{
+    muiTextBlockId block = {0, 0};
+    CHECK(muiCreateTextBlock(scene->service, text, strlen(text), &block) == mui_success, "block");
+    muiNodeDef def = muiDefaultNodeDef();
+    def.hostKey = muiTextBlock_GetKey(block);
+    muiNodeId node = s_nullNode;
+    CHECK(muiCreateNode(scene->context, &def, &node) == mui_success, "node");
+    if (parent.index1 != 0)
+    {
+        CHECK(muiNode_InsertChild(scene->context, parent, node, s_nullNode) == mui_success,
+              "insert");
+    }
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.content = mui_contentHost;
+    CHECK(muiNode_SetLayoutValues(scene->context, node, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyContent)) == mui_success,
+          "host content");
+    muiTextStyle style = muiDefaultTextStyle();
+    style.size = (muiDimension){0.0f, 10.0f, mui_dimensionValue};
+    CHECK(muiNode_SetTextValues(scene->context, node, &style, SIZE) == mui_success, "size");
+    return node;
+}
+
+static void SetText(Scene* scene, muiNodeId node, muiTextStyle style, muiPropertyMask mask)
+{
+    CHECK(muiNode_SetTextValues(scene->context, node, &style, mask) == mui_success, "style");
+}
+
+// Lays a root out, which styles it, at an available width.
+static void Layout(Scene* scene, muiNodeId root, float width)
+{
+    const muiLayoutInput input = {width, 1000.0f, muiMeasureText, &scene->host, 0};
+    CHECK(muiComputeLayout(scene->context, root, &input) == mui_success, "layout");
+}
+
+static muiSize Measure(Scene* scene, muiNodeId node, muiMeasureMode mode, float width)
+{
+    return muiMeasureText(&scene->host, node, muiNode_GetHostKey(scene->context, node),
+                          (muiMeasureAxis){width, mode},
+                          (muiMeasureAxis){0.0f, mui_measureMaxContent});
+}
+
+static muiDrawList Paint(Scene* scene, muiNodeId root)
+{
+    const muiDrawInput input = {1, 1.0f, muiPaintText, &scene->host};
+    CHECK(muiBuildDrawList(scene->context, root, &input) == mui_success, "paint");
+    muiDrawList list;
+    CHECK(muiGetDrawList(scene->context, &list) == mui_success, "list");
+    return list;
+}
+
+static bool SameSize(muiSize size, float width, float height)
+{
+    return size.width == width && size.height == height;
+}
+
+static void TestBlocksAndKeys(void)
+{
+    muiTextServiceDef def = muiDefaultTextServiceDef();
+    def.limits.textBlocks = 2;
+    muiTextService* service = NULL;
+    CHECK(muiCreateTextService(&def, &service) == mui_success, "service");
+    muiTextBlockId a = {0, 0};
+    muiTextBlockId b = {0, 0};
+    muiTextBlockId c = {7, 7};
+    CHECK(muiCreateTextBlock(service, "a", 1, &a) == mui_success &&
+              muiCreateTextBlock(service, NULL, 0, &b) == mui_success,
+          "two blocks, one empty");
+    CHECK(muiCreateTextBlock(service, "c", 1, &c) == mui_errorCapacity && c.index1 == 0,
+          "the limit");
+    CHECK(muiTextBlock_GetKey(a) != 0 && muiTextBlock_GetKey(a) != muiTextBlock_GetKey(b), "keys");
+    CHECK(muiCreateTextBlock(NULL, "a", 1, &c) == mui_errorInvalid &&
+              muiCreateTextBlock(service, NULL, 1, &c) == mui_errorInvalid &&
+              muiCreateTextBlock(service, "a", 1, NULL) == mui_errorInvalid &&
+              muiCreateTextBlock(service, "a", (size_t)1 << 31, &c) == mui_errorInvalid,
+          "arguments");
+    CHECK(muiTextBlock_SetText(service, a, "abc", 3) == mui_success &&
+              muiTextBlock_SetText(service, a, NULL, 1) == mui_errorInvalid &&
+              muiTextBlock_SetText(NULL, a, "a", 1) == mui_errorInvalid &&
+              muiTextBlock_SetText(service, (muiTextBlockId){0, 0}, "a", 1) == mui_errorInvalid,
+          "setting text");
+    CHECK(muiDestroyTextBlock(service, a) == mui_success &&
+              muiDestroyTextBlock(service, a) == mui_errorStale &&
+              muiTextBlock_SetText(service, a, "a", 1) == mui_errorStale &&
+              muiDestroyTextBlock(NULL, b) == mui_errorInvalid &&
+              muiDestroyTextBlock(service, (muiTextBlockId){0, 0}) == mui_errorInvalid,
+          "destroying");
+    CHECK(muiFont_GetKey((muiFontId){1, 2}) == ((uint64_t)2 << 32 | 1), "a font's key");
+    CHECK(muiSetDefaultFont(NULL, (muiFontId){0, 0}) == mui_errorInvalid &&
+              muiSetDefaultFont(service, (muiFontId){1, 1}) == mui_errorStale &&
+              muiSetDefaultFont(service, (muiFontId){0, 0}) == mui_success,
+          "the default font");
+    CHECK(muiGetTextServiceFailures(NULL) == 0 && muiGetTextServiceFailures(service) == 0,
+          "no failures");
+    muiDestroyTextService(service);
+}
+
+static void TestMeasuring(void)
+{
+    Scene scene = MakeScene(NULL);
+    muiNodeId node = AddText(&scene, s_nullNode, "ab cd");
+    Layout(&scene, node, 1000.0f);
+    CHECK(SameSize(Measure(&scene, node, mui_measureMaxContent, 0.0f), 50.0f, 10.0f),
+          "max-content: one line of five ems");
+    CHECK(SameSize(Measure(&scene, node, mui_measureMinContent, 0.0f), 20.0f, 20.0f),
+          "min-content: a line a word, the space hanging");
+    CHECK(SameSize(Measure(&scene, node, mui_measureAtMost, 35.0f), 20.0f, 20.0f), "wrapped at 35");
+    CHECK(SameSize(Measure(&scene, node, mui_measureAtMost, 50.0f), 50.0f, 10.0f), "fits at 50");
+    CHECK(SameSize(Measure(&scene, node, mui_measureExact, 35.0f), 35.0f, 20.0f),
+          "an exact width is the width");
+    CHECK(SameSize(Measure(&scene, node, mui_measureAtMost, 5.0f), 20.0f, 20.0f),
+          "a word wider than the line overflows");
+    muiTextStyle style = muiDefaultTextStyle();
+    style.wrap = mui_textNoWrap;
+    SetText(&scene, node, style, WRAP);
+    Layout(&scene, node, 1000.0f);
+    CHECK(SameSize(Measure(&scene, node, mui_measureAtMost, 35.0f), 50.0f, 10.0f), "no wrapping");
+    style.letterSpacing = (muiDimension){0.0f, 2.0f, mui_dimensionValue};
+    style.lineHeight = (muiDimension){1.5f, 0.0f, mui_dimensionValue};
+    SetText(&scene, node, style, SPACING | LINE);
+    Layout(&scene, node, 1000.0f);
+    CHECK(SameSize(Measure(&scene, node, mui_measureMaxContent, 0.0f), 60.0f, 15.0f),
+          "spacing after each of five clusters; 1.5 lines");
+    muiDestroyContext(scene.context);
+    muiDestroyTextService(scene.service);
+}
+
+static void TestLineBreaksInText(void)
+{
+    Scene scene = MakeScene(NULL);
+    const struct
+    {
+        const char* text;
+        float width;
+        float lines;
+    } cases[] = {
+        {"", 0.0f, 0.0f},
+        {"a\nbc", 20.0f, 2.0f},
+        {"a\n", 10.0f, 2.0f},
+        {"a\r\nb", 10.0f, 2.0f},
+        {" ", 0.0f, 1.0f},
+        {"a  ", 10.0f, 1.0f},
+        {"a\xE2\x80\xA8z", 10.0f, 2.0f},
+        {"a\t\t", 10.0f, 1.0f},
+        {"a\xC2\x85"
+         "b",
+         10.0f, 2.0f},
+    };
+    for (size_t i = 0; i < sizeof cases / sizeof cases[0]; i++)
+    {
+        muiNodeId node = AddText(&scene, s_nullNode, cases[i].text);
+        Layout(&scene, node, 1000.0f);
+        muiSize size = Measure(&scene, node, mui_measureMaxContent, 0.0f);
+        CHECK(SameSize(size, cases[i].width, cases[i].lines * 10.0f), cases[i].text);
+    }
+    FreeScene(&scene);
+}
+
+static void TestPainting(void)
+{
+    Scene scene = MakeScene(NULL);
+    muiNodeId root = AddText(&scene, s_nullNode, "ab c");
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.sizing.width = (muiDimension){0.0f, 25.0f, mui_dimensionValue};
+    CHECK(muiNode_SetLayoutValues(scene.context, root, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyWidth)) == mui_success,
+          "width");
+    Layout(&scene, root, 1000.0f);
+    muiDrawList list = Paint(&scene, root);
+    CHECK(list.commandCount == 2 && list.glyphCount == 3,
+          "two lines, three glyphs: the hanging space draws nothing");
+    const muiDrawGlyphRun* first = &list.commands[0].glyphRun;
+    const muiDrawGlyphRun* second = &list.commands[1].glyphRun;
+    CHECK(first->font == muiFont_GetKey(scene.font) && first->size == 10.0f &&
+              first->originY == 8.0f && second->originY == 18.0f,
+          "the default font's key; baselines 0.8 em into each line");
+    CHECK(first->glyphCount == 2 && list.glyphs[0].id == GLYPH_A && list.glyphs[1].x == 10.0f,
+          "the first line");
+    CHECK(second->glyphCount == 1 && list.glyphs[2].id == GLYPH_C && list.glyphs[2].x == 0.0f,
+          "the second line");
+
+    muiTextStyle style = muiDefaultTextStyle();
+    style.align = mui_textAlignEnd;
+    SetText(&scene, root, style, ALIGN);
+    Layout(&scene, root, 1000.0f);
+    list = Paint(&scene, root);
+    CHECK(list.glyphs[0].x == 5.0f && list.glyphs[2].x == 15.0f,
+          "end alignment, the space hanging");
+    style.align = mui_textAlignCenter;
+    SetText(&scene, root, style, ALIGN);
+    Layout(&scene, root, 1000.0f);
+    list = Paint(&scene, root);
+    CHECK(list.glyphs[0].x == 2.5f && list.glyphs[2].x == 7.5f, "centered");
+
+    // Right to left, start alignment is to the right; the latin text in
+    // it keeps its order.
+    layout.textDirection = mui_textRightToLeft;
+    CHECK(muiNode_SetLayoutValues(scene.context, root, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
+          "right to left");
+    style.align = mui_textAlignStart;
+    SetText(&scene, root, style, ALIGN);
+    Layout(&scene, root, 1000.0f);
+    list = Paint(&scene, root);
+    CHECK(list.glyphs[0].id == GLYPH_A && list.glyphs[0].x == 5.0f && list.glyphs[2].x == 15.0f,
+          "start is the right");
+    FreeScene(&scene);
+}
+
+static void TestLineHeightSpacingAndSlack(void)
+{
+    Scene scene = MakeScene(NULL);
+    muiNodeId node = AddText(&scene, s_nullNode, "ab");
+    muiTextStyle style = muiDefaultTextStyle();
+    style.lineHeight = (muiDimension){1.5f, 0.0f, mui_dimensionValue};
+    style.letterSpacing = (muiDimension){0.0f, 2.0f, mui_dimensionValue};
+    SetText(&scene, node, style, LINE | SPACING);
+    Layout(&scene, node, 1000.0f);
+    muiDrawList list = Paint(&scene, node);
+    // Half of 5 units of leading above the ascent: 10.5, snapped to 11.
+    CHECK(list.commandCount == 1 && list.commands[0].glyphRun.originY == 11.0f,
+          "the baseline under half the leading");
+    CHECK(list.glyphs[1].x == 12.0f, "spacing after the first cluster");
+    // A width a little under the measured one, as layout may give back,
+    // keeps the line whole.
+    muiNodeId words = AddText(&scene, s_nullNode, "a b");
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.sizing.width = (muiDimension){0.0f, 29.999f, mui_dimensionValue};
+    CHECK(muiNode_SetLayoutValues(scene.context, words, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyWidth)) == mui_success,
+          "narrower by a thousandth");
+    Layout(&scene, words, 1000.0f);
+    CHECK(Paint(&scene, words).commandCount == 1, "one line still");
+    FreeScene(&scene);
+}
+
+static void TestBidiOrder(void)
+{
+    Scene scene = MakeScene(NULL);
+    // RIGHT-TO-LEFT OVERRIDE: the letters display right to left, and the
+    // control itself draws nothing.
+    muiNodeId node = AddText(&scene, s_nullNode,
+                             "\xE2\x80\xAE"
+                             "abc");
+    Layout(&scene, node, 1000.0f);
+    muiDrawList list = Paint(&scene, node);
+    CHECK(list.glyphCount == 3 && list.glyphs[0].id == GLYPH_C && list.glyphs[1].id == GLYPH_B &&
+              list.glyphs[2].id == GLYPH_A && list.glyphs[2].x == 20.0f,
+          "c b a, left to right");
+    // The same block shaped again for another direction: the final
+    // exclamation mark takes the paragraph's, so it moves to the left.
+    muiNodeId mark = AddText(&scene, s_nullNode, "ab!");
+    Layout(&scene, mark, 1000.0f);
+    list = Paint(&scene, mark);
+    uint32_t exclamation = list.glyphs[2].id;
+    CHECK(list.glyphs[0].id == GLYPH_A, "left to right: a b !");
+    muiLayoutStyle direction = muiDefaultLayoutStyle();
+    direction.textDirection = mui_textRightToLeft;
+    CHECK(muiNode_SetLayoutValues(scene.context, mark, &direction,
+                                  MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
+          "right to left");
+    Layout(&scene, mark, 1000.0f);
+    list = Paint(&scene, mark);
+    CHECK(list.glyphCount == 3 && list.glyphs[0].id == exclamation && list.glyphs[1].id == GLYPH_A,
+          "right to left: ! a b");
+    // A node takes its direction from its ancestors.
+    muiNodeId parent = AddText(&scene, s_nullNode, "");
+    muiNodeId child = AddText(&scene, parent, "ab");
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.textDirection = mui_textRightToLeft;
+    CHECK(!muiNode_IsRightToLeft(scene.context, child) &&
+              muiNode_SetLayoutValues(scene.context, parent, &layout,
+                                      MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success &&
+              muiNode_IsRightToLeft(scene.context, child) && !muiNode_IsRightToLeft(NULL, child) &&
+              !muiNode_IsRightToLeft(scene.context, s_nullNode),
+          "direction from an ancestor");
+    FreeScene(&scene);
+}
+
+static void TestFontsAndChanges(void)
+{
+    Scene scene = MakeScene(NULL);
+    muiNodeId node = AddText(&scene, s_nullNode, "abc");
+    Layout(&scene, node, 1000.0f);
+    CHECK(SameSize(Measure(&scene, node, mui_measureMaxContent, 0.0f), 30.0f, 10.0f), "abc");
+    // A changed text measures anew once the node is told.
+    muiTextBlockId block = {(uint32_t)muiNode_GetHostKey(scene.context, node),
+                            (uint32_t)(muiNode_GetHostKey(scene.context, node) >> 32)};
+    CHECK(muiTextBlock_SetText(scene.service, block, "abcd", 4) == mui_success &&
+              muiNode_MarkContentChanged(scene.context, node) == mui_success,
+          "new text");
+    Layout(&scene, node, 1000.0f);
+    CHECK(muiNode_GetRect(scene.context, node).width == 40.0f, "laid out anew");
+    // A font key that names no font, or no default font, lays out nothing.
+    muiTextStyle style = muiDefaultTextStyle();
+    style.font = 12345;
+    SetText(&scene, node, style, FONT);
+    Layout(&scene, node, 1000.0f);
+    CHECK(SameSize(Measure(&scene, node, mui_measureMaxContent, 0.0f), 0.0f, 0.0f) &&
+              Paint(&scene, node).commandCount == 0,
+          "no such font");
+    style.font = 0;
+    SetText(&scene, node, style, FONT);
+    CHECK(muiSetDefaultFont(scene.service, (muiFontId){0, 0}) == mui_success, "none");
+    Layout(&scene, node, 1000.0f);
+    CHECK(SameSize(Measure(&scene, node, mui_measureMaxContent, 0.0f), 0.0f, 0.0f),
+          "no default font");
+    CHECK(SameSize(muiMeasureText(&scene.host, node, 99,
+                                  (muiMeasureAxis){0.0f, mui_measureMaxContent},
+                                  (muiMeasureAxis){0.0f, mui_measureMaxContent}),
+                   0.0f, 0.0f) &&
+              SameSize(muiMeasureText(NULL, node, 99, (muiMeasureAxis){0.0f, mui_measureMaxContent},
+                                      (muiMeasureAxis){0.0f, mui_measureMaxContent}),
+                       0.0f, 0.0f),
+          "a key that names no block, and no host");
+    FreeScene(&scene);
+}
+
+static void TestMemoryRunningOut(void)
+{
+    // Each allocation of shaping and painting fails in turn: the block
+    // measures as empty, the service counts it, and nothing leaks (the
+    // sanitizers check).
+    for (int failAt = 1; failAt < 40; failAt++)
+    {
+        FailingAllocator failing = {0, 0};
+        Scene scene = MakeScene(&failing);
+        muiNodeId node = AddText(&scene, s_nullNode,
+                                 "ab cd\xE2\x80\xAE"
+                                 "ef");
+        failing = (FailingAllocator){0, failAt};
+        Layout(&scene, node, 1000.0f);
+        const muiDrawInput input = {1, 1.0f, muiPaintText, &scene.host};
+        CHECK(muiBuildDrawList(scene.context, node, &input) == mui_success, "paint");
+        bool failed = failing.allocations >= failAt;
+        CHECK(failed == (muiGetTextServiceFailures(scene.service) != 0), "counted");
+        FreeScene(&scene);
+    }
+    // Setting text keeps the old one when memory runs out.
+    FailingAllocator failing = {0, 0};
+    Scene scene = MakeScene(&failing);
+    muiTextBlockId block = {0, 0};
+    CHECK(muiCreateTextBlock(scene.service, "ab", 2, &block) == mui_success, "block");
+    failing = (FailingAllocator){0, 1};
+    CHECK(muiTextBlock_SetText(scene.service, block, "abcd", 4) == mui_errorCapacity &&
+              muiCreateTextBlock(scene.service, "x", 1, &block) == mui_success,
+          "refused, then fine");
+    FreeScene(&scene);
+}
+
+int main(void)
+{
+    TestBlocksAndKeys();
+    TestMeasuring();
+    TestLineBreaksInText();
+    TestPainting();
+    TestLineHeightSpacingAndSlack();
+    TestBidiOrder();
+    TestFontsAndChanges();
+    TestMemoryRunningOut();
+    return s_failures == 0 ? 0 : 1;
+}
