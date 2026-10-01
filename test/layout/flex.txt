@@ -1,0 +1,70 @@
+# Growing, shrinking, bases and limits along the main axis.
+# chrome 154.0.8037.57
+
+fixture grow_equal available=500x400
+node width=100 height=50 => 0 0 100 50
+  node grow=1 => 0 0 33.328125 50
+  node grow=1 => 33.328125 0 33.34375 50
+  node grow=1 => 66.671875 0 33.328125 50
+
+fixture grow_weighted available=500x400
+node width=300 height=50 => 0 0 300 50
+  node grow=1 => 0 0 45 50
+  node grow=2 => 45 0 90 50
+  node grow=3 width=30 => 135 0 165 50
+
+fixture grow_with_basis available=500x400
+node width=200 height=50 => 0 0 200 50
+  node grow=1 basis=50 => 0 0 120 50
+  node grow=1 basis=10 => 120 0 80 50
+
+fixture grow_fraction_below_one available=500x400
+node width=200 height=50 => 0 0 200 50
+  node grow=0.25 width=20 => 0 0 60 50
+  node grow=0.25 width=20 => 60 0 60 50
+
+fixture grow_capped_by_max available=500x400
+node width=300 height=50 => 0 0 300 50
+  node grow=1 max-width=40 => 0 0 40 50
+  node grow=1 => 40 0 130 50
+  node grow=1 => 170 0 130 50
+
+fixture shrink_by_base available=500x400
+node width=100 height=50 => 0 0 100 50
+  node width=100 => 0 0 66.671875 50
+  node width=50 => 66.671875 0 33.328125 50
+
+fixture shrink_weighted available=500x400
+node width=100 height=50 => 0 0 100 50
+  node width=80 shrink=1 => 0 0 65 50
+  node width=80 shrink=3 => 65 0 35 50
+
+fixture shrink_floored_by_min available=500x400
+node width=100 height=50 => 0 0 100 50
+  node width=80 min-width=70 => 0 0 70 50
+  node width=80 => 70 0 30 50
+
+fixture no_shrink_overflows available=500x400
+node width=100 height=50 => 0 0 100 50
+  node width=80 shrink=0 => 0 0 80 50
+  node width=80 shrink=0 => 80 0 80 50
+
+fixture basis_overrides_width available=500x400
+node width=300 height=50 => 0 0 300 50
+  node basis=60 width=10 => 0 0 60 50
+  node basis=40 => 60 0 40 50
+
+fixture column_grow available=500x400
+node direction=column width=50 height=200 => 0 0 50 200
+  node grow=1 => 0 0 50 40
+  node height=40 => 0 40 50 40
+  node grow=3 => 0 80 50 120
+
+fixture min_beats_max available=500x400
+node width=300 height=50 => 0 0 300 50
+  node width=50 min-width=80 max-width=60 => 0 0 80 50
+
+fixture grow_on_auto_root_does_nothing available=500x400
+node => 0 0 50 10
+  node grow=1 width=20 height=10 => 0 0 20 10
+  node grow=1 width=30 height=10 => 20 0 30 10

@@ -7,7 +7,10 @@
 #include "maul-ui/node.h"
 
 #include "context.h"
+#include "layout_node.h"
 #include "tree.h"
+
+#include "maul-ui/layout.h"
 
 #define NODE_DEF_COOKIE 0x6D756E64u // "mund"
 
@@ -16,11 +19,12 @@ static bool IsNull(muiNodeId nodeId)
     return nodeId.index1 == 0;
 }
 
-// The slot of a live node, or 0 with the status to return in statusOut:
-// misuse for the null id, stale for a gone node.
+// The slot of a live node for an edit, or 0 with the status to return in
+// statusOut: misuse for the null id or an edit from a measure function,
+// stale for a gone node.
 static uint32_t ResolveLive(muiContext* context, muiNodeId nodeId, muiResult* statusOut)
 {
-    if (IsNull(nodeId))
+    if (IsNull(nodeId) || muiIsMeasuring(context))
     {
         *statusOut = muiRefuse(context);
         return 0;
@@ -51,7 +55,8 @@ muiResult muiCreateNode(muiContext* context, const muiNodeDef* def, muiNodeId* n
     {
         return mui_errorInvalid;
     }
-    if (def == nullptr || nodeIdOut == nullptr || def->cookie != NODE_DEF_COOKIE)
+    if (def == nullptr || nodeIdOut == nullptr || def->cookie != NODE_DEF_COOKIE ||
+        muiIsMeasuring(context))
     {
         return muiRefuse(context);
     }
@@ -60,6 +65,7 @@ muiResult muiCreateNode(muiContext* context, const muiNodeDef* def, muiNodeId* n
     {
         return mui_errorCapacity;
     }
+    context->layout[slot - 1] = (muiLayoutNode){.style = muiDefaultLayoutStyle()};
     *nodeIdOut = muiTreeIdOf(&context->tree, slot);
     return mui_success;
 }

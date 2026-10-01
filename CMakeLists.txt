@@ -43,14 +43,24 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/allocator.c
     src/base.c
     src/context.c
+    src/flex.c
+    src/flex_resolve.c
+    src/layout.c
     src/node.c
     src/tree.c)
 maul_configure_library(maul-ui)
+# fmaxf, fminf and fabsf, the exactly rounded functions the solver takes
+# from libm (mui-0001).
+if(NOT WIN32 AND NOT APPLE)
+    target_link_libraries(maul-ui PUBLIC m)
+endif()
 
 if(MAUL_UI_BUILD_TESTS)
     enable_testing()
     maul_add_test(base)
     maul_add_test(context)
+    maul_add_test(layout)
+    maul_add_test(layout_fixtures)
     maul_add_test(node)
     maul_add_test(tree WHITEBOX)
     # winnls.h defines MUI_ macros; this checks that none clash (family

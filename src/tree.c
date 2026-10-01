@@ -226,39 +226,38 @@ static uint32_t NextOwing(const muiTree* tree, uint32_t node, muiStages stages)
     return at;
 }
 
+uint32_t muiTreeNextOwing(const muiTree* tree, uint32_t root, uint32_t at, muiStages stages)
+{
+    if (at == 0)
+    {
+        return (muiTreeAt(tree, root)->dirty.subtree & stages) != 0 ? root : 0;
+    }
+    uint32_t child = NextOwing(tree, muiTreeAt(tree, at)->links.firstChild, stages);
+    if (child != 0)
+    {
+        return child;
+    }
+    for (uint32_t node = at; node != root; node = muiTreeAt(tree, node)->links.parent)
+    {
+        uint32_t sibling = NextOwing(tree, muiTreeAt(tree, node)->links.next, stages);
+        if (sibling != 0)
+        {
+            return sibling;
+        }
+    }
+    return 0;
+}
+
 uint32_t muiTreeSweep(muiTree* tree, uint32_t root, muiStages stages)
 {
-    if ((muiTreeAt(tree, root)->dirty.subtree & stages) == 0)
-    {
-        return 0;
-    }
     uint32_t reached = 0;
-    uint32_t at = root;
-    for (;;)
+    for (uint32_t at = muiTreeNextOwing(tree, root, 0, stages); at != 0;
+         at = muiTreeNextOwing(tree, root, at, stages))
     {
         muiTreeNode* node = muiTreeAt(tree, at);
-        reached++;
         node->dirty.request &= (muiStages)~stages;
         node->dirty.subtree &= (muiStages)~stages;
-        uint32_t child = NextOwing(tree, node->links.firstChild, stages);
-        if (child != 0)
-        {
-            at = child;
-            continue;
-        }
-        while (at != root)
-        {
-            uint32_t sibling = NextOwing(tree, muiTreeAt(tree, at)->links.next, stages);
-            if (sibling != 0)
-            {
-                break;
-            }
-            at = muiTreeAt(tree, at)->links.parent;
-        }
-        if (at == root)
-        {
-            return reached;
-        }
-        at = NextOwing(tree, muiTreeAt(tree, at)->links.next, stages);
+        reached++;
     }
+    return reached;
 }

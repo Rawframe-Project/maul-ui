@@ -1,0 +1,47 @@
+# Sizes, padding, border and margin in a single row or column.
+# chrome 154.0.8037.57
+
+fixture fixed_root available=500x400
+node width=200 height=100 => 0 0 200 100
+
+fixture auto_root_fits_children available=500x400
+node => 0 0 80 20
+  node width=30 height=20 => 0 0 30 20
+  node width=50 height=10 => 30 0 50 10
+
+fixture auto_root_column_fits_children available=500x400
+node direction=column => 0 0 50 30
+  node width=30 height=20 => 0 0 30 20
+  node width=50 height=10 => 0 20 50 10
+
+fixture padding_and_border_offset_children available=500x400
+node width=200 height=100 padding=10,20,5,15 border=1,2,3,4 => 0 0 200 100
+  node width=30 height=20 => 11 8 30 20
+
+fixture padding_counts_in_auto_size available=500x400
+node padding=7 border=2 => 0 0 48 38
+  node width=30 height=20 => 9 9 30 20
+
+fixture margins_separate_children available=500x400
+node width=200 height=100 => 0 0 200 100
+  node width=30 height=20 margin=5,10,3,0 => 5 3 30 20
+  node width=30 height=20 margin=1,2,6,4 => 46 6 30 20
+
+fixture border_box_never_smaller_than_padding available=500x400
+node width=200 height=100 => 0 0 200 100
+  node width=10 height=10 padding=20 shrink=0 => 0 0 40 40
+
+fixture nested_rows available=500x400
+node width=300 height=100 => 0 0 300 100
+  node width=150 padding=5 => 0 0 150 100
+    node width=40 height=20 => 5 5 40 20
+    node width=50 height=30 => 45 5 50 30
+  node width=60 => 150 0 60 100
+
+fixture deep_auto_nesting available=500x400
+node => 0 0 26 20
+  node direction=column padding=3 => 0 0 26 20
+    node => 3 3 20 9
+      node width=12 height=7 => 0 0 12 7
+      node width=8 height=9 => 12 0 8 9
+    node width=20 height=5 => 3 12 20 5

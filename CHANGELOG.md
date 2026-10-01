@@ -17,3 +17,8 @@ format.
   allocator and node limit, and the node tree: creation with a host
   key, insertion before a sibling, detaching, subtree destruction,
   traversal and stale-id refusal (record mui-0002).
+- Layout: authored values (`muiLayoutStyle`: Scale+Offset sizes and
+  limits, flex container and item fields, margin, border and padding,
+  host content), `muiComputeLayout` with a host measure function, and
+  `muiNode_GetRect`. The solver follows CSS Flexbox for a single line
+  and is checked against Chrome by a fixture corpus (record mui-0003).

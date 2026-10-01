@@ -1,0 +1,88 @@
+# Justification along the main axis and alignment across it.
+# chrome 154.0.8037.57
+
+fixture justify_end available=500x400
+node width=200 height=50 justify=end => 0 0 200 50
+  node width=30 => 130 0 30 50
+  node width=40 => 160 0 40 50
+
+fixture justify_center available=500x400
+node width=200 height=50 justify=center => 0 0 200 50
+  node width=30 => 65 0 30 50
+  node width=40 => 95 0 40 50
+
+fixture justify_space_between available=500x400
+node width=200 height=50 justify=space-between => 0 0 200 50
+  node width=30 => 0 0 30 50
+  node width=40 => 85 0 40 50
+  node width=20 => 180 0 20 50
+
+fixture justify_space_around available=500x400
+node width=200 height=50 justify=space-around => 0 0 200 50
+  node width=30 => 18.328125 0 30 50
+  node width=40 => 85 0 40 50
+  node width=20 => 161.65625 0 20 50
+
+fixture justify_space_evenly available=500x400
+node width=200 height=50 justify=space-evenly => 0 0 200 50
+  node width=30 => 27.5 0 30 50
+  node width=40 => 85 0 40 50
+  node width=20 => 152.5 0 20 50
+
+fixture justify_space_between_one_child available=500x400
+node width=200 height=50 justify=space-between => 0 0 200 50
+  node width=30 => 0 0 30 50
+
+fixture justify_center_overflow available=500x400
+node width=100 height=50 justify=center => 0 0 100 50
+  node width=80 shrink=0 => -30 0 80 50
+  node width=80 shrink=0 => 50 0 80 50
+
+fixture justify_space_around_overflow available=500x400
+node width=100 height=50 justify=space-around => 0 0 100 50
+  node width=80 shrink=0 => 0 0 80 50
+  node width=80 shrink=0 => 80 0 80 50
+
+fixture align_items_each available=500x400
+node width=200 height=60 => 0 0 200 60
+  node width=20 => 0 0 20 60
+  node width=20 height=10 align-self=start => 20 0 20 10
+  node width=20 height=10 align-self=end => 40 50 20 10
+  node width=20 height=10 align-self=center => 60 25 20 10
+  node width=20 height=10 align-self=stretch => 80 0 20 10
+
+fixture align_items_center_with_margins available=500x400
+node width=200 height=60 align-items=center => 0 0 200 60
+  node width=20 height=10 margin=0,0,10,0 => 0 30 20 10
+  node width=20 height=10 margin=0,0,0,20 => 20 15 20 10
+
+fixture stretch_capped_by_max available=500x400
+node width=200 height=60 => 0 0 200 60
+  node width=20 max-height=25 => 0 0 20 25
+  node width=20 min-height=70 => 20 0 20 70
+
+fixture stretch_in_auto_cross available=500x400
+node width=200 => 0 0 200 35
+  node width=20 height=35 => 0 0 20 35
+  node width=20 => 20 0 20 35
+
+fixture column_align_items available=500x400
+node direction=column width=100 height=200 align-items=end => 0 0 100 200
+  node width=20 height=10 => 80 0 20 10
+  node height=10 align-self=stretch => 0 10 100 10
+  node width=30 height=10 align-self=center => 35 20 30 10
+
+fixture justify_space_evenly_overflow available=500x400
+node width=100 height=50 justify=space-evenly => 0 0 100 50
+  node width=80 shrink=0 => 0 0 80 50
+  node width=80 shrink=0 => 80 0 80 50
+
+fixture justify_space_between_overflow available=500x400
+node width=100 height=50 justify=space-between => 0 0 100 50
+  node width=80 shrink=0 => 0 0 80 50
+  node width=80 shrink=0 => 80 0 80 50
+
+fixture justify_end_overflow available=500x400
+node width=100 height=50 justify=end => 0 0 100 50
+  node width=80 shrink=0 => -60 0 80 50
+  node width=80 shrink=0 => 20 0 80 50

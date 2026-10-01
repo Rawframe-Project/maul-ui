@@ -1,0 +1,32 @@
+# Host content measured by the host, and the automatic minimum size.
+# chrome 154.0.8037.57
+
+fixture content_sizes_leaf available=500x400
+node => 0 0 69 34
+  node content=40x12 => 0 0 40 34
+  node content=25x30 padding=2 => 40 0 29 34
+
+fixture automatic_minimum_stops_shrink available=500x400
+node width=60 height=40 => 0 0 60 40
+  node content=50x10 => 0 0 50 40
+  node content=50x10 => 50 0 50 40
+
+fixture min_zero_allows_shrink available=500x400
+node width=60 height=40 => 0 0 60 40
+  node content=50x10 min-width=0 => 0 0 30 40
+  node content=50x10 min-width=0 => 30 0 30 40
+
+fixture automatic_minimum_capped_by_width available=500x400
+node width=60 height=40 => 0 0 60 40
+  node content=50x10 width=30 => 0 0 30 40
+  node content=50x10 => 30 0 50 40
+
+fixture content_in_column available=500x400
+node direction=column width=100 => 0 0 100 42
+  node content=40x12 => 0 0 100 12
+  node content=25x30 align-self=start => 0 12 25 30
+
+fixture content_grows available=500x400
+node width=200 height=40 => 0 0 200 40
+  node content=40x10 grow=1 => 0 0 110 40
+  node content=20x10 grow=1 => 110 0 90 40

@@ -3,6 +3,10 @@
 base:
 invariant:
 allocator:
+layout_node:
 tree: invariant
-context: allocator invariant tree
-node: context tree
+context: allocator invariant layout_node tree
+node: context layout_node tree
+flex_resolve: layout_node tree
+flex: flex_resolve invariant layout_node tree
+layout: context flex layout_node tree

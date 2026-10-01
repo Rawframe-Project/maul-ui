@@ -1,0 +1,28 @@
+# Scale+Offset: a fraction of the parent's content extent plus an offset.
+# chrome 154.0.8037.57
+
+fixture scale_width_and_height available=500x400
+node width=200 height=100 padding=10 => 0 0 200 100
+  node width=50% height=25%+5 => 10 10 90 25
+
+fixture scale_with_negative_offset available=500x400
+node width=200 height=100 => 0 0 200 100
+  node width=100%-30 height=10 => 0 0 170 10
+
+fixture scale_root_of_available available=500x400
+node width=50% height=100%-20 => 0 0 250 380
+
+fixture scale_min_and_max available=500x400
+node width=300 height=100 => 0 0 300 100
+  node grow=1 max-width=20%+10 => 0 0 70 100
+  node grow=1 min-width=50% => 70 0 230 100
+
+fixture scale_basis available=500x400
+node width=300 height=100 => 0 0 300 100
+  node basis=25% => 0 0 75 100
+  node basis=10%+12 => 75 0 42 100
+
+fixture scale_in_auto_parent_is_auto available=500x400
+node height=50 => 0 0 20 50
+  node width=50% height=10 => 0 0 6.671875 10
+  node width=20 height=10 => 6.671875 0 13.328125 10

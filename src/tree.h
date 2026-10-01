@@ -99,9 +99,14 @@ void muiTreeDestroy(muiTree* tree, uint32_t node);
 // the first that has them already.
 void muiTreeMark(muiTree* tree, uint32_t node, muiStages stages);
 
-// The walk every pass makes: from root, descends only into nodes whose
-// subtree flags hold one of stages, clears those stages' flags on each,
-// and returns how many nodes it reached.
+// The node after at, in preorder from root, among the nodes whose subtree
+// flags hold one of stages, descending only into those; at 0 starts at
+// root. Returns 0 at the end. Clearing at's flags before the call does not
+// change the walk.
+uint32_t muiTreeNextOwing(const muiTree* tree, uint32_t root, uint32_t at, muiStages stages);
+
+// The walk every pass makes: visits what muiTreeNextOwing visits, clears
+// those stages' flags on each, and returns how many nodes it reached.
 uint32_t muiTreeSweep(muiTree* tree, uint32_t root, muiStages stages);
 
 #endif // MAUL_UI_SRC_TREE_H

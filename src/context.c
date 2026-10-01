@@ -36,6 +36,8 @@ muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut)
     size_t contextOffset = muiLayoutAdd(&layout, 1, sizeof(muiContext), alignof(muiContext));
     size_t nodesOffset =
         muiLayoutAdd(&layout, def->limits.nodes, sizeof(muiTreeNode), alignof(muiTreeNode));
+    size_t layoutOffset =
+        muiLayoutAdd(&layout, def->limits.nodes, sizeof(muiLayoutNode), alignof(muiLayoutNode));
     if (layout.overflow)
     {
         return mui_errorCapacity;
@@ -52,6 +54,7 @@ muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut)
     context->allocator = def->allocator;
     context->blockSize = layout.size;
     muiTreeInit(&context->tree, (muiTreeNode*)(block + nodesOffset), def->limits.nodes);
+    context->layout = (muiLayoutNode*)(block + layoutOffset);
     *contextOut = context;
     return mui_success;
 }
@@ -75,4 +78,9 @@ muiResult muiRefuse(muiContext* context)
 {
     context->misuse++;
     return mui_errorInvalid;
+}
+
+bool muiIsMeasuring(const muiContext* context)
+{
+    return context->measuring;
 }

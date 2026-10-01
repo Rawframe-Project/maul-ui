@@ -20,9 +20,10 @@ the host itself owns, inside the call that runs the frame.
 
 ## Status
 
-Not released. The first decisions are made and the skeleton builds;
-the node tree and the layout solver with its fixture corpus come
-first, then style, the command list and the text service.
+Not released. The node tree and a single-line flex layout checked
+against Chrome are in place; wrapping, absolute anchoring, aspect ratio
+and right-to-left come next, then style, the command list and the text
+service.
 
 ## Building
 
@@ -34,6 +35,16 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ctest --test-dir build
 ```
+
+## Layout fixtures
+
+The layout tests run the corpus in `test/layout/`, whose expected
+rectangles come from Chrome. After adding or changing a fixture,
+`python3 tools/gen_layout_fixtures.py --oracle` renders the corpus in
+headless Chrome and writes the rectangles back; it needs Node and
+puppeteer (`MUI_NODE_MODULES` names the `node_modules` that holds it).
+Without `--oracle` the script only regenerates the C tables. Neither
+Chrome nor puppeteer is needed to build or test the library.
 
 ## Design
 
