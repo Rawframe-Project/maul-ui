@@ -134,7 +134,8 @@ static void TestDetachMarksTheOldParent(void)
     muiTreeDetach(&fixture.tree, chain[2]);
     CHECK(muiTreeAt(&fixture.tree, chain[1])->dirty.request == (mui_stageLayout | mui_stagePaint),
           "old parent relaid");
-    CHECK(muiTreeAt(&fixture.tree, chain[2])->dirty.request == 0, "detached root unchanged");
+    CHECK(muiTreeAt(&fixture.tree, chain[2])->dirty.request == mui_stageStyle,
+          "the detached root restyled: it no longer reads its old ancestors' themes");
 }
 
 static void TestSweepVisitsSiblingsInOrderOnlyWhereOwed(void)

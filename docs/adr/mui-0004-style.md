@@ -128,6 +128,19 @@ for a fixed order in which a later layer always wins.
   at computed-value time. Changing a token restyles every node, so a
   theme switch (semantic tokens re-pointed at other primitives) moves
   through the transitions classes name.
+- **Themes are scoped token sets** (`maul-ui/theme.h`): a theme
+  overrides tokens with literals or aliases and is set on nodes; a node
+  reads each token from the nearest theme above it, itself included,
+  that overrides it, then the next out, up to eight, then the context,
+  as CSS custom properties nest and Roblox's `StyleLink` scopes a sheet.
+  An alias read in a subtree is read there, so an outer theme's
+  semantic alias picks up an inner theme's primitive. Each theme keeps a
+  table from token slots to overrides, so a lookup is one read; each
+  node keeps the nearest themed node found when it was last styled, and
+  a change of it restyles its children, so setting a theme or moving a
+  subtree restyles only where themes change. A cycle through one theme
+  and the context is refused when set; one that only nested themes
+  close gives no value, as an invalid token does.
 - **Resolution passes by what no class names.** The context keeps the
   properties any class has given a value or any node has reset; every
   other property can hold only its default or a direct write, so

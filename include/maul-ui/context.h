@@ -42,6 +42,10 @@ extern "C"
         // for their properties, each property of each variant one.
         uint32_t tokens;
         uint32_t tokenNames;
+        // Themes that exist at once, and the tokens they override
+        // together, each token of each theme one.
+        uint32_t themes;
+        uint32_t themeOverrides;
     } muiLimits;
 
     // How a context is made. Build it with muiDefaultContextDef.
@@ -54,8 +58,8 @@ extern "C"
 
     /// Returns the default context def: 4,096 nodes, 256 styles, 64 node
     /// types, 1,024 property sets, 64 notifications, 64 transitions, 256
-    /// running transitions, 256 tokens, 1,024 token names and the C
-    /// library's allocator.
+    /// running transitions, 256 tokens, 1,024 token names, 16 themes, 512
+    /// theme overrides and the C library's allocator.
     ///
     /// @return The def, with a valid cookie.
     /// @par Thread safety

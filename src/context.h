@@ -10,6 +10,7 @@
 #include "layout_node.h"
 #include "notify.h"
 #include "style_store.h"
+#include "theme_store.h"
 #include "token_store.h"
 #include "tree.h"
 
@@ -28,6 +29,7 @@ struct muiContext
     muiVisualStyle* visual;
     muiStyleStore style;
     muiTokenStore tokens;
+    muiThemeStore themes;
     // What conditions read of the world outside the tree.
     muiEnvironment environment;
     // How many times the host edited a class, a node type or the

@@ -176,6 +176,8 @@ void muiTreeDetach(muiTree* tree, uint32_t node)
     entry->links.parent = 0;
     entry->links.next = 0;
     entry->links.previous = 0;
+    // What it reads from above, its themes, changes.
+    muiTreeMark(tree, node, mui_stageStyle);
     muiTreeMark(tree, parent, mui_stageLayout | mui_stagePaint);
 }
 

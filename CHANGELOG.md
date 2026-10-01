@@ -64,3 +64,6 @@ format.
 - Tokens (`maul-ui/token.h`): typed values and aliases that class
   variants name in place of values, for themes; new `tokens` and
   `tokenNames` limits.
+- Themes (`maul-ui/theme.h`): token overrides set on subtrees, nested up
+  to eight deep, and `muiNode_GetTokenValue`; new `themes` and
+  `themeOverrides` limits. A detached node is restyled.

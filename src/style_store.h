@@ -14,6 +14,7 @@
 #include "property.h"
 
 #include "maul-ui/style.h"
+#include "maul-ui/theme.h"
 
 #include <stdbool.h>
 
@@ -79,6 +80,10 @@ typedef struct muiNodeStyle
     // from, so it applies at once, as CSS starts no transition for an
     // element without a before-change style.
     bool styled;
+    // The theme set on the node, and the nearest node, itself or above,
+    // whose theme lived when the node was last styled; 0 for none.
+    muiThemeId theme;
+    uint32_t scope;
 } muiNodeStyle;
 
 // A property of a set that reads a token, in the set's list of names.

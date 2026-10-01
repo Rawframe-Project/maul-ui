@@ -15,6 +15,7 @@
 #include "pool.h"
 #include "property.h"
 #include "style_store.h"
+#include "theme_store.h"
 #include "token_store.h"
 #include "tree.h"
 
@@ -61,9 +62,10 @@ typedef struct Resolution
     muiTransitionId transitions[mui_propertyCount];
     // The properties a layer named a spec for.
     muiPropertyMask named;
+    // The themes the node reads tokens through.
+    muiThemeScope scope;
 } Resolution;
 
-// Applies a set's values and transitions to the properties free names.
 // Writes the values of the tokens a set names for free properties; a
 // token that gives no value, or one the property does not allow, leaves
 // the layer silent for the property.
@@ -78,7 +80,8 @@ static void ApplyTokens(const muiContext* context, const muiPropertySet* set, mu
         {
             continue;
         }
-        const muiTokenValue* value = muiResolveToken(&context->tokens, name->token);
+        const muiTokenValue* value =
+            muiResolveTokenIn(&context->tokens, &context->themes, &resolution->scope, name->token);
         if (value != nullptr)
         {
             (void)muiApplyTokenValue(muiRefOf(&resolution->values), name->property, value);
@@ -86,6 +89,8 @@ static void ApplyTokens(const muiContext* context, const muiPropertySet* set, mu
     }
 }
 
+// Applies a set's values, tokens and transitions to the properties free
+// names.
 static void ApplySet(const muiContext* context, const muiPropertySet* set, muiPropertyMask free,
                      Resolution* resolution)
 {
@@ -357,9 +362,56 @@ static void Commit(muiContext* context, uint32_t slot, const Resolution* resolut
 
 // Resolves the properties a node does not write directly; the direct
 // ones already hold their values, which are carried over.
+muiThemeScope muiScopeOf(const muiContext* context, uint32_t slot)
+{
+    muiThemeScope scope = {.count = 0};
+    const muiNodeStyle* nodes = context->style.nodes;
+    for (uint32_t at = nodes[slot - 1].scope; at != 0 && scope.count < MUI_MAX_THEME_DEPTH;)
+    {
+        muiThemeId theme = nodes[at - 1].theme;
+        uint32_t found = muiPoolResolve(&context->themes.pool, theme.index1, theme.generation);
+        if (found != 0)
+        {
+            scope.themes[scope.count++] = found;
+        }
+        uint32_t parent = muiTreeAt(&context->tree, at)->links.parent;
+        at = parent != 0 ? nodes[parent - 1].scope : 0;
+    }
+    return scope;
+}
+
+// Finds the nearest node, itself or above, whose theme lives; a change
+// reaches its children, which the style pass visits after it.
+static void UpdateScope(muiContext* context, uint32_t slot)
+{
+    muiNodeStyle* nodes = context->style.nodes;
+    muiThemeId theme = nodes[slot - 1].theme;
+    uint32_t parent = muiTreeAt(&context->tree, slot)->links.parent;
+    uint32_t scope = 0;
+    if (muiPoolResolve(&context->themes.pool, theme.index1, theme.generation) != 0)
+    {
+        scope = slot;
+    }
+    else if (parent != 0)
+    {
+        scope = nodes[parent - 1].scope;
+    }
+    if (scope == nodes[slot - 1].scope)
+    {
+        return;
+    }
+    nodes[slot - 1].scope = scope;
+    for (uint32_t child = muiTreeAt(&context->tree, slot)->links.firstChild; child != 0;
+         child = muiTreeAt(&context->tree, child)->links.next)
+    {
+        muiTreeMark(&context->tree, child, mui_stageStyle);
+    }
+}
+
 static void Resolve(muiContext* context, uint32_t slot, uint64_t nowNs)
 {
     NoteHostEdit(context, slot);
+    UpdateScope(context, slot);
     const muiStyleStore* store = &context->style;
     const muiNodeStyle* node = &store->nodes[slot - 1];
     muiPropertyMask free = store->reach & ~node->direct;
@@ -382,6 +434,7 @@ static void Resolve(muiContext* context, uint32_t slot, uint64_t nowNs)
         carried = MUI_ALL_PROPERTIES;
     }
     resolution.named = 0;
+    resolution.scope = muiScopeOf(context, slot);
     muiApplyProperties(muiRefOf(&resolution.values), muiConstRef(NodeValues(context, slot)),
                        node->direct & carried);
     Classes classes = ClassesOf(store, node);

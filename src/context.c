@@ -10,6 +10,7 @@
 
 #include "maul-ui/style.h"
 
+#include <stdint.h>
 #include <string.h>
 
 #define CONTEXT_DEF_COOKIE 0x6D756378u // "mucx"
@@ -29,7 +30,9 @@ muiContextDef muiDefaultContextDef(void)
                    .transitions = 64,
                    .animations = 256,
                    .tokens = 256,
-                   .tokenNames = 1024},
+                   .tokenNames = 1024,
+                   .themes = 16,
+                   .themeOverrides = 512},
     };
 }
 
@@ -39,7 +42,8 @@ static bool AreLimitsValid(const muiLimits* limits)
            limits->nodeTypes <= MAX_SLOTS && limits->propertySets <= MAX_SLOTS &&
            limits->notifications <= MAX_SLOTS && limits->transitions <= MAX_SLOTS &&
            limits->animations <= MAX_SLOTS && limits->tokens <= MAX_SLOTS &&
-           limits->tokenNames <= MAX_SLOTS;
+           limits->tokenNames <= MAX_SLOTS && limits->themes <= MAX_SLOTS &&
+           limits->themeOverrides <= MAX_SLOTS;
 }
 
 // Where each part of the context's block starts.
@@ -64,7 +68,24 @@ typedef struct Parts
     size_t tokens;
     size_t nameSlots;
     size_t names;
+    size_t themeSlots;
+    size_t themeTables;
+    size_t overrideSlots;
+    size_t overrides;
 } Parts;
+
+// A table per theme, an entry per token slot; a count past size_t marks
+// the layout as overflowing.
+static size_t ThemeTableEntries(muiLayout* layout, const muiLimits* limits)
+{
+    uint64_t entries = (uint64_t)limits->themes * limits->tokens;
+    if (entries > SIZE_MAX)
+    {
+        layout->overflow = true;
+        return 0;
+    }
+    return (size_t)entries;
+}
 
 static Parts LayOut(muiLayout* layout, const muiLimits* limits)
 {
@@ -109,6 +130,14 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
             muiLayoutAdd(layout, limits->tokenNames, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
         .names =
             muiLayoutAdd(layout, limits->tokenNames, sizeof(muiTokenName), alignof(muiTokenName)),
+        .themeSlots =
+            muiLayoutAdd(layout, limits->themes, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
+        .themeTables = muiLayoutAdd(layout, ThemeTableEntries(layout, limits), sizeof(uint32_t),
+                                    alignof(uint32_t)),
+        .overrideSlots =
+            muiLayoutAdd(layout, limits->themeOverrides, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
+        .overrides = muiLayoutAdd(layout, limits->themeOverrides, sizeof(muiThemeOverride),
+                                  alignof(muiThemeOverride)),
     };
 }
 
@@ -164,6 +193,13 @@ muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut)
     context->tokens.tokens = (muiToken*)(block + parts.tokens);
     muiPoolInit(&style->namePool, (muiPoolSlot*)(block + parts.nameSlots), def->limits.tokenNames);
     style->names = (muiTokenName*)(block + parts.names);
+    muiThemeStore* themes = &context->themes;
+    muiPoolInit(&themes->pool, (muiPoolSlot*)(block + parts.themeSlots), def->limits.themes);
+    themes->tables = (uint32_t*)(block + parts.themeTables);
+    themes->tokenCapacity = def->limits.tokens;
+    muiPoolInit(&themes->overridePool, (muiPoolSlot*)(block + parts.overrideSlots),
+                def->limits.themeOverrides);
+    themes->overrides = (muiThemeOverride*)(block + parts.overrides);
     *contextOut = context;
     return mui_success;
 }

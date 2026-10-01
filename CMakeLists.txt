@@ -65,6 +65,8 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/transition.c
     src/token.c
     src/token_store.c
+    src/theme.c
+    src/theme_store.c
     src/tree.c)
 maul_configure_library(maul-ui)
 # fmaxf, fminf and fabsf, the exactly rounded functions the solver takes
@@ -83,6 +85,7 @@ if(MAUL_UI_BUILD_TESTS)
     maul_add_test(motion WHITEBOX)
     maul_add_test(node)
     maul_add_test(style)
+    maul_add_test(theme)
     maul_add_test(token)
     maul_add_test(transition)
     maul_add_test(tree WHITEBOX)
