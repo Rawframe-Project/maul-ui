@@ -61,3 +61,6 @@ format.
   `MUI_LAYOUT_PROPERTIES`. The benchmark gains a painted list.
 - Colors, shadows and image slice insets move with transitions; colors
   in premultiplied Oklab.
+- Tokens (`maul-ui/token.h`): typed values and aliases that class
+  variants name in place of values, for themes; new `tokens` and
+  `tokenNames` limits.

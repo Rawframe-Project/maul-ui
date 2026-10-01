@@ -38,6 +38,10 @@ extern "C"
         // once.
         uint32_t transitions;
         uint32_t animations;
+        // Tokens that exist at once, and the tokens class variants name
+        // for their properties, each property of each variant one.
+        uint32_t tokens;
+        uint32_t tokenNames;
     } muiLimits;
 
     // How a context is made. Build it with muiDefaultContextDef.
@@ -50,7 +54,8 @@ extern "C"
 
     /// Returns the default context def: 4,096 nodes, 256 styles, 64 node
     /// types, 1,024 property sets, 64 notifications, 64 transitions, 256
-    /// running transitions and the C library's allocator.
+    /// running transitions, 256 tokens, 1,024 token names and the C
+    /// library's allocator.
     ///
     /// @return The def, with a valid cookie.
     /// @par Thread safety

@@ -70,7 +70,7 @@ muiResult muiDestroyStyle(muiContext* context, muiStyleId styleId)
         uint32_t set = store->classes[slot - 1].sets[v];
         if (set != 0)
         {
-            muiPoolGive(&store->setPool, set);
+            muiFreeSet(store, set);
         }
     }
     muiPoolGive(&store->classPool, slot);
@@ -110,6 +110,7 @@ static muiResult SetValues(muiContext* context, muiStyleId styleId, muiVariant v
         return mui_errorCapacity;
     }
     muiApplyProperties(muiRefOf(&target->values), values, mask);
+    muiDropTokenNames(store, target, mask);
     target->mask |= mask;
     store->reach |= mask;
     muiRestyleAll(context);
@@ -164,6 +165,7 @@ muiResult muiStyle_ResetProperties(muiContext* context, muiStyleId styleId, muiV
     if (class->sets[variant] != 0)
     {
         store->sets[class->sets[variant] - 1].mask &= ~mask;
+        muiDropTokenNames(store, &store->sets[class->sets[variant] - 1], mask);
         muiReleaseEmptySet(store, class, variant);
     }
     muiRestyleAll(context);
@@ -288,7 +290,8 @@ muiResult muiStyle_SetCondition(muiContext* context, muiStyleId styleId, muiVari
     }
     uint32_t set = class->sets[variant];
     // The values set already may not be what the new condition reads.
-    if (set != 0 && (store->sets[set - 1].mask & muiForbiddenProperties(condition)) != 0)
+    if (set != 0 && ((store->sets[set - 1].mask | store->sets[set - 1].tokenMask) &
+                     muiForbiddenProperties(condition)) != 0)
     {
         return muiRefuse(context);
     }
@@ -338,7 +341,7 @@ muiResult muiStyle_ClearConditions(muiContext* context, muiStyleId styleId)
         uint32_t* set = &class->sets[mui_variantCondition0 + i];
         if (*set != 0)
         {
-            muiPoolGive(&store->setPool, *set);
+            muiFreeSet(store, *set);
             *set = 0;
         }
     }

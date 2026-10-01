@@ -81,6 +81,14 @@ typedef struct muiNodeStyle
     bool styled;
 } muiNodeStyle;
 
+// A property of a set that reads a token, in the set's list of names.
+typedef struct muiTokenName
+{
+    muiTokenId token;
+    uint32_t next;
+    muiProperty property;
+} muiTokenName;
+
 typedef struct muiStyleStore
 {
     muiPool classPool;
@@ -89,6 +97,8 @@ typedef struct muiStyleStore
     muiClassList* types;
     muiPool setPool;
     muiPropertySet* sets;
+    muiPool namePool;
+    muiTokenName* names;
     // Per node, parallel to the node store's slots.
     muiNodeStyle* nodes;
     // Every property a class has given a value or a node has reset, never

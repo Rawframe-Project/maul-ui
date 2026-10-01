@@ -10,6 +10,7 @@
 #include "layout_node.h"
 #include "notify.h"
 #include "style_store.h"
+#include "token_store.h"
 #include "tree.h"
 
 #include "maul-ui/context.h"
@@ -26,6 +27,7 @@ struct muiContext
     // reads them, layout never.
     muiVisualStyle* visual;
     muiStyleStore style;
+    muiTokenStore tokens;
     // What conditions read of the world outside the tree.
     muiEnvironment environment;
     // How many times the host edited a class, a node type or the

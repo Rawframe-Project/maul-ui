@@ -344,8 +344,9 @@ extern "C"
                                                              const muiLayoutStyle* values,
                                                              muiPropertyMask mask);
 
-    /// Unsets properties in one variant of a class. Every node is styled
-    /// again at the next muiComputeLayout.
+    /// Unsets properties in one variant of a class: their values and the
+    /// tokens named for them. Every node is styled again at the next
+    /// muiComputeLayout.
     ///
     /// @param context  The context.
     /// @param styleId  The class.

@@ -133,6 +133,8 @@ static_assert(sizeof s_rows / sizeof s_rows[0] == mui_propertyCount, "one row pe
 static_assert(sizeof(muiGradient) <= UINT8_MAX, "sizes fit a row");
 static_assert(sizeof(bool) == 1, "a flag is one byte, as an enumerator");
 static_assert(sizeof(muiShadow) <= sizeof(muiPropertyValue), "a moving value fits");
+static_assert(sizeof(muiGradient) >= sizeof(muiShadow) && sizeof(muiGradient) >= sizeof(muiColor),
+              "the largest field a token feeds is a gradient");
 static_assert(sizeof(muiColor) == 4 * sizeof(float) && sizeof(muiShadow) == 8 * sizeof(float) &&
                   sizeof(muiEdges) == 4 * sizeof(float) &&
                   sizeof(muiGradientStop) == 5 * sizeof(float),
@@ -579,4 +581,82 @@ void muiWritePropertyValue(muiValuesRef values, muiProperty property, const muiP
     const Row* row = &s_rows[property];
     MUI_ASSERT(row->size <= sizeof value->bytes);
     memcpy(AtMutable(values, row), value->bytes, row->size);
+}
+
+muiTokenType muiPropertyTokenType(muiProperty property)
+{
+    switch (s_rows[property].kind)
+    {
+    case kindColor:
+        return mui_tokenColor;
+    case kindFinite:
+    case kindLength:
+    case kindFraction:
+        return mui_tokenNumber;
+    case kindDimension:
+    case kindRadius:
+        return mui_tokenDimension;
+    case kindShadow:
+        return mui_tokenShadow;
+    case kindGradient:
+        return mui_tokenGradient;
+    default:
+        return 0;
+    }
+}
+
+bool muiIsTokenValueValid(const muiTokenValue* value)
+{
+    switch (value->type)
+    {
+    case mui_tokenColor:
+        return IsColorValid(value->color);
+    case mui_tokenNumber:
+        return isfinite(value->number);
+    case mui_tokenDimension:
+        return IsDimensionValid(value->dimension);
+    case mui_tokenShadow:
+        return IsShadowValid(&value->shadow);
+    case mui_tokenGradient:
+        return IsGradientValid(&value->gradient);
+    default:
+        return false;
+    }
+}
+
+// The bytes of a token's member, which have the size of the property's
+// field for a property of the token's type.
+static const void* MemberOf(const muiTokenValue* value)
+{
+    switch (value->type)
+    {
+    case mui_tokenColor:
+        return &value->color;
+    case mui_tokenNumber:
+        return &value->number;
+    case mui_tokenDimension:
+        return &value->dimension;
+    case mui_tokenShadow:
+        return &value->shadow;
+    default:
+        return &value->gradient;
+    }
+}
+
+bool muiApplyTokenValue(muiValuesRef values, muiProperty property, const muiTokenValue* value)
+{
+    const Row* row = &s_rows[property];
+    MUI_ASSERT(muiPropertyTokenType(property) == value->type);
+    // Written, checked against the property's own rule, and put back when
+    // the property does not allow it.
+    unsigned char kept[sizeof(muiGradient)];
+    void* at = AtMutable(values, row);
+    memcpy(kept, at, row->size);
+    memcpy(at, MemberOf(value), row->size);
+    if (IsValid(muiConstRef(values), row))
+    {
+        return true;
+    }
+    memcpy(at, kept, row->size);
+    return false;
 }

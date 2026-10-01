@@ -15,6 +15,7 @@
 #include "pool.h"
 #include "property.h"
 #include "style_store.h"
+#include "token_store.h"
 #include "tree.h"
 
 #include "maul-ui/layout.h"
@@ -63,10 +64,37 @@ typedef struct Resolution
 } Resolution;
 
 // Applies a set's values and transitions to the properties free names.
-static void ApplySet(const muiPropertySet* set, muiPropertyMask free, Resolution* resolution)
+// Writes the values of the tokens a set names for free properties; a
+// token that gives no value, or one the property does not allow, leaves
+// the layer silent for the property.
+static void ApplyTokens(const muiContext* context, const muiPropertySet* set, muiPropertyMask free,
+                        Resolution* resolution)
+{
+    const muiStyleStore* store = &context->style;
+    for (uint32_t at = set->firstTokenName; at != 0; at = store->names[at - 1].next)
+    {
+        const muiTokenName* name = &store->names[at - 1];
+        if ((free & MUI_PROPERTY_BIT(name->property)) == 0)
+        {
+            continue;
+        }
+        const muiTokenValue* value = muiResolveToken(&context->tokens, name->token);
+        if (value != nullptr)
+        {
+            (void)muiApplyTokenValue(muiRefOf(&resolution->values), name->property, value);
+        }
+    }
+}
+
+static void ApplySet(const muiContext* context, const muiPropertySet* set, muiPropertyMask free,
+                     Resolution* resolution)
 {
     muiApplyProperties(muiRefOf(&resolution->values), muiConstRefOf(&set->values),
                        set->mask & free);
+    if ((set->tokenMask & free) != 0)
+    {
+        ApplyTokens(context, set, free, resolution);
+    }
     for (uint32_t i = 0; i < set->bindingCount; i++)
     {
         muiPropertyMask mask = set->bindings[i].mask & free;
@@ -84,7 +112,7 @@ static void ApplySet(const muiPropertySet* set, muiPropertyMask free, Resolution
 // The properties a set gives values or transitions to.
 static muiPropertyMask Reach(const muiPropertySet* set)
 {
-    muiPropertyMask reach = set->mask;
+    muiPropertyMask reach = set->mask | set->tokenMask;
     for (uint32_t i = 0; i < set->bindingCount; i++)
     {
         reach |= set->bindings[i].mask;
@@ -93,15 +121,16 @@ static muiPropertyMask Reach(const muiPropertySet* set)
 }
 
 // Applies one variant of every class, in class order.
-static void ApplyVariant(const muiStyleStore* store, const Classes* classes, muiVariant variant,
+static void ApplyVariant(const muiContext* context, const Classes* classes, muiVariant variant,
                          muiPropertyMask free, Resolution* resolution)
 {
+    const muiStyleStore* store = &context->style;
     for (uint32_t i = 0; i < classes->count; i++)
     {
         uint32_t set = store->classes[classes->slots[i] - 1].sets[variant];
         if (set != 0)
         {
-            ApplySet(&store->sets[set - 1], free, resolution);
+            ApplySet(context, &store->sets[set - 1], free, resolution);
         }
     }
 }
@@ -139,7 +168,7 @@ static muiConditionRun ApplyConditions(muiContext* context, uint32_t slot, const
             reads |= muiConditionReadsOf(&class->conditions[k]);
             if (muiConditionHolds(&class->conditions[k], &sample))
             {
-                ApplySet(&store->sets[set - 1], free, resolution);
+                ApplySet(context, &store->sets[set - 1], free, resolution);
                 run.outcome |= (uint64_t)1 << (position % 64);
             }
             position++;
@@ -356,13 +385,13 @@ static void Resolve(muiContext* context, uint32_t slot, uint64_t nowNs)
     muiApplyProperties(muiRefOf(&resolution.values), muiConstRef(NodeValues(context, slot)),
                        node->direct & carried);
     Classes classes = ClassesOf(store, node);
-    ApplyVariant(store, &classes, mui_variantBase, free, &resolution);
+    ApplyVariant(context, &classes, mui_variantBase, free, &resolution);
     for (uint32_t v = mui_variantChecked; v < mui_variantCondition0; v++)
     {
         // Variant v belongs to state bit v - 1.
         if ((node->states & (1u << (v - 1))) != 0)
         {
-            ApplyVariant(store, &classes, (muiVariant)v, free, &resolution);
+            ApplyVariant(context, &classes, (muiVariant)v, free, &resolution);
         }
     }
     muiConditionRun run = ApplyConditions(context, slot, &classes, free, &resolution);

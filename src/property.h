@@ -10,6 +10,7 @@
 
 #include "maul-ui/layout.h"
 #include "maul-ui/style.h"
+#include "maul-ui/token.h"
 #include "maul-ui/transition.h"
 #include "maul-ui/visual.h"
 
@@ -43,12 +44,16 @@ typedef struct muiTransitionBinding
     muiTransitionId transition;
 } muiTransitionBinding;
 
-// Values for the properties a mask names, the other fields unused, and
-// the transitions given to properties, no property in two bindings.
+// Values for the properties a mask names, the other fields unused; the
+// properties that read a token instead, whose names are a list from the
+// first name on, never the same property in both masks; and the
+// transitions given to properties, no property in two bindings.
 typedef struct muiPropertySet
 {
     muiPropertyMask mask;
     muiStyleValues values;
+    muiPropertyMask tokenMask;
+    uint32_t firstTokenName;
     muiTransitionBinding bindings[MUI_MAX_VARIANT_TRANSITIONS];
     uint32_t bindingCount;
 } muiPropertySet;
@@ -112,5 +117,15 @@ void muiSetPropertyChannels(muiValuesRef values, muiProperty property,
 void muiReadPropertyValue(muiConstValuesRef values, muiProperty property, muiPropertyValue* out);
 void muiWritePropertyValue(muiValuesRef values, muiProperty property,
                            const muiPropertyValue* value);
+
+// The type of token a property takes; 0 for none.
+muiTokenType muiPropertyTokenType(muiProperty property);
+
+// Whether a token's literal is valid for its type.
+bool muiIsTokenValueValid(const muiTokenValue* value);
+
+// Writes a token's value, of the property's type, to the property when
+// the property allows it; false, writing nothing, when it does not.
+bool muiApplyTokenValue(muiValuesRef values, muiProperty property, const muiTokenValue* value);
 
 #endif // MAUL_UI_SRC_PROPERTY_H

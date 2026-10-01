@@ -116,6 +116,18 @@ for a fixed order in which a later layer always wins.
   own power and cube root, so it gives the same bits everywhere. A
   record keeps its target as stored and writes it on arrival, so a
   value moved through other channels ends exactly on it.
+- **Themes are tokens** (`maul-ui/token.h`): typed context objects
+  (color, number, dimension, shadow, gradient) holding a literal or an
+  alias to a token of their type, as the W3C design tokens format and
+  Roblox's token sheets have them; an alias that would close a cycle is
+  refused when it is set. A class variant names a token for a property
+  in place of a value, in the same layer; the token's type must be the
+  property's. Resolution reads the token through its aliases; a value
+  the property does not allow there, or a token that is gone, leaves
+  that layer silent for the property, as CSS treats a variable invalid
+  at computed-value time. Changing a token restyles every node, so a
+  theme switch (semantic tokens re-pointed at other primitives) moves
+  through the transitions classes name.
 - **Resolution passes by what no class names.** The context keeps the
   properties any class has given a value or any node has reset; every
   other property can hold only its default or a direct write, so

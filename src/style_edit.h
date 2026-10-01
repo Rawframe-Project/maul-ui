@@ -28,8 +28,14 @@ bool muiHasVariant(const muiStyleClass* class, muiVariant variant);
 // NULL when the context has no set left.
 muiPropertySet* muiTakeVariantSet(muiStyleStore* store, muiStyleClass* class, muiVariant variant);
 
-// Gives a variant's set back when it neither sets a value nor names a
+// Gives a variant's set back when it sets no value and names no token or
 // transition.
 void muiReleaseEmptySet(muiStyleStore* store, muiStyleClass* class, muiVariant variant);
+
+// Gives a set back with its token names.
+void muiFreeSet(muiStyleStore* store, uint32_t set);
+
+// Takes the token names of the properties mask names out of a set.
+void muiDropTokenNames(muiStyleStore* store, muiPropertySet* set, muiPropertyMask mask);
 
 #endif // MAUL_UI_SRC_STYLE_EDIT_H

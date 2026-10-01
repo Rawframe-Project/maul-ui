@@ -27,7 +27,9 @@ muiContextDef muiDefaultContextDef(void)
                    .propertySets = 1024,
                    .notifications = 64,
                    .transitions = 64,
-                   .animations = 256},
+                   .animations = 256,
+                   .tokens = 256,
+                   .tokenNames = 1024},
     };
 }
 
@@ -36,7 +38,8 @@ static bool AreLimitsValid(const muiLimits* limits)
     return limits->nodes != 0 && limits->nodes <= MAX_SLOTS && limits->styles <= MAX_SLOTS &&
            limits->nodeTypes <= MAX_SLOTS && limits->propertySets <= MAX_SLOTS &&
            limits->notifications <= MAX_SLOTS && limits->transitions <= MAX_SLOTS &&
-           limits->animations <= MAX_SLOTS;
+           limits->animations <= MAX_SLOTS && limits->tokens <= MAX_SLOTS &&
+           limits->tokenNames <= MAX_SLOTS;
 }
 
 // Where each part of the context's block starts.
@@ -57,6 +60,10 @@ typedef struct Parts
     size_t specs;
     size_t recordSlots;
     size_t records;
+    size_t tokenSlots;
+    size_t tokens;
+    size_t nameSlots;
+    size_t names;
 } Parts;
 
 static Parts LayOut(muiLayout* layout, const muiLimits* limits)
@@ -95,6 +102,13 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
             muiLayoutAdd(layout, limits->animations, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
         .records =
             muiLayoutAdd(layout, limits->animations, sizeof(muiAnimation), alignof(muiAnimation)),
+        .tokenSlots =
+            muiLayoutAdd(layout, limits->tokens, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
+        .tokens = muiLayoutAdd(layout, limits->tokens, sizeof(muiToken), alignof(muiToken)),
+        .nameSlots =
+            muiLayoutAdd(layout, limits->tokenNames, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
+        .names =
+            muiLayoutAdd(layout, limits->tokenNames, sizeof(muiTokenName), alignof(muiTokenName)),
     };
 }
 
@@ -145,6 +159,11 @@ muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut)
     muiPoolInit(&animations->pool, (muiPoolSlot*)(block + parts.recordSlots),
                 def->limits.animations);
     animations->records = (muiAnimation*)(block + parts.records);
+    muiPoolInit(&context->tokens.pool, (muiPoolSlot*)(block + parts.tokenSlots),
+                def->limits.tokens);
+    context->tokens.tokens = (muiToken*)(block + parts.tokens);
+    muiPoolInit(&style->namePool, (muiPoolSlot*)(block + parts.nameSlots), def->limits.tokenNames);
+    style->names = (muiTokenName*)(block + parts.names);
     *contextOut = context;
     return mui_success;
 }
