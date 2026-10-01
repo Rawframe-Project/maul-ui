@@ -76,4 +76,8 @@ archives, fetched at configure time or given as local copies with
 `FETCHCONTENT_SOURCE_DIR_MAUL_UI_HARFBUZZ` and
 `FETCHCONTENT_SOURCE_DIR_MAUL-UNICODE`. Their objects are built into
 the library, so an installed library links with nothing more than the
-C library, libm and, where the C library lacks them, threads.
+C library, libm and, where the C library lacks them, threads. HarfBuzz
+needs no C++ runtime, but CMake sees its objects and links programs
+that link a static library as C++ unless they set `LINKER_LANGUAGE C`,
+as this build does for its own; in Visual Studio projects that also
+keeps a C program's C standard.

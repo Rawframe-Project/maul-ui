@@ -13,6 +13,11 @@ target_sources(maul-ui PRIVATE
 target_include_directories(maul-ui SYSTEM PRIVATE
     $<TARGET_PROPERTY:maul-unicode,INTERFACE_INCLUDE_DIRECTORIES>)
 
+# HarfBuzz's objects would make the library, and programs linking it,
+# link as C++; Visual Studio projects then apply only C++ settings and
+# drop C23. It links as C, needing no C++ runtime.
+set_target_properties(maul-ui PROPERTIES LINKER_LANGUAGE C)
+
 if(MAUL_UI_TEXT_SYSTEM_LIBRARIES)
     target_link_libraries(maul-ui PRIVATE Freetype::Freetype harfbuzz::harfbuzz)
 else()
@@ -42,6 +47,23 @@ if(MAUL_UI_BUILD_SHARED AND NOT WIN32)
         target_link_options(maul-ui PRIVATE "LINKER:--version-script=${PROJECT_BINARY_DIR}/maul-ui.map")
     endif()
 endif()
+
+# mui_link_programs_as_c() links the executables of this directory and
+# its subdirectories as C: the library they link holds HarfBuzz's C++
+# objects, which would make them link as C++ and, in Visual Studio
+# projects, lose their C standard.
+function(mui_link_programs_as_c)
+    get_property(directories DIRECTORY PROPERTY SUBDIRECTORIES)
+    foreach(directory ${CMAKE_CURRENT_SOURCE_DIR} ${directories})
+        get_property(targets DIRECTORY ${directory} PROPERTY BUILDSYSTEM_TARGETS)
+        foreach(target ${targets})
+            get_target_property(type ${target} TYPE)
+            if(type STREQUAL "EXECUTABLE")
+                set_target_properties(${target} PROPERTIES LINKER_LANGUAGE C)
+            endif()
+        endforeach()
+    endforeach()
+endfunction()
 
 # mui_embed_file(<file> <output> <name>) writes a file's bytes as a C
 # array named name, for tests that read fonts on every platform, the web

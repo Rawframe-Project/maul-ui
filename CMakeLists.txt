@@ -124,6 +124,10 @@ if(MAUL_UI_BUILD_BENCH AND EXISTS ${PROJECT_SOURCE_DIR}/bench/bench_main.c)
     add_subdirectory(bench)
 endif()
 
+if(MAUL_UI_TEXT)
+    mui_link_programs_as_c()
+endif()
+
 if(MAUL_UI_INSTALL)
     include(cmake/Install.cmake)
 endif()
