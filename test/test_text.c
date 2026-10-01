@@ -300,6 +300,113 @@ static void TestDamagedFonts(void)
     CHECK(counter.liveBytes == 0, "every block returned");
 }
 
+// The offset of a table of a single font, 0 when it has none.
+static size_t TableOffset(const unsigned char* font, const char tag[4])
+{
+    uint32_t tables = (uint32_t)font[4] << 8 | font[5];
+    for (uint32_t i = 0; i < tables; i++)
+    {
+        const unsigned char* record = font + 12 + 16 * i;
+        if (memcmp(record, tag, 4) == 0)
+        {
+            return (size_t)record[8] << 24 | (size_t)record[9] << 16 | (size_t)record[10] << 8 |
+                   record[11];
+        }
+    }
+    return 0;
+}
+
+static void Put16(unsigned char* at, int value)
+{
+    at[0] = (unsigned char)((unsigned)value >> 8);
+    at[1] = (unsigned char)value;
+}
+
+// Renames a table, so a font reads as without it.
+static void HideTable(unsigned char* font, const char tag[4])
+{
+    uint32_t tables = (uint32_t)font[4] << 8 | font[5];
+    for (uint32_t i = 0; i < tables; i++)
+    {
+        unsigned char* record = font + 12 + 16 * i;
+        if (memcmp(record, tag, 4) == 0)
+        {
+            record[0] = 'z';
+        }
+    }
+}
+
+static muiFontMetrics MetricsOf(muiTextService* service, const unsigned char* font)
+{
+    muiFontDef def = AhemDef(mui_fontDataCopy);
+    def.data = font;
+    muiFontId id = {0};
+    muiFontMetrics metrics = {0};
+    CHECK(muiCreateFont(service, &def, &id) == mui_success &&
+              muiFont_GetMetrics(service, id, &metrics) == mui_success &&
+              muiDestroyFont(service, id) == mui_success,
+          "a patched Ahem");
+    return metrics;
+}
+
+// Which ascent, descent and gap a font's tables give, on copies of Ahem
+// with its OS/2 and hhea values changed.
+static void TestMetricsChoice(void)
+{
+    muiTextService* service = MakeService(NULL, 1);
+    unsigned char* font = malloc(sizeof s_ahem);
+    CHECK(font != NULL, "copy");
+    if (font == NULL)
+    {
+        return;
+    }
+    size_t os2 = TableOffset(s_ahem, "OS/2");
+    size_t hhea = TableOffset(s_ahem, "hhea");
+    CHECK(os2 != 0 && hhea != 0, "tables found");
+    // Typographic metrics of their own, and windows ones.
+    memcpy(font, s_ahem, sizeof s_ahem);
+    Put16(font + os2 + 68, 900);
+    Put16(font + os2 + 70, -300);
+    Put16(font + os2 + 72, 100);
+    Put16(font + os2 + 74, 1100);
+    Put16(font + os2 + 76, 400);
+    muiFontMetrics metrics = MetricsOf(service, font);
+    CHECK(metrics.ascent == 0.8f && metrics.descent == 0.2f && metrics.lineGap == 0.0f,
+          "hhea without USE_TYPO_METRICS");
+    font[os2 + 63] |= 0x80u;
+    metrics = MetricsOf(service, font);
+    CHECK(metrics.ascent == 0.9f && metrics.descent == 0.3f && metrics.lineGap == 0.1f,
+          "typographic with USE_TYPO_METRICS");
+    font[os2 + 63] &= 0x7Fu;
+    Put16(font + hhea + 4, 0);
+    Put16(font + hhea + 6, 0);
+    metrics = MetricsOf(service, font);
+    CHECK(metrics.ascent == 0.9f && metrics.descent == 0.3f && metrics.lineGap == 0.1f,
+          "typographic when hhea has none");
+    Put16(font + os2 + 68, 0);
+    Put16(font + os2 + 70, 0);
+    metrics = MetricsOf(service, font);
+    CHECK(metrics.ascent == 1.1f && metrics.descent == 0.4f && metrics.lineGap == 0.0f,
+          "windows when neither has any");
+    // An OS/2 table before version 2 has no cap or x height.
+    memcpy(font, s_ahem, sizeof s_ahem);
+    Put16(font + os2, 1);
+    metrics = MetricsOf(service, font);
+    CHECK(metrics.capHeight == 0.0f && metrics.xHeight == 0.0f && metrics.strikeoutOffset == 0.259f,
+          "version 1");
+    // Without OS/2 or post, what they give is 0.
+    memcpy(font, s_ahem, sizeof s_ahem);
+    HideTable(font, "OS/2");
+    HideTable(font, "post");
+    metrics = MetricsOf(service, font);
+    CHECK(metrics.ascent == 0.8f && metrics.capHeight == 0.0f && metrics.strikeoutOffset == 0.0f &&
+              metrics.strikeoutThickness == 0.0f && metrics.underlineOffset == 0.0f &&
+              metrics.underlineThickness == 0.0f,
+          "without OS/2 and post");
+    free(font);
+    muiDestroyTextService(service);
+}
+
 int main(void)
 {
     TestServiceDefs();
@@ -308,5 +415,6 @@ int main(void)
     TestFontArguments();
     TestAllocationFailures();
     TestDamagedFonts();
+    TestMetricsChoice();
     return s_failures == 0 ? 0 : 1;
 }
