@@ -309,7 +309,7 @@ extern "C"
     /// @param environment  One viewport class bit, one input modality bit
     ///                     and a finite text scale above 0.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
-    ///         value outside the above or a call from a measure function.
+    ///         value outside the above or a call from a measure or paint function.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiSetContextEnvironment(muiContext* context,
@@ -328,7 +328,7 @@ extern "C"
     /// @param context     The context.
     /// @param styleIdOut  Receives the class; set to the null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a
-    ///         call from a measure function; `mui_errorCapacity` when the
+    ///         call from a measure or paint function; `mui_errorCapacity` when the
     ///         context's style limit is reached.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -340,7 +340,7 @@ extern "C"
     /// @param context  The context.
     /// @param styleId  The class.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id or a call from a measure function; `mui_errorStale`
+    ///         null id or a call from a measure or paint function; `mui_errorStale`
     ///         for an id whose class is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -359,7 +359,7 @@ extern "C"
     ///         null id, an unknown variant or property bit, a value outside
     ///         the above, a property the variant's condition reads (its
     ///         axis's sizes and limits, the aspect ratio, the text
-    ///         direction) or a call from a measure function, which changes
+    ///         direction) or a call from a measure or paint function, which changes
     ///         nothing; `mui_errorStale` for an id whose class is gone;
     ///         `mui_errorCapacity` when the variant had no values and the
     ///         context's limit of property sets is reached.
@@ -381,7 +381,7 @@ extern "C"
     /// @param mask     The properties, within the group's.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
     ///         null id, an unknown variant, group or property bit or a call
-    ///         from a measure function; `mui_errorStale` for an id whose
+    ///         from a measure or paint function; `mui_errorStale` for an id whose
     ///         class is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -420,7 +420,7 @@ extern "C"
     ///                    mui_variantBase on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id, a condition outside the above or a call from a
-    ///         measure function; `mui_errorStale` for an id whose class is
+    ///         measure or paint function; `mui_errorStale` for an id whose class is
     ///         gone; `mui_errorCapacity` when the class has
     ///         MUI_MAX_CONDITIONS.
     /// @par Thread safety
@@ -440,7 +440,7 @@ extern "C"
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id, a variant that is not one of the class's
     ///         conditions, a condition outside the above or a call from a
-    ///         measure function; `mui_errorStale` for an id whose class is
+    ///         measure or paint function; `mui_errorStale` for an id whose class is
     ///         gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -469,7 +469,7 @@ extern "C"
     /// @param context  The context.
     /// @param styleId  The class.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id or a call from a measure function; `mui_errorStale`
+    ///         null id or a call from a measure or paint function; `mui_errorStale`
     ///         for an id whose class is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -484,7 +484,7 @@ extern "C"
     /// @param count      At most MUI_MAX_CLASSES.
     /// @param typeIdOut  Receives the type; set to the null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a count
-    ///         over the limit or a call from a measure function;
+    ///         over the limit or a call from a measure or paint function;
     ///         `mui_errorCapacity` when the context's node type limit is
     ///         reached.
     /// @par Thread safety
@@ -499,7 +499,7 @@ extern "C"
     /// @param context  The context.
     /// @param typeId   The type.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id or a call from a measure function; `mui_errorStale`
+    ///         null id or a call from a measure or paint function; `mui_errorStale`
     ///         for an id whose type is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -514,7 +514,7 @@ extern "C"
     /// @param count    At most MUI_MAX_CLASSES.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
     ///         null id, NULL classes with a count, a count over the limit or
-    ///         a call from a measure function; `mui_errorStale` for an id
+    ///         a call from a measure or paint function; `mui_errorStale` for an id
     ///         whose type is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -530,7 +530,7 @@ extern "C"
     /// @param nodeId   The node.
     /// @param typeId   The type; the null id for none.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null node id or a call from a measure function;
+    ///         null node id or a call from a measure or paint function;
     ///         `mui_errorStale` for a node or a type that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -547,7 +547,7 @@ extern "C"
     /// @param count    At most MUI_MAX_CLASSES.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
     ///         null id, NULL classes with a count, a count over the limit or
-    ///         a call from a measure function; `mui_errorStale` for a node
+    ///         a call from a measure or paint function; `mui_errorStale` for a node
     ///         that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -561,7 +561,7 @@ extern "C"
     /// @param nodeId   The node.
     /// @param states   muiState bits.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id, unknown bits or a call from a measure function;
+    ///         null id, unknown bits or a call from a measure or paint function;
     ///         `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -589,7 +589,7 @@ extern "C"
     /// @param mask     The properties, within MUI_LAYOUT_PROPERTIES.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id, an unknown property bit, a value outside the above
-    ///         or a call from a measure function, which changes nothing;
+    ///         or a call from a measure or paint function, which changes nothing;
     ///         `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -606,7 +606,7 @@ extern "C"
     /// @param mask     The properties, within the group's.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
     ///         null id, an unknown group or property bit or a call from a
-    ///         measure function; `mui_errorStale` for a node that is gone.
+    ///         measure or paint function; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_ResetProperties(muiContext* context, muiNodeId nodeId,

@@ -45,7 +45,7 @@ muiResult muiCreateNode(muiContext* context, const muiNodeDef* def, muiNodeId* n
         return mui_errorInvalid;
     }
     if (def == nullptr || nodeIdOut == nullptr || def->cookie != NODE_DEF_COOKIE ||
-        muiIsMeasuring(context))
+        muiIsInHostCall(context))
     {
         return muiRefuse(context);
     }

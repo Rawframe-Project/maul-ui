@@ -28,7 +28,7 @@ muiResult muiCreateTheme(muiContext* context, muiThemeId* themeIdOut)
     {
         return mui_errorInvalid;
     }
-    if (themeIdOut == nullptr || muiIsMeasuring(context))
+    if (themeIdOut == nullptr || muiIsInHostCall(context))
     {
         return muiRefuse(context);
     }
@@ -46,7 +46,7 @@ muiResult muiCreateTheme(muiContext* context, muiThemeId* themeIdOut)
 // The slot of a live theme for an edit, or 0 with the status.
 static uint32_t ResolveEdit(muiContext* context, muiThemeId themeId, muiResult* statusOut)
 {
-    if (themeId.index1 == 0 || muiIsMeasuring(context))
+    if (themeId.index1 == 0 || muiIsInHostCall(context))
     {
         *statusOut = muiRefuse(context);
         return 0;

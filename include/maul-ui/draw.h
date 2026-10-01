@@ -15,6 +15,7 @@
 #include "maul-ui/context.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
+#include "maul-ui/visual.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -60,6 +61,8 @@ extern "C"
         mui_drawShadow = 2,
         // An image the host names, stretched or in nine slices.
         mui_drawImage = 3,
+        // Glyphs of one font, size and color, laid out by the host.
+        mui_drawGlyphRun = 4,
     };
 
     // The color space a gradient's colors move through between stops.
@@ -133,6 +136,31 @@ extern "C"
         muiLinearColor tint;
     } muiDrawImage;
 
+    // A run of glyphs of the glyph table: firstGlyph and glyphCount name
+    // its span. font is the key the host's text gives out, size its em in
+    // logical units, and each glyph is placed relative to the origin, a
+    // point on the baseline.
+    typedef struct muiDrawGlyphRun
+    {
+        uint64_t font;
+        float originX;
+        float originY;
+        float size;
+        uint32_t firstGlyph;
+        uint32_t glyphCount;
+        uint32_t reserved;
+        muiLinearColor color;
+    } muiDrawGlyphRun;
+
+    // A glyph of a run: its id in the run's font, and its position from the
+    // run's origin, in logical units, y down.
+    typedef struct muiGlyph
+    {
+        uint32_t id;
+        float x;
+        float y;
+    } muiGlyph;
+
     // A command: what it draws, the clip it is drawn in (an index of the
     // clip table, 0 for none) and the transform its coordinates go through
     // (an index of the transform table).
@@ -147,6 +175,7 @@ extern "C"
             muiDrawBox box;
             muiDrawShadow shadow;
             muiDrawImage image;
+            muiDrawGlyphRun glyphRun;
         };
     } muiDrawCommand;
 
@@ -190,7 +219,8 @@ extern "C"
 
     // A list, valid until the context's next build. Index 0 of the clip
     // and gradient tables is a placeholder for none; entry 0 of the
-    // transform table is the identity.
+    // transform table is the identity. Glyph runs take spans of the glyph
+    // table.
     typedef struct muiDrawList
     {
         muiDrawHeader header;
@@ -202,7 +232,33 @@ extern "C"
         uint32_t transformCount;
         uint32_t gradientCount;
         const muiDrawGradient* gradients;
+        const muiGlyph* glyphs;
+        uint32_t glyphCount;
+        uint32_t reserved;
     } muiDrawList;
+
+    // Where a paint function adds what it draws, valid during the call.
+    typedef struct muiDrawSink muiDrawSink;
+
+    // A run of glyphs a paint function adds: the font key, its size in
+    // logical units, above 0, its color, sRGB-encoded with straight alpha
+    // as the text style gives it, and its origin, a point on the baseline
+    // relative to the content box's top left.
+    typedef struct muiGlyphRun
+    {
+        uint64_t font;
+        float size;
+        muiColor color;
+        float originX;
+        float originY;
+    } muiGlyphRun;
+
+    // Paints a node's host content into sink: called during
+    // muiBuildDrawList for each node whose content is the host's, with its
+    // host key and its content box's size. The context refuses edits made
+    // from it; reads, such as muiNode_GetTextStyle, are allowed.
+    typedef void (*muiPaintFunction)(void* user, muiNodeId nodeId, uint64_t hostKey, float width,
+                                     float height, muiDrawSink* sink);
 
     // What a build draws for.
     typedef struct muiDrawInput
@@ -210,7 +266,33 @@ extern "C"
         uint64_t surface;
         // Device pixels per logical unit, above 0: what snapping rounds to.
         float scale;
+        // Paints host content; NULL paints none.
+        muiPaintFunction paint;
+        void* paintUser;
     } muiDrawInput;
+
+    /// Adds a run of glyphs to the node being painted, after what it added
+    /// before, in the clip its children are drawn in. Its color is
+    /// converted to linear light and multiplied by the node's opacity; at
+    /// the identity transform its baseline snaps to a device pixel.
+    ///
+    /// @param sink        The sink the paint function was given.
+    /// @param run         The run.
+    /// @param glyphs      Its glyphs, at finite positions.
+    /// @param glyphCount  How many, above 0.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, no
+    ///         glyphs, a size that is not a finite number above 0, a color
+    ///         outside 0 to 1, or an origin or a position that is not
+    ///         finite; `mui_errorCapacity` when the list needs more
+    ///         commands or glyphs than the context's limits, which fails
+    ///         the build.
+    /// @par Thread safety
+    /// Safe from any thread; the sink is used by one thread at a time, and
+    /// only during the call of the paint function given it.
+    MUI_NODISCARD MUI_API muiResult muiDrawSink_AddGlyphRun(muiDrawSink* sink,
+                                                            const muiGlyphRun* run,
+                                                            const muiGlyph* glyphs,
+                                                            uint32_t glyphCount);
 
     /// Paints a root's subtree, as its last muiComputeLayout left it, into
     /// the context's list, and clears the subtree's paint requests. When
@@ -219,20 +301,21 @@ extern "C"
     /// and all; otherwise subtrees nothing asked to repaint, at the origin
     /// and opacity they were painted at, copy their commands from the last
     /// list, which gives the bytes a build from nothing would. Per node, in paint order: its
-    /// outer shadow, its box, its inner shadow and its image, then its children, depth first; a
-    /// node that clips draws its children inside its rounded border box. Opacity multiplies down
+    /// outer shadow, its box, its inner shadow, its image and what the paint function adds for
+    /// host content, then its children, depth first; a node that clips draws its host content
+    /// and its children inside its rounded border box. Opacity multiplies down
     /// the subtree into every command's colors. At the identity transform, box and image edges and
     /// clips snap to device pixels, and border widths to whole device pixels, at least one.
     ///
     /// @param context  The context.
     /// @param rootId   The root.
-    /// @param input    The surface and scale.
+    /// @param input    The surface, the scale and the paint function.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id, a scale that is not a finite number above 0, or a
-    ///         call from a measure function; `mui_errorStale` for a root that
+    ///         call from a measure or paint function; `mui_errorStale` for a root that
     ///         is gone; `mui_errorCapacity` when the list needs more commands,
-    ///         clips or gradients than the context's limits, which leaves the
-    ///         list empty.
+    ///         clips, gradients or glyphs than the context's limits, which
+    ///         leaves the list empty.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId,

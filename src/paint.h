@@ -29,7 +29,8 @@ typedef struct muiCachedColor
     double rgb[3];
 } muiCachedColor;
 
-// What one build writes to, and whether something did not fit.
+// What one build writes to, the host's paint function, whether something
+// did not fit, and how many of the host's calls were refused.
 typedef struct muiPainter
 {
     const muiContext* context;
@@ -37,10 +38,24 @@ typedef struct muiPainter
     uint32_t commandCapacity;
     uint32_t clipCapacity;
     uint32_t gradientCapacity;
+    uint32_t glyphCapacity;
     float scale;
     bool full;
+    muiPaintFunction paint;
+    void* paintUser;
+    uint64_t misuse;
     muiCachedColor colors[MUI_PAINT_COLOR_CACHE];
 } muiPainter;
+
+// A color in linear light, premultiplied, times opacity.
+muiLinearColor muiPaintColor(muiPainter* painter, muiColor color, float opacity);
+
+// An edge at the nearest device pixel.
+float muiSnapEdge(float value, float scale);
+
+// A zeroed command of the kind in the clip, or NULL, marking the painter
+// full, when the list has no room.
+muiDrawCommand* muiTakeCommand(muiPainter* painter, muiDrawKind kind, uint32_t clip);
 
 // Paints a node's own commands at the origin, clip and inherited opacity
 // in state, and leaves in state the clip and opacity its children are

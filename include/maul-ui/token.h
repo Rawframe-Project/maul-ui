@@ -68,7 +68,7 @@ extern "C"
     ///                    muiStyle_SetVisualValues takes them).
     /// @param tokenIdOut  Receives the token; set to the null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
-    ///         value outside the above or a call from a measure function;
+    ///         value outside the above or a call from a measure or paint function;
     ///         `mui_errorCapacity` when the context's token limit is
     ///         reached.
     /// @par Thread safety
@@ -82,7 +82,7 @@ extern "C"
     /// @param context  The context.
     /// @param tokenId  The token.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id or a call from a measure function; `mui_errorStale`
+    ///         null id or a call from a measure or paint function; `mui_errorStale`
     ///         for an id whose token is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -97,7 +97,7 @@ extern "C"
     ///                 takes it.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id, a value of another type or outside muiCreateToken's
-    ///         or a call from a measure function; `mui_errorStale` for an
+    ///         or a call from a measure or paint function; `mui_errorStale` for an
     ///         id whose token is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -112,7 +112,7 @@ extern "C"
     /// @param target   The token it gives the value of.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, a null
     ///         id, a target of another type, an alias that would lead back
-    ///         to the token or a call from a measure function;
+    ///         to the token or a call from a measure or paint function;
     ///         `mui_errorStale` for a token or a target that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.

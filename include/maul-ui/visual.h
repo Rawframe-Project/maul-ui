@@ -150,7 +150,7 @@ extern "C"
     /// @param mask     The properties, within MUI_VISUAL_PROPERTIES.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id, an unknown variant or property bit, a value outside
-    ///         the above or a call from a measure function, which changes
+    ///         the above or a call from a measure or paint function, which changes
     ///         nothing; `mui_errorStale` for an id whose class is gone;
     ///         `mui_errorCapacity` when the variant had no values and the
     ///         context's limit of property sets is reached.
@@ -189,7 +189,7 @@ extern "C"
     /// @param mask     The properties, within MUI_VISUAL_PROPERTIES.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id, an unknown property bit, a value outside the above
-    ///         or a call from a measure function, which changes nothing;
+    ///         or a call from a measure or paint function, which changes nothing;
     ///         `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.

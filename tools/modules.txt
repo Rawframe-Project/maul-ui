@@ -20,7 +20,8 @@ transition: animation context easing pool property style_edit style_store
 token: condition context pool property style_edit style_store token_store
 theme: context pool property restyle style_edit style_store theme_store token_store tree
 paint: color context draw_store layout_node
-draw: context draw_store paint tree
+paint_host: context draw_store layout_node paint tree
+draw: context draw_store paint paint_host tree
 notify:
 style_store: pool property
 sizing:

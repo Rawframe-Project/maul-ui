@@ -107,7 +107,7 @@ static bool IsMarked(muiContext* context, muiNodeId node, muiStages stage)
 // Drawing clears paint marks.
 static void ClearPaint(muiContext* context, muiNodeId root)
 {
-    const muiDrawInput input = {1, 1.0f};
+    const muiDrawInput input = {1, 1.0f, NULL, NULL};
     CHECK(muiBuildDrawList(context, root, &input) == mui_success, "drawn");
 }
 

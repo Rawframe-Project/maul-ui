@@ -37,7 +37,7 @@ muiResult muiCreateStyle(muiContext* context, muiStyleId* styleIdOut)
     {
         return mui_errorInvalid;
     }
-    if (styleIdOut == nullptr || muiIsMeasuring(context))
+    if (styleIdOut == nullptr || muiIsInHostCall(context))
     {
         return muiRefuse(context);
     }
@@ -388,7 +388,7 @@ muiResult muiSetContextEnvironment(muiContext* context, const muiEnvironment* en
     {
         return mui_errorInvalid;
     }
-    if (environment == nullptr || !muiIsEnvironmentValid(environment) || muiIsMeasuring(context))
+    if (environment == nullptr || !muiIsEnvironmentValid(environment) || muiIsInHostCall(context))
     {
         return muiRefuse(context);
     }
@@ -419,7 +419,7 @@ muiResult muiCreateNodeType(muiContext* context, const muiStyleId* classes, uint
     {
         return mui_errorInvalid;
     }
-    if (typeIdOut == nullptr || !muiIsClassListValid(classes, count) || muiIsMeasuring(context))
+    if (typeIdOut == nullptr || !muiIsClassListValid(classes, count) || muiIsInHostCall(context))
     {
         return muiRefuse(context);
     }
@@ -439,7 +439,7 @@ muiResult muiCreateNodeType(muiContext* context, const muiStyleId* classes, uint
 // statusOut.
 static uint32_t ResolveTypeEdit(muiContext* context, muiNodeTypeId typeId, muiResult* statusOut)
 {
-    if (typeId.index1 == 0 || muiIsMeasuring(context))
+    if (typeId.index1 == 0 || muiIsInHostCall(context))
     {
         *statusOut = muiRefuse(context);
         return 0;

@@ -41,7 +41,7 @@ muiResult muiCreateToken(muiContext* context, const muiTokenValue* value, muiTok
         return mui_errorInvalid;
     }
     if (value == nullptr || tokenIdOut == nullptr || !muiIsTokenValueValid(value) ||
-        muiIsMeasuring(context))
+        muiIsInHostCall(context))
     {
         return muiRefuse(context);
     }
@@ -60,7 +60,7 @@ muiResult muiCreateToken(muiContext* context, const muiTokenValue* value, muiTok
 // The slot of a live token for an edit, or 0 with the status.
 static uint32_t ResolveEdit(muiContext* context, muiTokenId tokenId, muiResult* statusOut)
 {
-    if (tokenId.index1 == 0 || muiIsMeasuring(context))
+    if (tokenId.index1 == 0 || muiIsInHostCall(context))
     {
         *statusOut = muiRefuse(context);
         return 0;

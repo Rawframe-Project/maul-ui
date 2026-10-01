@@ -100,7 +100,7 @@ static bool IsPaintMarked(muiContext* context, muiNodeId node)
 // Drawing clears paint marks, and records the rectangles painted.
 static void ClearPaint(muiContext* context, muiNodeId root)
 {
-    const muiDrawInput input = {1, 1.0f};
+    const muiDrawInput input = {1, 1.0f, NULL, NULL};
     CHECK(muiBuildDrawList(context, root, &input) == mui_success, "drawn");
 }
 
@@ -722,7 +722,7 @@ static void TestDrawingClearsPaint(void)
     values.background = s_red;
     CHECK(muiNode_SetVisualValues(context, node, &values, BACKGROUND) == mui_success, "red");
     CHECK(IsPaintMarked(context, node), "paint marked");
-    const muiDrawInput input = {1, 1.0f};
+    const muiDrawInput input = {1, 1.0f, NULL, NULL};
     CHECK(muiBuildDrawList(context, node, &input) == mui_success, "drawn");
     CHECK(!IsPaintMarked(context, node), "and cleared");
     muiDestroyContext(context);

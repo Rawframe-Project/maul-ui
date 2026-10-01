@@ -16,13 +16,14 @@
 
 // Records with no padding, so that their bytes are their fields'.
 static_assert(sizeof(muiDrawBox) == 136 && sizeof(muiDrawShadow) == 68 &&
-                  sizeof(muiDrawImage) == 72 && sizeof(muiDrawCommand) == 152 &&
+                  sizeof(muiDrawImage) == 72 && sizeof(muiDrawGlyphRun) == 48 &&
+                  sizeof(muiGlyph) == 12 && sizeof(muiDrawCommand) == 152 &&
                   sizeof(muiDrawClip) == 44 && sizeof(muiDrawGradient) == 96,
               "draw records have no padding");
 
 // A color in linear light times opacity, converted from the cache when a
 // node before converted the same bits.
-static muiLinearColor Linear(muiPainter* painter, muiColor color, float opacity)
+muiLinearColor muiPaintColor(muiPainter* painter, muiColor color, float opacity)
 {
     uint32_t words[4];
     memcpy(words, &color, sizeof color);
@@ -42,7 +43,7 @@ static muiLinearColor Linear(muiPainter* painter, muiColor color, float opacity)
 
 // An edge at the nearest device pixel, halves away from the origin's
 // left.
-static float SnapEdge(float value, float scale)
+float muiSnapEdge(float value, float scale)
 {
     return floorf(value * scale + 0.5f) / scale;
 }
@@ -51,8 +52,8 @@ static float SnapEdge(float value, float scale)
 // device pixel.
 static void SnapSpan(float* start, float* length, float scale)
 {
-    float first = SnapEdge(*start, scale);
-    float last = SnapEdge(*start + *length, scale);
+    float first = muiSnapEdge(*start, scale);
+    float last = muiSnapEdge(*start + *length, scale);
     if (*length > 0.0f && last <= first)
     {
         last = first + 1.0f / scale;
@@ -98,7 +99,7 @@ static muiCorners Radii(const muiCornerRadii* radii, muiRect rect, bool rtl)
                : (muiCorners){topStart, topEnd, bottomEnd, bottomStart};
 }
 
-static muiDrawCommand* TakeCommand(muiPainter* painter, muiDrawKind kind, uint32_t clip)
+muiDrawCommand* muiTakeCommand(muiPainter* painter, muiDrawKind kind, uint32_t clip)
 {
     muiDrawTables* out = painter->out;
     if (out->commandCount == painter->commandCapacity)
@@ -130,7 +131,7 @@ static uint32_t AddGradient(muiPainter* painter, const muiGradient* gradient, fl
     entry->angle = gradient->angle;
     for (uint32_t i = 0; i < gradient->stopCount; i++)
     {
-        entry->colors[i] = Linear(painter, gradient->stops[i].color, opacity);
+        entry->colors[i] = muiPaintColor(painter, gradient->stops[i].color, opacity);
         entry->positions[i] = gradient->stops[i].position;
     }
     return index;
@@ -143,14 +144,14 @@ static void AddShadow(muiPainter* painter, const muiShadow* shadow, muiRect rect
     {
         return;
     }
-    muiDrawCommand* command = TakeCommand(painter, mui_drawShadow, state->clip);
+    muiDrawCommand* command = muiTakeCommand(painter, mui_drawShadow, state->clip);
     if (command == nullptr)
     {
         return;
     }
     command->shadow.rect = rect;
     command->shadow.radii = radii;
-    command->shadow.color = Linear(painter, shadow->color, state->opacity);
+    command->shadow.color = muiPaintColor(painter, shadow->color, state->opacity);
     command->shadow.offsetX = shadow->offsetX;
     command->shadow.offsetY = shadow->offsetY;
     command->shadow.blur = shadow->blur;
@@ -207,14 +208,14 @@ static void AddBox(muiPainter* painter, const muiVisualStyle* visual, const Bord
     {
         return;
     }
-    muiDrawCommand* command = TakeCommand(painter, mui_drawBox, state->clip);
+    muiDrawCommand* command = muiTakeCommand(painter, mui_drawBox, state->clip);
     if (command == nullptr)
     {
         return;
     }
     command->box.rect = SnapRect(rect, painter->scale);
     command->box.radii = radii;
-    command->box.fill = Linear(painter, visual->background, state->opacity);
+    command->box.fill = muiPaintColor(painter, visual->background, state->opacity);
     command->box.gradient = gradient ? AddGradient(painter, &visual->gradient, state->opacity) : 0;
     command->box.borderWidths = borders->widths;
     // A side of no width draws no color, so it carries none.
@@ -224,7 +225,8 @@ static void AddBox(muiPainter* painter, const muiVisualStyle* visual, const Bord
     {
         if (widths[i] > 0.0f)
         {
-            command->box.borderColors[i] = Linear(painter, borders->colors[i], state->opacity);
+            command->box.borderColors[i] =
+                muiPaintColor(painter, borders->colors[i], state->opacity);
         }
     }
 }
@@ -236,7 +238,7 @@ static void AddImage(muiPainter* painter, const muiVisualStyle* visual, muiRect 
     {
         return;
     }
-    muiDrawCommand* command = TakeCommand(painter, mui_drawImage, state->clip);
+    muiDrawCommand* command = muiTakeCommand(painter, mui_drawImage, state->clip);
     if (command == nullptr)
     {
         return;
@@ -248,7 +250,7 @@ static void AddImage(muiPainter* painter, const muiVisualStyle* visual, muiRect 
     // An image does not mirror: its slice's start and end are its left and
     // right.
     command->image.slice = (muiSides){slice->top, slice->end, slice->bottom, slice->start};
-    command->image.tint = Linear(painter, visual->imageTint, state->opacity);
+    command->image.tint = muiPaintColor(painter, visual->imageTint, state->opacity);
 }
 
 // The padding box of a border box, and its corners' radii.

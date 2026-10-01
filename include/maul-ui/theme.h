@@ -40,7 +40,7 @@ extern "C"
     /// @param context     The context.
     /// @param themeIdOut  Receives the theme; set to the null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a
-    ///         call from a measure function; `mui_errorCapacity` when the
+    ///         call from a measure or paint function; `mui_errorCapacity` when the
     ///         context's theme limit is reached.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -52,7 +52,7 @@ extern "C"
     /// @param context  The context.
     /// @param themeId  The theme.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id or a call from a measure function; `mui_errorStale`
+    ///         null id or a call from a measure or paint function; `mui_errorStale`
     ///         for an id whose theme is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -67,7 +67,7 @@ extern "C"
     ///                 takes it.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
     ///         null id, a value of another type or outside muiCreateToken's
-    ///         or a call from a measure function; `mui_errorStale` for a
+    ///         or a call from a measure or paint function; `mui_errorStale` for a
     ///         theme or a token that is gone; `mui_errorCapacity` when the
     ///         token was not overridden and the context's limit of theme
     ///         overrides is reached.
@@ -87,7 +87,7 @@ extern "C"
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, a null
     ///         id, a target of another type, an alias that would lead back
     ///         to the token through this theme and the context, or a call
-    ///         from a measure function; `mui_errorStale` for a theme, token
+    ///         from a measure or paint function; `mui_errorStale` for a theme, token
     ///         or target that is gone; `mui_errorCapacity` as
     ///         muiTheme_SetTokenValue.
     /// @par Thread safety
@@ -102,7 +102,7 @@ extern "C"
     /// @param tokenId  The token.
     /// @return `mui_success`, also when the theme did not override it;
     ///         `mui_errorInvalid` for a NULL context, a null id or a call
-    ///         from a measure function; `mui_errorStale` for a theme or a
+    ///         from a measure or paint function; `mui_errorStale` for a theme or a
     ///         token that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -134,7 +134,7 @@ extern "C"
     /// @param nodeId   The node.
     /// @param themeId  The theme, or the null id.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null node id or a call from a measure function;
+    ///         null node id or a call from a measure or paint function;
     ///         `mui_errorStale` for a node or a theme that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.

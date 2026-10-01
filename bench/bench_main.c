@@ -240,7 +240,7 @@ static double Time(Scene* scene, float width, bool changeLeaf)
 // each in best.
 static void DrawFrames(Scene* scene, double best[3], uint32_t* commandsOut)
 {
-    const muiDrawInput input = {1, 1.0f};
+    const muiDrawInput input = {1, 1.0f, NULL, NULL};
     for (int i = 0; i < 3; i++)
     {
         if (i == 2)

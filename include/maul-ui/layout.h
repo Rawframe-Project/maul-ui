@@ -356,7 +356,7 @@ extern "C"
     /// @param context  The context.
     /// @param nodeId   The node.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the null
-    ///         id or a call from a measure function; `mui_errorStale` for an
+    ///         id or a call from a measure or paint function; `mui_errorStale` for an
     ///         id whose node is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -371,7 +371,7 @@ extern "C"
     /// @param input    The space and the measure function.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id, a node with a parent, a negative or non-finite
-    ///         space, or a call from a measure function; `mui_errorStale`
+    ///         space, or a call from a measure or paint function; `mui_errorStale`
     ///         for an id whose node is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.

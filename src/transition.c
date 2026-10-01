@@ -72,7 +72,8 @@ muiResult muiCreateTransition(muiContext* context, const muiTransitionDef* def,
     {
         return mui_errorInvalid;
     }
-    if (def == nullptr || transitionIdOut == nullptr || !IsDefValid(def) || muiIsMeasuring(context))
+    if (def == nullptr || transitionIdOut == nullptr || !IsDefValid(def) ||
+        muiIsInHostCall(context))
     {
         return muiRefuse(context);
     }
@@ -93,7 +94,7 @@ muiResult muiDestroyTransition(muiContext* context, muiTransitionId transitionId
     {
         return mui_errorInvalid;
     }
-    if (transitionId.index1 == 0 || muiIsMeasuring(context))
+    if (transitionId.index1 == 0 || muiIsInHostCall(context))
     {
         return muiRefuse(context);
     }

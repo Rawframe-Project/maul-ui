@@ -121,12 +121,12 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
     };
     muiSizingInput sizingInput = muiRootInput(&context->layout[root - 1].style,
                                               input->availableWidth, input->availableHeight);
-    context->measuring = true;
+    context->inHostCall = true;
     muiSize size = muiSolveNode(&solver, root, &sizingInput, false);
     sizingInput.width = (muiMeasureAxis){size.width, mui_measureExact};
     sizingInput.height = (muiMeasureAxis){size.height, mui_measureExact};
     (void)muiSolveNode(&solver, root, &sizingInput, true);
-    context->measuring = false;
+    context->inHostCall = false;
     const muiRect rect = {0.0f, 0.0f, size.width, size.height};
     context->layout[root - 1].rect = rect;
     if (!muiIsSameRect(rect, context->draw.states[root - 1].rect))

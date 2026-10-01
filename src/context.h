@@ -52,15 +52,15 @@ struct muiContext
     muiAnimationStore animations;
     uint64_t lastTimeNs;
     uint64_t misuse;
-    // Set while a measure function runs; edits are refused then.
-    bool measuring;
+    // Set while a measure or paint function runs; edits are refused then.
+    bool inHostCall;
 };
 
 // Counts one refused call and returns mui_errorInvalid for it.
 muiResult muiRefuse(muiContext* context);
 
 // Whether an edit must be refused because a measure function is running.
-bool muiIsMeasuring(const muiContext* context);
+bool muiIsInHostCall(const muiContext* context);
 
 // The slot of a live node for an edit, or 0 with the status to return in
 // statusOut: misuse for the null id or an edit from a measure function,

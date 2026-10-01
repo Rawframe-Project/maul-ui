@@ -41,15 +41,17 @@ typedef struct muiPaintState
 } muiPaintState;
 
 // One list's tables. Entry 0 of the clips and gradients is the
-// placeholder for none.
+// placeholder for none; glyphs have none, as runs name spans.
 typedef struct muiDrawTables
 {
     muiDrawCommand* commands;
     muiDrawClip* clips;
     muiDrawGradient* gradients;
+    muiGlyph* glyphs;
     uint32_t commandCount;
     uint32_t clipCount;
     uint32_t gradientCount;
+    uint32_t glyphCount;
 } muiDrawTables;
 
 typedef struct muiDrawStore
@@ -62,6 +64,7 @@ typedef struct muiDrawStore
     uint32_t commandCapacity;
     uint32_t clipCapacity;
     uint32_t gradientCapacity;
+    uint32_t glyphCapacity;
     // The root slot of the shown list. Its header's scale is 0 when there
     // is no list to take from: none was built yet, or the last build
     // failed.

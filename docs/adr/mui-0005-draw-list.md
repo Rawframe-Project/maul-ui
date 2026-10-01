@@ -30,10 +30,22 @@ clip chain evaluated in its shaders, which keeps batches whole.
   whether it is inset; an image the host's key, a uv rectangle, nine-
   slice insets in image pixels and a tint. Records have no padding and
   are zeroed before they are written, so identical trees give identical
-  bytes. Glyph runs come with the text service.
+  bytes. A glyph run has a font key, a size, a color, an origin on the
+  baseline and a span of the list's glyph table, whose entries are a
+  glyph id and a position from the origin, as WebRender and Vello
+  carry them; glyph images are not in the list, so it does not depend
+  on a renderer's atlas.
+- **Host content paints through a function** the draw input names, as
+  the layout input names a measure function: for each visible node
+  whose content is the host's, with its id, host key and content box
+  size, it adds glyph runs through a sink at positions relative to the
+  content box, and the build converts their colors and multiplies
+  opacity as for every command. The context refuses edits made from
+  it; reads, such as a node's computed text style, are allowed.
 - **Paint order** is depth first; per node, its outer shadow, its box,
-  its inner shadow (inside the padding box) and its image, then its
-  children. Nodes, and the subtrees below them, that would draw nothing
+  its inner shadow (inside the padding box), its image and its host
+  content, then its children; host content is drawn inside the node's
+  own clip. Nodes, and the subtrees below them, that would draw nothing
   at opacity 0 are skipped, as are commands with nothing visible.
 - **Clips are a chain:** a node that clips adds a clip of its rounded
   border box whose parent is the clip it is painted in, and its
@@ -51,15 +63,17 @@ clip chain evaluated in its shaders, which keeps batches whole.
   edges and clip rectangles go to the nearest device pixel by edge, so
   adjacent boxes share an edge, and a non-zero size keeps at least one
   device pixel; border widths go to whole device pixels, at least one.
-  Shadows and radii keep their exact values.
+  A glyph run's baseline goes to a device pixel and its x keeps its
+  fraction, as Skia and Chromium position horizontal text. Shadows and
+  radii keep their exact values.
 - **Retained emission:** the context keeps two of each table, the
   list shown and the one the next build writes. A build with no paint
   requested below the root, of the same root, surface and scale as the
   last, keeps the list and its generation. Otherwise each node's spans
   of the tables are recorded; a subtree no paint request reaches, at
   the origin and opacity it was painted at, copies its spans from the
-  last list, renumbering its clips and gradients and its descendants'
-  spans. Layout requests paint on every node whose rectangle or
+  last list, renumbering its clips, gradients and glyphs and its
+  descendants' spans. Layout requests paint on every node whose rectangle or
   direction is not what was last painted, so a copy is never stale; a
   test checks over hundreds of random edits that a list built from the
   last equals one built whole. Memory is the two lists the limits

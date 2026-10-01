@@ -5,14 +5,15 @@
 // tree's links, each node reading what its parent left in its paint
 // state, so it needs no stack. A list is built from the last one: a
 // subtree no paint request reaches, at the origin and opacity it was
-// painted at, copies its commands, clips and gradients and renumbers
-// them; a build with nothing to repaint keeps the last list as it is.
+// painted at, copies its commands, clips, gradients and glyphs and
+// renumbers them; a build with nothing to repaint keeps the last list as it is.
 
 #include "maul-ui/draw.h"
 
 #include "context.h"
 #include "draw_store.h"
 #include "paint.h"
+#include "paint_host.h"
 #include "tree.h"
 
 #include <math.h>
@@ -58,10 +59,16 @@ static bool CanCopy(const Build* build, uint32_t slot, const muiPaintState* old,
            old->y == now->y && old->inherited == now->inherited;
 }
 
-static void CopyCommands(Build* build, const muiPaintState* old, const Renumbering* renumbering)
+// Copies a subtree's commands, clips, gradients and glyphs; false when
+// its glyphs do not fit. A subtree's glyph runs name one contiguous span
+// of glyphs, in order, so the span is found from them as they are copied.
+static bool CopyCommands(Build* build, const muiPaintState* old, const Renumbering* renumbering)
 {
     const muiDrawTables* from = build->previous;
     muiDrawTables* to = build->painter.out;
+    uint32_t glyphFirst = 0;
+    uint32_t glyphEnd = 0;
+    bool glyphs = false;
     for (uint32_t i = old->commands.first; i < old->commands.end; i++)
     {
         muiDrawCommand* command = &to->commands[to->commandCount++];
@@ -71,6 +78,17 @@ static void CopyCommands(Build* build, const muiPaintState* old, const Renumberi
         {
             command->box.gradient =
                 command->box.gradient - renumbering->gradients.first + renumbering->gradientBase;
+        }
+        if (command->kind == mui_drawGlyphRun)
+        {
+            muiDrawGlyphRun* run = &command->glyphRun;
+            if (!glyphs)
+            {
+                glyphFirst = run->firstGlyph;
+                glyphs = true;
+            }
+            glyphEnd = run->firstGlyph + run->glyphCount;
+            run->firstGlyph = run->firstGlyph - glyphFirst + to->glyphCount;
         }
     }
     for (uint32_t i = old->clips.first; i < old->clips.end; i++)
@@ -83,6 +101,15 @@ static void CopyCommands(Build* build, const muiPaintState* old, const Renumberi
     memcpy(&to->gradients[to->gradientCount], &from->gradients[old->gradients.first],
            gradients * sizeof(muiDrawGradient));
     to->gradientCount += gradients;
+    uint32_t glyphCount = glyphEnd - glyphFirst;
+    if (glyphCount > build->painter.glyphCapacity - to->glyphCount)
+    {
+        build->painter.full = true;
+        return false;
+    }
+    memcpy(&to->glyphs[to->glyphCount], &from->glyphs[glyphFirst], glyphCount * sizeof(muiGlyph));
+    to->glyphCount += glyphCount;
+    return true;
 }
 
 // Moves a span painted by the last build to where a copy put it.
@@ -142,7 +169,10 @@ static bool Copy(Build* build, uint32_t node, muiPaintState* state, uint32_t ent
     state->commands = (muiDrawRange){to->commandCount, 0};
     state->clips = (muiDrawRange){to->clipCount, 0};
     state->gradients = (muiDrawRange){to->gradientCount, 0};
-    CopyCommands(build, &old, &renumbering);
+    if (!CopyCommands(build, &old, &renumbering))
+    {
+        return false;
+    }
     state->commands.end = to->commandCount;
     state->clips.end = to->clipCount;
     state->gradients.end = to->gradientCount;
@@ -180,7 +210,15 @@ static bool Visit(Build* build, uint32_t root, uint32_t at)
     state->commands.first = out->commandCount;
     state->clips.first = out->clipCount;
     state->gradients.first = out->gradientCount;
-    return muiPaintNode(&build->painter, at, state);
+    if (!muiPaintNode(&build->painter, at, state))
+    {
+        return false;
+    }
+    if (build->painter.paint != nullptr)
+    {
+        muiPaintHostContent(&build->painter, at, state);
+    }
+    return true;
 }
 
 // Ends a node's spans where its subtree ended.
@@ -226,6 +264,7 @@ static void Empty(muiDrawTables* tables)
     tables->commandCount = 0;
     tables->clipCount = 1;
     tables->gradientCount = 1;
+    tables->glyphCount = 0;
 }
 
 // Whether the last list stands for this build: of this root, surface and
@@ -247,7 +286,7 @@ muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawI
         return mui_errorInvalid;
     }
     if (input == nullptr || rootId.index1 == 0 || !isfinite(input->scale) || input->scale <= 0.0f ||
-        muiIsMeasuring(context))
+        muiIsInHostCall(context))
     {
         return muiRefuse(context);
     }
@@ -275,13 +314,20 @@ muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawI
     build.painter.commandCapacity = store->commandCapacity;
     build.painter.clipCapacity = store->clipCapacity;
     build.painter.gradientCapacity = store->gradientCapacity;
+    build.painter.glyphCapacity = store->glyphCapacity;
+    build.painter.paint = input->paint;
+    build.painter.paintUser = input->paintUser;
     build.painter.scale = input->scale;
     build.store = store;
     build.previous = takes ? &store->tables[store->current] : nullptr;
     build.previousBuild = store->header.generation;
     build.build = store->header.generation + 1;
     Empty(build.painter.out);
+    // The host's paint function may read the context, not edit it.
+    context->inHostCall = true;
     Walk(&build, root);
+    context->inHostCall = false;
+    context->misuse += build.painter.misuse;
     store->current = next;
     if (build.painter.full)
     {
@@ -320,6 +366,8 @@ muiResult muiGetDrawList(const muiContext* context, muiDrawList* listOut)
         .transformCount = 1,
         .gradientCount = tables->gradientCount,
         .gradients = tables->gradients,
+        .glyphs = tables->glyphs,
+        .glyphCount = tables->glyphCount,
     };
     return mui_success;
 }

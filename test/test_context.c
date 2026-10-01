@@ -89,6 +89,9 @@ static void TestInvalidDefsAreRefused(void)
     bad = def;
     bad.limits.nodes = 0x80000000u;
     CHECK(muiCreateContext(&bad, &context) == mui_errorInvalid, "too many nodes");
+    bad = def;
+    bad.limits.drawGlyphs = 0x80000000u;
+    CHECK(muiCreateContext(&bad, &context) == mui_errorInvalid, "too many glyphs");
     CountingAllocator counter = {0};
     bad = def;
     bad.allocator = MakeAllocator(&counter);
@@ -162,7 +165,8 @@ static void TestPartsStartOnCacheLines(void)
                                  .themeOverrides = 19,
                                  .drawCommands = 1001,
                                  .drawClips = 21,
-                                 .drawGradients = 23};
+                                 .drawGradients = 23,
+                                 .drawGlyphs = 25};
         muiContext* context = NULL;
         CHECK(muiCreateContext(&def, &context) == mui_success, "created");
         CHECK((uintptr_t)context % 64 == shift, "the context opens the block");
@@ -173,8 +177,8 @@ static void TestPartsStartOnCacheLines(void)
               "per-node parts start on cache lines, wherever the block does");
         // The parts end inside the block.
         const unsigned char* end = (const unsigned char*)context + context->blockSize;
-        CHECK((const unsigned char*)(context->draw.tables[1].gradients +
-                                     context->draw.gradientCapacity) <= end,
+        CHECK((const unsigned char*)(context->draw.tables[1].glyphs +
+                                     context->draw.glyphCapacity) <= end,
               "the last part fits");
         muiDestroyContext(context);
     }

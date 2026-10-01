@@ -14,7 +14,7 @@ void muiRestyleAll(muiContext* context)
 
 uint32_t muiResolveClassEdit(muiContext* context, muiStyleId styleId, muiResult* statusOut)
 {
-    if (styleId.index1 == 0 || muiIsMeasuring(context))
+    if (styleId.index1 == 0 || muiIsInHostCall(context))
     {
         *statusOut = muiRefuse(context);
         return 0;

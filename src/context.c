@@ -44,7 +44,8 @@ muiContextDef muiDefaultContextDef(void)
                    .themeOverrides = 512,
                    .drawCommands = 8192,
                    .drawClips = 256,
-                   .drawGradients = 256},
+                   .drawGradients = 256,
+                   .drawGlyphs = 16384},
     };
 }
 
@@ -56,7 +57,8 @@ static bool AreLimitsValid(const muiLimits* limits)
            limits->animations <= MAX_SLOTS && limits->tokens <= MAX_SLOTS &&
            limits->tokenNames <= MAX_SLOTS && limits->themes <= MAX_SLOTS &&
            limits->themeOverrides <= MAX_SLOTS && limits->drawCommands <= MAX_SLOTS &&
-           limits->drawClips < MAX_SLOTS && limits->drawGradients < MAX_SLOTS;
+           limits->drawClips < MAX_SLOTS && limits->drawGradients < MAX_SLOTS &&
+           limits->drawGlyphs <= MAX_SLOTS;
 }
 
 // Where each part of the context's block starts.
@@ -91,6 +93,7 @@ typedef struct Parts
     size_t drawCommands;
     size_t drawClips;
     size_t drawGradients;
+    size_t drawGlyphs;
 } Parts;
 
 // A table per theme, an entry per token slot; a count past size_t marks
@@ -151,6 +154,8 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
                                   CACHE_LINE),
         .drawGradients = muiLayoutAdd(layout, ((size_t)limits->drawGradients + 1) * 2,
                                       sizeof(muiDrawGradient), CACHE_LINE),
+        .drawGlyphs =
+            muiLayoutAdd(layout, (size_t)limits->drawGlyphs * 2, sizeof(muiGlyph), CACHE_LINE),
     };
 }
 
@@ -196,6 +201,7 @@ static void Place(muiContext* context, unsigned char* base, const Parts* parts,
     draw->commandCapacity = limits->drawCommands;
     draw->clipCapacity = limits->drawClips + 1;
     draw->gradientCapacity = limits->drawGradients + 1;
+    draw->glyphCapacity = limits->drawGlyphs;
     for (uint32_t i = 0; i < 2; i++)
     {
         draw->tables[i] = (muiDrawTables){
@@ -203,6 +209,7 @@ static void Place(muiContext* context, unsigned char* base, const Parts* parts,
             .clips = (muiDrawClip*)(base + parts->drawClips) + i * draw->clipCapacity,
             .gradients =
                 (muiDrawGradient*)(base + parts->drawGradients) + i * draw->gradientCapacity,
+            .glyphs = (muiGlyph*)(base + parts->drawGlyphs) + i * draw->glyphCapacity,
             .clipCount = 1,
             .gradientCount = 1,
         };
@@ -271,14 +278,14 @@ muiResult muiRefuse(muiContext* context)
     return mui_errorInvalid;
 }
 
-bool muiIsMeasuring(const muiContext* context)
+bool muiIsInHostCall(const muiContext* context)
 {
-    return context->measuring;
+    return context->inHostCall;
 }
 
 uint32_t muiResolveEdit(muiContext* context, muiNodeId nodeId, muiResult* statusOut)
 {
-    if (nodeId.index1 == 0 || muiIsMeasuring(context))
+    if (nodeId.index1 == 0 || muiIsInHostCall(context))
     {
         *statusOut = muiRefuse(context);
         return 0;

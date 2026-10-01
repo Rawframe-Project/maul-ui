@@ -10,6 +10,8 @@ format.
 
 ### Changed
 
+- `muiDrawInput` has two more fields, `paint` and `paintUser`; an
+  initializer that lists its fields by position needs them.
 - A context's parts start on 64-byte cache lines, so drawing no longer
   slows by up to 30% when an unrelated part of the context changes
   size; a context takes up to about 2 KB more.
@@ -22,6 +24,12 @@ format.
   `MUI_PROPERTY_GROUP` gives a property's group.
 
 ### Added
+
+- Glyph runs in the draw list: `muiDrawInput` gains a paint function
+  for host content (`muiPaintFunction`), which adds runs with
+  `muiDrawSink_AddGlyphRun`; the list gains `mui_drawGlyphRun`
+  commands and a glyph table, reserved by the new `drawGlyphs` limit
+  (record mui-0005).
 
 - Text style (`maul-ui/text_style.h`): the text property group (color,
   font key, size, weight, slant, line height, letter spacing,
