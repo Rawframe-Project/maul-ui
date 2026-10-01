@@ -96,13 +96,6 @@ static void ItemSizes(const Frame* frame, const muiLayoutStyle* child, muiAxisSi
     *crossOut = frame->row ? height : width;
 }
 
-// The main size an aspect ratio gives for a cross size.
-static float RatioMain(const Frame* frame, const muiLayoutStyle* child, float cross)
-{
-    float ratio = child->sizing.aspectRatio;
-    return frame->row ? cross * ratio : cross / ratio;
-}
-
 // The constraint a child is sized under on the cross axis: its own
 // definite size; with stretch, the line's size when the container's cross
 // size is definite; otherwise fit-content within the container.
@@ -143,12 +136,14 @@ static float ContentMain(const Frame* frame, uint32_t child, muiMeasureMode mode
 }
 
 // CSS Flexbox section 4.5: the smaller of the specified size and the
-// min-content size, each within the maximum.
+// min-content size, each within the maximum. A size that came through
+// the aspect ratio is not a specified size: the content wins over it, as
+// CSS Sizing 4 says for the ratio-dependent axis.
 static float AutomaticMinimum(const Frame* frame, uint32_t child, const muiAxisSizing* main,
                               muiMeasureAxis cross)
 {
     float content = fminf(ContentMain(frame, child, mui_measureMinContent, cross), main->maximum);
-    if (main->definite)
+    if (main->definite && !main->transferred)
     {
         content = fminf(content, fminf(main->size, main->maximum));
     }
@@ -181,23 +176,11 @@ static void PrepareItem(const Frame* frame, uint32_t child)
     {
         muiMeasureMode mode = frame->mainIn.mode == mui_measureMinContent ? mui_measureMinContent
                                                                           : mui_measureMaxContent;
-        // Section 9.2.3 B: a definite cross size gives the base through
-        // the aspect ratio.
-        bool fromRatio =
-            style->sizing.aspectRatio > 0.0f && crossConstraint.mode == mui_measureExact;
-        fromContent = !main.definite && !fromRatio;
-        if (main.definite)
-        {
-            base = main.size;
-        }
-        else if (fromRatio)
-        {
-            base = RatioMain(frame, style, crossConstraint.size);
-        }
-        else
-        {
-            base = ContentMain(frame, child, mode, crossConstraint);
-        }
+        // A definite cross size gives the base through the aspect ratio
+        // (section 9.2.3 B) when the child is sized: it then has an exact
+        // cross size and an automatic main one.
+        fromContent = !main.definite;
+        base = main.definite ? main.size : ContentMain(frame, child, mode, crossConstraint);
     }
     item->base = fmaxf(base, boxMain);
     item->innerBase = item->base - boxMain;

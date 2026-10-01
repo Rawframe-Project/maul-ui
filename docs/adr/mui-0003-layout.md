@@ -27,7 +27,11 @@ tree that did not change.
   border box) turns a definite size on one axis into the other, within
   that axis's limits; a flex item with a definite cross size takes its
   flex base size from it (CSS Flexbox 9.2.3 B), and an item whose main
-  size flexes takes its cross size from the flexed size.
+  size flexes takes its cross size from the flexed size. On the axis
+  the ratio gives, an automatic minimum is the content's min-content
+  size, so content is never crushed by the ratio (CSS Sizing 4), and a
+  size that came through the ratio is not a specified size for a flex
+  item's automatic minimum.
 - **Roots.** A root lays out in the space the host gives. An automatic
   width fits its content within that space (fit-content); an automatic
   height is its content's height. A scale is a fraction of the space.

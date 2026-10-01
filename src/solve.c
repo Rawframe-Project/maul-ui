@@ -152,29 +152,57 @@ static muiSize SizeContainer(const muiSolver* solver, uint32_t node, const muiSi
     return size;
 }
 
-// With an aspect ratio, a node given an exact size on one axis and an
-// automatic one on the other takes the other from the ratio, within its
-// limits.
-static void ApplyAspectRatio(const muiLayoutStyle* style, muiSizingInput* input)
+// The node's min-content size along an axis, the other axis as input
+// gives it, computed without its aspect ratio.
+static float ContentSize(const muiSolver* solver, uint32_t node, const muiSizingInput* input,
+                         bool horizontal)
 {
-    float ratio = style->sizing.aspectRatio;
+    muiSizingInput probe = *input;
+    muiMeasureAxis* axis = horizontal ? &probe.width : &probe.height;
+    *axis = (muiMeasureAxis){0.0f, mui_measureMinContent};
+    muiSize size = muiTreeAt(solver->tree, node)->links.firstChild == 0
+                       ? SizeLeaf(solver, node, &probe)
+                       : muiLayoutFlex(solver, node, &probe, false);
+    return horizontal ? size.width : size.height;
+}
+
+// The size the aspect ratio gives an axis from the other one's, at least
+// the content's min-content size when the axis's minimum is automatic (CSS
+// Sizing 4), within its limits.
+static muiMeasureAxis RatioAxis(const muiSolver* solver, uint32_t node, const muiSizingInput* input,
+                                bool horizontal, float size)
+{
+    const muiLayoutStyle* style = &solver->nodes[node - 1].style;
+    muiAxisSizing axis = muiResolveAxis(&style->sizing, horizontal,
+                                        horizontal ? input->parentWidth : input->parentHeight);
+    if (axis.minimumAuto)
+    {
+        size = fmaxf(size, ContentSize(solver, node, input, horizontal));
+    }
+    return muiExact(muiClampSize(size, axis.minimum, axis.maximum, muiBoxSum(style, horizontal)));
+}
+
+// With an aspect ratio, a node given an exact size on one axis and an
+// automatic one on the other takes the other from the ratio.
+static void ApplyAspectRatio(const muiSolver* solver, uint32_t node, muiSizingInput* input)
+{
+    const muiSizing* sizing = &solver->nodes[node - 1].style.sizing;
+    float ratio = sizing->aspectRatio;
     if (ratio <= 0.0f)
     {
         return;
     }
-    muiAxisSizing width = muiResolveAxis(&style->sizing, true, input->parentWidth);
-    muiAxisSizing height = muiResolveAxis(&style->sizing, false, input->parentHeight);
+    muiAxisSizing width = muiResolveAxis(sizing, true, input->parentWidth);
+    muiAxisSizing height = muiResolveAxis(sizing, false, input->parentHeight);
     bool exactWidth = input->width.mode == mui_measureExact;
     bool exactHeight = input->height.mode == mui_measureExact;
     if (exactWidth && !exactHeight && !height.definite)
     {
-        input->height = muiExact(muiClampSize(input->width.size / ratio, height.minimum,
-                                              height.maximum, muiBoxSum(style, false)));
+        input->height = RatioAxis(solver, node, input, false, input->width.size / ratio);
     }
     else if (exactHeight && !exactWidth && !width.definite)
     {
-        input->width = muiExact(muiClampSize(input->height.size * ratio, width.minimum,
-                                             width.maximum, muiBoxSum(style, true)));
+        input->width = RatioAxis(solver, node, input, true, input->height.size * ratio);
     }
 }
 
@@ -218,7 +246,7 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
         }
     }
     muiSizingInput own = OwnDirection(&solver->nodes[node - 1].style, input);
-    ApplyAspectRatio(&solver->nodes[node - 1].style, &own);
+    ApplyAspectRatio(solver, node, &own);
     muiSize size = muiTreeAt(solver->tree, node)->links.firstChild == 0
                        ? SizeLeaf(solver, node, &own)
                        : SizeContainer(solver, node, &own, perform);

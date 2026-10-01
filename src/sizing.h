@@ -20,6 +20,8 @@ typedef struct muiAxisSizing
     float minimum;
     float maximum;
     bool definite;
+    // The size came through the aspect ratio from the other axis.
+    bool transferred;
     bool minimumAuto;
 } muiAxisSizing;
 
@@ -77,11 +79,13 @@ static inline void muiResolveSizes(const muiSizing* sizing, float extentWidth, f
     {
         heightOut->size = widthOut->size / ratio;
         heightOut->definite = true;
+        heightOut->transferred = true;
     }
     else if (ratio > 0.0f && heightOut->definite && !widthOut->definite)
     {
         widthOut->size = heightOut->size * ratio;
         widthOut->definite = true;
+        widthOut->transferred = true;
     }
 }
 

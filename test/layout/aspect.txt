@@ -47,3 +47,30 @@ fixture aspect_in_wrap available=500x400
 node width=100 wrap=wrap align-items=start => 0 0 100 80
   node width=60 aspect=3 => 0 0 60 20
   node width=60 aspect=1 => 0 20 60 60
+
+fixture aspect_transferred_minimum_in_column available=500x400
+node direction=column width=200 height=30 align-items=start => 0 0 200 30
+  node width=100 aspect=2 content=10x80 => 0 0 100 80
+
+fixture aspect_transferred_minimum_in_row available=500x400
+node width=30 height=200 align-items=start => 0 0 30 200
+  node height=50 aspect=2 content=160x10 => 0 0 160 50
+
+fixture aspect_root_within_max_height available=500x400
+node width=200 aspect=1 max-height=50 => 0 0 200 50
+
+fixture aspect_root_grows_to_content available=500x400
+node width=200 aspect=4 direction=column => 0 0 200 70
+  node width=20 height=30 => 0 0 20 30
+  node width=20 height=40 => 0 30 20 40
+
+fixture aspect_flexed_item_grows_to_content available=500x400
+node width=300 height=200 align-items=start => 0 0 300 200
+  node basis=0 grow=1 aspect=10 direction=column => 0 0 150 45
+    node width=20 height=45 => 0 0 20 45
+  node basis=0 grow=1 aspect=10 => 150 0 150 15
+
+fixture aspect_minimum_zero_lets_ratio_win available=500x400
+node width=200 aspect=4 min-height=0 direction=column => 0 0 200 50
+  node width=20 height=30 => 0 0 20 21.421875
+  node width=20 height=40 => 0 21.421875 20 28.578125
