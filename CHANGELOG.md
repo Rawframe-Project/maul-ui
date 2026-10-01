@@ -13,3 +13,7 @@ format.
 - The library skeleton: the build, the family rules and tools, the
   version and result API (`muiGetVersion`, `muiResultName`) and the
   library profile.
+- The context (`muiCreateContext`, `muiDestroyContext`) with its
+  allocator and node limit, and the node tree: creation with a host
+  key, insertion before a sibling, detaching, subtree destruction,
+  traversal and stale-id refusal (record mui-0002).

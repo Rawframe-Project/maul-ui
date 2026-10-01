@@ -62,7 +62,28 @@ extern "C"
         mui_errorInvalid = -1,
         // A caller buffer or a named limit is too small for the result.
         mui_errorCapacity = -2,
+        // An id names an object that no longer exists.
+        mui_errorStale = -3,
     };
+
+    // The allocator an owner object takes in its def and keeps for its
+    // lifetime. Alignment is a power of two. A zeroed allocator means the C
+    // library's allocation functions.
+    typedef struct muiAllocator
+    {
+        void* (*alloc)(size_t size, size_t alignment, void* context);
+        void (*free)(void* memory, size_t size, size_t alignment, void* context);
+        void* context;
+    } muiAllocator;
+
+    // Ids name what a context owns (family record 0016): a 1-based slot,
+    // 0 for the null id, and a generation that tells a live object from
+    // the earlier occupants of its slot.
+    typedef struct muiNodeId
+    {
+        uint32_t index1;
+        uint32_t generation;
+    } muiNodeId;
 
     // A library version: major, minor and patch.
     typedef struct muiVersion

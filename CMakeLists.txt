@@ -40,12 +40,19 @@ else()
     set(MAUL_LIBRARY_KIND STATIC)
 endif()
 add_library(maul-ui ${MAUL_LIBRARY_KIND}
-    src/base.c)
+    src/allocator.c
+    src/base.c
+    src/context.c
+    src/node.c
+    src/tree.c)
 maul_configure_library(maul-ui)
 
 if(MAUL_UI_BUILD_TESTS)
     enable_testing()
     maul_add_test(base)
+    maul_add_test(context)
+    maul_add_test(node)
+    maul_add_test(tree WHITEBOX)
     # winnls.h defines MUI_ macros; this checks that none clash (family
     # record 0007).
     if(WIN32)

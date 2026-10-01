@@ -22,6 +22,7 @@ static void TestResultNames(void)
     CHECK(strcmp(muiResultName(mui_success), "mui_success") == 0, "success name");
     CHECK(strcmp(muiResultName(mui_errorInvalid), "mui_errorInvalid") == 0, "invalid name");
     CHECK(strcmp(muiResultName(mui_errorCapacity), "mui_errorCapacity") == 0, "capacity name");
+    CHECK(strcmp(muiResultName(mui_errorStale), "mui_errorStale") == 0, "stale name");
     CHECK(strcmp(muiResultName(12345), "unknown result") == 0, "unknown name");
 }
 

@@ -20,6 +20,8 @@ const char* muiResultName(muiResult result)
         return "mui_errorInvalid";
     case mui_errorCapacity:
         return "mui_errorCapacity";
+    case mui_errorStale:
+        return "mui_errorStale";
     default:
         return "unknown result";
     }
