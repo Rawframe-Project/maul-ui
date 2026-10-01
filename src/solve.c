@@ -47,7 +47,8 @@ static bool IsScaled(muiDimension dimension)
 }
 
 // Whether a node's own sizing reads its parent's extents: only its scaled
-// limits do, as the parent resolves the node's size itself.
+// limits do, as the parent resolves the node's size itself. Direction is
+// not part of the key: it moves children, never changes a size.
 static bool ReadsParentExtent(const muiSizing* sizing)
 {
     return IsScaled(sizing->minWidth) || IsScaled(sizing->maxWidth) ||
@@ -62,7 +63,7 @@ static const muiCacheEntry* FindCached(const muiLayoutCache* cache, const muiSiz
         const muiCacheEntry* entry = &cache->entries[i];
         bool sameExtents = !keyExtents || (entry->input.parentWidth == input->parentWidth &&
                                            entry->input.parentHeight == input->parentHeight);
-        if (entry->valid && sameExtents && entry->input.rtl == input->rtl &&
+        if (entry->valid && sameExtents &&
             AxisAnswers(input->width, entry->input.width, entry->size.width) &&
             AxisAnswers(input->height, entry->input.height, entry->size.height))
         {

@@ -362,6 +362,33 @@ static void TestTextFollowsTheSpaceBothWays(void)
     CheckTextFollowsSpace(60.0f, 100.0f);
 }
 
+static void TestDirectionChangeReachesInheritingDescendants(void)
+{
+    muiContext* context = MakeContext();
+    Host host = {.context = context};
+    muiLayoutStyle row = muiDefaultLayoutStyle();
+    row.sizing.width = Length(200.0f);
+    row.sizing.height = Length(20.0f);
+    muiNodeId root = MakeNode(context, &row);
+    muiLayoutStyle box = muiDefaultLayoutStyle();
+    box.sizing.width = Length(100.0f);
+    muiNodeId inner = MakeNode(context, &box);
+    muiLayoutStyle leaf = muiDefaultLayoutStyle();
+    leaf.sizing.width = Length(30.0f);
+    muiNodeId first = MakeNode(context, &leaf);
+    CHECK(muiNode_InsertChild(context, root, inner, s_null) == mui_success, "inner");
+    CHECK(muiNode_InsertChild(context, inner, first, s_null) == mui_success, "first");
+    muiLayoutInput input = Input(&host);
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "left to right");
+    CHECK(muiNode_GetRect(context, first).x == 0.0f, "at the left of inner");
+    row.textDirection = mui_textRightToLeft;
+    CHECK(muiNode_SetLayoutStyle(context, root, &row) == mui_success, "right to left");
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "again");
+    CHECK(muiNode_GetRect(context, inner).x == 100.0f, "inner at the right of root");
+    CHECK(muiNode_GetRect(context, first).x == 70.0f, "and its child at its right, inherited");
+    muiDestroyContext(context);
+}
+
 static void TestRectOfUnknownNodeIsZero(void)
 {
     muiContext* context = MakeContext();
@@ -384,6 +411,7 @@ int main(void)
     TestScaledLimitFollowsTheParent();
     TestShrunkTextIsNotTakenFromItsMinContentSize();
     TestTextFollowsTheSpaceBothWays();
+    TestDirectionChangeReachesInheritingDescendants();
     TestRectOfUnknownNodeIsZero();
     return s_failures == 0 ? 0 : 1;
 }

@@ -62,3 +62,9 @@ fixture rtl_root_fits_content available=500x400
 node dir=rtl => 0 0 80 20
   node width=30 height=10 => 50 0 30 10
   node width=50 height=20 => 0 0 50 20
+
+fixture rtl_absolute_child_inherits available=500x400
+node width=200 height=100 dir=rtl => 0 0 200 100
+  node position=absolute start=10 top=10 width=100 height=30 => 90 10 100 30
+    node width=30 height=10 => 70 0 30 10
+    node width=20 height=10 => 50 0 20 10

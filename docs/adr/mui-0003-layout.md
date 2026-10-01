@@ -49,8 +49,10 @@ tree that did not change.
   right. Every edge, inset and the anchor's x are logical, so the solver
   lays each container out with start on the left and mirrors its
   children's horizontal positions when it is right to left. The
-  inherited direction is part of a node's sizing input, so cached
-  results answer only the same direction.
+  inherited direction travels in a node's sizing input; sizes do not
+  depend on it, and a node's last full layout records the direction it
+  was done in, so a change on an ancestor re-lays out exactly the
+  inheriting nodes.
 - **Distributed justification on overflow.** `space-around` and
   `space-evenly` pack at the start when the children overflow, as CSS
   Box Alignment's safe fallback does; `space-between` always does.
