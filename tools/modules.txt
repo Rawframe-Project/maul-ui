@@ -36,3 +36,6 @@ flex: flex_resolve layout_node sizing solver tree
 absolute: layout_node sizing solver tree
 solve: absolute condition flex invariant layout_node sizing solver tree draw_store
 layout: animation context layout_node property restyle solve solver tree
+font_store: allocator pool
+text_service: allocator font_store pool
+font: allocator font_store pool text_service

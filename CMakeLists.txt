@@ -22,11 +22,20 @@ option(MAUL_UI_WERROR "Treat compiler warnings as errors" OFF)
 option(MAUL_UI_SANITIZE "Instrument with AddressSanitizer and UBSan" OFF)
 option(MAUL_UI_TSAN "Instrument with ThreadSanitizer" OFF)
 option(MAUL_UI_COVERAGE "Instrument for gcov coverage" OFF)
+option(MAUL_UI_TEXT "Build the text component: fonts, shaping and paragraphs (record mui-0006)" ON)
+option(MAUL_UI_TEXT_SYSTEM_LIBRARIES
+    "Link the installed FreeType and HarfBuzz instead of building the pinned releases" OFF)
 
 # Every executable (tests, benchmarks, tools) lands in the top of the
 # build tree, so scripts and CI find them in one place.
 if(PROJECT_IS_TOP_LEVEL)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+endif()
+
+# The text component's dependencies come before the family modules
+# (cmake/TextDependencies.cmake says why).
+if(MAUL_UI_TEXT)
+    include(cmake/TextDependencies.cmake)
 endif()
 
 include(GNUInstallDirs)
@@ -75,6 +84,10 @@ maul_configure_library(maul-ui)
 # from libm (mui-0001).
 if(NOT WIN32 AND NOT APPLE)
     target_link_libraries(maul-ui PUBLIC m)
+    set(MAUL_PKG_LIBS_PRIVATE "-lm")
+endif()
+if(MAUL_UI_TEXT)
+    include(cmake/Text.cmake)
 endif()
 
 if(MAUL_UI_BUILD_TESTS)
@@ -93,6 +106,12 @@ if(MAUL_UI_BUILD_TESTS)
     maul_add_test(transition)
     maul_add_test(tree WHITEBOX)
     maul_add_test(visual WHITEBOX)
+    if(MAUL_UI_TEXT)
+        maul_add_test(text)
+        mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/Ahem.ttf
+            ${PROJECT_BINARY_DIR}/test_fonts/ahem.inc s_ahem)
+        target_include_directories(test_text PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
+    endif()
     # winnls.h defines MUI_ macros; this checks that none clash (family
     # record 0007).
     if(WIN32)

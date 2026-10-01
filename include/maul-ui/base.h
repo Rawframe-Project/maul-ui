@@ -66,6 +66,9 @@ extern "C"
         mui_errorCapacity = -2,
         // An id names an object that no longer exists.
         mui_errorStale = -3,
+        // Data is damaged, or in a format the call does not take, such as
+        // a font that fails validation or a compressed web font.
+        mui_errorFormat = -4,
     };
 
     // The allocator an owner object takes in its def and keeps for its

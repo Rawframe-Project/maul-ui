@@ -73,3 +73,9 @@ format.
   golden lists; new `drawCommands`, `drawClips` and `drawGradients`
   limits. A static frame keeps the last list, and a build copies the
   subtrees that did not change from it.
+- The text component (`MAUL_UI_TEXT`, record mui-0006): the text
+  service (`muiCreateTextService`) and fonts from memory
+  (`muiCreateFont`, `muiCountFontFaces`, `muiFont_GetMetrics`), over
+  FreeType 2.14.3 and HarfBuzz 14.5.1 fetched by hash and built into
+  the library, and Maul Unicode 0.2.0. Damaged fonts and compressed web
+  fonts are refused with the new `mui_errorFormat`.

@@ -20,10 +20,11 @@ the host itself owns, inside the call that runs the frame.
 
 ## Status
 
-Not released. The node tree and a single-line flex layout checked
-against Chrome are in place; wrapping, absolute anchoring, aspect ratio
-and right-to-left come next, then style, the command list and the text
-service.
+Not released. The node tree, flex layout checked against Chrome,
+style (classes, states, conditions, transitions, tokens and themes) and
+the draw-command list are in place. The text service has begun with
+fonts; shaping, paragraphs, glyph images and editing come next, then
+interaction, accessibility and a renderer.
 
 ## Building
 
@@ -35,6 +36,16 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ctest --test-dir build
 ```
+
+The text component (`MAUL_UI_TEXT`, on by default) also needs a C++
+compiler for HarfBuzz, and fetches FreeType, HarfBuzz and Maul Unicode
+at configure time (`THIRD_PARTY.md`); to build offline, point
+`FETCHCONTENT_SOURCE_DIR_MAUL_UI_FREETYPE`,
+`FETCHCONTENT_SOURCE_DIR_MAUL_UI_HARFBUZZ` and
+`FETCHCONTENT_SOURCE_DIR_MAUL-UNICODE` at local copies of the same
+releases. The installed library carries all three inside it.
+`-DMAUL_UI_TEXT=OFF` builds the core alone, which needs none of
+them.
 
 ## Layout fixtures
 

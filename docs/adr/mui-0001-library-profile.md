@@ -26,20 +26,23 @@ lists, layout fixtures) and rely on a static screen costing nothing.
   - no output depends on hash-table iteration, pointer values or
     allocation order; children are visited in the order the host gave
     them;
-  - the text service's two dependencies (record 0002 of this library,
-    when it lands) are pinned releases whose results are integers.
+  - the text service's two dependencies (record mui-0006) are pinned
+    releases whose results are integers.
 - **Threads:** none of its own (family record 0017). A context is used
   by one thread at a time; the host may run separate contexts on
   separate threads.
 - **Memory:** the owner object is the context, created with the
-  caller's allocator, with the text service's font and glyph stores as
-  owner objects of their own. Memory is allocated when the host creates
+  caller's allocator, and the text service is an owner object of its
+  own; HarfBuzz, inside it, allocates from the C library (record
+  mui-0006). Memory is allocated when the host creates
   nodes, styles or fonts, or explicitly raises a named limit. Running a
   frame (style, layout, emission) and handling input do not allocate:
   per-node results live with the node, and retained command lists are
   bounded by a limit set at creation.
 - **Platform dependencies:** the C library only, with `sqrt` from
-  libm, for the core. Accessibility adapters use their platform's
+  libm, for the core. The text component, on by default, builds
+  FreeType 2.14.3, HarfBuzz 14.5.1 and Maul Unicode 0.2.0 into the
+  library (record mui-0006). Accessibility adapters use their platform's
   accessibility API, each in its own optional target.
 - **Commit areas:** `a11y`, `api`, `bench`, `build`, `ci`, `docs`,
   `draw`, `input`, `layout`, `samples`, `style`, `tests`, `text`,
