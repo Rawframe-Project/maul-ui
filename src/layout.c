@@ -125,6 +125,7 @@ muiResult muiNode_SetLayoutStyle(muiContext* context, muiNodeId nodeId, const mu
     if (slot != 0)
     {
         context->layout[slot - 1].style = *style;
+        context->layout[slot - 1].absolute = style->placement.position == mui_positionAbsolute;
         MarkLayout(context, slot);
     }
     return status;

@@ -193,7 +193,7 @@ void muiPlaceAbsolute(const muiSolver* solver, uint32_t container, muiSize size)
     for (uint32_t c = muiTreeAt(solver->tree, container)->links.firstChild; c != 0;
          c = muiTreeAt(solver->tree, c)->links.next)
     {
-        if (solver->nodes[c - 1].style.placement.position == mui_positionAbsolute)
+        if (solver->nodes[c - 1].absolute)
         {
             PlaceChild(solver, style, c, &spanX, &spanY);
         }

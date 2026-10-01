@@ -3,7 +3,7 @@
 base:
 invariant:
 allocator:
-layout_node:
+layout_node: tree
 sizing:
 tree: invariant
 solver: layout_node tree

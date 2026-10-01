@@ -9,6 +9,8 @@
 #ifndef MAUL_UI_SRC_TREE_H
 #define MAUL_UI_SRC_TREE_H
 
+#include "invariant.h"
+
 #include "maul-ui/base.h"
 
 #include <stdbool.h>
@@ -74,8 +76,12 @@ uint32_t muiTreeResolve(const muiTree* tree, muiNodeId nodeId);
 // The id of a live slot; the null id for slot 0.
 muiNodeId muiTreeIdOf(const muiTree* tree, uint32_t slot);
 
-// A live slot's node.
-muiTreeNode* muiTreeAt(const muiTree* tree, uint32_t slot);
+// A live slot's node. Inline: every walk over the tree calls it.
+static inline muiTreeNode* muiTreeAt(const muiTree* tree, uint32_t slot)
+{
+    MUI_ASSERT(slot != 0 && slot <= tree->used);
+    return &tree->nodes[slot - 1];
+}
 
 // Makes a root and returns its slot, or 0 when every slot is in use. Its
 // every stage is requested.

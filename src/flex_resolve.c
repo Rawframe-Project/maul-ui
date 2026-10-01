@@ -10,26 +10,6 @@
 
 #include <math.h>
 
-static uint32_t FirstFlowAt(const muiTree* tree, const muiLayoutNode* nodes, uint32_t node)
-{
-    uint32_t at = node;
-    while (at != 0 && nodes[at - 1].style.placement.position != mui_positionFlow)
-    {
-        at = muiTreeAt(tree, at)->links.next;
-    }
-    return at;
-}
-
-uint32_t muiFirstFlowChild(const muiTree* tree, const muiLayoutNode* nodes, uint32_t container)
-{
-    return FirstFlowAt(tree, nodes, muiTreeAt(tree, container)->links.firstChild);
-}
-
-uint32_t muiNextFlowChild(const muiTree* tree, const muiLayoutNode* nodes, uint32_t child)
-{
-    return FirstFlowAt(tree, nodes, muiTreeAt(tree, child)->links.next);
-}
-
 static float Outer(const muiFlexItemState* item, float size)
 {
     return size + item->marginMain;

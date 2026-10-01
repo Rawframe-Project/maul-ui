@@ -32,12 +32,6 @@ muiNodeId muiTreeIdOf(const muiTree* tree, uint32_t slot)
     return (muiNodeId){slot, tree->nodes[slot - 1].generation};
 }
 
-muiTreeNode* muiTreeAt(const muiTree* tree, uint32_t slot)
-{
-    MUI_ASSERT(slot != 0 && slot <= tree->used);
-    return &tree->nodes[slot - 1];
-}
-
 uint32_t muiTreeCreate(muiTree* tree, uint64_t hostKey)
 {
     uint32_t slot = tree->freeHead;

@@ -8,6 +8,8 @@
 #ifndef MAUL_UI_SRC_LAYOUT_NODE_H
 #define MAUL_UI_SRC_LAYOUT_NODE_H
 
+#include "tree.h"
+
 #include "maul-ui/layout.h"
 
 #include <stdbool.h>
@@ -83,6 +85,34 @@ typedef struct muiLayoutNode
     muiRect rect;
     muiLayoutCache cache;
     muiFlexItemState item;
+    // style.placement.position == mui_positionAbsolute, kept beside item
+    // because every walk over a container's flex items reads it.
+    bool absolute;
 } muiLayoutNode;
+
+// The first child of a container that takes part in its flex layout, and
+// the next after child: absolute children are skipped. 0 at the end.
+static inline uint32_t muiFirstFlowAt(const muiTree* tree, const muiLayoutNode* nodes,
+                                      uint32_t node)
+{
+    uint32_t at = node;
+    while (at != 0 && nodes[at - 1].absolute)
+    {
+        at = muiTreeAt(tree, at)->links.next;
+    }
+    return at;
+}
+
+static inline uint32_t muiFirstFlowChild(const muiTree* tree, const muiLayoutNode* nodes,
+                                         uint32_t container)
+{
+    return muiFirstFlowAt(tree, nodes, muiTreeAt(tree, container)->links.firstChild);
+}
+
+static inline uint32_t muiNextFlowChild(const muiTree* tree, const muiLayoutNode* nodes,
+                                        uint32_t child)
+{
+    return muiFirstFlowAt(tree, nodes, muiTreeAt(tree, child)->links.next);
+}
 
 #endif // MAUL_UI_SRC_LAYOUT_NODE_H

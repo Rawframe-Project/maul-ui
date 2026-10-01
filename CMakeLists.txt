@@ -48,7 +48,6 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/flex_resolve.c
     src/layout.c
     src/node.c
-    src/sizing.c
     src/solve.c
     src/tree.c)
 maul_configure_library(maul-ui)

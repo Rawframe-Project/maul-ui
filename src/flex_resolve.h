@@ -11,11 +11,6 @@
 #include "layout_node.h"
 #include "tree.h"
 
-// The first child of a container that takes part in its flex layout, and
-// the next after child: absolute children are skipped. 0 at the end.
-uint32_t muiFirstFlowChild(const muiTree* tree, const muiLayoutNode* nodes, uint32_t container);
-uint32_t muiNextFlowChild(const muiTree* tree, const muiLayoutNode* nodes, uint32_t child);
-
 // The number of children, from first on, that form one line: as many as
 // fit innerMain with gap between them, at least one; every remaining one
 // when wrap is false. Sizes are the outer hypothetical main sizes.
