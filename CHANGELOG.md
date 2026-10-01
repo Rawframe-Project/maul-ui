@@ -118,3 +118,9 @@ format.
   FreeType 2.14.3 and HarfBuzz 14.5.1 fetched by hash and built into
   the library, and Maul Unicode 0.2.0. Damaged fonts and compressed web
   fonts are refused with the new `mui_errorFormat`.
+
+### Fixed
+
+- The text component builds for WASI (wasm32-wasi): it no longer asks
+  for a threads library there, where HarfBuzz is built without threads,
+  and HarfBuzz keeps `errno`, which wasi-libc declares thread-local.
