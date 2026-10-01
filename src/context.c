@@ -10,6 +10,8 @@
 
 #include "maul-ui/style.h"
 
+#include <stdckdint.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -17,6 +19,13 @@
 
 // Slots are 1-based uint32_t values with room for a parent link count.
 #define MAX_SLOTS 0x7FFFFFFFu
+
+// Every part after the context starts on a cache line, so a record whose
+// size is a multiple of one never has a field split across two, wherever
+// the parts before it end.
+#define CACHE_LINE ((size_t)64)
+
+static_assert(alignof(max_align_t) <= CACHE_LINE, "a cache line aligns every part");
 
 muiContextDef muiDefaultContextDef(void)
 {
@@ -104,64 +113,101 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
     MUI_ASSERT(contextOffset == 0);
     (void)contextOffset;
     return (Parts){
-        .nodes = muiLayoutAdd(layout, limits->nodes, sizeof(muiTreeNode), alignof(muiTreeNode)),
-        .layout =
-            muiLayoutAdd(layout, limits->nodes, sizeof(muiLayoutNode), alignof(muiLayoutNode)),
-        .visual =
-            muiLayoutAdd(layout, limits->nodes, sizeof(muiVisualStyle), alignof(muiVisualStyle)),
-        .text = muiLayoutAdd(layout, limits->nodes, sizeof(muiTextStyle), alignof(muiTextStyle)),
-        .textRecords =
-            muiLayoutAdd(layout, limits->nodes, sizeof(muiTextRecord), alignof(muiTextRecord)),
-        .nodeStyles =
-            muiLayoutAdd(layout, limits->nodes, sizeof(muiNodeStyle), alignof(muiNodeStyle)),
-        .classSlots =
-            muiLayoutAdd(layout, limits->styles, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
-        .classes =
-            muiLayoutAdd(layout, limits->styles, sizeof(muiStyleClass), alignof(muiStyleClass)),
-        .typeSlots =
-            muiLayoutAdd(layout, limits->nodeTypes, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
-        .types =
-            muiLayoutAdd(layout, limits->nodeTypes, sizeof(muiClassList), alignof(muiClassList)),
-        .setSlots =
-            muiLayoutAdd(layout, limits->propertySets, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
-        .sets = muiLayoutAdd(layout, limits->propertySets, sizeof(muiPropertySet),
-                             alignof(muiPropertySet)),
-        .notifications = muiLayoutAdd(layout, limits->notifications, sizeof(muiNotification),
-                                      alignof(muiNotification)),
-        .specSlots =
-            muiLayoutAdd(layout, limits->transitions, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
-        .specs = muiLayoutAdd(layout, limits->transitions, sizeof(muiTransitionSpec),
-                              alignof(muiTransitionSpec)),
-        .recordSlots =
-            muiLayoutAdd(layout, limits->animations, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
-        .records =
-            muiLayoutAdd(layout, limits->animations, sizeof(muiAnimation), alignof(muiAnimation)),
-        .tokenSlots =
-            muiLayoutAdd(layout, limits->tokens, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
-        .tokens = muiLayoutAdd(layout, limits->tokens, sizeof(muiToken), alignof(muiToken)),
-        .nameSlots =
-            muiLayoutAdd(layout, limits->tokenNames, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
-        .names =
-            muiLayoutAdd(layout, limits->tokenNames, sizeof(muiTokenName), alignof(muiTokenName)),
-        .themeSlots =
-            muiLayoutAdd(layout, limits->themes, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
-        .themeTables = muiLayoutAdd(layout, ThemeTableEntries(layout, limits), sizeof(uint32_t),
-                                    alignof(uint32_t)),
+        .nodes = muiLayoutAdd(layout, limits->nodes, sizeof(muiTreeNode), CACHE_LINE),
+        .layout = muiLayoutAdd(layout, limits->nodes, sizeof(muiLayoutNode), CACHE_LINE),
+        .visual = muiLayoutAdd(layout, limits->nodes, sizeof(muiVisualStyle), CACHE_LINE),
+        .text = muiLayoutAdd(layout, limits->nodes, sizeof(muiTextStyle), CACHE_LINE),
+        .textRecords = muiLayoutAdd(layout, limits->nodes, sizeof(muiTextRecord), CACHE_LINE),
+        .nodeStyles = muiLayoutAdd(layout, limits->nodes, sizeof(muiNodeStyle), CACHE_LINE),
+        .classSlots = muiLayoutAdd(layout, limits->styles, sizeof(muiPoolSlot), CACHE_LINE),
+        .classes = muiLayoutAdd(layout, limits->styles, sizeof(muiStyleClass), CACHE_LINE),
+        .typeSlots = muiLayoutAdd(layout, limits->nodeTypes, sizeof(muiPoolSlot), CACHE_LINE),
+        .types = muiLayoutAdd(layout, limits->nodeTypes, sizeof(muiClassList), CACHE_LINE),
+        .setSlots = muiLayoutAdd(layout, limits->propertySets, sizeof(muiPoolSlot), CACHE_LINE),
+        .sets = muiLayoutAdd(layout, limits->propertySets, sizeof(muiPropertySet), CACHE_LINE),
+        .notifications =
+            muiLayoutAdd(layout, limits->notifications, sizeof(muiNotification), CACHE_LINE),
+        .specSlots = muiLayoutAdd(layout, limits->transitions, sizeof(muiPoolSlot), CACHE_LINE),
+        .specs = muiLayoutAdd(layout, limits->transitions, sizeof(muiTransitionSpec), CACHE_LINE),
+        .recordSlots = muiLayoutAdd(layout, limits->animations, sizeof(muiPoolSlot), CACHE_LINE),
+        .records = muiLayoutAdd(layout, limits->animations, sizeof(muiAnimation), CACHE_LINE),
+        .tokenSlots = muiLayoutAdd(layout, limits->tokens, sizeof(muiPoolSlot), CACHE_LINE),
+        .tokens = muiLayoutAdd(layout, limits->tokens, sizeof(muiToken), CACHE_LINE),
+        .nameSlots = muiLayoutAdd(layout, limits->tokenNames, sizeof(muiPoolSlot), CACHE_LINE),
+        .names = muiLayoutAdd(layout, limits->tokenNames, sizeof(muiTokenName), CACHE_LINE),
+        .themeSlots = muiLayoutAdd(layout, limits->themes, sizeof(muiPoolSlot), CACHE_LINE),
+        .themeTables =
+            muiLayoutAdd(layout, ThemeTableEntries(layout, limits), sizeof(uint32_t), CACHE_LINE),
         .overrideSlots =
-            muiLayoutAdd(layout, limits->themeOverrides, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
-        .overrides = muiLayoutAdd(layout, limits->themeOverrides, sizeof(muiThemeOverride),
-                                  alignof(muiThemeOverride)),
-        .paintStates =
-            muiLayoutAdd(layout, limits->nodes, sizeof(muiPaintState), alignof(muiPaintState)),
+            muiLayoutAdd(layout, limits->themeOverrides, sizeof(muiPoolSlot), CACHE_LINE),
+        .overrides =
+            muiLayoutAdd(layout, limits->themeOverrides, sizeof(muiThemeOverride), CACHE_LINE),
+        .paintStates = muiLayoutAdd(layout, limits->nodes, sizeof(muiPaintState), CACHE_LINE),
         // Two lists: the last, and the one built from it. Clips and
         // gradients have the placeholder for none at 0.
         .drawCommands = muiLayoutAdd(layout, (size_t)limits->drawCommands * 2,
-                                     sizeof(muiDrawCommand), alignof(muiDrawCommand)),
+                                     sizeof(muiDrawCommand), CACHE_LINE),
         .drawClips = muiLayoutAdd(layout, ((size_t)limits->drawClips + 1) * 2, sizeof(muiDrawClip),
-                                  alignof(muiDrawClip)),
+                                  CACHE_LINE),
         .drawGradients = muiLayoutAdd(layout, ((size_t)limits->drawGradients + 1) * 2,
-                                      sizeof(muiDrawGradient), alignof(muiDrawGradient)),
+                                      sizeof(muiDrawGradient), CACHE_LINE),
     };
+}
+
+// Points the context's stores at their parts of the block.
+static void Place(muiContext* context, unsigned char* base, const Parts* parts,
+                  const muiLimits* limits)
+{
+    muiTreeInit(&context->tree, (muiTreeNode*)(base + parts->nodes), limits->nodes);
+    context->layout = (muiLayoutNode*)(base + parts->layout);
+    context->visual = (muiVisualStyle*)(base + parts->visual);
+    context->text = (muiTextStyle*)(base + parts->text);
+    context->textRecords = (muiTextRecord*)(base + parts->textRecords);
+    context->environment = muiDefaultEnvironment();
+    muiStyleStore* style = &context->style;
+    style->nodes = (muiNodeStyle*)(base + parts->nodeStyles);
+    muiPoolInit(&style->classPool, (muiPoolSlot*)(base + parts->classSlots), limits->styles);
+    style->classes = (muiStyleClass*)(base + parts->classes);
+    muiPoolInit(&style->typePool, (muiPoolSlot*)(base + parts->typeSlots), limits->nodeTypes);
+    style->types = (muiClassList*)(base + parts->types);
+    muiPoolInit(&style->setPool, (muiPoolSlot*)(base + parts->setSlots), limits->propertySets);
+    style->sets = (muiPropertySet*)(base + parts->sets);
+    muiNotifyInit(&context->notifications, (muiNotification*)(base + parts->notifications),
+                  limits->notifications);
+    muiAnimationStore* animations = &context->animations;
+    muiPoolInit(&animations->specPool, (muiPoolSlot*)(base + parts->specSlots),
+                limits->transitions);
+    animations->specs = (muiTransitionSpec*)(base + parts->specs);
+    muiPoolInit(&animations->pool, (muiPoolSlot*)(base + parts->recordSlots), limits->animations);
+    animations->records = (muiAnimation*)(base + parts->records);
+    muiPoolInit(&context->tokens.pool, (muiPoolSlot*)(base + parts->tokenSlots), limits->tokens);
+    context->tokens.tokens = (muiToken*)(base + parts->tokens);
+    muiPoolInit(&style->namePool, (muiPoolSlot*)(base + parts->nameSlots), limits->tokenNames);
+    style->names = (muiTokenName*)(base + parts->names);
+    muiThemeStore* themes = &context->themes;
+    muiPoolInit(&themes->pool, (muiPoolSlot*)(base + parts->themeSlots), limits->themes);
+    themes->tables = (uint32_t*)(base + parts->themeTables);
+    themes->tokenCapacity = limits->tokens;
+    muiPoolInit(&themes->overridePool, (muiPoolSlot*)(base + parts->overrideSlots),
+                limits->themeOverrides);
+    themes->overrides = (muiThemeOverride*)(base + parts->overrides);
+    muiDrawStore* draw = &context->draw;
+    draw->states = (muiPaintState*)(base + parts->paintStates);
+    draw->commandCapacity = limits->drawCommands;
+    draw->clipCapacity = limits->drawClips + 1;
+    draw->gradientCapacity = limits->drawGradients + 1;
+    for (uint32_t i = 0; i < 2; i++)
+    {
+        draw->tables[i] = (muiDrawTables){
+            .commands = (muiDrawCommand*)(base + parts->drawCommands) + i * draw->commandCapacity,
+            .clips = (muiDrawClip*)(base + parts->drawClips) + i * draw->clipCapacity,
+            .gradients =
+                (muiDrawGradient*)(base + parts->drawGradients) + i * draw->gradientCapacity,
+            .clipCount = 1,
+            .gradientCount = 1,
+        };
+    }
+    draw->identity = (muiDrawTransform){1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
 }
 
 muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut)
@@ -181,67 +227,25 @@ muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut)
     {
         return mui_errorCapacity;
     }
-    unsigned char* block = muiAllocate(&def->allocator, layout.size, alignof(max_align_t));
+    // The allocator gives max_align_t; this much more reaches the cache
+    // line the parts are placed from.
+    size_t size = 0;
+    if (ckd_add(&size, layout.size, CACHE_LINE - alignof(max_align_t)))
+    {
+        return mui_errorCapacity;
+    }
+    unsigned char* block = muiAllocate(&def->allocator, size, alignof(max_align_t));
     if (block == nullptr)
     {
         return mui_errorCapacity;
     }
-    memset(block, 0, layout.size);
+    memset(block, 0, size);
+    unsigned char* base = block + (CACHE_LINE - (uintptr_t)block % CACHE_LINE) % CACHE_LINE;
+    MUI_ASSERT(base - block <= (ptrdiff_t)(CACHE_LINE - alignof(max_align_t)));
     muiContext* context = (muiContext*)block;
     context->allocator = def->allocator;
-    context->blockSize = layout.size;
-    muiTreeInit(&context->tree, (muiTreeNode*)(block + parts.nodes), def->limits.nodes);
-    context->layout = (muiLayoutNode*)(block + parts.layout);
-    context->visual = (muiVisualStyle*)(block + parts.visual);
-    context->text = (muiTextStyle*)(block + parts.text);
-    context->textRecords = (muiTextRecord*)(block + parts.textRecords);
-    context->environment = muiDefaultEnvironment();
-    muiStyleStore* style = &context->style;
-    style->nodes = (muiNodeStyle*)(block + parts.nodeStyles);
-    muiPoolInit(&style->classPool, (muiPoolSlot*)(block + parts.classSlots), def->limits.styles);
-    style->classes = (muiStyleClass*)(block + parts.classes);
-    muiPoolInit(&style->typePool, (muiPoolSlot*)(block + parts.typeSlots), def->limits.nodeTypes);
-    style->types = (muiClassList*)(block + parts.types);
-    muiPoolInit(&style->setPool, (muiPoolSlot*)(block + parts.setSlots), def->limits.propertySets);
-    style->sets = (muiPropertySet*)(block + parts.sets);
-    muiNotifyInit(&context->notifications, (muiNotification*)(block + parts.notifications),
-                  def->limits.notifications);
-    muiAnimationStore* animations = &context->animations;
-    muiPoolInit(&animations->specPool, (muiPoolSlot*)(block + parts.specSlots),
-                def->limits.transitions);
-    animations->specs = (muiTransitionSpec*)(block + parts.specs);
-    muiPoolInit(&animations->pool, (muiPoolSlot*)(block + parts.recordSlots),
-                def->limits.animations);
-    animations->records = (muiAnimation*)(block + parts.records);
-    muiPoolInit(&context->tokens.pool, (muiPoolSlot*)(block + parts.tokenSlots),
-                def->limits.tokens);
-    context->tokens.tokens = (muiToken*)(block + parts.tokens);
-    muiPoolInit(&style->namePool, (muiPoolSlot*)(block + parts.nameSlots), def->limits.tokenNames);
-    style->names = (muiTokenName*)(block + parts.names);
-    muiThemeStore* themes = &context->themes;
-    muiPoolInit(&themes->pool, (muiPoolSlot*)(block + parts.themeSlots), def->limits.themes);
-    themes->tables = (uint32_t*)(block + parts.themeTables);
-    themes->tokenCapacity = def->limits.tokens;
-    muiPoolInit(&themes->overridePool, (muiPoolSlot*)(block + parts.overrideSlots),
-                def->limits.themeOverrides);
-    themes->overrides = (muiThemeOverride*)(block + parts.overrides);
-    muiDrawStore* draw = &context->draw;
-    draw->states = (muiPaintState*)(block + parts.paintStates);
-    draw->commandCapacity = def->limits.drawCommands;
-    draw->clipCapacity = def->limits.drawClips + 1;
-    draw->gradientCapacity = def->limits.drawGradients + 1;
-    for (uint32_t i = 0; i < 2; i++)
-    {
-        draw->tables[i] = (muiDrawTables){
-            .commands = (muiDrawCommand*)(block + parts.drawCommands) + i * draw->commandCapacity,
-            .clips = (muiDrawClip*)(block + parts.drawClips) + i * draw->clipCapacity,
-            .gradients =
-                (muiDrawGradient*)(block + parts.drawGradients) + i * draw->gradientCapacity,
-            .clipCount = 1,
-            .gradientCount = 1,
-        };
-    }
-    draw->identity = (muiDrawTransform){1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
+    context->blockSize = size;
+    Place(context, base, &parts, &def->limits);
     *contextOut = context;
     return mui_success;
 }

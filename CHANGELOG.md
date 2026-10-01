@@ -10,6 +10,9 @@ format.
 
 ### Changed
 
+- A context's parts start on 64-byte cache lines, so drawing no longer
+  slows by up to 30% when an unrelated part of the context changes
+  size; a context takes up to about 2 KB more.
 - Property ids come in groups of 64, one per values struct: visual ids
   move from 40 to 56 to 64 to 80, and `MUI_VISUAL_PROPERTIES` is the
   visual group's mask. `muiStyle_ResetProperties`,
