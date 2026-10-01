@@ -10,18 +10,21 @@ condition:
 easing:
 motion_math:
 spring: motion_math
+animation: easing layout_node pool property spring style_store tree
+style_edit: context pool style_store tree
+transition: animation context easing pool property style_edit style_store
 notify:
 style_store: pool property
 sizing:
 tree: invariant
 solver: layout_node tree
-context: allocator invariant layout_node notify pool style_store tree
+context: allocator animation invariant layout_node notify pool style_store tree
 node: context layout_node style_store tree
-node_style: context layout_node pool property style_store tree
-style: condition context pool property style_store tree
-restyle: condition context layout_node notify pool property style_store tree
+node_style: animation context layout_node pool property style_store tree
+style: condition context pool property style_edit style_store tree
+restyle: animation condition context layout_node notify pool property style_store tree
 flex_resolve: layout_node tree
 flex: flex_resolve layout_node sizing solver tree
 absolute: layout_node sizing solver tree
 solve: absolute condition flex invariant layout_node sizing solver tree
-layout: context layout_node property restyle solve solver tree
+layout: animation context layout_node property restyle solve solver tree

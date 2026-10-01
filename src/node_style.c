@@ -5,6 +5,7 @@
 // states, which the next layout resolves, and its direct writes, which
 // take effect at once because nothing can win over them.
 
+#include "animation.h"
 #include "context.h"
 #include "layout_node.h"
 #include "pool.h"
@@ -104,6 +105,16 @@ muiResult muiNode_SetLayoutValues(muiContext* context, muiNodeId nodeId,
     uint32_t slot = muiResolveEdit(context, nodeId, &status);
     if (slot != 0)
     {
+        const muiMotion motion = {&context->animations, context->layout, context->style.nodes,
+                                  &context->tree};
+        for (uint32_t p = 0; p < mui_propertyCount; p++)
+        {
+            if ((mask & MUI_PROPERTY_BIT(p)) != 0)
+            {
+                // A direct write applies at once.
+                muiStopAnimation(&motion, slot, (muiProperty)p);
+            }
+        }
         muiLayoutNode* layout = &context->layout[slot - 1];
         muiApplyProperties(&layout->style, values, mask);
         muiSyncLayoutNode(layout);

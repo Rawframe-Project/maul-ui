@@ -25,7 +25,9 @@ muiContextDef muiDefaultContextDef(void)
                    .styles = 256,
                    .nodeTypes = 64,
                    .propertySets = 1024,
-                   .notifications = 64},
+                   .notifications = 64,
+                   .transitions = 64,
+                   .animations = 256},
     };
 }
 
@@ -33,7 +35,8 @@ static bool AreLimitsValid(const muiLimits* limits)
 {
     return limits->nodes != 0 && limits->nodes <= MAX_SLOTS && limits->styles <= MAX_SLOTS &&
            limits->nodeTypes <= MAX_SLOTS && limits->propertySets <= MAX_SLOTS &&
-           limits->notifications <= MAX_SLOTS;
+           limits->notifications <= MAX_SLOTS && limits->transitions <= MAX_SLOTS &&
+           limits->animations <= MAX_SLOTS;
 }
 
 // Where each part of the context's block starts.
@@ -49,6 +52,10 @@ typedef struct Parts
     size_t setSlots;
     size_t sets;
     size_t notifications;
+    size_t specSlots;
+    size_t specs;
+    size_t recordSlots;
+    size_t records;
 } Parts;
 
 static Parts LayOut(muiLayout* layout, const muiLimits* limits)
@@ -77,6 +84,14 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
                              alignof(muiPropertySet)),
         .notifications = muiLayoutAdd(layout, limits->notifications, sizeof(muiNotification),
                                       alignof(muiNotification)),
+        .specSlots =
+            muiLayoutAdd(layout, limits->transitions, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
+        .specs = muiLayoutAdd(layout, limits->transitions, sizeof(muiTransitionSpec),
+                              alignof(muiTransitionSpec)),
+        .recordSlots =
+            muiLayoutAdd(layout, limits->animations, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
+        .records =
+            muiLayoutAdd(layout, limits->animations, sizeof(muiAnimation), alignof(muiAnimation)),
     };
 }
 
@@ -119,6 +134,13 @@ muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut)
     style->sets = (muiPropertySet*)(block + parts.sets);
     muiNotifyInit(&context->notifications, (muiNotification*)(block + parts.notifications),
                   def->limits.notifications);
+    muiAnimationStore* animations = &context->animations;
+    muiPoolInit(&animations->specPool, (muiPoolSlot*)(block + parts.specSlots),
+                def->limits.transitions);
+    animations->specs = (muiTransitionSpec*)(block + parts.specs);
+    muiPoolInit(&animations->pool, (muiPoolSlot*)(block + parts.recordSlots),
+                def->limits.animations);
+    animations->records = (muiAnimation*)(block + parts.records);
     *contextOut = context;
     return mui_success;
 }

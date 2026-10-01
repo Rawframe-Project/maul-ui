@@ -300,6 +300,10 @@ extern "C"
         // Sizes host content; NULL sizes it as empty.
         muiMeasureFunction measure;
         void* measureUser;
+        // Now, in nanoseconds on a monotonic clock, as Maul Window stamps
+        // events: running transitions move to it. A time before the last
+        // counts as no time passed.
+        uint64_t timeNs;
     } muiLayoutInput;
 
     /// Returns the default layout style: CSS's initial values (row, one
@@ -375,8 +379,9 @@ extern "C"
                                                      const muiLayoutInput* input);
 
     /// Returns whether muiComputeLayout on a root has work to do: an edit
-    /// below it since its last run, or a node whose conditions read a size
-    /// or direction that run changed, which a following run styles again.
+    /// below it since its last run, a node whose conditions read a size or
+    /// direction that run changed, which a following run styles again, or
+    /// a transition running below it.
     ///
     /// @param context  The context.
     /// @param rootId   The root.

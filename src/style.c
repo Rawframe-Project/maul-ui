@@ -12,45 +12,14 @@
 #include "context.h"
 #include "pool.h"
 #include "property.h"
+#include "style_edit.h"
 #include "style_store.h"
 #include "tree.h"
-
-static void RestyleAll(muiContext* context)
-{
-    context->styleEdits++;
-    muiTreeMarkAll(&context->tree, mui_stageStyle);
-}
-
-// Whether a call that edits style must be refused outright.
-static bool IsEditRefused(const muiContext* context, uint32_t index1)
-{
-    return index1 == 0 || muiIsMeasuring(context);
-}
-
-// The slot of a live class for an edit, or 0 with the status in statusOut.
-static uint32_t ResolveClassEdit(muiContext* context, muiStyleId styleId, muiResult* statusOut)
-{
-    if (IsEditRefused(context, styleId.index1))
-    {
-        *statusOut = muiRefuse(context);
-        return 0;
-    }
-    uint32_t slot = muiPoolResolve(&context->style.classPool, styleId.index1, styleId.generation);
-    *statusOut = slot != 0 ? mui_success : mui_errorStale;
-    return slot;
-}
-
-// Whether variant is the base, a state or one of the class's conditions.
-static bool HasVariant(const muiStyleClass* class, muiVariant variant)
-{
-    return variant < mui_variantCondition0 ||
-           (uint32_t)(variant - mui_variantCondition0) < class->conditionCount;
-}
 
 // The condition of a variant that has one, or NULL.
 static const muiCondition* ConditionOf(const muiStyleClass* class, muiVariant variant)
 {
-    return variant >= mui_variantCondition0 && HasVariant(class, variant)
+    return variant >= mui_variantCondition0 && muiHasVariant(class, variant)
                ? &class->conditions[variant - mui_variantCondition0]
                : nullptr;
 }
@@ -88,7 +57,7 @@ muiResult muiDestroyStyle(muiContext* context, muiStyleId styleId)
         return mui_errorInvalid;
     }
     muiResult status = mui_success;
-    uint32_t slot = ResolveClassEdit(context, styleId, &status);
+    uint32_t slot = muiResolveClassEdit(context, styleId, &status);
     if (slot == 0)
     {
         return status;
@@ -103,7 +72,7 @@ muiResult muiDestroyStyle(muiContext* context, muiStyleId styleId)
         }
     }
     muiPoolGive(&store->classPool, slot);
-    RestyleAll(context);
+    muiRestyleAll(context);
     return mui_success;
 }
 
@@ -119,7 +88,7 @@ muiResult muiStyle_SetLayoutValues(muiContext* context, muiStyleId styleId, muiV
         return muiRefuse(context);
     }
     muiResult status = mui_success;
-    uint32_t slot = ResolveClassEdit(context, styleId, &status);
+    uint32_t slot = muiResolveClassEdit(context, styleId, &status);
     if (slot == 0)
     {
         return status;
@@ -127,25 +96,19 @@ muiResult muiStyle_SetLayoutValues(muiContext* context, muiStyleId styleId, muiV
     muiStyleStore* store = &context->style;
     muiStyleClass* class = &store->classes[slot - 1];
     const muiCondition* condition = ConditionOf(class, variant);
-    if (!HasVariant(class, variant) ||
+    if (!muiHasVariant(class, variant) ||
         (condition != nullptr && (mask & muiForbiddenProperties(condition)) != 0))
     {
         return muiRefuse(context);
     }
-    uint32_t* set = &class->sets[variant];
-    if (*set == 0)
+    muiPropertySet* target = muiTakeVariantSet(store, class, variant);
+    if (target == nullptr)
     {
-        *set = muiPoolTake(&store->setPool);
-        if (*set == 0)
-        {
-            return mui_errorCapacity;
-        }
-        store->sets[*set - 1] = (muiPropertySet){0};
+        return mui_errorCapacity;
     }
-    muiPropertySet* target = &store->sets[*set - 1];
     muiApplyProperties(&target->values, values, mask);
     target->mask |= mask;
-    RestyleAll(context);
+    muiRestyleAll(context);
     return mui_success;
 }
 
@@ -161,28 +124,23 @@ muiResult muiStyle_ResetProperties(muiContext* context, muiStyleId styleId, muiV
         return muiRefuse(context);
     }
     muiResult status = mui_success;
-    uint32_t slot = ResolveClassEdit(context, styleId, &status);
+    uint32_t slot = muiResolveClassEdit(context, styleId, &status);
     if (slot == 0)
     {
         return status;
     }
     muiStyleStore* store = &context->style;
-    if (!HasVariant(&store->classes[slot - 1], variant))
+    if (!muiHasVariant(&store->classes[slot - 1], variant))
     {
         return muiRefuse(context);
     }
-    uint32_t* set = &store->classes[slot - 1].sets[variant];
-    if (*set != 0)
+    muiStyleClass* class = &store->classes[slot - 1];
+    if (class->sets[variant] != 0)
     {
-        store->sets[*set - 1].mask &= ~mask;
-        // A variant with nothing left gives its set back.
-        if (store->sets[*set - 1].mask == 0)
-        {
-            muiPoolGive(&store->setPool, *set);
-            *set = 0;
-        }
+        store->sets[class->sets[variant] - 1].mask &= ~mask;
+        muiReleaseEmptySet(store, class, variant);
     }
-    RestyleAll(context);
+    muiRestyleAll(context);
     return mui_success;
 }
 
@@ -200,7 +158,7 @@ muiResult muiStyle_GetLayoutValues(const muiContext* context, muiStyleId styleId
     {
         return mui_errorStale;
     }
-    if (!HasVariant(&store->classes[slot - 1], variant))
+    if (!muiHasVariant(&store->classes[slot - 1], variant))
     {
         return mui_errorInvalid;
     }
@@ -231,7 +189,7 @@ muiResult muiStyle_AddCondition(muiContext* context, muiStyleId styleId,
         return muiRefuse(context);
     }
     muiResult status = mui_success;
-    uint32_t slot = ResolveClassEdit(context, styleId, &status);
+    uint32_t slot = muiResolveClassEdit(context, styleId, &status);
     if (slot == 0)
     {
         return status;
@@ -244,7 +202,7 @@ muiResult muiStyle_AddCondition(muiContext* context, muiStyleId styleId,
     class->conditions[class->conditionCount] = *condition;
     *variantOut = (muiVariant)(mui_variantCondition0 + class->conditionCount);
     class->conditionCount++;
-    RestyleAll(context);
+    muiRestyleAll(context);
     return mui_success;
 }
 
@@ -260,7 +218,7 @@ muiResult muiStyle_SetCondition(muiContext* context, muiStyleId styleId, muiVari
         return muiRefuse(context);
     }
     muiResult status = mui_success;
-    uint32_t slot = ResolveClassEdit(context, styleId, &status);
+    uint32_t slot = muiResolveClassEdit(context, styleId, &status);
     if (slot == 0)
     {
         return status;
@@ -278,7 +236,7 @@ muiResult muiStyle_SetCondition(muiContext* context, muiStyleId styleId, muiVari
         return muiRefuse(context);
     }
     class->conditions[variant - mui_variantCondition0] = *condition;
-    RestyleAll(context);
+    muiRestyleAll(context);
     return mui_success;
 }
 
@@ -311,7 +269,7 @@ muiResult muiStyle_ClearConditions(muiContext* context, muiStyleId styleId)
         return mui_errorInvalid;
     }
     muiResult status = mui_success;
-    uint32_t slot = ResolveClassEdit(context, styleId, &status);
+    uint32_t slot = muiResolveClassEdit(context, styleId, &status);
     if (slot == 0)
     {
         return status;
@@ -328,7 +286,7 @@ muiResult muiStyle_ClearConditions(muiContext* context, muiStyleId styleId)
         }
     }
     class->conditionCount = 0;
-    RestyleAll(context);
+    muiRestyleAll(context);
     return mui_success;
 }
 
@@ -348,7 +306,7 @@ muiResult muiSetContextEnvironment(muiContext* context, const muiEnvironment* en
         current->reducedMotion != environment->reducedMotion)
     {
         context->environment = *environment;
-        RestyleAll(context);
+        muiRestyleAll(context);
     }
     return mui_success;
 }
@@ -389,7 +347,7 @@ muiResult muiCreateNodeType(muiContext* context, const muiStyleId* classes, uint
 // statusOut.
 static uint32_t ResolveTypeEdit(muiContext* context, muiNodeTypeId typeId, muiResult* statusOut)
 {
-    if (IsEditRefused(context, typeId.index1))
+    if (typeId.index1 == 0 || muiIsMeasuring(context))
     {
         *statusOut = muiRefuse(context);
         return 0;
@@ -410,7 +368,7 @@ muiResult muiDestroyNodeType(muiContext* context, muiNodeTypeId typeId)
     if (slot != 0)
     {
         muiPoolGive(&context->style.typePool, slot);
-        RestyleAll(context);
+        muiRestyleAll(context);
     }
     return status;
 }
@@ -431,7 +389,7 @@ muiResult muiNodeType_SetClasses(muiContext* context, muiNodeTypeId typeId,
     if (slot != 0)
     {
         muiSetClassList(&context->style.types[slot - 1], classes, count);
-        RestyleAll(context);
+        muiRestyleAll(context);
     }
     return status;
 }

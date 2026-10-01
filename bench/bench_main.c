@@ -193,7 +193,7 @@ static double Time(Scene* scene, float width, bool changeLeaf)
         Check(muiNode_MarkContentChanged(scene->context, scene->leaf), "mark");
     }
     scene->measured = 0;
-    muiLayoutInput input = {width, 100000.0f, MeasureLabel, &scene->measured};
+    muiLayoutInput input = {width, 100000.0f, MeasureLabel, &scene->measured, 0};
     double start = Seconds();
     muiResult status = muiComputeLayout(scene->context, scene->root, &input);
     double elapsed = Seconds() - start;

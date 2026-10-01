@@ -98,7 +98,7 @@ static muiDimension Length(float offset)
 
 static muiLayoutInput Input(Host* host)
 {
-    return (muiLayoutInput){400.0f, 300.0f, Measure, host};
+    return (muiLayoutInput){400.0f, 300.0f, Measure, host, 0};
 }
 
 static void TestDefaultsAreCssInitialValues(void)
@@ -318,7 +318,7 @@ static void CheckShrunkTexts(bool nested)
     muiNodeId narrow = MakeText(context, line, TextKey(40, 20));
     // The row takes its min-content width, 50, and shrinks the texts to
     // it by their natural widths.
-    muiLayoutInput input = {10.0f, 300.0f, MeasureText, NULL};
+    muiLayoutInput input = {10.0f, 300.0f, MeasureText, NULL, 0};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
     muiRect a = muiNode_GetRect(context, wide);
     muiRect b = muiNode_GetRect(context, narrow);
@@ -347,7 +347,7 @@ static void CheckTextFollowsSpace(float first, float second)
     column.sizing.width = (muiDimension){1.0f, 0.0f, mui_dimensionValue};
     muiNodeId root = MakeNode(context, &column);
     muiNodeId text = MakeText(context, root, TextKey(100, 10));
-    muiLayoutInput input = {first, 300.0f, MeasureText, NULL};
+    muiLayoutInput input = {first, 300.0f, MeasureText, NULL, 0};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
     CHECK(muiNode_GetRect(context, text).width == fminf(first, 100.0f), "first space");
     input.availableWidth = second;

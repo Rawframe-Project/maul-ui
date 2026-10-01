@@ -8,6 +8,7 @@
 
 #include "restyle.h"
 
+#include "animation.h"
 #include "condition.h"
 #include "layout_node.h"
 #include "notify.h"
@@ -50,18 +51,45 @@ static Classes ClassesOf(const muiStyleStore* store, const muiNodeStyle* node)
     return classes;
 }
 
-// Applies one variant of every class, in class order, to the properties
-// free names.
+// What resolution gives a node: its values, and for each property the
+// spec its change takes, from the same layers.
+typedef struct Resolution
+{
+    muiLayoutStyle values;
+    // Read only for the properties named holds, so it is never cleared.
+    muiTransitionId transitions[mui_propertyCount];
+    // The properties a layer named a spec for.
+    muiPropertyMask named;
+} Resolution;
+
+// Applies a set's values and transitions to the properties free names.
+static void ApplySet(const muiPropertySet* set, muiPropertyMask free, Resolution* resolution)
+{
+    muiApplyProperties(&resolution->values, &set->values, set->mask & free);
+    for (uint32_t i = 0; i < set->bindingCount; i++)
+    {
+        muiPropertyMask mask = set->bindings[i].mask & free;
+        resolution->named |= mask;
+        for (uint32_t p = 0; mask != 0 && p < mui_propertyCount; p++)
+        {
+            if ((mask & MUI_PROPERTY_BIT(p)) != 0)
+            {
+                resolution->transitions[p] = set->bindings[i].transition;
+            }
+        }
+    }
+}
+
+// Applies one variant of every class, in class order.
 static void ApplyVariant(const muiStyleStore* store, const Classes* classes, muiVariant variant,
-                         muiPropertyMask free, muiLayoutStyle* values)
+                         muiPropertyMask free, Resolution* resolution)
 {
     for (uint32_t i = 0; i < classes->count; i++)
     {
         uint32_t set = store->classes[classes->slots[i] - 1].sets[variant];
         if (set != 0)
         {
-            const muiPropertySet* source = &store->sets[set - 1];
-            muiApplyProperties(values, &source->values, source->mask & free);
+            ApplySet(&store->sets[set - 1], free, resolution);
         }
     }
 }
@@ -71,7 +99,7 @@ static void ApplyVariant(const muiStyleStore* store, const Classes* classes, mui
 // read and returns the run: which held, as one bit per condition with
 // values in that order (folded past 64), and the size read.
 static muiConditionRun ApplyConditions(muiContext* context, uint32_t slot, const Classes* classes,
-                                       muiPropertyMask free, muiLayoutStyle* values)
+                                       muiPropertyMask free, Resolution* resolution)
 {
     const muiStyleStore* store = &context->style;
     muiLayoutNode* layout = &context->layout[slot - 1];
@@ -97,8 +125,7 @@ static muiConditionRun ApplyConditions(muiContext* context, uint32_t slot, const
             reads |= muiConditionReadsOf(&class->conditions[k]);
             if (muiConditionHolds(&class->conditions[k], &sample))
             {
-                const muiPropertySet* source = &store->sets[set - 1];
-                muiApplyProperties(values, &source->values, source->mask & free);
+                ApplySet(&store->sets[set - 1], free, resolution);
                 run.outcome |= (uint64_t)1 << (position % 64);
             }
             position++;
@@ -166,9 +193,97 @@ static void NoteHostEdit(muiContext* context, uint32_t slot)
     }
 }
 
+static muiMotion MotionOf(muiContext* context)
+{
+    return (muiMotion){&context->animations, context->layout, context->style.nodes, &context->tree};
+}
+
+// Whether a node's property is to change: its new value differs from
+// where it is going, the target of its running transition or its value.
+static bool IsChange(const muiMotion* motion, uint32_t slot, const muiLayoutStyle* values,
+                     muiProperty property)
+{
+    uint32_t record = muiFindAnimation(motion, slot, property);
+    if (record == 0)
+    {
+        return muiDoPropertiesDiffer(values, &motion->nodes[slot - 1].style,
+                                     MUI_PROPERTY_BIT(property));
+    }
+    float target[2] = {0.0f, 0.0f};
+    uint32_t channels = muiPropertyChannels(values, property, target);
+    const muiAnimation* animation = &motion->store->records[record - 1];
+    return channels != animation->channels || target[0] != animation->to[0] ||
+           (channels == 2 && target[1] != animation->to[1]);
+}
+
+// Moves a changed property with its transition when it has one that can
+// move it; false when the change is to apply at once.
+static bool Transition(muiContext* context, uint32_t slot, const Resolution* resolution,
+                       muiProperty property, uint64_t nowNs)
+{
+    if ((resolution->named & MUI_PROPERTY_BIT(property)) == 0 || context->environment.reducedMotion)
+    {
+        return false;
+    }
+    const muiTransitionSpec* spec =
+        muiFindSpec(&context->animations, resolution->transitions[property]);
+    if (spec == nullptr)
+    {
+        return false;
+    }
+    float current[2] = {0.0f, 0.0f};
+    float target[2] = {0.0f, 0.0f};
+    uint32_t from = muiPropertyChannels(&context->layout[slot - 1].style, property, current);
+    uint32_t to = muiPropertyChannels(&resolution->values, property, target);
+    muiMotion motion = MotionOf(context);
+    return from != 0 && from == to &&
+           muiStartAnimation(&motion, slot, property, target, spec, nowNs);
+}
+
+// Gives a node its resolved values: at once, or through the transitions
+// the changes take.
+static void Commit(muiContext* context, uint32_t slot, const Resolution* resolution,
+                   muiPropertyMask free, uint64_t nowNs)
+{
+    muiLayoutNode* layout = &context->layout[slot - 1];
+    bool changed = false;
+    if (resolution->named == 0 && context->style.nodes[slot - 1].firstAnimation == 0)
+    {
+        changed = muiDoPropertiesDiffer(&resolution->values, &layout->style, free);
+        if (changed)
+        {
+            layout->style = resolution->values;
+        }
+    }
+    else
+    {
+        // Each property reads and writes only its own field, so changes
+        // apply in place.
+        muiMotion motion = MotionOf(context);
+        for (uint32_t p = 0; p < mui_propertyCount; p++)
+        {
+            muiProperty property = (muiProperty)p;
+            if ((free & MUI_PROPERTY_BIT(p)) == 0 ||
+                !IsChange(&motion, slot, &resolution->values, property) ||
+                Transition(context, slot, resolution, property, nowNs))
+            {
+                continue;
+            }
+            muiStopAnimation(&motion, slot, property);
+            muiApplyProperties(&layout->style, &resolution->values, MUI_PROPERTY_BIT(p));
+            changed = true;
+        }
+    }
+    if (changed)
+    {
+        muiSyncLayoutNode(layout);
+        muiTreeMarkLayout(&context->tree, slot);
+    }
+}
+
 // Resolves the properties a node does not write directly; the direct
 // ones already hold their values, which are carried over.
-static void Resolve(muiContext* context, uint32_t slot)
+static void Resolve(muiContext* context, uint32_t slot, uint64_t nowNs)
 {
     NoteHostEdit(context, slot);
     const muiStyleStore* store = &context->style;
@@ -180,32 +295,29 @@ static void Resolve(muiContext* context, uint32_t slot)
     {
         return;
     }
-    muiLayoutStyle values = *muiLayoutDefaults();
-    muiApplyProperties(&values, &layout->style, node->direct);
+    Resolution resolution;
+    resolution.values = *muiLayoutDefaults();
+    resolution.named = 0;
+    muiApplyProperties(&resolution.values, &layout->style, node->direct);
     Classes classes = ClassesOf(store, node);
-    ApplyVariant(store, &classes, mui_variantBase, free, &values);
+    ApplyVariant(store, &classes, mui_variantBase, free, &resolution);
     for (uint32_t v = mui_variantChecked; v < mui_variantCondition0; v++)
     {
         // Variant v belongs to state bit v - 1.
         if ((node->states & (1u << (v - 1))) != 0)
         {
-            ApplyVariant(store, &classes, (muiVariant)v, free, &values);
+            ApplyVariant(store, &classes, (muiVariant)v, free, &resolution);
         }
     }
-    muiConditionRun run = ApplyConditions(context, slot, &classes, free, &values);
+    muiConditionRun run = ApplyConditions(context, slot, &classes, free, &resolution);
     if (layout->conditionReads != 0)
     {
         Watch(context, slot, &run);
     }
-    if (muiDoPropertiesDiffer(&values, &layout->style, free))
-    {
-        layout->style = values;
-        muiSyncLayoutNode(layout);
-        muiTreeMarkLayout(&context->tree, slot);
-    }
+    Commit(context, slot, &resolution, free, nowNs);
 }
 
-void muiRestyle(muiContext* context, uint32_t root)
+void muiRestyle(muiContext* context, uint32_t root, uint64_t nowNs)
 {
     muiTree* tree = &context->tree;
     for (uint32_t at = muiTreeNextOwing(tree, root, 0, mui_stageStyle); at != 0;
@@ -213,7 +325,7 @@ void muiRestyle(muiContext* context, uint32_t root)
     {
         if ((muiTreeAt(tree, at)->dirty.request & mui_stageStyle) != 0)
         {
-            Resolve(context, at);
+            Resolve(context, at, nowNs);
         }
     }
     muiTreeSweep(tree, root, mui_stageStyle);

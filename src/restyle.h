@@ -11,8 +11,9 @@
 
 #include <stdint.h>
 
-// Resolves the requested nodes below root, marks layout on those whose
-// values changed, and clears the style flags of every node it reaches.
-void muiRestyle(muiContext* context, uint32_t root);
+// Resolves the requested nodes below root, starts the transitions their
+// changes take at nowNs, marks layout on those whose values changed, and
+// clears the style flags of every node it reaches.
+void muiRestyle(muiContext* context, uint32_t root, uint64_t nowNs);
 
 #endif // MAUL_UI_SRC_RESTYLE_H

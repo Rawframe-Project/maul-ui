@@ -67,6 +67,30 @@ for a fixed order in which a later layer always wins.
   limits of an axis it reads, the aspect ratio when it reads either
   axis, and the text direction when it reads direction. A write or a
   replacement condition that would is refused.
+- **Transitions are shared specs.** A spec is a context object, timed
+  (duration, delay, a CSS easing keyword or cubic Bezier) or a spring
+  (frequency, damping ratio). A class's variant names a spec for some
+  properties, and the spec a change takes is resolved through the same
+  layers as values, from the state after the change, as CSS reads
+  `transition` from the after-change style.
+- **Transitions run against host time.** `muiLayoutInput.timeNs` is
+  nanoseconds on a monotonic clock; a time before the last counts as
+  none. Each run moves running transitions to now, styles (starting and
+  retargeting transitions from where values are), and moves them once
+  more so that one of no length ends in the same run. Numbers, and
+  dimensions that are Scale+Offset on both sides, move; enumerators and
+  changes to or from automatic apply at once, as do all changes under
+  reduced motion, which also ends running ones. A timed transition
+  follows its easing from the current value; a reversal is shortened by
+  the share the old one covered, as CSS shortens it. A spring starts
+  from the current value and speed, so a new target keeps its momentum,
+  and rests on its target exactly. Values a property does not allow (a
+  spring's overshoot below 0 for a length) are held at its bounds.
+- **Running transitions are pooled records.** The context reserves them
+  up to a limit; a change that finds none free applies at once. A
+  direct write stops the transition of its property. A record whose
+  node is gone is freed when transitions next move. While one runs
+  below a root, `muiIsUpdatePending` holds.
 - **Direct writes win until reset.** The node keeps which properties
   it writes directly, and their values are its resolved ones: a direct
   write takes effect at once, and resolution leaves those properties

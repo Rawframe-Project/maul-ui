@@ -71,6 +71,10 @@ typedef struct muiNodeStyle
     // The stylings since the host last restyled the node, newest first.
     muiConditionRun history[MUI_CONDITION_HISTORY];
     uint32_t historyCount;
+    // The node's first running transition, a record of the animation
+    // pool; 0 for none. Here, not with layout's values, which every
+    // layout walk reads.
+    uint32_t firstAnimation;
 } muiNodeStyle;
 
 typedef struct muiStyleStore

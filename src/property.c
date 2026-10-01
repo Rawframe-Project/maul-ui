@@ -227,3 +227,60 @@ bool muiDoPropertiesDiffer(const muiLayoutStyle* a, const muiLayoutStyle* b, mui
     }
     return false;
 }
+
+uint32_t muiPropertyChannels(const muiLayoutStyle* style, muiProperty property, float out[2])
+{
+    const Row* row = &s_rows[property];
+    switch (row->kind)
+    {
+    case kindEnum:
+        return 0;
+    case kindDimension:
+    {
+        muiDimension value = DimensionAt(style, row);
+        if (value.kind != mui_dimensionValue)
+        {
+            return 0;
+        }
+        out[0] = value.scale;
+        out[1] = value.offset;
+        return 2;
+    }
+    default:
+        out[0] = NumberAt(style, row);
+        return 1;
+    }
+}
+
+void muiSetPropertyChannels(muiLayoutStyle* style, muiProperty property, const float values[2])
+{
+    const Row* row = &s_rows[property];
+    void* at = AtMutable(style, row);
+    switch (row->kind)
+    {
+    case kindEnum:
+        break;
+    case kindDimension:
+    {
+        const muiDimension value = {values[0], values[1], mui_dimensionValue};
+        memcpy(at, &value, sizeof value);
+        break;
+    }
+    case kindLength:
+    {
+        // A spring can overshoot below 0.
+        const float value = fmaxf(values[0], 0.0f);
+        memcpy(at, &value, sizeof value);
+        break;
+    }
+    case kindFraction:
+    {
+        const float value = fminf(fmaxf(values[0], 0.0f), 1.0f);
+        memcpy(at, &value, sizeof value);
+        break;
+    }
+    default:
+        memcpy(at, &values[0], sizeof values[0]);
+        break;
+    }
+}

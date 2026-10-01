@@ -48,3 +48,8 @@ format.
   easing solved with fixed iteration counts, and a closed-form spring,
   for transitions; `tools/source-bans.txt` keeps `src/` off the C
   library's transcendental functions.
+- Transitions (`maul-ui/transition.h`): timed and spring specs named by
+  class variants and resolved through the style layers, run against the
+  host's `muiLayoutInput.timeNs`, with CSS reversal shortening, springs
+  that keep their speed, reduced motion, and new `transitions` and
+  `animations` limits.

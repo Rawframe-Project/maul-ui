@@ -41,6 +41,7 @@ else()
 endif()
 add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/absolute.c
+    src/animation.c
     src/allocator.c
     src/base.c
     src/condition.c
@@ -59,6 +60,8 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/solve.c
     src/spring.c
     src/style.c
+    src/style_edit.c
+    src/transition.c
     src/tree.c)
 maul_configure_library(maul-ui)
 # fmaxf, fminf and fabsf, the exactly rounded functions the solver takes
@@ -77,6 +80,7 @@ if(MAUL_UI_BUILD_TESTS)
     maul_add_test(motion WHITEBOX)
     maul_add_test(node)
     maul_add_test(style)
+    maul_add_test(transition)
     maul_add_test(tree WHITEBOX)
     # winnls.h defines MUI_ macros; this checks that none clash (family
     # record 0007).

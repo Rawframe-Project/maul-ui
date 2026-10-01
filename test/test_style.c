@@ -98,7 +98,7 @@ static void SetWidth(muiContext* context, muiStyleId style, muiVariant variant, 
 
 static void Compute(muiContext* context, muiNodeId root, Host* host)
 {
-    muiLayoutInput input = {400.0f, 300.0f, Measure, host};
+    muiLayoutInput input = {400.0f, 300.0f, Measure, host, 0};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "compute");
 }
 
@@ -581,7 +581,7 @@ static void TestStyleEditsAreRefusedWhileMeasuring(void)
     muiLayoutStyle content = muiDefaultLayoutStyle();
     content.content = mui_contentHost;
     CHECK(muiNode_SetLayoutStyle(context, node, &content) == mui_success, "host content");
-    muiLayoutInput input = {100.0f, 100.0f, MeasureAndEdit, &host};
+    muiLayoutInput input = {100.0f, 100.0f, MeasureAndEdit, &host, 0};
     CHECK(muiComputeLayout(context, node, &input) == mui_success, "compute");
     for (int i = 0; i < 4; i++)
     {

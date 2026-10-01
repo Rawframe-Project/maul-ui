@@ -6,6 +6,7 @@
 
 #include "maul-ui/layout.h"
 
+#include "animation.h"
 #include "context.h"
 #include "layout_node.h"
 #include "property.h"
@@ -96,7 +97,17 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
     {
         return muiRefuse(context);
     }
-    muiRestyle(context, root);
+    // Transitions move to now first, so that changes start from where
+    // values are; once more after styling, so that one with no length ends
+    // in this run.
+    uint64_t now = input->timeNs > context->lastTimeNs ? input->timeNs : context->lastTimeNs;
+    context->lastTimeNs = now;
+    const muiMotion motion = {&context->animations, context->layout, context->style.nodes,
+                              &context->tree};
+    bool finish = context->environment.reducedMotion;
+    muiAdvanceAnimations(&motion, now, finish);
+    muiRestyle(context, root, now);
+    muiAdvanceAnimations(&motion, now, finish);
     Invalidate(context, root);
     muiSolver solver = {
         .tree = &context->tree,
@@ -127,6 +138,7 @@ muiRect muiNode_GetRect(const muiContext* context, muiNodeId nodeId)
 bool muiIsUpdatePending(const muiContext* context, muiNodeId rootId)
 {
     uint32_t slot = context != nullptr ? muiTreeResolve(&context->tree, rootId) : 0;
-    return slot != 0 && (muiTreeAt(&context->tree, slot)->dirty.subtree &
-                         (mui_stageStyle | mui_stageLayout)) != 0;
+    return slot != 0 && ((muiTreeAt(&context->tree, slot)->dirty.subtree &
+                          (mui_stageStyle | mui_stageLayout)) != 0 ||
+                         muiIsAnimatingUnder(&context->animations, &context->tree, slot));
 }

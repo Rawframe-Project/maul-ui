@@ -33,6 +33,11 @@ extern "C"
         // Notifications waiting to be taken; past it, they are counted in a
         // mui_notificationDropped record.
         uint32_t notifications;
+        // Transition specs that exist at once, and transitions running at
+        // once; a change that finds no room for its transition applies at
+        // once.
+        uint32_t transitions;
+        uint32_t animations;
     } muiLimits;
 
     // How a context is made. Build it with muiDefaultContextDef.
@@ -44,8 +49,8 @@ extern "C"
     } muiContextDef;
 
     /// Returns the default context def: 4,096 nodes, 256 styles, 64 node
-    /// types, 1,024 property sets, 64 notifications and the C library's
-    /// allocator.
+    /// types, 1,024 property sets, 64 notifications, 64 transitions, 256
+    /// running transitions and the C library's allocator.
     ///
     /// @return The def, with a valid cookie.
     /// @par Thread safety
