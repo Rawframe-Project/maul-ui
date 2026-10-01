@@ -17,8 +17,12 @@ void muiColorToChannels(muiColor color, float channelsOut[4]);
 // 1; a color with no alpha is clear black.
 muiColor muiColorFromChannels(const float channels[4]);
 
+// A color's red, green and blue in linear light.
+void muiColorToLinearRgb(muiColor color, double rgbOut[3]);
+
 // A color in linear light, its alpha multiplied by opacity and its red,
-// green and blue premultiplied by that alpha, as the draw list carries it.
-muiLinearColor muiColorToLinear(muiColor color, float opacity);
+// green and blue premultiplied by that alpha, as the draw list carries it,
+// from its linear red, green and blue.
+muiLinearColor muiPremultiply(const double rgb[3], float alpha, float opacity);
 
 #endif // MAUL_UI_SRC_COLOR_H

@@ -66,10 +66,16 @@ muiColor muiColorFromChannels(const float channels[4])
                       (float)Unit(FromLinear(blue)), (float)alpha};
 }
 
-muiLinearColor muiColorToLinear(muiColor color, float opacity)
+void muiColorToLinearRgb(muiColor color, double rgbOut[3])
 {
-    double alpha = (double)color.a * (double)opacity;
-    return (muiLinearColor){(float)(ToLinear((double)color.r) * alpha),
-                            (float)(ToLinear((double)color.g) * alpha),
-                            (float)(ToLinear((double)color.b) * alpha), (float)alpha};
+    rgbOut[0] = ToLinear((double)color.r);
+    rgbOut[1] = ToLinear((double)color.g);
+    rgbOut[2] = ToLinear((double)color.b);
+}
+
+muiLinearColor muiPremultiply(const double rgb[3], float alpha, float opacity)
+{
+    double scale = (double)alpha * (double)opacity;
+    return (muiLinearColor){(float)(rgb[0] * scale), (float)(rgb[1] * scale),
+                            (float)(rgb[2] * scale), (float)scale};
 }

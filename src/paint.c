@@ -31,12 +31,12 @@ enum
     COLOR_CACHE = 64
 };
 
+// A color's bits and its red, green and blue in linear light. A zeroed
+// entry holds clear black, whose are 0.
 typedef struct CachedColor
 {
-    muiColor color;
-    float opacity;
-    muiLinearColor linear;
-    bool used;
+    uint32_t bits[4];
+    double rgb[3];
 } CachedColor;
 
 // What one build writes to, and whether something did not fit.
@@ -49,30 +49,24 @@ typedef struct Painter
     CachedColor colors[COLOR_CACHE];
 } Painter;
 
-static bool SameBits(const void* a, const void* b, size_t size)
-{
-    return memcmp(a, b, size) == 0;
-}
-
-// A color in linear light times opacity, from the cache when a node
-// before converted the same bits.
+// A color in linear light times opacity, converted from the cache when a
+// node before converted the same bits.
 static muiLinearColor Linear(Painter* painter, muiColor color, float opacity)
 {
-    uint32_t words[5];
+    uint32_t words[4];
     memcpy(words, &color, sizeof color);
-    memcpy(&words[4], &opacity, sizeof opacity);
     uint32_t hash = 2166136261u;
-    for (uint32_t i = 0; i < 5; i++)
+    for (uint32_t i = 0; i < 4; i++)
     {
         hash = (hash ^ words[i]) * 16777619u;
     }
     CachedColor* entry = &painter->colors[hash % COLOR_CACHE];
-    if (!entry->used || !SameBits(&entry->color, &color, sizeof color) ||
-        !SameBits(&entry->opacity, &opacity, sizeof opacity))
+    if (memcmp(entry->bits, words, sizeof words) != 0)
     {
-        *entry = (CachedColor){color, opacity, muiColorToLinear(color, opacity), true};
+        memcpy(entry->bits, words, sizeof words);
+        muiColorToLinearRgb(color, entry->rgb);
     }
-    return entry->linear;
+    return muiPremultiply(entry->rgb, color.a, opacity);
 }
 
 // An edge at the nearest device pixel, halves away from the origin's
