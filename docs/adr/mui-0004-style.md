@@ -80,7 +80,9 @@ for a fixed order in which a later layer always wins.
   more so that one of no length ends in the same run. Numbers, and
   dimensions that are Scale+Offset on both sides, move; enumerators and
   changes to or from automatic apply at once, as do all changes under
-  reduced motion, which also ends running ones. A timed transition
+  reduced motion, which also ends running ones, and a node's first
+  styling, which has nothing to move from (CSS starts no transition for
+  an element without a before-change style). A timed transition
   follows its easing from the current value; a reversal is shortened by
   the share the old one covered, as CSS shortens it. A spring starts
   from the current value and speed, so a new target keeps its momentum,

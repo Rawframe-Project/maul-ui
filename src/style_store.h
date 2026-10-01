@@ -75,6 +75,10 @@ typedef struct muiNodeStyle
     // pool; 0 for none. Here, not with layout's values, which every
     // layout walk reads.
     uint32_t firstAnimation;
+    // Set once the node is styled: its first styling has nothing to move
+    // from, so it applies at once, as CSS starts no transition for an
+    // element without a before-change style.
+    bool styled;
 } muiNodeStyle;
 
 typedef struct muiStyleStore

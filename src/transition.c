@@ -167,9 +167,9 @@ static muiResult SetBinding(muiContext* context, muiStyleClass* class, muiVarian
     {
         return mui_errorCapacity;
     }
+    // A set that is full of bindings existed already, so none is wasted.
     if (!Bind(set, transition, mask))
     {
-        muiReleaseEmptySet(store, class, variant);
         return mui_errorCapacity;
     }
     return mui_success;

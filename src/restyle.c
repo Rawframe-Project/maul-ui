@@ -221,7 +221,8 @@ static bool IsChange(const muiMotion* motion, uint32_t slot, const muiLayoutStyl
 static bool Transition(muiContext* context, uint32_t slot, const Resolution* resolution,
                        muiProperty property, uint64_t nowNs)
 {
-    if ((resolution->named & MUI_PROPERTY_BIT(property)) == 0 || context->environment.reducedMotion)
+    if ((resolution->named & MUI_PROPERTY_BIT(property)) == 0 ||
+        context->environment.reducedMotion || !context->style.nodes[slot - 1].styled)
     {
         return false;
     }
@@ -293,6 +294,7 @@ static void Resolve(muiContext* context, uint32_t slot, uint64_t nowNs)
     layout->conditionReads = 0;
     if (free == 0)
     {
+        context->style.nodes[slot - 1].styled = true;
         return;
     }
     Resolution resolution;
@@ -315,6 +317,7 @@ static void Resolve(muiContext* context, uint32_t slot, uint64_t nowNs)
         Watch(context, slot, &run);
     }
     Commit(context, slot, &resolution, free, nowNs);
+    context->style.nodes[slot - 1].styled = true;
 }
 
 void muiRestyle(muiContext* context, uint32_t root, uint64_t nowNs)

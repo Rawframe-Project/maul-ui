@@ -405,7 +405,12 @@ static void TestSpringsStayInRange(void)
     CHECK(muiStyle_SetLayoutValues(context, style, mui_variantHovered, &values, PADDING_START) ==
               mui_success,
           "none when hovered");
-    Bind(context, style, mui_variantBase, MakeSpring(context, 3.0f, 0.2f), PADDING_START);
+    values.placement.anchorX = 1.0f;
+    CHECK(muiStyle_SetLayoutValues(context, style, mui_variantHovered, &values,
+                                   MUI_PROPERTY_BIT(mui_propertyAnchorX)) == mui_success,
+          "anchor 1 when hovered");
+    Bind(context, style, mui_variantBase, MakeSpring(context, 3.0f, 0.2f),
+         PADDING_START | MUI_PROPERTY_BIT(mui_propertyAnchorX));
     CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
     (void)WidthAt(context, node, T0);
     CHECK(muiNode_SetStates(context, node, mui_stateHovered) == mui_success, "hover");
@@ -415,9 +420,9 @@ static void TestSpringsStayInRange(void)
         (void)WidthAt(context, node, t);
         muiLayoutStyle read;
         CHECK(muiNode_GetLayoutStyle(context, node, &read) == mui_success, "read");
-        negative = negative || read.padding.start < 0.0f;
+        negative = negative || read.padding.start < 0.0f || read.placement.anchorX > 1.0f;
     }
-    CHECK(!negative, "an overshoot below 0 stops at 0");
+    CHECK(!negative, "overshoots stop at the bounds: 0 for a length, 1 for an anchor");
     muiDestroyContext(context);
 }
 
@@ -475,6 +480,11 @@ static void TestOnlyMovableValuesMove(void)
     CHECK(muiNode_GetLayoutStyle(context, node, &read) == mui_success &&
               read.container.justify == mui_justifyCenter,
           "to its new value");
+    CHECK(muiNode_SetStates(context, node, 0) == mui_success, "unhover");
+    CHECK(WidthAt(context, node, T0 + 10 * MS) == 0.0f, "to automatic, at once");
+    CHECK(!muiNode_IsTransitioning(context, node, mui_propertyWidth), "nothing moves");
+    CHECK(muiNode_SetStates(context, node, mui_stateHovered) == mui_success, "hover again");
+    CHECK(WidthAt(context, node, T0 + 20 * MS) == 200.0f, "from automatic, at once");
     // Both sides Scale+Offset: scale and offset both move.
     SetWidth(context, style, mui_variantHovered, (muiDimension){0.5f, 0.0f, mui_dimensionValue});
     muiNodeId root = MakeNode(context);
@@ -537,6 +547,130 @@ static void TestRecordLimitAndFreedRecords(void)
     muiDestroyContext(scene.context);
 }
 
+static void TestDelayBeforeNoLength(void)
+{
+    Scene scene = MakeScene(muiDefaultContextDef().limits);
+    Bind(scene.context, scene.style, mui_variantHovered,
+         MakeTimed(scene.context, 0, mui_easingLinear, 50 * MS), WIDTH);
+    Hover(&scene, true);
+    CHECK(WidthAt(scene.context, scene.node, T0) == 100.0f, "the change");
+    CHECK(WidthAt(scene.context, scene.node, T0 + 25 * MS) == 100.0f, "held through the delay");
+    CHECK(WidthAt(scene.context, scene.node, T0 + 50 * MS) == 200.0f, "then at once");
+    muiDestroyContext(scene.context);
+}
+
+static float PaddingAt(muiContext* context, muiNodeId node, uint64_t timeNs)
+{
+    (void)WidthAt(context, node, timeNs);
+    muiLayoutStyle read;
+    CHECK(muiNode_GetLayoutStyle(context, node, &read) == mui_success, "read");
+    return read.padding.start;
+}
+
+// A number has one channel, so its reversals compare it alone.
+static void TestReversalsKeepShortening(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId node = MakeNode(context);
+    muiStyleId style = MakeStyle(context);
+    muiLayoutStyle values = muiDefaultLayoutStyle();
+    values.padding.start = 100.0f;
+    CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, &values, PADDING_START) ==
+              mui_success,
+          "100");
+    values.padding.start = 200.0f;
+    CHECK(muiStyle_SetLayoutValues(context, style, mui_variantHovered, &values, PADDING_START) ==
+              mui_success,
+          "200 when hovered");
+    Bind(context, style, mui_variantBase, MakeTimed(context, 100 * MS, mui_easingLinear, 0),
+         PADDING_START);
+    CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
+    CHECK(PaddingAt(context, node, T0) == 100.0f, "a node's first styling is at once");
+    // A node first styled by direct writes alone has a value to move from.
+    muiNodeId direct = MakeNode(context);
+    muiLayoutStyle all = muiDefaultLayoutStyle();
+    CHECK(muiNode_SetLayoutStyle(context, direct, &all) == mui_success, "all direct");
+    (void)PaddingAt(context, direct, T0);
+    CHECK(muiNode_SetClasses(context, direct, &style, 1) == mui_success, "class");
+    CHECK(muiNode_ResetProperties(context, direct, PADDING_START) == mui_success, "reset");
+    CHECK(PaddingAt(context, direct, T0) == 0.0f &&
+              muiNode_IsTransitioning(context, direct, mui_propertyPaddingStart),
+          "so it moves");
+    CHECK(muiNode_SetStates(context, node, mui_stateHovered) == mui_success, "hover");
+    (void)PaddingAt(context, node, T0);
+    (void)PaddingAt(context, node, T0 + 30 * MS);
+    CHECK(muiNode_SetStates(context, node, 0) == mui_success, "unhover");
+    (void)PaddingAt(context, node, T0 + 30 * MS);
+    CHECK(PaddingAt(context, node, T0 + 40 * MS) == 120.0f, "a third of the way back");
+    CHECK(muiNode_SetStates(context, node, mui_stateHovered) == mui_success, "hover again");
+    (void)PaddingAt(context, node, T0 + 40 * MS);
+    // The second reversal covers 0.3 + 0.7 of a third: 80 ms from 120.
+    CHECK(PaddingAt(context, node, T0 + 80 * MS) == 160.0f, "shortened again");
+    muiDestroyContext(context);
+}
+
+static void TestOvershootingReversalTakesNoLonger(void)
+{
+    Scene scene = MakeScene(muiDefaultContextDef().limits);
+    muiTransitionDef def = muiDefaultTransitionDef();
+    def.durationNs = 100 * MS;
+    def.easing = mui_easingCubicBezier;
+    def.bezier[0] = 0.3f;
+    def.bezier[1] = 1.8f;
+    def.bezier[2] = 0.7f;
+    def.bezier[3] = 1.8f;
+    muiTransitionId overshoot = s_nullTransition;
+    CHECK(muiCreateTransition(scene.context, &def, &overshoot) == mui_success, "overshoot");
+    Bind(scene.context, scene.style, mui_variantBase, overshoot, WIDTH);
+    Hover(&scene, true);
+    (void)WidthAt(scene.context, scene.node, T0);
+    CHECK(WidthAt(scene.context, scene.node, T0 + 50 * MS) > 200.0f, "past its target");
+    Hover(&scene, false);
+    (void)WidthAt(scene.context, scene.node, T0 + 50 * MS);
+    (void)WidthAt(scene.context, scene.node, T0 + 150 * MS);
+    CHECK(!muiNode_IsTransitioning(scene.context, scene.node, mui_propertyWidth),
+          "a reversal never takes longer than the full duration");
+    muiDestroyContext(scene.context);
+}
+
+static void TestLongSpringsAreCut(void)
+{
+    Scene scene = MakeScene(muiDefaultContextDef().limits);
+    Bind(scene.context, scene.style, mui_variantBase, MakeSpring(scene.context, 0.5f, 0.001f),
+         WIDTH);
+    Hover(&scene, true);
+    (void)WidthAt(scene.context, scene.node, T0);
+    (void)WidthAt(scene.context, scene.node, T0 + 30000 * MS);
+    CHECK(muiNode_IsTransitioning(scene.context, scene.node, mui_propertyWidth),
+          "still ringing after 30 s");
+    CHECK(WidthAt(scene.context, scene.node, T0 + 61000 * MS) == 200.0f, "put there after 60 s");
+    CHECK(!muiNode_IsTransitioning(scene.context, scene.node, mui_propertyWidth), "done");
+    muiDestroyContext(scene.context);
+}
+
+static void TestSpringRetargetedInPlaceRests(void)
+{
+    Scene scene = MakeScene(muiDefaultContextDef().limits);
+    Bind(scene.context, scene.style, mui_variantBase, MakeSpring(scene.context, 2.0f, 1.0f), WIDTH);
+    Hover(&scene, true);
+    (void)WidthAt(scene.context, scene.node, T0);
+    float at = WidthAt(scene.context, scene.node, T0 + 80 * MS);
+    // A new target where it is now: only its speed moves it.
+    SetWidth(scene.context, scene.style, mui_variantHovered, (muiDimension){0.0f, at, 1});
+    (void)WidthAt(scene.context, scene.node, T0 + 80 * MS);
+    CHECK(muiNode_IsTransitioning(scene.context, scene.node, mui_propertyWidth),
+          "at its target, but its speed carries it on");
+    uint64_t t = T0 + 80 * MS;
+    while (muiNode_IsTransitioning(scene.context, scene.node, mui_propertyWidth) &&
+           t < T0 + 10000 * MS)
+    {
+        (void)WidthAt(scene.context, scene.node, t);
+        t += 16 * MS;
+    }
+    CHECK(t < T0 + 5000 * MS, "comes to rest by its speed's measure");
+    muiDestroyContext(scene.context);
+}
+
 int main(void)
 {
     TestDefaultsAndChecks();
@@ -552,5 +686,10 @@ int main(void)
     TestOnlyMovableValuesMove();
     TestSpecsResolveThroughLayers();
     TestRecordLimitAndFreedRecords();
+    TestDelayBeforeNoLength();
+    TestReversalsKeepShortening();
+    TestOvershootingReversalTakesNoLonger();
+    TestLongSpringsAreCut();
+    TestSpringRetargetedInPlaceRests();
     return s_failures == 0 ? 0 : 1;
 }

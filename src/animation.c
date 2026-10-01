@@ -182,20 +182,22 @@ bool muiStartAnimation(const muiMotion* motion, uint32_t node, muiProperty prope
     animation->startNs = nowNs + spec->def.delayNs;
     animation->seconds = (double)spec->def.durationNs / NANOSECONDS * shortening;
     animation->shortening = shortening;
-    double largest = 0.0;
+    // The way a spring goes: its offset, or as far as its speed alone
+    // would carry it in a radian of its motion.
+    double way = 0.0;
+    double w0 = TWO_PI * (double)spec->def.frequency;
     for (uint32_t i = 0; i < 2; i++)
     {
         animation->from[i] = current[i];
         animation->to[i] = i < channels ? target[i] : 0.0f;
         animation->reversingStart[i] = reversingStart[i];
         double offset = (double)current[i] - (double)animation->to[i];
-        largest = fmax(largest, fabs(offset));
+        way = fmax(way, fmax(fabs(offset), fabs(velocity[i]) / w0));
         animation->springs[i] = muiMakeSpring((double)spec->def.frequency,
                                               (double)spec->def.dampingRatio, offset, velocity[i]);
     }
-    // At rest within a thousandth of the way, and never closer than a
-    // float of the value can show.
-    animation->restOffset = fmax(largest * 1e-3, 1e-6);
+    // At rest within a thousandth of the way.
+    animation->restOffset = way * 1e-3;
     return true;
 }
 
