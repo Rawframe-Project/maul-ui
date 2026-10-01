@@ -190,11 +190,25 @@ extern "C"
         muiInsets inset;
         // Moves the node back by this fraction of its size, from 0 to 1 per
         // axis, after the insets place it: with start and top insets, the
-        // point of the node they place, so 0.5, 0.5 centers it on them.
-        // In-flow nodes ignore it.
+        // point of the node they place, so 0.5, 0.5 centers it on them. The
+        // x fraction is measured from the inline start. In-flow nodes
+        // ignore it.
         float anchorX;
         float anchorY;
     } muiPlacement;
+
+    // The inline direction of a node and the nodes below it that inherit.
+    typedef uint8_t muiTextDirection;
+
+    enum
+    {
+        // The parent's direction; left to right for a root.
+        mui_textInherit = 0,
+        mui_textLeftToRight = 1,
+        // Start is on the right: rows run right to left and every start and
+        // end edge, inset and anchor mirrors.
+        mui_textRightToLeft = 2,
+    };
 
     // What a node without children holds.
     typedef uint8_t muiContentKind;
@@ -222,6 +236,7 @@ extern "C"
         muiEdges border;
         muiEdges padding;
         muiPlacement placement;
+        muiTextDirection textDirection;
         muiContentKind content;
     } muiLayoutStyle;
 

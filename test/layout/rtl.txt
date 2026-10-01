@@ -1,0 +1,64 @@
+# Right-to-left: the logical layout mirrored, direction inherited.
+# chrome 154.0.8037.57
+
+fixture rtl_row_starts_on_the_right available=500x400
+node width=200 height=50 dir=rtl padding=10,4,0,0 => 0 0 200 50
+  node width=30 margin=5,0,0,0 => 155 0 30 50
+  node width=40 => 115 0 40 50
+
+fixture rtl_row_reverse_starts_on_the_left available=500x400
+node width=200 height=50 dir=rtl direction=row-reverse => 0 0 200 50
+  node width=30 => 0 0 30 50
+  node width=40 => 30 0 40 50
+
+fixture rtl_justify_and_grow available=500x400
+node width=200 height=50 dir=rtl justify=space-between column-gap=10 => 0 0 200 50
+  node width=30 => 170 0 30 50
+  node width=40 grow=1 max-width=60 => 65 0 60 50
+  node width=20 => 0 0 20 50
+
+fixture rtl_column_cross_axis_mirrors available=500x400
+node direction=column width=200 height=100 dir=rtl align-items=start => 0 0 200 100
+  node width=30 height=20 => 170 0 30 20
+  node width=40 height=20 align-self=end => 0 20 40 20
+  node width=50 height=20 align-self=center margin=0,10,0,0 => 80 40 50 20
+
+fixture rtl_inherited_by_descendants available=500x400
+node width=200 height=60 dir=rtl => 0 0 200 60
+  node width=120 padding=6,2,0,0 => 80 0 120 60
+    node width=30 height=10 => 84 0 30 10
+    node width=40 height=10 => 44 0 40 10
+
+fixture ltr_inside_rtl available=500x400
+node width=200 height=60 dir=rtl => 0 0 200 60
+  node width=120 dir=ltr => 80 0 120 60
+    node width=30 height=10 => 0 0 30 10
+    node width=40 height=10 => 30 0 40 10
+  node width=50 => 30 0 50 60
+
+fixture rtl_wrap available=500x400
+node width=100 height=100 dir=rtl wrap=wrap => 0 0 100 100
+  node width=60 height=10 => 40 0 60 10
+  node width=60 height=20 => 40 45 60 20
+  node width=30 height=20 => 10 45 30 20
+
+fixture rtl_absolute_insets_and_anchor available=500x400
+node width=200 height=100 dir=rtl border=2,6,0,0 => 0 0 200 100
+  node position=absolute start=10 top=5 width=30 height=20 => 158 5 30 20
+  node position=absolute end=20 top=30 width=30 height=20 => 26 30 30 20
+  node position=absolute start=50% top=50% width=40 height=20 anchor=0.5,0.5 => 82 40 40 20
+  node position=absolute start=0 top=70 width=40 height=20 anchor=1,0 => 198 70 40 20
+
+fixture rtl_absolute_static_position available=500x400
+node width=200 height=100 dir=rtl justify=end padding=0,8,0,0 => 0 0 200 100
+  node position=absolute width=30 height=20 => 8 0 30 20
+
+fixture rtl_auto_margins available=500x400
+node width=200 height=50 dir=rtl => 0 0 200 50
+  node width=30 margin=0,auto,0,0 => 170 0 30 50
+  node width=40 => 0 0 40 50
+
+fixture rtl_root_fits_content available=500x400
+node dir=rtl => 0 0 80 20
+  node width=30 height=10 => 50 0 30 10
+  node width=50 height=20 => 0 0 50 20

@@ -26,7 +26,8 @@
 # align-items and align-self (auto stretch start end center), margin
 # border padding (one value, or start,end,top,bottom; margins may be
 # auto), position (flow absolute), start end top bottom (insets, as
-# dimensions), anchor (<x>,<y> from 0 to 1), content (<width>x<height>:
+# dimensions), anchor (<x>,<y> from 0 to 1), dir (inherit ltr rtl),
+# content (<width>x<height>:
 # host content of that size).
 #
 # usage: gen_layout_fixtures.py [--check | --oracle]
@@ -50,13 +51,14 @@ EDGES = ("margin", "border", "padding")
 ENUMS = {
     "direction": ("row", "row-reverse", "column", "column-reverse"),
     "wrap": ("nowrap", "wrap", "wrap-reverse"),
+    "dir": ("inherit", "ltr", "rtl"),
     "align-content": ("stretch", "start", "end", "center", "space-between", "space-around",
                       "space-evenly"),
     "justify": ("start", "end", "center", "space-between", "space-around", "space-evenly"),
     "align-items": ("auto", "stretch", "start", "end", "center"),
     "align-self": ("auto", "stretch", "start", "end", "center"),
 }
-DEFAULTS = {"direction": "row", "wrap": "nowrap", "align-content": "stretch", "justify": "start", "align-items": "stretch",
+DEFAULTS = {"direction": "row", "wrap": "nowrap", "dir": "inherit", "align-content": "stretch", "justify": "start", "align-items": "stretch",
             "align-self": "auto", "grow": "0", "shrink": "1", "row-gap": "0",
             "column-gap": "0"}
 DIMENSION = re.compile(r"^(?:(-?[0-9.]+)%)?([+-]?[0-9.]+)?$")
@@ -202,8 +204,10 @@ def c_style(props):
     insets = ", ".join(c_dimension(get(k)) for k in INSETS)
     anchor = parse_anchor(get("anchor", "0,0"))
     placement = f"{{{position}, {{{insets}}}, {c_float(anchor[0])}, {c_float(anchor[1])}}}"
+    direction = ENUMS["dir"].index(get("dir"))
     content = 1 if "content" in props else 0
-    return f"{{{{{sizing}}}, {container}, {item}, {edges}, {placement}, {content}}}"
+    return (f"{{{{{sizing}}}, {container}, {item}, {edges}, {placement}, {direction}, "
+            f"{content}}}")
 
 
 def generate():
@@ -256,7 +260,8 @@ def css_dimension(text, auto="auto"):
 
 
 def css_edges(prefix, text, suffix=""):
-    sides = ("left", "right", "top", "bottom")
+    # Start and end are logical, as Maul UI's are.
+    sides = ("inline-start", "inline-end", "top", "bottom")
     values = parse_edges(text, True)
     return "".join(f"{prefix}-{side}{suffix}:{'auto' if v is None else repr(v) + 'px'};"
                    for side, v in zip(sides, values))
@@ -272,7 +277,7 @@ JUSTIFY_CSS = {"start": "flex-start", "end": "flex-end", "center": "center",
                "space-evenly": "space-evenly"}
 
 
-def css_style(props):
+def css_style(props, rtl):
     get = lambda key, default="auto": props.get(key, DEFAULTS.get(key, default))
     css = [f"width:{css_dimension(get('width'))};", f"height:{css_dimension(get('height'))};",
            f"min-width:{css_dimension(get('min-width'))};",
@@ -291,10 +296,14 @@ def css_style(props):
            css_edges("border", get("border", "0"), "-width")]
     if get("position", "flow") == "absolute":
         css.append("position:absolute;")
-        for key, side in zip(INSETS, ("left", "right", "top", "bottom")):
+        for key, side in zip(INSETS, ("inset-inline-start", "inset-inline-end", "top", "bottom")):
             css.append(f"{side}:{css_dimension(get(key))};")
         x, y = parse_anchor(get("anchor", "0,0"))
-        css.append(f"transform:translate({-x * 100.0!r}%,{-y * 100.0!r}%);")
+        # The x fraction is measured from the inline start.
+        x = x if rtl else -x
+        css.append(f"transform:translate({x * 100.0!r}%,{-y * 100.0!r}%);")
+    if get("dir") != "inherit":
+        css.append(f"direction:{get('dir')};")
     return "".join(css)
 
 
@@ -302,15 +311,22 @@ def fixture_html(fixture):
     """The fixture's root as HTML; every node's element carries data-i."""
     parts = []
     stack = []
+    # The resolved direction at each depth, right to left when true.
+    rtl = [False]
     for index, node in enumerate(fixture["nodes"]):
         while stack and stack[-1] >= node["depth"]:
             parts.append("</div>")
             stack.pop()
+        inherited = rtl[node["depth"]]
+        own = node["props"].get("dir", "inherit")
+        resolved = inherited if own == "inherit" else own == "rtl"
+        rtl[node["depth"] + 1:] = [resolved]
         content = ""
         if "content" in node["props"]:
             w, h = node["props"]["content"].split("x")
             content = f'<div data-content style="width:{w}px;height:{h}px;flex:none"></div>'
-        parts.append(f'<div data-i="{index}" style="{css_style(node["props"])}">{content}')
+        parts.append(f'<div data-i="{index}" style="{css_style(node["props"], inherited)}">'
+                     f'{content}')
         stack.append(node["depth"])
     parts.extend("</div>" for _ in stack)
     return "".join(parts)

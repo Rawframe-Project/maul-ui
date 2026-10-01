@@ -62,7 +62,7 @@ static const muiCacheEntry* FindCached(const muiLayoutCache* cache, const muiSiz
         const muiCacheEntry* entry = &cache->entries[i];
         bool sameExtents = !keyExtents || (entry->input.parentWidth == input->parentWidth &&
                                            entry->input.parentHeight == input->parentHeight);
-        if (entry->valid && sameExtents &&
+        if (entry->valid && sameExtents && entry->input.rtl == input->rtl &&
             AxisAnswers(input->width, entry->input.width, entry->size.width) &&
             AxisAnswers(input->height, entry->input.height, entry->size.height))
         {
@@ -123,15 +123,43 @@ static muiSize SizeLeaf(const muiSolver* solver, uint32_t node, const muiSizingI
     return size;
 }
 
+// Mirrors the children's horizontal positions in a container of width.
+static void Mirror(const muiSolver* solver, uint32_t node, float width)
+{
+    for (uint32_t c = muiTreeAt(solver->tree, node)->links.firstChild; c != 0;
+         c = muiTreeAt(solver->tree, c)->links.next)
+    {
+        muiRect* rect = &solver->nodes[c - 1].rect;
+        rect->x = width - rect->x - rect->width;
+    }
+}
+
+// Lays a container out in logical coordinates, start on the left, and
+// mirrors it when its direction is right to left (record mui-0003).
 static muiSize SizeContainer(const muiSolver* solver, uint32_t node, const muiSizingInput* input,
                              bool perform)
 {
     muiSize size = muiLayoutFlex(solver, node, input, perform);
     if (perform)
     {
-        muiPlaceAbsolute(solver, node, size);
+        muiPlaceAbsolute(solver, node, size, input->rtl);
+        if (input->rtl)
+        {
+            Mirror(solver, node, size.width);
+        }
     }
     return size;
+}
+
+// The input with the node's own direction in place of the inherited one.
+static muiSizingInput OwnDirection(const muiLayoutStyle* style, const muiSizingInput* input)
+{
+    muiSizingInput own = *input;
+    if (style->textDirection != mui_textInherit)
+    {
+        own.rtl = style->textDirection == mui_textRightToLeft;
+    }
+    return own;
 }
 
 muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInput* input,
@@ -141,7 +169,8 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
     if (perform)
     {
         MUI_ASSERT(input->width.mode == mui_measureExact && input->height.mode == mui_measureExact);
-        if (cache->finalValid && cache->finalSize.width == input->width.size &&
+        if (cache->finalValid && cache->finalRtl == input->rtl &&
+            cache->finalSize.width == input->width.size &&
             cache->finalSize.height == input->height.size)
         {
             return cache->finalSize;
@@ -161,12 +190,14 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
             return hit->size;
         }
     }
+    muiSizingInput own = OwnDirection(&solver->nodes[node - 1].style, input);
     muiSize size = muiTreeAt(solver->tree, node)->links.firstChild == 0
-                       ? SizeLeaf(solver, node, input)
-                       : SizeContainer(solver, node, input, perform);
+                       ? SizeLeaf(solver, node, &own)
+                       : SizeContainer(solver, node, &own, perform);
     if (perform)
     {
         cache->finalValid = true;
+        cache->finalRtl = input->rtl;
         cache->finalSize = size;
     }
     else

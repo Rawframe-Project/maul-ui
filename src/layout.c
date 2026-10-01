@@ -83,7 +83,8 @@ static bool IsStyleValid(const muiLayoutStyle* style)
            IsDimensionValid(item->basis) && item->alignSelf <= mui_alignCenter &&
            AreEdgesValid(&style->margin, true) && AreEdgesValid(&style->border, false) &&
            AreEdgesValid(&style->padding, false) && style->marginAuto <= 0xF &&
-           IsPlacementValid(&style->placement) && style->content <= mui_contentHost;
+           IsPlacementValid(&style->placement) && style->textDirection <= mui_textRightToLeft &&
+           style->content <= mui_contentHost;
 }
 
 // The slot of a live node for an edit, or 0 with the status in statusOut.

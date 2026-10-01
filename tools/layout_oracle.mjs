@@ -21,7 +21,7 @@ const puppeteer = createRequire(base)('puppeteer');
 const BASE = `<!DOCTYPE html><html><head><style>
 body { margin: 0; }
 div { display: flex; box-sizing: border-box; position: relative; margin: 0; padding: 0;
-      border: 0 solid; direction: ltr; }
+      border: 0 solid; }
 #space { position: relative; }
 #space > div { position: absolute; left: 0; top: 0; }
 </style></head><body>`;

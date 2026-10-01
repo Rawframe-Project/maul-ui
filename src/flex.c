@@ -39,6 +39,8 @@ typedef struct Frame
     float crossGap;
     bool multiLine;
     bool wrapReverse;
+    // The container's direction, which its children inherit.
+    bool rtl;
     uint32_t count;
     uint32_t lineCount;
     float innerMain;
@@ -52,6 +54,7 @@ static muiSizingInput ChildInput(const Frame* frame, muiMeasureAxis main, muiMea
     input.height = frame->row ? cross : main;
     input.parentWidth = frame->row ? frame->extentMain : frame->extentCross;
     input.parentHeight = frame->row ? frame->extentCross : frame->extentMain;
+    input.rtl = frame->rtl;
     return input;
 }
 
@@ -246,6 +249,7 @@ static Frame Setup(const muiSolver* solver, uint32_t node, const muiSizingInput*
     frame.crossGap = frame.row ? style->container.rowGap : style->container.columnGap;
     frame.multiLine = style->container.wrap != mui_wrapNone;
     frame.wrapReverse = style->container.wrap == mui_wrapReverse;
+    frame.rtl = input->rtl;
     frame.extentMain = -1.0f;
     frame.extentCross = -1.0f;
     if (frame.mainIn.mode == mui_measureExact)

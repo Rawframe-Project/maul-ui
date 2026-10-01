@@ -149,13 +149,17 @@ static float Offset(const muiLayoutStyle* container, const muiLayoutStyle* child
 }
 
 static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container, uint32_t child,
-                       const Span* spanX, const Span* spanY)
+                       const Span* spanX, const Span* spanY, bool rtl)
 {
     muiLayoutNode* layout = &solver->nodes[child - 1];
     const muiLayoutStyle* style = &layout->style;
     Insets insetX = InsetsOf(&style->placement.inset, true, spanX->paddingSize);
     Insets insetY = InsetsOf(&style->placement.inset, false, spanY->paddingSize);
-    muiSizingInput input = {.parentWidth = spanX->paddingSize, .parentHeight = spanY->paddingSize};
+    muiSizingInput input = {
+        .parentWidth = spanX->paddingSize,
+        .parentHeight = spanY->paddingSize,
+        .rtl = rtl,
+    };
     float width = 0.0f;
     float height = 0.0f;
     bool fixedHeight = FixedSize(style, false, spanY, &insetY, &height);
@@ -185,7 +189,7 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
     (void)solver->solve(solver, child, &input, true);
 }
 
-void muiPlaceAbsolute(const muiSolver* solver, uint32_t container, muiSize size)
+void muiPlaceAbsolute(const muiSolver* solver, uint32_t container, muiSize size, bool rtl)
 {
     const muiLayoutStyle* style = &solver->nodes[container - 1].style;
     Span spanX = SpanOf(style, size.width, true);
@@ -195,7 +199,7 @@ void muiPlaceAbsolute(const muiSolver* solver, uint32_t container, muiSize size)
     {
         if (solver->nodes[c - 1].absolute)
         {
-            PlaceChild(solver, style, c, &spanX, &spanY);
+            PlaceChild(solver, style, c, &spanX, &spanY, rtl);
         }
     }
 }

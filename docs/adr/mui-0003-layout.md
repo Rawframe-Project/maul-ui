@@ -44,6 +44,13 @@ tree that did not change.
 - **Automatic margins** on flex items take positive free space before
   `justify-content`, and on the cross axis center or push an item, which
   is then not stretched; on overflow the start margin is zero.
+- **Right to left.** A node's text direction is inherit (the default),
+  left to right or right to left; a root that inherits is left to
+  right. Every edge, inset and the anchor's x are logical, so the solver
+  lays each container out with start on the left and mirrors its
+  children's horizontal positions when it is right to left. The
+  inherited direction is part of a node's sizing input, so cached
+  results answer only the same direction.
 - **Distributed justification on overflow.** `space-around` and
   `space-evenly` pack at the start when the children overflow, as CSS
   Box Alignment's safe fallback does; `space-between` always does.

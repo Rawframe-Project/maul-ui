@@ -15,14 +15,16 @@
 #include <stdbool.h>
 
 // What a node is sized under: a constraint per axis on its border box,
-// and its parent's content extents, negative when indefinite, against
-// which its Scale+Offset values resolve.
+// its parent's content extents, negative when indefinite, against which
+// its Scale+Offset values resolve, and the direction it inherits.
 typedef struct muiSizingInput
 {
     muiMeasureAxis width;
     muiMeasureAxis height;
     float parentWidth;
     float parentHeight;
+    // The direction the node inherits: right to left when set.
+    bool rtl;
 } muiSizingInput;
 
 typedef struct muiCacheEntry
@@ -45,6 +47,7 @@ typedef struct muiLayoutCache
     // The entry the next miss replaces.
     uint8_t next;
     bool finalValid;
+    bool finalRtl;
     muiSize finalSize;
 } muiLayoutCache;
 
