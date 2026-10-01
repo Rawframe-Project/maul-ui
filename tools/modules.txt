@@ -4,9 +4,13 @@ base:
 invariant:
 allocator:
 layout_node:
+sizing:
 tree: invariant
+solver: layout_node tree
 context: allocator invariant layout_node tree
 node: context layout_node tree
 flex_resolve: layout_node tree
-flex: flex_resolve invariant layout_node tree
-layout: context flex layout_node tree
+flex: flex_resolve layout_node sizing solver tree
+absolute: layout_node sizing solver tree
+solve: absolute flex invariant layout_node sizing solver tree
+layout: context layout_node solve solver tree

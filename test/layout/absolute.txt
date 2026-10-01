@@ -1,0 +1,68 @@
+# Absolute children: insets in the padding box, sizes, static position
+# and anchor points.
+# chrome 154.0.8037.57
+
+fixture absolute_insets_from_padding_box available=500x400
+node width=200 height=100 padding=10 border=1,2,3,4 => 0 0 200 100
+  node position=absolute start=5 top=6 width=30 height=20 => 6 9 30 20
+  node position=absolute end=7 bottom=8 width=30 height=20 => 161 68 30 20
+  node width=50 => 11 13 50 73
+
+fixture absolute_stretches_between_insets available=500x400
+node width=200 height=100 padding=10 => 0 0 200 100
+  node position=absolute start=5 end=15 top=6 bottom=4 => 5 6 180 90
+
+fixture absolute_scaled_insets_and_size available=500x400
+node width=200 height=100 padding=10 => 0 0 200 100
+  node position=absolute start=50% top=25%+2 width=25% height=50%-10 => 100 27 50 40
+
+fixture absolute_fit_content_width available=500x400
+node width=200 height=100 => 0 0 200 100
+  node position=absolute start=150 content=80x10 => 150 0 80 10
+  node position=absolute end=20 content=40x12 => 140 0 40 12
+
+fixture absolute_static_position_follows_container available=500x400
+node width=200 height=100 padding=5 justify=center align-items=end => 0 0 200 100
+  node position=absolute width=30 height=20 => 85 75 30 20
+  node width=40 height=10 => 80 85 40 10
+
+fixture absolute_static_in_reversed_column available=500x400
+node direction=column-reverse width=200 height=100 justify=start align-items=center => 0 0 200 100
+  node position=absolute width=30 height=20 margin=1,2,3,4 => 84.5 76 30 20
+
+fixture absolute_static_space_between_is_start available=500x400
+node width=200 height=100 justify=space-between => 0 0 200 100
+  node position=absolute width=30 height=20 align-self=stretch => 0 0 30 20
+
+fixture absolute_does_not_count_in_auto_size available=500x400
+node => 0 0 40 10
+  node width=40 height=10 => 0 0 40 10
+  node position=absolute start=0 top=0 width=300 height=200 => 0 0 300 200
+
+fixture absolute_does_not_take_a_flex_slot available=500x400
+node width=200 height=50 justify=space-between => 0 0 200 50
+  node width=20 => 0 0 20 50
+  node position=absolute start=0 width=10 height=10 => 0 0 10 10
+  node width=20 => 180 0 20 50
+
+fixture anchor_centers_on_insets available=500x400
+node width=200 height=100 => 0 0 200 100
+  node position=absolute start=50% top=50% width=40 height=20 anchor=0.5,0.5 => 80 40 40 20
+  node position=absolute end=0 bottom=0 width=40 height=20 anchor=1,1 => 120 60 40 20
+  node position=absolute start=100% top=0 width=40 height=20 anchor=1,0 => 160 0 40 20
+
+fixture absolute_auto_margins_center available=500x400
+node width=200 height=100 => 0 0 200 100
+  node position=absolute start=0 end=0 top=0 bottom=0 width=50 height=20 margin=auto => 75 40 50 20
+  node position=absolute start=0 end=0 top=10 width=50 height=20 margin=auto,10,0,0 => 140 10 50 20
+
+fixture absolute_child_lays_out_its_own_children available=500x400
+node width=200 height=100 => 0 0 200 100
+  node position=absolute start=10 top=10 width=100 height=40 justify=end align-items=center => 10 10 100 40
+    node width=20 height=10 => 50 15 20 10
+    node width=30 height=20 => 70 10 30 20
+
+fixture absolute_min_and_max available=500x400
+node width=200 height=100 => 0 0 200 100
+  node position=absolute start=0 end=0 top=0 height=10 max-width=60 => 0 0 60 10
+  node position=absolute start=0 top=20 content=10x10 min-width=50% => 0 20 100 10

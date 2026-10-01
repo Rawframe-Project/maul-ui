@@ -24,8 +24,10 @@
 # (nowrap wrap wrap-reverse), align-content (stretch start end center
 # space-between space-around space-evenly),
 # align-items and align-self (auto stretch start end center), margin
-# border padding (one value, or start,end,top,bottom), content
-# (<width>x<height>: host content of that size).
+# border padding (one value, or start,end,top,bottom; margins may be
+# auto), position (flow absolute), start end top bottom (insets, as
+# dimensions), anchor (<x>,<y> from 0 to 1), content (<width>x<height>:
+# host content of that size).
 #
 # usage: gen_layout_fixtures.py [--check | --oracle]
 
@@ -42,6 +44,7 @@ OUTPUT = os.path.join(ROOT, "test", "generated", "layout_fixtures.h")
 ORACLE = os.path.join(ROOT, "tools", "layout_oracle.mjs")
 
 DIMENSIONS = ("width", "height", "min-width", "min-height", "max-width", "max-height", "basis")
+INSETS = ("start", "end", "top", "bottom")
 NUMBERS = ("grow", "shrink", "row-gap", "column-gap")
 EDGES = ("margin", "border", "padding")
 ENUMS = {
@@ -75,13 +78,23 @@ def parse_dimension(text):
     return (1, scale, offset)
 
 
-def parse_edges(text):
-    values = [float(v) for v in text.split(",")]
+def parse_edges(text, auto_allowed=False):
+    """The four values, start, end, top, bottom, with "auto" as None."""
+    values = text.split(",")
     if len(values) == 1:
-        return values * 4
+        values = values * 4
     if len(values) != 4:
         raise CorpusError(f"edges take 1 or 4 values: {text!r}")
-    return values
+    if not auto_allowed and "auto" in values:
+        raise CorpusError(f"only margins can be auto: {text!r}")
+    return [None if v == "auto" else float(v) for v in values]
+
+
+def parse_anchor(text):
+    parts = [float(v) for v in text.split(",")]
+    if len(parts) != 2 or not all(0.0 <= v <= 1.0 for v in parts):
+        raise CorpusError(f"anchor is x,y between 0 and 1: {text!r}")
+    return parts
 
 
 def parse_node(text, number):
@@ -90,12 +103,17 @@ def parse_node(text, number):
         if "=" not in item:
             raise CorpusError(f"line {number}: expected key=value, got {item!r}")
         key, value = item.split("=", 1)
-        if key in DIMENSIONS:
+        if key in DIMENSIONS or key in INSETS:
             parse_dimension(value)
+        elif key == "position":
+            if value not in ("flow", "absolute"):
+                raise CorpusError(f"line {number}: position is flow or absolute")
+        elif key == "anchor":
+            parse_anchor(value)
         elif key in NUMBERS:
             float(value)
         elif key in EDGES:
-            parse_edges(value)
+            parse_edges(value, key == "margin")
         elif key in ENUMS:
             if value not in ENUMS[key]:
                 raise CorpusError(f"line {number}: {key} cannot be {value!r}")
@@ -157,7 +175,12 @@ def c_dimension(text):
 
 
 def c_edges(text):
-    return "{" + ", ".join(c_float(v) for v in parse_edges(text)) + "}"
+    return "{" + ", ".join(c_float(v or 0.0) for v in parse_edges(text, True)) + "}"
+
+
+def c_auto_mask(text):
+    bits = (1, 2, 4, 8)
+    return sum(bit for bit, v in zip(bits, parse_edges(text, True)) if v is None)
 
 
 def c_style(props):
@@ -172,9 +195,15 @@ def c_style(props):
                  f"{c_float(get('row-gap'))}, {c_float(get('column-gap'))}}}")
     item = (f"{{{c_float(get('grow'))}, {c_float(get('shrink'))}, {c_dimension(get('basis'))}, "
             f"{ENUMS['align-self'].index(get('align-self'))}}}")
-    edges = ", ".join(c_edges(get(k, "0")) for k in EDGES)
+    margin = get("margin", "0")
+    edges = (f"{c_edges(margin)}, {c_auto_mask(margin)}, {c_edges(get('border', '0'))}, "
+             f"{c_edges(get('padding', '0'))}")
+    position = 1 if get("position", "flow") == "absolute" else 0
+    insets = ", ".join(c_dimension(get(k)) for k in INSETS)
+    anchor = parse_anchor(get("anchor", "0,0"))
+    placement = f"{{{position}, {{{insets}}}, {c_float(anchor[0])}, {c_float(anchor[1])}}}"
     content = 1 if "content" in props else 0
-    return f"{{{{{sizing}}}, {container}, {item}, {edges}, {content}}}"
+    return f"{{{{{sizing}}}, {container}, {item}, {edges}, {placement}, {content}}}"
 
 
 def generate():
@@ -227,9 +256,10 @@ def css_dimension(text, auto="auto"):
 
 
 def css_edges(prefix, text, suffix=""):
-    start, end, top, bottom = parse_edges(text)
-    return (f"{prefix}-left{suffix}:{start!r}px;{prefix}-right{suffix}:{end!r}px;"
-            f"{prefix}-top{suffix}:{top!r}px;{prefix}-bottom{suffix}:{bottom!r}px;")
+    sides = ("left", "right", "top", "bottom")
+    values = parse_edges(text, True)
+    return "".join(f"{prefix}-{side}{suffix}:{'auto' if v is None else repr(v) + 'px'};"
+                   for side, v in zip(sides, values))
 
 
 ALIGN_CSS = {"auto": "auto", "stretch": "stretch", "start": "flex-start", "end": "flex-end",
@@ -259,6 +289,12 @@ def css_style(props):
            f"row-gap:{get('row-gap')}px;column-gap:{get('column-gap')}px;",
            css_edges("margin", get("margin", "0")), css_edges("padding", get("padding", "0")),
            css_edges("border", get("border", "0"), "-width")]
+    if get("position", "flow") == "absolute":
+        css.append("position:absolute;")
+        for key, side in zip(INSETS, ("left", "right", "top", "bottom")):
+            css.append(f"{side}:{css_dimension(get(key))};")
+        x, y = parse_anchor(get("anchor", "0,0"))
+        css.append(f"transform:translate({-x * 100.0!r}%,{-y * 100.0!r}%);")
     return "".join(css)
 
 

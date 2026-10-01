@@ -10,7 +10,25 @@
 
 #include <math.h>
 
-#define NEXT_SIBLING(tree, node) (muiTreeAt((tree), (node))->links.next)
+static uint32_t FirstFlowAt(const muiTree* tree, const muiLayoutNode* nodes, uint32_t node)
+{
+    uint32_t at = node;
+    while (at != 0 && nodes[at - 1].style.placement.position != mui_positionFlow)
+    {
+        at = muiTreeAt(tree, at)->links.next;
+    }
+    return at;
+}
+
+uint32_t muiFirstFlowChild(const muiTree* tree, const muiLayoutNode* nodes, uint32_t container)
+{
+    return FirstFlowAt(tree, nodes, muiTreeAt(tree, container)->links.firstChild);
+}
+
+uint32_t muiNextFlowChild(const muiTree* tree, const muiLayoutNode* nodes, uint32_t child)
+{
+    return FirstFlowAt(tree, nodes, muiTreeAt(tree, child)->links.next);
+}
 
 static float Outer(const muiFlexItemState* item, float size)
 {
@@ -23,7 +41,7 @@ static float FreezeInflexible(const muiTree* tree, muiLayoutNode* nodes, uint32_
                               uint32_t count, float innerMain, bool growing)
 {
     float used = 0.0f;
-    for (uint32_t c = first, i = 0; i < count; c = NEXT_SIBLING(tree, c), i++)
+    for (uint32_t c = first, i = 0; i < count; c = muiNextFlowChild(tree, nodes, c), i++)
     {
         muiFlexItemState* item = &nodes[c - 1].item;
         const muiFlexItem* flex = &nodes[c - 1].style.item;
@@ -52,7 +70,7 @@ static FlexTotals SumUnfrozen(const muiTree* tree, const muiLayoutNode* nodes, u
                               uint32_t count, float innerMain, bool growing)
 {
     FlexTotals totals = {.remaining = innerMain};
-    for (uint32_t c = first, i = 0; i < count; c = NEXT_SIBLING(tree, c), i++)
+    for (uint32_t c = first, i = 0; i < count; c = muiNextFlowChild(tree, nodes, c), i++)
     {
         const muiFlexItemState* item = &nodes[c - 1].item;
         const muiFlexItem* flex = &nodes[c - 1].style.item;
@@ -75,7 +93,7 @@ static float Distribute(const muiTree* tree, muiLayoutNode* nodes, uint32_t firs
                         float freeSpace, bool growing, const FlexTotals* totals)
 {
     float violation = 0.0f;
-    for (uint32_t c = first, i = 0; i < count; c = NEXT_SIBLING(tree, c), i++)
+    for (uint32_t c = first, i = 0; i < count; c = muiNextFlowChild(tree, nodes, c), i++)
     {
         muiFlexItemState* item = &nodes[c - 1].item;
         const muiFlexItem* flex = &nodes[c - 1].style.item;
@@ -109,7 +127,7 @@ static void FreezeViolators(const muiTree* tree, muiLayoutNode* nodes, uint32_t 
                             uint32_t count, float violation)
 {
     int8_t sign = violation > 0.0f ? 1 : (violation < 0.0f ? -1 : 0);
-    for (uint32_t c = first, i = 0; i < count; c = NEXT_SIBLING(tree, c), i++)
+    for (uint32_t c = first, i = 0; i < count; c = muiNextFlowChild(tree, nodes, c), i++)
     {
         muiFlexItemState* item = &nodes[c - 1].item;
         if (!item->frozen && (sign == 0 || item->violation == sign))
@@ -124,7 +142,7 @@ uint32_t muiCollectLine(const muiTree* tree, const muiLayoutNode* nodes, uint32_
 {
     uint32_t count = 0;
     float used = 0.0f;
-    for (uint32_t c = first; c != 0; c = NEXT_SIBLING(tree, c))
+    for (uint32_t c = first; c != 0; c = muiNextFlowChild(tree, nodes, c))
     {
         float outer = Outer(&nodes[c - 1].item, nodes[c - 1].item.hypothetical);
         float next = count == 0 ? outer : used + gap + outer;
@@ -143,7 +161,7 @@ void muiResolveFlexibleLengths(const muiTree* tree, muiLayoutNode* nodes, uint32
 {
     float available = innerMain - gaps;
     float hypotheticalSum = 0.0f;
-    for (uint32_t c = first, i = 0; i < count; c = NEXT_SIBLING(tree, c), i++)
+    for (uint32_t c = first, i = 0; i < count; c = muiNextFlowChild(tree, nodes, c), i++)
     {
         hypotheticalSum += Outer(&nodes[c - 1].item, nodes[c - 1].item.hypothetical);
     }

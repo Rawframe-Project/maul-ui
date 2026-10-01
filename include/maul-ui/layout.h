@@ -149,6 +149,53 @@ extern "C"
         muiAlign alignSelf;
     } muiFlexItem;
 
+    // Sides of a box, as bits.
+    typedef uint8_t muiEdgeMask;
+
+    enum
+    {
+        mui_edgeStart = 1,
+        mui_edgeEnd = 2,
+        mui_edgeTop = 4,
+        mui_edgeBottom = 8,
+    };
+
+    // Whether a node is a flex item of its parent or placed by insets.
+    typedef uint8_t muiPositionKind;
+
+    enum
+    {
+        mui_positionFlow = 0,
+        // Out of the parent's flex layout, placed by insets in the parent's
+        // padding box, against which its Scale+Offset values resolve.
+        mui_positionAbsolute = 1,
+    };
+
+    // Distances from the sides of the parent's padding box.
+    typedef struct muiInsets
+    {
+        muiDimension start;
+        muiDimension end;
+        muiDimension top;
+        muiDimension bottom;
+    } muiInsets;
+
+    // Where an absolute node goes.
+    typedef struct muiPlacement
+    {
+        muiPositionKind position;
+        // An automatic inset leaves that side free; with both sides of an
+        // axis free, the node sits where it would as its parent's only
+        // child.
+        muiInsets inset;
+        // Moves the node back by this fraction of its size, from 0 to 1 per
+        // axis, after the insets place it: with start and top insets, the
+        // point of the node they place, so 0.5, 0.5 centers it on them.
+        // In-flow nodes ignore it.
+        float anchorX;
+        float anchorY;
+    } muiPlacement;
+
     // What a node without children holds.
     typedef uint8_t muiContentKind;
 
@@ -169,8 +216,12 @@ extern "C"
         muiFlexContainer container;
         muiFlexItem item;
         muiEdges margin;
+        // The margins that are automatic, taking free space; their lengths
+        // in margin are unused.
+        muiEdgeMask marginAuto;
         muiEdges border;
         muiEdges padding;
+        muiPlacement placement;
         muiContentKind content;
     } muiLayoutStyle;
 
@@ -247,8 +298,9 @@ extern "C"
     /// @param context  The context.
     /// @param nodeId   The node.
     /// @param style    The values: finite numbers, grow and shrink, padding,
-    ///                 border and gaps at least 0, known enumerators, and
-    ///                 alignItems not mui_alignAuto.
+    ///                 border and gaps at least 0, known enumerators and
+    ///                 edge bits, alignItems not mui_alignAuto, and anchors
+    ///                 from 0 to 1.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id, a value outside the above, or a call from a measure
     ///         function; `mui_errorStale` for an id whose node is gone.

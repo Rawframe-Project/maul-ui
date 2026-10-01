@@ -26,3 +26,6 @@ format.
   frames over a 40,001-node list and a 9,841-node nested tree.
 - Wrapping (`muiFlexWrap`) and line placement (`muiAlignContent`), with
   15 more fixtures from Chrome.
+- Absolute nodes (`muiPlacement`: Scale+Offset insets in the parent's
+  padding box and an anchor point) and automatic margins
+  (`marginAuto`), with 22 more fixtures from Chrome.

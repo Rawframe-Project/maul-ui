@@ -1,0 +1,49 @@
+# Automatic margins on flex items.
+# chrome 154.0.8037.57
+
+fixture auto_margin_pushes_to_end available=500x400
+node width=200 height=50 => 0 0 200 50
+  node width=30 margin=auto,0,0,0 => 130 0 30 50
+  node width=40 => 160 0 40 50
+
+fixture auto_margins_share_free_space available=500x400
+node width=200 height=50 => 0 0 200 50
+  node width=30 margin=auto,auto,0,0 => 43.328125 0 30 50
+  node width=40 margin=0,auto,0,0 => 116.671875 0 40 50
+
+fixture auto_margins_override_justify available=500x400
+node width=200 height=50 justify=center => 0 0 200 50
+  node width=30 => 0 0 30 50
+  node width=40 margin=auto,0,0,0 => 160 0 40 50
+
+fixture auto_margins_ignored_on_overflow available=500x400
+node width=100 height=50 justify=end => 0 0 100 50
+  node width=80 shrink=0 margin=auto,0,0,0 => -60 0 80 50
+  node width=80 shrink=0 => 20 0 80 50
+
+fixture auto_cross_margins_center available=500x400
+node width=200 height=60 => 0 0 200 60
+  node width=30 height=20 margin=0,0,auto,auto => 0 20 30 20
+  node width=30 height=20 margin=0,0,auto,0 => 30 40 30 20
+  node width=30 height=20 margin=0,0,0,auto => 60 0 30 20
+  node width=30 margin=0,0,auto,0 => 90 60 30 0
+
+fixture auto_cross_margin_overflow available=500x400
+node width=200 height=20 => 0 0 200 20
+  node width=30 height=50 margin=0,0,auto,auto => 0 0 30 50
+  node width=30 height=50 margin=0,0,0,auto => 30 0 30 50
+
+fixture auto_margins_in_column available=500x400
+node direction=column width=100 height=200 => 0 0 100 200
+  node height=30 width=40 margin=auto,auto,0,0 => 30 0 40 30
+  node height=40 margin=0,0,auto,0 => 0 160 100 40
+
+fixture auto_margins_in_wrap_reverse available=500x400
+node width=100 height=100 wrap=wrap-reverse => 0 0 100 100
+  node width=60 height=10 margin=0,0,auto,0 => 0 90 60 10
+  node width=60 height=20 margin=0,0,0,auto => 0 0 60 20
+
+fixture auto_margins_in_row_reverse available=500x400
+node width=200 height=50 direction=row-reverse => 0 0 200 50
+  node width=30 margin=0,auto,0,0 => 40 0 30 50
+  node width=40 => 0 0 40 50

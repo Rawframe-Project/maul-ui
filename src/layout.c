@@ -7,8 +7,8 @@
 #include "maul-ui/layout.h"
 
 #include "context.h"
-#include "flex.h"
 #include "layout_node.h"
+#include "solve.h"
 #include "tree.h"
 
 #include <math.h>
@@ -56,6 +56,20 @@ static bool AreEdgesValid(const muiEdges* edges, bool negativeAllowed)
     return true;
 }
 
+static bool IsFraction(float value)
+{
+    return value >= 0.0f && value <= 1.0f;
+}
+
+static bool IsPlacementValid(const muiPlacement* placement)
+{
+    const muiInsets* inset = &placement->inset;
+    return placement->position <= mui_positionAbsolute && IsDimensionValid(inset->start) &&
+           IsDimensionValid(inset->end) && IsDimensionValid(inset->top) &&
+           IsDimensionValid(inset->bottom) && IsFraction(placement->anchorX) &&
+           IsFraction(placement->anchorY);
+}
+
 static bool IsStyleValid(const muiLayoutStyle* style)
 {
     const muiFlexContainer* container = &style->container;
@@ -68,7 +82,8 @@ static bool IsStyleValid(const muiLayoutStyle* style)
            IsLength(container->columnGap) && IsLength(item->grow) && IsLength(item->shrink) &&
            IsDimensionValid(item->basis) && item->alignSelf <= mui_alignCenter &&
            AreEdgesValid(&style->margin, true) && AreEdgesValid(&style->border, false) &&
-           AreEdgesValid(&style->padding, false) && style->content <= mui_contentHost;
+           AreEdgesValid(&style->padding, false) && style->marginAuto <= 0xF &&
+           IsPlacementValid(&style->placement) && style->content <= mui_contentHost;
 }
 
 // The slot of a live node for an edit, or 0 with the status in statusOut.
@@ -185,6 +200,7 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
         .nodes = context->layout,
         .measure = input->measure,
         .measureUser = input->measureUser,
+        .solve = muiSolveNode,
     };
     muiSizingInput sizingInput = muiRootInput(&context->layout[root - 1].style,
                                               input->availableWidth, input->availableHeight);

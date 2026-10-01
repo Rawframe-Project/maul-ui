@@ -40,6 +40,7 @@ else()
     set(MAUL_LIBRARY_KIND STATIC)
 endif()
 add_library(maul-ui ${MAUL_LIBRARY_KIND}
+    src/absolute.c
     src/allocator.c
     src/base.c
     src/context.c
@@ -47,6 +48,8 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/flex_resolve.c
     src/layout.c
     src/node.c
+    src/sizing.c
+    src/solve.c
     src/tree.c)
 maul_configure_library(maul-ui)
 # fmaxf, fminf and fabsf, the exactly rounded functions the solver takes

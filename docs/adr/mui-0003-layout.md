@@ -32,6 +32,18 @@ tree that did not change.
   default, as CSS's `normal`); a container that does not wrap has one
   line as large as its inner cross size. At its narrowest, a wrapping
   container is as wide as its widest child.
+- **Absolute nodes.** A node placed absolutely takes no part in its
+  parent's flex layout or size. Its Scale+Offset insets and sizes
+  resolve against the parent's padding box (CSS's containing block).
+  Both insets of an axis stretch an automatic size between them;
+  otherwise the width is fit-content and the height the content's; with
+  no inset the node sits where it would as the parent's only flex item.
+  Automatic margins center it between two insets. Its anchor point then
+  moves it back by that fraction of its own size, as Roblox's
+  `AnchorPoint` and CSS's `translate` do; in-flow nodes ignore it.
+- **Automatic margins** on flex items take positive free space before
+  `justify-content`, and on the cross axis center or push an item, which
+  is then not stretched; on overflow the start margin is zero.
 - **Distributed justification on overflow.** `space-around` and
   `space-evenly` pack at the start when the children overflow, as CSS
   Box Alignment's safe fallback does; `space-between` always does.
