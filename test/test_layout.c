@@ -208,6 +208,28 @@ static void TestStyleChangeRelaysTheParent(void)
     muiDestroyContext(context);
 }
 
+static void TestNewSpaceRelaysAnUnchangedTree(void)
+{
+    muiContext* context = MakeContext();
+    Host host = {.context = context};
+    muiLayoutStyle full = muiDefaultLayoutStyle();
+    full.sizing.width = (muiDimension){1.0f, 0.0f, mui_dimensionValue};
+    full.sizing.height = Length(20.0f);
+    muiNodeId root = MakeNode(context, &full);
+    muiLayoutStyle grow = muiDefaultLayoutStyle();
+    grow.item.grow = 1.0f;
+    muiNodeId child = MakeNode(context, &grow);
+    CHECK(muiNode_InsertChild(context, root, child, s_null) == mui_success, "insert");
+    muiLayoutInput input = Input(&host);
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_GetRect(context, child).width == 400.0f, "fills the space");
+    input.availableWidth = 250.0f;
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout in less space");
+    CHECK(muiNode_GetRect(context, root).width == 250.0f, "the root follows the space");
+    CHECK(muiNode_GetRect(context, child).width == 250.0f, "and so does its child");
+    muiDestroyContext(context);
+}
+
 static void TestRectOfUnknownNodeIsZero(void)
 {
     muiContext* context = MakeContext();
@@ -226,6 +248,7 @@ int main(void)
     TestEditsFromMeasureAreRefused();
     TestUnchangedTreeIsNotMeasuredAgain();
     TestStyleChangeRelaysTheParent();
+    TestNewSpaceRelaysAnUnchangedTree();
     TestRectOfUnknownNodeIsZero();
     return s_failures == 0 ? 0 : 1;
 }

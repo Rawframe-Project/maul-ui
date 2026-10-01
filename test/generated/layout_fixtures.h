@@ -301,6 +301,24 @@ static const LayoutFixtureNode s_content_grows[] = {
      {20.0f, 10.0f}, {110.0f, 0.0f, 90.0f, 40.0f}},
 };
 
+static const LayoutFixtureNode s_fit_root_floored_by_min_content[] = {
+    {0, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, {0, 0, 1, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0},
+     {0.0f, 0.0f}, {0.0f, 0.0f, 80.0f, 10.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, {0, 0, 1, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 1},
+     {40.0f, 10.0f}, {0.0f, 0.0f, 40.0f, 10.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, {0, 0, 1, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 1},
+     {40.0f, 10.0f}, {40.0f, 0.0f, 40.0f, 10.0f}},
+};
+
+static const LayoutFixtureNode s_fit_root_between_min_and_max[] = {
+    {0, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, {0, 0, 1, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0},
+     {0.0f, 0.0f}, {0.0f, 0.0f, 80.0f, 10.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, {0, 0, 1, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 1},
+     {40.0f, 10.0f}, {0.0f, 0.0f, 40.0f, 10.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, {0, 0, 1, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 1},
+     {40.0f, 10.0f}, {40.0f, 0.0f, 40.0f, 10.0f}},
+};
+
 static const LayoutFixtureNode s_row_reverse[] = {
     {0, {{{0.0f, 200.0f, 1}, {0.0f, 50.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, {1, 0, 1, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0},
      {0.0f, 0.0f}, {0.0f, 0.0f, 200.0f, 50.0f}},
@@ -491,6 +509,24 @@ static const LayoutFixtureNode s_grow_on_auto_root_does_nothing[] = {
      {0.0f, 0.0f}, {20.0f, 0.0f, 30.0f, 10.0f}},
 };
 
+static const LayoutFixtureNode s_shrink_scaled_by_inner_base[] = {
+    {0, {{{0.0f, 100.0f, 1}, {0.0f, 50.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, {0, 0, 1, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0},
+     {0.0f, 0.0f}, {0.0f, 0.0f, 100.0f, 50.0f}},
+    {1, {{{0.0f, 80.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, {0, 0, 1, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 30.0f, 0.0f, 0.0f}, 0},
+     {0.0f, 0.0f}, {0.0f, 0.0f, 56.921875f, 50.0f}},
+    {1, {{{0.0f, 80.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, {0, 0, 1, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0},
+     {0.0f, 0.0f}, {56.921875f, 0.0f, 43.078125f, 50.0f}},
+};
+
+static const LayoutFixtureNode s_grow_fraction_with_frozen_max[] = {
+    {0, {{{0.0f, 300.0f, 1}, {0.0f, 50.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, {0, 0, 1, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0},
+     {0.0f, 0.0f}, {0.0f, 0.0f, 300.0f, 50.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 50.0f, 1}, {0.0f, 0.0f, 0}}, {0, 0, 1, 0.0f, 0.0f}, {0.3f, 1.0f, {0.0f, 100.0f, 1}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0},
+     {0.0f, 0.0f}, {0.0f, 0.0f, 50.0f, 50.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, {0, 0, 1, 0.0f, 0.0f}, {0.3f, 1.0f, {0.0f, 0.0f, 1}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, 0},
+     {0.0f, 0.0f}, {50.0f, 0.0f, 75.0f, 50.0f}},
+};
+
 static const LayoutFixtureNode s_scale_width_and_height[] = {
     {0, {{{0.0f, 200.0f, 1}, {0.0f, 100.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, {0, 0, 1, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {10.0f, 10.0f, 10.0f, 10.0f}, 0},
      {0.0f, 0.0f}, {0.0f, 0.0f, 200.0f, 100.0f}},
@@ -569,6 +605,8 @@ static const LayoutFixture s_layoutFixtures[] = {
     {"automatic_minimum_capped_by_width", 500.0f, 400.0f, s_automatic_minimum_capped_by_width, 3},
     {"content_in_column", 500.0f, 400.0f, s_content_in_column, 3},
     {"content_grows", 500.0f, 400.0f, s_content_grows, 3},
+    {"fit_root_floored_by_min_content", 50.0f, 400.0f, s_fit_root_floored_by_min_content, 3},
+    {"fit_root_between_min_and_max", 60.0f, 400.0f, s_fit_root_between_min_and_max, 3},
     {"row_reverse", 500.0f, 400.0f, s_row_reverse, 3},
     {"row_reverse_justify_end", 500.0f, 400.0f, s_row_reverse_justify_end, 3},
     {"column_reverse", 500.0f, 400.0f, s_column_reverse, 3},
@@ -589,6 +627,8 @@ static const LayoutFixture s_layoutFixtures[] = {
     {"column_grow", 500.0f, 400.0f, s_column_grow, 4},
     {"min_beats_max", 500.0f, 400.0f, s_min_beats_max, 2},
     {"grow_on_auto_root_does_nothing", 500.0f, 400.0f, s_grow_on_auto_root_does_nothing, 3},
+    {"shrink_scaled_by_inner_base", 500.0f, 400.0f, s_shrink_scaled_by_inner_base, 3},
+    {"grow_fraction_with_frozen_max", 500.0f, 400.0f, s_grow_fraction_with_frozen_max, 3},
     {"scale_width_and_height", 500.0f, 400.0f, s_scale_width_and_height, 2},
     {"scale_with_negative_offset", 500.0f, 400.0f, s_scale_with_negative_offset, 2},
     {"scale_root_of_available", 500.0f, 400.0f, s_scale_root_of_available, 1},

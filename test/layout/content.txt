@@ -30,3 +30,13 @@ fixture content_grows available=500x400
 node width=200 height=40 => 0 0 200 40
   node content=40x10 grow=1 => 0 0 110 40
   node content=20x10 grow=1 => 110 0 90 40
+
+fixture fit_root_floored_by_min_content available=50x400
+node => 0 0 80 10
+  node content=40x10 => 0 0 40 10
+  node content=40x10 => 40 0 40 10
+
+fixture fit_root_between_min_and_max available=60x400
+node => 0 0 80 10
+  node content=40x10 min-width=0 => 0 0 40 10
+  node content=40x10 min-width=0 => 40 0 40 10
