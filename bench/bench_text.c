@@ -140,7 +140,7 @@ static muiNodeId AddText(Scene* scene, const char* text, size_t length)
 
 static double TimeLayout(Scene* scene, float width)
 {
-    const muiLayoutInput input = {width, 1e9f, muiMeasureText, &scene->host, 0};
+    const muiLayoutInput input = {width, 1e9f, muiMeasureText, &scene->host, 0, NULL};
     double start = Seconds();
     Check(muiComputeLayout(scene->context, scene->root, &input), "layout");
     return (Seconds() - start) * 1e6;

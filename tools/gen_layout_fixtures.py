@@ -23,7 +23,7 @@
 # (start end center space-between space-around space-evenly), wrap
 # (nowrap wrap wrap-reverse), align-content (stretch start end center
 # space-between space-around space-evenly),
-# align-items and align-self (auto stretch start end center), margin
+# align-items and align-self (auto stretch start end center baseline), margin
 # border padding (one value, or start,end,top,bottom; margins may be
 # auto), position (flow absolute), start end top bottom (insets, as
 # dimensions), anchor (<x>,<y> from 0 to 1), dir (inherit ltr rtl),
@@ -55,8 +55,8 @@ ENUMS = {
     "align-content": ("stretch", "start", "end", "center", "space-between", "space-around",
                       "space-evenly"),
     "justify": ("start", "end", "center", "space-between", "space-around", "space-evenly"),
-    "align-items": ("auto", "stretch", "start", "end", "center"),
-    "align-self": ("auto", "stretch", "start", "end", "center"),
+    "align-items": ("auto", "stretch", "start", "end", "center", "baseline"),
+    "align-self": ("auto", "stretch", "start", "end", "center", "baseline"),
 }
 DEFAULTS = {"direction": "row", "wrap": "nowrap", "dir": "inherit", "align-content": "stretch", "justify": "start", "align-items": "stretch",
             "align-self": "auto", "grow": "0", "shrink": "1", "row-gap": "0",
@@ -268,7 +268,7 @@ def css_edges(prefix, text, suffix=""):
 
 
 ALIGN_CSS = {"auto": "auto", "stretch": "stretch", "start": "flex-start", "end": "flex-end",
-             "center": "center"}
+             "center": "center", "baseline": "baseline"}
 CONTENT_CSS = {"stretch": "stretch", "start": "flex-start", "end": "flex-end", "center": "center",
                "space-between": "space-between", "space-around": "space-around",
                "space-evenly": "space-evenly"}

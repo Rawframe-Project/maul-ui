@@ -33,6 +33,18 @@ static muiSize MeasureFixture(void* user, muiNodeId nodeId, uint64_t hostKey, mu
     return fixture->nodes[hostKey].content;
 }
 
+// Its baseline: Chrome renders host content as a box of its size at the
+// top of the content box, whose baseline is its bottom.
+static float BaselineFixture(void* user, muiNodeId nodeId, uint64_t hostKey, float width,
+                             float height)
+{
+    (void)nodeId;
+    (void)width;
+    (void)height;
+    const LayoutFixture* fixture = user;
+    return fixture->nodes[hostKey].content.height;
+}
+
 static bool Near(float a, float b)
 {
     return fabsf(a - b) <= TOLERANCE;
@@ -90,6 +102,7 @@ static void RunFixture(const LayoutFixture* fixture)
         .availableHeight = fixture->availableHeight,
         .measure = MeasureFixture,
         .measureUser = (void*)fixture,
+        .baseline = BaselineFixture,
     };
     CHECK(muiComputeLayout(context, ids[0], &input) == mui_success, "layout");
     for (int i = 0; i < fixture->count; i++)

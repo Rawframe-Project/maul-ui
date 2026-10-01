@@ -1,0 +1,234 @@
+# Baseline alignment (section 8.3 and 9.4 step 8) and containers'
+# baselines (section 8.5 as Chrome reads it). Host content's baseline is
+# the bottom of its content; a node without one has the bottom of its
+# border box.
+# chrome 154.0.8037.57
+
+fixture baseline_basic available=500x400
+node align-items=baseline => 0 0 60 33
+  node content=20x10 => 0 20 20 10
+  node content=20x30 => 20 0 20 30
+  node content=20x5 margin=0,0,7,3 => 40 25 20 5
+
+fixture baseline_empty_items available=500x400
+node align-items=baseline => 0 0 60 30
+  node width=20 height=10 => 0 20 20 10
+  node content=20x30 => 20 0 20 30
+  node width=20 height=10 padding=0,0,2,4 border=0,0,1,1 => 40 20 20 10
+
+fixture baseline_container_item available=500x400
+node align-items=baseline => 0 0 42 44
+  node content=20x30 => 0 0 20 30
+  node padding=6 direction=column => 20 16 22 28
+    node content=10x8 => 6 6 10 8
+    node content=10x8 => 6 14 10 8
+
+fixture baseline_row_container_item available=500x400
+node align-items=baseline => 0 0 52 50
+  node content=20x30 => 0 14 20 30
+  node padding=6 align-items=end height=50 => 20 0 32 50
+    node content=10x8 => 6 36 10 8
+    node content=10x20 => 16 24 10 20
+
+fixture baseline_row_item_with_baseline_child available=500x400
+node align-items=baseline => 0 0 52 54
+  node content=20x30 => 0 0 20 30
+  node padding=6 height=50 => 20 4 32 50
+    node content=10x8 align-self=end => 6 36 10 8
+    node content=10x20 align-self=baseline => 16 6 10 20
+
+fixture baseline_column_ignores available=500x400
+node direction=column align-items=baseline => 0 0 40 40
+  node content=20x10 => 0 0 20 10
+  node content=40x30 => 0 10 40 30
+
+fixture baseline_wrap_lines available=60x400
+node align-items=baseline wrap=wrap => 0 0 60 42
+  node content=20x10 => 0 20 20 10
+  node content=20x30 => 20 0 20 30
+  node content=20x5 margin=0,0,7,0 => 40 25 20 5
+  node content=30x12 => 0 30 30 12
+
+fixture baseline_wrap_reverse available=60x400
+node align-items=baseline wrap=wrap-reverse => 0 0 60 52
+  node content=20x10 => 0 42 20 10
+  node content=20x30 => 20 22 20 30
+  node content=30x12 => 0 10 30 12
+  node content=30x22 => 30 0 30 22
+
+fixture baseline_auto_margin available=500x400
+node align-items=baseline height=100 => 0 0 60 100
+  node content=20x10 => 0 20 20 10
+  node content=20x30 => 20 0 20 30
+  node content=20x5 margin=0,0,auto,0 => 40 95 20 5
+
+fixture baseline_definite_single available=500x400
+node align-items=baseline height=100 => 0 0 40 100
+  node content=20x10 => 0 20 20 10
+  node content=20x30 => 20 0 20 30
+
+fixture baseline_mixed available=500x400
+node => 0 0 60 60
+  node content=20x10 align-self=baseline => 0 20 20 10
+  node content=20x60 => 20 0 20 60
+  node content=20x30 align-self=baseline => 40 0 20 30
+
+fixture baseline_column_container_baseline available=500x400
+node align-items=baseline => 0 0 36 41
+  node content=20x30 => 0 0 20 30
+  node direction=column-reverse padding=3 => 20 13 16 28
+    node content=10x8 => 3 17 10 8
+    node content=10x14 => 3 3 10 14
+
+fixture baseline_container_no_items available=500x400
+node align-items=baseline => 0 0 40 30
+  node content=20x30 => 0 0 20 30
+  node padding=5 border=2 width=20 => 20 16 20 14
+
+fixture baseline_nested_first_line_wrap_reverse available=500x400
+node align-items=baseline => 0 0 50 38
+  node content=20x30 => 0 0 20 30
+  node wrap=wrap-reverse width=30 => 20 16 30 22
+    node content=20x8 => 0 14 20 8
+    node content=20x14 => 0 0 20 14
+
+fixture baseline_rtl available=500x400
+node align-items=baseline dir=rtl => 0 0 40 30
+  node content=20x10 => 20 20 20 10
+  node content=20x30 => 0 0 20 30
+
+fixture baseline_row_reverse_container available=500x400
+node align-items=baseline => 0 0 40 30
+  node content=20x30 => 0 0 20 30
+  node direction=row-reverse => 20 16 20 14
+    node content=10x8 => 10 0 10 14
+    node content=10x14 => 0 0 10 14
+
+fixture baseline_first_item_absolute available=500x400
+node align-items=baseline => 0 0 38 34
+  node content=20x30 => 0 0 20 30
+  node padding=4 => 20 12 18 22
+    node position=absolute top=20 content=5x5 => 4 20 5 5
+    node content=10x14 => 4 4 10 14
+
+fixture baseline_rtl_row_inner available=500x400
+node align-items=baseline => 0 0 40 36
+  node content=20x30 => 0 0 20 30
+  node dir=rtl align-items=start => 20 22 20 14
+    node content=10x8 => 10 0 10 8
+    node content=10x14 => 0 0 10 14
+
+fixture baseline_rtl_row_reverse_inner available=500x400
+node align-items=baseline => 0 0 40 30
+  node content=20x30 => 0 0 20 30
+  node dir=rtl direction=row-reverse align-items=start => 20 16 20 14
+    node content=10x8 => 0 0 10 8
+    node content=10x14 => 10 0 10 14
+
+fixture baseline_ltr_row_reverse_start available=500x400
+node align-items=baseline => 0 0 40 30
+  node content=20x30 => 0 0 20 30
+  node direction=row-reverse align-items=start => 20 16 20 14
+    node content=10x8 => 10 0 10 8
+    node content=10x14 => 0 0 10 14
+
+fixture baseline_wrap_reverse_descents available=60x400
+node align-items=baseline wrap=wrap-reverse => 0 0 60 67
+  node content=20x10 margin=0,0,0,5 => 0 52 20 10
+  node content=20x30 margin=0,0,4,0 => 20 32 20 30
+  node content=30x12 => 0 10 30 12
+  node content=30x22 margin=0,0,0,6 => 30 0 30 22
+
+fixture baseline_wrap_reverse_single available=500x400
+node align-items=baseline wrap=wrap-reverse height=100 => 0 0 40 100
+  node content=20x10 margin=0,0,0,5 => 0 85 20 10
+  node content=20x30 => 20 65 20 30
+
+fixture baseline_column_wrap_inner available=500x400
+node align-items=baseline => 0 0 40 42
+  node content=20x30 => 0 0 20 30
+  node direction=column wrap=wrap height=20 align-items=start => 20 22 20 20
+    node content=10x8 => 0 0 10 8
+    node content=10x14 => 10 0 10 14
+    node content=10x3 => 10 14 10 3
+
+fixture baseline_column_wrap_reverse_inner available=500x400
+node align-items=baseline => 0 0 40 36
+  node content=20x30 => 0 0 20 30
+  node direction=column wrap=wrap-reverse height=20 align-items=start => 20 16 20 20
+    node content=10x8 => 10 0 10 8
+    node content=10x14 => 0 0 10 14
+    node content=10x3 => 0 14 10 3
+
+fixture baseline_column_wrap_reverse_self available=500x400
+node direction=column wrap=wrap-reverse width=100 => 0 0 100 8
+  node content=20x8 align-self=baseline => 80 0 20 8
+
+fixture baseline_participants_second_line available=500x400
+node align-items=baseline => 0 0 50 38
+  node content=20x30 => 0 0 20 30
+  node wrap=wrap-reverse width=30 align-items=start => 20 13 30 25
+    node content=20x8 => 0 17 20 8
+    node content=20x14 align-self=baseline margin=0,0,3,0 => 0 3 20 14
+
+fixture baseline_participants_rtl available=500x400
+node align-items=baseline => 0 0 40 30
+  node content=20x30 => 0 0 20 30
+  node dir=rtl align-items=start => 20 16 20 14
+    node content=10x8 => 10 0 10 8
+    node content=10x14 align-self=baseline => 0 0 10 14
+
+fixture baseline_abs_first_only available=500x400
+node align-items=baseline => 0 0 28 30
+  node content=20x30 => 0 0 20 30
+  node padding=4 => 20 22 8 8
+    node position=absolute content=5x5 => 4 4 5 5
+
+fixture baseline_empty_column available=500x400
+node align-items=baseline => 0 0 26 30
+  node content=20x30 => 0 0 20 30
+  node direction=column padding=3 height=12 => 20 18 6 12
+
+fixture baseline_absolute_baseline available=500x400
+node height=100 align-items=baseline => 0 0 0 100
+  node position=absolute content=20x10 => 0 0 20 10
+  node position=absolute content=20x10 align-self=end => 0 90 20 10
+
+fixture baseline_stretched_line_baseline available=60x400
+node align-items=baseline wrap=wrap height=100 => 0 0 60 100
+  node content=20x10 margin=0,0,0,5 => 0 20 20 10
+  node content=20x30 => 20 0 20 30
+  node content=30x12 => 0 61.5 30 12
+
+fixture baseline_stretched_line_baseline_rev available=60x400
+node align-items=baseline wrap=wrap-reverse height=100 => 0 0 60 100
+  node content=20x10 margin=0,0,0,5 => 0 85 20 10
+  node content=20x30 => 20 65 20 30
+  node content=30x12 => 0 26.5 30 12
+
+fixture baseline_overflow_descent available=500x400
+node align-items=baseline => 0 0 40 30
+  node content=20x10 height=4 => 0 20 20 4
+  node content=20x30 => 20 0 20 30
+
+fixture baseline_column_container_aligned available=500x400
+node align-items=baseline => 0 0 36 47
+  node content=20x30 => 0 0 20 30
+  node direction=column align-items=baseline padding=3 => 20 19 16 28
+    node content=10x8 => 3 3 10 8
+    node content=10x14 => 3 11 10 14
+
+fixture baseline_auto_margin_top_large available=500x400
+node align-items=baseline => 0 0 40 50
+  node content=20x10 => 0 0 20 10
+  node content=20x50 margin=0,0,auto,0 => 20 0 20 50
+
+fixture baseline_auto_margin_bottom_large available=500x400
+node align-items=baseline => 0 0 40 50
+  node content=20x10 => 0 0 20 10
+  node content=20x50 margin=0,0,0,auto => 20 0 20 50
+
+fixture baseline_content_below_border available=500x400
+node align-items=baseline => 0 0 40 30
+  node content=20x10 border=0,0,3,0 padding=0,0,2,0 => 0 15 20 15
+  node content=20x30 => 20 0 20 30

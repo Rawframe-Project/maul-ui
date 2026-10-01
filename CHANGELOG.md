@@ -12,6 +12,8 @@ format.
 
 - `muiDrawInput` has two more fields, `paint` and `paintUser`; an
   initializer that lists its fields by position needs them.
+- `muiLayoutInput` has one more field, `baseline`; an initializer that
+  lists its fields by position needs it.
 - A context's parts start on 64-byte cache lines, so drawing no longer
   slows by up to 30% when an unrelated part of the context changes
   size; a context takes up to about 2 KB more.
@@ -24,6 +26,12 @@ format.
   `MUI_PROPERTY_GROUP` gives a property's group.
 
 ### Added
+
+- Baseline alignment: `mui_alignBaseline` for `alignItems` and
+  `alignSelf`, and a `muiBaselineFunction` in `muiLayoutInput` that
+  gives host content's first baseline; `muiTextBaseline` is the text
+  service's. Containers take their baselines from their children as
+  Chrome does, checked by 37 more Chrome fixtures (record mui-0003).
 
 - A text benchmark (`bench/bench_text.c`): 2,000 labels and a
   4,000-word paragraph in Liberation Sans, laid out, laid out again at

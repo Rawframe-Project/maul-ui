@@ -336,6 +336,18 @@ static void PaintLine(const Paragraph* paragraph, const muiTextLine* line, float
     }
 }
 
+float muiTextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height)
+{
+    (void)width;
+    (void)height;
+    Paragraph paragraph;
+    if (!Prepare(user, nodeId, hostKey, &paragraph) || paragraph.block->length == 0)
+    {
+        return NAN;
+    }
+    return paragraph.baseline;
+}
+
 void muiPaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
                   muiDrawSink* sink)
 {

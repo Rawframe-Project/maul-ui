@@ -101,7 +101,7 @@ static void Bind(muiContext* context, muiStyleId style, muiVariant variant,
 // The node's width after laying it out at timeNs.
 static float WidthAt(muiContext* context, muiNodeId node, uint64_t timeNs)
 {
-    muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, timeNs};
+    muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, timeNs, NULL};
     CHECK(muiComputeLayout(context, node, &input) == mui_success, "compute");
     return muiNode_GetRect(context, node).width;
 }
@@ -502,7 +502,7 @@ static void TestOnlyMovableValuesMove(void)
     muiLayoutStyle wide = muiDefaultLayoutStyle();
     wide.sizing.width = Length(600.0f);
     CHECK(muiNode_SetLayoutValues(context, root, &wide, WIDTH) == mui_success, "root width");
-    muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, T0 + 200 * MS};
+    muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, T0 + 200 * MS, NULL};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "start");
     input.timeNs = T0 + 250 * MS;
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "half way");

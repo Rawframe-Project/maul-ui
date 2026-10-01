@@ -80,7 +80,7 @@ static muiStyleId MakeStyle(muiContext* context)
 
 static void Layout(muiContext* context, muiNodeId node, uint64_t timeNs)
 {
-    const muiLayoutInput input = {400.0f, 300.0f, Measure, NULL, timeNs};
+    const muiLayoutInput input = {400.0f, 300.0f, Measure, NULL, timeNs, NULL};
     CHECK(muiComputeLayout(context, node, &input) == mui_success, "layout");
 }
 

@@ -50,6 +50,19 @@ tree that did not change.
   Automatic margins center it between two insets. Its anchor point then
   moves it back by that fraction of its own size, as Roblox's
   `AnchorPoint` and CSS's `translate` do; in-flow nodes ignore it.
+- **Baselines.** Children aligned by `baseline` in a row share their
+  line's baseline, as a group flush with the line's cross start (its
+  bottom under `wrap-reverse`); the line holds their largest ascent and
+  descent. In a column, where the cross axis is the inline axis,
+  `baseline` is `start`, as it is for an absolute node. A node's first
+  baseline is its host content's, from a baseline function passed to
+  `muiComputeLayout` beside the measure function; a container's comes
+  from its line at the top of a row or the inline start of a column, from
+  that line's baseline-aligned children if it has any, else from its
+  child first in the container's direction (the last when the direction
+  is reversed), as Chrome reads CSS Flexbox's section 8.5. A node
+  without one has the bottom of its border box, as CSS synthesizes it.
+  Baselines are found where a line needs them and not cached.
 - **Automatic margins** on flex items take positive free space before
   `justify-content`, and on the cross axis center or push an item, which
   is then not stretched; on overflow the start margin is zero.

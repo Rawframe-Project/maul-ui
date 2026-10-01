@@ -18,6 +18,7 @@
 #include "maul-ui/text_block.h"
 #include "maul-ui/text_style.h"
 
+#include <math.h>
 #include <stdalign.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -134,7 +135,7 @@ static void SetText(Scene* scene, muiNodeId node, muiTextStyle style, muiPropert
 // Lays a root out, which styles it, at an available width.
 static void Layout(Scene* scene, muiNodeId root, float width)
 {
-    const muiLayoutInput input = {width, 1000.0f, muiMeasureText, &scene->host, 0};
+    const muiLayoutInput input = {width, 1000.0f, muiMeasureText, &scene->host, 0, NULL};
     CHECK(muiComputeLayout(scene->context, root, &input) == mui_success, "layout");
 }
 
@@ -527,6 +528,45 @@ static void TestUnsafeBreaks(void)
     FreeScene(&scene);
 }
 
+static void TestBaselines(void)
+{
+    Scene scene = MakeScene(NULL);
+    muiNodeDef def = muiDefaultNodeDef();
+    muiNodeId row = s_nullNode;
+    CHECK(muiCreateNode(scene.context, &def, &row) == mui_success, "row");
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.container.alignItems = mui_alignBaseline;
+    CHECK(muiNode_SetLayoutValues(scene.context, row, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyAlignItems)) == mui_success,
+          "aligned by baseline");
+    // Ahem's ascent is 0.8 of its size: baselines 8 and 3 + 16 down.
+    muiNodeId small = AddText(&scene, row, "ab");
+    muiNodeId large = AddText(&scene, row, "ab");
+    muiNodeId empty = AddText(&scene, row, "");
+    muiTextStyle style = muiDefaultTextStyle();
+    style.size = (muiDimension){0.0f, 20.0f, mui_dimensionValue};
+    SetText(&scene, large, style, SIZE);
+    layout.padding.top = 3.0f;
+    CHECK(muiNode_SetLayoutValues(scene.context, large, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyPaddingTop)) == mui_success,
+          "padding");
+    CHECK(muiTextBaseline(&scene.host, small, muiNode_GetHostKey(scene.context, small), 0.0f,
+                          0.0f) == 8.0f &&
+              isnan(muiTextBaseline(&scene.host, empty, muiNode_GetHostKey(scene.context, empty),
+                                    0.0f, 0.0f)),
+          "first baselines");
+    const muiLayoutInput input = {500.0f, 1000.0f, muiMeasureText, &scene.host, 0, muiTextBaseline};
+    CHECK(muiComputeLayout(scene.context, row, &input) == mui_success, "layout");
+    // Empty text has no baseline, so its box's bottom is one.
+    muiRect rects[3] = {muiNode_GetRect(scene.context, small),
+                        muiNode_GetRect(scene.context, large),
+                        muiNode_GetRect(scene.context, empty)};
+    CHECK(rects[0].y == 11.0f && rects[1].y == 0.0f && rects[2].y == 19.0f &&
+              muiNode_GetRect(scene.context, row).height == 23.0f,
+          "baselines line up, the row as tall as the deepest");
+    FreeScene(&scene);
+}
+
 static void TestMemoryRunningOut(void)
 {
     // Each allocation of shaping and painting fails in turn: the block
@@ -585,6 +625,7 @@ int main(void)
     TestFontsAndChanges();
     TestRealShaping();
     TestUnsafeBreaks();
+    TestBaselines();
     TestMemoryRunningOut();
     return s_failures == 0 ? 0 : 1;
 }

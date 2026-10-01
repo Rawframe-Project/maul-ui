@@ -23,10 +23,11 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   out (`muiCreateFont`); a font's bytes are copied, or borrowed from a
   caller who keeps them unchanged until the font is destroyed.
 - **The boundary:** the core reaches text through host content only:
-  the measure function, a paint function, and later a baseline
-  function. The text service provides the first two
-  (`muiMeasureText`, `muiPaintText`, whose user pointer names the
-  service and the context); a node's host key is a text block's key,
+  the measure function, a paint function, and a baseline function. The
+  text service provides all three (`muiMeasureText`, `muiPaintText`,
+  `muiTextBaseline`, whose user pointer names the service and the
+  context); the first baseline is the first line's, which does not
+  depend on the width, and empty text, which has no lines, has none; a node's host key is a text block's key,
   and a text style's font is a font's key, 0 being the service's
   default font. The service reads a node's resolved text style and
   direction through public getters.

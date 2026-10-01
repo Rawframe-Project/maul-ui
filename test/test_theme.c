@@ -84,7 +84,7 @@ static bool SameColor(muiColor a, muiColor b)
 
 static void Layout(muiContext* context, muiNodeId root)
 {
-    const muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, 0};
+    const muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, 0, NULL};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
 }
 
