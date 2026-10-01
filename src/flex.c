@@ -331,16 +331,25 @@ static void PrepareItem(const Frame* frame, uint32_t child)
         .maxCross = cross.maximum,
     };
     float base = 0.0f;
+    bool fromContent = false;
     if (!muiResolveDimension(style->item.basis, frame->extentMain, &base))
     {
         muiMeasureMode mode = frame->mainIn.mode == mui_measureMinContent ? mui_measureMinContent
                                                                           : mui_measureMaxContent;
+        fromContent = !main.definite;
         base = main.definite ? main.size : ContentMain(frame, child, mode, crossConstraint);
     }
     item->base = fmaxf(base, boxMain);
     item->innerBase = item->base - boxMain;
     float minimum = main.minimum;
-    if (main.minimumAuto)
+    if (main.minimumAuto && fromContent)
+    {
+        // A base from content is never below its automatic minimum, which
+        // therefore only matters if the line shrinks.
+        item->minimumPending = true;
+        minimum = 0.0f;
+    }
+    else if (main.minimumAuto)
     {
         minimum = AutomaticMinimum(frame, child, &main, crossConstraint);
     }

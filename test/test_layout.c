@@ -41,6 +41,36 @@ static muiSize Measure(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasur
     return host->content;
 }
 
+// Text that wraps: hostKey packs its natural width (high half) and its
+// longest word (low half); lines are 10 high.
+static muiSize MeasureText(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasureAxis width,
+                           muiMeasureAxis height)
+{
+    (void)user;
+    (void)nodeId;
+    (void)height;
+    float natural = (float)(hostKey >> 32);
+    float word = (float)(hostKey & 0xFFFFFFFFu);
+    float space = natural;
+    if (width.mode == mui_measureExact || width.mode == mui_measureAtMost)
+    {
+        space = width.size;
+    }
+    else if (width.mode == mui_measureMinContent)
+    {
+        space = word;
+    }
+    float line = fmaxf(fminf(space, natural), word);
+    float lines = ceilf(natural / line);
+    float used = width.mode == mui_measureExact ? width.size : line;
+    return (muiSize){used, lines * 10.0f};
+}
+
+static uint64_t TextKey(uint32_t natural, uint32_t word)
+{
+    return ((uint64_t)natural << 32) | word;
+}
+
 static muiContext* MakeContext(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -254,6 +284,68 @@ static void TestScaledLimitFollowsTheParent(void)
     muiDestroyContext(context);
 }
 
+static muiNodeId MakeText(muiContext* context, muiNodeId parent, uint64_t key)
+{
+    muiNodeDef def = muiDefaultNodeDef();
+    def.hostKey = key;
+    muiNodeId node = s_null;
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.content = mui_contentHost;
+    style.sizing.minWidth = Length(0.0f);
+    CHECK(muiCreateNode(context, &def, &node) == mui_success, "text");
+    CHECK(muiNode_SetLayoutStyle(context, node, &style) == mui_success, "text style");
+    CHECK(muiNode_InsertChild(context, parent, node, s_null) == mui_success, "text insert");
+    return node;
+}
+
+static void TestShrunkTextIsNotTakenFromItsMinContentSize(void)
+{
+    muiContext* context = MakeContext();
+    muiLayoutStyle row = muiDefaultLayoutStyle();
+    row.container.alignItems = mui_alignStart;
+    muiNodeId root = MakeNode(context, &row);
+    muiNodeId wide = MakeText(context, root, TextKey(100, 30));
+    muiNodeId narrow = MakeText(context, root, TextKey(40, 20));
+    // Too little space: the root takes its min-content width, 50, and
+    // shrinks the texts to it by their natural widths.
+    muiLayoutInput input = {10.0f, 300.0f, MeasureText, NULL};
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    muiRect a = muiNode_GetRect(context, wide);
+    muiRect b = muiNode_GetRect(context, narrow);
+    CHECK(muiNode_GetRect(context, root).width == 50.0f, "min-content width");
+    CHECK(a.width + b.width == 50.0f && a.width > 30.0f, "shrunk by natural width");
+    CHECK(a.height == ceilf(100.0f / a.width) * 10.0f, "wide text wraps at its width");
+    CHECK(muiNode_GetRect(context, root).height == fmaxf(a.height, b.height),
+          "the root is as tall as its tallest text, not its min-content layout");
+    muiDestroyContext(context);
+}
+
+// A column as wide as the space with text aligned to the start: the
+// text's width is fit-content in that space.
+static void CheckTextFollowsSpace(float first, float second)
+{
+    muiContext* context = MakeContext();
+    muiLayoutStyle column = muiDefaultLayoutStyle();
+    column.container.direction = mui_flexColumn;
+    column.container.alignItems = mui_alignStart;
+    column.sizing.width = (muiDimension){1.0f, 0.0f, mui_dimensionValue};
+    muiNodeId root = MakeNode(context, &column);
+    muiNodeId text = MakeText(context, root, TextKey(100, 10));
+    muiLayoutInput input = {first, 300.0f, MeasureText, NULL};
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_GetRect(context, text).width == fminf(first, 100.0f), "first space");
+    input.availableWidth = second;
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout again");
+    CHECK(muiNode_GetRect(context, text).width == fminf(second, 100.0f), "second space");
+    muiDestroyContext(context);
+}
+
+static void TestTextFollowsTheSpaceBothWays(void)
+{
+    CheckTextFollowsSpace(100.0f, 60.0f);
+    CheckTextFollowsSpace(60.0f, 100.0f);
+}
+
 static void TestRectOfUnknownNodeIsZero(void)
 {
     muiContext* context = MakeContext();
@@ -274,6 +366,8 @@ int main(void)
     TestStyleChangeRelaysTheParent();
     TestNewSpaceRelaysAnUnchangedTree();
     TestScaledLimitFollowsTheParent();
+    TestShrunkTextIsNotTakenFromItsMinContentSize();
+    TestTextFollowsTheSpaceBothWays();
     TestRectOfUnknownNodeIsZero();
     return s_failures == 0 ? 0 : 1;
 }
