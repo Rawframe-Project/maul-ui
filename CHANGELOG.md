@@ -27,6 +27,11 @@ format.
 
 ### Added
 
+- Glyph images (`maul-ui/glyph_image.h`): `muiRenderGlyph` renders a
+  glyph of a glyph run's font at a size in device pixels and a subpixel
+  offset into the caller's memory as 8-bit coverage, unhinted, the same
+  bytes on every platform (record mui-0006).
+
 - Baseline alignment: `mui_alignBaseline` for `alignItems` and
   `alignSelf`, and a `muiBaselineFunction` in `muiLayoutInput` that
   gives host content's first baseline; `muiTextBaseline` is the text

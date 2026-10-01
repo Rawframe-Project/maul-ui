@@ -22,9 +22,10 @@ the host itself owns, inside the call that runs the frame.
 
 Not released. The node tree, flex layout checked against Chrome,
 style (classes, states, conditions, transitions, tokens and themes) and
-the draw-command list are in place. The text service has begun with
-fonts; shaping, paragraphs, glyph images and editing come next, then
-interaction, accessibility and a renderer.
+the draw-command list are in place. The text service lays out
+paragraphs (shaping, bidirectional text, line breaking, baselines) and
+renders glyph images; glyph atlases, distance fields, font fallback and
+editing come next, then interaction, accessibility and a renderer.
 
 ## Building
 

@@ -29,10 +29,15 @@ published.
   changes when a line breaks. The script writes the same bytes each
   time.
 
+- `MaulLargeGlyph.ttf`: written by `make_large_glyph_font.py`
+  (fontTools 4.60.1), MIT: 16 units per em and an A 16 ems a side,
+  too large to render at the largest size.
+
 SHA-256 of each file:
 
 ```text
 b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448  Ahem.ttf
 76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8  LiberationSans-Regular.ttf
 9874b4f1bf8f95c0c1ab5c810a89c1bca65ba666731b79a72de2eb1291d4b13a  MaulBreakTest.ttf
+1a0b8e0c87b9cf3fd2b847c47f677cdbd2af980a3e5d2fb3fbfeb8133bbbcc8f  MaulLargeGlyph.ttf
 ```

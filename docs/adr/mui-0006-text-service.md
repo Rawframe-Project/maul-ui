@@ -61,9 +61,17 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
 - **The list:** glyph runs carry a font key, a size, a color, an origin
   and glyph ids with positions. Glyph images are not in the list, so a
   list does not depend on atlas state.
+- **Glyph images** (`maul-ui/glyph_image.h`): `muiRenderGlyph` renders
+  a glyph of a font key at an em in device pixels and a pen offset
+  right of a pixel boundary into the caller's bytes, as 8-bit linear
+  coverage, and gives its size and bearing; a size it needs that the
+  bytes lack is told, not allocated. Outlines are unhinted, without the
+  font's embedded bitmaps, so images sit on the unhinted advances text
+  is laid out with; FreeType renders in integers, so images are the
+  same bytes everywhere. Color glyphs and LCD rendering are not drawn.
 - **Measuring** uses the font's own advances, shaped at a scale of its
   units per em and scaled by size over units per em, so sizes are the
-  same at every device scale; hinting affects glyph images only.
+  same at every device scale; nothing is hinted.
 - **Metrics** (`muiFont_GetMetrics`) are in ems. The ascent, descent
   and line gap are the typographic ones when the font sets
   `USE_TYPO_METRICS`, else the horizontal header's, else the

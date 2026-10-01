@@ -45,5 +45,6 @@ text_shape: font_store text_block text_service
 line_break: text_block
 text_layout: line_break text_block text_service text_shape
 font: allocator font_store pool text_service
+glyph_image: font_store text_service
 property_bits:
 inherit: layout_node property tree

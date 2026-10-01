@@ -12,6 +12,7 @@
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
 #include "maul-ui/font.h"
+#include "maul-ui/glyph_image.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/text.h"
@@ -62,6 +63,32 @@ static size_t Damage(unsigned char* out, const unsigned char* font, size_t size,
     }
 }
 
+static unsigned char s_pixels[1 << 20];
+
+// Renders a damaged font's first glyphs at random sizes and offsets:
+// each is rendered, refused, or too large, and none harms anything.
+// Returns how many were rendered.
+static int RenderSome(muiTextService* service, muiFontId font, uint32_t* state)
+{
+    int rendered = 0;
+    muiFontMetrics metrics;
+    CHECK(muiFont_GetMetrics(service, font, &metrics) == mui_success, "metrics");
+    for (uint32_t glyph = 0; glyph < 12 && glyph < metrics.glyphCount; glyph++)
+    {
+        float size = 1.0f + (float)(Next(state) % 2000) / 10.0f;
+        float offset = (float)(Next(state) % 4) / 4.0f;
+        muiGlyphImage image = {0, 0, 0, 0};
+        muiResult result = muiRenderGlyph(service, muiFont_GetKey(font), glyph, size, offset,
+                                          &image, s_pixels, sizeof s_pixels);
+        CHECK(result == mui_success || result == mui_errorFormat ||
+                  (result == mui_errorCapacity &&
+                   (size_t)image.width * image.height > sizeof s_pixels),
+              "a glyph rendered or refused");
+        rendered += result == mui_success && image.width != 0 ? 1 : 0;
+    }
+    return rendered;
+}
+
 static void TestDamagedFonts(void)
 {
     muiTextServiceDef def = muiDefaultTextServiceDef();
@@ -86,6 +113,7 @@ static void TestDamagedFonts(void)
     CHECK(copy != NULL, "copy");
     uint32_t state = 2026;
     int read = 0;
+    int rendered = 0;
     for (int round = 0; round < FONT_ROUNDS && copy != NULL; round++)
     {
         bool ahem = round % 2 == 0;
@@ -101,8 +129,9 @@ static void TestDamagedFonts(void)
         {
             continue;
         }
-        // What was read lays text out without harm.
+        // What was read lays text out and renders glyphs without harm.
         read++;
+        rendered += RenderSome(service, font, &state);
         CHECK(muiSetDefaultFont(service, font) == mui_success &&
                   muiNode_MarkContentChanged(context, node) == mui_success,
               "the default");
@@ -117,6 +146,7 @@ static void TestDamagedFonts(void)
               "destroyed");
     }
     CHECK(read > 0 && read < FONT_ROUNDS, "some damage is read, some refused");
+    CHECK(rendered > read, "glyphs of damaged fonts rendered");
     free(copy);
     muiDestroyContext(context);
     muiDestroyTextService(service);
