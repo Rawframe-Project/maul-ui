@@ -25,6 +25,9 @@ format.
 
 ### Added
 
+- A text benchmark (`bench/bench_text.c`): 2,000 labels and a
+  4,000-word paragraph in Liberation Sans, laid out, laid out again at
+  a new width, and painted.
 - Text blocks (`maul-ui/text_block.h`): UTF-8 text the text service
   lays out as host content, measured by `muiMeasureText` and painted
   by `muiPaintText` in the node's text style: lines broken by UAX #14,

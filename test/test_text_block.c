@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "ahem.inc"
+#include "liberation_sans.inc"
 
 static const muiNodeId s_nullNode = {0, 0};
 
@@ -419,6 +420,34 @@ static void TestFontsAndChanges(void)
     FreeScene(&scene);
 }
 
+static void TestRealShaping(void)
+{
+    // Liberation Sans kerns A and V, and has a line gap; at its units per
+    // em (2048) a unit of size is a unit of the font.
+    Scene scene = MakeScene(NULL);
+    muiFontDef def = muiDefaultFontDef();
+    def.data = s_liberationSans;
+    def.size = sizeof s_liberationSans;
+    def.dataMode = mui_fontDataBorrow;
+    muiFontId font = {0, 0};
+    muiFontMetrics metrics;
+    CHECK(muiCreateFont(scene.service, &def, &font) == mui_success &&
+              muiFont_GetMetrics(scene.service, font, &metrics) == mui_success &&
+              metrics.lineGap > 0.0f,
+          "Liberation Sans, with a line gap");
+    muiNodeId node = AddText(&scene, s_nullNode, "AV");
+    muiTextStyle style = muiDefaultTextStyle();
+    style.font = muiFont_GetKey(font);
+    style.size = (muiDimension){0.0f, 2048.0f, mui_dimensionValue};
+    SetText(&scene, node, style, FONT | SIZE);
+    Layout(&scene, node, 100000.0f);
+    muiSize size = Measure(&scene, node, mui_measureMaxContent, 0.0f);
+    float content = (metrics.ascent + metrics.descent) * 2048.0f;
+    CHECK(size.width == 1214.0f + 1366.0f, "A kerned against V: 1366 less 152");
+    CHECK(size.height == content + metrics.lineGap * 2048.0f, "the line gap in the line height");
+    FreeScene(&scene);
+}
+
 static void TestMemoryRunningOut(void)
 {
     // Each allocation of shaping and painting fails in turn: the block
@@ -460,6 +489,7 @@ int main(void)
     TestLineHeightSpacingAndSlack();
     TestBidiOrder();
     TestFontsAndChanges();
+    TestRealShaping();
     TestMemoryRunningOut();
     return s_failures == 0 ? 0 : 1;
 }

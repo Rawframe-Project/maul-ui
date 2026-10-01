@@ -86,7 +86,12 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   a format a call does not take.
 - **Hostile input:** fonts are validated by FreeType and HarfBuzz when
   created; tests feed damaged and truncated fonts and every allocation
-  failing in turn.
+  failing in turn. A seeded fuzz test damages Ahem and Liberation Sans
+  in the ways files are damaged and lays text out in what is read, and
+  lays out random UTF-8 (ill-formed bytes, controls, bidi controls,
+  four scripts, emoji) in random styles, directions and widths,
+  checking that painting draws no more lines than measuring found;
+  the sanitizers run it on every change.
 
 ## Consequences
 

@@ -154,6 +154,29 @@ static float Align(const Paragraph* paragraph, float lineWidth, float width)
 
 // Draws the glyphs of an item whose clusters fall from start up to end,
 // from pen x, and returns the pen after them.
+// The first of count glyphs past those whose cluster is before offset:
+// clusters rise in a left-to-right item and fall in a right-to-left one,
+// so before means below, or above for a right-to-left item.
+static uint32_t Seek(const muiShapedGlyph* glyphs, uint32_t count, uint32_t offset, bool rtl)
+{
+    uint32_t low = 0;
+    uint32_t high = count;
+    while (low < high)
+    {
+        uint32_t middle = low + (high - low) / 2;
+        bool before = rtl ? glyphs[middle].cluster >= offset : glyphs[middle].cluster < offset;
+        if (before)
+        {
+            low = middle + 1;
+        }
+        else
+        {
+            high = middle;
+        }
+    }
+    return low;
+}
+
 static float PaintSegment(const Paragraph* paragraph, const muiTextItem* item, uint32_t start,
                           uint32_t end, float pen, float baseline, muiDrawSink* sink)
 {
@@ -161,14 +184,17 @@ static float PaintSegment(const Paragraph* paragraph, const muiTextItem* item, u
     shaped += item->firstGlyph;
     muiGlyph* glyphs = paragraph->service->glyphs.data;
     float scale = paragraph->scale.scale;
+    // The glyphs of clusters from start up to end lie together: from the
+    // first not before start to the first not before end, or for a
+    // right-to-left item from the first below end to the first below
+    // start.
+    bool rtl = (item->level & 1) != 0;
+    uint32_t first = Seek(shaped, item->glyphCount, rtl ? end : start, rtl);
+    uint32_t last = Seek(shaped, item->glyphCount, rtl ? start : end, rtl);
     uint32_t count = 0;
-    for (uint32_t i = 0; i < item->glyphCount; i++)
+    for (uint32_t i = first; i < last; i++)
     {
         const muiShapedGlyph* glyph = &shaped[i];
-        if (glyph->cluster < start || glyph->cluster >= end)
-        {
-            continue;
-        }
         // y down; the integer is negated, so no -0 enters the list.
         glyphs[count++] = (muiGlyph){glyph->id, pen + (float)glyph->offsetX * scale,
                                      (float)-glyph->offsetY * scale};
