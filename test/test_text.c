@@ -117,6 +117,9 @@ static void TestCountFaces(void)
     const unsigned char apple[12] = {'t', 'r', 'u', 'e'};
     CHECK(muiCountFontFaces(cff, sizeof cff, &count) == mui_success && count == 1, "CFF");
     CHECK(muiCountFontFaces(apple, sizeof apple, &count) == mui_success && count == 1, "Apple");
+    // A tag of no font, whatever follows it.
+    const unsigned char other[16] = {'w', 'O', 'F', '2', 0, 0, 0, 0, 0, 0, 0, 1};
+    CHECK(muiCountFontFaces(other, sizeof other, &count) == mui_errorFormat, "another tag");
     const unsigned char woff2[12] = {'w', 'O', 'F', '2'};
     const unsigned char woff[12] = {'w', 'O', 'F', 'F'};
     CHECK(muiCountFontFaces(woff2, sizeof woff2, &count) == mui_errorFormat, "WOFF2");
@@ -177,6 +180,10 @@ static void TestFontArguments(void)
     bad.dataMode = 2;
     CHECK(muiCreateFont(service, &bad, &font) == mui_errorInvalid, "unknown mode");
     bad = def;
+    bad.size = (size_t)INT32_MAX + 1u;
+    bad.dataMode = mui_fontDataBorrow;
+    CHECK(muiCreateFont(service, &bad, &font) == mui_errorInvalid, "too long");
+    bad = def;
     bad.faceIndex = 1;
     CHECK(muiCreateFont(service, &bad, &font) == mui_errorFormat, "no second face");
     muiFontMetrics metrics;
@@ -204,6 +211,31 @@ static void TestFontArguments(void)
           "its slot reused");
     CHECK(!muiFont_IsValid(service, second) && muiFont_IsValid(service, font), "ids told apart");
     // Fonts left to the service are destroyed with it.
+    muiDestroyTextService(service);
+}
+
+// A copy takes the font's size from the allocator and a borrow does
+// not; a face the file lacks is refused before anything is taken.
+static void TestFontMemory(void)
+{
+    CountingAllocator counter = {0};
+    muiTextService* service = MakeService(&counter, 2);
+    size_t before = counter.liveBytes;
+    int allocations = counter.allocations;
+    muiFontDef def = AhemDef(mui_fontDataCopy);
+    def.faceIndex = 1;
+    muiFontId font = {0};
+    CHECK(muiCreateFont(service, &def, &font) == mui_errorFormat &&
+              counter.allocations == allocations,
+          "no second face, and nothing taken");
+    def = AhemDef(mui_fontDataBorrow);
+    CHECK(muiCreateFont(service, &def, &font) == mui_success, "borrowed");
+    size_t borrowed = counter.liveBytes - before;
+    CHECK(muiDestroyFont(service, font) == mui_success, "destroyed");
+    def = AhemDef(mui_fontDataCopy);
+    CHECK(muiCreateFont(service, &def, &font) == mui_success, "copied");
+    CHECK(counter.liveBytes - before == borrowed + sizeof s_ahem, "the copy is the font's size");
+    CHECK(muiDestroyFont(service, font) == mui_success && counter.liveBytes == before, "returned");
     muiDestroyTextService(service);
 }
 
@@ -394,6 +426,14 @@ static void TestMetricsChoice(void)
     metrics = MetricsOf(service, font);
     CHECK(metrics.capHeight == 0.0f && metrics.xHeight == 0.0f && metrics.strikeoutOffset == 0.259f,
           "version 1");
+    // A font without glyphs, which FreeType reads.
+    size_t maxp = TableOffset(s_ahem, "maxp");
+    memcpy(font, s_ahem, sizeof s_ahem);
+    Put16(font + maxp + 4, 0);
+    muiFontDef def = AhemDef(mui_fontDataBorrow);
+    def.data = font;
+    muiFontId id = {0};
+    CHECK(muiCreateFont(service, &def, &id) == mui_errorFormat, "no glyphs");
     // Without OS/2 or post, what they give is 0.
     memcpy(font, s_ahem, sizeof s_ahem);
     HideTable(font, "OS/2");
@@ -413,6 +453,7 @@ int main(void)
     TestCountFaces();
     TestAhemMetrics();
     TestFontArguments();
+    TestFontMemory();
     TestAllocationFailures();
     TestDamagedFonts();
     TestMetricsChoice();

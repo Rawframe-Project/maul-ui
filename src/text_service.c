@@ -10,8 +10,10 @@
 
 #include "maul-unicode/harfbuzz.h"
 
+#include <limits.h>
 #include <stdalign.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 
 #define TEXT_SERVICE_DEF_COOKIE 0x6D757478u // "mutx"
@@ -30,10 +32,13 @@ enum
     HEADER = alignof(max_align_t)
 };
 
+// A size FreeType gives, a long, always fits with the header.
+static_assert((unsigned long long)LONG_MAX <= SIZE_MAX - HEADER, "a block's size fits size_t");
+
 static void* FreeTypeAlloc(FT_Memory memory, long size)
 {
     const muiTextService* service = memory->user;
-    if (size <= 0 || (size_t)size > SIZE_MAX - HEADER)
+    if (size <= 0)
     {
         return nullptr;
     }

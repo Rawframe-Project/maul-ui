@@ -170,8 +170,11 @@ static muiResult Open(muiTextService* service, const muiFontDef* def, muiFont* f
         font->face = nullptr;
         return FT_ERROR_BASE(error) == FT_Err_Out_Of_Memory ? mui_errorCapacity : mui_errorFormat;
     }
-    if (!FT_IS_SFNT(font->face) || font->face->units_per_EM < 16 ||
-        font->face->units_per_EM > 16384 || font->face->num_glyphs <= 0)
+    // FreeType accepts a font without glyphs. It refuses units per em out
+    // of range too, but metrics divide by them, so an installed FreeType
+    // is not trusted with that.
+    if (font->face->units_per_EM < 16 || font->face->units_per_EM > 16384 ||
+        font->face->num_glyphs <= 0)
     {
         return mui_errorFormat;
     }
