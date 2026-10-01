@@ -45,9 +45,11 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/base.c
     src/condition.c
     src/context.c
+    src/easing.c
     src/flex.c
     src/flex_resolve.c
     src/layout.c
+    src/motion_math.c
     src/node.c
     src/node_style.c
     src/notify.c
@@ -55,6 +57,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/property.c
     src/restyle.c
     src/solve.c
+    src/spring.c
     src/style.c
     src/tree.c)
 maul_configure_library(maul-ui)
@@ -71,6 +74,7 @@ if(MAUL_UI_BUILD_TESTS)
     maul_add_test(context)
     maul_add_test(layout)
     maul_add_test(layout_fixtures)
+    maul_add_test(motion WHITEBOX)
     maul_add_test(node)
     maul_add_test(style)
     maul_add_test(tree WHITEBOX)

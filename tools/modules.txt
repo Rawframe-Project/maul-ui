@@ -7,6 +7,9 @@ layout_node: tree
 pool: invariant
 property:
 condition:
+easing:
+motion_math:
+spring: motion_math
 notify:
 style_store: pool property
 sizing:

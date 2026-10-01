@@ -44,3 +44,7 @@ format.
 - A notification queue (`muiNextNotification`, `mui_empty`, the
   `notifications` limit) and oscillation reports: a node whose
   conditions flip with its own layout is reported once and held.
+- The library's own exponential, sine and cosine, CSS's cubic Bezier
+  easing solved with fixed iteration counts, and a closed-form spring,
+  for transitions; `tools/source-bans.txt` keeps `src/` off the C
+  library's transcendental functions.
