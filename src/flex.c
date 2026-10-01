@@ -417,7 +417,8 @@ static float AutoCrossOffset(const Frame* frame, const muiLayoutStyle* style,
     bool autoEnd = muiIsMarginAutoEnd(style, !frame->row);
     if (freeSpace <= 0.0f)
     {
-        return autoStart ? 0.0f : start;
+        // An automatic start margin is already zero in start.
+        return start;
     }
     if (autoStart)
     {

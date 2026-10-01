@@ -66,3 +66,17 @@ fixture absolute_min_and_max available=500x400
 node width=200 height=100 => 0 0 200 100
   node position=absolute start=0 end=0 top=0 height=10 max-width=60 => 0 0 60 10
   node position=absolute start=0 top=20 content=10x10 min-width=50% => 0 20 100 10
+
+fixture absolute_end_inset_with_margins available=500x400
+node width=200 height=100 => 0 0 200 100
+  node position=absolute end=10 bottom=5 width=30 height=20 margin=1,7,2,9 => 153 66 30 20
+
+fixture absolute_fit_content_within_insets available=500x400
+node width=200 height=100 => 0 0 200 100
+  node position=absolute start=150 wrap=wrap => 150 0 50 20
+    node width=40 height=10 => 0 0 40 10
+    node width=40 height=10 => 0 10 40 10
+
+fixture absolute_stretch_between_insets_less_margins available=500x400
+node width=200 height=100 => 0 0 200 100
+  node position=absolute start=5 end=15 top=6 bottom=4 margin=3,4,5,6 => 8 11 173 79
