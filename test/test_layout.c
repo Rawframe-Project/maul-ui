@@ -298,26 +298,42 @@ static muiNodeId MakeText(muiContext* context, muiNodeId parent, uint64_t key)
     return node;
 }
 
-static void TestShrunkTextIsNotTakenFromItsMinContentSize(void)
+// Lays out a row of two wrapping texts with too little space, as the
+// root or nested in an automatic root, and checks the row is as tall as
+// its tallest text at the widths it gave them, not as its min-content
+// layout was.
+static void CheckShrunkTexts(bool nested)
 {
     muiContext* context = MakeContext();
     muiLayoutStyle row = muiDefaultLayoutStyle();
     row.container.alignItems = mui_alignStart;
     muiNodeId root = MakeNode(context, &row);
-    muiNodeId wide = MakeText(context, root, TextKey(100, 30));
-    muiNodeId narrow = MakeText(context, root, TextKey(40, 20));
-    // Too little space: the root takes its min-content width, 50, and
-    // shrinks the texts to it by their natural widths.
+    muiNodeId line = root;
+    if (nested)
+    {
+        line = MakeNode(context, &row);
+        CHECK(muiNode_InsertChild(context, root, line, s_null) == mui_success, "nest");
+    }
+    muiNodeId wide = MakeText(context, line, TextKey(100, 30));
+    muiNodeId narrow = MakeText(context, line, TextKey(40, 20));
+    // The row takes its min-content width, 50, and shrinks the texts to
+    // it by their natural widths.
     muiLayoutInput input = {10.0f, 300.0f, MeasureText, NULL};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
     muiRect a = muiNode_GetRect(context, wide);
     muiRect b = muiNode_GetRect(context, narrow);
-    CHECK(muiNode_GetRect(context, root).width == 50.0f, "min-content width");
+    CHECK(muiNode_GetRect(context, line).width == 50.0f, "min-content width");
     CHECK(a.width + b.width == 50.0f && a.width > 30.0f, "shrunk by natural width");
     CHECK(a.height == ceilf(100.0f / a.width) * 10.0f, "wide text wraps at its width");
-    CHECK(muiNode_GetRect(context, root).height == fmaxf(a.height, b.height),
-          "the root is as tall as its tallest text, not its min-content layout");
+    CHECK(muiNode_GetRect(context, line).height == fmaxf(a.height, b.height),
+          "the row is as tall as its tallest text");
     muiDestroyContext(context);
+}
+
+static void TestShrunkTextIsNotTakenFromItsMinContentSize(void)
+{
+    CheckShrunkTexts(false);
+    CheckShrunkTexts(true);
 }
 
 // A column as wide as the space with text aligned to the start: the
