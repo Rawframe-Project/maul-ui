@@ -268,6 +268,7 @@ muiResult muiStyle_SetToken(muiContext* context, muiStyleId styleId, muiVariant 
         return mui_errorCapacity;
     }
     store->reach = muiUnion(store->reach, muiPropertyOf(property));
+    context->textGiven |= MUI_PROPERTY_GROUP(property) == mui_groupText;
     muiRestyleAll(context);
     return mui_success;
 }

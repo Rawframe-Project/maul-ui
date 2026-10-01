@@ -14,7 +14,7 @@ easing:
 motion_math:
 spring: motion_math
 color: motion_math
-animation: easing layout_node pool property spring style_store tree
+animation: easing inherit layout_node pool property spring style_store tree
 style_edit: context pool style_store tree
 transition: animation context easing pool property style_edit style_store
 token: condition context pool property style_edit style_store token_store
@@ -26,11 +26,11 @@ style_store: pool property
 sizing:
 tree: invariant
 solver: layout_node tree draw_store
-context: allocator animation invariant layout_node notify pool style_store tree token_store theme_store draw_store
-node: context layout_node style_store tree
-node_style: animation context layout_node pool property style_store tree
+context: allocator animation inherit invariant layout_node notify pool style_store tree token_store theme_store draw_store
+node: context inherit layout_node style_store tree
+node_style: animation context layout_node pool property style_store tree inherit
 style: condition context pool property style_edit style_store tree
-restyle: animation condition context layout_node notify pool property style_store tree token_store theme_store
+restyle: animation condition context inherit layout_node notify pool property style_store tree token_store theme_store
 flex_resolve: layout_node tree
 flex: flex_resolve layout_node sizing solver tree
 absolute: layout_node sizing solver tree
@@ -40,3 +40,4 @@ font_store: allocator pool
 text_service: allocator font_store pool
 font: allocator font_store pool text_service
 property_bits:
+inherit: layout_node property tree

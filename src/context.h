@@ -8,6 +8,7 @@
 
 #include "animation.h"
 #include "draw_store.h"
+#include "inherit.h"
 #include "layout_node.h"
 #include "notify.h"
 #include "style_store.h"
@@ -28,6 +29,14 @@ struct muiContext
     // Resolved visual values per node, parallel to the tree's slots: paint
     // reads them, layout never.
     muiVisualStyle* visual;
+    // Resolved text values per node, and what each node's text computes
+    // to with its parent's, parallel to the tree's slots.
+    muiTextStyle* text;
+    muiTextRecord* textRecords;
+    // Whether a class, a token name or a direct write has ever given a
+    // text property: until then every node's text is the defaults, and
+    // the style pass leaves the records alone.
+    bool textGiven;
     muiStyleStore style;
     muiTokenStore tokens;
     muiThemeStore themes;

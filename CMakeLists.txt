@@ -60,6 +60,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/easing.c
     src/flex.c
     src/flex_resolve.c
+    src/inherit.c
     src/layout.c
     src/motion_math.c
     src/node.c
@@ -101,6 +102,7 @@ if(MAUL_UI_BUILD_TESTS)
     maul_add_test(motion WHITEBOX)
     maul_add_test(node)
     maul_add_test(style)
+    maul_add_test(text_style WHITEBOX)
     maul_add_test(theme)
     maul_add_test(token)
     maul_add_test(transition)

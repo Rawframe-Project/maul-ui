@@ -7,6 +7,7 @@
 
 #include "animation.h"
 #include "context.h"
+#include "inherit.h"
 #include "layout_node.h"
 #include "pool.h"
 #include "property.h"
@@ -14,6 +15,7 @@
 #include "tree.h"
 
 #include "maul-ui/style.h"
+#include "maul-ui/text_style.h"
 #include "maul-ui/visual.h"
 
 // The states muiState names.
@@ -113,7 +115,8 @@ static muiResult SetDirect(muiContext* context, muiNodeId nodeId, muiConstValues
         return status;
     }
     const muiMotion motion = {&context->animations, context->layout, context->visual,
-                              context->style.nodes, &context->tree};
+                              context->style.nodes, &context->tree,  context->text,
+                              context->textRecords};
     // Most nodes move nothing.
     for (muiPropertyBits left = properties;
          context->style.nodes[slot - 1].firstAnimation != 0 && muiAnyProperty(left);)
@@ -121,8 +124,9 @@ static muiResult SetDirect(muiContext* context, muiNodeId nodeId, muiConstValues
         muiStopAnimation(&motion, slot, muiTakeProperty(&left));
     }
     muiLayoutNode* layout = &context->layout[slot - 1];
-    muiApplyProperties((muiValuesRef){&layout->style, &context->visual[slot - 1]}, values,
-                       properties);
+    muiApplyProperties(
+        (muiValuesRef){&layout->style, &context->visual[slot - 1], &context->text[slot - 1]},
+        values, properties);
     muiSyncLayoutNode(layout);
     muiNodeStyle* node = &context->style.nodes[slot - 1];
     node->direct = muiUnion(node->direct, properties);
@@ -135,6 +139,18 @@ static muiResult SetDirect(muiContext* context, muiNodeId nodeId, muiConstValues
     {
         muiTreeMark(&context->tree, slot, mui_stagePaint);
     }
+    // The node's text, and its inheriting children's, take the write at
+    // once; the style pass then weighs it with the node's classes.
+    if (group == mui_groupText && mask != 0)
+    {
+        context->textGiven = true;
+        muiTextRecord* record = &context->textRecords[slot - 1];
+        record->given |= mask;
+        const muiTextNodes text = {&context->tree, context->layout, context->text,
+                                   context->textRecords};
+        muiInheritText(&text, slot);
+        muiTreeMark(&context->tree, slot, mui_stageStyle);
+    }
     return status;
 }
 
@@ -145,8 +161,8 @@ muiResult muiNode_SetLayoutValues(muiContext* context, muiNodeId nodeId,
     {
         return context != nullptr ? muiRefuse(context) : mui_errorInvalid;
     }
-    return SetDirect(context, nodeId, (muiConstValuesRef){values, nullptr}, mui_groupLayout, mask,
-                     MUI_LAYOUT_PROPERTIES);
+    return SetDirect(context, nodeId, (muiConstValuesRef){values, nullptr, nullptr},
+                     mui_groupLayout, mask, MUI_LAYOUT_PROPERTIES);
 }
 
 muiResult muiNode_SetVisualValues(muiContext* context, muiNodeId nodeId,
@@ -156,8 +172,35 @@ muiResult muiNode_SetVisualValues(muiContext* context, muiNodeId nodeId,
     {
         return context != nullptr ? muiRefuse(context) : mui_errorInvalid;
     }
-    return SetDirect(context, nodeId, (muiConstValuesRef){nullptr, values}, mui_groupVisual, mask,
-                     MUI_VISUAL_PROPERTIES);
+    return SetDirect(context, nodeId, (muiConstValuesRef){nullptr, values, nullptr},
+                     mui_groupVisual, mask, MUI_VISUAL_PROPERTIES);
+}
+
+muiResult muiNode_SetTextValues(muiContext* context, muiNodeId nodeId, const muiTextStyle* values,
+                                muiPropertyMask mask)
+{
+    if (values == nullptr)
+    {
+        return context != nullptr ? muiRefuse(context) : mui_errorInvalid;
+    }
+    return SetDirect(context, nodeId, (muiConstValuesRef){nullptr, nullptr, values}, mui_groupText,
+                     mask, MUI_TEXT_PROPERTIES);
+}
+
+muiResult muiNode_GetTextStyle(const muiContext* context, muiNodeId nodeId,
+                               muiComputedTextStyle* styleOut)
+{
+    if (context == nullptr || styleOut == nullptr || nodeId.index1 == 0)
+    {
+        return mui_errorInvalid;
+    }
+    uint32_t slot = muiTreeResolve(&context->tree, nodeId);
+    if (slot == 0)
+    {
+        return mui_errorStale;
+    }
+    *styleOut = context->textRecords[slot - 1].computed;
+    return mui_success;
 }
 
 muiResult muiNode_GetVisualStyle(const muiContext* context, muiNodeId nodeId,

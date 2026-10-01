@@ -13,6 +13,7 @@
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
+#include "maul-ui/text_style.h"
 #include "maul-ui/theme.h"
 #include "maul-ui/token.h"
 #include "maul-ui/transition.h"

@@ -10,6 +10,7 @@
 #define MAUL_UI_SRC_ANIMATION_H
 
 #include "easing.h"
+#include "inherit.h"
 #include "layout_node.h"
 #include "pool.h"
 #include "spring.h"
@@ -67,9 +68,9 @@ typedef struct muiAnimationStore
     uint32_t running;
 } muiAnimationStore;
 
-// What transitions work on: the store, the nodes' layout and visual
-// values, their style data (which holds each node's first record) and the
-// tree they mark.
+// What transitions work on: the store, the nodes' layout, visual and text
+// values, their style data (which holds each node's first record), the
+// tree they mark and the text records a moved text value recomputes.
 typedef struct muiMotion
 {
     muiAnimationStore* store;
@@ -77,6 +78,8 @@ typedef struct muiMotion
     muiVisualStyle* visuals;
     muiNodeStyle* styles;
     muiTree* tree;
+    muiTextStyle* texts;
+    muiTextRecord* textRecords;
 } muiMotion;
 
 // The live spec an id names, or NULL.

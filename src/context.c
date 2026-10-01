@@ -56,6 +56,8 @@ typedef struct Parts
     size_t nodes;
     size_t layout;
     size_t visual;
+    size_t text;
+    size_t textRecords;
     size_t nodeStyles;
     size_t classSlots;
     size_t classes;
@@ -107,6 +109,9 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
             muiLayoutAdd(layout, limits->nodes, sizeof(muiLayoutNode), alignof(muiLayoutNode)),
         .visual =
             muiLayoutAdd(layout, limits->nodes, sizeof(muiVisualStyle), alignof(muiVisualStyle)),
+        .text = muiLayoutAdd(layout, limits->nodes, sizeof(muiTextStyle), alignof(muiTextStyle)),
+        .textRecords =
+            muiLayoutAdd(layout, limits->nodes, sizeof(muiTextRecord), alignof(muiTextRecord)),
         .nodeStyles =
             muiLayoutAdd(layout, limits->nodes, sizeof(muiNodeStyle), alignof(muiNodeStyle)),
         .classSlots =
@@ -188,6 +193,8 @@ muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut)
     muiTreeInit(&context->tree, (muiTreeNode*)(block + parts.nodes), def->limits.nodes);
     context->layout = (muiLayoutNode*)(block + parts.layout);
     context->visual = (muiVisualStyle*)(block + parts.visual);
+    context->text = (muiTextStyle*)(block + parts.text);
+    context->textRecords = (muiTextRecord*)(block + parts.textRecords);
     context->environment = muiDefaultEnvironment();
     muiStyleStore* style = &context->style;
     style->nodes = (muiNodeStyle*)(block + parts.nodeStyles);

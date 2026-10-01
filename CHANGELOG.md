@@ -20,6 +20,13 @@ format.
 
 ### Added
 
+- Text style (`maul-ui/text_style.h`): the text property group (color,
+  font key, size, weight, slant, line height, letter spacing,
+  alignment, wrapping), inherited down the tree with sizes relative to
+  the parent's, through classes, tokens, themes, transitions and direct
+  writes; `muiNode_GetTextStyle` reads the computed values, and a
+  change marks host content to be measured or painted again (record
+  mui-0004).
 - The library skeleton: the build, the family rules and tools, the
   version and result API (`muiGetVersion`, `muiResultName`) and the
   library profile.

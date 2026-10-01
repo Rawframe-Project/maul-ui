@@ -40,20 +40,29 @@ uint32_t muiFindAnimation(const muiMotion* motion, uint32_t node, muiProperty pr
 
 static muiValuesRef NodeValues(const muiMotion* motion, uint32_t node)
 {
-    return (muiValuesRef){&motion->nodes[node - 1].style, &motion->visuals[node - 1]};
+    return (muiValuesRef){&motion->nodes[node - 1].style, &motion->visuals[node - 1],
+                          &motion->texts[node - 1]};
 }
 
 // A moved layout property lays the node out again; a visual one only
-// paints it again.
+// paints it again; a text one recomputes the node's text, which reaches
+// its inheriting children and what host content reads.
 static void MarkMoved(const muiMotion* motion, uint32_t node, muiProperty property)
 {
-    if (MUI_PROPERTY_GROUP(property) == mui_groupLayout)
+    switch (MUI_PROPERTY_GROUP(property))
     {
+    case mui_groupLayout:
         muiTreeMarkLayout(motion->tree, node);
-    }
-    else
-    {
+        break;
+    case mui_groupVisual:
         muiTreeMark(motion->tree, node, mui_stagePaint);
+        break;
+    default:
+    {
+        const muiTextNodes text = {motion->tree, motion->nodes, motion->texts, motion->textRecords};
+        muiInheritText(&text, node);
+        break;
+    }
     }
 }
 

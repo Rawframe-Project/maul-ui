@@ -434,8 +434,8 @@ static void TestDirectWritesWinUntilReset(void)
           "null reset");
     // Groups past the last, and one with no properties yet.
     CHECK(muiNode_ResetProperties(context, node, 4, WIDTH) == mui_errorInvalid &&
-              muiNode_ResetProperties(context, node, 2, WIDTH) == mui_errorInvalid &&
-              muiNode_ResetProperties(context, node, 2, 0) == mui_success,
+              muiNode_ResetProperties(context, node, 3, WIDTH) == mui_errorInvalid &&
+              muiNode_ResetProperties(context, node, 3, 0) == mui_success,
           "a group with no such property");
     CHECK(muiNode_GetDirectProperties(context, node, 4) == 0, "no group past the last");
     muiStyleId group = s_nullStyle;

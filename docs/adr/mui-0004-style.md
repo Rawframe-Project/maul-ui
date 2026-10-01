@@ -125,6 +125,23 @@ for a fixed order in which a later layer always wins.
   own power and cube root, so it gives the same bits everywhere. A
   record keeps its target as stored and writes it on arrival, so a
   value moved through other channels ends exactly on it.
+- **Text style is inherited** (`maul-ui/text_style.h`): color, a font
+  key the text service gives out, size, weight from 1 to 1000, slant,
+  line height, letter spacing, alignment and wrapping, in the text
+  group. A property no layer or direct write gives a node takes its
+  parent's computed value, and a root the defaults (black, font 0, 16
+  units, the font's own line height, weight 400), as CSS inherits these
+  properties. The size is Scale+Offset of the parent's computed size,
+  as `em`; the line height and letter spacing are Scale+Offset of the
+  node's own size and are inherited as written, as a unitless CSS
+  `line-height` is, so one ratio serves every size below.
+  `muiNode_GetTextStyle` gives the computed values. The style pass
+  computes them after a node's own values, parent before child, and
+  carries a change down only while children's values change; an
+  animated text value does the same each frame, so a transition on a
+  parent reaches its children. The core measures and draws no text: a
+  change marks a node with host content to be laid out again when it
+  sizes text, and painted again for color or alignment.
 - **Themes are tokens** (`maul-ui/token.h`): typed context objects
   (color, number, dimension, shadow, gradient) holding a literal or an
   alias to a token of their type, as the W3C design tokens format and
@@ -169,7 +186,9 @@ pass and no layout. Restyling every node on a class edit costs a pass
 over the tree, which a theme switch costs anyway, and keeps no index
 from classes to nodes. Nodes that write directly every property a class
 names skip resolution, as do visual values in a context whose classes
-set none. A size or direction condition shows its effect one run
+set none, and inheritance in a context where nothing sets a text
+property. A text change at a root walks the subtree below it once, as
+CSS inheritance does. A size or direction condition shows its effect one run
 after the layout that changes what it reads, and a node never seen
 laid out reads a size of 0; in exchange no stage feeds an earlier one
 within a run. A rule that feeds its own condition through layout (a

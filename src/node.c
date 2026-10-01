@@ -7,11 +7,13 @@
 #include "maul-ui/node.h"
 
 #include "context.h"
+#include "inherit.h"
 #include "layout_node.h"
 #include "style_store.h"
 #include "tree.h"
 
 #include "maul-ui/layout.h"
+#include "maul-ui/text_style.h"
 #include "maul-ui/visual.h"
 
 #define NODE_DEF_COOKIE 0x6D756E64u // "mund"
@@ -55,6 +57,8 @@ muiResult muiCreateNode(muiContext* context, const muiNodeDef* def, muiNodeId* n
     context->layout[slot - 1] = (muiLayoutNode){.style = muiDefaultLayoutStyle()};
     context->style.nodes[slot - 1] = (muiNodeStyle){0};
     context->visual[slot - 1] = muiDefaultVisualStyle();
+    context->text[slot - 1] = muiDefaultTextStyle();
+    context->textRecords[slot - 1] = muiRootTextRecord();
     *nodeIdOut = muiTreeIdOf(&context->tree, slot);
     return mui_success;
 }

@@ -39,6 +39,12 @@ enum
     kindKey,
     // A muiEdges of lengths.
     kindEdges,
+    // A float from 1 to 1000: a font weight.
+    kindWeight,
+    // A muiDimension, automatic or Scale+Offset of 0 or more.
+    kindAutoLength,
+    // A Scale+Offset muiDimension, either part any finite number.
+    kindSpacing,
 };
 
 typedef uint8_t Group;
@@ -47,6 +53,7 @@ enum
 {
     groupLayout,
     groupVisual,
+    groupText,
 };
 
 typedef struct Row
@@ -65,6 +72,8 @@ typedef struct Row
     {(uint16_t)offsetof(muiLayoutStyle, field), (uint8_t)sizeof(type), kind, groupLayout, low, high}
 #define VISUAL(field, type, kind)                                                                  \
     {(uint16_t)offsetof(muiVisualStyle, field), (uint8_t)sizeof(type), kind, groupVisual, 0, 0}
+#define TEXT(field, type, kind, low, high)                                                         \
+    {(uint16_t)offsetof(muiTextStyle, field), (uint8_t)sizeof(type), kind, groupText, low, high}
 #define DIMENSION(field)       LAYOUT(field, muiDimension, kindDimension, 0, 0)
 #define NUMBER(field, kind)    LAYOUT(field, float, kind, 0, 0)
 #define ENUM(field, low, high) LAYOUT(field, uint8_t, kindEnum, low, high)
@@ -133,6 +142,18 @@ static const Row s_visualRows[] = {
     {(uint16_t)offsetof(muiVisualStyle, clip), (uint8_t)sizeof(bool), kindEnum, groupVisual, 0, 1},
 };
 
+static const Row s_textRows[] = {
+    TEXT(color, muiColor, kindColor, 0, 0),
+    TEXT(font, uint64_t, kindKey, 0, 0),
+    TEXT(size, muiDimension, kindRadius, 0, 0),
+    TEXT(lineHeight, muiDimension, kindAutoLength, 0, 0),
+    TEXT(letterSpacing, muiDimension, kindSpacing, 0, 0),
+    TEXT(weight, float, kindWeight, 0, 0),
+    TEXT(slant, uint8_t, kindEnum, mui_slantNormal, mui_slantOblique),
+    TEXT(align, uint8_t, kindEnum, mui_textAlignStart, mui_textAlignEnd),
+    TEXT(wrap, uint8_t, kindEnum, mui_textWrap, mui_textNoWrap),
+};
+
 typedef struct GroupRows
 {
     const Row* rows;
@@ -142,11 +163,16 @@ typedef struct GroupRows
 static const GroupRows s_groups[MUI_PROPERTY_GROUPS] = {
     {s_layoutRows, (uint32_t)(sizeof s_layoutRows / sizeof s_layoutRows[0])},
     {s_visualRows, (uint32_t)(sizeof s_visualRows / sizeof s_visualRows[0])},
+    {s_textRows, (uint32_t)(sizeof s_textRows / sizeof s_textRows[0])},
 };
 
 static_assert(sizeof s_layoutRows / sizeof s_layoutRows[0] == mui_propertyContent + 1 &&
-                  sizeof s_visualRows / sizeof s_visualRows[0] == (mui_propertyClip & 63) + 1,
+                  sizeof s_visualRows / sizeof s_visualRows[0] == (mui_propertyClip & 63) + 1 &&
+                  sizeof s_textRows / sizeof s_textRows[0] == (mui_propertyTextWrap & 63) + 1,
               "one row per property");
+static_assert(MUI_PROPERTY_GROUP(mui_propertyTextColor) == mui_groupText &&
+                  (mui_propertyTextColor & 63) == 0,
+              "the text group starts at its first id");
 static_assert(MUI_PROPERTY_GROUP(mui_propertyBackground) == mui_groupVisual &&
                   (mui_propertyBackground & 63) == 0,
               "the visual group starts at its first id");
@@ -160,7 +186,8 @@ static_assert(sizeof(muiColor) == 4 * sizeof(float) && sizeof(muiShadow) == 8 * 
                   sizeof(muiGradientStop) == 5 * sizeof(float),
               "compared as floats alone");
 static_assert(MUI_LAYOUT_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyContent) << 1) - 1 &&
-                  MUI_VISUAL_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyClip) << 1) - 1,
+                  MUI_VISUAL_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyClip) << 1) - 1 &&
+                  MUI_TEXT_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyTextWrap) << 1) - 1,
               "the masks name every property of their groups");
 
 // A known property's row.
@@ -174,7 +201,8 @@ bool muiIsPropertyKnown(muiProperty property)
     return (property & 63u) < s_groups[MUI_PROPERTY_GROUP(property)].count;
 }
 
-static const muiPropertyBits s_known = {{MUI_LAYOUT_PROPERTIES, MUI_VISUAL_PROPERTIES}};
+static const muiPropertyBits s_known = {
+    {MUI_LAYOUT_PROPERTIES, MUI_VISUAL_PROPERTIES, MUI_TEXT_PROPERTIES}};
 
 bool muiIsGroupMaskKnown(muiPropertyGroup group, muiPropertyMask mask)
 {
@@ -228,18 +256,44 @@ const muiVisualStyle* muiVisualDefaults(void)
     return &s_visualDefaults;
 }
 
+// CSS's medium size and normal weight, black, and the font's own line
+// height.
+static const muiTextStyle s_textDefaults = {
+    .color = {0.0f, 0.0f, 0.0f, 1.0f},
+    .size = {0.0f, 16.0f, mui_dimensionValue},
+    .lineHeight = {0.0f, 0.0f, mui_dimensionAuto},
+    .letterSpacing = {0.0f, 0.0f, mui_dimensionValue},
+    .weight = 400.0f,
+    .slant = mui_slantNormal,
+    .align = mui_textAlignStart,
+    .wrap = mui_textWrap,
+};
+
+const muiTextStyle* muiTextDefaults(void)
+{
+    return &s_textDefaults;
+}
+
+muiTextStyle muiDefaultTextStyle(void)
+{
+    return s_textDefaults;
+}
+
 // The index of the lowest set bit of a mask that is not 0, by a de Bruijn
 // sequence: portable, and the same on every compiler.
 static const void* At(muiConstValuesRef values, const Row* row)
 {
-    const void* base =
-        row->group == groupLayout ? (const void*)values.layout : (const void*)values.visual;
+    const void* base = row->group == groupLayout   ? (const void*)values.layout
+                       : row->group == groupVisual ? (const void*)values.visual
+                                                   : (const void*)values.text;
     return (const unsigned char*)base + row->offset;
 }
 
 static void* AtMutable(muiValuesRef values, const Row* row)
 {
-    void* base = row->group == groupLayout ? (void*)values.layout : (void*)values.visual;
+    void* base = row->group == groupLayout   ? (void*)values.layout
+                 : row->group == groupVisual ? (void*)values.visual
+                                             : (void*)values.text;
     return (unsigned char*)base + row->offset;
 }
 
@@ -358,6 +412,24 @@ static bool IsValid(muiConstValuesRef values, const Row* row)
         muiDimension value = DimensionAt(values, row);
         return value.kind == mui_dimensionValue && IsLength(value.scale) && IsLength(value.offset);
     }
+    case kindAutoLength:
+    {
+        muiDimension value = DimensionAt(values, row);
+        return value.kind == mui_dimensionAuto
+                   ? value.scale == 0.0f && value.offset == 0.0f
+                   : value.kind == mui_dimensionValue && IsLength(value.scale) &&
+                         IsLength(value.offset);
+    }
+    case kindSpacing:
+    {
+        muiDimension value = DimensionAt(values, row);
+        return value.kind == mui_dimensionValue && isfinite(value.scale) && isfinite(value.offset);
+    }
+    case kindWeight:
+    {
+        float value = NumberAt(values, row);
+        return value >= 1.0f && value <= 1000.0f;
+    }
     case kindFinite:
         return isfinite(NumberAt(values, row));
     case kindLength:
@@ -413,6 +485,8 @@ static bool AreEqual(muiConstValuesRef a, muiConstValuesRef b, const Row* row)
     {
     case kindDimension:
     case kindRadius:
+    case kindAutoLength:
+    case kindSpacing:
     {
         // Compared by field: a dimension has padding bytes.
         muiDimension x = DimensionAt(a, row);
@@ -534,6 +608,8 @@ uint32_t muiPropertyChannels(muiConstValuesRef values, muiProperty property,
     {
     case kindDimension:
     case kindRadius:
+    case kindAutoLength:
+    case kindSpacing:
     {
         muiDimension value = DimensionAt(values, row);
         if (value.kind != mui_dimensionValue)
@@ -547,6 +623,7 @@ uint32_t muiPropertyChannels(muiConstValuesRef values, muiProperty property,
     case kindFinite:
     case kindLength:
     case kindFraction:
+    case kindWeight:
         ReadFloats(at, 1, out);
         return 1;
     case kindEdges:
@@ -581,12 +658,14 @@ void muiSetPropertyChannels(muiValuesRef values, muiProperty property,
     switch (row->kind)
     {
     case kindDimension:
+    case kindSpacing:
     {
         const muiDimension value = {channels[0], channels[1], mui_dimensionValue};
         memcpy(at, &value, sizeof value);
         break;
     }
     case kindRadius:
+    case kindAutoLength:
     {
         const muiDimension value = {fmaxf(channels[0], 0.0f), fmaxf(channels[1], 0.0f),
                                     mui_dimensionValue};
@@ -603,6 +682,12 @@ void muiSetPropertyChannels(muiValuesRef values, muiProperty property,
     case kindFraction:
     {
         const float value = fminf(fmaxf(channels[0], 0.0f), 1.0f);
+        memcpy(at, &value, sizeof value);
+        break;
+    }
+    case kindWeight:
+    {
+        const float value = fminf(fmaxf(channels[0], 1.0f), 1000.0f);
         memcpy(at, &value, sizeof value);
         break;
     }
@@ -653,9 +738,12 @@ muiTokenType muiPropertyTokenType(muiProperty property)
     case kindFinite:
     case kindLength:
     case kindFraction:
+    case kindWeight:
         return mui_tokenNumber;
     case kindDimension:
     case kindRadius:
+    case kindAutoLength:
+    case kindSpacing:
         return mui_tokenDimension;
     case kindShadow:
         return mui_tokenShadow;

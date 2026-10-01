@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Properties as data: each one's place in muiLayoutStyle or
-// muiVisualStyle, its kind and the values it allows, so that checking,
+// Properties as data: each one's place in muiLayoutStyle,
+// muiVisualStyle or muiTextStyle, its kind and the values it allows, so that checking,
 // applying and comparing a set of them is one loop over a mask.
 
 #ifndef MAUL_UI_SRC_PROPERTY_H
@@ -12,6 +12,7 @@
 
 #include "maul-ui/layout.h"
 #include "maul-ui/style.h"
+#include "maul-ui/text_style.h"
 #include "maul-ui/token.h"
 #include "maul-ui/transition.h"
 #include "maul-ui/visual.h"
@@ -23,20 +24,23 @@ typedef struct muiStyleValues
 {
     muiLayoutStyle layout;
     muiVisualStyle visual;
+    muiTextStyle text;
 } muiStyleValues;
 
-// Values where they live: a node keeps its two structs apart. A pointer
-// may be NULL when the mask a call takes names none of its properties.
+// Values where they live: a node keeps its structs apart. A pointer may
+// be NULL when the properties a call takes include none of its.
 typedef struct muiValuesRef
 {
     muiLayoutStyle* layout;
     muiVisualStyle* visual;
+    muiTextStyle* text;
 } muiValuesRef;
 
 typedef struct muiConstValuesRef
 {
     const muiLayoutStyle* layout;
     const muiVisualStyle* visual;
+    const muiTextStyle* text;
 } muiConstValuesRef;
 
 // A spec a variant gives a set of properties.
@@ -62,23 +66,25 @@ typedef struct muiPropertySet
 
 static inline muiValuesRef muiRefOf(muiStyleValues* values)
 {
-    return (muiValuesRef){&values->layout, &values->visual};
+    return (muiValuesRef){&values->layout, &values->visual, &values->text};
 }
 
 static inline muiConstValuesRef muiConstRefOf(const muiStyleValues* values)
 {
-    return (muiConstValuesRef){&values->layout, &values->visual};
+    return (muiConstValuesRef){&values->layout, &values->visual, &values->text};
 }
 
 static inline muiConstValuesRef muiConstRef(muiValuesRef values)
 {
-    return (muiConstValuesRef){values.layout, values.visual};
+    return (muiConstValuesRef){values.layout, values.visual, values.text};
 }
 
 // CSS's initial values, which muiDefaultLayoutStyle returns, and the
-// visual defaults muiDefaultVisualStyle returns.
+// visual and text defaults muiDefaultVisualStyle and muiDefaultTextStyle
+// return.
 const muiLayoutStyle* muiLayoutDefaults(void);
 const muiVisualStyle* muiVisualDefaults(void);
+const muiTextStyle* muiTextDefaults(void);
 
 // Whether an id names a property, and every property there is.
 bool muiIsPropertyKnown(muiProperty property);

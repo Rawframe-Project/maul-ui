@@ -60,8 +60,10 @@ typedef struct Resolution
     muiStyleValues values;
     // Read only for the properties named holds, so it is never cleared.
     muiTransitionId transitions[MUI_PROPERTY_LIMIT];
-    // The properties a layer named a spec for.
+    // The properties a layer named a spec for, and those a layer gave a
+    // value.
     muiPropertyBits named;
+    muiPropertyBits given;
     // The themes the node reads tokens through.
     muiThemeScope scope;
 } Resolution;
@@ -82,9 +84,10 @@ static void ApplyTokens(const muiContext* context, const muiPropertySet* set, mu
         }
         const muiTokenValue* value =
             muiResolveTokenIn(&context->tokens, &context->themes, &resolution->scope, name->token);
-        if (value != nullptr)
+        if (value != nullptr &&
+            muiApplyTokenValue(muiRefOf(&resolution->values), name->property, value))
         {
-            (void)muiApplyTokenValue(muiRefOf(&resolution->values), name->property, value);
+            resolution->given = muiUnion(resolution->given, muiPropertyOf(name->property));
         }
     }
 }
@@ -94,8 +97,9 @@ static void ApplyTokens(const muiContext* context, const muiPropertySet* set, mu
 static void ApplySet(const muiContext* context, const muiPropertySet* set, muiPropertyBits free,
                      Resolution* resolution)
 {
-    muiApplyProperties(muiRefOf(&resolution->values), muiConstRefOf(&set->values),
-                       muiIntersection(set->properties, free));
+    const muiPropertyBits given = muiIntersection(set->properties, free);
+    muiApplyProperties(muiRefOf(&resolution->values), muiConstRefOf(&set->values), given);
+    resolution->given = muiUnion(resolution->given, given);
     if (muiIntersects(set->tokens, free))
     {
         ApplyTokens(context, set, free, resolution);
@@ -240,14 +244,16 @@ static void NoteHostEdit(muiContext* context, uint32_t slot)
 
 static muiMotion MotionOf(muiContext* context)
 {
-    return (muiMotion){&context->animations, context->layout, context->visual, context->style.nodes,
-                       &context->tree};
+    return (muiMotion){&context->animations, context->layout, context->visual,
+                       context->style.nodes, &context->tree,  context->text,
+                       context->textRecords};
 }
 
-// A node's resolved values, layout's and visual's.
+// A node's resolved values, layout's, visual's and text's.
 static muiValuesRef NodeValues(muiContext* context, uint32_t slot)
 {
-    return (muiValuesRef){&context->layout[slot - 1].style, &context->visual[slot - 1]};
+    return (muiValuesRef){&context->layout[slot - 1].style, &context->visual[slot - 1],
+                          &context->text[slot - 1]};
 }
 
 // Whether a node's property is to change: its new value differs from
@@ -258,7 +264,8 @@ static bool IsChange(const muiMotion* motion, uint32_t slot, const muiStyleValue
     uint32_t record = muiFindAnimation(motion, slot, property);
     if (record == 0)
     {
-        const muiConstValuesRef now = {&motion->nodes[slot - 1].style, &motion->visuals[slot - 1]};
+        const muiConstValuesRef now = {&motion->nodes[slot - 1].style, &motion->visuals[slot - 1],
+                                       &motion->texts[slot - 1]};
         return muiDoPropertiesDiffer(muiConstRefOf(values), now, muiPropertyOf(property));
     }
     float target[MUI_MAX_CHANNELS] = {0};
@@ -306,8 +313,8 @@ static bool Transition(muiContext* context, uint32_t slot, const Resolution* res
 
 // Gives a node its resolved values: at once, or through the transitions
 // the changes take. A layout change lays the node out again; a visual one
-// only paints it again.
-static void Commit(muiContext* context, uint32_t slot, const Resolution* resolution,
+// only paints it again; whether a text one happened is returned.
+static bool Commit(muiContext* context, uint32_t slot, const Resolution* resolution,
                    muiPropertyBits free, uint64_t nowNs)
 {
     muiLayoutNode* layout = &context->layout[slot - 1];
@@ -320,15 +327,24 @@ static void Commit(muiContext* context, uint32_t slot, const Resolution* resolut
             muiPropertiesOf(mui_groupLayout, free.words[mui_groupLayout]);
         const muiPropertyBits visualFree =
             muiPropertiesOf(mui_groupVisual, free.words[mui_groupVisual]);
-        if (muiDoPropertiesDiffer(values, now, layoutFree))
+        const muiPropertyBits textFree = muiPropertiesOf(mui_groupText, free.words[mui_groupText]);
+        if (layoutFree.words[mui_groupLayout] != 0 &&
+            muiDoPropertiesDiffer(values, now, layoutFree))
         {
             layout->style = resolution->values.layout;
             changed = muiUnion(changed, layoutFree);
         }
-        if (muiDoPropertiesDiffer(values, now, visualFree))
+        if (visualFree.words[mui_groupVisual] != 0 &&
+            muiDoPropertiesDiffer(values, now, visualFree))
         {
             context->visual[slot - 1] = resolution->values.visual;
             changed = muiUnion(changed, visualFree);
+        }
+        // Inheritance, after, finds what text changes reach.
+        if (textFree.words[mui_groupText] != 0 && muiDoPropertiesDiffer(values, now, textFree))
+        {
+            context->text[slot - 1] = resolution->values.text;
+            changed = muiUnion(changed, textFree);
         }
     }
     else
@@ -358,6 +374,7 @@ static void Commit(muiContext* context, uint32_t slot, const Resolution* resolut
     {
         muiTreeMark(&context->tree, slot, mui_stagePaint);
     }
+    return changed.words[mui_groupText] != 0;
 }
 
 // Resolves the properties a node does not write directly; the direct
@@ -408,6 +425,26 @@ static void UpdateScope(muiContext* context, uint32_t slot)
     }
 }
 
+// Recomputes a node's text with what its layers and direct writes give
+// it, which reaches its inheriting children, when its own text values,
+// what is given or its parent changed; a change above reaches it from
+// there.
+static void Inherit(muiContext* context, uint32_t slot, muiPropertyMask given, bool changed)
+{
+    if (!context->textGiven)
+    {
+        return;
+    }
+    const muiTextNodes text = {&context->tree, context->layout, context->text,
+                               context->textRecords};
+    if (!changed && !muiIsTextRecordStale(&text, slot, given))
+    {
+        return;
+    }
+    context->textRecords[slot - 1].given = given;
+    muiInheritText(&text, slot);
+}
+
 static void Resolve(muiContext* context, uint32_t slot, uint64_t nowNs)
 {
     NoteHostEdit(context, slot);
@@ -420,12 +457,13 @@ static void Resolve(muiContext* context, uint32_t slot, uint64_t nowNs)
     if (!muiAnyProperty(free))
     {
         context->style.nodes[slot - 1].styled = true;
+        Inherit(context, slot, node->direct.words[mui_groupText], false);
         return;
     }
     Resolution resolution;
     // Commit copies a whole struct whose free properties changed, so each
-    // one that has any carries the node's direct writes; visual values are
-    // filled only when some are free.
+    // one that has any carries the node's direct writes; visual and text
+    // values are filled only when some are free.
     muiPropertyBits carried = muiPropertiesOf(mui_groupLayout, MUI_LAYOUT_PROPERTIES);
     resolution.values.layout = *muiLayoutDefaults();
     if (free.words[mui_groupVisual] != 0)
@@ -433,7 +471,13 @@ static void Resolve(muiContext* context, uint32_t slot, uint64_t nowNs)
         resolution.values.visual = *muiVisualDefaults();
         carried.words[mui_groupVisual] = MUI_VISUAL_PROPERTIES;
     }
+    if (free.words[mui_groupText] != 0)
+    {
+        resolution.values.text = *muiTextDefaults();
+        carried.words[mui_groupText] = MUI_TEXT_PROPERTIES;
+    }
     resolution.named = (muiPropertyBits){0};
+    resolution.given = (muiPropertyBits){0};
     resolution.scope = muiScopeOf(context, slot);
     muiApplyProperties(muiRefOf(&resolution.values), muiConstRef(NodeValues(context, slot)),
                        muiIntersection(node->direct, carried));
@@ -452,8 +496,10 @@ static void Resolve(muiContext* context, uint32_t slot, uint64_t nowNs)
     {
         Watch(context, slot, &run);
     }
-    Commit(context, slot, &resolution, free, nowNs);
+    bool textChanged = Commit(context, slot, &resolution, free, nowNs);
     context->style.nodes[slot - 1].styled = true;
+    Inherit(context, slot,
+            resolution.given.words[mui_groupText] | node->direct.words[mui_groupText], textChanged);
 }
 
 void muiRestyle(muiContext* context, uint32_t root, uint64_t nowNs)
