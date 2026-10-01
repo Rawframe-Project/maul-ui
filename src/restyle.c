@@ -230,11 +230,21 @@ static bool IsChange(const muiMotion* motion, uint32_t slot, const muiStyleValue
         const muiConstValuesRef now = {&motion->nodes[slot - 1].style, &motion->visuals[slot - 1]};
         return muiDoPropertiesDiffer(muiConstRefOf(values), now, MUI_PROPERTY_BIT(property));
     }
-    float target[2] = {0.0f, 0.0f};
+    float target[MUI_MAX_CHANNELS] = {0};
     uint32_t channels = muiPropertyChannels(muiConstRefOf(values), property, target);
     const muiAnimation* animation = &motion->store->records[record - 1];
-    return channels != animation->channels || target[0] != animation->to[0] ||
-           (channels == 2 && target[1] != animation->to[1]);
+    if (channels != animation->channels)
+    {
+        return true;
+    }
+    for (uint32_t i = 0; i < channels; i++)
+    {
+        if (target[i] != animation->to[i])
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 // Moves a changed property with its transition when it has one that can
@@ -253,13 +263,14 @@ static bool Transition(muiContext* context, uint32_t slot, const Resolution* res
     {
         return false;
     }
-    float current[2] = {0.0f, 0.0f};
-    float target[2] = {0.0f, 0.0f};
+    float current[MUI_MAX_CHANNELS] = {0};
+    float target[MUI_MAX_CHANNELS] = {0};
+    const muiConstValuesRef values = muiConstRefOf(&resolution->values);
     uint32_t from = muiPropertyChannels(muiConstRef(NodeValues(context, slot)), property, current);
-    uint32_t to = muiPropertyChannels(muiConstRefOf(&resolution->values), property, target);
+    uint32_t to = muiPropertyChannels(values, property, target);
     muiMotion motion = MotionOf(context);
     return from != 0 && from == to &&
-           muiStartAnimation(&motion, slot, property, target, spec, nowNs);
+           muiStartAnimation(&motion, slot, property, values, spec, nowNs);
 }
 
 // Gives a node its resolved values: at once, or through the transitions

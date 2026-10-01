@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Both functions reduce their argument by a constant split in two parts,
-// the first with few enough bits that its product with the quotient is
-// exact (Cody and Waite; the splits are fdlibm's), and evaluate a Taylor
-// polynomial on what is left, whose next term is below 1e-17.
+// The exponential and the trigonometry reduce their argument by a
+// constant split in two parts, the first with few enough bits that its
+// product with the quotient is exact (Cody and Waite; the splits are
+// fdlibm's), and evaluate a Taylor polynomial on what is left, whose next
+// term is below 1e-17. The logarithm splits off the exponent and sums the
+// series of atanh on the mantissa near 1.
 
 #include "motion_math.h"
 
@@ -118,4 +120,70 @@ void muiSinCos(double x, double* sineOut, double* cosineOut)
         *cosineOut = cosine;
         break;
     }
+}
+
+double muiLog(double x)
+{
+    if (isnan(x) || x < 0.0)
+    {
+        return (double)NAN;
+    }
+    if (x == 0.0)
+    {
+        return -(double)INFINITY;
+    }
+    if (isinf(x))
+    {
+        return x;
+    }
+    int exponent = 0;
+    // A subnormal is scaled to a normal first.
+    if (x < 2.2250738585072014e-308)
+    {
+        x *= PowerOfTwo(54);
+        exponent = -54;
+    }
+    uint64_t bits = 0;
+    memcpy(&bits, &x, sizeof bits);
+    exponent += (int)((bits >> 52) & 0x7FF) - 1023;
+    // The mantissa in [1, 2), then in [sqrt(1/2), sqrt(2)).
+    bits = (bits & 0x000FFFFFFFFFFFFFull) | 0x3FF0000000000000ull;
+    double m = 0.0;
+    memcpy(&m, &bits, sizeof m);
+    if (m > 1.41421356237309504880)
+    {
+        m *= 0.5;
+        exponent++;
+    }
+    // ln m = 2 atanh(s) = 2 (s + s^3 / 3 + s^5 / 5 + ...) with s below
+    // 0.172, so s^2 is below 0.0295 and the term past s^25 is below 1e-17.
+    double f = m - 1.0;
+    double s = f / (2.0 + f);
+    double s2 = s * s;
+    double sum = 0.0;
+    for (int n = 12; n >= 1; n--)
+    {
+        sum = s2 * (1.0 / (double)(2 * n + 1) + sum);
+    }
+    double k = (double)exponent;
+    return k * LN2_HIGH + (2.0 * s * (1.0 + sum) + k * LN2_LOW);
+}
+
+double muiPow(double x, double y)
+{
+    return muiExp(y * muiLog(x));
+}
+
+double muiCbrt(double x)
+{
+    if (x == 0.0 || !isfinite(x))
+    {
+        return x;
+    }
+    double a = fabs(x);
+    double y = muiExp(muiLog(a) / 3.0);
+    // One Newton step on y^3 = a corrects the guess's last bits, written
+    // as a small correction so that its own rounding barely counts.
+    y += (a / (y * y) - y) / 3.0;
+    return x < 0.0 ? -y : y;
 }

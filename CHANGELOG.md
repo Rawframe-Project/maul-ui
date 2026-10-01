@@ -59,3 +59,5 @@ format.
   transitions and direct writes as layout values and marking paint
   only. `MUI_VISUAL_PROPERTIES` and `MUI_ALL_PROPERTIES` join
   `MUI_LAYOUT_PROPERTIES`. The benchmark gains a painted list.
+- Colors, shadows and image slice insets move with transitions; colors
+  in premultiplied Oklab.

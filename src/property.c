@@ -7,6 +7,9 @@
 
 #include "property.h"
 
+#include "color.h"
+#include "invariant.h"
+
 #include <math.h>
 #include <stddef.h>
 #include <string.h>
@@ -129,6 +132,7 @@ static const Row s_rows[] = {
 static_assert(sizeof s_rows / sizeof s_rows[0] == mui_propertyCount, "one row per property");
 static_assert(sizeof(muiGradient) <= UINT8_MAX, "sizes fit a row");
 static_assert(sizeof(bool) == 1, "a flag is one byte, as an enumerator");
+static_assert(sizeof(muiShadow) <= sizeof(muiPropertyValue), "a moving value fits");
 static_assert(sizeof(muiColor) == 4 * sizeof(float) && sizeof(muiShadow) == 8 * sizeof(float) &&
                   sizeof(muiEdges) == 4 * sizeof(float) &&
                   sizeof(muiGradientStop) == 5 * sizeof(float),
@@ -440,9 +444,29 @@ bool muiDoPropertiesDiffer(muiConstValuesRef a, muiConstValuesRef b, muiProperty
     return false;
 }
 
-uint32_t muiPropertyChannels(muiConstValuesRef values, muiProperty property, float out[2])
+// The channels of n lengths of 0 or more, or of n finite numbers.
+static void ReadFloats(const void* at, uint32_t n, float out[])
+{
+    memcpy(out, at, n * sizeof(float));
+}
+
+static uint32_t ShadowChannels(const void* at, float out[MUI_MAX_CHANNELS])
+{
+    muiShadow shadow;
+    memcpy(&shadow, at, sizeof shadow);
+    muiColorToChannels(shadow.color, out);
+    out[4] = shadow.offsetX;
+    out[5] = shadow.offsetY;
+    out[6] = shadow.blur;
+    out[7] = shadow.spread;
+    return 8;
+}
+
+uint32_t muiPropertyChannels(muiConstValuesRef values, muiProperty property,
+                             float out[MUI_MAX_CHANNELS])
 {
     const Row* row = &s_rows[property];
+    const void* at = At(values, row);
     switch (row->kind)
     {
     case kindDimension:
@@ -460,14 +484,34 @@ uint32_t muiPropertyChannels(muiConstValuesRef values, muiProperty property, flo
     case kindFinite:
     case kindLength:
     case kindFraction:
-        out[0] = NumberAt(values, row);
+        ReadFloats(at, 1, out);
         return 1;
+    case kindEdges:
+        ReadFloats(at, 4, out);
+        return 4;
+    case kindColor:
+    {
+        muiColor color;
+        memcpy(&color, at, sizeof color);
+        muiColorToChannels(color, out);
+        return 4;
+    }
+    case kindShadow:
+        return ShadowChannels(at, out);
     default:
         return 0;
     }
 }
 
-void muiSetPropertyChannels(muiValuesRef values, muiProperty property, const float channels[2])
+static void SetShadow(void* at, const float channels[MUI_MAX_CHANNELS])
+{
+    const muiShadow shadow = {muiColorFromChannels(channels), channels[4], channels[5],
+                              fmaxf(channels[6], 0.0f), channels[7]};
+    memcpy(at, &shadow, sizeof shadow);
+}
+
+void muiSetPropertyChannels(muiValuesRef values, muiProperty property,
+                            const float channels[MUI_MAX_CHANNELS])
 {
     const Row* row = &s_rows[property];
     void* at = AtMutable(values, row);
@@ -502,7 +546,37 @@ void muiSetPropertyChannels(muiValuesRef values, muiProperty property, const flo
     case kindFinite:
         memcpy(at, &channels[0], sizeof channels[0]);
         break;
+    case kindEdges:
+    {
+        const muiEdges value = {fmaxf(channels[0], 0.0f), fmaxf(channels[1], 0.0f),
+                                fmaxf(channels[2], 0.0f), fmaxf(channels[3], 0.0f)};
+        memcpy(at, &value, sizeof value);
+        break;
+    }
+    case kindColor:
+    {
+        const muiColor value = muiColorFromChannels(channels);
+        memcpy(at, &value, sizeof value);
+        break;
+    }
+    case kindShadow:
+        SetShadow(at, channels);
+        break;
     default:
         break;
     }
+}
+
+void muiReadPropertyValue(muiConstValuesRef values, muiProperty property, muiPropertyValue* out)
+{
+    const Row* row = &s_rows[property];
+    MUI_ASSERT(row->size <= sizeof out->bytes);
+    memcpy(out->bytes, At(values, row), row->size);
+}
+
+void muiWritePropertyValue(muiValuesRef values, muiProperty property, const muiPropertyValue* value)
+{
+    const Row* row = &s_rows[property];
+    MUI_ASSERT(row->size <= sizeof value->bytes);
+    memcpy(AtMutable(values, row), value->bytes, row->size);
 }

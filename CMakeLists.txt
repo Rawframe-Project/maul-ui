@@ -44,6 +44,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/animation.c
     src/allocator.c
     src/base.c
+    src/color.c
     src/condition.c
     src/context.c
     src/easing.c

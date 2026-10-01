@@ -39,18 +39,22 @@ typedef struct muiAnimation
     // When the property changed, and when its motion starts.
     uint64_t changedNs;
     uint64_t startNs;
-    float from[2];
-    float to[2];
+    float from[MUI_MAX_CHANNELS];
+    float to[MUI_MAX_CHANNELS];
+    // The target as stored, written on arrival, so that a value moved
+    // through other channels (a color through Oklab) ends exactly on it.
+    muiPropertyValue target;
     // For a timed transition: its length, and the start a reversal would
     // return to with the share of the way it would cover (CSS
     // Transitions' reversing-adjusted start value and shortening factor).
     double seconds;
-    float reversingStart[2];
+    float reversingStart[MUI_MAX_CHANNELS];
     double shortening;
-    // For a spring: its motion per channel, from to, and how close to rest
-    // counts as at rest.
-    muiSpring springs[2];
-    double restOffset;
+    // For a spring: its shape, each channel's start from to, and how close
+    // to rest each channel counts as at rest.
+    muiSpringShape shape;
+    muiSpringStart starts[MUI_MAX_CHANNELS];
+    float rest[MUI_MAX_CHANNELS];
 } muiAnimation;
 
 typedef struct muiAnimationStore
@@ -81,12 +85,12 @@ const muiTransitionSpec* muiFindSpec(const muiAnimationStore* store, muiTransiti
 // The record of a node's property, or 0.
 uint32_t muiFindAnimation(const muiMotion* motion, uint32_t node, muiProperty property);
 
-// Moves a node's property from its current channels to target with
-// spec, from now; a running record of it is retargeted, keeping a
+// Moves a node's property from its current channels to its value in
+// target with spec, from now; a running record of it is retargeted, keeping a
 // spring's speed or shortening a reversal. Returns false when no record
 // is free, and the caller applies the change at once.
 bool muiStartAnimation(const muiMotion* motion, uint32_t node, muiProperty property,
-                       const float target[2], const muiTransitionSpec* spec, uint64_t nowNs);
+                       muiConstValuesRef target, const muiTransitionSpec* spec, uint64_t nowNs);
 
 // Ends the transition of a node's property, if one runs, leaving the
 // property where it is.

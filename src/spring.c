@@ -20,63 +20,85 @@ enum
     kindUnderdamped = 2,
 };
 
-muiSpring muiMakeSpring(double frequency, double dampingRatio, double offset, double velocity)
+muiSpringShape muiMakeSpringShape(double frequency, double dampingRatio)
 {
     double w0 = TWO_PI * frequency;
-    muiSpring spring = {0};
+    muiSpringShape shape = {0};
     if (dampingRatio < 1.0)
     {
-        spring.kind = kindUnderdamped;
-        spring.r1 = -dampingRatio * w0;
-        spring.w = w0 * sqrt(1.0 - dampingRatio * dampingRatio);
-        spring.c1 = offset;
-        spring.c2 = (velocity - spring.r1 * offset) / spring.w;
+        shape.kind = kindUnderdamped;
+        shape.r1 = -dampingRatio * w0;
+        shape.w = w0 * sqrt(1.0 - dampingRatio * dampingRatio);
     }
     else if (dampingRatio == 1.0)
     {
-        spring.kind = kindCritical;
-        spring.r1 = -w0;
-        spring.c1 = offset;
-        spring.c2 = velocity + w0 * offset;
+        shape.kind = kindCritical;
+        shape.r1 = -w0;
     }
     else
     {
         double root = sqrt(dampingRatio * dampingRatio - 1.0);
-        spring.kind = kindOverdamped;
-        spring.r1 = -w0 * (dampingRatio - root);
-        spring.r2 = -w0 * (dampingRatio + root);
-        spring.c2 = (velocity - spring.r1 * offset) / (spring.r2 - spring.r1);
-        spring.c1 = offset - spring.c2;
+        shape.kind = kindOverdamped;
+        shape.r1 = -w0 * (dampingRatio - root);
+        shape.r2 = -w0 * (dampingRatio + root);
     }
-    return spring;
+    return shape;
 }
 
-void muiSpringAt(const muiSpring* spring, double seconds, double* offsetOut, double* velocityOut)
+muiSpringStart muiStartSpring(const muiSpringShape* shape, double offset, double velocity)
 {
-    double decay = muiExp(spring->r1 * seconds);
-    switch (spring->kind)
+    switch (shape->kind)
+    {
+    case kindUnderdamped:
+        return (muiSpringStart){offset, (velocity - shape->r1 * offset) / shape->w};
+    case kindCritical:
+        return (muiSpringStart){offset, velocity - shape->r1 * offset};
+    default:
+    {
+        double c2 = (velocity - shape->r1 * offset) / (shape->r2 - shape->r1);
+        return (muiSpringStart){offset - c2, c2};
+    }
+    }
+}
+
+muiSpringTime muiSpringTimeAt(const muiSpringShape* shape, double seconds)
+{
+    muiSpringTime time = {.seconds = seconds, .decay = muiExp(shape->r1 * seconds)};
+    if (shape->kind == kindUnderdamped)
+    {
+        muiSinCos(shape->w * seconds, &time.sine, &time.cosine);
+    }
+    else if (shape->kind == kindOverdamped)
+    {
+        time.second = muiExp(shape->r2 * seconds);
+    }
+    return time;
+}
+
+void muiSpringAt(const muiSpringShape* shape, const muiSpringTime* time, muiSpringStart start,
+                 double* offsetOut, double* velocityOut)
+{
+    double decay = time->decay;
+    switch (shape->kind)
     {
     case kindUnderdamped:
     {
-        double sine = 0.0;
-        double cosine = 0.0;
-        muiSinCos(spring->w * seconds, &sine, &cosine);
-        double wave = spring->c1 * cosine + spring->c2 * sine;
+        double wave = start.c1 * time->cosine + start.c2 * time->sine;
         *offsetOut = decay * wave;
-        *velocityOut =
-            decay * (spring->r1 * wave + spring->w * (spring->c2 * cosine - spring->c1 * sine));
+        *velocityOut = decay * (shape->r1 * wave +
+                                shape->w * (start.c2 * time->cosine - start.c1 * time->sine));
         break;
     }
     case kindCritical:
-        *offsetOut = decay * (spring->c1 + spring->c2 * seconds);
-        *velocityOut = decay * (spring->r1 * (spring->c1 + spring->c2 * seconds) + spring->c2);
-        break;
-    default:
     {
-        double second = muiExp(spring->r2 * seconds);
-        *offsetOut = spring->c1 * decay + spring->c2 * second;
-        *velocityOut = spring->c1 * spring->r1 * decay + spring->c2 * spring->r2 * second;
+        double linear = start.c1 + start.c2 * time->seconds;
+        *offsetOut = decay * linear;
+        *velocityOut = decay * (shape->r1 * linear + start.c2);
         break;
     }
+    default:
+        *offsetOut = start.c1 * decay + start.c2 * time->second;
+        *velocityOut = start.c1 * shape->r1 * decay + start.c2 * shape->r2 * time->second;
+        break;
     }
 }

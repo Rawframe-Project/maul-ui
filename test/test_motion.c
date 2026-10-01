@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The library's own exponential and trigonometry against the C
-// library's, the easing curves, and the spring's closed form against its
-// differential equation.
+// The library's own exponential, trigonometry, logarithm, power and cube
+// root against the C library's, the easing curves, the spring's closed
+// form against its differential equation, and colors through Oklab.
 
+#include "color.h"
 #include "easing.h"
 #include "motion_math.h"
 #include "spring.h"
@@ -133,6 +134,26 @@ static void TestCurvesMatchTheirDefinition(void)
     }
 }
 
+// A spring and one start, as the animation records hold them.
+typedef struct Spring
+{
+    muiSpringShape shape;
+    muiSpringStart start;
+} Spring;
+
+static Spring MakeSpring(double frequency, double ratio, double offset, double velocity)
+{
+    Spring spring = {muiMakeSpringShape(frequency, ratio), {0.0, 0.0}};
+    spring.start = muiStartSpring(&spring.shape, offset, velocity);
+    return spring;
+}
+
+static void SpringAt(const Spring* spring, double seconds, double* offset, double* velocity)
+{
+    muiSpringTime time = muiSpringTimeAt(&spring->shape, seconds);
+    muiSpringAt(&spring->shape, &time, spring->start, offset, velocity);
+}
+
 static void TestSpringsFollowTheirEquation(void)
 {
     const double ratios[] = {0.2, 0.7, 1.0, 1.5, 0.999999, 1.000001};
@@ -140,10 +161,10 @@ static void TestSpringsFollowTheirEquation(void)
     {
         const double frequency = 2.0;
         const double w0 = 6.28318530717958647692 * frequency;
-        muiSpring spring = muiMakeSpring(frequency, ratios[c], 40.0, -100.0);
+        Spring spring = MakeSpring(frequency, ratios[c], 40.0, -100.0);
         double offset = 0.0;
         double velocity = 0.0;
-        muiSpringAt(&spring, 0.0, &offset, &velocity);
+        SpringAt(&spring, 0.0, &offset, &velocity);
         CHECK(fabs(offset - 40.0) < 1e-9 && fabs(velocity + 100.0) < 1e-9, "starts as given");
         for (int i = 1; i < 200; i++)
         {
@@ -152,9 +173,9 @@ static void TestSpringsFollowTheirEquation(void)
             double before = 0.0;
             double after = 0.0;
             double v = 0.0;
-            muiSpringAt(&spring, t - h, &before, &v);
-            muiSpringAt(&spring, t + h, &after, &v);
-            muiSpringAt(&spring, t, &offset, &velocity);
+            SpringAt(&spring, t - h, &before, &v);
+            SpringAt(&spring, t + h, &after, &v);
+            SpringAt(&spring, t, &offset, &velocity);
             double slope = (after - before) / (2.0 * h);
             double curvature = (after - 2.0 * offset + before) / (h * h);
             CHECK(fabs(slope - velocity) < 1e-4 * fmax(1.0, fabs(velocity)),
@@ -162,27 +183,131 @@ static void TestSpringsFollowTheirEquation(void)
             double residual = curvature + 2.0 * ratios[c] * w0 * velocity + w0 * w0 * offset;
             CHECK(fabs(residual) < 1e-2 * w0 * w0 * 40.0, "the equation of motion holds");
         }
-        muiSpringAt(&spring, 10.0, &offset, &velocity);
+        SpringAt(&spring, 10.0, &offset, &velocity);
         CHECK(fabs(offset) < 1e-6 && fabs(velocity) < 1e-4, "comes to rest");
     }
     // Only an underdamped spring released at rest crosses its target.
-    muiSpring under = muiMakeSpring(1.0, 0.3, 1.0, 0.0);
-    muiSpring critical = muiMakeSpring(1.0, 1.0, 1.0, 0.0);
-    muiSpring over = muiMakeSpring(1.0, 2.0, 1.0, 0.0);
+    Spring under = MakeSpring(1.0, 0.3, 1.0, 0.0);
+    Spring critical = MakeSpring(1.0, 1.0, 1.0, 0.0);
+    Spring over = MakeSpring(1.0, 2.0, 1.0, 0.0);
     bool crossed = false;
     bool others = false;
     for (int i = 1; i < 500; i++)
     {
         double offset = 0.0;
         double velocity = 0.0;
-        muiSpringAt(&under, (double)i * 0.01, &offset, &velocity);
+        SpringAt(&under, (double)i * 0.01, &offset, &velocity);
         crossed = crossed || offset < 0.0;
-        muiSpringAt(&critical, (double)i * 0.01, &offset, &velocity);
+        SpringAt(&critical, (double)i * 0.01, &offset, &velocity);
         others = others || offset < 0.0;
-        muiSpringAt(&over, (double)i * 0.01, &offset, &velocity);
+        SpringAt(&over, (double)i * 0.01, &offset, &velocity);
         others = others || offset < 0.0;
     }
     CHECK(crossed && !others, "overshoot only when underdamped");
+}
+
+// How far muiCbrt is from the cube root in long double, in units in the
+// last place: the C library's cbrt is itself off by more than one.
+static double UlpsFromCbrt(double x)
+{
+    long double root = cbrtl((long double)x);
+    double magnitude = fabs((double)root);
+    double ulp = nextafter(magnitude, (double)INFINITY) - magnitude;
+    return (double)(fabsl((long double)muiCbrt(x) - root) / (long double)ulp);
+}
+
+static void TestLogPowCbrtAreAccurate(void)
+{
+    double worstLog = 0.0;
+    double worstCbrt = 0.0;
+    for (int i = -400; i <= 400; i++)
+    {
+        double x = pow(1.37, (double)i) * (1.0 + 1e-3 * (double)(i % 7));
+        if (fabs(log(x)) > 1e-3)
+        {
+            worstLog = fmax(worstLog, RelativeError(muiLog(x), log(x)));
+        }
+        worstCbrt = fmax(worstCbrt, UlpsFromCbrt(x));
+        worstCbrt = fmax(worstCbrt, UlpsFromCbrt(-x));
+    }
+    CHECK(worstLog < 4.5e-16, "ln within two units in the last place");
+    // Where long double is double, the reference is the C library's cbrt.
+    const double allowed = LDBL_MANT_DIG > DBL_MANT_DIG ? 1.0 : 3.5;
+    CHECK(worstCbrt < allowed, "cube root within a unit in the last place");
+    CHECK(muiLog(1.0) == 0.0 && RelativeError(muiLog(1.0 + 1e-12), log(1.0 + 1e-12)) < 2.3e-16,
+          "ln near 1");
+    CHECK(RelativeError(muiLog(2.0), 0.69314718055994530942) < 2.3e-16, "ln 2");
+    CHECK(RelativeError(muiLog(5e-324), log(5e-324)) < 2.3e-16, "a subnormal");
+    CHECK(RelativeError(muiLog(DBL_MAX), log(DBL_MAX)) < 2.3e-16, "the largest");
+    CHECK(muiLog(0.0) == -(double)INFINITY && isnan(muiLog(-1.0)) && isnan(muiLog((double)NAN)) &&
+              muiLog((double)INFINITY) == (double)INFINITY,
+          "the edges");
+    CHECK(muiCbrt(0.0) == 0.0 && muiCbrt(-27.0) == -3.0 && muiCbrt(8.0) == 2.0,
+          "exact cubes are exact");
+    double worstPow = 0.0;
+    // Over the ranges the sRGB transfer function raises.
+    for (int i = 0; i <= 1000; i++)
+    {
+        double toLinear = 0.0899 + 0.9101 * (double)i / 1000.0;
+        double fromLinear = 0.0031308 + 0.9968692 * (double)i / 1000.0;
+        worstPow = fmax(worstPow, RelativeError(muiPow(toLinear, 2.4), pow(toLinear, 2.4)));
+        worstPow = fmax(worstPow,
+                        RelativeError(muiPow(fromLinear, 1.0 / 2.4), pow(fromLinear, 1.0 / 2.4)));
+    }
+    CHECK(worstPow < 2e-15, "the sRGB powers");
+}
+
+static bool Near(float a, double b, double tolerance)
+{
+    return fabs((double)a - b) <= tolerance;
+}
+
+static void TestColorsThroughOklab(void)
+{
+    float channels[4];
+    muiColorToChannels((muiColor){1.0f, 0.0f, 0.0f, 1.0f}, channels);
+    // Ottosson's Oklab of sRGB red.
+    CHECK(Near(channels[0], 0.6279554, 1e-6) && Near(channels[1], 0.2248631, 1e-6) &&
+              Near(channels[2], 0.1258463, 1e-6) && channels[3] == 1.0f,
+          "red");
+    muiColorToChannels((muiColor){1.0f, 1.0f, 1.0f, 1.0f}, channels);
+    CHECK(Near(channels[0], 1.0, 1e-7) && Near(channels[1], 0.0, 1e-7) &&
+              Near(channels[2], 0.0, 1e-7),
+          "white has no hue");
+    muiColorToChannels((muiColor){0.2f, 0.4f, 0.6f, 0.5f}, channels);
+    float opaque[4];
+    muiColorToChannels((muiColor){0.2f, 0.4f, 0.6f, 1.0f}, opaque);
+    CHECK(channels[0] == opaque[0] * 0.5f && channels[1] == opaque[1] * 0.5f && channels[3] == 0.5f,
+          "premultiplied by alpha");
+
+    double worst = 0.0;
+    for (int r = 0; r <= 16; r++)
+    {
+        for (int g = 0; g <= 16; g++)
+        {
+            for (int b = 0; b <= 16; b++)
+            {
+                const muiColor color = {(float)r / 16.0f, (float)g / 16.0f, (float)b / 16.0f,
+                                        (r + g) % 2 == 0 ? 1.0f : 0.25f};
+                muiColorToChannels(color, channels);
+                muiColor back = muiColorFromChannels(channels);
+                worst = fmax(worst, fabs((double)back.r - (double)color.r));
+                worst = fmax(worst, fabs((double)back.g - (double)color.g));
+                worst = fmax(worst, fabs((double)back.b - (double)color.b));
+                CHECK(back.a == color.a, "alpha is carried as is");
+            }
+        }
+    }
+    CHECK(worst < 2e-5, "there and back within a 50,000th");
+
+    const float clear[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    muiColor none = muiColorFromChannels(clear);
+    CHECK(none.r == 0.0f && none.g == 0.0f && none.b == 0.0f && none.a == 0.0f, "clear");
+    const float bright[4] = {1.5f, 0.3f, -0.2f, 1.2f};
+    muiColor held = muiColorFromChannels(bright);
+    CHECK(held.r >= 0.0f && held.r <= 1.0f && held.g >= 0.0f && held.g <= 1.0f && held.b >= 0.0f &&
+              held.b <= 1.0f && held.a == 1.0f,
+          "past the gamut, held to it");
 }
 
 int main(void)
@@ -191,5 +316,7 @@ int main(void)
     TestSinCosAreAccurate();
     TestCurvesMatchTheirDefinition();
     TestSpringsFollowTheirEquation();
+    TestLogPowCbrtAreAccurate();
+    TestColorsThroughOklab();
     return s_failures == 0 ? 0 : 1;
 }

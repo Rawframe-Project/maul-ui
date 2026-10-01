@@ -77,9 +77,10 @@ for a fixed order in which a later layer always wins.
   nanoseconds on a monotonic clock; a time before the last counts as
   none. Each run moves running transitions to now, styles (starting and
   retargeting transitions from where values are), and moves them once
-  more so that one of no length ends in the same run. Numbers, and
-  dimensions that are Scale+Offset on both sides, move; enumerators and
-  changes to or from automatic apply at once, as do all changes under
+  more so that one of no length ends in the same run. Numbers, insets,
+  dimensions and radii that are Scale+Offset on both sides, colors and
+  shadows move, through up to eight channels; enumerators, flags, image
+  keys, gradients and changes to or from automatic apply at once, as do all changes under
   reduced motion, which also ends running ones, and a node's first
   styling, which has nothing to move from (CSS starts no transition for
   an element without a before-change style). A timed transition
@@ -108,8 +109,13 @@ for a fixed order in which a later layer always wins.
   variants, conditions, transitions and direct writes reach them
   unchanged; `muiVisualStyle` holds them apart from `muiLayoutStyle`,
   which the solver reads. A changed visual value marks the node's
-  paint, never its layout. Colors are sRGB-encoded with straight alpha,
-  and apply at once until they interpolate in Oklab.
+  paint, never its layout. Colors are sRGB-encoded with straight alpha
+  and move in premultiplied Oklab, as CSS Color 4 recommends where no
+  legacy result is owed: a fade from clear keeps its hue, and a mix
+  keeps the lightness the eye expects. The conversion uses the library's
+  own power and cube root, so it gives the same bits everywhere. A
+  record keeps its target as stored and writes it on arrival, so a
+  value moved through other channels ends exactly on it.
 - **Resolution passes by what no class names.** The context keeps the
   properties any class has given a value or any node has reset; every
   other property can hold only its default or a direct write, so

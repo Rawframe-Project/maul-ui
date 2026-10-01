@@ -11,6 +11,7 @@
 #include "property.h"
 
 #include <math.h>
+#include <string.h>
 
 #define NANOSECONDS 1e9
 #define TWO_PI      6.28318530717958647692
@@ -96,11 +97,13 @@ static double TimedProgress(const muiAnimation* animation, double elapsed)
 }
 
 // A record's channels and velocity at nowNs; whether it has arrived.
-static bool Sample(const muiAnimation* animation, uint64_t nowNs, float value[2],
-                   double velocity[2])
+static bool Sample(const muiAnimation* animation, uint64_t nowNs, float value[MUI_MAX_CHANNELS],
+                   double velocity[MUI_MAX_CHANNELS])
 {
-    velocity[0] = 0.0;
-    velocity[1] = 0.0;
+    for (uint32_t i = 0; i < MUI_MAX_CHANNELS; i++)
+    {
+        velocity[i] = 0.0;
+    }
     double elapsed = Seconds(nowNs, animation->startNs);
     if (animation->spec.def.kind == mui_transitionTimed)
     {
@@ -113,17 +116,18 @@ static bool Sample(const muiAnimation* animation, uint64_t nowNs, float value[2]
         return nowNs >= animation->startNs && elapsed >= animation->seconds;
     }
     bool resting = true;
-    double restSpeed = animation->restOffset * TWO_PI * (double)animation->spec.def.frequency;
+    double toSpeed = TWO_PI * (double)animation->spec.def.frequency;
+    muiSpringTime time = muiSpringTimeAt(&animation->shape, elapsed);
     for (uint32_t i = 0; i < animation->channels; i++)
     {
         double offset = (double)animation->from[i] - (double)animation->to[i];
         if (nowNs >= animation->startNs)
         {
-            muiSpringAt(&animation->springs[i], elapsed, &offset, &velocity[i]);
+            muiSpringAt(&animation->shape, &time, animation->starts[i], &offset, &velocity[i]);
         }
         value[i] = (float)((double)animation->to[i] + offset);
-        resting =
-            resting && fabs(offset) <= animation->restOffset && fabs(velocity[i]) <= restSpeed;
+        double rest = (double)animation->rest[i];
+        resting = resting && fabs(offset) <= rest && fabs(velocity[i]) <= rest * toSpeed;
     }
     return nowNs >= animation->startNs && (resting || elapsed >= LONGEST_SPRING);
 }
@@ -137,9 +141,17 @@ static double Shortening(const muiAnimation* old, uint64_t nowNs)
     return fmin(fabs(share), 1.0);
 }
 
-static bool IsSame(const float a[2], const float b[2], uint32_t channels)
+static bool IsSame(const float a[MUI_MAX_CHANNELS], const float b[MUI_MAX_CHANNELS],
+                   uint32_t channels)
 {
-    return a[0] == b[0] && (channels < 2 || a[1] == b[1]);
+    for (uint32_t i = 0; i < channels; i++)
+    {
+        if (a[i] != b[i])
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 // Takes a record for a node's property: its running one, or a new one
@@ -164,31 +176,48 @@ static uint32_t RecordFor(const muiMotion* motion, uint32_t node, muiProperty pr
     return record;
 }
 
-bool muiStartAnimation(const muiMotion* motion, uint32_t node, muiProperty property,
-                       const float target[2], const muiTransitionSpec* spec, uint64_t nowNs)
+// Where a record starts from: the current channels and, when one runs,
+// its velocity, and for a reversal of a timed one the start it returns
+// to and its shortening.
+typedef struct Origin
 {
-    float current[2] = {0.0f, 0.0f};
+    float current[MUI_MAX_CHANNELS];
+    float reversingStart[MUI_MAX_CHANNELS];
+    double velocity[MUI_MAX_CHANNELS];
+    double shortening;
+} Origin;
+
+static Origin OriginOf(const muiMotion* motion, uint32_t node, muiProperty property,
+                       const float target[MUI_MAX_CHANNELS], const muiTransitionSpec* spec,
+                       uint64_t nowNs)
+{
+    Origin origin = {.shortening = 1.0};
     uint32_t channels =
-        muiPropertyChannels(muiConstRef(NodeValues(motion, node)), property, current);
+        muiPropertyChannels(muiConstRef(NodeValues(motion, node)), property, origin.current);
+    memcpy(origin.reversingStart, origin.current, sizeof origin.current);
     uint32_t running = muiFindAnimation(motion, node, property);
-    double velocity[2] = {0.0, 0.0};
-    float reversingStart[2] = {current[0], current[1]};
-    double shortening = 1.0;
-    if (running != 0)
+    if (running == 0)
     {
-        const muiAnimation* old = &motion->store->records[running - 1];
-        float sampled[2] = {0.0f, 0.0f};
-        (void)Sample(old, nowNs, sampled, velocity);
-        bool reversal = old->spec.def.kind == mui_transitionTimed &&
-                        spec->def.kind == mui_transitionTimed &&
-                        IsSame(target, old->reversingStart, channels);
-        if (reversal)
-        {
-            shortening = Shortening(old, nowNs);
-            reversingStart[0] = old->to[0];
-            reversingStart[1] = old->to[1];
-        }
+        return origin;
     }
+    const muiAnimation* old = &motion->store->records[running - 1];
+    float sampled[MUI_MAX_CHANNELS] = {0};
+    (void)Sample(old, nowNs, sampled, origin.velocity);
+    if (old->spec.def.kind == mui_transitionTimed && spec->def.kind == mui_transitionTimed &&
+        IsSame(target, old->reversingStart, channels))
+    {
+        origin.shortening = Shortening(old, nowNs);
+        memcpy(origin.reversingStart, old->to, sizeof old->to);
+    }
+    return origin;
+}
+
+bool muiStartAnimation(const muiMotion* motion, uint32_t node, muiProperty property,
+                       muiConstValuesRef target, const muiTransitionSpec* spec, uint64_t nowNs)
+{
+    float to[MUI_MAX_CHANNELS] = {0};
+    uint32_t channels = muiPropertyChannels(target, property, to);
+    const Origin origin = OriginOf(motion, node, property, to, spec, nowNs);
     uint32_t record = RecordFor(motion, node, property);
     if (record == 0)
     {
@@ -200,24 +229,24 @@ bool muiStartAnimation(const muiMotion* motion, uint32_t node, muiProperty prope
     animation->spec = *spec;
     animation->changedNs = nowNs;
     animation->startNs = nowNs + spec->def.delayNs;
-    animation->seconds = (double)spec->def.durationNs / NANOSECONDS * shortening;
-    animation->shortening = shortening;
-    // The way a spring goes: its offset, or as far as its speed alone
-    // would carry it in a radian of its motion.
-    double way = 0.0;
+    animation->seconds = (double)spec->def.durationNs / NANOSECONDS * origin.shortening;
+    animation->shortening = origin.shortening;
+    muiReadPropertyValue(target, property, &animation->target);
+    animation->shape =
+        muiMakeSpringShape((double)spec->def.frequency, (double)spec->def.dampingRatio);
     double w0 = TWO_PI * (double)spec->def.frequency;
-    for (uint32_t i = 0; i < 2; i++)
+    for (uint32_t i = 0; i < MUI_MAX_CHANNELS; i++)
     {
-        animation->from[i] = current[i];
-        animation->to[i] = i < channels ? target[i] : 0.0f;
-        animation->reversingStart[i] = reversingStart[i];
-        double offset = (double)current[i] - (double)animation->to[i];
-        way = fmax(way, fmax(fabs(offset), fabs(velocity[i]) / w0));
-        animation->springs[i] = muiMakeSpring((double)spec->def.frequency,
-                                              (double)spec->def.dampingRatio, offset, velocity[i]);
+        animation->from[i] = origin.current[i];
+        animation->to[i] = to[i];
+        animation->reversingStart[i] = origin.reversingStart[i];
+        double offset = (double)origin.current[i] - (double)to[i];
+        animation->starts[i] = muiStartSpring(&animation->shape, offset, origin.velocity[i]);
+        // At rest within a thousandth of the channel's way: its offset, or
+        // as far as its speed alone would carry it in a radian of its
+        // motion.
+        animation->rest[i] = (float)(fmax(fabs(offset), fabs(origin.velocity[i]) / w0) * 1e-3);
     }
-    // At rest within a thousandth of the way.
-    animation->restOffset = way * 1e-3;
     return true;
 }
 
@@ -246,15 +275,18 @@ void muiAdvanceAnimations(const muiMotion* motion, uint64_t nowNs, bool finish)
             Release(motion, 0, record);
             continue;
         }
-        float value[2] = {0.0f, 0.0f};
-        double velocity[2] = {0.0, 0.0};
+        float value[MUI_MAX_CHANNELS] = {0};
+        double velocity[MUI_MAX_CHANNELS] = {0};
         bool arrived = Sample(animation, nowNs, value, velocity) || finish;
         if (arrived)
         {
-            value[0] = animation->to[0];
-            value[1] = animation->to[1];
+            muiWritePropertyValue(NodeValues(motion, node), animation->property,
+                                  &animation->target);
         }
-        muiSetPropertyChannels(NodeValues(motion, node), animation->property, value);
+        else
+        {
+            muiSetPropertyChannels(NodeValues(motion, node), animation->property, value);
+        }
         MarkMoved(motion, node, animation->property);
         if (arrived)
         {

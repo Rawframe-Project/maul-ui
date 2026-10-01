@@ -5,10 +5,12 @@
 // an easing, or a spring), shared by the classes whose variants name
 // them, and run against the time the host passes to muiComputeLayout
 // (record mui-0004). The spec for a change is resolved through the same
-// layers as values, from the state after the change. Numbers, and
-// dimensions that are Scale+Offset on both sides, move; enumerators and
-// changes to or from automatic, direct writes, and every change under
-// reduced motion apply at once.
+// layers as values, from the state after the change. Numbers, insets,
+// dimensions and radii that are Scale+Offset on both sides, colors (in
+// premultiplied Oklab) and shadows move, ending exactly on their target;
+// enumerators, flags, image keys, gradients, changes to or from
+// automatic, direct writes, and every change under reduced motion apply
+// at once.
 
 #ifndef MAUL_UI_TRANSITION_H
 #define MAUL_UI_TRANSITION_H

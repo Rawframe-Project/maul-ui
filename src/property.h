@@ -83,13 +83,34 @@ void muiApplyProperties(muiValuesRef target, muiConstValuesRef source, muiProper
 // Whether a property among mask has different values in a and b.
 bool muiDoPropertiesDiffer(muiConstValuesRef a, muiConstValuesRef b, muiPropertyMask mask);
 
+enum
+{
+    // The most channels a property moves through: a shadow's.
+    MUI_MAX_CHANNELS = 8
+};
+
+// One property's value as it is stored, for the properties that move.
+typedef struct muiPropertyValue
+{
+    alignas(8) unsigned char bytes[32];
+} muiPropertyValue;
+
 // The values a property moves through, in out: one for a number, two
-// (scale, offset) for a Scale+Offset dimension or radius. Returns how
-// many; 0 for a value that cannot move: an enumerator, an automatic
-// dimension, or (until they interpolate in Oklab) a color.
-uint32_t muiPropertyChannels(muiConstValuesRef values, muiProperty property, float out[2]);
+// (scale, offset) for a Scale+Offset dimension or radius, four for insets
+// or a color (premultiplied Oklab: lightness, a and b times alpha, and
+// alpha), eight for a shadow (its color's four, then its offsets, blur
+// and spread). Returns how many; 0 for a value that cannot move: an
+// enumerator, a flag, a key, a gradient or an automatic dimension.
+uint32_t muiPropertyChannels(muiConstValuesRef values, muiProperty property,
+                             float out[MUI_MAX_CHANNELS]);
 
 // Writes a property's channels, held to the values the property allows.
-void muiSetPropertyChannels(muiValuesRef values, muiProperty property, const float channels[2]);
+void muiSetPropertyChannels(muiValuesRef values, muiProperty property,
+                            const float channels[MUI_MAX_CHANNELS]);
+
+// Reads and writes a property that moves, exactly as it is stored.
+void muiReadPropertyValue(muiConstValuesRef values, muiProperty property, muiPropertyValue* out);
+void muiWritePropertyValue(muiValuesRef values, muiProperty property,
+                           const muiPropertyValue* value);
 
 #endif // MAUL_UI_SRC_PROPERTY_H

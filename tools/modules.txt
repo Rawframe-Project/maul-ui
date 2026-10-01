@@ -5,11 +5,12 @@ invariant:
 allocator:
 layout_node: tree
 pool: invariant
-property:
+property: color invariant
 condition:
 easing:
 motion_math:
 spring: motion_math
+color: motion_math
 animation: easing layout_node pool property spring style_store tree
 style_edit: context pool style_store tree
 transition: animation context easing pool property style_edit style_store

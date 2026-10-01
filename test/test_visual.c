@@ -475,14 +475,73 @@ static void TestTransitions(void)
     muiVisualStyle read = Read(context, node);
     CHECK(read.opacity == 0.5f, "opacity halfway");
     CHECK(read.radius.topStart.offset == 4.0f, "radius halfway");
-    CHECK(SameColor(read.background, s_blue), "a color, at once");
+    // From clear, premultiplied: blue at half alpha, not a darker blue.
+    CHECK(fabsf(read.background.r) < 1e-5f && fabsf(read.background.g) < 1e-5f &&
+              fabsf(read.background.b - 1.0f) < 1e-5f && read.background.a == 0.5f,
+          "a color from clear, halfway");
     CHECK(muiNode_IsTransitioning(context, node, mui_propertyOpacity) &&
-              !muiNode_IsTransitioning(context, node, mui_propertyBackground),
+              muiNode_IsTransitioning(context, node, mui_propertyBackground),
           "which move");
     CHECK(IsPaintMarked(context, node) && s_measured == measured, "moving marks paint only");
     CHECK(muiIsUpdatePending(context, node), "pending while moving");
     Layout(context, node, T0 + 100 * MS);
     CHECK(Read(context, node).opacity == 0.0f && !muiIsUpdatePending(context, node), "done");
+    CHECK(SameColor(Read(context, node).background, s_blue), "exactly on the target");
+    muiDestroyContext(context);
+}
+
+// Red to blue in Oklab, and a shadow growing, as a hovered card's.
+static void TestColorsAndShadowsMove(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId node = MakeNode(context);
+    muiStyleId style = MakeStyle(context);
+    muiVisualStyle values = muiDefaultVisualStyle();
+    values.background = s_red;
+    values.imageSlice = (muiEdges){2.0f, 2.0f, 2.0f, 2.0f};
+    const muiPropertyMask moved = BACKGROUND | MUI_PROPERTY_BIT(mui_propertyOuterShadow) |
+                                  MUI_PROPERTY_BIT(mui_propertyImageSlice) |
+                                  MUI_PROPERTY_BIT(mui_propertyClip) | GRADIENT;
+    CHECK(muiStyle_SetVisualValues(context, style, mui_variantBase, &values, moved) == mui_success,
+          "base");
+    values.background = s_blue;
+    values.outerShadow = (muiShadow){{0.0f, 0.0f, 0.0f, 0.5f}, 0.0f, 4.0f, 8.0f, -2.0f};
+    values.imageSlice = (muiEdges){6.0f, 6.0f, 6.0f, 6.0f};
+    values.clip = true;
+    values.gradient = (muiGradient){mui_gradientLinear, 2, 0.0f, {{s_red, 0.0f}, {s_blue, 1.0f}}};
+    CHECK(muiStyle_SetVisualValues(context, style, mui_variantHovered, &values, moved) ==
+              mui_success,
+          "hovered");
+    muiTransitionDef def = muiDefaultTransitionDef();
+    def.durationNs = 100 * MS;
+    def.easing = mui_easingLinear;
+    muiTransitionId linear = s_nullTransition;
+    CHECK(muiCreateTransition(context, &def, &linear) == mui_success, "transition");
+    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, linear, moved) == mui_success,
+          "named");
+    CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
+    Layout(context, node, T0);
+    CHECK(muiNode_SetStates(context, node, mui_stateHovered) == mui_success, "hover");
+    Layout(context, node, T0);
+    Layout(context, node, T0 + 50 * MS);
+    muiVisualStyle read = Read(context, node);
+    // The Oklab midpoint, against an independent double-precision
+    // conversion; sRGB's own midpoint would be (0.5, 0, 0.5).
+    CHECK(fabsf(read.background.r - 0.5504411f) < 1e-5f &&
+              fabsf(read.background.g - 0.3256207f) < 1e-5f &&
+              fabsf(read.background.b - 0.6365007f) < 1e-5f && read.background.a == 1.0f,
+          "red to blue through Oklab");
+    CHECK(read.outerShadow.offsetY == 2.0f && read.outerShadow.blur == 4.0f &&
+              read.outerShadow.spread == -1.0f && read.outerShadow.color.a == 0.25f &&
+              read.outerShadow.color.r == 0.0f,
+          "the shadow halfway, its color from clear");
+    CHECK(read.imageSlice.start == 4.0f && read.imageSlice.bottom == 4.0f, "slices halfway");
+    CHECK(read.clip && read.gradient.kind == mui_gradientLinear, "a flag and a gradient, at once");
+    Layout(context, node, T0 + 100 * MS);
+    read = Read(context, node);
+    CHECK(SameColor(read.background, s_blue) && read.outerShadow.blur == 8.0f &&
+              read.outerShadow.color.a == 0.5f && read.imageSlice.top == 6.0f,
+          "all on their targets");
     muiDestroyContext(context);
 }
 
@@ -577,5 +636,6 @@ int main(void)
     TestTransitions();
     TestGradientsCompareUsedStops();
     TestRadiusSpringStaysAtZero();
+    TestColorsAndShadowsMove();
     return s_failures == 0 ? 0 : 1;
 }
