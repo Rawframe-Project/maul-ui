@@ -237,11 +237,16 @@ static void TestChecks(void)
     v.background.r = NAN;
     CheckRefused(context, style, node, &v, BACKGROUND, "a NaN component");
     v = defaults;
+    v.background.a = 1.01f;
+    CheckRefused(context, style, node, &v, BACKGROUND, "alpha above 1");
+    v = defaults;
     v.opacity = -0.1f;
     CheckRefused(context, style, node, &v, OPACITY, "opacity below 0");
     v = defaults;
     v.radius.topStart = (muiDimension){0.0f, -1.0f, mui_dimensionValue};
     CheckRefused(context, style, node, &v, RADIUS, "a negative radius");
+    v.radius.topStart = (muiDimension){-0.5f, 0.0f, mui_dimensionValue};
+    CheckRefused(context, style, node, &v, RADIUS, "a negative scale");
     v.radius.topStart = (muiDimension){0.0f, 0.0f, mui_dimensionAuto};
     CheckRefused(context, style, node, &v, RADIUS, "an automatic radius");
     v = defaults;
@@ -253,9 +258,21 @@ static void TestChecks(void)
     CheckRefused(context, style, node, &v, MUI_PROPERTY_BIT(mui_propertyInnerShadow),
                  "an infinite offset");
     v = defaults;
+    v.innerShadow.offsetY = NAN;
+    CheckRefused(context, style, node, &v, MUI_PROPERTY_BIT(mui_propertyInnerShadow),
+                 "a NaN offset");
+    v = defaults;
+    v.outerShadow.spread = -INFINITY;
+    CheckRefused(context, style, node, &v, MUI_PROPERTY_BIT(mui_propertyOuterShadow),
+                 "an infinite spread");
+    v = defaults;
     v.imageSlice.top = -2.0f;
     CheckRefused(context, style, node, &v, MUI_PROPERTY_BIT(mui_propertyImageSlice),
                  "a negative slice");
+    v = defaults;
+    v.imageSlice.bottom = NAN;
+    CheckRefused(context, style, node, &v, MUI_PROPERTY_BIT(mui_propertyImageSlice),
+                 "a NaN bottom slice");
     v = defaults;
     v.clip = true;
     unsigned char* flag = (unsigned char*)&v.clip;
@@ -267,8 +284,16 @@ static void TestChecks(void)
     v = defaults;
     v.gradient = (muiGradient){mui_gradientLinear, 1, 90.0f, {black}};
     CheckRefused(context, style, node, &v, GRADIENT, "one stop");
-    v.gradient = (muiGradient){mui_gradientLinear, 5, 90.0f, {black, white}};
+    // Four stops in order and a fifth the struct has no room for; the
+    // radius that follows it in memory would read as a stop in order.
+    const muiGradientStop gray = {{0.5f, 0.5f, 0.5f, 1.0f}, 0.5f};
+    v.gradient = (muiGradient){mui_gradientLinear, 5, 90.0f, {black, gray, gray, white}};
+    v.radius.topEnd = (muiDimension){0.0f, 1.0f, mui_dimensionValue};
     CheckRefused(context, style, node, &v, GRADIENT, "five stops");
+    v.radius = defaults.radius;
+    const muiGradientStop bad = {{0.5f, 2.0f, 0.5f, 1.0f}, 0.5f};
+    v.gradient = (muiGradient){mui_gradientLinear, 3, 90.0f, {black, bad, white}};
+    CheckRefused(context, style, node, &v, GRADIENT, "a stop's color");
     v.gradient = (muiGradient){mui_gradientLinear, 2, 90.0f, {white, black}};
     CheckRefused(context, style, node, &v, GRADIENT, "stops out of order");
     v.gradient = (muiGradient){3, 2, 90.0f, {black, white}};
@@ -381,17 +406,41 @@ static void TestDirectWrites(void)
     CHECK(s_measured == measured, "not laid out again");
     CHECK((muiNode_GetDirectProperties(context, node) & BACKGROUND) != 0, "named direct");
 
+    // A class edit restyles the node, and its direct write stays.
+    muiVisualStyle classValues = muiDefaultVisualStyle();
+    classValues.opacity = 0.75f;
+    CHECK(muiStyle_SetVisualValues(context, style, mui_variantBase, &classValues, OPACITY) ==
+              mui_success,
+          "class opacity");
+    Layout(context, node, T0);
+    CHECK(SameColor(Read(context, node).background, s_blue) && Read(context, node).opacity == 0.75f,
+          "the direct write kept beside the class's change");
+    CHECK(muiStyle_SetVisualValues(context, style, mui_variantBase, &values, OPACITY) ==
+              mui_success,
+          "class opacity back to 1");
+
     CHECK(muiNode_ResetProperties(context, node, BACKGROUND) == mui_success, "reset");
     Layout(context, node, T0);
     CHECK(SameColor(Read(context, node).background, s_red), "the class's again");
 
-    // No class names opacity: a reset still goes back to the default.
+    // No class names clipping: a reset still goes back to the default.
+    values.clip = true;
+    CHECK(muiNode_SetVisualValues(context, node, &values, MUI_PROPERTY_BIT(mui_propertyClip)) ==
+              mui_success,
+          "clip");
+    Layout(context, node, T0);
+    CHECK(muiNode_ResetProperties(context, node, MUI_PROPERTY_BIT(mui_propertyClip)) == mui_success,
+          "reset clip");
+    Layout(context, node, T0);
+    CHECK(!Read(context, node).clip, "the default again");
     values.opacity = 0.5f;
+
+    // A slot used again starts from the defaults.
     CHECK(muiNode_SetVisualValues(context, node, &values, OPACITY) == mui_success, "opacity");
-    Layout(context, node, T0);
-    CHECK(muiNode_ResetProperties(context, node, OPACITY) == mui_success, "reset opacity");
-    Layout(context, node, T0);
-    CHECK(Read(context, node).opacity == 1.0f, "the default again");
+    CHECK(muiDestroyNode(context, node) == mui_success, "destroy");
+    muiNodeId again = MakeNode(context);
+    CHECK(Read(context, again).opacity == 1.0f && Read(context, again).background.a == 0.0f,
+          "a new node in the old slot");
     muiDestroyContext(context);
 }
 
@@ -437,6 +486,40 @@ static void TestTransitions(void)
     muiDestroyContext(context);
 }
 
+static void TestRadiusSpringStaysAtZero(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId node = MakeNode(context);
+    muiStyleId style = MakeStyle(context);
+    muiVisualStyle values = muiDefaultVisualStyle();
+    values.radius.topStart = (muiDimension){0.0f, 8.0f, mui_dimensionValue};
+    CHECK(muiStyle_SetVisualValues(context, style, mui_variantBase, &values, RADIUS) == mui_success,
+          "8");
+    muiTransitionDef def = muiDefaultTransitionDef();
+    def.kind = mui_transitionSpring;
+    def.frequency = 3.0f;
+    def.dampingRatio = 0.2f;
+    muiTransitionId spring = s_nullTransition;
+    CHECK(muiCreateTransition(context, &def, &spring) == mui_success, "spring");
+    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, spring, RADIUS) == mui_success,
+          "named");
+    values.radius.topStart.offset = 0.0f;
+    CHECK(muiStyle_SetVisualValues(context, style, mui_variantHovered, &values, RADIUS) ==
+              mui_success,
+          "0 when hovered");
+    CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
+    Layout(context, node, T0);
+    CHECK(muiNode_SetStates(context, node, mui_stateHovered) == mui_success, "hover");
+    bool negative = false;
+    for (uint64_t t = 0; t <= 1000 * MS; t += 8 * MS)
+    {
+        Layout(context, node, T0 + t);
+        negative = negative || Read(context, node).radius.topStart.offset < 0.0f;
+    }
+    CHECK(!negative, "an overshoot stops at 0");
+    muiDestroyContext(context);
+}
+
 static void TestGradientsCompareUsedStops(void)
 {
     muiContext* context = MakeContext();
@@ -453,7 +536,7 @@ static void TestGradientsCompareUsedStops(void)
           "gradient");
     Layout(context, node, T0);
     ClearPaint(context, node);
-    values.gradient.stops[2].position = 0.9f;
+    values.gradient.stops[2] = (muiGradientStop){s_red, 1.0f};
     CHECK(muiStyle_SetVisualValues(context, style, mui_variantBase, &values, GRADIENT) ==
               mui_success,
           "an unused stop");
@@ -472,6 +555,14 @@ static void TestGradientsCompareUsedStops(void)
           "the angle");
     Layout(context, node, T0);
     CHECK(IsPaintMarked(context, node), "a change too");
+    ClearPaint(context, node);
+    // The unused stop it takes in is already there: only the count moves.
+    values.gradient.stopCount = 3;
+    CHECK(muiStyle_SetVisualValues(context, style, mui_variantBase, &values, GRADIENT) ==
+              mui_success,
+          "a stop more");
+    Layout(context, node, T0);
+    CHECK(IsPaintMarked(context, node), "a change as well");
     muiDestroyContext(context);
 }
 
@@ -485,5 +576,6 @@ int main(void)
     TestDirectWrites();
     TestTransitions();
     TestGradientsCompareUsedStops();
+    TestRadiusSpringStaysAtZero();
     return s_failures == 0 ? 0 : 1;
 }

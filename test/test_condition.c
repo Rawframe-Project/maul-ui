@@ -11,6 +11,7 @@
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
+#include "maul-ui/visual.h"
 
 #include <math.h>
 
@@ -565,6 +566,17 @@ static void TestOnlyConditionsThatApplyAreWatched(void)
     SetSize(context, node, 130.0f, 0.0f);
     Compute(context, node);
     CHECK(!muiIsUpdatePending(context, node), "an all-direct node is not watched");
+    // Nor when its class leaves visual values to resolve: the condition's
+    // values reach only properties it writes.
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.opacity = 0.5f;
+    CHECK(muiStyle_SetVisualValues(context, watched, mui_variantBase, &visual,
+                                   MUI_PROPERTY_BIT(mui_propertyOpacity)) == mui_success,
+          "a visual value");
+    Settle(context, node);
+    SetSize(context, node, 140.0f, 0.0f);
+    Compute(context, node);
+    CHECK(!muiIsUpdatePending(context, node), "still not watched");
     muiDestroyContext(context);
 }
 
