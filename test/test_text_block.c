@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include "ahem.inc"
+#include "break_test.inc"
 #include "liberation_sans.inc"
 
 static const muiNodeId s_nullNode = {0, 0};
@@ -448,6 +449,84 @@ static void TestRealShaping(void)
     FreeScene(&scene);
 }
 
+// The break test font, at its units per em (1000) so a unit of size is
+// a unit of the font: A, V and x 600 wide, a hyphen 300 less 200 before
+// V, and a space and x one ligature 850 wide.
+static muiNodeId AddBreakTest(Scene* scene, const char* text)
+{
+    muiFontDef def = muiDefaultFontDef();
+    def.data = s_breakTest;
+    def.size = sizeof s_breakTest;
+    def.dataMode = mui_fontDataBorrow;
+    muiFontId font = {0, 0};
+    CHECK(muiCreateFont(scene->service, &def, &font) == mui_success, "the break test font");
+    muiNodeId node = AddText(scene, s_nullNode, text);
+    muiTextStyle style = muiDefaultTextStyle();
+    style.font = muiFont_GetKey(font);
+    style.size = (muiDimension){0.0f, 1000.0f, mui_dimensionValue};
+    SetText(scene, node, style, FONT | SIZE);
+    return node;
+}
+
+static void SetWidth(Scene* scene, muiNodeId node, float width)
+{
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.sizing.width = (muiDimension){0.0f, width, mui_dimensionValue};
+    CHECK(muiNode_SetLayoutValues(scene->context, node, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyWidth)) == mui_success,
+          "width");
+}
+
+static void TestUnsafeBreaks(void)
+{
+    Scene scene = MakeScene(NULL);
+    // Kerning across a break: the hyphen ending a line is not kerned
+    // against the V that starts the next.
+    muiNodeId kerned = AddBreakTest(&scene, "A-V");
+    Layout(&scene, kerned, 100000.0f);
+    CHECK(SameSize(Measure(&scene, kerned, mui_measureMaxContent, 0.0f), 1300.0f, 1000.0f),
+          "kerned on one line");
+    CHECK(SameSize(Measure(&scene, kerned, mui_measureAtMost, 1000.0f), 900.0f, 2000.0f),
+          "broken after the hyphen: 600 and 300");
+    muiTextStyle style = muiDefaultTextStyle();
+    style.align = mui_textAlignEnd;
+    SetText(&scene, kerned, style, ALIGN);
+    SetWidth(&scene, kerned, 1000.0f);
+    Layout(&scene, kerned, 100000.0f);
+    muiDrawList list = Paint(&scene, kerned);
+    CHECK(list.commandCount == 2 && list.glyphCount == 3 && list.glyphs[0].x == 100.0f &&
+              list.glyphs[1].x == 700.0f && list.glyphs[2].x == 400.0f,
+          "aligned by the widths of the lines as broken");
+
+    // A ligature across a break: the x after the break is drawn.
+    muiNodeId ligature = AddBreakTest(&scene, "A x");
+    Layout(&scene, ligature, 100000.0f);
+    CHECK(SameSize(Measure(&scene, ligature, mui_measureMaxContent, 0.0f), 1450.0f, 1000.0f),
+          "the space and x as one glyph");
+    SetWidth(&scene, ligature, 1000.0f);
+    Layout(&scene, ligature, 100000.0f);
+    list = Paint(&scene, ligature);
+    CHECK(list.commandCount == 2 && list.glyphCount == 2 && list.glyphs[1].id == 5 &&
+              list.commands[1].glyphRun.originY == 1800.0f,
+          "x alone on the second line");
+    CHECK(SameSize(Measure(&scene, ligature, mui_measureAtMost, 1000.0f), 600.0f, 2000.0f),
+          "two lines 600 wide");
+
+    // A line shaped alone in pieces: an override to right to left, its
+    // end, then the space and x across the break.
+    muiNodeId pieces = AddBreakTest(&scene, "\xE2\x80\xAE"
+                                            "AV"
+                                            "\xE2\x80\xAC"
+                                            " x");
+    SetWidth(&scene, pieces, 1300.0f);
+    Layout(&scene, pieces, 100000.0f);
+    list = Paint(&scene, pieces);
+    CHECK(list.commandCount == 2 && list.glyphCount == 3 && list.glyphs[0].id == 4 &&
+              list.glyphs[1].id == 3 && list.glyphs[1].x == 600.0f && list.glyphs[2].id == 5,
+          "V A, then x: each piece shaped once");
+    FreeScene(&scene);
+}
+
 static void TestMemoryRunningOut(void)
 {
     // Each allocation of shaping and painting fails in turn: the block
@@ -462,6 +541,21 @@ static void TestMemoryRunningOut(void)
                                  "ef");
         failing = (FailingAllocator){0, failAt};
         Layout(&scene, node, 1000.0f);
+        const muiDrawInput input = {1, 1.0f, muiPaintText, &scene.host};
+        CHECK(muiBuildDrawList(scene.context, node, &input) == mui_success, "paint");
+        bool failed = failing.allocations >= failAt;
+        CHECK(failed == (muiGetTextServiceFailures(scene.service) != 0), "counted");
+        FreeScene(&scene);
+    }
+    // And lines shaped alone, at an unsafe break.
+    for (int failAt = 1; failAt < 30; failAt++)
+    {
+        FailingAllocator failing = {0, 0};
+        Scene scene = MakeScene(&failing);
+        muiNodeId node = AddBreakTest(&scene, "A x A-V");
+        SetWidth(&scene, node, 1000.0f);
+        failing = (FailingAllocator){0, failAt};
+        Layout(&scene, node, 100000.0f);
         const muiDrawInput input = {1, 1.0f, muiPaintText, &scene.host};
         CHECK(muiBuildDrawList(scene.context, node, &input) == mui_success, "paint");
         bool failed = failing.allocations >= failAt;
@@ -490,6 +584,7 @@ int main(void)
     TestBidiOrder();
     TestFontsAndChanges();
     TestRealShaping();
+    TestUnsafeBreaks();
     TestMemoryRunningOut();
     return s_failures == 0 ? 0 : 1;
 }

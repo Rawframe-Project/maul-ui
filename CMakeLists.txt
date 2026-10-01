@@ -116,6 +116,8 @@ if(MAUL_UI_BUILD_TESTS)
         target_include_directories(test_text PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/LiberationSans-Regular.ttf
             ${PROJECT_BINARY_DIR}/test_fonts/liberation_sans.inc s_liberationSans)
+        mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulBreakTest.ttf
+            ${PROJECT_BINARY_DIR}/test_fonts/break_test.inc s_breakTest)
         maul_add_test(text_block)
         target_include_directories(test_text_block PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(text_fuzz)

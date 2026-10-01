@@ -33,7 +33,9 @@ format.
   by `muiPaintText` in the node's text style: lines broken by UAX #14,
   bidi order by UAX #9, glyphs shaped by HarfBuzz; font keys and a
   default font; `muiNode_IsRightToLeft`; a `textBlocks` limit
-  (record mui-0006).
+  (record mui-0006). A line that breaks where shaping is unsafe to
+  break is shaped alone, so a kern or ligature across the break does
+  not carry over.
 - Glyph runs in the draw list: `muiDrawInput` gains a paint function
   for host content (`muiPaintFunction`), which adds runs with
   `muiDrawSink_AddGlyphRun`; the list gains `mui_drawGlyphRun`

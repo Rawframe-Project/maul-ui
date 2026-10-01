@@ -22,9 +22,17 @@ published.
   units per em, a line gap, and kerning in GPOS, so tests see real
   shaping.
 
+- `MaulBreakTest.ttf`: written by `make_break_test_font.py` (fontTools
+  4.60.1), MIT like the rest of this repository: boxes on 1000 units
+  per em, a hyphen kerned -200 against V and a ligature of space and x,
+  both across line break opportunities, so tests see shaping that
+  changes when a line breaks. The script writes the same bytes each
+  time.
+
 SHA-256 of each file:
 
 ```text
 b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448  Ahem.ttf
 76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8  LiberationSans-Regular.ttf
+9874b4f1bf8f95c0c1ab5c810a89c1bca65ba666731b79a72de2eb1291d4b13a  MaulBreakTest.ttf
 ```

@@ -116,6 +116,67 @@ static muiBreakMode ModeOf(const Paragraph* paragraph, muiMeasureMode mode)
     return mui_breakWrap;
 }
 
+// A line's glyphs and width: the block's, or, when the line breaks where
+// shaping is unsafe to break, its own from shaping it alone.
+typedef struct LineGlyphs
+{
+    const muiTextItem* items;
+    uint32_t itemCount;
+    const muiShapedGlyph* glyphs;
+    uint32_t glyphCount;
+    float width;
+} LineGlyphs;
+
+// The width of the glyphs of clusters before end, with spacing after
+// each cluster.
+static float WidthBefore(const Paragraph* paragraph, const LineGlyphs* source, uint32_t end)
+{
+    float width = 0.0f;
+    for (uint32_t k = 0; k < source->itemCount; k++)
+    {
+        const muiShapedGlyph* glyphs = source->glyphs + source->items[k].firstGlyph;
+        uint32_t count = source->items[k].glyphCount;
+        for (uint32_t i = 0; i < count; i++)
+        {
+            if (glyphs[i].cluster >= end)
+            {
+                continue;
+            }
+            width += (float)glyphs[i].advance * paragraph->scale.scale;
+            if (i + 1 == count || glyphs[i + 1].cluster != glyphs[i].cluster)
+            {
+                width += paragraph->scale.spacing;
+            }
+        }
+    }
+    return width;
+}
+
+// A line's glyphs; false when shaping it alone found no memory, which the
+// service counts. A line shaped alone takes its trailing white space
+// with it, as a broken line is shaped.
+static bool GlyphsOf(const Paragraph* paragraph, const muiTextLine* line, LineGlyphs* out)
+{
+    const muiTextBlock* block = paragraph->block;
+    if (!muiIsBreakUnsafe(block, line->start) && !muiIsBreakUnsafe(block, line->next))
+    {
+        *out = (LineGlyphs){block->items.data, block->itemCount, block->glyphs.data,
+                            block->glyphCount, line->width};
+        return true;
+    }
+    muiTextService* service = paragraph->service;
+    muiTextLineShape shape = {&service->lineItems, 0, &service->lineGlyphs, 0};
+    if (!muiShapeTextLine(service, block, paragraph->font, line->start, line->next, &shape))
+    {
+        service->failures++;
+        return false;
+    }
+    *out = (LineGlyphs){service->lineItems.data, shape.itemCount, service->lineGlyphs.data,
+                        shape.glyphCount, 0.0f};
+    out->width = WidthBefore(paragraph, out, line->end);
+    return true;
+}
+
 muiSize muiMeasureText(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasureAxis width,
                        muiMeasureAxis height)
 {
@@ -131,7 +192,12 @@ muiSize muiMeasureText(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasur
     float widest = 0.0f;
     for (uint32_t i = 0; i < count; i++)
     {
-        widest = fmaxf(widest, lines[i].width);
+        LineGlyphs glyphs;
+        if (!GlyphsOf(&paragraph, &lines[i], &glyphs))
+        {
+            return (muiSize){0.0f, 0.0f};
+        }
+        widest = fmaxf(widest, glyphs.width);
     }
     return (muiSize){width.mode == mui_measureExact ? width.size : widest,
                      (float)count * paragraph.lineHeight};
@@ -177,11 +243,11 @@ static uint32_t Seek(const muiShapedGlyph* glyphs, uint32_t count, uint32_t offs
     return low;
 }
 
-static float PaintSegment(const Paragraph* paragraph, const muiTextItem* item, uint32_t start,
-                          uint32_t end, float pen, float baseline, muiDrawSink* sink)
+static float PaintSegment(const Paragraph* paragraph, const LineGlyphs* source,
+                          const muiTextItem* item, uint32_t start, uint32_t end, float pen,
+                          float baseline, muiDrawSink* sink)
 {
-    const muiShapedGlyph* shaped = (const muiShapedGlyph*)paragraph->block->glyphs.data;
-    shaped += item->firstGlyph;
+    const muiShapedGlyph* shaped = source->glyphs + item->firstGlyph;
     muiGlyph* glyphs = paragraph->service->glyphs.data;
     float scale = paragraph->scale.scale;
     // The glyphs of clusters from start up to end lie together: from the
@@ -216,11 +282,11 @@ static float PaintSegment(const Paragraph* paragraph, const muiTextItem* item, u
 
 // Draws one bidi run of a line: its items left to right, which for an
 // odd level is their logical order backwards.
-static float PaintRun(const Paragraph* paragraph, uint32_t start, uint32_t end, bool odd, float pen,
-                      float baseline, muiDrawSink* sink)
+static float PaintRun(const Paragraph* paragraph, const LineGlyphs* source, uint32_t start,
+                      uint32_t end, bool odd, float pen, float baseline, muiDrawSink* sink)
 {
-    const muiTextItem* items = paragraph->block->items.data;
-    uint32_t count = paragraph->block->itemCount;
+    const muiTextItem* items = source->items;
+    uint32_t count = source->itemCount;
     for (uint32_t k = 0; k < count; k++)
     {
         const muiTextItem* item = &items[odd ? count - 1 - k : k];
@@ -230,7 +296,7 @@ static float PaintRun(const Paragraph* paragraph, uint32_t start, uint32_t end, 
         }
         uint32_t from = item->start > start ? item->start : start;
         uint32_t to = item->end < end ? item->end : end;
-        pen = PaintSegment(paragraph, item, from, to, pen, baseline, sink);
+        pen = PaintSegment(paragraph, source, item, from, to, pen, baseline, sink);
     }
     return pen;
 }
@@ -239,6 +305,17 @@ static void PaintLine(const Paragraph* paragraph, const muiTextLine* line, float
                       float baseline, muiDrawSink* sink)
 {
     const muiTextBlock* block = paragraph->block;
+    LineGlyphs source;
+    if (!GlyphsOf(paragraph, line, &source))
+    {
+        return;
+    }
+    if (!muiReserve(&paragraph->service->allocator, &paragraph->service->glyphs,
+                    ((size_t)source.glyphCount + 1u) * sizeof(muiGlyph)))
+    {
+        paragraph->service->failures++;
+        return;
+    }
     uint32_t length = line->end - line->start;
     size_t found = 0;
     const char* text = block->text.data;
@@ -250,12 +327,12 @@ static void PaintLine(const Paragraph* paragraph, const muiTextLine* line, float
         return;
     }
     const muniBidiRun* runs = paragraph->service->runs.data;
-    float pen = Align(paragraph, line->width, width);
+    float pen = Align(paragraph, source.width, width);
     for (size_t i = 0; i < found; i++)
     {
         uint32_t start = line->start + (uint32_t)runs[i].start;
-        pen = PaintRun(paragraph, start, start + (uint32_t)runs[i].length, (runs[i].level & 1) != 0,
-                       pen, baseline, sink);
+        pen = PaintRun(paragraph, &source, start, start + (uint32_t)runs[i].length,
+                       (runs[i].level & 1) != 0, pen, baseline, sink);
     }
 }
 
@@ -273,9 +350,7 @@ void muiPaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width, f
     muiTextService* service = paragraph.service;
     const muiTextBlock* block = paragraph.block;
     if (!muiReserve(&service->allocator, &service->runs,
-                    ((size_t)block->length + 1u) * sizeof(muniBidiRun)) ||
-        !muiReserve(&service->allocator, &service->glyphs,
-                    ((size_t)block->glyphCount + 1u) * sizeof(muiGlyph)))
+                    ((size_t)block->length + 1u) * sizeof(muniBidiRun)))
     {
         service->failures++;
         return;

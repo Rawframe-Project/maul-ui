@@ -41,7 +41,11 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
 - **Lines** break greedily at opportunities from the shaped advances;
   the text's own line breaks end lines, white space is kept as written,
   spaces ending a wrapped line hang, and a word wider than the line
-  overflows. Max-content keeps only the text's line breaks;
+  overflows. A line that breaks where HarfBuzz marks shaping unsafe to
+  break, or inside a cluster such as a ligature, is shaped alone with
+  its trailing white space, as Blink reshapes line edges, and its
+  glyphs and width come from that; the break itself is chosen from the
+  block's shaping. Max-content keeps only the text's line breaks;
   min-content breaks at every opportunity. A text ending in a line
   break has an empty last line. Letter spacing follows each cluster.
   The line height is the style's, or the font's ascent, descent and
