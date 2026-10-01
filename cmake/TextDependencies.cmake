@@ -95,7 +95,13 @@ else()
     else()
         target_compile_options(maul_ui_harfbuzz PRIVATE -fno-exceptions -fno-rtti -fno-threadsafe-statics)
     endif()
-    add_library(harfbuzz::harfbuzz ALIAS maul_ui_harfbuzz)
+    # What Maul Unicode's HarfBuzz functions compile against: the
+    # headers alone. Linking the C++ library would make that C library
+    # link as C++, and Visual Studio projects then drop its C standard;
+    # the objects go into maul-ui (cmake/Text.cmake).
+    add_library(maul_ui_harfbuzz_headers INTERFACE)
+    target_include_directories(maul_ui_harfbuzz_headers SYSTEM INTERFACE ${hb}/src)
+    add_library(harfbuzz::harfbuzz ALIAS maul_ui_harfbuzz_headers)
     # Built only as objects for maul-ui (cmake/Text.cmake).
     set_target_properties(maul_ui_freetype maul_ui_harfbuzz PROPERTIES EXCLUDE_FROM_ALL ON)
 
