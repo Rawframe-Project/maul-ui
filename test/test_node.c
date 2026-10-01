@@ -179,6 +179,8 @@ static void TestReusedSlotGetsANewGeneration(void)
     CHECK(again.generation != second.generation, "new generation");
     CHECK(!muiNode_IsValid(context, second), "old id stays stale");
     CHECK(muiNode_GetHostKey(context, again) == 3, "new key");
+    muiNodeId next = MakeNode(context, 4);
+    CHECK(next.index1 == first.index1, "then the slot freed before it");
     muiDestroyContext(context);
 }
 

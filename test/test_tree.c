@@ -112,10 +112,12 @@ static void TestInsertCarriesTheChildsDebtUp(void)
         }
     }
     muiTreeSweep(&fixture.tree, branch[0], mui_stageAll);
-    muiTreeMark(&fixture.tree, branch[2], mui_stagePaint);
+    // Style, because the insertion's own marks request layout and paint
+    // on the parent and would carry those up anyway.
+    muiTreeMark(&fixture.tree, branch[2], mui_stageStyle);
     muiTreeInsert(&fixture.tree, chain[2], branch[0], 0);
-    CHECK((muiTreeAt(&fixture.tree, chain[0])->dirty.subtree & mui_stagePaint) != 0,
-          "root owes the branch's paint");
+    CHECK((muiTreeAt(&fixture.tree, chain[0])->dirty.subtree & mui_stageStyle) != 0,
+          "root owes the branch's style");
     CHECK(muiTreeAt(&fixture.tree, branch[0])->dirty.request == mui_stageStyle, "child restyled");
     CHECK(muiTreeAt(&fixture.tree, chain[2])->dirty.request == (mui_stageLayout | mui_stagePaint),
           "parent relaid and repainted");
