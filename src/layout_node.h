@@ -66,6 +66,9 @@ typedef struct muiFlexItemState
     // maximum, 0 neither.
     int8_t violation;
     bool frozen;
+    // The automatic minimum is not computed yet: it only matters when the
+    // line shrinks, as a content-based base is never below it.
+    bool minimumPending;
 } muiFlexItemState;
 
 typedef struct muiLayoutNode

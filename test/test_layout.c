@@ -230,6 +230,30 @@ static void TestNewSpaceRelaysAnUnchangedTree(void)
     muiDestroyContext(context);
 }
 
+static void TestScaledLimitFollowsTheParent(void)
+{
+    muiContext* context = MakeContext();
+    Host host = {.context = context, .content = {300.0f, 10.0f}};
+    muiLayoutStyle full = muiDefaultLayoutStyle();
+    full.sizing.width = (muiDimension){1.0f, 0.0f, mui_dimensionValue};
+    muiNodeId root = MakeNode(context, &full);
+    muiLayoutStyle half = muiDefaultLayoutStyle();
+    half.sizing.maxWidth = (muiDimension){0.5f, 0.0f, mui_dimensionValue};
+    muiNodeId box = MakeNode(context, &half);
+    muiLayoutStyle leaf = muiDefaultLayoutStyle();
+    leaf.content = mui_contentHost;
+    muiNodeId text = MakeNode(context, &leaf);
+    CHECK(muiNode_InsertChild(context, root, box, s_null) == mui_success, "box");
+    CHECK(muiNode_InsertChild(context, box, text, s_null) == mui_success, "text");
+    muiLayoutInput input = Input(&host);
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_GetRect(context, box).width == 200.0f, "half of 400");
+    input.availableWidth = 800.0f;
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "wider");
+    CHECK(muiNode_GetRect(context, box).width == 300.0f, "its content, under half of 800");
+    muiDestroyContext(context);
+}
+
 static void TestRectOfUnknownNodeIsZero(void)
 {
     muiContext* context = MakeContext();
@@ -249,6 +273,7 @@ int main(void)
     TestUnchangedTreeIsNotMeasuredAgain();
     TestStyleChangeRelaysTheParent();
     TestNewSpaceRelaysAnUnchangedTree();
+    TestScaledLimitFollowsTheParent();
     TestRectOfUnknownNodeIsZero();
     return s_failures == 0 ? 0 : 1;
 }

@@ -22,3 +22,5 @@ format.
   host content), `muiComputeLayout` with a host measure function, and
   `muiNode_GetRect`. The solver follows CSS Flexbox for a single line
   and is checked against Chrome by a fixture corpus (record mui-0003).
+- A layout benchmark (`bench/`): cold, static, one-change and resize
+  frames over a 40,001-node list and a 9,841-node nested tree.

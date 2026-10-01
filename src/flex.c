@@ -98,25 +98,60 @@ static AxisSizing ResolveAxis(const muiSizing* sizing, bool horizontal, float ex
     return axis;
 }
 
-static bool SameAxis(muiMeasureAxis a, muiMeasureAxis b)
+static bool IsSized(muiMeasureMode mode)
 {
-    bool sized = a.mode == mui_measureExact || a.mode == mui_measureAtMost;
-    return a.mode == b.mode && (!sized || a.size == b.size);
+    return mode == mui_measureExact || mode == mui_measureAtMost;
 }
 
-static bool SameInput(const muiSizingInput* a, const muiSizingInput* b)
+// Whether a size computed under an old constraint answers a new one, by
+// the rules Yoga's cache uses: the same constraint; an exact size equal to
+// what an unshrunk sizing gave; a max-content size that fits the new
+// space; or a smaller space the old size still fits.
+static bool AxisAnswers(muiMeasureAxis next, muiMeasureAxis old, float result)
 {
-    return SameAxis(a->width, b->width) && SameAxis(a->height, b->height) &&
-           a->parentWidth == b->parentWidth && a->parentHeight == b->parentHeight;
+    if (next.mode == old.mode && (!IsSized(next.mode) || next.size == old.size))
+    {
+        return true;
+    }
+    if (next.mode == mui_measureExact)
+    {
+        return old.mode != mui_measureMinContent && next.size == result;
+    }
+    if (next.mode == mui_measureAtMost)
+    {
+        bool fitsMaxContent = old.mode == mui_measureMaxContent;
+        bool stricter = old.mode == mui_measureAtMost && next.size < old.size;
+        return (fitsMaxContent || stricter) && result <= next.size;
+    }
+    return false;
 }
 
-static const muiCacheEntry* FindCached(const muiLayoutCache* cache, const muiSizingInput* input)
+static bool IsScaled(muiDimension dimension)
+{
+    return dimension.kind == mui_dimensionValue && dimension.scale != 0.0f;
+}
+
+// Whether a node's own sizing reads its parent's extents: only its scaled
+// limits do, as the parent resolves the node's size itself.
+static bool ReadsParentExtent(const muiSizing* sizing)
+{
+    return IsScaled(sizing->minWidth) || IsScaled(sizing->maxWidth) ||
+           IsScaled(sizing->minHeight) || IsScaled(sizing->maxHeight);
+}
+
+static const muiCacheEntry* FindCached(const muiLayoutCache* cache, const muiSizingInput* input,
+                                       bool keyExtents)
 {
     for (int i = 0; i < MUI_CACHE_ENTRIES; i++)
     {
-        if (cache->entries[i].valid && SameInput(&cache->entries[i].input, input))
+        const muiCacheEntry* entry = &cache->entries[i];
+        bool sameExtents = !keyExtents || (entry->input.parentWidth == input->parentWidth &&
+                                           entry->input.parentHeight == input->parentHeight);
+        if (entry->valid && sameExtents &&
+            AxisAnswers(input->width, entry->input.width, entry->size.width) &&
+            AxisAnswers(input->height, entry->input.height, entry->size.height))
         {
-            return &cache->entries[i];
+            return entry;
         }
     }
     return nullptr;
@@ -313,6 +348,31 @@ static void PrepareItem(const Frame* frame, uint32_t child)
     item->hypothetical = ClampSize(item->base, item->minMain, item->maxMain, boxMain);
 }
 
+// Computes the automatic minimums PrepareItem left pending, for a line
+// that shrinks.
+static void ResolvePendingMinimums(const Frame* frame)
+{
+    const muiTree* tree = frame->solver->tree;
+    for (uint32_t c = FIRST_CHILD(tree, frame->node); c != 0; c = NEXT_SIBLING(tree, c))
+    {
+        muiLayoutNode* layout = &frame->solver->nodes[c - 1];
+        muiFlexItemState* item = &layout->item;
+        if (!item->minimumPending)
+        {
+            continue;
+        }
+        const muiLayoutStyle* style = &layout->style;
+        AxisSizing main = ResolveAxis(&style->sizing, frame->row, frame->extentMain);
+        AxisSizing cross = ResolveAxis(&style->sizing, !frame->row, frame->extentCross);
+        muiMeasureAxis crossConstraint = CrossConstraint(frame, style, &cross, true);
+        float minimum = AutomaticMinimum(frame, c, &main, crossConstraint);
+        item->minMain = fmaxf(minimum, BoxSum(style, frame->row));
+        item->minimumPending = false;
+        // A content-based base is never below the minimum, so the
+        // hypothetical size stands.
+    }
+}
+
 static Frame Setup(const muiSolver* solver, uint32_t node, const muiSizingInput* input)
 {
     const muiLayoutStyle* style = &solver->nodes[node - 1].style;
@@ -367,6 +427,10 @@ static void SizeMain(Frame* frame)
         float outer = ClampSize(sum + gaps + frame->boxMain, frame->mainLimits.minimum,
                                 frame->mainLimits.maximum, frame->boxMain);
         frame->innerMain = outer - frame->boxMain;
+    }
+    if (sum + gaps > frame->innerMain)
+    {
+        ResolvePendingMinimums(frame);
     }
     muiResolveFlexibleLengths(tree, frame->solver->nodes, frame->node, frame->innerMain, gaps);
 }
@@ -524,7 +588,13 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
     }
     else
     {
-        const muiCacheEntry* hit = FindCached(cache, input);
+        // The parent gave both sizes: nothing below can change them.
+        if (input->width.mode == mui_measureExact && input->height.mode == mui_measureExact)
+        {
+            return (muiSize){input->width.size, input->height.size};
+        }
+        const muiCacheEntry* hit =
+            FindCached(cache, input, ReadsParentExtent(&solver->nodes[node - 1].style.sizing));
         if (hit != nullptr)
         {
             return hit->size;
