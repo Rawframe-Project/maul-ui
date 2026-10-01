@@ -1,0 +1,577 @@
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Sirac Ozmen
+//
+// The draw-command list: golden lists of scenes in a text form, bytes
+// equal across builds, snapping, colors, clips, opacity and limits
+// (record mui-0005). Run with MAUL_UI_UPDATE_GOLDEN=1 to rewrite
+// test/draw_golden.inc from the current output.
+
+#include "test_harness.h"
+
+#include "maul-ui/context.h"
+#include "maul-ui/draw.h"
+#include "maul-ui/layout.h"
+#include "maul-ui/node.h"
+#include "maul-ui/style.h"
+#include "maul-ui/visual.h"
+
+#include <math.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+
+typedef struct Golden
+{
+    const char* name;
+    const char* text;
+} Golden;
+
+static const Golden s_golden[] = {
+#include "draw_golden.inc"
+    {NULL, NULL},
+};
+
+static const muiNodeId s_nullNode = {0, 0};
+
+#define WIDTH           MUI_PROPERTY_BIT(mui_propertyWidth)
+#define HEIGHT          MUI_PROPERTY_BIT(mui_propertyHeight)
+#define TEXT_LIMIT      16384
+#define MAX_GOLDEN      16
+#define UPDATE_VARIABLE "MAUL_UI_UPDATE_GOLDEN"
+
+static const muiColor s_red = {1.0f, 0.0f, 0.0f, 1.0f};
+static const muiColor s_blue = {0.0f, 0.0f, 1.0f, 1.0f};
+static const muiColor s_gray = {0.5f, 0.5f, 0.5f, 1.0f};
+
+// The text of a list, built up line by line.
+typedef struct Text
+{
+    char buffer[TEXT_LIMIT];
+    size_t length;
+} Text;
+
+static void Append(Text* text, const char* format, ...)
+{
+    va_list arguments;
+    va_start(arguments, format);
+    int written =
+        vsnprintf(text->buffer + text->length, TEXT_LIMIT - text->length, format, arguments);
+    va_end(arguments);
+    CHECK(written >= 0 && (size_t)written < TEXT_LIMIT - text->length, "text fits");
+    if (written > 0 && (size_t)written < TEXT_LIMIT - text->length)
+    {
+        text->length += (size_t)written;
+    }
+}
+
+static void AppendRect(Text* text, const char* name, muiRect r)
+{
+    Append(text, " %s=%.9g,%.9g,%.9g,%.9g", name, (double)r.x, (double)r.y, (double)r.width,
+           (double)r.height);
+}
+
+static void AppendColor(Text* text, const char* name, muiLinearColor c)
+{
+    Append(text, " %s=%.9g,%.9g,%.9g,%.9g", name, (double)c.r, (double)c.g, (double)c.b,
+           (double)c.a);
+}
+
+static void AppendCorners(Text* text, muiCorners c)
+{
+    Append(text, " radii=%.9g,%.9g,%.9g,%.9g", (double)c.topLeft, (double)c.topRight,
+           (double)c.bottomRight, (double)c.bottomLeft);
+}
+
+static void AppendSides(Text* text, const char* name, muiSides s)
+{
+    Append(text, " %s=%.9g,%.9g,%.9g,%.9g", name, (double)s.top, (double)s.right, (double)s.bottom,
+           (double)s.left);
+}
+
+static void AppendCommand(Text* text, const muiDrawCommand* command)
+{
+    switch (command->kind)
+    {
+    case mui_drawBox:
+        Append(text, "box clip=%u", command->clip);
+        AppendRect(text, "rect", command->box.rect);
+        AppendCorners(text, command->box.radii);
+        AppendColor(text, "fill", command->box.fill);
+        Append(text, " gradient=%u", command->box.gradient);
+        AppendSides(text, "borders", command->box.borderWidths);
+        for (int i = 0; i < 4; i++)
+        {
+            AppendColor(text, "border", command->box.borderColors[i]);
+        }
+        break;
+    case mui_drawShadow:
+        Append(text, "shadow clip=%u inset=%u", command->clip, command->shadow.inset);
+        AppendRect(text, "rect", command->shadow.rect);
+        AppendCorners(text, command->shadow.radii);
+        AppendColor(text, "color", command->shadow.color);
+        Append(text, " offset=%.9g,%.9g blur=%.9g spread=%.9g", (double)command->shadow.offsetX,
+               (double)command->shadow.offsetY, (double)command->shadow.blur,
+               (double)command->shadow.spread);
+        break;
+    default:
+        Append(text, "image clip=%u key=%llu", command->clip,
+               (unsigned long long)command->image.image);
+        AppendRect(text, "rect", command->image.rect);
+        AppendRect(text, "uv", command->image.uv);
+        AppendSides(text, "slice", command->image.slice);
+        AppendColor(text, "tint", command->image.tint);
+        break;
+    }
+    Append(text, " transform=%u\n", command->transform);
+}
+
+static void Describe(const muiDrawList* list, Text* text)
+{
+    text->length = 0;
+    text->buffer[0] = '\0';
+    Append(text, "header surface=%llu size=%.9g,%.9g scale=%.9g\n",
+           (unsigned long long)list->header.surface, (double)list->header.width,
+           (double)list->header.height, (double)list->header.scale);
+    for (uint32_t i = 1; i < list->clipCount; i++)
+    {
+        const muiDrawClip* clip = &list->clips[i];
+        Append(text, "clip %u parent=%u invert=%u", i, clip->parent, clip->invert);
+        AppendRect(text, "rect", clip->rect);
+        AppendCorners(text, clip->radii);
+        Append(text, "\n");
+    }
+    for (uint32_t i = 1; i < list->gradientCount; i++)
+    {
+        const muiDrawGradient* gradient = &list->gradients[i];
+        Append(text, "gradient %u kind=%u interpolation=%u angle=%.9g", i, gradient->kind,
+               gradient->interpolation, (double)gradient->angle);
+        for (uint32_t s = 0; s < gradient->stopCount; s++)
+        {
+            Append(text, " at=%.9g", (double)gradient->positions[s]);
+            AppendColor(text, "color", gradient->colors[s]);
+        }
+        Append(text, "\n");
+    }
+    for (uint32_t i = 0; i < list->commandCount; i++)
+    {
+        AppendCommand(text, &list->commands[i]);
+    }
+}
+
+// Golden texts of this run, for rewriting the file.
+static Golden s_seen[MAX_GOLDEN];
+static char s_seenText[MAX_GOLDEN][TEXT_LIMIT];
+static int s_seenCount = 0;
+
+static void CheckGolden(const char* name, const muiDrawList* list)
+{
+    Text text;
+    Describe(list, &text);
+    if (s_seenCount < MAX_GOLDEN)
+    {
+        memcpy(s_seenText[s_seenCount], text.buffer, text.length + 1);
+        s_seen[s_seenCount] = (Golden){name, s_seenText[s_seenCount]};
+        s_seenCount++;
+    }
+    for (const Golden* golden = s_golden; golden->name != NULL; golden++)
+    {
+        if (strcmp(golden->name, name) == 0)
+        {
+            bool same = strcmp(golden->text, text.buffer) == 0;
+            if (!same)
+            {
+                printf("--- golden %s\n%s+++ now\n%s", name, golden->text, text.buffer);
+            }
+            CHECK(same || getenv(UPDATE_VARIABLE) != NULL, "the golden list");
+            return;
+        }
+    }
+    CHECK(getenv(UPDATE_VARIABLE) != NULL, "a golden list for every scene");
+}
+
+// Rewrites test/draw_golden.inc beside this file.
+static void WriteGolden(void)
+{
+    char path[1024];
+    const char* file = __FILE__;
+    const char* slash = strrchr(file, '/');
+    size_t directory = slash != NULL ? (size_t)(slash - file + 1) : 0;
+    CHECK(directory + 32 < sizeof path, "path fits");
+    memcpy(path, file, directory);
+    strcpy(path + directory, "draw_golden.inc");
+    FILE* out = fopen(path, "w");
+    CHECK(out != NULL, "open the golden file");
+    if (out == NULL)
+    {
+        return;
+    }
+    fprintf(out,
+            "// SPDX-License-Identifier: MIT\n// Copyright (c) 2026 Sirac Ozmen\n//\n"
+            "// Golden draw lists, written by test_draw with %s=1.\n\n",
+            UPDATE_VARIABLE);
+    for (int i = 0; i < s_seenCount; i++)
+    {
+        fprintf(out, "{\"%s\",\n", s_seen[i].name);
+        for (const char* line = s_seen[i].text; *line != '\0';)
+        {
+            const char* end = strchr(line, '\n');
+            size_t length = end != NULL ? (size_t)(end - line) : strlen(line);
+            fprintf(out, " \"%.*s\\n\"\n", (int)length, line);
+            line += length + (end != NULL ? 1 : 0);
+        }
+        fprintf(out, "},\n");
+    }
+    fclose(out);
+}
+
+static muiContext* MakeContextWith(muiLimits limits)
+{
+    muiContextDef def = muiDefaultContextDef();
+    def.limits = limits;
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "create context");
+    return context;
+}
+
+static muiContext* MakeContext(void)
+{
+    return MakeContextWith(muiDefaultContextDef().limits);
+}
+
+static muiDimension Length(float value)
+{
+    return (muiDimension){0.0f, value, mui_dimensionValue};
+}
+
+// A node of a size, a child of parent unless that is null, laid out in a
+// row with its padding.
+static muiNodeId Add(muiContext* context, muiNodeId parent, float width, float height,
+                     muiEdges padding)
+{
+    muiNodeDef def = muiDefaultNodeDef();
+    muiNodeId node = s_nullNode;
+    CHECK(muiCreateNode(context, &def, &node) == mui_success, "create node");
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.sizing.width = Length(width);
+    layout.sizing.height = Length(height);
+    layout.padding = padding;
+    CHECK(muiNode_SetLayoutValues(context, node, &layout,
+                                  WIDTH | HEIGHT | MUI_PROPERTY_BIT(mui_propertyPaddingStart) |
+                                      MUI_PROPERTY_BIT(mui_propertyPaddingTop)) == mui_success,
+          "layout");
+    if (parent.index1 != 0)
+    {
+        CHECK(muiNode_InsertChild(context, parent, node, s_nullNode) == mui_success, "insert");
+    }
+    return node;
+}
+
+static void SetVisual(muiContext* context, muiNodeId node, const muiVisualStyle* visual,
+                      muiPropertyMask mask)
+{
+    CHECK(muiNode_SetVisualValues(context, node, visual, mask) == mui_success, "visual");
+}
+
+static void SetBorder(muiContext* context, muiNodeId node, muiEdges border)
+{
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.border = border;
+    CHECK(muiNode_SetLayoutValues(context, node, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyBorderStart) |
+                                      MUI_PROPERTY_BIT(mui_propertyBorderEnd) |
+                                      MUI_PROPERTY_BIT(mui_propertyBorderTop) |
+                                      MUI_PROPERTY_BIT(mui_propertyBorderBottom)) == mui_success,
+          "border");
+}
+
+static muiDrawList Build(muiContext* context, muiNodeId root, float scale)
+{
+    const muiLayoutInput layout = {1000.0f, 1000.0f, NULL, NULL, 0};
+    CHECK(muiComputeLayout(context, root, &layout) == mui_success, "layout");
+    const muiDrawInput input = {7, scale};
+    CHECK(muiBuildDrawList(context, root, &input) == mui_success, "build");
+    muiDrawList list;
+    CHECK(muiGetDrawList(context, &list) == mui_success, "get");
+    return list;
+}
+
+// Builds twice and compares the bytes of every table.
+static void CheckBytesRepeat(muiContext* context, muiNodeId root, float scale)
+{
+    muiDrawList first = Build(context, root, scale);
+    size_t size = first.commandCount * sizeof(muiDrawCommand);
+    unsigned char* copy = malloc(size + 1);
+    CHECK(copy != NULL, "copy");
+    if (copy == NULL)
+    {
+        return;
+    }
+    memcpy(copy, first.commands, size);
+    muiDrawList second = Build(context, root, scale);
+    CHECK(second.commandCount == first.commandCount && memcmp(copy, second.commands, size) == 0 &&
+              second.header.generation == first.header.generation + 1,
+          "the same bytes, a new generation");
+    free(copy);
+}
+
+static muiVisualStyle Boxed(void)
+{
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.background = s_red;
+    const muiDimension radius = {0.0f, 8.0f, mui_dimensionValue};
+    visual.radius = (muiCornerRadii){radius, radius, radius, radius};
+    visual.borderColor = (muiEdgeColors){s_blue, s_gray, s_blue, s_gray};
+    return visual;
+}
+
+#define BOXED                                                                                      \
+    (MUI_PROPERTY_BIT(mui_propertyBackground) | MUI_PROPERTY_BIT(mui_propertyRadiusTopStart) |     \
+     MUI_PROPERTY_BIT(mui_propertyRadiusTopEnd) | MUI_PROPERTY_BIT(mui_propertyRadiusBottomEnd) |  \
+     MUI_PROPERTY_BIT(mui_propertyRadiusBottomStart) |                                             \
+     MUI_PROPERTY_BIT(mui_propertyBorderColorStart) |                                              \
+     MUI_PROPERTY_BIT(mui_propertyBorderColorEnd) | MUI_PROPERTY_BIT(mui_propertyBorderColorTop) | \
+     MUI_PROPERTY_BIT(mui_propertyBorderColorBottom))
+
+static void TestBoxes(void)
+{
+    muiContext* context = MakeContext();
+    const muiEdges none = {0};
+    muiNodeId root = Add(context, s_nullNode, 200.0f, 100.0f, (muiEdges){10.0f, 0.0f, 10.0f, 0.0f});
+    muiVisualStyle visual = Boxed();
+    SetVisual(context, root, &visual, BOXED);
+    SetBorder(context, root, (muiEdges){2.0f, 4.0f, 1.0f, 3.0f});
+    // A child with no visual values draws nothing.
+    (void)Add(context, root, 50.0f, 50.0f, none);
+    muiNodeId pill = Add(context, root, 60.0f, 20.0f, none);
+    visual.radius.topStart = (muiDimension){1.0f, 0.0f, mui_dimensionValue};
+    visual.radius.bottomEnd = (muiDimension){0.25f, 1.0f, mui_dimensionValue};
+    SetVisual(context, pill, &visual, BOXED);
+    muiDrawList list = Build(context, root, 1.0f);
+    CHECK(list.commandCount == 2 && list.commands[0].kind == mui_drawBox, "two boxes");
+    CHECK(list.commands[1].box.radii.topLeft == 10.0f &&
+              list.commands[1].box.radii.bottomRight == 6.0f,
+          "a radius held to half the shorter side, a scaled one of it");
+    CHECK(list.header.surface == 7 && list.header.width == 200.0f && list.header.scale == 1.0f,
+          "the header");
+    CheckGolden("boxes", &list);
+    CheckBytesRepeat(context, root, 1.0f);
+    muiDestroyContext(context);
+}
+
+static void TestSnapping(void)
+{
+    muiContext* context = MakeContext();
+    const muiEdges none = {0};
+    muiNodeId root = Add(context, s_nullNode, 100.0f, 40.0f, (muiEdges){10.3f, 0.0f, 0.2f, 0.0f});
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.background = s_gray;
+    muiNodeId a = Add(context, root, 20.4f, 10.0f, none);
+    muiNodeId b = Add(context, root, 0.1f, 10.0f, none);
+    muiNodeId c = Add(context, root, 7.25f, 10.0f, none);
+    SetVisual(context, a, &visual, MUI_PROPERTY_BIT(mui_propertyBackground));
+    SetVisual(context, b, &visual, MUI_PROPERTY_BIT(mui_propertyBackground));
+    SetVisual(context, c, &visual, MUI_PROPERTY_BIT(mui_propertyBackground));
+    SetBorder(context, c, (muiEdges){0.3f, 2.7f, 1.0f, 0.0f});
+    muiDrawList list = Build(context, root, 1.0f);
+    CHECK(list.commandCount == 3, "three boxes");
+    const muiDrawBox* first = &list.commands[0].box;
+    const muiDrawBox* second = &list.commands[1].box;
+    CHECK(first->rect.x == 10.0f && first->rect.width == 21.0f && first->rect.y == 0.0f,
+          "10.3 to 30.7 snaps to 10 to 31");
+    CHECK(second->rect.x == 31.0f && second->rect.width == 1.0f,
+          "adjacent edges meet, and a sliver keeps a pixel");
+    CHECK(list.commands[2].box.borderWidths.left == 1.0f &&
+              list.commands[2].box.borderWidths.right == 2.0f &&
+              list.commands[2].box.borderWidths.bottom == 0.0f,
+          "borders in whole pixels, at least one");
+    CheckGolden("snap-1x", &list);
+    list = Build(context, root, 2.0f);
+    CHECK(list.commands[0].box.rect.x == 10.5f && list.commands[2].box.borderWidths.left == 0.5f,
+          "at twice the density, half units");
+    CheckGolden("snap-2x", &list);
+    muiDestroyContext(context);
+}
+
+static void TestClipsShadowsImagesGradients(void)
+{
+    muiContext* context = MakeContext();
+    const muiEdges none = {0};
+    muiNodeId root = Add(context, s_nullNode, 300.0f, 200.0f, (muiEdges){20.0f, 0.0f, 20.0f, 0.0f});
+    muiVisualStyle visual = Boxed();
+    visual.clip = true;
+    visual.outerShadow = (muiShadow){{0.0f, 0.0f, 0.0f, 0.5f}, 0.0f, 4.0f, 8.0f, 1.0f};
+    visual.innerShadow = (muiShadow){{0.0f, 0.0f, 0.0f, 0.25f}, 1.0f, 1.0f, 2.0f, 0.0f};
+    SetVisual(context, root, &visual,
+              BOXED | MUI_PROPERTY_BIT(mui_propertyClip) |
+                  MUI_PROPERTY_BIT(mui_propertyOuterShadow) |
+                  MUI_PROPERTY_BIT(mui_propertyInnerShadow));
+    SetBorder(context, root, (muiEdges){2.0f, 2.0f, 2.0f, 2.0f});
+    muiNodeId panel = Add(context, root, 100.0f, 80.0f, none);
+    muiVisualStyle inner = muiDefaultVisualStyle();
+    inner.clip = true;
+    inner.gradient = (muiGradient){mui_gradientLinear, 2, 90.0f, {{s_red, 0.0f}, {s_blue, 1.0f}}};
+    inner.image = 42;
+    inner.imageSlice = (muiEdges){4.0f, 6.0f, 2.0f, 3.0f};
+    inner.imageTint = s_gray;
+    SetVisual(context, panel, &inner,
+              MUI_PROPERTY_BIT(mui_propertyClip) | MUI_PROPERTY_BIT(mui_propertyGradient) |
+                  MUI_PROPERTY_BIT(mui_propertyImage) | MUI_PROPERTY_BIT(mui_propertyImageSlice) |
+                  MUI_PROPERTY_BIT(mui_propertyImageTint));
+    muiNodeId leaf = Add(context, panel, 30.0f, 30.0f, none);
+    muiVisualStyle plain = muiDefaultVisualStyle();
+    plain.background = s_gray;
+    SetVisual(context, leaf, &plain, MUI_PROPERTY_BIT(mui_propertyBackground));
+    muiDrawList list = Build(context, root, 1.0f);
+    CHECK(list.clipCount == 3 && list.clips[2].parent == 1, "a clip inside a clip");
+    CHECK(list.commandCount == 6 && list.commands[0].kind == mui_drawShadow &&
+              list.commands[1].kind == mui_drawBox && list.commands[2].kind == mui_drawShadow &&
+              list.commands[3].kind == mui_drawBox && list.commands[4].kind == mui_drawImage &&
+              list.commands[5].kind == mui_drawBox,
+          "paint order");
+    CHECK(list.commands[0].clip == 0 && list.commands[3].clip == 1 && list.commands[5].clip == 2,
+          "each command in the clip it is painted in");
+    CHECK(list.commands[2].shadow.inset == 1 && list.commands[2].shadow.rect.x == 2.0f &&
+              list.commands[2].shadow.radii.topLeft == 6.0f,
+          "the inner shadow in the padding box");
+    CHECK(list.gradientCount == 2 && list.commands[3].box.gradient == 1 &&
+              list.gradients[1].interpolation == mui_interpolateOklab,
+          "a gradient");
+    CheckGolden("clips-shadows-images-gradients", &list);
+    CheckBytesRepeat(context, root, 1.0f);
+    muiDestroyContext(context);
+}
+
+static void TestColorsAndOpacity(void)
+{
+    muiContext* context = MakeContext();
+    const muiEdges none = {0};
+    muiNodeId root = Add(context, s_nullNode, 100.0f, 100.0f, none);
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.background = (muiColor){0.5f, 0.5f, 0.5f, 0.5f};
+    visual.opacity = 0.5f;
+    SetVisual(context, root, &visual,
+              MUI_PROPERTY_BIT(mui_propertyBackground) | MUI_PROPERTY_BIT(mui_propertyOpacity));
+    muiNodeId child = Add(context, root, 10.0f, 10.0f, none);
+    visual.background = s_red;
+    SetVisual(context, child, &visual, MUI_PROPERTY_BIT(mui_propertyBackground));
+    muiNodeId hidden = Add(context, root, 10.0f, 10.0f, none);
+    visual.opacity = 0.0f;
+    SetVisual(context, hidden, &visual,
+              MUI_PROPERTY_BIT(mui_propertyBackground) | MUI_PROPERTY_BIT(mui_propertyOpacity));
+    (void)Add(context, hidden, 5.0f, 5.0f, none);
+    muiDrawList list = Build(context, root, 1.0f);
+    CHECK(list.commandCount == 2, "a node of no opacity draws nothing below it");
+    const muiLinearColor fill = list.commands[0].box.fill;
+    // sRGB 0.5 is 0.214041 in linear light; alpha 0.5 times opacity 0.5.
+    CHECK(fill.a == 0.25f && fabsf(fill.r - 0.2140411f * 0.25f) < 1e-6f && fill.r == fill.b,
+          "linear light, premultiplied, times opacity");
+    CHECK(list.commands[1].box.fill.a == 0.5f && list.commands[1].box.fill.r == 0.5f,
+          "a child of its own opacity 1 takes its parent's");
+    CheckGolden("opacity", &list);
+    muiDestroyContext(context);
+}
+
+static void TestRightToLeft(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId root = Add(context, s_nullNode, 100.0f, 50.0f, (muiEdges){0});
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.textDirection = mui_textRightToLeft;
+    CHECK(muiNode_SetLayoutValues(context, root, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
+          "rtl");
+    muiVisualStyle visual = Boxed();
+    visual.radius.topStart = (muiDimension){0.0f, 12.0f, mui_dimensionValue};
+    visual.image = 9;
+    visual.imageSlice = (muiEdges){1.0f, 2.0f, 3.0f, 4.0f};
+    SetVisual(context, root, &visual,
+              BOXED | MUI_PROPERTY_BIT(mui_propertyImage) |
+                  MUI_PROPERTY_BIT(mui_propertyImageSlice));
+    SetBorder(context, root, (muiEdges){1.0f, 3.0f, 0.0f, 0.0f});
+    muiDrawList list = Build(context, root, 1.0f);
+    const muiDrawBox* box = &list.commands[0].box;
+    CHECK(box->radii.topRight == 12.0f && box->radii.topLeft == 8.0f, "start is right");
+    CHECK(box->borderWidths.right == 1.0f && box->borderWidths.left == 3.0f, "borders mirror");
+    CHECK(list.commands[1].image.slice.left == 1.0f, "an image does not mirror");
+    CheckGolden("right-to-left", &list);
+    muiDestroyContext(context);
+}
+
+static void TestArgumentsAndLimits(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId root = Add(context, s_nullNode, 10.0f, 10.0f, (muiEdges){0});
+    muiDrawList list;
+    CHECK(muiGetDrawList(context, &list) == mui_success && list.commandCount == 0 &&
+              list.clipCount == 1 && list.gradientCount == 1 && list.transformCount == 1 &&
+              list.transforms[0].a == 1.0f && list.transforms[0].d == 1.0f &&
+              list.header.generation == 0,
+          "empty before any build");
+    muiDrawInput input = {1, 1.0f};
+    CHECK(muiBuildDrawList(NULL, root, &input) == mui_errorInvalid &&
+              muiBuildDrawList(context, root, NULL) == mui_errorInvalid &&
+              muiBuildDrawList(context, s_nullNode, &input) == mui_errorInvalid &&
+              muiGetDrawList(NULL, &list) == mui_errorInvalid &&
+              muiGetDrawList(context, NULL) == mui_errorInvalid,
+          "null arguments");
+    input.scale = 0.0f;
+    CHECK(muiBuildDrawList(context, root, &input) == mui_errorInvalid, "scale 0");
+    input.scale = NAN;
+    CHECK(muiBuildDrawList(context, root, &input) == mui_errorInvalid, "scale NaN");
+    input.scale = INFINITY;
+    CHECK(muiBuildDrawList(context, root, &input) == mui_errorInvalid, "scale infinite");
+    muiNodeId gone = Add(context, s_nullNode, 1.0f, 1.0f, (muiEdges){0});
+    CHECK(muiDestroyNode(context, gone) == mui_success, "destroy");
+    input.scale = 1.0f;
+    CHECK(muiBuildDrawList(context, gone, &input) == mui_errorStale, "a gone root");
+    muiDestroyContext(context);
+
+    // Each table's limit fails the build whole, leaving the list empty.
+    const char* names[3] = {"commands", "clips", "gradients"};
+    for (int which = 0; which < 3; which++)
+    {
+        muiLimits limits = muiDefaultContextDef().limits;
+        limits.drawCommands = which == 0 ? 2 : 8;
+        limits.drawClips = which == 1 ? 2 : 8;
+        limits.drawGradients = which == 2 ? 2 : 8;
+        context = MakeContextWith(limits);
+        root = Add(context, s_nullNode, 100.0f, 100.0f, (muiEdges){0});
+        muiVisualStyle visual = muiDefaultVisualStyle();
+        visual.clip = true;
+        visual.gradient =
+            (muiGradient){mui_gradientRadial, 2, 0.0f, {{s_red, 0.0f}, {s_blue, 1.0f}}};
+        const muiPropertyMask mask =
+            MUI_PROPERTY_BIT(mui_propertyClip) | MUI_PROPERTY_BIT(mui_propertyGradient);
+        SetVisual(context, root, &visual, mask);
+        muiNodeId child = Add(context, root, 10.0f, 10.0f, (muiEdges){0});
+        SetVisual(context, child, &visual, mask);
+        (void)Build(context, root, 1.0f);
+        const muiLayoutInput layout = {100.0f, 100.0f, NULL, NULL, 0};
+        CHECK(muiComputeLayout(context, root, &layout) == mui_success, "layout");
+        // Two nodes' fit; a third's does not.
+        muiNodeId more = Add(context, child, 5.0f, 5.0f, (muiEdges){0});
+        SetVisual(context, more, &visual, mask);
+        CHECK(muiComputeLayout(context, root, &layout) == mui_success, "layout");
+        CHECK(muiBuildDrawList(context, root, &(muiDrawInput){1, 1.0f}) == mui_errorCapacity,
+              names[which]);
+        CHECK(muiGetDrawList(context, &list) == mui_success && list.commandCount == 0 &&
+                  list.clipCount == 1 && list.gradientCount == 1 && list.header.generation > 0,
+              "an empty list");
+        muiDestroyContext(context);
+    }
+}
+
+int main(void)
+{
+    TestBoxes();
+    TestSnapping();
+    TestClipsShadowsImagesGradients();
+    TestColorsAndOpacity();
+    TestRightToLeft();
+    TestArgumentsAndLimits();
+    if (getenv(UPDATE_VARIABLE) != NULL)
+    {
+        WriteGolden();
+    }
+    return s_failures == 0 ? 0 : 1;
+}

@@ -54,6 +54,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/motion_math.c
     src/node.c
     src/node_style.c
+    src/paint.c
     src/notify.c
     src/pool.c
     src/property.c
@@ -80,6 +81,7 @@ if(MAUL_UI_BUILD_TESTS)
     maul_add_test(base)
     maul_add_test(condition)
     maul_add_test(context)
+    maul_add_test(draw)
     maul_add_test(layout)
     maul_add_test(layout_fixtures)
     maul_add_test(motion WHITEBOX)

@@ -32,7 +32,10 @@ muiContextDef muiDefaultContextDef(void)
                    .tokens = 256,
                    .tokenNames = 1024,
                    .themes = 16,
-                   .themeOverrides = 512},
+                   .themeOverrides = 512,
+                   .drawCommands = 8192,
+                   .drawClips = 256,
+                   .drawGradients = 256},
     };
 }
 
@@ -43,7 +46,8 @@ static bool AreLimitsValid(const muiLimits* limits)
            limits->notifications <= MAX_SLOTS && limits->transitions <= MAX_SLOTS &&
            limits->animations <= MAX_SLOTS && limits->tokens <= MAX_SLOTS &&
            limits->tokenNames <= MAX_SLOTS && limits->themes <= MAX_SLOTS &&
-           limits->themeOverrides <= MAX_SLOTS;
+           limits->themeOverrides <= MAX_SLOTS && limits->drawCommands <= MAX_SLOTS &&
+           limits->drawClips < MAX_SLOTS && limits->drawGradients < MAX_SLOTS;
 }
 
 // Where each part of the context's block starts.
@@ -72,6 +76,10 @@ typedef struct Parts
     size_t themeTables;
     size_t overrideSlots;
     size_t overrides;
+    size_t paintStates;
+    size_t drawCommands;
+    size_t drawClips;
+    size_t drawGradients;
 } Parts;
 
 // A table per theme, an entry per token slot; a count past size_t marks
@@ -138,6 +146,15 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
             muiLayoutAdd(layout, limits->themeOverrides, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
         .overrides = muiLayoutAdd(layout, limits->themeOverrides, sizeof(muiThemeOverride),
                                   alignof(muiThemeOverride)),
+        .paintStates =
+            muiLayoutAdd(layout, limits->nodes, sizeof(muiPaintState), alignof(muiPaintState)),
+        .drawCommands = muiLayoutAdd(layout, limits->drawCommands, sizeof(muiDrawCommand),
+                                     alignof(muiDrawCommand)),
+        // Clips and gradients have the placeholder for none at 0.
+        .drawClips = muiLayoutAdd(layout, (size_t)limits->drawClips + 1, sizeof(muiDrawClip),
+                                  alignof(muiDrawClip)),
+        .drawGradients = muiLayoutAdd(layout, (size_t)limits->drawGradients + 1,
+                                      sizeof(muiDrawGradient), alignof(muiDrawGradient)),
     };
 }
 
@@ -200,6 +217,17 @@ muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut)
     muiPoolInit(&themes->overridePool, (muiPoolSlot*)(block + parts.overrideSlots),
                 def->limits.themeOverrides);
     themes->overrides = (muiThemeOverride*)(block + parts.overrides);
+    muiDrawStore* draw = &context->draw;
+    draw->states = (muiPaintState*)(block + parts.paintStates);
+    draw->commands = (muiDrawCommand*)(block + parts.drawCommands);
+    draw->commandCapacity = def->limits.drawCommands;
+    draw->clips = (muiDrawClip*)(block + parts.drawClips);
+    draw->clipCapacity = def->limits.drawClips + 1;
+    draw->clipCount = 1;
+    draw->gradients = (muiDrawGradient*)(block + parts.drawGradients);
+    draw->gradientCapacity = def->limits.drawGradients + 1;
+    draw->gradientCount = 1;
+    draw->identity = (muiDrawTransform){1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
     *contextOut = context;
     return mui_success;
 }

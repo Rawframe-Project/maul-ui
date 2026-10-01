@@ -7,6 +7,7 @@ layout_node: tree
 pool: invariant
 token_store: invariant pool
 theme_store: pool token_store
+draw_store:
 property: color invariant
 condition:
 easing:
@@ -18,12 +19,13 @@ style_edit: context pool style_store tree
 transition: animation context easing pool property style_edit style_store
 token: condition context pool property style_edit style_store token_store
 theme: context pool property restyle style_edit style_store theme_store token_store tree
+paint: color context draw_store layout_node tree
 notify:
 style_store: pool property
 sizing:
 tree: invariant
 solver: layout_node tree
-context: allocator animation invariant layout_node notify pool style_store tree token_store theme_store
+context: allocator animation invariant layout_node notify pool style_store tree token_store theme_store draw_store
 node: context layout_node style_store tree
 node_style: animation context layout_node pool property style_store tree
 style: condition context pool property style_edit style_store tree

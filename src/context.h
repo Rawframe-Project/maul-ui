@@ -7,6 +7,7 @@
 #define MAUL_UI_SRC_CONTEXT_H
 
 #include "animation.h"
+#include "draw_store.h"
 #include "layout_node.h"
 #include "notify.h"
 #include "style_store.h"
@@ -30,6 +31,7 @@ struct muiContext
     muiStyleStore style;
     muiTokenStore tokens;
     muiThemeStore themes;
+    muiDrawStore draw;
     // What conditions read of the world outside the tree.
     muiEnvironment environment;
     // How many times the host edited a class, a node type or the

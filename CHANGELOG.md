@@ -67,3 +67,8 @@ format.
 - Themes (`maul-ui/theme.h`): token overrides set on subtrees, nested up
   to eight deep, and `muiNode_GetTokenValue`; new `themes` and
   `themeOverrides` limits. A detached node is restyled.
+- The draw-command list (`maul-ui/draw.h`, record mui-0005): boxes,
+  shadows and images in paint order with clip chains, linear
+  premultiplied colors and per-kind pixel snapping, checked against
+  golden lists; new `drawCommands`, `drawClips` and `drawGradients`
+  limits.

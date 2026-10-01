@@ -46,6 +46,10 @@ extern "C"
         // together, each token of each theme one.
         uint32_t themes;
         uint32_t themeOverrides;
+        // The commands, clips and gradients a draw list holds.
+        uint32_t drawCommands;
+        uint32_t drawClips;
+        uint32_t drawGradients;
     } muiLimits;
 
     // How a context is made. Build it with muiDefaultContextDef.
@@ -59,7 +63,8 @@ extern "C"
     /// Returns the default context def: 4,096 nodes, 256 styles, 64 node
     /// types, 1,024 property sets, 64 notifications, 64 transitions, 256
     /// running transitions, 256 tokens, 1,024 token names, 16 themes, 512
-    /// theme overrides and the C library's allocator.
+    /// theme overrides, draw lists of 8,192 commands, 256 clips and 256
+    /// gradients, and the C library's allocator.
     ///
     /// @return The def, with a valid cookie.
     /// @par Thread safety

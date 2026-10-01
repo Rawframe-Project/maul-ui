@@ -115,7 +115,8 @@ extern "C"
         // The host's key for an image filling the border box; 0 for none.
         uint64_t image;
         // Insets of the image's 9-slice centre, in its pixels; all 0
-        // stretches the whole image.
+        // stretches the whole image. An image does not mirror: start and
+        // end are its left and right.
         muiEdges imageSlice;
         // Multiplies the image's colors.
         muiColor imageTint;

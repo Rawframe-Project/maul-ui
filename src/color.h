@@ -7,6 +7,7 @@
 #ifndef MAUL_UI_SRC_COLOR_H
 #define MAUL_UI_SRC_COLOR_H
 
+#include "maul-ui/draw.h"
 #include "maul-ui/visual.h"
 
 // A color's Oklab lightness, a and b, each times its alpha, and its alpha.
@@ -15,5 +16,9 @@ void muiColorToChannels(muiColor color, float channelsOut[4]);
 // The color of four channels, held to the sRGB gamut and alpha from 0 to
 // 1; a color with no alpha is clear black.
 muiColor muiColorFromChannels(const float channels[4]);
+
+// A color in linear light, its alpha multiplied by opacity and its red,
+// green and blue premultiplied by that alpha, as the draw list carries it.
+muiLinearColor muiColorToLinear(muiColor color, float opacity);
 
 #endif // MAUL_UI_SRC_COLOR_H
