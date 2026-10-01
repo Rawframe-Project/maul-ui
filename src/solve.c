@@ -152,6 +152,32 @@ static muiSize SizeContainer(const muiSolver* solver, uint32_t node, const muiSi
     return size;
 }
 
+// With an aspect ratio, a node given an exact size on one axis and an
+// automatic one on the other takes the other from the ratio, within its
+// limits.
+static void ApplyAspectRatio(const muiLayoutStyle* style, muiSizingInput* input)
+{
+    float ratio = style->sizing.aspectRatio;
+    if (ratio <= 0.0f)
+    {
+        return;
+    }
+    muiAxisSizing width = muiResolveAxis(&style->sizing, true, input->parentWidth);
+    muiAxisSizing height = muiResolveAxis(&style->sizing, false, input->parentHeight);
+    bool exactWidth = input->width.mode == mui_measureExact;
+    bool exactHeight = input->height.mode == mui_measureExact;
+    if (exactWidth && !exactHeight && !height.definite)
+    {
+        input->height = muiExact(muiClampSize(input->width.size / ratio, height.minimum,
+                                              height.maximum, muiBoxSum(style, false)));
+    }
+    else if (exactHeight && !exactWidth && !width.definite)
+    {
+        input->width = muiExact(muiClampSize(input->height.size * ratio, width.minimum,
+                                             width.maximum, muiBoxSum(style, true)));
+    }
+}
+
 // The input with the node's own direction in place of the inherited one.
 static muiSizingInput OwnDirection(const muiLayoutStyle* style, const muiSizingInput* input)
 {
@@ -192,6 +218,7 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
         }
     }
     muiSizingInput own = OwnDirection(&solver->nodes[node - 1].style, input);
+    ApplyAspectRatio(&solver->nodes[node - 1].style, &own);
     muiSize size = muiTreeAt(solver->tree, node)->links.firstChild == 0
                        ? SizeLeaf(solver, node, &own)
                        : SizeContainer(solver, node, &own, perform);

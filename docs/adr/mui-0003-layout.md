@@ -23,6 +23,11 @@ tree that did not change.
   `calc(scale * 100% + offset)`. Against an indefinite extent a value
   with a scale is automatic; a value without one is a plain length.
   Padding, border, margin and gap are lengths.
+- **Aspect ratio.** A node's aspect ratio (width over height of its
+  border box) turns a definite size on one axis into the other, within
+  that axis's limits; a flex item with a definite cross size takes its
+  flex base size from it (CSS Flexbox 9.2.3 B), and an item whose main
+  size flexes takes its cross size from the flexed size.
 - **Roots.** A root lays out in the space the host gives. An automatic
   width fits its content within that space (fit-content); an automatic
   height is its content's height. A scale is a fraction of the space.

@@ -57,10 +57,14 @@ static Insets InsetsOf(const muiInsets* inset, bool horizontal, float extent)
 
 // The child's size along an axis when its own value or both insets fix
 // it; returns false when it comes from content.
-static bool FixedSize(const muiLayoutStyle* style, bool horizontal, const Span* span,
-                      const Insets* insets, float* sizeOut)
+static bool FixedSize(const muiLayoutStyle* style, bool horizontal, const Span* spanX,
+                      const Span* spanY, const Insets* insets, float* sizeOut)
 {
-    muiAxisSizing axis = muiResolveAxis(&style->sizing, horizontal, span->paddingSize);
+    muiAxisSizing width;
+    muiAxisSizing height;
+    muiResolveSizes(&style->sizing, spanX->paddingSize, spanY->paddingSize, &width, &height);
+    muiAxisSizing axis = horizontal ? width : height;
+    const Span* span = horizontal ? spanX : spanY;
     muiEdges margins = muiMarginsOf(style);
     float box = muiBoxSum(style, horizontal);
     if (axis.definite)
@@ -162,8 +166,8 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
     };
     float width = 0.0f;
     float height = 0.0f;
-    bool fixedHeight = FixedSize(style, false, spanY, &insetY, &height);
-    if (!FixedSize(style, true, spanX, &insetX, &width))
+    bool fixedHeight = FixedSize(style, false, spanX, spanY, &insetY, &height);
+    if (!FixedSize(style, true, spanX, spanY, &insetX, &width))
     {
         muiEdges margins = muiMarginsOf(style);
         float space = spanX->paddingSize - (insetX.hasStart ? insetX.start : 0.0f) -

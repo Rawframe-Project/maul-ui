@@ -82,6 +82,27 @@ static bool IsStretched(const Frame* frame, const muiLayoutStyle* child)
            !muiIsMarginAutoEnd(child, !frame->row);
 }
 
+// A child's main and cross sizes and limits against the container's
+// content extents, with its aspect ratio applied.
+static void ItemSizes(const Frame* frame, const muiLayoutStyle* child, muiAxisSizing* mainOut,
+                      muiAxisSizing* crossOut)
+{
+    muiAxisSizing width;
+    muiAxisSizing height;
+    float extentWidth = frame->row ? frame->extentMain : frame->extentCross;
+    float extentHeight = frame->row ? frame->extentCross : frame->extentMain;
+    muiResolveSizes(&child->sizing, extentWidth, extentHeight, &width, &height);
+    *mainOut = frame->row ? width : height;
+    *crossOut = frame->row ? height : width;
+}
+
+// The main size an aspect ratio gives for a cross size.
+static float RatioMain(const Frame* frame, const muiLayoutStyle* child, float cross)
+{
+    float ratio = child->sizing.aspectRatio;
+    return frame->row ? cross * ratio : cross / ratio;
+}
+
 // The constraint a child is sized under on the cross axis: its own
 // definite size; with stretch, the line's size when the container's cross
 // size is definite; otherwise fit-content within the container.
@@ -141,8 +162,9 @@ static void PrepareItem(const Frame* frame, uint32_t child)
     muiLayoutNode* layout = &frame->solver->nodes[child - 1];
     const muiLayoutStyle* style = &layout->style;
     muiFlexItemState* item = &layout->item;
-    muiAxisSizing main = muiResolveAxis(&style->sizing, frame->row, frame->extentMain);
-    muiAxisSizing cross = muiResolveAxis(&style->sizing, !frame->row, frame->extentCross);
+    muiAxisSizing main;
+    muiAxisSizing cross;
+    ItemSizes(frame, style, &main, &cross);
     float boxMain = muiBoxSum(style, frame->row);
     muiMeasureAxis crossConstraint = CrossConstraint(frame, style, &cross, true);
     muiEdges margins = muiMarginsOf(style);
@@ -159,8 +181,23 @@ static void PrepareItem(const Frame* frame, uint32_t child)
     {
         muiMeasureMode mode = frame->mainIn.mode == mui_measureMinContent ? mui_measureMinContent
                                                                           : mui_measureMaxContent;
-        fromContent = !main.definite;
-        base = main.definite ? main.size : ContentMain(frame, child, mode, crossConstraint);
+        // Section 9.2.3 B: a definite cross size gives the base through
+        // the aspect ratio.
+        bool fromRatio =
+            style->sizing.aspectRatio > 0.0f && crossConstraint.mode == mui_measureExact;
+        fromContent = !main.definite && !fromRatio;
+        if (main.definite)
+        {
+            base = main.size;
+        }
+        else if (fromRatio)
+        {
+            base = RatioMain(frame, style, crossConstraint.size);
+        }
+        else
+        {
+            base = ContentMain(frame, child, mode, crossConstraint);
+        }
     }
     item->base = fmaxf(base, boxMain);
     item->innerBase = item->base - boxMain;
@@ -215,8 +252,9 @@ static void ResolvePendingMinimums(const Frame* frame, uint32_t first, uint32_t 
             continue;
         }
         const muiLayoutStyle* style = &layout->style;
-        muiAxisSizing main = muiResolveAxis(&style->sizing, frame->row, frame->extentMain);
-        muiAxisSizing cross = muiResolveAxis(&style->sizing, !frame->row, frame->extentCross);
+        muiAxisSizing main;
+        muiAxisSizing cross;
+        ItemSizes(frame, style, &main, &cross);
         muiMeasureAxis crossConstraint = CrossConstraint(frame, style, &cross, true);
         float minimum = AutomaticMinimum(frame, c, &main, crossConstraint);
         item->minMain = fmaxf(minimum, muiBoxSum(style, frame->row));

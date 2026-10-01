@@ -65,6 +65,26 @@ static inline muiAxisSizing muiResolveAxis(const muiSizing* sizing, bool horizon
     return axis;
 }
 
+// A node's sizes on both axes against its parent's extents, a definite
+// size on one axis giving the other through the aspect ratio.
+static inline void muiResolveSizes(const muiSizing* sizing, float extentWidth, float extentHeight,
+                                   muiAxisSizing* widthOut, muiAxisSizing* heightOut)
+{
+    *widthOut = muiResolveAxis(sizing, true, extentWidth);
+    *heightOut = muiResolveAxis(sizing, false, extentHeight);
+    float ratio = sizing->aspectRatio;
+    if (ratio > 0.0f && widthOut->definite && !heightOut->definite)
+    {
+        heightOut->size = widthOut->size / ratio;
+        heightOut->definite = true;
+    }
+    else if (ratio > 0.0f && heightOut->definite && !widthOut->definite)
+    {
+        widthOut->size = heightOut->size * ratio;
+        widthOut->definite = true;
+    }
+}
+
 static inline muiMeasureAxis muiExact(float size)
 {
     return (muiMeasureAxis){size, mui_measureExact};

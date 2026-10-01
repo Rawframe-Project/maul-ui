@@ -31,16 +31,17 @@ static bool IsDimensionValid(muiDimension dimension)
            isfinite(dimension.offset);
 }
 
-static bool IsSizingValid(const muiSizing* sizing)
-{
-    return IsDimensionValid(sizing->width) && IsDimensionValid(sizing->height) &&
-           IsDimensionValid(sizing->minWidth) && IsDimensionValid(sizing->minHeight) &&
-           IsDimensionValid(sizing->maxWidth) && IsDimensionValid(sizing->maxHeight);
-}
-
 static bool IsLength(float value)
 {
     return isfinite(value) && value >= 0.0f;
+}
+
+static bool IsSizingValid(const muiSizing* sizing)
+{
+    return IsLength(sizing->aspectRatio) && IsDimensionValid(sizing->width) &&
+           IsDimensionValid(sizing->height) && IsDimensionValid(sizing->minWidth) &&
+           IsDimensionValid(sizing->minHeight) && IsDimensionValid(sizing->maxWidth) &&
+           IsDimensionValid(sizing->maxHeight);
 }
 
 static bool AreEdgesValid(const muiEdges* edges, bool negativeAllowed)

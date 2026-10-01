@@ -46,7 +46,7 @@ ORACLE = os.path.join(ROOT, "tools", "layout_oracle.mjs")
 
 DIMENSIONS = ("width", "height", "min-width", "min-height", "max-width", "max-height", "basis")
 INSETS = ("start", "end", "top", "bottom")
-NUMBERS = ("grow", "shrink", "row-gap", "column-gap")
+NUMBERS = ("grow", "shrink", "row-gap", "column-gap", "aspect")
 EDGES = ("margin", "border", "padding")
 ENUMS = {
     "direction": ("row", "row-reverse", "column", "column-reverse"),
@@ -60,7 +60,7 @@ ENUMS = {
 }
 DEFAULTS = {"direction": "row", "wrap": "nowrap", "dir": "inherit", "align-content": "stretch", "justify": "start", "align-items": "stretch",
             "align-self": "auto", "grow": "0", "shrink": "1", "row-gap": "0",
-            "column-gap": "0"}
+            "column-gap": "0", "aspect": "0"}
 DIMENSION = re.compile(r"^(?:(-?[0-9.]+)%)?([+-]?[0-9.]+)?$")
 
 
@@ -188,7 +188,7 @@ def c_auto_mask(text):
 def c_style(props):
     def get(key, default="auto"):
         return props.get(key, DEFAULTS.get(key, default))
-    sizing = ", ".join(c_dimension(get(k)) for k in DIMENSIONS[:6])
+    sizing = ", ".join(c_dimension(get(k)) for k in DIMENSIONS[:6]) + f", {c_float(get('aspect'))}"
     container = (f"{{{ENUMS['direction'].index(get('direction'))}, "
                  f"{ENUMS['wrap'].index(get('wrap'))}, "
                  f"{ENUMS['justify'].index(get('justify'))}, "
@@ -286,6 +286,7 @@ def css_style(props, rtl):
            f"max-height:{css_dimension(get('max-height'), 'none')};",
            f"flex-basis:{css_dimension(get('basis'))};",
            f"flex-grow:{get('grow')};flex-shrink:{get('shrink')};",
+           f"aspect-ratio:{get('aspect') if float(get('aspect')) > 0 else 'auto'};",
            f"flex-direction:{get('direction')};flex-wrap:{get('wrap')};",
            f"align-content:{CONTENT_CSS[get('align-content')]};",
            f"justify-content:{JUSTIFY_CSS[get('justify')]};",

@@ -31,3 +31,5 @@ format.
   (`marginAuto`), with 22 more fixtures from Chrome.
 - Right-to-left layout (`muiTextDirection`, inherited), with 11 more
   fixtures from Chrome; the oracle now writes CSS's logical properties.
+- Aspect ratio (`muiSizing.aspectRatio`), with 10 more fixtures from
+  Chrome.

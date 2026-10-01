@@ -49,6 +49,9 @@ extern "C"
         muiDimension minHeight;
         muiDimension maxWidth;
         muiDimension maxHeight;
+        // The preferred width divided by height of the border box, 0 for
+        // none: a definite size on one axis gives the other.
+        float aspectRatio;
     } muiSizing;
 
     // The four sides of a box, in logical order: start and end follow the
@@ -315,7 +318,7 @@ extern "C"
     /// @param style    The values: finite numbers, grow and shrink, padding,
     ///                 border and gaps at least 0, known enumerators and
     ///                 edge bits, alignItems not mui_alignAuto, and anchors
-    ///                 from 0 to 1.
+    ///                 from 0 to 1, and an aspect ratio of 0 or more.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id, a value outside the above, or a call from a measure
     ///         function; `mui_errorStale` for an id whose node is gone.
