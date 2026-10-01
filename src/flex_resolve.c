@@ -10,7 +10,6 @@
 
 #include <math.h>
 
-#define FIRST_CHILD(tree, node)  (muiTreeAt((tree), (node))->links.firstChild)
 #define NEXT_SIBLING(tree, node) (muiTreeAt((tree), (node))->links.next)
 
 static float Outer(const muiFlexItemState* item, float size)
@@ -20,11 +19,11 @@ static float Outer(const muiFlexItemState* item, float size)
 
 // Freezes the inflexible children at their hypothetical size and returns
 // the initial free space.
-static float FreezeInflexible(const muiTree* tree, muiLayoutNode* nodes, uint32_t container,
-                              float innerMain, bool growing)
+static float FreezeInflexible(const muiTree* tree, muiLayoutNode* nodes, uint32_t first,
+                              uint32_t count, float innerMain, bool growing)
 {
     float used = 0.0f;
-    for (uint32_t c = FIRST_CHILD(tree, container); c != 0; c = NEXT_SIBLING(tree, c))
+    for (uint32_t c = first, i = 0; i < count; c = NEXT_SIBLING(tree, c), i++)
     {
         muiFlexItemState* item = &nodes[c - 1].item;
         const muiFlexItem* flex = &nodes[c - 1].style.item;
@@ -49,11 +48,11 @@ typedef struct FlexTotals
     bool anyUnfrozen;
 } FlexTotals;
 
-static FlexTotals SumUnfrozen(const muiTree* tree, const muiLayoutNode* nodes, uint32_t container,
-                              float innerMain, bool growing)
+static FlexTotals SumUnfrozen(const muiTree* tree, const muiLayoutNode* nodes, uint32_t first,
+                              uint32_t count, float innerMain, bool growing)
 {
     FlexTotals totals = {.remaining = innerMain};
-    for (uint32_t c = FIRST_CHILD(tree, container); c != 0; c = NEXT_SIBLING(tree, c))
+    for (uint32_t c = first, i = 0; i < count; c = NEXT_SIBLING(tree, c), i++)
     {
         const muiFlexItemState* item = &nodes[c - 1].item;
         const muiFlexItem* flex = &nodes[c - 1].style.item;
@@ -72,11 +71,11 @@ static FlexTotals SumUnfrozen(const muiTree* tree, const muiLayoutNode* nodes, u
 
 // Gives the unfrozen children their share of freeSpace, clamps them to
 // their limits, and returns the total violation.
-static float Distribute(const muiTree* tree, muiLayoutNode* nodes, uint32_t container,
+static float Distribute(const muiTree* tree, muiLayoutNode* nodes, uint32_t first, uint32_t count,
                         float freeSpace, bool growing, const FlexTotals* totals)
 {
     float violation = 0.0f;
-    for (uint32_t c = FIRST_CHILD(tree, container); c != 0; c = NEXT_SIBLING(tree, c))
+    for (uint32_t c = first, i = 0; i < count; c = NEXT_SIBLING(tree, c), i++)
     {
         muiFlexItemState* item = &nodes[c - 1].item;
         const muiFlexItem* flex = &nodes[c - 1].style.item;
@@ -106,11 +105,11 @@ static float Distribute(const muiTree* tree, muiLayoutNode* nodes, uint32_t cont
 // Freezes every unfrozen child when the total violation is zero, the
 // ones raised to their minimum when it is positive, and the ones lowered
 // to their maximum when it is negative.
-static void FreezeViolators(const muiTree* tree, muiLayoutNode* nodes, uint32_t container,
-                            float violation)
+static void FreezeViolators(const muiTree* tree, muiLayoutNode* nodes, uint32_t first,
+                            uint32_t count, float violation)
 {
     int8_t sign = violation > 0.0f ? 1 : (violation < 0.0f ? -1 : 0);
-    for (uint32_t c = FIRST_CHILD(tree, container); c != 0; c = NEXT_SIBLING(tree, c))
+    for (uint32_t c = first, i = 0; i < count; c = NEXT_SIBLING(tree, c), i++)
     {
         muiFlexItemState* item = &nodes[c - 1].item;
         if (!item->frozen && (sign == 0 || item->violation == sign))
@@ -120,20 +119,39 @@ static void FreezeViolators(const muiTree* tree, muiLayoutNode* nodes, uint32_t 
     }
 }
 
-void muiResolveFlexibleLengths(const muiTree* tree, muiLayoutNode* nodes, uint32_t container,
-                               float innerMain, float gaps)
+uint32_t muiCollectLine(const muiTree* tree, const muiLayoutNode* nodes, uint32_t first,
+                        float innerMain, float gap, bool wrap)
+{
+    uint32_t count = 0;
+    float used = 0.0f;
+    for (uint32_t c = first; c != 0; c = NEXT_SIBLING(tree, c))
+    {
+        float outer = Outer(&nodes[c - 1].item, nodes[c - 1].item.hypothetical);
+        float next = count == 0 ? outer : used + gap + outer;
+        if (wrap && count > 0 && next > innerMain)
+        {
+            break;
+        }
+        used = next;
+        count++;
+    }
+    return count;
+}
+
+void muiResolveFlexibleLengths(const muiTree* tree, muiLayoutNode* nodes, uint32_t first,
+                               uint32_t count, float innerMain, float gaps)
 {
     float available = innerMain - gaps;
     float hypotheticalSum = 0.0f;
-    for (uint32_t c = FIRST_CHILD(tree, container); c != 0; c = NEXT_SIBLING(tree, c))
+    for (uint32_t c = first, i = 0; i < count; c = NEXT_SIBLING(tree, c), i++)
     {
         hypotheticalSum += Outer(&nodes[c - 1].item, nodes[c - 1].item.hypothetical);
     }
     bool growing = hypotheticalSum < available;
-    float initialFree = FreezeInflexible(tree, nodes, container, available, growing);
+    float initialFree = FreezeInflexible(tree, nodes, first, count, available, growing);
     for (;;)
     {
-        FlexTotals totals = SumUnfrozen(tree, nodes, container, available, growing);
+        FlexTotals totals = SumUnfrozen(tree, nodes, first, count, available, growing);
         if (!totals.anyUnfrozen)
         {
             return;
@@ -147,8 +165,8 @@ void muiResolveFlexibleLengths(const muiTree* tree, muiLayoutNode* nodes, uint32
                 freeSpace = scaled;
             }
         }
-        float violation = Distribute(tree, nodes, container, freeSpace, growing, &totals);
-        FreezeViolators(tree, nodes, container, violation);
+        float violation = Distribute(tree, nodes, first, count, freeSpace, growing, &totals);
+        FreezeViolators(tree, nodes, first, count, violation);
     }
 }
 
@@ -185,4 +203,41 @@ void muiJustifySpacing(muiJustify justify, float freeSpace, uint32_t count, floa
     }
     *leadOut = lead;
     *betweenOut = between;
+}
+
+void muiAlignContentSpacing(muiAlignContent align, float freeSpace, uint32_t count, float* leadOut,
+                            float* betweenOut, float* growOut)
+{
+    float lead = 0.0f;
+    float between = 0.0f;
+    float grow = 0.0f;
+    float positive = fmaxf(freeSpace, 0.0f);
+    switch (align)
+    {
+    case mui_alignContentStretch:
+        grow = count > 0 ? positive / (float)count : 0.0f;
+        break;
+    case mui_alignContentEnd:
+        lead = freeSpace;
+        break;
+    case mui_alignContentCenter:
+        lead = freeSpace / 2.0f;
+        break;
+    case mui_alignContentSpaceBetween:
+        between = count > 1 ? positive / (float)(count - 1) : 0.0f;
+        break;
+    case mui_alignContentSpaceAround:
+        between = count > 0 ? positive / (float)count : 0.0f;
+        lead = between / 2.0f;
+        break;
+    case mui_alignContentSpaceEvenly:
+        between = positive / (float)(count + 1);
+        lead = between;
+        break;
+    default:
+        break;
+    }
+    *leadOut = lead;
+    *betweenOut = between;
+    *growOut = grow;
 }

@@ -99,12 +99,42 @@ extern "C"
         mui_alignCenter = 4,
     };
 
+    // Whether a container breaks its children into lines.
+    typedef uint8_t muiFlexWrap;
+
+    enum
+    {
+        // One line, which the children shrink or overflow to fit.
+        mui_wrapNone = 0,
+        // Lines follow each other from the cross start.
+        mui_wrapWrap = 1,
+        // Lines follow each other from the cross end.
+        mui_wrapReverse = 2,
+    };
+
+    // How a container with several lines places them on the cross axis.
+    typedef uint8_t muiAlignContent;
+
+    enum
+    {
+        // The lines share the free space equally, growing.
+        mui_alignContentStretch = 0,
+        mui_alignContentStart = 1,
+        mui_alignContentEnd = 2,
+        mui_alignContentCenter = 3,
+        mui_alignContentSpaceBetween = 4,
+        mui_alignContentSpaceAround = 5,
+        mui_alignContentSpaceEvenly = 6,
+    };
+
     // What a node lays out as a container.
     typedef struct muiFlexContainer
     {
         muiFlexDirection direction;
+        muiFlexWrap wrap;
         muiJustify justify;
         muiAlign alignItems;
+        muiAlignContent alignContent;
         // The space between rows, and between columns, of children.
         float rowGap;
         float columnGap;
@@ -201,8 +231,9 @@ extern "C"
         void* measureUser;
     } muiLayoutInput;
 
-    /// Returns the default layout style: CSS's initial values (row, no
-    /// grow, shrink 1, automatic basis and sizes, stretch, start), no
+    /// Returns the default layout style: CSS's initial values (row, one
+    /// line, no grow, shrink 1, automatic basis and sizes, stretched items
+    /// and lines, start), no
     /// margins, borders or padding, and no content.
     ///
     /// @return The style.

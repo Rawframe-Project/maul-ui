@@ -24,3 +24,5 @@ format.
   and is checked against Chrome by a fixture corpus (record mui-0003).
 - A layout benchmark (`bench/`): cold, static, one-change and resize
   frames over a 40,001-node list and a 9,841-node nested tree.
+- Wrapping (`muiFlexWrap`) and line placement (`muiAlignContent`), with
+  15 more fixtures from Chrome.

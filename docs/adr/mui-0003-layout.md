@@ -26,6 +26,12 @@ tree that did not change.
 - **Roots.** A root lays out in the space the host gives. An automatic
   width fits its content within that space (fit-content); an automatic
   height is its content's height. A scale is a fraction of the space.
+- **Lines.** A container that wraps collects children into lines by
+  their outer hypothetical sizes and the gap, resolves flexible lengths
+  per line, and places the lines by `align-content` (stretch by
+  default, as CSS's `normal`); a container that does not wrap has one
+  line as large as its inner cross size. At its narrowest, a wrapping
+  container is as wide as its widest child.
 - **Distributed justification on overflow.** `space-around` and
   `space-evenly` pack at the start when the children overflow, as CSS
   Box Alignment's safe fallback does; `space-between` always does.
@@ -35,8 +41,12 @@ tree that did not change.
 - **Measurement.** Host content is measured by a function passed to
   `muiComputeLayout`, called only inside it and only for nodes marked as
   host content. The context refuses edits while it runs. Results are
-  cached per node by their constraints until the node, a descendant, or
-  the node's content changes.
+  cached per node until the node, a descendant, or the node's content
+  changes; a cached size also answers a constraint it provably answers
+  the same (an exact size equal to an unshrunk result, a max-content
+  result that fits, a smaller space the result fits). A query with both
+  sizes exact needs no computation, and an item's automatic minimum is
+  computed only when its line shrinks.
 - **No work for unchanged subtrees.** Before a run, the solver forgets
   what it cached for the nodes on a path to a change, and only those. A
   node whose subtree is unchanged and whose size is the same keeps its

@@ -20,7 +20,9 @@
 # min-height max-width max-height basis (auto, <offset>, <scale>%,
 # <scale>%+<offset>, <scale>%-<offset>), grow shrink row-gap column-gap
 # (numbers), direction (row row-reverse column column-reverse), justify
-# (start end center space-between space-around space-evenly),
+# (start end center space-between space-around space-evenly), wrap
+# (nowrap wrap wrap-reverse), align-content (stretch start end center
+# space-between space-around space-evenly),
 # align-items and align-self (auto stretch start end center), margin
 # border padding (one value, or start,end,top,bottom), content
 # (<width>x<height>: host content of that size).
@@ -44,11 +46,14 @@ NUMBERS = ("grow", "shrink", "row-gap", "column-gap")
 EDGES = ("margin", "border", "padding")
 ENUMS = {
     "direction": ("row", "row-reverse", "column", "column-reverse"),
+    "wrap": ("nowrap", "wrap", "wrap-reverse"),
+    "align-content": ("stretch", "start", "end", "center", "space-between", "space-around",
+                      "space-evenly"),
     "justify": ("start", "end", "center", "space-between", "space-around", "space-evenly"),
     "align-items": ("auto", "stretch", "start", "end", "center"),
     "align-self": ("auto", "stretch", "start", "end", "center"),
 }
-DEFAULTS = {"direction": "row", "justify": "start", "align-items": "stretch",
+DEFAULTS = {"direction": "row", "wrap": "nowrap", "align-content": "stretch", "justify": "start", "align-items": "stretch",
             "align-self": "auto", "grow": "0", "shrink": "1", "row-gap": "0",
             "column-gap": "0"}
 DIMENSION = re.compile(r"^(?:(-?[0-9.]+)%)?([+-]?[0-9.]+)?$")
@@ -160,8 +165,10 @@ def c_style(props):
         return props.get(key, DEFAULTS.get(key, default))
     sizing = ", ".join(c_dimension(get(k)) for k in DIMENSIONS[:6])
     container = (f"{{{ENUMS['direction'].index(get('direction'))}, "
+                 f"{ENUMS['wrap'].index(get('wrap'))}, "
                  f"{ENUMS['justify'].index(get('justify'))}, "
                  f"{ENUMS['align-items'].index(get('align-items'))}, "
+                 f"{ENUMS['align-content'].index(get('align-content'))}, "
                  f"{c_float(get('row-gap'))}, {c_float(get('column-gap'))}}}")
     item = (f"{{{c_float(get('grow'))}, {c_float(get('shrink'))}, {c_dimension(get('basis'))}, "
             f"{ENUMS['align-self'].index(get('align-self'))}}}")
@@ -227,6 +234,9 @@ def css_edges(prefix, text, suffix=""):
 
 ALIGN_CSS = {"auto": "auto", "stretch": "stretch", "start": "flex-start", "end": "flex-end",
              "center": "center"}
+CONTENT_CSS = {"stretch": "stretch", "start": "flex-start", "end": "flex-end", "center": "center",
+               "space-between": "space-between", "space-around": "space-around",
+               "space-evenly": "space-evenly"}
 JUSTIFY_CSS = {"start": "flex-start", "end": "flex-end", "center": "center",
                "space-between": "space-between", "space-around": "space-around",
                "space-evenly": "space-evenly"}
@@ -241,7 +251,8 @@ def css_style(props):
            f"max-height:{css_dimension(get('max-height'), 'none')};",
            f"flex-basis:{css_dimension(get('basis'))};",
            f"flex-grow:{get('grow')};flex-shrink:{get('shrink')};",
-           f"flex-direction:{get('direction')};",
+           f"flex-direction:{get('direction')};flex-wrap:{get('wrap')};",
+           f"align-content:{CONTENT_CSS[get('align-content')]};",
            f"justify-content:{JUSTIFY_CSS[get('justify')]};",
            f"align-items:{ALIGN_CSS[get('align-items')]};",
            f"align-self:{ALIGN_CSS[get('align-self')]};",

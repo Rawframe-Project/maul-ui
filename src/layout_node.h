@@ -69,6 +69,12 @@ typedef struct muiFlexItemState
     // The automatic minimum is not computed yet: it only matters when the
     // line shrinks, as a content-based base is never below it.
     bool minimumPending;
+    // Set on the first child of each line: how many children the line
+    // holds, its cross size and its offset from the container's cross
+    // start, in the direction lines follow.
+    uint32_t lineCount;
+    float lineCross;
+    float lineOffset;
 } muiFlexItemState;
 
 typedef struct muiLayoutNode

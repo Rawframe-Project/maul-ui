@@ -11,16 +11,28 @@
 #include "layout_node.h"
 #include "tree.h"
 
-// Sets each child's target main size from its base, hypothetical size,
-// limits and flex factors, so the line fills innerMain where it can.
-// gaps is the space between the children.
-void muiResolveFlexibleLengths(const muiTree* tree, muiLayoutNode* nodes, uint32_t container,
-                               float innerMain, float gaps);
+// The number of children, from first on, that form one line: as many as
+// fit innerMain with gap between them, at least one; every remaining one
+// when wrap is false. Sizes are the outer hypothetical main sizes.
+uint32_t muiCollectLine(const muiTree* tree, const muiLayoutNode* nodes, uint32_t first,
+                        float innerMain, float gap, bool wrap);
+
+// Sets the target main size of count children from first on, one line,
+// from their bases, hypothetical sizes, limits and flex factors, so the
+// line fills innerMain where it can. gaps is the space between them.
+void muiResolveFlexibleLengths(const muiTree* tree, muiLayoutNode* nodes, uint32_t first,
+                               uint32_t count, float innerMain, float gaps);
 
 // The space before the first of count items and the extra space between
 // two of them, for free space left on the line (negative when the items
 // overflow).
 void muiJustifySpacing(muiJustify justify, float freeSpace, uint32_t count, float* leadOut,
                        float* betweenOut);
+
+// The space before the first of count lines, the extra space between two
+// of them, and what each line grows by, for free cross space left
+// (negative when the lines overflow).
+void muiAlignContentSpacing(muiAlignContent align, float freeSpace, uint32_t count, float* leadOut,
+                            float* betweenOut, float* growOut);
 
 #endif // MAUL_UI_SRC_FLEX_RESOLVE_H

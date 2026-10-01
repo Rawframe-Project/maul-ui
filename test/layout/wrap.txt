@@ -1,0 +1,109 @@
+# Wrapping into lines and placing the lines (align-content).
+# chrome 154.0.8037.57
+
+fixture wrap_breaks_lines available=500x400
+node width=100 height=100 wrap=wrap => 0 0 100 100
+  node width=40 height=10 => 0 0 40 10
+  node width=40 height=20 => 40 0 40 20
+  node width=40 height=15 => 0 40 40 15
+  node width=70 height=5 => 0 75 70 5
+
+fixture wrap_gaps_count_when_breaking available=500x400
+node width=100 height=100 wrap=wrap column-gap=21 row-gap=4 => 0 0 100 100
+  node width=40 height=10 => 0 0 40 10
+  node width=40 height=10 => 0 34.671875 40 10
+  node width=40 height=10 => 0 69.328125 40 10
+
+fixture wrap_item_wider_than_line available=500x400
+node width=100 height=100 wrap=wrap => 0 0 100 100
+  node width=150 height=10 shrink=0 => 0 0 150 10
+  node width=30 height=10 => 0 50 30 10
+
+fixture wrap_grow_per_line available=500x400
+node width=100 height=60 wrap=wrap align-content=start => 0 0 100 60
+  node width=40 height=10 grow=1 => 0 0 60 10
+  node width=40 height=10 => 60 0 40 10
+  node width=30 height=10 grow=1 => 0 10 40 10
+  node width=30 height=10 grow=3 => 40 10 60 10
+
+fixture wrap_stretch_lines_default available=500x400
+node width=100 height=100 wrap=wrap => 0 0 100 100
+  node width=60 height=10 => 0 0 60 10
+  node width=60 => 0 30 60 20
+  node width=60 height=30 => 0 50 60 30
+
+fixture wrap_align_content_each available=500x400
+node direction=column width=400 height=60 => 0 0 400 60
+  node width=100 height=60 wrap=wrap align-content=start => 0 0 100 20
+    node width=60 height=10 => 0 0 60 10
+    node width=60 height=10 => 0 10 60 10
+  node width=100 height=60 wrap=wrap align-content=end => 0 20 100 20
+    node width=60 height=10 => 0 0 60 10
+    node width=60 height=10 => 0 10 60 10
+  node width=100 height=60 wrap=wrap align-content=center => 0 40 100 20
+    node width=60 height=10 => 0 0 60 10
+    node width=60 height=10 => 0 10 60 10
+  node width=100 height=60 wrap=wrap align-content=space-between => 0 60 100 20
+    node width=60 height=10 => 0 0 60 10
+    node width=60 height=10 => 0 10 60 10
+
+fixture wrap_align_content_spaced available=500x400
+node width=400 height=60 align-items=start => 0 0 400 60
+  node width=100 height=60 wrap=wrap align-content=space-around => 0 0 100 60
+    node width=60 height=10 => 0 10 60 10
+    node width=60 height=10 => 0 40 60 10
+  node width=100 height=60 wrap=wrap align-content=space-evenly => 100 0 100 60
+    node width=60 height=10 => 0 13.328125 60 10
+    node width=60 height=10 => 0 36.65625 60 10
+  node width=100 height=60 wrap=wrap align-content=stretch row-gap=6 => 200 0 100 60
+    node width=60 height=10 => 0 0 60 10
+    node width=60 => 0 38 60 22
+  node width=100 height=15 wrap=wrap align-content=center => 300 0 100 15
+    node width=60 height=10 => 0 -2.5 60 10
+    node width=60 height=10 => 0 7.5 60 10
+
+fixture wrap_auto_height_fits_lines available=500x400
+node width=100 wrap=wrap row-gap=3 => 0 0 100 48
+  node width=60 height=10 => 0 0 60 10
+  node width=60 height=25 => 0 13 60 25
+  node width=60 height=7 => 0 41 60 7
+
+fixture wrap_reverse available=500x400
+node width=100 height=100 wrap=wrap-reverse => 0 0 100 100
+  node width=60 height=10 => 0 90 60 10
+  node width=60 height=20 margin=1,2,3,4 => 1 55 60 20
+  node width=60 height=30 align-self=end => 0 0 60 30
+
+fixture wrap_column available=500x400
+node direction=column width=100 height=50 wrap=wrap align-content=start => 0 0 100 50
+  node width=20 height=20 => 0 0 20 20
+  node width=30 height=20 => 0 20 30 20
+  node width=10 height=20 => 30 0 10 20
+
+fixture wrap_column_reverse_wrap_reverse available=500x400
+node direction=column-reverse width=100 height=50 wrap=wrap-reverse align-content=start => 0 0 100 50
+  node width=20 height=20 => 80 30 20 20
+  node width=30 height=20 => 70 10 30 20
+  node width=10 height=20 => 60 30 10 20
+
+fixture wrap_auto_width_is_one_line available=500x400
+node wrap=wrap => 0 0 120 10
+  node width=60 height=10 => 0 0 60 10
+  node width=60 height=10 => 60 0 60 10
+
+fixture wrap_root_fits_available available=100x400
+node wrap=wrap => 0 0 100 20
+  node width=60 height=10 => 0 0 60 10
+  node width=60 height=10 => 0 10 60 10
+  node width=30 height=10 => 60 10 30 10
+
+fixture wrap_min_content_is_widest_child available=10x400
+node wrap=wrap => 0 0 60 20
+  node width=60 height=10 => 0 0 60 10
+  node width=45 height=10 => 0 10 45 10
+
+fixture wrap_content_items available=500x400
+node width=100 wrap=wrap => 0 0 100 22
+  node content=60x10 => 0 0 60 10
+  node content=60x12 => 0 10 60 12
+  node content=20x5 => 60 10 20 12

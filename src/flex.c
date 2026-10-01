@@ -230,10 +230,13 @@ typedef struct Frame
     float extentMain;
     float extentCross;
     float gap;
+    float crossGap;
+    bool multiLine;
+    bool wrapReverse;
     uint32_t count;
+    uint32_t lineCount;
     float innerMain;
     float innerCross;
-    float lineCross;
 } Frame;
 
 static muiSizingInput ChildInput(const Frame* frame, muiMeasureAxis main, muiMeasureAxis cross)
@@ -277,7 +280,8 @@ static muiMeasureAxis CrossConstraint(const Frame* frame, const muiLayoutStyle* 
     if (frame->crossIn.mode == mui_measureExact)
     {
         float space = fmaxf(frame->innerCross - margin, 0.0f);
-        if (stretch && AlignOf(frame, child) == mui_alignStretch)
+        // Only a single line's size is known before the lines are.
+        if (stretch && !frame->multiLine && AlignOf(frame, child) == mui_alignStretch)
         {
             return Exact(ClampSize(space, cross->minimum, cross->maximum, boxCross));
         }
@@ -357,12 +361,32 @@ static void PrepareItem(const Frame* frame, uint32_t child)
     item->hypothetical = ClampSize(item->base, item->minMain, item->maxMain, boxMain);
 }
 
+static muiFlexItemState* ItemOf(const Frame* frame, uint32_t child)
+{
+    return &frame->solver->nodes[child - 1].item;
+}
+
+static float Gaps(float gap, uint32_t count)
+{
+    return count > 1 ? gap * (float)(count - 1) : 0.0f;
+}
+
+// The sibling count places after node; 0 past the last.
+static uint32_t Skip(const muiTree* tree, uint32_t node, uint32_t count)
+{
+    uint32_t at = node;
+    for (uint32_t i = 0; i < count && at != 0; i++)
+    {
+        at = NEXT_SIBLING(tree, at);
+    }
+    return at;
+}
+
 // Computes the automatic minimums PrepareItem left pending, for a line
 // that shrinks.
-static void ResolvePendingMinimums(const Frame* frame)
+static void ResolvePendingMinimums(const Frame* frame, uint32_t first, uint32_t count)
 {
-    const muiTree* tree = frame->solver->tree;
-    for (uint32_t c = FIRST_CHILD(tree, frame->node); c != 0; c = NEXT_SIBLING(tree, c))
+    for (uint32_t c = first, i = 0; i < count; c = NEXT_SIBLING(frame->solver->tree, c), i++)
     {
         muiLayoutNode* layout = &frame->solver->nodes[c - 1];
         muiFlexItemState* item = &layout->item;
@@ -402,6 +426,9 @@ static Frame Setup(const muiSolver* solver, uint32_t node, const muiSizingInput*
     frame.mainLimits = ResolveAxis(&style->sizing, frame.row, parentMain);
     frame.crossLimits = ResolveAxis(&style->sizing, !frame.row, parentCross);
     frame.gap = frame.row ? style->container.columnGap : style->container.rowGap;
+    frame.crossGap = frame.row ? style->container.rowGap : style->container.columnGap;
+    frame.multiLine = style->container.wrap != mui_wrapNone;
+    frame.wrapReverse = style->container.wrap == mui_wrapReverse;
     frame.extentMain = -1.0f;
     frame.extentCross = -1.0f;
     if (frame.mainIn.mode == mui_measureExact)
@@ -417,43 +444,61 @@ static Frame Setup(const muiSolver* solver, uint32_t node, const muiSizingInput*
     return frame;
 }
 
-// Section 9.2 and 9.3: every child's hypothetical main size, then the
-// container's inner main size, from its content when not given.
+// Section 9.2 and 9.3: every child's hypothetical main size, the
+// container's inner main size from its content when not given, then the
+// lines and each line's flexible lengths.
 static void SizeMain(Frame* frame)
 {
     const muiTree* tree = frame->solver->tree;
     float sum = 0.0f;
+    float widest = 0.0f;
     for (uint32_t c = FIRST_CHILD(tree, frame->node); c != 0; c = NEXT_SIBLING(tree, c))
     {
         PrepareItem(frame, c);
-        const muiFlexItemState* item = &frame->solver->nodes[c - 1].item;
-        sum += item->hypothetical + item->marginMain;
+        float outer = ItemOf(frame, c)->hypothetical + ItemOf(frame, c)->marginMain;
+        sum += outer;
+        widest = fmaxf(widest, outer);
         frame->count++;
     }
-    float gaps = frame->count > 1 ? frame->gap * (float)(frame->count - 1) : 0.0f;
     if (frame->mainIn.mode != mui_measureExact)
     {
-        float outer = ClampSize(sum + gaps + frame->boxMain, frame->mainLimits.minimum,
+        // A container that wraps is at its narrowest one child per line.
+        bool narrowest = frame->multiLine && frame->mainIn.mode == mui_measureMinContent;
+        float content = narrowest ? widest : sum + Gaps(frame->gap, frame->count);
+        float outer = ClampSize(content + frame->boxMain, frame->mainLimits.minimum,
                                 frame->mainLimits.maximum, frame->boxMain);
         frame->innerMain = outer - frame->boxMain;
     }
-    if (sum + gaps > frame->innerMain)
+    for (uint32_t first = FIRST_CHILD(tree, frame->node); first != 0;)
     {
-        ResolvePendingMinimums(frame);
+        uint32_t count = muiCollectLine(tree, frame->solver->nodes, first, frame->innerMain,
+                                        frame->gap, frame->multiLine);
+        float used = Gaps(frame->gap, count);
+        for (uint32_t c = first, i = 0; i < count; c = NEXT_SIBLING(tree, c), i++)
+        {
+            used += ItemOf(frame, c)->hypothetical + ItemOf(frame, c)->marginMain;
+        }
+        if (used > frame->innerMain)
+        {
+            ResolvePendingMinimums(frame, first, count);
+        }
+        muiResolveFlexibleLengths(tree, frame->solver->nodes, first, count, frame->innerMain,
+                                  Gaps(frame->gap, count));
+        ItemOf(frame, first)->lineCount = count;
+        frame->lineCount++;
+        first = Skip(tree, first, count);
     }
-    muiResolveFlexibleLengths(tree, frame->solver->nodes, frame->node, frame->innerMain, gaps);
 }
 
-// Section 9.4: every child's hypothetical cross size and the line's cross
-// size, then the container's, and stretched children's cross sizes.
-static void SizeCross(Frame* frame)
+// Section 9.4 step 7 and 8: each child's hypothetical cross size at its
+// target main size; returns the line's cross size.
+static float HypotheticalCross(const Frame* frame, uint32_t first, uint32_t count)
 {
-    const muiTree* tree = frame->solver->tree;
     float line = 0.0f;
-    for (uint32_t c = FIRST_CHILD(tree, frame->node); c != 0; c = NEXT_SIBLING(tree, c))
+    for (uint32_t c = first, i = 0; i < count; c = NEXT_SIBLING(frame->solver->tree, c), i++)
     {
         const muiLayoutStyle* style = &frame->solver->nodes[c - 1].style;
-        muiFlexItemState* item = &frame->solver->nodes[c - 1].item;
+        muiFlexItemState* item = ItemOf(frame, c);
         AxisSizing cross = ResolveAxis(&style->sizing, !frame->row, frame->extentCross);
         muiMeasureAxis constraint = CrossConstraint(frame, style, &cross, false);
         muiSizingInput input = ChildInput(frame, Exact(item->target), constraint);
@@ -461,81 +506,156 @@ static void SizeCross(Frame* frame)
         item->cross = ClampSize(size, item->minCross, item->maxCross, BoxSum(style, !frame->row));
         line = fmaxf(line, item->cross + item->marginCross);
     }
-    if (frame->crossIn.mode != mui_measureExact)
-    {
-        float outer = ClampSize(line + frame->boxCross, frame->crossLimits.minimum,
-                                frame->crossLimits.maximum, frame->boxCross);
-        frame->innerCross = outer - frame->boxCross;
-    }
-    // A single line is as large as the container's inner cross size.
-    frame->lineCross = frame->innerCross;
-    for (uint32_t c = FIRST_CHILD(tree, frame->node); c != 0; c = NEXT_SIBLING(tree, c))
+    return line;
+}
+
+// Section 9.4 step 11: stretched children take their line's cross size.
+static void Stretch(const Frame* frame, uint32_t first, uint32_t count)
+{
+    float line = ItemOf(frame, first)->lineCross;
+    for (uint32_t c = first, i = 0; i < count; c = NEXT_SIBLING(frame->solver->tree, c), i++)
     {
         const muiLayoutStyle* style = &frame->solver->nodes[c - 1].style;
-        muiFlexItemState* item = &frame->solver->nodes[c - 1].item;
+        muiFlexItemState* item = ItemOf(frame, c);
         AxisSizing cross = ResolveAxis(&style->sizing, !frame->row, frame->extentCross);
         if (!cross.definite && AlignOf(frame, style) == mui_alignStretch)
         {
-            item->cross = ClampSize(frame->lineCross - item->marginCross, item->minCross,
-                                    item->maxCross, BoxSum(style, !frame->row));
+            item->cross = ClampSize(line - item->marginCross, item->minCross, item->maxCross,
+                                    BoxSum(style, !frame->row));
         }
     }
 }
 
-// The child's offset from the line's cross start, its margin included.
-static float CrossOffset(const Frame* frame, const muiLayoutStyle* style,
-                         const muiFlexItemState* item)
+// Section 9.6 step 15: align-content places the lines in the free cross
+// space and stretches them into it.
+static void DistributeLines(const Frame* frame, float used)
 {
-    float before = EdgeStart(&style->margin, !frame->row);
-    float after = EdgeEnd(&style->margin, !frame->row);
+    float lead = 0.0f;
+    float between = 0.0f;
+    float grow = 0.0f;
+    muiAlignContentSpacing(frame->style->container.alignContent, frame->innerCross - used,
+                           frame->lineCount, &lead, &between, &grow);
+    float offset = lead;
+    for (uint32_t first = FIRST_CHILD(frame->solver->tree, frame->node); first != 0;
+         first = Skip(frame->solver->tree, first, ItemOf(frame, first)->lineCount))
+    {
+        muiFlexItemState* head = ItemOf(frame, first);
+        head->lineCross += grow;
+        head->lineOffset = offset;
+        offset += head->lineCross + frame->crossGap + between;
+    }
+}
+
+// Section 9.4: the lines' cross sizes, the container's, the lines'
+// places, and stretched children's cross sizes.
+static void SizeCross(Frame* frame)
+{
+    float total = 0.0f;
+    for (uint32_t first = FIRST_CHILD(frame->solver->tree, frame->node); first != 0;
+         first = Skip(frame->solver->tree, first, ItemOf(frame, first)->lineCount))
+    {
+        ItemOf(frame, first)->lineCross =
+            HypotheticalCross(frame, first, ItemOf(frame, first)->lineCount);
+        total += ItemOf(frame, first)->lineCross;
+    }
+    total += Gaps(frame->crossGap, frame->lineCount);
+    if (frame->crossIn.mode != mui_measureExact)
+    {
+        float outer = ClampSize(total + frame->boxCross, frame->crossLimits.minimum,
+                                frame->crossLimits.maximum, frame->boxCross);
+        frame->innerCross = outer - frame->boxCross;
+    }
+    uint32_t first = FIRST_CHILD(frame->solver->tree, frame->node);
+    if (!frame->multiLine && first != 0)
+    {
+        // A single line is as large as the container's inner cross size.
+        ItemOf(frame, first)->lineCross = frame->innerCross;
+    }
+    else if (first != 0)
+    {
+        DistributeLines(frame, total);
+    }
+    for (uint32_t line = FIRST_CHILD(frame->solver->tree, frame->node); line != 0;
+         line = Skip(frame->solver->tree, line, ItemOf(frame, line)->lineCount))
+    {
+        Stretch(frame, line, ItemOf(frame, line)->lineCount);
+    }
+}
+
+// The child's offset from its line's cross start, its margin included,
+// in the direction lines follow.
+static float CrossOffset(const Frame* frame, const muiLayoutStyle* style,
+                         const muiFlexItemState* item, float line)
+{
+    const muiEdges* margin = &style->margin;
+    float before =
+        frame->wrapReverse ? EdgeEnd(margin, !frame->row) : EdgeStart(margin, !frame->row);
+    float after =
+        frame->wrapReverse ? EdgeStart(margin, !frame->row) : EdgeEnd(margin, !frame->row);
     switch (AlignOf(frame, style))
     {
     case mui_alignEnd:
-        return frame->lineCross - item->cross - after;
+        return line - item->cross - after;
     case mui_alignCenter:
-        return before + (frame->lineCross - item->marginCross - item->cross) / 2.0f;
+        return before + (line - item->marginCross - item->cross) / 2.0f;
     default:
         return before;
     }
 }
 
-// Section 9.5 and 9.6: places every child along both axes, sets its
-// rectangle and lays it out in full.
-static void Place(const Frame* frame)
+// Sets a child's rectangle from its main and cross offsets within the
+// content box and lays it out in full.
+static void PlaceChild(const Frame* frame, uint32_t child, float main, float cross)
+{
+    muiLayoutNode* layout = &frame->solver->nodes[child - 1];
+    const muiFlexItemState* item = &layout->item;
+    float mainAt = frame->boxMainStart + main;
+    float crossAt = frame->boxCrossStart + cross;
+    layout->rect = frame->row ? (muiRect){mainAt, crossAt, item->target, item->cross}
+                              : (muiRect){crossAt, mainAt, item->cross, item->target};
+    muiSizingInput input = ChildInput(frame, Exact(item->target), Exact(item->cross));
+    input.parentWidth = frame->row ? frame->innerMain : frame->innerCross;
+    input.parentHeight = frame->row ? frame->innerCross : frame->innerMain;
+    (void)muiSolveNode(frame->solver, child, &input, true);
+}
+
+// Section 9.5 and 9.6: justifies one line and places its children.
+static void PlaceLine(const Frame* frame, uint32_t first, uint32_t count)
 {
     const muiTree* tree = frame->solver->tree;
-    float used = 0.0f;
-    for (uint32_t c = FIRST_CHILD(tree, frame->node); c != 0; c = NEXT_SIBLING(tree, c))
+    const muiFlexItemState* head = ItemOf(frame, first);
+    float used = Gaps(frame->gap, count);
+    for (uint32_t c = first, i = 0; i < count; c = NEXT_SIBLING(tree, c), i++)
     {
-        used +=
-            frame->solver->nodes[c - 1].item.target + frame->solver->nodes[c - 1].item.marginMain;
+        used += ItemOf(frame, c)->target + ItemOf(frame, c)->marginMain;
     }
-    float gaps = frame->count > 1 ? frame->gap * (float)(frame->count - 1) : 0.0f;
     float lead = 0.0f;
     float between = 0.0f;
-    muiJustifySpacing(frame->style->container.justify, frame->innerMain - used - gaps, frame->count,
-                      &lead, &between);
+    muiJustifySpacing(frame->style->container.justify, frame->innerMain - used, count, &lead,
+                      &between);
     float flow = lead;
-    for (uint32_t c = FIRST_CHILD(tree, frame->node); c != 0; c = NEXT_SIBLING(tree, c))
+    for (uint32_t c = first, i = 0; i < count; c = NEXT_SIBLING(tree, c), i++)
     {
-        muiLayoutNode* layout = &frame->solver->nodes[c - 1];
-        const muiFlexItemState* item = &layout->item;
-        const muiEdges* margin = &layout->style.margin;
+        const muiLayoutStyle* style = &frame->solver->nodes[c - 1].style;
+        const muiFlexItemState* item = ItemOf(frame, c);
         // In a reversed container the flow starts at the physical end.
-        flow += frame->reverse ? EdgeEnd(margin, frame->row) : EdgeStart(margin, frame->row);
+        float before = frame->reverse ? EdgeEnd(&style->margin, frame->row)
+                                      : EdgeStart(&style->margin, frame->row);
+        flow += before;
         float main = frame->reverse ? frame->innerMain - flow - item->target : flow;
-        flow += item->target +
-                (frame->reverse ? EdgeStart(margin, frame->row) : EdgeEnd(margin, frame->row));
-        flow += frame->gap + between;
-        float cross = CrossOffset(frame, &layout->style, item);
-        float mainAt = frame->boxMainStart + main;
-        float crossAt = frame->boxCrossStart + cross;
-        layout->rect = frame->row ? (muiRect){mainAt, crossAt, item->target, item->cross}
-                                  : (muiRect){crossAt, mainAt, item->cross, item->target};
-        muiSizingInput input = ChildInput(frame, Exact(item->target), Exact(item->cross));
-        input.parentWidth = frame->row ? frame->innerMain : frame->innerCross;
-        input.parentHeight = frame->row ? frame->innerCross : frame->innerMain;
-        (void)muiSolveNode(frame->solver, c, &input, true);
+        flow += item->target + item->marginMain - before + frame->gap + between;
+        float crossFlow = head->lineOffset + CrossOffset(frame, style, item, head->lineCross);
+        float cross = frame->wrapReverse ? frame->innerCross - crossFlow - item->cross : crossFlow;
+        PlaceChild(frame, c, main, cross);
+    }
+}
+
+static void Place(const Frame* frame)
+{
+    for (uint32_t first = FIRST_CHILD(frame->solver->tree, frame->node); first != 0;
+         first = Skip(frame->solver->tree, first, ItemOf(frame, first)->lineCount))
+    {
+        PlaceLine(frame, first, ItemOf(frame, first)->lineCount);
     }
 }
 

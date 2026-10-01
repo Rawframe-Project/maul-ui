@@ -17,8 +17,10 @@ muiLayoutStyle muiDefaultLayoutStyle(void)
 {
     return (muiLayoutStyle){
         .container = {.direction = mui_flexRow,
+                      .wrap = mui_wrapNone,
                       .justify = mui_justifyStart,
-                      .alignItems = mui_alignStretch},
+                      .alignItems = mui_alignStretch,
+                      .alignContent = mui_alignContentStretch},
         .item = {.shrink = 1.0f, .alignSelf = mui_alignAuto},
     };
 }
@@ -59,6 +61,8 @@ static bool IsStyleValid(const muiLayoutStyle* style)
     const muiFlexContainer* container = &style->container;
     const muiFlexItem* item = &style->item;
     return IsSizingValid(&style->sizing) && container->direction <= mui_flexColumnReverse &&
+           container->wrap <= mui_wrapReverse &&
+           container->alignContent <= mui_alignContentSpaceEvenly &&
            container->justify <= mui_justifySpaceEvenly && container->alignItems != mui_alignAuto &&
            container->alignItems <= mui_alignCenter && IsLength(container->rowGap) &&
            IsLength(container->columnGap) && IsLength(item->grow) && IsLength(item->shrink) &&
