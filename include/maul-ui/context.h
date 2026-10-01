@@ -30,6 +30,9 @@ extern "C"
         // The variants of all classes together that have values set: a
         // class's base values, and each state variant it sets, are one.
         uint32_t propertySets;
+        // Notifications waiting to be taken; past it, they are counted in a
+        // mui_notificationDropped record.
+        uint32_t notifications;
     } muiLimits;
 
     // How a context is made. Build it with muiDefaultContextDef.
@@ -41,7 +44,8 @@ extern "C"
     } muiContextDef;
 
     /// Returns the default context def: 4,096 nodes, 256 styles, 64 node
-    /// types, 1,024 property sets and the C library's allocator.
+    /// types, 1,024 property sets, 64 notifications and the C library's
+    /// allocator.
     ///
     /// @return The def, with a valid cookie.
     /// @par Thread safety
@@ -70,6 +74,42 @@ extern "C"
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_API void muiDestroyContext(muiContext* context);
+
+    // What a notification reports.
+    typedef uint8_t muiNotificationKind;
+
+    enum
+    {
+        // A node's conditions flipped back and forth with its own layout,
+        // the same two sizes in turn; its conditions are held at their
+        // last outcome until the host edits the node or its size leaves
+        // those two (record mui-0004).
+        mui_notificationOscillation = 1,
+        // count notifications were dropped here, past the limit.
+        mui_notificationDropped = 2,
+    };
+
+    // A record of something the host learns after the call that caused
+    // it, in the order it happened (family record 0018).
+    typedef struct muiNotification
+    {
+        muiNotificationKind kind;
+        // The node it is about; the null id for mui_notificationDropped.
+        muiNodeId nodeId;
+        // For mui_notificationDropped, how many were dropped.
+        uint32_t count;
+    } muiNotification;
+
+    /// Takes the oldest notification.
+    ///
+    /// @param context          The context.
+    /// @param notificationOut  Receives it.
+    /// @return `mui_success`; `mui_empty` when none is waiting;
+    ///         `mui_errorInvalid` for a NULL argument.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiNextNotification(muiContext* context,
+                                                        muiNotification* notificationOut);
 
     /// Returns how many calls the context has refused as invalid input
     /// (`mui_errorInvalid`): a count release builds can watch to catch a

@@ -10,6 +10,7 @@
 
 #include "condition.h"
 #include "layout_node.h"
+#include "notify.h"
 #include "pool.h"
 #include "property.h"
 #include "style_store.h"
@@ -66,10 +67,11 @@ static void ApplyVariant(const muiStyleStore* store, const Classes* classes, mui
 }
 
 // Applies the conditional values that hold, in class order and then
-// condition order, sampling the node's last layout, and records what was
-// read.
-static void ApplyConditions(muiContext* context, uint32_t slot, const Classes* classes,
-                            muiPropertyMask free, muiLayoutStyle* values)
+// condition order, sampling the node's last layout; records what was
+// read and returns the run: which held, as one bit per condition with
+// values in that order (folded past 64), and the sample.
+static muiConditionRun ApplyConditions(muiContext* context, uint32_t slot, const Classes* classes,
+                                       muiPropertyMask free, muiLayoutStyle* values)
 {
     const muiStyleStore* store = &context->style;
     muiLayoutNode* layout = &context->layout[slot - 1];
@@ -79,7 +81,9 @@ static void ApplyConditions(muiContext* context, uint32_t slot, const Classes* c
         .rtl = layout->rtl,
         .environment = &context->environment,
     };
+    muiConditionRun run = {.width = sample.width, .height = sample.height, .rtl = sample.rtl};
     muiConditionReads reads = 0;
+    uint32_t position = 0;
     for (uint32_t i = 0; i < classes->count; i++)
     {
         const muiStyleClass* class = &store->classes[classes->slots[i] - 1];
@@ -95,18 +99,78 @@ static void ApplyConditions(muiContext* context, uint32_t slot, const Classes* c
             {
                 const muiPropertySet* source = &store->sets[set - 1];
                 muiApplyProperties(values, &source->values, source->mask & free);
+                run.outcome |= (uint64_t)1 << (position % 64);
             }
+            position++;
         }
     }
     layout->conditionReads = reads;
     layout->conditionSize = (muiSize){sample.width, sample.height};
     layout->conditionRtl = sample.rtl;
+    return run;
+}
+
+static bool IsSameSample(const muiConditionRun* a, const muiConditionRun* b)
+{
+    return a->width == b->width && a->height == b->height && a->rtl == b->rtl;
+}
+
+// Adds a styling to the node's history and reports an oscillation: the
+// last four stylings, none the host's but perhaps the first, read two
+// samples in turn and their outcomes flipped with them. Its conditions
+// are then held at this outcome (record mui-0004).
+static void Watch(muiContext* context, uint32_t slot, const muiConditionRun* run)
+{
+    muiNodeStyle* node = &context->style.nodes[slot - 1];
+    muiConditionRun* history = node->history;
+    if (node->historyCount == MUI_CONDITION_HISTORY && IsSameSample(run, &history[1]) &&
+        IsSameSample(&history[0], &history[2]) && !IsSameSample(run, &history[0]) &&
+        run->outcome != history[0].outcome)
+    {
+        muiLayoutNode* layout = &context->layout[slot - 1];
+        layout->held = true;
+        layout->heldSizes[0] = (muiSize){run->width, run->height};
+        layout->heldSizes[1] = (muiSize){history[0].width, history[0].height};
+        node->historyCount = 0;
+        const muiNotification record = {
+            .kind = mui_notificationOscillation,
+            .nodeId = muiTreeIdOf(&context->tree, slot),
+        };
+        muiNotifyPost(&context->notifications, &record);
+        return;
+    }
+    for (uint32_t i = MUI_CONDITION_HISTORY - 1; i > 0; i--)
+    {
+        history[i] = history[i - 1];
+    }
+    history[0] = *run;
+    if (node->historyCount < MUI_CONDITION_HISTORY)
+    {
+        node->historyCount++;
+    }
+}
+
+// Starts the node's history again when the host caused this styling,
+// rather than its own layout: it edited the node, or a class, a node type
+// or the environment. That also releases a hold.
+static void NoteHostEdit(muiContext* context, uint32_t slot)
+{
+    muiNodeStyle* node = &context->style.nodes[slot - 1];
+    bool edited = node->edited || node->editsSeen != context->styleEdits;
+    node->edited = false;
+    node->editsSeen = context->styleEdits;
+    if (edited)
+    {
+        node->historyCount = 0;
+        context->layout[slot - 1].held = false;
+    }
 }
 
 // Resolves the properties a node does not write directly; the direct
 // ones already hold their values, which are carried over.
 static void Resolve(muiContext* context, uint32_t slot)
 {
+    NoteHostEdit(context, slot);
     const muiStyleStore* store = &context->style;
     const muiNodeStyle* node = &store->nodes[slot - 1];
     muiPropertyMask free = MUI_LAYOUT_PROPERTIES & ~node->direct;
@@ -128,7 +192,11 @@ static void Resolve(muiContext* context, uint32_t slot)
             ApplyVariant(store, &classes, (muiVariant)v, free, &values);
         }
     }
-    ApplyConditions(context, slot, &classes, free, &values);
+    muiConditionRun run = ApplyConditions(context, slot, &classes, free, &values);
+    if (layout->conditionReads != 0)
+    {
+        Watch(context, slot, &run);
+    }
     if (muiDoPropertiesDiffer(&values, &layout->style, free))
     {
         layout->style = values;

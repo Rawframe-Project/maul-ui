@@ -35,6 +35,7 @@ muiResult muiNode_SetType(muiContext* context, muiNodeId nodeId, muiNodeTypeId t
         return mui_errorStale;
     }
     context->style.nodes[slot - 1].type = typeId;
+    context->style.nodes[slot - 1].edited = true;
     muiTreeMark(&context->tree, slot, mui_stageStyle);
     return mui_success;
 }
@@ -55,6 +56,7 @@ muiResult muiNode_SetClasses(muiContext* context, muiNodeId nodeId, const muiSty
     if (slot != 0)
     {
         muiSetClassList(&context->style.nodes[slot - 1].classes, classes, count);
+        context->style.nodes[slot - 1].edited = true;
         muiTreeMark(&context->tree, slot, mui_stageStyle);
     }
     return status;
@@ -75,6 +77,7 @@ muiResult muiNode_SetStates(muiContext* context, muiNodeId nodeId, muiState stat
     if (slot != 0 && context->style.nodes[slot - 1].states != states)
     {
         context->style.nodes[slot - 1].states = states;
+        context->style.nodes[slot - 1].edited = true;
         muiTreeMark(&context->tree, slot, mui_stageStyle);
     }
     return status;
@@ -105,6 +108,7 @@ muiResult muiNode_SetLayoutValues(muiContext* context, muiNodeId nodeId,
         muiApplyProperties(&layout->style, values, mask);
         muiSyncLayoutNode(layout);
         context->style.nodes[slot - 1].direct |= mask;
+        context->style.nodes[slot - 1].edited = true;
         muiTreeMarkLayout(&context->tree, slot);
     }
     return status;
@@ -125,6 +129,7 @@ muiResult muiNode_ResetProperties(muiContext* context, muiNodeId nodeId, muiProp
     if (slot != 0)
     {
         context->style.nodes[slot - 1].direct &= ~mask;
+        context->style.nodes[slot - 1].edited = true;
         muiTreeMark(&context->tree, slot, mui_stageStyle);
     }
     return status;

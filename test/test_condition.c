@@ -590,6 +590,133 @@ static void TestDirectValuesSurviveAConditionWrite(void)
     muiDestroyContext(context);
 }
 
+// A node whose start padding, given while it is narrower than 100,
+// widens it past 100: its child is 80 wide and it fits its content.
+static muiNodeId MakeOscillator(muiContext* context, muiNodeId parent, muiStyleId style)
+{
+    muiNodeId node = MakeNode(context);
+    muiNodeId child = MakeNode(context);
+    SetWidth(context, child, 80.0f);
+    CHECK(muiNode_InsertChild(context, node, child, s_nullNode) == mui_success, "child");
+    CHECK(muiNode_InsertChild(context, parent, node, s_nullNode) == mui_success, "insert");
+    CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
+    return node;
+}
+
+static muiStyleId MakeWidening(muiContext* context)
+{
+    muiStyleId style = MakeStyle(context);
+    muiCondition narrow = muiDefaultCondition();
+    narrow.width = (muiRange){0.0f, 100.0f};
+    AddPadding(context, style, &narrow, 50.0f);
+    return style;
+}
+
+// Lays root out while work is pending, at most ten times, and returns how
+// many runs it took.
+static int RunWhilePending(muiContext* context, muiNodeId root)
+{
+    int runs = 0;
+    while (runs < 10 && muiIsUpdatePending(context, root))
+    {
+        Compute(context, root);
+        runs++;
+    }
+    return runs;
+}
+
+static void ExpectOscillation(muiContext* context, muiNodeId node)
+{
+    muiNotification record = {0};
+    CHECK(muiNextNotification(context, &record) == mui_success, "a record");
+    CHECK(record.kind == mui_notificationOscillation, "an oscillation");
+    CHECK(record.nodeId.index1 == node.index1 && record.nodeId.generation == node.generation,
+          "of the node");
+    CHECK(muiNextNotification(context, &record) == mui_empty, "only one");
+}
+
+static void TestOscillationIsReportedAndHeld(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId root = MakeNode(context);
+    muiStyleId style = MakeWidening(context);
+    muiNodeId node = MakeOscillator(context, root, style);
+    CHECK(RunWhilePending(context, root) == 5, "four runs flip it, the fifth reports");
+    ExpectOscillation(context, node);
+    float width = muiNode_GetRect(context, node).width;
+    Compute(context, root);
+    CHECK(!muiIsUpdatePending(context, root), "held");
+    CHECK(muiNode_GetRect(context, node).width == width, "at one of its two widths");
+    // A host edit of the node releases it.
+    CHECK(muiNode_SetStates(context, node, mui_stateHovered) == mui_success, "edit");
+    CHECK(RunWhilePending(context, root) == 4,
+          "it oscillates again, its first styling reading one of the two widths");
+    ExpectOscillation(context, node);
+    // So does a size other than the two, here from its child.
+    muiNodeId child = muiNode_GetFirstChild(context, node);
+    SetWidth(context, child, 85.0f);
+    CHECK(RunWhilePending(context, root) > 1, "released and laid out again");
+    ExpectOscillation(context, node);
+    muiDestroyContext(context);
+}
+
+static void TestHostEditsAreNotOscillation(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId node = MakeNode(context);
+    muiStyleId style = MakeStyle(context);
+    muiCondition narrow = muiDefaultCondition();
+    narrow.width = (muiRange){0.0f, 100.0f};
+    AddPadding(context, style, &narrow, 5.0f);
+    CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
+    for (int i = 0; i < 8; i++)
+    {
+        SetWidth(context, node, i % 2 == 0 ? 90.0f : 110.0f);
+        Compute(context, node);
+        Compute(context, node);
+    }
+    muiNotification record;
+    CHECK(muiNextNotification(context, &record) == mui_empty,
+          "widths the host writes in turn are its own doing");
+    muiDestroyContext(context);
+}
+
+static void TestNotificationsPastTheLimitAreCounted(void)
+{
+    muiLimits limits = muiDefaultContextDef().limits;
+    limits.notifications = 1;
+    muiContext* context = MakeContextWith(limits);
+    muiNodeId root = MakeNode(context);
+    muiStyleId style = MakeWidening(context);
+    muiNodeId first = MakeOscillator(context, root, style);
+    MakeOscillator(context, root, style);
+    MakeOscillator(context, root, style);
+    RunWhilePending(context, root);
+    muiNotification record = {0};
+    CHECK(muiNextNotification(context, &record) == mui_success &&
+              record.kind == mui_notificationOscillation && record.nodeId.index1 == first.index1,
+          "the first, in tree order");
+    CHECK(muiNextNotification(context, &record) == mui_success &&
+              record.kind == mui_notificationDropped && record.count == 2 &&
+              record.nodeId.index1 == 0,
+          "then a count of the rest");
+    CHECK(muiNextNotification(context, &record) == mui_empty, "then nothing");
+    CHECK(muiNextNotification(context, NULL) == mui_errorInvalid, "no out pointer");
+    CHECK(muiNextNotification(NULL, &record) == mui_errorInvalid, "no context");
+    CHECK(muiResultName(mui_empty)[4] == 'e', "mui_empty has a name");
+    muiDestroyContext(context);
+    limits.notifications = 0;
+    context = MakeContextWith(limits);
+    root = MakeNode(context);
+    style = MakeWidening(context);
+    MakeOscillator(context, root, style);
+    RunWhilePending(context, root);
+    CHECK(muiNextNotification(context, &record) == mui_success &&
+              record.kind == mui_notificationDropped && record.count == 1,
+          "with no room, only the count");
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestDefaults();
@@ -604,5 +731,8 @@ int main(void)
     TestAspectAndHeightClausesFollowLayout();
     TestOnlyConditionsThatApplyAreWatched();
     TestDirectValuesSurviveAConditionWrite();
+    TestOscillationIsReportedAndHeld();
+    TestHostEditsAreNotOscillation();
+    TestNotificationsPastTheLimitAreCounted();
     return s_failures == 0 ? 0 : 1;
 }

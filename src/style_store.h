@@ -39,6 +39,22 @@ typedef struct muiClassList
     uint32_t count;
 } muiClassList;
 
+// One styling of a node with conditions: which held, as a signature, and
+// the size and direction they read.
+typedef struct muiConditionRun
+{
+    uint64_t outcome;
+    float width;
+    float height;
+    bool rtl;
+} muiConditionRun;
+
+enum
+{
+    // The stylings a node remembers to see a cycle of two outcomes twice.
+    MUI_CONDITION_HISTORY = 3
+};
+
 typedef struct muiNodeStyle
 {
     muiClassList classes;
@@ -47,6 +63,14 @@ typedef struct muiNodeStyle
     // resolved ones.
     muiPropertyMask direct;
     muiState states;
+    // Set by the host's edits of the node: the next styling is the host's,
+    // not one its own layout asked for.
+    bool edited;
+    // The context's style edit count at the last styling.
+    uint32_t editsSeen;
+    // The stylings since the host last restyled the node, newest first.
+    muiConditionRun history[MUI_CONDITION_HISTORY];
+    uint32_t historyCount;
 } muiNodeStyle;
 
 typedef struct muiStyleStore

@@ -218,14 +218,30 @@ static muiSizingInput OwnDirection(const muiLayoutStyle* style, const muiSizingI
     return own;
 }
 
+static bool IsSameSize(muiSize a, muiSize b)
+{
+    return a.width == b.width && a.height == b.height;
+}
+
 // Records the direction a node was laid out in and, when its conditions
 // read a size or direction this layout changed, requests its style for
 // the next pass: conditions read the state before the pass (record
-// mui-0004).
+// mui-0004). A held node is styled again only when its size leaves the
+// two it oscillated between.
 static void Published(const muiSolver* solver, uint32_t node, muiSize size, bool rtl)
 {
     muiLayoutNode* layout = &solver->nodes[node - 1];
     layout->rtl = rtl;
+    if (layout->held)
+    {
+        if (IsSameSize(size, layout->heldSizes[0]) || IsSameSize(size, layout->heldSizes[1]))
+        {
+            return;
+        }
+        layout->held = false;
+        muiTreeMark(solver->restyle, node, mui_stageStyle);
+        return;
+    }
     bool sizeChanged =
         (layout->conditionReads & mui_readsSize) != 0 &&
         (size.width != layout->conditionSize.width || size.height != layout->conditionSize.height);

@@ -50,6 +50,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/layout.c
     src/node.c
     src/node_style.c
+    src/notify.c
     src/pool.c
     src/property.c
     src/restyle.c

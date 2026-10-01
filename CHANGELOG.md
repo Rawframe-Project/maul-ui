@@ -41,3 +41,6 @@ format.
 - Style conditions over a node's last size and direction and over the
   environment (`muiCondition`, `muiSetContextEnvironment`), with values
   that may not set what their condition reads; `muiIsUpdatePending`.
+- A notification queue (`muiNextNotification`, `mui_empty`, the
+  `notifications` limit) and oscillation reports: a node whose
+  conditions flip with its own layout is reported once and held.

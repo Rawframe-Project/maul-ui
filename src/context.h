@@ -7,6 +7,7 @@
 #define MAUL_UI_SRC_CONTEXT_H
 
 #include "layout_node.h"
+#include "notify.h"
 #include "style_store.h"
 #include "tree.h"
 
@@ -23,6 +24,10 @@ struct muiContext
     muiStyleStore style;
     // What conditions read of the world outside the tree.
     muiEnvironment environment;
+    // How many times the host edited a class, a node type or the
+    // environment, each of which restyles every node.
+    uint32_t styleEdits;
+    muiNotifyQueue notifications;
     uint64_t misuse;
     // Set while a measure function runs; edits are refused then.
     bool measuring;

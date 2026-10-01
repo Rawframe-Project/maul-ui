@@ -111,6 +111,7 @@ muiResult muiNode_InsertChild(muiContext* context, muiNodeId parentId, muiNodeId
         return muiRefuse(context);
     }
     muiTreeInsert(tree, parent, child, before);
+    context->style.nodes[child - 1].edited = true;
     return mui_success;
 }
 

@@ -16,6 +16,8 @@ const char* muiResultName(muiResult result)
     {
     case mui_success:
         return "mui_success";
+    case mui_empty:
+        return "mui_empty";
     case mui_errorInvalid:
         return "mui_errorInvalid";
     case mui_errorCapacity:

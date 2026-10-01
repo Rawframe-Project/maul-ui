@@ -21,14 +21,19 @@ muiContextDef muiDefaultContextDef(void)
 {
     return (muiContextDef){
         .cookie = CONTEXT_DEF_COOKIE,
-        .limits = {.nodes = 4096, .styles = 256, .nodeTypes = 64, .propertySets = 1024},
+        .limits = {.nodes = 4096,
+                   .styles = 256,
+                   .nodeTypes = 64,
+                   .propertySets = 1024,
+                   .notifications = 64},
     };
 }
 
 static bool AreLimitsValid(const muiLimits* limits)
 {
     return limits->nodes != 0 && limits->nodes <= MAX_SLOTS && limits->styles <= MAX_SLOTS &&
-           limits->nodeTypes <= MAX_SLOTS && limits->propertySets <= MAX_SLOTS;
+           limits->nodeTypes <= MAX_SLOTS && limits->propertySets <= MAX_SLOTS &&
+           limits->notifications <= MAX_SLOTS;
 }
 
 // Where each part of the context's block starts.
@@ -43,6 +48,7 @@ typedef struct Parts
     size_t types;
     size_t setSlots;
     size_t sets;
+    size_t notifications;
 } Parts;
 
 static Parts LayOut(muiLayout* layout, const muiLimits* limits)
@@ -69,6 +75,8 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
             muiLayoutAdd(layout, limits->propertySets, sizeof(muiPoolSlot), alignof(muiPoolSlot)),
         .sets = muiLayoutAdd(layout, limits->propertySets, sizeof(muiPropertySet),
                              alignof(muiPropertySet)),
+        .notifications = muiLayoutAdd(layout, limits->notifications, sizeof(muiNotification),
+                                      alignof(muiNotification)),
     };
 }
 
@@ -109,6 +117,8 @@ muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut)
     style->types = (muiClassList*)(block + parts.types);
     muiPoolInit(&style->setPool, (muiPoolSlot*)(block + parts.setSlots), def->limits.propertySets);
     style->sets = (muiPropertySet*)(block + parts.sets);
+    muiNotifyInit(&context->notifications, (muiNotification*)(block + parts.notifications),
+                  def->limits.notifications);
     *contextOut = context;
     return mui_success;
 }
@@ -149,4 +159,13 @@ uint32_t muiResolveEdit(muiContext* context, muiNodeId nodeId, muiResult* status
     uint32_t slot = muiTreeResolve(&context->tree, nodeId);
     *statusOut = slot != 0 ? mui_success : mui_errorStale;
     return slot;
+}
+
+muiResult muiNextNotification(muiContext* context, muiNotification* notificationOut)
+{
+    if (context == nullptr || notificationOut == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    return muiNotifyTake(&context->notifications, notificationOut) ? mui_success : mui_empty;
 }

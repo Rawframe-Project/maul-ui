@@ -57,6 +57,8 @@ extern "C"
     {
         // The call did what was asked.
         mui_success = 0,
+        // A queue had nothing to take.
+        mui_empty = 1,
         // An argument is invalid: a null pointer where one is required, a
         // value out of range.
         mui_errorInvalid = -1,

@@ -99,6 +99,11 @@ typedef struct muiLayoutNode
     uint8_t conditionReads;
     bool conditionRtl;
     muiSize conditionSize;
+    // Set while the node's conditions are held after an oscillation
+    // between the two sizes here: layouts that give one of them do not
+    // style it again, and any other size releases it.
+    bool held;
+    muiSize heldSizes[2];
 } muiLayoutNode;
 
 // Brings the values kept beside a node's style up to date after the

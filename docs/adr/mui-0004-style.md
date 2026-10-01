@@ -52,6 +52,17 @@ for a fixed order in which a later layer always wins.
   changes a size or direction a node's conditions read, the node's
   style is requested for the next run, and `muiIsUpdatePending` tells
   the host a run is owed.
+- **Oscillation is reported and held.** A node's last stylings since
+  the host last restyled it are kept. When four in a row read two sizes
+  in turn, exactly, and its conditions' outcome flipped each time, the
+  context posts a `mui_notificationOscillation` record for the node in
+  its notification queue (family record 0018), drained with
+  `muiNextNotification`, and holds its conditions at their outcome: a
+  layout that gives either of the two sizes does not style it again.
+  A host edit of the node, of a class, a node type or the environment,
+  or any other size releases it. The queue is a ring reserved at
+  creation; records past its limit are counted into one
+  `mui_notificationDropped` record in the place of the first lost one.
 - **A condition's values may not set what it reads:** the sizes and
   limits of an axis it reads, the aspect ratio when it reads either
   axis, and the text direction when it reads direction. A write or a
@@ -79,4 +90,7 @@ resolution. A size or direction condition shows its effect one run
 after the layout that changes what it reads, and a node never seen
 laid out reads a size of 0; in exchange no stage feeds an earlier one
 within a run. A rule that feeds its own condition through layout (a
-narrow node made wider) can only be seen across runs.
+narrow node made wider) can only be seen across runs: it flickers for
+four runs before it is held. A host that writes a parent's size back
+and forth between two values on every run makes the same pattern and is
+reported the same way.

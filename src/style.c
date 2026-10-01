@@ -17,6 +17,7 @@
 
 static void RestyleAll(muiContext* context)
 {
+    context->styleEdits++;
     muiTreeMarkAll(&context->tree, mui_stageStyle);
 }
 
