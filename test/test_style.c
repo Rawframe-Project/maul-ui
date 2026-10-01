@@ -11,6 +11,8 @@
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
 
+#include <math.h>
+
 static const muiNodeId s_nullNode = {0, 0};
 static const muiStyleId s_nullStyle = {0, 0};
 static const muiNodeTypeId s_nullType = {0, 0};
@@ -433,6 +435,107 @@ static void TestDirectWritesWinUntilReset(void)
     muiDestroyContext(context);
 }
 
+static void TestDirectValuesSurviveAClassWrite(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId node = MakeNode(context);
+    muiStyleId style = MakeStyle(context);
+    muiLayoutStyle hovered = WithWidth(25.0f);
+    hovered.padding.start = 2.0f;
+    CHECK(muiStyle_SetLayoutValues(context, style, mui_variantHovered, &hovered,
+                                   WIDTH | PADDING_START) == mui_success,
+          "hovered width and padding");
+    CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
+    muiLayoutStyle direct = WithWidth(50.0f);
+    CHECK(muiNode_SetLayoutValues(context, node, &direct, WIDTH) == mui_success, "direct width");
+    CHECK(WidthAfterLayout(context, node, node) == 50.0f, "direct");
+    CHECK(muiNode_SetStates(context, node, mui_stateHovered) == mui_success, "hover");
+    muiLayoutStyle read;
+    CHECK(WidthAfterLayout(context, node, node) == 50.0f, "the class's padding lands");
+    CHECK(muiNode_GetLayoutStyle(context, node, &read) == mui_success &&
+              read.padding.start == 2.0f && read.sizing.width.offset == 50.0f,
+          "beside the direct width, which it does not touch");
+    muiDestroyContext(context);
+}
+
+static void TestClassValuesReachLayout(void)
+{
+    muiContext* context = MakeContext();
+    Host host = {.context = context};
+    muiNodeId root = MakeNode(context);
+    muiLayoutStyle box = WithWidth(100.0f);
+    box.sizing.height = (muiDimension){0.0f, 50.0f, mui_dimensionValue};
+    CHECK(muiNode_SetLayoutStyle(context, root, &box) == mui_success, "root");
+    muiNodeId first = MakeNode(context);
+    muiNodeId second = MakeNode(context);
+    muiLayoutStyle content = muiDefaultLayoutStyle();
+    content.content = mui_contentHost;
+    const muiPropertyMask contentBit = MUI_PROPERTY_BIT(mui_propertyContent);
+    CHECK(muiNode_SetLayoutValues(context, first, &content, contentBit) == mui_success, "first");
+    CHECK(muiNode_SetLayoutValues(context, second, &content, contentBit) == mui_success, "second");
+    CHECK(muiNode_InsertChild(context, root, first, s_nullNode) == mui_success, "insert first");
+    CHECK(muiNode_InsertChild(context, root, second, s_nullNode) == mui_success, "insert second");
+    // An absolute class: the first child leaves the flow, so the second
+    // starts the row.
+    muiStyleId floating = MakeStyle(context);
+    muiLayoutStyle placed = muiDefaultLayoutStyle();
+    placed.placement.position = mui_positionAbsolute;
+    placed.placement.inset.top = (muiDimension){0.0f, 30.0f, mui_dimensionValue};
+    CHECK(muiStyle_SetLayoutValues(context, floating, mui_variantBase, &placed,
+                                   MUI_PROPERTY_BIT(mui_propertyPosition) |
+                                       MUI_PROPERTY_BIT(mui_propertyInsetTop)) == mui_success,
+          "absolute class");
+    CHECK(muiNode_SetClasses(context, first, &floating, 1) == mui_success, "class");
+    Compute(context, root, &host);
+    CHECK(muiNode_GetRect(context, first).y == 30.0f, "placed by its inset");
+    CHECK(muiNode_GetRect(context, second).x == 0.0f, "out of the flow");
+    // A zero width is a value, not automatic: the kind alone changes.
+    muiStyleId collapsed = MakeStyle(context);
+    SetWidth(context, collapsed, mui_variantPressed, 0.0f);
+    CHECK(muiNode_SetClasses(context, second, &collapsed, 1) == mui_success, "class");
+    Compute(context, root, &host);
+    CHECK(muiNode_GetRect(context, second).width == 10.0f, "its content's width");
+    CHECK(muiNode_SetStates(context, second, mui_statePressed) == mui_success, "press");
+    Compute(context, root, &host);
+    CHECK(muiNode_GetRect(context, second).width == 0.0f, "a width of 0");
+    // A type set after a layout restyles the node.
+    muiStyleId wide = MakeStyle(context);
+    SetWidth(context, wide, mui_variantBase, 40.0f);
+    muiNodeTypeId type = s_nullType;
+    CHECK(muiCreateNodeType(context, &wide, 1, &type) == mui_success, "type");
+    CHECK(muiNode_SetClasses(context, second, NULL, 0) == mui_success, "no classes");
+    Compute(context, root, &host);
+    CHECK(muiNode_SetType(context, second, type) == mui_success, "set type");
+    Compute(context, root, &host);
+    CHECK(muiNode_GetRect(context, second).width == 40.0f, "the type's width");
+    muiDestroyContext(context);
+}
+
+static void TestEveryKindOfValueIsChecked(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId node = MakeNode(context);
+    muiLayoutStyle bad[5];
+    for (int i = 0; i < 5; i++)
+    {
+        bad[i] = muiDefaultLayoutStyle();
+    }
+    bad[0].placement.anchorX = 1.5f;
+    bad[1].placement.anchorY = -0.5f;
+    bad[2].sizing.width = (muiDimension){0.0f, 1.0f, 2};
+    bad[3].margin.top = INFINITY;
+    bad[4].container.alignItems = mui_alignAuto;
+    for (int i = 0; i < 5; i++)
+    {
+        CHECK(muiNode_SetLayoutStyle(context, node, &bad[i]) == mui_errorInvalid, "refused");
+    }
+    muiLayoutStyle good = muiDefaultLayoutStyle();
+    good.placement.anchorX = 1.0f;
+    good.margin.top = -4.0f;
+    CHECK(muiNode_SetLayoutStyle(context, node, &good) == mui_success, "the limits themselves");
+    muiDestroyContext(context);
+}
+
 static void TestOnlyChangedValuesLayOutAgain(void)
 {
     muiContext* context = MakeContext();
@@ -496,6 +599,9 @@ int main(void)
     TestTypeClassesComeFirst();
     TestStatesLayerAboveEveryBase();
     TestDirectWritesWinUntilReset();
+    TestDirectValuesSurviveAClassWrite();
+    TestClassValuesReachLayout();
+    TestEveryKindOfValueIsChecked();
     TestOnlyChangedValuesLayOutAgain();
     TestStyleEditsAreRefusedWhileMeasuring();
     return s_failures == 0 ? 0 : 1;

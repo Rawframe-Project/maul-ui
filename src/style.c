@@ -59,8 +59,8 @@ muiResult muiCreateStyle(muiContext* context, muiStyleId* styleIdOut)
         return mui_errorCapacity;
     }
     store->classes[slot - 1] = (muiStyleClass){0};
+    // No node can list a class that did not exist, so none restyles.
     *styleIdOut = (muiStyleId){slot, muiPoolGeneration(&store->classPool, slot)};
-    RestyleAll(context);
     return mui_success;
 }
 
@@ -206,8 +206,8 @@ muiResult muiCreateNodeType(muiContext* context, const muiStyleId* classes, uint
         return mui_errorCapacity;
     }
     muiSetClassList(&store->types[slot - 1], classes, count);
+    // No node can have a type that did not exist, so none restyles.
     *typeIdOut = (muiNodeTypeId){slot, muiPoolGeneration(&store->typePool, slot)};
-    RestyleAll(context);
     return mui_success;
 }
 

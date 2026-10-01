@@ -143,8 +143,7 @@ extern "C"
         MUI_MAX_CLASSES = 8
     };
 
-    /// Creates a style class with no values set. Every node is styled again
-    /// at the next muiComputeLayout.
+    /// Creates a style class with no values set.
     ///
     /// @param context     The context.
     /// @param styleIdOut  Receives the class; set to the null id on failure.
@@ -224,8 +223,7 @@ extern "C"
                                                              muiLayoutStyle* valuesOut,
                                                              muiPropertyMask* maskOut);
 
-    /// Creates a node type with an ordered list of classes. Every node is
-    /// styled again at the next muiComputeLayout.
+    /// Creates a node type with an ordered list of classes.
     ///
     /// @param context    The context.
     /// @param classes    count classes, kept as given; a class destroyed
