@@ -8,8 +8,8 @@ pool: invariant
 token_store: invariant pool
 theme_store: pool token_store
 draw_store:
-property: color invariant
-condition:
+property: color invariant property_bits
+condition: property_bits
 easing:
 motion_math:
 spring: motion_math
@@ -39,3 +39,4 @@ layout: animation context layout_node property restyle solve solver tree
 font_store: allocator pool
 text_service: allocator font_store pool
 font: allocator font_store pool text_service
+property_bits:

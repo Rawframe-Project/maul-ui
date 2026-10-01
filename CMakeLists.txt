@@ -118,6 +118,17 @@ if(MAUL_UI_BUILD_TESTS)
         maul_add_test(windows_headers)
     endif()
     maul_add_header_tests()
+    # On the web, suites hold several default contexts (8.4 MB each) at
+    # once, past the 16 MiB Emscripten starts with: they grow their
+    # memory, as a page does.
+    if(EMSCRIPTEN)
+        get_property(mui_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+        foreach(mui_target ${mui_targets})
+            if(mui_target MATCHES "^test_")
+                target_link_options(${mui_target} PRIVATE -sALLOW_MEMORY_GROWTH=1)
+            endif()
+        endforeach()
+    endif()
 endif()
 
 if(MAUL_UI_BUILD_BENCH AND EXISTS ${PROJECT_SOURCE_DIR}/bench/bench_main.c)

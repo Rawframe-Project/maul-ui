@@ -262,8 +262,8 @@ static void TestConditionsAreChecked(void)
     CHECK(muiStyle_GetLayoutValues(context, style, mui_variantCondition0 + 1, &values, &mask) ==
               mui_errorInvalid,
           "values of a condition the class does not have");
-    CHECK(muiStyle_ResetProperties(context, style, mui_variantCondition0 + 1, WIDTH) ==
-              mui_errorInvalid,
+    CHECK(muiStyle_ResetProperties(context, style, mui_variantCondition0 + 1, mui_groupLayout,
+                                   WIDTH) == mui_errorInvalid,
           "reset on one");
     CHECK(muiDestroyStyle(context, style) == mui_success, "destroy");
     CHECK(muiStyle_AddCondition(context, style, &good, &variant) == mui_errorStale, "gone add");
@@ -310,7 +310,7 @@ static void TestValuesMayNotSetWhatTheirConditionReads(void)
         condition.inputs = 7;
         muiVariant variant = mui_variantBase;
         CHECK(muiStyle_AddCondition(context, style, &condition, &variant) == mui_success, "add");
-        for (uint32_t bit = 0; bit < mui_propertyCount; bit++)
+        for (uint32_t bit = 0; bit <= mui_propertyContent; bit++)
         {
             muiPropertyMask mask = MUI_PROPERTY_BIT(bit);
             if ((cases[i].refused & mask) != 0)

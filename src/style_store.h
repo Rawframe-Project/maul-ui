@@ -62,7 +62,7 @@ typedef struct muiNodeStyle
     muiNodeTypeId type;
     // The properties written directly, whose values are the node's
     // resolved ones.
-    muiPropertyMask direct;
+    muiPropertyBits direct;
     muiState states;
     // Set by the host's edits of the node: the next styling is the host's,
     // not one its own layout asked for.
@@ -109,7 +109,7 @@ typedef struct muiStyleStore
     // Every property a class has given a value or a node has reset, never
     // cleared: any other property holds its default or a direct write,
     // so resolution passes it by.
-    muiPropertyMask reach;
+    muiPropertyBits reach;
 } muiStyleStore;
 
 // Whether classes and count make a list a node or a type may hold.

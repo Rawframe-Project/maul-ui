@@ -47,7 +47,7 @@ static muiValuesRef NodeValues(const muiMotion* motion, uint32_t node)
 // paints it again.
 static void MarkMoved(const muiMotion* motion, uint32_t node, muiProperty property)
 {
-    if ((MUI_LAYOUT_PROPERTIES & MUI_PROPERTY_BIT(property)) != 0)
+    if (MUI_PROPERTY_GROUP(property) == mui_groupLayout)
     {
         muiTreeMarkLayout(motion->tree, node);
     }

@@ -36,6 +36,6 @@ void muiReleaseEmptySet(muiStyleStore* store, muiStyleClass* class, muiVariant v
 void muiFreeSet(muiStyleStore* store, uint32_t set);
 
 // Takes the token names of the properties mask names out of a set.
-void muiDropTokenNames(muiStyleStore* store, muiPropertySet* set, muiPropertyMask mask);
+void muiDropTokenNames(muiStyleStore* store, muiPropertySet* set, muiPropertyBits properties);
 
 #endif // MAUL_UI_SRC_STYLE_EDIT_H

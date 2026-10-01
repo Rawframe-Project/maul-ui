@@ -93,7 +93,9 @@ static muiTransitionId MakeSpring(muiContext* context, float frequency, float da
 static void Bind(muiContext* context, muiStyleId style, muiVariant variant,
                  muiTransitionId transition, muiPropertyMask mask)
 {
-    CHECK(muiStyle_SetTransition(context, style, variant, transition, mask) == mui_success, "bind");
+    CHECK(muiStyle_SetTransition(context, style, variant, transition, mui_groupLayout, mask) ==
+              mui_success,
+          "bind");
 }
 
 // The node's width after laying it out at timeNs.
@@ -187,7 +189,8 @@ static void TestBindingsAreCheckedAndRead(void)
     }
     muiPropertyMask fifth = MUI_PROPERTY_BIT(MUI_MAX_VARIANT_TRANSITIONS);
     CHECK(muiStyle_SetTransition(context, style, mui_variantPressed,
-                                 specs[MUI_MAX_VARIANT_TRANSITIONS], fifth) == mui_errorCapacity,
+                                 specs[MUI_MAX_VARIANT_TRANSITIONS], mui_groupLayout,
+                                 fifth) == mui_errorCapacity,
           "a fifth spec");
     // Giving the first spec's only property to the second frees a place.
     Bind(context, style, mui_variantPressed, specs[1], MUI_PROPERTY_BIT(0));
@@ -203,34 +206,38 @@ static void TestBindingsAreCheckedAndRead(void)
     CHECK(muiStyle_GetTransition(context, style, mui_variantPressed, 0, &read) == mui_success &&
               read.index1 == 0,
           "taken away");
-    CHECK(muiStyle_SetTransition(context, style, mui_variantCondition0, specs[0], WIDTH) ==
-              mui_errorInvalid,
+    CHECK(muiStyle_SetTransition(context, style, mui_variantCondition0, specs[0], mui_groupLayout,
+                                 WIDTH) == mui_errorInvalid,
           "a condition the class does not have");
-    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, specs[0],
-                                 MUI_PROPERTY_BIT(mui_propertyCount)) == mui_errorInvalid,
+    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, specs[0], mui_groupLayout,
+                                 MUI_PROPERTY_BIT(mui_propertyContent + 1)) == mui_errorInvalid,
           "an unknown property");
-    CHECK(muiStyle_SetTransition(context, s_nullStyle, mui_variantBase, specs[0], WIDTH) ==
+    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, specs[0], 4, WIDTH) ==
               mui_errorInvalid,
+          "an unknown group");
+    CHECK(muiStyle_SetTransition(context, s_nullStyle, mui_variantBase, specs[0], mui_groupLayout,
+                                 WIDTH) == mui_errorInvalid,
           "null class");
-    CHECK(muiStyle_SetTransition(NULL, style, mui_variantBase, specs[0], WIDTH) == mui_errorInvalid,
+    CHECK(muiStyle_SetTransition(NULL, style, mui_variantBase, specs[0], mui_groupLayout, WIDTH) ==
+              mui_errorInvalid,
           "no context");
     CHECK(muiDestroyTransition(context, specs[0]) == mui_success, "destroy a spec");
-    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, specs[0], WIDTH) ==
-              mui_errorStale,
+    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, specs[0], mui_groupLayout,
+                                 WIDTH) == mui_errorStale,
           "a gone spec");
     CHECK(muiStyle_GetTransition(context, style, mui_variantCondition0, 0, &read) ==
               mui_errorInvalid,
           "read a missing condition");
-    CHECK(muiStyle_GetTransition(context, style, mui_variantBase, mui_propertyCount, &read) ==
-              mui_errorInvalid,
+    CHECK(muiStyle_GetTransition(context, style, mui_variantBase,
+                                 (muiProperty)(mui_propertyContent + 1), &read) == mui_errorInvalid,
           "read an unknown property");
     CHECK(muiStyle_GetTransition(context, style, mui_variantBase, 0, NULL) == mui_errorInvalid,
           "no out");
     CHECK(muiStyle_GetTransition(NULL, style, mui_variantBase, 0, &read) == mui_errorInvalid,
           "no context read");
     CHECK(muiDestroyStyle(context, style) == mui_success, "destroy the class");
-    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, specs[1], WIDTH) ==
-              mui_errorStale,
+    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, specs[1], mui_groupLayout,
+                                 WIDTH) == mui_errorStale,
           "a gone class");
     CHECK(muiStyle_GetTransition(context, style, mui_variantBase, 0, &read) == mui_errorStale,
           "read a gone class");
@@ -248,14 +255,16 @@ static void TestBindingsHoldSetsAlone(void)
     CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, &values, WIDTH) ==
               mui_errorCapacity,
           "a binding alone holds the only set");
-    CHECK(muiStyle_SetTransition(context, style, mui_variantPressed, spec, WIDTH) ==
-              mui_errorCapacity,
+    CHECK(muiStyle_SetTransition(context, style, mui_variantPressed, spec, mui_groupLayout,
+                                 WIDTH) == mui_errorCapacity,
           "so another variant cannot bind");
     Bind(context, style, mui_variantHovered, s_nullTransition, WIDTH);
     CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, &values, WIDTH) == mui_success,
           "unbinding the last gave the set back");
     Bind(context, style, mui_variantBase, s_nullTransition, WIDTH);
-    CHECK(muiStyle_ResetProperties(context, style, mui_variantBase, WIDTH) == mui_success, "reset");
+    CHECK(muiStyle_ResetProperties(context, style, mui_variantBase, mui_groupLayout, WIDTH) ==
+              mui_success,
+          "reset");
     CHECK(muiStyle_SetLayoutValues(context, style, mui_variantPressed, &values, WIDTH) ==
               mui_success,
           "no binding and no value gave it back");
@@ -282,7 +291,8 @@ static void TestTimedTransitionFollowsItsCurve(void)
     CHECK(WidthAt(scene.context, scene.node, T0 + 200 * MS) == 100.0f, "the after-change spec");
     CHECK(!muiNode_IsTransitioning(NULL, scene.node, mui_propertyWidth) &&
               !muiNode_IsTransitioning(scene.context, s_nullNode, mui_propertyWidth) &&
-              !muiNode_IsTransitioning(scene.context, scene.node, mui_propertyCount),
+              !muiNode_IsTransitioning(scene.context, scene.node,
+                                       (muiProperty)(mui_propertyContent + 1)),
           "no transition to read");
     muiDestroyContext(scene.context);
 }
@@ -592,7 +602,8 @@ static void TestReversalsKeepShortening(void)
     CHECK(muiNode_SetLayoutStyle(context, direct, &all) == mui_success, "all direct");
     (void)PaddingAt(context, direct, T0);
     CHECK(muiNode_SetClasses(context, direct, &style, 1) == mui_success, "class");
-    CHECK(muiNode_ResetProperties(context, direct, PADDING_START) == mui_success, "reset");
+    CHECK(muiNode_ResetProperties(context, direct, mui_groupLayout, PADDING_START) == mui_success,
+          "reset");
     CHECK(PaddingAt(context, direct, T0) == 0.0f &&
               muiNode_IsTransitioning(context, direct, mui_propertyPaddingStart),
           "so it moves");

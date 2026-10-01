@@ -8,6 +8,16 @@ format.
 
 ## [Unreleased]
 
+### Changed
+
+- Property ids come in groups of 64, one per values struct: visual ids
+  move from 40 to 56 to 64 to 80, and `MUI_VISUAL_PROPERTIES` is the
+  visual group's mask. `muiStyle_ResetProperties`,
+  `muiNode_ResetProperties`, `muiNode_GetDirectProperties` and
+  `muiStyle_SetTransition` take a `muiPropertyGroup`;
+  `MUI_ALL_PROPERTIES` and `mui_propertyCount` are gone, and
+  `MUI_PROPERTY_GROUP` gives a property's group.
+
 ### Added
 
 - The library skeleton: the build, the family rules and tools, the

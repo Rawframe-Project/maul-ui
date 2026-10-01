@@ -91,17 +91,18 @@ muiState muiNode_GetStates(const muiContext* context, muiNodeId nodeId)
     return slot != 0 ? context->style.nodes[slot - 1].states : 0;
 }
 
-// Writes the properties mask names, within allowed, directly: at once,
-// stopping their transitions; a layout one lays the node out again, a
-// visual one paints it again.
+// Writes the properties of a group mask names, within allowed, directly:
+// at once, stopping their transitions; a layout one lays the node out
+// again, a visual one paints it again.
 static muiResult SetDirect(muiContext* context, muiNodeId nodeId, muiConstValuesRef values,
-                           muiPropertyMask mask, muiPropertyMask allowed)
+                           muiPropertyGroup group, muiPropertyMask mask, muiPropertyMask allowed)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
-    if ((mask & ~allowed) != 0 || !muiArePropertiesValid(values, mask))
+    const muiPropertyBits properties = muiPropertiesOf(group, mask);
+    if ((mask & ~allowed) != 0 || !muiArePropertiesValid(values, properties))
     {
         return muiRefuse(context);
     }
@@ -113,23 +114,24 @@ static muiResult SetDirect(muiContext* context, muiNodeId nodeId, muiConstValues
     }
     const muiMotion motion = {&context->animations, context->layout, context->visual,
                               context->style.nodes, &context->tree};
-    for (uint32_t p = 0; p < mui_propertyCount; p++)
+    // Most nodes move nothing.
+    for (muiPropertyBits left = properties;
+         context->style.nodes[slot - 1].firstAnimation != 0 && muiAnyProperty(left);)
     {
-        if ((mask & MUI_PROPERTY_BIT(p)) != 0)
-        {
-            muiStopAnimation(&motion, slot, (muiProperty)p);
-        }
+        muiStopAnimation(&motion, slot, muiTakeProperty(&left));
     }
     muiLayoutNode* layout = &context->layout[slot - 1];
-    muiApplyProperties((muiValuesRef){&layout->style, &context->visual[slot - 1]}, values, mask);
+    muiApplyProperties((muiValuesRef){&layout->style, &context->visual[slot - 1]}, values,
+                       properties);
     muiSyncLayoutNode(layout);
-    context->style.nodes[slot - 1].direct |= mask;
-    context->style.nodes[slot - 1].edited = true;
-    if ((mask & MUI_LAYOUT_PROPERTIES) != 0)
+    muiNodeStyle* node = &context->style.nodes[slot - 1];
+    node->direct = muiUnion(node->direct, properties);
+    node->edited = true;
+    if (group == mui_groupLayout && mask != 0)
     {
         muiTreeMarkLayout(&context->tree, slot);
     }
-    if ((mask & MUI_VISUAL_PROPERTIES) != 0)
+    if (group == mui_groupVisual && mask != 0)
     {
         muiTreeMark(&context->tree, slot, mui_stagePaint);
     }
@@ -143,7 +145,7 @@ muiResult muiNode_SetLayoutValues(muiContext* context, muiNodeId nodeId,
     {
         return context != nullptr ? muiRefuse(context) : mui_errorInvalid;
     }
-    return SetDirect(context, nodeId, (muiConstValuesRef){values, nullptr}, mask,
+    return SetDirect(context, nodeId, (muiConstValuesRef){values, nullptr}, mui_groupLayout, mask,
                      MUI_LAYOUT_PROPERTIES);
 }
 
@@ -154,7 +156,7 @@ muiResult muiNode_SetVisualValues(muiContext* context, muiNodeId nodeId,
     {
         return context != nullptr ? muiRefuse(context) : mui_errorInvalid;
     }
-    return SetDirect(context, nodeId, (muiConstValuesRef){nullptr, values}, mask,
+    return SetDirect(context, nodeId, (muiConstValuesRef){nullptr, values}, mui_groupVisual, mask,
                      MUI_VISUAL_PROPERTIES);
 }
 
@@ -174,31 +176,37 @@ muiResult muiNode_GetVisualStyle(const muiContext* context, muiNodeId nodeId,
     return mui_success;
 }
 
-muiResult muiNode_ResetProperties(muiContext* context, muiNodeId nodeId, muiPropertyMask mask)
+muiResult muiNode_ResetProperties(muiContext* context, muiNodeId nodeId, muiPropertyGroup group,
+                                  muiPropertyMask mask)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
-    if ((mask & ~MUI_ALL_PROPERTIES) != 0)
+    if (!muiIsGroupMaskKnown(group, mask))
     {
         return muiRefuse(context);
     }
+    const muiPropertyBits properties = muiPropertiesOf(group, mask);
     muiResult status = mui_success;
     uint32_t slot = muiResolveEdit(context, nodeId, &status);
     if (slot != 0)
     {
-        context->style.nodes[slot - 1].direct &= ~mask;
-        context->style.nodes[slot - 1].edited = true;
+        muiNodeStyle* node = &context->style.nodes[slot - 1];
+        node->direct = muiWithout(node->direct, properties);
+        node->edited = true;
         // Its classes may name none of them: the defaults they go back to.
-        context->style.reach |= mask;
+        context->style.reach = muiUnion(context->style.reach, properties);
         muiTreeMark(&context->tree, slot, mui_stageStyle);
     }
     return status;
 }
 
-muiPropertyMask muiNode_GetDirectProperties(const muiContext* context, muiNodeId nodeId)
+muiPropertyMask muiNode_GetDirectProperties(const muiContext* context, muiNodeId nodeId,
+                                            muiPropertyGroup group)
 {
     uint32_t slot = context != nullptr ? muiTreeResolve(&context->tree, nodeId) : 0;
-    return slot != 0 ? context->style.nodes[slot - 1].direct : 0;
+    return slot != 0 && group < MUI_PROPERTY_GROUPS
+               ? context->style.nodes[slot - 1].direct.words[group]
+               : 0;
 }

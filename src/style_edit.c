@@ -45,9 +45,9 @@ muiPropertySet* muiTakeVariantSet(muiStyleStore* store, muiStyleClass* class, mu
     return &store->sets[*set - 1];
 }
 
-void muiDropTokenNames(muiStyleStore* store, muiPropertySet* set, muiPropertyMask mask)
+void muiDropTokenNames(muiStyleStore* store, muiPropertySet* set, muiPropertyBits properties)
 {
-    if ((set->tokenMask & mask) == 0)
+    if (!muiIntersects(set->tokens, properties))
     {
         return;
     }
@@ -55,7 +55,7 @@ void muiDropTokenNames(muiStyleStore* store, muiPropertySet* set, muiPropertyMas
     while (*link != 0)
     {
         uint32_t name = *link;
-        if ((mask & MUI_PROPERTY_BIT(store->names[name - 1].property)) != 0)
+        if (muiHasProperty(properties, store->names[name - 1].property))
         {
             *link = store->names[name - 1].next;
             muiPoolGive(&store->namePool, name);
@@ -65,20 +65,20 @@ void muiDropTokenNames(muiStyleStore* store, muiPropertySet* set, muiPropertyMas
             link = &store->names[name - 1].next;
         }
     }
-    set->tokenMask &= ~mask;
+    set->tokens = muiWithout(set->tokens, properties);
 }
 
 void muiFreeSet(muiStyleStore* store, uint32_t set)
 {
-    muiDropTokenNames(store, &store->sets[set - 1], MUI_ALL_PROPERTIES);
+    muiDropTokenNames(store, &store->sets[set - 1], muiKnownProperties());
     muiPoolGive(&store->setPool, set);
 }
 
 void muiReleaseEmptySet(muiStyleStore* store, muiStyleClass* class, muiVariant variant)
 {
     uint32_t* set = &class->sets[variant];
-    if (*set != 0 && store->sets[*set - 1].mask == 0 && store->sets[*set - 1].tokenMask == 0 &&
-        store->sets[*set - 1].bindingCount == 0)
+    if (*set != 0 && !muiAnyProperty(store->sets[*set - 1].properties) &&
+        !muiAnyProperty(store->sets[*set - 1].tokens) && store->sets[*set - 1].bindingCount == 0)
     {
         muiFreeSet(store, *set);
         *set = 0;

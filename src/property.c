@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The property table. Rows follow the muiProperty numbering, which a
-// static assertion ties to the table's length; each row names its struct,
-// layout's or visual's, and its place there.
+// The property table: a table of rows per group, following the
+// muiProperty numbering within it, which static assertions tie to the
+// tables' lengths; each row names its struct, layout's or visual's, and
+// its place there.
 
 #include "property.h"
 
@@ -68,7 +69,7 @@ typedef struct Row
 #define NUMBER(field, kind)    LAYOUT(field, float, kind, 0, 0)
 #define ENUM(field, low, high) LAYOUT(field, uint8_t, kindEnum, low, high)
 
-static const Row s_rows[] = {
+static const Row s_layoutRows[] = {
     DIMENSION(sizing.width),
     DIMENSION(sizing.height),
     DIMENSION(sizing.minWidth),
@@ -110,6 +111,9 @@ static const Row s_rows[] = {
     NUMBER(placement.anchorY, kindFraction),
     ENUM(textDirection, mui_textInherit, mui_textRightToLeft),
     ENUM(content, mui_contentNone, mui_contentHost),
+};
+
+static const Row s_visualRows[] = {
     VISUAL(background, muiColor, kindColor),
     VISUAL(gradient, muiGradient, kindGradient),
     VISUAL(radius.topStart, muiDimension, kindRadius),
@@ -129,7 +133,23 @@ static const Row s_rows[] = {
     {(uint16_t)offsetof(muiVisualStyle, clip), (uint8_t)sizeof(bool), kindEnum, groupVisual, 0, 1},
 };
 
-static_assert(sizeof s_rows / sizeof s_rows[0] == mui_propertyCount, "one row per property");
+typedef struct GroupRows
+{
+    const Row* rows;
+    uint32_t count;
+} GroupRows;
+
+static const GroupRows s_groups[MUI_PROPERTY_GROUPS] = {
+    {s_layoutRows, (uint32_t)(sizeof s_layoutRows / sizeof s_layoutRows[0])},
+    {s_visualRows, (uint32_t)(sizeof s_visualRows / sizeof s_visualRows[0])},
+};
+
+static_assert(sizeof s_layoutRows / sizeof s_layoutRows[0] == mui_propertyContent + 1 &&
+                  sizeof s_visualRows / sizeof s_visualRows[0] == (mui_propertyClip & 63) + 1,
+              "one row per property");
+static_assert(MUI_PROPERTY_GROUP(mui_propertyBackground) == mui_groupVisual &&
+                  (mui_propertyBackground & 63) == 0,
+              "the visual group starts at its first id");
 static_assert(sizeof(muiGradient) <= UINT8_MAX, "sizes fit a row");
 static_assert(sizeof(bool) == 1, "a flag is one byte, as an enumerator");
 static_assert(sizeof(muiShadow) <= sizeof(muiPropertyValue), "a moving value fits");
@@ -139,9 +159,42 @@ static_assert(sizeof(muiColor) == 4 * sizeof(float) && sizeof(muiShadow) == 8 * 
                   sizeof(muiEdges) == 4 * sizeof(float) &&
                   sizeof(muiGradientStop) == 5 * sizeof(float),
               "compared as floats alone");
-static_assert(MUI_ALL_PROPERTIES == (((muiPropertyMask)1 << mui_propertyCount) - 1),
-              "the masks name every property");
-static_assert((MUI_LAYOUT_PROPERTIES & MUI_VISUAL_PROPERTIES) == 0, "the masks part");
+static_assert(MUI_LAYOUT_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyContent) << 1) - 1 &&
+                  MUI_VISUAL_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyClip) << 1) - 1,
+              "the masks name every property of their groups");
+
+// A known property's row.
+static const Row* RowOf(muiProperty property)
+{
+    return &s_groups[MUI_PROPERTY_GROUP(property)].rows[property & 63];
+}
+
+bool muiIsPropertyKnown(muiProperty property)
+{
+    return (property & 63u) < s_groups[MUI_PROPERTY_GROUP(property)].count;
+}
+
+static const muiPropertyBits s_known = {{MUI_LAYOUT_PROPERTIES, MUI_VISUAL_PROPERTIES}};
+
+bool muiIsGroupMaskKnown(muiPropertyGroup group, muiPropertyMask mask)
+{
+    return group < MUI_PROPERTY_GROUPS && (mask & ~s_known.words[group]) == 0;
+}
+
+muiPropertyBits muiKnownProperties(void)
+{
+    return s_known;
+}
+
+// The lowest bit of a word that is not 0, by a de Bruijn sequence.
+static uint32_t LowestBit(uint64_t word)
+{
+    static const uint8_t index[64] = {
+        0,  1,  48, 2,  57, 49, 28, 3,  61, 58, 50, 42, 38, 29, 17, 4,  62, 55, 59, 36, 53, 51,
+        43, 22, 45, 39, 33, 30, 24, 18, 12, 5,  63, 47, 56, 27, 60, 41, 37, 16, 54, 35, 52, 21,
+        44, 32, 23, 11, 46, 26, 40, 15, 34, 20, 31, 10, 25, 14, 19, 9,  13, 8,  7,  6};
+    return index[((word & (~word + 1)) * 0x03F79D71B4CB0A89ull) >> 58];
+}
 
 static const muiLayoutStyle s_layoutDefaults = {
     .container = {.direction = mui_flexRow,
@@ -177,15 +230,6 @@ const muiVisualStyle* muiVisualDefaults(void)
 
 // The index of the lowest set bit of a mask that is not 0, by a de Bruijn
 // sequence: portable, and the same on every compiler.
-static uint32_t LowestBit(muiPropertyMask mask)
-{
-    static const uint8_t index[64] = {
-        0,  1,  48, 2,  57, 49, 28, 3,  61, 58, 50, 42, 38, 29, 17, 4,  62, 55, 59, 36, 53, 51,
-        43, 22, 45, 39, 33, 30, 24, 18, 12, 5,  63, 47, 56, 27, 60, 41, 37, 16, 54, 35, 52, 21,
-        44, 32, 23, 11, 46, 26, 40, 15, 34, 20, 31, 10, 25, 14, 19, 9,  13, 8,  7,  6};
-    return index[((mask & (~mask + 1)) * 0x03F79D71B4CB0A89ull) >> 58];
-}
-
 static const void* At(muiConstValuesRef values, const Row* row)
 {
     const void* base =
@@ -392,55 +436,72 @@ static bool AreEqual(muiConstValuesRef a, muiConstValuesRef b, const Row* row)
     }
 }
 
-bool muiArePropertiesValid(muiConstValuesRef values, muiPropertyMask mask)
+bool muiArePropertiesValid(muiConstValuesRef values, muiPropertyBits properties)
 {
-    if ((mask & ~MUI_ALL_PROPERTIES) != 0)
+    if (muiAnyProperty(muiWithout(properties, s_known)))
     {
         return false;
     }
-    for (muiPropertyMask left = mask; left != 0; left &= left - 1)
+    for (uint32_t group = 0; group < MUI_PROPERTY_GROUPS; group++)
     {
-        if (!IsValid(values, &s_rows[LowestBit(left)]))
+        const Row* rows = s_groups[group].rows;
+        for (uint64_t left = properties.words[group]; left != 0; left &= left - 1)
         {
-            return false;
+            if (!IsValid(values, &rows[LowestBit(left)]))
+            {
+                return false;
+            }
         }
     }
     return true;
 }
 
-void muiApplyProperties(muiValuesRef target, muiConstValuesRef source, muiPropertyMask mask)
+// Copies one property.
+static void ApplyRow(muiValuesRef target, muiConstValuesRef source, const Row* row)
 {
-    for (muiPropertyMask left = mask; left != 0; left &= left - 1)
+    // Constant sizes for layout's kinds, so each copy compiles to a move.
+    switch (row->kind)
     {
-        const Row* row = &s_rows[LowestBit(left)];
-        // Constant sizes for layout's kinds, so each copy compiles to a move.
-        switch (row->kind)
+    case kindDimension:
+        memcpy(AtMutable(target, row), At(source, row), sizeof(muiDimension));
+        break;
+    case kindEnum:
+        memcpy(AtMutable(target, row), At(source, row), sizeof(uint8_t));
+        break;
+    case kindFinite:
+    case kindLength:
+    case kindFraction:
+        memcpy(AtMutable(target, row), At(source, row), sizeof(float));
+        break;
+    default:
+        memcpy(AtMutable(target, row), At(source, row), row->size);
+        break;
+    }
+}
+
+void muiApplyProperties(muiValuesRef target, muiConstValuesRef source, muiPropertyBits properties)
+{
+    for (uint32_t group = 0; group < MUI_PROPERTY_GROUPS; group++)
+    {
+        const Row* rows = s_groups[group].rows;
+        for (uint64_t left = properties.words[group]; left != 0; left &= left - 1)
         {
-        case kindDimension:
-            memcpy(AtMutable(target, row), At(source, row), sizeof(muiDimension));
-            break;
-        case kindEnum:
-            memcpy(AtMutable(target, row), At(source, row), sizeof(uint8_t));
-            break;
-        case kindFinite:
-        case kindLength:
-        case kindFraction:
-            memcpy(AtMutable(target, row), At(source, row), sizeof(float));
-            break;
-        default:
-            memcpy(AtMutable(target, row), At(source, row), row->size);
-            break;
+            ApplyRow(target, source, &rows[LowestBit(left)]);
         }
     }
 }
 
-bool muiDoPropertiesDiffer(muiConstValuesRef a, muiConstValuesRef b, muiPropertyMask mask)
+bool muiDoPropertiesDiffer(muiConstValuesRef a, muiConstValuesRef b, muiPropertyBits properties)
 {
-    for (muiPropertyMask left = mask; left != 0; left &= left - 1)
+    for (uint32_t group = 0; group < MUI_PROPERTY_GROUPS; group++)
     {
-        if (!AreEqual(a, b, &s_rows[LowestBit(left)]))
+        const Row* rows = s_groups[group].rows;
+        for (uint64_t left = properties.words[group]; left != 0; left &= left - 1)
         {
-            return true;
+            if (!AreEqual(a, b, &rows[LowestBit(left)]))
+            {
+                return true;
+            }
         }
     }
     return false;
@@ -467,7 +528,7 @@ static uint32_t ShadowChannels(const void* at, float out[MUI_MAX_CHANNELS])
 uint32_t muiPropertyChannels(muiConstValuesRef values, muiProperty property,
                              float out[MUI_MAX_CHANNELS])
 {
-    const Row* row = &s_rows[property];
+    const Row* row = RowOf(property);
     const void* at = At(values, row);
     switch (row->kind)
     {
@@ -515,7 +576,7 @@ static void SetShadow(void* at, const float channels[MUI_MAX_CHANNELS])
 void muiSetPropertyChannels(muiValuesRef values, muiProperty property,
                             const float channels[MUI_MAX_CHANNELS])
 {
-    const Row* row = &s_rows[property];
+    const Row* row = RowOf(property);
     void* at = AtMutable(values, row);
     switch (row->kind)
     {
@@ -571,21 +632,21 @@ void muiSetPropertyChannels(muiValuesRef values, muiProperty property,
 
 void muiReadPropertyValue(muiConstValuesRef values, muiProperty property, muiPropertyValue* out)
 {
-    const Row* row = &s_rows[property];
+    const Row* row = RowOf(property);
     MUI_ASSERT(row->size <= sizeof out->bytes);
     memcpy(out->bytes, At(values, row), row->size);
 }
 
 void muiWritePropertyValue(muiValuesRef values, muiProperty property, const muiPropertyValue* value)
 {
-    const Row* row = &s_rows[property];
+    const Row* row = RowOf(property);
     MUI_ASSERT(row->size <= sizeof value->bytes);
     memcpy(AtMutable(values, row), value->bytes, row->size);
 }
 
 muiTokenType muiPropertyTokenType(muiProperty property)
 {
-    switch (s_rows[property].kind)
+    switch (RowOf(property)->kind)
     {
     case kindColor:
         return mui_tokenColor;
@@ -645,7 +706,7 @@ static const void* MemberOf(const muiTokenValue* value)
 
 bool muiApplyTokenValue(muiValuesRef values, muiProperty property, const muiTokenValue* value)
 {
-    const Row* row = &s_rows[property];
+    const Row* row = RowOf(property);
     MUI_ASSERT(muiPropertyTokenType(property) == value->type);
     // Written, checked against the property's own rule, and put back when
     // the property does not allow it.

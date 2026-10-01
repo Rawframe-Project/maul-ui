@@ -243,8 +243,8 @@ static void TestClassesNameTokens(void)
     CHECK(muiStyle_SetToken(context, style, mui_variantBase, mui_propertyImageSlice, gap) ==
               mui_errorInvalid,
           "insets take no token");
-    CHECK(muiStyle_SetToken(context, style, mui_variantBase, mui_propertyCount, gap) ==
-                  mui_errorInvalid &&
+    CHECK(muiStyle_SetToken(context, style, mui_variantBase, (muiProperty)(mui_propertyContent + 1),
+                            gap) == mui_errorInvalid &&
               muiStyle_SetToken(context, style, (muiVariant)99, mui_propertyPaddingStart, gap) ==
                   mui_errorInvalid &&
               muiStyle_SetToken(context, s_nullStyle, mui_variantBase, mui_propertyPaddingStart,
@@ -292,7 +292,7 @@ static void TestClassesNameTokens(void)
           "no name");
     CHECK(muiStyle_SetToken(context, style, mui_variantHovered, mui_propertyBackground, accent) ==
                   mui_success &&
-              muiStyle_ResetProperties(context, style, mui_variantHovered,
+              muiStyle_ResetProperties(context, style, mui_variantHovered, mui_groupVisual,
                                        MUI_PROPERTY_BIT(mui_propertyBackground)) == mui_success,
           "named and reset");
     CHECK(muiStyle_GetToken(context, style, mui_variantHovered, mui_propertyBackground, &named) ==
@@ -330,8 +330,8 @@ static void TestClassesNameTokens(void)
                   mui_errorInvalid &&
               muiStyle_GetToken(context, style, (muiVariant)99, mui_propertyWidth, &named) ==
                   mui_errorInvalid &&
-              muiStyle_GetToken(context, style, mui_variantBase, mui_propertyCount, &named) ==
-                  mui_errorInvalid,
+              muiStyle_GetToken(context, style, mui_variantBase,
+                                (muiProperty)(mui_propertyContent + 1), &named) == mui_errorInvalid,
           "bad reads");
     CHECK(muiDestroyStyle(context, style) == mui_success &&
               muiStyle_GetToken(context, style, mui_variantBase, mui_propertyWidth, &named) ==
@@ -420,7 +420,7 @@ static void TestThemeSwitchesMove(void)
     def.easing = mui_easingLinear;
     muiTransitionId linear = {0, 0};
     CHECK(muiCreateTransition(context, &def, &linear) == mui_success, "transition");
-    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, linear,
+    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, linear, mui_groupVisual,
                                  MUI_PROPERTY_BIT(mui_propertyBackground)) == mui_success,
           "transition named");
     CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
@@ -479,8 +479,10 @@ static void TestNameLimit(void)
     muiVariant variant = mui_variantBase;
     muiCondition any = muiDefaultCondition();
     any.textScale = (muiRange){2.0f, INFINITY};
-    CHECK(muiStyle_ResetProperties(context, other, mui_variantBase, MUI_ALL_PROPERTIES) ==
-                  mui_success &&
+    CHECK(muiStyle_ResetProperties(context, other, mui_variantBase, mui_groupLayout,
+                                   MUI_LAYOUT_PROPERTIES) == mui_success &&
+              muiStyle_ResetProperties(context, other, mui_variantBase, mui_groupVisual,
+                                       MUI_VISUAL_PROPERTIES) == mui_success &&
               muiStyle_AddCondition(context, other, &any, &variant) == mui_success &&
               muiStyle_SetToken(context, other, variant, mui_propertyPaddingEnd, gap) ==
                   mui_success,
@@ -541,9 +543,9 @@ static void TestNamesAmongTheRest(void)
     muiTransitionId transition = {0, 0};
     CHECK(muiCreateTransition(context, &def, &transition) == mui_success, "transition");
     const muiTransitionId none = {0, 0};
-    CHECK(muiStyle_SetTransition(context, style, mui_variantHovered, transition,
+    CHECK(muiStyle_SetTransition(context, style, mui_variantHovered, transition, mui_groupLayout,
                                  MUI_PROPERTY_BIT(mui_propertyWidth)) == mui_success &&
-              muiStyle_SetTransition(context, style, mui_variantHovered, none,
+              muiStyle_SetTransition(context, style, mui_variantHovered, none, mui_groupLayout,
                                      MUI_PROPERTY_BIT(mui_propertyWidth)) == mui_success,
           "a transition named and taken away");
     Layout(context, node, T0);

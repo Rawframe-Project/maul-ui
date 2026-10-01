@@ -8,6 +8,8 @@
 #ifndef MAUL_UI_SRC_PROPERTY_H
 #define MAUL_UI_SRC_PROPERTY_H
 
+#include "property_bits.h"
+
 #include "maul-ui/layout.h"
 #include "maul-ui/style.h"
 #include "maul-ui/token.h"
@@ -40,19 +42,19 @@ typedef struct muiConstValuesRef
 // A spec a variant gives a set of properties.
 typedef struct muiTransitionBinding
 {
-    muiPropertyMask mask;
+    muiPropertyBits properties;
     muiTransitionId transition;
 } muiTransitionBinding;
 
-// Values for the properties a mask names, the other fields unused; the
+// Values for the properties named, the other fields unused; the
 // properties that read a token instead, whose names are a list from the
-// first name on, never the same property in both masks; and the
+// first name on, never the same property in both sets; and the
 // transitions given to properties, no property in two bindings.
 typedef struct muiPropertySet
 {
-    muiPropertyMask mask;
+    muiPropertyBits properties;
     muiStyleValues values;
-    muiPropertyMask tokenMask;
+    muiPropertyBits tokens;
     uint32_t firstTokenName;
     muiTransitionBinding bindings[MUI_MAX_VARIANT_TRANSITIONS];
     uint32_t bindingCount;
@@ -78,15 +80,22 @@ static inline muiConstValuesRef muiConstRef(muiValuesRef values)
 const muiLayoutStyle* muiLayoutDefaults(void);
 const muiVisualStyle* muiVisualDefaults(void);
 
-// Whether every property mask names has a value in values it allows, and
-// mask names only known properties.
-bool muiArePropertiesValid(muiConstValuesRef values, muiPropertyMask mask);
+// Whether an id names a property, and every property there is.
+bool muiIsPropertyKnown(muiProperty property);
+muiPropertyBits muiKnownProperties(void);
 
-// Copies the properties mask names from source to target.
-void muiApplyProperties(muiValuesRef target, muiConstValuesRef source, muiPropertyMask mask);
+// Whether a group is one and a mask names only its known properties.
+bool muiIsGroupMaskKnown(muiPropertyGroup group, muiPropertyMask mask);
 
-// Whether a property among mask has different values in a and b.
-bool muiDoPropertiesDiffer(muiConstValuesRef a, muiConstValuesRef b, muiPropertyMask mask);
+// Whether every property named has a value in values it allows, and only
+// known properties are named.
+bool muiArePropertiesValid(muiConstValuesRef values, muiPropertyBits properties);
+
+// Copies the properties named from source to target.
+void muiApplyProperties(muiValuesRef target, muiConstValuesRef source, muiPropertyBits properties);
+
+// Whether a property named has different values in a and b.
+bool muiDoPropertiesDiffer(muiConstValuesRef a, muiConstValuesRef b, muiPropertyBits properties);
 
 enum
 {

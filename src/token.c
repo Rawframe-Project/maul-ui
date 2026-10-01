@@ -177,8 +177,8 @@ muiResult muiGetTokenValue(const muiContext* context, muiTokenId tokenId, muiTok
 // when the context has no name left.
 static bool Name(muiStyleStore* store, muiPropertySet* set, muiProperty property, muiTokenId token)
 {
-    const muiPropertyMask bit = MUI_PROPERTY_BIT(property);
-    for (uint32_t at = set->firstTokenName; (set->tokenMask & bit) != 0 && at != 0;
+    const muiPropertyBits bit = muiPropertyOf(property);
+    for (uint32_t at = set->firstTokenName; muiIntersects(set->tokens, bit) && at != 0;
          at = store->names[at - 1].next)
     {
         if (store->names[at - 1].property == property)
@@ -194,8 +194,8 @@ static bool Name(muiStyleStore* store, muiPropertySet* set, muiProperty property
     }
     store->names[name - 1] = (muiTokenName){token, set->firstTokenName, property};
     set->firstTokenName = name;
-    set->tokenMask |= bit;
-    set->mask &= ~bit;
+    set->tokens = muiUnion(set->tokens, bit);
+    set->properties = muiWithout(set->properties, bit);
     return true;
 }
 
@@ -210,8 +210,8 @@ static bool MayName(const muiContext* context, const muiStyleClass* class, muiVa
         return false;
     }
     if (variant >= mui_variantCondition0 &&
-        (muiForbiddenProperties(&class->conditions[variant - mui_variantCondition0]) &
-         MUI_PROPERTY_BIT(property)) != 0)
+        muiHasProperty(muiForbiddenProperties(&class->conditions[variant - mui_variantCondition0]),
+                       property))
     {
         return false;
     }
@@ -226,7 +226,7 @@ muiResult muiStyle_SetToken(muiContext* context, muiStyleId styleId, muiVariant 
     {
         return mui_errorInvalid;
     }
-    if (property >= mui_propertyCount)
+    if (!muiIsPropertyKnown(property))
     {
         return muiRefuse(context);
     }
@@ -247,7 +247,7 @@ muiResult muiStyle_SetToken(muiContext* context, muiStyleId styleId, muiVariant 
         if (class->sets[variant] != 0)
         {
             muiDropTokenNames(store, &store->sets[class->sets[variant] - 1],
-                              MUI_PROPERTY_BIT(property));
+                              muiPropertyOf(property));
             muiReleaseEmptySet(store, class, variant);
         }
         muiRestyleAll(context);
@@ -267,7 +267,7 @@ muiResult muiStyle_SetToken(muiContext* context, muiStyleId styleId, muiVariant 
         muiReleaseEmptySet(store, class, variant);
         return mui_errorCapacity;
     }
-    store->reach |= MUI_PROPERTY_BIT(property);
+    store->reach = muiUnion(store->reach, muiPropertyOf(property));
     muiRestyleAll(context);
     return mui_success;
 }
@@ -276,7 +276,7 @@ muiResult muiStyle_GetToken(const muiContext* context, muiStyleId styleId, muiVa
                             muiProperty property, muiTokenId* tokenIdOut)
 {
     if (context == nullptr || tokenIdOut == nullptr || styleId.index1 == 0 ||
-        property >= mui_propertyCount)
+        !muiIsPropertyKnown(property))
     {
         return mui_errorInvalid;
     }

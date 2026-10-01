@@ -305,7 +305,8 @@ static void TestChecks(void)
     v.gradient = (muiGradient){mui_gradientLinear, 2, NAN, {black, white}};
     CheckRefused(context, style, node, &v, GRADIENT, "a NaN angle");
 
-    CheckRefused(context, style, node, &defaults, WIDTH, "a layout property");
+    CheckRefused(context, style, node, &defaults, MUI_PROPERTY_BIT(mui_propertyClip + 1),
+                 "a bit past the visual group's properties");
     CHECK(muiStyle_SetVisualValues(context, style, mui_variantBase, NULL, BACKGROUND) ==
                   mui_errorInvalid &&
               muiNode_SetVisualValues(context, node, NULL, BACKGROUND) == mui_errorInvalid &&
@@ -314,17 +315,20 @@ static void TestChecks(void)
               muiNode_SetVisualValues(NULL, node, &defaults, BACKGROUND) == mui_errorInvalid,
           "null arguments");
     const muiLayoutStyle layout = muiDefaultLayoutStyle();
-    CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, &layout, BACKGROUND) ==
+    const muiPropertyMask pastLayout = MUI_PROPERTY_BIT(mui_propertyContent + 1);
+    CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, &layout, pastLayout) ==
                   mui_errorInvalid &&
-              muiNode_SetLayoutValues(context, node, &layout, BACKGROUND) == mui_errorInvalid,
-          "the layout setters take no visual property");
+              muiNode_SetLayoutValues(context, node, &layout, pastLayout) == mui_errorInvalid,
+          "the layout setters take only the layout group's bits");
 
     muiPropertyMask mask = 1;
     muiVisualStyle out;
     CHECK(muiStyle_GetVisualValues(context, style, mui_variantBase, &out, &mask) == mui_success &&
               mask == 0,
           "nothing set");
-    CHECK(muiNode_GetDirectProperties(context, node) == MUI_PROPERTY_BIT(mui_propertyContent),
+    CHECK(muiNode_GetDirectProperties(context, node, mui_groupLayout) ==
+                  MUI_PROPERTY_BIT(mui_propertyContent) &&
+              muiNode_GetDirectProperties(context, node, mui_groupVisual) == 0,
           "no direct visual write");
 
     // At the edges, allowed.
@@ -406,7 +410,8 @@ static void TestDirectWrites(void)
     Layout(context, node, T0);
     CHECK(SameColor(Read(context, node).background, s_blue), "over the class");
     CHECK(s_measured == measured, "not laid out again");
-    CHECK((muiNode_GetDirectProperties(context, node) & BACKGROUND) != 0, "named direct");
+    CHECK((muiNode_GetDirectProperties(context, node, mui_groupVisual) & BACKGROUND) != 0,
+          "named direct");
 
     // A class edit restyles the node, and its direct write stays.
     muiVisualStyle classValues = muiDefaultVisualStyle();
@@ -421,7 +426,8 @@ static void TestDirectWrites(void)
               mui_success,
           "class opacity back to 1");
 
-    CHECK(muiNode_ResetProperties(context, node, BACKGROUND) == mui_success, "reset");
+    CHECK(muiNode_ResetProperties(context, node, mui_groupVisual, BACKGROUND) == mui_success,
+          "reset");
     Layout(context, node, T0);
     CHECK(SameColor(Read(context, node).background, s_red), "the class's again");
 
@@ -431,7 +437,8 @@ static void TestDirectWrites(void)
               mui_success,
           "clip");
     Layout(context, node, T0);
-    CHECK(muiNode_ResetProperties(context, node, MUI_PROPERTY_BIT(mui_propertyClip)) == mui_success,
+    CHECK(muiNode_ResetProperties(context, node, mui_groupVisual,
+                                  MUI_PROPERTY_BIT(mui_propertyClip)) == mui_success,
           "reset clip");
     Layout(context, node, T0);
     CHECK(!Read(context, node).clip, "the default again");
@@ -463,7 +470,7 @@ static void TestTransitions(void)
     def.easing = mui_easingLinear;
     muiTransitionId linear = s_nullTransition;
     CHECK(muiCreateTransition(context, &def, &linear) == mui_success, "transition");
-    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, linear,
+    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, linear, mui_groupVisual,
                                  OPACITY | RADIUS | BACKGROUND) == mui_success,
           "named");
     CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
@@ -519,7 +526,8 @@ static void TestColorsAndShadowsMove(void)
     def.easing = mui_easingLinear;
     muiTransitionId linear = s_nullTransition;
     CHECK(muiCreateTransition(context, &def, &linear) == mui_success, "transition");
-    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, linear, moved) == mui_success,
+    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, linear, mui_groupVisual, moved) ==
+              mui_success,
           "named");
     CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
     Layout(context, node, T0);
@@ -562,7 +570,8 @@ static void TestRadiusSpringStaysAtZero(void)
     def.dampingRatio = 0.2f;
     muiTransitionId spring = s_nullTransition;
     CHECK(muiCreateTransition(context, &def, &spring) == mui_success, "spring");
-    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, spring, RADIUS) == mui_success,
+    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, spring, mui_groupVisual,
+                                 RADIUS) == mui_success,
           "named");
     values.radius.topStart.offset = 0.0f;
     CHECK(muiStyle_SetVisualValues(context, style, mui_variantHovered, &values, RADIUS) ==
@@ -605,7 +614,8 @@ static void TestShadowAndSliceSpringsStayAtZero(void)
     def.dampingRatio = 0.2f;
     muiTransitionId spring = s_nullTransition;
     CHECK(muiCreateTransition(context, &def, &spring) == mui_success, "spring");
-    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, spring, moved) == mui_success,
+    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, spring, mui_groupVisual, moved) ==
+              mui_success,
           "named");
     CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
     Layout(context, node, T0);
@@ -639,7 +649,8 @@ static void TestRetargetOnALaterChannel(void)
     def.easing = mui_easingLinear;
     muiTransitionId linear = s_nullTransition;
     CHECK(muiCreateTransition(context, &def, &linear) == mui_success, "transition");
-    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, linear, shadow) == mui_success,
+    CHECK(muiStyle_SetTransition(context, style, mui_variantBase, linear, mui_groupVisual,
+                                 shadow) == mui_success,
           "named");
     CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
     Layout(context, node, T0);

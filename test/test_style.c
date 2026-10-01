@@ -150,7 +150,8 @@ static void TestStyleLifetime(void)
     CHECK(muiStyle_GetLayoutValues(context, first, mui_variantBase, &values, &mask) ==
               mui_errorStale,
           "read a gone class");
-    CHECK(muiStyle_ResetProperties(context, first, mui_variantBase, WIDTH) == mui_errorStale,
+    CHECK(muiStyle_ResetProperties(context, first, mui_variantBase, mui_groupLayout, WIDTH) ==
+              mui_errorStale,
           "reset on a gone class");
     second = MakeStyle(context);
     CHECK(second.index1 == first.index1 && second.generation != first.generation,
@@ -180,7 +181,7 @@ static void TestClassValuesAreCheckedAndRead(void)
               mui_errorInvalid,
           "unknown variant");
     CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, &values,
-                                   MUI_PROPERTY_BIT(mui_propertyCount)) == mui_errorInvalid,
+                                   MUI_PROPERTY_BIT(mui_propertyContent + 1)) == mui_errorInvalid,
           "unknown property");
     CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, NULL, WIDTH) ==
               mui_errorInvalid,
@@ -234,7 +235,8 @@ static void TestResetGivesSetsBack(void)
           "no set left");
     CHECK(muiStyle_SetLayoutValues(context, first, mui_variantBase, &values, WIDTH) == mui_success,
           "a variant that has a set needs no other");
-    CHECK(muiStyle_ResetProperties(context, first, mui_variantBase, WIDTH) == mui_success,
+    CHECK(muiStyle_ResetProperties(context, first, mui_variantBase, mui_groupLayout, WIDTH) ==
+              mui_success,
           "reset one");
     muiLayoutStyle read;
     muiPropertyMask mask = 0;
@@ -244,19 +246,22 @@ static void TestResetGivesSetsBack(void)
     CHECK(muiStyle_SetLayoutValues(context, second, mui_variantBase, &values, WIDTH) ==
               mui_errorCapacity,
           "still held");
-    CHECK(muiStyle_ResetProperties(context, first, mui_variantBase, PADDING_START) == mui_success,
+    CHECK(muiStyle_ResetProperties(context, first, mui_variantBase, mui_groupLayout,
+                                   PADDING_START) == mui_success,
           "reset the last");
     CHECK(muiStyle_SetLayoutValues(context, second, mui_variantBase, &values, WIDTH) == mui_success,
           "an empty variant gave its set back");
-    CHECK(muiStyle_ResetProperties(context, first, mui_variantPressed, WIDTH) == mui_success,
+    CHECK(muiStyle_ResetProperties(context, first, mui_variantPressed, mui_groupLayout, WIDTH) ==
+              mui_success,
           "resetting an unset variant does nothing");
-    CHECK(muiStyle_ResetProperties(context, first, mui_variantCondition0, WIDTH) ==
+    CHECK(muiStyle_ResetProperties(context, first, mui_variantCondition0, mui_groupLayout, WIDTH) ==
               mui_errorInvalid,
           "unknown variant reset");
-    CHECK(muiStyle_ResetProperties(context, first, mui_variantBase,
-                                   MUI_PROPERTY_BIT(mui_propertyCount)) == mui_errorInvalid,
+    CHECK(muiStyle_ResetProperties(context, first, mui_variantBase, mui_groupLayout,
+                                   MUI_PROPERTY_BIT(mui_propertyContent + 1)) == mui_errorInvalid,
           "unknown property reset");
-    CHECK(muiStyle_ResetProperties(NULL, first, mui_variantBase, WIDTH) == mui_errorInvalid,
+    CHECK(muiStyle_ResetProperties(NULL, first, mui_variantBase, mui_groupLayout, WIDTH) ==
+              mui_errorInvalid,
           "no context reset");
     CHECK(muiDestroyStyle(context, second) == mui_success, "destroy gives sets back");
     CHECK(muiStyle_SetLayoutValues(context, first, mui_variantHovered, &values, WIDTH) ==
@@ -398,14 +403,15 @@ static void TestDirectWritesWinUntilReset(void)
     CHECK(muiNode_GetLayoutStyle(context, node, &read) == mui_success &&
               read.sizing.width.offset == 50.0f,
           "at once");
-    CHECK(muiNode_GetDirectProperties(context, node) == WIDTH, "its bit");
+    CHECK(muiNode_GetDirectProperties(context, node, mui_groupLayout) == WIDTH, "its bit");
     CHECK(WidthAfterLayout(context, node, node) == 50.0f, "over the strongest state");
-    CHECK(muiNode_ResetProperties(context, node, WIDTH) == mui_success, "reset");
-    CHECK(muiNode_GetDirectProperties(context, node) == 0, "bit cleared");
+    CHECK(muiNode_ResetProperties(context, node, mui_groupLayout, WIDTH) == mui_success, "reset");
+    CHECK(muiNode_GetDirectProperties(context, node, mui_groupLayout) == 0, "bit cleared");
     CHECK(WidthAfterLayout(context, node, node) == 25.0f, "the classes again");
     muiLayoutStyle all = muiDefaultLayoutStyle();
     CHECK(muiNode_SetLayoutStyle(context, node, &all) == mui_success, "every property");
-    CHECK(muiNode_GetDirectProperties(context, node) == MUI_LAYOUT_PROPERTIES, "all direct");
+    CHECK(muiNode_GetDirectProperties(context, node, mui_groupLayout) == MUI_LAYOUT_PROPERTIES,
+          "all direct");
     CHECK(WidthAfterLayout(context, node, node) == 0.0f, "a direct default wins too");
     values.padding.start = -1.0f;
     CHECK(muiNode_SetLayoutValues(context, node, &values, WIDTH | PADDING_START) ==
@@ -415,21 +421,42 @@ static void TestDirectWritesWinUntilReset(void)
               read.sizing.width.offset == 0.0f,
           "refuses the whole write");
     CHECK(muiNode_SetLayoutValues(context, node, NULL, WIDTH) == mui_errorInvalid, "no values");
-    CHECK(muiNode_SetLayoutValues(context, node, &values, MUI_PROPERTY_BIT(mui_propertyCount)) ==
-              mui_errorInvalid,
+    CHECK(muiNode_SetLayoutValues(context, node, &values,
+                                  MUI_PROPERTY_BIT(mui_propertyContent + 1)) == mui_errorInvalid,
           "unknown property");
     CHECK(muiNode_SetLayoutValues(context, s_nullNode, &values, WIDTH) == mui_errorInvalid,
           "null node");
     CHECK(muiNode_SetLayoutValues(NULL, node, &values, WIDTH) == mui_errorInvalid, "no context");
-    CHECK(muiNode_ResetProperties(context, node, MUI_PROPERTY_BIT(mui_propertyCount)) ==
-              mui_errorInvalid,
+    CHECK(muiNode_ResetProperties(context, node, mui_groupLayout,
+                                  MUI_PROPERTY_BIT(mui_propertyContent + 1)) == mui_errorInvalid,
           "unknown property reset");
-    CHECK(muiNode_ResetProperties(context, s_nullNode, WIDTH) == mui_errorInvalid, "null reset");
-    CHECK(muiNode_ResetProperties(NULL, node, WIDTH) == mui_errorInvalid, "no context reset");
-    CHECK(muiNode_GetDirectProperties(NULL, node) == 0, "no context read");
+    CHECK(muiNode_ResetProperties(context, s_nullNode, mui_groupLayout, WIDTH) == mui_errorInvalid,
+          "null reset");
+    // Groups past the last, and one with no properties yet.
+    CHECK(muiNode_ResetProperties(context, node, 4, WIDTH) == mui_errorInvalid &&
+              muiNode_ResetProperties(context, node, 2, WIDTH) == mui_errorInvalid &&
+              muiNode_ResetProperties(context, node, 2, 0) == mui_success,
+          "a group with no such property");
+    CHECK(muiNode_GetDirectProperties(context, node, 4) == 0, "no group past the last");
+    muiStyleId group = s_nullStyle;
+    CHECK(muiCreateStyle(context, &group) == mui_success &&
+              muiStyle_ResetProperties(context, group, mui_variantBase, 4, WIDTH) ==
+                  mui_errorInvalid &&
+              muiStyle_ResetProperties(context, group, mui_variantBase, 3, WIDTH) ==
+                  mui_errorInvalid &&
+              muiStyle_ResetProperties(context, group, mui_variantBase, mui_groupVisual,
+                                       MUI_PROPERTY_BIT(mui_propertyClip + 1)) ==
+                  mui_errorInvalid &&
+              muiStyle_ResetProperties(context, group, mui_variantBase, mui_groupVisual,
+                                       MUI_VISUAL_PROPERTIES) == mui_success,
+          "style resets check their group");
+    CHECK(muiNode_ResetProperties(NULL, node, mui_groupLayout, WIDTH) == mui_errorInvalid,
+          "no context reset");
+    CHECK(muiNode_GetDirectProperties(NULL, node, mui_groupLayout) == 0, "no context read");
     CHECK(muiDestroyNode(context, node) == mui_success, "destroy");
-    CHECK(muiNode_GetDirectProperties(context, node) == 0, "a gone node has none");
-    CHECK(muiNode_ResetProperties(context, node, WIDTH) == mui_errorStale, "a gone node reset");
+    CHECK(muiNode_GetDirectProperties(context, node, mui_groupLayout) == 0, "a gone node has none");
+    CHECK(muiNode_ResetProperties(context, node, mui_groupLayout, WIDTH) == mui_errorStale,
+          "a gone node reset");
     CHECK(muiNode_SetLayoutValues(context, node, &all, WIDTH) == mui_errorStale, "a gone node");
     CHECK(muiNode_SetClasses(context, node, NULL, 0) == mui_errorStale, "gone node classes");
     CHECK(muiNode_SetType(context, node, s_nullType) == mui_errorStale, "gone node type");

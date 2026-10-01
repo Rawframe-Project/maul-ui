@@ -134,10 +134,11 @@ extern "C"
     /// @param styleId       The class.
     /// @param variant       The variant.
     /// @param transitionId  The spec, or the null id.
-    /// @param mask          The properties, within MUI_ALL_PROPERTIES.
+    /// @param group         The properties' group.
+    /// @param mask          The properties, within the group's.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null class id, an unknown variant or property bit or a call
-    ///         from a measure function; `mui_errorStale` for a class or a
+    ///         null class id, an unknown variant, group or property bit or a
+    ///         call from a measure function; `mui_errorStale` for a class or a
     ///         spec that is gone; `mui_errorCapacity` when the variant
     ///         already names MUI_MAX_VARIANT_TRANSITIONS specs, or has no
     ///         values yet and the context's limit of property sets is
@@ -147,6 +148,7 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiStyle_SetTransition(muiContext* context, muiStyleId styleId,
                                                            muiVariant variant,
                                                            muiTransitionId transitionId,
+                                                           muiPropertyGroup group,
                                                            muiPropertyMask mask);
 
     /// Reads the spec one variant of a class gives a property.

@@ -8,6 +8,8 @@
 #ifndef MAUL_UI_SRC_CONDITION_H
 #define MAUL_UI_SRC_CONDITION_H
 
+#include "property_bits.h"
+
 #include "maul-ui/style.h"
 
 #include <stdbool.h>
@@ -38,7 +40,7 @@ bool muiIsEnvironmentValid(const muiEnvironment* environment);
 muiConditionReads muiConditionReadsOf(const muiCondition* condition);
 
 // The properties a condition's values may not set: those it reads.
-muiPropertyMask muiForbiddenProperties(const muiCondition* condition);
+muiPropertyBits muiForbiddenProperties(const muiCondition* condition);
 
 bool muiConditionHolds(const muiCondition* condition, const muiConditionSample* sample);
 

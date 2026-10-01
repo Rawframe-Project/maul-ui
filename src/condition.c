@@ -93,8 +93,9 @@ muiConditionReads muiConditionReadsOf(const muiCondition* condition)
     return reads;
 }
 
-muiPropertyMask muiForbiddenProperties(const muiCondition* condition)
+muiPropertyBits muiForbiddenProperties(const muiCondition* condition)
 {
+    // Layout properties alone.
     muiPropertyMask forbidden = 0;
     bool aspect = !IsEverything(condition->aspect);
     if (aspect || !IsEverything(condition->width))
@@ -109,7 +110,7 @@ muiPropertyMask muiForbiddenProperties(const muiCondition* condition)
     {
         forbidden |= MUI_PROPERTY_BIT(mui_propertyTextDirection);
     }
-    return forbidden;
+    return muiPropertiesOf(mui_groupLayout, forbidden);
 }
 
 // Width over height: infinite for a zero height, 0 for an empty box.

@@ -27,6 +27,15 @@ for a fixed order in which a later layer always wins.
   nothing. One table gives each property's place, kind and allowed
   values, so checking, applying and comparing are one loop over the set
   bits.
+- **Property ids come in groups of 64,** one per values struct: layout
+  from 0, visual from 64, text from 128, interaction from 192. A
+  public mask is one group's 64 bits (`MUI_PROPERTY_BIT` takes the id
+  modulo 64), so each values call keeps a C caller's `|`-ed masks; the
+  calls that span groups (resets, the direct properties, transitions)
+  name a group. Inside, a set of properties is a word per group. A
+  single 64-bit mask would have run out at the text properties, and
+  CSS-like UIs keep adding properties (RmlUi allows 255). Cold styling
+  costs about 5% more for the wider sets in the benchmark.
 - **Assignment is by node type and by the node's own classes.** A node
   type is a context object with an ordered list of classes. A node has
   one type and its own ordered list; its classes are the type's, then
@@ -105,7 +114,7 @@ for a fixed order in which a later layer always wins.
   a large one makes a pill, as Roblox's `UICorner`), border colors per
   side (the widths stay layout's), an outer and an inner shadow, an
   image by host key with 9-slice insets and a tint, opacity, and
-  clipping. Their ids follow layout's in the same masks, so classes,
+  clipping. Their ids are the visual group's, so classes,
   variants, conditions, transitions and direct writes reach them
   unchanged; `muiVisualStyle` holds them apart from `muiLayoutStyle`,
   which the solver reads. A changed visual value marks the node's

@@ -78,15 +78,18 @@ muiResult muiDestroyStyle(muiContext* context, muiStyleId styleId)
     return mui_success;
 }
 
-// Sets the properties mask names, within allowed, from values.
+// Sets the properties of a group mask names, within allowed, from
+// values.
 static muiResult SetValues(muiContext* context, muiStyleId styleId, muiVariant variant,
-                           muiConstValuesRef values, muiPropertyMask mask, muiPropertyMask allowed)
+                           muiConstValuesRef values, muiPropertyGroup group, muiPropertyMask mask,
+                           muiPropertyMask allowed)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
-    if ((mask & ~allowed) != 0 || !muiArePropertiesValid(values, mask))
+    const muiPropertyBits properties = muiPropertiesOf(group, mask);
+    if ((mask & ~allowed) != 0 || !muiArePropertiesValid(values, properties))
     {
         return muiRefuse(context);
     }
@@ -100,7 +103,7 @@ static muiResult SetValues(muiContext* context, muiStyleId styleId, muiVariant v
     muiStyleClass* class = &store->classes[slot - 1];
     const muiCondition* condition = ConditionOf(class, variant);
     if (!muiHasVariant(class, variant) ||
-        (condition != nullptr && (mask & muiForbiddenProperties(condition)) != 0))
+        (condition != nullptr && muiIntersects(properties, muiForbiddenProperties(condition))))
     {
         return muiRefuse(context);
     }
@@ -109,10 +112,10 @@ static muiResult SetValues(muiContext* context, muiStyleId styleId, muiVariant v
     {
         return mui_errorCapacity;
     }
-    muiApplyProperties(muiRefOf(&target->values), values, mask);
-    muiDropTokenNames(store, target, mask);
-    target->mask |= mask;
-    store->reach |= mask;
+    muiApplyProperties(muiRefOf(&target->values), values, properties);
+    muiDropTokenNames(store, target, properties);
+    target->properties = muiUnion(target->properties, properties);
+    store->reach = muiUnion(store->reach, properties);
     muiRestyleAll(context);
     return mui_success;
 }
@@ -124,8 +127,8 @@ muiResult muiStyle_SetLayoutValues(muiContext* context, muiStyleId styleId, muiV
     {
         return context != nullptr ? muiRefuse(context) : mui_errorInvalid;
     }
-    return SetValues(context, styleId, variant, (muiConstValuesRef){values, nullptr}, mask,
-                     MUI_LAYOUT_PROPERTIES);
+    return SetValues(context, styleId, variant, (muiConstValuesRef){values, nullptr},
+                     mui_groupLayout, mask, MUI_LAYOUT_PROPERTIES);
 }
 
 muiResult muiStyle_SetVisualValues(muiContext* context, muiStyleId styleId, muiVariant variant,
@@ -135,21 +138,22 @@ muiResult muiStyle_SetVisualValues(muiContext* context, muiStyleId styleId, muiV
     {
         return context != nullptr ? muiRefuse(context) : mui_errorInvalid;
     }
-    return SetValues(context, styleId, variant, (muiConstValuesRef){nullptr, values}, mask,
-                     MUI_VISUAL_PROPERTIES);
+    return SetValues(context, styleId, variant, (muiConstValuesRef){nullptr, values},
+                     mui_groupVisual, mask, MUI_VISUAL_PROPERTIES);
 }
 
 muiResult muiStyle_ResetProperties(muiContext* context, muiStyleId styleId, muiVariant variant,
-                                   muiPropertyMask mask)
+                                   muiPropertyGroup group, muiPropertyMask mask)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
-    if ((mask & ~MUI_ALL_PROPERTIES) != 0)
+    if (!muiIsGroupMaskKnown(group, mask))
     {
         return muiRefuse(context);
     }
+    const muiPropertyBits properties = muiPropertiesOf(group, mask);
     muiResult status = mui_success;
     uint32_t slot = muiResolveClassEdit(context, styleId, &status);
     if (slot == 0)
@@ -164,8 +168,9 @@ muiResult muiStyle_ResetProperties(muiContext* context, muiStyleId styleId, muiV
     muiStyleClass* class = &store->classes[slot - 1];
     if (class->sets[variant] != 0)
     {
-        store->sets[class->sets[variant] - 1].mask &= ~mask;
-        muiDropTokenNames(store, &store->sets[class->sets[variant] - 1], mask);
+        muiPropertySet* set = &store->sets[class->sets[variant] - 1];
+        set->properties = muiWithout(set->properties, properties);
+        muiDropTokenNames(store, set, properties);
         muiReleaseEmptySet(store, class, variant);
     }
     muiRestyleAll(context);
@@ -175,7 +180,7 @@ muiResult muiStyle_ResetProperties(muiContext* context, muiStyleId styleId, muiV
 // Reads the values a variant sets among allowed into out, which holds the
 // defaults for the rest.
 static muiResult GetValues(const muiContext* context, muiStyleId styleId, muiVariant variant,
-                           muiValuesRef out, muiPropertyMask allowed, muiPropertyMask* maskOut)
+                           muiValuesRef out, muiPropertyGroup group, muiPropertyMask* maskOut)
 {
     if (context == nullptr || maskOut == nullptr || styleId.index1 == 0)
     {
@@ -195,8 +200,9 @@ static muiResult GetValues(const muiContext* context, muiStyleId styleId, muiVar
     uint32_t set = store->classes[slot - 1].sets[variant];
     if (set != 0)
     {
-        *maskOut = store->sets[set - 1].mask & allowed;
-        muiApplyProperties(out, muiConstRefOf(&store->sets[set - 1].values), *maskOut);
+        *maskOut = store->sets[set - 1].properties.words[group];
+        muiApplyProperties(out, muiConstRefOf(&store->sets[set - 1].values),
+                           muiPropertiesOf(group, *maskOut));
     }
     return mui_success;
 }
@@ -210,8 +216,8 @@ muiResult muiStyle_GetLayoutValues(const muiContext* context, muiStyleId styleId
         return mui_errorInvalid;
     }
     *valuesOut = muiDefaultLayoutStyle();
-    return GetValues(context, styleId, variant, (muiValuesRef){valuesOut, nullptr},
-                     MUI_LAYOUT_PROPERTIES, maskOut);
+    return GetValues(context, styleId, variant, (muiValuesRef){valuesOut, nullptr}, mui_groupLayout,
+                     maskOut);
 }
 
 muiResult muiStyle_GetVisualValues(const muiContext* context, muiStyleId styleId,
@@ -223,8 +229,8 @@ muiResult muiStyle_GetVisualValues(const muiContext* context, muiStyleId styleId
         return mui_errorInvalid;
     }
     *valuesOut = muiDefaultVisualStyle();
-    return GetValues(context, styleId, variant, (muiValuesRef){nullptr, valuesOut},
-                     MUI_VISUAL_PROPERTIES, maskOut);
+    return GetValues(context, styleId, variant, (muiValuesRef){nullptr, valuesOut}, mui_groupVisual,
+                     maskOut);
 }
 
 muiVisualStyle muiDefaultVisualStyle(void)
@@ -290,8 +296,9 @@ muiResult muiStyle_SetCondition(muiContext* context, muiStyleId styleId, muiVari
     }
     uint32_t set = class->sets[variant];
     // The values set already may not be what the new condition reads.
-    if (set != 0 && ((store->sets[set - 1].mask | store->sets[set - 1].tokenMask) &
-                     muiForbiddenProperties(condition)) != 0)
+    if (set != 0 &&
+        muiIntersects(muiUnion(store->sets[set - 1].properties, store->sets[set - 1].tokens),
+                      muiForbiddenProperties(condition)))
     {
         return muiRefuse(context);
     }

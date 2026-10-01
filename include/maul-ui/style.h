@@ -40,7 +40,9 @@ extern "C"
     } muiNodeTypeId;
 
     // One value a style can set, named after the muiLayoutStyle or
-    // muiVisualStyle field it sets.
+    // muiVisualStyle field it sets. Ids come in groups of 64, one group
+    // per values struct: layout from 0, visual from 64, and text (from
+    // 128) and interaction (from 192) to come.
     typedef uint8_t muiProperty;
 
     enum
@@ -100,39 +102,48 @@ extern "C"
         mui_propertyContent = 39,
         // Visual properties, named after the muiVisualStyle field they set
         // (maul-ui/visual.h). Colors.
-        mui_propertyBackground = 40,
-        mui_propertyGradient = 41,
+        mui_propertyBackground = 64,
+        mui_propertyGradient = 65,
         // Dimensions.
-        mui_propertyRadiusTopStart = 42,
-        mui_propertyRadiusTopEnd = 43,
-        mui_propertyRadiusBottomEnd = 44,
-        mui_propertyRadiusBottomStart = 45,
+        mui_propertyRadiusTopStart = 66,
+        mui_propertyRadiusTopEnd = 67,
+        mui_propertyRadiusBottomEnd = 68,
+        mui_propertyRadiusBottomStart = 69,
         // Colors.
-        mui_propertyBorderColorStart = 46,
-        mui_propertyBorderColorEnd = 47,
-        mui_propertyBorderColorTop = 48,
-        mui_propertyBorderColorBottom = 49,
+        mui_propertyBorderColorStart = 70,
+        mui_propertyBorderColorEnd = 71,
+        mui_propertyBorderColorTop = 72,
+        mui_propertyBorderColorBottom = 73,
         // Shadows.
-        mui_propertyOuterShadow = 50,
-        mui_propertyInnerShadow = 51,
+        mui_propertyOuterShadow = 74,
+        mui_propertyInnerShadow = 75,
         // A host key, insets and a color.
-        mui_propertyImage = 52,
-        mui_propertyImageSlice = 53,
-        mui_propertyImageTint = 54,
+        mui_propertyImage = 76,
+        mui_propertyImageSlice = 77,
+        mui_propertyImageTint = 78,
         // A number from 0 to 1, and a flag.
-        mui_propertyOpacity = 55,
-        mui_propertyClip = 56,
-        mui_propertyCount = 57,
+        mui_propertyOpacity = 79,
+        mui_propertyClip = 80,
     };
 
-    // A set of properties, one bit each.
+    // A group of properties: those of one values struct.
+    typedef uint8_t muiPropertyGroup;
+
+    enum
+    {
+        mui_groupLayout = 0,
+        mui_groupVisual = 1,
+    };
+
+    // A set of properties of one group, one bit each.
     typedef uint64_t muiPropertyMask;
 
-#define MUI_PROPERTY_BIT(property) ((muiPropertyMask)1 << (property))
-// Every layout property, every visual one, and both.
+// A property's group, and its bit in its group's mask.
+#define MUI_PROPERTY_GROUP(property) ((muiPropertyGroup)((property) >> 6))
+#define MUI_PROPERTY_BIT(property)   ((muiPropertyMask)1 << ((property) & 63))
+// Every layout property, and every visual one, in their groups' masks.
 #define MUI_LAYOUT_PROPERTIES ((muiPropertyMask)0xFFFFFFFFFFull)
-#define MUI_VISUAL_PROPERTIES ((muiPropertyMask)0x1FFFF0000000000ull)
-#define MUI_ALL_PROPERTIES    (MUI_LAYOUT_PROPERTIES | MUI_VISUAL_PROPERTIES)
+#define MUI_VISUAL_PROPERTIES ((muiPropertyMask)0x1FFFFull)
 
     // The states a node can be in, as bits, weakest first: a later
     // state's variant wins over an earlier one's.
@@ -351,15 +362,17 @@ extern "C"
     /// @param context  The context.
     /// @param styleId  The class.
     /// @param variant  The variant.
-    /// @param mask     The properties, within MUI_ALL_PROPERTIES.
+    /// @param group    The properties' group.
+    /// @param mask     The properties, within the group's.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id, an unknown variant or property bit or a call from a
-    ///         measure function; `mui_errorStale` for an id whose class is
-    ///         gone.
+    ///         null id, an unknown variant, group or property bit or a call
+    ///         from a measure function; `mui_errorStale` for an id whose
+    ///         class is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiStyle_ResetProperties(muiContext* context,
                                                              muiStyleId styleId, muiVariant variant,
+                                                             muiPropertyGroup group,
                                                              muiPropertyMask mask);
 
     /// Reads the values one variant of a class sets.
@@ -574,24 +587,28 @@ extern "C"
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
-    /// @param mask     The properties, within MUI_ALL_PROPERTIES.
+    /// @param group    The properties' group.
+    /// @param mask     The properties, within the group's.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id, an unknown property bit or a call from a measure
-    ///         function; `mui_errorStale` for a node that is gone.
+    ///         null id, an unknown group or property bit or a call from a
+    ///         measure function; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_ResetProperties(muiContext* context, muiNodeId nodeId,
+                                                            muiPropertyGroup group,
                                                             muiPropertyMask mask);
 
-    /// Returns which properties of a node are written directly.
+    /// Returns which properties of a group a node writes directly.
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
-    /// @return The properties; 0 for a stale id or a NULL context.
+    /// @param group    The group.
+    /// @return The properties; 0 for a stale id, a NULL context or an
+    ///         unknown group.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_API muiPropertyMask muiNode_GetDirectProperties(const muiContext* context,
-                                                        muiNodeId nodeId);
+    MUI_API muiPropertyMask muiNode_GetDirectProperties(const muiContext* context, muiNodeId nodeId,
+                                                        muiPropertyGroup group);
 
 #ifdef __cplusplus
 }

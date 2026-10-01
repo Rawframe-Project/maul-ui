@@ -109,15 +109,16 @@ muiResult muiDestroyTransition(muiContext* context, muiTransitionId transitionId
     return mui_success;
 }
 
-// Takes mask away from every binding of a set, dropping empty ones.
-static void Unbind(muiPropertySet* set, muiPropertyMask mask)
+// Takes properties away from every binding of a set, dropping empty
+// ones.
+static void Unbind(muiPropertySet* set, muiPropertyBits properties)
 {
     uint32_t kept = 0;
     for (uint32_t i = 0; i < set->bindingCount; i++)
     {
         muiTransitionBinding binding = set->bindings[i];
-        binding.mask &= ~mask;
-        if (binding.mask != 0)
+        binding.properties = muiWithout(binding.properties, properties);
+        if (muiAnyProperty(binding.properties))
         {
             set->bindings[kept++] = binding;
         }
@@ -127,15 +128,15 @@ static void Unbind(muiPropertySet* set, muiPropertyMask mask)
 
 // Gives a spec to properties of a set: added to its binding of that spec,
 // or a new binding. False when the set names its most specs already.
-static bool Bind(muiPropertySet* set, muiTransitionId transition, muiPropertyMask mask)
+static bool Bind(muiPropertySet* set, muiTransitionId transition, muiPropertyBits properties)
 {
-    Unbind(set, mask);
+    Unbind(set, properties);
     for (uint32_t i = 0; i < set->bindingCount; i++)
     {
         muiTransitionId named = set->bindings[i].transition;
         if (named.index1 == transition.index1 && named.generation == transition.generation)
         {
-            set->bindings[i].mask |= mask;
+            set->bindings[i].properties = muiUnion(set->bindings[i].properties, properties);
             return true;
         }
     }
@@ -143,21 +144,21 @@ static bool Bind(muiPropertySet* set, muiTransitionId transition, muiPropertyMas
     {
         return false;
     }
-    set->bindings[set->bindingCount++] = (muiTransitionBinding){mask, transition};
+    set->bindings[set->bindingCount++] = (muiTransitionBinding){properties, transition};
     return true;
 }
 
 // Unbinding comes first so that a full variant can still take a spec
 // that one of its bindings gives up entirely.
 static muiResult SetBinding(muiContext* context, muiStyleClass* class, muiVariant variant,
-                            muiTransitionId transition, muiPropertyMask mask)
+                            muiTransitionId transition, muiPropertyBits properties)
 {
     muiStyleStore* store = &context->style;
     if (transition.index1 == 0)
     {
         if (class->sets[variant] != 0)
         {
-            Unbind(&store->sets[class->sets[variant] - 1], mask);
+            Unbind(&store->sets[class->sets[variant] - 1], properties);
             muiReleaseEmptySet(store, class, variant);
         }
         return mui_success;
@@ -168,7 +169,7 @@ static muiResult SetBinding(muiContext* context, muiStyleClass* class, muiVarian
         return mui_errorCapacity;
     }
     // A set that is full of bindings existed already, so none is wasted.
-    if (!Bind(set, transition, mask))
+    if (!Bind(set, transition, properties))
     {
         return mui_errorCapacity;
     }
@@ -176,13 +177,14 @@ static muiResult SetBinding(muiContext* context, muiStyleClass* class, muiVarian
 }
 
 muiResult muiStyle_SetTransition(muiContext* context, muiStyleId styleId, muiVariant variant,
-                                 muiTransitionId transitionId, muiPropertyMask mask)
+                                 muiTransitionId transitionId, muiPropertyGroup group,
+                                 muiPropertyMask mask)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
-    if ((mask & ~MUI_ALL_PROPERTIES) != 0)
+    if (!muiIsGroupMaskKnown(group, mask))
     {
         return muiRefuse(context);
     }
@@ -201,7 +203,7 @@ muiResult muiStyle_SetTransition(muiContext* context, muiStyleId styleId, muiVar
     {
         return mui_errorStale;
     }
-    status = SetBinding(context, class, variant, transitionId, mask);
+    status = SetBinding(context, class, variant, transitionId, muiPropertiesOf(group, mask));
     if (status == mui_success)
     {
         muiRestyleAll(context);
@@ -213,7 +215,7 @@ muiResult muiStyle_GetTransition(const muiContext* context, muiStyleId styleId, 
                                  muiProperty property, muiTransitionId* transitionIdOut)
 {
     if (context == nullptr || transitionIdOut == nullptr || styleId.index1 == 0 ||
-        property >= mui_propertyCount)
+        !muiIsPropertyKnown(property))
     {
         return mui_errorInvalid;
     }
@@ -233,7 +235,7 @@ muiResult muiStyle_GetTransition(const muiContext* context, muiStyleId styleId, 
     for (uint32_t i = 0; set != 0 && i < store->sets[set - 1].bindingCount; i++)
     {
         const muiTransitionBinding* binding = &store->sets[set - 1].bindings[i];
-        if ((binding->mask & MUI_PROPERTY_BIT(property)) != 0)
+        if (muiHasProperty(binding->properties, property))
         {
             *transitionIdOut = binding->transition;
         }
@@ -244,7 +246,7 @@ muiResult muiStyle_GetTransition(const muiContext* context, muiStyleId styleId, 
 bool muiNode_IsTransitioning(const muiContext* context, muiNodeId nodeId, muiProperty property)
 {
     uint32_t slot = context != nullptr ? muiTreeResolve(&context->tree, nodeId) : 0;
-    if (slot == 0 || property >= mui_propertyCount)
+    if (slot == 0 || !muiIsPropertyKnown(property))
     {
         return false;
     }
