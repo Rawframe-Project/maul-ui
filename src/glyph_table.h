@@ -16,11 +16,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-enum
-{
-    // An entry's plot when its glyph has no image to place.
-    MUI_NO_PLOT = UINT32_MAX
-};
+// An entry's plot when its glyph has no image to place: a macro, as an
+// enumerator this large is an int on some compilers.
+#define MUI_NO_PLOT UINT32_MAX
 
 typedef struct muiGlyphKey
 {
