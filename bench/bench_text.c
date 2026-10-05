@@ -5,12 +5,14 @@
 // column of 2,000 labels of one to four words, laid out cold (which
 // shapes every block), at a new width (which only breaks lines), and
 // painted; and one paragraph of 4,000 words, measured cold, at ten
-// widths, and painted at one. Prints the best of five runs in
-// microseconds.
+// widths, and painted at one; and the labels' glyphs got from a glyph
+// atlas, first rendering and packing each, then all found. Prints the
+// best of five runs in microseconds.
 
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
 #include "maul-ui/font.h"
+#include "maul-ui/glyph_atlas.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
@@ -154,6 +156,28 @@ static double TimePaint(Scene* scene)
     return (Seconds() - start) * 1e6;
 }
 
+// Gets every glyph of the list from the atlas, as a renderer drawing it
+// at a scale of 1 does.
+static double TimeAtlas(Scene* scene, muiGlyphAtlas* atlas)
+{
+    muiDrawList list;
+    Check(muiGetDrawList(scene->context, &list), "list");
+    double start = Seconds();
+    for (uint32_t i = 0; i < list.commandCount; i++)
+    {
+        const muiDrawGlyphRun* run = &list.commands[i].glyphRun;
+        for (uint32_t g = run->firstGlyph; g < run->firstGlyph + run->glyphCount; g++)
+        {
+            muiAtlasGlyph out;
+            Check(muiGlyphAtlas_Get(atlas, run->font, list.glyphs[g].id, run->size,
+                                    run->originX + list.glyphs[g].x,
+                                    run->originY + list.glyphs[g].y, &out),
+                  "atlas");
+        }
+    }
+    return (Seconds() - start) * 1e6;
+}
+
 static void Keep(double* best, double time)
 {
     *best = time < *best ? time : *best;
@@ -161,7 +185,7 @@ static void Keep(double* best, double time)
 
 static void RunLabels(void)
 {
-    double best[3] = {1e30, 1e30, 1e30};
+    double best[5] = {1e30, 1e30, 1e30, 1e30, 1e30};
     char text[256];
     for (int run = 0; run < RUNS; run++)
     {
@@ -175,12 +199,21 @@ static void RunLabels(void)
         Keep(&best[0], TimeLayout(&scene, 300.0f));
         Keep(&best[1], TimeLayout(&scene, 120.0f));
         Keep(&best[2], TimePaint(&scene));
+        muiGlyphAtlasDef atlasDef = muiDefaultGlyphAtlasDef();
+        muiGlyphAtlas* atlas = NULL;
+        Check(muiCreateGlyphAtlas(scene.service, &atlasDef, &atlas), "atlas");
+        Keep(&best[3], TimeAtlas(&scene, atlas));
+        muiGlyphAtlas_NextFrame(atlas);
+        Keep(&best[4], TimeAtlas(&scene, atlas));
+        muiDestroyGlyphAtlas(atlas);
         muiDestroyContext(scene.context);
         muiDestroyTextService(scene.service);
     }
     printf("labels    cold        %10.1f us\n", best[0]);
     printf("labels    new width   %10.1f us\n", best[1]);
     printf("labels    paint       %10.1f us\n", best[2]);
+    printf("atlas     cold        %10.1f us\n", best[3]);
+    printf("atlas     found       %10.1f us\n", best[4]);
 }
 
 static void RunParagraph(void)

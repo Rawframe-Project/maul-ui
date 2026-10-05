@@ -27,6 +27,12 @@ format.
 
 ### Added
 
+- Glyph atlases (`maul-ui/glyph_atlas.h`): glyph images packed into
+  pages of 8-bit coverage a renderer uploads, found by font, glyph, size
+  and quarter-pixel pen position, with plots evicted least recently
+  used across frames and the changed rectangles reported (record
+  mui-0006).
+
 - Glyph images (`maul-ui/glyph_image.h`): `muiRenderGlyph` renders a
   glyph of a glyph run's font at a size in device pixels and a subpixel
   offset into the caller's memory as 8-bit coverage, unhinted, the same

@@ -69,6 +69,17 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   font's embedded bitmaps, so images sit on the unhinted advances text
   is laid out with; FreeType renders in integers, so images are the
   same bytes everywhere. Color glyphs and LCD rendering are not drawn.
+- **Glyph atlases** (`maul-ui/glyph_atlas.h`) are owner objects of a
+  service, in its memory: pages of the caller's size, made as needed up
+  to a limit and cut into plots, each packed with a skyline bottom-left
+  and each image kept inside a one-pixel empty gutter. A glyph is asked
+  for with its pen and baseline in device pixels; the pen is taken to
+  the nearest quarter pixel, the baseline to the nearest pixel, and the
+  key is the font, glyph, size and quarter. When no plot has room, the
+  least recently used plot the current frame does not use is emptied:
+  its entries go stale at once, as each names its plot's generation.
+  The renderer marks frames, reads the pages' pixels, and takes each
+  changed plot's rectangle to upload; the atlas uses no graphics API.
 - **Measuring** uses the font's own advances, shaped at a scale of its
   units per em and scaled by size over units per em, so sizes are the
   same at every device scale; nothing is hinted.
