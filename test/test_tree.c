@@ -73,9 +73,12 @@ static void TestMarkReachesOnlyThePathToTheRoot(void)
     muiTreeSweep(&fixture.tree, chain[0], mui_stageAll);
 
     muiTreeMark(&fixture.tree, chain[4], mui_stageLayout);
-    CHECK(muiTreeAt(&fixture.tree, chain[4])->dirty.request == mui_stageLayout, "request");
+    // Every mark carries accessibility's stage too.
+    CHECK(muiTreeAt(&fixture.tree, chain[4])->dirty.request == (mui_stageLayout | mui_stageAccess),
+          "request");
     CHECK(muiTreeAt(&fixture.tree, chain[2])->dirty.request == 0, "ancestor not requested");
-    CHECK(muiTreeAt(&fixture.tree, chain[0])->dirty.subtree == mui_stageLayout, "root owes");
+    CHECK(muiTreeAt(&fixture.tree, chain[0])->dirty.subtree == (mui_stageLayout | mui_stageAccess),
+          "root owes");
     CHECK(muiTreeAt(&fixture.tree, side)->dirty.subtree == 0, "side branch untouched");
     CHECK(muiTreeSweep(&fixture.tree, chain[0], mui_stagePaint) == 0, "paint owes nothing");
     CHECK(muiTreeSweep(&fixture.tree, chain[0], mui_stageLayout) == 5, "the path, not the side");
@@ -92,7 +95,8 @@ static void TestSecondMarkStopsAtAMarkedAncestor(void)
     // chain[2], which already owes style.
     muiTreeAt(&fixture.tree, chain[0])->dirty.subtree = 0;
     muiTreeMark(&fixture.tree, chain[4], mui_stageStyle);
-    CHECK(muiTreeAt(&fixture.tree, chain[3])->dirty.subtree == mui_stageStyle, "below marked");
+    CHECK(muiTreeAt(&fixture.tree, chain[3])->dirty.subtree == (mui_stageStyle | mui_stageAccess),
+          "below marked");
     CHECK(muiTreeAt(&fixture.tree, chain[0])->dirty.subtree == 0, "stopped at chain[2]");
 }
 
@@ -118,8 +122,10 @@ static void TestInsertCarriesTheChildsDebtUp(void)
     muiTreeInsert(&fixture.tree, chain[2], branch[0], 0);
     CHECK((muiTreeAt(&fixture.tree, chain[0])->dirty.subtree & mui_stageStyle) != 0,
           "root owes the branch's style");
-    CHECK(muiTreeAt(&fixture.tree, branch[0])->dirty.request == mui_stageStyle, "child restyled");
-    CHECK(muiTreeAt(&fixture.tree, chain[2])->dirty.request == (mui_stageLayout | mui_stagePaint),
+    CHECK(muiTreeAt(&fixture.tree, branch[0])->dirty.request == (mui_stageStyle | mui_stageAccess),
+          "child restyled");
+    CHECK(muiTreeAt(&fixture.tree, chain[2])->dirty.request ==
+              (mui_stageLayout | mui_stagePaint | mui_stageAccess),
           "parent relaid and repainted");
     muiTreeSweep(&fixture.tree, chain[0], mui_stageAll);
     CHECK(muiTreeAt(&fixture.tree, branch[2])->dirty.request == 0, "the sweep reached the leaf");
@@ -132,9 +138,10 @@ static void TestDetachMarksTheOldParent(void)
     uint32_t chain[3];
     MakeChain(&fixture, 3, chain);
     muiTreeDetach(&fixture.tree, chain[2]);
-    CHECK(muiTreeAt(&fixture.tree, chain[1])->dirty.request == (mui_stageLayout | mui_stagePaint),
+    CHECK(muiTreeAt(&fixture.tree, chain[1])->dirty.request ==
+              (mui_stageLayout | mui_stagePaint | mui_stageAccess),
           "old parent relaid");
-    CHECK(muiTreeAt(&fixture.tree, chain[2])->dirty.request == mui_stageStyle,
+    CHECK(muiTreeAt(&fixture.tree, chain[2])->dirty.request == (mui_stageStyle | mui_stageAccess),
           "the detached root restyled: it no longer reads its old ancestors' themes");
 }
 

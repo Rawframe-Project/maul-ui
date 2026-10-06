@@ -10,6 +10,7 @@
 #include "maul-ui/event.h"
 
 #include "context.h"
+#include "event.h"
 #include "focus.h"
 #include "navigate.h"
 #include "pointer.h"
@@ -28,15 +29,12 @@ static bool IsNull(muiNodeId nodeId)
     return nodeId.index1 == 0;
 }
 
-// Whether input may be fed now: not from a measure, paint or event
-// function.
-static bool MayFeed(const muiContext* context)
+bool muiMayFeed(const muiContext* context)
 {
     return !muiIsInHostCall(context) && !context->events.dispatching;
 }
 
-// Routes an event to its target; true when the host handled it.
-static bool Route(muiContext* context, uint32_t target, const muiEvent* event)
+bool muiRouteTo(muiContext* context, uint32_t target, const muiEvent* event)
 {
     muiEventStore* store = &context->events;
     // A target of 0 has an empty route.
@@ -84,7 +82,7 @@ static uint32_t TargetOf(const muiContext* context, uint32_t root, uint8_t playe
 static uint32_t Admit(muiContext* context, muiNodeId rootId, uint8_t player, bool valid,
                       muiResult* statusOut)
 {
-    if (!valid || IsNull(rootId) || player >= MUI_MAX_PLAYERS || !MayFeed(context))
+    if (!valid || IsNull(rootId) || player >= MUI_MAX_PLAYERS || !muiMayFeed(context))
     {
         *statusOut = muiRefuse(context);
         return 0;
@@ -100,7 +98,7 @@ muiResult muiSetEventFunction(muiContext* context, muiEventFunction function, vo
     {
         return mui_errorInvalid;
     }
-    if (!MayFeed(context))
+    if (!muiMayFeed(context))
     {
         return muiRefuse(context);
     }
@@ -206,7 +204,7 @@ muiResult muiKeyInput(muiContext* context, muiNodeId rootId, const muiKeyEvent* 
         .timeNs = event->timeNs,
         .target = muiTreeIdOf(&context->tree, target),
     };
-    bool handled = Route(context, target, &routed);
+    bool handled = muiRouteTo(context, target, &routed);
     const muiModifiers held =
         event->modifiers & (mui_modShift | mui_modControl | mui_modAlt | mui_modMeta);
     if (!handled && event->down)
@@ -269,7 +267,7 @@ muiResult muiTextInput(muiContext* context, muiNodeId rootId, const muiTextEvent
         .target = muiTreeIdOf(&context->tree, target),
         .text = event->text,
     };
-    *handledOut = Route(context, target, &routed);
+    *handledOut = muiRouteTo(context, target, &routed);
     return mui_success;
 }
 
@@ -296,7 +294,7 @@ muiResult muiNavigationInput(muiContext* context, muiNodeId rootId, const muiNav
         .timeNs = event->timeNs,
         .target = muiTreeIdOf(&context->tree, target),
     };
-    bool handled = Route(context, target, &routed);
+    bool handled = muiRouteTo(context, target, &routed);
     if (!handled && event->action <= mui_navigateRight)
     {
         // The directions are numbered as muiDirection's.
@@ -342,7 +340,8 @@ muiResult muiWheelInput(muiContext* context, muiNodeId rootId, const muiWheelEve
             .target = hit.node,
             .wheel = event,
         };
-        handled = Route(context, target, &routed) || muiScrollWheel(context, root, hit.node, event);
+        handled =
+            muiRouteTo(context, target, &routed) || muiScrollWheel(context, root, hit.node, event);
     }
     *handledOut = handled;
     return mui_success;
@@ -355,7 +354,7 @@ muiResult muiDispatchPointerRecord(muiContext* context, const muiPointerRecord* 
     {
         return mui_errorInvalid;
     }
-    if (record == nullptr || handledOut == nullptr || !MayFeed(context))
+    if (record == nullptr || handledOut == nullptr || !muiMayFeed(context))
     {
         return muiRefuse(context);
     }
@@ -366,7 +365,7 @@ muiResult muiDispatchPointerRecord(muiContext* context, const muiPointerRecord* 
         .target = record->node,
         .pointer = record,
     };
-    *handledOut = Route(context, target, &routed) || muiRangePointer(context, record) ||
+    *handledOut = muiRouteTo(context, target, &routed) || muiRangePointer(context, record) ||
                   muiScrollPointer(context, record);
     return mui_success;
 }

@@ -112,6 +112,7 @@ muiResult muiNode_SetValueRange(muiContext* context, muiNodeId nodeId, const mui
     }
     *entry = (muiRangeEntry){.node = muiTreeIdOf(&context->tree, slot), .range = *range};
     entry->range.value = Snap(range, range->value);
+    muiNoteAccess(context, slot);
     return mui_success;
 }
 
@@ -165,6 +166,7 @@ muiResult muiNode_SetRangeValue(muiContext* context, muiNodeId nodeId, float val
     if (entry != nullptr)
     {
         entry->range.value = Snap(&entry->range, value);
+        muiNoteAccess(context, entry->node.index1);
     }
     return status;
 }
@@ -187,21 +189,50 @@ muiResult muiNode_ClearValueRange(muiContext* context, muiNodeId nodeId)
     }
     if (entry != nullptr)
     {
+        muiNoteAccess(context, entry->node.index1);
         *entry = context->ranges.entries[--context->ranges.count];
     }
     return status == mui_empty ? mui_success : status;
 }
 
-// Moves a range's value for input, on a step, reporting a change.
-static void Change(muiContext* context, muiRangeEntry* entry, float value)
+// Moves a range's value for input, on a step, reporting a change;
+// whether it moved.
+static bool Change(muiContext* context, muiRangeEntry* entry, float value)
 {
     value = Snap(&entry->range, value);
-    if (value != entry->range.value)
+    if (value == entry->range.value)
     {
-        entry->range.value = value;
-        const muiNotification record = {mui_notificationRangeChanged, entry->node, 0};
-        muiNotifyPost(&context->notifications, &record);
+        return false;
     }
+    entry->range.value = value;
+    muiNoteAccess(context, entry->node.index1);
+    const muiNotification record = {mui_notificationRangeChanged, entry->node, 0};
+    muiNotifyPost(&context->notifications, &record);
+    return true;
+}
+
+// The step keys move a range by: its step, or a hundredth of it.
+static float SmallStep(const muiValueRange* range)
+{
+    return range->step > 0.0f ? range->step : (range->maximum - range->minimum) / 100.0f;
+}
+
+const muiValueRange* muiRangeOf(const muiContext* context, uint32_t slot)
+{
+    const muiRangeEntry* entry = EntryOf(context, slot);
+    return entry != nullptr ? &entry->range : nullptr;
+}
+
+bool muiRangeStep(muiContext* context, uint32_t slot, bool up)
+{
+    muiRangeEntry* entry = EntryOf(context, slot);
+    float step = SmallStep(&entry->range);
+    return Change(context, entry, entry->range.value + (up ? step : -step));
+}
+
+bool muiRangeSet(muiContext* context, uint32_t slot, float value)
+{
+    return Change(context, EntryOf(context, slot), value);
 }
 
 bool muiRangeKey(muiContext* context, uint32_t slot, muiKeyCode code)
@@ -212,7 +243,7 @@ bool muiRangeKey(muiContext* context, uint32_t slot, muiKeyCode code)
         return false;
     }
     const muiValueRange* range = &entry->range;
-    float small = range->step > 0.0f ? range->step : (range->maximum - range->minimum) / 100.0f;
+    float small = SmallStep(range);
     // Right to left, the minimum is on the right.
     float right = context->layout[slot - 1].rtl ? -small : small;
     bool horizontal = range->axis == mui_rangeHorizontal;

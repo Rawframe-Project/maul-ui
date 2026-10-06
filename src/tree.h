@@ -23,7 +23,11 @@ enum
     mui_stageStyle = 1,
     mui_stageLayout = 2,
     mui_stagePaint = 4,
-    mui_stageAll = 7,
+    // The accessibility tree's: every mark of another stage carries it,
+    // since what any stage changes may change what a node is to
+    // assistive technology (record mui-0008).
+    mui_stageAccess = 8,
+    mui_stageAll = 15,
 };
 
 // Where a node sits: its parent, children and siblings, as slots.
@@ -125,8 +129,8 @@ void muiTreeDetach(muiTree* tree, uint32_t node);
 // Detaches node and frees it with its subtree, children first, in order.
 void muiTreeDestroy(muiTree* tree, uint32_t node);
 
-// Requests stages on node and marks its ancestors' subtree flags, up to
-// the first that has them already.
+// Requests stages, with accessibility's, on node and marks its
+// ancestors' subtree flags, up to the first that has them already.
 void muiTreeMark(muiTree* tree, uint32_t node, muiStages stages);
 
 // Requests stages on every live node.
@@ -136,11 +140,18 @@ void muiTreeMarkAll(muiTree* tree, muiStages stages);
 // size changes its parent's layout too.
 void muiTreeMarkLayout(muiTree* tree, uint32_t node);
 
+// Marks a node and its children for stages: a scroll container whose
+// offset moved, which moves its children's places in it.
+void muiTreeMarkWithChildren(muiTree* tree, uint32_t node, muiStages stages);
+
 // The node after at, in preorder from root, among the nodes whose subtree
 // flags hold one of stages, descending only into those; at 0 starts at
 // root. Returns 0 at the end. Clearing at's flags before the call does not
 // change the walk.
 uint32_t muiTreeNextOwing(const muiTree* tree, uint32_t root, uint32_t at, muiStages stages);
+
+// The node after at in preorder within root's subtree, or 0.
+uint32_t muiTreeNextIn(const muiTree* tree, uint32_t root, uint32_t at);
 
 // The walk every pass makes: visits what muiTreeNextOwing visits, clears
 // those stages' flags on each, and returns how many nodes it reached.

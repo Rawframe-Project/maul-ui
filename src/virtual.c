@@ -253,7 +253,7 @@ void muiVirtualShift(muiContext* context, uint32_t slot, const muiVirtualEntry* 
     if (moved != *offset)
     {
         *offset = moved;
-        context->scrolled = true;
+        muiNoteScrolled(context, slot);
     }
 }
 

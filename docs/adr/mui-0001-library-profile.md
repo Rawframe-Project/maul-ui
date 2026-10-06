@@ -35,7 +35,9 @@ lists, layout fixtures) and rely on a static screen costing nothing.
   caller's allocator, and the text service is an owner object of its
   own; HarfBuzz, inside it, allocates from the C library (record
   mui-0006). Memory is allocated when the host creates
-  nodes, styles or fonts, or explicitly raises a named limit. Running a
+  nodes, styles or fonts, explicitly raises a named limit, sets an
+  accessibility text, or enables accessibility for a first root
+  (record mui-0008). Running a
   frame (style, layout, emission) and handling input do not allocate:
   per-node results live with the node, and retained command lists are
   bounded by a limit set at creation.

@@ -6,6 +6,7 @@
 #ifndef MAUL_UI_SRC_CONTEXT_H
 #define MAUL_UI_SRC_CONTEXT_H
 
+#include "access_store.h"
 #include "animation.h"
 #include "draw_store.h"
 #include "event_store.h"
@@ -58,6 +59,9 @@ struct muiContext
     muiExitStore exits;
     // The virtual lists, their items' extents, and each node's item.
     muiVirtualStore lists;
+    // The host's accessibility data, the roots updates are built for,
+    // and what was last sent.
+    muiAccessStore access;
     // Whether a class, a token name or a direct write has ever given a
     // text property: until then every node's text is the defaults, and
     // the style pass leaves the records alone.
@@ -99,5 +103,27 @@ bool muiIsInHostCall(const muiContext* context);
 // statusOut: misuse for the null id or an edit from a measure function,
 // stale for a gone node.
 uint32_t muiResolveEdit(muiContext* context, muiNodeId nodeId, muiResult* statusOut);
+
+// Marks a node for the accessibility tree after a change no other stage
+// marks: only while a root builds updates, as enabling one sends every
+// node.
+static inline void muiNoteAccess(muiContext* context, uint32_t slot)
+{
+    if (context->access.rootCount != 0)
+    {
+        muiTreeMark(&context->tree, slot, mui_stageAccess);
+    }
+}
+
+// A scroll container's offset moved: the draw list's transforms, and its
+// own and its children's places for the accessibility tree.
+static inline void muiNoteScrolled(muiContext* context, uint32_t slot)
+{
+    context->scrolled = true;
+    if (context->access.rootCount != 0)
+    {
+        muiTreeMarkWithChildren(&context->tree, slot, mui_stageAccess);
+    }
+}
 
 #endif // MAUL_UI_SRC_CONTEXT_H

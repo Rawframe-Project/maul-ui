@@ -73,6 +73,11 @@ extern "C"
         // of estimated lists together, each list taking its count.
         uint32_t virtualLists;
         uint32_t virtualItems;
+        // Nodes with accessibility data from the host at once (a role,
+        // texts or flags), and roots building accessibility updates at
+        // once (maul-ui/access.h).
+        uint32_t accessNodes;
+        uint32_t accessRoots;
     } muiLimits;
 
     // How a context is made. Build it with muiDefaultContextDef.
@@ -146,6 +151,9 @@ extern "C"
         // The window of a virtual list's items that should exist changed
         // (maul-ui/virtual.h).
         mui_notificationWindowChanged = 8,
+        // Assistive technology asked the node to do what the host does
+        // (maul-ui/access.h); count is the muiAccessAction.
+        mui_notificationAccessAction = 9,
     };
 
     // A record of something the host learns after the call that caused

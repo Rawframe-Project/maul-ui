@@ -58,7 +58,7 @@ static void Cancel(muiContext* context, uint32_t slot)
     {
         scroll->overX = 0.0f;
         scroll->overY = 0.0f;
-        context->scrolled = true;
+        muiNoteScrolled(context, slot);
     }
 }
 
@@ -88,7 +88,7 @@ muiResult muiNode_SetScroll(muiContext* context, muiNodeId nodeId, float x, floa
     {
         scroll->x = x;
         scroll->y = y;
-        context->scrolled = true;
+        muiNoteScrolled(context, slot);
     }
     return mui_success;
 }
@@ -110,7 +110,7 @@ static void MoveContent(muiContext* context, uint32_t container, bool horizontal
     {
         Cancel(context, container);
         *field = clamped;
-        context->scrolled = true;
+        muiNoteScrolled(context, container);
     }
 }
 
@@ -267,7 +267,7 @@ static void ScrollBy(muiContext* context, uint32_t slot, float right, float down
     {
         scroll->x = x;
         scroll->y = y;
-        context->scrolled = true;
+        muiNoteScrolled(context, slot);
     }
 }
 
@@ -303,7 +303,7 @@ static void Step(muiContext* context, uint32_t slot, float right, float down, ui
         }
         scroll->x = x;
         scroll->y = y;
-        context->scrolled = true;
+        muiNoteScrolled(context, slot);
         return;
     }
     if (!easing)
@@ -451,7 +451,7 @@ void muiScrollAdvance(muiContext* context, uint64_t nowNs)
         bool done = ease->kind == muiScrollEaseFling    ? Decay(context, slot, ease, elapsed)
                     : ease->kind == muiScrollEaseBounce ? Bounce(context, slot, ease, elapsed)
                                                         : Ease(context, slot, ease, elapsed);
-        context->scrolled = true;
+        muiNoteScrolled(context, slot);
         if (done)
         {
             Drop(store, i);
@@ -549,7 +549,7 @@ static void Pan(muiContext* context, uint32_t slot, const muiScrollPan* pan,
         scroll->y = y;
         scroll->overX = overX;
         scroll->overY = overY;
-        context->scrolled = true;
+        muiNoteScrolled(context, slot);
     }
 }
 

@@ -28,6 +28,10 @@ format.
   initializer that lists its fields by position needs them.
 - `muiLayoutInput` has one more field, `baseline`; an initializer that
   lists its fields by position needs it.
+- `muiLimits` has two more fields, `accessNodes` (512 by default) and
+  `accessRoots` (4); an initializer that lists its fields by position
+  needs them. Every mark of a node for any stage also marks it for the
+  accessibility tree.
 - The measure function is never asked with both axes exact, as the
   final pass always gave: the size is then decided. A list of 100,000
   rebound rows asks a half to a third fewer times (record mui-0003).
@@ -116,6 +120,15 @@ format.
   (`muiNode_InsertVirtualItems`, `muiNode_RemoveVirtualItems`,
   `muiNode_MoveVirtualItem`, `muiNode_GetItem`), bound nodes following
   them, with scroll anchoring (record mui-0007).
+- The accessibility tree (`maul-ui/access.h`): roles, texts and flags
+  per node (`muiNode_SetAccessRole`, `muiNode_SetAccessText`,
+  `muiNode_SetAccessFlags` and their getters); updates in AccessKit's
+  shape for enabled roots (`muiAccess_Enable`, `muiAccess_Disable`,
+  `muiBuildAccessUpdate`), with bounds, transforms, states, focus,
+  scrolling, ranges and virtual list positions read from the library;
+  requests performed or routed (`muiPerformAccessAction`, a click as
+  `mui_navigateActivate`), `mui_notificationAccessAction`;
+  `muiAccessIdOf` and `muiNodeIdOfAccess` (record mui-0008).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and
   `muiNode_CancelExit`; an exiting subtree leaves hit testing, focus
   and navigation, and `mui_notificationExitFinished` reports when no

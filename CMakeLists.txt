@@ -71,6 +71,9 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/popup.c
     src/virtual.c
     src/virtual_edit.c
+    src/access.c
+    src/access_build.c
+    src/access_action.c
     src/range.c
     src/scroll.c
     src/layout.c
@@ -123,6 +126,7 @@ if(MAUL_UI_BUILD_TESTS)
     maul_add_test(popup)
     maul_add_test(exit)
     maul_add_test(virtual)
+    maul_add_test(access)
     maul_add_test(pan)
     maul_add_test(layout)
     maul_add_test(layout_fixtures)

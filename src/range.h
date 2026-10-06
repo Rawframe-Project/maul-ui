@@ -9,6 +9,7 @@
 #include "maul-ui/event.h"
 #include "maul-ui/focus.h"
 #include "maul-ui/pointer.h"
+#include "maul-ui/range.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -19,6 +20,14 @@ typedef struct muiContext muiContext;
 // arrows along its axis a step, Page Up and Down a page, Home and End
 // the ends. Whether the range takes the key.
 bool muiRangeKey(muiContext* context, uint32_t slot, muiKeyCode code);
+
+// The range of the node at slot; NULL for a node that is no range.
+const muiValueRange* muiRangeOf(const muiContext* context, uint32_t slot);
+
+// Moves the range at slot a step up or down, as its arrows do, or to a
+// value, for input; whether it moved.
+bool muiRangeStep(muiContext* context, uint32_t slot, bool up);
+bool muiRangeSet(muiContext* context, uint32_t slot, float value);
 
 // A navigation direction's default on the range at slot, as its arrow's.
 bool muiRangeDirection(muiContext* context, uint32_t slot, muiDirection direction);

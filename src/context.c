@@ -55,7 +55,9 @@ muiContextDef muiDefaultContextDef(void)
                    .popups = 16,
                    .exits = 64,
                    .virtualLists = 8,
-                   .virtualItems = 16384},
+                   .virtualItems = 16384,
+                   .accessNodes = 512,
+                   .accessRoots = 4},
     };
 }
 
@@ -73,7 +75,8 @@ static bool AreLimitsValid(const muiLimits* limits)
            limits->neighbors <= MAX_SLOTS && limits->drawTransforms < MAX_SLOTS &&
            limits->ranges <= MAX_SLOTS && limits->popups <= MAX_SLOTS &&
            limits->exits <= MAX_SLOTS && limits->virtualLists <= MAX_SLOTS &&
-           limits->virtualItems <= MAX_SLOTS;
+           limits->virtualItems <= MAX_SLOTS && limits->accessNodes <= MAX_SLOTS &&
+           limits->accessRoots <= MAX_SLOTS;
 }
 
 // Where each part of the context's block starts.
@@ -125,6 +128,9 @@ typedef struct Parts
     size_t pointerRecords;
     size_t neighbors;
     size_t routes;
+    size_t accessEntries;
+    size_t accessEntryOf;
+    size_t accessRoots;
 } Parts;
 
 // A table per theme, an entry per token slot; a count past size_t marks
@@ -207,6 +213,31 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
             muiLayoutAdd(layout, limits->pointerRecords, sizeof(muiPointerRecord), CACHE_LINE),
         .neighbors = muiLayoutAdd(layout, limits->neighbors, sizeof(muiNeighbor), CACHE_LINE),
         .routes = muiLayoutAdd(layout, limits->nodes, sizeof(muiNodeId), CACHE_LINE),
+        .accessEntries =
+            muiLayoutAdd(layout, limits->accessNodes, sizeof(muiAccessEntry), CACHE_LINE),
+        .accessEntryOf = muiLayoutAdd(layout, limits->nodes, sizeof(uint32_t), CACHE_LINE),
+        .accessRoots = muiLayoutAdd(layout, limits->accessRoots, sizeof(muiAccessRoot), CACHE_LINE),
+    };
+}
+
+// Points the virtual lists' and accessibility's tables into the block.
+static void PlaceListsAndAccess(muiContext* context, unsigned char* base, const Parts* parts,
+                                const muiLimits* limits)
+{
+    context->lists = (muiVirtualStore){
+        .entries = (muiVirtualEntry*)(base + parts->lists),
+        .capacity = limits->virtualLists,
+        .sizes = (float*)(base + parts->listSizes),
+        .sums = (double*)(base + parts->listSums),
+        .itemCapacity = limits->virtualItems,
+        .items = (uint32_t*)(base + parts->listItems),
+    };
+    context->access = (muiAccessStore){
+        .entries = (muiAccessEntry*)(base + parts->accessEntries),
+        .capacity = limits->accessNodes,
+        .entryOf = (uint32_t*)(base + parts->accessEntryOf),
+        .roots = (muiAccessRoot*)(base + parts->accessRoots),
+        .rootCapacity = limits->accessRoots,
     };
 }
 
@@ -280,14 +311,7 @@ static void Place(muiContext* context, unsigned char* base, const Parts* parts,
     muiRangeInit(&context->ranges, (muiRangeEntry*)(base + parts->ranges), limits->ranges);
     muiPopupInit(&context->popups, (muiPopupEntry*)(base + parts->popups), limits->popups);
     muiExitInit(&context->exits, (muiExitEntry*)(base + parts->exits), limits->exits);
-    context->lists = (muiVirtualStore){
-        .entries = (muiVirtualEntry*)(base + parts->lists),
-        .capacity = limits->virtualLists,
-        .sizes = (float*)(base + parts->listSizes),
-        .sums = (double*)(base + parts->listSums),
-        .itemCapacity = limits->virtualItems,
-        .items = (uint32_t*)(base + parts->listItems),
-    };
+    PlaceListsAndAccess(context, base, parts, limits);
     muiLayerInit(&context->layers, (muiLayerEntry*)(base + parts->layers), limits->layers);
     muiEventInit(&context->events, (muiNodeId*)(base + parts->routes));
     muiFocusInit(&context->focus, (muiNeighbor*)(base + parts->neighbors), limits->neighbors);
@@ -342,6 +366,7 @@ void muiDestroyContext(muiContext* context)
         return;
     }
     const muiAllocator allocator = context->allocator;
+    muiAccessRelease(&context->access, &allocator);
     muiRelease(&allocator, context, context->blockSize, alignof(max_align_t));
 }
 
