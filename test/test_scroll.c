@@ -585,7 +585,7 @@ static void TestExtentEdges(void)
     // An absolute child's margins do not.
     muiNodeId placed = Sized(context, root, 100.0f, 100.0f);
     Scrolls(context, placed, mui_scrollVertical);
-    muiNodeId floating = Sized(context, placed, 50.0f, 250.0f);
+    muiNodeId floating = Sized(context, placed, 150.0f, 250.0f);
     muiLayoutStyle absolute = muiDefaultLayoutStyle();
     absolute.placement.position = mui_positionAbsolute;
     absolute.placement.inset.start = Length(0.0f);
@@ -598,7 +598,12 @@ static void TestExtentEdges(void)
     Layout(context, root);
     CHECK(ExtentIs(context, shortList, 200.0f, 100.0f), "short content: the padding box");
     CHECK(ExtentIs(context, margined, 340.0f, 180.0f), "margins");
-    CHECK(ExtentIs(context, placed, 100.0f, 250.0f), "an absolute child's border box");
+    CHECK(ExtentIs(context, placed, 150.0f, 250.0f), "an absolute child's border box");
+    float x = 1.0f;
+    float y = 1.0f;
+    CHECK(muiNode_SetScroll(context, placed, 30.0f, 0.0f) == mui_success &&
+              muiNode_GetScroll(context, placed, &x, &y) == mui_success && x == 0.0f,
+          "wider, but not scrolling across");
     // The last margin gone, the offset comes back within, and the list
     // follows.
     CHECK(muiNode_SetScroll(context, margined, 0.0f, 80.0f) == mui_success, "to the end");
@@ -608,8 +613,6 @@ static void TestExtentEdges(void)
     SetLayout(context, item, &margin, MUI_PROPERTY_BIT(mui_propertyMarginBottom));
     Layout(context, root);
     muiDrawList drawn;
-    float x = 0.0f;
-    float y = 0.0f;
     CHECK(muiNode_GetScroll(context, margined, &x, &y) == mui_success && y == 50.0f &&
               muiBuildDrawList(context, root, &input) == mui_success &&
               muiGetDrawList(context, &drawn) == mui_success && drawn.transformCount == 4 &&
