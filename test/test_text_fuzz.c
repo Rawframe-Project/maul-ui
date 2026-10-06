@@ -25,6 +25,10 @@
 
 #include "ahem.inc"
 #include "liberation_sans.inc"
+#include "variable.inc"
+
+#define INSTANCE                                                                                   \
+    (MUI_PROPERTY_BIT(mui_propertyFontWeight) | MUI_PROPERTY_BIT(mui_propertyFontSlant))
 
 enum
 {
@@ -68,7 +72,7 @@ static unsigned char s_pixels[1 << 20];
 // Renders a damaged font's first glyphs at random sizes and offsets:
 // each is rendered, refused, or too large, and none harms anything.
 // Returns how many were rendered.
-static int RenderSome(muiTextService* service, muiFontId font, uint32_t* state)
+static int RenderSome(muiTextService* service, muiFontId font, uint64_t key, uint32_t* state)
 {
     int rendered = 0;
     muiFontMetrics metrics;
@@ -78,14 +82,14 @@ static int RenderSome(muiTextService* service, muiFontId font, uint32_t* state)
         float size = 1.0f + (float)(Next(state) % 2000) / 10.0f;
         float offset = (float)(Next(state) % 4) / 4.0f;
         muiGlyphImage image = {0, 0, 0, 0};
-        muiResult result = muiRenderGlyph(service, muiFont_GetKey(font), glyph, size, offset,
-                                          &image, s_pixels, sizeof s_pixels);
+        muiResult result =
+            muiRenderGlyph(service, key, glyph, size, offset, &image, s_pixels, sizeof s_pixels);
         CHECK(result == mui_success || result == mui_errorFormat ||
                   (result == mui_errorCapacity &&
                    (size_t)image.width * image.height > sizeof s_pixels),
               "a glyph rendered or refused");
-        result = muiRenderGlyphField(service, muiFont_GetKey(font), glyph, size / 4.0f, 4, &image,
-                                     s_pixels, sizeof s_pixels);
+        result = muiRenderGlyphField(service, key, glyph, size / 4.0f, 4, &image, s_pixels,
+                                     sizeof s_pixels);
         CHECK(result == mui_success || result == mui_errorFormat ||
                   (result == mui_errorCapacity &&
                    (size_t)image.width * image.height > sizeof s_pixels),
@@ -122,9 +126,10 @@ static void TestDamagedFonts(void)
     int rendered = 0;
     for (int round = 0; round < FONT_ROUNDS && copy != NULL; round++)
     {
-        bool ahem = round % 2 == 0;
-        size_t size = Damage(copy, ahem ? s_ahem : s_liberationSans,
-                             ahem ? sizeof s_ahem : sizeof s_liberationSans, &state);
+        // Ahem, Liberation Sans and a variable font in turn.
+        const unsigned char* fonts[3] = {s_ahem, s_liberationSans, s_variable};
+        const size_t sizes[3] = {sizeof s_ahem, sizeof s_liberationSans, sizeof s_variable};
+        size_t size = Damage(copy, fonts[round % 3], sizes[round % 3], &state);
         muiFontDef fontDef = muiDefaultFontDef();
         fontDef.data = copy;
         fontDef.size = size;
@@ -135,10 +140,14 @@ static void TestDamagedFonts(void)
         {
             continue;
         }
-        // What was read lays text out and renders glyphs without harm.
+        // What was read lays text out in an instance of a random weight
+        // and slant, and renders glyphs in it, without harm.
         read++;
-        rendered += RenderSome(service, font, &state);
+        muiTextStyle style = muiDefaultTextStyle();
+        style.weight = 1.0f + (float)(Next(&state) % 1000);
+        style.slant = (muiFontSlant)(Next(&state) % 3);
         CHECK(muiSetDefaultFont(service, font) == mui_success &&
+                  muiNode_SetTextValues(context, node, &style, INSTANCE) == mui_success &&
                   muiNode_MarkContentChanged(context, node) == mui_success,
               "the default");
         muiTextHost host = {service, context};
@@ -147,6 +156,11 @@ static void TestDamagedFonts(void)
         CHECK(muiComputeLayout(context, node, &input) == mui_success &&
                   muiBuildDrawList(context, node, &draw) != mui_errorInvalid,
               "laid out");
+        muiDrawList list;
+        uint64_t key = muiGetDrawList(context, &list) == mui_success && list.commandCount != 0
+                           ? list.commands[0].glyphRun.font
+                           : muiFont_GetKey(font);
+        rendered += RenderSome(service, font, key, &state);
         CHECK(muiSetDefaultFont(service, (muiFontId){0, 0}) == mui_success &&
                   muiDestroyFont(service, font) == mui_success,
               "destroyed");
@@ -209,6 +223,8 @@ static void RandomStyle(muiContext* context, muiNodeId node, uint32_t* state)
     style.lineHeight = Next(state) % 2 == 0 ? (muiDimension){0.0f, 0.0f, mui_dimensionAuto}
                                             : (muiDimension){0.5f + (float)(Next(state) % 3), 0.0f,
                                                              mui_dimensionValue};
+    style.weight = 1.0f + (float)(Next(state) % 1000);
+    style.slant = (muiFontSlant)(Next(state) % 3);
     style.align = (muiTextAlign)(Next(state) % 3);
     style.wrap = (muiTextWrap)(Next(state) % 2);
     CHECK(muiNode_SetTextValues(context, node, &style, MUI_TEXT_PROPERTIES) == mui_success,

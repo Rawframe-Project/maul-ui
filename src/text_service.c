@@ -6,6 +6,7 @@
 #include "text_service.h"
 
 #include "allocator.h"
+#include "font_instance.h"
 #include "pool.h"
 
 #include "maul-unicode/harfbuzz.h"
@@ -247,11 +248,17 @@ void muiDestroyTextService(muiTextService* service)
 
 muiFont* muiFindFont(const muiTextService* service, uint64_t key, uint64_t* keyOut)
 {
-    if (key == 0)
+    if (key == 0 && service->defaultFont.index1 != 0)
     {
-        key = ((uint64_t)service->defaultFont.generation << 32) | service->defaultFont.index1;
+        key = muiKeyOf(service->defaultFont.index1, service->defaultFont.generation);
     }
-    uint32_t slot = muiPoolResolve(&service->fonts.pool, (uint32_t)key, (uint32_t)(key >> 32));
     *keyOut = key;
-    return slot != 0 ? &service->fonts.fonts[slot - 1] : nullptr;
+    uint32_t slot = (uint32_t)(key & 0xFFFFu) + 1;
+    uint32_t generation = (uint32_t)(key >> 16) & 0xFFFFFFu;
+    const muiPool* pool = &service->fonts.pool;
+    // Bit 63 is kept for families' keys.
+    bool live = (key & MUI_FONT_PART_MASK) != 0 && key >> 63 == 0 && slot <= pool->used &&
+                pool->slots[slot - 1].live &&
+                muiKeyGeneration(pool->slots[slot - 1].generation) == generation;
+    return live ? &service->fonts.fonts[slot - 1] : nullptr;
 }

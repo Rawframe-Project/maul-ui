@@ -6,6 +6,8 @@
 
 #include "text_shape.h"
 
+#include "font_instance.h"
+
 #include "maul-unicode/bidi.h"
 
 #include <hb.h>
@@ -87,7 +89,7 @@ typedef struct Output
 // level and script, the piece being the context, and appends its glyphs
 // with clusters as offsets in the whole text, which starts offset bytes
 // before the piece.
-static bool ShapeRange(muiTextService* service, hb_buffer_t* buffer, const muiFont* font,
+static bool ShapeRange(muiTextService* service, hb_buffer_t* buffer, hb_font_t* font,
                        const muiTextBlock* block, uint32_t offset, uint32_t length,
                        const muiTextItem* range, Output* out)
 {
@@ -103,7 +105,7 @@ static bool ShapeRange(muiTextService* service, hb_buffer_t* buffer, const muiFo
     const char* text = block->text.data;
     hb_buffer_add_utf8(buffer, text + offset, (int)length, range->start - offset,
                        (int)(range->end - range->start));
-    hb_shape(font->shapingFont, buffer, nullptr, 0);
+    hb_shape(font, buffer, nullptr, 0);
     if (!hb_buffer_allocation_successful(buffer))
     {
         return false;
@@ -173,7 +175,7 @@ static bool SumAdvances(muiTextService* service, muiTextBlock* block)
     return true;
 }
 
-static bool Shape(muiTextService* service, muiTextBlock* block, const muiFont* font, bool rtl)
+static bool Shape(muiTextService* service, muiTextBlock* block, hb_font_t* font, bool rtl)
 {
     block->glyphCount = 0;
     block->itemCount = 0;
@@ -205,14 +207,15 @@ static bool Shape(muiTextService* service, muiTextBlock* block, const muiFont* f
     return shaped && SumAdvances(service, block);
 }
 
-bool muiShapeTextBlock(muiTextService* service, muiTextBlock* block, const muiFont* font,
+bool muiShapeTextBlock(muiTextService* service, muiTextBlock* block, muiFont* font,
                        uint64_t fontKey, bool rtl)
 {
     if (block->shaped && block->shapedFont == fontKey && block->shapedRtl == rtl)
     {
         return true;
     }
-    block->shaped = Shape(service, block, font, rtl);
+    hb_font_t* shaper = muiShapingFontOf(font, fontKey);
+    block->shaped = shaper != nullptr && Shape(service, block, shaper, rtl);
     block->shapedFont = fontKey;
     block->shapedRtl = rtl;
     return block->shaped;
@@ -229,8 +232,8 @@ bool muiIsBreakUnsafe(const muiTextBlock* block, uint32_t offset)
     return clusters[offset + 1] == clusters[offset] || unsafe[offset] != 0;
 }
 
-bool muiShapeTextLine(muiTextService* service, const muiTextBlock* block, const muiFont* font,
-                      uint32_t start, uint32_t end, muiTextLineShape* out)
+bool muiShapeTextLine(muiTextService* service, const muiTextBlock* block, muiFont* font,
+                      uint64_t fontKey, uint32_t start, uint32_t end, muiTextLineShape* out)
 {
     out->glyphCount = 0;
     out->itemCount = 0;
@@ -244,7 +247,8 @@ bool muiShapeTextLine(muiTextService* service, const muiTextBlock* block, const 
     {
         return false;
     }
-    hb_buffer_t* buffer = MakeBuffer(service);
+    hb_font_t* shaper = muiShapingFontOf(font, fontKey);
+    hb_buffer_t* buffer = shaper != nullptr ? MakeBuffer(service) : nullptr;
     bool shaped = buffer != nullptr;
     Output glyphs = {out->glyphs, &out->glyphCount, nullptr};
     muiTextItem* own = out->items->data;
@@ -259,7 +263,7 @@ bool muiShapeTextLine(muiTextService* service, const muiTextBlock* block, const 
         piece->start = items[i].start > start ? items[i].start : start;
         piece->end = items[i].end < end ? items[i].end : end;
         piece->firstGlyph = out->glyphCount;
-        shaped = ShapeRange(service, buffer, font, block, start, end - start, piece, &glyphs);
+        shaped = ShapeRange(service, buffer, shaper, block, start, end - start, piece, &glyphs);
         piece->glyphCount = out->glyphCount - piece->firstGlyph;
     }
     hb_buffer_destroy(buffer);

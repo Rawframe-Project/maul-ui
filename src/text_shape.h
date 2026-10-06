@@ -16,10 +16,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-// Shapes a block in a font, named by fontKey, and a base direction,
-// unless it is shaped so already; false when memory runs out, which
-// leaves it unshaped.
-bool muiShapeTextBlock(muiTextService* service, muiTextBlock* block, const muiFont* font,
+// Shapes a block in a font's instance, named by fontKey, and a base
+// direction, unless it is shaped so already; false when memory runs out,
+// which leaves it unshaped.
+bool muiShapeTextBlock(muiTextService* service, muiTextBlock* block, muiFont* font,
                        uint64_t fontKey, bool rtl);
 
 // Whether a line breaking before the byte at offset would shape
@@ -37,9 +37,10 @@ typedef struct muiTextLineShape
     uint32_t glyphCount;
 } muiTextLineShape;
 
-// Shapes bytes from start up to end of a shaped block alone, as a line
-// broken there is, its items cut to them; false when memory runs out.
-bool muiShapeTextLine(muiTextService* service, const muiTextBlock* block, const muiFont* font,
-                      uint32_t start, uint32_t end, muiTextLineShape* out);
+// Shapes bytes from start up to end of a shaped block alone, in the
+// font's instance fontKey names, as a line broken there is, its items cut
+// to them; false when memory runs out.
+bool muiShapeTextLine(muiTextService* service, const muiTextBlock* block, muiFont* font,
+                      uint64_t fontKey, uint32_t start, uint32_t end, muiTextLineShape* out);
 
 #endif // MAUL_UI_SRC_TEXT_SHAPE_H

@@ -6,6 +6,7 @@
 // direction, broken into lines, and for painting reordered by UAX #9
 // rules L1 and L2, aligned, and drawn as a glyph run per line and item.
 
+#include "font_instance.h"
 #include "line_break.h"
 #include "text_block.h"
 #include "text_service.h"
@@ -23,7 +24,8 @@ typedef struct Paragraph
 {
     muiTextService* service;
     muiTextBlock* block;
-    const muiFont* font;
+    muiFont* font;
+    // The font's instance the style makes.
     uint64_t fontKey;
     muiComputedTextStyle style;
     muiLineScale scale;
@@ -52,11 +54,13 @@ static bool Prepare(const muiTextHost* host, muiNodeId nodeId, uint64_t hostKey,
     muiTextService* service = host->service;
     out->service = service;
     out->block = FindBlock(service, hostKey);
-    out->font = muiFindFont(service, out->style.font, &out->fontKey);
+    out->font = muiFindFont(service, out->style.font & MUI_FONT_PART_MASK, &out->fontKey);
     if (out->block == nullptr || out->font == nullptr)
     {
         return false;
     }
+    out->fontKey |=
+        muiInstanceBits(out->font, out->style.weight, out->style.slant, out->style.size);
     out->rtl = muiNode_IsRightToLeft(host->context, nodeId);
     if (!muiShapeTextBlock(service, out->block, out->font, out->fontKey, out->rtl))
     {
@@ -155,7 +159,8 @@ static bool GlyphsOf(const Paragraph* paragraph, const muiTextLine* line, LineGl
     }
     muiTextService* service = paragraph->service;
     muiTextLineShape shape = {&service->lineItems, 0, &service->lineGlyphs, 0};
-    if (!muiShapeTextLine(service, block, paragraph->font, line->start, line->next, &shape))
+    if (!muiShapeTextLine(service, block, paragraph->font, paragraph->fontKey, line->start,
+                          line->next, &shape))
     {
         service->failures++;
         return false;

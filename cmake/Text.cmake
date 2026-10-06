@@ -8,6 +8,7 @@ target_sources(maul-ui PRIVATE
     src/distance_field.c
     src/flatten.c
     src/font.c
+    src/font_instance.c
     src/font_store.c
     src/glyph_atlas.c
     src/glyph_image.c

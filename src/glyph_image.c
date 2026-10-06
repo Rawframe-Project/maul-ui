@@ -10,8 +10,10 @@
 
 #include "distance_field.h"
 #include "flatten.h"
+#include "font_instance.h"
 #include "text_service.h"
 
+#include FT_MULTIPLE_MASTERS_H
 #include FT_OUTLINE_H
 
 #include <math.h>
@@ -40,11 +42,61 @@ static FT_Pos CeilPixel(FT_Pos value)
     return -FloorPixel(-value);
 }
 
-// Loads a glyph's outline at a size in 64ths of a pixel, the pen moved
-// right by offset 64ths.
-static muiResult LoadOutline(muiFont* font, uint32_t glyph, long size, FT_Pos offset)
+// Sets a font's face to the instance a key names, unless it is set so.
+static muiResult SetInstance(muiFont* font, uint64_t key)
+{
+    uint64_t instance = key & ~MUI_FONT_PART_MASK;
+    if (font->axisCount == 0 || font->imageInstance == instance)
+    {
+        return mui_success;
+    }
+    muiInstance decoded = muiDecodeInstance(key);
+    FT_Fixed coordinates[MUI_MAX_FONT_AXES];
+    uint32_t count = muiInstanceCoordinates(font, &decoded, coordinates);
+    FT_Error error = FT_Set_Var_Design_Coordinates(font->face, count, coordinates);
+    if (error != 0)
+    {
+        // No instance has every bit set: set again next time.
+        font->imageInstance = UINT64_MAX;
+        return Failed(error);
+    }
+    font->imageInstance = instance;
+    return mui_success;
+}
+
+// Makes the oblique and the bold an instance asks for, as HarfBuzz does
+// for shaping: sheared by a quarter of the height, then grown by an em/24
+// up and right, FreeType keeping the left side bearing.
+static muiResult Synthesize(FT_Outline* outline, uint64_t key, long size)
+{
+    muiInstance instance = muiDecodeInstance(key);
+    if (instance.sheared)
+    {
+        FT_Matrix shear = {0x10000, 0x4000, 0, 0x10000};
+        FT_Outline_Transform(outline, &shear);
+    }
+    if (instance.emboldened)
+    {
+        FT_Pos strength = size / 24;
+        FT_Error error = FT_Outline_EmboldenXY(outline, strength, strength);
+        if (error != 0)
+        {
+            return Failed(error);
+        }
+    }
+    return mui_success;
+}
+
+// Loads a glyph's outline in a key's instance at a size in 64ths of a
+// pixel, the pen moved right by offset 64ths.
+static muiResult LoadOutline(muiFont* font, uint64_t key, uint32_t glyph, long size, FT_Pos offset)
 {
     FT_Face face = font->face;
+    muiResult result = SetInstance(font, key);
+    if (result != mui_success)
+    {
+        return result;
+    }
     if (font->imageSize != size)
     {
         FT_Error error = FT_Set_Char_Size(face, 0, size, 72, 72);
@@ -64,17 +116,17 @@ static muiResult LoadOutline(muiFont* font, uint32_t glyph, long size, FT_Pos of
     {
         return mui_errorFormat;
     }
+    result = Synthesize(&face->glyph->outline, key, size);
     FT_Outline_Translate(&face->glyph->outline, offset, 0);
-    return mui_success;
+    return result;
 }
 
 // The font of a key, checked to have the glyph: NULL with the result
 // otherwise.
 static muiFont* FontOf(const muiTextService* service, uint64_t font, uint32_t glyph,
-                       muiResult* result)
+                       uint64_t* keyOut, muiResult* result)
 {
-    uint64_t key = 0;
-    muiFont* record = muiFindFont(service, font, &key);
+    muiFont* record = muiFindFont(service, font, keyOut);
     *result = record == nullptr                     ? mui_errorStale
               : glyph >= record->metrics.glyphCount ? mui_errorInvalid
                                                     : mui_success;
@@ -96,13 +148,14 @@ muiResult muiRenderGlyph(muiTextService* service, uint64_t font, uint32_t glyph,
         return mui_errorInvalid;
     }
     muiResult result = mui_success;
-    muiFont* record = FontOf(service, font, glyph, &result);
+    uint64_t key = 0;
+    muiFont* record = FontOf(service, font, glyph, &key, &result);
     if (record == nullptr)
     {
         return result;
     }
-    result =
-        LoadOutline(record, glyph, lroundf(pixelSize * 64.0f), (FT_Pos)lroundf(offsetX * 64.0f));
+    result = LoadOutline(record, key, glyph, lroundf(pixelSize * 64.0f),
+                         (FT_Pos)lroundf(offsetX * 64.0f));
     if (result != mui_success)
     {
         return result;
@@ -201,12 +254,13 @@ muiResult muiRenderGlyphField(muiTextService* service, uint64_t font, uint32_t g
         return mui_errorInvalid;
     }
     muiResult result = mui_success;
-    muiFont* record = FontOf(service, font, glyph, &result);
+    uint64_t key = 0;
+    muiFont* record = FontOf(service, font, glyph, &key, &result);
     if (record == nullptr)
     {
         return result;
     }
-    result = LoadOutline(record, glyph, lroundf(pixelSize * 64.0f), 0);
+    result = LoadOutline(record, key, glyph, lroundf(pixelSize * 64.0f), 0);
     if (result != mui_success)
     {
         return result;

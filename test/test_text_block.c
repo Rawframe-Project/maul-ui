@@ -191,7 +191,9 @@ static void TestBlocksAndKeys(void)
               muiDestroyTextBlock(NULL, b) == mui_errorInvalid &&
               muiDestroyTextBlock(service, (muiTextBlockId){0, 0}) == mui_errorInvalid,
           "destroying");
-    CHECK(muiFont_GetKey((muiFontId){1, 2}) == ((uint64_t)2 << 32 | 1), "a font's key");
+    CHECK(muiFont_GetKey((muiFontId){1, 2}) == ((uint64_t)2 << 16) &&
+              muiFont_GetKey((muiFontId){0, 0}) == 0,
+          "a font's key");
     CHECK(muiSetDefaultFont(NULL, (muiFontId){0, 0}) == mui_errorInvalid &&
               muiSetDefaultFont(service, (muiFontId){1, 1}) == mui_errorStale &&
               muiSetDefaultFont(service, (muiFontId){0, 0}) == mui_success,

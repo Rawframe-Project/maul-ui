@@ -98,7 +98,11 @@ extern "C"
     MUI_API uint64_t muiTextBlock_GetKey(muiTextBlockId blockId);
 
     /// Returns a font's key, for a text style's font: never 0, which names
-    /// the service's default font.
+    /// the service's default font. Text laid out in it draws glyph runs
+    /// whose keys name an instance of the font as well: the axes and the
+    /// bold or oblique the style's weight, slant and size make of it,
+    /// which glyph images and atlases rebuild from the key. A null id's
+    /// key is 0.
     ///
     /// @param fontId  The font.
     /// @return The key.

@@ -37,12 +37,24 @@ published.
   4.60.1), MIT: an A of two overlapping boxes marked with the TrueType
   overlap flag, for distance fields of overlapping contours.
 
+- `MaulVariable.ttf`, `MaulVariableSlant.ttf`, `MaulVariableItalic.ttf`
+  and `MaulItalic.ttf`: written by `make_instance_fonts.py` (fontTools
+  4.60.1), MIT: an A whose wght, ital, slnt and opsz axes move its sides
+  and advance by known amounts; the first with all four axes, the
+  second without ital and with wght stopping at 500 so bold is out of
+  its reach, the third with ital alone, the last with none and its face
+  marked italic, for font instances.
+
 SHA-256 of each file:
 
 ```text
 b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448  Ahem.ttf
 76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8  LiberationSans-Regular.ttf
 9874b4f1bf8f95c0c1ab5c810a89c1bca65ba666731b79a72de2eb1291d4b13a  MaulBreakTest.ttf
+433d1ea83dfbcbc4ec1379b7753dc0a778a2072f1d53cc19f2a6b98dc03f3ed3  MaulItalic.ttf
 1a0b8e0c87b9cf3fd2b847c47f677cdbd2af980a3e5d2fb3fbfeb8133bbbcc8f  MaulLargeGlyph.ttf
 a4e7b6f71982af76fa911502cac52db2e1290d4db5b64becc65d562f8afe1a63  MaulOverlap.ttf
+4103c45d335e421ab154ad5ec2b9c962024ef1a9a023eed47c614abfd09b7446  MaulVariable.ttf
+553014f54c138cb998407e2a3cb08c3b51a85e430ef09f311149e45342e22ea8  MaulVariableItalic.ttf
+05289f6fbd722881c3d81dfb3564c932aa899b3a323ee7e2179f0959ec8124c7  MaulVariableSlant.ttf
 ```

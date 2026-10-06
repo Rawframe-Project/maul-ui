@@ -6,6 +6,7 @@
 // set. A new text is analyzed into new buffers before the old ones go,
 // so a failure keeps the old text. Keys and the default font too.
 
+#include "font_instance.h"
 #include "text_block.h"
 #include "text_service.h"
 
@@ -225,7 +226,7 @@ uint64_t muiTextBlock_GetKey(muiTextBlockId blockId)
 
 uint64_t muiFont_GetKey(muiFontId fontId)
 {
-    return (uint64_t)fontId.generation << 32 | fontId.index1;
+    return fontId.index1 != 0 ? muiKeyOf(fontId.index1, fontId.generation) : 0;
 }
 
 muiResult muiSetDefaultFont(muiTextService* service, muiFontId fontId)

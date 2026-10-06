@@ -122,10 +122,20 @@ if(MAUL_UI_BUILD_TESTS)
             ${PROJECT_BINARY_DIR}/test_fonts/large_glyph.inc s_largeGlyph)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulOverlap.ttf
             ${PROJECT_BINARY_DIR}/test_fonts/overlap.inc s_overlap)
+        mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulVariable.ttf
+            ${PROJECT_BINARY_DIR}/test_fonts/variable.inc s_variable)
+        mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulVariableSlant.ttf
+            ${PROJECT_BINARY_DIR}/test_fonts/variable_slant.inc s_variableSlant)
+        mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulVariableItalic.ttf
+            ${PROJECT_BINARY_DIR}/test_fonts/variable_italic.inc s_variableItalic)
+        mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulItalic.ttf
+            ${PROJECT_BINARY_DIR}/test_fonts/italic.inc s_italic)
         maul_add_test(text_block)
         target_include_directories(test_text_block PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(text_fuzz)
         target_include_directories(test_text_fuzz PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
+        maul_add_test(font_instance)
+        target_include_directories(test_font_instance PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(glyph_image)
         target_include_directories(test_glyph_image PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(glyph_atlas)

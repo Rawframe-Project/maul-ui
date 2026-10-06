@@ -76,8 +76,8 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   vector lengths (about 30 times slower): the outline is cut into
   segments within 1/32 pixel by Wang's formula, each pixel's center is
   inside by nonzero winding along its row, or even-odd when the outline
-  says so, and its distance is to the
-  nearest part of a segment on the edge of the union of the contours.
+  says so, and its distance is to the nearest part of a segment on the
+  edge of the union of the contours.
   Overlapping contours, as variable fonts' and composite glyphs' are,
   make one shape: segments are cut into pieces of at most a pixel,
   sorted into the pixel cells their boxes' corners are in, and the
@@ -88,6 +88,18 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   the edge is exact; a stray point or a contour without area is no
   edge. Only correctly rounded float operations are used, so fields
   too are the same bytes everywhere.
+- **Font instances:** a font key names a font and an instance of it:
+  the wght axis's value, ital, slnt or a shear, the opsz axis's value,
+  and a made bold, decided once when text is laid out from the style's
+  weight, slant and size as CSS decides them (wght from the weight; ital
+  for italic, slnt -14 for oblique or for italic without ital; opsz from
+  the size; bold from 600 where the face cannot reach 600, outlines and
+  advances grown by an em/24; an oblique shear of a quarter where the
+  face is upright without either axis). Glyph runs carry the key, and
+  glyph images and atlases rebuild the instance from it, so instances
+  have no lifetime and a regular upright static font keeps its own key.
+  Shaping fonts of instances are made from the face as needed, a few
+  kept per font; line metrics are the default instance's.
 - **Glyph atlases** (`maul-ui/glyph_atlas.h`) are owner objects of a
   service, in its memory: pages of the caller's size, made as needed up
   to a limit and cut into plots, each packed with a skyline bottom-left

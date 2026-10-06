@@ -27,6 +27,11 @@ format.
 
 ### Added
 
+- Font instances: a text style's weight, slant and size set a variable
+  font's wght, ital, slnt and opsz axes, and make bold and oblique for
+  faces without them, as CSS does; glyph runs carry font keys naming
+  the instance, which glyph images and atlases draw (record mui-0006).
+
 - Distance fields: `muiRenderGlyphField` renders a glyph as a signed
   distance field a renderer scales to any size, overlapping contours as
   one shape, the same bytes on every platform; `muiGlyphAtlas_GetField`
