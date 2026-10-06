@@ -8,6 +8,7 @@
 
 #include "animation.h"
 #include "draw_store.h"
+#include "focus_store.h"
 #include "inherit.h"
 #include "layer_store.h"
 #include "layout_node.h"
@@ -49,6 +50,8 @@ struct muiContext
     muiLayerStore layers;
     // The pointers known and their records.
     muiPointerStore pointers;
+    // Each player's focus.
+    muiFocusStore focus;
     // What conditions read of the world outside the tree.
     muiEnvironment environment;
     // How many times the host edited a class, a node type or the

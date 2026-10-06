@@ -10,6 +10,7 @@
 #include "maul-ui/pointer.h"
 
 #include "context.h"
+#include "focus.h"
 #include "pointer.h"
 #include "tree.h"
 
@@ -245,7 +246,8 @@ static uint32_t CountPress(muiPointerStore* store, const muiPointerEvent* event)
 static bool IsValidEvent(const muiPointerEvent* event)
 {
     return event->kind <= mui_pointerPen && event->action <= mui_pointerLeave &&
-           event->button < 8 && isfinite(event->x) && isfinite(event->y);
+           event->player < MUI_MAX_PLAYERS && event->button < 8 && isfinite(event->x) &&
+           isfinite(event->y);
 }
 
 // The node a pointer hovers after an event: its capture, nothing for a
@@ -266,6 +268,10 @@ static void Press(muiContext* context, muiPointer* pointer, const Target* hit,
     uint32_t count = CountPress(&context->pointers, event);
     uint32_t captured = SlotOf(context, pointer->captured);
     const Target target = TargetAt(context, hit, pointer, captured != 0 ? captured : hit->slot);
+    if (before == 0)
+    {
+        muiFocusPress(context, event->player, target.slot);
+    }
     if (before == 0 && target.slot != 0)
     {
         Count(context, target.slot, true, 1);

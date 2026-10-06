@@ -230,6 +230,7 @@ static void Place(muiContext* context, unsigned char* base, const Parts* parts,
     }
     draw->identity = (muiDrawTransform){1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
     muiLayerInit(&context->layers, (muiLayerEntry*)(base + parts->layers), limits->layers);
+    muiFocusInit(&context->focus);
     muiPointerInit(&context->pointers, (muiPointer*)(base + parts->pointers), limits->pointers,
                    (muiPointerRecord*)(base + parts->pointerRecords), limits->pointerRecords);
 }

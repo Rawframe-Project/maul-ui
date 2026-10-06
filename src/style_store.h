@@ -69,6 +69,10 @@ typedef struct muiNodeStyle
     // node (src/pointer.c).
     uint8_t hovers;
     uint8_t presses;
+    // The players focusing the node, and those showing it, as bits
+    // (src/focus.c).
+    uint8_t focusedBy;
+    uint8_t shownBy;
     // Set by the host's edits of the node: the next styling is the host's,
     // not one its own layout asked for.
     bool edited;
@@ -132,11 +136,13 @@ static inline void muiSetClassList(muiClassList* list, const muiStyleId* classes
     }
 }
 
-// The states a node is in: the host's, and those pointers give.
+// The states a node is in: the host's, and those pointers and focus give.
 static inline muiState muiStatesOf(const muiNodeStyle* node)
 {
     return (muiState)(node->states | (node->hovers != 0 ? mui_stateHovered : 0) |
-                      (node->presses != 0 ? mui_statePressed : 0));
+                      (node->presses != 0 ? mui_statePressed : 0) |
+                      (node->focusedBy != 0 ? mui_stateFocused : 0) |
+                      (node->shownBy != 0 ? mui_stateFocusVisible : 0));
 }
 
 #endif // MAUL_UI_SRC_STYLE_STORE_H

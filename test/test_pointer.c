@@ -80,7 +80,7 @@ static muiResult Send(muiContext* context, muiNodeId root, uint32_t pointer, mui
                       muiPointerAction action, uint8_t button, muiPointerButtons buttons, float x,
                       float y, uint64_t timeNs)
 {
-    const muiPointerEvent event = {timeNs, pointer, kind, action, button, buttons, x, y};
+    const muiPointerEvent event = {timeNs, pointer, kind, action, button, buttons, x, y, 0};
     return muiPointerInput(context, root, &event);
 }
 
@@ -746,7 +746,7 @@ static void TestContract(void)
 {
     Scene s = MakeScene(16, 64);
     muiContext* context = s.context;
-    const muiPointerEvent good = {0, 1, mui_pointerMouse, mui_pointerMove, 0, 0, 1.0f, 1.0f};
+    const muiPointerEvent good = {0, 1, mui_pointerMouse, mui_pointerMove, 0, 0, 1.0f, 1.0f, 0};
     muiPointerEvent bad[5] = {good, good, good, good, good};
     bad[0].kind = mui_pointerPen + 1;
     bad[1].action = mui_pointerLeave + 1;

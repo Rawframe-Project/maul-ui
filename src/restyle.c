@@ -10,6 +10,7 @@
 
 #include "animation.h"
 #include "condition.h"
+#include "focus.h"
 #include "layer.h"
 #include "layout_node.h"
 #include "notify.h"
@@ -468,6 +469,8 @@ static void Resolve(muiContext* context, uint32_t slot, uint64_t nowNs)
     {
         context->style.nodes[slot - 1].styled = true;
         Inherit(context, slot, node->direct.words[mui_groupText], false);
+        // A state the host set may have made a focused node unfocusable.
+        muiNoteFocus(context, slot);
         return;
     }
     Resolution resolution;
@@ -499,7 +502,8 @@ static void Resolve(muiContext* context, uint32_t slot, uint64_t nowNs)
     Classes classes = ClassesOf(store, node);
     ApplyVariant(context, &classes, mui_variantBase, free, &resolution);
     muiState states = muiStatesOf(node);
-    for (uint32_t v = mui_variantChecked; v < mui_variantCondition0; v++)
+    // Up to the strongest state held: most nodes hold none.
+    for (uint32_t v = mui_variantChecked; (states >> (v - 1)) != 0; v++)
     {
         // Variant v belongs to state bit v - 1.
         if ((states & (1u << (v - 1))) != 0)
@@ -513,6 +517,7 @@ static void Resolve(muiContext* context, uint32_t slot, uint64_t nowNs)
         Watch(context, slot, &run);
     }
     bool textChanged = Commit(context, slot, &resolution, free, nowNs);
+    muiNoteFocus(context, slot);
     context->style.nodes[slot - 1].styled = true;
     Inherit(context, slot,
             resolution.given.words[mui_groupText] | node->direct.words[mui_groupText], textChanged);

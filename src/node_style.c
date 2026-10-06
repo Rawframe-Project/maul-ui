@@ -7,6 +7,7 @@
 
 #include "animation.h"
 #include "context.h"
+#include "focus.h"
 #include "inherit.h"
 #include "layer.h"
 #include "layout_node.h"
@@ -18,9 +19,6 @@
 #include "maul-ui/style.h"
 #include "maul-ui/text_style.h"
 #include "maul-ui/visual.h"
-
-// The states muiState names.
-#define KNOWN_STATES 0x7Fu
 
 muiResult muiNode_SetType(muiContext* context, muiNodeId nodeId, muiNodeTypeId typeId)
 {
@@ -72,10 +70,6 @@ muiResult muiNode_SetStates(muiContext* context, muiNodeId nodeId, muiState stat
     if (context == nullptr)
     {
         return mui_errorInvalid;
-    }
-    if ((states & ~KNOWN_STATES) != 0)
-    {
-        return muiRefuse(context);
     }
     muiResult status = mui_success;
     uint32_t slot = muiResolveEdit(context, nodeId, &status);
@@ -142,6 +136,7 @@ static muiResult SetDirect(muiContext* context, muiNodeId nodeId, muiConstValues
         muiTreeMark(&context->tree, slot, mui_stagePaint);
     }
     muiNoteLayer(context, slot, layer);
+    muiNoteFocus(context, slot);
     // The node's text, and its inheriting children's, take the write at
     // once; the style pass then weighs it with the node's classes.
     if (group == mui_groupText && mask != 0)

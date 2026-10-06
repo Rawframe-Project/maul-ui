@@ -25,18 +25,20 @@ draw: context draw_store layer paint paint_host tree
 hit: context layer layout_node paint tree
 layer: context layer_store tree
 layer_store:
-pointer: context pointer_store style_store tree
+focus: context focus_store layer notify style_store tree
+focus_store:
+pointer: context pointer_store style_store tree focus
 pointer_store:
 notify:
 style_store: pool property
 sizing:
 tree: invariant
 solver: layout_node tree draw_store
-context: allocator animation inherit invariant layer_store layout_node notify pointer_store pool style_store tree token_store theme_store draw_store
-node: context inherit layout_node pointer style_store tree
-node_style: animation context layout_node pool property style_store tree inherit layer
+context: allocator animation inherit invariant layer_store layout_node notify pointer_store pool style_store tree token_store theme_store draw_store focus_store
+node: context inherit layout_node pointer style_store tree focus
+node_style: animation context layout_node pool property style_store tree inherit layer focus
 style: condition context pool property style_edit style_store tree
-restyle: animation condition context inherit layout_node notify pool property style_store tree token_store theme_store layer
+restyle: animation condition context inherit layout_node notify pool property style_store tree token_store theme_store layer focus
 flex_resolve: layout_node tree
 flex: flex_resolve layout_node sizing solver tree
 absolute: layout_node sizing solver tree

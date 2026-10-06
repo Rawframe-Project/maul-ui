@@ -115,6 +115,10 @@ extern "C"
         mui_notificationOscillation = 1,
         // count notifications were dropped here, past the limit.
         mui_notificationDropped = 2,
+        // A player's focus came to the node, or left it; count is the
+        // player.
+        mui_notificationFocusGained = 3,
+        mui_notificationFocusLost = 4,
     };
 
     // A record of something the host learns after the call that caused
@@ -124,7 +128,8 @@ extern "C"
         muiNotificationKind kind;
         // The node it is about; the null id for mui_notificationDropped.
         muiNodeId nodeId;
-        // For mui_notificationDropped, how many were dropped.
+        // For mui_notificationDropped, how many were dropped; for focus,
+        // the player.
         uint32_t count;
     } muiNotification;
 

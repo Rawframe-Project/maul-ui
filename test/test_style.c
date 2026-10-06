@@ -362,13 +362,13 @@ static void TestStatesLayerAboveEveryBase(void)
     CHECK(WidthAfterLayout(context, node, node) == 40.0f,
           "a stronger state beats a later class's weaker one");
     // Every state in turn over the one before it.
-    const muiState states[] = {mui_stateChecked, mui_stateSelected, mui_stateFocused,
-                               mui_stateHovered, mui_statePressed,  mui_stateDisabled,
-                               mui_stateExiting};
+    const muiState states[] = {mui_stateChecked,      mui_stateSelected, mui_stateFocused,
+                               mui_stateFocusVisible, mui_stateHovered,  mui_statePressed,
+                               mui_stateDisabled,     mui_stateExiting};
     muiStyleId each = MakeStyle(context);
     CHECK(muiNode_SetClasses(context, node, &each, 1) == mui_success, "one class");
     muiState held = 0;
-    for (uint32_t i = 0; i < 7; i++)
+    for (uint32_t i = 0; i < 8; i++)
     {
         SetWidth(context, each, (muiVariant)(i + 1), 100.0f + (float)i);
         held |= states[i];
@@ -378,7 +378,6 @@ static void TestStatesLayerAboveEveryBase(void)
     }
     CHECK(muiNode_SetStates(context, node, mui_stateChecked) == mui_success, "only checked");
     CHECK(WidthAfterLayout(context, node, node) == 100.0f, "the variant of the state held");
-    CHECK(muiNode_SetStates(context, node, 0x80) == mui_errorInvalid, "unknown state");
     CHECK(muiNode_SetStates(context, s_nullNode, 0) == mui_errorInvalid, "null node");
     CHECK(muiNode_SetStates(NULL, node, 0) == mui_errorInvalid, "no context");
     CHECK(muiNode_GetStates(NULL, node) == 0, "no context read");
@@ -433,7 +432,7 @@ static void TestDirectWritesWinUntilReset(void)
     CHECK(muiNode_ResetProperties(context, s_nullNode, mui_groupLayout, WIDTH) == mui_errorInvalid,
           "null reset");
     // Groups past the last, and a bit past the interaction group's.
-    const muiPropertyMask pastInteraction = MUI_PROPERTY_BIT(mui_propertyLayer + 1);
+    const muiPropertyMask pastInteraction = MUI_PROPERTY_BIT(mui_propertyTabOrder + 1);
     CHECK(muiNode_ResetProperties(context, node, 4, WIDTH) == mui_errorInvalid &&
               muiNode_ResetProperties(context, node, mui_groupInteraction, pastInteraction) ==
                   mui_errorInvalid &&

@@ -81,6 +81,8 @@ extern "C"
         // The point, in the space the root's rectangle is in.
         float x;
         float y;
+        // The player whose device it is: a press focuses for it.
+        uint8_t player;
     } muiPointerEvent;
 
     /// Takes a pointer event. Hit testing finds the node at the point, as
@@ -99,7 +101,8 @@ extern "C"
     /// @param context  The context.
     /// @param rootId   The root of the subtree under the pointer.
     /// @param event    The event: a known kind and action, a button below
-    ///                 8, a point that is finite.
+    ///                 8, a point that is finite, a player below
+    ///                 MUI_MAX_PLAYERS.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id, an event outside the above or a call from a
     ///         measure or paint function, which changes nothing;

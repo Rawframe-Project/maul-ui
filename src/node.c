@@ -7,6 +7,7 @@
 #include "maul-ui/node.h"
 
 #include "context.h"
+#include "focus.h"
 #include "inherit.h"
 #include "layout_node.h"
 #include "pointer.h"
@@ -79,6 +80,7 @@ muiResult muiDestroyNode(muiContext* context, muiNodeId nodeId)
         muiPointersTaken taken = muiPointersOff(context, slot);
         muiTreeDestroy(&context->tree, slot);
         muiPointersOn(context, taken);
+        muiNoteDestroyed(context);
     }
     return status;
 }

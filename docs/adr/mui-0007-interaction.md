@@ -77,6 +77,27 @@ itself instead of each host repeating them.
   count grows while presses of one button follow within an interval
   and distance (500 ms and 2 units unless `muiSetClickRule` says
   otherwise).
+- **Focus** (`maul-ui/focus.h`) is kept per player slot, up to
+  `MUI_MAX_PLAYERS` (8), for local multiplayer. Two interaction
+  properties decide which nodes take it: the focus mode (none; by
+  pointer and code only; also by sequential navigation) and the tab
+  order (0 for tree order; 1 to 255 first, ascending). Disabled and
+  exiting nodes, and nodes a modal layer covers, take none.
+  `muiFocus_Set` takes a cause: navigation shows the focus, a pointer
+  hides it, code follows the player's last cause, as CSS's
+  `:focus-visible` heuristics do. The node gets `mui_stateFocused`, and
+  `mui_stateFocusVisible` while shown, a new state between focused and
+  hovered. A pointer press focuses the nearest node from its target up
+  that takes focus, for the event's player, or takes the focus away.
+- **Sequential navigation** (`muiFocus_Move`) runs over the layer that
+  holds the focus, without the layers in it, and wraps; with no focus
+  under the root, or a covered one, it starts in the top modal layer
+  under the root, or else the root's content. One walk finds the
+  focus's place and one the nearest nodes around it.
+- **Focus notifications** report each player's focus gained and lost,
+  whatever moved it; a focused node that is destroyed, or stops taking
+  focus at its styling or a direct write, loses it. Detaching keeps it,
+  since moving a node is a detach and an insert.
 
 ## Consequences
 

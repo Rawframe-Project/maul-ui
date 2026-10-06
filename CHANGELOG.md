@@ -13,8 +13,13 @@ format.
 - `muiLimits` has three more fields, `layers` (64 by default),
   `pointers` (16, at most 32) and `pointerRecords` (64); an initializer
   that lists its fields by position needs them.
-- `muiNode_GetStates` returns the hover and press pointer input gives
-  as well as the states the host set.
+- `muiNode_GetStates` returns the hover and press pointer input gives,
+  and the players' focus, as well as the states the host set.
+- `mui_stateFocusVisible` comes after `mui_stateFocused`, so hovered,
+  pressed, disabled and exiting are one bit higher and their variants
+  one more; conditions start at variant 9. Every bit of `muiState` is a
+  state, so `muiNode_SetStates` refuses no bits.
+- `muiPointerEvent` ends with the player whose device it is.
 - Style values are checked, compared and copied with each group's
   struct found once per group: about 5% fewer instructions over the
   core benchmark.
@@ -50,6 +55,12 @@ format.
   releases, clicks with their counts, cancels, lost captures and
   captured moves, taken with `muiNextPointerRecord`;
   `muiPointer_GetState` and `muiSetClickRule` (record mui-0007).
+- Focus (`maul-ui/focus.h`): a focus per player slot set by code,
+  pointer presses and sequential navigation (`muiFocus_Set`,
+  `muiFocus_Get`, `muiFocus_Move`), the focus mode and tab order
+  properties, `mui_stateFocusVisible` by the cause of each move, focus
+  scoped to layers and refused under modal ones, and focus gained and
+  lost notifications (record mui-0007).
 - Font families (`muiCreateFontFamily`, `muiFontFamily_GetKey`,
   `muiFontFamily_MatchFace`): faces a text style names together, matched
   by width, slant and weight as CSS matches them, with fallbacks of

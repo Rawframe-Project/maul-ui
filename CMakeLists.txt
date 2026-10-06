@@ -62,6 +62,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/flex_resolve.c
     src/hit.c
     src/inherit.c
+    src/focus.c
     src/layer.c
     src/pointer.c
     src/layout.c
@@ -103,6 +104,7 @@ if(MAUL_UI_BUILD_TESTS)
     maul_add_test(draw)
     maul_add_test(interaction)
     maul_add_test(pointer)
+    maul_add_test(focus)
     maul_add_test(layout)
     maul_add_test(layout_fixtures)
     maul_add_test(motion WHITEBOX)
