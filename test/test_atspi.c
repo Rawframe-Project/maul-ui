@@ -235,6 +235,30 @@ static bool EventsAre(const char* expected)
     return same;
 }
 
+// Fills what it gives with garbage, so that memory read before it is
+// written shows.
+static void* Poisoned(size_t size, size_t alignment, void* context)
+{
+    (void)context;
+    // Some C libraries take no alignment below a pointer's.
+    size_t align = alignment < sizeof(void*) ? sizeof(void*) : alignment;
+    size_t rounded = (size + align - 1) / align * align;
+    void* memory = aligned_alloc(align, rounded);
+    if (memory != NULL)
+    {
+        memset(memory, 0xA5, rounded);
+    }
+    return memory;
+}
+
+static void Unpoisoned(void* memory, size_t size, size_t alignment, void* context)
+{
+    (void)size;
+    (void)alignment;
+    (void)context;
+    free(memory);
+}
+
 static bool Act(void* user, const muiAccessRequest* request)
 {
     (void)user;
@@ -1142,6 +1166,7 @@ int main(void)
                          NULL);
     muiAtspiAppDef def = muiDefaultAtspiAppDef();
     def.name = "maul test";
+    def.allocator = (muiAllocator){Poisoned, Unpoisoned, NULL};
     CHECK(muiCreateAtspiApp(&def, &s_test.app) == mui_success, "the application");
     for (int i = 0; i < 5000 && !muiAtspiApp_IsRegistered(s_test.app); i++)
     {

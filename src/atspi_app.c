@@ -305,6 +305,8 @@ static void Lay(muiAtspiAdapter* adapter, unsigned char* block, uint32_t nodes)
     uint64_t* keys = (uint64_t*)(adapter->told + nodes);
     void** values = (void**)(keys + map);
     adapter->freeTold = (uint32_t*)(values + map);
+    // The block's memory may be another's: nothing is told yet.
+    memset(adapter->told, 0, (size_t)nodes * sizeof(muiAtspiTold));
     muiIdMapInit(&adapter->toldById, keys, values, map);
     for (uint32_t i = 0; i < nodes; i++)
     {
