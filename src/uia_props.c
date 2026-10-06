@@ -142,8 +142,7 @@ static void SetInt(VARIANT* out, int value)
     out->lVal = value;
 }
 
-// UTF-8 as a BSTR; left empty when there is none or memory runs out.
-static HRESULT SetText(VARIANT* out, const char* text, size_t length)
+HRESULT muiUiaSetText(VARIANT* out, const char* text, size_t length)
 {
     if (text == nullptr || length == 0 || length > INT32_MAX)
     {
@@ -163,7 +162,7 @@ static HRESULT SetText(VARIANT* out, const char* text, size_t length)
 
 static HRESULT SetNodeText(VARIANT* out, const muiAccessNode* node, muiAccessTextKind kind)
 {
-    return SetText(out, node->text[kind], node->textLength[kind]);
+    return muiUiaSetText(out, node->text[kind], node->textLength[kind]);
 }
 
 static HRESULT SetName(VARIANT* out, const muiUiaAdapter* adapter, uint64_t id)
@@ -180,7 +179,7 @@ static HRESULT SetName(VARIANT* out, const muiUiaAdapter* adapter, uint64_t id)
     }
     HRESULT result =
         muiAccessTree_GetName(adapter->tree, id, name, length + 1, &length) == mui_success
-            ? SetText(out, name, length)
+            ? muiUiaSetText(out, name, length)
             : S_OK;
     muiRelease(&adapter->allocator, name, length + 1, 1);
     return result;
@@ -231,7 +230,7 @@ static bool TextProperty(VARIANT* out, const muiAccessNode* node, int property, 
         (void)LandmarkOf(node->role, &landmark);
         *result = node->text[mui_accessRoleDescription] != nullptr
                       ? SetNodeText(out, node, mui_accessRoleDescription)
-                      : SetText(out, landmark, landmark != nullptr ? strlen(landmark) : 0);
+                      : muiUiaSetText(out, landmark, landmark != nullptr ? strlen(landmark) : 0);
         return true;
     default:
         return false;

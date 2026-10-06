@@ -142,7 +142,16 @@ ranges and virtual lists.
   Invoke), ExpandCollapse, RangeValue for a numeric node, Value for a
   value text (read only until text editing brings setting text),
   Scroll for a scrolling container (a small step scrolls a page, as the
-  tree knows no line height), and ScrollItem.
+  tree knows no line height), and ScrollItem. Applying an update raises
+  UI Automation's events from the changes the consumer reports, while
+  a client listens (`UiaClientsAreListening`): the focus moving, a
+  property change for each compared property whose value differs
+  between a node's old record and its new one, and a live region's
+  text changing. They are raised as the changes are reported, as the
+  tree then holds the whole update and nothing else holds the thread;
+  AccessKit queues them only to leave its lock first. A name is
+  compared by the node's own text, so a name drawn from other nodes
+  changes without an event.
 
 ## Consequences
 

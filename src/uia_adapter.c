@@ -29,10 +29,17 @@ static bool Load(muiUiaFunctions* uia)
     FARPROC host = GetProcAddress(uia->module, "UiaHostProviderFromHwnd");
     FARPROC give = GetProcAddress(uia->module, "UiaReturnRawElementProvider");
     FARPROC disconnect = GetProcAddress(uia->module, "UiaDisconnectProvider");
+    FARPROC listening = GetProcAddress(uia->module, "UiaClientsAreListening");
+    FARPROC raise = GetProcAddress(uia->module, "UiaRaiseAutomationEvent");
+    FARPROC changed = GetProcAddress(uia->module, "UiaRaiseAutomationPropertyChangedEvent");
     memcpy((void*)&uia->hostProviderFromHwnd, (const void*)&host, sizeof(host));
     memcpy((void*)&uia->returnRawElementProvider, (const void*)&give, sizeof(give));
     memcpy((void*)&uia->disconnectProvider, (const void*)&disconnect, sizeof(disconnect));
-    if (host == nullptr || give == nullptr || disconnect == nullptr)
+    memcpy((void*)&uia->clientsAreListening, (const void*)&listening, sizeof(listening));
+    memcpy((void*)&uia->raiseEvent, (const void*)&raise, sizeof(raise));
+    memcpy((void*)&uia->raisePropertyChanged, (const void*)&changed, sizeof(changed));
+    if (host == nullptr || give == nullptr || disconnect == nullptr || listening == nullptr ||
+        raise == nullptr || changed == nullptr)
     {
         FreeLibrary(uia->module);
         return false;
@@ -182,7 +189,9 @@ muiResult muiUiaAdapter_Apply(muiUiaAdapter* adapter, const muiAccessUpdate* upd
     {
         return mui_errorInvalid;
     }
-    const muiAccessChanges changes = {adapter, nullptr, nullptr, Removed, nullptr};
+    adapter->listening = adapter->uia.clientsAreListening() != FALSE;
+    const muiAccessChanges changes = {adapter, muiUiaAdded, muiUiaUpdated, Removed,
+                                      muiUiaFocusMoved};
     return muiAccessTree_Apply(adapter->tree, update, &changes);
 }
 

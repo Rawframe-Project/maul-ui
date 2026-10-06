@@ -149,7 +149,10 @@ format.
   landmarks, bounds, navigation, hit testing and focus, and the
   patterns Invoke, Toggle, ExpandCollapse, Value (read; setting text
   comes with text editing), RangeValue, Scroll, ScrollItem and
-  SelectionItem, each turned into the host's actions. The result
+  SelectionItem, each turned into the host's actions; and events
+  raised from what an update changed while a client listens: the
+  focus moving, property changes (name, help text, enabled, toggle,
+  expand and selection states, values) and live regions. The result
   `mui_errorPlatform` (record mui-0008).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and
   `muiNode_CancelExit`; an exiting subtree leaves hit testing, focus

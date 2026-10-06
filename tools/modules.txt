@@ -50,6 +50,7 @@ uia: id_map uia_com uia_ids
 uia_com:
 uia_ids:
 uia_adapter: allocator id_map uia
+uia_events: uia
 uia_node: uia
 uia_patterns: uia
 uia_props: allocator uia

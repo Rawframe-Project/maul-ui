@@ -26,6 +26,9 @@ typedef struct muiUiaFunctions
     HRESULT(WINAPI* hostProviderFromHwnd)(HWND, muiUiaSimple**);
     LRESULT(WINAPI* returnRawElementProvider)(HWND, WPARAM, LPARAM, muiUiaSimple*);
     HRESULT(WINAPI* disconnectProvider)(muiUiaSimple*);
+    BOOL(WINAPI* clientsAreListening)(void);
+    HRESULT(WINAPI* raiseEvent)(muiUiaSimple*, int);
+    HRESULT(WINAPI* raisePropertyChanged)(muiUiaSimple*, int, VARIANT, VARIANT);
 } muiUiaFunctions;
 
 // A provider object: one per node UI Automation asked for, and the root,
@@ -64,6 +67,8 @@ struct muiUiaAdapter
     muiUiaActionFunction action;
     void* user;
     muiUiaFunctions uia;
+    // Whether a client listened when the apply under way began.
+    bool listening;
     muiUiaNode* root;
     // Provider objects by node id, each holding a reference.
     muiIdMap objects;
@@ -112,6 +117,15 @@ muiUiaRect muiUiaScreenRect(const muiUiaAdapter* adapter, uint64_t id);
 
 // The top left of the window's client area on the screen, in pixels.
 POINT muiUiaClientOrigin(const muiUiaAdapter* adapter);
+
+// UTF-8 as a BSTR in a VARIANT; left empty when there is none.
+HRESULT muiUiaSetText(VARIANT* out, const char* text, size_t length);
+
+// What applying an update changed, raised as UI Automation's events
+// when a client listens.
+void muiUiaAdded(void* user, const muiAccessTree* tree, uint64_t id);
+void muiUiaUpdated(void* user, const muiAccessTree* tree, const muiAccessNode* old);
+void muiUiaFocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint64_t focus);
 
 // Asks the host to perform an action on a node.
 HRESULT muiUiaPerform(muiUiaAdapter* adapter, muiAccessAction action, uint64_t target);

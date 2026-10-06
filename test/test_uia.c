@@ -10,6 +10,7 @@
 // - the focus, and focusing asked of the host;
 // - patterns: Invoke, Toggle, RangeValue, ExpandCollapse, Scroll, Value
 //   and SelectionItem, read and turned into the host's actions;
+// - events: the focus moving, and a checkbox's state changing;
 // - a node removed answering UIA_E_ELEMENTNOTAVAILABLE.
 
 #include "test_harness.h"
@@ -305,6 +306,12 @@ static void TestIds(void)
             PROPERTY_ORIENTATION == UIA_OrientationPropertyId &&
             PROPERTY_IS_REQUIRED_FOR_FORM == UIA_IsRequiredForFormPropertyId &&
             PROPERTY_ITEM_STATUS == UIA_ItemStatusPropertyId &&
+            PROPERTY_VALUE_VALUE == UIA_ValueValuePropertyId &&
+            PROPERTY_RANGE_VALUE_VALUE == UIA_RangeValueValuePropertyId &&
+            PROPERTY_EXPAND_COLLAPSE_EXPAND_COLLAPSE_STATE ==
+                UIA_ExpandCollapseExpandCollapseStatePropertyId &&
+            PROPERTY_SELECTION_ITEM_IS_SELECTED == UIA_SelectionItemIsSelectedPropertyId &&
+            PROPERTY_TOGGLE_TOGGLE_STATE == UIA_ToggleToggleStatePropertyId &&
             PROPERTY_LIVE_SETTING == UIA_LiveSettingPropertyId &&
             PROPERTY_POSITION_IN_SET == UIA_PositionInSetPropertyId &&
             PROPERTY_SIZE_OF_SET == UIA_SizeOfSetPropertyId &&
@@ -314,6 +321,8 @@ static void TestIds(void)
             PROPERTY_FULL_DESCRIPTION == UIA_FullDescriptionPropertyId &&
             PROPERTY_HEADING_LEVEL == UIA_HeadingLevelPropertyId &&
             PROPERTY_IS_DIALOG == UIA_IsDialogPropertyId &&
+            EVENT_AUTOMATION_FOCUS_CHANGED == UIA_AutomationFocusChangedEventId &&
+            EVENT_LIVE_REGION_CHANGED == UIA_LiveRegionChangedEventId &&
             CONTROL_BUTTON == UIA_ButtonControlTypeId &&
             CONTROL_CHECK_BOX == UIA_CheckBoxControlTypeId &&
             CONTROL_COMBO_BOX == UIA_ComboBoxControlTypeId &&
@@ -437,6 +446,10 @@ typedef struct Program
     // Set by the client: removal wanted, and done.
     HANDLE removal;
     HANDLE removed;
+    // Set by the client: a change wanted; by the handlers: events seen.
+    HANDLE change;
+    volatile LONG focusSeen;
+    volatile LONG toggleSeen;
     HANDLE done;
     // What the host was asked last, by the window's thread.
     volatile LONG focusAsked;
@@ -729,6 +742,123 @@ static void CheckPlaces(IUIAutomation* automation, IUIAutomationElement* button)
           "focusing asked of the host");
 }
 
+// The client's event handlers: COM objects of the test's own, called on
+// UI Automation's threads.
+typedef struct FocusHandler
+{
+    IUIAutomationFocusChangedEventHandler iface;
+    LONG references;
+} FocusHandler;
+
+typedef struct PropertyHandler
+{
+    IUIAutomationPropertyChangedEventHandler iface;
+    LONG references;
+} PropertyHandler;
+
+static HRESULT STDMETHODCALLTYPE FocusQuery(IUIAutomationFocusChangedEventHandler* self, REFIID id,
+                                            void** out)
+{
+    if (IsEqualIID(id, &IID_IUnknown) || IsEqualIID(id, &IID_IUIAutomationFocusChangedEventHandler))
+    {
+        *out = self;
+        InterlockedIncrement(&((FocusHandler*)self)->references);
+        return S_OK;
+    }
+    *out = NULL;
+    return E_NOINTERFACE;
+}
+
+static ULONG STDMETHODCALLTYPE FocusAddRef(IUIAutomationFocusChangedEventHandler* self)
+{
+    return (ULONG)InterlockedIncrement(&((FocusHandler*)self)->references);
+}
+
+static ULONG STDMETHODCALLTYPE FocusRelease(IUIAutomationFocusChangedEventHandler* self)
+{
+    return (ULONG)InterlockedDecrement(&((FocusHandler*)self)->references);
+}
+
+static HRESULT STDMETHODCALLTYPE FocusChanged(IUIAutomationFocusChangedEventHandler* self,
+                                              IUIAutomationElement* sender)
+{
+    (void)self;
+    if (sender != NULL && NameIs(sender, L"Agree"))
+    {
+        InterlockedExchange(&s_program.focusSeen, 1);
+    }
+    return S_OK;
+}
+
+static IUIAutomationFocusChangedEventHandlerVtbl s_focusTable = {FocusQuery, FocusAddRef,
+                                                                 FocusRelease, FocusChanged};
+
+static HRESULT STDMETHODCALLTYPE PropertyQuery(IUIAutomationPropertyChangedEventHandler* self,
+                                               REFIID id, void** out)
+{
+    if (IsEqualIID(id, &IID_IUnknown) ||
+        IsEqualIID(id, &IID_IUIAutomationPropertyChangedEventHandler))
+    {
+        *out = self;
+        InterlockedIncrement(&((PropertyHandler*)self)->references);
+        return S_OK;
+    }
+    *out = NULL;
+    return E_NOINTERFACE;
+}
+
+static ULONG STDMETHODCALLTYPE PropertyAddRef(IUIAutomationPropertyChangedEventHandler* self)
+{
+    return (ULONG)InterlockedIncrement(&((PropertyHandler*)self)->references);
+}
+
+static ULONG STDMETHODCALLTYPE PropertyRelease(IUIAutomationPropertyChangedEventHandler* self)
+{
+    return (ULONG)InterlockedDecrement(&((PropertyHandler*)self)->references);
+}
+
+static HRESULT STDMETHODCALLTYPE PropertyChanged(IUIAutomationPropertyChangedEventHandler* self,
+                                                 IUIAutomationElement* sender, PROPERTYID property,
+                                                 VARIANT value)
+{
+    (void)self;
+    (void)sender;
+    if (property == UIA_ToggleToggleStatePropertyId && value.vt == VT_I4 &&
+        value.lVal == ToggleState_Off)
+    {
+        InterlockedExchange(&s_program.toggleSeen, 1);
+    }
+    return S_OK;
+}
+
+static IUIAutomationPropertyChangedEventHandlerVtbl s_propertyTable = {
+    PropertyQuery, PropertyAddRef, PropertyRelease, PropertyChanged};
+
+// Waits for a flag the handlers set.
+static bool Seen(volatile LONG* flag)
+{
+    for (int i = 0; i < 100 && *flag == 0; i++)
+    {
+        Sleep(50);
+    }
+    return *flag != 0;
+}
+
+static void CheckEvents(IUIAutomation* automation, IUIAutomationElement* check)
+{
+    static FocusHandler s_focus = {{&s_focusTable}, 1};
+    static PropertyHandler s_property = {{&s_propertyTable}, 1};
+    PROPERTYID properties[1] = {UIA_ToggleToggleStatePropertyId};
+    CHECK(SUCCEEDED(IUIAutomation_AddFocusChangedEventHandler(automation, NULL, &s_focus.iface)) &&
+              SUCCEEDED(IUIAutomation_AddPropertyChangedEventHandlerNativeArray(
+                  automation, check, TreeScope_Element, NULL, &s_property.iface, properties, 1)),
+          "handlers added");
+    SetEvent(s_program.change);
+    CHECK(Seen(&s_program.toggleSeen), "the checkbox's state change raised");
+    CHECK(Seen(&s_program.focusSeen), "the focus moving raised");
+    (void)IUIAutomation_RemoveAllEventHandlers(automation);
+}
+
 static void Inspect(IUIAutomation* automation)
 {
     IUIAutomationElement* root = NULL;
@@ -747,6 +877,7 @@ static void Inspect(IUIAutomation* automation)
         CheckInvokeAndToggle(children);
         CheckRangeAndExpand(children);
         CheckScrollAndValue(automation, children);
+        CheckEvents(automation, children[5]);
     }
     if (count != 0)
     {
@@ -805,18 +936,33 @@ static HWND MakeWindow(void)
     return window;
 }
 
-// Pumps the window's messages until the client is done, removing the
-// button when the client asks.
+// The checkbox unchecked and focused.
+static void Change(const Built* built)
+{
+    muiAccessNode check = built->nodes[7];
+    check.flags = mui_accessCheckable;
+    const muiAccessNode* sent[1] = {&check};
+    const muiAccessUpdate update = {sent, 1, NULL, 0, 8};
+    CHECK(muiUiaAdapter_Apply(s_program.adapter, &update) == mui_success, "changed");
+}
+
+// Pumps the window's messages until the client is done, changing the
+// checkbox and removing the button when the client asks.
 static void Pump(Built* built)
 {
-    const HANDLE waits[2] = {s_program.done, s_program.removal};
+    const HANDLE waits[3] = {s_program.done, s_program.removal, s_program.change};
     ULONGLONG start = GetTickCount64();
     while (GetTickCount64() - start < DEADLINE_MS)
     {
-        DWORD woke = MsgWaitForMultipleObjects(2, waits, FALSE, 100, QS_ALLINPUT);
+        DWORD woke = MsgWaitForMultipleObjects(3, waits, FALSE, 100, QS_ALLINPUT);
         if (woke == WAIT_OBJECT_0)
         {
             return;
+        }
+        if (woke == WAIT_OBJECT_0 + 2)
+        {
+            ResetEvent(s_program.change);
+            Change(built);
         }
         if (woke == WAIT_OBJECT_0 + 1)
         {
@@ -878,6 +1024,7 @@ int main(void)
               muiAccessTree_Count(muiUiaAdapter_GetTree(s_program.adapter)) == 12,
           "the tree");
     s_program.removal = CreateEventW(NULL, TRUE, FALSE, NULL);
+    s_program.change = CreateEventW(NULL, TRUE, FALSE, NULL);
     s_program.removed = CreateEventW(NULL, TRUE, FALSE, NULL);
     s_program.done = CreateEventW(NULL, TRUE, FALSE, NULL);
     HANDLE client = CreateThread(NULL, 0, Client, NULL, 0, NULL);

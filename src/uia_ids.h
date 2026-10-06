@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The UI Automation adapter's ids of properties, control types and
-// patterns, and the constants of UIAutomationCoreApi.h it uses (record
+// The UI Automation adapter's ids of properties, events, control types
+// and patterns, and the constants of UIAutomationCoreApi.h it uses (record
 // mui-0008). The Windows SDK's UIAutomationClient.h and
 // UIAutomationCoreApi.h define some of theirs as const variables, which
 // in C every file including them defines again, so the adapter writes
@@ -27,6 +27,11 @@ enum
     PROPERTY_ORIENTATION = 30023,
     PROPERTY_IS_REQUIRED_FOR_FORM = 30025,
     PROPERTY_ITEM_STATUS = 30026,
+    PROPERTY_VALUE_VALUE = 30045,
+    PROPERTY_RANGE_VALUE_VALUE = 30047,
+    PROPERTY_EXPAND_COLLAPSE_EXPAND_COLLAPSE_STATE = 30070,
+    PROPERTY_SELECTION_ITEM_IS_SELECTED = 30079,
+    PROPERTY_TOGGLE_TOGGLE_STATE = 30086,
     PROPERTY_LIVE_SETTING = 30135,
     PROPERTY_POSITION_IN_SET = 30152,
     PROPERTY_SIZE_OF_SET = 30153,
@@ -36,6 +41,13 @@ enum
     PROPERTY_FULL_DESCRIPTION = 30159,
     PROPERTY_HEADING_LEVEL = 30173,
     PROPERTY_IS_DIALOG = 30174,
+};
+
+// Events.
+enum
+{
+    EVENT_AUTOMATION_FOCUS_CHANGED = 20005,
+    EVENT_LIVE_REGION_CHANGED = 20024,
 };
 
 // Control types.
