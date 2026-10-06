@@ -94,10 +94,10 @@ static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint
     Note(user, "focus ", old, focus);
 }
 
-static void ChildrenChanged(void* user, const muiAccessTree* tree, uint64_t id)
+static void ShownChanged(void* user, const muiAccessTree* tree)
 {
-    CHECK(muiAccessTree_Find(tree, id) != NULL, "held when told");
-    Note(user, "c", id, UINT64_MAX);
+    (void)tree;
+    Note(user, "shown", 0, UINT64_MAX);
 }
 
 // A context and a tree kept from it.
@@ -312,7 +312,7 @@ static muiAccessUpdate Update(const muiAccessNode* const* nodes, uint32_t count,
 static bool Reported(muiAccessTree* tree, const muiAccessUpdate* update, const char* expected)
 {
     Log log = {0};
-    const muiAccessChanges changes = {&log, Added, Updated, Removed, FocusMoved, ChildrenChanged};
+    const muiAccessChanges changes = {&log, Added, Updated, Removed, FocusMoved, ShownChanged};
     bool same = muiAccessTree_Apply(tree, update, &changes) == mui_success &&
                 strcmp(log.text, expected) == 0;
     if (!same)
@@ -322,38 +322,87 @@ static bool Reported(muiAccessTree* tree, const muiAccessUpdate* update, const c
     return same;
 }
 
-// childrenChanged: told after updated for a node whose children differ
-// in which or in order, and for no other.
-static void TestChildrenChanged(void)
+// shownChanged: told once, before the focus, when the shown tree may
+// differ, and not otherwise.
+static void TestShownChanged(void)
 {
     muiAccessTreeDef def = muiDefaultAccessTreeDef();
     muiAccessTree* tree = NULL;
     CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
-    muiAccessNode root = {.id = 1, .childCount = 2};
-    muiAccessNode two = {.id = 2};
-    muiAccessNode three = {.id = 3};
+    muiAccessNode root = {.id = 1, .childCount = 2, .flags = mui_accessClipsChildren};
+    muiAccessNode two = {
+        .id = 2, .role = mui_roleButton, .bounds = {0, 0, 10, 10}, .transform = {1, 0, 0, 1, 0, 0}};
+    muiAccessNode three = {.id = 3, .role = mui_roleButton};
     muiAccessNode four = {.id = 4};
     const muiAccessNode* all[3] = {&root, &two, &three};
     const uint64_t first[2] = {2, 3};
     muiAccessUpdate update = Update(all, 3, first, 1, 1);
-    CHECK(Reported(tree, &update, "+1 +2 +3 focus 0>1 "), "made");
+    CHECK(Reported(tree, &update, "+1 +2 +3 shown0 focus 0>1 "), "made");
     const muiAccessNode* justRoot[1] = {&root};
     update = Update(justRoot, 1, first, 0, 0);
     CHECK(Reported(tree, &update, "~1 "), "the same children");
     const uint64_t swapped[2] = {3, 2};
     update = Update(justRoot, 1, swapped, 0, 0);
-    CHECK(Reported(tree, &update, "~1 c1 "), "the same children reordered");
+    CHECK(Reported(tree, &update, "~1 shown0 "), "the same children reordered");
     root.childCount = 1;
     update = Update(justRoot, 1, first, 0, 0);
-    CHECK(Reported(tree, &update, "~1 c1 -3 "), "fewer");
+    CHECK(Reported(tree, &update, "~1 -3 shown0 "), "fewer");
     const uint64_t grown[2] = {2, 4};
     root.childCount = 2;
     const muiAccessNode* rootAndFour[2] = {&root, &four};
     update = Update(rootAndFour, 2, grown, 0, 0);
-    CHECK(Reported(tree, &update, "+4 ~1 c1 "), "more");
+    CHECK(Reported(tree, &update, "+4 ~1 shown0 "), "more");
     const muiAccessNode* justTwo[1] = {&two};
     update = Update(justTwo, 1, NULL, 0, 0);
     CHECK(Reported(tree, &update, "~2 "), "a leaf resent");
+    two.value = 5.0f;
+    two.text[mui_accessDescription] = "said";
+    two.textLength[mui_accessDescription] = 4;
+    two.flags = mui_accessChecked;
+    CHECK(Reported(tree, &update, "~2 "), "a value, a description, a state");
+    // What the view reads, one at a time.
+    two.flags = mui_accessHidden;
+    CHECK(Reported(tree, &update, "~2 shown0 "), "hidden");
+    two.flags = mui_accessClipsChildren;
+    CHECK(Reported(tree, &update, "~2 shown0 "), "clipping");
+    two.flags = 0;
+    (void)Reported(tree, &update, "~2 shown0 ");
+    two.role = mui_roleGeneric;
+    CHECK(Reported(tree, &update, "~2 shown0 "), "made generic");
+    two.text[mui_accessLabel] = "named";
+    two.textLength[mui_accessLabel] = 5;
+    CHECK(Reported(tree, &update, "~2 shown0 "), "given a label");
+    two.text[mui_accessLabel] = "renamed";
+    two.textLength[mui_accessLabel] = 7;
+    CHECK(Reported(tree, &update, "~2 "), "a label changed, not given");
+    two.bounds.x = 3.0f;
+    CHECK(Reported(tree, &update, "~2 shown0 "), "a box under a parent that clips");
+    two.transform.e = 2.0f;
+    CHECK(Reported(tree, &update, "~2 shown0 "), "a transform under a parent that clips");
+    root.flags = 0;
+    root.childCount = 2;
+    update = Update(justRoot, 1, grown, 0, 0);
+    CHECK(Reported(tree, &update, "~1 shown0 "), "the parent stops clipping");
+    update = Update(justTwo, 1, NULL, 0, 0);
+    two.bounds.width = 30.0f;
+    CHECK(Reported(tree, &update, "~2 "), "a box where nothing clips");
+    two.flags = mui_accessClipsChildren;
+    (void)Reported(tree, &update, "~2 shown0 ");
+    two.bounds.height = 30.0f;
+    CHECK(Reported(tree, &update, "~2 shown0 "), "the box of a node that clips");
+    update = Update(justRoot, 1, grown, 0, 4);
+    CHECK(Reported(tree, &update, "~1 shown0 focus 1>4 "), "the focus moved");
+    muiAccessNode above = {.id = 9, .childCount = 1};
+    const uint64_t aboveChildren[1] = {1};
+    const muiAccessNode* justAbove[1] = {&above};
+    update = Update(justAbove, 1, aboveChildren, 9, 0);
+    CHECK(Reported(tree, &update, "+9 shown0 "), "a new root");
+    update = Update(justRoot, 1, grown, 1, 0);
+    CHECK(Reported(tree, &update, "~1 -9 shown0 "), "the old root back");
+    muiAccessNode stray = {.id = 30};
+    const muiAccessNode* strays[1] = {&stray};
+    update = Update(strays, 1, NULL, 0, 0);
+    CHECK(Reported(tree, &update, "-30 "), "a stray let go, never shown");
     muiDestroyAccessTree(tree);
 }
 
@@ -996,7 +1045,7 @@ int main(void)
     TestNewRoot();
     TestRefused();
     TestHandMade();
-    TestChildrenChanged();
+    TestShownChanged();
     TestChurn();
     TestLeavingNotARing();
     TestShown();

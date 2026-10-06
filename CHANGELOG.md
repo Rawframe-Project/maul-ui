@@ -136,8 +136,8 @@ format.
   `muiAccessIdOf` and `muiNodeIdOfAccess`. The consumer adapters read
   (`maul-ui/access_tree.h`, `MAUL_UI_ACCESS_TREE`): `muiCreateAccessTree`,
   `muiAccessTree_Apply` with `muiAccessChanges` (refusing lists that
-  would not leave a tree; `childrenChanged` for a node whose children
-  differ, in which or in order), the readers, the tree as platforms see it
+  would not leave a tree; `shownChanged` when the tree as platforms see
+  it may differ), the readers, the tree as platforms see it
   (`muiAccessTree_GetShownChildren`, `muiAccessTree_GetShownParent`,
   `muiAccessTree_IsShown`), `muiAccessTree_GetName`,
   `muiAccessTree_GetBounds`, and `muiAccessTree_Write` and

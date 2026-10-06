@@ -179,11 +179,11 @@ ranges and virtual lists.
   node's shown parent and index), removals before additions and the
   topmost node of a change only, as AT-SPI clients cache children;
   the focus last. The walk runs only when an update may change what
-  is shown: the root changed, a node's children changed (the
-  consumer's `childrenChanged`), the focus moved, or a record changed
-  what the view's rules read (hidden, clipping, a generic node's role
-  or label, a box where it or its parent clips). A value or a name
-  changing costs its signal and no walk.
+  is shown, which the consumer tells (`shownChanged`, from the view's
+  own rules: the root or the focus moved, a node's children changed,
+  or a record changed what the rules read: hidden, clipping, a generic
+  node's role or label, a box where it or its parent clips). A value or
+  a name changing costs its signal and no walk.
 
 ## Consequences
 
