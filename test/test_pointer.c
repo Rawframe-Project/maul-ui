@@ -224,15 +224,16 @@ static void TestClicks(void)
     // Released on c: the click is a's, their common ancestor.
     Mouse(context, s.root, mui_pointerPress, mui_buttonPrimary, primary, 25.0f, 25.0f, 1000 * s_ms);
     Mouse(context, s.root, mui_pointerRelease, mui_buttonPrimary, 0, 65.0f, 25.0f, 1001 * s_ms);
+    muiPointerRecord record = {0};
     CHECK(Next(context, mui_pointerRecordPress, s.b, 5.0f, 5.0f, mui_buttonPrimary, 1) &&
               Next(context, mui_pointerRecordRelease, s.c, 5.0f, 5.0f, mui_buttonPrimary, 1) &&
-              Next(context, mui_pointerRecordClick, s.a, 55.0f, 15.0f, mui_buttonPrimary, 1) &&
-              Drained(context),
-          "a click on the common ancestor");
+              muiNextPointerRecord(context, &record) == mui_success &&
+              record.kind == mui_pointerRecordClick && Same(record.node, s.a) &&
+              record.x == 55.0f && record.y == 15.0f && !record.passThrough && Drained(context),
+          "a click on the common ancestor, blocking");
     // Released outside the root: nothing is clicked.
     Mouse(context, s.root, mui_pointerPress, mui_buttonPrimary, primary, 25.0f, 25.0f, 2000 * s_ms);
     Mouse(context, s.root, mui_pointerRelease, mui_buttonPrimary, 0, 500.0f, 500.0f, 2001 * s_ms);
-    muiPointerRecord record = {0};
     CHECK(Next(context, mui_pointerRecordPress, s.b, 5.0f, 5.0f, mui_buttonPrimary, 1) &&
               muiNextPointerRecord(context, &record) == mui_success &&
               record.kind == mui_pointerRecordRelease && record.node.index1 == 0 &&
@@ -277,15 +278,26 @@ static void TestClickCount(void)
 {
     Scene s = MakeScene(16, 64);
     muiContext* context = s.context;
-    CHECK(ClickAt(context, s.root, 0, 25.0f, 25.0f, 0) == 1 &&
-              ClickAt(context, s.root, 0, 27.0f, 23.0f, 500 * s_ms) == 2 &&
-              ClickAt(context, s.root, 0, 27.0f, 23.0f, 1000 * s_ms) == 3 &&
-              ClickAt(context, s.root, 0, 27.0f, 23.0f, 1501 * s_ms) == 1,
+    CHECK(ClickAt(context, s.root, 0, 1.0f, 1.0f, 0) == 1, "the first press");
+    CHECK(Send(context, s.root, 4, mui_pointerTouch, mui_pointerPress, 0, 1, 1.0f, 1.0f,
+               100 * s_ms) == mui_success &&
+              Next(context, mui_pointerRecordPress, s.root, 1.0f, 1.0f, 0, 1) &&
+              Send(context, s.root, 4, mui_pointerTouch, mui_pointerCancel, 0, 0, 1.0f, 1.0f,
+                   100 * s_ms) == mui_success &&
+              Next(context, mui_pointerRecordCancel, s.root, 1.0f, 1.0f, 0, 0),
+          "a touch after a mouse starts again");
+    while (muiNextPointerRecord(context, &(muiPointerRecord){0}) == mui_success)
+    {
+    }
+    CHECK(ClickAt(context, s.root, 0, 25.0f, 25.0f, 10000 * s_ms) == 1 &&
+              ClickAt(context, s.root, 0, 27.0f, 23.0f, 10500 * s_ms) == 2 &&
+              ClickAt(context, s.root, 0, 27.0f, 23.0f, 11000 * s_ms) == 3 &&
+              ClickAt(context, s.root, 0, 27.0f, 23.0f, 11501 * s_ms) == 1,
           "a series within 500 ms and 2 units");
-    CHECK(ClickAt(context, s.root, 0, 30.0f, 23.0f, 1600 * s_ms) == 1 &&
-              ClickAt(context, s.root, 0, 30.0f, 25.5f, 1700 * s_ms) == 1 &&
-              ClickAt(context, s.root, 1, 30.0f, 25.5f, 1800 * s_ms) == 1 &&
-              ClickAt(context, s.root, 1, 30.0f, 25.5f, 1700 * s_ms) == 1,
+    CHECK(ClickAt(context, s.root, 0, 30.0f, 23.0f, 11600 * s_ms) == 1 &&
+              ClickAt(context, s.root, 0, 30.0f, 25.5f, 11700 * s_ms) == 1 &&
+              ClickAt(context, s.root, 1, 30.0f, 25.5f, 11800 * s_ms) == 1 &&
+              ClickAt(context, s.root, 1, 30.0f, 25.5f, 11700 * s_ms) == 1,
           "too far on either axis, another button, or back in time");
     CHECK(muiSetClickRule(context, 100 * s_ms, 10.0f) == mui_success &&
               ClickAt(context, s.root, 0, 25.0f, 25.0f, 5000 * s_ms) == 1 &&
@@ -372,6 +384,21 @@ static void TestCapture(void)
     CHECK(!IsHovered(context, s.b) && muiPointer_GetState(context, 1, &state) == mui_success &&
               state.hovered.index1 == 0,
           "released outside: hovering nothing");
+    CHECK(Next(context, mui_pointerRecordPress, s.b, 5.0f, 5.0f, 0, 1) &&
+              Next(context, mui_pointerRecordRelease, s.b, -25.0f, 5.0f, 0, 1) &&
+              Next(context, mui_pointerRecordClick, s.b, -25.0f, 5.0f, 0, 1) &&
+              Next(context, mui_pointerRecordCaptureLost, s.b, -5.0f, 25.0f, 0, 0) &&
+              Drained(context),
+          "leaving is no move");
+    // Pressed over nothing, then captured: the release clicks the target.
+    Mouse(context, s.root, mui_pointerPress, mui_buttonPrimary, primary, 500.0f, 5.0f, 2000 * s_ms);
+    CHECK(muiPointer_SetCapture(context, 1, s.c) == mui_success, "captured");
+    Mouse(context, s.root, mui_pointerRelease, mui_buttonPrimary, 0, 500.0f, 5.0f, 2001 * s_ms);
+    muiPointerRecord record = {0};
+    CHECK(muiNextPointerRecord(context, &record) == mui_success && record.node.index1 == 0 &&
+              Next(context, mui_pointerRecordRelease, s.c, 440.0f, -15.0f, 0, 1) &&
+              Next(context, mui_pointerRecordClick, s.c, 440.0f, -15.0f, 0, 1),
+          "a click on the capture target");
     muiDestroyContext(context);
 }
 
@@ -476,6 +503,22 @@ static void TestEdits(void)
     muiDestroyContext(context);
 }
 
+static void TestInnerRoot(void)
+{
+    // Input to the subtree of b, whose rectangle is in a's space: a
+    // touch captured by b moves outside it.
+    Scene s = MakeScene(16, 64);
+    muiContext* context = s.context;
+    CHECK(Send(context, s.b, 2, mui_pointerTouch, mui_pointerPress, 0, 1, 15.0f, 15.0f, 0) ==
+                  mui_success &&
+              Send(context, s.b, 2, mui_pointerTouch, mui_pointerMove, 0, 1, 100.0f, 100.0f, 1) ==
+                  mui_success &&
+              Next(context, mui_pointerRecordPress, s.b, 5.0f, 5.0f, 0, 1) &&
+              Next(context, mui_pointerRecordMove, s.b, 90.0f, 90.0f, 0, 0),
+          "points in b's box");
+    muiDestroyContext(context);
+}
+
 static void TestModal(void)
 {
     // m, a modal layer: a press outside it goes to m, blocked.
@@ -484,9 +527,12 @@ static void TestModal(void)
     muiNodeId m = Place(context, s.root, 120.0f, 0.0f, 50.0f, 50.0f);
     muiInteractionStyle values = muiDefaultInteractionStyle();
     values.layer = mui_layerModal;
-    CHECK(muiNode_SetInteractionValues(context, m, &values, MUI_PROPERTY_BIT(mui_propertyLayer)) ==
+    values.passThrough = true;
+    CHECK(muiNode_SetInteractionValues(context, m, &values,
+                                       MUI_PROPERTY_BIT(mui_propertyLayer) |
+                                           MUI_PROPERTY_BIT(mui_propertyPassThrough)) ==
               mui_success,
-          "modal");
+          "modal, passing through where it is hit");
     Layout(context, s.root);
     Mouse(context, s.root, mui_pointerPress, 0, 1, 25.0f, 25.0f, 0);
     muiPointerRecord record = {0};
@@ -512,6 +558,19 @@ static void TestRing(void)
               record.kind == mui_pointerRecordDropped && record.clickCount == 1 &&
               record.node.index1 == 0 && Drained(context),
           "dropped, counted");
+    // Once one is dropped, so are the rest until the ring drains.
+    Mouse(context, s.root, mui_pointerPress, 0, 1, 25.0f, 25.0f, 2000 * s_ms);
+    Mouse(context, s.root, mui_pointerRelease, 0, 0, 25.0f, 25.0f, 2001 * s_ms);
+    CHECK(Next(context, mui_pointerRecordPress, s.b, 5.0f, 5.0f, 0, 1), "one taken");
+    Mouse(context, s.root, mui_pointerPress, 0, 1, 25.0f, 25.0f, 4000 * s_ms);
+    CHECK(Next(context, mui_pointerRecordRelease, s.b, 5.0f, 5.0f, 0, 1) &&
+              muiNextPointerRecord(context, &record) == mui_success &&
+              record.kind == mui_pointerRecordDropped && record.clickCount == 2 && Drained(context),
+          "kept in place");
+    Mouse(context, s.root, mui_pointerRelease, 0, 0, 25.0f, 25.0f, 4001 * s_ms);
+    while (muiNextPointerRecord(context, &record) == mui_success)
+    {
+    }
     // One pointer at a time.
     Mouse(context, s.root, mui_pointerLeave, 0, 0, 25.0f, 25.0f, 12 * s_ms);
     CHECK(Send(context, s.root, 2, mui_pointerMouse, mui_pointerMove, 0, 0, 1.0f, 1.0f, 0) ==
@@ -748,6 +807,7 @@ int main(void)
     TestCancel();
     TestSeveral();
     TestEdits();
+    TestInnerRoot();
     TestModal();
     TestRing();
     TestRandom();

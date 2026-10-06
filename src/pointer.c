@@ -231,8 +231,9 @@ static uint32_t CommonAncestor(const muiTree* tree, uint32_t a, uint32_t b)
 static uint32_t CountPress(muiPointerStore* store, const muiPointerEvent* event)
 {
     muiClickSeries* series = &store->series;
-    bool continues = series->count != 0 && series->kind == event->kind &&
-                     series->button == event->button && event->timeNs >= series->timeNs &&
+    // A series never started has count 0, so continuing it gives 1.
+    bool continues = series->kind == event->kind && series->button == event->button &&
+                     // Time going back wraps past any interval.
                      event->timeNs - series->timeNs <= store->clickIntervalNs &&
                      fabsf(event->x - series->x) <= store->clickDistance &&
                      fabsf(event->y - series->y) <= store->clickDistance;
@@ -267,7 +268,6 @@ static void Press(muiContext* context, muiPointer* pointer, const Target* hit,
     const Target target = TargetAt(context, hit, pointer, captured != 0 ? captured : hit->slot);
     if (before == 0 && target.slot != 0)
     {
-        Unpress(context, pointer);
         Count(context, target.slot, true, 1);
         pointer->pressed = muiTreeIdOf(&context->tree, target.slot);
         // A touch or a pen captures to what it pressed.
@@ -290,7 +290,7 @@ static void Release(muiContext* context, muiPointer* pointer, const Target* hit,
     uint32_t pressed = SlotOf(context, pointer->pressed);
     uint32_t clicked =
         captured != 0 ? captured : CommonAncestor(&context->tree, pressed, hit->slot);
-    if (pressed != 0 && clicked != 0)
+    if (clicked != 0)
     {
         const Target click = TargetAt(context, hit, pointer, clicked);
         PostAt(context, pointer, mui_pointerRecordClick, &click, event->button, count,

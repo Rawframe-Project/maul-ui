@@ -119,7 +119,7 @@ extern "C"
         mui_pointerRecordPress = 1,
         // A button went up over the node.
         mui_pointerRecordRelease = 2,
-        // A press and its release: on the capture target, or else the
+        // A release after a press: on the capture target, or else the
         // nearest common ancestor (or self) of where each happened. Every
         // button clicks; the record names it, so the host can keep
         // secondary clicks apart as the web's auxclick does.
