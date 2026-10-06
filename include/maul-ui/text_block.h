@@ -250,7 +250,8 @@ extern "C"
     /// @param lengthOut  Receives its length.
     /// @return Whether the key names a block.
     /// @par Thread safety
-    /// As the text service's: one thread at a time.
+    /// Safe from any thread; the service and context are used by one
+    /// thread at a time.
     MUI_API bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey,
                                  const char** textOut, size_t* lengthOut);
 
