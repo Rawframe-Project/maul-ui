@@ -250,18 +250,18 @@ POINT muiUiaClientOrigin(const muiUiaAdapter* adapter)
     return origin;
 }
 
-struct UiaRect muiUiaScreenRect(const muiUiaAdapter* adapter, uint64_t id)
+muiUiaRect muiUiaScreenRect(const muiUiaAdapter* adapter, uint64_t id)
 {
     muiRect bounds = {0};
     if (muiAccessTree_GetBounds(adapter->tree, id, &bounds) != mui_success)
     {
-        return (struct UiaRect){0};
+        return (muiUiaRect){0};
     }
     POINT origin = muiUiaClientOrigin(adapter);
     double scale = (double)adapter->scale;
-    return (struct UiaRect){(double)origin.x + (double)bounds.x * scale,
-                            (double)origin.y + (double)bounds.y * scale,
-                            (double)bounds.width * scale, (double)bounds.height * scale};
+    return (muiUiaRect){(double)origin.x + (double)bounds.x * scale,
+                        (double)origin.y + (double)bounds.y * scale, (double)bounds.width * scale,
+                        (double)bounds.height * scale};
 }
 
 HRESULT muiUiaPerform(muiUiaAdapter* adapter, muiAccessAction action, uint64_t target)

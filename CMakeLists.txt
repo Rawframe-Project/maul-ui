@@ -154,7 +154,7 @@ if(MAUL_UI_BUILD_TESTS)
     endif()
     if(MAUL_UI_UIA)
         # Driven through IUIAutomation from a second thread.
-        maul_add_test(uia)
+        maul_add_test(uia WHITEBOX)
         target_link_libraries(test_uia PRIVATE user32 ole32 oleaut32 uuid)
     endif()
     maul_add_test(pan)

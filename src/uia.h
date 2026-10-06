@@ -8,19 +8,10 @@
 #define MAUL_UI_SRC_UIA_H
 
 #include "id_map.h"
-
-#include "maul-ui/access_uia.h"
-
-#define WIN32_LEAN_AND_MEAN
-// Interfaces point at const tables of their functions.
-#define CONST_VTABLE
-#include <windows.h>
-// COM's declarations, which lean Windows headers leave out, before UI
-// Automation's.
+#include "uia_com.h"
 #include "uia_ids.h"
 
-#include <ole2.h>
-#include <uiautomationcore.h>
+#include "maul-ui/access_uia.h"
 
 // UI Automation's errors, as HRESULTs: UIA_E_ELEMENTNOTAVAILABLE and
 // UIA_E_NOTSUPPORTED.
@@ -32,9 +23,9 @@
 typedef struct muiUiaFunctions
 {
     HMODULE module;
-    HRESULT(WINAPI* hostProviderFromHwnd)(HWND, IRawElementProviderSimple**);
-    LRESULT(WINAPI* returnRawElementProvider)(HWND, WPARAM, LPARAM, IRawElementProviderSimple*);
-    HRESULT(WINAPI* disconnectProvider)(IRawElementProviderSimple*);
+    HRESULT(WINAPI* hostProviderFromHwnd)(HWND, muiUiaSimple**);
+    LRESULT(WINAPI* returnRawElementProvider)(HWND, WPARAM, LPARAM, muiUiaSimple*);
+    HRESULT(WINAPI* disconnectProvider)(muiUiaSimple*);
 } muiUiaFunctions;
 
 // A provider object: one per node UI Automation asked for, and the root,
@@ -42,9 +33,9 @@ typedef struct muiUiaFunctions
 // answers ELEMENT_GONE until its last reference goes.
 typedef struct muiUiaNode
 {
-    IRawElementProviderSimple simple;
-    IRawElementProviderFragment fragment;
-    IRawElementProviderFragmentRoot fragmentRoot;
+    muiUiaSimple simple;
+    muiUiaFragment fragment;
+    muiUiaFragmentRoot fragmentRoot;
     LONG references;
     // NULL once detached.
     muiUiaAdapter* adapter;
@@ -86,11 +77,11 @@ muiUiaNode* muiUiaNodeOf(muiUiaAdapter* adapter, uint64_t id);
 const muiAccessNode* muiUiaNodeFor(const muiUiaNode* node);
 
 // A property's value for a node held.
-HRESULT muiUiaPropertyValue(muiUiaAdapter* adapter, const muiAccessNode* node, PROPERTYID property,
+HRESULT muiUiaPropertyValue(muiUiaAdapter* adapter, const muiAccessNode* node, int property,
                             VARIANT* out);
 
 // A node's bounds in screen pixels.
-struct UiaRect muiUiaScreenRect(const muiUiaAdapter* adapter, uint64_t id);
+muiUiaRect muiUiaScreenRect(const muiUiaAdapter* adapter, uint64_t id);
 
 // The top left of the window's client area on the screen, in pixels.
 POINT muiUiaClientOrigin(const muiUiaAdapter* adapter);

@@ -46,7 +46,8 @@ access_tree: access_tree_store allocator
 access_apply: access_tree access_tree_store allocator
 access_view: access_tree_store
 id_map:
-uia: id_map uia_ids
+uia: id_map uia_com uia_ids
+uia_com:
 uia_ids:
 uia_adapter: allocator id_map uia
 uia_node: uia

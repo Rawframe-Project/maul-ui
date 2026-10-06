@@ -2,8 +2,8 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // The UI Automation adapter's provider objects (record mui-0008): one
-// object with three interfaces, IRawElementProviderSimple,
-// IRawElementProviderFragment and, for the root, its FragmentRoot.
+// object with three interfaces, muiUiaSimple,
+// muiUiaFragment and, for the root, its FragmentRoot.
 
 #include "uia.h"
 
@@ -19,17 +19,17 @@ static const IID s_fragment = {
 static const IID s_fragmentRoot = {
     0x620ce2a5, 0xab8f, 0x40a9, {0x86, 0xcb, 0xde, 0x3c, 0x75, 0x59, 0x9b, 0x58}};
 
-static muiUiaNode* FromSimple(IRawElementProviderSimple* simple)
+static muiUiaNode* FromSimple(muiUiaSimple* simple)
 {
     return (muiUiaNode*)((char*)simple - offsetof(muiUiaNode, simple));
 }
 
-static muiUiaNode* FromFragment(IRawElementProviderFragment* fragment)
+static muiUiaNode* FromFragment(muiUiaFragment* fragment)
 {
     return (muiUiaNode*)((char*)fragment - offsetof(muiUiaNode, fragment));
 }
 
-static muiUiaNode* FromFragmentRoot(IRawElementProviderFragmentRoot* fragmentRoot)
+static muiUiaNode* FromFragmentRoot(muiUiaFragmentRoot* fragmentRoot)
 {
     return (muiUiaNode*)((char*)fragmentRoot - offsetof(muiUiaNode, fragmentRoot));
 }
@@ -92,7 +92,7 @@ const muiAccessNode* muiUiaNodeFor(const muiUiaNode* node)
 }
 
 // Gives out a node's object with a reference for the caller, or NULL.
-static HRESULT GiveFragment(muiUiaAdapter* adapter, uint64_t id, IRawElementProviderFragment** out)
+static HRESULT GiveFragment(muiUiaAdapter* adapter, uint64_t id, muiUiaFragment** out)
 {
     muiUiaNode* node = id != 0 ? muiUiaNodeOf(adapter, id) : nullptr;
     *out = node != nullptr ? &node->fragment : nullptr;
@@ -103,38 +103,35 @@ static HRESULT GiveFragment(muiUiaAdapter* adapter, uint64_t id, IRawElementProv
     return S_OK;
 }
 
-// IRawElementProviderSimple.
+// muiUiaSimple.
 
-static HRESULT STDMETHODCALLTYPE SimpleQuery(IRawElementProviderSimple* simple, REFIID id,
-                                             void** out)
+static HRESULT STDMETHODCALLTYPE SimpleQuery(muiUiaSimple* simple, REFIID id, void** out)
 {
     return Query(FromSimple(simple), id, out);
 }
 
-static ULONG STDMETHODCALLTYPE SimpleAddRef(IRawElementProviderSimple* simple)
+static ULONG STDMETHODCALLTYPE SimpleAddRef(muiUiaSimple* simple)
 {
     return AddReference(FromSimple(simple));
 }
 
-static ULONG STDMETHODCALLTYPE SimpleRelease(IRawElementProviderSimple* simple)
+static ULONG STDMETHODCALLTYPE SimpleRelease(muiUiaSimple* simple)
 {
     return ReleaseReference(FromSimple(simple));
 }
 
-static HRESULT STDMETHODCALLTYPE Options(IRawElementProviderSimple* simple,
-                                         enum ProviderOptions* out)
+static HRESULT STDMETHODCALLTYPE Options(muiUiaSimple* simple, int* out)
 {
     (void)simple;
     if (out == nullptr)
     {
         return E_POINTER;
     }
-    *out = ProviderOptions_ServerSideProvider | ProviderOptions_UseComThreading;
+    *out = UIA_OPTION_SERVER_SIDE | UIA_OPTION_COM_THREADING;
     return S_OK;
 }
 
-static HRESULT STDMETHODCALLTYPE Pattern(IRawElementProviderSimple* simple, PATTERNID pattern,
-                                         IUnknown** out)
+static HRESULT STDMETHODCALLTYPE Pattern(muiUiaSimple* simple, int pattern, IUnknown** out)
 {
     (void)pattern;
     if (out == nullptr)
@@ -145,8 +142,7 @@ static HRESULT STDMETHODCALLTYPE Pattern(IRawElementProviderSimple* simple, PATT
     return muiUiaNodeFor(FromSimple(simple)) != nullptr ? S_OK : ELEMENT_GONE;
 }
 
-static HRESULT STDMETHODCALLTYPE Property(IRawElementProviderSimple* simple, PROPERTYID property,
-                                          VARIANT* out)
+static HRESULT STDMETHODCALLTYPE Property(muiUiaSimple* simple, int property, VARIANT* out)
 {
     if (out == nullptr)
     {
@@ -159,8 +155,7 @@ static HRESULT STDMETHODCALLTYPE Property(IRawElementProviderSimple* simple, PRO
 }
 
 // The window's own provider hosts the root; other nodes have no host.
-static HRESULT STDMETHODCALLTYPE Host(IRawElementProviderSimple* simple,
-                                      IRawElementProviderSimple** out)
+static HRESULT STDMETHODCALLTYPE Host(muiUiaSimple* simple, muiUiaSimple** out)
 {
     if (out == nullptr)
     {
@@ -176,23 +171,22 @@ static HRESULT STDMETHODCALLTYPE Host(IRawElementProviderSimple* simple,
                          : S_OK;
 }
 
-static const IRawElementProviderSimpleVtbl s_simpleTable = {
-    SimpleQuery, SimpleAddRef, SimpleRelease, Options, Pattern, Property, Host};
+static const muiUiaSimpleTable s_simpleTable = {SimpleQuery, SimpleAddRef, SimpleRelease, Options,
+                                                Pattern,     Property,     Host};
 
-// IRawElementProviderFragment.
+// muiUiaFragment.
 
-static HRESULT STDMETHODCALLTYPE FragmentQuery(IRawElementProviderFragment* fragment, REFIID id,
-                                               void** out)
+static HRESULT STDMETHODCALLTYPE FragmentQuery(muiUiaFragment* fragment, REFIID id, void** out)
 {
     return Query(FromFragment(fragment), id, out);
 }
 
-static ULONG STDMETHODCALLTYPE FragmentAddRef(IRawElementProviderFragment* fragment)
+static ULONG STDMETHODCALLTYPE FragmentAddRef(muiUiaFragment* fragment)
 {
     return AddReference(FromFragment(fragment));
 }
 
-static ULONG STDMETHODCALLTYPE FragmentRelease(IRawElementProviderFragment* fragment)
+static ULONG STDMETHODCALLTYPE FragmentRelease(muiUiaFragment* fragment)
 {
     return ReleaseReference(FromFragment(fragment));
 }
@@ -232,9 +226,8 @@ static uint64_t ChildOf(muiUiaAdapter* adapter, uint64_t id, bool last)
     return adapter->scratch[last ? count - 1 : 0];
 }
 
-static HRESULT STDMETHODCALLTYPE Navigate(IRawElementProviderFragment* fragment,
-                                          enum NavigateDirection direction,
-                                          IRawElementProviderFragment** out)
+static HRESULT STDMETHODCALLTYPE Navigate(muiUiaFragment* fragment, int direction,
+                                          muiUiaFragment** out)
 {
     if (out == nullptr)
     {
@@ -253,19 +246,19 @@ static HRESULT STDMETHODCALLTYPE Navigate(IRawElementProviderFragment* fragment,
     uint64_t to = 0;
     switch (direction)
     {
-    case NavigateDirection_Parent:
+    case NAVIGATE_PARENT:
         to = root ? 0 : muiAccessTree_GetShownParent(adapter->tree, held->id);
         break;
-    case NavigateDirection_NextSibling:
+    case NAVIGATE_NEXT:
         to = root ? 0 : SiblingOf(adapter, held->id, 1);
         break;
-    case NavigateDirection_PreviousSibling:
+    case NAVIGATE_PREVIOUS:
         to = root ? 0 : SiblingOf(adapter, held->id, -1);
         break;
-    case NavigateDirection_FirstChild:
+    case NAVIGATE_FIRST:
         to = ChildOf(adapter, held->id, false);
         break;
-    case NavigateDirection_LastChild:
+    case NAVIGATE_LAST:
         to = ChildOf(adapter, held->id, true);
         break;
     default:
@@ -275,7 +268,7 @@ static HRESULT STDMETHODCALLTYPE Navigate(IRawElementProviderFragment* fragment,
 }
 
 // The root's id comes from the window; another node's from its id.
-static HRESULT STDMETHODCALLTYPE RuntimeId(IRawElementProviderFragment* fragment, SAFEARRAY** out)
+static HRESULT STDMETHODCALLTYPE RuntimeId(muiUiaFragment* fragment, SAFEARRAY** out)
 {
     if (out == nullptr)
     {
@@ -306,14 +299,13 @@ static HRESULT STDMETHODCALLTYPE RuntimeId(IRawElementProviderFragment* fragment
     return S_OK;
 }
 
-static HRESULT STDMETHODCALLTYPE FragmentBounds(IRawElementProviderFragment* fragment,
-                                                struct UiaRect* out)
+static HRESULT STDMETHODCALLTYPE FragmentBounds(muiUiaFragment* fragment, muiUiaRect* out)
 {
     if (out == nullptr)
     {
         return E_POINTER;
     }
-    *out = (struct UiaRect){0};
+    *out = (muiUiaRect){0};
     muiUiaNode* node = FromFragment(fragment);
     const muiAccessNode* held = muiUiaNodeFor(node);
     if (held == nullptr)
@@ -324,8 +316,7 @@ static HRESULT STDMETHODCALLTYPE FragmentBounds(IRawElementProviderFragment* fra
     return S_OK;
 }
 
-static HRESULT STDMETHODCALLTYPE EmbeddedRoots(IRawElementProviderFragment* fragment,
-                                               SAFEARRAY** out)
+static HRESULT STDMETHODCALLTYPE EmbeddedRoots(muiUiaFragment* fragment, SAFEARRAY** out)
 {
     (void)fragment;
     if (out == nullptr)
@@ -336,15 +327,14 @@ static HRESULT STDMETHODCALLTYPE EmbeddedRoots(IRawElementProviderFragment* frag
     return S_OK;
 }
 
-static HRESULT STDMETHODCALLTYPE FragmentSetFocus(IRawElementProviderFragment* fragment)
+static HRESULT STDMETHODCALLTYPE FragmentSetFocus(muiUiaFragment* fragment)
 {
     muiUiaNode* node = FromFragment(fragment);
     const muiAccessNode* held = muiUiaNodeFor(node);
     return held != nullptr ? muiUiaPerform(node->adapter, mui_actionFocus, held->id) : ELEMENT_GONE;
 }
 
-static HRESULT STDMETHODCALLTYPE RootOf(IRawElementProviderFragment* fragment,
-                                        IRawElementProviderFragmentRoot** out)
+static HRESULT STDMETHODCALLTYPE RootOf(muiUiaFragment* fragment, muiUiaFragmentRoot** out)
 {
     if (out == nullptr)
     {
@@ -362,29 +352,28 @@ static HRESULT STDMETHODCALLTYPE RootOf(IRawElementProviderFragment* fragment,
     return S_OK;
 }
 
-static const IRawElementProviderFragmentVtbl s_fragmentTable = {
+static const muiUiaFragmentTable s_fragmentTable = {
     FragmentQuery,  FragmentAddRef, FragmentRelease,  Navigate, RuntimeId,
     FragmentBounds, EmbeddedRoots,  FragmentSetFocus, RootOf};
 
-// IRawElementProviderFragmentRoot.
+// muiUiaFragmentRoot.
 
-static HRESULT STDMETHODCALLTYPE RootQuery(IRawElementProviderFragmentRoot* fragmentRoot, REFIID id,
-                                           void** out)
+static HRESULT STDMETHODCALLTYPE RootQuery(muiUiaFragmentRoot* fragmentRoot, REFIID id, void** out)
 {
     return Query(FromFragmentRoot(fragmentRoot), id, out);
 }
 
-static ULONG STDMETHODCALLTYPE RootAddRef(IRawElementProviderFragmentRoot* fragmentRoot)
+static ULONG STDMETHODCALLTYPE RootAddRef(muiUiaFragmentRoot* fragmentRoot)
 {
     return AddReference(FromFragmentRoot(fragmentRoot));
 }
 
-static ULONG STDMETHODCALLTYPE RootRelease(IRawElementProviderFragmentRoot* fragmentRoot)
+static ULONG STDMETHODCALLTYPE RootRelease(muiUiaFragmentRoot* fragmentRoot)
 {
     return ReleaseReference(FromFragmentRoot(fragmentRoot));
 }
 
-static bool Contains(const struct UiaRect* rect, double x, double y)
+static bool Contains(const muiUiaRect* rect, double x, double y)
 {
     return x >= rect->left && x < rect->left + rect->width && y >= rect->top &&
            y < rect->top + rect->height;
@@ -406,7 +395,7 @@ static uint64_t NodeAt(muiUiaAdapter* adapter, double x, double y)
         uint64_t next = 0;
         for (uint32_t i = count; i > 0 && next == 0; i--)
         {
-            const struct UiaRect rect = muiUiaScreenRect(adapter, adapter->scratch[i - 1]);
+            const muiUiaRect rect = muiUiaScreenRect(adapter, adapter->scratch[i - 1]);
             next = Contains(&rect, x, y) ? adapter->scratch[i - 1] : 0;
         }
         if (next == 0)
@@ -418,8 +407,8 @@ static uint64_t NodeAt(muiUiaAdapter* adapter, double x, double y)
     return at;
 }
 
-static HRESULT STDMETHODCALLTYPE FromPoint(IRawElementProviderFragmentRoot* fragmentRoot, double x,
-                                           double y, IRawElementProviderFragment** out)
+static HRESULT STDMETHODCALLTYPE FromPoint(muiUiaFragmentRoot* fragmentRoot, double x, double y,
+                                           muiUiaFragment** out)
 {
     if (out == nullptr)
     {
@@ -435,8 +424,7 @@ static HRESULT STDMETHODCALLTYPE FromPoint(IRawElementProviderFragmentRoot* frag
 }
 
 // The focus within the root; none when the root itself has it.
-static HRESULT STDMETHODCALLTYPE RootFocus(IRawElementProviderFragmentRoot* fragmentRoot,
-                                           IRawElementProviderFragment** out)
+static HRESULT STDMETHODCALLTYPE RootFocus(muiUiaFragmentRoot* fragmentRoot, muiUiaFragment** out)
 {
     if (out == nullptr)
     {
@@ -453,8 +441,8 @@ static HRESULT STDMETHODCALLTYPE RootFocus(IRawElementProviderFragmentRoot* frag
     return GiveFragment(node->adapter, focus != muiAccessTree_GetRoot(tree) ? focus : 0, out);
 }
 
-static const IRawElementProviderFragmentRootVtbl s_fragmentRootTable = {
-    RootQuery, RootAddRef, RootRelease, FromPoint, RootFocus};
+static const muiUiaFragmentRootTable s_fragmentRootTable = {RootQuery, RootAddRef, RootRelease,
+                                                            FromPoint, RootFocus};
 
 muiUiaNode* muiUiaMakeNode(muiUiaAdapter* adapter, uint64_t id)
 {

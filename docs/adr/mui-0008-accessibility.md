@@ -131,7 +131,12 @@ ranges and virtual lists.
   reference counts, so they may outlive the adapter (the one exception
   to record 0010 here). It loads `uiautomationcore.dll` at run time,
   as Maul Window does, and refuses a thread outside a single-threaded
-  apartment with `mui_errorPlatform`.
+  apartment with `mui_errorPlatform`. It includes no UI Automation header:
+  the Windows SDK's define const variables, which in C every file
+  including them defines again, so a program including them as well
+  could not link. It declares the interfaces it implements and writes
+  the ids it uses, and its test checks their layouts and values
+  against the headers.
 
 ## Consequences
 

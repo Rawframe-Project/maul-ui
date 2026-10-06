@@ -209,8 +209,7 @@ static bool IsOffscreen(const muiUiaAdapter* adapter, uint64_t id)
 }
 
 // The properties taken from a node's texts.
-static bool TextProperty(VARIANT* out, const muiAccessNode* node, PROPERTYID property,
-                         HRESULT* result)
+static bool TextProperty(VARIANT* out, const muiAccessNode* node, int property, HRESULT* result)
 {
     const char* landmark = nullptr;
     switch (property)
@@ -241,7 +240,7 @@ static bool TextProperty(VARIANT* out, const muiAccessNode* node, PROPERTYID pro
 
 // The properties taken from a node's flags.
 static bool StateProperty(VARIANT* out, const muiUiaAdapter* adapter, const muiAccessNode* node,
-                          PROPERTYID property)
+                          int property)
 {
     switch (property)
     {
@@ -273,7 +272,7 @@ static bool StateProperty(VARIANT* out, const muiUiaAdapter* adapter, const muiA
 
 // The properties taken from a node's typed values; none for a value the
 // node lacks.
-static bool ValueProperty(VARIANT* out, const muiAccessNode* node, PROPERTYID property)
+static bool ValueProperty(VARIANT* out, const muiAccessNode* node, int property)
 {
     const muiAccessValues* values = &node->values;
     const char* custom = nullptr;
@@ -314,7 +313,7 @@ static bool ValueProperty(VARIANT* out, const muiAccessNode* node, PROPERTYID pr
     return true;
 }
 
-HRESULT muiUiaPropertyValue(muiUiaAdapter* adapter, const muiAccessNode* node, PROPERTYID property,
+HRESULT muiUiaPropertyValue(muiUiaAdapter* adapter, const muiAccessNode* node, int property,
                             VARIANT* out)
 {
     HRESULT result = S_OK;

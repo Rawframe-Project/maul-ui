@@ -14,16 +14,166 @@
 
 #include "maul-ui/access_uia.h"
 
+#include <stddef.h>
 #include <string.h>
 #include <wchar.h>
 
 #define COBJMACROS
 #define WIN32_LEAN_AND_MEAN
+#include "uia_com.h"
+#include "uia_ids.h"
+
 #include <ole2.h>
 #include <uiautomationclient.h>
 #include <uiautomationcore.h>
 #include <uiautomationcoreapi.h>
 #include <windows.h>
+
+// The adapter's own declarations of UI Automation (src/uia_com.h,
+// src/uia_ids.h) against the headers: the same layouts and values.
+static_assert(sizeof(muiUiaSimpleTable) == sizeof(IRawElementProviderSimpleVtbl),
+              "IRawElementProviderSimpleVtbl");
+static_assert(offsetof(muiUiaSimpleTable, QueryInterface) ==
+                  offsetof(IRawElementProviderSimpleVtbl, QueryInterface),
+              "IRawElementProviderSimpleVtbl QueryInterface");
+static_assert(offsetof(muiUiaSimpleTable, AddRef) ==
+                  offsetof(IRawElementProviderSimpleVtbl, AddRef),
+              "IRawElementProviderSimpleVtbl AddRef");
+static_assert(offsetof(muiUiaSimpleTable, Release) ==
+                  offsetof(IRawElementProviderSimpleVtbl, Release),
+              "IRawElementProviderSimpleVtbl Release");
+static_assert(offsetof(muiUiaSimpleTable, get_ProviderOptions) ==
+                  offsetof(IRawElementProviderSimpleVtbl, get_ProviderOptions),
+              "IRawElementProviderSimpleVtbl get_ProviderOptions");
+static_assert(offsetof(muiUiaSimpleTable, GetPatternProvider) ==
+                  offsetof(IRawElementProviderSimpleVtbl, GetPatternProvider),
+              "IRawElementProviderSimpleVtbl GetPatternProvider");
+static_assert(offsetof(muiUiaSimpleTable, GetPropertyValue) ==
+                  offsetof(IRawElementProviderSimpleVtbl, GetPropertyValue),
+              "IRawElementProviderSimpleVtbl GetPropertyValue");
+static_assert(offsetof(muiUiaSimpleTable, get_HostRawElementProvider) ==
+                  offsetof(IRawElementProviderSimpleVtbl, get_HostRawElementProvider),
+              "IRawElementProviderSimpleVtbl get_HostRawElementProvider");
+static_assert(sizeof(muiUiaFragmentTable) == sizeof(IRawElementProviderFragmentVtbl),
+              "IRawElementProviderFragmentVtbl");
+static_assert(offsetof(muiUiaFragmentTable, QueryInterface) ==
+                  offsetof(IRawElementProviderFragmentVtbl, QueryInterface),
+              "IRawElementProviderFragmentVtbl QueryInterface");
+static_assert(offsetof(muiUiaFragmentTable, AddRef) ==
+                  offsetof(IRawElementProviderFragmentVtbl, AddRef),
+              "IRawElementProviderFragmentVtbl AddRef");
+static_assert(offsetof(muiUiaFragmentTable, Release) ==
+                  offsetof(IRawElementProviderFragmentVtbl, Release),
+              "IRawElementProviderFragmentVtbl Release");
+static_assert(offsetof(muiUiaFragmentTable, Navigate) ==
+                  offsetof(IRawElementProviderFragmentVtbl, Navigate),
+              "IRawElementProviderFragmentVtbl Navigate");
+static_assert(offsetof(muiUiaFragmentTable, GetRuntimeId) ==
+                  offsetof(IRawElementProviderFragmentVtbl, GetRuntimeId),
+              "IRawElementProviderFragmentVtbl GetRuntimeId");
+static_assert(offsetof(muiUiaFragmentTable, get_BoundingRectangle) ==
+                  offsetof(IRawElementProviderFragmentVtbl, get_BoundingRectangle),
+              "IRawElementProviderFragmentVtbl get_BoundingRectangle");
+static_assert(offsetof(muiUiaFragmentTable, GetEmbeddedFragmentRoots) ==
+                  offsetof(IRawElementProviderFragmentVtbl, GetEmbeddedFragmentRoots),
+              "IRawElementProviderFragmentVtbl GetEmbeddedFragmentRoots");
+static_assert(offsetof(muiUiaFragmentTable, SetFocus) ==
+                  offsetof(IRawElementProviderFragmentVtbl, SetFocus),
+              "IRawElementProviderFragmentVtbl SetFocus");
+static_assert(offsetof(muiUiaFragmentTable, get_FragmentRoot) ==
+                  offsetof(IRawElementProviderFragmentVtbl, get_FragmentRoot),
+              "IRawElementProviderFragmentVtbl get_FragmentRoot");
+static_assert(sizeof(muiUiaFragmentRootTable) == sizeof(IRawElementProviderFragmentRootVtbl),
+              "IRawElementProviderFragmentRootVtbl");
+static_assert(offsetof(muiUiaFragmentRootTable, QueryInterface) ==
+                  offsetof(IRawElementProviderFragmentRootVtbl, QueryInterface),
+              "IRawElementProviderFragmentRootVtbl QueryInterface");
+static_assert(offsetof(muiUiaFragmentRootTable, AddRef) ==
+                  offsetof(IRawElementProviderFragmentRootVtbl, AddRef),
+              "IRawElementProviderFragmentRootVtbl AddRef");
+static_assert(offsetof(muiUiaFragmentRootTable, Release) ==
+                  offsetof(IRawElementProviderFragmentRootVtbl, Release),
+              "IRawElementProviderFragmentRootVtbl Release");
+static_assert(offsetof(muiUiaFragmentRootTable, ElementProviderFromPoint) ==
+                  offsetof(IRawElementProviderFragmentRootVtbl, ElementProviderFromPoint),
+              "IRawElementProviderFragmentRootVtbl ElementProviderFromPoint");
+static_assert(offsetof(muiUiaFragmentRootTable, GetFocus) ==
+                  offsetof(IRawElementProviderFragmentRootVtbl, GetFocus),
+              "IRawElementProviderFragmentRootVtbl GetFocus");
+static_assert(UIA_OPTION_SERVER_SIDE == ProviderOptions_ServerSideProvider,
+              "ProviderOptions_ServerSideProvider");
+static_assert(UIA_OPTION_COM_THREADING == ProviderOptions_UseComThreading,
+              "ProviderOptions_UseComThreading");
+static_assert(NAVIGATE_PARENT == NavigateDirection_Parent, "NavigateDirection_Parent");
+static_assert(NAVIGATE_NEXT == NavigateDirection_NextSibling, "NavigateDirection_NextSibling");
+static_assert(NAVIGATE_PREVIOUS == NavigateDirection_PreviousSibling,
+              "NavigateDirection_PreviousSibling");
+static_assert(NAVIGATE_FIRST == NavigateDirection_FirstChild, "NavigateDirection_FirstChild");
+static_assert(NAVIGATE_LAST == NavigateDirection_LastChild, "NavigateDirection_LastChild");
+static_assert(sizeof(muiUiaRect) == sizeof(struct UiaRect) &&
+                  offsetof(muiUiaRect, height) == offsetof(struct UiaRect, height),
+              "UiaRect");
+static_assert(APPEND_RUNTIME_ID == UiaAppendRuntimeId && ROOT_OBJECT_ID == UiaRootObjectId,
+              "runtime and root ids");
+
+// The ids, which the Windows SDK gives as const variables rather than
+// constants.
+static void TestIds(void)
+{
+    CHECK(
+        PROPERTY_CONTROL_TYPE == UIA_ControlTypePropertyId &&
+            PROPERTY_LOCALIZED_CONTROL_TYPE == UIA_LocalizedControlTypePropertyId &&
+            PROPERTY_NAME == UIA_NamePropertyId &&
+            PROPERTY_ACCELERATOR_KEY == UIA_AcceleratorKeyPropertyId &&
+            PROPERTY_HAS_KEYBOARD_FOCUS == UIA_HasKeyboardFocusPropertyId &&
+            PROPERTY_IS_KEYBOARD_FOCUSABLE == UIA_IsKeyboardFocusablePropertyId &&
+            PROPERTY_IS_ENABLED == UIA_IsEnabledPropertyId &&
+            PROPERTY_HELP_TEXT == UIA_HelpTextPropertyId &&
+            PROPERTY_IS_PASSWORD == UIA_IsPasswordPropertyId &&
+            PROPERTY_IS_OFFSCREEN == UIA_IsOffscreenPropertyId &&
+            PROPERTY_ORIENTATION == UIA_OrientationPropertyId &&
+            PROPERTY_IS_REQUIRED_FOR_FORM == UIA_IsRequiredForFormPropertyId &&
+            PROPERTY_ITEM_STATUS == UIA_ItemStatusPropertyId &&
+            PROPERTY_LIVE_SETTING == UIA_LiveSettingPropertyId &&
+            PROPERTY_POSITION_IN_SET == UIA_PositionInSetPropertyId &&
+            PROPERTY_SIZE_OF_SET == UIA_SizeOfSetPropertyId &&
+            PROPERTY_LEVEL == UIA_LevelPropertyId &&
+            PROPERTY_LANDMARK_TYPE == UIA_LandmarkTypePropertyId &&
+            PROPERTY_LOCALIZED_LANDMARK_TYPE == UIA_LocalizedLandmarkTypePropertyId &&
+            PROPERTY_FULL_DESCRIPTION == UIA_FullDescriptionPropertyId &&
+            PROPERTY_HEADING_LEVEL == UIA_HeadingLevelPropertyId &&
+            PROPERTY_IS_DIALOG == UIA_IsDialogPropertyId &&
+            CONTROL_BUTTON == UIA_ButtonControlTypeId &&
+            CONTROL_CHECK_BOX == UIA_CheckBoxControlTypeId &&
+            CONTROL_COMBO_BOX == UIA_ComboBoxControlTypeId &&
+            CONTROL_EDIT == UIA_EditControlTypeId &&
+            CONTROL_HYPERLINK == UIA_HyperlinkControlTypeId &&
+            CONTROL_IMAGE == UIA_ImageControlTypeId &&
+            CONTROL_LIST_ITEM == UIA_ListItemControlTypeId &&
+            CONTROL_LIST == UIA_ListControlTypeId && CONTROL_MENU == UIA_MenuControlTypeId &&
+            CONTROL_MENU_BAR == UIA_MenuBarControlTypeId &&
+            CONTROL_MENU_ITEM == UIA_MenuItemControlTypeId &&
+            CONTROL_PROGRESS_BAR == UIA_ProgressBarControlTypeId &&
+            CONTROL_RADIO_BUTTON == UIA_RadioButtonControlTypeId &&
+            CONTROL_SCROLL_BAR == UIA_ScrollBarControlTypeId &&
+            CONTROL_SLIDER == UIA_SliderControlTypeId &&
+            CONTROL_SPINNER == UIA_SpinnerControlTypeId &&
+            CONTROL_STATUS_BAR == UIA_StatusBarControlTypeId &&
+            CONTROL_TAB == UIA_TabControlTypeId && CONTROL_TAB_ITEM == UIA_TabItemControlTypeId &&
+            CONTROL_TEXT == UIA_TextControlTypeId && CONTROL_TOOL_BAR == UIA_ToolBarControlTypeId &&
+            CONTROL_TOOL_TIP == UIA_ToolTipControlTypeId && CONTROL_TREE == UIA_TreeControlTypeId &&
+            CONTROL_TREE_ITEM == UIA_TreeItemControlTypeId &&
+            CONTROL_GROUP == UIA_GroupControlTypeId &&
+            CONTROL_DATA_GRID == UIA_DataGridControlTypeId &&
+            CONTROL_DATA_ITEM == UIA_DataItemControlTypeId &&
+            CONTROL_DOCUMENT == UIA_DocumentControlTypeId &&
+            CONTROL_WINDOW == UIA_WindowControlTypeId && CONTROL_PANE == UIA_PaneControlTypeId &&
+            CONTROL_HEADER_ITEM == UIA_HeaderItemControlTypeId &&
+            CONTROL_TABLE == UIA_TableControlTypeId &&
+            CONTROL_TITLE_BAR == UIA_TitleBarControlTypeId &&
+            CONTROL_SEPARATOR == UIA_SeparatorControlTypeId,
+        "the ids");
+}
 
 #define DEADLINE_MS 20000u
 #define SCALE       1.5f
@@ -335,6 +485,7 @@ int main(void)
     CHECK(SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED)), "an STA");
     s_program.window = MakeWindow();
     CHECK(s_program.window != NULL, "a window");
+    TestIds();
     TestContract();
     muiUiaAdapterDef def = muiDefaultUiaAdapterDef();
     def.window = s_program.window;
