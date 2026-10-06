@@ -796,6 +796,37 @@ static void TestBeside(void)
     muiDestroyContext(context);
 }
 
+static void TestStyled(void)
+{
+    // A class makes the list scroll; without it, the offset goes.
+    List list;
+    MakeList(&list, 64);
+    muiContext* context = list.context;
+    muiNodeId s = Sized(context, list.root, 100.0f, 50.0f);
+    muiNodeId item = Sized(context, s, 100.0f, 200.0f);
+    Keep(context, item);
+    muiStyleId scrolling = {0, 0};
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.scrollAxes = mui_scrollVertical;
+    CHECK(muiCreateStyle(context, &scrolling) == mui_success &&
+              muiStyle_SetLayoutValues(context, scrolling, mui_variantBase, &style, SCROLL) ==
+                  mui_success &&
+              muiNode_SetClasses(context, s, &scrolling, 1) == mui_success,
+          "a scrolling class");
+    Layout(context, list.root);
+    float x = 0.0f;
+    float y = 0.0f;
+    CHECK(muiNode_SetScroll(context, s, 0.0f, 40.0f) == mui_success &&
+              muiNode_GetScroll(context, s, &x, &y) == mui_success && y == 40.0f,
+          "scrolled by class");
+    CHECK(muiNode_SetClasses(context, s, NULL, 0) == mui_success, "class gone");
+    Layout(context, list.root);
+    CHECK(muiNode_GetScroll(context, s, &x, &y) == mui_success && y == 0.0f &&
+              ExtentIs(context, s, 0.0f, 0.0f),
+          "the offset gone with it");
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestExtent();
@@ -811,6 +842,7 @@ int main(void)
     TestCopiedNest();
     TestOverlay();
     TestBeside();
+    TestStyled();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }
