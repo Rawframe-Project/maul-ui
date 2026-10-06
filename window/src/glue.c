@@ -4,7 +4,10 @@
 // The Maul Window glue (record mui-0007). Maul Window's button b is bit
 // b - 1 of its held mask and Maul UI's index b - 1 is bit b - 1 of its
 // own, so the masks pass as they are and an index is the button less
-// one.
+// one. A touch's 64-bit id takes one of the touch slots while it lasts,
+// its pointer id the slot's; the pen's tip is the primary button, or
+// button 5 while it erases, and its barrel the secondary, as the W3C's
+// Pointer Events number them.
 
 #include "maul-ui-window/glue.h"
 
@@ -19,8 +22,15 @@
 
 #define DEF_COOKIE 0x6D757767u // "muwg"
 
-// The pointer id the window's mouse has.
-#define MOUSE 0u
+// The pointer ids: the window's mouse, its pen, then its touches, as
+// many as there are slots.
+#define MOUSE       0u
+#define PEN         1u
+#define FIRST_TOUCH 2u
+#define TOUCHES     MUI_WINDOW_TOUCHES
+
+// The pen's eraser, as the W3C's Pointer Events number it.
+#define ERASER 5u
 
 struct muiWindowGlue
 {
@@ -36,6 +46,17 @@ struct muiWindowGlue
     float y;
     muiPointerButtons buttons;
     muiModifiers modifiers;
+    // The pen's last place and the buttons it holds.
+    float penX;
+    float penY;
+    muiPointerButtons penButtons;
+    // The touches in contact, by slot.
+    uint64_t touchIds[TOUCHES];
+    bool touching[TOUCHES];
+    float touchX[TOUCHES];
+    float touchY[TOUCHES];
+    // The pointers whose press was the UI's, by id, while they hold it.
+    uint32_t held;
 };
 
 muiWindowGlueDef muiDefaultWindowGlueDef(void)
@@ -93,36 +114,63 @@ static bool IsMine(const muiWindowGlue* glue, mwinWindowId window)
     return window.index1 == glue->window.index1 && window.generation == glue->window.generation;
 }
 
-// Dispatches every pointer record waiting: whether one was handled.
-static muiResult DispatchRecords(muiContext* context, bool* handledOut)
+// Whether a record is the UI's: handled, or at a node that does not
+// pass input through (the host hands the game only what is neither).
+static bool IsTheUis(const muiPointerRecord* record, bool handled)
+{
+    return handled || !record->passThrough;
+}
+
+// Dispatches every pointer record waiting: whether one was the UI's. A
+// press that was the UI's holds its pointer for the UI until it lets go.
+static muiResult DispatchRecords(muiWindowGlue* glue, bool* handledOut)
 {
     muiPointerRecord record;
-    while (muiNextPointerRecord(context, &record) == mui_success)
+    while (muiNextPointerRecord(glue->context, &record) == mui_success)
     {
         bool handled = false;
-        muiResult status = muiDispatchPointerRecord(context, &record, &handled);
+        muiResult status = muiDispatchPointerRecord(glue->context, &record, &handled);
         if (status != mui_success)
         {
             return status;
         }
-        *handledOut = *handledOut || handled;
+        bool theUis = record.kind != mui_pointerRecordDropped && IsTheUis(&record, handled);
+        if (theUis && record.kind == mui_pointerRecordPress && record.pointer < 32)
+        {
+            glue->held |= 1u << record.pointer;
+        }
+        *handledOut = *handledOut || theUis;
     }
     return mui_success;
 }
 
-// Whether the UI keeps the mouse at its place: it holds it, or the point
-// hits a node that does not pass input through.
-static bool KeepsMouse(const muiWindowGlue* glue)
+// Whether a point hits a node that does not pass input through.
+static bool Covers(const muiWindowGlue* glue, float x, float y)
 {
-    muiPointerState state;
-    if (muiPointer_GetState(glue->context, MOUSE, &state) == mui_success &&
-        (state.pressed.index1 != 0 || state.captured.index1 != 0))
-    {
-        return true;
-    }
     muiHit hit;
-    return muiHitTest(glue->context, glue->root, glue->x, glue->y, &hit) == mui_success &&
+    return muiHitTest(glue->context, glue->root, x, y, &hit) == mui_success &&
            hit.node.index1 != 0 && !hit.passThrough;
+}
+
+// Feeds a pointer event and dispatches its records: whether it is the
+// UI's, by a record, by a press the UI holds, or by where it is.
+static muiResult Feed(muiWindowGlue* glue, const muiPointerEvent* pointer, bool* handledOut)
+{
+    muiResult status = muiPointerInput(glue->context, glue->root, pointer);
+    status = status == mui_success ? DispatchRecords(glue, handledOut) : status;
+    if (status != mui_success)
+    {
+        return status;
+    }
+    uint32_t bit = 1u << pointer->pointer;
+    bool ends = pointer->action == mui_pointerLeave || pointer->action == mui_pointerCancel;
+    *handledOut =
+        *handledOut || (glue->held & bit) != 0 || (!ends && Covers(glue, pointer->x, pointer->y));
+    if (pointer->buttons == 0 || pointer->action == mui_pointerCancel)
+    {
+        glue->held &= ~bit;
+    }
+    return mui_success;
 }
 
 static muiResult Mouse(muiWindowGlue* glue, uint64_t timeNs, muiPointerAction action,
@@ -139,14 +187,120 @@ static muiResult Mouse(muiWindowGlue* glue, uint64_t timeNs, muiPointerAction ac
         .y = glue->y,
         .player = glue->player,
     };
-    muiResult status = muiPointerInput(glue->context, glue->root, &pointer);
-    status = status == mui_success ? DispatchRecords(glue->context, handledOut) : status;
-    if (status == mui_success && !*handledOut && action != mui_pointerLeave &&
-        action != mui_pointerCancel)
+    return Feed(glue, &pointer, handledOut);
+}
+
+// The slot of a touch in contact, or TOUCHES.
+static uint32_t FindTouch(const muiWindowGlue* glue, uint64_t id)
+{
+    for (uint32_t i = 0; i < TOUCHES; i++)
     {
-        *handledOut = KeepsMouse(glue);
+        if (glue->touching[i] && glue->touchIds[i] == id)
+        {
+            return i;
+        }
     }
-    return status;
+    return TOUCHES;
+}
+
+static muiResult TouchAt(muiWindowGlue* glue, uint32_t slot, uint64_t timeNs,
+                         muiPointerAction action, bool* handledOut)
+{
+    bool holds = action == mui_pointerPress || action == mui_pointerMove;
+    const muiPointerEvent pointer = {
+        .timeNs = timeNs,
+        .pointer = FIRST_TOUCH + slot,
+        .kind = mui_pointerTouch,
+        .action = action,
+        .button = mui_buttonPrimary,
+        .buttons = holds ? 1u << mui_buttonPrimary : 0u,
+        .x = glue->touchX[slot],
+        .y = glue->touchY[slot],
+        .player = glue->player,
+    };
+    if (!holds)
+    {
+        glue->touching[slot] = false;
+    }
+    return Feed(glue, &pointer, handledOut);
+}
+
+// A touch: one that begins takes a free slot, or is left when none is.
+static muiResult Touch(muiWindowGlue* glue, const mwinEvent* event, bool* handledOut)
+{
+    const mwinTouchEvent* touch = &event->data.touch;
+    uint32_t slot = FindTouch(glue, touch->id);
+    if (event->type == mwin_eventTouchDown && slot == TOUCHES)
+    {
+        for (slot = 0; slot < TOUCHES && glue->touching[slot]; slot++)
+        {
+        }
+        if (slot == TOUCHES)
+        {
+            return mui_success;
+        }
+        glue->touching[slot] = true;
+        glue->touchIds[slot] = touch->id;
+    }
+    if (slot == TOUCHES)
+    {
+        return mui_success;
+    }
+    glue->touchX[slot] = touch->position.x;
+    glue->touchY[slot] = touch->position.y;
+    muiPointerAction action = event->type == mwin_eventTouchDown    ? mui_pointerPress
+                              : event->type == mwin_eventTouchMoved ? mui_pointerMove
+                              : event->type == mwin_eventTouchUp    ? mui_pointerRelease
+                                                                    : mui_pointerCancel;
+    return TouchAt(glue, slot, event->timeNs, action, handledOut);
+}
+
+static muiResult PenAt(muiWindowGlue* glue, uint64_t timeNs, muiPointerAction action,
+                       uint8_t button, bool* handledOut)
+{
+    const muiPointerEvent pointer = {
+        .timeNs = timeNs,
+        .pointer = PEN,
+        .kind = mui_pointerPen,
+        .action = action,
+        .button = button,
+        .buttons = glue->penButtons,
+        .x = glue->penX,
+        .y = glue->penY,
+        .player = glue->player,
+    };
+    return Feed(glue, &pointer, handledOut);
+}
+
+// The pen: its tip in contact holds the primary button, or the eraser
+// while the eraser end is in use, and its barrel the secondary.
+static muiResult Pen(muiWindowGlue* glue, const mwinEvent* event, bool* handledOut)
+{
+    const mwinPenEvent* pen = &event->data.pen;
+    glue->penX = pen->position.x;
+    glue->penY = pen->position.y;
+    uint8_t tip = (pen->flags & mwin_penEraser) != 0 ? ERASER : mui_buttonPrimary;
+    glue->penButtons =
+        (muiPointerButtons)(((pen->flags & mwin_penContact) != 0 ? 1u << tip : 0u) |
+                            ((pen->flags & mwin_penBarrel) != 0 ? 1u << mui_buttonSecondary : 0u));
+    switch (event->type)
+    {
+    case mwin_eventPenDown:
+        return PenAt(glue, event->timeNs, mui_pointerPress, tip, handledOut);
+    case mwin_eventPenUp:
+        return PenAt(glue, event->timeNs, mui_pointerRelease, tip, handledOut);
+    case mwin_eventPenButtonDown:
+    case mwin_eventPenButtonUp:
+        if (pen->button != 1)
+        {
+            return mui_success;
+        }
+        return PenAt(glue, event->timeNs,
+                     event->type == mwin_eventPenButtonDown ? mui_pointerPress : mui_pointerRelease,
+                     mui_buttonSecondary, handledOut);
+    default:
+        return PenAt(glue, event->timeNs, mui_pointerMove, 0, handledOut);
+    }
 }
 
 static muiResult Cursor(muiWindowGlue* glue, const mwinEvent* event, bool* handledOut)
@@ -174,18 +328,31 @@ static muiResult Cursor(muiWindowGlue* glue, const mwinEvent* event, bool* handl
     return Mouse(glue, event->timeNs, action, (uint8_t)(cursor->button - 1), handledOut);
 }
 
-// Forgets what is held: the mouse's buttons, cancelled, and the
-// modifiers.
+// Forgets what is held: the mouse's and the pen's buttons and every
+// touch, cancelled, and the modifiers.
 static muiResult Reset(muiWindowGlue* glue, uint64_t timeNs)
 {
     glue->modifiers = 0;
-    if (glue->buttons == 0)
-    {
-        return mui_success;
-    }
-    glue->buttons = 0;
     bool handled = false;
-    return Mouse(glue, timeNs, mui_pointerCancel, 0, &handled);
+    muiResult status = mui_success;
+    if (glue->buttons != 0)
+    {
+        glue->buttons = 0;
+        status = Mouse(glue, timeNs, mui_pointerCancel, 0, &handled);
+    }
+    if (status == mui_success && glue->penButtons != 0)
+    {
+        glue->penButtons = 0;
+        status = PenAt(glue, timeNs, mui_pointerCancel, 0, &handled);
+    }
+    for (uint32_t i = 0; i < TOUCHES && status == mui_success; i++)
+    {
+        if (glue->touching[i])
+        {
+            status = TouchAt(glue, i, timeNs, mui_pointerCancel, &handled);
+        }
+    }
+    return status;
 }
 
 static muiResult Key(muiWindowGlue* glue, const mwinEvent* event, bool* handledOut)
@@ -258,6 +425,17 @@ muiResult muiWindowGlue_HandleEvent(muiWindowGlue* glue, const mwinEvent* event,
         return Cursor(glue, event, handledOut);
     case mwin_eventWheel:
         return Wheel(glue, event, handledOut);
+    case mwin_eventTouchDown:
+    case mwin_eventTouchMoved:
+    case mwin_eventTouchUp:
+    case mwin_eventTouchCancelled:
+        return Touch(glue, event, handledOut);
+    case mwin_eventPenMoved:
+    case mwin_eventPenDown:
+    case mwin_eventPenUp:
+    case mwin_eventPenButtonDown:
+    case mwin_eventPenButtonUp:
+        return Pen(glue, event, handledOut);
     case mwin_eventInputStateReset:
     case mwin_eventFocusLost:
         return Reset(glue, event->timeNs);

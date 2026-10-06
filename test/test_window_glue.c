@@ -8,7 +8,14 @@
 // is not; a press, its release and its click reach the button; keys and
 // text reach the focus, a key no one handles is not the UI's; the wheel
 // turns at the cursor's last place; another window's records and a
-// leave are not the UI's; a lost focus cancels the press it held.
+// leave are not the UI's; a lost focus cancels the press it held. Then
+// touches: one on the button the UI's and one on the root not, a move,
+// a release and its click, a cancel, a touch past the glue's ten left,
+// and a lost focus cancelling the ten; and the pen: hovering, its tip,
+// its barrel and its eraser, each the button the W3C numbers it. Last, a
+// press on a panel the host leaves is still the UI's, as the panel does
+// not pass input through, and so is the mouse it holds over the root
+// until it lets go.
 
 #include "test_harness.h"
 
@@ -40,6 +47,7 @@ typedef struct Test
     muiContext* context;
     muiNodeId root;
     muiNodeId button;
+    muiNodeId panel;
     muiWindowGlue* glue;
     // What the glue said of each record fed, by type.
     mwinEventType types[MAX_RECORDS];
@@ -47,6 +55,9 @@ typedef struct Test
     int count;
     // What the host's function heard at the button.
     muiPointerRecordKind records[MAX_RECORDS];
+    muiPointerKind recordKinds[MAX_RECORDS];
+    uint8_t recordButtons[MAX_RECORDS];
+    muiPointerButtons recordHeld[MAX_RECORDS];
     int recordCount;
     int keys;
     int texts;
@@ -90,6 +101,9 @@ static bool Hear(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* e
     case mui_eventPointer:
         if (test->recordCount < MAX_RECORDS)
         {
+            test->recordKinds[test->recordCount] = event->pointer->pointerKind;
+            test->recordButtons[test->recordCount] = event->pointer->button;
+            test->recordHeld[test->recordCount] = event->pointer->buttons;
             test->records[test->recordCount++] = event->pointer->kind;
         }
         test->pressedButton = event->pointer->button;
@@ -140,6 +154,8 @@ static void MakeTree(Test* test)
     CHECK(muiCreateContext(&def, &test->context) == mui_success, "a context");
     test->root = Node(test->context, s_null, 0, 0, 640, 480);
     test->button = Node(test->context, test->root, 10, 10, 100, 100);
+    // A panel from 200 to 300 whose presses the host leaves.
+    test->panel = Node(test->context, test->root, 200, 10, 100, 100);
     muiInteractionStyle values = muiDefaultInteractionStyle();
     values.passThrough = true;
     CHECK(muiNode_SetInteractionValues(test->context, test->root, &values,
@@ -191,7 +207,7 @@ static void Feed(Test* test, mwinContext* windows)
         bool handled = true;
         CHECK(muiWindowGlue_HandleEvent(test->glue, &event, &handled) == mui_success,
               "a record taken");
-        bool input = event.type >= mwin_eventInputStateReset && event.type <= mwin_eventWheel;
+        bool input = event.type >= mwin_eventInputStateReset && event.type <= mwin_eventPenButtonUp;
         if ((input || event.type == mwin_eventFocusLost) && test->count < MAX_RECORDS)
         {
             test->types[test->count] = event.type;
@@ -216,6 +232,23 @@ static mwinEvent Key(mwinWindowId window, mwinKeyCode code, mwinKey key, mwinMod
     event.data.key.code = code;
     event.data.key.key = key;
     event.data.key.modifiers = modifiers;
+    return event;
+}
+
+static mwinEvent Touch(mwinWindowId window, mwinEventType type, uint64_t id, float x, float y)
+{
+    mwinEvent event = {.type = type, .window = window};
+    event.data.touch.id = id;
+    event.data.touch.position = (mwinPosition){x, y};
+    return event;
+}
+
+static mwinEvent Pen(mwinWindowId window, mwinEventType type, mwinPenFlags flags, uint8_t button)
+{
+    mwinEvent event = {.type = type, .window = window};
+    event.data.pen.position = (mwinPosition){50, 50};
+    event.data.pen.flags = flags;
+    event.data.pen.button = button;
     return event;
 }
 
@@ -277,6 +310,136 @@ static void CheckInput(const Test* test)
           "the wheel at the cursor's last place, with the modifiers last reported");
 }
 
+static void PostTouches(Test* test, mwinContext* windows)
+{
+    const uint64_t first = 0xA000000000000001u;
+    const uint64_t second = 0xB000000000000002u;
+    const mwinEvent events[] = {
+        Touch(test->window, mwin_eventTouchDown, first, 50, 50),
+        Touch(test->window, mwin_eventTouchDown, second, 300, 300),
+        Touch(test->window, mwin_eventTouchMoved, first, 55, 55),
+        Touch(test->window, mwin_eventTouchUp, first, 55, 55),
+        Touch(test->window, mwin_eventTouchCancelled, second, 300, 300),
+    };
+    Post(windows, events, 5);
+}
+
+static void CheckTouches(const Test* test)
+{
+    static const bool handled[] = {true, false, true, true, false};
+    bool same = test->count == 5;
+    for (int i = 0; same && i < 5; i++)
+    {
+        same = test->handled[i] == handled[i];
+    }
+    CHECK(same, "a touch on the button the UI's, one on the root not, a move, an up, a cancel");
+    // A touch captures what it presses, so its move is recorded, and
+    // lets it go as it lifts.
+    CHECK(test->recordCount == 5 && test->records[0] == mui_pointerRecordPress &&
+              test->records[1] == mui_pointerRecordMove &&
+              test->records[2] == mui_pointerRecordRelease &&
+              test->records[3] == mui_pointerRecordClick &&
+              test->records[4] == mui_pointerRecordCaptureLost &&
+              test->recordKinds[0] == mui_pointerTouch,
+          "the touch pressed, moved, released and clicked the button, its capture let go");
+}
+
+// Eleven touches on the button, then a lost focus.
+static void PostMany(Test* test, mwinContext* windows)
+{
+    for (uint64_t i = 0; i < MUI_WINDOW_TOUCHES + 1; i++)
+    {
+        const mwinEvent down = Touch(test->window, mwin_eventTouchDown, 100 + i, 20, 20);
+        Post(windows, &down, 1);
+    }
+    const mwinEvent lost = {.type = mwin_eventFocusLost, .window = test->window};
+    Post(windows, &lost, 1);
+}
+
+static void CheckMany(const Test* test)
+{
+    int presses = 0;
+    int cancels = 0;
+    for (int i = 0; i < test->recordCount; i++)
+    {
+        presses += test->records[i] == mui_pointerRecordPress ? 1 : 0;
+        cancels += test->records[i] == mui_pointerRecordCancel ? 1 : 0;
+    }
+    CHECK(presses == (int)MUI_WINDOW_TOUCHES && cancels == (int)MUI_WINDOW_TOUCHES,
+          "ten touches followed, the eleventh left, the ten cancelled by a lost focus");
+}
+
+static void PostPen(Test* test, mwinContext* windows)
+{
+    const mwinEvent events[] = {
+        Pen(test->window, mwin_eventPenMoved, 0, 0),
+        Pen(test->window, mwin_eventPenDown, mwin_penContact, 0),
+        Pen(test->window, mwin_eventPenButtonDown, mwin_penContact | mwin_penBarrel, 1),
+        Pen(test->window, mwin_eventPenUp, mwin_penBarrel, 0),
+        Pen(test->window, mwin_eventPenButtonUp, 0, 1),
+        Pen(test->window, mwin_eventPenDown, mwin_penContact | mwin_penEraser, 0),
+        Pen(test->window, mwin_eventPenUp, mwin_penEraser, 0),
+    };
+    Post(windows, events, 7);
+}
+
+static void CheckPen(const Test* test)
+{
+    CHECK(test->count == 7 && test->handled[0], "the pen hovering over the button the UI's");
+    // Presses and releases with their buttons, a click after each
+    // release, the pen's capture let go as its last button, the barrel
+    // held after the tip lifts, lifts.
+    static const muiPointerRecordKind kinds[] = {
+        mui_pointerRecordPress,       mui_pointerRecordPress,       mui_pointerRecordRelease,
+        mui_pointerRecordClick,       mui_pointerRecordRelease,     mui_pointerRecordClick,
+        mui_pointerRecordCaptureLost, mui_pointerRecordPress,       mui_pointerRecordRelease,
+        mui_pointerRecordClick,       mui_pointerRecordCaptureLost,
+    };
+    static const uint8_t buttons[] = {0, 1, 0, 0, 1, 1, 0, 5, 5, 5, 0};
+    bool same = test->recordCount == 11;
+    for (int i = 0; same && i < 11; i++)
+    {
+        same = test->records[i] == kinds[i] && test->recordButtons[i] == buttons[i] &&
+               test->recordKinds[i] == mui_pointerPen;
+    }
+    if (!same)
+    {
+        for (int i = 0; i < test->recordCount; i++)
+        {
+            printf("  record %d: kind %u button %u\n", i, test->records[i], test->recordButtons[i]);
+        }
+    }
+    // As the tip lifts the barrel alone is held, and the eraser in
+    // contact holds button 5 alone.
+    same =
+        same && test->recordHeld[2] == 1u << mui_buttonSecondary && test->recordHeld[7] == 1u << 5;
+    CHECK(same, "the pen's tip primary, its barrel secondary and held after the tip lifts, its "
+                "eraser button 5");
+}
+
+static void PostHold(Test* test, mwinContext* windows)
+{
+    const mwinEvent events[] = {
+        Cursor(test->window, mwin_eventCursorMoved, 250, 50, 0, 0),
+        Cursor(test->window, mwin_eventButtonDown, 250, 50, mwin_buttonLeft, 1),
+        Cursor(test->window, mwin_eventCursorMoved, 400, 300, 0, 1),
+        Cursor(test->window, mwin_eventButtonUp, 400, 300, mwin_buttonLeft, 0),
+        Cursor(test->window, mwin_eventCursorMoved, 410, 300, 0, 0),
+    };
+    Post(windows, events, 5);
+}
+
+static void CheckHold(const Test* test)
+{
+    static const bool handled[] = {true, true, true, true, false};
+    bool same = test->count == 5;
+    for (int i = 0; same && i < 5; i++)
+    {
+        same = test->handled[i] == handled[i];
+    }
+    CHECK(same, "a press the host leaves on a panel holds the mouse for the UI until it lets go");
+}
+
 static mwinFrameResult Frame(mwinContext* windows, void* user)
 {
     Test* test = user;
@@ -297,11 +460,34 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
                  {.type = mwin_eventFocusLost, .window = test->window}},
              3);
         break;
-    default:
+    case 2:
         Feed(test, windows);
         CHECK(test->recordCount == 2 && test->records[0] == mui_pointerRecordPress &&
                   test->records[1] == mui_pointerRecordCancel,
               "a lost focus cancels the press held");
+        test->recordCount = 0;
+        PostTouches(test, windows);
+        break;
+    case 3:
+        Feed(test, windows);
+        CheckTouches(test);
+        test->recordCount = 0;
+        PostMany(test, windows);
+        break;
+    case 4:
+        Feed(test, windows);
+        CheckMany(test);
+        test->recordCount = 0;
+        PostPen(test, windows);
+        break;
+    case 5:
+        Feed(test, windows);
+        CheckPen(test);
+        PostHold(test, windows);
+        break;
+    default:
+        Feed(test, windows);
+        CheckHold(test);
         test->done = true;
         break;
     }

@@ -287,12 +287,18 @@ itself instead of each host repeating them.
   game. Maul UI's input was shaped after Maul Window's, so keys (codes,
   meanings, modifiers, repeat) and text pass as they come; the cursor
   is a mouse pointer (Maul Window's button less one is Maul UI's index;
-  the held masks agree), its pointer records dispatched at once, and
-  the UI's while a record is handled, the UI holds the pointer, or the
-  point hits a node that does not pass input through; the wheel turns
-  at the cursor's last place, which the glue keeps, with the modifiers
-  last reported; a reset or a lost focus cancels the pointer holding a
-  button. Its tests run on Maul Window's headless test backend.
+  the held masks agree); a touch is a touch pointer, its 64-bit id
+  given one of ten slots while it lasts; the pen is a pen pointer, its
+  tip in contact the primary button, or button 5 while it erases, its
+  barrel the secondary, as the W3C's Pointer Events number them. Each
+  event's records are dispatched at once; a pointer's input is the UI's
+  when a record is handled or at a node that does not pass input
+  through (the rule the host follows for what it hands its game), while
+  a press that was the UI's holds the pointer, or where the point hits
+  such a node. The wheel turns at the cursor's last place, which the
+  glue keeps, with the modifiers last reported; a reset or a lost focus
+  cancels every pointer holding a button. Its tests run on Maul
+  Window's headless test backend.
 
 ## Consequences
 

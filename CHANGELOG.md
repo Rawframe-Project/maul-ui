@@ -52,9 +52,11 @@ format.
   default; `maul-ui-window/glue.h`), with Maul Window 0.8.0: a glue a
   window takes the records the host drains and feeds them to a context,
   saying of each whether the UI handled it: keys and text to the focus,
-  the cursor as a mouse pointer with its records dispatched, the wheel
-  at the cursor's last place, a reset or a lost focus cancelling the
-  pointer.
+  the cursor as a mouse pointer, touches as touch pointers (up to
+  `MUI_WINDOW_TOUCHES` at once) and the pen as a pen pointer (its tip,
+  barrel and eraser numbered as the W3C's Pointer Events number them),
+  their records dispatched; the wheel at the cursor's last place; a
+  reset or a lost focus cancelling every pointer.
 - The reference renderer, `maul-ui-rhi` (`MAUL_UI_RHI`, off by
   default; `maul-ui-rhi/renderer.h`), which draws a list with Maul RHI
   0.3.0: `muiCreateRhiRenderer` for a device and a target format,

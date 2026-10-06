@@ -7,9 +7,10 @@
 // not (the cursor's place, the buttons held) and saying of each record
 // whether the UI handled it, so that the host hands the rest to its
 // game. Keys and text pass as they come, the codes, meanings and
-// modifiers being the same; the cursor is a mouse pointer, its records
-// dispatched at once; the wheel turns at the cursor's last place; a reset
-// or a lost focus cancels the pointer. The core and the text component
+// modifiers being the same; the cursor is a mouse pointer, a touch a
+// touch pointer and the pen a pen pointer, their records dispatched at
+// once; the wheel turns at the cursor's last place; a reset or a lost
+// focus cancels every pointer. The core and the text component
 // never depend on it; it is a static library, whose functions
 // MUI_WINDOW_API marks.
 
@@ -25,6 +26,10 @@
 #include <stdint.h>
 
 #define MUI_WINDOW_API extern
+
+// The touches a glue follows at once; a touch beyond them is left. With
+// the mouse and the pen they fit the context's default pointers.
+#define MUI_WINDOW_TOUCHES 10u
 
 #ifdef __cplusplus
 extern "C"
@@ -79,16 +84,20 @@ extern "C"
 
     /// Takes a record the host drained from Maul Window. A record of its
     /// window goes to the context: a key or text to the player's focus
-    /// (muiKeyInput, muiTextInput), the cursor as the player's mouse
+    /// (muiKeyInput, muiTextInput); the cursor as the player's mouse
     /// (muiPointerInput, its records dispatched with
-    /// muiDispatchPointerRecord), the wheel at the cursor's last place
-    /// (muiWheelInput), a reset or a lost focus as a cancel of the mouse
-    /// while it holds a button. The cursor's records are the UI's when a
-    /// record it posts is handled, while the UI holds the mouse (pressed
-    /// or captured), or where the point hits a node that does not pass
-    /// input through (muiHitTest); a key, text or wheel is the UI's when
-    /// routing handles it. Records of other windows and of other kinds
-    /// are not the UI's.
+    /// muiDispatchPointerRecord), Maul Window's button b its index b - 1;
+    /// a touch as a touch pointer holding the primary button while in
+    /// contact; the pen as a pen pointer, its tip in contact the primary
+    /// button or button 5 while it erases, its barrel the secondary, as
+    /// the W3C's Pointer Events number them; the wheel at the cursor's
+    /// last place (muiWheelInput); a reset or a lost focus as a cancel of
+    /// every pointer holding a button. A pointer's records are the UI's
+    /// when a record it posts is handled, while the UI holds the pointer
+    /// (pressed or captured), or where the point hits a node that does
+    /// not pass input through (muiHitTest); a key, text or wheel is the
+    /// UI's when routing handles it. Records of other windows and of
+    /// other kinds are not the UI's.
     ///
     /// @param glue        The glue.
     /// @param event       The record.
