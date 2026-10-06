@@ -91,7 +91,7 @@ muiResult muiNode_SetStates(muiContext* context, muiNodeId nodeId, muiState stat
 muiState muiNode_GetStates(const muiContext* context, muiNodeId nodeId)
 {
     uint32_t slot = context != nullptr ? muiTreeResolve(&context->tree, nodeId) : 0;
-    return slot != 0 ? context->style.nodes[slot - 1].states : 0;
+    return slot != 0 ? muiStatesOf(&context->style.nodes[slot - 1]) : 0;
 }
 
 // Writes the properties of a group mask names, within allowed, directly:

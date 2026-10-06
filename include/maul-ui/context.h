@@ -53,6 +53,11 @@ extern "C"
         uint32_t drawGlyphs;
         // Nodes that root a layer at once.
         uint32_t layers;
+        // Pointers known at once (at most 32), and pointer records
+        // waiting to be taken; past it, they are counted in a
+        // mui_pointerRecordDropped record.
+        uint32_t pointers;
+        uint32_t pointerRecords;
     } muiLimits;
 
     // How a context is made. Build it with muiDefaultContextDef.

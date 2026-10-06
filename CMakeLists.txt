@@ -63,6 +63,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/hit.c
     src/inherit.c
     src/layer.c
+    src/pointer.c
     src/layout.c
     src/motion_math.c
     src/node.c
@@ -101,6 +102,7 @@ if(MAUL_UI_BUILD_TESTS)
     maul_add_test(context WHITEBOX)
     maul_add_test(draw)
     maul_add_test(interaction)
+    maul_add_test(pointer)
     maul_add_test(layout)
     maul_add_test(layout_fixtures)
     maul_add_test(motion WHITEBOX)

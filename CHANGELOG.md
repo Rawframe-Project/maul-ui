@@ -10,8 +10,11 @@ format.
 
 ### Changed
 
-- `muiLimits` has one more field, `layers` (64 by default); an
-  initializer that lists its fields by position needs it.
+- `muiLimits` has three more fields, `layers` (64 by default),
+  `pointers` (16, at most 32) and `pointerRecords` (64); an initializer
+  that lists its fields by position needs them.
+- `muiNode_GetStates` returns the hover and press pointer input gives
+  as well as the states the host set.
 - Style values are checked, compared and copied with each group's
   struct found once per group: about 5% fewer instructions over the
   core benchmark.
@@ -40,6 +43,13 @@ format.
   by clips and rounded corners; layers painted after the content they
   are in, outside its clips and opacity, and `muiNode_RaiseLayer`
   (record mui-0007).
+- Pointer input (`maul-ui/pointer.h`): `muiPointerInput` takes the
+  host's pointer events and keeps hover and press as CSS's `:hover` and
+  `:active` do, for several pointers at once; capture, implicit for
+  touch and pen and by `muiPointer_SetCapture`; records of presses,
+  releases, clicks with their counts, cancels, lost captures and
+  captured moves, taken with `muiNextPointerRecord`;
+  `muiPointer_GetState` and `muiSetClickRule` (record mui-0007).
 - Font families (`muiCreateFontFamily`, `muiFontFamily_GetKey`,
   `muiFontFamily_MatchFace`): faces a text style names together, matched
   by width, slant and weight as CSS matches them, with fallbacks of

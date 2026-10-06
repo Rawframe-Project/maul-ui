@@ -12,6 +12,7 @@
 #include "layer_store.h"
 #include "layout_node.h"
 #include "notify.h"
+#include "pointer_store.h"
 #include "style_store.h"
 #include "theme_store.h"
 #include "token_store.h"
@@ -46,6 +47,8 @@ struct muiContext
     muiDrawStore draw;
     // The nodes that root a layer, in paint order.
     muiLayerStore layers;
+    // The pointers known and their records.
+    muiPointerStore pointers;
     // What conditions read of the world outside the tree.
     muiEnvironment environment;
     // How many times the host edited a class, a node type or the

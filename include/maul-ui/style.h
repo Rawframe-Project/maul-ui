@@ -564,7 +564,8 @@ extern "C"
                                                        const muiStyleId* classes, uint32_t count);
 
     /// Sets the states a node is in. The node is styled again at the next
-    /// muiComputeLayout when they change.
+    /// muiComputeLayout when they change. Pointer input's hover and press
+    /// join them, apart: setting states leaves those.
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
@@ -577,7 +578,8 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiNode_SetStates(muiContext* context, muiNodeId nodeId,
                                                       muiState states);
 
-    /// Returns the states a node is in.
+    /// Returns the states a node is in: those the host set, and hover and
+    /// press from pointer input (muiPointerInput).
     ///
     /// @param context  The context.
     /// @param nodeId   The node.

@@ -49,6 +49,34 @@ itself instead of each host repeating them.
   down before the content they are not in; a point a modal layer's
   subtree misses hits the modal layer's root, blocked, with no
   pass-through, and nothing below it.
+- **Pointer input** (`maul-ui/pointer.h`): the host passes its pointer
+  events as `muiPointerEvent`s (time, pointer id, kind, action, button,
+  buttons, point) to `muiPointerInput`, which hit tests and updates the
+  pointer. A node is hovered while a pointer's topmost node is it or a
+  descendant, and pressed while a pointer that pressed it or a
+  descendant holds a button, as CSS's `:hover` and `:active`; a touch
+  hovers only in contact. Per node the library counts the pointers
+  whose hover chain, and press chain, holds it, apart from the host's
+  states; styling and `muiNode_GetStates` see their union, and a count
+  leaving or reaching 0 restyles the node. Inserting, detaching or
+  destroying a subtree a pointer's chain runs through takes that
+  pointer's counts off first and puts them back after.
+- **Capture:** a touch or a pen captures to what it pressed;
+  `muiPointer_SetCapture` captures any pointer holding a button. A
+  captured pointer hovers its target and its records go there, until
+  its last release, a cancel, `muiPointer_ReleaseCapture` or the
+  target's destruction, each with a capture-lost record.
+- **Records** wait in a ring of `limits.pointerRecords`, taken with
+  `muiNextPointerRecord`; a full ring counts what it drops into one
+  record, as notifications do. They report presses, releases, clicks,
+  cancels, lost captures and captured moves, each with its node, the
+  point in its border box, the buttons, the click count and
+  pass-through. A release clicks the capture target, or else the
+  nearest common ancestor of the press's node and the release's, as
+  UI Events does; every button clicks and names itself. The click
+  count grows while presses of one button follow within an interval
+  and distance (500 ms and 2 units unless `muiSetClickRule` says
+  otherwise).
 
 ## Consequences
 
@@ -61,5 +89,7 @@ resolves. A walk visits every node whose subtree the point can reach,
 which is linear in their number; a spatial index may come with
 virtualization if large trees need it. A layer's place is found by
 adding its ancestors' places, linear in its depth, at each build and
-hit test. Pointer state, focus, routing, scrolling and drags build on
-this record as they are added.
+hit test. A hover change touches only the nodes whose counts pass 0;
+a tree edit under a pointer walks that pointer's chain twice. Records
+keep input free of callbacks into the host. Focus, routing, scrolling
+and drags build on this record as they are added.

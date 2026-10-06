@@ -498,10 +498,11 @@ static void Resolve(muiContext* context, uint32_t slot, uint64_t nowNs)
                        muiIntersection(node->direct, carried));
     Classes classes = ClassesOf(store, node);
     ApplyVariant(context, &classes, mui_variantBase, free, &resolution);
+    muiState states = muiStatesOf(node);
     for (uint32_t v = mui_variantChecked; v < mui_variantCondition0; v++)
     {
         // Variant v belongs to state bit v - 1.
-        if ((node->states & (1u << (v - 1))) != 0)
+        if ((states & (1u << (v - 1))) != 0)
         {
             ApplyVariant(context, &classes, (muiVariant)v, free, &resolution);
         }

@@ -9,6 +9,7 @@
 #include "context.h"
 #include "inherit.h"
 #include "layout_node.h"
+#include "pointer.h"
 #include "style_store.h"
 #include "tree.h"
 
@@ -75,7 +76,9 @@ muiResult muiDestroyNode(muiContext* context, muiNodeId nodeId)
     uint32_t slot = muiResolveEdit(context, nodeId, &status);
     if (slot != 0)
     {
+        muiPointersTaken taken = muiPointersOff(context, slot);
         muiTreeDestroy(&context->tree, slot);
+        muiPointersOn(context, taken);
     }
     return status;
 }
@@ -118,7 +121,9 @@ muiResult muiNode_InsertChild(muiContext* context, muiNodeId parentId, muiNodeId
     {
         return muiRefuse(context);
     }
+    muiPointersTaken taken = muiPointersOff(context, child);
     muiTreeInsert(tree, parent, child, before);
+    muiPointersOn(context, taken);
     context->style.nodes[child - 1].edited = true;
     return mui_success;
 }
@@ -133,7 +138,9 @@ muiResult muiNode_Detach(muiContext* context, muiNodeId nodeId)
     uint32_t slot = muiResolveEdit(context, nodeId, &status);
     if (slot != 0)
     {
+        muiPointersTaken taken = muiPointersOff(context, slot);
         muiTreeDetach(&context->tree, slot);
+        muiPointersOn(context, taken);
     }
     return status;
 }
