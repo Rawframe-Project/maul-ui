@@ -208,7 +208,11 @@ static void TestEaseEnds(void)
     Scene scene;
     MakeScene(&scene, true, 5);
     muiContext* context = scene.context;
-    CHECK(Turn(context, scene.root, 0, -1.0f), "down");
+    muiNodeId other = Sized(context, s_nullNode, 10.0f, 10.0f);
+    Layout(context, other, 0);
+    CHECK(Turn(context, scene.root, 0, -1.0f) && muiIsUpdatePending(context, scene.root) &&
+              !muiIsUpdatePending(context, other),
+          "pending under its own root only");
     muiNodeId s = scene.s;
     CHECK(muiNode_Detach(context, s) == mui_success, "out of the tree");
     CHECK(muiDestroyNode(context, s) == mui_success, "gone");
