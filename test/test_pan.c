@@ -317,26 +317,26 @@ static void TestMore(void)
     // A fast move long before the release is out of the window.
     CHECK(Touch(&scene, mui_pointerPress, 1000 * MS, 50.0f) == 0 &&
               Touch(&scene, mui_pointerMove, 1010 * MS, 30.0f) == 1 &&
-              Touch(&scene, mui_pointerMove, 1020 * MS, 10.0f) == 1 &&
-              Touch(&scene, mui_pointerMove, 1300 * MS, 9.0f) == 1 &&
-              Touch(&scene, mui_pointerRelease, 1350 * MS, 9.0f) == 1 &&
-              Y(context, scene.s) == 51.0f,
+              Touch(&scene, mui_pointerMove, 1015 * MS, -10.0f) == 1 &&
+              Touch(&scene, mui_pointerMove, 1300 * MS, -11.0f) == 1 &&
+              Touch(&scene, mui_pointerRelease, 1350 * MS, -11.0f) == 1 &&
+              Y(context, scene.s) == 71.0f,
           "held, then released");
     Layout(context, scene.root, 2000 * MS);
-    CHECK(Y(context, scene.s) == 51.0f, "no fling");
+    CHECK(Y(context, scene.s) == 71.0f, "no fling");
     // Moves at one time give no velocity.
     CHECK(Touch(&scene, mui_pointerPress, 3000 * MS, 50.0f) == 0 &&
               Touch(&scene, mui_pointerMove, 3010 * MS, 30.0f) == 1 &&
               Touch(&scene, mui_pointerRelease, 3010 * MS, 30.0f) == 1,
           "at once");
     Layout(context, scene.root, 3500 * MS);
-    CHECK(Y(context, scene.s) == 71.0f, "no fling at once");
+    CHECK(Y(context, scene.s) == 91.0f, "no fling at once");
     // Flung up past the top: stopped at 0, done.
     CHECK(Touch(&scene, mui_pointerPress, 4000 * MS, 20.0f) == 0 &&
               Touch(&scene, mui_pointerMove, 4010 * MS, 30.0f) == 1 &&
               Touch(&scene, mui_pointerMove, 4020 * MS, 50.0f) == 1 &&
               Touch(&scene, mui_pointerRelease, 4030 * MS, 50.0f) == 1 &&
-              Y(context, scene.s) == 41.0f,
+              Y(context, scene.s) == 61.0f,
           "a flick up");
     Layout(context, scene.root, 4330 * MS);
     CHECK(Y(context, scene.s) == 0.0f && !muiIsUpdatePending(context, scene.root),
@@ -454,6 +454,86 @@ static void TestTables(void)
     muiDestroyContext(context);
 }
 
+static void TestAcrossFling(void)
+{
+    // A row right to left, 100 wide, its content 400: a flick right goes
+    // on toward the end, and stops there; a flick left back to 0.
+    muiContextDef def = muiDefaultContextDef();
+    Scene scene = {0};
+    CHECK(muiCreateContext(&def, &scene.context) == mui_success, "context");
+    muiContext* context = scene.context;
+    scene.root = Sized(context, s_nullNode, 300.0f, 300.0f);
+    scene.s = Sized(context, scene.root, 100.0f, 50.0f);
+    Scrolls(context, scene.s, mui_scrollHorizontal, false, mui_textRightToLeft);
+    (void)Sized(context, scene.s, 400.0f, 50.0f);
+    Layout(context, scene.root, 0);
+    CHECK(Feed(&scene, 3, mui_pointerTouch, mui_pointerPress, 0, 10.0f, 25.0f) == 0 &&
+              Feed(&scene, 3, mui_pointerTouch, mui_pointerMove, 100 * MS, 40.0f, 25.0f) == 1 &&
+              Feed(&scene, 3, mui_pointerTouch, mui_pointerMove, 110 * MS, 80.0f, 25.0f) == 1 &&
+              Feed(&scene, 3, mui_pointerTouch, mui_pointerRelease, 120 * MS, 80.0f, 25.0f) == 1 &&
+              X(context, scene.s) == 70.0f,
+          "a flick right");
+    Layout(context, scene.root, 420 * MS);
+    Layout(context, scene.root, 421 * MS);
+    CHECK(X(context, scene.s) == 300.0f && !muiIsUpdatePending(context, scene.root),
+          "at the end, done");
+    CHECK(Feed(&scene, 3, mui_pointerTouch, mui_pointerPress, 1000 * MS, 90.0f, 25.0f) == 0 &&
+              Feed(&scene, 3, mui_pointerTouch, mui_pointerMove, 1010 * MS, 60.0f, 25.0f) == 1 &&
+              Feed(&scene, 3, mui_pointerTouch, mui_pointerMove, 1020 * MS, 0.0f, 25.0f) == 1 &&
+              Feed(&scene, 3, mui_pointerTouch, mui_pointerRelease, 1030 * MS, 0.0f, 25.0f) == 1 &&
+              X(context, scene.s) == 210.0f,
+          "a flick left");
+    Layout(context, scene.root, 2000 * MS);
+    CHECK(X(context, scene.s) == 0.0f, "at the start");
+    muiDestroyContext(context);
+}
+
+static void TestSlowEnd(void)
+{
+    // A fling of 1000 in a long list stops by slowing, short of a limit.
+    Scene scene;
+    MakeScene(&scene, 100);
+    muiContext* context = scene.context;
+    CHECK(Touch(&scene, mui_pointerPress, 0, 50.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 10 * MS, 40.0f) == 1 &&
+              Touch(&scene, mui_pointerMove, 20 * MS, 20.0f) == 1 &&
+              Touch(&scene, mui_pointerRelease, 30 * MS, 20.0f) == 1,
+          "a flick");
+    Layout(context, scene.root, 6000 * MS);
+    Layout(context, scene.root, 6001 * MS);
+    CHECK(Y(context, scene.s) > 500.0f && Y(context, scene.s) < 530.0f &&
+              !muiIsUpdatePending(context, scene.root),
+          "slowed to a stop");
+    muiDestroyContext(context);
+}
+
+static void TestPurge(void)
+{
+    // Lists destroyed mid-pan, each beside s at 200 in the row, leave their
+    // pans; the next pan clears them.
+    Scene scene;
+    MakeScene(&scene, 10);
+    muiContext* context = scene.context;
+    for (uint32_t i = 0; i < 4; i++)
+    {
+        muiNodeId list = Sized(context, scene.root, 200.0f, 100.0f);
+        Scrolls(context, list, mui_scrollVertical, true, mui_textInherit);
+        (void)Sized(context, list, 200.0f, 300.0f);
+        Layout(context, scene.root, 0);
+        CHECK(Feed(&scene, 50 + i, mui_pointerTouch, mui_pointerPress, 0, 250.0f, 50.0f) == 0 &&
+                  Feed(&scene, 50 + i, mui_pointerTouch, mui_pointerMove, 10 * MS, 250.0f, 30.0f) ==
+                      1,
+              "a pan");
+        CHECK(muiDestroyNode(context, list) == mui_success, "gone mid-pan");
+        (void)Feed(&scene, 50 + i, mui_pointerTouch, mui_pointerRelease, 20 * MS, 250.0f, 30.0f);
+    }
+    Layout(context, scene.root, 0);
+    CHECK(Touch(&scene, mui_pointerPress, 100 * MS, 50.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 110 * MS, 30.0f) == 1 && Y(context, scene.s) == 20.0f,
+          "still pans");
+    muiDestroyContext(context);
+}
+
 static void TestRule(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -482,6 +562,9 @@ int main(void)
     TestMore();
     TestMouseDrags();
     TestTables();
+    TestAcrossFling();
+    TestSlowEnd();
+    TestPurge();
     TestRule();
     return s_failures == 0 ? 0 : 1;
 }
