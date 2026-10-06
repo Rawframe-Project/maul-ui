@@ -12,6 +12,7 @@
 
 #include "maul-ui/virtual.h"
 
+#include <math.h>
 #include <string.h>
 
 muiResult muiNode_GetItem(const muiContext* context, muiNodeId nodeId, uint32_t* indexOut)
@@ -67,8 +68,9 @@ static bool Resize(muiContext* context, uint32_t slot, muiVirtualEntry** entryIn
     {
         return false;
     }
-    uint32_t kept = entry->list.count < count ? entry->list.count : count;
-    memmove(store->sizes + base, store->sizes + entry->base, (size_t)kept * sizeof(float));
+    // It only grows: all its extents move.
+    memmove(store->sizes + base, store->sizes + entry->base,
+            (size_t)entry->list.count * sizeof(float));
     entry->base = base;
     return true;
 }
@@ -83,8 +85,9 @@ static void Rebind(muiContext* context, uint32_t slot, uint32_t first, uint32_t 
     for (uint32_t c = muiTreeAt(tree, slot)->links.firstChild; c != 0;
          c = muiTreeAt(tree, c)->links.next)
     {
+        // A removed item's index lies past every range.
         uint32_t item = items[c - 1];
-        if (item == 0 || item == MUI_ITEM_REMOVED)
+        if (item == 0)
         {
             continue;
         }
@@ -186,15 +189,10 @@ muiResult muiNode_RemoveVirtualItems(muiContext* context, muiNodeId nodeId, uint
         muiVirtualBuild(store, entry);
     }
     Rebind(context, slot, index + count, total, -(int64_t)count, index, index + count);
-    // Wholly above the viewport, the offset goes back by all of them;
-    // across its start, back to where they began.
-    if (after <= viewStart)
+    // The offset goes back by what was removed above the viewport's start.
+    if (before < viewStart)
     {
-        muiVirtualShift(context, slot, entry, before - after);
-    }
-    else if (before < viewStart)
-    {
-        muiVirtualShift(context, slot, entry, before - viewStart);
+        muiVirtualShift(context, slot, entry, before - fmin(after, viewStart));
     }
     muiTreeMarkLayout(&context->tree, slot);
     return mui_success;

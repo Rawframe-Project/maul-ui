@@ -627,6 +627,100 @@ static void TestEditContract(void)
     muiDestroyContext(context);
 }
 
+static void TestEditEdges(void)
+{
+    Scene scene;
+    muiVirtualList list = ListOf(1000, 40.0f, false, 0.0f, 0.0f);
+    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    muiContext* context = scene.context;
+    Layout(context, scene.root);
+    CHECK(muiNode_SetScroll(context, scene.list, 0.0f, 400.0f) == mui_success, "scrolled");
+    muiNodeId items[3];
+    Realize(&scene, 10, 13, -1.0f, 40.0f, items);
+    Layout(context, scene.root);
+    Layout(context, scene.root);
+    CHECK(!muiIsUpdatePending(context, scene.root), "settled");
+    CHECK(muiNode_InsertVirtualItems(context, scene.list, 900, 1) == mui_success &&
+              muiIsUpdatePending(context, scene.root),
+          "an edit asks for a layout");
+    Layout(context, scene.root);
+    // Inserted at the item shown first: no shift, the new items shown, the
+    // item and its node after them.
+    CHECK(muiNode_InsertVirtualItems(context, scene.list, 10, 2) == mui_success &&
+              ScrollY(context, scene.list) == 400.0f && ItemIs(context, items[0], 12),
+          "inserted at the viewport's start");
+    // Not below 0: an item moved out from above an offset of 20.
+    CHECK(muiNode_SetScroll(context, scene.list, 0.0f, 20.0f) == mui_success &&
+              muiNode_MoveVirtualItem(context, scene.list, 0, 500) == mui_success &&
+              ScrollY(context, scene.list) == 0.0f,
+          "not below 0");
+    muiDestroyContext(context);
+    // Room taken back from a destroyed list for an insertion.
+    muiContextDef def = muiDefaultContextDef();
+    def.limits.virtualItems = 30;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    muiNodeId a = Node(context, s_nullNode);
+    muiNodeId b = Node(context, s_nullNode);
+    muiNodeId c = Node(context, s_nullNode);
+    list.count = 10;
+    CHECK(muiNode_SetVirtualList(context, a, &list) == mui_success &&
+              muiNode_SetVirtualList(context, b, &list) == mui_success,
+          "a and b");
+    list.count = 5;
+    CHECK(muiNode_SetVirtualList(context, c, &list) == mui_success &&
+              muiDestroyNode(context, b) == mui_success &&
+              muiNode_InsertVirtualItems(context, a, 10, 10) == mui_success,
+          "a grows into b's room");
+    muiDestroyContext(context);
+}
+
+static void TestAnchorEdges(void)
+{
+    // Items 9 to 11 bound, 9 ending where the viewport starts.
+    Scene scene;
+    muiVirtualList list = ListOf(1000, 40.0f, false, 0.0f, 0.0f);
+    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    muiContext* context = scene.context;
+    Layout(context, scene.root);
+    CHECK(muiNode_SetScroll(context, scene.list, 0.0f, 400.0f) == mui_success, "scrolled");
+    muiNodeId items[3];
+    Realize(&scene, 9, 12, -1.0f, 40.0f, items);
+    Layout(context, scene.root);
+    // Reloaded, the three bound far apart: item 10 was shown first.
+    list.count = 2000;
+    CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success &&
+              muiNode_SetItem(context, items[0], 100) == mui_success &&
+              muiNode_SetItem(context, items[1], 700) == mui_success &&
+              muiNode_SetItem(context, items[2], 1500) == mui_success,
+          "reloaded");
+    Layout(context, scene.root);
+    CHECK(ScrollY(context, scene.list) == 28000.0f, "item 10's node, now 700, where it was");
+    // Once only: scrolled away, it stays away.
+    CHECK(muiNode_SetScroll(context, scene.list, 0.0f, 1000.0f) == mui_success, "away");
+    Layout(context, scene.root);
+    CHECK(ScrollY(context, scene.list) == 1000.0f, "not pulled back");
+    // Its node bound past the new count: no anchor; layout clamps.
+    CHECK(muiNode_SetScroll(context, scene.list, 0.0f, 28000.0f) == mui_success, "back");
+    Layout(context, scene.root);
+    list.count = 100;
+    CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success, "fewer");
+    Layout(context, scene.root);
+    Layout(context, scene.root);
+    CHECK(ScrollY(context, scene.list) == 3900.0f, "clamped to the end");
+    muiDestroyContext(context);
+    // Set anew before any layout: nothing to keep.
+    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    context = scene.context;
+    muiNodeId node = Node(context, scene.list);
+    CHECK(muiNode_SetItem(context, node, 5) == mui_success &&
+              muiNode_SetVirtualList(context, scene.list, &list) == mui_success &&
+              muiNode_SetItem(context, node, 50) == mui_success,
+          "set anew unshown");
+    Layout(context, scene.root);
+    CHECK(ScrollY(context, scene.list) == 0.0f, "no anchor");
+    muiDestroyContext(context);
+}
+
 static void TestContract(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -729,6 +823,8 @@ int main(void)
     TestEdits();
     TestAnchoring();
     TestEditContract();
+    TestEditEdges();
+    TestAnchorEdges();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }
