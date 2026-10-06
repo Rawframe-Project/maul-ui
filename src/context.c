@@ -69,6 +69,7 @@ typedef struct Parts
     size_t visual;
     size_t text;
     size_t textRecords;
+    size_t interaction;
     size_t nodeStyles;
     size_t classSlots;
     size_t classes;
@@ -121,6 +122,7 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
         .visual = muiLayoutAdd(layout, limits->nodes, sizeof(muiVisualStyle), CACHE_LINE),
         .text = muiLayoutAdd(layout, limits->nodes, sizeof(muiTextStyle), CACHE_LINE),
         .textRecords = muiLayoutAdd(layout, limits->nodes, sizeof(muiTextRecord), CACHE_LINE),
+        .interaction = muiLayoutAdd(layout, limits->nodes, sizeof(muiInteractionStyle), CACHE_LINE),
         .nodeStyles = muiLayoutAdd(layout, limits->nodes, sizeof(muiNodeStyle), CACHE_LINE),
         .classSlots = muiLayoutAdd(layout, limits->styles, sizeof(muiPoolSlot), CACHE_LINE),
         .classes = muiLayoutAdd(layout, limits->styles, sizeof(muiStyleClass), CACHE_LINE),
@@ -168,6 +170,7 @@ static void Place(muiContext* context, unsigned char* base, const Parts* parts,
     context->visual = (muiVisualStyle*)(base + parts->visual);
     context->text = (muiTextStyle*)(base + parts->text);
     context->textRecords = (muiTextRecord*)(base + parts->textRecords);
+    context->interaction = (muiInteractionStyle*)(base + parts->interaction);
     context->environment = muiDefaultEnvironment();
     muiStyleStore* style = &context->style;
     style->nodes = (muiNodeStyle*)(base + parts->nodeStyles);

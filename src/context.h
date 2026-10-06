@@ -33,6 +33,8 @@ struct muiContext
     // to with its parent's, parallel to the tree's slots.
     muiTextStyle* text;
     muiTextRecord* textRecords;
+    // A node's resolved interaction values.
+    muiInteractionStyle* interaction;
     // Whether a class, a token name or a direct write has ever given a
     // text property: until then every node's text is the defaults, and
     // the style pass leaves the records alone.

@@ -22,6 +22,7 @@ theme: context pool property restyle style_edit style_store theme_store token_st
 paint: color context draw_store layout_node
 paint_host: context draw_store layout_node paint tree
 draw: context draw_store paint paint_host tree
+hit: context layout_node paint tree
 notify:
 style_store: pool property
 sizing:

@@ -99,6 +99,11 @@ static muiCorners Radii(const muiCornerRadii* radii, muiRect rect, bool rtl)
                : (muiCorners){topStart, topEnd, bottomEnd, bottomStart};
 }
 
+muiCorners muiCornersOf(const muiCornerRadii* radii, muiRect rect, bool rtl)
+{
+    return Radii(radii, rect, rtl);
+}
+
 muiDrawCommand* muiTakeCommand(muiPainter* painter, muiDrawKind kind, uint32_t clip)
 {
     muiDrawTables* out = painter->out;

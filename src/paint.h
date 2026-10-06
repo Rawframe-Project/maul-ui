@@ -50,6 +50,10 @@ typedef struct muiPainter
 // A color in linear light, premultiplied, times opacity.
 muiLinearColor muiPaintColor(muiPainter* painter, muiColor color, float opacity);
 
+// A rounded box's corner radii: its radius properties, Scale+Offset of
+// its shorter side and at most half of it, mirrored right to left.
+muiCorners muiCornersOf(const muiCornerRadii* radii, muiRect rect, bool rtl);
+
 // An edge at the nearest device pixel.
 float muiSnapEdge(float value, float scale);
 

@@ -432,18 +432,20 @@ static void TestDirectWritesWinUntilReset(void)
           "unknown property reset");
     CHECK(muiNode_ResetProperties(context, s_nullNode, mui_groupLayout, WIDTH) == mui_errorInvalid,
           "null reset");
-    // Groups past the last, and one with no properties yet.
+    // Groups past the last, and a bit past the interaction group's.
+    const muiPropertyMask pastInteraction = MUI_PROPERTY_BIT(mui_propertyPassThrough + 1);
     CHECK(muiNode_ResetProperties(context, node, 4, WIDTH) == mui_errorInvalid &&
-              muiNode_ResetProperties(context, node, 3, WIDTH) == mui_errorInvalid &&
-              muiNode_ResetProperties(context, node, 3, 0) == mui_success,
+              muiNode_ResetProperties(context, node, mui_groupInteraction, pastInteraction) ==
+                  mui_errorInvalid &&
+              muiNode_ResetProperties(context, node, mui_groupInteraction, 0) == mui_success,
           "a group with no such property");
     CHECK(muiNode_GetDirectProperties(context, node, 4) == 0, "no group past the last");
     muiStyleId group = s_nullStyle;
     CHECK(muiCreateStyle(context, &group) == mui_success &&
               muiStyle_ResetProperties(context, group, mui_variantBase, 4, WIDTH) ==
                   mui_errorInvalid &&
-              muiStyle_ResetProperties(context, group, mui_variantBase, 3, WIDTH) ==
-                  mui_errorInvalid &&
+              muiStyle_ResetProperties(context, group, mui_variantBase, mui_groupInteraction,
+                                       pastInteraction) == mui_errorInvalid &&
               muiStyle_ResetProperties(context, group, mui_variantBase, mui_groupVisual,
                                        MUI_PROPERTY_BIT(mui_propertyClip + 1)) ==
                   mui_errorInvalid &&

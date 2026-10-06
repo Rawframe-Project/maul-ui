@@ -10,6 +10,9 @@ format.
 
 ### Changed
 
+- Style values are checked, compared and copied with each group's
+  struct found once per group: about 5% fewer instructions over the
+  core benchmark.
 - `muiDrawInput` has two more fields, `paint` and `paintUser`; an
   initializer that lists its fields by position needs them.
 - `muiLayoutInput` has one more field, `baseline`; an initializer that
@@ -27,6 +30,11 @@ format.
 
 ### Added
 
+- Interaction properties (`maul-ui/interaction.h`): a fourth property
+  group with a hit mode (the node and its children, its children alone,
+  or neither) and a pass-through flag, styled through classes and
+  states, and `muiHitTest`, the topmost node at a point in reverse
+  paint order, cut by clips and rounded corners (record mui-0007).
 - Font families (`muiCreateFontFamily`, `muiFontFamily_GetKey`,
   `muiFontFamily_MatchFace`): faces a text style names together, matched
   by width, slant and weight as CSS matches them, with fallbacks of
