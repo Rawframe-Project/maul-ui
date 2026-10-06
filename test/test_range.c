@@ -402,6 +402,14 @@ static void TestEdges(void)
     CHECK(Dispatch(&scene) == 2 && Value(context, scene.slider) == 50.0f, "no thumb itself");
     Mouse(&scene, mui_pointerRelease, 0, 110.0f);
     (void)Dispatch(&scene);
+    // Without a thumb, a press pages toward the value's place: at 50 it
+    // lies at 110.
+    range.thumb = s_nullNode;
+    range.value = 50.0f;
+    CHECK(muiNode_SetValueRange(context, scene.slider, &range) == mui_success, "no thumb");
+    Mouse(&scene, mui_pointerPress, 1, 80.0f);
+    Mouse(&scene, mui_pointerRelease, 0, 80.0f);
+    CHECK(Dispatch(&scene) == 1 && Value(context, scene.slider) == 40.0f, "left of the value");
     // A thumb as long as the track: a drag leaves the value.
     range.thumb = scene.thumb;
     range.value = 30.0f;
@@ -428,6 +436,17 @@ static void TestEdges(void)
                                       MUI_PROPERTY_BIT(mui_propertyPaddingEnd)) == mui_success,
           "padding");
     Layout(context, scene.root);
+    // Right to left without a thumb, 20 lies at 154 (from 190, a fifth
+    // of 180 leftward): a press at 100 is past it, up.
+    muiValueRange plain = muiDefaultValueRange();
+    plain.value = 20.0f;
+    CHECK(muiNode_SetValueRange(context, scene.slider, &plain) == mui_success, "plain");
+    Mouse(&scene, mui_pointerPress, 1, 100.0f);
+    Mouse(&scene, mui_pointerRelease, 0, 100.0f);
+    CHECK(Dispatch(&scene) == 1 && Value(context, scene.slider) == 30.0f, "leftward is up");
+    range.thumb = scene.thumb;
+    range.value = 0.0f;
+    CHECK(muiNode_SetValueRange(context, scene.slider, &range) == mui_success, "thumb again");
     Mouse(&scene, mui_pointerPress, 1, 50.0f);
     Mouse(&scene, mui_pointerMove, 1, 100.0f);
     CHECK(Dispatch(&scene) == 2 && Value(context, scene.slider) == 50.0f,
