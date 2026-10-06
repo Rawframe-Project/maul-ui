@@ -306,7 +306,9 @@ extern "C"
 
     // Returns the content-box size of a node's host content. It runs inside
     // muiComputeLayout, on the calling thread, and may not change the
-    // context; a call that would is refused as misuse.
+    // context; a call that would is refused as misuse. It is never asked
+    // with both axes exact, as the size is then decided: a host lays its
+    // content out for painting at the node's rectangle.
     typedef muiSize (*muiMeasureFunction)(void* user, muiNodeId nodeId, uint64_t hostKey,
                                           muiMeasureAxis width, muiMeasureAxis height);
 

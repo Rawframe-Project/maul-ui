@@ -101,7 +101,10 @@ static muiSize SizeLeaf(const muiSolver* solver, uint32_t node, const muiSizingI
     float boxWidth = muiBoxSum(style, true);
     float boxHeight = muiBoxSum(style, false);
     muiSize content = {0.0f, 0.0f};
-    if (style->content == mui_contentHost && solver->measure != nullptr)
+    // Both sizes exact decide the size, as the final pass always gives
+    // them: the host is not asked.
+    bool decided = input->width.mode == mui_measureExact && input->height.mode == mui_measureExact;
+    if (style->content == mui_contentHost && solver->measure != nullptr && !decided)
     {
         muiNodeId id = muiTreeIdOf(solver->tree, node);
         uint64_t hostKey = muiTreeAt(solver->tree, node)->hostKey;

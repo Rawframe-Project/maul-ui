@@ -28,6 +28,9 @@ format.
   initializer that lists its fields by position needs them.
 - `muiLayoutInput` has one more field, `baseline`; an initializer that
   lists its fields by position needs it.
+- The measure function is never asked with both axes exact, as the
+  final pass always gave: the size is then decided. A list of 100,000
+  rebound rows asks a half to a third fewer times (record mui-0003).
 - A context's parts start on 64-byte cache lines, so drawing no longer
   slows by up to 30% when an unrelated part of the context changes
   size; a context takes up to about 2 KB more.

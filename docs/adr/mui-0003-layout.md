@@ -88,8 +88,10 @@ tree that did not change.
   changes; a cached size also answers a constraint it provably answers
   the same (an exact size equal to an unshrunk result, a max-content
   result that fits, a smaller space the result fits). A query with both
-  sizes exact needs no computation, and an item's automatic minimum is
-  computed only when its line shrinks.
+  sizes exact needs no computation, and host content is never measured
+  for one, the final placement included: a host lays its content out
+  at the node's rectangle. An item's automatic minimum is computed only
+  when its line shrinks.
 - **No work for unchanged subtrees.** Before a run, the solver forgets
   what it cached for the nodes on a path to a change, and only those. A
   node whose subtree is unchanged and whose size is the same keeps its

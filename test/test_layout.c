@@ -21,6 +21,7 @@ typedef struct Host
     muiContext* context;
     muiSize content;
     int measured;
+    int decided;
     bool tryEdit;
     muiResult editStatus;
 } Host;
@@ -29,10 +30,9 @@ static muiSize Measure(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasur
                        muiMeasureAxis height)
 {
     (void)hostKey;
-    (void)width;
-    (void)height;
     Host* host = user;
     host->measured++;
+    host->decided += width.mode == mui_measureExact && height.mode == mui_measureExact;
     if (host->tryEdit)
     {
         muiLayoutStyle style = muiDefaultLayoutStyle();
@@ -214,6 +214,34 @@ static void TestUnchangedTreeIsNotMeasuredAgain(void)
     CHECK(host.measured > 0, "changed content is measured");
     CHECK(muiNode_GetRect(context, text).width == 50.0f, "new size");
     CHECK(muiNode_GetRect(context, root).width == 50.0f, "the root fits it");
+    muiDestroyContext(context);
+}
+
+static void TestDecidedSizesAreNotMeasured(void)
+{
+    // A row of text beside a leaf of 40 by 20: the text stretches to 20.
+    // Its sizes are asked for, but no query with both exact, as the final
+    // pass gives: the host lays out at the rectangle.
+    muiContext* context = MakeContext();
+    Host host = {.context = context, .content = {30.0f, 12.0f}};
+    muiNodeId root = MakeNode(context, NULL);
+    muiLayoutStyle leaf = muiDefaultLayoutStyle();
+    leaf.content = mui_contentHost;
+    muiNodeId text = MakeNode(context, &leaf);
+    leaf.sizing.width = Length(40.0f);
+    leaf.sizing.height = Length(20.0f);
+    muiNodeId sized = MakeNode(context, &leaf);
+    CHECK(muiNode_InsertChild(context, root, text, s_null) == mui_success &&
+              muiNode_InsertChild(context, root, sized, s_null) == mui_success,
+          "insert");
+    muiLayoutInput input = Input(&host);
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(host.measured > 0 && host.decided == 0, "nothing decided asked");
+    muiRect rect = muiNode_GetRect(context, text);
+    muiRect fixed = muiNode_GetRect(context, sized);
+    CHECK(rect.width == 30.0f && rect.height == 20.0f && fixed.width == 40.0f &&
+              fixed.height == 20.0f,
+          "sizes");
     muiDestroyContext(context);
 }
 
@@ -412,6 +440,7 @@ int main(void)
     TestComputeRefusesNonRootsAndBadSpace();
     TestEditsFromMeasureAreRefused();
     TestUnchangedTreeIsNotMeasuredAgain();
+    TestDecidedSizesAreNotMeasured();
     TestStyleChangeRelaysTheParent();
     TestNewSpaceRelaysAnUnchangedTree();
     TestScaledLimitFollowsTheParent();
