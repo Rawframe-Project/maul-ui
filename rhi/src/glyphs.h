@@ -43,10 +43,12 @@ typedef struct muiRhiGlyphs
     // The pages in the open frame.
     mrhiResourceId resources[MUI_RHI_MAX_PAGES];
     uint32_t pageCount;
-    // The atlas's changed rectangles this frame, its muiAtlasUpdate
-    // records.
+    // The atlas's changed rectangles not yet written, its muiAtlasUpdate
+    // records, the first writtenCount of them the last frame's own, kept
+    // until the next frame in case that frame is forgotten.
     void* updates;
     uint32_t updateCount;
+    uint32_t writtenCount;
     uint32_t updateCapacity;
 } muiRhiGlyphs;
 
@@ -73,11 +75,22 @@ bool muiRhiGetGlyphField(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float
                          uint32_t spread, muiRhiGlyph* glyphOut);
 
 // After a frame's glyphs are got: textures for pages the atlas made, its
-// changed rectangles taken, and every page imported into the open frame.
+// changed rectangles taken after those pending, and every page imported
+// into the open frame.
 muiResult muiRhiPrepareGlyphs(muiRhiGlyphs* glyphs);
 
 // The page a frame's changed rectangle writes, below the page count.
 uint32_t muiRhiUpdatedPage(const muiRhiGlyphs* glyphs, uint32_t update);
+
+// The bytes the pending rectangles take of a frame's uploads.
+uint64_t muiRhiGlyphUploadBytes(const muiRhiGlyphs* glyphs);
+
+// After a frame writes them: the pending rectangles are written, and
+// dropped when the next frame is prepared.
+void muiRhiGlyphsWritten(muiRhiGlyphs* glyphs);
+
+// The last frame's rectangles pending again, as after a frame dropped.
+void muiRhiForgetGlyphs(muiRhiGlyphs* glyphs);
 
 // Writes the changed rectangles in a pass that declares their pages as
 // copy destinations.

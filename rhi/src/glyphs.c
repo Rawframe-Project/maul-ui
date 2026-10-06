@@ -7,11 +7,13 @@
 #include "glyphs.h"
 
 #include "allocator.h"
+#include "streams.h"
 
 #include "maul-rhi/encoder.h"
 #include "maul-rhi/resources.h"
 
 #include <stdalign.h>
+#include <string.h>
 
 #if MUI_RHI_TEXT
 
@@ -108,37 +110,63 @@ static muiResult MakePages(muiRhiGlyphs* glyphs)
     return mui_success;
 }
 
-// The atlas's changed rectangles, the array grown to hold them.
+// Room for a number of changed rectangles, those pending kept.
+static bool Reserve(muiRhiGlyphs* glyphs, uint32_t needed)
+{
+    if (needed <= glyphs->updateCapacity)
+    {
+        return true;
+    }
+    uint32_t capacity = glyphs->updateCapacity == 0 ? 64 : glyphs->updateCapacity;
+    while (capacity < needed)
+    {
+        capacity *= 2;
+    }
+    muiAtlasUpdate* updates = muiRhiAllocate(
+        &glyphs->allocator, (size_t)capacity * sizeof(muiAtlasUpdate), alignof(muiAtlasUpdate));
+    if (updates == nullptr)
+    {
+        return false;
+    }
+    if (glyphs->updateCount > 0)
+    {
+        memcpy(updates, glyphs->updates, (size_t)glyphs->updateCount * sizeof(muiAtlasUpdate));
+    }
+    muiRhiRelease(&glyphs->allocator, glyphs->updates,
+                  (size_t)glyphs->updateCapacity * sizeof(muiAtlasUpdate), alignof(muiAtlasUpdate));
+    glyphs->updates = updates;
+    glyphs->updateCapacity = capacity;
+    return true;
+}
+
+// The atlas's changed rectangles after those pending, the ones the last
+// frame wrote dropped first.
 static muiResult TakeUpdates(muiRhiGlyphs* glyphs)
 {
-    uint32_t count = 0;
-    while (muiGlyphAtlas_TakeUpdates(glyphs->atlas, glyphs->updates, glyphs->updateCapacity,
-                                     &count) == mui_errorCapacity)
+    muiAtlasUpdate* updates = glyphs->updates;
+    uint32_t pending = glyphs->updateCount - glyphs->writtenCount;
+    if (glyphs->writtenCount > 0 && pending > 0)
     {
-        uint32_t capacity = glyphs->updateCapacity == 0 ? 64 : glyphs->updateCapacity;
-        while (capacity < count)
-        {
-            capacity *= 2;
-        }
-        muiAtlasUpdate* updates = muiRhiAllocate(
-            &glyphs->allocator, (size_t)capacity * sizeof(muiAtlasUpdate), alignof(muiAtlasUpdate));
-        if (updates == nullptr)
+        memmove(updates, updates + glyphs->writtenCount, (size_t)pending * sizeof(muiAtlasUpdate));
+    }
+    glyphs->updateCount = pending;
+    glyphs->writtenCount = 0;
+    uint32_t count = 0;
+    while (muiGlyphAtlas_TakeUpdates(
+               glyphs->atlas, (muiAtlasUpdate*)glyphs->updates + glyphs->updateCount,
+               glyphs->updateCapacity - glyphs->updateCount, &count) == mui_errorCapacity)
+    {
+        if (!Reserve(glyphs, glyphs->updateCount + count))
         {
             return mui_errorCapacity;
         }
-        muiRhiRelease(&glyphs->allocator, glyphs->updates,
-                      (size_t)glyphs->updateCapacity * sizeof(muiAtlasUpdate),
-                      alignof(muiAtlasUpdate));
-        glyphs->updates = updates;
-        glyphs->updateCapacity = capacity;
     }
-    glyphs->updateCount = count;
+    glyphs->updateCount += count;
     return mui_success;
 }
 
 muiResult muiRhiPrepareGlyphs(muiRhiGlyphs* glyphs)
 {
-    glyphs->updateCount = 0;
     if (glyphs->atlas == nullptr)
     {
         return mui_success;
@@ -154,6 +182,29 @@ muiResult muiRhiPrepareGlyphs(muiRhiGlyphs* glyphs)
         }
     }
     return status;
+}
+
+uint64_t muiRhiGlyphUploadBytes(const muiRhiGlyphs* glyphs)
+{
+    uint64_t bytes = 0;
+    for (uint32_t i = 0; i < glyphs->updateCount; i++)
+    {
+        const muiAtlasUpdate* update = &((const muiAtlasUpdate*)glyphs->updates)[i];
+        // Rows at a 256-byte pitch, the whole at an upload block.
+        uint64_t rows = (uint64_t)update->height * ((update->width + 255u) / 256u * 256u);
+        bytes += (rows + MUI_RHI_UPLOAD_BLOCK - 1) / MUI_RHI_UPLOAD_BLOCK * MUI_RHI_UPLOAD_BLOCK;
+    }
+    return bytes;
+}
+
+void muiRhiGlyphsWritten(muiRhiGlyphs* glyphs)
+{
+    glyphs->writtenCount = glyphs->updateCount;
+}
+
+void muiRhiForgetGlyphs(muiRhiGlyphs* glyphs)
+{
+    glyphs->writtenCount = 0;
 }
 
 uint32_t muiRhiUpdatedPage(const muiRhiGlyphs* glyphs, uint32_t update)
@@ -234,8 +285,24 @@ bool muiRhiGetGlyphField(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float
 
 muiResult muiRhiPrepareGlyphs(muiRhiGlyphs* glyphs)
 {
-    glyphs->updateCount = 0;
+    (void)glyphs;
     return mui_success;
+}
+
+uint64_t muiRhiGlyphUploadBytes(const muiRhiGlyphs* glyphs)
+{
+    (void)glyphs;
+    return 0;
+}
+
+void muiRhiGlyphsWritten(muiRhiGlyphs* glyphs)
+{
+    (void)glyphs;
+}
+
+void muiRhiForgetGlyphs(muiRhiGlyphs* glyphs)
+{
+    (void)glyphs;
 }
 
 uint32_t muiRhiUpdatedPage(const muiRhiGlyphs* glyphs, uint32_t update)

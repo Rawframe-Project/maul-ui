@@ -64,7 +64,12 @@ format.
   of the renderer's own over the text service its def names, drawn as
   coverage at device pixels where their transform only moves them, and
   from distance fields where it scales or turns them. What lies wholly
-  outside its clips or the target is culled as the list is packed.
+  outside its clips or the target is culled as the list is packed. A
+  frame uploads only the records that changed since the last; one whose
+  uploads would not fit the def's `uploadBytes` (the device's
+  `frameUploadBytes`) is refused with `mui_errorCapacity`, nothing
+  added, and `muiRhiRenderer_Forget` makes the next frame upload all
+  after the host drops a recorded frame.
 - Interaction properties (`maul-ui/interaction.h`): a fourth property
   group with a hit mode (the node and its children, its children alone,
   or neither), a pass-through flag and a layer kind (an activation

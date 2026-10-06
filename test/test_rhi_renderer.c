@@ -7,7 +7,9 @@
 // not; a frame's upload and draw passes, the upload a record of 144
 // bytes a box, shadow or image and nothing for the kinds it does not
 // draw yet, and the gradient, transform and clip tables beside them; the
-// instance buffer grown for a long list; an empty list; images, the
+// instance buffer grown for a long list; an empty list; a frame
+// uploading only the records that changed, everything after it is
+// forgotten, and a frame past the upload budget refused; images, the
 // host asked once a key a frame, a key it has no image for not drawn,
 // and a draw a texture, keys of one texture drawn together; glyphs, their
 // texels uploaded the frame they are packed and not again.
@@ -228,9 +230,10 @@ static void TestDraws(void)
         many[i] = Box((float)(i % 60), (float)(i / 60));
     }
     muiDrawList longList = ListOf(many, many != NULL ? 3000 : 0);
+    // The buffer made anew holds nothing; the tables did not change.
     CHECK(many != NULL && DrawFrame(&gpu, renderer, &longList) == mui_success &&
-              s_log.stagingBytes == Staged(3000),
-          "the buffer grown for 3000 boxes");
+              s_log.stagingBytes == Blocks(3000 * 144),
+          "the buffer grown for 3000 boxes, uploaded whole");
     free(many);
     muiDrawList none = ListOf(NULL, 0);
     CHECK(DrawFrame(&gpu, renderer, &none) == mui_success && s_log.passes == 3 &&
@@ -354,8 +357,34 @@ static void TestGlyphs(void)
     list.glyphCount = 2;
     CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes > Staged(2),
           "the glyphs' texels uploaded with their instances");
-    CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes == Staged(2),
+    CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes == 0,
           "and not again the next frame");
+    // A frame refused for its uploads keeps its new glyph's image to
+    // upload: Ahem's glyph 6 with 8,000 boxes passes the default 1 MiB.
+    const muiGlyph six = {6, 0, 0};
+    muiDrawCommand* many = malloc(8001 * sizeof(muiDrawCommand));
+    for (uint32_t i = 1; many != NULL && i < 8001; i++)
+    {
+        many[i] = Box((float)(i % 50), (float)(i / 200));
+    }
+    if (many != NULL)
+    {
+        many[0] = run;
+        many[0].glyphRun.glyphCount = 1;
+    }
+    muiDrawList crowded = ListOf(many, many != NULL ? 8001 : 0);
+    crowded.glyphs = &six;
+    crowded.glyphCount = 1;
+    muiDrawList alone = ListOf(many, many != NULL ? 1 : 0);
+    alone.glyphs = &six;
+    alone.glyphCount = 1;
+    // The next frame: its one record in a block, and the glyph's 12
+    // rows with their gutter at a 256-byte pitch.
+    CHECK(many != NULL && DrawFrame(&gpu, renderer, &crowded) == mui_errorCapacity &&
+              DrawFrame(&gpu, renderer, &alone) == mui_success &&
+              s_log.stagingBytes == 512 + 12 * 256,
+          "a glyph packed in a refused frame uploaded in the next");
+    free(many);
     // A run past the glyph table is not drawn.
     run.glyphRun.firstGlyph = 1;
     CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes == 0,
@@ -384,6 +413,53 @@ static void TestNoText(void)
 
 #endif
 
+static void TestChanges(void)
+{
+    Gpu gpu;
+    CHECK(Open(&gpu, mrhi_success), "a device");
+    muiRhiRendererDef def = muiDefaultRhiRendererDef();
+    def.device = gpu.device;
+    // Four 512-byte blocks: the tables' three and one of records.
+    def.uploadBytes = 4 * 512;
+    muiRhiRenderer* renderer = NULL;
+    CHECK(muiCreateRhiRenderer(&def, &renderer) == mui_success, "a renderer");
+    muiDrawCommand commands[8];
+    for (uint32_t i = 0; i < 8; i++)
+    {
+        commands[i] = Box((float)i, 0);
+    }
+    muiDrawList list = ListOf(commands, 3);
+    CHECK(DrawFrame(&gpu, renderer, &list) == mui_empty && muiRhiRenderer_IsReady(renderer),
+          "ready");
+    CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes == Staged(3),
+          "the first frame uploads all");
+    // No writes: the pipeline, two tables, the root block and the draw.
+    CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes == 0 &&
+              s_log.commands == 5,
+          "the same list again uploads nothing and draws");
+    commands[2].box.fill.r = 1.0f;
+    CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes == 512,
+          "one box changed: one block");
+    commands[0].box.fill.g = 1.0f;
+    commands[2].box.fill.g = 1.0f;
+    CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes == 512,
+          "two boxes changed a record apart: one run, one block");
+    muiRhiRenderer_Forget(renderer);
+    CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes == Staged(3),
+          "forgotten: all again");
+    // Eight records take three blocks: past the budget with nothing
+    // held of them.
+    muiRhiRenderer_Forget(renderer);
+    muiDrawList longer = ListOf(commands, 8);
+    s_log = (mrhiTestFrameLog){0};
+    CHECK(DrawFrame(&gpu, renderer, &longer) == mui_errorCapacity && s_log.frames == 0,
+          "a frame past the upload budget refused, nothing added");
+    CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes == Staged(3),
+          "the next frame within it drawn");
+    muiDestroyRhiRenderer(renderer);
+    Close(&gpu);
+}
+
 static void TestFailedPipeline(void)
 {
     Gpu gpu;
@@ -404,6 +480,7 @@ int main(void)
     TestContract();
     TestDraws();
     TestImages();
+    TestChanges();
 #if MUI_TEST_TEXT
     TestGlyphs();
 #else

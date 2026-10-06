@@ -139,7 +139,13 @@ clip chain evaluated in its shaders, which keeps batches whole.
   misses its clip chain's bounds (each clip's rect through its
   transform, met with its parent's; an inverted clip bounding nothing)
   or the target is not drawn, nor is its image asked for; no scissor
-  is set, as culling already drops what one would.
+  is set, as culling already drops what one would. Each stream keeps
+  the records its buffer holds, and a frame writes only the runs that
+  differ (runs closer than an upload block merged), a buffer made anew
+  whole; the glyph images the atlas changed stay pending until a
+  recorded frame writes them. A frame whose uploads, as Maul RHI places
+  them, would not fit the device's frame uploads (which the def repeats)
+  is refused before any pass is added.
 
 ## Consequences
 

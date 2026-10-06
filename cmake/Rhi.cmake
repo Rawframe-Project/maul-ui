@@ -21,7 +21,7 @@ if(NOT maul-rhi_FOUND)
 endif()
 
 add_library(maul-ui-rhi STATIC rhi/src/allocator.c rhi/src/cull.c rhi/src/glyphs.c
-    rhi/src/images.c rhi/src/pack.c rhi/src/plan.c rhi/src/renderer.c)
+    rhi/src/images.c rhi/src/pack.c rhi/src/plan.c rhi/src/renderer.c rhi/src/streams.c)
 add_library(maul-ui-rhi::maul-ui-rhi ALIAS maul-ui-rhi)
 target_include_directories(maul-ui-rhi PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/rhi/include>

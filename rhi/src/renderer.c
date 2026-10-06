@@ -20,6 +20,7 @@
 #include "images.h"
 #include "pack.h"
 #include "plan.h"
+#include "streams.h"
 
 #include "../shaders/quad_container.h"
 #include "maul-rhi/encoder.h"
@@ -32,17 +33,6 @@
 #include <string.h>
 
 #define DEF_COOKIE 0x6D757268u // "murh"
-
-// A device buffer of records and their staging, grown as lists need.
-typedef struct Stream
-{
-    mrhiBufferId buffer;
-    void* staging;
-    size_t stride;
-    uint32_t capacity;
-    uint32_t count;
-    mrhiResourceId resource;
-} Stream;
 
 // The streams, each bound at the slot of its index.
 enum
@@ -62,7 +52,7 @@ struct muiRhiRenderer
     mrhiGraphicsPipelineId pipeline;
     mrhiRequestId request;
     bool ready;
-    Stream streams[kStreamCount];
+    muiRhiStream streams[kStreamCount];
     muiRhiImages images;
     muiRhiGlyphs glyphs;
     muiRhiCull cull;
@@ -75,6 +65,8 @@ struct muiRhiRenderer
     mrhiPassId upload;
     mrhiPassId draw;
     float frame[4];
+    // The device's frameUploadBytes, as the def gave it.
+    uint64_t uploadBytes;
 };
 
 muiRhiRendererDef muiDefaultRhiRendererDef(void)
@@ -83,66 +75,15 @@ muiRhiRendererDef muiDefaultRhiRendererDef(void)
         .cookie = DEF_COOKIE,
         .targetFormat = mrhi_formatRgba8UnormSrgb,
         .instances = 1024,
+        .uploadBytes = 1u << 20,
     };
 }
 
 static bool IsValid(const muiRhiRendererDef* def)
 {
     return def->cookie == DEF_COOKIE && muiRhiIsAllocatorValid(&def->allocator) &&
-           def->device != nullptr && def->instances != 0 && def->instances <= (1u << 24);
-}
-
-static void DropStream(muiRhiRenderer* renderer, Stream* stream)
-{
-    if (stream->staging != nullptr)
-    {
-        (void)mrhiDestroyBuffer(renderer->device, stream->buffer);
-        muiRhiRelease(&renderer->allocator, stream->staging,
-                      (size_t)stream->capacity * stream->stride, alignof(max_align_t));
-        stream->staging = nullptr;
-    }
-}
-
-// A stream's buffer and staging at a capacity, replacing the old.
-static muiResult GrowStream(muiRhiRenderer* renderer, Stream* stream, uint32_t capacity)
-{
-    mrhiBufferDef def = mrhiDefaultBufferDef();
-    def.size = (uint64_t)capacity * stream->stride;
-    def.usage = mrhi_bufferStorage | mrhi_bufferCopyDestination;
-    void* staging = muiRhiAllocate(&renderer->allocator, (size_t)capacity * stream->stride,
-                                   alignof(max_align_t));
-    if (staging == nullptr)
-    {
-        return mui_errorCapacity;
-    }
-    mrhiBufferId buffer = {0};
-    if (mrhiCreateBuffer(renderer->device, &def, &buffer) != mrhi_success)
-    {
-        muiRhiRelease(&renderer->allocator, staging, (size_t)capacity * stream->stride,
-                      alignof(max_align_t));
-        return mui_errorPlatform;
-    }
-    DropStream(renderer, stream);
-    stream->buffer = buffer;
-    stream->staging = staging;
-    stream->capacity = capacity;
-    return mui_success;
-}
-
-// Room for a number of records, doubling the capacity until it holds them.
-static muiResult Reserve(muiRhiRenderer* renderer, Stream* stream, uint32_t count)
-{
-    uint32_t capacity = stream->capacity;
-    while (capacity < count && capacity <= (1u << 23))
-    {
-        capacity *= 2;
-    }
-    if (capacity < count)
-    {
-        return mui_errorCapacity;
-    }
-    stream->count = count;
-    return capacity != stream->capacity ? GrowStream(renderer, stream, capacity) : mui_success;
+           def->device != nullptr && def->instances != 0 && def->instances <= (1u << 24) &&
+           def->uploadBytes != 0;
 }
 
 static bool MakePipeline(muiRhiRenderer* renderer, mrhiFormat format)
@@ -215,12 +156,14 @@ muiResult muiCreateRhiRenderer(const muiRhiRendererDef* def, muiRhiRenderer** re
             },
         .images = muiRhiMakeImages(&def->allocator, def->device, def->image, def->imageContext),
         .cull = {.allocator = def->allocator},
+        .uploadBytes = def->uploadBytes,
         .plan = {.allocator = def->allocator},
     };
     muiResult status = muiRhiMakeGlyphs(&renderer->glyphs, &def->allocator, def->device, def->text);
     for (uint32_t i = 0; i < kStreamCount && status == mui_success; i++)
     {
-        status = GrowStream(renderer, &renderer->streams[i], i == kInstances ? def->instances : 16);
+        status = muiRhiReserveStream(renderer->device, &renderer->allocator, &renderer->streams[i],
+                                     0, i == kInstances ? def->instances : 16);
     }
     if (status == mui_success &&
         (!MakeTextures(renderer) || !MakePipeline(renderer, def->targetFormat)))
@@ -261,7 +204,7 @@ void muiDestroyRhiRenderer(muiRhiRenderer* renderer)
     }
     for (uint32_t i = 0; i < kStreamCount; i++)
     {
-        DropStream(renderer, &renderer->streams[i]);
+        muiRhiDropStream(device, &renderer->allocator, &renderer->streams[i]);
     }
     muiRhiFreeImages(&renderer->images);
     muiRhiFreeGlyphs(&renderer->glyphs);
@@ -299,7 +242,7 @@ bool muiRhiRenderer_IsReady(const muiRhiRenderer* renderer)
 // imported.
 static muiResult Pack(muiRhiRenderer* renderer, const muiDrawList* list, const muiRhiTarget* target)
 {
-    Stream* streams = renderer->streams;
+    muiRhiStream* streams = renderer->streams;
     muiResult reset = muiRhiResetImages(&renderer->images, muiRhiCountImages(list));
     reset = reset == mui_success
                 ? muiRhiPrepareCull(&renderer->cull, list, target->width, target->height)
@@ -316,7 +259,8 @@ static muiResult Pack(muiRhiRenderer* renderer, const muiDrawList* list, const m
     };
     for (uint32_t i = 0; i < kStreamCount; i++)
     {
-        muiResult status = Reserve(renderer, &streams[i], counts[i]);
+        muiResult status =
+            muiRhiReserveStream(renderer->device, &renderer->allocator, &streams[i], counts[i], 16);
         if (status != mui_success)
         {
             return status;
@@ -335,6 +279,52 @@ static muiResult Pack(muiRhiRenderer* renderer, const muiDrawList* list, const m
     (void)muiRhiPackTransforms(list, streams[kTransforms].staging);
     (void)muiRhiPackClips(list, streams[kClips].staging);
     return mui_success;
+}
+
+// The runs of the streams' records that differ from those their buffers
+// hold, none where no instance reads them, and the bytes they and the
+// glyphs' changed rectangles take of the frame's uploads.
+static uint64_t Diff(muiRhiRenderer* renderer)
+{
+    bool drawn = renderer->streams[kInstances].count > 0;
+    uint64_t bytes = muiRhiGlyphUploadBytes(&renderer->glyphs);
+    for (uint32_t i = 0; i < kStreamCount; i++)
+    {
+        muiRhiStream* stream = &renderer->streams[i];
+        stream->runCount = 0;
+        if (drawn)
+        {
+            muiRhiDiffStream(stream);
+            bytes += muiRhiStreamUploadBytes(stream);
+        }
+    }
+    return bytes;
+}
+
+static bool Upload(const muiRhiRenderer* renderer)
+{
+    for (uint32_t i = 0; i < kStreamCount; i++)
+    {
+        if (!muiRhiWriteStream(renderer->device, renderer->upload, &renderer->streams[i]))
+        {
+            return false;
+        }
+    }
+    return muiRhiWriteGlyphs(&renderer->glyphs, renderer->upload);
+}
+
+// After the uploads are recorded: the buffers hold the frame's records
+// and the glyphs' rectangles are written.
+static void Keep(muiRhiRenderer* renderer)
+{
+    for (uint32_t i = 0; i < kStreamCount; i++)
+    {
+        if (renderer->streams[i].runCount > 0)
+        {
+            muiRhiKeepStream(&renderer->streams[i]);
+        }
+    }
+    muiRhiGlyphsWritten(&renderer->glyphs);
 }
 
 muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* list,
@@ -359,20 +349,25 @@ muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* 
     mrhiResourceId buffers[kStreamCount];
     for (uint32_t i = 0; i < kStreamCount; i++)
     {
-        Stream* stream = &renderer->streams[i];
+        muiRhiStream* stream = &renderer->streams[i];
         if (mrhiImportBuffer(device, stream->buffer, &stream->resource) != mrhi_success)
         {
             return mui_errorPlatform;
         }
         buffers[i] = stream->resource;
     }
-    const Stream* instances = &renderer->streams[kInstances];
+    const muiRhiStream* instances = &renderer->streams[kInstances];
     mrhiResourceId placeholder = {0};
     if (instances->count > 0 && renderer->images.textureCount == 0 &&
         renderer->glyphs.pageCount == 0 &&
         mrhiImportTexture(device, renderer->placeholder, &placeholder) != mrhi_success)
     {
         return mui_errorPlatform;
+    }
+    // A frame past the device's uploads is refused before any pass.
+    if (Diff(renderer) > renderer->uploadBytes)
+    {
+        return mui_errorCapacity;
     }
     const muiRhiSources sources = {buffers, kStreamCount, &renderer->images, &renderer->glyphs,
                                    placeholder};
@@ -407,23 +402,6 @@ muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* 
     renderer->frame[3] = 0.0f;
     renderer->added = true;
     return mui_success;
-}
-
-// The streams' records, none where no instance reads them.
-static bool Upload(const muiRhiRenderer* renderer)
-{
-    uint32_t streams = renderer->streams[kInstances].count > 0 ? kStreamCount : 0;
-    for (uint32_t i = 0; i < streams; i++)
-    {
-        const Stream* stream = &renderer->streams[i];
-        uint64_t bytes = (uint64_t)stream->count * stream->stride;
-        if (bytes != 0 && mrhiWriteBuffer(renderer->device, renderer->upload, stream->resource, 0,
-                                          stream->staging, bytes) != mrhi_success)
-        {
-            return false;
-        }
-    }
-    return muiRhiWriteGlyphs(&renderer->glyphs, renderer->upload);
 }
 
 // Binds a draw's texture and the sampler in table 1, and draws it.
@@ -484,5 +462,23 @@ muiResult muiRhiRenderer_Record(muiRhiRenderer* renderer)
                     mrhiBeginPass(device, renderer->draw) == mrhi_success &&
                     (renderer->streams[kInstances].count == 0 || Draw(renderer)) &&
                     mrhiEndPass(device, renderer->draw) == mrhi_success;
-    return recorded ? mui_success : mui_errorPlatform;
+    if (!recorded)
+    {
+        return mui_errorPlatform;
+    }
+    Keep(renderer);
+    return mui_success;
+}
+
+void muiRhiRenderer_Forget(muiRhiRenderer* renderer)
+{
+    if (renderer == nullptr)
+    {
+        return;
+    }
+    for (uint32_t i = 0; i < kStreamCount; i++)
+    {
+        renderer->streams[i].heldCount = 0;
+    }
+    muiRhiForgetGlyphs(&renderer->glyphs);
 }
