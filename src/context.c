@@ -105,6 +105,7 @@ typedef struct Parts
     size_t pointers;
     size_t pointerRecords;
     size_t neighbors;
+    size_t routes;
 } Parts;
 
 // A table per theme, an entry per token slot; a count past size_t marks
@@ -173,6 +174,7 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
         .pointerRecords =
             muiLayoutAdd(layout, limits->pointerRecords, sizeof(muiPointerRecord), CACHE_LINE),
         .neighbors = muiLayoutAdd(layout, limits->neighbors, sizeof(muiNeighbor), CACHE_LINE),
+        .routes = muiLayoutAdd(layout, limits->nodes, sizeof(muiNodeId), CACHE_LINE),
     };
 }
 
@@ -234,6 +236,7 @@ static void Place(muiContext* context, unsigned char* base, const Parts* parts,
     }
     draw->identity = (muiDrawTransform){1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
     muiLayerInit(&context->layers, (muiLayerEntry*)(base + parts->layers), limits->layers);
+    muiEventInit(&context->events, (muiNodeId*)(base + parts->routes));
     muiFocusInit(&context->focus, (muiNeighbor*)(base + parts->neighbors), limits->neighbors);
     muiPointerInit(&context->pointers, (muiPointer*)(base + parts->pointers), limits->pointers,
                    (muiPointerRecord*)(base + parts->pointerRecords), limits->pointerRecords);

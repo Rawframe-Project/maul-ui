@@ -65,6 +65,12 @@ format.
   search within the focused layer, and links per direction that win,
   stop or fall back to geometry (`muiNode_SetNeighbor`,
   `muiNode_GetNeighbor`; record mui-0007).
+- Routed input (`maul-ui/event.h`): keys, text and navigation actions to
+  a player's focus and pointer records to their node, through one host
+  function per routed event (`muiSetEventFunction`), tunnelling then
+  bubbling on a route fixed before dispatch, ended by a handled event;
+  focus moves by default for unhandled Tab, arrows and navigation; each
+  input reports whether the UI handled it (record mui-0007).
 - Font families (`muiCreateFontFamily`, `muiFontFamily_GetKey`,
   `muiFontFamily_MatchFace`): faces a text style names together, matched
   by width, slant and weight as CSS matches them, with fallbacks of

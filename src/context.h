@@ -8,6 +8,7 @@
 
 #include "animation.h"
 #include "draw_store.h"
+#include "event_store.h"
 #include "focus_store.h"
 #include "inherit.h"
 #include "layer_store.h"
@@ -52,6 +53,8 @@ struct muiContext
     muiPointerStore pointers;
     // Each player's focus.
     muiFocusStore focus;
+    // The host's event function and the route under way.
+    muiEventStore events;
     // What conditions read of the world outside the tree.
     muiEnvironment environment;
     // How many times the host edited a class, a node type or the

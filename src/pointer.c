@@ -323,7 +323,8 @@ muiResult muiPointerInput(muiContext* context, muiNodeId rootId, const muiPointe
     {
         return mui_errorInvalid;
     }
-    if (event == nullptr || IsNull(rootId) || !IsValidEvent(event) || muiIsInHostCall(context))
+    if (event == nullptr || IsNull(rootId) || !IsValidEvent(event) || muiIsInHostCall(context) ||
+        context->events.dispatching)
     {
         return muiRefuse(context);
     }

@@ -105,7 +105,7 @@ extern "C"
     ///                 MUI_MAX_PLAYERS.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id, an event outside the above or a call from a
-    ///         measure or paint function, which changes nothing;
+    ///         measure, paint or event function, which changes nothing;
     ///         `mui_errorStale` for a root that is gone; `mui_errorCapacity`
     ///         for a new pointer past the context's pointers limit.
     /// @par Thread safety

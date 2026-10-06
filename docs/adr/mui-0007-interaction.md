@@ -107,6 +107,25 @@ itself instead of each host repeating them.
   least `13 * major^2 + minor^2` wins, the gap along the direction and
   the distance between centers across it; ties go to tree order. There
   is no wrap.
+- **Routed input** (`maul-ui/event.h`): `muiKeyInput`, `muiTextInput`
+  and `muiNavigationInput` go to a player's focus under the root (the
+  top modal layer when one covers the focus, the root when there is
+  none), and `muiDispatchPointerRecord` to a pointer record's node. One
+  host function (`muiSetEventFunction`) hears each event at every node
+  on the route, from the top of the target's tree down to the target,
+  then back up, and returns whether it handled it, which ends the
+  route. The route is written down first, in a buffer of one id per
+  node reserved with the context, so a function that edits the tree
+  changes neither who hears the event nor in what order; nodes gone
+  since are passed over. The function may edit the tree, focus and
+  capture, not feed input. Keys carry the USB HID code, the layout's
+  key (a code point, or `MUI_KEY_NAMED` with the code) and modifiers,
+  as Maul Window's do. Unhandled, Tab and Shift+Tab, navigation next
+  and previous move focus sequentially, the arrows without modifiers
+  and the four navigation directions directionally, and a move counts
+  as handled; each call reports whether the UI handled the input, so
+  the host hands the rest to the game. Key downs and navigation make
+  the player's next focus by code shown.
 - **Focus notifications** report each player's focus gained and lost,
   whatever moved it; a focused node that is destroyed, or stops taking
   focus at its styling or a direct write, loses it. Detaching keeps it,
