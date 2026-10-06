@@ -32,9 +32,10 @@ format.
   by width, slant and weight as CSS matches them, with fallbacks of
   their own and a `fontFamilies` limit (record mui-0006).
 - Editing primitives (`maul-ui/text_edit.h`): hit testing a point to a
-  position (a byte offset and an affinity), a position's caret, and the
-  rectangles a range covers, over text laid out as it is painted
-  (record mui-0006).
+  position (a byte offset and an affinity), a position's caret, the
+  rectangles a range covers, and moving a position by cluster (in the
+  text or on screen), word, line or to the text's ends, over text laid
+  out as it is painted (record mui-0006).
 - Font fallback: each grapheme cluster is drawn in the first font of a
   chain (the style's, its family's fallbacks, then the service's,
   `muiSetFallbackFonts`) that has its characters, so a line may hold

@@ -2,9 +2,9 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Editing primitives over laid-out text (record mui-0006): positions in a
-// node's text, from points and to carets, and the rectangles a range of
-// it covers, the text laid out as muiPaintText paints it. Selection,
-// input and undo are the caller's.
+// node's text, from points, to carets and moved by cluster, word or line,
+// and the rectangles a range of it covers, the text laid out as
+// muiPaintText paints it. Selection, input and undo are the caller's.
 
 #ifndef MAUL_UI_TEXT_EDIT_H
 #define MAUL_UI_TEXT_EDIT_H
@@ -41,6 +41,45 @@ extern "C"
         uint32_t offset;
         muiTextAffinity affinity;
     } muiTextPosition;
+
+    // Where a position moves to. Words are UAX #29 word segments with a
+    // letter or a number in them.
+    typedef uint8_t muiTextMovement;
+
+    enum
+    {
+        // The next grapheme cluster boundary in the text.
+        mui_moveNextCluster = 0,
+        // The one before.
+        mui_movePreviousCluster = 1,
+        // One cluster left on screen, as the text is drawn; from a line's
+        // left end, the line before's end (left to right paragraphs) or
+        // the next line's start (right to left ones).
+        mui_moveLeft = 2,
+        // One cluster right on screen; from a line's right end, the next
+        // line's start or the line before's end.
+        mui_moveRight = 3,
+        // The start of the next word, after the position (Windows'
+        // Ctrl+Right).
+        mui_moveNextWordStart = 4,
+        // The end of the word the position is in, or of the next (macOS's
+        // Option+Right).
+        mui_moveNextWordEnd = 5,
+        // The start of the word the position is in, or of the one before.
+        mui_movePreviousWordStart = 6,
+        // The start of the position's line in the text.
+        mui_moveLineStart = 7,
+        // Its end, before any white space hanging past it, keeping to the
+        // line.
+        mui_moveLineEnd = 8,
+        // The line above, at the preferred x; from the first line, the
+        // text's start.
+        mui_moveLineUp = 9,
+        // The line below; from the last line, the text's end.
+        mui_moveLineDown = 10,
+        mui_moveTextStart = 11,
+        mui_moveTextEnd = 12,
+    };
 
     // Where a caret is drawn in the node's content box: its x, the top
     // and height of its line, and whether the text it sits on runs right
@@ -124,6 +163,30 @@ extern "C"
                                                          float width, uint32_t start, uint32_t end,
                                                          muiRect* rects, uint32_t capacity,
                                                          uint32_t* countOut);
+
+    /// Moves a position through a node's text, laid out as muiPaintText
+    /// paints it. Positions moved to are on grapheme cluster boundaries;
+    /// one that cannot move (the text's start moving back) stays.
+    ///
+    /// @param host         The text host.
+    /// @param nodeId       A node whose host key is a block's.
+    /// @param width        The node's content box width.
+    /// @param from         The position; an offset past the text is its end.
+    /// @param movement     Where to.
+    /// @param preferredX   For moving up and down a line, the x to keep, as
+    ///                     the caret had before the first vertical move;
+    ///                     NaN for from's own caret x. Not read otherwise.
+    /// @param positionOut  Receives the position; unchanged on failure.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a
+    ///         movement out of range; `mui_errorStale` for a node, block or
+    ///         font that is gone; `mui_errorCapacity` when memory runs out.
+    /// @par Thread safety
+    /// Safe from any thread; the host's context and service are used by
+    /// one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiTextMove(const muiTextHost* host, muiNodeId nodeId,
+                                                float width, muiTextPosition from,
+                                                muiTextMovement movement, float preferredX,
+                                                muiTextPosition* positionOut);
 
 #ifdef __cplusplus
 }

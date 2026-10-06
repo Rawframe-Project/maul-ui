@@ -345,6 +345,132 @@ static void TestLigature(void)
     FreeScene(&scene);
 }
 
+// Whether moving from a position at a content width lands on another.
+static bool Moves(Scene* scene, float width, uint32_t offset, muiTextAffinity affinity,
+                  muiTextMovement movement, uint32_t toOffset, muiTextAffinity toAffinity)
+{
+    muiTextPosition to = {99, 9};
+    return muiTextMove(&scene->host, scene->node, width, (muiTextPosition){offset, affinity},
+                       movement, NAN, &to) == mui_success &&
+           to.offset == toOffset && to.affinity == toAffinity;
+}
+
+static void TestMovingInText(void)
+{
+    // x and its acute are one cluster, bytes 1 to 4.
+    Scene scene = MakeScene();
+    ShowPlain(&scene, "ax\xCC\x81"
+                      "b");
+    CHECK(Moves(&scene, 100.0f, 0, DOWN, mui_moveNextCluster, 1, DOWN) &&
+              Moves(&scene, 100.0f, 1, UP, mui_moveNextCluster, 4, DOWN) &&
+              Moves(&scene, 100.0f, 2, DOWN, mui_moveNextCluster, 4, DOWN) &&
+              Moves(&scene, 100.0f, 5, DOWN, mui_moveNextCluster, 5, DOWN) &&
+              Moves(&scene, 100.0f, 99, DOWN, mui_moveNextCluster, 5, DOWN),
+          "to the next cluster");
+    CHECK(Moves(&scene, 100.0f, 4, DOWN, mui_movePreviousCluster, 1, DOWN) &&
+              Moves(&scene, 100.0f, 2, DOWN, mui_movePreviousCluster, 1, DOWN) &&
+              Moves(&scene, 100.0f, 1, DOWN, mui_movePreviousCluster, 0, DOWN) &&
+              Moves(&scene, 100.0f, 0, DOWN, mui_movePreviousCluster, 0, DOWN) &&
+              Moves(&scene, 100.0f, 99, DOWN, mui_movePreviousCluster, 4, DOWN),
+          "to the one before");
+    CHECK(Moves(&scene, 100.0f, 2, UP, mui_moveTextStart, 0, DOWN) &&
+              Moves(&scene, 100.0f, 2, UP, mui_moveTextEnd, 5, DOWN),
+          "to the text's ends");
+    // Words: "hello," 0 to 6, "world" 7 to 12, "foo" 14 to 17.
+    ShowPlain(&scene, "hello, world  foo");
+    CHECK(Moves(&scene, 1000.0f, 0, DOWN, mui_moveNextWordStart, 7, DOWN) &&
+              Moves(&scene, 1000.0f, 7, DOWN, mui_moveNextWordStart, 14, DOWN) &&
+              Moves(&scene, 1000.0f, 14, DOWN, mui_moveNextWordStart, 17, DOWN),
+          "to the next word's start");
+    CHECK(Moves(&scene, 1000.0f, 0, DOWN, mui_moveNextWordEnd, 5, DOWN) &&
+              Moves(&scene, 1000.0f, 3, DOWN, mui_moveNextWordEnd, 5, DOWN) &&
+              Moves(&scene, 1000.0f, 5, DOWN, mui_moveNextWordEnd, 12, DOWN) &&
+              Moves(&scene, 1000.0f, 17, DOWN, mui_moveNextWordEnd, 17, DOWN),
+          "to a word's end");
+    CHECK(Moves(&scene, 1000.0f, 17, DOWN, mui_movePreviousWordStart, 14, DOWN) &&
+              Moves(&scene, 1000.0f, 14, DOWN, mui_movePreviousWordStart, 7, DOWN) &&
+              Moves(&scene, 1000.0f, 9, DOWN, mui_movePreviousWordStart, 7, DOWN) &&
+              Moves(&scene, 1000.0f, 7, DOWN, mui_movePreviousWordStart, 0, DOWN) &&
+              Moves(&scene, 1000.0f, 0, DOWN, mui_movePreviousWordStart, 0, DOWN),
+          "to a word's start");
+    // Words of other letters and of numbers: "a," then a Hebrew word at
+    // 3 to 11, then "42" at 12 to 14.
+    ShowPlain(&scene, "a, \xD7\xA9\xD7\x9C\xD7\x95\xD7\x9D 42");
+    CHECK(Moves(&scene, 1000.0f, 0, DOWN, mui_moveNextWordStart, 3, DOWN) &&
+              Moves(&scene, 1000.0f, 3, DOWN, mui_moveNextWordStart, 12, DOWN) &&
+              Moves(&scene, 1000.0f, 11, DOWN, mui_moveNextWordEnd, 14, DOWN),
+          "words of any letters, and numbers");
+    FreeScene(&scene);
+}
+
+static void TestMovingOnScreen(void)
+{
+    Scene scene = MakeScene();
+    ShowPlain(&scene, "abc");
+    CHECK(Moves(&scene, 100.0f, 0, DOWN, mui_moveRight, 1, UP) &&
+              Moves(&scene, 100.0f, 1, UP, mui_moveRight, 2, UP) &&
+              Moves(&scene, 100.0f, 2, UP, mui_moveLeft, 1, DOWN) &&
+              Moves(&scene, 100.0f, 0, DOWN, mui_moveLeft, 0, DOWN) &&
+              Moves(&scene, 100.0f, 3, UP, mui_moveRight, 3, UP),
+          "left and right");
+    // a at 0 to 10, bet at 10 to 20, alef at 20 to 30: right goes a, bet,
+    // alef on screen, and stops at the right end, offset 1.
+    ShowPlain(&scene, "a\xD7\x90\xD7\x91");
+    CHECK(Moves(&scene, 100.0f, 0, DOWN, mui_moveRight, 1, UP) &&
+              Moves(&scene, 100.0f, 1, UP, mui_moveRight, 3, DOWN) &&
+              Moves(&scene, 100.0f, 3, DOWN, mui_moveRight, 1, DOWN) &&
+              Moves(&scene, 100.0f, 1, DOWN, mui_moveRight, 1, DOWN) &&
+              Moves(&scene, 100.0f, 1, DOWN, mui_moveLeft, 3, UP) &&
+              CaretAt(&scene, 100.0f, 5, DOWN, 10.0f, 0.0f),
+          "across a change of direction");
+    // "ab " and "cd": across the wrap.
+    ShowPlain(&scene, "ab cd");
+    CHECK(Moves(&scene, 25.0f, 2, UP, mui_moveRight, 3, DOWN) &&
+              Moves(&scene, 25.0f, 3, DOWN, mui_moveLeft, 2, UP),
+          "across a wrapped line's end");
+    CHECK(Moves(&scene, 25.0f, 4, DOWN, mui_moveLineStart, 3, DOWN) &&
+              Moves(&scene, 25.0f, 4, DOWN, mui_moveLineEnd, 5, UP) &&
+              Moves(&scene, 25.0f, 1, DOWN, mui_moveLineEnd, 2, UP) &&
+              Moves(&scene, 25.0f, 2, UP, mui_moveLineStart, 0, DOWN),
+          "a line's ends");
+    CHECK(Moves(&scene, 25.0f, 4, DOWN, mui_moveLineUp, 1, DOWN) &&
+              Moves(&scene, 25.0f, 5, UP, mui_moveLineUp, 2, UP) &&
+              Moves(&scene, 25.0f, 1, DOWN, mui_moveLineUp, 0, DOWN) &&
+              Moves(&scene, 25.0f, 1, DOWN, mui_moveLineDown, 4, DOWN) &&
+              Moves(&scene, 25.0f, 4, DOWN, mui_moveLineDown, 5, DOWN),
+          "up and down at the caret's x");
+    muiTextPosition to = {0, 0};
+    CHECK(muiTextMove(&scene.host, scene.node, 25.0f, (muiTextPosition){1, DOWN}, mui_moveLineDown,
+                      19.0f, &to) == mui_success &&
+              to.offset == 5 && to.affinity == UP,
+          "down at the preferred x");
+    // An empty line: its end is its start, downstream.
+    ShowPlain(&scene, "a\n\nb");
+    CHECK(Moves(&scene, 25.0f, 2, DOWN, mui_moveLineEnd, 2, DOWN) &&
+              Moves(&scene, 25.0f, 0, DOWN, mui_moveLineEnd, 1, UP) &&
+              Moves(&scene, 25.0f, 2, DOWN, mui_moveRight, 3, DOWN) &&
+              Moves(&scene, 25.0f, 2, DOWN, mui_moveLeft, 1, UP),
+          "an empty line");
+    // Right to left, a line's right end is its start: right from it goes
+    // back to the line before's end, left from the left end on to the
+    // next line, and from the last line's left end nowhere.
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.textDirection = mui_textRightToLeft;
+    CHECK(muiNode_SetLayoutValues(scene.context, scene.node, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
+          "direction");
+    ShowPlain(&scene, "ab cd");
+    CHECK(Moves(&scene, 25.0f, 0, DOWN, mui_moveLeft, 3, DOWN) &&
+              Moves(&scene, 25.0f, 2, UP, mui_moveRight, 2, UP) &&
+              Moves(&scene, 25.0f, 3, DOWN, mui_moveLeft, 3, DOWN) &&
+              Moves(&scene, 25.0f, 4, DOWN, mui_moveRight, 5, UP) &&
+              Moves(&scene, 25.0f, 5, UP, mui_moveRight, 2, UP),
+          "a right-to-left paragraph");
+    ShowPlain(&scene, "a\n\nb");
+    CHECK(CaretAt(&scene, 25.0f, 2, DOWN, 25.0f, 10.0f), "an empty line starts at the right");
+    FreeScene(&scene);
+}
+
 static void TestContract(void)
 {
     Scene scene = MakeScene();
@@ -374,11 +500,26 @@ static void TestContract(void)
                   mui_errorInvalid &&
               caret.x == 7.0f,
           "carets and ranges outside the contract");
+    CHECK(muiTextMove(NULL, scene.node, 100.0f, position, mui_moveRight, NAN, &position) ==
+                  mui_errorInvalid &&
+              muiTextMove(&scene.host, scene.node, 100.0f, position, mui_moveRight, NAN, NULL) ==
+                  mui_errorInvalid &&
+              muiTextMove(&scene.host, scene.node, 100.0f, position, mui_moveTextEnd + 1, NAN,
+                          &position) == mui_errorInvalid &&
+              position.offset == 7,
+          "moving outside the contract");
+    ShowPlain(&scene, "");
+    CHECK(muiTextMove(&scene.host, scene.node, 100.0f, position, mui_moveTextEnd, NAN, &position) ==
+                  mui_success &&
+              position.offset == 0,
+          "no text: nowhere to move");
     muiNodeId stale = scene.node;
     CHECK(muiDestroyNode(scene.context, scene.node) == mui_success &&
               muiTextHitTest(&scene.host, stale, 100.0f, 0.0f, 0.0f, &position) == mui_errorStale &&
               muiTextGetCaret(&scene.host, stale, 100.0f, position, &caret) == mui_errorStale &&
               muiTextGetRangeRects(&scene.host, stale, 100.0f, 0, 1, rects, 2, &count) ==
+                  mui_errorStale &&
+              muiTextMove(&scene.host, stale, 100.0f, position, mui_moveLeft, NAN, &position) ==
                   mui_errorStale,
           "a node gone");
     FreeScene(&scene);
@@ -426,6 +567,8 @@ int main(void)
     TestWrapped();
     TestRightToLeft();
     TestInsideClusters();
+    TestMovingInText();
+    TestMovingOnScreen();
     TestLigature();
     TestMemory();
     TestContract();

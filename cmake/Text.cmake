@@ -20,7 +20,9 @@ target_sources(maul-ui PRIVATE
     src/skyline.c
     src/text_block.c
     src/text_blocks.c
+    src/text_boxes.c
     src/text_hit.c
+    src/text_move.c
     src/text_layout.c
     src/text_paragraph.c
     src/text_service.c

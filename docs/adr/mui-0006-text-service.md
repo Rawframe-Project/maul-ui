@@ -133,7 +133,15 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   of a position's box, leading for downstream and trailing for
   upstream; `muiTextGetRangeRects` a rectangle for each stretch of
   boxes in a range, so a range across a change of direction is several.
-  Selection, movement state, input and undo stay with the caller.
+  `muiTextMove` moves a position: to the next or previous grapheme
+  cluster boundary in the text; a cluster left or right on screen, from
+  one edge of a box to its other, crossing to the next line or the one
+  before at a line's ends as the paragraph's direction has it; to the
+  start or end of a word (a UAX #29 word segment with a letter or a
+  number); to its line's start or end; up or down a line at an x the
+  caller keeps (the text's start or end past the first or last line);
+  to the text's start or end. Selection, the x kept for vertical moves,
+  input and undo stay with the caller.
 - **Glyph atlases** (`maul-ui/glyph_atlas.h`) are owner objects of a
   service, in its memory: pages of the caller's size, made as needed up
   to a limit and cut into plots, each packed with a skyline bottom-left

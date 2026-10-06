@@ -237,6 +237,27 @@ static void RandomStyle(muiContext* context, muiNodeId node, uint32_t* state)
           "direction");
 }
 
+// Moving right and back left along a line comes back to the same x.
+static void CheckRightLeft(const muiTextHost* host, muiNodeId node, float width,
+                           muiTextPosition position, muiTextCaret caret)
+{
+    muiTextPosition right = {0, 0};
+    muiTextPosition back = {0, 0};
+    muiTextCaret there = {0};
+    muiTextCaret again = {0};
+    CHECK(muiTextMove(host, node, width, position, mui_moveRight, NAN, &right) == mui_success &&
+              muiTextGetCaret(host, node, width, right, &there) == mui_success,
+          "right");
+    if (there.y != caret.y || there.x == caret.x)
+    {
+        return;
+    }
+    CHECK(muiTextMove(host, node, width, right, mui_moveLeft, NAN, &back) == mui_success &&
+              muiTextGetCaret(host, node, width, back, &again) == mui_success &&
+              fabsf(again.x - caret.x) <= 0.01f && again.y == caret.y,
+          "right, then left, back to the same x");
+}
+
 // Points hit positions within the text; unless letter spacing is
 // negative, which can draw a cluster before the one ahead of it, their
 // carets lie in the content box and hit again where they are drawn.
@@ -254,10 +275,19 @@ static void CheckHits(const muiTextHost* host, muiNodeId node, float width, size
                   position.offset <= length &&
                   muiTextGetCaret(host, node, width, position, &caret) == mui_success,
               "a hit and its caret");
+        muiTextPosition moved = {0, 0};
+        muiTextMovement movement = (muiTextMovement)(Next(state) % (mui_moveTextEnd + 1));
+        CHECK(muiTextMove(host, node, width, position, movement, NAN, &moved) == mui_success &&
+                  moved.offset <= length,
+              "a move within the text");
+        CHECK(movement != mui_moveNextCluster || moved.offset > position.offset ||
+                  moved.offset == length,
+              "the next cluster after");
         if (overlapping)
         {
             continue;
         }
+        CheckRightLeft(host, node, width, position, caret);
         CHECK(caret.x >= -0.01f && caret.x <= fmaxf(width, 0.0f) + 0.01f && caret.height > 0.0f,
               "a caret in the box");
         muiTextPosition second = {0, 0};
