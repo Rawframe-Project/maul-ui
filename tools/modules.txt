@@ -34,7 +34,7 @@ range_store:
 popup_store:
 exit_store:
 range: context range_store tree notify
-exit: animation context exit_store focus notify tree
+exit: animation context exit_store focus notify tree layout_node
 popup: context layout_node popup_store scroll tree notify
 scroll: context scroll_store tree layer motion_math
 navigate: context focus tree scroll

@@ -109,8 +109,9 @@ format.
   `muiNode_CancelExit`; an exiting subtree leaves hit testing, focus
   and navigation, and `mui_notificationExitFinished` reports when no
   transition runs in it; `limits.exits`. The exiting state is now set
-  by exits alone: `muiNode_SetStates` keeps it as it is (record
-  mui-0007).
+  by exits alone: `muiNode_SetStates` keeps it as it is. The
+  `exitLayout` interaction property pops an exiting node out of its
+  parent's flow at its last rectangle (record mui-0007).
 - Popups (`maul-ui/popup.h`): `muiNode_SetPopup`, `muiNode_GetPopup`,
   `muiNode_GetPopupSide` and `muiNode_ClearPopup`; each layout places
   a popup beside its anchor, flipping then clamping into the root's

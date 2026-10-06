@@ -238,7 +238,11 @@ itself instead of each host repeating them.
   advance, an exit with no transition running in its subtree is
   reported once by `mui_notificationExitFinished`; the host destroys
   the node, or cancels the exit (`muiNode_CancelExit`). A table bounded
-  by `limits.exits`.
+  by `limits.exits`. The interaction property `exitLayout`, read when
+  the exit begins, keeps the node in its place (the default) or pops it
+  out of its parent's flow at its last rectangle, its children laid out
+  at that size, so its siblings close up while it plays out (Motion's
+  `popLayout`); cancelling puts it back.
 - **Drag and drop**, within the application: a node takes kinds of
   thing by the interaction property `accepts`, a mask of the
   application's bits. While a pointer drags, the host offers a kind and

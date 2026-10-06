@@ -55,6 +55,18 @@ extern "C"
         mui_layerOverlay = 3,
     };
 
+    // Where an exiting node (maul-ui/exit.h) stays in its parent's layout.
+    typedef uint8_t muiExitLayout;
+
+    enum
+    {
+        // In its place until it is destroyed: its siblings move then.
+        mui_exitKeep = 0,
+        // Out of its parent's flow at once, at its last rectangle, so its
+        // siblings close up while it plays out (Motion's popLayout).
+        mui_exitPop = 1,
+    };
+
     // Whether a node takes a player's focus, and how.
     typedef uint8_t muiFocusMode;
 
@@ -71,7 +83,8 @@ extern "C"
 
     // A node's interaction values. Every field is a property
     // (mui_propertyHitMode, mui_propertyPassThrough, mui_propertyLayer,
-    // mui_propertyFocusMode, mui_propertyTabOrder),
+    // mui_propertyFocusMode, mui_propertyTabOrder, mui_propertyDrags,
+    // mui_propertyAccepts, mui_propertyExitLayout),
     // set like any other through classes, states and direct writes, and
     // not inherited.
     typedef struct muiInteractionStyle
@@ -104,6 +117,9 @@ extern "C"
         // node below it that takes none of that kind, may drop here. The
         // bits are the application's; 0 takes nothing.
         uint32_t accepts;
+        // Where the node stays in layout while it exits, read when its
+        // exit begins.
+        muiExitLayout exitLayout;
     } muiInteractionStyle;
 
     /// Returns the default interaction values: hit in full, blocking, no

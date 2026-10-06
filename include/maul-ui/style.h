@@ -148,6 +148,7 @@ extern "C"
         mui_propertyTabOrder = 196,
         mui_propertyDrags = 197,
         mui_propertyAccepts = 198,
+        mui_propertyExitLayout = 199,
     };
 
     // A group of properties: those of one values struct.
@@ -172,7 +173,7 @@ extern "C"
 #define MUI_LAYOUT_PROPERTIES      ((muiPropertyMask)0x1FFFFFFFFFFull)
 #define MUI_VISUAL_PROPERTIES      ((muiPropertyMask)0x1FFFFull)
 #define MUI_TEXT_PROPERTIES        ((muiPropertyMask)0x1FFull)
-#define MUI_INTERACTION_PROPERTIES ((muiPropertyMask)0x7Full)
+#define MUI_INTERACTION_PROPERTIES ((muiPropertyMask)0xFFull)
 
     // The states a node can be in, as bits, weakest first: a later
     // state's variant wins over an earlier one's.

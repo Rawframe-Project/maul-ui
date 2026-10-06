@@ -299,6 +299,81 @@ static void TestOtherTree(void)
     muiDestroyContext(context);
 }
 
+static void SetExitLayout(muiContext* context, muiNodeId node, muiExitLayout policy)
+{
+    muiInteractionStyle values = muiDefaultInteractionStyle();
+    values.exitLayout = policy;
+    CHECK(muiNode_SetInteractionValues(context, node, &values,
+                                       MUI_PROPERTY_BIT(mui_propertyExitLayout)) == mui_success,
+          "exit layout");
+}
+
+static void TestPop(void)
+{
+    // A row of three at 0, 100 and 200; the middle one holds a child as
+    // wide as it.
+    muiContextDef def = muiDefaultContextDef();
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    muiNodeId root = Sized(context, s_nullNode, 400.0f, 100.0f);
+    muiNodeId a = Sized(context, root, 100.0f, 50.0f);
+    muiNodeId b = Sized(context, root, 100.0f, 50.0f);
+    muiNodeId c = Sized(context, root, 100.0f, 50.0f);
+    muiNodeId inside = Sized(context, b, 0.0f, 10.0f);
+    muiLayoutStyle full = muiDefaultLayoutStyle();
+    full.sizing.width = (muiDimension){1.0f, 0.0f, mui_dimensionValue};
+    CHECK(muiNode_SetLayoutValues(context, inside, &full, MUI_PROPERTY_BIT(mui_propertyWidth)) ==
+              mui_success,
+          "as wide as its parent");
+    Layout(context, root, 0);
+    CHECK(muiDefaultInteractionStyle().exitLayout == mui_exitKeep &&
+              muiNode_GetRect(context, c).x == 200.0f,
+          "kept by default");
+    // Kept: nothing moves.
+    CHECK(muiNode_BeginExit(context, b) == mui_success, "exit, kept");
+    Layout(context, root, 0);
+    CHECK(muiNode_GetRect(context, c).x == 200.0f && muiNode_GetRect(context, b).x == 100.0f,
+          "in place");
+    CHECK(muiNode_CancelExit(context, b) == mui_success, "cancelled");
+    // Popped: c closes up, b stays where it was, its child at its size.
+    SetExitLayout(context, b, mui_exitPop);
+    CHECK(muiNode_BeginExit(context, b) == mui_success, "exit, popped");
+    Layout(context, root, 0);
+    muiRect rb = muiNode_GetRect(context, b);
+    CHECK(muiNode_GetRect(context, a).x == 0.0f && muiNode_GetRect(context, c).x == 100.0f &&
+              rb.x == 100.0f && rb.y == 0.0f && rb.width == 100.0f && rb.height == 50.0f &&
+              muiNode_GetRect(context, inside).width == 100.0f,
+          "out of the flow, where it was");
+    // Its style changing while it exits leaves it out.
+    SetExitLayout(context, b, mui_exitKeep);
+    Layout(context, root, 0);
+    CHECK(muiNode_GetRect(context, c).x == 100.0f, "read when it began");
+    // Cancelled: back in the flow.
+    CHECK(muiNode_CancelExit(context, b) == mui_success, "cancelled");
+    Layout(context, root, 0);
+    CHECK(muiNode_GetRect(context, b).x == 100.0f && muiNode_GetRect(context, c).x == 200.0f,
+          "back");
+    // An absolute node popped and cancelled stays absolute.
+    muiLayoutStyle absolute = muiDefaultLayoutStyle();
+    absolute.placement.position = mui_positionAbsolute;
+    CHECK(muiNode_SetLayoutValues(context, a, &absolute, MUI_PROPERTY_BIT(mui_propertyPosition)) ==
+              mui_success,
+          "absolute");
+    SetExitLayout(context, a, mui_exitPop);
+    CHECK(muiNode_BeginExit(context, a) == mui_success &&
+              muiNode_CancelExit(context, a) == mui_success,
+          "popped and back");
+    Layout(context, root, 0);
+    CHECK(muiNode_GetRect(context, b).x == 0.0f, "still out of the flow");
+    // Bad values refused.
+    muiInteractionStyle bad = muiDefaultInteractionStyle();
+    bad.exitLayout = 2;
+    CHECK(muiNode_SetInteractionValues(
+              context, b, &bad, MUI_PROPERTY_BIT(mui_propertyExitLayout)) == mui_errorInvalid,
+          "a value past pop");
+    muiDestroyContext(context);
+}
+
 static void TestContract(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -344,6 +419,7 @@ int main(void)
     TestFinished();
     TestLayers();
     TestOtherTree();
+    TestPop();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }

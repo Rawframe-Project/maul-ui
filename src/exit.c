@@ -11,6 +11,7 @@
 #include "exit.h"
 #include "exit_store.h"
 #include "focus.h"
+#include "layout_node.h"
 #include "notify.h"
 #include "tree.h"
 
@@ -40,9 +41,18 @@ static void Purge(muiContext* context)
     }
 }
 
-// Sets or clears the node's exiting flag and state, restyling it.
+// Sets or clears the node's exiting flag and state, restyling it; a node
+// popping leaves its parent's flow, or comes back.
 static void SetExiting(muiContext* context, uint32_t slot, bool exiting)
 {
+    muiLayoutNode* layout = &context->layout[slot - 1];
+    bool popped = exiting && context->interaction[slot - 1].exitLayout == mui_exitPop;
+    if (layout->popped != popped)
+    {
+        layout->popped = popped;
+        muiSyncLayoutNode(layout);
+        muiTreeMarkLayout(&context->tree, slot);
+    }
     muiTreeNode* node = muiTreeAt(&context->tree, slot);
     muiNodeStyle* style = &context->style.nodes[slot - 1];
     node->flags =
