@@ -8,6 +8,8 @@
 // - bounds in screen pixels at a scale of 1.5, and the node under a
 //   point;
 // - the focus, and focusing asked of the host;
+// - patterns: Invoke, Toggle, RangeValue, ExpandCollapse, Scroll, Value
+//   and SelectionItem, read and turned into the host's actions;
 // - a node removed answering UIA_E_ELEMENTNOTAVAILABLE.
 
 #include "test_harness.h"
@@ -101,6 +103,165 @@ static_assert(offsetof(muiUiaFragmentRootTable, ElementProviderFromPoint) ==
 static_assert(offsetof(muiUiaFragmentRootTable, GetFocus) ==
                   offsetof(IRawElementProviderFragmentRootVtbl, GetFocus),
               "IRawElementProviderFragmentRootVtbl GetFocus");
+static_assert(sizeof(muiUiaInvokeTable) == sizeof(IInvokeProviderVtbl), "IInvokeProviderVtbl");
+static_assert(offsetof(muiUiaInvokeTable, QueryInterface) ==
+                  offsetof(IInvokeProviderVtbl, QueryInterface),
+              "IInvokeProviderVtbl QueryInterface");
+static_assert(offsetof(muiUiaInvokeTable, AddRef) == offsetof(IInvokeProviderVtbl, AddRef),
+              "IInvokeProviderVtbl AddRef");
+static_assert(offsetof(muiUiaInvokeTable, Release) == offsetof(IInvokeProviderVtbl, Release),
+              "IInvokeProviderVtbl Release");
+static_assert(offsetof(muiUiaInvokeTable, Invoke) == offsetof(IInvokeProviderVtbl, Invoke),
+              "IInvokeProviderVtbl Invoke");
+static_assert(sizeof(muiUiaToggleTable) == sizeof(IToggleProviderVtbl), "IToggleProviderVtbl");
+static_assert(offsetof(muiUiaToggleTable, QueryInterface) ==
+                  offsetof(IToggleProviderVtbl, QueryInterface),
+              "IToggleProviderVtbl QueryInterface");
+static_assert(offsetof(muiUiaToggleTable, AddRef) == offsetof(IToggleProviderVtbl, AddRef),
+              "IToggleProviderVtbl AddRef");
+static_assert(offsetof(muiUiaToggleTable, Release) == offsetof(IToggleProviderVtbl, Release),
+              "IToggleProviderVtbl Release");
+static_assert(offsetof(muiUiaToggleTable, Toggle) == offsetof(IToggleProviderVtbl, Toggle),
+              "IToggleProviderVtbl Toggle");
+static_assert(offsetof(muiUiaToggleTable, get_ToggleState) ==
+                  offsetof(IToggleProviderVtbl, get_ToggleState),
+              "IToggleProviderVtbl get_ToggleState");
+static_assert(sizeof(muiUiaExpandCollapseTable) == sizeof(IExpandCollapseProviderVtbl),
+              "IExpandCollapseProviderVtbl");
+static_assert(offsetof(muiUiaExpandCollapseTable, QueryInterface) ==
+                  offsetof(IExpandCollapseProviderVtbl, QueryInterface),
+              "IExpandCollapseProviderVtbl QueryInterface");
+static_assert(offsetof(muiUiaExpandCollapseTable, AddRef) ==
+                  offsetof(IExpandCollapseProviderVtbl, AddRef),
+              "IExpandCollapseProviderVtbl AddRef");
+static_assert(offsetof(muiUiaExpandCollapseTable, Release) ==
+                  offsetof(IExpandCollapseProviderVtbl, Release),
+              "IExpandCollapseProviderVtbl Release");
+static_assert(offsetof(muiUiaExpandCollapseTable, Expand) ==
+                  offsetof(IExpandCollapseProviderVtbl, Expand),
+              "IExpandCollapseProviderVtbl Expand");
+static_assert(offsetof(muiUiaExpandCollapseTable, Collapse) ==
+                  offsetof(IExpandCollapseProviderVtbl, Collapse),
+              "IExpandCollapseProviderVtbl Collapse");
+static_assert(offsetof(muiUiaExpandCollapseTable, get_ExpandCollapseState) ==
+                  offsetof(IExpandCollapseProviderVtbl, get_ExpandCollapseState),
+              "IExpandCollapseProviderVtbl get_ExpandCollapseState");
+static_assert(sizeof(muiUiaValueTable) == sizeof(IValueProviderVtbl), "IValueProviderVtbl");
+static_assert(offsetof(muiUiaValueTable, QueryInterface) ==
+                  offsetof(IValueProviderVtbl, QueryInterface),
+              "IValueProviderVtbl QueryInterface");
+static_assert(offsetof(muiUiaValueTable, AddRef) == offsetof(IValueProviderVtbl, AddRef),
+              "IValueProviderVtbl AddRef");
+static_assert(offsetof(muiUiaValueTable, Release) == offsetof(IValueProviderVtbl, Release),
+              "IValueProviderVtbl Release");
+static_assert(offsetof(muiUiaValueTable, SetValue) == offsetof(IValueProviderVtbl, SetValue),
+              "IValueProviderVtbl SetValue");
+static_assert(offsetof(muiUiaValueTable, get_Value) == offsetof(IValueProviderVtbl, get_Value),
+              "IValueProviderVtbl get_Value");
+static_assert(offsetof(muiUiaValueTable, get_IsReadOnly) ==
+                  offsetof(IValueProviderVtbl, get_IsReadOnly),
+              "IValueProviderVtbl get_IsReadOnly");
+static_assert(sizeof(muiUiaRangeValueTable) == sizeof(IRangeValueProviderVtbl),
+              "IRangeValueProviderVtbl");
+static_assert(offsetof(muiUiaRangeValueTable, QueryInterface) ==
+                  offsetof(IRangeValueProviderVtbl, QueryInterface),
+              "IRangeValueProviderVtbl QueryInterface");
+static_assert(offsetof(muiUiaRangeValueTable, AddRef) == offsetof(IRangeValueProviderVtbl, AddRef),
+              "IRangeValueProviderVtbl AddRef");
+static_assert(offsetof(muiUiaRangeValueTable, Release) ==
+                  offsetof(IRangeValueProviderVtbl, Release),
+              "IRangeValueProviderVtbl Release");
+static_assert(offsetof(muiUiaRangeValueTable, SetValue) ==
+                  offsetof(IRangeValueProviderVtbl, SetValue),
+              "IRangeValueProviderVtbl SetValue");
+static_assert(offsetof(muiUiaRangeValueTable, get_Value) ==
+                  offsetof(IRangeValueProviderVtbl, get_Value),
+              "IRangeValueProviderVtbl get_Value");
+static_assert(offsetof(muiUiaRangeValueTable, get_IsReadOnly) ==
+                  offsetof(IRangeValueProviderVtbl, get_IsReadOnly),
+              "IRangeValueProviderVtbl get_IsReadOnly");
+static_assert(offsetof(muiUiaRangeValueTable, get_Maximum) ==
+                  offsetof(IRangeValueProviderVtbl, get_Maximum),
+              "IRangeValueProviderVtbl get_Maximum");
+static_assert(offsetof(muiUiaRangeValueTable, get_Minimum) ==
+                  offsetof(IRangeValueProviderVtbl, get_Minimum),
+              "IRangeValueProviderVtbl get_Minimum");
+static_assert(offsetof(muiUiaRangeValueTable, get_LargeChange) ==
+                  offsetof(IRangeValueProviderVtbl, get_LargeChange),
+              "IRangeValueProviderVtbl get_LargeChange");
+static_assert(offsetof(muiUiaRangeValueTable, get_SmallChange) ==
+                  offsetof(IRangeValueProviderVtbl, get_SmallChange),
+              "IRangeValueProviderVtbl get_SmallChange");
+static_assert(sizeof(muiUiaScrollTable) == sizeof(IScrollProviderVtbl), "IScrollProviderVtbl");
+static_assert(offsetof(muiUiaScrollTable, QueryInterface) ==
+                  offsetof(IScrollProviderVtbl, QueryInterface),
+              "IScrollProviderVtbl QueryInterface");
+static_assert(offsetof(muiUiaScrollTable, AddRef) == offsetof(IScrollProviderVtbl, AddRef),
+              "IScrollProviderVtbl AddRef");
+static_assert(offsetof(muiUiaScrollTable, Release) == offsetof(IScrollProviderVtbl, Release),
+              "IScrollProviderVtbl Release");
+static_assert(offsetof(muiUiaScrollTable, Scroll) == offsetof(IScrollProviderVtbl, Scroll),
+              "IScrollProviderVtbl Scroll");
+static_assert(offsetof(muiUiaScrollTable, SetScrollPercent) ==
+                  offsetof(IScrollProviderVtbl, SetScrollPercent),
+              "IScrollProviderVtbl SetScrollPercent");
+static_assert(offsetof(muiUiaScrollTable, get_HorizontalScrollPercent) ==
+                  offsetof(IScrollProviderVtbl, get_HorizontalScrollPercent),
+              "IScrollProviderVtbl get_HorizontalScrollPercent");
+static_assert(offsetof(muiUiaScrollTable, get_VerticalScrollPercent) ==
+                  offsetof(IScrollProviderVtbl, get_VerticalScrollPercent),
+              "IScrollProviderVtbl get_VerticalScrollPercent");
+static_assert(offsetof(muiUiaScrollTable, get_HorizontalViewSize) ==
+                  offsetof(IScrollProviderVtbl, get_HorizontalViewSize),
+              "IScrollProviderVtbl get_HorizontalViewSize");
+static_assert(offsetof(muiUiaScrollTable, get_VerticalViewSize) ==
+                  offsetof(IScrollProviderVtbl, get_VerticalViewSize),
+              "IScrollProviderVtbl get_VerticalViewSize");
+static_assert(offsetof(muiUiaScrollTable, get_HorizontallyScrollable) ==
+                  offsetof(IScrollProviderVtbl, get_HorizontallyScrollable),
+              "IScrollProviderVtbl get_HorizontallyScrollable");
+static_assert(offsetof(muiUiaScrollTable, get_VerticallyScrollable) ==
+                  offsetof(IScrollProviderVtbl, get_VerticallyScrollable),
+              "IScrollProviderVtbl get_VerticallyScrollable");
+static_assert(sizeof(muiUiaScrollItemTable) == sizeof(IScrollItemProviderVtbl),
+              "IScrollItemProviderVtbl");
+static_assert(offsetof(muiUiaScrollItemTable, QueryInterface) ==
+                  offsetof(IScrollItemProviderVtbl, QueryInterface),
+              "IScrollItemProviderVtbl QueryInterface");
+static_assert(offsetof(muiUiaScrollItemTable, AddRef) == offsetof(IScrollItemProviderVtbl, AddRef),
+              "IScrollItemProviderVtbl AddRef");
+static_assert(offsetof(muiUiaScrollItemTable, Release) ==
+                  offsetof(IScrollItemProviderVtbl, Release),
+              "IScrollItemProviderVtbl Release");
+static_assert(offsetof(muiUiaScrollItemTable, ScrollIntoView) ==
+                  offsetof(IScrollItemProviderVtbl, ScrollIntoView),
+              "IScrollItemProviderVtbl ScrollIntoView");
+static_assert(sizeof(muiUiaSelectionItemTable) == sizeof(ISelectionItemProviderVtbl),
+              "ISelectionItemProviderVtbl");
+static_assert(offsetof(muiUiaSelectionItemTable, QueryInterface) ==
+                  offsetof(ISelectionItemProviderVtbl, QueryInterface),
+              "ISelectionItemProviderVtbl QueryInterface");
+static_assert(offsetof(muiUiaSelectionItemTable, AddRef) ==
+                  offsetof(ISelectionItemProviderVtbl, AddRef),
+              "ISelectionItemProviderVtbl AddRef");
+static_assert(offsetof(muiUiaSelectionItemTable, Release) ==
+                  offsetof(ISelectionItemProviderVtbl, Release),
+              "ISelectionItemProviderVtbl Release");
+static_assert(offsetof(muiUiaSelectionItemTable, Select) ==
+                  offsetof(ISelectionItemProviderVtbl, Select),
+              "ISelectionItemProviderVtbl Select");
+static_assert(offsetof(muiUiaSelectionItemTable, AddToSelection) ==
+                  offsetof(ISelectionItemProviderVtbl, AddToSelection),
+              "ISelectionItemProviderVtbl AddToSelection");
+static_assert(offsetof(muiUiaSelectionItemTable, RemoveFromSelection) ==
+                  offsetof(ISelectionItemProviderVtbl, RemoveFromSelection),
+              "ISelectionItemProviderVtbl RemoveFromSelection");
+static_assert(offsetof(muiUiaSelectionItemTable, get_IsSelected) ==
+                  offsetof(ISelectionItemProviderVtbl, get_IsSelected),
+              "ISelectionItemProviderVtbl get_IsSelected");
+static_assert(offsetof(muiUiaSelectionItemTable, get_SelectionContainer) ==
+                  offsetof(ISelectionItemProviderVtbl, get_SelectionContainer),
+              "ISelectionItemProviderVtbl get_SelectionContainer");
 static_assert(UIA_OPTION_SERVER_SIDE == ProviderOptions_ServerSideProvider,
               "ProviderOptions_ServerSideProvider");
 static_assert(UIA_OPTION_COM_THREADING == ProviderOptions_UseComThreading,
@@ -111,6 +272,15 @@ static_assert(NAVIGATE_PREVIOUS == NavigateDirection_PreviousSibling,
               "NavigateDirection_PreviousSibling");
 static_assert(NAVIGATE_FIRST == NavigateDirection_FirstChild, "NavigateDirection_FirstChild");
 static_assert(NAVIGATE_LAST == NavigateDirection_LastChild, "NavigateDirection_LastChild");
+static_assert(TOGGLE_OFF == ToggleState_Off, "ToggleState_Off");
+static_assert(TOGGLE_ON == ToggleState_On, "ToggleState_On");
+static_assert(TOGGLE_MIXED == ToggleState_Indeterminate, "ToggleState_Indeterminate");
+static_assert(EXPAND_COLLAPSED == ExpandCollapseState_Collapsed, "ExpandCollapseState_Collapsed");
+static_assert(EXPAND_EXPANDED == ExpandCollapseState_Expanded, "ExpandCollapseState_Expanded");
+static_assert(AMOUNT_LARGE_BACK == ScrollAmount_LargeDecrement, "ScrollAmount_LargeDecrement");
+static_assert(AMOUNT_SMALL_BACK == ScrollAmount_SmallDecrement, "ScrollAmount_SmallDecrement");
+static_assert(AMOUNT_LARGE_FORWARD == ScrollAmount_LargeIncrement, "ScrollAmount_LargeIncrement");
+static_assert(AMOUNT_SMALL_FORWARD == ScrollAmount_SmallIncrement, "ScrollAmount_SmallIncrement");
 static_assert(sizeof(muiUiaRect) == sizeof(struct UiaRect) &&
                   offsetof(muiUiaRect, height) == offsetof(struct UiaRect, height),
               "UiaRect");
@@ -172,7 +342,13 @@ static void TestIds(void)
             CONTROL_HEADER_ITEM == UIA_HeaderItemControlTypeId &&
             CONTROL_TABLE == UIA_TableControlTypeId &&
             CONTROL_TITLE_BAR == UIA_TitleBarControlTypeId &&
-            CONTROL_SEPARATOR == UIA_SeparatorControlTypeId,
+            CONTROL_SEPARATOR == UIA_SeparatorControlTypeId &&
+            PATTERN_INVOKE == UIA_InvokePatternId && PATTERN_VALUE == UIA_ValuePatternId &&
+            PATTERN_RANGE_VALUE == UIA_RangeValuePatternId &&
+            PATTERN_SCROLL == UIA_ScrollPatternId &&
+            PATTERN_EXPAND_COLLAPSE == UIA_ExpandCollapsePatternId &&
+            PATTERN_SELECTION_ITEM == UIA_SelectionItemPatternId &&
+            PATTERN_TOGGLE == UIA_TogglePatternId && PATTERN_SCROLL_ITEM == UIA_ScrollItemPatternId,
         "the ids");
 }
 
@@ -181,9 +357,9 @@ static void TestIds(void)
 
 typedef struct Built
 {
-    muiAccessNode nodes[8];
-    const muiAccessNode* sent[8];
-    uint64_t children[8];
+    muiAccessNode nodes[16];
+    const muiAccessNode* sent[16];
+    uint64_t children[16];
     uint32_t nodeCount;
     uint32_t childCount;
 } Built;
@@ -215,7 +391,9 @@ static void List(Built* built, muiAccessNode* parent, const uint64_t* ids, uint3
 }
 
 // The window 1: a button 2; a generic 3 around a label 4; a heading 5 of
-// level 2; a navigation landmark 6; a text input 7, focused.
+// level 2; a navigation landmark 6; a text input 7, focused, holding
+// "Ada"; a checked checkbox 8; a slider 9 at 30 of 0 to 100; a tree item
+// 10, collapsed; a list 11 scrolled 50 of 200 with a selected item 12.
 static muiAccessUpdate Build(Built* built)
 {
     *built = (Built){0};
@@ -225,9 +403,30 @@ static muiAccessUpdate Build(Built* built)
     (void)Add(built, 4, mui_roleLabel, "Hello", 0, 0, 100, 20);
     Add(built, 5, mui_roleHeading, "Title", 10, 90, 100, 20)->values.level = 2;
     (void)Add(built, 6, mui_roleNavigation, "Links", 10, 120, 100, 20);
-    Add(built, 7, mui_roleTextInput, "Name", 10, 150, 200, 24)->flags = mui_accessFocusable;
-    List(built, root, (const uint64_t[]){2, 3, 5, 6, 7}, 5);
+    muiAccessNode* input = Add(built, 7, mui_roleTextInput, "Name", 10, 150, 200, 24);
+    input->flags = mui_accessFocusable;
+    input->text[mui_accessValue] = "Ada";
+    input->textLength[mui_accessValue] = 3;
+    muiAccessNode* check = Add(built, 8, mui_roleCheckBox, "Agree", 220, 10, 100, 20);
+    check->flags = mui_accessCheckable | mui_accessChecked;
+    check->actions = 1u << mui_actionClick;
+    muiAccessNode* slider = Add(built, 9, mui_roleSlider, "Volume", 220, 40, 100, 20);
+    slider->flags = mui_accessNumeric;
+    slider->actions = 1u << mui_actionSetValue;
+    slider->value = 30.0f;
+    slider->maximum = 100.0f;
+    slider->step = 1.0f;
+    Add(built, 10, mui_roleTreeItem, "Section", 220, 70, 100, 20)->flags = mui_accessExpandable;
+    muiAccessNode* list = Add(built, 11, mui_roleList, "Items", 220, 100, 100, 100);
+    list->flags = mui_accessScrolls | mui_accessClipsChildren;
+    list->scrollY = 50.0f;
+    list->scrollYMax = 200.0f;
+    muiAccessNode* item = Add(built, 12, mui_roleListItem, "First", 0, 0, 100, 20);
+    item->flags = mui_accessSelectable | mui_accessSelected;
+    built->nodes[1].actions = 1u << mui_actionClick;
+    List(built, root, (const uint64_t[]){2, 3, 5, 6, 7, 8, 9, 10, 11}, 9);
     List(built, generic, (const uint64_t[]){4}, 1);
+    List(built, list, (const uint64_t[]){12}, 1);
     return (muiAccessUpdate){built->sent, built->nodeCount, built->children, 1, 7};
 }
 
@@ -239,8 +438,9 @@ typedef struct Program
     HANDLE removal;
     HANDLE removed;
     HANDLE done;
-    // What the host was asked, by the window's thread.
+    // What the host was asked last, by the window's thread.
     volatile LONG focusAsked;
+    muiAccessRequest asked;
 } Program;
 
 static Program s_program;
@@ -252,6 +452,8 @@ static bool Act(void* user, const muiAccessRequest* request)
     {
         InterlockedExchange(&program->focusAsked, (LONG)request->target);
     }
+    program->asked = *request;
+    MemoryBarrier();
     return true;
 }
 
@@ -334,8 +536,8 @@ static void Report(IUIAutomationElement** children, uint32_t count)
 
 static void CheckChildren(IUIAutomationElement** children, uint32_t count)
 {
-    CHECK(count == 5, "five children, the generic flattened");
-    if (count != 5)
+    CHECK(count == 9, "nine children, the generic flattened");
+    if (count != 9)
     {
         Report(children, count);
         return;
@@ -353,6 +555,156 @@ static void CheckChildren(IUIAutomationElement** children, uint32_t count)
               SUCCEEDED(IUIAutomationElement_get_CurrentHasKeyboardFocus(children[4], &focused)) &&
               focused,
           "a text input, focused");
+}
+
+// What the host was last asked.
+static bool Asked(muiAccessAction action, uint64_t target)
+{
+    MemoryBarrier();
+    return s_program.asked.action == action && s_program.asked.target == target;
+}
+
+static void CheckInvokeAndToggle(IUIAutomationElement** children)
+{
+    IUIAutomationInvokePattern* invoke = NULL;
+    CHECK(SUCCEEDED(IUIAutomationElement_GetCurrentPatternAs(children[0], UIA_InvokePatternId,
+                                                             &IID_IUIAutomationInvokePattern,
+                                                             (void**)&invoke)) &&
+              invoke != NULL && SUCCEEDED(IUIAutomationInvokePattern_Invoke(invoke)) &&
+              Asked(mui_actionClick, 2),
+          "a button invoked, a click asked of the host");
+    IUIAutomationTogglePattern* toggle = NULL;
+    enum ToggleState state = ToggleState_Off;
+    CHECK(SUCCEEDED(IUIAutomationElement_GetCurrentPatternAs(children[5], UIA_TogglePatternId,
+                                                             &IID_IUIAutomationTogglePattern,
+                                                             (void**)&toggle)) &&
+              toggle != NULL &&
+              SUCCEEDED(IUIAutomationTogglePattern_get_CurrentToggleState(toggle, &state)) &&
+              state == ToggleState_On && SUCCEEDED(IUIAutomationTogglePattern_Toggle(toggle)) &&
+              Asked(mui_actionClick, 8),
+          "a checkbox on, toggled by a click");
+    IUIAutomationInvokePattern* none = NULL;
+    CHECK(SUCCEEDED(IUIAutomationElement_GetCurrentPatternAs(
+              children[5], UIA_InvokePatternId, &IID_IUIAutomationInvokePattern, (void**)&none)) &&
+              none == NULL,
+          "a checkbox toggles rather than invokes");
+    if (invoke != NULL)
+    {
+        IUIAutomationInvokePattern_Release(invoke);
+    }
+    if (toggle != NULL)
+    {
+        IUIAutomationTogglePattern_Release(toggle);
+    }
+}
+
+static void CheckRangeAndExpand(IUIAutomationElement** children)
+{
+    IUIAutomationRangeValuePattern* range = NULL;
+    double value = 0.0;
+    double maximum = 0.0;
+    CHECK(SUCCEEDED(IUIAutomationElement_GetCurrentPatternAs(children[6], UIA_RangeValuePatternId,
+                                                             &IID_IUIAutomationRangeValuePattern,
+                                                             (void**)&range)) &&
+              range != NULL &&
+              SUCCEEDED(IUIAutomationRangeValuePattern_get_CurrentValue(range, &value)) &&
+              SUCCEEDED(IUIAutomationRangeValuePattern_get_CurrentMaximum(range, &maximum)) &&
+              value == 30.0 && maximum == 100.0 &&
+              SUCCEEDED(IUIAutomationRangeValuePattern_SetValue(range, 55.0)) &&
+              Asked(mui_actionSetValue, 9) && s_program.asked.value == 55.0f &&
+              FAILED(IUIAutomationRangeValuePattern_SetValue(range, 200.0)),
+          "a slider's value read and set, a value past its range refused");
+    IUIAutomationExpandCollapsePattern* expand = NULL;
+    enum ExpandCollapseState state = ExpandCollapseState_Expanded;
+    CHECK(SUCCEEDED(IUIAutomationElement_GetCurrentPatternAs(
+              children[7], UIA_ExpandCollapsePatternId, &IID_IUIAutomationExpandCollapsePattern,
+              (void**)&expand)) &&
+              expand != NULL &&
+              SUCCEEDED(IUIAutomationExpandCollapsePattern_get_CurrentExpandCollapseState(
+                  expand, &state)) &&
+              state == ExpandCollapseState_Collapsed &&
+              SUCCEEDED(IUIAutomationExpandCollapsePattern_Expand(expand)) &&
+              Asked(mui_actionExpand, 10),
+          "a tree item collapsed, expanded on request");
+    if (range != NULL)
+    {
+        IUIAutomationRangeValuePattern_Release(range);
+    }
+    if (expand != NULL)
+    {
+        IUIAutomationExpandCollapsePattern_Release(expand);
+    }
+}
+
+static void CheckScrollAndValue(IUIAutomation* automation, IUIAutomationElement** children)
+{
+    IUIAutomationScrollPattern* scroll = NULL;
+    double percent = 0.0;
+    double view = 0.0;
+    CHECK(SUCCEEDED(IUIAutomationElement_GetCurrentPatternAs(children[8], UIA_ScrollPatternId,
+                                                             &IID_IUIAutomationScrollPattern,
+                                                             (void**)&scroll)) &&
+              scroll != NULL &&
+              SUCCEEDED(
+                  IUIAutomationScrollPattern_get_CurrentVerticalScrollPercent(scroll, &percent)) &&
+              SUCCEEDED(IUIAutomationScrollPattern_get_CurrentVerticalViewSize(scroll, &view)) &&
+              percent == 25.0 && view > 33.3 && view < 33.4 &&
+              SUCCEEDED(IUIAutomationScrollPattern_SetScrollPercent(scroll, -1.0, 50.0)) &&
+              Asked(mui_actionSetScrollOffset, 11) && s_program.asked.y == 100.0f &&
+              s_program.asked.x == 0.0f,
+          "a list scrolled a quarter, set to half");
+    IUIAutomationValuePattern* value = NULL;
+    BSTR text = NULL;
+    CHECK(SUCCEEDED(IUIAutomationElement_GetCurrentPatternAs(
+              children[4], UIA_ValuePatternId, &IID_IUIAutomationValuePattern, (void**)&value)) &&
+              value != NULL &&
+              SUCCEEDED(IUIAutomationValuePattern_get_CurrentValue(value, &text)) && text != NULL &&
+              wcscmp(text, L"Ada") == 0,
+          "a text input's value");
+    SysFreeString(text);
+    IUIAutomationTreeWalker* walker = NULL;
+    IUIAutomationElement* item = NULL;
+    IUIAutomationSelectionItemPattern* selection = NULL;
+    IUIAutomationElement* container = NULL;
+    BOOL selected = FALSE;
+    CHECK(SUCCEEDED(IUIAutomation_get_RawViewWalker(automation, &walker)) &&
+              SUCCEEDED(IUIAutomationTreeWalker_GetFirstChildElement(walker, children[8], &item)) &&
+              item != NULL &&
+              SUCCEEDED(IUIAutomationElement_GetCurrentPatternAs(
+                  item, UIA_SelectionItemPatternId, &IID_IUIAutomationSelectionItemPattern,
+                  (void**)&selection)) &&
+              selection != NULL &&
+              SUCCEEDED(
+                  IUIAutomationSelectionItemPattern_get_CurrentIsSelected(selection, &selected)) &&
+              selected &&
+              SUCCEEDED(IUIAutomationSelectionItemPattern_get_CurrentSelectionContainer(
+                  selection, &container)) &&
+              container != NULL && NameIs(container, L"Items"),
+          "a selected item, in its list");
+    if (container != NULL)
+    {
+        IUIAutomationElement_Release(container);
+    }
+    if (selection != NULL)
+    {
+        IUIAutomationSelectionItemPattern_Release(selection);
+    }
+    if (item != NULL)
+    {
+        IUIAutomationElement_Release(item);
+    }
+    if (walker != NULL)
+    {
+        IUIAutomationTreeWalker_Release(walker);
+    }
+    if (scroll != NULL)
+    {
+        IUIAutomationScrollPattern_Release(scroll);
+    }
+    if (value != NULL)
+    {
+        IUIAutomationValuePattern_Release(value);
+    }
 }
 
 static void CheckPlaces(IUIAutomation* automation, IUIAutomationElement* button)
@@ -387,9 +739,15 @@ static void Inspect(IUIAutomation* automation)
     {
         return;
     }
-    IUIAutomationElement* children[8] = {NULL};
-    uint32_t count = Children(automation, root, children, 8);
+    IUIAutomationElement* children[16] = {NULL};
+    uint32_t count = Children(automation, root, children, 16);
     CheckChildren(children, count);
+    if (count == 9)
+    {
+        CheckInvokeAndToggle(children);
+        CheckRangeAndExpand(children);
+        CheckScrollAndValue(automation, children);
+    }
     if (count != 0)
     {
         CheckPlaces(automation, children[0]);
@@ -465,7 +823,7 @@ static void Pump(Built* built)
             ResetEvent(s_program.removal);
             muiAccessNode root = built->nodes[0];
             root.firstChild = 1;
-            root.childCount = 4;
+            root.childCount = 8;
             const muiAccessNode* sent[1] = {&root};
             const muiAccessUpdate update = {sent, 1, built->children, 0, 0};
             CHECK(muiUiaAdapter_Apply(s_program.adapter, &update) == mui_success, "removed");

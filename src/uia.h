@@ -30,12 +30,23 @@ typedef struct muiUiaFunctions
 
 // A provider object: one per node UI Automation asked for, and the root,
 // which stands for whichever node is the tree's root. Once detached, it
-// answers ELEMENT_GONE until its last reference goes.
+// answers UIA_E_ELEMENTNOTAVAILABLE until its last reference goes. Each
+// interface is
+// a pointer to its table; the patterns are given where the node has what
+// they need.
 typedef struct muiUiaNode
 {
     muiUiaSimple simple;
     muiUiaFragment fragment;
     muiUiaFragmentRoot fragmentRoot;
+    muiUiaInvoke invoke;
+    muiUiaToggle toggle;
+    muiUiaExpandCollapse expandCollapse;
+    muiUiaValue value;
+    muiUiaRangeValue rangeValue;
+    muiUiaScroll scroll;
+    muiUiaScrollItem scrollItem;
+    muiUiaSelectionItem selectionItem;
     LONG references;
     // NULL once detached.
     muiUiaAdapter* adapter;
@@ -65,8 +76,24 @@ struct muiUiaAdapter
 // heap is out of memory.
 muiUiaNode* muiUiaMakeNode(muiUiaAdapter* adapter, uint64_t id);
 
-// Lets go of a reference.
+// Takes and lets go of a reference.
+ULONG muiUiaAddReference(muiUiaNode* node);
 void muiUiaRelease(muiUiaNode* node);
+
+// Answers QueryInterface for any of an object's interfaces.
+HRESULT muiUiaQuery(muiUiaNode* node, REFIID id, void** out);
+
+// Points a new object's pattern interfaces at their tables: all of them,
+// and Value's, RangeValue's and Scroll's.
+void muiUiaInitPatterns(muiUiaNode* node);
+void muiUiaInitValuePatterns(muiUiaNode* node);
+
+// The interface of a pattern a node has, with a reference for the
+// caller, or NULL.
+IUnknown* muiUiaPatternOf(muiUiaNode* node, const muiAccessNode* held, int pattern);
+
+// The pattern interface an id names, if the node has the pattern.
+void* muiUiaPatternInterface(muiUiaNode* node, REFIID id);
 
 // The provider object of a node held, made when first asked for; the
 // root's for the tree's root. NULL for a node not held or no memory. No
@@ -88,5 +115,6 @@ POINT muiUiaClientOrigin(const muiUiaAdapter* adapter);
 
 // Asks the host to perform an action on a node.
 HRESULT muiUiaPerform(muiUiaAdapter* adapter, muiAccessAction action, uint64_t target);
+HRESULT muiUiaPerformRequest(muiUiaAdapter* adapter, const muiAccessRequest* request);
 
 #endif // MAUL_UI_SRC_UIA_H

@@ -34,7 +34,7 @@ static muiUiaNode* FromFragmentRoot(muiUiaFragmentRoot* fragmentRoot)
     return (muiUiaNode*)((char*)fragmentRoot - offsetof(muiUiaNode, fragmentRoot));
 }
 
-static ULONG AddReference(muiUiaNode* node)
+ULONG muiUiaAddReference(muiUiaNode* node)
 {
     return (ULONG)InterlockedIncrement(&node->references);
 }
@@ -54,7 +54,7 @@ void muiUiaRelease(muiUiaNode* node)
     (void)ReleaseReference(node);
 }
 
-static HRESULT Query(muiUiaNode* node, REFIID id, void** out)
+HRESULT muiUiaQuery(muiUiaNode* node, REFIID id, void** out)
 {
     if (out == nullptr)
     {
@@ -74,10 +74,13 @@ static HRESULT Query(muiUiaNode* node, REFIID id, void** out)
     }
     else
     {
-        *out = nullptr;
-        return E_NOINTERFACE;
+        *out = muiUiaPatternInterface(node, id);
+        if (*out == nullptr)
+        {
+            return E_NOINTERFACE;
+        }
     }
-    (void)AddReference(node);
+    (void)muiUiaAddReference(node);
     return S_OK;
 }
 
@@ -98,7 +101,7 @@ static HRESULT GiveFragment(muiUiaAdapter* adapter, uint64_t id, muiUiaFragment*
     *out = node != nullptr ? &node->fragment : nullptr;
     if (node != nullptr)
     {
-        (void)AddReference(node);
+        (void)muiUiaAddReference(node);
     }
     return S_OK;
 }
@@ -107,12 +110,12 @@ static HRESULT GiveFragment(muiUiaAdapter* adapter, uint64_t id, muiUiaFragment*
 
 static HRESULT STDMETHODCALLTYPE SimpleQuery(muiUiaSimple* simple, REFIID id, void** out)
 {
-    return Query(FromSimple(simple), id, out);
+    return muiUiaQuery(FromSimple(simple), id, out);
 }
 
 static ULONG STDMETHODCALLTYPE SimpleAddRef(muiUiaSimple* simple)
 {
-    return AddReference(FromSimple(simple));
+    return muiUiaAddReference(FromSimple(simple));
 }
 
 static ULONG STDMETHODCALLTYPE SimpleRelease(muiUiaSimple* simple)
@@ -133,13 +136,14 @@ static HRESULT STDMETHODCALLTYPE Options(muiUiaSimple* simple, int* out)
 
 static HRESULT STDMETHODCALLTYPE Pattern(muiUiaSimple* simple, int pattern, IUnknown** out)
 {
-    (void)pattern;
     if (out == nullptr)
     {
         return E_POINTER;
     }
-    *out = nullptr;
-    return muiUiaNodeFor(FromSimple(simple)) != nullptr ? S_OK : ELEMENT_GONE;
+    muiUiaNode* node = FromSimple(simple);
+    const muiAccessNode* held = muiUiaNodeFor(node);
+    *out = held != nullptr ? muiUiaPatternOf(node, held, pattern) : nullptr;
+    return held != nullptr ? S_OK : ELEMENT_GONE;
 }
 
 static HRESULT STDMETHODCALLTYPE Property(muiUiaSimple* simple, int property, VARIANT* out)
@@ -178,12 +182,12 @@ static const muiUiaSimpleTable s_simpleTable = {SimpleQuery, SimpleAddRef, Simpl
 
 static HRESULT STDMETHODCALLTYPE FragmentQuery(muiUiaFragment* fragment, REFIID id, void** out)
 {
-    return Query(FromFragment(fragment), id, out);
+    return muiUiaQuery(FromFragment(fragment), id, out);
 }
 
 static ULONG STDMETHODCALLTYPE FragmentAddRef(muiUiaFragment* fragment)
 {
-    return AddReference(FromFragment(fragment));
+    return muiUiaAddReference(FromFragment(fragment));
 }
 
 static ULONG STDMETHODCALLTYPE FragmentRelease(muiUiaFragment* fragment)
@@ -348,7 +352,7 @@ static HRESULT STDMETHODCALLTYPE RootOf(muiUiaFragment* fragment, muiUiaFragment
     }
     muiUiaNode* root = node->adapter->root;
     *out = &root->fragmentRoot;
-    (void)AddReference(root);
+    (void)muiUiaAddReference(root);
     return S_OK;
 }
 
@@ -360,12 +364,12 @@ static const muiUiaFragmentTable s_fragmentTable = {
 
 static HRESULT STDMETHODCALLTYPE RootQuery(muiUiaFragmentRoot* fragmentRoot, REFIID id, void** out)
 {
-    return Query(FromFragmentRoot(fragmentRoot), id, out);
+    return muiUiaQuery(FromFragmentRoot(fragmentRoot), id, out);
 }
 
 static ULONG STDMETHODCALLTYPE RootAddRef(muiUiaFragmentRoot* fragmentRoot)
 {
-    return AddReference(FromFragmentRoot(fragmentRoot));
+    return muiUiaAddReference(FromFragmentRoot(fragmentRoot));
 }
 
 static ULONG STDMETHODCALLTYPE RootRelease(muiUiaFragmentRoot* fragmentRoot)
@@ -457,6 +461,7 @@ muiUiaNode* muiUiaMakeNode(muiUiaAdapter* adapter, uint64_t id)
             .adapter = adapter,
             .id = id,
         };
+        muiUiaInitPatterns(node);
     }
     return node;
 }

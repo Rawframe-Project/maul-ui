@@ -264,8 +264,13 @@ muiUiaRect muiUiaScreenRect(const muiUiaAdapter* adapter, uint64_t id)
                         (double)bounds.height * scale};
 }
 
+HRESULT muiUiaPerformRequest(muiUiaAdapter* adapter, const muiAccessRequest* request)
+{
+    return adapter->action(adapter->user, request) ? S_OK : NOT_SUPPORTED;
+}
+
 HRESULT muiUiaPerform(muiUiaAdapter* adapter, muiAccessAction action, uint64_t target)
 {
     const muiAccessRequest request = {.action = action, .target = target};
-    return adapter->action(adapter->user, &request) ? S_OK : NOT_SUPPORTED;
+    return muiUiaPerformRequest(adapter, &request);
 }

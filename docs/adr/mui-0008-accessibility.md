@@ -136,7 +136,13 @@ ranges and virtual lists.
   including them defines again, so a program including them as well
   could not link. It declares the interfaces it implements and writes
   the ids it uses, and its test checks their layouts and values
-  against the headers.
+  against the headers. Its patterns follow the node's flags and
+  actions: Toggle for a checkable node and SelectionItem for a
+  selectable one (both clicked, as on the screen, and never also
+  Invoke), ExpandCollapse, RangeValue for a numeric node, Value for a
+  value text (read only until text editing brings setting text),
+  Scroll for a scrolling container (a small step scrolls a page, as the
+  tree knows no line height), and ScrollItem.
 
 ## Consequences
 

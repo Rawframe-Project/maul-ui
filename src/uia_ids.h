@@ -77,6 +77,23 @@ enum
     CONTROL_SEPARATOR = 50038,
 };
 
+// Patterns.
+enum
+{
+    PATTERN_INVOKE = 10000,
+    PATTERN_VALUE = 10002,
+    PATTERN_RANGE_VALUE = 10003,
+    PATTERN_SCROLL = 10004,
+    PATTERN_EXPAND_COLLAPSE = 10005,
+    PATTERN_SELECTION_ITEM = 10010,
+    PATTERN_TOGGLE = 10015,
+    PATTERN_SCROLL_ITEM = 10017,
+};
+
+// UIA_ScrollPatternNoScroll: a scroll percent for an axis that does not
+// scroll, or that SetScrollPercent leaves.
+#define SCROLL_NONE (-1.0)
+
 // UiaAppendRuntimeId, the first part of a fragment's runtime id, and
 // UiaRootObjectId, the object id of WM_GETOBJECT asking for UI
 // Automation's root.

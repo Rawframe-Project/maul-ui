@@ -123,7 +123,8 @@ if(MAUL_UI_UIA)
     endif()
     # UI Automation's own functions are loaded at run time, as MinGW has
     # no import library of them; COM's come from ole32 and oleaut32.
-    target_sources(maul-ui PRIVATE src/uia_adapter.c src/uia_node.c src/uia_props.c)
+    target_sources(maul-ui PRIVATE src/uia_adapter.c src/uia_node.c src/uia_patterns.c src/uia_props.c
+                                   src/uia_values.c)
     target_link_libraries(maul-ui PUBLIC ole32 oleaut32)
     set(MAUL_PKG_LIBS_PRIVATE "-lole32 -loleaut32")
 endif()

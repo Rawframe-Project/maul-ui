@@ -146,7 +146,10 @@ format.
   accessibility root, `muiUiaAdapter_HandleGetObject`,
   `muiUiaAdapter_SetScale`, with a provider object per node giving
   control types, names, descriptions, states, positions, headings,
-  landmarks, bounds, navigation, hit testing and focus. The result
+  landmarks, bounds, navigation, hit testing and focus, and the
+  patterns Invoke, Toggle, ExpandCollapse, Value (read; setting text
+  comes with text editing), RangeValue, Scroll, ScrollItem and
+  SelectionItem, each turned into the host's actions. The result
   `mui_errorPlatform` (record mui-0008).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and
   `muiNode_CancelExit`; an exiting subtree leaves hit testing, focus
