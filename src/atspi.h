@@ -93,6 +93,22 @@ bool muiAtspiAppendReference(muiAtspiApp* app, muiDBusIter* iter, const muiAtspi
 bool muiAtspiAppendString(muiAtspiApp* app, muiDBusIter* iter, const char* text);
 bool muiAtspiAppendVariant(muiAtspiApp* app, muiDBusIter* iter, int type, const void* value);
 
+// The Action interface: how many actions a node has, the methods, and
+// the NActions property; the Value interface's properties, and setting
+// the current value through the host. The property writers are false
+// for a name they do not know.
+uint32_t muiAtspiActionCount(const muiAccessNode* node);
+bool muiAtspiAnswerAction(muiAtspiApp* app, DBusMessage* call, const muiAtspiObject* object,
+                          const char* member);
+bool muiAtspiAppendActionProperty(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object,
+                                  const char* name, bool* ok);
+bool muiAtspiAppendValueProperty(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object,
+                                 const char* name, bool* ok);
+bool muiAtspiSetValue(const muiAtspiObject* object, double value);
+
+// The interfaces an object has, at most four; how many.
+uint32_t muiAtspiInterfacesOf(const muiAtspiObject* object, const char* interfacesOut[4]);
+
 // Answers the Properties interface's methods.
 void muiAtspiAnswerProperties(muiAtspiApp* app, DBusMessage* call, const muiAtspiObject* object,
                               const char* member);

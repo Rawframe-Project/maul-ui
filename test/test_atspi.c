@@ -11,6 +11,8 @@
 //   states, and introspection;
 // - extents in screen, window and parent pixels, the node under a point;
 // - focusing asked of the host;
+// - actions listed and done, a range's value read and set, relations
+//   and attributes;
 // - unknown objects and methods, a node removed, a window taken out.
 
 #define _POSIX_C_SOURCE 200809L
@@ -368,9 +370,9 @@ static bool ExtentsAre(const char* path, uint32_t coordinates, int32_t x, int32_
 
 typedef struct Built
 {
-    muiAccessNode nodes[8];
-    const muiAccessNode* sent[8];
-    uint64_t children[8];
+    muiAccessNode nodes[12];
+    const muiAccessNode* sent[12];
+    uint64_t children[12];
     uint32_t nodeCount;
     uint32_t childCount;
 } Built;
@@ -401,22 +403,46 @@ static void List(Built* built, muiAccessNode* parent, const uint64_t* ids, uint3
     built->childCount += count;
 }
 
-// The window 1: a focused button 2; a generic 3 around a label 4; a
-// checked checkbox 0x1a; a group 6 with a button 7 in it.
+// The window 1: a focused button 2 that clicks; a generic 3 around a
+// label 4; a checked checkbox 0x1a labelled by 4, described by 2 and
+// controlling 99, which is not held; a group 6, second of three at level
+// 2 and politely live, with a text input 7 and a progress bar 9 in it;
+// a slider 8 at 30 of 0 to 100.
 static muiAccessUpdate Build(Built* built)
 {
     *built = (Built){0};
     muiAccessNode* root = Add(built, 1, mui_roleWindow, "Main", 0, 0, 400, 300);
-    Add(built, 2, mui_roleButton, "OK", 10, 10, 100, 40)->flags = mui_accessFocusable;
+    muiAccessNode* ok = Add(built, 2, mui_roleButton, "OK", 10, 10, 100, 40);
+    ok->flags = mui_accessFocusable;
+    ok->actions = 1u << mui_actionClick;
     muiAccessNode* generic = Add(built, 3, mui_roleGeneric, NULL, 10, 60, 100, 20);
     (void)Add(built, 4, mui_roleLabel, "Hello", 0, 0, 100, 20);
-    Add(built, 0x1a, mui_roleCheckBox, "Agree", 10, 90, 100, 20)->flags =
-        mui_accessCheckable | mui_accessChecked;
+    muiAccessNode* check = Add(built, 0x1a, mui_roleCheckBox, "Agree", 10, 90, 100, 20);
+    check->flags = mui_accessCheckable | mui_accessChecked;
+    static const muiAccessLink s_links[3] = {
+        {4, mui_relationLabelledBy}, {2, mui_relationDescribedBy}, {99, mui_relationControls}};
+    check->links = s_links;
+    check->linkCount = 3;
     muiAccessNode* group = Add(built, 6, mui_roleGroup, "Box", 200, 100, 100, 50);
-    (void)Add(built, 7, mui_roleButton, "Go", 10, 10, 50, 20);
-    List(built, root, (const uint64_t[]){2, 3, 0x1a, 6}, 4);
+    group->values.level = 2;
+    group->values.setPosition = 2;
+    group->values.setSize = 3;
+    group->values.live = mui_livePolite;
+    // Text is set through the set-value action too, but is no range.
+    Add(built, 7, mui_roleTextInput, "Go", 10, 10, 50, 20)->actions = 1u << mui_actionSetValue;
+    muiAccessNode* progress = Add(built, 9, mui_roleProgressIndicator, "Load", 10, 30, 50, 10);
+    progress->flags = mui_accessNumeric;
+    progress->maximum = 1.0f;
+    muiAccessNode* slider = Add(built, 8, mui_roleSlider, "Volume", 10, 200, 100, 20);
+    slider->flags = mui_accessNumeric;
+    slider->actions =
+        1u << mui_actionSetValue | 1u << mui_actionIncrement | 1u << mui_actionDecrement;
+    slider->value = 30.0f;
+    slider->maximum = 100.0f;
+    slider->step = 1.0f;
+    List(built, root, (const uint64_t[]){2, 3, 0x1a, 6, 8}, 5);
     List(built, generic, (const uint64_t[]){4}, 1);
-    List(built, group, (const uint64_t[]){7}, 1);
+    List(built, group, (const uint64_t[]){7, 9}, 2);
     return (muiAccessUpdate){built->sent, built->nodeCount, built->children, 1, 2};
 }
 
@@ -495,10 +521,10 @@ static void TestNodes(void)
     const char* agree = "/org/a11y/atspi/accessible/w1n1a";
     int32_t count = 0;
     int32_t index = -1;
-    CHECK(ChildrenAre(window, "w1n2 w1n4 w1n1a w1n6") &&
+    CHECK(ChildrenAre(window, "w1n2 w1n4 w1n1a w1n6 w1n8") &&
               PropertyOf(window, "org.a11y.atspi.Accessible", "ChildCount", mui_dbusTypeInt32,
                          &count) &&
-              count == 4,
+              count == 5,
           "the window's children as shown, the generic flattened");
     CHECK(NameIs(ok, "OK") && RoleOf(ok) == 43 &&
               NameIs("/org/a11y/atspi/accessible/w1n4", "Hello") && RoleOf(agree) == 7 &&
@@ -614,6 +640,153 @@ static void TestComponent(muiAtspiAdapter* adapter)
     }
 }
 
+// A reply's strings, each array or struct inside taken in order, joined
+// with spaces: names of actions, attributes, interfaces.
+static void Flatten(muiDBusIter* iter, char* out, size_t size, size_t* length)
+{
+    for (int type = s_test.dbus.argType(iter); type != mui_dbusTypeInvalid;
+         type = s_test.dbus.next(iter) ? s_test.dbus.argType(iter) : mui_dbusTypeInvalid)
+    {
+        muiDBusIter inner;
+        const char* text = NULL;
+        uint32_t number = 0;
+        if (type == mui_dbusTypeArray || type == mui_dbusTypeStruct ||
+            type == mui_dbusTypeDictEntry || type == mui_dbusTypeVariant)
+        {
+            s_test.dbus.recurse(iter, &inner);
+            Flatten(&inner, out, size, length);
+        }
+        else if (type == mui_dbusTypeString || type == mui_dbusTypeObjectPath)
+        {
+            s_test.dbus.getBasic(iter, (void*)&text);
+            *length += (size_t)snprintf(out + *length, size - *length, "%s%s",
+                                        *length != 0 ? " " : "", text);
+        }
+        else if (type == mui_dbusTypeUint32)
+        {
+            s_test.dbus.getBasic(iter, &number);
+            *length += (size_t)snprintf(out + *length, size - *length, "%s%u",
+                                        *length != 0 ? " " : "", number);
+        }
+    }
+}
+
+// An Accessible or Action method's reply, flattened.
+static bool ReplyIs(const char* path, const char* interface, const char* member,
+                    const char* expected)
+{
+    DBusMessage* reply = Answer(Call(path, interface, member));
+    char got[512] = "";
+    size_t length = 0;
+    muiDBusIter iter;
+    if (reply != NULL && s_test.dbus.iterInit(reply, &iter))
+    {
+        Flatten(&iter, got, sizeof(got), &length);
+    }
+    if (reply != NULL)
+    {
+        s_test.dbus.unrefMessage(reply);
+    }
+    if (strcmp(got, expected) != 0)
+    {
+        fprintf(stderr, "%s of %s: %s\n", member, path, got);
+    }
+    return strcmp(got, expected) == 0;
+}
+
+static DBusMessage* Indexed(const char* path, const char* member, int32_t index)
+{
+    DBusMessage* call = Call(path, "org.a11y.atspi.Action", member);
+    muiDBusIter iter;
+    s_test.dbus.iterInitAppend(call, &iter);
+    (void)s_test.dbus.appendBasic(&iter, mui_dbusTypeInt32, &index);
+    return call;
+}
+
+// Sets a range's current value: whether it was taken.
+static bool SetValue(const char* path, double value)
+{
+    DBusMessage* call = Call(path, "org.freedesktop.DBus.Properties", "Set");
+    muiDBusIter iter;
+    muiDBusIter variant;
+    const char* interface = "org.a11y.atspi.Value";
+    const char* name = "CurrentValue";
+    s_test.dbus.iterInitAppend(call, &iter);
+    (void)(s_test.dbus.appendBasic(&iter, mui_dbusTypeString, (const void*)&interface) &&
+           s_test.dbus.appendBasic(&iter, mui_dbusTypeString, (const void*)&name) &&
+           s_test.dbus.openContainer(&iter, mui_dbusTypeVariant, "d", &variant) &&
+           s_test.dbus.appendBasic(&variant, mui_dbusTypeDouble, &value) &&
+           s_test.dbus.closeContainer(&iter, &variant));
+    DBusMessage* reply = Answer(call);
+    bool taken = reply != NULL && s_test.dbus.messageType(reply) == mui_dbusMethodReturn;
+    if (reply != NULL)
+    {
+        s_test.dbus.unrefMessage(reply);
+    }
+    return taken;
+}
+
+static void TestActionsAndValues(void)
+{
+    const char* ok = "/org/a11y/atspi/accessible/w1n2";
+    const char* slider = "/org/a11y/atspi/accessible/w1n8";
+    const char* label = "/org/a11y/atspi/accessible/w1n4";
+    int32_t count = 0;
+    muiDBusBool done = 0;
+    CHECK(ReplyIs(ok, "org.a11y.atspi.Accessible", "GetInterfaces",
+                  "org.a11y.atspi.Accessible org.a11y.atspi.Component org.a11y.atspi.Action") &&
+              ReplyIs(slider, "org.a11y.atspi.Accessible", "GetInterfaces",
+                      "org.a11y.atspi.Accessible org.a11y.atspi.Component org.a11y.atspi.Action "
+                      "org.a11y.atspi.Value") &&
+              ReplyIs(label, "org.a11y.atspi.Accessible", "GetInterfaces",
+                      "org.a11y.atspi.Accessible org.a11y.atspi.Component"),
+          "interfaces as the node has them");
+    DBusMessage* reply = Answer(Indexed(ok, "DoAction", 0));
+    CHECK(PropertyOf(ok, "org.a11y.atspi.Action", "NActions", mui_dbusTypeInt32, &count) &&
+              count == 1 && FirstOf(reply, mui_dbusTypeBoolean, &done) && done &&
+              s_test.asked.action == mui_actionClick && s_test.asked.target == 2,
+          "a click listed and done");
+    if (reply != NULL)
+    {
+        s_test.dbus.unrefMessage(reply);
+    }
+    CHECK(ReplyIs(slider, "org.a11y.atspi.Action", "GetActions", "increment   decrement  ") &&
+              IsError(Answer(Indexed(slider, "GetName", 2)),
+                      "org.freedesktop.DBus.Error.InvalidArgs") &&
+              IsError(Answer(Call(label, "org.a11y.atspi.Action", "GetActions")),
+                      "org.freedesktop.DBus.Error.UnknownMethod"),
+          "actions by name, none past the last, none for a node without");
+    double value = 0.0;
+    double maximum = 0.0;
+    CHECK(PropertyOf(slider, "org.a11y.atspi.Value", "CurrentValue", mui_dbusTypeDouble, &value) &&
+              value == 30.0 &&
+              PropertyOf(slider, "org.a11y.atspi.Value", "MaximumValue", mui_dbusTypeDouble,
+                         &maximum) &&
+              maximum == 100.0 && SetValue(slider, 55.0) &&
+              s_test.asked.action == mui_actionSetValue && s_test.asked.value == 55.0f &&
+              !SetValue(slider, 200.0) && !SetValue(label, 1.0),
+          "a range's value read and set, a value past its range refused");
+    s_test.asked = (muiAccessRequest){0};
+    CHECK(
+        !SetValue("/org/a11y/atspi/accessible/w1n9", 0.5) &&
+            !SetValue("/org/a11y/atspi/accessible/w1n7", 0.0) &&
+            s_test.asked.action == mui_actionClick && s_test.asked.target == 0 &&
+            !PropertyOf(label, "org.a11y.atspi.Value", "CurrentValue", mui_dbusTypeDouble, &value),
+        "a range the host does not set, a node that is no range");
+    char relation[640];
+    (void)snprintf(relation, sizeof(relation),
+                   "2 %s /org/a11y/atspi/accessible/w1n4 18 %s /org/a11y/atspi/accessible/w1n2",
+                   s_test.plugName, s_test.plugName);
+    CHECK(ReplyIs("/org/a11y/atspi/accessible/w1n1a", "org.a11y.atspi.Accessible", "GetRelationSet",
+                  relation) &&
+              ReplyIs(ok, "org.a11y.atspi.Accessible", "GetRelationSet", ""),
+          "relations of two kinds to held nodes, none to a node not held");
+    CHECK(ReplyIs("/org/a11y/atspi/accessible/w1n6", "org.a11y.atspi.Accessible", "GetAttributes",
+                  "level 2 posinset 2 setsize 3 live polite") &&
+              ReplyIs(ok, "org.a11y.atspi.Accessible", "GetAttributes", ""),
+          "attributes");
+}
+
 static void TestGone(muiAtspiAdapter* adapter, Built* built)
 {
     CHECK(IsError(Answer(Call("/org/a11y/atspi/accessible/w9n1", "org.a11y.atspi.Accessible",
@@ -630,14 +803,14 @@ static void TestGone(muiAtspiAdapter* adapter, Built* built)
           "unknown objects and methods");
     muiAccessNode root = built->nodes[0];
     root.firstChild = 1;
-    root.childCount = 3;
+    root.childCount = 4;
     const muiAccessNode* sent[1] = {&root};
     const muiAccessUpdate update = {sent, 1, built->children, 0, 0};
     CHECK(muiAtspiAdapter_Apply(adapter, &update) == mui_success &&
               IsError(Answer(Call("/org/a11y/atspi/accessible/w1n2", "org.a11y.atspi.Accessible",
                                   "GetRole")),
                       "org.freedesktop.DBus.Error.UnknownObject") &&
-              ChildrenAre("/org/a11y/atspi/accessible/w1n1", "w1n4 w1n1a w1n6"),
+              ChildrenAre("/org/a11y/atspi/accessible/w1n1", "w1n4 w1n1a w1n6 w1n8"),
           "a node removed");
     muiAtspiAdapterDef def = muiDefaultAtspiAdapterDef();
     def.action = Act;
@@ -716,12 +889,13 @@ int main(void)
     muiAccessUpdate update = Build(&s_built);
     CHECK(muiCreateAtspiAdapter(s_test.app, &adapterDef, &adapter) == mui_success &&
               muiAtspiAdapter_Apply(adapter, &update) == mui_success &&
-              muiAccessTree_Count(muiAtspiAdapter_GetTree(adapter)) == 7,
+              muiAccessTree_Count(muiAtspiAdapter_GetTree(adapter)) == 9,
           "a window");
     TestContract();
     TestRoot();
     TestNodes();
     TestComponent(adapter);
+    TestActionsAndValues();
     TestGone(adapter, &s_built);
     muiDestroyAtspiApp(s_test.app);
     s_test.dbus.close(s_test.registry);

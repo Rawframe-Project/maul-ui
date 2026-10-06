@@ -165,8 +165,13 @@ ranges and virtual lists.
   answered by one filter: the Accessible interface (children as
   shown, roles from a table, names, states, parents, indexes), the
   Component interface (extents in pixels, the node under a point,
-  focusing and scrolling asked of the host) and the Application
-  interface on the root.
+  focusing and scrolling asked of the host), the Action interface
+  (the node's actions by AT-SPI's names, done through the host), the
+  Value interface on numeric nodes (its current value set through the
+  host's set-value action, within the range), relations (to nodes the
+  window holds) and attributes (level, place in a set, live), and the
+  Application interface on the root. An object answers only the
+  interfaces it lists.
 
 ## Consequences
 

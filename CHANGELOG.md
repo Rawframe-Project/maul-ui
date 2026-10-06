@@ -159,7 +159,10 @@ format.
   host's loop, `muiCreateAtspiAdapter` for each window, with the
   Accessible, Component and Application interfaces: children as shown,
   names, roles, states, parents, extents in screen, window and parent
-  pixels, the node under a point, focusing and scrolling. The result
+  pixels, the node under a point, focusing and scrolling; the Action
+  interface (click, expand, collapse, increment, decrement, scroll),
+  the Value interface (a range's numbers, its value set through the
+  host), relations and attributes. The result
   `mui_errorPlatform` (record mui-0008).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and
   `muiNode_CancelExit`; an exiting subtree leaves hit testing, focus
