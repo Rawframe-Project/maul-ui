@@ -141,6 +141,55 @@ static bool Near(float a, float b)
     return fabsf(a - b) < 0.05f;
 }
 
+// The draw list's shift, down or across, of the scroll container whose
+// transform is at index, drawn at scale.
+static float DrawnAt(const Scene* scene, float scale, uint32_t index, bool down)
+{
+    const muiDrawInput input = {1, scale, NULL, NULL};
+    muiDrawList drawn;
+    CHECK(muiBuildDrawList(scene->context, scene->root, &input) == mui_success &&
+              muiGetDrawList(scene->context, &drawn) == mui_success && drawn.transformCount > index,
+          "drawn");
+    return down ? drawn.transforms[index].f : drawn.transforms[index].e;
+}
+
+// The first scroll container's.
+static float Drawn(const Scene* scene, bool down)
+{
+    return DrawnAt(scene, 1.0f, 1, down);
+}
+
+// iOS's rubber band in a scrollport of port, of 100 by default; and the
+// inverse.
+static double BandIn(double past, double port)
+{
+    return port * (1.0 - 1.0 / (0.55 * past / port + 1.0));
+}
+
+static double Band(double past)
+{
+    return BandIn(past, 100.0);
+}
+
+static double Unband(double over)
+{
+    return 100.0 / 0.55 * over / (100.0 - over);
+}
+
+// What a bounce keeps of its overscroll after seconds.
+static double Kept(double seconds)
+{
+    double wt = sqrt(200.0) * seconds;
+    return (1.0 + wt) * exp(-wt);
+}
+
+static void Overscroll(muiContext* context, bool on)
+{
+    muiScrollRule rule = muiDefaultScrollRule();
+    rule.overscroll = on;
+    CHECK(muiSetScrollRule(context, &rule) == mui_success, "rule");
+}
+
 static void TestPanAndFling(void)
 {
     Scene scene;
@@ -451,6 +500,24 @@ static void TestTables(void)
           "a flick");
     Layout(context, scene.root, 2000 * MS);
     CHECK(Y(context, lists[8]) == 130.0f && Y(context, lists[0]) == 130.0f, "no room to fling");
+    // Eight easing again: an overscroll released with no room to spring
+    // back is gone at once.
+    Overscroll(context, true);
+    for (int i = 0; i < 8; i++)
+    {
+        const muiWheelEvent wheel = {3000 * MS, 100.0f * (float)i + 50.0f, 50.0f, 0.0f, -1.0f, 0,
+                                     0};
+        bool handled = false;
+        CHECK(muiWheelInput(context, scene.root, &wheel, &handled) == mui_success && handled,
+              "a step");
+    }
+    CHECK(Feed(&scene, 41, mui_pointerTouch, mui_pointerPress, 3000 * MS, 850.0f, 90.0f) == 0 &&
+              Feed(&scene, 41, mui_pointerTouch, mui_pointerMove, 3010 * MS, 850.0f, 0.0f) == 1 &&
+              DrawnAt(&scene, 1.0f, 9, true) == roundf(-200.0f - (float)Band(20.0)),
+          "past the end");
+    CHECK(Feed(&scene, 41, mui_pointerTouch, mui_pointerRelease, 3020 * MS, 850.0f, 0.0f) == 1 &&
+              DrawnAt(&scene, 1.0f, 9, true) == -200.0f,
+          "no room to spring back");
     muiDestroyContext(context);
 }
 
@@ -534,42 +601,6 @@ static void TestPurge(void)
     muiDestroyContext(context);
 }
 
-// The draw list's shift of the first scroll container, down or across.
-static float Drawn(const Scene* scene, bool down)
-{
-    const muiDrawInput input = {1, 1.0f, NULL, NULL};
-    muiDrawList drawn;
-    CHECK(muiBuildDrawList(scene->context, scene->root, &input) == mui_success &&
-              muiGetDrawList(scene->context, &drawn) == mui_success && drawn.transformCount > 1,
-          "drawn");
-    return down ? drawn.transforms[1].f : drawn.transforms[1].e;
-}
-
-// iOS's rubber band in a scrollport of 100, and its inverse.
-static double Band(double past)
-{
-    return 100.0 * (1.0 - 1.0 / (0.55 * past / 100.0 + 1.0));
-}
-
-static double Unband(double over)
-{
-    return 100.0 / 0.55 * over / (100.0 - over);
-}
-
-// What a bounce keeps of its overscroll after seconds.
-static double Kept(double seconds)
-{
-    double wt = sqrt(200.0) * seconds;
-    return (1.0 + wt) * exp(-wt);
-}
-
-static void Overscroll(muiContext* context, bool on)
-{
-    muiScrollRule rule = muiDefaultScrollRule();
-    rule.overscroll = on;
-    CHECK(muiSetScrollRule(context, &rule) == mui_success, "rule");
-}
-
 static void TestOverscroll(void)
 {
     Scene scene;
@@ -599,6 +630,9 @@ static void TestOverscroll(void)
     CHECK(Drawn(&scene, true) == roundf((float)(Band(40.0) * Kept(0.1))) &&
               Y(context, scene.s) == 0.0f,
           "springing back");
+    // Within a tenth of a unit it rests at none, as fine a scale shows.
+    Layout(context, scene.root, 660 * MS);
+    CHECK(Band(40.0) * Kept(0.53) < 0.1 && DrawnAt(&scene, 64.0f, 1, true) == 0.0f, "at rest");
     Layout(context, scene.root, 1130 * MS);
     CHECK(Drawn(&scene, true) == 0.0f && !muiIsUpdatePending(context, scene.root), "back, done");
     // Past the end, the offset at the limit.
@@ -633,6 +667,18 @@ static void TestOverscroll(void)
               Drawn(&scene, true) == -400.0f,
           "a wheel turn");
     Layout(context, scene.root, 6000 * MS);
+    // A wheel turn mid-pan takes it back too.
+    CHECK(muiNode_SetScroll(context, scene.s, 0.0f, 400.0f) == mui_success &&
+              Touch(&scene, mui_pointerPress, 6100 * MS, 50.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 6110 * MS, 10.0f) == 1 &&
+              Drawn(&scene, true) == roundf(-400.0f - (float)Band(40.0)),
+          "past mid-pan");
+    const muiWheelEvent midPan = {6120 * MS, 50.0f, 50.0f, 0.0f, 1.0f, 0, 0};
+    CHECK(muiWheelInput(context, scene.root, &midPan, &handled) == mui_success && handled &&
+              Drawn(&scene, true) == -400.0f,
+          "a wheel turn mid-pan");
+    CHECK(Touch(&scene, mui_pointerCancel, 6130 * MS, 10.0f) == 1, "cancelled");
+    Layout(context, scene.root, 6900 * MS);
     // Setting the offset takes it back too; reduced motion, at once.
     CHECK(Touch(&scene, mui_pointerPress, 7000 * MS, 50.0f) == 0 &&
               Touch(&scene, mui_pointerMove, 7010 * MS, 10.0f) == 1 &&
@@ -673,6 +719,48 @@ static void TestOverscrollAcross(void)
               X(context, scene.s) == 0.0f && Drawn(&scene, false) == -roundf((float)Band(30.0)) &&
               Drawn(&scene, true) == 0.0f,
           "pulled left past the start");
+    CHECK(Feed(&scene, 3, mui_pointerTouch, mui_pointerRelease, 20 * MS, 20.0f, 25.0f) == 1,
+          "released");
+    Layout(context, scene.root, 120 * MS);
+    double over = Band(30.0) * Kept(0.1);
+    CHECK(Drawn(&scene, false) == -roundf((float)over), "springing back");
+    // Caught, and pulled 10 further.
+    CHECK(Feed(&scene, 3, mui_pointerTouch, mui_pointerPress, 120 * MS, 50.0f, 25.0f) == 0 &&
+              Feed(&scene, 3, mui_pointerTouch, mui_pointerMove, 130 * MS, 40.0f, 25.0f) == 1 &&
+              Drawn(&scene, false) == -roundf((float)Band(Unband(over) + 10.0)),
+          "caught");
+    CHECK(Feed(&scene, 3, mui_pointerTouch, mui_pointerCancel, 140 * MS, 40.0f, 25.0f) == 1,
+          "cancelled");
+    Layout(context, scene.root, 2000 * MS);
+    CHECK(Drawn(&scene, false) == 0.0f && !muiIsUpdatePending(context, scene.root), "back");
+    muiDestroyContext(context);
+}
+
+static void TestOverscrollPort(void)
+{
+    // Borders of 10 above and below leave a scrollport of 80.
+    Scene scene;
+    MakeScene(&scene, 10);
+    muiContext* context = scene.context;
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.border.top = 10.0f;
+    style.border.bottom = 10.0f;
+    CHECK(muiNode_SetLayoutValues(context, scene.s, &style,
+                                  MUI_PROPERTY_BIT(mui_propertyBorderTop) |
+                                      MUI_PROPERTY_BIT(mui_propertyBorderBottom)) == mui_success,
+          "borders");
+    Overscroll(context, true);
+    Layout(context, scene.root, 0);
+    CHECK(Touch(&scene, mui_pointerPress, 0, 30.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 10 * MS, 90.0f) == 1 &&
+              Drawn(&scene, true) == roundf((float)BandIn(60.0, 80.0)),
+          "the band of 80");
+    // Scrolling turned off and on again mid-pan: the overscroll is gone.
+    Scrolls(context, scene.s, mui_scrollNone, true, mui_textInherit);
+    Layout(context, scene.root, 20 * MS);
+    Scrolls(context, scene.s, mui_scrollVertical, true, mui_textInherit);
+    Layout(context, scene.root, 30 * MS);
+    CHECK(Drawn(&scene, true) == 0.0f, "gone with scrolling");
     muiDestroyContext(context);
 }
 
@@ -709,6 +797,7 @@ int main(void)
     TestPurge();
     TestOverscroll();
     TestOverscrollAcross();
+    TestOverscrollPort();
     TestRule();
     return s_failures == 0 ? 0 : 1;
 }
