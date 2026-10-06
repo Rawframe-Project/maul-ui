@@ -8,11 +8,13 @@
 #include "test_harness.h"
 
 #include "maul-ui/context.h"
+#include "maul-ui/draw.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/popup.h"
 #include "maul-ui/scroll.h"
 #include "maul-ui/style.h"
+#include "maul-ui/visual.h"
 
 #include <math.h>
 #include <stddef.h>
@@ -128,6 +130,12 @@ static void TestSides(void)
     CHECK(Placed(&scene, &p, 254.0f, 100.0f, mui_popupEnd), "end");
     p = PopupOf(a, mui_popupCenter, mui_popupAlignEnd, 4.0f);
     CHECK(Placed(&scene, &p, 140.0f, 90.0f, mui_popupCenter), "center");
+    // Set anew: not placed until the next layout.
+    muiPopupSide side = mui_popupBelow;
+    CHECK(muiNode_SetPopup(scene.context, scene.popup, &p) == mui_success &&
+              muiNode_GetPopupSide(scene.context, scene.popup, &side) == mui_empty,
+          "set anew");
+    Layout(scene.context, scene.root);
     // Again with nothing changed: the same place.
     Layout(scene.context, scene.root);
     CHECK(muiNode_GetRect(scene.context, scene.popup).x == 140.0f &&
@@ -148,6 +156,11 @@ static void TestFlipAndClamp(void)
     MakeScene(&scene, 150.0f, 20.0f);
     p = PopupOf(scene.anchor, mui_popupAbove, mui_popupAlignStart, 4.0f);
     CHECK(Placed(&scene, &p, 150.0f, 64.0f, mui_popupBelow), "flipped below");
+    muiDestroyContext(scene.context);
+    // Room enough below, more above: no flip.
+    MakeScene(&scene, 150.0f, 180.0f);
+    p = PopupOf(scene.anchor, mui_popupBelow, mui_popupAlignStart, 4.0f);
+    CHECK(Placed(&scene, &p, 150.0f, 224.0f, mui_popupBelow), "fits below");
     muiDestroyContext(scene.context);
     // Near the start and the end.
     MakeScene(&scene, 10.0f, 100.0f);
@@ -172,6 +185,9 @@ static void TestFlipAndClamp(void)
           "tall");
     p = PopupOf(scene.anchor, mui_popupBelow, mui_popupAlignStart, 4.0f);
     CHECK(Placed(&scene, &p, 150.0f, 100.0f, mui_popupBelow), "no flip, clamped");
+    p.side = mui_popupAbove;
+    CHECK(Placed(&scene, &p, 150.0f, 0.0f, mui_popupAbove), "no flip up, clamped");
+    p.side = mui_popupBelow;
     // Wider than the root: its start edge kept.
     CHECK(muiNode_SetLayoutValues(
               scene.context, scene.popup,
@@ -179,6 +195,23 @@ static void TestFlipAndClamp(void)
               MUI_PROPERTY_BIT(mui_propertyWidth)) == mui_success,
           "wide");
     CHECK(Placed(&scene, &p, 0.0f, 100.0f, mui_popupBelow), "wide, from the start");
+    CHECK(muiNode_SetLayoutValues(
+              scene.context, scene.popup,
+              &(muiLayoutStyle){.sizing.width = {0.0f, 400.5f, mui_dimensionValue}},
+              MUI_PROPERTY_BIT(mui_propertyWidth)) == mui_success,
+          "a little wider than the root");
+    CHECK(Placed(&scene, &p, 0.0f, 100.0f, mui_popupBelow), "from the start too");
+    muiDestroyContext(scene.context);
+    // End edges near the start: clamped to it.
+    MakeScene(&scene, 10.0f, 100.0f);
+    p = PopupOf(scene.anchor, mui_popupBelow, mui_popupAlignEnd, 4.0f);
+    CHECK(Placed(&scene, &p, 0.0f, 144.0f, mui_popupBelow), "clamped to the start");
+    muiDestroyContext(scene.context);
+    // Centered on an anchor at the top, within a margin.
+    MakeScene(&scene, 150.0f, 0.0f);
+    p = PopupOf(scene.anchor, mui_popupCenter, mui_popupAlignStart, 0.0f);
+    p.margin = 10.0f;
+    CHECK(Placed(&scene, &p, 140.0f, 10.0f, mui_popupCenter), "clamped within the margin");
     muiDestroyContext(scene.context);
 }
 
@@ -207,6 +240,12 @@ static void TestRightToLeft(void)
           "wide");
     p = PopupOf(scene.anchor, mui_popupBelow, mui_popupAlignStart, 4.0f);
     CHECK(Placed(&scene, &p, -100.0f, 144.0f, mui_popupBelow), "wide, from the right");
+    CHECK(muiNode_SetLayoutValues(
+              scene.context, scene.popup,
+              &(muiLayoutStyle){.sizing.height = {0.0f, 400.0f, mui_dimensionValue}},
+              MUI_PROPERTY_BIT(mui_propertyHeight)) == mui_success,
+          "tall");
+    CHECK(Placed(&scene, &p, -100.0f, 0.0f, mui_popupBelow), "tall, from the top");
     muiDestroyContext(scene.context);
 }
 
@@ -233,6 +272,11 @@ static void TestScrolledAndNested(void)
     At(context, box, 30.0f, 20.0f);
     muiNodeId popup = Sized(context, box, 120.0f, 60.0f);
     At(context, popup, 0.0f, 0.0f);
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.background = (muiColor){1.0f, 0.0f, 0.0f, 1.0f};
+    CHECK(muiNode_SetVisualValues(context, popup, &visual,
+                                  MUI_PROPERTY_BIT(mui_propertyBackground)) == mui_success,
+          "painted");
     Layout(context, root);
     CHECK(muiNode_SetScroll(context, list, 0.0f, 100.0f) == mui_success, "scrolled");
     muiPopup p = PopupOf(anchor, mui_popupBelow, mui_popupAlignStart, 4.0f);
@@ -240,9 +284,19 @@ static void TestScrolledAndNested(void)
     Layout(context, root);
     CHECK(muiNode_GetRect(context, popup).x == -30.0f && muiNode_GetRect(context, popup).y == 74.0f,
           "below the scrolled anchor, from the box");
+    const muiDrawInput input = {1, 1.0f, NULL, NULL};
+    muiDrawList drawn;
+    CHECK(muiBuildDrawList(context, root, &input) == mui_success &&
+              muiGetDrawList(context, &drawn) == mui_success && drawn.commandCount == 1 &&
+              drawn.commands[0].box.rect.y == 94.0f,
+          "drawn there");
     CHECK(muiNode_SetScroll(context, list, 0.0f, 120.0f) == mui_success, "scrolled on");
     Layout(context, root);
     CHECK(muiNode_GetRect(context, popup).y == 54.0f, "following it");
+    CHECK(muiBuildDrawList(context, root, &input) == mui_success &&
+              muiGetDrawList(context, &drawn) == mui_success && drawn.commandCount == 1 &&
+              drawn.commands[0].box.rect.y == 74.0f,
+          "drawn where it follows");
     // A popup anchored inside that popup, set first: placed after it.
     muiNodeId item = Sized(context, popup, 50.0f, 20.0f);
     At(context, item, 10.0f, 10.0f);
@@ -285,6 +339,22 @@ static void TestUnplaced(void)
     CHECK(muiNode_SetPopup(context, scene.popup, &p) == mui_success, "elsewhere");
     Layout(context, scene.root);
     CHECK(muiNode_GetPopupSide(context, scene.popup, &side) == mui_empty, "not placed either");
+    // The root, and a node in another tree: not placed.
+    p.anchor = scene.anchor;
+    CHECK(muiNode_SetPopup(context, scene.root, &p) == mui_success &&
+              muiNode_SetPopup(context, other, &(muiPopup){.anchor = inside}) == mui_success,
+          "the root and elsewhere");
+    muiNodeId lone = Sized(context, other, 10.0f, 10.0f);
+    CHECK(muiNode_SetPopup(context, lone, &p) == mui_success, "in the other tree");
+    Layout(context, scene.root);
+    CHECK(muiNode_GetPopupSide(context, scene.root, &side) == mui_empty &&
+              muiNode_GetRect(context, scene.root).x == 0.0f &&
+              muiNode_GetPopupSide(context, lone, &side) == mui_empty,
+          "neither placed");
+    CHECK(muiNode_ClearPopup(context, scene.root) == mui_success &&
+              muiNode_ClearPopup(context, other) == mui_success &&
+              muiNode_ClearPopup(context, lone) == mui_success,
+          "cleared");
     // Anchors in a cycle: both placed, no hang.
     muiNodeId second = Sized(context, scene.root, 50.0f, 50.0f);
     At(context, second, 0.0f, 0.0f);
