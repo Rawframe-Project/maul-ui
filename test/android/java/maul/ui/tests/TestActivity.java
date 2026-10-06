@@ -127,6 +127,9 @@ public final class TestActivity extends Activity {
                 "the adapter gone answers nothing");
     }
 
+    // isChecked() is the one from Android 11 on; newer platforms deprecate
+    // it for a form Android 11 lacks.
+    @SuppressWarnings("deprecation")
     private void testNodes(AccessibilityNodeProvider provider, View host, int root, int button,
             int label, int field, int box, int slider, int heading) {
         AccessibilityNodeInfo info = provider.createAccessibilityNodeInfo(root);

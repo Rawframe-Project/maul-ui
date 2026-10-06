@@ -180,6 +180,9 @@ public class AccessProvider extends AccessibilityNodeProvider {
         info.setVisibleToUser(true);
     }
 
+    // setChecked(boolean) is the one from Android 11 on; newer platforms
+    // deprecate it for a form Android 11 lacks.
+    @SuppressWarnings("deprecation")
     private static void state(AccessibilityNodeInfo info, int flags) {
         info.setCheckable((flags & CHECKABLE) != 0);
         info.setChecked((flags & CHECKED) != 0);
