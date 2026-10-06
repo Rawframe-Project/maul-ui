@@ -10,7 +10,6 @@
 #include "notify.h"
 #include "range.h"
 #include "range_store.h"
-#include "scroll_store.h"
 #include "tree.h"
 
 #include <math.h>
@@ -274,20 +273,16 @@ typedef struct Track
 } Track;
 
 // How far a point at node's x, y lies along a range's axis in the
-// range's box.
+// range's box, node being the range or inside it. (A range does not
+// scroll its thumb.)
 static float Along(const muiContext* context, uint32_t range, uint32_t node, float x, float y,
                    bool horizontal)
 {
     double along = horizontal ? (double)x : (double)y;
-    for (uint32_t at = node; at != range;)
+    for (uint32_t at = node; at != range; at = muiTreeAt(&context->tree, at)->links.parent)
     {
         const muiRect* rect = &context->layout[at - 1].rect;
         along += (double)(horizontal ? rect->x : rect->y);
-        at = muiTreeAt(&context->tree, at)->links.parent;
-        const muiLayoutNode* parent = &context->layout[at - 1];
-        const muiScrollState* scroll = &context->scrolls[at - 1];
-        along += (double)(horizontal ? muiScrollShiftX(parent, scroll)
-                                     : muiScrollShiftY(parent, scroll));
     }
     return (float)along;
 }
@@ -374,9 +369,14 @@ static void Follow(muiContext* context, muiRangeEntry* entry, uint32_t slot, flo
         entry->grab = onThumb ? pressed - track.thumb : track.length / 2.0f;
         entry->startValue = range->value;
     }
+    // A thumb filling the track leaves no travel; past either end the
+    // value stops at it.
     float travel = track.end - track.start - track.length;
-    float share = travel > 0.0f ? (point - entry->grab - track.start) / travel : 0.0f;
-    share = fminf(fmaxf(share, 0.0f), 1.0f);
+    if (travel <= 0.0f)
+    {
+        return;
+    }
+    float share = (point - entry->grab - track.start) / travel;
     if (!horizontal || context->layout[slot - 1].rtl)
     {
         share = 1.0f - share;

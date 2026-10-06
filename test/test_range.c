@@ -170,6 +170,11 @@ static void TestModel(void)
     CHECK(muiNode_SetValueRange(context, scene.root, &range) == mui_success &&
               Value(context, scene.root) == 9.0f,
           "1, 3, ..., 9");
+    range = (muiValueRange){.maximum = 10.0f, .value = 10.0f, .step = 4.0f};
+    CHECK(muiNode_SetValueRange(context, scene.root, &range) == mui_success &&
+              Value(context, scene.root) == 8.0f,
+          "0, 4, 8: rounding past the maximum steps back");
+    range.minimum = 1.0f;
     range.step = 0.0f;
     range.value = 2.25f;
     CHECK(muiNode_SetValueRange(context, scene.root, &range) == mui_success &&
@@ -364,6 +369,72 @@ static void TestVertical(void)
     muiDestroyContext(context);
 }
 
+static void TestEdges(void)
+{
+    // A node in a destroyed range's slot is no range.
+    Scene scene;
+    MakeScene(&scene, mui_textLeftToRight);
+    muiContext* context = scene.context;
+    muiValueRange range = muiDefaultValueRange();
+    CHECK(muiDestroyNode(context, scene.slider) == mui_success, "gone");
+    muiNodeDef def = muiDefaultNodeDef();
+    muiNodeId again = s_nullNode;
+    CHECK(muiCreateNode(context, &def, &again) == mui_success &&
+              again.index1 == scene.slider.index1 &&
+              muiNode_GetValueRange(context, again, &range) == mui_empty,
+          "the slot reused");
+    muiDestroyContext(context);
+    // A thumb outside the range, or the range itself, is no thumb: the
+    // value follows the pointer.
+    MakeScene(&scene, mui_textLeftToRight);
+    context = scene.context;
+    range.thumb = scene.root;
+    CHECK(muiNode_SetValueRange(context, scene.slider, &range) == mui_success, "outside");
+    Mouse(&scene, mui_pointerPress, 1, 50.0f);
+    Mouse(&scene, mui_pointerMove, 1, 110.0f);
+    CHECK(Dispatch(&scene) == 2 && Value(context, scene.slider) == 50.0f, "no thumb outside");
+    Mouse(&scene, mui_pointerRelease, 0, 110.0f);
+    (void)Dispatch(&scene);
+    range.thumb = scene.slider;
+    CHECK(muiNode_SetValueRange(context, scene.slider, &range) == mui_success, "itself");
+    Mouse(&scene, mui_pointerPress, 1, 50.0f);
+    Mouse(&scene, mui_pointerMove, 1, 110.0f);
+    CHECK(Dispatch(&scene) == 2 && Value(context, scene.slider) == 50.0f, "no thumb itself");
+    Mouse(&scene, mui_pointerRelease, 0, 110.0f);
+    (void)Dispatch(&scene);
+    // A thumb as long as the track: a drag leaves the value.
+    range.thumb = scene.thumb;
+    range.value = 30.0f;
+    muiLayoutStyle wide = muiDefaultLayoutStyle();
+    wide.sizing.width = (muiDimension){0.0f, 200.0f, mui_dimensionValue};
+    CHECK(muiNode_SetLayoutValues(context, scene.thumb, &wide,
+                                  MUI_PROPERTY_BIT(mui_propertyWidth)) == mui_success &&
+              muiNode_SetValueRange(context, scene.slider, &range) == mui_success,
+          "a full thumb");
+    Layout(context, scene.root);
+    Mouse(&scene, mui_pointerPress, 1, 50.0f);
+    Mouse(&scene, mui_pointerMove, 1, 150.0f);
+    CHECK(Dispatch(&scene) == 2 && Value(context, scene.slider) == 30.0f, "no travel");
+    muiDestroyContext(context);
+    // Right to left with padding of 30 at the start (the right) and 10 at
+    // the end: the track runs from 10 to 190, the thumb at 170.
+    MakeScene(&scene, mui_textRightToLeft);
+    context = scene.context;
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.padding = (muiEdges){30.0f, 10.0f, 0.0f, 0.0f};
+    style.textDirection = mui_textRightToLeft;
+    CHECK(muiNode_SetLayoutValues(context, scene.slider, &style,
+                                  MUI_PROPERTY_BIT(mui_propertyPaddingStart) |
+                                      MUI_PROPERTY_BIT(mui_propertyPaddingEnd)) == mui_success,
+          "padding");
+    Layout(context, scene.root);
+    Mouse(&scene, mui_pointerPress, 1, 50.0f);
+    Mouse(&scene, mui_pointerMove, 1, 100.0f);
+    CHECK(Dispatch(&scene) == 2 && Value(context, scene.slider) == 50.0f,
+          "from the track: 100 less half the thumb, half of 160 from 10");
+    muiDestroyContext(context);
+}
+
 static void TestContract(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -387,6 +458,13 @@ static void TestContract(void)
         *fields[i] = nan;
         CHECK(muiNode_SetValueRange(context, a, &bad) == mui_errorInvalid, "not finite");
     }
+    float* ends[] = {&bad.minimum, &bad.maximum, &bad.step, &bad.page};
+    for (int i = 0; i < 4; i++)
+    {
+        bad = range;
+        *ends[i] = i == 0 ? -INFINITY : INFINITY;
+        CHECK(muiNode_SetValueRange(context, a, &bad) == mui_errorInvalid, "infinite");
+    }
     bad = range;
     bad.maximum = -1.0f;
     CHECK(muiNode_SetValueRange(context, a, &bad) == mui_errorInvalid, "below the minimum");
@@ -399,7 +477,7 @@ static void TestContract(void)
     bad = range;
     bad.axis = 2;
     CHECK(muiNode_SetValueRange(context, a, &bad) == mui_errorInvalid, "an axis");
-    CHECK(muiGetContextMisuse(context) == misuse + 11, "counted");
+    CHECK(muiGetContextMisuse(context) == misuse + 15, "counted");
     // The limit; a node gone frees its entry.
     CHECK(muiNode_SetValueRange(context, a, &range) == mui_success &&
               muiNode_SetValueRange(context, a, &range) == mui_success &&
@@ -434,6 +512,7 @@ int main(void)
     TestPointer();
     TestShapes();
     TestVertical();
+    TestEdges();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }
