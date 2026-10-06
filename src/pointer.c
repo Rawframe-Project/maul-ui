@@ -363,7 +363,7 @@ static void Press(muiContext* context, muiPointer* pointer, const Target* hit,
     if (before == 0)
     {
         muiFocusPress(context, event->player, target.slot);
-        muiScrollStopFlings(context, target.slot);
+        muiScrollStopFlings(context, target.slot, event->timeNs);
     }
     if (before == 0)
     {

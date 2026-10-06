@@ -44,8 +44,8 @@ bool muiScrollPage(muiContext* context, uint32_t container, muiKeyCode code, boo
 bool muiScrollPointer(muiContext* context, const muiPointerRecord* record);
 
 // Stops the flings of the node at slot and the scroll containers above
-// it, as a press there does.
-void muiScrollStopFlings(muiContext* context, uint32_t slot);
+// it, as a press there at timeNs does; one past a limit springs back.
+void muiScrollStopFlings(muiContext* context, uint32_t slot, uint64_t timeNs);
 
 // Moves the steps easing to where they are at nowNs, after layout.
 void muiScrollAdvance(muiContext* context, uint64_t nowNs);

@@ -783,6 +783,60 @@ static void TestOverscrollPort(void)
     muiDestroyContext(context);
 }
 
+// A fling's overscroll t seconds after it began from from at v, meeting
+// the edge: from then on a critically damped spring from none.
+static double FlingOver(double from, double v, double edge, double t)
+{
+    double decay = -log(0.998) * 1000.0;
+    double left = 1.0 - (edge - from) * decay / v;
+    double tau = t + log(left) / decay;
+    return v * left * tau * exp(-sqrt(200.0) * tau);
+}
+
+static void TestFlingBounce(void)
+{
+    Scene scene;
+    MakeScene(&scene, 10);
+    muiContext* context = scene.context;
+    Overscroll(context, true);
+    // From 340, a flick of 1000 a second down, sideways too: at 370 when
+    // released, it meets the end and springs on past it, not sideways.
+    CHECK(muiNode_SetScroll(context, scene.s, 0.0f, 340.0f) == mui_success, "near the end");
+    CHECK(Feed(&scene, 7, mui_pointerTouch, mui_pointerPress, 0, 50.0f, 50.0f) == 0 &&
+              Feed(&scene, 7, mui_pointerTouch, mui_pointerMove, 10 * MS, 60.0f, 40.0f) == 1 &&
+              Feed(&scene, 7, mui_pointerTouch, mui_pointerMove, 20 * MS, 80.0f, 20.0f) == 1 &&
+              Feed(&scene, 7, mui_pointerTouch, mui_pointerRelease, 30 * MS, 80.0f, 20.0f) == 1 &&
+              Y(context, scene.s) == 370.0f,
+          "a flick");
+    Layout(context, scene.root, 130 * MS);
+    double over = FlingOver(370.0, 1000.0, 400.0, 0.1);
+    CHECK(Y(context, scene.s) == 400.0f && over > 1.0 &&
+              Drawn(&scene, true) == roundf((float)(-400.0 - over)) && Drawn(&scene, false) == 0.0f,
+          "past the end");
+    Layout(context, scene.root, 3000 * MS);
+    CHECK(Drawn(&scene, true) == -400.0f && !muiIsUpdatePending(context, scene.root), "back, done");
+    // Up from 60: past the top.
+    CHECK(muiNode_SetScroll(context, scene.s, 0.0f, 60.0f) == mui_success, "near the top");
+    CHECK(Touch(&scene, mui_pointerPress, 4000 * MS, 20.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 4010 * MS, 30.0f) == 1 &&
+              Touch(&scene, mui_pointerMove, 4020 * MS, 50.0f) == 1 &&
+              Touch(&scene, mui_pointerRelease, 4030 * MS, 50.0f) == 1 &&
+              Y(context, scene.s) == 30.0f,
+          "a flick up");
+    Layout(context, scene.root, 4130 * MS);
+    over = FlingOver(30.0, -1000.0, 0.0, 0.1);
+    CHECK(over < -1.0 && Drawn(&scene, true) == roundf((float)-over), "past the top");
+    // A tap there stops the fling: it springs back from where it was.
+    CHECK(Touch(&scene, mui_pointerPress, 4130 * MS, 50.0f) == 0 &&
+              Touch(&scene, mui_pointerRelease, 4140 * MS, 50.0f) == 0,
+          "a tap");
+    Layout(context, scene.root, 4230 * MS);
+    CHECK(Drawn(&scene, true) == roundf((float)(-over * Kept(0.1))), "springing back");
+    Layout(context, scene.root, 6000 * MS);
+    CHECK(Drawn(&scene, true) == 0.0f && !muiIsUpdatePending(context, scene.root), "at rest");
+    muiDestroyContext(context);
+}
+
 static void TestRule(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -817,6 +871,7 @@ int main(void)
     TestOverscroll();
     TestOverscrollAcross();
     TestOverscrollPort();
+    TestFlingBounce();
     TestRule();
     return s_failures == 0 ? 0 : 1;
 }

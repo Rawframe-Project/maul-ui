@@ -184,7 +184,10 @@ itself instead of each host repeating them.
   radians a second (Flutter's iOS spring, stiffness 100 over mass 0.5);
   a pan catching it goes on from the pan that put it there. A step or
   setting the offset takes it back at once, as reduced motion does. A
-  fling stops at the limit.
+  fling meeting a limit springs on past it from none at the speed it
+  met it, on the same spring, all in closed form; a press stopping it
+  there springs it back. Without overscroll, a fling stops at the
+  limit.
 - **Drags:** a node takes drags by the interaction property `drags`. A
   press on it, or below it where no nearer node takes them, becomes a
   drag once it moves past the threshold on either axis (4 for a mouse,

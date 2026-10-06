@@ -335,41 +335,86 @@ static bool Ease(muiContext* context, uint32_t slot, const muiScrollEase* ease, 
     return t >= 1.0;
 }
 
-// The flings' slowest speed, below which they stop, in units a second.
-#define MUI_FLING_STOP 10.0
-
-// Moves a fling's offsets to where elapsed nanoseconds take them: from
-// its start at its velocity, keeping the rule's rate of it a millisecond,
-// so v (1 - r^t) / -ln r further at t. Whether it is done: slow enough,
-// or at a limit along each axis it moves on.
-static bool Decay(muiContext* context, uint32_t slot, const muiScrollEase* ease, double elapsed)
-{
-    // The decay a second.
-    double decay = -muiLog((double)context->scrolling.rule.decelerationRate) * 1000.0;
-    double kept = muiExp(-decay * elapsed / 1e9);
-    const muiLayoutNode* layout = &context->layout[slot - 1];
-    muiScrollState* scroll = &context->scrolls[slot - 1];
-    const muiSize size = {layout->rect.width, layout->rect.height};
-    float limitX = muiScrollLimit(&layout->style, size, scroll, true);
-    float limitY = muiScrollLimit(&layout->style, size, scroll, false);
-    float x = (float)((double)ease->fromX + (double)ease->velocityX * (1.0 - kept) / decay);
-    float y = (float)((double)ease->fromY + (double)ease->velocityY * (1.0 - kept) / decay);
-    scroll->x = fminf(fmaxf(x, 0.0f), limitX);
-    scroll->y = fminf(fmaxf(y, 0.0f), limitY);
-    // An axis stops where a limit cut it short.
-    bool stoppedX = ease->velocityX == 0.0f || scroll->x != x;
-    bool stoppedY = ease->velocityY == 0.0f || scroll->y != y;
-    double speed = sqrt((double)ease->velocityX * (double)ease->velocityX +
-                        (double)ease->velocityY * (double)ease->velocityY) *
-                   kept;
-    return speed < MUI_FLING_STOP || (stoppedX && stoppedY);
-}
-
 // The bounce's spring, critically damped: its rate in radians a second,
 // the square root of Flutter's iOS spring's stiffness 100 over its mass
 // 0.5; and the overscroll below which it is done, in units.
 #define MUI_BOUNCE_RATE 14.142135623730951
 #define MUI_BOUNCE_REST 0.1f
+
+// The flings' slowest speed, below which they stop, in units a second.
+#define MUI_FLING_STOP 10.0
+
+// One axis of a fling: its offset, its overscroll, and whether it is
+// settled, at rest with nothing past a limit.
+typedef struct muiFlung
+{
+    float offset;
+    float over;
+    bool settled;
+} muiFlung;
+
+// An axis of a fling from from at velocity v, decaying by decay a
+// second, seconds on, where it keeps kept of v: within 0 and limit at
+// v (1 - kept) / decay further; past one, at it, and with overscroll
+// springing on past it from none at the speed it met it.
+static muiFlung FlingAxis(double from, double v, double limit, double decay, double seconds,
+                          double kept, bool overscroll)
+{
+    double at = from + v * (1.0 - kept) / decay;
+    if (at >= 0.0 && at <= limit)
+    {
+        return (muiFlung){(float)at, 0.0f, v == 0.0};
+    }
+    double edge = at > limit ? limit : 0.0;
+    // It met the edge when it had kept left of v, having gone edge - from:
+    // v (1 - left) / decay. Left is in (0, 1] unless layout moved the
+    // limit behind where it began.
+    double left = 1.0 - (edge - from) * decay / v;
+    if (!overscroll || !(left > 0.0 && left <= 1.0))
+    {
+        return (muiFlung){(float)edge, 0.0f, true};
+    }
+    // From then, v left t e^-wt, critically damped from none.
+    double tau = seconds + muiLog(left) / decay;
+    double damped = muiExp(-MUI_BOUNCE_RATE * tau);
+    double speed = v * left;
+    double over = speed * tau * damped;
+    double moving = speed * (1.0 - MUI_BOUNCE_RATE * tau) * damped;
+    bool rest = fabs(over) < (double)MUI_BOUNCE_REST && fabs(moving) < MUI_FLING_STOP;
+    return (muiFlung){(float)edge, rest ? 0.0f : (float)over, rest};
+}
+
+// Moves a fling's offsets to where elapsed nanoseconds take them: from
+// its start at its velocity, keeping the rule's rate of it a millisecond,
+// so v (1 - r^t) / -ln r further at t; past a limit with overscroll, on
+// past it. Whether it is done: slow enough with nothing past a limit, or
+// settled along each axis.
+static bool Decay(muiContext* context, uint32_t slot, const muiScrollEase* ease, double elapsed)
+{
+    // The decay a second.
+    double decay = -muiLog((double)context->scrolling.rule.decelerationRate) * 1000.0;
+    double seconds = elapsed / 1e9;
+    double kept = muiExp(-decay * seconds);
+    const muiLayoutNode* layout = &context->layout[slot - 1];
+    muiScrollState* scroll = &context->scrolls[slot - 1];
+    const muiSize size = {layout->rect.width, layout->rect.height};
+    bool overscroll = context->scrolling.rule.overscroll;
+    muiScrollAxes axes = layout->style.scrollAxes;
+    muiFlung x = FlingAxis((double)ease->fromX, (double)ease->velocityX,
+                           (double)muiScrollLimit(&layout->style, size, scroll, true), decay,
+                           seconds, kept, overscroll && (axes & mui_scrollHorizontal) != 0);
+    muiFlung y = FlingAxis((double)ease->fromY, (double)ease->velocityY,
+                           (double)muiScrollLimit(&layout->style, size, scroll, false), decay,
+                           seconds, kept, overscroll && (axes & mui_scrollVertical) != 0);
+    scroll->x = x.offset;
+    scroll->y = y.offset;
+    scroll->overX = x.over;
+    scroll->overY = y.over;
+    double speed = sqrt((double)ease->velocityX * (double)ease->velocityX +
+                        (double)ease->velocityY * (double)ease->velocityY) *
+                   kept;
+    return (speed < MUI_FLING_STOP && x.over == 0.0f && y.over == 0.0f) || (x.settled && y.settled);
+}
 
 // Moves a bounce's overscroll to where elapsed nanoseconds take it, from
 // where it began at rest toward none, x0 (1 + wt) e^-wt; whether it is
@@ -610,16 +655,28 @@ static void StartBounce(muiContext* context, uint32_t slot, uint64_t timeNs)
     };
 }
 
-void muiScrollStopFlings(muiContext* context, uint32_t slot)
+void muiScrollStopFlings(muiContext* context, uint32_t slot, uint64_t timeNs)
 {
     muiScrollStore* store = &context->scrolling;
     for (uint32_t at = slot; at != 0; at = muiTreeAt(&context->tree, at)->links.parent)
     {
         uint32_t i = EaseOf(store, at);
-        if (i < store->easeCount && store->eases[i].kind == muiScrollEaseFling)
+        if (i == store->easeCount || store->eases[i].kind != muiScrollEaseFling)
         {
-            Drop(store, i);
+            continue;
         }
+        // A fling stopped past a limit springs back from there.
+        const muiScrollState* scroll = &context->scrolls[at - 1];
+        if (scroll->overX != 0.0f || scroll->overY != 0.0f)
+        {
+            store->eases[i] = (muiScrollEase){.node = store->eases[i].node,
+                                              .fromX = scroll->overX,
+                                              .fromY = scroll->overY,
+                                              .startNs = timeNs,
+                                              .kind = muiScrollEaseBounce};
+            continue;
+        }
+        Drop(store, i);
     }
 }
 
