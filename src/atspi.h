@@ -9,6 +9,7 @@
 #define MAUL_UI_SRC_ATSPI_H
 
 #include "dbus_api.h"
+#include "id_map.h"
 
 #include "maul-ui/access_atspi.h"
 
@@ -49,6 +50,28 @@ struct muiAtspiApp
     int32_t id;
 };
 
+// What clients were last told of a shown node: its shown parent, 0 for
+// the application's root, and its index there; the walk that last saw
+// it shown and the one that first did.
+typedef struct muiAtspiTold
+{
+    uint64_t id;
+    uint64_t parent;
+    uint32_t index;
+    uint32_t seen;
+    uint32_t born;
+} muiAtspiTold;
+
+// Where a walk found a shown node: its parent's place in the walk and
+// its index among the parent's shown children; whether clients are to
+// be told it is there, new or moved.
+typedef struct muiAtspiPlace
+{
+    uint32_t parent;
+    uint32_t index;
+    bool tell;
+} muiAtspiPlace;
+
 struct muiAtspiAdapter
 {
     muiAtspiApp* app;
@@ -63,7 +86,25 @@ struct muiAtspiAdapter
     // Room for any node's shown children.
     uint64_t* scratch;
     uint32_t nodes;
+    // The walk of the shown tree after an update: the nodes in order and
+    // where each was found.
+    uint64_t* walk;
+    muiAtspiPlace* places;
+    // What clients were told: the records, their free places, and the
+    // records by id.
+    muiAtspiTold* told;
+    uint32_t* freeTold;
+    uint32_t freeCount;
+    muiIdMap toldById;
+    uint32_t pass;
+    // The focus's move in the update being applied, told last.
+    uint64_t focusFrom;
+    uint64_t focusTo;
+    bool focusMoved;
 };
+
+// Takes a window out of what clients were told, before it goes.
+void muiAtspiTellGone(muiAtspiAdapter* adapter);
 
 // What a path names: the application's root, or a node of a window.
 typedef struct muiAtspiObject
@@ -105,6 +146,16 @@ bool muiAtspiAppendActionProperty(muiAtspiApp* app, muiDBusIter* iter, const mui
 bool muiAtspiAppendValueProperty(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object,
                                  const char* name, bool* ok);
 bool muiAtspiSetValue(const muiAtspiObject* object, double value);
+
+// The states a node's record alone decides (not visible, showing,
+// focused or active, which the tree decides); a state's AT-SPI name, ""
+// for one the adapter does not give.
+#define MUI_ATSPI_LAST_STATE 43
+void muiAtspiRecordStatesOf(const muiAccessNode* node, uint32_t statesOut[2]);
+const char* muiAtspiStateName(uint32_t state);
+
+// An object's path.
+void muiAtspiPathOf(const muiAtspiObject* object, char pathOut[ATSPI_PATH_SIZE]);
 
 // The interfaces an object has, at most four; how many.
 uint32_t muiAtspiInterfacesOf(const muiAtspiObject* object, const char* interfacesOut[4]);

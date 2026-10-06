@@ -13,6 +13,9 @@
 // - focusing asked of the host;
 // - actions listed and done, a range's value read and set, relations
 //   and attributes;
+// - events: states, names, values and announcements from updated
+//   records; children added, hidden, moved and removed, the topmost
+//   only; the focus last;
 // - unknown objects and methods, a node removed, a window taken out.
 
 #define _POSIX_C_SOURCE 200809L
@@ -42,6 +45,10 @@ typedef struct Test
     char plugPath[256];
     // What the host was asked last.
     muiAccessRequest asked;
+    // The events received, "member kind detail1 from data; ..." with
+    // paths cut to what follows /accessible/.
+    char events[2048];
+    size_t eventsLength;
 } Test;
 
 static Test s_test;
@@ -127,6 +134,98 @@ static muiDBusHandled Registry(DBusConnection* connection, DBusMessage* message,
     (void)dbus->send(connection, reply, NULL);
     dbus->unrefMessage(reply);
     return mui_dbusHandled;
+}
+
+static const char* Short(const char* path)
+{
+    const char* prefix = "/org/a11y/atspi/accessible/";
+    return strncmp(path, prefix, strlen(prefix)) == 0 ? path + strlen(prefix) : path;
+}
+
+// What a signal's variant holds, as text.
+static void DataOf(muiDBusIter* iter, char* out, size_t size)
+{
+    muiDBusIter variant;
+    muiDBusIter reference;
+    char name[256];
+    char path[256] = "";
+    const char* text = NULL;
+    double number = 0.0;
+    s_test.dbus.recurse(iter, &variant);
+    int type = s_test.dbus.argType(&variant);
+    out[0] = '\0';
+    if (type == mui_dbusTypeString)
+    {
+        s_test.dbus.getBasic(&variant, (void*)&text);
+        (void)snprintf(out, size, " %s", text);
+    }
+    else if (type == mui_dbusTypeDouble)
+    {
+        s_test.dbus.getBasic(&variant, &number);
+        (void)snprintf(out, size, " %g", number);
+    }
+    else if (type == mui_dbusTypeStruct)
+    {
+        s_test.dbus.recurse(&variant, &reference);
+        (void)(ReadString(&reference, name, sizeof(name)) && s_test.dbus.next(&reference) &&
+               ReadString(&reference, path, sizeof(path)));
+        (void)snprintf(out, size, " %s", Short(path));
+    }
+}
+
+// Logs the application's events.
+static muiDBusHandled Listen(DBusConnection* connection, DBusMessage* message, void* data)
+{
+    (void)connection;
+    (void)data;
+    const muiDBusApi* dbus = &s_test.dbus;
+    const char* interface = dbus->interface(message);
+    muiDBusIter iter;
+    char kind[64] = "";
+    int32_t detail1 = 0;
+    char any[300] = "";
+    if (dbus->messageType(message) != mui_dbusSignal || interface == NULL ||
+        strcmp(interface, "org.a11y.atspi.Event.Object") != 0 || !dbus->iterInit(message, &iter))
+    {
+        return mui_dbusNotHandled;
+    }
+    (void)(ReadString(&iter, kind, sizeof(kind)) && dbus->next(&iter));
+    dbus->getBasic(&iter, &detail1);
+    (void)(dbus->next(&iter) && dbus->next(&iter));
+    DataOf(&iter, any, sizeof(any));
+    if (s_test.eventsLength >= sizeof(s_test.events) - 1)
+    {
+        return mui_dbusHandled;
+    }
+    s_test.eventsLength += (size_t)snprintf(
+        s_test.events + s_test.eventsLength, sizeof(s_test.events) - s_test.eventsLength,
+        "%s%s %s %d %s%s", s_test.eventsLength != 0 ? "; " : "", dbus->member(message), kind,
+        (int)detail1, Short(dbus->path(message)), any);
+    return mui_dbusHandled;
+}
+
+// Pumps until the events come, and a little more for any beyond them;
+// whether they are exactly those.
+static bool EventsAre(const char* expected)
+{
+    for (int i = 0; i < 2000 && s_test.eventsLength < strlen(expected); i++)
+    {
+        PumpBoth();
+        Wait();
+    }
+    for (int i = 0; i < 20; i++)
+    {
+        PumpBoth();
+        Wait();
+    }
+    bool same = strcmp(s_test.events, expected) == 0;
+    if (!same)
+    {
+        fprintf(stderr, "events: %s\n", s_test.events);
+    }
+    s_test.events[0] = '\0';
+    s_test.eventsLength = 0;
+    return same;
 }
 
 static bool Act(void* user, const muiAccessRequest* request)
@@ -787,6 +886,91 @@ static void TestActionsAndValues(void)
           "attributes");
 }
 
+// Sends records, the children they list from their own array.
+static bool Send(muiAtspiAdapter* adapter, const muiAccessNode* const* nodes, uint32_t count,
+                 const uint64_t* children, uint64_t focus)
+{
+    const muiAccessUpdate update = {nodes, count, children, 0, focus};
+    return muiAtspiAdapter_Apply(adapter, &update) == mui_success;
+}
+
+static void TestEvents(muiAtspiAdapter* adapter, Built* built)
+{
+    char expected[512];
+    muiAccessNode check = built->nodes[4];
+    check.flags = mui_accessCheckable;
+    check.text[mui_accessLabel] = "Agreed";
+    check.textLength[mui_accessLabel] = 6;
+    muiAccessNode slider = built->nodes[8];
+    slider.value = 40.0f;
+    muiAccessNode group = built->nodes[5];
+    group.text[mui_accessLabel] = "Box 2";
+    group.textLength[mui_accessLabel] = 5;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&check, &slider, &group}, 3, built->children, 0) &&
+              EventsAre("StateChanged checked 0 w1n1a; PropertyChange accessible-name 0 w1n1a "
+                        "Agreed; PropertyChange accessible-value 0 w1n8 40; PropertyChange "
+                        "accessible-name 0 w1n6 Box 2; Announcement  1 w1n6 Box 2"),
+          "states, names, values and announcements");
+    // A node 10 added to the group, the progress bar 9 hidden.
+    muiAccessNode added = {.id = 10, .role = mui_roleButton, .bounds = {0, 0, 10, 10}};
+    muiAccessNode progress = built->nodes[7];
+    progress.flags |= mui_accessHidden;
+    const uint64_t groupChildren[3] = {7, 9, 10};
+    group.firstChild = 0;
+    group.childCount = 3;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&group, &added, &progress}, 3, groupChildren, 0) &&
+              EventsAre("ChildrenChanged remove -1 w1n6 w1n9; ChildrenChanged add 1 w1n6 w1na"),
+          "a child hidden, a child added");
+    // The generic 3 named, so shown: the label 4 moves under it; the focus
+    // moves to the checkbox.
+    muiAccessNode generic = built->nodes[2];
+    generic.text[mui_accessLabel] = "Greeting";
+    generic.textLength[mui_accessLabel] = 8;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&generic}, 1, built->children, 0x1a) &&
+              EventsAre("PropertyChange accessible-name 0 w1n3 Greeting; ChildrenChanged remove -1 "
+                        "w1n1 w1n4; ChildrenChanged add 1 w1n1 w1n3; StateChanged focused 0 w1n2; "
+                        "StateChanged focused 1 w1n1a"),
+          "a child moved under a node newly shown, told once; the focus last");
+    // The group taken out with what it holds: one removal and defunct.
+    muiAccessNode root = built->nodes[0];
+    const uint64_t rootChildren[4] = {2, 3, 0x1a, 8};
+    root.firstChild = 0;
+    root.childCount = 4;
+    (void)snprintf(expected, sizeof(expected),
+                   "ChildrenChanged remove -1 w1n1 w1n6; StateChanged defunct 1 w1n6");
+    CHECK(Send(adapter, (const muiAccessNode*[]){&root}, 1, rootChildren, 0) && EventsAre(expected),
+          "a subtree removed, its top told");
+    // Back as it was built, for the tests after.
+    const muiAccessUpdate update = {built->sent, built->nodeCount, built->children, 1, 2};
+    CHECK(muiAtspiAdapter_Apply(adapter, &update) == mui_success &&
+              EventsAre("PropertyChange accessible-name 0 w1n3 ; StateChanged checked 1 w1n1a; "
+                        "PropertyChange accessible-name 0 w1n1a Agree; PropertyChange "
+                        "accessible-value 0 w1n8 30; ChildrenChanged remove -1 w1n1 w1n3; "
+                        "ChildrenChanged add 1 w1n1 w1n4; ChildrenChanged add 3 w1n1 w1n6; "
+                        "StateChanged focused 0 w1n1a; StateChanged focused 1 w1n2"),
+          "restored: a name gone told empty, removals before additions");
+    // A label node named now by a label of its own, its text the same;
+    // a value on it, which is no range, not told.
+    muiAccessNode label = built->nodes[3];
+    label.value = 5.0f;
+    label.text[mui_accessLabel] = "Hi";
+    label.textLength[mui_accessLabel] = 2;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&label}, 1, built->children, 0) &&
+              EventsAre("PropertyChange accessible-name 0 w1n4 Hi") &&
+              Send(adapter, (const muiAccessNode*[]){&built->nodes[3]}, 1, built->children, 0) &&
+              EventsAre("PropertyChange accessible-name 0 w1n4 Hello"),
+          "a name from another text; a value on a node that is no range");
+    // Two siblings swapped: the one out of order told moved.
+    const uint64_t swapped[5] = {2, 3, 0x1a, 8, 6};
+    root.childCount = 5;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&root}, 1, swapped, 0) &&
+              EventsAre("ChildrenChanged remove -1 w1n1 w1n6; ChildrenChanged add 4 w1n1 w1n6"),
+          "siblings reordered");
+    CHECK(Send(adapter, (const muiAccessNode*[]){&built->nodes[0]}, 1, built->children, 0) &&
+              EventsAre("ChildrenChanged remove -1 w1n1 w1n8; ChildrenChanged add 4 w1n1 w1n8"),
+          "and back");
+}
+
 static void TestGone(muiAtspiAdapter* adapter, Built* built)
 {
     CHECK(IsError(Answer(Call("/org/a11y/atspi/accessible/w9n1", "org.a11y.atspi.Accessible",
@@ -807,6 +991,8 @@ static void TestGone(muiAtspiAdapter* adapter, Built* built)
     const muiAccessNode* sent[1] = {&root};
     const muiAccessUpdate update = {sent, 1, built->children, 0, 0};
     CHECK(muiAtspiAdapter_Apply(adapter, &update) == mui_success &&
+              EventsAre("ChildrenChanged remove -1 w1n1 w1n2; StateChanged defunct 1 w1n2; "
+                        "StateChanged focused 1 w1n1") &&
               IsError(Answer(Call("/org/a11y/atspi/accessible/w1n2", "org.a11y.atspi.Accessible",
                                   "GetRole")),
                       "org.freedesktop.DBus.Error.UnknownObject") &&
@@ -815,20 +1001,26 @@ static void TestGone(muiAtspiAdapter* adapter, Built* built)
     muiAtspiAdapterDef def = muiDefaultAtspiAdapterDef();
     def.action = Act;
     muiAtspiAdapter* second = NULL;
+    muiAtspiAdapter* third = NULL;
     muiAccessNode alone = {.id = 9, .role = mui_roleWindow};
     const muiAccessNode* aloneSent[1] = {&alone};
     const muiAccessUpdate aloneUpdate = {aloneSent, 1, NULL, 9, 9};
     CHECK(muiCreateAtspiAdapter(s_test.app, &def, &second) == mui_success &&
               ChildrenAre(ROOT_PATH, "w1n1"),
           "a window with no tree is no child");
-    CHECK(muiAtspiAdapter_Apply(second, &aloneUpdate) == mui_success &&
-              ChildrenAre(ROOT_PATH, "w1n1 w2n9"),
-          "a second window");
+    CHECK(muiCreateAtspiAdapter(s_test.app, &def, &third) == mui_success &&
+              muiAtspiAdapter_Apply(third, &aloneUpdate) == mui_success &&
+              EventsAre("ChildrenChanged add 1 root w3n9; StateChanged focused 1 w3n9") &&
+              ChildrenAre(ROOT_PATH, "w1n1 w3n9"),
+          "a third window, after the second with no tree");
     muiDestroyAtspiAdapter(adapter);
-    CHECK(ChildrenAre(ROOT_PATH, "w2n9") && RoleOf("/org/a11y/atspi/accessible/w2n9") == 23,
-          "the first window taken out, the second kept");
+    CHECK(EventsAre("ChildrenChanged remove -1 root w1n1; StateChanged defunct 1 w1n1") &&
+              ChildrenAre(ROOT_PATH, "w3n9") && RoleOf("/org/a11y/atspi/accessible/w3n9") == 23,
+          "the first window taken out, the third kept");
     muiDestroyAtspiAdapter(second);
-    CHECK(ChildrenAre(ROOT_PATH, "") &&
+    muiDestroyAtspiAdapter(third);
+    CHECK(EventsAre("ChildrenChanged remove -1 root w3n9; StateChanged defunct 1 w3n9") &&
+              ChildrenAre(ROOT_PATH, "") &&
               IsError(Answer(Call("/org/a11y/atspi/accessible/w1n1", "org.a11y.atspi.Accessible",
                                   "GetRole")),
                       "org.freedesktop.DBus.Error.UnknownObject"),
@@ -869,8 +1061,11 @@ int main(void)
     s_test.registry = s_test.dbus.openPrivate(address, NULL);
     CHECK(s_test.registry != NULL && s_test.dbus.busRegister(s_test.registry, NULL) &&
               s_test.dbus.requestName(s_test.registry, "org.a11y.atspi.Registry", 4, NULL) == 1 &&
-              s_test.dbus.addFilter(s_test.registry, Registry, NULL, NULL),
+              s_test.dbus.addFilter(s_test.registry, Registry, NULL, NULL) &&
+              s_test.dbus.addFilter(s_test.registry, Listen, NULL, NULL),
           "the registry");
+    s_test.dbus.addMatch(s_test.registry, "type='signal',interface='org.a11y.atspi.Event.Object'",
+                         NULL);
     muiAtspiAppDef def = muiDefaultAtspiAppDef();
     def.name = "maul test";
     CHECK(muiCreateAtspiApp(&def, &s_test.app) == mui_success, "the application");
@@ -891,11 +1086,14 @@ int main(void)
               muiAtspiAdapter_Apply(adapter, &update) == mui_success &&
               muiAccessTree_Count(muiAtspiAdapter_GetTree(adapter)) == 9,
           "a window");
+    CHECK(EventsAre("ChildrenChanged add 0 root w1n1; StateChanged focused 1 w1n2"),
+          "a window's root added to the application's, its nodes not told; the focus");
     TestContract();
     TestRoot();
     TestNodes();
     TestComponent(adapter);
     TestActionsAndValues();
+    TestEvents(adapter, &s_built);
     TestGone(adapter, &s_built);
     muiDestroyAtspiApp(s_test.app);
     s_test.dbus.close(s_test.registry);

@@ -126,17 +126,22 @@ static bool AppendNamed(muiAtspiApp* app, muiDBusIter* iter, const char* name, c
            dbus->closeContainer(iter, &reference);
 }
 
-bool muiAtspiAppendReference(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object)
+void muiAtspiPathOf(const muiAtspiObject* object, char pathOut[ATSPI_PATH_SIZE])
 {
-    const char* name = app->dbus.uniqueName(app->connection);
     if (object->node == nullptr)
     {
-        return AppendNamed(app, iter, name, ATSPI_ROOT_PATH);
+        (void)snprintf(pathOut, ATSPI_PATH_SIZE, "%s", ATSPI_ROOT_PATH);
+        return;
     }
-    char path[ATSPI_PATH_SIZE];
-    (void)snprintf(path, sizeof(path), "%sw%" PRIu32 "n%" PRIx64, ATSPI_PREFIX,
+    (void)snprintf(pathOut, ATSPI_PATH_SIZE, "%sw%" PRIu32 "n%" PRIx64, ATSPI_PREFIX,
                    object->adapter->window, object->node->id);
-    return AppendNamed(app, iter, name, path);
+}
+
+bool muiAtspiAppendReference(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object)
+{
+    char path[ATSPI_PATH_SIZE];
+    muiAtspiPathOf(object, path);
+    return AppendNamed(app, iter, app->dbus.uniqueName(app->connection), path);
 }
 
 // The desktop the root is embedded in, or the null object before the

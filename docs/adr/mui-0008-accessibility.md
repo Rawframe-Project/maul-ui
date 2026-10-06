@@ -171,7 +171,14 @@ ranges and virtual lists.
   host's set-value action, within the range), relations (to nodes the
   window holds) and attributes (level, place in a set, live), and the
   Application interface on the root. An object answers only the
-  interfaces it lists.
+  interfaces it lists. Events are `org.a11y.atspi.Event.Object`
+  signals: states, names, descriptions, values, roles and
+  announcements from comparing each replaced record with its new one;
+  `ChildrenChanged` from one walk of the shown tree after each update,
+  compared with a record of what clients were last told (each shown
+  node's shown parent and index), removals before additions and the
+  topmost node of a change only, as AT-SPI clients cache children;
+  the focus last.
 
 ## Consequences
 

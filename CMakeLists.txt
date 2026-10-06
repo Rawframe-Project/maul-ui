@@ -128,7 +128,7 @@ if(MAUL_UI_ATSPI)
     endif()
     # libdbus-1 is opened at run time; dlopen is in libdl before glibc 2.34.
     target_sources(maul-ui PRIVATE src/atspi_actions.c src/atspi_app.c src/atspi_component.c
-                                   src/atspi_objects.c
+                                   src/atspi_events.c src/atspi_objects.c
                                    src/atspi_properties.c src/atspi_roles.c src/dbus_api.c)
     target_link_libraries(maul-ui PUBLIC ${CMAKE_DL_LIBS})
     if(CMAKE_DL_LIBS)
