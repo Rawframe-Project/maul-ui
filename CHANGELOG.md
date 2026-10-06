@@ -27,6 +27,10 @@ format.
 
 ### Added
 
+- Distance fields: `muiRenderGlyphField` renders a glyph as a signed
+  distance field a renderer scales to any size, overlapping contours as
+  one shape, the same bytes on every platform (record mui-0006).
+
 - Glyph atlases (`maul-ui/glyph_atlas.h`): glyph images packed into
   pages of 8-bit coverage a renderer uploads, found by font, glyph, size
   and quarter-pixel pen position, with plots evicted least recently

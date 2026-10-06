@@ -6,13 +6,15 @@
 // shapes every block), at a new width (which only breaks lines), and
 // painted; and one paragraph of 4,000 words, measured cold, at ten
 // widths, and painted at one; and the labels' glyphs got from a glyph
-// atlas, first rendering and packing each, then all found. Prints the
-// best of five runs in microseconds.
+// atlas, first rendering and packing each, then all found; and distance
+// fields of 52 letters at 32 pixels. Prints the best of five runs in
+// microseconds.
 
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
 #include "maul-ui/font.h"
 #include "maul-ui/glyph_atlas.h"
+#include "maul-ui/glyph_image.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
@@ -242,9 +244,33 @@ static void RunParagraph(void)
     printf("paragraph paint       %10.1f us\n", best[2]);
 }
 
+// Liberation Sans's A to Z and a to z are glyphs 36 to 87.
+static void RunFields(void)
+{
+    static unsigned char pixels[1 << 16];
+    Scene scene = MakeScene();
+    double best = 1e30;
+    for (int run = 0; run < RUNS; run++)
+    {
+        double start = Seconds();
+        for (uint32_t glyph = 36; glyph < 88; glyph++)
+        {
+            muiGlyphImage image;
+            Check(muiRenderGlyphField(scene.service, 0, glyph, 32.0f, 4, &image, pixels,
+                                      sizeof pixels),
+                  "field");
+        }
+        Keep(&best, (Seconds() - start) * 1e6 / 52.0);
+    }
+    muiDestroyContext(scene.context);
+    muiDestroyTextService(scene.service);
+    printf("field     a letter    %10.1f us\n", best);
+}
+
 int main(void)
 {
     RunLabels();
     RunParagraph();
+    RunFields();
     return 0;
 }

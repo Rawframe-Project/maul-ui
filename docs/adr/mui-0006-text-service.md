@@ -69,6 +69,25 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   font's embedded bitmaps, so images sit on the unhinted advances text
   is laid out with; FreeType renders in integers, so images are the
   same bytes everywhere. Color glyphs and LCD rendering are not drawn.
+  `muiRenderGlyphField` renders a signed distance field that scales:
+  128 at the outline, 128 / spread a pixel inside and out, reaching the
+  spread past the outline. Maul UI draws it itself rather than with
+  FreeType's `sdf` module, which spends most of its time in fixed-point
+  vector lengths (about 30 times slower): the outline is cut into
+  segments within 1/32 pixel by Wang's formula, each pixel's center is
+  inside by nonzero winding along its row, or even-odd when the outline
+  says so, and its distance is to the
+  nearest part of a segment on the edge of the union of the contours.
+  Overlapping contours, as variable fonts' and composite glyphs' are,
+  make one shape: segments are cut into pieces of at most a pixel,
+  sorted into the pixel cells their boxes' corners are in, and the
+  places where pieces cross or touch others are found among those in
+  nearby cells. Between such places a contour is on the edge or within
+  the union throughout, which the windings just either side of it tell,
+  and a piece others cross is cut there and each part told apart, so
+  the edge is exact; a stray point or a contour without area is no
+  edge. Only correctly rounded float operations are used, so fields
+  too are the same bytes everywhere.
 - **Glyph atlases** (`maul-ui/glyph_atlas.h`) are owner objects of a
   service, in its memory: pages of the caller's size, made as needed up
   to a limit and cut into plots, each packed with a skyline bottom-left

@@ -120,6 +120,8 @@ if(MAUL_UI_BUILD_TESTS)
             ${PROJECT_BINARY_DIR}/test_fonts/break_test.inc s_breakTest)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulLargeGlyph.ttf
             ${PROJECT_BINARY_DIR}/test_fonts/large_glyph.inc s_largeGlyph)
+        mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulOverlap.ttf
+            ${PROJECT_BINARY_DIR}/test_fonts/overlap.inc s_overlap)
         maul_add_test(text_block)
         target_include_directories(test_text_block PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(text_fuzz)
@@ -129,6 +131,14 @@ if(MAUL_UI_BUILD_TESTS)
         maul_add_test(glyph_atlas)
         target_include_directories(test_glyph_atlas PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(skyline WHITEBOX)
+        maul_add_test(distance_field WHITEBOX)
+        # Whitebox tests are not built for a shared library.
+        if(TARGET test_distance_field AND TARGET maul_ui_freetype)
+            target_include_directories(test_distance_field SYSTEM PRIVATE
+                $<TARGET_PROPERTY:maul_ui_freetype,INTERFACE_INCLUDE_DIRECTORIES>)
+        elseif(TARGET test_distance_field)
+            target_link_libraries(test_distance_field PRIVATE Freetype::Freetype)
+        endif()
     endif()
     # winnls.h defines MUI_ macros; this checks that none clash (family
     # record 0007).

@@ -84,6 +84,12 @@ static int RenderSome(muiTextService* service, muiFontId font, uint32_t* state)
                   (result == mui_errorCapacity &&
                    (size_t)image.width * image.height > sizeof s_pixels),
               "a glyph rendered or refused");
+        result = muiRenderGlyphField(service, muiFont_GetKey(font), glyph, size / 4.0f, 4, &image,
+                                     s_pixels, sizeof s_pixels);
+        CHECK(result == mui_success || result == mui_errorFormat ||
+                  (result == mui_errorCapacity &&
+                   (size_t)image.width * image.height > sizeof s_pixels),
+              "a field rendered or refused");
         rendered += result == mui_success && image.width != 0 ? 1 : 0;
     }
     return rendered;

@@ -43,6 +43,18 @@ struct muiTextService
     // A line shaped on its own: its items and glyphs.
     muiBuffer lineItems;
     muiBuffer lineGlyphs;
+    // Scratch for distance fields: the outline's segments, their pieces
+    // with the segment of each, the row starts and crossings, the cell
+    // starts and pieces, the edge, and each pixel's squared distance.
+    muiBuffer fieldSegments;
+    muiBuffer fieldPieces;
+    muiBuffer fieldOrigins;
+    muiBuffer fieldRows;
+    muiBuffer fieldCrossings;
+    muiBuffer fieldCells;
+    muiBuffer fieldCellPieces;
+    muiBuffer fieldEdge;
+    muiBuffer fieldDistances;
 };
 
 // The font a key names, key 0 naming the default font, and the key it

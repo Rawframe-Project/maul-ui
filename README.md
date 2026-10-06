@@ -24,9 +24,9 @@ Not released. The node tree, flex layout checked against Chrome,
 style (classes, states, conditions, transitions, tokens and themes) and
 the draw-command list are in place. The text service lays out
 paragraphs (shaping, bidirectional text, line breaking, baselines),
-renders glyph images and packs them into atlases; distance fields, font
-fallback and editing come next, then interaction, accessibility and a
-renderer.
+renders glyph images and distance fields and packs them into atlases;
+font fallback and editing come next, then interaction, accessibility
+and a renderer.
 
 ## Building
 

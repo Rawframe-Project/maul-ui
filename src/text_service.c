@@ -137,6 +137,15 @@ static void Release(muiTextService* service)
     muiFreeBuffer(&service->allocator, &service->workspace);
     muiFreeBuffer(&service->allocator, &service->lineItems);
     muiFreeBuffer(&service->allocator, &service->lineGlyphs);
+    muiFreeBuffer(&service->allocator, &service->fieldSegments);
+    muiFreeBuffer(&service->allocator, &service->fieldPieces);
+    muiFreeBuffer(&service->allocator, &service->fieldOrigins);
+    muiFreeBuffer(&service->allocator, &service->fieldRows);
+    muiFreeBuffer(&service->allocator, &service->fieldCrossings);
+    muiFreeBuffer(&service->allocator, &service->fieldCells);
+    muiFreeBuffer(&service->allocator, &service->fieldCellPieces);
+    muiFreeBuffer(&service->allocator, &service->fieldEdge);
+    muiFreeBuffer(&service->allocator, &service->fieldDistances);
     if (service->unicode != nullptr)
     {
         hb_unicode_funcs_destroy(service->unicode);
