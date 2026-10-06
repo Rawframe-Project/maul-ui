@@ -33,8 +33,8 @@ static bool IsFocusable(const muiContext* context, uint32_t slot, muiFocusMode l
 {
     const muiState off = mui_stateDisabled | mui_stateExiting;
     muiFocusMode mode = context->interaction[slot - 1].focusMode;
-    return mode != mui_focusNone && mode >= least &&
-           (context->style.nodes[slot - 1].states & off) == 0;
+    // least is never mui_focusNone.
+    return mode >= least && (context->style.nodes[slot - 1].states & off) == 0;
 }
 
 static uint32_t TopOf(const muiTree* tree, uint32_t slot)
@@ -105,20 +105,18 @@ static void Assign(muiContext* context, uint8_t player, uint32_t slot, bool show
     uint32_t wasSlot = SlotOf(context, was);
     if (wasSlot != 0)
     {
-        SetBits(context, wasSlot, player, wasSlot == slot, shown && wasSlot == slot);
+        SetBits(context, wasSlot, player, false, false);
         if (wasSlot != slot)
         {
             Notify(context, mui_notificationFocusLost, was, player);
         }
     }
     store->nodes[player] = (muiNodeId){0, 0};
-    store->shown[player] = false;
     store->holders &= (uint8_t)~(1u << player);
     if (slot != 0)
     {
         SetBits(context, slot, player, true, shown);
         store->nodes[player] = muiTreeIdOf(&context->tree, slot);
-        store->shown[player] = shown;
         store->holders |= (uint8_t)(1u << player);
         if (wasSlot != slot)
         {
@@ -209,8 +207,9 @@ static uint64_t KeyOf(const muiContext* context, uint32_t slot, uint32_t place)
 // before it, and the first and last.
 typedef struct Around
 {
+    // The focus's key; 0 when it is not in the scope, which puts every
+    // node after it.
     uint64_t current;
-    bool inScope;
     uint32_t after;
     uint64_t afterKey;
     uint32_t before;
@@ -232,10 +231,6 @@ static void Consider(Around* around, uint32_t slot, uint64_t key)
     {
         around->last = slot;
         around->lastKey = key;
-    }
-    if (!around->inScope)
-    {
-        return;
     }
     if (key > around->current && (around->after == 0 || key < around->afterKey))
     {
@@ -290,7 +285,6 @@ static Around Survey(const muiContext* context, uint32_t scope, uint32_t focus)
         if (at == focus)
         {
             around.current = KeyOf(context, at, place);
-            around.inScope = true;
             break;
         }
     }
@@ -387,7 +381,6 @@ void muiFocusForgetDestroyed(muiContext* context)
         {
             Notify(context, mui_notificationFocusLost, store->nodes[player], (uint8_t)player);
             store->nodes[player] = (muiNodeId){0, 0};
-            store->shown[player] = false;
             store->holders &= (uint8_t)~(1u << player);
         }
     }

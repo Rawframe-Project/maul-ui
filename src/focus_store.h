@@ -15,9 +15,8 @@
 typedef struct muiFocusStore
 {
     muiNodeId nodes[MUI_MAX_PLAYERS];
-    // Whether the player's focus is shown, and whether a focus moved by
-    // code would be: false after a pointer moved it.
-    bool shown[MUI_MAX_PLAYERS];
+    // Whether a focus moved by code would be shown: false after a
+    // pointer moved it.
     bool showsByCode[MUI_MAX_PLAYERS];
     // The players that focus a node, as bits.
     uint8_t holders;

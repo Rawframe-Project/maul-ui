@@ -314,7 +314,11 @@ static void TestLayers(void)
     SetLayer(context, modal, mui_layerModal);
     Layout(context, root);
     Layout(context, other);
-    CHECK(muiFocus_Set(context, 1, b1, mui_focusByCode) == mui_success, "another tree's modal");
+    CHECK(muiFocus_Set(context, 1, b1, mui_focusByCode) == mui_success &&
+              muiFocus_Set(context, 1, s_nullNode, mui_focusByCode) == mui_success &&
+              muiFocus_Move(context, root, 1, false) == mui_success &&
+              Same(muiFocus_Get(context, 1), b1),
+          "another tree's modal");
     muiDestroyContext(context);
 }
 
@@ -340,8 +344,10 @@ static void TestPointer(void)
     CHECK(muiFocus_Set(context, 2, g, mui_focusByCode) == mui_success &&
               StatesOf(context, g) == mui_stateFocused &&
               muiFocus_Move(context, root, 2, false) == mui_success &&
-              StatesOf(context, g) == (mui_stateFocused | mui_stateFocusVisible),
-          "then code and Tab");
+              StatesOf(context, g) == (mui_stateFocused | mui_stateFocusVisible) &&
+              muiFocus_Set(context, 2, f, mui_focusByCode) == mui_success &&
+              StatesOf(context, f) == (mui_stateFocused | mui_stateFocusVisible),
+          "then code and Tab, and code after Tab shows");
     // A second button while one is held changes nothing; a press over
     // nothing focusable takes the focus away.
     press.x = 280.0f;
@@ -366,6 +372,19 @@ static void TestPointer(void)
               muiPointerInput(context, root, &press) == mui_success &&
               Same(muiFocus_Get(context, 2), f),
           "a chord");
+    // A modal layer over f: a press beside it is blocked by the layer,
+    // which takes no focus, and f, covered, takes none either.
+    muiNodeId modal = Place(context, f, 200.0f, 200.0f, 50.0f, mui_focusNone, 0);
+    SetLayer(context, modal, mui_layerModal);
+    Layout(context, root);
+    CHECK(muiPointerInput(context, root, &release) == mui_success, "all released");
+    CHECK(muiPointerInput(context, root, &first) == mui_success &&
+              muiFocus_Get(context, 2).index1 == 0,
+          "a press under a modal layer");
+    // The modal layer destroyed: f takes focus again.
+    CHECK(muiDestroyNode(context, modal) == mui_success &&
+              muiFocus_Set(context, 2, f, mui_focusByCode) == mui_success,
+          "a modal layer gone");
     first.player = MUI_MAX_PLAYERS;
     CHECK(muiPointerInput(context, root, &first) == mui_errorInvalid, "a player past the slots");
     muiDestroyContext(context);
@@ -398,7 +417,10 @@ static void TestLoss(void)
     Layout(context, root);
     CHECK(muiFocus_Get(context, 0).index1 == 0 && Noted(context, mui_notificationFocusLost, b, 0),
           "let go");
-    CHECK(muiNode_SetStates(context, b, 0) == mui_success, "enabled");
+    CHECK(muiNode_SetStates(context, b, mui_stateExiting) == mui_success &&
+              muiFocus_Set(context, 0, b, mui_focusByCode) == mui_errorInvalid &&
+              muiNode_SetStates(context, b, 0) == mui_success,
+          "exiting: refused");
     Layout(context, root);
     // Detached: kept; destroyed: lost.
     CHECK(muiFocus_Set(context, 0, b, mui_focusByCode) == mui_success &&
