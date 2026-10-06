@@ -434,7 +434,7 @@ static void TestDirectWritesWinUntilReset(void)
     CHECK(muiNode_ResetProperties(context, s_nullNode, mui_groupLayout, WIDTH) == mui_errorInvalid,
           "null reset");
     // Groups past the last, and a bit past the interaction group's.
-    const muiPropertyMask pastInteraction = MUI_PROPERTY_BIT(mui_propertyTabOrder + 1);
+    const muiPropertyMask pastInteraction = MUI_PROPERTY_BIT(mui_propertyDrags + 1);
     CHECK(muiNode_ResetProperties(context, node, 4, WIDTH) == mui_errorInvalid &&
               muiNode_ResetProperties(context, node, mui_groupInteraction, pastInteraction) ==
                   mui_errorInvalid &&

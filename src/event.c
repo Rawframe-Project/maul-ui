@@ -12,6 +12,7 @@
 #include "context.h"
 #include "focus.h"
 #include "navigate.h"
+#include "pointer.h"
 #include "scroll.h"
 #include "tree.h"
 
@@ -209,7 +210,11 @@ muiResult muiKeyInput(muiContext* context, muiNodeId rootId, const muiKeyEvent* 
     if (!handled && event->down)
     {
         uint32_t arrow = ArrowOf(event->code);
-        if (event->code == mui_codeTab && (held & ~mui_modShift) == 0)
+        if (event->code == mui_codeEscape && muiCancelDrags(context))
+        {
+            handled = true;
+        }
+        else if (event->code == mui_codeTab && (held & ~mui_modShift) == 0)
         {
             handled = MoveFocus(context, rootId, event->player, true, held != 0, 0);
         }

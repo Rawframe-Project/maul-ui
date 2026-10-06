@@ -91,6 +91,10 @@ format.
   vertical scroll container holding the focus. Whole wheel detents and
   key steps ease out over the scroll rule's time; the rule gains
   `lineStep`, `pageFraction` and `easeNs` (record mui-0007).
+- Drags: the `drags` interaction property, the drag threshold
+  (`muiSetDragThreshold`), drag start, move and end records with the
+  offset from the press, no click after a drag, and cancelling by a
+  pointer cancel, a lost capture or Escape (record mui-0007).
 - Font families (`muiCreateFontFamily`, `muiFontFamily_GetKey`,
   `muiFontFamily_MatchFace`): faces a text style names together, matched
   by width, slant and weight as CSS matches them, with fallbacks of

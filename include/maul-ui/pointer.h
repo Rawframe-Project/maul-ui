@@ -135,6 +135,16 @@ extern "C"
         mui_pointerRecordMove = 6,
         // clickCount records were dropped here, past the limit.
         mui_pointerRecordDropped = 7,
+        // A press on a node that takes drags (maul-ui/interaction.h)
+        // moved past the drag threshold: the node captures the pointer,
+        // and no click follows. The point is where the pointer is now.
+        mui_pointerRecordDragStart = 8,
+        // The dragging pointer moved; it takes the place of a move record.
+        mui_pointerRecordDragMove = 9,
+        // The drag ended: its buttons went up, or (cancelled) the
+        // pointer was cancelled, the node lost the capture, or Escape
+        // went unhandled (muiKeyInput).
+        mui_pointerRecordDragEnd = 10,
     };
 
     // A record of pointer input, in the order it happened.
@@ -160,6 +170,12 @@ extern "C"
         float x;
         float y;
         uint64_t timeNs;
+        // For a drag's records, the pointer's offset from where the press
+        // began, on the surface.
+        float offsetX;
+        float offsetY;
+        // For a drag's end, whether it was cancelled.
+        bool cancelled;
     } muiPointerRecord;
 
     /// Takes the oldest pointer record.
@@ -247,6 +263,21 @@ extern "C"
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiSetClickRule(muiContext* context, uint64_t intervalNs,
                                                     float distance);
+
+    /// Sets how far a press moves before it becomes a drag, on either
+    /// axis: for a mouse, and for touch and pens. The defaults are 4,
+    /// Windows's, and 8, Android's touch slop; hosts pass the platform's.
+    ///
+    /// @param context  The context.
+    /// @param mouse    The distance for a mouse, finite and at least 0.
+    /// @param touch    The distance for touch and pens, likewise.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, a
+    ///         distance outside the above, or a call from a measure or
+    ///         paint function.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiSetDragThreshold(muiContext* context, float mouse,
+                                                        float touch);
 
 #ifdef __cplusplus
 }

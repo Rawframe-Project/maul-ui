@@ -169,6 +169,7 @@ static const Row s_interactionRows[] = {
     INTERACTION(layer, uint8_t, mui_layerNone, mui_layerOverlay),
     INTERACTION(focusMode, uint8_t, mui_focusNone, mui_focusAll),
     INTERACTION(tabOrder, uint8_t, 0, 255),
+    INTERACTION(drags, bool, 0, 1),
 };
 
 typedef struct GroupRows
@@ -188,7 +189,7 @@ static_assert(sizeof s_layoutRows / sizeof s_layoutRows[0] == mui_propertyScroll
                   sizeof s_visualRows / sizeof s_visualRows[0] == (mui_propertyClip & 63) + 1 &&
                   sizeof s_textRows / sizeof s_textRows[0] == (mui_propertyTextWrap & 63) + 1 &&
                   sizeof s_interactionRows / sizeof s_interactionRows[0] ==
-                      (mui_propertyTabOrder & 63) + 1,
+                      (mui_propertyDrags & 63) + 1,
               "one row per property");
 static_assert(MUI_PROPERTY_GROUP(mui_propertyHitMode) == mui_groupInteraction &&
                   (mui_propertyHitMode & 63) == 0,
@@ -211,7 +212,7 @@ static_assert(sizeof(muiColor) == 4 * sizeof(float) && sizeof(muiShadow) == 8 * 
 static_assert(MUI_LAYOUT_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyScrollAxes) << 1) - 1 &&
                   MUI_VISUAL_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyClip) << 1) - 1 &&
                   MUI_TEXT_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyTextWrap) << 1) - 1 &&
-                  MUI_INTERACTION_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyTabOrder) << 1) - 1,
+                  MUI_INTERACTION_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyDrags) << 1) - 1,
               "the masks name every property of their groups");
 
 // A known property's row.

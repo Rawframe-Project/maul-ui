@@ -95,6 +95,10 @@ extern "C"
         // after every node of 1 to 255, which come first, ascending, ties
         // in tree order.
         uint8_t tabOrder;
+        // Whether a press on the node, or below it where no nearer node
+        // takes drags, becomes a drag once it moves past the drag
+        // threshold (maul-ui/pointer.h).
+        bool drags;
     } muiInteractionStyle;
 
     /// Returns the default interaction values: hit in full, blocking, no

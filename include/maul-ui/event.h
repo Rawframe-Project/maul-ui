@@ -207,7 +207,8 @@ extern "C"
     /// layer covers: the top modal layer under the root; none: the root).
     /// Unhandled, a key down does what the library does by default: Tab,
     /// with Shift or not and no other modifier, moves the focus as
-    /// muiFocus_Move does. An arrow without modifiers, when the focus is
+    /// muiFocus_Move does. Escape cancels every drag going
+    /// (maul-ui/pointer.h). An arrow without modifiers, when the focus is
     /// in a scroll container along its axis (maul-ui/scroll.h), moves
     /// the focus to the candidate directional navigation finds inside it
     /// if that lies within half a scrollport of the visible part (or a

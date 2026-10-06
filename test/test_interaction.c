@@ -601,7 +601,7 @@ static void TestContract(void)
               muiNode_SetInteractionValues(context, root, NULL, HIT_MODE) == mui_errorInvalid &&
               muiNode_SetInteractionValues(NULL, root, &values, HIT_MODE) == mui_errorInvalid &&
               muiNode_SetInteractionValues(context, root, &values,
-                                           MUI_PROPERTY_BIT(mui_propertyTabOrder + 1)) ==
+                                           MUI_PROPERTY_BIT(mui_propertyDrags + 1)) ==
                   mui_errorInvalid &&
               muiStyle_SetInteractionValues(context, style, mui_variantBase, NULL, HIT_MODE) ==
                   mui_errorInvalid &&

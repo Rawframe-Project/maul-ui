@@ -167,6 +167,14 @@ itself instead of each host repeating them.
   `muiComputeLayout` with its time and keep `muiIsUpdatePending` true;
   setting an offset or scrolling into view stops them. Up to eight
   containers ease at once; a ninth jumps.
+- **Drags:** a node takes drags by the interaction property `drags`. A
+  press on it, or below it where no nearer node takes them, becomes a
+  drag once it moves past the threshold on either axis (4 for a mouse,
+  Windows'; 8 for touch and pens, Android's touch slop;
+  `muiSetDragThreshold`). The node captures the pointer and gets drag
+  start, move and end records, each with the offset from the press;
+  the release clicks nothing. A pointer cancel, a lost capture and an
+  unhandled Escape end the drag cancelled.
 - **Focus notifications** report each player's focus gained and lost,
   whatever moved it; a focused node that is destroyed, or stops taking
   focus at its styling or a direct write, loses it. Detaching keeps it,

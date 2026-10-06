@@ -33,6 +33,16 @@ typedef struct muiPointer
     muiNodeId hovered;
     muiNodeId pressed;
     muiNodeId captured;
+    // The root its last event was under, for drag records' points.
+    muiNodeId root;
+    // The node its press may drag, where the press began on the surface,
+    // and whether the drag started.
+    muiNodeId dragged;
+    float pressX;
+    float pressY;
+    // A drag started this press (no click follows), and has not ended.
+    bool dragStarted;
+    bool dragging;
 } muiPointer;
 
 // The last press, which the next continues a series of.
@@ -61,6 +71,8 @@ typedef struct muiPointerStore
     muiClickSeries series;
     uint64_t clickIntervalNs;
     float clickDistance;
+    float dragMouse;
+    float dragTouch;
 } muiPointerStore;
 
 static inline void muiPointerInit(muiPointerStore* store, muiPointer* pointers, uint32_t capacity,
@@ -73,6 +85,8 @@ static inline void muiPointerInit(muiPointerStore* store, muiPointer* pointers, 
         .recordCapacity = recordCapacity,
         .clickIntervalNs = 500000000u,
         .clickDistance = 2.0f,
+        .dragMouse = 4.0f,
+        .dragTouch = 8.0f,
     };
 }
 
