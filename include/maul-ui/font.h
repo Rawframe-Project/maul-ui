@@ -164,9 +164,15 @@ extern "C"
         // style equally well, the earlier is chosen.
         const muiFontId* faces;
         uint32_t faceCount;
+        // Keys of fonts and families tried, in order, for characters the
+        // face lacks, before the service's (muiSetFallbackFonts); a
+        // family's face is matched to the style, its own fallbacks not
+        // tried.
+        const uint64_t* fallbacks;
+        uint32_t fallbackCount;
     } muiFontFamilyDef;
 
-    /// Returns the default font family def: no faces.
+    /// Returns the default font family def: no faces and no fallbacks.
     ///
     /// @return The def, with a valid cookie.
     /// @par Thread safety
@@ -181,11 +187,15 @@ extern "C"
     /// of it they make. A face destroyed later is passed over.
     ///
     /// @param service    The service.
-    /// @param def        The family: a valid cookie and from 1 to 256 faces.
+    /// @param def        The family: a valid cookie, from 1 to 256 faces and
+    ///                   up to 8 fallbacks, each the key of a font or a
+    ///                   family.
     /// @param familyOut  Receives the family; the null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
-    ///         cookie, NULL faces or a count out of range;
-    ///         `mui_errorStale` for a face that is gone or the null id;
+    ///         cookie, NULL faces or fallbacks with a count, a count out of
+    ///         range, or a fallback that is no font's or family's key;
+    ///         `mui_errorStale` for a face or fallback that is gone, or the
+    ///         null id;
     ///         `mui_errorCapacity` past the family limit or when memory
     ///         runs out.
     /// @par Thread safety

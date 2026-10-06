@@ -41,12 +41,13 @@ font_store: allocator pool
 font_instance: font_store
 family_store: allocator pool
 font_family: allocator family_store font_instance font_store pool text_service
+font_chain: family_store font_family font_instance font_store text_service
 text_service: allocator family_store font_instance font_store pool text_block
 text_block: allocator pool
 text_blocks: font_instance text_block text_service
-text_shape: font_instance font_store text_block text_service
+text_shape: font_chain font_instance font_store text_block text_service
 line_break: text_block
-text_layout: font_family font_instance line_break text_block text_service text_shape
+text_layout: font_chain line_break text_block text_service text_shape
 font: allocator font_store pool text_service
 distance_field:
 flatten: distance_field

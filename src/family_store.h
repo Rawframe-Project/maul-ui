@@ -13,10 +13,20 @@
 
 #include <stdint.h>
 
+enum
+{
+    // The most fallbacks a family, or the service, has.
+    MUI_MAX_FALLBACKS = 8
+};
+
 typedef struct muiFontFamily
 {
     muiFontId* faces;
     uint32_t faceCount;
+    // Keys of fonts and families tried, in order, for characters its face
+    // lacks.
+    uint64_t fallbacks[MUI_MAX_FALLBACKS];
+    uint32_t fallbackCount;
 } muiFontFamily;
 
 typedef struct muiFamilyStore

@@ -130,6 +130,25 @@ extern "C"
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiSetDefaultFont(muiTextService* service, muiFontId fontId);
 
+    /// Sets the fonts tried, in order, for characters a style's font or
+    /// family, and its family's fallbacks, lack: each grapheme cluster is
+    /// drawn in the first that has all its characters, characters of no
+    /// one script staying in the font before them when it has them.
+    /// Lines keep the metrics of the style's own font.
+    ///
+    /// @param service  The service.
+    /// @param keys     Keys of fonts and families; may be NULL when count
+    ///                 is 0.
+    /// @param count    Up to 8; 0 for none.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL service, NULL
+    ///         keys with a count, a count past 8 or a key that is no
+    ///         font's or family's; `mui_errorStale` for one that is gone.
+    ///         On failure the fallbacks stay as they were.
+    /// @par Thread safety
+    /// Safe from any thread; the service is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiSetFallbackFonts(muiTextService* service,
+                                                        const uint64_t* keys, uint32_t count);
+
     /// Counts the times a block could not be laid out for want of memory,
     /// and so measured as empty and painted nothing.
     ///

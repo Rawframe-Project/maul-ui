@@ -108,6 +108,18 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   the weight in CSS's order, ties to the earlier face), a variable face
   matching every value its wght, ital and slnt axes reach, and then
   makes the face's instance. Faces destroyed after are passed over.
+- **Fallback:** text is drawn with a chain of fonts: the face of the
+  style's font or family, then up to 8 fallbacks the family names, then
+  up to 8 the service names (`muiSetFallbackFonts`), each a font or a
+  family's face matched to the style, in its instance, once each. Each
+  grapheme cluster is drawn in the first font of the chain with all its
+  characters (default ignorables and controls passed over); a cluster
+  whose first character is of no one script (Common or Inherited) stays
+  in the font before it when that font has it; with no font having them
+  all, the first with its first character, else the first font. Items
+  split where the font changes, each shaped in its own font's units per
+  em, and the sums line breaking reads are in ems; glyph runs split with
+  the items. Lines take the first font's metrics.
 - **Glyph atlases** (`maul-ui/glyph_atlas.h`) are owner objects of a
   service, in its memory: pages of the caller's size, made as needed up
   to a limit and cut into plots, each packed with a skyline bottom-left

@@ -11,6 +11,8 @@
 #include "font_instance.h"
 #include "text_service.h"
 
+#include "maul-ui/text_block.h"
+
 #include <stdalign.h>
 #include <string.h>
 
@@ -217,6 +219,53 @@ const muiFontFamily* muiFindFamily(const muiTextService* service, uint64_t key)
     return live ? &service->families.families[slot - 1] : nullptr;
 }
 
+// Whether a key names a live font or family: invalid for 0 or a key with
+// an instance's bits, stale for one that names nothing now.
+static muiResult CheckKey(const muiTextService* service, uint64_t key)
+{
+    if ((key & MUI_FONT_PART_MASK) == 0 || (key & ~(MUI_FAMILY_BIT | MUI_FONT_PART_MASK)) != 0)
+    {
+        return mui_errorInvalid;
+    }
+    uint64_t found = 0;
+    bool live = (key & MUI_FAMILY_BIT) != 0 ? muiFindFamily(service, key) != nullptr
+                                            : muiFindFont(service, key, &found) != nullptr;
+    return live ? mui_success : mui_errorStale;
+}
+
+// Checks keys as fallbacks: up to MUI_MAX_FALLBACKS, each live.
+static muiResult CheckFallbacks(const muiTextService* service, const uint64_t* keys, uint32_t count)
+{
+    if ((keys == nullptr && count != 0) || count > MUI_MAX_FALLBACKS)
+    {
+        return mui_errorInvalid;
+    }
+    muiResult result = mui_success;
+    for (uint32_t i = 0; i < count && result == mui_success; i++)
+    {
+        result = CheckKey(service, keys[i]);
+    }
+    return result;
+}
+
+muiResult muiSetFallbackFonts(muiTextService* service, const uint64_t* keys, uint32_t count)
+{
+    if (service == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    muiResult result = CheckFallbacks(service, keys, count);
+    if (result == mui_success)
+    {
+        for (uint32_t i = 0; i < count; i++)
+        {
+            service->fallbacks[i] = keys[i];
+        }
+        service->fallbackCount = count;
+    }
+    return result;
+}
+
 muiFontFamilyDef muiDefaultFontFamilyDef(void)
 {
     return (muiFontFamilyDef){.cookie = FONT_FAMILY_DEF_COOKIE};
@@ -247,6 +296,11 @@ muiResult muiCreateFontFamily(muiTextService* service, const muiFontFamilyDef* d
             return mui_errorStale;
         }
     }
+    muiResult checked = CheckFallbacks(service, def->fallbacks, def->fallbackCount);
+    if (checked != mui_success)
+    {
+        return checked;
+    }
     muiFamilyStore* store = &service->families;
     uint32_t slot = muiPoolTake(&store->pool);
     if (slot == 0)
@@ -261,7 +315,13 @@ muiResult muiCreateFontFamily(muiTextService* service, const muiFontFamilyDef* d
         return mui_errorCapacity;
     }
     memcpy(faces, def->faces, bytes);
-    store->families[slot - 1] = (muiFontFamily){faces, def->faceCount};
+    muiFontFamily* family = &store->families[slot - 1];
+    *family = (muiFontFamily){.faces = faces, .faceCount = def->faceCount};
+    for (uint32_t i = 0; i < def->fallbackCount; i++)
+    {
+        family->fallbacks[i] = def->fallbacks[i];
+    }
+    family->fallbackCount = def->fallbackCount;
     *familyOut = (muiFontFamilyId){slot, muiPoolGeneration(&store->pool, slot)};
     return mui_success;
 }

@@ -6,8 +6,7 @@
 // direction, broken into lines, and for painting reordered by UAX #9
 // rules L1 and L2, aligned, and drawn as a glyph run per line and item.
 
-#include "font_family.h"
-#include "font_instance.h"
+#include "font_chain.h"
 #include "line_break.h"
 #include "text_block.h"
 #include "text_service.h"
@@ -19,15 +18,14 @@
 
 #include <math.h>
 
-// What laying out a node's block needs: the block, shaped, its font and
-// the node's style, with the line scale and metrics in logical units.
+// What laying out a node's block needs: the block, shaped, its font
+// chain and the node's style, with the line scale and metrics in logical
+// units, the first font's.
 typedef struct Paragraph
 {
     muiTextService* service;
     muiTextBlock* block;
-    muiFont* font;
-    // The font's instance the style makes.
-    uint64_t fontKey;
+    muiFontChain chain;
     muiComputedTextStyle style;
     muiLineScale scale;
     float lineHeight;
@@ -42,25 +40,6 @@ static muiTextBlock* FindBlock(const muiTextService* service, uint64_t key)
     return slot != 0 ? &service->blocks.blocks[slot - 1] : nullptr;
 }
 
-// The font a style names, and its key: the font's own, key 0 being the
-// default font's, or the face of a family the style's weight and slant
-// choose; NULL when it names none.
-static muiFont* FontOf(const muiTextService* service, const muiComputedTextStyle* style,
-                       uint64_t* keyOut)
-{
-    if ((style->font & MUI_FAMILY_BIT) == 0)
-    {
-        return muiFindFont(service, style->font & MUI_FONT_PART_MASK, keyOut);
-    }
-    const muiFontFamily* family = muiFindFamily(service, style->font);
-    muiFontId face = {0, 0};
-    const muiFont* font = family != nullptr
-                              ? muiMatchFamily(service, family, style->weight, style->slant, &face)
-                              : nullptr;
-    *keyOut = font != nullptr ? muiFont_GetKey(face) : 0;
-    return font != nullptr ? &service->fonts.fonts[face.index1 - 1] : nullptr;
-}
-
 // Sets up a node's paragraph; false when there is nothing to lay out or
 // its shaping found no memory, which the service counts.
 static bool Prepare(const muiTextHost* host, muiNodeId nodeId, uint64_t hostKey, Paragraph* out)
@@ -73,22 +52,19 @@ static bool Prepare(const muiTextHost* host, muiNodeId nodeId, uint64_t hostKey,
     muiTextService* service = host->service;
     out->service = service;
     out->block = FindBlock(service, hostKey);
-    out->font = FontOf(service, &out->style, &out->fontKey);
-    if (out->block == nullptr || out->font == nullptr)
+    if (out->block == nullptr || !muiBuildChain(service, &out->style, &out->chain))
     {
         return false;
     }
-    out->fontKey |=
-        muiInstanceBits(out->font, out->style.weight, out->style.slant, out->style.size);
     out->rtl = muiNode_IsRightToLeft(host->context, nodeId);
-    if (!muiShapeTextBlock(service, out->block, out->font, out->fontKey, out->rtl))
+    if (!muiShapeTextBlock(service, out->block, &out->chain, out->rtl))
     {
         service->failures++;
         return false;
     }
-    const muiFontMetrics* metrics = &out->font->metrics;
+    const muiFontMetrics* metrics = &out->chain.fonts[0]->metrics;
     float size = out->style.size;
-    out->scale = (muiLineScale){size / (float)metrics->unitsPerEm, out->style.letterSpacing};
+    out->scale = (muiLineScale){size, out->style.letterSpacing};
     float content = (metrics->ascent + metrics->descent) * size;
     out->lineHeight =
         out->style.automaticLineHeight ? content + metrics->lineGap * size : out->style.lineHeight;
@@ -139,6 +115,12 @@ typedef struct LineGlyphs
     float width;
 } LineGlyphs;
 
+// Logical units per unit of an item's font.
+static float ItemScale(const Paragraph* paragraph, const muiTextItem* item)
+{
+    return paragraph->scale.size / (float)item->units;
+}
+
 // The width of the glyphs of clusters before end, with spacing after
 // each cluster.
 static float WidthBefore(const Paragraph* paragraph, const LineGlyphs* source, uint32_t end)
@@ -148,13 +130,14 @@ static float WidthBefore(const Paragraph* paragraph, const LineGlyphs* source, u
     {
         const muiShapedGlyph* glyphs = source->glyphs + source->items[k].firstGlyph;
         uint32_t count = source->items[k].glyphCount;
+        float scale = ItemScale(paragraph, &source->items[k]);
         for (uint32_t i = 0; i < count; i++)
         {
             if (glyphs[i].cluster >= end)
             {
                 continue;
             }
-            width += (float)glyphs[i].advance * paragraph->scale.scale;
+            width += (float)glyphs[i].advance * scale;
             if (i + 1 == count || glyphs[i + 1].cluster != glyphs[i].cluster)
             {
                 width += paragraph->scale.spacing;
@@ -178,8 +161,7 @@ static bool GlyphsOf(const Paragraph* paragraph, const muiTextLine* line, LineGl
     }
     muiTextService* service = paragraph->service;
     muiTextLineShape shape = {&service->lineItems, 0, &service->lineGlyphs, 0};
-    if (!muiShapeTextLine(service, block, paragraph->font, paragraph->fontKey, line->start,
-                          line->next, &shape))
+    if (!muiShapeTextLine(service, block, &paragraph->chain, line->start, line->next, &shape))
     {
         service->failures++;
         return false;
@@ -262,7 +244,7 @@ static float PaintSegment(const Paragraph* paragraph, const LineGlyphs* source,
 {
     const muiShapedGlyph* shaped = source->glyphs + item->firstGlyph;
     muiGlyph* glyphs = paragraph->service->glyphs.data;
-    float scale = paragraph->scale.scale;
+    float scale = ItemScale(paragraph, item);
     // The glyphs of clusters from start up to end lie together: from the
     // first not before start to the first not before end, or for a
     // right-to-left item from the first below end to the first below
@@ -286,8 +268,8 @@ static float PaintSegment(const Paragraph* paragraph, const LineGlyphs* source,
     }
     if (count != 0)
     {
-        const muiGlyphRun run = {paragraph->fontKey, paragraph->style.size, paragraph->style.color,
-                                 0.0f, baseline};
+        const muiGlyphRun run = {paragraph->chain.keys[item->face], paragraph->style.size,
+                                 paragraph->style.color, 0.0f, baseline};
         (void)muiDrawSink_AddGlyphRun(sink, &run, glyphs, count);
     }
     return pen;

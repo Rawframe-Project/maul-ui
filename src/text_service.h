@@ -34,6 +34,10 @@ struct muiTextService
     muiFamilyStore families;
     // What font key 0 names; the null id for none.
     muiFontId defaultFont;
+    // Keys of fonts and families tried, in order, after a style's own for
+    // characters they lack.
+    uint64_t fallbacks[MUI_MAX_FALLBACKS];
+    uint32_t fallbackCount;
     // Blocks that could not be laid out for want of memory.
     uint64_t failures;
     // Scratch for laying out and painting: lines, bidi runs, glyphs and

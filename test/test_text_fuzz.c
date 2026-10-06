@@ -245,12 +245,18 @@ static void TestRandomText(void)
     fontDef.data = s_liberationSans;
     fontDef.size = sizeof s_liberationSans;
     fontDef.dataMode = mui_fontDataBorrow;
-    muiFontId font = {0, 0};
-    muiFontMetrics metrics = {0};
-    CHECK(muiCreateFont(service, &fontDef, &font) == mui_success &&
-              muiSetDefaultFont(service, font) == mui_success &&
-              muiFont_GetMetrics(service, font, &metrics) == mui_success,
-          "font");
+    // Liberation Sans and Ahem, each the other's fallback in turn, so
+    // lines mix fonts of different units per em.
+    muiFontId fonts[2] = {{0, 0}, {0, 0}};
+    muiFontMetrics metrics[2] = {{0}, {0}};
+    CHECK(muiCreateFont(service, &fontDef, &fonts[0]) == mui_success &&
+              muiFont_GetMetrics(service, fonts[0], &metrics[0]) == mui_success,
+          "Liberation Sans");
+    fontDef.data = s_ahem;
+    fontDef.size = sizeof s_ahem;
+    CHECK(muiCreateFont(service, &fontDef, &fonts[1]) == mui_success &&
+              muiFont_GetMetrics(service, fonts[1], &metrics[1]) == mui_success,
+          "Ahem");
     muiContextDef contextDef = muiDefaultContextDef();
     muiContext* context = NULL;
     CHECK(muiCreateContext(&contextDef, &context) == mui_success, "context");
@@ -261,6 +267,11 @@ static void TestRandomText(void)
     for (int round = 0; round < TEXT_ROUNDS; round++)
     {
         size_t length = RandomText(text, &state);
+        int primary = round % 2;
+        uint64_t other = muiFont_GetKey(fonts[1 - primary]);
+        CHECK(muiSetDefaultFont(service, fonts[primary]) == mui_success &&
+                  muiSetFallbackFonts(service, &other, 1) == mui_success,
+              "fonts");
         muiTextBlockId block = {0, 0};
         CHECK(muiCreateTextBlock(service, text, length, &block) == mui_success, "block");
         muiNodeDef nodeDef = muiDefaultNodeDef();
@@ -292,10 +303,10 @@ static void TestRandomText(void)
         muiRect rect = muiNode_GetRect(context, node);
         muiComputedTextStyle style;
         CHECK(muiNode_GetTextStyle(context, node, &style) == mui_success, "style read");
-        float lineHeight =
-            style.automaticLineHeight
-                ? (metrics.ascent + metrics.descent) * style.size + metrics.lineGap * style.size
-                : style.lineHeight;
+        float lineHeight = style.automaticLineHeight
+                               ? (metrics[primary].ascent + metrics[primary].descent) * style.size +
+                                     metrics[primary].lineGap * style.size
+                               : style.lineHeight;
         float lines = lineHeight > 0.0f ? roundf(rect.height / lineHeight) : 0.0f;
         const muiDrawInput draw = {1, 1.0f, muiPaintText, &host};
         CHECK(muiBuildDrawList(context, node, &draw) == mui_success, "paint");

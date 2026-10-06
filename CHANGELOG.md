@@ -29,8 +29,12 @@ format.
 
 - Font families (`muiCreateFontFamily`, `muiFontFamily_GetKey`,
   `muiFontFamily_MatchFace`): faces a text style names together, matched
-  by width, slant and weight as CSS matches them, with a `fontFamilies`
-  limit (record mui-0006).
+  by width, slant and weight as CSS matches them, with fallbacks of
+  their own and a `fontFamilies` limit (record mui-0006).
+- Font fallback: each grapheme cluster is drawn in the first font of a
+  chain (the style's, its family's fallbacks, then the service's,
+  `muiSetFallbackFonts`) that has its characters, so a line may hold
+  glyph runs of several fonts (record mui-0006).
 
 - Font instances: a text style's weight, slant and size set a variable
   font's wght, ital, slnt and opsz axes, and make bold and oblique for

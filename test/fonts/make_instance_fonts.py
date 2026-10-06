@@ -16,7 +16,8 @@
 #
 # MaulVariable.ttf has all four axes; MaulVariableSlant.ttf all but ital;
 # MaulVariableItalic.ttf ital alone; MaulItalic.ttf none, its face
-# marked italic.
+# marked italic. MaulCoverage.ttf, for font fallback, draws one box for a
+# tab, a space, an A, a comma, a combining acute and U+4E00.
 #
 # Needs fontTools (pip install fonttools); its timestamps are fixed, so
 # it writes the same bytes each time.
@@ -102,11 +103,36 @@ def build(name, family, axes, italic_face=False):
     pathlib.Path(__file__).with_name(name).write_bytes(out.getvalue())
 
 
+def build_coverage(name):
+    # One box glyph for a tab, a space, an A, a comma, a combining acute
+    # and a CJK ideograph: a fallback that has what the others lack.
+    builder = FontBuilder(1000, isTTF=True)
+    builder.setupGlyphOrder([".notdef", "box"])
+    builder.setupCharacterMap({cp: "box" for cp in (0x09, 0x20, 0x41, 0x2C, 0x301, 0x4E00)})
+    builder.setupGlyf({".notdef": box(0, 0, 0, 0), "box": box(0, 0, 400, 700)})
+    builder.setupHorizontalMetrics({".notdef": (500, 0), "box": (500, 0)})
+    builder.setupHorizontalHeader(ascent=800, descent=-200)
+    builder.setupNameTable({
+        "familyName": "Maul Coverage",
+        "styleName": "Regular",
+        "copyright": "Copyright (c) 2026 Sirac Ozmen. MIT License.",
+    })
+    builder.setupOS2(sTypoAscender=800, sTypoDescender=-200, sTypoLineGap=0,
+                     usWinAscent=800, usWinDescent=200, usWeightClass=400, fsSelection=0x40)
+    builder.setupPost()
+    builder.setupHead(unitsPerEm=1000, created=TIMESTAMP, modified=TIMESTAMP)
+    builder.font.recalcTimestamp = False
+    out = io.BytesIO()
+    builder.font.save(out)
+    pathlib.Path(__file__).with_name(name).write_bytes(out.getvalue())
+
+
 def main():
     build("MaulVariable.ttf", "Maul Variable", (("wght", "ital", "slnt", "opsz"), 900))
     build("MaulVariableSlant.ttf", "Maul Variable Slant", (("wght", "slnt", "opsz"), 500))
     build("MaulVariableItalic.ttf", "Maul Variable Italic", (("ital",), 900))
     build("MaulItalic.ttf", "Maul Italic", ((), 900), italic_face=True)
+    build_coverage("MaulCoverage.ttf")
 
 
 if __name__ == "__main__":
