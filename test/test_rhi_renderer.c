@@ -9,7 +9,8 @@
 // draw yet, and the gradient, transform and clip tables beside them; the
 // instance buffer grown for a long list; an empty list; images, the
 // host asked once a key a frame, a key it has no image for not drawn,
-// and a draw a texture, keys of one texture drawn together.
+// and a draw a texture, keys of one texture drawn together; glyphs, their
+// texels uploaded the frame they are packed and not again.
 
 #include "test_harness.h"
 
@@ -309,6 +310,80 @@ static void TestImages(void)
     Close(&gpu);
 }
 
+#if MUI_TEST_TEXT
+
+#include "maul-ui/font.h"
+#include "maul-ui/text.h"
+#include "maul-ui/text_block.h"
+
+#include "ahem.inc"
+
+static void TestGlyphs(void)
+{
+    Gpu gpu;
+    CHECK(Open(&gpu, mrhi_success), "a device");
+    muiTextServiceDef serviceDef = muiDefaultTextServiceDef();
+    muiTextService* service = NULL;
+    muiFontDef fontDef = muiDefaultFontDef();
+    fontDef.data = s_ahem;
+    fontDef.size = sizeof s_ahem;
+    fontDef.dataMode = mui_fontDataBorrow;
+    muiFontId ahem = {0, 0};
+    CHECK(muiCreateTextService(&serviceDef, &service) == mui_success &&
+              muiCreateFont(service, &fontDef, &ahem) == mui_success,
+          "a text service with Ahem");
+    muiRhiRendererDef def = muiDefaultRhiRendererDef();
+    def.device = gpu.device;
+    def.text = service;
+    muiRhiRenderer* renderer = NULL;
+    CHECK(muiCreateRhiRenderer(&def, &renderer) == mui_success, "a renderer with text");
+    muiDrawCommand box = Box(0, 0);
+    muiDrawList one = ListOf(&box, 1);
+    CHECK(DrawFrame(&gpu, renderer, &one) == mui_empty && muiRhiRenderer_IsReady(renderer),
+          "ready");
+    const muiGlyph glyphs[2] = {{4, 0, 0}, {5, 12, 0}};
+    muiDrawCommand run = {.kind = mui_drawGlyphRun};
+    run.glyphRun = (muiDrawGlyphRun){.font = muiFont_GetKey(ahem),
+                                     .originX = 4,
+                                     .originY = 20,
+                                     .size = 10,
+                                     .glyphCount = 2,
+                                     .color = {1, 1, 1, 1}};
+    muiDrawList list = ListOf(&run, 1);
+    list.glyphs = glyphs;
+    list.glyphCount = 2;
+    CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes > Staged(2),
+          "the glyphs' texels uploaded with their instances");
+    CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes == Staged(2),
+          "and not again the next frame");
+    // A run past the glyph table is not drawn.
+    run.glyphRun.firstGlyph = 1;
+    CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes == 0,
+          "a run past the glyph table not drawn");
+    muiDestroyRhiRenderer(renderer);
+    muiDestroyTextService(service);
+    Close(&gpu);
+}
+
+#else
+
+// Without Maul UI's text component, a text service is refused.
+static void TestNoText(void)
+{
+    Gpu gpu;
+    CHECK(Open(&gpu, mrhi_success), "a device");
+    int notService = 0;
+    muiRhiRendererDef def = muiDefaultRhiRendererDef();
+    def.device = gpu.device;
+    def.text = (muiTextService*)&notService;
+    muiRhiRenderer* renderer = NULL;
+    CHECK(muiCreateRhiRenderer(&def, &renderer) == mui_errorInvalid && renderer == NULL,
+          "a text service refused without text");
+    Close(&gpu);
+}
+
+#endif
+
 static void TestFailedPipeline(void)
 {
     Gpu gpu;
@@ -329,6 +404,11 @@ int main(void)
     TestContract();
     TestDraws();
     TestImages();
+#if MUI_TEST_TEXT
+    TestGlyphs();
+#else
+    TestNoText();
+#endif
     TestFailedPipeline();
     return s_failures == 0 ? 0 : 1;
 }

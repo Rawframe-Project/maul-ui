@@ -46,6 +46,7 @@ struct Gradient {
 
 const kShadow = 2u;
 const kImage = 3u;
+const kGlyph = 4u;
 const kLinear = 1u;
 
 struct Between {
@@ -284,6 +285,14 @@ fn imageColor(index: u32, local: vec2f, size: vec2f, uv: vec2f, dx: vec2f, dy: v
     return texel * instances[index].fill * covered;
 }
 
+fn glyph(index: u32, local: vec2f, size: vec2f) -> vec4f {
+    let uv = instances[index].colors[0];
+    let bounds = instances[index].colors[1];
+    let at = clamp(mix(uv.xy, uv.zw, local / size), bounds.xy, bounds.zw);
+    let coverage = textureSampleLevel(imageTexture, imageSampler, at, 0.0).r;
+    return instances[index].fill * coverage;
+}
+
 // How much of the fragment its clips keep.
 fn clipped(first: u32, position: vec2f) -> f32 {
     let scale = root.frame.z;
@@ -320,6 +329,8 @@ fn fs(in: Between) -> @location(0) vec4f {
         color = shadow(in.index, in.local);
     } else if (kind == kImage) {
         color = imageColor(in.index, in.local, size, uv, dx, dy);
+    } else if (kind == kGlyph) {
+        color = glyph(in.index, in.local, size);
     } else {
         color = box(in.index, in.local, size);
     }

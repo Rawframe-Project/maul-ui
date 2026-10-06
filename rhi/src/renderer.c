@@ -6,14 +6,16 @@
 // tables beside them (pack.c), each a stream bound at its own slot,
 // uploaded in a pass of their own each frame, and drawn as six vertices
 // an instance by one pipeline whose shaders evaluate each
-// (rhi/shaders/quad.*), in draws split where an image's texture changes
-// (plan.c), the texture and a linear sampler bound in table 1. It
+// (rhi/shaders/quad.*), in draws split where the texture an image or a
+// glyph samples changes (plan.c), the texture and a linear sampler bound
+// in table 1; glyphs come from an atlas of the renderer's own (glyphs.c). It
 // allocates through the public allocator alone, as Maul UI's internals
 // stay inside a shared build.
 
 #include "maul-ui-rhi/renderer.h"
 
 #include "allocator.h"
+#include "glyphs.h"
 #include "images.h"
 #include "pack.h"
 #include "plan.h"
@@ -61,6 +63,7 @@ struct muiRhiRenderer
     bool ready;
     Stream streams[kStreamCount];
     muiRhiImages images;
+    muiRhiGlyphs glyphs;
     muiRhiPlan plan;
     mrhiSamplerId sampler;
     // Bound where a list has no images, never sampled.
@@ -211,7 +214,7 @@ muiResult muiCreateRhiRenderer(const muiRhiRendererDef* def, muiRhiRenderer** re
         .images = muiRhiMakeImages(&def->allocator, def->device, def->image, def->imageContext),
         .plan = {.allocator = def->allocator},
     };
-    muiResult status = mui_success;
+    muiResult status = muiRhiMakeGlyphs(&renderer->glyphs, &def->allocator, def->device, def->text);
     for (uint32_t i = 0; i < kStreamCount && status == mui_success; i++)
     {
         status = GrowStream(renderer, &renderer->streams[i], i == kInstances ? def->instances : 16);
@@ -258,6 +261,7 @@ void muiDestroyRhiRenderer(muiRhiRenderer* renderer)
         DropStream(renderer, &renderer->streams[i]);
     }
     muiRhiFreeImages(&renderer->images);
+    muiRhiFreeGlyphs(&renderer->glyphs);
     muiRhiFreePlan(&renderer->plan);
     const muiAllocator allocator = renderer->allocator;
     muiRhiRelease(&allocator, renderer, sizeof(muiRhiRenderer), alignof(muiRhiRenderer));
@@ -287,7 +291,8 @@ bool muiRhiRenderer_IsReady(const muiRhiRenderer* renderer)
 }
 
 // The list's instances and tables into the streams' staging, its images
-// found and imported into the frame.
+// found and imported into the frame, its glyphs packed and their pages
+// imported.
 static muiResult Pack(muiRhiRenderer* renderer, const muiDrawList* list)
 {
     Stream* streams = renderer->streams;
@@ -310,19 +315,19 @@ static muiResult Pack(muiRhiRenderer* renderer, const muiDrawList* list)
             return status;
         }
     }
-    streams[kInstances].count =
-        muiRhiPackInstances(list, &renderer->images, streams[kInstances].staging);
+    muiRhiNextGlyphFrame(&renderer->glyphs);
+    streams[kInstances].count = muiRhiPackInstances(list, &renderer->images, &renderer->glyphs,
+                                                    streams[kInstances].staging);
     muiRhiListTextures(&renderer->images);
+    muiResult prepared = muiRhiPrepareGlyphs(&renderer->glyphs);
+    if (prepared != mui_success)
+    {
+        return prepared;
+    }
     (void)muiRhiPackGradients(list, streams[kGradients].staging);
     (void)muiRhiPackTransforms(list, streams[kTransforms].staging);
     (void)muiRhiPackClips(list, streams[kClips].staging);
     return mui_success;
-}
-
-static mrhiAccess Whole(mrhiResourceId resource, mrhiAccessKind kind)
-{
-    return (mrhiAccess){
-        .resource = resource, .kind = kind, .range = {.mipCount = 1, .layerCount = 1}};
 }
 
 muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* list,
@@ -344,7 +349,6 @@ muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* 
         return status;
     }
     mrhiDevice* device = renderer->device;
-    mrhiAccess writes[kStreamCount];
     mrhiResourceId buffers[kStreamCount];
     for (uint32_t i = 0; i < kStreamCount; i++)
     {
@@ -353,26 +357,27 @@ muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* 
         {
             return mui_errorPlatform;
         }
-        writes[i] = Whole(stream->resource, mrhi_accessCopyDestination);
         buffers[i] = stream->resource;
     }
     const Stream* instances = &renderer->streams[kInstances];
     mrhiResourceId placeholder = {0};
     if (instances->count > 0 && renderer->images.textureCount == 0 &&
+        renderer->glyphs.pageCount == 0 &&
         mrhiImportTexture(device, renderer->placeholder, &placeholder) != mrhi_success)
     {
         return mui_errorPlatform;
     }
-    status = muiRhiMakePlan(&renderer->plan, instances->staging, instances->count,
-                            &renderer->images, buffers, kStreamCount, placeholder);
+    const muiRhiSources sources = {buffers, kStreamCount, &renderer->images, &renderer->glyphs,
+                                   placeholder};
+    status = muiRhiMakePlan(&renderer->plan, instances->staging, instances->count, &sources);
     if (status != mui_success)
     {
         return status;
     }
     mrhiPassDef uploadDef = mrhiDefaultPassDef();
     uploadDef.passClass = mrhi_passTransfer;
-    uploadDef.accesses = writes;
-    uploadDef.accessCount = kStreamCount;
+    uploadDef.accesses = renderer->plan.uploads;
+    uploadDef.accessCount = renderer->plan.uploadCount;
     const muiLinearColor clear = target->clearColor;
     mrhiPassDef drawDef = mrhiDefaultPassDef();
     drawDef.colorTargets[0] = (mrhiColorTarget){
@@ -411,7 +416,7 @@ static bool Upload(const muiRhiRenderer* renderer)
             return false;
         }
     }
-    return true;
+    return muiRhiWriteGlyphs(&renderer->glyphs, renderer->upload);
 }
 
 // Binds a draw's texture and the sampler in table 1, and draws it.

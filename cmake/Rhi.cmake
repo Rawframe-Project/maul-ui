@@ -20,11 +20,14 @@ if(NOT maul-rhi_FOUND)
     FetchContent_MakeAvailable(maul-rhi)
 endif()
 
-add_library(maul-ui-rhi STATIC rhi/src/allocator.c rhi/src/images.c rhi/src/pack.c
-    rhi/src/plan.c rhi/src/renderer.c)
+add_library(maul-ui-rhi STATIC rhi/src/allocator.c rhi/src/glyphs.c rhi/src/images.c
+    rhi/src/pack.c rhi/src/plan.c rhi/src/renderer.c)
 add_library(maul-ui-rhi::maul-ui-rhi ALIAS maul-ui-rhi)
 target_include_directories(maul-ui-rhi PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/rhi/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 target_link_libraries(maul-ui-rhi PUBLIC maul-ui maul-rhi::maul-rhi)
 maul_apply_flags(maul-ui-rhi)
+# Glyph runs are drawn with Maul UI's glyph atlas, which its text
+# component has.
+target_compile_definitions(maul-ui-rhi PRIVATE MUI_RHI_TEXT=$<BOOL:${MAUL_UI_TEXT}>)

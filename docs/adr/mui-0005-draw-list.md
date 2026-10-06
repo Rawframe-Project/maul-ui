@@ -123,7 +123,15 @@ clip chain evaluated in its shaders, which keeps batches whole.
   ones would not fit) and its middle stretches, with no seams between
   parts; the texture and a linear sampler are bound in a second table,
   and draws break only where the texture changes, boxes and shadows
-  joining any draw. Glyph runs follow.
+  joining any draw. Glyph runs come from a glyph atlas of the
+  renderer's own over the host's text service (mui-0006's atlas), its
+  pages R8 textures made as the atlas makes them and only the rectangles
+  it changed uploaded, gutters included, so every texel a glyph samples
+  has been written and a page never has to fit a frame's uploads whole.
+  A run whose transform only moves it is drawn as coverage rendered at
+  its device pixels, sampled half a texel into the gutter at most; a
+  host without the text component's atlas gives no text service, and
+  one given is refused.
 
 ## Consequences
 

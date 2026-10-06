@@ -7,7 +7,10 @@
 // an outer shadow's quad reaches three sigmas past its shape, an inset
 // one's is its box. An image's slice insets are one logical unit a texel
 // as drawn, all four shrunk by one factor where two facing ones would
-// not fit, as CSS's border-image shrinks them.
+// not fit, as CSS's border-image shrinks them. A glyph run whose
+// transform only moves it is drawn as coverage the atlas renders at its
+// device pixels, the pen's place there and the quad's in the run's own
+// units.
 
 #include "pack.h"
 
@@ -25,9 +28,11 @@ static uint32_t Index(uint32_t index, uint32_t count)
     return index < count ? index : 0;
 }
 
-static bool IsDrawn(muiDrawKind kind)
+// Whether a glyph run's span lies in the list's glyph table.
+static bool IsRunValid(const muiDrawList* list, const muiDrawGlyphRun* run)
 {
-    return kind == mui_drawBox || kind == mui_drawShadow || kind == mui_drawImage;
+    return run->firstGlyph <= list->glyphCount &&
+           run->glyphCount <= list->glyphCount - run->firstGlyph;
 }
 
 uint32_t muiRhiCountInstances(const muiDrawList* list)
@@ -35,7 +40,15 @@ uint32_t muiRhiCountInstances(const muiDrawList* list)
     uint32_t count = 0;
     for (uint32_t i = 0; i < list->commandCount; i++)
     {
-        count += IsDrawn(list->commands[i].kind) ? 1 : 0;
+        const muiDrawCommand* command = &list->commands[i];
+        if (command->kind == mui_drawGlyphRun)
+        {
+            count += IsRunValid(list, &command->glyphRun) ? command->glyphRun.glyphCount : 0;
+        }
+        else
+        {
+            count += command->kind >= mui_drawBox && command->kind <= mui_drawImage ? 1 : 0;
+        }
     }
     return count;
 }
@@ -158,7 +171,64 @@ static muiRhiInstance ImageOf(const muiDrawList* list, const muiDrawCommand* com
     };
 }
 
-uint32_t muiRhiPackInstances(const muiDrawList* list, muiRhiImages* images,
+// A glyph's instance from its image in the atlas, its quad in the
+// run's units before a translation of (dx, dy).
+static muiRhiInstance GlyphOf(const muiDrawList* list, const muiDrawCommand* command,
+                              const muiRhiGlyph* glyph, float dx, float dy)
+{
+    float scale = list->header.scale;
+    float width = (float)glyph->pageWidth;
+    float height = (float)glyph->pageHeight;
+    float u0 = (float)glyph->u / width;
+    float v0 = (float)glyph->v / height;
+    float u1 = (float)(glyph->u + glyph->width) / width;
+    float v1 = (float)(glyph->v + glyph->height) / height;
+    return (muiRhiInstance){
+        .rect = {(float)glyph->x / scale - dx, (float)glyph->y / scale - dy,
+                 (float)glyph->width / scale, (float)glyph->height / scale},
+        .fill = command->glyphRun.color,
+        .colors =
+            {
+                {u0, v0, u1, v1},
+                {u0 - 0.5f / width, v0 - 0.5f / height, u1 + 0.5f / width, v1 + 0.5f / height},
+            },
+        .kind = mui_drawGlyphRun,
+        .clip = Index(command->clip, list->clipCount),
+        .transform = Index(command->transform, list->transformCount),
+        .index = glyph->page,
+    };
+}
+
+// A glyph run's instances: how many.
+static uint32_t PackRun(const muiDrawList* list, const muiDrawCommand* command,
+                        muiRhiGlyphs* glyphs, muiRhiInstance* instances)
+{
+    const muiDrawGlyphRun* run = &command->glyphRun;
+    uint32_t transform = Index(command->transform, list->transformCount);
+    const muiDrawTransform moved = list->transformCount > 0 ? list->transforms[transform]
+                                                            : (muiDrawTransform){1, 0, 0, 1, 0, 0};
+    if (!IsRunValid(list, run) || moved.a != 1.0f || moved.b != 0.0f || moved.c != 0.0f ||
+        moved.d != 1.0f)
+    {
+        return 0;
+    }
+    float scale = list->header.scale;
+    uint32_t count = 0;
+    for (uint32_t i = 0; i < run->glyphCount; i++)
+    {
+        const muiGlyph* at = &list->glyphs[run->firstGlyph + i];
+        muiRhiGlyph glyph = {0};
+        if (muiRhiGetGlyph(glyphs, run->font, at->id, run->size * scale,
+                           (run->originX + at->x + moved.e) * scale,
+                           (run->originY + at->y + moved.f) * scale, &glyph))
+        {
+            instances[count++] = GlyphOf(list, command, &glyph, moved.e, moved.f);
+        }
+    }
+    return count;
+}
+
+uint32_t muiRhiPackInstances(const muiDrawList* list, muiRhiImages* images, muiRhiGlyphs* glyphs,
                              muiRhiInstance* instances)
 {
     uint32_t count = 0;
@@ -180,6 +250,10 @@ uint32_t muiRhiPackInstances(const muiDrawList* list, muiRhiImages* images,
             {
                 instances[count++] = ImageOf(list, command, &images->entries[index], index);
             }
+        }
+        else if (command->kind == mui_drawGlyphRun)
+        {
+            count += PackRun(list, command, glyphs, &instances[count]);
         }
     }
     return count;

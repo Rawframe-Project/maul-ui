@@ -11,6 +11,7 @@
 #ifndef MAUL_UI_RHI_PACK_H
 #define MAUL_UI_RHI_PACK_H
 
+#include "glyphs.h"
 #include "images.h"
 
 #include "maul-ui/draw.h"
@@ -23,8 +24,11 @@
 // its blur's sigma and whether it is inset (colors 2); or an image, whose
 // fields hold its rect, its tint (fill), its uv rect as two corners
 // (colors 0), and its slice insets, top, right, bottom and left, in
-// logical units as drawn (colors 1) and in uv (colors 2). index is a
-// box's gradient, or an image's entry of the frame's images.
+// logical units as drawn (colors 1) and in uv (colors 2); or a glyph,
+// whose fields hold its quad, its color (fill), its uv rect in its atlas
+// page (colors 0) and the uv its samples stay within, half a texel into
+// its gutter (colors 1). index is a box's gradient, an image's entry of
+// the frame's images, or a glyph's page.
 typedef struct muiRhiInstance
 {
     muiRect rect;
@@ -76,9 +80,9 @@ uint32_t muiRhiCountInstances(const muiDrawList* list);
 uint32_t muiRhiCountImages(const muiDrawList* list);
 
 // A list's commands as instances, at most as many as muiRhiCountInstances
-// says, an image's found in the frame's images or not drawn: how many
-// there are.
-uint32_t muiRhiPackInstances(const muiDrawList* list, muiRhiImages* images,
+// says, an image's found in the frame's images and a glyph's in the
+// atlas, or not drawn: how many there are.
+uint32_t muiRhiPackInstances(const muiDrawList* list, muiRhiImages* images, muiRhiGlyphs* glyphs,
                              muiRhiInstance* instances);
 
 // A list's gradient table, its placeholder entry 0 included, at least one

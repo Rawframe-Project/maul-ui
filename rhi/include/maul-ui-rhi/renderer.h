@@ -30,6 +30,9 @@ extern "C"
 
     typedef struct muiRhiRenderer muiRhiRenderer;
 
+    // Maul UI's text service (maul-ui/text.h).
+    typedef struct muiTextService muiTextService;
+
     // An image a host's key names: a 2D texture of the renderer's device
     // that shaders sample (mrhi_textureSampled), its texels with
     // premultiplied alpha and sampled as floats (an sRGB format for
@@ -63,6 +66,11 @@ extern "C"
         // no function, images are not drawn.
         muiRhiImageFunction image;
         void* imageContext;
+        // The text service whose fonts glyph runs name, or NULL to draw
+        // none: the renderer packs its glyphs into an atlas of its own,
+        // which needs Maul UI built with its text component
+        // (MAUL_UI_TEXT). The service outlives the renderer.
+        muiTextService* text;
     } muiRhiRendererDef;
 
     // Where a frame's list is drawn: a texture of the frame, its size in
@@ -94,9 +102,10 @@ extern "C"
     /// @param rendererOut  Receives the renderer; NULL on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
     ///         def not from muiDefaultRhiRendererDef, a half-set
-    ///         allocator, no device or no instances; `mui_errorCapacity`
+    ///         allocator, no device or no instances, or a text service
+    ///         where Maul UI was built without text; `mui_errorCapacity`
     ///         when memory runs out; `mui_errorPlatform` when the device
-    ///         refuses the shader, the pipeline or the buffer.
+    ///         refuses the shader, the pipeline, a buffer or a texture.
     /// @par Thread safety
     /// Safe from any thread; the renderer and its device are used by one
     /// thread at a time.

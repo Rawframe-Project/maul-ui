@@ -12,7 +12,9 @@
 //   outside its box, or inside it when inset;
 // - an image: its texture in table 1 sampled at a uv that maps its
 //   slices, its corners and edges kept at their insets' size and its
-//   middle stretched, times its tint, its edges covered as a box's.
+//   middle stretched, times its tint, its edges covered as a box's;
+// - a glyph: its coverage from its atlas page in table 1, sampled within
+//   its rect and half a texel of gutter, times its color.
 // The uv is worked out for every fragment, with selects alone, and its
 // derivatives taken before the kind is branched on, where they are
 // defined.
@@ -92,6 +94,7 @@ layout(location = 0) out vec4 outColor;
 
 const uint kShadow = 2u;
 const uint kImage = 3u;
+const uint kGlyph = 4u;
 const uint kLinear = 1u;
 
 // The signed distance from a point, relative to a rounded rect's
@@ -315,6 +318,15 @@ vec4 Image(vec2 size, vec2 uv, vec2 dx, vec2 dy)
     return texel * instances.items[index].fill * covered;
 }
 
+vec4 Glyph(vec2 size)
+{
+    vec4 uv = instances.items[index].colors[0];
+    vec4 bounds = instances.items[index].colors[1];
+    vec2 at = clamp(mix(uv.xy, uv.zw, local / size), bounds.xy, bounds.zw);
+    float coverage = textureLod(sampler2D(imageTexture, imageSampler), at, 0.0).r;
+    return instances.items[index].fill * coverage;
+}
+
 // How much of the fragment its clips keep.
 float Clipped(uint clip)
 {
@@ -355,6 +367,10 @@ void main()
     else if (kind == kImage)
     {
         color = Image(size, uv, dx, dy);
+    }
+    else if (kind == kGlyph)
+    {
+        color = Glyph(size);
     }
     else
     {

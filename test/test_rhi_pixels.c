@@ -25,7 +25,10 @@
 //   slice, its 2-texel red border kept 2 units wide around its stretched
 //   green middle (probed where stretching it whole differs), an image
 //   tinted to half, another texture's between two of the first (each
-//   drawn with its own), and a uv rect of the middle alone.
+//   drawn with its own), and a uv rect of the middle alone;
+// - glyph runs in Ahem, whose glyphs are its em square 8 tenths above
+//   the baseline, at scales 1 and 2: two squares and the gap between
+//   them, and a run a transform moves.
 // Skips (77) without an adapter, unless MUI_RHI_REQUIRED is set.
 
 #include "color.h"
@@ -558,6 +561,87 @@ static void TestImages(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels, int 
           "a uv rect of the middle alone");
 }
 
+#if MUI_TEST_TEXT
+
+#include "maul-ui/font.h"
+#include "maul-ui/text.h"
+#include "maul-ui/text_block.h"
+
+#include "ahem.inc"
+
+// A text service with Ahem, its key in fontOut.
+static muiTextService* MakeText(uint64_t* fontOut)
+{
+    muiTextServiceDef def = muiDefaultTextServiceDef();
+    muiTextService* service = NULL;
+    muiFontDef font = muiDefaultFontDef();
+    font.data = s_ahem;
+    font.size = sizeof s_ahem;
+    font.dataMode = mui_fontDataBorrow;
+    muiFontId ahem = {0, 0};
+    if (muiCreateTextService(&def, &service) != mui_success ||
+        muiCreateFont(service, &font, &ahem) != mui_success)
+    {
+        muiDestroyTextService(service);
+        return NULL;
+    }
+    *fontOut = muiFont_GetKey(ahem);
+    return service;
+}
+
+static void TestGlyphs(Gpu* gpu, muiRhiRenderer* renderer, uint64_t font, uint8_t* pixels,
+                       int scale)
+{
+    const uint32_t side = 64u * (uint32_t)scale;
+    // Glyph 4 is a square: two at 0 and 15 from the origin.
+    const muiGlyph glyphs[2] = {{4, 0, 0}, {4, 15, 0}};
+    const muiDrawTransform transforms[2] = {{1, 0, 0, 1, 0, 0}, {1, 0, 0, 1, 30, 30}};
+    muiDrawCommand commands[2] = {{.kind = mui_drawGlyphRun}, {.kind = mui_drawGlyphRun}};
+    commands[0].glyphRun = (muiDrawGlyphRun){.font = font,
+                                             .originX = 4,
+                                             .originY = 20,
+                                             .size = 10,
+                                             .glyphCount = 2,
+                                             .color = {0, 1, 0, 1}};
+    commands[1].glyphRun = (muiDrawGlyphRun){.font = font,
+                                             .originX = 4,
+                                             .originY = 20,
+                                             .size = 10,
+                                             .glyphCount = 1,
+                                             .color = {0, 0, 1, 1}};
+    commands[1].transform = 1;
+    muiDrawList list = {.commands = commands, .commandCount = 2};
+    list.glyphs = glyphs;
+    list.glyphCount = 2;
+    list.transforms = transforms;
+    list.transformCount = 2;
+    list.header.scale = (float)scale;
+    if (!Render(gpu, renderer, &list, side, pixels))
+    {
+        CHECK(false, "glyphs drawn and read");
+        return;
+    }
+    const int black[4] = {0, 0, 0, 255};
+    const int green[4] = {0, 255, 0, 255};
+    const int blue[4] = {0, 0, 255, 255};
+    const int s = scale;
+    // The squares span 4 to 14 and 19 to 29 across, 12 to 22 down.
+    CHECK(Near(pixels, side, 4 * s, 12 * s, green, 2) &&
+              Near(pixels, side, 13 * s, 21 * s, green, 2) &&
+              Near(pixels, side, 3 * s, 16 * s, black, 2) &&
+              Near(pixels, side, 8 * s, 11 * s, black, 2) &&
+              Near(pixels, side, 8 * s, 22 * s, black, 2) &&
+              Near(pixels, side, 16 * s, 16 * s, black, 2) &&
+              Near(pixels, side, 22 * s, 16 * s, green, 2),
+          "two squares of Ahem and the gap between them");
+    CHECK(Near(pixels, side, 38 * s, 46 * s, blue, 2) &&
+              Near(pixels, side, 33 * s, 46 * s, black, 2) &&
+              Near(pixels, side, 8 * s, 16 * s, green, 2),
+          "a run a transform moves");
+}
+
+#endif
+
 int main(void)
 {
     Gpu gpu;
@@ -579,6 +663,11 @@ int main(void)
     def.device = gpu.device;
     def.image = FindImage;
     def.imageContext = &textures;
+#if MUI_TEST_TEXT
+    uint64_t font = 0;
+    def.text = MakeText(&font);
+    CHECK(def.text != NULL, "a text service with Ahem");
+#endif
     muiRhiRenderer* renderer = NULL;
     CHECK(muiCreateRhiRenderer(&def, &renderer) == mui_success && AwaitReady(&gpu, renderer),
           "a ready renderer");
@@ -609,6 +698,10 @@ int main(void)
         TestClipsAndTransforms(&gpu, renderer, pixels, 2);
         TestImages(&gpu, renderer, pixels, 1);
         TestImages(&gpu, renderer, pixels, 2);
+#if MUI_TEST_TEXT
+        TestGlyphs(&gpu, renderer, font, pixels, 1);
+        TestGlyphs(&gpu, renderer, font, pixels, 2);
+#endif
     }
     free(pixels);
     muiDestroyRhiRenderer(renderer);
@@ -620,6 +713,9 @@ int main(void)
     {
         (void)mrhiDestroyTexture(gpu.device, textures.blue);
     }
+#if MUI_TEST_TEXT
+    muiDestroyTextService(def.text);
+#endif
     Close(&gpu);
     return s_failures == 0 ? 0 : 1;
 }

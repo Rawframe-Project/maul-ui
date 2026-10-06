@@ -60,7 +60,9 @@ format.
   their clips (rounded, inverted and nested, each in its own transform)
   and through their transforms; and images, which the host's function
   (`muiRhiImageFunction`) names by key as a texture and its size, with
-  their uv rects, tints and nine slices.
+  their uv rects, tints and nine slices; and glyph runs, from an atlas
+  of the renderer's own over the text service its def names, drawn as
+  coverage at device pixels where their transform only moves them.
 - Interaction properties (`maul-ui/interaction.h`): a fourth property
   group with a hit mode (the node and its children, its children alone,
   or neither), a pass-through flag and a layer kind (an activation
