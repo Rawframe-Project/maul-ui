@@ -734,6 +734,15 @@ static void TestOverscrollAcross(void)
           "cancelled");
     Layout(context, scene.root, 2000 * MS);
     CHECK(Drawn(&scene, false) == 0.0f && !muiIsUpdatePending(context, scene.root), "back");
+    // Flicked toward the end and down: it does not spring along the axis
+    // it does not scroll.
+    CHECK(Feed(&scene, 3, mui_pointerTouch, mui_pointerPress, 3000 * MS, 10.0f, 25.0f) == 0 &&
+              Feed(&scene, 3, mui_pointerTouch, mui_pointerMove, 3010 * MS, 40.0f, 35.0f) == 1 &&
+              Feed(&scene, 3, mui_pointerTouch, mui_pointerMove, 3020 * MS, 80.0f, 45.0f) == 1 &&
+              Feed(&scene, 3, mui_pointerTouch, mui_pointerRelease, 3030 * MS, 80.0f, 45.0f) == 1,
+          "a flick");
+    Layout(context, scene.root, 3100 * MS);
+    CHECK(Drawn(&scene, true) == 0.0f && Drawn(&scene, false) > 70.0f, "not down");
     muiDestroyContext(context);
 }
 
@@ -808,11 +817,24 @@ static void TestFlingBounce(void)
               Feed(&scene, 7, mui_pointerTouch, mui_pointerRelease, 30 * MS, 80.0f, 20.0f) == 1 &&
               Y(context, scene.s) == 370.0f,
           "a flick");
+    // Just past the edge, moving fast though still within a tenth of a
+    // unit: not at rest.
+    double decay = -log(0.998) * 1000.0;
+    double met = -log(1.0 - 30.0 * decay / 1000.0) / decay;
+    Layout(context, scene.root, 30 * MS + (uint64_t)(met * 1e9) + 50000);
+    CHECK(FlingOver(370.0, 1000.0, 400.0, met + 50e-6) < 0.1 && Drawn(&scene, true) == -400.0f,
+          "meeting the edge");
     Layout(context, scene.root, 130 * MS);
     double over = FlingOver(370.0, 1000.0, 400.0, 0.1);
     CHECK(Y(context, scene.s) == 400.0f && over > 1.0 &&
               Drawn(&scene, true) == roundf((float)(-400.0 - over)) && Drawn(&scene, false) == 0.0f,
           "past the end");
+    // At rest within a tenth of a unit: none left, as fine a scale shows.
+    Layout(context, scene.root, 691 * MS);
+    over = FlingOver(370.0, 1000.0, 400.0, 0.661);
+    CHECK(over > 0.05 && over < 0.1 && DrawnAt(&scene, 64.0f, 1, true) == -400.0f &&
+              !muiIsUpdatePending(context, scene.root),
+          "at rest");
     Layout(context, scene.root, 3000 * MS);
     CHECK(Drawn(&scene, true) == -400.0f && !muiIsUpdatePending(context, scene.root), "back, done");
     // Up from 60: past the top.
@@ -834,6 +856,80 @@ static void TestFlingBounce(void)
     CHECK(Drawn(&scene, true) == roundf((float)(-over * Kept(0.1))), "springing back");
     Layout(context, scene.root, 6000 * MS);
     CHECK(Drawn(&scene, true) == 0.0f && !muiIsUpdatePending(context, scene.root), "at rest");
+    muiDestroyContext(context);
+}
+
+static void SetHeight(muiContext* context, muiNodeId node, float height)
+{
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.sizing.height = (muiDimension){0.0f, height, mui_dimensionValue};
+    CHECK(muiNode_SetLayoutValues(context, node, &style, MUI_PROPERTY_BIT(mui_propertyHeight)) ==
+              mui_success,
+          "height");
+}
+
+static void TestFlingShrunk(void)
+{
+    // A fling whose limit layout moves behind where it began stops at the
+    // limit, with no spring, down or up.
+    Scene scene;
+    MakeScene(&scene, 10);
+    muiContext* context = scene.context;
+    Overscroll(context, true);
+    CHECK(muiNode_SetScroll(context, scene.s, 0.0f, 340.0f) == mui_success &&
+              Touch(&scene, mui_pointerPress, 0, 50.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 10 * MS, 40.0f) == 1 &&
+              Touch(&scene, mui_pointerMove, 20 * MS, 20.0f) == 1 &&
+              Touch(&scene, mui_pointerRelease, 30 * MS, 20.0f) == 1,
+          "a flick down");
+    Layout(context, scene.root, 40 * MS);
+    SetHeight(context, scene.s, 400.0f);
+    Layout(context, scene.root, 140 * MS);
+    CHECK(Drawn(&scene, true) == -100.0f && !muiIsUpdatePending(context, scene.root),
+          "at the new limit");
+    SetHeight(context, scene.s, 100.0f);
+    Layout(context, scene.root, 800 * MS);
+    CHECK(muiNode_SetScroll(context, scene.s, 0.0f, 370.0f) == mui_success, "back");
+    Layout(context, scene.root, 900 * MS);
+    // 150 a second up from 357.
+    CHECK(Touch(&scene, mui_pointerPress, 1000 * MS, 50.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 1010 * MS, 60.0f) == 1 &&
+              Touch(&scene, mui_pointerMove, 1020 * MS, 63.0f) == 1 &&
+              Touch(&scene, mui_pointerRelease, 1030 * MS, 63.0f) == 1 &&
+              Y(context, scene.s) == 357.0f,
+          "a slow flick up");
+    Layout(context, scene.root, 1040 * MS);
+    SetHeight(context, scene.s, 400.0f);
+    Layout(context, scene.root, 1100 * MS);
+    CHECK(Drawn(&scene, true) == -100.0f && !muiIsUpdatePending(context, scene.root),
+          "at the new limit, up");
+    muiDestroyContext(context);
+}
+
+static void TestSlowBounce(void)
+{
+    // A fling of 100 a second meeting the end at 15 a second: it falls
+    // below the stop speed with its spring still out, and goes on to rest.
+    Scene scene;
+    MakeScene(&scene, 10);
+    muiContext* context = scene.context;
+    Overscroll(context, true);
+    CHECK(muiNode_SetScroll(context, scene.s, 0.0f, 345.5f) == mui_success &&
+              Touch(&scene, mui_pointerPress, 0, 50.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 10 * MS, 40.0f) == 1 &&
+              Touch(&scene, mui_pointerMove, 20 * MS, 38.0f) == 1 &&
+              Touch(&scene, mui_pointerRelease, 30 * MS, 38.0f) == 1 &&
+              Y(context, scene.s) == 357.5f,
+          "a slow flick");
+    Layout(context, scene.root, 1190 * MS);
+    double over = FlingOver(357.5, 100.0, 400.0, 1.16);
+    CHECK(100.0 * exp(log(0.998) * 1160.0) < 10.0 && over > 0.1 &&
+              DrawnAt(&scene, 64.0f, 1, true) == roundf((float)((-400.0 - over) * 64.0)) / 64.0f &&
+              muiIsUpdatePending(context, scene.root),
+          "slow, still out");
+    Layout(context, scene.root, 3030 * MS);
+    CHECK(DrawnAt(&scene, 64.0f, 1, true) == -400.0f && !muiIsUpdatePending(context, scene.root),
+          "at rest");
     muiDestroyContext(context);
 }
 
@@ -872,6 +968,8 @@ int main(void)
     TestOverscrollAcross();
     TestOverscrollPort();
     TestFlingBounce();
+    TestFlingShrunk();
+    TestSlowBounce();
     TestRule();
     return s_failures == 0 ? 0 : 1;
 }
