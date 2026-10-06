@@ -27,9 +27,7 @@ static uint32_t SlotOf(const muiContext* context, muiNodeId nodeId)
     return IsNull(nodeId) ? 0 : muiTreeResolve(&context->tree, nodeId);
 }
 
-// Whether a node's mode and the host's states let it take focus; a modal
-// layer covering it is apart.
-static bool IsFocusable(const muiContext* context, uint32_t slot, muiFocusMode least)
+bool muiFocusTakes(const muiContext* context, uint32_t slot, muiFocusMode least)
 {
     const muiState off = mui_stateDisabled | mui_stateExiting;
     muiFocusMode mode = context->interaction[slot - 1].focusMode;
@@ -46,9 +44,7 @@ static uint32_t TopOf(const muiTree* tree, uint32_t slot)
     return slot;
 }
 
-// Whether a modal layer above whatever layer holds a node covers it: one
-// in the node's tree, met from the top before a layer that holds it.
-static bool IsCovered(const muiContext* context, uint32_t slot)
+bool muiFocusIsCovered(const muiContext* context, uint32_t slot)
 {
     const muiTree* tree = &context->tree;
     uint32_t top = 0;
@@ -97,8 +93,7 @@ static void SetBits(muiContext* context, uint32_t slot, uint8_t player, bool foc
     }
 }
 
-// Moves a player's focus to slot (0 for none), shown or not.
-static void Assign(muiContext* context, uint8_t player, uint32_t slot, bool shown)
+void muiFocusAssign(muiContext* context, uint8_t player, uint32_t slot, bool shown)
 {
     muiFocusStore* store = &context->focus;
     muiNodeId was = store->nodes[player];
@@ -144,7 +139,7 @@ muiResult muiFocus_Set(muiContext* context, uint8_t player, muiNodeId nodeId, mu
         {
             return status;
         }
-        if (!IsFocusable(context, slot, mui_focusPointer) || IsCovered(context, slot))
+        if (!muiFocusTakes(context, slot, mui_focusPointer) || muiFocusIsCovered(context, slot))
         {
             return muiRefuse(context);
         }
@@ -154,7 +149,7 @@ muiResult muiFocus_Set(muiContext* context, uint8_t player, muiNodeId nodeId, mu
     {
         *showsByCode = cause == mui_focusByNavigation;
     }
-    Assign(context, player, slot, *showsByCode);
+    muiFocusAssign(context, player, slot, *showsByCode);
     return mui_success;
 }
 
@@ -244,9 +239,7 @@ static void Consider(Around* around, uint32_t slot, uint64_t key)
     }
 }
 
-// The node after at in tree order within scope, passing over the layers
-// in it, or 0.
-static uint32_t Following(const muiTree* tree, uint32_t scope, uint32_t at)
+uint32_t muiFocusFollowing(const muiTree* tree, uint32_t scope, uint32_t at)
 {
     uint32_t child = muiTreeAt(tree, at)->links.firstChild;
     bool skip = child == 0;
@@ -280,7 +273,8 @@ static Around Survey(const muiContext* context, uint32_t scope, uint32_t focus)
     const muiTree* tree = &context->tree;
     Around around = {0};
     uint32_t place = 0;
-    for (uint32_t at = focus != 0 ? scope : 0; at != 0; at = Following(tree, scope, at), place++)
+    for (uint32_t at = focus != 0 ? scope : 0; at != 0;
+         at = muiFocusFollowing(tree, scope, at), place++)
     {
         if (at == focus)
         {
@@ -289,15 +283,35 @@ static Around Survey(const muiContext* context, uint32_t scope, uint32_t focus)
         }
     }
     place = 0;
-    for (uint32_t at = scope; at != 0; at = Following(tree, scope, at), place++)
+    for (uint32_t at = scope; at != 0; at = muiFocusFollowing(tree, scope, at), place++)
     {
         // The focus itself is a candidate: alone, it stays.
-        if (IsFocusable(context, at, mui_focusAll))
+        if (muiFocusTakes(context, at, mui_focusAll))
         {
             Consider(&around, at, KeyOf(context, at, place));
         }
     }
     return around;
+}
+
+uint32_t muiFocusScope(const muiContext* context, uint32_t root, uint8_t player, uint32_t* focusOut)
+{
+    const muiTree* tree = &context->tree;
+    uint32_t focus = SlotOf(context, context->focus.nodes[player]);
+    *focusOut = 0;
+    if (focus != 0 && muiTreeIsAncestor(tree, root, focus) && !muiFocusIsCovered(context, focus))
+    {
+        *focusOut = focus;
+        return LayerOf(tree, root, focus);
+    }
+    uint32_t modal = TopModal(context, root);
+    return modal != 0 ? modal : root;
+}
+
+void muiFocusNavigate(muiContext* context, uint8_t player, uint32_t slot)
+{
+    context->focus.showsByCode[player] = true;
+    muiFocusAssign(context, player, slot, true);
 }
 
 muiResult muiFocus_Move(muiContext* context, muiNodeId rootId, uint8_t player, bool backward)
@@ -316,18 +330,8 @@ muiResult muiFocus_Move(muiContext* context, muiNodeId rootId, uint8_t player, b
     {
         return mui_errorStale;
     }
-    uint32_t focus = SlotOf(context, context->focus.nodes[player]);
-    uint32_t scope = 0;
-    if (focus != 0 && muiTreeIsAncestor(tree, root, focus) && !IsCovered(context, focus))
-    {
-        scope = LayerOf(tree, root, focus);
-    }
-    else
-    {
-        uint32_t modal = TopModal(context, root);
-        scope = modal != 0 ? modal : root;
-        focus = 0;
-    }
+    uint32_t focus = 0;
+    uint32_t scope = muiFocusScope(context, root, player, &focus);
     const Around around = Survey(context, scope, focus);
     uint32_t next = backward ? (around.before != 0 ? around.before : around.last)
                              : (around.after != 0 ? around.after : around.first);
@@ -335,8 +339,7 @@ muiResult muiFocus_Move(muiContext* context, muiNodeId rootId, uint8_t player, b
     {
         return mui_empty;
     }
-    context->focus.showsByCode[player] = true;
-    Assign(context, player, next, true);
+    muiFocusNavigate(context, player, next);
     return mui_success;
 }
 
@@ -344,21 +347,21 @@ void muiFocusPress(muiContext* context, uint8_t player, uint32_t slot)
 {
     const muiTree* tree = &context->tree;
     uint32_t at = slot;
-    while (at != 0 && !IsFocusable(context, at, mui_focusPointer))
+    while (at != 0 && !muiFocusTakes(context, at, mui_focusPointer))
     {
         at = muiTreeAt(tree, at)->links.parent;
     }
-    if (at != 0 && IsCovered(context, at))
+    if (at != 0 && muiFocusIsCovered(context, at))
     {
         at = 0;
     }
     context->focus.showsByCode[player] = false;
-    Assign(context, player, at, false);
+    muiFocusAssign(context, player, at, false);
 }
 
 void muiFocusRecheck(muiContext* context, uint32_t slot)
 {
-    if (IsFocusable(context, slot, mui_focusPointer))
+    if (muiFocusTakes(context, slot, mui_focusPointer))
     {
         return;
     }
@@ -367,7 +370,7 @@ void muiFocusRecheck(muiContext* context, uint32_t slot)
     {
         if ((focusedBy >> player & 1u) != 0)
         {
-            Assign(context, (uint8_t)player, 0, false);
+            muiFocusAssign(context, (uint8_t)player, 0, false);
         }
     }
 }

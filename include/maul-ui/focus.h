@@ -96,6 +96,76 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiFocus_Move(muiContext* context, muiNodeId rootId,
                                                   uint8_t player, bool backward);
 
+    // A direction on the screen.
+    typedef uint8_t muiDirection;
+
+    enum
+    {
+        mui_directionUp = 0,
+        mui_directionDown = 1,
+        mui_directionLeft = 2,
+        mui_directionRight = 3,
+    };
+
+    /// Moves a player's focus toward a direction on the screen (arrow keys,
+    /// a gamepad's pad or stick), shown. A link the focused node has for
+    /// the direction (muiNode_SetNeighbor) to a node that takes focus
+    /// wins; a link to the node itself stops the move. Otherwise the
+    /// nearest node in the direction is found as Android's focus search
+    /// finds it, among the nodes sequential navigation reaches in the same
+    /// layer: nodes overlapping the focus across the direction first, then
+    /// the least of 13 times the square of the gap along the direction
+    /// plus the square of the distance between centers across it, ties to
+    /// the earlier in tree order. Boxes are as the last muiComputeLayout
+    /// left them. With no focus under the root, or one a modal layer
+    /// covers, it moves as muiFocus_Move does forward.
+    ///
+    /// @param context    The context.
+    /// @param rootId     The root of the subtree the player navigates.
+    /// @param player     The player.
+    /// @param direction  The direction.
+    /// @return `mui_success`; `mui_empty` when nothing lies that way, which
+    ///         leaves the focus; `mui_errorInvalid` for a NULL context, the
+    ///         null id, a player past MUI_MAX_PLAYERS, an unknown direction
+    ///         or a call from a measure or paint function;
+    ///         `mui_errorStale` for a root that is gone.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiFocus_MoveToward(muiContext* context, muiNodeId rootId,
+                                                        uint8_t player, muiDirection direction);
+
+    /// Links a node to the node directional navigation moves to from it
+    /// in a direction, over what geometry would find; the node itself
+    /// stops movement that way. Links to nodes that do not take focus
+    /// when the move is made leave it to geometry.
+    ///
+    /// @param context    The context.
+    /// @param nodeId     The node.
+    /// @param direction  The direction.
+    /// @param targetId   The node to move to; the null id removes the link.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
+    ///         null id as the node, an unknown direction or a call from a
+    ///         measure or paint function; `mui_errorStale` for a node or
+    ///         target that is gone; `mui_errorCapacity` past the context's
+    ///         neighbors limit.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiNode_SetNeighbor(muiContext* context, muiNodeId nodeId,
+                                                        muiDirection direction, muiNodeId targetId);
+
+    /// Returns the node a node links to in a direction.
+    ///
+    /// @param context    The context.
+    /// @param nodeId     The node.
+    /// @param direction  The direction.
+    /// @return The target, which may be gone since; the null id for no
+    ///         link, a NULL context, a node that is gone or an unknown
+    ///         direction.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_API muiNodeId muiNode_GetNeighbor(const muiContext* context, muiNodeId nodeId,
+                                          muiDirection direction);
+
 #ifdef __cplusplus
 }
 #endif

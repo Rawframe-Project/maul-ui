@@ -48,7 +48,8 @@ muiContextDef muiDefaultContextDef(void)
                    .drawGlyphs = 16384,
                    .layers = 64,
                    .pointers = 16,
-                   .pointerRecords = 64},
+                   .pointerRecords = 64,
+                   .neighbors = 256},
     };
 }
 
@@ -62,7 +63,8 @@ static bool AreLimitsValid(const muiLimits* limits)
            limits->themeOverrides <= MAX_SLOTS && limits->drawCommands <= MAX_SLOTS &&
            limits->drawClips < MAX_SLOTS && limits->drawGradients < MAX_SLOTS &&
            limits->drawGlyphs <= MAX_SLOTS && limits->layers <= MAX_SLOTS &&
-           limits->pointers <= MUI_MAX_POINTERS && limits->pointerRecords <= MAX_SLOTS;
+           limits->pointers <= MUI_MAX_POINTERS && limits->pointerRecords <= MAX_SLOTS &&
+           limits->neighbors <= MAX_SLOTS;
 }
 
 // Where each part of the context's block starts.
@@ -102,6 +104,7 @@ typedef struct Parts
     size_t layers;
     size_t pointers;
     size_t pointerRecords;
+    size_t neighbors;
 } Parts;
 
 // A table per theme, an entry per token slot; a count past size_t marks
@@ -169,6 +172,7 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
         .pointers = muiLayoutAdd(layout, limits->pointers, sizeof(muiPointer), CACHE_LINE),
         .pointerRecords =
             muiLayoutAdd(layout, limits->pointerRecords, sizeof(muiPointerRecord), CACHE_LINE),
+        .neighbors = muiLayoutAdd(layout, limits->neighbors, sizeof(muiNeighbor), CACHE_LINE),
     };
 }
 
@@ -230,7 +234,7 @@ static void Place(muiContext* context, unsigned char* base, const Parts* parts,
     }
     draw->identity = (muiDrawTransform){1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
     muiLayerInit(&context->layers, (muiLayerEntry*)(base + parts->layers), limits->layers);
-    muiFocusInit(&context->focus);
+    muiFocusInit(&context->focus, (muiNeighbor*)(base + parts->neighbors), limits->neighbors);
     muiPointerInit(&context->pointers, (muiPointer*)(base + parts->pointers), limits->pointers,
                    (muiPointerRecord*)(base + parts->pointerRecords), limits->pointerRecords);
 }

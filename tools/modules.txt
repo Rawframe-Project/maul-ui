@@ -27,6 +27,7 @@ layer: context layer_store tree
 layer_store:
 focus: context focus_store layer notify style_store tree
 focus_store:
+navigate: context focus tree
 pointer: context pointer_store style_store tree focus
 pointer_store:
 notify:

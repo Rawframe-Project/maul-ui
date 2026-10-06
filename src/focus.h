@@ -10,6 +10,32 @@
 
 #include <stdint.h>
 
+// Whether a node's mode, at least least (never mui_focusNone), and the
+// host's states let it take focus; a modal layer covering it is apart.
+bool muiFocusTakes(const muiContext* context, uint32_t slot, muiFocusMode least);
+
+// Whether a modal layer above whatever layer holds a node covers it: one
+// in the node's tree, met from the top before a layer that holds it.
+bool muiFocusIsCovered(const muiContext* context, uint32_t slot);
+
+// The node after at in tree order within scope, passing over the layers
+// in it, or 0.
+uint32_t muiFocusFollowing(const muiTree* tree, uint32_t scope, uint32_t at);
+
+// Where a player navigates under root: the layer holding its focus,
+// without the layers in it, or, with no focus there or a covered one,
+// the top modal layer under root or root. focusOut receives the focus
+// when it is in the scope, else 0.
+uint32_t muiFocusScope(const muiContext* context, uint32_t root, uint8_t player,
+                       uint32_t* focusOut);
+
+// Moves a player's focus to slot (0 for none), shown or not.
+void muiFocusAssign(muiContext* context, uint8_t player, uint32_t slot, bool shown);
+
+// Moves a player's focus to slot by navigation: shown, and so is code's
+// next focus.
+void muiFocusNavigate(muiContext* context, uint8_t player, uint32_t slot);
+
 // Focuses, for a player, the nearest node from slot up that takes focus,
 // as a pointer press does; over nothing that does (slot 0 included), the
 // player's focus goes.

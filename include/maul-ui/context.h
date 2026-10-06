@@ -58,6 +58,8 @@ extern "C"
         // mui_pointerRecordDropped record.
         uint32_t pointers;
         uint32_t pointerRecords;
+        // Directional navigation links (muiNode_SetNeighbor) at once.
+        uint32_t neighbors;
     } muiLimits;
 
     // How a context is made. Build it with muiDefaultContextDef.

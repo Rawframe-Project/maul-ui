@@ -12,6 +12,15 @@
 
 #include <stdbool.h>
 
+// A node's link to where directional navigation goes from it.
+typedef struct muiNeighbor
+{
+    uint32_t slot;
+    uint32_t generation;
+    muiDirection direction;
+    muiNodeId target;
+} muiNeighbor;
+
 typedef struct muiFocusStore
 {
     muiNodeId nodes[MUI_MAX_PLAYERS];
@@ -20,11 +29,16 @@ typedef struct muiFocusStore
     bool showsByCode[MUI_MAX_PLAYERS];
     // The players that focus a node, as bits.
     uint8_t holders;
+    // Directional links, in no order; those of destroyed nodes are taken
+    // out when room is needed.
+    muiNeighbor* neighbors;
+    uint32_t neighborCount;
+    uint32_t neighborCapacity;
 } muiFocusStore;
 
-static inline void muiFocusInit(muiFocusStore* store)
+static inline void muiFocusInit(muiFocusStore* store, muiNeighbor* neighbors, uint32_t capacity)
 {
-    *store = (muiFocusStore){0};
+    *store = (muiFocusStore){.neighbors = neighbors, .neighborCapacity = capacity};
     for (int i = 0; i < MUI_MAX_PLAYERS; i++)
     {
         store->showsByCode[i] = true;

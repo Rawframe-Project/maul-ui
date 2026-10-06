@@ -94,6 +94,19 @@ itself instead of each host repeating them.
   under the root, or a covered one, it starts in the top modal layer
   under the root, or else the root's content. One walk finds the
   focus's place and one the nearest nodes around it.
+- **Directional navigation** (`muiFocus_MoveToward`) moves toward up,
+  down, left or right on the screen, which right to left text does not
+  flip. A link the focused node has for the direction
+  (`muiNode_SetNeighbor`, kept in a context table of `limits.neighbors`)
+  to a node that takes focus wins; a link to the node itself stops the
+  move. Otherwise it follows Android's focus search exactly, over the
+  laid-out border boxes of the nodes Tab reaches in the same scope: a
+  node must lie past the focus in the direction; one overlapping the
+  focus across the direction beats one that does not (moving up or
+  down, only when it is nearer than the other's far edge); else the
+  least `13 * major^2 + minor^2` wins, the gap along the direction and
+  the distance between centers across it; ties go to tree order. There
+  is no wrap.
 - **Focus notifications** report each player's focus gained and lost,
   whatever moved it; a focused node that is destroyed, or stops taking
   focus at its styling or a direct write, loses it. Detaching keeps it,

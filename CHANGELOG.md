@@ -10,9 +10,9 @@ format.
 
 ### Changed
 
-- `muiLimits` has three more fields, `layers` (64 by default),
-  `pointers` (16, at most 32) and `pointerRecords` (64); an initializer
-  that lists its fields by position needs them.
+- `muiLimits` has four more fields, `layers` (64 by default),
+  `pointers` (16, at most 32), `pointerRecords` (64) and `neighbors`
+  (256); an initializer that lists its fields by position needs them.
 - `muiNode_GetStates` returns the hover and press pointer input gives,
   and the players' focus, as well as the states the host set.
 - `mui_stateFocusVisible` comes after `mui_stateFocused`, so hovered,
@@ -61,6 +61,10 @@ format.
   properties, `mui_stateFocusVisible` by the cause of each move, focus
   scoped to layers and refused under modal ones, and focus gained and
   lost notifications (record mui-0007).
+- Directional navigation: `muiFocus_MoveToward` by Android's focus
+  search within the focused layer, and links per direction that win,
+  stop or fall back to geometry (`muiNode_SetNeighbor`,
+  `muiNode_GetNeighbor`; record mui-0007).
 - Font families (`muiCreateFontFamily`, `muiFontFamily_GetKey`,
   `muiFontFamily_MatchFace`): faces a text style names together, matched
   by width, slant and weight as CSS matches them, with fallbacks of
