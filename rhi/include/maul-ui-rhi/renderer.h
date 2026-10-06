@@ -30,6 +30,22 @@ extern "C"
 
     typedef struct muiRhiRenderer muiRhiRenderer;
 
+    // An image a host's key names: a 2D texture of the renderer's device
+    // that shaders sample (mrhi_textureSampled), its texels with
+    // premultiplied alpha and sampled as floats (an sRGB format for
+    // sRGB-encoded texels), and its size in texels.
+    typedef struct muiRhiImage
+    {
+        mrhiTextureId texture;
+        uint32_t width;
+        uint32_t height;
+    } muiRhiImage;
+
+    // Finds the image a key names, while muiRhiRenderer_AddPasses runs, at
+    // most once a key a frame: true and the image, or false for a key the
+    // host has no image for, which is then not drawn.
+    typedef bool (*muiRhiImageFunction)(void* context, uint64_t key, muiRhiImage* imageOut);
+
     // How a renderer is made. Build it with muiDefaultRhiRendererDef.
     typedef struct muiRhiRendererDef
     {
@@ -43,6 +59,10 @@ extern "C"
         // The instances it holds room for at first; it grows as lists
         // need, at least 1.
         uint32_t instances;
+        // The host's images, and the context handed to the function; with
+        // no function, images are not drawn.
+        muiRhiImageFunction image;
+        void* imageContext;
     } muiRhiRendererDef;
 
     // Where a frame's list is drawn: a texture of the frame, its size in

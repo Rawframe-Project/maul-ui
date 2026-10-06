@@ -116,7 +116,14 @@ clip chain evaluated in its shaders, which keeps batches whole.
   transforms, and its parents', for coverage, an inverted clip keeping
   the outside. The tables always have entry 0, and every index into
   them is checked as the list is packed, so no list makes the shaders
-  read past one. Images and glyph runs follow.
+  read past one. Images are textures the host's function names by
+  key, asked once a key a frame; an image is one instance whose
+  fragment maps its place to a uv piecewise, so a nine slice's corners
+  and edges keep their insets' size (shrunk by one factor where facing
+  ones would not fit) and its middle stretches, with no seams between
+  parts; the texture and a linear sampler are bound in a second table,
+  and draws break only where the texture changes, boxes and shadows
+  joining any draw. Glyph runs follow.
 
 ## Consequences
 

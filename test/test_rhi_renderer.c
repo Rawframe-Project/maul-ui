@@ -5,9 +5,11 @@
 // def and arguments; not drawing until its pipeline is ready, the
 // device's notification making it so, or a failed pipeline leaving it
 // not; a frame's upload and draw passes, the upload a record of 144
-// bytes a box or shadow and nothing for the kinds it does not draw yet,
-// and the gradient, transform and clip tables beside them; the instance buffer grown for a
-// long list; an empty list.
+// bytes a box, shadow or image and nothing for the kinds it does not
+// draw yet, and the gradient, transform and clip tables beside them; the
+// instance buffer grown for a long list; an empty list; images, the
+// host asked once a key a frame, a key it has no image for not drawn,
+// and a draw a texture, keys of one texture drawn together.
 
 #include "test_harness.h"
 
@@ -210,11 +212,11 @@ static void TestDraws(void)
     CHECK(DrawFrame(&gpu, renderer, &list) == mui_empty && s_log.frames == 0,
           "nothing drawn before its pipeline is ready");
     CHECK(muiRhiRenderer_IsReady(renderer), "the device's notification made it ready");
-    // The four uploads, then the pipeline, the bindings, the root block
-    // and the draw.
+    // The four uploads, then the pipeline, table 0, the root block, and
+    // table 1 (the placeholder) and the draw.
     CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.passes == 3 &&
-              s_log.stagingBytes == Staged(2) && s_log.commands == 8,
-          "upload and draw passes, two boxes uploaded, the image not yet");
+              s_log.stagingBytes == Staged(2) && s_log.commands == 9,
+          "upload and draw passes, two boxes uploaded, an image with no host not drawn");
     const muiRhiTarget empty = {.width = 0, .height = SIZE};
     CHECK(muiRhiRenderer_AddPasses(renderer, &list, &empty) == mui_errorInvalid,
           "a target of no size");
@@ -237,6 +239,76 @@ static void TestDraws(void)
     Close(&gpu);
 }
 
+// The host's images: keys 1 and 2 name texture A, 3 names B, others
+// nothing; it counts its calls.
+typedef struct Host
+{
+    mrhiTextureId a;
+    mrhiTextureId b;
+    int calls;
+} Host;
+
+static bool FindImage(void* context, uint64_t key, muiRhiImage* imageOut)
+{
+    Host* host = context;
+    host->calls++;
+    if (key < 1 || key > 3)
+    {
+        return false;
+    }
+    *imageOut = (muiRhiImage){.texture = key == 3 ? host->b : host->a, .width = 8, .height = 8};
+    return true;
+}
+
+static muiDrawCommand Image(uint64_t key)
+{
+    muiDrawCommand command = {.kind = mui_drawImage};
+    command.image.rect = (muiRect){0, 0, 8, 8};
+    command.image.image = key;
+    command.image.uv = (muiRect){0, 0, 1, 1};
+    command.image.tint = (muiLinearColor){1, 1, 1, 1};
+    return command;
+}
+
+static void TestImages(void)
+{
+    Gpu gpu;
+    CHECK(Open(&gpu, mrhi_success), "a device");
+    Host host = {0};
+    mrhiTextureDef textureDef = mrhiDefaultTextureDef();
+    textureDef.format = mrhi_formatRgba8UnormSrgb;
+    textureDef.width = 8;
+    textureDef.height = 8;
+    textureDef.usage = mrhi_textureSampled;
+    muiRhiRendererDef def = muiDefaultRhiRendererDef();
+    def.device = gpu.device;
+    def.image = FindImage;
+    def.imageContext = &host;
+    muiRhiRenderer* renderer = NULL;
+    CHECK(mrhiCreateTexture(gpu.device, &textureDef, &host.a) == mrhi_success &&
+              mrhiCreateTexture(gpu.device, &textureDef, &host.b) == mrhi_success &&
+              muiCreateRhiRenderer(&def, &renderer) == mui_success,
+          "two textures and a renderer");
+    muiDrawCommand box = Box(0, 0);
+    muiDrawList one = ListOf(&box, 1);
+    CHECK(DrawFrame(&gpu, renderer, &one) == mui_empty && muiRhiRenderer_IsReady(renderer),
+          "ready");
+    const muiDrawCommand commands[8] = {Box(0, 0), Image(1), Image(2), Box(0, 0),
+                                        Image(3),  Image(1), Image(4), Image(4)};
+    muiDrawList list = ListOf(commands, 8);
+    // Six instances in three draws, A's, B's and A's: the uploads, the
+    // pipeline, table 0, the root block, and table 1 and a draw each.
+    CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes == Staged(6) &&
+              s_log.commands == 4 + 3 + 3 * 2 && host.calls == 4,
+          "images in a draw a texture, the host asked once a key, key 4 not drawn");
+    CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && host.calls == 8,
+          "asked again the next frame");
+    muiDestroyRhiRenderer(renderer);
+    (void)mrhiDestroyTexture(gpu.device, host.a);
+    (void)mrhiDestroyTexture(gpu.device, host.b);
+    Close(&gpu);
+}
+
 static void TestFailedPipeline(void)
 {
     Gpu gpu;
@@ -256,6 +328,7 @@ int main(void)
 {
     TestContract();
     TestDraws();
+    TestImages();
     TestFailedPipeline();
     return s_failures == 0 ? 0 : 1;
 }

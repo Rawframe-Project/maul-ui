@@ -9,7 +9,13 @@
 //   nearest; its gradient, from the gradient table, over its fill;
 // - a shadow: a Gaussian-blurred rounded rect in Evan Wallace's closed
 //   form (the blur integrated along x exactly, sampled along y), drawn
-//   outside its box, or inside it when inset.
+//   outside its box, or inside it when inset;
+// - an image: its texture in table 1 sampled at a uv that maps its
+//   slices, its corners and edges kept at their insets' size and its
+//   middle stretched, times its tint, its edges covered as a box's.
+// The uv is worked out for every fragment, with selects alone, and its
+// derivatives taken before the kind is branched on, where they are
+// defined.
 // Gradients move through premultiplied Oklab, as the core's transitions
 // do. Distances are measured in the quad's own pixels and made screen
 // pixels by the transform's span for an edge a pixel wide at any scale.
@@ -71,6 +77,9 @@ layout(set = 0, binding = 3, std430) readonly buffer Clips
     Clip items[];
 } clips;
 
+layout(set = 1, binding = 0) uniform texture2D imageTexture;
+layout(set = 1, binding = 1) uniform sampler imageSampler;
+
 layout(push_constant) uniform Root
 {
     vec4 frame;
@@ -82,6 +91,7 @@ layout(location = 2) flat in float span;
 layout(location = 0) out vec4 outColor;
 
 const uint kShadow = 2u;
+const uint kImage = 3u;
 const uint kLinear = 1u;
 
 // The signed distance from a point, relative to a rounded rect's
@@ -274,6 +284,37 @@ vec4 Shadow()
     return instances.items[index].fill * coverage;
 }
 
+// Where a point of an image samples along one axis: within its first
+// inset the first slice, within its last the last, the middle stretched
+// between, each across its part of the uv rect.
+float Along(float p, float length, float low, float high, float uvLow, float uvHigh, float from,
+            float to)
+{
+    float first = from + p / max(low, 1e-6) * uvLow;
+    float last = to - (length - p) / max(high, 1e-6) * uvHigh;
+    float middle = mix(from + uvLow, to - uvHigh, (p - low) / max(length - low - high, 1e-6));
+    return p < low ? first : (p > length - high ? last : middle);
+}
+
+// The uv an image's fragment samples, in logical units within its rect.
+vec2 ImageUv()
+{
+    vec4 rect = instances.items[index].rect;
+    vec2 p = clamp(local / root.frame.z, vec2(0.0), rect.zw);
+    vec4 uv = instances.items[index].colors[0];
+    vec4 drawn = instances.items[index].colors[1];
+    vec4 texels = instances.items[index].colors[2];
+    return vec2(Along(p.x, rect.z, drawn.w, drawn.y, texels.w, texels.y, uv.x, uv.z),
+                Along(p.y, rect.w, drawn.x, drawn.z, texels.x, texels.z, uv.y, uv.w));
+}
+
+vec4 Image(vec2 size, vec2 uv, vec2 dx, vec2 dy)
+{
+    vec4 texel = textureGrad(sampler2D(imageTexture, imageSampler), uv, dx, dy);
+    float covered = Coverage(RoundedRect(local - size * 0.5, size * 0.5, vec4(0.0)));
+    return texel * instances.items[index].fill * covered;
+}
+
 // How much of the fragment its clips keep.
 float Clipped(uint clip)
 {
@@ -303,6 +344,21 @@ void main()
 {
     vec2 size = instances.items[index].rect.zw * root.frame.z;
     uint kind = instances.items[index].tags.x;
-    vec4 color = kind == kShadow ? Shadow() : Box(size);
+    vec2 uv = ImageUv();
+    vec2 dx = dFdx(uv);
+    vec2 dy = dFdy(uv);
+    vec4 color;
+    if (kind == kShadow)
+    {
+        color = Shadow();
+    }
+    else if (kind == kImage)
+    {
+        color = Image(size, uv, dx, dy);
+    }
+    else
+    {
+        color = Box(size);
+    }
     outColor = color * Clipped(instances.items[index].tags.y);
 }

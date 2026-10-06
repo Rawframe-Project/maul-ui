@@ -6,13 +6,17 @@
 // tables beside them (pack.c), each a stream bound at its own slot,
 // uploaded in a pass of their own each frame, and drawn as six vertices
 // an instance by one pipeline whose shaders evaluate each
-// (rhi/shaders/quad.*). It allocates through the public allocator
-// alone, as Maul UI's internals stay inside a shared build.
+// (rhi/shaders/quad.*), in draws split where an image's texture changes
+// (plan.c), the texture and a linear sampler bound in table 1. It
+// allocates through the public allocator alone, as Maul UI's internals
+// stay inside a shared build.
 
 #include "maul-ui-rhi/renderer.h"
 
 #include "allocator.h"
+#include "images.h"
 #include "pack.h"
+#include "plan.h"
 
 #include "../shaders/quad_container.h"
 #include "maul-rhi/encoder.h"
@@ -56,6 +60,11 @@ struct muiRhiRenderer
     mrhiRequestId request;
     bool ready;
     Stream streams[kStreamCount];
+    muiRhiImages images;
+    muiRhiPlan plan;
+    mrhiSamplerId sampler;
+    // Bound where a list has no images, never sampled.
+    mrhiTextureId placeholder;
     // The passes added this frame, and what the draw needs.
     bool added;
     mrhiPassId upload;
@@ -157,6 +166,22 @@ static bool MakePipeline(muiRhiRenderer* renderer, mrhiFormat format)
                                       &renderer->request) == mrhi_success;
 }
 
+// The sampler of images and the placeholder texture.
+static bool MakeTextures(muiRhiRenderer* renderer)
+{
+    mrhiSamplerDef samplerDef = mrhiDefaultSamplerDef();
+    samplerDef.magFilter = mrhi_filterLinear;
+    samplerDef.minFilter = mrhi_filterLinear;
+    samplerDef.mipFilter = mrhi_filterLinear;
+    mrhiTextureDef textureDef = mrhiDefaultTextureDef();
+    textureDef.format = mrhi_formatRgba8Unorm;
+    textureDef.width = 1;
+    textureDef.height = 1;
+    textureDef.usage = mrhi_textureSampled;
+    return mrhiCreateSampler(renderer->device, &samplerDef, &renderer->sampler) == mrhi_success &&
+           mrhiCreateTexture(renderer->device, &textureDef, &renderer->placeholder) == mrhi_success;
+}
+
 muiResult muiCreateRhiRenderer(const muiRhiRendererDef* def, muiRhiRenderer** rendererOut)
 {
     if (rendererOut != nullptr)
@@ -183,13 +208,16 @@ muiResult muiCreateRhiRenderer(const muiRhiRendererDef* def, muiRhiRenderer** re
                 [kTransforms] = {.stride = sizeof(muiRhiTransform)},
                 [kClips] = {.stride = sizeof(muiRhiClip)},
             },
+        .images = muiRhiMakeImages(&def->allocator, def->device, def->image, def->imageContext),
+        .plan = {.allocator = def->allocator},
     };
     muiResult status = mui_success;
     for (uint32_t i = 0; i < kStreamCount && status == mui_success; i++)
     {
         status = GrowStream(renderer, &renderer->streams[i], i == kInstances ? def->instances : 16);
     }
-    if (status == mui_success && !MakePipeline(renderer, def->targetFormat))
+    if (status == mui_success &&
+        (!MakeTextures(renderer) || !MakePipeline(renderer, def->targetFormat)))
     {
         status = mui_errorPlatform;
     }
@@ -217,10 +245,20 @@ void muiDestroyRhiRenderer(muiRhiRenderer* renderer)
     {
         (void)mrhiDestroyShader(device, renderer->shader);
     }
+    if (renderer->placeholder.index1 != 0)
+    {
+        (void)mrhiDestroyTexture(device, renderer->placeholder);
+    }
+    if (renderer->sampler.index1 != 0)
+    {
+        (void)mrhiDestroySampler(device, renderer->sampler);
+    }
     for (uint32_t i = 0; i < kStreamCount; i++)
     {
         DropStream(renderer, &renderer->streams[i]);
     }
+    muiRhiFreeImages(&renderer->images);
+    muiRhiFreePlan(&renderer->plan);
     const muiAllocator allocator = renderer->allocator;
     muiRhiRelease(&allocator, renderer, sizeof(muiRhiRenderer), alignof(muiRhiRenderer));
 }
@@ -248,10 +286,16 @@ bool muiRhiRenderer_IsReady(const muiRhiRenderer* renderer)
     return renderer != nullptr && renderer->ready;
 }
 
-// The list's instances and tables into the streams' staging.
+// The list's instances and tables into the streams' staging, its images
+// found and imported into the frame.
 static muiResult Pack(muiRhiRenderer* renderer, const muiDrawList* list)
 {
     Stream* streams = renderer->streams;
+    muiResult reset = muiRhiResetImages(&renderer->images, muiRhiCountImages(list));
+    if (reset != mui_success)
+    {
+        return reset;
+    }
     const uint32_t counts[kStreamCount] = {
         [kInstances] = muiRhiCountInstances(list),
         [kGradients] = muiRhiPackGradients(list, nullptr),
@@ -266,7 +310,9 @@ static muiResult Pack(muiRhiRenderer* renderer, const muiDrawList* list)
             return status;
         }
     }
-    muiRhiPackInstances(list, streams[kInstances].staging);
+    streams[kInstances].count =
+        muiRhiPackInstances(list, &renderer->images, streams[kInstances].staging);
+    muiRhiListTextures(&renderer->images);
     (void)muiRhiPackGradients(list, streams[kGradients].staging);
     (void)muiRhiPackTransforms(list, streams[kTransforms].staging);
     (void)muiRhiPackClips(list, streams[kClips].staging);
@@ -299,7 +345,7 @@ muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* 
     }
     mrhiDevice* device = renderer->device;
     mrhiAccess writes[kStreamCount];
-    mrhiAccess reads[kStreamCount];
+    mrhiResourceId buffers[kStreamCount];
     for (uint32_t i = 0; i < kStreamCount; i++)
     {
         Stream* stream = &renderer->streams[i];
@@ -308,7 +354,20 @@ muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* 
             return mui_errorPlatform;
         }
         writes[i] = Whole(stream->resource, mrhi_accessCopyDestination);
-        reads[i] = Whole(stream->resource, mrhi_accessStorageRead);
+        buffers[i] = stream->resource;
+    }
+    const Stream* instances = &renderer->streams[kInstances];
+    mrhiResourceId placeholder = {0};
+    if (instances->count > 0 && renderer->images.textureCount == 0 &&
+        mrhiImportTexture(device, renderer->placeholder, &placeholder) != mrhi_success)
+    {
+        return mui_errorPlatform;
+    }
+    status = muiRhiMakePlan(&renderer->plan, instances->staging, instances->count,
+                            &renderer->images, buffers, kStreamCount, placeholder);
+    if (status != mui_success)
+    {
+        return status;
     }
     mrhiPassDef uploadDef = mrhiDefaultPassDef();
     uploadDef.passClass = mrhi_passTransfer;
@@ -323,8 +382,8 @@ muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* 
         .clear = {clear.r, clear.g, clear.b, clear.a},
     };
     drawDef.colorTargetCount = 1;
-    drawDef.accesses = reads;
-    drawDef.accessCount = kStreamCount;
+    drawDef.accesses = renderer->plan.accesses;
+    drawDef.accessCount = renderer->plan.accessCount;
     if (mrhiAddPass(device, &uploadDef, &renderer->upload) != mrhi_success ||
         mrhiAddPass(device, &drawDef, &renderer->draw) != mrhi_success)
     {
@@ -355,6 +414,21 @@ static bool Upload(const muiRhiRenderer* renderer)
     return true;
 }
 
+// Binds a draw's texture and the sampler in table 1, and draws it.
+static bool DrawOne(const muiRhiRenderer* renderer, const muiRhiDraw* draw)
+{
+    const mrhiBinding bindings[2] = {
+        {.slot = 0,
+         .resource = draw->texture,
+         .viewKind = mrhi_texture2d,
+         .range = {.mipCount = MRHI_REMAINING, .layerCount = MRHI_REMAINING}},
+        {.slot = 1, .sampler = renderer->sampler},
+    };
+    return mrhiSetBindings(renderer->device, renderer->draw, 1, bindings, 2) == mrhi_success &&
+           mrhiDraw(renderer->device, renderer->draw, 6, draw->count, 0, draw->first) ==
+               mrhi_success;
+}
+
 static bool Draw(muiRhiRenderer* renderer)
 {
     mrhiDevice* device = renderer->device;
@@ -365,11 +439,20 @@ static bool Draw(muiRhiRenderer* renderer)
         bindings[i] = (mrhiBinding){
             .slot = i, .resource = renderer->streams[i].resource, .size = MRHI_WHOLE_SIZE};
     }
-    return mrhiSetGraphicsPipeline(device, pass, renderer->pipeline) == mrhi_success &&
-           mrhiSetBindings(device, pass, 0, bindings, kStreamCount) == mrhi_success &&
-           mrhiSetRootBlock(device, pass, 0, renderer->frame, sizeof(renderer->frame)) ==
-               mrhi_success &&
-           mrhiDraw(device, pass, 6, renderer->streams[kInstances].count, 0, 0) == mrhi_success;
+    if (mrhiSetGraphicsPipeline(device, pass, renderer->pipeline) != mrhi_success ||
+        mrhiSetBindings(device, pass, 0, bindings, kStreamCount) != mrhi_success ||
+        mrhiSetRootBlock(device, pass, 0, renderer->frame, sizeof(renderer->frame)) != mrhi_success)
+    {
+        return false;
+    }
+    for (uint32_t i = 0; i < renderer->plan.drawCount; i++)
+    {
+        if (!DrawOne(renderer, &renderer->plan.draws[i]))
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 muiResult muiRhiRenderer_Record(muiRhiRenderer* renderer)

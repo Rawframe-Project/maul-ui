@@ -5,7 +5,9 @@
 // its box offset and grown by its spread, as CSS's box-shadow, its radii
 // grown with it by CSS's adjustment for small radii (or shrunk, inset);
 // an outer shadow's quad reaches three sigmas past its shape, an inset
-// one's is its box.
+// one's is its box. An image's slice insets are one logical unit a texel
+// as drawn, all four shrunk by one factor where two facing ones would
+// not fit, as CSS's border-image shrinks them.
 
 #include "pack.h"
 
@@ -25,7 +27,7 @@ static uint32_t Index(uint32_t index, uint32_t count)
 
 static bool IsDrawn(muiDrawKind kind)
 {
-    return kind == mui_drawBox || kind == mui_drawShadow;
+    return kind == mui_drawBox || kind == mui_drawShadow || kind == mui_drawImage;
 }
 
 uint32_t muiRhiCountInstances(const muiDrawList* list)
@@ -34,6 +36,16 @@ uint32_t muiRhiCountInstances(const muiDrawList* list)
     for (uint32_t i = 0; i < list->commandCount; i++)
     {
         count += IsDrawn(list->commands[i].kind) ? 1 : 0;
+    }
+    return count;
+}
+
+uint32_t muiRhiCountImages(const muiDrawList* list)
+{
+    uint32_t count = 0;
+    for (uint32_t i = 0; i < list->commandCount; i++)
+    {
+        count += list->commands[i].kind == mui_drawImage ? 1 : 0;
     }
     return count;
 }
@@ -49,7 +61,7 @@ static muiRhiInstance BoxOf(const muiDrawList* list, const muiDrawCommand* comma
         .kind = mui_drawBox,
         .clip = Index(command->clip, list->clipCount),
         .transform = Index(command->transform, list->transformCount),
-        .gradient = Index(box->gradient, list->gradientCount),
+        .index = Index(box->gradient, list->gradientCount),
     };
     memcpy(instance.colors, box->borderColors, sizeof(instance.colors));
     return instance;
@@ -112,7 +124,42 @@ static muiRhiInstance ShadowOf(const muiDrawList* list, const muiDrawCommand* co
     };
 }
 
-void muiRhiPackInstances(const muiDrawList* list, muiRhiInstance* instances)
+// The factor that fits two facing insets into a length.
+static float Fit(float length, float low, float high)
+{
+    return low + high > length && low + high > 0.0f ? length / (low + high) : 1.0f;
+}
+
+static muiRhiInstance ImageOf(const muiDrawList* list, const muiDrawCommand* command,
+                              const muiRhiImageEntry* entry, uint32_t index)
+{
+    const muiDrawImage* image = &command->image;
+    const muiSides slice = {fmaxf(image->slice.top, 0.0f), fmaxf(image->slice.right, 0.0f),
+                            fmaxf(image->slice.bottom, 0.0f), fmaxf(image->slice.left, 0.0f)};
+    float fit = fminf(Fit(image->rect.width, slice.left, slice.right),
+                      fminf(Fit(image->rect.height, slice.top, slice.bottom), 1.0f));
+    float width = (float)entry->image.width;
+    float height = (float)entry->image.height;
+    return (muiRhiInstance){
+        .rect = image->rect,
+        .fill = image->tint,
+        .colors =
+            {
+                {image->uv.x, image->uv.y, image->uv.x + image->uv.width,
+                 image->uv.y + image->uv.height},
+                {slice.top * fit, slice.right * fit, slice.bottom * fit, slice.left * fit},
+                {slice.top / height, slice.right / width, slice.bottom / height,
+                 slice.left / width},
+            },
+        .kind = mui_drawImage,
+        .clip = Index(command->clip, list->clipCount),
+        .transform = Index(command->transform, list->transformCount),
+        .index = index,
+    };
+}
+
+uint32_t muiRhiPackInstances(const muiDrawList* list, muiRhiImages* images,
+                             muiRhiInstance* instances)
 {
     uint32_t count = 0;
     for (uint32_t i = 0; i < list->commandCount; i++)
@@ -126,7 +173,16 @@ void muiRhiPackInstances(const muiDrawList* list, muiRhiInstance* instances)
         {
             instances[count++] = ShadowOf(list, command);
         }
+        else if (command->kind == mui_drawImage)
+        {
+            uint32_t index = muiRhiFindImage(images, command->image.image);
+            if (index != MUI_RHI_NO_IMAGE)
+            {
+                instances[count++] = ImageOf(list, command, &images->entries[index], index);
+            }
+        }
     }
+    return count;
 }
 
 uint32_t muiRhiPackGradients(const muiDrawList* list, muiRhiGradient* gradients)

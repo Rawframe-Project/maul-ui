@@ -20,7 +20,12 @@
 // - clips and transforms: a box in a round clip with an inverted clip
 //   inside it, a box scaled and moved, a bar turned 45 degrees clockwise
 //   (probed where a bar not turned, or turned the other way, differs),
-//   and a box in a clip that a transform scales and moves.
+//   and a box in a clip that a transform scales and moves;
+// - images from textures the test fills, at scales 1 and 2: a nine
+//   slice, its 2-texel red border kept 2 units wide around its stretched
+//   green middle (probed where stretching it whole differs), an image
+//   tinted to half, another texture's between two of the first (each
+//   drawn with its own), and a uv rect of the middle alone.
 // Skips (77) without an adapter, unless MUI_RHI_REQUIRED is set.
 
 #include "color.h"
@@ -418,6 +423,141 @@ static void TestClipsAndTransforms(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* 
           "a box in a clip a transform scales and moves");
 }
 
+// The test's textures: 1 an 8-texel square, a 2-texel red border
+// around green; 2 a 2-texel blue square.
+typedef struct Textures
+{
+    mrhiTextureId bordered;
+    mrhiTextureId blue;
+} Textures;
+
+static bool FindImage(void* context, uint64_t key, muiRhiImage* imageOut)
+{
+    const Textures* textures = context;
+    if (key == 1)
+    {
+        *imageOut = (muiRhiImage){textures->bordered, 8, 8};
+        return true;
+    }
+    if (key == 2)
+    {
+        *imageOut = (muiRhiImage){textures->blue, 2, 2};
+        return true;
+    }
+    return false;
+}
+
+// A texture of a side filled with RGBA8 texels in a frame of its own.
+static bool MakeTexture(Gpu* gpu, uint32_t side, const uint8_t* texels, mrhiTextureId* textureOut)
+{
+    mrhiTextureDef def = mrhiDefaultTextureDef();
+    def.format = mrhi_formatRgba8UnormSrgb;
+    def.width = side;
+    def.height = side;
+    def.usage = mrhi_textureSampled | mrhi_textureCopyDestination;
+    mrhiFrameDef frame = mrhiDefaultFrameDef();
+    mrhiResourceId resource = {0};
+    if (mrhiCreateTexture(gpu->device, &def, textureOut) != mrhi_success ||
+        mrhiBeginFrame(gpu->device, &frame) != mrhi_success ||
+        mrhiImportTexture(gpu->device, *textureOut, &resource) != mrhi_success)
+    {
+        return false;
+    }
+    const mrhiAccess write = {.resource = resource,
+                              .kind = mrhi_accessCopyDestination,
+                              .range = {.mipCount = 1, .layerCount = 1}};
+    mrhiPassDef passDef = mrhiDefaultPassDef();
+    passDef.passClass = mrhi_passTransfer;
+    passDef.accesses = &write;
+    passDef.accessCount = 1;
+    passDef.neverCull = true;
+    mrhiPassId pass = {0};
+    const mrhiTextureCopy into = {.resource = resource};
+    const mrhiTexelLayout layout = {.bytesPerRow = side * 4};
+    const mrhiExtent3d extent = {side, side, 1};
+    mrhiRequestId token = {0};
+    bool recorded = mrhiAddPass(gpu->device, &passDef, &pass) == mrhi_success &&
+                    mrhiCompileFrame(gpu->device) == mrhi_success &&
+                    mrhiBeginPass(gpu->device, pass) == mrhi_success &&
+                    mrhiWriteTexture(gpu->device, pass, &into, texels, (size_t)side * side * 4,
+                                     &layout, &extent) == mrhi_success &&
+                    mrhiEndPass(gpu->device, pass) == mrhi_success;
+    if (!recorded)
+    {
+        (void)mrhiDropFrame(gpu->device);
+        return false;
+    }
+    return mrhiSubmitFrame(gpu->device, &token) == mrhi_success &&
+           mrhiWaitFrame(gpu->device, token, WAIT_NS) == mrhi_success;
+}
+
+static bool MakeTextures(Gpu* gpu, Textures* textures)
+{
+    uint8_t bordered[8 * 8 * 4];
+    for (int y = 0; y < 8; y++)
+    {
+        for (int x = 0; x < 8; x++)
+        {
+            bool border = x < 2 || x > 5 || y < 2 || y > 5;
+            const uint8_t texel[4] = {border ? 255 : 0, border ? 0 : 255, 0, 255};
+            memcpy(&bordered[(y * 8 + x) * 4], texel, 4);
+        }
+    }
+    const uint8_t blue[2 * 2 * 4] = {0, 0, 255, 255, 0, 0, 255, 255,
+                                     0, 0, 255, 255, 0, 0, 255, 255};
+    return MakeTexture(gpu, 8, bordered, &textures->bordered) &&
+           MakeTexture(gpu, 2, blue, &textures->blue);
+}
+
+static muiDrawCommand Image(uint64_t key, muiRect rect)
+{
+    muiDrawCommand command = {.kind = mui_drawImage};
+    command.image.rect = rect;
+    command.image.image = key;
+    command.image.uv = (muiRect){0, 0, 1, 1};
+    command.image.tint = (muiLinearColor){1, 1, 1, 1};
+    return command;
+}
+
+static void TestImages(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels, int scale)
+{
+    const uint32_t side = 64u * (uint32_t)scale;
+    muiDrawCommand commands[4] = {
+        Image(1, (muiRect){0, 0, 40, 24}),
+        Image(2, (muiRect){0, 28, 16, 16}),
+        Image(1, (muiRect){20, 28, 16, 16}),
+        Image(1, (muiRect){44, 0, 16, 16}),
+    };
+    commands[0].image.slice = (muiSides){2, 2, 2, 2};
+    commands[2].image.uv = (muiRect){0.25f, 0.25f, 0.5f, 0.5f};
+    commands[3].image.tint = (muiLinearColor){0.5f, 0.5f, 0.5f, 0.5f};
+    muiDrawList list = {.commands = commands, .commandCount = 4};
+    list.header.scale = (float)scale;
+    if (!Render(gpu, renderer, &list, side, pixels))
+    {
+        CHECK(false, "images drawn and read");
+        return;
+    }
+    const int black[4] = {0, 0, 0, 255};
+    const int red[4] = {255, 0, 0, 255};
+    const int green[4] = {0, 255, 0, 255};
+    const int blue[4] = {0, 0, 255, 255};
+    const int half[4] = {0, 188, 0, 255};
+    const int s = scale;
+    CHECK(Near(pixels, side, 1 * s, 12 * s, red, 2) && Near(pixels, side, 39 * s, 12 * s, red, 2) &&
+              Near(pixels, side, 20 * s, 1 * s, red, 2) &&
+              Near(pixels, side, 20 * s, 23 * s, red, 2) &&
+              Near(pixels, side, 8 * s, 12 * s, green, 2) &&
+              Near(pixels, side, 20 * s, 5 * s, green, 2) &&
+              Near(pixels, side, 41 * s, 12 * s, black, 2),
+          "a nine slice's border kept 2 units wide, its middle stretched");
+    CHECK(Near(pixels, side, 52 * s, 8 * s, half, 2), "an image tinted to half");
+    CHECK(Near(pixels, side, 8 * s, 36 * s, blue, 2), "another texture's image between");
+    CHECK(Near(pixels, side, 23 * s, 31 * s, green, 2) &&
+              Near(pixels, side, 32 * s, 40 * s, green, 2),
+          "a uv rect of the middle alone");
+}
+
 int main(void)
 {
     Gpu gpu;
@@ -433,8 +573,12 @@ int main(void)
         printf("no adapter: skipped\n");
         return 77;
     }
+    Textures textures = {0};
+    CHECK(MakeTextures(&gpu, &textures), "the test's textures");
     muiRhiRendererDef def = muiDefaultRhiRendererDef();
     def.device = gpu.device;
+    def.image = FindImage;
+    def.imageContext = &textures;
     muiRhiRenderer* renderer = NULL;
     CHECK(muiCreateRhiRenderer(&def, &renderer) == mui_success && AwaitReady(&gpu, renderer),
           "a ready renderer");
@@ -463,9 +607,19 @@ int main(void)
         TestGradientsAndShadows(&gpu, renderer, pixels);
         TestClipsAndTransforms(&gpu, renderer, pixels, 1);
         TestClipsAndTransforms(&gpu, renderer, pixels, 2);
+        TestImages(&gpu, renderer, pixels, 1);
+        TestImages(&gpu, renderer, pixels, 2);
     }
     free(pixels);
     muiDestroyRhiRenderer(renderer);
+    if (textures.bordered.index1 != 0)
+    {
+        (void)mrhiDestroyTexture(gpu.device, textures.bordered);
+    }
+    if (textures.blue.index1 != 0)
+    {
+        (void)mrhiDestroyTexture(gpu.device, textures.blue);
+    }
     Close(&gpu);
     return s_failures == 0 ? 0 : 1;
 }

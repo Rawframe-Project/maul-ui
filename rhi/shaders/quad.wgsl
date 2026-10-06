@@ -41,8 +41,11 @@ struct Gradient {
 @group(0) @binding(1) var<storage, read> gradients: array<Gradient>;
 @group(0) @binding(2) var<storage, read> transforms: array<Transform>;
 @group(0) @binding(3) var<storage, read> clips: array<Clip>;
+@group(1) @binding(0) var imageTexture: texture_2d<f32>;
+@group(1) @binding(1) var imageSampler: sampler;
 
 const kShadow = 2u;
+const kImage = 3u;
 const kLinear = 1u;
 
 struct Between {
@@ -253,6 +256,34 @@ fn shadow(index: u32, local: vec2f) -> vec4f {
     return instances[index].fill * coverage;
 }
 
+// Where a point of an image samples along one axis: within its first
+// inset the first slice, within its last the last, the middle stretched
+// between, each across its part of the uv rect.
+fn along(p: f32, length: f32, low: f32, high: f32, uvLow: f32, uvHigh: f32, start: f32,
+         end: f32) -> f32 {
+    let first = start + p / max(low, 1e-6) * uvLow;
+    let last = end - (length - p) / max(high, 1e-6) * uvHigh;
+    let middle = mix(start + uvLow, end - uvHigh, (p - low) / max(length - low - high, 1e-6));
+    return select(select(middle, last, p > length - high), first, p < low);
+}
+
+// The uv an image's fragment samples, in logical units within its rect.
+fn imageUv(index: u32, local: vec2f) -> vec2f {
+    let rect = instances[index].rect;
+    let p = clamp(local / root.frame.z, vec2f(0.0), rect.zw);
+    let uv = instances[index].colors[0];
+    let drawn = instances[index].colors[1];
+    let texels = instances[index].colors[2];
+    return vec2f(along(p.x, rect.z, drawn.w, drawn.y, texels.w, texels.y, uv.x, uv.z),
+                 along(p.y, rect.w, drawn.x, drawn.z, texels.x, texels.z, uv.y, uv.w));
+}
+
+fn imageColor(index: u32, local: vec2f, size: vec2f, uv: vec2f, dx: vec2f, dy: vec2f) -> vec4f {
+    let texel = textureSampleGrad(imageTexture, imageSampler, uv, dx, dy);
+    let covered = coverage(roundedRect(local - size * 0.5, size * 0.5, vec4f(0.0)));
+    return texel * instances[index].fill * covered;
+}
+
 // How much of the fragment its clips keep.
 fn clipped(first: u32, position: vec2f) -> f32 {
     let scale = root.frame.z;
@@ -280,9 +311,15 @@ fn clipped(first: u32, position: vec2f) -> f32 {
 fn fs(in: Between) -> @location(0) vec4f {
     span = in.span;
     let size = instances[in.index].rect.zw * root.frame.z;
+    let kind = instances[in.index].tags.x;
+    let uv = imageUv(in.index, in.local);
+    let dx = dpdx(uv);
+    let dy = dpdy(uv);
     var color: vec4f;
-    if (instances[in.index].tags.x == kShadow) {
+    if (kind == kShadow) {
         color = shadow(in.index, in.local);
+    } else if (kind == kImage) {
+        color = imageColor(in.index, in.local, size, uv, dx, dy);
     } else {
         color = box(in.index, in.local, size);
     }

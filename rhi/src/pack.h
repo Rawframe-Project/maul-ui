@@ -11,14 +11,20 @@
 #ifndef MAUL_UI_RHI_PACK_H
 #define MAUL_UI_RHI_PACK_H
 
+#include "images.h"
+
 #include "maul-ui/draw.h"
 
 #include <stdint.h>
 
-// An instance (std430): a box, or a shadow, whose fields then hold its
-// quad (rect), its shape's radii, its color (fill), its shape (widths, as
-// x, y, width and height), its box and the box's radii (colors 0 and 1),
-// and its blur's sigma and whether it is inset (colors 2).
+// An instance (std430): a box; a shadow, whose fields then hold its quad
+// (rect), its shape's radii, its color (fill), its shape (widths, as x,
+// y, width and height), its box and the box's radii (colors 0 and 1), and
+// its blur's sigma and whether it is inset (colors 2); or an image, whose
+// fields hold its rect, its tint (fill), its uv rect as two corners
+// (colors 0), and its slice insets, top, right, bottom and left, in
+// logical units as drawn (colors 1) and in uv (colors 2). index is a
+// box's gradient, or an image's entry of the frame's images.
 typedef struct muiRhiInstance
 {
     muiRect rect;
@@ -29,7 +35,7 @@ typedef struct muiRhiInstance
     uint32_t kind;
     uint32_t clip;
     uint32_t transform;
-    uint32_t gradient;
+    uint32_t index;
 } muiRhiInstance;
 
 // A gradient (std430).
@@ -63,11 +69,17 @@ typedef struct muiRhiClip
     uint32_t reserved;
 } muiRhiClip;
 
-// The instances a list's commands make.
+// The instances a list's commands make at most.
 uint32_t muiRhiCountInstances(const muiDrawList* list);
 
-// A list's commands as instances, as many as muiRhiCountInstances says.
-void muiRhiPackInstances(const muiDrawList* list, muiRhiInstance* instances);
+// The image commands of a list.
+uint32_t muiRhiCountImages(const muiDrawList* list);
+
+// A list's commands as instances, at most as many as muiRhiCountInstances
+// says, an image's found in the frame's images or not drawn: how many
+// there are.
+uint32_t muiRhiPackInstances(const muiDrawList* list, muiRhiImages* images,
+                             muiRhiInstance* instances);
 
 // A list's gradient table, its placeholder entry 0 included, at least one
 // entry: how many there are, and packed when gradients is not NULL.
