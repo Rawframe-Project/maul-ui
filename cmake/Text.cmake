@@ -37,6 +37,13 @@ target_include_directories(maul-ui SYSTEM PRIVATE
 # link as C++; Visual Studio projects then apply only C++ settings and
 # drop C23. It links as C, needing no C++ runtime.
 set_target_properties(maul-ui PROPERTIES LINKER_LANGUAGE C)
+# Linking as C, CMake still names the C++ compiler's own libraries,
+# where the NDK's "c++" is a script for its shared runtime whatever
+# ANDROID_STL chose: with the static runtime (the NDK's default), the
+# static one is named instead.
+if(ANDROID AND NOT ANDROID_STL MATCHES "_shared$")
+    list(TRANSFORM CMAKE_CXX_IMPLICIT_LINK_LIBRARIES REPLACE "^c\\+\\+$" "c++_static;c++abi")
+endif()
 
 if(MAUL_UI_TEXT_SYSTEM_LIBRARIES)
     target_link_libraries(maul-ui PRIVATE Freetype::Freetype harfbuzz::harfbuzz)
