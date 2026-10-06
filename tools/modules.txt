@@ -41,6 +41,7 @@ virtual_edit: context tree virtual virtual_store
 access_store: allocator
 access: access_store allocator context tree
 access_build: access access_store context focus layer range scroll_store style_store tree virtual virtual_store
+access_record:
 access_tree_store:
 access_tree: access_tree_store allocator
 access_apply: access_tree access_tree_store allocator
@@ -54,14 +55,14 @@ aria_page: aria
 atspi: dbus_api id_map
 ns: id_map
 ns_adapter: allocator ns
-ns_events: ns
+ns_events: access_record ns
 ns_node: allocator ns
 ns_roles: ns
 uikit: id_map
 uikit_adapter: allocator uikit
 uikit_node: uikit
 uikit_traits: uikit
-atspi_events: allocator atspi
+atspi_events: access_record allocator atspi
 atspi_actions: atspi
 atspi_app: allocator atspi dbus_api
 atspi_component: atspi

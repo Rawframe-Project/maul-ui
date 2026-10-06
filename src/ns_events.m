@@ -8,37 +8,15 @@
 // and an announcement on the window for a live node's new name, with a
 // high priority when it is assertive.
 
+#include "access_record.h"
 #include "ns.h"
-
-#include <string.h>
-
-// Whether a record's text of a kind differs from another's. The texts
-// end in a NUL.
-static bool TextDiffers(const muiAccessNode* old, const muiAccessNode* node, muiAccessTextKind kind)
-{
-    const char* a = old->text[kind] != nullptr ? old->text[kind] : "";
-    const char* b = node->text[kind] != nullptr ? node->text[kind] : "";
-    return strcmp(a, b) != 0;
-}
-
-// The text a node names itself by: its label, or a label node's value.
-static muiAccessTextKind NameKindOf(const muiAccessNode* node)
-{
-    return node->text[mui_accessLabel] == nullptr && node->role == mui_roleLabel ? mui_accessValue
-                                                                                 : mui_accessLabel;
-}
-
-static bool NameChanged(const muiAccessNode* old, const muiAccessNode* node)
-{
-    return NameKindOf(old) != NameKindOf(node) || TextDiffers(old, node, NameKindOf(node));
-}
 
 static bool ValueChanged(const muiAccessNode* old, const muiAccessNode* node)
 {
     const uint32_t state = mui_accessChecked | mui_accessMixed;
     bool numeric = (node->flags & mui_accessNumeric) != 0;
     return ((old->flags ^ node->flags) & state) != 0 || (numeric && old->value != node->value) ||
-           TextDiffers(old, node, mui_accessValue);
+           muiRecordTextDiffers(old, node, mui_accessValue);
 }
 
 // Says a live node's name on the window.
@@ -62,7 +40,7 @@ static void Announce(const muiNsAdapter* adapter, const muiAccessNode* node)
 
 void muiNsTellUpdated(muiNsAdapter* adapter, const muiAccessNode* old, const muiAccessNode* node)
 {
-    bool named = NameChanged(old, node);
+    bool named = muiRecordNameDiffers(old, node);
     bool valued = ValueChanged(old, node);
     MUIAccessibilityNode* object = named || valued ? muiNsObjectOf(adapter, node->id) : nil;
     if (object == nil)

@@ -8,10 +8,9 @@
 // clients were last told; the focus last, so a node is added before it
 // is focused.
 
+#include "access_record.h"
 #include "allocator.h"
 #include "atspi.h"
-
-#include <string.h>
 
 #define INTERFACE_EVENT "org.a11y.atspi.Event.Object"
 
@@ -69,21 +68,6 @@ static void Emit(muiAtspiApp* app, const muiAtspiObject* from, const char* membe
 static void EmitState(muiAtspiApp* app, const muiAtspiObject* from, const char* state, bool on)
 {
     Emit(app, from, "StateChanged", state, on ? 1 : 0, nullptr);
-}
-
-// Whether two records' texts of a kind differ. The texts end in a NUL.
-static bool TextDiffers(const muiAccessNode* old, const muiAccessNode* now, muiAccessTextKind kind)
-{
-    const char* a = old->text[kind] != nullptr ? old->text[kind] : "";
-    const char* b = now->text[kind] != nullptr ? now->text[kind] : "";
-    return strcmp(a, b) != 0;
-}
-
-// The text a node names itself by: its label, or a label node's value.
-static muiAccessTextKind NameKindOf(const muiAccessNode* node)
-{
-    return node->text[mui_accessLabel] == nullptr && node->role == mui_roleLabel ? mui_accessValue
-                                                                                 : mui_accessLabel;
 }
 
 static void TellStates(muiAtspiApp* app, const muiAtspiObject* object, const muiAccessNode* old)
@@ -147,11 +131,11 @@ static void TellName(muiAtspiApp* app, const muiAtspiObject* object)
 static void TellProperties(muiAtspiApp* app, const muiAtspiObject* object, const muiAccessNode* old)
 {
     const muiAccessNode* now = object->node;
-    if (TextDiffers(old, now, NameKindOf(old)) || NameKindOf(old) != NameKindOf(now))
+    if (muiRecordNameDiffers(old, now))
     {
         TellName(app, object);
     }
-    if (TextDiffers(old, now, mui_accessDescription))
+    if (muiRecordTextDiffers(old, now, mui_accessDescription))
     {
         const char* text =
             now->text[mui_accessDescription] != nullptr ? now->text[mui_accessDescription] : "";

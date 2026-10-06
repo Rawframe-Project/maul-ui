@@ -134,8 +134,8 @@ if(MAUL_UI_TEXT)
     include(cmake/Text.cmake)
 endif()
 if(MAUL_UI_ACCESS_TREE)
-    target_sources(maul-ui PRIVATE src/access_apply.c src/access_tree.c src/access_view.c
-                                   src/id_map.c)
+    target_sources(maul-ui PRIVATE src/access_apply.c src/access_record.c src/access_tree.c
+                                   src/access_view.c src/id_map.c)
 endif()
 if(MAUL_UI_NSACCESSIBILITY)
     if(NOT MAUL_UI_ACCESS_TREE)
