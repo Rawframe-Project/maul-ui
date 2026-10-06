@@ -348,6 +348,30 @@ static void TestRouted(void)
     muiDestroyContext(scene.context);
 }
 
+static void TestPlaced(void)
+{
+    // A node that drags away from the origin: its records' points are in
+    // its own box, the offsets on the surface.
+    muiContextDef def = muiDefaultContextDef();
+    Scene scene = {0};
+    CHECK(muiCreateContext(&def, &scene.context) == mui_success, "context");
+    muiContext* context = scene.context;
+    scene.root = Sized(context, s_nullNode, 300.0f, 300.0f);
+    (void)Sized(context, scene.root, 50.0f, 20.0f);
+    scene.track = Sized(context, scene.root, 100.0f, 20.0f);
+    Drags(context, scene.track);
+    const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL};
+    CHECK(muiComputeLayout(context, scene.root, &input) == mui_success, "layout");
+    Mouse(&scene, mui_pointerPress, 1, 60.0f, 10.0f);
+    Mouse(&scene, mui_pointerMove, 1, 70.0f, 12.0f);
+    muiPointerRecord record = {0};
+    CHECK(Next(&scene, mui_pointerRecordPress, scene.track, NULL) &&
+              Next(&scene, mui_pointerRecordDragStart, scene.track, &record) && record.x == 20.0f &&
+              record.y == 12.0f && record.offsetX == 10.0f && record.offsetY == 2.0f,
+          "in its own box");
+    muiDestroyContext(context);
+}
+
 static void TestContract(void)
 {
     Scene scene;
@@ -372,6 +396,7 @@ int main(void)
     TestCancel();
     TestTouch();
     TestRouted();
+    TestPlaced();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }

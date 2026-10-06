@@ -427,9 +427,9 @@ static void Settle(muiContext* context, muiPointer* pointer, const Target* hit,
 {
     if (pointer->buttons == 0)
     {
-        // A drag whose release went missing ends with its buttons.
+        // A drag whose release went missing ends with its buttons; the
+        // next press finds its own node to drag.
         EndDrag(context, pointer, false);
-        pointer->dragged = (muiNodeId){0, 0};
         pointer->dragStarted = false;
         Unpress(context, pointer);
         Uncapture(context, pointer);
