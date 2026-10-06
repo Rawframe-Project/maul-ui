@@ -100,6 +100,9 @@ format.
   `muiNode_SetRangeValue` and `muiNode_ClearValueRange`; ARIA's slider
   keys, track presses and thumb drags by default;
   `mui_notificationRangeChanged`; `limits.ranges` (record mui-0007).
+- Touch scrolling: touch and pen drags pan scroll containers when
+  their records are dispatched, and flings follow by iOS's decay; the
+  scroll rule gains `decelerationRate` (record mui-0007).
 - Drag and drop within the application: the `accepts` interaction
   property, `muiPointer_Offer`, and drop enter, leave and drop records
   carrying the kind and the host's key (record mui-0007).

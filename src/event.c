@@ -365,6 +365,7 @@ muiResult muiDispatchPointerRecord(muiContext* context, const muiPointerRecord* 
         .target = record->node,
         .pointer = record,
     };
-    *handledOut = Route(context, target, &routed) || muiRangePointer(context, record);
+    *handledOut = Route(context, target, &routed) || muiRangePointer(context, record) ||
+                  muiScrollPointer(context, record);
     return mui_success;
 }

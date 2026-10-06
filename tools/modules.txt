@@ -32,9 +32,9 @@ event_store:
 scroll_store: layout_node
 range_store:
 range: context range_store tree notify
-scroll: context scroll_store tree layer
+scroll: context scroll_store tree layer motion_math
 navigate: context focus tree
-pointer: context pointer_store style_store tree focus
+pointer: context pointer_store style_store tree focus scroll
 pointer_store:
 notify:
 style_store: pool property

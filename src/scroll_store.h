@@ -27,14 +27,15 @@ typedef struct muiScrollState
                      .lineStep = 40.0f,                                                            \
                      .pageFraction = 0.875f,                                                       \
                      .latchNs = 500000000ull,                                                      \
-                     .easeNs = 150000000ull})
+                     .easeNs = 150000000ull,                                                       \
+                     .decelerationRate = 0.998f})
 
 // The most scroll containers easing a step at once; a step past them
 // jumps.
 #define MUI_SCROLL_EASES 8
 
 // A step easing out: offsets from where they were when it began to where
-// it goes.
+// it goes; or a fling, from where it began at its velocity, decaying.
 typedef struct muiScrollEase
 {
     muiNodeId node;
@@ -43,7 +44,34 @@ typedef struct muiScrollEase
     float toX;
     float toY;
     uint64_t startNs;
+    bool fling;
+    float velocityX;
+    float velocityY;
 } muiScrollEase;
+
+// The most pans going at once, and the moves each keeps for its
+// velocity.
+#define MUI_SCROLL_PANS    4
+#define MUI_SCROLL_SAMPLES 8
+
+typedef struct muiScrollSample
+{
+    uint64_t timeNs;
+    float x;
+    float y;
+} muiScrollSample;
+
+// A touch dragging a scroll container: its offsets when the drag began
+// and its latest moves, a ring.
+typedef struct muiScrollPan
+{
+    uint32_t pointer;
+    muiNodeId node;
+    float startX;
+    float startY;
+    uint32_t count;
+    muiScrollSample samples[MUI_SCROLL_SAMPLES];
+} muiScrollPan;
 
 // The rule, the scroll container the wheel last scrolled with when, and
 // the steps easing.
@@ -54,6 +82,8 @@ typedef struct muiScrollStore
     uint64_t latchedNs;
     uint32_t easeCount;
     muiScrollEase eases[MUI_SCROLL_EASES];
+    uint32_t panCount;
+    muiScrollPan pans[MUI_SCROLL_PANS];
 } muiScrollStore;
 
 static inline void muiScrollInit(muiScrollStore* store)

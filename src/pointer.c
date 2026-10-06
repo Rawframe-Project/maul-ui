@@ -12,6 +12,7 @@
 #include "context.h"
 #include "focus.h"
 #include "pointer.h"
+#include "scroll.h"
 #include "tree.h"
 
 #include "maul-ui/interaction.h"
@@ -362,12 +363,16 @@ static void Press(muiContext* context, muiPointer* pointer, const Target* hit,
     if (before == 0)
     {
         muiFocusPress(context, event->player, target.slot);
+        muiScrollStopFlings(context, target.slot);
     }
     if (before == 0)
     {
-        // The nearest node from the target up that takes drags.
+        // The nearest node from the target up that takes drags, or for
+        // touch and pens that scrolls, which pans.
+        bool pans = pointer->kind != mui_pointerMouse;
         uint32_t drag = target.slot;
-        while (drag != 0 && !context->interaction[drag - 1].drags)
+        while (drag != 0 && !context->interaction[drag - 1].drags &&
+               !(pans && context->layout[drag - 1].style.scrollAxes != mui_scrollNone))
         {
             drag = muiTreeAt(&context->tree, drag)->links.parent;
         }

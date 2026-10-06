@@ -103,11 +103,15 @@ extern "C"
         // How long a whole detent's or a key's step eases out, in
         // nanoseconds; 0 jumps.
         uint64_t easeNs;
+        // What a touch fling keeps of its speed each millisecond, above 0
+        // and below 1.
+        float decelerationRate;
     } muiScrollRule;
 
     /// The default scroll rule: 100 a detent, Chrome's on Windows; 40 a
     /// line and 0.875 of the scrollport a page, Chrome's; a latch of
-    /// 500 ms; steps easing out over 150 ms. Hosts pass the platform's
+    /// 500 ms; steps easing out over 150 ms; flings keeping 0.998 of their
+    /// speed a millisecond, iOS's normal rate. Hosts pass the platform's
     /// steps where it has them.
     ///
     /// @return The rule.

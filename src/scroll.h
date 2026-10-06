@@ -8,6 +8,7 @@
 
 #include "maul-ui/event.h"
 #include "maul-ui/focus.h"
+#include "maul-ui/pointer.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -36,6 +37,15 @@ bool muiScrollLine(muiContext* context, uint32_t container, muiDirection directi
 // it could move.
 bool muiScrollPage(muiContext* context, uint32_t container, muiKeyCode code, bool backward,
                    uint64_t timeNs);
+
+// A pointer record's default for scrolling: a touch's or a pen's drag of
+// a scroll container pans it, and flings it at the end. Whether it
+// panned.
+bool muiScrollPointer(muiContext* context, const muiPointerRecord* record);
+
+// Stops the flings of the node at slot and the scroll containers above
+// it, as a press there does.
+void muiScrollStopFlings(muiContext* context, uint32_t slot);
 
 // Moves the steps easing to where they are at nowNs, after layout.
 void muiScrollAdvance(muiContext* context, uint64_t nowNs);

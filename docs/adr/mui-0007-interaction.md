@@ -167,6 +167,15 @@ itself instead of each host repeating them.
   `muiComputeLayout` with its time and keep `muiIsUpdatePending` true;
   setting an offset or scrolling into view stops them. Up to eight
   containers ease at once; a ninth jumps.
+- **Touch scrolling:** for touch and pens, a scroll container is a drag
+  node too where no nearer node takes drags; its drag records, when
+  dispatched, pan it opposite the pointer's offset from the drag's
+  start. A drag not cancelled ends in a fling at the velocity of a least
+  squares line through the moves of its last 100 ms, from 50 to 8000
+  units a second, decaying by the rule's `decelerationRate` a
+  millisecond (0.998, iOS's) in closed form, until under 10 a second or
+  cut short by the limits; a press under it, a step or setting the
+  offset stops it, and reduced motion skips it.
 - **Drags:** a node takes drags by the interaction property `drags`. A
   press on it, or below it where no nearer node takes them, becomes a
   drag once it moves past the threshold on either axis (4 for a mouse,
