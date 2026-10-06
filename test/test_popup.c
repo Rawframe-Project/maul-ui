@@ -484,19 +484,21 @@ static void TestEscape(void)
     muiNodeId other = Sized(context, scene.root, 50.0f, 50.0f);
     muiNodeId nodes[4];
     muiDismissReason reasons[4];
-    // Set in the order other, popup, other again: other is the last.
+    // Set in the order other, popup, other, popup: popup is the last,
+    // though other is first in the table.
     muiPopup p = PopupOf(scene.anchor, mui_popupBelow, mui_popupAlignStart, 0.0f);
     CHECK(muiNode_SetPopup(context, other, &p) == mui_success &&
               muiNode_SetPopup(context, scene.popup, &p) == mui_success &&
-              muiNode_SetPopup(context, other, &p) == mui_success,
+              muiNode_SetPopup(context, other, &p) == mui_success &&
+              muiNode_SetPopup(context, scene.popup, &p) == mui_success,
           "two");
     Layout(context, scene.root);
     (void)Dismissed(context, nodes, reasons);
     CHECK(Key(context, scene.root, mui_codeEscape) && Dismissed(context, nodes, reasons) == 1 &&
-              Same(nodes[0], other) && reasons[0] == mui_dismissEscape,
+              Same(nodes[0], scene.popup) && reasons[0] == mui_dismissEscape,
           "the last set");
     CHECK(Key(context, scene.root, mui_codeEscape) && Dismissed(context, nodes, reasons) == 1 &&
-              Same(nodes[0], scene.popup),
+              Same(nodes[0], other),
           "then the other");
     CHECK(!Key(context, scene.root, mui_codeEscape), "then none");
     muiDestroyContext(context);

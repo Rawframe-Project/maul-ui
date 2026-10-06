@@ -385,9 +385,9 @@ static void DismissOutside(muiContext* context, uint32_t slot, muiDismissReason 
         uint32_t node = muiTreeResolve(tree, entry->node);
         uint32_t anchor = muiTreeResolve(tree, entry->popup.anchor);
         entry->holder = node != 0 && anchor != 0 ? HolderOf(context, anchor) : store->count;
-        entry->mark = slot != 0 && node != 0 &&
-                      (muiTreeIsAncestor(tree, node, slot) ||
-                       (anchor != 0 && muiTreeIsAncestor(tree, anchor, slot)));
+        // No node holds a slot of 0.
+        entry->mark = node != 0 && (muiTreeIsAncestor(tree, node, slot) ||
+                                    (anchor != 0 && muiTreeIsAncestor(tree, anchor, slot)));
     }
     // The popups kept ones nest under are kept, and each is as deep as its
     // chain of holders, which a cycle of anchors cuts at the count.
