@@ -117,6 +117,21 @@ extern "C"
         uint8_t player;
     } muiNavigationEvent;
 
+    // A wheel or touchpad scroll at a point: turns in detents, fractional
+    // for smooth wheels and touchpads, positive y away from the user and
+    // positive x to the right, as Maul Window gives them.
+    typedef struct muiWheelEvent
+    {
+        uint64_t timeNs;
+        // The point, in the space the root's rectangle is in.
+        float x;
+        float y;
+        float deltaX;
+        float deltaY;
+        muiModifiers modifiers;
+        uint8_t player;
+    } muiWheelEvent;
+
     // What an event is; its fields below say which carry it.
     typedef uint8_t muiEventKind;
 
@@ -131,6 +146,8 @@ extern "C"
         mui_eventNavigation = 4,
         // pointer.
         mui_eventPointer = 5,
+        // wheel.
+        mui_eventWheel = 6,
     };
 
     // A routed event, the same for every node on the route.
@@ -150,6 +167,7 @@ extern "C"
         muiNodeId target;
         const char* text;
         const muiPointerRecord* pointer;
+        const muiWheelEvent* wheel;
     } muiEvent;
 
     // Which way an event travels when a node hears it.
@@ -238,6 +256,28 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiNavigationInput(muiContext* context, muiNodeId rootId,
                                                        const muiNavigationEvent* event,
                                                        bool* handledOut);
+
+    /// Routes a wheel turn to the node under its point, as muiHitTest
+    /// finds it; a point over nothing is routed nowhere and not handled.
+    /// Unhandled, it scrolls by the scroll rule's step a detent
+    /// (maul-ui/scroll.h): the scroll container it scrolled last, while
+    /// turns keep coming within the rule's latch time and the point stays
+    /// over that container; otherwise the nearest scroll container from
+    /// the node up that can move that way, not past the root of the
+    /// node's layer. Shift turns a vertical-only turn horizontal, as on
+    /// Windows. A turn a scroll container takes is handled, even at its
+    /// end while latched.
+    ///
+    /// @param context     The context.
+    /// @param rootId      The root.
+    /// @param event       The turn: a finite point and deltas, a player
+    ///                    below MUI_MAX_PLAYERS.
+    /// @param handledOut  Receives whether the UI handled it.
+    /// @return As muiKeyInput's.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiWheelInput(muiContext* context, muiNodeId rootId,
+                                                  const muiWheelEvent* event, bool* handledOut);
 
     /// Routes a pointer record (muiNextPointerRecord) to its node; a record
     /// with no node, or one gone, is routed nowhere and not handled. The

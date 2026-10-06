@@ -27,10 +27,10 @@ layer: context layer_store tree
 layer_store:
 focus: context focus_store layer notify style_store tree scroll
 focus_store:
-event: context focus tree
+event: context focus tree scroll
 event_store:
 scroll_store: layout_node
-scroll: context scroll_store tree
+scroll: context scroll_store tree layer
 navigate: context focus tree
 pointer: context pointer_store style_store tree focus
 pointer_store:

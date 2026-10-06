@@ -7,6 +7,7 @@
 #include "maul-ui/scroll.h"
 
 #include "context.h"
+#include "layer.h"
 #include "scroll.h"
 #include "scroll_store.h"
 #include "tree.h"
@@ -145,6 +146,158 @@ muiResult muiNode_ScrollIntoView(muiContext* context, muiNodeId nodeId)
         muiScrollReveal(context, slot);
     }
     return status;
+}
+
+muiScrollRule muiDefaultScrollRule(void)
+{
+    return (muiScrollRule){MUI_WHEEL_STEP, MUI_WHEEL_LATCH_NS};
+}
+
+muiResult muiSetScrollRule(muiContext* context, const muiScrollRule* rule)
+{
+    if (context == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    if (rule == nullptr || !isfinite(rule->wheelStep) || rule->wheelStep < 0.0f ||
+        muiIsInHostCall(context))
+    {
+        return muiRefuse(context);
+    }
+    context->scrolling.rule = *rule;
+    return mui_success;
+}
+
+// Whether a scroll container can move by right and down, physical units
+// its offsets would grow by, along either axis.
+static bool CanMove(const muiContext* context, uint32_t slot, float right, float down)
+{
+    const muiLayoutNode* layout = &context->layout[slot - 1];
+    const muiScrollState* scroll = &context->scrolls[slot - 1];
+    const muiSize size = {layout->rect.width, layout->rect.height};
+    float across = layout->rtl ? -right : right;
+    float limitX = muiScrollLimit(&layout->style, size, scroll, true);
+    float limitY = muiScrollLimit(&layout->style, size, scroll, false);
+    return (across > 0.0f && scroll->x < limitX) || (across < 0.0f && scroll->x > 0.0f) ||
+           (down > 0.0f && scroll->y < limitY) || (down < 0.0f && scroll->y > 0.0f);
+}
+
+// Moves a scroll container's offsets by right and down, within its
+// limits.
+static void ScrollBy(muiContext* context, uint32_t slot, float right, float down)
+{
+    const muiLayoutNode* layout = &context->layout[slot - 1];
+    muiScrollState* scroll = &context->scrolls[slot - 1];
+    const muiSize size = {layout->rect.width, layout->rect.height};
+    float across = layout->rtl ? -right : right;
+    float x =
+        fminf(fmaxf(scroll->x + across, 0.0f), muiScrollLimit(&layout->style, size, scroll, true));
+    float y =
+        fminf(fmaxf(scroll->y + down, 0.0f), muiScrollLimit(&layout->style, size, scroll, false));
+    if (x != scroll->x || y != scroll->y)
+    {
+        scroll->x = x;
+        scroll->y = y;
+        context->scrolled = true;
+    }
+}
+
+// The scroll container that keeps the wheel: the last one, while turns
+// come within the latch time and over it. 0 when none does.
+static uint32_t Latched(const muiContext* context, uint32_t hit, uint64_t timeNs)
+{
+    const muiScrollStore* store = &context->scrolling;
+    uint32_t slot = muiTreeResolve(&context->tree, store->latched);
+    bool recent = timeNs >= store->latchedNs && timeNs - store->latchedNs < store->rule.latchNs;
+    return slot != 0 && recent && context->layout[slot - 1].style.scrollAxes != mui_scrollNone &&
+                   muiTreeIsAncestor(&context->tree, slot, hit)
+               ? slot
+               : 0;
+}
+
+// The nearest scroll container from hit up that can move, not past root
+// or the root of hit's layer. 0 when none can.
+static uint32_t Choose(const muiContext* context, uint32_t root, uint32_t hit, float right,
+                       float down)
+{
+    const muiTree* tree = &context->tree;
+    for (uint32_t at = hit; at != 0; at = muiTreeAt(tree, at)->links.parent)
+    {
+        if (context->layout[at - 1].style.scrollAxes != mui_scrollNone &&
+            CanMove(context, at, right, down))
+        {
+            return at;
+        }
+        if (at == root || muiIsLayerRoot(tree, at))
+        {
+            break;
+        }
+    }
+    return 0;
+}
+
+bool muiScrollWheel(muiContext* context, uint32_t root, muiNodeId hitId, const muiWheelEvent* event)
+{
+    // The handler may have taken the node away.
+    uint32_t hit = muiTreeResolve(&context->tree, hitId);
+    if (hit == 0)
+    {
+        return false;
+    }
+    float x = event->deltaX;
+    float y = event->deltaY;
+    if ((event->modifiers & mui_modShift) != 0 && x == 0.0f)
+    {
+        // A turn toward the user goes right.
+        x = -y;
+        y = 0.0f;
+    }
+    muiScrollStore* store = &context->scrolling;
+    float right = x * store->rule.wheelStep;
+    float down = -y * store->rule.wheelStep;
+    uint32_t container = Latched(context, hit, event->timeNs);
+    if (container == 0)
+    {
+        container = Choose(context, root, hit, right, down);
+    }
+    if (container == 0)
+    {
+        return false;
+    }
+    ScrollBy(context, container, right, down);
+    store->latched = muiTreeIdOf(&context->tree, container);
+    store->latchedNs = event->timeNs;
+    return true;
+}
+
+muiResult muiNode_GetScrollThumb(const muiContext* context, muiNodeId nodeId, bool horizontal,
+                                 float track, float minimum, muiScrollThumb* thumbOut)
+{
+    if (context == nullptr || thumbOut == nullptr || !isfinite(track) || track < 0.0f ||
+        !isfinite(minimum) || minimum < 0.0f)
+    {
+        return mui_errorInvalid;
+    }
+    muiResult status = mui_success;
+    uint32_t slot = ResolveRead(context, nodeId, &status);
+    if (slot == 0)
+    {
+        return status;
+    }
+    const muiLayoutNode* layout = &context->layout[slot - 1];
+    const muiScrollState* scroll = &context->scrolls[slot - 1];
+    const muiSize size = {layout->rect.width, layout->rect.height};
+    float limit = muiScrollLimit(&layout->style, size, scroll, horizontal);
+    if (limit <= 0.0f)
+    {
+        *thumbOut = (muiScrollThumb){0.0f, track};
+        return mui_success;
+    }
+    float extent = horizontal ? scroll->extentWidth : scroll->extentHeight;
+    float length = fminf(fmaxf(track * (extent - limit) / extent, minimum), track);
+    float offset = horizontal ? scroll->x : scroll->y;
+    *thumbOut = (muiScrollThumb){(track - length) * offset / limit, length};
+    return mui_success;
 }
 
 muiResult muiNode_GetScroll(const muiContext* context, muiNodeId nodeId, float* xOut, float* yOut)

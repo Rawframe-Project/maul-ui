@@ -80,6 +80,11 @@ format.
   container, so scrolling alone rewrites only the transform table; hit
   testing, pointer records and navigation follow the offsets, and
   navigation scrolls focus into view (record mui-0007).
+- Wheel input (`muiWheelInput`, `mui_eventWheel`): routed, then by
+  default scrolling the nearest scroll container that can move, chaining
+  outward and latched per wheel transaction; `muiScrollRule` with
+  `muiDefaultScrollRule` and `muiSetScrollRule`;
+  `muiNode_GetScrollThumb` for scrollbars (record mui-0007).
 - Font families (`muiCreateFontFamily`, `muiFontFamily_GetKey`,
   `muiFontFamily_MatchFace`): faces a text style names together, matched
   by width, slant and weight as CSS matches them, with fallbacks of

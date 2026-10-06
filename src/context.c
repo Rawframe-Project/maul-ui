@@ -254,6 +254,7 @@ static void Place(muiContext* context, unsigned char* base, const Parts* parts,
         };
         draw->tables[i].transforms[0] = (muiDrawTransform){1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
     }
+    muiScrollInit(&context->scrolling);
     muiLayerInit(&context->layers, (muiLayerEntry*)(base + parts->layers), limits->layers);
     muiEventInit(&context->events, (muiNodeId*)(base + parts->routes));
     muiFocusInit(&context->focus, (muiNeighbor*)(base + parts->neighbors), limits->neighbors);

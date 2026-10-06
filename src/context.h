@@ -44,6 +44,8 @@ struct muiContext
     // since the last draw list.
     muiScrollState* scrolls;
     bool scrolled;
+    // The scroll rule and the wheel's latch.
+    muiScrollStore scrolling;
     // Whether a class, a token name or a direct write has ever given a
     // text property: until then every node's text is the defaults, and
     // the style pass leaves the records alone.

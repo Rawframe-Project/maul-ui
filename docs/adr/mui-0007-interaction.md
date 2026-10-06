@@ -141,7 +141,17 @@ itself instead of each host repeating them.
   testing, pointer records, directional navigation and layers add the
   offsets of scrolling ancestors. `muiNode_ScrollIntoView` scrolls each
   scrolling ancestor, nearest first, as CSSOM View's "nearest", and
-  focus moved by navigation does so.
+  focus moved by navigation does so. A node that stops scrolling drops
+  its offset.
+- **Wheel input** (`muiWheelInput`) is routed from the node under its
+  point. Unhandled, it scrolls the nearest scroll container from there
+  up that can move that way, not past the given root or a layer's root,
+  by the scroll rule's step a detent (`muiSetScrollRule`, 100 by
+  default); the container keeps later turns while they come within the
+  rule's latch time (500 ms) and over it, as Firefox's wheel
+  transaction, so a list at its end does not hand a turn to the page
+  behind. Shift turns a vertical-only turn horizontal.
+  `muiNode_GetScrollThumb` places a scrollbar thumb on a host's track.
 - **Focus notifications** report each player's focus gained and lost,
   whatever moved it; a focused node that is destroyed, or stops taking
   focus at its styling or a direct write, loses it. Detaching keeps it,

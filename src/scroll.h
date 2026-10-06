@@ -6,9 +6,16 @@
 #ifndef MAUL_UI_SRC_SCROLL_H
 #define MAUL_UI_SRC_SCROLL_H
 
+#include "maul-ui/event.h"
+
+#include <stdbool.h>
 #include <stdint.h>
 
 typedef struct muiContext muiContext;
+
+// The default of an unhandled wheel turn over hit (muiWheelInput), under
+// root: whether a scroll container took it.
+bool muiScrollWheel(muiContext* context, uint32_t root, muiNodeId hit, const muiWheelEvent* event);
 
 // Scrolls a node's scrolling ancestors to bring it into view, as
 // muiNode_ScrollIntoView does.

@@ -11,9 +11,13 @@
 
 #include "context.h"
 #include "focus.h"
+#include "scroll.h"
 #include "tree.h"
 
 #include "maul-ui/focus.h"
+#include "maul-ui/interaction.h"
+
+#include <math.h>
 
 static bool IsNull(muiNodeId nodeId)
 {
@@ -239,6 +243,41 @@ muiResult muiNavigationInput(muiContext* context, muiNodeId rootId, const muiNav
     {
         handled = MoveFocus(context, rootId, event->player, true,
                             event->action == mui_navigatePrevious, 0);
+    }
+    *handledOut = handled;
+    return mui_success;
+}
+
+muiResult muiWheelInput(muiContext* context, muiNodeId rootId, const muiWheelEvent* event,
+                        bool* handledOut)
+{
+    if (context == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    muiResult status = mui_success;
+    bool valid = event != nullptr && handledOut != nullptr && isfinite(event->x) &&
+                 isfinite(event->y) && isfinite(event->deltaX) && isfinite(event->deltaY);
+    uint32_t root = Admit(context, rootId, valid ? event->player : 0, valid, &status);
+    if (root == 0)
+    {
+        return status;
+    }
+    muiHit hit = {0};
+    (void)muiHitTest(context, rootId, event->x, event->y, &hit);
+    uint32_t target = muiTreeResolve(&context->tree, hit.node);
+    bool handled = false;
+    if (target != 0)
+    {
+        const muiEvent routed = {
+            .kind = mui_eventWheel,
+            .player = event->player,
+            .modifiers = event->modifiers,
+            .timeNs = event->timeNs,
+            .target = hit.node,
+            .wheel = event,
+        };
+        handled = Route(context, target, &routed) || muiScrollWheel(context, root, hit.node, event);
     }
     *handledOut = handled;
     return mui_success;

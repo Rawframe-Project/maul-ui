@@ -10,6 +10,8 @@
 
 #include "layout_node.h"
 
+#include "maul-ui/scroll.h"
+
 typedef struct muiScrollState
 {
     float x;
@@ -18,6 +20,23 @@ typedef struct muiScrollState
     float extentWidth;
     float extentHeight;
 } muiScrollState;
+
+// The default rule (muiDefaultScrollRule).
+#define MUI_WHEEL_STEP     100.0f
+#define MUI_WHEEL_LATCH_NS 500000000ull
+
+// The rule, and the scroll container the wheel last scrolled with when.
+typedef struct muiScrollStore
+{
+    muiScrollRule rule;
+    muiNodeId latched;
+    uint64_t latchedNs;
+} muiScrollStore;
+
+static inline void muiScrollInit(muiScrollStore* store)
+{
+    *store = (muiScrollStore){.rule = {MUI_WHEEL_STEP, MUI_WHEEL_LATCH_NS}};
+}
 
 // The furthest an offset goes along an axis: the extent less the padding
 // box, of a node of a style and border box size, for an axis it scrolls,

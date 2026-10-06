@@ -86,6 +86,66 @@ extern "C"
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_ScrollIntoView(muiContext* context, muiNodeId nodeId);
 
+    // How wheel input scrolls (muiWheelInput).
+    typedef struct muiScrollRule
+    {
+        // The distance a wheel detent scrolls, finite and at least 0.
+        float wheelStep;
+        // How long a scroll container keeps the wheel after its last
+        // turn, in nanoseconds.
+        uint64_t latchNs;
+    } muiScrollRule;
+
+    /// The default scroll rule: 100 a detent, Chrome's on Windows, and a
+    /// latch of 500 ms. Hosts pass the platform's step where it has one.
+    ///
+    /// @return The rule.
+    /// @par Thread safety
+    /// Safe from any thread.
+    MUI_API muiScrollRule muiDefaultScrollRule(void);
+
+    /// Sets the context's scroll rule.
+    ///
+    /// @param context  The context.
+    /// @param rule     The rule, as described above.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
+    ///         rule outside the above, or a call from a measure or paint
+    ///         function.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiSetScrollRule(muiContext* context,
+                                                     const muiScrollRule* rule);
+
+    // A scrollbar thumb along its track.
+    typedef struct muiScrollThumb
+    {
+        // From the track's start: its top, or its inline start.
+        float start;
+        float length;
+    } muiScrollThumb;
+
+    /// Places a scrollbar thumb for a node along an axis, as its last
+    /// muiComputeLayout and its offset leave it: the track times the
+    /// padding box over the extent, at least minimum (at most the track),
+    /// and placed as the offset is between 0 and its limit. A node that
+    /// cannot scroll that way fills the track.
+    ///
+    /// @param context     The context.
+    /// @param nodeId      The node.
+    /// @param horizontal  The axis: true for x.
+    /// @param track       The track's length, finite and at least 0.
+    /// @param minimum     The shortest thumb, finite and at least 0.
+    /// @param thumbOut    Receives the thumb.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
+    ///         null id or a length outside the above; `mui_errorStale` for
+    ///         a node that is gone.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiNode_GetScrollThumb(const muiContext* context,
+                                                           muiNodeId nodeId, bool horizontal,
+                                                           float track, float minimum,
+                                                           muiScrollThumb* thumbOut);
+
 #ifdef __cplusplus
 }
 #endif
