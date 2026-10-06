@@ -31,7 +31,8 @@ static bool MayFeed(const muiContext* context)
 static bool Route(muiContext* context, uint32_t target, const muiEvent* event)
 {
     muiEventStore* store = &context->events;
-    if (store->function == nullptr || target == 0)
+    // A target of 0 has an empty route.
+    if (store->function == nullptr)
     {
         return false;
     }

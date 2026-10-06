@@ -9,6 +9,7 @@
 #include "test_harness.h"
 
 #include "maul-ui/context.h"
+#include "maul-ui/draw.h"
 #include "maul-ui/event.h"
 #include "maul-ui/focus.h"
 #include "maul-ui/interaction.h"
@@ -86,6 +87,7 @@ typedef struct Heard
     // What feeding input from the function gave.
     muiResult nested;
     muiResult nestedPointer;
+    muiResult nestedDispatch;
 } Heard;
 
 static bool Hear(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* event)
@@ -107,6 +109,8 @@ static bool Hear(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* e
         heard->nested = muiKeyInput(heard->context, heard->root, &key, &handled);
         const muiPointerEvent move = {0, 1, mui_pointerMouse, mui_pointerMove, 0, 0, 1.0f, 1.0f, 0};
         heard->nestedPointer = muiPointerInput(heard->context, heard->root, &move);
+        const muiPointerRecord record = {.kind = mui_pointerRecordMove, .node = heard->root};
+        heard->nestedDispatch = muiDispatchPointerRecord(heard->context, &record, &handled);
         if (heard->nested == mui_errorInvalid)
         {
             heard->nested = muiSetEventFunction(heard->context, NULL, NULL);
@@ -136,7 +140,8 @@ static bool Key(muiContext* context, muiNodeId root, muiKeyCode code, muiModifie
     return handled;
 }
 
-// root holds a, which holds b; c beside a; all take focus but root.
+// root holds a, which holds b; c beside a, d below it; all take focus
+// but root.
 typedef struct Scene
 {
     muiContext* context;
@@ -144,6 +149,7 @@ typedef struct Scene
     muiNodeId a;
     muiNodeId b;
     muiNodeId c;
+    muiNodeId d;
     Heard heard;
 } Scene;
 
@@ -157,6 +163,7 @@ static void MakeScene(Scene* scene)
     scene->a = Box(context, scene->root, 0.0f, 0.0f, 100.0f, mui_focusAll);
     scene->b = Box(context, scene->a, 10.0f, 10.0f, 20.0f, mui_focusAll);
     scene->c = Box(context, scene->root, 200.0f, 0.0f, 100.0f, mui_focusAll);
+    scene->d = Box(context, scene->root, 0.0f, 150.0f, 100.0f, mui_focusAll);
     Layout(context, scene->root);
     scene->heard = (Heard){.context = context, .root = scene->root};
     CHECK(muiSetEventFunction(context, Hear, &scene->heard) == mui_success, "function");
@@ -213,10 +220,12 @@ static void TestDefaults(void)
               !Key(s.context, s.root, mui_codeArrowLeft, mui_modShift, true) &&
               Key(s.context, s.root, mui_codeArrowLeft, mui_modNumLock, true) &&
               Same(muiFocus_Get(s.context, 0), s.a) &&
-              !Key(s.context, s.root, mui_codeArrowDown, 0, true) &&
               !Key(s.context, s.root, mui_codeArrowUp, 0, true) &&
+              Key(s.context, s.root, mui_codeArrowDown, 0, true) &&
+              Same(muiFocus_Get(s.context, 0), s.d) &&
+              Key(s.context, s.root, mui_codeArrowUp, 0, true) &&
               Same(muiFocus_Get(s.context, 0), s.a),
-          "arrows, not with Shift; nothing up or down from a, b inside it");
+          "arrows, not with Shift; nothing up from a, d below it");
     // Navigation.
     bool handled = false;
     muiNavigationEvent nav = {3, mui_navigateNext, 0};
@@ -232,9 +241,13 @@ static void TestDefaults(void)
     CHECK(muiNavigationInput(s.context, s.root, &nav, &handled) == mui_success && handled &&
               Same(muiFocus_Get(s.context, 0), s.c),
           "right");
-    nav.action = mui_navigateDown;
+    nav.action = mui_navigateUp;
     CHECK(muiNavigationInput(s.context, s.root, &nav, &handled) == mui_success && !handled,
-          "nothing below c");
+          "nothing above c");
+    nav.action = mui_navigateDown;
+    CHECK(muiNavigationInput(s.context, s.root, &nav, &handled) == mui_success && handled &&
+              Same(muiFocus_Get(s.context, 0), s.d),
+          "down");
     nav.action = mui_navigateActivate;
     CHECK(muiNavigationInput(s.context, s.root, &nav, &handled) == mui_success && !handled &&
               s.heard.last.navigation == mui_navigateActivate,
@@ -244,7 +257,7 @@ static void TestDefaults(void)
           "cancel: no default");
     // Without a function, the defaults still run.
     CHECK(muiSetEventFunction(s.context, NULL, NULL) == mui_success &&
-              Key(s.context, s.root, mui_codeArrowLeft, 0, true) &&
+              Key(s.context, s.root, mui_codeArrowUp, 0, true) &&
               Same(muiFocus_Get(s.context, 0), s.a),
           "no function");
     muiDestroyContext(s.context);
@@ -304,7 +317,8 @@ static void TestEdits(void)
     const muiNodeId nodes[2] = {s.root, s.root};
     const muiPhase phases[2] = {mui_phaseTunnel, mui_phaseBubble};
     CHECK(!Key(s.context, s.root, 27, 0, true) && Order(&s.heard, nodes, phases, 2) &&
-              s.heard.nested == mui_errorInvalid && s.heard.nestedPointer == mui_errorInvalid,
+              s.heard.nested == mui_errorInvalid && s.heard.nestedPointer == mui_errorInvalid &&
+              s.heard.nestedDispatch == mui_errorInvalid,
           "the route kept, those gone passed over; no input inside");
     bool handled = false;
     const muiPointerRecord record = {.kind = mui_pointerRecordClick, .node = s.c};
@@ -349,6 +363,62 @@ static void TestPointerRecords(void)
               muiFocus_Set(s.context, 0, s.c, mui_focusByCode) == mui_success &&
               (muiNode_GetStates(s.context, s.c) & mui_stateFocusVisible) != 0,
           "a key down after a pointer shows code focus; a key up does not");
+    // Navigation does too.
+    const muiPointerEvent release = {1,     1, mui_pointerMouse, mui_pointerRelease, 0, 0, 15.0f,
+                                     15.0f, 0};
+    const muiPointerEvent again = {2, 1, mui_pointerMouse, mui_pointerPress, 0, 1, 15.0f, 15.0f, 0};
+    const muiNavigationEvent activate = {3, mui_navigateActivate, 0};
+    CHECK(muiPointerInput(s.context, s.root, &release) == mui_success &&
+              muiPointerInput(s.context, s.root, &again) == mui_success &&
+              muiNavigationInput(s.context, s.root, &activate, &handled) == mui_success &&
+              muiFocus_Set(s.context, 0, s.a, mui_focusByCode) == mui_success &&
+              (muiNode_GetStates(s.context, s.a) & mui_stateFocusVisible) != 0,
+          "navigation after a pointer shows code focus");
+    muiDestroyContext(s.context);
+}
+
+// What a paint function that feeds input got: refusals.
+typedef struct Feeding
+{
+    muiContext* context;
+    muiResult results[4];
+} Feeding;
+
+static void FeedingPaint(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
+                         muiDrawSink* sink)
+{
+    (void)hostKey;
+    (void)width;
+    (void)height;
+    (void)sink;
+    Feeding* feeding = user;
+    const muiKeyEvent key = {0, 'a', 4, 0, true, false, 0};
+    const muiTextEvent text = {0, "a", 1, 0};
+    const muiNavigationEvent nav = {0, mui_navigateUp, 0};
+    bool handled = false;
+    feeding->results[0] = muiKeyInput(feeding->context, nodeId, &key, &handled);
+    feeding->results[1] = muiTextInput(feeding->context, nodeId, &text, &handled);
+    feeding->results[2] = muiNavigationInput(feeding->context, nodeId, &nav, &handled);
+    feeding->results[3] = muiSetEventFunction(feeding->context, NULL, NULL);
+}
+
+static void TestFromPainting(void)
+{
+    Scene s;
+    MakeScene(&s);
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.content = mui_contentHost;
+    CHECK(muiNode_SetLayoutValues(s.context, s.c, &layout, MUI_PROPERTY_BIT(mui_propertyContent)) ==
+              mui_success,
+          "host content");
+    Layout(s.context, s.root);
+    Feeding feeding = {s.context, {mui_success, mui_success, mui_success, mui_success}};
+    const muiDrawInput input = {1, 1.0f, FeedingPaint, &feeding};
+    CHECK(muiBuildDrawList(s.context, s.root, &input) == mui_success &&
+              feeding.results[0] == mui_errorInvalid && feeding.results[1] == mui_errorInvalid &&
+              feeding.results[2] == mui_errorInvalid && feeding.results[3] == mui_errorInvalid &&
+              s.heard.count == 0,
+          "input from painting");
     muiDestroyContext(s.context);
 }
 
@@ -399,6 +469,7 @@ int main(void)
     TestTargets();
     TestEdits();
     TestPointerRecords();
+    TestFromPainting();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }
