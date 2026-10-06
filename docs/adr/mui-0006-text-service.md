@@ -140,8 +140,14 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   start or end of a word (a UAX #29 word segment with a letter or a
   number); to its line's start or end; up or down a line at an x the
   caller keeps (the text's start or end past the first or last line);
-  to the text's start or end. Selection, the x kept for vertical moves,
-  input and undo stay with the caller.
+  to the text's start or end. `muiTextBlock_FindDeletion` gives what a
+  deletion removes: forward, the next grapheme cluster; back, as Blink
+  and Android delete, one code point, but a cluster with an emoji, a
+  regional indicator or a keycap whole, a variation selector with the
+  code point before it, and CR with its LF. `muiTextBlock_Replace`
+  replaces a range of a block's text, analyzing the new text whole
+  before the old goes, and `muiTextBlock_GetText` reads it. Selection,
+  the x kept for vertical moves, input and undo stay with the caller.
 - **Glyph atlases** (`maul-ui/glyph_atlas.h`) are owner objects of a
   service, in its memory: pages of the caller's size, made as needed up
   to a limit and cut into plots, each packed with a skyline bottom-left

@@ -402,9 +402,86 @@ static void TestRandomText(void)
     muiDestroyTextService(service);
 }
 
+// Random deletions and insertions at random offsets: each deletion within
+// the text and on the offset's side, each replacement the length it
+// should be, and the text laid out and painted after each.
+static void TestRandomEdits(void)
+{
+    muiTextServiceDef def = muiDefaultTextServiceDef();
+    muiTextService* service = NULL;
+    CHECK(muiCreateTextService(&def, &service) == mui_success, "service");
+    muiFontDef fontDef = muiDefaultFontDef();
+    fontDef.data = s_liberationSans;
+    fontDef.size = sizeof s_liberationSans;
+    fontDef.dataMode = mui_fontDataBorrow;
+    muiFontId font = {0, 0};
+    CHECK(muiCreateFont(service, &fontDef, &font) == mui_success &&
+              muiSetDefaultFont(service, font) == mui_success,
+          "font");
+    muiContextDef contextDef = muiDefaultContextDef();
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&contextDef, &context) == mui_success, "context");
+    muiTextHost host = {service, context};
+    uint32_t state = 91;
+    char text[TEXT_LIMIT];
+    size_t length = RandomText(text, &state);
+    muiTextBlockId block = {0, 0};
+    CHECK(muiCreateTextBlock(service, text, length, &block) == mui_success, "block");
+    muiNodeDef nodeDef = muiDefaultNodeDef();
+    nodeDef.hostKey = muiTextBlock_GetKey(block);
+    muiNodeId node = {0, 0};
+    CHECK(muiCreateNode(context, &nodeDef, &node) == mui_success, "node");
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.content = mui_contentHost;
+    CHECK(muiNode_SetLayoutValues(context, node, &layout, MUI_PROPERTY_BIT(mui_propertyContent)) ==
+              mui_success,
+          "content");
+    for (int round = 0; round < TEXT_ROUNDS; round++)
+    {
+        uint32_t offset = Next(&state) % ((uint32_t)length + 2u);
+        uint32_t start = 0;
+        uint32_t end = 0;
+        size_t inserted = 0;
+        if (Next(&state) % 3 == 0 && length < 400)
+        {
+            inserted = RandomText(text, &state);
+            start = end = offset < length ? offset : (uint32_t)length;
+        }
+        else
+        {
+            muiTextDeletion deletion = (muiTextDeletion)(Next(&state) % 2);
+            CHECK(muiTextBlock_FindDeletion(service, block, offset, deletion, &start, &end) ==
+                          mui_success &&
+                      start <= end && end <= length &&
+                      (deletion == mui_deleteForward ? start : end) ==
+                          (offset < length ? offset : length),
+                  "a deletion on the offset's side");
+        }
+        CHECK(muiTextBlock_Replace(service, block, start, end, text, inserted) == mui_success,
+              "replaced");
+        const char* now = NULL;
+        size_t nowLength = 0;
+        CHECK(muiTextBlock_GetText(service, block, &now, &nowLength) == mui_success &&
+                  nowLength == length - (end - start) + inserted,
+              "the length after");
+        length = nowLength;
+        CHECK(muiNode_MarkContentChanged(context, node) == mui_success, "marked");
+        const muiLayoutInput input = {
+            50.0f + (float)(Next(&state) % 200), 1000.0f, muiMeasureText, &host, 0, NULL};
+        const muiDrawInput draw = {1, 1.0f, muiPaintText, &host};
+        CHECK(muiComputeLayout(context, node, &input) == mui_success &&
+                  muiBuildDrawList(context, node, &draw) == mui_success,
+              "laid out and painted");
+    }
+    CHECK(muiGetTextServiceFailures(service) == 0, "no failures");
+    muiDestroyContext(context);
+    muiDestroyTextService(service);
+}
+
 int main(void)
 {
     TestDamagedFonts();
     TestRandomText();
+    TestRandomEdits();
     return s_failures == 0 ? 0 : 1;
 }

@@ -3,8 +3,9 @@
 //
 // Editing primitives over laid-out text (record mui-0006): positions in a
 // node's text, from points, to carets and moved by cluster, word or line,
-// and the rectangles a range of it covers, the text laid out as
-// muiPaintText paints it. Selection, input and undo are the caller's.
+// the rectangles a range of it covers, the text laid out as muiPaintText
+// paints it, and what a deletion removes. Selection, input and undo are
+// the caller's.
 
 #ifndef MAUL_UI_TEXT_EDIT_H
 #define MAUL_UI_TEXT_EDIT_H
@@ -79,6 +80,20 @@ extern "C"
         mui_moveLineDown = 10,
         mui_moveTextStart = 11,
         mui_moveTextEnd = 12,
+    };
+
+    // Which way a deletion from a position goes.
+    typedef uint8_t muiTextDeletion;
+
+    enum
+    {
+        // Back, as Backspace deletes: one code point, so a mistyped mark
+        // or jamo goes alone; but a cluster with an emoji, a regional
+        // indicator or a keycap goes whole, a variation selector with the
+        // code point before it, and a CR with its LF.
+        mui_deleteBackward = 0,
+        // Forward, as Delete does: the next grapheme cluster.
+        mui_deleteForward = 1,
     };
 
     // Where a caret is drawn in the node's content box: its x, the top
@@ -187,6 +202,29 @@ extern "C"
                                                 float width, muiTextPosition from,
                                                 muiTextMovement movement, float preferredX,
                                                 muiTextPosition* positionOut);
+
+    /// Finds the bytes a deletion from an offset of a block's text
+    /// removes, for muiTextBlock_Replace; words are deleted by moving
+    /// with muiTextMove and replacing what lies between. Nothing at the
+    /// text's start going back or its end going forward.
+    ///
+    /// @param service   The service.
+    /// @param blockId   The block.
+    /// @param offset    The offset; past the text is its end.
+    /// @param deletion  Which way.
+    /// @param startOut  Receives the first byte to remove.
+    /// @param endOut    Receives the byte after the last; startOut's value
+    ///                  when there is nothing.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
+    ///         null id or a deletion out of range; `mui_errorStale` for a
+    ///         block that is gone. Nothing is written on failure.
+    /// @par Thread safety
+    /// Safe from any thread; the service is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiTextBlock_FindDeletion(const muiTextService* service,
+                                                              muiTextBlockId blockId,
+                                                              uint32_t offset,
+                                                              muiTextDeletion deletion,
+                                                              uint32_t* startOut, uint32_t* endOut);
 
 #ifdef __cplusplus
 }

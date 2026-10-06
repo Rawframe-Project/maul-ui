@@ -35,7 +35,10 @@ format.
   position (a byte offset and an affinity), a position's caret, the
   rectangles a range covers, and moving a position by cluster (in the
   text or on screen), word, line or to the text's ends, over text laid
-  out as it is painted (record mui-0006).
+  out as it is painted; what a deletion either way removes
+  (`muiTextBlock_FindDeletion`), and replacing and reading a block's
+  text (`muiTextBlock_Replace`, `muiTextBlock_GetText`) (record
+  mui-0006).
 - Font fallback: each grapheme cluster is drawn in the first font of a
   chain (the style's, its family's fallbacks, then the service's,
   `muiSetFallbackFonts`) that has its characters, so a line may hold

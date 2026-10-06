@@ -471,6 +471,143 @@ static void TestMovingOnScreen(void)
     FreeScene(&scene);
 }
 
+// Whether a deletion from an offset of the block's text removes the
+// bytes from start up to end.
+static bool Deletes(Scene* scene, const char* text, uint32_t offset, muiTextDeletion deletion,
+                    uint32_t start, uint32_t end)
+{
+    uint32_t from = 99;
+    uint32_t to = 99;
+    return muiTextBlock_SetText(scene->service, scene->block, text, strlen(text)) == mui_success &&
+           muiTextBlock_FindDeletion(scene->service, scene->block, offset, deletion, &from, &to) ==
+               mui_success &&
+           from == start && to == end;
+}
+
+static void TestDeletion(void)
+{
+    Scene scene = MakeScene();
+    muiTextDeletion back = mui_deleteBackward;
+    muiTextDeletion forward = mui_deleteForward;
+    CHECK(Deletes(&scene, "ab", 0, forward, 0, 1) && Deletes(&scene, "ab", 2, forward, 2, 2) &&
+              Deletes(&scene, "ab", 99, forward, 2, 2) && Deletes(&scene, "ab", 2, back, 1, 2) &&
+              Deletes(&scene, "ab", 0, back, 0, 0) && Deletes(&scene, "", 0, back, 0, 0),
+          "a letter either way, nothing past the ends");
+    // x and a combining acute: forward the cluster, back the acute alone.
+    CHECK(Deletes(&scene, "x\xCC\x81", 0, forward, 0, 3) &&
+              Deletes(&scene, "x\xCC\x81", 3, back, 1, 3) &&
+              Deletes(&scene, "x\xCC\x81", 99, back, 1, 3) &&
+              Deletes(&scene, "x\xCC\x81", 2, back, 0, 2),
+          "a mark");
+    // Two jamo make a syllable: back takes the vowel.
+    CHECK(Deletes(&scene, "\xE1\x84\x80\xE1\x85\xA1", 6, back, 3, 6), "jamo");
+    // A thumbs-up and a skin tone, a flag, a keycap: whole.
+    CHECK(Deletes(&scene, "\xF0\x9F\x91\x8D\xF0\x9F\x8F\xBD", 8, back, 0, 8) &&
+              Deletes(&scene, "\xF0\x9F\x87\xB9\xF0\x9F\x87\xB7", 8, back, 0, 8) &&
+              Deletes(&scene, "1\xEF\xB8\x8F\xE2\x83\xA3", 7, back, 0, 7),
+          "emoji, flags and keycaps whole");
+    // A variation selector with what it selects; CR with its LF.
+    CHECK(Deletes(&scene, "a\xEF\xB8\x8E", 4, back, 0, 4) &&
+              Deletes(&scene, "a\xEF\xB8\x80", 4, back, 0, 4) &&
+              Deletes(&scene, "a\xF3\xA0\x84\x80", 5, back, 0, 5) &&
+              Deletes(&scene, "a\r\n", 3, back, 1, 3) && Deletes(&scene, "a\n", 2, back, 1, 2),
+          "a variation selector, a CR LF");
+    uint32_t start = 7;
+    uint32_t end = 7;
+    muiTextBlockId none = {0, 0};
+    CHECK(muiTextBlock_FindDeletion(NULL, scene.block, 0, back, &start, &end) == mui_errorInvalid &&
+              muiTextBlock_FindDeletion(scene.service, none, 0, back, &start, &end) ==
+                  mui_errorInvalid &&
+              muiTextBlock_FindDeletion(scene.service, scene.block, 0, 2, &start, &end) ==
+                  mui_errorInvalid &&
+              muiTextBlock_FindDeletion(scene.service, scene.block, 0, back, NULL, &end) ==
+                  mui_errorInvalid &&
+              muiTextBlock_FindDeletion(scene.service, scene.block, 0, back, &start, NULL) ==
+                  mui_errorInvalid &&
+              start == 7 && end == 7,
+          "deletion outside the contract");
+    FreeScene(&scene);
+}
+
+// Whether the block's text is the one given.
+static bool TextIs(Scene* scene, const char* expected)
+{
+    const char* text = NULL;
+    size_t length = 0;
+    return muiTextBlock_GetText(scene->service, scene->block, &text, &length) == mui_success &&
+           length == strlen(expected) && memcmp(text, expected, length) == 0;
+}
+
+static void TestReplace(void)
+{
+    Scene scene = MakeScene();
+    ShowPlain(&scene, "hello world");
+    CHECK(muiTextBlock_Replace(scene.service, scene.block, 6, 11, "there", 5) == mui_success &&
+              TextIs(&scene, "hello there"),
+          "a word replaced");
+    CHECK(muiTextBlock_Replace(scene.service, scene.block, 0, 0, "oh, ", 4) == mui_success &&
+              TextIs(&scene, "oh, hello there") &&
+              muiTextBlock_Replace(scene.service, scene.block, 15, 15, "!", 1) == mui_success &&
+              TextIs(&scene, "oh, hello there!") &&
+              muiTextBlock_Replace(scene.service, scene.block, 2, 10, NULL, 0) == mui_success &&
+              TextIs(&scene, "ohthere!"),
+          "inserted at the ends, deleted");
+    // A part of its own text put back in.
+    const char* own = NULL;
+    size_t length = 0;
+    CHECK(muiTextBlock_GetText(scene.service, scene.block, &own, &length) == mui_success &&
+              muiTextBlock_Replace(scene.service, scene.block, 0, 2, own + 2, 5) == mui_success &&
+              TextIs(&scene, "therethere!"),
+          "its own text");
+    // Measured anew once marked: Ahem's letters are 10 wide.
+    CHECK(muiNode_MarkContentChanged(scene.context, scene.node) == mui_success, "marked");
+    const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &scene.host, 0, NULL};
+    CHECK(muiComputeLayout(scene.context, scene.node, &input) == mui_success &&
+              muiNode_GetRect(scene.context, scene.node).width == 110.0f,
+          "laid out anew");
+    CHECK(muiTextBlock_Replace(scene.service, scene.block, 3, 2, "x", 1) == mui_errorInvalid &&
+              muiTextBlock_Replace(scene.service, scene.block, 0, 12, "x", 1) == mui_errorInvalid &&
+              muiTextBlock_Replace(scene.service, scene.block, 11, 12, "x", 1) ==
+                  mui_errorInvalid &&
+              muiTextBlock_Replace(scene.service, scene.block, 0, 0, "x", 0x7FFFFFFF) ==
+                  mui_errorInvalid &&
+              muiTextBlock_Replace(scene.service, scene.block, 0, 0, NULL, 1) == mui_errorInvalid &&
+              muiTextBlock_Replace(NULL, scene.block, 0, 0, "x", 1) == mui_errorInvalid &&
+              muiTextBlock_Replace(scene.service, (muiTextBlockId){0, 0}, 0, 0, "x", 1) ==
+                  mui_errorInvalid &&
+              TextIs(&scene, "therethere!"),
+          "replacing outside the contract");
+    CHECK(muiTextBlock_GetText(NULL, scene.block, &own, &length) == mui_errorInvalid &&
+              muiTextBlock_GetText(scene.service, scene.block, NULL, &length) == mui_errorInvalid &&
+              muiTextBlock_GetText(scene.service, scene.block, &own, NULL) == mui_errorInvalid,
+          "reading outside the contract");
+    muiTextBlockId gone = scene.block;
+    uint32_t start = 0;
+    uint32_t end = 0;
+    CHECK(muiDestroyTextBlock(scene.service, gone) == mui_success &&
+              muiTextBlock_Replace(scene.service, gone, 0, 0, "x", 1) == mui_errorStale &&
+              muiTextBlock_GetText(scene.service, gone, &own, &length) == mui_errorStale &&
+              muiTextBlock_FindDeletion(scene.service, gone, 0, mui_deleteForward, &start, &end) ==
+                  mui_errorStale,
+          "a block gone");
+    FreeScene(&scene);
+    // Memory running out keeps the old text.
+    for (int failAt = 1; failAt < 8; failAt++)
+    {
+        FailingAllocator failing = {0, 0};
+        Scene failingScene = MakeFailingScene(&failing);
+        ShowPlain(&failingScene, "ab");
+        failing = (FailingAllocator){0, failAt};
+        muiResult result =
+            muiTextBlock_Replace(failingScene.service, failingScene.block, 1, 1, "x y", 3);
+        bool failed = failing.allocations >= failAt;
+        CHECK(failed ? result == mui_errorCapacity && TextIs(&failingScene, "ab")
+                     : result == mui_success && TextIs(&failingScene, "ax yb"),
+              "the old text kept");
+        FreeScene(&failingScene);
+    }
+}
+
 static void TestContract(void)
 {
     Scene scene = MakeScene();
@@ -569,6 +706,8 @@ int main(void)
     TestInsideClusters();
     TestMovingInText();
     TestMovingOnScreen();
+    TestDeletion();
+    TestReplace();
     TestLigature();
     TestMemory();
     TestContract();

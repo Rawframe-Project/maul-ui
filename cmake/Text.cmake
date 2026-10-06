@@ -21,6 +21,7 @@ target_sources(maul-ui PRIVATE
     src/text_block.c
     src/text_blocks.c
     src/text_boxes.c
+    src/text_delete.c
     src/text_hit.c
     src/text_move.c
     src/text_layout.c

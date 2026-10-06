@@ -89,6 +89,48 @@ extern "C"
                                                          muiTextBlockId blockId, const char* text,
                                                          size_t length);
 
+    /// Replaces the bytes of a block's text from start up to end with a
+    /// text, as editing does; its nodes are measured and painted anew
+    /// once marked changed. Offsets inside a UTF-8 sequence leave bytes
+    /// that read as U+FFFD; muiTextBlock_FindDeletion and muiTextMove give
+    /// offsets on grapheme cluster boundaries.
+    ///
+    /// @param service  The service.
+    /// @param blockId  The block.
+    /// @param start    The first byte replaced.
+    /// @param end      The byte after the last; start for an insertion.
+    /// @param text     The text put in its place, UTF-8. May be NULL when
+    ///                 length is 0, and may be part of the block's text.
+    /// @param length   Its length in bytes.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL service, the
+    ///         null id, a NULL text with a length, start after end, end
+    ///         past the text, or a result of 2^31 bytes or more;
+    ///         `mui_errorStale` for a block that is gone;
+    ///         `mui_errorCapacity` when memory runs out, which keeps the
+    ///         old text.
+    /// @par Thread safety
+    /// Safe from any thread; the service is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiTextBlock_Replace(muiTextService* service,
+                                                         muiTextBlockId blockId, uint32_t start,
+                                                         uint32_t end, const char* text,
+                                                         size_t length);
+
+    /// Reads a block's text.
+    ///
+    /// @param service    The service.
+    /// @param blockId    The block.
+    /// @param textOut    Receives its bytes, valid until its text is set,
+    ///                   replaced or the block destroyed; never NULL.
+    /// @param lengthOut  Receives its length in bytes.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or the
+    ///         null id; `mui_errorStale` for a block that is gone. Nothing
+    ///         is written on failure.
+    /// @par Thread safety
+    /// Safe from any thread; the service is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiTextBlock_GetText(const muiTextService* service,
+                                                         muiTextBlockId blockId,
+                                                         const char** textOut, size_t* lengthOut);
+
     /// Returns a block's key, for a node's host key: never 0.
     ///
     /// @param blockId  The block.
