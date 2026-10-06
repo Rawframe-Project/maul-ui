@@ -13,7 +13,11 @@
 //   node under a point; the focused node;
 // - actions asked of the host, and which methods a node allows;
 // - an object whose node went, and one whose adapter went, answering
-//   nothing.
+//   nothing;
+// - notifications, recorded in place of AppKit's: titles and values
+//   changed, static text's value, live names announced on the window at
+//   their priority, the focus, an element destroyed, the layout; none
+//   for an update that changes nothing.
 
 #include "ns.h"
 #include "test_harness.h"
@@ -204,6 +208,107 @@ static void TestActions(id root)
           "which methods a node allows");
 }
 
+static NSMutableArray* s_posted;
+
+static void Record(id element, NSAccessibilityNotificationName name, NSDictionary* info)
+{
+    NSString* who =
+        [element isKindOfClass:[MUIAccessibilityNode class]]
+            ? [NSString
+                  stringWithFormat:@"%llu",
+                                   (unsigned long long)((MUIAccessibilityNode*)element)->nodeId]
+        : [element isKindOfClass:[NSWindow class]] ? @"window"
+                                                   : @"?";
+    NSString* said =
+        info != nil ? [NSString stringWithFormat:@" %@/%@", info[NSAccessibilityAnnouncementKey],
+                                                 info[NSAccessibilityPriorityKey]]
+                    : @"";
+    [s_posted addObject:[NSString stringWithFormat:@"%@ %@%@", name, who, said]];
+}
+
+static bool PostedAre(NSString* expected)
+{
+    NSString* got = [s_posted componentsJoinedByString:@"; "];
+    bool same = [got isEqualToString:expected];
+    if (!same)
+    {
+        printf("posted: %s\n", [got UTF8String]);
+    }
+    [s_posted removeAllObjects];
+    return same;
+}
+
+static bool Send(muiNsAdapter* adapter, const muiAccessNode* node, const uint64_t* children,
+                 uint64_t focus)
+{
+    const muiAccessUpdate update = {(const muiAccessNode*[]){node}, 1, children, 0, focus};
+    return muiNsAdapter_Apply(adapter, &update) == mui_success;
+}
+
+static void TestNotifications(muiNsAdapter* adapter, const Built* built)
+{
+    muiNsPostFunction saved = adapter->post;
+    adapter->post = Record;
+    s_posted = [[NSMutableArray alloc] init];
+    muiAccessNode check = built->nodes[4];
+    check.flags = mui_accessCheckable;
+    check.text[mui_accessLabel] = "Agreed";
+    check.textLength[mui_accessLabel] = 6;
+    CHECK(Send(adapter, &check, built->children, 0) &&
+              PostedAre(@"AXTitleChanged 6; AXValueChanged 6"),
+          "a title and a value changed");
+    muiAccessNode label = built->nodes[3];
+    label.text[mui_accessValue] = "Hi";
+    label.textLength[mui_accessValue] = 2;
+    CHECK(Send(adapter, &label, built->children, 0) && PostedAre(@"AXValueChanged 4"),
+          "static text renamed: its value");
+    muiAccessNode slider = built->nodes[6];
+    slider.value = 40.0f;
+    CHECK(Send(adapter, &slider, built->children, 0) && PostedAre(@"AXValueChanged 8"),
+          "a range's number");
+    CHECK(Send(adapter, &slider, built->children, 0) && PostedAre(@""), "nothing changed");
+    muiAccessNode heading = built->nodes[5];
+    heading.values.live = mui_livePolite;
+    heading.text[mui_accessLabel] = "Topic";
+    heading.textLength[mui_accessLabel] = 5;
+    CHECK(Send(adapter, &heading, built->children, 0) &&
+              PostedAre(@"AXTitleChanged 7; AXAnnouncementRequested window Topic/50"),
+          "a polite name announced");
+    heading.values.live = mui_liveAssertive;
+    heading.text[mui_accessLabel] = "Topic 2";
+    heading.textLength[mui_accessLabel] = 7;
+    CHECK(Send(adapter, &heading, built->children, 0) &&
+              PostedAre(@"AXTitleChanged 7; AXAnnouncementRequested window Topic 2/90"),
+          "an assertive name announced");
+    CHECK(Send(adapter, &built->nodes[0], built->children, 6) &&
+              PostedAre(@"AXLayoutChanged 1; AXFocusedUIElementChanged 6"),
+          "the focus moved, which may show a hidden node");
+    // A node 10 added, then gone before any client asked for it: the
+    // layout only; then the toggle button, which a client saw, gone.
+    muiAccessNode root = built->nodes[0];
+    muiAccessNode added = {.id = 10, .role = mui_roleButton};
+    const uint64_t more[7] = {2, 3, 6, 7, 8, 9, 10};
+    root.firstChild = 0;
+    root.childCount = 7;
+    const muiAccessUpdate grow = {(const muiAccessNode*[]){&root, &added}, 2, more, 0, 0};
+    CHECK(muiNsAdapter_Apply(adapter, &grow) == mui_success && PostedAre(@"AXLayoutChanged 1"),
+          "a node added: the layout");
+    root.childCount = 6;
+    CHECK(Send(adapter, &root, more, 0) && PostedAre(@"AXLayoutChanged 1"),
+          "a node no client saw gone: the layout only");
+    root.childCount = 5;
+    CHECK(Send(adapter, &root, more, 0) && PostedAre(@"AXUIElementDestroyed 9; AXLayoutChanged 1"),
+          "a node a client saw gone: destroyed");
+    root.childCount = 6;
+    muiAccessNode toggle = built->nodes[8];
+    const muiAccessUpdate back = {(const muiAccessNode*[]){&root, &toggle}, 2, more, 0, 2};
+    CHECK(muiNsAdapter_Apply(adapter, &back) == mui_success &&
+              PostedAre(@"AXLayoutChanged 1; AXFocusedUIElementChanged 2"),
+          "back, the layout before the focus");
+    [s_posted release];
+    adapter->post = saved;
+}
+
 static void TestContract(NSView* view)
 {
     muiNsAdapterDef def = muiDefaultNsAdapterDef();
@@ -245,6 +350,7 @@ int main(void)
         id root = (id)muiNsAdapter_GetRoot(adapter);
         TestTree(root, view);
         TestActions(root);
+        TestNotifications(adapter, &s_built);
         id button = [[[root accessibilityChildren] firstObject] retain];
         CHECK(muiNsAdapter_SetScale(adapter, 2.0f) == mui_success &&
                   Same([button accessibilityFrame], OnScreen(view, NSMakeRect(40, 40, 200, 80))),

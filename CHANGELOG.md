@@ -185,7 +185,9 @@ format.
   the screen, roles and subroles, titles, values, states, the focused
   node and the node under a point), press, increment, decrement,
   setting a range and the focus asked of the host, the methods a node
-  allows answered per node; `muiNsAdapter_GetRoot` for the view. The
+  allows answered per node; `muiNsAdapter_GetRoot` for the view;
+  notifications (titles and values changed, the focus, elements
+  destroyed, the layout, live names announced on the window). The
   result
   `mui_errorPlatform` (record mui-0008).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and

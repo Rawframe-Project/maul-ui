@@ -148,6 +148,11 @@ MUIAccessibilityNode* muiNsObjectOf(muiNsAdapter* adapter, uint64_t id)
     return object;
 }
 
+static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* old)
+{
+    muiNsTellUpdated(user, old, muiAccessTree_Find(tree, old->id));
+}
+
 static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* old)
 {
     (void)tree;
@@ -155,8 +160,23 @@ static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* 
     MUIAccessibilityNode* object = muiIdMapRemove(&adapter->objectById, old->id);
     if (object != nil)
     {
+        muiNsTellDestroyed(adapter, object);
         Forget(object);
     }
+}
+
+static void ShownChanged(void* user, const muiAccessTree* tree)
+{
+    (void)tree;
+    ((muiNsAdapter*)user)->reshaped = true;
+}
+
+static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint64_t focus)
+{
+    (void)tree;
+    (void)old;
+    (void)focus;
+    ((muiNsAdapter*)user)->focusMoved = true;
 }
 
 muiResult muiNsAdapter_Apply(muiNsAdapter* adapter, const muiAccessUpdate* update)
@@ -165,8 +185,23 @@ muiResult muiNsAdapter_Apply(muiNsAdapter* adapter, const muiAccessUpdate* updat
     {
         return mui_errorInvalid;
     }
-    const muiAccessChanges changes = {.user = adapter, .removed = Removed};
-    return muiAccessTree_Apply(adapter->tree, update, &changes);
+    const muiAccessChanges changes = {.user = adapter,
+                                      .updated = Updated,
+                                      .removed = Removed,
+                                      .shownChanged = ShownChanged,
+                                      .focusMoved = FocusMoved};
+    adapter->reshaped = false;
+    adapter->focusMoved = false;
+    muiResult status = muiAccessTree_Apply(adapter->tree, update, &changes);
+    if (status == mui_success && adapter->reshaped)
+    {
+        muiNsTellLayout(adapter);
+    }
+    if (status == mui_success && adapter->focusMoved)
+    {
+        muiNsTellFocus(adapter);
+    }
+    return status;
 }
 
 const muiAccessTree* muiNsAdapter_GetTree(const muiNsAdapter* adapter)

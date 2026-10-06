@@ -23,8 +23,7 @@ static const muiAccessNode* NodeOf(const MUIAccessibilityNode* object)
                                       : nullptr;
 }
 
-// A node's whole name, as clients read it; nil for none.
-static NSString* NameOf(const muiNsAdapter* adapter, uint64_t id)
+NSString* muiNsNameOf(const muiNsAdapter* adapter, uint64_t id)
 {
     size_t length = 0;
     char small[256];
@@ -137,7 +136,7 @@ static bool Has(const muiAccessNode* node, muiAccessAction action)
 - (NSString*)accessibilityTitle
 {
     const muiAccessNode* node = NodeOf(self);
-    return node != nullptr && !IsStaticText(node) ? NameOf(adapter, nodeId) : nil;
+    return node != nullptr && !IsStaticText(node) ? muiNsNameOf(adapter, nodeId) : nil;
 }
 
 - (NSString*)accessibilityHelp
@@ -164,7 +163,7 @@ static bool Has(const muiAccessNode* node, muiAccessAction action)
     uint32_t flags = node->flags;
     if (IsStaticText(node))
     {
-        return NameOf(adapter, nodeId);
+        return muiNsNameOf(adapter, nodeId);
     }
     if ((flags & mui_accessCheckable) != 0)
     {

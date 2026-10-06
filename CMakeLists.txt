@@ -139,7 +139,8 @@ if(MAUL_UI_NSACCESSIBILITY)
     # Objective-C with manual retain and release, as Maul Window's macOS
     # code.
     enable_language(OBJC)
-    target_sources(maul-ui PRIVATE src/ns_adapter.m src/ns_node.m src/ns_roles.m)
+    target_sources(maul-ui PRIVATE src/ns_adapter.m src/ns_events.m src/ns_node.m
+                                   src/ns_roles.m)
     set_target_properties(maul-ui PROPERTIES
         OBJC_STANDARD 23
         OBJC_STANDARD_REQUIRED ON

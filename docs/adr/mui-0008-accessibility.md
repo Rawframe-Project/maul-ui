@@ -219,9 +219,15 @@ ranges and virtual lists.
   from the view (flipped or not) to the window and to the screen.
   Roles and subroles come from a table, as AccessKit maps them;
   `isAccessibilitySelectorAllowed:` answers per node, so that clients
-  offer only what a node has. The test asks the objects as the
-  accessibility server does, since the client API needs a trusted
-  process.
+  offer only what a node has. Notifications go as AccessKit posts
+  them: a title or value changed on the node's object (static text's
+  name as its value), the focused element changed, an element
+  destroyed when a node a client saw goes, the layout changed when
+  the consumer says the shown tree may have, and an announcement on
+  the window for a live node's new name, high priority when
+  assertive. The test asks the objects as the accessibility server
+  does, since the client API needs a trusted process, and records the
+  notifications in place of AppKit's.
 
 ## Consequences
 
