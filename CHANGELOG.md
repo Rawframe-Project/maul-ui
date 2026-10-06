@@ -216,6 +216,10 @@ format.
 
 ### Fixed
 
+- `MUI_NODISCARD` is `[[nodiscard]]` under MSVC's C++17 too, which leaves
+  `__cplusplus` at 199711L without `/Zc:__cplusplus`; the public headers
+  are compiled alone by MSVC in CI. Without the text component, installing
+  leaves out its headers, which declared functions the library lacked.
 - The text component builds for WASI (wasm32-wasi): it no longer asks
   for a threads library there, where HarfBuzz is built without threads,
   and HarfBuzz keeps `errno`, which wasi-libc declares thread-local.
