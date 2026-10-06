@@ -243,6 +243,18 @@ itself instead of each host repeating them.
   out of its parent's flow at its last rectangle, its children laid out
   at that size, so its siblings close up while it plays out (Motion's
   `popLayout`); cancelling puts it back.
+- **Virtual lists** (`maul-ui/virtual.h`): a scroll container may be a
+  list of many items, fixed in extent or estimated until measured, with
+  a gap and an overscan; estimated extents live in a Fenwick tree per
+  list, out of `limits.virtualItems` taken first fit, so an offset and
+  the item at an offset cost O(log n). After each layout the window of
+  items that should exist is found from the scroll offset and reported
+  by `mui_notificationWindowChanged` when it changes; the host realizes
+  it, binding child nodes to indices (`muiNode_SetItem`). Bound items
+  leave the flow, stretch across the list's content box, are measured
+  into their extents and placed at their offsets; the list's extent
+  covers every item, realized or not, so scrolling is not clamped to
+  what exists.
 - **Drag and drop**, within the application: a node takes kinds of
   thing by the interaction property `accepts`, a mask of the
   application's bits. While a pointer drags, the host offers a kind and

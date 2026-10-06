@@ -16,6 +16,7 @@
 #include "scroll.h"
 #include "solve.h"
 #include "tree.h"
+#include "virtual.h"
 
 #include "maul-ui/style.h"
 
@@ -153,14 +154,18 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
     sizingInput.height = (muiMeasureAxis){size.height, mui_measureExact};
     (void)muiSolveNode(&solver, root, &sizingInput, true);
     context->inHostCall = false;
-    // Steps easing move to now, within the limits layout just set.
-    muiScrollAdvance(context, input->timeNs);
     const muiRect rect = {0.0f, 0.0f, size.width, size.height};
     context->layout[root - 1].rect = rect;
     if (!muiIsSameRect(rect, context->draw.states[root - 1].rect))
     {
         muiTreeMark(&context->tree, root, mui_stagePaint);
     }
+    // Virtual lists measure and place their items and size their content;
+    // steps easing move to now, within the limits that leaves; the lists
+    // find their windows where scrolling left them.
+    muiVirtualPlace(context, root);
+    muiScrollAdvance(context, input->timeNs);
+    muiVirtualWindows(context, root);
     // Popups go beside their anchors where layout and scrolling left them.
     muiPlacePopups(context, root);
     return mui_success;

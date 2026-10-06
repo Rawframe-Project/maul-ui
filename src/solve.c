@@ -172,6 +172,9 @@ static void MeasureExtent(const muiSolver* solver, uint32_t node, muiSize size)
         reachY = fmaxf(reachY, child->rect.y + child->rect.height + margins.bottom);
     }
     muiScrollState* scroll = &solver->scrolls[node - 1];
+    // A virtual list's items reach as far as they need, realized or not.
+    reachX = fmaxf(reachX, startX + style->padding.start + scroll->listX);
+    reachY = fmaxf(reachY, startY + style->padding.top + scroll->listY);
     scroll->extentWidth = reachX + style->padding.end - startX;
     scroll->extentHeight = reachY + style->padding.bottom - startY;
     // At the size given here: its parent sets its rectangle after this.

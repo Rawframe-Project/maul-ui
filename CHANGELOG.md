@@ -105,6 +105,11 @@ format.
   scroll rule gains `decelerationRate` (record mui-0007). With the
   rule's `overscroll`, a pan past a limit rubber bands as on iOS and
   springs back when released, and a fling bounces off a limit.
+- Virtual lists (`maul-ui/virtual.h`): `muiNode_SetVirtualList`,
+  `muiNode_ClearVirtualList`, `muiNode_GetVirtualWindow`,
+  `muiNode_GetVirtualItem`, `muiNode_SetItem` and `muiNode_ClearItem`;
+  `mui_notificationWindowChanged`; `limits.virtualLists` and
+  `limits.virtualItems` (record mui-0007).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and
   `muiNode_CancelExit`; an exiting subtree leaves hit testing, focus
   and navigation, and `mui_notificationExitFinished` reports when no

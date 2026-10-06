@@ -23,6 +23,7 @@
 #include "theme_store.h"
 #include "token_store.h"
 #include "tree.h"
+#include "virtual_store.h"
 
 #include "maul-ui/context.h"
 
@@ -55,6 +56,8 @@ struct muiContext
     muiPopupStore popups;
     // The nodes exiting.
     muiExitStore exits;
+    // The virtual lists, their items' extents, and each node's item.
+    muiVirtualStore lists;
     // Whether a class, a token name or a direct write has ever given a
     // text property: until then every node's text is the defaults, and
     // the style pass leaves the records alone.

@@ -156,6 +156,18 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
     const muiLayoutStyle* style = &layout->style;
     Insets insetX = InsetsOf(&style->placement.inset, true, spanX->paddingSize);
     Insets insetY = InsetsOf(&style->placement.inset, false, spanY->paddingSize);
+    if (layout->listed)
+    {
+        // An item of a virtual list: across it, its content box; along it,
+        // its own size, placed after layout (src/virtual.c).
+        bool across = container->scrollAxes != mui_scrollHorizontal;
+        const Span* span = across ? spanX : spanY;
+        Insets* insets = across ? &insetX : &insetY;
+        *insets = (Insets){span->contentStart - span->paddingStart,
+                           span->paddingStart + span->paddingSize - span->contentStart -
+                               span->contentSize,
+                           true, true};
+    }
     muiSizingInput input = {
         .parentWidth = spanX->paddingSize,
         .parentHeight = spanY->paddingSize,

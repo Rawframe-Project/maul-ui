@@ -115,6 +115,10 @@ typedef struct muiLayoutNode
     // Set while the node exits popped (mui_exitPop): out of the flow at
     // the rectangle it had. Here, in padding before heldSizes.
     bool popped;
+    // Set while the node is bound to an item of a virtual list: out of
+    // the flow, stretched across the list, placed along it by
+    // src/virtual.c. In padding too.
+    bool listed;
     muiSize heldSizes[2];
 } muiLayoutNode;
 
@@ -131,7 +135,8 @@ static inline bool muiIsSameRect(muiRect a, muiRect b)
 // style changes.
 static inline void muiSyncLayoutNode(muiLayoutNode* node)
 {
-    node->absolute = node->style.placement.position == mui_positionAbsolute || node->popped;
+    node->absolute =
+        node->style.placement.position == mui_positionAbsolute || node->popped || node->listed;
 }
 
 // The first child of a container that takes part in its flex layout, and

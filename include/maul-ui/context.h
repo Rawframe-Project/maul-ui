@@ -69,6 +69,10 @@ extern "C"
         uint32_t popups;
         // Nodes exiting (muiNode_BeginExit) at once.
         uint32_t exits;
+        // Virtual lists at once (muiNode_SetVirtualList), and the items
+        // of estimated lists together, each list taking its count.
+        uint32_t virtualLists;
+        uint32_t virtualItems;
     } muiLimits;
 
     // How a context is made. Build it with muiDefaultContextDef.
@@ -83,7 +87,8 @@ extern "C"
     /// types, 1,024 property sets, 64 notifications, 64 transitions, 256
     /// running transitions, 256 tokens, 1,024 token names, 16 themes, 512
     /// theme overrides, draw lists of 8,192 commands, 256 clips, 256
-    /// gradients and 16,384 glyphs, 64 layers, 16 popups, 64 exits, and the C library's
+    /// gradients and 16,384 glyphs, 64 layers, 16 popups, 64 exits, 8 virtual lists of
+    /// 16,384 estimated items together, and the C library's
     /// allocator.
     ///
     /// @return The def, with a valid cookie.
@@ -138,6 +143,9 @@ extern "C"
         // The node's exit (maul-ui/exit.h) has no transition running in
         // its subtree any more.
         mui_notificationExitFinished = 7,
+        // The window of a virtual list's items that should exist changed
+        // (maul-ui/virtual.h).
+        mui_notificationWindowChanged = 8,
     };
 
     // A record of something the host learns after the call that caused

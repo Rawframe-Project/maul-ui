@@ -24,6 +24,10 @@ typedef struct muiScrollState
     // not an offset.
     float overX;
     float overY;
+    // The length a virtual list's items need along each axis, from the
+    // content box's start (src/virtual.c): the extent is at least that.
+    float listX;
+    float listY;
 } muiScrollState;
 
 // The default rule (muiDefaultScrollRule).
@@ -131,7 +135,8 @@ static inline void muiSyncScroll(muiScrollState* scroll, muiScrollAxes axes)
 {
     if (axes == mui_scrollNone)
     {
-        *scroll = (muiScrollState){0};
+        // A list's length outlives its axes.
+        *scroll = (muiScrollState){.listX = scroll->listX, .listY = scroll->listY};
     }
 }
 

@@ -53,7 +53,9 @@ muiContextDef muiDefaultContextDef(void)
                    .drawTransforms = 64,
                    .ranges = 64,
                    .popups = 16,
-                   .exits = 64},
+                   .exits = 64,
+                   .virtualLists = 8,
+                   .virtualItems = 16384},
     };
 }
 
@@ -69,7 +71,9 @@ static bool AreLimitsValid(const muiLimits* limits)
            limits->drawGlyphs <= MAX_SLOTS && limits->layers <= MAX_SLOTS &&
            limits->pointers <= MUI_MAX_POINTERS && limits->pointerRecords <= MAX_SLOTS &&
            limits->neighbors <= MAX_SLOTS && limits->drawTransforms < MAX_SLOTS &&
-           limits->ranges <= MAX_SLOTS && limits->popups <= MAX_SLOTS && limits->exits <= MAX_SLOTS;
+           limits->ranges <= MAX_SLOTS && limits->popups <= MAX_SLOTS &&
+           limits->exits <= MAX_SLOTS && limits->virtualLists <= MAX_SLOTS &&
+           limits->virtualItems <= MAX_SLOTS;
 }
 
 // Where each part of the context's block starts.
@@ -112,6 +116,10 @@ typedef struct Parts
     size_t ranges;
     size_t popups;
     size_t exits;
+    size_t lists;
+    size_t listSizes;
+    size_t listSums;
+    size_t listItems;
     size_t layers;
     size_t pointers;
     size_t pointerRecords;
@@ -189,6 +197,10 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
         .ranges = muiLayoutAdd(layout, limits->ranges, sizeof(muiRangeEntry), CACHE_LINE),
         .popups = muiLayoutAdd(layout, limits->popups, sizeof(muiPopupEntry), CACHE_LINE),
         .exits = muiLayoutAdd(layout, limits->exits, sizeof(muiExitEntry), CACHE_LINE),
+        .lists = muiLayoutAdd(layout, limits->virtualLists, sizeof(muiVirtualEntry), CACHE_LINE),
+        .listSizes = muiLayoutAdd(layout, limits->virtualItems, sizeof(float), CACHE_LINE),
+        .listSums = muiLayoutAdd(layout, limits->virtualItems, sizeof(double), CACHE_LINE),
+        .listItems = muiLayoutAdd(layout, limits->nodes, sizeof(uint32_t), CACHE_LINE),
         .layers = muiLayoutAdd(layout, limits->layers, sizeof(muiLayerEntry), CACHE_LINE),
         .pointers = muiLayoutAdd(layout, limits->pointers, sizeof(muiPointer), CACHE_LINE),
         .pointerRecords =
@@ -268,6 +280,14 @@ static void Place(muiContext* context, unsigned char* base, const Parts* parts,
     muiRangeInit(&context->ranges, (muiRangeEntry*)(base + parts->ranges), limits->ranges);
     muiPopupInit(&context->popups, (muiPopupEntry*)(base + parts->popups), limits->popups);
     muiExitInit(&context->exits, (muiExitEntry*)(base + parts->exits), limits->exits);
+    context->lists = (muiVirtualStore){
+        .entries = (muiVirtualEntry*)(base + parts->lists),
+        .capacity = limits->virtualLists,
+        .sizes = (float*)(base + parts->listSizes),
+        .sums = (double*)(base + parts->listSums),
+        .itemCapacity = limits->virtualItems,
+        .items = (uint32_t*)(base + parts->listItems),
+    };
     muiLayerInit(&context->layers, (muiLayerEntry*)(base + parts->layers), limits->layers);
     muiEventInit(&context->events, (muiNodeId*)(base + parts->routes));
     muiFocusInit(&context->focus, (muiNeighbor*)(base + parts->neighbors), limits->neighbors);

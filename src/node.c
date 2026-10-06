@@ -64,6 +64,7 @@ muiResult muiCreateNode(muiContext* context, const muiNodeDef* def, muiNodeId* n
     // muiDefaultInteractionStyle's, written in place.
     context->interaction[slot - 1] = (muiInteractionStyle){.hitMode = mui_hitAuto};
     context->scrolls[slot - 1] = (muiScrollState){0};
+    context->lists.items[slot - 1] = 0;
     *nodeIdOut = muiTreeIdOf(&context->tree, slot);
     return mui_success;
 }
