@@ -71,6 +71,10 @@ extern "C"
         // Data is damaged, or in a format the call does not take, such as
         // a font that fails validation or a compressed web font.
         mui_errorFormat = -4,
+        // The platform refused: a call of its failed, or its state does
+        // not allow the call, such as a thread outside the apartment the
+        // platform requires.
+        mui_errorPlatform = -5,
     };
 
     // The allocator an owner object takes in its def and keeps for its

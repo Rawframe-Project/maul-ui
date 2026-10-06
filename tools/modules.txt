@@ -45,6 +45,11 @@ access_tree_store:
 access_tree: access_tree_store allocator
 access_apply: access_tree access_tree_store allocator
 access_view: access_tree_store
+id_map:
+uia: id_map
+uia_adapter: allocator id_map uia
+uia_node: uia
+uia_props: allocator uia
 access_action: access context event layout_node notify range scroll_store tree
 popup: context layout_node popup_store scroll tree notify
 scroll: context scroll_store tree layer motion_math

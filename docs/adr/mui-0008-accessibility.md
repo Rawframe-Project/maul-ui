@@ -121,6 +121,17 @@ ranges and virtual lists.
   the platform calls on: family record 0017 allows no lock or wait on
   a platform's thread, and with UI Automation's COM threading on an STA
   thread every platform calls on the window's thread.
+- **The UI Automation adapter** (`maul-ui/access_uia.h`, the component
+  `MAUL_UI_UIA`, on by default on Windows) owns a consumer tree and
+  gives UI Automation a provider object per node, made when first
+  asked for and kept by id, and a root that stands for whichever node
+  is the tree's root, for Maul Window's `mwinRequestAccessibilityRoot`
+  or the host's own `WM_GETOBJECT`. Its objects come from the process
+  heap, not the host's allocator: clients set their lives through COM
+  reference counts, so they may outlive the adapter (the one exception
+  to record 0010 here). It loads `uiautomationcore.dll` at run time,
+  as Maul Window does, and refuses a thread outside a single-threaded
+  apartment with `mui_errorPlatform`.
 
 ## Consequences
 

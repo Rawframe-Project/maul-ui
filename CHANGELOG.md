@@ -140,7 +140,14 @@ format.
   (`muiAccessTree_GetShownChildren`, `muiAccessTree_GetShownParent`,
   `muiAccessTree_IsShown`), `muiAccessTree_GetName`,
   `muiAccessTree_GetBounds`, and `muiAccessTree_Write` and
-  `muiAccessRoleName` (record mui-0008).
+  `muiAccessRoleName`. The UI Automation adapter
+  (`maul-ui/access_uia.h`, `MAUL_UI_UIA`, on Windows): `muiCreateUiaAdapter`,
+  `muiUiaAdapter_Apply`, `muiUiaAdapter_GetRoot` for Maul Window's
+  accessibility root, `muiUiaAdapter_HandleGetObject`,
+  `muiUiaAdapter_SetScale`, with a provider object per node giving
+  control types, names, descriptions, states, positions, headings,
+  landmarks, bounds, navigation, hit testing and focus. The result
+  `mui_errorPlatform` (record mui-0008).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and
   `muiNode_CancelExit`; an exiting subtree leaves hit testing, focus
   and navigation, and `mui_notificationExitFinished` reports when no
