@@ -209,6 +209,19 @@ ranges and virtual lists.
   through `ariaNotify`, else a live region emptied after 300 ms; a
   scroll of the host is put back. The test runs in headless Chrome,
   comparing the browser's accessibility tree.
+- **The NSAccessibility adapter** (`maul-ui/access_ns.h`, the
+  component `MAUL_UI_NSACCESSIBILITY`, on by default on macOS) is
+  Objective-C with manual reference counting, as Maul Window's macOS
+  code is. One `NSAccessibilityElement` subclass object a shown node,
+  made when first asked for and cached by id, looks its node up at each
+  call, so that an object whose node or adapter is gone answers
+  nothing. The root's parent is the view the host names; frames go
+  from the view (flipped or not) to the window and to the screen.
+  Roles and subroles come from a table, as AccessKit maps them;
+  `isAccessibilitySelectorAllowed:` answers per node, so that clients
+  offer only what a node has. The test asks the objects as the
+  accessibility server does, since the client API needs a trusted
+  process.
 
 ## Consequences
 

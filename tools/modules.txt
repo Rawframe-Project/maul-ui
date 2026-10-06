@@ -52,6 +52,10 @@ aria_adapter: allocator aria
 aria_elements: aria
 aria_page: aria
 atspi: dbus_api id_map
+ns: id_map
+ns_adapter: allocator ns
+ns_node: allocator ns
+ns_roles: ns
 atspi_events: allocator atspi
 atspi_actions: atspi
 atspi_app: allocator atspi dbus_api

@@ -30,6 +30,11 @@ if(WIN32)
 else()
     set(MAUL_UI_UIA OFF)
 endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    option(MAUL_UI_NSACCESSIBILITY "Build the NSAccessibility adapter (record mui-0008)" ON)
+else()
+    set(MAUL_UI_NSACCESSIBILITY OFF)
+endif()
 if(EMSCRIPTEN)
     option(MAUL_UI_ARIA "Build the ARIA adapter (record mui-0008)" ON)
 else()
@@ -127,6 +132,24 @@ if(MAUL_UI_ACCESS_TREE)
     target_sources(maul-ui PRIVATE src/access_apply.c src/access_tree.c src/access_view.c
                                    src/id_map.c)
 endif()
+if(MAUL_UI_NSACCESSIBILITY)
+    if(NOT MAUL_UI_ACCESS_TREE)
+        message(FATAL_ERROR "The NSAccessibility adapter reads the accessibility tree: set MAUL_UI_ACCESS_TREE")
+    endif()
+    # Objective-C with manual retain and release, as Maul Window's macOS
+    # code.
+    enable_language(OBJC)
+    target_sources(maul-ui PRIVATE src/ns_adapter.m src/ns_node.m src/ns_roles.m)
+    set_target_properties(maul-ui PROPERTIES
+        OBJC_STANDARD 23
+        OBJC_STANDARD_REQUIRED ON
+        OBJC_EXTENSIONS OFF
+        OBJC_VISIBILITY_PRESET hidden)
+    target_compile_options(maul-ui PRIVATE
+        $<$<COMPILE_LANGUAGE:OBJC>:-fno-objc-arc -Wmissing-prototypes>)
+    target_link_libraries(maul-ui PRIVATE "-framework AppKit")
+    string(APPEND MAUL_PKG_LIBS_PRIVATE " -framework AppKit")
+endif()
 if(MAUL_UI_ARIA)
     if(NOT MAUL_UI_ACCESS_TREE)
         message(FATAL_ERROR "The ARIA adapter reads the accessibility tree: set MAUL_UI_ACCESS_TREE")
@@ -181,6 +204,17 @@ if(MAUL_UI_BUILD_TESTS)
     if(MAUL_UI_ACCESS_TREE)
         maul_add_test(access_tree)
         maul_add_test(id_map WHITEBOX)
+    endif()
+    if(MAUL_UI_NSACCESSIBILITY AND NOT MAUL_UI_BUILD_SHARED)
+        # Asks the objects as the accessibility server does; whitebox.
+        add_executable(test_nsaccessibility test/test_nsaccessibility.m)
+        target_link_libraries(test_nsaccessibility PRIVATE maul-ui "-framework AppKit")
+        target_include_directories(test_nsaccessibility PRIVATE ${PROJECT_SOURCE_DIR}/src)
+        maul_apply_flags(test_nsaccessibility)
+        set_target_properties(test_nsaccessibility PROPERTIES OBJC_STANDARD 23
+                              OBJC_STANDARD_REQUIRED ON OBJC_EXTENSIONS OFF)
+        target_compile_options(test_nsaccessibility PRIVATE -fno-objc-arc)
+        add_test(NAME nsaccessibility COMMAND test_nsaccessibility)
     endif()
     if(MAUL_UI_ARIA)
         # In headless Chrome through the runner, which waits on the test
