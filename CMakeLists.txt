@@ -35,6 +35,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 else()
     set(MAUL_UI_NSACCESSIBILITY OFF)
 endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    option(MAUL_UI_UIACCESSIBILITY "Build the UIAccessibility adapter (record mui-0008)" ON)
+else()
+    set(MAUL_UI_UIACCESSIBILITY OFF)
+endif()
 if(EMSCRIPTEN)
     option(MAUL_UI_ARIA "Build the ARIA adapter (record mui-0008)" ON)
 else()
@@ -151,6 +156,24 @@ if(MAUL_UI_NSACCESSIBILITY)
     target_link_libraries(maul-ui PRIVATE "-framework AppKit")
     string(APPEND MAUL_PKG_LIBS_PRIVATE " -framework AppKit")
 endif()
+if(MAUL_UI_UIACCESSIBILITY)
+    if(NOT MAUL_UI_ACCESS_TREE)
+        message(FATAL_ERROR "The UIAccessibility adapter reads the accessibility tree: set MAUL_UI_ACCESS_TREE")
+    endif()
+    # Objective-C with manual retain and release, as Maul Window's iOS
+    # code.
+    enable_language(OBJC)
+    target_sources(maul-ui PRIVATE src/uikit_adapter.m src/uikit_node.m src/uikit_traits.m)
+    set_target_properties(maul-ui PROPERTIES
+        OBJC_STANDARD 23
+        OBJC_STANDARD_REQUIRED ON
+        OBJC_EXTENSIONS OFF
+        OBJC_VISIBILITY_PRESET hidden)
+    target_compile_options(maul-ui PRIVATE
+        $<$<COMPILE_LANGUAGE:OBJC>:-fno-objc-arc -Wmissing-prototypes>)
+    target_link_libraries(maul-ui PRIVATE "-framework UIKit")
+    string(APPEND MAUL_PKG_LIBS_PRIVATE " -framework UIKit")
+endif()
 if(MAUL_UI_ARIA)
     if(NOT MAUL_UI_ACCESS_TREE)
         message(FATAL_ERROR "The ARIA adapter reads the accessibility tree: set MAUL_UI_ACCESS_TREE")
@@ -216,6 +239,25 @@ if(MAUL_UI_BUILD_TESTS)
                               OBJC_STANDARD_REQUIRED ON OBJC_EXTENSIONS OFF)
         target_compile_options(test_nsaccessibility PRIVATE -fno-objc-arc)
         add_test(NAME nsaccessibility COMMAND test_nsaccessibility)
+    endif()
+    if(MAUL_UI_UIACCESSIBILITY AND NOT MAUL_UI_BUILD_SHARED)
+        # An application in the simulator, run by tools/run_ios_app.sh,
+        # asking the objects as VoiceOver does; whitebox.
+        add_executable(test_uiaccessibility MACOSX_BUNDLE test/test_uiaccessibility.m)
+        target_link_libraries(test_uiaccessibility PRIVATE maul-ui "-framework UIKit")
+        target_include_directories(test_uiaccessibility PRIVATE ${PROJECT_SOURCE_DIR}/src)
+        maul_apply_flags(test_uiaccessibility)
+        set_target_properties(test_uiaccessibility PROPERTIES OBJC_STANDARD 23
+            OBJC_STANDARD_REQUIRED ON OBJC_EXTENSIONS OFF
+            MACOSX_BUNDLE_INFO_PLIST ${PROJECT_SOURCE_DIR}/test/ios/Info.plist.in
+            MACOSX_BUNDLE_GUI_IDENTIFIER org.maul.ui.test.uiaccessibility
+            MACOSX_BUNDLE_BUNDLE_NAME test_uiaccessibility
+            MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+            MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION})
+        target_compile_options(test_uiaccessibility PRIVATE -fno-objc-arc)
+        add_test(NAME uiaccessibility COMMAND ${PROJECT_SOURCE_DIR}/tools/run_ios_app.sh
+                 $<TARGET_BUNDLE_DIR:test_uiaccessibility>)
+        set_tests_properties(uiaccessibility PROPERTIES TIMEOUT 240)
     endif()
     if(MAUL_UI_ARIA)
         # In headless Chrome through the runner, which waits on the test

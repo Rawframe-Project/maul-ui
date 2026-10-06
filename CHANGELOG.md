@@ -188,6 +188,13 @@ format.
   allows answered per node; `muiNsAdapter_GetRoot` for the view;
   notifications (titles and values changed, the focus, elements
   destroyed, the layout, live names announced on the window). The
+  UIAccessibility adapter (`maul-ui/access_uikit.h`,
+  `MAUL_UI_UIACCESSIBILITY`, on iOS): `muiCreateUikitAdapter` for a
+  view, an element a shown node and a container a shown node with
+  shown children (its own element first), labels, values, hints,
+  traits, container types, frames on the screen, activation,
+  increment, decrement, scrolling by direction and VoiceOver's cursor
+  asked of the host; `muiUikitAdapter_GetRoot` for the view. The
   result
   `mui_errorPlatform` (record mui-0008).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and

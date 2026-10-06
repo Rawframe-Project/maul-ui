@@ -57,6 +57,10 @@ ns_adapter: allocator ns
 ns_events: ns
 ns_node: allocator ns
 ns_roles: ns
+uikit: id_map
+uikit_adapter: allocator uikit
+uikit_node: uikit
+uikit_traits: uikit
 atspi_events: allocator atspi
 atspi_actions: atspi
 atspi_app: allocator atspi dbus_api

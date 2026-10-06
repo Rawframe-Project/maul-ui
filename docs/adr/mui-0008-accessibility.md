@@ -228,6 +228,24 @@ ranges and virtual lists.
   assertive. The test asks the objects as the accessibility server
   does, since the client API needs a trusted process, and records the
   notifications in place of AppKit's.
+- **The UIAccessibility adapter** (`maul-ui/access_uikit.h`, the
+  component `MAUL_UI_UIACCESSIBILITY`, on by default on iOS) is
+  Objective-C with manual reference counting, as Maul Window's iOS
+  code is. VoiceOver never looks inside an element, so, as Flutter
+  does, a shown node is an element object and a shown node with shown
+  children also a container object, never an element, whose elements
+  are the node's own and then its children's objects; both are cached
+  by id and look their node up at each call. A node is an element
+  when it says something (a name, a value, a description, an action
+  other than scrolling, being focusable, or a role with a trait).
+  Traits come from the role and flags; a container's type from its
+  role; a container's frame is the view's, so that a child outside its
+  parent stays reachable by touch. Activation clicks, or expands and
+  collapses; a range without a click takes it without acting.
+  VoiceOver's scroll directions name what comes into view vertically
+  and the finger's way across. The escape gesture has no action. The
+  test is an application in the iOS simulator, asking the objects as
+  VoiceOver does.
 
 ## Consequences
 
