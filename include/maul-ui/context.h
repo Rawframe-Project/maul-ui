@@ -65,6 +65,8 @@ extern "C"
         uint32_t drawTransforms;
         // Nodes that are ranges (muiNode_SetValueRange) at once.
         uint32_t ranges;
+        // Nodes that are popups (muiNode_SetPopup) at once.
+        uint32_t popups;
     } muiLimits;
 
     // How a context is made. Build it with muiDefaultContextDef.
@@ -79,7 +81,7 @@ extern "C"
     /// types, 1,024 property sets, 64 notifications, 64 transitions, 256
     /// running transitions, 256 tokens, 1,024 token names, 16 themes, 512
     /// theme overrides, draw lists of 8,192 commands, 256 clips, 256
-    /// gradients and 16,384 glyphs, 64 layers, and the C library's
+    /// gradients and 16,384 glyphs, 64 layers, 16 popups, and the C library's
     /// allocator.
     ///
     /// @return The def, with a valid cookie.

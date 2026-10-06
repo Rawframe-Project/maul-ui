@@ -47,6 +47,12 @@ bool muiScrollPointer(muiContext* context, const muiPointerRecord* record);
 // it, as a press there at timeNs does; one past a limit springs back.
 void muiScrollStopFlings(muiContext* context, uint32_t slot, uint64_t timeNs);
 
+// The origin of a node's border box on the surface, through its
+// ancestors' places and scroll shifts, up to root, or to the top of its
+// tree for 0.
+void muiScrollOriginOf(const muiContext* context, uint32_t root, uint32_t node, double* xOut,
+                       double* yOut);
+
 // Moves the steps easing to where they are at nowNs, after layout.
 void muiScrollAdvance(muiContext* context, uint64_t nowNs);
 

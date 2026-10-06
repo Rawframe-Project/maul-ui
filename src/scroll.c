@@ -963,3 +963,31 @@ muiResult muiNode_GetScrollExtent(const muiContext* context, muiNodeId nodeId, m
     }
     return status;
 }
+
+// The origin of a node's border box in the root's space: its place and
+// its ancestors' added up to the root, or to the top of its tree.
+void muiScrollOriginOf(const muiContext* context, uint32_t root, uint32_t node, double* xOut,
+                       double* yOut)
+{
+    const muiTree* tree = &context->tree;
+    double x = 0.0;
+    double y = 0.0;
+    for (uint32_t at = node; at != 0;)
+    {
+        x += (double)context->layout[at - 1].rect.x;
+        y += (double)context->layout[at - 1].rect.y;
+        if (at == root)
+        {
+            break;
+        }
+        // Where its parent, scrolling, moves it.
+        at = muiTreeAt(tree, at)->links.parent;
+        if (at != 0)
+        {
+            x += (double)muiScrollShiftX(&context->layout[at - 1], &context->scrolls[at - 1]);
+            y += (double)muiScrollShiftY(&context->layout[at - 1], &context->scrolls[at - 1]);
+        }
+    }
+    *xOut = x;
+    *yOut = y;
+}

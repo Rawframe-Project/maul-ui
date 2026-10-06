@@ -15,6 +15,7 @@
 #include "layout_node.h"
 #include "notify.h"
 #include "pointer_store.h"
+#include "popup_store.h"
 #include "range_store.h"
 #include "scroll_store.h"
 #include "style_store.h"
@@ -49,6 +50,8 @@ struct muiContext
     muiScrollStore scrolling;
     // The nodes that are ranges.
     muiRangeStore ranges;
+    // The nodes that are popups.
+    muiPopupStore popups;
     // Whether a class, a token name or a direct write has ever given a
     // text property: until then every node's text is the defaults, and
     // the style pass leaves the records alone.

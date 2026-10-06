@@ -207,6 +207,18 @@ itself instead of each host repeating them.
   it back. Input's changes are reported by
   `mui_notificationRangeChanged`, code's are not. Hosts place the
   thumb from the value.
+- **Popups** (`maul-ui/popup.h`): a node may have a popup record, in a
+  table bounded by `limits.popups`: an anchor node, a side (below,
+  above, start, end, center), an alignment along it, a gap and a
+  margin. Each layout then places it: its border box goes beside the
+  anchor's on the surface, through scrolling, and per axis flips to the
+  opposite side when it overflows the root's box less the margin and
+  the other side has more room, then is clamped into that box, keeping
+  its start edge when it cannot fit (Wayland's positioner without
+  resizing). Start and end follow the anchor's direction. A popup
+  anchored inside another is placed after it; one anchored inside
+  itself, or outside the root laid out, is not placed. The side used
+  is readable for an arrow. The layer kind still decides how it paints.
 - **Drag and drop**, within the application: a node takes kinds of
   thing by the interaction property `accepts`, a mask of the
   application's bits. While a pointer drags, the host offers a kind and

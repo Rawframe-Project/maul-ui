@@ -64,34 +64,6 @@ static void Post(muiPointerStore* store, const muiPointerRecord* record)
     store->recordCount++;
 }
 
-// The origin of a node's border box in the root's space: its place and
-// its ancestors' added up to the root, or to the top of its tree.
-static void OriginOf(const muiContext* context, uint32_t root, uint32_t node, double* xOut,
-                     double* yOut)
-{
-    const muiTree* tree = &context->tree;
-    double x = 0.0;
-    double y = 0.0;
-    for (uint32_t at = node; at != 0;)
-    {
-        x += (double)context->layout[at - 1].rect.x;
-        y += (double)context->layout[at - 1].rect.y;
-        if (at == root)
-        {
-            break;
-        }
-        // Where its parent, scrolling, moves it.
-        at = muiTreeAt(tree, at)->links.parent;
-        if (at != 0)
-        {
-            x += (double)muiScrollShiftX(&context->layout[at - 1], &context->scrolls[at - 1]);
-            y += (double)muiScrollShiftY(&context->layout[at - 1], &context->scrolls[at - 1]);
-        }
-    }
-    *xOut = x;
-    *yOut = y;
-}
-
 // What an event does, where: the node it goes to and the point there.
 typedef struct Target
 {
@@ -115,7 +87,7 @@ static Target TargetAt(const muiContext* context, const Target* hit, const muiPo
     {
         double x = 0.0;
         double y = 0.0;
-        OriginOf(context, hit->root, slot, &x, &y);
+        muiScrollOriginOf(context, hit->root, slot, &x, &y);
         target.x = (float)((double)pointer->x - x);
         target.y = (float)((double)pointer->y - y);
         target.passThrough = context->interaction[slot - 1].passThrough;
@@ -184,7 +156,7 @@ static void PostDrag(muiContext* context, const muiPointer* pointer, muiPointerR
     double y = 0.0;
     if (slot != 0 && root != 0)
     {
-        OriginOf(context, root, slot, &x, &y);
+        muiScrollOriginOf(context, root, slot, &x, &y);
     }
     const muiPointerRecord record = {
         .kind = kind,

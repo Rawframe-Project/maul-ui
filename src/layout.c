@@ -9,6 +9,7 @@
 #include "animation.h"
 #include "context.h"
 #include "layout_node.h"
+#include "popup.h"
 #include "property.h"
 #include "restyle.h"
 #include "scroll.h"
@@ -157,6 +158,8 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
     {
         muiTreeMark(&context->tree, root, mui_stagePaint);
     }
+    // Popups go beside their anchors where layout and scrolling left them.
+    muiPlacePopups(context, root);
     return mui_success;
 }
 

@@ -11,6 +11,7 @@
 
 #include "context.h"
 #include "focus.h"
+#include "scroll.h"
 #include "tree.h"
 
 #include "maul-ui/focus.h"
@@ -34,22 +35,10 @@ typedef struct Box
 
 static Box BoxOf(const muiContext* context, uint32_t slot)
 {
-    const muiTree* tree = &context->tree;
     const muiRect* rect = &context->layout[slot - 1].rect;
     double x = 0.0;
     double y = 0.0;
-    for (uint32_t at = slot; at != 0;)
-    {
-        x += (double)context->layout[at - 1].rect.x;
-        y += (double)context->layout[at - 1].rect.y;
-        // Where its parent, scrolling, moves it.
-        at = muiTreeAt(tree, at)->links.parent;
-        if (at != 0)
-        {
-            x += (double)muiScrollShiftX(&context->layout[at - 1], &context->scrolls[at - 1]);
-            y += (double)muiScrollShiftY(&context->layout[at - 1], &context->scrolls[at - 1]);
-        }
-    }
+    muiScrollOriginOf(context, 0, slot, &x, &y);
     return (Box){x, y, x + (double)rect->width, y + (double)rect->height};
 }
 
