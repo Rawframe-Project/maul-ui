@@ -196,7 +196,16 @@ format.
   increment, decrement, scrolling by direction and VoiceOver's cursor
   asked of the host; `muiUikitAdapter_GetRoot` for the view;
   notifications (a new screen, the layout with the focus when it
-  moved, live names announced, queued when polite). The
+  moved, live names announced, queued when polite). The Android
+  accessibility adapter (`maul-ui/access_android.h`,
+  `MAUL_UI_ANDROID_ACCESSIBILITY`, on Android, with
+  `java/maul/ui/AccessProvider.java` for the host to build in):
+  `muiCreateAndroidAdapter` for a view, a provider whose virtual views
+  are the shown nodes, with class names, texts, content descriptions,
+  hints, states, ranges, live settings and bounds on the screen; click,
+  focus, scrolling, setting a range, expanding and collapsing asked of
+  the host; the screen reader's cursor kept by the provider;
+  `virtualViewAt` for touch exploration. The
   result
   `mui_errorPlatform` (record mui-0008).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and

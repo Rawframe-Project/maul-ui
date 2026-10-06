@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A test application (tools/build_android_app.sh, record mui-0008):
+     the tests' activity, which loads the test's native library, named
+     in its meta-data. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="@PACKAGE@">
+    <application android:label="@LIBRARY@" android:hasCode="true">
+        <activity android:name="maul.ui.tests.TestActivity" android:exported="true">
+            <meta-data android:name="maul.ui.library" android:value="@LIBRARY@" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

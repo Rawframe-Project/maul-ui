@@ -40,6 +40,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
 else()
     set(MAUL_UI_UIACCESSIBILITY OFF)
 endif()
+if(ANDROID)
+    option(MAUL_UI_ANDROID_ACCESSIBILITY "Build the Android accessibility adapter (record mui-0008)" ON)
+else()
+    set(MAUL_UI_ANDROID_ACCESSIBILITY OFF)
+endif()
 if(EMSCRIPTEN)
     option(MAUL_UI_ARIA "Build the ARIA adapter (record mui-0008)" ON)
 else()
@@ -179,6 +184,14 @@ if(MAUL_UI_UIACCESSIBILITY)
     string(APPEND MAUL_PKG_LIBS_PRIVATE
            " -framework UIKit -framework Foundation -framework CoreGraphics -lobjc")
 endif()
+if(MAUL_UI_ANDROID_ACCESSIBILITY)
+    if(NOT MAUL_UI_ACCESS_TREE)
+        message(FATAL_ERROR "The Android accessibility adapter reads the accessibility tree: set MAUL_UI_ACCESS_TREE")
+    endif()
+    # The provider's Java is java/maul/ui/AccessProvider.java, which the
+    # host builds into its application.
+    target_sources(maul-ui PRIVATE src/android_adapter.c src/android_jni.c src/android_node.c)
+endif()
 if(MAUL_UI_ARIA)
     if(NOT MAUL_UI_ACCESS_TREE)
         message(FATAL_ERROR "The ARIA adapter reads the accessibility tree: set MAUL_UI_ACCESS_TREE")
@@ -263,6 +276,32 @@ if(MAUL_UI_BUILD_TESTS)
         add_test(NAME uiaccessibility COMMAND ${PROJECT_SOURCE_DIR}/tools/run_ios_app.sh
                  $<TARGET_BUNDLE_DIR:test_uiaccessibility>)
         set_tests_properties(uiaccessibility PROPERTIES TIMEOUT 240)
+    endif()
+    if(MAUL_UI_ANDROID_ACCESSIBILITY AND NOT MAUL_UI_BUILD_SHARED AND DEFINED ENV{ANDROID_HOME})
+        # An application in the emulator, built by tools/build_android_app.sh
+        # without Gradle and run by tools/run_android_app.sh; its Java asks
+        # the provider as clients do; whitebox.
+        set(package maul.ui.tests.android_access)
+        add_library(test_android_access SHARED test/test_android_access.c)
+        target_link_libraries(test_android_access PRIVATE maul-ui)
+        target_include_directories(test_android_access PRIVATE ${PROJECT_SOURCE_DIR}/src)
+        maul_apply_flags(test_android_access)
+        file(GLOB_RECURSE MUI_JAVA_SOURCES ${PROJECT_SOURCE_DIR}/java/*.java
+             ${PROJECT_SOURCE_DIR}/test/android/java/*.java)
+        add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/test_android_access.apk
+            COMMAND ${CMAKE_COMMAND} -E env ANDROID_HOME=$ENV{ANDROID_HOME}
+                    ${PROJECT_SOURCE_DIR}/tools/build_android_app.sh
+                    ${PROJECT_BINARY_DIR}/test_android_access.apk
+                    $<TARGET_FILE:test_android_access> ${package} ${ANDROID_ABI}
+            DEPENDS test_android_access ${MUI_JAVA_SOURCES}
+                    ${PROJECT_SOURCE_DIR}/test/android/AndroidManifest.xml
+                    ${PROJECT_SOURCE_DIR}/tools/build_android_app.sh
+            VERBATIM)
+        add_custom_target(test_android_access_apk ALL
+                          DEPENDS ${PROJECT_BINARY_DIR}/test_android_access.apk)
+        add_test(NAME android_access COMMAND ${PROJECT_SOURCE_DIR}/tools/run_android_app.sh
+                 ${PROJECT_BINARY_DIR}/test_android_access.apk ${package})
+        set_tests_properties(android_access PROPERTIES TIMEOUT 240)
     endif()
     if(MAUL_UI_ARIA)
         # In headless Chrome through the runner, which waits on the test

@@ -251,6 +251,27 @@ ranges and virtual lists.
   node's new name announced, queued behind current speech when
   polite. The test is an application in the iOS simulator, asking the
   objects as VoiceOver does and recording the notifications.
+- **The Android accessibility adapter** (`maul-ui/access_android.h`,
+  the component `MAUL_UI_ANDROID_ACCESSIBILITY`, on by default on
+  Android) shows the tree through a Java class of Maul UI's own,
+  `maul.ui.AccessProvider` (`java/maul/ui/AccessProvider.java`), which
+  the host builds into its application; the adapter finds it through
+  the view's class loader and binds its native methods with
+  `RegisterNatives`, so that no JNI name is exported. Java asks native
+  code for a node's packed numbers (class, states, actions, box,
+  parent, children, range, live setting) and its texts and fills the
+  `AccessibilityNodeInfo` itself, a few JNI crossings a node. Virtual
+  ids are given as clients first see nodes and freed when they go, the
+  oldest freed reused first. Class names come from the role, as
+  AccessKit's; a text view's text is its name and a text field's its
+  value (the name its hint); any other node's name is its content
+  description and its value text its state description. Texts cross as
+  UTF-16, as the JNI's modified UTF-8 breaks on characters past the
+  Basic Multilingual Plane. The provider keeps the screen reader's
+  cursor itself and answers `virtualViewAt` for touch exploration
+  without depending on Maul Window. The test is an application in the
+  Android emulator, built without Gradle, whose Java asks the provider
+  as clients do.
 
 ## Consequences
 

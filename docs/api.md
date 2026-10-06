@@ -111,6 +111,45 @@ MUI_NODISCARD MUI_API muiResult muiNode_GetAccessValues(const muiContext* contex
 ```
 Reads the typed values the host set on a node.  @param context    The context. @param nodeId     The node. @param valuesOut  Receives them; the defaults for none. @return `mui_success`; `mui_errorInvalid` for a NULL argument or the null id; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
+## `access_android.h`
+
+The Android accessibility adapter (record mui-0008), the component MAUL_UI_ANDROID_ACCESSIBILITY builds on Android: the accessibility tree's consumer shown to Android through maul.ui.AccessProvider (java/maul/ui/AccessProvider.java, which the host builds into its application), a provider whose virtual views are the shown nodes. The provider is the host view's (Maul Window's mwinRequestAccessibilityRoot gives it); clients' actions come back through a function of the host's. The header is C: the JNI's types pass as void*.
+
+```c
+muiAndroidAdapterDef muiDefaultAndroidAdapterDef(void);
+```
+The default def: the C library's allocation, 4096 nodes, no JNIEnv, no view, a scale of 1, no action function.  @return The def. @par Thread safety Safe from any thread.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiCreateAndroidAdapter(const muiAndroidAdapterDef* def, muiAndroidAdapter** adapterOut);
+```
+Makes an adapter with an empty tree, and its provider: the class maul.ui.AccessProvider is found through the view's class loader, so that any thread the JNIEnv belongs to may make it.  @param def         The def, from muiDefaultAndroidAdapterDef. @param adapterOut  Receives the adapter; NULL on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a def not from muiDefaultAndroidAdapterDef, a half-set allocator, no nodes, no JNIEnv, no view, no action function or a scale not above 0; `mui_errorCapacity` when memory runs out; `mui_errorPlatform` when the provider's class is not in the application or Java fails. @par Thread safety Main thread only.
+
+```c
+void muiDestroyAndroidAdapter(muiAndroidAdapter* adapter);
+```
+Lets go of the provider, which answers nothing from then on, and destroys the adapter; NULL is ignored. Take the provider from the view first.  @param adapter  The adapter. @par Thread safety Main thread only.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiAndroidAdapter_Apply(muiAndroidAdapter* adapter, const muiAccessUpdate* update);
+```
+Applies an update to the adapter's tree (muiAccessTree_Apply).  @param adapter  The adapter. @param update   The update. @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter. @par Thread safety Main thread only.
+
+```c
+const muiAccessTree* muiAndroidAdapter_GetTree(const muiAndroidAdapter* adapter);
+```
+The adapter's tree.  @param adapter  The adapter. @return The tree; NULL for a NULL adapter. @par Thread safety Main thread only.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiAndroidAdapter_SetScale(muiAndroidAdapter* adapter, float scale);
+```
+Sets the pixels per unit, as the host scales its UI.  @param adapter  The adapter. @param scale    The scale, above 0. @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale not above 0. @par Thread safety Main thread only.
+
+```c
+void* muiAndroidAdapter_GetRoot(muiAndroidAdapter* adapter);
+```
+The provider (a global reference to a maul.ui.AccessProvider), for the view to give as its accessibility node provider (mwinRequestAccessibilityRoot); the adapter keeps it until destroyed.  @param adapter  The adapter. @return The provider (a jobject), or NULL for a NULL adapter. @par Thread safety Main thread only.
+
 ## `access_aria.h`
 
 The ARIA adapter (record mui-0008), the component MAUL_UI_ARIA builds for Emscripten: the accessibility tree's consumer mirrored into elements of the page, which the browser gives its accessibility clients. The elements are built in an element of the host's over the canvas (Maul Window's accessibility host, say), each placed over what it names and invisible; clients' actions come back through a function of the host's. A page cannot tell whether a screen reader runs, and the elements cost every user, so by default nothing is built until the program enables the adapter or a screen reader user presses the visually hidden button the adapter puts in the host. Every function here is used on the page's main thread.
@@ -1487,4 +1526,4 @@ Reads a node's resolved visual values: its direct writes, and for the other prop
 
 ---
 
-270 functions across 33 headers.
+277 functions across 34 headers.
