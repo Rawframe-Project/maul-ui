@@ -10,7 +10,9 @@
 // not fit, as CSS's border-image shrinks them. A glyph run whose
 // transform only moves it is drawn as coverage the atlas renders at its
 // device pixels, the pen's place there and the quad's in the run's own
-// units.
+// units; one a transform scales or turns, or a glyph too large for the
+// atlas as coverage, from a distance field of an em of 32, 64 or 128
+// pixels, the least at least the em drawn, its spread an eighth of it.
 
 #include "pack.h"
 
@@ -171,12 +173,12 @@ static muiRhiInstance ImageOf(const muiDrawList* list, const muiDrawCommand* com
     };
 }
 
-// A glyph's instance from its image in the atlas, its quad in the
-// run's units before a translation of (dx, dy).
+// A glyph's instance from its image in the atlas and its quad in the
+// run's units; a field's factor makes a sample a distance in pixels, 0
+// for coverage.
 static muiRhiInstance GlyphOf(const muiDrawList* list, const muiDrawCommand* command,
-                              const muiRhiGlyph* glyph, float dx, float dy)
+                              const muiRhiGlyph* glyph, muiRect rect, float field)
 {
-    float scale = list->header.scale;
     float width = (float)glyph->pageWidth;
     float height = (float)glyph->pageHeight;
     float u0 = (float)glyph->u / width;
@@ -184,13 +186,13 @@ static muiRhiInstance GlyphOf(const muiDrawList* list, const muiDrawCommand* com
     float u1 = (float)(glyph->u + glyph->width) / width;
     float v1 = (float)(glyph->v + glyph->height) / height;
     return (muiRhiInstance){
-        .rect = {(float)glyph->x / scale - dx, (float)glyph->y / scale - dy,
-                 (float)glyph->width / scale, (float)glyph->height / scale},
+        .rect = rect,
         .fill = command->glyphRun.color,
         .colors =
             {
                 {u0, v0, u1, v1},
                 {u0 - 0.5f / width, v0 - 0.5f / height, u1 + 0.5f / width, v1 + 0.5f / height},
+                {field, 0.0f, 0.0f, 0.0f},
             },
         .kind = mui_drawGlyphRun,
         .clip = Index(command->clip, list->clipCount),
@@ -199,30 +201,74 @@ static muiRhiInstance GlyphOf(const muiDrawList* list, const muiDrawCommand* com
     };
 }
 
+// The em of a field for an em drawn at a number of pixels.
+static float FieldEm(float drawn)
+{
+    return drawn <= 32.0f ? 32.0f : (drawn <= 64.0f ? 64.0f : 128.0f);
+}
+
+// A glyph from its distance field, at a pen in the run's units.
+static bool FieldGlyph(const muiDrawList* list, const muiDrawCommand* command, muiRhiGlyphs* glyphs,
+                       uint32_t id, float penX, float penY, float drawn,
+                       muiRhiInstance* instanceOut)
+{
+    const muiDrawGlyphRun* run = &command->glyphRun;
+    float em = FieldEm(drawn);
+    uint32_t spread = (uint32_t)em / 8;
+    muiRhiGlyph glyph = {0};
+    if (!muiRhiGetGlyphField(glyphs, run->font, id, em, spread, &glyph) || glyph.width == 0)
+    {
+        return false;
+    }
+    // Units of the run a field pixel spans.
+    float k = run->size / em;
+    const muiRect rect = {penX + (float)glyph.x * k, penY + (float)glyph.y * k,
+                          (float)glyph.width * k, (float)glyph.height * k};
+    // A sample's distance in field pixels is (255 sample - 128) spread /
+    // 128; in device pixels, before the transform's scale, k times the
+    // list's scale of that.
+    float field = 255.0f * (float)spread / 128.0f * k * list->header.scale;
+    *instanceOut = GlyphOf(list, command, &glyph, rect, field);
+    return true;
+}
+
 // A glyph run's instances: how many.
 static uint32_t PackRun(const muiDrawList* list, const muiDrawCommand* command,
                         muiRhiGlyphs* glyphs, muiRhiInstance* instances)
 {
     const muiDrawGlyphRun* run = &command->glyphRun;
-    uint32_t transform = Index(command->transform, list->transformCount);
-    const muiDrawTransform moved = list->transformCount > 0 ? list->transforms[transform]
-                                                            : (muiDrawTransform){1, 0, 0, 1, 0, 0};
-    if (!IsRunValid(list, run) || moved.a != 1.0f || moved.b != 0.0f || moved.c != 0.0f ||
-        moved.d != 1.0f)
+    if (!IsRunValid(list, run))
     {
         return 0;
     }
+    uint32_t transform = Index(command->transform, list->transformCount);
+    const muiDrawTransform moved = list->transformCount > 0 ? list->transforms[transform]
+                                                            : (muiDrawTransform){1, 0, 0, 1, 0, 0};
+    bool moves = moved.a == 1.0f && moved.b == 0.0f && moved.c == 0.0f && moved.d == 1.0f;
     float scale = list->header.scale;
+    float drawn = run->size * scale * sqrtf(fabsf(moved.a * moved.d - moved.b * moved.c));
     uint32_t count = 0;
     for (uint32_t i = 0; i < run->glyphCount; i++)
     {
         const muiGlyph* at = &list->glyphs[run->firstGlyph + i];
+        float penX = run->originX + at->x;
+        float penY = run->originY + at->y;
         muiRhiGlyph glyph = {0};
-        if (muiRhiGetGlyph(glyphs, run->font, at->id, run->size * scale,
-                           (run->originX + at->x + moved.e) * scale,
-                           (run->originY + at->y + moved.f) * scale, &glyph))
+        if (moves && muiRhiGetGlyph(glyphs, run->font, at->id, run->size * scale,
+                                    (penX + moved.e) * scale, (penY + moved.f) * scale, &glyph))
         {
-            instances[count++] = GlyphOf(list, command, &glyph, moved.e, moved.f);
+            if (glyph.width == 0)
+            {
+                continue;
+            }
+            const muiRect rect = {(float)glyph.x / scale - moved.e,
+                                  (float)glyph.y / scale - moved.f, (float)glyph.width / scale,
+                                  (float)glyph.height / scale};
+            instances[count++] = GlyphOf(list, command, &glyph, rect, 0.0f);
+        }
+        else if (FieldGlyph(list, command, glyphs, at->id, penX, penY, drawn, &instances[count]))
+        {
+            count++;
         }
     }
     return count;

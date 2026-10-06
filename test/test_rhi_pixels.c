@@ -28,7 +28,8 @@
 //   drawn with its own), and a uv rect of the middle alone;
 // - glyph runs in Ahem, whose glyphs are its em square 8 tenths above
 //   the baseline, at scales 1 and 2: two squares and the gap between
-//   them, and a run a transform moves.
+//   them, and a run a transform moves; runs a transform scales by 2 or
+//   turns a quarter, drawn from distance fields.
 // Skips (77) without an adapter, unless MUI_RHI_REQUIRED is set.
 
 #include "color.h"
@@ -640,6 +641,56 @@ static void TestGlyphs(Gpu* gpu, muiRhiRenderer* renderer, uint64_t font, uint8_
           "a run a transform moves");
 }
 
+static void TestFields(Gpu* gpu, muiRhiRenderer* renderer, uint64_t font, uint8_t* pixels,
+                       int scale)
+{
+    const uint32_t side = 64u * (uint32_t)scale;
+    const muiGlyph square = {4, 0, 0};
+    // Scaled by 2 and moved down 30; turned clockwise a quarter and
+    // moved right 60.
+    const muiDrawTransform transforms[3] = {
+        {1, 0, 0, 1, 0, 0}, {2, 0, 0, 2, 0, 30}, {0, 1, -1, 0, 60, 0}};
+    muiDrawCommand commands[2] = {{.kind = mui_drawGlyphRun}, {.kind = mui_drawGlyphRun}};
+    for (int i = 0; i < 2; i++)
+    {
+        commands[i].glyphRun = (muiDrawGlyphRun){
+            .font = font, .originX = 4, .originY = 8, .size = 10, .glyphCount = 1};
+        commands[i].transform = (uint32_t)i + 1;
+    }
+    commands[0].glyphRun.color = (muiLinearColor){1, 0, 0, 1};
+    commands[1].glyphRun.color = (muiLinearColor){0, 0, 1, 1};
+    muiDrawList list = {.commands = commands, .commandCount = 2};
+    list.glyphs = &square;
+    list.glyphCount = 1;
+    list.transforms = transforms;
+    list.transformCount = 3;
+    list.header.scale = (float)scale;
+    if (!Render(gpu, renderer, &list, side, pixels))
+    {
+        CHECK(false, "fields drawn and read");
+        return;
+    }
+    const int black[4] = {0, 0, 0, 255};
+    const int red[4] = {255, 0, 0, 255};
+    const int blue[4] = {0, 0, 255, 255};
+    const int s = scale;
+    // The square, 4 to 14 across and 0 to 10 down, scaled: 8 to 28 and
+    // 30 to 50.
+    CHECK(Near(pixels, side, 18 * s, 40 * s, red, 2) && Near(pixels, side, 9 * s, 31 * s, red, 2) &&
+              Near(pixels, side, 6 * s, 40 * s, black, 2) &&
+              Near(pixels, side, 30 * s, 40 * s, black, 2) &&
+              Near(pixels, side, 18 * s, 28 * s, black, 2) &&
+              Near(pixels, side, 18 * s, 51 * s, black, 2),
+          "a run scaled by 2, from its field");
+    // Turned: 50 to 60 across, 4 to 14 down.
+    CHECK(Near(pixels, side, 55 * s, 9 * s, blue, 2) &&
+              Near(pixels, side, 51 * s, 5 * s, blue, 2) &&
+              Near(pixels, side, 47 * s, 9 * s, black, 2) &&
+              Near(pixels, side, 55 * s, 16 * s, black, 2) &&
+              Near(pixels, side, 55 * s, 2 * s, black, 2),
+          "a run turned a quarter, from its field");
+}
+
 #endif
 
 int main(void)
@@ -701,6 +752,8 @@ int main(void)
 #if MUI_TEST_TEXT
         TestGlyphs(&gpu, renderer, font, pixels, 1);
         TestGlyphs(&gpu, renderer, font, pixels, 2);
+        TestFields(&gpu, renderer, font, pixels, 1);
+        TestFields(&gpu, renderer, font, pixels, 2);
 #endif
     }
     free(pixels);

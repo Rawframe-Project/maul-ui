@@ -131,7 +131,10 @@ clip chain evaluated in its shaders, which keeps batches whole.
   A run whose transform only moves it is drawn as coverage rendered at
   its device pixels, sampled half a texel into the gutter at most; a
   host without the text component's atlas gives no text service, and
-  one given is refused.
+  one given is refused. A run a transform scales or turns, or a glyph
+  too large for the atlas as coverage, is drawn from distance fields of
+  an em of 32, 64 or 128 pixels (the least at least the em drawn, its
+  spread an eighth), each sample made a distance in screen pixels.
 
 ## Consequences
 

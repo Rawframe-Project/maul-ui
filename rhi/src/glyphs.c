@@ -46,21 +46,40 @@ void muiRhiNextGlyphFrame(muiRhiGlyphs* glyphs)
     muiGlyphAtlas_NextFrame(glyphs->atlas);
 }
 
+// A glyph the atlas gave, with its page's size; one of no width has no
+// image and no page.
+static bool Found(const muiRhiGlyphs* glyphs, muiResult got, const muiAtlasGlyph* glyph,
+                  muiRhiGlyph* glyphOut)
+{
+    muiAtlasPage page = {0};
+    if (got != mui_success ||
+        (glyph->width != 0 &&
+         muiGlyphAtlas_GetPage(glyphs->atlas, glyph->page, &page) != mui_success))
+    {
+        return false;
+    }
+    *glyphOut = (muiRhiGlyph){glyph->page, glyph->u,    glyph->v, glyph->width, glyph->height,
+                              page.width,  page.height, glyph->x, glyph->y};
+    return true;
+}
+
 bool muiRhiGetGlyph(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixelSize, float penX,
                     float baselineY, muiRhiGlyph* glyphOut)
 {
     muiAtlasGlyph glyph = {0};
-    muiAtlasPage page = {0};
-    if (glyphs->atlas == nullptr ||
-        muiGlyphAtlas_Get(glyphs->atlas, font, id, pixelSize, penX, baselineY, &glyph) !=
-            mui_success ||
-        glyph.width == 0 || muiGlyphAtlas_GetPage(glyphs->atlas, glyph.page, &page) != mui_success)
-    {
-        return false;
-    }
-    *glyphOut = (muiRhiGlyph){glyph.page, glyph.u,     glyph.v, glyph.width, glyph.height,
-                              page.width, page.height, glyph.x, glyph.y};
-    return true;
+    return glyphs->atlas != nullptr &&
+           Found(glyphs,
+                 muiGlyphAtlas_Get(glyphs->atlas, font, id, pixelSize, penX, baselineY, &glyph),
+                 &glyph, glyphOut);
+}
+
+bool muiRhiGetGlyphField(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixelSize,
+                         uint32_t spread, muiRhiGlyph* glyphOut)
+{
+    muiAtlasGlyph glyph = {0};
+    return glyphs->atlas != nullptr &&
+           Found(glyphs, muiGlyphAtlas_GetField(glyphs->atlas, font, id, pixelSize, spread, &glyph),
+                 &glyph, glyphOut);
 }
 
 // Textures for the pages the atlas made since the last frame.
@@ -197,6 +216,18 @@ bool muiRhiGetGlyph(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixe
     (void)pixelSize;
     (void)penX;
     (void)baselineY;
+    (void)glyphOut;
+    return false;
+}
+
+bool muiRhiGetGlyphField(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixelSize,
+                         uint32_t spread, muiRhiGlyph* glyphOut)
+{
+    (void)glyphs;
+    (void)font;
+    (void)id;
+    (void)pixelSize;
+    (void)spread;
     (void)glyphOut;
     return false;
 }

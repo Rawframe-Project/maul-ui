@@ -60,11 +60,17 @@ void muiRhiFreeGlyphs(muiRhiGlyphs* glyphs);
 // Starts a frame: glyphs of earlier frames may be evicted.
 void muiRhiNextGlyphFrame(muiRhiGlyphs* glyphs);
 
-// A glyph's coverage for a pen in device pixels, packed the first time:
-// false when there is no atlas, the glyph has no image, or it cannot be
-// packed.
+// A glyph's coverage for a pen in device pixels, packed the first time,
+// of no width for a glyph without an image: false when there is no atlas
+// or it cannot be packed.
 bool muiRhiGetGlyph(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixelSize, float penX,
                     float baselineY, muiRhiGlyph* glyphOut);
+
+// A glyph's distance field at an em of pixelSize field pixels and a
+// spread, packed the first time, its top left from the pen and baseline
+// in field pixels: false as muiRhiGetGlyph.
+bool muiRhiGetGlyphField(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixelSize,
+                         uint32_t spread, muiRhiGlyph* glyphOut);
 
 // After a frame's glyphs are got: textures for pages the atlas made, its
 // changed rectangles taken, and every page imported into the open frame.
