@@ -12,6 +12,7 @@
 #include "context.h"
 #include "focus.h"
 #include "pointer.h"
+#include "popup.h"
 #include "scroll.h"
 #include "tree.h"
 
@@ -334,6 +335,7 @@ static void Press(muiContext* context, muiPointer* pointer, const Target* hit,
     const Target target = TargetAt(context, hit, pointer, captured != 0 ? captured : hit->slot);
     if (before == 0)
     {
+        muiPopupPress(context, target.slot);
         muiFocusPress(context, event->player, target.slot);
         muiScrollStopFlings(context, target.slot, event->timeNs);
     }

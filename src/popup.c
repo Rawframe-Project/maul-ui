@@ -9,6 +9,7 @@
 
 #include "context.h"
 #include "layout_node.h"
+#include "notify.h"
 #include "popup.h"
 #include "popup_store.h"
 #include "scroll.h"
@@ -65,7 +66,7 @@ static bool IsLength(float value)
 
 muiPopup muiDefaultPopup(void)
 {
-    return (muiPopup){.side = mui_popupBelow, .align = mui_popupAlignStart};
+    return (muiPopup){.side = mui_popupBelow, .align = mui_popupAlignStart, .lightDismiss = true};
 }
 
 muiResult muiNode_SetPopup(muiContext* context, muiNodeId nodeId, const muiPopup* popup)
@@ -108,7 +109,8 @@ muiResult muiNode_SetPopup(muiContext* context, muiNodeId nodeId, const muiPopup
         }
         entry = &store->entries[store->count++];
     }
-    *entry = (muiPopupEntry){.node = muiTreeIdOf(&context->tree, slot), .popup = *popup};
+    *entry = (muiPopupEntry){
+        .node = muiTreeIdOf(&context->tree, slot), .popup = *popup, .serial = ++store->serial};
     return mui_success;
 }
 
@@ -354,4 +356,95 @@ void muiPlacePopups(muiContext* context, uint32_t root)
     }
     // What a cycle of anchors left, placed as it stands.
     (void)Pass(context, root, true);
+}
+
+// Whether an entry can be dismissed: live, light, not yet dismissed.
+static bool IsOpen(const muiContext* context, const muiPopupEntry* entry)
+{
+    return entry->popup.lightDismiss && !entry->dismissed &&
+           muiTreeResolve(&context->tree, entry->node) != 0;
+}
+
+static void Dismiss(muiContext* context, muiPopupEntry* entry, muiDismissReason reason)
+{
+    entry->dismissed = true;
+    const muiNotification record = {mui_notificationPopupDismissed, entry->node, reason};
+    muiNotifyPost(&context->notifications, &record);
+}
+
+// Dismisses, nested ones first, the open popups that neither hold the
+// node at slot (0 for none) nor have their anchor hold it, keeping the
+// popups those that do nest under.
+static void DismissOutside(muiContext* context, uint32_t slot, muiDismissReason reason)
+{
+    muiPopupStore* store = &context->popups;
+    const muiTree* tree = &context->tree;
+    for (uint32_t i = 0; i < store->count; i++)
+    {
+        muiPopupEntry* entry = &store->entries[i];
+        uint32_t node = muiTreeResolve(tree, entry->node);
+        uint32_t anchor = muiTreeResolve(tree, entry->popup.anchor);
+        entry->holder = node != 0 && anchor != 0 ? HolderOf(context, anchor) : store->count;
+        entry->mark = slot != 0 && node != 0 &&
+                      (muiTreeIsAncestor(tree, node, slot) ||
+                       (anchor != 0 && muiTreeIsAncestor(tree, anchor, slot)));
+    }
+    // The popups kept ones nest under are kept, and each is as deep as its
+    // chain of holders, which a cycle of anchors cuts at the count.
+    uint32_t deepest = 0;
+    for (uint32_t i = 0; i < store->count; i++)
+    {
+        uint32_t depth = 0;
+        for (uint32_t at = store->entries[i].holder; at != store->count && depth < store->count;
+             at = store->entries[at].holder)
+        {
+            store->entries[at].mark |= store->entries[i].mark;
+            depth++;
+        }
+        store->entries[i].depth = depth;
+        deepest = depth > deepest ? depth : deepest;
+    }
+    for (uint32_t depth = deepest + 1; depth > 0; depth--)
+    {
+        for (uint32_t i = 0; i < store->count; i++)
+        {
+            muiPopupEntry* entry = &store->entries[i];
+            if (entry->depth == depth - 1 && entry->mark == 0 && IsOpen(context, entry))
+            {
+                Dismiss(context, entry, reason);
+            }
+        }
+    }
+}
+
+void muiPopupPress(muiContext* context, uint32_t slot)
+{
+    DismissOutside(context, slot, mui_dismissPress);
+}
+
+bool muiPopupEscape(muiContext* context)
+{
+    muiPopupStore* store = &context->popups;
+    muiPopupEntry* last = nullptr;
+    for (uint32_t i = 0; i < store->count; i++)
+    {
+        muiPopupEntry* entry = &store->entries[i];
+        if (IsOpen(context, entry) && (last == nullptr || entry->serial > last->serial))
+        {
+            last = entry;
+        }
+    }
+    if (last != nullptr)
+    {
+        Dismiss(context, last, mui_dismissEscape);
+    }
+    return last != nullptr;
+}
+
+void muiPopupFocus(muiContext* context, uint32_t slot)
+{
+    if (slot != 0)
+    {
+        DismissOutside(context, slot, mui_dismissFocus);
+    }
 }

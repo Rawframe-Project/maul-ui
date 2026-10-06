@@ -9,8 +9,12 @@
 
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
+#include "maul-ui/event.h"
+#include "maul-ui/focus.h"
+#include "maul-ui/interaction.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
+#include "maul-ui/pointer.h"
 #include "maul-ui/popup.h"
 #include "maul-ui/scroll.h"
 #include "maul-ui/style.h"
@@ -375,6 +379,210 @@ static void TestUnplaced(void)
     muiDestroyContext(context);
 }
 
+// A mouse press and release at x, y.
+static void Click(muiContext* context, muiNodeId root, float x, float y)
+{
+    static uint64_t s_time = 0;
+    s_time += 1000000000ull;
+    const muiPointerEvent press = {s_time, 1, mui_pointerMouse, mui_pointerPress, 0, 1, x, y, 0};
+    const muiPointerEvent release = {s_time + 1, 1, mui_pointerMouse, mui_pointerRelease, 0, 0, x,
+                                     y,          0};
+    CHECK(muiPointerInput(context, root, &press) == mui_success &&
+              muiPointerInput(context, root, &release) == mui_success,
+          "click");
+    muiPointerRecord record = {0};
+    while (muiNextPointerRecord(context, &record) == mui_success)
+    {
+    }
+}
+
+static bool Key(muiContext* context, muiNodeId root, muiKeyCode code)
+{
+    const muiKeyEvent event = {.code = code, .down = true};
+    bool handled = false;
+    CHECK(muiKeyInput(context, root, &event, &handled) == mui_success, "key");
+    return handled;
+}
+
+// The popups dismissed since last asked, in order, their reasons in
+// reasons: how many, at most four.
+static int Dismissed(muiContext* context, muiNodeId* nodes, muiDismissReason* reasons)
+{
+    int count = 0;
+    muiNotification record = {0};
+    while (muiNextNotification(context, &record) == mui_success)
+    {
+        if (record.kind == mui_notificationPopupDismissed && count < 4)
+        {
+            nodes[count] = record.nodeId;
+            reasons[count] = (muiDismissReason)record.count;
+            count++;
+        }
+    }
+    return count;
+}
+
+static bool Same(muiNodeId a, muiNodeId b)
+{
+    return a.index1 == b.index1 && a.generation == b.generation;
+}
+
+static void Focusable(muiContext* context, muiNodeId node)
+{
+    muiInteractionStyle values = muiDefaultInteractionStyle();
+    values.focusMode = mui_focusAll;
+    CHECK(muiNode_SetInteractionValues(context, node, &values,
+                                       MUI_PROPERTY_BIT(mui_propertyFocusMode)) == mui_success,
+          "focusable");
+}
+
+static void TestLightDismiss(void)
+{
+    Scene scene;
+    MakeScene(&scene, 150.0f, 100.0f);
+    muiContext* context = scene.context;
+    muiNodeId nodes[4];
+    muiDismissReason reasons[4];
+    muiPopup p = PopupOf(scene.anchor, mui_popupBelow, mui_popupAlignStart, 4.0f);
+    CHECK(p.lightDismiss && muiNode_SetPopup(context, scene.popup, &p) == mui_success,
+          "light by default");
+    Layout(context, scene.root);
+    (void)Dismissed(context, nodes, reasons);
+    Click(context, scene.root, 200.0f, 170.0f);
+    Click(context, scene.root, 160.0f, 110.0f);
+    CHECK(Dismissed(context, nodes, reasons) == 0, "inside, and on the anchor: kept");
+    Click(context, scene.root, 10.0f, 10.0f);
+    CHECK(Dismissed(context, nodes, reasons) == 1 && Same(nodes[0], scene.popup) &&
+              reasons[0] == mui_dismissPress,
+          "outside: dismissed");
+    Click(context, scene.root, 10.0f, 10.0f);
+    CHECK(Dismissed(context, nodes, reasons) == 0, "once");
+    CHECK(muiNode_SetPopup(context, scene.popup, &p) == mui_success, "set anew");
+    Click(context, scene.root, 500.0f, 10.0f);
+    CHECK(Dismissed(context, nodes, reasons) == 1, "on nothing: dismissed again");
+    p.lightDismiss = false;
+    CHECK(muiNode_SetPopup(context, scene.popup, &p) == mui_success, "stays open");
+    Click(context, scene.root, 10.0f, 10.0f);
+    CHECK(Dismissed(context, nodes, reasons) == 0 && !Key(context, scene.root, mui_codeEscape),
+          "not by a press or Escape");
+    // Destroyed: nothing to dismiss.
+    p.lightDismiss = true;
+    CHECK(muiNode_SetPopup(context, scene.popup, &p) == mui_success &&
+              muiDestroyNode(context, scene.popup) == mui_success,
+          "gone");
+    Click(context, scene.root, 10.0f, 10.0f);
+    CHECK(Dismissed(context, nodes, reasons) == 0 && !Key(context, scene.root, mui_codeEscape),
+          "nothing");
+    muiDestroyContext(context);
+}
+
+static void TestEscape(void)
+{
+    Scene scene;
+    MakeScene(&scene, 150.0f, 100.0f);
+    muiContext* context = scene.context;
+    muiNodeId other = Sized(context, scene.root, 50.0f, 50.0f);
+    muiNodeId nodes[4];
+    muiDismissReason reasons[4];
+    // Set in the order other, popup, other again: other is the last.
+    muiPopup p = PopupOf(scene.anchor, mui_popupBelow, mui_popupAlignStart, 0.0f);
+    CHECK(muiNode_SetPopup(context, other, &p) == mui_success &&
+              muiNode_SetPopup(context, scene.popup, &p) == mui_success &&
+              muiNode_SetPopup(context, other, &p) == mui_success,
+          "two");
+    Layout(context, scene.root);
+    (void)Dismissed(context, nodes, reasons);
+    CHECK(Key(context, scene.root, mui_codeEscape) && Dismissed(context, nodes, reasons) == 1 &&
+              Same(nodes[0], other) && reasons[0] == mui_dismissEscape,
+          "the last set");
+    CHECK(Key(context, scene.root, mui_codeEscape) && Dismissed(context, nodes, reasons) == 1 &&
+              Same(nodes[0], scene.popup),
+          "then the other");
+    CHECK(!Key(context, scene.root, mui_codeEscape), "then none");
+    muiDestroyContext(context);
+}
+
+static void TestNestedDismiss(void)
+{
+    // A menu below the anchor, a submenu at the end of an item in it.
+    Scene scene;
+    MakeScene(&scene, 150.0f, 50.0f);
+    muiContext* context = scene.context;
+    muiNodeId item = Sized(context, scene.popup, 120.0f, 20.0f);
+    At(context, item, 0.0f, 0.0f);
+    muiNodeId sub = Sized(context, scene.root, 80.0f, 60.0f);
+    At(context, sub, 0.0f, 0.0f);
+    muiNodeId nodes[4];
+    muiDismissReason reasons[4];
+    muiPopup p = PopupOf(scene.anchor, mui_popupBelow, mui_popupAlignStart, 0.0f);
+    CHECK(muiNode_SetPopup(context, scene.popup, &p) == mui_success, "menu");
+    p = PopupOf(item, mui_popupEnd, mui_popupAlignStart, 0.0f);
+    CHECK(muiNode_SetPopup(context, sub, &p) == mui_success, "submenu");
+    Layout(context, scene.root);
+    // The menu at 150, 90 to 270, 150; the submenu at 270, 90 to 350, 150.
+    (void)Dismissed(context, nodes, reasons);
+    Click(context, scene.root, 300.0f, 100.0f);
+    CHECK(Dismissed(context, nodes, reasons) == 0, "in the submenu: both kept");
+    Click(context, scene.root, 200.0f, 140.0f);
+    CHECK(Dismissed(context, nodes, reasons) == 1 && Same(nodes[0], sub),
+          "in the menu: the submenu dismissed");
+    CHECK(muiNode_SetPopup(context, sub, &p) == mui_success, "submenu again");
+    Click(context, scene.root, 10.0f, 290.0f);
+    CHECK(Dismissed(context, nodes, reasons) == 2 && Same(nodes[0], sub) &&
+              Same(nodes[1], scene.popup),
+          "outside: the submenu first");
+    // Anchored inside each other: both dismissed, no hang.
+    muiNodeId inSub = Sized(context, sub, 10.0f, 10.0f);
+    p = PopupOf(inSub, mui_popupBelow, mui_popupAlignStart, 0.0f);
+    CHECK(muiNode_SetPopup(context, scene.popup, &p) == mui_success, "a cycle");
+    p = PopupOf(item, mui_popupEnd, mui_popupAlignStart, 0.0f);
+    CHECK(muiNode_SetPopup(context, sub, &p) == mui_success, "and back");
+    Layout(context, scene.root);
+    Click(context, scene.root, 395.0f, 295.0f);
+    CHECK(Dismissed(context, nodes, reasons) == 2, "both");
+    muiDestroyContext(context);
+}
+
+static void TestFocusDismiss(void)
+{
+    Scene scene;
+    MakeScene(&scene, 150.0f, 100.0f);
+    muiContext* context = scene.context;
+    muiNodeId inside = Sized(context, scene.popup, 20.0f, 20.0f);
+    muiNodeId outside = Sized(context, scene.root, 20.0f, 20.0f);
+    Focusable(context, inside);
+    Focusable(context, outside);
+    Focusable(context, scene.anchor);
+    muiNodeId nodes[4];
+    muiDismissReason reasons[4];
+    muiPopup p = PopupOf(scene.anchor, mui_popupBelow, mui_popupAlignStart, 0.0f);
+    CHECK(muiNode_SetPopup(context, scene.popup, &p) == mui_success, "set");
+    Layout(context, scene.root);
+    (void)Dismissed(context, nodes, reasons);
+    CHECK(muiFocus_Set(context, 0, inside, mui_focusByCode) == mui_success &&
+              muiFocus_Set(context, 0, scene.anchor, mui_focusByNavigation) == mui_success &&
+              Dismissed(context, nodes, reasons) == 0,
+          "inside, and to the anchor: kept");
+    CHECK(muiFocus_Set(context, 0, outside, mui_focusByPointer) == mui_success &&
+              Dismissed(context, nodes, reasons) == 0,
+          "by a pointer: the press decides");
+    CHECK(muiFocus_Set(context, 0, (muiNodeId){0, 0}, mui_focusByCode) == mui_success &&
+              Dismissed(context, nodes, reasons) == 0,
+          "cleared: kept");
+    CHECK(muiFocus_Set(context, 0, outside, mui_focusByCode) == mui_success &&
+              Dismissed(context, nodes, reasons) == 1 && reasons[0] == mui_dismissFocus,
+          "by code, outside: dismissed");
+    // Tab from inside to the next, outside.
+    CHECK(muiNode_SetPopup(context, scene.popup, &p) == mui_success &&
+              muiFocus_Set(context, 0, inside, mui_focusByCode) == mui_success,
+          "again, focused inside");
+    (void)Dismissed(context, nodes, reasons);
+    CHECK(Key(context, scene.root, mui_codeTab) && Dismissed(context, nodes, reasons) == 1 &&
+              reasons[0] == mui_dismissFocus,
+          "tabbed out: dismissed");
+    muiDestroyContext(context);
+}
+
 static void TestContract(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -389,7 +597,7 @@ static void TestContract(void)
     muiPopup p = PopupOf(root, mui_popupCenter, mui_popupAlignStart, 0.0f);
     muiPopup read = muiDefaultPopup();
     CHECK(read.side == mui_popupBelow && read.align == mui_popupAlignStart && read.gap == 0.0f &&
-              read.margin == 0.0f && read.anchor.index1 == 0,
+              read.margin == 0.0f && read.anchor.index1 == 0 && read.lightDismiss,
           "default");
     CHECK(muiNode_GetPopup(context, a, &read) == mui_empty, "none yet");
     CHECK(muiNode_SetPopup(context, a, &p) == mui_success &&
@@ -464,6 +672,10 @@ int main(void)
     TestRightToLeft();
     TestScrolledAndNested();
     TestUnplaced();
+    TestLightDismiss();
+    TestEscape();
+    TestNestedDismiss();
+    TestFocusDismiss();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }

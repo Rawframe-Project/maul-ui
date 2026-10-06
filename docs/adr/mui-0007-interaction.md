@@ -219,6 +219,16 @@ itself instead of each host repeating them.
   anchored inside another is placed after it; one anchored inside
   itself, or outside the root laid out, is not placed. The side used
   is readable for an arrow. The layer kind still decides how it paints.
+  A popup record stands for an open popup. Light dismissal (on by
+  default, off as HTML's manual popovers) reports, never closes:
+  `mui_notificationPopupDismissed` with the reason in its count, once
+  until the popup is set anew. A press dismisses, nested popups first,
+  every popup that neither holds the pressed node nor has its anchor
+  holding it, keeping the popups those nest under (HTML's popover
+  stack, Floating UI's press on the reference counting as inside); an
+  Escape no handler takes dismisses the popup set last; focus moved by
+  code or navigation outside a popup and its anchor dismisses it,
+  while a press's own focus change is left to the press.
 - **Drag and drop**, within the application: a node takes kinds of
   thing by the interaction property `accepts`, a mask of the
   application's bits. While a pointer drags, the host offers a kind and

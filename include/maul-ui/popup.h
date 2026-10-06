@@ -10,6 +10,18 @@
 // room, and is clamped into the root's box, its start edge kept when it
 // cannot fit. Layout gives its size; an absolutely placed popup takes no
 // room where it sits in the tree.
+//
+// A popup record stands for an open popup: the host sets it when it
+// opens one and clears it, or destroys the node, when it closes. Light
+// dismissal, as HTML's popovers have it, reports when one should close
+// (mui_notificationPopupDismissed, the reason in its count); the host
+// closes it, with whatever exit it likes. A popup anchored inside another
+// nests under it. A pointer press dismisses every popup that neither
+// holds the pressed node nor has its anchor holding it, nested ones
+// first, and keeps the popups those nest under; an Escape no handler
+// takes dismisses the popup set last; focus moved by code or navigation
+// to a node outside a popup and its anchor dismisses it. Each is
+// reported once, until the popup is set anew.
 
 #ifndef MAUL_UI_POPUP_H
 #define MAUL_UI_POPUP_H
@@ -61,10 +73,26 @@ extern "C"
         float gap;
         // Kept clear inside the root's box; finite and at least 0.
         float margin;
+        // Whether presses, Escape and focus dismiss it; false keeps it
+        // open until the host closes it, as HTML's manual popovers.
+        bool lightDismiss;
     } muiPopup;
 
+    // Why a popup was dismissed.
+    typedef uint8_t muiDismissReason;
+
+    enum
+    {
+        // A pointer pressed outside it and its anchor.
+        mui_dismissPress = 1,
+        // An Escape no handler took.
+        mui_dismissEscape = 2,
+        // Focus moved outside it and its anchor.
+        mui_dismissFocus = 3,
+    };
+
     /// The default popup: below the null anchor, start edges aligned, no
-    /// gap or margin.
+    /// gap or margin, dismissed lightly.
     ///
     /// @return The popup.
     /// @par Thread safety
@@ -72,7 +100,7 @@ extern "C"
     MUI_API muiPopup muiDefaultPopup(void);
 
     /// Makes a node a popup, or sets its popup anew; placed at the next
-    /// layout.
+    /// layout, and dismissible again.
     ///
     /// @param context  The context.
     /// @param nodeId   The node.

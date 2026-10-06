@@ -13,6 +13,7 @@
 #include "focus.h"
 #include "navigate.h"
 #include "pointer.h"
+#include "popup.h"
 #include "range.h"
 #include "scroll.h"
 #include "tree.h"
@@ -211,7 +212,7 @@ muiResult muiKeyInput(muiContext* context, muiNodeId rootId, const muiKeyEvent* 
     if (!handled && event->down)
     {
         uint32_t arrow = ArrowOf(event->code);
-        if (event->code == mui_codeEscape && muiCancelDrags(context))
+        if (event->code == mui_codeEscape && (muiCancelDrags(context) || muiPopupEscape(context)))
         {
             handled = true;
         }

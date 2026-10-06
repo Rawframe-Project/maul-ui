@@ -12,6 +12,7 @@
 #include "focus.h"
 #include "layer.h"
 #include "notify.h"
+#include "popup.h"
 #include "scroll.h"
 #include "style_store.h"
 #include "tree.h"
@@ -151,6 +152,11 @@ muiResult muiFocus_Set(muiContext* context, uint8_t player, muiNodeId nodeId, mu
         *showsByCode = cause == mui_focusByNavigation;
     }
     muiFocusAssign(context, player, slot, *showsByCode);
+    // A press dismisses popups itself.
+    if (cause != mui_focusByPointer)
+    {
+        muiPopupFocus(context, slot);
+    }
     return mui_success;
 }
 
@@ -313,6 +319,7 @@ void muiFocusNavigate(muiContext* context, uint8_t player, uint32_t slot)
 {
     context->focus.showsByCode[player] = true;
     muiFocusAssign(context, player, slot, true);
+    muiPopupFocus(context, slot);
     muiScrollReveal(context, slot);
 }
 

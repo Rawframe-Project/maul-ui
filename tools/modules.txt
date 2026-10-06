@@ -25,18 +25,18 @@ draw: context draw_store layer paint paint_host tree
 hit: context layer layout_node paint tree
 layer: context layer_store tree
 layer_store:
-focus: context focus_store layer notify style_store tree scroll
+focus: context focus_store layer notify style_store tree scroll popup
 focus_store:
-event: context focus tree scroll navigate pointer range
+event: context focus tree scroll navigate pointer range popup
 event_store:
 scroll_store: layout_node
 range_store:
 popup_store:
 range: context range_store tree notify
-popup: context layout_node popup_store scroll tree
+popup: context layout_node popup_store scroll tree notify
 scroll: context scroll_store tree layer motion_math
 navigate: context focus tree scroll
-pointer: context pointer_store style_store tree focus scroll
+pointer: context pointer_store style_store tree focus scroll popup
 pointer_store:
 notify:
 style_store: pool property

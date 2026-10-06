@@ -130,6 +130,9 @@ extern "C"
         mui_notificationFocusLost = 4,
         // Input changed a range's value (maul-ui/range.h).
         mui_notificationRangeChanged = 5,
+        // A popup should close (maul-ui/popup.h); count is the reason, a
+        // muiDismissReason.
+        mui_notificationPopupDismissed = 6,
     };
 
     // A record of something the host learns after the call that caused
@@ -140,7 +143,7 @@ extern "C"
         // The node it is about; the null id for mui_notificationDropped.
         muiNodeId nodeId;
         // For mui_notificationDropped, how many were dropped; for focus,
-        // the player.
+        // the player; for a popup, the reason.
         uint32_t count;
     } muiNotification;
 
