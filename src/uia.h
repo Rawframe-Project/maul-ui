@@ -17,11 +17,11 @@
 #include <windows.h>
 // COM's declarations, which lean Windows headers leave out, before UI
 // Automation's.
+#include "uia_ids.h"
+
 #include <ole2.h>
 #include <uiautomationcore.h>
 #include <uiautomationcoreapi.h>
-// The ids of properties, control types and patterns.
-#include <uiautomationclient.h>
 
 // UI Automation's errors, as HRESULTs.
 #define ELEMENT_GONE  ((HRESULT)UIA_E_ELEMENTNOTAVAILABLE)

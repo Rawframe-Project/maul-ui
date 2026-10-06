@@ -42,7 +42,7 @@ bool muiIdMapInsert(muiIdMap* map, uint64_t id, void* value)
         return false;
     }
     uint32_t at = PlaceOf(map, id);
-    map->count += map->keys[at] == 0 ? 1 : 0;
+    map->count++;
     map->keys[at] = id;
     map->values[at] = value;
     return true;

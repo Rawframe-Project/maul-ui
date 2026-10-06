@@ -64,9 +64,10 @@ static void TestRandom(void)
 
 static void TestLimits(void)
 {
-    uint64_t keys[4];
-    void* values[4];
     int target = 0;
+    uint64_t keys[4];
+    // Places never filled hold whatever was there.
+    void* values[4] = {&target, &target, &target, &target};
     muiIdMap map;
     muiIdMapInit(&map, keys, values, 4);
     CHECK(!muiIdMapInsert(&map, 0, &target) && muiIdMapFind(&map, 0) == NULL &&

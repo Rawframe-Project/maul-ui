@@ -21,82 +21,82 @@
 
 // Each role's control type; a role left out is a group.
 static const uint16_t s_controlTypes[MUI_ROLE_LAST + 1] = {
-    [mui_roleLabel] = UIA_TextControlTypeId,
-    [mui_roleImage] = UIA_ImageControlTypeId,
-    [mui_roleLink] = UIA_HyperlinkControlTypeId,
-    [mui_roleButton] = UIA_ButtonControlTypeId,
-    [mui_roleDefaultButton] = UIA_ButtonControlTypeId,
-    [mui_roleCheckBox] = UIA_CheckBoxControlTypeId,
-    [mui_roleRadioButton] = UIA_RadioButtonControlTypeId,
-    [mui_roleSwitch] = UIA_ButtonControlTypeId,
-    [mui_roleTextInput] = UIA_EditControlTypeId,
-    [mui_roleMultilineTextInput] = UIA_EditControlTypeId,
-    [mui_roleSearchInput] = UIA_EditControlTypeId,
-    [mui_rolePasswordInput] = UIA_EditControlTypeId,
-    [mui_roleNumberInput] = UIA_EditControlTypeId,
-    [mui_roleEmailInput] = UIA_EditControlTypeId,
-    [mui_rolePhoneNumberInput] = UIA_EditControlTypeId,
-    [mui_roleUrlInput] = UIA_EditControlTypeId,
-    [mui_roleDateInput] = UIA_EditControlTypeId,
-    [mui_roleTimeInput] = UIA_EditControlTypeId,
-    [mui_roleDateTimeInput] = UIA_EditControlTypeId,
-    [mui_roleComboBox] = UIA_ComboBoxControlTypeId,
-    [mui_roleEditableComboBox] = UIA_ComboBoxControlTypeId,
-    [mui_roleListBox] = UIA_ListControlTypeId,
-    [mui_roleListBoxOption] = UIA_ListItemControlTypeId,
-    [mui_roleList] = UIA_ListControlTypeId,
-    [mui_roleListItem] = UIA_ListItemControlTypeId,
-    [mui_roleTree] = UIA_TreeControlTypeId,
-    [mui_roleTreeItem] = UIA_TreeItemControlTypeId,
-    [mui_roleTreeGrid] = UIA_DataGridControlTypeId,
-    [mui_roleTable] = UIA_TableControlTypeId,
-    [mui_roleRow] = UIA_DataItemControlTypeId,
-    [mui_roleCell] = UIA_DataItemControlTypeId,
-    [mui_roleRowHeader] = UIA_HeaderItemControlTypeId,
-    [mui_roleColumnHeader] = UIA_HeaderItemControlTypeId,
-    [mui_roleGrid] = UIA_DataGridControlTypeId,
-    [mui_roleGridCell] = UIA_DataItemControlTypeId,
-    [mui_roleMenu] = UIA_MenuControlTypeId,
-    [mui_roleMenuBar] = UIA_MenuBarControlTypeId,
-    [mui_roleMenuItem] = UIA_MenuItemControlTypeId,
-    [mui_roleMenuItemCheckBox] = UIA_MenuItemControlTypeId,
-    [mui_roleMenuItemRadio] = UIA_MenuItemControlTypeId,
-    [mui_roleTab] = UIA_TabItemControlTypeId,
-    [mui_roleTabList] = UIA_TabControlTypeId,
-    [mui_roleTabPanel] = UIA_PaneControlTypeId,
-    [mui_roleToolbar] = UIA_ToolBarControlTypeId,
-    [mui_roleTooltip] = UIA_ToolTipControlTypeId,
-    [mui_roleDialog] = UIA_WindowControlTypeId,
-    [mui_roleAlertDialog] = UIA_WindowControlTypeId,
-    [mui_roleAlert] = UIA_TextControlTypeId,
-    [mui_roleStatus] = UIA_StatusBarControlTypeId,
-    [mui_roleProgressIndicator] = UIA_ProgressBarControlTypeId,
-    [mui_roleMeter] = UIA_ProgressBarControlTypeId,
-    [mui_roleSlider] = UIA_SliderControlTypeId,
-    [mui_roleSpinButton] = UIA_SpinnerControlTypeId,
-    [mui_roleScrollBar] = UIA_ScrollBarControlTypeId,
-    [mui_roleScrollView] = UIA_PaneControlTypeId,
-    [mui_roleSplitter] = UIA_SeparatorControlTypeId,
-    [mui_rolePane] = UIA_PaneControlTypeId,
-    [mui_roleWindow] = UIA_WindowControlTypeId,
-    [mui_roleTitleBar] = UIA_TitleBarControlTypeId,
-    [mui_roleHeading] = UIA_TextControlTypeId,
-    [mui_roleParagraph] = UIA_TextControlTypeId,
-    [mui_roleDocument] = UIA_DocumentControlTypeId,
-    [mui_roleApplication] = UIA_PaneControlTypeId,
-    [mui_roleCaption] = UIA_TextControlTypeId,
-    [mui_roleDisclosureTriangle] = UIA_ButtonControlTypeId,
-    [mui_roleCanvas] = UIA_ImageControlTypeId,
-    [mui_roleColorWell] = UIA_ButtonControlTypeId,
-    [mui_roleTerminal] = UIA_DocumentControlTypeId,
-    [mui_roleFeed] = UIA_ListControlTypeId,
-    [mui_roleMarquee] = UIA_TextControlTypeId,
+    [mui_roleLabel] = CONTROL_TEXT,
+    [mui_roleImage] = CONTROL_IMAGE,
+    [mui_roleLink] = CONTROL_HYPERLINK,
+    [mui_roleButton] = CONTROL_BUTTON,
+    [mui_roleDefaultButton] = CONTROL_BUTTON,
+    [mui_roleCheckBox] = CONTROL_CHECK_BOX,
+    [mui_roleRadioButton] = CONTROL_RADIO_BUTTON,
+    [mui_roleSwitch] = CONTROL_BUTTON,
+    [mui_roleTextInput] = CONTROL_EDIT,
+    [mui_roleMultilineTextInput] = CONTROL_EDIT,
+    [mui_roleSearchInput] = CONTROL_EDIT,
+    [mui_rolePasswordInput] = CONTROL_EDIT,
+    [mui_roleNumberInput] = CONTROL_EDIT,
+    [mui_roleEmailInput] = CONTROL_EDIT,
+    [mui_rolePhoneNumberInput] = CONTROL_EDIT,
+    [mui_roleUrlInput] = CONTROL_EDIT,
+    [mui_roleDateInput] = CONTROL_EDIT,
+    [mui_roleTimeInput] = CONTROL_EDIT,
+    [mui_roleDateTimeInput] = CONTROL_EDIT,
+    [mui_roleComboBox] = CONTROL_COMBO_BOX,
+    [mui_roleEditableComboBox] = CONTROL_COMBO_BOX,
+    [mui_roleListBox] = CONTROL_LIST,
+    [mui_roleListBoxOption] = CONTROL_LIST_ITEM,
+    [mui_roleList] = CONTROL_LIST,
+    [mui_roleListItem] = CONTROL_LIST_ITEM,
+    [mui_roleTree] = CONTROL_TREE,
+    [mui_roleTreeItem] = CONTROL_TREE_ITEM,
+    [mui_roleTreeGrid] = CONTROL_DATA_GRID,
+    [mui_roleTable] = CONTROL_TABLE,
+    [mui_roleRow] = CONTROL_DATA_ITEM,
+    [mui_roleCell] = CONTROL_DATA_ITEM,
+    [mui_roleRowHeader] = CONTROL_HEADER_ITEM,
+    [mui_roleColumnHeader] = CONTROL_HEADER_ITEM,
+    [mui_roleGrid] = CONTROL_DATA_GRID,
+    [mui_roleGridCell] = CONTROL_DATA_ITEM,
+    [mui_roleMenu] = CONTROL_MENU,
+    [mui_roleMenuBar] = CONTROL_MENU_BAR,
+    [mui_roleMenuItem] = CONTROL_MENU_ITEM,
+    [mui_roleMenuItemCheckBox] = CONTROL_MENU_ITEM,
+    [mui_roleMenuItemRadio] = CONTROL_MENU_ITEM,
+    [mui_roleTab] = CONTROL_TAB_ITEM,
+    [mui_roleTabList] = CONTROL_TAB,
+    [mui_roleTabPanel] = CONTROL_PANE,
+    [mui_roleToolbar] = CONTROL_TOOL_BAR,
+    [mui_roleTooltip] = CONTROL_TOOL_TIP,
+    [mui_roleDialog] = CONTROL_WINDOW,
+    [mui_roleAlertDialog] = CONTROL_WINDOW,
+    [mui_roleAlert] = CONTROL_TEXT,
+    [mui_roleStatus] = CONTROL_STATUS_BAR,
+    [mui_roleProgressIndicator] = CONTROL_PROGRESS_BAR,
+    [mui_roleMeter] = CONTROL_PROGRESS_BAR,
+    [mui_roleSlider] = CONTROL_SLIDER,
+    [mui_roleSpinButton] = CONTROL_SPINNER,
+    [mui_roleScrollBar] = CONTROL_SCROLL_BAR,
+    [mui_roleScrollView] = CONTROL_PANE,
+    [mui_roleSplitter] = CONTROL_SEPARATOR,
+    [mui_rolePane] = CONTROL_PANE,
+    [mui_roleWindow] = CONTROL_WINDOW,
+    [mui_roleTitleBar] = CONTROL_TITLE_BAR,
+    [mui_roleHeading] = CONTROL_TEXT,
+    [mui_roleParagraph] = CONTROL_TEXT,
+    [mui_roleDocument] = CONTROL_DOCUMENT,
+    [mui_roleApplication] = CONTROL_PANE,
+    [mui_roleCaption] = CONTROL_TEXT,
+    [mui_roleDisclosureTriangle] = CONTROL_BUTTON,
+    [mui_roleCanvas] = CONTROL_IMAGE,
+    [mui_roleColorWell] = CONTROL_BUTTON,
+    [mui_roleTerminal] = CONTROL_DOCUMENT,
+    [mui_roleFeed] = CONTROL_LIST,
+    [mui_roleMarquee] = CONTROL_TEXT,
 };
 
 static int ControlTypeOf(muiRole role)
 {
     int type = role <= MUI_ROLE_LAST ? s_controlTypes[role] : 0;
-    return type != 0 ? type : UIA_GroupControlTypeId;
+    return type != 0 ? type : CONTROL_GROUP;
 }
 
 // A landmark's type, 0 for none, and the name of a custom one.
@@ -215,20 +215,20 @@ static bool TextProperty(VARIANT* out, const muiAccessNode* node, PROPERTYID pro
     const char* landmark = nullptr;
     switch (property)
     {
-    case UIA_HelpTextPropertyId:
-    case UIA_FullDescriptionPropertyId:
+    case PROPERTY_HELP_TEXT:
+    case PROPERTY_FULL_DESCRIPTION:
         *result = SetNodeText(out, node, mui_accessDescription);
         return true;
-    case UIA_LocalizedControlTypePropertyId:
+    case PROPERTY_LOCALIZED_CONTROL_TYPE:
         *result = SetNodeText(out, node, mui_accessRoleDescription);
         return true;
-    case UIA_ItemStatusPropertyId:
+    case PROPERTY_ITEM_STATUS:
         *result = SetNodeText(out, node, mui_accessStateDescription);
         return true;
-    case UIA_AcceleratorKeyPropertyId:
+    case PROPERTY_ACCELERATOR_KEY:
         *result = SetNodeText(out, node, mui_accessKeyboardShortcut);
         return true;
-    case UIA_LocalizedLandmarkTypePropertyId:
+    case PROPERTY_LOCALIZED_LANDMARK_TYPE:
         (void)LandmarkOf(node->role, &landmark);
         *result = node->text[mui_accessRoleDescription] != nullptr
                       ? SetNodeText(out, node, mui_accessRoleDescription)
@@ -245,25 +245,25 @@ static bool StateProperty(VARIANT* out, const muiUiaAdapter* adapter, const muiA
 {
     switch (property)
     {
-    case UIA_IsKeyboardFocusablePropertyId:
+    case PROPERTY_IS_KEYBOARD_FOCUSABLE:
         SetBool(out, (node->flags & mui_accessFocusable) != 0);
         return true;
-    case UIA_HasKeyboardFocusPropertyId:
+    case PROPERTY_HAS_KEYBOARD_FOCUS:
         SetBool(out, node->id == muiAccessTree_GetFocus(adapter->tree));
         return true;
-    case UIA_IsEnabledPropertyId:
+    case PROPERTY_IS_ENABLED:
         SetBool(out, (node->flags & mui_accessDisabled) == 0);
         return true;
-    case UIA_IsOffscreenPropertyId:
+    case PROPERTY_IS_OFFSCREEN:
         SetBool(out, IsOffscreen(adapter, node->id));
         return true;
-    case UIA_IsPasswordPropertyId:
+    case PROPERTY_IS_PASSWORD:
         SetBool(out, node->role == mui_rolePasswordInput);
         return true;
-    case UIA_IsRequiredForFormPropertyId:
+    case PROPERTY_IS_REQUIRED_FOR_FORM:
         SetBool(out, (node->flags & mui_accessRequired) != 0);
         return true;
-    case UIA_IsDialogPropertyId:
+    case PROPERTY_IS_DIALOG:
         SetBool(out, node->role == mui_roleDialog || node->role == mui_roleAlertDialog);
         return true;
     default:
@@ -280,28 +280,28 @@ static bool ValueProperty(VARIANT* out, const muiAccessNode* node, PROPERTYID pr
     int number = 0;
     switch (property)
     {
-    case UIA_LevelPropertyId:
+    case PROPERTY_LEVEL:
         number = (int)values->level;
         break;
-    case UIA_PositionInSetPropertyId:
+    case PROPERTY_POSITION_IN_SET:
         number = (int)values->setPosition;
         break;
-    case UIA_SizeOfSetPropertyId:
+    case PROPERTY_SIZE_OF_SET:
         number = (int)values->setSize;
         break;
-    case UIA_HeadingLevelPropertyId:
+    case PROPERTY_HEADING_LEVEL:
         number = node->role == mui_roleHeading && values->level >= 1 && values->level <= 9
                      ? HEADING_LEVEL_1 + (int)values->level - 1
                      : 0;
         break;
-    case UIA_LandmarkTypePropertyId:
+    case PROPERTY_LANDMARK_TYPE:
         number = LandmarkOf(node->role, &custom);
         break;
-    case UIA_OrientationPropertyId:
+    case PROPERTY_ORIENTATION:
         // Maul UI's orientations are UI Automation's.
         number = (int)values->orientation;
         break;
-    case UIA_LiveSettingPropertyId:
+    case PROPERTY_LIVE_SETTING:
         number = (int)values->live;
         break;
     default:
@@ -318,11 +318,11 @@ HRESULT muiUiaPropertyValue(muiUiaAdapter* adapter, const muiAccessNode* node, P
                             VARIANT* out)
 {
     HRESULT result = S_OK;
-    if (property == UIA_ControlTypePropertyId)
+    if (property == PROPERTY_CONTROL_TYPE)
     {
         SetInt(out, ControlTypeOf(node->role));
     }
-    else if (property == UIA_NamePropertyId)
+    else if (property == PROPERTY_NAME)
     {
         result = SetName(out, adapter, node->id);
     }
