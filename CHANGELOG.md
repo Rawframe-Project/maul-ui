@@ -100,6 +100,9 @@ format.
   `muiNode_SetRangeValue` and `muiNode_ClearValueRange`; ARIA's slider
   keys, track presses and thumb drags by default;
   `mui_notificationRangeChanged`; `limits.ranges` (record mui-0007).
+- Drag and drop within the application: the `accepts` interaction
+  property, `muiPointer_Offer`, and drop enter, leave and drop records
+  carrying the kind and the host's key (record mui-0007).
 - Font families (`muiCreateFontFamily`, `muiFontFamily_GetKey`,
   `muiFontFamily_MatchFace`): faces a text style names together, matched
   by width, slant and weight as CSS matches them, with fallbacks of

@@ -145,6 +145,13 @@ extern "C"
         // pointer was cancelled, the node lost the capture, or Escape
         // went unhandled (muiKeyInput).
         mui_pointerRecordDragEnd = 10,
+        // A drag offering a thing (muiPointer_Offer) came over a node that
+        // takes its kind, and left it; the node is the target.
+        mui_pointerRecordDropEnter = 11,
+        mui_pointerRecordDropLeave = 12,
+        // The drag ended over the target, not cancelled: the thing is
+        // dropped there. Before the drag's end record.
+        mui_pointerRecordDrop = 13,
     };
 
     // A record of pointer input, in the order it happened.
@@ -176,6 +183,9 @@ extern "C"
         float offsetY;
         // For a drag's end, whether it was cancelled.
         bool cancelled;
+        // For drop records, the kind and the host's key offered.
+        uint32_t dropKind;
+        uint64_t dropKey;
     } muiPointerRecord;
 
     /// Takes the oldest pointer record.
@@ -263,6 +273,27 @@ extern "C"
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiSetClickRule(muiContext* context, uint64_t intervalNs,
                                                     float distance);
+
+    /// Offers a thing to drop for a dragging pointer, from its drag start
+    /// on: a kind, one or more of the application's bits, and the host's
+    /// key for it. From then the drag looks for a target under the
+    /// pointer, the nearest node from the one hit up whose accepts mask
+    /// (maul-ui/interaction.h) shares a bit with the kind, and posts drop
+    /// enter and leave records as it changes, and a drop record when the
+    /// drag ends over one; a cancelled drag only leaves. A second offer
+    /// replaces the first.
+    ///
+    /// @param context  The context.
+    /// @param pointer  The host's id of the pointer.
+    /// @param kind     The kind: not 0.
+    /// @param key      The host's key for the thing.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, a
+    ///         pointer not dragging, a kind of 0, or a call from a measure
+    ///         or paint function.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiPointer_Offer(muiContext* context, uint32_t pointer,
+                                                     uint32_t kind, uint64_t key);
 
     /// Sets how far a press moves before it becomes a drag, on either
     /// axis: for a mouse, and for touch and pens. The defaults are 4,

@@ -186,6 +186,16 @@ itself instead of each host repeating them.
   it back. Input's changes are reported by
   `mui_notificationRangeChanged`, code's are not. Hosts place the
   thumb from the value.
+- **Drag and drop**, within the application: a node takes kinds of
+  thing by the interaction property `accepts`, a mask of the
+  application's bits. While a pointer drags, the host offers a kind and
+  its own key (`muiPointer_Offer`); the drag then targets the nearest
+  node from the one under the pointer up that takes a bit of the kind,
+  with drop enter and leave records as the target changes and a drop
+  record, before the drag's end, when it ends over one. A cancelled
+  drag, or a target gone, only leaves. The host draws the preview, an
+  overlay node it moves by the drag's offsets, and styles the source
+  and target from the records.
 - **Focus notifications** report each player's focus gained and lost,
   whatever moved it; a focused node that is destroyed, or stops taking
   focus at its styling or a direct write, loses it. Detaching keeps it,

@@ -171,12 +171,13 @@ static void Unpress(muiContext* context, muiPointer* pointer)
     pointer->pressed = (muiNodeId){0, 0};
 }
 
-// Posts a record about a pointer's drag, its point in the dragged node;
-// a node destroyed is still named, its point on the surface.
+// Posts a record about a pointer's drag or what it offers to node, its
+// point in node's box; a node destroyed is still named, its point on the
+// surface.
 static void PostDrag(muiContext* context, const muiPointer* pointer, muiPointerRecordKind kind,
-                     bool cancelled)
+                     muiNodeId node, bool cancelled)
 {
-    uint32_t slot = SlotOf(context, pointer->dragged);
+    uint32_t slot = SlotOf(context, node);
     uint32_t root = SlotOf(context, pointer->root);
     double x = 0.0;
     double y = 0.0;
@@ -190,25 +191,66 @@ static void PostDrag(muiContext* context, const muiPointer* pointer, muiPointerR
         .buttons = pointer->buttons,
         .passThrough = slot == 0 || context->interaction[slot - 1].passThrough,
         .pointer = pointer->id,
-        .node = pointer->dragged,
+        .node = node,
         .x = (float)((double)pointer->x - x),
         .y = (float)((double)pointer->y - y),
         .timeNs = pointer->timeNs,
         .offsetX = pointer->x - pointer->pressX,
         .offsetY = pointer->y - pointer->pressY,
         .cancelled = cancelled,
+        .dropKind = pointer->offerKind,
+        .dropKey = pointer->offerKey,
     };
     Post(&context->pointers, &record);
 }
 
-// Ends a pointer's drag, if one is going.
+// Moves the target of a pointer's offer to the node under it that takes
+// its kind, posting the leave of the old and the enter of the new.
+static void Retarget(muiContext* context, muiPointer* pointer)
+{
+    muiHit hit = {0};
+    uint32_t at = muiHitTest(context, pointer->root, pointer->x, pointer->y, &hit) == mui_success
+                      ? SlotOf(context, hit.node)
+                      : 0;
+    while (at != 0 && (context->interaction[at - 1].accepts & pointer->offerKind) == 0)
+    {
+        at = muiTreeAt(&context->tree, at)->links.parent;
+    }
+    muiNodeId target = at != 0 ? muiTreeIdOf(&context->tree, at) : (muiNodeId){0, 0};
+    if (target.index1 == pointer->target.index1 && target.generation == pointer->target.generation)
+    {
+        return;
+    }
+    if (!IsNull(pointer->target))
+    {
+        PostDrag(context, pointer, mui_pointerRecordDropLeave, pointer->target, false);
+    }
+    if (at != 0)
+    {
+        PostDrag(context, pointer, mui_pointerRecordDropEnter, target, false);
+    }
+    pointer->target = target;
+}
+
+// Ends a pointer's drag, if one is going: what it offers drops on its
+// target, or leaves it when cancelled or the target is gone.
 static void EndDrag(muiContext* context, muiPointer* pointer, bool cancelled)
 {
-    if (pointer->dragging)
+    if (!pointer->dragging)
     {
-        PostDrag(context, pointer, mui_pointerRecordDragEnd, cancelled);
-        pointer->dragging = false;
+        return;
     }
+    if (!IsNull(pointer->target))
+    {
+        bool drop = !cancelled && SlotOf(context, pointer->target) != 0;
+        PostDrag(context, pointer, drop ? mui_pointerRecordDrop : mui_pointerRecordDropLeave,
+                 pointer->target, false);
+    }
+    PostDrag(context, pointer, mui_pointerRecordDragEnd, pointer->dragged, cancelled);
+    pointer->dragging = false;
+    pointer->offerKind = 0;
+    pointer->offerKey = 0;
+    pointer->target = (muiNodeId){0, 0};
 }
 
 // Ends a pointer's capture, with a record for the node that had it; a
@@ -413,10 +455,14 @@ static bool Drag(muiContext* context, muiPointer* pointer)
         }
         pointer->dragStarted = true;
         pointer->dragging = true;
-        PostDrag(context, pointer, mui_pointerRecordDragStart, false);
+        PostDrag(context, pointer, mui_pointerRecordDragStart, pointer->dragged, false);
         return true;
     }
-    PostDrag(context, pointer, mui_pointerRecordDragMove, false);
+    PostDrag(context, pointer, mui_pointerRecordDragMove, pointer->dragged, false);
+    if (pointer->offerKind != 0)
+    {
+        Retarget(context, pointer);
+    }
     return true;
 }
 
@@ -621,6 +667,23 @@ muiResult muiSetClickRule(muiContext* context, uint64_t intervalNs, float distan
     }
     context->pointers.clickIntervalNs = intervalNs;
     context->pointers.clickDistance = distance;
+    return mui_success;
+}
+
+muiResult muiPointer_Offer(muiContext* context, uint32_t pointerId, uint32_t kind, uint64_t key)
+{
+    if (context == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    muiPointer* pointer = Find(&context->pointers, pointerId);
+    if (pointer == nullptr || !pointer->dragging || kind == 0 || muiIsInHostCall(context))
+    {
+        return muiRefuse(context);
+    }
+    pointer->offerKind = kind;
+    pointer->offerKey = key;
+    Retarget(context, pointer);
     return mui_success;
 }
 

@@ -43,6 +43,11 @@ typedef struct muiPointer
     // A drag started this press (no click follows), and has not ended.
     bool dragStarted;
     bool dragging;
+    // What its drag offers to drop, 0 for nothing, and the target under
+    // it.
+    uint32_t offerKind;
+    uint64_t offerKey;
+    muiNodeId target;
 } muiPointer;
 
 // The last press, which the next continues a series of.
