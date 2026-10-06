@@ -48,6 +48,13 @@ format.
 
 ### Added
 
+- The reference renderer, `maul-ui-rhi` (`MAUL_UI_RHI`, off by
+  default; `maul-ui-rhi/renderer.h`), which draws a list with Maul RHI
+  0.3.0: `muiCreateRhiRenderer` for a device and a target format,
+  `muiRhiRenderer_Notify` with the device's notifications until its
+  pipeline is ready, then each frame `muiRhiRenderer_AddPasses` while
+  the frame is built and `muiRhiRenderer_Record` once it is compiled.
+  Boxes are drawn: fills, borders and rounded corners.
 - Interaction properties (`maul-ui/interaction.h`): a fourth property
   group with a hit mode (the node and its children, its children alone,
   or neither), a pass-through flag and a layer kind (an activation

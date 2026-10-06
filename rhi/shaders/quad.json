@@ -1,0 +1,17 @@
+{
+  "root_block_bytes": 16,
+  "entries": [
+    {"name": "vs", "stage": "vertex",
+     "variables": [{"location": 0, "type": "float32", "components": 2},
+                   {"location": 1, "type": "uint32", "components": 1, "interpolation": "flat"}]},
+    {"name": "fs", "stage": "fragment",
+     "variables": [{"location": 0, "type": "float32", "components": 2},
+                   {"location": 1, "type": "uint32", "components": 1, "interpolation": "flat"}],
+     "outputs": [{"location": 0, "type": "float32", "components": 4}]}
+  ],
+  "bindings": [
+    {"table": 0, "slot": 0, "kind": "read_only_storage_buffer", "stages": ["vertex", "fragment"],
+     "min_size": 144}
+  ],
+  "constants": []
+}

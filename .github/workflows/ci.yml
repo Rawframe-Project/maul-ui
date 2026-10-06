@@ -101,6 +101,35 @@ jobs:
           cmake -S cmake/HeaderCheck -B build-headers
           cmake --build build-headers --config Release
 
+  rhi:
+    # The reference renderer (record mui-0005) with Maul RHI
+    # fetched: its test on Maul RHI's test driver, and its pixels on
+    # lavapipe, which must be found, under the Vulkan validation layer,
+    # whose errors fail the step.
+    name: linux-rhi
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the compiler, lavapipe and the validation layer
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q clang-20 ninja-build mesa-vulkan-drivers vulkan-validationlayers
+      - name: Configure
+        run: >
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -D${PREFIX}_WERROR=ON
+          -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 -D${PREFIX}_RHI=ON
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Test
+        env:
+          MUI_RHI_REQUIRED: 1
+          VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
+        run: |
+          ctest --test-dir build -R rhi --output-on-failure | tee rhi.log
+          ! grep -qiE "validation error|VUID" rhi.log
+          build/test_rhi_pixels 2>&1 | tee pixels.log
+          ! grep -qiE "validation error|VUID" pixels.log
+
   ios:
     # Every test in the iOS simulator, through simctl spawn, on an iPhone
     # of the newest runtime, as Maul Window's cell (record mui-0008).

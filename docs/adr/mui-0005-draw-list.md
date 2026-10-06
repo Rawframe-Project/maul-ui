@@ -83,6 +83,27 @@ clip chain evaluated in its shaders, which keeps batches whole.
 - **Golden lists:** the tests describe lists in text, floats with nine
   significant digits, and compare them against checked-in lists; each
   list is also built twice and its bytes compared.
+- **The reference renderer** (`maul-ui-rhi`, the option `MAUL_UI_RHI`,
+  off by default) draws lists with Maul RHI, found installed or fetched
+  at its release tag, as a static library beside `maul-ui` that the
+  core and the text component never see (`rhi/`). Every command is an
+  instance of one pipeline of quads, its record in a storage buffer
+  uploaded each frame and its six vertices made in the vertex shader;
+  the fragment shader evaluates a rounded rect's signed distance in
+  pixels for coverage, splitting the fill (inside the borders' inner
+  edge) from the borders, each side's color where that side is
+  nearest. Colors blend premultiplied into an sRGB target. Each frame
+  `muiRhiRenderer_AddPasses` adds its upload and draw passes into the
+  host's target while the host builds the frame, and
+  `muiRhiRenderer_Record` records them after it is compiled; the
+  pipeline's creation is answered on the device's queue, which the host
+  reads and hands on, and until then frames draw nothing. Shaders are
+  GLSL and WGSL made into a Maul RHI container offline
+  (`tools/gen_rhi_shaders.py`), the header committed. Its tests run on
+  Maul RHI's test driver and on lavapipe, comparing probed pixels with
+  what the list says, under the Vulkan validation layer. Boxes come
+  first; gradients, shadows, clips, transforms, images and glyph runs
+  follow.
 
 ## Consequences
 
