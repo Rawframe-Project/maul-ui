@@ -121,6 +121,8 @@ static void TestInteraction(void)
     muiContext* context = scene.context;
     Focusable(context, scene.child);
     Focusable(context, scene.beside);
+    // A second child, which Tab must pass over as well.
+    Focusable(context, Sized(context, scene.panel, 50.0f, 50.0f));
     Layout(context, scene.root, 0);
     CHECK(Same(HitAt(context, scene.root, 10.0f, 10.0f), scene.child) &&
               Same(HitAt(context, scene.root, 150.0f, 10.0f), scene.panel),
@@ -225,6 +227,78 @@ static void TestFinished(void)
     muiDestroyContext(context);
 }
 
+static void SetLayer(muiContext* context, muiNodeId node, muiLayerKind kind)
+{
+    muiInteractionStyle values = muiDefaultInteractionStyle();
+    values.layer = kind;
+    CHECK(muiNode_SetInteractionValues(context, node, &values,
+                                       MUI_PROPERTY_BIT(mui_propertyLayer)) == mui_success,
+          "layer");
+}
+
+static bool Tab(muiContext* context, muiNodeId root)
+{
+    const muiKeyEvent tab = {.code = mui_codeTab, .down = true};
+    bool handled = false;
+    CHECK(muiKeyInput(context, root, &tab, &handled) == mui_success, "tab");
+    return handled;
+}
+
+static void TestLayers(void)
+{
+    // The panel's child an overlay: hit apart from the panel, until it
+    // exits with it.
+    Scene scene;
+    MakeScene(&scene);
+    muiContext* context = scene.context;
+    SetLayer(context, scene.child, mui_layerOverlay);
+    Layout(context, scene.root, 0);
+    CHECK(Same(HitAt(context, scene.root, 10.0f, 10.0f), scene.child), "the overlay hit");
+    CHECK(muiNode_BeginExit(context, scene.panel) == mui_success, "exit");
+    Layout(context, scene.root, 0);
+    CHECK(Same(HitAt(context, scene.root, 10.0f, 10.0f), scene.root), "the overlay exits too");
+    muiDestroyContext(context);
+    // A modal child: it covers the rest until the panel exits.
+    MakeScene(&scene);
+    context = scene.context;
+    SetLayer(context, scene.child, mui_layerModal);
+    Focusable(context, scene.beside);
+    Layout(context, scene.root, 0);
+    CHECK(muiFocus_Set(context, 0, scene.beside, mui_focusByCode) == mui_errorInvalid &&
+              !Tab(context, scene.root) &&
+              Same(HitAt(context, scene.root, 210.0f, 10.0f), scene.child),
+          "covered, blocked");
+    CHECK(muiNode_BeginExit(context, scene.panel) == mui_success, "exit");
+    Layout(context, scene.root, 0);
+    CHECK(Same(HitAt(context, scene.root, 210.0f, 10.0f), scene.beside) &&
+              Tab(context, scene.root) && Same(muiFocus_Get(context, 0), scene.beside),
+          "no longer");
+    CHECK(muiFocus_Set(context, 0, (muiNodeId){0, 0}, mui_focusByCode) == mui_success &&
+              muiFocus_Set(context, 0, scene.beside, mui_focusByCode) == mui_success,
+          "focusable by code");
+    // The root exiting: nothing in it navigates.
+    CHECK(muiFocus_Set(context, 0, (muiNodeId){0, 0}, mui_focusByCode) == mui_success &&
+              muiNode_BeginExit(context, scene.root) == mui_success && !Tab(context, scene.root) &&
+              muiFocus_Get(context, 0).index1 == 0,
+          "the root exiting");
+    muiDestroyContext(context);
+}
+
+static void TestOtherTree(void)
+{
+    Scene scene;
+    MakeScene(&scene);
+    muiContext* context = scene.context;
+    muiNodeId other = Sized(context, s_nullNode, 10.0f, 10.0f);
+    muiNodeId node = s_nullNode;
+    CHECK(muiNode_BeginExit(context, other) == mui_success, "exit elsewhere");
+    Layout(context, scene.root, 0);
+    CHECK(Finished(context, &node) == 0, "not by another root's layout");
+    Layout(context, other, 0);
+    CHECK(Finished(context, &node) == 1 && Same(node, other), "by its own");
+    muiDestroyContext(context);
+}
+
 static void TestContract(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -268,6 +342,8 @@ int main(void)
 {
     TestInteraction();
     TestFinished();
+    TestLayers();
+    TestOtherTree();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }

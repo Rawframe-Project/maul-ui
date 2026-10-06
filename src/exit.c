@@ -114,22 +114,17 @@ void muiExitAdvance(muiContext* context, uint32_t root)
 {
     muiExitStore* store = &context->exits;
     const muiTree* tree = &context->tree;
-    for (uint32_t i = 0; i < store->count;)
+    for (uint32_t i = 0; i < store->count; i++)
     {
         muiExitEntry* entry = &store->entries[i];
         uint32_t slot = muiTreeResolve(tree, entry->node);
-        if (slot == 0)
-        {
-            *entry = store->entries[--store->count];
-            continue;
-        }
-        if (!entry->finished && muiTreeIsAncestor(tree, root, slot) &&
+        // Entries of nodes gone wait for a purge.
+        if (slot != 0 && !entry->finished && muiTreeIsAncestor(tree, root, slot) &&
             !muiIsAnimatingUnder(&context->animations, tree, slot))
         {
             entry->finished = true;
             const muiNotification record = {mui_notificationExitFinished, entry->node, 0};
             muiNotifyPost(&context->notifications, &record);
         }
-        i++;
     }
 }

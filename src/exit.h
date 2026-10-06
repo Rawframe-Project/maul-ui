@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 // Reports the exits under the root at slot root that no transition runs
-// in any more, after transitions advance; forgets those of nodes gone.
+// in any more, after transitions advance.
 void muiExitAdvance(muiContext* context, uint32_t root);
 
 #endif // MAUL_UI_SRC_EXIT_H

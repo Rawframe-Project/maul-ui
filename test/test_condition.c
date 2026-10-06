@@ -8,6 +8,7 @@
 #include "test_harness.h"
 
 #include "maul-ui/context.h"
+#include "maul-ui/exit.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
@@ -663,6 +664,14 @@ static void TestOscillationIsReportedAndHeld(void)
     CHECK(muiNode_SetStates(context, node, mui_stateHovered) == mui_success, "edit");
     CHECK(RunWhilePending(context, root) == 4,
           "it oscillates again, its first styling reading one of the two widths");
+    ExpectOscillation(context, node);
+    // So does an exit begun and cancelled.
+    Compute(context, root);
+    CHECK(!muiIsUpdatePending(context, root), "held again");
+    CHECK(muiNode_BeginExit(context, node) == mui_success &&
+              muiNode_CancelExit(context, node) == mui_success,
+          "an exit begun and cancelled");
+    CHECK(RunWhilePending(context, root) == 4, "released");
     ExpectOscillation(context, node);
     // So does a size other than the two, here from its child.
     muiNodeId child = muiNode_GetFirstChild(context, node);

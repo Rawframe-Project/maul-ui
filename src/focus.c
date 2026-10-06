@@ -57,7 +57,7 @@ bool muiFocusIsCovered(const muiContext* context, uint32_t slot)
     for (uint32_t i = context->layers.count; i > 0; i--)
     {
         uint32_t layer = muiLayerAt(context, i - 1);
-        if (layer == 0)
+        if (layer == 0 || muiTreeIsExiting(tree, layer))
         {
             continue;
         }
@@ -253,10 +253,11 @@ static void Consider(Around* around, uint32_t slot, uint64_t key)
 
 uint32_t muiFocusFollowing(const muiTree* tree, uint32_t scope, uint32_t at)
 {
-    // Nothing under an exiting node, nor the scope if it exits.
+    // Nothing under an exiting node, nor the scope if it exits; the node
+    // itself takes no focus.
     uint32_t child = muiTreeAt(tree, at)->links.firstChild;
     bool skip = child == 0 || (muiTreeAt(tree, at)->flags & MUI_TREE_EXITING) != 0;
-    at = child != 0 ? child : at;
+    at = skip ? at : child;
     for (;;)
     {
         if (skip)
@@ -271,7 +272,7 @@ uint32_t muiFocusFollowing(const muiTree* tree, uint32_t scope, uint32_t at)
             }
             at = muiTreeAt(tree, at)->links.next;
         }
-        if (!muiIsLayerRoot(tree, at) && (muiTreeAt(tree, at)->flags & MUI_TREE_EXITING) == 0)
+        if (!muiIsLayerRoot(tree, at))
         {
             return at;
         }
