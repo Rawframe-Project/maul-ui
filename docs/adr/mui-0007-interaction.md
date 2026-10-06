@@ -278,6 +278,21 @@ itself instead of each host repeating them.
   whatever moved it; a focused node that is destroyed, or stops taking
   focus at its styling or a direct write, loses it. Detaching keeps it,
   since moving a node is a detach and an insert.
+- **The Maul Window glue** (`maul-ui-window`, the option
+  `MAUL_UI_WINDOW`, off by default; `window/`): a static library beside
+  the core, with Maul Window found installed or fetched at its release
+  tag, that the core and the text component never see. A glue a window
+  takes each record the host drains and feeds it to the context,
+  saying whether the UI handled it, so the host passes the rest to its
+  game. Maul UI's input was shaped after Maul Window's, so keys (codes,
+  meanings, modifiers, repeat) and text pass as they come; the cursor
+  is a mouse pointer (Maul Window's button less one is Maul UI's index;
+  the held masks agree), its pointer records dispatched at once, and
+  the UI's while a record is handled, the UI holds the pointer, or the
+  point hits a node that does not pass input through; the wheel turns
+  at the cursor's last place, which the glue keeps, with the modifiers
+  last reported; a reset or a lost focus cancels the pointer holding a
+  button. Its tests run on Maul Window's headless test backend.
 
 ## Consequences
 

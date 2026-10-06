@@ -48,6 +48,13 @@ format.
 
 ### Added
 
+- The Maul Window glue, `maul-ui-window` (`MAUL_UI_WINDOW`, off by
+  default; `maul-ui-window/glue.h`), with Maul Window 0.8.0: a glue a
+  window takes the records the host drains and feeds them to a context,
+  saying of each whether the UI handled it: keys and text to the focus,
+  the cursor as a mouse pointer with its records dispatched, the wheel
+  at the cursor's last place, a reset or a lost focus cancelling the
+  pointer.
 - The reference renderer, `maul-ui-rhi` (`MAUL_UI_RHI`, off by
   default; `maul-ui-rhi/renderer.h`), which draws a list with Maul RHI
   0.3.0: `muiCreateRhiRenderer` for a device and a target format,

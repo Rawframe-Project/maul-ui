@@ -147,6 +147,34 @@ jobs:
           cmake --build build-notext -j 4
           ctest --test-dir build-notext -R rhi --output-on-failure
 
+  window:
+    # The Maul Window glue (record mui-0007) with Maul Window fetched at
+    # its release tag: clang-tidy over its sources, and its test on Maul
+    # Window's headless test backend, the platform backends off.
+    name: linux-window
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the compiler
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q clang-20 clang-tidy-20 ninja-build
+      - name: Configure
+        run: >
+          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -D${PREFIX}_WERROR=ON
+          -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 -D${PREFIX}_TEXT=OFF
+          -D${PREFIX}_WINDOW=ON -DMAUL_WINDOW_WAYLAND=OFF -DMAUL_WINDOW_X11=OFF
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - name: Build
+        run: cmake --build build -j 4
+      - name: clang-tidy
+        run: |
+          for f in window/src/*.c; do
+            clang-tidy-20 -p build --quiet --warnings-as-errors='*' "$f" || exit 1
+          done
+      - name: Test
+        run: ctest --test-dir build -R window --output-on-failure
+
   ios:
     # Every test in the iOS simulator, through simctl spawn, on an iPhone
     # of the newest runtime, as Maul Window's cell (record mui-0008).

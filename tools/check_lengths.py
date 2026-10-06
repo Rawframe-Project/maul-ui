@@ -52,8 +52,9 @@ def functions(path):
 
 
 # The library's sources: src/, whose files are named alone, and the
-# reference renderer's, named by their path.
-SOURCE_DIRS = (("src", ""), (os.path.join("rhi", "src"), "rhi/src/"))
+# optional components', named by their path.
+SOURCE_DIRS = (("src", ""), (os.path.join("rhi", "src"), "rhi/src/"),
+               (os.path.join("window", "src"), "window/src/"))
 
 
 def measured():
@@ -92,7 +93,7 @@ def allowed():
 def struct_fields():
     """(field count, struct name, file) for every struct definition."""
     result = []
-    for top in ("src", "include", "rhi"):
+    for top in ("src", "include", "rhi", "window"):
         for folder, _, files in os.walk(os.path.join(ROOT, top)):
             for name in sorted(files):
                 if not name.endswith(".h"):

@@ -9,7 +9,8 @@
 #   comments are // or ///;
 # - comments carry no development history and no TODO or FIXME;
 # - no file in the repository contains an em dash;
-# - the library's sources, src/ and the reference renderer's rhi/src/,
+# - the library's sources, src/, the reference renderer's rhi/src/ and
+#   the Maul Window glue's window/src/,
 #   call no function the family bans (memory goes through the allocator,
 #   failures are returned statuses, the library prints nothing, no
 #   unsafe string functions, nothing locale-dependent) and none the
@@ -28,9 +29,10 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-C_DIRS = ["include", "src", "rhi", "test", "bench", "samples", "testbed", "tools"]
+C_DIRS = ["include", "src", "rhi", "window", "test", "bench", "samples", "testbed", "tools"]
 # The library's sources, which the library's rules hold.
-LIBRARY_DIRS = ("src" + os.sep, os.path.join("rhi", "src") + os.sep)
+LIBRARY_DIRS = ("src" + os.sep, os.path.join("rhi", "src") + os.sep,
+                os.path.join("window", "src") + os.sep)
 SKIP_DIRS = {".git", "build", "_site", "out"}
 TEXT_SUFFIXES = (".c", ".h", ".m", ".md", ".txt", ".py", ".cmake", ".in", ".yml", ".yaml", ".json")
 
