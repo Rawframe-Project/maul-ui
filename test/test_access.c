@@ -309,6 +309,161 @@ static void TestChildren(void)
     muiDestroyContext(context);
 }
 
+static void TestRelationsAndValues(void)
+{
+    Scene scene;
+    MakeScene(&scene);
+    muiContext* context = scene.context;
+    CHECK(muiAccess_Enable(context, scene.root) == mui_success, "enabled");
+    Layout(context, scene.root);
+    (void)Build(context, scene.root);
+    // Two relations, in order of kind whatever the order set.
+    const muiNodeId described[2] = {scene.label, scene.group};
+    CHECK(muiNode_SetAccessRelation(context, scene.button, mui_relationDescribedBy, described, 2) ==
+                  mui_success &&
+              muiNode_SetAccessRelation(context, scene.button, mui_relationLabelledBy, &scene.label,
+                                        1) == mui_success,
+          "named");
+    muiAccessUpdate update = Build(context, scene.root);
+    const muiAccessNode* node = Sent(&update, scene.button);
+    CHECK(update.nodeCount == 1 && node != NULL && node->linkCount == 3 &&
+              node->links[0].kind == mui_relationLabelledBy &&
+              node->links[0].target == muiAccessIdOf(scene.label) &&
+              node->links[1].kind == mui_relationDescribedBy &&
+              node->links[1].target == muiAccessIdOf(scene.label) &&
+              node->links[2].target == muiAccessIdOf(scene.group),
+          "links");
+    muiNodeId read[2];
+    uint32_t count = 0;
+    CHECK(muiNode_GetAccessRelation(context, scene.button, mui_relationDescribedBy, NULL, 0,
+                                    &count) == mui_errorCapacity &&
+              count == 2 &&
+              muiNode_GetAccessRelation(context, scene.button, mui_relationDescribedBy, read, 2,
+                                        &count) == mui_success &&
+              read[1].index1 == scene.group.index1 &&
+              muiNode_GetAccessRelation(context, scene.leaf, mui_relationControls, read, 2,
+                                        &count) == mui_success &&
+              count == 0,
+          "read back");
+    // The same again: nothing.
+    CHECK(muiNode_SetAccessRelation(context, scene.button, mui_relationDescribedBy, described, 2) ==
+              mui_success,
+          "again");
+    update = Build(context, scene.root);
+    CHECK(update.nodeCount == 0, "the same");
+    // Replaced, then cleared.
+    CHECK(muiNode_SetAccessRelation(context, scene.button, mui_relationDescribedBy, &scene.group,
+                                    1) == mui_success &&
+              muiNode_SetAccessRelation(context, scene.button, mui_relationLabelledBy, NULL, 0) ==
+                  mui_success,
+          "replaced and cleared");
+    update = Build(context, scene.root);
+    node = Sent(&update, scene.button);
+    CHECK(node != NULL && node->linkCount == 1 && node->links[0].kind == mui_relationDescribedBy &&
+              node->links[0].target == muiAccessIdOf(scene.group),
+          "one left");
+    // Another node, as many: a change.
+    CHECK(muiNode_SetAccessRelation(context, scene.button, mui_relationDescribedBy, &scene.leaf,
+                                    1) == mui_success,
+          "another");
+    update = Build(context, scene.root);
+    node = Sent(&update, scene.button);
+    CHECK(node != NULL && node->links[0].target == muiAccessIdOf(scene.leaf), "the leaf");
+    // Values.
+    muiAccessValues values = muiDefaultAccessValues();
+    CHECK(muiNode_GetAccessValues(context, scene.leaf, &values) == mui_success &&
+              values.level == 0 && values.live == mui_liveOff,
+          "none");
+    values.level = 2;
+    values.rowCount = 10;
+    values.columnIndex = 3;
+    values.live = mui_livePolite;
+    values.popup = mui_popupMenu;
+    values.sort = mui_sortDescending;
+    values.invalid = mui_invalidSpelling;
+    values.current = mui_currentPage;
+    CHECK(muiNode_SetAccessValues(context, scene.label, &values) == mui_success, "values");
+    update = Build(context, scene.root);
+    node = Sent(&update, scene.label);
+    CHECK(update.nodeCount == 1 && node != NULL && node->values.level == 2 &&
+              node->values.rowCount == 10 && node->values.columnIndex == 3 &&
+              node->values.live == mui_livePolite && node->values.popup == mui_popupMenu &&
+              node->values.sort == mui_sortDescending &&
+              node->values.invalid == mui_invalidSpelling &&
+              node->values.current == mui_currentPage,
+          "values sent");
+    CHECK(muiNode_SetAccessValues(context, scene.label, &values) == mui_success, "again");
+    update = Build(context, scene.root);
+    CHECK(update.nodeCount == 0, "the same values");
+    // Each value changed alone is a change.
+    for (int field = 0; field < 15; field++)
+    {
+        muiAccessValues next = values;
+        uint32_t* counts[9] = {&next.level,       &next.setPosition, &next.setSize,
+                               &next.rowCount,    &next.columnCount, &next.rowIndex,
+                               &next.columnIndex, &next.rowSpan,     &next.columnSpan};
+        uint8_t* kinds[6] = {&next.live, &next.popup,   &next.orientation,
+                             &next.sort, &next.invalid, &next.current};
+        if (field < 9)
+        {
+            *counts[field] += 1;
+        }
+        else
+        {
+            *kinds[field - 9] = *kinds[field - 9] == 0 ? 1 : 0;
+        }
+        CHECK(muiNode_SetAccessValues(context, scene.label, &next) == mui_success, "one value");
+        update = Build(context, scene.root);
+        CHECK(update.nodeCount == 1, "one value changed");
+        CHECK(muiNode_SetAccessValues(context, scene.label, &values) == mui_success, "back");
+        (void)Build(context, scene.root);
+    }
+    // Misuse.
+    uint64_t misuse = muiGetContextMisuse(context);
+    const muiNodeId none = s_nullNode;
+    CHECK(muiNode_SetAccessRelation(context, scene.button, MUI_ACCESS_RELATIONS, &scene.label, 1) ==
+                  mui_errorInvalid &&
+              muiNode_SetAccessRelation(context, scene.button, mui_relationControls, NULL, 1) ==
+                  mui_errorInvalid &&
+              muiNode_SetAccessRelation(context, scene.button, mui_relationControls, &none, 1) ==
+                  mui_errorInvalid &&
+              muiNode_SetAccessRelation(context, scene.button, mui_relationControls, described,
+                                        UINT16_MAX + 1) == mui_errorInvalid,
+          "relations refused");
+    values = muiDefaultAccessValues();
+    values.live = mui_liveAssertive + 1;
+    CHECK(muiNode_SetAccessValues(context, scene.label, &values) == mui_errorInvalid, "live");
+    values = muiDefaultAccessValues();
+    values.popup = mui_popupDialog + 1;
+    CHECK(muiNode_SetAccessValues(context, scene.label, &values) == mui_errorInvalid, "popup");
+    values = muiDefaultAccessValues();
+    values.orientation = mui_orientationVertical + 1;
+    CHECK(muiNode_SetAccessValues(context, scene.label, &values) == mui_errorInvalid,
+          "orientation");
+    values = muiDefaultAccessValues();
+    values.sort = mui_sortOther + 1;
+    CHECK(muiNode_SetAccessValues(context, scene.label, &values) == mui_errorInvalid, "sort");
+    values = muiDefaultAccessValues();
+    values.invalid = mui_invalidSpelling + 1;
+    CHECK(muiNode_SetAccessValues(context, scene.label, &values) == mui_errorInvalid, "invalid");
+    values = muiDefaultAccessValues();
+    values.current = mui_currentTime + 1;
+    CHECK(muiNode_SetAccessValues(context, scene.label, &values) == mui_errorInvalid &&
+              muiNode_SetAccessValues(context, scene.label, NULL) == mui_errorInvalid &&
+              muiGetContextMisuse(context) == misuse + 11,
+          "values refused");
+    // A gone target.
+    muiNodeId gone = Node(context, s_nullNode);
+    CHECK(muiDestroyNode(context, gone) == mui_success &&
+              muiNode_SetAccessRelation(context, scene.button, mui_relationControls, &gone, 1) ==
+                  mui_errorStale &&
+              muiNode_GetAccessRelation(context, gone, mui_relationControls, read, 2, &count) ==
+                  mui_errorStale &&
+              muiNode_GetAccessValues(context, gone, &values) == mui_errorStale,
+          "gone");
+    muiDestroyContext(context);
+}
+
 static void TestDerived(void)
 {
     Scene scene;
@@ -502,8 +657,14 @@ static void TestScrollAndRange(void)
     CHECK(node != NULL && node->flags == mui_accessNumeric &&
               node->actions == (values | Action(mui_actionScrollIntoView)) &&
               node->value == 50.0f && node->minimum == 0.0f && node->maximum == 100.0f &&
-              node->step == 1.0f,
-          "a range");
+              node->step == 1.0f && node->values.orientation == mui_orientationHorizontal,
+          "a range, horizontal");
+    // The host's orientation wins.
+    muiAccessValues vertical = muiDefaultAccessValues();
+    vertical.orientation = mui_orientationVertical;
+    CHECK(muiNode_SetAccessValues(context, slider, &vertical) == mui_success, "vertical");
+    update = Build(context, root);
+    CHECK(Sent(&update, slider)->values.orientation == mui_orientationVertical, "the host's");
     // Scrolled: the container and its children, each place moved.
     CHECK(muiNode_SetScroll(context, pane, 0.0f, 30.0f) == mui_success, "scrolled");
     Layout(context, root);
@@ -550,7 +711,7 @@ static void TestPositionAlone(void)
     Layout(context, root);
     Layout(context, root);
     muiAccessUpdate update = Build(context, root);
-    CHECK(Sent(&update, item)->setPosition == 2 && Sent(&update, item)->transform.f == 0.0f,
+    CHECK(Sent(&update, item)->values.setPosition == 2 && Sent(&update, item)->transform.f == 0.0f,
           "second, at the top");
     // One taken out above, one put in at the end: the same count.
     CHECK(muiNode_RemoveVirtualItems(context, list, 0, 1) == mui_success &&
@@ -559,7 +720,7 @@ static void TestPositionAlone(void)
     Layout(context, root);
     update = Build(context, root);
     const muiAccessNode* node = Sent(&update, item);
-    CHECK(node != NULL && node->setPosition == 1 && node->transform.f == 0.0f,
+    CHECK(node != NULL && node->values.setPosition == 1 && node->transform.f == 0.0f,
           "first, where it was");
     muiDestroyContext(context);
 }
@@ -601,13 +762,23 @@ static void TestVirtualItems(void)
               update.children[node->firstChild + 4] == muiAccessIdOf(items[0]),
           "read by item");
     node = Sent(&update, items[0]);
-    CHECK(node != NULL && node->setPosition == 3 && node->setSize == 1000, "third of 1000");
-    CHECK(Sent(&update, other)->setPosition == 0, "no item");
+    CHECK(node != NULL && node->values.setPosition == 3 && node->values.setSize == 1000,
+          "third of 1000");
+    CHECK(Sent(&update, other)->values.setPosition == 0, "no item");
+    // The host's position wins.
+    muiAccessValues values = muiDefaultAccessValues();
+    values.setPosition = 7;
+    CHECK(muiNode_SetAccessValues(context, items[2], &values) == mui_success, "seventh");
+    update = Build(context, root);
+    CHECK(Sent(&update, items[2])->values.setPosition == 7 &&
+              Sent(&update, items[2])->values.setSize == 0,
+          "the host's position");
     // Rebound: the list's order and the item.
     CHECK(muiNode_SetItem(context, items[0], 5) == mui_success, "rebound");
     Layout(context, root);
     update = Build(context, root);
-    CHECK(Sent(&update, items[0]) != NULL && Sent(&update, items[0])->setPosition == 6, "sixth");
+    CHECK(Sent(&update, items[0]) != NULL && Sent(&update, items[0])->values.setPosition == 6,
+          "sixth");
     // Fewer items than an index bound: that node has no place, and is
     // read with the unbound.
     virtualList.count = 3;
@@ -615,7 +786,7 @@ static void TestVirtualItems(void)
     Layout(context, root);
     update = Build(context, root);
     node = Sent(&update, list);
-    CHECK(Sent(&update, items[0]) != NULL && Sent(&update, items[0])->setPosition == 0 &&
+    CHECK(Sent(&update, items[0]) != NULL && Sent(&update, items[0])->values.setPosition == 0 &&
               node != NULL && update.children[node->firstChild + 2] == muiAccessIdOf(items[0]),
           "past the count");
     muiDestroyContext(context);
@@ -828,7 +999,9 @@ static void TestHostData(void)
               muiNode_GetAccessText(context, a, mui_accessLabel, &text, &length) == mui_empty,
           "none");
     // Clearing what is not there takes no room.
-    CHECK(muiNode_SetAccessText(context, c, mui_accessLabel, NULL, 0) == mui_success, "cleared");
+    CHECK(muiNode_SetAccessText(context, c, mui_accessLabel, NULL, 0) == mui_success &&
+              muiNode_SetAccessRelation(context, c, mui_relationControls, NULL, 0) == mui_success,
+          "cleared");
     CHECK(muiNode_SetAccessRole(context, a, mui_roleMarquee) == mui_success &&
               muiNode_SetAccessFlags(context, b, mui_accessBusy) == mui_success,
           "two");
@@ -939,6 +1112,19 @@ static void TestMemory(void)
     CHECK(muiAccess_Disable(context, root) == mui_success && counter.live == created, "and freed");
     Text(context, root, mui_accessLabel, "Root");
     CHECK(counter.live == created + 5, "a text and its NUL");
+    muiNodeId targets[2] = {root, root};
+    CHECK(muiNode_SetAccessRelation(context, root, mui_relationFlowTo, targets, 2) == mui_success &&
+              counter.live == created + 5 + 2 * sizeof(muiAccessLink) &&
+              muiNode_SetAccessRelation(context, root, mui_relationFlowTo, targets, 1) ==
+                  mui_success &&
+              counter.live == created + 5 + sizeof(muiAccessLink),
+          "links replaced");
+    counter.fail = true;
+    CHECK(muiNode_SetAccessRelation(context, root, mui_relationFlowTo, targets, 2) ==
+                  mui_errorCapacity &&
+              counter.live == created + 5 + sizeof(muiAccessLink),
+          "kept when memory runs out");
+    counter.fail = false;
     muiDestroyContext(context);
     CHECK(counter.live == 0, "all of it freed");
 }
@@ -987,6 +1173,7 @@ int main(void)
 {
     TestWholeThenChanged();
     TestChildren();
+    TestRelationsAndValues();
     TestDerived();
     TestDerivedMore();
     TestScrollAndRange();

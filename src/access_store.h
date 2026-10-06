@@ -28,6 +28,10 @@ typedef struct muiAccessEntry
     // Allocated with their NUL; NULL for none.
     char* text[MUI_ACCESS_TEXTS];
     uint32_t length[MUI_ACCESS_TEXTS];
+    muiAccessValues values;
+    // Allocated, in order of kind; NULL for none.
+    muiAccessLink* links;
+    uint32_t linkCount;
 } muiAccessEntry;
 
 // A root updates are built for, whether its next update is whole, and a
@@ -118,15 +122,34 @@ static inline void muiAccessFreeText(muiAccessEntry* entry, const muiAllocator* 
     entry->length[kind] = 0;
 }
 
-// Frees everything the store allocated: every text and the buffers.
+// Frees an entry's links.
+static inline void muiAccessFreeLinks(muiAccessEntry* entry, const muiAllocator* allocator)
+{
+    if (entry->links != nullptr)
+    {
+        muiRelease(allocator, entry->links, (size_t)entry->linkCount * sizeof(muiAccessLink),
+                   alignof(muiAccessLink));
+    }
+    entry->links = nullptr;
+    entry->linkCount = 0;
+}
+
+// Frees what an entry allocated: its texts and links.
+static inline void muiAccessFreeEntry(muiAccessEntry* entry, const muiAllocator* allocator)
+{
+    for (uint32_t kind = 0; kind < MUI_ACCESS_TEXTS; kind++)
+    {
+        muiAccessFreeText(entry, allocator, kind);
+    }
+    muiAccessFreeLinks(entry, allocator);
+}
+
+// Frees everything the store allocated: every entry's and the buffers.
 static inline void muiAccessRelease(muiAccessStore* store, const muiAllocator* allocator)
 {
     for (uint32_t i = 0; i < store->count; i++)
     {
-        for (uint32_t kind = 0; kind < MUI_ACCESS_TEXTS; kind++)
-        {
-            muiAccessFreeText(&store->entries[i], allocator, kind);
-        }
+        muiAccessFreeEntry(&store->entries[i], allocator);
     }
     muiAccessFreeBuffers(store, allocator);
 }

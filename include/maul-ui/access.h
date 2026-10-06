@@ -242,6 +242,130 @@ extern "C"
         mui_actionSetScrollOffset = 13,
     };
 
+    // How one node names others.
+    typedef uint8_t muiAccessRelation;
+
+    enum
+    {
+        mui_relationLabelledBy = 0,
+        mui_relationDescribedBy = 1,
+        mui_relationControls = 2,
+        mui_relationDetails = 3,
+        mui_relationFlowTo = 4,
+        // One node each; adapters read the first given.
+        mui_relationActiveDescendant = 5,
+        mui_relationErrorMessage = 6,
+        mui_relationPopupFor = 7,
+    };
+
+    enum
+    {
+        MUI_ACCESS_RELATIONS = 8
+    };
+
+    // One node a relation names.
+    typedef struct muiAccessLink
+    {
+        uint64_t target;
+        muiAccessRelation kind;
+    } muiAccessLink;
+
+    // Whether and how a node's changes are announced, as aria-live.
+    typedef uint8_t muiAccessLive;
+
+    enum
+    {
+        mui_liveOff = 0,
+        mui_livePolite = 1,
+        mui_liveAssertive = 2,
+    };
+
+    // What a node opens, as aria-haspopup.
+    typedef uint8_t muiAccessPopup;
+
+    enum
+    {
+        mui_popupNone = 0,
+        mui_popupMenu = 1,
+        mui_popupListBox = 2,
+        mui_popupTree = 3,
+        mui_popupGrid = 4,
+        mui_popupDialog = 5,
+    };
+
+    // Which way a node's items or values run; none says nothing.
+    typedef uint8_t muiAccessOrientation;
+
+    enum
+    {
+        mui_orientationNone = 0,
+        mui_orientationHorizontal = 1,
+        mui_orientationVertical = 2,
+    };
+
+    // How a column header's column is sorted, as aria-sort.
+    typedef uint8_t muiAccessSort;
+
+    enum
+    {
+        mui_sortNone = 0,
+        mui_sortAscending = 1,
+        mui_sortDescending = 2,
+        mui_sortOther = 3,
+    };
+
+    // Whether a node's value is invalid, as aria-invalid.
+    typedef uint8_t muiAccessInvalid;
+
+    enum
+    {
+        mui_invalidNone = 0,
+        mui_invalidTrue = 1,
+        mui_invalidGrammar = 2,
+        mui_invalidSpelling = 3,
+    };
+
+    // Which current thing a node is among related ones, as aria-current.
+    typedef uint8_t muiAccessCurrent;
+
+    enum
+    {
+        mui_currentNone = 0,
+        mui_currentTrue = 1,
+        mui_currentPage = 2,
+        mui_currentStep = 3,
+        mui_currentLocation = 4,
+        mui_currentDate = 5,
+        mui_currentTime = 6,
+    };
+
+    // A node's typed values. Counts, indices and positions start at 1; 0
+    // gives none.
+    typedef struct muiAccessValues
+    {
+        // A heading's or a tree item's depth.
+        uint32_t level;
+        // Its position among its siblings, and their count: the library
+        // gives a virtual list's items theirs when the host gives none.
+        uint32_t setPosition;
+        uint32_t setSize;
+        // A table's or a grid's rows and columns, a row's or a cell's
+        // place in them, and a cell's spans.
+        uint32_t rowCount;
+        uint32_t columnCount;
+        uint32_t rowIndex;
+        uint32_t columnIndex;
+        uint32_t rowSpan;
+        uint32_t columnSpan;
+        muiAccessLive live;
+        muiAccessPopup popup;
+        // The library gives a range its axis when the host gives none.
+        muiAccessOrientation orientation;
+        muiAccessSort sort;
+        muiAccessInvalid invalid;
+        muiAccessCurrent current;
+    } muiAccessValues;
+
     // A node as an update sends it: everything it is, whole.
     typedef struct muiAccessNode
     {
@@ -267,14 +391,16 @@ extern "C"
         float scrollY;
         float scrollXMax;
         float scrollYMax;
-        // An item bound in a virtual list: its position from 1, and the
-        // list's count; 0 for neither.
-        uint32_t setPosition;
-        uint32_t setSize;
+        // Its typed values, the host's and the library's.
+        muiAccessValues values;
         // Its texts by muiAccessTextKind, each NUL-terminated, NULL for
         // none.
         const char* text[MUI_ACCESS_TEXTS];
         uint32_t textLength[MUI_ACCESS_TEXTS];
+        // The nodes it names, in order of kind, then as the host gave
+        // them; NULL for none.
+        const muiAccessLink* links;
+        uint32_t linkCount;
         // Its children, in order: ids from the update's children.
         uint32_t firstChild;
         uint32_t childCount;
@@ -475,6 +601,83 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiNode_GetAccessFlags(const muiContext* context,
                                                            muiNodeId nodeId,
                                                            muiAccessFlags* flagsOut);
+
+    /// Names other nodes from a node by one relation, replacing those it
+    /// named by it; a count of 0 clears it. The ids are copied; a node
+    /// named that is destroyed later stays named, and adapters pass over
+    /// ids they do not hold.
+    ///
+    /// @param context  The context.
+    /// @param nodeId   The node.
+    /// @param kind     The relation.
+    /// @param targets  The nodes, non-NULL when count is not 0.
+    /// @param count    How many, below 2^16.
+    /// @return `mui_success`; `mui_errorCapacity` when
+    ///         `limits.accessNodes` nodes have accessibility data or memory
+    ///         runs out; `mui_errorInvalid` for a NULL context, the null id
+    ///         as the node or a target, an unknown kind, or a call from a
+    ///         measure or paint function; `mui_errorStale` for a node or a
+    ///         target that is gone.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiNode_SetAccessRelation(muiContext* context, muiNodeId nodeId,
+                                                              muiAccessRelation kind,
+                                                              const muiNodeId* targets,
+                                                              uint32_t count);
+
+    /// Reads the nodes a node names by one relation.
+    ///
+    /// @param context     The context.
+    /// @param nodeId      The node.
+    /// @param kind        The relation.
+    /// @param targetsOut  Receives the nodes, up to capacity; may be NULL
+    ///                    when capacity is 0.
+    /// @param capacity    Room in targetsOut.
+    /// @param countOut    Receives how many it names, whatever the room.
+    /// @return `mui_success`; `mui_errorCapacity` when they do not fit,
+    ///         those that fit written; `mui_errorInvalid` for a NULL
+    ///         argument, the null id or an unknown kind; `mui_errorStale`
+    ///         for a node that is gone.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult
+    muiNode_GetAccessRelation(const muiContext* context, muiNodeId nodeId, muiAccessRelation kind,
+                              muiNodeId* targetsOut, uint32_t capacity, uint32_t* countOut);
+
+    /// The default values: none of them.
+    ///
+    /// @return The values.
+    /// @par Thread safety
+    /// Safe from any thread.
+    MUI_API muiAccessValues muiDefaultAccessValues(void);
+
+    /// Sets a node's typed values.
+    ///
+    /// @param context  The context.
+    /// @param nodeId   The node.
+    /// @param values   The values, each enum within its own.
+    /// @return `mui_success`; `mui_errorCapacity` when
+    ///         `limits.accessNodes` nodes have accessibility data;
+    ///         `mui_errorInvalid` for a NULL argument, the null id, an enum
+    ///         outside its values, or a call from a measure or paint
+    ///         function; `mui_errorStale` for a node that is gone.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiNode_SetAccessValues(muiContext* context, muiNodeId nodeId,
+                                                            const muiAccessValues* values);
+
+    /// Reads the typed values the host set on a node.
+    ///
+    /// @param context    The context.
+    /// @param nodeId     The node.
+    /// @param valuesOut  Receives them; the defaults for none.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or
+    ///         the null id; `mui_errorStale` for a node that is gone.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiNode_GetAccessValues(const muiContext* context,
+                                                            muiNodeId nodeId,
+                                                            muiAccessValues* valuesOut);
 
 #ifdef __cplusplus
 }

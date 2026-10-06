@@ -145,12 +145,21 @@ static void PlaceOf(const muiContext* context, uint32_t slot, muiAccessNode* nod
         node->maximum = range->maximum;
         node->step = range->step;
     }
+    // The host's position wins; a range's axis is its orientation unless
+    // the host gave one.
     const muiVirtualEntry* list = parent != 0 ? muiVirtualEntryOf(context, parent) : nullptr;
     uint32_t item = context->lists.items[slot - 1];
-    if (list != nullptr && item != 0 && item <= list->list.count)
+    muiAccessValues* values = &node->values;
+    if (list != nullptr && item != 0 && item <= list->list.count && values->setPosition == 0 &&
+        values->setSize == 0)
     {
-        node->setPosition = item;
-        node->setSize = list->list.count;
+        values->setPosition = item;
+        values->setSize = list->list.count;
+    }
+    if (range != nullptr && values->orientation == mui_orientationNone)
+    {
+        values->orientation = range->axis == mui_rangeHorizontal ? mui_orientationHorizontal
+                                                                 : mui_orientationVertical;
     }
 }
 
@@ -200,6 +209,9 @@ uint32_t muiAccessDerive(const muiContext* context, uint32_t slot, muiAccessNode
     *nodeOut = (muiAccessNode){
         .id = muiAccessIdOf(muiTreeIdOf(&context->tree, slot)),
         .role = entry != nullptr ? entry->role : mui_roleGeneric,
+        .values = entry != nullptr ? entry->values : muiDefaultAccessValues(),
+        .links = entry != nullptr ? entry->links : nullptr,
+        .linkCount = entry != nullptr ? entry->linkCount : 0,
     };
     nodeOut->flags = FlagsOf(context, slot, entry != nullptr ? entry->flags : 0);
     nodeOut->actions = ActionsOf(context, slot, nodeOut->role, nodeOut->flags);
@@ -212,8 +224,9 @@ uint32_t muiAccessDerive(const muiContext* context, uint32_t slot, muiAccessNode
     return childrenOut != nullptr ? ChildrenOf(context, slot, childrenOut) : 0;
 }
 
-// Whether two records of a node agree in all but their texts, which the
-// host data's version stands for, and their place in an update.
+// Whether two records of a node agree in all but their texts and links,
+// which the host data's version stands for, and their place in an
+// update.
 static bool IsSame(const muiAccessNode* a, const muiAccessNode* b)
 {
     return a->id == b->id && a->role == b->role && a->flags == b->flags &&
@@ -225,7 +238,7 @@ static bool IsSame(const muiAccessNode* a, const muiAccessNode* b)
            a->value == b->value && a->minimum == b->minimum && a->maximum == b->maximum &&
            a->step == b->step && a->scrollX == b->scrollX && a->scrollY == b->scrollY &&
            a->scrollXMax == b->scrollXMax && a->scrollYMax == b->scrollYMax &&
-           a->setPosition == b->setPosition && a->setSize == b->setSize;
+           muiAccessSameValues(&a->values, &b->values);
 }
 
 // A build under way.

@@ -39,9 +39,16 @@ ranges and virtual lists.
   description, value, placeholder, keyboard shortcut, role description,
   state description), well-formed UTF-8 without NUL, copied; and flags
   (hidden, read only, required, multiselectable, busy, checkable,
-  mixed, selectable, expandable, expanded, clickable). Nodes with data
-  are bounded by `limits.accessNodes`; texts are allocated when set and
-  freed when replaced, cleared or their node is destroyed.
+  mixed, selectable, expandable, expanded, clickable); relations to
+  other nodes (labelled by, described by, controls, details, flows to,
+  and the single active descendant, error message and popup it is for),
+  sent as links in order of kind; and typed values (level, position
+  and set size, table rows and columns with indices and spans, live,
+  has popup, orientation, sort, invalid, current). Nodes with data are
+  bounded by `limits.accessNodes`; texts and links are allocated when
+  set and freed when replaced, cleared or their node is destroyed. A
+  node named that is destroyed later stays named, as adapters pass over
+  ids they do not hold.
 - **What the library derives**, read when an update is built: the
   children (a virtual list's in item order); bounds, the border box in
   the node's own space, and a transform to its parent's, the node's
@@ -52,8 +59,9 @@ ranges and virtual lists.
   modal for a modal layer's root; scrolling values, clipping and the
   scroll actions for scroll containers; the value, limits and step,
   with increment, decrement and set value unless read only, for
-  ranges; position in set and set size for items bound in a virtual
-  list; click for the roles that take one or a node flagged
+  ranges, and their axis as orientation unless the host gives one;
+  position in set and set size for items bound in a virtual list,
+  unless the host gives them; click for the roles that take one or a node flagged
   clickable; expand or collapse for expandable nodes.
 - **Updates from marks.** Every mark of another stage also marks the
   node for accessibility, as do the host's accessibility edits, a
@@ -88,10 +96,10 @@ ranges and virtual lists.
 Hosts write accessibility once, for every platform, and most of it is
 not written at all: layout, scrolling, focus, states, ranges and lists
 are read where they already are. A context with no root enabled pays
-its table of host data, reserved at creation (112 bytes an entry and
+its table of host data, reserved at creation (168 bytes an entry and
 4 a node slot), and a bit per mark. With one enabled, a frame's cost is
 deriving the nodes marked since the last update, and memory is a copy
-of a node record and its place for each node slot, 248 bytes each. Relations, typed values such as levels and table positions, live
-regions and text blocks naming their nodes come next; then the
-consumer that adapters share (the tree, names, filtering and the
-changes platforms announce), and the adapters themselves.
+of a node record and its place for each node slot, 296 bytes each.
+Text blocks naming their nodes come next; then the consumer that
+adapters share (the tree, names, filtering and the changes platforms
+announce), and the adapters themselves.

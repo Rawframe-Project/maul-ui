@@ -16,6 +16,9 @@ typedef struct muiContext muiContext;
 // The entry of the live node at slot; NULL for one without data.
 muiAccessEntry* muiAccessEntryOf(const muiContext* context, uint32_t slot);
 
+// Whether two sets of typed values agree.
+bool muiAccessSameValues(const muiAccessValues* a, const muiAccessValues* b);
+
 // The enabled root at slot; NULL for one not enabled.
 muiAccessRoot* muiAccessRootOf(const muiContext* context, uint32_t slot);
 

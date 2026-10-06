@@ -54,10 +54,7 @@ static void Purge(muiContext* context)
         {
             continue;
         }
-        for (uint32_t kind = 0; kind < MUI_ACCESS_TEXTS; kind++)
-        {
-            muiAccessFreeText(entry, &context->allocator, kind);
-        }
+        muiAccessFreeEntry(entry, &context->allocator);
         if (store->entryOf[entry->node.index1 - 1] == i)
         {
             store->entryOf[entry->node.index1 - 1] = 0;
@@ -90,7 +87,8 @@ static muiAccessEntry* Take(muiContext* context, uint32_t slot)
     }
     entry = &store->entries[store->count++];
     store->entryOf[slot - 1] = store->count;
-    *entry = (muiAccessEntry){.node = muiTreeIdOf(&context->tree, slot)};
+    *entry = (muiAccessEntry){.node = muiTreeIdOf(&context->tree, slot),
+                              .values = muiDefaultAccessValues()};
     return entry;
 }
 
@@ -438,4 +436,222 @@ muiResult muiAccess_Disable(muiContext* context, muiNodeId rootId)
         muiAccessFreeBuffers(store, &context->allocator);
     }
     return entry != nullptr ? mui_success : mui_empty;
+}
+
+// How many of an entry's links are of a kind, and where they begin.
+static uint32_t LinksOf(const muiAccessEntry* entry, muiAccessRelation kind, uint32_t* firstOut)
+{
+    uint32_t first = 0;
+    while (first < entry->linkCount && entry->links[first].kind < kind)
+    {
+        first++;
+    }
+    uint32_t end = first;
+    while (end < entry->linkCount && entry->links[end].kind == kind)
+    {
+        end++;
+    }
+    *firstOut = first;
+    return end - first;
+}
+
+// Whether a relation's targets are those an entry names by it.
+static bool HasLinks(const muiAccessEntry* entry, muiAccessRelation kind, const muiNodeId* targets,
+                     uint32_t count)
+{
+    uint32_t first = 0;
+    if (LinksOf(entry, kind, &first) != count)
+    {
+        return false;
+    }
+    for (uint32_t i = 0; i < count; i++)
+    {
+        if (entry->links[first + i].target != muiAccessIdOf(targets[i]))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Checks a relation's targets: the status to return for the first that
+// is the null id or gone, else success.
+static muiResult CheckTargets(muiContext* context, const muiNodeId* targets, uint32_t count)
+{
+    for (uint32_t i = 0; i < count; i++)
+    {
+        if (targets[i].index1 == 0)
+        {
+            return muiRefuse(context);
+        }
+        if (muiTreeResolve(&context->tree, targets[i]) == 0)
+        {
+            return mui_errorStale;
+        }
+    }
+    return mui_success;
+}
+
+muiResult muiNode_SetAccessRelation(muiContext* context, muiNodeId nodeId, muiAccessRelation kind,
+                                    const muiNodeId* targets, uint32_t count)
+{
+    if (context == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    if (kind >= MUI_ACCESS_RELATIONS || (targets == nullptr && count != 0) || count > UINT16_MAX)
+    {
+        return muiRefuse(context);
+    }
+    muiResult status = mui_success;
+    uint32_t slot = muiResolveEdit(context, nodeId, &status);
+    if (slot == 0)
+    {
+        return status;
+    }
+    status = CheckTargets(context, targets, count);
+    if (status != mui_success)
+    {
+        return status;
+    }
+    muiAccessEntry* entry = muiAccessEntryOf(context, slot);
+    if (entry == nullptr && count == 0)
+    {
+        return mui_success;
+    }
+    entry = entry != nullptr ? entry : Take(context, slot);
+    if (entry == nullptr)
+    {
+        return mui_errorCapacity;
+    }
+    if (HasLinks(entry, kind, targets, count))
+    {
+        return mui_success;
+    }
+    // The other kinds' links stay; this kind's are replaced, in place in
+    // the order of kinds.
+    uint32_t first = 0;
+    uint32_t old = LinksOf(entry, kind, &first);
+    uint32_t total = entry->linkCount - old + count;
+    muiAccessLink* links = nullptr;
+    if (total != 0)
+    {
+        links = muiAllocate(&context->allocator, (size_t)total * sizeof(muiAccessLink),
+                            alignof(muiAccessLink));
+        if (links == nullptr)
+        {
+            return mui_errorCapacity;
+        }
+        for (uint32_t i = 0; i < first; i++)
+        {
+            links[i] = entry->links[i];
+        }
+        for (uint32_t i = 0; i < count; i++)
+        {
+            links[first + i] = (muiAccessLink){muiAccessIdOf(targets[i]), kind};
+        }
+        for (uint32_t i = first + old; i < entry->linkCount; i++)
+        {
+            links[i - old + count] = entry->links[i];
+        }
+    }
+    muiAccessFreeLinks(entry, &context->allocator);
+    entry->links = links;
+    entry->linkCount = total;
+    Edited(context, slot, entry);
+    return mui_success;
+}
+
+muiResult muiNode_GetAccessRelation(const muiContext* context, muiNodeId nodeId,
+                                    muiAccessRelation kind, muiNodeId* targetsOut,
+                                    uint32_t capacity, uint32_t* countOut)
+{
+    if (context == nullptr || countOut == nullptr || (targetsOut == nullptr && capacity != 0) ||
+        nodeId.index1 == 0 || kind >= MUI_ACCESS_RELATIONS)
+    {
+        return mui_errorInvalid;
+    }
+    uint32_t slot = muiTreeResolve(&context->tree, nodeId);
+    if (slot == 0)
+    {
+        return mui_errorStale;
+    }
+    const muiAccessEntry* entry = muiAccessEntryOf(context, slot);
+    uint32_t first = 0;
+    uint32_t count = entry != nullptr ? LinksOf(entry, kind, &first) : 0;
+    for (uint32_t i = 0; i < count && i < capacity; i++)
+    {
+        targetsOut[i] = muiNodeIdOfAccess(entry->links[first + i].target);
+    }
+    *countOut = count;
+    return count <= capacity ? mui_success : mui_errorCapacity;
+}
+
+muiAccessValues muiDefaultAccessValues(void)
+{
+    return (muiAccessValues){0};
+}
+
+static bool AreValuesValid(const muiAccessValues* values)
+{
+    return values->live <= mui_liveAssertive && values->popup <= mui_popupDialog &&
+           values->orientation <= mui_orientationVertical && values->sort <= mui_sortOther &&
+           values->invalid <= mui_invalidSpelling && values->current <= mui_currentTime;
+}
+
+bool muiAccessSameValues(const muiAccessValues* a, const muiAccessValues* b)
+{
+    return a->level == b->level && a->setPosition == b->setPosition && a->setSize == b->setSize &&
+           a->rowCount == b->rowCount && a->columnCount == b->columnCount &&
+           a->rowIndex == b->rowIndex && a->columnIndex == b->columnIndex &&
+           a->rowSpan == b->rowSpan && a->columnSpan == b->columnSpan && a->live == b->live &&
+           a->popup == b->popup && a->orientation == b->orientation && a->sort == b->sort &&
+           a->invalid == b->invalid && a->current == b->current;
+}
+
+muiResult muiNode_SetAccessValues(muiContext* context, muiNodeId nodeId,
+                                  const muiAccessValues* values)
+{
+    if (context == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    if (values == nullptr || !AreValuesValid(values))
+    {
+        return muiRefuse(context);
+    }
+    muiResult status = mui_success;
+    uint32_t slot = muiResolveEdit(context, nodeId, &status);
+    if (slot == 0)
+    {
+        return status;
+    }
+    muiAccessEntry* entry = Take(context, slot);
+    if (entry == nullptr)
+    {
+        return mui_errorCapacity;
+    }
+    if (!muiAccessSameValues(&entry->values, values))
+    {
+        entry->values = *values;
+        Edited(context, slot, entry);
+    }
+    return mui_success;
+}
+
+muiResult muiNode_GetAccessValues(const muiContext* context, muiNodeId nodeId,
+                                  muiAccessValues* valuesOut)
+{
+    if (context == nullptr || valuesOut == nullptr || nodeId.index1 == 0)
+    {
+        return mui_errorInvalid;
+    }
+    uint32_t slot = muiTreeResolve(&context->tree, nodeId);
+    if (slot == 0)
+    {
+        return mui_errorStale;
+    }
+    const muiAccessEntry* entry = muiAccessEntryOf(context, slot);
+    *valuesOut = entry != nullptr ? entry->values : muiDefaultAccessValues();
+    return mui_success;
 }
