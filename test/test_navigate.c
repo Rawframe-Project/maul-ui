@@ -259,6 +259,25 @@ static void TestLinks(void)
     muiDestroyContext(context);
 }
 
+static void TestLinkOfSlot(void)
+{
+    // A node made in a destroyed node's slot has none of its links.
+    muiContext* context = MakeContext(16);
+    muiNodeId root = Box(context, s_nullNode, 0.0f, 0.0f, 1000.0f, 1000.0f, mui_focusNone);
+    muiNodeId a = Box(context, root, 0.0f, 0.0f, 10.0f, 10.0f, mui_focusAll);
+    muiNodeId b = Box(context, root, 0.0f, 20.0f, 10.0f, 10.0f, mui_focusAll);
+    CHECK(muiNode_SetNeighbor(context, a, mui_directionDown, a) == mui_success &&
+              muiDestroyNode(context, a) == mui_success,
+          "a linked, destroyed");
+    muiNodeId again = Box(context, root, 0.0f, 0.0f, 10.0f, 10.0f, mui_focusAll);
+    Layout(context, root);
+    CHECK(again.index1 == a.index1 &&
+              muiNode_GetNeighbor(context, again, mui_directionDown).index1 == 0 &&
+              Moves(context, root, again, mui_directionDown, b),
+          "its slot again, unlinked");
+    muiDestroyContext(context);
+}
+
 static void SetLayer(muiContext* context, muiNodeId node, muiLayerKind kind)
 {
     muiInteractionStyle values = muiDefaultInteractionStyle();
@@ -285,13 +304,208 @@ static void TestLayers(void)
               Moves(context, root, m1, mui_directionDown, m2) &&
               Moves(context, root, m2, mui_directionUp, m1),
           "each in its own layer, at its place");
-    // Made modal, from the base it starts in the menu.
+    // Made modal, from the base it starts in the menu, and a link from
+    // the menu out to the covered base falls back to geometry.
     SetLayer(context, m, mui_layerModal);
     Layout(context, root);
+    CHECK(muiNode_SetNeighbor(context, m1, mui_directionDown, b) == mui_success &&
+              Moves(context, root, m1, mui_directionDown, m2),
+          "a link to a covered node");
     CHECK(muiFocus_MoveToward(context, root, 1, mui_directionRight) == mui_success &&
               Same(muiFocus_Get(context, 1), m1),
           "from no focus into the modal layer");
     muiDestroyContext(context);
+}
+
+// Android's FocusFinder, transcribed with its integer rectangles, as the
+// oracle for random boxes.
+typedef struct Rect
+{
+    int left;
+    int top;
+    int right;
+    int bottom;
+} Rect;
+
+static bool OracleIsCandidate(Rect s, Rect d, muiDirection direction)
+{
+    switch (direction)
+    {
+    case mui_directionLeft:
+        return (s.right > d.right || s.left >= d.right) && s.left > d.left;
+    case mui_directionRight:
+        return (s.left < d.left || s.right <= d.left) && s.right < d.right;
+    case mui_directionUp:
+        return (s.bottom > d.bottom || s.top >= d.bottom) && s.top > d.top;
+    default:
+        return (s.top < d.top || s.bottom <= d.top) && s.bottom < d.bottom;
+    }
+}
+
+static bool OracleBeamsOverlap(muiDirection direction, Rect a, Rect b)
+{
+    return direction == mui_directionLeft || direction == mui_directionRight
+               ? b.bottom > a.top && b.top < a.bottom
+               : b.right > a.left && b.left < a.right;
+}
+
+static bool OracleIsToDirectionOf(muiDirection direction, Rect s, Rect d)
+{
+    switch (direction)
+    {
+    case mui_directionLeft:
+        return s.left >= d.right;
+    case mui_directionRight:
+        return s.right <= d.left;
+    case mui_directionUp:
+        return s.top >= d.bottom;
+    default:
+        return s.bottom <= d.top;
+    }
+}
+
+static long long OracleMajor(muiDirection direction, Rect s, Rect d)
+{
+    int raw = direction == mui_directionLeft    ? s.left - d.right
+              : direction == mui_directionRight ? d.left - s.right
+              : direction == mui_directionUp    ? s.top - d.bottom
+                                                : d.top - s.bottom;
+    return raw > 0 ? raw : 0;
+}
+
+static long long OracleFar(muiDirection direction, Rect s, Rect d)
+{
+    int raw = direction == mui_directionLeft    ? s.left - d.left
+              : direction == mui_directionRight ? d.right - s.right
+              : direction == mui_directionUp    ? s.top - d.top
+                                                : d.bottom - s.bottom;
+    return raw > 1 ? raw : 1;
+}
+
+static long long OracleMinor(muiDirection direction, Rect s, Rect d)
+{
+    int delta = direction == mui_directionLeft || direction == mui_directionRight
+                    ? (s.top + (s.bottom - s.top) / 2) - (d.top + (d.bottom - d.top) / 2)
+                    : (s.left + (s.right - s.left) / 2) - (d.left + (d.right - d.left) / 2);
+    return delta < 0 ? -delta : delta;
+}
+
+static long long OracleWeighted(muiDirection direction, Rect s, Rect d)
+{
+    long long major = OracleMajor(direction, s, d);
+    long long minor = OracleMinor(direction, s, d);
+    return 13 * major * major + minor * minor;
+}
+
+static bool OracleBeamBeats(muiDirection direction, Rect s, Rect r1, Rect r2)
+{
+    bool in1 = OracleBeamsOverlap(direction, s, r1);
+    bool in2 = OracleBeamsOverlap(direction, s, r2);
+    if (in2 || !in1)
+    {
+        return false;
+    }
+    if (!OracleIsToDirectionOf(direction, s, r2))
+    {
+        return true;
+    }
+    if (direction == mui_directionLeft || direction == mui_directionRight)
+    {
+        return true;
+    }
+    return OracleMajor(direction, s, r1) < OracleFar(direction, s, r2);
+}
+
+static bool OracleIsBetter(muiDirection direction, Rect s, Rect r1, Rect r2)
+{
+    if (!OracleIsCandidate(s, r1, direction))
+    {
+        return false;
+    }
+    if (!OracleIsCandidate(s, r2, direction))
+    {
+        return true;
+    }
+    if (OracleBeamBeats(direction, s, r1, r2))
+    {
+        return true;
+    }
+    if (OracleBeamBeats(direction, s, r2, r1))
+    {
+        return false;
+    }
+    return OracleWeighted(direction, s, r1) < OracleWeighted(direction, s, r2);
+}
+
+typedef struct Random
+{
+    uint32_t state;
+} Random;
+
+static uint32_t NextRandom(Random* random, uint32_t below)
+{
+    random->state = random->state * 1664525u + 1013904223u;
+    return (random->state >> 8) % below;
+}
+
+enum
+{
+    RANDOM_BOXES = 14
+};
+
+static void TestRandom(void)
+{
+    uint32_t moves = 0;
+    for (uint32_t seed = 1; seed <= 200; seed++)
+    {
+        Random random = {seed};
+        muiContext* context = MakeContext(16);
+        muiNodeId root = Box(context, s_nullNode, 0.0f, 0.0f, 1000.0f, 1000.0f, mui_focusNone);
+        muiNodeId nodes[RANDOM_BOXES];
+        Rect rects[RANDOM_BOXES];
+        bool reached[RANDOM_BOXES];
+        for (int i = 0; i < RANDOM_BOXES; i++)
+        {
+            // Even places and sizes, empty ones too, so centers are whole as
+            // Android's are and edges often touch.
+            int x = (int)NextRandom(&random, 50) * 2;
+            int y = (int)NextRandom(&random, 50) * 2;
+            int width = 2 * (int)NextRandom(&random, 16);
+            int height = 2 * (int)NextRandom(&random, 16);
+            reached[i] = NextRandom(&random, 5) != 0;
+            nodes[i] = Box(context, root, (float)x, (float)y, (float)width, (float)height,
+                           reached[i] ? mui_focusAll : mui_focusNone);
+            rects[i] = (Rect){x, y, x + width, y + height};
+        }
+        Layout(context, root);
+        bool agree = true;
+        for (int from = 0; agree && from < RANDOM_BOXES; from++)
+        {
+            for (muiDirection direction = 0; agree && direction <= mui_directionRight; direction++)
+            {
+                if (!reached[from])
+                {
+                    continue;
+                }
+                int best = -1;
+                for (int i = 0; i < RANDOM_BOXES; i++)
+                {
+                    if (i != from && reached[i] &&
+                        (best < 0 ? OracleIsCandidate(rects[from], rects[i], direction)
+                                  : OracleIsBetter(direction, rects[from], rects[i], rects[best])))
+                    {
+                        best = i;
+                    }
+                }
+                agree = Moves(context, root, nodes[from], direction,
+                              best < 0 ? s_nullNode : nodes[best]);
+                moves += best >= 0 ? 1 : 0;
+            }
+        }
+        CHECK(agree, "moves agree with Android's focus search");
+        muiDestroyContext(context);
+    }
+    CHECK(moves > 3000, "most searches find a node");
 }
 
 static void TestContract(void)
@@ -336,7 +550,9 @@ int main(void)
     TestDistance();
     TestKinds();
     TestLinks();
+    TestLinkOfSlot();
     TestLayers();
+    TestRandom();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }

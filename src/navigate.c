@@ -20,7 +20,8 @@ static bool IsNull(muiNodeId nodeId)
     return nodeId.index1 == 0;
 }
 
-// A border box in the root's space.
+// A border box in its tree's space: every box moves by the same amount
+// from the root's, which changes no comparison.
 typedef struct Box
 {
     double left;
@@ -29,7 +30,7 @@ typedef struct Box
     double bottom;
 } Box;
 
-static Box BoxOf(const muiContext* context, uint32_t root, uint32_t slot)
+static Box BoxOf(const muiContext* context, uint32_t slot)
 {
     const muiTree* tree = &context->tree;
     const muiRect* rect = &context->layout[slot - 1].rect;
@@ -39,10 +40,6 @@ static Box BoxOf(const muiContext* context, uint32_t root, uint32_t slot)
     {
         x += (double)context->layout[at - 1].rect.x;
         y += (double)context->layout[at - 1].rect.y;
-        if (at == root)
-        {
-            break;
-        }
     }
     return (Box){x, y, x + (double)rect->width, y + (double)rect->height};
 }
@@ -79,20 +76,11 @@ static bool BeamsOverlap(muiDirection direction, const Box* a, const Box* b)
                                    : b->right > a->left && b->left < a->right;
 }
 
-// Whether dest lies wholly past source in the direction.
+// Whether dest lies wholly past source going up or down: only those
+// directions ask.
 static bool IsToDirectionOf(muiDirection direction, const Box* source, const Box* dest)
 {
-    switch (direction)
-    {
-    case mui_directionLeft:
-        return source->left >= dest->right;
-    case mui_directionRight:
-        return source->right <= dest->left;
-    case mui_directionUp:
-        return source->top >= dest->bottom;
-    default:
-        return source->bottom <= dest->top;
-    }
+    return direction == mui_directionUp ? source->top >= dest->bottom : source->bottom <= dest->top;
 }
 
 // The gap from source to dest's near edge along the direction, at least 0.
@@ -117,26 +105,12 @@ static double MajorDistance(muiDirection direction, const Box* source, const Box
     return fmax(0.0, gap);
 }
 
-// The distance from source to dest's far edge along the direction, at
-// least 1.
+// The distance from source to dest's far edge going up or down, at least
+// 1: only those directions ask.
 static double MajorDistanceToFarEdge(muiDirection direction, const Box* source, const Box* dest)
 {
-    double gap = 0.0;
-    switch (direction)
-    {
-    case mui_directionLeft:
-        gap = source->left - dest->left;
-        break;
-    case mui_directionRight:
-        gap = dest->right - source->right;
-        break;
-    case mui_directionUp:
-        gap = source->top - dest->top;
-        break;
-    default:
-        gap = dest->bottom - source->bottom;
-        break;
-    }
+    double gap =
+        direction == mui_directionUp ? source->top - dest->top : dest->bottom - source->bottom;
     return fmax(1.0, gap);
 }
 
@@ -162,7 +136,7 @@ static bool BeamBeats(muiDirection direction, const Box* source, const Box* a, c
     {
         return false;
     }
-    if (!IsToDirectionOf(direction, source, b) || IsHorizontal(direction))
+    if (IsHorizontal(direction) || !IsToDirectionOf(direction, source, b))
     {
         return true;
     }
@@ -206,16 +180,12 @@ static const muiNeighbor* LinkOf(const muiContext* context, uint32_t slot, muiDi
     return nullptr;
 }
 
-// What a link sends focus to: the target, the focus itself to stop, or
-// 0 to leave it to geometry.
+// What a link sends focus to: the target (the focus itself stops the
+// move), or 0 to leave it to geometry.
 static uint32_t Linked(const muiContext* context, uint32_t focus, muiDirection direction)
 {
     const muiNeighbor* link = LinkOf(context, focus, direction);
     uint32_t target = link != nullptr ? muiTreeResolve(&context->tree, link->target) : 0;
-    if (target == focus)
-    {
-        return focus;
-    }
     return target != 0 && muiFocusTakes(context, target, mui_focusPointer) &&
                    !muiFocusIsCovered(context, target)
                ? target
@@ -249,15 +219,16 @@ muiResult muiFocus_MoveToward(muiContext* context, muiNodeId rootId, uint8_t pla
     uint32_t next = Linked(context, focus, direction);
     if (next == 0)
     {
-        const Box source = BoxOf(context, root, focus);
+        const Box source = BoxOf(context, focus);
         Box best = {0};
         for (uint32_t at = scope; at != 0; at = muiFocusFollowing(tree, scope, at))
         {
-            if (at == focus || !muiFocusTakes(context, at, mui_focusAll))
+            // The focus's own box is no candidate.
+            if (!muiFocusTakes(context, at, mui_focusAll))
             {
                 continue;
             }
-            const Box box = BoxOf(context, root, at);
+            const Box box = BoxOf(context, at);
             if (IsBetter(direction, &source, &box, next != 0 ? &best : nullptr))
             {
                 next = at;
