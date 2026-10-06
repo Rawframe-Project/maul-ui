@@ -41,6 +41,9 @@ virtual_edit: context tree virtual virtual_store
 access_store: allocator
 access: access_store allocator context tree
 access_build: access access_store context focus layer range scroll_store style_store tree virtual virtual_store
+access_tree_store:
+access_tree: access_tree_store allocator
+access_apply: access_tree access_tree_store allocator
 access_action: access context event layout_node notify range scroll_store tree
 popup: context layout_node popup_store scroll tree notify
 scroll: context scroll_store tree layer motion_math

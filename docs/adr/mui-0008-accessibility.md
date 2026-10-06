@@ -102,6 +102,17 @@ ranges and virtual lists.
   is refused as empty; one from an event function is misuse, as other
   input is.
 
+- **The consumer** (`maul-ui/access_tree.h`, the component
+  `MAUL_UI_ACCESS_TREE`, on by default) keeps the copy adapters read:
+  a `muiAccessTree` applies updates whole or not at all (checked, then
+  copied into memory it owns, then put in place), lets a node no node
+  lists go with its subtree, tells the adapter what was added, updated
+  (with the old record), removed and where the focus moved, and
+  writes itself as text for tests. It is used on one thread, the one
+  the platform calls on: family record 0017 allows no lock or wait on
+  a platform's thread, and with UI Automation's COM threading on an STA
+  thread every platform calls on the window's thread.
+
 ## Consequences
 
 Hosts write accessibility once, for every platform, and most of it is
@@ -111,5 +122,5 @@ its table of host data, reserved at creation (168 bytes an entry and
 4 a node slot), and a bit per mark. With one enabled, a frame's cost is
 deriving the nodes marked since the last update, and memory is a copy
 of a node record and its place for each node slot, 308 bytes each.
-The consumer that adapters share (the tree, names, filtering and the
-changes platforms announce) comes next, then the adapters themselves.
+The consumer's filtering, names and bounds in the root's space come
+next, then the adapters themselves.

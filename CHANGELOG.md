@@ -133,7 +133,10 @@ format.
   scrolling, ranges and virtual list positions read from the library;
   requests performed or routed (`muiPerformAccessAction`, a click as
   `mui_navigateActivate`), `mui_notificationAccessAction`;
-  `muiAccessIdOf` and `muiNodeIdOfAccess` (record mui-0008).
+  `muiAccessIdOf` and `muiNodeIdOfAccess`. The consumer adapters read
+  (`maul-ui/access_tree.h`, `MAUL_UI_ACCESS_TREE`): `muiCreateAccessTree`,
+  `muiAccessTree_Apply` with `muiAccessChanges`, the readers, and
+  `muiAccessTree_Write` and `muiAccessRoleName` (record mui-0008).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and
   `muiNode_CancelExit`; an exiting subtree leaves hit testing, focus
   and navigation, and `mui_notificationExitFinished` reports when no
