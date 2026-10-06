@@ -63,6 +63,8 @@ extern "C"
         // The transforms a draw list holds, the identity aside: one per
         // scroll container painted.
         uint32_t drawTransforms;
+        // Nodes that are ranges (muiNode_SetValueRange) at once.
+        uint32_t ranges;
     } muiLimits;
 
     // How a context is made. Build it with muiDefaultContextDef.
@@ -124,6 +126,8 @@ extern "C"
         // player.
         mui_notificationFocusGained = 3,
         mui_notificationFocusLost = 4,
+        // Input changed a range's value (maul-ui/range.h).
+        mui_notificationRangeChanged = 5,
     };
 
     // A record of something the host learns after the call that caused

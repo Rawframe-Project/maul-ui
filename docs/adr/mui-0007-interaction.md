@@ -175,6 +175,17 @@ itself instead of each host repeating them.
   start, move and end records, each with the offset from the press;
   the release clicks nothing. A pointer cancel, a lost capture and an
   unhandled Escape end the drag cancelled.
+- **Range values** (`maul-ui/range.h`): a node may hold a minimum, a
+  maximum, a value on the minimum plus whole steps (any value for a
+  step of 0), a page, an axis and an optional thumb node, in a table
+  bounded by `limits.ranges`. A focused range takes ARIA's slider keys
+  along its axis, and gamepad directions likewise; across it, keys
+  navigate. A dispatched press on its track pages toward the point; a
+  drag of it, or of a node inside it, moves the value with the
+  pointer, keeping where the thumb was grabbed; a cancelled drag puts
+  it back. Input's changes are reported by
+  `mui_notificationRangeChanged`, code's are not. Hosts place the
+  thumb from the value.
 - **Focus notifications** report each player's focus gained and lost,
   whatever moved it; a focused node that is destroyed, or stops taking
   focus at its styling or a direct write, loses it. Detaching keeps it,

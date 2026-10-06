@@ -15,6 +15,7 @@
 #include "layout_node.h"
 #include "notify.h"
 #include "pointer_store.h"
+#include "range_store.h"
 #include "scroll_store.h"
 #include "style_store.h"
 #include "theme_store.h"
@@ -46,6 +47,8 @@ struct muiContext
     bool scrolled;
     // The scroll rule and the wheel's latch.
     muiScrollStore scrolling;
+    // The nodes that are ranges.
+    muiRangeStore ranges;
     // Whether a class, a token name or a direct write has ever given a
     // text property: until then every node's text is the defaults, and
     // the style pass leaves the records alone.

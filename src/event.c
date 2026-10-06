@@ -13,6 +13,7 @@
 #include "focus.h"
 #include "navigate.h"
 #include "pointer.h"
+#include "range.h"
 #include "scroll.h"
 #include "tree.h"
 
@@ -218,6 +219,10 @@ muiResult muiKeyInput(muiContext* context, muiNodeId rootId, const muiKeyEvent* 
         {
             handled = MoveFocus(context, rootId, event->player, true, held != 0, 0);
         }
+        else if (held == 0 && muiRangeKey(context, target, event->code))
+        {
+            handled = true;
+        }
         else if (arrow != 4 && held == 0)
         {
             handled =
@@ -294,7 +299,8 @@ muiResult muiNavigationInput(muiContext* context, muiNodeId rootId, const muiNav
     if (!handled && event->action <= mui_navigateRight)
     {
         // The directions are numbered as muiDirection's.
-        handled = Toward(context, rootId, root, event->player, (muiDirection)event->action,
+        handled = muiRangeDirection(context, target, (muiDirection)event->action) ||
+                  Toward(context, rootId, root, event->player, (muiDirection)event->action,
                          event->timeNs);
     }
     else if (!handled && event->action <= mui_navigatePrevious)
@@ -359,6 +365,6 @@ muiResult muiDispatchPointerRecord(muiContext* context, const muiPointerRecord* 
         .target = record->node,
         .pointer = record,
     };
-    *handledOut = Route(context, target, &routed);
+    *handledOut = Route(context, target, &routed) || muiRangePointer(context, record);
     return mui_success;
 }

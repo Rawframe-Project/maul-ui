@@ -208,7 +208,10 @@ extern "C"
     /// Unhandled, a key down does what the library does by default: Tab,
     /// with Shift or not and no other modifier, moves the focus as
     /// muiFocus_Move does. Escape cancels every drag going
-    /// (maul-ui/pointer.h). An arrow without modifiers, when the focus is
+    /// (maul-ui/pointer.h). On a focused range (maul-ui/range.h), the
+    /// unmodified keys of ARIA's slider pattern change its value: arrows
+    /// along its axis a step, Page Up and Down a page, Home and End the
+    /// ends. Else an arrow without modifiers, when the focus is
     /// in a scroll container along its axis (maul-ui/scroll.h), moves
     /// the focus to the candidate directional navigation finds inside it
     /// if that lies within half a scrollport of the visible part (or a
@@ -250,7 +253,7 @@ extern "C"
 
     /// Routes a navigation action to the player's focus under the root, as
     /// muiKeyInput routes a key. Unhandled, the four directions do what
-    /// arrows do, next and previous move the focus as muiFocus_Move
+    /// arrows do, a focused range's included, next and previous move the focus as muiFocus_Move
     /// does; a move is handled. Activate and cancel have no
     /// default. It makes the player's next focus by code shown.
     ///
@@ -289,8 +292,11 @@ extern "C"
                                                   const muiWheelEvent* event, bool* handledOut);
 
     /// Routes a pointer record (muiNextPointerRecord) to its node; a record
-    /// with no node, or one gone, is routed nowhere and not handled. The
-    /// host hands what is not handled and passes through to the game.
+    /// with no node, or one gone, is routed nowhere and not handled.
+    /// Unhandled, a press on a range or inside it, and a drag of one or of
+    /// a node inside it, change its value (maul-ui/range.h), and are
+    /// handled. The host hands what is not handled and passes through to
+    /// the game.
     ///
     /// @param context     The context.
     /// @param record      The record.
