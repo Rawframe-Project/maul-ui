@@ -46,6 +46,13 @@ access_tree: access_tree_store allocator
 access_apply: access_tree access_tree_store allocator
 access_view: access_tree_store
 id_map:
+dbus_api:
+atspi: dbus_api
+atspi_app: allocator atspi dbus_api
+atspi_component: atspi
+atspi_objects: allocator atspi
+atspi_properties: allocator atspi
+atspi_roles: atspi
 uia: id_map uia_com uia_ids
 uia_com:
 uia_ids:

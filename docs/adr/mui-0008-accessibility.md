@@ -152,6 +152,21 @@ ranges and virtual lists.
   AccessKit queues them only to leave its lock first. A name is
   compared by the node's own text, so a name drawn from other nodes
   changes without an event.
+- **The AT-SPI adapter** (`maul-ui/access_atspi.h`, the component
+  `MAUL_UI_ATSPI`, on by default on Linux) follows AT-SPI's two levels:
+  an application (`muiAtspiApp`) joins the accessibility bus
+  (`AT_SPI_BUS_ADDRESS`, else the session bus's `org.a11y.Bus`), serves
+  the root and asks the registry to embed it; each window
+  (`muiAtspiAdapter`) owns a consumer tree whose root is a child of
+  the application's. It starts no thread: libdbus-1, opened at run
+  time with the ABI it uses declared as Maul Window declares it, reads
+  and writes the socket the host polls, at each pump, without
+  waiting. Nodes are paths `/org/a11y/atspi/accessible/w<window>n<id>`,
+  answered by one filter: the Accessible interface (children as
+  shown, roles from a table, names, states, parents, indexes), the
+  Component interface (extents in pixels, the node under a point,
+  focusing and scrolling asked of the host) and the Application
+  interface on the root.
 
 ## Consequences
 

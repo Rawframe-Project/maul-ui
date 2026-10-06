@@ -152,7 +152,14 @@ format.
   SelectionItem, each turned into the host's actions; and events
   raised from what an update changed while a client listens: the
   focus moving, property changes (name, help text, enabled, toggle,
-  expand and selection states, values) and live regions. The result
+  expand and selection states, values) and live regions. The AT-SPI
+  adapter (`maul-ui/access_atspi.h`, `MAUL_UI_ATSPI`, on Linux):
+  `muiCreateAtspiApp` joining the accessibility bus and registering
+  its root, `muiAtspiApp_GetDescriptor` and `muiAtspiApp_Pump` for the
+  host's loop, `muiCreateAtspiAdapter` for each window, with the
+  Accessible, Component and Application interfaces: children as shown,
+  names, roles, states, parents, extents in screen, window and parent
+  pixels, the node under a point, focusing and scrolling. The result
   `mui_errorPlatform` (record mui-0008).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and
   `muiNode_CancelExit`; an exiting subtree leaves hit testing, focus
