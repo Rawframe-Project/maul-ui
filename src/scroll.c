@@ -356,7 +356,7 @@ uint32_t muiScrollerOf(const muiContext* context, uint32_t stop, uint32_t at, bo
         {
             return at;
         }
-        if (at == stop || muiIsLayerRoot(tree, at))
+        if (at == stop)
         {
             break;
         }

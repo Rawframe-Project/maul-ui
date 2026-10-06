@@ -18,8 +18,8 @@ typedef struct muiContext muiContext;
 // root: whether a scroll container took it.
 bool muiScrollWheel(muiContext* context, uint32_t root, muiNodeId hit, const muiWheelEvent* event);
 
-// The nearest node from at up that scrolls along an axis, not past stop
-// or the root of at's layer; 0 for none.
+// The nearest node from at up that scrolls along an axis, not past stop,
+// a focus scope (the layer holding the focus, or the root); 0 for none.
 uint32_t muiScrollerOf(const muiContext* context, uint32_t stop, uint32_t at, bool horizontal);
 
 // Whether a node lies within half a scrollport of a scrolling ancestor's

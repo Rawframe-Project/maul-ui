@@ -475,6 +475,24 @@ static void TestBounds(void)
               !Key(context, root, mui_codePageDown, 0) && Y(context, s) == 87.5f,
           "not past a layer");
     muiDestroyContext(context);
+    // In a row scrolling across inside s, a page key finds s.
+    context = MakeContext(false);
+    root = Sized(context, s_nullNode, 300.0f, 300.0f);
+    s = Sized(context, root, 200.0f, 100.0f);
+    Column(context, s, mui_scrollVertical);
+    muiNodeId row = Sized(context, s, 200.0f, 50.0f);
+    muiLayoutStyle across = muiDefaultLayoutStyle();
+    across.scrollAxes = mui_scrollHorizontal;
+    SetLayout(context, row, &across, MUI_PROPERTY_BIT(mui_propertyScrollAxes));
+    a = Sized(context, row, 400.0f, 50.0f);
+    Focusable(context, a);
+    (void)Sized(context, s, 200.0f, 400.0f);
+    Layout(context, root, 0);
+    CHECK(muiFocus_Set(context, 0, a, mui_focusByCode) == mui_success &&
+              Key(context, root, mui_codePageDown, 0) && Y(context, s) == 87.5f &&
+              X(context, row) == 0.0f,
+          "past the row");
+    muiDestroyContext(context);
 }
 
 static void TestNearAndAcross(void)
