@@ -114,6 +114,12 @@ jobs:
       - name: Test
         run: |
           for t in build/test_*.js; do node "$t" || exit 1; done
+      - name: Install Puppeteer and its headless Chrome
+        run: npm install --prefix /tmp/browser puppeteer
+      - name: Test in headless Chrome
+        # The ARIA adapter against the browser's accessibility tree; a
+        # skip (77) fails the step, so green means it ran.
+        run: MUI_NODE_MODULES=/tmp/browser/node_modules node test/web_runner.cjs build/test_aria.js
       - name: Size
         # The static library's size, reported, not gated (family record
         # 0013).

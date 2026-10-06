@@ -47,6 +47,10 @@ access_apply: access_tree access_tree_store allocator
 access_view: access_tree_store
 id_map:
 dbus_api:
+aria: id_map
+aria_adapter: allocator aria
+aria_elements: aria
+aria_page: aria
 atspi: dbus_api id_map
 atspi_events: allocator atspi
 atspi_actions: atspi

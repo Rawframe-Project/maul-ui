@@ -166,7 +166,15 @@ format.
   host), relations and attributes; events (states, names, values and
   announcements as records change, children added, removed and moved
   as clients were told them, the focus; the shown tree walked only
-  when an update may change it). The result
+  when an update may change it). The ARIA adapter
+  (`maul-ui/access_aria.h`, `MAUL_UI_ARIA`, for Emscripten):
+  `muiCreateAriaAdapter` in an element of the host's over the canvas,
+  the shown tree mirrored into invisible elements nested as it is, each
+  at its node's box, with ARIA roles, names (labels, or text where ARIA
+  names from content), states and values, a range the host sets as an
+  `input type=range`; building deferred behind a visually hidden
+  enabling button or `muiAriaAdapter_Enable`; `muiAriaAdapter_SetScale`
+  for CSS pixels per unit. The result
   `mui_errorPlatform` (record mui-0008).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and
   `muiNode_CancelExit`; an exiting subtree leaves hit testing, focus

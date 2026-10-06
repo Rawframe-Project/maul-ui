@@ -111,6 +111,50 @@ MUI_NODISCARD MUI_API muiResult muiNode_GetAccessValues(const muiContext* contex
 ```
 Reads the typed values the host set on a node.  @param context    The context. @param nodeId     The node. @param valuesOut  Receives them; the defaults for none. @return `mui_success`; `mui_errorInvalid` for a NULL argument or the null id; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
+## `access_aria.h`
+
+The ARIA adapter (record mui-0008), the component MAUL_UI_ARIA builds for Emscripten: the accessibility tree's consumer mirrored into elements of the page, which the browser gives its accessibility clients. The elements are built in an element of the host's over the canvas (Maul Window's accessibility host, say), each placed over what it names and invisible; clients' actions come back through a function of the host's. A page cannot tell whether a screen reader runs, and the elements cost every user, so by default nothing is built until the program enables the adapter or a screen reader user presses the visually hidden button the adapter puts in the host. Every function here is used on the page's main thread.
+
+```c
+muiAriaAdapterDef muiDefaultAriaAdapterDef(void);
+```
+The default def: the C library's allocation, 4096 nodes, no host, a scale of 1, building deferred behind a button labelled "Enable accessibility", no action function.  @return The def. @par Thread safety Safe from any thread.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiCreateAriaAdapter(const muiAriaAdapterDef* def, muiAriaAdapter** adapterOut);
+```
+Makes an adapter with an empty tree in the host element, with the enabling button when building is deferred.  @param def         The def, from muiDefaultAriaAdapterDef. @param adapterOut  Receives the adapter; NULL on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a def not from muiDefaultAriaAdapterDef, a half-set allocator, no nodes, no host, no label, no action function or a scale not above 0; `mui_errorPlatform` when no element matches the host, or there is no page; `mui_errorCapacity` when memory runs out. @par Thread safety Main thread only.
+
+```c
+void muiDestroyAriaAdapter(muiAriaAdapter* adapter);
+```
+Takes the adapter's elements out of the page and destroys it; NULL is ignored.  @param adapter  The adapter. @par Thread safety Main thread only.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiAriaAdapter_Apply(muiAriaAdapter* adapter, const muiAccessUpdate* update);
+```
+Applies an update to the adapter's tree (muiAccessTree_Apply) and, once enabled, brings the elements to it.  @param adapter  The adapter. @param update   The update. @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter. @par Thread safety Main thread only.
+
+```c
+const muiAccessTree* muiAriaAdapter_GetTree(const muiAriaAdapter* adapter);
+```
+The adapter's tree.  @param adapter  The adapter. @return The tree; NULL for a NULL adapter. @par Thread safety Main thread only.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiAriaAdapter_SetScale(muiAriaAdapter* adapter, float scale);
+```
+Sets the CSS pixels per unit, as the host scales its UI, and places the elements again.  @param adapter  The adapter. @param scale    The scale, above 0. @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale not above 0. @par Thread safety Main thread only.
+
+```c
+void muiAriaAdapter_Enable(muiAriaAdapter* adapter);
+```
+Builds the elements, if building was deferred and has not begun, and takes the enabling button away. The button does the same.  @param adapter  The adapter; NULL is ignored. @par Thread safety Main thread only.
+
+```c
+bool muiAriaAdapter_IsEnabled(const muiAriaAdapter* adapter);
+```
+Whether the elements are built.  @param adapter  The adapter. @return Whether they are; false for NULL. @par Thread safety Main thread only.
+
 ## `access_atspi.h`
 
 The AT-SPI adapter (record mui-0008), the component MAUL_UI_ATSPI builds on Linux: the accessibility tree's consumer shown to AT-SPI, the accessibility service of Linux desktops. An application joins the accessibility bus and registers its root, whose children are its windows; each window is an adapter owning a consumer tree, applying the core's updates. Clients' actions come back through a function of the host's. Nothing here starts a thread or waits on the bus after the application is made: the host polls the application's descriptor for reading, with its other sources, and pumps it when it is readable and once a frame. Every function here is used on the thread that made the application, which "main thread" below means.
@@ -1365,4 +1409,4 @@ Reads a node's resolved visual values: its direct writes, and for the other prop
 
 ---
 
-248 functions across 30 headers.
+256 functions across 31 headers.

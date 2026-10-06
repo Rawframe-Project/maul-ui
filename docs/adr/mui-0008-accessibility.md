@@ -184,6 +184,24 @@ ranges and virtual lists.
   or a record changed what the rules read: hidden, clipping, a generic
   node's role or label, a box where it or its parent clips). A value or
   a name changing costs its signal and no walk.
+- **The ARIA adapter** (`maul-ui/access_aria.h`, the component
+  `MAUL_UI_ARIA`, on by default for Emscripten) mirrors the shown tree
+  into elements of the page, the web's only accessibility interface:
+  in an element over the canvas the host names by a CSS selector (Maul
+  Window's accessibility host), a container of its own made invisible
+  as Flutter makes its semantics (`filter: opacity(0%)`), then one
+  element a shown node, nested as the shown tree is and placed at the
+  node's box relative to its parent's. Roles come from a table; names
+  are `aria-label`, or the element's text where ARIA names from
+  content; states and values are ARIA attributes; a range the host
+  sets is an `input type=range`, which touch screen readers adjust.
+  The same `shownChanged` signal starts one walk that removes, makes
+  and places elements; `updated` writes the attributes that changed
+  and places again the boxes that moved. Nothing is built until the
+  program enables it or a screen reader user presses a visually hidden
+  button, as a page cannot tell that a screen reader runs. The test
+  runs in headless Chrome, comparing the browser's accessibility
+  tree.
 
 ## Consequences
 
