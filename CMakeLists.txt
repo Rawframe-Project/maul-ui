@@ -190,7 +190,8 @@ if(MAUL_UI_ANDROID_ACCESSIBILITY)
     endif()
     # The provider's Java is java/maul/ui/AccessProvider.java, which the
     # host builds into its application.
-    target_sources(maul-ui PRIVATE src/android_adapter.c src/android_jni.c src/android_node.c)
+    target_sources(maul-ui PRIVATE src/android_adapter.c src/android_events.c src/android_jni.c
+                                   src/android_node.c)
 endif()
 if(MAUL_UI_ARIA)
     if(NOT MAUL_UI_ACCESS_TREE)

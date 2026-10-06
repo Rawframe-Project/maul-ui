@@ -9,12 +9,15 @@
 // around a label 4 whose name is past the Basic Multilingual Plane; a
 // text field 5 "Name" holding "Ada"; a checked check box 7; a slider 8
 // at 30 of 100 that steps and is set, described and with a value text;
-// a live heading 9. The host's action function records what it is asked.
+// a live heading 9. The host's action function records what it is asked,
+// and the adapter's events are recorded in place of the provider's, as
+// "type id changes;" each.
 
 #include "android.h"
 
 #include "maul-ui/access_android.h"
 
+#include <stdio.h>
 #include <string.h>
 
 static muiAccessRequest s_asked = {.action = 0xFF};
@@ -151,6 +154,67 @@ JNIEXPORT jfloat JNICALL Java_maul_ui_tests_TestActivity_askedValue(JNIEnv* env,
     (void)env;
     (void)type;
     return s_asked.value;
+}
+
+static char s_told[512];
+
+static void Record(const muiAndroidAdapter* adapter, jint virtualId, jint type, jint changes)
+{
+    (void)adapter;
+    size_t used = strlen(s_told);
+    (void)snprintf(s_told + used, sizeof(s_told) - used, "%d %d %d;", (int)type, (int)virtualId,
+                   (int)changes);
+}
+
+// The update of a step, applied: 1 the button renamed, 2 the label's
+// value, 3 the slider's value text, 4 the check box unchecked, 5 the
+// field renamed, 6 the button again unchanged, 7 the focus to the field.
+static void Step(muiAndroidAdapter* adapter, jint step)
+{
+    muiAccessNode node = s_nodes[step == 1 || step == 6 ? 1
+                                 : step == 2            ? 3
+                                 : step == 3            ? 6
+                                 : step == 4            ? 5
+                                 : step == 5            ? 4
+                                                        : 0];
+    if (step == 1 || step == 6)
+    {
+        SetText(&node, mui_accessLabel, "Okay");
+    }
+    else if (step == 2)
+    {
+        SetText(&node, mui_accessValue, "Hey");
+    }
+    else if (step == 3)
+    {
+        SetText(&node, mui_accessValue, "40 percent");
+    }
+    else if (step == 4)
+    {
+        node.flags = mui_accessCheckable;
+    }
+    else if (step == 5)
+    {
+        SetText(&node, mui_accessLabel, "Your name");
+    }
+    const muiAccessUpdate update = {(const muiAccessNode*[]){&node}, 1, s_children, 0,
+                                    step == 7 ? 5 : 0};
+    (void)muiAndroidAdapter_Apply(adapter, &update);
+}
+
+JNIEXPORT jstring JNICALL Java_maul_ui_tests_TestActivity_toldAfter(JNIEnv* env, jclass type,
+                                                                    jlong adapter, jint step);
+JNIEXPORT jstring JNICALL Java_maul_ui_tests_TestActivity_toldAfter(JNIEnv* env, jclass type,
+                                                                    jlong adapter, jint step)
+{
+    (void)type;
+    muiAndroidAdapter* made = (muiAndroidAdapter*)(intptr_t)adapter;
+    muiAndroidTellFunction tell = made->tell;
+    made->tell = Record;
+    s_told[0] = '\0';
+    Step(made, step);
+    made->tell = tell;
+    return (*env)->NewStringUTF(env, s_told);
 }
 
 JNIEXPORT void JNICALL Java_maul_ui_tests_TestActivity_removeButton(JNIEnv* env, jclass type,

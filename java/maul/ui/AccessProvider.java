@@ -3,11 +3,13 @@
 
 package maul.ui;
 
+import android.content.Context;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewParent;
 import android.view.accessibility.AccessibilityEvent;
+import android.view.accessibility.AccessibilityManager;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction;
 import android.view.accessibility.AccessibilityNodeProvider;
@@ -280,7 +282,10 @@ public class AccessProvider extends AccessibilityNodeProvider {
      */
     void send(int id, int type, int changes) {
         ViewParent parent = host.getParent();
-        if (parent == null) {
+        AccessibilityManager manager =
+                (AccessibilityManager) host.getContext().getSystemService(Context.ACCESSIBILITY_SERVICE);
+        // Android throws for an event sent while accessibility is off.
+        if (parent == null || manager == null || !manager.isEnabled()) {
             return;
         }
         AccessibilityEvent event = new AccessibilityEvent(type);

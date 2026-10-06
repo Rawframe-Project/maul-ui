@@ -190,6 +190,7 @@ muiResult muiCreateAndroidAdapter(const muiAndroidAdapterDef* def, muiAndroidAda
         .action = def->action,
         .user = def->user,
         .nodes = def->nodes,
+        .tell = muiAndroidTell,
     };
     Lay(adapter, block);
     JNIEnv* env = def->env;
@@ -272,14 +273,44 @@ static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* 
     adapter->freeCount++;
 }
 
+static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* old)
+{
+    muiAndroidTellUpdated(user, old, muiAccessTree_Find(tree, old->id));
+}
+
+static void ShownChanged(void* user, const muiAccessTree* tree)
+{
+    (void)tree;
+    ((muiAndroidAdapter*)user)->reshaped = true;
+}
+
+static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint64_t focus)
+{
+    (void)tree;
+    (void)old;
+    (void)focus;
+    ((muiAndroidAdapter*)user)->focusMoved = true;
+}
+
 muiResult muiAndroidAdapter_Apply(muiAndroidAdapter* adapter, const muiAccessUpdate* update)
 {
     if (adapter == nullptr)
     {
         return mui_errorInvalid;
     }
-    const muiAccessChanges changes = {.user = adapter, .removed = Removed};
-    return muiAccessTree_Apply(adapter->tree, update, &changes);
+    const muiAccessChanges changes = {.user = adapter,
+                                      .updated = Updated,
+                                      .removed = Removed,
+                                      .focusMoved = FocusMoved,
+                                      .shownChanged = ShownChanged};
+    adapter->reshaped = false;
+    adapter->focusMoved = false;
+    muiResult status = muiAccessTree_Apply(adapter->tree, update, &changes);
+    if (status == mui_success)
+    {
+        muiAndroidTellChanges(adapter);
+    }
+    return status;
 }
 
 const muiAccessTree* muiAndroidAdapter_GetTree(const muiAndroidAdapter* adapter)

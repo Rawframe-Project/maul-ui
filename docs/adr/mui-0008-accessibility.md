@@ -269,9 +269,16 @@ ranges and virtual lists.
   UTF-16, as the JNI's modified UTF-8 breaks on characters past the
   Basic Multilingual Plane. The provider keeps the screen reader's
   cursor itself and answers `virtualViewAt` for touch exploration
-  without depending on Maul Window. The test is an application in the
-  Android emulator, built without Gradle, whose Java asks the provider
-  as clients do.
+  without depending on Maul Window. Events go to the nodes clients
+  have seen: a content change of a node whose record changed, typed
+  as a content description, a text or a state description when only
+  its name or value text did, else unsaid, which also makes Android
+  speak a live node; a subtree change when the shown tree may have
+  changed; the view focused when the focus moved. Android throws for an
+  event sent while accessibility is off, so the provider sends only
+  while it is on. The test is an application in the Android emulator,
+  built without Gradle, whose Java asks the provider as clients do;
+  the events are recorded in place of the provider's.
 
 ## Consequences
 

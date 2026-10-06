@@ -205,7 +205,9 @@ format.
   hints, states, ranges, live settings and bounds on the screen; click,
   focus, scrolling, setting a range, expanding and collapsing asked of
   the host; the screen reader's cursor kept by the provider;
-  `virtualViewAt` for touch exploration. The
+  `virtualViewAt` for touch exploration; events (content changes with
+  their types, the subtree, the view focused), sent only while
+  accessibility is on. The
   result
   `mui_errorPlatform` (record mui-0008).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and

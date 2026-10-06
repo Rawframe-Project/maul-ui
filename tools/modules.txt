@@ -50,6 +50,7 @@ id_map:
 dbus_api:
 android: id_map
 android_adapter: allocator android
+android_events: access_record android
 android_jni: allocator android
 android_node: android
 aria: id_map

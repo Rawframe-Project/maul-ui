@@ -77,6 +77,11 @@ enum
 // android.view.View.NO_ID.
 #define MUI_ANDROID_NO_ID (-1)
 
+// Tells clients of an event on a virtual view (muiAndroidTell, through
+// the provider, or a test's): its type, and content change types.
+typedef void (*muiAndroidTellFunction)(const muiAndroidAdapter* adapter, jint virtualId, jint type,
+                                       jint changes);
+
 struct muiAndroidAdapter
 {
     muiAllocator allocator;
@@ -106,6 +111,10 @@ struct muiAndroidAdapter
     uint32_t* freeVirtuals;
     uint32_t freeHead;
     uint32_t freeCount;
+    muiAndroidTellFunction tell;
+    // What the update being applied changed: the shown tree, the focus.
+    bool reshaped;
+    bool focusMoved;
 };
 
 // The JNIEnv of this thread.
@@ -136,6 +145,13 @@ muiAndroidText muiAndroidTextOf(const muiAccessNode* node, int kind);
 // The provider's action at an index as the host's, asked of it.
 bool muiAndroidAct(const muiAndroidAdapter* adapter, const muiAccessNode* node, int action,
                    float value);
+
+// The events (android_events.c): an updated record, and what the update
+// changed once applied; muiAndroidTell sends one through the provider.
+void muiAndroidTellUpdated(muiAndroidAdapter* adapter, const muiAccessNode* old,
+                           const muiAccessNode* node);
+void muiAndroidTellChanges(muiAndroidAdapter* adapter);
+void muiAndroidTell(const muiAndroidAdapter* adapter, jint virtualId, jint type, jint changes);
 
 // The deepest shown node under a place in the view's pixels, 0 for none.
 uint64_t muiAndroidNodeAt(muiAndroidAdapter* adapter, float x, float y);

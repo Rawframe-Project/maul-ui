@@ -24,6 +24,9 @@ import java.io.PrintWriter;
  * - bounds on the screen at the scale;
  * - the actions offered and asked of the host; the screen reader's
  *   cursor; the input focus; the node under a place;
+ * - the events an update makes, recorded in place of the provider's:
+ *   a content description, a text or a state changed, or a change
+ *   unsaid; the subtree; the view focused; none for no change;
  * - a node gone, and the adapter gone, answering nothing.
  * It writes its failures and a closing "result: N failures" to
  * files/out.
@@ -50,6 +53,8 @@ public final class TestActivity extends Activity {
     private static native long askedTarget();
 
     private static native float askedValue();
+
+    private static native String toldAfter(long adapter, int step);
 
     private static native void removeButton(long adapter);
 
@@ -116,6 +121,7 @@ public final class TestActivity extends Activity {
                 "the host's one child");
         testNodes(provider, host, root, button, label, field, box, slider, heading);
         testActions(provider, button, label, field, box, slider);
+        testEvents(adapter, root, button, label, field, box, slider);
         removeButton(adapter);
         check(provider.createAccessibilityNodeInfo(button) == null
                 && provider.createAccessibilityNodeInfo(root).getChildCount() == 5,
@@ -170,6 +176,24 @@ public final class TestActivity extends Activity {
         info = provider.createAccessibilityNodeInfo(heading);
         check(info.isHeading() && info.getLiveRegion() == View.ACCESSIBILITY_LIVE_REGION_POLITE,
                 "a live heading");
+    }
+
+    private void told(long adapter, int step, String expected, String what) {
+        String got = toldAfter(adapter, step);
+        check(got.equals(expected), what + ": told \"" + got + "\"");
+    }
+
+    // Content changes (2048) with their types, a focus (8).
+    private void testEvents(long adapter, int root, int button, int label, int field, int box,
+            int slider) {
+        told(adapter, 1, "2048 " + button + " 4;", "a name as content description");
+        told(adapter, 2, "2048 " + label + " 2;", "a label's name as text");
+        told(adapter, 3, "2048 " + slider + " 64;", "a value text as state");
+        told(adapter, 4, "2048 " + box + " 0;", "a state, unsaid");
+        told(adapter, 5, "2048 " + field + " 0;", "a text field's name, its hint, unsaid");
+        told(adapter, 6, "", "no change");
+        told(adapter, 7, "2048 " + root + " 1;8 " + field + " 0;",
+                "the focus moved: the subtree, then the view focused");
     }
 
     private boolean asked(int action, long target) {
