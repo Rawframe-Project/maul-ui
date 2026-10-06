@@ -37,6 +37,7 @@ virtual_store:
 range: context range_store tree notify
 exit: animation context exit_store focus notify tree layout_node
 virtual: context layout_node notify scroll_store tree virtual_store
+virtual_edit: context tree virtual virtual_store
 popup: context layout_node popup_store scroll tree notify
 scroll: context scroll_store tree layer motion_math
 navigate: context focus tree scroll

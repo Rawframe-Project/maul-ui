@@ -109,7 +109,10 @@ format.
   `muiNode_ClearVirtualList`, `muiNode_GetVirtualWindow`,
   `muiNode_GetVirtualItem`, `muiNode_SetItem` and `muiNode_ClearItem`;
   `mui_notificationWindowChanged`; `limits.virtualLists` and
-  `limits.virtualItems` (record mui-0007).
+  `limits.virtualItems`. Items inserted, removed and moved by index
+  (`muiNode_InsertVirtualItems`, `muiNode_RemoveVirtualItems`,
+  `muiNode_MoveVirtualItem`, `muiNode_GetItem`), bound nodes following
+  them, with scroll anchoring (record mui-0007).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and
   `muiNode_CancelExit`; an exiting subtree leaves hit testing, focus
   and navigation, and `mui_notificationExitFinished` reports when no

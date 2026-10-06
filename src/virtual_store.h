@@ -24,7 +24,15 @@ typedef struct muiVirtualEntry
     uint32_t first;
     uint32_t end;
     bool windowed;
+    // Set anew: the node of the item shown first, and how far past the
+    // viewport's start it began, which the next layout keeps.
+    bool anchoring;
+    muiNodeId anchor;
+    double anchorShift;
 } muiVirtualEntry;
+
+// A node bound to an item since removed: out of the flow, placed nowhere.
+#define MUI_ITEM_REMOVED UINT32_MAX
 
 typedef struct muiVirtualStore
 {
@@ -34,7 +42,7 @@ typedef struct muiVirtualStore
     float* sizes;
     double* sums;
     uint32_t itemCapacity;
-    // Per node: its item's index plus 1, 0 for none.
+    // Per node: its item's index plus 1, 0 for none, MUI_ITEM_REMOVED.
     uint32_t* items;
 } muiVirtualStore;
 

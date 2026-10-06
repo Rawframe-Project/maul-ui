@@ -254,7 +254,16 @@ itself instead of each host repeating them.
   leave the flow, stretch across the list's content box, are measured
   into their extents and placed at their offsets; the list's extent
   covers every item, realized or not, so scrolling is not clamped to
-  what exists.
+  what exists. Items are inserted, removed and moved by index
+  (`muiNode_InsertVirtualItems`, `muiNode_RemoveVirtualItems`,
+  `muiNode_MoveVirtualItem`): their extents go with them, bound nodes
+  follow their items (a removed item's node stays out of the flow,
+  placed nowhere, until the host destroys or rebinds it), and the
+  offset moves by whatever changed above the viewport's start, as does
+  an item above it measured anew, so what is shown stays put (CSS's
+  scroll anchoring). A list set anew keeps the item it showed first
+  where it was once the host binds that item's node again, wherever the
+  item now is (ItemsRepeater's reset with keys).
 - **Drag and drop**, within the application: a node takes kinds of
   thing by the interaction property `accepts`, a mask of the
   application's bits. While a pointer drags, the host offers a kind and

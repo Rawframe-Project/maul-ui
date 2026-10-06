@@ -70,6 +70,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/exit.c
     src/popup.c
     src/virtual.c
+    src/virtual_edit.c
     src/range.c
     src/scroll.c
     src/layout.c

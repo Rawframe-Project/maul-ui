@@ -64,7 +64,9 @@ extern "C"
 
     /// Makes a node a virtual list, or sets it anew, every estimated
     /// extent back to the estimate; its window is reported at the next
-    /// layout.
+    /// layout. Set anew, as after its data was replaced, it keeps the
+    /// item it showed first where it was, if the host binds that item's
+    /// node again before the next layout, wherever the item now is.
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
@@ -153,6 +155,77 @@ extern "C"
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_ClearItem(muiContext* context, muiNodeId nodeId);
+
+    /// Reads the item a node is bound to.
+    ///
+    /// @param context   The context.
+    /// @param nodeId    The node.
+    /// @param indexOut  Receives the index.
+    /// @return `mui_success`; `mui_empty` for a node bound to none, or to
+    ///         an item since removed; `mui_errorInvalid` for a NULL
+    ///         argument or the null id; `mui_errorStale` for a node that is
+    ///         gone.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiNode_GetItem(const muiContext* context, muiNodeId nodeId,
+                                                    uint32_t* indexOut);
+
+    /// Inserts items into a list before index, estimated; the items after
+    /// keep their extents, and nodes bound to them follow them. Inserted
+    /// above the viewport, they move the offset along, so what is shown
+    /// stays put.
+    ///
+    /// @param context  The context.
+    /// @param nodeId   The list.
+    /// @param index    Where, up to the count.
+    /// @param count    How many, at least 1.
+    /// @return `mui_success`; `mui_empty` for a node that is not a list;
+    ///         `mui_errorCapacity` when an estimated list's items no longer
+    ///         fit its limit; `mui_errorInvalid` for a NULL context, the
+    ///         null id, an index past the count, no items or more than
+    ///         2^32 - 1 in all, or a call from a measure or paint function;
+    ///         `mui_errorStale` for a node that is gone.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiNode_InsertVirtualItems(muiContext* context,
+                                                               muiNodeId nodeId, uint32_t index,
+                                                               uint32_t count);
+
+    /// Removes items from a list; nodes bound to them stay out of the
+    /// flow, placed nowhere, until the host destroys or binds them
+    /// (muiNode_GetItem reports them empty), and the rest follow their
+    /// items. Removed above the viewport, they move the offset back.
+    ///
+    /// @param context  The context.
+    /// @param nodeId   The list.
+    /// @param index    The first.
+    /// @param count    How many, at least 1, ending by the count.
+    /// @return `mui_success`; `mui_empty` for a node that is not a list;
+    ///         `mui_errorInvalid` for a NULL context, the null id, a range
+    ///         outside the list or empty, or a call from a measure or paint
+    ///         function; `mui_errorStale` for a node that is gone.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiNode_RemoveVirtualItems(muiContext* context,
+                                                               muiNodeId nodeId, uint32_t index,
+                                                               uint32_t count);
+
+    /// Moves an item of a list to another index, its extent with it; its
+    /// node, bound, follows it, as do those between. What is shown stays
+    /// put when the item crosses the viewport's start.
+    ///
+    /// @param context  The context.
+    /// @param nodeId   The list.
+    /// @param from     The item, below the count.
+    /// @param to       Its new index, below the count.
+    /// @return `mui_success`; `mui_empty` for a node that is not a list;
+    ///         `mui_errorInvalid` for a NULL context, the null id, an index
+    ///         past the count, or a call from a measure or paint function;
+    ///         `mui_errorStale` for a node that is gone.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiNode_MoveVirtualItem(muiContext* context, muiNodeId nodeId,
+                                                            uint32_t from, uint32_t to);
 
 #ifdef __cplusplus
 }

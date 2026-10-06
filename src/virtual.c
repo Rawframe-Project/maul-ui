@@ -35,7 +35,7 @@ muiVirtualList muiDefaultVirtualList(void)
 }
 
 // The entry of the list at slot; NULL for a node that is no list.
-static muiVirtualEntry* EntryOf(const muiContext* context, uint32_t slot)
+muiVirtualEntry* muiVirtualEntryOf(const muiContext* context, uint32_t slot)
 {
     const muiVirtualStore* store = &context->lists;
     for (uint32_t i = 0; i < store->count; i++)
@@ -50,7 +50,7 @@ static muiVirtualEntry* EntryOf(const muiContext* context, uint32_t slot)
 }
 
 // The live entry of a node; NULL for a node that is no list.
-static muiVirtualEntry* Find(const muiContext* context, muiNodeId nodeId, muiResult* statusOut)
+muiVirtualEntry* muiVirtualFind(const muiContext* context, muiNodeId nodeId, muiResult* statusOut)
 {
     if (nodeId.index1 == 0)
     {
@@ -58,13 +58,13 @@ static muiVirtualEntry* Find(const muiContext* context, muiNodeId nodeId, muiRes
         return nullptr;
     }
     uint32_t slot = muiTreeResolve(&context->tree, nodeId);
-    muiVirtualEntry* entry = slot != 0 ? EntryOf(context, slot) : nullptr;
+    muiVirtualEntry* entry = slot != 0 ? muiVirtualEntryOf(context, slot) : nullptr;
     *statusOut = slot == 0 ? mui_errorStale : entry == nullptr ? mui_empty : mui_success;
     return entry;
 }
 
 // Takes out the entries of nodes destroyed since.
-static void Purge(muiContext* context)
+void muiVirtualPurge(muiContext* context)
 {
     muiVirtualStore* store = &context->lists;
     for (uint32_t i = store->count; i > 0; i--)
@@ -77,37 +77,50 @@ static void Purge(muiContext* context)
 }
 
 // Whether an entry holds item storage.
-static bool Stores(const muiVirtualEntry* entry)
+bool muiVirtualStores(const muiVirtualEntry* entry)
 {
     return !entry->list.fixed && entry->list.count != 0;
 }
 
 // The first start from which count items fit in the item storage, past
 // every other entry's that overlaps; the capacity when none does.
-static uint32_t Room(const muiVirtualStore* store, const muiVirtualEntry* self, uint32_t count)
+// Whether count items from start fit the capacity and every entry's but
+// self's.
+static bool Fits(const muiVirtualStore* store, const muiVirtualEntry* self, uint32_t start,
+                 uint32_t count)
 {
-    // Candidates: the start, and the end of each other entry's items.
+    // Every entry's items lie within the capacity, so start does too.
+    bool fits = store->itemCapacity - start >= count;
+    for (uint32_t i = 0; fits && i < store->count; i++)
+    {
+        const muiVirtualEntry* other = &store->entries[i];
+        fits = other == self || !muiVirtualStores(other) || other->base >= start + count ||
+               other->base + other->list.count <= start;
+    }
+    return fits;
+}
+
+uint32_t muiVirtualRoom(const muiVirtualStore* store, const muiVirtualEntry* self, uint32_t count)
+{
+    // Where self is, so that it grows in place; then the start, and the
+    // end of each other entry's items.
+    if (self != nullptr && muiVirtualStores(self) && Fits(store, self, self->base, count))
+    {
+        return self->base;
+    }
     for (uint32_t c = 0; c <= store->count; c++)
     {
         uint32_t start = 0;
         if (c < store->count)
         {
             const muiVirtualEntry* after = &store->entries[c];
-            if (!Stores(after))
+            if (after == self || !muiVirtualStores(after))
             {
                 continue;
             }
             start = after->base + after->list.count;
         }
-        // Every entry's items lie within the capacity, so start does too.
-        bool fits = store->itemCapacity - start >= count;
-        for (uint32_t i = 0; fits && i < store->count; i++)
-        {
-            const muiVirtualEntry* other = &store->entries[i];
-            fits = other == self || !Stores(other) || other->base >= start + count ||
-                   other->base + other->list.count <= start;
-        }
-        if (fits)
+        if (Fits(store, self, start, count))
         {
             return start;
         }
@@ -121,21 +134,18 @@ static double* SumsOf(const muiVirtualStore* store, const muiVirtualEntry* entry
     return store->sums + entry->base - 1;
 }
 
-// Sets every item of an estimated entry to the estimate and builds its
-// tree in O(count).
-static void Build(muiVirtualStore* store, const muiVirtualEntry* entry)
+void muiVirtualBuild(muiVirtualStore* store, const muiVirtualEntry* entry)
 {
     uint32_t count = entry->list.count;
-    float* sizes = store->sizes + entry->base;
+    const float* sizes = store->sizes + entry->base;
     double* sums = SumsOf(store, entry);
     for (uint32_t k = 1; k <= count; k++)
     {
-        sizes[k - 1] = entry->list.extent;
         sums[k] = 0.0;
     }
     for (uint32_t k = 1; k <= count; k++)
     {
-        sums[k] += (double)entry->list.extent + (double)entry->list.gap;
+        sums[k] += (double)sizes[k - 1] + (double)entry->list.gap;
         uint32_t up = k + (k & (0u - k));
         if (up <= count)
         {
@@ -156,7 +166,7 @@ static void Add(const muiVirtualStore* store, const muiVirtualEntry* entry, uint
 }
 
 // Where item i begins: the extents and gaps of the items before it.
-static double OffsetOf(const muiVirtualStore* store, const muiVirtualEntry* entry, uint32_t i)
+double muiVirtualOffset(const muiVirtualStore* store, const muiVirtualEntry* entry, uint32_t i)
 {
     const muiVirtualList* list = &entry->list;
     if (list->fixed)
@@ -181,7 +191,7 @@ static float ExtentOf(const muiVirtualStore* store, const muiVirtualEntry* entry
 static double TotalOf(const muiVirtualStore* store, const muiVirtualEntry* entry)
 {
     uint32_t count = entry->list.count;
-    return count == 0 ? 0.0 : OffsetOf(store, entry, count) - (double)entry->list.gap;
+    return count == 0 ? 0.0 : muiVirtualOffset(store, entry, count) - (double)entry->list.gap;
 }
 
 // The item whose place, its extent and the gap after it, holds offset;
@@ -227,6 +237,57 @@ static void SetLength(muiContext* context, uint32_t slot, const muiVirtualEntry*
     scroll->listY = entry != nullptr && !horizontal ? total : 0.0f;
 }
 
+double muiVirtualViewStart(const muiContext* context, uint32_t slot, const muiVirtualEntry* entry)
+{
+    const muiScrollState* scroll = &context->scrolls[slot - 1];
+    const muiLayoutStyle* style = &context->layout[slot - 1].style;
+    return entry->list.axis == mui_listHorizontal ? (double)scroll->x - (double)style->padding.start
+                                                  : (double)scroll->y - (double)style->padding.top;
+}
+
+void muiVirtualShift(muiContext* context, uint32_t slot, const muiVirtualEntry* entry, double delta)
+{
+    muiScrollState* scroll = &context->scrolls[slot - 1];
+    float* offset = entry->list.axis == mui_listHorizontal ? &scroll->x : &scroll->y;
+    float moved = fmaxf((float)((double)*offset + delta), 0.0f);
+    if (moved != *offset)
+    {
+        *offset = moved;
+        context->scrolled = true;
+    }
+}
+
+// The bound item of the list at slot that the viewport shows first, and
+// how far it begins past the viewport's start; false for none.
+static bool FirstShown(const muiContext* context, uint32_t slot, const muiVirtualEntry* entry,
+                       muiNodeId* nodeOut, double* shiftOut)
+{
+    const muiVirtualStore* store = &context->lists;
+    const muiTree* tree = &context->tree;
+    double viewStart = muiVirtualViewStart(context, slot, entry);
+    double best = 0.0;
+    bool found = false;
+    for (uint32_t c = muiTreeAt(tree, slot)->links.firstChild; c != 0;
+         c = muiTreeAt(tree, c)->links.next)
+    {
+        uint32_t item = store->items[c - 1];
+        if (item == 0 || item > entry->list.count)
+        {
+            continue;
+        }
+        double offset = muiVirtualOffset(store, entry, item - 1);
+        double end = offset + (double)ExtentOf(store, entry, item - 1);
+        if (end > viewStart && (!found || offset < best))
+        {
+            best = offset;
+            *nodeOut = muiTreeIdOf(tree, c);
+            found = true;
+        }
+    }
+    *shiftOut = best - viewStart;
+    return found;
+}
+
 muiResult muiNode_SetVirtualList(muiContext* context, muiNodeId nodeId, const muiVirtualList* list)
 {
     if (context == nullptr)
@@ -244,10 +305,10 @@ muiResult muiNode_SetVirtualList(muiContext* context, muiNodeId nodeId, const mu
         return status;
     }
     muiVirtualStore* store = &context->lists;
-    muiVirtualEntry* entry = EntryOf(context, slot);
+    muiVirtualEntry* entry = muiVirtualEntryOf(context, slot);
     if (entry == nullptr && store->count == store->capacity)
     {
-        Purge(context);
+        muiVirtualPurge(context);
     }
     if (entry == nullptr && store->count == store->capacity)
     {
@@ -256,27 +317,40 @@ muiResult muiNode_SetVirtualList(muiContext* context, muiNodeId nodeId, const mu
     uint32_t base = 0;
     if (!list->fixed && list->count != 0)
     {
-        base = Room(store, entry, list->count);
+        base = muiVirtualRoom(store, entry, list->count);
         if (base == store->itemCapacity)
         {
-            Purge(context);
-            entry = EntryOf(context, slot);
-            base = Room(store, entry, list->count);
+            muiVirtualPurge(context);
+            entry = muiVirtualEntryOf(context, slot);
+            base = muiVirtualRoom(store, entry, list->count);
         }
         if (base == store->itemCapacity)
         {
             return mui_errorCapacity;
         }
     }
+    // Set anew: the first item shown, as a bound node, and where it was.
+    muiNodeId anchor = {0, 0};
+    double anchorShift = 0.0;
+    bool anchoring = entry != nullptr && entry->windowed &&
+                     FirstShown(context, slot, entry, &anchor, &anchorShift);
     if (entry == nullptr)
     {
         entry = &store->entries[store->count++];
     }
-    *entry =
-        (muiVirtualEntry){.node = muiTreeIdOf(&context->tree, slot), .list = *list, .base = base};
-    if (Stores(entry))
+    *entry = (muiVirtualEntry){.node = muiTreeIdOf(&context->tree, slot),
+                               .list = *list,
+                               .base = base,
+                               .anchoring = anchoring,
+                               .anchor = anchor,
+                               .anchorShift = anchorShift};
+    if (muiVirtualStores(entry))
     {
-        Build(store, entry);
+        for (uint32_t i = 0; i < list->count; i++)
+        {
+            store->sizes[base + i] = list->extent;
+        }
+        muiVirtualBuild(store, entry);
     }
     SetLength(context, slot, entry);
     muiTreeMarkLayout(&context->tree, slot);
@@ -294,7 +368,7 @@ muiResult muiNode_ClearVirtualList(muiContext* context, muiNodeId nodeId)
         return muiRefuse(context);
     }
     muiResult status = mui_success;
-    muiVirtualEntry* entry = Find(context, nodeId, &status);
+    muiVirtualEntry* entry = muiVirtualFind(context, nodeId, &status);
     if (status == mui_errorInvalid)
     {
         return muiRefuse(context);
@@ -317,7 +391,7 @@ muiResult muiNode_GetVirtualWindow(const muiContext* context, muiNodeId nodeId, 
         return mui_errorInvalid;
     }
     muiResult status = mui_success;
-    const muiVirtualEntry* entry = Find(context, nodeId, &status);
+    const muiVirtualEntry* entry = muiVirtualFind(context, nodeId, &status);
     if (entry == nullptr || !entry->windowed)
     {
         return entry == nullptr ? status : mui_empty;
@@ -335,7 +409,7 @@ muiResult muiNode_GetVirtualItem(const muiContext* context, muiNodeId nodeId, ui
         return mui_errorInvalid;
     }
     muiResult status = mui_success;
-    const muiVirtualEntry* entry = Find(context, nodeId, &status);
+    const muiVirtualEntry* entry = muiVirtualFind(context, nodeId, &status);
     if (entry == nullptr)
     {
         return status;
@@ -344,7 +418,7 @@ muiResult muiNode_GetVirtualItem(const muiContext* context, muiNodeId nodeId, ui
     {
         return mui_errorInvalid;
     }
-    *offsetOut = (float)OffsetOf(&context->lists, entry, index);
+    *offsetOut = (float)muiVirtualOffset(&context->lists, entry, index);
     *extentOut = ExtentOf(&context->lists, entry, index);
     return mui_success;
 }
@@ -375,7 +449,7 @@ muiResult muiNode_SetItem(muiContext* context, muiNodeId nodeId, uint32_t index)
         return status;
     }
     uint32_t parent = muiTreeAt(&context->tree, slot)->links.parent;
-    const muiVirtualEntry* entry = parent != 0 ? EntryOf(context, parent) : nullptr;
+    const muiVirtualEntry* entry = parent != 0 ? muiVirtualEntryOf(context, parent) : nullptr;
     if (entry == nullptr || index >= entry->list.count)
     {
         return muiRefuse(context);
@@ -399,15 +473,17 @@ muiResult muiNode_ClearItem(muiContext* context, muiNodeId nodeId)
     return status;
 }
 
-// Measures, places and sizes one list at slot.
-static void PlaceList(muiContext* context, uint32_t slot, const muiVirtualEntry* entry)
+// Measures the bound items of an estimated list at slot into their
+// extents; how far the offset must move for what is shown to stay put:
+// by the change of each item that begins above viewStart.
+static double Measure(muiContext* context, uint32_t slot, const muiVirtualEntry* entry,
+                      double viewStart)
 {
     muiVirtualStore* store = &context->lists;
     const muiTree* tree = &context->tree;
-    const muiLayoutNode* list = &context->layout[slot - 1];
     bool horizontal = entry->list.axis == mui_listHorizontal;
-    // Measured first, so that every place reads every extent.
-    for (uint32_t c = muiTreeAt(tree, slot)->links.firstChild; c != 0 && Stores(entry);
+    double shift = 0.0;
+    for (uint32_t c = muiTreeAt(tree, slot)->links.firstChild; c != 0 && muiVirtualStores(entry);
          c = muiTreeAt(tree, c)->links.next)
     {
         uint32_t item = store->items[c - 1];
@@ -420,11 +496,23 @@ static void PlaceList(muiContext* context, uint32_t slot, const muiVirtualEntry*
         float* known = &store->sizes[entry->base + item - 1];
         if (size != *known)
         {
-            Add(store, entry, item - 1, (double)size - (double)*known);
+            double delta = (double)size - (double)*known;
+            Add(store, entry, item - 1, delta);
             *known = size;
+            shift += muiVirtualOffset(store, entry, item - 1) < viewStart ? delta : 0.0;
         }
     }
+    return shift;
+}
+
+// Places the bound items of the list at slot at their offsets along it.
+static void Position(muiContext* context, uint32_t slot, const muiVirtualEntry* entry)
+{
+    const muiVirtualStore* store = &context->lists;
+    const muiTree* tree = &context->tree;
+    const muiLayoutNode* list = &context->layout[slot - 1];
     const muiLayoutStyle* style = &list->style;
+    bool horizontal = entry->list.axis == mui_listHorizontal;
     for (uint32_t c = muiTreeAt(tree, slot)->links.firstChild; c != 0;
          c = muiTreeAt(tree, c)->links.next)
     {
@@ -434,7 +522,7 @@ static void PlaceList(muiContext* context, uint32_t slot, const muiVirtualEntry*
             continue;
         }
         muiRect* rect = &context->layout[c - 1].rect;
-        float offset = (float)OffsetOf(store, entry, item - 1);
+        float offset = (float)muiVirtualOffset(store, entry, item - 1);
         if (!horizontal)
         {
             rect->y = style->border.top + style->padding.top + offset;
@@ -453,9 +541,30 @@ static void PlaceList(muiContext* context, uint32_t slot, const muiVirtualEntry*
             muiTreeMark(&context->tree, c, mui_stagePaint);
         }
     }
+}
+
+// Measures, places and sizes one list at slot. Measured first, so that
+// every place reads every extent.
+static void PlaceList(muiContext* context, uint32_t slot, muiVirtualEntry* entry)
+{
+    const muiVirtualStore* store = &context->lists;
+    double viewStart = muiVirtualViewStart(context, slot, entry);
+    double shift = Measure(context, slot, entry, viewStart);
+    // A list set anew keeps the item it showed first where it was, once
+    // its node is bound again.
+    uint32_t anchor = entry->anchoring ? muiTreeResolve(&context->tree, entry->anchor) : 0;
+    uint32_t held = anchor != 0 ? store->items[anchor - 1] : 0;
+    if (held != 0 && held <= entry->list.count)
+    {
+        shift = muiVirtualOffset(store, entry, held - 1) - entry->anchorShift - viewStart;
+    }
+    entry->anchoring = false;
+    muiVirtualShift(context, slot, entry, shift);
+    Position(context, slot, entry);
     SetLength(context, slot, entry);
+    const muiLayoutStyle* style = &context->layout[slot - 1].style;
     muiScrollState* scroll = &context->scrolls[slot - 1];
-    if (horizontal)
+    if (entry->list.axis == mui_listHorizontal)
     {
         scroll->extentWidth =
             fmaxf(scroll->extentWidth, style->padding.start + scroll->listX + style->padding.end);
@@ -469,10 +578,10 @@ static void PlaceList(muiContext* context, uint32_t slot, const muiVirtualEntry*
 
 void muiVirtualPlace(muiContext* context, uint32_t root)
 {
-    const muiVirtualStore* store = &context->lists;
+    muiVirtualStore* store = &context->lists;
     for (uint32_t i = 0; i < store->count; i++)
     {
-        const muiVirtualEntry* entry = &store->entries[i];
+        muiVirtualEntry* entry = &store->entries[i];
         uint32_t slot = muiTreeResolve(&context->tree, entry->node);
         if (slot != 0 && muiTreeIsAncestor(&context->tree, root, slot))
         {
@@ -496,11 +605,9 @@ void muiVirtualWindows(muiContext* context, uint32_t root)
         // start, widened by the overscan. It ends at 0 or later: a box is
         // no smaller than its padding.
         const muiLayoutNode* list = &context->layout[slot - 1];
-        const muiScrollState* scroll = &context->scrolls[slot - 1];
         bool horizontal = entry->list.axis == mui_listHorizontal;
         const muiLayoutStyle* style = &list->style;
-        double start = horizontal ? (double)scroll->x - (double)style->padding.start
-                                  : (double)scroll->y - (double)style->padding.top;
+        double start = muiVirtualViewStart(context, slot, entry);
         double port = horizontal ? (double)list->rect.width - (double)style->border.start -
                                        (double)style->border.end
                                  : (double)list->rect.height - (double)style->border.top -

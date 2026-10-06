@@ -471,6 +471,162 @@ static void TestOtherRoot(void)
     muiDestroyContext(context);
 }
 
+static float ScrollY(const muiContext* context, muiNodeId node)
+{
+    float x = 0.0f;
+    float y = 0.0f;
+    CHECK(muiNode_GetScroll(context, node, &x, &y) == mui_success, "scroll");
+    return y;
+}
+
+static bool ItemIs(const muiContext* context, muiNodeId node, uint32_t index)
+{
+    uint32_t got = 0;
+    return muiNode_GetItem(context, node, &got) == mui_success && got == index;
+}
+
+static void TestEdits(void)
+{
+    // A thousand items of 40 scrolled to 400; items 10 to 12 realized.
+    Scene scene;
+    muiVirtualList list = ListOf(1000, 40.0f, false, 0.0f, 0.0f);
+    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    muiContext* context = scene.context;
+    Layout(context, scene.root);
+    CHECK(muiNode_SetScroll(context, scene.list, 0.0f, 400.0f) == mui_success, "scrolled");
+    muiNodeId items[3];
+    Realize(&scene, 10, 13, -1.0f, 40.0f, items);
+    Layout(context, scene.root);
+    CHECK(WindowIs(context, scene.list, 10, 13) && muiNode_GetRect(context, items[0]).y == 400.0f,
+          "shown");
+    // Two inserted above: the offset follows, the items with it.
+    CHECK(muiNode_InsertVirtualItems(context, scene.list, 0, 2) == mui_success &&
+              ScrollY(context, scene.list) == 480.0f && ItemIs(context, items[0], 12) &&
+              ItemIs(context, items[2], 14),
+          "inserted above");
+    Layout(context, scene.root);
+    CHECK(muiNode_GetRect(context, items[0]).y == 480.0f && WindowIs(context, scene.list, 12, 15),
+          "the same view");
+    // Below: nothing moves.
+    CHECK(muiNode_InsertVirtualItems(context, scene.list, 100, 5) == mui_success &&
+              ScrollY(context, scene.list) == 480.0f && ItemIs(context, items[0], 12),
+          "inserted below");
+    // Removed above: back.
+    CHECK(muiNode_RemoveVirtualItems(context, scene.list, 0, 2) == mui_success &&
+              ScrollY(context, scene.list) == 400.0f && ItemIs(context, items[0], 10),
+          "removed above");
+    // Removed across the viewport's start: back to where they began.
+    CHECK(muiNode_RemoveVirtualItems(context, scene.list, 9, 2) == mui_success &&
+              ScrollY(context, scene.list) == 360.0f && ItemIs(context, items[1], 9) &&
+              ItemIs(context, items[2], 10),
+          "removed across");
+    uint32_t index = 0;
+    CHECK(muiNode_GetItem(context, items[0], &index) == mui_empty, "its node placed nowhere");
+    Layout(context, scene.root);
+    CHECK(muiNode_GetRect(context, items[1]).y == 360.0f, "the next item there");
+    // Moved from above to below, and back.
+    CHECK(muiNode_MoveVirtualItem(context, scene.list, 0, 500) == mui_success &&
+              ScrollY(context, scene.list) == 320.0f && ItemIs(context, items[1], 8),
+          "moved out from above");
+    CHECK(muiNode_MoveVirtualItem(context, scene.list, 500, 0) == mui_success &&
+              ScrollY(context, scene.list) == 360.0f && ItemIs(context, items[1], 9),
+          "moved back above");
+    // A bound item moved: its node follows.
+    CHECK(muiNode_MoveVirtualItem(context, scene.list, 9, 20) == mui_success &&
+              ItemIs(context, items[1], 20) && ItemIs(context, items[2], 9) &&
+              ScrollY(context, scene.list) == 360.0f,
+          "moved below, its node with it");
+    CHECK(muiNode_MoveVirtualItem(context, scene.list, 3, 3) == mui_success, "nowhere");
+    muiDestroyContext(context);
+}
+
+static void TestAnchoring(void)
+{
+    // Items above the viewport measured larger move it on; a list set
+    // anew keeps its first shown item where it was.
+    Scene scene;
+    muiVirtualList list = ListOf(1000, 40.0f, false, 0.0f, 0.0f);
+    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    muiContext* context = scene.context;
+    Layout(context, scene.root);
+    CHECK(muiNode_SetScroll(context, scene.list, 0.0f, 410.0f) == mui_success, "scrolled");
+    muiNodeId above[1];
+    Realize(&scene, 5, 6, -1.0f, 60.0f, above);
+    muiNodeId shown[1];
+    Realize(&scene, 10, 11, -1.0f, 40.0f, shown);
+    Layout(context, scene.root);
+    CHECK(ScrollY(context, scene.list) == 430.0f && muiNode_GetRect(context, shown[0]).y == 420.0f,
+          "20 more above: moved by 20");
+    // Set anew, as after a reload; the shown item's node bound to its new
+    // index, 700: it stays 10 above the viewport's start.
+    list.count = 2000;
+    CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success &&
+              muiNode_SetItem(context, shown[0], 700) == mui_success &&
+              muiNode_ClearItem(context, above[0]) == mui_success,
+          "reloaded");
+    Layout(context, scene.root);
+    CHECK(ScrollY(context, scene.list) == 28010.0f &&
+              muiNode_GetRect(context, shown[0]).y == 28000.0f,
+          "where it was");
+    // Set anew with its node bound nowhere: the offset stays.
+    CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success &&
+              muiNode_ClearItem(context, shown[0]) == mui_success,
+          "again");
+    Layout(context, scene.root);
+    CHECK(ScrollY(context, scene.list) == 28010.0f, "kept");
+    muiDestroyContext(context);
+}
+
+static void TestEditContract(void)
+{
+    muiContextDef def = muiDefaultContextDef();
+    def.limits.virtualItems = 20;
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    muiNodeId a = Node(context, s_nullNode);
+    muiNodeId b = Node(context, s_nullNode);
+    muiVirtualList list = ListOf(10, 40.0f, false, 0.0f, 0.0f);
+    CHECK(muiNode_SetVirtualList(context, a, &list) == mui_success, "ten");
+    uint64_t misuse = muiGetContextMisuse(context);
+    CHECK(muiNode_InsertVirtualItems(context, a, 11, 1) == mui_errorInvalid &&
+              muiNode_InsertVirtualItems(context, a, 0, 0) == mui_errorInvalid &&
+              muiNode_InsertVirtualItems(context, a, 0, 0xFFFFFFFFu - 10u) == mui_errorInvalid &&
+              muiNode_RemoveVirtualItems(context, a, 10, 1) == mui_errorInvalid &&
+              muiNode_RemoveVirtualItems(context, a, 5, 0) == mui_errorInvalid &&
+              muiNode_RemoveVirtualItems(context, a, 5, 6) == mui_errorInvalid &&
+              muiNode_MoveVirtualItem(context, a, 10, 0) == mui_errorInvalid &&
+              muiNode_MoveVirtualItem(context, a, 0, 10) == mui_errorInvalid &&
+              muiGetContextMisuse(context) == misuse + 8,
+          "refused");
+    CHECK(muiNode_InsertVirtualItems(context, b, 0, 1) == mui_empty &&
+              muiNode_RemoveVirtualItems(context, b, 0, 1) == mui_empty &&
+              muiNode_MoveVirtualItem(context, b, 0, 1) == mui_empty &&
+              muiNode_InsertVirtualItems(NULL, a, 0, 1) == mui_errorInvalid &&
+              muiNode_RemoveVirtualItems(NULL, a, 0, 1) == mui_errorInvalid &&
+              muiNode_MoveVirtualItem(NULL, a, 0, 1) == mui_errorInvalid,
+          "not a list");
+    // Grown in place, then moved past another list, then out of room.
+    CHECK(muiNode_InsertVirtualItems(context, a, 10, 5) == mui_success, "fifteen in place");
+    list.count = 3;
+    CHECK(muiNode_SetVirtualList(context, b, &list) == mui_success, "three after");
+    CHECK(muiNode_InsertVirtualItems(context, a, 0, 3) == mui_errorCapacity, "no room");
+    CHECK(muiNode_RemoveVirtualItems(context, a, 0, 13) == mui_success &&
+              muiNode_InsertVirtualItems(context, a, 2, 1) == mui_success,
+          "two, then three");
+    float offset = 0.0f;
+    float extent = 0.0f;
+    CHECK(muiNode_GetVirtualItem(context, a, 2, &offset, &extent) == mui_success &&
+              offset == 80.0f && extent == 40.0f,
+          "estimated");
+    uint32_t index = 0;
+    CHECK(muiNode_GetItem(context, a, NULL) == mui_errorInvalid &&
+              muiNode_GetItem(NULL, a, &index) == mui_errorInvalid &&
+              muiNode_GetItem(context, s_nullNode, &index) == mui_errorInvalid &&
+              muiNode_GetItem(context, a, &index) == mui_empty,
+          "items read");
+    muiDestroyContext(context);
+}
+
 static void TestContract(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -570,6 +726,9 @@ int main(void)
     TestStorageBack();
     TestSetAnew();
     TestOtherRoot();
+    TestEdits();
+    TestAnchoring();
+    TestEditContract();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }
