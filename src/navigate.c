@@ -7,6 +7,8 @@
 // far as Android's focus search compares them: in the direction, in the
 // focus's beam, then by a distance weighted toward the direction's axis.
 
+#include "navigate.h"
+
 #include "context.h"
 #include "focus.h"
 #include "tree.h"
@@ -199,6 +201,33 @@ static uint32_t Linked(const muiContext* context, uint32_t focus, muiDirection d
                : 0;
 }
 
+uint32_t muiNavigateFind(const muiContext* context, uint32_t scope, uint32_t focus,
+                         muiDirection direction)
+{
+    const muiTree* tree = &context->tree;
+    uint32_t next = Linked(context, focus, direction);
+    if (next == 0)
+    {
+        const Box source = BoxOf(context, focus);
+        Box best = {0};
+        for (uint32_t at = scope; at != 0; at = muiFocusFollowing(tree, scope, at))
+        {
+            // The focus's own box is no candidate.
+            if (!muiFocusTakes(context, at, mui_focusAll))
+            {
+                continue;
+            }
+            const Box box = BoxOf(context, at);
+            if (IsBetter(direction, &source, &box, next != 0 ? &best : nullptr))
+            {
+                next = at;
+                best = box;
+            }
+        }
+    }
+    return next != focus ? next : 0;
+}
+
 muiResult muiFocus_MoveToward(muiContext* context, muiNodeId rootId, uint8_t player,
                               muiDirection direction)
 {
@@ -223,27 +252,8 @@ muiResult muiFocus_MoveToward(muiContext* context, muiNodeId rootId, uint8_t pla
     {
         return muiFocus_Move(context, rootId, player, false);
     }
-    uint32_t next = Linked(context, focus, direction);
+    uint32_t next = muiNavigateFind(context, scope, focus, direction);
     if (next == 0)
-    {
-        const Box source = BoxOf(context, focus);
-        Box best = {0};
-        for (uint32_t at = scope; at != 0; at = muiFocusFollowing(tree, scope, at))
-        {
-            // The focus's own box is no candidate.
-            if (!muiFocusTakes(context, at, mui_focusAll))
-            {
-                continue;
-            }
-            const Box box = BoxOf(context, at);
-            if (IsBetter(direction, &source, &box, next != 0 ? &best : nullptr))
-            {
-                next = at;
-                best = box;
-            }
-        }
-    }
-    if (next == 0 || next == focus)
     {
         return mui_empty;
     }

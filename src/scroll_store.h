@@ -22,20 +22,43 @@ typedef struct muiScrollState
 } muiScrollState;
 
 // The default rule (muiDefaultScrollRule).
-#define MUI_WHEEL_STEP     100.0f
-#define MUI_WHEEL_LATCH_NS 500000000ull
+#define MUI_SCROLL_RULE                                                                            \
+    ((muiScrollRule){.wheelStep = 100.0f,                                                          \
+                     .lineStep = 40.0f,                                                            \
+                     .pageFraction = 0.875f,                                                       \
+                     .latchNs = 500000000ull,                                                      \
+                     .easeNs = 150000000ull})
 
-// The rule, and the scroll container the wheel last scrolled with when.
+// The most scroll containers easing a step at once; a step past them
+// jumps.
+#define MUI_SCROLL_EASES 8
+
+// A step easing out: offsets from where they were when it began to where
+// it goes.
+typedef struct muiScrollEase
+{
+    muiNodeId node;
+    float fromX;
+    float fromY;
+    float toX;
+    float toY;
+    uint64_t startNs;
+} muiScrollEase;
+
+// The rule, the scroll container the wheel last scrolled with when, and
+// the steps easing.
 typedef struct muiScrollStore
 {
     muiScrollRule rule;
     muiNodeId latched;
     uint64_t latchedNs;
+    uint32_t easeCount;
+    muiScrollEase eases[MUI_SCROLL_EASES];
 } muiScrollStore;
 
 static inline void muiScrollInit(muiScrollStore* store)
 {
-    *store = (muiScrollStore){.rule = {MUI_WHEEL_STEP, MUI_WHEEL_LATCH_NS}};
+    *store = (muiScrollStore){.rule = MUI_SCROLL_RULE};
 }
 
 // The furthest an offset goes along an axis: the extent less the padding

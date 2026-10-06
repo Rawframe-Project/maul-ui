@@ -81,6 +81,10 @@ static muiContext* MakeContext(void)
     muiContextDef def = muiDefaultContextDef();
     muiContext* context = NULL;
     CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    // Steps at once: TestEase eases them.
+    muiScrollRule rule = muiDefaultScrollRule();
+    rule.easeNs = 0;
+    CHECK(muiSetScrollRule(context, &rule) == mui_success, "no easing");
     return context;
 }
 
@@ -209,7 +213,10 @@ static void TestTime(void)
               Y(context, nest.outer) == 100.0f,
           "time went back: chained");
     muiScrollRule rule = muiDefaultScrollRule();
-    CHECK(rule.wheelStep == 100.0f && rule.latchNs == 500 * MS, "the defaults");
+    CHECK(rule.wheelStep == 100.0f && rule.lineStep == 40.0f && rule.pageFraction == 0.875f &&
+              rule.latchNs == 500 * MS && rule.easeNs == 150 * MS,
+          "the defaults");
+    rule.easeNs = 0;
     rule.wheelStep = 10.0f;
     rule.latchNs = 0;
     CHECK(muiSetScrollRule(context, &rule) == mui_success, "set the rule");

@@ -11,6 +11,7 @@
 #include "layout_node.h"
 #include "property.h"
 #include "restyle.h"
+#include "scroll.h"
 #include "solve.h"
 #include "tree.h"
 
@@ -148,6 +149,8 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
     sizingInput.height = (muiMeasureAxis){size.height, mui_measureExact};
     (void)muiSolveNode(&solver, root, &sizingInput, true);
     context->inHostCall = false;
+    // Steps easing move to now, within the limits layout just set.
+    muiScrollAdvance(context, input->timeNs);
     const muiRect rect = {0.0f, 0.0f, size.width, size.height};
     context->layout[root - 1].rect = rect;
     if (!muiIsSameRect(rect, context->draw.states[root - 1].rect))
@@ -168,5 +171,6 @@ bool muiIsUpdatePending(const muiContext* context, muiNodeId rootId)
     uint32_t slot = context != nullptr ? muiTreeResolve(&context->tree, rootId) : 0;
     return slot != 0 && ((muiTreeAt(&context->tree, slot)->dirty.subtree &
                           (mui_stageStyle | mui_stageLayout)) != 0 ||
-                         muiIsAnimatingUnder(&context->animations, &context->tree, slot));
+                         muiIsAnimatingUnder(&context->animations, &context->tree, slot) ||
+                         muiScrollIsEasingUnder(context, slot));
 }

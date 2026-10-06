@@ -85,6 +85,12 @@ format.
   outward and latched per wheel transaction; `muiScrollRule` with
   `muiDefaultScrollRule` and `muiSetScrollRule`;
   `muiNode_GetScrollThumb` for scrollbars (record mui-0007).
+- Keys scroll: arrows and navigation directions inside a scroll
+  container move the focus to a near candidate or step a line, as
+  Android's ScrollView; Page Up and Down, Home, End and Space step the
+  vertical scroll container holding the focus. Whole wheel detents and
+  key steps ease out over the scroll rule's time; the rule gains
+  `lineStep`, `pageFraction` and `easeNs` (record mui-0007).
 - Font families (`muiCreateFontFamily`, `muiFontFamily_GetKey`,
   `muiFontFamily_MatchFace`): faces a text style names together, matched
   by width, slant and weight as CSS matches them, with fallbacks of

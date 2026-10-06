@@ -207,8 +207,16 @@ extern "C"
     /// layer covers: the top modal layer under the root; none: the root).
     /// Unhandled, a key down does what the library does by default: Tab,
     /// with Shift or not and no other modifier, moves the focus as
-    /// muiFocus_Move does, and an arrow without modifiers as
-    /// muiFocus_MoveToward does; a move is handled. A key down makes the
+    /// muiFocus_Move does. An arrow without modifiers, when the focus is
+    /// in a scroll container along its axis (maul-ui/scroll.h), moves
+    /// the focus to the candidate directional navigation finds inside it
+    /// if that lies within half a scrollport of the visible part (or a
+    /// link leads out), else steps the container a line while it can
+    /// move, as Android's ScrollView does; otherwise it moves the focus
+    /// as muiFocus_MoveToward does. Page Up and Down, Home and End
+    /// without modifiers, and Space with Shift or not and no other
+    /// modifier, step the vertical scroll container holding the focus a
+    /// page or to an end. What moves is handled. A key down makes the
     /// player's next focus by code shown.
     ///
     /// @param context     The context.
@@ -240,9 +248,9 @@ extern "C"
                                                  const muiTextEvent* event, bool* handledOut);
 
     /// Routes a navigation action to the player's focus under the root, as
-    /// muiKeyInput routes a key. Unhandled, the four directions move the
-    /// focus as muiFocus_MoveToward does, next and previous as
-    /// muiFocus_Move does; a move is handled. Activate and cancel have no
+    /// muiKeyInput routes a key. Unhandled, the four directions do what
+    /// arrows do, next and previous move the focus as muiFocus_Move
+    /// does; a move is handled. Activate and cancel have no
     /// default. It makes the player's next focus by code shown.
     ///
     /// @param context     The context.

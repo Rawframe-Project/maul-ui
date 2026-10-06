@@ -423,8 +423,9 @@ extern "C"
 
     /// Returns whether muiComputeLayout on a root has work to do: an edit
     /// below it since its last run, a node whose conditions read a size or
-    /// direction that run changed, which a following run styles again, or
-    /// a transition running below it.
+    /// direction that run changed, which a following run styles again, a
+    /// transition running below it, or a scroll step easing below it
+    /// (maul-ui/scroll.h).
     ///
     /// @param context  The context.
     /// @param rootId   The root.

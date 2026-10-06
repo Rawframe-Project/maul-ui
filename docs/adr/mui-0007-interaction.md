@@ -152,6 +152,21 @@ itself instead of each host repeating them.
   transaction, so a list at its end does not hand a turn to the page
   behind. Shift turns a vertical-only turn horizontal.
   `muiNode_GetScrollThumb` places a scrollbar thumb on a host's track.
+- **Keys and directions** scroll by default after routing. An arrow or
+  a navigation direction, with the focus in a scroll container along
+  its axis, follows Android's `ScrollView`: the focus moves to the
+  candidate inside when it lies within half a scrollport of the
+  visible part, else the container steps a line (40), and at its end
+  the focus moves as anywhere else. Page keys and Space step the
+  vertical scroll container holding the focus by 0.875 of a page, Home
+  and End to its ends.
+- **Steps ease out:** whole detents and key steps move toward a target
+  over 150 ms with a cubic ease out, a further step retargeting from
+  where it is; fractions (smooth wheels, touchpads) apply at once;
+  reduced motion and a time of 0 jump. Steps advance in
+  `muiComputeLayout` with its time and keep `muiIsUpdatePending` true;
+  setting an offset or scrolling into view stops them. Up to eight
+  containers ease at once; a ninth jumps.
 - **Focus notifications** report each player's focus gained and lost,
   whatever moved it; a focused node that is destroyed, or stops taking
   focus at its styling or a direct write, loses it. Detaching keeps it,

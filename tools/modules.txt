@@ -27,7 +27,7 @@ layer: context layer_store tree
 layer_store:
 focus: context focus_store layer notify style_store tree scroll
 focus_store:
-event: context focus tree scroll
+event: context focus tree scroll navigate
 event_store:
 scroll_store: layout_node
 scroll: context scroll_store tree layer
@@ -48,7 +48,7 @@ flex_resolve: layout_node tree
 flex: flex_resolve layout_node sizing solver tree
 absolute: layout_node sizing solver tree
 solve: absolute condition flex invariant layout_node sizing solver tree draw_store scroll_store
-layout: animation context layout_node property restyle solve solver tree
+layout: animation context layout_node property restyle solve solver tree scroll
 font_store: allocator pool
 font_instance: font_store
 family_store: allocator pool

@@ -20,10 +20,11 @@ extern "C"
 {
 #endif
 
-    /// Scrolls a node to an offset, within 0 and its extent less its
-    /// padding box along each axis it scrolls (0 along any other), as its
-    /// last muiComputeLayout measured them; layout keeps it within them as
-    /// sizes change. The next draw list moves the children.
+    /// Scrolls a node to an offset at once, stopping any step easing it:
+    /// within 0 and its extent less its padding box along each axis it
+    /// scrolls (0 along any other), as its last muiComputeLayout measured
+    /// them; layout keeps it within them as sizes change. The next draw
+    /// list moves the children.
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
@@ -68,14 +69,14 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiNode_GetScrollExtent(const muiContext* context,
                                                             muiNodeId nodeId, muiSize* extentOut);
 
-    /// Scrolls each scrolling ancestor of a node, the nearest first, the
-    /// least that brings the node's border box into its padding box, as
-    /// CSSOM View's scrollIntoView with "nearest" does per axis: a node
-    /// already inside stays; one past the start edge and no larger than
-    /// the box aligns its start, one past the end its end; a larger one
-    /// past either edge aligns the other, and one past both stays.
-    /// Directional and sequential navigation does this to the node it
-    /// focuses.
+    /// Scrolls each scrolling ancestor of a node at once, the nearest
+    /// first, stopping steps easing them: the least that brings the
+    /// node's border box into its padding box, as CSSOM View's
+    /// scrollIntoView with "nearest" does per axis. A node already inside
+    /// stays; one past the start edge and no larger than the box aligns
+    /// its start, one past the end its end; a larger one past either edge
+    /// aligns the other, and one past both stays. Directional and
+    /// sequential navigation does this to the node it focuses.
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
@@ -86,18 +87,28 @@ extern "C"
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_ScrollIntoView(muiContext* context, muiNodeId nodeId);
 
-    // How wheel input scrolls (muiWheelInput).
+    // How input scrolls (muiWheelInput, muiKeyInput, muiNavigationInput).
     typedef struct muiScrollRule
     {
         // The distance a wheel detent scrolls, finite and at least 0.
         float wheelStep;
+        // The distance an arrow scrolls, finite and at least 0.
+        float lineStep;
+        // The share of the scrollport a page key scrolls, above 0 and at
+        // most 1.
+        float pageFraction;
         // How long a scroll container keeps the wheel after its last
         // turn, in nanoseconds.
         uint64_t latchNs;
+        // How long a whole detent's or a key's step eases out, in
+        // nanoseconds; 0 jumps.
+        uint64_t easeNs;
     } muiScrollRule;
 
-    /// The default scroll rule: 100 a detent, Chrome's on Windows, and a
-    /// latch of 500 ms. Hosts pass the platform's step where it has one.
+    /// The default scroll rule: 100 a detent, Chrome's on Windows; 40 a
+    /// line and 0.875 of the scrollport a page, Chrome's; a latch of
+    /// 500 ms; steps easing out over 150 ms. Hosts pass the platform's
+    /// steps where it has them.
     ///
     /// @return The rule.
     /// @par Thread safety

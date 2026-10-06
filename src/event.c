@@ -11,6 +11,7 @@
 
 #include "context.h"
 #include "focus.h"
+#include "navigate.h"
 #include "scroll.h"
 #include "tree.h"
 
@@ -116,6 +117,46 @@ static bool MoveFocus(muiContext* context, muiNodeId rootId, uint8_t player, boo
 }
 
 // The direction an arrow key names, or 4 for another key.
+// A direction's default: inside a scroll container along its axis,
+// Android's ScrollView rule, a focus move to a candidate within half a
+// scrollport of the visible part (or one a link leads out to), else a
+// line's step while the container can move; otherwise, or at its end, a
+// focus move as muiFocus_MoveToward makes (record mui-0007).
+static bool Toward(muiContext* context, muiNodeId rootId, uint32_t root, uint8_t player,
+                   muiDirection direction, uint64_t timeNs)
+{
+    uint32_t focus = 0;
+    uint32_t scope = muiFocusScope(context, root, player, &focus);
+    bool horizontal = direction == mui_directionLeft || direction == mui_directionRight;
+    uint32_t container = focus != 0 ? muiScrollerOf(context, scope, focus, horizontal) : 0;
+    if (container != 0)
+    {
+        uint32_t next = muiNavigateFind(context, container, focus, direction);
+        if (next != 0 && (!muiTreeIsAncestor(&context->tree, container, next) ||
+                          muiScrollIsNear(context, container, next, horizontal)))
+        {
+            muiFocusNavigate(context, player, next);
+            return true;
+        }
+        if (muiScrollLine(context, container, direction, timeNs))
+        {
+            return true;
+        }
+    }
+    return MoveFocus(context, rootId, player, false, false, direction);
+}
+
+// A page key's default: a step of the scroll container holding the
+// player's focus (or its scope's), vertically.
+static bool Page(muiContext* context, uint32_t root, uint8_t player, muiKeyCode code, bool backward,
+                 uint64_t timeNs)
+{
+    uint32_t focus = 0;
+    uint32_t scope = muiFocusScope(context, root, player, &focus);
+    uint32_t container = muiScrollerOf(context, scope, focus != 0 ? focus : scope, false);
+    return container != 0 && muiScrollPage(context, container, code, backward, timeNs);
+}
+
 static uint32_t ArrowOf(muiKeyCode code)
 {
     switch (code)
@@ -174,7 +215,19 @@ muiResult muiKeyInput(muiContext* context, muiNodeId rootId, const muiKeyEvent* 
         }
         else if (arrow != 4 && held == 0)
         {
-            handled = MoveFocus(context, rootId, event->player, false, false, (muiDirection)arrow);
+            handled =
+                Toward(context, rootId, root, event->player, (muiDirection)arrow, event->timeNs);
+        }
+        else if ((event->code == mui_codePageUp || event->code == mui_codePageDown ||
+                  event->code == mui_codeHome || event->code == mui_codeEnd) &&
+                 held == 0)
+        {
+            handled = Page(context, root, event->player, event->code, event->code == mui_codePageUp,
+                           event->timeNs);
+        }
+        else if (event->code == mui_codeSpace && (held & ~mui_modShift) == 0)
+        {
+            handled = Page(context, root, event->player, event->code, held != 0, event->timeNs);
         }
     }
     *handledOut = handled;
@@ -236,8 +289,8 @@ muiResult muiNavigationInput(muiContext* context, muiNodeId rootId, const muiNav
     if (!handled && event->action <= mui_navigateRight)
     {
         // The directions are numbered as muiDirection's.
-        handled =
-            MoveFocus(context, rootId, event->player, false, false, (muiDirection)event->action);
+        handled = Toward(context, rootId, root, event->player, (muiDirection)event->action,
+                         event->timeNs);
     }
     else if (!handled && event->action <= mui_navigatePrevious)
     {
