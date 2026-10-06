@@ -229,7 +229,7 @@ itself instead of each host repeating them.
   Escape no handler takes dismisses the popup set last; focus moved by
   code or navigation outside a popup and its anchor dismisses it,
   while a press's own focus change is left to the press.
-- **Exits** (`maul-ui/exit.h`, record I7's shape): `muiNode_BeginExit`
+- **Exits** (`maul-ui/exit.h`): `muiNode_BeginExit`
   gives a node the exiting state, which only exits set and clear, so
   its classes' exiting variants and transitions play; the node and its
   subtree leave hit testing (what lies behind is hit), focus (given up
