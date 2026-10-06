@@ -102,7 +102,9 @@ format.
   `mui_notificationRangeChanged`; `limits.ranges` (record mui-0007).
 - Touch scrolling: touch and pen drags pan scroll containers when
   their records are dispatched, and flings follow by iOS's decay; the
-  scroll rule gains `decelerationRate` (record mui-0007).
+  scroll rule gains `decelerationRate` (record mui-0007). With the
+  rule's `overscroll`, a pan past a limit rubber bands as on iOS and
+  springs back when released.
 - Drag and drop within the application: the `accepts` interaction
   property, `muiPointer_Offer`, and drop enter, leave and drop records
   carrying the kind and the host's key (record mui-0007).

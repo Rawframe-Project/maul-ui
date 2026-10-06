@@ -19,6 +19,11 @@ typedef struct muiScrollState
     // From the padding box's start, at least the padding box.
     float extentWidth;
     float extentHeight;
+    // How far a pan past a limit, rubber banded, moves the children on
+    // beyond it along each axis, logical as the offsets: drawn and hit,
+    // not an offset.
+    float overX;
+    float overY;
 } muiScrollState;
 
 // The default rule (muiDefaultScrollRule).
@@ -28,14 +33,24 @@ typedef struct muiScrollState
                      .pageFraction = 0.875f,                                                       \
                      .latchNs = 500000000ull,                                                      \
                      .easeNs = 150000000ull,                                                       \
-                     .decelerationRate = 0.998f})
+                     .decelerationRate = 0.998f,                                                   \
+                     .overscroll = false})
 
 // The most scroll containers easing a step at once; a step past them
 // jumps.
 #define MUI_SCROLL_EASES 8
 
-// A step easing out: offsets from where they were when it began to where
-// it goes; or a fling, from where it began at its velocity, decaying.
+// What moves a scroll container over time.
+typedef enum muiScrollEaseKind
+{
+    // Offsets easing out from where they were to where the step goes.
+    muiScrollEaseStep = 0,
+    // Offsets from where the fling began at its velocity, decaying.
+    muiScrollEaseFling = 1,
+    // An overscroll springing back to none from where it was.
+    muiScrollEaseBounce = 2,
+} muiScrollEaseKind;
+
 typedef struct muiScrollEase
 {
     muiNodeId node;
@@ -44,7 +59,7 @@ typedef struct muiScrollEase
     float toX;
     float toY;
     uint64_t startNs;
-    bool fling;
+    muiScrollEaseKind kind;
     float velocityX;
     float velocityY;
 } muiScrollEase;
@@ -120,21 +135,22 @@ static inline void muiSyncScroll(muiScrollState* scroll, muiScrollAxes axes)
     }
 }
 
-// How far a node moves its children on the surface: by its offsets, the
-// logical x leftward under right to left; nothing for a node that does
-// not scroll.
+// How far a node moves its children on the surface: by its offsets and
+// its overscroll, the logical x leftward under right to left; nothing for
+// a node that does not scroll.
 static inline float muiScrollShiftX(const muiLayoutNode* node, const muiScrollState* scroll)
 {
     if (node->style.scrollAxes == mui_scrollNone)
     {
         return 0.0f;
     }
-    return node->rtl ? scroll->x : -scroll->x;
+    float x = scroll->x + scroll->overX;
+    return node->rtl ? x : -x;
 }
 
 static inline float muiScrollShiftY(const muiLayoutNode* node, const muiScrollState* scroll)
 {
-    return node->style.scrollAxes == mui_scrollNone ? 0.0f : -scroll->y;
+    return node->style.scrollAxes == mui_scrollNone ? 0.0f : -(scroll->y + scroll->overY);
 }
 
 #endif // MAUL_UI_SRC_SCROLL_STORE_H

@@ -398,10 +398,10 @@ static void SetTransforms(const muiContext* context, muiDrawTables* tables, floa
     {
         uint32_t owner = tables->transformOwners[i];
         const muiScrollState* scroll = &context->scrolls[owner - 1];
-        float dx = context->layout[owner - 1].rtl ? scroll->x : -scroll->x;
+        const muiLayoutNode* layout = &context->layout[owner - 1];
         muiDrawTransform value = tables->transforms[tables->transformParents[i]];
-        value.e += roundf(dx * scale) / scale;
-        value.f += roundf(-scroll->y * scale) / scale;
+        value.e += roundf(muiScrollShiftX(layout, scroll) * scale) / scale;
+        value.f += roundf(muiScrollShiftY(layout, scroll) * scale) / scale;
         tables->transforms[i] = value;
     }
 }

@@ -176,6 +176,15 @@ itself instead of each host repeating them.
   millisecond (0.998, iOS's) in closed form, until under 10 a second or
   cut short by the limits; a press under it, a step or setting the
   offset stops it, and reduced motion skips it.
+- **Overscroll:** off by default, as desktop browsers. With the rule's
+  `overscroll`, a pan past a limit keeps the offset at the limit and
+  moves the children on by iOS's rubber band, d (1 - 1 / (0.55 x / d + 1))
+  for x past it in a scrollport of d, drawn and hit but not an offset.
+  Released, it springs back on a critically damped spring of 14.14
+  radians a second (Flutter's iOS spring, stiffness 100 over mass 0.5);
+  a pan catching it goes on from the pan that put it there. A step or
+  setting the offset takes it back at once, as reduced motion does. A
+  fling stops at the limit.
 - **Drags:** a node takes drags by the interaction property `drags`. A
   press on it, or below it where no nearer node takes them, becomes a
   drag once it moves past the threshold on either axis (4 for a mouse,
