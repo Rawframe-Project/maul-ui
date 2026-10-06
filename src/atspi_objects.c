@@ -158,8 +158,10 @@ muiAtspiObject muiAtspiObjectOf(muiAtspiAdapter* adapter, uint64_t id)
 
 muiAtspiObject muiAtspiParentOf(const muiAtspiObject* object)
 {
-    uint64_t parent = muiAccessTree_GetShownParent(object->adapter->tree, object->node->id);
-    return parent != 0 ? muiAtspiObjectOf(object->adapter, parent) : (muiAtspiObject){0};
+    // A window's root has no shown parent, and the id 0 no node: the
+    // application root.
+    return muiAtspiObjectOf(object->adapter,
+                            muiAccessTree_GetShownParent(object->adapter->tree, object->node->id));
 }
 
 uint32_t muiAtspiChildrenOf(const muiAtspiObject* object, const uint64_t** idsOut)

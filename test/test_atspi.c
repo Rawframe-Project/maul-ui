@@ -402,7 +402,7 @@ static void List(Built* built, muiAccessNode* parent, const uint64_t* ids, uint3
 }
 
 // The window 1: a focused button 2; a generic 3 around a label 4; a
-// checked checkbox 5.
+// checked checkbox 0x1a; a group 6 with a button 7 in it.
 static muiAccessUpdate Build(Built* built)
 {
     *built = (Built){0};
@@ -410,10 +410,13 @@ static muiAccessUpdate Build(Built* built)
     Add(built, 2, mui_roleButton, "OK", 10, 10, 100, 40)->flags = mui_accessFocusable;
     muiAccessNode* generic = Add(built, 3, mui_roleGeneric, NULL, 10, 60, 100, 20);
     (void)Add(built, 4, mui_roleLabel, "Hello", 0, 0, 100, 20);
-    Add(built, 5, mui_roleCheckBox, "Agree", 10, 90, 100, 20)->flags =
+    Add(built, 0x1a, mui_roleCheckBox, "Agree", 10, 90, 100, 20)->flags =
         mui_accessCheckable | mui_accessChecked;
-    List(built, root, (const uint64_t[]){2, 3, 5}, 3);
+    muiAccessNode* group = Add(built, 6, mui_roleGroup, "Box", 200, 100, 100, 50);
+    (void)Add(built, 7, mui_roleButton, "Go", 10, 10, 50, 20);
+    List(built, root, (const uint64_t[]){2, 3, 0x1a, 6}, 4);
     List(built, generic, (const uint64_t[]){4}, 1);
+    List(built, group, (const uint64_t[]){7}, 1);
     return (muiAccessUpdate){built->sent, built->nodeCount, built->children, 1, 2};
 }
 
@@ -437,6 +440,21 @@ static void TestRoot(void)
               ReferenceIs(Answer(GetChild(ROOT_PATH, 0)), s_test.plugName,
                           "/org/a11y/atspi/accessible/w1n1"),
           "a window by index, none past the last");
+    CHECK(IsError(Answer(GetChild(ROOT_PATH, -1)), "org.freedesktop.DBus.Error.InvalidArgs") &&
+              IsError(Answer(GetChild("/org/a11y/atspi/accessible/w1n1", 99)),
+                      "org.freedesktop.DBus.Error.InvalidArgs") &&
+              ReferenceIs(Answer(GetChild("/org/a11y/atspi/accessible/w1n1", 1)), s_test.plugName,
+                          "/org/a11y/atspi/accessible/w1n4"),
+          "children by index: a negative one and one past the last refused");
+    DBusMessage* parent = Call(ROOT_PATH, "org.freedesktop.DBus.Properties", "Get");
+    muiDBusIter args;
+    const char* accessible = "org.a11y.atspi.Accessible";
+    const char* parentName = "Parent";
+    s_test.dbus.iterInitAppend(parent, &args);
+    (void)(s_test.dbus.appendBasic(&args, mui_dbusTypeString, (const void*)&accessible) &&
+           s_test.dbus.appendBasic(&args, mui_dbusTypeString, (const void*)&parentName));
+    CHECK(ReferenceIs(Answer(parent), s_test.dbus.uniqueName(s_test.registry), ROOT_PATH),
+          "the root's parent is the desktop the registry gave");
     CHECK(ReferenceIs(Answer(Call(ROOT_PATH, "org.freedesktop.DBus.Properties", "Get")), "", "") ==
               false,
           "Get without arguments refused");
@@ -474,13 +492,13 @@ static void TestNodes(void)
 {
     const char* window = "/org/a11y/atspi/accessible/w1n1";
     const char* ok = "/org/a11y/atspi/accessible/w1n2";
-    const char* agree = "/org/a11y/atspi/accessible/w1n5";
+    const char* agree = "/org/a11y/atspi/accessible/w1n1a";
     int32_t count = 0;
     int32_t index = -1;
-    CHECK(ChildrenAre(window, "w1n2 w1n4 w1n5") &&
+    CHECK(ChildrenAre(window, "w1n2 w1n4 w1n1a w1n6") &&
               PropertyOf(window, "org.a11y.atspi.Accessible", "ChildCount", mui_dbusTypeInt32,
                          &count) &&
-              count == 3,
+              count == 4,
           "the window's children as shown, the generic flattened");
     CHECK(NameIs(ok, "OK") && RoleOf(ok) == 43 &&
               NameIs("/org/a11y/atspi/accessible/w1n4", "Hello") && RoleOf(agree) == 7 &&
@@ -525,6 +543,39 @@ static void TestNodes(void)
     }
 }
 
+// GetAccessibleAtPoint on the window's root.
+static DBusMessage* PointCall(int32_t x, int32_t y, uint32_t coordinates)
+{
+    DBusMessage* call =
+        Call("/org/a11y/atspi/accessible/w1n1", "org.a11y.atspi.Component", "GetAccessibleAtPoint");
+    muiDBusIter iter;
+    s_test.dbus.iterInitAppend(call, &iter);
+    (void)(s_test.dbus.appendBasic(&iter, mui_dbusTypeInt32, &x) &&
+           s_test.dbus.appendBasic(&iter, mui_dbusTypeInt32, &y) &&
+           s_test.dbus.appendBasic(&iter, mui_dbusTypeUint32, &coordinates));
+    return call;
+}
+
+// Whether a node holds a point on the screen.
+static bool Holds(const char* path, int32_t x, int32_t y)
+{
+    DBusMessage* call = Call(path, "org.a11y.atspi.Component", "Contains");
+    muiDBusIter iter;
+    uint32_t screen = 0;
+    muiDBusBool holds = 0;
+    s_test.dbus.iterInitAppend(call, &iter);
+    (void)(s_test.dbus.appendBasic(&iter, mui_dbusTypeInt32, &x) &&
+           s_test.dbus.appendBasic(&iter, mui_dbusTypeInt32, &y) &&
+           s_test.dbus.appendBasic(&iter, mui_dbusTypeUint32, &screen));
+    DBusMessage* reply = Answer(call);
+    bool ok = FirstOf(reply, mui_dbusTypeBoolean, &holds);
+    if (reply != NULL)
+    {
+        s_test.dbus.unrefMessage(reply);
+    }
+    return ok && holds != 0;
+}
+
 static void TestComponent(muiAtspiAdapter* adapter)
 {
     const char* ok = "/org/a11y/atspi/accessible/w1n2";
@@ -546,11 +597,16 @@ static void TestComponent(muiAtspiAdapter* adapter)
            s_test.dbus.appendBasic(&iter, mui_dbusTypeInt32, &y) &&
            s_test.dbus.appendBasic(&iter, mui_dbusTypeUint32, &screen));
     CHECK(ReferenceIs(Answer(call), s_test.plugName, ok), "the node under a point");
+    CHECK(ExtentsAre("/org/a11y/atspi/accessible/w1n7", 2, 20, 20, 100, 40),
+          "extents in a parent away from the window's corner");
+    CHECK(ReferenceIs(Answer(PointCall(130, 175, 0)), s_test.plugName, label) &&
+              !Holds(ok, 100 + 230, 50 + 40) && Holds(ok, 100 + 210, 50 + 40),
+          "screen points taken into the window, a point past a box's edge");
     muiDBusBool done = 0;
     DBusMessage* reply =
-        Answer(Call("/org/a11y/atspi/accessible/w1n5", "org.a11y.atspi.Component", "GrabFocus"));
+        Answer(Call("/org/a11y/atspi/accessible/w1n1a", "org.a11y.atspi.Component", "GrabFocus"));
     CHECK(FirstOf(reply, mui_dbusTypeBoolean, &done) && done &&
-              s_test.asked.action == mui_actionFocus && s_test.asked.target == 5,
+              s_test.asked.action == mui_actionFocus && s_test.asked.target == 0x1a,
           "focusing asked of the host");
     if (reply != NULL)
     {
@@ -566,21 +622,39 @@ static void TestGone(muiAtspiAdapter* adapter, Built* built)
               IsError(Answer(Call("/org/a11y/atspi/accessible/w1nzz", "org.a11y.atspi.Accessible",
                                   "GetRole")),
                       "org.freedesktop.DBus.Error.UnknownObject") &&
+              IsError(Answer(Call("/org/a11y/atspi/accessible/w1n2x", "org.a11y.atspi.Accessible",
+                                  "GetRole")),
+                      "org.freedesktop.DBus.Error.UnknownObject") &&
               IsError(Answer(Call(ROOT_PATH, "org.a11y.atspi.Accessible", "Frobnicate")),
                       "org.freedesktop.DBus.Error.UnknownMethod"),
           "unknown objects and methods");
     muiAccessNode root = built->nodes[0];
     root.firstChild = 1;
-    root.childCount = 2;
+    root.childCount = 3;
     const muiAccessNode* sent[1] = {&root};
     const muiAccessUpdate update = {sent, 1, built->children, 0, 0};
     CHECK(muiAtspiAdapter_Apply(adapter, &update) == mui_success &&
               IsError(Answer(Call("/org/a11y/atspi/accessible/w1n2", "org.a11y.atspi.Accessible",
                                   "GetRole")),
                       "org.freedesktop.DBus.Error.UnknownObject") &&
-              ChildrenAre("/org/a11y/atspi/accessible/w1n1", "w1n4 w1n5"),
+              ChildrenAre("/org/a11y/atspi/accessible/w1n1", "w1n4 w1n1a w1n6"),
           "a node removed");
+    muiAtspiAdapterDef def = muiDefaultAtspiAdapterDef();
+    def.action = Act;
+    muiAtspiAdapter* second = NULL;
+    muiAccessNode alone = {.id = 9, .role = mui_roleWindow};
+    const muiAccessNode* aloneSent[1] = {&alone};
+    const muiAccessUpdate aloneUpdate = {aloneSent, 1, NULL, 9, 9};
+    CHECK(muiCreateAtspiAdapter(s_test.app, &def, &second) == mui_success &&
+              ChildrenAre(ROOT_PATH, "w1n1"),
+          "a window with no tree is no child");
+    CHECK(muiAtspiAdapter_Apply(second, &aloneUpdate) == mui_success &&
+              ChildrenAre(ROOT_PATH, "w1n1 w2n9"),
+          "a second window");
     muiDestroyAtspiAdapter(adapter);
+    CHECK(ChildrenAre(ROOT_PATH, "w2n9") && RoleOf("/org/a11y/atspi/accessible/w2n9") == 23,
+          "the first window taken out, the second kept");
+    muiDestroyAtspiAdapter(second);
     CHECK(ChildrenAre(ROOT_PATH, "") &&
               IsError(Answer(Call("/org/a11y/atspi/accessible/w1n1", "org.a11y.atspi.Accessible",
                                   "GetRole")),
@@ -642,7 +716,7 @@ int main(void)
     muiAccessUpdate update = Build(&s_built);
     CHECK(muiCreateAtspiAdapter(s_test.app, &adapterDef, &adapter) == mui_success &&
               muiAtspiAdapter_Apply(adapter, &update) == mui_success &&
-              muiAccessTree_Count(muiAtspiAdapter_GetTree(adapter)) == 5,
+              muiAccessTree_Count(muiAtspiAdapter_GetTree(adapter)) == 7,
           "a window");
     TestContract();
     TestRoot();
