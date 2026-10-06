@@ -522,6 +522,10 @@ static void TestEdits(void)
           "removed across");
     uint32_t index = 0;
     CHECK(muiNode_GetItem(context, items[0], &index) == mui_empty, "its node placed nowhere");
+    CHECK(muiNode_InsertVirtualItems(context, scene.list, 900, 2) == mui_success &&
+              muiNode_GetItem(context, items[0], &index) == mui_empty &&
+              muiNode_RemoveVirtualItems(context, scene.list, 900, 2) == mui_success,
+          "still nowhere after an insertion");
     Layout(context, scene.root);
     CHECK(muiNode_GetRect(context, items[1]).y == 360.0f, "the next item there");
     // Moved from above to below, and back.
