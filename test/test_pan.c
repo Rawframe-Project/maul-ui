@@ -8,6 +8,7 @@
 #include "test_harness.h"
 
 #include "maul-ui/context.h"
+#include "maul-ui/draw.h"
 #include "maul-ui/event.h"
 #include "maul-ui/interaction.h"
 #include "maul-ui/layout.h"
@@ -107,6 +108,9 @@ static void MakeScene(Scene* scene, int count)
     Layout(context, scene->root, 0);
 }
 
+// The clicks Feed has seen.
+static int s_clicks;
+
 // Feeds a pointer event and dispatches every record it left; how many
 // were handled.
 static int Feed(const Scene* scene, uint32_t pointer, muiPointerKind kind, muiPointerAction action,
@@ -122,6 +126,7 @@ static int Feed(const Scene* scene, uint32_t pointer, muiPointerKind kind, muiPo
         bool taken = false;
         CHECK(muiDispatchPointerRecord(scene->context, &record, &taken) == mui_success, "dispatch");
         handled += taken;
+        s_clicks += record.kind == mui_pointerRecordClick;
     }
     return handled;
 }
@@ -156,12 +161,15 @@ static void TestPanAndFling(void)
     Layout(context, scene.root, 130 * MS);
     float expected = (float)(30.0 + 1000.0 * (1.0 - exp(-decay * 0.1)) / decay);
     CHECK(Near(Y(context, scene.s), expected), "after 100 ms");
+    Layout(context, scene.root, 230 * MS);
+    expected = (float)(30.0 + 1000.0 * (1.0 - exp(-decay * 0.2)) / decay);
+    CHECK(Near(Y(context, scene.s), expected), "after 200 ms");
     // A press stops it where it is. (A touch's hover and press restyle, so
     // a pending update says nothing here; a later layout leaves it.)
-    CHECK(Touch(&scene, mui_pointerPress, 140 * MS, 50.0f) == 0, "stopped by a press");
+    CHECK(Touch(&scene, mui_pointerPress, 240 * MS, 50.0f) == 0, "stopped by a press");
     Layout(context, scene.root, 400 * MS);
     CHECK(Near(Y(context, scene.s), expected), "where it was");
-    CHECK(Touch(&scene, mui_pointerRelease, 150 * MS, 50.0f) == 0, "a tap, no fling");
+    CHECK(Touch(&scene, mui_pointerRelease, 250 * MS, 50.0f) == 0, "a tap, no fling");
     // A fling to the end stops there.
     CHECK(Touch(&scene, mui_pointerPress, 1000 * MS, 90.0f) == 0 &&
               Touch(&scene, mui_pointerMove, 1010 * MS, 60.0f) == 1 &&
@@ -191,17 +199,19 @@ static void TestNoFling(void)
     CHECK(Y(context, scene.s) == 12.0f, "slow: no fling, after a layout");
     // Cancelled: the list stays, no fling.
     CHECK(Touch(&scene, mui_pointerPress, 1000 * MS, 50.0f) == 0 &&
-              Touch(&scene, mui_pointerMove, 1010 * MS, 30.0f) == 1 &&
+              Touch(&scene, mui_pointerMove, 1010 * MS, 40.0f) == 1 &&
+              Touch(&scene, mui_pointerMove, 1015 * MS, 30.0f) == 1 &&
               Touch(&scene, mui_pointerCancel, 1020 * MS, 30.0f) == 1 &&
               Y(context, scene.s) == 32.0f,
           "cancelled");
     Layout(context, scene.root, 1900 * MS);
     CHECK(Y(context, scene.s) == 32.0f, "cancelled, after a layout");
-    // A mouse does not pan.
+    // A mouse does not pan: no drag, so its release clicks.
+    int clicks = s_clicks;
     CHECK(Feed(&scene, 1, mui_pointerMouse, mui_pointerPress, 2000 * MS, 50.0f, 50.0f) == 0 &&
               Feed(&scene, 1, mui_pointerMouse, mui_pointerMove, 2010 * MS, 50.0f, 10.0f) == 0 &&
               Feed(&scene, 1, mui_pointerMouse, mui_pointerRelease, 2020 * MS, 50.0f, 10.0f) == 0 &&
-              Y(context, scene.s) == 32.0f,
+              Y(context, scene.s) == 32.0f && s_clicks == clicks + 1,
           "a mouse");
     // Reduced motion: a pan, no fling.
     muiEnvironment environment = muiDefaultEnvironment();
@@ -210,11 +220,12 @@ static void TestNoFling(void)
     Layout(context, scene.root, 2900 * MS);
     CHECK(Touch(&scene, mui_pointerPress, 3000 * MS, 90.0f) == 0 &&
               Touch(&scene, mui_pointerMove, 3010 * MS, 60.0f) == 1 &&
-              Touch(&scene, mui_pointerRelease, 3020 * MS, 60.0f) == 1 &&
-              Y(context, scene.s) == 62.0f,
+              Touch(&scene, mui_pointerMove, 3020 * MS, 30.0f) == 1 &&
+              Touch(&scene, mui_pointerRelease, 3030 * MS, 30.0f) == 1 &&
+              Y(context, scene.s) == 92.0f,
           "reduced motion");
     Layout(context, scene.root, 3500 * MS);
-    CHECK(Y(context, scene.s) == 62.0f, "reduced motion, after a layout");
+    CHECK(Y(context, scene.s) == 92.0f, "reduced motion, after a layout");
     muiDestroyContext(context);
 }
 
@@ -286,6 +297,163 @@ static void TestFlingThenStep(void)
     muiDestroyContext(context);
 }
 
+static void TestMore(void)
+{
+    Scene scene;
+    MakeScene(&scene, 10);
+    muiContext* context = scene.context;
+    const muiDrawInput input = {1, 1.0f, NULL, NULL};
+    muiDrawList drawn;
+    CHECK(muiBuildDrawList(context, scene.root, &input) == mui_success, "drawn");
+    // Down at the top: nothing past it.
+    CHECK(Touch(&scene, mui_pointerPress, 0, 50.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 10 * MS, 70.0f) == 1 && Y(context, scene.s) == 0.0f,
+          "not above the top");
+    CHECK(Touch(&scene, mui_pointerMove, 20 * MS, 40.0f) == 1 && Y(context, scene.s) == 10.0f &&
+              muiBuildDrawList(context, scene.root, &input) == mui_success &&
+              muiGetDrawList(context, &drawn) == mui_success && drawn.transforms[1].f == -10.0f,
+          "drawn where it pans");
+    CHECK(Touch(&scene, mui_pointerCancel, 30 * MS, 40.0f) == 1, "cancelled");
+    // A fast move long before the release is out of the window.
+    CHECK(Touch(&scene, mui_pointerPress, 1000 * MS, 50.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 1010 * MS, 30.0f) == 1 &&
+              Touch(&scene, mui_pointerMove, 1020 * MS, 10.0f) == 1 &&
+              Touch(&scene, mui_pointerMove, 1300 * MS, 9.0f) == 1 &&
+              Touch(&scene, mui_pointerRelease, 1350 * MS, 9.0f) == 1 &&
+              Y(context, scene.s) == 51.0f,
+          "held, then released");
+    Layout(context, scene.root, 2000 * MS);
+    CHECK(Y(context, scene.s) == 51.0f, "no fling");
+    // Moves at one time give no velocity.
+    CHECK(Touch(&scene, mui_pointerPress, 3000 * MS, 50.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 3010 * MS, 30.0f) == 1 &&
+              Touch(&scene, mui_pointerRelease, 3010 * MS, 30.0f) == 1,
+          "at once");
+    Layout(context, scene.root, 3500 * MS);
+    CHECK(Y(context, scene.s) == 71.0f, "no fling at once");
+    // Flung up past the top: stopped at 0, done.
+    CHECK(Touch(&scene, mui_pointerPress, 4000 * MS, 20.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 4010 * MS, 30.0f) == 1 &&
+              Touch(&scene, mui_pointerMove, 4020 * MS, 50.0f) == 1 &&
+              Touch(&scene, mui_pointerRelease, 4030 * MS, 50.0f) == 1 &&
+              Y(context, scene.s) == 41.0f,
+          "a flick up");
+    Layout(context, scene.root, 4330 * MS);
+    CHECK(Y(context, scene.s) == 0.0f && !muiIsUpdatePending(context, scene.root),
+          "at the top, done");
+    // A press does not stop a step, only flings; a pan does.
+    muiScrollRule rule = muiDefaultScrollRule();
+    const muiWheelEvent wheel = {5000 * MS, 50.0f, 50.0f, 0.0f, -1.0f, 0, 0};
+    bool handled = false;
+    CHECK(muiWheelInput(context, scene.root, &wheel, &handled) == mui_success && handled &&
+              Touch(&scene, mui_pointerPress, 5010 * MS, 50.0f) == 0,
+          "a step, a press");
+    Layout(context, scene.root, 5200 * MS);
+    CHECK(Y(context, scene.s) == 100.0f, "the step went on");
+    CHECK(Touch(&scene, mui_pointerRelease, 5210 * MS, 50.0f) == 0, "released");
+    const muiWheelEvent again = {6000 * MS, 50.0f, 50.0f, 0.0f, -1.0f, 0, 0};
+    CHECK(muiWheelInput(context, scene.root, &again, &handled) == mui_success &&
+              Touch(&scene, mui_pointerPress, 6010 * MS, 50.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 6020 * MS, 30.0f) == 1 &&
+              Y(context, scene.s) == 120.0f,
+          "a pan from where the step was");
+    Layout(context, scene.root, 6300 * MS);
+    CHECK(Y(context, scene.s) == 120.0f, "the step stopped");
+    CHECK(Touch(&scene, mui_pointerCancel, 6310 * MS, 30.0f) == 1, "cancelled");
+    (void)rule;
+    muiDestroyContext(context);
+}
+
+static void TestMouseDrags(void)
+{
+    // A scroll container that takes drags: a mouse drags it, no pan.
+    Scene scene;
+    MakeScene(&scene, 10);
+    muiContext* context = scene.context;
+    muiInteractionStyle values = muiDefaultInteractionStyle();
+    values.drags = true;
+    CHECK(muiNode_SetInteractionValues(context, scene.s, &values,
+                                       MUI_PROPERTY_BIT(mui_propertyDrags)) == mui_success,
+          "drags");
+    Layout(context, scene.root, 0);
+    CHECK(Feed(&scene, 1, mui_pointerMouse, mui_pointerPress, 0, 50.0f, 50.0f) == 0 &&
+              Feed(&scene, 1, mui_pointerMouse, mui_pointerMove, 10 * MS, 50.0f, 10.0f) == 0 &&
+              Y(context, scene.s) == 0.0f,
+          "a mouse drag: no pan");
+    muiDestroyContext(context);
+}
+
+static void TestTables(void)
+{
+    // Nine lists in a row, 100 wide, their content 300: limits of 200.
+    muiContextDef def = muiDefaultContextDef();
+    Scene scene = {0};
+    CHECK(muiCreateContext(&def, &scene.context) == mui_success, "context");
+    muiContext* context = scene.context;
+    scene.root = Sized(context, s_nullNode, 900.0f, 100.0f);
+    muiNodeId lists[9];
+    for (int i = 0; i < 9; i++)
+    {
+        lists[i] = Sized(context, scene.root, 100.0f, 100.0f);
+        Scrolls(context, lists[i], mui_scrollVertical, true, mui_textInherit);
+        (void)Sized(context, lists[i], 100.0f, 300.0f);
+    }
+    Layout(context, scene.root, 0);
+    // Five fingers at once: four pans.
+    for (uint32_t i = 0; i < 5; i++)
+    {
+        float x = 100.0f * (float)i + 50.0f;
+        CHECK(Feed(&scene, 10 + i, mui_pointerTouch, mui_pointerPress, 0, x, 50.0f) == 0, "down");
+    }
+    for (uint32_t i = 0; i < 5; i++)
+    {
+        float x = 100.0f * (float)i + 50.0f;
+        int panned = Feed(&scene, 10 + i, mui_pointerTouch, mui_pointerMove, 10 * MS, x, 30.0f);
+        CHECK(panned == (i < 4 ? 1 : 0) && Y(context, lists[i]) == (i < 4 ? 20.0f : 0.0f),
+              "four pans");
+        CHECK(Feed(&scene, 10 + i, mui_pointerTouch, mui_pointerMove, 20 * MS, x, 20.0f) ==
+                  (i < 4 ? 1 : 0),
+              "and their moves");
+    }
+    for (uint32_t i = 0; i < 5; i++)
+    {
+        float x = 100.0f * (float)i + 50.0f;
+        (void)Feed(&scene, 10 + i, mui_pointerTouch, mui_pointerCancel, 30 * MS, x, 20.0f);
+    }
+    // One finger after another, each its own pointer: each pans.
+    for (uint32_t i = 0; i < 6; i++)
+    {
+        uint32_t pointer = 20 + i;
+        CHECK(Feed(&scene, pointer, mui_pointerTouch, mui_pointerPress, 0, 850.0f, 50.0f) == 0 &&
+                  Feed(&scene, pointer, mui_pointerTouch, mui_pointerMove, 10 * MS, 850.0f,
+                       40.0f) == 1 &&
+                  Feed(&scene, pointer, mui_pointerTouch, mui_pointerCancel, 20 * MS, 850.0f,
+                       40.0f) == 1,
+              "in turn");
+    }
+    CHECK(Y(context, lists[8]) == 60.0f, "six pans of 10");
+    // Eight lists easing a step: the table is full, so a flick does not
+    // fling the ninth.
+    for (int i = 0; i < 8; i++)
+    {
+        const muiWheelEvent wheel = {1000 * MS, 100.0f * (float)i + 50.0f, 50.0f, 0.0f, -1.0f, 0,
+                                     0};
+        bool handled = false;
+        CHECK(muiWheelInput(context, scene.root, &wheel, &handled) == mui_success && handled,
+              "a step");
+    }
+    CHECK(Feed(&scene, 40, mui_pointerTouch, mui_pointerPress, 1000 * MS, 850.0f, 90.0f) == 0 &&
+              Feed(&scene, 40, mui_pointerTouch, mui_pointerMove, 1010 * MS, 850.0f, 60.0f) == 1 &&
+              Feed(&scene, 40, mui_pointerTouch, mui_pointerMove, 1020 * MS, 850.0f, 20.0f) == 1 &&
+              Feed(&scene, 40, mui_pointerTouch, mui_pointerRelease, 1030 * MS, 850.0f, 20.0f) ==
+                  1 &&
+              Y(context, lists[8]) == 130.0f,
+          "a flick");
+    Layout(context, scene.root, 2000 * MS);
+    CHECK(Y(context, lists[8]) == 130.0f && Y(context, lists[0]) == 130.0f, "no room to fling");
+    muiDestroyContext(context);
+}
+
 static void TestRule(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -311,6 +479,9 @@ int main(void)
     TestNearer();
     TestAcross();
     TestFlingThenStep();
+    TestMore();
+    TestMouseDrags();
+    TestTables();
     TestRule();
     return s_failures == 0 ? 0 : 1;
 }

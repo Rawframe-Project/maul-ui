@@ -378,17 +378,29 @@ void muiScrollAdvance(muiContext* context, uint64_t nowNs)
     }
 }
 
-// The pan of a pointer on node; the end of the table for none.
-static uint32_t PanOf(const muiScrollStore* store, uint32_t pointer, muiNodeId node)
+// The pan of a pointer, which drags one node at a time; the end of the
+// table for none.
+static uint32_t PanOf(const muiScrollStore* store, uint32_t pointer)
 {
     uint32_t i = 0;
-    while (i < store->panCount &&
-           (store->pans[i].pointer != pointer || store->pans[i].node.index1 != node.index1 ||
-            store->pans[i].node.generation != node.generation))
+    while (i < store->panCount && store->pans[i].pointer != pointer)
     {
         i++;
     }
     return i;
+}
+
+// Takes out the pans of nodes destroyed since, whose drags end unseen.
+static void PurgePans(muiContext* context)
+{
+    muiScrollStore* store = &context->scrolling;
+    for (uint32_t i = store->panCount; i > 0; i--)
+    {
+        if (muiTreeResolve(&context->tree, store->pans[i - 1].node) == 0)
+        {
+            store->pans[i - 1] = store->pans[--store->panCount];
+        }
+    }
 }
 
 // Moves a panned container's offsets opposite the pointer's offset from
@@ -441,12 +453,9 @@ static void VelocityOf(const muiScrollPan* pan, double* xOut, double* yOut)
         sumY += (double)sample->y;
         used++;
     }
+    // One move, or moves at one time, give no spread: no velocity.
     *xOut = 0.0;
     *yOut = 0.0;
-    if (used < 2)
-    {
-        return;
-    }
     double meanT = sumT / used;
     double meanX = sumX / used;
     double meanY = sumY / used;
@@ -526,9 +535,11 @@ bool muiScrollPointer(muiContext* context, const muiPointerRecord* record)
     {
         return false;
     }
-    uint32_t i = PanOf(store, record->pointer, record->node);
+    uint32_t i = PanOf(store, record->pointer);
     if (record->kind == mui_pointerRecordDragStart)
     {
+        PurgePans(context);
+        i = PanOf(store, record->pointer);
         if (i == store->panCount)
         {
             if (store->panCount == MUI_SCROLL_PANS)
