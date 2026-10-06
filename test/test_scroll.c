@@ -225,6 +225,11 @@ static void TestRightToLeft(void)
     CHECK(muiNode_GetScrollExtent(context, s, &extent) == mui_success && extent.width == 160.0f &&
               muiNode_GetRect(context, b).x == -60.0f,
           "measured from the right");
+    float x = 1.0f;
+    float y = 1.0f;
+    CHECK(muiNode_SetScroll(context, s, -5.0f, 0.0f) == mui_success &&
+              muiNode_GetScroll(context, s, &x, &y) == mui_success && x == 0.0f,
+          "clamped at 0");
     // Scrolled 60, b's start shows at the left edge: hit at 5, 25 is b's 5.
     CHECK(muiNode_SetScroll(context, s, 60.0f, 0.0f) == mui_success, "scrolled");
     muiHit hit = {0};
@@ -286,6 +291,16 @@ static void TestPainting(void)
               muiGetDrawList(context, &drawn) == mui_success &&
               drawn.header.generation == generation + 1,
           "then nothing to do");
+    CHECK(muiNode_SetScroll(context, list.s, 0.0f, 10.3f) == mui_success &&
+              muiBuildDrawList(context, list.root, &input) == mui_success &&
+              muiGetDrawList(context, &drawn) == mui_success &&
+              drawn.header.generation == generation + 1,
+          "the same offset: nothing to do");
+    CHECK(muiNode_ScrollIntoView(context, list.items[4]) == mui_success &&
+              muiBuildDrawList(context, list.root, &input) == mui_success &&
+              muiGetDrawList(context, &drawn) == mui_success &&
+              drawn.header.generation == generation + 2 && drawn.transforms[1].f == -160.0f,
+          "into view, drawn");
     // Repainting an item copies the rest, their transform renumbered.
     muiVisualStyle visual = muiDefaultVisualStyle();
     visual.background = (muiColor){0.0f, 1.0f, 0.0f, 1.0f};
@@ -295,7 +310,7 @@ static void TestPainting(void)
     Layout(context, list.root);
     CHECK(muiBuildDrawList(context, list.root, &input) == mui_success &&
               muiGetDrawList(context, &drawn) == mui_success && ItemsThrough(&drawn, 1) &&
-              drawn.transforms[1].f == -10.5f && drawn.transformCount == 2,
+              drawn.transforms[1].f == -160.0f && drawn.transformCount == 2,
           "copied and repainted alike");
     muiDestroyContext(context);
 }
@@ -517,6 +532,267 @@ static void TestContract(void)
     muiDestroyContext(context);
 }
 
+static void Paint(muiContext* context, muiNodeId node)
+{
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.background = (muiColor){1.0f, 1.0f, 1.0f, 1.0f};
+    CHECK(muiNode_SetVisualValues(context, node, &visual,
+                                  MUI_PROPERTY_BIT(mui_propertyBackground)) == mui_success,
+          "background");
+}
+
+static void Keep(muiContext* context, muiNodeId node)
+{
+    muiLayoutStyle keep = muiDefaultLayoutStyle();
+    keep.item.shrink = 0.0f;
+    SetLayout(context, node, &keep, MUI_PROPERTY_BIT(mui_propertyShrink));
+}
+
+static void Scrolls(muiContext* context, muiNodeId node, muiScrollAxes axes)
+{
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.scrollAxes = axes;
+    SetLayout(context, node, &style, SCROLL);
+}
+
+static bool ExtentIs(const muiContext* context, muiNodeId node, float width, float height)
+{
+    muiSize extent = {0};
+    return muiNode_GetScrollExtent(context, node, &extent) == mui_success &&
+           extent.width == width && extent.height == height;
+}
+
+static void TestExtentEdges(void)
+{
+    muiContext* context = MakeContext(64);
+    muiNodeId root = Sized(context, s_nullNode, 600.0f, 600.0f);
+    // Short content: the padding box, the end padding counted once.
+    muiNodeId shortList = Sized(context, root, 200.0f, 100.0f);
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.scrollAxes = mui_scrollBoth;
+    style.padding = (muiEdges){10.0f, 10.0f, 10.0f, 10.0f};
+    SetLayout(context, shortList, &style, SCROLL | PADDING);
+    (void)Sized(context, shortList, 50.0f, 20.0f);
+    // Margins reach past an item's border box.
+    muiNodeId margined = Sized(context, root, 200.0f, 100.0f);
+    Scrolls(context, margined, mui_scrollBoth);
+    muiNodeId item = Sized(context, margined, 300.0f, 150.0f);
+    Keep(context, item);
+    muiLayoutStyle margin = muiDefaultLayoutStyle();
+    margin.margin = (muiEdges){0.0f, 40.0f, 0.0f, 30.0f};
+    SetLayout(context, item, &margin,
+              MUI_PROPERTY_BIT(mui_propertyMarginEnd) | MUI_PROPERTY_BIT(mui_propertyMarginBottom));
+    // An absolute child's margins do not.
+    muiNodeId placed = Sized(context, root, 100.0f, 100.0f);
+    Scrolls(context, placed, mui_scrollVertical);
+    muiNodeId floating = Sized(context, placed, 50.0f, 250.0f);
+    muiLayoutStyle absolute = muiDefaultLayoutStyle();
+    absolute.placement.position = mui_positionAbsolute;
+    absolute.placement.inset.start = Length(0.0f);
+    absolute.placement.inset.top = Length(0.0f);
+    absolute.margin = (muiEdges){0.0f, 0.0f, 0.0f, 30.0f};
+    SetLayout(context, floating, &absolute,
+              MUI_PROPERTY_BIT(mui_propertyPosition) | MUI_PROPERTY_BIT(mui_propertyInsetStart) |
+                  MUI_PROPERTY_BIT(mui_propertyInsetTop) |
+                  MUI_PROPERTY_BIT(mui_propertyMarginBottom));
+    Layout(context, root);
+    CHECK(ExtentIs(context, shortList, 200.0f, 100.0f), "short content: the padding box");
+    CHECK(ExtentIs(context, margined, 340.0f, 180.0f), "margins");
+    CHECK(ExtentIs(context, placed, 100.0f, 250.0f), "an absolute child's border box");
+    // The last margin gone, the offset comes back within, and the list
+    // follows.
+    CHECK(muiNode_SetScroll(context, margined, 0.0f, 80.0f) == mui_success, "to the end");
+    const muiDrawInput input = {1, 1.0f, NULL, NULL};
+    CHECK(muiBuildDrawList(context, root, &input) == mui_success, "drawn");
+    margin.margin.bottom = 0.0f;
+    SetLayout(context, item, &margin, MUI_PROPERTY_BIT(mui_propertyMarginBottom));
+    Layout(context, root);
+    muiDrawList drawn;
+    float x = 0.0f;
+    float y = 0.0f;
+    CHECK(muiNode_GetScroll(context, margined, &x, &y) == mui_success && y == 50.0f &&
+              muiBuildDrawList(context, root, &input) == mui_success &&
+              muiGetDrawList(context, &drawn) == mui_success && drawn.transformCount == 4 &&
+              drawn.transforms[2].f == -50.0f,
+          "clamped and drawn");
+    // A node that stops scrolling drops its offset and extent; scrolling
+    // again starts at 0.
+    Scrolls(context, margined, mui_scrollNone);
+    Layout(context, root);
+    CHECK(muiNode_GetScroll(context, margined, &x, &y) == mui_success && x == 0.0f && y == 0.0f &&
+              ExtentIs(context, margined, 0.0f, 0.0f),
+          "stopped");
+    CHECK(muiBuildDrawList(context, root, &input) == mui_success &&
+              muiGetDrawList(context, &drawn) == mui_success && drawn.transformCount == 3,
+          "its transform gone");
+    Scrolls(context, margined, mui_scrollBoth);
+    Layout(context, root);
+    CHECK(muiNode_GetScroll(context, margined, &x, &y) == mui_success && x == 0.0f && y == 0.0f &&
+              ExtentIs(context, margined, 340.0f, 150.0f),
+          "again from 0");
+    muiDestroyContext(context);
+}
+
+static void TestRightToLeftBorders(void)
+{
+    // A row of three 40 wide, right to left, its start border 20 on the
+    // right: the padding box is 0 to 80; at offset 0, a is at 40, b at
+    // 0 and c at -40.
+    muiContext* context = MakeContext(64);
+    muiNodeId root = Sized(context, s_nullNode, 300.0f, 300.0f);
+    muiNodeId s = Sized(context, root, 100.0f, 50.0f);
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.scrollAxes = mui_scrollHorizontal;
+    style.textDirection = mui_textRightToLeft;
+    style.border = (muiEdges){20.0f, 0.0f, 0.0f, 0.0f};
+    SetLayout(context, s, &style, SCROLL | BORDER | MUI_PROPERTY_BIT(mui_propertyTextDirection));
+    muiNodeId items[3];
+    for (int i = 0; i < 3; i++)
+    {
+        items[i] = Sized(context, s, 40.0f, 50.0f);
+        Keep(context, items[i]);
+    }
+    Layout(context, root);
+    float x = 0.0f;
+    float y = 0.0f;
+    muiHit hit = {0};
+    CHECK(muiHitTest(context, root, 5.0f, 25.0f, &hit) == mui_success && Same(hit.node, items[1]) &&
+              hit.x == 5.0f,
+          "the padding box on the left");
+    CHECK(muiHitTest(context, root, 90.0f, 25.0f, &hit) == mui_success && Same(hit.node, s),
+          "the start border on the right");
+    CHECK(muiNode_ScrollIntoView(context, items[1]) == mui_success &&
+              muiNode_GetScroll(context, s, &x, &y) == mui_success && x == 0.0f,
+          "b in view: stays");
+    CHECK(muiNode_ScrollIntoView(context, items[2]) == mui_success &&
+              muiNode_GetScroll(context, s, &x, &y) == mui_success && x == 40.0f,
+          "c into view: leftward");
+    CHECK(muiNode_ScrollIntoView(context, items[0]) == mui_success &&
+              muiNode_GetScroll(context, s, &x, &y) == mui_success && x == 0.0f,
+          "a into view: back");
+    muiDestroyContext(context);
+}
+
+// A column: a plain node p, then an outer vertical scroller holding an
+// inner horizontal one holding a painted box.
+typedef struct Nest
+{
+    muiContext* context;
+    muiNodeId root;
+    muiNodeId p;
+    muiNodeId outer;
+    muiNodeId inner;
+} Nest;
+
+static void MakeNest(Nest* nest, uint32_t transforms)
+{
+    *nest = (Nest){.context = MakeContext(transforms)};
+    muiContext* context = nest->context;
+    nest->root = Sized(context, s_nullNode, 300.0f, 300.0f);
+    muiLayoutStyle column = muiDefaultLayoutStyle();
+    column.container.direction = mui_flexColumn;
+    SetLayout(context, nest->root, &column, DIRECTION);
+    nest->p = Sized(context, nest->root, 100.0f, 20.0f);
+    Paint(context, nest->p);
+    nest->outer = Sized(context, nest->root, 200.0f, 100.0f);
+    Scrolls(context, nest->outer, mui_scrollVertical);
+    nest->inner = Sized(context, nest->outer, 100.0f, 300.0f);
+    Scrolls(context, nest->inner, mui_scrollHorizontal);
+    Keep(context, nest->inner);
+    muiNodeId box = Sized(context, nest->inner, 400.0f, 100.0f);
+    Keep(context, box);
+    Paint(context, box);
+    Layout(context, nest->root);
+    CHECK(muiNode_SetScroll(context, nest->outer, 0.0f, 30.0f) == mui_success &&
+              muiNode_SetScroll(context, nest->inner, 50.0f, 0.0f) == mui_success,
+          "scrolled");
+}
+
+static void TestCopiedNest(void)
+{
+    // p turns into a scroll container: the nest is copied, its transforms
+    // one on, the inner one still after the outer.
+    Nest nest;
+    MakeNest(&nest, 64);
+    muiContext* context = nest.context;
+    const muiDrawInput input = {1, 1.0f, NULL, NULL};
+    muiDrawList drawn;
+    CHECK(muiBuildDrawList(context, nest.root, &input) == mui_success, "first");
+    Scrolls(context, nest.p, mui_scrollVertical);
+    Layout(context, nest.root);
+    CHECK(muiBuildDrawList(context, nest.root, &input) == mui_success &&
+              muiGetDrawList(context, &drawn) == mui_success && drawn.transformCount == 4 &&
+              drawn.transforms[1].f == 0.0f && drawn.transforms[2].f == -30.0f &&
+              drawn.transforms[3].e == -50.0f && drawn.transforms[3].f == -30.0f &&
+              drawn.commands[drawn.commandCount - 1].transform == 3,
+          "renumbered");
+    muiDestroyContext(context);
+    // With room for two, the copy does not fit.
+    MakeNest(&nest, 2);
+    context = nest.context;
+    CHECK(muiBuildDrawList(context, nest.root, &input) == mui_success, "two fit");
+    Scrolls(context, nest.p, mui_scrollVertical);
+    Layout(context, nest.root);
+    CHECK(muiBuildDrawList(context, nest.root, &input) == mui_errorCapacity, "three do not");
+    muiDestroyContext(context);
+}
+
+static void TestOverlay(void)
+{
+    // An absolute node over a scrolled list is hit after the walk leaves
+    // the list, from the list's parent's origin.
+    List list;
+    MakeList(&list, 64);
+    muiContext* context = list.context;
+    muiNodeId over = Sized(context, list.root, 50.0f, 50.0f);
+    muiLayoutStyle absolute = muiDefaultLayoutStyle();
+    absolute.placement.position = mui_positionAbsolute;
+    absolute.placement.inset.start = Length(0.0f);
+    absolute.placement.inset.top = Length(0.0f);
+    SetLayout(context, over, &absolute,
+              MUI_PROPERTY_BIT(mui_propertyPosition) | MUI_PROPERTY_BIT(mui_propertyInsetStart) |
+                  MUI_PROPERTY_BIT(mui_propertyInsetTop));
+    Layout(context, list.root);
+    CHECK(muiNode_SetScroll(context, list.s, 0.0f, 60.0f) == mui_success, "scrolled");
+    muiHit hit = {0};
+    CHECK(muiHitTest(context, list.root, 25.0f, 25.0f, &hit) == mui_success &&
+              Same(hit.node, over) && hit.y == 25.0f,
+          "the overlay");
+    muiDestroyContext(context);
+}
+
+static void TestBeside(void)
+{
+    // Beside the list, a column with b1 at 50 to 100 and b2 at 160 to 210.
+    // Scrolled 110, item 3 shows at 50 to 100: right of it is b1.
+    List list;
+    MakeList(&list, 64);
+    muiContext* context = list.context;
+    muiNodeId side = Sized(context, list.root, 100.0f, 300.0f);
+    muiLayoutStyle column = muiDefaultLayoutStyle();
+    column.container.direction = mui_flexColumn;
+    SetLayout(context, side, &column, DIRECTION);
+    muiNodeId b[2];
+    const float gaps[2] = {50.0f, 60.0f};
+    for (int i = 0; i < 2; i++)
+    {
+        (void)Sized(context, side, 10.0f, gaps[i]);
+        b[i] = Sized(context, side, 50.0f, 50.0f);
+        muiInteractionStyle values = muiDefaultInteractionStyle();
+        values.focusMode = mui_focusAll;
+        CHECK(muiNode_SetInteractionValues(context, b[i], &values,
+                                           MUI_PROPERTY_BIT(mui_propertyFocusMode)) == mui_success,
+              "focus mode");
+    }
+    Layout(context, list.root);
+    CHECK(muiNode_SetScroll(context, list.s, 0.0f, 110.0f) == mui_success &&
+              muiFocus_Set(context, 0, list.items[3], mui_focusByCode) == mui_success &&
+              muiFocus_MoveToward(context, list.root, 0, mui_directionRight) == mui_success &&
+              Same(muiFocus_Get(context, 0), b[0]),
+          "where it shows");
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestExtent();
@@ -527,6 +803,11 @@ int main(void)
     TestHits();
     TestIntoView();
     TestLayer();
+    TestExtentEdges();
+    TestRightToLeftBorders();
+    TestCopiedNest();
+    TestOverlay();
+    TestBeside();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }

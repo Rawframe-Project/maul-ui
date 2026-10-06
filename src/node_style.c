@@ -13,6 +13,7 @@
 #include "layout_node.h"
 #include "pool.h"
 #include "property.h"
+#include "scroll_store.h"
 #include "style_store.h"
 #include "tree.h"
 
@@ -124,6 +125,7 @@ static muiResult SetDirect(muiContext* context, muiNodeId nodeId, muiConstValues
                                       &context->text[slot - 1], &context->interaction[slot - 1]},
                        values, properties);
     muiSyncLayoutNode(layout);
+    muiSyncScroll(&context->scrolls[slot - 1], layout->style.scrollAxes);
     muiNodeStyle* node = &context->style.nodes[slot - 1];
     node->direct = muiUnion(node->direct, properties);
     node->edited = true;

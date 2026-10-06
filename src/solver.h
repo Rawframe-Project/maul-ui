@@ -41,10 +41,8 @@ struct muiSolver
     muiTree* restyle;
     // What each node was last painted as, parallel to the tree's slots.
     const muiPaintState* painted;
-    // Each node's scroll state, whose extents layout measures; set when it
-    // moves an offset back within a shorter extent.
+    // Each node's scroll state, whose extents layout measures.
     muiScrollState* scrolls;
-    bool* scrolled;
 };
 
 #endif // MAUL_UI_SRC_SOLVER_H

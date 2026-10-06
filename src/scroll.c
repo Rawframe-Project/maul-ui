@@ -43,8 +43,9 @@ muiResult muiNode_SetScroll(muiContext* context, muiNodeId nodeId, float x, floa
     }
     const muiLayoutNode* layout = &context->layout[slot - 1];
     muiScrollState* scroll = &context->scrolls[slot - 1];
-    x = fminf(fmaxf(x, 0.0f), muiScrollLimit(layout, scroll, true));
-    y = fminf(fmaxf(y, 0.0f), muiScrollLimit(layout, scroll, false));
+    const muiSize size = {layout->rect.width, layout->rect.height};
+    x = fminf(fmaxf(x, 0.0f), muiScrollLimit(&layout->style, size, scroll, true));
+    y = fminf(fmaxf(y, 0.0f), muiScrollLimit(&layout->style, size, scroll, false));
     if (x != scroll->x || y != scroll->y)
     {
         scroll->x = x;
@@ -63,7 +64,8 @@ static void MoveContent(muiContext* context, uint32_t container, bool horizontal
     // A child moves by -x, or by x under right to left, and by -y.
     double x = (double)scroll->x;
     double offset = horizontal ? (layout->rtl ? x + move : x - move) : (double)scroll->y - move;
-    float limit = muiScrollLimit(layout, scroll, horizontal);
+    const muiSize size = {layout->rect.width, layout->rect.height};
+    float limit = muiScrollLimit(&layout->style, size, scroll, horizontal);
     float clamped = fminf(fmaxf((float)offset, 0.0f), limit);
     float* field = horizontal ? &scroll->x : &scroll->y;
     if (clamped != *field)
@@ -111,15 +113,10 @@ static void Reveal(muiContext* context, uint32_t container, uint32_t node)
     double right = (double)layout->rect.width - (double)(layout->rtl ? border->start : border->end);
     double top = (double)border->top;
     double bottom = (double)layout->rect.height - (double)border->bottom;
+    // Along an axis it does not scroll, its limit keeps the offset 0.
     const muiRect* rect = &context->layout[node - 1].rect;
-    if ((layout->style.scrollAxes & mui_scrollHorizontal) != 0)
-    {
-        MoveContent(context, container, true, Nearest(x, x + (double)rect->width, left, right));
-    }
-    if ((layout->style.scrollAxes & mui_scrollVertical) != 0)
-    {
-        MoveContent(context, container, false, Nearest(y, y + (double)rect->height, top, bottom));
-    }
+    MoveContent(context, container, true, Nearest(x, x + (double)rect->width, left, right));
+    MoveContent(context, container, false, Nearest(y, y + (double)rect->height, top, bottom));
 }
 
 void muiScrollReveal(muiContext* context, uint32_t slot)
@@ -177,9 +174,7 @@ muiResult muiNode_GetScrollExtent(const muiContext* context, muiNodeId nodeId, m
     if (slot != 0)
     {
         const muiScrollState* scroll = &context->scrolls[slot - 1];
-        bool scrolls = context->layout[slot - 1].style.scrollAxes != mui_scrollNone;
-        *extentOut =
-            scrolls ? (muiSize){scroll->extentWidth, scroll->extentHeight} : (muiSize){0.0f, 0.0f};
+        *extentOut = (muiSize){scroll->extentWidth, scroll->extentHeight};
     }
     return status;
 }

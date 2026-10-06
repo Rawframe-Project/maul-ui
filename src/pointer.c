@@ -71,10 +71,14 @@ static void OriginOf(const muiContext* context, uint32_t root, uint32_t node, do
     const muiTree* tree = &context->tree;
     double x = 0.0;
     double y = 0.0;
-    for (uint32_t at = node; at != 0 && at != root;)
+    for (uint32_t at = node; at != 0;)
     {
         x += (double)context->layout[at - 1].rect.x;
         y += (double)context->layout[at - 1].rect.y;
+        if (at == root)
+        {
+            break;
+        }
         // Where its parent, scrolling, moves it.
         at = muiTreeAt(tree, at)->links.parent;
         if (at != 0)
@@ -82,11 +86,6 @@ static void OriginOf(const muiContext* context, uint32_t root, uint32_t node, do
             x += (double)muiScrollShiftX(&context->layout[at - 1], &context->scrolls[at - 1]);
             y += (double)muiScrollShiftY(&context->layout[at - 1], &context->scrolls[at - 1]);
         }
-    }
-    if (node == root || muiTreeIsAncestor(tree, root, node))
-    {
-        x += (double)context->layout[root - 1].rect.x;
-        y += (double)context->layout[root - 1].rect.y;
     }
     *xOut = x;
     *yOut = y;

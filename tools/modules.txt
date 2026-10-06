@@ -41,9 +41,9 @@ tree: invariant
 solver: layout_node tree draw_store scroll_store
 context: allocator animation inherit invariant layer_store layout_node notify pointer_store pool style_store tree token_store theme_store draw_store focus_store event_store scroll_store
 node: context inherit layout_node pointer style_store tree focus
-node_style: animation context layout_node pool property style_store tree inherit layer focus
+node_style: animation context layout_node pool property style_store tree inherit layer focus scroll_store
 style: condition context pool property style_edit style_store tree
-restyle: animation condition context inherit layout_node notify pool property style_store tree token_store theme_store layer focus
+restyle: animation condition context inherit layout_node notify pool property style_store tree token_store theme_store layer focus scroll_store
 flex_resolve: layout_node tree
 flex: flex_resolve layout_node sizing solver tree
 absolute: layout_node sizing solver tree

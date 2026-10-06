@@ -139,7 +139,6 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
         .restyle = &context->tree,
         .painted = context->draw.states,
         .scrolls = context->scrolls,
-        .scrolled = &context->scrolled,
     };
     muiSizingInput sizingInput = muiRootInput(&context->layout[root - 1].style,
                                               input->availableWidth, input->availableHeight);

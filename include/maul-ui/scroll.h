@@ -37,7 +37,8 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiNode_SetScroll(muiContext* context, muiNodeId nodeId,
                                                       float x, float y);
 
-    /// Reads a node's scroll offset; 0 for a node that does not scroll.
+    /// Reads a node's scroll offset; 0 along an axis it does not scroll,
+    /// as a node that stops scrolling along one drops its offset there.
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
@@ -59,7 +60,7 @@ extern "C"
     /// @param context    The context.
     /// @param nodeId     The node.
     /// @param extentOut  Receives the extent; 0 by 0 for a node that does
-    ///                   not scroll or was not laid out as one.
+    ///                   not scroll or was not laid out since it does.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or
     ///         the null id; `mui_errorStale` for a node that is gone.
     /// @par Thread safety

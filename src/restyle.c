@@ -16,6 +16,7 @@
 #include "notify.h"
 #include "pool.h"
 #include "property.h"
+#include "scroll_store.h"
 #include "style_store.h"
 #include "theme_store.h"
 #include "token_store.h"
@@ -378,6 +379,7 @@ static bool Commit(muiContext* context, uint32_t slot, const Resolution* resolut
     if (changed.words[mui_groupLayout] != 0)
     {
         muiSyncLayoutNode(layout);
+        muiSyncScroll(&context->scrolls[slot - 1], layout->style.scrollAxes);
         muiTreeMarkLayout(&context->tree, slot);
     }
     if (changed.words[mui_groupVisual] != 0)
