@@ -20,7 +20,7 @@ if(NOT maul-rhi_FOUND)
     FetchContent_MakeAvailable(maul-rhi)
 endif()
 
-add_library(maul-ui-rhi STATIC rhi/src/pack.c rhi/src/renderer.c)
+add_library(maul-ui-rhi STATIC rhi/src/allocator.c rhi/src/pack.c rhi/src/renderer.c)
 add_library(maul-ui-rhi::maul-ui-rhi ALIAS maul-ui-rhi)
 target_include_directories(maul-ui-rhi PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/rhi/include>

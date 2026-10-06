@@ -103,9 +103,9 @@ jobs:
 
   rhi:
     # The reference renderer (record mui-0005) with Maul RHI
-    # fetched: its test on Maul RHI's test driver, and its pixels on
-    # lavapipe, which must be found, under the Vulkan validation layer,
-    # whose errors fail the step.
+    # fetched: clang-tidy over its sources, its test on Maul RHI's test
+    # driver, and its pixels on lavapipe, which must be found, under the
+    # Vulkan validation layer, whose errors fail the step.
     name: linux-rhi
     runs-on: ubuntu-24.04
     steps:
@@ -113,13 +113,20 @@ jobs:
       - name: Install the compiler, lavapipe and the validation layer
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q clang-20 ninja-build mesa-vulkan-drivers vulkan-validationlayers
+          sudo apt-get install -y -q clang-20 clang-tidy-20 ninja-build mesa-vulkan-drivers \
+            vulkan-validationlayers
       - name: Configure
         run: >
           cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -D${PREFIX}_WERROR=ON
           -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 -D${PREFIX}_RHI=ON
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
       - name: Build
         run: cmake --build build -j 4
+      - name: clang-tidy
+        run: |
+          for f in rhi/src/*.c; do
+            clang-tidy-20 -p build --quiet --warnings-as-errors='*' "$f" || exit 1
+          done
       - name: Test
         env:
           MUI_RHI_REQUIRED: 1

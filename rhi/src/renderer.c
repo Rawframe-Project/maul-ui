@@ -11,6 +11,7 @@
 
 #include "maul-ui-rhi/renderer.h"
 
+#include "allocator.h"
 #include "pack.h"
 
 #include "../shaders/quad_container.h"
@@ -21,39 +22,9 @@
 
 #include <stdalign.h>
 #include <stddef.h>
-#include <stdlib.h>
 #include <string.h>
 
 #define DEF_COOKIE 0x6D757268u // "murh"
-
-static bool IsAllocatorValid(const muiAllocator* allocator)
-{
-    return (allocator->alloc == nullptr) == (allocator->free == nullptr);
-}
-
-// The allocator's memory, or the C library's for a zeroed one.
-static void* Allocate(const muiAllocator* allocator, size_t size, size_t alignment)
-{
-    if (allocator->alloc != nullptr)
-    {
-        return allocator->alloc(size, alignment, allocator->context);
-    }
-    return alignment <= alignof(max_align_t) ? malloc(size) : nullptr;
-}
-
-static void Release(const muiAllocator* allocator, void* memory, size_t size, size_t alignment)
-{
-    if (memory == nullptr)
-    {
-        return;
-    }
-    if (allocator->free != nullptr)
-    {
-        allocator->free(memory, size, alignment, allocator->context);
-        return;
-    }
-    free(memory);
-}
 
 // A device buffer of records and their staging, grown as lists need.
 typedef struct Stream
@@ -103,7 +74,7 @@ muiRhiRendererDef muiDefaultRhiRendererDef(void)
 
 static bool IsValid(const muiRhiRendererDef* def)
 {
-    return def->cookie == DEF_COOKIE && IsAllocatorValid(&def->allocator) &&
+    return def->cookie == DEF_COOKIE && muiRhiIsAllocatorValid(&def->allocator) &&
            def->device != nullptr && def->instances != 0 && def->instances <= (1u << 24);
 }
 
@@ -112,8 +83,8 @@ static void DropStream(muiRhiRenderer* renderer, Stream* stream)
     if (stream->staging != nullptr)
     {
         (void)mrhiDestroyBuffer(renderer->device, stream->buffer);
-        Release(&renderer->allocator, stream->staging, (size_t)stream->capacity * stream->stride,
-                alignof(max_align_t));
+        muiRhiRelease(&renderer->allocator, stream->staging,
+                      (size_t)stream->capacity * stream->stride, alignof(max_align_t));
         stream->staging = nullptr;
     }
 }
@@ -124,8 +95,8 @@ static muiResult GrowStream(muiRhiRenderer* renderer, Stream* stream, uint32_t c
     mrhiBufferDef def = mrhiDefaultBufferDef();
     def.size = (uint64_t)capacity * stream->stride;
     def.usage = mrhi_bufferStorage | mrhi_bufferCopyDestination;
-    void* staging =
-        Allocate(&renderer->allocator, (size_t)capacity * stream->stride, alignof(max_align_t));
+    void* staging = muiRhiAllocate(&renderer->allocator, (size_t)capacity * stream->stride,
+                                   alignof(max_align_t));
     if (staging == nullptr)
     {
         return mui_errorCapacity;
@@ -133,8 +104,8 @@ static muiResult GrowStream(muiRhiRenderer* renderer, Stream* stream, uint32_t c
     mrhiBufferId buffer = {0};
     if (mrhiCreateBuffer(renderer->device, &def, &buffer) != mrhi_success)
     {
-        Release(&renderer->allocator, staging, (size_t)capacity * stream->stride,
-                alignof(max_align_t));
+        muiRhiRelease(&renderer->allocator, staging, (size_t)capacity * stream->stride,
+                      alignof(max_align_t));
         return mui_errorPlatform;
     }
     DropStream(renderer, stream);
@@ -197,7 +168,7 @@ muiResult muiCreateRhiRenderer(const muiRhiRendererDef* def, muiRhiRenderer** re
         return mui_errorInvalid;
     }
     muiRhiRenderer* renderer =
-        Allocate(&def->allocator, sizeof(muiRhiRenderer), alignof(muiRhiRenderer));
+        muiRhiAllocate(&def->allocator, sizeof(muiRhiRenderer), alignof(muiRhiRenderer));
     if (renderer == nullptr)
     {
         return mui_errorCapacity;
@@ -251,7 +222,7 @@ void muiDestroyRhiRenderer(muiRhiRenderer* renderer)
         DropStream(renderer, &renderer->streams[i]);
     }
     const muiAllocator allocator = renderer->allocator;
-    Release(&allocator, renderer, sizeof(muiRhiRenderer), alignof(muiRhiRenderer));
+    muiRhiRelease(&allocator, renderer, sizeof(muiRhiRenderer), alignof(muiRhiRenderer));
 }
 
 mrhiRequestId muiRhiRenderer_GetPipelineRequest(const muiRhiRenderer* renderer)

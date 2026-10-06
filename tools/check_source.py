@@ -9,12 +9,13 @@
 #   comments are // or ///;
 # - comments carry no development history and no TODO or FIXME;
 # - no file in the repository contains an em dash;
-# - src/ calls no function the family bans (memory goes through the
-#   allocator, failures are returned statuses, the library prints
-#   nothing, no unsafe string functions, nothing locale-dependent) and
-#   none the library bans in tools/source-bans.txt;
-# - src/ keeps no thread-local or mutable file-scope state and assigns
-#   nothing inside a condition;
+# - the library's sources, src/ and the reference renderer's rhi/src/,
+#   call no function the family bans (memory goes through the allocator,
+#   failures are returned statuses, the library prints nothing, no
+#   unsafe string functions, nothing locale-dependent) and none the
+#   library bans in tools/source-bans.txt;
+# - the library's sources keep no thread-local or mutable file-scope
+#   state and assign nothing inside a condition;
 # - C file names are snake_case.
 #
 # Directories listed in tools/external-dirs.txt hold data from outside
@@ -27,7 +28,9 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-C_DIRS = ["include", "src", "test", "bench", "samples", "testbed", "tools"]
+C_DIRS = ["include", "src", "rhi", "test", "bench", "samples", "testbed", "tools"]
+# The library's sources, which the library's rules hold.
+LIBRARY_DIRS = ("src" + os.sep, os.path.join("rhi", "src") + os.sep)
 SKIP_DIRS = {".git", "build", "_site", "out"}
 TEXT_SUFFIXES = (".c", ".h", ".m", ".md", ".txt", ".py", ".cmake", ".in", ".yml", ".yaml", ".json")
 
@@ -78,7 +81,8 @@ FAMILY_BANS = {
     "toupper": "locale-dependent",
     "tolower": "locale-dependent",
 }
-# The one place a zeroed allocator reaches the C library.
+# The one place in each library's sources a zeroed allocator reaches the
+# C library.
 ALLOCATOR_FILE = "allocator.c"
 ALLOCATOR_CALLS = {"malloc", "calloc", "realloc", "free", "aligned_alloc"}
 
@@ -187,7 +191,7 @@ def main():
     for top in C_DIRS:
         for path in walk(top, (".c", ".h", ".m")):
             rel = os.path.relpath(path, ROOT)
-            check_c_file(path, rel, rel.startswith("src" + os.sep), bans, findings)
+            check_c_file(path, rel, rel.startswith(LIBRARY_DIRS), bans, findings)
     for path in walk(".", TEXT_SUFFIXES):
         rel = os.path.relpath(path, ROOT)
         for number, line in enumerate(open(path, encoding="utf-8", errors="replace"), 1):

@@ -12,7 +12,9 @@
 #
 # A module may include its own header, any public header and the headers
 # of the modules its line names, nothing else. The declared graph has no
-# cycles, and names no module that does not exist.
+# cycles, and names no module that does not exist. The reference
+# renderer's sources, rhi/src/, include their own headers and public ones
+# alone, never the library's internals.
 #
 # usage: check_modules.py
 
@@ -99,6 +101,15 @@ def main():
                 if match and match.group(1) not in allowed:
                     errors.append(f"src/{name}:{number}: {module} may not include "
                                   f"{match.group(1)}.h; declare the edge or remove the include")
+    renderer = os.path.join(ROOT, "rhi", "src")
+    own = {name[:-2] for name in os.listdir(renderer) if name.endswith(".h")}
+    for name in sorted(os.listdir(renderer)):
+        path = os.path.join(renderer, name)
+        for number, line in enumerate(open(path, encoding="utf-8", errors="replace"), 1):
+            match = INCLUDE.match(line)
+            if match and match.group(1) not in own:
+                errors.append(f"rhi/src/{name}:{number}: the renderer may not include "
+                              f"{match.group(1)}.h, which is not its own")
     for error in errors:
         print(error)
     if errors:

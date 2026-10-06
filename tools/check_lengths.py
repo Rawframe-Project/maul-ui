@@ -51,15 +51,21 @@ def functions(path):
         i += 1
 
 
+# The library's sources: src/, whose files are named alone, and the
+# reference renderer's, named by their path.
+SOURCE_DIRS = (("src", ""), (os.path.join("rhi", "src"), "rhi/src/"))
+
+
 def measured():
     found = {}
-    src = os.path.join(ROOT, "src")
-    for name in sorted(os.listdir(src)):
-        if name.endswith((".c", ".m")):
-            path = os.path.join(src, name)
-            for function, length in functions(path):
-                found[(name, function)] = length
-            found[(name, "*")] = len(open(path, encoding="utf-8").read().split("\n")) - 1
+    for top, prefix in SOURCE_DIRS:
+        src = os.path.join(ROOT, top)
+        for name in sorted(os.listdir(src)):
+            if name.endswith((".c", ".m")):
+                path = os.path.join(src, name)
+                for function, length in functions(path):
+                    found[(prefix + name, function)] = length
+                found[(prefix + name, "*")] = len(open(path, encoding="utf-8").read().split("\n")) - 1
     return found
 
 
@@ -86,7 +92,7 @@ def allowed():
 def struct_fields():
     """(field count, struct name, file) for every struct definition."""
     result = []
-    for top in ("src", "include"):
+    for top in ("src", "include", "rhi"):
         for folder, _, files in os.walk(os.path.join(ROOT, top)):
             for name in sorted(files):
                 if not name.endswith(".h"):
@@ -103,12 +109,13 @@ def struct_fields():
 
 def complexity_exceptions():
     found = []
-    src = os.path.join(ROOT, "src")
-    for name in sorted(os.listdir(src)):
-        if name.endswith((".c", ".m")):
-            for number, line in enumerate(open(os.path.join(src, name), encoding="utf-8"), 1):
-                if "NOLINT(readability-function-cognitive-complexity)" in line:
-                    found.append(f"src/{name}:{number}: {line.strip()}")
+    for top, _ in SOURCE_DIRS:
+        src = os.path.join(ROOT, top)
+        for name in sorted(os.listdir(src)):
+            if name.endswith((".c", ".m")):
+                for number, line in enumerate(open(os.path.join(src, name), encoding="utf-8"), 1):
+                    if "NOLINT(readability-function-cognitive-complexity)" in line:
+                        found.append(f"{top}/{name}:{number}: {line.strip()}")
     return found
 
 
