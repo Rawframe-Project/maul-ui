@@ -20,6 +20,7 @@
 
 #define _POSIX_C_SOURCE 200809L
 
+#include "atspi.h"
 #include "dbus_api.h"
 #include "test_harness.h"
 
@@ -163,6 +164,12 @@ static void DataOf(muiDBusIter* iter, char* out, size_t size)
     {
         s_test.dbus.getBasic(&variant, &number);
         (void)snprintf(out, size, " %g", number);
+    }
+    else if (type == mui_dbusTypeUint32)
+    {
+        uint32_t role = 0;
+        s_test.dbus.getBasic(&variant, &role);
+        (void)snprintf(out, size, " %u", (unsigned)role);
     }
     else if (type == mui_dbusTypeStruct)
     {
@@ -911,26 +918,93 @@ static void TestEvents(muiAtspiAdapter* adapter, Built* built)
                         "Agreed; PropertyChange accessible-value 0 w1n8 40; PropertyChange "
                         "accessible-name 0 w1n6 Box 2; Announcement  1 w1n6 Box 2"),
           "states, names, values and announcements");
-    // A node 10 added to the group, the progress bar 9 hidden.
+    CHECK(!adapter->reshaped, "no walk for states, names and values");
+    // Added to the group: a button 10, and a scroller 11 that clips,
+    // holding a button 12.
     muiAccessNode added = {.id = 10, .role = mui_roleButton, .bounds = {0, 0, 10, 10}};
+    muiAccessNode scroller = {.id = 11,
+                              .role = mui_roleScrollView,
+                              .flags = mui_accessClipsChildren,
+                              .bounds = {0, 0, 50, 50},
+                              .transform = {1, 0, 0, 1, 0, 0},
+                              .firstChild = 4,
+                              .childCount = 1};
+    muiAccessNode inner = {.id = 12,
+                           .role = mui_roleButton,
+                           .bounds = {10, 10, 10, 10},
+                           .transform = {1, 0, 0, 1, 0, 0}};
+    const uint64_t groupChildren[5] = {7, 9, 10, 11, 12};
+    group.firstChild = 0;
+    group.childCount = 4;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&group, &added, &scroller, &inner}, 4,
+               groupChildren, 0) &&
+              EventsAre("ChildrenChanged add 2 w1n6 w1na; ChildrenChanged add 3 w1n6 w1nb"),
+          "children added, the topmost told");
     muiAccessNode progress = built->nodes[7];
     progress.flags |= mui_accessHidden;
-    const uint64_t groupChildren[3] = {7, 9, 10};
-    group.firstChild = 0;
-    group.childCount = 3;
-    CHECK(Send(adapter, (const muiAccessNode*[]){&group, &added, &progress}, 3, groupChildren, 0) &&
-              EventsAre("ChildrenChanged remove -1 w1n6 w1n9; ChildrenChanged add 1 w1n6 w1na"),
-          "a child hidden, a child added");
-    // The generic 3 named, so shown: the label 4 moves under it; the focus
-    // moves to the checkbox.
+    CHECK(Send(adapter, (const muiAccessNode*[]){&progress}, 1, built->children, 0) &&
+              EventsAre("ChildrenChanged remove -1 w1n6 w1n9"),
+          "a child hidden");
+    CHECK(Send(adapter, (const muiAccessNode*[]){&built->nodes[0]}, 1, built->children, 9) &&
+              EventsAre("ChildrenChanged add 1 w1n6 w1n9; StateChanged focused 0 w1n2; "
+                        "StateChanged focused 1 w1n9") &&
+              Send(adapter, (const muiAccessNode*[]){&built->nodes[0]}, 1, built->children, 2) &&
+              EventsAre("ChildrenChanged remove -1 w1n6 w1n9; StateChanged focused 0 w1n9; "
+                        "StateChanged focused 1 w1n2"),
+          "a hidden node shown while focused");
+    // The button 12 moved out of the scroller, and back; the scroller
+    // shrunk past it, and grown back.
+    inner.bounds.x = 500.0f;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&inner}, 1, groupChildren, 0) &&
+              EventsAre("ChildrenChanged remove -1 w1nb w1nc"),
+          "a child moved out of a parent that clips");
+    inner.bounds.x = 10.0f;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&inner}, 1, groupChildren, 0) &&
+              EventsAre("ChildrenChanged add 0 w1nb w1nc"),
+          "and back in");
+    scroller.bounds.width = 5.0f;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&scroller}, 1, groupChildren, 0) &&
+              EventsAre("ChildrenChanged remove -1 w1nb w1nc"),
+          "a parent that clips shrunk");
+    scroller.bounds.width = 50.0f;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&scroller}, 1, groupChildren, 0) &&
+              EventsAre("ChildrenChanged add 0 w1nb w1nc"),
+          "and grown");
+    // The generic 3 named, so shown: the label 4 moves under it.
     muiAccessNode generic = built->nodes[2];
     generic.text[mui_accessLabel] = "Greeting";
     generic.textLength[mui_accessLabel] = 8;
-    CHECK(Send(adapter, (const muiAccessNode*[]){&generic}, 1, built->children, 0x1a) &&
+    CHECK(Send(adapter, (const muiAccessNode*[]){&generic}, 1, built->children, 0) &&
               EventsAre("PropertyChange accessible-name 0 w1n3 Greeting; ChildrenChanged remove -1 "
-                        "w1n1 w1n4; ChildrenChanged add 1 w1n1 w1n3; StateChanged focused 0 w1n2; "
-                        "StateChanged focused 1 w1n1a"),
-          "a child moved under a node newly shown, told once; the focus last");
+                        "w1n1 w1n4; ChildrenChanged add 1 w1n1 w1n3"),
+          "a child moved under a node newly shown, told once");
+    generic.text[mui_accessLabel] = NULL;
+    generic.textLength[mui_accessLabel] = 0;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&generic}, 1, built->children, 0) &&
+              EventsAre("PropertyChange accessible-name 0 w1n3 ; ChildrenChanged remove -1 w1n1 "
+                        "w1n3; ChildrenChanged add 1 w1n1 w1n4"),
+          "a generic node's label gone, so flattened");
+    generic.role = mui_roleGroup;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&generic}, 1, built->children, 0) &&
+              EventsAre("PropertyChange accessible-role 0 w1n3 99; ChildrenChanged remove -1 w1n1 "
+                        "w1n4; ChildrenChanged add 1 w1n1 w1n3"),
+          "a generic node given a role, so shown with no label");
+    CHECK(Send(adapter, (const muiAccessNode*[]){&built->nodes[0]}, 1, built->children, 0x1a) &&
+              EventsAre("StateChanged focused 0 w1n2; StateChanged focused 1 w1n1a"),
+          "the focus moved");
+    // A new root above the window's old one, and back.
+    muiAccessNode above = {.id = 20, .role = mui_roleWindow, .childCount = 1};
+    const uint64_t aboveChildren[1] = {1};
+    const muiAccessUpdate raise = {(const muiAccessNode*[]){&above}, 1, aboveChildren, 20, 0};
+    const muiAccessUpdate lower = {(const muiAccessNode*[]){&built->nodes[0]}, 1, built->children,
+                                   1, 0};
+    muiResult raised = muiAtspiAdapter_Apply(adapter, &raise);
+    CHECK(raised == mui_success &&
+              EventsAre("ChildrenChanged remove -1 root w1n1; ChildrenChanged add 0 root w1n14") &&
+              muiAtspiAdapter_Apply(adapter, &lower) == mui_success &&
+              EventsAre("ChildrenChanged remove -1 root w1n14; StateChanged defunct 1 w1n14; "
+                        "ChildrenChanged add 0 root w1n1"),
+          "a new root above the old, and taken away");
     // The group taken out with what it holds: one removal and defunct.
     muiAccessNode root = built->nodes[0];
     const uint64_t rootChildren[4] = {2, 3, 0x1a, 8};
@@ -943,7 +1017,7 @@ static void TestEvents(muiAtspiAdapter* adapter, Built* built)
     // Back as it was built, for the tests after.
     const muiAccessUpdate update = {built->sent, built->nodeCount, built->children, 1, 2};
     CHECK(muiAtspiAdapter_Apply(adapter, &update) == mui_success &&
-              EventsAre("PropertyChange accessible-name 0 w1n3 ; StateChanged checked 1 w1n1a; "
+              EventsAre("PropertyChange accessible-role 0 w1n3 39; StateChanged checked 1 w1n1a; "
                         "PropertyChange accessible-name 0 w1n1a Agree; PropertyChange "
                         "accessible-value 0 w1n8 30; ChildrenChanged remove -1 w1n1 w1n3; "
                         "ChildrenChanged add 1 w1n1 w1n4; ChildrenChanged add 3 w1n1 w1n6; "

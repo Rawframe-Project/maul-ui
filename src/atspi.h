@@ -97,10 +97,12 @@ struct muiAtspiAdapter
     uint32_t freeCount;
     muiIdMap toldById;
     uint32_t pass;
-    // The focus's move in the update being applied, told last.
+    // The focus's move in the update being applied, told last; whether
+    // the update may have changed what is shown, so the tree is walked.
     uint64_t focusFrom;
     uint64_t focusTo;
     bool focusMoved;
+    bool reshaped;
 };
 
 // Takes a window out of what clients were told, before it goes.

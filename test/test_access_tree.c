@@ -94,6 +94,12 @@ static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint
     Note(user, "focus ", old, focus);
 }
 
+static void ChildrenChanged(void* user, const muiAccessTree* tree, uint64_t id)
+{
+    CHECK(muiAccessTree_Find(tree, id) != NULL, "held when told");
+    Note(user, "c", id, UINT64_MAX);
+}
+
 // A context and a tree kept from it.
 typedef struct Scene
 {
@@ -112,7 +118,7 @@ static void MakeScene(Scene* scene)
     muiAccessTreeDef treeDef = muiDefaultAccessTreeDef();
     CHECK(muiCreateAccessTree(&treeDef, &scene->tree) == mui_success, "tree");
     scene->root = Node(scene->context, s_nullNode, -1.0f, -1.0f);
-    scene->changes = (muiAccessChanges){&scene->log, Added, Updated, Removed, FocusMoved};
+    scene->changes = (muiAccessChanges){&scene->log, Added, Updated, Removed, FocusMoved, NULL};
 }
 
 static void FreeScene(Scene* scene)
@@ -301,6 +307,56 @@ static muiAccessUpdate Update(const muiAccessNode* const* nodes, uint32_t count,
     return (muiAccessUpdate){nodes, count, children, root, focus};
 }
 
+// Applies an update to a tree, logging its changes; whether they were
+// those expected.
+static bool Reported(muiAccessTree* tree, const muiAccessUpdate* update, const char* expected)
+{
+    Log log = {0};
+    const muiAccessChanges changes = {&log, Added, Updated, Removed, FocusMoved, ChildrenChanged};
+    bool same = muiAccessTree_Apply(tree, update, &changes) == mui_success &&
+                strcmp(log.text, expected) == 0;
+    if (!same)
+    {
+        fprintf(stderr, "reported: %s\n", log.text);
+    }
+    return same;
+}
+
+// childrenChanged: told after updated for a node whose children differ
+// in which or in order, and for no other.
+static void TestChildrenChanged(void)
+{
+    muiAccessTreeDef def = muiDefaultAccessTreeDef();
+    muiAccessTree* tree = NULL;
+    CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
+    muiAccessNode root = {.id = 1, .childCount = 2};
+    muiAccessNode two = {.id = 2};
+    muiAccessNode three = {.id = 3};
+    muiAccessNode four = {.id = 4};
+    const muiAccessNode* all[3] = {&root, &two, &three};
+    const uint64_t first[2] = {2, 3};
+    muiAccessUpdate update = Update(all, 3, first, 1, 1);
+    CHECK(Reported(tree, &update, "+1 +2 +3 focus 0>1 "), "made");
+    const muiAccessNode* justRoot[1] = {&root};
+    update = Update(justRoot, 1, first, 0, 0);
+    CHECK(Reported(tree, &update, "~1 "), "the same children");
+    const uint64_t swapped[2] = {3, 2};
+    update = Update(justRoot, 1, swapped, 0, 0);
+    CHECK(Reported(tree, &update, "~1 c1 "), "the same children reordered");
+    root.childCount = 1;
+    update = Update(justRoot, 1, first, 0, 0);
+    CHECK(Reported(tree, &update, "~1 c1 -3 "), "fewer");
+    const uint64_t grown[2] = {2, 4};
+    root.childCount = 2;
+    const muiAccessNode* rootAndFour[2] = {&root, &four};
+    update = Update(rootAndFour, 2, grown, 0, 0);
+    CHECK(Reported(tree, &update, "+4 ~1 c1 "), "more");
+    const muiAccessNode* justTwo[1] = {&two};
+    update = Update(justTwo, 1, NULL, 0, 0);
+    CHECK(Reported(tree, &update, "~2 "), "a leaf resent");
+    muiDestroyAccessTree(tree);
+}
+
 static void TestHandMade(void)
 {
     muiAccessTreeDef def = muiDefaultAccessTreeDef();
@@ -347,7 +403,7 @@ static void TestHandMade(void)
     const muiAccessNode* strays[1] = {&stray};
     update = Update(strays, 1, NULL, 0, 0);
     Log log = {0};
-    const muiAccessChanges changes = {&log, Added, Updated, Removed, FocusMoved};
+    const muiAccessChanges changes = {&log, Added, Updated, Removed, FocusMoved, NULL};
     CHECK(muiAccessTree_Apply(tree, &update, &changes) == mui_success &&
               muiAccessTree_Find(tree, 9) == NULL && muiAccessTree_Count(tree) == 2 &&
               strcmp(log.text, "-9 ") == 0,
@@ -940,6 +996,7 @@ int main(void)
     TestNewRoot();
     TestRefused();
     TestHandMade();
+    TestChildrenChanged();
     TestChurn();
     TestLeavingNotARing();
     TestShown();

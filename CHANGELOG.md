@@ -136,7 +136,8 @@ format.
   `muiAccessIdOf` and `muiNodeIdOfAccess`. The consumer adapters read
   (`maul-ui/access_tree.h`, `MAUL_UI_ACCESS_TREE`): `muiCreateAccessTree`,
   `muiAccessTree_Apply` with `muiAccessChanges` (refusing lists that
-  would not leave a tree), the readers, the tree as platforms see it
+  would not leave a tree; `childrenChanged` for a node whose children
+  differ, in which or in order), the readers, the tree as platforms see it
   (`muiAccessTree_GetShownChildren`, `muiAccessTree_GetShownParent`,
   `muiAccessTree_IsShown`), `muiAccessTree_GetName`,
   `muiAccessTree_GetBounds`, and `muiAccessTree_Write` and
@@ -164,7 +165,8 @@ format.
   the Value interface (a range's numbers, its value set through the
   host), relations and attributes; events (states, names, values and
   announcements as records change, children added, removed and moved
-  as clients were told them, the focus). The result
+  as clients were told them, the focus; the shown tree walked only
+  when an update may change it). The result
   `mui_errorPlatform` (record mui-0008).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and
   `muiNode_CancelExit`; an exiting subtree leaves hit testing, focus

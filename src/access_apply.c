@@ -361,6 +361,16 @@ static uint32_t Commit(muiAccessTree* tree, const muiAccessUpdate* update, uint3
     return replaced;
 }
 
+// Whether a replaced node's children differ from those its new record
+// lists.
+static bool ChildrenDiffer(const muiAccessTree* tree, const muiHeldNode* old)
+{
+    const muiHeldNode* now = &tree->held[muiHeldSlotOf(tree, old->node.id) - 1];
+    uint32_t count = old->node.childCount;
+    return count != now->node.childCount ||
+           (count != 0 && memcmp(old->children, now->children, count * sizeof(uint64_t)) != 0);
+}
+
 // Tells the host what changed, then frees what was replaced.
 static void Report(muiAccessTree* tree, const muiAccessChanges* changes, uint32_t added,
                    uint32_t retired, uint64_t oldFocus)
@@ -383,6 +393,11 @@ static void Report(muiAccessTree* tree, const muiAccessChanges* changes, uint32_
             if (report != nullptr)
             {
                 report(changes->user, tree, &node->held.node);
+            }
+            if (!node->removed && changes->childrenChanged != nullptr &&
+                ChildrenDiffer(tree, &node->held))
+            {
+                changes->childrenChanged(changes->user, tree, node->held.node.id);
             }
         }
         if (changes->focusMoved != nullptr && tree->focus != oldFocus)

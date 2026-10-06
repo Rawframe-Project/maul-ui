@@ -172,12 +172,53 @@ static void TellProperties(muiAtspiApp* app, const muiAtspiObject* object, const
     }
 }
 
+static bool BoxDiffers(const muiAccessNode* old, const muiAccessNode* now)
+{
+    const muiRect* a = &old->bounds;
+    const muiRect* b = &now->bounds;
+    const muiDrawTransform* s = &old->transform;
+    const muiDrawTransform* t = &now->transform;
+    return a->x != b->x || a->y != b->y || a->width != b->width || a->height != b->height ||
+           s->a != t->a || s->b != t->b || s->c != t->c || s->d != t->d || s->e != t->e ||
+           s->f != t->f;
+}
+
+// Whether a node's new record may show the tree otherwise (the view's
+// rules): hidden or clipping, a generic node with a label or none, or
+// its box where it or its parent clips. Its children are told apart by
+// childrenChanged.
+static bool Reshapes(const muiAccessTree* tree, const muiAccessNode* old, const muiAccessNode* now)
+{
+    const uint32_t shaping = mui_accessHidden | mui_accessClipsChildren;
+    if (((old->flags ^ now->flags) & shaping) != 0 ||
+        (old->role == mui_roleGeneric) != (now->role == mui_roleGeneric) ||
+        (old->text[mui_accessLabel] == nullptr) != (now->text[mui_accessLabel] == nullptr))
+    {
+        return true;
+    }
+    if (!BoxDiffers(old, now))
+    {
+        return false;
+    }
+    const muiAccessNode* parent = muiAccessTree_Find(tree, muiAccessTree_GetParent(tree, now->id));
+    return (now->flags & mui_accessClipsChildren) != 0 ||
+           (parent != nullptr && (parent->flags & mui_accessClipsChildren) != 0);
+}
+
 static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* old)
 {
     muiAtspiAdapter* adapter = user;
     const muiAtspiObject object = {adapter, muiAccessTree_Find(tree, old->id)};
     TellStates(adapter->app, &object, old);
     TellProperties(adapter->app, &object, old);
+    adapter->reshaped |= Reshapes(tree, old, object.node);
+}
+
+static void ChildrenChanged(void* user, const muiAccessTree* tree, uint64_t id)
+{
+    (void)tree;
+    (void)id;
+    ((muiAtspiAdapter*)user)->reshaped = true;
 }
 
 static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint64_t focus)
@@ -189,6 +230,8 @@ static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint
     adapter->focusFrom = old;
     adapter->focusTo = focus;
     adapter->focusMoved = true;
+    // A hidden node, or one clipped out, is shown while focused.
+    adapter->reshaped = true;
 }
 
 // The window root's index among the application root's children.
@@ -408,13 +451,25 @@ muiResult muiAtspiAdapter_Apply(muiAtspiAdapter* adapter, const muiAccessUpdate*
     {
         return mui_errorInvalid;
     }
-    const muiAccessChanges changes = {
-        .user = adapter, .updated = Updated, .focusMoved = FocusMoved};
+    // Nodes come and go as the children their parents list change, or
+    // with the root, so no callback tells of them.
+    const muiAccessChanges changes = {.user = adapter,
+                                      .updated = Updated,
+                                      .focusMoved = FocusMoved,
+                                      .childrenChanged = ChildrenChanged};
     adapter->focusMoved = false;
+    adapter->reshaped = false;
+    uint64_t root = muiAccessTree_GetRoot(adapter->tree);
     muiResult status = muiAccessTree_Apply(adapter->tree, update, &changes);
+    adapter->reshaped |= muiAccessTree_GetRoot(adapter->tree) != root;
     if (status == mui_success)
     {
-        TellStructure(adapter);
+        // Walked only when the update may have changed what is shown: a
+        // value or a name changing costs no walk.
+        if (adapter->reshaped)
+        {
+            TellStructure(adapter);
+        }
         TellFocus(adapter);
     }
     return status;
