@@ -11,7 +11,9 @@
   ],
   "bindings": [
     {"table": 0, "slot": 0, "kind": "read_only_storage_buffer", "stages": ["vertex", "fragment"],
-     "min_size": 144}
+     "min_size": 144},
+    {"table": 0, "slot": 1, "kind": "read_only_storage_buffer", "stages": ["fragment"],
+     "min_size": 112}
   ],
   "constants": []
 }

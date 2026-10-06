@@ -225,6 +225,9 @@ jobs:
         # The ARIA adapter against the browser's accessibility tree; a
         # skip (77) fails the step, so green means it ran.
         run: MUI_NODE_MODULES=/tmp/browser/node_modules node test/web_runner.cjs build/test_aria.js
+      - name: The reference renderer's WGSL in headless Chrome's WebGPU
+        # The shader tools pass WGSL through untouched (record mui-0005).
+        run: MUI_NODE_MODULES=/tmp/browser/node_modules node tools/check_wgsl.cjs rhi/shaders/quad.wgsl
       - name: Size
         # The static library's size, reported, not gated (family record
         # 0013).

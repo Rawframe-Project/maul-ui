@@ -17,7 +17,7 @@ struct Instance
     vec4 fill;
     vec4 widths;
     vec4 colors[4];
-    uvec4 meta;
+    uvec4 tags;
 };
 
 layout(set = 0, binding = 0, std430) readonly buffer Instances

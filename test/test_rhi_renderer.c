@@ -5,8 +5,9 @@
 // def and arguments; not drawing until its pipeline is ready, the
 // device's notification making it so, or a failed pipeline leaving it
 // not; a frame's upload and draw passes, the upload a record of 144
-// bytes a box and nothing for the kinds it does not draw yet; the
-// instance buffer grown for a long list; an empty list.
+// bytes a box or shadow and nothing for the kinds it does not draw yet,
+// and the gradient table beside them; the instance buffer grown for a
+// long list; an empty list.
 
 #include "test_harness.h"
 
@@ -97,11 +98,12 @@ static muiRhiRenderer* Make(Gpu* gpu, uint32_t instances)
     return muiCreateRhiRenderer(&def, &renderer) == mui_success ? renderer : NULL;
 }
 
-// The staging bytes an upload of a number of instances takes, in
-// Maul RHI's 256-byte blocks.
-static uint64_t Staged(uint64_t instances)
+// The staging bytes a frame's uploads take, each in whole 512-byte
+// blocks of Maul RHI's staging: its instances, and its gradient table of
+// one entry or more.
+static uint64_t Staged(uint64_t instances, uint64_t gradients)
 {
-    return (instances * 144 + 255) / 256 * 256;
+    return (instances * 144 + 511) / 512 * 512 + (gradients * 112 + 511) / 512 * 512;
 }
 
 static muiDrawCommand Box(float x, float y)
@@ -198,16 +200,16 @@ static void TestDraws(void)
         Close(&gpu);
         return;
     }
-    muiDrawCommand commands[3] = {Box(0, 0), Box(20, 20), {.kind = mui_drawShadow}};
+    muiDrawCommand commands[3] = {Box(0, 0), Box(20, 20), {.kind = mui_drawImage}};
     muiDrawList list = ListOf(commands, 3);
     CHECK(DrawFrame(&gpu, renderer, &list) == mui_empty && s_log.frames == 0,
           "nothing drawn before its pipeline is ready");
     CHECK(muiRhiRenderer_IsReady(renderer), "the device's notification made it ready");
-    // The upload, then the pipeline, the bindings, the root block and the
-    // draw.
+    // The uploads, then the pipeline, the bindings, the root block and
+    // the draw.
     CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.passes == 3 &&
-              s_log.stagingBytes == Staged(2) && s_log.commands == 5,
-          "upload and draw passes, two boxes uploaded, the shadow not yet");
+              s_log.stagingBytes == Staged(2, 1) && s_log.commands == 6,
+          "upload and draw passes, two boxes uploaded, the image not yet");
     const muiRhiTarget empty = {.width = 0, .height = SIZE};
     CHECK(muiRhiRenderer_AddPasses(renderer, &list, &empty) == mui_errorInvalid,
           "a target of no size");
@@ -219,12 +221,12 @@ static void TestDraws(void)
     }
     muiDrawList longList = ListOf(many, many != NULL ? 3000 : 0);
     CHECK(many != NULL && DrawFrame(&gpu, renderer, &longList) == mui_success &&
-              s_log.stagingBytes == Staged(3000),
+              s_log.stagingBytes == Staged(3000, 1),
           "the buffer grown for 3000 boxes");
     free(many);
     muiDrawList none = ListOf(NULL, 0);
     CHECK(DrawFrame(&gpu, renderer, &none) == mui_success && s_log.passes == 3 &&
-              s_log.stagingBytes == 0 && s_log.commands == 0,
+              s_log.stagingBytes == Staged(0, 1) && s_log.commands == 1,
           "an empty list still clears");
     muiDestroyRhiRenderer(renderer);
     Close(&gpu);

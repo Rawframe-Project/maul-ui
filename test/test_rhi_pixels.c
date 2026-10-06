@@ -11,9 +11,15 @@
 // - a half-covering premultiplied red over black, linear 0.5 encoded
 //   as sRGB 188;
 // - the same list at a scale of 2 into a 128-pixel target, each probe
-//   at twice its place.
+//   at twice its place;
+// - gradients, linear and radial, each probe the color the core's own
+//   premultiplied Oklab mixing gives at its place along the gradient;
+// - a hard outer shadow beside its box and not under it, a blurred one
+//   against the exact blur of its square box (a product of two error
+//   functions) within 4, and an inset one's ring inside its box only.
 // Skips (77) without an adapter, unless MUI_RHI_REQUIRED is set.
 
+#include "color.h"
 #include "test_harness.h"
 
 #include "maul-rhi/encoder.h"
@@ -21,6 +27,7 @@
 #include "maul-rhi/resources.h"
 #include "maul-ui-rhi/renderer.h"
 
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -204,6 +211,143 @@ static void CheckProbes(const uint8_t* pixels, uint32_t side, int scale)
     }
 }
 
+// A value in linear light encoded as an sRGB byte.
+static int SrgbByte(double linear)
+{
+    double c = linear <= 0.0031308 ? 12.92 * linear : 1.055 * pow(linear, 1.0 / 2.4) - 0.055;
+    return (int)lround(fmin(fmax(c, 0.0), 1.0) * 255.0);
+}
+
+static bool Near(const uint8_t* pixels, uint32_t side, int x, int y, const int expected[4],
+                 int tolerance)
+{
+    const uint8_t* pixel = &pixels[((size_t)y * side + (size_t)x) * 4];
+    bool near = true;
+    for (int c = 0; c < 4; c++)
+    {
+        int difference = pixel[c] - expected[c];
+        near = near && difference >= -tolerance && difference <= tolerance;
+    }
+    if (!near)
+    {
+        printf("  at %d,%d: %u %u %u %u, expected %d %d %d %d\n", x, y, pixel[0], pixel[1],
+               pixel[2], pixel[3], expected[0], expected[1], expected[2], expected[3]);
+    }
+    return near;
+}
+
+// Red to blue at a place along a gradient, mixed as the core mixes.
+static void Mixed(double t, int out[4])
+{
+    float red[4];
+    float blue[4];
+    muiColorToChannels((muiColor){1.0f, 0.0f, 0.0f, 1.0f}, red);
+    muiColorToChannels((muiColor){0.0f, 0.0f, 1.0f, 1.0f}, blue);
+    float f = (float)fmin(fmax(t, 0.0), 1.0);
+    float channels[4];
+    for (int i = 0; i < 4; i++)
+    {
+        channels[i] = red[i] + (blue[i] - red[i]) * f;
+    }
+    muiColor color = muiColorFromChannels(channels);
+    out[0] = (int)lround((double)color.r * 255.0);
+    out[1] = (int)lround((double)color.g * 255.0);
+    out[2] = (int)lround((double)color.b * 255.0);
+    out[3] = 255;
+}
+
+// How much of a square box a Gaussian blur of sigma leaves at a point:
+// the blur is separable, an error function each way.
+static double BlurOf(muiRect box, double sigma, double x, double y)
+{
+    double s = sigma * sqrt(2.0);
+    double left = (double)box.x;
+    double top = (double)box.y;
+    double right = left + (double)box.width;
+    double bottom = top + (double)box.height;
+    double across = 0.5 * (erf((right - x) / s) - erf((left - x) / s));
+    double down = 0.5 * (erf((bottom - y) / s) - erf((top - y) / s));
+    return across * down;
+}
+
+static void TestGradientsAndShadows(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels)
+{
+    const muiDrawGradient gradients[3] = {
+        {0},
+        {.kind = mui_gradientLinear,
+         .stopCount = 2,
+         .interpolation = mui_interpolateOklab,
+         .angle = 90.0f,
+         .colors = {{1, 0, 0, 1}, {0, 0, 1, 1}},
+         .positions = {0.0f, 1.0f}},
+        {.kind = mui_gradientRadial,
+         .stopCount = 2,
+         .interpolation = mui_interpolateOklab,
+         .colors = {{1, 0, 0, 1}, {0, 0, 1, 1}},
+         .positions = {0.0f, 1.0f}},
+    };
+    muiDrawCommand commands[6] = {
+        Box(0, 0, 64, 12, (muiLinearColor){0, 0, 0, 0}),
+        Box(0, 12, 32, 32, (muiLinearColor){0, 0, 0, 0}),
+        {.kind = mui_drawShadow},
+        {.kind = mui_drawShadow},
+        {.kind = mui_drawShadow},
+    };
+    commands[0].box.gradient = 1;
+    commands[1].box.gradient = 2;
+    // A hard green shadow down and right of a box not drawn.
+    commands[2].shadow = (muiDrawShadow){
+        .rect = {40, 14, 14, 14}, .color = {0, 1, 0, 1}, .offsetX = 4, .offsetY = 4};
+    // A white shadow blurred by 8 (sigma 4) around a box not drawn.
+    const muiRect blurredBox = {44, 46, 12, 12};
+    commands[3].shadow = (muiDrawShadow){.rect = blurredBox, .color = {1, 1, 1, 1}, .blur = 8};
+    // A hard red inset shadow spread 2 inside a box.
+    commands[4].shadow =
+        (muiDrawShadow){.rect = {4, 48, 24, 12}, .color = {1, 0, 0, 1}, .spread = 2, .inset = 1};
+    muiDrawList list = {.commands = commands, .commandCount = 5};
+    list.gradients = gradients;
+    list.gradientCount = 3;
+    list.header.scale = 1.0f;
+    if (!Render(gpu, renderer, &list, 64, pixels))
+    {
+        CHECK(false, "gradients and shadows drawn and read");
+        return;
+    }
+    // Along the linear gradient, to the right: t at a pixel's middle.
+    for (int x = 2; x < 64; x += 29)
+    {
+        int expected[4];
+        Mixed((x + 0.5) / 64.0, expected);
+        CHECK(Near(pixels, 64, x, 6, expected, 2), "the linear gradient");
+    }
+    // Outward from the radial gradient's middle, its ellipse's reach
+    // 16 times the square root of 2.
+    const int radial[3][2] = {{16, 28}, {4, 16}, {28, 40}};
+    for (int i = 0; i < 3; i++)
+    {
+        double dx = radial[i][0] + 0.5 - 16.0;
+        double dy = radial[i][1] + 0.5 - 28.0;
+        int expected[4];
+        Mixed(sqrt(dx * dx + dy * dy) / (16.0 * sqrt(2.0)), expected);
+        CHECK(Near(pixels, 64, radial[i][0], radial[i][1], expected, 2), "the radial gradient");
+    }
+    const int green[4] = {0, 255, 0, 255};
+    const int black[4] = {0, 0, 0, 255};
+    const int red[4] = {255, 0, 0, 255};
+    CHECK(Near(pixels, 64, 56, 30, green, 2) && Near(pixels, 64, 47, 21, black, 2) &&
+              Near(pixels, 64, 38, 13, black, 2),
+          "a hard shadow beside its box, not under it");
+    for (int y = 42; y <= 45; y++)
+    {
+        int level = SrgbByte(BlurOf(blurredBox, 4.0, 50.5, y + 0.5));
+        const int expected[4] = {level, level, level, 255};
+        CHECK(Near(pixels, 64, 50, y, expected, 4), "a blurred shadow against the exact blur");
+    }
+    CHECK(Near(pixels, 64, 5, 54, red, 2) && Near(pixels, 64, 16, 54, black, 2) &&
+              Near(pixels, 64, 2, 54, black, 2),
+          "an inset shadow's ring inside its box only");
+}
+
 int main(void)
 {
     Gpu gpu;
@@ -246,6 +390,7 @@ int main(void)
         list.header.scale = 2.0f;
         CHECK(Render(&gpu, renderer, &list, 128, pixels), "drawn and read at a scale of 2");
         CheckProbes(pixels, 128, 2);
+        TestGradientsAndShadows(&gpu, renderer, pixels);
     }
     free(pixels);
     muiDestroyRhiRenderer(renderer);

@@ -101,9 +101,15 @@ clip chain evaluated in its shaders, which keeps batches whole.
   GLSL and WGSL made into a Maul RHI container offline
   (`tools/gen_rhi_shaders.py`), the header committed. Its tests run on
   Maul RHI's test driver and on lavapipe, comparing probed pixels with
-  what the list says, under the Vulkan validation layer. Boxes come
-  first; gradients, shadows, clips, transforms, images and glyph runs
-  follow.
+  what the list says, under the Vulkan validation layer, and its WGSL
+  is compiled by headless Chrome's WebGPU, which nothing else compiles.
+  Gradients come from the list's table in a second storage buffer,
+  mixed in premultiplied Oklab as the core's transitions mix colors;
+  shadows are Gaussian blurs of their rounded shape in Evan Wallace's
+  closed form (exact along one axis, four samples along the other),
+  their shape spread with CSS's radius adjustment and drawn outside
+  their box, or inside it when inset. Clips, transforms, images and
+  glyph runs follow.
 
 ## Consequences
 

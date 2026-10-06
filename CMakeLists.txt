@@ -236,7 +236,7 @@ if(MAUL_UI_BUILD_TESTS)
         maul_add_test(rhi_renderer)
         target_link_libraries(test_rhi_renderer PRIVATE maul-ui-rhi)
         # Its pixels on a real device; skips without one.
-        maul_add_test(rhi_pixels)
+        maul_add_test(rhi_pixels WHITEBOX)
         target_link_libraries(test_rhi_pixels PRIVATE maul-ui-rhi)
         set_tests_properties(rhi_pixels PROPERTIES SKIP_RETURN_CODE 77)
     endif()

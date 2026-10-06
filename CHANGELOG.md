@@ -54,7 +54,9 @@ format.
   `muiRhiRenderer_Notify` with the device's notifications until its
   pipeline is ready, then each frame `muiRhiRenderer_AddPasses` while
   the frame is built and `muiRhiRenderer_Record` once it is compiled.
-  Boxes are drawn: fills, borders and rounded corners.
+  Boxes are drawn: fills, borders, rounded corners and gradients
+  (linear and radial, mixed in premultiplied Oklab as the core mixes
+  colors); and shadows, outer and inset, blurred in closed form.
 - Interaction properties (`maul-ui/interaction.h`): a fourth property
   group with a hit mode (the node and its children, its children alone,
   or neither), a pass-through flag and a layer kind (an activation
