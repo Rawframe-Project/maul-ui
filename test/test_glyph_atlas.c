@@ -4,8 +4,8 @@
 // Glyph atlases (record mui-0006): images packed with their gutters and
 // found again, pens rounded to quarter pixels, plots evicted least
 // recently used and never in the frame that uses them, changes taken by
-// the renderer, the lookup table growing, memory running out, and calls
-// outside the contract refused.
+// the renderer, distance fields beside coverage, the lookup table
+// growing, memory running out, and calls outside the contract refused.
 
 #include "test_harness.h"
 
@@ -417,6 +417,84 @@ static void TestContract(void)
     Free(&fixture);
 }
 
+static void TestFields(void)
+{
+    Fixture fixture = Make(64, 32, 1, NULL);
+    // The box at 10 pixels with a spread of 2: 14 by 14, from 2 left of
+    // the pen and 10 above the baseline.
+    unsigned char field[14 * 14];
+    muiGlyphImage image = {0};
+    CHECK(muiRenderGlyphField(fixture.service, fixture.ahem, FIRST_BOX, 10.0f, 2, &image, field,
+                              sizeof field) == mui_success &&
+              image.width == 14 && image.height == 14,
+          "the field alone");
+    muiAtlasGlyph glyph = {0};
+    CHECK(muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem, FIRST_BOX, 10.0f, 2, &glyph) ==
+                  mui_success &&
+              glyph.u == 1 && glyph.v == 1 && glyph.width == 14 && glyph.height == 14 &&
+              glyph.x == -2 && glyph.y == -10,
+          "placed from the pen and baseline at its size");
+    bool same = true;
+    for (uint32_t y = 0; y < 14; y++)
+    {
+        for (uint32_t x = 0; x < 14; x++)
+        {
+            same = same && Pixel(&fixture, 0, x + 1, y + 1) == field[y * 14 + x];
+        }
+    }
+    CHECK(same && Pixel(&fixture, 0, 0, 0) == 0 && Pixel(&fixture, 0, 15, 8) == 0 &&
+              Pixel(&fixture, 0, 8, 15) == 0,
+          "the field's bytes and an empty gutter");
+    muiAtlasGlyph again = {0};
+    CHECK(muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem, FIRST_BOX, 10.0f, 2, &again) ==
+                  mui_success &&
+              again.u == 1 && again.v == 1,
+          "found again");
+    muiAtlasGlyph other = {0};
+    CHECK(Get(&fixture, FIRST_BOX, 0.0f, 0.0f, &other) == mui_success && other.u == 17 &&
+              other.width == 10 && Pixel(&fixture, 0, 17, 1) == 255,
+          "coverage of the same glyph apart");
+    // Each in a plot of its own: 18 and 17 pixels with their gutters.
+    CHECK(muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem, FIRST_BOX, 10.0f, 3, &other) ==
+                  mui_success &&
+              other.u == 33 && other.v == 1 && other.width == 16,
+          "another spread apart");
+    CHECK(muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem, FIRST_BOX, 10.5f, 2, &other) ==
+                  mui_success &&
+              other.u == 1 && other.v == 33 && other.width == 15,
+          "another size apart");
+    other = (muiAtlasGlyph){7, 7, 7, 7, 7, 7, 7};
+    CHECK(muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem, FIRST_BOX, 10.0f, 32, &other) ==
+                  mui_errorCapacity &&
+              other.width == 74 && other.height == 74 && other.page == 0 && other.u == 0 &&
+              other.v == 0 && other.x == 0 && other.y == 0,
+          "larger than a plot, its size told");
+    CHECK(muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem, SPACE, 10.0f, 2, &other) ==
+                  mui_success &&
+              other.width == 0,
+          "a space has no field");
+    CHECK(muiGlyphAtlas_GetField(NULL, fixture.ahem, FIRST_BOX, 10.0f, 2, &other) ==
+                  mui_errorInvalid &&
+              muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem, FIRST_BOX, 10.0f, 2, NULL) ==
+                  mui_errorInvalid &&
+              muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem, FIRST_BOX, 0.0f, 2, &other) ==
+                  mui_errorInvalid &&
+              muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem, FIRST_BOX, 10.0f, 1, &other) ==
+                  mui_errorInvalid &&
+              muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem, FIRST_BOX, 10.0f, 33, &other) ==
+                  mui_errorInvalid &&
+              muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem, 100000, 10.0f, 2, &other) ==
+                  mui_errorInvalid &&
+              muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem + 1, FIRST_BOX, 10.0f, 2,
+                                     &other) == mui_errorStale &&
+              muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem + 1, FIRST_BOX, 10.0f, 1,
+                                     &other) == mui_errorInvalid &&
+              muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem + 1, FIRST_BOX, 10.0f, 33,
+                                     &other) == mui_errorInvalid,
+          "fields outside the contract");
+    Free(&fixture);
+}
+
 static void TestMemoryRunningOut(void)
 {
     for (int failAt = 1; failAt < 40; failAt++)
@@ -434,12 +512,16 @@ static void TestMemoryRunningOut(void)
         for (uint32_t i = 0; i < 40; i++)
         {
             muiAtlasGlyph glyph = {0};
-            muiResult result = Get(&fixture, FIRST_BOX + i % 20, 0.0f, 0.0f, &glyph);
+            muiResult result = i % 3 == 2
+                                   ? muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem,
+                                                            FIRST_BOX + i % 20, 6.0f, 2, &glyph)
+                                   : Get(&fixture, FIRST_BOX + i % 20, 0.0f, 0.0f, &glyph);
             sound = sound && (result == mui_success || result == mui_errorCapacity);
         }
         CHECK(sound, "placed or out of memory");
-        // Once memory is back, every glyph is found.
+        // Once memory is back, every glyph is found in a new frame.
         failing.failAt = 0;
+        muiGlyphAtlas_NextFrame(fixture.atlas);
         for (uint32_t i = 0; i < 20; i++)
         {
             muiAtlasGlyph glyph = {0};
@@ -470,6 +552,7 @@ int main(void)
     TestPagesAndPlots();
     TestManyEntries();
     TestContract();
+    TestFields();
     TestMemoryRunningOut();
     return s_failures == 0 ? 0 : 1;
 }

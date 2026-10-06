@@ -99,6 +99,11 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   its entries go stale at once, as each names its plot's generation.
   The renderer marks frames, reads the pages' pixels, and takes each
   changed plot's rectangle to upload; the atlas uses no graphics API.
+  Distance fields share the pages (`muiGlyphAtlas_GetField`), keyed by
+  font, glyph, size and spread, without a pen: a field is placed from
+  the pen and baseline at its own size and drawn at any size by
+  scaling. The empty gutter reads as far outside, as a field's border
+  does.
 - **Measuring** uses the font's own advances, shaped at a scale of its
   units per em and scaled by size over units per em, so sizes are the
   same at every device scale; nothing is hinted.
