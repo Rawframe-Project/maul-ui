@@ -60,6 +60,9 @@ extern "C"
         uint32_t pointerRecords;
         // Directional navigation links (muiNode_SetNeighbor) at once.
         uint32_t neighbors;
+        // The transforms a draw list holds, the identity aside: one per
+        // scroll container painted.
+        uint32_t drawTransforms;
     } muiLimits;
 
     // How a context is made. Build it with muiDefaultContextDef.

@@ -151,6 +151,45 @@ static void MarkMoved(const muiSolver* solver, uint32_t node)
     }
 }
 
+// A scroll container's extent, while its children are still in logical
+// coordinates: the furthest end of their margin boxes (border boxes for
+// absolute ones) plus its end padding, from its padding box's start, at
+// least the padding box; its offsets are brought within it.
+static void MeasureExtent(const muiSolver* solver, uint32_t node, muiSize size)
+{
+    const muiLayoutStyle* style = &solver->nodes[node - 1].style;
+    float startX = style->border.start;
+    float startY = style->border.top;
+    float endX = size.width - style->border.end;
+    float endY = size.height - style->border.bottom;
+    float reachX = endX - style->padding.end;
+    float reachY = endY - style->padding.bottom;
+    for (uint32_t c = muiTreeAt(solver->tree, node)->links.firstChild; c != 0;
+         c = muiTreeAt(solver->tree, c)->links.next)
+    {
+        const muiLayoutNode* child = &solver->nodes[c - 1];
+        muiEdges margins = child->absolute ? (muiEdges){0} : muiMarginsOf(&child->style);
+        reachX = fmaxf(reachX, child->rect.x + child->rect.width + margins.end);
+        reachY = fmaxf(reachY, child->rect.y + child->rect.height + margins.bottom);
+    }
+    muiScrollState* scroll = &solver->scrolls[node - 1];
+    scroll->extentWidth = reachX + style->padding.end - startX;
+    scroll->extentHeight = reachY + style->padding.bottom - startY;
+    // The limits read the node's rectangle, which its parent sets after
+    // this: they are as the size given here.
+    muiLayoutNode sized = solver->nodes[node - 1];
+    sized.rect.width = size.width;
+    sized.rect.height = size.height;
+    float x = fminf(scroll->x, muiScrollLimit(&sized, scroll, true));
+    float y = fminf(scroll->y, muiScrollLimit(&sized, scroll, false));
+    if (x != scroll->x || y != scroll->y)
+    {
+        scroll->x = x;
+        scroll->y = y;
+        *solver->scrolled = true;
+    }
+}
+
 // Lays a container out in logical coordinates, start on the left, and
 // mirrors it when its direction is right to left (record mui-0003).
 static muiSize SizeContainer(const muiSolver* solver, uint32_t node, const muiSizingInput* input,
@@ -160,6 +199,10 @@ static muiSize SizeContainer(const muiSolver* solver, uint32_t node, const muiSi
     if (perform)
     {
         muiPlaceAbsolute(solver, node, size, input->rtl);
+        if (solver->nodes[node - 1].style.scrollAxes != mui_scrollNone)
+        {
+            MeasureExtent(solver, node, size);
+        }
         if (input->rtl)
         {
             Mirror(solver, node, size.width);

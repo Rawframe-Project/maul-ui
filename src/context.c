@@ -49,7 +49,8 @@ muiContextDef muiDefaultContextDef(void)
                    .layers = 64,
                    .pointers = 16,
                    .pointerRecords = 64,
-                   .neighbors = 256},
+                   .neighbors = 256,
+                   .drawTransforms = 64},
     };
 }
 
@@ -64,7 +65,7 @@ static bool AreLimitsValid(const muiLimits* limits)
            limits->drawClips < MAX_SLOTS && limits->drawGradients < MAX_SLOTS &&
            limits->drawGlyphs <= MAX_SLOTS && limits->layers <= MAX_SLOTS &&
            limits->pointers <= MUI_MAX_POINTERS && limits->pointerRecords <= MAX_SLOTS &&
-           limits->neighbors <= MAX_SLOTS;
+           limits->neighbors <= MAX_SLOTS && limits->drawTransforms < MAX_SLOTS;
 }
 
 // Where each part of the context's block starts.
@@ -76,6 +77,7 @@ typedef struct Parts
     size_t text;
     size_t textRecords;
     size_t interaction;
+    size_t scrolls;
     size_t nodeStyles;
     size_t classSlots;
     size_t classes;
@@ -101,6 +103,8 @@ typedef struct Parts
     size_t drawClips;
     size_t drawGradients;
     size_t drawGlyphs;
+    size_t drawTransforms;
+    size_t drawTransformLinks;
     size_t layers;
     size_t pointers;
     size_t pointerRecords;
@@ -134,6 +138,7 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
         .text = muiLayoutAdd(layout, limits->nodes, sizeof(muiTextStyle), CACHE_LINE),
         .textRecords = muiLayoutAdd(layout, limits->nodes, sizeof(muiTextRecord), CACHE_LINE),
         .interaction = muiLayoutAdd(layout, limits->nodes, sizeof(muiInteractionStyle), CACHE_LINE),
+        .scrolls = muiLayoutAdd(layout, limits->nodes, sizeof(muiScrollState), CACHE_LINE),
         .nodeStyles = muiLayoutAdd(layout, limits->nodes, sizeof(muiNodeStyle), CACHE_LINE),
         .classSlots = muiLayoutAdd(layout, limits->styles, sizeof(muiPoolSlot), CACHE_LINE),
         .classes = muiLayoutAdd(layout, limits->styles, sizeof(muiStyleClass), CACHE_LINE),
@@ -169,6 +174,11 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
                                       sizeof(muiDrawGradient), CACHE_LINE),
         .drawGlyphs =
             muiLayoutAdd(layout, (size_t)limits->drawGlyphs * 2, sizeof(muiGlyph), CACHE_LINE),
+        .drawTransforms = muiLayoutAdd(layout, ((size_t)limits->drawTransforms + 1) * 2,
+                                       sizeof(muiDrawTransform), CACHE_LINE),
+        // Owners and parents, side by side.
+        .drawTransformLinks = muiLayoutAdd(layout, ((size_t)limits->drawTransforms + 1) * 4,
+                                           sizeof(uint32_t), CACHE_LINE),
         .layers = muiLayoutAdd(layout, limits->layers, sizeof(muiLayerEntry), CACHE_LINE),
         .pointers = muiLayoutAdd(layout, limits->pointers, sizeof(muiPointer), CACHE_LINE),
         .pointerRecords =
@@ -188,6 +198,7 @@ static void Place(muiContext* context, unsigned char* base, const Parts* parts,
     context->text = (muiTextStyle*)(base + parts->text);
     context->textRecords = (muiTextRecord*)(base + parts->textRecords);
     context->interaction = (muiInteractionStyle*)(base + parts->interaction);
+    context->scrolls = (muiScrollState*)(base + parts->scrolls);
     context->environment = muiDefaultEnvironment();
     muiStyleStore* style = &context->style;
     style->nodes = (muiNodeStyle*)(base + parts->nodeStyles);
@@ -222,6 +233,7 @@ static void Place(muiContext* context, unsigned char* base, const Parts* parts,
     draw->clipCapacity = limits->drawClips + 1;
     draw->gradientCapacity = limits->drawGradients + 1;
     draw->glyphCapacity = limits->drawGlyphs;
+    draw->transformCapacity = limits->drawTransforms + 1;
     for (uint32_t i = 0; i < 2; i++)
     {
         draw->tables[i] = (muiDrawTables){
@@ -230,11 +242,18 @@ static void Place(muiContext* context, unsigned char* base, const Parts* parts,
             .gradients =
                 (muiDrawGradient*)(base + parts->drawGradients) + i * draw->gradientCapacity,
             .glyphs = (muiGlyph*)(base + parts->drawGlyphs) + i * draw->glyphCapacity,
+            .transforms =
+                (muiDrawTransform*)(base + parts->drawTransforms) + i * draw->transformCapacity,
+            .transformOwners =
+                (uint32_t*)(base + parts->drawTransformLinks) + 2 * i * draw->transformCapacity,
+            .transformParents = (uint32_t*)(base + parts->drawTransformLinks) +
+                                (2 * i + 1) * draw->transformCapacity,
             .clipCount = 1,
             .gradientCount = 1,
+            .transformCount = 1,
         };
+        draw->tables[i].transforms[0] = (muiDrawTransform){1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
     }
-    draw->identity = (muiDrawTransform){1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
     muiLayerInit(&context->layers, (muiLayerEntry*)(base + parts->layers), limits->layers);
     muiEventInit(&context->events, (muiNodeId*)(base + parts->routes));
     muiFocusInit(&context->focus, (muiNeighbor*)(base + parts->neighbors), limits->neighbors);

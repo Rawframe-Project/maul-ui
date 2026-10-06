@@ -243,8 +243,8 @@ static void TestClassesNameTokens(void)
     CHECK(muiStyle_SetToken(context, style, mui_variantBase, mui_propertyImageSlice, gap) ==
               mui_errorInvalid,
           "insets take no token");
-    CHECK(muiStyle_SetToken(context, style, mui_variantBase, (muiProperty)(mui_propertyContent + 1),
-                            gap) == mui_errorInvalid &&
+    CHECK(muiStyle_SetToken(context, style, mui_variantBase,
+                            (muiProperty)(mui_propertyScrollAxes + 1), gap) == mui_errorInvalid &&
               muiStyle_SetToken(context, style, (muiVariant)99, mui_propertyPaddingStart, gap) ==
                   mui_errorInvalid &&
               muiStyle_SetToken(context, s_nullStyle, mui_variantBase, mui_propertyPaddingStart,
@@ -331,7 +331,8 @@ static void TestClassesNameTokens(void)
               muiStyle_GetToken(context, style, (muiVariant)99, mui_propertyWidth, &named) ==
                   mui_errorInvalid &&
               muiStyle_GetToken(context, style, mui_variantBase,
-                                (muiProperty)(mui_propertyContent + 1), &named) == mui_errorInvalid,
+                                (muiProperty)(mui_propertyScrollAxes + 1),
+                                &named) == mui_errorInvalid,
           "bad reads");
     CHECK(muiDestroyStyle(context, style) == mui_success &&
               muiStyle_GetToken(context, style, mui_variantBase, mui_propertyWidth, &named) ==

@@ -12,6 +12,7 @@
 #include "focus.h"
 #include "layer.h"
 #include "notify.h"
+#include "scroll.h"
 #include "style_store.h"
 #include "tree.h"
 
@@ -312,6 +313,7 @@ void muiFocusNavigate(muiContext* context, uint8_t player, uint32_t slot)
 {
     context->focus.showsByCode[player] = true;
     muiFocusAssign(context, player, slot, true);
+    muiScrollReveal(context, slot);
 }
 
 muiResult muiFocus_Move(muiContext* context, muiNodeId rootId, uint8_t player, bool backward)

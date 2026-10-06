@@ -10,9 +10,10 @@ format.
 
 ### Changed
 
-- `muiLimits` has four more fields, `layers` (64 by default),
-  `pointers` (16, at most 32), `pointerRecords` (64) and `neighbors`
-  (256); an initializer that lists its fields by position needs them.
+- `muiLimits` has five more fields, `layers` (64 by default),
+  `pointers` (16, at most 32), `pointerRecords` (64), `neighbors` (256)
+  and `drawTransforms` (64); an initializer that lists its fields by
+  position needs them. `muiLayoutStyle` ends with `scrollAxes`.
 - `muiNode_GetStates` returns the hover and press pointer input gives,
   and the players' focus, as well as the states the host set.
 - `mui_stateFocusVisible` comes after `mui_stateFocused`, so hovered,
@@ -71,6 +72,14 @@ format.
   bubbling on a route fixed before dispatch, ended by a handled event;
   focus moves by default for unhandled Tab, arrows and navigation; each
   input reports whether the UI handled it (record mui-0007).
+- Scrolling (`maul-ui/scroll.h`): the `scrollAxes` layout property makes
+  a scroll container, clipped at its padding box with an automatic
+  minimum of 0; layout measures its extent; `muiNode_SetScroll`,
+  `muiNode_GetScroll`, `muiNode_GetScrollExtent` and
+  `muiNode_ScrollIntoView`; draw lists carry a transform per scroll
+  container, so scrolling alone rewrites only the transform table; hit
+  testing, pointer records and navigation follow the offsets, and
+  navigation scrolls focus into view (record mui-0007).
 - Font families (`muiCreateFontFamily`, `muiFontFamily_GetKey`,
   `muiFontFamily_MatchFace`): faces a text style names together, matched
   by width, slant and weight as CSS matches them, with fallbacks of

@@ -100,6 +100,7 @@ extern "C"
         // Enumerators.
         mui_propertyTextDirection = 38,
         mui_propertyContent = 39,
+        mui_propertyScrollAxes = 40,
         // Visual properties, named after the muiVisualStyle field they set
         // (maul-ui/visual.h). Colors.
         mui_propertyBackground = 64,
@@ -166,7 +167,7 @@ extern "C"
 #define MUI_PROPERTY_BIT(property)   ((muiPropertyMask)1 << ((property) & 63))
 // Every layout, visual, text and interaction property, in their groups'
 // masks.
-#define MUI_LAYOUT_PROPERTIES      ((muiPropertyMask)0xFFFFFFFFFFull)
+#define MUI_LAYOUT_PROPERTIES      ((muiPropertyMask)0x1FFFFFFFFFFull)
 #define MUI_VISUAL_PROPERTIES      ((muiPropertyMask)0x1FFFFull)
 #define MUI_TEXT_PROPERTIES        ((muiPropertyMask)0x1FFull)
 #define MUI_INTERACTION_PROPERTIES ((muiPropertyMask)0x1Full)

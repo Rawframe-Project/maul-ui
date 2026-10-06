@@ -181,7 +181,8 @@ static void TestClassValuesAreCheckedAndRead(void)
               mui_errorInvalid,
           "unknown variant");
     CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, &values,
-                                   MUI_PROPERTY_BIT(mui_propertyContent + 1)) == mui_errorInvalid,
+                                   MUI_PROPERTY_BIT(mui_propertyScrollAxes + 1)) ==
+              mui_errorInvalid,
           "unknown property");
     CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, NULL, WIDTH) ==
               mui_errorInvalid,
@@ -258,7 +259,8 @@ static void TestResetGivesSetsBack(void)
               mui_errorInvalid,
           "unknown variant reset");
     CHECK(muiStyle_ResetProperties(context, first, mui_variantBase, mui_groupLayout,
-                                   MUI_PROPERTY_BIT(mui_propertyContent + 1)) == mui_errorInvalid,
+                                   MUI_PROPERTY_BIT(mui_propertyScrollAxes + 1)) ==
+              mui_errorInvalid,
           "unknown property reset");
     CHECK(muiStyle_ResetProperties(NULL, first, mui_variantBase, mui_groupLayout, WIDTH) ==
               mui_errorInvalid,
@@ -421,13 +423,13 @@ static void TestDirectWritesWinUntilReset(void)
           "refuses the whole write");
     CHECK(muiNode_SetLayoutValues(context, node, NULL, WIDTH) == mui_errorInvalid, "no values");
     CHECK(muiNode_SetLayoutValues(context, node, &values,
-                                  MUI_PROPERTY_BIT(mui_propertyContent + 1)) == mui_errorInvalid,
+                                  MUI_PROPERTY_BIT(mui_propertyScrollAxes + 1)) == mui_errorInvalid,
           "unknown property");
     CHECK(muiNode_SetLayoutValues(context, s_nullNode, &values, WIDTH) == mui_errorInvalid,
           "null node");
     CHECK(muiNode_SetLayoutValues(NULL, node, &values, WIDTH) == mui_errorInvalid, "no context");
     CHECK(muiNode_ResetProperties(context, node, mui_groupLayout,
-                                  MUI_PROPERTY_BIT(mui_propertyContent + 1)) == mui_errorInvalid,
+                                  MUI_PROPERTY_BIT(mui_propertyScrollAxes + 1)) == mui_errorInvalid,
           "unknown property reset");
     CHECK(muiNode_ResetProperties(context, s_nullNode, mui_groupLayout, WIDTH) == mui_errorInvalid,
           "null reset");

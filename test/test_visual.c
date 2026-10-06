@@ -315,7 +315,7 @@ static void TestChecks(void)
               muiNode_SetVisualValues(NULL, node, &defaults, BACKGROUND) == mui_errorInvalid,
           "null arguments");
     const muiLayoutStyle layout = muiDefaultLayoutStyle();
-    const muiPropertyMask pastLayout = MUI_PROPERTY_BIT(mui_propertyContent + 1);
+    const muiPropertyMask pastLayout = MUI_PROPERTY_BIT(mui_propertyScrollAxes + 1);
     CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, &layout, pastLayout) ==
                   mui_errorInvalid &&
               muiNode_SetLayoutValues(context, node, &layout, pastLayout) == mui_errorInvalid,

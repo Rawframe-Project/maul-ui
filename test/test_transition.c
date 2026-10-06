@@ -210,7 +210,7 @@ static void TestBindingsAreCheckedAndRead(void)
                                  WIDTH) == mui_errorInvalid,
           "a condition the class does not have");
     CHECK(muiStyle_SetTransition(context, style, mui_variantBase, specs[0], mui_groupLayout,
-                                 MUI_PROPERTY_BIT(mui_propertyContent + 1)) == mui_errorInvalid,
+                                 MUI_PROPERTY_BIT(mui_propertyScrollAxes + 1)) == mui_errorInvalid,
           "an unknown property");
     CHECK(muiStyle_SetTransition(context, style, mui_variantBase, specs[0], 4, WIDTH) ==
               mui_errorInvalid,
@@ -229,7 +229,8 @@ static void TestBindingsAreCheckedAndRead(void)
               mui_errorInvalid,
           "read a missing condition");
     CHECK(muiStyle_GetTransition(context, style, mui_variantBase,
-                                 (muiProperty)(mui_propertyContent + 1), &read) == mui_errorInvalid,
+                                 (muiProperty)(mui_propertyScrollAxes + 1),
+                                 &read) == mui_errorInvalid,
           "read an unknown property");
     CHECK(muiStyle_GetTransition(context, style, mui_variantBase, 0, NULL) == mui_errorInvalid,
           "no out");
@@ -292,7 +293,7 @@ static void TestTimedTransitionFollowsItsCurve(void)
     CHECK(!muiNode_IsTransitioning(NULL, scene.node, mui_propertyWidth) &&
               !muiNode_IsTransitioning(scene.context, s_nullNode, mui_propertyWidth) &&
               !muiNode_IsTransitioning(scene.context, scene.node,
-                                       (muiProperty)(mui_propertyContent + 1)),
+                                       (muiProperty)(mui_propertyScrollAxes + 1)),
           "no transition to read");
     muiDestroyContext(scene.context);
 }

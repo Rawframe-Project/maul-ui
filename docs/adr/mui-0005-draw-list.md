@@ -90,8 +90,8 @@ A renderer draws the list in order, binds the clip chain and transform
 per command, and batches across both. A static frame costs nothing,
 and a frame with one change copies the rest of the list, which still
 takes time in proportion to it (a third of a build for the benchmark's
-40,001 nodes); scroll offsets as transforms may later spare moved
-subtrees their repaint. Byte-identical output lets a host
+40,001 nodes); scrolling alone rewrites only the transform table, one
+entry per scroll container (record mui-0007). Byte-identical output lets a host
 skip a frame whose list did not change, and lets a test pin a scene.
 Per-command opacity is cheaper than a layer and wrong where a faded
 subtree overlaps itself; a group command may come later. Fixed records

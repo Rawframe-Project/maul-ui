@@ -17,6 +17,7 @@
 #include "maul-ui/interaction.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
+#include "maul-ui/scroll.h"
 #include "maul-ui/style.h"
 #include "maul-ui/text_style.h"
 #include "maul-ui/visual.h"
@@ -693,6 +694,9 @@ static bool SameTables(const muiDrawList* a, const muiDrawList* b)
 {
     return a->commandCount == b->commandCount && a->clipCount == b->clipCount &&
            a->gradientCount == b->gradientCount && a->glyphCount == b->glyphCount &&
+           a->transformCount == b->transformCount &&
+           memcmp(a->transforms, b->transforms, a->transformCount * sizeof(muiDrawTransform)) ==
+               0 &&
            memcmp(a->glyphs, b->glyphs, a->glyphCount * sizeof(muiGlyph)) == 0 &&
            memcmp(a->commands, b->commands, a->commandCount * sizeof(muiDrawCommand)) == 0 &&
            memcmp(a->clips, b->clips, a->clipCount * sizeof(muiDrawClip)) == 0 &&
@@ -747,8 +751,20 @@ static void Edit(muiContext* context, muiNodeId* nodes, uint32_t count, Random* 
     muiLayoutStyle layout = muiDefaultLayoutStyle();
     CHECK(muiNode_GetLayoutStyle(context, node, &layout) == mui_success, "read");
     const float shades[4] = {0.0f, 0.25f, 0.5f, 1.0f};
-    switch (NextRandom(random, 13))
+    switch (NextRandom(random, 15))
     {
+    case 13:
+        // A scroll container, or not.
+        layout.scrollAxes = (muiScrollAxes)NextRandom(random, 4);
+        CHECK(muiNode_SetLayoutValues(context, node, &layout,
+                                      MUI_PROPERTY_BIT(mui_propertyScrollAxes)) == mui_success,
+              "scroll axes");
+        break;
+    case 14:
+        CHECK(muiNode_SetScroll(context, node, (float)NextRandom(random, 30),
+                                (float)NextRandom(random, 30) * 0.5f) == mui_success,
+              "scrolled");
+        break;
     case 11:
     {
         // A layer of a random kind, or none.

@@ -15,6 +15,7 @@
 #include "layout_node.h"
 #include "notify.h"
 #include "pointer_store.h"
+#include "scroll_store.h"
 #include "style_store.h"
 #include "theme_store.h"
 #include "token_store.h"
@@ -39,6 +40,10 @@ struct muiContext
     muiTextRecord* textRecords;
     // A node's resolved interaction values.
     muiInteractionStyle* interaction;
+    // Each node's scroll offset and extent, and whether an offset moved
+    // since the last draw list.
+    muiScrollState* scrolls;
+    bool scrolled;
     // Whether a class, a token name or a direct write has ever given a
     // text property: until then every node's text is the defaults, and
     // the style pass leaves the records alone.

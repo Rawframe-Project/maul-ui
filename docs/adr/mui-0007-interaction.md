@@ -126,6 +126,22 @@ itself instead of each host repeating them.
   as handled; each call reports whether the UI handled the input, so
   the host hands the rest to the game. Key downs and navigation make
   the player's next focus by code shown.
+- **Scrolling** (`maul-ui/scroll.h`): a node whose layout property
+  `scrollAxes` names an axis is a scroll container. It clips its
+  children at its rounded padding box and its flex automatic minimum
+  is 0, as CSS's. Layout measures its extent, logically from the start:
+  the furthest end of its children's margin boxes (border boxes for
+  absolute ones) plus its end padding, at least its padding box.
+  Offsets are logical, clamped to 0 through the extent less the padding
+  box, and kept there by later layouts. Painting draws the children
+  unscrolled through a transform per scroll container, its offset
+  composed with its ancestors' and rounded to device pixels; a build
+  whose only change is offsets rewrites the transform table and keeps
+  the commands; copies renumber transforms as they do clips. Hit
+  testing, pointer records, directional navigation and layers add the
+  offsets of scrolling ancestors. `muiNode_ScrollIntoView` scrolls each
+  scrolling ancestor, nearest first, as CSSOM View's "nearest", and
+  focus moved by navigation does so.
 - **Focus notifications** report each player's focus gained and lost,
   whatever moved it; a focused node that is destroyed, or stops taking
   focus at its styling or a direct write, loses it. Detaching keeps it,
