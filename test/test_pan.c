@@ -621,7 +621,8 @@ static void TestOverscroll(void)
               Drawn(&scene, true) == roundf((float)Band(40.0)),
           "40 past");
     // Sideways along an axis it does not scroll: nothing.
-    CHECK(Touch(&scene, mui_pointerMove, 125 * MS, 150.0f) == 1 && Drawn(&scene, false) == 0.0f,
+    CHECK(Feed(&scene, 7, mui_pointerTouch, mui_pointerMove, 125 * MS, 150.0f, 90.0f) == 1 &&
+              Drawn(&scene, false) == 0.0f,
           "not across");
     CHECK(Touch(&scene, mui_pointerMove, 130 * MS, 90.0f) == 1, "back");
     // Released: it springs back.
@@ -761,6 +762,24 @@ static void TestOverscrollPort(void)
     Scrolls(context, scene.s, mui_scrollVertical, true, mui_textInherit);
     Layout(context, scene.root, 30 * MS);
     CHECK(Drawn(&scene, true) == 0.0f, "gone with scrolling");
+    CHECK(Touch(&scene, mui_pointerCancel, 40 * MS, 90.0f) == 1, "cancelled");
+    muiDestroyContext(context);
+    // Borders of 10 at the start and the end: across, a scrollport of 180.
+    MakeScene(&scene, 0);
+    context = scene.context;
+    Scrolls(context, scene.s, mui_scrollHorizontal, false, mui_textInherit);
+    (void)Sized(context, scene.s, 400.0f, 50.0f);
+    style.border = (muiEdges){10.0f, 10.0f, 0.0f, 0.0f};
+    CHECK(muiNode_SetLayoutValues(context, scene.s, &style,
+                                  MUI_PROPERTY_BIT(mui_propertyBorderStart) |
+                                      MUI_PROPERTY_BIT(mui_propertyBorderEnd)) == mui_success,
+          "borders");
+    Overscroll(context, true);
+    Layout(context, scene.root, 0);
+    CHECK(Feed(&scene, 3, mui_pointerTouch, mui_pointerPress, 0, 20.0f, 50.0f) == 0 &&
+              Feed(&scene, 3, mui_pointerTouch, mui_pointerMove, 10 * MS, 180.0f, 50.0f) == 1 &&
+              Drawn(&scene, false) == roundf((float)BandIn(160.0, 180.0)),
+          "the band of 180 across");
     muiDestroyContext(context);
 }
 
