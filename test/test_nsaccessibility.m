@@ -300,7 +300,7 @@ static void TestNotifications(muiNsAdapter* adapter, const Built* built)
     CHECK(Send(adapter, &root, more, 0) && PostedAre(@"AXUIElementDestroyed 9; AXLayoutChanged 1"),
           "a node a client saw gone: destroyed");
     root.childCount = 6;
-    muiAccessNode toggle = built->nodes[8];
+    muiAccessNode toggle = built->nodes[7];
     const muiAccessUpdate back = {(const muiAccessNode*[]){&root, &toggle}, 2, more, 0, 2};
     CHECK(muiNsAdapter_Apply(adapter, &back) == mui_success &&
               PostedAre(@"AXLayoutChanged 1; AXFocusedUIElementChanged 2"),
