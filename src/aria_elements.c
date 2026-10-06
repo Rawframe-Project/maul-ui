@@ -7,8 +7,13 @@
 
 #include "aria.h"
 
+#include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
+
+// Room for an attribute's value written here: a number, or the ids of a
+// relation's targets.
+#define VALUE_SIZE 512
 
 // Each role's ARIA role; "" for none (static text). ARIA has no media,
 // window or scroll view roles: those are groups.
@@ -139,6 +144,13 @@ enum
     A_max,
     A_step,
     A_value,
+    A_labelledBy,
+    A_describedBy,
+    A_controls,
+    A_details,
+    A_flowTo,
+    A_activeDescendant,
+    A_errorMessage,
     A_count
 };
 
@@ -174,6 +186,25 @@ static const char* const s_names[A_count] = {
     [A_max] = "max",
     [A_step] = "step",
     [A_value] = "value",
+    [A_labelledBy] = "aria-labelledby",
+    [A_describedBy] = "aria-describedby",
+    [A_controls] = "aria-controls",
+    [A_details] = "aria-details",
+    [A_flowTo] = "aria-flowto",
+    [A_activeDescendant] = "aria-activedescendant",
+    [A_errorMessage] = "aria-errormessage",
+};
+
+// Each relation's attribute; a popup's owner has no ARIA attribute.
+static const uint32_t s_relations[MUI_ACCESS_RELATIONS] = {
+    [mui_relationLabelledBy] = A_labelledBy,
+    [mui_relationDescribedBy] = A_describedBy,
+    [mui_relationControls] = A_controls,
+    [mui_relationDetails] = A_details,
+    [mui_relationFlowTo] = A_flowTo,
+    [mui_relationActiveDescendant] = A_activeDescendant,
+    [mui_relationErrorMessage] = A_errorMessage,
+    [mui_relationPopupFor] = A_count,
 };
 
 static const char* const s_popups[] = {nullptr, "menu", "listbox", "tree", "grid", "dialog"};
@@ -185,6 +216,11 @@ bool muiAriaIsRange(const muiAccessNode* node)
     return (node->role == mui_roleSlider || node->role == mui_roleSpinButton) &&
            (node->flags & mui_accessNumeric) != 0 &&
            (node->actions & (1u << mui_actionSetValue)) != 0;
+}
+
+void muiAriaIdOf(int page, uint64_t id, char out[ARIA_ID_SIZE])
+{
+    (void)snprintf(out, ARIA_ID_SIZE, "mui%d-%" PRIx64, page, id);
 }
 
 // The text a node names itself by: its label, or a label node's value.
@@ -219,14 +255,43 @@ static const char* Either(bool on)
 
 // A number written shortest, as "%g" does to nine digits; NULL for 0
 // when zero means none.
-static const char* Number(char buffer[32], double value, bool zeroIsNone)
+static const char* Number(char buffer[VALUE_SIZE], double value, bool zeroIsNone)
 {
     if (zeroIsNone && value == 0.0)
     {
         return nullptr;
     }
-    (void)snprintf(buffer, 32, "%.9g", value);
+    (void)snprintf(buffer, VALUE_SIZE, "%.9g", value);
     return buffer;
+}
+
+// The ids of a relation's targets, by spaces; the first only for the
+// active descendant; NULL for none. A target with no element yet is
+// named too: the reference holds once its element is made. Ids past the
+// room are left out whole.
+static const char* Relation(const muiAriaAdapter* adapter, const muiAccessNode* node,
+                            uint32_t which, char buffer[VALUE_SIZE])
+{
+    size_t length = 0;
+    for (uint32_t i = 0; i < node->linkCount; i++)
+    {
+        const muiAccessLink* link = &node->links[i];
+        bool single = which == A_activeDescendant && length != 0;
+        if (link->kind >= MUI_ACCESS_RELATIONS || s_relations[link->kind] != which || single)
+        {
+            continue;
+        }
+        char id[ARIA_ID_SIZE];
+        muiAriaIdOf(adapter->page, link->target, id);
+        size_t size = strlen(id) + (length != 0 ? 1 : 0);
+        if (length + size >= VALUE_SIZE)
+        {
+            break;
+        }
+        (void)snprintf(buffer + length, VALUE_SIZE - length, "%s%s", length != 0 ? " " : "", id);
+        length += size;
+    }
+    return length != 0 ? buffer : nullptr;
 }
 
 // A check box's state, or a toggle button's.
@@ -310,7 +375,7 @@ static const char* TextOf(const muiAccessNode* node, uint32_t which)
 
 // The numbers of the record: a set's, and a range's, which an input of
 // type range takes as its own.
-static const char* NumberOf(const muiAccessNode* node, uint32_t which, char buffer[32])
+static const char* NumberOf(const muiAccessNode* node, uint32_t which, char buffer[VALUE_SIZE])
 {
     bool numeric = (node->flags & mui_accessNumeric) != 0;
     bool range = muiAriaIsRange(node);
@@ -343,8 +408,13 @@ static const char* NumberOf(const muiAccessNode* node, uint32_t which, char buff
 }
 
 // An attribute's value for a record, NULL for none.
-static const char* ValueOf(const muiAccessNode* node, uint32_t which, char buffer[32])
+static const char* ValueOf(const muiAriaAdapter* adapter, const muiAccessNode* node, uint32_t which,
+                           char buffer[VALUE_SIZE])
 {
+    if (which >= A_labelledBy)
+    {
+        return Relation(adapter, node, which, buffer);
+    }
     if (which == A_role)
     {
         // A range input is a slider already; saying so again is harmless.
@@ -365,15 +435,20 @@ static bool Same(const char* a, const char* b)
     return a == b || (a != nullptr && b != nullptr && strcmp(a, b) == 0);
 }
 
+bool muiAriaNameChanged(const muiAccessNode* old, const muiAccessNode* node)
+{
+    return !Same(NameOf(old), NameOf(node));
+}
+
 void muiAriaWriteAttributes(const muiAriaAdapter* adapter, uint32_t slot, const muiAccessNode* old,
                             const muiAccessNode* node)
 {
     for (uint32_t which = 0; which < A_count; which++)
     {
-        char before[32];
-        char after[32];
-        const char* value = ValueOf(node, which, after);
-        if (old == nullptr ? value != nullptr : !Same(ValueOf(old, which, before), value))
+        char before[VALUE_SIZE];
+        char after[VALUE_SIZE];
+        const char* value = ValueOf(adapter, node, which, after);
+        if (old == nullptr ? value != nullptr : !Same(ValueOf(adapter, old, which, before), value))
         {
             muiAriaPageAttribute(adapter->page, slot, s_names[which], value);
         }

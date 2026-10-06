@@ -12,9 +12,8 @@
 #include "allocator.h"
 #include "aria.h"
 
-#include <inttypes.h>
 #include <stdalign.h>
-#include <stdio.h>
+#include <string.h>
 
 #define DEF_COOKIE 0x6D756172u // "muar"
 
@@ -65,6 +64,8 @@ static void Lay(muiAriaAdapter* adapter, unsigned char* block, uint32_t nodes)
     uint64_t* keys = (uint64_t*)(adapter->elements + nodes);
     void** values = (void**)(keys + map);
     adapter->freeElements = (uint32_t*)(values + map);
+    // The block's memory may be another's: no element is made yet.
+    memset(adapter->elements, 0, (size_t)nodes * sizeof(muiAriaElement));
     muiIdMapInit(&adapter->elementById, keys, values, map);
     for (uint32_t i = 0; i < nodes; i++)
     {
@@ -229,7 +230,7 @@ static uint32_t Make(muiAriaAdapter* adapter, const muiAccessNode* node)
     element->box[2] = -1.0f;
     (void)muiIdMapInsert(&adapter->elementById, node->id, element);
     char id[ARIA_ID_SIZE];
-    (void)snprintf(id, sizeof(id), "mui%d-%" PRIx64, adapter->page, node->id);
+    muiAriaIdOf(adapter->page, node->id, id);
     muiAriaPageMake(adapter->page, slot, muiAriaIsRange(node), id);
     muiAriaWriteAttributes(adapter, slot, nullptr, node);
     return slot;
@@ -305,6 +306,31 @@ static bool BoxMoved(const muiAccessNode* old, const muiAccessNode* now)
            s->f != t->f;
 }
 
+// Says a live node's whole name, as clients read it.
+static void Announce(muiAriaAdapter* adapter, const muiAccessNode* node)
+{
+    size_t length = 0;
+    char small[256];
+    char* name = small;
+    muiResult status =
+        muiAccessTree_GetName(adapter->tree, node->id, small, sizeof(small), &length);
+    if (status == mui_errorCapacity)
+    {
+        name = muiAllocate(&adapter->allocator, length + 1, 1);
+        status = name != nullptr
+                     ? muiAccessTree_GetName(adapter->tree, node->id, name, length + 1, &length)
+                     : mui_errorCapacity;
+    }
+    if (status == mui_success)
+    {
+        muiAriaPageAnnounce(adapter->page, name, node->values.live == mui_liveAssertive);
+    }
+    if (name != small && name != nullptr)
+    {
+        muiRelease(&adapter->allocator, name, length + 1, 1);
+    }
+}
+
 static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* old)
 {
     muiAriaAdapter* adapter = user;
@@ -330,6 +356,10 @@ static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* 
         return;
     }
     muiAriaWriteAttributes(adapter, slot, old, node);
+    if (node->values.live != mui_liveOff && muiAriaNameChanged(old, node))
+    {
+        Announce(adapter, node);
+    }
 }
 
 static void ShownChanged(void* user, const muiAccessTree* tree)
@@ -338,15 +368,72 @@ static void ShownChanged(void* user, const muiAccessTree* tree)
     ((muiAriaAdapter*)user)->reshaped = true;
 }
 
+static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint64_t focus)
+{
+    (void)tree;
+    (void)old;
+    (void)focus;
+    ((muiAriaAdapter*)user)->focusMoved = true;
+}
+
+// Gives the focused node's element the DOM focus, as the page allows.
+static void TellFocus(muiAriaAdapter* adapter, bool always)
+{
+    uint32_t slot = muiAriaSlotOf(adapter, muiAccessTree_GetFocus(adapter->tree));
+    if (slot != ARIA_NO_SLOT)
+    {
+        muiAriaPageFocus(adapter->page, slot, always);
+    }
+}
+
+void muiAriaPerform(muiAriaAdapter* adapter, muiAriaEvent event, uint32_t slot, double value)
+{
+    uint64_t id = slot < adapter->nodes ? adapter->elements[slot].id : 0;
+    const muiAccessNode* node = muiAccessTree_Find(adapter->tree, id);
+    if (node == nullptr)
+    {
+        return;
+    }
+    muiAccessRequest request = {.target = id};
+    uint32_t actions = node->actions;
+    if (event == mui_ariaFocused)
+    {
+        request.action = mui_actionFocus;
+    }
+    else if (event == mui_ariaRangeSet)
+    {
+        request.action = mui_actionSetValue;
+        request.value = (float)value;
+    }
+    else if ((actions & (1u << mui_actionClick)) != 0)
+    {
+        request.action = mui_actionClick;
+    }
+    else if ((actions & (1u << mui_actionExpand | 1u << mui_actionCollapse)) != 0)
+    {
+        // A click on what expands without a click of its own toggles it.
+        request.action =
+            (node->flags & mui_accessExpanded) != 0 ? mui_actionCollapse : mui_actionExpand;
+    }
+    else
+    {
+        return;
+    }
+    (void)adapter->action(adapter->user, &request);
+}
+
 muiResult muiAriaAdapter_Apply(muiAriaAdapter* adapter, const muiAccessUpdate* update)
 {
     if (adapter == nullptr)
     {
         return mui_errorInvalid;
     }
-    const muiAccessChanges changes = {
-        .user = adapter, .updated = Updated, .shownChanged = ShownChanged};
+    const muiAccessChanges changes = {.user = adapter,
+                                      .updated = Updated,
+                                      .shownChanged = ShownChanged,
+                                      .focusMoved = FocusMoved};
     adapter->reshaped = false;
+    adapter->focusMoved = false;
     adapter->movedCount = 0;
     muiResult status = muiAccessTree_Apply(adapter->tree, update, &changes);
     if (status != mui_success || !adapter->enabled)
@@ -360,11 +447,14 @@ muiResult muiAriaAdapter_Apply(muiAriaAdapter* adapter, const muiAccessUpdate* u
     if (adapter->movedCount == adapter->nodes)
     {
         PlaceUnder(adapter, muiAccessTree_GetRoot(adapter->tree));
-        return status;
     }
-    for (uint32_t i = 0; i < adapter->movedCount; i++)
+    for (uint32_t i = 0; i < adapter->movedCount && adapter->movedCount < adapter->nodes; i++)
     {
         PlaceUnder(adapter, adapter->moved[i]);
+    }
+    if (adapter->focusMoved)
+    {
+        TellFocus(adapter, false);
     }
     return status;
 }
@@ -395,8 +485,11 @@ void muiAriaAdapter_Enable(muiAriaAdapter* adapter)
         return;
     }
     adapter->enabled = true;
-    muiAriaPageDropButton(adapter->page);
+    // A screen reader user pressed the button: the focus goes on to the
+    // program's.
+    bool focused = muiAriaPageDropButton(adapter->page);
     Restructure(adapter);
+    TellFocus(adapter, focused);
 }
 
 bool muiAriaAdapter_IsEnabled(const muiAriaAdapter* adapter)

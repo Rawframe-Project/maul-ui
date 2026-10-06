@@ -174,7 +174,11 @@ format.
   names from content), states and values, a range the host sets as an
   `input type=range`; building deferred behind a visually hidden
   enabling button or `muiAriaAdapter_Enable`; `muiAriaAdapter_SetScale`
-  for CSS pixels per unit. The result
+  for CSS pixels per unit; clients' clicks (or expanding and
+  collapsing), focus and range settings asked of the host, the
+  program's focus followed from within the elements, relations as
+  ARIA id references, live names announced through `ariaNotify` or
+  live regions. The result
   `mui_errorPlatform` (record mui-0008).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and
   `muiNode_CancelExit`; an exiting subtree leaves hit testing, focus

@@ -67,6 +67,8 @@ struct muiAriaAdapter
     // Nodes whose box changed in the update being applied.
     uint64_t* moved;
     uint32_t movedCount;
+    // Whether the focus moved in the update being applied.
+    bool focusMoved;
 };
 
 // The element showing a node, ARIA_NO_SLOT for none.
@@ -77,17 +79,38 @@ uint32_t muiAriaSlotOf(const muiAriaAdapter* adapter, uint64_t id);
 void muiAriaWriteAttributes(const muiAriaAdapter* adapter, uint32_t slot, const muiAccessNode* old,
                             const muiAccessNode* node);
 
+// Whether the text a node names itself by differs between two records.
+bool muiAriaNameChanged(const muiAccessNode* old, const muiAccessNode* node);
+
+// Writes an element's id: the adapter's page, then the node's id.
+void muiAriaIdOf(int page, uint64_t id, char out[ARIA_ID_SIZE]);
+
 // Whether a node's element is an input of type range: a range the host
 // sets.
 bool muiAriaIsRange(const muiAccessNode* node);
 
-// The enabling button was pressed: called from the page.
+// What a client did to an element, as the page tells it.
+typedef enum muiAriaEvent
+{
+    mui_ariaClicked = 0,
+    mui_ariaFocused = 1,
+    mui_ariaRangeSet = 2,
+} muiAriaEvent;
+
+// Asks the host for the action a client's event means.
+void muiAriaPerform(muiAriaAdapter* adapter, muiAriaEvent event, uint32_t slot, double value);
+
+// The enabling button was pressed, a client acted on an element: called
+// from the page.
 void muiAriaEnableFromPage(muiAriaAdapter* adapter);
+void muiAriaEventFromPage(muiAriaAdapter* adapter, int kind, uint32_t slot, double value);
 
 // The page's calls (aria_page.c). Strings are UTF-8, NUL-terminated.
 int muiAriaPageOpen(const char* host, bool deferred, const char* label, muiAriaAdapter* adapter);
 void muiAriaPageClose(int page);
-void muiAriaPageDropButton(int page);
+bool muiAriaPageDropButton(int page);
+void muiAriaPageFocus(int page, uint32_t slot, bool always);
+void muiAriaPageAnnounce(int page, const char* text, bool assertive);
 void muiAriaPageMake(int page, uint32_t slot, bool range, const char* id);
 void muiAriaPageRemove(int page, uint32_t slot);
 void muiAriaPagePlace(int page, uint32_t slot, uint32_t parent, uint32_t index);

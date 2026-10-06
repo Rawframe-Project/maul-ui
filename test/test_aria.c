@@ -11,7 +11,11 @@
 // - structure: a node hidden, added, moved under a node newly shown,
 //   siblings reordered;
 // - boxes nested relative to their parents, a scale, a moved parent;
-// - a range made a plain slider; the adapter destroyed.
+// - a range made a plain slider; the adapter destroyed;
+// - relations as ids; clicks, expanding and collapsing, a range set;
+//   the focus both ways, and on from the enabling button; live names
+//   announced through ariaNotify and through live regions; the host's
+//   scroll put back.
 // Under Node, with no page, it is skipped.
 
 #include "test_harness.h"
@@ -21,6 +25,7 @@
 #include <emscripten/em_js.h>
 #include <emscripten/emscripten.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 // clang-format off
@@ -28,11 +33,62 @@ EM_JS(int, HasPage, (void), {
     return typeof document !== "undefined" ? 1 : 0;
 });
 
+// The host, as Maul Window's: smaller than the tree, so it can scroll.
 EM_JS(void, MakeHost, (void), {
     const host = document.createElement("div");
     host.id = "host";
-    host.style.cssText = "position:absolute;left:0;top:0;width:400px;height:300px";
+    host.style.cssText = "position:absolute;left:0;top:0;width:300px;height:200px;" +
+                         "overflow:hidden";
     document.body.appendChild(host);
+});
+
+EM_JS(void, FocusOn, (const char* selector), {
+    document.querySelector(UTF8ToString(selector)).focus();
+});
+
+EM_JS(int, IsActive, (const char* selector), {
+    return document.activeElement === document.querySelector(UTF8ToString(selector)) ? 1 : 0;
+});
+
+// What a range input does as a screen reader adjusts it.
+EM_JS(void, SetRange, (const char* selector, double value), {
+    const range = document.querySelector(UTF8ToString(selector));
+    range.value = String(value);
+    range.dispatchEvent(new Event("input", {bubbles: true}));
+});
+
+EM_JS(int, AttributeIs, (const char* selector, const char* name, const char* expected), {
+    const value = document.querySelector(UTF8ToString(selector)).getAttribute(UTF8ToString(name));
+    return value === (expected ? UTF8ToString(expected) : null) ? 1 : 0;
+});
+
+EM_JS(int, TextIs, (const char* selector, const char* expected), {
+    return document.querySelector(UTF8ToString(selector)).textContent === UTF8ToString(expected)
+               ? 1 : 0;
+});
+
+EM_JS(void, ScrollHost, (int top), {
+    document.querySelector("#host").scrollTop = top;
+});
+
+EM_JS(int, HostTop, (void), {
+    return document.querySelector("#host").scrollTop;
+});
+
+// ariaNotify recorded, whether or not the browser has it; or taken away.
+EM_JS(void, HookNotify, (int present), {
+    if (!present) {
+        delete Element.prototype.ariaNotify;
+        return;
+    }
+    globalThis.muiNotified = [];
+    Element.prototype.ariaNotify = function(text, options) {
+        globalThis.muiNotified.push(text + "/" + options.priority);
+    };
+});
+
+EM_JS(int, NotifiedIs, (const char* expected), {
+    return globalThis.muiNotified.join(" ") === UTF8ToString(expected) ? 1 : 0;
 });
 
 EM_JS(int, AnswerCount, (void), {
@@ -72,6 +128,30 @@ static bool BoxIs(const char* id, int x, int y, int width, int height)
 }
 
 static muiAccessRequest s_asked;
+
+// Fills what it gives with garbage, so that memory read before it is
+// written shows.
+static void* Poisoned(size_t size, size_t alignment, void* context)
+{
+    (void)context;
+    // Some C libraries take no alignment below a pointer's.
+    size_t align = alignment < sizeof(void*) ? sizeof(void*) : alignment;
+    size_t rounded = (size + align - 1) / align * align;
+    void* memory = aligned_alloc(align, rounded);
+    if (memory != NULL)
+    {
+        memset(memory, 0xA5, rounded);
+    }
+    return memory;
+}
+
+static void Unpoisoned(void* memory, size_t size, size_t alignment, void* context)
+{
+    (void)size;
+    (void)alignment;
+    (void)context;
+    free(memory);
+}
 
 static bool Act(void* user, const muiAccessRequest* request)
 {
@@ -123,7 +203,9 @@ static muiAccessUpdate Build(Built* built)
 {
     *built = (Built){0};
     muiAccessNode* root = Add(built, 1, mui_roleWindow, "Main", 10, 10, 380, 280);
-    Add(built, 2, mui_roleButton, "OK", 10, 10, 100, 40)->flags = mui_accessFocusable;
+    muiAccessNode* ok = Add(built, 2, mui_roleButton, "OK", 10, 10, 100, 40);
+    ok->flags = mui_accessFocusable;
+    ok->actions = 1u << mui_actionClick;
     muiAccessNode* generic = Add(built, 3, mui_roleGeneric, NULL, 0, 50, 200, 20);
     (void)Add(built, 4, mui_roleLabel, "Hello", 5, 0, 100, 20);
     Add(built, 6, mui_roleCheckBox, "Agree", 10, 80, 100, 20)->flags =
@@ -149,6 +231,128 @@ static bool Send(muiAriaAdapter* adapter, const muiAccessNode* const* nodes, uin
 {
     const muiAccessUpdate update = {nodes, count, children, 0, 0};
     return muiAriaAdapter_Apply(adapter, &update) == mui_success;
+}
+
+static void Sleep(void)
+{
+    emscripten_sleep(20);
+}
+
+// Relations, clicks, a range set, the focus both ways, announcements and
+// the host's scroll.
+static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* root,
+                        const uint64_t* rootChildren, const muiAccessNode* slider)
+{
+    // The check box labelled by the label, described by the heading,
+    // controlling the slider and the hidden progress bar.
+    (void)built;
+    const muiAccessTree* tree = muiAriaAdapter_GetTree(adapter);
+    // Copies of held records name texts the tree frees when it replaces
+    // them: each sent copy names texts of its own.
+    muiAccessNode check = *muiAccessTree_Find(tree, 6);
+    check.text[mui_accessLabel] = "Agreed";
+    static const muiAccessLink s_links[4] = {{4, mui_relationLabelledBy},
+                                             {7, mui_relationDescribedBy},
+                                             {8, mui_relationControls},
+                                             {9, mui_relationControls}};
+    check.links = s_links;
+    check.linkCount = 4;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&check}, 1, rootChildren) &&
+              AttributeIs("#mui0-6", "aria-labelledby", "mui0-4") &&
+              AttributeIs("#mui0-6", "aria-describedby", "mui0-7") &&
+              AttributeIs("#mui0-6", "aria-controls", "mui0-8 mui0-9"),
+          "relations as ids, a target with no element named too");
+    check.linkCount = 0;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&check}, 1, rootChildren) &&
+              AttributeIs("#mui0-6", "aria-labelledby", NULL),
+          "relations gone");
+    // Clicks: the button's own; what expands, toggled.
+    s_asked = (muiAccessRequest){0};
+    CHECK(Ask("press #mui0-2") && s_asked.action == mui_actionClick && s_asked.target == 2,
+          "a click");
+    muiAccessNode added = *muiAccessTree_Find(tree, 10);
+    added.text[mui_accessLabel] = "New";
+    added.flags = mui_accessExpandable;
+    added.actions = 1u << mui_actionExpand | 1u << mui_actionCollapse;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&added}, 1, rootChildren) &&
+              Ask("press #mui0-a") && s_asked.action == mui_actionExpand && s_asked.target == 10,
+          "a click expanding");
+    added.flags |= mui_accessExpanded;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&added}, 1, rootChildren) &&
+              AttributeIs("#mui0-a", "aria-expanded", "true") && Ask("press #mui0-a") &&
+              s_asked.action == mui_actionCollapse,
+          "and collapsing");
+    s_asked = (muiAccessRequest){0};
+    CHECK(Ask("press #mui0-7") && s_asked.target == 0, "no action for a heading");
+    SetRange("#mui0-8", 55.0);
+    CHECK(s_asked.action == mui_actionSetValue && s_asked.target == 8 && s_asked.value == 55.0f &&
+              slider->value == 40.0f,
+          "a range set, asked of the host");
+    // The focus: outside the elements, the program's does not take the
+    // DOM's; a client's focus asked of the host; then the program's moves
+    // it, asking nothing.
+    CHECK(IsActive("body"), "the DOM focus outside");
+    FocusOn("#mui0-2");
+    CHECK(s_asked.action == mui_actionFocus && s_asked.target == 2 && IsActive("#mui0-2"),
+          "a client's focus asked of the host");
+    s_asked = (muiAccessRequest){.action = mui_actionScrollRight};
+    const muiAccessUpdate focus = {(const muiAccessNode*[]){root}, 1, rootChildren, 0, 8};
+    CHECK(muiAriaAdapter_Apply(adapter, &focus) == mui_success && IsActive("#mui0-8") &&
+              s_asked.action == mui_actionScrollRight,
+          "the program's focus moved, asking nothing");
+    // A live heading renamed: announced through ariaNotify, then through
+    // the polite region.
+    muiAccessNode heading = *muiAccessTree_Find(tree, 7);
+    heading.values.live = mui_livePolite;
+    heading.text[mui_accessLabel] = "Topic 2";
+    heading.textLength[mui_accessLabel] = 7;
+    HookNotify(1);
+    CHECK(Send(adapter, (const muiAccessNode*[]){&heading}, 1, rootChildren) &&
+              NotifiedIs("Topic 2/normal"),
+          "announced through ariaNotify");
+    HookNotify(0);
+    heading.values.live = mui_liveAssertive;
+    heading.text[mui_accessLabel] = "Topic 3";
+    CHECK(Send(adapter, (const muiAccessNode*[]){&heading}, 1, rootChildren), "renamed");
+    Sleep();
+    CHECK(TextIs("#mui0-assertive", "Topic 3") && TextIs("#mui0-polite", ""),
+          "announced through the assertive region");
+    heading.values.level = 4;
+    heading.text[mui_accessLabel] = "Topic 3";
+    CHECK(Send(adapter, (const muiAccessNode*[]){&heading}, 1, rootChildren), "not renamed");
+    Sleep();
+    CHECK(TextIs("#mui0-assertive", "Topic 3"), "nothing announced without a new name");
+    ScrollHost(40);
+    Sleep();
+    CHECK(HostTop() == 0, "the host's scroll put back");
+    emscripten_sleep(350);
+    CHECK(TextIs("#mui0-assertive", ""), "the announcement taken away after a while");
+    heading.values = (muiAccessValues){.level = 3};
+    heading.text[mui_accessLabel] = "Topic";
+    heading.textLength[mui_accessLabel] = 5;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&heading}, 1, rootChildren), "the heading back");
+}
+
+// A second adapter whose enabling button had the focus: the focus goes on
+// to the program's focused node.
+static void TestEnablingFocus(void)
+{
+    muiAriaAdapterDef def = muiDefaultAriaAdapterDef();
+    def.host = "#host";
+    def.action = Act;
+    def.allocator = (muiAllocator){Poisoned, Unpoisoned, NULL};
+    muiAriaAdapter* adapter = NULL;
+    muiAccessNode root = {.id = 1, .role = mui_roleWindow, .childCount = 1};
+    muiAccessNode button = {.id = 5, .role = mui_roleButton, .flags = mui_accessFocusable};
+    const uint64_t children[1] = {5};
+    const muiAccessUpdate update = {(const muiAccessNode*[]){&root, &button}, 2, children, 1, 5};
+    CHECK(muiCreateAriaAdapter(&def, &adapter) == mui_success &&
+              muiAriaAdapter_Apply(adapter, &update) == mui_success,
+          "a second adapter");
+    FocusOn("#host button");
+    CHECK(Ask("press #host button") && muiAriaAdapter_IsEnabled(adapter) && IsActive("#mui0-5"),
+          "the focus on from the enabling button");
+    muiDestroyAriaAdapter(adapter);
 }
 
 static void TestContract(void)
@@ -184,6 +388,7 @@ int main(void)
     muiAriaAdapterDef def = muiDefaultAriaAdapterDef();
     def.host = "#host";
     def.action = Act;
+    def.allocator = (muiAllocator){Poisoned, Unpoisoned, NULL};
     muiAriaAdapter* adapter = NULL;
     static Built s_built;
     muiAccessUpdate update = Build(&s_built);
@@ -266,6 +471,7 @@ int main(void)
     CHECK(Send(adapter, (const muiAccessNode*[]){&root}, 1, rootChildren) &&
               BoxIs("mui0-1", 60, 20, 760, 560) && BoxIs("mui0-2", 80, 40, 200, 80),
           "a parent moved, its children with it");
+    TestActions(adapter, built, &root, rootChildren, &slider);
     // The slider no longer set by the host: a plain slider.
     slider.actions = 0;
     CHECK(Send(adapter, (const muiAccessNode*[]){&slider}, 1, rootChildren) &&
@@ -276,11 +482,12 @@ int main(void)
                      "  heading \"Topic\" level=3 | "
                      "  checkbox \"Agreed\" checked=false | "
                      "  slider \"Volume\" valuemin=0 valuemax=100 value=40 | "
-                     "  button \"New\""),
+                     "  button \"New\" expanded=true"),
           "a range made a plain slider");
     (void)s_asked;
     muiDestroyAriaAdapter(adapter);
     CHECK(TreeIs(""), "destroyed");
+    TestEnablingFocus();
     printf("mui-test: exit %d\n", s_failures == 0 ? 0 : 1);
     return 0;
 }

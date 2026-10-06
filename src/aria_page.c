@@ -19,6 +19,13 @@ EMSCRIPTEN_KEEPALIVE void muiAriaEnableFromPage(muiAriaAdapter* adapter)
     muiAriaAdapter_Enable(adapter);
 }
 
+// An element was clicked, focused, or its range set.
+EMSCRIPTEN_KEEPALIVE void muiAriaEventFromPage(muiAriaAdapter* adapter, int kind, uint32_t slot,
+                                               double value)
+{
+    muiAriaPerform(adapter, (muiAriaEvent)kind, slot, value);
+}
+
 // clang-format off
 EM_JS(int, OpenPage, (const char* host, int deferred, const char* label, void* adapter), {
     const element = typeof document === "undefined" ? null
@@ -27,12 +34,57 @@ EM_JS(int, OpenPage, (const char* host, int deferred, const char* label, void* a
         return -1;
     }
     const pages = Module.muiAria || (Module.muiAria = []);
+    let handle = pages.indexOf(null);
+    if (handle < 0) {
+        handle = pages.length;
+    }
     const root = document.createElement("div");
     root.style.cssText = "position:absolute;left:0;top:0;width:0;height:0;overflow:visible;" +
                          "margin:0;padding:0;border:0;filter:opacity(0%);" +
                          "color:rgba(0,0,0,0);pointer-events:none";
     element.appendChild(root);
-    const page = {root, elements: [], button: null};
+    // Announcements where the browser has no ariaNotify, as invisible.
+    const region = politeness => {
+        const live = document.createElement("div");
+        live.id = "mui" + handle + "-" + politeness;
+        live.setAttribute("aria-live", politeness);
+        live.style.cssText = root.style.cssText;
+        element.appendChild(live);
+        return live;
+    };
+    const page = {host: element, root, elements: [], button: null, requested: null,
+                  polite: region("polite"), assertive: region("assertive")};
+    // The node an event is for: the nearest element of the adapter's.
+    const slotOf = target => {
+        let at = target;
+        while (at && at !== root && at.muiSlot === undefined) {
+            at = at.parentElement;
+        }
+        return at && at.muiSlot !== undefined ? at.muiSlot : -1;
+    };
+    const send = (kind, target, value) => {
+        const slot = slotOf(target);
+        if (slot >= 0) {
+            _muiAriaEventFromPage(adapter, kind, slot, value);
+        }
+    };
+    root.addEventListener("click", e => send(0, e.target, 0));
+    root.addEventListener("focusin", e => {
+        // A focus the adapter gave is no client's asking.
+        if (page.requested === e.target) {
+            page.requested = null;
+            return;
+        }
+        send(1, e.target, 0);
+    });
+    root.addEventListener("input", e => send(2, e.target, parseFloat(e.target.value)));
+    // The program scrolls its own content: a scroll of the host, as a
+    // screen reader brings an element into view, is put back.
+    page.unscroll = () => {
+        element.scrollTop = 0;
+        element.scrollLeft = 0;
+    };
+    element.addEventListener("scroll", page.unscroll);
     if (deferred) {
         // Visually hidden, read and pressed by screen readers.
         const button = document.createElement("button");
@@ -44,16 +96,15 @@ EM_JS(int, OpenPage, (const char* host, int deferred, const char* label, void* a
         element.appendChild(button);
         page.button = button;
     }
-    let handle = pages.indexOf(null);
-    if (handle < 0) {
-        handle = pages.length;
-    }
     pages[handle] = page;
     return handle;
 });
 
 EM_JS(void, ClosePage, (int handle), {
     const page = Module.muiAria[handle];
+    page.host.removeEventListener("scroll", page.unscroll);
+    page.polite.remove();
+    page.assertive.remove();
     page.root.remove();
     if (page.button) {
         page.button.remove();
@@ -61,12 +112,49 @@ EM_JS(void, ClosePage, (int handle), {
     Module.muiAria[handle] = null;
 });
 
-EM_JS(void, DropButton, (int handle), {
+// Whether the button had the focus, which the program's focus then takes.
+EM_JS(int, DropButton, (int handle), {
     const page = Module.muiAria[handle];
+    const focused = page.button !== null && document.activeElement === page.button;
     if (page.button) {
         page.button.remove();
         page.button = null;
     }
+    return focused ? 1 : 0;
+});
+
+// Moves the DOM focus to an element: only from within the adapter's
+// elements, or when asked, as the canvas keeps it for the keys
+// otherwise.
+EM_JS(void, Focus, (int handle, uint32_t slot, int always), {
+    const page = Module.muiAria[handle];
+    const element = page.elements[slot];
+    const active = document.activeElement;
+    if (element && active !== element && (always || page.root.contains(active))) {
+        page.requested = element;
+        element.focus({preventScroll: true});
+    }
+});
+
+// Says a text, through ariaNotify where the browser has it, else a live
+// region: emptied first so that the same text is said again, and emptied
+// after 300 ms, as Flutter does, so that it is not read again as the
+// page's content.
+EM_JS(void, Announce, (int handle, const char* text, int assertive), {
+    const page = Module.muiAria[handle];
+    const said = UTF8ToString(text);
+    if (typeof page.root.ariaNotify === "function") {
+        page.root.ariaNotify(said, {priority: assertive ? "high" : "normal"});
+        return;
+    }
+    const region = assertive ? page.assertive : page.polite;
+    region.textContent = "";
+    setTimeout(() => { region.textContent = said; }, 0);
+    setTimeout(() => {
+        if (region.textContent === said) {
+            region.textContent = "";
+        }
+    }, 300);
 });
 
 EM_JS(void, Make, (int handle, uint32_t slot, int range, const char* id), {
@@ -75,6 +163,7 @@ EM_JS(void, Make, (int handle, uint32_t slot, int range, const char* id), {
         element.type = "range";
     }
     element.id = UTF8ToString(id);
+    element.muiSlot = slot;
     element.style.cssText = "position:absolute;margin:0;padding:0;border:0;" +
                             "box-sizing:border-box;overflow:visible";
     Module.muiAria[handle].elements[slot] = element;
@@ -136,9 +225,19 @@ void muiAriaPageClose(int page)
     ClosePage(page);
 }
 
-void muiAriaPageDropButton(int page)
+bool muiAriaPageDropButton(int page)
 {
-    DropButton(page);
+    return DropButton(page) != 0;
+}
+
+void muiAriaPageFocus(int page, uint32_t slot, bool always)
+{
+    Focus(page, slot, always ? 1 : 0);
+}
+
+void muiAriaPageAnnounce(int page, const char* text, bool assertive)
+{
+    Announce(page, text, assertive ? 1 : 0);
 }
 
 void muiAriaPageMake(int page, uint32_t slot, bool range, const char* id)
