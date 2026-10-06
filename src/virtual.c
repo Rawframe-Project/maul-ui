@@ -93,13 +93,14 @@ static uint32_t Room(const muiVirtualStore* store, const muiVirtualEntry* self, 
         if (c < store->count)
         {
             const muiVirtualEntry* after = &store->entries[c];
-            if (after == self || !Stores(after))
+            if (!Stores(after))
             {
                 continue;
             }
             start = after->base + after->list.count;
         }
-        bool fits = start <= store->itemCapacity && store->itemCapacity - start >= count;
+        // Every entry's items lie within the capacity, so start does too.
+        bool fits = store->itemCapacity - start >= count;
         for (uint32_t i = 0; fits && i < store->count; i++)
         {
             const muiVirtualEntry* other = &store->entries[i];
@@ -492,7 +493,8 @@ void muiVirtualWindows(muiContext* context, uint32_t root)
             continue;
         }
         // The viewport in the items' coordinates, from the content box's
-        // start, widened by the overscan.
+        // start, widened by the overscan. It ends at 0 or later: a box is
+        // no smaller than its padding.
         const muiLayoutNode* list = &context->layout[slot - 1];
         const muiScrollState* scroll = &context->scrolls[slot - 1];
         bool horizontal = entry->list.axis == mui_listHorizontal;
@@ -507,10 +509,10 @@ void muiVirtualWindows(muiContext* context, uint32_t root)
         double low = start - overscan;
         double high = start + port + overscan;
         uint32_t count = entry->list.count;
-        uint32_t end = high < 0.0 || count == 0 ? 0 : IndexAt(store, entry, high) + 1;
+        uint32_t end = count == 0 ? 0 : IndexAt(store, entry, high) + 1;
         end = end > count ? count : end;
+        // At most end: low is below high, and an empty window starts at 0.
         uint32_t first = IndexAt(store, entry, low);
-        first = first > end ? end : first;
         if (!entry->windowed || first != entry->first || end != entry->end)
         {
             entry->first = first;

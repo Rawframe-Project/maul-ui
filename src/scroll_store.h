@@ -135,8 +135,7 @@ static inline void muiSyncScroll(muiScrollState* scroll, muiScrollAxes axes)
 {
     if (axes == mui_scrollNone)
     {
-        // A list's length outlives its axes.
-        *scroll = (muiScrollState){.listX = scroll->listX, .listY = scroll->listY};
+        *scroll = (muiScrollState){0};
     }
 }
 

@@ -314,6 +314,108 @@ static void TestBinding(void)
     muiDestroyContext(context);
 }
 
+static void TestEdges(void)
+{
+    // Four items: measuring the first updates the tree's root.
+    Scene scene;
+    muiVirtualList list = ListOf(4, 40.0f, false, 0.0f, 0.0f);
+    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    muiContext* context = scene.context;
+    Layout(context, scene.root);
+    muiNodeId items[3];
+    Realize(&scene, 0, 1, -1.0f, 50.0f, items);
+    Layout(context, scene.root);
+    CHECK(ExtentOf(context, scene.list, false) == 170.0f, "four items, one of 50");
+    // Set anew smaller: the extent shrinks; an item past the count is
+    // left alone, nothing read or written past the list.
+    CHECK(muiNode_SetItem(context, items[0], 3) == mui_success, "item 3");
+    list.count = 2;
+    CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success, "two");
+    muiNodeId other = Node(context, scene.root);
+    muiVirtualList others = ListOf(10, 40.0f, false, 0.0f, 0.0f);
+    CHECK(muiNode_SetVirtualList(context, other, &others) == mui_success, "another list after");
+    Layout(context, scene.root);
+    float offset = 0.0f;
+    float extent = 0.0f;
+    CHECK(ExtentOf(context, scene.list, false) == 100.0f &&
+              muiNode_GetRect(context, items[0]).y == 0.0f &&
+              muiNode_GetVirtualItem(context, other, 1, &offset, &extent) == mui_success &&
+              extent == 40.0f && offset == 40.0f,
+          "shrunk, the stale item where layout put it, the other list untouched");
+    // Cleared: back to its own content.
+    CHECK(muiNode_ClearVirtualList(context, scene.list) == mui_success, "cleared");
+    Layout(context, scene.root);
+    CHECK(ExtentOf(context, scene.list, false) == 100.0f, "the padding box");
+    // No items: an empty window, still reported.
+    list.count = 0;
+    (void)Windows(context);
+    CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success, "empty");
+    Layout(context, scene.root);
+    CHECK(Windows(context) >= 1 && WindowIs(context, scene.list, 0, 0), "reported empty");
+    muiDestroyContext(context);
+}
+
+static void TestFixedEdges(void)
+{
+    // Fixed with a gap and overscan: 20 long, 5 between, 30 beyond.
+    Scene scene;
+    muiVirtualList list = ListOf(100, 20.0f, true, 5.0f, 30.0f);
+    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    muiContext* context = scene.context;
+    Layout(context, scene.root);
+    float offset = 0.0f;
+    float extent = 0.0f;
+    CHECK(WindowIs(context, scene.list, 0, 6) && ExtentOf(context, scene.list, false) == 2495.0f &&
+              muiNode_GetVirtualItem(context, scene.list, 4, &offset, &extent) == mui_success &&
+              offset == 100.0f,
+          "places of 25");
+    // An overscan beyond everything: the whole list.
+    list.overscan = 1e30f;
+    CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success, "huge overscan");
+    Layout(context, scene.root);
+    CHECK(WindowIs(context, scene.list, 0, 100), "every item");
+    muiDestroyContext(context);
+}
+
+static void TestLargeEstimated(void)
+{
+    // 1024 items, a power of two: the tree's full depth.
+    Scene scene;
+    muiVirtualList list = ListOf(1024, 40.0f, false, 0.0f, 0.0f);
+    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    muiContext* context = scene.context;
+    Layout(context, scene.root);
+    CHECK(muiNode_SetScroll(context, scene.list, 0.0f, 40860.0f) == mui_success, "the end");
+    Layout(context, scene.root);
+    CHECK(WindowIs(context, scene.list, 1021, 1024), "the last items");
+    // Scrolled far, then laid out anew: the offset holds.
+    CHECK(muiNode_SetScroll(context, scene.list, 0.0f, 20000.0f) == mui_success, "the middle");
+    Size(context, scene.list, 210.0f, 100.0f);
+    Layout(context, scene.root);
+    float x = 0.0f;
+    float y = 0.0f;
+    CHECK(muiNode_GetScroll(context, scene.list, &x, &y) == mui_success && y == 20000.0f &&
+              WindowIs(context, scene.list, 500, 503),
+          "not clamped to what exists");
+    muiDestroyContext(context);
+}
+
+static void TestStorageBack(void)
+{
+    muiContextDef def = muiDefaultContextDef();
+    def.limits.virtualItems = 100;
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    muiNodeId a = Node(context, s_nullNode);
+    muiNodeId b = Node(context, s_nullNode);
+    muiVirtualList list = ListOf(60, 40.0f, false, 0.0f, 0.0f);
+    CHECK(muiNode_SetVirtualList(context, a, &list) == mui_success &&
+              muiDestroyNode(context, a) == mui_success &&
+              muiNode_SetVirtualList(context, b, &list) == mui_success,
+          "a destroyed list's items taken back, its entry not needed");
+    muiDestroyContext(context);
+}
+
 static void TestContract(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -407,6 +509,10 @@ int main(void)
     TestGapAndOverscan();
     TestHorizontal();
     TestBinding();
+    TestEdges();
+    TestFixedEdges();
+    TestLargeEstimated();
+    TestStorageBack();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }
