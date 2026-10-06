@@ -332,6 +332,31 @@ static void Settle(muiContext* context, uint32_t nodeCount)
     }
 }
 
+// A fingerprint of the layers under root, in order: each one's id, kind
+// and whether it exits, FNV-1a over their bytes. Opening, closing,
+// raising or exiting a modal layer changes which nodes it covers.
+static uint64_t LayersOf(const muiContext* context, uint32_t root)
+{
+    const muiTree* tree = &context->tree;
+    uint64_t print = 14695981039346656037ULL;
+    for (uint32_t i = 0; i < context->layers.count; i++)
+    {
+        uint32_t layer = muiLayerAt(context, i);
+        if (layer == 0 || !muiTreeIsAncestor(tree, root, layer))
+        {
+            continue;
+        }
+        uint64_t word = muiAccessIdOf(muiTreeIdOf(tree, layer)) ^
+                        (uint64_t)context->interaction[layer - 1].layer << 56 ^
+                        (uint64_t)muiTreeIsExiting(tree, layer) << 60;
+        for (uint32_t b = 0; b < 8; b++)
+        {
+            print = (print ^ ((word >> (8 * b)) & 0xFF)) * 1099511628211ULL;
+        }
+    }
+    return print;
+}
+
 muiResult muiBuildAccessUpdate(muiContext* context, muiNodeId rootId, muiAccessUpdate* updateOut)
 {
     if (context == nullptr || updateOut == nullptr)
@@ -355,22 +380,26 @@ muiResult muiBuildAccessUpdate(muiContext* context, muiNodeId rootId, muiAccessU
         return mui_empty;
     }
     Build build = {.context = context, .whole = entry->whole};
-    // Whole, every node; else the marked ones, found through the marks.
-    // Nodes marked while visiting (a subtree to resend) lie after the
-    // node that marked them, so the walk still reaches them.
-    for (uint32_t at = build.whole ? root : muiTreeNextOwing(tree, root, 0, mui_stageAccess);
-         at != 0; at = build.whole ? muiTreeNextIn(tree, root, at)
-                                   : muiTreeNextOwing(tree, root, at, mui_stageAccess))
+    // Whole, or with the layers changed, every node; else the marked
+    // ones, found through the marks. Nodes marked while visiting (a
+    // subtree to resend) lie after the node that marked them, so the walk
+    // still reaches them.
+    uint64_t layers = LayersOf(context, root);
+    bool every = build.whole || layers != entry->layers;
+    for (uint32_t at = every ? root : muiTreeNextOwing(tree, root, 0, mui_stageAccess); at != 0;
+         at = every ? muiTreeNextIn(tree, root, at)
+                    : muiTreeNextOwing(tree, root, at, mui_stageAccess))
     {
         muiTreeNode* node = muiTreeAt(tree, at);
         bool marked = (node->dirty.request & mui_stageAccess) != 0;
         node->dirty.request &= (muiStages)~mui_stageAccess;
-        if (build.whole || marked)
+        if (every || marked)
         {
             Visit(&build, at);
         }
         node->dirty.subtree &= (muiStages)~mui_stageAccess;
     }
+    entry->layers = layers;
     Settle(context, build.nodeCount);
     uint32_t focus = muiTreeResolve(tree, context->focus.nodes[0]);
     focus = focus != 0 && muiTreeIsAncestor(tree, root, focus) ? focus : root;

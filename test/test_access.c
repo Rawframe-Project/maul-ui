@@ -22,7 +22,10 @@
 #include "maul-ui/visual.h"
 
 #include <math.h>
+#include <stdalign.h>
+#include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 static const muiNodeId s_nullNode = {0, 0};
@@ -190,6 +193,11 @@ static void TestWholeThenChanged(void)
     Text(context, scene.label, mui_accessValue, "Hi");
     update = Build(context, scene.root);
     CHECK(strcmp(Dump(&update), "3 r1 f0 a100 100x20 @0,40 t2=Hi\n") == 0, "a text");
+    // The same text, or role, again: nothing.
+    Text(context, scene.label, mui_accessValue, "Hi");
+    CHECK(muiNode_SetAccessRole(context, scene.label, mui_roleLabel) == mui_success, "same role");
+    update = Build(context, scene.root);
+    CHECK(update.nodeCount == 0, "nothing new");
     // Paint alone: marked, compared, not sent.
     muiVisualStyle visual = muiDefaultVisualStyle();
     visual.background = (muiColor){1.0f, 0.0f, 0.0f, 1.0f};
@@ -232,6 +240,16 @@ static void TestChildren(void)
     Layout(context, scene.root);
     update = Build(context, scene.root);
     CHECK(strcmp(Dump(&update), "4 r0 f0 a100 200x50 @0,60 [5]\n") == 0, "taken out");
+    CHECK(muiNode_InsertChild(context, scene.group, added, s_nullNode) == mui_success, "back");
+    Layout(context, scene.root);
+    update = Build(context, scene.root);
+    CHECK(strcmp(Dump(&update), "4 r0 f0 a100 200x50 @0,60 [5 6]\n"
+                                "6 r0 f0 a100 10x10 @50,0\n") == 0,
+          "back, unchanged");
+    // Out and back with a subtree of its own.
+    CHECK(muiNode_Detach(context, added) == mui_success, "out again");
+    Layout(context, scene.root);
+    (void)Build(context, scene.root);
     muiNodeId inner = Node(context, added);
     Size(context, inner, 5.0f, 5.0f);
     CHECK(muiNode_InsertChild(context, scene.group, added, s_nullNode) == mui_success, "back");
@@ -241,14 +259,25 @@ static void TestChildren(void)
                                 "6 r0 f0 a100 10x10 @50,0 [7]\n"
                                 "7 r0 f0 a100 5x5 @0,0\n") == 0,
           "back with its subtree");
+    // Reordered: the list.
+    CHECK(muiNode_Detach(context, added) == mui_success &&
+              muiNode_InsertChild(context, scene.group, added, scene.leaf) == mui_success,
+          "first");
+    Layout(context, scene.root);
+    update = Build(context, scene.root);
+    CHECK(Sent(&update, scene.group) != NULL &&
+              update.children[Sent(&update, scene.group)->firstChild] == muiAccessIdOf(added),
+          "reordered");
     // Moved to another parent: both lists, and the subtree it carries.
     CHECK(muiNode_Detach(context, added) == mui_success &&
               muiNode_InsertChild(context, scene.root, added, s_nullNode) == mui_success,
           "moved");
     Layout(context, scene.root);
     update = Build(context, scene.root);
+    // The leaf, which the reorder put second, moves back to the start.
     CHECK(strcmp(Dump(&update), "1 r0 f0 a0 200x120 @0,0 [2 3 4 6]\n"
                                 "4 r0 f0 a100 200x50 @0,60 [5]\n"
+                                "5 r0 f0 a100 50x50 @0,0\n"
                                 "6 r0 f0 a100 10x10 @0,110 [7]\n"
                                 "7 r0 f0 a100 5x5 @0,0\n") == 0,
           "moved with its subtree");
@@ -265,6 +294,18 @@ static void TestChildren(void)
     CHECK(update.nodeCount == 2 && Sent(&update, reused) != NULL &&
               Sent(&update, scene.root) != NULL,
           "a new node in an old slot");
+    // Destroyed and its slot taken, at its place, between updates: the
+    // list names the new node.
+    CHECK(muiDestroyNode(context, reused) == mui_success, "destroyed");
+    muiNodeId again = Node(context, scene.root);
+    Size(context, again, 10.0f, 10.0f);
+    CHECK(again.index1 == reused.index1, "the same slot");
+    Layout(context, scene.root);
+    update = Build(context, scene.root);
+    const muiAccessNode* root = Sent(&update, scene.root);
+    CHECK(root != NULL &&
+              update.children[root->firstChild + root->childCount - 1] == muiAccessIdOf(again),
+          "the new node listed");
     muiDestroyContext(context);
 }
 
@@ -340,6 +381,92 @@ static void TestDerived(void)
     muiDestroyContext(context);
 }
 
+static void TestDerivedMore(void)
+{
+    // One layer at most: the second modal node roots none.
+    muiContextDef def = muiDefaultContextDef();
+    def.limits.layers = 1;
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    muiNodeId root = Node(context, s_nullNode);
+    muiNodeId button = Node(context, root);
+    muiNodeId first = Node(context, root);
+    muiNodeId second = Node(context, root);
+    muiNodeId plain = Node(context, root);
+    muiNodeId pointer = Node(context, root);
+    muiInteractionStyle interaction = muiDefaultInteractionStyle();
+    interaction.focusMode = mui_focusAll;
+    CHECK(muiNode_SetInteractionValues(context, button, &interaction,
+                                       MUI_PROPERTY_BIT(mui_propertyFocusMode)) == mui_success,
+          "focusable");
+    interaction.focusMode = mui_focusPointer;
+    CHECK(muiNode_SetInteractionValues(context, pointer, &interaction,
+                                       MUI_PROPERTY_BIT(mui_propertyFocusMode)) == mui_success,
+          "focusable by pointer and code");
+    CHECK(muiNode_SetAccessFlags(context, plain,
+                                 mui_accessClickable | mui_accessExpandable | mui_accessExpanded) ==
+              mui_success,
+          "clickable, expanded");
+    CHECK(muiAccess_Enable(context, root) == mui_success, "enabled");
+    Layout(context, root);
+    muiAccessUpdate update = Build(context, root);
+    CHECK((Sent(&update, button)->flags & mui_accessFocusable) != 0 &&
+              (Sent(&update, pointer)->flags & mui_accessFocusable) != 0,
+          "focusable either way");
+    CHECK(Sent(&update, plain)->actions == (Action(mui_actionClick) | Action(mui_actionCollapse) |
+                                            Action(mui_actionScrollIntoView)),
+          "clicked by flag; collapsed, not expanded");
+    interaction.layer = mui_layerModal;
+    CHECK(muiNode_SetInteractionValues(context, first, &interaction,
+                                       MUI_PROPERTY_BIT(mui_propertyLayer)) == mui_success &&
+              muiNode_SetInteractionValues(context, second, &interaction,
+                                           MUI_PROPERTY_BIT(mui_propertyLayer)) == mui_success,
+          "two modal");
+    Layout(context, root);
+    update = Build(context, root);
+    // The second roots no layer: nothing changed for it.
+    CHECK((Sent(&update, first)->flags & mui_accessModal) != 0 && Sent(&update, second) == NULL,
+          "one layer, one modal");
+    // The modal layer covers the button: no focus for it.
+    CHECK((Sent(&update, button)->flags & mui_accessFocusable) == 0 &&
+              (Sent(&update, button)->actions & Action(mui_actionFocus)) == 0,
+          "covered");
+    // The layer no longer modal, then modal and exiting: the button is
+    // focusable again each time.
+    interaction.layer = mui_layerActivation;
+    CHECK(muiNode_SetInteractionValues(context, first, &interaction,
+                                       MUI_PROPERTY_BIT(mui_propertyLayer)) == mui_success,
+          "not modal");
+    Layout(context, root);
+    update = Build(context, root);
+    CHECK(Sent(&update, button) != NULL &&
+              (Sent(&update, button)->flags & mui_accessFocusable) != 0,
+          "uncovered by its kind");
+    interaction.layer = mui_layerModal;
+    CHECK(muiNode_SetInteractionValues(context, first, &interaction,
+                                       MUI_PROPERTY_BIT(mui_propertyLayer)) == mui_success,
+          "modal again");
+    Layout(context, root);
+    (void)Build(context, root);
+    CHECK(muiNode_BeginExit(context, first) == mui_success, "exits");
+    Layout(context, root);
+    update = Build(context, root);
+    CHECK(Sent(&update, button) != NULL &&
+              (Sent(&update, button)->flags & mui_accessFocusable) != 0,
+          "uncovered by its exit");
+    // A focus in another tree: the root has it.
+    muiNodeId elsewhere = Node(context, s_nullNode);
+    interaction.focusMode = mui_focusAll;
+    CHECK(muiNode_SetInteractionValues(context, elsewhere, &interaction,
+                                       MUI_PROPERTY_BIT(mui_propertyFocusMode)) == mui_success,
+          "focusable elsewhere");
+    Layout(context, elsewhere);
+    CHECK(muiFocus_Set(context, 0, elsewhere, mui_focusByCode) == mui_success, "focus away");
+    update = Build(context, root);
+    CHECK(update.focus == muiAccessIdOf(root), "the focus not in this tree");
+    muiDestroyContext(context);
+}
+
 static void TestScrollAndRange(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -397,6 +524,46 @@ static void TestScrollAndRange(void)
     muiDestroyContext(context);
 }
 
+static void TestPositionAlone(void)
+{
+    // An estimated list: an item measured 0 high above a bound item.
+    // Removing it moves the item's position, not its place.
+    muiContextDef def = muiDefaultContextDef();
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    muiNodeId root = Node(context, s_nullNode);
+    muiNodeId list = Node(context, root);
+    Column(context, list, true);
+    Size(context, list, 200.0f, 100.0f);
+    muiVirtualList virtualList = muiDefaultVirtualList();
+    virtualList.count = 10;
+    virtualList.overscan = 0.0f;
+    CHECK(muiNode_SetVirtualList(context, list, &virtualList) == mui_success, "list");
+    muiNodeId empty = Node(context, list);
+    Size(context, empty, 200.0f, 0.0f);
+    muiNodeId item = Node(context, list);
+    Size(context, item, 200.0f, 40.0f);
+    CHECK(muiNode_SetItem(context, empty, 0) == mui_success &&
+              muiNode_SetItem(context, item, 1) == mui_success,
+          "bound");
+    CHECK(muiAccess_Enable(context, root) == mui_success, "enabled");
+    Layout(context, root);
+    Layout(context, root);
+    muiAccessUpdate update = Build(context, root);
+    CHECK(Sent(&update, item)->setPosition == 2 && Sent(&update, item)->transform.f == 0.0f,
+          "second, at the top");
+    // One taken out above, one put in at the end: the same count.
+    CHECK(muiNode_RemoveVirtualItems(context, list, 0, 1) == mui_success &&
+              muiNode_InsertVirtualItems(context, list, 9, 1) == mui_success,
+          "removed above, added below");
+    Layout(context, root);
+    update = Build(context, root);
+    const muiAccessNode* node = Sent(&update, item);
+    CHECK(node != NULL && node->setPosition == 1 && node->transform.f == 0.0f,
+          "first, where it was");
+    muiDestroyContext(context);
+}
+
 static void TestVirtualItems(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -412,8 +579,9 @@ static void TestVirtualItems(void)
     virtualList.fixed = true;
     virtualList.overscan = 0.0f;
     CHECK(muiNode_SetVirtualList(context, list, &virtualList) == mui_success, "list");
-    // Bound out of order, after a node of no item.
+    // Bound out of order, after two nodes of no item.
     muiNodeId other = Node(context, list);
+    muiNodeId another = Node(context, list);
     muiNodeId items[3];
     uint32_t indices[3] = {2, 0, 1};
     for (int i = 0; i < 3; i++)
@@ -425,11 +593,12 @@ static void TestVirtualItems(void)
     Layout(context, root);
     muiAccessUpdate update = Build(context, root);
     const muiAccessNode* node = Sent(&update, list);
-    CHECK(node != NULL && node->childCount == 4 &&
+    CHECK(node != NULL && node->childCount == 5 &&
               update.children[node->firstChild] == muiAccessIdOf(other) &&
-              update.children[node->firstChild + 1] == muiAccessIdOf(items[1]) &&
-              update.children[node->firstChild + 2] == muiAccessIdOf(items[2]) &&
-              update.children[node->firstChild + 3] == muiAccessIdOf(items[0]),
+              update.children[node->firstChild + 1] == muiAccessIdOf(another) &&
+              update.children[node->firstChild + 2] == muiAccessIdOf(items[1]) &&
+              update.children[node->firstChild + 3] == muiAccessIdOf(items[2]) &&
+              update.children[node->firstChild + 4] == muiAccessIdOf(items[0]),
           "read by item");
     node = Sent(&update, items[0]);
     CHECK(node != NULL && node->setPosition == 3 && node->setSize == 1000, "third of 1000");
@@ -439,6 +608,16 @@ static void TestVirtualItems(void)
     Layout(context, root);
     update = Build(context, root);
     CHECK(Sent(&update, items[0]) != NULL && Sent(&update, items[0])->setPosition == 6, "sixth");
+    // Fewer items than an index bound: that node has no place, and is
+    // read with the unbound.
+    virtualList.count = 3;
+    CHECK(muiNode_SetVirtualList(context, list, &virtualList) == mui_success, "three");
+    Layout(context, root);
+    update = Build(context, root);
+    node = Sent(&update, list);
+    CHECK(Sent(&update, items[0]) != NULL && Sent(&update, items[0])->setPosition == 0 &&
+              node != NULL && update.children[node->firstChild + 2] == muiAccessIdOf(items[0]),
+          "past the count");
     muiDestroyContext(context);
 }
 
@@ -588,10 +767,46 @@ static void TestScrollActions(void)
           "to the end");
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && !handled,
           "there already");
+    request = (muiAccessRequest){mui_actionScrollUp, muiAccessIdOf(pane), 0, 0, 0};
+    CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled &&
+              muiNode_GetScroll(context, pane, &x, &y) == mui_success && y < 200.0f,
+          "a page up");
     request = (muiAccessRequest){mui_actionScrollIntoView, muiAccessIdOf(rows[0]), 0, 0, 0};
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled &&
               muiNode_GetScroll(context, pane, &x, &y) == mui_success && y == 0.0f,
           "into view");
+    // Across, right to left: the offset grows toward the left.
+    muiNodeId across = Node(context, root);
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.scrollAxes = mui_scrollHorizontal;
+    style.textDirection = mui_textRightToLeft;
+    CHECK(muiNode_SetLayoutValues(context, across, &style,
+                                  MUI_PROPERTY_BIT(mui_propertyScrollAxes) |
+                                      MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
+          "across");
+    Size(context, across, 100.0f, 50.0f);
+    muiNodeId cells[3];
+    for (int i = 0; i < 3; i++)
+    {
+        cells[i] = Node(context, across);
+        Size(context, cells[i], 80.0f, 50.0f);
+    }
+    CHECK(muiAccess_Enable(context, root) == mui_success, "enabled");
+    Layout(context, root);
+    (void)Build(context, root);
+    request = (muiAccessRequest){mui_actionScrollLeft, muiAccessIdOf(across), 0, 0, 0};
+    CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled &&
+              muiNode_GetScroll(context, across, &x, &y) == mui_success && x > 0.0f,
+          "a page left, right to left");
+    Layout(context, root);
+    muiAccessUpdate update = Build(context, root);
+    const muiAccessNode* cell = Sent(&update, cells[0]);
+    muiRect rect = muiNode_GetRect(context, cells[0]);
+    CHECK(cell != NULL && cell->transform.e == rect.x + x, "moved right by the offset");
+    request.action = mui_actionScrollRight;
+    CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled &&
+              muiNode_GetScroll(context, across, &x, &y) == mui_success && x == 0.0f,
+          "a page right");
     muiDestroyContext(context);
 }
 
@@ -635,8 +850,9 @@ static void TestHostData(void)
               muiNode_GetAccessText(context, a, mui_accessLabel, &text, &length) == mui_empty,
           "cleared");
     // Well-formed UTF-8 only, without NUL.
-    static const char* const s_bad[] = {"\xC0\x80", "\xED\xA0\x80", "\xF4\x90\x80\x80",
-                                        "\xE2\x82", "\x80",         "\xF5\x80\x80\x80"};
+    static const char* const s_bad[] = {
+        "\xC0\x80",         "\xED\xA0\x80", "\xF4\x90\x80\x80", "\xE2\x82",    "\x80",
+        "\xF5\x80\x80\x80", "\xE0\x80\x80", "\xF0\x80\x80\x80", "\xE2\x82\x41"};
     uint64_t misuse = muiGetContextMisuse(context);
     for (size_t i = 0; i < sizeof(s_bad) / sizeof(s_bad[0]); i++)
     {
@@ -649,8 +865,19 @@ static void TestHostData(void)
               muiNode_SetAccessText(context, a, MUI_ACCESS_TEXTS, "a", 1) == mui_errorInvalid &&
               muiNode_SetAccessRole(context, a, MUI_ROLE_LAST + 1) == mui_errorInvalid &&
               muiNode_SetAccessFlags(context, a, mui_accessChecked) == mui_errorInvalid &&
-              muiGetContextMisuse(context) == misuse + 11,
+              muiGetContextMisuse(context) == misuse + 14,
           "refused");
+    // A sequence cut short by the length, its rest in memory after it.
+    CHECK(muiNode_SetAccessText(context, a, mui_accessValue, "\xE2\x82\xAC", 2) == mui_errorInvalid,
+          "cut short");
+    // A node in a destroyed node's slot has none of its data.
+    CHECK(muiNode_SetAccessRole(context, c, mui_roleLink) == mui_success &&
+              muiDestroyNode(context, c) == mui_success,
+          "c gone");
+    muiNodeId d = Node(context, s_nullNode);
+    CHECK(d.index1 == c.index1 && muiNode_GetAccessRole(context, d, &role) == mui_success &&
+              role == mui_roleGeneric,
+          "not c's role");
     static const char s_good[] = "\xC3\xA9\xE2\x82\xAC\xF0\x9F\x98\x80\xEF\xBF\xBF";
     CHECK(muiNode_SetAccessText(context, a, mui_accessValue, s_good, sizeof(s_good) - 1) ==
               mui_success,
@@ -663,6 +890,57 @@ static void TestHostData(void)
               muiNode_GetAccessFlags(NULL, a, &flags) == mui_errorInvalid,
           "reads");
     muiDestroyContext(context);
+}
+
+typedef struct Counter
+{
+    size_t live;
+    bool fail;
+} Counter;
+
+static void* Allocate(size_t size, size_t alignment, void* context)
+{
+    Counter* counter = context;
+    if (counter->fail || alignment > alignof(max_align_t))
+    {
+        return NULL;
+    }
+    counter->live += size;
+    return malloc(size);
+}
+
+static void Release(void* memory, size_t size, size_t alignment, void* context)
+{
+    (void)alignment;
+    Counter* counter = context;
+    counter->live -= size;
+    free(memory);
+}
+
+static void TestMemory(void)
+{
+    Counter counter = {0};
+    muiContextDef def = muiDefaultContextDef();
+    def.allocator = (muiAllocator){Allocate, Release, &counter};
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    size_t created = counter.live;
+    muiNodeId root = Node(context, s_nullNode);
+    // Memory running out: nothing enabled, no text taken.
+    counter.fail = true;
+    muiAccessUpdate update;
+    CHECK(muiAccess_Enable(context, root) == mui_errorCapacity &&
+              muiBuildAccessUpdate(context, root, &update) == mui_empty &&
+              muiNode_SetAccessText(context, root, mui_accessLabel, "x", 1) == mui_errorCapacity,
+          "out of memory");
+    counter.fail = false;
+    CHECK(muiAccess_Enable(context, root) == mui_success && counter.live > created,
+          "the copies allocated");
+    CHECK(muiAccess_Disable(context, root) == mui_success && counter.live == created, "and freed");
+    Text(context, root, mui_accessLabel, "Root");
+    CHECK(counter.live == created + 5, "a text and its NUL");
+    muiDestroyContext(context);
+    CHECK(counter.live == 0, "all of it freed");
 }
 
 static void TestRoots(void)
@@ -710,11 +988,14 @@ int main(void)
     TestWholeThenChanged();
     TestChildren();
     TestDerived();
+    TestDerivedMore();
     TestScrollAndRange();
     TestVirtualItems();
+    TestPositionAlone();
     TestActions();
     TestScrollActions();
     TestHostData();
+    TestMemory();
     TestRoots();
     return s_failures == 0 ? 0 : 1;
 }

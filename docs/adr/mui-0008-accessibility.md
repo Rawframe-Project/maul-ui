@@ -62,7 +62,10 @@ ranges and virtual lists.
   compares it with the copy last sent: an equal node is not sent, so a
   color animating is nothing to assistive technology. A child its
   parent lists anew, after a list that left it out, is sent with its
-  subtree, since adapters let a node go with the last list holding it.
+  subtree, since adapters let a node go with the last list holding it. A change to the layers under the root (one opening, closing,
+  raised, changing kind or exiting) makes the build compare every node,
+  since it changes which nodes a modal layer covers and so which can
+  take focus; a fingerprint of the layers in order finds it.
 - **Lazily, per root** (`muiAccess_Enable`, `muiAccess_Disable`): up to
   `limits.accessRoots` roots, one per window. Enabling the first
   allocates, for every node slot, the copy last sent and the update's

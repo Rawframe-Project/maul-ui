@@ -90,8 +90,7 @@ static muiAccessEntry* Take(muiContext* context, uint32_t slot)
     }
     entry = &store->entries[store->count++];
     store->entryOf[slot - 1] = store->count;
-    // Versions start at 1: a node sent without an entry was sent at 0.
-    *entry = (muiAccessEntry){.node = muiTreeIdOf(&context->tree, slot), .version = 1};
+    *entry = (muiAccessEntry){.node = muiTreeIdOf(&context->tree, slot)};
     return entry;
 }
 

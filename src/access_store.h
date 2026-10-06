@@ -30,11 +30,14 @@ typedef struct muiAccessEntry
     uint32_t length[MUI_ACCESS_TEXTS];
 } muiAccessEntry;
 
-// A root updates are built for, and whether its next update is whole.
+// A root updates are built for, whether its next update is whole, and a
+// fingerprint of its layers when the last was built: which nodes can
+// take focus depends on them.
 typedef struct muiAccessRoot
 {
     muiNodeId node;
     bool whole;
+    uint64_t layers;
 } muiAccessRoot;
 
 // What was last sent of the node at a slot, and of its place among its
