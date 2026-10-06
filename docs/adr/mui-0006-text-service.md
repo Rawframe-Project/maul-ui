@@ -100,6 +100,14 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   have no lifetime and a regular upright static font keeps its own key.
   Shaping fonts of instances are made from the face as needed, a few
   kept per font; line metrics are the default instance's.
+- **Font families** (`muiCreateFontFamily`) are objects of the
+  service holding up to 256 faces; a text style names one by its key,
+  which the family bit sets apart from fonts'. Layout matches a face as
+  CSS Fonts 4 does (the width nearest normal, narrower first; then
+  italic, oblique and normal faces in CSS's order for the slant; then
+  the weight in CSS's order, ties to the earlier face), a variable face
+  matching every value its wght, ital and slnt axes reach, and then
+  makes the face's instance. Faces destroyed after are passed over.
 - **Glyph atlases** (`maul-ui/glyph_atlas.h`) are owner objects of a
   service, in its memory: pages of the caller's size, made as needed up
   to a limit and cut into plots, each packed with a skyline bottom-left

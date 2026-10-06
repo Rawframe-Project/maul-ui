@@ -229,6 +229,12 @@ uint64_t muiFont_GetKey(muiFontId fontId)
     return fontId.index1 != 0 ? muiKeyOf(fontId.index1, fontId.generation) : 0;
 }
 
+uint64_t muiFontFamily_GetKey(muiFontFamilyId familyId)
+{
+    return familyId.index1 != 0 ? MUI_FAMILY_BIT | muiKeyOf(familyId.index1, familyId.generation)
+                                : 0;
+}
+
 muiResult muiSetDefaultFont(muiTextService* service, muiFontId fontId)
 {
     if (service == nullptr)

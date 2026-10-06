@@ -152,15 +152,19 @@ static void ReadMetrics(muiFont* font)
 }
 
 // Reads the face's variation axes, up to MUI_MAX_FONT_AXES, and the
-// weight and slant OS/2 gives it; false when memory runs out.
+// weight, width and slant OS/2 gives it; false when memory runs out.
 static bool ReadStyle(FT_Library library, muiFont* font)
 {
     FT_Face face = font->face;
     const TT_OS2* os2 = FT_Get_Sfnt_Table(face, FT_SFNT_OS2);
     bool hasOs2 = os2 != nullptr && os2->version != 0xFFFFu;
     font->weightClass = hasOs2 && os2->usWeightClass != 0 ? os2->usWeightClass : 400;
-    font->slantedFace = hasOs2 ? (os2->fsSelection & (ITALIC | OBLIQUE)) != 0
-                               : (face->style_flags & FT_STYLE_FLAG_ITALIC) != 0;
+    font->widthClass =
+        hasOs2 && os2->usWidthClass >= 1 && os2->usWidthClass <= 9 ? os2->usWidthClass : 5;
+    bool italic =
+        hasOs2 ? (os2->fsSelection & ITALIC) != 0 : (face->style_flags & FT_STYLE_FLAG_ITALIC) != 0;
+    bool oblique = hasOs2 && (os2->fsSelection & OBLIQUE) != 0;
+    font->faceSlant = oblique ? mui_slantOblique : (italic ? mui_slantItalic : mui_slantNormal);
     if (!FT_HAS_MULTIPLE_MASTERS(face))
     {
         return true;

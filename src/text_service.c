@@ -22,6 +22,7 @@
 enum
 {
     MAX_FONTS = 65536,
+    MAX_FAMILIES = 65536,
     MAX_BLOCKS = 1 << 24,
 };
 
@@ -89,7 +90,7 @@ muiTextServiceDef muiDefaultTextServiceDef(void)
 {
     return (muiTextServiceDef){
         .cookie = TEXT_SERVICE_DEF_COOKIE,
-        .limits = {.fonts = 64, .textBlocks = 1024},
+        .limits = {.fonts = 64, .textBlocks = 1024, .fontFamilies = 16},
     };
 }
 
@@ -99,6 +100,8 @@ typedef struct Parts
     size_t fonts;
     size_t blockSlots;
     size_t blocks;
+    size_t familySlots;
+    size_t families;
 } Parts;
 
 static Parts LayOut(muiLayout* layout, const muiTextLimits* limits)
@@ -112,6 +115,10 @@ static Parts LayOut(muiLayout* layout, const muiTextLimits* limits)
         muiLayoutAdd(layout, limits->textBlocks, sizeof(muiPoolSlot), alignof(muiPoolSlot));
     parts.blocks =
         muiLayoutAdd(layout, limits->textBlocks, sizeof(muiTextBlock), alignof(muiTextBlock));
+    parts.familySlots =
+        muiLayoutAdd(layout, limits->fontFamilies, sizeof(muiPoolSlot), alignof(muiPoolSlot));
+    parts.families =
+        muiLayoutAdd(layout, limits->fontFamilies, sizeof(muiFontFamily), alignof(muiFontFamily));
     return parts;
 }
 
@@ -167,7 +174,8 @@ muiResult muiCreateTextService(const muiTextServiceDef* def, muiTextService** se
     }
     if (def == nullptr || serviceOut == nullptr || def->cookie != TEXT_SERVICE_DEF_COOKIE ||
         !muiIsAllocatorValid(&def->allocator) || def->limits.fonts == 0 ||
-        def->limits.fonts > MAX_FONTS || def->limits.textBlocks > MAX_BLOCKS)
+        def->limits.fonts > MAX_FONTS || def->limits.textBlocks > MAX_BLOCKS ||
+        def->limits.fontFamilies > MAX_FAMILIES)
     {
         return mui_errorInvalid;
     }
@@ -192,6 +200,9 @@ muiResult muiCreateTextService(const muiTextServiceDef* def, muiTextService** se
     muiPoolInit(&service->blocks.pool, (muiPoolSlot*)(block + parts.blockSlots),
                 def->limits.textBlocks);
     service->blocks.blocks = (muiTextBlock*)(block + parts.blocks);
+    muiPoolInit(&service->families.pool, (muiPoolSlot*)(block + parts.familySlots),
+                def->limits.fontFamilies);
+    service->families.families = (muiFontFamily*)(block + parts.families);
     service->memory = (struct FT_MemoryRec_){
         .user = service,
         .alloc = FreeTypeAlloc,
@@ -241,6 +252,13 @@ void muiDestroyTextService(muiTextService* service)
         if (service->blocks.pool.slots[slot - 1].live)
         {
             muiReleaseTextBlock(&service->allocator, &service->blocks.blocks[slot - 1]);
+        }
+    }
+    for (uint32_t slot = 1; slot <= service->families.pool.used; slot++)
+    {
+        if (service->families.pool.slots[slot - 1].live)
+        {
+            muiReleaseFontFamily(&service->allocator, &service->families.families[slot - 1]);
         }
     }
     Release(service);

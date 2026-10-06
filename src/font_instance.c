@@ -93,7 +93,7 @@ static uint64_t SlantOf(const muiFont* font, muiFontSlant slant)
     {
         return SLANT_ITALIC;
     }
-    return font->slantedFace ? SLANT_NONE : SLANT_SHEARED;
+    return font->faceSlant != mui_slantNormal ? SLANT_NONE : SLANT_SHEARED;
 }
 
 uint64_t muiInstanceBits(const muiFont* font, float weight, muiFontSlant slant, float size)

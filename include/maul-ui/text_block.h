@@ -110,6 +110,15 @@ extern "C"
     /// Safe from any thread.
     MUI_API uint64_t muiFont_GetKey(muiFontId fontId);
 
+    /// Returns a font family's key, for a text style's font: never 0, and
+    /// apart from every font's key.
+    ///
+    /// @param familyId  The family.
+    /// @return The key; 0 for the null id.
+    /// @par Thread safety
+    /// Safe from any thread.
+    MUI_API uint64_t muiFontFamily_GetKey(muiFontFamilyId familyId);
+
     /// Sets the font a text style's font key 0 names; the null id sets
     /// none, and text in font 0 then draws nothing.
     ///

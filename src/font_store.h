@@ -11,6 +11,7 @@
 #include "pool.h"
 
 #include "maul-ui/font.h"
+#include "maul-ui/text_style.h"
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -56,10 +57,12 @@ typedef struct muiFont
     uint64_t imageInstance;
     muiFontAxis axes[MUI_MAX_FONT_AXES];
     uint32_t axisCount;
-    // OS/2 usWeightClass, 400 without one, and whether the face is
-    // italic or oblique.
+    // OS/2 usWeightClass, 400 without one, usWidthClass, 5 (normal)
+    // without one, and the face's slant: mui_slantNormal, Italic or
+    // Oblique.
     uint32_t weightClass;
-    bool slantedFace;
+    uint32_t widthClass;
+    muiFontSlant faceSlant;
     // Shaping fonts of other instances, by their key's top bits, replaced
     // in turn.
     uint64_t shaperInstances[MUI_SHAPING_SLOTS];

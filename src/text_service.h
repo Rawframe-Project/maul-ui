@@ -8,6 +8,7 @@
 #ifndef MAUL_UI_SRC_TEXT_SERVICE_H
 #define MAUL_UI_SRC_TEXT_SERVICE_H
 
+#include "family_store.h"
 #include "font_store.h"
 #include "text_block.h"
 
@@ -30,6 +31,7 @@ struct muiTextService
     hb_unicode_funcs_t* unicode;
     muiFontStore fonts;
     muiTextBlockStore blocks;
+    muiFamilyStore families;
     // What font key 0 names; the null id for none.
     muiFontId defaultFont;
     // Blocks that could not be laid out for want of memory.

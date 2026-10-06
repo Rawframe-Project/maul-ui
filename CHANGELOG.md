@@ -27,6 +27,11 @@ format.
 
 ### Added
 
+- Font families (`muiCreateFontFamily`, `muiFontFamily_GetKey`,
+  `muiFontFamily_MatchFace`): faces a text style names together, matched
+  by width, slant and weight as CSS matches them, with a `fontFamilies`
+  limit (record mui-0006).
+
 - Font instances: a text style's weight, slant and size set a variable
   font's wght, ital, slnt and opsz axes, and make bold and oblique for
   faces without them, as CSS does; glyph runs carry font keys naming

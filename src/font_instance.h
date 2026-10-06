@@ -18,8 +18,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-// The bits of a key that name its font.
+// The bits of a key that name its font or family.
 #define MUI_FONT_PART_MASK 0xFFFFFFFFFFull
+
+// The bit that makes a key a font family's.
+#define MUI_FAMILY_BIT (1ull << 63)
 
 // What an instance does, decoded from its bits.
 typedef struct muiInstance
