@@ -1121,6 +1121,8 @@ typedef struct GlyphHost
     int calls;
     // What a call tries besides adding a run.
     bool misuse;
+    // Whether it adds a rectangle before its run.
+    bool rect;
     uint32_t count;
     // The slot of a node that paints three glyphs, not two.
     uint32_t wider;
@@ -1172,6 +1174,22 @@ static void PaintTwoGlyphs(void* user, muiNodeId nodeId, uint64_t hostKey, float
         run.originX = 0.0f;
         const muiGlyph low = {1, 0.0f, -INFINITY};
         CHECK(muiDrawSink_AddGlyphRun(sink, &run, &low, 1) == mui_errorInvalid, "a glyph's y");
+        CHECK(muiDrawSink_AddRect(NULL, (muiRect){0.0f, 0.0f, 1.0f, 1.0f}, s_red) ==
+                      mui_errorInvalid &&
+                  muiDrawSink_AddRect(sink, (muiRect){NAN, 0.0f, 1.0f, 1.0f}, s_red) ==
+                      mui_errorInvalid &&
+                  muiDrawSink_AddRect(sink, (muiRect){0.0f, 0.0f, 1.0f, -1.0f}, s_red) ==
+                      mui_errorInvalid &&
+                  muiDrawSink_AddRect(sink, (muiRect){0.0f, 0.0f, 1.0f, 1.0f},
+                                      (muiColor){0.0f, 0.0f, 0.0f, 1.5f}) == mui_errorInvalid,
+              "rectangles");
+    }
+    if (host->rect)
+    {
+        // At 1.25, 2.5 in the content box: snapped, the quarter-pixel
+        // height kept as one pixel.
+        CHECK(muiDrawSink_AddRect(sink, (muiRect){1.25f, 2.5f, 10.0f, 0.25f}, s_red) == mui_success,
+              "a rectangle");
     }
     const muiGlyph glyphs[3] = {{7, 0.0f, 0.0f}, {9, 5.25f, -1.5f}, {11, 9.0f, 0.0f}};
     const muiGlyphRun run = {99, 12.0f, s_gray, 1.25f, 10.3f};
@@ -1223,7 +1241,7 @@ static void TestGlyphRuns(void)
     SetVisual(context, label, &visual,
               MUI_PROPERTY_BIT(mui_propertyBackground) | MUI_PROPERTY_BIT(mui_propertyOpacity) |
                   MUI_PROPERTY_BIT(mui_propertyClip));
-    GlyphHost host = {context, 0, false, 0, 0};
+    GlyphHost host = {context, 0, false, false, 0, 0};
     muiDrawList list = BuildWith(context, root, 2.0f, &host);
     CHECK(host.calls == 1 && list.glyphCount == 2 && list.commandCount == 2, "one call, one run");
     const muiDrawCommand* box = &list.commands[0];
@@ -1264,9 +1282,26 @@ static void TestGlyphRuns(void)
     host.misuse = true;
     CHECK(muiNode_MarkContentChanged(context, label) == mui_success, "changed");
     list = BuildWith(context, root, 2.0f, &host);
-    CHECK(muiGetContextMisuse(context) == misuse + 15 && list.glyphCount == 2,
-          "thirteen bad runs and two edits; a run with no sink has no context to count it");
+    CHECK(muiGetContextMisuse(context) == misuse + 18 && list.glyphCount == 2,
+          "thirteen bad runs, three bad rectangles and two edits; a run or rectangle with no "
+          "sink has no context to count it");
     host.misuse = false;
+
+    // A rectangle: a box of one fill, from the label's content box at 15,
+    // 8 (the label at 10, 5, its border and padding), at the label's
+    // opacity of a half, its edges snapped at scale 1, before the run.
+    host.rect = true;
+    CHECK(muiNode_MarkContentChanged(context, label) == mui_success, "changed");
+    list = BuildWith(context, root, 1.0f, &host);
+    host.rect = false;
+    const muiDrawCommand* added = &list.commands[1];
+    CHECK(list.commandCount > 2 && added->kind == mui_drawBox && added->box.rect.x == 16.0f &&
+              added->box.rect.width == 10.0f && added->box.rect.y == 11.0f &&
+              added->box.rect.height == 1.0f && added->box.fill.r == 0.5f &&
+              added->box.fill.a == 0.5f && added->box.radii.topLeft == 0.0f &&
+              added->box.gradient == 0 && added->box.borderWidths.top == 0.0f &&
+              list.commands[2].kind == mui_drawGlyphRun,
+          "placed, snapped, before the run");
 
     // Not painted when invisible, or with no paint function.
     visual.opacity = 0.0f;
@@ -1299,7 +1334,7 @@ static void TestGlyphRunsRightToLeftAndLimits(void)
                                       MUI_PROPERTY_BIT(mui_propertyPaddingEnd) | WIDTH) ==
               mui_success,
           "right to left");
-    GlyphHost host = {context, 0, false, 0, 0};
+    GlyphHost host = {context, 0, false, false, 0, 0};
     muiDrawList list = BuildWith(context, root, 1.0f, &host);
     // After its border's box; its end, padding 7, is on the left.
     CHECK(list.commandCount == 2 && list.commands[1].kind == mui_drawGlyphRun &&
@@ -1318,7 +1353,7 @@ static void TestGlyphRunsRightToLeftAndLimits(void)
         root = Add(context, s_nullNode, 200.0f, 100.0f, (muiEdges){0});
         (void)AddLabel(context, root);
         (void)AddLabel(context, root);
-        host = (GlyphHost){context, 0, false, 0, 0};
+        host = (GlyphHost){context, 0, false, false, 0, 0};
         const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL};
         CHECK(
             muiComputeLayout(context, root, &input) == mui_success &&
@@ -1338,7 +1373,7 @@ static void TestGlyphRunsRightToLeftAndLimits(void)
     root = Add(context, s_nullNode, 200.0f, 100.0f, (muiEdges){0});
     muiNodeId first = AddLabel(context, root);
     (void)AddLabel(context, root);
-    host = (GlyphHost){context, 0, false, 0, 0};
+    host = (GlyphHost){context, 0, false, false, 0, 0};
     list = BuildWith(context, root, 1.0f, &host);
     CHECK(list.glyphCount == 4, "two runs of two");
     host.wider = first.index1;

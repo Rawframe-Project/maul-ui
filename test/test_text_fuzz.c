@@ -402,7 +402,31 @@ static void TestRandomText(void)
     muiDestroyTextService(service);
 }
 
-// Random deletions and insertions at random offsets: each deletion within
+// Sets a random composition of up to three segments, or ends it.
+static void ComposeAtRandom(muiTextService* service, muiTextBlockId block, uint32_t offset,
+                            uint32_t* state)
+{
+    if (Next(state) % 5 == 0)
+    {
+        CHECK(muiTextBlock_EndComposition(service, block) == mui_success, "ended");
+        return;
+    }
+    char text[TEXT_LIMIT];
+    size_t length = RandomText(text, state) % 24;
+    muiCompositionSegment segments[3];
+    uint32_t count = length == 0 ? 0 : Next(state) % 4;
+    for (uint32_t i = 0; i < count; i++)
+    {
+        uint32_t start = Next(state) % ((uint32_t)length + 1u);
+        segments[i] = (muiCompositionSegment){start, Next(state) % ((uint32_t)length - start + 1u),
+                                              (muiCompositionStyle)(Next(state) % 4)};
+    }
+    CHECK(muiTextBlock_SetComposition(service, block, offset, text, length, segments, count) ==
+              mui_success,
+          "composed");
+}
+
+// Random deletions, insertions and compositions at random offsets: each deletion within
 // the text and on the offset's side, each replacement the length it
 // should be, and the text laid out and painted after each.
 static void TestRandomEdits(void)
@@ -457,14 +481,28 @@ static void TestRandomEdits(void)
                           (offset < length ? offset : length),
                   "a deletion on the offset's side");
         }
-        CHECK(muiTextBlock_Replace(service, block, start, end, text, inserted) == mui_success,
-              "replaced");
+        bool composing = Next(&state) % 4 == 0;
+        if (composing)
+        {
+            ComposeAtRandom(service, block, offset, &state);
+        }
+        else
+        {
+            CHECK(muiTextBlock_Replace(service, block, start, end, text, inserted) == mui_success,
+                  "replaced");
+        }
         const char* now = NULL;
         size_t nowLength = 0;
         CHECK(muiTextBlock_GetText(service, block, &now, &nowLength) == mui_success &&
-                  nowLength == length - (end - start) + inserted,
+                  (composing || nowLength == length - (end - start) + inserted),
               "the length after");
         length = nowLength;
+        uint32_t composed = 0;
+        uint32_t composedLength = 0;
+        CHECK(muiTextBlock_GetComposition(service, block, &composed, &composedLength) ==
+                      mui_success &&
+                  composed + composedLength <= length,
+              "a composition within the text");
         CHECK(muiNode_MarkContentChanged(context, node) == mui_success, "marked");
         const muiLayoutInput input = {
             50.0f + (float)(Next(&state) % 200), 1000.0f, muiMeasureText, &host, 0, NULL};

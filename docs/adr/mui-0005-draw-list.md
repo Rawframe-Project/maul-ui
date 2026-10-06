@@ -38,9 +38,11 @@ clip chain evaluated in its shaders, which keeps batches whole.
 - **Host content paints through a function** the draw input names, as
   the layout input names a measure function: for each visible node
   whose content is the host's, with its id, host key and content box
-  size, it adds glyph runs through a sink at positions relative to the
-  content box, and the build converts their colors and multiplies
-  opacity as for every command. The context refuses edits made from
+  size, it adds glyph runs and filled rectangles (box commands with one
+  fill, snapped as boxes, a side that was not empty keeping a device
+  pixel, for underlines and the like) through a sink at positions
+  relative to the content box, and the build converts their colors and
+  multiplies opacity as for every command. The context refuses edits made from
   it; reads, such as a node's computed text style, are allowed.
 - **Paint order** is depth first; per node, its outer shadow, its box,
   its inner shadow (inside the padding box), its image and its host

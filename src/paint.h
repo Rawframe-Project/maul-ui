@@ -53,6 +53,10 @@ muiLinearColor muiPaintColor(muiPainter* painter, muiColor color, float opacity)
 // An edge at the nearest device pixel.
 float muiSnapEdge(float value, float scale);
 
+// A rectangle with its edges snapped to device pixels; a side that was not
+// empty keeps one device pixel.
+muiRect muiSnapRect(muiRect rect, float scale);
+
 // A zeroed command of the kind in the clip, or NULL, marking the painter
 // full, when the list has no room.
 muiDrawCommand* muiTakeCommand(muiPainter* painter, muiDrawKind kind, uint32_t clip);

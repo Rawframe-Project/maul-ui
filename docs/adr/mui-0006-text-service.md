@@ -146,7 +146,20 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   regional indicator or a keycap whole, a variation selector with the
   code point before it, and CR with its LF. `muiTextBlock_Replace`
   replaces a range of a block's text, analyzing the new text whole
-  before the old goes, and `muiTextBlock_GetText` reads it. Selection,
+  before the old goes, and `muiTextBlock_GetText` reads it.
+- **Input method compositions** live in the block's text, as browsers
+  and platform controls keep them, so they shape, wrap and reorder with
+  the text around them: `muiTextBlock_SetComposition` replaces the
+  composition (or inserts one at an offset) with the method's text and
+  its styled segments, an empty text removing it;
+  `muiTextBlock_EndComposition` keeps its text as typed; a replacement
+  before or after it moves it, one over it or new text ends it.
+  Painting underlines it after the glyphs at the first font's underline
+  position: thin for underlined and converted segments, twice as thick
+  for the target, none for plain, the whole composition thin when it has
+  no segments (as Wayland's are drawn). The host maps its window
+  library's compositions to segments and gives the platform the caret
+  rectangle from `muiTextGetCaret` for the candidate window. Selection,
   the x kept for vertical moves, input and undo stay with the caller.
 - **Glyph atlases** (`maul-ui/glyph_atlas.h`) are owner objects of a
   service, in its memory: pages of the caller's size, made as needed up

@@ -48,7 +48,7 @@ text_blocks: font_instance text_block text_service
 text_shape: font_chain font_instance font_store text_block text_service
 line_break: text_block
 text_paragraph: font_chain line_break text_block text_service text_shape
-text_layout: font_chain line_break text_block text_paragraph text_service text_shape
+text_layout: font_chain line_break text_block text_boxes text_paragraph text_service text_shape
 text_boxes: font_chain line_break text_block text_paragraph text_service text_shape
 text_hit: font_chain line_break text_block text_boxes text_paragraph text_service text_shape
 text_delete: text_block text_service

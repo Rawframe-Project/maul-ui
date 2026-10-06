@@ -84,4 +84,10 @@ bool muiFindEdge(const muiLaidText* laid, uint32_t line, const muiTextBoxes* box
 bool muiCaretX(const muiLaidText* laid, uint32_t line, muiTextPosition position, float* xOut,
                bool* rtlOut);
 
+// Finds the next stretch of side by side boxes wholly from start up to
+// end, from box *at on: its left and right edges, *at moved past it;
+// false when there is none.
+bool muiNextStretch(const muiTextBoxes* boxes, uint32_t* at, uint32_t start, uint32_t end,
+                    float* leftOut, float* rightOut);
+
 #endif // MAUL_UI_SRC_TEXT_BOXES_H

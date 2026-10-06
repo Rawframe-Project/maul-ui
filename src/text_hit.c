@@ -74,22 +74,16 @@ muiResult muiTextGetCaret(const muiTextHost* host, muiNodeId nodeId, float width
 static uint32_t AddStretches(const muiTextBoxes* boxes, uint32_t start, uint32_t end, float top,
                              float height, muiRect* rects, uint32_t capacity, uint32_t count)
 {
-    bool open = false;
-    for (uint32_t i = 0; i < boxes->count; i++)
+    uint32_t at = 0;
+    float left = 0.0f;
+    float right = 0.0f;
+    while (muiNextStretch(boxes, &at, start, end, &left, &right))
     {
-        const muiTextBox* box = &boxes->data[i];
-        bool inside = box->start >= start && box->end <= end;
-        if (inside && !open)
+        if (count < capacity)
         {
-            count++;
+            rects[count] = (muiRect){left, top, right - left, height};
         }
-        if (inside && count <= capacity)
-        {
-            muiRect* rect = &rects[count - 1];
-            float left = open ? rect->x : box->x0;
-            *rect = (muiRect){left, top, box->x1 - left, height};
-        }
-        open = inside;
+        count++;
     }
     return count;
 }

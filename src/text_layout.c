@@ -3,8 +3,10 @@
 //
 // Measuring and painting text blocks (record mui-0006): a node's
 // paragraph broken into lines, and for painting reordered by UAX #9
-// rules L1 and L2, aligned, and drawn as a glyph run per line and item.
+// rules L1 and L2, aligned, and drawn as a glyph run per line and item,
+// an input method's composition underlined after.
 
+#include "text_boxes.h"
 #include "text_paragraph.h"
 
 #include "maul-ui/text_block.h"
@@ -134,6 +136,45 @@ float muiTextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float widt
     return paragraph.baseline;
 }
 
+// Underlines a block's composition on a line: each segment's stretches,
+// or the whole composition's, at the first font's underline position, the
+// target twice as thick.
+static void PaintComposition(const muiLaidText* laid, uint32_t index, muiDrawSink* sink)
+{
+    const muiParagraph* paragraph = &laid->paragraph;
+    const muiTextBlock* block = paragraph->block;
+    muiTextBoxes boxes;
+    if (!muiGetLineBoxes(laid, index, &boxes))
+    {
+        return;
+    }
+    // A font without an underline gets CSS's usual one.
+    const muiFontMetrics* metrics = &paragraph->chain.fonts[0]->metrics;
+    bool given = metrics->underlineThickness > 0.0f;
+    float size = paragraph->style.size;
+    float thin = (given ? metrics->underlineThickness : 0.05f) * size;
+    float y = (float)index * paragraph->lineHeight + paragraph->baseline +
+              (given ? metrics->underlineOffset : 0.1f) * size;
+    const muiCompositionSegment whole = {0, block->compositionLength, mui_compositionUnderline};
+    const muiCompositionSegment* segments =
+        block->segmentCount != 0 ? block->segments.data : &whole;
+    uint32_t count = block->segmentCount != 0 ? block->segmentCount : 1;
+    for (uint32_t k = 0; k < count; k++)
+    {
+        uint32_t start = block->compositionStart + segments[k].start;
+        float height = segments[k].style == mui_compositionTarget ? thin * 2.0f : thin;
+        uint32_t at = 0;
+        float left = 0.0f;
+        float right = 0.0f;
+        while (segments[k].style != mui_compositionPlain &&
+               muiNextStretch(&boxes, &at, start, start + segments[k].length, &left, &right))
+        {
+            (void)muiDrawSink_AddRect(sink, (muiRect){left, y, right - left, height},
+                                      paragraph->style.color);
+        }
+    }
+}
+
 void muiPaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
                   muiDrawSink* sink)
 {
@@ -152,5 +193,14 @@ void muiPaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width, f
     {
         float top = (float)i * paragraph.lineHeight;
         PaintLine(&paragraph, &lines[i], width, top + paragraph.baseline, sink);
+    }
+    if (paragraph.block->compositionLength == 0)
+    {
+        return;
+    }
+    const muiLaidText laid = {paragraph, lines, count, width};
+    for (uint32_t i = 0; i < count; i++)
+    {
+        PaintComposition(&laid, i, sink);
     }
 }

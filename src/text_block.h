@@ -109,6 +109,13 @@ typedef struct muiTextBlock
     // clusters (uint32_t).
     muiBuffer advances;
     muiBuffer clusters;
+    // An input method's composition, while compositionLength is not 0:
+    // its bytes from compositionStart, and segmentCount
+    // muiCompositionSegment in segments.
+    uint32_t compositionStart;
+    uint32_t compositionLength;
+    muiBuffer segments;
+    uint32_t segmentCount;
 } muiTextBlock;
 
 typedef struct muiTextBlockStore

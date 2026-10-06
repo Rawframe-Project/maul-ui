@@ -36,9 +36,13 @@ format.
   rectangles a range covers, and moving a position by cluster (in the
   text or on screen), word, line or to the text's ends, over text laid
   out as it is painted; what a deletion either way removes
-  (`muiTextBlock_FindDeletion`), and replacing and reading a block's
-  text (`muiTextBlock_Replace`, `muiTextBlock_GetText`) (record
-  mui-0006).
+  (`muiTextBlock_FindDeletion`), replacing and reading a block's text
+  (`muiTextBlock_Replace`, `muiTextBlock_GetText`), and input method
+  compositions held in a block and underlined by style
+  (`muiTextBlock_SetComposition`, `muiTextBlock_EndComposition`,
+  `muiTextBlock_GetComposition`) (record mui-0006).
+- Filled rectangles from paint functions (`muiDrawSink_AddRect`), as
+  box commands snapped to device pixels (record mui-0005).
 - Font fallback: each grapheme cluster is drawn in the first font of a
   chain (the style's, its family's fallbacks, then the service's,
   `muiSetFallbackFonts`) that has its characters, so a line may hold

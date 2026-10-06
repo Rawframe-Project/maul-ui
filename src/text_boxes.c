@@ -250,3 +250,25 @@ bool muiCaretX(const muiLaidText* laid, uint32_t line, muiTextPosition position,
     }
     return true;
 }
+
+bool muiNextStretch(const muiTextBoxes* boxes, uint32_t* at, uint32_t start, uint32_t end,
+                    float* leftOut, float* rightOut)
+{
+    uint32_t i = *at;
+    while (i < boxes->count && (boxes->data[i].start < start || boxes->data[i].end > end))
+    {
+        i++;
+    }
+    bool found = i < boxes->count;
+    if (found)
+    {
+        *leftOut = boxes->data[i].x0;
+    }
+    while (i < boxes->count && boxes->data[i].start >= start && boxes->data[i].end <= end)
+    {
+        *rightOut = boxes->data[i].x1;
+        i++;
+    }
+    *at = i;
+    return found;
+}

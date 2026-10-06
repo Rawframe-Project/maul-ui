@@ -10,6 +10,7 @@
 #include "test_harness.h"
 
 #include "maul-ui/context.h"
+#include "maul-ui/draw.h"
 #include "maul-ui/font.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
@@ -300,6 +301,13 @@ static void TestRightToLeft(void)
               count == 2 && rects[0].x == 0.0f && rects[0].width == 10.0f && rects[1].x == 20.0f &&
               rects[1].width == 10.0f,
           "a range across the change: two rectangles");
+    // Alef, bet, gimel: gimel at 0, bet at 10, alef at 20; bet alone is
+    // the middle, though alef after it on screen ends inside the range.
+    ShowPlain(&scene, "\xD7\x90\xD7\x91\xD7\x92");
+    CHECK(muiTextGetRangeRects(&scene.host, scene.node, 100.0f, 2, 4, rects, 4, &count) ==
+                  mui_success &&
+              count == 1 && rects[0].x == 10.0f && rects[0].width == 10.0f,
+          "a right-to-left letter alone");
     // Hebrew then Arabic: two items, one right-to-left run, the Hebrew
     // on the right.
     ShowPlain(&scene, "\xD7\x90\xD8\xB3");
@@ -608,6 +616,202 @@ static void TestReplace(void)
     }
 }
 
+// Lays the node out anew at 1000 wide, paints it at scale 10 and
+// returns its list.
+static muiDrawList PaintAtTen(Scene* scene)
+{
+    const muiLayoutInput layout = {1000.0f, 1000.0f, muiMeasureText, &scene->host, 0, NULL};
+    CHECK(muiNode_MarkContentChanged(scene->context, scene->node) == mui_success &&
+              muiComputeLayout(scene->context, scene->node, &layout) == mui_success,
+          "laid out");
+    const muiDrawInput input = {1, 10.0f, muiPaintText, &scene->host};
+    CHECK(muiBuildDrawList(scene->context, scene->node, &input) == mui_success, "paint");
+    muiDrawList list;
+    CHECK(muiGetDrawList(scene->context, &list) == mui_success, "list");
+    return list;
+}
+
+// Whether the list's boxes are underlines from x0 to x1, each thin (1) or
+// thick (2): Ahem's underline is 0.02 em thick, its top 0.133 em below
+// the baseline, here at 8; snapped to tenths.
+static bool UnderlinesAre(const muiDrawList* list, const float* spans, uint32_t count)
+{
+    uint32_t found = 0;
+    bool same = true;
+    for (uint32_t i = 0; i < list->commandCount; i++)
+    {
+        if (list->commands[i].kind != mui_drawBox)
+        {
+            continue;
+        }
+        const muiRect* rect = &list->commands[i].box.rect;
+        same = same && found < count && fabsf(rect->x - spans[found * 3]) < 1e-4f &&
+               fabsf(rect->x + rect->width - spans[found * 3 + 1]) < 1e-4f &&
+               fabsf(rect->y - 9.3f) < 1e-4f &&
+               fabsf(rect->height - 0.2f * spans[found * 3 + 2]) < 1e-4f;
+        found++;
+    }
+    return same && found == count;
+}
+
+static bool CompositionIs(Scene* scene, uint32_t start, uint32_t length)
+{
+    uint32_t at = 99;
+    uint32_t size = 99;
+    return muiTextBlock_GetComposition(scene->service, scene->block, &at, &size) == mui_success &&
+           at == start && size == length;
+}
+
+static void TestComposition(void)
+{
+    Scene scene = MakeScene();
+    ShowPlain(&scene, "ab");
+    const muiCompositionSegment two[2] = {{0, 1, mui_compositionTarget},
+                                          {1, 1, mui_compositionUnderline}};
+    CHECK(muiTextBlock_SetComposition(scene.service, scene.block, 1, "xy", 2, two, 2) ==
+                  mui_success &&
+              TextIs(&scene, "axyb") && CompositionIs(&scene, 1, 2),
+          "a composition put in");
+    muiDrawList list = PaintAtTen(&scene);
+    CHECK(UnderlinesAre(&list, (const float[]){10.0f, 20.0f, 2.0f, 20.0f, 30.0f, 1.0f}, 2),
+          "the target thick, the rest thin");
+    // Updated: replaces the old, offset not read; no segments, all thin.
+    CHECK(muiTextBlock_SetComposition(scene.service, scene.block, 0, "xyz", 3, NULL, 0) ==
+                  mui_success &&
+              TextIs(&scene, "axyzb") && CompositionIs(&scene, 1, 3),
+          "updated");
+    list = PaintAtTen(&scene);
+    CHECK(UnderlinesAre(&list, (const float[]){10.0f, 40.0f, 1.0f}, 1), "underlined whole");
+    const muiCompositionSegment plain = {0, 3, mui_compositionPlain};
+    CHECK(muiTextBlock_SetComposition(scene.service, scene.block, 0, "xyz", 3, &plain, 1) ==
+              mui_success,
+          "plain");
+    list = PaintAtTen(&scene);
+    CHECK(UnderlinesAre(&list, NULL, 0), "a plain segment undrawn");
+    // Edits before move it, after leave it, over it end it.
+    CHECK(muiTextBlock_Replace(scene.service, scene.block, 0, 1, "AA", 2) == mui_success &&
+              CompositionIs(&scene, 2, 3) &&
+              muiTextBlock_Replace(scene.service, scene.block, 5, 6, NULL, 0) == mui_success &&
+              CompositionIs(&scene, 2, 3) && TextIs(&scene, "AAxyz") &&
+              muiTextBlock_Replace(scene.service, scene.block, 2, 2, "-", 1) == mui_success &&
+              CompositionIs(&scene, 3, 3) &&
+              muiTextBlock_Replace(scene.service, scene.block, 5, 6, NULL, 0) == mui_success &&
+              CompositionIs(&scene, 3, 0) && TextIs(&scene, "AA-xy"),
+          "edits around it");
+    list = PaintAtTen(&scene);
+    CHECK(UnderlinesAre(&list, NULL, 0), "ended: undrawn");
+    // A new one at the end, then emptied: removed.
+    CHECK(muiTextBlock_SetComposition(scene.service, scene.block, 99, "q", 1, NULL, 0) ==
+                  mui_success &&
+              TextIs(&scene, "AA-xyq") && CompositionIs(&scene, 5, 1) &&
+              muiTextBlock_SetComposition(scene.service, scene.block, 0, NULL, 0, NULL, 0) ==
+                  mui_success &&
+              TextIs(&scene, "AA-xy") && CompositionIs(&scene, 5, 0),
+          "an empty composition removed");
+    // Ended as typed, or by new text.
+    CHECK(muiTextBlock_SetComposition(scene.service, scene.block, 0, "k", 1, NULL, 0) ==
+                  mui_success &&
+              muiTextBlock_EndComposition(scene.service, scene.block) == mui_success &&
+              TextIs(&scene, "kAA-xy") && CompositionIs(&scene, 0, 0) &&
+              muiTextBlock_SetComposition(scene.service, scene.block, 1, "k", 1, NULL, 0) ==
+                  mui_success &&
+              muiTextBlock_SetText(scene.service, scene.block, "new", 3) == mui_success &&
+              CompositionIs(&scene, 1, 0),
+          "ended");
+    // Over two lines at 25 wide: a thin underline on each.
+    CHECK(muiTextBlock_SetText(scene.service, scene.block, "", 0) == mui_success &&
+              muiTextBlock_SetComposition(scene.service, scene.block, 0, "ab cd", 5, NULL, 0) ==
+                  mui_success &&
+              muiNode_MarkContentChanged(scene.context, scene.node) == mui_success,
+          "a long one");
+    const muiLayoutInput input = {25.0f, 1000.0f, muiMeasureText, &scene.host, 0, NULL};
+    const muiDrawInput draw = {1, 10.0f, muiPaintText, &scene.host};
+    CHECK(muiComputeLayout(scene.context, scene.node, &input) == mui_success &&
+              muiBuildDrawList(scene.context, scene.node, &draw) == mui_success &&
+              muiGetDrawList(scene.context, &list) == mui_success,
+          "laid out at 25");
+    uint32_t boxes = 0;
+    for (uint32_t i = 0; i < list.commandCount; i++)
+    {
+        boxes += list.commands[i].kind == mui_drawBox ? 1u : 0u;
+    }
+    CHECK(boxes == 2, "an underline a line");
+    FreeScene(&scene);
+}
+
+static void TestCompositionContract(void)
+{
+    Scene scene = MakeScene();
+    ShowPlain(&scene, "ab");
+    muiCompositionSegment many[MUI_MAX_COMPOSITION_SEGMENTS + 1] = {{0}};
+    const muiCompositionSegment past = {1, 2, mui_compositionTarget};
+    const muiCompositionSegment unknown = {0, 1, 4};
+    const muiCompositionSegment start = {3, 0, mui_compositionTarget};
+    muiTextBlockId none = {0, 0};
+    CHECK(muiTextBlock_SetComposition(NULL, scene.block, 0, "x", 1, NULL, 0) == mui_errorInvalid &&
+              muiTextBlock_SetComposition(scene.service, none, 0, "x", 1, NULL, 0) ==
+                  mui_errorInvalid &&
+              muiTextBlock_SetComposition(scene.service, scene.block, 0, NULL, 1, NULL, 0) ==
+                  mui_errorInvalid &&
+              muiTextBlock_SetComposition(scene.service, scene.block, 0, "x", 1, NULL, 1) ==
+                  mui_errorInvalid &&
+              muiTextBlock_SetComposition(scene.service, scene.block, 0, "xy", 2, many,
+                                          MUI_MAX_COMPOSITION_SEGMENTS + 1) == mui_errorInvalid &&
+              muiTextBlock_SetComposition(scene.service, scene.block, 0, "xy", 2, &past, 1) ==
+                  mui_errorInvalid &&
+              muiTextBlock_SetComposition(scene.service, scene.block, 0, "xy", 2, &unknown, 1) ==
+                  mui_errorInvalid &&
+              muiTextBlock_SetComposition(scene.service, scene.block, 0, "xy", 2, &start, 1) ==
+                  mui_errorInvalid &&
+              muiTextBlock_SetComposition(scene.service, scene.block, 0, "x", 0x7FFFFFFF, NULL,
+                                          0) == mui_errorInvalid &&
+              muiTextBlock_SetComposition(scene.service, scene.block, 0, "xy", 2, many,
+                                          MUI_MAX_COMPOSITION_SEGMENTS) == mui_success &&
+              TextIs(&scene, "xyab"),
+          "compositions outside the contract");
+    uint32_t at = 7;
+    uint32_t size = 7;
+    CHECK(muiTextBlock_EndComposition(NULL, scene.block) == mui_errorInvalid &&
+              muiTextBlock_EndComposition(scene.service, none) == mui_errorInvalid &&
+              muiTextBlock_GetComposition(NULL, scene.block, &at, &size) == mui_errorInvalid &&
+              muiTextBlock_GetComposition(scene.service, none, &at, &size) == mui_errorInvalid &&
+              muiTextBlock_GetComposition(scene.service, scene.block, NULL, &size) ==
+                  mui_errorInvalid &&
+              muiTextBlock_GetComposition(scene.service, scene.block, &at, NULL) ==
+                  mui_errorInvalid &&
+              at == 7 && size == 7,
+          "ending and reading outside the contract");
+    muiTextBlockId gone = scene.block;
+    CHECK(muiDestroyTextBlock(scene.service, gone) == mui_success &&
+              muiTextBlock_SetComposition(scene.service, gone, 0, "x", 1, NULL, 0) ==
+                  mui_errorStale &&
+              muiTextBlock_EndComposition(scene.service, gone) == mui_errorStale &&
+              muiTextBlock_GetComposition(scene.service, gone, &at, &size) == mui_errorStale,
+          "a block gone");
+    FreeScene(&scene);
+    // Memory running out keeps the old text and composition.
+    for (int failAt = 1; failAt < 8; failAt++)
+    {
+        FailingAllocator failing = {0, 0};
+        Scene failingScene = MakeFailingScene(&failing);
+        ShowPlain(&failingScene, "ab");
+        CHECK(muiTextBlock_SetComposition(failingScene.service, failingScene.block, 1, "x", 1, NULL,
+                                          0) == mui_success,
+              "first");
+        failing = (FailingAllocator){0, failAt};
+        muiResult result = muiTextBlock_SetComposition(
+            failingScene.service, failingScene.block, 0, "xyz", 3,
+            &(const muiCompositionSegment){0, 3, mui_compositionTarget}, 1);
+        bool failed = failing.allocations >= failAt;
+        CHECK(failed ? result == mui_errorCapacity && TextIs(&failingScene, "axb") &&
+                           CompositionIs(&failingScene, 1, 1)
+                     : result == mui_success && TextIs(&failingScene, "axyzb") &&
+                           CompositionIs(&failingScene, 1, 3),
+              "the old kept");
+        FreeScene(&failingScene);
+    }
+}
+
 static void TestContract(void)
 {
     Scene scene = MakeScene();
@@ -708,6 +912,8 @@ int main(void)
     TestMovingOnScreen();
     TestDeletion();
     TestReplace();
+    TestComposition();
+    TestCompositionContract();
     TestLigature();
     TestMemory();
     TestContract();

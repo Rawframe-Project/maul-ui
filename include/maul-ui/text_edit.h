@@ -4,8 +4,8 @@
 // Editing primitives over laid-out text (record mui-0006): positions in a
 // node's text, from points, to carets and moved by cluster, word or line,
 // the rectangles a range of it covers, the text laid out as muiPaintText
-// paints it, and what a deletion removes. Selection, input and undo are
-// the caller's.
+// paints it, what a deletion removes, and an input method's composition
+// held in a block. Selection, input and undo are the caller's.
 
 #ifndef MAUL_UI_TEXT_EDIT_H
 #define MAUL_UI_TEXT_EDIT_H
@@ -95,6 +95,35 @@ extern "C"
         // Forward, as Delete does: the next grapheme cluster.
         mui_deleteForward = 1,
     };
+
+    // How a part of an input method's composition is drawn.
+    typedef uint8_t muiCompositionStyle;
+
+    enum
+    {
+        // Not underlined.
+        mui_compositionPlain = 0,
+        // A thin underline: text still to convert.
+        mui_compositionUnderline = 1,
+        // A thick underline: the part a conversion works on now.
+        mui_compositionTarget = 2,
+        // A thin underline: converted, not yet committed.
+        mui_compositionConverted = 3,
+    };
+
+    enum
+    {
+        // The most segments a composition may have.
+        MUI_MAX_COMPOSITION_SEGMENTS = 32
+    };
+
+    // A styled part of a composition, in bytes of its text.
+    typedef struct muiCompositionSegment
+    {
+        uint32_t start;
+        uint32_t length;
+        muiCompositionStyle style;
+    } muiCompositionSegment;
 
     // Where a caret is drawn in the node's content box: its x, the top
     // and height of its line, and whether the text it sits on runs right
@@ -225,6 +254,65 @@ extern "C"
                                                               uint32_t offset,
                                                               muiTextDeletion deletion,
                                                               uint32_t* startOut, uint32_t* endOut);
+
+    /// Sets a block's input method composition, the text being composed
+    /// before it is committed: the text replaces the composition there is,
+    /// or goes in at offset when there is none, and painting underlines
+    /// it by its segments (all of it thin when there are none). An empty
+    /// text removes the composition and ends it. While it lasts,
+    /// muiTextBlock_Replace before or after it moves it, and one that
+    /// overlaps it, or muiTextBlock_SetText, ends it.
+    ///
+    /// @param service       The service.
+    /// @param blockId       The block.
+    /// @param offset        Where a new composition goes; past the text is
+    ///                      its end. Not read while one lasts.
+    /// @param text          The composition, UTF-8. May be NULL when
+    ///                      length is 0.
+    /// @param length        Its length in bytes.
+    /// @param segments      Its styled parts, within it. May be NULL when
+    ///                      segmentCount is 0.
+    /// @param segmentCount  How many, at most MUI_MAX_COMPOSITION_SEGMENTS.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL service, the
+    ///         null id, a NULL text or segments with a count, too many
+    ///         segments, one past the text or of an unknown style, or a
+    ///         text of 2^31 bytes or more; `mui_errorStale` for a block
+    ///         that is gone; `mui_errorCapacity` when memory runs out,
+    ///         which keeps the old text and composition.
+    /// @par Thread safety
+    /// Safe from any thread; the service is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiTextBlock_SetComposition(
+        muiTextService* service, muiTextBlockId blockId, uint32_t offset, const char* text,
+        size_t length, const muiCompositionSegment* segments, uint32_t segmentCount);
+
+    /// Ends a block's composition, keeping its text as typed text: what an
+    /// input method that commits the composition as it is asks. Nothing
+    /// without one.
+    ///
+    /// @param service  The service.
+    /// @param blockId  The block.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL service or the
+    ///         null id; `mui_errorStale` for a block that is gone.
+    /// @par Thread safety
+    /// Safe from any thread; the service is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiTextBlock_EndComposition(muiTextService* service,
+                                                                muiTextBlockId blockId);
+
+    /// Reads where a block's composition is.
+    ///
+    /// @param service    The service.
+    /// @param blockId    The block.
+    /// @param startOut   Receives its first byte in the text.
+    /// @param lengthOut  Receives its length; 0 when there is none.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or the
+    ///         null id; `mui_errorStale` for a block that is gone. Nothing
+    ///         is written on failure.
+    /// @par Thread safety
+    /// Safe from any thread; the service is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiTextBlock_GetComposition(const muiTextService* service,
+                                                                muiTextBlockId blockId,
+                                                                uint32_t* startOut,
+                                                                uint32_t* lengthOut);
 
 #ifdef __cplusplus
 }
