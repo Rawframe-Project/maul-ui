@@ -222,17 +222,23 @@ muiResult muiSetScrollRule(muiContext* context, const muiScrollRule* rule)
 }
 
 // Whether a scroll container can move by right and down, physical units
-// its offsets would grow by, along either axis.
+// its offsets would grow by, along either axis, from where a step easing
+// it goes or else from its offsets.
 static bool CanMove(const muiContext* context, uint32_t slot, float right, float down)
 {
+    const muiScrollStore* store = &context->scrolling;
     const muiLayoutNode* layout = &context->layout[slot - 1];
     const muiScrollState* scroll = &context->scrolls[slot - 1];
     const muiSize size = {layout->rect.width, layout->rect.height};
+    uint32_t i = EaseOf(store, slot);
+    bool easing = i < store->easeCount;
+    float x = easing ? store->eases[i].toX : scroll->x;
+    float y = easing ? store->eases[i].toY : scroll->y;
     float across = layout->rtl ? -right : right;
     float limitX = muiScrollLimit(&layout->style, size, scroll, true);
     float limitY = muiScrollLimit(&layout->style, size, scroll, false);
-    return (across > 0.0f && scroll->x < limitX) || (across < 0.0f && scroll->x > 0.0f) ||
-           (down > 0.0f && scroll->y < limitY) || (down < 0.0f && scroll->y > 0.0f);
+    return (across > 0.0f && x < limitX) || (across < 0.0f && x > 0.0f) ||
+           (down > 0.0f && y < limitY) || (down < 0.0f && y > 0.0f);
 }
 
 // Moves a scroll container's offsets by right and down, within its
@@ -304,7 +310,8 @@ void muiScrollAdvance(muiContext* context, uint64_t nowNs)
             continue;
         }
         double elapsed = nowNs > ease->startNs ? (double)(nowNs - ease->startNs) : 0.0;
-        double t = store->rule.easeNs != 0 ? fmin(elapsed / (double)store->rule.easeNs, 1.0) : 1.0;
+        // A time of 0 gives an infinity or a NaN, which fmin takes as 1.
+        double t = fmin(elapsed / (double)store->rule.easeNs, 1.0);
         // A cubic ease out.
         float eased = (float)(1.0 - (1.0 - t) * (1.0 - t) * (1.0 - t));
         const muiLayoutNode* layout = &context->layout[slot - 1];
@@ -390,11 +397,12 @@ bool muiScrollPage(muiContext* context, uint32_t container, muiKeyCode code, boo
     float down = 0.0f;
     switch (code)
     {
+    // From anywhere within the limit, to the ends.
     case mui_codeHome:
-        down = -scroll->y - limit;
+        down = -limit;
         break;
     case mui_codeEnd:
-        down = limit * 2.0f;
+        down = limit;
         break;
     default:
         down = backward ? -page : page;
