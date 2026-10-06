@@ -229,3 +229,31 @@ muiResult muiHitTest(const muiContext* context, muiNodeId rootId, float x, float
     }
     return mui_success;
 }
+
+muiResult muiNode_MapToRoot(const muiContext* context, muiNodeId nodeId, float x, float y,
+                            float* xOut, float* yOut)
+{
+    if (context == nullptr || xOut == nullptr || yOut == nullptr || !isfinite(x) || !isfinite(y))
+    {
+        return mui_errorInvalid;
+    }
+    uint32_t slot = muiTreeResolve(&context->tree, nodeId);
+    if (slot == 0)
+    {
+        return mui_errorStale;
+    }
+    // The node's own place, then each ancestor's and the shift of its
+    // children, added up in doubles as hit testing adds them.
+    const muiTree* tree = &context->tree;
+    double rootX = (double)context->layout[slot - 1].rect.x;
+    double rootY = (double)context->layout[slot - 1].rect.y;
+    for (uint32_t at = muiTreeAt(tree, slot)->links.parent; at != 0;
+         at = muiTreeAt(tree, at)->links.parent)
+    {
+        rootX += (double)context->layout[at - 1].rect.x + (double)ShiftX(context, at);
+        rootY += (double)context->layout[at - 1].rect.y + (double)ShiftY(context, at);
+    }
+    *xOut = (float)(rootX + (double)x);
+    *yOut = (float)(rootY + (double)y);
+    return mui_success;
+}

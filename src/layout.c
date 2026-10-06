@@ -177,6 +177,13 @@ muiRect muiNode_GetRect(const muiContext* context, muiNodeId nodeId)
     return slot != 0 ? context->layout[slot - 1].rect : (muiRect){0.0f, 0.0f, 0.0f, 0.0f};
 }
 
+muiRect muiNode_GetContentRect(const muiContext* context, muiNodeId nodeId)
+{
+    uint32_t slot = context != nullptr ? muiTreeResolve(&context->tree, nodeId) : 0;
+    return slot != 0 ? muiContentBoxOf(&context->layout[slot - 1])
+                     : (muiRect){0.0f, 0.0f, 0.0f, 0.0f};
+}
+
 bool muiIsUpdatePending(const muiContext* context, muiNodeId rootId)
 {
     uint32_t slot = context != nullptr ? muiTreeResolve(&context->tree, rootId) : 0;

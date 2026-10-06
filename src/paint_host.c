@@ -122,19 +122,9 @@ void muiPaintHostContent(muiPainter* painter, uint32_t slot, const muiPaintState
     {
         return;
     }
-    // The content box, as layout sized it: inside the border and padding,
-    // whose start is the right in a right-to-left node.
-    const muiEdges* border = &layout->style.border;
-    const muiEdges* padding = &layout->style.padding;
-    float start = border->start + padding->start;
-    float end = border->end + padding->end;
-    float top = border->top + padding->top;
-    float bottom = border->bottom + padding->bottom;
-    float left = layout->rtl ? end : start;
-    muiDrawSink sink = {painter, state, state->x + left, state->y + top};
-    float width = fmaxf(layout->rect.width - start - end, 0.0f);
-    float height = fmaxf(layout->rect.height - top - bottom, 0.0f);
+    const muiRect content = muiContentBoxOf(layout);
+    muiDrawSink sink = {painter, state, state->x + content.x, state->y + content.y};
     const muiTreeNode* node = muiTreeAt(&context->tree, slot);
-    painter->paint(painter->paintUser, muiTreeIdOf(&context->tree, slot), node->hostKey, width,
-                   height, &sink);
+    painter->paint(painter->paintUser, muiTreeIdOf(&context->tree, slot), node->hostKey,
+                   content.width, content.height, &sink);
 }

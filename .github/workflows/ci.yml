@@ -149,8 +149,9 @@ jobs:
 
   window:
     # The Maul Window glue (record mui-0007) with Maul Window fetched at
-    # its release tag: clang-tidy over its sources, and its test on Maul
-    # Window's headless test backend, the platform backends off.
+    # its release tag: clang-tidy over its sources, and its tests on Maul
+    # Window's headless test backend, the platform backends off; then
+    # again without the text component, which its compositions need.
     name: linux-window
     runs-on: ubuntu-24.04
     steps:
@@ -162,7 +163,7 @@ jobs:
       - name: Configure
         run: >
           cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -D${PREFIX}_WERROR=ON
-          -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 -D${PREFIX}_TEXT=OFF
+          -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20
           -D${PREFIX}_WINDOW=ON -DMAUL_WINDOW_WAYLAND=OFF -DMAUL_WINDOW_X11=OFF
           -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
       - name: Build
@@ -174,6 +175,13 @@ jobs:
           done
       - name: Test
         run: ctest --test-dir build -R window --output-on-failure
+      - name: Without Maul UI's text component
+        run: |
+          cmake -B build-notext -G Ninja -D${PREFIX}_WERROR=ON -D${PREFIX}_TEXT=OFF \
+            -D${PREFIX}_WINDOW=ON -DMAUL_WINDOW_WAYLAND=OFF -DMAUL_WINDOW_X11=OFF \
+            -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20
+          cmake --build build-notext -j 4
+          ctest --test-dir build-notext -R window --output-on-failure
 
   ios:
     # Every test in the iOS simulator, through simctl spawn, on an iPhone

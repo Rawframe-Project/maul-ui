@@ -444,6 +444,38 @@ muiResult muiWindowGlue_Tick(muiWindowGlue* glue, uint64_t nowNs, bool* handledO
                           : mui_success;
 }
 
+muiResult muiWindowGlue_SetCaret(muiWindowGlue* glue, muiNodeId nodeId, muiRect caret,
+                                 mwinRect* placedOut)
+{
+    if (glue == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    bool enabled = nodeId.index1 != 0;
+    mwinRect rect = {0.0f, 0.0f, 0.0f, 0.0f};
+    if (enabled)
+    {
+        // Maul Window refuses a size not finite or negative.
+        muiResult status =
+            muiNode_MapToRoot(glue->context, nodeId, caret.x, caret.y, &rect.x, &rect.y);
+        if (status != mui_success)
+        {
+            return status;
+        }
+        rect.width = caret.width;
+        rect.height = caret.height;
+    }
+    if (mwinRequestTextInput(glue->windows, glue->window, enabled, rect, nullptr) != mwin_success)
+    {
+        return mui_errorInvalid;
+    }
+    if (placedOut != nullptr)
+    {
+        *placedOut = rect;
+    }
+    return mui_success;
+}
+
 muiResult muiWindowGlue_HandleEvent(muiWindowGlue* glue, const mwinEvent* event, bool* handledOut)
 {
     if (handledOut != nullptr)

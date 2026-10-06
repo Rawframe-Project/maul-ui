@@ -18,7 +18,9 @@
 // until it lets go. And a gamepad: the d-pad navigating at once and
 // repeating after the delay at the interval, through ticks; the stick
 // holding a direction past its threshold, keeping it above seven tenths
-// of it and letting go below; its faces and shoulders.
+// of it and letting go below; its faces and shoulders. Then the caret:
+// text input on with the caret placed in the window, off with the null
+// id, and carets refused.
 
 #include "test_harness.h"
 
@@ -34,6 +36,7 @@
 #include "maul-window/test.h"
 #include "maul-window/window.h"
 
+#include <math.h>
 #include <string.h>
 
 enum
@@ -541,6 +544,41 @@ static void CheckPad(Test* test)
                 "next; the stick's left repeating");
 }
 
+static const muiNodeId s_nullNode = {0, 0};
+
+static bool AcceptsText(const Test* test, mwinContext* windows)
+{
+    mwinWindowState state;
+    return mwinGetWindowState(windows, test->window, &state) == mwin_success && state.textInput;
+}
+
+// A caret 20 tall at the button's 5, 6: in the window at 15, 16.
+static void SetCaret(Test* test)
+{
+    mwinRect placed = {0};
+    CHECK(muiWindowGlue_SetCaret(test->glue, test->button, (muiRect){5.0f, 6.0f, 0.0f, 20.0f},
+                                 &placed) == mui_success &&
+              placed.x == 15.0f && placed.y == 16.0f && placed.width == 0.0f &&
+              placed.height == 20.0f,
+          "the caret placed in the window");
+    placed.x = 7.0f;
+    CHECK(muiWindowGlue_SetCaret(test->glue, test->button, (muiRect){0.0f, 0.0f, -1.0f, 20.0f},
+                                 &placed) == mui_errorInvalid &&
+              muiWindowGlue_SetCaret(test->glue, test->button, (muiRect){0.0f, 0.0f, 0.0f, NAN},
+                                     &placed) == mui_errorInvalid &&
+              placed.x == 7.0f,
+          "a caret of a negative size or not finite refused, the output kept");
+}
+
+static void StopCaret(Test* test, mwinContext* windows)
+{
+    CHECK(AcceptsText(test, windows), "the window accepts text");
+    mwinRect placed = {1.0f, 1.0f, 1.0f, 1.0f};
+    CHECK(muiWindowGlue_SetCaret(test->glue, s_nullNode, (muiRect){0}, &placed) == mui_success &&
+              placed.x == 0.0f && placed.height == 0.0f,
+          "the null id stops");
+}
+
 static mwinFrameResult Frame(mwinContext* windows, void* user)
 {
     Test* test = user;
@@ -599,13 +637,22 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
         Feed(test, windows);
         EaseStick(test, windows);
         break;
-    default:
+    case 9:
         Feed(test, windows);
         CheckPad(test);
+        SetCaret(test);
+        break;
+    case 10:
+        Feed(test, windows);
+        StopCaret(test, windows);
+        break;
+    default:
+        Feed(test, windows);
+        CHECK(!AcceptsText(test, windows), "the window no longer accepts text");
         test->done = true;
         break;
     }
-    return test->done || test->frame > 10 ? mwin_frameStop : mwin_frameContinue;
+    return test->done || test->frame > 20 ? mwin_frameStop : mwin_frameContinue;
 }
 
 int main(void)

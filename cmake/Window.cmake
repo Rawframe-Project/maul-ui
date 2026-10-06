@@ -21,6 +21,10 @@ if(NOT maul-window_FOUND)
 endif()
 
 add_library(maul-ui-window STATIC window/src/allocator.c window/src/gamepads.c window/src/glue.c)
+# Compositions and text carets, with the text component.
+if(MAUL_UI_TEXT)
+    target_sources(maul-ui-window PRIVATE window/src/composition.c)
+endif()
 add_library(maul-ui-window::maul-ui-window ALIAS maul-ui-window)
 target_include_directories(maul-ui-window PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/window/include>

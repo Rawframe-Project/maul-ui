@@ -49,6 +49,14 @@ itself instead of each host repeating them.
   down before the content they are not in; a point a modal layer's
   subtree misses hits the modal layer's root, blocked, with no
   pass-through, and nothing below it.
+- **Points back to the root** (`muiNode_MapToRoot`): the other way, a
+  point of a node's border box carried through its ancestors' places
+  and their scroll offsets, summed in doubles as hit testing sums
+  them, so a point a hit found maps back to where it was; with
+  `muiNode_GetContentRect`, the content box painting and text carets
+  use, a host places an input method's candidate window, or its own
+  popup, at a node. Scroll containers make the only transforms there
+  are.
 - **Pointer input** (`maul-ui/pointer.h`): the host passes its pointer
   events as `muiPointerEvent`s (time, pointer id, kind, action, button,
   buttons, point) to `muiPointerInput`, which hit tests and updates the
@@ -307,8 +315,18 @@ itself instead of each host repeating them.
   and then at an interval (400 and 100 ms by default), timed by the
   records' clock, which `muiWindowGlue_Tick` continues between records;
   repeat stays out of the core, which keeps no clock and whose hosts
-  with their own bindings repeat as their games do. Its tests run on
-  Maul Window's headless test backend.
+  with their own bindings repeat as their games do.
+  `muiWindowGlue_SetCaret` asks the window to accept text with its
+  caret at a rectangle of a node, carried into the window by
+  `muiNode_MapToRoot`, and hands that rectangle back for a game that
+  draws its own candidates; the null id stops. With the text component,
+  `maul-ui-window/composition.h` sets a preedit into a text block
+  (Maul Window's preedit segments and styles are Maul UI's
+  composition's, member for member and value for value) and places the
+  caret at a position of a node's text; preedit records are not the
+  UI's, as the core has no composition record and the host knows which
+  of its fields edits. Its tests run on Maul Window's headless test
+  backend, with the text component and without it.
 
 ## Consequences
 

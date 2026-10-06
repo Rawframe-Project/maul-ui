@@ -19,6 +19,7 @@
 
 #include "maul-ui/base.h"
 #include "maul-ui/context.h"
+#include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-window/event.h"
 
@@ -159,6 +160,32 @@ extern "C"
     /// thread at a time.
     MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_Tick(muiWindowGlue* glue, uint64_t nowNs,
                                                               bool* handledOut);
+
+    /// Asks the window to accept text with its caret at a rectangle of a
+    /// node's border box, carried into the window (muiNode_MapToRoot),
+    /// so the platform places its candidate window there
+    /// (mwinRequestTextInput); or, with the null id, to stop. Ask again
+    /// as the caret moves, or as layout or scrolling moves the node.
+    /// mwin_eventImePreedit records then report what an input method
+    /// composes; they are not the UI's, and the host hands them to its
+    /// text field (maul-ui-window/composition.h).
+    ///
+    /// @param glue       The glue.
+    /// @param nodeId     The node, or the null id to stop accepting text.
+    /// @param caret      The caret, from the node's border box's top left;
+    ///                   not read with the null id.
+    /// @param placedOut  Receives the caret in the window, for a host that
+    ///                   draws its own candidates (a fullscreen game
+    ///                   where the platform's do not show); all zero with
+    ///                   the null id. May be NULL. Unchanged on failure.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL glue, a caret
+    ///         not finite or of a negative size, or a request Maul Window
+    ///         refuses; `mui_errorStale` for a node that is gone.
+    /// @par Thread safety
+    /// Main thread only, as Maul Window's requests.
+    MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_SetCaret(muiWindowGlue* glue,
+                                                                  muiNodeId nodeId, muiRect caret,
+                                                                  mwinRect* placedOut);
 
 #ifdef __cplusplus
 }

@@ -448,6 +448,38 @@ extern "C"
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_API muiRect muiNode_GetRect(const muiContext* context, muiNodeId nodeId);
 
+    /// Returns a node's content box from the last muiComputeLayout that
+    /// reached it, relative to its border box: inside its border and
+    /// padding, the start's on the right in a right-to-left node, as its
+    /// paint function and its text's carets are given it.
+    ///
+    /// @param context  The context.
+    /// @param nodeId   The node.
+    /// @return The rectangle; all zero before any layout, for a stale id or
+    ///         a NULL context.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_API muiRect muiNode_GetContentRect(const muiContext* context, muiNodeId nodeId);
+
+    /// Carries a point of a node's border box into the space its topmost
+    /// ancestor's rectangle is in, where pointer events are given, through
+    /// its ancestors' places and their scroll containers' offsets as the
+    /// last muiComputeLayout and scrolling left them: so a host places a
+    /// window's candidate box at a caret, or its own popup beside a node.
+    ///
+    /// @param context  The context.
+    /// @param nodeId   The node.
+    /// @param x        The point, from the border box's top left.
+    /// @param y        Likewise.
+    /// @param xOut     Receives the point's x there; unchanged on failure.
+    /// @param yOut     Likewise its y.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a
+    ///         point not finite; `mui_errorStale` for a node that is gone.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiNode_MapToRoot(const muiContext* context, muiNodeId nodeId,
+                                                      float x, float y, float* xOut, float* yOut);
+
 #ifdef __cplusplus
 }
 #endif

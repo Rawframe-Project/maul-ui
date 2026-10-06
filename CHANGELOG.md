@@ -60,7 +60,15 @@ format.
   gamepads makes their records navigation for the player the host names:
   the d-pad and the left stick the directions, held ones repeating
   through `muiWindowGlue_Tick`, the faces activate and cancel, the
-  shoulders previous and next.
+  shoulders previous and next. `muiWindowGlue_SetCaret` asks the window
+  to accept text with its caret at a node, and with the text component
+  `maul-ui-window/composition.h` sets an input method's preedit into a
+  text block (`muiWindowSetComposition`) and places the caret at a
+  position of a node's text (`muiWindowGlue_SetTextCaret`).
+- `muiNode_MapToRoot`, a point of a node's border box carried through
+  its ancestors' places and scroll offsets into its root's space, and
+  `muiNode_GetContentRect`, a node's content box in its border box
+  (record mui-0007).
 - The reference renderer, `maul-ui-rhi` (`MAUL_UI_RHI`, off by
   default; `maul-ui-rhi/renderer.h`), which draws a list with Maul RHI
   0.3.0: `muiCreateRhiRenderer` for a device and a target format,

@@ -259,6 +259,13 @@ if(MAUL_UI_BUILD_TESTS)
         # The glue on Maul Window's headless test backend.
         maul_add_test(window_glue)
         target_link_libraries(test_window_glue PRIVATE maul-ui-window)
+        # Compositions and text carets, in Ahem, where Maul UI has its text
+        # component.
+        if(MAUL_UI_TEXT)
+            maul_add_test(window_text)
+            target_link_libraries(test_window_text PRIVATE maul-ui-window)
+            target_include_directories(test_window_text PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
+        endif()
     endif()
     maul_add_test(condition)
     maul_add_test(context WHITEBOX)

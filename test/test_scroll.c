@@ -408,6 +408,61 @@ static void TestHits(void)
     muiDestroyContext(context);
 }
 
+static void TestMapToRoot(void)
+{
+    // Scrolled 60, the points TestHits finds at 50, 25 map back to it:
+    // item 1's 40, 25 and item 0's 40, 75.
+    List list;
+    MakeList(&list, 64);
+    muiContext* context = list.context;
+    CHECK(muiNode_SetScroll(context, list.s, 0.0f, 60.0f) == mui_success, "scrolled");
+    float x = 0.0f;
+    float y = 0.0f;
+    CHECK(muiNode_MapToRoot(context, list.items[1], 40.0f, 25.0f, &x, &y) == mui_success &&
+              x == 50.0f && y == 25.0f,
+          "item 1's point, through the offset");
+    CHECK(muiNode_MapToRoot(context, list.items[0], 40.0f, 75.0f, &x, &y) == mui_success &&
+              x == 50.0f && y == 25.0f,
+          "item 0's point, through the offset");
+    CHECK(muiNode_MapToRoot(context, list.s, 5.0f, 5.0f, &x, &y) == mui_success && x == 5.0f &&
+              y == 5.0f,
+          "the container's own point: its scroll moves its children only");
+    // The container's content box: inside its padding of 10.
+    muiRect content = muiNode_GetContentRect(context, list.s);
+    CHECK(content.x == 10.0f && content.y == 10.0f && content.width == 180.0f &&
+              content.height == 80.0f,
+          "the content box inside the padding");
+    x = 7.0f;
+    CHECK(muiNode_MapToRoot(context, list.items[0], NAN, 0.0f, &x, &y) == mui_errorInvalid &&
+              x == 7.0f,
+          "a point not finite refused, the outputs kept");
+    CHECK(muiNode_MapToRoot(context, list.items[0], 0.0f, 0.0f, NULL, &y) == mui_errorInvalid,
+          "a NULL output refused");
+    muiNodeId gone = list.items[4];
+    CHECK(muiDestroyNode(context, gone) == mui_success &&
+              muiNode_MapToRoot(context, gone, 0.0f, 0.0f, &x, &y) == mui_errorStale,
+          "a node that is gone");
+    content = muiNode_GetContentRect(context, gone);
+    CHECK(content.width == 0.0f && content.height == 0.0f, "a node that is gone has none");
+    muiDestroyContext(context);
+
+    // Right to left, the start border of 20 on the right: the content
+    // box is from 0 to 80.
+    context = MakeContext(64);
+    muiNodeId root = Sized(context, s_nullNode, 300.0f, 300.0f);
+    muiNodeId s = Sized(context, root, 100.0f, 50.0f);
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.textDirection = mui_textRightToLeft;
+    style.border = (muiEdges){20.0f, 0.0f, 0.0f, 0.0f};
+    SetLayout(context, s, &style, BORDER | MUI_PROPERTY_BIT(mui_propertyTextDirection));
+    Layout(context, root);
+    content = muiNode_GetContentRect(context, s);
+    CHECK(content.x == 0.0f && content.y == 0.0f && content.width == 80.0f &&
+              content.height == 50.0f,
+          "right to left, the start border on the right");
+    muiDestroyContext(context);
+}
+
 static float ScrollY(const muiContext* context, muiNodeId node)
 {
     float x = 0.0f;
@@ -835,6 +890,7 @@ int main(void)
     TestPainting();
     TestNested();
     TestHits();
+    TestMapToRoot();
     TestIntoView();
     TestLayer();
     TestExtentEdges();
