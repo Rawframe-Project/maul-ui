@@ -208,10 +208,10 @@ static void PostDrag(muiContext* context, const muiPointer* pointer, muiPointerR
 // its kind, posting the leave of the old and the enter of the new.
 static void Retarget(muiContext* context, muiPointer* pointer)
 {
+    // A root gone leaves the hit empty.
     muiHit hit = {0};
-    uint32_t at = muiHitTest(context, pointer->root, pointer->x, pointer->y, &hit) == mui_success
-                      ? SlotOf(context, hit.node)
-                      : 0;
+    (void)muiHitTest(context, pointer->root, pointer->x, pointer->y, &hit);
+    uint32_t at = SlotOf(context, hit.node);
     while (at != 0 && (context->interaction[at - 1].accepts & pointer->offerKind) == 0)
     {
         at = muiTreeAt(&context->tree, at)->links.parent;

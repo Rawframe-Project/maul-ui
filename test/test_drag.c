@@ -511,6 +511,40 @@ static void TestDrop(void)
               Next(scene, mui_pointerRecordDragEnd, drop.item, NULL) &&
               Next(scene, mui_pointerRecordCaptureLost, drop.item, NULL) && None(scene),
           "a target gone");
+    // The next drag offers nothing until offered again.
+    Lift(&drop);
+    Mouse(scene, mui_pointerMove, 1, 100.0f, 25.0f);
+    CHECK(Next(scene, mui_pointerRecordDragMove, drop.item, &record) && record.dropKind == 0 &&
+              record.dropKey == 0 && None(scene),
+          "no offer carried over");
+    Mouse(scene, mui_pointerRelease, 0, 100.0f, 25.0f);
+    (void)Next(scene, mui_pointerRecordRelease, drop.item, NULL);
+    (void)Next(scene, mui_pointerRecordDragEnd, drop.item, NULL);
+    (void)Next(scene, mui_pointerRecordCaptureLost, drop.item, NULL);
+    // A target whose slot a new node takes: left, and the new one entered.
+    Lift(&drop);
+    CHECK(muiPointer_Offer(context, 1, 1, 4) == mui_success, "offer");
+    Mouse(scene, mui_pointerMove, 1, 100.0f, 25.0f);
+    muiNodeId bin = drop.bin;
+    CHECK(muiDestroyNode(context, bin) == mui_success, "bin gone");
+    // Detached first, then after the item, where the bin was (the slot
+    // went above).
+    muiNodeId again = Sized(context, s_nullNode, 100.0f, 100.0f);
+    CHECK(again.index1 == bin.index1, "its slot");
+    Accepts(context, again, 1);
+    CHECK(muiNode_InsertChild(context, scene->root, again, s_nullNode) == mui_success, "placed");
+    const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL};
+    CHECK(muiComputeLayout(context, scene->root, &input) == mui_success, "layout");
+    muiHit hit = {0};
+    CHECK(muiHitTest(context, scene->root, 110.0f, 25.0f, &hit) == mui_success, "hit");
+    Mouse(scene, mui_pointerMove, 1, 110.0f, 25.0f);
+    CHECK(Next(scene, mui_pointerRecordDragMove, drop.item, NULL) &&
+              Next(scene, mui_pointerRecordDropEnter, bin, NULL) &&
+              Next(scene, mui_pointerRecordDragMove, drop.item, NULL) &&
+              Next(scene, mui_pointerRecordDropLeave, bin, NULL) &&
+              Next(scene, mui_pointerRecordDropEnter, again, NULL) && Same(hit.node, again) &&
+              None(scene),
+          "the new node");
     muiDestroyContext(context);
 }
 
