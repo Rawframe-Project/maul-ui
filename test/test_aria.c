@@ -18,6 +18,7 @@
 //   scroll put back.
 // Under Node, with no page, it is skipped.
 
+#include "aria.h"
 #include "test_harness.h"
 
 #include "maul-ui/access_aria.h"
@@ -310,6 +311,16 @@ static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* ro
     CHECK(Send(adapter, (const muiAccessNode*[]){&heading}, 1, rootChildren) &&
               NotifiedIs("Topic 2/normal"),
           "announced through ariaNotify");
+    heading.values.level = 4;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&heading}, 1, rootChildren) &&
+              NotifiedIs("Topic 2/normal"),
+          "nothing announced without a new name");
+    heading.values.live = mui_liveAssertive;
+    heading.text[mui_accessLabel] = "Topic 2b";
+    heading.textLength[mui_accessLabel] = 8;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&heading}, 1, rootChildren) &&
+              NotifiedIs("Topic 2/normal Topic 2b/high"),
+          "an assertive name said with a high priority");
     HookNotify(0);
     heading.values.live = mui_liveAssertive;
     heading.text[mui_accessLabel] = "Topic 3";
@@ -321,7 +332,7 @@ static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* ro
     heading.text[mui_accessLabel] = "Topic 3";
     CHECK(Send(adapter, (const muiAccessNode*[]){&heading}, 1, rootChildren), "not renamed");
     Sleep();
-    CHECK(TextIs("#mui0-assertive", "Topic 3"), "nothing announced without a new name");
+    CHECK(TextIs("#mui0-assertive", "Topic 3"), "the region keeps the name a while");
     ScrollHost(40);
     Sleep();
     CHECK(HostTop() == 0, "the host's scroll put back");
@@ -349,6 +360,12 @@ static void TestEnablingFocus(void)
     CHECK(muiCreateAriaAdapter(&def, &adapter) == mui_success &&
               muiAriaAdapter_Apply(adapter, &update) == mui_success,
           "a second adapter");
+    // An event for an element no node holds, or past the elements, asks
+    // nothing: the page and the adapter disagree only by a bug.
+    s_asked = (muiAccessRequest){.action = mui_actionScrollRight};
+    muiAriaPerform(adapter, mui_ariaClicked, 3, 0.0);
+    muiAriaPerform(adapter, mui_ariaClicked, UINT32_MAX, 0.0);
+    CHECK(s_asked.action == mui_actionScrollRight, "no action for no node");
     FocusOn("#host button");
     CHECK(Ask("press #host button") && muiAriaAdapter_IsEnabled(adapter) && IsActive("#mui0-5"),
           "the focus on from the enabling button");

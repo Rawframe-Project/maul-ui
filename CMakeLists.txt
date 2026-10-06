@@ -185,7 +185,7 @@ if(MAUL_UI_BUILD_TESTS)
     if(MAUL_UI_ARIA)
         # In headless Chrome through the runner, which waits on the test
         # (Asyncify lets it sleep); skipped without Puppeteer.
-        maul_add_test(aria MANUAL)
+        maul_add_test(aria WHITEBOX MANUAL)
         target_link_options(test_aria PRIVATE -sASYNCIFY)
         add_test(NAME aria COMMAND ${CMAKE_CROSSCOMPILING_EMULATOR}
                                    ${PROJECT_SOURCE_DIR}/test/web_runner.cjs
