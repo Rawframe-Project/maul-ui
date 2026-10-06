@@ -108,8 +108,15 @@ clip chain evaluated in its shaders, which keeps batches whole.
   shadows are Gaussian blurs of their rounded shape in Evan Wallace's
   closed form (exact along one axis, four samples along the other),
   their shape spread with CSS's radius adjustment and drawn outside
-  their box, or inside it when inset. Clips, transforms, images and
-  glyph runs follow.
+  their box, or inside it when inset. Transforms and clips come from
+  their tables in two more buffers: each quad's corners go through its
+  transform, and distances are measured in its own pixels and made
+  screen pixels by the transform's scale, so edges stay a pixel wide at
+  any scale; each fragment is brought back through each of its clips'
+  transforms, and its parents', for coverage, an inverted clip keeping
+  the outside. The tables always have entry 0, and every index into
+  them is checked as the list is packed, so no list makes the shaders
+  read past one. Images and glyph runs follow.
 
 ## Consequences
 

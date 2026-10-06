@@ -2,10 +2,11 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // The reference renderer (record mui-0005): a draw list's commands
-// packed into instance records and its gradient table beside them
-// (pack.c), uploaded in a pass of their own each frame, and drawn as six
-// vertices an instance by one pipeline whose fragment shader evaluates
-// each (rhi/shaders/quad.*). It allocates through the public allocator
+// packed into instance records and its gradient, transform and clip
+// tables beside them (pack.c), each a stream bound at its own slot,
+// uploaded in a pass of their own each frame, and drawn as six vertices
+// an instance by one pipeline whose shaders evaluate each
+// (rhi/shaders/quad.*). It allocates through the public allocator
 // alone, as Maul UI's internals stay inside a shared build.
 
 #include "maul-ui-rhi/renderer.h"
@@ -65,6 +66,16 @@ typedef struct Stream
     mrhiResourceId resource;
 } Stream;
 
+// The streams, each bound at the slot of its index.
+enum
+{
+    kInstances,
+    kGradients,
+    kTransforms,
+    kClips,
+    kStreamCount
+};
+
 struct muiRhiRenderer
 {
     muiAllocator allocator;
@@ -73,8 +84,7 @@ struct muiRhiRenderer
     mrhiGraphicsPipelineId pipeline;
     mrhiRequestId request;
     bool ready;
-    Stream instances;
-    Stream gradients;
+    Stream streams[kStreamCount];
     // The passes added this frame, and what the draw needs.
     bool added;
     mrhiPassId upload;
@@ -195,11 +205,19 @@ muiResult muiCreateRhiRenderer(const muiRhiRendererDef* def, muiRhiRenderer** re
     *renderer = (muiRhiRenderer){
         .allocator = def->allocator,
         .device = def->device,
-        .instances = {.stride = sizeof(muiRhiInstance)},
-        .gradients = {.stride = sizeof(muiRhiGradient)},
+        .streams =
+            {
+                [kInstances] = {.stride = sizeof(muiRhiInstance)},
+                [kGradients] = {.stride = sizeof(muiRhiGradient)},
+                [kTransforms] = {.stride = sizeof(muiRhiTransform)},
+                [kClips] = {.stride = sizeof(muiRhiClip)},
+            },
     };
-    muiResult status = GrowStream(renderer, &renderer->instances, def->instances);
-    status = status == mui_success ? GrowStream(renderer, &renderer->gradients, 16) : status;
+    muiResult status = mui_success;
+    for (uint32_t i = 0; i < kStreamCount && status == mui_success; i++)
+    {
+        status = GrowStream(renderer, &renderer->streams[i], i == kInstances ? def->instances : 16);
+    }
     if (status == mui_success && !MakePipeline(renderer, def->targetFormat))
     {
         status = mui_errorPlatform;
@@ -228,8 +246,10 @@ void muiDestroyRhiRenderer(muiRhiRenderer* renderer)
     {
         (void)mrhiDestroyShader(device, renderer->shader);
     }
-    DropStream(renderer, &renderer->instances);
-    DropStream(renderer, &renderer->gradients);
+    for (uint32_t i = 0; i < kStreamCount; i++)
+    {
+        DropStream(renderer, &renderer->streams[i]);
+    }
     const muiAllocator allocator = renderer->allocator;
     Release(&allocator, renderer, sizeof(muiRhiRenderer), alignof(muiRhiRenderer));
 }
@@ -257,19 +277,28 @@ bool muiRhiRenderer_IsReady(const muiRhiRenderer* renderer)
     return renderer != nullptr && renderer->ready;
 }
 
-// The list's instances and gradients into the streams' staging.
+// The list's instances and tables into the streams' staging.
 static muiResult Pack(muiRhiRenderer* renderer, const muiDrawList* list)
 {
-    muiResult status = Reserve(renderer, &renderer->instances, muiRhiCountInstances(list));
-    status = status == mui_success
-                 ? Reserve(renderer, &renderer->gradients, muiRhiPackGradients(list, nullptr))
-                 : status;
-    if (status != mui_success)
+    Stream* streams = renderer->streams;
+    const uint32_t counts[kStreamCount] = {
+        [kInstances] = muiRhiCountInstances(list),
+        [kGradients] = muiRhiPackGradients(list, nullptr),
+        [kTransforms] = muiRhiPackTransforms(list, nullptr),
+        [kClips] = muiRhiPackClips(list, nullptr),
+    };
+    for (uint32_t i = 0; i < kStreamCount; i++)
     {
-        return status;
+        muiResult status = Reserve(renderer, &streams[i], counts[i]);
+        if (status != mui_success)
+        {
+            return status;
+        }
     }
-    muiRhiPackInstances(list, renderer->instances.staging);
-    (void)muiRhiPackGradients(list, renderer->gradients.staging);
+    muiRhiPackInstances(list, streams[kInstances].staging);
+    (void)muiRhiPackGradients(list, streams[kGradients].staging);
+    (void)muiRhiPackTransforms(list, streams[kTransforms].staging);
+    (void)muiRhiPackClips(list, streams[kClips].staging);
     return mui_success;
 }
 
@@ -298,21 +327,22 @@ muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* 
         return status;
     }
     mrhiDevice* device = renderer->device;
-    Stream* instances = &renderer->instances;
-    Stream* gradients = &renderer->gradients;
-    if (mrhiImportBuffer(device, instances->buffer, &instances->resource) != mrhi_success ||
-        mrhiImportBuffer(device, gradients->buffer, &gradients->resource) != mrhi_success)
+    mrhiAccess writes[kStreamCount];
+    mrhiAccess reads[kStreamCount];
+    for (uint32_t i = 0; i < kStreamCount; i++)
     {
-        return mui_errorPlatform;
+        Stream* stream = &renderer->streams[i];
+        if (mrhiImportBuffer(device, stream->buffer, &stream->resource) != mrhi_success)
+        {
+            return mui_errorPlatform;
+        }
+        writes[i] = Whole(stream->resource, mrhi_accessCopyDestination);
+        reads[i] = Whole(stream->resource, mrhi_accessStorageRead);
     }
-    const mrhiAccess writes[2] = {Whole(instances->resource, mrhi_accessCopyDestination),
-                                  Whole(gradients->resource, mrhi_accessCopyDestination)};
     mrhiPassDef uploadDef = mrhiDefaultPassDef();
     uploadDef.passClass = mrhi_passTransfer;
     uploadDef.accesses = writes;
-    uploadDef.accessCount = 2;
-    const mrhiAccess reads[2] = {Whole(instances->resource, mrhi_accessStorageRead),
-                                 Whole(gradients->resource, mrhi_accessStorageRead)};
+    uploadDef.accessCount = kStreamCount;
     const muiLinearColor clear = target->clearColor;
     mrhiPassDef drawDef = mrhiDefaultPassDef();
     drawDef.colorTargets[0] = (mrhiColorTarget){
@@ -323,7 +353,7 @@ muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* 
     };
     drawDef.colorTargetCount = 1;
     drawDef.accesses = reads;
-    drawDef.accessCount = 2;
+    drawDef.accessCount = kStreamCount;
     if (mrhiAddPass(device, &uploadDef, &renderer->upload) != mrhi_success ||
         mrhiAddPass(device, &drawDef, &renderer->draw) != mrhi_success)
     {
@@ -337,26 +367,38 @@ muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* 
     return mui_success;
 }
 
-static bool Upload(mrhiDevice* device, mrhiPassId pass, const Stream* stream)
+// The streams' records, none where no instance reads them.
+static bool Upload(const muiRhiRenderer* renderer)
 {
-    uint64_t bytes = (uint64_t)stream->count * stream->stride;
-    return bytes == 0 || mrhiWriteBuffer(device, pass, stream->resource, 0, stream->staging,
-                                         bytes) == mrhi_success;
+    uint32_t streams = renderer->streams[kInstances].count > 0 ? kStreamCount : 0;
+    for (uint32_t i = 0; i < streams; i++)
+    {
+        const Stream* stream = &renderer->streams[i];
+        uint64_t bytes = (uint64_t)stream->count * stream->stride;
+        if (bytes != 0 && mrhiWriteBuffer(renderer->device, renderer->upload, stream->resource, 0,
+                                          stream->staging, bytes) != mrhi_success)
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 static bool Draw(muiRhiRenderer* renderer)
 {
     mrhiDevice* device = renderer->device;
     mrhiPassId pass = renderer->draw;
-    const mrhiBinding bindings[2] = {
-        {.slot = 0, .resource = renderer->instances.resource, .size = MRHI_WHOLE_SIZE},
-        {.slot = 1, .resource = renderer->gradients.resource, .size = MRHI_WHOLE_SIZE},
-    };
+    mrhiBinding bindings[kStreamCount];
+    for (uint32_t i = 0; i < kStreamCount; i++)
+    {
+        bindings[i] = (mrhiBinding){
+            .slot = i, .resource = renderer->streams[i].resource, .size = MRHI_WHOLE_SIZE};
+    }
     return mrhiSetGraphicsPipeline(device, pass, renderer->pipeline) == mrhi_success &&
-           mrhiSetBindings(device, pass, 0, bindings, 2) == mrhi_success &&
+           mrhiSetBindings(device, pass, 0, bindings, kStreamCount) == mrhi_success &&
            mrhiSetRootBlock(device, pass, 0, renderer->frame, sizeof(renderer->frame)) ==
                mrhi_success &&
-           mrhiDraw(device, pass, 6, renderer->instances.count, 0, 0) == mrhi_success;
+           mrhiDraw(device, pass, 6, renderer->streams[kInstances].count, 0, 0) == mrhi_success;
 }
 
 muiResult muiRhiRenderer_Record(muiRhiRenderer* renderer)
@@ -371,12 +413,10 @@ muiResult muiRhiRenderer_Record(muiRhiRenderer* renderer)
     }
     renderer->added = false;
     mrhiDevice* device = renderer->device;
-    bool recorded = mrhiBeginPass(device, renderer->upload) == mrhi_success &&
-                    Upload(device, renderer->upload, &renderer->instances) &&
-                    Upload(device, renderer->upload, &renderer->gradients) &&
+    bool recorded = mrhiBeginPass(device, renderer->upload) == mrhi_success && Upload(renderer) &&
                     mrhiEndPass(device, renderer->upload) == mrhi_success &&
                     mrhiBeginPass(device, renderer->draw) == mrhi_success &&
-                    (renderer->instances.count == 0 || Draw(renderer)) &&
+                    (renderer->streams[kInstances].count == 0 || Draw(renderer)) &&
                     mrhiEndPass(device, renderer->draw) == mrhi_success;
     return recorded ? mui_success : mui_errorPlatform;
 }

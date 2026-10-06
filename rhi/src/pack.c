@@ -14,6 +14,14 @@
 
 static_assert(sizeof(muiRhiInstance) == 144, "an instance is the shader's 144 bytes");
 static_assert(sizeof(muiRhiGradient) == 112, "a gradient is the shader's 112 bytes");
+static_assert(sizeof(muiRhiTransform) == 32, "a transform is the shader's 32 bytes");
+static_assert(sizeof(muiRhiClip) == 48, "a clip is the shader's 48 bytes");
+
+// An index into a table of a number of entries, 0 where it is past them.
+static uint32_t Index(uint32_t index, uint32_t count)
+{
+    return index < count ? index : 0;
+}
 
 static bool IsDrawn(muiDrawKind kind)
 {
@@ -30,7 +38,7 @@ uint32_t muiRhiCountInstances(const muiDrawList* list)
     return count;
 }
 
-static muiRhiInstance BoxOf(const muiDrawCommand* command)
+static muiRhiInstance BoxOf(const muiDrawList* list, const muiDrawCommand* command)
 {
     const muiDrawBox* box = &command->box;
     muiRhiInstance instance = {
@@ -39,9 +47,9 @@ static muiRhiInstance BoxOf(const muiDrawCommand* command)
         .fill = box->fill,
         .widths = box->borderWidths,
         .kind = mui_drawBox,
-        .clip = command->clip,
-        .transform = command->transform,
-        .gradient = box->gradient,
+        .clip = Index(command->clip, list->clipCount),
+        .transform = Index(command->transform, list->transformCount),
+        .gradient = Index(box->gradient, list->gradientCount),
     };
     memcpy(instance.colors, box->borderColors, sizeof(instance.colors));
     return instance;
@@ -70,7 +78,7 @@ static muiCorners SpreadAll(muiCorners radii, float spread)
                         Spread(radii.bottomRight, spread), Spread(radii.bottomLeft, spread)};
 }
 
-static muiRhiInstance ShadowOf(const muiDrawCommand* command)
+static muiRhiInstance ShadowOf(const muiDrawList* list, const muiDrawCommand* command)
 {
     const muiDrawShadow* shadow = &command->shadow;
     bool inset = shadow->inset != 0;
@@ -99,8 +107,8 @@ static muiRhiInstance ShadowOf(const muiDrawCommand* command)
                 {sigma, inset ? 1.0f : 0.0f, 0.0f, 0.0f},
             },
         .kind = mui_drawShadow,
-        .clip = command->clip,
-        .transform = command->transform,
+        .clip = Index(command->clip, list->clipCount),
+        .transform = Index(command->transform, list->transformCount),
     };
 }
 
@@ -112,11 +120,11 @@ void muiRhiPackInstances(const muiDrawList* list, muiRhiInstance* instances)
         const muiDrawCommand* command = &list->commands[i];
         if (command->kind == mui_drawBox)
         {
-            instances[count++] = BoxOf(command);
+            instances[count++] = BoxOf(list, command);
         }
         else if (command->kind == mui_drawShadow)
         {
-            instances[count++] = ShadowOf(command);
+            instances[count++] = ShadowOf(list, command);
         }
     }
 }
@@ -139,6 +147,45 @@ uint32_t muiRhiPackGradients(const muiDrawList* list, muiRhiGradient* gradients)
         to->angle = from->angle;
         memcpy(to->colors, from->colors, sizeof(to->colors));
         memcpy(to->positions, from->positions, sizeof(to->positions));
+    }
+    return count;
+}
+
+uint32_t muiRhiPackTransforms(const muiDrawList* list, muiRhiTransform* transforms)
+{
+    uint32_t count = list->transformCount > 0 ? list->transformCount : 1;
+    if (transforms == nullptr)
+    {
+        return count;
+    }
+    transforms[0] = (muiRhiTransform){{1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f, 0.0f}};
+    for (uint32_t i = 0; i < list->transformCount; i++)
+    {
+        const muiDrawTransform* from = &list->transforms[i];
+        transforms[i] =
+            (muiRhiTransform){{from->a, from->b, from->c, from->d}, {from->e, from->f, 0.0f, 0.0f}};
+    }
+    return count;
+}
+
+uint32_t muiRhiPackClips(const muiDrawList* list, muiRhiClip* clips)
+{
+    uint32_t count = list->clipCount > 0 ? list->clipCount : 1;
+    if (clips == nullptr)
+    {
+        return count;
+    }
+    clips[0] = (muiRhiClip){0};
+    for (uint32_t i = 0; i < list->clipCount; i++)
+    {
+        const muiDrawClip* from = &list->clips[i];
+        clips[i] = (muiRhiClip){
+            .rect = from->rect,
+            .radii = from->radii,
+            .parent = Index(from->parent, list->clipCount),
+            .transform = Index(from->transform, list->transformCount),
+            .invert = from->invert != 0 ? 1u : 0u,
+        };
     }
     return count;
 }

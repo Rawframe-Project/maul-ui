@@ -16,7 +16,11 @@
 //   premultiplied Oklab mixing gives at its place along the gradient;
 // - a hard outer shadow beside its box and not under it, a blurred one
 //   against the exact blur of its square box (a product of two error
-//   functions) within 4, and an inset one's ring inside its box only.
+//   functions) within 4, and an inset one's ring inside its box only;
+// - clips and transforms: a box in a round clip with an inverted clip
+//   inside it, a box scaled and moved, a bar turned 45 degrees clockwise
+//   (probed where a bar not turned, or turned the other way, differs),
+//   and a box in a clip that a transform scales and moves.
 // Skips (77) without an adapter, unless MUI_RHI_REQUIRED is set.
 
 #include "color.h"
@@ -348,6 +352,72 @@ static void TestGradientsAndShadows(Gpu* gpu, muiRhiRenderer* renderer, uint8_t*
           "an inset shadow's ring inside its box only");
 }
 
+// At a scale of 1 or 2 into a target of 64 pixels a unit, each probe at
+// its place times the scale.
+static void TestClipsAndTransforms(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels, int scale)
+{
+    const uint32_t side = 64u * (uint32_t)scale;
+    const float turn = 0.70710678f;
+    const muiDrawTransform transforms[4] = {
+        {1, 0, 0, 1, 0, 0},
+        {2, 0, 0, 2, 32, 0},
+        {turn, turn, -turn, turn, 48, 48},
+        {2, 0, 0, 2, 0, 40},
+    };
+    const muiDrawClip clips[4] = {
+        {0},
+        // A circle, and a hole in it.
+        {.rect = {0, 0, 32, 32}, .radii = {16, 16, 16, 16}},
+        {.rect = {12, 12, 8, 8}, .parent = 1, .invert = 1},
+        // A square the transform makes 16 pixels wide at 0, 40.
+        {.rect = {0, 0, 8, 8}, .transform = 3},
+    };
+    muiDrawCommand commands[4] = {
+        Box(0, 0, 32, 32, (muiLinearColor){1, 0, 0, 1}),
+        Box(0, 0, 8, 8, (muiLinearColor){0, 1, 0, 1}),
+        Box(-8, -2, 16, 4, (muiLinearColor){0, 0, 1, 1}),
+        Box(0, 36, 32, 24, (muiLinearColor){1, 1, 1, 1}),
+    };
+    commands[0].clip = 2;
+    commands[1].transform = 1;
+    commands[2].transform = 2;
+    commands[3].clip = 3;
+    muiDrawList list = {.commands = commands, .commandCount = 4};
+    list.clips = clips;
+    list.clipCount = 4;
+    list.transforms = transforms;
+    list.transformCount = 4;
+    list.header.scale = (float)scale;
+    if (!Render(gpu, renderer, &list, side, pixels))
+    {
+        CHECK(false, "clips and transforms drawn and read");
+        return;
+    }
+    const int black[4] = {0, 0, 0, 255};
+    const int red[4] = {255, 0, 0, 255};
+    const int green[4] = {0, 255, 0, 255};
+    const int blue[4] = {0, 0, 255, 255};
+    const int white[4] = {255, 255, 255, 255};
+    CHECK(Near(pixels, side, 6 * scale, 16 * scale, red, 2) &&
+              Near(pixels, side, 16 * scale, 16 * scale, black, 2) &&
+              Near(pixels, side, 1 * scale, 1 * scale, black, 2),
+          "a round clip with an inverted clip inside it");
+    CHECK(Near(pixels, side, 46 * scale, 14 * scale, green, 2) &&
+              Near(pixels, side, 50 * scale, 8 * scale, black, 2) &&
+              Near(pixels, side, 40 * scale, 17 * scale, black, 2),
+          "a box scaled by 2 and moved");
+    CHECK(Near(pixels, side, 48 * scale, 48 * scale, blue, 2) &&
+              Near(pixels, side, 52 * scale, 52 * scale, blue, 2) &&
+              Near(pixels, side, 43 * scale, 52 * scale, black, 2) &&
+              Near(pixels, side, 55 * scale, 48 * scale, black, 2),
+          "a bar turned 45 degrees clockwise");
+    CHECK(Near(pixels, side, 8 * scale, 48 * scale, white, 2) &&
+              Near(pixels, side, 20 * scale, 48 * scale, black, 2) &&
+              Near(pixels, side, 8 * scale, 58 * scale, black, 2) &&
+              Near(pixels, side, 8 * scale, 38 * scale, black, 2),
+          "a box in a clip a transform scales and moves");
+}
+
 int main(void)
 {
     Gpu gpu;
@@ -391,6 +461,8 @@ int main(void)
         CHECK(Render(&gpu, renderer, &list, 128, pixels), "drawn and read at a scale of 2");
         CheckProbes(pixels, 128, 2);
         TestGradientsAndShadows(&gpu, renderer, pixels);
+        TestClipsAndTransforms(&gpu, renderer, pixels, 1);
+        TestClipsAndTransforms(&gpu, renderer, pixels, 2);
     }
     free(pixels);
     muiDestroyRhiRenderer(renderer);

@@ -19,6 +19,17 @@ struct Instance {
     tags: vec4u,
 }
 
+struct Transform {
+    linear: vec4f,
+    offset: vec4f,
+}
+
+struct Clip {
+    rect: vec4f,
+    radii: vec4f,
+    tags: vec4u,
+}
+
 struct Gradient {
     head: vec4u,
     params: vec4f,
@@ -28,6 +39,8 @@ struct Gradient {
 
 @group(0) @binding(0) var<storage, read> instances: array<Instance>;
 @group(0) @binding(1) var<storage, read> gradients: array<Gradient>;
+@group(0) @binding(2) var<storage, read> transforms: array<Transform>;
+@group(0) @binding(3) var<storage, read> clips: array<Clip>;
 
 const kShadow = 2u;
 const kLinear = 1u;
@@ -36,20 +49,33 @@ struct Between {
     @builtin(position) position: vec4f,
     @location(0) local: vec2f,
     @location(1) @interpolate(flat) index: u32,
+    @location(2) @interpolate(flat) span: f32,
 }
+
+// The fragment's span, as quad.frag's input.
+var<private> span: f32;
 
 const kCorners = array<vec2f, 6>(vec2f(0.0, 0.0), vec2f(1.0, 0.0), vec2f(0.0, 1.0),
                                  vec2f(0.0, 1.0), vec2f(1.0, 0.0), vec2f(1.0, 1.0));
 
 @vertex
 fn vs(@builtin(vertex_index) vertex: u32, @builtin(instance_index) instance: u32) -> Between {
-    let rect = instances[instance].rect * root.frame.z;
+    let scale = root.frame.z;
+    let rect = instances[instance].rect;
+    let which = instances[instance].tags.z;
+    let linear = transforms[which].linear;
+    let offset = transforms[which].offset.xy;
+    let quadSpan = sqrt(abs(linear.x * linear.w - linear.y * linear.z));
     let corner = kCorners[vertex];
-    let local = corner * rect.zw + (corner * 2.0 - 1.0);
-    let pixel = rect.xy + local;
+    let local = corner * rect.zw * scale + (corner * 2.0 - 1.0) / max(quadSpan, 1e-3);
+    let before = rect.xy + local / scale;
+    let after = vec2f(linear.x * before.x + linear.z * before.y + offset.x,
+                      linear.y * before.x + linear.w * before.y + offset.y);
+    let pixel = after * scale;
     var out: Between;
     out.local = local;
     out.index = instance;
+    out.span = quadSpan;
     out.position = vec4f(pixel.x * root.frame.x - 1.0, 1.0 - pixel.y * root.frame.y, 0.0, 1.0);
     return out;
 }
@@ -63,6 +89,12 @@ fn roundedRect(p: vec2f, extent: vec2f, radii: vec4f) -> f32 {
     r = min(r, min(extent.x, extent.y));
     let q = abs(p) - extent + r;
     return min(max(q.x, q.y), 0.0) + length(max(q, vec2f(0.0))) - r;
+}
+
+// How much of a pixel a shape covers, from the signed distance to its
+// edge in the quad's pixels.
+fn coverage(distance: f32) -> f32 {
+    return clamp(0.5 - distance * span, 0.0, 1.0);
 }
 
 fn cbrt(x: f32) -> f32 {
@@ -142,8 +174,8 @@ fn box(index: u32, local: vec2f, size: vec2f) -> vec4f {
                                   max(widths.y, widths.z), max(widths.z, widths.w)),
                     vec4f(0.0));
     let inside = roundedRect(local - (low + high) * 0.5, (high - low) * 0.5, inner);
-    let covered = clamp(0.5 - outer, 0.0, 1.0);
-    let fill = min(clamp(0.5 - inside, 0.0, 1.0), covered);
+    let covered = coverage(outer);
+    let fill = min(coverage(inside), covered);
     // The side nearest, in its own width.
     let reach = vec4f(local.y, size.x - local.x, size.y - local.y, local.x) /
                 max(widths, vec4f(1e-4));
@@ -187,7 +219,7 @@ fn blurred(p: vec2f, extent: vec2f, radii: vec4f, sigma: f32) -> f32 {
                         p.x < 0.0);
     corner = min(corner, min(extent.x, extent.y));
     if (sigma < 0.01) {
-        return clamp(0.5 - roundedRect(p, extent, radii), 0.0, 1.0);
+        return coverage(roundedRect(p, extent, radii));
     }
     let low = p.y - extent.y;
     let high = p.y + extent.y;
@@ -216,16 +248,43 @@ fn shadow(index: u32, local: vec2f) -> vec4f {
     let radii = instances[index].radii * scale;
     let cover = blurred(p - (shape.xy + shape.zw * 0.5), shape.zw * 0.5, radii, sigma);
     let toBox = roundedRect(p - (boxRect.xy + boxRect.zw * 0.5), boxRect.zw * 0.5, boxRadii);
-    let inBox = clamp(0.5 - toBox, 0.0, 1.0);
+    let inBox = coverage(toBox);
     let coverage = select(cover * (1.0 - inBox), inBox * (1.0 - cover), inset);
     return instances[index].fill * coverage;
 }
 
+// How much of the fragment its clips keep.
+fn clipped(first: u32, position: vec2f) -> f32 {
+    let scale = root.frame.z;
+    let p = position / scale;
+    var clip = first;
+    var kept = 1.0;
+    for (var depth = 0; depth < 16 && clip != 0u; depth++) {
+        let which = clips[clip].tags.y;
+        let l = transforms[which].linear;
+        let d = p - transforms[which].offset.xy;
+        let determinant = l.x * l.w - l.y * l.z;
+        let q = select(vec2f(-1e9),
+                       vec2f(l.w * d.x - l.z * d.y, l.x * d.y - l.y * d.x) / determinant,
+                       determinant != 0.0);
+        let rect = clips[clip].rect;
+        let distance = roundedRect(q - (rect.xy + rect.zw * 0.5), rect.zw * 0.5, clips[clip].radii);
+        let inside = clamp(0.5 - distance * scale * sqrt(abs(determinant)), 0.0, 1.0);
+        kept *= select(inside, 1.0 - inside, clips[clip].tags.z != 0u);
+        clip = clips[clip].tags.x;
+    }
+    return kept;
+}
+
 @fragment
 fn fs(in: Between) -> @location(0) vec4f {
+    span = in.span;
     let size = instances[in.index].rect.zw * root.frame.z;
+    var color: vec4f;
     if (instances[in.index].tags.x == kShadow) {
-        return shadow(in.index, in.local);
+        color = shadow(in.index, in.local);
+    } else {
+        color = box(in.index, in.local, size);
     }
-    return box(in.index, in.local, size);
+    return color * clipped(instances[in.index].tags.y, in.position.xy);
 }

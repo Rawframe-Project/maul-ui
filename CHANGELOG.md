@@ -56,7 +56,9 @@ format.
   the frame is built and `muiRhiRenderer_Record` once it is compiled.
   Boxes are drawn: fills, borders, rounded corners and gradients
   (linear and radial, mixed in premultiplied Oklab as the core mixes
-  colors); and shadows, outer and inset, blurred in closed form.
+  colors); and shadows, outer and inset, blurred in closed form; in
+  their clips (rounded, inverted and nested, each in its own transform)
+  and through their transforms.
 - Interaction properties (`maul-ui/interaction.h`): a fourth property
   group with a hit mode (the node and its children, its children alone,
   or neither), a pass-through flag and a layer kind (an activation
