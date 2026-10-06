@@ -60,6 +60,7 @@ ns_node: allocator ns
 ns_roles: ns
 uikit: id_map
 uikit_adapter: allocator uikit
+uikit_events: access_record uikit
 uikit_node: uikit
 uikit_traits: uikit
 atspi_events: access_record allocator atspi

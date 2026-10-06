@@ -13,7 +13,12 @@
 // - activation, increment and decrement, scrolling by direction, the
 //   escape gesture, VoiceOver's cursor arriving, asked of the host;
 // - an object whose node went, and one whose adapter went, answering
-//   nothing.
+//   nothing;
+// - notifications, recorded in place of UIKit's: a new screen at the
+//   focus, then at a node turned modal; the layout with the focus when
+//   it moved, else with none; live names announced, queued when polite;
+//   nothing for a rename that is not live, nor for an update that
+//   changes nothing.
 
 #include "test_harness.h"
 #include "uikit.h"
@@ -247,6 +252,124 @@ static void TestActions(id root)
     CHECK(![button accessibilityPerformEscape], "no escape");
 }
 
+static NSMutableArray* s_posted;
+
+static NSString* WhoIs(id argument)
+{
+    if (argument == nil)
+    {
+        return @"nil";
+    }
+    if ([argument isKindOfClass:[MUIAccessibilityElement class]])
+    {
+        return [NSString
+            stringWithFormat:@"%llu",
+                             (unsigned long long)((MUIAccessibilityElement*)argument)->nodeId];
+    }
+    if ([argument isKindOfClass:[NSAttributedString class]])
+    {
+        NSAttributedString* text = argument;
+        id queued = [text attribute:UIAccessibilitySpeechAttributeQueueAnnouncement
+                            atIndex:0
+                     effectiveRange:NULL];
+        return [NSString
+            stringWithFormat:@"%@ queued%@", [text string], [queued boolValue] ? @"" : @"?"];
+    }
+    return [NSString stringWithFormat:@"%@ now", argument];
+}
+
+static void Record(UIAccessibilityNotifications notification, id argument)
+{
+    NSString* what = notification == UIAccessibilityScreenChangedNotification   ? @"screen"
+                     : notification == UIAccessibilityLayoutChangedNotification ? @"layout"
+                     : notification == UIAccessibilityAnnouncementNotification  ? @"announce"
+                                                                                : @"?";
+    [s_posted addObject:[NSString stringWithFormat:@"%@ %@", what, WhoIs(argument)]];
+}
+
+static bool PostedAre(NSString* expected)
+{
+    NSString* got = [s_posted componentsJoinedByString:@"; "];
+    bool same = [got isEqualToString:expected];
+    if (!same)
+    {
+        printf("posted: %s\n", [got UTF8String]);
+    }
+    [s_posted removeAllObjects];
+    return same;
+}
+
+static bool Send(muiUikitAdapter* adapter, const muiAccessNode* const* nodes, uint32_t count,
+                 const uint64_t* children, uint64_t focus)
+{
+    const muiAccessUpdate update = {nodes, count, children, 0, focus};
+    return muiUikitAdapter_Apply(adapter, &update) == mui_success;
+}
+
+static void TestNotifications(UIView* view)
+{
+    muiUikitAdapterDef def = muiDefaultUikitAdapterDef();
+    def.view = (void*)view;
+    def.action = Act;
+    muiUikitAdapter* adapter = NULL;
+    static Built s_built;
+    muiAccessUpdate update = Build(&s_built);
+    if (muiCreateUikitAdapter(&def, &adapter) != mui_success)
+    {
+        CHECK(false, "made for notifications");
+        return;
+    }
+    adapter->post = Record;
+    s_posted = [[NSMutableArray alloc] init];
+    CHECK(muiUikitAdapter_Apply(adapter, &update) == mui_success && PostedAre(@"screen 2"),
+          "the first tree: a new screen, at the focus");
+    muiAccessNode slider = s_built.nodes[8];
+    slider.text[mui_accessLabel] = "Loudness";
+    slider.textLength[mui_accessLabel] = 8;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&slider}, 1, s_built.children, 0) &&
+              PostedAre(@""),
+          "a rename that is not live: nothing");
+    muiAccessNode heading = s_built.nodes[7];
+    heading.values.live = mui_livePolite;
+    heading.text[mui_accessLabel] = "Topic";
+    heading.textLength[mui_accessLabel] = 5;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&heading}, 1, s_built.children, 0) &&
+              PostedAre(@"announce Topic queued"),
+          "a polite name, queued");
+    heading.values.live = mui_liveAssertive;
+    heading.text[mui_accessLabel] = "Topic 2";
+    heading.textLength[mui_accessLabel] = 7;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&heading}, 1, s_built.children, 0) &&
+              PostedAre(@"announce Topic 2 now"),
+          "an assertive name, at once");
+    CHECK(Send(adapter, (const muiAccessNode*[]){&heading}, 1, s_built.children, 0) &&
+              PostedAre(@""),
+          "nothing changed");
+    CHECK(Send(adapter, (const muiAccessNode*[]){&s_built.nodes[0]}, 1, s_built.children, 8) &&
+              PostedAre(@"layout 8"),
+          "the focus moved: the layout, with it");
+    // A modal dialog 12 added under the root, then taken away.
+    muiAccessNode root = s_built.nodes[0];
+    const uint64_t more[7] = {2, 3, 5, 7, 8, 10, 12};
+    root.firstChild = 0;
+    root.childCount = 7;
+    muiAccessNode dialog = {.id = 12,
+                            .role = mui_roleDialog,
+                            .flags = mui_accessModal,
+                            .bounds = {0, 0, 100, 100},
+                            .transform = {1, 0, 0, 1, 0, 0}};
+    dialog.text[mui_accessLabel] = "Ask";
+    dialog.textLength[mui_accessLabel] = 3;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&root, &dialog}, 2, more, 0) &&
+              PostedAre(@"screen 12"),
+          "a modal node: a new screen, at it");
+    root.childCount = 6;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&root}, 1, more, 0) && PostedAre(@"layout nil"),
+          "a node gone: the layout");
+    [s_posted release];
+    muiDestroyUikitAdapter(adapter);
+}
+
 static void TestContract(UIView* view)
 {
     muiUikitAdapterDef def = muiDefaultUikitAdapterDef();
@@ -285,6 +408,7 @@ static void RunTests(UIView* view)
     TestStructure(root, view);
     TestAttributes(root, view);
     TestActions(root);
+    TestNotifications(view);
     id button = [[[root accessibilityElements] objectAtIndex:1] retain];
     CHECK(muiUikitAdapter_SetScale(adapter, 2.0f) == mui_success &&
               Same([button accessibilityFrame], UIAccessibilityConvertFrameToScreenCoordinates(

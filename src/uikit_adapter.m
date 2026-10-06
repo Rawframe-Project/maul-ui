@@ -212,6 +212,17 @@ id muiUikitParentOf(muiUikitAdapter* adapter, uint64_t node)
     return parent != 0 ? (id)muiUikitContainerOf(adapter, parent) : (id)adapter->view;
 }
 
+static void Added(void* user, const muiAccessTree* tree, uint64_t id)
+{
+    (void)tree;
+    muiUikitTellAdded(user, id);
+}
+
+static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* old)
+{
+    muiUikitTellUpdated(user, old, muiAccessTree_Find(tree, old->id));
+}
+
 static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* old)
 {
     (void)tree;
@@ -228,14 +239,42 @@ static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* 
     }
 }
 
+static void ShownChanged(void* user, const muiAccessTree* tree)
+{
+    (void)tree;
+    ((muiUikitAdapter*)user)->reshaped = true;
+}
+
+static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint64_t focus)
+{
+    (void)tree;
+    (void)old;
+    (void)focus;
+    ((muiUikitAdapter*)user)->focusMoved = true;
+}
+
 muiResult muiUikitAdapter_Apply(muiUikitAdapter* adapter, const muiAccessUpdate* update)
 {
     if (adapter == nullptr)
     {
         return mui_errorInvalid;
     }
-    const muiAccessChanges changes = {.user = adapter, .removed = Removed};
-    return muiAccessTree_Apply(adapter->tree, update, &changes);
+    const muiAccessChanges changes = {.user = adapter,
+                                      .added = Added,
+                                      .updated = Updated,
+                                      .removed = Removed,
+                                      .focusMoved = FocusMoved,
+                                      .shownChanged = ShownChanged};
+    uint64_t oldRoot = muiAccessTree_GetRoot(adapter->tree);
+    adapter->reshaped = false;
+    adapter->focusMoved = false;
+    adapter->screen = 0;
+    muiResult status = muiAccessTree_Apply(adapter->tree, update, &changes);
+    if (status == mui_success)
+    {
+        muiUikitTellChanges(adapter, oldRoot);
+    }
+    return status;
 }
 
 const muiAccessTree* muiUikitAdapter_GetTree(const muiUikitAdapter* adapter)

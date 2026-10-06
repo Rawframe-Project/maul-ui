@@ -194,7 +194,9 @@ format.
   shown children (its own element first), labels, values, hints,
   traits, container types, frames on the screen, activation,
   increment, decrement, scrolling by direction and VoiceOver's cursor
-  asked of the host; `muiUikitAdapter_GetRoot` for the view. The
+  asked of the host; `muiUikitAdapter_GetRoot` for the view;
+  notifications (a new screen, the layout with the focus when it
+  moved, live names announced, queued when polite). The
   result
   `mui_errorPlatform` (record mui-0008).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and

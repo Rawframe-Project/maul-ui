@@ -243,9 +243,14 @@ ranges and virtual lists.
   parent stays reachable by touch. Activation clicks, or expands and
   collapses; a range without a click takes it without acting.
   VoiceOver's scroll directions name what comes into view vertically
-  and the finger's way across. The escape gesture has no action. The
-  test is an application in the iOS simulator, asking the objects as
-  VoiceOver does.
+  and the finger's way across. The escape gesture has no action.
+  UIKit has no notification for a name or a value changing, so the
+  adapter posts what it has: a new screen when the root changes or a
+  node turns modal, at the element VoiceOver should move to; else the
+  layout, with the focused element when the focus moved; and a live
+  node's new name announced, queued behind current speech when
+  polite. The test is an application in the iOS simulator, asking the
+  objects as VoiceOver does and recording the notifications.
 
 ## Consequences
 

@@ -55,6 +55,11 @@ struct muiUikitAdapter
     muiIdMap elementById;
     muiIdMap containerById;
     muiUikitPostFunction post;
+    // What the update being applied changed: the shown tree, the focus,
+    // the node a new screen starts at (0 for none).
+    bool reshaped;
+    bool focusMoved;
+    uint64_t screen;
 };
 
 // The element or the container of a held node, made when first asked
@@ -81,6 +86,14 @@ bool muiUikitAct(const muiUikitAdapter* adapter, muiAccessAction action, uint64_
 
 // A node's whole name, as clients read it; nil for none.
 NSString* muiUikitNameOf(const muiUikitAdapter* adapter, uint64_t id);
+
+// The notifications (uikit_events.m): a node added, an updated record,
+// and, once the update is applied, what it changed, given the root
+// before it.
+void muiUikitTellAdded(muiUikitAdapter* adapter, uint64_t id);
+void muiUikitTellUpdated(muiUikitAdapter* adapter, const muiAccessNode* old,
+                         const muiAccessNode* node);
+void muiUikitTellChanges(muiUikitAdapter* adapter, uint64_t oldRoot);
 
 // A node's traits (uikit_traits.m), whether it is an element, and its
 // container's type.
