@@ -294,8 +294,8 @@ enum
 };
 
 // The index of the popup entry holding the node at slot, itself or its
-// nearest ancestor that is a popup, up to root; the count for none.
-static uint32_t HolderOf(const muiContext* context, uint32_t root, uint32_t slot)
+// nearest ancestor that is a popup; the count for none.
+static uint32_t HolderOf(const muiContext* context, uint32_t slot)
 {
     const muiPopupStore* store = &context->popups;
     for (uint32_t at = slot; at != 0; at = muiTreeAt(&context->tree, at)->links.parent)
@@ -304,10 +304,6 @@ static uint32_t HolderOf(const muiContext* context, uint32_t root, uint32_t slot
         if (entry != nullptr)
         {
             return (uint32_t)(entry - store->entries);
-        }
-        if (at == root)
-        {
-            break;
         }
     }
     return store->count;
@@ -340,17 +336,18 @@ void muiPlacePopups(muiContext* context, uint32_t root)
     muiPopupStore* store = &context->popups;
     const muiTree* tree = &context->tree;
     // Each entry waits on the popup holding its anchor, placed first; ones
-    // that cannot be placed under this root are done at once.
+    // that cannot be placed under this root are done at once. The root has
+    // no parent, so an anchor under it is under a popup that is the root.
     for (uint32_t i = 0; i < store->count; i++)
     {
         muiPopupEntry* entry = &store->entries[i];
         uint32_t popup = muiTreeResolve(tree, entry->node);
         uint32_t anchor = muiTreeResolve(tree, entry->popup.anchor);
-        bool placeable =
-            popup != 0 && anchor != 0 && popup != root && muiTreeIsAncestor(tree, root, popup) &&
-            muiTreeIsAncestor(tree, root, anchor) && !muiTreeIsAncestor(tree, popup, anchor);
+        bool placeable = popup != 0 && anchor != 0 && muiTreeIsAncestor(tree, root, popup) &&
+                         muiTreeIsAncestor(tree, root, anchor) &&
+                         !muiTreeIsAncestor(tree, popup, anchor);
         entry->mark = placeable ? MARK_WAITING : MARK_DONE;
-        entry->holder = placeable ? HolderOf(context, root, anchor) : store->count;
+        entry->holder = placeable ? HolderOf(context, anchor) : store->count;
     }
     while (Pass(context, root, false))
     {
