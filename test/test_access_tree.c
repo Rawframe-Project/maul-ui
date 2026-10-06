@@ -445,6 +445,59 @@ static void TestHandMade(void)
     muiDestroyAccessTree(tree);
 }
 
+static void TestLeavingNotARing(void)
+{
+    // 1 lists 3, 3 lists 4. Sent: 1 as is, 3 listing nothing, 4 listing
+    // 3. 4 leaves, as 3 no longer lists it, and takes 3 with it: no ring.
+    muiAccessTreeDef def = muiDefaultAccessTreeDef();
+    muiAccessTree* tree = NULL;
+    CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
+    muiAccessNode root = {.id = 1, .childCount = 1};
+    muiAccessNode three = {.id = 3, .firstChild = 1, .childCount = 1};
+    muiAccessNode four = {.id = 4};
+    const muiAccessNode* sent[3] = {&root, &three, &four};
+    const uint64_t lists[2] = {3, 4};
+    muiAccessUpdate update = {sent, 3, lists, 1, 1};
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "built");
+    three.childCount = 0;
+    four.childCount = 1;
+    four.firstChild = 0;
+    const uint64_t fourLists[1] = {3};
+    const muiAccessNode* turned[2] = {&three, &four};
+    update = (muiAccessUpdate){turned, 2, fourLists, 0, 0};
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "3 still listed by 1");
+    const muiAccessNode* withRoot[3] = {&root, &three, &four};
+    root.childCount = 0;
+    update = (muiAccessUpdate){withRoot, 3, fourLists, 0, 0};
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success && muiAccessTree_Count(tree) == 1,
+          "both gone");
+    // A held child listed twice.
+    muiAccessNode a = {.id = 5};
+    muiAccessNode b = {.id = 6};
+    root.childCount = 2;
+    const muiAccessNode* pair[3] = {&root, &a, &b};
+    const uint64_t pairList[2] = {5, 6};
+    update = (muiAccessUpdate){pair, 3, pairList, 0, 0};
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "two");
+    a.childCount = 1;
+    a.firstChild = 2;
+    const uint64_t twice[3] = {5, 6, 6};
+    update = (muiAccessUpdate){pair, 3, twice, 0, 0};
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid &&
+              muiAccessTree_GetParent(tree, 6) == 1,
+          "a held child listed twice");
+    // A new root listed by a node that would leave.
+    muiAccessNode newRoot = {.id = 10};
+    muiAccessNode stray = {.id = 11, .childCount = 1};
+    const muiAccessNode* rerooted[2] = {&newRoot, &stray};
+    const uint64_t strayList[1] = {10};
+    update = (muiAccessUpdate){rerooted, 2, strayList, 10, 10};
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid &&
+              muiAccessTree_GetRoot(tree) == 1,
+          "a root listed by a stray");
+    muiDestroyAccessTree(tree);
+}
+
 static uint64_t Next(uint64_t* state)
 {
     *state ^= *state << 13;
@@ -548,25 +601,33 @@ static void Label(muiAccessNode* node, muiAccessTextKind kind, const char* text)
     node->textLength[kind] = (uint32_t)strlen(text);
 }
 
-// The window 1 placed at 10,20: 2 generic around a button 3 and a
-// labelled group 4 with a label 5 in it; 6 hidden with 7 in it; a list 8
-// clipping rows 9 to 16, 20 high from -60 to 80, in a port 50 high; a
-// button 17 named by what is inside it, doubled in size; a checkbox 22
-// labelled by 5 and 3, turned a quarter.
+// The window 1 placed at 10,20: 2 generic around a button 3, with a
+// label 31 in it, and a group 4 labelled and labelled by 3, with a label
+// 5 in it; 6 hidden with 7 and a text input 29 in it; a list 8 clipping
+// rows 9 to 16, 20 high from -60 to 80, in a port 60 high; a button 17
+// named by what is inside it, doubled in size; a checkbox 22 labelled by
+// 5, 29 and 3 and described by 7, turned a quarter; a tab list 23
+// clipping tabs 24 to 28, 50 wide from -200 to 200, in a port 100 wide.
 static void BuildScene(Built* built)
 {
     *built = (Built){0};
     const muiRect none = {0.0f, 0.0f, 0.0f, 0.0f};
     muiAccessNode* window = Add(built, 1, mui_roleWindow, (muiRect){0, 0, 400, 300}, 10, 20);
     muiAccessNode* generic = Add(built, 2, mui_roleGeneric, none, 0, 0);
-    Label(Add(built, 3, mui_roleButton, none, 0, 0), mui_accessLabel, "OK");
+    muiAccessNode* ok = Add(built, 3, mui_roleButton, none, 0, 0);
+    Label(ok, mui_accessLabel, "OK");
+    Label(Add(built, 31, mui_roleLabel, none, 0, 0), mui_accessValue, "inside");
     muiAccessNode* group = Add(built, 4, mui_roleGeneric, none, 0, 0);
     Label(group, mui_accessLabel, "Group");
+    static const muiAccessLink s_groupLabeller[1] = {{3, mui_relationLabelledBy}};
+    group->links = s_groupLabeller;
+    group->linkCount = 1;
     Label(Add(built, 5, mui_roleLabel, none, 0, 0), mui_accessValue, "Inner");
     muiAccessNode* hidden = Add(built, 6, mui_roleGroup, none, 0, 0);
     hidden->flags = mui_accessHidden;
-    (void)Add(built, 7, mui_roleButton, none, 0, 0);
-    muiAccessNode* list = Add(built, 8, mui_roleList, (muiRect){0, 0, 100, 50}, 0, 100);
+    Label(Add(built, 7, mui_roleButton, none, 0, 0), mui_accessLabel, "Seven");
+    Label(Add(built, 29, mui_roleTextInput, none, 0, 0), mui_accessValue, "typed");
+    muiAccessNode* list = Add(built, 8, mui_roleList, (muiRect){0, 0, 100, 60}, 0, 100);
     list->flags = mui_accessClipsChildren | mui_accessScrolls;
     uint64_t rows[8];
     for (uint32_t i = 0; i < 8; i++)
@@ -578,7 +639,7 @@ static void BuildScene(Built* built)
     muiAccessNode* save = Add(built, 17, mui_roleButton, (muiRect){0, 0, 30, 10}, 200, 0);
     save->transform.a = 2.0f;
     save->transform.d = 2.0f;
-    Label(Add(built, 18, mui_roleImage, none, 0, 0), mui_accessLabel, "Save");
+    Label(Add(built, 18, mui_roleImage, (muiRect){0, 0, 10, 10}, 5, 0), mui_accessLabel, "Save");
     muiAccessNode* secret = Add(built, 19, mui_roleLabel, none, 0, 0);
     secret->flags = mui_accessHidden;
     Label(secret, mui_accessValue, "secret");
@@ -586,14 +647,27 @@ static void BuildScene(Built* built)
     Label(Add(built, 21, mui_roleLabel, none, 0, 0), mui_accessValue, "file");
     muiAccessNode* check = Add(built, 22, mui_roleCheckBox, (muiRect){0, 0, 40, 10}, 300, 0);
     check->transform = (muiDrawTransform){0.0f, 1.0f, -1.0f, 0.0f, 300.0f, 0.0f};
-    static const muiAccessLink s_labellers[3] = {
-        {5, mui_relationLabelledBy}, {7, mui_relationDescribedBy}, {3, mui_relationLabelledBy}};
+    static const muiAccessLink s_labellers[4] = {{5, mui_relationLabelledBy},
+                                                 {7, mui_relationDescribedBy},
+                                                 {29, mui_relationLabelledBy},
+                                                 {3, mui_relationLabelledBy}};
     check->links = s_labellers;
-    check->linkCount = 3;
-    List(built, window, (const uint64_t[]){2, 6, 8, 17, 22}, 5);
+    check->linkCount = 4;
+    muiAccessNode* tabs = Add(built, 23, mui_roleTabList, (muiRect){0, 0, 100, 20}, 0, 200);
+    tabs->flags = mui_accessClipsChildren;
+    uint64_t tabIds[5];
+    for (uint32_t i = 0; i < 5; i++)
+    {
+        tabIds[i] = 24 + i;
+        (void)Add(built, 24 + i, mui_roleTab, (muiRect){0, 0, 50, 20}, -200.0f + 100.0f * (float)i,
+                  0);
+    }
+    List(built, window, (const uint64_t[]){2, 6, 8, 17, 22, 23}, 6);
     List(built, generic, (const uint64_t[]){3, 4}, 2);
+    List(built, ok, (const uint64_t[]){31}, 1);
+    List(built, tabs, tabIds, 5);
     List(built, group, (const uint64_t[]){5}, 1);
-    List(built, hidden, (const uint64_t[]){7}, 1);
+    List(built, hidden, (const uint64_t[]){7, 29}, 2);
     List(built, list, rows, 8);
     List(built, save, (const uint64_t[]){18, 19, 20}, 3);
     List(built, around, (const uint64_t[]){21}, 1);
@@ -625,11 +699,12 @@ static void TestShown(void)
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "built");
     // The generic 2 flattened, the hidden 6 out, the labelled 4 kept;
     // rows wholly out of the port out but the first past each edge.
-    CHECK(ShownAre(tree, 1, (const uint64_t[]){3, 4, 8, 17, 22}, 5) &&
+    CHECK(ShownAre(tree, 1, (const uint64_t[]){3, 4, 8, 17, 22, 23}, 6) &&
               ShownAre(tree, 4, (const uint64_t[]){5}, 1) &&
               ShownAre(tree, 8, (const uint64_t[]){11, 12, 13, 14, 15}, 5) &&
               ShownAre(tree, 17, (const uint64_t[]){18, 21}, 2) &&
-              ShownAre(tree, 6, (const uint64_t[]){7}, 1),
+              ShownAre(tree, 6, (const uint64_t[]){7, 29}, 2) &&
+              ShownAre(tree, 23, (const uint64_t[]){25, 26, 27}, 3),
           "shown children");
     CHECK(muiAccessTree_IsShown(tree, 1) && !muiAccessTree_IsShown(tree, 2) &&
               muiAccessTree_IsShown(tree, 3) && muiAccessTree_IsShown(tree, 5) &&
@@ -655,11 +730,11 @@ static void TestShown(void)
               muiAccessTree_IsShown(tree, 10) && !muiAccessTree_IsShown(tree, 9),
           "a clipped focus");
     Focus(tree, 2);
-    CHECK(ShownAre(tree, 1, (const uint64_t[]){2, 8, 17, 22}, 4) &&
+    CHECK(ShownAre(tree, 1, (const uint64_t[]){2, 8, 17, 22, 23}, 5) &&
               muiAccessTree_IsShown(tree, 2) && muiAccessTree_GetShownParent(tree, 3) == 2,
           "a generic focus");
     Focus(tree, 6);
-    CHECK(ShownAre(tree, 1, (const uint64_t[]){3, 4, 6, 8, 17, 22}, 6) &&
+    CHECK(ShownAre(tree, 1, (const uint64_t[]){3, 4, 6, 8, 17, 22, 23}, 7) &&
               muiAccessTree_IsShown(tree, 6) && muiAccessTree_IsShown(tree, 7),
           "a hidden focus, shown with what is in it");
     Focus(tree, 7);
@@ -668,9 +743,9 @@ static void TestShown(void)
     uint64_t two[2];
     uint32_t count = 0;
     CHECK(muiAccessTree_GetShownChildren(tree, 1, two, 2, &count) == mui_errorCapacity &&
-              count == 5 && two[0] == 3 && two[1] == 4 &&
+              count == 6 && two[0] == 3 && two[1] == 4 &&
               muiAccessTree_GetShownChildren(tree, 1, NULL, 0, &count) == mui_errorCapacity &&
-              count == 5 && muiAccessTree_GetShownChildren(tree, 99, two, 2, &count) == mui_empty &&
+              count == 6 && muiAccessTree_GetShownChildren(tree, 99, two, 2, &count) == mui_empty &&
               count == 0 &&
               muiAccessTree_GetShownChildren(tree, 5, two, 2, &count) == mui_success && count == 0,
           "room");
@@ -706,8 +781,10 @@ static void TestNamesAndBounds(void)
     CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
     muiAccessUpdate update = {s_built.sent, s_built.nodeCount, s_built.children, 1, 1};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "built");
-    // A label; a label node's value; what is inside a button, the hidden
-    // left out; the nodes that label, the describing one not.
+    // A label, before labelling nodes and contents; a label node's value;
+    // what is inside a button, the hidden left out; the nodes that label,
+    // with no value from one that is not a label node, the describing
+    // node not.
     CHECK(NameIs(tree, 3, "OK") && NameIs(tree, 4, "Group") && NameIs(tree, 5, "Inner") &&
               NameIs(tree, 17, "Save file") && NameIs(tree, 22, "Inner OK"),
           "names");
@@ -721,10 +798,10 @@ static void TestNamesAndBounds(void)
     // Cut short on a whole character.
     muiAccessNode accented = {.id = 30, .text = {"a\xC3\xA9"}, .textLength = {3}};
     const muiAccessNode* sent[2] = {&accented, s_built.sent[0]};
-    uint64_t children[6] = {2, 6, 8, 17, 22, 30};
+    uint64_t children[7] = {2, 6, 8, 17, 22, 23, 30};
     muiAccessNode window = *s_built.sent[0];
     window.firstChild = 0;
-    window.childCount = 6;
+    window.childCount = 7;
     sent[1] = &window;
     update = (muiAccessUpdate){sent, 2, children, 0, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "accented");
@@ -746,6 +823,7 @@ static void TestNamesAndBounds(void)
               BoundsAre(tree, 12, (muiRect){10, 120, 100, 20}) &&
               BoundsAre(tree, 9, (muiRect){10, 60, 100, 20}) &&
               BoundsAre(tree, 17, (muiRect){210, 20, 60, 20}) &&
+              BoundsAre(tree, 18, (muiRect){220, 20, 20, 20}) &&
               BoundsAre(tree, 22, (muiRect){300, 20, 10, 40}),
           "bounds");
     muiRect bounds;
@@ -863,6 +941,7 @@ int main(void)
     TestRefused();
     TestHandMade();
     TestChurn();
+    TestLeavingNotARing();
     TestShown();
     TestNamesAndBounds();
     TestMemory();

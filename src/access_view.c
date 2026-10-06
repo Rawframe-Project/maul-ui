@@ -122,11 +122,8 @@ static bool Trace(const muiAccessTree* tree, uint32_t slot, uint32_t* shownParen
     {
         tree->stack[depth++] = at;
     }
+    // Every node held is under the root, so the walk ends there.
     *shownParentOut = 0;
-    if (tree->held[tree->stack[depth - 1] - 1].node.id != tree->root)
-    {
-        return false;
-    }
     uint32_t shown = tree->stack[depth - 1];
     for (uint32_t k = depth - 1; k > 0; k--)
     {
