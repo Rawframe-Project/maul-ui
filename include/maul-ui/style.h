@@ -138,9 +138,11 @@ extern "C"
         mui_propertyTextAlign = 135,
         mui_propertyTextWrap = 136,
         // Interaction properties, named after the muiInteractionStyle
-        // field they set (maul-ui/interaction.h): an enumerator, a flag.
+        // field they set (maul-ui/interaction.h): an enumerator, a flag,
+        // an enumerator.
         mui_propertyHitMode = 192,
         mui_propertyPassThrough = 193,
+        mui_propertyLayer = 194,
     };
 
     // A group of properties: those of one values struct.
@@ -165,7 +167,7 @@ extern "C"
 #define MUI_LAYOUT_PROPERTIES      ((muiPropertyMask)0xFFFFFFFFFFull)
 #define MUI_VISUAL_PROPERTIES      ((muiPropertyMask)0x1FFFFull)
 #define MUI_TEXT_PROPERTIES        ((muiPropertyMask)0x1FFull)
-#define MUI_INTERACTION_PROPERTIES ((muiPropertyMask)0x3ull)
+#define MUI_INTERACTION_PROPERTIES ((muiPropertyMask)0x7ull)
 
     // The states a node can be in, as bits, weakest first: a later
     // state's variant wins over an earlier one's.

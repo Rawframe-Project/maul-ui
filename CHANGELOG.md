@@ -10,6 +10,8 @@ format.
 
 ### Changed
 
+- `muiLimits` has one more field, `layers` (64 by default); an
+  initializer that lists its fields by position needs it.
 - Style values are checked, compared and copied with each group's
   struct found once per group: about 5% fewer instructions over the
   core benchmark.
@@ -32,9 +34,12 @@ format.
 
 - Interaction properties (`maul-ui/interaction.h`): a fourth property
   group with a hit mode (the node and its children, its children alone,
-  or neither) and a pass-through flag, styled through classes and
-  states, and `muiHitTest`, the topmost node at a point in reverse
-  paint order, cut by clips and rounded corners (record mui-0007).
+  or neither), a pass-through flag and a layer kind (an activation
+  layer, a modal one, or the overlay band), styled through classes and
+  states; `muiHitTest`, the topmost node at a point, layers first, cut
+  by clips and rounded corners; layers painted after the content they
+  are in, outside its clips and opacity, and `muiNode_RaiseLayer`
+  (record mui-0007).
 - Font families (`muiCreateFontFamily`, `muiFontFamily_GetKey`,
   `muiFontFamily_MatchFace`): faces a text style names together, matched
   by width, slant and weight as CSS matches them, with fallbacks of

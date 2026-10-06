@@ -8,6 +8,7 @@
 #include "animation.h"
 #include "context.h"
 #include "inherit.h"
+#include "layer.h"
 #include "layout_node.h"
 #include "pool.h"
 #include "property.h"
@@ -124,6 +125,7 @@ static muiResult SetDirect(muiContext* context, muiNodeId nodeId, muiConstValues
         muiStopAnimation(&motion, slot, muiTakeProperty(&left));
     }
     muiLayoutNode* layout = &context->layout[slot - 1];
+    muiLayerKind layer = context->interaction[slot - 1].layer;
     muiApplyProperties((muiValuesRef){&layout->style, &context->visual[slot - 1],
                                       &context->text[slot - 1], &context->interaction[slot - 1]},
                        values, properties);
@@ -139,6 +141,7 @@ static muiResult SetDirect(muiContext* context, muiNodeId nodeId, muiConstValues
     {
         muiTreeMark(&context->tree, slot, mui_stagePaint);
     }
+    muiNoteLayer(context, slot, layer);
     // The node's text, and its inheriting children's, take the write at
     // once; the style pass then weighs it with the node's classes.
     if (group == mui_groupText && mask != 0)

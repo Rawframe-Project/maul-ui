@@ -18,6 +18,7 @@
 
 #include <math.h>
 #include <stddef.h>
+#include <string.h>
 
 static const muiNodeId s_nullNode = {0, 0};
 
@@ -251,10 +252,10 @@ static uint32_t Next(uint32_t* state)
     return *state >> 8;
 }
 
-// Random trees of nodes at whole positions, each with a background, so
-// painting draws a box per node, in paint order, that snapping keeps
-// where layout put it: the node hit is the one of the last box holding
-// the point.
+// Random trees of nodes at whole positions, each with a background and
+// some of them layers, so painting draws a box per node, in paint order,
+// that snapping keeps where layout put it: the node hit is the one of the
+// last box holding the point.
 static void TestAgainstPainting(void)
 {
     uint32_t state = 5;
@@ -277,6 +278,17 @@ static void TestAgainstPainting(void)
             CHECK(muiNode_SetVisualValues(context, nodes[i], &visual,
                                           MUI_PROPERTY_BIT(mui_propertyBackground)) == mui_success,
                   "background");
+            // Some are layers, activation or overlay, in random order.
+            uint32_t kind = Next(&state) % 8;
+            if (i != 0 && kind < 2)
+            {
+                muiInteractionStyle values = muiDefaultInteractionStyle();
+                values.layer = kind == 0 ? mui_layerActivation : mui_layerOverlay;
+                CHECK(muiNode_SetInteractionValues(context, nodes[i], &values,
+                                                   MUI_PROPERTY_BIT(mui_propertyLayer)) ==
+                          mui_success,
+                      "a layer");
+            }
         }
         Layout(context, nodes[0]);
         const muiDrawInput input = {1, 1.0f, NULL, NULL};
@@ -308,6 +320,263 @@ static void TestAgainstPainting(void)
     }
 }
 
+#define LAYER MUI_PROPERTY_BIT(mui_propertyLayer)
+
+static void SetLayer(muiContext* context, muiNodeId node, muiLayerKind kind)
+{
+    muiInteractionStyle values = muiDefaultInteractionStyle();
+    values.layer = kind;
+    CHECK(muiNode_SetInteractionValues(context, node, &values, LAYER) == mui_success, "layer");
+}
+
+// Gives a node a background, so it draws a box.
+static void Paint(muiContext* context, muiNodeId node, float red)
+{
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.background = (muiColor){red, 0.0f, 0.0f, 1.0f};
+    CHECK(muiNode_SetVisualValues(context, node, &visual,
+                                  MUI_PROPERTY_BIT(mui_propertyBackground)) == mui_success,
+          "background");
+}
+
+static muiDrawList Build(muiContext* context, muiNodeId root, float scale)
+{
+    const muiDrawInput input = {1, scale, NULL, NULL};
+    muiDrawList list = {0};
+    CHECK(muiBuildDrawList(context, root, &input) == mui_success &&
+              muiGetDrawList(context, &list) == mui_success,
+          "painted");
+    return list;
+}
+
+static void TestLayers(void)
+{
+    // p clips at 10, 10 with opacity a half; its child l, a layer, reaches
+    // past it; s comes after p.
+    muiContext* context = MakeContext();
+    muiNodeId root = Place(context, s_nullNode, 0.0f, 0.0f, 200.0f, 200.0f);
+    muiNodeId p = Place(context, root, 10.0f, 10.0f, 50.0f, 50.0f);
+    muiNodeId l = Place(context, p, 20.0f, 20.0f, 100.0f, 100.0f);
+    muiNodeId s = Place(context, root, 100.0f, 100.0f, 50.0f, 50.0f);
+    Paint(context, root, 1.0f);
+    Paint(context, p, 1.0f);
+    Paint(context, l, 1.0f);
+    Paint(context, s, 1.0f);
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.clip = true;
+    visual.opacity = 0.5f;
+    CHECK(muiNode_SetVisualValues(context, p, &visual,
+                                  MUI_PROPERTY_BIT(mui_propertyClip) |
+                                      MUI_PROPERTY_BIT(mui_propertyOpacity)) == mui_success,
+          "clipped");
+    Layout(context, root);
+    muiDrawList list = Build(context, root, 1.0f);
+    CHECK(list.commandCount == 4 && list.commands[2].box.rect.x == 30.0f &&
+              list.commands[2].clip != 0 && list.commands[2].box.fill.a == 0.5f,
+          "in place, clipped and faded");
+    SetLayer(context, l, mui_layerActivation);
+    Layout(context, root);
+    list = Build(context, root, 1.0f);
+    const muiDrawCommand* last = &list.commands[3];
+    CHECK(list.commandCount == 4 && list.commands[2].box.rect.x == 100.0f &&
+              last->box.rect.x == 30.0f && last->box.rect.width == 100.0f && last->clip == 0 &&
+              last->box.fill.a == 1.0f,
+          "a layer after the content, unclipped and opaque");
+    // Hits: l over s, the base where l is not.
+    CHECK(Hits(context, root, 110.0f, 110.0f, l, 80.0f, 80.0f) &&
+              Hits(context, root, 140.0f, 140.0f, s, 40.0f, 40.0f) &&
+              Hits(context, root, 15.0f, 15.0f, p, 5.0f, 5.0f) &&
+              Hits(context, l, 31.0f, 31.0f, l, 11.0f, 11.0f),
+          "hits through a layer");
+    muiDestroyContext(context);
+}
+
+static void CountPaint(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
+                       muiDrawSink* sink)
+{
+    (void)nodeId;
+    (void)hostKey;
+    (void)width;
+    (void)height;
+    (void)sink;
+    (*(int*)user)++;
+}
+
+static void TestLayerRetained(void)
+{
+    // l, a layer of host content inside p, is copied from the last list
+    // when only a sibling of p changes, not painted again.
+    muiContext* context = MakeContext();
+    muiNodeId root = Place(context, s_nullNode, 0.0f, 0.0f, 200.0f, 200.0f);
+    muiNodeId p = Place(context, root, 10.0f, 10.0f, 50.0f, 50.0f);
+    muiNodeId l = Place(context, p, 5.0f, 5.0f, 20.0f, 20.0f);
+    muiNodeId s = Place(context, root, 100.0f, 100.0f, 50.0f, 50.0f);
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.content = mui_contentHost;
+    CHECK(muiNode_SetLayoutValues(context, l, &layout, MUI_PROPERTY_BIT(mui_propertyContent)) ==
+              mui_success,
+          "host content");
+    SetLayer(context, l, mui_layerActivation);
+    Layout(context, root);
+    int calls = 0;
+    const muiDrawInput input = {1, 1.0f, CountPaint, &calls};
+    CHECK(muiBuildDrawList(context, root, &input) == mui_success && calls == 1, "painted");
+    Paint(context, s, 0.5f);
+    Layout(context, root);
+    CHECK(muiBuildDrawList(context, root, &input) == mui_success && calls == 1, "copied");
+    CHECK(muiNode_RaiseLayer(context, l) == mui_success &&
+              muiBuildDrawList(context, root, &input) == mui_success && calls == 2,
+          "raised: painted again");
+    muiDestroyContext(context);
+}
+
+static void TestLayerOrder(void)
+{
+    // Four layers under the root, siblings in reverse of how they are
+    // activated: an overlay first, then a, b and a modal m.
+    muiContext* context = MakeContext();
+    muiNodeId root = Place(context, s_nullNode, 0.0f, 0.0f, 200.0f, 200.0f);
+    muiNodeId m = Place(context, root, 150.0f, 150.0f, 40.0f, 40.0f);
+    muiNodeId b = Place(context, root, 20.0f, 20.0f, 40.0f, 40.0f);
+    muiNodeId a = Place(context, root, 10.0f, 10.0f, 40.0f, 40.0f);
+    muiNodeId overlay = Place(context, root, 0.0f, 0.0f, 20.0f, 20.0f);
+    // a's child n, a layer of its own, activated after a.
+    muiNodeId n = Place(context, a, 5.0f, 5.0f, 10.0f, 10.0f);
+    const muiNodeId nodes[6] = {root, m, b, a, overlay, n};
+    for (int i = 0; i < 6; i++)
+    {
+        Paint(context, nodes[i], 1.0f);
+    }
+    SetLayer(context, overlay, mui_layerOverlay);
+    SetLayer(context, a, mui_layerActivation);
+    SetLayer(context, b, mui_layerActivation);
+    SetLayer(context, n, mui_layerActivation);
+    Layout(context, root);
+    muiDrawList list = Build(context, root, 1.0f);
+    CHECK(list.commandCount == 6, "six boxes");
+    // m stays in the base; then a, b, n by activation, the overlay last.
+    CHECK(list.commands[1].box.rect.x == 150.0f && list.commands[2].box.rect.x == 10.0f &&
+              list.commands[3].box.rect.x == 20.0f && list.commands[4].box.rect.x == 15.0f &&
+              list.commands[5].box.rect.x == 0.0f,
+          "activation order, the overlay band last");
+    // Raising a puts it over b, its child n staying where it was.
+    CHECK(muiNode_RaiseLayer(context, a) == mui_success, "raised");
+    list = Build(context, root, 1.0f);
+    CHECK(list.commands[2].box.rect.x == 20.0f && list.commands[3].box.rect.x == 15.0f &&
+              list.commands[4].box.rect.x == 10.0f && list.commands[5].box.rect.x == 0.0f,
+          "raised over b");
+    // The retained list is the bytes a whole build gives.
+    muiDrawCommand kept[6];
+    memcpy(kept, list.commands, sizeof kept);
+    (void)Build(context, root, 2.0f);
+    list = Build(context, root, 1.0f);
+    CHECK(memcmp(kept, list.commands, sizeof kept) == 0, "retained as a whole build");
+    // Hits from the top: the overlay, then a over b.
+    CHECK(Hits(context, root, 5.0f, 5.0f, overlay, 5.0f, 5.0f) &&
+              Hits(context, root, 25.0f, 25.0f, a, 15.0f, 15.0f) &&
+              Hits(context, root, 22.0f, 22.0f, a, 12.0f, 12.0f) &&
+              Hits(context, root, 55.0f, 55.0f, b, 35.0f, 35.0f),
+          "hits from the top layer");
+    // A modal layer: points it misses reach nothing below it.
+    SetLayer(context, m, mui_layerModal);
+    Layout(context, root);
+    muiHit hit = {{0, 0}, 0.0f, 0.0f, true};
+    CHECK(Hits(context, root, 160.0f, 160.0f, m, 10.0f, 10.0f) &&
+              muiHitTest(context, root, 25.0f, 25.0f, &hit) == mui_success &&
+              hit.node.index1 == m.index1 && hit.x == -125.0f && !hit.passThrough &&
+              Hits(context, root, 5.0f, 5.0f, overlay, 5.0f, 5.0f),
+          "a modal layer blocks below it, not the overlay band");
+    // No longer a layer: in place again.
+    SetLayer(context, m, mui_layerNone);
+    SetLayer(context, a, mui_layerNone);
+    Layout(context, root);
+    list = Build(context, root, 1.0f);
+    CHECK(list.commands[1].box.rect.x == 150.0f && list.commands[2].box.rect.x == 10.0f &&
+              list.commands[3].box.rect.x == 20.0f && list.commands[4].box.rect.x == 15.0f,
+          "a back in place, n still above it");
+    muiDestroyContext(context);
+}
+
+static void TestLayerLimit(void)
+{
+    // Room for one layer: a second stays in place.
+    muiContextDef def = muiDefaultContextDef();
+    def.limits.layers = 1;
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    muiNodeId root = Place(context, s_nullNode, 0.0f, 0.0f, 100.0f, 100.0f);
+    // c comes before b in the tree, after it as a layer.
+    muiNodeId a = Place(context, root, 10.0f, 0.0f, 10.0f, 10.0f);
+    muiNodeId c = Place(context, root, 30.0f, 0.0f, 10.0f, 10.0f);
+    muiNodeId b = Place(context, root, 20.0f, 0.0f, 10.0f, 10.0f);
+    Paint(context, a, 1.0f);
+    Paint(context, b, 1.0f);
+    Paint(context, c, 1.0f);
+    SetLayer(context, a, mui_layerActivation);
+    SetLayer(context, b, mui_layerActivation);
+    Layout(context, root);
+    muiDrawList list = Build(context, root, 1.0f);
+    CHECK(list.commands[0].box.rect.x == 30.0f && list.commands[1].box.rect.x == 20.0f &&
+              list.commands[2].box.rect.x == 10.0f &&
+              muiNode_RaiseLayer(context, b) == mui_errorInvalid,
+          "past the limit, in place");
+    // A layer destroyed frees its room.
+    CHECK(muiDestroyNode(context, a) == mui_success, "destroyed");
+    SetLayer(context, c, mui_layerActivation);
+    Layout(context, root);
+    list = Build(context, root, 1.0f);
+    CHECK(list.commandCount == 2 && list.commands[0].box.rect.x == 20.0f &&
+              list.commands[1].box.rect.x == 30.0f,
+          "the room of a layer gone");
+    muiDestroyContext(context);
+}
+
+static void TestLayerEdges(void)
+{
+    // a and b are layers; s is not, nor under one.
+    muiContext* context = MakeContext();
+    muiNodeId root = Place(context, s_nullNode, 0.0f, 0.0f, 200.0f, 200.0f);
+    muiNodeId a = Place(context, root, 10.0f, 10.0f, 50.0f, 50.0f);
+    muiNodeId b = Place(context, root, 20.0f, 20.0f, 50.0f, 50.0f);
+    muiNodeId s = Place(context, root, 100.0f, 100.0f, 50.0f, 50.0f);
+    Paint(context, a, 1.0f);
+    Paint(context, b, 1.0f);
+    Paint(context, s, 1.0f);
+    SetLayer(context, a, mui_layerActivation);
+    SetLayer(context, b, mui_layerActivation);
+    Layout(context, root);
+    // Restyling a layer leaves its place: a stays under b.
+    Paint(context, a, 0.5f);
+    Layout(context, root);
+    muiDrawList list = Build(context, root, 1.0f);
+    CHECK(list.commandCount == 3 && list.commands[1].box.rect.x == 10.0f &&
+              list.commands[2].box.rect.x == 20.0f,
+          "restyled, not raised");
+    // A list or a hit test of a layer, or of a subtree no layer is in.
+    list = Build(context, a, 1.0f);
+    CHECK(list.commandCount == 1, "a layer's own list");
+    list = Build(context, s, 1.0f);
+    CHECK(list.commandCount == 1 && Hits(context, s, 30.0f, 30.0f, s_nullNode, 0.0f, 0.0f),
+          "a subtree without layers");
+    SetLayer(context, a, mui_layerModal);
+    Layout(context, root);
+    CHECK(Hits(context, a, 100.0f, 100.0f, s_nullNode, 0.0f, 0.0f),
+          "a modal root of its own walk blocks nothing");
+    // A layer destroyed: its slot, taken by a new node, is not walked as
+    // a layer twice.
+    CHECK(muiDestroyNode(context, a) == mui_success, "destroyed");
+    muiNodeId d = Place(context, root, 5.0f, 5.0f, 10.0f, 10.0f);
+    Paint(context, d, 1.0f);
+    Layout(context, root);
+    list = Build(context, root, 1.0f);
+    CHECK(d.index1 == a.index1 && list.commandCount == 3, "the slot again, in place");
+    SetLayer(context, d, mui_layerActivation);
+    Layout(context, root);
+    list = Build(context, root, 1.0f);
+    CHECK(list.commandCount == 3 && list.commands[2].box.rect.x == 5.0f, "the slot as a layer");
+    muiDestroyContext(context);
+}
+
 static void TestContract(void)
 {
     muiContext* context = MakeContext();
@@ -331,7 +600,7 @@ static void TestContract(void)
                   mui_errorInvalid &&
               muiNode_SetInteractionValues(context, root, NULL, HIT_MODE) == mui_errorInvalid &&
               muiNode_SetInteractionValues(NULL, root, &values, HIT_MODE) == mui_errorInvalid &&
-              muiNode_SetInteractionValues(context, root, &values, PASS_THROUGH << 1) ==
+              muiNode_SetInteractionValues(context, root, &values, PASS_THROUGH << 2) ==
                   mui_errorInvalid &&
               muiStyle_SetInteractionValues(context, style, mui_variantBase, NULL, HIT_MODE) ==
                   mui_errorInvalid &&
@@ -342,6 +611,10 @@ static void TestContract(void)
               muiNode_GetInteractionStyle(context, s_nullNode, &values) == mui_errorInvalid &&
               muiNode_GetInteractionStyle(context, root, NULL) == mui_errorInvalid,
           "reads outside the contract");
+    CHECK(muiNode_RaiseLayer(NULL, root) == mui_errorInvalid &&
+              muiNode_RaiseLayer(context, s_nullNode) == mui_errorInvalid &&
+              muiNode_RaiseLayer(context, root) == mui_errorInvalid,
+          "raising outside the contract");
     muiNodeId gone = root;
     CHECK(muiDestroyNode(context, root) == mui_success &&
               muiHitTest(context, gone, 1.0f, 1.0f, &hit) == mui_errorStale &&
@@ -357,6 +630,11 @@ int main(void)
     TestClips();
     TestStyled();
     TestAgainstPainting();
+    TestLayers();
+    TestLayerRetained();
+    TestLayerOrder();
+    TestLayerLimit();
+    TestLayerEdges();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }

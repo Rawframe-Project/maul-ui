@@ -9,6 +9,7 @@
 #include "animation.h"
 #include "draw_store.h"
 #include "inherit.h"
+#include "layer_store.h"
 #include "layout_node.h"
 #include "notify.h"
 #include "style_store.h"
@@ -43,6 +44,8 @@ struct muiContext
     muiTokenStore tokens;
     muiThemeStore themes;
     muiDrawStore draw;
+    // The nodes that root a layer, in paint order.
+    muiLayerStore layers;
     // What conditions read of the world outside the tree.
     muiEnvironment environment;
     // How many times the host edited a class, a node type or the

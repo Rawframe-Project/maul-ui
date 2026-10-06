@@ -62,6 +62,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/flex_resolve.c
     src/hit.c
     src/inherit.c
+    src/layer.c
     src/layout.c
     src/motion_math.c
     src/node.c

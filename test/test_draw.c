@@ -14,6 +14,7 @@
 
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
+#include "maul-ui/interaction.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
@@ -746,8 +747,26 @@ static void Edit(muiContext* context, muiNodeId* nodes, uint32_t count, Random* 
     muiLayoutStyle layout = muiDefaultLayoutStyle();
     CHECK(muiNode_GetLayoutStyle(context, node, &layout) == mui_success, "read");
     const float shades[4] = {0.0f, 0.25f, 0.5f, 1.0f};
-    switch (NextRandom(random, 11))
+    switch (NextRandom(random, 13))
     {
+    case 11:
+    {
+        // A layer of a random kind, or none.
+        muiInteractionStyle values = muiDefaultInteractionStyle();
+        values.layer = (muiLayerKind)NextRandom(random, 4);
+        CHECK(muiNode_SetInteractionValues(context, node, &values,
+                                           MUI_PROPERTY_BIT(mui_propertyLayer)) == mui_success,
+              "layer");
+        break;
+    }
+    case 12:
+    {
+        muiInteractionStyle values = muiDefaultInteractionStyle();
+        CHECK(muiNode_GetInteractionStyle(context, node, &values) == mui_success, "read");
+        CHECK(values.layer == mui_layerNone || muiNode_RaiseLayer(context, node) == mui_success,
+              "raised");
+        break;
+    }
     case 9:
     {
         muiTextStyle text = muiDefaultTextStyle();

@@ -10,6 +10,7 @@
 
 #include "animation.h"
 #include "condition.h"
+#include "layer.h"
 #include "layout_node.h"
 #include "notify.h"
 #include "pool.h"
@@ -317,6 +318,7 @@ static bool Transition(muiContext* context, uint32_t slot, const Resolution* res
 static bool Commit(muiContext* context, uint32_t slot, const Resolution* resolution,
                    muiPropertyBits free, uint64_t nowNs)
 {
+    muiLayerKind layer = context->interaction[slot - 1].layer;
     muiLayoutNode* layout = &context->layout[slot - 1];
     const muiConstValuesRef values = muiConstRefOf(&resolution->values);
     muiPropertyBits changed = {0};
@@ -381,6 +383,7 @@ static bool Commit(muiContext* context, uint32_t slot, const Resolution* resolut
     {
         muiTreeMark(&context->tree, slot, mui_stagePaint);
     }
+    muiNoteLayer(context, slot, layer);
     return changed.words[mui_groupText] != 0;
 }
 

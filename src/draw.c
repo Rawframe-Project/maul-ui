@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Building draw lists (record mui-0005). The walk is preorder over the
-// tree's links, each node reading what its parent left in its paint
-// state, so it needs no stack. A list is built from the last one: a
-// subtree no paint request reaches, at the origin and opacity it was
-// painted at, copies its commands, clips, gradients and glyphs and
-// renumbers them; a build with nothing to repaint keeps the last list as it is.
+// Building draw lists (records mui-0005, mui-0007). The walk is preorder
+// over the tree's links, each node reading what its parent left in its
+// paint state, so it needs no stack; layers are walked after, from the
+// bottom. A list is built from the last one: a subtree no paint request
+// reaches, at the origin and opacity it was painted at, copies its
+// commands, clips, gradients and glyphs and renumbers them; a build with
+// nothing to repaint keeps the last list as it is.
 
 #include "maul-ui/draw.h"
 
 #include "context.h"
 #include "draw_store.h"
+#include "layer.h"
 #include "paint.h"
 #include "paint_host.h"
 #include "tree.h"
@@ -28,6 +30,10 @@ typedef struct Build
     const muiDrawTables* previous;
     uint64_t previousBuild;
     uint64_t build;
+    // Where the root of the walk under way has its parent's origin: 0 for
+    // the list's root, the laid-out place for a layer.
+    float baseX;
+    float baseY;
 } Build;
 
 // Where a copied subtree's indices land: its own clips and gradients
@@ -129,7 +135,10 @@ static void Renumber(Build* build, uint32_t node, const muiPaintState* old,
     for (uint32_t at = muiTreeAt(tree, node)->links.firstChild; at != 0;)
     {
         muiPaintState* state = &states[at - 1];
-        if (state->build == build->previousBuild)
+        // A layer below was painted apart, with spans of its own that its
+        // own walk takes.
+        bool apart = muiIsLayerRoot(tree, at);
+        if (!apart && state->build == build->previousBuild)
         {
             state->build = build->build;
             Shift(&state->commands, old->commands.first, now->commands.first);
@@ -137,7 +146,7 @@ static void Renumber(Build* build, uint32_t node, const muiPaintState* old,
             Shift(&state->gradients, old->gradients.first, now->gradients.first);
         }
         // The next node in preorder below node.
-        if (muiTreeAt(tree, at)->links.firstChild != 0)
+        if (!apart && muiTreeAt(tree, at)->links.firstChild != 0)
         {
             at = muiTreeAt(tree, at)->links.firstChild;
             continue;
@@ -187,7 +196,7 @@ static bool Visit(Build* build, uint32_t root, uint32_t at)
 {
     const muiContext* context = build->painter.context;
     const muiTree* tree = &context->tree;
-    const muiPaintState top = {.opacity = 1.0f};
+    const muiPaintState top = {.x = build->baseX, .y = build->baseY, .opacity = 1.0f};
     uint32_t parent = at == root ? 0 : muiTreeAt(tree, at)->links.parent;
     const muiPaintState* above = parent != 0 ? &build->store->states[parent - 1] : &top;
     const muiRect* rect = &context->layout[at - 1].rect;
@@ -231,19 +240,26 @@ static void Leave(Build* build, uint32_t at)
     state->gradients.end = out->gradientCount;
 }
 
+// Paints a subtree in preorder; a layer below its root is left for a
+// walk of its own.
 static void Walk(Build* build, uint32_t root)
 {
-    const muiTree* tree = &build->painter.context->tree;
+    const muiContext* context = build->painter.context;
+    const muiTree* tree = &context->tree;
     for (uint32_t at = root; at != 0 && !build->painter.full;)
     {
-        if (Visit(build, root, at) && muiTreeAt(tree, at)->links.firstChild != 0)
+        bool apart = at != root && muiIsLayerRoot(tree, at);
+        if (!apart && Visit(build, root, at) && muiTreeAt(tree, at)->links.firstChild != 0)
         {
             at = muiTreeAt(tree, at)->links.firstChild;
             continue;
         }
-        for (;;)
+        for (bool skip = apart;; skip = false)
         {
-            Leave(build, at);
+            if (!skip)
+            {
+                Leave(build, at);
+            }
             if (at == root)
             {
                 at = 0;
@@ -256,6 +272,41 @@ static void Walk(Build* build, uint32_t root)
             }
             at = muiTreeAt(tree, at)->links.parent;
         }
+    }
+}
+
+// The origin of a node's parent: its ancestors' places added up to the
+// list's root, in doubles as hit testing adds them.
+static void ParentOrigin(const muiContext* context, uint32_t root, uint32_t node, float* xOut,
+                         float* yOut)
+{
+    const muiTree* tree = &context->tree;
+    double x = 0.0;
+    double y = 0.0;
+    for (uint32_t at = node; at != root;)
+    {
+        at = muiTreeAt(tree, at)->links.parent;
+        x += (double)context->layout[at - 1].rect.x;
+        y += (double)context->layout[at - 1].rect.y;
+    }
+    *xOut = (float)x;
+    *yOut = (float)y;
+}
+
+// Paints the layers below the root after it, from the bottom: each at its
+// laid-out place, outside its ancestors' clips and opacity.
+static void WalkLayers(Build* build, uint32_t root)
+{
+    const muiContext* context = build->painter.context;
+    for (uint32_t i = 0; i < context->layers.count && !build->painter.full; i++)
+    {
+        uint32_t layer = muiLayerAt(context, i);
+        if (layer == 0 || layer == root || !muiTreeIsAncestor(&context->tree, root, layer))
+        {
+            continue;
+        }
+        ParentOrigin(context, root, layer, &build->baseX, &build->baseY);
+        Walk(build, layer);
     }
 }
 
@@ -326,6 +377,7 @@ muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawI
     // The host's paint function may read the context, not edit it.
     context->inHostCall = true;
     Walk(&build, root);
+    WalkLayers(&build, root);
     context->inHostCall = false;
     context->misuse += build.painter.misuse;
     store->current = next;

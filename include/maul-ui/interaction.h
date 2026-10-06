@@ -3,8 +3,8 @@
 //
 // Interaction properties and hit testing (record mui-0007): whether a node
 // and its children are hit by a point, whether input it leaves unused
-// passes through to what lies behind the UI, and which node is topmost at
-// a point, in reverse paint order.
+// passes through to what lies behind the UI, whether it roots a layer,
+// and which node is topmost at a point, in reverse paint order.
 
 #ifndef MAUL_UI_INTERACTION_H
 #define MAUL_UI_INTERACTION_H
@@ -36,9 +36,29 @@ extern "C"
         mui_hitNone = 2,
     };
 
+    // Whether a node roots a layer: painted, and hit, apart from the
+    // content around it, above it.
+    typedef uint8_t muiLayerKind;
+
+    enum
+    {
+        // Part of its parent's layer.
+        mui_layerNone = 0,
+        // An activation layer, such as a dialog or a menu: painted after
+        // the content it is in, above the layers activated before it.
+        mui_layerActivation = 1,
+        // An activation layer that is modal: points that miss it reach
+        // nothing below it.
+        mui_layerModal = 2,
+        // In the overlay band, above every activation layer: popups and
+        // tooltips.
+        mui_layerOverlay = 3,
+    };
+
     // A node's interaction values. Every field is a property
-    // (mui_propertyHitMode, mui_propertyPassThrough), set like any other
-    // through classes, states and direct writes, and not inherited.
+    // (mui_propertyHitMode, mui_propertyPassThrough, mui_propertyLayer),
+    // set like any other through classes, states and direct writes, and
+    // not inherited.
     typedef struct muiInteractionStyle
     {
         muiHitMode hitMode;
@@ -46,6 +66,14 @@ extern "C"
         // what lies behind the UI, such as a game world: a HUD panel
         // that does not block clicks.
         bool passThrough;
+        // A node that roots a layer is painted after the layer it is in
+        // (the base, or another layer), at its laid-out place but outside
+        // its ancestors' clips and opacity, as the web's top layer is.
+        // Activation layers come in the order they became layers or were
+        // raised, the overlay band after them all. Up to the context's
+        // layers limit: a node that becomes a layer past it stays in its
+        // parent's layer until its kind changes again.
+        muiLayerKind layer;
     } muiInteractionStyle;
 
     /// Returns the default interaction values: hit in full, blocking.
@@ -62,7 +90,7 @@ extern "C"
     /// @param styleId  The class.
     /// @param variant  The variant.
     /// @param values   The values; only the fields mask names are read: a
-    ///                 known hit mode.
+    ///                 known hit mode and layer kind.
     /// @param mask     The properties, within MUI_INTERACTION_PROPERTIES.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id, an unknown variant or property bit, a value outside
@@ -134,7 +162,8 @@ extern "C"
 
     // What a point hits: the node, the null id for none, the point in its
     // border box, and whether input it leaves unused passes through to
-    // what lies behind the UI (always, when nothing is hit).
+    // what lies behind the UI (always, when nothing is hit; never, when a
+    // modal layer blocks it).
     typedef struct muiHit
     {
         muiNodeId node;
@@ -147,8 +176,11 @@ extern "C"
     /// muiComputeLayout left it: the last in paint order whose rounded
     /// border box holds the point, inside the rounded clips of every
     /// ancestor that clips and of no node whose hit mode leaves it out.
-    /// Opacity does not matter, as in CSS. Positions are those painting
-    /// gives, the root at its own rectangle.
+    /// Layers are tried from the top down, then the content they are
+    /// not in; a point a modal layer's subtree misses hits the modal
+    /// layer's root, blocked, and nothing below it. Opacity does not
+    /// matter, as in CSS. Positions are those painting gives, the root at
+    /// its own rectangle.
     ///
     /// @param context  The context.
     /// @param rootId   The root of the subtree.
@@ -162,6 +194,20 @@ extern "C"
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiHitTest(const muiContext* context, muiNodeId rootId, float x,
                                                float y, muiHit* hitOut);
+
+    /// Raises a layer above the others of its band, as activating a
+    /// window brings it to the front: it becomes the latest activated.
+    ///
+    /// @param context  The context.
+    /// @param nodeId   A node that roots a layer, as its last style
+    ///                 resolution or direct write left it.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
+    ///         null id, a node that roots no layer or a call from a
+    ///         measure or paint function; `mui_errorStale` for a node that
+    ///         is gone.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiNode_RaiseLayer(muiContext* context, muiNodeId nodeId);
 
 #ifdef __cplusplus
 }
