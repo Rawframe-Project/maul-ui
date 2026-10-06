@@ -171,8 +171,12 @@ if(MAUL_UI_UIACCESSIBILITY)
         OBJC_VISIBILITY_PRESET hidden)
     target_compile_options(maul-ui PRIVATE
         $<$<COMPILE_LANGUAGE:OBJC>:-fno-objc-arc -Wmissing-prototypes>)
-    target_link_libraries(maul-ui PRIVATE "-framework UIKit")
-    string(APPEND MAUL_PKG_LIBS_PRIVATE " -framework UIKit")
+    # UIKit re-exports neither Foundation, Core Graphics nor the
+    # Objective-C runtime, which a program linked as C needs named.
+    target_link_libraries(maul-ui PRIVATE "-framework UIKit" "-framework Foundation"
+                          "-framework CoreGraphics" objc)
+    string(APPEND MAUL_PKG_LIBS_PRIVATE
+           " -framework UIKit -framework Foundation -framework CoreGraphics -lobjc")
 endif()
 if(MAUL_UI_ARIA)
     if(NOT MAUL_UI_ACCESS_TREE)
