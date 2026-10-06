@@ -229,6 +229,16 @@ itself instead of each host repeating them.
   Escape no handler takes dismisses the popup set last; focus moved by
   code or navigation outside a popup and its anchor dismisses it,
   while a press's own focus change is left to the press.
+- **Exits** (`maul-ui/exit.h`, record I7's shape): `muiNode_BeginExit`
+  gives a node the exiting state, which only exits set and clear, so
+  its classes' exiting variants and transitions play; the node and its
+  subtree leave hit testing (what lies behind is hit), focus (given up
+  at once, refused after) and navigation, and a modal layer inside it
+  no longer blocks or traps focus. At each layout after transitions
+  advance, an exit with no transition running in its subtree is
+  reported once by `mui_notificationExitFinished`; the host destroys
+  the node, or cancels the exit (`muiNode_CancelExit`). A table bounded
+  by `limits.exits`.
 - **Drag and drop**, within the application: a node takes kinds of
   thing by the interaction property `accepts`, a mask of the
   application's bits. While a pointer drags, the host offers a kind and

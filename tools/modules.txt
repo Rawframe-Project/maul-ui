@@ -32,7 +32,9 @@ event_store:
 scroll_store: layout_node
 range_store:
 popup_store:
+exit_store:
 range: context range_store tree notify
+exit: animation context exit_store focus notify tree
 popup: context layout_node popup_store scroll tree notify
 scroll: context scroll_store tree layer motion_math
 navigate: context focus tree scroll
@@ -43,7 +45,7 @@ style_store: pool property
 sizing:
 tree: invariant
 solver: layout_node tree draw_store scroll_store
-context: allocator animation inherit invariant layer_store layout_node notify pointer_store pool style_store tree token_store theme_store draw_store focus_store event_store scroll_store range_store popup_store
+context: allocator animation inherit invariant layer_store layout_node notify pointer_store pool style_store tree token_store theme_store draw_store focus_store event_store scroll_store range_store popup_store exit_store
 node: context inherit layout_node pointer style_store tree focus
 node_style: animation context layout_node pool property style_store tree inherit layer focus scroll_store
 style: condition context pool property style_edit style_store tree
@@ -52,7 +54,7 @@ flex_resolve: layout_node tree
 flex: flex_resolve layout_node sizing solver tree
 absolute: layout_node sizing solver tree
 solve: absolute condition flex invariant layout_node sizing solver tree draw_store scroll_store
-layout: animation context layout_node property restyle solve solver tree scroll popup
+layout: animation context layout_node property restyle solve solver tree scroll popup exit
 font_store: allocator pool
 font_instance: font_store
 family_store: allocator pool

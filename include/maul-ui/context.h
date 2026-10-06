@@ -67,6 +67,8 @@ extern "C"
         uint32_t ranges;
         // Nodes that are popups (muiNode_SetPopup) at once.
         uint32_t popups;
+        // Nodes exiting (muiNode_BeginExit) at once.
+        uint32_t exits;
     } muiLimits;
 
     // How a context is made. Build it with muiDefaultContextDef.
@@ -81,7 +83,7 @@ extern "C"
     /// types, 1,024 property sets, 64 notifications, 64 transitions, 256
     /// running transitions, 256 tokens, 1,024 token names, 16 themes, 512
     /// theme overrides, draw lists of 8,192 commands, 256 clips, 256
-    /// gradients and 16,384 glyphs, 64 layers, 16 popups, and the C library's
+    /// gradients and 16,384 glyphs, 64 layers, 16 popups, 64 exits, and the C library's
     /// allocator.
     ///
     /// @return The def, with a valid cookie.
@@ -133,6 +135,9 @@ extern "C"
         // A popup should close (maul-ui/popup.h); count is the reason, a
         // muiDismissReason.
         mui_notificationPopupDismissed = 6,
+        // The node's exit (maul-ui/exit.h) has no transition running in
+        // its subtree any more.
+        mui_notificationExitFinished = 7,
     };
 
     // A record of something the host learns after the call that caused

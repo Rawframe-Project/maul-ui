@@ -8,6 +8,7 @@
 
 #include "animation.h"
 #include "context.h"
+#include "exit.h"
 #include "layout_node.h"
 #include "popup.h"
 #include "property.h"
@@ -129,6 +130,8 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
     muiAdvanceAnimations(&motion, now, finish);
     muiRestyle(context, root, now);
     muiAdvanceAnimations(&motion, now, finish);
+    // Exits whose transitions have ended, or never began, are reported.
+    muiExitAdvance(context, root);
     Invalidate(context, root);
     muiSolver solver = {
         .tree = &context->tree,

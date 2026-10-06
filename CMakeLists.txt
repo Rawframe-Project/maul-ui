@@ -67,6 +67,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/layer.c
     src/navigate.c
     src/pointer.c
+    src/exit.c
     src/popup.c
     src/range.c
     src/scroll.c
@@ -118,6 +119,7 @@ if(MAUL_UI_BUILD_TESTS)
     maul_add_test(drag)
     maul_add_test(range)
     maul_add_test(popup)
+    maul_add_test(exit)
     maul_add_test(pan)
     maul_add_test(layout)
     maul_add_test(layout_fixtures)

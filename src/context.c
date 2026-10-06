@@ -52,7 +52,8 @@ muiContextDef muiDefaultContextDef(void)
                    .neighbors = 256,
                    .drawTransforms = 64,
                    .ranges = 64,
-                   .popups = 16},
+                   .popups = 16,
+                   .exits = 64},
     };
 }
 
@@ -68,7 +69,7 @@ static bool AreLimitsValid(const muiLimits* limits)
            limits->drawGlyphs <= MAX_SLOTS && limits->layers <= MAX_SLOTS &&
            limits->pointers <= MUI_MAX_POINTERS && limits->pointerRecords <= MAX_SLOTS &&
            limits->neighbors <= MAX_SLOTS && limits->drawTransforms < MAX_SLOTS &&
-           limits->ranges <= MAX_SLOTS && limits->popups <= MAX_SLOTS;
+           limits->ranges <= MAX_SLOTS && limits->popups <= MAX_SLOTS && limits->exits <= MAX_SLOTS;
 }
 
 // Where each part of the context's block starts.
@@ -110,6 +111,7 @@ typedef struct Parts
     size_t drawTransformLinks;
     size_t ranges;
     size_t popups;
+    size_t exits;
     size_t layers;
     size_t pointers;
     size_t pointerRecords;
@@ -186,6 +188,7 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
                                            sizeof(uint32_t), CACHE_LINE),
         .ranges = muiLayoutAdd(layout, limits->ranges, sizeof(muiRangeEntry), CACHE_LINE),
         .popups = muiLayoutAdd(layout, limits->popups, sizeof(muiPopupEntry), CACHE_LINE),
+        .exits = muiLayoutAdd(layout, limits->exits, sizeof(muiExitEntry), CACHE_LINE),
         .layers = muiLayoutAdd(layout, limits->layers, sizeof(muiLayerEntry), CACHE_LINE),
         .pointers = muiLayoutAdd(layout, limits->pointers, sizeof(muiPointer), CACHE_LINE),
         .pointerRecords =
@@ -264,6 +267,7 @@ static void Place(muiContext* context, unsigned char* base, const Parts* parts,
     muiScrollInit(&context->scrolling);
     muiRangeInit(&context->ranges, (muiRangeEntry*)(base + parts->ranges), limits->ranges);
     muiPopupInit(&context->popups, (muiPopupEntry*)(base + parts->popups), limits->popups);
+    muiExitInit(&context->exits, (muiExitEntry*)(base + parts->exits), limits->exits);
     muiLayerInit(&context->layers, (muiLayerEntry*)(base + parts->layers), limits->layers);
     muiEventInit(&context->events, (muiNodeId*)(base + parts->routes));
     muiFocusInit(&context->focus, (muiNeighbor*)(base + parts->neighbors), limits->neighbors);

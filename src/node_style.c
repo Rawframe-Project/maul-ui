@@ -74,6 +74,10 @@ muiResult muiNode_SetStates(muiContext* context, muiNodeId nodeId, muiState stat
     }
     muiResult status = mui_success;
     uint32_t slot = muiResolveEdit(context, nodeId, &status);
+    // Exiting is the library's (src/exit.c): kept as it is.
+    states = slot != 0 ? (muiState)((states & ~mui_stateExiting) |
+                                    (context->style.nodes[slot - 1].states & mui_stateExiting))
+                       : states;
     if (slot != 0 && context->style.nodes[slot - 1].states != states)
     {
         context->style.nodes[slot - 1].states = states;

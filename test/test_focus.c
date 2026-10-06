@@ -8,6 +8,7 @@
 #include "test_harness.h"
 
 #include "maul-ui/context.h"
+#include "maul-ui/exit.h"
 #include "maul-ui/focus.h"
 #include "maul-ui/interaction.h"
 #include "maul-ui/layout.h"
@@ -417,9 +418,10 @@ static void TestLoss(void)
     Layout(context, root);
     CHECK(muiFocus_Get(context, 0).index1 == 0 && Noted(context, mui_notificationFocusLost, b, 0),
           "let go");
-    CHECK(muiNode_SetStates(context, b, mui_stateExiting) == mui_success &&
+    CHECK(muiNode_SetStates(context, b, 0) == mui_success &&
+              muiNode_BeginExit(context, b) == mui_success &&
               muiFocus_Set(context, 0, b, mui_focusByCode) == mui_errorInvalid &&
-              muiNode_SetStates(context, b, 0) == mui_success,
+              muiNode_CancelExit(context, b) == mui_success,
           "exiting: refused");
     Layout(context, root);
     // Detached: kept; destroyed: lost.

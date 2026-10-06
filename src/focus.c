@@ -49,6 +49,10 @@ static uint32_t TopOf(const muiTree* tree, uint32_t slot)
 bool muiFocusIsCovered(const muiContext* context, uint32_t slot)
 {
     const muiTree* tree = &context->tree;
+    if (muiTreeIsExiting(tree, slot))
+    {
+        return true;
+    }
     uint32_t top = 0;
     for (uint32_t i = context->layers.count; i > 0; i--)
     {
@@ -189,7 +193,8 @@ static uint32_t TopModal(const muiContext* context, uint32_t root)
     {
         uint32_t layer = muiLayerAt(context, i - 1);
         if (layer != 0 && context->interaction[layer - 1].layer == mui_layerModal &&
-            muiTreeIsAncestor(&context->tree, root, layer))
+            muiTreeIsAncestor(&context->tree, root, layer) &&
+            !muiTreeIsExiting(&context->tree, layer))
         {
             return layer;
         }
@@ -248,8 +253,9 @@ static void Consider(Around* around, uint32_t slot, uint64_t key)
 
 uint32_t muiFocusFollowing(const muiTree* tree, uint32_t scope, uint32_t at)
 {
+    // Nothing under an exiting node, nor the scope if it exits.
     uint32_t child = muiTreeAt(tree, at)->links.firstChild;
-    bool skip = child == 0;
+    bool skip = child == 0 || (muiTreeAt(tree, at)->flags & MUI_TREE_EXITING) != 0;
     at = child != 0 ? child : at;
     for (;;)
     {
@@ -265,7 +271,7 @@ uint32_t muiFocusFollowing(const muiTree* tree, uint32_t scope, uint32_t at)
             }
             at = muiTreeAt(tree, at)->links.next;
         }
-        if (!muiIsLayerRoot(tree, at))
+        if (!muiIsLayerRoot(tree, at) && (muiTreeAt(tree, at)->flags & MUI_TREE_EXITING) == 0)
         {
             return at;
         }

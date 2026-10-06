@@ -188,6 +188,7 @@ extern "C"
         mui_stateHovered = 16,
         mui_statePressed = 32,
         mui_stateDisabled = 64,
+        // Set and cleared by exits alone (maul-ui/exit.h).
         mui_stateExiting = 128,
     };
 
@@ -574,7 +575,8 @@ extern "C"
     /// Sets the states a node is in. The node is styled again at the next
     /// muiComputeLayout when they change. Pointer input's hover and press,
     /// and the players' focus, join them, apart: setting states leaves
-    /// those.
+    /// those. The exiting bit is the exits' (maul-ui/exit.h): setting
+    /// states keeps it as it is.
     ///
     /// @param context  The context.
     /// @param nodeId   The node.

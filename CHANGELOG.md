@@ -105,6 +105,12 @@ format.
   scroll rule gains `decelerationRate` (record mui-0007). With the
   rule's `overscroll`, a pan past a limit rubber bands as on iOS and
   springs back when released, and a fling bounces off a limit.
+- Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and
+  `muiNode_CancelExit`; an exiting subtree leaves hit testing, focus
+  and navigation, and `mui_notificationExitFinished` reports when no
+  transition runs in it; `limits.exits`. The exiting state is now set
+  by exits alone: `muiNode_SetStates` keeps it as it is (record
+  mui-0007).
 - Popups (`maul-ui/popup.h`): `muiNode_SetPopup`, `muiNode_GetPopup`,
   `muiNode_GetPopupSide` and `muiNode_ClearPopup`; each layout places
   a popup beside its anchor, flipping then clamping into the root's

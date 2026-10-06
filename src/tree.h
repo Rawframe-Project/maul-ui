@@ -53,10 +53,17 @@ typedef struct muiTreeNode
     uint32_t generation;
     muiTreeDirty dirty;
     bool live;
-    // Whether the node roots a layer, painted and hit apart from the
-    // content around it (record mui-0007); src/layer.c keeps it.
-    bool apart;
+    // MUI_TREE_ bits: whether the node roots a layer, painted and hit
+    // apart from the content around it (record mui-0007), which
+    // src/layer.c keeps; whether it exits (src/exit.c).
+    uint8_t flags;
 } muiTreeNode;
+
+enum
+{
+    MUI_TREE_APART = 1,
+    MUI_TREE_EXITING = 2,
+};
 
 typedef struct muiTree
 {
@@ -69,6 +76,20 @@ typedef struct muiTree
     uint32_t freeHead;
     uint32_t liveCount;
 } muiTree;
+
+// Whether the node at slot or one above it exits: it and its subtree
+// take no input.
+static inline bool muiTreeIsExiting(const muiTree* tree, uint32_t slot)
+{
+    for (uint32_t at = slot; at != 0; at = tree->nodes[at - 1].links.parent)
+    {
+        if ((tree->nodes[at - 1].flags & MUI_TREE_EXITING) != 0)
+        {
+            return true;
+        }
+    }
+    return false;
+}
 
 // Sets up a tree over nodes, an array of capacity zeroed slots.
 void muiTreeInit(muiTree* tree, muiTreeNode* nodes, uint32_t capacity);

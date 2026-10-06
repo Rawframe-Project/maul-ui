@@ -7,6 +7,7 @@
 #include "test_harness.h"
 
 #include "maul-ui/context.h"
+#include "maul-ui/exit.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
@@ -374,11 +375,17 @@ static void TestStatesLayerAboveEveryBase(void)
     {
         SetWidth(context, each, (muiVariant)(i + 1), 100.0f + (float)i);
         held |= states[i];
-        CHECK(muiNode_SetStates(context, node, held) == mui_success, "add a state");
+        // Exiting is the exits' to set.
+        CHECK(
+            muiNode_SetStates(context, node, held) == mui_success &&
+                (states[i] != mui_stateExiting || muiNode_BeginExit(context, node) == mui_success),
+            "add a state");
         CHECK(WidthAfterLayout(context, node, node) == 100.0f + (float)i,
               "each state beats the ones before");
     }
-    CHECK(muiNode_SetStates(context, node, mui_stateChecked) == mui_success, "only checked");
+    CHECK(muiNode_CancelExit(context, node) == mui_success &&
+              muiNode_SetStates(context, node, mui_stateChecked) == mui_success,
+          "only checked");
     CHECK(WidthAfterLayout(context, node, node) == 100.0f, "the variant of the state held");
     CHECK(muiNode_SetStates(context, s_nullNode, 0) == mui_errorInvalid, "null node");
     CHECK(muiNode_SetStates(NULL, node, 0) == mui_errorInvalid, "no context");

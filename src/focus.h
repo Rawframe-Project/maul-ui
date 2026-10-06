@@ -14,8 +14,9 @@
 // host's states let it take focus; a modal layer covering it is apart.
 bool muiFocusTakes(const muiContext* context, uint32_t slot, muiFocusMode least);
 
-// Whether a modal layer above whatever layer holds a node covers it: one
-// in the node's tree, met from the top before a layer that holds it.
+// Whether a node is out of focus's reach: it or a node above it exits, or
+// a modal layer above whatever layer holds it covers it, one in the
+// node's tree, met from the top before a layer that holds it.
 bool muiFocusIsCovered(const muiContext* context, uint32_t slot);
 
 // The node after at in tree order within scope, passing over the layers

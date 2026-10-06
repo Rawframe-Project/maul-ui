@@ -127,8 +127,10 @@ static void WalkSubtree(Walk* walk, uint32_t root, double parentX, double parent
         double originX = parentX + (double)rect->x;
         double originY = parentY + (double)rect->y;
         const muiTreeNode* node = muiTreeAt(tree, at);
-        bool apart = at != root && muiIsLayerRoot(tree, at);
-        if (!apart && Visit(walk, at, originX, originY) && node->links.firstChild != 0)
+        // Layers are walked apart; exiting nodes take no input.
+        bool skip =
+            (at != root && muiIsLayerRoot(tree, at)) || (node->flags & MUI_TREE_EXITING) != 0;
+        if (!skip && Visit(walk, at, originX, originY) && node->links.firstChild != 0)
         {
             // Children are where a scroll container moves them.
             parentX = originX + (double)ShiftX(context, at);
@@ -173,7 +175,8 @@ static bool WalkLayers(Walk* walk, uint32_t root, bool* blockedOut)
     for (uint32_t i = context->layers.count; i > 0; i--)
     {
         uint32_t layer = muiLayerAt(context, i - 1);
-        if (layer == 0 || layer == root || !muiTreeIsAncestor(&context->tree, root, layer))
+        if (layer == 0 || layer == root || !muiTreeIsAncestor(&context->tree, root, layer) ||
+            muiTreeIsExiting(&context->tree, layer))
         {
             continue;
         }

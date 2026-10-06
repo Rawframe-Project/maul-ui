@@ -9,6 +9,7 @@
 #include "animation.h"
 #include "draw_store.h"
 #include "event_store.h"
+#include "exit_store.h"
 #include "focus_store.h"
 #include "inherit.h"
 #include "layer_store.h"
@@ -52,6 +53,8 @@ struct muiContext
     muiRangeStore ranges;
     // The nodes that are popups.
     muiPopupStore popups;
+    // The nodes exiting.
+    muiExitStore exits;
     // Whether a class, a token name or a direct write has ever given a
     // text property: until then every node's text is the defaults, and
     // the style pass leaves the records alone.
