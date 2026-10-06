@@ -9,6 +9,7 @@
 #include "test_harness.h"
 
 #include "maul-ui/context.h"
+#include "maul-ui/draw.h"
 #include "maul-ui/event.h"
 #include "maul-ui/interaction.h"
 #include "maul-ui/layout.h"
@@ -154,9 +155,14 @@ static void TestChain(void)
     CHECK(Turn(context, root, 100 * MS, 50.0f, 25.0f, 0.0f, -1.0f, 0) &&
               Y(context, nest.inner) == 50.0f && Y(context, nest.outer) == 0.0f,
           "latched at the end");
-    // After the latch time, the turn chains to outer.
-    CHECK(Turn(context, root, 700 * MS, 50.0f, 25.0f, 0.0f, -1.0f, 0) &&
-              Y(context, nest.outer) == 100.0f,
+    // At the latch time, the turn chains to outer, and the list follows.
+    const muiDrawInput input = {1, 1.0f, NULL, NULL};
+    muiDrawList drawn;
+    CHECK(muiBuildDrawList(context, root, &input) == mui_success, "drawn");
+    CHECK(Turn(context, root, 600 * MS, 50.0f, 25.0f, 0.0f, -1.0f, 0) &&
+              Y(context, nest.outer) == 100.0f &&
+              muiBuildDrawList(context, root, &input) == mui_success &&
+              muiGetDrawList(context, &drawn) == mui_success && drawn.transforms[1].f == -100.0f,
           "chained outward");
     // Over the filler while still latched to outer: outer.
     CHECK(Turn(context, root, 800 * MS, 50.0f, 80.0f, 0.0f, -1.0f, 0) &&
@@ -185,13 +191,21 @@ static void TestChain(void)
 
 static void TestTime(void)
 {
-    // A time before the latch's does not hold it, and a rule without a
-    // latch never holds one.
+    // Up at the top: nothing moves, nothing takes it.
     Nest nest;
     MakeNest(&nest);
     muiContext* context = nest.context;
-    CHECK(Turn(context, nest.root, 1000 * MS, 50.0f, 25.0f, 0.0f, -1.0f, 0), "inner");
-    CHECK(Turn(context, nest.root, 999 * MS, 50.0f, 25.0f, 0.0f, -1.0f, 0) &&
+    CHECK(!Turn(context, nest.root, 0, 50.0f, 25.0f, 0.0f, 1.0f, 0), "up at the top");
+    // The latch runs from the last turn; a time before it does not hold
+    // it, and a rule without a latch never holds one.
+    CHECK(Turn(context, nest.root, 500 * MS, 50.0f, 25.0f, 0.0f, -0.25f, 0) &&
+              Turn(context, nest.root, 900 * MS, 50.0f, 25.0f, 0.0f, -0.25f, 0) &&
+              Y(context, nest.inner) == 50.0f,
+          "inner");
+    CHECK(Turn(context, nest.root, 1000 * MS, 50.0f, 25.0f, 0.0f, -1.0f, 0) &&
+              Y(context, nest.outer) == 0.0f,
+          "still latched from the later turn");
+    CHECK(Turn(context, nest.root, 899 * MS, 50.0f, 25.0f, 0.0f, -1.0f, 0) &&
               Y(context, nest.outer) == 100.0f,
           "time went back: chained");
     muiScrollRule rule = muiDefaultScrollRule();
@@ -212,8 +226,8 @@ static void TestAcross(void)
     muiContext* context = MakeContext();
     muiNodeId root = Sized(context, s_nullNode, 300.0f, 300.0f);
     muiNodeId s = Sized(context, root, 100.0f, 50.0f);
-    Scrolls(context, s, mui_scrollHorizontal, false);
-    (void)Sized(context, s, 300.0f, 50.0f);
+    Scrolls(context, s, mui_scrollBoth, false);
+    (void)Sized(context, s, 300.0f, 100.0f);
     muiNodeId t = Sized(context, root, 100.0f, 50.0f);
     muiLayoutStyle style = muiDefaultLayoutStyle();
     style.scrollAxes = mui_scrollHorizontal;
@@ -223,13 +237,14 @@ static void TestAcross(void)
                   MUI_PROPERTY_BIT(mui_propertyTextDirection));
     (void)Sized(context, t, 300.0f, 50.0f);
     Layout(context, root);
-    CHECK(!Turn(context, root, 0, 50.0f, 25.0f, 0.0f, -1.0f, 0), "vertical: nothing");
     CHECK(Turn(context, root, 0, 50.0f, 25.0f, 0.0f, -1.0f, mui_modShift) &&
-              X(context, s) == 100.0f,
-          "Shift and toward the user: right");
+              X(context, s) == 100.0f && Y(context, s) == 0.0f,
+          "Shift and toward the user: right only");
     CHECK(Turn(context, root, 0, 50.0f, 25.0f, 0.5f, -1.0f, mui_modShift) &&
-              X(context, s) == 150.0f,
+              X(context, s) == 150.0f && Y(context, s) == 50.0f,
           "Shift with a turn across: as it is");
+    CHECK(Turn(context, root, 0, 50.0f, 25.0f, -2.0f, 0.0f, 0) && X(context, s) == 0.0f,
+          "left, at most to 0");
     CHECK(!Turn(context, root, 0, 150.0f, 25.0f, 1.0f, 0.0f, 0) && X(context, t) == 0.0f,
           "right to left at its start: rightward cannot");
     CHECK(Turn(context, root, 0, 150.0f, 25.0f, -1.0f, 0.0f, 0) && X(context, t) == 100.0f,
@@ -239,9 +254,11 @@ static void TestAcross(void)
 
 typedef struct Handler
 {
+    muiContext* context;
     muiEvent last;
     int calls;
     bool take;
+    bool destroy;
 } Handler;
 
 static bool Hear(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* event)
@@ -251,6 +268,11 @@ static bool Hear(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* e
     Handler* handler = user;
     handler->last = *event;
     handler->calls++;
+    if (handler->destroy)
+    {
+        CHECK(muiDestroyNode(handler->context, event->target) == mui_success, "destroyed");
+        handler->destroy = false;
+    }
     return handler->take;
 }
 
@@ -259,7 +281,7 @@ static void TestRouted(void)
     Nest nest;
     MakeNest(&nest);
     muiContext* context = nest.context;
-    Handler handler = {.take = true};
+    Handler handler = {.context = context, .take = true};
     CHECK(muiSetEventFunction(context, Hear, &handler) == mui_success, "function");
     CHECK(Turn(context, nest.root, 7, 50.0f, 25.0f, 0.0f, -1.0f, mui_modControl) &&
               Y(context, nest.inner) == 0.0f && handler.calls == 1 &&
@@ -271,6 +293,11 @@ static void TestRouted(void)
     CHECK(Turn(context, nest.root, 8, 50.0f, 25.0f, 0.0f, -1.0f, 0) &&
               Y(context, nest.inner) == 50.0f,
           "not taken: the default");
+    // Latched to inner, the node under the point goes: nothing holds it.
+    handler.destroy = true;
+    CHECK(!Turn(context, nest.root, 9, 50.0f, 25.0f, 0.0f, 1.0f, 0) &&
+              Y(context, nest.inner) == 50.0f,
+          "the node gone");
     muiDestroyContext(context);
 }
 

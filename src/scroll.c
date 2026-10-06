@@ -208,7 +208,8 @@ static uint32_t Latched(const muiContext* context, uint32_t hit, uint64_t timeNs
 {
     const muiScrollStore* store = &context->scrolling;
     uint32_t slot = muiTreeResolve(&context->tree, store->latched);
-    bool recent = timeNs >= store->latchedNs && timeNs - store->latchedNs < store->rule.latchNs;
+    // A time before the last wraps to a long one.
+    bool recent = timeNs - store->latchedNs < store->rule.latchNs;
     return slot != 0 && recent && context->layout[slot - 1].style.scrollAxes != mui_scrollNone &&
                    muiTreeIsAncestor(&context->tree, slot, hit)
                ? slot
@@ -223,8 +224,8 @@ static uint32_t Choose(const muiContext* context, uint32_t root, uint32_t hit, f
     const muiTree* tree = &context->tree;
     for (uint32_t at = hit; at != 0; at = muiTreeAt(tree, at)->links.parent)
     {
-        if (context->layout[at - 1].style.scrollAxes != mui_scrollNone &&
-            CanMove(context, at, right, down))
+        // One that does not scroll has limits of 0.
+        if (CanMove(context, at, right, down))
         {
             return at;
         }
@@ -238,12 +239,8 @@ static uint32_t Choose(const muiContext* context, uint32_t root, uint32_t hit, f
 
 bool muiScrollWheel(muiContext* context, uint32_t root, muiNodeId hitId, const muiWheelEvent* event)
 {
-    // The handler may have taken the node away.
+    // A node the handler took away is 0, which nothing holds.
     uint32_t hit = muiTreeResolve(&context->tree, hitId);
-    if (hit == 0)
-    {
-        return false;
-    }
     float x = event->deltaX;
     float y = event->deltaY;
     if ((event->modifiers & mui_modShift) != 0 && x == 0.0f)
