@@ -11,6 +11,7 @@
 #ifndef MAUL_UI_RHI_PACK_H
 #define MAUL_UI_RHI_PACK_H
 
+#include "cull.h"
 #include "glyphs.h"
 #include "images.h"
 
@@ -79,10 +80,20 @@ uint32_t muiRhiCountInstances(const muiDrawList* list);
 // The image commands of a list.
 uint32_t muiRhiCountImages(const muiDrawList* list);
 
+// What a frame's commands are packed with: its images, glyphs and
+// clips' bounds.
+typedef struct muiRhiPacking
+{
+    muiRhiImages* images;
+    muiRhiGlyphs* glyphs;
+    const muiRhiCull* cull;
+} muiRhiPacking;
+
 // A list's commands as instances, at most as many as muiRhiCountInstances
-// says, an image's found in the frame's images and a glyph's in the
-// atlas, or not drawn: how many there are.
-uint32_t muiRhiPackInstances(const muiDrawList* list, muiRhiImages* images, muiRhiGlyphs* glyphs,
+// says: an image's found in the frame's images and a glyph's in the
+// atlas, or not drawn, and an instance that misses its clip's bounds not
+// drawn either. How many there are.
+uint32_t muiRhiPackInstances(const muiDrawList* list, const muiRhiPacking* packing,
                              muiRhiInstance* instances);
 
 // A list's gradient table, its placeholder entry 0 included, at least one

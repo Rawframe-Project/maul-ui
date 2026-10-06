@@ -15,6 +15,7 @@
 #include "maul-ui-rhi/renderer.h"
 
 #include "allocator.h"
+#include "cull.h"
 #include "glyphs.h"
 #include "images.h"
 #include "pack.h"
@@ -64,6 +65,7 @@ struct muiRhiRenderer
     Stream streams[kStreamCount];
     muiRhiImages images;
     muiRhiGlyphs glyphs;
+    muiRhiCull cull;
     muiRhiPlan plan;
     mrhiSamplerId sampler;
     // Bound where a list has no images, never sampled.
@@ -212,6 +214,7 @@ muiResult muiCreateRhiRenderer(const muiRhiRendererDef* def, muiRhiRenderer** re
                 [kClips] = {.stride = sizeof(muiRhiClip)},
             },
         .images = muiRhiMakeImages(&def->allocator, def->device, def->image, def->imageContext),
+        .cull = {.allocator = def->allocator},
         .plan = {.allocator = def->allocator},
     };
     muiResult status = muiRhiMakeGlyphs(&renderer->glyphs, &def->allocator, def->device, def->text);
@@ -262,6 +265,7 @@ void muiDestroyRhiRenderer(muiRhiRenderer* renderer)
     }
     muiRhiFreeImages(&renderer->images);
     muiRhiFreeGlyphs(&renderer->glyphs);
+    muiRhiFreeCull(&renderer->cull);
     muiRhiFreePlan(&renderer->plan);
     const muiAllocator allocator = renderer->allocator;
     muiRhiRelease(&allocator, renderer, sizeof(muiRhiRenderer), alignof(muiRhiRenderer));
@@ -293,10 +297,13 @@ bool muiRhiRenderer_IsReady(const muiRhiRenderer* renderer)
 // The list's instances and tables into the streams' staging, its images
 // found and imported into the frame, its glyphs packed and their pages
 // imported.
-static muiResult Pack(muiRhiRenderer* renderer, const muiDrawList* list)
+static muiResult Pack(muiRhiRenderer* renderer, const muiDrawList* list, const muiRhiTarget* target)
 {
     Stream* streams = renderer->streams;
     muiResult reset = muiRhiResetImages(&renderer->images, muiRhiCountImages(list));
+    reset = reset == mui_success
+                ? muiRhiPrepareCull(&renderer->cull, list, target->width, target->height)
+                : reset;
     if (reset != mui_success)
     {
         return reset;
@@ -316,8 +323,8 @@ static muiResult Pack(muiRhiRenderer* renderer, const muiDrawList* list)
         }
     }
     muiRhiNextGlyphFrame(&renderer->glyphs);
-    streams[kInstances].count = muiRhiPackInstances(list, &renderer->images, &renderer->glyphs,
-                                                    streams[kInstances].staging);
+    const muiRhiPacking packing = {&renderer->images, &renderer->glyphs, &renderer->cull};
+    streams[kInstances].count = muiRhiPackInstances(list, &packing, streams[kInstances].staging);
     muiRhiListTextures(&renderer->images);
     muiResult prepared = muiRhiPrepareGlyphs(&renderer->glyphs);
     if (prepared != mui_success)
@@ -343,7 +350,7 @@ muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* 
     {
         return mui_empty;
     }
-    muiResult status = Pack(renderer, list);
+    muiResult status = Pack(renderer, list, target);
     if (status != mui_success)
     {
         return status;

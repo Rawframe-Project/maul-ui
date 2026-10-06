@@ -235,6 +235,10 @@ if(MAUL_UI_BUILD_TESTS)
         # The reference renderer on Maul RHI's test driver.
         maul_add_test(rhi_renderer)
         target_link_libraries(test_rhi_renderer PRIVATE maul-ui-rhi)
+        # Its culling, packing lists without a device.
+        maul_add_test(rhi_pack)
+        target_link_libraries(test_rhi_pack PRIVATE maul-ui-rhi)
+        target_include_directories(test_rhi_pack PRIVATE ${PROJECT_SOURCE_DIR}/rhi/src)
         # Its pixels on a real device; skips without one.
         maul_add_test(rhi_pixels WHITEBOX)
         target_link_libraries(test_rhi_pixels PRIVATE maul-ui-rhi)

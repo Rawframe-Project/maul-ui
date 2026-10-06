@@ -135,6 +135,11 @@ clip chain evaluated in its shaders, which keeps batches whole.
   too large for the atlas as coverage, is drawn from distance fields of
   an em of 32, 64 or 128 pixels (the least at least the em drawn, its
   spread an eighth), each sample made a distance in screen pixels.
+  As the list is packed, an instance whose quad through its transform
+  misses its clip chain's bounds (each clip's rect through its
+  transform, met with its parent's; an inverted clip bounding nothing)
+  or the target is not drawn, nor is its image asked for; no scissor
+  is set, as culling already drops what one would.
 
 ## Consequences
 

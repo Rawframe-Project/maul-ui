@@ -232,10 +232,17 @@ static bool FieldGlyph(const muiDrawList* list, const muiDrawCommand* command, m
     return true;
 }
 
+// Whether an instance meets its clip's bounds.
+static bool Kept(const muiRhiCull* cull, const muiDrawList* list, const muiRhiInstance* instance)
+{
+    return !muiRhiIsCulled(cull, list, instance->rect, instance->clip, instance->transform);
+}
+
 // A glyph run's instances: how many.
 static uint32_t PackRun(const muiDrawList* list, const muiDrawCommand* command,
-                        muiRhiGlyphs* glyphs, muiRhiInstance* instances)
+                        const muiRhiPacking* packing, muiRhiInstance* instances)
 {
+    muiRhiGlyphs* glyphs = packing->glyphs;
     const muiDrawGlyphRun* run = &command->glyphRun;
     if (!IsRunValid(list, run))
     {
@@ -264,17 +271,38 @@ static uint32_t PackRun(const muiDrawList* list, const muiDrawCommand* command,
             const muiRect rect = {(float)glyph.x / scale - moved.e,
                                   (float)glyph.y / scale - moved.f, (float)glyph.width / scale,
                                   (float)glyph.height / scale};
-            instances[count++] = GlyphOf(list, command, &glyph, rect, 0.0f);
+            instances[count] = GlyphOf(list, command, &glyph, rect, 0.0f);
+            count += Kept(packing->cull, list, &instances[count]) ? 1 : 0;
         }
         else if (FieldGlyph(list, command, glyphs, at->id, penX, penY, drawn, &instances[count]))
         {
-            count++;
+            count += Kept(packing->cull, list, &instances[count]) ? 1 : 0;
         }
     }
     return count;
 }
 
-uint32_t muiRhiPackInstances(const muiDrawList* list, muiRhiImages* images, muiRhiGlyphs* glyphs,
+// An image's instance, its image found unless it is culled first.
+static bool PackImage(const muiDrawList* list, const muiDrawCommand* command,
+                      const muiRhiPacking* packing, muiRhiInstance* instanceOut)
+{
+    if (muiRhiIsCulled(packing->cull, list, command->image.rect,
+                       Index(command->clip, list->clipCount),
+                       Index(command->transform, list->transformCount)))
+    {
+        return false;
+    }
+    muiRhiImages* images = packing->images;
+    uint32_t index = muiRhiFindImage(images, command->image.image);
+    if (index == MUI_RHI_NO_IMAGE)
+    {
+        return false;
+    }
+    *instanceOut = ImageOf(list, command, &images->entries[index], index);
+    return true;
+}
+
+uint32_t muiRhiPackInstances(const muiDrawList* list, const muiRhiPacking* packing,
                              muiRhiInstance* instances)
 {
     uint32_t count = 0;
@@ -283,23 +311,21 @@ uint32_t muiRhiPackInstances(const muiDrawList* list, muiRhiImages* images, muiR
         const muiDrawCommand* command = &list->commands[i];
         if (command->kind == mui_drawBox)
         {
-            instances[count++] = BoxOf(list, command);
+            instances[count] = BoxOf(list, command);
+            count += Kept(packing->cull, list, &instances[count]) ? 1 : 0;
         }
         else if (command->kind == mui_drawShadow)
         {
-            instances[count++] = ShadowOf(list, command);
+            instances[count] = ShadowOf(list, command);
+            count += Kept(packing->cull, list, &instances[count]) ? 1 : 0;
         }
         else if (command->kind == mui_drawImage)
         {
-            uint32_t index = muiRhiFindImage(images, command->image.image);
-            if (index != MUI_RHI_NO_IMAGE)
-            {
-                instances[count++] = ImageOf(list, command, &images->entries[index], index);
-            }
+            count += PackImage(list, command, packing, &instances[count]) ? 1 : 0;
         }
         else if (command->kind == mui_drawGlyphRun)
         {
-            count += PackRun(list, command, glyphs, &instances[count]);
+            count += PackRun(list, command, packing, &instances[count]);
         }
     }
     return count;
