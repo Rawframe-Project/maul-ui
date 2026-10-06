@@ -214,6 +214,8 @@ int main(void)
     check.textLength[mui_accessLabel] = 6;
     muiAccessNode heading = built->nodes[5];
     heading.values.level = 3;
+    heading.text[mui_accessLabel] = "Topic";
+    heading.textLength[mui_accessLabel] = 5;
     muiAccessNode slider = built->nodes[6];
     slider.value = 40.0f;
     CHECK(Send(adapter, (const muiAccessNode*[]){&check, &heading, &slider}, 3, built->children) &&
@@ -221,7 +223,7 @@ int main(void)
                      "  button \"OK\" focusable=true | "
                      "  StaticText \"Hello\" | "
                      "  checkbox \"Agreed\" checked=false | "
-                     "  heading \"Title\" level=3 | "
+                     "  heading \"Topic\" level=3 | "
                      "  slider \"Volume\" valuemin=0 valuemax=100 valuetext=40 focusable=true "
                      "value=40 | "
                      "  progressbar \"Load\" valuemin=0 valuemax=1 value=0.5"),
@@ -250,7 +252,7 @@ int main(void)
                      "  button \"OK\" focusable=true | "
                      "  group \"Greeting\" | "
                      "    StaticText \"Hello\" | "
-                     "  heading \"Title\" level=3 | "
+                     "  heading \"Topic\" level=3 | "
                      "  checkbox \"Agreed\" checked=false | "
                      "  slider \"Volume\" valuemin=0 valuemax=100 valuetext=40 focusable=true "
                      "value=40 | "
@@ -271,7 +273,7 @@ int main(void)
                      "  button \"OK\" focusable=true | "
                      "  group \"Greeting\" | "
                      "    StaticText \"Hello\" | "
-                     "  heading \"Title\" level=3 | "
+                     "  heading \"Topic\" level=3 | "
                      "  checkbox \"Agreed\" checked=false | "
                      "  slider \"Volume\" valuemin=0 valuemax=100 value=40 | "
                      "  button \"New\""),

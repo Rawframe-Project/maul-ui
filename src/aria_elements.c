@@ -347,9 +347,9 @@ static const char* ValueOf(const muiAccessNode* node, uint32_t which, char buffe
 {
     if (which == A_role)
     {
+        // A range input is a slider already; saying so again is harmless.
         const char* role = node->role <= MUI_ROLE_LAST ? s_roles[node->role] : "group";
-        bool implicit = role[0] == '\0' || (muiAriaIsRange(node) && node->role == mui_roleSlider);
-        return implicit ? nullptr : role;
+        return role[0] != '\0' ? role : nullptr;
     }
     const char* text = TextOf(node, which);
     if (text != nullptr)
