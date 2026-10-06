@@ -25,6 +25,15 @@ add_library(maul-ui-window STATIC window/src/allocator.c window/src/gamepads.c w
 if(MAUL_UI_TEXT)
     target_sources(maul-ui-window PRIVATE window/src/composition.c)
 endif()
+# Accessibility, with the tree's consumer: the adapters Maul UI was built
+# with, named for window/src/access.c.
+if(MAUL_UI_ACCESS_TREE)
+    target_sources(maul-ui-window PRIVATE window/src/access.c)
+    target_compile_definitions(maul-ui-window PRIVATE
+        MUI_WINDOW_UIA=$<BOOL:${MAUL_UI_UIA}>
+        MUI_WINDOW_NS=$<BOOL:${MAUL_UI_NSACCESSIBILITY}>
+        MUI_WINDOW_ATSPI=$<BOOL:${MAUL_UI_ATSPI}>)
+endif()
 add_library(maul-ui-window::maul-ui-window ALIAS maul-ui-window)
 target_include_directories(maul-ui-window PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/window/include>

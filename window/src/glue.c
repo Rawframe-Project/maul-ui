@@ -13,6 +13,7 @@
 
 #include "allocator.h"
 #include "gamepads.h"
+#include "glue_state.h"
 
 #include "maul-ui/event.h"
 #include "maul-ui/focus.h"
@@ -32,36 +33,6 @@
 
 // The pen's eraser, as the W3C's Pointer Events number it.
 #define ERASER 5u
-
-struct muiWindowGlue
-{
-    muiAllocator allocator;
-    mwinContext* windows;
-    mwinWindowId window;
-    muiContext* context;
-    muiNodeId root;
-    uint8_t player;
-    // The cursor's last place, the buttons it holds and the modifiers
-    // last reported.
-    float x;
-    float y;
-    muiPointerButtons buttons;
-    muiModifiers modifiers;
-    // The pen's last place and the buttons it holds.
-    float penX;
-    float penY;
-    muiPointerButtons penButtons;
-    // The touches in contact, by slot.
-    uint64_t touchIds[TOUCHES];
-    bool touching[TOUCHES];
-    float touchX[TOUCHES];
-    float touchY[TOUCHES];
-    // The pointers whose press was the UI's, by id, while they hold it.
-    uint32_t held;
-    // Whether it takes gamepads, and what they hold.
-    bool gamepads;
-    muiWindowPads pads;
-};
 
 muiWindowGlueDef muiDefaultWindowGlueDef(void)
 {

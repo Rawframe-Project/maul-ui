@@ -279,6 +279,19 @@ ranges and virtual lists.
   while it is on. The test is an application in the Android emulator,
   built without Gradle, whose Java asks the provider as clients do;
   the events are recorded in place of the provider's.
+- **Through the Maul Window glue** (`maul-ui-window/access.h`, with the
+  consumer): one access a glue makes the adapter built for its window's
+  platform over Maul Window's native handles (UI Automation over the
+  HWND, NSAccessibility over the view, AT-SPI for X11 and Wayland in
+  the program's application), enables the glue's root, sends its
+  updates each frame, has the context perform what clients ask unless
+  the host takes it, rescales on the window's scale changes, places an
+  X11 window for AT-SPI, and hands the window the adapter's root
+  (`mwinRequestAccessibilityRoot`) whenever it changes, as
+  NSAccessibility's does with the tree's root. A window with no
+  adapter, Maul Window's test backend's among them, keeps the tree
+  alone, which tests read. The adapters for iOS, Android and the web
+  join it with their cells.
 
 ## Consequences
 

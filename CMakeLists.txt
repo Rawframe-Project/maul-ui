@@ -259,6 +259,11 @@ if(MAUL_UI_BUILD_TESTS)
         # The glue on Maul Window's headless test backend.
         maul_add_test(window_glue)
         target_link_libraries(test_window_glue PRIVATE maul-ui-window)
+        # Accessibility, a tree alone on the test backend.
+        if(MAUL_UI_ACCESS_TREE)
+            maul_add_test(window_access)
+            target_link_libraries(test_window_access PRIVATE maul-ui-window)
+        endif()
         # Compositions and text carets, in Ahem, where Maul UI has its text
         # component.
         if(MAUL_UI_TEXT)

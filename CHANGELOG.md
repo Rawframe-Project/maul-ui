@@ -64,7 +64,12 @@ format.
   to accept text with its caret at a node, and with the text component
   `maul-ui-window/composition.h` sets an input method's preedit into a
   text block (`muiWindowSetComposition`) and places the caret at a
-  position of a node's text (`muiWindowGlue_SetTextCaret`).
+  position of a node's text (`muiWindowGlue_SetTextCaret`). With the
+  accessibility tree's consumer, `maul-ui-window/access.h` makes the
+  adapter for the window's platform (UI Automation, NSAccessibility,
+  AT-SPI), sends it the root's updates and hands its root to the
+  window; a window with no adapter keeps the tree alone (record
+  mui-0008).
 - `muiNode_MapToRoot`, a point of a node's border box carried through
   its ancestors' places and scroll offsets into its root's space, and
   `muiNode_GetContentRect`, a node's content box in its border box
