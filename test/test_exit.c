@@ -322,9 +322,11 @@ static void TestPop(void)
     muiNodeId inside = Sized(context, b, 0.0f, 10.0f);
     muiLayoutStyle full = muiDefaultLayoutStyle();
     full.sizing.width = (muiDimension){1.0f, 0.0f, mui_dimensionValue};
-    CHECK(muiNode_SetLayoutValues(context, inside, &full, MUI_PROPERTY_BIT(mui_propertyWidth)) ==
-              mui_success,
-          "as wide as its parent");
+    full.sizing.height = (muiDimension){1.0f, 0.0f, mui_dimensionValue};
+    CHECK(muiNode_SetLayoutValues(context, inside, &full,
+                                  MUI_PROPERTY_BIT(mui_propertyWidth) |
+                                      MUI_PROPERTY_BIT(mui_propertyHeight)) == mui_success,
+          "as large as its parent");
     Layout(context, root, 0);
     CHECK(muiDefaultInteractionStyle().exitLayout == mui_exitKeep &&
               muiNode_GetRect(context, c).x == 200.0f,
@@ -342,7 +344,8 @@ static void TestPop(void)
     muiRect rb = muiNode_GetRect(context, b);
     CHECK(muiNode_GetRect(context, a).x == 0.0f && muiNode_GetRect(context, c).x == 100.0f &&
               rb.x == 100.0f && rb.y == 0.0f && rb.width == 100.0f && rb.height == 50.0f &&
-              muiNode_GetRect(context, inside).width == 100.0f,
+              muiNode_GetRect(context, inside).width == 100.0f &&
+              muiNode_GetRect(context, inside).height == 50.0f,
           "out of the flow, where it was");
     // Its style changing while it exits leaves it out.
     SetExitLayout(context, b, mui_exitKeep);
@@ -353,6 +356,14 @@ static void TestPop(void)
     Layout(context, root, 0);
     CHECK(muiNode_GetRect(context, b).x == 100.0f && muiNode_GetRect(context, c).x == 200.0f,
           "back");
+    // Popped and cancelled with the policy still pop: back too.
+    SetExitLayout(context, b, mui_exitPop);
+    CHECK(muiNode_BeginExit(context, b) == mui_success, "popped again");
+    Layout(context, root, 0);
+    CHECK(muiNode_GetRect(context, c).x == 100.0f && muiNode_CancelExit(context, b) == mui_success,
+          "out, then cancelled");
+    Layout(context, root, 0);
+    CHECK(muiNode_GetRect(context, c).x == 200.0f, "back again");
     // An absolute node popped and cancelled stays absolute.
     muiLayoutStyle absolute = muiDefaultLayoutStyle();
     absolute.placement.position = mui_positionAbsolute;
