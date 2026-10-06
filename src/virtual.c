@@ -506,6 +506,8 @@ static double Measure(muiContext* context, uint32_t slot, const muiVirtualEntry*
 }
 
 // Places the bound items of the list at slot at their offsets along it.
+// What moves them marks the list for painting (an edit, a list set anew,
+// an item measured anew), and the draw list emits a moved node anew.
 static void Position(muiContext* context, uint32_t slot, const muiVirtualEntry* entry)
 {
     const muiVirtualStore* store = &context->lists;
@@ -535,10 +537,6 @@ static void Position(muiContext* context, uint32_t slot, const muiVirtualEntry* 
         else
         {
             rect->x = style->border.start + style->padding.start + offset;
-        }
-        if (!muiIsSameRect(*rect, context->draw.states[c - 1].rect))
-        {
-            muiTreeMark(&context->tree, c, mui_stagePaint);
         }
     }
 }
