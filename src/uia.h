@@ -21,11 +21,11 @@
 
 #include <ole2.h>
 #include <uiautomationcore.h>
-#include <uiautomationcoreapi.h>
 
-// UI Automation's errors, as HRESULTs.
-#define ELEMENT_GONE  ((HRESULT)UIA_E_ELEMENTNOTAVAILABLE)
-#define NOT_SUPPORTED ((HRESULT)UIA_E_NOTSUPPORTED)
+// UI Automation's errors, as HRESULTs: UIA_E_ELEMENTNOTAVAILABLE and
+// UIA_E_NOTSUPPORTED.
+#define ELEMENT_GONE  ((HRESULT)0x80040201)
+#define NOT_SUPPORTED ((HRESULT)0x80040204)
 
 // The functions of uiautomationcore.dll the adapter calls, loaded when it
 // is made, as MinGW has no import library of them.

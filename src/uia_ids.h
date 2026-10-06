@@ -2,9 +2,11 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // The UI Automation adapter's ids of properties, control types and
-// patterns (record mui-0008). The Windows SDK's UIAutomationClient.h
-// defines them as const variables, which in C every file including it
-// defines again, so the adapter writes the values it uses here.
+// patterns, and the constants of UIAutomationCoreApi.h it uses (record
+// mui-0008). The Windows SDK's UIAutomationClient.h and
+// UIAutomationCoreApi.h define some of theirs as const variables, which
+// in C every file including them defines again, so the adapter writes
+// the values it uses here and includes neither.
 
 #ifndef MAUL_UI_SRC_UIA_IDS_H
 #define MAUL_UI_SRC_UIA_IDS_H
@@ -74,5 +76,11 @@ enum
     CONTROL_TITLE_BAR = 50037,
     CONTROL_SEPARATOR = 50038,
 };
+
+// UiaAppendRuntimeId, the first part of a fragment's runtime id, and
+// UiaRootObjectId, the object id of WM_GETOBJECT asking for UI
+// Automation's root.
+#define APPEND_RUNTIME_ID 3
+#define ROOT_OBJECT_ID    (-25)
 
 #endif // MAUL_UI_SRC_UIA_IDS_H

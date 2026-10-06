@@ -199,7 +199,7 @@ void* muiUiaAdapter_GetRoot(muiUiaAdapter* adapter)
 bool muiUiaAdapter_HandleGetObject(muiUiaAdapter* adapter, uintptr_t wParam, intptr_t lParam,
                                    intptr_t* resultOut)
 {
-    if (adapter == nullptr || resultOut == nullptr || (LONG)lParam != UiaRootObjectId)
+    if (adapter == nullptr || resultOut == nullptr || (LONG)lParam != ROOT_OBJECT_ID)
     {
         return false;
     }

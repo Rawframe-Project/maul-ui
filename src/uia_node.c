@@ -291,7 +291,7 @@ static HRESULT STDMETHODCALLTYPE RuntimeId(IRawElementProviderFragment* fragment
     {
         return E_NOTIMPL;
     }
-    const int parts[3] = {UiaAppendRuntimeId, (int)(uint32_t)node->id,
+    const int parts[3] = {APPEND_RUNTIME_ID, (int)(uint32_t)node->id,
                           (int)(uint32_t)(node->id >> 32)};
     SAFEARRAY* array = SafeArrayCreateVector(VT_I4, 0, 3);
     if (array == nullptr)
