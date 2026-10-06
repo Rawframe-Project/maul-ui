@@ -44,6 +44,7 @@ access_build: access access_store context focus layer range scroll_store style_s
 access_tree_store:
 access_tree: access_tree_store allocator
 access_apply: access_tree access_tree_store allocator
+access_view: access_tree_store
 access_action: access context event layout_node notify range scroll_store tree
 popup: context layout_node popup_store scroll tree notify
 scroll: context scroll_store tree layer motion_math

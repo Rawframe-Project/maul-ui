@@ -18,10 +18,13 @@ typedef struct muiHeldNode
 {
     muiAccessNode node;
     uint64_t* children;
-    // The parent's slot, 0 for none, and the apply that last saw a node
-    // it sent list this one.
+    // The parent's slot, 0 for none; the apply that last saw a node it
+    // sent list this one, and which (its place in the update plus 1); and
+    // the apply that found the parents above it end.
     uint32_t parent;
     uint32_t listed;
+    uint32_t claimer;
+    uint32_t ended;
 } muiHeldNode;
 
 // What applying an update copies before it changes anything.
@@ -39,13 +42,15 @@ typedef struct muiRetiredNode
     bool removed;
 } muiRetiredNode;
 
-// A slot in the update's index: the node's place in the update plus 1,
-// and the apply it was written in.
+// A slot in the update's index for a node new to the tree: the apply it
+// was written in, the node sent that lists it (its place in the update
+// plus 1, or 0), and the apply that found the parents above it end.
 typedef struct muiUpdateSlot
 {
     uint64_t id;
-    uint32_t index1;
     uint32_t apply;
+    uint32_t claimer;
+    uint32_t ended;
 } muiUpdateSlot;
 
 struct muiAccessTree
@@ -68,7 +73,9 @@ struct muiAccessTree
     muiStagedNode* staged;
     muiRetiredNode* retired;
     uint32_t* added;
+    // Scratch for walks: slots, and where each is in its children.
     uint32_t* stack;
+    uint32_t* walk;
     uint64_t root;
     uint64_t focus;
 };

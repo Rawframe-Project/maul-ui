@@ -55,34 +55,109 @@ static void Begin(muiAccessTree* tree)
     }
 }
 
-// Indexes the update and checks it fits the tree.
-static muiResult Check(muiAccessTree* tree, const muiAccessUpdate* update)
+// Indexes the nodes sent: false for the id 0 or a node sent twice.
+static bool IndexSent(muiAccessTree* tree, const muiAccessUpdate* update)
 {
-    if (update->nodeCount > tree->capacity)
-    {
-        return mui_errorCapacity;
-    }
-    if (update->nodeCount != 0 && update->nodes == nullptr)
-    {
-        return mui_errorInvalid;
-    }
     for (uint32_t i = 0; i < update->nodeCount; i++)
     {
         uint64_t id = update->nodes[i]->id;
         uint32_t at = UpdatePlace(tree, id);
-        // The id 0, or a node sent twice.
         if (id == 0 || tree->updates[at].apply == tree->apply)
         {
-            return mui_errorInvalid;
+            return false;
         }
-        tree->updates[at] = (muiUpdateSlot){id, i + 1, tree->apply};
+        tree->updates[at] = (muiUpdateSlot){.id = id, .apply = tree->apply};
     }
-    uint64_t root = update->root != 0 ? update->root : tree->root;
-    if (root == 0 || (update->root != 0 && !IsSent(tree, update->root)) ||
-        (update->focus != 0 && !IsKnown(tree, update->focus)))
+    return true;
+}
+
+// Records that the node sent at index1 lists a child: false for a child
+// neither held nor sent, one another node sent lists too, or one a node
+// not sent lists now.
+static bool Claim(muiAccessTree* tree, uint64_t id, uint32_t index1)
+{
+    uint32_t slot = muiHeldSlotOf(tree, id);
+    if (slot != 0)
     {
-        return mui_errorInvalid;
+        muiHeldNode* held = &tree->held[slot - 1];
+        uint32_t parent = held->parent;
+        if (held->listed == tree->apply ||
+            (parent != 0 && !IsSent(tree, tree->held[parent - 1].node.id)))
+        {
+            return false;
+        }
+        held->listed = tree->apply;
+        held->claimer = index1;
+        return true;
     }
+    muiUpdateSlot* sent = &tree->updates[UpdatePlace(tree, id)];
+    if (sent->apply != tree->apply || sent->claimer != 0)
+    {
+        return false;
+    }
+    sent->claimer = index1;
+    return true;
+}
+
+static bool IsClaimed(const muiAccessTree* tree, uint64_t id)
+{
+    uint32_t slot = muiHeldSlotOf(tree, id);
+    return slot != 0 ? tree->held[slot - 1].listed == tree->apply
+                     : tree->updates[UpdatePlace(tree, id)].claimer != 0;
+}
+
+// A node's parent once the update is applied; 0 for none, or for a
+// child its parent sent no longer lists, which leaves.
+static uint64_t ParentAfter(const muiAccessTree* tree, const muiAccessUpdate* update, uint64_t id)
+{
+    uint32_t slot = muiHeldSlotOf(tree, id);
+    uint32_t claimer =
+        slot != 0 ? (tree->held[slot - 1].listed == tree->apply ? tree->held[slot - 1].claimer : 0)
+                  : tree->updates[UpdatePlace(tree, id)].claimer;
+    if (claimer != 0)
+    {
+        return update->nodes[claimer - 1]->id;
+    }
+    uint32_t parent = slot != 0 ? tree->held[slot - 1].parent : 0;
+    uint64_t parentId = parent != 0 ? tree->held[parent - 1].node.id : 0;
+    return parentId != 0 && !IsSent(tree, parentId) ? parentId : 0;
+}
+
+// Where the apply that found a node's parents end is kept.
+static uint32_t* EndedOf(muiAccessTree* tree, uint64_t id)
+{
+    uint32_t slot = muiHeldSlotOf(tree, id);
+    return slot != 0 ? &tree->held[slot - 1].ended : &tree->updates[UpdatePlace(tree, id)].ended;
+}
+
+// Whether the parents above a node end rather than come round again;
+// those found to end are marked, so each node is walked once an apply.
+static bool Ends(muiAccessTree* tree, const muiAccessUpdate* update, uint64_t id)
+{
+    // A path with no cycle passes each node once.
+    uint32_t limit = tree->count + update->nodeCount;
+    uint32_t steps = 0;
+    for (uint64_t at = id; at != 0 && *EndedOf(tree, at) != tree->apply;
+         at = ParentAfter(tree, update, at))
+    {
+        if (++steps > limit)
+        {
+            return false;
+        }
+    }
+    for (uint64_t at = id; at != 0 && *EndedOf(tree, at) != tree->apply;
+         at = ParentAfter(tree, update, at))
+    {
+        *EndedOf(tree, at) = tree->apply;
+    }
+    return true;
+}
+
+// Checks the lists sent leave a tree: every child known and listed once,
+// the root listed by none, no node above itself; counts the nodes new.
+static muiResult CheckLists(muiAccessTree* tree, const muiAccessUpdate* update, uint64_t root,
+                            uint32_t* addedOut)
+{
     uint32_t added = 0;
     for (uint32_t i = 0; i < update->nodeCount; i++)
     {
@@ -94,11 +169,49 @@ static muiResult Check(muiAccessTree* tree, const muiAccessUpdate* update)
         }
         for (uint32_t k = 0; k < node->childCount; k++)
         {
-            if (!IsKnown(tree, update->children[node->firstChild + k]))
+            if (!Claim(tree, update->children[node->firstChild + k], i + 1))
             {
                 return mui_errorInvalid;
             }
         }
+    }
+    if (IsClaimed(tree, root))
+    {
+        return mui_errorInvalid;
+    }
+    for (uint32_t i = 0; i < update->nodeCount; i++)
+    {
+        if (!Ends(tree, update, update->nodes[i]->id))
+        {
+            return mui_errorInvalid;
+        }
+    }
+    *addedOut = added;
+    return mui_success;
+}
+
+// Indexes the update and checks it fits the tree.
+static muiResult Check(muiAccessTree* tree, const muiAccessUpdate* update)
+{
+    if (update->nodeCount > tree->capacity)
+    {
+        return mui_errorCapacity;
+    }
+    if ((update->nodeCount != 0 && update->nodes == nullptr) || !IndexSent(tree, update))
+    {
+        return mui_errorInvalid;
+    }
+    uint64_t root = update->root != 0 ? update->root : tree->root;
+    if (root == 0 || (update->root != 0 && !IsSent(tree, update->root)) ||
+        (update->focus != 0 && !IsKnown(tree, update->focus)))
+    {
+        return mui_errorInvalid;
+    }
+    uint32_t added = 0;
+    muiResult status = CheckLists(tree, update, root, &added);
+    if (status != mui_success)
+    {
+        return status;
     }
     return tree->count + added <= tree->capacity ? mui_success : mui_errorCapacity;
 }

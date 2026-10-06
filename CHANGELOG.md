@@ -135,8 +135,12 @@ format.
   `mui_navigateActivate`), `mui_notificationAccessAction`;
   `muiAccessIdOf` and `muiNodeIdOfAccess`. The consumer adapters read
   (`maul-ui/access_tree.h`, `MAUL_UI_ACCESS_TREE`): `muiCreateAccessTree`,
-  `muiAccessTree_Apply` with `muiAccessChanges`, the readers, and
-  `muiAccessTree_Write` and `muiAccessRoleName` (record mui-0008).
+  `muiAccessTree_Apply` with `muiAccessChanges` (refusing lists that
+  would not leave a tree), the readers, the tree as platforms see it
+  (`muiAccessTree_GetShownChildren`, `muiAccessTree_GetShownParent`,
+  `muiAccessTree_IsShown`), `muiAccessTree_GetName`,
+  `muiAccessTree_GetBounds`, and `muiAccessTree_Write` and
+  `muiAccessRoleName` (record mui-0008).
 - Exit transitions (`maul-ui/exit.h`): `muiNode_BeginExit` and
   `muiNode_CancelExit`; an exiting subtree leaves hit testing, focus
   and navigation, and `mui_notificationExitFinished` reports when no

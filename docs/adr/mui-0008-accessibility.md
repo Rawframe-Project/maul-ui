@@ -106,9 +106,18 @@ ranges and virtual lists.
   `MAUL_UI_ACCESS_TREE`, on by default) keeps the copy adapters read:
   a `muiAccessTree` applies updates whole or not at all (checked, then
   copied into memory it owns, then put in place), lets a node no node
-  lists go with its subtree, tells the adapter what was added, updated
-  (with the old record), removed and where the focus moved, and
-  writes itself as text for tests. It is used on one thread, the one
+  lists go with its subtree, refuses lists that would not leave a tree
+  (a child listed twice, the root listed, a node under itself), tells
+  the adapter what was added, updated (with the old record), removed
+  and where the focus moved, and writes itself as text for tests. It
+  answers what platforms see as AccessKit's consumer does: hidden
+  subtrees and children clipped wholly out of view left out (but the
+  first past each edge, to scroll to), generic nodes flattened unless
+  labelled (the core makes every node generic until the host gives a
+  role, so a labelled one must stay to be heard), the focus never left
+  out for itself; names from the label, the labelling nodes, or for
+  button-like roles the labels and images inside; bounds through every
+  transform, the root's included. It is used on one thread, the one
   the platform calls on: family record 0017 allows no lock or wait on
   a platform's thread, and with UI Automation's COM threading on an STA
   thread every platform calls on the window's thread.
@@ -122,5 +131,4 @@ its table of host data, reserved at creation (168 bytes an entry and
 4 a node slot), and a bit per mark. With one enabled, a frame's cost is
 deriving the nodes marked since the last update, and memory is a copy
 of a node record and its place for each node slot, 308 bytes each.
-The consumer's filtering, names and bounds in the root's space come
-next, then the adapters themselves.
+The adapters come next.

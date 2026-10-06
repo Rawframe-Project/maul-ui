@@ -14,7 +14,9 @@
 
 #include "maul-ui/access.h"
 #include "maul-ui/base.h"
+#include "maul-ui/layout.h"
 
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -90,8 +92,11 @@ extern "C"
     ///         fit or memory runs out, which changes nothing;
     ///         `mui_errorInvalid` for a NULL tree or update, or an update
     ///         that does not fit the tree: no root for an empty tree, a
-    ///         node with the id 0, a child neither held nor sent, or a
-    ///         root, or focus, that is neither.
+    ///         node with the id 0 or sent twice, a child neither held nor
+    ///         sent, a root, or focus, that is neither, or lists that do
+    ///         not leave a tree: a child listed twice, or by a node sent
+    ///         while a node not sent lists it, the root listed, or a node
+    ///         under itself.
     /// @par Thread safety
     /// Safe from any thread; the tree is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiAccessTree_Apply(muiAccessTree* tree,
@@ -153,6 +158,89 @@ extern "C"
     /// Safe from any thread; the tree is used by one thread at a time.
     MUI_API const uint64_t* muiAccessTree_GetChildren(const muiAccessTree* tree, uint64_t id,
                                                       uint32_t* countOut);
+
+    /// A node's children as platforms see them, in order: generic
+    /// children with no label replaced by their own, hidden ones left out
+    /// with their subtrees, and under a node that clips its children,
+    /// those wholly outside it left out with their subtrees unless a
+    /// neighbour among them is not, so the first one past each edge can
+    /// still be scrolled to. The focus is not left out for being hidden
+    /// (nor what is in it), generic or clipped, though a hidden ancestor
+    /// hides it; the root is always shown.
+    ///
+    /// @param tree        The tree.
+    /// @param id          A node shown.
+    /// @param childrenOut Receives the ids, up to capacity; may be NULL
+    ///                    when capacity is 0.
+    /// @param capacity    Room in childrenOut.
+    /// @param countOut    Receives how many there are, whatever the room.
+    /// @return `mui_success`; `mui_errorCapacity` when they do not fit,
+    ///         those that fit written; `mui_empty` for a node not held;
+    ///         `mui_errorInvalid` for a NULL tree or count.
+    /// @par Thread safety
+    /// Safe from any thread; the tree is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiAccessTree_GetShownChildren(const muiAccessTree* tree,
+                                                                   uint64_t id,
+                                                                   uint64_t* childrenOut,
+                                                                   uint32_t capacity,
+                                                                   uint32_t* countOut);
+
+    /// The nearest ancestor of a node that platforms see.
+    ///
+    /// @param tree  The tree.
+    /// @param id    The node's id.
+    /// @return The ancestor's id; 0 for the root, a node not held, or a
+    ///         NULL tree.
+    /// @par Thread safety
+    /// Safe from any thread; the tree is used by one thread at a time.
+    MUI_API uint64_t muiAccessTree_GetShownParent(const muiAccessTree* tree, uint64_t id);
+
+    /// Whether platforms see a node: it is the root, or among its shown
+    /// parent's shown children.
+    ///
+    /// @param tree  The tree.
+    /// @param id    The node's id.
+    /// @return Whether it is shown; false for a node not held.
+    /// @par Thread safety
+    /// Safe from any thread; the tree is used by one thread at a time.
+    MUI_API bool muiAccessTree_IsShown(const muiAccessTree* tree, uint64_t id);
+
+    /// A node's name: its label; else the texts of the nodes that label
+    /// it (a label node's value, another's label), joined by spaces;
+    /// else, for buttons, checkboxes, radio buttons, switches, links,
+    /// menu items and tabs, those of the labels and images inside it,
+    /// hidden subtrees left out.
+    ///
+    /// @param tree       The tree.
+    /// @param id         The node's id.
+    /// @param buffer     Receives the name, NUL-terminated; may be NULL
+    ///                   when capacity is 0.
+    /// @param capacity   Its size in bytes.
+    /// @param lengthOut  Receives the name's length.
+    /// @return `mui_success`; `mui_empty` for no name or a node not held;
+    ///         `mui_errorCapacity` when it does not fit, as much written
+    ///         as fits on a whole character; `mui_errorInvalid` for a NULL
+    ///         tree or length, or a NULL buffer with room.
+    /// @par Thread safety
+    /// Safe from any thread; the tree is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiAccessTree_GetName(const muiAccessTree* tree, uint64_t id,
+                                                          char* buffer, size_t capacity,
+                                                          size_t* lengthOut);
+
+    /// A node's bounds where the root is placed (the window's client area,
+    /// for a root laid out in it): its bounds carried through its own
+    /// transform and each ancestor's, the root's included, as the box
+    /// around them.
+    ///
+    /// @param tree       The tree.
+    /// @param id         The node's id.
+    /// @param boundsOut  Receives the bounds.
+    /// @return `mui_success`; `mui_empty` for a node not held;
+    ///         `mui_errorInvalid` for a NULL argument.
+    /// @par Thread safety
+    /// Safe from any thread; the tree is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiAccessTree_GetBounds(const muiAccessTree* tree, uint64_t id,
+                                                            muiRect* boundsOut);
 
     /// Writes the tree as text, a node a line in tree order, indented by
     /// depth: its role's name, its id's index, and its flags, actions,

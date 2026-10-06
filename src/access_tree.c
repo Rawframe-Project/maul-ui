@@ -36,6 +36,7 @@ typedef struct Parts
     size_t retired;
     size_t added;
     size_t stack;
+    size_t walk;
     size_t size;
 } Parts;
 
@@ -59,6 +60,7 @@ static Parts LayOut(uint32_t nodes, uint32_t indexSize)
         .retired = Add(&at, (size_t)nodes * 2, sizeof(muiRetiredNode), alignof(muiRetiredNode)),
         .added = Add(&at, nodes, sizeof(uint32_t), alignof(uint32_t)),
         .stack = Add(&at, nodes, sizeof(uint32_t), alignof(uint32_t)),
+        .walk = Add(&at, nodes, sizeof(uint32_t), alignof(uint32_t)),
     };
     parts.size = at;
     return parts;
@@ -102,6 +104,7 @@ muiResult muiCreateAccessTree(const muiAccessTreeDef* def, muiAccessTree** treeO
         .retired = (muiRetiredNode*)(block + parts.retired),
         .added = (uint32_t*)(block + parts.added),
         .stack = (uint32_t*)(block + parts.stack),
+        .walk = (uint32_t*)(block + parts.walk),
     };
     for (uint32_t i = 0; i < def->nodes; i++)
     {
