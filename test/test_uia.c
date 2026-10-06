@@ -15,6 +15,7 @@
 #include "maul-ui/access_uia.h"
 
 #include <stddef.h>
+#include <stdio.h>
 #include <string.h>
 #include <wchar.h>
 
@@ -316,11 +317,27 @@ static uint32_t Children(IUIAutomation* automation, IUIAutomationElement* root,
     return count;
 }
 
+// Prints what the client found, for a run that fails.
+static void Report(IUIAutomationElement** children, uint32_t count)
+{
+    for (uint32_t i = 0; i < count; i++)
+    {
+        BSTR name = NULL;
+        CONTROLTYPEID type = 0;
+        (void)IUIAutomationElement_get_CurrentName(children[i], &name);
+        (void)IUIAutomationElement_get_CurrentControlType(children[i], &type);
+        fwprintf(stderr, L"child %u: %ls, control type %d\n", i, name != NULL ? name : L"",
+                 (int)type);
+        SysFreeString(name);
+    }
+}
+
 static void CheckChildren(IUIAutomationElement** children, uint32_t count)
 {
     CHECK(count == 5, "five children, the generic flattened");
     if (count != 5)
     {
+        Report(children, count);
         return;
     }
     CHECK(NameIs(children[0], L"OK") && TypeIs(children[0], UIA_ButtonControlTypeId), "a button");
@@ -418,9 +435,10 @@ static HWND MakeWindow(void)
                       .hInstance = GetModuleHandleW(NULL),
                       .lpszClassName = L"maul-ui uia test"};
     (void)RegisterClassW(&type);
-    HWND window =
-        CreateWindowExW(WS_EX_TOPMOST, type.lpszClassName, L"Maul UI", WS_OVERLAPPEDWINDOW, 100,
-                        100, 640, 480, NULL, NULL, type.hInstance, NULL);
+    // A popup without a caption, so UI Automation finds no title bar
+    // among the root's children.
+    HWND window = CreateWindowExW(WS_EX_TOPMOST, type.lpszClassName, L"Maul UI", WS_POPUP, 100, 100,
+                                  640, 480, NULL, NULL, type.hInstance, NULL);
     if (window != NULL)
     {
         ShowWindow(window, SW_SHOWNOACTIVATE);
