@@ -875,7 +875,7 @@ int main(void)
     static Built s_built;
     muiAccessUpdate update = Build(&s_built);
     CHECK(muiUiaAdapter_Apply(s_program.adapter, &update) == mui_success &&
-              muiAccessTree_Count(muiUiaAdapter_GetTree(s_program.adapter)) == 7,
+              muiAccessTree_Count(muiUiaAdapter_GetTree(s_program.adapter)) == 12,
           "the tree");
     s_program.removal = CreateEventW(NULL, TRUE, FALSE, NULL);
     s_program.removed = CreateEventW(NULL, TRUE, FALSE, NULL);
