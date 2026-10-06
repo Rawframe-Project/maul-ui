@@ -135,7 +135,7 @@ static bool AreTrailing(const unsigned char* bytes, unsigned char lead, size_t c
 
 // Whether text is well-formed UTF-8, by Unicode's table of well-formed
 // byte sequences, without a NUL.
-static bool IsUtf8(const unsigned char* text, size_t length)
+bool muiAccessIsUtf8(const unsigned char* text, size_t length)
 {
     size_t i = 0;
     while (i < length)
@@ -204,7 +204,7 @@ muiResult muiNode_SetAccessText(muiContext* context, muiNodeId nodeId, muiAccess
         return mui_errorInvalid;
     }
     if (kind >= MUI_ACCESS_TEXTS || (text == nullptr && length != 0) || length > MAX_TEXT ||
-        !IsUtf8((const unsigned char*)text, length))
+        !muiAccessIsUtf8((const unsigned char*)text, length))
     {
         return muiRefuse(context);
     }
@@ -653,5 +653,25 @@ muiResult muiNode_GetAccessValues(const muiContext* context, muiNodeId nodeId,
     }
     const muiAccessEntry* entry = muiAccessEntryOf(context, slot);
     *valuesOut = entry != nullptr ? entry->values : muiDefaultAccessValues();
+    return mui_success;
+}
+
+muiResult muiSetAccessTextFunction(muiContext* context, muiAccessTextFunction function, void* user)
+{
+    if (context == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    if (muiIsInHostCall(context))
+    {
+        return muiRefuse(context);
+    }
+    context->access.textFunction = function;
+    context->access.textUser = user;
+    // What host content reads as may differ now: every root starts over.
+    for (uint32_t i = 0; i < context->access.rootCount; i++)
+    {
+        context->access.roots[i].whole = true;
+    }
     return mui_success;
 }

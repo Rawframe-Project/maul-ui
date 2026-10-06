@@ -49,6 +49,17 @@ ranges and virtual lists.
   set and freed when replaced, cleared or their node is destroyed. A
   node named that is destroyed later stays named, as adapters pass over
   ids they do not hold.
+- **Host content reads as its text** through a function the host sets
+  (`muiSetAccessTextFunction`), as layout measures through one: a node
+  whose content is the host's and whose value the host did not set
+  takes the text the function gives as its value, and the label role
+  when the host gave it none. The text component gives one for text
+  blocks (`muiAccessTextOf`), so text in the UI is named without the
+  host repeating it, and a button's name comes from the label inside
+  it by the consumer's rule for names. The function may not edit the
+  context; its text must be well-formed UTF-8, and is left out
+  otherwise. Its text is compared by a 64-bit fingerprint, kept per
+  node slot, since it is not the library's to keep.
 - **What the library derives**, read when an update is built: the
   children (a virtual list's in item order); bounds, the border box in
   the node's own space, and a transform to its parent's, the node's
@@ -99,7 +110,6 @@ are read where they already are. A context with no root enabled pays
 its table of host data, reserved at creation (168 bytes an entry and
 4 a node slot), and a bit per mark. With one enabled, a frame's cost is
 deriving the nodes marked since the last update, and memory is a copy
-of a node record and its place for each node slot, 296 bytes each.
-Text blocks naming their nodes come next; then the consumer that
-adapters share (the tree, names, filtering and the changes platforms
-announce), and the adapters themselves.
+of a node record and its place for each node slot, 308 bytes each.
+The consumer that adapters share (the tree, names, filtering and the
+changes platforms announce) comes next, then the adapters themselves.

@@ -9,6 +9,7 @@
 
 #include "test_harness.h"
 
+#include "maul-ui/access.h"
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
 #include "maul-ui/font.h"
@@ -201,6 +202,33 @@ static void TestBlocksAndKeys(void)
     CHECK(muiGetTextServiceFailures(NULL) == 0 && muiGetTextServiceFailures(service) == 0,
           "no failures");
     muiDestroyTextService(service);
+}
+
+static void TestAccessText(void)
+{
+    // A node reads as its block's text: as the function gives it, and in
+    // the accessibility tree as a label.
+    Scene scene = MakeScene(NULL);
+    muiNodeId node = AddText(&scene, s_nullNode, "Save");
+    uint64_t key = muiNode_GetHostKey(scene.context, node);
+    const char* text = NULL;
+    size_t length = 0;
+    CHECK(muiAccessTextOf(&scene.host, node, key, &text, &length) && length == 4 &&
+              memcmp(text, "Save", 4) == 0,
+          "the block's text");
+    CHECK(!muiAccessTextOf(&scene.host, node, key + 1, &text, &length) &&
+              !muiAccessTextOf(NULL, node, key, &text, &length),
+          "no block");
+    CHECK(muiSetAccessTextFunction(scene.context, muiAccessTextOf, &scene.host) == mui_success &&
+              muiAccess_Enable(scene.context, node) == mui_success,
+          "read");
+    muiAccessUpdate update;
+    CHECK(muiBuildAccessUpdate(scene.context, node, &update) == mui_success &&
+              update.nodeCount == 1 && update.nodes[0]->role == mui_roleLabel &&
+              update.nodes[0]->textLength[mui_accessValue] == 4 &&
+              memcmp(update.nodes[0]->text[mui_accessValue], "Save", 4) == 0,
+          "a label reading Save");
+    FreeScene(&scene);
 }
 
 static void TestMeasuring(void)
@@ -619,6 +647,7 @@ static void TestMemoryRunningOut(void)
 int main(void)
 {
     TestBlocksAndKeys();
+    TestAccessText();
     TestMeasuring();
     TestLineBreaksInText();
     TestPainting();

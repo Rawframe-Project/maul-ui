@@ -241,6 +241,48 @@ static bool IsSame(const muiAccessNode* a, const muiAccessNode* b)
            muiAccessSameValues(&a->values, &b->values);
 }
 
+// FNV-1a over bytes, on from print.
+static uint64_t Fingerprint(uint64_t print, const unsigned char* bytes, size_t length)
+{
+    for (size_t i = 0; i < length; i++)
+    {
+        print = (print ^ bytes[i]) * 1099511628211ULL;
+    }
+    return print;
+}
+
+// Reads host content's text from the host's text function into a node
+// whose value the host did not set, labelling a node the host gave no
+// role; a fingerprint of the text, 0 for none.
+static uint64_t ReadContent(muiContext* context, uint32_t slot, muiAccessNode* node)
+{
+    const muiAccessStore* store = &context->access;
+    if (store->textFunction == nullptr ||
+        context->layout[slot - 1].style.content != mui_contentHost ||
+        node->text[mui_accessValue] != nullptr)
+    {
+        return 0;
+    }
+    const char* text = nullptr;
+    size_t length = 0;
+    // As the measure function, it may not edit the context.
+    context->inHostCall = true;
+    bool read = store->textFunction(store->textUser, muiTreeIdOf(&context->tree, slot),
+                                    muiTreeAt(&context->tree, slot)->hostKey, &text, &length);
+    context->inHostCall = false;
+    if (!read || text == nullptr || length == 0 || length > INT32_MAX ||
+        !muiAccessIsUtf8((const unsigned char*)text, length))
+    {
+        return 0;
+    }
+    node->text[mui_accessValue] = text;
+    node->textLength[mui_accessValue] = (uint32_t)length;
+    node->role = node->role == mui_roleGeneric ? mui_roleLabel : node->role;
+    // A changed text whose fingerprint matches the last, one in 2^64, is
+    // not sent again.
+    return Fingerprint(14695981039346656037ULL, (const unsigned char*)text, length);
+}
+
 // A build under way.
 typedef struct Build
 {
@@ -297,13 +339,14 @@ static void Visit(Build* build, uint32_t slot)
     uint32_t* children = store->order;
     muiAccessNode node;
     uint32_t count = muiAccessDerive(context, slot, &node, children);
+    uint64_t content = ReadContent(context, slot, &node);
     const muiAccessEntry* entry = muiAccessEntryOf(context, slot);
     uint32_t version = entry != nullptr ? entry->version : 0;
     muiAccessNode* copy = &store->copies[slot - 1];
     bool sentBefore = copy->id == node.id;
     bool sameChildren = HasSameChildren(context, slot, children, count, sentBefore);
     if (!build->whole && sentBefore && sameChildren && store->sent[slot - 1].version == version &&
-        IsSame(copy, &node))
+        store->sent[slot - 1].content == content && IsSame(copy, &node))
     {
         return;
     }
@@ -318,6 +361,7 @@ static void Visit(Build* build, uint32_t slot)
     store->nodes[build->nodeCount++] = copy;
     muiAccessSent* sent = &store->sent[slot - 1];
     sent->version = version;
+    sent->content = content;
     sent->childCount = count;
     // A new list: children it no longer holds hold an older one.
     sent->serial++;

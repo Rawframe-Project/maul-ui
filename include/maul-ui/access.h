@@ -393,8 +393,8 @@ extern "C"
         float scrollYMax;
         // Its typed values, the host's and the library's.
         muiAccessValues values;
-        // Its texts by muiAccessTextKind, each NUL-terminated, NULL for
-        // none.
+        // Its texts by muiAccessTextKind with their lengths, NULL for
+        // none: the host's end in a NUL, the text function's need not.
         const char* text[MUI_ACCESS_TEXTS];
         uint32_t textLength[MUI_ACCESS_TEXTS];
         // The nodes it names, in order of kind, then as the host gave
@@ -432,6 +432,14 @@ extern "C"
         float y;
     } muiAccessRequest;
 
+    /// The host's function for what host content reads as: a node's text,
+    /// such as a text block's, valid until the host edits it. It runs
+    /// inside muiBuildAccessUpdate, as the measure function runs inside
+    /// layout, and may not change the context. The text must be
+    /// well-formed UTF-8 below 2^31 bytes; other text is left out.
+    typedef bool (*muiAccessTextFunction)(void* user, muiNodeId nodeId, uint64_t hostKey,
+                                          const char** textOut, size_t* lengthOut);
+
     /// The accessibility id of a node.
     ///
     /// @param nodeId  The node.
@@ -447,6 +455,22 @@ extern "C"
     /// @par Thread safety
     /// Safe from any thread.
     MUI_API muiNodeId muiNodeIdOfAccess(uint64_t id);
+
+    /// Sets the function host content's text comes from: a node whose
+    /// content is the host's (maul-ui/layout.h's mui_contentHost) and
+    /// whose value text the host did not set reads as what it returns,
+    /// and as a label when the host gave it no role. NULL reads nothing.
+    ///
+    /// @param context   The context.
+    /// @param function  The function, or NULL.
+    /// @param user      Passed to it.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context or a
+    ///         call from a measure or paint function.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiSetAccessTextFunction(muiContext* context,
+                                                             muiAccessTextFunction function,
+                                                             void* user);
 
     /// Builds updates for a root's tree from now on, the next one whole.
     /// Enabling an enabled root makes its next update whole again, as

@@ -464,6 +464,113 @@ static void TestRelationsAndValues(void)
     muiDestroyContext(context);
 }
 
+// Host content's text by key: key 1 reads "One", key 2 whatever s_read
+// says, key 3 ill-formed text, key 5 a text it says it did not read,
+// key 6 an empty one; others nothing.
+static const char* s_read = "Two";
+static int s_reads;
+static muiContext* s_reader;
+static muiResult s_editFromReader;
+
+static bool ReadText(void* user, muiNodeId nodeId, uint64_t hostKey, const char** textOut,
+                     size_t* lengthOut)
+{
+    (void)user;
+    s_reads++;
+    s_editFromReader = muiNode_SetAccessRole(s_reader, nodeId, mui_roleButton);
+    const char* text = hostKey == 1   ? "One"
+                       : hostKey == 2 ? s_read
+                       : hostKey == 3 ? "\xC0\x80"
+                       : hostKey == 5 ? "Five"
+                       : hostKey == 6 ? ""
+                                      : NULL;
+    if (text == NULL)
+    {
+        return false;
+    }
+    *textOut = text;
+    *lengthOut = strlen(text);
+    return hostKey != 5;
+}
+
+static muiNodeId Content(muiContext* context, muiNodeId parent, uint64_t key)
+{
+    muiNodeDef def = muiDefaultNodeDef();
+    def.hostKey = key;
+    muiNodeId node = s_nullNode;
+    CHECK(muiCreateNode(context, &def, &node) == mui_success &&
+              muiNode_InsertChild(context, parent, node, s_nullNode) == mui_success,
+          "node");
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.content = mui_contentHost;
+    CHECK(muiNode_SetLayoutValues(context, node, &style, MUI_PROPERTY_BIT(mui_propertyContent)) ==
+              mui_success,
+          "content");
+    return node;
+}
+
+static void TestContentText(void)
+{
+    muiContextDef def = muiDefaultContextDef();
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    s_reader = context;
+    muiNodeId root = Node(context, s_nullNode);
+    muiNodeId one = Content(context, root, 1);
+    muiNodeId two = Content(context, root, 2);
+    muiNodeId bad = Content(context, root, 3);
+    muiNodeId none = Content(context, root, 4);
+    muiNodeId own = Content(context, root, 1);
+    muiNodeId unread = Content(context, root, 5);
+    muiNodeId empty = Content(context, root, 6);
+    muiNodeId plain = Node(context, root);
+    CHECK(muiNode_SetAccessRole(context, own, mui_roleHeading) == mui_success, "a heading");
+    Text(context, two, mui_accessLabel, "Second");
+    CHECK(muiSetAccessTextFunction(context, ReadText, NULL) == mui_success &&
+              muiAccess_Enable(context, root) == mui_success,
+          "reading");
+    muiAccessUpdate update = Build(context, root);
+    CHECK(Sent(&update, one)->role == mui_roleLabel &&
+              strcmp(Sent(&update, one)->text[mui_accessValue], "One") == 0 &&
+              Sent(&update, own)->role == mui_roleHeading &&
+              strcmp(Sent(&update, own)->text[mui_accessValue], "One") == 0 &&
+              Sent(&update, two)->textLength[mui_accessValue] == 3,
+          "read, the host's role kept");
+    CHECK(Sent(&update, bad)->role == mui_roleGeneric &&
+              Sent(&update, bad)->text[mui_accessValue] == NULL &&
+              Sent(&update, none)->text[mui_accessValue] == NULL &&
+              Sent(&update, plain)->text[mui_accessValue] == NULL &&
+              Sent(&update, unread)->text[mui_accessValue] == NULL &&
+              Sent(&update, empty)->text[mui_accessValue] == NULL &&
+              Sent(&update, empty)->role == mui_roleGeneric,
+          "ill-formed, nothing, not content, not read, empty");
+    CHECK(s_editFromReader == mui_errorInvalid && s_reads == 7, "read once each, editing nothing");
+    // The host's value wins, unread.
+    Text(context, one, mui_accessValue, "Uno");
+    s_reads = 0;
+    update = Build(context, root);
+    CHECK(update.nodeCount == 1 && strcmp(Sent(&update, one)->text[mui_accessValue], "Uno") == 0 &&
+              s_reads == 0,
+          "the host's value");
+    // Content changed: read again, sent when it differs.
+    CHECK(muiNode_MarkContentChanged(context, two) == mui_success, "marked");
+    update = Build(context, root);
+    CHECK(update.nodeCount == 0, "the same text");
+    s_read = "Deux";
+    CHECK(muiNode_MarkContentChanged(context, two) == mui_success, "marked again");
+    update = Build(context, root);
+    CHECK(update.nodeCount == 1 && Sent(&update, two)->textLength[mui_accessValue] == 4,
+          "a new text");
+    // A new function: everything again.
+    CHECK(muiSetAccessTextFunction(context, NULL, NULL) == mui_success, "none");
+    update = Build(context, root);
+    CHECK(update.root == muiAccessIdOf(root) && Sent(&update, two)->text[mui_accessValue] == NULL,
+          "whole, unread");
+    CHECK(muiSetAccessTextFunction(NULL, NULL, NULL) == mui_errorInvalid, "refused");
+    s_read = "Two";
+    muiDestroyContext(context);
+}
+
 static void TestDerived(void)
 {
     Scene scene;
@@ -1174,6 +1281,7 @@ int main(void)
     TestWholeThenChanged();
     TestChildren();
     TestRelationsAndValues();
+    TestContentText();
     TestDerived();
     TestDerivedMore();
     TestScrollAndRange();

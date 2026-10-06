@@ -56,10 +56,12 @@ typedef struct muiAccessSent
     uint32_t generation;
     uint32_t list;
     // How many children it listed, which list that was (counting each
-    // list sent), and its host data's version.
+    // list sent), its host data's version, and a fingerprint of the text
+    // the text function gave it.
     uint32_t childCount;
     uint32_t serial;
     uint32_t version;
+    uint64_t content;
 } muiAccessSent;
 
 typedef struct muiAccessStore
@@ -85,6 +87,9 @@ typedef struct muiAccessStore
     // The one block the five lie in, for slots slots.
     void* buffers;
     uint32_t slots;
+    // Where host content's text comes from.
+    muiAccessTextFunction textFunction;
+    void* textUser;
 } muiAccessStore;
 
 // The bytes the buffers take for each slot.

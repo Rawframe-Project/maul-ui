@@ -125,7 +125,9 @@ format.
   `muiNode_SetAccessFlags` and their getters), relations
   (`muiNode_SetAccessRelation`, `muiNode_GetAccessRelation`) and typed
   values (`muiAccessValues`, `muiNode_SetAccessValues`,
-  `muiNode_GetAccessValues`, `muiDefaultAccessValues`); updates in AccessKit's
+  `muiNode_GetAccessValues`, `muiDefaultAccessValues`); host content
+  read through `muiSetAccessTextFunction`, which the text component's
+  `muiAccessTextOf` serves for text blocks; updates in AccessKit's
   shape for enabled roots (`muiAccess_Enable`, `muiAccess_Disable`,
   `muiBuildAccessUpdate`), with bounds, transforms, states, focus,
   scrolling, ranges and virtual list positions read from the library;
