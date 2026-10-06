@@ -38,6 +38,11 @@ extern "C"
 
     typedef struct muiWindowGlue muiWindowGlue;
 
+    /// The host's function naming the player a gamepad is: one below
+    /// MUI_MAX_PLAYERS, or any other for a gamepad whose navigation the
+    /// UI is not to have.
+    typedef uint8_t (*muiWindowPlayerFunction)(void* context, mwinGamepadId gamepad);
+
     // How a glue is made. Build it with muiDefaultWindowGlueDef.
     typedef struct muiWindowGlueDef
     {
@@ -53,9 +58,27 @@ extern "C"
         // The player the window's keyboard and mouse are, below
         // MUI_MAX_PLAYERS.
         uint8_t player;
+        // Whether it takes the context's gamepad records, as navigation:
+        // one glue a Maul Window context does.
+        bool gamepads;
+        // The players gamepads are, or NULL for player 0, and the context
+        // handed to the function.
+        muiWindowPlayerFunction gamepadPlayer;
+        void* gamepadContext;
+        // Whether the east face confirms and the south cancels, as some
+        // platforms' conventions have it; the south confirms otherwise.
+        bool confirmEast;
+        // How far the left stick goes to hold a direction, from 0.1 to
+        // 1; 0.5 by default.
+        float stickThreshold;
+        // How long a direction is held before it repeats, and then how
+        // often; 400 ms and 100 ms by default.
+        uint64_t repeatDelayNs;
+        uint64_t repeatIntervalNs;
     } muiWindowGlueDef;
 
-    /// Returns the default glue def: no window, context or root, player 0.
+    /// Returns the default glue def: no window, context or root, player 0,
+    /// no gamepads, and the defaults above for those who take them.
     ///
     /// @return The def, with a valid cookie.
     /// @par Thread safety
@@ -96,8 +119,13 @@ extern "C"
     /// when a record it posts is handled, while the UI holds the pointer
     /// (pressed or captured), or where the point hits a node that does
     /// not pass input through (muiHitTest); a key, text or wheel is the
-    /// UI's when routing handles it. Records of other windows and of
-    /// other kinds are not the UI's.
+    /// UI's when routing handles it. A glue that takes gamepads takes
+    /// their records, which have no window, as navigation for the player
+    /// the host names (muiNavigationInput): the d-pad, and the left stick
+    /// past its threshold, the four directions; the south face activate
+    /// and the east cancel, or the other way with confirmEast; the left
+    /// and right shoulders previous and next. Records of other windows
+    /// and of other kinds are not the UI's.
     ///
     /// @param glue        The glue.
     /// @param event       The record.
@@ -114,6 +142,23 @@ extern "C"
     MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_HandleEvent(muiWindowGlue* glue,
                                                                      const mwinEvent* event,
                                                                      bool* handledOut);
+
+    /// Continues the directions gamepads hold, for a glue that takes
+    /// gamepads: each direction held past the repeat delay navigates
+    /// again (muiNavigationInput) at the repeat interval, one direction
+    /// a call. The host calls it each frame with the time on the
+    /// records' clock.
+    ///
+    /// @param glue        The glue.
+    /// @param nowNs       The time, in nanoseconds on Maul Window's
+    ///                    monotonic clock.
+    /// @param handledOut  Receives whether the UI handled what repeated.
+    /// @return As muiWindowGlue_HandleEvent.
+    /// @par Thread safety
+    /// Safe from any thread; the glue and its context are used by one
+    /// thread at a time.
+    MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_Tick(muiWindowGlue* glue, uint64_t nowNs,
+                                                              bool* handledOut);
 
 #ifdef __cplusplus
 }

@@ -20,7 +20,7 @@ if(NOT maul-window_FOUND)
     FetchContent_MakeAvailable(maul-window)
 endif()
 
-add_library(maul-ui-window STATIC window/src/allocator.c window/src/glue.c)
+add_library(maul-ui-window STATIC window/src/allocator.c window/src/gamepads.c window/src/glue.c)
 add_library(maul-ui-window::maul-ui-window ALIAS maul-ui-window)
 target_include_directories(maul-ui-window PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/window/include>

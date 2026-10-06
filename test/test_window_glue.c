@@ -15,7 +15,10 @@
 // its barrel and its eraser, each the button the W3C numbers it. Last, a
 // press on a panel the host leaves is still the UI's, as the panel does
 // not pass input through, and so is the mouse it holds over the root
-// until it lets go.
+// until it lets go. And a gamepad: the d-pad navigating at once and
+// repeating after the delay at the interval, through ticks; the stick
+// holding a direction past its threshold, keeping it above seven tenths
+// of it and letting go below; its faces and shoulders.
 
 #include "test_harness.h"
 
@@ -66,6 +69,11 @@ typedef struct Test
     float wheelX;
     float wheelY;
     muiModifiers wheelModifiers;
+    // The navigations the root heard, in order.
+    muiNavigation navigations[MAX_RECORDS];
+    int navigationCount;
+    mwinGamepadId gamepad;
+    uint64_t start;
 } Test;
 
 static const muiNodeId s_null = {0, 0};
@@ -80,6 +88,11 @@ static bool Same(muiNodeId a, muiNodeId b)
 static bool Hear(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* event)
 {
     Test* test = user;
+    if (event->kind == mui_eventNavigation && Same(nodeId, test->root) &&
+        phase == mui_phaseTunnel && test->navigationCount < MAX_RECORDS)
+    {
+        test->navigations[test->navigationCount++] = event->navigation;
+    }
     if (!Same(nodeId, test->button) || phase != mui_phaseBubble)
     {
         return false;
@@ -193,6 +206,7 @@ static mwinResult Init(mwinContext* windows, void* user)
     def.window = test->window;
     def.context = test->context;
     def.root = test->root;
+    def.gamepads = true;
     CHECK(muiCreateWindowGlue(&def, &test->glue) == mui_success, "a glue");
     return mwin_success;
 }
@@ -440,6 +454,93 @@ static void CheckHold(const Test* test)
     CHECK(same, "a press the host leaves on a panel holds the mouse for the UI until it lets go");
 }
 
+// Ticks the glue at a time after the start, in milliseconds.
+static void TickAt(Test* test, uint64_t ms)
+{
+    bool handled = false;
+    CHECK(muiWindowGlue_Tick(test->glue, test->start + ms * 1000000u, &handled) == mui_success,
+          "ticked");
+}
+
+// Moves the test clock to a time after the start, in milliseconds.
+static void ClockAt(Test* test, mwinContext* windows, uint64_t ms)
+{
+    CHECK(mwinTestSetTime(windows, test->start + ms * 1000000u) == mwin_success, "the clock");
+}
+
+static void PostDpad(Test* test, mwinContext* windows)
+{
+    mwinGamepadInfo info = {.mapped = true};
+    test->start = 1000000000u;
+    ClockAt(test, windows, 0);
+    CHECK(mwinTestAddGamepad(windows, &info, &test->gamepad) == mwin_success &&
+              mwinTestGamepadButton(windows, test->gamepad, mwin_padDpadDown, true) == mwin_success,
+          "a gamepad, its d-pad down");
+    test->navigationCount = 0;
+}
+
+static void RepeatDpad(Test* test, mwinContext* windows)
+{
+    CHECK(test->navigationCount == 1, "the d-pad navigates at once");
+    TickAt(test, 300);
+    CHECK(test->navigationCount == 1, "nothing before the delay");
+    TickAt(test, 400);
+    TickAt(test, 450);
+    CHECK(test->navigationCount == 2, "once at the delay");
+    TickAt(test, 500);
+    CHECK(test->navigationCount == 3, "again at the interval");
+    ClockAt(test, windows, 600);
+    mwinGamepadId pad = test->gamepad;
+    CHECK(mwinTestGamepadButton(windows, pad, mwin_padDpadDown, false) == mwin_success &&
+              mwinTestGamepadAxis(windows, pad, mwin_padStickLeftY, 0.8f) == mwin_success &&
+              mwinTestGamepadAxis(windows, pad, mwin_padStickLeftY, 0.4f) == mwin_success,
+          "the d-pad let go, the stick down and eased to 0.4");
+}
+
+// The stick eased above seven tenths of its threshold still holds down.
+static void EaseStick(Test* test, mwinContext* windows)
+{
+    CHECK(test->navigationCount == 4, "the stick down navigates once");
+    TickAt(test, 1000);
+    CHECK(test->navigationCount == 5, "eased, it still repeats");
+    ClockAt(test, windows, 1100);
+    mwinGamepadId pad = test->gamepad;
+    CHECK(mwinTestGamepadAxis(windows, pad, mwin_padStickLeftY, 0.2f) == mwin_success &&
+              mwinTestGamepadAxis(windows, pad, mwin_padStickLeftX, -0.9f) == mwin_success,
+          "the stick let go, then left");
+    static const uint8_t buttons[] = {mwin_padFaceSouth, mwin_padFaceEast, mwin_padShoulderLeft,
+                                      mwin_padShoulderRight};
+    for (int i = 0; i < 4; i++)
+    {
+        CHECK(mwinTestGamepadButton(windows, pad, buttons[i], true) == mwin_success,
+              "a face or a shoulder");
+    }
+}
+
+static void CheckPad(Test* test)
+{
+    TickAt(test, 3000);
+    static const muiNavigation expected[] = {
+        mui_navigateDown,     mui_navigateDown, mui_navigateDown,     mui_navigateDown,
+        mui_navigateDown,     mui_navigateLeft, mui_navigateActivate, mui_navigateCancel,
+        mui_navigatePrevious, mui_navigateNext, mui_navigateLeft,
+    };
+    bool same = test->navigationCount == 11;
+    for (int i = 0; same && i < 11; i++)
+    {
+        same = test->navigations[i] == expected[i];
+    }
+    if (!same)
+    {
+        for (int i = 0; i < test->navigationCount; i++)
+        {
+            printf("  navigation %d: %u\n", i, test->navigations[i]);
+        }
+    }
+    CHECK(same, "the stick down once, eased and let go, then left; activate, cancel, previous, "
+                "next; the stick's left repeating");
+}
+
 static mwinFrameResult Frame(mwinContext* windows, void* user)
 {
     Test* test = user;
@@ -485,9 +586,22 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
         CheckPen(test);
         PostHold(test, windows);
         break;
-    default:
+    case 6:
         Feed(test, windows);
         CheckHold(test);
+        PostDpad(test, windows);
+        break;
+    case 7:
+        Feed(test, windows);
+        RepeatDpad(test, windows);
+        break;
+    case 8:
+        Feed(test, windows);
+        EaseStick(test, windows);
+        break;
+    default:
+        Feed(test, windows);
+        CheckPad(test);
         test->done = true;
         break;
     }

@@ -12,6 +12,7 @@
 #include "maul-ui-window/glue.h"
 
 #include "allocator.h"
+#include "gamepads.h"
 
 #include "maul-ui/event.h"
 #include "maul-ui/focus.h"
@@ -57,18 +58,27 @@ struct muiWindowGlue
     float touchY[TOUCHES];
     // The pointers whose press was the UI's, by id, while they hold it.
     uint32_t held;
+    // Whether it takes gamepads, and what they hold.
+    bool gamepads;
+    muiWindowPads pads;
 };
 
 muiWindowGlueDef muiDefaultWindowGlueDef(void)
 {
-    return (muiWindowGlueDef){.cookie = DEF_COOKIE};
+    return (muiWindowGlueDef){
+        .cookie = DEF_COOKIE,
+        .stickThreshold = 0.5f,
+        .repeatDelayNs = 400000000u,
+        .repeatIntervalNs = 100000000u,
+    };
 }
 
 static bool IsValid(const muiWindowGlueDef* def)
 {
     return def->cookie == DEF_COOKIE && muiWindowIsAllocatorValid(&def->allocator) &&
            def->windows != nullptr && def->context != nullptr && def->root.index1 != 0 &&
-           def->player < MUI_MAX_PLAYERS;
+           def->player < MUI_MAX_PLAYERS && def->stickThreshold >= 0.1f &&
+           def->stickThreshold <= 1.0f && def->repeatIntervalNs > 0;
 }
 
 muiResult muiCreateWindowGlue(const muiWindowGlueDef* def, muiWindowGlue** glueOut)
@@ -94,6 +104,16 @@ muiResult muiCreateWindowGlue(const muiWindowGlueDef* def, muiWindowGlue** glueO
         .context = def->context,
         .root = def->root,
         .player = def->player,
+        .gamepads = def->gamepads,
+        .pads =
+            {
+                .player = def->gamepadPlayer,
+                .playerContext = def->gamepadContext,
+                .confirmEast = def->confirmEast,
+                .threshold = def->stickThreshold,
+                .delayNs = def->repeatDelayNs,
+                .intervalNs = def->repeatIntervalNs,
+            },
     };
     *glueOut = glue;
     return mui_success;
@@ -396,6 +416,34 @@ static muiResult Wheel(muiWindowGlue* glue, const mwinEvent* event, bool* handle
     return muiWheelInput(glue->context, glue->root, &input, handledOut);
 }
 
+static muiResult Navigate(const muiWindowGlue* glue, muiWindowAsk ask, bool* handledOut)
+{
+    return ask.asks ? muiNavigationInput(glue->context, glue->root, &ask.navigation, handledOut)
+                    : mui_success;
+}
+
+// A record of the context's own: a gamepad's, for a glue that takes
+// them.
+static muiResult Gamepad(muiWindowGlue* glue, const mwinEvent* event, bool* handledOut)
+{
+    return glue->gamepads ? Navigate(glue, muiWindowPadRecord(&glue->pads, event), handledOut)
+                          : mui_success;
+}
+
+muiResult muiWindowGlue_Tick(muiWindowGlue* glue, uint64_t nowNs, bool* handledOut)
+{
+    if (handledOut != nullptr)
+    {
+        *handledOut = false;
+    }
+    if (glue == nullptr || handledOut == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    return glue->gamepads ? Navigate(glue, muiWindowPadTick(&glue->pads, nowNs), handledOut)
+                          : mui_success;
+}
+
 muiResult muiWindowGlue_HandleEvent(muiWindowGlue* glue, const mwinEvent* event, bool* handledOut)
 {
     if (handledOut != nullptr)
@@ -405,6 +453,10 @@ muiResult muiWindowGlue_HandleEvent(muiWindowGlue* glue, const mwinEvent* event,
     if (glue == nullptr || event == nullptr || handledOut == nullptr)
     {
         return mui_errorInvalid;
+    }
+    if (event->window.index1 == 0)
+    {
+        return Gamepad(glue, event, handledOut);
     }
     if (!IsMine(glue, event->window))
     {

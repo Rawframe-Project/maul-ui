@@ -297,8 +297,18 @@ itself instead of each host repeating them.
   a press that was the UI's holds the pointer, or where the point hits
   such a node. The wheel turns at the cursor's last place, which the
   glue keeps, with the modifiers last reported; a reset or a lost focus
-  cancels every pointer holding a button. Its tests run on Maul
-  Window's headless test backend.
+  cancels every pointer holding a button. A glue that takes gamepads
+  (one a Maul Window context) makes their records navigation for the
+  player a host function names: the d-pad, and the left stick past a
+  threshold (let go below seven tenths of it, so it does not flicker),
+  the four directions; the south face activate and the east cancel, or
+  the other way where the platform's convention puts confirm east; the
+  shoulders previous and next. A direction held repeats after a delay
+  and then at an interval (400 and 100 ms by default), timed by the
+  records' clock, which `muiWindowGlue_Tick` continues between records;
+  repeat stays out of the core, which keeps no clock and whose hosts
+  with their own bindings repeat as their games do. Its tests run on
+  Maul Window's headless test backend.
 
 ## Consequences
 

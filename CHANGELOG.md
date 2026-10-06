@@ -56,7 +56,11 @@ format.
   `MUI_WINDOW_TOUCHES` at once) and the pen as a pen pointer (its tip,
   barrel and eraser numbered as the W3C's Pointer Events number them),
   their records dispatched; the wheel at the cursor's last place; a
-  reset or a lost focus cancelling every pointer.
+  reset or a lost focus cancelling every pointer. A glue that takes
+  gamepads makes their records navigation for the player the host names:
+  the d-pad and the left stick the directions, held ones repeating
+  through `muiWindowGlue_Tick`, the faces activate and cancel, the
+  shoulders previous and next.
 - The reference renderer, `maul-ui-rhi` (`MAUL_UI_RHI`, off by
   default; `maul-ui-rhi/renderer.h`), which draws a list with Maul RHI
   0.3.0: `muiCreateRhiRenderer` for a device and a target format,
