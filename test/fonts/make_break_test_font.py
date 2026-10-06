@@ -4,8 +4,9 @@
 # Writes MaulBreakTest.ttf, the font the text tests break lines in
 # (record mui-0006): shaping that differs when a line breaks inside it.
 # A hyphen kerns against V, and a space and x form a ligature, both
-# across line break opportunities. Every glyph is a box; 1000 units per
-# em. Needs fontTools (pip install fonttools); its timestamps are fixed,
+# across line break opportunities; Hebrew alef and bet form one too, a
+# right-to-left glyph two clusters share. Every glyph is a box; 1000
+# units per em. Needs fontTools (pip install fonttools); its timestamps are fixed,
 # so it writes the same bytes each time.
 #
 #     python3 make_break_test_font.py
@@ -26,13 +27,17 @@ GLYPHS = {
     "V": (0x56, 600),
     "x": (0x78, 600),
     "space_x": (None, 850),
+    "alef": (0x5D0, 600),
+    "bet": (0x5D1, 600),
+    "alef_bet": (None, 1000),
 }
 
 FEATURES = """
 languagesystem DFLT dflt;
 languagesystem latn dflt;
+languagesystem hebr dflt;
 feature kern { pos hyphen V -200; } kern;
-feature liga { sub space x by space_x; } liga;
+feature liga { sub space x by space_x; sub alef bet by alef_bet; } liga;
 """
 
 # 2026-01-01 in seconds from 1904, the epoch of the head table.

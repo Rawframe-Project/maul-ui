@@ -26,8 +26,9 @@ published.
   4.60.1), MIT like the rest of this repository: boxes on 1000 units
   per em, a hyphen kerned -200 against V and a ligature of space and x,
   both across line break opportunities, so tests see shaping that
-  changes when a line breaks. The script writes the same bytes each
-  time.
+  changes when a line breaks, and a ligature of Hebrew alef and bet,
+  one right-to-left glyph for two clusters. The script writes the same
+  bytes each time.
 
 - `MaulLargeGlyph.ttf`: written by `make_large_glyph_font.py`
   (fontTools 4.60.1), MIT: 16 units per em and an A 16 ems a side,
@@ -52,7 +53,7 @@ SHA-256 of each file:
 ```text
 b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448  Ahem.ttf
 76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8  LiberationSans-Regular.ttf
-9874b4f1bf8f95c0c1ab5c810a89c1bca65ba666731b79a72de2eb1291d4b13a  MaulBreakTest.ttf
+5c1132f0c118d748d7717212d950f39e13475b3cbab2ba402d169e42c376a4a6  MaulBreakTest.ttf
 665a276933f1b6948326ed2db09ea0ec19a1f4efc2c180dbed6f93282ade316f  MaulCoverage.ttf
 433d1ea83dfbcbc4ec1379b7753dc0a778a2072f1d53cc19f2a6b98dc03f3ed3  MaulItalic.ttf
 1a0b8e0c87b9cf3fd2b847c47f677cdbd2af980a3e5d2fb3fbfeb8133bbbcc8f  MaulLargeGlyph.ttf

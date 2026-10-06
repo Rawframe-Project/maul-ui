@@ -49,6 +49,8 @@ struct muiTextService
     // A line shaped on its own: its items and glyphs.
     muiBuffer lineItems;
     muiBuffer lineGlyphs;
+    // A line's grapheme clusters as hit testing finds them.
+    muiBuffer hitBoxes;
     // Scratch for distance fields: the outline's segments, their pieces
     // with the segment of each, the row starts and crossings, the cell
     // starts and pieces, the edge, and each pixel's squared distance.

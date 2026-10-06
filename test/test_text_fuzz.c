@@ -17,6 +17,7 @@
 #include "maul-ui/node.h"
 #include "maul-ui/text.h"
 #include "maul-ui/text_block.h"
+#include "maul-ui/text_edit.h"
 #include "maul-ui/text_style.h"
 
 #include <math.h>
@@ -236,6 +237,38 @@ static void RandomStyle(muiContext* context, muiNodeId node, uint32_t* state)
           "direction");
 }
 
+// Points hit positions within the text; unless letter spacing is
+// negative, which can draw a cluster before the one ahead of it, their
+// carets lie in the content box and hit again where they are drawn.
+static void CheckHits(const muiTextHost* host, muiNodeId node, float width, size_t length,
+                      bool overlapping, uint32_t* state)
+{
+    for (int k = 0; k < 8; k++)
+    {
+        float x = (float)(Next(state) % 400) - 50.0f;
+        float y = (float)(Next(state) % 200) - 20.0f;
+        muiTextPosition position = {0, 0};
+        muiTextCaret caret = {0};
+        muiTextCaret again = {0};
+        CHECK(muiTextHitTest(host, node, width, x, y, &position) == mui_success &&
+                  position.offset <= length &&
+                  muiTextGetCaret(host, node, width, position, &caret) == mui_success,
+              "a hit and its caret");
+        if (overlapping)
+        {
+            continue;
+        }
+        CHECK(caret.x >= -0.01f && caret.x <= fmaxf(width, 0.0f) + 0.01f && caret.height > 0.0f,
+              "a caret in the box");
+        muiTextPosition second = {0, 0};
+        CHECK(muiTextHitTest(host, node, width, caret.x, caret.y + caret.height * 0.5f, &second) ==
+                      mui_success &&
+                  muiTextGetCaret(host, node, width, second, &again) == mui_success &&
+                  fabsf(again.x - caret.x) <= 0.01f && again.y == caret.y,
+              "a caret hit where it is drawn");
+    }
+}
+
 static void TestRandomText(void)
 {
     muiTextServiceDef def = muiDefaultTextServiceDef();
@@ -329,6 +362,7 @@ static void TestRandomText(void)
         }
         CHECK(baselines <= lines, "no more lines than measured");
         drawn += list.glyphCount;
+        CheckHits(&host, node, rect.width, length, style.letterSpacing < 0.0f, &state);
         CHECK(muiDestroyNode(context, node) == mui_success &&
                   muiDestroyTextBlock(service, block) == mui_success,
               "destroyed");

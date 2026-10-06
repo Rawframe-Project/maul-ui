@@ -145,6 +145,7 @@ static void Release(muiTextService* service)
     muiFreeBuffer(&service->allocator, &service->workspace);
     muiFreeBuffer(&service->allocator, &service->lineItems);
     muiFreeBuffer(&service->allocator, &service->lineGlyphs);
+    muiFreeBuffer(&service->allocator, &service->hitBoxes);
     muiFreeBuffer(&service->allocator, &service->fieldSegments);
     muiFreeBuffer(&service->allocator, &service->fieldPieces);
     muiFreeBuffer(&service->allocator, &service->fieldOrigins);

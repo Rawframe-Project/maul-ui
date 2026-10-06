@@ -120,6 +120,20 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   split where the font changes, each shaped in its own font's units per
   em, and the sums line breaking reads are in ems; glyph runs split with
   the items. Lines take the first font's metrics.
+- **Editing primitives** (`maul-ui/text_edit.h`) work on a node's text
+  laid out as painting lays it out, at the content width the caller
+  gives. A position is a byte offset between grapheme clusters and an
+  affinity, downstream or upstream, which picks the place of an offset
+  that has two: the end of a wrapped line or the start of the next, and
+  either side of a change of direction. Each line is read as boxes of
+  grapheme clusters left to right, from the glyphs painting draws, the
+  letter spacing after each included and a glyph several clusters share
+  cut into equal parts. `muiTextHitTest` finds the line at a point's y
+  and the nearer edge of the box at its x; `muiTextGetCaret` the edge
+  of a position's box, leading for downstream and trailing for
+  upstream; `muiTextGetRangeRects` a rectangle for each stretch of
+  boxes in a range, so a range across a change of direction is several.
+  Selection, movement state, input and undo stay with the caller.
 - **Glyph atlases** (`maul-ui/glyph_atlas.h`) are owner objects of a
   service, in its memory: pages of the caller's size, made as needed up
   to a limit and cut into plots, each packed with a skyline bottom-left
