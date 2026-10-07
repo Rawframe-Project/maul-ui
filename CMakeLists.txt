@@ -333,7 +333,10 @@ if(MAUL_UI_BUILD_TESTS)
         target_compile_options(test_uiaccessibility PRIVATE -fno-objc-arc)
         add_test(NAME uiaccessibility COMMAND ${PROJECT_SOURCE_DIR}/tools/run_ios_app.sh
                  $<TARGET_BUNDLE_DIR:test_uiaccessibility>)
-        set_tests_properties(uiaccessibility PROPERTIES TIMEOUT 240)
+        # The first application launch on a booted simulator has taken from
+        # 20 seconds to over 220 (CI, October 2026); the boot step warms
+        # it, and this is the bound past that.
+        set_tests_properties(uiaccessibility PROPERTIES TIMEOUT 600)
     endif()
     if(MAUL_UI_ANDROID_ACCESSIBILITY AND NOT MAUL_UI_BUILD_SHARED AND DEFINED ENV{ANDROID_HOME})
         # An application in the emulator, built by tools/build_android_app.sh

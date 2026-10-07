@@ -243,6 +243,12 @@ jobs:
           print(next(d["udid"] for d in devices[runtimes[-1]] if d["name"].startswith("iPhone")))')
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
+          # The first application launch after a boot can take minutes;
+          # one of the system's, here, keeps that out of the tests.
+          start=$(date +%s)
+          xcrun simctl launch "$udid" com.apple.Preferences
+          xcrun simctl terminate "$udid" com.apple.Preferences
+          echo "a first launch took $(($(date +%s) - start)) s"
           echo "MUI_IOS_DEVICE=$udid" >> "$GITHUB_ENV"
       - name: Configure
         run: >
