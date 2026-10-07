@@ -19,6 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install tools
+        # A package mirror that hangs fails the step, to be run again,
+        # rather than holding a runner for the job's six hours.
+        timeout-minutes: 10
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q clang-20 clang-tidy-20 ninja-build
@@ -72,6 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install compilers
+        timeout-minutes: 10
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update -q
@@ -122,6 +126,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install the compiler, lavapipe and the validation layer
+        timeout-minutes: 10
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q clang-20 clang-tidy-20 ninja-build mesa-vulkan-drivers \
@@ -200,6 +205,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install the compiler
+        timeout-minutes: 10
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q clang-20 clang-tidy-20 ninja-build
@@ -318,6 +324,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: emscripten-core/setup-emsdk@v16
       - name: Install lavapipe
+        timeout-minutes: 10
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q mesa-vulkan-drivers
