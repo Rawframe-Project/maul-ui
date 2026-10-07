@@ -824,6 +824,14 @@ static void TestFieldCorners(Gpu* gpu, muiRhiRenderer* renderer, uint64_t font, 
         CHECK(sharp && Red(pixels, side, inside, farY) > 128 &&
                   Near(pixels, side, farX, farY, red, 2),
               "a magnified corner kept");
+        // At device scale 1 each side falls on a pixel edge: the pixels
+        // either side of it are covered and not, to a byte step of the
+        // field, a 32nd of a field pixel, 3 device pixels and more.
+        bool placed = scale != 1 || (Red(pixels, side, inside, farY) >= 250 &&
+                                     Red(pixels, side, inside - inX, farY) <= 40 &&
+                                     Red(pixels, side, farX, insideY) >= 250 &&
+                                     Red(pixels, side, farX, insideY - inY) <= 40);
+        CHECK(placed, "a magnified side where the outline is");
     }
 }
 
