@@ -16,6 +16,8 @@ project(maul-ui
 
 option(MAUL_UI_BUILD_TESTS "Build the test suites" ${PROJECT_IS_TOP_LEVEL})
 option(MAUL_UI_BUILD_BENCH "Build the benchmarks" ${PROJECT_IS_TOP_LEVEL})
+option(MAUL_UI_BUILD_SAMPLES
+    "Build the samples, where the renderer, the Maul Window glue and text are built" ${PROJECT_IS_TOP_LEVEL})
 option(MAUL_UI_BUILD_SHARED "Build a shared library instead of a static one" OFF)
 option(MAUL_UI_INSTALL "Generate install rules" ${PROJECT_IS_TOP_LEVEL})
 option(MAUL_UI_WERROR "Treat compiler warnings as errors" OFF)
@@ -458,6 +460,12 @@ endif()
 
 if(MAUL_UI_BUILD_BENCH AND EXISTS ${PROJECT_SOURCE_DIR}/bench/bench_main.c)
     add_subdirectory(bench)
+endif()
+
+# The samples draw with the reference renderer through the Maul Window
+# glue, with text (record mui-0005).
+if(MAUL_UI_BUILD_SAMPLES AND MAUL_UI_RHI AND MAUL_UI_WINDOW AND MAUL_UI_TEXT)
+    add_subdirectory(samples)
 endif()
 
 if(MAUL_UI_TEXT)

@@ -48,6 +48,15 @@ format.
 
 ### Added
 
+- The samples (`samples/`, `MAUL_UI_BUILD_SAMPLES`, built where the
+  renderer, the Maul Window glue and text are): programs that use Maul
+  UI's parts together and check their own results, so each is also a
+  test, skipped (77) without an adapter unless `MUI_RHI_REQUIRED` is
+  set. The first, `sample_tour`, opens a window on Maul Window's test
+  backend, builds a title, a generated picture, a button and a scroll
+  container of rows, feeds input through the glue, keeps the
+  accessibility tree, and draws with the reference renderer into a
+  texture whose pixels it checks (record mui-0005).
 - The Maul Window glue, `maul-ui-window` (`MAUL_UI_WINDOW`, off by
   default; `maul-ui-window/glue.h`), with Maul Window 0.8.0: a glue a
   window takes the records the host drains and feeds them to a context,

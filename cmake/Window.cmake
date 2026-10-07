@@ -10,8 +10,13 @@ if(NOT maul-window_FOUND)
     set(MAUL_WINDOW_BUILD_BENCH OFF)
     set(MAUL_WINDOW_BUILD_SAMPLES OFF)
     set(MAUL_WINDOW_INSTALL OFF)
-    # The glue's tests run on Maul Window's headless test backend.
-    set(MAUL_WINDOW_TEST_BACKEND ${MAUL_UI_BUILD_TESTS})
+    # The glue's tests and the samples run on Maul Window's headless test
+    # backend.
+    if(MAUL_UI_BUILD_TESTS OR MAUL_UI_BUILD_SAMPLES)
+        set(MAUL_WINDOW_TEST_BACKEND ON)
+    else()
+        set(MAUL_WINDOW_TEST_BACKEND OFF)
+    endif()
     include(FetchContent)
     FetchContent_Declare(maul-window
         GIT_REPOSITORY https://github.com/Rawframe-Project/maul-window.git
