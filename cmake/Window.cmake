@@ -32,6 +32,9 @@ if(MAUL_UI_ACCESS_TREE)
     target_compile_definitions(maul-ui-window PRIVATE
         MUI_WINDOW_UIA=$<BOOL:${MAUL_UI_UIA}>
         MUI_WINDOW_NS=$<BOOL:${MAUL_UI_NSACCESSIBILITY}>
+        MUI_WINDOW_UIKIT=$<BOOL:${MAUL_UI_UIACCESSIBILITY}>
+        MUI_WINDOW_ANDROID=$<BOOL:${MAUL_UI_ANDROID_ACCESSIBILITY}>
+        MUI_WINDOW_ARIA=$<BOOL:${MAUL_UI_ARIA}>
         MUI_WINDOW_ATSPI=$<BOOL:${MAUL_UI_ATSPI}>)
 endif()
 add_library(maul-ui-window::maul-ui-window ALIAS maul-ui-window)
@@ -40,3 +43,10 @@ target_include_directories(maul-ui-window PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 target_link_libraries(maul-ui-window PUBLIC maul-ui maul-window::maul-window)
 maul_apply_flags(maul-ui-window)
+# Under Visual Studio's ClangCL toolset this target, made after Maul
+# Window is fetched, was compiled below C23 though its C_STANDARD is 23,
+# while the core, made before, was not: C23 is asked of clang-cl here
+# directly until the family's flags find why.
+if(MSVC)
+    target_compile_options(maul-ui-window PRIVATE /clang:-std=c23)
+endif()

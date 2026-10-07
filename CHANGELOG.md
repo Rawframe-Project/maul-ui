@@ -67,7 +67,8 @@ format.
   position of a node's text (`muiWindowGlue_SetTextCaret`). With the
   accessibility tree's consumer, `maul-ui-window/access.h` makes the
   adapter for the window's platform (UI Automation, NSAccessibility,
-  AT-SPI), sends it the root's updates and hands its root to the
+  UIAccessibility, Android's, ARIA, AT-SPI), sends it the root's
+  updates and hands its root to the
   window; a window with no adapter keeps the tree alone (record
   mui-0008).
 - `muiNode_MapToRoot`, a point of a node's border box carried through

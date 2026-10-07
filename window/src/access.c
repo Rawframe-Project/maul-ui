@@ -2,11 +2,16 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Accessibility through the Maul Window glue (record mui-0008). The
-// adapters this build has are named by MUI_WINDOW_UIA, MUI_WINDOW_NS and
+// adapters this build has are named by MUI_WINDOW_UIA, MUI_WINDOW_NS,
+// MUI_WINDOW_UIKIT, MUI_WINDOW_ANDROID, MUI_WINDOW_ARIA and
 // MUI_WINDOW_ATSPI, as Maul UI was built with them; a window takes the
-// one for its platform, or keeps a tree alone. NSAccessibility's root
-// is the tree root's object and changes with it, so after each update
-// the root is asked for again and handed over when it changed.
+// one for its platform, or keeps a tree alone. NSAccessibility's and
+// UIAccessibility's roots are the tree root's objects and change with
+// it, so after each update the root is asked for again and handed over
+// when it changed. Maul Window runs an Android program on its
+// activity's main thread, whose JNIEnv the activity holds; the web's
+// element for the tree is the one Maul Window keeps over the canvas,
+// which takes no root.
 
 #include "maul-ui-window/access.h"
 
@@ -21,6 +26,19 @@
 #endif
 #if MUI_WINDOW_NS
 #include "maul-ui/access_ns.h"
+#endif
+#if MUI_WINDOW_UIKIT
+#include "maul-ui/access_uikit.h"
+#endif
+#if MUI_WINDOW_ANDROID
+#include "maul-ui/access_android.h"
+
+#include <android/native_activity.h>
+#endif
+#if MUI_WINDOW_ARIA
+#include "maul-ui/access_aria.h"
+
+#include <string.h>
 #endif
 #if MUI_WINDOW_ATSPI
 #include "maul-ui/access_atspi.h"
@@ -37,6 +55,9 @@ typedef enum Kind
     kind_tree,
     kind_uia,
     kind_ns,
+    kind_uikit,
+    kind_android,
+    kind_aria,
     kind_atspi,
 } Kind;
 
@@ -101,7 +122,122 @@ static void Place(const muiWindowAccess* access)
 }
 #endif
 
-// Makes the adapter for a platform, where this build has it.
+// The adapters' makers, for the platforms this build has them for: each
+// names its kind and makes its adapter at the access's.
+#if MUI_WINDOW_UIA
+static muiResult MakeUia(muiWindowAccess* access, const muiWindowAccessDef* def,
+                         const mwinNativeHandles* handles, float scale)
+{
+    muiUiaAdapterDef uia = muiDefaultUiaAdapterDef();
+    uia.allocator = def->allocator;
+    uia.nodes = def->nodes;
+    uia.window = handles->handles.win32.hwnd;
+    uia.scale = scale;
+    uia.action = Act;
+    uia.user = access;
+    access->kind = kind_uia;
+    return muiCreateUiaAdapter(&uia, (muiUiaAdapter**)&access->adapter);
+}
+#endif
+
+#if MUI_WINDOW_NS
+// A view's points are Maul Window's logical units.
+static muiResult MakeNs(muiWindowAccess* access, const muiWindowAccessDef* def,
+                        const mwinNativeHandles* handles)
+{
+    muiNsAdapterDef ns = muiDefaultNsAdapterDef();
+    ns.allocator = def->allocator;
+    ns.nodes = def->nodes;
+    ns.view = handles->handles.apple.view;
+    ns.action = Act;
+    ns.user = access;
+    access->kind = kind_ns;
+    return muiCreateNsAdapter(&ns, (muiNsAdapter**)&access->adapter);
+}
+#endif
+
+#if MUI_WINDOW_UIKIT
+// A view's points are Maul Window's logical units.
+static muiResult MakeUikit(muiWindowAccess* access, const muiWindowAccessDef* def,
+                           const mwinNativeHandles* handles)
+{
+    muiUikitAdapterDef uikit = muiDefaultUikitAdapterDef();
+    uikit.allocator = def->allocator;
+    uikit.nodes = def->nodes;
+    uikit.view = handles->handles.apple.view;
+    uikit.action = Act;
+    uikit.user = access;
+    access->kind = kind_uikit;
+    return muiCreateUikitAdapter(&uikit, (muiUikitAdapter**)&access->adapter);
+}
+#endif
+
+#if MUI_WINDOW_ANDROID
+static muiResult MakeAndroid(muiWindowAccess* access, const muiWindowAccessDef* def,
+                             const mwinNativeHandles* handles, float scale)
+{
+    const ANativeActivity* activity = handles->handles.android.activity;
+    muiAndroidAdapterDef android = muiDefaultAndroidAdapterDef();
+    android.allocator = def->allocator;
+    android.nodes = def->nodes;
+    android.env = activity->env;
+    android.view = handles->handles.android.view;
+    android.scale = scale;
+    android.action = Act;
+    android.user = access;
+    access->kind = kind_android;
+    return muiCreateAndroidAdapter(&android, (muiAndroidAdapter**)&access->adapter);
+}
+#endif
+
+#if MUI_WINDOW_ARIA
+// The selector NUL-terminated, read when the adapter is made; CSS pixels
+// are Maul Window's logical units.
+static muiResult MakeAria(muiWindowAccess* access, const muiWindowAccessDef* def,
+                          const mwinNativeHandles* handles)
+{
+    uint32_t length = handles->handles.web.accessibilityLength;
+    char* host = muiWindowAllocate(&def->allocator, (size_t)length + 1, 1);
+    if (host == nullptr)
+    {
+        return mui_errorCapacity;
+    }
+    memcpy(host, handles->handles.web.accessibility, length);
+    host[length] = '\0';
+    muiAriaAdapterDef aria = muiDefaultAriaAdapterDef();
+    aria.allocator = def->allocator;
+    aria.nodes = def->nodes;
+    aria.host = host;
+    aria.deferred = def->ariaDeferred;
+    aria.enableLabel = def->ariaEnableLabel;
+    aria.action = Act;
+    aria.user = access;
+    access->kind = kind_aria;
+    muiResult status = muiCreateAriaAdapter(&aria, (muiAriaAdapter**)&access->adapter);
+    muiWindowRelease(&def->allocator, host, (size_t)length + 1, 1);
+    return status;
+}
+#endif
+
+#if MUI_WINDOW_ATSPI
+// Wayland does not say where a window is: AT-SPI's screen is then the
+// window's own.
+static muiResult MakeAtspi(muiWindowAccess* access, const muiWindowAccessDef* def,
+                           const mwinNativeHandles* handles, float scale)
+{
+    muiAtspiAdapterDef atspi = muiDefaultAtspiAdapterDef();
+    atspi.nodes = def->nodes;
+    atspi.scale = scale;
+    atspi.action = Act;
+    atspi.user = access;
+    access->kind = kind_atspi;
+    access->placed = handles->platform == mwin_platformX11;
+    return muiCreateAtspiAdapter(def->atspiApp, &atspi, (muiAtspiAdapter**)&access->adapter);
+}
+#endif
+
+// Makes the adapter for a platform, where this build has it, or the
+// tree alone.
 static muiResult MakeAdapter(muiWindowAccess* access, const muiWindowAccessDef* def,
                              const mwinNativeHandles* handles)
 {
@@ -111,51 +247,32 @@ static muiResult MakeAdapter(muiWindowAccess* access, const muiWindowAccessDef* 
     {
 #if MUI_WINDOW_UIA
     case mwin_platformWin32:
-    {
-        muiUiaAdapterDef uia = muiDefaultUiaAdapterDef();
-        uia.allocator = def->allocator;
-        uia.nodes = def->nodes;
-        uia.window = handles->handles.win32.hwnd;
-        uia.scale = scale;
-        uia.action = Act;
-        uia.user = access;
-        access->kind = kind_uia;
-        return muiCreateUiaAdapter(&uia, (muiUiaAdapter**)&access->adapter);
-    }
+        return MakeUia(access, def, handles, scale);
 #endif
 #if MUI_WINDOW_NS
     case mwin_platformMacOS:
-    {
-        // A view's points are Maul Window's logical units.
-        muiNsAdapterDef ns = muiDefaultNsAdapterDef();
-        ns.allocator = def->allocator;
-        ns.nodes = def->nodes;
-        ns.view = handles->handles.apple.view;
-        ns.action = Act;
-        ns.user = access;
-        access->kind = kind_ns;
-        return muiCreateNsAdapter(&ns, (muiNsAdapter**)&access->adapter);
-    }
+        return MakeNs(access, def, handles);
+#endif
+#if MUI_WINDOW_UIKIT
+    case mwin_platformIOS:
+        return MakeUikit(access, def, handles);
+#endif
+#if MUI_WINDOW_ANDROID
+    case mwin_platformAndroid:
+        return MakeAndroid(access, def, handles, scale);
+#endif
+#if MUI_WINDOW_ARIA
+    case mwin_platformWeb:
+        return MakeAria(access, def, handles);
 #endif
 #if MUI_WINDOW_ATSPI
     case mwin_platformX11:
     case mwin_platformWayland:
-    {
-        if (def->atspiApp == nullptr)
+        if (def->atspiApp != nullptr)
         {
-            break;
+            return MakeAtspi(access, def, handles, scale);
         }
-        muiAtspiAdapterDef atspi = muiDefaultAtspiAdapterDef();
-        atspi.nodes = def->nodes;
-        atspi.scale = scale;
-        atspi.action = Act;
-        atspi.user = access;
-        access->kind = kind_atspi;
-        // Wayland does not say where a window is: AT-SPI's screen is
-        // then the window's own.
-        access->placed = handles->platform == mwin_platformX11;
-        return muiCreateAtspiAdapter(def->atspiApp, &atspi, (muiAtspiAdapter**)&access->adapter);
-    }
+        break;
 #endif
     default:
         break;
@@ -179,6 +296,21 @@ static void DestroyAdapter(muiWindowAccess* access)
 #if MUI_WINDOW_NS
     case kind_ns:
         muiDestroyNsAdapter(access->adapter);
+        break;
+#endif
+#if MUI_WINDOW_UIKIT
+    case kind_uikit:
+        muiDestroyUikitAdapter(access->adapter);
+        break;
+#endif
+#if MUI_WINDOW_ANDROID
+    case kind_android:
+        muiDestroyAndroidAdapter(access->adapter);
+        break;
+#endif
+#if MUI_WINDOW_ARIA
+    case kind_aria:
+        muiDestroyAriaAdapter(access->adapter);
         break;
 #endif
 #if MUI_WINDOW_ATSPI
@@ -280,6 +412,23 @@ static muiResult Apply(muiWindowAccess* access, const muiAccessUpdate* update, v
         return status;
     }
 #endif
+#if MUI_WINDOW_UIKIT
+    case kind_uikit:
+    {
+        muiResult status = muiUikitAdapter_Apply(access->adapter, update);
+        *rootOut = muiUikitAdapter_GetRoot(access->adapter);
+        return status;
+    }
+#endif
+#if MUI_WINDOW_ANDROID
+    case kind_android:
+        *rootOut = muiAndroidAdapter_GetRoot(access->adapter);
+        return muiAndroidAdapter_Apply(access->adapter, update);
+#endif
+#if MUI_WINDOW_ARIA
+    case kind_aria:
+        return muiAriaAdapter_Apply(access->adapter, update);
+#endif
 #if MUI_WINDOW_ATSPI
     case kind_atspi:
         return muiAtspiAdapter_Apply(access->adapter, update);
@@ -332,6 +481,10 @@ muiResult muiWindowAccess_HandleEvent(muiWindowAccess* access, const mwinEvent* 
     case kind_uia:
         return scale > 0.0f ? muiUiaAdapter_SetScale(access->adapter, scale) : mui_success;
 #endif
+#if MUI_WINDOW_ANDROID
+    case kind_android:
+        return scale > 0.0f ? muiAndroidAdapter_SetScale(access->adapter, scale) : mui_success;
+#endif
 #if MUI_WINDOW_ATSPI
     case kind_atspi:
         if (event->type == mwin_eventScaleChanged || event->type == mwin_eventMoved)
@@ -360,6 +513,18 @@ const muiAccessTree* muiWindowAccess_GetTree(const muiWindowAccess* access)
 #if MUI_WINDOW_NS
     case kind_ns:
         return muiNsAdapter_GetTree(access->adapter);
+#endif
+#if MUI_WINDOW_UIKIT
+    case kind_uikit:
+        return muiUikitAdapter_GetTree(access->adapter);
+#endif
+#if MUI_WINDOW_ANDROID
+    case kind_android:
+        return muiAndroidAdapter_GetTree(access->adapter);
+#endif
+#if MUI_WINDOW_ARIA
+    case kind_aria:
+        return muiAriaAdapter_GetTree(access->adapter);
 #endif
 #if MUI_WINDOW_ATSPI
     case kind_atspi:

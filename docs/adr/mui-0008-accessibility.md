@@ -282,16 +282,19 @@ ranges and virtual lists.
 - **Through the Maul Window glue** (`maul-ui-window/access.h`, with the
   consumer): one access a glue makes the adapter built for its window's
   platform over Maul Window's native handles (UI Automation over the
-  HWND, NSAccessibility over the view, AT-SPI for X11 and Wayland in
-  the program's application), enables the glue's root, sends its
+  HWND, NSAccessibility and UIAccessibility over the view, Android's
+  over the activity's view with the activity's JNIEnv, as Maul Window
+  runs the program on the activity's main thread, ARIA in the element
+  Maul Window keeps over the canvas, AT-SPI for X11 and Wayland in the
+  program's application), enables the glue's root, sends its
   updates each frame, has the context perform what clients ask unless
   the host takes it, rescales on the window's scale changes, places an
   X11 window for AT-SPI, and hands the window the adapter's root
   (`mwinRequestAccessibilityRoot`) whenever it changes, as
-  NSAccessibility's does with the tree's root. A window with no
-  adapter, Maul Window's test backend's among them, keeps the tree
-  alone, which tests read. The adapters for iOS, Android and the web
-  join it with their cells.
+  NSAccessibility's and UIAccessibility's do with the tree's root. A
+  window with no adapter, Maul Window's test backend's among them,
+  keeps the tree alone, which tests read; every cell of a platform with
+  an adapter builds the glue and runs those tests.
 
 ## Consequences
 

@@ -46,6 +46,10 @@ extern "C"
         // window of X11 or Wayland joins; NULL keeps those windows'
         // trees alone. The program pumps it (muiAtspiApp_Pump).
         void* atspiApp;
+        // On the web, whether the elements wait for a button that
+        // enables them, and its label (as muiAriaAdapterDef's).
+        bool ariaDeferred;
+        const char* ariaEnableLabel;
         // What a client asks of a node; NULL has the context do it
         // (muiPerformAccessAction).
         muiWindowAccessActionFunction action;
@@ -62,8 +66,10 @@ extern "C"
 
     /// Makes a glue's access: enables the root's updates
     /// (muiAccess_Enable) and makes the adapter for the window's platform
-    /// (UI Automation on Win32, NSAccessibility on macOS, AT-SPI on X11
-    /// and Wayland with an application), or a tree alone. A program may
+    /// (UI Automation on Win32, NSAccessibility on macOS, UIAccessibility
+    /// on iOS, Android's over the activity's view, ARIA in the element
+    /// Maul Window keeps over the canvas, AT-SPI on X11 and Wayland with
+    /// an application), or a tree alone. A program may
     /// make it once mwin_eventAccessibilityRequested arrives, to build
     /// no tree before a client asks where the platform says so.
     ///
@@ -101,8 +107,9 @@ extern "C"
     MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowAccess_Update(muiWindowAccess* access);
 
     /// Takes a record the host drained: a scale change of the window
-    /// rescales the adapter's bounds, and a move places an AT-SPI
-    /// window on the screen. Others it leaves.
+    /// rescales the adapter's bounds where they are in pixels (UI
+    /// Automation, Android, AT-SPI), and a move places an AT-SPI window
+    /// on the screen. Others it leaves.
     ///
     /// @param access  The access.
     /// @param event   The record.
