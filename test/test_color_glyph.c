@@ -17,6 +17,7 @@
 #include "maul-ui/glyph_image.h"
 #include "maul-ui/text_block.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "color.inc"
@@ -36,7 +37,15 @@ enum
     LOOPED,
     FLATTENED,
     NESTED,
-    BOXED_LOOP
+    BOXED_LOOP,
+    LINEAR_PAD,
+    LINEAR_REPEAT,
+    LINEAR_REFLECT,
+    LINEAR_TURNED,
+    RADIAL,
+    RADIAL_TUBE,
+    SWEEP,
+    LINEAR_UNORDERED
 };
 
 static unsigned char s_pixels[4096];
@@ -69,6 +78,16 @@ static bool Is(const muiGlyphImage* image, int32_t x, int32_t y, int r, int g, i
     uint32_t row = (uint32_t)(image->top - 1 - y);
     const unsigned char* p = &s_pixels[((size_t)row * image->width + column) * 4];
     return p[0] == r && p[1] == g && p[2] == b && p[3] == a;
+}
+
+// Whether the pixel at x, y is opaque and red and green within 1 of
+// these: a gradient's colour from red to green, mixed in linear light.
+static bool Mixed(const muiGlyphImage* image, int32_t x, int32_t y, int r, int g)
+{
+    uint32_t column = (uint32_t)(x - image->left);
+    uint32_t row = (uint32_t)(image->top - 1 - y);
+    const unsigned char* p = &s_pixels[((size_t)row * image->width + column) * 4];
+    return abs(p[0] - r) <= 1 && abs(p[1] - g) <= 1 && p[2] == 0 && p[3] == 255;
 }
 
 static void TestLayers(void)
@@ -192,6 +211,50 @@ static void TestPaints(void)
     muiDestroyTextService(scene.service);
 }
 
+// Gradients over the whole box, 1 to 9 across and 0 to 8 up, red to the
+// text's green; the expected bytes are the colours mixed in linear light
+// at each pixel's centre, encoded.
+static void TestGradients(void)
+{
+    Scene scene = MakeScene();
+    muiGlyphImage image = {0};
+    // From 3 to 5 across: pixel 1 at -0.75, pixel 4 at 0.75, pixel 7 at
+    // 2.25.
+    CHECK(BoxIs(&scene, LINEAR_PAD, 0.0f, 1, 8, 8, 8, &image) && Mixed(&image, 1, 4, 255, 0) &&
+              Mixed(&image, 4, 4, 137, 225) && Mixed(&image, 7, 4, 0, 255) &&
+              Mixed(&image, 4, 0, 137, 225),
+          "a linear gradient, padded");
+    CHECK(BoxIs(&scene, LINEAR_REPEAT, 0.0f, 1, 8, 8, 8, &image) && Mixed(&image, 1, 4, 225, 137) &&
+              Mixed(&image, 4, 4, 137, 225) && Mixed(&image, 7, 4, 225, 137),
+          "a linear gradient, repeated");
+    CHECK(BoxIs(&scene, LINEAR_REFLECT, 0.0f, 1, 8, 8, 8, &image) &&
+              Mixed(&image, 1, 4, 137, 225) && Mixed(&image, 4, 4, 137, 225) &&
+              Mixed(&image, 7, 4, 225, 137),
+          "a linear gradient, reflected");
+    CHECK(BoxIs(&scene, LINEAR_UNORDERED, 0.0f, 1, 8, 8, 8, &image) &&
+              Mixed(&image, 1, 4, 255, 0) && Mixed(&image, 4, 4, 137, 225),
+          "stops in the font out of order");
+    // Along the diagonal: pixels 6, 1 and 7, 2 alike, at 0.5; 2, 1 at 0.
+    CHECK(BoxIs(&scene, LINEAR_TURNED, 0.0f, 1, 8, 8, 8, &image) && Mixed(&image, 6, 1, 188, 188) &&
+              Mixed(&image, 7, 2, 188, 188) && Mixed(&image, 2, 1, 255, 0),
+          "a linear gradient turned by its third point");
+    // Out from 5, 4 to a radius of 4: pixel 5, 4 at 0.177, pixel 8, 4 at
+    // 0.884, pixel 1, 0 past it.
+    CHECK(BoxIs(&scene, RADIAL, 0.0f, 1, 8, 8, 8, &image) && Mixed(&image, 5, 4, 234, 117) &&
+              Mixed(&image, 8, 4, 96, 242) && Mixed(&image, 1, 0, 0, 255),
+          "a radial gradient");
+    CHECK(BoxIs(&scene, RADIAL_TUBE, 0.0f, 1, 8, 8, 8, &image) && Mixed(&image, 4, 4, 155, 214) &&
+              Is(&image, 4, 7, 0, 0, 0, 0),
+          "a radial gradient, nothing outside its circles");
+    // About 5, 4, counter-clockwise from the right: pixel 8, 4 at 8.1
+    // degrees, 5, 7 at 81.9, 2, 4 at 168.7; 5, 1, at 281.3, padded.
+    CHECK(BoxIs(&scene, SWEEP, 0.0f, 1, 8, 8, 8, &image) && Mixed(&image, 8, 4, 250, 60) &&
+              Mixed(&image, 5, 7, 195, 180) && Mixed(&image, 2, 4, 71, 248) &&
+              Mixed(&image, 5, 1, 0, 255),
+          "a sweep gradient");
+    muiDestroyTextService(scene.service);
+}
+
 static void TestContract(void)
 {
     Scene scene = MakeScene();
@@ -228,6 +291,7 @@ int main(void)
 {
     TestLayers();
     TestPaints();
+    TestGradients();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }

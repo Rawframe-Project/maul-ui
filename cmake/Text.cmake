@@ -7,6 +7,8 @@
 target_sources(maul-ui PRIVATE
     src/color_glyph.c
     src/colr_paint.c
+    src/colr_gradient.c
+    src/paint_source.c
     src/distance_field.c
     src/flatten.c
     src/family_store.c

@@ -42,6 +42,49 @@ def shape(glyph, paint):
     return {"Format": PaintFormat.PaintGlyph, "Glyph": glyph, "Paint": paint}
 
 
+# Red at offset 0 to the text's colour at 1, in that order or the other.
+RED_TO_TEXT = [
+    {"StopOffset": 0.0, "PaletteIndex": 0, "Alpha": 1.0},
+    {"StopOffset": 1.0, "PaletteIndex": 0xFFFF, "Alpha": 1.0},
+]
+
+
+def line(extend, stops=RED_TO_TEXT):
+    return {"Extend": extend, "ColorStop": stops}
+
+
+def linear(extend, p1x=500, p2=(300, 100), p0x=300, stops=RED_TO_TEXT):
+    return shape(
+        "whole",
+        {
+            "Format": PaintFormat.PaintLinearGradient,
+            "ColorLine": line(extend, stops),
+            "x0": p0x,
+            "y0": 0,
+            "x1": p1x,
+            "y1": 0,
+            "x2": p2[0],
+            "y2": p2[1],
+        },
+    )
+
+
+def radial(c0, r0, c1, r1):
+    return shape(
+        "whole",
+        {
+            "Format": PaintFormat.PaintRadialGradient,
+            "ColorLine": line("pad"),
+            "x0": c0[0],
+            "y0": c0[1],
+            "r0": r0,
+            "x1": c1[0],
+            "y1": c1[1],
+            "r1": r1,
+        },
+    )
+
+
 # Version 1 graphs, glyph ids 9 on in this order. In pixels at an em of
 # 10, "dot" is a box from 3 to 5 across and 2 to 4 up, "bar" from 3 to 7
 # and 2 to 3.
@@ -128,6 +171,32 @@ GRAPHS = {
     },
     # A graph that paints itself, its box its clip box's.
     "boxedLoop": {"Format": PaintFormat.PaintColrGlyph, "Glyph": "boxedLoop"},
+    # The whole box, from red at 3 across to the text's colour at 5,
+    # padded, repeated and reflected past them.
+    "linearPad": linear("pad"),
+    "linearRepeat": linear("repeat"),
+    "linearReflect": linear("reflect"),
+    # From 1 to 9 across, p2 at the top right corner: the colour runs
+    # along the diagonal, alike where x - y is.
+    "linearTurned": linear("pad", p1x=900, p2=(900, 800), p0x=100),
+    # From the centre of the box out to 4, red to the text's colour.
+    "radial": radial((500, 400), 0, (500, 400), 400),
+    # Two circles of 1 at 2 and 7 across: a tube, nothing outside it.
+    "radialTube": radial((200, 400), 100, (700, 400), 100),
+    # About the box's centre from 0 to 180 degrees, padded.
+    "sweep": shape(
+        "whole",
+        {
+            "Format": PaintFormat.PaintSweepGradient,
+            "ColorLine": line("pad"),
+            "centerX": 500,
+            "centerY": 400,
+            "startAngle": 0,
+            "endAngle": 180,
+        },
+    ),
+    # linearPad's stops written in the other order.
+    "linearUnordered": linear("pad", stops=RED_TO_TEXT[::-1]),
 }
 
 

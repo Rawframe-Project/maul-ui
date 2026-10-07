@@ -145,8 +145,12 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   down from font units, a glyph paint its child masked by its outline's
   coverage, layers composited source over, and nothing outside the clip
   box; at most 64 paints deep, so a graph that paints itself is
-  `mui_errorFormat`. Gradients and composite modes other than source
-  over come in later slices of the same painter.
+  `mui_errorFormat`. Gradients take each pixel's centre back into font
+  units: linear along p0 to p1 turned by p2, radial as CSS's two-point
+  conical gradient, sweep counter-clockwise from the x axis; their
+  colour lines padded, repeated or reflected and interpolated in
+  premultiplied linear light, as CPAL asks. Composite modes other than
+  source over come in a later slice.
   A glyph without colour is `mui_empty`, drawn as coverage.
 - **Font instances:** a font key names a font and an instance of it:
   the wght axis's value, ital, slnt or a shear, the opsz axis's value,

@@ -78,6 +78,8 @@ struct muiTextService
     muiBuffer colorCoverage;
     muiBuffer colorPixels;
     muiBuffer paintSurfaces;
+    // A version 1 gradient's colour stops, sorted.
+    muiBuffer paintStops;
     muiBuffer fieldCellPieces;
     muiBuffer fieldEdge;
     muiBuffer fieldDistances;

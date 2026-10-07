@@ -11,12 +11,12 @@
 // dy; rotations counter-clockwise; a skew of x angle a and y angle b maps
 // x to x - tan(a) y and y to y + tan(b) x.
 //
-// Not yet drawn: gradients (they paint nothing) and composite modes other
+// Gradients are colr_gradient.c's. Not yet drawn: composite modes other
 // than source over (each composite draws its source over its backdrop).
 
 #include "colr_paint.h"
 
-#include "color.h"
+#include "colr_gradient.h"
 #include "motion_math.h"
 #include "text_block.h"
 #include "text_service.h"
@@ -26,37 +26,10 @@
 #include <math.h>
 #include <string.h>
 
-muiLinearColor muiPaletteColor(const FT_Color* palette, uint32_t entries, uint32_t index,
-                               muiLinearColor foreground)
-{
-    if (index == MUI_FOREGROUND_ENTRY)
-    {
-        return foreground;
-    }
-    if (palette == nullptr || index >= entries)
-    {
-        return (muiLinearColor){0.0f, 0.0f, 0.0f, 0.0f};
-    }
-    const FT_Color* entry = &palette[index];
-    const muiColor color = {(float)entry->red / 255.0f, (float)entry->green / 255.0f,
-                            (float)entry->blue / 255.0f, (float)entry->alpha / 255.0f};
-    double rgb[3];
-    muiColorToLinearRgb(color, rgb);
-    return muiPremultiply(rgb, color.a, 1.0f);
-}
-
 #if MUI_COLR_PAINT
 
 // An affine map of font units: x' = xx x + xy y + dx, y' = yx x + yy y + dy.
-typedef struct Matrix
-{
-    double xx;
-    double xy;
-    double dx;
-    double yx;
-    double yy;
-    double dy;
-} Matrix;
+typedef muiPaintMatrix Matrix;
 
 static const Matrix IDENTITY = {1.0, 0.0, 0.0, 0.0, 1.0, 0.0};
 
@@ -337,16 +310,6 @@ static float* Surface(Surfaces* surfaces, uint32_t level)
     return (float*)service->paintSurfaces.data + (size_t)(level - 1) * surfaces->count * 4;
 }
 
-// A paint's colour, premultiplied linear: its palette entry's times its
-// alpha, a 2.14 number.
-static muiLinearColor ColorOf(const muiPaintSource* source, FT_ColorIndex index)
-{
-    float alpha = (float)index.alpha / 16384.0f;
-    muiLinearColor color =
-        muiPaletteColor(source->palette, source->entries, index.palette_index, source->foreground);
-    return (muiLinearColor){color.r * alpha, color.g * alpha, color.b * alpha, color.a * alpha};
-}
-
 // Composites a surface over another, premultiplied.
 static void Over(const float* source, float* destination, size_t count)
 {
@@ -481,8 +444,17 @@ static bool Render(Surfaces* surfaces, FT_OpaquePaint opaque, Matrix m, uint32_t
         ok = Layers(surfaces, paint.u.colr_layers.layer_iterator, m, level);
         break;
     case FT_COLR_PAINTFORMAT_SOLID:
-        ok = Fill(surfaces, ColorOf(walk->source, paint.u.solid.color), level);
+        ok = Fill(surfaces, muiColrPaintColor(walk->source, paint.u.solid.color), level);
         break;
+    case FT_COLR_PAINTFORMAT_LINEAR_GRADIENT:
+    case FT_COLR_PAINTFORMAT_RADIAL_GRADIENT:
+    case FT_COLR_PAINTFORMAT_SWEEP_GRADIENT:
+    {
+        muiResult painted =
+            muiPaintGradient(walk->source, &paint, m, surfaces->box, Surface(surfaces, level));
+        ok = painted == mui_success || Fail(walk, painted);
+        break;
+    }
     case FT_COLR_PAINTFORMAT_GLYPH:
         ok = Render(surfaces, paint.u.glyph.paint, m, level) &&
              Mask(surfaces, paint.u.glyph.glyphID, m, level);
