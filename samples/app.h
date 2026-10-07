@@ -86,6 +86,8 @@ struct SampleApp
     bool headless;
     int frames;
     bool closing;
+    // Whether what lives on the window was let go.
+    bool released;
     SampleSurface surface;
     // The frame's pixels when read back, their size and scale.
     uint8_t* pixels;

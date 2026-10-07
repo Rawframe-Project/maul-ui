@@ -466,6 +466,14 @@ format.
 
 ### Fixed
 
+- The reference renderer no longer hands `qsort` a null array when a
+  frame uses no images, undefined even for no elements; the linux-rhi
+  cell now runs the renderer's tests and the samples under AddressSanitizer
+  and UBSan.
+- The samples let go of their surface, renderer, glue and access in
+  Maul Window's quit, while the window still exists: the surface was
+  destroyed after the window, whose connection the driver's swapchain
+  could still use, corrupting the heap in about one run in a hundred.
 - `MUI_NODISCARD` is `[[nodiscard]]` under MSVC's C++17 too, which leaves
   `__cplusplus` at 199711L without `/Zc:__cplusplus`; the public headers
   are compiled alone by MSVC in CI. Without the text component, installing

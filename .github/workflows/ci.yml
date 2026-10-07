@@ -144,6 +144,17 @@ jobs:
           ! grep -qiE "validation error|VUID" rhi.log
           build/test_rhi_pixels 2>&1 | tee pixels.log
           ! grep -qiE "validation error|VUID" pixels.log
+      - name: The renderer and the samples under the sanitizers
+        # AddressSanitizer and UBSan, aborting on any report, over the
+        # renderer's tests and the samples headless on lavapipe.
+        env:
+          MUI_RHI_REQUIRED: 1
+        run: |
+          cmake -B build-sanitize -G Ninja -DCMAKE_BUILD_TYPE=Debug -D${PREFIX}_WERROR=ON \
+            -D${PREFIX}_SANITIZE=ON -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 \
+            -D${PREFIX}_RHI=ON -D${PREFIX}_WINDOW=ON -DMAUL_WINDOW_WAYLAND=OFF -DMAUL_WINDOW_X11=OFF
+          cmake --build build-sanitize -j 4
+          ctest --test-dir build-sanitize -R "rhi|sample" --output-on-failure
       - name: Without Maul UI's text component
         # Glyph runs need the text component's atlas; the renderer
         # refuses a text service without it and draws all else.

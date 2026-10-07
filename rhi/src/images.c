@@ -167,7 +167,12 @@ void muiRhiListTextures(muiRhiImages* images)
             images->textures[count++] = images->entries[i].resource;
         }
     }
-    qsort(images->textures, count, sizeof(mrhiResourceId), Compare);
+    if (count > 1)
+    {
+        // The array is NULL until an image is found, which qsort may not
+        // be given even for no elements.
+        qsort(images->textures, count, sizeof(mrhiResourceId), Compare);
+    }
     uint32_t distinct = 0;
     for (uint32_t i = 0; i < count; i++)
     {

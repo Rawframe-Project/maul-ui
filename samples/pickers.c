@@ -636,7 +636,7 @@ static bool Reported(const SampleApp* app, const Combo* combo, bool open, int ac
     bool names = active < 0 ? count == 0 : count == 1 && SampleSame(named, combo->items[active]);
     size_t length = strlen(value);
     return expanded == open && names && found->textLength[mui_accessValue] == length &&
-           memcmp(found->text[mui_accessValue], value, length) == 0;
+           (length == 0 || memcmp(found->text[mui_accessValue], value, length) == 0);
 }
 
 // Whether a combobox's list shows, its active option in its colour.

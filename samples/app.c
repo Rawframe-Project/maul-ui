@@ -475,16 +475,40 @@ static bool MakeText(SampleApp* app)
            muiSetDefaultFont(app->text, sans) == mui_success;
 }
 
-static void Destroy(SampleApp* app)
+// Lets go of what lives on the window while it still exists: a surface
+// must not outlive its window, whose connection the driver's swapchain
+// may still use. Once.
+static void Release(SampleApp* app)
 {
+    if (app->released)
+    {
+        return;
+    }
+    app->released = true;
     if (app->def->finish != NULL && app->sample.device != NULL)
     {
         app->def->finish(app->def->user, app);
     }
     muiDestroyRhiRenderer(app->renderer);
+    app->renderer = NULL;
     SampleSurfaceClose(&app->sample, &app->surface);
     muiDestroyWindowAccess(app->access);
+    app->access = NULL;
     muiDestroyWindowGlue(app->glue);
+    app->glue = NULL;
+}
+
+// Called by Maul Window before it lets go of the window.
+static void Quit(mwinContext* windows, mwinResult status, void* user)
+{
+    (void)windows;
+    (void)status;
+    Release(user);
+}
+
+static void Destroy(SampleApp* app)
+{
+    Release(app);
     muiDestroyContext(app->context);
     muiDestroyTextService(app->text);
     free(app->pixels);
@@ -509,6 +533,7 @@ int SampleRunApp(const SampleAppDef* def, int count, char** arguments)
         run.context.backend = app.headless ? mwin_backendTest : mwin_backendNative;
         run.init = Init;
         run.frame = Frame;
+        run.quit = Quit;
         run.user = &app;
         SampleAppCheck(&app, mwinRun(&run) == mwin_success && app.frame > 0, "the program ran");
     }
