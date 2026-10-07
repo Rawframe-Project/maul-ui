@@ -56,11 +56,11 @@ def paeth(a, b, c):
     return a if pa <= pb and pa <= pc else (b if pb <= pc else c)
 
 
-def filter_rows(rows, bpp, first_filter):
+def filter_rows(rows, bpp, first_filter, only_filter=None):
     out = bytearray()
     prior = bytes(len(rows[0])) if rows else b""
     for y, row in enumerate(rows):
-        kind = (first_filter + y) % 5
+        kind = (first_filter + y) % 5 if only_filter is None else only_filter
         out.append(kind)
         for i, x in enumerate(row):
             a = row[i - bpp] if i >= bpp else 0
@@ -72,7 +72,7 @@ def filter_rows(rows, bpp, first_filter):
     return bytes(out)
 
 
-def encode(width, height, kind, depth, samples, interlaced, palette=None, trns=None, level=6, strategy=zlib.Z_DEFAULT_STRATEGY, split=0, first_filter=0):
+def encode(width, height, kind, depth, samples, interlaced, palette=None, trns=None, level=6, strategy=zlib.Z_DEFAULT_STRATEGY, split=0, first_filter=0, only_filter=None):
     """samples[y][x] is a tuple of the pixel's samples."""
     channels = CHANNELS[kind]
     bpp = max(1, channels * depth // 8)
@@ -84,7 +84,7 @@ def encode(width, height, kind, depth, samples, interlaced, palette=None, trns=N
         if not xs or not ys:
             continue
         rows = [pack_row([s for x in xs for s in samples[y][x]], depth) for y in ys]
-        raw += filter_rows(rows, bpp, first_filter)
+        raw += filter_rows(rows, bpp, first_filter, only_filter)
     compressor = zlib.compressobj(level, zlib.DEFLATED, 15, 9, strategy)
     data = compressor.compress(raw) + compressor.flush()
     png = SIGNATURE + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, depth, kind, 0, 0, 1 if interlaced else 0))
@@ -170,6 +170,20 @@ def cases():
                     n += 1
     # A larger image, its matches reaching back across many rows.
     out.append(made(rng, 64, 48, 6, 8, False, tile=(13, 7), level=9, first_filter=4))
+    # Sixteen grey values as often as the Fibonacci numbers, unfiltered and
+    # compressed as Huffman codes alone: a code fifteen bits deep, past
+    # the decoder's table of short codes.
+    values = []
+    a, b = 1, 1
+    for v in range(16):
+        values += [v * 16] * a
+        a, b = b, a + b
+    values += [0] * (64 * 41 - len(values))
+    rng.shuffle(values)
+    fib = [[(values[y * 64 + x],) for x in range(64)] for y in range(41)]
+    png = encode(64, 41, 0, 8, fib, False, level=9, strategy=zlib.Z_HUFFMAN_ONLY, only_filter=0)
+    assert pillow_rgba(png) == expected(64, 41, 0, 8, fib)
+    out.append((png, 64, 41, expected(64, 41, 0, 8, fib)))
     # Pillow's encoder, its own filters and compression.
     for mode in ("RGBA", "RGB", "L", "LA", "P"):
         image = Image.new(mode, (23, 11))
