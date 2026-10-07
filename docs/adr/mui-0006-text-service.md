@@ -223,7 +223,10 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   `muiTextBlock_Compose`: shown at the caret, replacing a selection as
   an edit, taken out by empty text with the commit arriving as typing,
   undo waiting until it ends; an edit while one shows takes it out
-  first. Focus stays the host's.
+  first. Focus stays the host's. A field's rules name what it takes
+  for an on-screen keyboard (`muiInputPurpose`: text, email, URL), a
+  password's and a number filter's own purposes first
+  (`muiTextBlock_GetInputPurpose`), with the values of Maul Window's.
 - **The caret in view:** an editing block's text scrolls in its
   content box: from where it was, just far enough that the caret shows
   (a unit wide) on its line, then no further than the text reaches, so

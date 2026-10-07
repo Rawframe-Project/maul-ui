@@ -146,9 +146,36 @@ static void TestCalls(void)
 {
     Scene scene = MakeScene("abc", 0);
     muiTextEditDef def = muiDefaultTextEditDef();
-    CHECK(def.flags == 0 && def.filter == mui_filterNone && def.maxLength == 0 &&
-              def.undoLimit == 100,
+    CHECK(def.flags == 0 && def.filter == mui_filterNone && def.purpose == mui_purposeText &&
+              def.maxLength == 0 && def.undoLimit == 100,
           "the default rules");
+    muiInputPurpose purpose = mui_purposeUrl;
+    CHECK(muiTextBlock_GetInputPurpose(scene.service, scene.block, &purpose) == mui_success &&
+              purpose == mui_purposeText,
+          "plain text");
+    def.purpose = mui_purposeEmail;
+    CHECK(muiTextBlock_SetEditing(scene.service, scene.block, &def) == mui_success &&
+              muiTextBlock_GetInputPurpose(scene.service, scene.block, &purpose) == mui_success &&
+              purpose == mui_purposeEmail,
+          "an email");
+    def.filter = mui_filterDecimal;
+    CHECK(muiTextBlock_SetEditing(scene.service, scene.block, &def) == mui_success &&
+              muiTextBlock_GetInputPurpose(scene.service, scene.block, &purpose) == mui_success &&
+              purpose == mui_purposeNumber,
+          "a number filter, a number");
+    def.flags = mui_editPassword;
+    CHECK(muiTextBlock_SetEditing(scene.service, scene.block, &def) == mui_success &&
+              muiTextBlock_GetInputPurpose(scene.service, scene.block, &purpose) == mui_success &&
+              purpose == mui_purposePassword,
+          "a password first");
+    def = muiDefaultTextEditDef();
+    def.purpose = 5;
+    CHECK(muiTextBlock_SetEditing(scene.service, scene.block, &def) == mui_errorInvalid,
+          "a purpose out of range");
+    def = muiDefaultTextEditDef();
+    CHECK(muiTextBlock_SetEditing(scene.service, scene.block, &def) == mui_success &&
+              Selects(&scene, 3, 3),
+          "editing again, the caret at the end");
     CHECK(Selects(&scene, 3, 3), "the caret at the end");
     def.flags = 8;
     CHECK(muiTextBlock_SetEditing(scene.service, scene.block, &def) == mui_errorInvalid,

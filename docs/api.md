@@ -1317,12 +1317,12 @@ Text editing (record mui-0006): a block opted into editing keeps a selection, an
 ```c
 muiTextEditDef muiDefaultTextEditDef(void);
 ```
-Returns a single-line field's rules: no filter, no limit, and 100 edits to undo.  @return The rules. @par Thread safety Safe from any thread.
+Returns a single-line field's rules: no filter, plain text, no limit, and 100 edits to undo.  @return The rules. @par Thread safety Safe from any thread.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiTextBlock_SetEditing(muiTextService* service, muiTextBlockId blockId, const muiTextEditDef* def);
 ```
-Opts a block into editing with a field's rules, or out with NULL. Either way the history empties and the caret goes to the text's end. Changing the text otherwise (muiTextBlock_SetText, muiTextBlock_Replace, a composition) empties the history too, the selection kept within the text.  @param service  The service. @param blockId  The block. @param def      The rules, or NULL. @return `mui_success`; `mui_errorInvalid` for a NULL service, the null id, or a flag or filter out of range; `mui_errorStale` for a block that is gone. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+Opts a block into editing with a field's rules, or out with NULL. Either way the history empties and the caret goes to the text's end. Changing the text otherwise (muiTextBlock_SetText, muiTextBlock_Replace, a composition) empties the history too, the selection kept within the text.  @param service  The service. @param blockId  The block. @param def      The rules, or NULL. @return `mui_success`; `mui_errorInvalid` for a NULL service, the null id, or a flag, filter or purpose out of range; `mui_errorStale` for a block that is gone. @par Thread safety Safe from any thread; the service is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiTextBlock_GetSelection(const muiTextService* service, muiTextBlockId blockId, muiTextSelection* selectionOut);
@@ -1368,6 +1368,11 @@ Undoes an editing block's last edit, the selection back as it was before it; not
 MUI_NODISCARD MUI_API muiResult muiTextBlock_Redo(muiTextService* service, muiTextBlockId blockId, bool* changedOut);
 ```
 Redoes an editing block's last undone edit, the selection as it was after it; as muiTextBlock_Undo otherwise. An edit made after an undo drops what was undone.  @param service     The service. @param blockId     The block. @param changedOut  Receives whether the text changed; may be NULL. @return As muiTextBlock_Type. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiTextBlock_GetInputPurpose(const muiTextService* service, muiTextBlockId blockId, muiInputPurpose* purposeOut);
+```
+Reads what an editing block's field takes, for an on-screen keyboard: a password's purpose for a password, a number's for a number filter, else the one its rules give.  @param service     The service. @param blockId     The block. @param purposeOut  Receives the purpose. @return As muiTextBlock_GetSelection. @par Thread safety Safe from any thread; the service is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiTextBlock_GetUndoState(const muiTextService* service, muiTextBlockId blockId, bool* undoOut, bool* redoOut);
@@ -1640,4 +1645,4 @@ Reads a node's resolved visual values: its direct writes, and for the other prop
 
 ---
 
-299 functions across 35 headers.
+300 functions across 35 headers.

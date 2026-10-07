@@ -71,7 +71,9 @@ format.
   `muiWindowGlue_RequestPaste`, `muiWindowGlue_Paste`); the text,
   pickers and colour samples edit through the editor. A password field
   shows, hits and reads as a bullet per character; an editing field's
-  text scrolls to keep the caret in view.
+  text scrolls to keep the caret in view; a field names its input
+  purpose (`muiInputPurpose`, `muiTextBlock_GetInputPurpose`), which
+  `muiWindowGlue_RequestKeyboard` gives the on-screen keyboard.
 
 - Text decorations and spans: the text style's `decoration` (underline,
   overline, line-through) and `decorationColor` (the text's color at

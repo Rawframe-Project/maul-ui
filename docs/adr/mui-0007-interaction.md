@@ -334,7 +334,9 @@ itself instead of each host repeating them.
   the text editor the window's clipboard: `muiWindowGlue_WriteClipboard`
   as its writer, `muiWindowGlue_RequestPaste` for a paste it asks for,
   and `muiWindowGlue_Paste` taking the window's answer into the block,
-  as Maul Window reads the clipboard by request. Its tests run on Maul Window's headless test
+  as Maul Window reads the clipboard by request; and
+  `muiWindowGlue_RequestKeyboard` shows the on-screen keyboard for an
+  editing field's purpose, or hides it. Its tests run on Maul Window's headless test
   backend, with the text component and without it.
 
 ## Consequences

@@ -11,7 +11,9 @@
 // (SampleEdit, maul-ui-window/clipboard.h). The paint function draws the selection's
 // rectangles and the caret over the text. An input method's preedit goes
 // into the focused field (muiWindowCompose) and the window's candidate
-// box follows the caret (muiWindowGlue_SetTextCaret). Headless, a
+// box follows the caret (muiWindowGlue_SetTextCaret), the on-screen
+// keyboard shown for the field's purpose as the focus enters it and
+// hidden as it leaves (muiWindowGlue_RequestKeyboard). Headless, a
 // person's typing, editing, selecting, copying, pasting, undoing and
 // composing is posted and the texts, the caret's pixels, the window's
 // caret and the accessibility tree checked.
@@ -120,6 +122,13 @@ static void Update(void* user, SampleApp* app)
 {
     Texts* texts = user;
     int focused = FieldOf(texts, muiFocus_Get(app->context, 0));
+    if (focused != texts->focused)
+    {
+        const muiNodeId shown = focused >= 0 ? texts->fields[focused].node : (muiNodeId){0, 0};
+        SampleAppCheck(app,
+                       muiWindowGlue_RequestKeyboard(app->glue, &app->host, shown) == mui_success,
+                       "the keyboard asked for");
+    }
     if (focused >= 0)
     {
         Field* field = &texts->fields[focused];

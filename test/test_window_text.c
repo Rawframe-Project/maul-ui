@@ -237,6 +237,11 @@ static void TestEditing(Test* test)
           "nothing read, nothing pasted");
     CHECK(muiWindowGlue_Paste(NULL, test->service, test->block, &event, NULL) == mui_errorInvalid,
           "no glue");
+    CHECK(muiWindowGlue_RequestKeyboard(test->glue, &test->host, test->field) == mui_success &&
+              muiWindowGlue_RequestKeyboard(test->glue, &test->host, s_nullNode) == mui_success &&
+              muiWindowGlue_RequestKeyboard(NULL, &test->host, test->field) == mui_errorInvalid &&
+              muiWindowGlue_RequestKeyboard(test->glue, NULL, test->field) == mui_errorInvalid,
+          "the keyboard shown and hidden");
 }
 
 static mwinFrameResult Frame(mwinContext* windows, void* user)

@@ -6,7 +6,8 @@
 // preedit set into a text block, and the candidate window placed at a
 // position of a node's text. Maul Window's preedit styles and segment
 // limit are Maul UI's composition styles and limit. An editing block
-// takes a preedit through muiWindowCompose.
+// takes a preedit through muiWindowCompose, and its field's purpose
+// picks the on-screen keyboard (muiWindowGlue_RequestKeyboard).
 
 #ifndef MAUL_UI_WINDOW_COMPOSITION_H
 #define MAUL_UI_WINDOW_COMPOSITION_H
@@ -84,6 +85,24 @@ extern "C"
                                                                       muiNodeId nodeId,
                                                                       muiTextPosition position,
                                                                       mwinRect* placedOut);
+
+    /// Asks for the window's on-screen keyboard, where the platform has
+    /// one, laid out for what a node's editing block takes
+    /// (muiTextBlock_GetInputPurpose; plain text for a block not
+    /// editing), or, with the null id, to hide it
+    /// (mwinRequestVirtualKeyboard). Ask as the focus enters and leaves a
+    /// field.
+    ///
+    /// @param glue    The glue.
+    /// @param host    The text host the node's block is in.
+    /// @param nodeId  The node, or the null id to hide the keyboard.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a
+    ///         request Maul Window refuses.
+    /// @par Thread safety
+    /// Main thread only, as Maul Window's requests.
+    MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_RequestKeyboard(muiWindowGlue* glue,
+                                                                         const muiTextHost* host,
+                                                                         muiNodeId nodeId);
 
 #ifdef __cplusplus
 }

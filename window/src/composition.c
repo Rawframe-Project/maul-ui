@@ -7,6 +7,8 @@
 
 #include "maul-ui-window/composition.h"
 
+#include "glue_state.h"
+
 #include "maul-ui/layout.h"
 
 #include <stddef.h>
@@ -17,6 +19,10 @@ static_assert(mwin_preeditPlain == mui_compositionPlain &&
                   mwin_preeditTarget == mui_compositionTarget &&
                   mwin_preeditConverted == mui_compositionConverted,
               "the styles");
+static_assert(mwin_purposeText == mui_purposeText && mwin_purposeNumber == mui_purposeNumber &&
+                  mwin_purposeEmail == mui_purposeEmail &&
+                  mwin_purposePassword == mui_purposePassword && mwin_purposeUrl == mui_purposeUrl,
+              "the purposes");
 static_assert(sizeof(mwinPreeditSegment) == sizeof(muiCompositionSegment) &&
                   offsetof(mwinPreeditSegment, start) == offsetof(muiCompositionSegment, start) &&
                   offsetof(mwinPreeditSegment, length) == offsetof(muiCompositionSegment, length) &&
@@ -93,4 +99,30 @@ muiResult muiWindowGlue_SetTextCaret(muiWindowGlue* glue, const muiTextHost* hos
     }
     const muiRect rect = {content.x + caret.x, content.y + caret.y, 0.0f, caret.height};
     return muiWindowGlue_SetCaret(glue, nodeId, rect, placedOut);
+}
+
+muiResult muiWindowGlue_RequestKeyboard(muiWindowGlue* glue, const muiTextHost* host,
+                                        muiNodeId nodeId)
+{
+    if (glue == nullptr || host == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    bool visible = nodeId.index1 != 0;
+    muiInputPurpose purpose = mui_purposeText;
+    if (visible)
+    {
+        uint64_t key = muiNode_GetHostKey(host->context, nodeId);
+        const muiTextBlockId blockId = {(uint32_t)key, (uint32_t)(key >> 32)};
+        if (muiTextBlock_GetInputPurpose(host->service, blockId, &purpose) != mui_success)
+        {
+            purpose = mui_purposeText;
+        }
+    }
+    if (mwinRequestVirtualKeyboard(glue->windows, glue->window, visible, purpose, nullptr) !=
+        mwin_success)
+    {
+        return mui_errorInvalid;
+    }
+    return mui_success;
 }

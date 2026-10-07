@@ -23,7 +23,7 @@ enum
 
 muiTextEditDef muiDefaultTextEditDef(void)
 {
-    return (muiTextEditDef){0, mui_filterNone, 0, DEFAULT_UNDO_LIMIT};
+    return (muiTextEditDef){0, mui_filterNone, mui_purposeText, 0, DEFAULT_UNDO_LIMIT};
 }
 
 static bool IsCharacterStart(const muiTextBlock* block, uint32_t at)
@@ -90,7 +90,7 @@ muiResult muiTextBlock_SetEditing(muiTextService* service, muiTextBlockId blockI
     if (service == nullptr || blockId.index1 == 0 ||
         (def != nullptr &&
          ((def->flags & ~(mui_editMultiline | mui_editReadOnly | mui_editPassword)) != 0 ||
-          def->filter > mui_filterDecimal)))
+          def->filter > mui_filterDecimal || def->purpose > mui_purposeUrl)))
     {
         return mui_errorInvalid;
     }
@@ -419,6 +419,22 @@ muiResult muiTextBlock_Undo(muiTextService* service, muiTextBlockId blockId, boo
 muiResult muiTextBlock_Redo(muiTextService* service, muiTextBlockId blockId, bool* changedOut)
 {
     return Step(service, blockId, false, changedOut);
+}
+
+muiResult muiTextBlock_GetInputPurpose(const muiTextService* service, muiTextBlockId blockId,
+                                       muiInputPurpose* purposeOut)
+{
+    muiTextBlock* block = nullptr;
+    muiResult result =
+        purposeOut != nullptr ? muiEditingBlock(service, blockId, &block) : mui_errorInvalid;
+    if (result == mui_success)
+    {
+        const muiTextEditDef* def = &block->editing.def;
+        *purposeOut = (def->flags & mui_editPassword) != 0 ? mui_purposePassword
+                      : def->filter != mui_filterNone      ? mui_purposeNumber
+                                                           : def->purpose;
+    }
+    return result;
 }
 
 muiResult muiTextBlock_GetUndoState(const muiTextService* service, muiTextBlockId blockId,

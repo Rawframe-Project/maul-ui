@@ -59,10 +59,26 @@ extern "C"
         mui_filterDecimal = 2,
     };
 
+    // What a field takes, which picks an on-screen keyboard's layout.
+    typedef uint8_t muiInputPurpose;
+
+    enum
+    {
+        mui_purposeText = 0,
+        mui_purposeNumber = 1,
+        mui_purposeEmail = 2,
+        mui_purposePassword = 3,
+        mui_purposeUrl = 4,
+    };
+
     typedef struct muiTextEditDef
     {
         muiTextEditFlags flags;
         muiTextFilter filter;
+        // What the field takes, for an on-screen keyboard: a password's
+        // and a number filter's own purposes come first
+        // (muiTextBlock_GetInputPurpose).
+        muiInputPurpose purpose;
         // The most grapheme clusters the text may hold, typing and pastes
         // cut to fit; 0 for no limit.
         uint32_t maxLength;
@@ -110,8 +126,8 @@ extern "C"
         muiTextPosition caret;
     } muiTextSelection;
 
-    /// Returns a single-line field's rules: no filter, no limit, and 100
-    /// edits to undo.
+    /// Returns a single-line field's rules: no filter, plain text, no
+    /// limit, and 100 edits to undo.
     ///
     /// @return The rules.
     /// @par Thread safety
@@ -128,8 +144,8 @@ extern "C"
     /// @param blockId  The block.
     /// @param def      The rules, or NULL.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL service, the
-    ///         null id, or a flag or filter out of range; `mui_errorStale`
-    ///         for a block that is gone.
+    ///         null id, or a flag, filter or purpose out of range;
+    ///         `mui_errorStale` for a block that is gone.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_SetEditing(muiTextService* service,
@@ -278,6 +294,20 @@ extern "C"
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_Redo(muiTextService* service,
                                                       muiTextBlockId blockId, bool* changedOut);
+
+    /// Reads what an editing block's field takes, for an on-screen
+    /// keyboard: a password's purpose for a password, a number's for a
+    /// number filter, else the one its rules give.
+    ///
+    /// @param service     The service.
+    /// @param blockId     The block.
+    /// @param purposeOut  Receives the purpose.
+    /// @return As muiTextBlock_GetSelection.
+    /// @par Thread safety
+    /// Safe from any thread; the service is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiTextBlock_GetInputPurpose(const muiTextService* service,
+                                                                 muiTextBlockId blockId,
+                                                                 muiInputPurpose* purposeOut);
 
     /// Reads whether an editing block has an edit to undo and one to redo.
     ///
