@@ -17,6 +17,7 @@
 #   glyph 5 "loop"   'dupe' of itself.
 #   glyph 6 "half"   an outline box from 150 to 350 and 0 to 200; 2 by 2
 #                    red at origin offset 0, 0: its left at 1.5 pixels.
+#   glyph 7 "mislabel"  a PNG called 'jpg ', not drawn.
 #
 # Needs fontTools and Pillow; fixed timestamps, so it writes the same
 # bytes each time.
@@ -33,7 +34,7 @@ from fontTools.ttLib.tables.DefaultTable import DefaultTable
 from PIL import Image
 
 TIMESTAMP = 3850070400
-NAMES = [".notdef", "boxed", "bare", "copy", "jpeg", "loop", "half"]
+NAMES = [".notdef", "boxed", "bare", "copy", "jpeg", "loop", "half", "mislabel"]
 
 
 def box(left, bottom, right, top):
@@ -81,6 +82,7 @@ def sbix():
             4: graphic(0, 0, b"jpg ", b"\xff\xd8\xff\xd9"),
             5: graphic(0, 0, b"dupe", struct.pack(">H", 5)),
             6: graphic(0, 0, b"png ", solid(red, 2)),
+            7: graphic(0, 0, b"jpg ", solid(red, 2)),
         },
     )
     twenty = strike(20, {1: graphic(2, 0, b"png ", solid((0, 255, 0, 255), 8))})

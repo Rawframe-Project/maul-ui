@@ -166,6 +166,8 @@ static void TestSbix(void)
           "a dupe drawn as the glyph it names");
     CHECK(Draw(&scene, 4, 10.0f, 0.0f, &image) == mui_empty, "a JPEG graphic not drawn");
     CHECK(Draw(&scene, 5, 10.0f, 0.0f, &image) == mui_empty, "a dupe of itself not drawn");
+    CHECK(Draw(&scene, 7, 10.0f, 0.0f, &image) == mui_empty,
+          "a PNG called a JPEG not drawn: the graphic's type rules");
     // 1.5 pixels in: the first column half red.
     CHECK(BoxIs(&scene, 6, 10.0f, 0.0f, 1, 2, 3, 2, &image) && Is(&image, 1, 1, 188, 0, 0, 128) &&
               Is(&image, 2, 1, 255, 0, 0, 255),
