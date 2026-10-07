@@ -3,8 +3,7 @@
 //
 // A tour of Maul UI: one program that uses its parts together, in the
 // order a host calls them, and checks what they did (record mui-0005).
-// It opens a window through Maul Window (headless on its test backend,
-// for now), builds a tree with a title in Liberation Sans, a generated
+// It opens a window through Maul Window, builds a tree with a title in Liberation Sans, a generated
 // picture, a button whose class colours it while pressed, and a scroll
 // container of rows; feeds the window's records through the glue, keeps
 // the accessibility tree through the glue's access, lays the tree out,
@@ -12,8 +11,12 @@
 // texture, which it reads back. Checked: the background, the picture's
 // corners, the title's ink, the button's colours, the rows cut at the
 // container's edge and moved by a wheel, and the button named in the
-// accessibility tree. Exits 77 without an adapter, unless
-// MUI_RHI_REQUIRED is set.
+// accessibility tree. That is the headless run (--headless), on Maul
+// Window's test backend, records posted as a platform reports them.
+// Without it the tour opens a real window and presents onto its surface
+// until it is closed, or for --frames N frames, the last read back where
+// the surface allows and checked as the first headless frame. Exits 77
+// without an adapter, unless MUI_RHI_REQUIRED is set.
 
 #include "harness.h"
 
@@ -36,8 +39,10 @@
 #include "maul-window/test.h"
 #include "maul-window/window.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "sans.inc"
 
@@ -78,7 +83,20 @@ typedef struct Tour
     muiWindowAccess* access;
     muiRhiRenderer* renderer;
     mrhiTextureId pictureTexture;
+    // Headless on Maul Window's test backend, drawn into a texture; else
+    // presented on the window's surface, for frames frames when that is
+    // not 0, or until the window is closed.
+    bool headless;
+    int frames;
+    bool closing;
+    SampleSurface surface;
+    // The frame's pixels, read back, its size in pixels and its scale.
     uint8_t* pixels;
+    uint32_t pixelWidth;
+    uint32_t pixelHeight;
+    float scale;
+    // Whether this frame's pixels are read back.
+    bool reading;
     uint64_t now;
     int frame;
 } Tour;
@@ -276,8 +294,8 @@ static bool FindImage(void* context, uint64_t key, muiRhiImage* imageOut)
     return true;
 }
 
-// The picture, 8 by 8 in quarters, and the renderer that draws with it.
-static void MakeRenderer(Tour* tour)
+// The picture, 8 by 8 in quarters.
+static void MakePicture(Tour* tour)
 {
     uint8_t texels[8 * 8 * 4];
     for (int y = 0; y < 8; y++)
@@ -291,16 +309,35 @@ static void MakeRenderer(Tour* tour)
         }
     }
     Check(tour, SampleTexture(&tour->sample, 8, 8, texels, &tour->pictureTexture), "the picture");
+}
+
+// The renderer, for targets of a format, once its pipeline is ready.
+static bool MakeRenderer(Tour* tour, mrhiFormat format)
+{
     muiRhiRendererDef def = muiDefaultRhiRendererDef();
     def.device = tour->sample.device;
-    def.targetFormat = mrhi_formatRgba8UnormSrgb;
+    def.targetFormat = format;
     def.image = FindImage;
     def.imageContext = tour;
     def.text = tour->text;
-    Check(tour,
-          muiCreateRhiRenderer(&def, &tour->renderer) == mui_success &&
-              SampleAwaitReady(&tour->sample, tour->renderer),
-          "the renderer ready");
+    return Check(tour,
+                 muiCreateRhiRenderer(&def, &tour->renderer) == mui_success &&
+                     SampleAwaitReady(&tour->sample, tour->renderer),
+                 "the renderer ready");
+}
+
+// Room for a frame's pixels at a size.
+static bool Size(Tour* tour, uint32_t width, uint32_t height, float scale)
+{
+    if (width != tour->pixelWidth || height != tour->pixelHeight)
+    {
+        free(tour->pixels);
+        tour->pixels = malloc((size_t)width * height * 4);
+        tour->pixelWidth = width;
+        tour->pixelHeight = height;
+    }
+    tour->scale = scale;
+    return Check(tour, tour->pixels != NULL, "room for the pixels");
 }
 
 static mwinResult Init(mwinContext* windows, void* user)
@@ -317,15 +354,18 @@ static mwinResult Init(mwinContext* windows, void* user)
     glue.context = tour->context;
     glue.root = tour->root;
     Check(tour, muiCreateWindowGlue(&glue, &tour->glue) == mui_success, "a glue");
-    MakeRenderer(tour);
+    MakePicture(tour);
+    if (tour->headless)
+    {
+        (void)MakeRenderer(tour, mrhi_formatRgba8UnormSrgb);
+        (void)Size(tour, WIDTH, HEIGHT, 1.0f);
+    }
     return mwin_success;
 }
 
-// Hands the window's records to the glue, as a host does each frame,
-// then lays out, sends the accessibility tree's changes, paints and
-// draws. The access is made once the window has its surface, which its
-// first records bring.
-static void Step(Tour* tour, mwinContext* windows)
+// Hands the window's records to the glue and the access, as a host does
+// each frame, and notes a request to close.
+static void Drain(Tour* tour, mwinContext* windows)
 {
     mwinEvent event;
     while (mwinNextEvent(windows, &event) == mwin_success)
@@ -337,24 +377,86 @@ static void Step(Tour* tour, mwinContext* windows)
               tour->access == NULL ||
                   muiWindowAccess_HandleEvent(tour->access, &event) == mui_success,
               "a record seen by the access");
+        tour->closing = tour->closing || event.type == mwin_eventCloseRequested;
     }
+}
+
+// The window's surface, made once the platform has made the window and
+// configured again as its size in pixels changes; let go while the
+// window has none. Whether there is one to draw on.
+static bool Surface(Tour* tour, mwinContext* windows)
+{
+    mwinWindowState state;
+    if (mwinGetWindowState(windows, tour->window, &state) != mwin_success || !state.created ||
+        state.surfaceLost)
+    {
+        SampleSurfaceClose(&tour->sample, &tour->surface);
+        return false;
+    }
+    uint32_t width = state.pixelSize.width;
+    uint32_t height = state.pixelSize.height;
+    if (width == 0 || height == 0)
+    {
+        return false;
+    }
+    if (tour->surface.surface.index1 == 0)
+    {
+        mwinNativeHandles handles;
+        if (!Check(tour, mwinGetNativeHandles(windows, tour->window, &handles) == mwin_success,
+                   "the window's handles") ||
+            !Check(tour, SampleSurfaceOpen(&tour->sample, &handles, width, height, &tour->surface),
+                   "a surface") ||
+            (tour->renderer == NULL && !MakeRenderer(tour, tour->surface.config.color.format)))
+        {
+            tour->closing = true;
+            return false;
+        }
+    }
+    else if (width != tour->surface.config.width || height != tour->surface.config.height)
+    {
+        Check(tour, SampleSurfaceResize(&tour->sample, &tour->surface, width, height),
+              "the surface resized");
+    }
+    return Size(tour, width, height, state.scale);
+}
+
+// One frame: the records, the access once the window has its surface
+// (which its first records bring), layout at now, the accessibility
+// tree's changes, the list painted and drawn, into a texture headless,
+// else onto the window's surface.
+static void Step(Tour* tour, mwinContext* windows)
+{
+    Drain(tour, windows);
     if (tour->access == NULL)
     {
         muiWindowAccessDef access = muiDefaultWindowAccessDef();
         access.glue = tour->glue;
         Check(tour, muiCreateWindowAccess(&access, &tour->access) == mui_success, "an access");
     }
+    if (!tour->headless && !Surface(tour, windows))
+    {
+        return;
+    }
     const muiLayoutInput layout = {(float)WIDTH, (float)HEIGHT, muiMeasureText,
                                    &tour->host,  tour->now,     NULL};
-    const muiDrawInput draw = {1, 1.0f, muiPaintText, &tour->host};
+    const muiDrawInput draw = {1, tour->scale, muiPaintText, &tour->host};
     muiDrawList list;
-    Check(tour,
-          muiComputeLayout(tour->context, tour->root, &layout) == mui_success &&
-              muiWindowAccess_Update(tour->access) == mui_success &&
-              muiBuildDrawList(tour->context, tour->root, &draw) == mui_success &&
-              muiGetDrawList(tour->context, &list) == mui_success &&
-              SampleRender(&tour->sample, tour->renderer, &list, WIDTH, HEIGHT, tour->pixels),
-          "a frame drawn");
+    bool built = muiComputeLayout(tour->context, tour->root, &layout) == mui_success &&
+                 muiWindowAccess_Update(tour->access) == mui_success &&
+                 muiBuildDrawList(tour->context, tour->root, &draw) == mui_success &&
+                 muiGetDrawList(tour->context, &list) == mui_success;
+    if (tour->headless)
+    {
+        Check(tour,
+              built && SampleRender(&tour->sample, tour->renderer, &list, tour->pixelWidth,
+                                    tour->pixelHeight, tour->pixels),
+              "a frame drawn");
+        return;
+    }
+    SamplePresented presented = built ? SamplePresent(&tour->sample, &tour->surface, tour->renderer,
+                                                      &list, tour->reading ? tour->pixels : NULL)
+                                      : sample_failed;
+    Check(tour, presented != sample_failed, "a frame presented");
 }
 
 // The pixel at a point of a node's border box.
@@ -362,13 +464,20 @@ static const uint8_t* PixelOf(const Tour* tour, muiNodeId node, float x, float y
 {
     float rootX = 0.0f;
     float rootY = 0.0f;
-    if (muiNode_MapToRoot(tour->context, node, x, y, &rootX, &rootY) != mui_success ||
-        rootX < 0.0f || rootY < 0.0f || rootX >= (float)WIDTH || rootY >= (float)HEIGHT)
+    if (muiNode_MapToRoot(tour->context, node, x, y, &rootX, &rootY) != mui_success)
+    {
+        rootX = -1.0f;
+    }
+    // Device pixels, at the frame's scale.
+    float pixelX = rootX * tour->scale;
+    float pixelY = rootY * tour->scale;
+    if (tour->pixels == NULL || pixelX < 0.0f || pixelY < 0.0f ||
+        pixelX >= (float)tour->pixelWidth || pixelY >= (float)tour->pixelHeight)
     {
         static const uint8_t none[4] = {0, 0, 0, 0};
         return none;
     }
-    return &tour->pixels[((size_t)rootY * WIDTH + (size_t)rootX) * 4];
+    return &tour->pixels[((size_t)pixelY * tour->pixelWidth + (size_t)pixelX) * 4];
 }
 
 static bool Near(const uint8_t* pixel, const uint8_t rgb[3])
@@ -469,11 +578,11 @@ static int RowAt(const Tour* tour, float y)
     return row >= 0 && row < ROWS ? row : -1;
 }
 
-static mwinFrameResult Frame(mwinContext* windows, void* user)
+// Headless: a second a frame on the records' clock, so the wheel's
+// easing ends between frames, and records posted as a platform reports
+// them, each frame checking what the last one's did.
+static mwinFrameResult Scripted(Tour* tour, mwinContext* windows)
 {
-    Tour* tour = user;
-    // A second a frame on the records' clock, so the wheel's easing ends
-    // between frames.
     tour->now += 1000000000u;
     Check(tour, mwinTestSetTime(windows, tour->now) == mwin_success, "the clock");
     Step(tour, windows);
@@ -506,9 +615,73 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
     return tour->frame > 8 ? mwin_frameStop : mwin_frameContinue;
 }
 
-int main(void)
+// Now on the monotonic clock the records are stamped on, where the C
+// library has it; the newest record's time otherwise.
+static uint64_t Now(const Tour* tour)
+{
+#ifdef TIME_MONOTONIC
+    struct timespec now = {0};
+    if (timespec_get(&now, TIME_MONOTONIC) == TIME_MONOTONIC)
+    {
+        uint64_t ns = (uint64_t)now.tv_sec * 1000000000u + (uint64_t)now.tv_nsec;
+        return ns > tour->now ? ns : tour->now;
+    }
+#endif
+    return tour->now;
+}
+
+// With a window: frames presented as the user uses it, until it is
+// closed, or for the frames asked, the last read back, where the
+// surface allows, and checked as the headless run's first.
+static mwinFrameResult Shown(Tour* tour, mwinContext* windows)
+{
+    tour->now = Now(tour);
+    tour->reading = tour->frames != 0 && tour->frame == tour->frames - 1;
+    Step(tour, windows);
+    tour->frame++;
+    if (tour->reading && tour->surface.copies)
+    {
+        CheckStill(tour);
+    }
+    bool done = tour->closing || (tour->frames != 0 && tour->frame >= tour->frames);
+    return done ? mwin_frameStop : mwin_frameContinue;
+}
+
+static mwinFrameResult Frame(mwinContext* windows, void* user)
+{
+    Tour* tour = user;
+    return tour->headless ? Scripted(tour, windows) : Shown(tour, windows);
+}
+
+// The arguments: --headless, and --frames N for a window shown N frames.
+static bool Arguments(Tour* tour, int count, char** arguments)
+{
+    for (int i = 1; i < count; i++)
+    {
+        if (strcmp(arguments[i], "--headless") == 0)
+        {
+            tour->headless = true;
+        }
+        else if (strcmp(arguments[i], "--frames") == 0 && i + 1 < count)
+        {
+            tour->frames = atoi(arguments[++i]);
+        }
+        else
+        {
+            printf("usage: %s [--headless] [--frames N]\n", arguments[0]);
+            return false;
+        }
+    }
+    return tour->frames >= 0;
+}
+
+int main(int count, char** arguments)
 {
     static Tour tour;
+    if (!Arguments(&tour, count, arguments))
+    {
+        return 1;
+    }
     int status = SampleOpen(&tour.sample);
     if (status != 0)
     {
@@ -520,20 +693,21 @@ int main(void)
     font.size = sizeof s_sans;
     font.dataMode = mui_fontDataBorrow;
     muiFontId sans = {0};
-    tour.pixels = malloc((size_t)WIDTH * HEIGHT * 4);
-    bool ready = tour.pixels != NULL && muiCreateTextService(&textDef, &tour.text) == mui_success &&
+    bool ready = muiCreateTextService(&textDef, &tour.text) == mui_success &&
                  muiCreateFont(tour.text, &font, &sans) == mui_success &&
                  muiSetDefaultFont(tour.text, sans) == mui_success;
     if (Check(&tour, ready, "the text service"))
     {
         mwinAppDef def = mwinDefaultAppDef();
-        def.context.backend = mwin_backendTest;
+        def.context.backend = tour.headless ? mwin_backendTest : mwin_backendNative;
         def.init = Init;
         def.frame = Frame;
         def.user = &tour;
-        Check(&tour, mwinRun(&def) == mwin_success && tour.frame >= 4, "the program ran");
+        Check(&tour, mwinRun(&def) == mwin_success && (!tour.headless || tour.frame >= 4),
+              "the program ran");
     }
     muiDestroyRhiRenderer(tour.renderer);
+    SampleSurfaceClose(&tour.sample, &tour.surface);
     muiDestroyWindowAccess(tour.access);
     muiDestroyWindowGlue(tour.glue);
     muiDestroyContext(tour.context);

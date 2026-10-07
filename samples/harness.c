@@ -23,13 +23,12 @@ int SampleOpen(Sample* sample)
     search.allowSoftware = true;
     mrhiRequestId request;
     mrhiInstanceNotification record;
-    mrhiAdapterId adapter;
     size_t count = 0;
     bool found = mrhiCreateInstance(&def, &sample->instance) == mrhi_success &&
                  mrhiRequestAdapters(sample->instance, &search, &request) == mrhi_success &&
                  mrhiNextInstanceNotification(sample->instance, &record) == mrhi_success &&
                  record.outcome == mrhi_success &&
-                 mrhiGetAdapters(sample->instance, &adapter, 1, &count) == mrhi_success &&
+                 mrhiGetAdapters(sample->instance, &sample->adapter, 1, &count) == mrhi_success &&
                  count != 0;
     if (!found)
     {
@@ -43,7 +42,7 @@ int SampleOpen(Sample* sample)
         return SAMPLE_SKIPPED;
     }
     mrhiDeviceDef deviceDef = mrhiDefaultDeviceDef();
-    deviceDef.adapter = adapter;
+    deviceDef.adapter = sample->adapter;
     if (mrhiCreateDevice(sample->instance, &deviceDef, &sample->device, &request) != mrhi_success ||
         mrhiNextInstanceNotification(sample->instance, &record) != mrhi_success ||
         record.outcome != mrhi_success)
@@ -201,4 +200,238 @@ bool SampleRender(Sample* sample, muiRhiRenderer* renderer, const muiDrawList* l
     size_t taken = 0;
     return mrhiTakeReadback(device, readback, pixels, size, &taken) == mrhi_success &&
            taken == size;
+}
+
+// The source chained on a surface def, by the window's platform.
+typedef union Source
+{
+    mrhiChain chain;
+    mrhiSurfaceSourceWin32 win32;
+    mrhiSurfaceSourceWayland wayland;
+    mrhiSurfaceSourceXcb xcb;
+    mrhiSurfaceSourceAndroid android;
+    mrhiSurfaceSourceMetalLayer metal;
+    mrhiSurfaceSourceCanvas canvas;
+} Source;
+
+static bool SourceOf(const mwinNativeHandles* handles, Source* source)
+{
+    switch (handles->platform)
+    {
+    case mwin_platformWin32:
+        source->win32 = (mrhiSurfaceSourceWin32){{NULL, mrhi_structSurfaceSourceWin32},
+                                                 handles->handles.win32.hinstance,
+                                                 handles->handles.win32.hwnd};
+        return true;
+    case mwin_platformWayland:
+        source->wayland = (mrhiSurfaceSourceWayland){{NULL, mrhi_structSurfaceSourceWayland},
+                                                     handles->handles.wayland.display,
+                                                     handles->handles.wayland.surface};
+        return true;
+    case mwin_platformX11:
+        source->xcb = (mrhiSurfaceSourceXcb){{NULL, mrhi_structSurfaceSourceXcb},
+                                             handles->handles.x11.connection,
+                                             handles->handles.x11.window};
+        return true;
+    case mwin_platformAndroid:
+        source->android = (mrhiSurfaceSourceAndroid){{NULL, mrhi_structSurfaceSourceAndroid},
+                                                     handles->handles.android.window};
+        return true;
+    case mwin_platformMacOS:
+    case mwin_platformIOS:
+        source->metal = (mrhiSurfaceSourceMetalLayer){{NULL, mrhi_structSurfaceSourceMetalLayer},
+                                                      handles->handles.apple.layer};
+        return true;
+    case mwin_platformWeb:
+        source->canvas = (mrhiSurfaceSourceCanvas){{NULL, mrhi_structSurfaceSourceCanvas},
+                                                   handles->handles.web.selector,
+                                                   handles->handles.web.selectorLength};
+        return true;
+    default:
+        return false;
+    }
+}
+
+// The sRGB twin of an 8-bit unorm format, or none.
+static mrhiFormat TwinOf(mrhiFormat format)
+{
+    switch (format)
+    {
+    case mrhi_formatRgba8Unorm:
+        return mrhi_formatRgba8UnormSrgb;
+    case mrhi_formatBgra8Unorm:
+        return mrhi_formatBgra8UnormSrgb;
+    default:
+        return mrhi_formatNone;
+    }
+}
+
+// The first colour the surface reports whose sRGB twin the images may
+// take, which the renderer encodes into.
+static bool ColorOf(const mrhiSurfaceCaps* caps, mrhiSurfaceColor* colorOut)
+{
+    for (uint32_t i = 0; caps->twinImages && i < caps->colorCount; i++)
+    {
+        mrhiFormat twin = TwinOf(caps->colors[i].format);
+        if (twin != mrhi_formatNone && caps->colors[i].primaries == mrhi_primariesBt709)
+        {
+            *colorOut = caps->colors[i];
+            colorOut->format = twin;
+            return true;
+        }
+    }
+    return false;
+}
+
+bool SampleSurfaceOpen(Sample* sample, const mwinNativeHandles* handles, uint32_t width,
+                       uint32_t height, SampleSurface* surfaceOut)
+{
+    *surfaceOut = (SampleSurface){0};
+    Source source;
+    if (!SourceOf(handles, &source))
+    {
+        printf("FAIL: no surface source for the window's platform\n");
+        return false;
+    }
+    mrhiSurfaceDef def = mrhiDefaultSurfaceDef();
+    def.next = &source.chain;
+    mrhiSurfaceCaps caps;
+    if (mrhiCreateSurface(sample->instance, &def, &surfaceOut->surface) != mrhi_success ||
+        mrhiGetSurfaceCaps(sample->instance, surfaceOut->surface, sample->adapter, &caps) !=
+            mrhi_success ||
+        !caps.presentable)
+    {
+        printf("FAIL: the adapter cannot present to the window\n");
+        return false;
+    }
+    mrhiSurfaceConfig config = mrhiDefaultSurfaceConfig();
+    config.surface = surfaceOut->surface;
+    if (!ColorOf(&caps, &config.color))
+    {
+        printf("FAIL: the surface offers no 8-bit colour with sRGB images\n");
+        return false;
+    }
+    surfaceOut->copies = (caps.usages & mrhi_textureCopySource) != 0;
+    surfaceOut->bgra = config.color.format == mrhi_formatBgra8UnormSrgb;
+    config.usage = mrhi_textureRenderTarget | (surfaceOut->copies ? mrhi_textureCopySource : 0u);
+    surfaceOut->config = config;
+    return SampleSurfaceResize(sample, surfaceOut, width, height);
+}
+
+bool SampleSurfaceResize(Sample* sample, SampleSurface* surface, uint32_t width, uint32_t height)
+{
+    surface->config.width = width;
+    surface->config.height = height;
+    mrhiResult result = mrhiConfigureSurface(sample->device, &surface->config);
+    if (result != mrhi_success && result != mrhi_errorOutOfDate)
+    {
+        printf("FAIL: the surface not configured (%d)\n", (int)result);
+        return false;
+    }
+    return true;
+}
+
+void SampleSurfaceClose(Sample* sample, SampleSurface* surface)
+{
+    if (surface->surface.index1 == 0)
+    {
+        return;
+    }
+    (void)mrhiUnconfigureSurface(sample->device, surface->surface);
+    (void)mrhiDestroySurface(sample->instance, surface->surface);
+    *surface = (SampleSurface){0};
+}
+
+// Swaps a readback's BGRA texels to RGBA.
+static void Swap(uint8_t* pixels, size_t count)
+{
+    for (size_t i = 0; i < count; i++)
+    {
+        uint8_t blue = pixels[i * 4];
+        pixels[i * 4] = pixels[i * 4 + 2];
+        pixels[i * 4 + 2] = blue;
+    }
+}
+
+SamplePresented SamplePresent(Sample* sample, SampleSurface* surface, muiRhiRenderer* renderer,
+                              const muiDrawList* list, uint8_t* pixels)
+{
+    mrhiDevice* device = sample->device;
+    uint32_t width = surface->config.width;
+    uint32_t height = surface->config.height;
+    mrhiFrameDef frame = mrhiDefaultFrameDef();
+    mrhiResourceId image = {0};
+    if (mrhiBeginFrame(device, &frame) != mrhi_success)
+    {
+        return sample_failed;
+    }
+    mrhiResult acquired = mrhiAcquireSurfaceImage(device, surface->surface, &image);
+    if (acquired != mrhi_success && acquired != mrhi_suboptimal)
+    {
+        (void)mrhiDropFrame(device);
+        return acquired == mrhi_occluded ? sample_occluded
+               : acquired == mrhi_errorOutOfDate &&
+                       SampleSurfaceResize(sample, surface, width, height)
+                   ? sample_resized
+                   : sample_failed;
+    }
+    const muiRhiTarget into = {.resource = image,
+                               .width = width,
+                               .height = height,
+                               .clear = true,
+                               .clearColor = {0.0f, 0.0f, 0.0f, 1.0f}};
+    bool reads = pixels != NULL && surface->copies;
+    const mrhiAccess read = {.resource = image,
+                             .kind = mrhi_accessCopySource,
+                             .range = {.mipCount = 1, .layerCount = 1}};
+    mrhiPassDef readDef = mrhiDefaultPassDef();
+    readDef.passClass = mrhi_passTransfer;
+    readDef.accesses = &read;
+    readDef.accessCount = 1;
+    readDef.neverCull = true;
+    mrhiPassId reading = {0};
+    const mrhiTextureCopy source = {.resource = image};
+    const mrhiExtent3d extent = {width, height, 1};
+    mrhiRequestId readback = {0};
+    bool recorded =
+        muiRhiRenderer_AddPasses(renderer, list, &into) == mui_success &&
+        (!reads || mrhiAddPass(device, &readDef, &reading) == mrhi_success) &&
+        mrhiCompileFrame(device) == mrhi_success &&
+        muiRhiRenderer_Record(renderer) == mui_success &&
+        (!reads || (mrhiBeginPass(device, reading) == mrhi_success &&
+                    mrhiReadTexture(device, reading, &source, &extent, &readback) == mrhi_success &&
+                    mrhiEndPass(device, reading) == mrhi_success));
+    mrhiRequestId token = {0};
+    if (!recorded)
+    {
+        (void)mrhiDropFrame(device);
+        return sample_failed;
+    }
+    if (mrhiSubmitFrame(device, &token) != mrhi_success)
+    {
+        return sample_failed;
+    }
+    if (!reads)
+    {
+        return sample_presented;
+    }
+    if (mrhiWaitFrame(device, token, WAIT_NS) != mrhi_success)
+    {
+        return sample_failed;
+    }
+    mrhiDeviceNotification record;
+    while (mrhiNextDeviceNotification(device, &record) == mrhi_success)
+    {
+    }
+    size_t size = (size_t)width * height * 4;
+    size_t taken = 0;
+    if (mrhiTakeReadback(device, readback, pixels, size, &taken) != mrhi_success || taken != size)
+    {
+        return sample_failed;
+    }
+    if (surface->bgra)
+    {
+        Swap(pixels, (size_t)width * height);
+    }
+    return sample_presented;
 }

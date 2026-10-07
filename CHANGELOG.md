@@ -56,7 +56,12 @@ format.
   backend, builds a title, a generated picture, a button and a scroll
   container of rows, feeds input through the glue, keeps the
   accessibility tree, and draws with the reference renderer into a
-  texture whose pixels it checks (record mui-0005).
+  texture whose pixels it checks (`--headless`, as its test runs it).
+  Without it the tour opens a real window and presents onto a Maul RHI
+  surface made from the window's native handles, configured again as
+  the window's size changes and let go while the window has no surface,
+  until the window is closed, or for `--frames N`, the last frame read
+  back and checked (record mui-0005).
 - The Maul Window glue, `maul-ui-window` (`MAUL_UI_WINDOW`, off by
   default; `maul-ui-window/glue.h`), with Maul Window 0.8.0: a glue a
   window takes the records the host drains and feeds them to a context,
