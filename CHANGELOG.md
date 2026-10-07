@@ -67,7 +67,10 @@ format.
   checkbox, a switch and a radio group from roles, focus, classes with
   state variants and the host's event function, with ARIA's keys
   (Space, Enter for the button, arrows moving the choice), checked by
-  pixels and the accessibility tree's checked states. On the web the
+  pixels and the accessibility tree's checked states. `sample_ranges`
+  composes a slider, a progress bar and a scrollbar over range values,
+  the host showing each value and forwarding the scrollbar's to a
+  horizontally scrolling list and back. On the web the
   headless tour runs in headless
   Chrome's WebGPU through the web runner, which now gives Chrome WebGPU
   and a program its arguments (record mui-0005).

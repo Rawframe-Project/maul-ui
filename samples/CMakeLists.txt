@@ -39,3 +39,4 @@ endfunction()
 
 mui_add_sample(tour)
 mui_add_sample(controls)
+mui_add_sample(ranges)

@@ -243,6 +243,10 @@ static void Step(SampleApp* app)
         SampleAppCheck(app, muiCreateWindowAccess(&access, &app->access) == mui_success,
                        "an access");
     }
+    if (app->def->update != NULL)
+    {
+        app->def->update(app->def->user, app);
+    }
     if (!app->headless && !Surface(app))
     {
         return;
@@ -320,6 +324,11 @@ void SamplePost(SampleApp* app, mwinEventType type, muiNodeId node, uint8_t butt
                    muiNode_MapToRoot(app->context, node, rect.width / 2.0f, rect.height / 2.0f, &x,
                                      &y) == mui_success,
                    "a point");
+    SamplePostAt(app, type, x, y, buttons);
+}
+
+void SamplePostAt(SampleApp* app, mwinEventType type, float x, float y, uint8_t buttons)
+{
     mwinEvent event = {.type = type, .window = app->window};
     event.data.pointer.position = (mwinPosition){x, y};
     event.data.pointer.button = type == mwin_eventCursorMoved ? 0 : mwin_buttonLeft;

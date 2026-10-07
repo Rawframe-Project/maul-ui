@@ -42,6 +42,10 @@ typedef struct SampleAppDef
     uint32_t height;
     // Builds the tree under the root; the device is open.
     void (*build)(void* user, SampleApp* app);
+    // Each frame, after the window's records and before layout: what the
+    // host does with what input did (notifications, values to show).
+    // NULL for nothing.
+    void (*update)(void* user, SampleApp* app);
     // Headless, after each frame is drawn and read back: checks it and
     // posts the next input; false when the run is done.
     bool (*script)(void* user, SampleApp* app, int frame);
@@ -124,6 +128,9 @@ bool SampleNear(const uint8_t* pixel, const uint8_t rgb[3]);
 // a move (no button), or a button going down or up with the buttons
 // held after it.
 void SamplePost(SampleApp* app, mwinEventType type, muiNodeId node, uint8_t buttons);
+
+// Posts a cursor record at a point of the root, as SamplePost does.
+void SamplePostAt(SampleApp* app, mwinEventType type, float x, float y, uint8_t buttons);
 
 // Posts a wheel turn of detents over a node, the cursor moved there.
 void SamplePostWheel(SampleApp* app, muiNodeId node, float detents);
