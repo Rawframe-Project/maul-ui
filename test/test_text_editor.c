@@ -292,7 +292,7 @@ static void TestRules(void)
 
     scene = MakeScene("", 0);
     Paste(&scene, "a\r\nb\nc\xE2\x80\xA8"
-                  "d\x08");
+                  "d\x08\x7F");
     CHECK(Holds(&scene, "a b c d"), "a single line: breaks as spaces, controls gone");
     FreeScene(&scene);
     scene = MakeScene("", mui_editMultiline);
@@ -328,6 +328,15 @@ static void TestFilters(void)
     Filtered(mui_filterDecimal, "", "+1.2.3", 0, "+1.23");
     Filtered(mui_filterDecimal, "1.5", ".9", 1, "19.5");
     Filtered(mui_filterDecimal, "", "-.5", 0, "-.5");
+    // A selection nothing typed may replace stays.
+    Scene scene = MakeScene("12", 0);
+    muiTextEditDef def = muiDefaultTextEditDef();
+    def.filter = mui_filterInteger;
+    CHECK(muiTextBlock_SetEditing(scene.service, scene.block, &def) == mui_success, "a filter");
+    Select(&scene, 0, 2);
+    Type(&scene, "a");
+    CHECK(Holds(&scene, "12") && Selects(&scene, 0, 2), "the selection kept");
+    FreeScene(&scene);
 }
 
 static void TestLength(void)
@@ -385,6 +394,11 @@ static void TestPointer(void)
           "a double click, a word");
     CHECK(muiTextEditDrag(host, scene.node, 5.0f, 5.0f) == mui_success && Selects(&scene, 5, 0),
           "dragged back by words, keeping the first");
+    CHECK(muiTextEditDrag(host, scene.node, 31.0f, 5.0f) == mui_success && Selects(&scene, 3, 5),
+          "back to the word's start, the word again");
+    CHECK(muiTextEditPress(host, scene.node, 29.0f, 5.0f, 2, false) == mui_success &&
+              Selects(&scene, 3, 5),
+          "a double click at a word's start, that word");
     CHECK(muiTextEditPress(host, scene.node, 15.0f, 15.0f, 3, false) == mui_success &&
               Selects(&scene, 6, 11),
           "a triple click, the second paragraph");

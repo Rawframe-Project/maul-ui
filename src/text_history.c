@@ -57,24 +57,15 @@ static bool StartsWord(const char* before, uint32_t beforeLength, const char* te
     return muniIsWhiteSpace(LastPoint(before, beforeLength)) && !muniIsWhiteSpace(first);
 }
 
-// Whether an edit continues the last, of its kind.
+// Whether an edit of the kind the last left open continues it. Placing
+// the selection anywhere closes a run (muiPlaceSelection), so an edit of
+// that kind starts where the last left the caret: typing joins unless it
+// starts a word, deletions always.
 static bool Continues(const muiTextEditing* editing, const muiTextEdit* last,
                       const muiTextEdit* edit, const char* inserted)
 {
-    switch (edit->kind)
-    {
-    case MUI_EDIT_TYPING:
-        return edit->removed == 0 && last->start + last->inserted == edit->start &&
-               !StartsWord(muiEditBytes(editing, last) + last->removed, last->inserted, inserted,
-                           edit->inserted);
-    case MUI_EDIT_BACKWARD:
-        return edit->inserted == 0 && last->inserted == 0 &&
-               edit->start + edit->removed == last->start;
-    case MUI_EDIT_FORWARD:
-        return edit->inserted == 0 && last->inserted == 0 && edit->start == last->start;
-    default:
-        return false;
-    }
+    return edit->kind != MUI_EDIT_TYPING || !StartsWord(muiEditBytes(editing, last) + last->removed,
+                                                        last->inserted, inserted, edit->inserted);
 }
 
 // Joins an edit to the last, whose bytes end the buffer.
