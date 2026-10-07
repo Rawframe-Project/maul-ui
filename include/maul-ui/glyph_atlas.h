@@ -5,9 +5,10 @@
 // fonts, rendered as muiRenderGlyph, muiRenderGlyphField and
 // muiRenderGlyphMultiField render them and packed into pages a renderer
 // uploads as textures. An atlas's pages are of one format: one byte a
-// pixel, holding coverage and distance fields both, or four, holding
-// multi-channel fields; a renderer wanting both makes two atlases, so
-// their pages never share an index space. Pages are split into
+// pixel, holding coverage and distance fields both, four holding
+// multi-channel fields, or four holding colour glyphs; a renderer wanting
+// several makes an atlas of each, so their pages never share an index
+// space. Pages are split into
 // plots; when no plot has room, the least recently used plot that the
 // current frame has not used is emptied and packed again. The atlas
 // keeps the pages' pixels and tells which rectangles changed; it uses no
@@ -17,6 +18,7 @@
 #define MAUL_UI_GLYPH_ATLAS_H
 
 #include "maul-ui/base.h"
+#include "maul-ui/draw.h"
 #include "maul-ui/text.h"
 
 #ifdef __cplusplus
@@ -36,7 +38,10 @@ extern "C"
         mui_atlasOneChannel = 0,
         // Four bytes a pixel, red, green, blue and alpha: multi-channel
         // distance fields (muiGlyphAtlas_GetMultiField).
-        mui_atlasFourChannel = 1
+        mui_atlasFourChannel = 1,
+        // Four bytes a pixel, premultiplied colour as an sRGB texture holds
+        // it: colour glyphs (muiGlyphAtlas_GetColor).
+        mui_atlasColor = 2
     } muiAtlasFormat;
 
     // How an atlas is made. Build it with muiDefaultGlyphAtlasDef. Pages
@@ -151,7 +156,7 @@ extern "C"
     /// @return `mui_success`; `mui_errorCapacity` when the image is larger
     ///         than a plot, every plot is in use this frame, or memory
     ///         runs out; `mui_errorInvalid` for a NULL atlas or glyphOut,
-    ///         an atlas of four channels, a size or position out of range,
+    ///         an atlas of another format, a size or position out of range,
     ///         or a glyph id the font lacks; `mui_errorStale` for a key that names no font;
     ///         `mui_errorFormat` for a glyph that cannot be rendered.
     /// @par Thread safety
@@ -159,6 +164,33 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_Get(muiGlyphAtlas* atlas, uint64_t font,
                                                       uint32_t glyph, float pixelSize, float penX,
                                                       float baselineY, muiAtlasGlyph* glyphOut);
+
+    /// Gets a colour glyph's image from an atlas of colour glyphs for a pen
+    /// in device pixels, rendering and packing it the first time, as
+    /// muiRenderColorGlyph renders it and muiGlyphAtlas_Get places coverage.
+    /// The text's colour is kept as 8-bit sRGB with straight alpha, and
+    /// the glyph is rendered with it so kept: each palette and text colour
+    /// is an image of its own. A glyph without colour layers gives
+    /// `mui_empty`, also kept, to be drawn as coverage; a font without a
+    /// COLR table gives it at once.
+    ///
+    /// @param atlas       The atlas, of colour glyphs.
+    /// @param font        A font key, as a glyph run carries.
+    /// @param glyph       A glyph id of the font.
+    /// @param pixelSize   The em in device pixels.
+    /// @param penX        The pen, in device pixels, within 2^24 of 0.
+    /// @param baselineY   The baseline, likewise.
+    /// @param palette     The font's palette to fill from.
+    /// @param foreground  The text's colour, linear and premultiplied.
+    /// @param glyphOut    Receives the image; when the image is larger than
+    ///                    a plot, its width and height only.
+    /// @return As muiGlyphAtlas_Get, with `mui_empty` for a glyph without
+    ///         colour layers and an atlas of another format invalid.
+    /// @par Thread safety
+    /// Safe from any thread; the atlas is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_GetColor(
+        muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, float pixelSize, float penX,
+        float baselineY, uint32_t palette, muiLinearColor foreground, muiAtlasGlyph* glyphOut);
 
     /// Gets a glyph's distance field, rendering and packing it the first
     /// time, as muiRenderGlyphField renders it; the font key 0 is the

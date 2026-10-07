@@ -62,6 +62,11 @@ format.
 
 ### Added
 
+- Atlases of colour glyphs: `mui_atlasColor` pages hold colour glyphs,
+  which `muiGlyphAtlas_GetColor` renders and packs for a palette and a
+  text colour; glyphs without colour layers, and fonts without a COLR
+  table, give `mui_empty`.
+
 - Colour glyphs: `muiRenderColorGlyph` renders a COLR version 0 glyph's
   layers from a chosen CPAL palette, the text's colour where a layer
   asks for it, as premultiplied RGBA stored the way an sRGB texture

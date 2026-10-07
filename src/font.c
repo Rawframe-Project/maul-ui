@@ -16,6 +16,7 @@
 #include FT_FREETYPE_H
 #include FT_TRUETYPE_TABLES_H
 #include FT_MULTIPLE_MASTERS_H
+#include FT_TRUETYPE_TAGS_H
 
 #include <stdint.h>
 #include <string.h>
@@ -151,8 +152,9 @@ static void ReadMetrics(muiFont* font)
     }
 }
 
-// Reads the face's variation axes, up to MUI_MAX_FONT_AXES, and the
-// weight, width and slant OS/2 gives it; false when memory runs out.
+// Reads the face's variation axes, up to MUI_MAX_FONT_AXES, the weight,
+// width and slant OS/2 gives it, and whether it has colour layers; false
+// when memory runs out.
 static bool ReadStyle(FT_Library library, muiFont* font)
 {
     FT_Face face = font->face;
@@ -165,6 +167,9 @@ static bool ReadStyle(FT_Library library, muiFont* font)
         hasOs2 ? (os2->fsSelection & ITALIC) != 0 : (face->style_flags & FT_STYLE_FLAG_ITALIC) != 0;
     bool oblique = hasOs2 && (os2->fsSelection & OBLIQUE) != 0;
     font->faceSlant = oblique ? mui_slantOblique : (italic ? mui_slantItalic : mui_slantNormal);
+    FT_ULong colorLength = 0;
+    font->colorLayers =
+        FT_Load_Sfnt_Table(face, TTAG_COLR, 0, nullptr, &colorLength) == 0 && colorLength > 0;
     if (!FT_HAS_MULTIPLE_MASTERS(face))
     {
         return true;

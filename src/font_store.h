@@ -63,6 +63,8 @@ typedef struct muiFont
     uint32_t weightClass;
     uint32_t widthClass;
     muiFontSlant faceSlant;
+    // Whether the font has a COLR table, so glyphs may have colour layers.
+    bool colorLayers;
     // Shaping fonts of other instances, by their key's top bits, replaced
     // in turn.
     uint64_t shaperInstances[MUI_SHAPING_SLOTS];

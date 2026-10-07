@@ -28,6 +28,10 @@ typedef struct muiGlyphKey
     // position; for a distance field, plus its spread times 2^24, at
     // position 0.
     uint32_t sizeBin;
+    // For a colour glyph, its palette and the text's colour as 8-bit sRGB
+    // red, green, blue and straight alpha from the high byte; else 0.
+    uint32_t palette;
+    uint32_t tint;
 } muiGlyphKey;
 
 typedef struct muiAtlasEntry
@@ -44,6 +48,9 @@ typedef struct muiAtlasEntry
     uint16_t height;
     int32_t left;
     int32_t top;
+    // Whether the glyph has no colour layers, for an atlas of colour
+    // glyphs: no image, to be drawn as coverage.
+    bool colorless;
 } muiAtlasEntry;
 
 typedef struct muiGlyphTable

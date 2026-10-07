@@ -131,7 +131,8 @@ muiResult muiRenderColorGlyph(muiTextService* service, uint64_t font, uint32_t g
     FT_LayerIterator probe = {0};
     FT_UInt layer = 0;
     FT_UInt entry = 0;
-    if (!FT_Get_Color_Glyph_Layer(record->face, glyph, &layer, &entry, &probe))
+    if (!record->colorLayers ||
+        !FT_Get_Color_Glyph_Layer(record->face, glyph, &layer, &entry, &probe))
     {
         return mui_empty;
     }

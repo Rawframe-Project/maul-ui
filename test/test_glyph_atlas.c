@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "ahem.inc"
+#include "color.inc"
 
 enum
 {
@@ -525,7 +526,7 @@ static void TestMultiFields(void)
     def.plotWidth = 32;
     def.plotHeight = 32;
     def.maxPages = 1;
-    def.format = (muiAtlasFormat)2;
+    def.format = (muiAtlasFormat)3;
     muiGlyphAtlas* atlas = NULL;
     CHECK(muiCreateGlyphAtlas(fixture.service, &def, &atlas) == mui_errorInvalid,
           "an unknown format");
@@ -601,6 +602,92 @@ static void TestMultiFields(void)
     Free(&fixture);
 }
 
+// An atlas of colour glyphs: MaulColor.ttf's A packed as
+// muiRenderColorGlyph renders it, its B and Ahem's box (Ahem has no COLR
+// table) empty, each tint an image of its own, and each kind refused by
+// the other atlases.
+static void TestColorGlyphs(void)
+{
+    Fixture fixture = Make(64, 32, 1, NULL);
+    muiFontDef fontDef = muiDefaultFontDef();
+    fontDef.data = s_color;
+    fontDef.size = sizeof s_color;
+    fontDef.dataMode = mui_fontDataBorrow;
+    muiFontId colorFont = {0, 0};
+    CHECK(muiCreateFont(fixture.service, &fontDef, &colorFont) == mui_success, "Maul Color");
+    uint64_t color = muiFont_GetKey(colorFont);
+    muiGlyphAtlasDef def = muiDefaultGlyphAtlasDef();
+    def.pageWidth = 64;
+    def.pageHeight = 64;
+    def.plotWidth = 32;
+    def.plotHeight = 32;
+    def.maxPages = 1;
+    def.format = mui_atlasColor;
+    muiGlyphAtlas* atlas = NULL;
+    CHECK(muiCreateGlyphAtlas(fixture.service, &def, &atlas) == mui_success, "colour glyphs");
+    const muiLinearColor green = {0.0f, 1.0f, 0.0f, 1.0f};
+    unsigned char image[8 * 8 * 4];
+    muiGlyphImage placed = {0};
+    CHECK(muiRenderColorGlyph(fixture.service, color, 1, 10.0f, 0.0f, 0, green, &placed, image,
+                              sizeof image) == mui_success,
+          "the glyph alone");
+    muiAtlasGlyph glyph = {0};
+    CHECK(muiGlyphAtlas_GetColor(atlas, color, 1, 10.0f, 2.0f, 20.0f, 0, green, &glyph) ==
+                  mui_success &&
+              glyph.u == 1 && glyph.v == 1 && glyph.width == 8 && glyph.height == 8 &&
+              glyph.x == 3 && glyph.y == 12,
+          "placed as coverage is");
+    muiAtlasPage page = {0};
+    CHECK(muiGlyphAtlas_GetPage(atlas, 0, &page) == mui_success && page.format == mui_atlasColor,
+          "a page of colour glyphs");
+    bool same = true;
+    for (uint32_t y = 0; y < 8; y++)
+    {
+        same = same && memcmp(page.pixels + ((size_t)(y + 1) * page.width + 1) * 4,
+                              image + (size_t)y * 8 * 4, 8 * 4) == 0;
+    }
+    CHECK(same, "the glyph's bytes");
+    muiAtlasGlyph again = {0};
+    CHECK(muiGlyphAtlas_GetColor(atlas, color, 1, 10.0f, 2.0f, 20.0f, 0, green, &again) ==
+                  mui_success &&
+              again.u == 1 && again.v == 1,
+          "the same tint found again");
+    const muiLinearColor blue = {0.0f, 0.0f, 1.0f, 1.0f};
+    CHECK(muiGlyphAtlas_GetColor(atlas, color, 1, 10.0f, 2.0f, 20.0f, 0, blue, &again) ==
+                  mui_success &&
+              (again.u != 1 || again.v != 1),
+          "another tint an image of its own");
+    CHECK(muiGlyphAtlas_GetColor(atlas, color, 1, 10.0f, 2.0f, 20.0f, 1, green, &again) ==
+                  mui_success &&
+              (again.u != 1 || again.v != 1),
+          "another palette an image of its own");
+    for (int i = 0; i < 2; i++)
+    {
+        glyph = (muiAtlasGlyph){7, 7, 7, 7, 7, 7, 7};
+        CHECK(muiGlyphAtlas_GetColor(atlas, color, 2, 10.0f, 0.0f, 0.0f, 0, green, &glyph) ==
+                      mui_empty &&
+                  glyph.width == 0 && glyph.page == 0,
+              "a glyph without colour layers empty, and kept so");
+    }
+    CHECK(muiGlyphAtlas_GetColor(atlas, fixture.ahem, FIRST_BOX, 10.0f, 0.0f, 0.0f, 0, green,
+                                 &glyph) == mui_empty,
+          "a font without COLR empty");
+    CHECK(muiGlyphAtlas_Get(atlas, color, 1, 10.0f, 0.0f, 0.0f, &glyph) == mui_errorInvalid &&
+              muiGlyphAtlas_GetField(atlas, color, 1, 10.0f, 2, &glyph) == mui_errorInvalid &&
+              muiGlyphAtlas_GetMultiField(atlas, color, 1, 10.0f, 2, &glyph) == mui_errorInvalid &&
+              muiGlyphAtlas_GetColor(fixture.atlas, color, 1, 10.0f, 0.0f, 0.0f, 0, green,
+                                     &glyph) == mui_errorInvalid &&
+              muiGlyphAtlas_GetColor(NULL, color, 1, 10.0f, 0.0f, 0.0f, 0, green, &glyph) ==
+                  mui_errorInvalid &&
+              muiGlyphAtlas_GetColor(atlas, color, 1, 10.0f, 0.0f, 0.0f, 0, green, NULL) ==
+                  mui_errorInvalid &&
+              muiGlyphAtlas_GetColor(atlas, color + 1, 1, 10.0f, 0.0f, 0.0f, 0, green, &glyph) ==
+                  mui_errorStale,
+          "each kind refused by the other atlases");
+    muiDestroyGlyphAtlas(atlas);
+    Free(&fixture);
+}
+
 static void TestMemoryRunningOut(void)
 {
     for (int failAt = 1; failAt < 40; failAt++)
@@ -660,6 +747,7 @@ int main(void)
     TestContract();
     TestFields();
     TestMultiFields();
+    TestColorGlyphs();
     TestMemoryRunningOut();
     return s_failures == 0 ? 0 : 1;
 }

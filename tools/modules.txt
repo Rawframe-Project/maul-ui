@@ -138,6 +138,6 @@ color_glyph: color glyph_outline text_service
 glyph_outline: font_instance font_store text_block text_service
 skyline:
 glyph_table: allocator
-glyph_atlas: allocator font_store glyph_table skyline text_service
+glyph_atlas: allocator color font_store glyph_table skyline text_service
 property_bits:
 inherit: layout_node property tree

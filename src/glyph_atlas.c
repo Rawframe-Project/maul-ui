@@ -9,6 +9,8 @@
 #include "maul-ui/glyph_atlas.h"
 
 #include "allocator.h"
+#include "color.h"
+#include "font_store.h"
 #include "glyph_table.h"
 #include "skyline.h"
 #include "text_service.h"
@@ -64,7 +66,9 @@ struct muiGlyphAtlas
     uint32_t plotWidth;
     uint32_t plotHeight;
     uint32_t maxPages;
-    // Bytes a pixel: 1, or 4 for an atlas of four channels.
+    // The pages' format, and bytes a pixel: 1, or 4 for an atlas of four
+    // channels or of colour glyphs.
+    muiAtlasFormat format;
     uint32_t channels;
     uint32_t plotsAcross;
     uint32_t plotsPerPage;
@@ -111,7 +115,8 @@ static bool IsDefValid(const muiGlyphAtlasDef* def)
            (def->pageWidth / def->plotWidth) * (def->pageHeight / def->plotHeight) <=
                MAX_PLOTS_PER_PAGE &&
            def->maxPages >= 1 && def->maxPages <= MAX_PAGES &&
-           (def->format == mui_atlasOneChannel || def->format == mui_atlasFourChannel);
+           (def->format == mui_atlasOneChannel || def->format == mui_atlasFourChannel ||
+            def->format == mui_atlasColor);
 }
 
 muiResult muiCreateGlyphAtlas(muiTextService* service, const muiGlyphAtlasDef* def,
@@ -137,7 +142,7 @@ muiResult muiCreateGlyphAtlas(muiTextService* service, const muiGlyphAtlasDef* d
     size_t plotsAt = muiLayoutAdd(&layout, plots, sizeof(Plot), alignof(Plot));
     size_t generationsAt = muiLayoutAdd(&layout, plots, sizeof(uint32_t), alignof(uint32_t));
     size_t dirtyAt = muiLayoutAdd(&layout, plots, sizeof(uint32_t), alignof(uint32_t));
-    uint32_t channels = def->format == mui_atlasFourChannel ? 4u : 1u;
+    uint32_t channels = def->format == mui_atlasOneChannel ? 1u : 4u;
     size_t scratchAt =
         muiLayoutAdd(&layout, (size_t)def->plotWidth * def->plotHeight * channels, 1, 1);
     unsigned char* block = muiAllocate(&service->allocator, layout.size, alignof(muiGlyphAtlas));
@@ -156,6 +161,7 @@ muiResult muiCreateGlyphAtlas(muiTextService* service, const muiGlyphAtlasDef* d
         .plotWidth = def->plotWidth,
         .plotHeight = def->plotHeight,
         .maxPages = def->maxPages,
+        .format = def->format,
         .channels = channels,
         .plotsAcross = def->pageWidth / def->plotWidth,
         .plotsPerPage = plotsPerPage,
@@ -367,30 +373,80 @@ static uint32_t FormOf(uint32_t size, uint32_t quarter, uint32_t spread)
     return spread << SPREAD_SHIFT | size << 2 | quarter;
 }
 
+// A colour packed as 8-bit sRGB red, green, blue and straight alpha, from
+// the high byte, and back as premultiplied linear colour.
+static uint32_t PackTint(muiLinearColor color)
+{
+    float alpha = fminf(fmaxf(color.a, 0.0f), 1.0f);
+    float channels[3] = {color.r, color.g, color.b};
+    uint32_t packed = 0;
+    for (int i = 0; i < 3; i++)
+    {
+        float straight = alpha > 0.0f ? channels[i] / alpha : 0.0f;
+        packed = packed << 8 | (uint32_t)(muiEncodeSrgb(straight) * 255.0f + 0.5f);
+    }
+    return packed << 8 | (uint32_t)(alpha * 255.0f + 0.5f);
+}
+
+static muiLinearColor UnpackTint(uint32_t packed)
+{
+    const muiColor color = {(float)(packed >> 24) / 255.0f, (float)(packed >> 16 & 0xFF) / 255.0f,
+                            (float)(packed >> 8 & 0xFF) / 255.0f, (float)(packed & 0xFF) / 255.0f};
+    double rgb[3];
+    muiColorToLinearRgb(color, rgb);
+    return muiPremultiply(rgb, color.a, 1.0f);
+}
+
+// Renders the image a key names into the scratch, as the atlas's format
+// asks.
+static muiResult Render(muiGlyphAtlas* atlas, const muiGlyphKey* key, muiGlyphImage* imageOut)
+{
+    float size = (float)((key->sizeBin & SIZE_MASK) >> 2) / 64.0f;
+    float offset = (float)(key->sizeBin & 3u) / 4.0f;
+    uint32_t spread = key->sizeBin >> SPREAD_SHIFT;
+    size_t capacity = (size_t)atlas->plotWidth * atlas->plotHeight * atlas->channels;
+    switch (atlas->format)
+    {
+    case mui_atlasColor:
+        return muiRenderColorGlyph(atlas->service, key->font, key->glyph, size, offset,
+                                   key->palette, UnpackTint(key->tint), imageOut, atlas->scratch,
+                                   capacity);
+    case mui_atlasFourChannel:
+        return muiRenderGlyphMultiField(atlas->service, key->font, key->glyph, size, spread,
+                                        imageOut, atlas->scratch, capacity);
+    default:
+        return spread != 0 ? muiRenderGlyphField(atlas->service, key->font, key->glyph, size,
+                                                 spread, imageOut, atlas->scratch, capacity)
+                           : muiRenderGlyph(atlas->service, key->font, key->glyph, size, offset,
+                                            imageOut, atlas->scratch, capacity);
+    }
+}
+
+// Notes that a key's glyph has no colour layers; the entry is set and
+// given.
+static muiResult AddColorless(muiGlyphAtlas* atlas, const muiGlyphKey* key,
+                              muiAtlasEntry** entryOut)
+{
+    if (!muiReserveEntry(&atlas->allocator, &atlas->table, atlas->generations))
+    {
+        return mui_errorCapacity;
+    }
+    muiAtlasEntry* entry = muiFindEntry(&atlas->table, key);
+    atlas->table.count += entry->plot == 0 ? 1u : 0u;
+    *entry = (muiAtlasEntry){.key = *key, .plot = MUI_NO_PLOT, .colorless = true};
+    *entryOut = entry;
+    return mui_success;
+}
+
 // Renders a glyph and packs it; the entry for key is set and given.
 static muiResult Add(muiGlyphAtlas* atlas, const muiGlyphKey* key, muiAtlasEntry** entryOut,
                      muiAtlasGlyph* glyphOut)
 {
     muiGlyphImage image = {0, 0, 0, 0};
-    float size = (float)((key->sizeBin & SIZE_MASK) >> 2) / 64.0f;
-    uint32_t spread = key->sizeBin >> SPREAD_SHIFT;
-    size_t capacity = (size_t)atlas->plotWidth * atlas->plotHeight * atlas->channels;
-    muiResult result = mui_success;
-    if (atlas->channels == 4)
+    muiResult result = Render(atlas, key, &image);
+    if (result == mui_empty)
     {
-        result = muiRenderGlyphMultiField(atlas->service, key->font, key->glyph, size, spread,
-                                          &image, atlas->scratch, capacity);
-    }
-    else if (spread != 0)
-    {
-        result = muiRenderGlyphField(atlas->service, key->font, key->glyph, size, spread, &image,
-                                     atlas->scratch, capacity);
-    }
-    else
-    {
-        result =
-            muiRenderGlyph(atlas->service, key->font, key->glyph, size,
-                           (float)(key->sizeBin & 3u) / 4.0f, &image, atlas->scratch, capacity);
+        return AddColorless(atlas, key, entryOut);
     }
     bool tooLarge =
         image.width + GUTTER > atlas->plotWidth || image.height + GUTTER > atlas->plotHeight;
@@ -457,8 +513,11 @@ static int64_t FloorToInteger(float value)
 // Finds a glyph of a form, rendering and packing it the first time, and
 // keeps its plot until a later frame; glyphOut is given its page and
 // place in it.
+// Finds a glyph's entry, adding it the first time: mui_empty, with no
+// entry, for a glyph without colour layers in an atlas of colour glyphs.
 static muiResult Find(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, uint32_t form,
-                      const muiAtlasEntry** entryOut, muiAtlasGlyph* glyphOut)
+                      uint32_t palette, uint32_t tint, const muiAtlasEntry** entryOut,
+                      muiAtlasGlyph* glyphOut)
 {
     uint64_t key = 0;
     const muiFont* record = muiFindFont(atlas->service, font, &key);
@@ -470,10 +529,14 @@ static muiResult Find(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, uint3
     {
         return mui_errorInvalid;
     }
-    muiGlyphKey lookup = {key, glyph, form};
+    *glyphOut = (muiAtlasGlyph){0, 0, 0, 0, 0, 0, 0};
+    if (atlas->format == mui_atlasColor && !record->colorLayers)
+    {
+        return mui_empty;
+    }
+    muiGlyphKey lookup = {key, glyph, form, palette, tint};
     muiAtlasEntry* entry =
         atlas->table.capacity != 0 ? muiFindEntry(&atlas->table, &lookup) : nullptr;
-    *glyphOut = (muiAtlasGlyph){0, 0, 0, 0, 0, 0, 0};
     if (entry == nullptr || entry->plot == 0 || muiIsEntryStale(entry, atlas->generations))
     {
         muiResult result = Add(atlas, &lookup, &entry, glyphOut);
@@ -481,6 +544,10 @@ static muiResult Find(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, uint3
         {
             return result;
         }
+    }
+    if (entry->colorless)
+    {
+        return mui_empty;
     }
     if (entry->plot != MUI_NO_PLOT)
     {
@@ -507,11 +574,14 @@ static uint32_t SizeOf(float pixelSize)
     return (uint32_t)(pixelSize * 64.0f + 0.5f);
 }
 
-muiResult muiGlyphAtlas_Get(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, float pixelSize,
-                            float penX, float baselineY, muiAtlasGlyph* glyphOut)
+// Gets an image for a pen in device pixels: coverage, or a colour glyph
+// in a palette and a text colour packed.
+static muiResult GetAt(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, float pixelSize,
+                       float penX, float baselineY, uint32_t palette, uint32_t tint,
+                       muiAtlasGlyph* glyphOut)
 {
-    if (atlas == nullptr || glyphOut == nullptr || atlas->channels != 1 ||
-        !IsSizeValid(pixelSize) || !(fabsf(penX) <= MAX_PEN) || !(fabsf(baselineY) <= MAX_PEN))
+    if (glyphOut == nullptr || !IsSizeValid(pixelSize) || !(fabsf(penX) <= MAX_PEN) ||
+        !(fabsf(baselineY) <= MAX_PEN))
     {
         return mui_errorInvalid;
     }
@@ -520,14 +590,32 @@ muiResult muiGlyphAtlas_Get(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
     int64_t bin = quarters & 3;
     int64_t pen = (quarters - bin) / 4;
     const muiAtlasEntry* entry = nullptr;
-    muiResult result =
-        Find(atlas, font, glyph, FormOf(SizeOf(pixelSize), (uint32_t)bin, 0), &entry, glyphOut);
+    muiResult result = Find(atlas, font, glyph, FormOf(SizeOf(pixelSize), (uint32_t)bin, 0),
+                            palette, tint, &entry, glyphOut);
     if (result == mui_success)
     {
         glyphOut->x = (int32_t)pen + entry->left;
         glyphOut->y = (int32_t)FloorToInteger(baselineY + 0.5f) - entry->top;
     }
     return result;
+}
+
+muiResult muiGlyphAtlas_Get(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, float pixelSize,
+                            float penX, float baselineY, muiAtlasGlyph* glyphOut)
+{
+    return atlas != nullptr && atlas->format == mui_atlasOneChannel
+               ? GetAt(atlas, font, glyph, pixelSize, penX, baselineY, 0, 0, glyphOut)
+               : mui_errorInvalid;
+}
+
+muiResult muiGlyphAtlas_GetColor(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
+                                 float pixelSize, float penX, float baselineY, uint32_t palette,
+                                 muiLinearColor foreground, muiAtlasGlyph* glyphOut)
+{
+    return atlas != nullptr && atlas->format == mui_atlasColor
+               ? GetAt(atlas, font, glyph, pixelSize, penX, baselineY, palette,
+                       PackTint(foreground), glyphOut)
+               : mui_errorInvalid;
 }
 
 // Gets a field, of one channel or of four as the atlas is.
@@ -541,7 +629,7 @@ static muiResult GetField(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, f
     }
     const muiAtlasEntry* entry = nullptr;
     muiResult result =
-        Find(atlas, font, glyph, FormOf(SizeOf(pixelSize), 0, spread), &entry, glyphOut);
+        Find(atlas, font, glyph, FormOf(SizeOf(pixelSize), 0, spread), 0, 0, &entry, glyphOut);
     if (result == mui_success)
     {
         glyphOut->x = entry->left;
@@ -553,7 +641,7 @@ static muiResult GetField(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, f
 muiResult muiGlyphAtlas_GetField(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
                                  float pixelSize, uint32_t spread, muiAtlasGlyph* glyphOut)
 {
-    return atlas != nullptr && atlas->channels == 1
+    return atlas != nullptr && atlas->format == mui_atlasOneChannel
                ? GetField(atlas, font, glyph, pixelSize, spread, glyphOut)
                : mui_errorInvalid;
 }
@@ -561,7 +649,7 @@ muiResult muiGlyphAtlas_GetField(muiGlyphAtlas* atlas, uint64_t font, uint32_t g
 muiResult muiGlyphAtlas_GetMultiField(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
                                       float pixelSize, uint32_t spread, muiAtlasGlyph* glyphOut)
 {
-    return atlas != nullptr && atlas->channels == 4
+    return atlas != nullptr && atlas->format == mui_atlasFourChannel
                ? GetField(atlas, font, glyph, pixelSize, spread, glyphOut)
                : mui_errorInvalid;
 }
@@ -577,8 +665,8 @@ muiResult muiGlyphAtlas_GetPage(const muiGlyphAtlas* atlas, uint32_t page, muiAt
     {
         return mui_errorInvalid;
     }
-    *pageOut = (muiAtlasPage){atlas->pages[page], atlas->pageWidth, atlas->pageHeight,
-                              atlas->channels == 4 ? mui_atlasFourChannel : mui_atlasOneChannel};
+    *pageOut =
+        (muiAtlasPage){atlas->pages[page], atlas->pageWidth, atlas->pageHeight, atlas->format};
     return mui_success;
 }
 
