@@ -45,7 +45,10 @@ enum
     RADIAL,
     RADIAL_TUBE,
     SWEEP,
-    LINEAR_UNORDERED
+    LINEAR_UNORDERED,
+    RADIAL_TANGENT,
+    LINEAR_SHEARED,
+    LINEAR_HARD
 };
 
 static unsigned char s_pixels[4096];
@@ -252,6 +255,31 @@ static void TestGradients(void)
               Mixed(&image, 5, 7, 195, 180) && Mixed(&image, 2, 4, 71, 248) &&
               Mixed(&image, 5, 1, 0, 255),
           "a sweep gradient");
+    // Pixel 6, 4 at (650, 450) units: t = c / 2b, 0.893.
+    CHECK(BoxIs(&scene, RADIAL_TANGENT, 0.0f, 1, 8, 8, 8, &image) && Mixed(&image, 6, 4, 92, 243),
+          "a radial gradient of circles touching inside");
+    // Pixel 4, 4's centre taken back through the shear to 225 units:
+    // 0.156 along.
+    CHECK(BoxIs(&scene, LINEAR_SHEARED, 0.0f, 1, 8, 8, 8, &image) && Mixed(&image, 4, 4, 237, 110),
+          "a linear gradient sheared");
+    // Half a pixel right, pixel 4's centre is at 4 across: 0.5 along.
+    CHECK(BoxIs(&scene, LINEAR_PAD, 0.5f, 1, 8, 9, 8, &image) && Mixed(&image, 4, 4, 188, 188),
+          "a linear gradient at an offset pen");
+    muiDestroyTextService(scene.service);
+}
+
+// At an em of 15.625 pixels a unit is a 64th of a pixel: pixel 6's
+// centre, 416 units, falls exactly on the hard stop at 0.453125, where
+// the later of its two stops colours it.
+static void TestHardStop(void)
+{
+    Scene scene = MakeScene();
+    const muiLinearColor green = {0.0f, 1.0f, 0.0f, 1.0f};
+    muiGlyphImage image = {0};
+    CHECK(muiRenderColorGlyph(scene.service, scene.font, LINEAR_HARD, 15.625f, 0.0f, 0, green,
+                              &image, s_pixels, sizeof s_pixels) == mui_success &&
+              Mixed(&image, 5, 4, 255, 0) && Mixed(&image, 6, 4, 0, 255),
+          "a hard stop, the later stop at its offset");
     muiDestroyTextService(scene.service);
 }
 
@@ -292,6 +320,7 @@ int main(void)
     TestLayers();
     TestPaints();
     TestGradients();
+    TestHardStop();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }

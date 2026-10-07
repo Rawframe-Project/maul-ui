@@ -197,6 +197,30 @@ GRAPHS = {
     ),
     # linearPad's stops written in the other order.
     "linearUnordered": linear("pad", stops=RED_TO_TEXT[::-1]),
+    # Circles touching inside, the first a point: |c1 - c0| = r1 - r0.
+    "radialTangent": radial((300, 400), 0, (500, 400), 200),
+    # A linear gradient from 1 to 9 across, sheared by x' = x + y / 2
+    # inside the whole box.
+    "linearSheared": shape(
+        "whole",
+        {
+            "Format": PaintFormat.PaintTransform,
+            "Paint": linear("pad", p1x=900, p0x=100, p2=(100, 100))["Paint"],
+            "Transform": {"xx": 1.0, "yx": 0.0, "xy": 0.5, "yy": 1.0, "dx": 0, "dy": 0},
+        },
+    ),
+    # Red to 0.453125 and the text's colour from it, along 300 to 556
+    # units: a hard stop, two stops at one offset.
+    "linearHard": linear(
+        "pad",
+        p1x=556,
+        stops=[
+            {"StopOffset": 0.0, "PaletteIndex": 0, "Alpha": 1.0},
+            {"StopOffset": 0.453125, "PaletteIndex": 0, "Alpha": 1.0},
+            {"StopOffset": 0.453125, "PaletteIndex": 0xFFFF, "Alpha": 1.0},
+            {"StopOffset": 1.0, "PaletteIndex": 0xFFFF, "Alpha": 1.0},
+        ],
+    ),
 }
 
 
