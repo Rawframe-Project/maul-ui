@@ -375,6 +375,11 @@ uint64_t muiGetContextMisuse(const muiContext* context)
     return context != nullptr ? context->misuse : 0;
 }
 
+muiWorkCounts muiGetWorkCounts(const muiContext* context)
+{
+    return context != nullptr ? context->work : (muiWorkCounts){0};
+}
+
 muiResult muiRefuse(muiContext* context)
 {
     context->misuse++;

@@ -46,6 +46,12 @@ lists, layout fixtures) and rely on a static screen costing nothing.
   FreeType 2.14.3, HarfBuzz 14.5.1 and Maul Unicode 0.2.0 into the
   library (record mui-0006). Accessibility adapters use their platform's
   accessibility API, each in its own optional target.
+- **No engine concept in the API:** no identifier of the public
+  headers has a word naming an engine's or Rawframe's concepts (world,
+  entity, schema, asset, game, scripting and the like), checked by
+  `tools/check_litmus.py` in CI: another engine or a plain application
+  drives Maul UI over its own tree and draws its list with its own
+  renderer.
 - **Size budget (family record 0013):** in wasm at `-Oz` with
   link-time optimization, the most a program can link of each part,
   every public function taken: the core at most 160,000 bytes above an

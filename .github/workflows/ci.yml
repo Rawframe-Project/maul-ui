@@ -37,6 +37,10 @@ jobs:
           python3 tools/check_lengths.py
           python3 tools/check_guide.py
           python3 tools/gen_layout_fixtures.py --check
+      - name: No engine concept in the API
+        # The litmus test of record mui-0001: any engine or application
+        # can drive Maul UI over its own tree.
+        run: python3 tools/check_litmus.py
       - name: clang-tidy
         run: |
           cmake -B build -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 \

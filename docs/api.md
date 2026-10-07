@@ -503,6 +503,11 @@ uint64_t muiGetContextMisuse(const muiContext* context);
 ```
 Returns how many calls the context has refused as invalid input (`mui_errorInvalid`): a count release builds can watch to catch a host's bugs. Stale ids are not misuse.  @param context  The context. @return The count; 0 for a NULL context. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
+```c
+muiWorkCounts muiGetWorkCounts(const muiContext* context);
+```
+Returns the work a context has done since it was made.  @param context  The context. @return The counts; all 0 for a NULL context. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+
 ## `draw.h`
 
 The draw-command list (record mui-0005): what a renderer draws for a subtree, as fixed-size records in paint order, each with an index into a clip table and a transform table, so that a renderer evaluates clips per command and batches across them. Coordinates are logical units; colors are linear light with premultiplied alpha. Identical trees give byte-identical lists.
@@ -1536,4 +1541,4 @@ Reads a node's resolved visual values: its direct writes, and for the other prop
 
 ---
 
-279 functions across 34 headers.
+280 functions across 34 headers.

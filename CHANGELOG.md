@@ -48,6 +48,15 @@ format.
 
 ### Added
 
+- `muiGetWorkCounts` returns the work a context has done since it was
+  made: the nodes styled, the sizes the solver computed rather than
+  cached, the host's measure calls and the nodes painted rather than
+  copied. A test holds that a static frame counts none, and the
+  benchmark prints the counts beside its timings.
+- `tools/check_litmus.py`, run in the checks job, refuses public
+  identifiers whose words name an engine's concepts (world, entity,
+  schema, asset, game, scripting and the like), the litmus test of
+  record mui-0001.
 - `tools/size_report.py` reports each part's wasm at `-Oz` with LTO as
   record mui-0001's new size budget measures it, every public function
   taken: the core above an empty program (144,873 bytes of 160,000),

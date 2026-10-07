@@ -11,8 +11,10 @@
 // styled lists a row hovered), and a new width; for the painted list,
 // draw lists built after them: the first, a static frame, and one after
 // a change.
-// Prints the best of five runs in microseconds, and how many times the
-// host was asked to measure, which does not depend on the machine.
+// Prints the best of five runs in microseconds, how many times the host
+// was asked to measure, and the nodes styled and sizes solved
+// (muiGetWorkCounts), which do not depend on the machine: a static frame
+// counts none.
 
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
@@ -274,6 +276,7 @@ static void Run(const char* name, Kind kind)
 {
     double best[4] = {1e30, 1e30, 1e30, 1e30};
     long measured[4] = {0};
+    muiWorkCounts work[4] = {0};
     double drawn[3] = {1e30, 1e30, 1e30};
     uint32_t commands = 0;
     for (int run = 0; run < RUNS; run++)
@@ -295,9 +298,14 @@ static void Run(const char* name, Kind kind)
         const float widths[4] = {800.0f, 800.0f, 800.0f, 640.0f};
         for (int i = 0; i < 4; i++)
         {
+            muiWorkCounts before = muiGetWorkCounts(scene.context);
             double time = Time(&scene, widths[i], i == 2);
+            muiWorkCounts after = muiGetWorkCounts(scene.context);
             best[i] = time < best[i] ? time : best[i];
             measured[i] = scene.measured;
+            work[i] =
+                (muiWorkCounts){after.styled - before.styled, after.sized - before.sized,
+                                after.measured - before.measured, after.painted - before.painted};
         }
         if (kind == kindPainted)
         {
@@ -308,7 +316,9 @@ static void Run(const char* name, Kind kind)
     const char* labels[4] = {"cold", "static", "one change", "resize"};
     for (int i = 0; i < 4; i++)
     {
-        printf("%-7s %-10s %12.1f us %8ld measured\n", name, labels[i], best[i], measured[i]);
+        printf("%-7s %-10s %12.1f us %8ld measured %8llu styled %8llu sized\n", name, labels[i],
+               best[i], measured[i], (unsigned long long)work[i].styled,
+               (unsigned long long)work[i].sized);
     }
     if (kind == kindPainted)
     {

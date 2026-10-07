@@ -43,6 +43,8 @@ struct muiSolver
     const muiPaintState* painted;
     // Each node's scroll state, whose extents layout measures.
     muiScrollState* scrolls;
+    // Where sizes solved and measure calls are counted.
+    muiWorkCounts* work;
 };
 
 #endif // MAUL_UI_SRC_SOLVER_H

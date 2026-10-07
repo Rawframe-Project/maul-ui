@@ -34,6 +34,8 @@ typedef struct Build
     // the origin 0 for the list's root, its laid-out place for a layer;
     // no clip, full opacity.
     muiPaintState top;
+    // The nodes painted rather than copied (muiWorkCounts).
+    uint64_t painted;
 } Build;
 
 // Where a copied subtree's indices land: its own clips, gradients and
@@ -244,6 +246,7 @@ static bool Visit(Build* build, const muiPaintState* top, uint32_t root, uint32_
         (void)Copy(build, at, state, clip, transform);
         return false;
     }
+    build->painted++;
     // Field by field: a whole struct built on the stack and copied stalls
     // on reading back its narrower stores.
     const muiDrawTables* out = build->painter.out;
@@ -477,6 +480,7 @@ muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawI
     WalkAll(&build, root);
     context->inHostCall = false;
     context->misuse += build.painter.misuse;
+    context->work.painted += build.painted;
     store->current = next;
     if (build.painter.full)
     {

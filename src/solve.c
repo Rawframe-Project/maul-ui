@@ -108,6 +108,7 @@ static muiSize SizeLeaf(const muiSolver* solver, uint32_t node, const muiSizingI
     {
         muiNodeId id = muiTreeIdOf(solver->tree, node);
         uint64_t hostKey = muiTreeAt(solver->tree, node)->hostKey;
+        solver->work->measured++;
         content =
             solver->measure(solver->measureUser, id, hostKey, ContentAxis(input->width, boxWidth),
                             ContentAxis(input->height, boxHeight));
@@ -340,6 +341,7 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
             return hit->size;
         }
     }
+    solver->work->sized++;
     muiSizingInput own = OwnDirection(&solver->nodes[node - 1].style, input);
     ApplyAspectRatio(solver, node, &own);
     muiSize size = muiTreeAt(solver->tree, node)->links.firstChild == 0
