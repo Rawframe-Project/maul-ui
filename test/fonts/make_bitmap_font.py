@@ -19,7 +19,13 @@
 #                    blue and red at 0, 2; glyph 7 has no image;
 #   glyphs 9, 11     index format 5 over 9 to 11, image format 19, the
 #                    index's metrics (at 2, 2): 2 by 2 green and blue;
-#                    glyph 10 has no image.
+#                    glyph 10 has no image;
+#   glyph 14         its PNG's length three bytes past its image, to be
+#                    refused;
+#   glyph 15         2 by 2 red at half alpha, at 0, 2.
+#
+# A 15 ppem strike of 8 bits a pixel, not colour, has glyph 1 all blue,
+# to be passed over.
 #
 # In the 20 ppem strike: glyph 1 at twice the size (16 by 16 at 2, 16),
 # green on its right half where the 10 ppem strike's is blue, and glyph
@@ -132,7 +138,25 @@ def strike_10(cbdt):
     cbdt.add(bare(eleven, size))
     body = struct.pack(">I", size) + big_metrics(2, 2, 2, 2) + struct.pack(">IHH", 2, 9, 11)
     out.append((9, 11, subtable(5, 19, base, body)))
+    # Format 1, image 17: glyph 14, its PNG's length three bytes past its
+    # image, and glyph 15, half clear red.
+    fourteen = solid(GREEN)
+    fourteen = struct.pack(">BBbbB", 2, 2, 0, 2, 2) + struct.pack(">I", len(fourteen) + 3) + fourteen
+    fifteen = small(solid((255, 0, 0, 128)), 2, 2, 0, 2)
+    base = len(cbdt.data)
+    cbdt.add(fourteen)
+    cbdt.add(fifteen)
+    offsets = struct.pack(">III", 0, len(fourteen), len(fourteen) + len(fifteen))
+    out.append((14, 15, subtable(1, 17, base, offsets)))
     return out
+
+
+def strike_15(cbdt):
+    """A strike of 8 bits a pixel, not colour, to be passed over."""
+    base = len(cbdt.data)
+    one = small(png(12, 12, lambda x, y: BLUE), 12, 12, 1, 12)
+    cbdt.add(one)
+    return [(1, 1, subtable(1, 17, base, struct.pack(">II", 0, len(one))))]
 
 
 def strike_20(cbdt):
@@ -149,12 +173,12 @@ def strike_20(cbdt):
 
 
 def cblc(strikes):
-    """strikes: [(ppem, [(first, last, subtable bytes)])]."""
+    """strikes: [(ppem, depth, [(first, last, subtable bytes)])]."""
     header = struct.pack(">HHI", 3, 0, len(strikes))
     records = b""
     arrays = b""
     at = len(header) + 48 * len(strikes)
-    for ppem, subtables in strikes:
+    for ppem, depth, subtables in strikes:
         entries = b""
         bodies = b""
         offset = 8 * len(subtables)
@@ -167,14 +191,14 @@ def cblc(strikes):
         last = max(s[1] for s in subtables)
         lines = bytes(12)
         records += struct.pack(">IIII", at, len(array), len(subtables), 0) + lines + lines
-        records += struct.pack(">HHBBBb", first, last, ppem, ppem, 32, 1)
+        records += struct.pack(">HHBBBb", first, last, ppem, ppem, depth, 1)
         arrays += array
         at += len(array)
     return header + records + arrays
 
 
 def main():
-    names = [".notdef", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen"]
+    names = [".notdef", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen"]
     builder = FontBuilder(1000, isTTF=True)
     builder.setupGlyphOrder(names)
     builder.setupCharacterMap({0x41 + i: name for i, name in enumerate(names[1:])})
@@ -182,7 +206,7 @@ def main():
     builder.setupHorizontalMetrics({name: (1000, 0) for name in names})
     builder.setupHorizontalHeader(ascent=800, descent=-200)
     cbdt = Writer()
-    strikes = [(10, strike_10(cbdt)), (20, strike_20(cbdt))]
+    strikes = [(10, 32, strike_10(cbdt)), (15, 8, strike_15(cbdt)), (20, 32, strike_20(cbdt))]
     builder.setupNameTable({"familyName": "Maul Bitmap", "styleName": "Regular"})
     builder.setupOS2(sTypoAscender=800, sTypoDescender=-200, usWinAscent=800, usWinDescent=200)
     builder.setupPost()

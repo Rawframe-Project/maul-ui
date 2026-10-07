@@ -21,7 +21,7 @@
 
 enum
 {
-    GLYPHS = 14,
+    GLYPHS = 16,
     DAMAGE_ROUNDS = 400
 };
 
@@ -104,6 +104,11 @@ static void TestFormats(void)
           "index format 5, a glyph of its range without an image");
     CHECK(Draw(&scene, 13, 10.0f, 0.0f, &image) == mui_empty && image.width == 0,
           "a glyph without a bitmap is empty");
+    CHECK(Draw(&scene, 14, 10.0f, 0.0f, &image) == mui_empty,
+          "a PNG longer than its image is refused");
+    // Red at half alpha: linear red 0.502 premultiplied, 188 encoded.
+    CHECK(BoxIs(&scene, 15, 10.0f, 0.0f, 0, 2, 2, 2, &image) && Is(&image, 0, 0, 188, 0, 0, 128),
+          "straight alpha made premultiplied");
     CHECK(muiRenderGlyph(scene.service, scene.font, 1, 10.0f, 0.0f, &image, s_pixels,
                          sizeof s_pixels) == mui_success &&
               image.width == 0,
@@ -119,9 +124,10 @@ static void TestScaling(void)
     // 20 ppem's glyph 1 is green on its right, 10 ppem's blue.
     CHECK(BoxIs(&scene, 1, 20.0f, 0.0f, 2, 16, 16, 16, &image) && Is(&image, 12, 8, 0, 255, 0, 255),
           "the strike of the size itself");
+    // The 15 ppem strike is not colour: 20 is the smallest that reaches.
     CHECK(BoxIs(&scene, 1, 15.0f, 0.0f, 1, 12, 13, 12, &image) &&
               Is(&image, 10, 6, 0, 255, 0, 255) && Is(&image, 3, 6, 255, 0, 0, 255),
-          "the smallest strike reaching the size, shrunk");
+          "the smallest colour strike reaching the size, shrunk");
     CHECK(Draw(&scene, 1, 5.0f, 0.0f, &image) == mui_success && Is(&image, 3, 1, 0, 0, 255, 255),
           "the smallest strike of all for a smaller size");
     CHECK(Draw(&scene, 1, 30.0f, 0.0f, &image) == mui_success && image.width == 24 &&
