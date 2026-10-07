@@ -785,6 +785,10 @@ static void TestScroll(void)
           "down to the last line, two lines shown");
     CHECK(muiTextHitTest(host, scene.node, 50.0f, 1.0f, 1.0f, &at) == mui_success && at.offset == 4,
           "the top shows the third line");
+    CHECK(muiTextBlock_SetText(scene.service, scene.block, "a\nb", 3) == mui_success, "shorter");
+    Layout(&scene);
+    CHECK(muiTextHitTest(host, scene.node, 50.0f, 1.0f, 1.0f, &at) == mui_success && at.offset == 0,
+          "two lines fit: back to the top");
     FreeScene(&scene);
 }
 
