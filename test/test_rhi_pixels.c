@@ -756,55 +756,75 @@ static int Red(const uint8_t* pixels, uint32_t side, int x, int y)
     return pixels[((size_t)y * side + (size_t)x) * 4];
 }
 
-// The square's top left corner magnified: scaled by 40, its em drawn at
-// 400 pixels from a field of 128, so a field pixel spans 3 device pixels
-// and more. Coverage grows with the distance read, and a sharp corner's
-// is the lesser of its two sides', so the pixels at the corner, inside
-// and out, are covered as the lesser of the pixels beside the two sides
-// in their column and row; a one-channel field, rounding the corner by a
-// fifth of a field pixel, covers them less.
-static void TestFieldCorner(Gpu* gpu, muiRhiRenderer* renderer, uint64_t font, uint8_t* pixels,
-                            int scale)
+// Each corner of the square magnified: scaled by 40, its em drawn at 400
+// pixels from a field of 128, so a field pixel spans 3 device pixels and
+// more, and moved so the corner is at 32, 32. Coverage grows with the
+// distance read, and a sharp corner's is the lesser of its two sides',
+// so the pixels at the corner, inside and out, are covered as the lesser
+// of the pixels beside the two sides in their column and row; a
+// one-channel field, rounding the corner by a fifth of a field pixel, or
+// a channel holding one side's colour alone, covers them otherwise.
+static void TestFieldCorners(Gpu* gpu, muiRhiRenderer* renderer, uint64_t font, uint8_t* pixels,
+                             int scale)
 {
     const uint32_t side = 64u * (uint32_t)scale;
     const muiGlyph square = {4, 0, 0};
-    const muiDrawTransform transforms[2] = {{1, 0, 0, 1, 0, 0}, {40, 0, 0, 40, 20, 20}};
-    muiDrawCommand command = {.kind = mui_drawGlyphRun, .transform = 1};
-    command.glyphRun = (muiDrawGlyphRun){.font = font,
-                                         .originX = 0,
-                                         .originY = 8,
-                                         .size = 10,
-                                         .glyphCount = 1,
-                                         .color = {1, 0, 0, 1}};
-    muiDrawList list = {.commands = &command, .commandCount = 1};
-    list.glyphs = &square;
-    list.glyphCount = 1;
-    list.transforms = transforms;
-    list.transformCount = 2;
-    list.header.scale = (float)scale;
-    if (!Render(gpu, renderer, &list, side, pixels))
-    {
-        CHECK(false, "a corner drawn and read");
-        return;
-    }
     const int red[4] = {255, 0, 0, 255};
-    const int c = 20 * scale;
-    const int far = c + 10 * scale;
-    bool sharp = true;
-    for (int at = c - 1; at <= c; at++)
+    const int c = 32 * scale;
+    for (int corner = 0; corner < 4; corner++)
     {
-        int column = Red(pixels, side, at, far);
-        int row = Red(pixels, side, far, at);
-        int expected = column < row ? column : row;
-        int got = Red(pixels, side, at, at);
-        if (got < expected - 3 || got > expected + 3)
+        // Which way the square lies from the corner, and its corner in
+        // the run's units scaled.
+        int inX = corner % 2 == 0 ? 1 : -1;
+        int inY = corner < 2 ? 1 : -1;
+        float x = inX > 0 ? 0.0f : 400.0f;
+        float y = inY > 0 ? 0.0f : 400.0f;
+        const muiDrawTransform transforms[2] = {{1, 0, 0, 1, 0, 0},
+                                                {40, 0, 0, 40, 32.0f - x, 32.0f - y}};
+        muiDrawCommand command = {.kind = mui_drawGlyphRun, .transform = 1};
+        command.glyphRun = (muiDrawGlyphRun){.font = font,
+                                             .originX = 0,
+                                             .originY = 8,
+                                             .size = 10,
+                                             .glyphCount = 1,
+                                             .color = {1, 0, 0, 1}};
+        muiDrawList list = {.commands = &command, .commandCount = 1};
+        list.glyphs = &square;
+        list.glyphCount = 1;
+        list.transforms = transforms;
+        list.transformCount = 2;
+        list.header.scale = (float)scale;
+        if (!Render(gpu, renderer, &list, side, pixels))
         {
-            printf("  at %d,%d: red %d, expected %d\n", at, at, got, expected);
-            sharp = false;
+            CHECK(false, "a corner drawn and read");
+            return;
         }
+        // The pixels inside the corner and outside it, and pixels well
+        // along each side.
+        int inside = inX > 0 ? c : c - 1;
+        int insideY = inY > 0 ? c : c - 1;
+        int farX = c + inX * 10 * scale;
+        int farY = c + inY * 10 * scale;
+        bool sharp = true;
+        for (int k = 0; k < 2; k++)
+        {
+            int px = k == 0 ? inside : inside - inX;
+            int py = k == 0 ? insideY : insideY - inY;
+            int column = Red(pixels, side, px, farY);
+            int row = Red(pixels, side, farX, py);
+            int expected = column < row ? column : row;
+            int got = Red(pixels, side, px, py);
+            if (got < expected - 3 || got > expected + 3)
+            {
+                printf("  corner %d at %d,%d: red %d, expected %d\n", corner, px, py, got,
+                       expected);
+                sharp = false;
+            }
+        }
+        CHECK(sharp && Red(pixels, side, inside, farY) > 128 &&
+                  Near(pixels, side, farX, farY, red, 2),
+              "a magnified corner kept");
     }
-    CHECK(sharp && Red(pixels, side, c, far) > 128 && Near(pixels, side, far, far, red, 2),
-          "a magnified corner kept");
 }
 
 #endif
@@ -871,8 +891,8 @@ int main(void)
         TestGlyphs(&gpu, renderer, font, pixels, 2);
         TestFields(&gpu, renderer, font, pixels, 1);
         TestFields(&gpu, renderer, font, pixels, 2);
-        TestFieldCorner(&gpu, renderer, font, pixels, 1);
-        TestFieldCorner(&gpu, renderer, font, pixels, 2);
+        TestFieldCorners(&gpu, renderer, font, pixels, 1);
+        TestFieldCorners(&gpu, renderer, font, pixels, 2);
 #endif
     }
     free(pixels);
