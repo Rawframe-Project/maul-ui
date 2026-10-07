@@ -516,12 +516,14 @@ endif()
 
 if(MAUL_UI_INSTALL)
     # Without the text component its headers would declare functions the
-    # library lacks (cmake/Install.cmake's MAUL_PUBLIC_HEADERS).
+    # library lacks (cmake/Install.cmake's MAUL_PUBLIC_HEADERS); they are
+    # tools/text-headers.txt's, which check_modules.py keeps whole.
     if(NOT MAUL_UI_TEXT)
         file(GLOB MAUL_PUBLIC_HEADERS RELATIVE ${PROJECT_SOURCE_DIR}/include/maul-ui
              ${PROJECT_SOURCE_DIR}/include/maul-ui/*.h)
-        list(REMOVE_ITEM MAUL_PUBLIC_HEADERS font.h glyph_atlas.h glyph_image.h text.h
-             text_block.h text_edit.h)
+        file(STRINGS ${PROJECT_SOURCE_DIR}/tools/text-headers.txt mui_text_headers
+             REGEX "^[a-z_]+\\.h$")
+        list(REMOVE_ITEM MAUL_PUBLIC_HEADERS ${mui_text_headers})
     endif()
     include(cmake/Install.cmake)
 endif()

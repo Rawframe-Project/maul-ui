@@ -30,8 +30,11 @@ import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 HEADERS = ROOT / "include" / "maul-ui"
-TEXT_HEADERS = {"font.h", "glyph_atlas.h", "glyph_image.h", "text.h", "text_block.h",
-                "text_edit.h"}
+# The text component's public headers, from the list check_modules.py
+# keeps whole.
+TEXT_HEADERS = {line.split("#", 1)[0].strip()
+                for line in (ROOT / "tools" / "text-headers.txt").read_text(encoding="utf-8")
+                .splitlines()} - {""}
 CEILINGS = {"core": 160_000, "text": 640_000}
 FLAGS = ["-Oz", "-flto"]
 DECLARATION = re.compile(r"\bMUI_API\b[^;{]*?\b(mui[A-Za-z0-9_]+)\s*\(", re.S)

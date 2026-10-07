@@ -16,6 +16,11 @@
 # directory tools/source-dirs.txt lists, DIR/src, include their own
 # headers and public ones alone, never the library's internals.
 #
+# tools/text-headers.txt lists the text component's public headers, which
+# the size report counts as text and an install without the component
+# leaves out: exactly those declaring a function that a source of
+# cmake/Text.cmake defines.
+#
 # usage: check_modules.py
 
 import os
@@ -24,6 +29,9 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 INCLUDE = re.compile(r'^\s*#\s*include\s+"([^"/]+)\.h"')
+DECLARATION = re.compile(r"\bMUI_API\b[^;{]*?\b(mui[A-Za-z0-9_]+)\s*\(", re.S)
+# A definition's first line: not indented, not static, not a prototype.
+DEFINITION = re.compile(r"^(?!static\b)[A-Za-z][^;]*?\b(mui[A-Za-z0-9_]+)\s*\([^;]*$")
 
 
 def declared():
@@ -96,6 +104,43 @@ def source_dirs():
 SOURCE_DIRS = source_dirs()
 
 
+def listed_text_headers():
+    path = os.path.join(ROOT, "tools", "text-headers.txt")
+    if not os.path.exists(path):
+        sys.exit("tools/text-headers.txt is missing")
+    lines = (line.split("#", 1)[0].strip() for line in open(path, encoding="utf-8"))
+    return {line for line in lines if line}
+
+
+def text_sources():
+    """The src/ files cmake/Text.cmake builds."""
+    text = open(os.path.join(ROOT, "cmake", "Text.cmake"), encoding="utf-8").read()
+    return set(re.findall(r"\bsrc/([a-z0-9_]+\.c)\b", text))
+
+
+def text_header_errors():
+    """Whether tools/text-headers.txt names exactly the public headers
+    declaring a function the text component's sources define."""
+    defined = set()
+    for name in text_sources():
+        for line in open(os.path.join(ROOT, "src", name), encoding="utf-8", errors="replace"):
+            match = DEFINITION.match(line)
+            if match:
+                defined.add(match.group(1))
+    headers = os.path.join(ROOT, "include", "maul-ui")
+    text = set()
+    for name in sorted(os.listdir(headers)):
+        declared_names = DECLARATION.findall(open(os.path.join(headers, name), encoding="utf-8").read())
+        if defined.intersection(declared_names):
+            text.add(name)
+    listed = listed_text_headers()
+    errors = [f"include/maul-ui/{name}: declares text functions; list it in "
+              "tools/text-headers.txt" for name in sorted(text - listed)]
+    errors += [f"tools/text-headers.txt: {name} declares no text function"
+               for name in sorted(listed - text)]
+    return errors, len(text)
+
+
 def main():
     graph = declared()
     found = modules_in_src()
@@ -132,11 +177,14 @@ def main():
                 if match and match.group(1) not in own:
                     errors.append(f"{shown}/{name}:{number}: may not include "
                                   f"{match.group(1)}.h, which is not its own")
+    header_errors, headers = text_header_errors()
+    errors += header_errors
     for error in errors:
         print(error)
     if errors:
         return 1
-    print(f"module graph: {len(graph)} modules, every include allowed, no cycles")
+    print(f"module graph: {len(graph)} modules, every include allowed, no cycles; "
+          f"{headers} text headers listed")
     return 0
 
 
