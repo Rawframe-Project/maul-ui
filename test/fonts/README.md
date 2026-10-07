@@ -39,10 +39,10 @@ published.
   overlap flag, for distance fields of overlapping contours.
 
 - `MaulColor.ttf`: written by `make_color_font.py` (fontTools
-  4.66.1), MIT: an A of three COLR version 0 layers (a box of palette
-  entry 0, its right half of entry 1, and a small box of the text's
-  colour) over two CPAL palettes, and a B with no colour, for colour
-  glyphs.
+  4.66.1), MIT: an A of COLR version 0 layers (one with no outline, a
+  box of palette entry 0, its right half of entry 1, a small box of the
+  text's colour and one of an entry past the palettes) over two CPAL
+  palettes, and a B with no colour, for colour glyphs.
 
 - `MaulVariable.ttf`, `MaulVariableSlant.ttf`, `MaulVariableItalic.ttf`
   and `MaulItalic.ttf`: written by `make_instance_fonts.py` (fontTools

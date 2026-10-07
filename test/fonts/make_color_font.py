@@ -2,9 +2,10 @@
 # Copyright (c) 2026 Sirac Ozmen
 #
 # Writes MaulColor.ttf, the font the colour glyph tests render (record
-# mui-0006): 1000 units per em, an A of three COLR version 0 layers
-# (a box of palette entry 0, the box's right half of entry 1, and a small
-# box of the text's colour, entry 0xFFFF) over two CPAL palettes, and a B
+# mui-0006): 1000 units per em, an A of COLR version 0 layers (one with no
+# outline, a box of palette entry 0, the box's right half of entry 1, a
+# small box of the text's colour, entry 0xFFFF, and a small box of entry
+# 2, past the palettes) over two CPAL palettes of two entries, and a B
 # with no colour, its outline a plain box. Needs fontTools (pip install
 # fonttools); its timestamps are fixed, so it writes the same bytes each
 # time.
@@ -32,7 +33,7 @@ def box(left, bottom, right, top):
 
 
 def main():
-    names = [".notdef", "A", "B", "whole", "half", "dot"]
+    names = [".notdef", "A", "B", "whole", "half", "dot", "empty", "stray"]
     builder = FontBuilder(1000, isTTF=True)
     builder.setupGlyphOrder(names)
     builder.setupCharacterMap({ord("A"): "A", ord("B"): "B"})
@@ -44,11 +45,13 @@ def main():
         "whole": box(100, 0, 900, 800),
         "half": box(500, 0, 900, 800),
         "dot": box(300, 200, 500, 400),
+        "empty": TTGlyphPen(None).glyph(),
+        "stray": box(600, 200, 800, 400),
     }
     builder.setupGlyf(glyphs)
     # A left side bearing of each outline's own left, as TrueType places
     # outlines by it.
-    bearings = {"half": 500, "dot": 300}
+    bearings = {"half": 500, "dot": 300, "empty": 0, "stray": 600}
     builder.setupHorizontalMetrics({name: (1000, bearings.get(name, 100)) for name in names})
     builder.setupHorizontalHeader(ascent=800, descent=-200)
     builder.setupCPAL(
@@ -57,7 +60,9 @@ def main():
             [(0.0, 1.0, 0.0, 1.0), (1.0, 1.0, 0.0, 1.0)],
         ]
     )
-    builder.setupCOLR({"A": [("whole", 0), ("half", 1), ("dot", 0xFFFF)]}, version=0)
+    # A layer with no outline, and one of an entry past the palettes.
+    layers = [("empty", 0), ("whole", 0), ("half", 1), ("dot", 0xFFFF), ("stray", 2)]
+    builder.setupCOLR({"A": layers}, version=0)
     builder.setupNameTable({"familyName": "Maul Color", "styleName": "Regular"})
     builder.setupOS2(sTypoAscender=800, sTypoDescender=-200, usWinAscent=800, usWinDescent=200)
     builder.setupPost()
