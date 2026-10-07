@@ -97,6 +97,7 @@ const uint kShadow = 2u;
 const uint kImage = 3u;
 const uint kGlyph = 4u;
 const uint kLinear = 1u;
+const uint kRadial = 2u;
 
 // The signed distance from a point, relative to a rounded rect's
 // center, to its edge; radii top-left, top-right, bottom-right,
@@ -156,8 +157,9 @@ vec4 FromOklab(vec4 lab)
 }
 
 // A gradient's color at a point of a box, both in pixels: along the line
-// through the center at the angle (clockwise from toward the top), or
-// outward as the ellipse to the farthest corner.
+// through the center at the angle (clockwise from toward the top),
+// outward as the ellipse to the farthest corner, or around the center
+// from the angle, a turn from 0 to 1.
 vec4 GradientAt(uint which, vec2 p, vec2 size)
 {
     uint count = gradients.items[which].head.y;
@@ -170,10 +172,16 @@ vec4 GradientAt(uint which, vec2 p, vec2 size)
         float span = abs(size.x * direction.x) + abs(size.y * direction.y);
         t = span > 0.0 ? dot(d, direction) / span + 0.5 : 0.0;
     }
-    else
+    else if (gradients.items[which].head.x == kRadial)
     {
         vec2 reach = max(size * 0.5 * sqrt(2.0), vec2(1e-4));
         t = length(d / reach);
+    }
+    else
+    {
+        // Clockwise from toward the top, y down.
+        float turn = atan(d.x, -d.y) - radians(gradients.items[which].params.x);
+        t = fract(turn / 6.28318530718);
     }
     vec4 positions = gradients.items[which].positions;
     vec4 color = gradients.items[which].colors[0];

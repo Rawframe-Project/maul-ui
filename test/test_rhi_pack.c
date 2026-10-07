@@ -8,9 +8,12 @@
 // whose parent comes after it, bounded by the target alone; turned;
 // scaled onto the target from past it; a
 // shadow whose blur reaches in from outside; an image off the target,
-// for which the host is not asked.
+// for which the host is not asked. Then batching: commands changing
+// clip, transform and gradient at every step plan as one draw, and
+// images split draws only where their texture changes.
 
 #include "pack.h"
+#include "plan.h"
 #include "test_harness.h"
 
 #include <math.h>
@@ -134,9 +137,89 @@ static void TestImages(void)
     muiRhiFreeImages(&images);
 }
 
+// Clips, transforms and gradients are indices into tables the shader
+// reads: changing them at every command keeps one draw.
+static void TestOneDraw(void)
+{
+    const muiDrawTransform transforms[2] = {{1, 0, 0, 1, 0, 0}, {0, 1, -1, 0, 32, 0}};
+    const muiDrawClip clips[4] = {{0},
+                                  {.rect = {0, 0, 32, 64}},
+                                  {.rect = {0, 0, 64, 32}, .invert = 1},
+                                  {.rect = {4, 4, 40, 40}, .parent = 1, .radii = {8, 8, 8, 8}}};
+    const muiDrawGradient gradients[3] = {
+        {0},
+        {.kind = mui_gradientLinear, .stopCount = 2, .positions = {0.0f, 1.0f}},
+        {.kind = mui_gradientConic, .stopCount = 2, .positions = {0.0f, 1.0f}}};
+    muiDrawCommand commands[12];
+    for (uint32_t i = 0; i < 12; i++)
+    {
+        commands[i] = Box((float)i, (float)i, 8, 8, i % 4);
+        commands[i].transform = i % 2;
+        commands[i].box.gradient = i % 3;
+    }
+    muiDrawList list = {.commands = commands, .commandCount = 12};
+    list.clips = clips;
+    list.clipCount = 4;
+    list.transforms = transforms;
+    list.transformCount = 2;
+    list.gradients = gradients;
+    list.gradientCount = 3;
+    list.header.scale = 1.0f;
+    muiRhiCull cull = {0};
+    muiRhiImages images = muiRhiMakeImages(&(muiAllocator){0}, NULL, NULL, NULL);
+    muiRhiGlyphs glyphs = {0};
+    muiRhiInstance instances[12];
+    const muiRhiPacking packing = {&images, &glyphs, &cull};
+    CHECK(muiRhiPrepareCull(&cull, &list, 64, 64) == mui_success, "bounds worked out");
+    uint32_t count = muiRhiPackInstances(&list, &packing, instances);
+    muiRhiPlan plan = {0};
+    const muiRhiSources sources = {NULL, 0, &images, &glyphs, {1, 1}};
+    CHECK(count == 12 && muiRhiMakePlan(&plan, instances, count, &sources) == mui_success &&
+              plan.drawCount == 1 && plan.draws[0].count == 12,
+          "twelve commands, each with another clip, transform and gradient: one draw");
+    muiRhiFreePlan(&plan);
+    muiRhiFreeCull(&cull);
+    muiRhiFreeImages(&images);
+}
+
+// Images of two textures among boxes: a draw starts only where the
+// texture changes, boxes joining the draw they fall in.
+static void TestTextureSplits(void)
+{
+    muiRhiImages images = muiRhiMakeImages(&(muiAllocator){0}, NULL, NULL, NULL);
+    CHECK(muiRhiResetImages(&images, 3) == mui_success, "a table");
+    const mrhiResourceId a = {1, 1};
+    const mrhiResourceId b = {2, 1};
+    // Two keys of texture a, one of b.
+    images.entries[0].resource = a;
+    images.entries[1].resource = a;
+    images.entries[2].resource = b;
+    images.count = 3;
+    muiRhiGlyphs glyphs = {0};
+    const uint32_t kinds[8] = {mui_drawBox,   mui_drawImage, mui_drawBox,   mui_drawImage,
+                               mui_drawImage, mui_drawBox,   mui_drawImage, mui_drawBox};
+    const uint32_t entries[8] = {0, 0, 0, 1, 2, 0, 0, 0};
+    muiRhiInstance instances[8];
+    for (uint32_t i = 0; i < 8; i++)
+    {
+        instances[i] = (muiRhiInstance){.kind = kinds[i], .index = entries[i], .clip = i % 3};
+    }
+    muiRhiPlan plan = {0};
+    const muiRhiSources sources = {NULL, 0, &images, &glyphs, {3, 1}};
+    CHECK(muiRhiMakePlan(&plan, instances, 8, &sources) == mui_success && plan.drawCount == 3 &&
+              plan.draws[0].first == 0 && plan.draws[0].count == 4 && plan.draws[1].first == 4 &&
+              plan.draws[1].count == 2 && plan.draws[2].first == 6 && plan.draws[2].count == 2 &&
+              plan.draws[1].texture.index1 == 2 && plan.draws[2].texture.index1 == 1,
+          "a, a again by another key, then b, then a: three draws");
+    muiRhiFreePlan(&plan);
+    muiRhiFreeImages(&images);
+}
+
 int main(void)
 {
     TestBoxes();
     TestImages();
+    TestOneDraw();
+    TestTextureSplits();
     return s_failures == 0 ? 0 : 1;
 }

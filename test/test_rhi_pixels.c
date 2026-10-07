@@ -283,6 +283,42 @@ static double BlurOf(muiRect box, double sigma, double x, double y)
     return across * down;
 }
 
+// A conic gradient from 90 degrees, red to blue over the turn, filling
+// the target: at a pixel's middle, its turn clockwise from the right.
+static void TestConic(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels)
+{
+    const muiDrawGradient gradients[2] = {
+        {0},
+        {.kind = mui_gradientConic,
+         .stopCount = 2,
+         .interpolation = mui_interpolateOklab,
+         .angle = 90.0f,
+         .colors = {{1, 0, 0, 1}, {0, 0, 1, 1}},
+         .positions = {0.0f, 1.0f}},
+    };
+    muiDrawCommand commands[1] = {Box(0, 0, 64, 64, (muiLinearColor){0, 0, 0, 0})};
+    commands[0].box.gradient = 1;
+    muiDrawList list = {.commands = commands, .commandCount = 1};
+    list.gradients = gradients;
+    list.gradientCount = 2;
+    list.header.scale = 1.0f;
+    if (!Render(gpu, renderer, &list, 64, pixels))
+    {
+        CHECK(false, "a conic gradient drawn and read");
+        return;
+    }
+    const int points[4][2] = {{56, 33}, {33, 56}, {8, 33}, {33, 8}};
+    for (int i = 0; i < 4; i++)
+    {
+        double dx = points[i][0] + 0.5 - 32.0;
+        double dy = points[i][1] + 0.5 - 32.0;
+        double turn = (atan2(dx, -dy) - 0.5 * 3.14159265358979) / (2.0 * 3.14159265358979);
+        int expected[4];
+        Mixed(turn - floor(turn), expected);
+        CHECK(Near(pixels, 64, points[i][0], points[i][1], expected, 2), "the conic gradient");
+    }
+}
+
 static void TestGradientsAndShadows(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels)
 {
     const muiDrawGradient gradients[3] = {
@@ -768,6 +804,7 @@ int main(void)
         CHECK(Render(&gpu, renderer, &list, 128, pixels), "drawn and read at a scale of 2");
         CheckProbes(pixels, 128, 2);
         TestGradientsAndShadows(&gpu, renderer, pixels);
+        TestConic(&gpu, renderer, pixels);
         TestClipsAndTransforms(&gpu, renderer, pixels, 1);
         TestClipsAndTransforms(&gpu, renderer, pixels, 2);
         TestImages(&gpu, renderer, pixels, 1);

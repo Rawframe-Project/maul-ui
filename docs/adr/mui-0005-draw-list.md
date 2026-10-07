@@ -69,7 +69,10 @@ clip chain evaluated in its shaders, which keeps batches whole.
 - **Clips are a chain:** a node that clips adds a clip of its rounded
   border box whose parent is the clip it is painted in, and its
   children's commands carry that clip's index. A renderer evaluates the
-  chain per command, so clip changes need not break a batch.
+  chain per command, so clip changes need not break a batch; the
+  reference renderer's plan starts a draw only where a texture changes,
+  which `test_rhi_pack` holds with a list changing clip, transform and
+  gradient at every command.
 - **Corners and sides are physical in the list,** top left first and
   top first, resolved from start and end by the node's direction. An
   image does not mirror unless its node says it does
@@ -126,7 +129,8 @@ clip chain evaluated in its shaders, which keeps batches whole.
   what the list says, under the Vulkan validation layer, and its WGSL
   is compiled by headless Chrome's WebGPU, which nothing else compiles.
   Gradients come from the list's table in a second storage buffer,
-  mixed in premultiplied Oklab as the core's transitions mix colors;
+  mixed in premultiplied Oklab as the core's transitions mix colors (a
+  conic one's turn found from the point's angle about the centre);
   shadows are Gaussian blurs of their rounded shape in Evan Wallace's
   closed form (exact along one axis, four samples along the other),
   their shape spread with CSS's radius adjustment and drawn outside

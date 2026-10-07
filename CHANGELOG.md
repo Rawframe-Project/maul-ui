@@ -54,6 +54,11 @@ format.
 
 ### Added
 
+- Conic gradients (`mui_gradientConic`): around the box's centre from
+  the gradient's angle, stops over a turn, as CSS's `conic-gradient`;
+  the reference renderer paints them. A fixture holds the renderer's
+  plan to one draw while clips, transforms and gradients change.
+
 - Text editing (`maul-ui/text_editor.h`): a text block opted into
   editing with a field's rules (`muiTextBlock_SetEditing`: multi-line,
   read-only, password, integer and decimal filters, a maximum length in

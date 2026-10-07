@@ -320,7 +320,7 @@ static void TestChecks(void)
     CheckRefused(context, style, node, &v, GRADIENT, "a stop's color");
     v.gradient = (muiGradient){mui_gradientLinear, 2, 90.0f, {white, black}};
     CheckRefused(context, style, node, &v, GRADIENT, "stops out of order");
-    v.gradient = (muiGradient){3, 2, 90.0f, {black, white}};
+    v.gradient = (muiGradient){4, 2, 90.0f, {black, white}};
     CheckRefused(context, style, node, &v, GRADIENT, "an unknown kind");
     v.gradient = (muiGradient){mui_gradientNone, 2, 90.0f, {black, white}};
     CheckRefused(context, style, node, &v, GRADIENT, "none with stops");
@@ -355,7 +355,7 @@ static void TestChecks(void)
 
     // At the edges, allowed.
     v = defaults;
-    v.gradient = (muiGradient){mui_gradientRadial, 2, 0.0f, {black, black}};
+    v.gradient = (muiGradient){mui_gradientConic, 2, -720.0f, {black, black}};
     v.opacity = 0.0f;
     v.outerShadow = (muiShadow){{0.0f, 0.0f, 0.0f, 0.5f}, -2.0f, 3.0f, 0.0f, -4.0f};
     v.radius.topStart = (muiDimension){100.0f, 0.0f, mui_dimensionValue};

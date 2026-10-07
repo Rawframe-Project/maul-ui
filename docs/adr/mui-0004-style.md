@@ -109,7 +109,9 @@ for a fixed order in which a later layer always wins.
   alone. `muiNode_SetLayoutStyle` writes every layout property this
   way.
 - **Visual values are style properties too** (`maul-ui/visual.h`): a
-  background color and a gradient of up to four stops, corner radii as
+  background color and a gradient of up to four stops (linear at an
+  angle, radial to the farthest corner, or conic around the centre from
+  an angle, as CSS's three), corner radii as
   Scale+Offset of the border box's shorter side (held to half of it, so
   a large one makes a pill, as Roblox's `UICorner`), border colors per
   side (the widths stay layout's), an outer and an inner shadow, an

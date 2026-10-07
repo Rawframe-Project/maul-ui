@@ -401,15 +401,15 @@ static bool IsDimensionValid(muiDimension value)
     return value.kind <= mui_dimensionValue && isfinite(value.scale) && isfinite(value.offset);
 }
 
-// None with no stops, or a linear or radial gradient with 2 or more
-// stops in order from 0 to 1.
+// None with no stops, or a linear, radial or conic gradient with 2 or
+// more stops in order from 0 to 1.
 static bool IsGradientValid(const muiGradient* gradient)
 {
     if (gradient->kind == mui_gradientNone)
     {
         return gradient->stopCount == 0;
     }
-    if (gradient->kind > mui_gradientRadial || gradient->stopCount < 2 ||
+    if (gradient->kind > mui_gradientConic || gradient->stopCount < 2 ||
         gradient->stopCount > MUI_MAX_GRADIENT_STOPS || !isfinite(gradient->angle))
     {
         return false;

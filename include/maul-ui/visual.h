@@ -41,6 +41,10 @@ extern "C"
         mui_gradientLinear = 1,
         // Outward from the centre, as CSS's ellipse to the farthest corner.
         mui_gradientRadial = 2,
+        // Around the centre from the angle, clockwise, as CSS's
+        // conic-gradient(from angle): stop positions are fractions of a
+        // turn, and the seam where the turn starts is hard.
+        mui_gradientConic = 3,
     };
 
     enum
@@ -62,8 +66,9 @@ extern "C"
         muiGradientKind kind;
         // From 2 to MUI_MAX_GRADIENT_STOPS for a gradient, 0 for none.
         uint8_t stopCount;
-        // For a linear gradient, in degrees clockwise from toward the top,
-        // as CSS's linear-gradient.
+        // In degrees clockwise from toward the top: a linear gradient's
+        // direction, as CSS's linear-gradient, and where a conic one's
+        // turn starts, as CSS's conic-gradient.
         float angle;
         // In order of position.
         muiGradientStop stops[MUI_MAX_GRADIENT_STOPS];

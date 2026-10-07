@@ -48,6 +48,7 @@ const kShadow = 2u;
 const kImage = 3u;
 const kGlyph = 4u;
 const kLinear = 1u;
+const kRadial = 2u;
 
 struct Between {
     @builtin(position) position: vec4f,
@@ -137,8 +138,9 @@ fn fromOklab(lab: vec4f) -> vec4f {
 }
 
 // A gradient's color at a point of a box, both in pixels: along the line
-// through the center at the angle (clockwise from toward the top), or
-// outward as the ellipse to the farthest corner.
+// through the center at the angle (clockwise from toward the top),
+// outward as the ellipse to the farthest corner, or around the center
+// from the angle, a turn from 0 to 1.
 fn gradientAt(which: u32, p: vec2f, size: vec2f) -> vec4f {
     let count = gradients[which].head.y;
     let d = p - size * 0.5;
@@ -148,9 +150,13 @@ fn gradientAt(which: u32, p: vec2f, size: vec2f) -> vec4f {
         let direction = vec2f(sin(angle), -cos(angle));
         let span = abs(size.x * direction.x) + abs(size.y * direction.y);
         t = select(0.0, dot(d, direction) / span + 0.5, span > 0.0);
-    } else {
+    } else if (gradients[which].head.x == kRadial) {
         let reach = max(size * 0.5 * sqrt(2.0), vec2f(1e-4));
         t = length(d / reach);
+    } else {
+        // Clockwise from toward the top, y down.
+        let turn = atan2(d.x, -d.y) - radians(gradients[which].params.x);
+        t = fract(turn / 6.28318530718);
     }
     let positions = gradients[which].positions;
     var color = gradients[which].colors[0];

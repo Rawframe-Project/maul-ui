@@ -71,9 +71,10 @@ extern "C"
         MUI_MAX_DRAW_STOPS = 4
     };
 
-    // A gradient of the gradient table. kind is mui_gradientLinear or
-    // mui_gradientRadial (maul-ui/visual.h); angle is in degrees clockwise
-    // from toward the top, for a linear one.
+    // A gradient of the gradient table. kind is mui_gradientLinear,
+    // mui_gradientRadial or mui_gradientConic (maul-ui/visual.h); angle is
+    // in degrees clockwise from toward the top, for a linear one and where
+    // a conic one starts.
     typedef struct muiDrawGradient
     {
         uint32_t kind;
