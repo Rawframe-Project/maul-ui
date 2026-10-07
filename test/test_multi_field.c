@@ -292,7 +292,8 @@ static void TestTeardrop(void)
 {
     enum
     {
-        ARC = 24
+        // Fine enough that no joint of the arc turns past the threshold.
+        ARC = 48
     };
     muiSegment segments[ARC + 2];
     uint32_t curves[ARC + 2];
