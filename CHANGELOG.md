@@ -48,6 +48,12 @@ format.
 
 ### Added
 
+- `tools/size_report.py` reports each part's wasm at `-Oz` with LTO as
+  record mui-0001's new size budget measures it, every public function
+  taken: the core above an empty program (144,873 bytes of 160,000),
+  the text component above the core without Maul Unicode (565,136 of
+  640,000), and Maul Unicode as the text component calls it (70,273).
+  The web cell runs it; a release checks it.
 - The samples (`samples/`, `MAUL_UI_BUILD_SAMPLES`, built where the
   renderer, the Maul Window glue and text are): programs that use Maul
   UI's parts together and check their own results, so each is also a

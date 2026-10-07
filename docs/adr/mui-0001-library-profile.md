@@ -46,6 +46,14 @@ lists, layout fixtures) and rely on a static screen costing nothing.
   FreeType 2.14.3, HarfBuzz 14.5.1 and Maul Unicode 0.2.0 into the
   library (record mui-0006). Accessibility adapters use their platform's
   accessibility API, each in its own optional target.
+- **Size budget (family record 0013):** in wasm at `-Oz` with
+  link-time optimization, the most a program can link of each part,
+  every public function taken: the core at most 160,000 bytes above an
+  empty program, and the text component, Maul UI's text code with
+  FreeType and HarfBuzz, at most 640,000 above the core. Clay's layout
+  and command list measure 72,545 bytes, and FreeType's and HarfBuzz's
+  builds 304,248 and 224,100. CI reports both (`tools/size_report.py`);
+  a release checks them, and they are only tightened.
 - **Commit areas:** `a11y`, `api`, `bench`, `build`, `ci`, `docs`,
   `draw`, `input`, `layout`, `samples`, `style`, `tests`, `text`,
   `tools`, `tree`, `virtual`.

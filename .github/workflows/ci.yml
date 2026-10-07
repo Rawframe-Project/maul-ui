@@ -348,3 +348,12 @@ jobs:
         # The static library's size, reported, not gated (family record
         # 0013).
         run: stat -c '%s bytes' build/libmaul-ui.a
+      - name: Wasm size against the budget
+        # Each part's wasm at -Oz with link-time optimization, as record
+        # mui-0001's size budget measures it; reported, checked at release.
+        run: |
+          emcmake cmake -B build-size -DCMAKE_BUILD_TYPE=MinSizeRel \
+            -DCMAKE_C_FLAGS_MINSIZEREL="-Oz -DNDEBUG" -DCMAKE_CXX_FLAGS_MINSIZEREL="-Oz -DNDEBUG" \
+            -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -D${PREFIX}_BUILD_TESTS=OFF
+          cmake --build build-size -j 4
+          python3 tools/size_report.py build-size
