@@ -119,6 +119,12 @@ void SampleFill(SampleApp* app, muiNodeId node, const uint8_t rgb[3]);
 muiNodeId SampleLabel(SampleApp* app, muiNodeId parent, const char* text, float size,
                       const uint8_t rgb[3]);
 
+// Whether two ids name the same node.
+bool SampleSame(muiNodeId a, muiNodeId b);
+
+// Rounds a node's four corners.
+void SampleRound(SampleApp* app, muiNodeId node, float radius);
+
 // As SampleLabel, handing back the block, for text the host edits.
 muiNodeId SampleTextNode(SampleApp* app, muiNodeId parent, const char* text, float size,
                          const uint8_t rgb[3], muiTextBlockId* blockOut);

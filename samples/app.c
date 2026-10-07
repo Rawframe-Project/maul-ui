@@ -508,3 +508,23 @@ int SampleRunApp(const SampleAppDef* def, int count, char** arguments)
     Destroy(&app);
     return SampleExit(SampleClose(&app.sample));
 }
+
+bool SampleSame(muiNodeId a, muiNodeId b)
+{
+    return a.index1 == b.index1 && a.generation == b.generation;
+}
+
+void SampleRound(SampleApp* app, muiNodeId node, float radius)
+{
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    muiDimension r = SampleLength(radius);
+    visual.radius = (muiCornerRadii){r, r, r, r};
+    SampleAppCheck(app,
+                   muiNode_SetVisualValues(app->context, node, &visual,
+                                           MUI_PROPERTY_BIT(mui_propertyRadiusTopStart) |
+                                               MUI_PROPERTY_BIT(mui_propertyRadiusTopEnd) |
+                                               MUI_PROPERTY_BIT(mui_propertyRadiusBottomEnd) |
+                                               MUI_PROPERTY_BIT(mui_propertyRadiusBottomStart)) ==
+                       mui_success,
+                   "corners");
+}

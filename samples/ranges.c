@@ -73,21 +73,6 @@ static void Width(SampleApp* app, muiNodeId node, float width)
     SampleSetLayout(app, node, &layout, MUI_PROPERTY_BIT(mui_propertyWidth));
 }
 
-static void Round(SampleApp* app, muiNodeId node, float radius)
-{
-    muiVisualStyle visual = muiDefaultVisualStyle();
-    muiDimension r = SampleLength(radius);
-    visual.radius = (muiCornerRadii){r, r, r, r};
-    SampleAppCheck(app,
-                   muiNode_SetVisualValues(app->context, node, &visual,
-                                           MUI_PROPERTY_BIT(mui_propertyRadiusTopStart) |
-                                               MUI_PROPERTY_BIT(mui_propertyRadiusTopEnd) |
-                                               MUI_PROPERTY_BIT(mui_propertyRadiusBottomEnd) |
-                                               MUI_PROPERTY_BIT(mui_propertyRadiusBottomStart)) ==
-                       mui_success,
-                   "corners");
-}
-
 // A bar: a row of a fixed size on the track's colour, below a caption.
 static muiNodeId Bar(SampleApp* app, const char* caption, float height)
 {
@@ -103,7 +88,7 @@ static muiNodeId Bar(SampleApp* app, const char* caption, float height)
                     MUI_PROPERTY_BIT(mui_propertyFlexDirection) |
                         MUI_PROPERTY_BIT(mui_propertyMarginTop));
     SampleFill(app, bar, s_track);
-    Round(app, bar, height / 2.0f);
+    SampleRound(app, bar, height / 2.0f);
     return bar;
 }
 
@@ -131,10 +116,10 @@ static void MakeSlider(Ranges* ranges, SampleApp* app)
     ranges->slider = Bar(app, "Volume", THUMB);
     ranges->sliderFill = SampleNode(app, ranges->slider, 1.0f, THUMB);
     SampleFill(app, ranges->sliderFill, s_fill);
-    Round(app, ranges->sliderFill, THUMB / 2.0f);
+    SampleRound(app, ranges->sliderFill, THUMB / 2.0f);
     ranges->sliderThumb = SampleNode(app, ranges->slider, THUMB, THUMB);
     SampleFill(app, ranges->sliderThumb, s_thumb);
-    Round(app, ranges->sliderThumb, THUMB / 2.0f);
+    SampleRound(app, ranges->sliderThumb, THUMB / 2.0f);
     Draggable(app, ranges->slider, mui_roleSlider, "Volume");
     muiValueRange range = muiDefaultValueRange();
     range.value = 50.0f;
@@ -149,7 +134,7 @@ static void MakeProgress(Ranges* ranges, SampleApp* app)
     ranges->progress = Bar(app, "Loading", 8.0f);
     ranges->progressFill = SampleNode(app, ranges->progress, 1.0f, 8.0f);
     SampleFill(app, ranges->progressFill, s_progress);
-    Round(app, ranges->progressFill, 4.0f);
+    SampleRound(app, ranges->progressFill, 4.0f);
     muiValueRange range = muiDefaultValueRange();
     range.value = 50.0f;
     SampleAppCheck(app,
@@ -183,7 +168,7 @@ static void MakeScroller(Ranges* ranges, SampleApp* app)
     ranges->scrollGap = SampleNode(app, ranges->scrollbar, 1.0f, 10.0f);
     ranges->scrollThumb = SampleNode(app, ranges->scrollbar, 1.0f, 10.0f);
     SampleFill(app, ranges->scrollThumb, s_thumb);
-    Round(app, ranges->scrollThumb, 5.0f);
+    SampleRound(app, ranges->scrollThumb, 5.0f);
     Draggable(app, ranges->scrollbar, mui_roleScrollBar, "Scroll");
     muiValueRange range = muiDefaultValueRange();
     range.maximum = 0.0f;
@@ -211,11 +196,6 @@ static void Build(void* user, SampleApp* app)
     MakeScroller(ranges, app);
 }
 
-static bool Same(muiNodeId a, muiNodeId b)
-{
-    return a.index1 == b.index1 && a.generation == b.generation;
-}
-
 // What the host does each frame: the slider's changes go to the progress
 // bar, the scrollbar's to the list's offset; then the values are shown,
 // and the scrollbar's range follows the list as it was laid out.
@@ -229,14 +209,14 @@ static void Update(void* user, SampleApp* app)
         {
             continue;
         }
-        if (Same(notification.nodeId, ranges->slider))
+        if (SampleSame(notification.nodeId, ranges->slider))
         {
             SampleAppCheck(app,
                            muiNode_SetRangeValue(app->context, ranges->progress,
                                                  RangeOf(app, ranges->slider).value) == mui_success,
                            "the progress set");
         }
-        else if (Same(notification.nodeId, ranges->scrollbar))
+        else if (SampleSame(notification.nodeId, ranges->scrollbar))
         {
             SampleAppCheck(app,
                            muiNode_SetScroll(app->context, ranges->list,

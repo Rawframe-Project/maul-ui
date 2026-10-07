@@ -68,16 +68,11 @@ typedef struct Texts
     mwinRect placed;
 } Texts;
 
-static bool Same(muiNodeId a, muiNodeId b)
-{
-    return a.index1 == b.index1 && a.generation == b.generation;
-}
-
 static int FieldOf(const Texts* texts, muiNodeId node)
 {
     for (int i = 0; i < FIELDS; i++)
     {
-        if (Same(texts->fields[i].node, node))
+        if (SampleSame(texts->fields[i].node, node))
         {
             return i;
         }

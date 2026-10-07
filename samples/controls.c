@@ -79,22 +79,6 @@ static muiStyleId Class(SampleApp* app, const uint8_t base[3], muiVariant varian
     return style;
 }
 
-// Rounds a node's corners.
-static void Round(SampleApp* app, muiNodeId node, float radius)
-{
-    muiVisualStyle visual = muiDefaultVisualStyle();
-    muiDimension r = SampleLength(radius);
-    visual.radius = (muiCornerRadii){r, r, r, r};
-    SampleAppCheck(app,
-                   muiNode_SetVisualValues(app->context, node, &visual,
-                                           MUI_PROPERTY_BIT(mui_propertyRadiusTopStart) |
-                                               MUI_PROPERTY_BIT(mui_propertyRadiusTopEnd) |
-                                               MUI_PROPERTY_BIT(mui_propertyRadiusBottomEnd) |
-                                               MUI_PROPERTY_BIT(mui_propertyRadiusBottomStart)) ==
-                       mui_success,
-                   "corners");
-}
-
 static void SetClass(SampleApp* app, muiNodeId node, muiStyleId style)
 {
     SampleAppCheck(app, muiNode_SetClasses(app->context, node, &style, 1) == mui_success,
@@ -172,7 +156,7 @@ static void MakeButton(Controls* controls, SampleApp* app)
                         MUI_PROPERTY_BIT(mui_propertyPaddingTop));
     SetClass(app, controls->button, Class(app, s_button, mui_variantPressed, s_pressed));
     Widget(app, controls->button, mui_roleButton, "Play", 0);
-    Round(app, controls->button, 6.0f);
+    SampleRound(app, controls->button, 6.0f);
     MakeIcon(controls, app);
     controls->icon = SampleNode(app, controls->button, 16.0f, 16.0f);
     muiVisualStyle visual = muiDefaultVisualStyle();
@@ -191,7 +175,7 @@ static void MakeCheckbox(Controls* controls, SampleApp* app)
     Widget(app, controls->checkbox, mui_roleCheckBox, "Subtitles", mui_accessCheckable);
     controls->box = SampleNode(app, controls->checkbox, 20.0f, 20.0f);
     SetClass(app, controls->box, Class(app, s_off, mui_variantChecked, s_button));
-    Round(app, controls->box, 4.0f);
+    SampleRound(app, controls->box, 4.0f);
     Beside(app, controls->checkbox, "Subtitles");
 }
 
@@ -202,7 +186,7 @@ static void MakeSwitch(Controls* controls, SampleApp* app)
     Widget(app, controls->toggle, mui_roleSwitch, "Sound", mui_accessCheckable);
     controls->track = SampleNode(app, controls->toggle, 40.0f, 20.0f);
     SetClass(app, controls->track, Class(app, s_off, mui_variantChecked, s_on));
-    Round(app, controls->track, 10.0f);
+    SampleRound(app, controls->track, 10.0f);
     controls->knob = SampleNode(app, controls->track, 16.0f, 16.0f);
     muiStyleId knob = Class(app, s_knob, mui_variantChecked, s_knob);
     muiLayoutStyle left = muiDefaultLayoutStyle();
@@ -219,7 +203,7 @@ static void MakeSwitch(Controls* controls, SampleApp* app)
                 mui_success,
         "the knob's places");
     SetClass(app, controls->knob, knob);
-    Round(app, controls->knob, 8.0f);
+    SampleRound(app, controls->knob, 8.0f);
     Beside(app, controls->toggle, "Sound");
 }
 
@@ -243,7 +227,7 @@ static void MakeRadios(Controls* controls, SampleApp* app)
         Widget(app, controls->radios[i], mui_roleRadioButton, names[i], mui_accessCheckable);
         controls->dots[i] = SampleNode(app, controls->radios[i], 16.0f, 16.0f);
         SetClass(app, controls->dots[i], dot);
-        Round(app, controls->dots[i], 8.0f);
+        SampleRound(app, controls->dots[i], 8.0f);
         Beside(app, controls->radios[i], names[i]);
     }
 }
@@ -269,11 +253,6 @@ static void Choose(Controls* controls, int choice)
         const muiNodeId nodes[2] = {controls->radios[i], controls->dots[i]};
         Check(controls->app, nodes, 2, i == choice);
     }
-}
-
-static bool Same(muiNodeId a, muiNodeId b)
-{
-    return a.index1 == b.index1 && a.generation == b.generation;
 }
 
 // Whether an event activates its node: a click, the navigation's
@@ -326,19 +305,19 @@ static bool Hear(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* e
     {
         return false;
     }
-    if (Same(nodeId, controls->button) && Activates(event, true))
+    if (SampleSame(nodeId, controls->button) && Activates(event, true))
     {
         controls->plays++;
         return true;
     }
-    if (Same(nodeId, controls->checkbox) && Activates(event, false))
+    if (SampleSame(nodeId, controls->checkbox) && Activates(event, false))
     {
         controls->checked = !controls->checked;
         const muiNodeId nodes[2] = {controls->checkbox, controls->box};
         Check(app, nodes, 2, controls->checked);
         return true;
     }
-    if (Same(nodeId, controls->toggle) && Activates(event, false))
+    if (SampleSame(nodeId, controls->toggle) && Activates(event, false))
     {
         controls->on = !controls->on;
         const muiNodeId nodes[3] = {controls->toggle, controls->track, controls->knob};
@@ -347,7 +326,7 @@ static bool Hear(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* e
     }
     for (int i = 0; i < RADIOS; i++)
     {
-        if (Same(nodeId, controls->radios[i]))
+        if (SampleSame(nodeId, controls->radios[i]))
         {
             if (Activates(event, false))
             {
@@ -490,7 +469,7 @@ static bool Script(void* user, SampleApp* app, int frame)
                            Reported(app, controls->radios[2]) &&
                            !Reported(app, controls->radios[1]),
                        "the arrow moved the choice to High");
-        SampleAppCheck(app, Same(muiFocus_Get(app->context, 0), controls->radios[2]),
+        SampleAppCheck(app, SampleSame(muiFocus_Get(app->context, 0), controls->radios[2]),
                        "the focus moved with the choice");
         return false;
     }

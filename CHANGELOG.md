@@ -77,7 +77,13 @@ format.
   paints the selection and the caret, and puts an input method's
   preedit into the focused field with the window's caret following.
   The application frame gains record and paint hooks and
-  SampleTextNode. On the web the
+  SampleTextNode. `sample_pickers` composes a select, a searchable
+  select and a number input with drag scrub: comboboxes keeping the
+  focus while an overlay popup list, made on opening and destroyed on
+  closing, shows the active option they name as their active
+  descendant, closed by the library's light dismissal; the number a
+  range whose keys the library takes and whose drag the host turns
+  into a scrub. SampleSame and SampleRound join the frame. On the web the
   headless tour runs in headless
   Chrome's WebGPU through the web runner, which now gives Chrome WebGPU
   and a program its arguments (record mui-0005).
