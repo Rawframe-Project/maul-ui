@@ -30,7 +30,11 @@
 //   the baseline, at scales 1 and 2: two squares and the gap between
 //   them, and a run a transform moves; runs a transform scales by 2 or
 //   turns a quarter, drawn from distance fields.
-// Skips (77) without an adapter, unless MUI_RHI_REQUIRED is set.
+// - tiling: each repeat mode across and up, tiles at 9-slice edges and
+//   in a seam on a mipmapped image, and with the slices' fit.
+// Skips (77) without an adapter, unless MUI_RHI_REQUIRED is set. On the
+// web it runs in headless Chrome's WebGPU through the web runner, its
+// waits sleeping through JSPI, and ends with the runner's exit line.
 
 #include "color.h"
 #include "test_harness.h"
@@ -45,7 +49,14 @@
 #include <string.h>
 #include <time.h>
 
-#define WAIT_NS 10000000000ull
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#endif
+
+// How long an answer is waited for: 10 s natively, 10,000 sleeps of a
+// millisecond or more on the web, where the browser answers between them.
+#define WAIT_NS     10000000000ull
+#define WAIT_SLEEPS 10000
 
 typedef struct Gpu
 {
@@ -54,6 +65,42 @@ typedef struct Gpu
 } Gpu;
 
 // A device on the first adapter, software ones included.
+static mrhiResult NextInstance(mrhiInstance* instance, mrhiInstanceNotification* recordOut)
+{
+    mrhiResult status = mrhiNextInstanceNotification(instance, recordOut);
+#ifdef __EMSCRIPTEN__
+    for (int slept = 0; status == mrhi_empty && slept < WAIT_SLEEPS; slept++)
+    {
+        emscripten_sleep(1);
+        status = mrhiNextInstanceNotification(instance, recordOut);
+    }
+#endif
+    return status;
+}
+
+// Waits for a frame to finish.
+static mrhiResult WaitFrame(mrhiDevice* device, mrhiRequestId token)
+{
+    mrhiResult status = mrhiWaitFrame(device, token, WAIT_NS);
+#ifdef __EMSCRIPTEN__
+    for (int slept = 0; status == mrhi_timeout && slept < WAIT_SLEEPS; slept++)
+    {
+        emscripten_sleep(1);
+        status = mrhiWaitFrame(device, token, 0);
+    }
+#endif
+    return status;
+}
+
+// The status, printed on the web for the runner, which ends the run on it.
+static int Exit(int status)
+{
+#ifdef __EMSCRIPTEN__
+    printf("mui-test: exit %d\n", status);
+#endif
+    return status;
+}
+
 static bool Open(Gpu* gpu)
 {
     *gpu = (Gpu){0};
@@ -66,8 +113,7 @@ static bool Open(Gpu* gpu)
     size_t count = 0;
     if (mrhiCreateInstance(&def, &gpu->instance) != mrhi_success ||
         mrhiRequestAdapters(gpu->instance, &search, &request) != mrhi_success ||
-        mrhiNextInstanceNotification(gpu->instance, &record) != mrhi_success ||
-        record.outcome != mrhi_success ||
+        NextInstance(gpu->instance, &record) != mrhi_success || record.outcome != mrhi_success ||
         mrhiGetAdapters(gpu->instance, &adapter, 1, &count) != mrhi_success || count == 0)
     {
         return false;
@@ -75,8 +121,7 @@ static bool Open(Gpu* gpu)
     mrhiDeviceDef deviceDef = mrhiDefaultDeviceDef();
     deviceDef.adapter = adapter;
     return mrhiCreateDevice(gpu->instance, &deviceDef, &gpu->device, &request) == mrhi_success &&
-           mrhiNextInstanceNotification(gpu->instance, &record) == mrhi_success &&
-           record.outcome == mrhi_success;
+           NextInstance(gpu->instance, &record) == mrhi_success && record.outcome == mrhi_success;
 }
 
 static void Close(Gpu* gpu)
@@ -109,6 +154,9 @@ static bool AwaitReady(Gpu* gpu, muiRhiRenderer* renderer)
         {
             (void)muiRhiRenderer_Notify(renderer, &record);
         }
+#ifdef __EMSCRIPTEN__
+        emscripten_sleep(1);
+#endif
     }
     return muiRhiRenderer_IsReady(renderer);
 }
@@ -160,7 +208,7 @@ static bool Render(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList* list, 
         return false;
     }
     if (mrhiSubmitFrame(gpu->device, &token) != mrhi_success ||
-        mrhiWaitFrame(gpu->device, token, WAIT_NS) != mrhi_success)
+        WaitFrame(gpu->device, token) != mrhi_success)
     {
         return false;
     }
@@ -553,7 +601,7 @@ static bool MakeLevels(Gpu* gpu, uint32_t side, const uint8_t* const* levels, ui
         return false;
     }
     return mrhiSubmitFrame(gpu->device, &token) == mrhi_success &&
-           mrhiWaitFrame(gpu->device, token, WAIT_NS) == mrhi_success;
+           WaitFrame(gpu->device, token) == mrhi_success;
 }
 
 static bool MakeTexture(Gpu* gpu, uint32_t side, const uint8_t* texels, mrhiTextureId* textureOut)
@@ -1059,10 +1107,10 @@ int main(void)
         if (required != NULL && required[0] != '\0')
         {
             printf("FAIL: no adapter, and MUI_RHI_REQUIRED is set\n");
-            return 1;
+            return Exit(1);
         }
         printf("no adapter: skipped\n");
-        return 77;
+        return Exit(77);
     }
     Textures textures = {0};
     CHECK(MakeTextures(&gpu, &textures), "the test's textures");
@@ -1146,5 +1194,5 @@ int main(void)
     muiDestroyTextService(def.text);
 #endif
     Close(&gpu);
-    return s_failures == 0 ? 0 : 1;
+    return Exit(s_failures == 0 ? 0 : 1);
 }

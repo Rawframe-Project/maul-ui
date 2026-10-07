@@ -246,8 +246,18 @@ if(MAUL_UI_BUILD_TESTS)
         maul_add_test(rhi_pack)
         target_link_libraries(test_rhi_pack PRIVATE maul-ui-rhi)
         target_include_directories(test_rhi_pack PRIVATE ${PROJECT_SOURCE_DIR}/rhi/src)
-        # Its pixels on a real device; skips without one.
-        maul_add_test(rhi_pixels WHITEBOX)
+        # Its pixels on a real device; skips without one. On the web, in
+        # headless Chrome's WebGPU through the runner, its waits sleeping
+        # through JSPI, as the samples do.
+        if(EMSCRIPTEN)
+            maul_add_test(rhi_pixels WHITEBOX MANUAL)
+            target_link_options(test_rhi_pixels PRIVATE -sJSPI -sEXIT_RUNTIME
+                                                        -sEXPORTED_RUNTIME_METHODS=ENV)
+            add_test(NAME rhi_pixels COMMAND node ${PROJECT_SOURCE_DIR}/test/web_runner.cjs
+                                             $<TARGET_FILE:test_rhi_pixels>)
+        else()
+            maul_add_test(rhi_pixels WHITEBOX)
+        endif()
         target_link_libraries(test_rhi_pixels PRIVATE maul-ui-rhi)
         set_tests_properties(rhi_pixels PROPERTIES SKIP_RETURN_CODE 77)
         # Glyph runs, in Ahem, where Maul UI has its text component.

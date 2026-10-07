@@ -351,6 +351,11 @@ jobs:
             test "${PIPESTATUS[0]}" -eq 0
             grep -q "the presented frame checked" canvas.log
           done
+      - name: The reference renderer's pixels in headless Chrome's WebGPU
+        # test_rhi_pixels on WGSL, as it runs on SPIR-V natively.
+        run: >
+          MUI_RHI_REQUIRED=1 MUI_NODE_MODULES=/tmp/browser/node_modules
+          node test/web_runner.cjs build-sample/test_rhi_pixels.js
       - name: The reference renderer's WGSL in headless Chrome's WebGPU
         # The shader tools pass WGSL through untouched (record mui-0005).
         run: MUI_NODE_MODULES=/tmp/browser/node_modules node tools/check_wgsl.cjs rhi/shaders/quad.wgsl

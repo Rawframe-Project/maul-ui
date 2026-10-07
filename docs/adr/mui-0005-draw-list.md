@@ -134,8 +134,8 @@ clip chain evaluated in its shaders, which keeps batches whole.
   GLSL and WGSL made into a Maul RHI container offline
   (`tools/gen_rhi_shaders.py`), the header committed. Its tests run on
   Maul RHI's test driver and on lavapipe, comparing probed pixels with
-  what the list says, under the Vulkan validation layer, and its WGSL
-  is compiled by headless Chrome's WebGPU, which nothing else compiles.
+  what the list says, under the Vulkan validation layer, and the same
+  probes run on its WGSL in headless Chrome's WebGPU.
   Gradients come from the list's table in a second storage buffer,
   mixed in premultiplied Oklab as the core's transitions mix colors (a
   conic one's turn found from the point's angle about the centre);
