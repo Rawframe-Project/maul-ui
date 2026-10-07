@@ -117,6 +117,7 @@ text_block: allocator pool
 text_blocks: font_instance property text_block text_service
 text_editing: text_block text_blocks text_history text_rules text_service
 text_editor: text_block text_editing text_service
+text_keys: text_block text_editing
 text_history: allocator text_block
 text_rules: text_block text_service
 text_shape: font_chain font_instance font_store text_block text_runs text_service

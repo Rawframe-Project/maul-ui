@@ -63,7 +63,10 @@ format.
   `_GetUndoState` edit it, typing undone a word at a time and deletions
   in runs; `muiTextEditMove`, `muiTextEditPress` (one, two and three
   clicks) and `muiTextEditDrag` place the selection through a node's
-  laid-out text.
+  laid-out text; `muiTextEditEvent` takes typed text, keys by a PC or
+  Mac keymap (`muiKeymap`), the clipboard through a host writer
+  (`muiTextEditInput`) and the pointer; `muiTextBlock_Compose` shows an
+  input method's composition.
 
 - Text decorations and spans: the text style's `decoration` (underline,
   overline, line-through) and `decorationColor` (the text's color at

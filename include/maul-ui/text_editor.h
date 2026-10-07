@@ -4,13 +4,15 @@
 // Text editing (record mui-0006): a block opted into editing keeps a
 // selection, an undo history and its field's rules, and takes typing,
 // pastes, deletions, undo and redo; moves, presses and drags place the
-// selection through a node's laid-out text. Keys, clipboard and focus
-// are the host's to map onto these.
+// selection through a node's laid-out text. muiTextEditEvent maps a
+// platform's keys, typed text and the pointer onto these; the clipboard
+// and focus stay the host's.
 
 #ifndef MAUL_UI_TEXT_EDITOR_H
 #define MAUL_UI_TEXT_EDITOR_H
 
 #include "maul-ui/base.h"
+#include "maul-ui/event.h"
 #include "maul-ui/node.h"
 #include "maul-ui/text_block.h"
 #include "maul-ui/text_edit.h"
@@ -61,6 +63,38 @@ extern "C"
         // none.
         uint32_t undoLimit;
     } muiTextEditDef;
+
+    // Whose shortcuts keys follow: Control and Home and End, or Command
+    // and Option.
+    typedef uint8_t muiKeymap;
+
+    enum
+    {
+        mui_keymapPc = 0,
+        mui_keymapMac = 1,
+    };
+
+    // Writes copied or cut text to the host's clipboard.
+    typedef void (*muiClipboardWriteFunction)(void* user, const char* text, size_t length);
+
+    // How muiTextEditEvent reads input: the keymap, and the clipboard
+    // writer, NULL to copy nothing.
+    typedef struct muiTextEditInput
+    {
+        muiKeymap keymap;
+        muiClipboardWriteFunction writeClipboard;
+        void* user;
+    } muiTextEditInput;
+
+    // What an event did: whether the editor took it, whether the text
+    // changed, and whether it asks for a paste, which the host answers
+    // with muiTextBlock_Paste once its clipboard is read.
+    typedef struct muiTextEditOutcome
+    {
+        bool handled;
+        bool changed;
+        bool paste;
+    } muiTextEditOutcome;
 
     // A selection: from the anchor to the caret, empty where they meet.
     typedef struct muiTextSelection
@@ -250,6 +284,66 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiTextBlock_GetUndoState(const muiTextService* service,
                                                               muiTextBlockId blockId, bool* undoOut,
                                                               bool* redoOut);
+
+    /// Shows an input method's composition in an editing block at its
+    /// caret, replacing the one shown; one starting over a selection
+    /// deletes it first, as an edit undo takes back. Empty text takes the
+    /// composition out, the caret where it began: what the method commits
+    /// comes after as typing (muiTextBlock_Type), which also takes out a
+    /// composition still shown. Undo waits until it ends.
+    ///
+    /// @param service       The service.
+    /// @param blockId       The block.
+    /// @param text          The composition's UTF-8 text; may be NULL when
+    ///                      length is 0.
+    /// @param length        Its length in bytes.
+    /// @param caret         Where the caret is in it, at a character's
+    ///                      start or its end.
+    /// @param segments      Its styled parts (muiTextBlock_SetComposition);
+    ///                      may be NULL when segmentCount is 0.
+    /// @param segmentCount  How many.
+    /// @param changedOut    Receives whether the text changed; may be NULL.
+    /// @return As muiTextBlock_Type; `mui_errorInvalid` for a caret out of
+    ///         place or segments out of the text.
+    /// @par Thread safety
+    /// Safe from any thread; the service is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiTextBlock_Compose(muiTextService* service,
+                                                         muiTextBlockId blockId, const char* text,
+                                                         size_t length, uint32_t caret,
+                                                         const muiCompositionSegment* segments,
+                                                         uint32_t segmentCount, bool* changedOut);
+
+    /// Takes an event for a node's editing block, as its listener would:
+    /// typed text is typed; keys move, select, delete, undo and copy by
+    /// the keymap's shortcuts; a press of the first button places the
+    /// selection by its click count, and a drag's records extend it (the
+    /// node takes drags, maul-ui/interaction.h).
+    ///
+    /// The shortcuts, with Shift extending each move: arrows by cluster
+    /// and line, up and down on a single line to its ends; words with
+    /// Control (PC) or Option (Mac); line ends with Home and End (PC) or
+    /// Command and the arrows (Mac), the text's ends with Control and
+    /// Home and End (PC) or Command and up and down (Mac); Backspace and
+    /// Delete by cluster, a word with Control (PC) or Option (Mac), back
+    /// to the line's start with Command (Mac); Enter's line break on many
+    /// lines; select all, copy, cut, paste, undo and redo with Control or
+    /// Command and A, C, X, V, Z and Shift and Z, also Y (PC), Control and
+    /// Insert and Shift and Insert (PC). Letters are read from the key's
+    /// meaning under the layout, the rest from the physical key.
+    ///
+    /// @param host        The text host.
+    /// @param nodeId      A node whose host key is an editing block's.
+    /// @param event       The event.
+    /// @param input       The keymap and the clipboard writer.
+    /// @param outcomeOut  Receives what the event did.
+    /// @return As muiTextEditMove.
+    /// @par Thread safety
+    /// Safe from any thread; the host's context and service are used by
+    /// one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiTextEditEvent(const muiTextHost* host, muiNodeId nodeId,
+                                                     const muiEvent* event,
+                                                     const muiTextEditInput* input,
+                                                     muiTextEditOutcome* outcomeOut);
 
     /// Moves the caret of a node's editing block through its laid-out
     /// text (muiTextMove), extending the selection or collapsing it there;

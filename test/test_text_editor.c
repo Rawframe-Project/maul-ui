@@ -429,6 +429,215 @@ static void TestPointer(void)
     FreeScene(&scene);
 }
 
+// The clipboard the tests write to.
+typedef struct Clipboard
+{
+    char text[64];
+    size_t length;
+    int writes;
+} Clipboard;
+
+static void WriteClipboard(void* user, const char* text, size_t length)
+{
+    Clipboard* clipboard = user;
+    clipboard->length = length < sizeof clipboard->text ? length : sizeof clipboard->text;
+    memcpy(clipboard->text, text, clipboard->length);
+    clipboard->writes++;
+}
+
+// A key's event under a keymap: a letter's meaning, or a named key.
+static muiTextEditOutcome Key(Scene* scene, muiKeymap keymap, Clipboard* clipboard, muiKeyCode code,
+                              muiKey key, muiModifiers modifiers)
+{
+    muiEvent event = {0};
+    event.kind = mui_eventKeyDown;
+    event.code = code;
+    event.key = key != 0 ? key : MUI_KEY_NAMED | code;
+    event.modifiers = modifiers;
+    const muiTextEditInput input = {keymap, WriteClipboard, clipboard};
+    muiTextEditOutcome outcome = {true, true, true};
+    CHECK(muiTextEditEvent(&scene->host, scene->node, &event, &input, &outcome) == mui_success,
+          "an event");
+    return outcome;
+}
+
+enum
+{
+    CODE_A = 4,
+    CODE_C = 6,
+    CODE_V = 25,
+    CODE_X = 27,
+    CODE_Y = 28,
+    CODE_Z = 29,
+    CODE_F1 = 58
+};
+
+static void TestPcKeys(void)
+{
+    Scene scene = MakeScene("ab cd", 0);
+    Layout(&scene);
+    Clipboard clipboard = {0};
+    const muiModifiers ctrl = mui_modControl;
+    const muiModifiers shift = mui_modShift;
+    muiTextEditOutcome outcome = Key(&scene, mui_keymapPc, &clipboard, CODE_A, 'a', ctrl);
+    CHECK(outcome.handled && !outcome.changed && !outcome.paste && Selects(&scene, 0, 5),
+          "Control and A select all");
+    Key(&scene, mui_keymapPc, &clipboard, CODE_C, 'c', ctrl);
+    CHECK(clipboard.length == 5 && memcmp(clipboard.text, "ab cd", 5) == 0, "copied");
+    outcome = Key(&scene, mui_keymapPc, &clipboard, CODE_X, 'x', ctrl);
+    CHECK(outcome.changed && Holds(&scene, "") && clipboard.writes == 2, "cut");
+    outcome = Key(&scene, mui_keymapPc, &clipboard, CODE_Z, 'z', ctrl);
+    CHECK(outcome.handled && outcome.changed && Holds(&scene, "ab cd"), "undone");
+    CHECK(Key(&scene, mui_keymapPc, &clipboard, CODE_Y, 'y', ctrl).changed && Holds(&scene, ""),
+          "redone with Y");
+    CHECK(Key(&scene, mui_keymapPc, &clipboard, CODE_Z, 'Z', ctrl | shift).changed == false &&
+              Key(&scene, mui_keymapPc, &clipboard, CODE_Z, 'z', ctrl).changed &&
+              Key(&scene, mui_keymapPc, &clipboard, CODE_Z, 'Z', ctrl | shift).changed &&
+              Holds(&scene, ""),
+          "redone with Shift and Z");
+    Key(&scene, mui_keymapPc, &clipboard, CODE_Z, 'z', ctrl);
+    outcome = Key(&scene, mui_keymapPc, &clipboard, CODE_V, 'v', ctrl);
+    CHECK(outcome.handled && outcome.paste && !outcome.changed, "a paste asked for");
+    CHECK(Key(&scene, mui_keymapPc, &clipboard, mui_codeInsert, 0, shift).paste &&
+              Key(&scene, mui_keymapPc, &clipboard, mui_codeInsert, 0, ctrl).handled,
+          "Shift and Insert, Control and Insert");
+    Key(&scene, mui_keymapPc, &clipboard, mui_codeHome, 0, 0);
+    CHECK(Selects(&scene, 0, 0), "Home");
+    Key(&scene, mui_keymapPc, &clipboard, mui_codeArrowRight, 0, ctrl);
+    CHECK(Selects(&scene, 3, 3), "Control and right to the next word");
+    Key(&scene, mui_keymapPc, &clipboard, mui_codeEnd, 0, shift);
+    CHECK(Selects(&scene, 3, 5), "Shift and End extend");
+    Key(&scene, mui_keymapPc, &clipboard, mui_codeArrowUp, 0, 0);
+    CHECK(Selects(&scene, 0, 0), "up on a single line, its start");
+    Key(&scene, mui_keymapPc, &clipboard, mui_codeEnd, 0, 0);
+    outcome = Key(&scene, mui_keymapPc, &clipboard, mui_codeBackspace, 0, ctrl);
+    CHECK(outcome.changed && Holds(&scene, "ab "), "Control and Backspace, a word");
+    CHECK(!Key(&scene, mui_keymapPc, &clipboard, mui_codeEnter, 0, 0).handled,
+          "Enter left to the host on a single line");
+    CHECK(!Key(&scene, mui_keymapPc, &clipboard, CODE_A, 'a', ctrl | mui_modAlt).handled &&
+              !Key(&scene, mui_keymapPc, &clipboard, CODE_F1, 0, 0).handled &&
+              !Key(&scene, mui_keymapPc, &clipboard, mui_codeArrowLeft, 0, mui_modAlt).handled,
+          "AltGr, F1 and Alt and left not taken");
+    FreeScene(&scene);
+}
+
+static void TestMacKeys(void)
+{
+    Scene scene = MakeScene("ab cd\nef", mui_editMultiline);
+    Layout(&scene);
+    Clipboard clipboard = {0};
+    const muiModifiers command = mui_modMeta;
+    const muiModifiers option = mui_modAlt;
+    Select(&scene, 4, 4);
+    Key(&scene, mui_keymapMac, &clipboard, mui_codeArrowLeft, 0, option);
+    CHECK(Selects(&scene, 3, 3), "Option and left, a word back");
+    Key(&scene, mui_keymapMac, &clipboard, mui_codeArrowRight, 0, command);
+    CHECK(Selects(&scene, 5, 5), "Command and right, the line's end");
+    Key(&scene, mui_keymapMac, &clipboard, mui_codeArrowDown, 0, command);
+    CHECK(Selects(&scene, 8, 8), "Command and down, the text's end");
+    CHECK(Key(&scene, mui_keymapMac, &clipboard, mui_codeEnter, 0, 0).changed &&
+              Holds(&scene, "ab cd\nef\n"),
+          "Enter breaks a line");
+    Select(&scene, 5, 5);
+    CHECK(Key(&scene, mui_keymapMac, &clipboard, mui_codeBackspace, 0, command).changed &&
+              Holds(&scene, "\nef\n"),
+          "Command and Backspace, to the line's start");
+    Key(&scene, mui_keymapMac, &clipboard, CODE_Z, 'z', command);
+    Select(&scene, 0, 0);
+    CHECK(Key(&scene, mui_keymapMac, &clipboard, mui_codeDelete, 0, option).changed &&
+              Holds(&scene, " cd\nef\n"),
+          "Option and Delete, to the word's end");
+    CHECK(Key(&scene, mui_keymapMac, &clipboard, CODE_A, 'a', command).handled &&
+              Selects(&scene, 0, 7),
+          "Command and A");
+    CHECK(!Key(&scene, mui_keymapMac, &clipboard, CODE_A, 'a', mui_modControl).handled &&
+              !Key(&scene, mui_keymapMac, &clipboard, mui_codeArrowLeft, 0, mui_modControl).handled,
+          "Control left to the host");
+    FreeScene(&scene);
+}
+
+// A password copies and cuts nothing; typed text types, control
+// characters are the keys'; the pointer through events.
+static void TestEvents(void)
+{
+    Scene scene = MakeScene("pass", mui_editPassword);
+    Layout(&scene);
+    Clipboard clipboard = {0};
+    Key(&scene, mui_keymapPc, &clipboard, CODE_A, 'a', mui_modControl);
+    Key(&scene, mui_keymapPc, &clipboard, CODE_C, 'c', mui_modControl);
+    Key(&scene, mui_keymapPc, &clipboard, CODE_X, 'x', mui_modControl);
+    CHECK(clipboard.writes == 0 && Holds(&scene, "pass"), "a password stays");
+    const muiTextEditInput input = {mui_keymapPc, WriteClipboard, &clipboard};
+    muiEvent event = {0};
+    event.kind = mui_eventText;
+    event.text = "word";
+    event.length = 4;
+    muiTextEditOutcome outcome;
+    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+              outcome.handled && outcome.changed && Holds(&scene, "word"),
+          "typed text");
+    event.text = "\t";
+    event.length = 1;
+    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+              !outcome.handled && Holds(&scene, "word"),
+          "a tab left to focus");
+    muiPointerRecord record = {0};
+    record.kind = mui_pointerRecordPress;
+    record.clickCount = 2;
+    record.x = 15.0f;
+    record.y = 5.0f;
+    event = (muiEvent){0};
+    event.kind = mui_eventPointer;
+    event.pointer = &record;
+    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+              outcome.handled && Selects(&scene, 0, 4),
+          "a double press");
+    record.kind = mui_pointerRecordRelease;
+    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+              !outcome.handled,
+          "a release not taken");
+    const muiTextEditInput bad = {2, NULL, NULL};
+    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &bad, &outcome) == mui_errorInvalid,
+          "a keymap out of range");
+    FreeScene(&scene);
+}
+
+// A composition shown at the caret, over a selection, taken out, then
+// committed as typing; undo waits for it.
+static void TestComposition(void)
+{
+    Scene scene = MakeScene("ab", 0);
+    bool changed = false;
+    CHECK(muiTextBlock_Compose(scene.service, scene.block, "\xE3\x81\x8B", 3, 3, NULL, 0,
+                               &changed) == mui_success &&
+              changed && Holds(&scene, "ab\xE3\x81\x8B") && Selects(&scene, 5, 5),
+          "shown at the caret");
+    CHECK(!Undo(&scene), "undo waits");
+    CHECK(muiTextBlock_Compose(scene.service, scene.block, "\xE3\x81\x8B\xE3\x81\xAA", 6, 3, NULL,
+                               0, NULL) == mui_success &&
+              Holds(&scene, "ab\xE3\x81\x8B\xE3\x81\xAA") && Selects(&scene, 5, 5),
+          "replaced, the caret inside");
+    CHECK(muiTextBlock_Compose(scene.service, scene.block, "x", 1, 2, NULL, 0, NULL) ==
+                  mui_errorInvalid &&
+              muiTextBlock_Compose(scene.service, scene.block, "\xE3\x81\x8B", 3, 1, NULL, 0,
+                                   NULL) == mui_errorInvalid,
+          "a caret out of place");
+    Type(&scene, "\xE4\xBB\xAE");
+    CHECK(Holds(&scene, "ab\xE4\xBB\xAE") && Selects(&scene, 5, 5), "committed as typing");
+    CHECK(Undo(&scene) && Holds(&scene, "ab"), "and undone");
+    Select(&scene, 0, 2);
+    CHECK(muiTextBlock_Compose(scene.service, scene.block, "x", 1, 1, NULL, 0, NULL) ==
+                  mui_success &&
+              Holds(&scene, "x"),
+          "over a selection");
+    CHECK(muiTextBlock_Compose(scene.service, scene.block, NULL, 0, 0, NULL, 0, &changed) ==
+                  mui_success &&
+              changed && Holds(&scene, "") && Selects(&scene, 0, 0),
+          "taken out");
+    CHECK(Undo(&scene) && Holds(&scene, "ab") && Selects(&scene, 0, 2), "the selection back");
+    FreeScene(&scene);
+}
+
 int main(void)
 {
     TestCalls();
@@ -440,5 +649,9 @@ int main(void)
     TestLength();
     TestElsewhere();
     TestPointer();
+    TestPcKeys();
+    TestMacKeys();
+    TestEvents();
+    TestComposition();
     return s_failures == 0 ? 0 : 1;
 }

@@ -30,6 +30,7 @@ target_sources(maul-ui PRIVATE
     src/text_editing.c
     src/text_editor.c
     src/text_history.c
+    src/text_keys.c
     src/text_rules.c
     src/text_runs.c
     src/text_shape.c

@@ -210,9 +210,20 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   node's laid-out text: one, two and three clicks select an edge, a
   word (Unicode's word boundaries) and a paragraph, a drag extends by
   that unit, and a move without Shift over a selection collapses it to
-  the edge it goes toward. Keys, the clipboard and focus are the
-  host's: a cut is `muiTextBlock_GetSelectedText` (nothing for a
-  password) then `muiTextBlock_Erase`.
+  the edge it goes toward. `muiTextEditEvent` takes a listener's events:
+  typed text types (control characters are the keys'), keys act by a
+  keymap (`mui_keymapPc` after Windows and the Linux toolkits,
+  `mui_keymapMac` after AppKit's standard bindings, shortcuts wanting
+  exactly their modifier so AltGr types, letters read by their meaning
+  under the layout), a first-button press places the selection by its
+  click count and a drag's records extend it. Copies and cuts go to a
+  host function (nothing for a password); a paste is asked of the host,
+  whose clipboard may answer later, and arrives as
+  `muiTextBlock_Paste`. An input method's composition goes through
+  `muiTextBlock_Compose`: shown at the caret, replacing a selection as
+  an edit, taken out by empty text with the commit arriving as typing,
+  undo waiting until it ends; an edit while one shows takes it out
+  first. Focus stays the host's.
 - **Glyph atlases** (`maul-ui/glyph_atlas.h`) are owner objects of a
   service, in its memory: pages of the caller's size, made as needed up
   to a limit and cut into plots, each packed with a skyline bottom-left

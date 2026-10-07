@@ -203,6 +203,26 @@ static muiResult Edit(muiTextService* service, muiTextBlock* block, uint32_t sta
     return mui_success;
 }
 
+// Takes an input method's composition out of the text, the caret where it
+// began, so an edit lands where the history expects: what the method
+// commits comes as typing.
+static muiResult EndComposing(muiTextService* service, muiTextBlockId blockId, muiTextBlock* block)
+{
+    if (block->compositionLength == 0)
+    {
+        return mui_success;
+    }
+    uint32_t start = block->compositionStart;
+    muiResult result = muiTextBlock_SetComposition(service, blockId, start, nullptr, 0, nullptr, 0);
+    result = result == mui_success ? muiTextBlock_EndComposition(service, blockId) : result;
+    if (result == mui_success)
+    {
+        muiPlaceSelection(block, Collapsed(start));
+        block->editing.revision = block->revision;
+    }
+    return result;
+}
+
 // Puts text over the selection, under the rules.
 static muiResult Put(muiTextService* service, muiTextBlockId blockId, const char* text,
                      size_t length, uint8_t kind, bool* changedOut)
@@ -215,6 +235,11 @@ static muiResult Put(muiTextService* service, muiTextBlockId blockId, const char
     muiResult result = text != nullptr || length == 0 ? muiEditingBlock(service, blockId, &block)
                                                       : mui_errorInvalid;
     if (result != mui_success || (block->editing.def.flags & mui_editReadOnly) != 0)
+    {
+        return result;
+    }
+    result = EndComposing(service, blockId, block);
+    if (result != mui_success)
     {
         return result;
     }
@@ -276,6 +301,9 @@ muiResult muiTextBlock_Erase(muiTextService* service, muiTextBlockId blockId,
                                                      : mui_errorInvalid;
     uint32_t start = 0;
     uint32_t end = 0;
+    result = result == mui_success && (block->editing.def.flags & mui_editReadOnly) == 0
+                 ? EndComposing(service, blockId, block)
+                 : result;
     if (result == mui_success)
     {
         result = muiTextBlock_FindDeletion(service, blockId, block->editing.selection.caret.offset,
@@ -306,6 +334,11 @@ muiResult muiTextBlock_EraseTo(muiTextService* service, muiTextBlockId blockId, 
     if (!IsCharacterStart(block, offset))
     {
         return mui_errorInvalid;
+    }
+    if (block->compositionLength != 0)
+    {
+        // The offset was found in text the composition is part of.
+        return mui_success;
     }
     uint32_t caret = block->editing.selection.caret.offset;
     return Remove(service, block, caret < offset ? caret : offset, caret > offset ? caret : offset,
@@ -402,4 +435,59 @@ muiResult muiTextBlock_GetUndoState(const muiTextService* service, muiTextBlockI
         *redoOut = open && block->editing.done != block->editing.entryCount;
     }
     return result;
+}
+
+muiResult muiTextBlock_Compose(muiTextService* service, muiTextBlockId blockId, const char* text,
+                               size_t length, uint32_t caret, const muiCompositionSegment* segments,
+                               uint32_t segmentCount, bool* changedOut)
+{
+    if (changedOut != nullptr)
+    {
+        *changedOut = false;
+    }
+    muiTextBlock* block = nullptr;
+    muiResult result = (text != nullptr || length == 0) && caret <= length
+                           ? muiEditingBlock(service, blockId, &block)
+                           : mui_errorInvalid;
+    if (result != mui_success || (block->editing.def.flags & mui_editReadOnly) != 0)
+    {
+        return result;
+    }
+    if (length == 0)
+    {
+        bool composing = block->compositionLength != 0;
+        result = EndComposing(service, blockId, block);
+        if (changedOut != nullptr)
+        {
+            *changedOut = composing && result == mui_success;
+        }
+        return result;
+    }
+    if (caret < length && (((const unsigned char*)text)[caret] & 0xC0u) == 0x80u)
+    {
+        return mui_errorInvalid;
+    }
+    // A composition starting over a selection takes its place, as typing
+    // would: undone as an edit of its own.
+    const muiTextSelection* selection = &block->editing.selection;
+    if (block->compositionLength == 0 && selection->anchor != selection->caret.offset)
+    {
+        result = Edit(service, block, SelectionStart(selection), SelectionEnd(selection), nullptr,
+                      0, MUI_EDIT_OTHER, nullptr);
+    }
+    result = result == mui_success
+                 ? muiTextBlock_SetComposition(service, blockId, selection->caret.offset, text,
+                                               length, segments, segmentCount)
+                 : result;
+    if (result != mui_success)
+    {
+        return result;
+    }
+    muiPlaceSelection(block, Collapsed(block->compositionStart + caret));
+    block->editing.revision = block->revision;
+    if (changedOut != nullptr)
+    {
+        *changedOut = true;
+    }
+    return mui_success;
 }
