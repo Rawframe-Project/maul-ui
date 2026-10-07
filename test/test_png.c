@@ -7,10 +7,13 @@
 // images Pillow encoded, each decoded to the RGBA it was made from; and
 // damaged images refused. Then seeded fuzzing, run under the sanitizers
 // with every test: the cases damaged at random, and half the time their
-// CRCs made right again so that the damage reaches the image data; each
-// is decoded or refused without harm. The seed is fixed, so a failure
-// repeats.
+// CRCs made right again so that the damage reaches the image data; and
+// their image data inflated, damaged and written again in stored blocks,
+// its checksum and CRCs right, so that the damage reaches unfiltering and
+// the samples; each is decoded or refused without harm. The seed is
+// fixed, so a failure repeats.
 
+#include "inflate.h"
 #include "png.h"
 #include "test_harness.h"
 
@@ -23,7 +26,8 @@ enum
 {
     MAX_CASES = 256,
     MAX_EXTENT = 4096,
-    FUZZ_ROUNDS = 3000
+    FUZZ_ROUNDS = 3000,
+    RAW_ROUNDS = 1500
 };
 
 typedef struct Case
@@ -40,6 +44,9 @@ static uint32_t s_count;
 static uint8_t s_pixels[1 << 20];
 static uint8_t s_damaged[1 << 16];
 static muiBuffer s_scratch;
+static uint8_t s_joined[1 << 16];
+static uint8_t s_raw[1 << 20];
+static uint8_t s_rebuilt[(1 << 20) + (1 << 16) + 1024];
 
 static uint32_t Little32(const uint8_t* p)
 {
@@ -212,12 +219,197 @@ static void TestDamage(void)
           "damaged images decoded or refused, most refused");
 }
 
+static uint32_t Big32(const uint8_t* p)
+{
+    return (uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | p[3];
+}
+
+static void PutBig32(uint8_t* p, uint32_t value)
+{
+    p[0] = (uint8_t)(value >> 24);
+    p[1] = (uint8_t)(value >> 16);
+    p[2] = (uint8_t)(value >> 8);
+    p[3] = (uint8_t)value;
+}
+
+// The bytes of a filtered image: a filter byte and the packed samples of
+// each row, of each Adam7 pass when interlaced.
+static size_t RawSize(uint32_t width, uint32_t height, uint32_t bitsPerPixel, bool interlaced)
+{
+    static const uint32_t x0[7] = {0, 4, 0, 2, 0, 1, 0};
+    static const uint32_t y0[7] = {0, 0, 4, 0, 2, 0, 1};
+    static const uint32_t dx[7] = {8, 8, 4, 4, 2, 2, 1};
+    static const uint32_t dy[7] = {8, 8, 8, 4, 4, 2, 2};
+    if (!interlaced)
+    {
+        return (size_t)height * (1 + ((size_t)width * bitsPerPixel + 7) / 8);
+    }
+    size_t size = 0;
+    for (int pass = 0; pass < 7; pass++)
+    {
+        uint32_t w = width > x0[pass] ? (width - x0[pass] + dx[pass] - 1) / dx[pass] : 0;
+        uint32_t h = height > y0[pass] ? (height - y0[pass] + dy[pass] - 1) / dy[pass] : 0;
+        size += w != 0 && h != 0 ? (size_t)h * (1 + ((size_t)w * bitsPerPixel + 7) / 8) : 0;
+    }
+    return size;
+}
+
+static uint32_t SamplesPerPixel(uint8_t colorType)
+{
+    static const uint32_t samples[7] = {1, 0, 3, 1, 2, 0, 4};
+    return colorType < 7 ? samples[colorType] : 0;
+}
+
+// Writes a chunk of a type and data with its CRC; its size.
+static size_t PutChunk(uint8_t* out, const char type[4], const uint8_t* data, uint32_t length)
+{
+    PutBig32(out, length);
+    memcpy(out + 4, type, 4);
+    if (length != 0)
+    {
+        memcpy(out + 8, data, length);
+    }
+    PutBig32(out + 8 + length, Crc32(out + 4, 4 + (size_t)length));
+    return 12 + (size_t)length;
+}
+
+// Writes data as a zlib stream of stored blocks; its size.
+static size_t PutStored(uint8_t* out, const uint8_t* data, size_t size)
+{
+    size_t at = 2;
+    out[0] = 0x78;
+    out[1] = 0x01;
+    size_t done = 0;
+    uint32_t a = 1;
+    uint32_t b = 0;
+    do
+    {
+        size_t n = size - done < 65535 ? size - done : 65535;
+        out[at] = done + n == size ? 1 : 0;
+        out[at + 1] = (uint8_t)n;
+        out[at + 2] = (uint8_t)(n >> 8);
+        out[at + 3] = (uint8_t)~n;
+        out[at + 4] = (uint8_t)(~n >> 8);
+        memcpy(out + at + 5, data + done, n);
+        at += 5 + n;
+        done += n;
+    } while (done < size);
+    for (size_t i = 0; i < size; i++)
+    {
+        a = (a + data[i]) % 65521u;
+        b = (b + a) % 65521u;
+    }
+    PutBig32(out + at, b << 16 | a);
+    return at + 4;
+}
+
+// Joins a case's IDAT data into s_joined and copies its chunks before the
+// first IDAT into s_rebuilt after the signature; the size copied, 0 for
+// a case that is not a whole PNG or does not fit.
+static size_t Split(const Case* c, size_t* joinedOut)
+{
+    size_t at = 8;
+    size_t copied = 8;
+    size_t joined = 0;
+    memcpy(s_rebuilt, c->png, 8);
+    while (c->size >= 12 && at <= c->size - 12)
+    {
+        uint32_t length = Big32(c->png + at);
+        if (length > c->size - at - 12)
+        {
+            return 0;
+        }
+        const uint8_t* type = c->png + at + 4;
+        if (memcmp(type, "IDAT", 4) == 0)
+        {
+            if (length > sizeof s_joined - joined)
+            {
+                return 0;
+            }
+            memcpy(s_joined + joined, type + 4, length);
+            joined += length;
+        }
+        else if (memcmp(type, "IEND", 4) == 0)
+        {
+            *joinedOut = joined;
+            return joined != 0 ? copied : 0;
+        }
+        else if (joined == 0)
+        {
+            memcpy(s_rebuilt + copied, c->png + at, 12 + (size_t)length);
+            copied += 12 + (size_t)length;
+        }
+        at += 12 + (size_t)length;
+    }
+    return 0;
+}
+
+// A case rebuilt with its image data inflated, damaged and written again
+// in stored blocks, one IDAT before IEND; its size, 0 for a case not
+// whole or too large.
+static size_t Rebuild(const Case* c, uint32_t* state)
+{
+    size_t joined = 0;
+    size_t at = Split(c, &joined);
+    // IHDR is first, and its depth, colour type and interlacing give the
+    // filtered image's size.
+    if (at < 8 + 12 + 13 || memcmp(s_rebuilt + 12, "IHDR", 4) != 0)
+    {
+        return 0;
+    }
+    const uint8_t* header = s_rebuilt + 16;
+    uint32_t bits = header[8] * SamplesPerPixel(header[9]);
+    size_t raw = RawSize(Big32(header), Big32(header + 4), bits, header[12] != 0);
+    if (bits == 0 || raw == 0 || raw > sizeof s_raw ||
+        muiInflateZlib(s_joined, joined, s_raw, raw) != mui_success)
+    {
+        return 0;
+    }
+    for (uint32_t i = 0, flips = 1 + Next(state) % 6; i < flips; i++)
+    {
+        size_t where = Next(state) % raw;
+        // Now and then a filter type in or past the five.
+        s_raw[where] = Next(state) % 3 == 0 ? (uint8_t)(Next(state) % 7)
+                                            : (uint8_t)(s_raw[where] ^ 1u << (Next(state) % 8));
+    }
+    static uint8_t stored[(1 << 20) + 128];
+    size_t storedSize = PutStored(stored, s_raw, raw);
+    at += PutChunk(s_rebuilt + at, "IDAT", stored, (uint32_t)storedSize);
+    at += PutChunk(s_rebuilt + at, "IEND", NULL, 0);
+    return at;
+}
+
+static void TestDamagedData(void)
+{
+    uint32_t state = 0x85EBCA6Bu;
+    uint32_t rebuilt = 0;
+    uint32_t decoded = 0;
+    uint32_t refused = 0;
+    for (uint32_t round = 0; round < RAW_ROUNDS; round++)
+    {
+        size_t size = Rebuild(&s_cases[Next(&state) % s_count], &state);
+        if (size == 0)
+        {
+            continue;
+        }
+        rebuilt++;
+        uint32_t width = 0;
+        uint32_t height = 0;
+        muiResult result = Decode(s_rebuilt, size, &width, &height);
+        decoded += result == mui_success ? 1 : 0;
+        refused += result == mui_errorFormat ? 1 : 0;
+    }
+    CHECK(rebuilt > RAW_ROUNDS / 2 && decoded + refused == rebuilt && decoded != 0 && refused != 0,
+          "damaged image data decoded or refused, some of each");
+}
+
 int main(void)
 {
     CHECK(ReadCases(), "the cases");
     TestCases();
     TestContract();
     TestDamage();
+    TestDamagedData();
     const muiAllocator allocator = {0};
     muiFreeBuffer(&allocator, &s_scratch);
     return s_failures == 0 ? 0 : 1;

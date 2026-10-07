@@ -9,7 +9,9 @@
 // the palettes' two; palette 0 is opaque red and half transparent blue,
 // palette 1 green and yellow. Its B has no colour layers. Glyphs 10 on are
 // version 1 paint graphs, one for each kind of paint, described in the
-// font's script.
+// font's script. Then the font damaged at random, half its flips in its
+// COLR and CPAL tables, every glyph drawn or refused without harm under
+// the sanitizers; the seed is fixed, so a failure repeats.
 
 #include "test_harness.h"
 
@@ -52,7 +54,14 @@ enum
     COMPOSITED
 };
 
+enum
+{
+    DAMAGE_ROUNDS = 1500
+};
+
 static unsigned char s_pixels[4096];
+static unsigned char s_large[64 * 64 * 4];
+static unsigned char s_damaged[sizeof s_color];
 
 typedef struct Scene
 {
@@ -326,6 +335,112 @@ static void TestContract(void)
     muiDestroyTextService(scene.service);
 }
 
+static uint32_t Next(uint32_t* state)
+{
+    *state ^= *state << 13;
+    *state ^= *state >> 17;
+    *state ^= *state << 5;
+    return *state;
+}
+
+static uint32_t Big32(const unsigned char* p)
+{
+    return (uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | p[3];
+}
+
+// Where a table lies in the font, from its directory; false for none.
+static bool FindTable(const char tag[4], uint32_t* offset, uint32_t* length)
+{
+    uint32_t count = (uint32_t)s_color[4] << 8 | s_color[5];
+    for (uint32_t i = 0; i < count && 12 + 16 * (size_t)(i + 1) <= sizeof s_color; i++)
+    {
+        const unsigned char* record = s_color + 12 + 16 * i;
+        if (memcmp(record, tag, 4) == 0)
+        {
+            *offset = Big32(record + 8);
+            *length = Big32(record + 12);
+            return *length != 0 && *offset <= sizeof s_color && *length <= sizeof s_color - *offset;
+        }
+    }
+    return false;
+}
+
+// Draws every glyph of a damaged font at two sizes; whether each was
+// drawn or refused as the contract allows, a glyph past the font's count
+// refused as invalid.
+static bool DrawDamaged(muiTextService* service, uint64_t font, uint32_t glyphCount,
+                        uint32_t* drawn)
+{
+    const muiLinearColor green = {0.0f, 1.0f, 0.0f, 1.0f};
+    bool allowed = true;
+    for (uint32_t glyph = 0; glyph <= COMPOSITED; glyph++)
+    {
+        for (int i = 0; i < 2; i++)
+        {
+            muiGlyphImage image = {0};
+            muiResult result =
+                muiRenderColorGlyph(service, font, glyph, i == 0 ? 10.0f : 40.0f, 0.25f, glyph % 2,
+                                    green, &image, s_large, sizeof s_large);
+            allowed = allowed &&
+                      (result == mui_success || result == mui_empty || result == mui_errorFormat ||
+                       (result == mui_errorInvalid && glyph >= glyphCount) ||
+                       (result == mui_errorCapacity &&
+                        (size_t)image.width * image.height * 4 > sizeof s_large));
+            *drawn += result == mui_success && image.width != 0 ? 1 : 0;
+        }
+    }
+    return allowed;
+}
+
+static void TestDamage(void)
+{
+    uint32_t colr = 0;
+    uint32_t colrLength = 0;
+    uint32_t cpal = 0;
+    uint32_t cpalLength = 0;
+    CHECK(FindTable("COLR", &colr, &colrLength) && FindTable("CPAL", &cpal, &cpalLength),
+          "the font's COLR and CPAL");
+    uint32_t state = 0x6C8E9CF5u;
+    uint32_t made = 0;
+    uint32_t drawn = 0;
+    bool allowed = true;
+    for (uint32_t round = 0; round < DAMAGE_ROUNDS && colrLength != 0 && cpalLength != 0; round++)
+    {
+        memcpy(s_damaged, s_color, sizeof s_color);
+        for (uint32_t i = 0, flips = 1 + Next(&state) % 8; i < flips; i++)
+        {
+            uint32_t kind = Next(&state) % 4;
+            uint32_t at = kind == 0   ? colr + Next(&state) % colrLength
+                          : kind == 1 ? cpal + Next(&state) % cpalLength
+                                      : Next(&state) % (uint32_t)sizeof s_damaged;
+            s_damaged[at] ^= (unsigned char)(1u << (Next(&state) % 8));
+        }
+        muiTextServiceDef def = muiDefaultTextServiceDef();
+        muiTextService* service = NULL;
+        if (muiCreateTextService(&def, &service) != mui_success)
+        {
+            CHECK(false, "a text service");
+            return;
+        }
+        muiFontDef fontDef = muiDefaultFontDef();
+        fontDef.data = s_damaged;
+        fontDef.size = sizeof s_damaged;
+        fontDef.dataMode = mui_fontDataBorrow;
+        muiFontId id = {0, 0};
+        muiFontMetrics metrics = {0};
+        if (muiCreateFont(service, &fontDef, &id) == mui_success &&
+            muiFont_GetMetrics(service, id, &metrics) == mui_success)
+        {
+            made++;
+            allowed =
+                DrawDamaged(service, muiFont_GetKey(id), metrics.glyphCount, &drawn) && allowed;
+        }
+        muiDestroyTextService(service);
+    }
+    CHECK(allowed, "damaged glyphs drawn or refused as the contract allows");
+    CHECK(made > DAMAGE_ROUNDS / 2 && drawn > made, "damaged fonts made and their glyphs drawn");
+}
+
 int main(void)
 {
     TestLayers();
@@ -334,5 +449,6 @@ int main(void)
     TestHardStop();
     TestComposite();
     TestContract();
+    TestDamage();
     return s_failures == 0 ? 0 : 1;
 }
