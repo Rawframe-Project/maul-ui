@@ -100,7 +100,7 @@ GRAPHS = {
         "dx": -300,
         "dy": 0,
     },
-    # The whole box, its clip box the dot's.
+    # The whole box, its clip box from 3 to 5 across and 2.5 to 4 up.
     "clipped": shape("whole", solid(0)),
     # A graph that paints itself.
     "looped": {"Format": PaintFormat.PaintColrGlyph, "Glyph": "looped"},
@@ -111,6 +111,23 @@ GRAPHS = {
         "xSkewAngle": 90,
         "ySkewAngle": 0,
     },
+    # "scaled" moved 1 right: the outer transform applied last, 4 to 7
+    # and 2 to 3.
+    "nested": {
+        "Format": PaintFormat.PaintTranslate,
+        "Paint": {
+            "Format": PaintFormat.PaintScaleAroundCenter,
+            "Paint": shape("dot", solid(0)),
+            "scaleX": 1.5,
+            "scaleY": 0.5,
+            "centerX": 300,
+            "centerY": 200,
+        },
+        "dx": 100,
+        "dy": 0,
+    },
+    # A graph that paints itself, its box its clip box's.
+    "boxedLoop": {"Format": PaintFormat.PaintColrGlyph, "Glyph": "boxedLoop"},
 }
 
 
@@ -148,7 +165,7 @@ def main():
     )
     # A layer with no outline, and one of an entry past the palettes.
     layers = [("empty", 0), ("whole", 0), ("half", 1), ("dot", 0xFFFF), ("stray", 2)]
-    builder.setupCOLR({"A": layers, **GRAPHS}, clipBoxes={"clipped": (300, 200, 500, 400)})
+    builder.setupCOLR({"A": layers, **GRAPHS}, clipBoxes={"clipped": (300, 250, 500, 400), "boxedLoop": (300, 200, 500, 400)})
     builder.setupNameTable({"familyName": "Maul Color", "styleName": "Regular"})
     builder.setupOS2(sTypoAscender=800, sTypoDescender=-200, usWinAscent=800, usWinDescent=200)
     builder.setupPost()

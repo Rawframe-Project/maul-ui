@@ -34,7 +34,9 @@ enum
     REUSED,
     CLIPPED,
     LOOPED,
-    FLATTENED
+    FLATTENED,
+    NESTED,
+    BOXED_LOOP
 };
 
 static unsigned char s_pixels[4096];
@@ -166,15 +168,24 @@ static void TestPaints(void)
           "an affine transform");
     CHECK(BoxIs(&scene, REUSED, 0.0f, 3, 5, 2, 2, &image) && Is(&image, 3, 3, 255, 0, 0, 255),
           "another colour glyph's graph, transformed");
-    CHECK(BoxIs(&scene, CLIPPED, 0.0f, 3, 4, 2, 2, &image) && Is(&image, 3, 2, 255, 0, 0, 255) &&
+    // The clip box's lower row is half inside it.
+    CHECK(BoxIs(&scene, CLIPPED, 0.0f, 3, 4, 2, 2, &image) && Is(&image, 3, 2, 188, 0, 0, 128) &&
               Is(&image, 4, 3, 255, 0, 0, 255),
           "a clip box");
-    CHECK(BoxIs(&scene, CLIPPED, 0.5f, 3, 4, 3, 2, &image) && Is(&image, 3, 2, 188, 0, 0, 128) &&
-              Is(&image, 4, 2, 255, 0, 0, 255) && Is(&image, 5, 3, 188, 0, 0, 128),
+    // A quarter of the corner pixel inside: linear red 0.25, 137 encoded.
+    CHECK(BoxIs(&scene, CLIPPED, 0.5f, 3, 4, 3, 2, &image) && Is(&image, 3, 2, 137, 0, 0, 64) &&
+              Is(&image, 4, 2, 188, 0, 0, 128) && Is(&image, 4, 3, 255, 0, 0, 255) &&
+              Is(&image, 5, 3, 188, 0, 0, 128),
           "nothing outside the clip box, at an offset pen");
+    CHECK(BoxIs(&scene, NESTED, 0.0f, 4, 3, 3, 1, &image) && Is(&image, 4, 2, 255, 0, 0, 255) &&
+              Is(&image, 6, 2, 255, 0, 0, 255),
+          "transforms nested, the outer applied last");
     CHECK(muiRenderColorGlyph(scene.service, scene.font, LOOPED, 10.0f, 0.0f, 0, green, &image,
                               s_pixels, sizeof s_pixels) == mui_errorFormat,
           "a graph that paints itself");
+    CHECK(muiRenderColorGlyph(scene.service, scene.font, BOXED_LOOP, 10.0f, 0.0f, 0, green, &image,
+                              s_pixels, sizeof s_pixels) == mui_errorFormat,
+          "a graph that paints itself, in a clip box");
     CHECK(muiRenderColorGlyph(scene.service, scene.font, FLATTENED, 10.0f, 0.0f, 0, green, &image,
                               s_pixels, sizeof s_pixels) == mui_errorFormat,
           "a skew of a quarter turn, its outline without end");
