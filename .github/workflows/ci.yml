@@ -9,6 +9,9 @@ on:
 
 env:
   PREFIX: MAUL_UI
+  # A mirror that stalls mid-download is given up on and tried again,
+  # rather than waited on until the step's limit.
+  APT_OPTIONS: -o Acquire::Retries=3 -o Acquire::http::Timeout=30
 
 jobs:
   # The rules no compiler checks: formatting, static analysis and the
@@ -23,8 +26,8 @@ jobs:
         # rather than holding a runner for the job's six hours.
         timeout-minutes: 10
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q clang-20 clang-tidy-20 ninja-build
+          sudo apt-get $APT_OPTIONS update -q
+          sudo apt-get $APT_OPTIONS install -y -q clang-20 clang-tidy-20 ninja-build
           pip install clang-format==22.1.5 >/dev/null
       - name: clang-format
         run: |
@@ -78,8 +81,8 @@ jobs:
         timeout-minutes: 10
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q gcc-14 g++-14 clang-20 ninja-build
+          sudo apt-get $APT_OPTIONS update -q
+          sudo apt-get $APT_OPTIONS install -y -q gcc-14 g++-14 clang-20 ninja-build
       - name: Configure
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }} -D${PREFIX}_WERROR=ON \
@@ -128,8 +131,8 @@ jobs:
       - name: Install the compiler, lavapipe and the validation layer
         timeout-minutes: 10
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q clang-20 clang-tidy-20 ninja-build mesa-vulkan-drivers \
+          sudo apt-get $APT_OPTIONS update -q
+          sudo apt-get $APT_OPTIONS install -y -q clang-20 clang-tidy-20 ninja-build mesa-vulkan-drivers \
             vulkan-validationlayers
       - name: Configure
         run: >
@@ -182,7 +185,7 @@ jobs:
           MUI_RHI_REQUIRED: 1
           VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
         run: |
-          sudo apt-get install -y -q xvfb libxcb1-dev libxcb-randr0-dev libxcb-xkb-dev \
+          sudo apt-get $APT_OPTIONS install -y -q xvfb libxcb1-dev libxcb-randr0-dev libxcb-xkb-dev \
             libxcb-cursor-dev libxcb-render0-dev libxcb-xinput-dev libxkbcommon-x11-dev
           cmake -B build-x11 -G Ninja -D${PREFIX}_WERROR=ON -D${PREFIX}_RHI=ON \
             -D${PREFIX}_WINDOW=ON -D${PREFIX}_BUILD_TESTS=OFF -DMAUL_WINDOW_WAYLAND=OFF \
@@ -207,8 +210,8 @@ jobs:
       - name: Install the compiler
         timeout-minutes: 10
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q clang-20 clang-tidy-20 ninja-build
+          sudo apt-get $APT_OPTIONS update -q
+          sudo apt-get $APT_OPTIONS install -y -q clang-20 clang-tidy-20 ninja-build
       - name: Configure
         run: >
           cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -D${PREFIX}_WERROR=ON
@@ -326,8 +329,8 @@ jobs:
       - name: Install lavapipe
         timeout-minutes: 10
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y -q mesa-vulkan-drivers
+          sudo apt-get $APT_OPTIONS update -q
+          sudo apt-get $APT_OPTIONS install -y -q mesa-vulkan-drivers
       - name: Configure
         run: emcmake cmake -B build -DCMAKE_BUILD_TYPE=Release -D${PREFIX}_WERROR=ON -D${PREFIX}_WINDOW=ON
       - name: Build
