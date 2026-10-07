@@ -98,6 +98,12 @@ extern "C"
         // is the text's own color, as CSS's currentColor, which a node
         // below with another color draws them in.
         muiColor decorationColor;
+        // How far a span's text sits above the baseline, below it when
+        // negative: scale times the node's size, plus offset. CSS's sub is
+        // {-0.2, 0} and its super {1/3, 0}, the drops CSS gives them
+        // without font data. Not inherited, and a node's own does nothing,
+        // as CSS's baseline-shift on a block container (record mui-0006).
+        muiDimension baselineShift;
     } muiTextStyle;
 
     // A node's text values as inherited and resolved to logical units.

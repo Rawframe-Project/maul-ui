@@ -63,7 +63,7 @@ void muiRunReach(const muiParagraph* paragraph, const muiFontMetrics* metrics, f
                  float* aboveOut, float* belowOut);
 
 // Raises how far a line reaches above and below its baseline to what the
-// spans' runs on it reach; whether any reached past. Lines are taken in
+// spans' runs on it reach, shifted as they are; whether any reached past. Lines are taken in
 // order, cursor (0 for the first) the first item not behind them.
 bool muiLineReach(const muiParagraph* paragraph, const muiTextLine* line, uint32_t* cursor,
                   float* above, float* below);

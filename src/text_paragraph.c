@@ -8,6 +8,8 @@
 
 #include "text_paragraph.h"
 
+#include "text_runs.h"
+
 #include "maul-ui/text_style.h"
 #include "maul-unicode/bidi.h"
 
@@ -137,6 +139,9 @@ bool muiLineReach(const muiParagraph* paragraph, const muiTextLine* line, uint32
         float down = 0.0f;
         muiRunReach(paragraph, &paragraph->chain.fonts[item->face]->metrics, item->scale, &up,
                     &down);
+        float shift = muiRunShift(block, item->style);
+        up += shift;
+        down -= shift;
         grew = grew || up > *above || down > *below;
         *above = up > *above ? up : *above;
         *below = down > *below ? down : *below;

@@ -10,10 +10,11 @@
 
 #include <string.h>
 
-// What of a span reaches shaping.
-#define SHAPING                                                                                    \
+// What of a span makes run styles: what shaping reads, and the shift.
+#define RUN_PROPERTIES                                                                             \
     (MUI_PROPERTY_BIT(mui_propertyFont) | MUI_PROPERTY_BIT(mui_propertyFontSize) |                 \
-     MUI_PROPERTY_BIT(mui_propertyFontWeight) | MUI_PROPERTY_BIT(mui_propertyFontSlant))
+     MUI_PROPERTY_BIT(mui_propertyFontWeight) | MUI_PROPERTY_BIT(mui_propertyFontSlant) |          \
+     MUI_PROPERTY_BIT(mui_propertyTextBaselineShift))
 
 // FNV-1a over bytes.
 static uint64_t Mix(uint64_t hash, const void* data, size_t size)
@@ -36,7 +37,7 @@ static uint64_t KeyOf(const muiTextBlock* block, const muiComputedTextStyle* sty
     for (uint32_t i = 0; i < block->spanCount; i++)
     {
         const muiTextSpan* span = &spans[i];
-        muiPropertyMask mask = span->mask & SHAPING;
+        muiPropertyMask mask = span->mask & RUN_PROPERTIES;
         if (mask == 0)
         {
             continue;
@@ -48,7 +49,8 @@ static uint64_t KeyOf(const muiTextBlock* block, const muiComputedTextStyle* sty
         key = Mix(key, &span->style.font, sizeof span->style.font);
         key = Mix(key, &span->style.weight, sizeof span->style.weight);
         key = Mix(key, &span->style.slant, sizeof span->style.slant);
-        const float size[2] = {span->style.size.scale, span->style.size.offset};
+        const float size[4] = {span->style.size.scale, span->style.size.offset,
+                               span->style.baselineShift.scale, span->style.baselineShift.offset};
         key = Mix(key, size, sizeof size);
     }
     if (!shapes)
@@ -84,13 +86,17 @@ static muiRunStyle Apply(muiRunStyle under, const muiTextSpan* span, float nodeS
         // A node of size 0 draws nothing, its spans included.
         under.scale = nodeSize > 0.0f ? under.size / nodeSize : 1.0f;
     }
+    if ((span->mask & MUI_PROPERTY_BIT(mui_propertyTextBaselineShift)) != 0)
+    {
+        under.shift = span->style.baselineShift.scale * nodeSize + span->style.baselineShift.offset;
+    }
     return under;
 }
 
 static bool IsSameRun(const muiRunStyle* a, const muiRunStyle* b)
 {
     return a->font == b->font && a->weight == b->weight && a->slant == b->slant &&
-           a->size == b->size;
+           a->size == b->size && a->shift == b->shift;
 }
 
 // The place of a run style in the table, added when new; fallback when
@@ -135,14 +141,14 @@ bool muiPrepareRuns(muiTextService* service, muiTextBlock* block, const muiCompu
     }
     muiRunStyle* styles = block->runStyles.data;
     uint8_t* runs = block->runs.data;
-    styles[0] = (muiRunStyle){style->font, style->weight, style->size, 1.0f, style->slant};
+    styles[0] = (muiRunStyle){style->font, style->weight, style->size, 1.0f, 0.0f, style->slant};
     uint32_t count = 1;
     memset(runs, 0, length + 1u);
     const muiTextSpan* spans = block->spans.data;
     for (uint32_t i = 0; i < block->spanCount; i++)
     {
         const muiTextSpan* span = &spans[i];
-        if ((span->mask & SHAPING) == 0)
+        if ((span->mask & RUN_PROPERTIES) == 0)
         {
             continue;
         }

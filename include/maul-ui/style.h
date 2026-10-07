@@ -150,6 +150,8 @@ extern "C"
         // A mask of lines, and their color.
         mui_propertyTextDecoration = 137,
         mui_propertyTextDecorationColor = 138,
+        // How far a span's text sits above the baseline; spans alone take it.
+        mui_propertyTextBaselineShift = 139,
         // Interaction properties, named after the muiInteractionStyle
         // field they set (maul-ui/interaction.h): an enumerator, a flag,
         // an enumerator.
@@ -184,7 +186,7 @@ extern "C"
 // masks.
 #define MUI_LAYOUT_PROPERTIES      ((muiPropertyMask)0x3FFFFFFFFFFull)
 #define MUI_VISUAL_PROPERTIES      ((muiPropertyMask)0x3FFFFFull)
-#define MUI_TEXT_PROPERTIES        ((muiPropertyMask)0x7FFull)
+#define MUI_TEXT_PROPERTIES        ((muiPropertyMask)0xFFFull)
 #define MUI_INTERACTION_PROPERTIES ((muiPropertyMask)0xFFull)
 
     // The states a node can be in, as bits, weakest first: a later

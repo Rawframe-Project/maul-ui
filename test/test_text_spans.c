@@ -152,7 +152,7 @@ static void TestChecks(void)
         Span(2, 1, COLOR),
         Span(1, 1, COLOR),
         Span(0, 1, MUI_PROPERTY_BIT(mui_propertyLineHeight)),
-        Span(0, 1, MUI_PROPERTY_BIT(mui_propertyTextDecorationColor + 1)),
+        Span(0, 1, MUI_PROPERTY_BIT(mui_propertyTextBaselineShift + 1)),
     };
     const char* what[] = {"empty",     "past the text",          "from inside a sequence",
                           "to inside", "a paragraph's property", "past the group"};
@@ -379,6 +379,49 @@ static void TestFonts(void)
     FreeScene(&scene);
 }
 
+static bool Near(float a, float b)
+{
+    return fabsf(a - b) < 1e-4f;
+}
+
+// A raised and a lowered span: their glyphs above and below the baseline,
+// the line reaching over both; a node's own shift does nothing. Shifts of
+// whole pixels, as glyph baselines are snapped to them.
+static void TestShifts(void)
+{
+    Scene scene = MakeScene();
+    const muiFontMetrics* m = &scene.metrics;
+    muiTextBlockId block = {0, 0};
+    muiNodeId node = AddText(&scene, "abc", &block);
+    muiTextSpan spans[2] = {Span(1, 1, MUI_PROPERTY_BIT(mui_propertyTextBaselineShift)),
+                            Span(2, 1, MUI_PROPERTY_BIT(mui_propertyTextBaselineShift))};
+    spans[0].style.baselineShift = (muiDimension){0.4f, 0.0f, mui_dimensionValue};
+    spans[1].style.baselineShift = (muiDimension){-0.2f, 0.0f, mui_dimensionValue};
+    muiTextSpan automatic = spans[0];
+    automatic.style.baselineShift.kind = mui_dimensionAuto;
+    CHECK(muiTextBlock_SetSpans(scene.service, block, &automatic, 1) == mui_errorInvalid,
+          "an automatic shift refused");
+    CHECK(muiTextBlock_SetSpans(scene.service, block, spans, 2) == mui_success, "b up, c down");
+    float up = 4.0f;
+    float baseline = m->ascent * 10.0f + up;
+    muiDrawList list = Paint(&scene, node);
+    CHECK(list.commandCount == 3 && Near(list.commands[0].glyphRun.originY, baseline) &&
+              Near(list.commands[1].glyphRun.originY, baseline - up) &&
+              Near(list.commands[2].glyphRun.originY, baseline + 2.0f),
+          "a on the baseline, b above it, c below it");
+    CHECK(Near(muiNode_GetRect(scene.context, node).height, baseline + m->descent * 10.0f + 2.0f),
+          "the line over both");
+    muiTextStyle own = muiDefaultTextStyle();
+    own.baselineShift = (muiDimension){1.0f, 0.0f, mui_dimensionValue};
+    CHECK(muiNode_SetTextValues(scene.context, node, &own,
+                                MUI_PROPERTY_BIT(mui_propertyTextBaselineShift)) == mui_success,
+          "a node's own shift");
+    list = Paint(&scene, node);
+    CHECK(list.commandCount == 3 && Near(list.commands[0].glyphRun.originY, baseline),
+          "does nothing");
+    FreeScene(&scene);
+}
+
 int main(void)
 {
     TestChecks();
@@ -386,5 +429,6 @@ int main(void)
     TestPainting();
     TestSizes();
     TestFonts();
+    TestShifts();
     return s_failures == 0 ? 0 : 1;
 }

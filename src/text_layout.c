@@ -9,6 +9,7 @@
 
 #include "text_boxes.h"
 #include "text_paragraph.h"
+#include "text_runs.h"
 
 #include "maul-ui/text_block.h"
 #include "maul-unicode/bidi.h"
@@ -145,6 +146,8 @@ static float PaintSegment(const muiParagraph* paragraph, const muiLineGlyphs* so
                           const muiTextItem* item, uint32_t start, uint32_t end, const Ink* ink,
                           float pen, float baseline, muiDrawSink* sink)
 {
+    // A span's shift raises its glyphs and their decorations.
+    baseline -= muiRunShift(paragraph->block, item->style);
     float left = pen;
     const muiShapedGlyph* shaped = source->glyphs + item->firstGlyph;
     muiGlyph* glyphs = paragraph->service->glyphs.data;

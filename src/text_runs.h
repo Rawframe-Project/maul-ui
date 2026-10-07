@@ -2,8 +2,8 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Run styles (record mui-0006): where a block's spans set a font, size,
-// weight or slant, its text is shaped in runs of those apart from the
-// node's style. A block's run styles are the node's and each distinct
+// weight, slant or baseline shift, its text is shaped and placed in runs
+// of those apart from the node's style. A block's run styles are the node's and each distinct
 // one its spans make, each byte with its own; a paragraph's chains are
 // every face of every run style, the node's first, each style trying its
 // own in its own order.
@@ -28,13 +28,15 @@ enum
 };
 
 // What a run is shaped in: a font key, a weight, a slant and a size, and
-// the size over the node's (1 for the node's own style).
+// the size over the node's (1 for the node's own style); and how far
+// above the baseline it sits.
 typedef struct muiRunStyle
 {
     uint64_t font;
     float weight;
     float size;
     float scale;
+    float shift;
     muiFontSlant slant;
 } muiRunStyle;
 
@@ -63,6 +65,13 @@ bool muiBuildRunChains(const muiTextService* service, const muiTextBlock* block,
 static inline uint32_t muiRunOf(const muiTextBlock* block, uint32_t offset)
 {
     return block->runStyleCount != 0 ? ((const uint8_t*)block->runs.data)[offset] : 0;
+}
+
+// How far a run style sits above the baseline.
+static inline float muiRunShift(const muiTextBlock* block, uint32_t style)
+{
+    return block->runStyleCount != 0 ? ((const muiRunStyle*)block->runStyles.data)[style].shift
+                                     : 0.0f;
 }
 
 // A run style's size over the node's.

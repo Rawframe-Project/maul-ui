@@ -65,16 +65,22 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   the text properties a mask names, later spans winning where they
   overlap, as a stack of styles flattens; they are what a host's
   rich-text markup turns into, and Maul UI parses none. Spans set what
-  painting reads (color, decoration, decoration color) and what shaping
-  does (font, size, weight, slant); a baseline shift comes next. A span
-  size is against the node's, as a child's text is against its
-  parent's. The text under spans that shape is shaped in run styles:
+  painting reads (color, decoration, decoration color), what shaping
+  does (font, size, weight, slant) and a baseline shift. A span size is
+  against the node's, as a child's text is against its parent's. The
+  shift (`baselineShift`, scale times the node's size plus offset,
+  raising) is CSS's baseline-shift: CSS's sub is {-0.2, 0} and its super
+  {1/3, 0}, the drops it gives them without font data, the fonts' own
+  subscript offsets being for glyphs a third smaller; it is not
+  inherited, and a node's own does nothing, as CSS's on a block
+  container. The text under spans that shape is shaped in run styles:
   the node's and up to 31 distinct ones the spans make, a byte each,
   every face of their chains in one chain with each style trying its
   own faces in its own order, items splitting where the style changes.
   A line is as tall as the runs on it reach above and below the
   baseline (each font's ascent and descent at its run's size, with half
-  its leading each way, as CSS places an inline box), and the next line
+  its leading each way, shifted as the run is, as CSS places an inline
+  box), and the next line
   starts below it; hit tests, carets and selections read each line's
   own top and height. Setting the text drops them; a replacement moves
   those after it and trims those it cuts, a span growing with text put

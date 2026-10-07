@@ -58,7 +58,8 @@ format.
   overline, line-through) and `decorationColor` (the text's color at
   alpha 0), and spans over a text block (`muiTextSpan`,
   `muiTextBlock_SetSpans`, `muiTextBlock_GetSpans`) that give parts of
-  it their own color, decorations, font, size, weight and slant; edits
+  it their own color, decorations, font, size, weight, slant and
+  baseline shift (`baselineShift`, for sub- and superscripts); edits
   move them. Text under spans that shape is shaped in their runs, and a
   line is as tall as its runs reach. Painting splits glyph runs where
   the ink changes and draws decorations from the font's metrics.

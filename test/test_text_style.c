@@ -192,8 +192,7 @@ static void TestChecks(void)
         {WRAP, good, false, "an unknown wrap"},
         {COLOR, good, false, "a color past 1"},
         {FONT, good, true, "any font key"},
-        {MUI_PROPERTY_BIT(mui_propertyTextDecorationColor + 1), good, false,
-         "a bit past the group"},
+        {MUI_PROPERTY_BIT(mui_propertyTextBaselineShift + 1), good, false, "a bit past the group"},
     };
     cases[1].values.weight = 0.0f;
     cases[2].values.weight = 1001.0f;
