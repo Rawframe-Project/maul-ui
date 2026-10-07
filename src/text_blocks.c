@@ -7,6 +7,8 @@
 // set. A new text is analyzed into new buffers before the old ones go,
 // so a failure keeps the old text. Keys and the default font too.
 
+#include "text_blocks.h"
+
 #include "font_instance.h"
 #include "property.h"
 #include "text_block.h"
@@ -160,6 +162,7 @@ static void Adopt(const muiAllocator* allocator, muiTextBlock* block, Analysis* 
     block->breakCount = analysis->breakCount;
     block->scripts = analysis->scripts;
     block->scriptCount = analysis->scriptCount;
+    block->revision++;
     block->shaped = false;
     // New text: its run styles are made again for it.
     block->runKey = 0;
@@ -315,13 +318,30 @@ muiResult muiTextBlock_Replace(muiTextService* service, muiTextBlockId blockId, 
     {
         return mui_errorInvalid;
     }
-    uint32_t slot = ResolveBlock(service, blockId);
-    if (slot == 0)
+    muiTextBlock* block = muiResolveTextBlock(service, blockId);
+    if (block == nullptr)
     {
         return mui_errorStale;
     }
-    muiTextBlock* block = &service->blocks.blocks[slot - 1];
-    if (end > block->length || !Fits(block, start, end, length))
+    return muiReplaceBlockText(service, block, start, end, text, length);
+}
+
+muiTextBlock* muiResolveTextBlock(const muiTextService* service, muiTextBlockId blockId)
+{
+    uint32_t slot = ResolveBlock(service, blockId);
+    return slot != 0 ? &service->blocks.blocks[slot - 1] : nullptr;
+}
+
+bool muiFitsBlockText(const muiTextBlock* block, uint32_t start, uint32_t end, size_t length)
+{
+    return start <= end && end <= block->length && length <= MAX_TEXT &&
+           Fits(block, start, end, length);
+}
+
+muiResult muiReplaceBlockText(muiTextService* service, muiTextBlock* block, uint32_t start,
+                              uint32_t end, const char* text, size_t length)
+{
+    if (!muiFitsBlockText(block, start, end, length))
     {
         return mui_errorInvalid;
     }

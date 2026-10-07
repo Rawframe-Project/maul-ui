@@ -190,8 +190,29 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   for the target, none for plain, the whole composition thin when it has
   no segments (as Wayland's are drawn). The host maps its window
   library's compositions to segments and gives the platform the caret
-  rectangle from `muiTextGetCaret` for the candidate window. Selection,
-  the x kept for vertical moves, input and undo stay with the caller.
+  rectangle from `muiTextGetCaret` for the candidate window.
+- **Editing** (`maul-ui/text_editor.h`): a block opted in with a
+  field's rules (`muiTextBlock_SetEditing`: multi-line, read-only,
+  password, an integer or decimal filter, a maximum length, an undo
+  limit) keeps a selection, the x vertical moves keep and an undo
+  history. Typing, pasting and deleting go through the rules: control
+  characters other than tab and line breaks dropped; on a single line
+  each line break a space, as Firefox's paste; a number filter keeping
+  the value a sign at the start then digits, at most one point for a
+  decimal, dropping the characters that would break it; a maximum
+  length in grapheme clusters, as Flutter's, cutting what goes in.
+  Undo takes typing back a word at a time (a run continuing where the
+  last ended, until a word starts after white space), a run of
+  backspaces or of forward deletions whole, as AppKit's, and anything
+  else alone; an edit after undoing drops what was undone, the oldest
+  past the limit goes, and text changed outside the editor empties the
+  history. Moves, presses and drags place the selection through the
+  node's laid-out text: one, two and three clicks select an edge, a
+  word (Unicode's word boundaries) and a paragraph, a drag extends by
+  that unit, and a move without Shift over a selection collapses it to
+  the edge it goes toward. Keys, the clipboard and focus are the
+  host's: a cut is `muiTextBlock_GetSelectedText` (nothing for a
+  password) then `muiTextBlock_Erase`.
 - **Glyph atlases** (`maul-ui/glyph_atlas.h`) are owner objects of a
   service, in its memory: pages of the caller's size, made as needed up
   to a limit and cut into plots, each packed with a skyline bottom-left

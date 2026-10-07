@@ -51,6 +51,8 @@ struct muiTextService
     muiBuffer lineGlyphs;
     // A line's grapheme clusters as hit testing finds them.
     muiBuffer hitBoxes;
+    // What an editing block's rules let in of text going in.
+    muiBuffer editScratch;
     // Scratch for distance fields: the outline's segments, their pieces
     // with the segment of each, the row starts and crossings, the cell
     // starts and pieces, the edge, and each pixel's squared distance.

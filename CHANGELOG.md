@@ -54,6 +54,17 @@ format.
 
 ### Added
 
+- Text editing (`maul-ui/text_editor.h`): a text block opted into
+  editing with a field's rules (`muiTextBlock_SetEditing`: multi-line,
+  read-only, password, integer and decimal filters, a maximum length in
+  grapheme clusters, an undo limit) keeps a selection and an undo
+  history; `muiTextBlock_Type`, `_Paste`, `_Erase`, `_EraseTo`,
+  `_Undo`, `_Redo`, `_Select`, `_GetSelection`, `_GetSelectedText` and
+  `_GetUndoState` edit it, typing undone a word at a time and deletions
+  in runs; `muiTextEditMove`, `muiTextEditPress` (one, two and three
+  clicks) and `muiTextEditDrag` place the selection through a node's
+  laid-out text.
+
 - Text decorations and spans: the text style's `decoration` (underline,
   overline, line-through) and `decorationColor` (the text's color at
   alpha 0), and spans over a text block (`muiTextSpan`,

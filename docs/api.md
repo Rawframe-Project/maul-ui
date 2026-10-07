@@ -1268,7 +1268,7 @@ muiBaselineFunction: user is a muiTextHost, and hostKey a block's key. Lines are
 
 ## `text_edit.h`
 
-Editing primitives over laid-out text (record mui-0006): positions in a node's text, from points, to carets and moved by cluster, word or line, the rectangles a range of it covers, the text laid out as muiPaintText paints it, what a deletion removes, and an input method's composition held in a block. Selection, input and undo are the caller's.
+Editing primitives over laid-out text (record mui-0006): positions in a node's text, from points, to carets and moved by cluster, word or line, the rectangles a range of it covers, the text laid out as muiPaintText paints it, what a deletion removes, and an input method's composition held in a block. maul-ui/text_editor.h builds selection and undo on them.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiTextHitTest(const muiTextHost* host, muiNodeId nodeId, float width, float x, float y, muiTextPosition* positionOut);
@@ -1309,6 +1309,85 @@ Ends a block's composition, keeping its text as typed text: what an input method
 MUI_NODISCARD MUI_API muiResult muiTextBlock_GetComposition(const muiTextService* service, muiTextBlockId blockId, uint32_t* startOut, uint32_t* lengthOut);
 ```
 Reads where a block's composition is.  @param service    The service. @param blockId    The block. @param startOut   Receives its first byte in the text. @param lengthOut  Receives its length; 0 when there is none. @return `mui_success`; `mui_errorInvalid` for a NULL argument or the null id; `mui_errorStale` for a block that is gone. Nothing is written on failure. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
+## `text_editor.h`
+
+Text editing (record mui-0006): a block opted into editing keeps a selection, an undo history and its field's rules, and takes typing, pastes, deletions, undo and redo; moves, presses and drags place the selection through a node's laid-out text. Keys, clipboard and focus are the host's to map onto these.
+
+```c
+muiTextEditDef muiDefaultTextEditDef(void);
+```
+Returns a single-line field's rules: no filter, no limit, and 100 edits to undo.  @return The rules. @par Thread safety Safe from any thread.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiTextBlock_SetEditing(muiTextService* service, muiTextBlockId blockId, const muiTextEditDef* def);
+```
+Opts a block into editing with a field's rules, or out with NULL. Either way the history empties and the caret goes to the text's end. Changing the text otherwise (muiTextBlock_SetText, muiTextBlock_Replace, a composition) empties the history too, the selection kept within the text.  @param service  The service. @param blockId  The block. @param def      The rules, or NULL. @return `mui_success`; `mui_errorInvalid` for a NULL service, the null id, or a flag or filter out of range; `mui_errorStale` for a block that is gone. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiTextBlock_GetSelection(const muiTextService* service, muiTextBlockId blockId, muiTextSelection* selectionOut);
+```
+Reads an editing block's selection.  @param service       The service. @param blockId       The block. @param selectionOut  Receives the selection. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id or a block not editing; `mui_errorStale` for a block that is gone. Nothing is written on failure. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiTextBlock_Select(muiTextService* service, muiTextBlockId blockId, muiTextSelection selection);
+```
+Sets an editing block's selection, which ends a run of typing undone together.  @param service    The service. @param blockId    The block. @param selection  The selection: offsets within the text, at the starts of characters. @return `mui_success`; `mui_errorInvalid` for a NULL service, the null id, a block not editing or an offset out of place; `mui_errorStale` for a block that is gone. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiTextBlock_Type(muiTextService* service, muiTextBlockId blockId, const char* text, size_t length, bool* changedOut);
+```
+Types text over an editing block's selection, under its rules, the caret after it. Typing undoes word by word: a run of it continuing where the last ended is one edit until a word starts after white space.  @param service     The service. @param blockId     The block. @param text        UTF-8 text; may be NULL when length is 0. @param length      Its length in bytes. @param changedOut  Receives whether the text changed; may be NULL. @return `mui_success`, changed or not (read-only, filtered out, at the limit); `mui_errorInvalid` for a NULL service or text, the null id, a block not editing or text past the block's limit; `mui_errorStale` for a block that is gone; `mui_errorCapacity` when memory runs out, which changes nothing. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiTextBlock_Paste(muiTextService* service, muiTextBlockId blockId, const char* text, size_t length, bool* changedOut);
+```
+Pastes text over an editing block's selection, as muiTextBlock_Type but undone alone.  @param service     The service. @param blockId     The block. @param text        UTF-8 text; may be NULL when length is 0. @param length      Its length in bytes. @param changedOut  Receives whether the text changed; may be NULL. @return As muiTextBlock_Type. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiTextBlock_Erase(muiTextService* service, muiTextBlockId blockId, muiTextDeletion deletion, bool* changedOut);
+```
+Deletes an editing block's selection, or with none, what the deletion removes beside the caret (muiTextBlock_FindDeletion). A run of deletions one way, each where the last left the caret, is undone together.  @param service     The service. @param blockId     The block. @param deletion    Which way. @param changedOut  Receives whether the text changed; may be NULL. @return As muiTextBlock_Type; `mui_errorInvalid` for a deletion out of range. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiTextBlock_EraseTo(muiTextService* service, muiTextBlockId blockId, uint32_t offset, bool* changedOut);
+```
+Deletes an editing block's selection, or with none, the text from the caret to an offset: a word or a line, found with muiTextMove.  @param service     The service. @param blockId     The block. @param offset      The other end, at the start of a character; past the text is its end. @param changedOut  Receives whether the text changed; may be NULL. @return As muiTextBlock_Type; `mui_errorInvalid` for an offset inside a character. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiTextBlock_GetSelectedText(const muiTextService* service, muiTextBlockId blockId, const char** textOut, size_t* lengthOut);
+```
+Reads the selected text of an editing block, for the host's clipboard: a cut is this, then muiTextBlock_Erase. A password's is empty.  @param service    The service. @param blockId    The block. @param textOut    Receives the text, valid until the block changes. @param lengthOut  Receives its length in bytes. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id or a block not editing; `mui_errorStale` for a block that is gone. Nothing is written on failure. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiTextBlock_Undo(muiTextService* service, muiTextBlockId blockId, bool* changedOut);
+```
+Undoes an editing block's last edit, the selection back as it was before it; nothing on a read-only block or during a composition.  @param service     The service. @param blockId     The block. @param changedOut  Receives whether the text changed; may be NULL. @return As muiTextBlock_Type. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiTextBlock_Redo(muiTextService* service, muiTextBlockId blockId, bool* changedOut);
+```
+Redoes an editing block's last undone edit, the selection as it was after it; as muiTextBlock_Undo otherwise. An edit made after an undo drops what was undone.  @param service     The service. @param blockId     The block. @param changedOut  Receives whether the text changed; may be NULL. @return As muiTextBlock_Type. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiTextBlock_GetUndoState(const muiTextService* service, muiTextBlockId blockId, bool* undoOut, bool* redoOut);
+```
+Reads whether an editing block has an edit to undo and one to redo.  @param service  The service. @param blockId  The block. @param undoOut  Receives whether muiTextBlock_Undo would undo one. @param redoOut  Receives whether muiTextBlock_Redo would redo one. @return As muiTextBlock_GetSelection. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiTextEditMove(const muiTextHost* host, muiNodeId nodeId, muiTextMovement movement, bool extend);
+```
+Moves the caret of a node's editing block through its laid-out text (muiTextMove), extending the selection or collapsing it there; lines up and down keep the x the first of them started from.  @param host      The text host. @param nodeId    A node whose host key is an editing block's. @param movement  The movement. @param extend    Whether the anchor stays. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a movement out of range or a block not editing; `mui_errorStale` for a node, block or font that is gone; `mui_errorCapacity` when memory runs out. @par Thread safety Safe from any thread; the host's context and service are used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiTextEditPress(const muiTextHost* host, muiNodeId nodeId, float x, float y, uint32_t clickCount, bool extend);
+```
+Places the caret of a node's editing block where a press is: one click at the point, two selecting the word there, three the paragraph; with extend, the selection grows to it from the anchor. Drags then extend by the same unit.  @param host        The text host. @param nodeId      A node whose host key is an editing block's. @param x           The point, in the node's border box, as pointer records give it. @param y           The point's y. @param clickCount  The press's place in a quick series: 1, 2, 3; a fourth goes round to 1, as on every platform. @param extend      Whether the anchor stays. @return As muiTextEditMove; `mui_errorInvalid` for a point not finite or a click count of 0. @par Thread safety Safe from any thread; the host's context and service are used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiTextEditDrag(const muiTextHost* host, muiNodeId nodeId, float x, float y);
+```
+Extends the selection of a node's editing block to where a drag is, by the unit its press selected, keeping what the press selected.  @param host    The text host. @param nodeId  A node whose host key is an editing block's. @param x       The point, in the node's border box. @param y       The point's y. @return As muiTextEditPress. @par Thread safety Safe from any thread; the host's context and service are used by one thread at a time.
 
 ## `text_style.h`
 
@@ -1551,4 +1630,4 @@ Reads a node's resolved visual values: its direct writes, and for the other prop
 
 ---
 
-282 functions across 34 headers.
+297 functions across 35 headers.

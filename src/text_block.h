@@ -11,6 +11,7 @@
 #include "pool.h"
 
 #include "maul-ui/base.h"
+#include "maul-ui/text_editor.h"
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -79,6 +80,44 @@ typedef struct muiTextItem
     float scale;
 } muiTextItem;
 
+// An edit undo keeps: the bytes from start, removed long, became the
+// inserted bytes; both are in the history's bytes from bytes, removed
+// first. The selections before and after it, and what made it.
+typedef struct muiTextEdit
+{
+    uint32_t start;
+    uint32_t removed;
+    uint32_t inserted;
+    uint32_t bytes;
+    muiTextSelection before;
+    muiTextSelection after;
+    uint8_t kind;
+} muiTextEdit;
+
+// A block's editing state: its rules, its selection, the x vertical
+// moves keep (below 0 for none), the unit and the range a press selected
+// for drags, and its history: entryCount muiTextEdit, done of them not
+// undone, over byteCount bytes; the kind of the last edit while typing
+// or deleting may still join it, else 0; the text's revision it last
+// saw.
+typedef struct muiTextEditing
+{
+    bool on;
+    muiTextEditDef def;
+    muiTextSelection selection;
+    float preferredX;
+    uint8_t grain;
+    uint32_t pressStart;
+    uint32_t pressEnd;
+    muiBuffer entries;
+    uint32_t entryCount;
+    uint32_t done;
+    muiBuffer bytes;
+    uint32_t byteCount;
+    uint8_t open;
+    uint64_t revision;
+} muiTextEditing;
+
 typedef struct muiTextBlock
 {
     // The text, length bytes.
@@ -130,6 +169,11 @@ typedef struct muiTextBlock
     uint32_t runStyleCount;
     muiBuffer runs;
     uint64_t runKey;
+    // Counts the changes of the text, so an editor sees those it did not
+    // make.
+    uint64_t revision;
+    // Editing, while editing.on (src/text_editing.h).
+    muiTextEditing editing;
 } muiTextBlock;
 
 typedef struct muiTextBlockStore
