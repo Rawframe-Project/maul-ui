@@ -639,9 +639,18 @@ static mwinFrameResult Shown(Tour* tour, mwinContext* windows)
     tour->reading = tour->frames != 0 && tour->frame == tour->frames - 1;
     Step(tour, windows);
     tour->frame++;
-    if (tour->reading && tour->surface.copies)
+    if (tour->reading)
     {
-        CheckStill(tour);
+        // Said either way, so a run that must check can see it did.
+        if (tour->surface.copies)
+        {
+            CheckStill(tour);
+            printf("the presented frame checked\n");
+        }
+        else
+        {
+            printf("the surface allows no copies: the presented frame not checked\n");
+        }
     }
     bool done = tour->closing || (tour->frames != 0 && tour->frame >= tour->frames);
     return done ? mwin_frameStop : mwin_frameContinue;

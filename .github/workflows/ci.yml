@@ -170,6 +170,7 @@ jobs:
           cmake --build build-x11 -j 4 --target sample_tour
           xvfb-run -a -s "-screen 0 1024x768x24" build-x11/sample_tour --frames 5 2>&1 | tee tour.log
           test "${PIPESTATUS[0]}" -eq 0
+          grep -q "the presented frame checked" tour.log
           ! grep -qiE "validation error|VUID" tour.log
 
   window:
