@@ -16,7 +16,7 @@
 
 // Records with no padding, so that their bytes are their fields'.
 static_assert(sizeof(muiDrawBox) == 136 && sizeof(muiDrawShadow) == 68 &&
-                  sizeof(muiDrawImage) == 72 && sizeof(muiDrawGlyphRun) == 48 &&
+                  sizeof(muiDrawImage) == 80 && sizeof(muiDrawGlyphRun) == 48 &&
                   sizeof(muiGlyph) == 12 && sizeof(muiDrawCommand) == 152 &&
                   sizeof(muiDrawClip) == 44 && sizeof(muiDrawGradient) == 96,
               "draw records have no padding");
@@ -263,6 +263,8 @@ static void AddImage(muiPainter* painter, const muiVisualStyle* visual, muiRect 
         command->image.slice = (muiSides){slice->top, slice->start, slice->bottom, slice->end};
     }
     command->image.tint = muiPaintColor(painter, visual->imageTint, state->opacity);
+    command->image.repeatX = visual->imageRepeatX;
+    command->image.repeatY = visual->imageRepeatY;
 }
 
 // The padding box of a border box, and its corners' radii.

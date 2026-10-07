@@ -10,6 +10,13 @@ format.
 
 ### Changed
 
+- Image tiling: `muiDrawImage` carries `repeatX` and `repeatY`, and the
+  visual style `imageRepeatX` and `imageRepeatY` (properties 86 and
+  87): an image's middle, or the whole of one without slices, stretched
+  (as before), repeated, rounded or spaced across and up, as CSS's
+  border-image-repeat. `muiDrawImage` is 80 bytes; the command is not
+  larger.
+
 - Colour bitmap glyphs: `muiRenderColorGlyph` draws a glyph's PNG from
   a font's CBLC and CBDT tables (Noto Color Emoji's) or its sbix table
   (Apple's), from the strike that suits the size, scaled to it in linear

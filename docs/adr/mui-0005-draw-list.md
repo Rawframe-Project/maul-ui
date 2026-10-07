@@ -81,6 +81,14 @@ clip chain evaluated in its shaders, which keeps batches whole.
   its uv rectangle of negative width, from the right, and its slice
   insets as drawn (the image's end inset on the left). A renderer runs
   slices the way the uv runs.
+- **An image fills its middle as CSS's border-image-repeat** says,
+  across (its top, middle and bottom parts) and up (its left, middle
+  and right): stretched, the default; repeated, its tiles centred;
+  rounded, round(W / w) tiles stretched to fit; or spaced, whole tiles
+  with equal gaps before, between and after, none where not one fits.
+  A tile is the middle's texels at one logical unit each, times the
+  slices' shared fit factor; an image without slices is all middle, so
+  whole images follow the same rule rather than background-repeat's.
 - **Colors are linear light with premultiplied alpha.** Gradients carry
   their stops so, and an interpolation tag, Oklab, as transitions move
   colors. Opacity multiplies down the subtree into each command's

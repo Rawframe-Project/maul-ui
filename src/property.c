@@ -156,6 +156,10 @@ static const Row s_visualRows[] = {
     VISUAL(scale.originY, float, kindFraction),
     {(uint16_t)offsetof(muiVisualStyle, imageMirrors), (uint8_t)sizeof(bool), kindEnum, groupVisual,
      0, 1},
+    {(uint16_t)offsetof(muiVisualStyle, imageRepeatX), (uint8_t)sizeof(muiImageRepeat), kindEnum,
+     groupVisual, mui_imageStretch, mui_imageSpace},
+    {(uint16_t)offsetof(muiVisualStyle, imageRepeatY), (uint8_t)sizeof(muiImageRepeat), kindEnum,
+     groupVisual, mui_imageStretch, mui_imageSpace},
 };
 
 static const Row s_textRows[] = {
@@ -202,7 +206,7 @@ static const GroupRows s_groups[MUI_PROPERTY_GROUPS] = {
 
 static_assert(
     sizeof s_layoutRows / sizeof s_layoutRows[0] == mui_propertySafeArea + 1 &&
-        sizeof s_visualRows / sizeof s_visualRows[0] == (mui_propertyImageMirrors & 63) + 1 &&
+        sizeof s_visualRows / sizeof s_visualRows[0] == (mui_propertyImageRepeatY & 63) + 1 &&
         sizeof s_textRows / sizeof s_textRows[0] == (mui_propertyTextBaselineShift & 63) + 1 &&
         sizeof s_interactionRows / sizeof s_interactionRows[0] == (mui_propertyExitLayout & 63) + 1,
     "one row per property");
@@ -225,7 +229,7 @@ static_assert(sizeof(muiColor) == 4 * sizeof(float) && sizeof(muiShadow) == 8 * 
                   sizeof(muiGradientStop) == 5 * sizeof(float),
               "compared as floats alone");
 static_assert(MUI_LAYOUT_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertySafeArea) << 1) - 1 &&
-                  MUI_VISUAL_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyImageMirrors) << 1) - 1 &&
+                  MUI_VISUAL_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyImageRepeatY) << 1) - 1 &&
                   MUI_TEXT_PROPERTIES ==
                       (MUI_PROPERTY_BIT(mui_propertyTextBaselineShift) << 1) - 1 &&
                   MUI_INTERACTION_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyExitLayout) << 1) - 1,

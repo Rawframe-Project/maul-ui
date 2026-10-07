@@ -133,8 +133,9 @@ static void TestDefaults(void)
           "black borders");
     CHECK(SameColor(values.outerShadow.color, clear) && SameColor(values.innerShadow.color, clear),
           "no shadows");
-    CHECK(values.image == 0 && SameColor(values.imageTint, white) && !values.imageMirrors,
-          "no image, white tint, not mirrored");
+    CHECK(values.image == 0 && SameColor(values.imageTint, white) && !values.imageMirrors &&
+              values.imageRepeatX == mui_imageStretch && values.imageRepeatY == mui_imageStretch,
+          "no image, white tint, not mirrored, stretched");
     CHECK(values.opacity == 1.0f && !values.clip, "opaque, not clipping");
     CHECK(values.scale.x == 1.0f && values.scale.y == 1.0f && values.scale.originX == 0.5f &&
               values.scale.originY == 0.5f,
@@ -327,7 +328,11 @@ static void TestChecks(void)
     v.gradient = (muiGradient){mui_gradientLinear, 2, NAN, {black, white}};
     CheckRefused(context, style, node, &v, GRADIENT, "a NaN angle");
 
-    CheckRefused(context, style, node, &defaults, MUI_PROPERTY_BIT(mui_propertyImageMirrors + 1),
+    v = defaults;
+    v.imageRepeatX = mui_imageSpace + 1;
+    CheckRefused(context, style, node, &v, MUI_PROPERTY_BIT(mui_propertyImageRepeatX),
+                 "a repeat past space");
+    CheckRefused(context, style, node, &defaults, MUI_PROPERTY_BIT(mui_propertyImageRepeatY + 1),
                  "a bit past the visual group's properties");
     CHECK(muiStyle_SetVisualValues(context, style, mui_variantBase, NULL, BACKGROUND) ==
                   mui_errorInvalid &&
@@ -355,6 +360,12 @@ static void TestChecks(void)
 
     // At the edges, allowed.
     v = defaults;
+    v.imageRepeatX = mui_imageSpace;
+    v.imageRepeatY = mui_imageStretch;
+    CHECK(muiNode_SetVisualValues(context, node, &v,
+                                  MUI_PROPERTY_BIT(mui_propertyImageRepeatX) |
+                                      MUI_PROPERTY_BIT(mui_propertyImageRepeatY)) == mui_success,
+          "the first and last repeats taken");
     v.gradient = (muiGradient){mui_gradientConic, 2, -720.0f, {black, black}};
     v.opacity = 0.0f;
     v.outerShadow = (muiShadow){{0.0f, 0.0f, 0.0f, 0.5f}, -2.0f, 3.0f, 0.0f, -4.0f};

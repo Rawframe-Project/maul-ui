@@ -550,6 +550,18 @@ static void TestRightToLeft(void)
     list = Build(context, root, 1.0f);
     CHECK(list.commands[1].image.uv.width == 1.0f && list.commands[1].image.slice.left == 1.0f,
           "left to right, it is as it is");
+    CHECK(list.commands[1].image.repeatX == mui_imageStretch &&
+              list.commands[1].image.repeatY == mui_imageStretch,
+          "stretched by default");
+    visual.imageRepeatX = mui_imageRound;
+    visual.imageRepeatY = mui_imageSpace;
+    SetVisual(context, root, &visual,
+              MUI_PROPERTY_BIT(mui_propertyImageRepeatX) |
+                  MUI_PROPERTY_BIT(mui_propertyImageRepeatY));
+    list = Build(context, root, 1.0f);
+    CHECK(list.commands[1].image.repeatX == mui_imageRound &&
+              list.commands[1].image.repeatY == mui_imageSpace,
+          "its repeats painted");
     muiDestroyContext(context);
 }
 

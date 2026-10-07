@@ -122,6 +122,22 @@ extern "C"
         float originY;
     } muiLocalScale;
 
+    // How an image fills its middle along one axis, as CSS's
+    // border-image-repeat: stretched; repeated, its tiles centred;
+    // rounded, a whole number of tiles stretched to fit; or spaced, whole
+    // tiles with equal gaps before, between and after them. A tile is the
+    // image's middle at one logical unit a pixel, as its slices are drawn;
+    // an image without slices is all middle.
+    typedef uint8_t muiImageRepeat;
+
+    enum
+    {
+        mui_imageStretch = 0,
+        mui_imageRepeat = 1,
+        mui_imageRound = 2,
+        mui_imageSpace = 3,
+    };
+
     // Every visual value. Build it with muiDefaultVisualStyle.
     typedef struct muiVisualStyle
     {
@@ -145,6 +161,10 @@ extern "C"
         // points a way does: drawn flipped, its slice's start and end then
         // its right and left.
         bool imageMirrors;
+        // How the image fills its middle across and up; stretched by
+        // default.
+        muiImageRepeat imageRepeatX;
+        muiImageRepeat imageRepeatY;
         // The node and its subtree, from 0 to 1.
         float opacity;
         // Whether the node clips its children to its rounded border box.

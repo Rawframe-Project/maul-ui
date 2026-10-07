@@ -134,6 +134,9 @@ extern "C"
         mui_propertyScaleOriginY = 84,
         // A flag.
         mui_propertyImageMirrors = 85,
+        // muiImageRepeat values.
+        mui_propertyImageRepeatX = 86,
+        mui_propertyImageRepeatY = 87,
         // Text properties, named after the muiTextStyle field they set
         // (maul-ui/text_style.h), inherited. A color and a font key.
         mui_propertyTextColor = 128,
@@ -185,7 +188,7 @@ extern "C"
 // Every layout, visual, text and interaction property, in their groups'
 // masks.
 #define MUI_LAYOUT_PROPERTIES      ((muiPropertyMask)0x3FFFFFFFFFFull)
-#define MUI_VISUAL_PROPERTIES      ((muiPropertyMask)0x3FFFFFull)
+#define MUI_VISUAL_PROPERTIES      ((muiPropertyMask)0xFFFFFFull)
 #define MUI_TEXT_PROPERTIES        ((muiPropertyMask)0xFFFull)
 #define MUI_INTERACTION_PROPERTIES ((muiPropertyMask)0xFFull)
 

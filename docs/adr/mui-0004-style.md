@@ -115,8 +115,10 @@ for a fixed order in which a later layer always wins.
   Scale+Offset of the border box's shorter side (held to half of it, so
   a large one makes a pill, as Roblox's `UICorner`), border colors per
   side (the widths stay layout's), an outer and an inner shadow, an
-  image by host key with 9-slice insets, a tint and whether it mirrors
-  under right to left, opacity,
+  image by host key with 9-slice insets, a tint, whether it mirrors
+  under right to left and how it fills its middle across and up
+  (stretched, repeated, rounded or spaced, as CSS's border-image-repeat),
+  opacity,
   clipping, and a local scale about an origin (record mui-0005). Their
   ids are the visual group's, so classes,
   variants, conditions, transitions and direct writes reach them

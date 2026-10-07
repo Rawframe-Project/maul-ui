@@ -120,7 +120,9 @@ extern "C"
     // height draws it flipped, from the rectangle's far edge. Slice
     // insets, in image pixels as drawn, cut it into nine parts whose
     // corners keep their size at one logical unit per pixel; all 0
-    // stretches it whole.
+    // makes it all middle. repeatX and repeatY fill the middle across
+    // (the top, middle and bottom parts) and up (the left, middle and
+    // right) as muiImageRepeat says; 0 stretches it.
     typedef struct muiDrawImage
     {
         muiRect rect;
@@ -128,6 +130,9 @@ extern "C"
         muiRect uv;
         muiSides slice;
         muiLinearColor tint;
+        muiImageRepeat repeatX;
+        muiImageRepeat repeatY;
+        uint8_t reserved[6];
     } muiDrawImage;
 
     // A run of glyphs of the glyph table: firstGlyph and glyphCount name
