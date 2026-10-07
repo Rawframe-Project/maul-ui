@@ -188,6 +188,9 @@ static void MakeField(Texts* texts, SampleApp* app, int index, const char* name,
     interaction.drags = true;
     muiTextEditDef edit = muiDefaultTextEditDef();
     edit.flags = multiline ? mui_editMultiline : 0;
+    // Text scrolled to the caret stays inside the field.
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.clip = true;
     SampleAppCheck(
         app,
         muiNode_SetTextValues(app->context, field->node, &style,
@@ -200,7 +203,9 @@ static void MakeField(Texts* texts, SampleApp* app, int index, const char* name,
                 mui_success &&
             muiNode_SetAccessText(app->context, field->node, mui_accessLabel, name, strlen(name)) ==
                 mui_success &&
-            muiTextBlock_SetEditing(app->text, field->block, &edit) == mui_success,
+            muiTextBlock_SetEditing(app->text, field->block, &edit) == mui_success &&
+            muiNode_SetVisualValues(app->context, field->node, &visual,
+                                    MUI_PROPERTY_BIT(mui_propertyClip)) == mui_success,
         "a field");
 }
 

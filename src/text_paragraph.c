@@ -44,6 +44,7 @@ bool muiPrepareParagraph(const muiTextHost* host, muiNodeId nodeId, uint64_t hos
         return false;
     }
     out->rtl = muiNode_IsRightToLeft(host->context, nodeId);
+    out->scrollX = 0.0f;
     // Spans that set a font, size, weight or slant shape their text in
     // run styles of their own, every face in one chain.
     muiRunChains chains;
@@ -241,18 +242,18 @@ bool muiGetLineGlyphs(const muiParagraph* paragraph, const muiTextLine* line, mu
     return true;
 }
 
-// Where a line starts across a content box of the width.
+// Where a line starts across a content box of the width, scrolled.
 float muiAlignLine(const muiParagraph* paragraph, float lineWidth, float width)
 {
     float room = width - lineWidth;
     switch (paragraph->style.align)
     {
     case mui_textAlignCenter:
-        return room * 0.5f;
+        return room * 0.5f - paragraph->scrollX;
     case mui_textAlignEnd:
-        return paragraph->rtl ? 0.0f : room;
+        return (paragraph->rtl ? 0.0f : room) - paragraph->scrollX;
     default:
-        return paragraph->rtl ? room : 0.0f;
+        return (paragraph->rtl ? room : 0.0f) - paragraph->scrollX;
     }
 }
 

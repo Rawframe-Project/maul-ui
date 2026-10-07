@@ -319,27 +319,26 @@ static void PaintComposition(const muiLaidText* laid, uint32_t index, muiDrawSin
 void muiPaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
                   muiDrawSink* sink)
 {
-    (void)height;
-    muiParagraph paragraph;
+    muiLaidText laid;
     uint32_t count = 0;
-    if (!muiPrepareParagraph(user, nodeId, hostKey, &paragraph) ||
-        !muiBreakParagraph(&paragraph, muiParagraphBreakMode(&paragraph, mui_measureAtMost), width,
+    if (!muiPrepareParagraph(user, nodeId, hostKey, &laid.paragraph) ||
+        !muiBreakParagraph(&laid.paragraph,
+                           muiParagraphBreakMode(&laid.paragraph, mui_measureAtMost), width,
                            &count))
     {
         return;
     }
-    muiTextService* service = paragraph.service;
-    const muiTextLine* lines = service->lines.data;
+    laid.lines = laid.paragraph.service->lines.data;
+    laid.lineCount = count;
+    laid.width = width;
+    // An editing block is drawn scrolled to its caret.
+    muiFollowCaret(&laid, height);
+    const muiTextLine* lines = laid.lines;
     for (uint32_t i = 0; i < count; i++)
     {
-        PaintLine(&paragraph, &lines[i], width, lines[i].baseline, sink);
+        PaintLine(&laid.paragraph, &lines[i], width, lines[i].baseline, sink);
     }
-    if (paragraph.block->compositionLength == 0)
-    {
-        return;
-    }
-    const muiLaidText laid = {paragraph, lines, count, width};
-    for (uint32_t i = 0; i < count; i++)
+    for (uint32_t i = 0; laid.paragraph.block->compositionLength != 0 && i < count; i++)
     {
         PaintComposition(&laid, i, sink);
     }

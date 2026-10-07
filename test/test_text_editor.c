@@ -10,6 +10,7 @@
 #include "test_harness.h"
 
 #include "maul-ui/context.h"
+#include "maul-ui/draw.h"
 #include "maul-ui/font.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
@@ -712,6 +713,81 @@ static void TestPassword(void)
     FreeScene(&scene);
 }
 
+// Sizes the scene's node, its content box that size.
+static void Size(Scene* scene, float width, float height)
+{
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.sizing.width = (muiDimension){0.0f, width, mui_dimensionValue};
+    layout.sizing.height = (muiDimension){0.0f, height, mui_dimensionValue};
+    CHECK(muiNode_SetLayoutValues(scene->context, scene->node, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyWidth) |
+                                      MUI_PROPERTY_BIT(mui_propertyHeight)) == mui_success,
+          "sized");
+    Layout(scene);
+}
+
+// The x of the first glyph painted.
+static float FirstGlyphX(Scene* scene)
+{
+    const muiDrawInput input = {1, 1.0f, muiPaintText, &scene->host};
+    muiDrawList list = {0};
+    CHECK(muiBuildDrawList(scene->context, scene->node, &input) == mui_success &&
+              muiGetDrawList(scene->context, &list) == mui_success && list.glyphCount != 0,
+          "painted");
+    return list.glyphCount != 0 ? list.glyphs[0].x : NAN;
+}
+
+// A field narrower than its text scrolls to show the caret, and back as
+// the caret goes back or the text shortens; one shorter than its lines
+// scrolls down to the caret's line.
+static void TestScroll(void)
+{
+    Scene scene = MakeScene("abcdefgh", 0);
+    Size(&scene, 50.0f, 10.0f);
+    const muiTextHost* host = &scene.host;
+    muiTextCaret caret;
+    CHECK(muiTextGetCaret(host, scene.node, 50.0f, (muiTextPosition){8, 0}, &caret) ==
+                  mui_success &&
+              caret.x == 49.0f,
+          "scrolled to the caret at the end, a unit's room for it");
+    CHECK(FirstGlyphX(&scene) == -31.0f, "painted scrolled");
+    muiTextPosition at = {0, 0};
+    CHECK(muiTextHitTest(host, scene.node, 50.0f, 8.0f, 5.0f, &at) == mui_success && at.offset == 4,
+          "a hit at 8, 39 into the text");
+    Select(&scene, 5, 5);
+    CHECK(muiTextGetCaret(host, scene.node, 50.0f, (muiTextPosition){5, 0}, &caret) ==
+                  mui_success &&
+              caret.x == 19.0f,
+          "a caret already shown keeps the scroll");
+    Select(&scene, 1, 1);
+    CHECK(muiTextGetCaret(host, scene.node, 50.0f, (muiTextPosition){1, 0}, &caret) ==
+                  mui_success &&
+              caret.x == 0.0f,
+          "back to a caret left of the box");
+    Select(&scene, 8, 8);
+    CHECK(muiTextGetCaret(host, scene.node, 50.0f, (muiTextPosition){8, 0}, &caret) ==
+                  mui_success &&
+              caret.x == 49.0f &&
+              muiTextBlock_SetText(scene.service, scene.block, "abc", 3) == mui_success,
+          "at the end again");
+    Layout(&scene);
+    CHECK(muiTextGetCaret(host, scene.node, 50.0f, (muiTextPosition){3, 0}, &caret) ==
+                  mui_success &&
+              caret.x == 30.0f && FirstGlyphX(&scene) == 0.0f,
+          "a shorter text comes back");
+    FreeScene(&scene);
+
+    scene = MakeScene("a\nb\nc\nd", mui_editMultiline);
+    Size(&scene, 50.0f, 20.0f);
+    CHECK(muiTextGetCaret(host = &scene.host, scene.node, 50.0f, (muiTextPosition){7, 0}, &caret) ==
+                  mui_success &&
+              caret.y == 10.0f,
+          "down to the last line, two lines shown");
+    CHECK(muiTextHitTest(host, scene.node, 50.0f, 1.0f, 1.0f, &at) == mui_success && at.offset == 4,
+          "the top shows the third line");
+    FreeScene(&scene);
+}
+
 int main(void)
 {
     TestCalls();
@@ -728,5 +804,6 @@ int main(void)
     TestEvents();
     TestComposition();
     TestPassword();
+    TestScroll();
     return s_failures == 0 ? 0 : 1;
 }

@@ -224,6 +224,15 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   an edit, taken out by empty text with the commit arriving as typing,
   undo waiting until it ends; an edit while one shows takes it out
   first. Focus stays the host's.
+- **The caret in view:** an editing block's text scrolls in its
+  content box: from where it was, just far enough that the caret shows
+  (a unit wide) on its line, then no further than the text reaches, so
+  a shortened text comes back, as browsers' inputs and text areas do.
+  The scroll folds into where lines start and the lines' tops, so
+  painting, hits, carets, rectangles and vertical moves all work in
+  points as drawn; measuring and the first baseline stay unscrolled,
+  as layout must not move with it. A node that clips keeps the
+  scrolled text inside its box.
 - **Passwords:** an editing block with the password rule is laid out,
   painted, hit and read by accessibility as its mask, a bullet (U+2022,
   as Chrome and AppKit draw one) per grapheme cluster, made again when

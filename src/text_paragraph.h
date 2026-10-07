@@ -35,6 +35,9 @@ typedef struct muiParagraph
     float lineHeight;
     // From a line's top to its baseline.
     float baseline;
+    // How far lines are scrolled left: an editing block's, once the caret
+    // is followed (muiFollowCaret), else 0.
+    float scrollX;
     bool rtl;
 } muiParagraph;
 

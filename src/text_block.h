@@ -106,6 +106,10 @@ typedef struct muiTextEditing
     muiTextEditDef def;
     muiTextSelection selection;
     float preferredX;
+    // How far the text is scrolled in the content box, the caret kept
+    // in view (src/text_boxes.h).
+    float scrollX;
+    float scrollY;
     uint8_t grain;
     uint32_t pressStart;
     uint32_t pressEnd;

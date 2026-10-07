@@ -6,7 +6,11 @@
 // pastes, deletions, undo and redo; moves, presses and drags place the
 // selection through a node's laid-out text. muiTextEditEvent maps a
 // platform's keys, typed text and the pointer onto these; the clipboard
-// and focus stay the host's.
+// and focus stay the host's. An editing block's text scrolls in its
+// node's content box to keep the caret in view, back as far as the text
+// allows; muiPaintText draws it scrolled (a node that clips keeps it
+// inside), and the editing primitives (maul-ui/text_edit.h) take and give
+// points as drawn.
 
 #ifndef MAUL_UI_TEXT_EDITOR_H
 #define MAUL_UI_TEXT_EDITOR_H
