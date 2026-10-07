@@ -22,6 +22,8 @@
 // Chrome runs with WebGPU on SwiftShader, for programs that draw; the
 // arguments after the test's are its own (Module.arguments), and
 // MUI_RHI_REQUIRED, when set, is set in its environment too.
+// MUI_WEB_CANVAS, when set, starts Chrome's compositor on Vulkan, which a
+// program presenting into a canvas needs.
 //
 // usage: node web_runner.cjs <test.js> [argument...]
 
@@ -173,14 +175,16 @@ let queue = Promise.resolve();
 
 async function main() {
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    // A canvas presents WebGPU through a shared image the compositor
+    // reads: headless, only a compositor on the system's Vulkan (in CI
+    // lavapipe, VK_ICD_FILENAMES naming it) with ANGLE over it offers one,
+    // and without it the device is lost on the first canvas frame. Asked
+    // for by MUI_WEB_CANVAS, as it changes when the page renders.
+    const canvas = process.env.MUI_WEB_CANVAS
+        ? ['--enable-features=Vulkan', '--use-vulkan=native', '--use-angle=vulkan'] : [];
     const browser = await puppeteer.launch({
-        // A canvas presents WebGPU through a shared image the compositor
-        // reads: headless, only a compositor on the system's Vulkan (in CI
-        // lavapipe, VK_ICD_FILENAMES naming it) with ANGLE over it offers
-        // one; others lose the device on the first canvas frame.
         args: ['--no-sandbox', '--enable-unsafe-webgpu', '--enable-unsafe-swiftshader',
-               '--use-webgpu-adapter=swiftshader', '--enable-features=Vulkan',
-               '--use-vulkan=native', '--use-angle=vulkan'],
+               '--use-webgpu-adapter=swiftshader', ...canvas],
     });
     let status = 1;
     try {

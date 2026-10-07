@@ -336,7 +336,7 @@ jobs:
           for sample in build-sample/sample_*.js; do
             MUI_RHI_REQUIRED=1 MUI_NODE_MODULES=/tmp/browser/node_modules \
               node test/web_runner.cjs "$sample" --headless || exit 1
-            MUI_RHI_REQUIRED=1 MUI_NODE_MODULES=/tmp/browser/node_modules \
+            MUI_WEB_CANVAS=1 MUI_RHI_REQUIRED=1 MUI_NODE_MODULES=/tmp/browser/node_modules \
               node test/web_runner.cjs "$sample" --frames 5 | tee canvas.log
             test "${PIPESTATUS[0]}" -eq 0
             grep -q "the presented frame checked" canvas.log

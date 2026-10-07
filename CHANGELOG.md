@@ -116,9 +116,9 @@ format.
   into a canvas; where a surface offers sRGB only as a view (a WebGPU
   canvas), frames are drawn into a staging texture in the sRGB twin and
   copied onto it, and in a browser the program ends in Maul Window's
-  quit. The web runner starts Chrome with its compositor on Vulkan
-  (lavapipe in CI) and ANGLE over it, which a canvas's WebGPU frames
-  need; the ARIA test waits for the host's scroll to be put back rather
+  quit. For canvas runs (`MUI_WEB_CANVAS`) the web runner starts
+  Chrome with its compositor on Vulkan (lavapipe in CI) and ANGLE over
+  it, which a canvas's WebGPU frames need; the ARIA test waits for the host's scroll to be put back rather
   than a fixed 20 ms, a scroll event coming with the next rendering. On
   the web the
   headless tour runs in headless
