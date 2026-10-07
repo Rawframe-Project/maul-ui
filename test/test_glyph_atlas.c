@@ -685,10 +685,12 @@ static void TestColorGlyphs(void)
     Free(&fixture);
 }
 
-// Many tints of one glyph in a larger atlas of colour glyphs, each found
-// with its own: the text's colour in each image (its small box, at 4, 3
-// from the image's left and bottom) is the tint's, as a glyph rendered
-// alone in that tint has it, kept as 8-bit sRGB.
+// Many tints of one glyph, each in both palettes, in a larger atlas of
+// colour glyphs, enough that their keys share probe chains: each found
+// with its own. The text's colour in each image (its small box, at 4, 3
+// from the image's left and bottom) is the tint's and its first layer (at
+// 1, 8) the palette's, as a glyph rendered alone has them, the tint kept
+// as 8-bit sRGB with straight alpha; every other tint is half clear.
 static void TestTints(void)
 {
     Fixture fixture = Make(64, 32, 1, NULL);
@@ -700,8 +702,8 @@ static void TestTints(void)
     CHECK(muiCreateFont(fixture.service, &fontDef, &colorFont) == mui_success, "Maul Color");
     uint64_t color = muiFont_GetKey(colorFont);
     muiGlyphAtlasDef def = muiDefaultGlyphAtlasDef();
-    def.pageWidth = 128;
-    def.pageHeight = 128;
+    def.pageWidth = 256;
+    def.pageHeight = 256;
     def.plotWidth = 64;
     def.plotHeight = 64;
     def.maxPages = 1;
@@ -710,34 +712,44 @@ static void TestTints(void)
     CHECK(muiCreateGlyphAtlas(fixture.service, &def, &atlas) == mui_success, "colour glyphs");
     enum
     {
-        TINTS = 12
+        TINTS = 32
     };
-    // Every tint twice: the second time each is found, not packed.
+    // Every key twice: the second time each is found, not packed.
     bool right = true;
     for (int pass = 0; pass < 2; pass++)
     {
-        for (int k = 0; k < TINTS; k++)
+        for (int k = 0; k < TINTS * 2; k++)
         {
-            float grey = (float)(k + 1) / (float)(TINTS + 1);
-            const muiLinearColor tint = {grey, grey, grey, 1.0f};
+            float grey = (float)(k / 2 + 1) / (float)(TINTS + 1);
+            float alpha = k / 2 % 2 == 0 ? 1.0f : 0.5f;
+            const muiLinearColor tint = {grey * alpha, grey * alpha, grey * alpha, alpha};
+            uint32_t palette = (uint32_t)k % 2;
             unsigned char alone[8 * 8 * 4];
             muiGlyphImage image = {0};
             muiAtlasGlyph glyph = {0};
             muiAtlasPage page = {0};
-            bool got = muiRenderColorGlyph(fixture.service, color, 1, 10.0f, 0.0f, 0, tint, &image,
-                                           alone, sizeof alone) == mui_success &&
-                       muiGlyphAtlas_GetColor(atlas, color, 1, 10.0f, 0.0f, 0.0f, 0, tint,
+            bool got = muiRenderColorGlyph(fixture.service, color, 1, 10.0f, 0.0f, palette, tint,
+                                           &image, alone, sizeof alone) == mui_success &&
+                       muiGlyphAtlas_GetColor(atlas, color, 1, 10.0f, 0.0f, 0.0f, palette, tint,
                                               &glyph) == mui_success &&
                        muiGlyphAtlas_GetPage(atlas, 0, &page) == mui_success;
-            // Image row 4 from the top and column 3: 3 up and 4 right.
-            const unsigned char* packed =
-                page.pixels + ((size_t)(glyph.v + 4) * page.width + glyph.u + 3) * 4;
-            const unsigned char* expected = &alone[(4 * 8 + 3) * 4];
-            right = right && got && abs(packed[0] - expected[0]) <= 1 &&
-                    abs(packed[1] - expected[1]) <= 1 && packed[3] == 255;
+            // Rows 4 and 0 from the top, columns 3 and 0.
+            const size_t rows[2] = {4, 0};
+            const size_t columns[2] = {3, 0};
+            for (int at = 0; at < 2 && got; at++)
+            {
+                const unsigned char* packed =
+                    page.pixels + ((glyph.v + rows[at]) * page.width + glyph.u + columns[at]) * 4;
+                const unsigned char* expected = &alone[(rows[at] * 8 + columns[at]) * 4];
+                for (int c = 0; c < 4; c++)
+                {
+                    right = right && abs(packed[c] - expected[c]) <= 1;
+                }
+            }
+            right = right && got;
         }
     }
-    CHECK(right, "each tint its own image");
+    CHECK(right, "each tint and palette its own image");
     muiDestroyGlyphAtlas(atlas);
     Free(&fixture);
 }
