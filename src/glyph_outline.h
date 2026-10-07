@@ -44,7 +44,8 @@ muiFont* muiGlyphFontOf(const muiTextService* service, uint64_t font, uint32_t g
                         uint64_t* keyOut, muiResult* result);
 
 // Loads a glyph's outline into the font's face, in a key's instance at a
-// size in 64ths of a pixel, the pen moved right by offset 64ths.
+// size in 64ths of a pixel, the pen moved right by offset 64ths;
+// mui_empty for a face without outlines, a bitmap-only font's.
 muiResult muiLoadGlyphOutline(muiFont* font, uint64_t key, uint32_t glyph, long size,
                               FT_Pos offset);
 

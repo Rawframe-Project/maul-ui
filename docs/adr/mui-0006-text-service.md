@@ -153,6 +153,14 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   Compositing and Blending Level 1's 28 modes in linear light, as the
   painter composites everything, plus held at 1 so that alpha stays a
   fraction.
+  A glyph without COLR colour is drawn from its colour bitmap where the
+  font has CBLC and CBDT tables, read in place: from the smallest strike
+  reaching the size, else the largest, its PNG decoded by Maul UI's own
+  decoder (every colour type, depth and interlacing, its checksums
+  checked; FreeType is built without libpng) and scaled to the size in
+  premultiplied linear light, averaged when shrinking and bilinear when
+  growing. A font of bitmaps alone, without outlines, is accepted, its
+  units per em from its head table, its glyphs without coverage.
   A glyph without colour is `mui_empty`, drawn as coverage.
 - **Font instances:** a font key names a font and an instance of it:
   the wght axis's value, ital, slnt or a shear, the opsz axis's value,

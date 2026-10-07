@@ -5,6 +5,7 @@
 # modules read their headers.
 
 target_sources(maul-ui PRIVATE
+    src/bitmap_glyph.c
     src/color_glyph.c
     src/colr_composite.c
     src/colr_gradient.c
@@ -21,6 +22,7 @@ target_sources(maul-ui PRIVATE
     src/glyph_image.c
     src/glyph_outline.c
     src/glyph_table.c
+    src/image_scale.c
     src/inflate.c
     src/line_break.c
     src/multi_field.c

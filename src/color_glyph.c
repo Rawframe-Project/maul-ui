@@ -6,12 +6,17 @@
 // glyph's outline, rendered as FreeType's coverage over the layers' joint
 // box and composited in order, source over, in premultiplied linear
 // light; a layer's colour is its palette entry, sRGB with straight alpha,
-// or for entry 0xFFFF the text's colour. The result is stored as an sRGB
-// texture holds premultiplied colour: red, green and blue encoded with
-// sRGB's transfer function, alpha linear.
+// or for entry 0xFFFF the text's colour. A glyph without COLR colour is
+// drawn from its colour bitmap where the font has one (bitmap_glyph.c),
+// its PNG decoded and scaled from its strike to the size in linear light.
+// The result is stored as an sRGB texture holds premultiplied colour: red,
+// green and blue encoded with sRGB's transfer function, alpha linear.
 
+#include "bitmap_glyph.h"
 #include "color.h"
 #include "colr_paint.h"
+#include "image_scale.h"
+#include "png.h"
 #include "text_service.h"
 
 #include "maul-ui/glyph_image.h"
@@ -172,6 +177,143 @@ static muiResult Paint(const ColorGlyph* color, const muiPixelBox* box, float* a
     return PaintLayers(&color->source, color->glyph, box, accumulated);
 }
 
+// Places the image at a box and makes room for its pixels, cleared:
+// mui_success, accumulatedOut NULL for an empty box; otherwise why not.
+static muiResult Prepare(muiTextService* service, const muiPixelBox* box, muiGlyphImage* imageOut,
+                         size_t capacity, float** accumulatedOut)
+{
+    *accumulatedOut = nullptr;
+    if (box->width > MUI_MAX_IMAGE_EXTENT || box->height > MUI_MAX_IMAGE_EXTENT)
+    {
+        return mui_errorFormat;
+    }
+    *imageOut = (muiGlyphImage){(int32_t)box->left, (int32_t)(box->bottom + box->height),
+                                (uint32_t)box->width, (uint32_t)box->height};
+    size_t count = (size_t)box->width * (size_t)box->height;
+    if (count * 4 > capacity)
+    {
+        return mui_errorCapacity;
+    }
+    if (count == 0)
+    {
+        return mui_success;
+    }
+    if (!muiReserve(&service->allocator, &service->colorPixels, count * 4 * sizeof(float)))
+    {
+        return mui_errorCapacity;
+    }
+    *accumulatedOut = service->colorPixels.data;
+    memset(*accumulatedOut, 0, count * 4 * sizeof(float));
+    return mui_success;
+}
+
+// Renders a glyph's COLR colour, of either version.
+static muiResult RenderLayers(ColorGlyph* color, uint32_t palette, muiGlyphImage* imageOut,
+                              unsigned char* pixels, size_t capacity)
+{
+    muiPixelBox box = {0, 0, 0, 0};
+    muiResult result = BoxOf(color, &box);
+    float* accumulated = nullptr;
+    result = result == mui_success
+                 ? Prepare(color->source.service, &box, imageOut, capacity, &accumulated)
+                 : result;
+    if (result != mui_success || accumulated == nullptr)
+    {
+        return result;
+    }
+    SelectPalette(&color->source, palette);
+    result = Paint(color, &box, accumulated);
+    if (result == mui_success)
+    {
+        Store(accumulated, (size_t)box.width * (size_t)box.height, pixels);
+    }
+    return result;
+}
+
+// A bitmap's PNG decoded into premultiplied linear light in the service's
+// buffers.
+static muiResult DecodeBitmap(muiTextService* service, const muiBitmapGlyph* bitmap,
+                              muiScaleSource* sourceOut)
+{
+    uint32_t width = 0;
+    uint32_t height = 0;
+    muiResult result =
+        muiDecodePng(&service->allocator, &service->bitmapScratch, bitmap->png, bitmap->size,
+                     MUI_MAX_IMAGE_EXTENT, &width, &height, nullptr, 0);
+    // Without pixels, a PNG only tells its size.
+    if (result != mui_errorCapacity)
+    {
+        return result == mui_success ? mui_errorFormat : result;
+    }
+    size_t count = (size_t)width * height;
+    if (!muiReserve(&service->allocator, &service->bitmapRgba, count * 4) ||
+        !muiReserve(&service->allocator, &service->bitmapLinear, count * 4 * sizeof(float)))
+    {
+        return mui_errorCapacity;
+    }
+    unsigned char* rgba = service->bitmapRgba.data;
+    result = muiDecodePng(&service->allocator, &service->bitmapScratch, bitmap->png, bitmap->size,
+                          MUI_MAX_IMAGE_EXTENT, &width, &height, rgba, count * 4);
+    if (result != mui_success)
+    {
+        return result;
+    }
+    // sRGB's 256 levels in linear light.
+    float levels[256];
+    for (int v = 0; v < 256; v++)
+    {
+        double rgb[3];
+        float c = (float)v / 255.0f;
+        muiColorToLinearRgb((muiColor){c, c, c, 1.0f}, rgb);
+        levels[v] = (float)rgb[0];
+    }
+    float* linear = service->bitmapLinear.data;
+    for (size_t i = 0; i < count; i++)
+    {
+        float alpha = (float)rgba[i * 4 + 3] / 255.0f;
+        for (int c = 0; c < 3; c++)
+        {
+            linear[i * 4 + c] = levels[rgba[i * 4 + c]] * alpha;
+        }
+        linear[i * 4 + 3] = alpha;
+    }
+    *sourceOut = (muiScaleSource){linear, width, height};
+    return mui_success;
+}
+
+// Renders a glyph's colour bitmap, scaled from its strike to the size,
+// its place kept to the fraction of a pixel with the pen's offset.
+static muiResult RenderBitmap(muiTextService* service, const muiBitmapGlyph* bitmap,
+                              float pixelSize, float offsetX, muiGlyphImage* imageOut,
+                              unsigned char* pixels, size_t capacity)
+{
+    muiScaleSource source = {nullptr, 0, 0};
+    muiResult result = DecodeBitmap(service, bitmap, &source);
+    if (result != mui_success)
+    {
+        return result;
+    }
+    double factor = (double)pixelSize / (double)bitmap->ppem;
+    // The image's left and top edges in pixels from the pen, y up.
+    double left = (double)offsetX + bitmap->left * factor;
+    double top = bitmap->top * factor;
+    FT_Pos x = (FT_Pos)floor(left);
+    FT_Pos y = (FT_Pos)ceil(top);
+    FT_Pos right = (FT_Pos)ceil(left + source.width * factor);
+    FT_Pos bottom = (FT_Pos)floor(top - source.height * factor);
+    muiPixelBox box = {x, bottom, right - x, y - bottom};
+    float* accumulated = nullptr;
+    result = Prepare(service, &box, imageOut, capacity, &accumulated);
+    if (result != mui_success || accumulated == nullptr)
+    {
+        return result;
+    }
+    muiScaleImage(&source, factor, left - (double)x, (double)y - top, accumulated,
+                  (uint32_t)box.width, (uint32_t)box.height);
+    Store(accumulated, (size_t)box.width * (size_t)box.height, pixels);
+    return mui_success;
+}
+
 muiResult muiRenderColorGlyph(muiTextService* service, uint64_t font, uint32_t glyph,
                               float pixelSize, float offsetX, uint32_t palette,
                               muiLinearColor foreground, muiGlyphImage* imageOut,
@@ -191,45 +333,17 @@ muiResult muiRenderColorGlyph(muiTextService* service, uint64_t font, uint32_t g
         return result;
     }
     *imageOut = (muiGlyphImage){0, 0, 0, 0};
-    if (!color.source.font->colorLayers || !FindColor(&color))
+    if (color.source.font->colorLayers && FindColor(&color))
     {
-        return mui_empty;
+        color.source.size = lroundf(pixelSize * 64.0f);
+        color.source.offset = (FT_Pos)lroundf(offsetX * 64.0f);
+        color.source.foreground = foreground;
+        return RenderLayers(&color, palette, imageOut, pixels, capacity);
     }
-    color.source.size = lroundf(pixelSize * 64.0f);
-    color.source.offset = (FT_Pos)lroundf(offsetX * 64.0f);
-    color.source.foreground = foreground;
-    muiPixelBox box = {0, 0, 0, 0};
-    result = BoxOf(&color, &box);
-    if (result != mui_success)
+    muiBitmapGlyph bitmap;
+    if (muiFindBitmapGlyph(color.source.font, glyph, pixelSize, &bitmap))
     {
-        return result;
+        return RenderBitmap(service, &bitmap, pixelSize, offsetX, imageOut, pixels, capacity);
     }
-    if (box.width > MUI_MAX_IMAGE_EXTENT || box.height > MUI_MAX_IMAGE_EXTENT)
-    {
-        return mui_errorFormat;
-    }
-    *imageOut = (muiGlyphImage){(int32_t)box.left, (int32_t)(box.bottom + box.height),
-                                (uint32_t)box.width, (uint32_t)box.height};
-    size_t count = (size_t)box.width * (size_t)box.height;
-    if (count * 4 > capacity)
-    {
-        return mui_errorCapacity;
-    }
-    if (count == 0)
-    {
-        return mui_success;
-    }
-    if (!muiReserve(&service->allocator, &service->colorPixels, count * 4 * sizeof(float)))
-    {
-        return mui_errorCapacity;
-    }
-    SelectPalette(&color.source, palette);
-    float* accumulated = service->colorPixels.data;
-    memset(accumulated, 0, count * 4 * sizeof(float));
-    result = Paint(&color, &box, accumulated);
-    if (result == mui_success)
-    {
-        Store(accumulated, count, pixels);
-    }
-    return result;
+    return mui_empty;
 }

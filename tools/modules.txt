@@ -134,7 +134,9 @@ distance_field:
 flatten: distance_field
 multi_field: distance_field
 glyph_image: distance_field flatten glyph_outline multi_field text_service
-color_glyph: color colr_paint glyph_outline paint_source text_service
+bitmap_glyph: font_store
+color_glyph: bitmap_glyph color colr_paint glyph_outline image_scale paint_source png text_block text_service
+image_scale:
 colr_gradient: motion_math paint_source text_block text_service
 colr_composite:
 colr_paint: colr_composite colr_gradient glyph_outline motion_math paint_source text_block text_service
@@ -144,6 +146,6 @@ png: inflate text_block
 glyph_outline: font_instance font_store text_block text_service
 skyline:
 glyph_table: allocator
-glyph_atlas: allocator color font_store glyph_table skyline text_service
+glyph_atlas: allocator bitmap_glyph color font_store glyph_table skyline text_service
 property_bits:
 inherit: layout_node property tree

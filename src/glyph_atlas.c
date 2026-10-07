@@ -9,6 +9,7 @@
 #include "maul-ui/glyph_atlas.h"
 
 #include "allocator.h"
+#include "bitmap_glyph.h"
 #include "color.h"
 #include "font_store.h"
 #include "glyph_table.h"
@@ -512,7 +513,7 @@ static muiResult Find(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, uint3
         return mui_errorInvalid;
     }
     *glyphOut = (muiAtlasGlyph){0, 0, 0, 0, 0, 0, 0};
-    if (atlas->format == mui_atlasColor && !record->colorLayers)
+    if (atlas->format == mui_atlasColor && !record->colorLayers && !muiHasColorBitmaps(record))
     {
         return mui_empty;
     }

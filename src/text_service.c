@@ -164,6 +164,9 @@ static void Release(muiTextService* service)
     muiFreeBuffer(&service->allocator, &service->colorPixels);
     muiFreeBuffer(&service->allocator, &service->paintSurfaces);
     muiFreeBuffer(&service->allocator, &service->paintStops);
+    muiFreeBuffer(&service->allocator, &service->bitmapScratch);
+    muiFreeBuffer(&service->allocator, &service->bitmapRgba);
+    muiFreeBuffer(&service->allocator, &service->bitmapLinear);
     muiFreeBuffer(&service->allocator, &service->fieldCellPieces);
     muiFreeBuffer(&service->allocator, &service->fieldEdge);
     muiFreeBuffer(&service->allocator, &service->fieldDistances);

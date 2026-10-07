@@ -77,6 +77,10 @@ static muiResult Synthesize(FT_Outline* outline, uint64_t key, long size)
 muiResult muiLoadGlyphOutline(muiFont* font, uint64_t key, uint32_t glyph, long size, FT_Pos offset)
 {
     FT_Face face = font->face;
+    if (!FT_IS_SCALABLE(face))
+    {
+        return mui_empty;
+    }
     muiResult result = SetInstance(font, key);
     if (result != mui_success)
     {

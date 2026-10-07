@@ -410,6 +410,8 @@ if(MAUL_UI_BUILD_TESTS)
             ${PROJECT_BINARY_DIR}/test_fonts/overlap.inc s_overlap)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulColor.ttf
             ${PROJECT_BINARY_DIR}/test_fonts/color.inc s_color)
+        mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulBitmap.ttf
+            ${PROJECT_BINARY_DIR}/test_fonts/bitmap.inc s_bitmap)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/images/pngs.bin
             ${PROJECT_BINARY_DIR}/test_fonts/pngs.inc s_pngs)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulVariable.ttf
@@ -443,6 +445,8 @@ if(MAUL_UI_BUILD_TESTS)
         maul_add_test(field_quality)
         target_include_directories(test_field_quality PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(colr_composite WHITEBOX)
+        maul_add_test(bitmap_glyph)
+        target_include_directories(test_bitmap_glyph PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(color_glyph)
         target_include_directories(test_color_glyph PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(glyph_atlas)

@@ -34,11 +34,13 @@ muiResult muiRenderGlyph(muiTextService* service, uint64_t font, uint32_t glyph,
     {
         return result;
     }
+    *imageOut = (muiGlyphImage){0, 0, 0, 0};
     result = muiLoadGlyphOutline(record, key, glyph, lroundf(pixelSize * 64.0f),
                                  (FT_Pos)lroundf(offsetX * 64.0f));
     if (result != mui_success)
     {
-        return result;
+        // A bitmap-only font's glyphs have no coverage.
+        return result == mui_empty ? mui_success : result;
     }
     FT_Outline* outline = &record->face->glyph->outline;
     muiPixelBox box = muiOutlineBox(outline);
@@ -165,13 +167,14 @@ static muiResult RenderField(muiTextService* service, uint64_t font, uint32_t gl
     {
         return result;
     }
+    *imageOut = (muiGlyphImage){0, 0, 0, 0};
     result = muiLoadGlyphOutline(record, key, glyph, lroundf(pixelSize * 64.0f), 0);
     if (result != mui_success)
     {
-        return result;
+        // A bitmap-only font's glyphs have no field.
+        return result == mui_empty ? mui_success : result;
     }
     const FT_Outline* outline = &record->face->glyph->outline;
-    *imageOut = (muiGlyphImage){0, 0, 0, 0};
     if (outline->n_points == 0)
     {
         return mui_success;

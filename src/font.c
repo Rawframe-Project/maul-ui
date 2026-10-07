@@ -87,6 +87,30 @@ muiResult muiCountFontFaces(const void* data, size_t size, uint32_t* countOut)
     return mui_success;
 }
 
+// The units per em, from the head table: FreeType gives 0 for a face
+// without outlines, as a bitmap-only emoji font is.
+static uint32_t UnitsPerEm(FT_Face face)
+{
+    const TT_Header* head = FT_Get_Sfnt_Table(face, FT_SFNT_HEAD);
+    return head != nullptr ? head->Units_Per_EM : face->units_per_EM;
+}
+
+// A table as a view of the font's bytes, which HarfBuzz's face reads in
+// place; none when it is missing or, from a HarfBuzz that copied it,
+// not within them.
+static muiFontTable TableOf(const muiFont* font, hb_tag_t tag)
+{
+    hb_blob_t* blob = hb_face_reference_table(font->shapingFace, tag);
+    unsigned int length = 0;
+    const char* data = hb_blob_get_data(blob, &length);
+    hb_blob_destroy(blob);
+    const unsigned char* start = (const unsigned char*)data;
+    bool within = data != nullptr && length > 0 && start >= font->data &&
+                  (size_t)(start - font->data) <= font->size &&
+                  length <= font->size - (size_t)(start - font->data);
+    return within ? (muiFontTable){start, length} : (muiFontTable){nullptr, 0};
+}
+
 static float Ems(int32_t units, uint32_t unitsPerEm)
 {
     return (float)units / (float)unitsPerEm;
@@ -95,7 +119,7 @@ static float Ems(int32_t units, uint32_t unitsPerEm)
 static void ReadMetrics(muiFont* font)
 {
     FT_Face face = font->face;
-    uint32_t unitsPerEm = face->units_per_EM;
+    uint32_t unitsPerEm = UnitsPerEm(face);
     const TT_OS2* os2 = FT_Get_Sfnt_Table(face, FT_SFNT_OS2);
     const TT_HoriHeader* hhea = FT_Get_Sfnt_Table(face, FT_SFNT_HHEA);
     const TT_Postscript* post = FT_Get_Sfnt_Table(face, FT_SFNT_POST);
@@ -220,7 +244,7 @@ static muiResult Open(muiTextService* service, const muiFontDef* def, muiFont* f
     // FreeType accepts a font without glyphs. It refuses units per em out
     // of range too, but metrics divide by them, so an installed FreeType
     // is not trusted with that.
-    if (font->face->units_per_EM < 16 || font->face->units_per_EM > 16384 ||
+    if (UnitsPerEm(font->face) < 16 || UnitsPerEm(font->face) > 16384 ||
         font->face->num_glyphs <= 0)
     {
         return mui_errorFormat;
@@ -252,10 +276,13 @@ static muiResult Open(muiTextService* service, const muiFontDef* def, muiFont* f
         font->shapingFont = nullptr;
         return mui_errorCapacity;
     }
-    int scale = (int)font->face->units_per_EM;
+    int scale = (int)UnitsPerEm(font->face);
     hb_font_set_scale(font->shapingFont, scale, scale);
     hb_font_make_immutable(font->shapingFont);
     ReadMetrics(font);
+    font->cblc = TableOf(font, HB_TAG('C', 'B', 'L', 'C'));
+    font->cbdt = TableOf(font, HB_TAG('C', 'B', 'D', 'T'));
+    font->sbix = TableOf(font, HB_TAG('s', 'b', 'i', 'x'));
     return ReadStyle(service->freetype, font) ? mui_success : mui_errorCapacity;
 }
 

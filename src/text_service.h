@@ -80,6 +80,11 @@ struct muiTextService
     muiBuffer paintSurfaces;
     // A version 1 gradient's colour stops, sorted.
     muiBuffer paintStops;
+    // For colour bitmaps: the PNG's data on the way, its RGBA, and its
+    // pixels premultiplied in linear light.
+    muiBuffer bitmapScratch;
+    muiBuffer bitmapRgba;
+    muiBuffer bitmapLinear;
     muiBuffer fieldCellPieces;
     muiBuffer fieldEdge;
     muiBuffer fieldDistances;

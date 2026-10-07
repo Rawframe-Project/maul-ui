@@ -39,7 +39,8 @@ extern "C"
     /// Renders a glyph as coverage: a byte per pixel, rows from the top,
     /// 0 outside the outline to 255 inside, linear in the area covered
     /// (a renderer applies any gamma). A glyph with no outline, such as
-    /// a space, has an empty image. A glyph run's glyph at (x, y) from
+    /// a space or any glyph of a font of bitmaps alone, has an empty
+    /// image. A glyph run's glyph at (x, y) from
     /// its origin, drawn at a scale, has its pen at (originX + x) * scale
     /// and its baseline at (originY + y) * scale, y rounded to a pixel;
     /// its em is the run's size times the scale.
@@ -82,8 +83,10 @@ extern "C"
     /// text's colour, and everything is composited in premultiplied linear
     /// light; the pixels are stored as an sRGB texture holds premultiplied
     /// colour, red, green and blue encoded with sRGB's transfer function
-    /// and alpha linear. A glyph without colour gives `mui_empty` and an
-    /// empty image, to be drawn as coverage.
+    /// and alpha linear. A glyph without COLR colour is drawn from its
+    /// colour bitmap where the font has one (CBLC and CBDT), from the
+    /// strike that suits the size, scaled to it. A glyph without colour
+    /// gives `mui_empty` and an empty image, to be drawn as coverage.
     ///
     /// @param service     The service.
     /// @param font        A font key, as a glyph run carries; 0 for the
