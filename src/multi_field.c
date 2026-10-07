@@ -330,7 +330,7 @@ typedef struct Reading
     float value;
 } Reading;
 
-static Reading Read(const muiSegment* s, uint8_t flags, int side, float px, float py, bool inside)
+static Reading Read(const muiSegment* s, uint8_t flags, int side, float px, float py)
 {
     float dx = s->x1 - s->x0;
     float dy = s->y1 - s->y0;
@@ -341,9 +341,10 @@ static Reading Read(const muiSegment* s, uint8_t flags, int side, float px, floa
     float qy = py - t * dy;
     float squared = qx * qx + qy * qy;
     float cross = dx * py - dy * px;
-    float sign = cross == 0.0f                  ? (inside ? 1.0f : -1.0f)
-                 : (cross > 0.0f) == (side > 0) ? 1.0f
-                                                : -1.0f;
+    // On the line (cross 0) the sign does not matter: the distance or the
+    // pseudo-distance is 0, or a piece joined at the end is as near and
+    // less slanted.
+    float sign = (cross > 0.0f) == (side > 0) ? 1.0f : -1.0f;
     float distance = sqrtf(squared);
     float slant = squared > 0.0f && length > 0.0f
                       ? fabsf(qx * dx + qy * dy) / (distance * sqrtf(length))
@@ -356,7 +357,7 @@ static Reading Read(const muiSegment* s, uint8_t flags, int side, float px, floa
 // Lowers each pixel's channels of a segment's colour to the segment's
 // where it is nearer, or as near and more perpendicular.
 static void MeasureSegment(const muiSegment* s, uint8_t colors, int side, const muiFieldGrid* grid,
-                           const unsigned char* inside, Channels* channels)
+                           Channels* channels)
 {
     int64_t c0 = 0;
     int64_t c1 = 0;
@@ -373,8 +374,8 @@ static void MeasureSegment(const muiSegment* s, uint8_t colors, int side, const 
         for (int64_t c = c0; c <= c1; c++)
         {
             size_t at = (size_t)r * grid->width + (size_t)c;
-            Reading reading = Read(s, colors, side, left + (float)c - s->x0, top - (float)r - s->y0,
-                                   inside[at] != 0);
+            Reading reading =
+                Read(s, colors, side, left + (float)c - s->x0, top - (float)r - s->y0);
             Channels* pixel = &channels[at];
             for (uint32_t k = 0; k < CHANNELS; k++)
             {
@@ -423,7 +424,7 @@ void muiDrawMultiField(const muiSegment* pieces, const uint32_t* origins, uint32
     }
     for (uint32_t i = 0; i < edges; i++)
     {
-        MeasureSegment(&scratch->edge[i], multi->edgeColors[i], scratch->edgeSides[i], grid, inside,
+        MeasureSegment(&scratch->edge[i], multi->edgeColors[i], scratch->edgeSides[i], grid,
                        channels);
     }
     float scale = 128.0f / spread;

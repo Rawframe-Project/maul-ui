@@ -3,9 +3,11 @@
 //
 // Multi-channel distance fields of segments: sampled as a renderer
 // samples them, each channel bilinearly and then their median, a square's
-// convex corner and an L's concave one stay where they are, where the
-// one-channel field (alpha) rounds them; a smooth contour, one curve, is
-// white; the median's sign agrees with the inside for a union of
+// convex corners and an L's concave one stay where they are, where the
+// one-channel field (alpha) rounds them; so do the corners of a plus of
+// two crossing bars, a teardrop's one corner and a thin spike's tip; a
+// smooth contour, one curve, is white; an open edge reads its line past
+// its ends; the median's sign agrees with the inside for a union of
 // overlapping squares; and alpha is the one-channel field byte for byte.
 
 #include "distance_field.h"
@@ -130,6 +132,21 @@ static double Crossing(double x, double y, double dx, double dy, bool multi)
     return (low + high) * 0.5;
 }
 
+// Whether every corner is kept: for each, given as x, y and a direction
+// out of the shape, the median crosses 0 along that direction within a
+// twentieth of its length.
+static bool CornersKept(const float* corners, uint32_t count)
+{
+    bool kept = true;
+    for (uint32_t i = 0; i < count; i++)
+    {
+        const float* c = &corners[4 * i];
+        kept = kept &&
+               fabs(Crossing((double)c[0], (double)c[1], (double)c[2], (double)c[3], true)) < 0.05;
+    }
+    return kept;
+}
+
 static uint32_t Polygon(muiSegment* out, uint32_t* curves, const float* points, uint32_t count,
                         bool oneCurve)
 {
@@ -153,6 +170,9 @@ static void TestConvexCorner(void)
     double multi = Crossing(24.0, 24.0, 1.0, 1.0, true);
     double single = Crossing(24.0, 24.0, 1.0, 1.0, false);
     CHECK(fabs(multi) < 0.05, "the median keeps the convex corner");
+    // The others too, the one where the loop closes among them.
+    const float corners[16] = {8, 8, -1, -1, 24, 8, 1, -1, 24, 24, 1, 1, 8, 24, -1, 1};
+    CHECK(CornersKept(corners, 4), "every corner");
     CHECK(single < -0.15, "the one-channel field rounds it inward");
     // Along a side, both find the edge.
     CHECK(fabs(Crossing(24.0, 16.0, 1.0, 0.0, true)) < 0.05 &&
@@ -243,11 +263,99 @@ static void TestUnion(void)
     CHECK(Crossing(12.0, 20.0, -1.0, 1.0, false) > 0.15, "the one-channel field fills them in");
 }
 
+// A plus of two bars crossing: the union's edge leaves one bar for the
+// other at four places, two of them sharing each x, and its twelve
+// corners are kept.
+static void TestPlus(void)
+{
+    muiSegment segments[8];
+    uint32_t curves[8];
+    const float across[8] = {4, 12, 28, 12, 28, 20, 4, 20};
+    const float up[8] = {12, 4, 20, 4, 20, 28, 12, 28};
+    (void)Polygon(segments, curves, across, 4, false);
+    (void)Polygon(segments + 4, curves + 4, up, 4, false);
+    for (int i = 4; i < 8; i++)
+    {
+        curves[i] += 4;
+    }
+    Draw(segments, curves, 8);
+    // Convex corners out away from the middle, concave ones toward it.
+    const float corners[48] = {4,  12, -1, -1, 12, 12, -1, -1, 12, 4,  -1, -1, 20, 4,  1,  -1,
+                               20, 12, 1,  -1, 28, 12, 1,  -1, 28, 20, 1,  1,  20, 20, 1,  1,
+                               20, 28, 1,  1,  12, 28, -1, 1,  12, 20, -1, 1,  4,  20, -1, 1};
+    CHECK(CornersKept(corners, 12), "every corner of the plus");
+}
+
+// A teardrop: an arc of two curves meeting smoothly and one corner, at
+// the apex, which is kept.
+static void TestTeardrop(void)
+{
+    enum
+    {
+        ARC = 24
+    };
+    muiSegment segments[ARC + 2];
+    uint32_t curves[ARC + 2];
+    // The tangent points from the apex, 27, 16, to the circle.
+    double reach = asin(7.0 / 13.0);
+    double from = reach + 3.14159265358979 / 2.0;
+    float points[2 * (ARC + 2)];
+    points[0] = 27.0f;
+    points[1] = 16.0f;
+    for (int i = 0; i <= ARC; i++)
+    {
+        double angle = -from + (2.0 * from) * i / ARC;
+        // Around the far side of the circle, from one tangent to the other.
+        double turn = 3.14159265358979 + angle;
+        points[2 * (i + 1)] = (float)(14.0 + 7.0 * cos(turn));
+        points[2 * (i + 1) + 1] = (float)(16.0 - 7.0 * sin(turn));
+    }
+    uint32_t n = Polygon(segments, curves, points, ARC + 2, true);
+    // The first side and the arc's first half one curve, the arc's second
+    // half and the last side another: they meet smoothly halfway.
+    for (uint32_t i = 0; i < n; i++)
+    {
+        curves[i] = i <= ARC / 2 ? 0 : 1;
+    }
+    Draw(segments, curves, n);
+    const float apex[4] = {27, 16, 1, 0};
+    CHECK(CornersKept(apex, 1), "the teardrop's corner");
+}
+
+// A spike whose tip turns by more than 171.9 degrees, with no turn's
+// sine past the threshold: a corner all the same.
+static void TestSpike(void)
+{
+    muiSegment segments[3];
+    uint32_t curves[3];
+    const float spike[6] = {4.0f, 14.8f, 28.0f, 16.0f, 4.0f, 17.2f};
+    Draw(segments, curves, Polygon(segments, curves, spike, 3, false));
+    const float tip[4] = {28, 16, 1, 0};
+    CHECK(CornersKept(tip, 1), "the spike's tip");
+}
+
+// A lone segment upward along x = 16 from 8 to 24: inside on its right,
+// the edge open. Past either end its channels read its line.
+static void TestOpenEdge(void)
+{
+    const muiSegment segment = {16.0f, 8.0f, 16.0f, 24.0f};
+    const uint32_t curve = 0;
+    Draw(&segment, &curve, 1);
+    // Pixels 15.5, 5.5 and 15.5, 26.5: half a pixel left of the line.
+    CHECK(s_multi[((size_t)26 * SIDE + 15) * 4 + 1] == 112 &&
+              s_multi[((size_t)5 * SIDE + 15) * 4 + 1] == 112,
+          "past both ends, the line");
+}
+
 int main(void)
 {
     TestConvexCorner();
     TestConcaveCorner();
     TestSmooth();
     TestUnion();
+    TestPlus();
+    TestTeardrop();
+    TestSpike();
+    TestOpenEdge();
     return s_failures == 0 ? 0 : 1;
 }
