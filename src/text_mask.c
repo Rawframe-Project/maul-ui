@@ -62,7 +62,8 @@ static uint32_t ClusterStart(const muiTextBlock* block, uint32_t index)
     {
         index -= at != 0 ? 1u : 0u;
     }
-    return index == 0 ? (uint32_t)at : block->length;
+    // Past the last cluster the iterator stands at the text's end.
+    return (uint32_t)at;
 }
 
 uint32_t muiMaskOffset(const muiTextBlock* block, uint32_t offset)
