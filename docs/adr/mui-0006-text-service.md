@@ -154,7 +154,11 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   painter composites everything, plus held at 1 so that alpha stays a
   fraction.
   A glyph without COLR colour is drawn from its colour bitmap where the
-  font has CBLC and CBDT tables, read in place: from the smallest strike
+  font has CBLC and CBDT tables, or an sbix table (its PNG graphics,
+  placed from the glyph's outline box where it has contours, as
+  OpenType says, 'dupe' followed at most four times; FreeType opens
+  faces ignoring sbix, so a font with sbix and outlines stays
+  scalable), read in place: from the smallest strike
   reaching the size, else the largest, its PNG decoded by Maul UI's own
   decoder (every colour type, depth and interlacing, its checksums
   checked; FreeType is built without libpng) and scaled to the size in

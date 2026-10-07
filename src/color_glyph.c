@@ -295,8 +295,8 @@ static muiResult RenderBitmap(muiTextService* service, const muiBitmapGlyph* bit
     }
     double factor = (double)pixelSize / (double)bitmap->ppem;
     // The image's left and top edges in pixels from the pen, y up.
-    double left = (double)offsetX + bitmap->left * factor;
-    double top = bitmap->top * factor;
+    double left = (double)offsetX + (double)bitmap->left * factor;
+    double top = (double)bitmap->top * factor;
     FT_Pos x = (FT_Pos)floor(left);
     FT_Pos y = (FT_Pos)ceil(top);
     FT_Pos right = (FT_Pos)ceil(left + source.width * factor);

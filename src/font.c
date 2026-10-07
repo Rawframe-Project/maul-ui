@@ -17,6 +17,7 @@
 #include FT_TRUETYPE_TABLES_H
 #include FT_MULTIPLE_MASTERS_H
 #include FT_TRUETYPE_TAGS_H
+#include FT_PARAMETER_TAGS_H
 
 #include <stdint.h>
 #include <string.h>
@@ -234,8 +235,15 @@ static muiResult Open(muiTextService* service, const muiFontDef* def, muiFont* f
         memcpy(font->copy, def->data, def->size);
         font->data = font->copy;
     }
-    FT_Error error = FT_New_Memory_Face(service->freetype, font->data, (FT_Long)font->size,
-                                        (FT_Long)def->faceIndex, &font->face);
+    // sbix is read here, not by FreeType, which would otherwise take a
+    // font with sbix and outlines for one of bitmaps alone.
+    FT_Parameter ignoreSbix = {FT_PARAM_TAG_IGNORE_SBIX, nullptr};
+    FT_Open_Args args = {.flags = FT_OPEN_MEMORY | FT_OPEN_PARAMS,
+                         .memory_base = font->data,
+                         .memory_size = (FT_Long)font->size,
+                         .num_params = 1,
+                         .params = &ignoreSbix};
+    FT_Error error = FT_Open_Face(service->freetype, &args, (FT_Long)def->faceIndex, &font->face);
     if (error != 0)
     {
         font->face = nullptr;

@@ -11,9 +11,11 @@ format.
 ### Changed
 
 - Colour bitmap glyphs: `muiRenderColorGlyph` draws a glyph's PNG from
-  a font's CBLC and CBDT tables (Noto Color Emoji's), from the strike
-  that suits the size, scaled to it in linear light; fonts of bitmaps
-  alone, without outlines, are accepted, their glyphs without coverage.
+  a font's CBLC and CBDT tables (Noto Color Emoji's) or its sbix table
+  (Apple's), from the strike that suits the size, scaled to it in linear
+  light; sbix graphics are placed from their glyph's outline box where it
+  has one, and 'dupe' graphics followed. Fonts of bitmaps alone, without
+  outlines, are accepted, their glyphs without coverage.
   PNG is decoded by Maul UI itself, FreeType staying without libpng.
 
 - Colour glyphs of COLR version 1: `muiRenderColorGlyph` draws a

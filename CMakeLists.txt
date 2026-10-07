@@ -412,6 +412,8 @@ if(MAUL_UI_BUILD_TESTS)
             ${PROJECT_BINARY_DIR}/test_fonts/color.inc s_color)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulBitmap.ttf
             ${PROJECT_BINARY_DIR}/test_fonts/bitmap.inc s_bitmap)
+        mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulSbix.ttf
+            ${PROJECT_BINARY_DIR}/test_fonts/sbix.inc s_sbix)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/images/pngs.bin
             ${PROJECT_BINARY_DIR}/test_fonts/pngs.inc s_pngs)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulVariable.ttf

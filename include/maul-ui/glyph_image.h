@@ -84,8 +84,8 @@ extern "C"
     /// light; the pixels are stored as an sRGB texture holds premultiplied
     /// colour, red, green and blue encoded with sRGB's transfer function
     /// and alpha linear. A glyph without COLR colour is drawn from its
-    /// colour bitmap where the font has one (CBLC and CBDT), from the
-    /// strike that suits the size, scaled to it. A glyph without colour
+    /// colour bitmap where the font has one (CBLC and CBDT, or sbix), from
+    /// the strike that suits the size, scaled to it. A glyph without colour
     /// gives `mui_empty` and an empty image, to be drawn as coverage.
     ///
     /// @param service     The service.

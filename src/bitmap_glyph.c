@@ -9,6 +9,10 @@
 
 #include "bitmap_glyph.h"
 
+#include FT_OUTLINE_H
+
+#include <string.h>
+
 enum
 {
     BITMAP_SIZE = 48,
@@ -59,7 +63,7 @@ static int32_t I8(Span s, size_t at)
 
 bool muiHasColorBitmaps(const muiFont* font)
 {
-    return font->cblc.size > 0 && font->cbdt.size > 0;
+    return (font->cblc.size > 0 && font->cbdt.size > 0) || font->sbix.size > 0;
 }
 
 // Where a glyph's image lies in CBDT: its offset, length and image
@@ -228,13 +232,13 @@ static bool ReadImage(Span cbdt, const Image* image, uint32_t ppem, muiBitmapGly
     switch (image->format)
     {
     case 17:
-        out->left = I8(data, 2);
-        out->top = I8(data, 3);
+        out->left = (float)I8(data, 2);
+        out->top = (float)I8(data, 3);
         png = SMALL_METRICS;
         break;
     case 18:
-        out->left = I8(data, 2);
-        out->top = I8(data, 3);
+        out->left = (float)I8(data, 2);
+        out->top = (float)I8(data, 3);
         png = BIG_METRICS;
         break;
     case 19:
@@ -242,8 +246,8 @@ static bool ReadImage(Span cbdt, const Image* image, uint32_t ppem, muiBitmapGly
         {
             return false;
         }
-        out->left = I8(image->index, image->metrics + 2);
-        out->top = I8(image->index, image->metrics + 3);
+        out->left = (float)I8(image->index, image->metrics + 2);
+        out->top = (float)I8(image->index, image->metrics + 3);
         break;
     default:
         return false;
@@ -266,10 +270,11 @@ static uint32_t Rank(uint32_t ppem, float pixelSize)
     return (float)ppem >= pixelSize ? ppem : 0x10000u + (0xFFFFu - ppem);
 }
 
-bool muiFindBitmapGlyph(const muiFont* font, uint32_t glyph, float pixelSize,
-                        muiBitmapGlyph* glyphOut)
+// Finds a glyph's bitmap in CBLC and CBDT.
+static bool FindInCbdt(const muiFont* font, uint32_t glyph, float pixelSize,
+                       muiBitmapGlyph* glyphOut)
 {
-    if (!muiHasColorBitmaps(font))
+    if (font->cblc.size == 0 || font->cbdt.size == 0)
     {
         return false;
     }
@@ -298,4 +303,120 @@ bool muiFindBitmapGlyph(const muiFont* font, uint32_t glyph, float pixelSize,
         }
     }
     return found;
+}
+
+// A PNG's height, from its header; 0 for what is not a PNG.
+static uint32_t PngHeight(Span png)
+{
+    static const uint8_t SIGNATURE[8] = {137, 80, 78, 71, 13, 10, 26, 10};
+    bool isPng =
+        Has(png, 0, 24) && memcmp(png.data, SIGNATURE, 8) == 0 && U32(png, 12) == 0x49484452u;
+    return isPng ? U32(png, 20) : 0;
+}
+
+// sbix: a header of a version, flags, a strike count and their offsets;
+// a strike of a ppem, a ppi and an offset for every glyph and one past;
+// a glyph's data of an origin offset x and y, a graphic type and the
+// graphic. 'dupe' names another glyph whose data is used, followed at
+// most SBIX_DUPES times, as FreeType does.
+enum
+{
+    SBIX_DUPES = 4,
+    TAG_PNG = 0x706E6720u,
+    TAG_DUPE = 0x64757065u
+};
+
+// A glyph's graphic in one strike: its PNG and its origin offsets.
+static bool InSbixStrike(Span t, size_t strike, uint32_t glyphCount, uint32_t glyph, Span* pngOut,
+                         int32_t* xOut, int32_t* yOut)
+{
+    for (uint32_t hop = 0; hop <= SBIX_DUPES && glyph < glyphCount; hop++)
+    {
+        size_t offsets = strike + 4 + (size_t)glyph * 4;
+        uint32_t start = U32(t, offsets);
+        uint32_t end = U32(t, offsets + 4);
+        if (!Has(t, offsets, 8) || end < start + 8 || !Has(t, strike + start, end - start))
+        {
+            return false;
+        }
+        Span data = {t.data + strike + start, end - start};
+        uint32_t type = U32(data, 4);
+        if (type == TAG_DUPE)
+        {
+            glyph = U16(data, 8);
+            continue;
+        }
+        *pngOut = (Span){data.data + 8, data.size - 8};
+        *xOut = (int32_t)(int16_t)(uint16_t)U16(data, 0);
+        *yOut = (int32_t)(int16_t)(uint16_t)U16(data, 2);
+        return type == TAG_PNG && PngHeight(*pngOut) > 0;
+    }
+    return false;
+}
+
+// Where an sbix graphic's origin lies from the pen, in font units: the
+// glyph's outline box's lower left corner where it has contours, else
+// the pen itself.
+static void SbixOrigin(const muiFont* font, uint32_t glyph, double* xOut, double* yOut)
+{
+    *xOut = 0.0;
+    *yOut = 0.0;
+    FT_Face face = font->face;
+    if (FT_IS_SCALABLE(face) &&
+        FT_Load_Glyph(face, glyph, FT_LOAD_NO_SCALE | FT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING) ==
+            0 &&
+        face->glyph->format == FT_GLYPH_FORMAT_OUTLINE && face->glyph->outline.n_contours > 0)
+    {
+        FT_BBox box;
+        FT_Outline_Get_CBox(&face->glyph->outline, &box);
+        *xOut = (double)box.xMin;
+        *yOut = (double)box.yMin;
+    }
+}
+
+static bool FindInSbix(const muiFont* font, uint32_t glyph, float pixelSize,
+                       muiBitmapGlyph* glyphOut)
+{
+    Span t = {font->sbix.data, font->sbix.size};
+    uint32_t strikes = U32(t, 4);
+    if (U16(t, 0) < 1 || !Has(t, 8, (size_t)strikes * 4))
+    {
+        return false;
+    }
+    bool found = false;
+    uint32_t best = UINT32_MAX;
+    for (uint32_t i = 0; i < strikes; i++)
+    {
+        size_t strike = U32(t, 8 + (size_t)i * 4);
+        uint32_t ppem = U16(t, strike);
+        uint32_t rank = Rank(ppem, pixelSize);
+        Span png;
+        int32_t x = 0;
+        int32_t y = 0;
+        if (ppem > 0 && rank < best &&
+            InSbixStrike(t, strike, font->metrics.glyphCount, glyph, &png, &x, &y))
+        {
+            *glyphOut = (muiBitmapGlyph){png.data, (uint32_t)png.size, ppem, (float)x,
+                                         (float)(y + (int32_t)PngHeight(png))};
+            best = rank;
+            found = true;
+        }
+    }
+    if (found)
+    {
+        double originX = 0.0;
+        double originY = 0.0;
+        SbixOrigin(font, glyph, &originX, &originY);
+        double scale = (double)glyphOut->ppem / (double)font->metrics.unitsPerEm;
+        glyphOut->left += (float)(originX * scale);
+        glyphOut->top += (float)(originY * scale);
+    }
+    return found;
+}
+
+bool muiFindBitmapGlyph(const muiFont* font, uint32_t glyph, float pixelSize,
+                        muiBitmapGlyph* glyphOut)
+{
+    return FindInCbdt(font, glyph, pixelSize, glyphOut) ||
+           (font->sbix.size > 0 && FindInSbix(font, glyph, pixelSize, glyphOut));
 }
