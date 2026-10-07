@@ -100,7 +100,10 @@ format.
   descendant and scrolled into view from offsets the library keeps for
   rows that do not exist, the tree's folders inserting and removing
   their files' items. The frame gains a settle hook that lays out
-  again after the host realizes what the layout asked. On the web the
+  again after the host realizes what the layout asked. `sample_color`
+  composes a colour picker: a saturation and brightness area of layered
+  gradients over the pure hue, hue and opacity sliders that are ranges
+  over gradient tracks, a hex field and a swatch. On the web the
   headless tour runs in headless
   Chrome's WebGPU through the web runner, which now gives Chrome WebGPU
   and a program its arguments (record mui-0005).
