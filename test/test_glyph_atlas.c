@@ -661,14 +661,11 @@ static void TestColorGlyphs(void)
                   mui_success &&
               (again.u != 1 || again.v != 1),
           "another palette an image of its own");
-    for (int i = 0; i < 2; i++)
-    {
-        glyph = (muiAtlasGlyph){7, 7, 7, 7, 7, 7, 7};
-        CHECK(muiGlyphAtlas_GetColor(atlas, color, 2, 10.0f, 0.0f, 0.0f, 0, green, &glyph) ==
-                      mui_empty &&
-                  glyph.width == 0 && glyph.page == 0,
-              "a glyph without colour layers empty, and kept so");
-    }
+    glyph = (muiAtlasGlyph){7, 7, 7, 7, 7, 7, 7};
+    CHECK(muiGlyphAtlas_GetColor(atlas, color, 2, 10.0f, 0.0f, 0.0f, 0, green, &glyph) ==
+                  mui_empty &&
+              glyph.width == 0 && glyph.page == 0,
+          "a glyph without colour layers empty");
     CHECK(muiGlyphAtlas_GetColor(atlas, fixture.ahem, FIRST_BOX, 10.0f, 0.0f, 0.0f, 0, green,
                                  &glyph) == mui_empty,
           "a font without COLR empty");
@@ -684,6 +681,63 @@ static void TestColorGlyphs(void)
               muiGlyphAtlas_GetColor(atlas, color + 1, 1, 10.0f, 0.0f, 0.0f, 0, green, &glyph) ==
                   mui_errorStale,
           "each kind refused by the other atlases");
+    muiDestroyGlyphAtlas(atlas);
+    Free(&fixture);
+}
+
+// Many tints of one glyph in a larger atlas of colour glyphs, each found
+// with its own: the text's colour in each image (its small box, at 4, 3
+// from the image's left and bottom) is the tint's, as a glyph rendered
+// alone in that tint has it, kept as 8-bit sRGB.
+static void TestTints(void)
+{
+    Fixture fixture = Make(64, 32, 1, NULL);
+    muiFontDef fontDef = muiDefaultFontDef();
+    fontDef.data = s_color;
+    fontDef.size = sizeof s_color;
+    fontDef.dataMode = mui_fontDataBorrow;
+    muiFontId colorFont = {0, 0};
+    CHECK(muiCreateFont(fixture.service, &fontDef, &colorFont) == mui_success, "Maul Color");
+    uint64_t color = muiFont_GetKey(colorFont);
+    muiGlyphAtlasDef def = muiDefaultGlyphAtlasDef();
+    def.pageWidth = 128;
+    def.pageHeight = 128;
+    def.plotWidth = 64;
+    def.plotHeight = 64;
+    def.maxPages = 1;
+    def.format = mui_atlasColor;
+    muiGlyphAtlas* atlas = NULL;
+    CHECK(muiCreateGlyphAtlas(fixture.service, &def, &atlas) == mui_success, "colour glyphs");
+    enum
+    {
+        TINTS = 12
+    };
+    // Every tint twice: the second time each is found, not packed.
+    bool right = true;
+    for (int pass = 0; pass < 2; pass++)
+    {
+        for (int k = 0; k < TINTS; k++)
+        {
+            float grey = (float)(k + 1) / (float)(TINTS + 1);
+            const muiLinearColor tint = {grey, grey, grey, 1.0f};
+            unsigned char alone[8 * 8 * 4];
+            muiGlyphImage image = {0};
+            muiAtlasGlyph glyph = {0};
+            muiAtlasPage page = {0};
+            bool got = muiRenderColorGlyph(fixture.service, color, 1, 10.0f, 0.0f, 0, tint, &image,
+                                           alone, sizeof alone) == mui_success &&
+                       muiGlyphAtlas_GetColor(atlas, color, 1, 10.0f, 0.0f, 0.0f, 0, tint,
+                                              &glyph) == mui_success &&
+                       muiGlyphAtlas_GetPage(atlas, 0, &page) == mui_success;
+            // Image row 4 from the top and column 3: 3 up and 4 right.
+            const unsigned char* packed =
+                page.pixels + ((size_t)(glyph.v + 4) * page.width + glyph.u + 3) * 4;
+            const unsigned char* expected = &alone[(4 * 8 + 3) * 4];
+            right = right && got && abs(packed[0] - expected[0]) <= 1 &&
+                    abs(packed[1] - expected[1]) <= 1 && packed[3] == 255;
+        }
+    }
+    CHECK(right, "each tint its own image");
     muiDestroyGlyphAtlas(atlas);
     Free(&fixture);
 }
@@ -748,6 +802,7 @@ int main(void)
     TestFields();
     TestMultiFields();
     TestColorGlyphs();
+    TestTints();
     TestMemoryRunningOut();
     return s_failures == 0 ? 0 : 1;
 }

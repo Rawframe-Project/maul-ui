@@ -171,8 +171,8 @@ extern "C"
     /// The text's colour is kept as 8-bit sRGB with straight alpha, and
     /// the glyph is rendered with it so kept: each palette and text colour
     /// is an image of its own. A glyph without colour layers gives
-    /// `mui_empty`, also kept, to be drawn as coverage; a font without a
-    /// COLR table gives it at once.
+    /// `mui_empty`, to be drawn as coverage; a font without a COLR table
+    /// gives it without looking.
     ///
     /// @param atlas       The atlas, of colour glyphs.
     /// @param font        A font key, as a glyph run carries.

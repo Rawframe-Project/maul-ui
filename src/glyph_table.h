@@ -48,9 +48,6 @@ typedef struct muiAtlasEntry
     uint16_t height;
     int32_t left;
     int32_t top;
-    // Whether the glyph has no colour layers, for an atlas of colour
-    // glyphs: no image, to be drawn as coverage.
-    bool colorless;
 } muiAtlasEntry;
 
 typedef struct muiGlyphTable

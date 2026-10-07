@@ -422,32 +422,13 @@ static muiResult Render(muiGlyphAtlas* atlas, const muiGlyphKey* key, muiGlyphIm
     }
 }
 
-// Notes that a key's glyph has no colour layers; the entry is set and
-// given.
-static muiResult AddColorless(muiGlyphAtlas* atlas, const muiGlyphKey* key,
-                              muiAtlasEntry** entryOut)
-{
-    if (!muiReserveEntry(&atlas->allocator, &atlas->table, atlas->generations))
-    {
-        return mui_errorCapacity;
-    }
-    muiAtlasEntry* entry = muiFindEntry(&atlas->table, key);
-    atlas->table.count += entry->plot == 0 ? 1u : 0u;
-    *entry = (muiAtlasEntry){.key = *key, .plot = MUI_NO_PLOT, .colorless = true};
-    *entryOut = entry;
-    return mui_success;
-}
-
 // Renders a glyph and packs it; the entry for key is set and given.
 static muiResult Add(muiGlyphAtlas* atlas, const muiGlyphKey* key, muiAtlasEntry** entryOut,
                      muiAtlasGlyph* glyphOut)
 {
     muiGlyphImage image = {0, 0, 0, 0};
+    // A glyph without colour layers is empty, to be drawn as coverage.
     muiResult result = Render(atlas, key, &image);
-    if (result == mui_empty)
-    {
-        return AddColorless(atlas, key, entryOut);
-    }
     bool tooLarge =
         image.width + GUTTER > atlas->plotWidth || image.height + GUTTER > atlas->plotHeight;
     if ((result == mui_success || result == mui_errorCapacity) && tooLarge)
@@ -514,7 +495,8 @@ static int64_t FloorToInteger(float value)
 // keeps its plot until a later frame; glyphOut is given its page and
 // place in it.
 // Finds a glyph's entry, adding it the first time: mui_empty, with no
-// entry, for a glyph without colour layers in an atlas of colour glyphs.
+// entry, for a glyph without colour layers in an atlas of colour glyphs,
+// found again each time (a search of the COLR table's base glyphs).
 static muiResult Find(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, uint32_t form,
                       uint32_t palette, uint32_t tint, const muiAtlasEntry** entryOut,
                       muiAtlasGlyph* glyphOut)
@@ -544,10 +526,6 @@ static muiResult Find(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, uint3
         {
             return result;
         }
-    }
-    if (entry->colorless)
-    {
-        return mui_empty;
     }
     if (entry->plot != MUI_NO_PLOT)
     {

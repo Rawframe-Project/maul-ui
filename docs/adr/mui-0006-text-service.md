@@ -286,8 +286,8 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   atlas. A third format holds colour glyphs (`muiGlyphAtlas_GetColor`),
   keyed also by the palette and the text's colour kept as 8-bit sRGB,
   the glyph rendered with that colour so a cached image and a fresh one
-  are the same bytes; a glyph without colour layers is kept as empty,
-  and a font without a COLR table is empty at once. A renderer drawing
+  are the same bytes; a glyph without colour layers is empty, and a
+  font without a COLR table is empty without a look at its glyph. A renderer drawing
   several kinds makes an atlas of each, so pages of different formats
   never share an index space and each atlas's pages upload as textures
   of one format.
