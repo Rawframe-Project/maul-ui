@@ -501,6 +501,10 @@ static void TestPcKeys(void)
     CHECK(Key(&scene, mui_keymapPc, &clipboard, mui_codeInsert, 0, shift).paste &&
               Key(&scene, mui_keymapPc, &clipboard, mui_codeInsert, 0, ctrl).handled,
           "Shift and Insert, Control and Insert");
+    Key(&scene, mui_keymapPc, &clipboard, mui_codeEnd, 0, 0);
+    CHECK(!Key(&scene, mui_keymapPc, &clipboard, CODE_X, 'x', mui_modControl).changed &&
+              Holds(&scene, "ab cd") && clipboard.writes == 3,
+          "no cut without a selection");
     Key(&scene, mui_keymapPc, &clipboard, mui_codeHome, 0, 0);
     CHECK(Selects(&scene, 0, 0), "Home");
     Key(&scene, mui_keymapPc, &clipboard, mui_codeArrowRight, 0, ctrl);
@@ -547,6 +551,8 @@ static void TestMacKeys(void)
     CHECK(Key(&scene, mui_keymapMac, &clipboard, mui_codeDelete, 0, option).changed &&
               Holds(&scene, " cd\nef\n"),
           "Option and Delete, to the word's end");
+    CHECK(!Key(&scene, mui_keymapMac, &clipboard, CODE_Y, 'y', command).handled,
+          "no Command and Y");
     CHECK(Key(&scene, mui_keymapMac, &clipboard, CODE_A, 'a', command).handled &&
               Selects(&scene, 0, 7),
           "Command and A");
@@ -581,6 +587,10 @@ static void TestEvents(void)
     CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
               !outcome.handled && Holds(&scene, "word"),
           "a tab left to focus");
+    event.text = "\x7F";
+    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+              !outcome.handled && Holds(&scene, "word"),
+          "DEL left to the keys");
     muiPointerRecord record = {0};
     record.kind = mui_pointerRecordPress;
     record.clickCount = 2;
@@ -592,6 +602,11 @@ static void TestEvents(void)
     CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
               outcome.handled && Selects(&scene, 0, 4),
           "a double press");
+    record.button = 2;
+    record.clickCount = 1;
+    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+              !outcome.handled && Selects(&scene, 0, 4),
+          "a secondary press left to the host");
     record.kind = mui_pointerRecordRelease;
     CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
               !outcome.handled,
