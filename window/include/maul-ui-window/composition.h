@@ -5,7 +5,8 @@
 // maul-ui-window where Maul UI has its text component: an input method's
 // preedit set into a text block, and the candidate window placed at a
 // position of a node's text. Maul Window's preedit styles and segment
-// limit are Maul UI's composition styles and limit.
+// limit are Maul UI's composition styles and limit. An editing block
+// takes a preedit through muiWindowCompose.
 
 #ifndef MAUL_UI_WINDOW_COMPOSITION_H
 #define MAUL_UI_WINDOW_COMPOSITION_H
@@ -13,7 +14,9 @@
 #include "maul-ui-window/glue.h"
 #include "maul-ui/text_block.h"
 #include "maul-ui/text_edit.h"
+#include "maul-ui/text_editor.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -43,6 +46,25 @@ extern "C"
                                                                    uint32_t offset,
                                                                    const mwinPreeditEvent* preedit,
                                                                    int32_t* caretOut);
+
+    /// Shows an input method's preedit in an editing block
+    /// (muiTextBlock_Compose): its text, its caret, at the end where the
+    /// method hides it, and its segments as they come; an empty preedit
+    /// takes the composition out, the committed text arriving as text
+    /// input after it.
+    ///
+    /// @param service     The service.
+    /// @param blockId     The block.
+    /// @param preedit     The record's preedit (data.preedit).
+    /// @param changedOut  Receives whether the text changed; may be NULL.
+    /// @return As muiTextBlock_Compose, with `mui_errorInvalid` for a NULL
+    ///         preedit.
+    /// @par Thread safety
+    /// Safe from any thread; the service is used by one thread at a time.
+    MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowCompose(muiTextService* service,
+                                                            muiTextBlockId blockId,
+                                                            const mwinPreeditEvent* preedit,
+                                                            bool* changedOut);
 
     /// Asks the window to accept text with its caret at a position of a
     /// node's text (muiTextGetCaret in the node's content box, then

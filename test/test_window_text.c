@@ -7,10 +7,14 @@
 // goes into the block with its caret and segments, a style Maul UI does
 // not know refused, a hidden caret reported, an empty preedit ending
 // the composition; then the window's caret at a position of the text,
-// carried through the content box and the field's place.
+// carried through the content box and the field's place. Then the block
+// edits: a preedit shown at its caret, at the end where the method hides
+// it, taken out by an empty one; a paste asked for, other events passing
+// the paste by, and a read answered with nothing pasting nothing.
 
 #include "test_harness.h"
 
+#include "maul-ui-window/clipboard.h"
 #include "maul-ui-window/composition.h"
 #include "maul-ui-window/glue.h"
 #include "maul-ui/font.h"
@@ -189,12 +193,59 @@ static mwinResult Init(mwinContext* windows, void* user)
     return mwin_success;
 }
 
+static void TestEditing(Test* test)
+{
+    const muiTextEditDef edit = muiDefaultTextEditDef();
+    CHECK(muiTextBlock_SetText(test->service, test->block, "abc", 3) == mui_success &&
+              muiTextBlock_SetEditing(test->service, test->block, &edit) == mui_success,
+          "editing");
+    mwinPreeditEvent preedit = {.text = "xy", .length = 2, .caret = -1};
+    bool changed = false;
+    muiTextSelection selection;
+    CHECK(muiWindowCompose(test->service, test->block, &preedit, &changed) == mui_success &&
+              changed && TextIs(test, "abcxy") &&
+              muiTextBlock_GetSelection(test->service, test->block, &selection) == mui_success &&
+              selection.caret.offset == 5,
+          "a preedit, its hidden caret at its end");
+    preedit.caret = 3;
+    CHECK(muiWindowCompose(test->service, test->block, &preedit, NULL) == mui_errorInvalid &&
+              muiWindowCompose(test->service, test->block, NULL, NULL) == mui_errorInvalid,
+          "a caret past the preedit, no preedit");
+    preedit = (mwinPreeditEvent){.text = "", .length = 0, .caret = -1};
+    CHECK(muiWindowCompose(test->service, test->block, &preedit, &changed) == mui_success &&
+              changed && TextIs(test, "abc"),
+          "taken out");
+    muiWindowGlue_WriteClipboard(test->glue, "abc", 3);
+    muiWindowGlue_WriteClipboard(NULL, "abc", 3);
+    CHECK(muiWindowGlue_RequestPaste(test->glue) == mui_success &&
+              muiWindowGlue_RequestPaste(NULL) == mui_errorInvalid,
+          "a paste asked for");
+    mwinEvent event = {.type = mwin_eventKeyDown, .window = test->window};
+    CHECK(muiWindowGlue_Paste(test->glue, test->service, test->block, &event, &changed) ==
+                  mui_empty &&
+              !changed,
+          "another event passes");
+    event.type = mwin_eventRequestCompleted;
+    event.data.completion =
+        (mwinCompletion){.kind = mwin_requestClipboardRead, .outcome = mwin_outcomeDenied};
+    CHECK(muiWindowGlue_Paste(test->glue, test->service, test->block, &event, NULL) == mui_empty,
+          "a refused read passes");
+    event.data.completion.outcome = mwin_outcomeDone;
+    CHECK(muiWindowGlue_Paste(test->glue, test->service, test->block, &event, &changed) ==
+                  mui_success &&
+              !changed && TextIs(test, "abc"),
+          "nothing read, nothing pasted");
+    CHECK(muiWindowGlue_Paste(NULL, test->service, test->block, &event, NULL) == mui_errorInvalid,
+          "no glue");
+}
+
 static mwinFrameResult Frame(mwinContext* windows, void* user)
 {
     (void)windows;
     Test* test = user;
     TestComposition(test);
     TestCaret(test);
+    TestEditing(test);
     test->done = true;
     return mwin_frameStop;
 }

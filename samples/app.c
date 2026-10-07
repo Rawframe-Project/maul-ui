@@ -5,6 +5,7 @@
 
 #include "app.h"
 
+#include "maul-ui-window/clipboard.h"
 #include "maul-ui/draw.h"
 #include "maul-ui/font.h"
 #include "maul-ui/text_style.h"
@@ -200,6 +201,85 @@ static mwinResult Init(mwinContext* windows, void* user)
     return mwin_success;
 }
 
+// Takes the clipboard's answer into the field that asked for a paste.
+static void TakePaste(SampleApp* app, const mwinEvent* event)
+{
+    if (app->pasteBlock.index1 == 0)
+    {
+        return;
+    }
+    bool changed = false;
+    muiResult result = muiWindowGlue_Paste(app->glue, app->text, app->pasteBlock, event, &changed);
+    SampleAppCheck(app, result == mui_success || result == mui_empty, "a paste");
+    if (result != mui_success)
+    {
+        return;
+    }
+    app->pasteBlock = (muiTextBlockId){0, 0};
+    SampleAppCheck(
+        app, !changed || muiNode_MarkContentChanged(app->context, app->pasteNode) == mui_success,
+        "a paste shown");
+    if (changed && app->def->edited != NULL)
+    {
+        app->def->edited(app->def->user, app, app->pasteNode);
+    }
+}
+
+bool SampleEdit(SampleApp* app, muiNodeId node, const muiEvent* event, bool* changedOut)
+{
+    const muiTextEditInput input = {SAMPLE_KEYMAP, muiWindowGlue_WriteClipboard, app->glue};
+    muiTextEditOutcome outcome = {false, false, false};
+    SampleAppCheck(app, muiTextEditEvent(&app->host, node, event, &input, &outcome) == mui_success,
+                   "an event edited");
+    SampleAppCheck(
+        app, !outcome.changed || muiNode_MarkContentChanged(app->context, node) == mui_success,
+        "an edit shown");
+    if (outcome.paste)
+    {
+        uint64_t key = muiNode_GetHostKey(app->context, node);
+        app->pasteNode = node;
+        app->pasteBlock = (muiTextBlockId){(uint32_t)key, (uint32_t)(key >> 32)};
+        SampleAppCheck(app, muiWindowGlue_RequestPaste(app->glue) == mui_success,
+                       "a paste asked for");
+    }
+    if (changedOut != NULL)
+    {
+        *changedOut = outcome.changed;
+    }
+    return outcome.handled;
+}
+
+void SamplePaintEditing(SampleApp* app, muiNodeId node, float width, muiDrawSink* sink,
+                        const uint8_t caret[3])
+{
+    uint64_t key = muiNode_GetHostKey(app->context, node);
+    const muiTextBlockId block = {(uint32_t)key, (uint32_t)(key >> 32)};
+    muiTextSelection selection;
+    if (muiTextBlock_GetSelection(app->text, block, &selection) != mui_success)
+    {
+        return;
+    }
+    uint32_t at = selection.caret.offset;
+    uint32_t start = selection.anchor < at ? selection.anchor : at;
+    uint32_t end = selection.anchor > at ? selection.anchor : at;
+    muiRect rects[8];
+    uint32_t count = 0;
+    if (start != end &&
+        muiTextGetRangeRects(&app->host, node, width, start, end, rects, 8, &count) == mui_success)
+    {
+        for (uint32_t i = 0; i < count && i < 8; i++)
+        {
+            (void)muiDrawSink_AddRect(sink, rects[i], (muiColor){0.2f, 0.45f, 0.9f, 0.5f});
+        }
+    }
+    muiTextCaret bar;
+    if (muiTextGetCaret(&app->host, node, width, selection.caret, &bar) == mui_success)
+    {
+        const muiRect rect = {bar.x, bar.y, 2.0f, bar.height};
+        (void)muiDrawSink_AddRect(sink, rect, SampleColor(caret));
+    }
+}
+
 // Hands the window's records to the glue and the access, as a host does
 // each frame, and notes a request to close.
 static void Drain(SampleApp* app)
@@ -207,6 +287,7 @@ static void Drain(SampleApp* app)
     mwinEvent event;
     while (mwinNextEvent(app->windows, &event) == mwin_success)
     {
+        TakePaste(app, &event);
         if (app->def->record != NULL)
         {
             app->def->record(app->def->user, app, &event);

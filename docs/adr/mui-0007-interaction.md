@@ -327,9 +327,14 @@ itself instead of each host repeating them.
   `maul-ui-window/composition.h` sets a preedit into a text block
   (Maul Window's preedit segments and styles are Maul UI's
   composition's, member for member and value for value) and places the
-  caret at a position of a node's text; preedit records are not the
-  UI's, as the core has no composition record and the host knows which
-  of its fields edits. Its tests run on Maul Window's headless test
+  caret at a position of a node's text, `muiWindowCompose` showing a
+  preedit in an editing block (`muiTextBlock_Compose`); preedit records
+  are not the UI's, as the core has no composition record and the host
+  knows which of its fields edits. `maul-ui-window/clipboard.h` gives
+  the text editor the window's clipboard: `muiWindowGlue_WriteClipboard`
+  as its writer, `muiWindowGlue_RequestPaste` for a paste it asks for,
+  and `muiWindowGlue_Paste` taking the window's answer into the block,
+  as Maul Window reads the clipboard by request. Its tests run on Maul Window's headless test
   backend, with the text component and without it.
 
 ## Consequences

@@ -8,7 +8,8 @@
 // setting both and arrows stepping them; a hue slider and an opacity
 // slider that are ranges (maul-ui/range.h) the library moves by ARIA's
 // slider keys and drags, the hue's track three gradient segments; a hex
-// field whose Enter sets the colour; and a swatch showing the result.
+// field, an editing field of seven characters (SampleEdit), whose Enter
+// sets the colour; and a swatch showing the result.
 // The host keeps the colour as hue, saturation, brightness and opacity
 // and shows it each frame. Headless, each part is used as a person would
 // and the pixels, the values and the accessibility tree checked.
@@ -341,43 +342,24 @@ static bool AreaHears(Picker* picker, const muiEvent* event)
     return true;
 }
 
-// The hex field: typing and Backspace at its end, Enter applying it.
+// The hex field: an editing field of at most seven characters
+// (SampleEdit), Enter applying it.
 static bool HexHears(Picker* picker, const muiEvent* event)
 {
     SampleApp* app = picker->app;
     const char* text = "";
     size_t length = 0;
     (void)muiTextBlock_GetText(app->text, picker->hexBlock, &text, &length);
-    if (event->kind == mui_eventText && event->length > 0 && (unsigned char)event->text[0] >= 0x20)
-    {
-        SampleAppCheck(app,
-                       muiTextBlock_Replace(app->text, picker->hexBlock, (uint32_t)length,
-                                            (uint32_t)length, event->text,
-                                            event->length) == mui_success &&
-                           muiNode_MarkContentChanged(app->context, picker->hex) == mui_success,
-                       "typed");
-        return true;
-    }
-    if (event->kind != mui_eventKeyDown)
-    {
-        return false;
-    }
-    if (event->code == mui_codeBackspace && length > 0)
-    {
-        SampleAppCheck(app,
-                       muiTextBlock_Replace(app->text, picker->hexBlock, (uint32_t)length - 1,
-                                            (uint32_t)length, NULL, 0) == mui_success &&
-                           muiNode_MarkContentChanged(app->context, picker->hex) == mui_success,
-                       "deleted");
-        return true;
-    }
     uint8_t bytes[3];
-    if (event->code == mui_codeEnter && ParseHex(text, length, bytes))
+    if (event->kind == mui_eventKeyDown && event->code == mui_codeEnter)
     {
-        SetColor(picker, bytes);
+        if (ParseHex(text, length, bytes))
+        {
+            SetColor(picker, bytes);
+        }
         return true;
     }
-    return event->code == mui_codeBackspace || event->code == mui_codeEnter;
+    return SampleEdit(app, picker->hex, event, NULL);
 }
 
 static bool Hear(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* event)
@@ -497,6 +479,10 @@ static void Build(void* user, SampleApp* app)
     MakeSlider(picker, &picker->opacitySlider, "Opacity", 100.0f, 100.0f);
     Caption(app, "Hex");
     picker->hex = SampleTextNode(app, app->root, "", 15.0f, s_text, &picker->hexBlock);
+    muiTextEditDef edit = muiDefaultTextEditDef();
+    edit.maxLength = 7;
+    SampleAppCheck(app, muiTextBlock_SetEditing(app->text, picker->hexBlock, &edit) == mui_success,
+                   "the hex field edits");
     layout = muiDefaultLayoutStyle();
     layout.sizing.width = SampleLength(100.0f);
     layout.padding = (muiEdges){8.0f, 8.0f, 4.0f, 4.0f};
@@ -627,7 +613,8 @@ static bool Script(void* user, SampleApp* app, int frame)
     case 2:
         SampleAppCheck(app, picker->hue == 0.0f && Shows(picker, app),
                        "Home moved the hue to red, the area and the swatch with it");
-        ClickAt(app, picker->hex, 10.0f, 10.0f);
+        // A click past the text puts the caret at its end.
+        ClickAt(app, picker->hex, muiNode_GetRect(app->context, picker->hex).width - 4.0f, 10.0f);
         for (int i = 0; i < 7; i++)
         {
             PostKey(app, mwin_codeBackspace);

@@ -28,7 +28,7 @@ endif()
 add_library(maul-ui-window STATIC window/src/allocator.c window/src/gamepads.c window/src/glue.c)
 # Compositions and text carets, with the text component.
 if(MAUL_UI_TEXT)
-    target_sources(maul-ui-window PRIVATE window/src/composition.c)
+    target_sources(maul-ui-window PRIVATE window/src/clipboard.c window/src/composition.c)
 endif()
 # Accessibility, with the tree's consumer: the adapters Maul UI was built
 # with, named for window/src/access.c.

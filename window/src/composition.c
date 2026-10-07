@@ -23,6 +23,33 @@ static_assert(sizeof(mwinPreeditSegment) == sizeof(muiCompositionSegment) &&
                   offsetof(mwinPreeditSegment, style) == offsetof(muiCompositionSegment, style),
               "the segments");
 
+// A preedit's segments as a composition's; NULL for none.
+static const muiCompositionSegment* SegmentsOf(const mwinPreeditEvent* preedit,
+                                               muiCompositionSegment* segments)
+{
+    uint32_t count = preedit->segmentCount;
+    for (uint32_t i = 0; i < count && i < MUI_MAX_COMPOSITION_SEGMENTS; i++)
+    {
+        const mwinPreeditSegment* segment = &preedit->segments[i];
+        segments[i] = (muiCompositionSegment){segment->start, segment->length, segment->style};
+    }
+    return count != 0 && preedit->segments != nullptr ? segments : nullptr;
+}
+
+muiResult muiWindowCompose(muiTextService* service, muiTextBlockId blockId,
+                           const mwinPreeditEvent* preedit, bool* changedOut)
+{
+    if (preedit == nullptr || preedit->caret > (int32_t)preedit->length)
+    {
+        return mui_errorInvalid;
+    }
+    muiCompositionSegment segments[MUI_MAX_COMPOSITION_SEGMENTS];
+    // A caret the method hides goes to the composition's end.
+    uint32_t caret = preedit->caret >= 0 ? (uint32_t)preedit->caret : preedit->length;
+    return muiTextBlock_Compose(service, blockId, preedit->text, preedit->length, caret,
+                                SegmentsOf(preedit, segments), preedit->segmentCount, changedOut);
+}
+
 muiResult muiWindowSetComposition(muiTextService* service, muiTextBlockId blockId, uint32_t offset,
                                   const mwinPreeditEvent* preedit, int32_t* caretOut)
 {
@@ -32,14 +59,9 @@ muiResult muiWindowSetComposition(muiTextService* service, muiTextBlockId blockI
     }
     muiCompositionSegment segments[MUI_MAX_COMPOSITION_SEGMENTS];
     uint32_t count = preedit->segmentCount;
-    for (uint32_t i = 0; i < count && i < MUI_MAX_COMPOSITION_SEGMENTS; i++)
-    {
-        const mwinPreeditSegment* segment = &preedit->segments[i];
-        segments[i] = (muiCompositionSegment){segment->start, segment->length, segment->style};
-    }
-    muiResult status = muiTextBlock_SetComposition(
-        service, blockId, offset, preedit->text, preedit->length,
-        count != 0 && preedit->segments != nullptr ? segments : nullptr, count);
+    muiResult status =
+        muiTextBlock_SetComposition(service, blockId, offset, preedit->text, preedit->length,
+                                    SegmentsOf(preedit, segments), count);
     uint32_t start = 0;
     uint32_t length = 0;
     if (status == mui_success && caretOut != nullptr)

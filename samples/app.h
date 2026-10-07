@@ -26,6 +26,7 @@
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/text_block.h"
+#include "maul-ui/text_editor.h"
 #include "maul-ui/visual.h"
 #include "maul-window/context.h"
 #include "maul-window/event.h"
@@ -70,6 +71,9 @@ typedef struct SampleAppDef
     // Lets go of what the sample made on the device, before it goes; NULL
     // for nothing.
     void (*finish)(void* user, SampleApp* app);
+    // A paste changed an editing field's text (SampleEdit); NULL for
+    // nothing.
+    void (*edited)(void* user, SampleApp* app, muiNodeId node);
     void* user;
 } SampleAppDef;
 
@@ -104,7 +108,29 @@ struct SampleApp
     // Now on the records' clock, and the frames run.
     uint64_t now;
     int frame;
+    // The editing field a paste was asked for, until the window answers.
+    muiNodeId pasteNode;
+    muiTextBlockId pasteBlock;
 };
+
+// The platform's shortcuts for text editing.
+#ifdef __APPLE__
+#define SAMPLE_KEYMAP mui_keymapMac
+#else
+#define SAMPLE_KEYMAP mui_keymapPc
+#endif
+
+// Gives an editing field's event to the text editor (muiTextEditEvent)
+// by the platform's keymap, its copies to the window's clipboard; marks
+// the field when its text changes, and asks the window for a paste,
+// which the app takes into the field when the window answers. Returns
+// whether the editor took the event, and whether the text changed.
+bool SampleEdit(SampleApp* app, muiNodeId node, const muiEvent* event, bool* changedOut);
+
+// Draws an editing field's selection, its rectangles over the text, and
+// its caret, in the field's content box of a width.
+void SamplePaintEditing(SampleApp* app, muiNodeId node, float width, muiDrawSink* sink,
+                        const uint8_t caret[3]);
 
 // Runs a sample from its arguments ([--headless] [--frames N]): its exit
 // status, 77 without an adapter unless MUI_RHI_REQUIRED is set.

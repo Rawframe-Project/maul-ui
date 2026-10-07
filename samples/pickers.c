@@ -231,9 +231,14 @@ static void Pick(Pickers* pickers, Combo* combo, int shown)
     combo->picked = combo->shown[shown];
     const char* name = combo->options[combo->picked];
     SetText(app, combo->node, combo->block, name);
+    // An editing field's caret goes to the picked name's end.
+    const muiTextPosition end = {(uint32_t)strlen(name), mui_affinityDownstream};
+    muiResult selected =
+        muiTextBlock_Select(app->text, combo->block, (muiTextSelection){end.offset, end});
     SampleAppCheck(app,
                    muiNode_SetAccessText(app->context, combo->node, mui_accessValue, name,
-                                         strlen(name)) == mui_success,
+                                         strlen(name)) == mui_success &&
+                       (selected == mui_success || selected == mui_errorInvalid),
                    "the combobox's value");
     Close(app, combo);
 }
@@ -327,56 +332,30 @@ static bool SelectHears(Pickers* pickers, const muiEvent* event)
     return false;
 }
 
-// The searchable combobox: typing and Backspace edit its text at the
-// end and filter the list; Down opens or moves into it.
+// The searchable combobox: an editing field (SampleEdit) whose edits
+// filter the list; Down opens it, and while it is open, the arrows and
+// Enter move in it and pick.
 static bool SearchHears(Pickers* pickers, const muiEvent* event)
 {
     Combo* search = &pickers->search;
-    SampleApp* app = pickers->app;
-    size_t length = 0;
-    (void)TextOf(app, search->block, &length);
-    if (event->kind == mui_eventText && event->length > 0 && (unsigned char)event->text[0] >= 0x20)
+    if (event->kind == mui_eventKeyDown && search->list.index1 == 0 &&
+        event->code == mui_codeArrowDown)
     {
-        SampleAppCheck(app,
-                       muiTextBlock_Replace(app->text, search->block, (uint32_t)length,
-                                            (uint32_t)length, event->text,
-                                            event->length) == mui_success &&
-                           muiNode_MarkContentChanged(app->context, search->node) == mui_success,
-                       "typed");
-        Filter(pickers, search);
+        OpenAll(pickers, search);
         return true;
     }
-    if (event->kind != mui_eventKeyDown)
+    if (event->kind == mui_eventKeyDown && search->list.index1 != 0 &&
+        ListKey(pickers, search, event))
     {
-        return false;
-    }
-    if (event->code == mui_codeBackspace)
-    {
-        uint32_t start = 0;
-        uint32_t end = 0;
-        if (muiTextBlock_FindDeletion(app->text, search->block, (uint32_t)length,
-                                      mui_deleteBackward, &start, &end) == mui_success)
-        {
-            SampleAppCheck(app,
-                           muiTextBlock_Replace(app->text, search->block, start, end, NULL, 0) ==
-                                   mui_success &&
-                               muiNode_MarkContentChanged(app->context, search->node) ==
-                                   mui_success,
-                           "a deletion");
-        }
-        Filter(pickers, search);
         return true;
     }
-    if (search->list.index1 == 0)
+    bool changed = false;
+    bool handled = SampleEdit(pickers->app, search->node, event, &changed);
+    if (changed)
     {
-        if (event->code == mui_codeArrowDown)
-        {
-            OpenAll(pickers, search);
-            return true;
-        }
-        return false;
+        Filter(pickers, search);
     }
-    return ListKey(pickers, search, event);
+    return handled;
 }
 
 // The number input takes its drag: the value moves a step for each
@@ -531,6 +510,16 @@ static void Build(void* user, SampleApp* app)
     MakeCombo(pickers, &pickers->select, "Quality", "Medium", s_qualities, QUALITIES);
     pickers->select.picked = 1;
     MakeCombo(pickers, &pickers->search, "Fruit", "", s_fruits, FRUITS);
+    // The searchable combobox edits its text; a drag selects in it.
+    const muiTextEditDef edit = muiDefaultTextEditDef();
+    muiInteractionStyle drags = muiDefaultInteractionStyle();
+    drags.drags = true;
+    SampleAppCheck(
+        app,
+        muiTextBlock_SetEditing(app->text, pickers->search.block, &edit) == mui_success &&
+            muiNode_SetInteractionValues(app->context, pickers->search.node, &drags,
+                                         MUI_PROPERTY_BIT(mui_propertyDrags)) == mui_success,
+        "the search edits");
     pickers->number = Field(app, "Count", "20", 80.0f, &pickers->numberBlock);
     muiInteractionStyle interaction = muiDefaultInteractionStyle();
     interaction.focusMode = mui_focusAll;
@@ -583,7 +572,7 @@ static void Update(void* user, SampleApp* app)
     }
 }
 
-// Text, then the searchable field's caret at its end while focused.
+// Text, then the searchable field's selection and caret while focused.
 static void Paint(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
                   muiDrawSink* sink)
 {
@@ -595,15 +584,7 @@ static void Paint(void* user, muiNodeId nodeId, uint64_t hostKey, float width, f
     {
         return;
     }
-    size_t length = 0;
-    (void)TextOf(app, pickers->search.block, &length);
-    muiTextCaret caret;
-    const muiTextPosition end = {(uint32_t)length, mui_affinityDownstream};
-    if (muiTextGetCaret(&app->host, nodeId, width, end, &caret) == mui_success)
-    {
-        const muiRect bar = {caret.x, caret.y, 2.0f, caret.height};
-        (void)muiDrawSink_AddRect(sink, bar, SampleColor(s_caret));
-    }
+    SamplePaintEditing(app, nodeId, width, sink, s_caret);
 }
 
 static bool Holds(const SampleApp* app, muiTextBlockId block, const char* expected)
@@ -802,6 +783,17 @@ static bool Script(void* user, SampleApp* app, int frame)
     }
 }
 
+// A paste changed the searchable field: the list follows.
+static void Edited(void* user, SampleApp* app, muiNodeId node)
+{
+    Pickers* pickers = user;
+    (void)app;
+    if (SampleSame(node, pickers->search.node))
+    {
+        Filter(pickers, &pickers->search);
+    }
+}
+
 int main(int count, char** arguments)
 {
     static Pickers pickers;
@@ -813,6 +805,7 @@ int main(int count, char** arguments)
         .paint = Paint,
         .script = Script,
         .still = Still,
+        .edited = Edited,
         .user = &pickers,
     };
     return SampleRunApp(&def, count, arguments);

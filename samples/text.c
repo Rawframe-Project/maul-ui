@@ -1,22 +1,20 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Single and multi-line text inputs, composed over Maul UI's text
-// editing primitives (maul-ui/text_edit.h) with the roles and keys of
-// the WAI-ARIA Authoring Practices (record mui-0005). Each field is one
-// node: its box, its text block as host content, the text input role and
-// focus. The host keeps the caret and the selection: a press places the
-// caret (muiTextHitTest), typed text replaces the selection
-// (muiTextBlock_Replace), Backspace and Delete remove a cluster
-// (muiTextBlock_FindDeletion) or the selection, arrows, Home and End
-// move by clusters and lines (muiTextMove), Shift extending the
-// selection, Enter breaking a line in the multi-line field; its paint
-// function draws the selection's rectangles and the caret over the
-// text. An input method's preedit goes into the focused field's block
-// (maul-ui-window/composition.h) and the window's candidate box follows
-// the caret (muiWindowGlue_SetTextCaret). Headless, a person's typing,
-// editing, selecting and composing is posted and the texts, the caret's
-// pixels, the window's caret and the accessibility tree checked.
+// Single and multi-line text inputs over Maul UI's text editor
+// (maul-ui/text_editor.h), with the roles and keys of the WAI-ARIA
+// Authoring Practices (record mui-0005). Each field is one node: its
+// box, its editing block as host content, the text input role, focus
+// and drags. The editor takes the field's events (muiTextEditEvent):
+// typed text, the platform's keys, presses and drags; its copies go to
+// the window's clipboard and its pastes come from it
+// (SampleEdit, maul-ui-window/clipboard.h). The paint function draws the selection's
+// rectangles and the caret over the text. An input method's preedit goes
+// into the focused field (muiWindowCompose) and the window's candidate
+// box follows the caret (muiWindowGlue_SetTextCaret). Headless, a
+// person's typing, editing, selecting, copying, pasting, undoing and
+// composing is posted and the texts, the caret's pixels, the window's
+// caret and the accessibility tree checked.
 
 #include "app.h"
 
@@ -29,6 +27,7 @@
 #include "maul-ui/pointer.h"
 #include "maul-ui/style.h"
 #include "maul-ui/text_edit.h"
+#include "maul-ui/text_editor.h"
 #include "maul-ui/text_style.h"
 #include "maul-window/test.h"
 
@@ -43,18 +42,12 @@ static const uint8_t s_text[3] = {242, 242, 242};
 static const uint8_t s_field[3] = {48, 56, 64};
 static const uint8_t s_caret[3] = {255, 200, 64};
 
+static const muiKeymap s_keymap = SAMPLE_KEYMAP;
+
 typedef struct Field
 {
     muiNodeId node;
     muiTextBlockId block;
-    bool multiline;
-    // The selection runs from the anchor to the caret; empty when they
-    // meet.
-    uint32_t anchor;
-    muiTextPosition caret;
-    // The x lines keep moving up and down to, taken from the caret at
-    // the first such move; -1 until then.
-    float preferredX;
 } Field;
 
 typedef struct Texts
@@ -80,200 +73,46 @@ static int FieldOf(const Texts* texts, muiNodeId node)
     return -1;
 }
 
-static float Width(const SampleApp* app, const Field* field)
+static muiTextSelection SelectionOf(const SampleApp* app, const Field* field)
 {
-    return muiNode_GetContentRect(app->context, field->node).width;
+    muiTextSelection selection = {0, {0, mui_affinityDownstream}};
+    (void)muiTextBlock_GetSelection(app->text, field->block, &selection);
+    return selection;
 }
 
-static uint32_t Start(const Field* field)
-{
-    return field->anchor < field->caret.offset ? field->anchor : field->caret.offset;
-}
-
-static uint32_t End(const Field* field)
-{
-    return field->anchor > field->caret.offset ? field->anchor : field->caret.offset;
-}
-
-// Replaces a range of a field's text, the caret after what went in.
-static void Replace(SampleApp* app, Field* field, uint32_t start, uint32_t end, const char* text,
-                    size_t length)
+static void Changed(SampleApp* app, const Field* field, bool changed)
 {
     SampleAppCheck(app,
-                   muiTextBlock_Replace(app->text, field->block, start, end, text, length) ==
-                           mui_success &&
-                       muiNode_MarkContentChanged(app->context, field->node) == mui_success,
+                   !changed || muiNode_MarkContentChanged(app->context, field->node) == mui_success,
                    "an edit");
-    field->caret = (muiTextPosition){start + (uint32_t)length, mui_affinityDownstream};
-    field->anchor = field->caret.offset;
-    field->preferredX = -1.0f;
 }
 
-// Typed text replaces the selection.
-static void Insert(SampleApp* app, Field* field, const char* text, size_t length)
-{
-    Replace(app, field, Start(field), End(field), text, length);
-}
-
-// Backspace or Delete: the selection, or a cluster beside the caret.
-static void Delete(SampleApp* app, Field* field, muiTextDeletion deletion)
-{
-    uint32_t start = Start(field);
-    uint32_t end = End(field);
-    if (start == end && muiTextBlock_FindDeletion(app->text, field->block, field->caret.offset,
-                                                  deletion, &start, &end) != mui_success)
-    {
-        return;
-    }
-    Replace(app, field, start, end, NULL, 0);
-}
-
-// Moves the caret, extending the selection with Shift; lines keep the x
-// the first of them started from, other moves forget it.
-static void Move(SampleApp* app, Field* field, muiTextMovement movement, bool extend)
-{
-    bool vertical = movement == mui_moveLineUp || movement == mui_moveLineDown;
-    float width = Width(app, field);
-    muiTextCaret caret;
-    if (vertical && field->preferredX < 0.0f &&
-        muiTextGetCaret(&app->host, field->node, width, field->caret, &caret) == mui_success)
-    {
-        field->preferredX = caret.x;
-    }
-    muiTextPosition moved = field->caret;
-    if (muiTextMove(&app->host, field->node, width, field->caret, movement,
-                    fmaxf(field->preferredX, 0.0f), &moved) != mui_success)
-    {
-        return;
-    }
-    field->caret = moved;
-    if (!extend)
-    {
-        field->anchor = moved.offset;
-    }
-    if (!vertical)
-    {
-        field->preferredX = -1.0f;
-    }
-}
-
-// A press places the caret where it is, in the content box.
-static void Press(SampleApp* app, Field* field, const muiPointerRecord* record, bool extend)
-{
-    muiRect content = muiNode_GetContentRect(app->context, field->node);
-    muiTextPosition position = field->caret;
-    if (muiTextHitTest(&app->host, field->node, content.width, record->x - content.x,
-                       record->y - content.y, &position) == mui_success)
-    {
-        field->caret = position;
-        field->preferredX = -1.0f;
-        if (!extend)
-        {
-            field->anchor = position.offset;
-        }
-    }
-}
-
-// The keys a field takes: editing, moving, and Enter where lines break.
-static bool Key(SampleApp* app, Field* field, const muiEvent* event)
-{
-    bool extend = (event->modifiers & mui_modShift) != 0;
-    switch (event->code)
-    {
-    case mui_codeBackspace:
-        Delete(app, field, mui_deleteBackward);
-        return true;
-    case mui_codeDelete:
-        Delete(app, field, mui_deleteForward);
-        return true;
-    case mui_codeArrowLeft:
-        Move(app, field, mui_moveLeft, extend);
-        return true;
-    case mui_codeArrowRight:
-        Move(app, field, mui_moveRight, extend);
-        return true;
-    case mui_codeArrowUp:
-        Move(app, field, field->multiline ? mui_moveLineUp : mui_moveTextStart, extend);
-        return true;
-    case mui_codeArrowDown:
-        Move(app, field, field->multiline ? mui_moveLineDown : mui_moveTextEnd, extend);
-        return true;
-    case mui_codeHome:
-        Move(app, field, mui_moveLineStart, extend);
-        return true;
-    case mui_codeEnd:
-        Move(app, field, mui_moveLineEnd, extend);
-        return true;
-    case mui_codeEnter:
-        if (field->multiline)
-        {
-            Insert(app, field, "\n", 1);
-        }
-        return field->multiline;
-    default:
-        return false;
-    }
-}
-
+// A field's events go to the editor.
 static bool Hear(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* event)
 {
     Texts* texts = user;
-    int index = FieldOf(texts, nodeId);
-    if (phase != mui_phaseBubble || index < 0)
-    {
-        return false;
-    }
-    Field* field = &texts->fields[index];
-    SampleApp* app = texts->app;
-    switch (event->kind)
-    {
-    case mui_eventPointer:
-        if (event->pointer->kind == mui_pointerRecordPress)
-        {
-            Press(app, field, event->pointer, (event->modifiers & mui_modShift) != 0);
-            return true;
-        }
-        return false;
-    case mui_eventText:
-        // Control characters are the keys' to handle.
-        if (event->length > 0 && (unsigned char)event->text[0] >= 0x20)
-        {
-            Insert(app, field, event->text, event->length);
-        }
-        return true;
-    case mui_eventKeyDown:
-        return Key(app, field, event);
-    default:
-        return false;
-    }
+    return phase == mui_phaseBubble && FieldOf(texts, nodeId) >= 0 &&
+           SampleEdit(texts->app, nodeId, event, NULL);
 }
 
-// An input method's preedit goes into the focused field at its caret;
-// an empty one ends the composition, the caret back where it began, the
-// committed text coming after it as text.
+// An input method's preedit goes into the focused field.
 static void Record(void* user, SampleApp* app, const mwinEvent* event)
 {
     Texts* texts = user;
-    if (event->type != mwin_eventImePreedit || texts->focused < 0)
+    if (texts->focused < 0)
     {
         return;
     }
     Field* field = &texts->fields[texts->focused];
-    uint32_t start = field->caret.offset;
-    uint32_t length = 0;
-    (void)muiTextBlock_GetComposition(app->text, field->block, &start, &length);
-    if (length == 0)
+    bool changed = false;
+    if (event->type == mwin_eventImePreedit)
     {
-        start = Start(field);
+        SampleAppCheck(app,
+                       muiWindowCompose(app->text, field->block, &event->data.preedit, &changed) ==
+                           mui_success,
+                       "a composition");
     }
-    int32_t caret = -1;
-    SampleAppCheck(app,
-                   muiWindowSetComposition(app->text, field->block, start, &event->data.preedit,
-                                           &caret) == mui_success &&
-                       muiNode_MarkContentChanged(app->context, field->node) == mui_success,
-                   "a composition");
-    field->caret.offset = caret >= 0 ? (uint32_t)caret : start;
-    field->anchor = field->caret.offset;
+    Changed(app, field, changed);
 }
 
 // The window's caret follows the focused field's; none without one.
@@ -284,11 +123,12 @@ static void Update(void* user, SampleApp* app)
     if (focused >= 0)
     {
         Field* field = &texts->fields[focused];
-        bool moved = focused != texts->focused || field->caret.offset != texts->placedCaret.offset;
-        if (moved && muiWindowGlue_SetTextCaret(app->glue, &app->host, field->node, field->caret,
+        muiTextPosition caret = SelectionOf(app, field).caret;
+        bool moved = focused != texts->focused || caret.offset != texts->placedCaret.offset;
+        if (moved && muiWindowGlue_SetTextCaret(app->glue, &app->host, field->node, caret,
                                                 &texts->placed) == mui_success)
         {
-            texts->placedCaret = field->caret;
+            texts->placedCaret = caret;
         }
     }
     else if (texts->focused >= 0)
@@ -313,32 +153,15 @@ static void Paint(void* user, muiNodeId nodeId, uint64_t hostKey, float width, f
     {
         return;
     }
-    const Field* field = &texts->fields[index];
-    muiRect rects[8];
-    uint32_t count = 0;
-    if (Start(field) != End(field) &&
-        muiTextGetRangeRects(&app->host, nodeId, width, Start(field), End(field), rects, 8,
-                             &count) == mui_success)
-    {
-        for (uint32_t i = 0; i < count && i < 8; i++)
-        {
-            (void)muiDrawSink_AddRect(sink, rects[i], (muiColor){0.2f, 0.45f, 0.9f, 0.5f});
-        }
-    }
-    muiTextCaret caret;
-    if (muiTextGetCaret(&app->host, nodeId, width, field->caret, &caret) == mui_success)
-    {
-        const muiRect bar = {caret.x, caret.y, 2.0f, caret.height};
-        (void)muiDrawSink_AddRect(sink, bar, SampleColor(s_caret));
-    }
+    SamplePaintEditing(app, nodeId, width, sink, s_caret);
 }
 
-// A field: a box with padding, its block as host content, at 16.
+// A field: a box with padding, its block as host content, at 16,
+// editing under a field's rules.
 static void MakeField(Texts* texts, SampleApp* app, int index, const char* name, const char* text,
                       float height, bool multiline)
 {
     Field* field = &texts->fields[index];
-    field->multiline = multiline;
     muiNodeId label = SampleLabel(app, app->root, name, 14.0f, s_text);
     muiLayoutStyle layout = muiDefaultLayoutStyle();
     layout.margin.top = 10.0f;
@@ -361,21 +184,24 @@ static void MakeField(Texts* texts, SampleApp* app, int index, const char* name,
     style.wrap = multiline ? mui_textWrap : mui_textNoWrap;
     muiInteractionStyle interaction = muiDefaultInteractionStyle();
     interaction.focusMode = mui_focusAll;
+    // A drag selects.
+    interaction.drags = true;
+    muiTextEditDef edit = muiDefaultTextEditDef();
+    edit.flags = multiline ? mui_editMultiline : 0;
     SampleAppCheck(
         app,
         muiNode_SetTextValues(app->context, field->node, &style,
                               MUI_PROPERTY_BIT(mui_propertyTextWrap)) == mui_success &&
             muiNode_SetInteractionValues(app->context, field->node, &interaction,
-                                         MUI_PROPERTY_BIT(mui_propertyFocusMode)) == mui_success &&
+                                         MUI_PROPERTY_BIT(mui_propertyFocusMode) |
+                                             MUI_PROPERTY_BIT(mui_propertyDrags)) == mui_success &&
             muiNode_SetAccessRole(app->context, field->node,
                                   multiline ? mui_roleMultilineTextInput : mui_roleTextInput) ==
                 mui_success &&
             muiNode_SetAccessText(app->context, field->node, mui_accessLabel, name, strlen(name)) ==
-                mui_success,
+                mui_success &&
+            muiTextBlock_SetEditing(app->text, field->block, &edit) == mui_success,
         "a field");
-    field->caret = (muiTextPosition){(uint32_t)strlen(text), mui_affinityDownstream};
-    field->anchor = field->caret.offset;
-    field->preferredX = -1.0f;
 }
 
 static void Build(void* user, SampleApp* app)
@@ -482,6 +308,41 @@ static void PostNamed(SampleApp* app, mwinKeyCode code, mwinModifiers modifiers)
                    "a key posted");
 }
 
+// A letter with the platform's command modifier.
+static void PostShortcut(SampleApp* app, mwinKeyCode code, char letter)
+{
+    mwinEvent down = {.type = mwin_eventKeyDown, .window = app->window};
+    mwinModifiers command = s_keymap == mui_keymapMac ? mwin_modMeta : mwin_modControl;
+    down.data.key = (mwinKeyEvent){.code = code, .modifiers = command, .key = (uint32_t)letter};
+    mwinEvent up = down;
+    up.type = mwin_eventKeyUp;
+    SampleAppCheck(app,
+                   mwinTestPost(app->windows, &down) == mwin_success &&
+                       mwinTestPost(app->windows, &up) == mwin_success,
+                   "a shortcut posted");
+}
+
+// The key to a line's end: End, or Command and right on a Mac.
+static void PostLineEnd(SampleApp* app, mwinModifiers modifiers)
+{
+    if (s_keymap == mui_keymapMac)
+    {
+        PostNamed(app, mwin_codeArrowRight, modifiers | mwin_modMeta);
+    }
+    else
+    {
+        PostNamed(app, mwin_codeEnd, modifiers);
+    }
+}
+
+static bool ClipboardHolds(const SampleApp* app, const char* expected)
+{
+    char text[64];
+    size_t length = 0;
+    return mwinTestGetClipboard(app->windows, text, sizeof text, &length) == mwin_success &&
+           length == strlen(expected) && memcmp(text, expected, length) == 0;
+}
+
 static void PostPreedit(SampleApp* app, const char* text, int32_t caret)
 {
     mwinEvent preedit = {.type = mwin_eventImePreedit, .window = app->window};
@@ -529,7 +390,7 @@ static bool Script(void* user, SampleApp* app, int frame)
         return true;
     case 2:
         SampleAppCheck(app, Holds(app, name, "MaXul"), "Backspace, two lefts and a typed X");
-        PostNamed(app, mwin_codeEnd, mwin_modShift);
+        PostLineEnd(app, mwin_modShift);
         PostText(app, "Y");
         return true;
     case 3:
@@ -568,10 +429,28 @@ static bool Script(void* user, SampleApp* app, int frame)
         PostText(app, "\xc3\xa9");
         return true;
     }
-    default:
+    case 6:
         SampleAppCheck(
             app, Holds(app, notes, "one\xc3\xa9\ntwo") && Reports(app, notes, "one\xc3\xa9\ntwo"),
             "the composition committed as \xc3\xa9");
+        // Copy the name whole, then paste it after itself.
+        Click(app, name->node);
+        PostShortcut(app, mwin_codeKeyA, 'a');
+        PostShortcut(app, mwin_codeKeyC, 'c');
+        PostNamed(app, mwin_codeArrowRight, 0);
+        PostShortcut(app, mwin_codeKeyV, 'v');
+        return true;
+    case 7:
+        // The window answers the copy and the paste a frame later.
+        return true;
+    case 8:
+        SampleAppCheck(app, ClipboardHolds(app, "MaXY"), "copied to the clipboard");
+        SampleAppCheck(app, Holds(app, name, "MaXYMaXY"), "pasted after itself");
+        PostShortcut(app, mwin_codeKeyZ, 'z');
+        return true;
+    default:
+        SampleAppCheck(app, Holds(app, name, "MaXY") && Reports(app, name, "MaXY"),
+                       "the paste undone");
         return false;
     }
 }

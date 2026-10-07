@@ -66,7 +66,10 @@ format.
   laid-out text; `muiTextEditEvent` takes typed text, keys by a PC or
   Mac keymap (`muiKeymap`), the clipboard through a host writer
   (`muiTextEditInput`) and the pointer; `muiTextBlock_Compose` shows an
-  input method's composition.
+  input method's composition. The window glue adds `muiWindowCompose`
+  and `maul-ui-window/clipboard.h` (`muiWindowGlue_WriteClipboard`,
+  `muiWindowGlue_RequestPaste`, `muiWindowGlue_Paste`); the text,
+  pickers and colour samples edit through the editor.
 
 - Text decorations and spans: the text style's `decoration` (underline,
   overline, line-through) and `decorationColor` (the text's color at
