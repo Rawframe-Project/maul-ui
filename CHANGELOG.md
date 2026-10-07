@@ -89,7 +89,12 @@ format.
   its trigger for half a second, and a context menu at the pointer or
   at the area's corner for the context menu key, taking the focus and
   giving it back when it closes. The frame gains SamplePostButton and a
-  per-sample headless clock step. On the web the
+  per-sample headless clock step. `sample_dialogs` composes a modal
+  dialog, a modal layer centred on the root whose focus trap, hit
+  blocking and modal report are the library's, closed by Escape or its
+  buttons with the focus given back to its opener, and floating dialogs
+  as activation layers raised by a press and moved by their title bars.
+  On the web the
   headless tour runs in headless
   Chrome's WebGPU through the web runner, which now gives Chrome WebGPU
   and a program its arguments (record mui-0005).
