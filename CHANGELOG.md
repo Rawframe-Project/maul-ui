@@ -61,7 +61,9 @@ format.
   surface made from the window's native handles, configured again as
   the window's size changes and let go while the window has no surface,
   until the window is closed, or for `--frames N`, the last frame read
-  back and checked (record mui-0005).
+  back and checked. On the web the headless tour runs in headless
+  Chrome's WebGPU through the web runner, which now gives Chrome WebGPU
+  and a program its arguments (record mui-0005).
 - The Maul Window glue, `maul-ui-window` (`MAUL_UI_WINDOW`, off by
   default; `maul-ui-window/glue.h`), with Maul Window 0.8.0: a glue a
   window takes the records the host drains and feeds them to a context,

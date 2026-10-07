@@ -19,8 +19,19 @@ function(mui_add_sample name)
     if(MSVC)
         target_compile_options(${target} PRIVATE /clang:-std=c23)
     endif()
+    if(EMSCRIPTEN)
+        # Waits sleep through JSPI; the runner sets MUI_RHI_REQUIRED in ENV.
+        target_link_options(${target} PRIVATE -sJSPI -sEXIT_RUNTIME -sALLOW_MEMORY_GROWTH
+                                              -sEXPORTED_RUNTIME_METHODS=ENV)
+    endif()
     if(MAUL_UI_BUILD_TESTS)
-        add_test(NAME ${target} COMMAND ${target} --headless)
+        if(EMSCRIPTEN)
+            # In headless Chrome's WebGPU, through the web runner.
+            add_test(NAME ${target} COMMAND node ${PROJECT_SOURCE_DIR}/test/web_runner.cjs
+                                            $<TARGET_FILE:${target}> --headless)
+        else()
+            add_test(NAME ${target} COMMAND ${target} --headless)
+        endif()
         set_tests_properties(${target} PROPERTIES SKIP_RETURN_CODE 77)
     endif()
 endfunction()

@@ -44,6 +44,9 @@ int SampleOpen(Sample* sample);
 // Destroys the device and the instance and returns the exit status.
 int SampleClose(Sample* sample);
 
+// Returns a sample's exit status, printed on the web for the runner.
+int SampleExit(int status);
+
 // Records a check, printing what failed; returns the condition.
 bool SampleCheck(Sample* sample, bool condition, const char* what);
 

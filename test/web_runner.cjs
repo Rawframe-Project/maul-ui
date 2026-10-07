@@ -19,7 +19,11 @@
 //   to the box of the element #host, in CSS pixels.
 // - press <selector>: clicks an element, as a screen reader does.
 //
-// usage: node web_runner.cjs <test.js>
+// Chrome runs with WebGPU on SwiftShader, for programs that draw; the
+// arguments after the test's are its own (Module.arguments), and
+// MUI_RHI_REQUIRED, when set, is set in its environment too.
+//
+// usage: node web_runner.cjs <test.js> [argument...]
 
 const http = require('http');
 const fs = require('fs');
@@ -36,10 +40,15 @@ try {
 
 const script = path.resolve(process.argv[2]);
 const root = path.dirname(script);
+const required = process.env.MUI_RHI_REQUIRED || '';
+const moduleSetup = `var Module = {arguments: ${JSON.stringify(process.argv.slice(3))},
+    preRun: [() => { if (Module.ENV && ${JSON.stringify(required)}) {
+        Module.ENV.MUI_RHI_REQUIRED = ${JSON.stringify(required)}; } }]};`;
 const page = `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0">
 <canvas id="page-canvas" style="width:400px;height:300px"></canvas>
 <script>addEventListener('error', e => console.log(
-    'page error at ' + e.filename + ':' + e.lineno + ':' + e.colno + ': ' + e.message));</script>
+    'page error at ' + e.filename + ':' + e.lineno + ':' + e.colno + ': ' + e.message));
+${moduleSetup}</script>
 <script src="${path.basename(script)}"></script></body></html>`;
 const types = {'.js': 'text/javascript', '.wasm': 'application/wasm'};
 
@@ -164,7 +173,10 @@ let queue = Promise.resolve();
 
 async function main() {
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-    const browser = await puppeteer.launch({args: ['--no-sandbox']});
+    const browser = await puppeteer.launch({
+        args: ['--no-sandbox', '--enable-unsafe-webgpu', '--enable-unsafe-swiftshader',
+               '--use-webgpu-adapter=swiftshader'],
+    });
     let status = 1;
     try {
         const tab = await browser.newPage();

@@ -680,12 +680,12 @@ int main(int count, char** arguments)
     static Tour tour;
     if (!Arguments(&tour, count, arguments))
     {
-        return 1;
+        return SampleExit(1);
     }
     int status = SampleOpen(&tour.sample);
     if (status != 0)
     {
-        return status;
+        return SampleExit(status);
     }
     muiTextServiceDef textDef = muiDefaultTextServiceDef();
     muiFontDef font = muiDefaultFontDef();
@@ -718,5 +718,5 @@ int main(int count, char** arguments)
               "the picture let go");
     }
     free(tour.pixels);
-    return SampleClose(&tour.sample);
+    return SampleExit(SampleClose(&tour.sample));
 }

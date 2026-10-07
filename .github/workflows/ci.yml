@@ -303,6 +303,15 @@ jobs:
         # The ARIA adapter against the browser's accessibility tree; a
         # skip (77) fails the step, so green means it ran.
         run: MUI_NODE_MODULES=/tmp/browser/node_modules node test/web_runner.cjs build/test_aria.js
+      - name: The tour in headless Chrome's WebGPU
+        # The reference renderer drawing on WebGPU (SwiftShader), the tour
+        # checking its pixels, in a build of its own (record mui-0005).
+        run: |
+          emcmake cmake -B build-sample -DCMAKE_BUILD_TYPE=Release -D${PREFIX}_WERROR=ON \
+            -D${PREFIX}_RHI=ON -D${PREFIX}_WINDOW=ON
+          cmake --build build-sample -j 4 --target sample_tour
+          MUI_RHI_REQUIRED=1 MUI_NODE_MODULES=/tmp/browser/node_modules \
+            node test/web_runner.cjs build-sample/sample_tour.js --headless
       - name: The reference renderer's WGSL in headless Chrome's WebGPU
         # The shader tools pass WGSL through untouched (record mui-0005).
         run: MUI_NODE_MODULES=/tmp/browser/node_modules node tools/check_wgsl.cjs rhi/shaders/quad.wgsl

@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The samples' harness (record mui-0005).
+// The samples' harness (record mui-0005). On the web a browser answers
+// only between the page's tasks, so the harness sleeps there while it
+// waits (JSPI), as Maul RHI's samples do.
 
 #include "harness.h"
 
@@ -12,8 +14,41 @@
 #include <stdlib.h>
 #include <time.h>
 
-// How long a frame is waited for.
-#define WAIT_NS 10000000000ull
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#endif
+
+// How long an answer is waited for: 10 s natively, 10,000 sleeps of a
+// millisecond or more on the web.
+#define WAIT_NS     10000000000ull
+#define WAIT_SLEEPS 10000
+
+static mrhiResult NextInstance(mrhiInstance* instance, mrhiInstanceNotification* recordOut)
+{
+    mrhiResult status = mrhiNextInstanceNotification(instance, recordOut);
+#ifdef __EMSCRIPTEN__
+    for (int slept = 0; status == mrhi_empty && slept < WAIT_SLEEPS; slept++)
+    {
+        emscripten_sleep(1);
+        status = mrhiNextInstanceNotification(instance, recordOut);
+    }
+#endif
+    return status;
+}
+
+// Waits for a frame to finish.
+static mrhiResult WaitFrame(mrhiDevice* device, mrhiRequestId token)
+{
+    mrhiResult status = mrhiWaitFrame(device, token, WAIT_NS);
+#ifdef __EMSCRIPTEN__
+    for (int slept = 0; status == mrhi_timeout && slept < WAIT_SLEEPS; slept++)
+    {
+        emscripten_sleep(1);
+        status = mrhiWaitFrame(device, token, 0);
+    }
+#endif
+    return status;
+}
 
 int SampleOpen(Sample* sample)
 {
@@ -26,7 +61,7 @@ int SampleOpen(Sample* sample)
     size_t count = 0;
     bool found = mrhiCreateInstance(&def, &sample->instance) == mrhi_success &&
                  mrhiRequestAdapters(sample->instance, &search, &request) == mrhi_success &&
-                 mrhiNextInstanceNotification(sample->instance, &record) == mrhi_success &&
+                 NextInstance(sample->instance, &record) == mrhi_success &&
                  record.outcome == mrhi_success &&
                  mrhiGetAdapters(sample->instance, &sample->adapter, 1, &count) == mrhi_success &&
                  count != 0;
@@ -44,8 +79,7 @@ int SampleOpen(Sample* sample)
     mrhiDeviceDef deviceDef = mrhiDefaultDeviceDef();
     deviceDef.adapter = sample->adapter;
     if (mrhiCreateDevice(sample->instance, &deviceDef, &sample->device, &request) != mrhi_success ||
-        mrhiNextInstanceNotification(sample->instance, &record) != mrhi_success ||
-        record.outcome != mrhi_success)
+        NextInstance(sample->instance, &record) != mrhi_success || record.outcome != mrhi_success)
     {
         printf("FAIL: no device on the adapter\n");
         return 1;
@@ -93,8 +127,20 @@ bool SampleAwaitReady(Sample* sample, muiRhiRenderer* renderer)
         {
             (void)muiRhiRenderer_Notify(renderer, &record);
         }
+#ifdef __EMSCRIPTEN__
+        emscripten_sleep(1);
+#endif
     }
     return muiRhiRenderer_IsReady(renderer);
+}
+
+int SampleExit(int status)
+{
+#ifdef __EMSCRIPTEN__
+    // The web runner ends the page's run on this line.
+    printf("mui-test: exit %d\n", status);
+#endif
+    return status;
 }
 
 bool SampleTexture(Sample* sample, uint32_t width, uint32_t height, const uint8_t* texels,
@@ -139,7 +185,7 @@ bool SampleTexture(Sample* sample, uint32_t width, uint32_t height, const uint8_
         return false;
     }
     return mrhiSubmitFrame(sample->device, &token) == mrhi_success &&
-           mrhiWaitFrame(sample->device, token, WAIT_NS) == mrhi_success;
+           WaitFrame(sample->device, token) == mrhi_success;
 }
 
 bool SampleRender(Sample* sample, muiRhiRenderer* renderer, const muiDrawList* list, uint32_t width,
@@ -187,8 +233,7 @@ bool SampleRender(Sample* sample, muiRhiRenderer* renderer, const muiDrawList* l
         (void)mrhiDropFrame(device);
         return false;
     }
-    if (mrhiSubmitFrame(device, &token) != mrhi_success ||
-        mrhiWaitFrame(device, token, WAIT_NS) != mrhi_success)
+    if (mrhiSubmitFrame(device, &token) != mrhi_success || WaitFrame(device, token) != mrhi_success)
     {
         return false;
     }
@@ -415,7 +460,7 @@ SamplePresented SamplePresent(Sample* sample, SampleSurface* surface, muiRhiRend
     {
         return sample_presented;
     }
-    if (mrhiWaitFrame(device, token, WAIT_NS) != mrhi_success)
+    if (WaitFrame(device, token) != mrhi_success)
     {
         return sample_failed;
     }
