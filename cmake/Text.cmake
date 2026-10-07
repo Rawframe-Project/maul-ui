@@ -17,6 +17,7 @@ target_sources(maul-ui PRIVATE
     src/glyph_image.c
     src/glyph_table.c
     src/line_break.c
+    src/multi_field.c
     src/skyline.c
     src/text_block.c
     src/text_blocks.c

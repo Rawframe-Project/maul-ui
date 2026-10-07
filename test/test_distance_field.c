@@ -33,12 +33,12 @@ static void Draw(const muiSegment* segments, uint32_t count, const muiFieldGrid*
     size_t crossings = muiCountCrossings(cut, n, grid);
     size_t pixels = (size_t)grid->width * grid->height;
     muiFieldScratch scratch = {
-        malloc(((size_t)grid->height + 1) * sizeof(uint32_t)),
-        malloc((crossings + 1) * sizeof(muiCrossing)),
-        malloc((pixels + 1) * sizeof(uint32_t)),
-        malloc((pieces + 1) * sizeof(uint32_t)),
-        malloc(muiEdgeRoom((uint32_t)pieces) * sizeof(muiSegment)),
-        malloc(pixels * sizeof(float)),
+        .rowStarts = malloc(((size_t)grid->height + 1) * sizeof(uint32_t)),
+        .crossings = malloc((crossings + 1) * sizeof(muiCrossing)),
+        .cellStarts = malloc((pixels + 1) * sizeof(uint32_t)),
+        .cellPieces = malloc((pieces + 1) * sizeof(uint32_t)),
+        .edge = malloc(muiEdgeRoom((uint32_t)pieces) * sizeof(muiSegment)),
+        .distances = malloc(pixels * sizeof(float)),
     };
     muiDrawDistanceField(cut, origins, n, grid, &scratch, s_field);
     free(scratch.distances);
@@ -686,7 +686,7 @@ static double CurveError(const FT_Vector* points, const char* tags, short count,
     outline.contours = contours;
     muiSegment segments[600];
     uint32_t n = 0;
-    CHECK(muiFlattenOutline(&outline, segments, 600, &n) && n < 600, "flattened");
+    CHECK(muiFlattenOutline(&outline, segments, NULL, 600, &n) && n < 600, "flattened");
     double worst = 0.0;
     double p[4][2];
     for (int i = 0; i <= degree; i++)
@@ -749,8 +749,8 @@ static void TestFlatten(void)
     uint32_t counted = 0;
     uint32_t filled = 0;
     muiSegment segments[600];
-    CHECK(muiFlattenOutline(&outline, NULL, 0, &counted) &&
-              muiFlattenOutline(&outline, segments, 600, &filled) && counted == filled &&
+    CHECK(muiFlattenOutline(&outline, NULL, NULL, 0, &counted) &&
+              muiFlattenOutline(&outline, segments, NULL, 600, &filled) && counted == filled &&
               segments[filled - 1].x1 == 0.0f && segments[filled - 1].y1 == 0.0f,
           "counted as filled, and closed");
 }

@@ -119,6 +119,18 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   the edge is exact; a stray point or a contour without area is no
   edge. Only correctly rounded float operations are used, so fields
   too are the same bytes everywhere.
+  `muiRenderGlyphMultiField` renders the same field with three more
+  channels (MTSDF, after Chlumský's method and msdfgen): the union's
+  edge is followed end to start into loops, across the places where it
+  leaves one contour for another, and cut into edges where lines or
+  curves of the outline meet turning past msdfgen's threshold of 3
+  radians; edges are coloured as msdfgen colours them, so the two at a
+  corner share one channel, and each colour channel holds the signed
+  distance to the nearest edge of its colour, past an edge's end at a
+  corner to the edge's line. The median of the three keeps corners
+  sharp at any scale, where the one-channel field, kept in alpha for
+  outlines and shadows, rounds them; where the median's side is not
+  the pixel's, the three take the true distance.
 - **Font instances:** a font key names a font and an instance of it:
   the wght axis's value, ital, slnt or a shear, the opsz axis's value,
   and a made bold, decided once when text is laid out from the style's

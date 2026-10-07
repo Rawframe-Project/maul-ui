@@ -13,6 +13,7 @@
 #include "maul-ui/text_block.h"
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "ahem.inc"
@@ -324,6 +325,74 @@ static void TestFieldContract(void)
     muiDestroyTextService(fonts.service);
 }
 
+// Multi-channel fields: placed as the one-channel field, its alpha that
+// field byte for byte, the median of the colours on the same side of 128
+// wherever the field is not at the outline, and the same bytes on every
+// platform.
+static void TestMultiFields(void)
+{
+    static unsigned char single[1 << 16];
+    Fonts fonts = MakeFonts();
+    const uint32_t glyphs[3] = {LIBERATION_A, LIBERATION_A, AHEM_BOX};
+    const muiFontId faces[3] = {fonts.liberation, fonts.liberation, fonts.ahem};
+    const uint32_t spreads[3] = {4, 8, 4};
+    const float sizes[3] = {32.0f, 32.0f, 10.0f};
+    const uint32_t hashes[3] = {0xa2ebd1cbu, 0x305f588bu, 0x4c6bc635u};
+    for (uint32_t k = 0; k < 3; k++)
+    {
+        uint64_t key = muiFont_GetKey(faces[k]);
+        muiGlyphImage one = RenderField(&fonts, faces[k], glyphs[k], sizes[k], spreads[k]);
+        memcpy(single, s_pixels, (size_t)one.width * one.height);
+        muiGlyphImage image = {-1, -1, 0, 0};
+        CHECK(muiRenderGlyphMultiField(fonts.service, key, glyphs[k], sizes[k], spreads[k], &image,
+                                       s_pixels, sizeof s_pixels) == mui_success &&
+                  SameImage(image, one.left, one.top, one.width, one.height),
+              "placed as the one-channel field");
+        bool alpha = true;
+        bool sides = true;
+        for (size_t at = 0; at < (size_t)image.width * image.height; at++)
+        {
+            const unsigned char* p = &s_pixels[at * 4];
+            int low = p[0] < p[1] ? p[0] : p[1];
+            int high = p[0] < p[1] ? p[1] : p[0];
+            int median = p[2] < low ? low : p[2] > high ? high : p[2];
+            alpha = alpha && p[3] == single[at];
+            sides = sides && (abs(p[3] - 128) <= 1 || (median >= 128) == (p[3] >= 128));
+        }
+        CHECK(alpha && sides, "alpha the one-channel field, the median on its side");
+        uint32_t hash = 2166136261u;
+        for (size_t i = 0; i < (size_t)image.width * image.height * 4; i++)
+        {
+            hash = (hash ^ s_pixels[i]) * 16777619u;
+        }
+        CHECK(hash == hashes[k], "the same bytes everywhere");
+    }
+    muiDestroyTextService(fonts.service);
+}
+
+static void TestMultiFieldContract(void)
+{
+    Fonts fonts = MakeFonts();
+    uint64_t ahem = muiFont_GetKey(fonts.ahem);
+    muiGlyphImage image = {0, 0, 0, 0};
+    CHECK(muiRenderGlyphMultiField(fonts.service, ahem, AHEM_BOX, 10.0f, 4, &image, NULL, 0) ==
+                  mui_errorCapacity &&
+              SameImage(image, -4, 12, 18, 18),
+          "too few bytes, the size told");
+    CHECK(muiRenderGlyphMultiField(fonts.service, ahem, AHEM_BOX, 10.0f, 4, &image, s_pixels,
+                                   18 * 18 * 4 - 1) == mui_errorCapacity &&
+              muiRenderGlyphMultiField(fonts.service, ahem, AHEM_BOX, 10.0f, 4, &image, s_pixels,
+                                       18 * 18 * 4) == mui_success,
+          "four bytes a pixel");
+    CHECK(muiRenderGlyphMultiField(NULL, ahem, AHEM_BOX, 10.0f, 4, &image, s_pixels,
+                                   sizeof s_pixels) == mui_errorInvalid &&
+              muiRenderGlyphMultiField(fonts.service, ahem, AHEM_BOX, 10.0f,
+                                       MUI_MAX_FIELD_SPREAD + 1, &image, s_pixels,
+                                       sizeof s_pixels) == mui_errorInvalid,
+          "refused as the one-channel field");
+    muiDestroyTextService(fonts.service);
+}
+
 int main(void)
 {
     TestBoxes();
@@ -332,5 +401,7 @@ int main(void)
     TestTooLarge();
     TestFields();
     TestFieldContract();
+    TestMultiFields();
+    TestMultiFieldContract();
     return s_failures == 0 ? 0 : 1;
 }

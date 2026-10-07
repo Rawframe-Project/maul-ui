@@ -440,6 +440,7 @@ if(MAUL_UI_BUILD_TESTS)
         target_include_directories(test_glyph_atlas PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(skyline WHITEBOX)
         maul_add_test(distance_field WHITEBOX)
+        maul_add_test(multi_field WHITEBOX)
         # Whitebox tests are not built for a shared library.
         if(TARGET test_distance_field AND TARGET maul_ui_freetype)
             target_include_directories(test_distance_field SYSTEM PRIVATE

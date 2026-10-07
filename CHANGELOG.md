@@ -54,6 +54,12 @@ format.
 
 ### Added
 
+- Multi-channel distance fields: `muiRenderGlyphMultiField` renders a
+  glyph's MTSDF, four bytes a pixel, whose colour channels' median
+  keeps corners sharp at any scale and whose alpha is the one-channel
+  field; overlapping contours are their union, and fields are the same
+  bytes on every platform.
+
 - Conic gradients (`mui_gradientConic`): around the box's centre from
   the gradient's angle, stops over a turn, as CSS's `conic-gradient`;
   the reference renderer paints them. A fixture holds the renderer's

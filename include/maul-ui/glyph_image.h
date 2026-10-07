@@ -109,6 +109,38 @@ extern "C"
                                                         uint32_t spread, muiGlyphImage* imageOut,
                                                         unsigned char* pixels, size_t capacity);
 
+    /// Renders a glyph's multi-channel signed distance field (MTSDF) for a
+    /// renderer that scales it: four bytes a pixel. Red, green and blue
+    /// are three distances, each to the outline's edges of one colour, and
+    /// their median is the distance with the outline's corners kept sharp
+    /// at any scale (Chlumský's method, as msdfgen's); alpha is the field
+    /// muiRenderGlyphField renders, byte for byte, for outlines, glows and
+    /// shadows. Each channel is 128 at its distance's 0 and 128 / spread
+    /// more for each pixel inside, less outside, held within 0 and 255.
+    /// The image is placed and sized as muiRenderGlyphField places it, and
+    /// overlapping contours are their union.
+    ///
+    /// @param service    The service.
+    /// @param font       A font key, as a glyph run carries; 0 for the
+    ///                   default font.
+    /// @param glyph      A glyph id of the font.
+    /// @param pixelSize  The em in pixels of the image, from 1/64 to
+    ///                   MUI_MAX_GLYPH_PIXEL_SIZE.
+    /// @param spread     How far the field reaches past the outline, from
+    ///                   MUI_MIN_FIELD_SPREAD to MUI_MAX_FIELD_SPREAD
+    ///                   pixels.
+    /// @param imageOut   Receives the image's place and size, also when
+    ///                   pixels hold too few bytes.
+    /// @param pixels     Receives width * height * 4 bytes, red, green, blue
+    ///                   and alpha a pixel; may be NULL when capacity is 0.
+    /// @param capacity   How many bytes pixels holds.
+    /// @return As muiRenderGlyphField.
+    /// @par Thread safety
+    /// Safe from any thread; the service is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiRenderGlyphMultiField(
+        muiTextService* service, uint64_t font, uint32_t glyph, float pixelSize, uint32_t spread,
+        muiGlyphImage* imageOut, unsigned char* pixels, size_t capacity);
+
 #ifdef __cplusplus
 }
 #endif

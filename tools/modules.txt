@@ -132,7 +132,8 @@ text_move: font_chain line_break text_block text_boxes text_paragraph text_servi
 font: allocator font_store pool text_service
 distance_field:
 flatten: distance_field
-glyph_image: distance_field flatten font_instance font_store text_block text_service
+multi_field: distance_field
+glyph_image: distance_field flatten font_instance font_store multi_field text_block text_service
 skyline:
 glyph_table: allocator
 glyph_atlas: allocator font_store glyph_table skyline text_service

@@ -11,6 +11,7 @@
 #include "distance_field.h"
 #include "flatten.h"
 #include "font_instance.h"
+#include "multi_field.h"
 #include "text_service.h"
 
 #include FT_MULTIPLE_MASTERS_H
@@ -200,21 +201,53 @@ muiResult muiRenderGlyph(muiTextService* service, uint64_t font, uint32_t glyph,
 
 // Cuts the loaded outline into segments, then pieces, and reserves the
 // field's work memory, all in the service's memory.
+// Reserves a multi-channel field's work memory beside the one-channel
+// field's, for room edge segments.
+static bool PrepareMulti(muiTextService* service, const muiFieldGrid* grid, size_t room,
+                         muiFieldScratch* scratch, muiMultiScratch* multi)
+{
+    const muiAllocator* allocator = &service->allocator;
+    size_t pixels = (size_t)grid->width * grid->height;
+    if (!muiReserve(allocator, &service->fieldEdgeOrigins, room * sizeof(uint32_t)) ||
+        !muiReserve(allocator, &service->fieldEdgeSides, room) ||
+        !muiReserve(allocator, &service->fieldEdgeColors, room) ||
+        !muiReserve(allocator, &service->fieldLoops, (room * 3 + 1) * sizeof(uint32_t)) ||
+        !muiReserve(allocator, &service->fieldChannels, pixels * 9 * sizeof(float)) ||
+        !muiReserve(allocator, &service->fieldInside, pixels))
+    {
+        return false;
+    }
+    scratch->edgeOrigins = service->fieldEdgeOrigins.data;
+    scratch->edgeSides = service->fieldEdgeSides.data;
+    uint32_t* loops = service->fieldLoops.data;
+    *multi = (muiMultiScratch){
+        service->fieldCurves.data, service->fieldEdgeColors.data, loops,
+        loops + room + 1,          loops + room * 2 + 1,          service->fieldChannels.data,
+        service->fieldInside.data};
+    return true;
+}
+
+// Flattens an outline and reserves a field's work memory: a multi-channel
+// field's too, when multi is not NULL.
 static muiResult Prepare(muiTextService* service, const FT_Outline* outline,
-                         const muiFieldGrid* grid, muiFieldScratch* scratch, uint32_t* piecesOut)
+                         const muiFieldGrid* grid, muiFieldScratch* scratch, muiMultiScratch* multi,
+                         uint32_t* piecesOut)
 {
     const muiAllocator* allocator = &service->allocator;
     uint32_t count = 0;
-    if (!muiFlattenOutline(outline, nullptr, 0, &count))
+    if (!muiFlattenOutline(outline, nullptr, nullptr, 0, &count))
     {
         return mui_errorFormat;
     }
-    if (!muiReserve(allocator, &service->fieldSegments, ((size_t)count + 1) * sizeof(muiSegment)))
+    if (!muiReserve(allocator, &service->fieldSegments, ((size_t)count + 1) * sizeof(muiSegment)) ||
+        (multi != nullptr &&
+         !muiReserve(allocator, &service->fieldCurves, ((size_t)count + 1) * sizeof(uint32_t))))
     {
         return mui_errorCapacity;
     }
     muiSegment* segments = service->fieldSegments.data;
-    (void)muiFlattenOutline(outline, segments, count, &count);
+    (void)muiFlattenOutline(outline, segments,
+                            multi != nullptr ? service->fieldCurves.data : nullptr, count, &count);
     size_t pieces = muiCountPieces(segments, count);
     if (pieces > UINT32_MAX - 1 ||
         !muiReserve(allocator, &service->fieldPieces, (pieces + 1) * sizeof(muiSegment)) ||
@@ -237,16 +270,24 @@ static muiResult Prepare(muiTextService* service, const FT_Outline* outline,
     {
         return mui_errorCapacity;
     }
-    *scratch = (muiFieldScratch){service->fieldRows.data,  service->fieldCrossings.data,
-                                 service->fieldCells.data, service->fieldCellPieces.data,
-                                 service->fieldEdge.data,  service->fieldDistances.data};
+    *scratch = (muiFieldScratch){.rowStarts = service->fieldRows.data,
+                                 .crossings = service->fieldCrossings.data,
+                                 .cellStarts = service->fieldCells.data,
+                                 .cellPieces = service->fieldCellPieces.data,
+                                 .edge = service->fieldEdge.data,
+                                 .distances = service->fieldDistances.data};
+    if (multi != nullptr && !PrepareMulti(service, grid, muiEdgeRoom(cut), scratch, multi))
+    {
+        return mui_errorCapacity;
+    }
     *piecesOut = cut;
     return mui_success;
 }
 
-muiResult muiRenderGlyphField(muiTextService* service, uint64_t font, uint32_t glyph,
-                              float pixelSize, uint32_t spread, muiGlyphImage* imageOut,
-                              unsigned char* pixels, size_t capacity)
+// Renders a glyph's field of one channel, or of four when multi.
+static muiResult RenderField(muiTextService* service, uint64_t font, uint32_t glyph,
+                             float pixelSize, uint32_t spread, muiGlyphImage* imageOut,
+                             unsigned char* pixels, size_t capacity, bool multi)
 {
     if (service == nullptr || imageOut == nullptr || (pixels == nullptr && capacity != 0) ||
         !IsSizeValid(pixelSize) || spread < MUI_MIN_FIELD_SPREAD || spread > MUI_MAX_FIELD_SPREAD)
@@ -284,7 +325,7 @@ muiResult muiRenderGlyphField(muiTextService* service, uint64_t font, uint32_t g
     }
     *imageOut = (muiGlyphImage){(int32_t)left, (int32_t)(bottom + height), (uint32_t)width,
                                 (uint32_t)height};
-    if ((size_t)width * (size_t)height > capacity)
+    if ((size_t)width * (size_t)height * (multi ? 4u : 1u) > capacity)
     {
         return mui_errorCapacity;
     }
@@ -292,13 +333,36 @@ muiResult muiRenderGlyphField(muiTextService* service, uint64_t font, uint32_t g
                          (uint32_t)width, (uint32_t)height,
                          spread,          (outline->flags & FT_OUTLINE_EVEN_ODD_FILL) != 0};
     muiFieldScratch scratch;
+    muiMultiScratch multiScratch;
     uint32_t pieces = 0;
-    result = Prepare(service, outline, &grid, &scratch, &pieces);
+    result = Prepare(service, outline, &grid, &scratch, multi ? &multiScratch : nullptr, &pieces);
     if (result != mui_success)
     {
         return result;
     }
-    muiDrawDistanceField(service->fieldPieces.data, service->fieldOrigins.data, pieces, &grid,
-                         &scratch, pixels);
+    if (multi)
+    {
+        muiDrawMultiField(service->fieldPieces.data, service->fieldOrigins.data, pieces, &grid,
+                          &scratch, &multiScratch, pixels);
+    }
+    else
+    {
+        muiDrawDistanceField(service->fieldPieces.data, service->fieldOrigins.data, pieces, &grid,
+                             &scratch, pixels);
+    }
     return mui_success;
+}
+
+muiResult muiRenderGlyphField(muiTextService* service, uint64_t font, uint32_t glyph,
+                              float pixelSize, uint32_t spread, muiGlyphImage* imageOut,
+                              unsigned char* pixels, size_t capacity)
+{
+    return RenderField(service, font, glyph, pixelSize, spread, imageOut, pixels, capacity, false);
+}
+
+muiResult muiRenderGlyphMultiField(muiTextService* service, uint64_t font, uint32_t glyph,
+                                   float pixelSize, uint32_t spread, muiGlyphImage* imageOut,
+                                   unsigned char* pixels, size_t capacity)
+{
+    return RenderField(service, font, glyph, pixelSize, spread, imageOut, pixels, capacity, true);
 }

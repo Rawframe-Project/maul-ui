@@ -62,6 +62,17 @@ struct muiTextService
     muiBuffer fieldRows;
     muiBuffer fieldCrossings;
     muiBuffer fieldCells;
+    // For multi-channel fields: each segment's line or curve, each edge
+    // segment's origin, side and colour, each pixel's channels and
+    // whether its center is inside.
+    muiBuffer fieldCurves;
+    muiBuffer fieldEdgeOrigins;
+    muiBuffer fieldEdgeSides;
+    muiBuffer fieldEdgeColors;
+    // Chains, chains sorted and a loop: three muiEdgeRoom spans and one.
+    muiBuffer fieldLoops;
+    muiBuffer fieldChannels;
+    muiBuffer fieldInside;
     muiBuffer fieldCellPieces;
     muiBuffer fieldEdge;
     muiBuffer fieldDistances;

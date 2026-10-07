@@ -96,6 +96,12 @@ static int RenderSome(muiTextService* service, muiFontId font, uint64_t key, uin
                    (size_t)image.width * image.height > sizeof s_pixels),
               "a field rendered or refused");
         rendered += result == mui_success && image.width != 0 ? 1 : 0;
+        result = muiRenderGlyphMultiField(service, key, glyph, size / 4.0f, 4, &image, s_pixels,
+                                          sizeof s_pixels);
+        CHECK(result == mui_success || result == mui_errorFormat ||
+                  (result == mui_errorCapacity &&
+                   (size_t)image.width * image.height * 4 > sizeof s_pixels),
+              "a multi-channel field rendered or refused");
     }
     return rendered;
 }
