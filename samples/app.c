@@ -116,6 +116,8 @@ muiNodeId SampleTextNode(SampleApp* app, muiNodeId parent, const char* text, flo
 }
 
 // The renderer, for targets of a format, once its pipeline is ready.
+// Makes the renderer; headless, it is waited for, which windowed frames
+// cannot do in a browser: they pump it until it is ready.
 static bool MakeRenderer(SampleApp* app, mrhiFormat format)
 {
     muiRhiRendererDef def = muiDefaultRhiRendererDef();
@@ -126,7 +128,7 @@ static bool MakeRenderer(SampleApp* app, mrhiFormat format)
     def.text = app->text;
     return SampleAppCheck(app,
                           muiCreateRhiRenderer(&def, &app->renderer) == mui_success &&
-                              SampleAwaitReady(&app->sample, app->renderer),
+                              (!app->headless || SampleAwaitReady(&app->sample, app->renderer)),
                           "the renderer ready");
 }
 
@@ -227,7 +229,7 @@ static bool Surface(SampleApp* app)
             !SampleAppCheck(app,
                             SampleSurfaceOpen(&app->sample, &handles, width, height, &app->surface),
                             "a surface") ||
-            (app->renderer == NULL && !MakeRenderer(app, app->surface.config.color.format)))
+            (app->renderer == NULL && !MakeRenderer(app, app->surface.drawFormat)))
         {
             app->closing = true;
             return false;
@@ -244,8 +246,9 @@ static bool Surface(SampleApp* app)
 // One frame: the records, the access once the window has its surface
 // (which its first records bring), layout at now, the accessibility
 // tree's changes, the list painted and drawn, into a texture headless,
-// else onto the window's surface.
-static void Step(SampleApp* app)
+// else onto the window's surface once the renderer is ready. Whether it
+// was drawn.
+static bool Step(SampleApp* app)
 {
     Drain(app);
     if (app->access == NULL)
@@ -259,9 +262,9 @@ static void Step(SampleApp* app)
     {
         app->def->update(app->def->user, app);
     }
-    if (!app->headless && !Surface(app))
+    if (!app->headless && (!Surface(app) || !SamplePump(&app->sample, app->renderer)))
     {
-        return;
+        return false;
     }
     const muiLayoutInput layout = {(float)app->def->width,
                                    (float)app->def->height,
@@ -289,12 +292,14 @@ static void Step(SampleApp* app)
                        built && SampleRender(&app->sample, app->renderer, &list, app->pixelWidth,
                                              app->pixelHeight, app->pixels),
                        "a frame drawn");
-        return;
+        return true;
     }
-    SamplePresented presented = built ? SamplePresent(&app->sample, &app->surface, app->renderer,
-                                                      &list, app->reading ? app->pixels : NULL)
-                                      : sample_failed;
+    SamplePresented presented =
+        built ? SamplePresent(&app->sample, &app->surface, app->renderer, &list, app->reading)
+              : sample_failed;
     SampleAppCheck(app, presented != sample_failed, "a frame presented");
+    app->closing = app->closing || presented == sample_lost_device;
+    return presented == sample_presented;
 }
 
 const uint8_t* SamplePixelOf(const SampleApp* app, muiNodeId node, float x, float y)
@@ -413,23 +418,45 @@ static uint64_t Now(const SampleApp* app)
     return app->now;
 }
 
+// Windowed, after the last frame asked for: its image taken once the
+// device answers, a frame or more later, and handed to the still check.
+static mwinFrameResult Taken(SampleApp* app)
+{
+    (void)SamplePump(&app->sample, app->renderer);
+    SampleTaken taken = SampleTakeFrame(&app->sample, &app->surface, app->pixels,
+                                        (size_t)app->pixelWidth * app->pixelHeight * 4);
+    if (taken == sample_waiting && ++app->waits < 600)
+    {
+        return mwin_frameContinue;
+    }
+    if (SampleAppCheck(app, taken == sample_taken, "the presented frame read back"))
+    {
+        app->def->still(app->def->user, app);
+        printf("the presented frame checked\n");
+    }
+    return mwin_frameStop;
+}
+
 // Windowed: frames presented as the user uses the window, until it is
 // closed, or for the frames asked, the last read back where the surface
-// allows and handed to the still check, which says whether it ran.
+// allows and handed to the still check. Nothing here waits, as the
+// browser's frames may not.
 static mwinFrameResult Shown(SampleApp* app)
 {
     app->now = Now(app);
-    app->reading = app->frames != 0 && app->frame == app->frames - 1;
-    Step(app);
-    app->frame++;
-    if (app->reading && app->def->still != NULL)
+    if (app->surface.reading)
     {
-        if (app->surface.copies)
+        return Taken(app);
+    }
+    app->reading = app->frames != 0 && app->frame == app->frames - 1 && app->def->still != NULL;
+    if (Step(app))
+    {
+        app->frame++;
+        if (app->reading && app->surface.reading)
         {
-            app->def->still(app->def->user, app);
-            printf("the presented frame checked\n");
+            return mwin_frameContinue;
         }
-        else
+        if (app->reading)
         {
             printf("the surface allows no copies: the presented frame not checked\n");
         }
@@ -504,12 +531,25 @@ static void Release(SampleApp* app)
     app->glue = NULL;
 }
 
-// Called by Maul Window before it lets go of the window.
+static void Destroy(SampleApp* app);
+
+// Called by Maul Window before it lets go of the window. In a browser
+// mwinRun does not return, the page owning the loop: the program ends
+// here.
 static void Quit(mwinContext* windows, mwinResult status, void* user)
 {
     (void)windows;
     (void)status;
-    Release(user);
+    SampleApp* app = user;
+    Release(app);
+#ifdef __EMSCRIPTEN__
+    if (!app->headless)
+    {
+        SampleAppCheck(app, app->frame > 0, "the program ran");
+        Destroy(app);
+        (void)SampleExit(SampleClose(&app->sample));
+    }
+#endif
 }
 
 static void Destroy(SampleApp* app)

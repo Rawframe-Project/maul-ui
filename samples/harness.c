@@ -134,6 +134,16 @@ bool SampleAwaitReady(Sample* sample, muiRhiRenderer* renderer)
     return muiRhiRenderer_IsReady(renderer);
 }
 
+bool SamplePump(Sample* sample, muiRhiRenderer* renderer)
+{
+    mrhiDeviceNotification record;
+    while (mrhiNextDeviceNotification(sample->device, &record) == mrhi_success)
+    {
+        (void)muiRhiRenderer_Notify(renderer, &record);
+    }
+    return muiRhiRenderer_IsReady(renderer);
+}
+
 int SampleExit(int status)
 {
 #ifdef __EMSCRIPTEN__
@@ -313,15 +323,23 @@ static mrhiFormat TwinOf(mrhiFormat format)
 
 // The first colour the surface reports whose sRGB twin the images may
 // take, which the renderer encodes into.
-static bool ColorOf(const mrhiSurfaceCaps* caps, mrhiSurfaceColor* colorOut)
+// The surface's colour, and the format frames draw in: the sRGB twin of
+// a reported 8-bit colour, as the images' own format where the surface
+// allows it; else, where its images take copies (a WebGPU canvas, whose
+// twin is a view only), the colour itself, frames drawn into a staging
+// texture in the twin whose bytes are copied over.
+static bool ColorOf(const mrhiSurfaceCaps* caps, mrhiSurfaceColor* colorOut,
+                    mrhiFormat* drawFormatOut)
 {
-    for (uint32_t i = 0; caps->twinImages && i < caps->colorCount; i++)
+    bool stages = (caps->usages & mrhi_textureCopyDestination) != 0;
+    for (uint32_t i = 0; (caps->twinImages || stages) && i < caps->colorCount; i++)
     {
         mrhiFormat twin = TwinOf(caps->colors[i].format);
         if (twin != mrhi_formatNone && caps->colors[i].primaries == mrhi_primariesBt709)
         {
             *colorOut = caps->colors[i];
-            colorOut->format = twin;
+            colorOut->format = caps->twinImages ? twin : caps->colors[i].format;
+            *drawFormatOut = twin;
             return true;
         }
     }
@@ -351,14 +369,16 @@ bool SampleSurfaceOpen(Sample* sample, const mwinNativeHandles* handles, uint32_
     }
     mrhiSurfaceConfig config = mrhiDefaultSurfaceConfig();
     config.surface = surfaceOut->surface;
-    if (!ColorOf(&caps, &config.color))
+    if (!ColorOf(&caps, &config.color, &surfaceOut->drawFormat))
     {
         printf("FAIL: the surface offers no 8-bit colour with sRGB images\n");
         return false;
     }
     surfaceOut->copies = (caps.usages & mrhi_textureCopySource) != 0;
-    surfaceOut->bgra = config.color.format == mrhi_formatBgra8UnormSrgb;
-    config.usage = mrhi_textureRenderTarget | (surfaceOut->copies ? mrhi_textureCopySource : 0u);
+    surfaceOut->staged = config.color.format != surfaceOut->drawFormat;
+    surfaceOut->bgra = surfaceOut->drawFormat == mrhi_formatBgra8UnormSrgb;
+    config.usage = (surfaceOut->staged ? mrhi_textureCopyDestination : mrhi_textureRenderTarget) |
+                   (surfaceOut->copies ? mrhi_textureCopySource : 0u);
     surfaceOut->config = config;
     return SampleSurfaceResize(sample, surfaceOut, width, height);
 }
@@ -399,16 +419,26 @@ static void Swap(uint8_t* pixels, size_t count)
 }
 
 SamplePresented SamplePresent(Sample* sample, SampleSurface* surface, muiRhiRenderer* renderer,
-                              const muiDrawList* list, uint8_t* pixels)
+                              const muiDrawList* list, bool readBack)
 {
     mrhiDevice* device = sample->device;
     uint32_t width = surface->config.width;
     uint32_t height = surface->config.height;
     mrhiFrameDef frame = mrhiDefaultFrameDef();
     mrhiResourceId image = {0};
-    if (mrhiBeginFrame(device, &frame) != mrhi_success)
+    mrhiResult begun = mrhiBeginFrame(device, &frame);
+    if (begun != mrhi_success)
     {
-        return sample_failed;
+        if (begun == mrhi_errorDeviceLost)
+        {
+            mrhiDeviceLossReport report = {0};
+            (void)mrhiGetDeviceLossReport(device, &report);
+            printf("FAIL: the device was lost (reason %d): %.*s\n", (int)report.reason,
+                   (int)report.messageLength, report.message);
+            sample->failures++;
+            return sample_lost_device;
+        }
+        return begun == mrhi_errorCapacity ? sample_busy : sample_failed;
     }
     mrhiResult acquired = mrhiAcquireSurfaceImage(device, surface->surface, &image);
     if (acquired != mrhi_success && acquired != mrhi_suboptimal)
@@ -420,12 +450,40 @@ SamplePresented SamplePresent(Sample* sample, SampleSurface* surface, muiRhiRend
                    ? sample_resized
                    : sample_failed;
     }
-    const muiRhiTarget into = {.resource = image,
+    // Staged, the list is drawn into a texture in the image's sRGB twin,
+    // whose bytes a transfer pass copies onto the image.
+    mrhiResourceId target = image;
+    mrhiTextureDef stageDef = mrhiDefaultTextureDef();
+    stageDef.format = surface->drawFormat;
+    stageDef.width = width;
+    stageDef.height = height;
+    if (surface->staged && mrhiDeclareTexture(device, &stageDef, &target) != mrhi_success)
+    {
+        (void)mrhiDropFrame(device);
+        return sample_failed;
+    }
+    const muiRhiTarget into = {.resource = target,
                                .width = width,
                                .height = height,
                                .clear = true,
                                .clearColor = {0.0f, 0.0f, 0.0f, 1.0f}};
-    bool reads = pixels != NULL && surface->copies;
+    const mrhiAccess copies[2] = {
+        {.resource = target,
+         .kind = mrhi_accessCopySource,
+         .range = {.mipCount = 1, .layerCount = 1}},
+        {.resource = image,
+         .kind = mrhi_accessCopyDestination,
+         .range = {.mipCount = 1, .layerCount = 1}},
+    };
+    mrhiPassDef copyDef = mrhiDefaultPassDef();
+    copyDef.passClass = mrhi_passTransfer;
+    copyDef.accesses = copies;
+    copyDef.accessCount = 2;
+    copyDef.neverCull = true;
+    mrhiPassId copying = {0};
+    const mrhiTextureCopy from = {.resource = target};
+    const mrhiTextureCopy onto = {.resource = image};
+    bool reads = readBack && surface->copies;
     const mrhiAccess read = {.resource = image,
                              .kind = mrhi_accessCopySource,
                              .range = {.mipCount = 1, .layerCount = 1}};
@@ -440,9 +498,14 @@ SamplePresented SamplePresent(Sample* sample, SampleSurface* surface, muiRhiRend
     mrhiRequestId readback = {0};
     bool recorded =
         muiRhiRenderer_AddPasses(renderer, list, &into) == mui_success &&
+        (!surface->staged || mrhiAddPass(device, &copyDef, &copying) == mrhi_success) &&
         (!reads || mrhiAddPass(device, &readDef, &reading) == mrhi_success) &&
         mrhiCompileFrame(device) == mrhi_success &&
         muiRhiRenderer_Record(renderer) == mui_success &&
+        (!surface->staged ||
+         (mrhiBeginPass(device, copying) == mrhi_success &&
+          mrhiCopyTexture(device, copying, &from, &onto, &extent) == mrhi_success &&
+          mrhiEndPass(device, copying) == mrhi_success)) &&
         (!reads || (mrhiBeginPass(device, reading) == mrhi_success &&
                     mrhiReadTexture(device, reading, &source, &extent, &readback) == mrhi_success &&
                     mrhiEndPass(device, reading) == mrhi_success));
@@ -456,27 +519,48 @@ SamplePresented SamplePresent(Sample* sample, SampleSurface* surface, muiRhiRend
     {
         return sample_failed;
     }
-    if (!reads)
+    if (reads)
     {
-        return sample_presented;
+        surface->reading = true;
+        surface->readback = readback;
+        surface->frame = token;
+        surface->readWidth = width;
+        surface->readHeight = height;
     }
-    if (WaitFrame(device, token) != mrhi_success)
+    return sample_presented;
+}
+
+SampleTaken SampleTakeFrame(Sample* sample, SampleSurface* surface, uint8_t* pixels,
+                            size_t capacity)
+{
+    mrhiDevice* device = sample->device;
+    if (!surface->reading)
     {
-        return sample_failed;
+        return sample_lost;
     }
-    mrhiDeviceNotification record;
-    while (mrhiNextDeviceNotification(device, &record) == mrhi_success)
+    mrhiResult done = mrhiWaitFrame(device, surface->frame, 0);
+    if (done == mrhi_timeout)
     {
+        return sample_waiting;
     }
-    size_t size = (size_t)width * height * 4;
+    size_t size = (size_t)surface->readWidth * surface->readHeight * 4;
     size_t taken = 0;
-    if (mrhiTakeReadback(device, readback, pixels, size, &taken) != mrhi_success || taken != size)
+    mrhiResult took = done == mrhi_success && size <= capacity
+                          ? mrhiTakeReadback(device, surface->readback, pixels, size, &taken)
+                          : mrhi_errorInvalid;
+    // Answered once the device's notifications are taken.
+    if (took == mrhi_errorState)
     {
-        return sample_failed;
+        return sample_waiting;
+    }
+    surface->reading = false;
+    if (took != mrhi_success || taken != size)
+    {
+        return sample_lost;
     }
     if (surface->bgra)
     {
-        Swap(pixels, (size_t)width * height);
+        Swap(pixels, (size_t)surface->readWidth * surface->readHeight);
     }
-    return sample_presented;
+    return sample_taken;
 }

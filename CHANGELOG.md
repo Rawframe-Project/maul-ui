@@ -103,7 +103,14 @@ format.
   again after the host realizes what the layout asked. `sample_color`
   composes a colour picker: a saturation and brightness area of layered
   gradients over the pure hue, hue and opacity sliders that are ranges
-  over gradient tracks, a hex field and a swatch. On the web the
+  over gradient tracks, a hex field and a swatch. Windowed, the samples
+  never wait inside a frame: the renderer is pumped until ready, a
+  busy device skips a frame, and the last frame's readback is taken in
+  a later one, so they run from the browser's frames too, presenting
+  into a canvas; where a surface offers sRGB only as a view (a WebGPU
+  canvas), frames are drawn into a staging texture in the sRGB twin and
+  copied onto it, and in a browser the program ends in Maul Window's
+  quit. On the web the
   headless tour runs in headless
   Chrome's WebGPU through the web runner, which now gives Chrome WebGPU
   and a program its arguments (record mui-0005).
@@ -480,6 +487,9 @@ format.
 
 ### Fixed
 
+- `muiDefaultWindowAccessDef` gives the web's adapter its default
+  label and deferral, as the header says; the label was NULL, which the
+  ARIA adapter refuses, so no access was made on the web.
 - The reference renderer no longer hands `qsort` a null array when a
   frame uses no images, undefined even for no elements; the linux-rhi
   cell now runs the renderer's tests and the samples under AddressSanitizer

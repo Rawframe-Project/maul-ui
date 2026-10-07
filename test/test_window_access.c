@@ -121,6 +121,10 @@ static void TestTree(Test* test)
 static void TestRefused(Test* test)
 {
     muiWindowAccessDef def = muiDefaultWindowAccessDef();
+    // The web's adapter refuses no label: the default carries its own.
+    CHECK(def.ariaDeferred && def.ariaEnableLabel != NULL &&
+              strcmp(def.ariaEnableLabel, "Enable accessibility") == 0,
+          "the default as the web adapter's");
     muiWindowAccess* access = (muiWindowAccess*)&def;
     CHECK(muiCreateWindowAccess(&def, &access) == mui_errorInvalid && access == NULL,
           "no glue, the output cleared");

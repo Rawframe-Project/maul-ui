@@ -54,6 +54,11 @@ bool SampleCheck(Sample* sample, bool condition, const char* what);
 // ready: whether it is.
 bool SampleAwaitReady(Sample* sample, muiRhiRenderer* renderer);
 
+// Hands the device's notifications to the renderer without waiting,
+// once a frame where nothing may block (the browser's frames): whether
+// the renderer is ready.
+bool SamplePump(Sample* sample, muiRhiRenderer* renderer);
+
 // Makes a texture of RGBA8 sRGB texels, uploaded in a frame of its own.
 bool SampleTexture(Sample* sample, uint32_t width, uint32_t height, const uint8_t* texels,
                    mrhiTextureId* textureOut);
@@ -72,6 +77,17 @@ typedef struct SampleSurface
     bool copies;
     // Whether its images are BGRA, which a readback swaps to RGBA.
     bool bgra;
+    // The format frames draw in, sRGB; staged when the images are not in
+    // it, frames then drawn into a texture copied onto them.
+    mrhiFormat drawFormat;
+    bool staged;
+    // A readback of a presented image asked for and not yet taken: its
+    // request, its frame and its size.
+    bool reading;
+    mrhiRequestId readback;
+    mrhiRequestId frame;
+    uint32_t readWidth;
+    uint32_t readHeight;
 } SampleSurface;
 
 // What presenting a frame came to.
@@ -83,6 +99,10 @@ typedef enum SamplePresented
     sample_occluded,
     // Not drawn: the surface was configured again for the window's size.
     sample_resized,
+    // Not drawn: the device's frames in flight are all still running.
+    sample_busy,
+    // The device was lost, its report printed: nothing more draws.
+    sample_lost_device,
     sample_failed,
 } SamplePresented;
 
@@ -99,9 +119,26 @@ bool SampleSurfaceResize(Sample* sample, SampleSurface* surface, uint32_t width,
 void SampleSurfaceClose(Sample* sample, SampleSurface* surface);
 
 // Draws a list onto the surface's next image, cleared to black, and
-// presents it; with pixels and a surface that allows copies, reads the
-// image back first as RGBA8 sRGB bytes.
+// presents it; asked to read back and with a surface that allows copies, asks
+// for a readback of the image first, which SampleTakeFrame takes. Never
+// waits.
 SamplePresented SamplePresent(Sample* sample, SampleSurface* surface, muiRhiRenderer* renderer,
-                              const muiDrawList* list, uint8_t* pixels);
+                              const muiDrawList* list, bool readBack);
+
+// What taking a presented image's readback came to.
+typedef enum SampleTaken
+{
+    // In pixels, RGBA8 sRGB bytes at the size it was read at.
+    sample_taken,
+    // Not answered yet: ask again in a later frame.
+    sample_waiting,
+    sample_lost,
+} SampleTaken;
+
+// Takes the readback SamplePresent asked for, without waiting, into
+// pixels of a capacity in bytes; its size in readWidth and readHeight.
+// The device answers it as its notifications are taken (SamplePump).
+SampleTaken SampleTakeFrame(Sample* sample, SampleSurface* surface, uint8_t* pixels,
+                            size_t capacity);
 
 #endif // MAUL_UI_SAMPLES_HARNESS_H

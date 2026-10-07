@@ -319,8 +319,9 @@ jobs:
         run: MUI_NODE_MODULES=/tmp/browser/node_modules node test/web_runner.cjs build/test_aria.js
       - name: The samples in headless Chrome's WebGPU
         # The reference renderer drawing on WebGPU (SwiftShader), each
-        # sample checking its pixels, in a build of its own (record
-        # mui-0005).
+        # sample checking its pixels headless, then presenting into a
+        # canvas from the browser's frames, its last frame read back and
+        # checked, in a build of its own (record mui-0005).
         run: |
           emcmake cmake -B build-sample -DCMAKE_BUILD_TYPE=Release -D${PREFIX}_WERROR=ON \
             -D${PREFIX}_RHI=ON -D${PREFIX}_WINDOW=ON
@@ -328,6 +329,10 @@ jobs:
           for sample in build-sample/sample_*.js; do
             MUI_RHI_REQUIRED=1 MUI_NODE_MODULES=/tmp/browser/node_modules \
               node test/web_runner.cjs "$sample" --headless || exit 1
+            MUI_RHI_REQUIRED=1 MUI_NODE_MODULES=/tmp/browser/node_modules \
+              node test/web_runner.cjs "$sample" --frames 5 | tee canvas.log
+            test "${PIPESTATUS[0]}" -eq 0
+            grep -q "the presented frame checked" canvas.log
           done
       - name: The reference renderer's WGSL in headless Chrome's WebGPU
         # The shader tools pass WGSL through untouched (record mui-0005).

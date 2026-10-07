@@ -81,6 +81,8 @@ muiWindowAccessDef muiDefaultWindowAccessDef(void)
     return (muiWindowAccessDef){
         .cookie = DEF_COOKIE,
         .nodes = 4096,
+        .ariaDeferred = true,
+        .ariaEnableLabel = "Enable accessibility",
     };
 }
 

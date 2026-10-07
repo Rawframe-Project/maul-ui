@@ -57,7 +57,9 @@ extern "C"
     } muiWindowAccessDef;
 
     /// Returns the default access def: no glue, 4096 nodes, no AT-SPI
-    /// application, the context doing what clients ask.
+    /// application, on the web the elements waiting for a button labelled
+    /// "Enable accessibility" (as muiDefaultAriaAdapterDef), the context
+    /// doing what clients ask.
     ///
     /// @return The def, with a valid cookie.
     /// @par Thread safety

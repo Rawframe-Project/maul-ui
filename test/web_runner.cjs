@@ -174,8 +174,13 @@ let queue = Promise.resolve();
 async function main() {
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     const browser = await puppeteer.launch({
+        // A canvas presents WebGPU through a shared image the compositor
+        // reads: headless, only a compositor on Vulkan (SwiftShader) with
+        // ANGLE over it offers one; others lose the device on the first
+        // canvas frame.
         args: ['--no-sandbox', '--enable-unsafe-webgpu', '--enable-unsafe-swiftshader',
-               '--use-webgpu-adapter=swiftshader'],
+               '--use-webgpu-adapter=swiftshader', '--enable-features=Vulkan',
+               '--use-vulkan=swiftshader', '--use-angle=vulkan'],
     });
     let status = 1;
     try {
