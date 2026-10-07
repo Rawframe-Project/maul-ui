@@ -152,7 +152,8 @@ static void TestDamagedFonts(void)
                   muiNode_MarkContentChanged(context, node) == mui_success,
               "the default");
         muiTextHost host = {service, context};
-        const muiLayoutInput input = {200.0f, 1000.0f, muiMeasureText, &host, 0, NULL};
+        const muiLayoutInput input = {200.0f, 1000.0f, muiMeasureText, &host,
+                                      0,      NULL,    {0, 0, 0, 0}};
         const muiDrawInput draw = {1, 1.0f, muiPaintText, &host};
         CHECK(muiComputeLayout(context, node, &input) == mui_success &&
                   muiBuildDrawList(context, node, &draw) != mui_errorInvalid,
@@ -348,7 +349,8 @@ static void TestRandomText(void)
               "content");
         RandomStyle(context, node, &state);
         float available = 5.0f + (float)(Next(&state) % 300);
-        const muiLayoutInput input = {available, 1000.0f, muiMeasureText, &host, 0, NULL};
+        const muiLayoutInput input = {available, 1000.0f, muiMeasureText, &host,
+                                      0,         NULL,    {0, 0, 0, 0}};
         CHECK(muiComputeLayout(context, node, &input) == mui_success, "layout");
         const muiMeasureMode modes[4] = {mui_measureExact, mui_measureAtMost, mui_measureMaxContent,
                                          mui_measureMinContent};
@@ -504,8 +506,13 @@ static void TestRandomEdits(void)
                   composed + composedLength <= length,
               "a composition within the text");
         CHECK(muiNode_MarkContentChanged(context, node) == mui_success, "marked");
-        const muiLayoutInput input = {
-            50.0f + (float)(Next(&state) % 200), 1000.0f, muiMeasureText, &host, 0, NULL};
+        const muiLayoutInput input = {50.0f + (float)(Next(&state) % 200),
+                                      1000.0f,
+                                      muiMeasureText,
+                                      &host,
+                                      0,
+                                      NULL,
+                                      {0, 0, 0, 0}};
         const muiDrawInput draw = {1, 1.0f, muiPaintText, &host};
         CHECK(muiComputeLayout(context, node, &input) == mui_success &&
                   muiBuildDrawList(context, node, &draw) == mui_success,

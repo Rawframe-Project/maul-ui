@@ -182,7 +182,7 @@ static void MakeTree(Test* test)
     CHECK(muiNode_SetInteractionValues(test->context, test->button, &values,
                                        MUI_PROPERTY_BIT(mui_propertyFocusMode)) == mui_success,
           "the button takes focus");
-    const muiLayoutInput input = {640.0f, 480.0f, NULL, NULL, 0, NULL};
+    const muiLayoutInput input = {640.0f, 480.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(test->context, test->root, &input) == mui_success &&
               muiSetEventFunction(test->context, Hear, test) == mui_success &&
               muiFocus_Set(test->context, 0, test->button, mui_focusByCode) == mui_success,

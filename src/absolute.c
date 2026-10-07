@@ -33,15 +33,16 @@ typedef struct Insets
     bool hasEnd;
 } Insets;
 
-static Span SpanOf(const muiLayoutStyle* container, float size, bool horizontal)
+static Span SpanOf(const muiLayoutStyle* container, const muiEdges* padding, float size,
+                   bool horizontal)
 {
     float borderStart = muiEdgeStart(&container->border, horizontal);
     float border = muiEdgeSum(&container->border, horizontal);
     return (Span){
         .paddingStart = borderStart,
         .paddingSize = fmaxf(size - border, 0.0f),
-        .contentStart = borderStart + muiEdgeStart(&container->padding, horizontal),
-        .contentSize = fmaxf(size - muiBoxSum(container, horizontal), 0.0f),
+        .contentStart = borderStart + muiEdgeStart(padding, horizontal),
+        .contentSize = fmaxf(size - muiBoxSum(padding, container, horizontal), 0.0f),
     };
 }
 
@@ -57,13 +58,13 @@ static Insets InsetsOf(const muiInsets* inset, bool horizontal, float extent)
 
 // The child's size along an axis when its own value or both insets fix
 // it; returns false when it comes from content.
-static bool FixedSize(const muiLayoutStyle* style, bool horizontal, const Span* spanX,
-                      const Span* spanY, const Insets* insets, float* sizeOut)
+static bool FixedSize(const muiLayoutStyle* style, const muiEdges* padding, bool horizontal,
+                      const Span* spanX, const Span* spanY, const Insets* insets, float* sizeOut)
 {
     const Span* span = horizontal ? spanX : spanY;
     muiAxisSizing axis = muiResolveAxis(&style->sizing, horizontal, span->paddingSize);
     muiEdges margins = muiMarginsOf(style);
-    float box = muiBoxSum(style, horizontal);
+    float box = muiBoxSum(padding, style, horizontal);
     if (axis.definite)
     {
         *sizeOut = muiClampSize(axis.size, axis.minimum, axis.maximum, box);
@@ -183,8 +184,10 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
     }
     float width = 0.0f;
     float height = 0.0f;
-    bool fixedHeight = FixedSize(style, false, spanX, spanY, &insetY, &height);
-    if (!FixedSize(style, true, spanX, spanY, &insetX, &width))
+    // Its padding with the safe area, in the direction it inherits.
+    const muiEdges padding = muiPaddingOf(style, &solver->safeArea, muiIsRtl(style, rtl));
+    bool fixedHeight = FixedSize(style, &padding, false, spanX, spanY, &insetY, &height);
+    if (!FixedSize(style, &padding, true, spanX, spanY, &insetX, &width))
     {
         muiEdges margins = muiMarginsOf(style);
         float space = spanX->paddingSize - (insetX.hasStart ? insetX.start : 0.0f) -
@@ -213,8 +216,9 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
 void muiPlaceAbsolute(const muiSolver* solver, uint32_t container, muiSize size, bool rtl)
 {
     const muiLayoutStyle* style = &solver->nodes[container - 1].style;
-    Span spanX = SpanOf(style, size.width, true);
-    Span spanY = SpanOf(style, size.height, false);
+    const muiEdges padding = muiPaddingOf(style, &solver->safeArea, rtl);
+    Span spanX = SpanOf(style, &padding, size.width, true);
+    Span spanY = SpanOf(style, &padding, size.height, false);
     for (uint32_t c = muiTreeAt(solver->tree, container)->links.firstChild; c != 0;
          c = muiTreeAt(solver->tree, c)->links.next)
     {

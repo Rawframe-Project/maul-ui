@@ -62,7 +62,7 @@ static void Interact(muiContext* context, muiNodeId node, bool drags, bool focus
 
 static void Layout(muiContext* context, muiNodeId root)
 {
-    const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL};
+    const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
 }
 

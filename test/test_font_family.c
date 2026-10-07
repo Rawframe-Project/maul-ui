@@ -247,7 +247,7 @@ static void TestLayout(void)
     CHECK(muiNode_SetLayoutValues(context, node, &layout, MUI_PROPERTY_BIT(mui_propertyContent)) ==
               mui_success,
           "host content");
-    const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &host, 0, NULL};
+    const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &host, 0, NULL, {0, 0, 0, 0}};
     const muiDrawInput draw = {1, 1.0f, muiPaintText, &host};
     const muiPropertyMask mask =
         MUI_PROPERTY_BIT(mui_propertyFont) | MUI_PROPERTY_BIT(mui_propertyFontWeight);
@@ -332,7 +332,7 @@ static void TestKeysApart(void)
     layout.content = mui_contentHost;
     muiTextStyle style = muiDefaultTextStyle();
     style.font = muiFontFamily_GetKey(family);
-    const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &host, 0, NULL};
+    const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &host, 0, NULL, {0, 0, 0, 0}};
     const muiDrawInput draw = {1, 1.0f, muiPaintText, &host};
     muiDrawList list;
     CHECK(muiNode_SetLayoutValues(context, node, &layout, MUI_PROPERTY_BIT(mui_propertyContent)) ==

@@ -10,6 +10,12 @@ format.
 
 ### Changed
 
+- `muiLayoutInput` ends with `safeArea` and `muiLayoutStyle` with
+  `safeArea`: initializers that list every field by position give them
+  too (four zeros for none). `muiSides` moved from `maul-ui/draw.h` to
+  `maul-ui/layout.h`, which `draw.h` includes. The layout solver's size
+  cache keys on direction, which a safe area on a start or end edge
+  makes sizes depend on.
 - `muiLimits` has five more fields, `layers` (64 by default),
   `pointers` (16, at most 32), `pointerRecords` (64), `neighbors` (256)
   and `drawTransforms` (64); an initializer that lists its fields by
@@ -48,6 +54,12 @@ format.
 
 ### Added
 
+- Safe-area insets: `muiLayoutInput.safeArea` takes a surface's
+  insets (physical, `muiSides`), and a node names the edges whose
+  padding is at least the inset there (`safeArea`,
+  `mui_propertySafeArea`), mapped by its direction. Content boxes,
+  scroll extents, virtual lists and ranges use the padding with the safe
+  area; the samples' root keeps its content inside Maul Window's.
 - Images that mirror (`imageMirrors`, `mui_propertyImageMirrors`):
   under right to left the node's image is drawn flipped, a uv rectangle
   of negative width with its slice insets as drawn, which the reference

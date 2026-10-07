@@ -78,7 +78,7 @@ static muiVariant AddPadding(muiContext* context, muiStyleId style, const muiCon
 
 static void Compute(muiContext* context, muiNodeId root)
 {
-    muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, 0, NULL};
+    muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "compute");
 }
 

@@ -23,7 +23,7 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
 // The muiBaselineSolveFunction of the solver.
 float muiSolveBaseline(const muiSolver* solver, uint32_t node, const muiSizingInput* input);
 
-muiSizingInput muiRootInput(const muiLayoutStyle* style, float availableWidth,
+muiSizingInput muiRootInput(const muiLayoutStyle* style, const muiSides* safe, float availableWidth,
                             float availableHeight);
 
 #endif // MAUL_UI_SRC_SOLVE_H

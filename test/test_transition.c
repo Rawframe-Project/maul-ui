@@ -101,7 +101,7 @@ static void Bind(muiContext* context, muiStyleId style, muiVariant variant,
 // The node's width after laying it out at timeNs.
 static float WidthAt(muiContext* context, muiNodeId node, uint64_t timeNs)
 {
-    muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, timeNs, NULL};
+    muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, timeNs, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, node, &input) == mui_success, "compute");
     return muiNode_GetRect(context, node).width;
 }
@@ -210,7 +210,7 @@ static void TestBindingsAreCheckedAndRead(void)
                                  WIDTH) == mui_errorInvalid,
           "a condition the class does not have");
     CHECK(muiStyle_SetTransition(context, style, mui_variantBase, specs[0], mui_groupLayout,
-                                 MUI_PROPERTY_BIT(mui_propertyScrollAxes + 1)) == mui_errorInvalid,
+                                 MUI_PROPERTY_BIT(mui_propertySafeArea + 1)) == mui_errorInvalid,
           "an unknown property");
     CHECK(muiStyle_SetTransition(context, style, mui_variantBase, specs[0], 4, WIDTH) ==
               mui_errorInvalid,
@@ -229,7 +229,7 @@ static void TestBindingsAreCheckedAndRead(void)
               mui_errorInvalid,
           "read a missing condition");
     CHECK(muiStyle_GetTransition(context, style, mui_variantBase,
-                                 (muiProperty)(mui_propertyScrollAxes + 1),
+                                 (muiProperty)(mui_propertySafeArea + 1),
                                  &read) == mui_errorInvalid,
           "read an unknown property");
     CHECK(muiStyle_GetTransition(context, style, mui_variantBase, 0, NULL) == mui_errorInvalid,
@@ -293,7 +293,7 @@ static void TestTimedTransitionFollowsItsCurve(void)
     CHECK(!muiNode_IsTransitioning(NULL, scene.node, mui_propertyWidth) &&
               !muiNode_IsTransitioning(scene.context, s_nullNode, mui_propertyWidth) &&
               !muiNode_IsTransitioning(scene.context, scene.node,
-                                       (muiProperty)(mui_propertyScrollAxes + 1)),
+                                       (muiProperty)(mui_propertySafeArea + 1)),
           "no transition to read");
     muiDestroyContext(scene.context);
 }
@@ -503,7 +503,7 @@ static void TestOnlyMovableValuesMove(void)
     muiLayoutStyle wide = muiDefaultLayoutStyle();
     wide.sizing.width = Length(600.0f);
     CHECK(muiNode_SetLayoutValues(context, root, &wide, WIDTH) == mui_success, "root width");
-    muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, T0 + 200 * MS, NULL};
+    muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, T0 + 200 * MS, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "start");
     input.timeNs = T0 + 250 * MS;
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "half way");

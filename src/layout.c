@@ -86,6 +86,33 @@ muiResult muiNode_MarkContentChanged(muiContext* context, muiNodeId nodeId)
     return status;
 }
 
+// Whether a safe area is one: finite insets of 0 or more.
+static bool IsSafeArea(const muiSides* safe)
+{
+    return IsLength(safe->top) && IsLength(safe->right) && IsLength(safe->bottom) &&
+           IsLength(safe->left);
+}
+
+// Lays out again the nodes below a root that pad by the safe area, when
+// it is not the one last given.
+static void NoteSafeArea(muiContext* context, uint32_t root, const muiSides* safe)
+{
+    const muiSides* last = &context->safeArea;
+    if (safe->top == last->top && safe->right == last->right && safe->bottom == last->bottom &&
+        safe->left == last->left)
+    {
+        return;
+    }
+    context->safeArea = *safe;
+    for (uint32_t at = root; at != 0; at = muiTreeNextIn(&context->tree, root, at))
+    {
+        if (context->layout[at - 1].style.safeArea != 0)
+        {
+            muiTreeMarkLayout(&context->tree, at);
+        }
+    }
+}
+
 // Forgets what the solver remembers about every node on a path to a
 // change, then clears their layout flags.
 static void Invalidate(muiContext* context, uint32_t root)
@@ -105,7 +132,8 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
     {
         return mui_errorInvalid;
     }
-    if (input == nullptr || !IsLength(input->availableWidth) || !IsLength(input->availableHeight))
+    if (input == nullptr || !IsLength(input->availableWidth) || !IsLength(input->availableHeight) ||
+        !IsSafeArea(&input->safeArea))
     {
         return muiRefuse(context);
     }
@@ -133,6 +161,7 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
     muiAdvanceAnimations(&motion, now, finish);
     // Exits whose transitions have ended, or never began, are reported.
     muiExitAdvance(context, root);
+    NoteSafeArea(context, root, &input->safeArea);
     Invalidate(context, root);
     muiSolver solver = {
         .tree = &context->tree,
@@ -146,8 +175,10 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
         .painted = context->draw.states,
         .scrolls = context->scrolls,
         .work = &context->work,
+        .paddings = context->paddings,
+        .safeArea = input->safeArea,
     };
-    muiSizingInput sizingInput = muiRootInput(&context->layout[root - 1].style,
+    muiSizingInput sizingInput = muiRootInput(&context->layout[root - 1].style, &input->safeArea,
                                               input->availableWidth, input->availableHeight);
     context->inHostCall = true;
     muiSize size = muiSolveNode(&solver, root, &sizingInput, false);
@@ -181,7 +212,7 @@ muiRect muiNode_GetRect(const muiContext* context, muiNodeId nodeId)
 muiRect muiNode_GetContentRect(const muiContext* context, muiNodeId nodeId)
 {
     uint32_t slot = context != nullptr ? muiTreeResolve(&context->tree, nodeId) : 0;
-    return slot != 0 ? muiContentBoxOf(&context->layout[slot - 1])
+    return slot != 0 ? muiContentBoxOf(&context->layout[slot - 1], &context->paddings[slot - 1])
                      : (muiRect){0.0f, 0.0f, 0.0f, 0.0f};
 }
 

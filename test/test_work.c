@@ -60,7 +60,7 @@ static muiDimension Length(float value)
 // A frame: layout, then a draw list.
 static void Frame(muiContext* context, muiNodeId root, Label* label)
 {
-    const muiLayoutInput layout = {200.0f, 200.0f, Measure, label, 0, NULL};
+    const muiLayoutInput layout = {200.0f, 200.0f, Measure, label, 0, NULL, {0, 0, 0, 0}};
     const muiDrawInput draw = {1, 1.0f, NULL, NULL};
     muiDrawList list;
     CHECK(muiComputeLayout(context, root, &layout) == mui_success &&

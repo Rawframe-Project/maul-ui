@@ -77,7 +77,7 @@ static void Focusable(muiContext* context, muiNodeId node)
 
 static void Layout(muiContext* context, muiNodeId root, uint64_t timeNs)
 {
-    const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, timeNs, NULL};
+    const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, timeNs, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
 }
 

@@ -158,6 +158,15 @@ extern "C"
         muiAlign alignSelf;
     } muiFlexItem;
 
+    // A value per side, physical: top first, then clockwise.
+    typedef struct muiSides
+    {
+        float top;
+        float right;
+        float bottom;
+        float left;
+    } muiSides;
+
     // Sides of a box, as bits.
     typedef uint8_t muiEdgeMask;
 
@@ -262,6 +271,12 @@ extern "C"
         muiTextDirection textDirection;
         muiContentKind content;
         muiScrollAxes scrollAxes;
+        // The edges whose padding is at least the surface's safe-area
+        // inset on the physical side each falls on in the node's direction
+        // (muiLayoutInput): where content meets the surface's edge, as a
+        // bar whose background reaches it and whose content does not.
+        // Nothing is consumed: a node below one that asks pads again.
+        muiEdgeMask safeArea;
     } muiLayoutStyle;
 
     // A rectangle: its origin and size.
@@ -336,6 +351,12 @@ extern "C"
         // measureUser; NULL gives none, and a baseline is then the bottom
         // of the node's border box, as CSS synthesizes one.
         muiBaselineFunction baseline;
+        // The surface's safe-area insets, physical, finite and 0 or more:
+        // what a display's cutouts, rounded corners and system bars cover,
+        // as iOS's safeAreaInsets and Android's WindowInsets give them.
+        // Nodes pad by them on the edges their safeArea names; new ones
+        // lay those nodes out again.
+        muiSides safeArea;
     } muiLayoutInput;
 
     /// Returns the default layout style: CSS's initial values (row, one

@@ -99,7 +99,8 @@ static float Show(Scene* scene, uint64_t font, const char* text)
     style.size = (muiDimension){0.0f, 10.0f, mui_dimensionValue};
     CHECK(muiNode_SetTextValues(scene->context, scene->node, &style, FONT | SIZE) == mui_success,
           "style");
-    const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &scene->host, 0, NULL};
+    const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &scene->host,
+                                  0,       NULL,    {0, 0, 0, 0}};
     CHECK(muiComputeLayout(scene->context, scene->node, &input) == mui_success, "layout");
     return muiMeasureText(&scene->host, scene->node, muiTextBlock_GetKey(scene->block),
                           (muiMeasureAxis){0.0f, mui_measureMaxContent},

@@ -78,7 +78,7 @@ static void MakeScene(Scene* scene)
     Drags(context, scene->track);
     scene->thumb = Sized(context, scene->track, 20.0f, 20.0f);
     scene->b = Sized(context, scene->root, 50.0f, 50.0f);
-    const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL};
+    const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, scene->root, &input) == mui_success, "layout");
 }
 
@@ -360,7 +360,7 @@ static void TestPlaced(void)
     (void)Sized(context, scene.root, 50.0f, 20.0f);
     scene.track = Sized(context, scene.root, 100.0f, 20.0f);
     Drags(context, scene.track);
-    const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL};
+    const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, scene.root, &input) == mui_success, "layout");
     Mouse(&scene, mui_pointerPress, 1, 60.0f, 10.0f);
     Mouse(&scene, mui_pointerMove, 1, 70.0f, 12.0f);
@@ -424,7 +424,7 @@ static void MakeDrop(Drop* drop)
     drop->slot = Sized(context, drop->scene.root, 100.0f, 100.0f);
     Accepts(context, drop->slot, 2);
     drop->child = Sized(context, drop->slot, 50.0f, 50.0f);
-    const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL};
+    const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, drop->scene.root, &input) == mui_success, "layout");
 }
 
@@ -533,7 +533,7 @@ static void TestDrop(void)
     CHECK(again.index1 == bin.index1, "its slot");
     Accepts(context, again, 1);
     CHECK(muiNode_InsertChild(context, scene->root, again, s_nullNode) == mui_success, "placed");
-    const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL};
+    const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, scene->root, &input) == mui_success, "layout");
     muiHit hit = {0};
     CHECK(muiHitTest(context, scene->root, 110.0f, 25.0f, &hit) == mui_success, "hit");

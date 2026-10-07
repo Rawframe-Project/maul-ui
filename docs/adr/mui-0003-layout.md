@@ -71,11 +71,25 @@ tree that did not change.
   right. Every edge, inset and the anchor's x are logical, so the solver
   lays each container out with start on the left and mirrors its
   children's horizontal positions when it is right to left. The
-  inherited direction travels in a node's sizing input; sizes do not
-  depend on it, and a node's last full layout records the direction it
-  was done in, so a change on an ancestor re-lays out exactly the
-  inheriting nodes. Images and icons declare whether they mirror
-  (record mui-0005).
+  inherited direction travels in a node's sizing input, and a node's
+  last full layout records the direction it was done in, so a change on
+  an ancestor re-lays out exactly the inheriting nodes. Sizes depend on
+  it only through the safe area, and the solver's size cache keys on it.
+  Images and icons declare whether they mirror (record mui-0005).
+- **The safe area.** The host gives the surface's safe-area insets with
+  the space (`muiLayoutInput`), physical as platforms report them
+  (iOS's `safeAreaInsets`, Android's `WindowInsets`), finite and 0 or
+  more. A node names the edges (`safeArea`, a mask of start, end, top
+  and bottom) whose padding is at least the inset on the physical side
+  each falls on in its direction, as CSS's
+  `max(env(safe-area-inset-left), ...)` and Flutter's `SafeArea` pad:
+  where content meets the surface's edge, as a bar whose background
+  reaches it and whose content does not. Nothing is consumed: a node
+  below one that asks pads again. The solver computes each node's
+  padding as it lays it out and keeps it beside the authored one, which
+  stays the style's; content boxes, scroll extents, virtual lists and
+  ranges read it. New insets lay out again the nodes that ask for them;
+  the same ones cost nothing.
 - **Distributed justification on overflow.** `space-around` and
   `space-evenly` pack at the start when the children overflow, as CSS
   Box Alignment's safe fallback does; `space-between` always does.

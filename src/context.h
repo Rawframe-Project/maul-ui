@@ -36,6 +36,11 @@ struct muiContext
     muiTree tree;
     // Layout's values per node, parallel to the tree's slots.
     muiLayoutNode* layout;
+    // The padding each node was last laid out with: its style's, raised
+    // by the safe area on the edges it names; and the safe area last
+    // given (muiLayoutInput).
+    muiEdges* paddings;
+    muiSides safeArea;
     // Resolved visual values per node, parallel to the tree's slots: paint
     // reads them, layout never.
     muiVisualStyle* visual;

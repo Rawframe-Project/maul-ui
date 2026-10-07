@@ -62,7 +62,7 @@ static void At(muiContext* context, muiNodeId node, float x, float y)
 
 static void Layout(muiContext* context, muiNodeId root)
 {
-    const muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, 0, NULL};
+    const muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
 }
 

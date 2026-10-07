@@ -258,8 +258,8 @@ static void Report(const char* what, Timing* timing)
 static void Frame(Scene* scene, uint64_t frame, Timing* timing)
 {
     muiContext* context = scene->context;
-    const muiLayoutInput input = {400.0f, 800.0f, MeasureLabel, &scene->tree, frame * 8333333ull,
-                                  NULL};
+    const muiLayoutInput input = {
+        400.0f, 800.0f, MeasureLabel, &scene->tree, frame * 8333333ull, NULL, {0, 0, 0, 0}};
     const muiDrawInput draw = {1, 1.0f, NULL, NULL};
     uint64_t measures = s_measures;
     double start = Seconds();

@@ -125,7 +125,8 @@ static void Show(Scene* scene, const char* text, muiTextStyle style, muiProperty
     CHECK(muiNode_SetTextValues(scene->context, scene->node, &style,
                                 mask | MUI_PROPERTY_BIT(mui_propertyFontSize)) == mui_success,
           "style");
-    const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &scene->host, 0, NULL};
+    const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &scene->host,
+                                  0,       NULL,    {0, 0, 0, 0}};
     CHECK(muiComputeLayout(scene->context, scene->node, &input) == mui_success, "layout");
 }
 
@@ -321,7 +322,8 @@ static void TestRightToLeft(void)
     CHECK(muiNode_SetLayoutValues(scene.context, scene.node, &layout,
                                   MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
           "direction");
-    const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &scene.host, 0, NULL};
+    const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &scene.host,
+                                  0,       NULL,    {0, 0, 0, 0}};
     CHECK(muiComputeLayout(scene.context, scene.node, &input) == mui_success, "layout");
     caret = Caret(&scene, 100.0f, 0, DOWN);
     CHECK(caret.x == 100.0f && caret.rightToLeft && Hits(&scene, 100.0f, 50.0f, 5.0f, 0, DOWN),
@@ -569,7 +571,8 @@ static void TestReplace(void)
           "its own text");
     // Measured anew once marked: Ahem's letters are 10 wide.
     CHECK(muiNode_MarkContentChanged(scene.context, scene.node) == mui_success, "marked");
-    const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &scene.host, 0, NULL};
+    const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &scene.host,
+                                  0,       NULL,    {0, 0, 0, 0}};
     CHECK(muiComputeLayout(scene.context, scene.node, &input) == mui_success &&
               muiNode_GetRect(scene.context, scene.node).width == 110.0f,
           "laid out anew");
@@ -620,7 +623,8 @@ static void TestReplace(void)
 // returns its list.
 static muiDrawList PaintAtTen(Scene* scene)
 {
-    const muiLayoutInput layout = {1000.0f, 1000.0f, muiMeasureText, &scene->host, 0, NULL};
+    const muiLayoutInput layout = {1000.0f, 1000.0f, muiMeasureText, &scene->host,
+                                   0,       NULL,    {0, 0, 0, 0}};
     CHECK(muiNode_MarkContentChanged(scene->context, scene->node) == mui_success &&
               muiComputeLayout(scene->context, scene->node, &layout) == mui_success,
           "laid out");
@@ -724,7 +728,8 @@ static void TestComposition(void)
                   mui_success &&
               muiNode_MarkContentChanged(scene.context, scene.node) == mui_success,
           "a long one");
-    const muiLayoutInput input = {25.0f, 1000.0f, muiMeasureText, &scene.host, 0, NULL};
+    const muiLayoutInput input = {25.0f, 1000.0f, muiMeasureText, &scene.host,
+                                  0,     NULL,    {0, 0, 0, 0}};
     const muiDrawInput draw = {1, 10.0f, muiPaintText, &scene.host};
     CHECK(muiComputeLayout(scene.context, scene.node, &input) == mui_success &&
               muiBuildDrawList(scene.context, scene.node, &draw) == mui_success &&

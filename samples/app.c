@@ -153,6 +153,27 @@ static void MakeContext(SampleApp* app)
     SampleAppCheck(app, muiCreateContext(&def, &app->context) == mui_success, "a context");
     app->host = (muiTextHost){app->text, app->context};
     app->root = SampleNode(app, s_nullNode, (float)app->def->width, (float)app->def->height);
+    // Its background reaches every edge; what it holds keeps out of what
+    // a display's cutouts and bars cover.
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.safeArea = mui_edgeStart | mui_edgeEnd | mui_edgeTop | mui_edgeBottom;
+    SampleAppCheck(app,
+                   muiNode_SetLayoutValues(app->context, app->root, &layout,
+                                           MUI_PROPERTY_BIT(mui_propertySafeArea)) == mui_success,
+                   "the root keeps to the safe area");
+}
+
+// The window's safe area, which Maul Window gives in the same order; none
+// headless.
+static muiSides SafeAreaOf(const SampleApp* app)
+{
+    mwinWindowState state;
+    if (app->headless || mwinGetWindowState(app->windows, app->window, &state) != mwin_success)
+    {
+        return (muiSides){0};
+    }
+    return (muiSides){state.safeArea.top, state.safeArea.right, state.safeArea.bottom,
+                      state.safeArea.left};
 }
 
 static mwinResult Init(mwinContext* windows, void* user)
@@ -266,12 +287,9 @@ static bool Step(SampleApp* app)
     {
         return false;
     }
-    const muiLayoutInput layout = {(float)app->def->width,
-                                   (float)app->def->height,
-                                   muiMeasureText,
-                                   &app->host,
-                                   app->now,
-                                   NULL};
+    const muiLayoutInput layout = {
+        (float)app->def->width, (float)app->def->height, muiMeasureText, &app->host, app->now, NULL,
+        SafeAreaOf(app)};
     const muiDrawInput draw = {1, app->scale,
                                app->def->paint != NULL ? app->def->paint : muiPaintText,
                                app->def->paint != NULL ? app->def->user : (void*)&app->host};

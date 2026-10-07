@@ -85,6 +85,7 @@ typedef struct Parts
 {
     size_t nodes;
     size_t layout;
+    size_t paddings;
     size_t visual;
     size_t text;
     size_t textRecords;
@@ -156,6 +157,7 @@ static Parts LayOut(muiLayout* layout, const muiLimits* limits)
     return (Parts){
         .nodes = muiLayoutAdd(layout, limits->nodes, sizeof(muiTreeNode), CACHE_LINE),
         .layout = muiLayoutAdd(layout, limits->nodes, sizeof(muiLayoutNode), CACHE_LINE),
+        .paddings = muiLayoutAdd(layout, limits->nodes, sizeof(muiEdges), CACHE_LINE),
         .visual = muiLayoutAdd(layout, limits->nodes, sizeof(muiVisualStyle), CACHE_LINE),
         .text = muiLayoutAdd(layout, limits->nodes, sizeof(muiTextStyle), CACHE_LINE),
         .textRecords = muiLayoutAdd(layout, limits->nodes, sizeof(muiTextRecord), CACHE_LINE),
@@ -248,6 +250,7 @@ static void Place(muiContext* context, unsigned char* base, const Parts* parts,
 {
     muiTreeInit(&context->tree, (muiTreeNode*)(base + parts->nodes), limits->nodes);
     context->layout = (muiLayoutNode*)(base + parts->layout);
+    context->paddings = (muiEdges*)(base + parts->paddings);
     context->visual = (muiVisualStyle*)(base + parts->visual);
     context->text = (muiTextStyle*)(base + parts->text);
     context->textRecords = (muiTextRecord*)(base + parts->textRecords);

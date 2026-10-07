@@ -98,7 +98,7 @@ static muiDimension Length(float offset)
 
 static muiLayoutInput Input(Host* host)
 {
-    return (muiLayoutInput){400.0f, 300.0f, Measure, host, 0, NULL};
+    return (muiLayoutInput){400.0f, 300.0f, Measure, host, 0, NULL, {0, 0, 0, 0}};
 }
 
 static void TestDefaultsAreCssInitialValues(void)
@@ -352,7 +352,7 @@ static void CheckShrunkTexts(bool nested)
     muiNodeId narrow = MakeText(context, line, TextKey(40, 20));
     // The row takes its min-content width, 50, and shrinks the texts to
     // it by their natural widths.
-    muiLayoutInput input = {10.0f, 300.0f, MeasureText, NULL, 0, NULL};
+    muiLayoutInput input = {10.0f, 300.0f, MeasureText, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
     muiRect a = muiNode_GetRect(context, wide);
     muiRect b = muiNode_GetRect(context, narrow);
@@ -381,7 +381,7 @@ static void CheckTextFollowsSpace(float first, float second)
     column.sizing.width = (muiDimension){1.0f, 0.0f, mui_dimensionValue};
     muiNodeId root = MakeNode(context, &column);
     muiNodeId text = MakeText(context, root, TextKey(100, 10));
-    muiLayoutInput input = {first, 300.0f, MeasureText, NULL, 0, NULL};
+    muiLayoutInput input = {first, 300.0f, MeasureText, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
     CHECK(muiNode_GetRect(context, text).width == fminf(first, 100.0f), "first space");
     input.availableWidth = second;
@@ -423,6 +423,106 @@ static void TestDirectionChangeReachesInheritingDescendants(void)
     muiDestroyContext(context);
 }
 
+static bool RectIs(muiRect rect, float x, float y, float width, float height)
+{
+    return rect.x == x && rect.y == y && rect.width == width && rect.height == height;
+}
+
+// The safe area (record mui-0003): a node pads by the inset of each edge
+// it names, on the physical side the edge falls on, at least its own
+// padding; new insets lay it out again, the same ones nothing.
+static void TestSafeArea(void)
+{
+    muiContext* context = MakeContext();
+    Host host = {.context = context};
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.sizing.width = Length(400.0f);
+    style.sizing.height = Length(300.0f);
+    style.padding = (muiEdges){10.0f, 0.0f, 10.0f, 10.0f};
+    style.safeArea = mui_edgeStart | mui_edgeEnd | mui_edgeTop | mui_edgeBottom;
+    muiNodeId root = MakeNode(context, &style);
+    muiLayoutInput input = Input(&host);
+    input.safeArea = (muiSides){20.0f, 30.0f, 5.0f, 0.0f};
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "laid out");
+    CHECK(RectIs(muiNode_GetContentRect(context, root), 10.0f, 20.0f, 360.0f, 270.0f),
+          "start 10 over a left of 0, end 30 from the right, top 20, bottom its own 10");
+    // Right to left, start is the right: 30 there, the end's 0 on the left.
+    style.textDirection = mui_textRightToLeft;
+    CHECK(muiNode_SetLayoutStyle(context, root, &style) == mui_success, "right to left");
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "laid out");
+    CHECK(RectIs(muiNode_GetContentRect(context, root), 0.0f, 20.0f, 370.0f, 270.0f),
+          "the insets fall on the physical sides");
+    // The bottom alone.
+    style.textDirection = mui_textInherit;
+    style.safeArea = mui_edgeBottom;
+    input.safeArea.bottom = 40.0f;
+    CHECK(muiNode_SetLayoutStyle(context, root, &style) == mui_success, "the bottom");
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "laid out");
+    CHECK(RectIs(muiNode_GetContentRect(context, root), 10.0f, 10.0f, 390.0f, 250.0f),
+          "the bottom's 40, the rest its own");
+    // The same insets cost nothing; new ones lay the node out again.
+    muiWorkCounts before = muiGetWorkCounts(context);
+    CHECK(muiComputeLayout(context, root, &input) == mui_success &&
+              muiGetWorkCounts(context).sized == before.sized,
+          "the same insets: no work");
+    input.safeArea.bottom = 50.0f;
+    CHECK(muiComputeLayout(context, root, &input) == mui_success &&
+              RectIs(muiNode_GetContentRect(context, root), 10.0f, 10.0f, 390.0f, 240.0f),
+          "new insets: laid out again");
+    // An absolute child across the root's padding box, padded at its top
+    // and start, sized by its insets.
+    muiLayoutStyle over = muiDefaultLayoutStyle();
+    over.placement.position = mui_positionAbsolute;
+    over.placement.inset = (muiInsets){Length(0.0f), Length(0.0f), Length(0.0f), Length(0.0f)};
+    over.safeArea = mui_edgeTop | mui_edgeStart;
+    muiNodeId overlay = MakeNode(context, &over);
+    input.safeArea.left = 15.0f;
+    CHECK(muiNode_InsertChild(context, root, overlay, s_null) == mui_success &&
+              muiComputeLayout(context, root, &input) == mui_success &&
+              RectIs(muiNode_GetRect(context, overlay), 0.0f, 0.0f, 400.0f, 300.0f) &&
+              RectIs(muiNode_GetContentRect(context, overlay), 15.0f, 20.0f, 385.0f, 280.0f),
+          "an absolute child pads by the top and the left");
+    input.safeArea.left = -1.0f;
+    CHECK(muiComputeLayout(context, root, &input) == mui_errorInvalid, "a negative inset");
+    input.safeArea.left = NAN;
+    CHECK(muiComputeLayout(context, root, &input) == mui_errorInvalid, "a NaN inset");
+    muiDestroyContext(context);
+}
+
+// A size that depends on direction, through a safe area on a start edge,
+// is not taken from a size cached in the other direction.
+static void TestSafeAreaSizeFollowsDirection(void)
+{
+    muiContext* context = MakeContext();
+    Host host = {.context = context};
+    muiLayoutStyle row = muiDefaultLayoutStyle();
+    row.sizing.width = Length(400.0f);
+    row.sizing.height = Length(100.0f);
+    row.container.alignItems = mui_alignStart;
+    muiNodeId root = MakeNode(context, &row);
+    muiLayoutStyle box = muiDefaultLayoutStyle();
+    muiNodeId inner = MakeNode(context, &box);
+    muiLayoutStyle leaf = muiDefaultLayoutStyle();
+    leaf.sizing.height = Length(10.0f);
+    leaf.safeArea = mui_edgeStart;
+    muiNodeId padded = MakeNode(context, &leaf);
+    CHECK(muiNode_InsertChild(context, root, inner, s_null) == mui_success &&
+              muiNode_InsertChild(context, inner, padded, s_null) == mui_success,
+          "a box holding a padded leaf");
+    muiLayoutInput input = Input(&host);
+    input.safeArea = (muiSides){0.0f, 30.0f, 0.0f, 0.0f};
+    CHECK(muiComputeLayout(context, root, &input) == mui_success &&
+              muiNode_GetRect(context, inner).width == 0.0f,
+          "left to right, start is the left, of 0");
+    row.textDirection = mui_textRightToLeft;
+    CHECK(muiNode_SetLayoutStyle(context, root, &row) == mui_success, "right to left");
+    CHECK(muiComputeLayout(context, root, &input) == mui_success &&
+              muiNode_GetRect(context, inner).width == 30.0f &&
+              muiNode_GetRect(context, inner).x == 370.0f,
+          "right to left, start is the right, of 30: the box grows");
+    muiDestroyContext(context);
+}
+
 static void TestRectOfUnknownNodeIsZero(void)
 {
     muiContext* context = MakeContext();
@@ -447,6 +547,8 @@ int main(void)
     TestShrunkTextIsNotTakenFromItsMinContentSize();
     TestTextFollowsTheSpaceBothWays();
     TestDirectionChangeReachesInheritingDescendants();
+    TestSafeArea();
+    TestSafeAreaSizeFollowsDirection();
     TestRectOfUnknownNodeIsZero();
     return s_failures == 0 ? 0 : 1;
 }

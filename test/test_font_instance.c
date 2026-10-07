@@ -97,7 +97,8 @@ static float Width(Scene* scene, float size, float weight, muiFontSlant slant)
     CHECK(muiNode_SetTextValues(scene->context, scene->node, &style, SIZE | WEIGHT | SLANT) ==
               mui_success,
           "style");
-    const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &scene->host, 0, NULL};
+    const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &scene->host,
+                                  0,       NULL,    {0, 0, 0, 0}};
     CHECK(muiComputeLayout(scene->context, scene->node, &input) == mui_success, "layout");
     return muiMeasureText(&scene->host, scene->node,
                           muiNode_GetHostKey(scene->context, scene->node),

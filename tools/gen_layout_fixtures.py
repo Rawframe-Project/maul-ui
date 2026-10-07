@@ -206,9 +206,10 @@ def c_style(props):
     placement = f"{{{position}, {{{insets}}}, {c_float(anchor[0])}, {c_float(anchor[1])}}}"
     direction = ENUMS["dir"].index(get("dir"))
     content = 1 if "content" in props else 0
-    # Scroll containers are not in the corpus: no node scrolls.
+    # Scroll containers and the safe area are not in the corpus: no node
+    # scrolls or pads by it.
     return (f"{{{{{sizing}}}, {container}, {item}, {edges}, {placement}, {direction}, "
-            f"{content}, 0}}")
+            f"{content}, 0, 0}}")
 
 
 def generate():

@@ -136,7 +136,8 @@ static void SetText(Scene* scene, muiNodeId node, muiTextStyle style, muiPropert
 // Lays a root out, which styles it, at an available width.
 static void Layout(Scene* scene, muiNodeId root, float width)
 {
-    const muiLayoutInput input = {width, 1000.0f, muiMeasureText, &scene->host, 0, NULL};
+    const muiLayoutInput input = {width, 1000.0f, muiMeasureText, &scene->host,
+                                  0,     NULL,    {0, 0, 0, 0}};
     CHECK(muiComputeLayout(scene->context, root, &input) == mui_success, "layout");
 }
 
@@ -585,7 +586,8 @@ static void TestBaselines(void)
               isnan(muiTextBaseline(&scene.host, empty, muiNode_GetHostKey(scene.context, empty),
                                     0.0f, 0.0f)),
           "first baselines");
-    const muiLayoutInput input = {500.0f, 1000.0f, muiMeasureText, &scene.host, 0, muiTextBaseline};
+    const muiLayoutInput input = {500.0f, 1000.0f,         muiMeasureText, &scene.host,
+                                  0,      muiTextBaseline, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(scene.context, row, &input) == mui_success, "layout");
     // Empty text has no baseline, so its box's bottom is one.
     muiRect rects[3] = {muiNode_GetRect(scene.context, small),

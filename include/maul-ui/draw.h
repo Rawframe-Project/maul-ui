@@ -41,15 +41,6 @@ extern "C"
         float bottomLeft;
     } muiCorners;
 
-    // A value per side, physical: top first, then clockwise.
-    typedef struct muiSides
-    {
-        float top;
-        float right;
-        float bottom;
-        float left;
-    } muiSides;
-
     // What a command draws.
     typedef uint32_t muiDrawKind;
 

@@ -127,11 +127,11 @@ typedef struct muiLayoutNode
 static_assert(sizeof(muiLayoutNode) % 64 == 0, "a layout node is whole cache lines");
 
 // A node's content box in its border box, as layout sized it: inside the
-// border and padding, whose start is the right in a right-to-left node.
-static inline muiRect muiContentBoxOf(const muiLayoutNode* layout)
+// border and the padding it was laid out with, whose start is the right in
+// a right-to-left node.
+static inline muiRect muiContentBoxOf(const muiLayoutNode* layout, const muiEdges* padding)
 {
     const muiEdges* border = &layout->style.border;
-    const muiEdges* padding = &layout->style.padding;
     float start = border->start + padding->start;
     float end = border->end + padding->end;
     float top = border->top + padding->top;

@@ -80,7 +80,7 @@ static muiStyleId MakeStyle(muiContext* context)
 
 static void Layout(muiContext* context, muiNodeId node, uint64_t timeNs)
 {
-    const muiLayoutInput input = {400.0f, 300.0f, Measure, NULL, timeNs, NULL};
+    const muiLayoutInput input = {400.0f, 300.0f, Measure, NULL, timeNs, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, node, &input) == mui_success, "layout");
 }
 
@@ -337,7 +337,7 @@ static void TestChecks(void)
               muiNode_SetVisualValues(NULL, node, &defaults, BACKGROUND) == mui_errorInvalid,
           "null arguments");
     const muiLayoutStyle layout = muiDefaultLayoutStyle();
-    const muiPropertyMask pastLayout = MUI_PROPERTY_BIT(mui_propertyScrollAxes + 1);
+    const muiPropertyMask pastLayout = MUI_PROPERTY_BIT(mui_propertySafeArea + 1);
     CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, &layout, pastLayout) ==
                   mui_errorInvalid &&
               muiNode_SetLayoutValues(context, node, &layout, pastLayout) == mui_errorInvalid,

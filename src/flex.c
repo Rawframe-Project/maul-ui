@@ -91,13 +91,20 @@ static bool IsStretched(const Frame* frame, const muiLayoutStyle* child)
            !muiIsMarginAutoEnd(child, !frame->row);
 }
 
+// A child's padding with the safe area, in the direction it lays out in.
+static muiEdges ChildPadding(const Frame* frame, const muiLayoutStyle* child)
+{
+    return muiPaddingOf(child, &frame->solver->safeArea, muiIsRtl(child, frame->rtl));
+}
+
 // The constraint a child is sized under on the cross axis: its own
 // definite size; with stretch, the line's size when the container's cross
 // size is definite; otherwise fit-content within the container.
 static muiMeasureAxis CrossConstraint(const Frame* frame, const muiLayoutStyle* child,
                                       const muiAxisSizing* cross, bool stretch)
 {
-    float boxCross = muiBoxSum(child, !frame->row);
+    const muiEdges padding = ChildPadding(frame, child);
+    float boxCross = muiBoxSum(&padding, child, !frame->row);
     muiEdges margins = muiMarginsOf(child);
     float margin = muiEdgeSum(&margins, !frame->row);
     if (cross->definite)
@@ -160,7 +167,8 @@ static void PrepareItem(const Frame* frame, uint32_t child)
     muiFlexItemState* item = &layout->item;
     muiAxisSizing main = muiResolveAxis(&style->sizing, frame->row, frame->extentMain);
     muiAxisSizing cross = muiResolveAxis(&style->sizing, !frame->row, frame->extentCross);
-    float boxMain = muiBoxSum(style, frame->row);
+    const muiEdges padding = ChildPadding(frame, style);
+    float boxMain = muiBoxSum(&padding, style, frame->row);
     muiMeasureAxis crossConstraint = CrossConstraint(frame, style, &cross, true);
     muiEdges margins = muiMarginsOf(style);
     *item = (muiFlexItemState){
@@ -239,7 +247,8 @@ static void ResolvePendingMinimums(const Frame* frame, uint32_t first, uint32_t 
         muiAxisSizing cross = muiResolveAxis(&style->sizing, !frame->row, frame->extentCross);
         muiMeasureAxis crossConstraint = CrossConstraint(frame, style, &cross, true);
         float minimum = AutomaticMinimum(frame, c, &main, crossConstraint);
-        item->minMain = fmaxf(minimum, muiBoxSum(style, frame->row));
+        const muiEdges padding = ChildPadding(frame, style);
+        item->minMain = fmaxf(minimum, muiBoxSum(&padding, style, frame->row));
         item->minimumPending = false;
         // A content-based base is never below the minimum, so the
         // hypothetical size stands.
@@ -253,12 +262,13 @@ static Frame Setup(const muiSolver* solver, uint32_t node, const muiSizingInput*
     Frame frame = {.solver = solver, .node = node, .style = style};
     frame.row = direction == mui_flexRow || direction == mui_flexRowReverse;
     frame.reverse = direction == mui_flexRowReverse || direction == mui_flexColumnReverse;
+    const muiEdges padding = muiPaddingOf(style, &solver->safeArea, input->rtl);
     frame.boxMainStart =
-        muiEdgeStart(&style->padding, frame.row) + muiEdgeStart(&style->border, frame.row);
-    frame.boxMain = muiBoxSum(style, frame.row);
+        muiEdgeStart(&padding, frame.row) + muiEdgeStart(&style->border, frame.row);
+    frame.boxMain = muiBoxSum(&padding, style, frame.row);
     frame.boxCrossStart =
-        muiEdgeStart(&style->padding, !frame.row) + muiEdgeStart(&style->border, !frame.row);
-    frame.boxCross = muiBoxSum(style, !frame.row);
+        muiEdgeStart(&padding, !frame.row) + muiEdgeStart(&style->border, !frame.row);
+    frame.boxCross = muiBoxSum(&padding, style, !frame.row);
     frame.mainIn = frame.row ? input->width : input->height;
     frame.crossIn = frame.row ? input->height : input->width;
     float parentMain = frame.row ? input->parentWidth : input->parentHeight;
@@ -351,8 +361,9 @@ static float HypotheticalCross(const Frame* frame, uint32_t first, uint32_t coun
         muiMeasureAxis constraint = CrossConstraint(frame, style, &cross, false);
         muiSizingInput input = ChildInput(frame, muiExact(item->target), constraint);
         float size = CrossOf(frame, frame->solver->solve(frame->solver, c, &input, false));
-        item->cross =
-            muiClampSize(size, item->minCross, item->maxCross, muiBoxSum(style, !frame->row));
+        const muiEdges padding = ChildPadding(frame, style);
+        item->cross = muiClampSize(size, item->minCross, item->maxCross,
+                                   muiBoxSum(&padding, style, !frame->row));
         float outer = item->cross + item->marginCross;
         if (IsBaselineAligned(frame, style))
         {
@@ -405,8 +416,9 @@ static void Stretch(const Frame* frame, uint32_t first, uint32_t count)
         muiAxisSizing cross = muiResolveAxis(&style->sizing, !frame->row, frame->extentCross);
         if (!cross.definite && IsStretched(frame, style))
         {
+            const muiEdges padding = ChildPadding(frame, style);
             item->cross = muiClampSize(line - item->marginCross, item->minCross, item->maxCross,
-                                       muiBoxSum(style, !frame->row));
+                                       muiBoxSum(&padding, style, !frame->row));
         }
     }
 }

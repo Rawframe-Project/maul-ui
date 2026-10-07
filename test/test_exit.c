@@ -48,7 +48,7 @@ static muiNodeId Sized(muiContext* context, muiNodeId parent, float width, float
 
 static void Layout(muiContext* context, muiNodeId root, uint64_t timeNs)
 {
-    const muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, timeNs, NULL};
+    const muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, timeNs, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
 }
 

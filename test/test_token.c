@@ -88,7 +88,7 @@ static bool SameColor(muiColor a, muiColor b)
 
 static void Layout(muiContext* context, muiNodeId node, uint64_t timeNs)
 {
-    const muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, timeNs, NULL};
+    const muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, timeNs, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, node, &input) == mui_success, "layout");
 }
 
@@ -244,7 +244,7 @@ static void TestClassesNameTokens(void)
               mui_errorInvalid,
           "insets take no token");
     CHECK(muiStyle_SetToken(context, style, mui_variantBase,
-                            (muiProperty)(mui_propertyScrollAxes + 1), gap) == mui_errorInvalid &&
+                            (muiProperty)(mui_propertySafeArea + 1), gap) == mui_errorInvalid &&
               muiStyle_SetToken(context, style, (muiVariant)99, mui_propertyPaddingStart, gap) ==
                   mui_errorInvalid &&
               muiStyle_SetToken(context, s_nullStyle, mui_variantBase, mui_propertyPaddingStart,
@@ -331,7 +331,7 @@ static void TestClassesNameTokens(void)
               muiStyle_GetToken(context, style, (muiVariant)99, mui_propertyWidth, &named) ==
                   mui_errorInvalid &&
               muiStyle_GetToken(context, style, mui_variantBase,
-                                (muiProperty)(mui_propertyScrollAxes + 1),
+                                (muiProperty)(mui_propertySafeArea + 1),
                                 &named) == mui_errorInvalid,
           "bad reads");
     CHECK(muiDestroyStyle(context, style) == mui_success &&

@@ -58,7 +58,7 @@ static void MakeTree(Test* test)
 
 static void Layout(Test* test)
 {
-    const muiLayoutInput input = {640.0f, 480.0f, NULL, NULL, 0, NULL};
+    const muiLayoutInput input = {640.0f, 480.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(test->context, test->root, &input) == mui_success, "layout");
 }
 

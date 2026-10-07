@@ -314,7 +314,7 @@ static void SetBorder(muiContext* context, muiNodeId node, muiEdges border)
 
 static muiDrawList Build(muiContext* context, muiNodeId root, float scale)
 {
-    const muiLayoutInput layout = {1000.0f, 1000.0f, NULL, NULL, 0, NULL};
+    const muiLayoutInput layout = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, root, &layout) == mui_success, "layout");
     const muiDrawInput input = {7, scale, NULL, NULL};
     CHECK(muiBuildDrawList(context, root, &input) == mui_success, "build");
@@ -718,7 +718,7 @@ static void TestArgumentsAndLimits(void)
         muiNodeId child = Add(context, root, 10.0f, 10.0f, (muiEdges){0});
         SetVisual(context, child, &visual, mask);
         (void)Build(context, root, 1.0f);
-        const muiLayoutInput layout = {100.0f, 100.0f, NULL, NULL, 0, NULL};
+        const muiLayoutInput layout = {100.0f, 100.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
         CHECK(muiComputeLayout(context, root, &layout) == mui_success, "layout");
         // Two nodes' fit; a third's does not.
         muiNodeId more = Add(context, child, 5.0f, 5.0f, (muiEdges){0});
@@ -1071,7 +1071,7 @@ static void TestBuildsFromTheLastListMatchWholeOnes(void)
     for (int step = 0; step < 300; step++)
     {
         Edit(context, nodes, COUNT, &random, &available);
-        const muiLayoutInput layout = {available, 1000.0f, NULL, NULL, 0, NULL};
+        const muiLayoutInput layout = {available, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
         CHECK(muiComputeLayout(context, nodes[0], &layout) == mui_success, "layout");
         CHECK(muiBuildDrawList(context, nodes[0], &(muiDrawInput){7, 1.0f, PaintGlyphs, context}) ==
                   mui_success,
@@ -1108,7 +1108,7 @@ static void TestBuildsFromTheLastListMatchWholeOnes(void)
 
 static muiDrawList BuildAt(muiContext* context, muiNodeId root, float available, uint64_t surface)
 {
-    const muiLayoutInput layout = {available, 1000.0f, NULL, NULL, 0, NULL};
+    const muiLayoutInput layout = {available, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, root, &layout) == mui_success, "layout");
     CHECK(muiBuildDrawList(context, root, &(muiDrawInput){surface, 1.0f, NULL, NULL}) ==
               mui_success,
@@ -1271,7 +1271,8 @@ static void TestRetainedEdges(void)
     AddShadowTo(context, root);
     Paint(context, root, s_gray);
     CHECK(
-        muiComputeLayout(context, root, &(muiLayoutInput){1000.0f, 1000.0f, NULL, NULL, 0, NULL}) ==
+        muiComputeLayout(context, root,
+                         &(muiLayoutInput){1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}}) ==
                 mui_success &&
             muiBuildDrawList(context, root, &(muiDrawInput){7, 1.0f, NULL, NULL}) ==
                 mui_errorCapacity,
@@ -1293,7 +1294,7 @@ static void TestRetainedEdges(void)
     Paint(context, b, s_blue);
     (void)BuildAt(context, root, 1000.0f, 7);
     AddShadowTo(context, root);
-    const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL};
+    const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
     CHECK(muiBuildDrawList(context, root, &(muiDrawInput){7, 1.0f, NULL, NULL}) ==
               mui_errorCapacity,
@@ -1412,7 +1413,7 @@ static muiNodeId AddLabel(muiContext* context, muiNodeId root)
 
 static muiDrawList BuildWith(muiContext* context, muiNodeId root, float scale, GlyphHost* host)
 {
-    const muiLayoutInput layout = {1000.0f, 1000.0f, NULL, NULL, 0, NULL};
+    const muiLayoutInput layout = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, root, &layout) == mui_success, "layout");
     CHECK(muiBuildDrawList(context, root, &(muiDrawInput){7, scale, PaintTwoGlyphs, host}) ==
               mui_success,
@@ -1546,7 +1547,7 @@ static void TestGlyphRunsRightToLeftAndLimits(void)
         (void)AddLabel(context, root);
         (void)AddLabel(context, root);
         host = (GlyphHost){context, 0, false, false, 0, 0};
-        const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL};
+        const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
         CHECK(
             muiComputeLayout(context, root, &input) == mui_success &&
                 muiBuildDrawList(context, root, &(muiDrawInput){7, 1.0f, PaintTwoGlyphs, &host}) ==

@@ -112,10 +112,48 @@ static inline muiEdges muiMarginsOf(const muiLayoutStyle* style)
     return margins;
 }
 
-// Padding and border on one axis.
-static inline float muiBoxSum(const muiLayoutStyle* style, bool horizontal)
+// Whether a node lays out right to left: its own direction, or the one
+// it inherits.
+static inline bool muiIsRtl(const muiLayoutStyle* style, bool inherited)
 {
-    return muiEdgeSum(&style->padding, horizontal) + muiEdgeSum(&style->border, horizontal);
+    return style->textDirection == mui_textInherit ? inherited
+                                                   : style->textDirection == mui_textRightToLeft;
+}
+
+// A node's padding with the safe area it asks for: on each edge its mask
+// names, at least the inset on the physical side that edge falls on in
+// its direction (record mui-0003).
+static inline muiEdges muiPaddingOf(const muiLayoutStyle* style, const muiSides* safe, bool rtl)
+{
+    muiEdges padding = style->padding;
+    muiEdgeMask mask = style->safeArea;
+    if (mask == 0)
+    {
+        return padding;
+    }
+    if ((mask & mui_edgeStart) != 0)
+    {
+        padding.start = fmaxf(padding.start, rtl ? safe->right : safe->left);
+    }
+    if ((mask & mui_edgeEnd) != 0)
+    {
+        padding.end = fmaxf(padding.end, rtl ? safe->left : safe->right);
+    }
+    if ((mask & mui_edgeTop) != 0)
+    {
+        padding.top = fmaxf(padding.top, safe->top);
+    }
+    if ((mask & mui_edgeBottom) != 0)
+    {
+        padding.bottom = fmaxf(padding.bottom, safe->bottom);
+    }
+    return padding;
+}
+
+// Padding and border on one axis.
+static inline float muiBoxSum(const muiEdges* padding, const muiLayoutStyle* style, bool horizontal)
+{
+    return muiEdgeSum(padding, horizontal) + muiEdgeSum(&style->border, horizontal);
 }
 
 // A border-box size within its limits; the minimum wins over the

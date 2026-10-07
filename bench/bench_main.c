@@ -226,7 +226,8 @@ static double Time(Scene* scene, float width, bool changeLeaf)
         Check(muiNode_MarkContentChanged(scene->context, scene->leaf), "mark");
     }
     scene->measured = 0;
-    muiLayoutInput input = {width, 100000.0f, MeasureLabel, &scene->measured, 0, NULL};
+    muiLayoutInput input = {width, 100000.0f, MeasureLabel, &scene->measured,
+                            0,     NULL,      {0, 0, 0, 0}};
     double start = Seconds();
     muiResult status = muiComputeLayout(scene->context, scene->root, &input);
     double elapsed = Seconds() - start;
@@ -249,7 +250,8 @@ static void DrawFrames(Scene* scene, double best[3], uint32_t* commandsOut)
         {
             Check(muiNode_SetStates(scene->context, scene->row, 0), "unhover");
             // The width of the last frame Run timed, so only the row changes.
-            muiLayoutInput layout = {640.0f, 100000.0f, MeasureLabel, &scene->measured, 0, NULL};
+            muiLayoutInput layout = {640.0f, 100000.0f, MeasureLabel, &scene->measured,
+                                     0,      NULL,      {0, 0, 0, 0}};
             Check(muiComputeLayout(scene->context, scene->root, &layout), "layout");
         }
         double start = Seconds();

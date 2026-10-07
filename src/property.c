@@ -129,6 +129,7 @@ static const Row s_layoutRows[] = {
     ENUM(textDirection, mui_textInherit, mui_textRightToLeft),
     ENUM(content, mui_contentNone, mui_contentHost),
     ENUM(scrollAxes, mui_scrollNone, mui_scrollBoth),
+    ENUM(safeArea, 0, mui_edgeStart | mui_edgeEnd | mui_edgeTop | mui_edgeBottom),
 };
 
 static const Row s_visualRows[] = {
@@ -195,7 +196,7 @@ static const GroupRows s_groups[MUI_PROPERTY_GROUPS] = {
     {s_interactionRows, (uint32_t)(sizeof s_interactionRows / sizeof s_interactionRows[0])},
 };
 
-static_assert(sizeof s_layoutRows / sizeof s_layoutRows[0] == mui_propertyScrollAxes + 1 &&
+static_assert(sizeof s_layoutRows / sizeof s_layoutRows[0] == mui_propertySafeArea + 1 &&
                   sizeof s_visualRows / sizeof s_visualRows[0] ==
                       (mui_propertyImageMirrors & 63) + 1 &&
                   sizeof s_textRows / sizeof s_textRows[0] == (mui_propertyTextWrap & 63) + 1 &&
@@ -220,7 +221,7 @@ static_assert(sizeof(muiColor) == 4 * sizeof(float) && sizeof(muiShadow) == 8 * 
                   sizeof(muiEdges) == 4 * sizeof(float) &&
                   sizeof(muiGradientStop) == 5 * sizeof(float),
               "compared as floats alone");
-static_assert(MUI_LAYOUT_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyScrollAxes) << 1) - 1 &&
+static_assert(MUI_LAYOUT_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertySafeArea) << 1) - 1 &&
                   MUI_VISUAL_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyImageMirrors) << 1) - 1 &&
                   MUI_TEXT_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyTextWrap) << 1) - 1 &&
                   MUI_INTERACTION_PROPERTIES == (MUI_PROPERTY_BIT(mui_propertyExitLayout) << 1) - 1,

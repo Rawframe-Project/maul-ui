@@ -122,7 +122,7 @@ void muiPaintHostContent(muiPainter* painter, uint32_t slot, const muiPaintState
     {
         return;
     }
-    const muiRect content = muiContentBoxOf(layout);
+    const muiRect content = muiContentBoxOf(layout, &context->paddings[slot - 1]);
     muiDrawSink sink = {painter, state, state->x + content.x, state->y + content.y};
     const muiTreeNode* node = muiTreeAt(&context->tree, slot);
     painter->paint(painter->paintUser, muiTreeIdOf(&context->tree, slot), node->hostKey,

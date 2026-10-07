@@ -131,7 +131,7 @@ static void FreeScene(Scene* scene)
 static const char* Sync(Scene* scene)
 {
     static char s_reported[1024];
-    const muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, 0, NULL};
+    const muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(scene->context, scene->root, &input) == mui_success, "layout");
     muiAccessUpdate update;
     CHECK(muiBuildAccessUpdate(scene->context, scene->root, &update) == mui_success, "build");

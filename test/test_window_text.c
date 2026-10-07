@@ -90,7 +90,8 @@ static void MakeScene(Test* test)
     CHECK(muiNode_SetTextValues(test->context, test->field, &text,
                                 MUI_PROPERTY_BIT(mui_propertyFontSize)) == mui_success,
           "the field's text");
-    const muiLayoutInput input = {640.0f, 480.0f, muiMeasureText, &test->host, 0, NULL};
+    const muiLayoutInput input = {640.0f, 480.0f, muiMeasureText, &test->host,
+                                  0,      NULL,   {0, 0, 0, 0}};
     CHECK(muiComputeLayout(test->context, test->root, &input) == mui_success, "layout");
 }
 
