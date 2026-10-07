@@ -18,7 +18,7 @@ import pathlib
 
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.ttGlyphPen import TTGlyphPen
-from fontTools.ttLib.tables.otTables import PaintFormat
+from fontTools.ttLib.tables.otTables import CompositeMode, PaintFormat
 
 # 2026-01-01 in seconds from 1904, the epoch of the head table.
 TIMESTAMP = 3850070400
@@ -85,7 +85,7 @@ def radial(c0, r0, c1, r1):
     )
 
 
-# Version 1 graphs, glyph ids 9 on in this order. In pixels at an em of
+# Version 1 graphs, glyph ids 10 on in this order. In pixels at an em of
 # 10, "dot" is a box from 3 to 5 across and 2 to 4 up, "bar" from 3 to 7
 # and 2 to 3.
 GRAPHS = {
@@ -221,11 +221,19 @@ GRAPHS = {
             {"StopOffset": 1.0, "PaletteIndex": 0xFFFF, "Alpha": 1.0},
         ],
     ),
+    # The text's colour from 1 to 7 across, out of red from 5 to 9: the
+    # source kept only where the backdrop is not, 1 to 5.
+    "composited": {
+        "Format": PaintFormat.PaintComposite,
+        "SourcePaint": shape("left", solid(0xFFFF)),
+        "CompositeMode": CompositeMode.SRC_OUT,
+        "BackdropPaint": shape("half", solid(0)),
+    },
 }
 
 
 def main():
-    names = [".notdef", "A", "B", "whole", "half", "dot", "empty", "stray", "bar"]
+    names = [".notdef", "A", "B", "whole", "half", "dot", "empty", "stray", "bar", "left"]
     names += list(GRAPHS)
     builder = FontBuilder(1000, isTTF=True)
     builder.setupGlyphOrder(names)
@@ -241,13 +249,14 @@ def main():
         "empty": TTGlyphPen(None).glyph(),
         "stray": box(600, 200, 800, 400),
         "bar": box(300, 200, 700, 300),
+        "left": box(100, 0, 700, 800),
     }
     for name in GRAPHS:
         glyphs[name] = box(100, 0, 900, 800)
     builder.setupGlyf(glyphs)
     # A left side bearing of each outline's own left, as TrueType places
     # outlines by it.
-    bearings = {"half": 500, "dot": 300, "empty": 0, "stray": 600, "bar": 300}
+    bearings = {"half": 500, "dot": 300, "empty": 0, "stray": 600, "bar": 300, "left": 100}
     builder.setupHorizontalMetrics({name: (1000, bearings.get(name, 100)) for name in names})
     builder.setupHorizontalHeader(ascent=800, descent=-200)
     builder.setupCPAL(

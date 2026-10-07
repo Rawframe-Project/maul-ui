@@ -11,11 +11,13 @@
 // dy; rotations counter-clockwise; a skew of x angle a and y angle b maps
 // x to x - tan(a) y and y to y + tan(b) x.
 //
-// Gradients are colr_gradient.c's. Not yet drawn: composite modes other
-// than source over (each composite draws its source over its backdrop).
+// Gradients are colr_gradient.c's and composite modes colr_composite.c's:
+// a composite renders its backdrop at its own level and its source a
+// level down, and combines them there.
 
 #include "colr_paint.h"
 
+#include "colr_composite.h"
 #include "colr_gradient.h"
 #include "motion_math.h"
 #include "text_block.h"
@@ -416,7 +418,8 @@ static bool RenderOther(Surfaces* surfaces, const FT_COLR_Paint* paint, Matrix m
         {
             return false;
         }
-        Over(Surface(surfaces, level + 1), Surface(surfaces, level), surfaces->count);
+        muiComposite((uint32_t)paint->u.composite.composite_mode, Surface(surfaces, level + 1),
+                     Surface(surfaces, level), surfaces->count);
     }
     return true;
 }

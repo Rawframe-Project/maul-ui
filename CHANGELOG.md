@@ -14,8 +14,9 @@ format.
   glyph's paint graph where it has one, its layers, solid fills,
   linear, radial and sweep gradients (padded, repeated or reflected,
   interpolated in premultiplied linear light), glyph outlines, other
-  colour glyphs, transforms and clip box; a graph more than 64 paints
-  deep is `mui_errorFormat`. Composite modes are not drawn yet.
+  colour glyphs, transforms, the 28 composite modes of W3C Compositing
+  and Blending, and clip box; a graph more than 64 paints deep is
+  `mui_errorFormat`.
 
 - The reference renderer draws colour glyphs from an atlas of colour
   glyphs of its own, faded by the run's alpha, the text's colour where

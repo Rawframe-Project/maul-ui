@@ -149,8 +149,10 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   units: linear along p0 to p1 turned by p2, radial as CSS's two-point
   conical gradient, sweep counter-clockwise from the x axis; their
   colour lines padded, repeated or reflected and interpolated in
-  premultiplied linear light, as CPAL asks. Composite modes other than
-  source over come in a later slice.
+  premultiplied linear light, as CPAL asks. Composites take W3C
+  Compositing and Blending Level 1's 28 modes in linear light, as the
+  painter composites everything, plus held at 1 so that alpha stays a
+  fraction.
   A glyph without colour is `mui_empty`, drawn as coverage.
 - **Font instances:** a font key names a font and an instance of it:
   the wght axis's value, ital, slnt or a shear, the opsz axis's value,

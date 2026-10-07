@@ -7,7 +7,7 @@
 // entry 1 over it, a box from 3 to 5 across and 2 to 4 up of the text's
 // colour, and a box from 6 to 8 across and 2 to 4 up of entry 2, past
 // the palettes' two; palette 0 is opaque red and half transparent blue,
-// palette 1 green and yellow. Its B has no colour layers. Glyphs 9 on are
+// palette 1 green and yellow. Its B has no colour layers. Glyphs 10 on are
 // version 1 paint graphs, one for each kind of paint, described in the
 // font's script.
 
@@ -26,7 +26,7 @@ enum
 {
     GLYPH_A = 1,
     GLYPH_B = 2,
-    LAYERED = 9,
+    LAYERED = 10,
     MOVED,
     TURNED,
     SCALED,
@@ -48,7 +48,8 @@ enum
     LINEAR_UNORDERED,
     RADIAL_TANGENT,
     LINEAR_SHEARED,
-    LINEAR_HARD
+    LINEAR_HARD,
+    COMPOSITED
 };
 
 static unsigned char s_pixels[4096];
@@ -283,6 +284,16 @@ static void TestHardStop(void)
     muiDestroyTextService(scene.service);
 }
 
+static void TestComposite(void)
+{
+    Scene scene = MakeScene();
+    muiGlyphImage image = {0};
+    CHECK(BoxIs(&scene, COMPOSITED, 0.0f, 1, 8, 8, 8, &image) && Is(&image, 2, 4, 0, 255, 0, 255) &&
+              Is(&image, 6, 4, 0, 0, 0, 0) && Is(&image, 8, 4, 0, 0, 0, 0),
+          "a composite, its source out of its backdrop");
+    muiDestroyTextService(scene.service);
+}
+
 static void TestContract(void)
 {
     Scene scene = MakeScene();
@@ -321,6 +332,7 @@ int main(void)
     TestPaints();
     TestGradients();
     TestHardStop();
+    TestComposite();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }

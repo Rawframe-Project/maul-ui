@@ -76,14 +76,14 @@ extern "C"
     /// placed as muiRenderGlyph places coverage: four bytes a pixel, rows
     /// from the top, red, green, blue and alpha. A version 1 glyph's paint
     /// graph is drawn where the glyph has one: its layers, solid fills,
-    /// gradients, glyph outlines, other colour glyphs, transforms and clip
-    /// box. A version 0 glyph's layers are each another glyph's outline
-    /// filled with its palette entry. Entry 0xFFFF is the text's colour,
-    /// and everything is composited in premultiplied linear light; the
-    /// pixels are stored as an sRGB texture holds premultiplied colour,
-    /// red, green and blue encoded with sRGB's transfer function and alpha
-    /// linear. A glyph without colour gives `mui_empty` and an empty image,
-    /// to be drawn as coverage.
+    /// gradients, glyph outlines, other colour glyphs, transforms,
+    /// composites and clip box. A version 0 glyph's layers are each another
+    /// glyph's outline filled with its palette entry. Entry 0xFFFF is the
+    /// text's colour, and everything is composited in premultiplied linear
+    /// light; the pixels are stored as an sRGB texture holds premultiplied
+    /// colour, red, green and blue encoded with sRGB's transfer function
+    /// and alpha linear. A glyph without colour gives `mui_empty` and an
+    /// empty image, to be drawn as coverage.
     ///
     /// @param service     The service.
     /// @param font        A font key, as a glyph run carries; 0 for the

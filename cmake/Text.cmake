@@ -6,6 +6,7 @@
 
 target_sources(maul-ui PRIVATE
     src/color_glyph.c
+    src/colr_composite.c
     src/colr_paint.c
     src/colr_gradient.c
     src/paint_source.c
