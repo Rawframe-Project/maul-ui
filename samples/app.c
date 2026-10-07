@@ -273,10 +273,16 @@ static void Step(SampleApp* app)
                                app->def->paint != NULL ? app->def->paint : muiPaintText,
                                app->def->paint != NULL ? app->def->user : (void*)&app->host};
     muiDrawList list;
-    bool built = muiComputeLayout(app->context, app->root, &layout) == mui_success &&
-                 muiWindowAccess_Update(app->access) == mui_success &&
-                 muiBuildDrawList(app->context, app->root, &draw) == mui_success &&
-                 muiGetDrawList(app->context, &list) == mui_success;
+    bool built = muiComputeLayout(app->context, app->root, &layout) == mui_success;
+    for (int pass = 0;
+         built && pass < 2 && app->def->settle != NULL && app->def->settle(app->def->user, app);
+         pass++)
+    {
+        built = muiComputeLayout(app->context, app->root, &layout) == mui_success;
+    }
+    built = built && muiWindowAccess_Update(app->access) == mui_success &&
+            muiBuildDrawList(app->context, app->root, &draw) == mui_success &&
+            muiGetDrawList(app->context, &list) == mui_success;
     if (app->headless)
     {
         SampleAppCheck(app,

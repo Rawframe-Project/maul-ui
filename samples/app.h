@@ -56,6 +56,10 @@ typedef struct SampleAppDef
     // Windowed with --frames, on the last frame read back: checks what
     // the first headless frame checks. NULL for none.
     void (*still)(void* user, SampleApp* app);
+    // After each layout: what the host makes of it (a virtual list's
+    // window realized), returning whether the tree changed, which lays
+    // it out again, at most twice a frame. NULL for nothing.
+    bool (*settle)(void* user, SampleApp* app);
     // Each record the window gives, before the glue takes it: what the
     // host takes itself (an input method's preedit). NULL for nothing.
     void (*record)(void* user, SampleApp* app, const mwinEvent* event);

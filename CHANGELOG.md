@@ -94,7 +94,13 @@ format.
   blocking and modal report are the library's, closed by Escape or its
   buttons with the focus given back to its opener, and floating dialogs
   as activation layers raised by a press and moved by their title bars.
-  On the web the
+  `sample_collections` composes a list, a tree and a table of 100,000
+  rows over virtual lists, pooled rows bound to the window the library
+  wants after each layout, the active row named as the active
+  descendant and scrolled into view from offsets the library keeps for
+  rows that do not exist, the tree's folders inserting and removing
+  their files' items. The frame gains a settle hook that lays out
+  again after the host realizes what the layout asked. On the web the
   headless tour runs in headless
   Chrome's WebGPU through the web runner, which now gives Chrome WebGPU
   and a program its arguments (record mui-0005).
