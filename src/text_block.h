@@ -73,6 +73,10 @@ typedef struct muiTextItem
     uint32_t script;
     uint32_t face;
     uint32_t units;
+    // Its run style (src/text_runs.h), 0 the node's, and that style's
+    // size over the node's.
+    uint32_t style;
+    float scale;
 } muiTextItem;
 
 typedef struct muiTextBlock
@@ -119,6 +123,13 @@ typedef struct muiTextBlock
     // spanCount muiTextSpan, in the order given.
     muiBuffer spans;
     uint32_t spanCount;
+    // With spans that shape: runStyleCount muiRunStyle in runStyles, and a
+    // byte per byte, its run style, in runs; for the node's style and the
+    // spans runKey stands for (src/text_runs.h). runKey is 0 for none.
+    muiBuffer runStyles;
+    uint32_t runStyleCount;
+    muiBuffer runs;
+    uint64_t runKey;
 } muiTextBlock;
 
 typedef struct muiTextBlockStore

@@ -39,7 +39,7 @@ muiSize muiMeasureText(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasur
         widest = fmaxf(widest, glyphs.width);
     }
     return (muiSize){width.mode == mui_measureExact ? width.size : widest,
-                     (float)count * paragraph.lineHeight};
+                     muiParagraphHeight(lines, count)};
 }
 
 // What paints a stretch of text.
@@ -96,13 +96,11 @@ static Ink InkAt(const muiParagraph* paragraph, uint32_t at, uint32_t* firstOut,
 }
 
 // Where a decoration lies under, over or through a line, and how thick:
-// from the first font's metrics, or CSS's usual ones for a font without
+// from a font's metrics at a size, or CSS's usual ones for a font without
 // them.
-static muiRect DecorationRect(const muiParagraph* paragraph, muiTextDecoration line, float left,
-                              float right, float baseline)
+static muiRect DecorationRect(const muiFontMetrics* metrics, float size, muiTextDecoration line,
+                              float left, float right, float baseline)
 {
-    const muiFontMetrics* metrics = &paragraph->chain.fonts[0]->metrics;
-    float size = paragraph->style.size;
     bool underline = metrics->underlineThickness > 0.0f;
     float thin = (underline ? metrics->underlineThickness : 0.05f) * size;
     float y = baseline + (underline ? metrics->underlineOffset : 0.1f) * size;
@@ -119,9 +117,14 @@ static muiRect DecorationRect(const muiParagraph* paragraph, muiTextDecoration l
     return (muiRect){left, y, right - left, thin};
 }
 
-static void Decorate(const muiParagraph* paragraph, const Ink* ink, muiTextDecoration lines,
-                     float left, float right, float baseline, muiDrawSink* sink)
+// Draws an item's decorations: in the node's first font for its own
+// text, as CSS's first available font, and in its own for a span's run.
+static void Decorate(const muiParagraph* paragraph, const muiTextItem* item, const Ink* ink,
+                     muiTextDecoration lines, float left, float right, float baseline,
+                     muiDrawSink* sink)
 {
+    const muiFont* font = paragraph->chain.fonts[item->style != 0 ? item->face : 0];
+    float size = paragraph->style.size * item->scale;
     const muiColor color = ink->decorationColor.a > 0.0f ? ink->decorationColor : ink->color;
     const muiTextDecoration each[3] = {mui_decorationUnderline, mui_decorationOverline,
                                        mui_decorationLineThrough};
@@ -130,7 +133,7 @@ static void Decorate(const muiParagraph* paragraph, const Ink* ink, muiTextDecor
         if ((ink->decoration & lines & each[i]) != 0 && right > left)
         {
             (void)muiDrawSink_AddRect(
-                sink, DecorationRect(paragraph, each[i], left, right, baseline), color);
+                sink, DecorationRect(&font->metrics, size, each[i], left, right, baseline), color);
         }
     }
 }
@@ -163,15 +166,15 @@ static float PaintSegment(const muiParagraph* paragraph, const muiLineGlyphs* so
             pen += paragraph->scale.spacing;
         }
     }
-    Decorate(paragraph, ink, mui_decorationUnderline | mui_decorationOverline, left, pen, baseline,
-             sink);
+    Decorate(paragraph, item, ink, mui_decorationUnderline | mui_decorationOverline, left, pen,
+             baseline, sink);
     if (count != 0)
     {
-        const muiGlyphRun run = {paragraph->chain.keys[item->face], paragraph->style.size,
-                                 ink->color, 0.0f, baseline};
+        const muiGlyphRun run = {paragraph->chain.keys[item->face],
+                                 paragraph->style.size * item->scale, ink->color, 0.0f, baseline};
         (void)muiDrawSink_AddGlyphRun(sink, &run, glyphs, count);
     }
-    Decorate(paragraph, ink, mui_decorationLineThrough, left, pen, baseline, sink);
+    Decorate(paragraph, item, ink, mui_decorationLineThrough, left, pen, baseline, sink);
     return pen;
 }
 
@@ -256,14 +259,23 @@ static void PaintLine(const muiParagraph* paragraph, const muiTextLine* line, fl
 
 float muiTextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height)
 {
-    (void)width;
     (void)height;
     muiParagraph paragraph;
     if (!muiPrepareParagraph(user, nodeId, hostKey, &paragraph) || paragraph.block->length == 0)
     {
         return NAN;
     }
-    return paragraph.baseline;
+    // Spans may make the first line taller: its own baseline, broken at
+    // the width.
+    uint32_t count = 0;
+    if (paragraph.block->runStyleCount == 0 ||
+        !muiBreakParagraph(&paragraph, muiParagraphBreakMode(&paragraph, mui_measureAtMost), width,
+                           &count) ||
+        count == 0)
+    {
+        return paragraph.baseline;
+    }
+    return ((const muiTextLine*)paragraph.service->lines.data)[0].baseline;
 }
 
 // Underlines a block's composition on a line: each segment's stretches,
@@ -278,7 +290,7 @@ static void PaintComposition(const muiLaidText* laid, uint32_t index, muiDrawSin
     {
         return;
     }
-    float baseline = (float)index * paragraph->lineHeight + paragraph->baseline;
+    float baseline = laid->lines[index].baseline;
     const muiCompositionSegment whole = {0, block->compositionLength, mui_compositionUnderline};
     const muiCompositionSegment* segments =
         block->segmentCount != 0 ? block->segments.data : &whole;
@@ -293,7 +305,8 @@ static void PaintComposition(const muiLaidText* laid, uint32_t index, muiDrawSin
                muiNextStretch(&boxes, &at, start, start + segments[k].length, &left, &right))
         {
             muiRect rect =
-                DecorationRect(paragraph, mui_decorationUnderline, left, right, baseline);
+                DecorationRect(&paragraph->chain.fonts[0]->metrics, paragraph->style.size,
+                               mui_decorationUnderline, left, right, baseline);
             rect.height *= segments[k].style == mui_compositionTarget ? 2.0f : 1.0f;
             (void)muiDrawSink_AddRect(sink, rect, paragraph->style.color);
         }
@@ -316,8 +329,7 @@ void muiPaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width, f
     const muiTextLine* lines = service->lines.data;
     for (uint32_t i = 0; i < count; i++)
     {
-        float top = (float)i * paragraph.lineHeight;
-        PaintLine(&paragraph, &lines[i], width, top + paragraph.baseline, sink);
+        PaintLine(&paragraph, &lines[i], width, lines[i].baseline, sink);
     }
     if (paragraph.block->compositionLength == 0)
     {

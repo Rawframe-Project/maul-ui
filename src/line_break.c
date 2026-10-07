@@ -75,8 +75,9 @@ static void Emit(Lines* out, uint32_t start, uint32_t next)
     if (out->count < out->capacity)
     {
         uint32_t end = VisibleEnd(out->block->text.data, start, next);
-        out->lines[out->count] =
-            (muiTextLine){start, end, next, muiTextWidth(out->block, out->scale, start, end)};
+        // Its place down the paragraph comes after breaking.
+        out->lines[out->count] = (muiTextLine){
+            start, end, next, muiTextWidth(out->block, out->scale, start, end), 0.0f, 0.0f, 0.0f};
     }
     out->count++;
 }

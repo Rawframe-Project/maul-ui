@@ -27,6 +27,7 @@ target_sources(maul-ui PRIVATE
     src/text_layout.c
     src/text_paragraph.c
     src/text_service.c
+    src/text_runs.c
     src/text_shape.c
     $<TARGET_OBJECTS:maul-unicode>
     $<TARGET_OBJECTS:maul-unicode-harfbuzz>)

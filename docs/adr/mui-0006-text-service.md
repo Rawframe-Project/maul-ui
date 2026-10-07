@@ -65,9 +65,18 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   the text properties a mask names, later spans winning where they
   overlap, as a stack of styles flattens; they are what a host's
   rich-text markup turns into, and Maul UI parses none. Spans set what
-  painting reads (color, decoration, decoration color); those that
-  change shaping and line metrics (font, size, weight, slant, baseline
-  shift) come next. Setting the text drops them; a replacement moves
+  painting reads (color, decoration, decoration color) and what shaping
+  does (font, size, weight, slant); a baseline shift comes next. A span
+  size is against the node's, as a child's text is against its
+  parent's. The text under spans that shape is shaped in run styles:
+  the node's and up to 31 distinct ones the spans make, a byte each,
+  every face of their chains in one chain with each style trying its
+  own faces in its own order, items splitting where the style changes.
+  A line is as tall as the runs on it reach above and below the
+  baseline (each font's ascent and descent at its run's size, with half
+  its leading each way, as CSS places an inline box), and the next line
+  starts below it; hit tests, carets and selections read each line's
+  own top and height. Setting the text drops them; a replacement moves
   those after it and trims those it cuts, a span growing with text put
   strictly inside it, and `muiTextBlock_GetSpans` reads them back.
   Painting splits a line's glyph runs where the ink (color and

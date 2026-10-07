@@ -161,6 +161,8 @@ static void Adopt(const muiAllocator* allocator, muiTextBlock* block, Analysis* 
     block->scripts = analysis->scripts;
     block->scriptCount = analysis->scriptCount;
     block->shaped = false;
+    // New text: its run styles are made again for it.
+    block->runKey = 0;
 }
 
 static bool IsTextValid(const char* text, size_t length)
@@ -406,10 +408,13 @@ static bool IsCharacterEdge(const muiTextBlock* block, uint32_t at)
     return at == block->length || (text[at] & 0xC0u) != 0x80u;
 }
 
-// The text properties a span may set: those painting reads.
+// The text properties a span may set: what painting reads, and the font,
+// size, weight and slant its runs are shaped in.
 #define SPAN_PROPERTIES                                                                            \
     (MUI_PROPERTY_BIT(mui_propertyTextColor) | MUI_PROPERTY_BIT(mui_propertyTextDecoration) |      \
-     MUI_PROPERTY_BIT(mui_propertyTextDecorationColor))
+     MUI_PROPERTY_BIT(mui_propertyTextDecorationColor) | MUI_PROPERTY_BIT(mui_propertyFont) |      \
+     MUI_PROPERTY_BIT(mui_propertyFontSize) | MUI_PROPERTY_BIT(mui_propertyFontWeight) |           \
+     MUI_PROPERTY_BIT(mui_propertyFontSlant))
 
 static bool AreSpansValid(const muiTextBlock* block, const muiTextSpan* spans, uint32_t count)
 {

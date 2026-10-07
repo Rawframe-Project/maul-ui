@@ -30,16 +30,29 @@ bool muiPrepareParagraph(const muiTextHost* host, muiNodeId nodeId, uint64_t hos
     muiTextService* service = host->service;
     out->service = service;
     out->block = FindBlock(service, hostKey);
-    if (out->block == nullptr || !muiBuildChain(service, &out->style, &out->chain))
+    if (out->block == nullptr)
     {
         return false;
     }
     out->rtl = muiNode_IsRightToLeft(host->context, nodeId);
-    if (!muiShapeTextBlock(service, out->block, &out->chain, out->rtl))
+    // Spans that set a font, size, weight or slant shape their text in
+    // run styles of their own, every face in one chain.
+    muiRunChains chains;
+    if (!muiPrepareRuns(service, out->block, &out->style))
     {
         service->failures++;
         return false;
     }
+    if (!muiBuildRunChains(service, out->block, &out->style, &chains))
+    {
+        return false;
+    }
+    if (!muiShapeTextBlock(service, out->block, &chains, out->rtl))
+    {
+        service->failures++;
+        return false;
+    }
+    out->chain = chains.chain;
     const muiFontMetrics* metrics = &out->chain.fonts[0]->metrics;
     float size = out->style.size;
     out->scale = (muiLineScale){size, out->style.letterSpacing};
@@ -64,9 +77,86 @@ bool muiBreakParagraph(muiParagraph* paragraph, muiBreakMode mode, float width, 
         service->failures++;
         return false;
     }
-    *countOut = muiBreakLines(block, &paragraph->scale, mode, width, service->lines.data,
-                              (uint32_t)capacity);
+    muiTextLine* lines = service->lines.data;
+    uint32_t count =
+        muiBreakLines(block, &paragraph->scale, mode, width, lines, (uint32_t)capacity);
+    // Each line below the one before, as tall as the node's own text and
+    // the spans' runs on it reach.
+    bool uniform = true;
+    uint32_t item = 0;
+    for (uint32_t i = 0; i < count; i++)
+    {
+        float above = paragraph->baseline;
+        float below = paragraph->lineHeight - paragraph->baseline;
+        bool grew = muiLineReach(paragraph, &lines[i], &item, &above, &below);
+        lines[i].top = uniform || i == 0 ? (float)i * paragraph->lineHeight
+                                         : lines[i - 1].top + lines[i - 1].height;
+        lines[i].height = grew ? above + below : paragraph->lineHeight;
+        lines[i].baseline = lines[i].top + above;
+        uniform = uniform && !grew;
+    }
+    *countOut = count;
     return true;
+}
+
+void muiRunReach(const muiParagraph* paragraph, const muiFontMetrics* metrics, float scale,
+                 float* aboveOut, float* belowOut)
+{
+    float size = paragraph->style.size * scale;
+    float content = (metrics->ascent + metrics->descent) * size;
+    float height = paragraph->style.automaticLineHeight ? content + metrics->lineGap * size
+                                                        : paragraph->style.lineHeight * scale;
+    float half = (height - content) * 0.5f;
+    *aboveOut = metrics->ascent * size + half;
+    *belowOut = metrics->descent * size + half;
+}
+
+bool muiLineReach(const muiParagraph* paragraph, const muiTextLine* line, uint32_t* cursor,
+                  float* above, float* below)
+{
+    const muiTextBlock* block = paragraph->block;
+    const muiTextItem* items = block->items.data;
+    if (block->runStyleCount == 0)
+    {
+        return false;
+    }
+    // Items before the line are behind every later line too.
+    while (*cursor < block->itemCount && items[*cursor].end <= line->start)
+    {
+        (*cursor)++;
+    }
+    bool grew = false;
+    for (uint32_t k = *cursor; k < block->itemCount && items[k].start < line->next; k++)
+    {
+        const muiTextItem* item = &items[k];
+        if (item->style == 0)
+        {
+            continue;
+        }
+        float up = 0.0f;
+        float down = 0.0f;
+        muiRunReach(paragraph, &paragraph->chain.fonts[item->face]->metrics, item->scale, &up,
+                    &down);
+        grew = grew || up > *above || down > *below;
+        *above = up > *above ? up : *above;
+        *below = down > *below ? down : *below;
+    }
+    return grew;
+}
+
+float muiParagraphHeight(const muiTextLine* lines, uint32_t count)
+{
+    return count != 0 ? lines[count - 1].top + lines[count - 1].height : 0.0f;
+}
+
+uint32_t muiLineAtY(const muiTextLine* lines, uint32_t count, float y)
+{
+    uint32_t index = 0;
+    while (index + 1 < count && y >= lines[index + 1].top)
+    {
+        index++;
+    }
+    return index;
 }
 
 muiBreakMode muiParagraphBreakMode(const muiParagraph* paragraph, muiMeasureMode mode)
@@ -82,10 +172,10 @@ muiBreakMode muiParagraphBreakMode(const muiParagraph* paragraph, muiMeasureMode
     return mui_breakWrap;
 }
 
-// Logical units per unit of an item's font.
+// Logical units per unit of an item's font, at its run's size.
 float muiItemScale(const muiParagraph* paragraph, const muiTextItem* item)
 {
-    return paragraph->scale.size / (float)item->units;
+    return paragraph->scale.size * item->scale / (float)item->units;
 }
 
 // The width of the glyphs of clusters before end, with spacing after

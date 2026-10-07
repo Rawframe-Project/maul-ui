@@ -23,6 +23,7 @@
 #include <string.h>
 
 #include "ahem.inc"
+#include "liberation_sans.inc"
 
 static const muiNodeId s_nullNode = {0, 0};
 
@@ -150,11 +151,11 @@ static void TestChecks(void)
         Span(3, 2, COLOR),
         Span(2, 1, COLOR),
         Span(1, 1, COLOR),
-        Span(0, 1, MUI_PROPERTY_BIT(mui_propertyFont)),
+        Span(0, 1, MUI_PROPERTY_BIT(mui_propertyLineHeight)),
         Span(0, 1, MUI_PROPERTY_BIT(mui_propertyTextDecorationColor + 1)),
     };
-    const char* what[] = {"empty",     "past the text",      "from inside a sequence",
-                          "to inside", "a shaping property", "past the group"};
+    const char* what[] = {"empty",     "past the text",          "from inside a sequence",
+                          "to inside", "a paragraph's property", "past the group"};
     for (int i = 0; i < 6; i++)
     {
         CHECK(muiTextBlock_SetSpans(scene.service, block, &bad[i], 1) == mui_errorInvalid, what[i]);
@@ -296,10 +297,94 @@ static void TestPainting(void)
     FreeScene(&scene);
 }
 
+// A run twice the node's size: its glyphs twice as wide, its line as
+// tall as it reaches, the next line below that, and hits, carets and the
+// baseline through it.
+static void TestSizes(void)
+{
+    Scene scene = MakeScene();
+    const muiFontMetrics* m = &scene.metrics;
+    muiTextBlockId block = {0, 0};
+    muiNodeId node = AddText(&scene, "abcd e", &block);
+    muiTextSpan big = Span(1, 2, MUI_PROPERTY_BIT(mui_propertyFontSize));
+    big.style.size = (muiDimension){2.0f, 0.0f, mui_dimensionValue};
+    CHECK(muiTextBlock_SetSpans(scene.service, block, &big, 1) == mui_success, "b and c twice");
+    // Wrapping at 60: "abcd " on the first line, "e" on the second.
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.sizing.width = (muiDimension){0.0f, 60.0f, mui_dimensionValue};
+    CHECK(muiNode_SetLayoutValues(scene.context, node, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyWidth)) == mui_success,
+          "a width");
+    muiDrawList list = Paint(&scene, node);
+    float above = m->ascent * 20.0f;
+    float tall = (m->ascent + m->descent + m->lineGap) * 20.0f;
+    float normal = (m->ascent + m->descent + m->lineGap) * 10.0f;
+    CHECK(list.commandCount == 4 && list.commands[1].glyphRun.size == 20.0f &&
+              list.commands[0].glyphRun.size == 10.0f,
+          "a, then b and c at 20, then d; e");
+    CHECK(list.glyphs[0].x == 0.0f && list.glyphs[1].x == 10.0f && list.glyphs[2].x == 30.0f &&
+              list.glyphs[3].x == 50.0f,
+          "b and c 20 wide");
+    CHECK(list.commands[0].glyphRun.originY == above && list.commands[1].glyphRun.originY == above,
+          "the first line's baseline where the big run's ascent puts it");
+    CHECK(list.commands[3].glyphRun.originY == tall + m->ascent * 10.0f,
+          "the second line below the first's height");
+    CHECK(muiNode_GetRect(scene.context, node).height == tall + normal, "the measured height");
+    CHECK(muiTextBaseline(&scene.host, node, muiNode_GetHostKey(scene.context, node), 60.0f,
+                          0.0f) == above,
+          "the first baseline");
+    muiTextPosition at = {0, 0};
+    muiTextCaret caret = {0};
+    CHECK(muiTextHitTest(&scene.host, node, 60.0f, 45.0f, 5.0f, &at) == mui_success &&
+              at.offset == 3 &&
+              muiTextGetCaret(&scene.host, node, 60.0f, (muiTextPosition){2, 0}, &caret) ==
+                  mui_success &&
+              caret.x == 30.0f && caret.y == 0.0f && caret.height == tall,
+          "hits and carets through the big run");
+    CHECK(muiTextHitTest(&scene.host, node, 60.0f, 2.0f, tall + 1.0f, &at) == mui_success &&
+              at.offset == 5,
+          "below the first line's height, the second");
+    FreeScene(&scene);
+}
+
+// A run in another font is drawn in it, and a bold run in a bold
+// instance.
+static void TestFonts(void)
+{
+    Scene scene = MakeScene();
+    muiFontDef def = muiDefaultFontDef();
+    def.data = s_liberationSans;
+    def.size = sizeof s_liberationSans;
+    muiFontId sans = {0, 0};
+    CHECK(muiCreateFont(scene.service, &def, &sans) == mui_success, "a second font");
+    muiTextBlockId block = {0, 0};
+    muiNodeId node = AddText(&scene, "abc", &block);
+    muiTextSpan spans[2] = {Span(1, 1, MUI_PROPERTY_BIT(mui_propertyFont)),
+                            Span(2, 1, MUI_PROPERTY_BIT(mui_propertyFontWeight))};
+    spans[0].style.font = muiFont_GetKey(sans);
+    spans[1].style.weight = 700.0f;
+    CHECK(muiTextBlock_SetSpans(scene.service, block, spans, 2) == mui_success, "spans");
+    muiDrawList list = Paint(&scene, node);
+    uint64_t ahem = muiFont_GetKey(scene.font);
+    CHECK(list.commandCount == 3 && list.commands[0].glyphRun.font == ahem &&
+              list.commands[1].glyphRun.font == muiFont_GetKey(sans),
+          "b in the span's font");
+    CHECK(list.commands[2].glyphRun.font != ahem &&
+              (list.commands[2].glyphRun.font & 0xFFFFFFFFu) == (ahem & 0xFFFFFFFFu),
+          "c in a bold instance of the node's");
+    // Spans gone, the text is one run again.
+    CHECK(muiTextBlock_SetSpans(scene.service, block, NULL, 0) == mui_success, "none");
+    list = Paint(&scene, node);
+    CHECK(list.commandCount == 1 && list.commands[0].glyphRun.font == ahem, "one run");
+    FreeScene(&scene);
+}
+
 int main(void)
 {
     TestChecks();
     TestEdits();
     TestPainting();
+    TestSizes();
+    TestFonts();
     return s_failures == 0 ? 0 : 1;
 }

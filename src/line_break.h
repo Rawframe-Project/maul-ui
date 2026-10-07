@@ -41,6 +41,11 @@ typedef struct muiTextLine
     uint32_t end;
     uint32_t next;
     float width;
+    // Where the line lies down the paragraph: its top, its height and its
+    // baseline, from the paragraph's top (src/text_paragraph.c).
+    float top;
+    float height;
+    float baseline;
 } muiTextLine;
 
 // The width of bytes from start up to end.

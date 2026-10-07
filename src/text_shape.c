@@ -51,13 +51,14 @@ static bool ResolveLevels(muiTextService* service, muiTextBlock* block, bool rtl
     return true;
 }
 
-// Splits the text where its level, script or font changes; writes the
-// items when items is not NULL, and returns their count.
+// Splits the text where its level, script, font or run style changes;
+// writes the items when items is not NULL, and returns their count.
 static uint32_t SplitItems(const muiTextBlock* block, const muiFontChain* chain, muiTextItem* items)
 {
     const uint8_t* levels = block->levels.data;
-    // With one font in the chain, every byte is in it.
-    const uint8_t* faces = chain->count > 1 ? block->faces.data : nullptr;
+    // With one font in the chain and one style, every byte is in it.
+    const uint8_t* faces =
+        chain->count > 1 || block->runStyleCount != 0 ? block->faces.data : nullptr;
     const muiTextScript* scripts = block->scripts.data;
     uint32_t count = 0;
     uint32_t script = 0;
@@ -69,8 +70,9 @@ static uint32_t SplitItems(const muiTextBlock* block, const muiFontChain* chain,
         }
         uint32_t end = start + 1;
         uint32_t face = faces != nullptr ? faces[start] : 0;
+        uint32_t style = muiRunOf(block, start);
         while (end < scripts[script].end && levels[end] == levels[start] &&
-               (faces == nullptr || faces[end] == face))
+               (faces == nullptr || faces[end] == face) && muiRunOf(block, end) == style)
         {
             end++;
         }
@@ -83,6 +85,8 @@ static uint32_t SplitItems(const muiTextBlock* block, const muiFontChain* chain,
                 .script = scripts[script].script,
                 .face = face,
                 .units = chain->fonts[face]->metrics.unitsPerEm,
+                .style = style,
+                .scale = muiRunScale(block, style),
             };
         }
         count++;
@@ -106,14 +110,32 @@ static bool Covers(const muiFont* font, const uint32_t* points, uint32_t count)
     return true;
 }
 
-// The place in the chain of the font a cluster of characters, those that
-// draw, is drawn in, given the font before it, or none (-1).
-static uint32_t ChooseFace(const muiFontChain* chain, const uint32_t* points, uint32_t count,
-                           int64_t before)
+// Whether a run style's order holds a face.
+static bool Holds(const uint8_t* order, uint32_t count, int64_t face)
 {
+    for (uint32_t i = 0; i < count; i++)
+    {
+        if (order[i] == face)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+// The place in the chain of the font a cluster of characters, those that
+// draw, is drawn in, tried in a run style's order, given the font before
+// it, or none (-1).
+static uint32_t ChooseFace(const muiFontChain* chain, const uint8_t* order, uint32_t faces,
+                           const uint32_t* points, uint32_t count, int64_t before)
+{
+    if (!Holds(order, faces, before))
+    {
+        before = -1;
+    }
     if (count == 0)
     {
-        return before >= 0 ? (uint32_t)before : 0;
+        return before >= 0 ? (uint32_t)before : order[0];
     }
     // Characters of no one script stay in the font before them.
     muniScript script = muniGetScript(points[0]);
@@ -122,31 +144,32 @@ static uint32_t ChooseFace(const muiFontChain* chain, const uint32_t* points, ui
     {
         return (uint32_t)before;
     }
-    for (uint32_t face = 0; face < chain->count; face++)
+    for (uint32_t i = 0; i < faces; i++)
     {
-        if (Covers(chain->fonts[face], points, count))
+        if (Covers(chain->fonts[order[i]], points, count))
         {
-            return face;
+            return order[i];
         }
     }
     // None has them all: the first with the first character, else the
     // font before, else the first font.
-    for (uint32_t face = 0; face < chain->count; face++)
+    for (uint32_t i = 0; i < faces; i++)
     {
-        if (Covers(chain->fonts[face], points, 1))
+        if (Covers(chain->fonts[order[i]], points, 1))
         {
-            return face;
+            return order[i];
         }
     }
-    return common && before >= 0 ? (uint32_t)before : 0;
+    return common && before >= 0 ? (uint32_t)before : order[0];
 }
 
 // Writes the place in the chain of each byte's font, unless the chain
-// has one font.
-static bool ChooseFaces(muiTextService* service, muiTextBlock* block, const muiFontChain* chain)
+// has one font and the block one style.
+static bool ChooseFaces(muiTextService* service, muiTextBlock* block, const muiRunChains* chains)
 {
     uint32_t length = block->length;
-    if (chain->count == 1)
+    const muiFontChain* chain = &chains->chain;
+    if (chain->count == 1 && block->runStyleCount == 0)
     {
         return true;
     }
@@ -186,7 +209,9 @@ static bool ChooseFaces(muiTextService* service, muiTextBlock* block, const muiF
             }
             at += size;
         }
-        uint32_t face = ChooseFace(chain, points, count, before);
+        uint32_t style = muiRunOf(block, (uint32_t)start);
+        uint32_t face = ChooseFace(chain, chains->order[style], chains->orderCount[style], points,
+                                   count, before);
         memset(faces + start, (int)face, end - start);
         before = face;
         start = end;
@@ -284,7 +309,8 @@ static bool SumAdvances(muiTextService* service, muiTextBlock* block)
     for (uint32_t k = 0; k < block->itemCount; k++)
     {
         const muiShapedGlyph* own = glyphs + items[k].firstGlyph;
-        double perUnit = 1.0 / (double)items[k].units;
+        // In ems of the node's size: a run's own size over it.
+        double perUnit = (double)items[k].scale / (double)items[k].units;
         for (uint32_t i = 0; i < items[k].glyphCount; i++)
         {
             advances[own[i].cluster + 1] += (double)own[i].advance * perUnit;
@@ -305,12 +331,14 @@ static hb_font_t* ShaperOf(const muiFontChain* chain, const muiTextItem* item)
     return muiShapingFontOf(chain->fonts[item->face], chain->keys[item->face]);
 }
 
-static bool Shape(muiTextService* service, muiTextBlock* block, const muiFontChain* chain, bool rtl)
+static bool Shape(muiTextService* service, muiTextBlock* block, const muiRunChains* chains,
+                  bool rtl)
 {
+    const muiFontChain* chain = &chains->chain;
     block->glyphCount = 0;
     block->itemCount = 0;
     uint32_t length = block->length;
-    if (!ResolveLevels(service, block, rtl) || !ChooseFaces(service, block, chain) ||
+    if (!ResolveLevels(service, block, rtl) || !ChooseFaces(service, block, chains) ||
         !muiReserve(&service->allocator, &block->unsafe, length + 1u))
     {
         return false;
@@ -339,15 +367,15 @@ static bool Shape(muiTextService* service, muiTextBlock* block, const muiFontCha
     return shaped && SumAdvances(service, block);
 }
 
-bool muiShapeTextBlock(muiTextService* service, muiTextBlock* block, const muiFontChain* chain,
+bool muiShapeTextBlock(muiTextService* service, muiTextBlock* block, const muiRunChains* chains,
                        bool rtl)
 {
-    if (block->shaped && block->shapedChain == chain->identity && block->shapedRtl == rtl)
+    if (block->shaped && block->shapedChain == chains->chain.identity && block->shapedRtl == rtl)
     {
         return true;
     }
-    block->shaped = Shape(service, block, chain, rtl);
-    block->shapedChain = chain->identity;
+    block->shaped = Shape(service, block, chains, rtl);
+    block->shapedChain = chains->chain.identity;
     block->shapedRtl = rtl;
     return block->shaped;
 }
