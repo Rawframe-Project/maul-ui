@@ -408,6 +408,8 @@ if(MAUL_UI_BUILD_TESTS)
             ${PROJECT_BINARY_DIR}/test_fonts/large_glyph.inc s_largeGlyph)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulOverlap.ttf
             ${PROJECT_BINARY_DIR}/test_fonts/overlap.inc s_overlap)
+        mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulColor.ttf
+            ${PROJECT_BINARY_DIR}/test_fonts/color.inc s_color)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulVariable.ttf
             ${PROJECT_BINARY_DIR}/test_fonts/variable.inc s_variable)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulVariableSlant.ttf
@@ -438,6 +440,8 @@ if(MAUL_UI_BUILD_TESTS)
         target_include_directories(test_glyph_image PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(field_quality)
         target_include_directories(test_field_quality PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
+        maul_add_test(color_glyph)
+        target_include_directories(test_color_glyph PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(glyph_atlas)
         target_include_directories(test_glyph_atlas PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(skyline WHITEBOX)

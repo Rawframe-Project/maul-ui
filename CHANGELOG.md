@@ -62,6 +62,11 @@ format.
 
 ### Added
 
+- Colour glyphs: `muiRenderColorGlyph` renders a COLR version 0 glyph's
+  layers from a chosen CPAL palette, the text's colour where a layer
+  asks for it, as premultiplied RGBA stored the way an sRGB texture
+  holds it.
+
 - Atlases of four channels: `muiGlyphAtlasDef.format` makes an atlas's
   pages a byte a pixel (`mui_atlasOneChannel`, the default) or four
   (`mui_atlasFourChannel`), and `muiGlyphAtlas_GetMultiField` packs

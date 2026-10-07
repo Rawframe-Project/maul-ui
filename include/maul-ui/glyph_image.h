@@ -11,6 +11,7 @@
 #define MAUL_UI_GLYPH_IMAGE_H
 
 #include "maul-ui/base.h"
+#include "maul-ui/draw.h"
 #include "maul-ui/text.h"
 
 #ifdef __cplusplus
@@ -70,6 +71,44 @@ extern "C"
                                                    uint32_t glyph, float pixelSize, float offsetX,
                                                    muiGlyphImage* imageOut, unsigned char* pixels,
                                                    size_t capacity);
+
+    /// Renders a glyph's colour layers (a COLR version 0 glyph, with its
+    /// CPAL palettes) at a size, placed as muiRenderGlyph places coverage:
+    /// four bytes a pixel, rows from the top, red, green, blue and alpha.
+    /// Each layer is another glyph's outline filled with its palette entry
+    /// or, for entry 0xFFFF, with the text's colour, the layers composited
+    /// in order in premultiplied linear light; the pixels are stored as an
+    /// sRGB texture holds premultiplied colour, red, green and blue encoded
+    /// with sRGB's transfer function and alpha linear. A glyph without
+    /// colour layers gives `mui_empty` and an empty image, to be drawn as
+    /// coverage.
+    ///
+    /// @param service     The service.
+    /// @param font        A font key, as a glyph run carries; 0 for the
+    ///                    default font.
+    /// @param glyph       A glyph id of the font.
+    /// @param pixelSize   The em in device pixels, from 1/64 to
+    ///                    MUI_MAX_GLYPH_PIXEL_SIZE.
+    /// @param offsetX     How far the pen is right of a pixel boundary,
+    ///                    from 0 up to 1, as muiRenderGlyph takes it.
+    /// @param palette     The font's palette to fill from; the first for one
+    ///                    the font does not have.
+    /// @param foreground  The text's colour, linear and premultiplied.
+    /// @param imageOut    Receives the image's place and size, also when
+    ///                    pixels hold too few bytes.
+    /// @param pixels      Receives width * height * 4 bytes; may be NULL
+    ///                    when capacity is 0.
+    /// @param capacity    How many bytes pixels holds.
+    /// @return `mui_success`; `mui_empty` for a glyph without colour
+    ///         layers; otherwise as muiRenderGlyph.
+    /// @par Thread safety
+    /// Safe from any thread; the service is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiRenderColorGlyph(muiTextService* service, uint64_t font,
+                                                        uint32_t glyph, float pixelSize,
+                                                        float offsetX, uint32_t palette,
+                                                        muiLinearColor foreground,
+                                                        muiGlyphImage* imageOut,
+                                                        unsigned char* pixels, size_t capacity);
 
     /// Renders a glyph as a signed distance field, which a renderer scales
     /// to any size: a byte per pixel, rows from the top, 128 at the

@@ -160,6 +160,8 @@ static void Release(muiTextService* service)
     muiFreeBuffer(&service->allocator, &service->fieldLoops);
     muiFreeBuffer(&service->allocator, &service->fieldChannels);
     muiFreeBuffer(&service->allocator, &service->fieldInside);
+    muiFreeBuffer(&service->allocator, &service->colorCoverage);
+    muiFreeBuffer(&service->allocator, &service->colorPixels);
     muiFreeBuffer(&service->allocator, &service->fieldCellPieces);
     muiFreeBuffer(&service->allocator, &service->fieldEdge);
     muiFreeBuffer(&service->allocator, &service->fieldDistances);

@@ -102,6 +102,13 @@ static int RenderSome(muiTextService* service, muiFontId font, uint64_t key, uin
                   (result == mui_errorCapacity &&
                    (size_t)image.width * image.height * 4 > sizeof s_pixels),
               "a multi-channel field rendered or refused");
+        const muiLinearColor black = {0.0f, 0.0f, 0.0f, 1.0f};
+        result = muiRenderColorGlyph(service, key, glyph, size / 4.0f, offset, 0, black, &image,
+                                     s_pixels, sizeof s_pixels);
+        CHECK(result == mui_success || result == mui_empty || result == mui_errorFormat ||
+                  (result == mui_errorCapacity &&
+                   (size_t)image.width * image.height * 4 > sizeof s_pixels),
+              "a colour glyph rendered, empty or refused");
     }
     return rendered;
 }

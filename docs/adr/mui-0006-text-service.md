@@ -131,6 +131,14 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   sharp at any scale, where the one-channel field, kept in alpha for
   outlines and shadows, rounds them; where the median's side is not
   the pixel's, the three take the true distance.
+  `muiRenderColorGlyph` renders a COLR version 0 glyph: each layer,
+  another glyph's outline, as FreeType's coverage over the layers'
+  joint box, filled with its CPAL entry from the palette the caller
+  names or, for entry 0xFFFF, the text's colour, and composited in
+  order, source over, in premultiplied linear light; the pixels are
+  stored as an sRGB texture holds premultiplied colour. FreeType's own
+  COLR rendering is not used: it takes no palette and no text colour.
+  A glyph without colour layers is `mui_empty`, drawn as coverage.
 - **Font instances:** a font key names a font and an instance of it:
   the wght axis's value, ital, slnt or a shear, the opsz axis's value,
   and a made bold, decided once when text is laid out from the style's
