@@ -2,10 +2,12 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Sirac Ozmen
 #
-# The length rules: a function body in src/ stays within LIMIT lines and
-# a source file within FILE_LIMIT, unless tools/length-exceptions.txt lists
-# it with a ceiling and a reason (a file is listed with the function name
-# "*"). The list only shrinks: a listed item may not grow past its
+# The length rules: a function body in the library's sources (src/, and
+# DIR/src for each directory tools/source-dirs.txt lists) stays within
+# LIMIT lines and a source file within FILE_LIMIT, unless
+# tools/length-exceptions.txt lists it with a ceiling and a reason (a
+# file is listed with the function name "*"; a file of src/ by its name,
+# one of DIR/src by its path). The list only shrinks: a listed item may not grow past its
 # ceiling, and an entry that is back under its limit (or gone) must be
 # deleted.
 #
@@ -51,15 +53,34 @@ def functions(path):
         i += 1
 
 
-# The library's sources: src/, whose files are named alone, and the
-# optional components', named by their path.
-SOURCE_DIRS = (("src", ""), (os.path.join("rhi", "src"), "rhi/src/"),
-               (os.path.join("window", "src"), "window/src/"))
+def source_dirs():
+    """The directories tools/source-dirs.txt lists beside src/, each holding
+    more of the library's own sources in DIR/src and its headers in
+    DIR/include (a part built as a library of its own)."""
+    path = os.path.join(ROOT, "tools", "source-dirs.txt")
+    if not os.path.exists(path):
+        return []
+    result = []
+    for line in open(path, encoding="utf-8"):
+        line = line.split("#", 1)[0].strip()
+        if line:
+            result.append(os.path.normpath(line))
+    return result
+
+
+SOURCE_DIRS = source_dirs()
+
+
+def library_sources():
+    """(directory, prefix) of the library's sources: src/, whose files are
+    named alone, and each listed directory's src/, named by their path."""
+    return [("src", "")] + [(os.path.join(top, "src"), top.replace(os.sep, "/") + "/src/")
+                            for top in SOURCE_DIRS]
 
 
 def measured():
     found = {}
-    for top, prefix in SOURCE_DIRS:
+    for top, prefix in library_sources():
         src = os.path.join(ROOT, top)
         for name in sorted(os.listdir(src)):
             if name.endswith((".c", ".m")):
@@ -93,7 +114,7 @@ def allowed():
 def struct_fields():
     """(field count, struct name, file) for every struct definition."""
     result = []
-    for top in ("src", "include", "rhi", "window"):
+    for top in ["src", "include"] + SOURCE_DIRS:
         for folder, _, files in os.walk(os.path.join(ROOT, top)):
             for name in sorted(files):
                 if not name.endswith(".h"):
@@ -110,7 +131,7 @@ def struct_fields():
 
 def complexity_exceptions():
     found = []
-    for top, _ in SOURCE_DIRS:
+    for top, _ in library_sources():
         src = os.path.join(ROOT, top)
         for name in sorted(os.listdir(src)):
             if name.endswith((".c", ".m")):

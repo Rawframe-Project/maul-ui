@@ -9,16 +9,16 @@
 #   comments are // or ///;
 # - comments carry no development history and no TODO or FIXME;
 # - no file in the repository contains an em dash;
-# - the library's sources, src/, the reference renderer's rhi/src/ and
-#   the Maul Window glue's window/src/,
-#   call no function the family bans (memory goes through the allocator,
-#   failures are returned statuses, the library prints nothing, no
-#   unsafe string functions, nothing locale-dependent) and none the
-#   library bans in tools/source-bans.txt;
-# - the library's sources keep no thread-local or mutable file-scope
-#   state and assign nothing inside a condition;
+# - src/ calls no function the family bans (memory goes through the
+#   allocator, failures are returned statuses, the library prints
+#   nothing, no unsafe string functions, nothing locale-dependent) and
+#   none the library bans in tools/source-bans.txt;
+# - src/ keeps no thread-local or mutable file-scope state and assigns
+#   nothing inside a condition;
 # - C file names are snake_case.
 #
+# Directories listed in tools/source-dirs.txt hold more of the library's
+# sources, in DIR/src, which the rules for src/ hold too.
 # Directories listed in tools/external-dirs.txt hold data from outside
 # (the Unicode Character Database, for example) and are not checked.
 #
@@ -29,10 +29,7 @@ import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-C_DIRS = ["include", "src", "rhi", "window", "test", "bench", "samples", "testbed", "tools"]
-# The library's sources, which the library's rules hold.
-LIBRARY_DIRS = ("src" + os.sep, os.path.join("rhi", "src") + os.sep,
-                os.path.join("window", "src") + os.sep)
+C_DIRS = ["include", "src", "test", "bench", "samples", "testbed", "tools"]
 SKIP_DIRS = {".git", "build", "_site", "out"}
 TEXT_SUFFIXES = (".c", ".h", ".m", ".md", ".txt", ".py", ".cmake", ".in", ".yml", ".yaml", ".json")
 
@@ -83,8 +80,7 @@ FAMILY_BANS = {
     "toupper": "locale-dependent",
     "tolower": "locale-dependent",
 }
-# The one place in each library's sources a zeroed allocator reaches the
-# C library.
+# The one place a zeroed allocator reaches the C library.
 ALLOCATOR_FILE = "allocator.c"
 ALLOCATOR_CALLS = {"malloc", "calloc", "realloc", "free", "aligned_alloc"}
 
@@ -143,6 +139,24 @@ def external_dirs():
 EXTERNAL = external_dirs()
 
 
+def source_dirs():
+    """The directories tools/source-dirs.txt lists beside src/, each holding
+    more of the library's own sources in DIR/src and its headers in
+    DIR/include (a part built as a library of its own)."""
+    path = os.path.join(ROOT, "tools", "source-dirs.txt")
+    if not os.path.exists(path):
+        return []
+    result = []
+    for line in open(path, encoding="utf-8"):
+        line = line.split("#", 1)[0].strip()
+        if line:
+            result.append(os.path.normpath(line))
+    return result
+
+
+SOURCE_DIRS = source_dirs()
+
+
 def walk(top, suffixes):
     for folder, dirs, files in os.walk(os.path.join(ROOT, top)):
         if os.path.relpath(folder, ROOT) in EXTERNAL:
@@ -190,10 +204,11 @@ def main():
     findings = []
     bans = dict(FAMILY_BANS)
     bans.update(library_bans())
-    for top in C_DIRS:
+    library = tuple(os.path.join(top, "src") + os.sep for top in SOURCE_DIRS) + ("src" + os.sep,)
+    for top in C_DIRS + [top for top in SOURCE_DIRS if top not in C_DIRS]:
         for path in walk(top, (".c", ".h", ".m")):
             rel = os.path.relpath(path, ROOT)
-            check_c_file(path, rel, rel.startswith(LIBRARY_DIRS), bans, findings)
+            check_c_file(path, rel, rel.startswith(library), bans, findings)
     for path in walk(".", TEXT_SUFFIXES):
         rel = os.path.relpath(path, ROOT)
         for number, line in enumerate(open(path, encoding="utf-8", errors="replace"), 1):

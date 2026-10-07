@@ -1,0 +1,4 @@
+# Parts built as libraries of their own beside src/, each with DIR/src and
+# DIR/include (family record 0020).
+rhi
+window

@@ -12,10 +12,9 @@
 #
 # A module may include its own header, any public header and the headers
 # of the modules its line names, nothing else. The declared graph has no
-# cycles, and names no module that does not exist. The optional
-# components' sources (the reference renderer's rhi/src/, the Maul
-# Window glue's window/src/) include their own headers and public ones
-# alone, never the library's internals.
+# cycles, and names no module that does not exist. The sources of each
+# directory tools/source-dirs.txt lists, DIR/src, include their own
+# headers and public ones alone, never the library's internals.
 #
 # usage: check_modules.py
 
@@ -79,6 +78,24 @@ def cycle(graph):
     return None
 
 
+def source_dirs():
+    """The directories tools/source-dirs.txt lists beside src/, each holding
+    more of the library's own sources in DIR/src and its headers in
+    DIR/include (a part built as a library of its own)."""
+    path = os.path.join(ROOT, "tools", "source-dirs.txt")
+    if not os.path.exists(path):
+        return []
+    result = []
+    for line in open(path, encoding="utf-8"):
+        line = line.split("#", 1)[0].strip()
+        if line:
+            result.append(os.path.normpath(line))
+    return result
+
+
+SOURCE_DIRS = source_dirs()
+
+
 def main():
     graph = declared()
     found = modules_in_src()
@@ -102,16 +119,19 @@ def main():
                 if match and match.group(1) not in allowed:
                     errors.append(f"src/{name}:{number}: {module} may not include "
                                   f"{match.group(1)}.h; declare the edge or remove the include")
-    for component in ("rhi", "window"):
-        sources = os.path.join(ROOT, component, "src")
+    # A listed directory's sources include their own headers and public
+    # ones alone, never the library's internals.
+    for top in SOURCE_DIRS:
+        sources = os.path.join(ROOT, top, "src")
         own = {name[:-2] for name in os.listdir(sources) if name.endswith(".h")}
+        shown = top.replace(os.sep, "/") + "/src"
         for name in sorted(os.listdir(sources)):
             path = os.path.join(sources, name)
             for number, line in enumerate(open(path, encoding="utf-8", errors="replace"), 1):
                 match = INCLUDE.match(line)
                 if match and match.group(1) not in own:
-                    errors.append(f"{component}/src/{name}:{number}: may not include "
-                                  f"{match.group(1)}.h, which is not its component's own")
+                    errors.append(f"{shown}/{name}:{number}: may not include "
+                                  f"{match.group(1)}.h, which is not its own")
     for error in errors:
         print(error)
     if errors:

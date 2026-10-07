@@ -26,13 +26,16 @@ jobs:
       - name: clang-format
         run: |
           clang-format --version
-          clang-format --dry-run -Werror $(find include src test tools bench samples -name '*.[ch]' 2>/dev/null)
+          # The renderer's cooked shader containers are generated.
+          clang-format --dry-run -Werror $(find include src test tools bench samples rhi window \
+            -name '*.[ch]' -not -name '*_container.h' 2>/dev/null)
       - name: Family checks
         run: |
           python3 tools/check_source.py
           python3 tools/check_modules.py
           python3 tools/check_docs.py
           python3 tools/check_lengths.py
+          python3 tools/check_guide.py
           python3 tools/gen_layout_fixtures.py --check
       - name: clang-tidy
         run: |
