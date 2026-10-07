@@ -10,6 +10,12 @@ format.
 
 ### Changed
 
+- Colour glyphs of COLR version 1: `muiRenderColorGlyph` draws a
+  glyph's paint graph where it has one, its layers, solid fills, glyph
+  outlines, other colour glyphs, transforms and clip box; a graph more
+  than 64 paints deep is `mui_errorFormat`. Gradients and composite
+  modes are not drawn yet.
+
 - The reference renderer draws colour glyphs from an atlas of colour
   glyphs of its own, faded by the run's alpha, the text's colour where
   a layer asks for it; a run a transform scales or turns draws them

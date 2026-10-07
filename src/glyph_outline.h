@@ -48,8 +48,14 @@ muiFont* muiGlyphFontOf(const muiTextService* service, uint64_t font, uint32_t g
 muiResult muiLoadGlyphOutline(muiFont* font, uint64_t key, uint32_t glyph, long size,
                               FT_Pos offset);
 
+// The whole pixels a box in 64ths of a pixel touches.
+muiPixelBox muiPixelBoxOf(FT_BBox box);
+
 // The whole pixels an outline touches; all 0 for an empty one.
 muiPixelBox muiOutlineBox(const FT_Outline* outline);
+
+// Joins a box into another, a box without area adding nothing.
+void muiJoinPixelBox(muiPixelBox* box, muiPixelBox own);
 
 // Renders an outline's coverage into a box's bytes, rows from the top,
 // pitch bytes a row: the outline is moved to the box. The bytes the

@@ -138,7 +138,16 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   order, source over, in premultiplied linear light; the pixels are
   stored as an sRGB texture holds premultiplied colour. FreeType's own
   COLR rendering is not used: it takes no palette and no text colour.
-  A glyph without colour layers is `mui_empty`, drawn as coverage.
+  A COLR version 1 glyph's paint graph, read through FreeType (2.13 or
+  later), is drawn instead where the glyph has one: each paint into a
+  premultiplied linear surface over the glyph's box (its clip box, else
+  its outlines' joint box under their transforms), transforms composed
+  down from font units, a glyph paint its child masked by its outline's
+  coverage, layers composited source over, and nothing outside the clip
+  box; at most 64 paints deep, so a graph that paints itself is
+  `mui_errorFormat`. Gradients and composite modes other than source
+  over come in later slices of the same painter.
+  A glyph without colour is `mui_empty`, drawn as coverage.
 - **Font instances:** a font key names a font and an instance of it:
   the wght axis's value, ital, slnt or a shear, the opsz axis's value,
   and a made bold, decided once when text is laid out from the style's

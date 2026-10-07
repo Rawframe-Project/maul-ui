@@ -134,7 +134,8 @@ distance_field:
 flatten: distance_field
 multi_field: distance_field
 glyph_image: distance_field flatten glyph_outline multi_field text_service
-color_glyph: color glyph_outline text_service
+color_glyph: color colr_paint glyph_outline text_service
+colr_paint: color glyph_outline motion_math text_block text_service
 glyph_outline: font_instance font_store text_block text_service
 skyline:
 glyph_table: allocator

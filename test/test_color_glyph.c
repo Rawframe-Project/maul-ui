@@ -7,7 +7,9 @@
 // entry 1 over it, a box from 3 to 5 across and 2 to 4 up of the text's
 // colour, and a box from 6 to 8 across and 2 to 4 up of entry 2, past
 // the palettes' two; palette 0 is opaque red and half transparent blue,
-// palette 1 green and yellow. Its B has no colour layers.
+// palette 1 green and yellow. Its B has no colour layers. Glyphs 9 on are
+// version 1 paint graphs, one for each kind of paint, described in the
+// font's script.
 
 #include "test_harness.h"
 
@@ -22,7 +24,17 @@
 enum
 {
     GLYPH_A = 1,
-    GLYPH_B = 2
+    GLYPH_B = 2,
+    LAYERED = 9,
+    MOVED,
+    TURNED,
+    SCALED,
+    SKEWED,
+    TRANSFORMED,
+    REUSED,
+    CLIPPED,
+    LOOPED,
+    FLATTENED
 };
 
 static unsigned char s_pixels[4096];
@@ -108,6 +120,67 @@ static void TestLayers(void)
     muiDestroyTextService(scene.service);
 }
 
+// Whether a glyph renders at an em of 10 and a pen offset into this box,
+// left and top, width and height, in palette 0 and green text.
+static bool BoxIs(Scene* scene, uint32_t glyph, float offset, int32_t left, int32_t top,
+                  uint32_t width, uint32_t height, muiGlyphImage* image)
+{
+    const muiLinearColor green = {0.0f, 1.0f, 0.0f, 1.0f};
+    return muiRenderColorGlyph(scene->service, scene->font, glyph, 10.0f, offset, 0, green, image,
+                               s_pixels, sizeof s_pixels) == mui_success &&
+           image->left == left && image->top == top && image->width == width &&
+           image->height == height;
+}
+
+static void TestPaints(void)
+{
+    Scene scene = MakeScene();
+    muiGlyphImage image = {0};
+    // The text's colour at half alpha over red: linear half red and half
+    // green, 188 encoded.
+    CHECK(BoxIs(&scene, LAYERED, 0.0f, 1, 8, 8, 8, &image) && Is(&image, 1, 7, 255, 0, 0, 255) &&
+              Is(&image, 3, 2, 188, 188, 0, 255) && Is(&image, 5, 2, 255, 0, 0, 255),
+          "layers, a solid's alpha and the text's colour");
+    const muiLinearColor green = {0.0f, 1.0f, 0.0f, 1.0f};
+    CHECK(muiRenderColorGlyph(scene.service, scene.font, LAYERED, 10.0f, 0.0f, 1, green, &image,
+                              s_pixels, sizeof s_pixels) == mui_success &&
+              Is(&image, 1, 7, 0, 255, 0, 255),
+          "a graph in the second palette");
+    CHECK(BoxIs(&scene, MOVED, 0.0f, 6, 5, 2, 2, &image) && Is(&image, 6, 3, 255, 0, 0, 255) &&
+              Is(&image, 7, 4, 255, 0, 0, 255),
+          "a translation");
+    CHECK(BoxIs(&scene, MOVED, 0.5f, 6, 5, 3, 2, &image) && Is(&image, 6, 3, 188, 0, 0, 128) &&
+              Is(&image, 7, 3, 255, 0, 0, 255),
+          "a translation at an offset pen");
+    CHECK(BoxIs(&scene, TURNED, 0.0f, 2, 6, 1, 4, &image) && Is(&image, 2, 5, 255, 0, 0, 255),
+          "a rotation counter-clockwise about a centre");
+    CHECK(BoxIs(&scene, SCALED, 0.0f, 3, 3, 3, 1, &image) && Is(&image, 5, 2, 255, 0, 0, 255),
+          "a scale about a centre");
+    // At 3 to 4 up, the skewed dot spans 2 to 1 on its left and 4 to 3 on
+    // its right: pixel 2, 3 is whole, pixel 4, 3 untouched.
+    CHECK(BoxIs(&scene, SKEWED, 0.0f, 1, 4, 4, 2, &image) && Is(&image, 2, 3, 255, 0, 0, 255) &&
+              Is(&image, 4, 3, 0, 0, 0, 0),
+          "a skew, its top leaning left");
+    CHECK(BoxIs(&scene, TRANSFORMED, 0.0f, 3, 4, 4, 2, &image) &&
+              Is(&image, 5, 3, 255, 0, 0, 255) && Is(&image, 3, 3, 0, 0, 0, 0),
+          "an affine transform");
+    CHECK(BoxIs(&scene, REUSED, 0.0f, 3, 5, 2, 2, &image) && Is(&image, 3, 3, 255, 0, 0, 255),
+          "another colour glyph's graph, transformed");
+    CHECK(BoxIs(&scene, CLIPPED, 0.0f, 3, 4, 2, 2, &image) && Is(&image, 3, 2, 255, 0, 0, 255) &&
+              Is(&image, 4, 3, 255, 0, 0, 255),
+          "a clip box");
+    CHECK(BoxIs(&scene, CLIPPED, 0.5f, 3, 4, 3, 2, &image) && Is(&image, 3, 2, 188, 0, 0, 128) &&
+              Is(&image, 4, 2, 255, 0, 0, 255) && Is(&image, 5, 3, 188, 0, 0, 128),
+          "nothing outside the clip box, at an offset pen");
+    CHECK(muiRenderColorGlyph(scene.service, scene.font, LOOPED, 10.0f, 0.0f, 0, green, &image,
+                              s_pixels, sizeof s_pixels) == mui_errorFormat,
+          "a graph that paints itself");
+    CHECK(muiRenderColorGlyph(scene.service, scene.font, FLATTENED, 10.0f, 0.0f, 0, green, &image,
+                              s_pixels, sizeof s_pixels) == mui_errorFormat,
+          "a skew of a quarter turn, its outline without end");
+    muiDestroyTextService(scene.service);
+}
+
 static void TestContract(void)
 {
     Scene scene = MakeScene();
@@ -143,6 +216,7 @@ static void TestContract(void)
 int main(void)
 {
     TestLayers();
+    TestPaints();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }

@@ -121,14 +121,39 @@ bool muiIsGlyphSizeValid(float pixelSize)
     return pixelSize >= 1.0f / 64.0f && pixelSize <= MUI_MAX_GLYPH_PIXEL_SIZE;
 }
 
+muiPixelBox muiPixelBoxOf(FT_BBox box)
+{
+    FT_Pos left = FloorPixel(box.xMin);
+    FT_Pos bottom = FloorPixel(box.yMin);
+    return (muiPixelBox){left, bottom, CeilPixel(box.xMax) - left, CeilPixel(box.yMax) - bottom};
+}
+
 muiPixelBox muiOutlineBox(const FT_Outline* outline)
 {
     // An empty outline's box is all 0.
     FT_BBox box;
     FT_Outline_Get_CBox(outline, &box);
-    FT_Pos left = FloorPixel(box.xMin);
-    FT_Pos bottom = FloorPixel(box.yMin);
-    return (muiPixelBox){left, bottom, CeilPixel(box.xMax) - left, CeilPixel(box.yMax) - bottom};
+    return muiPixelBoxOf(box);
+}
+
+void muiJoinPixelBox(muiPixelBox* box, muiPixelBox own)
+{
+    if (own.width <= 0 || own.height <= 0)
+    {
+        return;
+    }
+    if (box->width <= 0 || box->height <= 0)
+    {
+        *box = own;
+        return;
+    }
+    FT_Pos left = box->left < own.left ? box->left : own.left;
+    FT_Pos bottom = box->bottom < own.bottom ? box->bottom : own.bottom;
+    FT_Pos right = box->left + box->width;
+    FT_Pos top = box->bottom + box->height;
+    right = right > own.left + own.width ? right : own.left + own.width;
+    top = top > own.bottom + own.height ? top : own.bottom + own.height;
+    *box = (muiPixelBox){left, bottom, right - left, top - bottom};
 }
 
 muiResult muiRasterizeOutline(const muiTextService* service, FT_Outline* outline,

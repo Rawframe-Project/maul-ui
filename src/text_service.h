@@ -73,9 +73,11 @@ struct muiTextService
     muiBuffer fieldLoops;
     muiBuffer fieldChannels;
     muiBuffer fieldInside;
-    // For colour glyphs: a layer's coverage and the composited pixels.
+    // For colour glyphs: a layer's coverage, the composited pixels, and a
+    // version 1 graph's surfaces below the first.
     muiBuffer colorCoverage;
     muiBuffer colorPixels;
+    muiBuffer paintSurfaces;
     muiBuffer fieldCellPieces;
     muiBuffer fieldEdge;
     muiBuffer fieldDistances;

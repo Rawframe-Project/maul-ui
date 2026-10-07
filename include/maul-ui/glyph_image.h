@@ -72,16 +72,18 @@ extern "C"
                                                    muiGlyphImage* imageOut, unsigned char* pixels,
                                                    size_t capacity);
 
-    /// Renders a glyph's colour layers (a COLR version 0 glyph, with its
-    /// CPAL palettes) at a size, placed as muiRenderGlyph places coverage:
-    /// four bytes a pixel, rows from the top, red, green, blue and alpha.
-    /// Each layer is another glyph's outline filled with its palette entry
-    /// or, for entry 0xFFFF, with the text's colour, the layers composited
-    /// in order in premultiplied linear light; the pixels are stored as an
-    /// sRGB texture holds premultiplied colour, red, green and blue encoded
-    /// with sRGB's transfer function and alpha linear. A glyph without
-    /// colour layers gives `mui_empty` and an empty image, to be drawn as
-    /// coverage.
+    /// Renders a colour glyph (COLR, with its CPAL palettes) at a size,
+    /// placed as muiRenderGlyph places coverage: four bytes a pixel, rows
+    /// from the top, red, green, blue and alpha. A version 1 glyph's paint
+    /// graph is drawn where the glyph has one: its layers, solid fills,
+    /// glyph outlines, other colour glyphs, transforms and clip box. A
+    /// version 0 glyph's layers are each another glyph's outline filled
+    /// with its palette entry. Entry 0xFFFF is the text's colour, and
+    /// everything is composited in premultiplied linear light; the pixels
+    /// are stored as an sRGB texture holds premultiplied colour, red, green
+    /// and blue encoded with sRGB's transfer function and alpha linear. A
+    /// glyph without colour gives `mui_empty` and an empty image, to be
+    /// drawn as coverage.
     ///
     /// @param service     The service.
     /// @param font        A font key, as a glyph run carries; 0 for the
@@ -99,8 +101,10 @@ extern "C"
     /// @param pixels      Receives width * height * 4 bytes; may be NULL
     ///                    when capacity is 0.
     /// @param capacity    How many bytes pixels holds.
-    /// @return `mui_success`; `mui_empty` for a glyph without colour
-    ///         layers; otherwise as muiRenderGlyph.
+    /// @return `mui_success`; `mui_empty` for a glyph without colour;
+    ///         `mui_errorFormat` for a paint graph more than 64 paints
+    ///         deep, as one that paints itself is; otherwise as
+    ///         muiRenderGlyph.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiRenderColorGlyph(muiTextService* service, uint64_t font,
