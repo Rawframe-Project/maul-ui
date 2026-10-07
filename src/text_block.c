@@ -60,5 +60,10 @@ void muiReleaseTextBlock(const muiAllocator* allocator, muiTextBlock* block)
     {
         muiFreeBuffer(allocator, buffers[i]);
     }
+    if (block->mask != nullptr)
+    {
+        muiReleaseTextBlock(allocator, block->mask);
+        muiRelease(allocator, block->mask, sizeof *block->mask, alignof(muiTextBlock));
+    }
     *block = (muiTextBlock){0};
 }

@@ -36,7 +36,10 @@ extern "C"
         mui_editMultiline = 1,
         // Selection, moves and copying work; edits do nothing.
         mui_editReadOnly = 2,
-        // Copying gives nothing.
+        // Shown, hit and read by accessibility as a bullet (U+2022) per
+        // character; copying gives nothing, moves and double clicks take
+        // the text as one word, and input methods' compositions are
+        // refused, as platforms turn them off in a password field.
         mui_editPassword = 4,
     };
 

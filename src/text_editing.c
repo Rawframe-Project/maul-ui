@@ -449,7 +449,10 @@ muiResult muiTextBlock_Compose(muiTextService* service, muiTextBlockId blockId, 
     muiResult result = (text != nullptr || length == 0) && caret <= length
                            ? muiEditingBlock(service, blockId, &block)
                            : mui_errorInvalid;
-    if (result != mui_success || (block->editing.def.flags & mui_editReadOnly) != 0)
+    // A password takes no composition, as platforms turn input methods
+    // off in one.
+    if (result != mui_success ||
+        (block->editing.def.flags & (mui_editReadOnly | mui_editPassword)) != 0)
     {
         return result;
     }

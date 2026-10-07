@@ -19,6 +19,12 @@
 // A block by its id; NULL for one that is gone.
 muiTextBlock* muiResolveTextBlock(const muiTextService* service, muiTextBlockId blockId);
 
+// Sets a block's text, valid UTF-8 of the block's limit, as
+// muiTextBlock_SetText does but keeping its spans and composition; false
+// when memory runs out, which keeps the old text.
+bool muiSetBlockText(muiTextService* service, muiTextBlock* block, const char* text,
+                     uint32_t length);
+
 // Whether replacing the bytes of a block's text from start up to end
 // with length bytes is within the text and keeps it within its limit.
 bool muiFitsBlockText(const muiTextBlock* block, uint32_t start, uint32_t end, size_t length);

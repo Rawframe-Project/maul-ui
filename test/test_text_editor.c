@@ -653,6 +653,65 @@ static void TestComposition(void)
     FreeScene(&scene);
 }
 
+// A password is laid out, hit and read as a bullet per cluster; it moves
+// and double-clicks as one word, and takes no composition.
+static void TestPassword(void)
+{
+    // a, b, a space, c, and e with a combining acute: five clusters.
+    Scene scene = MakeScene("ab ce\xCC\x81", mui_editPassword);
+    Layout(&scene);
+    const muiTextHost* host = &scene.host;
+    muiTextPosition at = {0, 0};
+    CHECK(muiTextHitTest(host, scene.node, 1000.0f, 31.0f, 5.0f, &at) == mui_success &&
+              at.offset == 3,
+          "a hit between the third and fourth bullets, before c");
+    CHECK(muiTextHitTest(host, scene.node, 1000.0f, 49.0f, 5.0f, &at) == mui_success &&
+              at.offset == 7,
+          "past the last bullet, the text's end");
+    muiTextCaret caret;
+    CHECK(muiTextGetCaret(host, scene.node, 1000.0f, (muiTextPosition){4, 0}, &caret) ==
+                  mui_success &&
+              caret.x == 40.0f,
+          "a caret before e, after four bullets");
+    muiRect rect;
+    uint32_t count = 0;
+    CHECK(muiTextGetRangeRects(host, scene.node, 1000.0f, 3, 7, &rect, 1, &count) == mui_success &&
+              count == 1 && rect.x == 30.0f && rect.width == 20.0f,
+          "the last two clusters as two bullets");
+    CHECK(muiTextMove(host, scene.node, 1000.0f, (muiTextPosition){0, 0}, mui_moveNextWordEnd, 0.0f,
+                      &at) == mui_success &&
+              at.offset == 7 &&
+              muiTextMove(host, scene.node, 1000.0f, (muiTextPosition){4, 0},
+                          mui_movePreviousWordStart, 0.0f, &at) == mui_success &&
+              at.offset == 0 &&
+              muiTextMove(host, scene.node, 1000.0f, (muiTextPosition){0, 0}, mui_moveRight, 0.0f,
+                          &at) == mui_success &&
+              at.offset == 1,
+          "words to the ends, clusters one at a time");
+    CHECK(muiTextEditPress(host, scene.node, 15.0f, 5.0f, 2, false) == mui_success &&
+              Selects(&scene, 0, 7),
+          "a double click, the whole password");
+    const char* text = NULL;
+    size_t length = 0;
+    CHECK(muiAccessTextOf(&scene.host, scene.node, muiTextBlock_GetKey(scene.block), &text,
+                          &length) &&
+              length == 15 && memcmp(text, "\xE2\x80\xA2", 3) == 0,
+          "read as bullets");
+    bool changed = true;
+    CHECK(muiTextBlock_Compose(scene.service, scene.block, "x", 1, 1, NULL, 0, &changed) ==
+                  mui_success &&
+              !changed && Holds(&scene, "ab ce\xCC\x81"),
+          "no composition");
+    Select(&scene, 7, 7);
+    Type(&scene, "d");
+    Layout(&scene);
+    CHECK(muiTextGetCaret(host, scene.node, 1000.0f, (muiTextPosition){8, 0}, &caret) ==
+                  mui_success &&
+              caret.x == 60.0f,
+          "a sixth bullet for what was typed");
+    FreeScene(&scene);
+}
+
 int main(void)
 {
     TestCalls();
@@ -668,5 +727,6 @@ int main(void)
     TestMacKeys();
     TestEvents();
     TestComposition();
+    TestPassword();
     return s_failures == 0 ? 0 : 1;
 }

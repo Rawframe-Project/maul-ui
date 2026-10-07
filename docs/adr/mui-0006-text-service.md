@@ -224,6 +224,15 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   an edit, taken out by empty text with the commit arriving as typing,
   undo waiting until it ends; an edit while one shows takes it out
   first. Focus stays the host's.
+- **Passwords:** an editing block with the password rule is laid out,
+  painted, hit and read by accessibility as its mask, a bullet (U+2022,
+  as Chrome and AppKit draw one) per grapheme cluster, made again when
+  its text changes; carets, hits, moves and selection rectangles map
+  offsets by cluster. Copying gives nothing, moves by words and double
+  clicks take the text as one word, so its words stay unseen, and
+  compositions are refused, as platforms turn input methods off there.
+  Android's last typed character shown a moment is refused: it is timed
+  and shows the password.
 - **Glyph atlases** (`maul-ui/glyph_atlas.h`) are owner objects of a
   service, in its memory: pages of the caller's size, made as needed up
   to a limit and cut into plots, each packed with a skyline bottom-left

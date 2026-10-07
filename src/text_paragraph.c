@@ -8,6 +8,7 @@
 
 #include "text_paragraph.h"
 
+#include "text_mask.h"
 #include "text_runs.h"
 
 #include "maul-ui/text_style.h"
@@ -31,9 +32,15 @@ bool muiPrepareParagraph(const muiTextHost* host, muiNodeId nodeId, uint64_t hos
     }
     muiTextService* service = host->service;
     out->service = service;
-    out->block = FindBlock(service, hostKey);
+    out->source = FindBlock(service, hostKey);
+    if (out->source == nullptr)
+    {
+        return false;
+    }
+    out->block = muiShownBlock(service, out->source);
     if (out->block == nullptr)
     {
+        service->failures++;
         return false;
     }
     out->rtl = muiNode_IsRightToLeft(host->context, nodeId);

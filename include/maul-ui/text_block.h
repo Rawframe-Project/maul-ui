@@ -307,10 +307,12 @@ extern "C"
     MUI_API void muiPaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width,
                               float height, muiDrawSink* sink);
 
-    /// Returns the baseline of a text block's first line, as a
+    /// Reads a text block's text for accessibility, as a
     /// maul-ui/access.h's muiAccessTextFunction: user is a muiTextHost,
     /// and hostKey a block's key. The block's text, which the record
-    /// leaves out when it is not well-formed UTF-8.
+    /// leaves out when it is not well-formed UTF-8; for an editing
+    /// password (maul-ui/text_editor.h), a bullet per character, as it
+    /// is shown.
     ///
     /// @param user       A muiTextHost.
     /// @param nodeId     The node.
@@ -318,7 +320,8 @@ extern "C"
     /// @param textOut    Receives the text, valid until the block is
     ///                   edited or destroyed.
     /// @param lengthOut  Receives its length.
-    /// @return Whether the key names a block.
+    /// @return Whether the key names a block; false, too, when memory for
+    ///         a password's bullets runs out.
     /// @par Thread safety
     /// Safe from any thread; the service and context are used by one
     /// thread at a time.

@@ -186,7 +186,13 @@ static void ParagraphAround(const muiTextBlock* block, uint32_t at, uint32_t* st
 static void UnitAround(const muiTextBlock* block, uint8_t grain, uint32_t at, uint32_t* startOut,
                        uint32_t* endOut)
 {
-    if (grain == MUI_GRAIN_WORD)
+    if (grain == MUI_GRAIN_WORD && (block->editing.def.flags & mui_editPassword) != 0)
+    {
+        // A password is one word: its words stay unseen.
+        *startOut = 0;
+        *endOut = block->length;
+    }
+    else if (grain == MUI_GRAIN_WORD)
     {
         WordAround(block, at, startOut, endOut);
     }

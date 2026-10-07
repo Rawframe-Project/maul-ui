@@ -118,7 +118,9 @@ typedef struct muiTextEditing
     uint64_t revision;
 } muiTextEditing;
 
-typedef struct muiTextBlock
+typedef struct muiTextBlock muiTextBlock;
+
+struct muiTextBlock
 {
     // The text, length bytes.
     muiBuffer text;
@@ -174,7 +176,12 @@ typedef struct muiTextBlock
     uint64_t revision;
     // Editing, while editing.on (src/text_editing.h).
     muiTextEditing editing;
-} muiTextBlock;
+    // A password's mask: a bullet per grapheme cluster, made for the
+    // text of revision maskRevision, laid out in its place
+    // (src/text_mask.h); NULL until made.
+    muiTextBlock* mask;
+    uint64_t maskRevision;
+};
 
 typedef struct muiTextBlockStore
 {

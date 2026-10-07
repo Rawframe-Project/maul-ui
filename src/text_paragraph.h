@@ -25,7 +25,10 @@
 typedef struct muiParagraph
 {
     muiTextService* service;
+    // The block laid out, and the node's block it shows: a password's
+    // mask, or the block itself (src/text_mask.h).
     muiTextBlock* block;
+    muiTextBlock* source;
     muiFontChain chain;
     muiComputedTextStyle style;
     muiLineScale scale;

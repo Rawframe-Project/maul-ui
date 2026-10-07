@@ -250,6 +250,19 @@ muiResult muiTextBlock_SetText(muiTextService* service, muiTextBlockId blockId, 
     return mui_success;
 }
 
+bool muiSetBlockText(muiTextService* service, muiTextBlock* block, const char* text,
+                     uint32_t length)
+{
+    Analysis analysis;
+    const Piece piece = {text, length};
+    if (!Analyze(service, &piece, 1, &analysis))
+    {
+        return false;
+    }
+    Adopt(&service->allocator, block, &analysis, length);
+    return true;
+}
+
 // Where a position goes when the bytes from start up to end become
 // length bytes: before, it stays; after, it moves by the change; inside,
 // to the new text's end for a span's start and to the range's start for
@@ -555,16 +568,6 @@ muiResult muiTextBlock_GetText(const muiTextService* service, muiTextBlockId blo
     *textOut = block->text.data;
     *lengthOut = block->length;
     return mui_success;
-}
-
-bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, const char** textOut,
-                     size_t* lengthOut)
-{
-    (void)nodeId;
-    const muiTextHost* host = user;
-    const muiTextBlockId blockId = {(uint32_t)hostKey, (uint32_t)(hostKey >> 32)};
-    return host != nullptr &&
-           muiTextBlock_GetText(host->service, blockId, textOut, lengthOut) == mui_success;
 }
 
 uint64_t muiTextBlock_GetKey(muiTextBlockId blockId)

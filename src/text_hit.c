@@ -6,6 +6,7 @@
 // as boxes of grapheme clusters.
 
 #include "text_boxes.h"
+#include "text_mask.h"
 
 #include "maul-ui/text_edit.h"
 
@@ -30,7 +31,12 @@ muiResult muiTextHitTest(const muiTextHost* host, muiNodeId nodeId, float width,
         return mui_success;
     }
     uint32_t index = muiLineAtY(laid.lines, laid.lineCount, y);
-    return muiHitLine(&laid, index, x, positionOut) ? mui_success : mui_errorCapacity;
+    if (!muiHitLine(&laid, index, x, positionOut))
+    {
+        return mui_errorCapacity;
+    }
+    positionOut->offset = muiUnmaskOffset(laid.paragraph.source, positionOut->offset);
+    return mui_success;
 }
 
 muiResult muiTextGetCaret(const muiTextHost* host, muiNodeId nodeId, float width,
@@ -54,6 +60,7 @@ muiResult muiTextGetCaret(const muiTextHost* host, muiNodeId nodeId, float width
         *caretOut = (muiTextCaret){start, 0.0f, paragraph->lineHeight, rtl};
         return mui_success;
     }
+    position.offset = muiMaskOffset(paragraph->source, position.offset);
     uint32_t index = muiLineOfPosition(&laid, position);
     float x = 0.0f;
     bool runRtl = false;
@@ -99,6 +106,8 @@ muiResult muiTextGetRangeRects(const muiTextHost* host, muiNodeId nodeId, float 
     {
         return result;
     }
+    start = muiMaskOffset(laid.paragraph.source, start);
+    end = muiMaskOffset(laid.paragraph.source, end);
     uint32_t count = 0;
     for (uint32_t index = 0; index < laid.lineCount && start < end; index++)
     {
