@@ -61,7 +61,14 @@ format.
   surface made from the window's native handles, configured again as
   the window's size changes and let go while the window has no surface,
   until the window is closed, or for `--frames N`, the last frame read
-  back and checked. On the web the headless tour runs in headless
+  back and checked. Every sample shares the tour's application frame
+  (`samples/app.c`) and is its tree, its scripted input and its checks.
+  `sample_controls` composes a button with an icon and a label, a
+  checkbox, a switch and a radio group from roles, focus, classes with
+  state variants and the host's event function, with ARIA's keys
+  (Space, Enter for the button, arrows moving the choice), checked by
+  pixels and the accessibility tree's checked states. On the web the
+  headless tour runs in headless
   Chrome's WebGPU through the web runner, which now gives Chrome WebGPU
   and a program its arguments (record mui-0005).
 - The Maul Window glue, `maul-ui-window` (`MAUL_UI_WINDOW`, off by

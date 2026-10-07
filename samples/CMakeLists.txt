@@ -8,10 +8,11 @@
 mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/LiberationSans-Regular.ttf
     ${CMAKE_CURRENT_BINARY_DIR}/fonts/sans.inc s_sans)
 
-# mui_add_sample(<name>): samples/<name>.c on the harness.
+# mui_add_sample(<name>): samples/<name>.c on the application frame and
+# the harness.
 function(mui_add_sample name)
     set(target sample_${name})
-    add_executable(${target} ${name}.c harness.c)
+    add_executable(${target} ${name}.c app.c harness.c)
     target_link_libraries(${target} PRIVATE maul-ui maul-ui-rhi maul-ui-window)
     target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                                                  ${CMAKE_CURRENT_BINARY_DIR}/fonts)
@@ -37,3 +38,4 @@ function(mui_add_sample name)
 endfunction()
 
 mui_add_sample(tour)
+mui_add_sample(controls)

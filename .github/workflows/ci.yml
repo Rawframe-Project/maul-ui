@@ -154,8 +154,8 @@ jobs:
             -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20
           cmake --build build-notext -j 4
           ctest --test-dir build-notext -R rhi --output-on-failure
-      - name: The tour in a window
-        # The tour presented on an X11 window's surface under Xvfb
+      - name: The samples in a window
+        # Each sample presented on an X11 window's surface under Xvfb
         # through Maul Window's X11 backend, its last frame read back
         # and checked, under the validation layer.
         env:
@@ -167,11 +167,13 @@ jobs:
           cmake -B build-x11 -G Ninja -D${PREFIX}_WERROR=ON -D${PREFIX}_RHI=ON \
             -D${PREFIX}_WINDOW=ON -D${PREFIX}_BUILD_TESTS=OFF -DMAUL_WINDOW_WAYLAND=OFF \
             -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20
-          cmake --build build-x11 -j 4 --target sample_tour
-          xvfb-run -a -s "-screen 0 1024x768x24" build-x11/sample_tour --frames 5 2>&1 | tee tour.log
-          test "${PIPESTATUS[0]}" -eq 0
-          grep -q "the presented frame checked" tour.log
-          ! grep -qiE "validation error|VUID" tour.log
+          cmake --build build-x11 -j 4
+          for sample in build-x11/sample_*; do
+            xvfb-run -a -s "-screen 0 1024x768x24" "$sample" --frames 5 2>&1 | tee window.log
+            test "${PIPESTATUS[0]}" -eq 0
+            grep -q "the presented frame checked" window.log
+            ! grep -qiE "validation error|VUID" window.log
+          done
 
   window:
     # The Maul Window glue (record mui-0007) with Maul Window fetched at
@@ -304,15 +306,18 @@ jobs:
         # The ARIA adapter against the browser's accessibility tree; a
         # skip (77) fails the step, so green means it ran.
         run: MUI_NODE_MODULES=/tmp/browser/node_modules node test/web_runner.cjs build/test_aria.js
-      - name: The tour in headless Chrome's WebGPU
-        # The reference renderer drawing on WebGPU (SwiftShader), the tour
-        # checking its pixels, in a build of its own (record mui-0005).
+      - name: The samples in headless Chrome's WebGPU
+        # The reference renderer drawing on WebGPU (SwiftShader), each
+        # sample checking its pixels, in a build of its own (record
+        # mui-0005).
         run: |
           emcmake cmake -B build-sample -DCMAKE_BUILD_TYPE=Release -D${PREFIX}_WERROR=ON \
             -D${PREFIX}_RHI=ON -D${PREFIX}_WINDOW=ON
-          cmake --build build-sample -j 4 --target sample_tour
-          MUI_RHI_REQUIRED=1 MUI_NODE_MODULES=/tmp/browser/node_modules \
-            node test/web_runner.cjs build-sample/sample_tour.js --headless
+          cmake --build build-sample -j 4
+          for sample in build-sample/sample_*.js; do
+            MUI_RHI_REQUIRED=1 MUI_NODE_MODULES=/tmp/browser/node_modules \
+              node test/web_runner.cjs "$sample" --headless || exit 1
+          done
       - name: The reference renderer's WGSL in headless Chrome's WebGPU
         # The shader tools pass WGSL through untouched (record mui-0005).
         run: MUI_NODE_MODULES=/tmp/browser/node_modules node tools/check_wgsl.cjs rhi/shaders/quad.wgsl
