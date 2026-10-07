@@ -463,7 +463,8 @@ static bool ReadChunks(const uint8_t* data, size_t size, uint32_t maxExtent, Rea
             return false;
         }
     }
-    return r->header.type != PALETTE || r->colors.paletteCount > 0;
+    // A palette image without PLTE fails at its first pixel's index.
+    return true;
 }
 
 // Joins the image data chunks into one stream at dst.

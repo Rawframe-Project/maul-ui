@@ -449,6 +449,7 @@ if(MAUL_UI_BUILD_TESTS)
         target_include_directories(test_glyph_atlas PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(skyline WHITEBOX)
         maul_add_test(glyph_table WHITEBOX)
+        maul_add_test(inflate WHITEBOX)
         # Whitebox: not built against a shared library.
         maul_add_test(png WHITEBOX)
         if(TARGET test_png)

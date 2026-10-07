@@ -208,8 +208,12 @@ def damaged(good):
     head = struct.unpack(">IIBBBBB", png[16:29])
     for fields in ((0,) + head[1:], head[:2] + (3,) + head[3:]):
         out.append(png[:8] + rechunk(b"IHDR", struct.pack(">IIBBBBB", *fields)) + png[ihdr_end:])
-    # An unknown critical chunk, and IDAT split by another chunk.
+    # An unknown critical chunk, and a compression or filter method not 0.
     out.append(png[:ihdr_end] + rechunk(b"ABCD", b"") + png[ihdr_end:])
+    for at in (5, 6):
+        fields = list(head)
+        fields[at] = 1
+        out.append(png[:8] + rechunk(b"IHDR", struct.pack(">IIBBBBB", *fields)) + png[ihdr_end:])
     return out
 
 
@@ -234,6 +238,13 @@ def main():
     stream = bytearray(zlib.compress(b"\x00\x01\x02\x03\x04" * 2))
     stream[-1] ^= 1
     bad.append(grey_with_data(bytes(stream)))
+    # Image data split by another chunk, and a palette's tRNS longer than
+    # the palette.
+    whole = zlib.compress(b"\x00\x01\x02\x03\x04" * 2)
+    header = chunk(b"IHDR", struct.pack(">IIBBBBB", 4, 2, 8, 0, 0, 0, 0))
+    bad.append(SIGNATURE + header + chunk(b"IDAT", whole[:5]) + chunk(b"tEXt", b"a\x00b") + chunk(b"IDAT", whole[5:]) + chunk(b"IEND", b""))
+    two = [[(0,), (1,), (0,), (1,)]] * 4
+    bad.append(encode(4, 4, 3, 2, two, False, palette=palette, trns=b"\x10\x20\x30"))
     out = struct.pack("<I", len(good) + len(bad))
     for png, width, height, rgba in good:
         out += struct.pack("<I", len(png)) + png + struct.pack("<II", width, height) + rgba
