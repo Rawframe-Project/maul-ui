@@ -410,6 +410,8 @@ if(MAUL_UI_BUILD_TESTS)
             ${PROJECT_BINARY_DIR}/test_fonts/overlap.inc s_overlap)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulColor.ttf
             ${PROJECT_BINARY_DIR}/test_fonts/color.inc s_color)
+        mui_embed_file(${PROJECT_SOURCE_DIR}/test/images/pngs.bin
+            ${PROJECT_BINARY_DIR}/test_fonts/pngs.inc s_pngs)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulVariable.ttf
             ${PROJECT_BINARY_DIR}/test_fonts/variable.inc s_variable)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulVariableSlant.ttf
@@ -447,6 +449,11 @@ if(MAUL_UI_BUILD_TESTS)
         target_include_directories(test_glyph_atlas PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(skyline WHITEBOX)
         maul_add_test(glyph_table WHITEBOX)
+        # Whitebox: not built against a shared library.
+        maul_add_test(png WHITEBOX)
+        if(TARGET test_png)
+            target_include_directories(test_png PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
+        endif()
         maul_add_test(distance_field WHITEBOX)
         maul_add_test(multi_field WHITEBOX)
         # Whitebox tests are not built for a shared library.

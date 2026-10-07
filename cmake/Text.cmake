@@ -7,9 +7,8 @@
 target_sources(maul-ui PRIVATE
     src/color_glyph.c
     src/colr_composite.c
-    src/colr_paint.c
     src/colr_gradient.c
-    src/paint_source.c
+    src/colr_paint.c
     src/distance_field.c
     src/flatten.c
     src/family_store.c
@@ -22,8 +21,11 @@ target_sources(maul-ui PRIVATE
     src/glyph_image.c
     src/glyph_outline.c
     src/glyph_table.c
+    src/inflate.c
     src/line_break.c
     src/multi_field.c
+    src/paint_source.c
+    src/png.c
     src/skyline.c
     src/text_block.c
     src/text_blocks.c

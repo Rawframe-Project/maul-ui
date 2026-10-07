@@ -139,6 +139,8 @@ colr_gradient: motion_math paint_source text_block text_service
 colr_composite:
 colr_paint: colr_composite colr_gradient glyph_outline motion_math paint_source text_block text_service
 paint_source: color glyph_outline
+inflate:
+png: inflate text_block
 glyph_outline: font_instance font_store text_block text_service
 skyline:
 glyph_table: allocator
