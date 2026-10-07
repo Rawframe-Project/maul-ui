@@ -48,6 +48,13 @@ format.
 
 ### Added
 
+- Local scale (`muiLocalScale`, the visual properties
+  `mui_propertyScaleX`, `ScaleY`, `ScaleOriginX` and `ScaleOriginY`): a
+  node and its subtree scaled after layout about an origin in its
+  border box, drawn through a transform of its own and hit tested,
+  mapped (`muiNode_MapToRoot`, pointer records) and reported to
+  accessibility through it, while layout keeps the laid-out box. Scales
+  transition and take number tokens as other visual values.
 - `muiGetWorkCounts` returns the work a context has done since it was
   made: the nodes styled, the sizes the solver computed rather than
   cached, the host's measure calls and the nodes painted rather than
@@ -506,6 +513,11 @@ format.
 
 ### Fixed
 
+- A layer whose parent is painted after it (in a layer above it) or not
+  at all (below a node of opacity 0) is drawn through its ancestors'
+  transforms, as hit testing finds it, instead of none; a node of
+  opacity 0 still gives the layers below it its scroll offset. A scroll
+  offset goes through the scale above it.
 - `muiDefaultWindowAccessDef` gives the web's adapter its default
   label and deferral, as the header says; the label was NULL, which the
   ARIA adapter refuses, so no access was made on the web.

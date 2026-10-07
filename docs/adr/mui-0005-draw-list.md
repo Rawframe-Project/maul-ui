@@ -23,6 +23,23 @@ clip chain evaluated in its shaders, which keeps batches whole.
   a transform table whose entry 0 is the identity, and the commands.
   The context reserves the tables by its limits; a list that does not
   fit fails whole and leaves the list empty.
+- **Transforms are scroll offsets and local scales,** each owned by a
+  node and composed after its parent entry's, their values given when
+  the list is done. A node's local scale (`muiLocalScale`: x and y of 0
+  or more, about an origin given as fractions of its border box, x from
+  its start edge) is the pipeline's step after layout: its own
+  commands, clips and subtree go through it, while layout and what
+  places by layout (scroll extents, scrolling into view, popups,
+  directional navigation, virtual windows) keep its laid-out box. Hit
+  testing, `muiNode_MapToRoot`, pointer records and accessibility
+  bounds go through it (record mui-0007, mui-0008). A scale of 1 adds
+  no entry. A scroll container's offset goes through the scale above
+  it. Layers escape their ancestors' clips and opacity but take their
+  transforms, as they take their scrolling: a layer whose ancestors are
+  not painted before it (in a layer above it, or below a node that draws
+  nothing) has their transforms added again for it. Scales are not
+  negative (mirroring is direction's) and there is no rotation, so every
+  transform scales and moves alone.
 - **Commands are fixed-size records:** a kind, a clip index, a transform
   index, and a union per kind. A box has its border box, four radii, a
   fill, an optional gradient by index, and four border widths and

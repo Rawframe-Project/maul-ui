@@ -463,8 +463,9 @@ extern "C"
 
     /// Carries a point of a node's border box into the space its topmost
     /// ancestor's rectangle is in, where pointer events are given, through
-    /// its ancestors' places and their scroll containers' offsets as the
-    /// last muiComputeLayout and scrolling left them: so a host places a
+    /// its own and its ancestors' places, local scales and scroll
+    /// containers' offsets as the last muiComputeLayout, styling and
+    /// scrolling left them: so a host places a
     /// window's candidate box at a caret, or its own popup beside a node.
     ///
     /// @param context  The context.

@@ -150,7 +150,8 @@ static void Describe(const muiDrawList* list, Text* text)
     for (uint32_t i = 1; i < list->clipCount; i++)
     {
         const muiDrawClip* clip = &list->clips[i];
-        Append(text, "clip %u parent=%u invert=%u", i, clip->parent, clip->invert);
+        Append(text, "clip %u parent=%u invert=%u transform=%u", i, clip->parent, clip->invert,
+               clip->transform);
         AppendRect(text, "rect", clip->rect);
         AppendCorners(text, clip->radii);
         Append(text, "\n");
@@ -166,6 +167,12 @@ static void Describe(const muiDrawList* list, Text* text)
             AppendColor(text, "color", gradient->colors[s]);
         }
         Append(text, "\n");
+    }
+    for (uint32_t i = 1; i < list->transformCount; i++)
+    {
+        const muiDrawTransform* t = &list->transforms[i];
+        Append(text, "transform %u %.9g %.9g %.9g %.9g %.9g %.9g\n", i, (double)t->a, (double)t->b,
+               (double)t->c, (double)t->d, (double)t->e, (double)t->f);
     }
     for (uint32_t i = 0; i < list->glyphCount; i++)
     {
@@ -529,6 +536,122 @@ static void TestRightToLeft(void)
     muiDestroyContext(context);
 }
 
+// Whether a list's transform is the one given.
+static bool IsTransform(const muiDrawList* list, uint32_t index, muiDrawTransform t)
+{
+    if (index >= list->transformCount)
+    {
+        return false;
+    }
+    const muiDrawTransform* at = &list->transforms[index];
+    return at->a == t.a && at->b == t.b && at->c == t.c && at->d == t.d && at->e == t.e &&
+           at->f == t.f;
+}
+
+static void SetScale(muiContext* context, muiNodeId node, muiLocalScale scale)
+{
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.scale = scale;
+    SetVisual(context, node, &visual,
+              MUI_PROPERTY_BIT(mui_propertyScaleX) | MUI_PROPERTY_BIT(mui_propertyScaleY) |
+                  MUI_PROPERTY_BIT(mui_propertyScaleOriginX) |
+                  MUI_PROPERTY_BIT(mui_propertyScaleOriginY));
+}
+
+// Local scales (record mui-0005): a scaled node and its subtree go through
+// a transform of its own, about its origin; a scroll container's offset
+// goes through the scale above it; a scale of 1 adds nothing.
+static void TestLocalScale(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId root = Add(context, s_nullNode, 200.0f, 100.0f, (muiEdges){0});
+    muiNodeId panel = Add(context, root, 100.0f, 40.0f, (muiEdges){0});
+    muiNodeId inner = Add(context, panel, 20.0f, 10.0f, (muiEdges){0});
+    muiNodeId scroller = Add(context, root, 50.0f, 50.0f, (muiEdges){0});
+    muiNodeId content = Add(context, scroller, 50.0f, 60.0f, (muiEdges){0});
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.background = s_red;
+    const muiNodeId painted[4] = {panel, inner, scroller, content};
+    for (int i = 0; i < 4; i++)
+    {
+        SetVisual(context, painted[i], &visual, MUI_PROPERTY_BIT(mui_propertyBackground));
+    }
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.scrollAxes = mui_scrollVertical;
+    CHECK(muiNode_SetLayoutValues(context, scroller, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyScrollAxes)) == mui_success,
+          "a scroll container");
+    muiDrawList list = Build(context, root, 1.0f);
+    CHECK(list.transformCount == 2, "unscaled: the scroll container's transform alone");
+    CHECK(muiNode_SetScroll(context, scroller, 0.0f, 10.0f) == mui_success, "scrolled");
+
+    // The panel at half about its centre (50, 20); the scroll container
+    // twice about its start top (100, 0), scrolled 10 in its own space.
+    SetScale(context, panel, (muiLocalScale){0.5f, 0.5f, 0.5f, 0.5f});
+    SetScale(context, scroller, (muiLocalScale){2.0f, 2.0f, 0.0f, 0.0f});
+    list = Build(context, root, 1.0f);
+    CHECK(list.transformCount == 4 && list.commandCount == 4, "a transform per scale");
+    CHECK(IsTransform(&list, 1, (muiDrawTransform){0.5f, 0.0f, 0.0f, 0.5f, 25.0f, 10.0f}),
+          "the panel's scale about its centre");
+    CHECK(list.commands[0].transform == 1 && list.commands[1].transform == 1,
+          "the panel and its child go through it");
+    CHECK(IsTransform(&list, 2, (muiDrawTransform){2.0f, 0.0f, 0.0f, 2.0f, -100.0f, 0.0f}) &&
+              IsTransform(&list, 3, (muiDrawTransform){2.0f, 0.0f, 0.0f, 2.0f, -100.0f, -20.0f}),
+          "a scroll offset goes through the scale above it");
+    CHECK(list.commands[2].transform == 2 && list.commands[3].transform == 3,
+          "the container through its scale, its content through its offset too");
+    CheckGolden("local-scale", &list);
+
+    // Under right to left, x's origin is from the start edge: the panel's
+    // right, at 200.
+    layout.textDirection = mui_textRightToLeft;
+    CHECK(muiNode_SetLayoutValues(context, root, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
+          "right to left");
+    SetScale(context, panel, (muiLocalScale){0.5f, 1.0f, 0.0f, 0.0f});
+    list = Build(context, root, 1.0f);
+    CHECK(IsTransform(&list, 1, (muiDrawTransform){0.5f, 0.0f, 0.0f, 1.0f, 100.0f, 0.0f}),
+          "the origin's x mirrors");
+
+    // A scale of 1 adds nothing; one of 0 draws through a transform that
+    // makes nothing.
+    SetScale(context, panel, (muiLocalScale){1.0f, 1.0f, 0.0f, 0.0f});
+    SetScale(context, scroller, (muiLocalScale){0.0f, 1.0f, 0.5f, 0.5f});
+    list = Build(context, root, 1.0f);
+    CHECK(list.transformCount == 3 && list.commands[0].transform == 0 &&
+              IsTransform(&list, 1, (muiDrawTransform){0.0f, 0.0f, 0.0f, 1.0f, 75.0f, 0.0f}),
+          "1 adds nothing, 0 collapses onto the centre (x 75, the container at 50 to 100)");
+    muiDestroyContext(context);
+
+    // A layer below a scaled scroll container that draws nothing still
+    // goes through its scale and its offset, as hit testing does.
+    context = MakeContext();
+    root = Add(context, s_nullNode, 200.0f, 100.0f, (muiEdges){0});
+    muiNodeId hidden = Add(context, root, 100.0f, 50.0f, (muiEdges){0});
+    muiNodeId shown = Add(context, hidden, 20.0f, 10.0f, (muiEdges){0});
+    visual = muiDefaultVisualStyle();
+    visual.opacity = 0.0f;
+    SetVisual(context, hidden, &visual, MUI_PROPERTY_BIT(mui_propertyOpacity));
+    visual.background = s_red;
+    SetVisual(context, shown, &visual, MUI_PROPERTY_BIT(mui_propertyBackground));
+    layout = muiDefaultLayoutStyle();
+    layout.scrollAxes = mui_scrollVertical;
+    CHECK(muiNode_SetLayoutValues(context, hidden, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyScrollAxes)) == mui_success,
+          "a scroll container");
+    muiInteractionStyle interaction = muiDefaultInteractionStyle();
+    interaction.layer = mui_layerOverlay;
+    CHECK(muiNode_SetInteractionValues(context, shown, &interaction,
+                                       MUI_PROPERTY_BIT(mui_propertyLayer)) == mui_success,
+          "a layer");
+    SetScale(context, hidden, (muiLocalScale){0.5f, 0.5f, 0.0f, 0.0f});
+    list = Build(context, root, 1.0f);
+    CHECK(list.commandCount == 1 && list.transformCount == 3 && list.commands[0].transform == 2 &&
+              IsTransform(&list, 2, (muiDrawTransform){0.5f, 0.0f, 0.0f, 0.5f, 0.0f, 0.0f}),
+          "the layer through the scale of a node that draws nothing");
+    muiDestroyContext(context);
+}
+
 static void TestArgumentsAndLimits(void)
 {
     muiContext* context = MakeContext();
@@ -711,12 +834,13 @@ typedef struct Snapshot
     muiDrawClip clips[64];
     muiDrawGradient gradients[64];
     muiGlyph glyphs[512];
+    muiDrawTransform transforms[64];
 } Snapshot;
 
 static void Take(Snapshot* snapshot, const muiDrawList* list)
 {
     CHECK(list->commandCount <= 256 && list->clipCount <= 64 && list->gradientCount <= 64 &&
-              list->glyphCount <= 512,
+              list->glyphCount <= 512 && list->transformCount <= 64,
           "the snapshot holds it");
     snapshot->list = *list;
     memcpy(snapshot->commands, list->commands, list->commandCount * sizeof(muiDrawCommand));
@@ -727,6 +851,8 @@ static void Take(Snapshot* snapshot, const muiDrawList* list)
     memcpy(snapshot->glyphs, list->glyphs, list->glyphCount * sizeof(muiGlyph));
     snapshot->list.gradients = snapshot->gradients;
     snapshot->list.glyphs = snapshot->glyphs;
+    memcpy(snapshot->transforms, list->transforms, list->transformCount * sizeof(muiDrawTransform));
+    snapshot->list.transforms = snapshot->transforms;
 }
 
 // Whether ancestor is node or above it.
@@ -751,8 +877,22 @@ static void Edit(muiContext* context, muiNodeId* nodes, uint32_t count, Random* 
     muiLayoutStyle layout = muiDefaultLayoutStyle();
     CHECK(muiNode_GetLayoutStyle(context, node, &layout) == mui_success, "read");
     const float shades[4] = {0.0f, 0.25f, 0.5f, 1.0f};
-    switch (NextRandom(random, 15))
+    switch (NextRandom(random, 16))
     {
+    case 15:
+    {
+        // A local scale, or none, about one of three origins.
+        const float scales[4] = {0.0f, 0.5f, 1.0f, 1.5f};
+        const float origins[3] = {0.0f, 0.5f, 1.0f};
+        visual.scale =
+            (muiLocalScale){scales[NextRandom(random, 4)], scales[NextRandom(random, 4)],
+                            origins[NextRandom(random, 3)], origins[NextRandom(random, 3)]};
+        SetVisual(context, node, &visual,
+                  MUI_PROPERTY_BIT(mui_propertyScaleX) | MUI_PROPERTY_BIT(mui_propertyScaleY) |
+                      MUI_PROPERTY_BIT(mui_propertyScaleOriginX) |
+                      MUI_PROPERTY_BIT(mui_propertyScaleOriginY));
+        break;
+    }
     case 13:
         // A scroll container, or not.
         layout.scrollAxes = (muiScrollAxes)NextRandom(random, 4);
@@ -1426,6 +1566,7 @@ int main(void)
     TestClipsShadowsImagesGradients();
     TestColorsAndOpacity();
     TestRightToLeft();
+    TestLocalScale();
     TestArgumentsAndLimits();
     TestEdgeCases();
     TestBuildsFromTheLastListMatchWholeOnes();

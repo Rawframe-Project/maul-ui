@@ -22,9 +22,10 @@ theme: context pool property restyle style_edit style_store theme_store token_st
 paint: color context draw_store layout_node
 paint_host: context draw_store layout_node paint tree
 draw: context draw_store layer paint paint_host tree
-hit: context layer layout_node paint tree
+hit: context layer layout_node paint place tree
 layer: context layer_store tree
 layer_store:
+place: context layout_node scroll_store tree
 focus: context focus_store layer notify style_store tree scroll popup
 focus_store:
 event: context focus tree scroll navigate pointer range popup
@@ -40,7 +41,7 @@ virtual: context layout_node notify scroll_store tree virtual_store
 virtual_edit: context tree virtual virtual_store
 access_store: allocator
 access: access_store allocator context tree
-access_build: access access_store context focus layer range scroll_store style_store tree virtual virtual_store
+access_build: access access_store context focus layer place range scroll_store style_store tree virtual virtual_store
 access_record:
 access_tree_store:
 access_tree: access_tree_store allocator
@@ -88,7 +89,7 @@ access_action: access context event layout_node notify range scroll_store tree
 popup: context layout_node popup_store scroll tree notify
 scroll: context scroll_store tree layer motion_math
 navigate: context focus tree scroll
-pointer: context pointer_store style_store tree focus scroll popup
+pointer: context pointer_store style_store tree focus scroll popup place
 pointer_store:
 notify:
 style_store: pool property

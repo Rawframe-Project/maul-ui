@@ -63,7 +63,8 @@ ranges and virtual lists.
 - **What the library derives**, read when an update is built: the
   children (a virtual list's in item order); bounds, the border box in
   the node's own space, and a transform to its parent's, the node's
-  place moved by the parent's scroll as painting moves it; disabled
+  place and local scale moved by the parent's scroll as painting moves
+  it; disabled
   from the state, and hidden for a node exiting; checked and selected
   from the states on nodes that can have them; focusable, and the
   focus and blur actions, from the focus rules and player 0's focus;

@@ -44,19 +44,23 @@ itself instead of each host repeating them.
   not matter, as in CSS. The result is the node, the point in its
   border box and its pass-through flag; a point that hits nothing
   passes through. The walk is preorder over the tree's links with no
-  stack; origins are summed in doubles so that climbing back up takes
-  off exactly what climbing down added. Layers are tried from the top
+  stack; the point goes into each node's space in doubles as the walk
+  climbs down and back out as it climbs up, places taken off and added
+  back exactly and a local scale (record mui-0005) divided out and
+  multiplied back; a node scaled to nothing on an axis, and its
+  subtree, are hit nowhere. Layers are tried from the top
   down before the content they are not in; a point a modal layer's
   subtree misses hits the modal layer's root, blocked, with no
   pass-through, and nothing below it.
 - **Points back to the root** (`muiNode_MapToRoot`): the other way, a
-  point of a node's border box carried through its ancestors' places
-  and their scroll offsets, summed in doubles as hit testing sums
-  them, so a point a hit found maps back to where it was; with
+  point of a node's border box carried through its own and its
+  ancestors' places, local scales and scroll offsets, in doubles as
+  hit testing goes, so a point a hit found maps back to where it was;
+  pointer records sent to a node other than the one hit (bubbling,
+  capture) carry the point into that node's space the same way; with
   `muiNode_GetContentRect`, the content box painting and text carets
   use, a host places an input method's candidate window, or its own
-  popup, at a node. Scroll containers make the only transforms there
-  are.
+  popup, at a node.
 - **Pointer input** (`maul-ui/pointer.h`): the host passes its pointer
   events as `muiPointerEvent`s (time, pointer id, kind, action, button,
   buttons, point) to `muiPointerInput`, which hit tests and updates the

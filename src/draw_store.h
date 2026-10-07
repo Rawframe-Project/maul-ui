@@ -47,14 +47,19 @@ typedef struct muiPaintState
 
 // One list's tables. Entry 0 of the clips and gradients is the
 // placeholder for none; glyphs have none, as runs name spans.
+// Marks a transform's owner as one of a local scale.
+#define MUI_TRANSFORM_SCALE 0x80000000u
+
 typedef struct muiDrawTables
 {
     muiDrawCommand* commands;
     muiDrawClip* clips;
     muiDrawGradient* gradients;
     muiGlyph* glyphs;
-    // Entry 0 is the identity; each other is a scroll container's (its
-    // owner's slot), a translation by its offset after its parent entry's.
+    // Entry 0 is the identity; each other is owned by a node (its slot):
+    // a scroll container's, a translation by its offset, or with
+    // MUI_TRANSFORM_SCALE a scaled node's, a scale about its origin, after
+    // its parent entry's.
     muiDrawTransform* transforms;
     uint32_t* transformOwners;
     uint32_t* transformParents;

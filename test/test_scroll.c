@@ -408,6 +408,53 @@ static void TestHits(void)
     muiDestroyContext(context);
 }
 
+// The list of TestHits scaled twice about its top left (record mui-0005):
+// every point on the surface is twice the one TestHits uses.
+static void TestScaled(void)
+{
+    List list;
+    MakeList(&list, 64);
+    muiContext* context = list.context;
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.scale = (muiLocalScale){2.0f, 2.0f, 0.0f, 0.0f};
+    CHECK(muiNode_SetVisualValues(context, list.s, &visual,
+                                  MUI_PROPERTY_BIT(mui_propertyScaleX) |
+                                      MUI_PROPERTY_BIT(mui_propertyScaleY) |
+                                      MUI_PROPERTY_BIT(mui_propertyScaleOriginX) |
+                                      MUI_PROPERTY_BIT(mui_propertyScaleOriginY)) == mui_success &&
+              muiNode_SetScroll(context, list.s, 0.0f, 60.0f) == mui_success,
+          "scaled and scrolled");
+    Layout(context, list.root);
+    CHECK(muiNode_GetRect(context, list.s).width == 200.0f, "layout keeps the laid-out box");
+    muiHit hit = {0};
+    CHECK(muiHitTest(context, list.root, 100.0f, 50.0f, &hit) == mui_success &&
+              Same(hit.node, list.items[1]) && hit.x == 40.0f && hit.y == 25.0f,
+          "a scaled, scrolled item");
+    CHECK(muiHitTest(context, list.root, 250.0f, 150.0f, &hit) == mui_success &&
+              Same(hit.node, list.s) && hit.x == 125.0f && hit.y == 75.0f,
+          "outside its laid-out box, inside its scaled one: the container");
+    float x = 0.0f;
+    float y = 0.0f;
+    CHECK(muiNode_MapToRoot(context, list.items[1], 40.0f, 25.0f, &x, &y) == mui_success &&
+              x == 100.0f && y == 50.0f,
+          "mapped through the scale");
+    const muiPointerEvent press = {0,     1, mui_pointerMouse, mui_pointerPress, 0, 1, 100.0f,
+                                   50.0f, 0};
+    muiPointerRecord record = {0};
+    CHECK(muiPointerInput(context, list.root, &press) == mui_success &&
+              muiNextPointerRecord(context, &record) == mui_success &&
+              Same(record.node, list.items[1]) && record.x == 40.0f && record.y == 25.0f,
+          "a pointer record");
+    CHECK(muiPointer_SetCapture(context, 1, list.items[0]) == mui_success, "captured");
+    const muiPointerEvent move = {1, 1, mui_pointerMouse, mui_pointerMove, 0, 1, 100.0f, 50.0f, 0};
+    CHECK(muiPointerInput(context, list.root, &move) == mui_success &&
+              muiNextPointerRecord(context, &record) == mui_success &&
+              record.kind == mui_pointerRecordMove && Same(record.node, list.items[0]) &&
+              record.x == 40.0f && record.y == 75.0f,
+          "a captured move, its point divided by the scale");
+    muiDestroyContext(context);
+}
+
 static void TestMapToRoot(void)
 {
     // Scrolled 60, the points TestHits finds at 50, 25 map back to it:
@@ -890,6 +937,7 @@ int main(void)
     TestPainting();
     TestNested();
     TestHits();
+    TestScaled();
     TestMapToRoot();
     TestIntoView();
     TestLayer();

@@ -1088,6 +1088,46 @@ static void TestScrollActions(void)
     muiDestroyContext(context);
 }
 
+static bool TransformIs(const muiAccessNode* node, muiDrawTransform t)
+{
+    return node != NULL && node->transform.a == t.a && node->transform.b == t.b &&
+           node->transform.c == t.c && node->transform.d == t.d && node->transform.e == t.e &&
+           node->transform.f == t.f;
+}
+
+// A local scale reaches a node's transform about its origin, and a change
+// of it is sent (record mui-0005).
+static void TestScale(void)
+{
+    muiContextDef def = muiDefaultContextDef();
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    muiNodeId root = Node(context, s_nullNode);
+    Size(context, root, 200.0f, 100.0f);
+    muiNodeId panel = Node(context, root);
+    Size(context, panel, 100.0f, 40.0f);
+    muiNodeId inner = Node(context, panel);
+    Size(context, inner, 20.0f, 10.0f);
+    CHECK(muiAccess_Enable(context, root) == mui_success, "enabled");
+    Layout(context, root);
+    muiAccessUpdate update = Build(context, root);
+    CHECK(TransformIs(Sent(&update, panel), (muiDrawTransform){1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f}),
+          "unscaled: a translation");
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.scale = (muiLocalScale){0.5f, 0.25f, 0.5f, 0.5f};
+    CHECK(muiNode_SetVisualValues(context, panel, &visual,
+                                  MUI_PROPERTY_BIT(mui_propertyScaleX) |
+                                      MUI_PROPERTY_BIT(mui_propertyScaleY)) == mui_success,
+          "scaled");
+    Layout(context, root);
+    update = Build(context, root);
+    CHECK(TransformIs(Sent(&update, panel),
+                      (muiDrawTransform){0.5f, 0.0f, 0.0f, 0.25f, 25.0f, 15.0f}),
+          "about its centre (50, 20)");
+    CHECK(Sent(&update, inner) == NULL, "its child unchanged, in its own space");
+    muiDestroyContext(context);
+}
+
 static void TestHostData(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -1289,6 +1329,7 @@ int main(void)
     TestPositionAlone();
     TestActions();
     TestScrollActions();
+    TestScale();
     TestHostData();
     TestMemory();
     TestRoots();

@@ -101,6 +101,22 @@ extern "C"
         float spread;
     } muiShadow;
 
+    // A scale of a node and its subtree after layout: drawn, hit tested
+    // and reported through it, about an origin in its border box, while
+    // layout and what places by layout (scrolling, popups, directional
+    // navigation) keep its laid-out box (record mui-0005).
+    typedef struct muiLocalScale
+    {
+        // Per axis, finite and 0 or more; 1 leaves it as laid out, and 0
+        // draws it as nothing and hits it nowhere.
+        float x;
+        float y;
+        // The point that stays, as fractions of the border box from 0 to
+        // 1: x from its start edge, mirrored under right to left.
+        float originX;
+        float originY;
+    } muiLocalScale;
+
     // Every visual value. Build it with muiDefaultVisualStyle.
     typedef struct muiVisualStyle
     {
@@ -124,11 +140,13 @@ extern "C"
         float opacity;
         // Whether the node clips its children to its rounded border box.
         bool clip;
+        muiLocalScale scale;
     } muiVisualStyle;
 
     /// Returns the default visual style: clear background, no gradient,
     /// square corners, opaque black border colors, no shadows or image, a
-    /// white tint, opacity 1 and no clipping.
+    /// white tint, opacity 1, no clipping and a scale of 1 about the
+    /// centre.
     ///
     /// @return The values.
     /// @par Thread safety

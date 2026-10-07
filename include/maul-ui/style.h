@@ -125,6 +125,11 @@ extern "C"
         // A number from 0 to 1, and a flag.
         mui_propertyOpacity = 79,
         mui_propertyClip = 80,
+        // The local scale: numbers of 0 or more, then from 0 to 1.
+        mui_propertyScaleX = 81,
+        mui_propertyScaleY = 82,
+        mui_propertyScaleOriginX = 83,
+        mui_propertyScaleOriginY = 84,
         // Text properties, named after the muiTextStyle field they set
         // (maul-ui/text_style.h), inherited. A color and a font key.
         mui_propertyTextColor = 128,
@@ -171,7 +176,7 @@ extern "C"
 // Every layout, visual, text and interaction property, in their groups'
 // masks.
 #define MUI_LAYOUT_PROPERTIES      ((muiPropertyMask)0x1FFFFFFFFFFull)
-#define MUI_VISUAL_PROPERTIES      ((muiPropertyMask)0x1FFFFull)
+#define MUI_VISUAL_PROPERTIES      ((muiPropertyMask)0x1FFFFFull)
 #define MUI_TEXT_PROPERTIES        ((muiPropertyMask)0x1FFull)
 #define MUI_INTERACTION_PROPERTIES ((muiPropertyMask)0xFFull)
 

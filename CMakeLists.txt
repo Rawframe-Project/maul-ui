@@ -118,6 +118,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/node_style.c
     src/paint.c
     src/paint_host.c
+    src/place.c
     src/notify.c
     src/pool.c
     src/property.c

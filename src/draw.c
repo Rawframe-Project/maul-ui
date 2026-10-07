@@ -263,15 +263,15 @@ static bool Visit(Build* build, const muiPaintState* top, uint32_t root, uint32_
     state->transform = transform;
     state->inner = transform;
     state->transforms = (muiDrawRange){out->transformCount, 0};
-    if (!muiPaintNode(&build->painter, at, state))
-    {
-        return false;
-    }
-    if (build->painter.paint != nullptr)
+    bool painted = muiPaintNode(&build->painter, at, state);
+    if (painted && build->painter.paint != nullptr)
     {
         muiPaintHostContent(&build->painter, at, state);
     }
-    return true;
+    // Drawn through its scale, it is painted in its parent's: the state
+    // keeps that one, as a copy of it does.
+    state->transform = transform;
+    return painted;
 }
 
 // Ends a node's spans where its subtree ended.
@@ -349,6 +349,63 @@ static void ParentOrigin(const muiContext* context, uint32_t root, uint32_t node
     *yOut = (float)y;
 }
 
+// How many transforms a node owns: one for a scale, one for scrolling.
+static uint32_t TransformsOf(const muiContext* context, uint32_t slot)
+{
+    const muiLocalScale* scale = &context->visual[slot - 1].scale;
+    return (scale->x != 1.0f || scale->y != 1.0f ? 1u : 0u) +
+           (context->layout[slot - 1].style.scrollAxes != mui_scrollNone ? 1u : 0u);
+}
+
+// The transform a layer's parent's children go through, so that the
+// layer scrolls and scales with them: the parent's, or for a parent not
+// painted now (in a layer above, or below a node that draws nothing) its
+// and its ancestors' transforms up to one that was, added again: their
+// values come from the same owners.
+static uint32_t ParentTransform(Build* build, uint32_t root, uint32_t parent)
+{
+    const muiContext* context = build->painter.context;
+    const muiTree* tree = &context->tree;
+    const muiPaintState* states = build->store->states;
+    uint32_t count = 0;
+    uint32_t at = parent;
+    while (at != 0 && states[at - 1].build != build->build)
+    {
+        count += TransformsOf(context, at);
+        at = at == root ? 0 : muiTreeAt(tree, at)->links.parent;
+    }
+    uint32_t base = at != 0 ? states[at - 1].inner : 0;
+    muiDrawTables* out = build->painter.out;
+    if (count == 0 || count > build->painter.transformCapacity - out->transformCount)
+    {
+        build->painter.full = count != 0;
+        return base;
+    }
+    // From the bottom up, each entry after the one above it: a node's
+    // scroll after its scale.
+    uint32_t first = out->transformCount;
+    uint32_t next = first + count;
+    out->transformCount = next;
+    for (at = parent; next > first; at = muiTreeAt(tree, at)->links.parent)
+    {
+        const muiLocalScale* scale = &context->visual[at - 1].scale;
+        const uint32_t owners[2] = {
+            context->layout[at - 1].style.scrollAxes != mui_scrollNone ? at : 0,
+            scale->x != 1.0f || scale->y != 1.0f ? at | MUI_TRANSFORM_SCALE : 0,
+        };
+        for (int i = 0; i < 2; i++)
+        {
+            if (owners[i] != 0)
+            {
+                next--;
+                out->transformOwners[next] = owners[i];
+                out->transformParents[next] = next == first ? base : next - 1;
+            }
+        }
+    }
+    return first + count - 1;
+}
+
 // The next layer below the root to walk after place, from the bottom,
 // with its parent's origin set as the walk's; 0 after the last.
 static uint32_t NextLayer(Build* build, uint32_t root, uint32_t* place)
@@ -360,11 +417,8 @@ static uint32_t NextLayer(Build* build, uint32_t root, uint32_t* place)
         if (layer != 0 && layer != root && muiTreeIsAncestor(&context->tree, root, layer))
         {
             ParentOrigin(context, root, layer, &build->top.x, &build->top.y);
-            // Through the transform its parent's children are, so that it
-            // scrolls with them; a parent not painted yet has none.
-            const muiPaintState* parent =
-                &build->store->states[muiTreeAt(&context->tree, layer)->links.parent - 1];
-            build->top.inner = parent->build == build->build ? parent->inner : 0;
+            build->top.inner =
+                ParentTransform(build, root, muiTreeAt(&context->tree, layer)->links.parent);
             return layer;
         }
     }
@@ -392,19 +446,54 @@ static void Empty(muiDrawTables* tables)
     tables->transformCount = 1;
 }
 
-// Gives each scroll container's transform its value: its parent entry's,
-// translated by the container's offset, logical x leftward under right
-// to left, rounded to device pixels so that snapped edges stay snapped.
-static void SetTransforms(const muiContext* context, muiDrawTables* tables, float scale)
+// A scaled node's transform: its parent entry's after a scale about the
+// node's origin where layout puts it in the list, which stays. From
+// layout, as the node may not be painted (below one that draws nothing).
+static muiDrawTransform ScaledOf(const muiContext* context, uint32_t root, uint32_t owner,
+                                 const muiDrawTransform* parent)
+{
+    const muiLocalScale* scale = &context->visual[owner - 1].scale;
+    const muiRect* rect = &context->layout[owner - 1].rect;
+    float x = 0.0f;
+    float y = 0.0f;
+    ParentOrigin(context, root, owner, &x, &y);
+    float fraction = context->layout[owner - 1].rtl ? 1.0f - scale->originX : scale->originX;
+    x += rect->x + fraction * rect->width;
+    y += rect->y + scale->originY * rect->height;
+    // The scale's own: x' = s x + x (1 - s).
+    float e = x * (1.0f - scale->x);
+    float f = y * (1.0f - scale->y);
+    return (muiDrawTransform){parent->a * scale->x,
+                              parent->b * scale->x,
+                              parent->c * scale->y,
+                              parent->d * scale->y,
+                              parent->a * e + parent->c * f + parent->e,
+                              parent->b * e + parent->d * f + parent->f};
+}
+
+// Gives each transform its value, after its parent entry's: a scaled
+// node's its scale; a scroll container's a translation by its offset,
+// logical x leftward under right to left, rounded to device pixels so
+// that snapped edges stay snapped, through the parent's scale.
+static void SetTransforms(const muiContext* context, uint32_t root, muiDrawTables* tables,
+                          float scale)
 {
     for (uint32_t i = 1; i < tables->transformCount; i++)
     {
-        uint32_t owner = tables->transformOwners[i];
+        uint32_t owner = tables->transformOwners[i] & ~MUI_TRANSFORM_SCALE;
+        const muiDrawTransform* parent = &tables->transforms[tables->transformParents[i]];
+        if ((tables->transformOwners[i] & MUI_TRANSFORM_SCALE) != 0)
+        {
+            tables->transforms[i] = ScaledOf(context, root, owner, parent);
+            continue;
+        }
         const muiScrollState* scroll = &context->scrolls[owner - 1];
         const muiLayoutNode* layout = &context->layout[owner - 1];
-        muiDrawTransform value = tables->transforms[tables->transformParents[i]];
-        value.e += roundf(muiScrollShiftX(layout, scroll) * scale) / scale;
-        value.f += roundf(muiScrollShiftY(layout, scroll) * scale) / scale;
+        float x = roundf(muiScrollShiftX(layout, scroll) * scale) / scale;
+        float y = roundf(muiScrollShiftY(layout, scroll) * scale) / scale;
+        muiDrawTransform value = *parent;
+        value.e += parent->a * x + parent->c * y;
+        value.f += parent->b * x + parent->d * y;
         tables->transforms[i] = value;
     }
 }
@@ -444,7 +533,7 @@ muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawI
         // commands.
         if (context->scrolled)
         {
-            SetTransforms(context, &store->tables[store->current], input->scale);
+            SetTransforms(context, root, &store->tables[store->current], input->scale);
             store->header.generation++;
             context->scrolled = false;
         }
@@ -497,7 +586,7 @@ muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawI
         .scale = input->scale,
     };
     store->rootIndex = root;
-    SetTransforms(context, build.painter.out, input->scale);
+    SetTransforms(context, root, build.painter.out, input->scale);
     context->scrolled = false;
     (void)muiTreeSweep(&context->tree, root, mui_stagePaint);
     return mui_success;

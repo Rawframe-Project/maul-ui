@@ -252,10 +252,11 @@ static uint32_t Next(uint32_t* state)
     return *state >> 8;
 }
 
-// Random trees of nodes at whole positions, each with a background and
-// some of them layers, so painting draws a box per node, in paint order,
-// that snapping keeps where layout put it: the node hit is the one of the
-// last box holding the point.
+// Random trees of nodes at whole positions, each with a background, some
+// of them layers and some scaled, so painting draws a box per node, in
+// paint order, that snapping keeps where layout put it, through its
+// transform: the node hit is the one of the last box holding the point,
+// and a box scaled to nothing holds none.
 static void TestAgainstPainting(void)
 {
     uint32_t state = 5;
@@ -264,6 +265,17 @@ static void TestAgainstPainting(void)
         muiContext* context = MakeContext();
         muiNodeId nodes[24];
         nodes[0] = Place(context, s_nullNode, 0.0f, 0.0f, 120.0f, 120.0f);
+        // Every other tree right to left, which mirrors places and the
+        // scales' origins.
+        if (round % 2 == 1)
+        {
+            muiLayoutStyle rtl = muiDefaultLayoutStyle();
+            rtl.textDirection = mui_textRightToLeft;
+            CHECK(muiNode_SetLayoutValues(context, nodes[0], &rtl,
+                                          MUI_PROPERTY_BIT(mui_propertyTextDirection)) ==
+                      mui_success,
+                  "right to left");
+        }
         muiVisualStyle visual = muiDefaultVisualStyle();
         visual.background = (muiColor){0.5f, 0.5f, 0.5f, 1.0f};
         for (uint32_t i = 1; i < 24; i++)
@@ -278,6 +290,22 @@ static void TestAgainstPainting(void)
             CHECK(muiNode_SetVisualValues(context, nodes[i], &visual,
                                           MUI_PROPERTY_BIT(mui_propertyBackground)) == mui_success,
                   "background");
+            // Some are scaled, by four factors about three origins.
+            if (Next(&state) % 4 == 0)
+            {
+                const float scales[4] = {0.0f, 0.5f, 1.5f, 2.0f};
+                muiVisualStyle scaled = muiDefaultVisualStyle();
+                scaled.scale = (muiLocalScale){scales[Next(&state) % 4], scales[Next(&state) % 4],
+                                               (float)(Next(&state) % 3) * 0.5f,
+                                               (float)(Next(&state) % 3) * 0.5f};
+                CHECK(muiNode_SetVisualValues(context, nodes[i], &scaled,
+                                              MUI_PROPERTY_BIT(mui_propertyScaleX) |
+                                                  MUI_PROPERTY_BIT(mui_propertyScaleY) |
+                                                  MUI_PROPERTY_BIT(mui_propertyScaleOriginX) |
+                                                  MUI_PROPERTY_BIT(mui_propertyScaleOriginY)) ==
+                          mui_success,
+                      "a scale");
+            }
             // Some are layers, activation or overlay, in random order.
             uint32_t kind = Next(&state) % 8;
             if (i != 0 && kind < 2)
@@ -301,18 +329,33 @@ static void TestAgainstPainting(void)
             float x = (float)(Next(&state) % 1300) * 0.1f;
             float y = (float)(Next(&state) % 1300) * 0.1f;
             const muiRect* box = NULL;
+            float boxX = 0.0f;
+            float boxY = 0.0f;
             for (uint32_t i = 0; i < list.commandCount; i++)
             {
+                // The point back through the box's transform, which
+                // scales and moves alone.
+                const muiDrawTransform* t = &list.transforms[list.commands[i].transform];
+                if (t->a == 0.0f || t->d == 0.0f)
+                {
+                    continue;
+                }
+                float localX = (x - t->e) / t->a;
+                float localY = (y - t->f) / t->d;
                 const muiRect* rect = &list.commands[i].box.rect;
-                bool inside = x >= rect->x && y >= rect->y && x < rect->x + rect->width &&
-                              y < rect->y + rect->height;
-                box = inside ? rect : box;
+                if (localX >= rect->x && localY >= rect->y && localX < rect->x + rect->width &&
+                    localY < rect->y + rect->height)
+                {
+                    box = rect;
+                    boxX = localX;
+                    boxY = localY;
+                }
             }
             muiHit hit = {{0, 0}, 0.0f, 0.0f, false};
             CHECK(muiHitTest(context, nodes[0], x, y, &hit) == mui_success &&
                       (box == NULL ? hit.node.index1 == 0
-                                   : hit.node.index1 != 0 && fabsf(x - hit.x - box->x) < 1e-4f &&
-                                         fabsf(y - hit.y - box->y) < 1e-4f &&
+                                   : hit.node.index1 != 0 && fabsf(boxX - hit.x - box->x) < 1e-3f &&
+                                         fabsf(boxY - hit.y - box->y) < 1e-3f &&
                                          muiNode_GetRect(context, hit.node).width == box->width),
                   "the last box painted at the point");
         }

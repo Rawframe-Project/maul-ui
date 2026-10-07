@@ -19,6 +19,7 @@
 
 // Slots are 1-based uint32_t values with room for a parent link count.
 #define MAX_SLOTS 0x7FFFFFFFu
+static_assert(MAX_SLOTS < MUI_TRANSFORM_SCALE, "a transform's owner has its slot and a flag");
 
 // Every part after the context starts on a cache line, so a record whose
 // size is a multiple of one never has a field split across two, wherever

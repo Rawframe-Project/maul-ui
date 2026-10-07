@@ -768,7 +768,7 @@ Reads a node's resolved interaction values: its direct writes, and for the other
 ```c
 MUI_NODISCARD MUI_API muiResult muiHitTest(const muiContext* context, muiNodeId rootId, float x, float y, muiHit* hitOut);
 ```
-Finds the topmost node of a root's subtree at a point, as its last muiComputeLayout left it: the last in paint order whose rounded border box holds the point, inside the rounded clips of every ancestor that clips and of no node whose hit mode leaves it out. Layers are tried from the top down, then the content they are not in; a point a modal layer's subtree misses hits the modal layer's root, blocked, and nothing below it. Opacity does not matter, as in CSS. Positions are those painting gives, the root at its own rectangle.  @param context  The context. @param rootId   The root of the subtree. @param x        The point, in the space the root's rectangle is in. @param y        Likewise. @param hitOut   Receives what the point hits; unchanged on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id or a point not finite; `mui_errorStale` for a root that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Finds the topmost node of a root's subtree at a point, as its last muiComputeLayout left it: the last in paint order whose rounded border box holds the point, inside the rounded clips of every ancestor that clips and of no node whose hit mode leaves it out. Layers are tried from the top down, then the content they are not in; a point a modal layer's subtree misses hits the modal layer's root, blocked, and nothing below it. Opacity does not matter, as in CSS. Positions are those painting gives, the root at its own rectangle, through local scales: a node scaled to nothing on an axis is hit nowhere.  @param context  The context. @param rootId   The root of the subtree. @param x        The point, in the space the root's rectangle is in. @param y        Likewise. @param hitOut   Receives what the point hits; unchanged on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id or a point not finite; `mui_errorStale` for a root that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_RaiseLayer(muiContext* context, muiNodeId nodeId);
@@ -827,7 +827,7 @@ Returns a node's content box from the last muiComputeLayout that reached it, rel
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_MapToRoot(const muiContext* context, muiNodeId nodeId, float x, float y, float* xOut, float* yOut);
 ```
-Carries a point of a node's border box into the space its topmost ancestor's rectangle is in, where pointer events are given, through its ancestors' places and their scroll containers' offsets as the last muiComputeLayout and scrolling left them: so a host places a window's candidate box at a caret, or its own popup beside a node.  @param context  The context. @param nodeId   The node. @param x        The point, from the border box's top left. @param y        Likewise. @param xOut     Receives the point's x there; unchanged on failure. @param yOut     Likewise its y. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a point not finite; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Carries a point of a node's border box into the space its topmost ancestor's rectangle is in, where pointer events are given, through its own and its ancestors' places, local scales and scroll containers' offsets as the last muiComputeLayout, styling and scrolling left them: so a host places a window's candidate box at a caret, or its own popup beside a node.  @param context  The context. @param nodeId   The node. @param x        The point, from the border box's top left. @param y        Likewise. @param xOut     Receives the point's x there; unchanged on failure. @param yOut     Likewise its y. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a point not finite; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ## `node.h`
 
@@ -1517,7 +1517,7 @@ Visual values: what the draw-command list paints for a node, set through the sam
 ```c
 muiVisualStyle muiDefaultVisualStyle(void);
 ```
-Returns the default visual style: clear background, no gradient, square corners, opaque black border colors, no shadows or image, a white tint, opacity 1 and no clipping.  @return The values. @par Thread safety Safe from any thread.
+Returns the default visual style: clear background, no gradient, square corners, opaque black border colors, no shadows or image, a white tint, opacity 1, no clipping and a scale of 1 about the centre.  @return The values. @par Thread safety Safe from any thread.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_SetVisualValues(muiContext* context, muiStyleId styleId, muiVariant variant, const muiVisualStyle* values, muiPropertyMask mask);

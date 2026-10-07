@@ -135,6 +135,9 @@ static void TestDefaults(void)
           "no shadows");
     CHECK(values.image == 0 && SameColor(values.imageTint, white), "no image, white tint");
     CHECK(values.opacity == 1.0f && !values.clip, "opaque, not clipping");
+    CHECK(values.scale.x == 1.0f && values.scale.y == 1.0f && values.scale.originX == 0.5f &&
+              values.scale.originY == 0.5f,
+          "a scale of 1 about the centre");
 
     muiContext* context = MakeContext();
     muiNodeId node = MakeNode(context);
@@ -245,6 +248,24 @@ static void TestChecks(void)
     v.opacity = -0.1f;
     CheckRefused(context, style, node, &v, OPACITY, "opacity below 0");
     v = defaults;
+    v.scale.x = -1.0f;
+    CheckRefused(context, style, node, &v, MUI_PROPERTY_BIT(mui_propertyScaleX),
+                 "a negative scale: mirroring is direction's");
+    v.scale.x = INFINITY;
+    CheckRefused(context, style, node, &v, MUI_PROPERTY_BIT(mui_propertyScaleX),
+                 "an infinite scale");
+    v = defaults;
+    v.scale.y = NAN;
+    CheckRefused(context, style, node, &v, MUI_PROPERTY_BIT(mui_propertyScaleY), "a NaN scale");
+    v = defaults;
+    v.scale.originX = 1.5f;
+    CheckRefused(context, style, node, &v, MUI_PROPERTY_BIT(mui_propertyScaleOriginX),
+                 "an origin outside the box");
+    v.scale.originX = 0.5f;
+    v.scale.originY = -0.5f;
+    CheckRefused(context, style, node, &v, MUI_PROPERTY_BIT(mui_propertyScaleOriginY),
+                 "an origin above the box");
+    v = defaults;
     v.radius.topStart = (muiDimension){0.0f, -1.0f, mui_dimensionValue};
     CheckRefused(context, style, node, &v, RADIUS, "a negative radius");
     v.radius.topStart = (muiDimension){-0.5f, 0.0f, mui_dimensionValue};
@@ -305,7 +326,7 @@ static void TestChecks(void)
     v.gradient = (muiGradient){mui_gradientLinear, 2, NAN, {black, white}};
     CheckRefused(context, style, node, &v, GRADIENT, "a NaN angle");
 
-    CheckRefused(context, style, node, &defaults, MUI_PROPERTY_BIT(mui_propertyClip + 1),
+    CheckRefused(context, style, node, &defaults, MUI_PROPERTY_BIT(mui_propertyScaleOriginY + 1),
                  "a bit past the visual group's properties");
     CHECK(muiStyle_SetVisualValues(context, style, mui_variantBase, NULL, BACKGROUND) ==
                   mui_errorInvalid &&
@@ -338,9 +359,11 @@ static void TestChecks(void)
     v.outerShadow = (muiShadow){{0.0f, 0.0f, 0.0f, 0.5f}, -2.0f, 3.0f, 0.0f, -4.0f};
     v.radius.topStart = (muiDimension){100.0f, 0.0f, mui_dimensionValue};
     v.image = UINT64_MAX;
+    v.scale = (muiLocalScale){0.0f, 1000.0f, 0.0f, 1.0f};
     CHECK(muiStyle_SetVisualValues(context, style, mui_variantBase, &v, MUI_VISUAL_PROPERTIES) ==
               mui_success,
-          "stops at one place, opacity 0, an inward spread, a huge radius, any key");
+          "stops at one place, opacity 0, an inward spread, a huge radius, any key, scales of 0 "
+          "and 1000 about the edges");
     muiDestroyContext(context);
 }
 
@@ -462,8 +485,11 @@ static void TestTransitions(void)
     values.opacity = 0.0f;
     values.radius.topStart = (muiDimension){0.0f, 8.0f, mui_dimensionValue};
     values.background = s_blue;
+    values.scale = (muiLocalScale){0.0f, 2.0f, 0.5f, 0.5f};
+    const muiPropertyMask scale =
+        MUI_PROPERTY_BIT(mui_propertyScaleX) | MUI_PROPERTY_BIT(mui_propertyScaleY);
     CHECK(muiStyle_SetVisualValues(context, style, mui_variantHovered, &values,
-                                   OPACITY | RADIUS | BACKGROUND) == mui_success,
+                                   OPACITY | RADIUS | BACKGROUND | scale) == mui_success,
           "hovered");
     muiTransitionDef def = muiDefaultTransitionDef();
     def.durationNs = 100 * MS;
@@ -471,7 +497,7 @@ static void TestTransitions(void)
     muiTransitionId linear = s_nullTransition;
     CHECK(muiCreateTransition(context, &def, &linear) == mui_success, "transition");
     CHECK(muiStyle_SetTransition(context, style, mui_variantBase, linear, mui_groupVisual,
-                                 OPACITY | RADIUS | BACKGROUND) == mui_success,
+                                 OPACITY | RADIUS | BACKGROUND | scale) == mui_success,
           "named");
     CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
     Layout(context, node, T0);
@@ -484,6 +510,7 @@ static void TestTransitions(void)
     muiVisualStyle read = Read(context, node);
     CHECK(read.opacity == 0.5f, "opacity halfway");
     CHECK(read.radius.topStart.offset == 4.0f, "radius halfway");
+    CHECK(read.scale.x == 0.5f && read.scale.y == 1.5f, "scales halfway");
     // From clear, premultiplied: blue at half alpha, not a darker blue.
     CHECK(fabsf(read.background.r) < 1e-5f && fabsf(read.background.g) < 1e-5f &&
               fabsf(read.background.b - 1.0f) < 1e-5f && read.background.a == 0.5f,
