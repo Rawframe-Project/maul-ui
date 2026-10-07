@@ -471,6 +471,7 @@ typedef struct Textures
     mrhiTextureId blue;
     mrhiTextureId sided;
     mrhiTextureId quads;
+    mrhiTextureId mipped;
 } Textures;
 
 static bool FindImage(void* context, uint64_t key, muiRhiImage* imageOut)
@@ -496,16 +497,24 @@ static bool FindImage(void* context, uint64_t key, muiRhiImage* imageOut)
         *imageOut = (muiRhiImage){textures->quads, 8, 8};
         return true;
     }
+    if (key == 5)
+    {
+        *imageOut = (muiRhiImage){textures->mipped, 8, 8};
+        return true;
+    }
     return false;
 }
 
-// A texture of a side filled with RGBA8 texels in a frame of its own.
-static bool MakeTexture(Gpu* gpu, uint32_t side, const uint8_t* texels, mrhiTextureId* textureOut)
+// A texture of a side and its mips, each level's RGBA8 texels given,
+// filled in a frame of its own.
+static bool MakeLevels(Gpu* gpu, uint32_t side, const uint8_t* const* levels, uint32_t levelCount,
+                       mrhiTextureId* textureOut)
 {
     mrhiTextureDef def = mrhiDefaultTextureDef();
     def.format = mrhi_formatRgba8UnormSrgb;
     def.width = side;
     def.height = side;
+    def.mipLevels = levelCount;
     def.usage = mrhi_textureSampled | mrhi_textureCopyDestination;
     mrhiFrameDef frame = mrhiDefaultFrameDef();
     mrhiResourceId resource = {0};
@@ -517,23 +526,27 @@ static bool MakeTexture(Gpu* gpu, uint32_t side, const uint8_t* texels, mrhiText
     }
     const mrhiAccess write = {.resource = resource,
                               .kind = mrhi_accessCopyDestination,
-                              .range = {.mipCount = 1, .layerCount = 1}};
+                              .range = {.mipCount = levelCount, .layerCount = 1}};
     mrhiPassDef passDef = mrhiDefaultPassDef();
     passDef.passClass = mrhi_passTransfer;
     passDef.accesses = &write;
     passDef.accessCount = 1;
     passDef.neverCull = true;
     mrhiPassId pass = {0};
-    const mrhiTextureCopy into = {.resource = resource};
-    const mrhiTexelLayout layout = {.bytesPerRow = side * 4};
-    const mrhiExtent3d extent = {side, side, 1};
     mrhiRequestId token = {0};
     bool recorded = mrhiAddPass(gpu->device, &passDef, &pass) == mrhi_success &&
                     mrhiCompileFrame(gpu->device) == mrhi_success &&
-                    mrhiBeginPass(gpu->device, pass) == mrhi_success &&
-                    mrhiWriteTexture(gpu->device, pass, &into, texels, (size_t)side * side * 4,
-                                     &layout, &extent) == mrhi_success &&
-                    mrhiEndPass(gpu->device, pass) == mrhi_success;
+                    mrhiBeginPass(gpu->device, pass) == mrhi_success;
+    for (uint32_t mip = 0; recorded && mip < levelCount; mip++)
+    {
+        const uint32_t at = side >> mip;
+        const mrhiTextureCopy into = {.resource = resource, .mip = mip};
+        const mrhiTexelLayout layout = {.bytesPerRow = at * 4};
+        const mrhiExtent3d extent = {at, at, 1};
+        recorded = mrhiWriteTexture(gpu->device, pass, &into, levels[mip], (size_t)at * at * 4,
+                                    &layout, &extent) == mrhi_success;
+    }
+    recorded = recorded && mrhiEndPass(gpu->device, pass) == mrhi_success;
     if (!recorded)
     {
         (void)mrhiDropFrame(gpu->device);
@@ -541,6 +554,11 @@ static bool MakeTexture(Gpu* gpu, uint32_t side, const uint8_t* texels, mrhiText
     }
     return mrhiSubmitFrame(gpu->device, &token) == mrhi_success &&
            mrhiWaitFrame(gpu->device, token, WAIT_NS) == mrhi_success;
+}
+
+static bool MakeTexture(Gpu* gpu, uint32_t side, const uint8_t* texels, mrhiTextureId* textureOut)
+{
+    return MakeLevels(gpu, side, &texels, 1, textureOut);
 }
 
 static bool MakeTextures(Gpu* gpu, Textures* textures)
@@ -567,12 +585,22 @@ static bool MakeTextures(Gpu* gpu, Textures* textures)
             memcpy(&quads[(y * 8 + x) * 4], quad, 4);
         }
     }
+    // The quarters again over a second level of magenta, which only a
+    // coarser level than the first shows.
+    uint8_t magenta[4 * 4 * 4];
+    for (int i = 0; i < 4 * 4; i++)
+    {
+        const uint8_t texel[4] = {255, 0, 255, 255};
+        memcpy(&magenta[i * 4], texel, 4);
+    }
+    const uint8_t* const levels[2] = {quads, magenta};
     const uint8_t blue[2 * 2 * 4] = {0, 0, 255, 255, 0, 0, 255, 255,
                                      0, 0, 255, 255, 0, 0, 255, 255};
     return MakeTexture(gpu, 8, bordered, &textures->bordered) &&
            MakeTexture(gpu, 2, blue, &textures->blue) &&
            MakeTexture(gpu, 8, sided, &textures->sided) &&
-           MakeTexture(gpu, 8, quads, &textures->quads);
+           MakeTexture(gpu, 8, quads, &textures->quads) &&
+           MakeLevels(gpu, 8, levels, 2, &textures->mipped);
 }
 
 static muiDrawCommand Image(uint64_t key, muiRect rect)
@@ -635,21 +663,33 @@ static void TestImages(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels, int 
           "as it is: on the left");
 }
 
-// Tiling, an image's middle filled as CSS's border-image-repeat: the
-// red-sided image (red in its first 2 of 8 texels across) repeated over
-// 20, its tiles centred, so starting at -2, 6 and 14; rounded, three
-// tiles of 20 / 3; spaced, two with gaps of 4 / 3, and none in a width of
-// 6. The quarters image repeated across 16 (tiles from -4, 4 and 12) and
-// rounded up 24 (three of 8). The bordered image sliced at 2 over 15 by
-// 12, its middle of 4 texels spaced across 11: tiles at 3 and 8, gaps of
-// 1 in its top edge and middle alike, its corners whole.
+// Tiling, an image's middle filled as CSS's border-image-repeat:
+// - the red-sided image (red in its first 2 of 8 texels across)
+//   repeated over 20, its tiles centred, so starting at -2, 6 and 14;
+//   rounded, three tiles of 20 / 3; spaced, two with gaps of 4 / 3, and
+//   none in a width of 6; and a repeat the renderer does not know,
+//   stretched;
+// - the quarters image repeated across 16 (tiles from -4, 4 and 12) and
+//   rounded up 24 (three of 8);
+// - the bordered image sliced at 2 over 15 by 12, its middle of 4
+//   texels spaced across 11: tiles at 3 and 8, gaps of 1 in its top edge
+//   and middle alike, its corners whole, its tiles' edge pixels green,
+//   sampled half a texel inside the middle;
+// - the mipmapped quarters repeated from 1.375 across 20, a seam at
+//   7.375 within a 2 by 2 block of pixels at either scale, at no pixel's
+//   centre: drawn from the first level, as gradients ignore the seam;
+// - the quarters sliced at 2 in a rect 2 wide, all insets halved, its
+//   left edge's middle repeated up 20 in tiles of 4 halved, and in a
+//   rect 2 tall its top edge's across.
 static void TestTiling(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels, int scale)
 {
     const uint32_t side = 64u * (uint32_t)scale;
-    muiDrawCommand commands[6] = {
-        Image(3, (muiRect){0, 0, 20, 8}),    Image(3, (muiRect){0, 10, 20, 8}),
-        Image(3, (muiRect){0, 20, 20, 8}),   Image(3, (muiRect){24, 0, 6, 8}),
-        Image(4, (muiRect){40, 10, 16, 24}), Image(1, (muiRect){0, 32, 15, 12}),
+    muiDrawCommand commands[10] = {
+        Image(3, (muiRect){0, 0, 20, 8}),       Image(3, (muiRect){0, 10, 20, 8}),
+        Image(3, (muiRect){0, 20, 20, 8}),      Image(3, (muiRect){24, 0, 6, 8}),
+        Image(4, (muiRect){40, 10, 16, 24}),    Image(1, (muiRect){0, 32, 15, 12}),
+        Image(5, (muiRect){1.375f, 48, 20, 8}), Image(4, (muiRect){32, 10, 2, 22}),
+        Image(3, (muiRect){24, 10, 6, 8}),      Image(4, (muiRect){24, 40, 22, 2}),
     };
     commands[0].image.repeatX = mui_imageRepeat;
     commands[1].image.repeatX = mui_imageRound;
@@ -659,7 +699,13 @@ static void TestTiling(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels, int 
     commands[4].image.repeatY = mui_imageRound;
     commands[5].image.slice = (muiSides){2, 2, 2, 2};
     commands[5].image.repeatX = mui_imageSpace;
-    muiDrawList list = {.commands = commands, .commandCount = 6};
+    commands[6].image.repeatX = mui_imageRepeat;
+    commands[7].image.slice = (muiSides){2, 2, 2, 2};
+    commands[7].image.repeatY = mui_imageRepeat;
+    commands[8].image.repeatX = 200;
+    commands[9].image.slice = (muiSides){2, 2, 2, 2};
+    commands[9].image.repeatX = mui_imageRepeat;
+    muiDrawList list = {.commands = commands, .commandCount = 10};
     list.header.scale = (float)scale;
     if (!Render(gpu, renderer, &list, side, pixels))
     {
@@ -701,6 +747,21 @@ static void TestTiling(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels, int 
               Near(pixels, side, 7 * s, 37 * s, black, 2) &&
               Near(pixels, side, 12 * s, 37 * s, black, 2),
           "a 9-slice's middle spaced, its edge with it, its corners whole");
+    CHECK(Near(pixels, side, 3 * s, 37 * s, green, 2) &&
+              Near(pixels, side, 12 * s - 1, 37 * s, green, 2),
+          "spaced tiles sample half a texel inside the middle");
+    const int seam = (int)(7.5f * (float)s);
+    CHECK(Near(pixels, side, seam - 1, 49 * s, green, 2) &&
+              Near(pixels, side, seam, 49 * s, red, 2),
+          "a seam samples the first level");
+    CHECK(Near(pixels, side, 32 * s, 14 * s, red, 2) &&
+              Near(pixels, side, 32 * s, 15 * s, blue, 2) &&
+              Near(pixels, side, 28 * s, 40 * s, red, 2) &&
+              Near(pixels, side, 29 * s, 40 * s, green, 2),
+          "tiles shrink with the slices' fit");
+    CHECK(Near(pixels, side, 24 * s, 14 * s, red, 2) &&
+              Near(pixels, side, 28 * s, 14 * s, green, 2),
+          "an unknown repeat stretches");
 }
 
 #if MUI_TEST_TEXT
@@ -1076,6 +1137,10 @@ int main(void)
     if (textures.quads.index1 != 0)
     {
         (void)mrhiDestroyTexture(gpu.device, textures.quads);
+    }
+    if (textures.mipped.index1 != 0)
+    {
+        (void)mrhiDestroyTexture(gpu.device, textures.mipped);
     }
 #if MUI_TEST_TEXT
     muiDestroyTextService(def.text);
