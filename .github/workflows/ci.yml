@@ -17,7 +17,7 @@ jobs:
     name: checks
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install tools
         run: |
           sudo apt-get update -q
@@ -66,7 +66,7 @@ jobs:
           # With the Maul Window glue, its NSAccessibility branch built.
           - { name: macos-clang,         os: macos-15,     cc: clang,    cxx: clang++,    config: Release, extra: "-DMAUL_UI_WINDOW=ON" }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install compilers
         if: runner.os == 'Linux'
         run: |
@@ -91,7 +91,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # With the Maul Window glue, its UI Automation branch built.
       - name: Configure
         run: cmake -B build -T ClangCL -D${PREFIX}_WERROR=ON -D${PREFIX}_WINDOW=ON
@@ -116,7 +116,7 @@ jobs:
     name: linux-rhi
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install the compiler, lavapipe and the validation layer
         run: |
           sudo apt-get update -q
@@ -163,7 +163,7 @@ jobs:
     name: linux-window
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install the compiler
         run: |
           sudo apt-get update -q
@@ -197,7 +197,7 @@ jobs:
     name: ios-simulator
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Boot a simulator
         run: |
           udid=$(xcrun simctl list devices available -j | python3 -c '
@@ -231,7 +231,7 @@ jobs:
       # Where avdmanager writes the device and the emulator reads it.
       ANDROID_AVD_HOME: /home/runner/.android/avd
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Boot the emulator
         timeout-minutes: 15
         run: |
@@ -271,8 +271,8 @@ jobs:
     name: web-emscripten
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: mymindstorm/setup-emsdk@v14
+      - uses: actions/checkout@v7
+      - uses: emscripten-core/setup-emsdk@v16
       - name: Configure
         run: emcmake cmake -B build -DCMAKE_BUILD_TYPE=Release -D${PREFIX}_WERROR=ON -D${PREFIX}_WINDOW=ON
       - name: Build
