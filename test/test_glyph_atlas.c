@@ -18,6 +18,7 @@
 #include <stdalign.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "ahem.inc"
 
@@ -495,6 +496,111 @@ static void TestFields(void)
     Free(&fixture);
 }
 
+// A four-byte pixel of a page.
+static const unsigned char* Pixel4(muiGlyphAtlas* atlas, uint32_t x, uint32_t y)
+{
+    muiAtlasPage view = {0};
+    CHECK(muiGlyphAtlas_GetPage(atlas, 0, &view) == mui_success &&
+              view.format == mui_atlasFourChannel,
+          "a page of four channels");
+    return view.pixels + ((size_t)y * view.width + x) * 4;
+}
+
+static bool IsEmpty4(muiGlyphAtlas* atlas, uint32_t x, uint32_t y)
+{
+    const unsigned char* p = Pixel4(atlas, x, y);
+    return p[0] == 0 && p[1] == 0 && p[2] == 0 && p[3] == 0;
+}
+
+// An atlas of four channels beside one of one channel over the same
+// service: multi-channel fields packed four bytes a pixel, each kind
+// refused by the other atlas, and an emptied plot cleared in every
+// channel.
+static void TestMultiFields(void)
+{
+    Fixture fixture = Make(64, 32, 1, NULL);
+    muiGlyphAtlasDef def = muiDefaultGlyphAtlasDef();
+    def.pageWidth = 64;
+    def.pageHeight = 64;
+    def.plotWidth = 32;
+    def.plotHeight = 32;
+    def.maxPages = 1;
+    def.format = (muiAtlasFormat)2;
+    muiGlyphAtlas* atlas = NULL;
+    CHECK(muiCreateGlyphAtlas(fixture.service, &def, &atlas) == mui_errorInvalid,
+          "an unknown format");
+    def.format = mui_atlasFourChannel;
+    CHECK(muiCreateGlyphAtlas(fixture.service, &def, &atlas) == mui_success, "four channels");
+    unsigned char field[14 * 14 * 4];
+    muiGlyphImage image = {0};
+    CHECK(muiRenderGlyphMultiField(fixture.service, fixture.ahem, FIRST_BOX, 10.0f, 2, &image,
+                                   field, sizeof field) == mui_success &&
+              image.width == 14,
+          "the field alone");
+    muiAtlasGlyph glyph = {0};
+    CHECK(muiGlyphAtlas_GetMultiField(atlas, fixture.ahem, FIRST_BOX, 10.0f, 2, &glyph) ==
+                  mui_success &&
+              glyph.u == 1 && glyph.v == 1 && glyph.width == 14 && glyph.height == 14 &&
+              glyph.x == -2 && glyph.y == -10,
+          "placed as a field");
+    bool same = true;
+    for (uint32_t y = 0; y < 14; y++)
+    {
+        for (uint32_t x = 0; x < 14; x++)
+        {
+            same = same && memcmp(Pixel4(atlas, x + 1, y + 1), &field[(y * 14 + x) * 4], 4) == 0;
+        }
+    }
+    CHECK(same && IsEmpty4(atlas, 0, 0) && IsEmpty4(atlas, 15, 8) && IsEmpty4(atlas, 8, 15),
+          "the field's bytes and an empty gutter");
+    muiAtlasPage page = {0};
+    muiAtlasGlyph other = {0};
+    CHECK(Get(&fixture, FIRST_BOX, 0.0f, 0.0f, &other) == mui_success &&
+              muiGlyphAtlas_GetPage(fixture.atlas, 0, &page) == mui_success &&
+              page.format == mui_atlasOneChannel,
+          "coverage in the atlas of one channel");
+    CHECK(muiGlyphAtlas_GetMultiField(fixture.atlas, fixture.ahem, FIRST_BOX, 10.0f, 2, &other) ==
+                  mui_errorInvalid &&
+              muiGlyphAtlas_GetField(atlas, fixture.ahem, FIRST_BOX, 10.0f, 2, &other) ==
+                  mui_errorInvalid &&
+              muiGlyphAtlas_Get(atlas, fixture.ahem, FIRST_BOX, 10.0f, 0.0f, 0.0f, &other) ==
+                  mui_errorInvalid &&
+              muiGlyphAtlas_GetMultiField(NULL, fixture.ahem, FIRST_BOX, 10.0f, 2, &other) ==
+                  mui_errorInvalid &&
+              muiGlyphAtlas_GetMultiField(atlas, fixture.ahem, FIRST_BOX, 10.0f, 1, &other) ==
+                  mui_errorInvalid,
+          "each kind refused by the other atlas");
+    // In a later frame, fields of 24 to 27 pixels with their gutters, one
+    // to a plot, leave no room: a small one empties a plot, and what the
+    // field there left past the small one's 10 pixels is cleared in every
+    // channel.
+    muiGlyphAtlas_NextFrame(atlas);
+    const float sizes[4] = {10.0f, 11.0f, 12.0f, 13.0f};
+    for (uint32_t i = 0; i < 4; i++)
+    {
+        CHECK(muiGlyphAtlas_GetMultiField(atlas, fixture.ahem, FIRST_BOX, sizes[i], 6, &other) ==
+                      mui_success &&
+                  other.width == 22 + i,
+              "a plot filled");
+    }
+    muiGlyphAtlas_NextFrame(atlas);
+    CHECK(muiGlyphAtlas_GetMultiField(atlas, fixture.ahem, FIRST_BOX, 4.0f, 2, &other) ==
+                  mui_success &&
+              other.width == 8 && (other.u - 1) % 32 == 0 && (other.v - 1) % 32 == 0,
+          "a plot emptied and packed again");
+    bool cleared = true;
+    for (uint32_t y = 0; y < 26; y++)
+    {
+        for (uint32_t x = 10; x < 26; x++)
+        {
+            cleared = cleared && IsEmpty4(atlas, other.u - 1 + x, other.v - 1 + y);
+        }
+    }
+    CHECK(cleared, "the old field cleared in every channel");
+    muiDestroyGlyphAtlas(atlas);
+    Free(&fixture);
+}
+
 static void TestMemoryRunningOut(void)
 {
     for (int failAt = 1; failAt < 40; failAt++)
@@ -553,6 +659,7 @@ int main(void)
     TestManyEntries();
     TestContract();
     TestFields();
+    TestMultiFields();
     TestMemoryRunningOut();
     return s_failures == 0 ? 0 : 1;
 }

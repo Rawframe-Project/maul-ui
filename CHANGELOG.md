@@ -54,6 +54,11 @@ format.
 
 ### Added
 
+- Atlases of four channels: `muiGlyphAtlasDef.format` makes an atlas's
+  pages a byte a pixel (`mui_atlasOneChannel`, the default) or four
+  (`mui_atlasFourChannel`), and `muiGlyphAtlas_GetMultiField` packs
+  multi-channel fields into the latter; pages tell their format.
+
 - Multi-channel distance fields: `muiRenderGlyphMultiField` renders a
   glyph's MTSDF, four bytes a pixel, whose colour channels' median
   keeps corners sharp at any scale and whose alpha is the one-channel

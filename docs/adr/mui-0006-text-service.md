@@ -272,7 +272,12 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   font, glyph, size and spread, without a pen: a field is placed from
   the pen and baseline at its own size and drawn at any size by
   scaling. The empty gutter reads as far outside, as a field's border
-  does.
+  does. An atlas's pages are of one format, set when it is made: a byte
+  a pixel, for coverage and fields, or four, for multi-channel fields
+  (`muiGlyphAtlas_GetMultiField`), each refused by the other kind of
+  atlas. A renderer drawing both makes two atlases, so pages of
+  different formats never share an index space and each atlas's pages
+  upload as textures of one format.
 - **Measuring** uses the font's own advances, shaped at a scale of its
   units per em and scaled by size over units per em, so sizes are the
   same at every device scale; nothing is hinted.

@@ -675,17 +675,17 @@ Finds the face of a family a weight and slant choose, as text laid out in the fa
 
 ## `glyph_atlas.h`
 
-Glyph atlases (record mui-0006): glyph images of a text service's fonts, rendered as muiRenderGlyph and muiRenderGlyphField render them and packed into pages of 8-bit pixels a renderer uploads as textures; a page may hold coverage and distance fields both. Pages are split into plots; when no plot has room, the least recently used plot that the current frame has not used is emptied and packed again. The atlas keeps the pages' pixels and tells which rectangles changed; it uses no graphics API.
+Glyph atlases (record mui-0006): glyph images of a text service's fonts, rendered as muiRenderGlyph, muiRenderGlyphField and muiRenderGlyphMultiField render them and packed into pages a renderer uploads as textures. An atlas's pages are of one format: one byte a pixel, holding coverage and distance fields both, or four, holding multi-channel fields; a renderer wanting both makes two atlases, so their pages never share an index space. Pages are split into plots; when no plot has room, the least recently used plot that the current frame has not used is emptied and packed again. The atlas keeps the pages' pixels and tells which rectangles changed; it uses no graphics API.
 
 ```c
 muiGlyphAtlasDef muiDefaultGlyphAtlasDef(void);
 ```
-Returns the default atlas def: pages of 1,024 by 1,024 in plots of 256 by 256, at most 4 pages.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
+Returns the default atlas def: pages of 1,024 by 1,024 in plots of 256 by 256, at most 4 pages, a byte a pixel.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiCreateGlyphAtlas(muiTextService* service, const muiGlyphAtlasDef* def, muiGlyphAtlas** atlasOut);
 ```
-Creates an atlas of a text service's glyphs, in the service's memory. It is destroyed before the service.  @param service   The service. @param def       The atlas: a valid cookie; pages from 64 to 16,384 pixels a side; plots from 16 to 4,096 pixels a side that divide the pages, at most 4,096 of them a page; from 1 to 64 pages. @param atlasOut  Receives the atlas; set to NULL on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie or a size out of range; `mui_errorCapacity` when memory runs out. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+Creates an atlas of a text service's glyphs, in the service's memory. It is destroyed before the service.  @param service   The service. @param def       The atlas: a valid cookie; pages from 64 to 16,384 pixels a side; plots from 16 to 4,096 pixels a side that divide the pages, at most 4,096 of them a page; from 1 to 64 pages; a format of muiAtlasFormat. @param atlasOut  Receives the atlas; set to NULL on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie, a size out of range or an unknown format; `mui_errorCapacity` when memory runs out. @par Thread safety Safe from any thread; the service is used by one thread at a time.
 
 ```c
 void muiDestroyGlyphAtlas(muiGlyphAtlas* atlas);
@@ -700,12 +700,17 @@ Starts a frame: glyphs got before it may be evicted to make room.  @param atlas 
 ```c
 MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_Get(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, float pixelSize, float penX, float baselineY, muiAtlasGlyph* glyphOut);
 ```
-Gets a glyph's image for a pen in device pixels, rendering and packing it the first time. The pen's x is taken to the nearest quarter pixel and its baseline to the nearest pixel; the font key 0 is the default font's. The glyph's plot is kept until a later frame.  @param atlas      The atlas. @param font       A font key, as a glyph run carries. @param glyph      A glyph id of the font. @param pixelSize  The em in device pixels, as muiRenderGlyph takes. @param penX       The pen, in device pixels, within 2^24 of 0. @param baselineY  The baseline, likewise. @param glyphOut   Receives the image; when the image is larger than a plot, its width and height only. @return `mui_success`; `mui_errorCapacity` when the image is larger than a plot, every plot is in use this frame, or memory runs out; `mui_errorInvalid` for a NULL atlas or glyphOut, a size or position out of range, or a glyph id the font lacks; `mui_errorStale` for a key that names no font; `mui_errorFormat` for a glyph that cannot be rendered. @par Thread safety Safe from any thread; the atlas is used by one thread at a time.
+Gets a glyph's image for a pen in device pixels, rendering and packing it the first time. The pen's x is taken to the nearest quarter pixel and its baseline to the nearest pixel; the font key 0 is the default font's. The glyph's plot is kept until a later frame.  @param atlas      The atlas. @param font       A font key, as a glyph run carries. @param glyph      A glyph id of the font. @param pixelSize  The em in device pixels, as muiRenderGlyph takes. @param penX       The pen, in device pixels, within 2^24 of 0. @param baselineY  The baseline, likewise. @param glyphOut   Receives the image; when the image is larger than a plot, its width and height only. @return `mui_success`; `mui_errorCapacity` when the image is larger than a plot, every plot is in use this frame, or memory runs out; `mui_errorInvalid` for a NULL atlas or glyphOut, an atlas of four channels, a size or position out of range, or a glyph id the font lacks; `mui_errorStale` for a key that names no font; `mui_errorFormat` for a glyph that cannot be rendered. @par Thread safety Safe from any thread; the atlas is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_GetField(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, float pixelSize, uint32_t spread, muiAtlasGlyph* glyphOut);
 ```
 Gets a glyph's distance field, rendering and packing it the first time, as muiRenderGlyphField renders it; the font key 0 is the default font's. A renderer draws it at any size s by scaling the image and its place, x and y from the pen and baseline, by s / pixelSize. The glyph's plot is kept until a later frame.  @param atlas      The atlas. @param font       A font key, as a glyph run carries. @param glyph      A glyph id of the font. @param pixelSize  The em in pixels of the field, as muiRenderGlyphField takes. @param spread     How far the field reaches past the outline, from MUI_MIN_FIELD_SPREAD to MUI_MAX_FIELD_SPREAD pixels. @param glyphOut   Receives the image; when the image is larger than a plot, its width and height only. @return As muiGlyphAtlas_Get, with a spread out of range invalid. @par Thread safety Safe from any thread; the atlas is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_GetMultiField(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, float pixelSize, uint32_t spread, muiAtlasGlyph* glyphOut);
+```
+Gets a glyph's multi-channel distance field from an atlas of four channels, rendering and packing it the first time, as muiRenderGlyphMultiField renders it; the font key 0 is the default font's. It is placed and drawn as muiGlyphAtlas_GetField's fields are, from the median of its red, green and blue, or from its alpha as a one-channel field. The glyph's plot is kept until a later frame.  @param atlas      The atlas, of four channels. @param font       A font key, as a glyph run carries. @param glyph      A glyph id of the font. @param pixelSize  The em in pixels of the field, as muiRenderGlyphMultiField takes. @param spread     How far the field reaches past the outline, from MUI_MIN_FIELD_SPREAD to MUI_MAX_FIELD_SPREAD pixels. @param glyphOut   Receives the image; when the image is larger than a plot, its width and height only. @return As muiGlyphAtlas_GetField, with an atlas of one channel invalid. @par Thread safety Safe from any thread; the atlas is used by one thread at a time.
 
 ```c
 uint32_t muiGlyphAtlas_GetPageCount(const muiGlyphAtlas* atlas);
@@ -1650,4 +1655,4 @@ Reads a node's resolved visual values: its direct writes, and for the other prop
 
 ---
 
-301 functions across 35 headers.
+302 functions across 35 headers.

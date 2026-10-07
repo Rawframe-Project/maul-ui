@@ -64,6 +64,8 @@ struct muiGlyphAtlas
     uint32_t plotWidth;
     uint32_t plotHeight;
     uint32_t maxPages;
+    // Bytes a pixel: 1, or 4 for an atlas of four channels.
+    uint32_t channels;
     uint32_t plotsAcross;
     uint32_t plotsPerPage;
     uint32_t pageCount;
@@ -93,6 +95,7 @@ muiGlyphAtlasDef muiDefaultGlyphAtlasDef(void)
         .plotWidth = 256,
         .plotHeight = 256,
         .maxPages = 4,
+        .format = mui_atlasOneChannel,
     };
 }
 
@@ -107,7 +110,8 @@ static bool IsDefValid(const muiGlyphAtlasDef* def)
            def->pageHeight % def->plotHeight == 0 &&
            (def->pageWidth / def->plotWidth) * (def->pageHeight / def->plotHeight) <=
                MAX_PLOTS_PER_PAGE &&
-           def->maxPages >= 1 && def->maxPages <= MAX_PAGES;
+           def->maxPages >= 1 && def->maxPages <= MAX_PAGES &&
+           (def->format == mui_atlasOneChannel || def->format == mui_atlasFourChannel);
 }
 
 muiResult muiCreateGlyphAtlas(muiTextService* service, const muiGlyphAtlasDef* def,
@@ -133,7 +137,9 @@ muiResult muiCreateGlyphAtlas(muiTextService* service, const muiGlyphAtlasDef* d
     size_t plotsAt = muiLayoutAdd(&layout, plots, sizeof(Plot), alignof(Plot));
     size_t generationsAt = muiLayoutAdd(&layout, plots, sizeof(uint32_t), alignof(uint32_t));
     size_t dirtyAt = muiLayoutAdd(&layout, plots, sizeof(uint32_t), alignof(uint32_t));
-    size_t scratchAt = muiLayoutAdd(&layout, (size_t)def->plotWidth * def->plotHeight, 1, 1);
+    uint32_t channels = def->format == mui_atlasFourChannel ? 4u : 1u;
+    size_t scratchAt =
+        muiLayoutAdd(&layout, (size_t)def->plotWidth * def->plotHeight * channels, 1, 1);
     unsigned char* block = muiAllocate(&service->allocator, layout.size, alignof(muiGlyphAtlas));
     if (block == nullptr)
     {
@@ -150,6 +156,7 @@ muiResult muiCreateGlyphAtlas(muiTextService* service, const muiGlyphAtlasDef* d
         .plotWidth = def->plotWidth,
         .plotHeight = def->plotHeight,
         .maxPages = def->maxPages,
+        .channels = channels,
         .plotsAcross = def->pageWidth / def->plotWidth,
         .plotsPerPage = plotsPerPage,
         .pages = (unsigned char**)(block + pagesAt),
@@ -162,6 +169,11 @@ muiResult muiCreateGlyphAtlas(muiTextService* service, const muiGlyphAtlasDef* d
     };
     *atlasOut = atlas;
     return mui_success;
+}
+
+static size_t PageBytes(const muiGlyphAtlas* atlas)
+{
+    return (size_t)atlas->pageWidth * atlas->pageHeight * atlas->channels;
 }
 
 static size_t NodeBytes(const muiGlyphAtlas* atlas)
@@ -178,7 +190,7 @@ void muiDestroyGlyphAtlas(muiGlyphAtlas* atlas)
     muiAllocator allocator = atlas->allocator;
     for (uint32_t i = 0; i < atlas->pageCount; i++)
     {
-        muiRelease(&allocator, atlas->pages[i], (size_t)atlas->pageWidth * atlas->pageHeight, 1);
+        muiRelease(&allocator, atlas->pages[i], PageBytes(atlas), 1);
         muiRelease(&allocator, atlas->pageNodes[i], NodeBytes(atlas), alignof(muiSkylineNode));
     }
     muiFreeGlyphTable(&allocator, &atlas->table);
@@ -208,7 +220,7 @@ static unsigned char* PageOf(const muiGlyphAtlas* atlas, uint32_t plot)
 
 static bool AddPage(muiGlyphAtlas* atlas)
 {
-    size_t pixelBytes = (size_t)atlas->pageWidth * atlas->pageHeight;
+    size_t pixelBytes = PageBytes(atlas);
     unsigned char* pixels = muiAllocate(&atlas->allocator, pixelBytes, 1);
     muiSkylineNode* nodes =
         muiAllocate(&atlas->allocator, NodeBytes(atlas), alignof(muiSkylineNode));
@@ -251,7 +263,8 @@ static void Evict(muiGlyphAtlas* atlas, uint32_t plot)
     unsigned char* pixels = PageOf(atlas, plot);
     for (uint32_t row = 0; row < atlas->plotHeight; row++)
     {
-        memset(pixels + (size_t)(y + row) * atlas->pageWidth + x, 0, atlas->plotWidth);
+        memset(pixels + ((size_t)(y + row) * atlas->pageWidth + x) * atlas->channels, 0,
+               (size_t)atlas->plotWidth * atlas->channels);
     }
 }
 
@@ -361,13 +374,24 @@ static muiResult Add(muiGlyphAtlas* atlas, const muiGlyphKey* key, muiAtlasEntry
     muiGlyphImage image = {0, 0, 0, 0};
     float size = (float)((key->sizeBin & SIZE_MASK) >> 2) / 64.0f;
     uint32_t spread = key->sizeBin >> SPREAD_SHIFT;
-    size_t capacity = (size_t)atlas->plotWidth * atlas->plotHeight;
-    muiResult result =
-        spread != 0
-            ? muiRenderGlyphField(atlas->service, key->font, key->glyph, size, spread, &image,
-                                  atlas->scratch, capacity)
-            : muiRenderGlyph(atlas->service, key->font, key->glyph, size,
-                             (float)(key->sizeBin & 3u) / 4.0f, &image, atlas->scratch, capacity);
+    size_t capacity = (size_t)atlas->plotWidth * atlas->plotHeight * atlas->channels;
+    muiResult result = mui_success;
+    if (atlas->channels == 4)
+    {
+        result = muiRenderGlyphMultiField(atlas->service, key->font, key->glyph, size, spread,
+                                          &image, atlas->scratch, capacity);
+    }
+    else if (spread != 0)
+    {
+        result = muiRenderGlyphField(atlas->service, key->font, key->glyph, size, spread, &image,
+                                     atlas->scratch, capacity);
+    }
+    else
+    {
+        result =
+            muiRenderGlyph(atlas->service, key->font, key->glyph, size,
+                           (float)(key->sizeBin & 3u) / 4.0f, &image, atlas->scratch, capacity);
+    }
     bool tooLarge =
         image.width + GUTTER > atlas->plotWidth || image.height + GUTTER > atlas->plotHeight;
     if ((result == mui_success || result == mui_errorCapacity) && tooLarge)
@@ -403,10 +427,11 @@ static muiResult Add(muiGlyphAtlas* atlas, const muiGlyphKey* key, muiAtlasEntry
             return result;
         }
         unsigned char* pixels = PageOf(atlas, plot);
+        size_t rowBytes = (size_t)image.width * atlas->channels;
         for (uint32_t row = 0; row < image.height; row++)
         {
-            memcpy(pixels + (size_t)(y + 1 + row) * atlas->pageWidth + x + 1,
-                   atlas->scratch + (size_t)row * image.width, image.width);
+            memcpy(pixels + ((size_t)(y + 1 + row) * atlas->pageWidth + x + 1) * atlas->channels,
+                   atlas->scratch + (size_t)row * rowBytes, rowBytes);
         }
         MarkChanged(atlas, plot, x, y, image.width + GUTTER, image.height + GUTTER);
         placed.plot = plot;
@@ -485,8 +510,8 @@ static uint32_t SizeOf(float pixelSize)
 muiResult muiGlyphAtlas_Get(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, float pixelSize,
                             float penX, float baselineY, muiAtlasGlyph* glyphOut)
 {
-    if (atlas == nullptr || glyphOut == nullptr || !IsSizeValid(pixelSize) ||
-        !(fabsf(penX) <= MAX_PEN) || !(fabsf(baselineY) <= MAX_PEN))
+    if (atlas == nullptr || glyphOut == nullptr || atlas->channels != 1 ||
+        !IsSizeValid(pixelSize) || !(fabsf(penX) <= MAX_PEN) || !(fabsf(baselineY) <= MAX_PEN))
     {
         return mui_errorInvalid;
     }
@@ -505,11 +530,12 @@ muiResult muiGlyphAtlas_Get(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
     return result;
 }
 
-muiResult muiGlyphAtlas_GetField(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
-                                 float pixelSize, uint32_t spread, muiAtlasGlyph* glyphOut)
+// Gets a field, of one channel or of four as the atlas is.
+static muiResult GetField(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, float pixelSize,
+                          uint32_t spread, muiAtlasGlyph* glyphOut)
 {
-    if (atlas == nullptr || glyphOut == nullptr || !IsSizeValid(pixelSize) ||
-        spread < MUI_MIN_FIELD_SPREAD || spread > MUI_MAX_FIELD_SPREAD)
+    if (glyphOut == nullptr || !IsSizeValid(pixelSize) || spread < MUI_MIN_FIELD_SPREAD ||
+        spread > MUI_MAX_FIELD_SPREAD)
     {
         return mui_errorInvalid;
     }
@@ -524,6 +550,22 @@ muiResult muiGlyphAtlas_GetField(muiGlyphAtlas* atlas, uint64_t font, uint32_t g
     return result;
 }
 
+muiResult muiGlyphAtlas_GetField(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
+                                 float pixelSize, uint32_t spread, muiAtlasGlyph* glyphOut)
+{
+    return atlas != nullptr && atlas->channels == 1
+               ? GetField(atlas, font, glyph, pixelSize, spread, glyphOut)
+               : mui_errorInvalid;
+}
+
+muiResult muiGlyphAtlas_GetMultiField(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
+                                      float pixelSize, uint32_t spread, muiAtlasGlyph* glyphOut)
+{
+    return atlas != nullptr && atlas->channels == 4
+               ? GetField(atlas, font, glyph, pixelSize, spread, glyphOut)
+               : mui_errorInvalid;
+}
+
 uint32_t muiGlyphAtlas_GetPageCount(const muiGlyphAtlas* atlas)
 {
     return atlas != nullptr ? atlas->pageCount : 0;
@@ -535,7 +577,8 @@ muiResult muiGlyphAtlas_GetPage(const muiGlyphAtlas* atlas, uint32_t page, muiAt
     {
         return mui_errorInvalid;
     }
-    *pageOut = (muiAtlasPage){atlas->pages[page], atlas->pageWidth, atlas->pageHeight};
+    *pageOut = (muiAtlasPage){atlas->pages[page], atlas->pageWidth, atlas->pageHeight,
+                              atlas->channels == 4 ? mui_atlasFourChannel : mui_atlasOneChannel};
     return mui_success;
 }
 
