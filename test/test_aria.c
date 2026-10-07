@@ -333,8 +333,13 @@ static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* ro
     CHECK(Send(adapter, (const muiAccessNode*[]){&heading}, 1, rootChildren), "not renamed");
     Sleep();
     CHECK(TextIs("#mui0-assertive", "Topic 3"), "the region keeps the name a while");
+    // A scroll event comes with the page's next rendering, whose time
+    // depends on the compositor: waited for, up to a second.
     ScrollHost(40);
-    Sleep();
+    for (int waited = 0; waited < 50 && HostTop() != 0; waited++)
+    {
+        Sleep();
+    }
     CHECK(HostTop() == 0, "the host's scroll put back");
     emscripten_sleep(350);
     CHECK(TextIs("#mui0-assertive", ""), "the announcement taken away after a while");

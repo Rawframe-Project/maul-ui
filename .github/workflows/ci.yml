@@ -301,9 +301,16 @@ jobs:
   web:
     name: web-emscripten
     runs-on: ubuntu-24.04
+    env:
+      # Chrome's compositor on Vulkan through lavapipe, for canvases.
+      VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.json
     steps:
       - uses: actions/checkout@v7
       - uses: emscripten-core/setup-emsdk@v16
+      - name: Install lavapipe
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q mesa-vulkan-drivers
       - name: Configure
         run: emcmake cmake -B build -DCMAKE_BUILD_TYPE=Release -D${PREFIX}_WERROR=ON -D${PREFIX}_WINDOW=ON
       - name: Build
