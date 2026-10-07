@@ -15,7 +15,8 @@ format.
   87): an image's middle, or the whole of one without slices, stretched
   (as before), repeated, rounded or spaced across and up, as CSS's
   border-image-repeat. `muiDrawImage` is 80 bytes; the command is not
-  larger.
+  larger. The reference renderer tiles per fragment, half a texel inside
+  the middle, its texture gradients unwrapped across seams.
 
 - Colour bitmap glyphs: `muiRenderColorGlyph` draws a glyph's PNG from
   a font's CBLC and CBDT tables (Noto Color Emoji's) or its sbix table

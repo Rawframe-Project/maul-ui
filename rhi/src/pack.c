@@ -7,7 +7,8 @@
 // an outer shadow's quad reaches three sigmas past its shape, an inset
 // one's is its box. An image's slice insets are one logical unit a texel
 // as drawn, all four shrunk by one factor where two facing ones would
-// not fit, as CSS's border-image shrinks them. A glyph run whose
+// not fit, as CSS's border-image shrinks them; its middle's tiles are
+// its texels at that size too, and the shader tiles them. A glyph run whose
 // transform only moves it is drawn as coverage the atlas renders at its
 // device pixels, the pen's place there and the quad's in the run's own
 // units; one a transform scales or turns, or a glyph too large for the
@@ -153,6 +154,12 @@ static float Fit(float length, float low, float high)
     return low + high > length && low + high > 0.0f ? length / (low + high) : 1.0f;
 }
 
+// A repeat the renderer knows, stretch for any other.
+static muiImageRepeat Repeat(muiImageRepeat repeat)
+{
+    return repeat <= mui_imageSpace ? repeat : mui_imageStretch;
+}
+
 static muiRhiInstance ImageOf(const muiDrawList* list, const muiDrawCommand* command,
                               const muiRhiImageEntry* entry, uint32_t index)
 {
@@ -164,6 +171,9 @@ static muiRhiInstance ImageOf(const muiDrawList* list, const muiDrawCommand* com
     // Texel insets run the way the uv does: back, for a mirrored image.
     float width = (float)entry->image.width * (image->uv.width < 0.0f ? -1.0f : 1.0f);
     float height = (float)entry->image.height * (image->uv.height < 0.0f ? -1.0f : 1.0f);
+    // A tile: the middle's texels at one logical unit each, times the fit.
+    float tileX = fmaxf(width * image->uv.width - slice.left - slice.right, 0.0f) * fit;
+    float tileY = fmaxf(height * image->uv.height - slice.top - slice.bottom, 0.0f) * fit;
     return (muiRhiInstance){
         .rect = image->rect,
         .fill = image->tint,
@@ -174,7 +184,10 @@ static muiRhiInstance ImageOf(const muiDrawList* list, const muiDrawCommand* com
                 {slice.top * fit, slice.right * fit, slice.bottom * fit, slice.left * fit},
                 {slice.top / height, slice.right / width, slice.bottom / height,
                  slice.left / width},
+                {tileX, tileY, (float)Repeat(image->repeatX), (float)Repeat(image->repeatY)},
             },
+        // Half a texel, the way the uv runs.
+        .widths = {0.5f / height, 0.5f / width, 0.0f, 0.0f},
         .kind = mui_drawImage,
         .clip = Index(command->clip, list->clipCount),
         .transform = Index(command->transform, list->transformCount),

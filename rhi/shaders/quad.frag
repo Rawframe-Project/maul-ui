@@ -12,7 +12,8 @@
 //   outside its box, or inside it when inset;
 // - an image: its texture in table 1 sampled at a uv that maps its
 //   slices, its corners and edges kept at their insets' size and its
-//   middle stretched, times its tint, its edges covered as a box's;
+//   middle stretched or tiled (repeated, rounded or spaced), times its
+//   tint, its edges covered as a box's;
 // - a glyph: its coverage from its atlas page in table 1, sampled within
 //   its rect and half a texel of gutter, times its color; a
 //   multi-channel field's median of red, green and blue made a distance
@@ -298,28 +299,78 @@ vec4 Shadow()
     return instances.items[index].fill * coverage;
 }
 
-// Where a point of an image samples along one axis: within its first
-// inset the first slice, within its last the last, the middle stretched
-// between, each across its part of the uv rect.
-float Along(float p, float length, float low, float high, float uvLow, float uvHigh, float from,
-            float to)
+// Where a point of an image's middle, q along a span, falls: from 0 to 1
+// across a tile (across the span when stretched), the same unwrapped for
+// gradients, and 1 where spacing leaves a gap. Repeated tiles are
+// centred; rounded ones are round(span / tile) to the span; spaced ones
+// are whole, with equal gaps before, between and after.
+vec3 Tile(float q, float span, float tile, float mode)
+{
+    if (mode == 0.0 || tile <= 0.0)
+    {
+        float t = q / max(span, 1e-6);
+        return vec3(t, t, 0.0);
+    }
+    if (mode == 1.0)
+    {
+        float u = (q - span * 0.5) / tile + 0.5;
+        return vec3(fract(u), u, 0.0);
+    }
+    if (mode == 2.0)
+    {
+        float u = q * max(floor(span / tile + 0.5), 1.0) / max(span, 1e-6);
+        return vec3(fract(u), u, 0.0);
+    }
+    float n = floor(span / tile);
+    float g = (span - n * tile) / (n + 1.0);
+    float k = floor((q - g) / (tile + g));
+    float within = q - g - k * (tile + g);
+    bool gap = n < 1.0 || k < 0.0 || k >= n || within > tile;
+    return vec3(within / tile, q / tile, gap ? 1.0 : 0.0);
+}
+
+// Where a point of an image samples along one axis, the same unwrapped,
+// and 1 in a gap: within its first inset the first slice, within its last
+// the last, the middle stretched or tiled between, each across its part
+// of the uv rect; a tiled middle samples half a texel inside its part.
+vec3 Along(float p, float length, float low, float high, float uvLow, float uvHigh, float from,
+           float to, float tile, float mode, float halfTexel)
 {
     float first = from + p / max(low, 1e-6) * uvLow;
     float last = to - (length - p) / max(high, 1e-6) * uvHigh;
-    float middle = mix(from + uvLow, to - uvHigh, (p - low) / max(length - low - high, 1e-6));
-    return p < low ? first : (p > length - high ? last : middle);
+    float a = from + uvLow;
+    float b = to - uvHigh;
+    vec3 t = Tile(p - low, length - low - high, tile, mode);
+    float middle = mix(a, b, t.x);
+    float inset = abs(halfTexel);
+    float lo = min(min(a, b) + inset, max(a, b) - inset);
+    float hi = max(min(a, b) + inset, max(a, b) - inset);
+    middle = mode != 0.0 && tile > 0.0 ? clamp(middle, lo, hi) : middle;
+    bool inFirst = p < low;
+    bool inLast = p > length - high;
+    return vec3(inFirst ? first : (inLast ? last : middle),
+                inFirst ? first : (inLast ? last : mix(a, b, t.y)),
+                inFirst || inLast ? 0.0 : t.z);
 }
 
-// The uv an image's fragment samples, in logical units within its rect.
-vec2 ImageUv()
+// The uv an image's fragment samples, in logical units within its rect,
+// then the same unwrapped, for gradients; gap set where spacing leaves
+// no tile.
+vec4 ImageUv(out bool gap)
 {
     vec4 rect = instances.items[index].rect;
     vec2 p = clamp(local / root.frame.z, vec2(0.0), rect.zw);
     vec4 uv = instances.items[index].colors[0];
     vec4 drawn = instances.items[index].colors[1];
     vec4 texels = instances.items[index].colors[2];
-    return vec2(Along(p.x, rect.z, drawn.w, drawn.y, texels.w, texels.y, uv.x, uv.z),
-                Along(p.y, rect.w, drawn.x, drawn.z, texels.x, texels.z, uv.y, uv.w));
+    vec4 tiles = instances.items[index].colors[3];
+    vec4 halfTexel = instances.items[index].widths;
+    vec3 x = Along(p.x, rect.z, drawn.w, drawn.y, texels.w, texels.y, uv.x, uv.z, tiles.x, tiles.z,
+                   halfTexel.y);
+    vec3 y = Along(p.y, rect.w, drawn.x, drawn.z, texels.x, texels.z, uv.y, uv.w, tiles.y, tiles.w,
+                   halfTexel.x);
+    gap = x.z != 0.0 || y.z != 0.0;
+    return vec4(x.x, y.x, x.y, y.y);
 }
 
 vec4 Image(vec2 size, vec2 uv, vec2 dx, vec2 dy)
@@ -373,9 +424,12 @@ void main()
 {
     vec2 size = instances.items[index].rect.zw * root.frame.z;
     uint kind = instances.items[index].tags.x;
-    vec2 uv = ImageUv();
-    vec2 dx = dFdx(uv);
-    vec2 dy = dFdy(uv);
+    bool gap = false;
+    vec4 uvs = ImageUv(gap);
+    vec2 uv = uvs.xy;
+    // From the unwrapped uv, so a tile's seam does not pick a coarser level.
+    vec2 dx = dFdx(uvs.zw);
+    vec2 dy = dFdy(uvs.zw);
     vec4 color;
     if (kind == kShadow)
     {
@@ -383,7 +437,7 @@ void main()
     }
     else if (kind == kImage)
     {
-        color = Image(size, uv, dx, dy);
+        color = gap ? vec4(0.0) : Image(size, uv, dx, dy);
     }
     else if (kind == kGlyph)
     {

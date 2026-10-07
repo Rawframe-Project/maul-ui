@@ -470,6 +470,7 @@ typedef struct Textures
     mrhiTextureId bordered;
     mrhiTextureId blue;
     mrhiTextureId sided;
+    mrhiTextureId quads;
 } Textures;
 
 static bool FindImage(void* context, uint64_t key, muiRhiImage* imageOut)
@@ -488,6 +489,11 @@ static bool FindImage(void* context, uint64_t key, muiRhiImage* imageOut)
     if (key == 3)
     {
         *imageOut = (muiRhiImage){textures->sided, 8, 8};
+        return true;
+    }
+    if (key == 4)
+    {
+        *imageOut = (muiRhiImage){textures->quads, 8, 8};
         return true;
     }
     return false;
@@ -543,6 +549,8 @@ static bool MakeTextures(Gpu* gpu, Textures* textures)
     // columns alone, which a mirror moves.
     uint8_t bordered[8 * 8 * 4];
     uint8_t sided[8 * 8 * 4];
+    // Quarters: red, green above; blue, white below.
+    uint8_t quads[8 * 8 * 4];
     for (int y = 0; y < 8; y++)
     {
         for (int x = 0; x < 8; x++)
@@ -552,13 +560,19 @@ static bool MakeTextures(Gpu* gpu, Textures* textures)
             memcpy(&bordered[(y * 8 + x) * 4], texel, 4);
             const uint8_t side[4] = {x < 2 ? 255 : 0, x < 2 ? 0 : 255, 0, 255};
             memcpy(&sided[(y * 8 + x) * 4], side, 4);
+            bool right = x >= 4;
+            bool below = y >= 4;
+            const uint8_t quad[4] = {(!right && !below) || (right && below) ? 255 : 0,
+                                     right ? 255 : 0, below ? 255 : 0, 255};
+            memcpy(&quads[(y * 8 + x) * 4], quad, 4);
         }
     }
     const uint8_t blue[2 * 2 * 4] = {0, 0, 255, 255, 0, 0, 255, 255,
                                      0, 0, 255, 255, 0, 0, 255, 255};
     return MakeTexture(gpu, 8, bordered, &textures->bordered) &&
            MakeTexture(gpu, 2, blue, &textures->blue) &&
-           MakeTexture(gpu, 8, sided, &textures->sided);
+           MakeTexture(gpu, 8, sided, &textures->sided) &&
+           MakeTexture(gpu, 8, quads, &textures->quads);
 }
 
 static muiDrawCommand Image(uint64_t key, muiRect rect)
@@ -619,6 +633,74 @@ static void TestImages(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels, int 
     CHECK(Near(pixels, side, 45 * s, 54 * s, red, 2) &&
               Near(pixels, side, 58 * s, 54 * s, green, 2),
           "as it is: on the left");
+}
+
+// Tiling, an image's middle filled as CSS's border-image-repeat: the
+// red-sided image (red in its first 2 of 8 texels across) repeated over
+// 20, its tiles centred, so starting at -2, 6 and 14; rounded, three
+// tiles of 20 / 3; spaced, two with gaps of 4 / 3, and none in a width of
+// 6. The quarters image repeated across 16 (tiles from -4, 4 and 12) and
+// rounded up 24 (three of 8). The bordered image sliced at 2 over 15 by
+// 12, its middle of 4 texels spaced across 11: tiles at 3 and 8, gaps of
+// 1 in its top edge and middle alike, its corners whole.
+static void TestTiling(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels, int scale)
+{
+    const uint32_t side = 64u * (uint32_t)scale;
+    muiDrawCommand commands[6] = {
+        Image(3, (muiRect){0, 0, 20, 8}),    Image(3, (muiRect){0, 10, 20, 8}),
+        Image(3, (muiRect){0, 20, 20, 8}),   Image(3, (muiRect){24, 0, 6, 8}),
+        Image(4, (muiRect){40, 10, 16, 24}), Image(1, (muiRect){0, 32, 15, 12}),
+    };
+    commands[0].image.repeatX = mui_imageRepeat;
+    commands[1].image.repeatX = mui_imageRound;
+    commands[2].image.repeatX = mui_imageSpace;
+    commands[3].image.repeatX = mui_imageSpace;
+    commands[4].image.repeatX = mui_imageRepeat;
+    commands[4].image.repeatY = mui_imageRound;
+    commands[5].image.slice = (muiSides){2, 2, 2, 2};
+    commands[5].image.repeatX = mui_imageSpace;
+    muiDrawList list = {.commands = commands, .commandCount = 6};
+    list.header.scale = (float)scale;
+    if (!Render(gpu, renderer, &list, side, pixels))
+    {
+        CHECK(false, "tiled images drawn and read");
+        return;
+    }
+    const int black[4] = {0, 0, 0, 255};
+    const int red[4] = {255, 0, 0, 255};
+    const int green[4] = {0, 255, 0, 255};
+    const int blue[4] = {0, 0, 255, 255};
+    const int white[4] = {255, 255, 255, 255};
+    const int s = scale;
+    CHECK(Near(pixels, side, 1 * s, 4 * s, green, 2) && Near(pixels, side, 7 * s, 4 * s, red, 2) &&
+              Near(pixels, side, 10 * s, 4 * s, green, 2) &&
+              Near(pixels, side, 15 * s, 4 * s, red, 2) &&
+              Near(pixels, side, 18 * s, 4 * s, green, 2),
+          "repeated, tiles centred");
+    CHECK(Near(pixels, side, 0, 14 * s, red, 2) && Near(pixels, side, 4 * s, 14 * s, green, 2) &&
+              Near(pixels, side, 7 * s, 14 * s, red, 2) &&
+              Near(pixels, side, 11 * s, 14 * s, green, 2) &&
+              Near(pixels, side, 14 * s, 14 * s, red, 2),
+          "rounded, three tiles to the width");
+    CHECK(Near(pixels, side, 0, 24 * s, black, 2) && Near(pixels, side, 2 * s, 24 * s, red, 2) &&
+              Near(pixels, side, 10 * s, 24 * s, black, 2) &&
+              Near(pixels, side, 11 * s, 24 * s, red, 2) &&
+              Near(pixels, side, 15 * s, 24 * s, green, 2) &&
+              Near(pixels, side, 19 * s, 24 * s, black, 2),
+          "spaced, gaps before, between and after");
+    CHECK(Near(pixels, side, 27 * s, 4 * s, black, 2), "spaced, no tile fits");
+    CHECK(Near(pixels, side, 41 * s, 11 * s, green, 2) &&
+              Near(pixels, side, 45 * s, 11 * s, red, 2) &&
+              Near(pixels, side, 49 * s, 15 * s, white, 2) &&
+              Near(pixels, side, 53 * s, 23 * s, blue, 2),
+          "repeated across, rounded up");
+    CHECK(Near(pixels, side, 0, 33 * s, red, 2) && Near(pixels, side, 4 * s, 33 * s, red, 2) &&
+              Near(pixels, side, 7 * s, 33 * s, black, 2) &&
+              Near(pixels, side, 14 * s, 33 * s, red, 2) &&
+              Near(pixels, side, 4 * s, 37 * s, green, 2) &&
+              Near(pixels, side, 7 * s, 37 * s, black, 2) &&
+              Near(pixels, side, 12 * s, 37 * s, black, 2),
+          "a 9-slice's middle spaced, its edge with it, its corners whole");
 }
 
 #if MUI_TEST_TEXT
@@ -964,6 +1046,8 @@ int main(void)
         TestClipsAndTransforms(&gpu, renderer, pixels, 2);
         TestImages(&gpu, renderer, pixels, 1);
         TestImages(&gpu, renderer, pixels, 2);
+        TestTiling(&gpu, renderer, pixels, 1);
+        TestTiling(&gpu, renderer, pixels, 2);
 #if MUI_TEST_TEXT
         TestGlyphs(&gpu, renderer, font, pixels, 1);
         TestGlyphs(&gpu, renderer, font, pixels, 2);
@@ -984,6 +1068,14 @@ int main(void)
     if (textures.blue.index1 != 0)
     {
         (void)mrhiDestroyTexture(gpu.device, textures.blue);
+    }
+    if (textures.sided.index1 != 0)
+    {
+        (void)mrhiDestroyTexture(gpu.device, textures.sided);
+    }
+    if (textures.quads.index1 != 0)
+    {
+        (void)mrhiDestroyTexture(gpu.device, textures.quads);
     }
 #if MUI_TEST_TEXT
     muiDestroyTextService(def.text);

@@ -59,6 +59,8 @@ struct Between {
 
 // The fragment's span, as quad.frag's input.
 var<private> span: f32;
+// Whether an image's fragment falls in a gap its spaced tiles leave.
+var<private> gapped: bool;
 
 const kCorners = array<vec2f, 6>(vec2f(0.0, 0.0), vec2f(1.0, 0.0), vec2f(0.0, 1.0),
                                  vec2f(0.0, 1.0), vec2f(1.0, 0.0), vec2f(1.0, 1.0));
@@ -263,26 +265,71 @@ fn shadow(index: u32, local: vec2f) -> vec4f {
     return instances[index].fill * coverage;
 }
 
-// Where a point of an image samples along one axis: within its first
-// inset the first slice, within its last the last, the middle stretched
-// between, each across its part of the uv rect.
-fn along(p: f32, length: f32, low: f32, high: f32, uvLow: f32, uvHigh: f32, start: f32,
-         end: f32) -> f32 {
-    let first = start + p / max(low, 1e-6) * uvLow;
-    let last = end - (length - p) / max(high, 1e-6) * uvHigh;
-    let middle = mix(start + uvLow, end - uvHigh, (p - low) / max(length - low - high, 1e-6));
-    return select(select(middle, last, p > length - high), first, p < low);
+// Where a point of an image's middle, q along a span, falls: from 0 to 1
+// across a tile (across the span when stretched), the same unwrapped for
+// gradients, and 1 where spacing leaves a gap. Repeated tiles are
+// centred; rounded ones are round(span / tile) to the span; spaced ones
+// are whole, with equal gaps before, between and after.
+fn tile(q: f32, span: f32, size: f32, mode: f32) -> vec3f {
+    if (mode == 0.0 || size <= 0.0) {
+        let t = q / max(span, 1e-6);
+        return vec3f(t, t, 0.0);
+    }
+    if (mode == 1.0) {
+        let u = (q - span * 0.5) / size + 0.5;
+        return vec3f(fract(u), u, 0.0);
+    }
+    if (mode == 2.0) {
+        let u = q * max(floor(span / size + 0.5), 1.0) / max(span, 1e-6);
+        return vec3f(fract(u), u, 0.0);
+    }
+    let n = floor(span / size);
+    let g = (span - n * size) / (n + 1.0);
+    let k = floor((q - g) / (size + g));
+    let within = q - g - k * (size + g);
+    let gap = n < 1.0 || k < 0.0 || k >= n || within > size;
+    return vec3f(within / size, q / size, select(0.0, 1.0, gap));
 }
 
-// The uv an image's fragment samples, in logical units within its rect.
-fn imageUv(index: u32, local: vec2f) -> vec2f {
+// Where a point of an image samples along one axis, the same unwrapped,
+// and 1 in a gap: within its first inset the first slice, within its last
+// the last, the middle stretched or tiled between, each across its part
+// of the uv rect; a tiled middle samples half a texel inside its part.
+fn along(p: f32, length: f32, low: f32, high: f32, uvLow: f32, uvHigh: f32, start: f32,
+         end: f32, size: f32, mode: f32, halfTexel: f32) -> vec3f {
+    let first = start + p / max(low, 1e-6) * uvLow;
+    let last = end - (length - p) / max(high, 1e-6) * uvHigh;
+    let a = start + uvLow;
+    let b = end - uvHigh;
+    let t = tile(p - low, length - low - high, size, mode);
+    let inset = abs(halfTexel);
+    let lo = min(min(a, b) + inset, max(a, b) - inset);
+    let hi = max(min(a, b) + inset, max(a, b) - inset);
+    let middle = select(mix(a, b, t.x), clamp(mix(a, b, t.x), lo, hi), mode != 0.0 && size > 0.0);
+    let inFirst = p < low;
+    let inLast = p > length - high;
+    return vec3f(select(select(middle, last, inLast), first, inFirst),
+                 select(select(mix(a, b, t.y), last, inLast), first, inFirst),
+                 select(t.z, 0.0, inFirst || inLast));
+}
+
+// The uv an image's fragment samples, in logical units within its rect,
+// then the same unwrapped, for gradients; gapped set where spacing leaves
+// no tile.
+fn imageUv(index: u32, local: vec2f) -> vec4f {
     let rect = instances[index].rect;
     let p = clamp(local / root.frame.z, vec2f(0.0), rect.zw);
     let uv = instances[index].colors[0];
     let drawn = instances[index].colors[1];
     let texels = instances[index].colors[2];
-    return vec2f(along(p.x, rect.z, drawn.w, drawn.y, texels.w, texels.y, uv.x, uv.z),
-                 along(p.y, rect.w, drawn.x, drawn.z, texels.x, texels.z, uv.y, uv.w));
+    let tiles = instances[index].colors[3];
+    let halfTexel = instances[index].widths;
+    let x = along(p.x, rect.z, drawn.w, drawn.y, texels.w, texels.y, uv.x, uv.z, tiles.x, tiles.z,
+                  halfTexel.y);
+    let y = along(p.y, rect.w, drawn.x, drawn.z, texels.x, texels.z, uv.y, uv.w, tiles.y, tiles.w,
+                  halfTexel.x);
+    gapped = x.z != 0.0 || y.z != 0.0;
+    return vec4f(x.x, y.x, x.y, y.y);
 }
 
 fn imageColor(index: u32, local: vec2f, size: vec2f, uv: vec2f, dx: vec2f, dy: vec2f) -> vec4f {
@@ -333,14 +380,16 @@ fn fs(in: Between) -> @location(0) vec4f {
     span = in.span;
     let size = instances[in.index].rect.zw * root.frame.z;
     let kind = instances[in.index].tags.x;
-    let uv = imageUv(in.index, in.local);
-    let dx = dpdx(uv);
-    let dy = dpdy(uv);
+    let uvs = imageUv(in.index, in.local);
+    let uv = uvs.xy;
+    // From the unwrapped uv, so a tile's seam does not pick a coarser level.
+    let dx = dpdx(uvs.zw);
+    let dy = dpdy(uvs.zw);
     var color: vec4f;
     if (kind == kShadow) {
         color = shadow(in.index, in.local);
     } else if (kind == kImage) {
-        color = imageColor(in.index, in.local, size, uv, dx, dy);
+        color = select(imageColor(in.index, in.local, size, uv, dx, dy), vec4f(0.0), gapped);
     } else if (kind == kGlyph) {
         color = glyph(in.index, in.local, size);
     } else {
