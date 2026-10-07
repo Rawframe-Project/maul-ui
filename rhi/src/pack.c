@@ -11,8 +11,9 @@
 // transform only moves it is drawn as coverage the atlas renders at its
 // device pixels, the pen's place there and the quad's in the run's own
 // units; one a transform scales or turns, or a glyph too large for the
-// atlas as coverage, from a distance field of an em of 32, 64 or 128
-// pixels, the least at least the em drawn, its spread an eighth of it.
+// atlas as coverage, from a multi-channel distance field of an em of 32,
+// 64 or 128 pixels, the least at least the em drawn, its spread an eighth
+// of it.
 
 #include "pack.h"
 

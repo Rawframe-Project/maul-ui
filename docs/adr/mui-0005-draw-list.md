@@ -149,18 +149,22 @@ clip chain evaluated in its shaders, which keeps batches whole.
   ones would not fit) and its middle stretches, with no seams between
   parts; the texture and a linear sampler are bound in a second table,
   and draws break only where the texture changes, boxes and shadows
-  joining any draw. Glyph runs come from a glyph atlas of the
-  renderer's own over the host's text service (mui-0006's atlas), its
-  pages R8 textures made as the atlas makes them and only the rectangles
-  it changed uploaded, gutters included, so every texel a glyph samples
+  joining any draw. Glyph runs come from two glyph atlases of the
+  renderer's own over the host's text service (mui-0006's atlases), one
+  of a channel for coverage and one of four for multi-channel fields,
+  their pages numbered together as they are first used, R8 and RGBA8
+  textures made as the atlases make them and only the rectangles they
+  changed uploaded, gutters included, so every texel a glyph samples
   has been written and a page never has to fit a frame's uploads whole.
   A run whose transform only moves it is drawn as coverage rendered at
   its device pixels, sampled half a texel into the gutter at most; a
   host without the text component's atlas gives no text service, and
   one given is refused. A run a transform scales or turns, or a glyph
-  too large for the atlas as coverage, is drawn from distance fields of
-  an em of 32, 64 or 128 pixels (the least at least the em drawn, its
-  spread an eighth), each sample made a distance in screen pixels.
+  too large for the atlas as coverage, is drawn from multi-channel
+  distance fields of an em of 32, 64 or 128 pixels (the least at least
+  the em drawn, its spread an eighth), the median of each sample's red,
+  green and blue made a distance in screen pixels, so corners stay
+  sharp however far a field is magnified.
   As the list is packed, an instance whose quad through its transform
   misses its clip chain's bounds (each clip's rect through its
   transform, met with its parent's; an inverted clip bounding nothing)

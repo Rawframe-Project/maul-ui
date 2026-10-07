@@ -295,10 +295,11 @@ fn glyph(index: u32, local: vec2f, size: vec2f) -> vec4f {
     let uv = instances[index].colors[0];
     let bounds = instances[index].colors[1];
     let at = clamp(mix(uv.xy, uv.zw, local / size), bounds.xy, bounds.zw);
-    let sampled = textureSampleLevel(imageTexture, imageSampler, at, 0.0).r;
+    let texel = textureSampleLevel(imageTexture, imageSampler, at, 0.0);
     let field = instances[index].colors[2].x;
-    let coverage = select(clamp(0.5 + (sampled - 128.0 / 255.0) * field * span, 0.0, 1.0),
-                          sampled, field == 0.0);
+    let median = max(min(texel.r, texel.g), min(max(texel.r, texel.g), texel.b));
+    let coverage = select(clamp(0.5 + (median - 128.0 / 255.0) * field * span, 0.0, 1.0),
+                          texel.r, field == 0.0);
     return instances[index].fill * coverage;
 }
 

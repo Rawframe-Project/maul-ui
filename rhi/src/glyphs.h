@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The renderer's glyphs (record mui-0005): an atlas of its own over the
-// host's text service, each of its pages an R8 texture made when the
-// atlas makes the page, and the rectangles the atlas changed uploaded
-// each frame. A changed rectangle covers its images' empty gutters, so
-// every texel a glyph's quad samples has been written; what was never
-// written is never sampled. Without Maul UI's text component there is no
-// atlas, and a text service is refused.
+// The renderer's glyphs (record mui-0005): two atlases of its own over
+// the host's text service, one of a channel for coverage and one of four
+// for multi-channel fields, their pages numbered together in the order
+// they are made, each an R8 or RGBA8 texture made when its atlas makes
+// the page, and the rectangles the atlases changed uploaded each frame.
+// A changed rectangle covers its images' empty gutters, so every texel a
+// glyph's quad samples has been written; what was never written is never
+// sampled. Without Maul UI's text component there are no atlases, and a
+// text service is refused.
 
 #ifndef MAUL_UI_RHI_GLYPHS_H
 #define MAUL_UI_RHI_GLYPHS_H
@@ -16,7 +18,8 @@
 
 #include <stdint.h>
 
-// The pages the renderer's atlas may make, as Maul UI's atlases allow.
+// The pages the renderer's atlases may make together, past the four each
+// of their defs allow.
 #define MUI_RHI_MAX_PAGES 64u
 
 // A glyph's image in a page: the page, its rect there in texels, the
@@ -38,14 +41,27 @@ typedef struct muiRhiGlyphs
 {
     muiAllocator allocator;
     mrhiDevice* device;
-    struct muiGlyphAtlas* atlas;
+    // The atlas of coverage and the atlas of multi-channel fields.
+    struct muiGlyphAtlas* atlases[2];
+    // How many pages of each atlas are numbered here, and how many of
+    // the numbered pages have textures.
+    uint32_t numbered[2];
+    uint32_t madeCount;
+    // Each page's atlas and its number there; each atlas page's number
+    // here.
+    uint8_t pageAtlas[MUI_RHI_MAX_PAGES];
+    uint8_t atlasPage[MUI_RHI_MAX_PAGES];
+    uint8_t pageOf[2][MUI_RHI_MAX_PAGES];
     mrhiTextureId pages[MUI_RHI_MAX_PAGES];
     // The pages in the open frame.
     mrhiResourceId resources[MUI_RHI_MAX_PAGES];
+    // The pages numbered, each with a texture once the frame's glyphs
+    // are prepared.
     uint32_t pageCount;
-    // The atlas's changed rectangles not yet written, its muiAtlasUpdate
-    // records, the first writtenCount of them the last frame's own, kept
-    // until the next frame in case that frame is forgotten.
+    // The atlases' changed rectangles not yet written, muiAtlasUpdate
+    // records whose pages are numbered here, the first writtenCount of
+    // them the last frame's own, kept until the next frame in case that
+    // frame is forgotten.
     void* updates;
     uint32_t updateCount;
     uint32_t writtenCount;
@@ -68,15 +84,15 @@ void muiRhiNextGlyphFrame(muiRhiGlyphs* glyphs);
 bool muiRhiGetGlyph(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixelSize, float penX,
                     float baselineY, muiRhiGlyph* glyphOut);
 
-// A glyph's distance field at an em of pixelSize field pixels and a
-// spread, packed the first time, its top left from the pen and baseline
-// in field pixels: false as muiRhiGetGlyph.
+// A glyph's multi-channel distance field at an em of pixelSize field
+// pixels and a spread, packed the first time, its top left from the pen
+// and baseline in field pixels: false as muiRhiGetGlyph.
 bool muiRhiGetGlyphField(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixelSize,
                          uint32_t spread, muiRhiGlyph* glyphOut);
 
-// After a frame's glyphs are got: textures for pages the atlas made, its
-// changed rectangles taken after those pending, and every page imported
-// into the open frame.
+// After a frame's glyphs are got: textures for pages the atlases made,
+// their changed rectangles taken after those pending, and every page
+// imported into the open frame.
 muiResult muiRhiPrepareGlyphs(muiRhiGlyphs* glyphs);
 
 // The page a frame's changed rectangle writes, below the page count.

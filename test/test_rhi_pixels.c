@@ -750,6 +750,63 @@ static void TestFields(Gpu* gpu, muiRhiRenderer* renderer, uint64_t font, uint8_
           "a run turned a quarter, from its field");
 }
 
+// The red of a pixel.
+static int Red(const uint8_t* pixels, uint32_t side, int x, int y)
+{
+    return pixels[((size_t)y * side + (size_t)x) * 4];
+}
+
+// The square's top left corner magnified: scaled by 40, its em drawn at
+// 400 pixels from a field of 128, so a field pixel spans 3 device pixels
+// and more. Coverage grows with the distance read, and a sharp corner's
+// is the lesser of its two sides', so the pixels at the corner, inside
+// and out, are covered as the lesser of the pixels beside the two sides
+// in their column and row; a one-channel field, rounding the corner by a
+// fifth of a field pixel, covers them less.
+static void TestFieldCorner(Gpu* gpu, muiRhiRenderer* renderer, uint64_t font, uint8_t* pixels,
+                            int scale)
+{
+    const uint32_t side = 64u * (uint32_t)scale;
+    const muiGlyph square = {4, 0, 0};
+    const muiDrawTransform transforms[2] = {{1, 0, 0, 1, 0, 0}, {40, 0, 0, 40, 20, 20}};
+    muiDrawCommand command = {.kind = mui_drawGlyphRun, .transform = 1};
+    command.glyphRun = (muiDrawGlyphRun){.font = font,
+                                         .originX = 0,
+                                         .originY = 8,
+                                         .size = 10,
+                                         .glyphCount = 1,
+                                         .color = {1, 0, 0, 1}};
+    muiDrawList list = {.commands = &command, .commandCount = 1};
+    list.glyphs = &square;
+    list.glyphCount = 1;
+    list.transforms = transforms;
+    list.transformCount = 2;
+    list.header.scale = (float)scale;
+    if (!Render(gpu, renderer, &list, side, pixels))
+    {
+        CHECK(false, "a corner drawn and read");
+        return;
+    }
+    const int red[4] = {255, 0, 0, 255};
+    const int c = 20 * scale;
+    const int far = c + 10 * scale;
+    bool sharp = true;
+    for (int at = c - 1; at <= c; at++)
+    {
+        int column = Red(pixels, side, at, far);
+        int row = Red(pixels, side, far, at);
+        int expected = column < row ? column : row;
+        int got = Red(pixels, side, at, at);
+        if (got < expected - 3 || got > expected + 3)
+        {
+            printf("  at %d,%d: red %d, expected %d\n", at, at, got, expected);
+            sharp = false;
+        }
+    }
+    CHECK(sharp && Red(pixels, side, c, far) > 128 && Near(pixels, side, far, far, red, 2),
+          "a magnified corner kept");
+}
+
 #endif
 
 int main(void)
@@ -814,6 +871,8 @@ int main(void)
         TestGlyphs(&gpu, renderer, font, pixels, 2);
         TestFields(&gpu, renderer, font, pixels, 1);
         TestFields(&gpu, renderer, font, pixels, 2);
+        TestFieldCorner(&gpu, renderer, font, pixels, 1);
+        TestFieldCorner(&gpu, renderer, font, pixels, 2);
 #endif
     }
     free(pixels);

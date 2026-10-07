@@ -10,6 +10,11 @@ format.
 
 ### Changed
 
+- The reference renderer draws glyphs a transform scales or turns from
+  multi-channel distance fields, the median of their colours, so their
+  corners stay sharp when magnified; it keeps an atlas of four channels
+  beside its atlas of coverage.
+
 - `muiLayoutInput` ends with `safeArea` and `muiLayoutStyle` with
   `safeArea`: initializers that list every field by position give them
   too (four zeros for none). `muiSides` moved from `maul-ui/draw.h` to

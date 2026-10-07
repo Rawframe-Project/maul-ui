@@ -14,8 +14,9 @@
 //   slices, its corners and edges kept at their insets' size and its
 //   middle stretched, times its tint, its edges covered as a box's;
 // - a glyph: its coverage from its atlas page in table 1, sampled within
-//   its rect and half a texel of gutter, times its color; a distance
-//   field's sample made a distance in screen pixels for its coverage.
+//   its rect and half a texel of gutter, times its color; a
+//   multi-channel field's median of red, green and blue made a distance
+//   in screen pixels for its coverage.
 // The uv is worked out for every fragment, with selects alone, and its
 // derivatives taken before the kind is branched on, where they are
 // defined.
@@ -332,10 +333,11 @@ vec4 Glyph(vec2 size)
     vec4 uv = instances.items[index].colors[0];
     vec4 bounds = instances.items[index].colors[1];
     vec2 at = clamp(mix(uv.xy, uv.zw, local / size), bounds.xy, bounds.zw);
-    float sampled = textureLod(sampler2D(imageTexture, imageSampler), at, 0.0).r;
+    vec4 texel = textureLod(sampler2D(imageTexture, imageSampler), at, 0.0);
     float field = instances.items[index].colors[2].x;
+    float median = max(min(texel.r, texel.g), min(max(texel.r, texel.g), texel.b));
     float coverage =
-        field == 0.0 ? sampled : clamp(0.5 + (sampled - 128.0 / 255.0) * field * span, 0.0, 1.0);
+        field == 0.0 ? texel.r : clamp(0.5 + (median - 128.0 / 255.0) * field * span, 0.0, 1.0);
     return instances.items[index].fill * coverage;
 }
 
