@@ -169,6 +169,29 @@ static void MakeScene(Scene* scene)
     Size(context, scene->leaf, 50.0f, 50.0f);
 }
 
+// A password input's value is never the host's own text, which would be
+// the password: assistive technology reads only its mask, which the text
+// service gives (a bullet a cluster).
+static void TestPasswordValue(void)
+{
+    Scene scene;
+    MakeScene(&scene);
+    muiContext* context = scene.context;
+    CHECK(muiAccess_Enable(context, scene.root) == mui_success, "enabled");
+    Layout(context, scene.root);
+    CHECK(muiNode_SetAccessRole(context, scene.label, mui_rolePasswordInput) == mui_success,
+          "a password input");
+    Text(context, scene.label, mui_accessValue, "hunter2");
+    muiAccessUpdate update = Build(context, scene.root);
+    CHECK(strstr(Dump(&update), "hunter2") == NULL && strstr(Dump(&update), "t2=") == NULL,
+          "its host's value text left out");
+    // A label again reads its text.
+    CHECK(muiNode_SetAccessRole(context, scene.label, mui_roleLabel) == mui_success, "a label");
+    update = Build(context, scene.root);
+    CHECK(strstr(Dump(&update), "t2=hunter2") != NULL, "a label's value read");
+    muiDestroyContext(context);
+}
+
 static void TestWholeThenChanged(void)
 {
     Scene scene;
@@ -1426,6 +1449,7 @@ static void TestRefusals(void)
 int main(void)
 {
     TestWholeThenChanged();
+    TestPasswordValue();
     TestChildren();
     TestRelationsAndValues();
     TestContentText();

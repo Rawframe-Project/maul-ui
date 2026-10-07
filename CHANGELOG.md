@@ -940,6 +940,12 @@ format.
 
 ### Fixed
 
+- A password input's value text set by the host is never given to
+  assistive technology, which would have read the password through UI
+  Automation's Value pattern, AT-SPI and the others; its value is only
+  the text service's mask, a bullet a cluster, which a host's own text
+  had also kept from being read.
+
 - AT-SPI, as Orca 46 found in a first recorded run: a window's root is
   a frame (unless a dialog), titled by the application when it has no
   name of its own, and told active when it appears (window:activate);

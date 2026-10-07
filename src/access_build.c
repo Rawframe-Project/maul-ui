@@ -224,6 +224,15 @@ uint32_t muiAccessDerive(const muiContext* context, uint32_t slot, muiAccessNode
         nodeOut->text[kind] = entry->text[kind];
         nodeOut->textLength[kind] = entry->length[kind];
     }
+    // A password input's value is never the host's own text, which would
+    // be the password and would also keep the text service's mask from
+    // being read: assistive technology reads only the mask, a bullet a
+    // cluster, as the input shows it (mui-0006, mui-0008).
+    if (nodeOut->role == mui_rolePasswordInput)
+    {
+        nodeOut->text[mui_accessValue] = nullptr;
+        nodeOut->textLength[mui_accessValue] = 0;
+    }
     return childrenOut != nullptr ? ChildrenOf(context, slot, childrenOut) : 0;
 }
 

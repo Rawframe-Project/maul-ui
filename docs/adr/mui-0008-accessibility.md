@@ -141,7 +141,9 @@ ranges and virtual lists.
   actions: Toggle for a checkable node and SelectionItem for a
   selectable one (both clicked, as on the screen, and never also
   Invoke), ExpandCollapse, RangeValue for a numeric node, Value for a
-  value text (read only until text editing brings setting text),
+  value text (read only until text editing brings setting text; a
+  password input's is only the text service's mask, a host's own value
+  text left out of its record for every adapter),
   Scroll for a scrolling container (a small step scrolls a page, as the
   tree knows no line height), and ScrollItem. Applying an update raises
   UI Automation's events from the changes the consumer reports, while
