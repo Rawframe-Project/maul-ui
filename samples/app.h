@@ -22,6 +22,7 @@
 #include "maul-ui-window/access.h"
 #include "maul-ui-window/glue.h"
 #include "maul-ui/context.h"
+#include "maul-ui/draw.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/text_block.h"
@@ -52,6 +53,11 @@ typedef struct SampleAppDef
     // Windowed with --frames, on the last frame read back: checks what
     // the first headless frame checks. NULL for none.
     void (*still)(void* user, SampleApp* app);
+    // Each record the window gives, before the glue takes it: what the
+    // host takes itself (an input method's preedit). NULL for nothing.
+    void (*record)(void* user, SampleApp* app, const mwinEvent* event);
+    // Paints host content; NULL paints text alone (muiPaintText).
+    muiPaintFunction paint;
     // Finds the image a key names, or NULL for none.
     muiRhiImageFunction image;
     // Lets go of what the sample made on the device, before it goes; NULL
@@ -112,6 +118,10 @@ void SampleFill(SampleApp* app, muiNodeId node, const uint8_t rgb[3]);
 // A node holding text in a block of its own, at a size and colour.
 muiNodeId SampleLabel(SampleApp* app, muiNodeId parent, const char* text, float size,
                       const uint8_t rgb[3]);
+
+// As SampleLabel, handing back the block, for text the host edits.
+muiNodeId SampleTextNode(SampleApp* app, muiNodeId parent, const char* text, float size,
+                         const uint8_t rgb[3], muiTextBlockId* blockOut);
 
 // A layout value set alone on a node, by its property.
 void SampleSetLayout(SampleApp* app, muiNodeId node, const muiLayoutStyle* layout,

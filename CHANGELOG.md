@@ -70,7 +70,14 @@ format.
   pixels and the accessibility tree's checked states. `sample_ranges`
   composes a slider, a progress bar and a scrollbar over range values,
   the host showing each value and forwarding the scrollbar's to a
-  horizontally scrolling list and back. On the web the
+  horizontally scrolling list and back. `sample_text` composes single
+  and multi-line text inputs over the text editing primitives: the host
+  keeps the caret and the selection, edits by typed text, Backspace,
+  Delete and Enter, moves by arrows, Home and End with Shift extending,
+  paints the selection and the caret, and puts an input method's
+  preedit into the focused field with the window's caret following.
+  The application frame gains record and paint hooks and
+  SampleTextNode. On the web the
   headless tour runs in headless
   Chrome's WebGPU through the web runner, which now gives Chrome WebGPU
   and a program its arguments (record mui-0005).

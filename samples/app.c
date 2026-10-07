@@ -84,6 +84,13 @@ muiNodeId SampleLabel(SampleApp* app, muiNodeId parent, const char* text, float 
                       const uint8_t rgb[3])
 {
     muiTextBlockId block = {0};
+    return SampleTextNode(app, parent, text, size, rgb, &block);
+}
+
+muiNodeId SampleTextNode(SampleApp* app, muiNodeId parent, const char* text, float size,
+                         const uint8_t rgb[3], muiTextBlockId* blockOut)
+{
+    muiTextBlockId block = {0};
     SampleAppCheck(app, muiCreateTextBlock(app->text, text, strlen(text), &block) == mui_success,
                    "a block");
     muiNodeDef def = muiDefaultNodeDef();
@@ -104,6 +111,7 @@ muiNodeId SampleLabel(SampleApp* app, muiNodeId parent, const char* text, float 
                                          MUI_PROPERTY_BIT(mui_propertyTextColor) |
                                              MUI_PROPERTY_BIT(mui_propertyFontSize)) == mui_success,
                    "a label's text");
+    *blockOut = block;
     return node;
 }
 
@@ -176,6 +184,10 @@ static void Drain(SampleApp* app)
     mwinEvent event;
     while (mwinNextEvent(app->windows, &event) == mwin_success)
     {
+        if (app->def->record != NULL)
+        {
+            app->def->record(app->def->user, app, &event);
+        }
         bool handled = false;
         SampleAppCheck(app, muiWindowGlue_HandleEvent(app->glue, &event, &handled) == mui_success,
                        "a record taken");
@@ -257,7 +269,9 @@ static void Step(SampleApp* app)
                                    &app->host,
                                    app->now,
                                    NULL};
-    const muiDrawInput draw = {1, app->scale, muiPaintText, &app->host};
+    const muiDrawInput draw = {1, app->scale,
+                               app->def->paint != NULL ? app->def->paint : muiPaintText,
+                               app->def->paint != NULL ? app->def->user : (void*)&app->host};
     muiDrawList list;
     bool built = muiComputeLayout(app->context, app->root, &layout) == mui_success &&
                  muiWindowAccess_Update(app->access) == mui_success &&
