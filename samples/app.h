@@ -41,6 +41,9 @@ typedef struct SampleAppDef
     // The window's size, and the root's, in logical units.
     uint32_t width;
     uint32_t height;
+    // Headless, how far the clock moves each frame; 0 for a second, so
+    // easings end between frames.
+    uint64_t frameNs;
     // Builds the tree under the root; the device is open.
     void (*build)(void* user, SampleApp* app);
     // Each frame, after the window's records and before layout: what the
@@ -147,6 +150,11 @@ void SamplePost(SampleApp* app, mwinEventType type, muiNodeId node, uint8_t butt
 
 // Posts a cursor record at a point of the root, as SamplePost does.
 void SamplePostAt(SampleApp* app, mwinEventType type, float x, float y, uint8_t buttons);
+
+// As SamplePostAt for a button other than the left, buttons holding bit
+// b - 1 while button b is held.
+void SamplePostButton(SampleApp* app, mwinEventType type, float x, float y, mwinMouseButton button,
+                      uint8_t buttons);
 
 // Posts a wheel turn of detents over a node, the cursor moved there.
 void SamplePostWheel(SampleApp* app, muiNodeId node, float detents);

@@ -83,7 +83,13 @@ format.
   closing, shows the active option they name as their active
   descendant, closed by the library's light dismissal; the number a
   range whose keys the library takes and whose drag the host turns
-  into a scrub. SampleSame and SampleRound join the frame. On the web the
+  into a scrub. SampleSame and SampleRound join the frame.
+  `sample_tabs_menus` composes tabs with automatic activation and a
+  roving Tab stop, a tooltip the host shows after the pointer rests on
+  its trigger for half a second, and a context menu at the pointer or
+  at the area's corner for the context menu key, taking the focus and
+  giving it back when it closes. The frame gains SamplePostButton and a
+  per-sample headless clock step. On the web the
   headless tour runs in headless
   Chrome's WebGPU through the web runner, which now gives Chrome WebGPU
   and a program its arguments (record mui-0005).

@@ -343,9 +343,15 @@ void SamplePost(SampleApp* app, mwinEventType type, muiNodeId node, uint8_t butt
 
 void SamplePostAt(SampleApp* app, mwinEventType type, float x, float y, uint8_t buttons)
 {
+    SamplePostButton(app, type, x, y, mwin_buttonLeft, buttons);
+}
+
+void SamplePostButton(SampleApp* app, mwinEventType type, float x, float y, mwinMouseButton button,
+                      uint8_t buttons)
+{
     mwinEvent event = {.type = type, .window = app->window};
     event.data.pointer.position = (mwinPosition){x, y};
-    event.data.pointer.button = type == mwin_eventCursorMoved ? 0 : mwin_buttonLeft;
+    event.data.pointer.button = type == mwin_eventCursorMoved ? 0 : button;
     event.data.pointer.buttons = buttons;
     PostRecord(app, &event);
 }
@@ -374,11 +380,12 @@ void SamplePostKey(SampleApp* app, mwinKeyCode code, mwinKey key, const char* te
     PostRecord(app, &up);
 }
 
-// Headless: a second a frame on the records' clock, so easings end
-// between frames; the sample checks each frame and posts the next input.
+// Headless: a step a frame on the records' clock, a second unless the
+// sample asks another; the sample checks each frame and posts the next
+// input.
 static mwinFrameResult Scripted(SampleApp* app)
 {
-    app->now += 1000000000u;
+    app->now += app->def->frameNs != 0 ? app->def->frameNs : 1000000000u;
     SampleAppCheck(app, mwinTestSetTime(app->windows, app->now) == mwin_success, "the clock");
     Step(app);
     bool going = app->def->script(app->def->user, app, app->frame++);
