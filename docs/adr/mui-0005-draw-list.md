@@ -162,9 +162,17 @@ clip chain evaluated in its shaders, which keeps batches whole.
   one given is refused. A run a transform scales or turns, or a glyph
   too large for the atlas as coverage, is drawn from multi-channel
   distance fields of an em of 32, 64 or 128 pixels (the least at least
-  the em drawn, its spread an eighth), the median of each sample's red,
-  green and blue made a distance in screen pixels, so corners stay
-  sharp however far a field is magnified.
+  the em drawn) and a spread of 4 field pixels, the median of each
+  sample's red, green and blue made a distance in screen pixels, so
+  corners stay sharp however far a field is magnified. Measured against
+  FreeType's exact coverage at the drawn size (`test_field_quality`:
+  Liberation Sans's printable ASCII from each em drawn 1.5 to 6 times
+  larger), the median's mean error is 0.036 and 0.46% of edge pixels
+  are off by more than a quarter, where the one-channel field's are
+  0.056 and 3.7%. A spread of an eighth of the em, as first chosen,
+  measured 0.082 and 7.2%: a byte then steps by an eighth of a field
+  pixel, which a magnified field turns into edges ramped and placed off
+  by a third of a pixel and more.
   As the list is packed, an instance whose quad through its transform
   misses its clip chain's bounds (each clip's rect through its
   transform, met with its parent's; an inverted clip bounding nothing)

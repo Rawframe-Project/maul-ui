@@ -12,8 +12,9 @@
 // device pixels, the pen's place there and the quad's in the run's own
 // units; one a transform scales or turns, or a glyph too large for the
 // atlas as coverage, from a multi-channel distance field of an em of 32,
-// 64 or 128 pixels, the least at least the em drawn, its spread an eighth
-// of it.
+// 64 or 128 pixels, the least at least the em drawn, its spread 4 field
+// pixels: a byte steps by a 32nd of a field pixel, and an em drawn at 8
+// pixels from a field of 32 still reaches a device pixel past the edge.
 
 #include "pack.h"
 
@@ -24,6 +25,12 @@ static_assert(sizeof(muiRhiInstance) == 144, "an instance is the shader's 144 by
 static_assert(sizeof(muiRhiGradient) == 112, "a gradient is the shader's 112 bytes");
 static_assert(sizeof(muiRhiTransform) == 32, "a transform is the shader's 32 bytes");
 static_assert(sizeof(muiRhiClip) == 48, "a clip is the shader's 48 bytes");
+
+enum
+{
+    // How far a glyph's field reaches, in field pixels (see above).
+    FIELD_SPREAD = 4
+};
 
 // An index into a table of a number of entries, 0 where it is past them.
 static uint32_t Index(uint32_t index, uint32_t count)
@@ -216,7 +223,7 @@ static bool FieldGlyph(const muiDrawList* list, const muiDrawCommand* command, m
 {
     const muiDrawGlyphRun* run = &command->glyphRun;
     float em = FieldEm(drawn);
-    uint32_t spread = (uint32_t)em / 8;
+    const uint32_t spread = FIELD_SPREAD;
     muiRhiGlyph glyph = {0};
     if (!muiRhiGetGlyphField(glyphs, run->font, id, em, spread, &glyph) || glyph.width == 0)
     {

@@ -13,7 +13,10 @@ format.
 - The reference renderer draws glyphs a transform scales or turns from
   multi-channel distance fields, the median of their colours, so their
   corners stay sharp when magnified; it keeps an atlas of four channels
-  beside its atlas of coverage.
+  beside its atlas of coverage. Its fields reach 4 field pixels rather
+  than an eighth of their em, so their bytes are fine enough for
+  magnified edges to fall where the outline is; `test_field_quality`
+  measures them against FreeType's exact coverage.
 
 - `muiLayoutInput` ends with `safeArea` and `muiLayoutStyle` with
   `safeArea`: initializers that list every field by position give them
