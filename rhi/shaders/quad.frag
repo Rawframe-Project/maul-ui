@@ -16,7 +16,8 @@
 // - a glyph: its coverage from its atlas page in table 1, sampled within
 //   its rect and half a texel of gutter, times its color; a
 //   multi-channel field's median of red, green and blue made a distance
-//   in screen pixels for its coverage.
+//   in screen pixels for its coverage; a colour glyph's texel itself,
+//   premultiplied, times the run's alpha.
 // The uv is worked out for every fragment, with selects alone, and its
 // derivatives taken before the kind is branched on, where they are
 // defined.
@@ -338,7 +339,9 @@ vec4 Glyph(vec2 size)
     float median = max(min(texel.r, texel.g), min(max(texel.r, texel.g), texel.b));
     float coverage =
         field == 0.0 ? texel.r : clamp(0.5 + (median - 128.0 / 255.0) * field * span, 0.0, 1.0);
-    return instances.items[index].fill * coverage;
+    vec4 fill = instances.items[index].fill;
+    // A colour glyph's texel is its color, faded by the run's alpha.
+    return instances.items[index].colors[2].y != 0.0 ? texel * fill.a : fill * coverage;
 }
 
 // How much of the fragment its clips keep.

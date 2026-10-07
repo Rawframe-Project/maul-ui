@@ -23,7 +23,8 @@ enum
 {
     // The atlases: coverage, and multi-channel fields.
     COVERAGE = 0,
-    FIELDS = 1
+    FIELDS = 1,
+    COLORS = 2
 };
 
 muiResult muiRhiMakeGlyphs(muiRhiGlyphs* glyphs, const muiAllocator* allocator, mrhiDevice* device,
@@ -39,6 +40,9 @@ muiResult muiRhiMakeGlyphs(muiRhiGlyphs* glyphs, const muiAllocator* allocator, 
     def.format = mui_atlasFourChannel;
     status =
         status == mui_success ? muiCreateGlyphAtlas(text, &def, &glyphs->atlases[FIELDS]) : status;
+    def.format = mui_atlasColor;
+    status =
+        status == mui_success ? muiCreateGlyphAtlas(text, &def, &glyphs->atlases[COLORS]) : status;
     if (status != mui_success)
     {
         muiRhiFreeGlyphs(glyphs);
@@ -54,15 +58,19 @@ void muiRhiFreeGlyphs(muiRhiGlyphs* glyphs)
     }
     muiRhiRelease(&glyphs->allocator, glyphs->updates,
                   (size_t)glyphs->updateCapacity * sizeof(muiAtlasUpdate), alignof(muiAtlasUpdate));
-    muiDestroyGlyphAtlas(glyphs->atlases[FIELDS]);
-    muiDestroyGlyphAtlas(glyphs->atlases[COVERAGE]);
+    for (uint32_t atlas = MUI_RHI_ATLASES; atlas-- > 0;)
+    {
+        muiDestroyGlyphAtlas(glyphs->atlases[atlas]);
+    }
     *glyphs = (muiRhiGlyphs){0};
 }
 
 void muiRhiNextGlyphFrame(muiRhiGlyphs* glyphs)
 {
-    muiGlyphAtlas_NextFrame(glyphs->atlases[COVERAGE]);
-    muiGlyphAtlas_NextFrame(glyphs->atlases[FIELDS]);
+    for (uint32_t atlas = 0; atlas < MUI_RHI_ATLASES; atlas++)
+    {
+        muiGlyphAtlas_NextFrame(glyphs->atlases[atlas]);
+    }
 }
 
 // An atlas page's number here, numbering it and the atlas's pages before
@@ -125,11 +133,30 @@ bool muiRhiGetGlyphField(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float
                  glyphOut);
 }
 
+muiResult muiRhiGetColorGlyph(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixelSize,
+                              float penX, float baselineY, muiLinearColor foreground,
+                              muiRhiGlyph* glyphOut)
+{
+    muiAtlasGlyph glyph = {0};
+    muiGlyphAtlas* atlas = glyphs->atlases[COLORS];
+    if (atlas == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    muiResult got =
+        muiGlyphAtlas_GetColor(atlas, font, id, pixelSize, penX, baselineY, 0, foreground, &glyph);
+    if (got == mui_empty)
+    {
+        return mui_empty;
+    }
+    return Found(glyphs, COLORS, got, &glyph, glyphOut) ? mui_success : mui_errorCapacity;
+}
+
 // Textures for the pages the atlas made since the last frame.
 static muiResult MakePages(muiRhiGlyphs* glyphs)
 {
     // Pages no glyph was got from yet are numbered first.
-    for (uint32_t atlas = 0; atlas < 2; atlas++)
+    for (uint32_t atlas = 0; atlas < MUI_RHI_ATLASES; atlas++)
     {
         uint32_t count = muiGlyphAtlas_GetPageCount(glyphs->atlases[atlas]);
         uint32_t number = 0;
@@ -148,8 +175,9 @@ static muiResult MakePages(muiRhiGlyphs* glyphs)
             return mui_errorPlatform;
         }
         mrhiTextureDef def = mrhiDefaultTextureDef();
-        def.format =
-            page.format == mui_atlasFourChannel ? mrhi_formatRgba8Unorm : mrhi_formatR8Unorm;
+        def.format = page.format == mui_atlasColor         ? mrhi_formatRgba8UnormSrgb
+                     : page.format == mui_atlasFourChannel ? mrhi_formatRgba8Unorm
+                                                           : mrhi_formatR8Unorm;
         def.usage = mrhi_textureSampled | mrhi_textureCopyDestination;
         def.width = page.width;
         def.height = page.height;
@@ -203,7 +231,7 @@ static muiResult TakeUpdates(muiRhiGlyphs* glyphs)
     }
     glyphs->updateCount = pending;
     glyphs->writtenCount = 0;
-    for (uint32_t atlas = 0; atlas < 2; atlas++)
+    for (uint32_t atlas = 0; atlas < MUI_RHI_ATLASES; atlas++)
     {
         uint32_t count = 0;
         while (muiGlyphAtlas_TakeUpdates(
@@ -248,7 +276,7 @@ muiResult muiRhiPrepareGlyphs(muiRhiGlyphs* glyphs)
 // The bytes a pixel of a page numbered here.
 static uint32_t PixelBytes(const muiRhiGlyphs* glyphs, uint32_t page)
 {
-    return glyphs->pageAtlas[page] == FIELDS ? 4u : 1u;
+    return glyphs->pageAtlas[page] == COVERAGE ? 1u : 4u;
 }
 
 uint64_t muiRhiGlyphUploadBytes(const muiRhiGlyphs* glyphs)
@@ -352,6 +380,21 @@ bool muiRhiGetGlyphField(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float
     (void)spread;
     (void)glyphOut;
     return false;
+}
+
+muiResult muiRhiGetColorGlyph(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixelSize,
+                              float penX, float baselineY, muiLinearColor foreground,
+                              muiRhiGlyph* glyphOut)
+{
+    (void)glyphs;
+    (void)font;
+    (void)id;
+    (void)pixelSize;
+    (void)penX;
+    (void)baselineY;
+    (void)foreground;
+    (void)glyphOut;
+    return mui_errorInvalid;
 }
 
 muiResult muiRhiPrepareGlyphs(muiRhiGlyphs* glyphs)

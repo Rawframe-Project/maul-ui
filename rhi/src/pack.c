@@ -184,7 +184,8 @@ static muiRhiInstance ImageOf(const muiDrawList* list, const muiDrawCommand* com
 
 // A glyph's instance from its image in the atlas and its quad in the
 // run's units; a field's factor makes a sample a distance in pixels, 0
-// for coverage.
+// for coverage and colour. A colour glyph's instance has colors[2].y 1:
+// its texel is drawn times the run's alpha.
 static muiRhiInstance GlyphOf(const muiDrawList* list, const muiDrawCommand* command,
                               const muiRhiGlyph* glyph, muiRect rect, float field)
 {
@@ -241,6 +242,60 @@ static bool FieldGlyph(const muiDrawList* list, const muiDrawCommand* command, m
     return true;
 }
 
+// The run's colour made opaque, as its colour glyphs' text colour: their
+// opacity is the run's alpha, applied to the whole glyph.
+static muiLinearColor Opaque(muiLinearColor color)
+{
+    float a = color.a;
+    return a > 0.0f ? (muiLinearColor){color.r / a, color.g / a, color.b / a, 1.0f}
+                    : (muiLinearColor){0.0f, 0.0f, 0.0f, 1.0f};
+}
+
+// A colour glyph at a pen in the run's units: at its device pixels where
+// the run only moves, else from an image at the em drawn, scaled back.
+// False for a glyph without colour layers, or one that cannot be packed,
+// to be drawn as coverage or from its field.
+static bool ColorGlyph(const muiDrawList* list, const muiDrawCommand* command, muiRhiGlyphs* glyphs,
+                       uint32_t id, float penX, float penY, bool moves, float drawn,
+                       muiRhiInstance* instanceOut)
+{
+    const muiDrawGlyphRun* run = &command->glyphRun;
+    const muiDrawTransform moved =
+        list->transformCount > 0 ? list->transforms[Index(command->transform, list->transformCount)]
+                                 : (muiDrawTransform){1, 0, 0, 1, 0, 0};
+    float scale = list->header.scale;
+    muiLinearColor foreground = Opaque(run->color);
+    muiRhiGlyph glyph = {0};
+    muiRect rect = {0};
+    if (moves)
+    {
+        if (muiRhiGetColorGlyph(glyphs, run->font, id, run->size * scale, (penX + moved.e) * scale,
+                                (penY + moved.f) * scale, foreground, &glyph) != mui_success ||
+            glyph.width == 0)
+        {
+            return false;
+        }
+        rect = (muiRect){(float)glyph.x / scale - moved.e, (float)glyph.y / scale - moved.f,
+                         (float)glyph.width / scale, (float)glyph.height / scale};
+    }
+    else
+    {
+        if (muiRhiGetColorGlyph(glyphs, run->font, id, drawn, 0.0f, 0.0f, foreground, &glyph) !=
+                mui_success ||
+            glyph.width == 0)
+        {
+            return false;
+        }
+        // Units of the run an image pixel spans.
+        float k = run->size / drawn;
+        rect = (muiRect){penX + (float)glyph.x * k, penY + (float)glyph.y * k,
+                         (float)glyph.width * k, (float)glyph.height * k};
+    }
+    *instanceOut = GlyphOf(list, command, &glyph, rect, 0.0f);
+    instanceOut->colors[2].g = 1.0f;
+    return true;
+}
+
 // Whether an instance meets its clip's bounds.
 static bool Kept(const muiRhiCull* cull, const muiDrawList* list, const muiRhiInstance* instance)
 {
@@ -270,8 +325,13 @@ static uint32_t PackRun(const muiDrawList* list, const muiDrawCommand* command,
         float penX = run->originX + at->x;
         float penY = run->originY + at->y;
         muiRhiGlyph glyph = {0};
-        if (moves && muiRhiGetGlyph(glyphs, run->font, at->id, run->size * scale,
-                                    (penX + moved.e) * scale, (penY + moved.f) * scale, &glyph))
+        if (ColorGlyph(list, command, glyphs, at->id, penX, penY, moves, drawn, &instances[count]))
+        {
+            count += Kept(packing->cull, list, &instances[count]) ? 1 : 0;
+        }
+        else if (moves &&
+                 muiRhiGetGlyph(glyphs, run->font, at->id, run->size * scale,
+                                (penX + moved.e) * scale, (penY + moved.f) * scale, &glyph))
         {
             if (glyph.width == 0)
             {

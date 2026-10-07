@@ -300,7 +300,9 @@ fn glyph(index: u32, local: vec2f, size: vec2f) -> vec4f {
     let median = max(min(texel.r, texel.g), min(max(texel.r, texel.g), texel.b));
     let coverage = select(clamp(0.5 + (median - 128.0 / 255.0) * field * span, 0.0, 1.0),
                           texel.r, field == 0.0);
-    return instances[index].fill * coverage;
+    let fill = instances[index].fill;
+    // A colour glyph's texel is its color, faded by the run's alpha.
+    return select(fill * coverage, texel * fill.a, instances[index].colors[2].y != 0.0);
 }
 
 // How much of the fragment its clips keep.

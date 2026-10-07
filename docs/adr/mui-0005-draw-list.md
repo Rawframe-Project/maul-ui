@@ -149,10 +149,10 @@ clip chain evaluated in its shaders, which keeps batches whole.
   ones would not fit) and its middle stretches, with no seams between
   parts; the texture and a linear sampler are bound in a second table,
   and draws break only where the texture changes, boxes and shadows
-  joining any draw. Glyph runs come from two glyph atlases of the
-  renderer's own over the host's text service (mui-0006's atlases), one
-  of a channel for coverage and one of four for multi-channel fields,
-  their pages numbered together as they are first used, R8 and RGBA8
+  joining any draw. Glyph runs come from three glyph atlases of the
+  renderer's own over the host's text service (mui-0006's atlases), of
+  coverage, of multi-channel fields and of colour glyphs, their pages
+  numbered together as they are first used, R8, RGBA8 and sRGB RGBA8
   textures made as the atlases make them and only the rectangles they
   changed uploaded, gutters included, so every texel a glyph samples
   has been written and a page never has to fit a frame's uploads whole.
@@ -164,7 +164,12 @@ clip chain evaluated in its shaders, which keeps batches whole.
   distance fields of an em of 32, 64 or 128 pixels (the least at least
   the em drawn) and a spread of 4 field pixels, the median of each
   sample's red, green and blue made a distance in screen pixels, so
-  corners stay sharp however far a field is magnified. Measured against
+  corners stay sharp however far a field is magnified. A glyph with
+  colour layers is drawn from its colour image instead, rendered with
+  the run's colour made opaque and its first palette, its texel faded
+  by the run's alpha: at its device pixels where the run only moves,
+  else from an image at the em drawn, scaled, as a field holds no
+  colour. Measured against
   FreeType's exact coverage at the drawn size (`test_field_quality`:
   Liberation Sans's printable ASCII from each em drawn 1.5 to 6 times
   larger), the median's mean error is 0.036 and 0.46% of edge pixels

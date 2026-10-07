@@ -628,9 +628,12 @@ static void TestImages(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels, int 
 #include "maul-ui/text_block.h"
 
 #include "ahem.inc"
+#include "color.inc"
 
 // A text service with Ahem, its key in fontOut.
-static muiTextService* MakeText(uint64_t* fontOut)
+// A text service with Ahem and Maul Color, their keys in fontOut and
+// colorOut.
+static muiTextService* MakeText(uint64_t* fontOut, uint64_t* colorOut)
 {
     muiTextServiceDef def = muiDefaultTextServiceDef();
     muiTextService* service = NULL;
@@ -638,14 +641,20 @@ static muiTextService* MakeText(uint64_t* fontOut)
     font.data = s_ahem;
     font.size = sizeof s_ahem;
     font.dataMode = mui_fontDataBorrow;
+    muiFontDef color = font;
+    color.data = s_color;
+    color.size = sizeof s_color;
     muiFontId ahem = {0, 0};
+    muiFontId colorId = {0, 0};
     if (muiCreateTextService(&def, &service) != mui_success ||
-        muiCreateFont(service, &font, &ahem) != mui_success)
+        muiCreateFont(service, &font, &ahem) != mui_success ||
+        muiCreateFont(service, &color, &colorId) != mui_success)
     {
         muiDestroyTextService(service);
         return NULL;
     }
     *fontOut = muiFont_GetKey(ahem);
+    *colorOut = muiFont_GetKey(colorId);
     return service;
 }
 
@@ -835,6 +844,66 @@ static void TestFieldCorners(Gpu* gpu, muiRhiRenderer* renderer, uint64_t font, 
     }
 }
 
+// Maul Color's A (layers of red, half clear blue over its right half, and
+// a small box of the text's colour): moved, at origin 4, 18, its box 5 to
+// 13 across and 10 to 18 down, the small box 7 to 9 and 14 to 16; again
+// at half alpha, at origin 4, 38; and scaled by 2 and moved right 30, at
+// origin 0, 8, its box 32 to 48 and 0 to 16, drawn from an image at the
+// em drawn. The text is green, so its box is.
+static void TestColorGlyphs(Gpu* gpu, muiRhiRenderer* renderer, uint64_t font, uint8_t* pixels,
+                            int scale)
+{
+    const uint32_t side = 64u * (uint32_t)scale;
+    const muiGlyph glyph = {1, 0, 0};
+    const muiDrawTransform transforms[2] = {{1, 0, 0, 1, 0, 0}, {2, 0, 0, 2, 30, 0}};
+    muiDrawCommand commands[3];
+    const float origins[3][2] = {{4, 18}, {4, 38}, {0, 8}};
+    const muiLinearColor colors[3] = {{0, 1, 0, 1}, {0, 0.5f, 0, 0.5f}, {0, 1, 0, 1}};
+    for (int i = 0; i < 3; i++)
+    {
+        commands[i] = (muiDrawCommand){.kind = mui_drawGlyphRun, .transform = i == 2 ? 1u : 0u};
+        commands[i].glyphRun = (muiDrawGlyphRun){.font = font,
+                                                 .originX = origins[i][0],
+                                                 .originY = origins[i][1],
+                                                 .size = 10,
+                                                 .glyphCount = 1,
+                                                 .color = colors[i]};
+    }
+    muiDrawList list = {.commands = commands, .commandCount = 3};
+    list.glyphs = &glyph;
+    list.glyphCount = 1;
+    list.transforms = transforms;
+    list.transformCount = 2;
+    list.header.scale = (float)scale;
+    if (!Render(gpu, renderer, &list, side, pixels))
+    {
+        CHECK(false, "colour glyphs drawn and read");
+        return;
+    }
+    const int black[4] = {0, 0, 0, 255};
+    const int red[4] = {255, 0, 0, 255};
+    const int mixed[4] = {187, 0, 188, 255};
+    const int green[4] = {0, 255, 0, 255};
+    // Linear 0.5 over black: 188.
+    const int halfRed[4] = {188, 0, 0, 255};
+    const int halfGreen[4] = {0, 188, 0, 255};
+    const int s = scale;
+    CHECK(Near(pixels, side, 6 * s, 11 * s, red, 3) &&
+              Near(pixels, side, 11 * s, 11 * s, mixed, 3) &&
+              Near(pixels, side, 8 * s, 15 * s, green, 3) &&
+              Near(pixels, side, 3 * s, 11 * s, black, 2) &&
+              Near(pixels, side, 14 * s, 11 * s, black, 2),
+          "a colour glyph's layers and the text's colour");
+    CHECK(Near(pixels, side, 6 * s, 31 * s, halfRed, 4) &&
+              Near(pixels, side, 8 * s, 35 * s, halfGreen, 4),
+          "a colour glyph at the run's alpha");
+    CHECK(Near(pixels, side, 34 * s, 4 * s, red, 3) &&
+              Near(pixels, side, 44 * s, 4 * s, mixed, 3) &&
+              Near(pixels, side, 38 * s, 10 * s, green, 3) &&
+              Near(pixels, side, 30 * s, 8 * s, black, 2),
+          "a colour glyph scaled, from an image at the em drawn");
+}
+
 #endif
 
 int main(void)
@@ -860,8 +929,9 @@ int main(void)
     def.imageContext = &textures;
 #if MUI_TEST_TEXT
     uint64_t font = 0;
-    def.text = MakeText(&font);
-    CHECK(def.text != NULL, "a text service with Ahem");
+    uint64_t color = 0;
+    def.text = MakeText(&font, &color);
+    CHECK(def.text != NULL, "a text service with Ahem and Maul Color");
 #endif
     muiRhiRenderer* renderer = NULL;
     CHECK(muiCreateRhiRenderer(&def, &renderer) == mui_success && AwaitReady(&gpu, renderer),
@@ -901,6 +971,8 @@ int main(void)
         TestFields(&gpu, renderer, font, pixels, 2);
         TestFieldCorners(&gpu, renderer, font, pixels, 1);
         TestFieldCorners(&gpu, renderer, font, pixels, 2);
+        TestColorGlyphs(&gpu, renderer, color, pixels, 1);
+        TestColorGlyphs(&gpu, renderer, color, pixels, 2);
 #endif
     }
     free(pixels);

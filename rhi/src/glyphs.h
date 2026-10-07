@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The renderer's glyphs (record mui-0005): two atlases of its own over
-// the host's text service, one of a channel for coverage and one of four
-// for multi-channel fields, their pages numbered together in the order
-// they are made, each an R8 or RGBA8 texture made when its atlas makes
-// the page, and the rectangles the atlases changed uploaded each frame.
+// The renderer's glyphs (record mui-0005): three atlases of its own over
+// the host's text service, one of a channel for coverage, one of four for
+// multi-channel fields and one of colour glyphs, their pages numbered
+// together in the order they are made, each an R8, RGBA8 or sRGB RGBA8
+// texture made when its atlas makes the page, and the rectangles the
+// atlases changed uploaded each frame.
 // A changed rectangle covers its images' empty gutters, so every texel a
 // glyph's quad samples has been written; what was never written is never
 // sampled. Without Maul UI's text component there are no atlases, and a
@@ -21,6 +22,8 @@
 // The pages the renderer's atlases may make together, past the four each
 // of their defs allow.
 #define MUI_RHI_MAX_PAGES 64u
+// The renderer's atlases: coverage, multi-channel fields, colour glyphs.
+#define MUI_RHI_ATLASES 3u
 
 // A glyph's image in a page: the page, its rect there in texels, the
 // page's size, and its top left in device pixels.
@@ -41,17 +44,18 @@ typedef struct muiRhiGlyphs
 {
     muiAllocator allocator;
     mrhiDevice* device;
-    // The atlas of coverage and the atlas of multi-channel fields.
-    struct muiGlyphAtlas* atlases[2];
+    // The atlases of coverage, of multi-channel fields and of colour
+    // glyphs.
+    struct muiGlyphAtlas* atlases[MUI_RHI_ATLASES];
     // How many pages of each atlas are numbered here, and how many of
     // the numbered pages have textures.
-    uint32_t numbered[2];
+    uint32_t numbered[MUI_RHI_ATLASES];
     uint32_t madeCount;
     // Each page's atlas and its number there; each atlas page's number
     // here.
     uint8_t pageAtlas[MUI_RHI_MAX_PAGES];
     uint8_t atlasPage[MUI_RHI_MAX_PAGES];
-    uint8_t pageOf[2][MUI_RHI_MAX_PAGES];
+    uint8_t pageOf[MUI_RHI_ATLASES][MUI_RHI_MAX_PAGES];
     mrhiTextureId pages[MUI_RHI_MAX_PAGES];
     // The pages in the open frame.
     mrhiResourceId resources[MUI_RHI_MAX_PAGES];
@@ -89,6 +93,15 @@ bool muiRhiGetGlyph(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixe
 // and baseline in field pixels: false as muiRhiGetGlyph.
 bool muiRhiGetGlyphField(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixelSize,
                          uint32_t spread, muiRhiGlyph* glyphOut);
+
+// A colour glyph's image for a pen in device pixels, rendered with the
+// run's colour and its first palette and packed the first time:
+// mui_success, mui_empty for a glyph without colour layers (to be drawn as
+// coverage), or another result when there is no atlas or it cannot be
+// packed.
+muiResult muiRhiGetColorGlyph(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixelSize,
+                              float penX, float baselineY, muiLinearColor foreground,
+                              muiRhiGlyph* glyphOut);
 
 // After a frame's glyphs are got: textures for pages the atlases made,
 // their changed rectangles taken after those pending, and every page

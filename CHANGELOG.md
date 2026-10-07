@@ -10,6 +10,11 @@ format.
 
 ### Changed
 
+- The reference renderer draws colour glyphs from an atlas of colour
+  glyphs of its own, faded by the run's alpha, the text's colour where
+  a layer asks for it; a run a transform scales or turns draws them
+  from images at the em drawn.
+
 - The reference renderer draws glyphs a transform scales or turns from
   multi-channel distance fields, the median of their colours, so their
   corners stay sharp when magnified; it keeps an atlas of four channels
