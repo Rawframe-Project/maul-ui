@@ -1517,7 +1517,7 @@ Visual values: what the draw-command list paints for a node, set through the sam
 ```c
 muiVisualStyle muiDefaultVisualStyle(void);
 ```
-Returns the default visual style: clear background, no gradient, square corners, opaque black border colors, no shadows or image, a white tint, opacity 1, no clipping and a scale of 1 about the centre.  @return The values. @par Thread safety Safe from any thread.
+Returns the default visual style: clear background, no gradient, square corners, opaque black border colors, no shadows or image, a white tint that does not mirror, opacity 1, no clipping and a scale of 1 about the centre.  @return The values. @par Thread safety Safe from any thread.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_SetVisualValues(muiContext* context, muiStyleId styleId, muiVariant variant, const muiVisualStyle* values, muiPropertyMask mask);

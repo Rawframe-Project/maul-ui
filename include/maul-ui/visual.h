@@ -136,6 +136,10 @@ extern "C"
         muiEdges imageSlice;
         // Multiplies the image's colors.
         muiColor imageTint;
+        // Whether the image mirrors under right to left, as an icon that
+        // points a way does: drawn flipped, its slice's start and end then
+        // its right and left.
+        bool imageMirrors;
         // The node and its subtree, from 0 to 1.
         float opacity;
         // Whether the node clips its children to its rounded border box.
@@ -145,8 +149,8 @@ extern "C"
 
     /// Returns the default visual style: clear background, no gradient,
     /// square corners, opaque black border colors, no shadows or image, a
-    /// white tint, opacity 1, no clipping and a scale of 1 about the
-    /// centre.
+    /// white tint that does not mirror, opacity 1, no clipping and a scale
+    /// of 1 about the centre.
     ///
     /// @return The values.
     /// @par Thread safety

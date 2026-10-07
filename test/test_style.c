@@ -455,7 +455,7 @@ static void TestDirectWritesWinUntilReset(void)
               muiStyle_ResetProperties(context, group, mui_variantBase, mui_groupInteraction,
                                        pastInteraction) == mui_errorInvalid &&
               muiStyle_ResetProperties(context, group, mui_variantBase, mui_groupVisual,
-                                       MUI_PROPERTY_BIT(mui_propertyScaleOriginY + 1)) ==
+                                       MUI_PROPERTY_BIT(mui_propertyImageMirrors + 1)) ==
                   mui_errorInvalid &&
               muiStyle_ResetProperties(context, group, mui_variantBase, mui_groupVisual,
                                        MUI_VISUAL_PROPERTIES) == mui_success,

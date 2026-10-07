@@ -71,8 +71,13 @@ clip chain evaluated in its shaders, which keeps batches whole.
   children's commands carry that clip's index. A renderer evaluates the
   chain per command, so clip changes need not break a batch.
 - **Corners and sides are physical in the list,** top left first and
-  top first, resolved from start and end by the node's direction; an
-  image's slice insets do not mirror.
+  top first, resolved from start and end by the node's direction. An
+  image does not mirror unless its node says it does
+  (`imageMirrors`, as Android's `autoMirrored` and Flutter's
+  `matchTextDirection`): under right to left it is then drawn flipped,
+  its uv rectangle of negative width, from the right, and its slice
+  insets as drawn (the image's end inset on the left). A renderer runs
+  slices the way the uv runs.
 - **Colors are linear light with premultiplied alpha.** Gradients carry
   their stops so, and an interpolation tag, Oklab, as transitions move
   colors. Opacity multiplies down the subtree into each command's

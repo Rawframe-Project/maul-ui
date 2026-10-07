@@ -153,8 +153,9 @@ static muiRhiInstance ImageOf(const muiDrawList* list, const muiDrawCommand* com
                             fmaxf(image->slice.bottom, 0.0f), fmaxf(image->slice.left, 0.0f)};
     float fit = fminf(Fit(image->rect.width, slice.left, slice.right),
                       fminf(Fit(image->rect.height, slice.top, slice.bottom), 1.0f));
-    float width = (float)entry->image.width;
-    float height = (float)entry->image.height;
+    // Texel insets run the way the uv does: back, for a mirrored image.
+    float width = (float)entry->image.width * (image->uv.width < 0.0f ? -1.0f : 1.0f);
+    float height = (float)entry->image.height * (image->uv.height < 0.0f ? -1.0f : 1.0f);
     return (muiRhiInstance){
         .rect = image->rect,
         .fill = image->tint,

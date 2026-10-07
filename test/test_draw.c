@@ -531,8 +531,25 @@ static void TestRightToLeft(void)
     const muiDrawBox* box = &list.commands[0].box;
     CHECK(box->radii.topRight == 12.0f && box->radii.topLeft == 8.0f, "start is right");
     CHECK(box->borderWidths.right == 1.0f && box->borderWidths.left == 3.0f, "borders mirror");
-    CHECK(list.commands[1].image.slice.left == 1.0f, "an image does not mirror");
+    CHECK(list.commands[1].image.slice.left == 1.0f && list.commands[1].image.uv.width == 1.0f,
+          "an image does not mirror");
     CheckGolden("right-to-left", &list);
+    // One that mirrors is drawn from its right, its insets as drawn.
+    visual.imageMirrors = true;
+    SetVisual(context, root, &visual, MUI_PROPERTY_BIT(mui_propertyImageMirrors));
+    list = Build(context, root, 1.0f);
+    const muiDrawImage* image = &list.commands[1].image;
+    CHECK(image->uv.x == 1.0f && image->uv.width == -1.0f && image->uv.y == 0.0f &&
+              image->uv.height == 1.0f && image->slice.left == 2.0f && image->slice.right == 1.0f &&
+              image->slice.top == 3.0f && image->slice.bottom == 4.0f,
+          "a mirroring image under right to left");
+    layout.textDirection = mui_textLeftToRight;
+    CHECK(muiNode_SetLayoutValues(context, root, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
+          "ltr");
+    list = Build(context, root, 1.0f);
+    CHECK(list.commands[1].image.uv.width == 1.0f && list.commands[1].image.slice.left == 1.0f,
+          "left to right, it is as it is");
     muiDestroyContext(context);
 }
 

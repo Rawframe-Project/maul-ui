@@ -237,7 +237,7 @@ static void AddBox(muiPainter* painter, const muiVisualStyle* visual, const Bord
     }
 }
 
-static void AddImage(muiPainter* painter, const muiVisualStyle* visual, muiRect rect,
+static void AddImage(muiPainter* painter, const muiVisualStyle* visual, muiRect rect, bool rtl,
                      const muiPaintState* state)
 {
     if (visual->image == 0)
@@ -253,9 +253,15 @@ static void AddImage(muiPainter* painter, const muiVisualStyle* visual, muiRect 
     command->image.rect = muiSnapRect(rect, painter->scale);
     command->image.image = visual->image;
     command->image.uv = (muiRect){0.0f, 0.0f, 1.0f, 1.0f};
-    // An image does not mirror: its slice's start and end are its left and
-    // right.
+    // Its slice's start and end are its left and right; mirrored, it is
+    // drawn from its right, a uv of negative width, and its insets are as
+    // drawn (record mui-0005).
     command->image.slice = (muiSides){slice->top, slice->end, slice->bottom, slice->start};
+    if (visual->imageMirrors && rtl)
+    {
+        command->image.uv = (muiRect){1.0f, 0.0f, -1.0f, 1.0f};
+        command->image.slice = (muiSides){slice->top, slice->start, slice->bottom, slice->end};
+    }
     command->image.tint = muiPaintColor(painter, visual->imageTint, state->opacity);
 }
 
@@ -344,7 +350,7 @@ bool muiPaintNode(muiPainter* painter, uint32_t slot, muiPaintState* state)
         PaddingBox(&inner, &innerRadii, &borders.widths);
         AddShadow(painter, &visual->innerShadow, inner, innerRadii, true, state);
     }
-    AddImage(painter, visual, rect, state);
+    AddImage(painter, visual, rect, layout->rtl, state);
     if (visual->clip)
     {
         state->clip = AddClip(painter, rect, radii, state);

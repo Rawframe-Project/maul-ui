@@ -48,6 +48,10 @@ format.
 
 ### Added
 
+- Images that mirror (`imageMirrors`, `mui_propertyImageMirrors`):
+  under right to left the node's image is drawn flipped, a uv rectangle
+  of negative width with its slice insets as drawn, which the reference
+  renderer draws by running its slices the way the uv runs.
 - Local scale (`muiLocalScale`, the visual properties
   `mui_propertyScaleX`, `ScaleY`, `ScaleOriginX` and `ScaleOriginY`): a
   node and its subtree scaled after layout about an origin in its

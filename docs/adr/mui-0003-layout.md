@@ -74,7 +74,8 @@ tree that did not change.
   inherited direction travels in a node's sizing input; sizes do not
   depend on it, and a node's last full layout records the direction it
   was done in, so a change on an ancestor re-lays out exactly the
-  inheriting nodes.
+  inheriting nodes. Images and icons declare whether they mirror
+  (record mui-0005).
 - **Distributed justification on overflow.** `space-around` and
   `space-evenly` pack at the start when the children overflow, as CSS
   Box Alignment's safe fallback does; `space-between` always does.

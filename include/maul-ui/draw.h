@@ -124,9 +124,11 @@ extern "C"
     } muiDrawShadow;
 
     // An image the host's key names, its uv rectangle (0 to 1 for all of
-    // it) drawn into rect and multiplied by tint. Slice insets, in image
-    // pixels, cut it into nine parts whose corners keep their size at one
-    // logical unit per pixel; all 0 stretches it whole.
+    // it) drawn into rect and multiplied by tint; a negative width or
+    // height draws it flipped, from the rectangle's far edge. Slice
+    // insets, in image pixels as drawn, cut it into nine parts whose
+    // corners keep their size at one logical unit per pixel; all 0
+    // stretches it whole.
     typedef struct muiDrawImage
     {
         muiRect rect;

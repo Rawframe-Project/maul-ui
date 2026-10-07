@@ -433,6 +433,7 @@ typedef struct Textures
 {
     mrhiTextureId bordered;
     mrhiTextureId blue;
+    mrhiTextureId sided;
 } Textures;
 
 static bool FindImage(void* context, uint64_t key, muiRhiImage* imageOut)
@@ -446,6 +447,11 @@ static bool FindImage(void* context, uint64_t key, muiRhiImage* imageOut)
     if (key == 2)
     {
         *imageOut = (muiRhiImage){textures->blue, 2, 2};
+        return true;
+    }
+    if (key == 3)
+    {
+        *imageOut = (muiRhiImage){textures->sided, 8, 8};
         return true;
     }
     return false;
@@ -497,7 +503,10 @@ static bool MakeTexture(Gpu* gpu, uint32_t side, const uint8_t* texels, mrhiText
 
 static bool MakeTextures(Gpu* gpu, Textures* textures)
 {
+    // A red frame two texels wide around green; red on the left two
+    // columns alone, which a mirror moves.
     uint8_t bordered[8 * 8 * 4];
+    uint8_t sided[8 * 8 * 4];
     for (int y = 0; y < 8; y++)
     {
         for (int x = 0; x < 8; x++)
@@ -505,12 +514,15 @@ static bool MakeTextures(Gpu* gpu, Textures* textures)
             bool border = x < 2 || x > 5 || y < 2 || y > 5;
             const uint8_t texel[4] = {border ? 255 : 0, border ? 0 : 255, 0, 255};
             memcpy(&bordered[(y * 8 + x) * 4], texel, 4);
+            const uint8_t side[4] = {x < 2 ? 255 : 0, x < 2 ? 0 : 255, 0, 255};
+            memcpy(&sided[(y * 8 + x) * 4], side, 4);
         }
     }
     const uint8_t blue[2 * 2 * 4] = {0, 0, 255, 255, 0, 0, 255, 255,
                                      0, 0, 255, 255, 0, 0, 255, 255};
     return MakeTexture(gpu, 8, bordered, &textures->bordered) &&
-           MakeTexture(gpu, 2, blue, &textures->blue);
+           MakeTexture(gpu, 2, blue, &textures->blue) &&
+           MakeTexture(gpu, 8, sided, &textures->sided);
 }
 
 static muiDrawCommand Image(uint64_t key, muiRect rect)
@@ -526,16 +538,19 @@ static muiDrawCommand Image(uint64_t key, muiRect rect)
 static void TestImages(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels, int scale)
 {
     const uint32_t side = 64u * (uint32_t)scale;
-    muiDrawCommand commands[4] = {
-        Image(1, (muiRect){0, 0, 40, 24}),
-        Image(2, (muiRect){0, 28, 16, 16}),
-        Image(1, (muiRect){20, 28, 16, 16}),
-        Image(1, (muiRect){44, 0, 16, 16}),
+    muiDrawCommand commands[6] = {
+        Image(1, (muiRect){0, 0, 40, 24}),   Image(2, (muiRect){0, 28, 16, 16}),
+        Image(1, (muiRect){20, 28, 16, 16}), Image(1, (muiRect){44, 0, 16, 16}),
+        Image(3, (muiRect){0, 48, 40, 12}),  Image(3, (muiRect){44, 48, 16, 12}),
     };
     commands[0].image.slice = (muiSides){2, 2, 2, 2};
     commands[2].image.uv = (muiRect){0.25f, 0.25f, 0.5f, 0.5f};
     commands[3].image.tint = (muiLinearColor){0.5f, 0.5f, 0.5f, 0.5f};
-    muiDrawList list = {.commands = commands, .commandCount = 4};
+    // The red-sided image sliced at its red: mirrored, then as it is.
+    commands[4].image.uv = (muiRect){1, 0, -1, 1};
+    commands[4].image.slice = (muiSides){0, 2, 0, 0};
+    commands[5].image.slice = (muiSides){0, 0, 0, 2};
+    muiDrawList list = {.commands = commands, .commandCount = 6};
     list.header.scale = (float)scale;
     if (!Render(gpu, renderer, &list, side, pixels))
     {
@@ -560,6 +575,14 @@ static void TestImages(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels, int 
     CHECK(Near(pixels, side, 23 * s, 31 * s, green, 2) &&
               Near(pixels, side, 32 * s, 40 * s, green, 2),
           "a uv rect of the middle alone");
+    CHECK(Near(pixels, side, 39 * s, 54 * s, red, 2) &&
+              Near(pixels, side, 1 * s, 54 * s, green, 2) &&
+              Near(pixels, side, 20 * s, 54 * s, green, 2) &&
+              Near(pixels, side, 30 * s, 54 * s, green, 2),
+          "mirrored: the red slice 2 units wide on the right");
+    CHECK(Near(pixels, side, 45 * s, 54 * s, red, 2) &&
+              Near(pixels, side, 58 * s, 54 * s, green, 2),
+          "as it is: on the left");
 }
 
 #if MUI_TEST_TEXT

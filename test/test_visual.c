@@ -133,7 +133,8 @@ static void TestDefaults(void)
           "black borders");
     CHECK(SameColor(values.outerShadow.color, clear) && SameColor(values.innerShadow.color, clear),
           "no shadows");
-    CHECK(values.image == 0 && SameColor(values.imageTint, white), "no image, white tint");
+    CHECK(values.image == 0 && SameColor(values.imageTint, white) && !values.imageMirrors,
+          "no image, white tint, not mirrored");
     CHECK(values.opacity == 1.0f && !values.clip, "opaque, not clipping");
     CHECK(values.scale.x == 1.0f && values.scale.y == 1.0f && values.scale.originX == 0.5f &&
               values.scale.originY == 0.5f,
@@ -326,7 +327,7 @@ static void TestChecks(void)
     v.gradient = (muiGradient){mui_gradientLinear, 2, NAN, {black, white}};
     CheckRefused(context, style, node, &v, GRADIENT, "a NaN angle");
 
-    CheckRefused(context, style, node, &defaults, MUI_PROPERTY_BIT(mui_propertyScaleOriginY + 1),
+    CheckRefused(context, style, node, &defaults, MUI_PROPERTY_BIT(mui_propertyImageMirrors + 1),
                  "a bit past the visual group's properties");
     CHECK(muiStyle_SetVisualValues(context, style, mui_variantBase, NULL, BACKGROUND) ==
                   mui_errorInvalid &&
