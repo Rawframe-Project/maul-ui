@@ -1202,6 +1202,16 @@ MUI_NODISCARD MUI_API muiResult muiTextBlock_Replace(muiTextService* service, mu
 Replaces the bytes of a block's text from start up to end with a text, as editing does; its nodes are measured and painted anew once marked changed. Offsets inside a UTF-8 sequence leave bytes that read as U+FFFD; muiTextBlock_FindDeletion and muiTextMove give offsets on grapheme cluster boundaries.  @param service  The service. @param blockId  The block. @param start    The first byte replaced. @param end      The byte after the last; start for an insertion. @param text     The text put in its place, UTF-8. May be NULL when length is 0, and may be part of the block's text. @param length   Its length in bytes. @return `mui_success`; `mui_errorInvalid` for a NULL service, the null id, a NULL text with a length, start after end, end past the text, or a result of 2^31 bytes or more; `mui_errorStale` for a block that is gone; `mui_errorCapacity` when memory runs out, which keeps the old text. @par Thread safety Safe from any thread; the service is used by one thread at a time.
 
 ```c
+MUI_NODISCARD MUI_API muiResult muiTextBlock_SetSpans(muiTextService* service, muiTextBlockId blockId, const muiTextSpan* spans, uint32_t count);
+```
+Sets the spans of a block's text, copied, replacing the ones it had; later ones win where they overlap, as a stack of styles does. Spans set what painting reads: the text color, the decoration and its color (record mui-0006). Setting the text drops them; replacing a range moves those after it, a span growing with text put strictly inside it; a span start inside the range goes to the new text's end, a span end inside it to the range's start, and a span left empty is dropped. Mark the nodes showing the block changed (muiNode_MarkContentChanged).  @param service  The service. @param blockId  The block. @param spans    The spans; NULL when count is 0. @param count    How many, at most MUI_MAX_TEXT_SPANS; 0 clears them. @return `mui_success`; `mui_errorInvalid` for a NULL service, the null id, NULL spans with a count, too many, a span empty, past the text or with an edge inside a UTF-8 sequence, a mask naming another property, or a value not valid for its property; `mui_errorStale` for a block that is gone; `mui_errorCapacity` when memory runs out, which keeps the old spans. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiTextBlock_GetSpans(const muiTextService* service, muiTextBlockId blockId, const muiTextSpan** spansOut, uint32_t* countOut);
+```
+Reads a block's spans, as moved by the edits since they were set: what a host saves of a block's rich text.  @param service    The service. @param blockId    The block. @param spansOut   Receives them, valid until its spans or text change or the block is destroyed; NULL for none. @param countOut   Receives how many. @return `mui_success`; `mui_errorInvalid` for a NULL argument or the null id; `mui_errorStale` for a block that is gone. Nothing is written on failure. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
+```c
 MUI_NODISCARD MUI_API muiResult muiTextBlock_GetText(const muiTextService* service, muiTextBlockId blockId, const char** textOut, size_t* lengthOut);
 ```
 Reads a block's text.  @param service    The service. @param blockId    The block. @param textOut    Receives its bytes, valid until its text is set, replaced or the block destroyed; never NULL. @param lengthOut  Receives its length in bytes. @return `mui_success`; `mui_errorInvalid` for a NULL argument or the null id; `mui_errorStale` for a block that is gone. Nothing is written on failure. @par Thread safety Safe from any thread; the service is used by one thread at a time.
@@ -1307,7 +1317,7 @@ Text style (record mui-0004): the values a text service reads to lay out and dra
 ```c
 muiTextStyle muiDefaultTextStyle(void);
 ```
-Returns the default text style: opaque black, font 0, 16 logical units, the font's own line height, no letter spacing, weight 400, upright, at the start, wrapping. A root takes these for what no layer gives it.  @return The style. @par Thread safety Safe from any thread.
+Returns the default text style: opaque black, font 0, 16 logical units, the font's own line height, no letter spacing, weight 400, upright, at the start, wrapping, with no decoration, whose color is the text's. A root takes these for what no layer gives it.  @return The style. @par Thread safety Safe from any thread.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_SetTextValues(muiContext* context, muiStyleId styleId, muiVariant variant, const muiTextStyle* values, muiPropertyMask mask);
@@ -1541,4 +1551,4 @@ Reads a node's resolved visual values: its direct writes, and for the other prop
 
 ---
 
-280 functions across 34 headers.
+282 functions across 34 headers.

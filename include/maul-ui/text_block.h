@@ -18,7 +18,9 @@
 #include "maul-ui/draw.h"
 #include "maul-ui/font.h"
 #include "maul-ui/layout.h"
+#include "maul-ui/style.h"
 #include "maul-ui/text.h"
+#include "maul-ui/text_style.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -114,6 +116,70 @@ extern "C"
                                                          muiTextBlockId blockId, uint32_t start,
                                                          uint32_t end, const char* text,
                                                          size_t length);
+
+    enum
+    {
+        // The most spans a block holds.
+        MUI_MAX_TEXT_SPANS = 4096
+    };
+
+    // A span of a block's text styled apart from the rest: its bytes from
+    // start, and the text properties mask names (MUI_TEXT_PROPERTIES bits)
+    // with their values in style, which win over the node's computed text
+    // style over those bytes. Spans are what a host's rich-text markup
+    // turns into; Maul UI parses none.
+    typedef struct muiTextSpan
+    {
+        uint32_t start;
+        uint32_t length;
+        muiPropertyMask mask;
+        muiTextStyle style;
+    } muiTextSpan;
+
+    /// Sets the spans of a block's text, copied, replacing the ones it had;
+    /// later ones win where they overlap, as a stack of styles does.
+    /// Spans set what painting reads: the text color, the decoration and
+    /// its color (record mui-0006). Setting the text drops them; replacing
+    /// a range moves those after it, a span growing with text put strictly
+    /// inside it; a span start inside the range goes to the new text's
+    /// end, a span end inside it to the range's start, and a span left
+    /// empty is dropped. Mark the nodes showing the block changed
+    /// (muiNode_MarkContentChanged).
+    ///
+    /// @param service  The service.
+    /// @param blockId  The block.
+    /// @param spans    The spans; NULL when count is 0.
+    /// @param count    How many, at most MUI_MAX_TEXT_SPANS; 0 clears them.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL service, the
+    ///         null id, NULL spans with a count, too many, a span empty,
+    ///         past the text or with an edge inside a UTF-8 sequence, a mask
+    ///         naming another property, or a value not valid for its
+    ///         property; `mui_errorStale` for a block that is gone;
+    ///         `mui_errorCapacity` when memory runs out, which keeps the old
+    ///         spans.
+    /// @par Thread safety
+    /// Safe from any thread; the service is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiTextBlock_SetSpans(muiTextService* service,
+                                                          muiTextBlockId blockId,
+                                                          const muiTextSpan* spans, uint32_t count);
+
+    /// Reads a block's spans, as moved by the edits since they were set:
+    /// what a host saves of a block's rich text.
+    ///
+    /// @param service    The service.
+    /// @param blockId    The block.
+    /// @param spansOut   Receives them, valid until its spans or text
+    ///                   change or the block is destroyed; NULL for none.
+    /// @param countOut   Receives how many.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or the
+    ///         null id; `mui_errorStale` for a block that is gone. Nothing
+    ///         is written on failure.
+    /// @par Thread safety
+    /// Safe from any thread; the service is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiTextBlock_GetSpans(const muiTextService* service,
+                                                          muiTextBlockId blockId,
+                                                          const muiTextSpan** spansOut,
+                                                          uint32_t* countOut);
 
     /// Reads a block's text.
     ///

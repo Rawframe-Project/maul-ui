@@ -135,7 +135,8 @@ static void TestDefaults(void)
               defaults.size.offset == 16.0f && defaults.size.scale == 0.0f &&
               defaults.lineHeight.kind == mui_dimensionAuto && defaults.weight == 400.0f &&
               defaults.slant == mui_slantNormal && defaults.align == mui_textAlignStart &&
-              defaults.wrap == mui_textWrap,
+              defaults.wrap == mui_textWrap && defaults.decoration == mui_decorationNone &&
+              defaults.decorationColor.a == 0.0f,
           "the defaults");
     muiContext* context = MakeContext();
     muiNodeId root = Add(context, s_nullNode, false);
@@ -191,7 +192,8 @@ static void TestChecks(void)
         {WRAP, good, false, "an unknown wrap"},
         {COLOR, good, false, "a color past 1"},
         {FONT, good, true, "any font key"},
-        {MUI_PROPERTY_BIT(mui_propertyTextWrap + 1), good, false, "a bit past the group"},
+        {MUI_PROPERTY_BIT(mui_propertyTextDecorationColor + 1), good, false,
+         "a bit past the group"},
     };
     cases[1].values.weight = 0.0f;
     cases[2].values.weight = 1001.0f;
@@ -444,6 +446,21 @@ static void TestWhatChangesMark(void)
     CHECK(muiNode_SetTextValues(context, root, &values, COLOR) == mui_success, "color");
     CHECK(IsMarked(context, label, mui_stagePaint) && !IsMarked(context, label, mui_stageLayout),
           "a color paints the label, no more");
+    Layout(context, root, T0);
+    ClearPaint(context, root);
+    values.decoration = mui_decorationUnderline;
+    values.decorationColor = s_red;
+    CHECK(muiNode_SetTextValues(context, root, &values,
+                                MUI_PROPERTY_BIT(mui_propertyTextDecoration) |
+                                    MUI_PROPERTY_BIT(mui_propertyTextDecorationColor)) ==
+              mui_success,
+          "decoration");
+    CHECK(IsMarked(context, label, mui_stagePaint) && !IsMarked(context, label, mui_stageLayout),
+          "a decoration paints the label, no more");
+    Layout(context, root, T0);
+    CHECK(Computed(context, label).decoration == mui_decorationUnderline &&
+              SameColor(Computed(context, label).decorationColor, s_red),
+          "inherited");
     Layout(context, root, T0);
     ClearPaint(context, root);
     values.size = Value(0.0f, 30.0f);

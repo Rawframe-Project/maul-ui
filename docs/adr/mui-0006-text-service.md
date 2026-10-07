@@ -55,9 +55,25 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   direction, and draws a glyph run per line and item; default
   ignorables, such as bidi controls, draw no glyph.
 - **Style:** text properties (color, font, size, weight, slant, line
-  height, letter spacing, alignment, wrapping) belong to the core's
-  style and are inherited, so classes, states, tokens, themes and
-  transitions apply to them.
+  height, letter spacing, alignment, wrapping, decoration and its
+  color) belong to the core's style and are inherited, so classes,
+  states, tokens, themes and transitions apply to them. Decorations are
+  lines under, over and through the text (a mask), solid, in their
+  color or, when its alpha is 0, the text's own, as CSS's currentColor.
+- **Spans** (`muiTextSpan`, `muiTextBlock_SetSpans`) style parts of a
+  block apart from its node's style: a byte range on character edges and
+  the text properties a mask names, later spans winning where they
+  overlap, as a stack of styles flattens; they are what a host's
+  rich-text markup turns into, and Maul UI parses none. Spans set what
+  painting reads (color, decoration, decoration color); those that
+  change shaping and line metrics (font, size, weight, slant, baseline
+  shift) come next. Setting the text drops them; a replacement moves
+  those after it and trims those it cuts, a span growing with text put
+  strictly inside it, and `muiTextBlock_GetSpans` reads them back.
+  Painting splits a line's glyph runs where the ink (color and
+  decorations) changes, in visual order, and draws underlines and
+  overlines before the glyphs and line-through after, as CSS paints
+  them, from the first font's metrics (CSS's usual ones without them).
 - **The list:** glyph runs carry a font key, a size, a color, an origin
   and glyph ids with positions. Glyph images are not in the list, so a
   list does not depend on atlas state.
@@ -154,8 +170,8 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
   its styled segments, an empty text removing it;
   `muiTextBlock_EndComposition` keeps its text as typed; a replacement
   before or after it moves it, one over it or new text ends it.
-  Painting underlines it after the glyphs at the first font's underline
-  position: thin for underlined and converted segments, twice as thick
+  Painting underlines it after the glyphs where a decoration's
+  underline goes: thin for underlined and converted segments, twice as thick
   for the target, none for plain, the whole composition thin when it has
   no segments (as Wayland's are drawn). The host maps its window
   library's compositions to segments and gives the platform the caret

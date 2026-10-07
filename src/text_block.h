@@ -116,6 +116,9 @@ typedef struct muiTextBlock
     uint32_t compositionLength;
     muiBuffer segments;
     uint32_t segmentCount;
+    // spanCount muiTextSpan, in the order given.
+    muiBuffer spans;
+    uint32_t spanCount;
 } muiTextBlock;
 
 typedef struct muiTextBlockStore

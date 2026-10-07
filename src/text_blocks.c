@@ -8,6 +8,7 @@
 // so a failure keeps the old text. Keys and the default font too.
 
 #include "font_instance.h"
+#include "property.h"
 #include "text_block.h"
 #include "text_service.h"
 
@@ -240,7 +241,45 @@ muiResult muiTextBlock_SetText(muiTextService* service, muiTextBlockId blockId, 
     muiTextBlock* block = &service->blocks.blocks[slot - 1];
     Adopt(&service->allocator, block, &analysis, (uint32_t)length);
     block->compositionLength = 0;
+    block->spanCount = 0;
     return mui_success;
+}
+
+// Where a position goes when the bytes from start up to end become
+// length bytes: before, it stays; after, it moves by the change; inside,
+// to the new text's end for a span's start and to the range's start for
+// its end.
+static uint32_t Moved(uint32_t at, uint32_t start, uint32_t end, uint32_t length, bool isStart)
+{
+    if (at < end && at > start)
+    {
+        return isStart ? start + length : start;
+    }
+    if (isStart ? at >= end : at > start)
+    {
+        return at - (end - start) + length;
+    }
+    return at;
+}
+
+// Moves a block's spans for a replaced range, dropping those left empty.
+static void MoveSpans(muiTextBlock* block, uint32_t start, uint32_t end, uint32_t length)
+{
+    muiTextSpan* spans = block->spans.data;
+    uint32_t kept = 0;
+    for (uint32_t i = 0; i < block->spanCount; i++)
+    {
+        muiTextSpan span = spans[i];
+        uint32_t first = Moved(span.start, start, end, length, true);
+        uint32_t last = Moved(span.start + span.length, start, end, length, false);
+        if (last > first)
+        {
+            span.start = first;
+            span.length = last - first;
+            spans[kept++] = span;
+        }
+    }
+    block->spanCount = kept;
 }
 
 // Replaces the bytes of a block's text from start up to end, both within
@@ -288,6 +327,7 @@ muiResult muiTextBlock_Replace(muiTextService* service, muiTextBlockId blockId, 
     {
         return mui_errorCapacity;
     }
+    MoveSpans(block, start, end, (uint32_t)length);
     // A composition after the range moves with it; one it overlaps ends.
     uint32_t compositionEnd = block->compositionStart + block->compositionLength;
     if (end <= block->compositionStart)
@@ -348,6 +388,7 @@ muiResult muiTextBlock_SetComposition(muiTextService* service, muiTextBlockId bl
     {
         return mui_errorCapacity;
     }
+    MoveSpans(block, start, end, (uint32_t)length);
     if (segmentCount != 0)
     {
         memcpy(block->segments.data, segments, segmentCount * sizeof *segments);
@@ -355,6 +396,87 @@ muiResult muiTextBlock_SetComposition(muiTextService* service, muiTextBlockId bl
     block->compositionStart = start;
     block->compositionLength = (uint32_t)length;
     block->segmentCount = segmentCount;
+    return mui_success;
+}
+
+// Whether a byte begins a character: not a UTF-8 continuation byte.
+static bool IsCharacterEdge(const muiTextBlock* block, uint32_t at)
+{
+    const unsigned char* text = block->text.data;
+    return at == block->length || (text[at] & 0xC0u) != 0x80u;
+}
+
+// The text properties a span may set: those painting reads.
+#define SPAN_PROPERTIES                                                                            \
+    (MUI_PROPERTY_BIT(mui_propertyTextColor) | MUI_PROPERTY_BIT(mui_propertyTextDecoration) |      \
+     MUI_PROPERTY_BIT(mui_propertyTextDecorationColor))
+
+static bool AreSpansValid(const muiTextBlock* block, const muiTextSpan* spans, uint32_t count)
+{
+    if ((spans == nullptr && count != 0) || count > MUI_MAX_TEXT_SPANS)
+    {
+        return false;
+    }
+    for (uint32_t i = 0; i < count; i++)
+    {
+        const muiTextSpan* span = &spans[i];
+        if (span->length == 0 || span->start > block->length ||
+            span->length > block->length - span->start || !IsCharacterEdge(block, span->start) ||
+            !IsCharacterEdge(block, span->start + span->length) ||
+            (span->mask & ~(muiPropertyMask)SPAN_PROPERTIES) != 0 ||
+            !muiArePropertiesValid((muiConstValuesRef){nullptr, nullptr, &span->style, nullptr},
+                                   muiPropertiesOf(mui_groupText, span->mask)))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+muiResult muiTextBlock_SetSpans(muiTextService* service, muiTextBlockId blockId,
+                                const muiTextSpan* spans, uint32_t count)
+{
+    if (service == nullptr || blockId.index1 == 0)
+    {
+        return mui_errorInvalid;
+    }
+    uint32_t slot = ResolveBlock(service, blockId);
+    if (slot == 0)
+    {
+        return mui_errorStale;
+    }
+    muiTextBlock* block = &service->blocks.blocks[slot - 1];
+    if (!AreSpansValid(block, spans, count))
+    {
+        return mui_errorInvalid;
+    }
+    if (!muiReserve(&service->allocator, &block->spans, count * sizeof(muiTextSpan)))
+    {
+        return mui_errorCapacity;
+    }
+    if (count != 0)
+    {
+        memcpy(block->spans.data, spans, count * sizeof *spans);
+    }
+    block->spanCount = count;
+    return mui_success;
+}
+
+muiResult muiTextBlock_GetSpans(const muiTextService* service, muiTextBlockId blockId,
+                                const muiTextSpan** spansOut, uint32_t* countOut)
+{
+    if (service == nullptr || blockId.index1 == 0 || spansOut == nullptr || countOut == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    uint32_t slot = ResolveBlock(service, blockId);
+    if (slot == 0)
+    {
+        return mui_errorStale;
+    }
+    const muiTextBlock* block = &service->blocks.blocks[slot - 1];
+    *spansOut = block->spanCount != 0 ? block->spans.data : nullptr;
+    *countOut = block->spanCount;
     return mui_success;
 }
 

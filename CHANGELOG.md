@@ -54,6 +54,13 @@ format.
 
 ### Added
 
+- Text decorations and spans: the text style's `decoration` (underline,
+  overline, line-through) and `decorationColor` (the text's color at
+  alpha 0), and spans over a text block (`muiTextSpan`,
+  `muiTextBlock_SetSpans`, `muiTextBlock_GetSpans`) that give parts of
+  it their own color and decorations; edits move them. Painting splits
+  glyph runs where the ink changes and draws decorations from the
+  font's metrics.
 - Safe-area insets: `muiLayoutInput.safeArea` takes a surface's
   insets (physical, `muiSides`), and a node names the edges whose
   padding is at least the inset there (`safeArea`,

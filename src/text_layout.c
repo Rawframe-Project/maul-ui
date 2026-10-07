@@ -3,8 +3,9 @@
 //
 // Measuring and painting text blocks (record mui-0006): a node's
 // paragraph broken into lines, and for painting reordered by UAX #9
-// rules L1 and L2, aligned, and drawn as a glyph run per line and item,
-// an input method's composition underlined after.
+// rules L1 and L2, aligned, and drawn as a glyph run per line, item and
+// stretch of one ink (the color and decorations the node's style and the
+// block's spans give), an input method's composition underlined after.
 
 #include "text_boxes.h"
 #include "text_paragraph.h"
@@ -41,10 +42,107 @@ muiSize muiMeasureText(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasur
                      (float)count * paragraph.lineHeight};
 }
 
-static float PaintSegment(const muiParagraph* paragraph, const muiLineGlyphs* source,
-                          const muiTextItem* item, uint32_t start, uint32_t end, float pen,
-                          float baseline, muiDrawSink* sink)
+// What paints a stretch of text.
+typedef struct Ink
 {
+    muiColor color;
+    muiTextDecoration decoration;
+    muiColor decorationColor;
+} Ink;
+
+// The ink at a byte, from the node's style and the spans over it in
+// order, and the stretch around the byte it holds over: where no span
+// starts or ends.
+static Ink InkAt(const muiParagraph* paragraph, uint32_t at, uint32_t* firstOut, uint32_t* endOut)
+{
+    Ink ink = {paragraph->style.color, paragraph->style.decoration,
+               paragraph->style.decorationColor};
+    const muiTextBlock* block = paragraph->block;
+    const muiTextSpan* spans = block->spans.data;
+    uint32_t first = 0;
+    uint32_t end = UINT32_MAX;
+    for (uint32_t i = 0; i < block->spanCount; i++)
+    {
+        const muiTextSpan* span = &spans[i];
+        uint32_t spanEnd = span->start + span->length;
+        if (at < span->start)
+        {
+            end = span->start < end ? span->start : end;
+            continue;
+        }
+        if (at >= spanEnd)
+        {
+            first = spanEnd > first ? spanEnd : first;
+            continue;
+        }
+        first = span->start > first ? span->start : first;
+        end = spanEnd < end ? spanEnd : end;
+        if ((span->mask & MUI_PROPERTY_BIT(mui_propertyTextColor)) != 0)
+        {
+            ink.color = span->style.color;
+        }
+        if ((span->mask & MUI_PROPERTY_BIT(mui_propertyTextDecoration)) != 0)
+        {
+            ink.decoration = span->style.decoration;
+        }
+        if ((span->mask & MUI_PROPERTY_BIT(mui_propertyTextDecorationColor)) != 0)
+        {
+            ink.decorationColor = span->style.decorationColor;
+        }
+    }
+    *firstOut = first;
+    *endOut = end;
+    return ink;
+}
+
+// Where a decoration lies under, over or through a line, and how thick:
+// from the first font's metrics, or CSS's usual ones for a font without
+// them.
+static muiRect DecorationRect(const muiParagraph* paragraph, muiTextDecoration line, float left,
+                              float right, float baseline)
+{
+    const muiFontMetrics* metrics = &paragraph->chain.fonts[0]->metrics;
+    float size = paragraph->style.size;
+    bool underline = metrics->underlineThickness > 0.0f;
+    float thin = (underline ? metrics->underlineThickness : 0.05f) * size;
+    float y = baseline + (underline ? metrics->underlineOffset : 0.1f) * size;
+    if (line == mui_decorationOverline)
+    {
+        y = baseline - metrics->ascent * size;
+    }
+    else if (line == mui_decorationLineThrough)
+    {
+        bool strikeout = metrics->strikeoutThickness > 0.0f;
+        thin = strikeout ? metrics->strikeoutThickness * size : thin;
+        y = baseline - (strikeout ? metrics->strikeoutOffset : 0.3f) * size;
+    }
+    return (muiRect){left, y, right - left, thin};
+}
+
+static void Decorate(const muiParagraph* paragraph, const Ink* ink, muiTextDecoration lines,
+                     float left, float right, float baseline, muiDrawSink* sink)
+{
+    const muiColor color = ink->decorationColor.a > 0.0f ? ink->decorationColor : ink->color;
+    const muiTextDecoration each[3] = {mui_decorationUnderline, mui_decorationOverline,
+                                       mui_decorationLineThrough};
+    for (int i = 0; i < 3; i++)
+    {
+        if ((ink->decoration & lines & each[i]) != 0 && right > left)
+        {
+            (void)muiDrawSink_AddRect(
+                sink, DecorationRect(paragraph, each[i], left, right, baseline), color);
+        }
+    }
+}
+
+// Paints the glyphs of an item from start up to end, in one ink, from a
+// pen: underline and overline before them, line-through after, as CSS
+// paints them. Returns the pen after.
+static float PaintSegment(const muiParagraph* paragraph, const muiLineGlyphs* source,
+                          const muiTextItem* item, uint32_t start, uint32_t end, const Ink* ink,
+                          float pen, float baseline, muiDrawSink* sink)
+{
+    float left = pen;
     const muiShapedGlyph* shaped = source->glyphs + item->firstGlyph;
     muiGlyph* glyphs = paragraph->service->glyphs.data;
     float scale = muiItemScale(paragraph, item);
@@ -65,11 +163,43 @@ static float PaintSegment(const muiParagraph* paragraph, const muiLineGlyphs* so
             pen += paragraph->scale.spacing;
         }
     }
+    Decorate(paragraph, ink, mui_decorationUnderline | mui_decorationOverline, left, pen, baseline,
+             sink);
     if (count != 0)
     {
         const muiGlyphRun run = {paragraph->chain.keys[item->face], paragraph->style.size,
-                                 paragraph->style.color, 0.0f, baseline};
+                                 ink->color, 0.0f, baseline};
         (void)muiDrawSink_AddGlyphRun(sink, &run, glyphs, count);
+    }
+    Decorate(paragraph, ink, mui_decorationLineThrough, left, pen, baseline, sink);
+    return pen;
+}
+
+// Draws the bytes of an item from start up to end left to right, a
+// stretch of one ink at a time: for an odd level, from the end backwards.
+static float PaintItem(const muiParagraph* paragraph, const muiLineGlyphs* source,
+                       const muiTextItem* item, uint32_t start, uint32_t end, bool odd, float pen,
+                       float baseline, muiDrawSink* sink)
+{
+    uint32_t first = 0;
+    uint32_t last = 0;
+    if (odd)
+    {
+        for (uint32_t at = end; at > start;)
+        {
+            const Ink ink = InkAt(paragraph, at - 1, &first, &last);
+            uint32_t low = first > start ? first : start;
+            pen = PaintSegment(paragraph, source, item, low, at, &ink, pen, baseline, sink);
+            at = low;
+        }
+        return pen;
+    }
+    for (uint32_t at = start; at < end;)
+    {
+        const Ink ink = InkAt(paragraph, at, &first, &last);
+        uint32_t high = last < end ? last : end;
+        pen = PaintSegment(paragraph, source, item, at, high, &ink, pen, baseline, sink);
+        at = high;
     }
     return pen;
 }
@@ -90,7 +220,7 @@ static float PaintRun(const muiParagraph* paragraph, const muiLineGlyphs* source
         }
         uint32_t from = item->start > start ? item->start : start;
         uint32_t to = item->end < end ? item->end : end;
-        pen = PaintSegment(paragraph, source, item, from, to, pen, baseline, sink);
+        pen = PaintItem(paragraph, source, item, from, to, odd, pen, baseline, sink);
     }
     return pen;
 }
@@ -137,8 +267,8 @@ float muiTextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float widt
 }
 
 // Underlines a block's composition on a line: each segment's stretches,
-// or the whole composition's, at the first font's underline position, the
-// target twice as thick.
+// or the whole composition's, where an underline goes, the target twice
+// as thick.
 static void PaintComposition(const muiLaidText* laid, uint32_t index, muiDrawSink* sink)
 {
     const muiParagraph* paragraph = &laid->paragraph;
@@ -148,13 +278,7 @@ static void PaintComposition(const muiLaidText* laid, uint32_t index, muiDrawSin
     {
         return;
     }
-    // A font without an underline gets CSS's usual one.
-    const muiFontMetrics* metrics = &paragraph->chain.fonts[0]->metrics;
-    bool given = metrics->underlineThickness > 0.0f;
-    float size = paragraph->style.size;
-    float thin = (given ? metrics->underlineThickness : 0.05f) * size;
-    float y = (float)index * paragraph->lineHeight + paragraph->baseline +
-              (given ? metrics->underlineOffset : 0.1f) * size;
+    float baseline = (float)index * paragraph->lineHeight + paragraph->baseline;
     const muiCompositionSegment whole = {0, block->compositionLength, mui_compositionUnderline};
     const muiCompositionSegment* segments =
         block->segmentCount != 0 ? block->segments.data : &whole;
@@ -162,15 +286,16 @@ static void PaintComposition(const muiLaidText* laid, uint32_t index, muiDrawSin
     for (uint32_t k = 0; k < count; k++)
     {
         uint32_t start = block->compositionStart + segments[k].start;
-        float height = segments[k].style == mui_compositionTarget ? thin * 2.0f : thin;
         uint32_t at = 0;
         float left = 0.0f;
         float right = 0.0f;
         while (segments[k].style != mui_compositionPlain &&
                muiNextStretch(&boxes, &at, start, start + segments[k].length, &left, &right))
         {
-            (void)muiDrawSink_AddRect(sink, (muiRect){left, y, right - left, height},
-                                      paragraph->style.color);
+            muiRect rect =
+                DecorationRect(paragraph, mui_decorationUnderline, left, right, baseline);
+            rect.height *= segments[k].style == mui_compositionTarget ? 2.0f : 1.0f;
+            (void)muiDrawSink_AddRect(sink, rect, paragraph->style.color);
         }
     }
 }
