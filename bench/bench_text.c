@@ -20,6 +20,7 @@
 #include "maul-ui/style.h"
 #include "maul-ui/text.h"
 #include "maul-ui/text_block.h"
+#include "maul-ui/text_editor.h"
 #include "maul-ui/text_style.h"
 
 #include <stdio.h>
@@ -107,7 +108,7 @@ static Scene MakeScene(void)
     Check(muiCreateFont(scene.service, &fontDef, &font), "font");
     Check(muiSetDefaultFont(scene.service, font), "default font");
     muiContextDef contextDef = muiDefaultContextDef();
-    contextDef.limits.drawGlyphs = 65536;
+    contextDef.limits.drawGlyphs = 1u << 18;
     Check(muiCreateContext(&contextDef, &scene.context), "context");
     scene.host = (muiTextHost){scene.service, scene.context};
     muiNodeDef def = muiDefaultNodeDef();
@@ -244,6 +245,74 @@ static void RunParagraph(void)
     printf("paragraph paint       %10.1f us\n", best[2]);
 }
 
+// Typing a letter in the middle of a long editing block, in paragraphs
+// of 60 words, and laying it out and painting it again: the time a
+// keystroke takes, over 20 of them.
+static double TimeTyping(uint32_t words)
+{
+    static char text[200000];
+    Scene scene = MakeScene();
+    uint32_t state = 13;
+    size_t length = MakeText(text, sizeof text, words, &state);
+    for (size_t i = 0, spaces = 0; i < length; i++)
+    {
+        spaces += text[i] == ' ' ? 1 : 0;
+        text[i] = text[i] == ' ' && spaces % 60 == 0 ? '\n' : text[i];
+    }
+    muiTextBlockId block = {0, 0};
+    Check(muiCreateTextBlock(scene.service, text, length, &block), "block");
+    muiNodeDef def = muiDefaultNodeDef();
+    def.hostKey = muiTextBlock_GetKey(block);
+    muiNodeId node = {0, 0};
+    Check(muiCreateNode(scene.context, &def, &node), "node");
+    Check(muiNode_InsertChild(scene.context, scene.root, node, (muiNodeId){0, 0}), "insert");
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.content = mui_contentHost;
+    Check(muiNode_SetLayoutValues(scene.context, node, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyContent)),
+          "content");
+    muiTextEditDef edit = muiDefaultTextEditDef();
+    edit.flags = mui_editMultiline;
+    Check(muiTextBlock_SetEditing(scene.service, block, &edit), "editing");
+    uint32_t middle = (uint32_t)length / 2;
+    while (middle < length && text[middle] != ' ')
+    {
+        middle++;
+    }
+    const muiTextPosition at = {middle, mui_affinityDownstream};
+    Check(muiTextBlock_Select(scene.service, block, (muiTextSelection){middle, at}), "select");
+    (void)TimeLayout(&scene, 600.0f);
+    (void)TimePaint(&scene);
+    double total = 0.0;
+    for (int key = 0; key < 20; key++)
+    {
+        double start = Seconds();
+        Check(muiTextBlock_Type(scene.service, block, "a", 1, NULL), "type");
+        Check(muiNode_MarkContentChanged(scene.context, node), "changed");
+        const muiLayoutInput input = {600.0f, 1e9f, muiMeasureText, &scene.host,
+                                      0,      NULL, {0, 0, 0, 0}};
+        Check(muiComputeLayout(scene.context, scene.root, &input), "layout");
+        const muiDrawInput draw = {1, 1.0f, muiPaintText, &scene.host};
+        Check(muiBuildDrawList(scene.context, scene.root, &draw), "paint");
+        total += (Seconds() - start) * 1e6;
+    }
+    muiDestroyContext(scene.context);
+    muiDestroyTextService(scene.service);
+    return total / 20.0;
+}
+
+static void RunTyping(void)
+{
+    double best[2] = {1e30, 1e30};
+    for (int run = 0; run < RUNS; run++)
+    {
+        Keep(&best[0], TimeTyping(4000));
+        Keep(&best[1], TimeTyping(16000));
+    }
+    printf("typing    25 KB       %10.1f us\n", best[0]);
+    printf("typing    100 KB      %10.1f us\n", best[1]);
+}
+
 // Liberation Sans's A to Z and a to z are glyphs 36 to 87.
 static void RunFields(void)
 {
@@ -272,5 +341,6 @@ int main(void)
     RunLabels();
     RunParagraph();
     RunFields();
+    RunTyping();
     return 0;
 }
