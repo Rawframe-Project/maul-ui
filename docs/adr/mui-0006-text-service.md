@@ -333,7 +333,7 @@ domains: FreeType and HarfBuzz are what nearly every text stack uses.
     zlib, bzip2, PNG or Brotli, so compressed web fonts are refused,
     and without environment properties; HarfBuzz lean, with variable
     fonts, without its Unicode tables, exceptions or RTTI.
-  - Maul Unicode 0.2.0, fetched at its tag, which supplies HarfBuzz's
+  - Maul Unicode 0.2.1, fetched at its tag, which supplies HarfBuzz's
     Unicode functions, so one Unicode version answers every question.
   - `MAUL_UI_TEXT_SYSTEM_LIBRARIES` links an installed FreeType and
     HarfBuzz instead, for programs that already carry them; results

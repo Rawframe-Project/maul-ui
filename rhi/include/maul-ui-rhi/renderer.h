@@ -56,8 +56,10 @@ extern "C"
         muiAllocator allocator;
         // The device it draws with; the renderer does not own it.
         mrhiDevice* device;
-        // The format of the targets it draws into: an sRGB one encodes
-        // the list's linear colors.
+        // The format of the targets it draws into, or that they are
+        // viewed in (a surface image configured with it among its view
+        // formats, as a canvas's sRGB twin is): an sRGB one encodes the
+        // list's linear colors.
         mrhiFormat targetFormat;
         // The instances it holds room for at first; it grows as lists
         // need, at least 1.

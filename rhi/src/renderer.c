@@ -49,6 +49,8 @@ struct muiRhiRenderer
 {
     muiAllocator allocator;
     mrhiDevice* device;
+    // The format its pipelines draw in, which targets are viewed in.
+    mrhiFormat targetFormat;
     mrhiShaderId shader;
     // Its pipelines: drawing alone, and testing depth when the def names
     // a depth format; ready when every one made is.
@@ -183,6 +185,7 @@ muiResult muiCreateRhiRenderer(const muiRhiRendererDef* def, muiRhiRenderer** re
         .cull = {.allocator = def->allocator},
         .uploadBytes = def->uploadBytes,
         .plan = {.allocator = def->allocator},
+        .targetFormat = def->targetFormat,
     };
     muiResult status = muiRhiMakeGlyphs(&renderer->glyphs, &def->allocator, def->device, def->text);
     for (uint32_t i = 0; i < kStreamCount && status == mui_success; i++)
@@ -385,6 +388,9 @@ static mrhiPassDef DrawPassDef(const muiRhiRenderer* renderer, const muiRhiTarge
         .load = target->clear ? mrhi_loadClear : mrhi_loadKeep,
         .store = mrhi_storeKeep,
         .clear = {clear.r, clear.g, clear.b, clear.a},
+        // A target whose own format differs is viewed in the renderer's: a
+        // canvas's image in its sRGB twin.
+        .viewFormat = renderer->targetFormat,
     };
     def.colorTargetCount = 1;
     def.depthTarget = (mrhiDepthTarget){.resource = target->depth,

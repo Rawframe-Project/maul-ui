@@ -337,7 +337,7 @@ format.
   (record mui-0007).
 - The reference renderer, `maul-ui-rhi` (`MAUL_UI_RHI`, off by
   default; `maul-ui-rhi/renderer.h`), which draws a list with Maul RHI
-  0.3.0: `muiCreateRhiRenderer` for a device and a target format,
+  0.5.0: `muiCreateRhiRenderer` for a device and a target format,
   `muiRhiRenderer_Notify` with the device's notifications until its
   pipeline is ready, then each frame `muiRhiRenderer_AddPasses` while
   the frame is built and `muiRhiRenderer_Record` once it is compiled.
@@ -676,7 +676,7 @@ format.
   service (`muiCreateTextService`) and fonts from memory
   (`muiCreateFont`, `muiCountFontFaces`, `muiFont_GetMetrics`), over
   FreeType 2.14.3 and HarfBuzz 14.5.1 fetched by hash and built into
-  the library, and Maul Unicode 0.2.0. Damaged fonts and compressed web
+  the library, and Maul Unicode 0.2.1. Damaged fonts and compressed web
   fonts are refused with the new `mui_errorFormat`.
 
 ### Fixed

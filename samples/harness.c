@@ -321,24 +321,26 @@ static mrhiFormat TwinOf(mrhiFormat format)
     }
 }
 
-// The first colour the surface reports whose sRGB twin the images may
-// take, which the renderer encodes into.
-// The surface's colour, and the format frames draw in: the sRGB twin of
-// a reported 8-bit colour, as the images' own format where the surface
-// allows it; else, where its images take copies (a WebGPU canvas, whose
-// twin is a view only), the colour itself, frames drawn into a staging
-// texture in the twin whose bytes are copied over.
-static bool ColorOf(const mrhiSurfaceCaps* caps, mrhiSurfaceColor* colorOut,
+// The surface's colour and the format frames draw in, the sRGB twin of
+// the first 8-bit colour it reports: the images' own format where the
+// surface allows it, else a view of them (a WebGPU canvas's twin).
+static bool ColorOf(const mrhiSurfaceCaps* caps, mrhiSurfaceConfig* config,
                     mrhiFormat* drawFormatOut)
 {
-    bool stages = (caps->usages & mrhi_textureCopyDestination) != 0;
-    for (uint32_t i = 0; (caps->twinImages || stages) && i < caps->colorCount; i++)
+    for (uint32_t i = 0; i < caps->colorCount; i++)
     {
         mrhiFormat twin = TwinOf(caps->colors[i].format);
         if (twin != mrhi_formatNone && caps->colors[i].primaries == mrhi_primariesBt709)
         {
-            *colorOut = caps->colors[i];
-            colorOut->format = caps->twinImages ? twin : caps->colors[i].format;
+            config->color = caps->colors[i];
+            if (caps->twinImages)
+            {
+                config->color.format = twin;
+            }
+            else
+            {
+                config->viewFormats[0] = twin;
+            }
             *drawFormatOut = twin;
             return true;
         }
@@ -369,16 +371,14 @@ bool SampleSurfaceOpen(Sample* sample, const mwinNativeHandles* handles, uint32_
     }
     mrhiSurfaceConfig config = mrhiDefaultSurfaceConfig();
     config.surface = surfaceOut->surface;
-    if (!ColorOf(&caps, &config.color, &surfaceOut->drawFormat))
+    if (!ColorOf(&caps, &config, &surfaceOut->drawFormat))
     {
         printf("FAIL: the surface offers no 8-bit colour with sRGB images\n");
         return false;
     }
     surfaceOut->copies = (caps.usages & mrhi_textureCopySource) != 0;
-    surfaceOut->staged = config.color.format != surfaceOut->drawFormat;
     surfaceOut->bgra = surfaceOut->drawFormat == mrhi_formatBgra8UnormSrgb;
-    config.usage = (surfaceOut->staged ? mrhi_textureCopyDestination : mrhi_textureRenderTarget) |
-                   (surfaceOut->copies ? mrhi_textureCopySource : 0u);
+    config.usage = mrhi_textureRenderTarget | (surfaceOut->copies ? mrhi_textureCopySource : 0u);
     surfaceOut->config = config;
     return SampleSurfaceResize(sample, surfaceOut, width, height);
 }
@@ -450,39 +450,11 @@ SamplePresented SamplePresent(Sample* sample, SampleSurface* surface, muiRhiRend
                    ? sample_resized
                    : sample_failed;
     }
-    // Staged, the list is drawn into a texture in the image's sRGB twin,
-    // whose bytes a transfer pass copies onto the image.
-    mrhiResourceId target = image;
-    mrhiTextureDef stageDef = mrhiDefaultTextureDef();
-    stageDef.format = surface->drawFormat;
-    stageDef.width = width;
-    stageDef.height = height;
-    if (surface->staged && mrhiDeclareTexture(device, &stageDef, &target) != mrhi_success)
-    {
-        (void)mrhiDropFrame(device);
-        return sample_failed;
-    }
-    const muiRhiTarget into = {.resource = target,
+    const muiRhiTarget into = {.resource = image,
                                .width = width,
                                .height = height,
                                .clear = true,
                                .clearColor = {0.0f, 0.0f, 0.0f, 1.0f}};
-    const mrhiAccess copies[2] = {
-        {.resource = target,
-         .kind = mrhi_accessCopySource,
-         .range = {.mipCount = 1, .layerCount = 1}},
-        {.resource = image,
-         .kind = mrhi_accessCopyDestination,
-         .range = {.mipCount = 1, .layerCount = 1}},
-    };
-    mrhiPassDef copyDef = mrhiDefaultPassDef();
-    copyDef.passClass = mrhi_passTransfer;
-    copyDef.accesses = copies;
-    copyDef.accessCount = 2;
-    copyDef.neverCull = true;
-    mrhiPassId copying = {0};
-    const mrhiTextureCopy from = {.resource = target};
-    const mrhiTextureCopy onto = {.resource = image};
     bool reads = readBack && surface->copies;
     const mrhiAccess read = {.resource = image,
                              .kind = mrhi_accessCopySource,
@@ -498,14 +470,9 @@ SamplePresented SamplePresent(Sample* sample, SampleSurface* surface, muiRhiRend
     mrhiRequestId readback = {0};
     bool recorded =
         muiRhiRenderer_AddPasses(renderer, list, &into) == mui_success &&
-        (!surface->staged || mrhiAddPass(device, &copyDef, &copying) == mrhi_success) &&
         (!reads || mrhiAddPass(device, &readDef, &reading) == mrhi_success) &&
         mrhiCompileFrame(device) == mrhi_success &&
         muiRhiRenderer_Record(renderer) == mui_success &&
-        (!surface->staged ||
-         (mrhiBeginPass(device, copying) == mrhi_success &&
-          mrhiCopyTexture(device, copying, &from, &onto, &extent) == mrhi_success &&
-          mrhiEndPass(device, copying) == mrhi_success)) &&
         (!reads || (mrhiBeginPass(device, reading) == mrhi_success &&
                     mrhiReadTexture(device, reading, &source, &extent, &readback) == mrhi_success &&
                     mrhiEndPass(device, reading) == mrhi_success));

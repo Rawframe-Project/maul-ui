@@ -77,10 +77,9 @@ typedef struct SampleSurface
     bool copies;
     // Whether its images are BGRA, which a readback swaps to RGBA.
     bool bgra;
-    // The format frames draw in, sRGB; staged when the images are not in
-    // it, frames then drawn into a texture copied onto them.
+    // The format frames draw in, sRGB: the images' own, or a view of
+    // them (a WebGPU canvas's sRGB twin).
     mrhiFormat drawFormat;
-    bool staged;
     // A readback of a presented image asked for and not yet taken: its
     // request, its frame and its size.
     bool reading;

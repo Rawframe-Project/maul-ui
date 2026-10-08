@@ -3,7 +3,7 @@
 # or fetched at its release tag as Maul Unicode is. The core and the text
 # component never depend on it.
 
-set(MAUL_UI_RHI_VERSION 0.3.0)
+set(MAUL_UI_RHI_VERSION 0.5.0)
 find_package(maul-rhi ${MAUL_UI_RHI_VERSION} QUIET)
 if(NOT maul-rhi_FOUND)
     set(MAUL_RHI_BUILD_TESTS OFF)
