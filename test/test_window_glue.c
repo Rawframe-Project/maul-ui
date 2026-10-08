@@ -210,6 +210,11 @@ static mwinResult Init(mwinContext* windows, void* user)
     def.context = test->context;
     def.root = test->root;
     def.gamepads = true;
+    muiWindowGlueDef stalled = def;
+    stalled.repeatIntervalNs = 0;
+    muiWindowGlue* refused = NULL;
+    CHECK(muiCreateWindowGlue(&stalled, &refused) == mui_errorInvalid && refused == NULL,
+          "a def repeating every 0 ns refused");
     CHECK(muiCreateWindowGlue(&def, &test->glue) == mui_success, "a glue");
     return mwin_success;
 }

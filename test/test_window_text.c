@@ -27,6 +27,8 @@
 #include "maul-window/test.h"
 #include "maul-window/window.h"
 
+#include <stdint.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "ahem.inc"
@@ -50,6 +52,8 @@ typedef struct Test
     muiNodeId field;
     mwinWindowId window;
     muiWindowGlue* glue;
+    // The glue's memory: the bytes live, counted.
+    size_t live;
     // The caret the first frame placed in the window.
     mwinRect placed;
     int frame;
@@ -184,6 +188,31 @@ static void TestCaret(Test* test)
           "a NULL host");
 }
 
+// Blocks aligned by hand, as not every C library has aligned_alloc.
+static void* Allocate(size_t size, size_t alignment, void* context)
+{
+    size_t room = alignment > sizeof(void*) ? alignment : sizeof(void*);
+    unsigned char* raw = malloc(size + room + sizeof(void*));
+    if (raw == NULL)
+    {
+        return NULL;
+    }
+    uintptr_t start = (uintptr_t)(raw + sizeof(void*));
+    unsigned char* block = raw + sizeof(void*) + (room - start % room) % room;
+    memcpy(block - sizeof(void*), &raw, sizeof raw);
+    *(size_t*)context += size;
+    return block;
+}
+
+static void Release(void* block, size_t size, size_t alignment, void* context)
+{
+    (void)alignment;
+    void* raw = NULL;
+    memcpy(&raw, (unsigned char*)block - sizeof(void*), sizeof raw);
+    *(size_t*)context -= size;
+    free(raw);
+}
+
 static mwinResult Init(mwinContext* windows, void* user)
 {
     Test* test = user;
@@ -196,6 +225,7 @@ static mwinResult Init(mwinContext* windows, void* user)
     def.window = test->window;
     def.context = test->context;
     def.root = test->root;
+    def.allocator = (muiAllocator){Allocate, Release, &test->live};
     CHECK(muiCreateWindowGlue(&def, &test->glue) == mui_success, "a glue");
     return mwin_success;
 }
@@ -243,6 +273,10 @@ static void TestEditing(Test* test)
                   mui_success &&
               !changed && TextIs(test, "abc"),
           "nothing read, nothing pasted");
+    CHECK(muiWindowGlue_Paste(test->glue, NULL, test->block, &event, NULL) == mui_errorInvalid &&
+              muiWindowGlue_Paste(test->glue, test->service, test->block, NULL, NULL) ==
+                  mui_errorInvalid,
+          "no service or event");
     CHECK(muiWindowGlue_Paste(NULL, test->service, test->block, &event, NULL) == mui_errorInvalid,
           "no glue");
     CHECK(muiWindowGlue_RequestKeyboard(test->glue, &test->host, test->field) == mui_success,
@@ -300,6 +334,7 @@ int main(void)
     def.user = &test;
     CHECK(mwinRun(&def) == mwin_success && test.done, "the program ran");
     muiDestroyWindowGlue(test.glue);
+    CHECK(test.live == 0, "the glue's memory all given back");
     muiDestroyContext(test.context);
     muiDestroyTextService(test.service);
     return s_failures == 0 ? 0 : 1;
