@@ -124,8 +124,14 @@ static void TestEdits(void)
         uint32_t length = Pieces(text, 1 + Next(&state) % 200, LIMIT, &state);
         muiTextBlockId edited = {0, 0};
         muiTextBlockId whole = {0, 0};
-        CHECK(muiCreateTextBlock(service, text, length, &edited) == mui_success &&
-                  muiCreateTextBlock(service, "", 0, &whole) == mui_success,
+        muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+        blockDef.text = text;
+        blockDef.length = length;
+        muiTextBlockDef blockDef2 = muiDefaultTextBlockDef();
+        blockDef2.text = "";
+        blockDef2.length = 0;
+        CHECK(muiCreateTextBlock(service, &blockDef, &edited) == mui_success &&
+                  muiCreateTextBlock(service, &blockDef2, &whole) == mui_success,
               "blocks");
         for (uint32_t edit = 0; edit < EDITS; edit++)
         {
@@ -278,9 +284,15 @@ static void TestShaping(void)
     for (uint32_t round = 0; round < ROUNDS / 2 && shaping.root.index1 != 0; round++)
     {
         uint32_t length = Pieces(text, 1 + Next(&state) % 120, LIMIT, &state);
-        CHECK(muiCreateTextBlock(shaping.service, text, length, &shaping.blocks[0]) ==
-                      mui_success &&
-                  muiCreateTextBlock(shaping.service, "", 0, &shaping.blocks[1]) == mui_success,
+        muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+        blockDef.text = text;
+        blockDef.length = length;
+        muiTextBlockDef blockDef2 = muiDefaultTextBlockDef();
+        blockDef2.text = "";
+        blockDef2.length = 0;
+        CHECK(muiCreateTextBlock(shaping.service, &blockDef, &shaping.blocks[0]) == mui_success &&
+                  muiCreateTextBlock(shaping.service, &blockDef2, &shaping.blocks[1]) ==
+                      mui_success,
               "blocks");
         shaping.nodes[0] = TextNode(shaping.context, shaping.root, shaping.blocks[0]);
         shaping.nodes[1] = TextNode(shaping.context, shaping.root, shaping.blocks[1]);

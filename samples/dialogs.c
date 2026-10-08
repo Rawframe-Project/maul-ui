@@ -322,8 +322,9 @@ static void Build(void* user, SampleApp* app)
     muiVisualStyle focused = muiDefaultVisualStyle();
     focused.background = SampleColor(s_focused);
     const muiPropertyMask background = MUI_PROPERTY_BIT(mui_propertyBackground);
+    const muiStyleDef styleDef = muiDefaultStyleDef();
     SampleAppCheck(app,
-                   muiCreateStyle(app->context, &dialogs->buttonStyle) == mui_success &&
+                   muiCreateStyle(app->context, &styleDef, &dialogs->buttonStyle) == mui_success &&
                        muiStyle_SetVisualValues(app->context, dialogs->buttonStyle, mui_variantBase,
                                                 &base, background) == mui_success &&
                        muiStyle_SetVisualValues(app->context, dialogs->buttonStyle,

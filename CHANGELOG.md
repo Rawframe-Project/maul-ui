@@ -10,6 +10,14 @@ format.
 
 ### Changed
 
+- Every creation takes a def, as the family's API asks: `muiCreateStyle`,
+  `muiCreateNodeType`, `muiCreateTheme`, `muiCreateToken` and
+  `muiCreateTextBlock` take a `muiStyleDef`, `muiNodeTypeDef` (its
+  classes), `muiThemeDef`, `muiTokenDef` (its value) or
+  `muiTextBlockDef` (its text) from its `...Default...Def`, and refuse
+  one without its cookie, so each can gain a field without breaking its
+  callers.
+
 - A smaller library: FreeType is built without the TrueType bytecode
   interpreter and the PostScript hinter, as glyphs are always loaded
   unhinted, 13.5 KB less of the text component's wasm, and a CFF test

@@ -60,14 +60,17 @@ static muiTokenId MakeToken(muiContext* context, muiColor color)
 {
     muiTokenValue value = Color(color);
     muiTokenId token = s_nullToken;
-    CHECK(muiCreateToken(context, &value, &token) == mui_success, "create token");
+    muiTokenDef tokenDef = muiDefaultTokenDef();
+    tokenDef.value = value;
+    CHECK(muiCreateToken(context, &tokenDef, &token) == mui_success, "create token");
     return token;
 }
 
 static muiThemeId MakeTheme(muiContext* context)
 {
     muiThemeId theme = s_nullTheme;
-    CHECK(muiCreateTheme(context, &theme) == mui_success, "create theme");
+    const muiThemeDef themeDef = muiDefaultThemeDef();
+    CHECK(muiCreateTheme(context, &themeDef, &theme) == mui_success, "create theme");
     return theme;
 }
 
@@ -106,7 +109,8 @@ static muiColor Read(const muiContext* context, muiNodeId node, muiTokenId token
 static void Paint(muiContext* context, muiTokenId token, const muiNodeId* nodes, uint32_t count)
 {
     muiStyleId style = {0, 0};
-    CHECK(muiCreateStyle(context, &style) == mui_success, "style");
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    CHECK(muiCreateStyle(context, &styleDef, &style) == mui_success, "style");
     CHECK(muiStyle_SetToken(context, style, mui_variantBase, mui_propertyBackground, token) ==
               mui_success,
           "named");
@@ -120,15 +124,21 @@ static void TestThemesAreChecked(void)
 {
     muiContext* context = MakeContext();
     muiThemeId theme = s_nullTheme;
-    CHECK(muiCreateTheme(NULL, &theme) == mui_errorInvalid &&
-              muiCreateTheme(context, NULL) == mui_errorInvalid,
+    const muiThemeDef themeDef = muiDefaultThemeDef();
+    CHECK(muiCreateTheme(NULL, &themeDef, &theme) == mui_errorInvalid &&
+              muiCreateTheme(context, &themeDef, NULL) == mui_errorInvalid,
           "null arguments");
+    CHECK(muiCreateTheme(context, NULL, &theme) == mui_errorInvalid &&
+              muiCreateTheme(context, &(muiThemeDef){0}, &theme) == mui_errorInvalid,
+          "no def, or one without its cookie");
     theme = MakeTheme(context);
     muiTokenId surface = MakeToken(context, s_light);
     muiTokenValue number = {.type = mui_tokenNumber};
     number.number = 2.0f;
     muiTokenId gap = s_nullToken;
-    CHECK(muiCreateToken(context, &number, &gap) == mui_success, "a number");
+    muiTokenDef tokenDef = muiDefaultTokenDef();
+    tokenDef.value = number;
+    CHECK(muiCreateToken(context, &tokenDef, &gap) == mui_success, "a number");
 
     CHECK(muiTheme_SetTokenValue(context, theme, surface, &number) == mui_errorInvalid,
           "a value of another type");
@@ -272,7 +282,8 @@ static void TestLimits(void)
     muiContext* context = MakeContextWith(limits);
     muiThemeId theme = MakeTheme(context);
     muiThemeId second = s_nullTheme;
-    CHECK(muiCreateTheme(context, &second) == mui_errorCapacity && second.index1 == 0,
+    const muiThemeDef themeDef = muiDefaultThemeDef();
+    CHECK(muiCreateTheme(context, &themeDef, &second) == mui_errorCapacity && second.index1 == 0,
           "the theme limit");
     muiTokenId first = MakeToken(context, s_light);
     muiTokenId next = MakeToken(context, s_light);

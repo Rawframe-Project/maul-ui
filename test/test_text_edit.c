@@ -91,7 +91,10 @@ static Scene MakeFailingScene(FailingAllocator* failing)
     muiContextDef context = muiDefaultContextDef();
     CHECK(muiCreateContext(&context, &scene.context) == mui_success, "context");
     scene.host = (muiTextHost){scene.service, scene.context};
-    CHECK(muiCreateTextBlock(scene.service, "", 0, &scene.block) == mui_success, "block");
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = "";
+    blockDef.length = 0;
+    CHECK(muiCreateTextBlock(scene.service, &blockDef, &scene.block) == mui_success, "block");
     muiNodeDef node = muiDefaultNodeDef();
     node.hostKey = muiTextBlock_GetKey(scene.block);
     CHECK(muiCreateNode(scene.context, &node, &scene.node) == mui_success, "node");

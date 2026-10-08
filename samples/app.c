@@ -92,8 +92,10 @@ muiNodeId SampleTextNode(SampleApp* app, muiNodeId parent, const char* text, flo
                          const uint8_t rgb[3], muiTextBlockId* blockOut)
 {
     muiTextBlockId block = {0};
-    SampleAppCheck(app, muiCreateTextBlock(app->text, text, strlen(text), &block) == mui_success,
-                   "a block");
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = text;
+    blockDef.length = strlen(text);
+    SampleAppCheck(app, muiCreateTextBlock(app->text, &blockDef, &block) == mui_success, "a block");
     muiNodeDef def = muiDefaultNodeDef();
     def.hostKey = muiTextBlock_GetKey(block);
     muiNodeId node = s_nullNode;

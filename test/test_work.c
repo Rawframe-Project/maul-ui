@@ -114,7 +114,8 @@ int main(void)
     muiVisualStyle visual = muiDefaultVisualStyle();
     visual.background = (muiColor){1.0f, 0.0f, 0.0f, 1.0f};
     const muiPropertyMask background = MUI_PROPERTY_BIT(mui_propertyBackground);
-    CHECK(muiCreateStyle(context, &style) == mui_success &&
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    CHECK(muiCreateStyle(context, &styleDef, &style) == mui_success &&
               muiStyle_SetVisualValues(context, style, mui_variantBase, &visual, background) ==
                   mui_success &&
               muiNode_SetClasses(context, panel, &style, 1) == mui_success,

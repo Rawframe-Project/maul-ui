@@ -380,9 +380,10 @@ static void MakeTabs(Panels* sample, SampleApp* app)
     muiVisualStyle selected = muiDefaultVisualStyle();
     selected.background = SampleColor(s_active);
     const muiPropertyMask background = MUI_PROPERTY_BIT(mui_propertyBackground);
+    const muiStyleDef styleDef = muiDefaultStyleDef();
     SampleAppCheck(app,
                    muiNode_SetAccessRole(app->context, list, mui_roleTabList) == mui_success &&
-                       muiCreateStyle(app->context, &tabStyle) == mui_success &&
+                       muiCreateStyle(app->context, &styleDef, &tabStyle) == mui_success &&
                        muiStyle_SetVisualValues(app->context, tabStyle, mui_variantBase, &base,
                                                 background) == mui_success &&
                        muiStyle_SetVisualValues(app->context, tabStyle, mui_variantSelected,
@@ -462,10 +463,11 @@ static void Build(void* user, SampleApp* app)
     FocusMode(app, sample->area, mui_focusAll);
     muiVisualStyle focused = muiDefaultVisualStyle();
     focused.background = SampleColor(s_active);
+    const muiStyleDef styleDef = muiDefaultStyleDef();
     SampleAppCheck(
         app,
         muiNode_SetAccessRole(app->context, sample->area, mui_roleGroup) == mui_success &&
-            muiCreateStyle(app->context, &sample->itemStyle) == mui_success &&
+            muiCreateStyle(app->context, &styleDef, &sample->itemStyle) == mui_success &&
             muiStyle_SetVisualValues(app->context, sample->itemStyle, mui_variantFocused, &focused,
                                      MUI_PROPERTY_BIT(mui_propertyBackground)) == mui_success &&
             muiSetEventFunction(app->context, Hear, sample) == mui_success &&

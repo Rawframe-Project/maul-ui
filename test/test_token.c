@@ -51,7 +51,8 @@ static muiNodeId MakeNode(muiContext* context)
 static muiStyleId MakeStyle(muiContext* context)
 {
     muiStyleId style = s_nullStyle;
-    CHECK(muiCreateStyle(context, &style) == mui_success, "create style");
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    CHECK(muiCreateStyle(context, &styleDef, &style) == mui_success, "create style");
     return style;
 }
 
@@ -72,7 +73,9 @@ static muiTokenValue Number(float number)
 static muiTokenId MakeToken(muiContext* context, muiTokenValue value)
 {
     muiTokenId token = s_nullToken;
-    CHECK(muiCreateToken(context, &value, &token) == mui_success, "create token");
+    muiTokenDef tokenDef = muiDefaultTokenDef();
+    tokenDef.value = value;
+    CHECK(muiCreateToken(context, &tokenDef, &token) == mui_success, "create token");
     return token;
 }
 
@@ -111,41 +114,63 @@ static void TestTokensAreChecked(void)
     muiContext* context = MakeContext();
     muiTokenId token = s_nullToken;
     muiTokenValue value = Color(s_red);
-    CHECK(muiCreateToken(NULL, &value, &token) == mui_errorInvalid &&
+    muiTokenDef tokenDef = muiDefaultTokenDef();
+    tokenDef.value = value;
+    CHECK(muiCreateToken(NULL, &tokenDef, &token) == mui_errorInvalid &&
               muiCreateToken(context, NULL, &token) == mui_errorInvalid &&
-              muiCreateToken(context, &value, NULL) == mui_errorInvalid,
+              muiCreateToken(context, &tokenDef, NULL) == mui_errorInvalid,
           "null arguments");
+    CHECK(muiCreateToken(context, &(muiTokenDef){.value = value}, &token) == mui_errorInvalid,
+          "a def without its cookie");
+    const muiTokenDef zero = muiDefaultTokenDef();
+    muiTokenValue zeroRead = Color(s_red);
+    CHECK(muiCreateToken(context, &zero, &token) == mui_success &&
+              muiGetTokenValue(context, token, &zeroRead, NULL) == mui_success &&
+              zeroRead.type == mui_tokenNumber && zeroRead.number == 0.0f &&
+              muiDestroyToken(context, token) == mui_success,
+          "the default def, the number 0");
     value.color.g = 1.5f;
-    CHECK(muiCreateToken(context, &value, &token) == mui_errorInvalid && token.index1 == 0,
+    tokenDef.value = value;
+    CHECK(muiCreateToken(context, &tokenDef, &token) == mui_errorInvalid && token.index1 == 0,
           "a color component above 1");
     value = Number(NAN);
-    CHECK(muiCreateToken(context, &value, &token) == mui_errorInvalid, "a NaN number");
+    tokenDef.value = value;
+    CHECK(muiCreateToken(context, &tokenDef, &token) == mui_errorInvalid, "a NaN number");
     value = (muiTokenValue){.type = mui_tokenDimension};
     value.dimension = (muiDimension){0.0f, 1.0f, 7};
-    CHECK(muiCreateToken(context, &value, &token) == mui_errorInvalid, "an unknown kind");
+    tokenDef.value = value;
+    CHECK(muiCreateToken(context, &tokenDef, &token) == mui_errorInvalid, "an unknown kind");
     value = (muiTokenValue){.type = mui_tokenShadow};
     value.shadow.blur = -1.0f;
-    CHECK(muiCreateToken(context, &value, &token) == mui_errorInvalid, "a negative blur");
+    tokenDef.value = value;
+    CHECK(muiCreateToken(context, &tokenDef, &token) == mui_errorInvalid, "a negative blur");
     value = (muiTokenValue){.type = mui_tokenGradient};
     value.gradient = (muiGradient){mui_gradientLinear, 1, 0.0f, {{s_red, 0.0f}}};
-    CHECK(muiCreateToken(context, &value, &token) == mui_errorInvalid, "one stop");
+    tokenDef.value = value;
+    CHECK(muiCreateToken(context, &tokenDef, &token) == mui_errorInvalid, "one stop");
     value = (muiTokenValue){.type = 0};
-    CHECK(muiCreateToken(context, &value, &token) == mui_errorInvalid, "no type");
+    tokenDef.value = value;
+    CHECK(muiCreateToken(context, &tokenDef, &token) == mui_errorInvalid, "no type");
     value = (muiTokenValue){.type = 6};
-    CHECK(muiCreateToken(context, &value, &token) == mui_errorInvalid, "an unknown type");
+    tokenDef.value = value;
+    CHECK(muiCreateToken(context, &tokenDef, &token) == mui_errorInvalid, "an unknown type");
 
     // Each type, at its edges.
     value = Number(-3.0f);
-    CHECK(muiCreateToken(context, &value, &token) == mui_success, "a negative number");
+    tokenDef.value = value;
+    CHECK(muiCreateToken(context, &tokenDef, &token) == mui_success, "a negative number");
     value = (muiTokenValue){.type = mui_tokenDimension};
     value.dimension = (muiDimension){0.5f, -2.0f, mui_dimensionValue};
-    CHECK(muiCreateToken(context, &value, &token) == mui_success, "a dimension");
+    tokenDef.value = value;
+    CHECK(muiCreateToken(context, &tokenDef, &token) == mui_success, "a dimension");
     value = (muiTokenValue){.type = mui_tokenShadow};
     value.shadow = (muiShadow){{0.0f, 0.0f, 0.0f, 0.5f}, 1.0f, 2.0f, 3.0f, -1.0f};
-    CHECK(muiCreateToken(context, &value, &token) == mui_success, "a shadow");
+    tokenDef.value = value;
+    CHECK(muiCreateToken(context, &tokenDef, &token) == mui_success, "a shadow");
     value = (muiTokenValue){.type = mui_tokenGradient};
     value.gradient = (muiGradient){mui_gradientRadial, 2, 0.0f, {{s_red, 0.0f}, {s_blue, 1.0f}}};
-    CHECK(muiCreateToken(context, &value, &token) == mui_success, "a gradient");
+    tokenDef.value = value;
+    CHECK(muiCreateToken(context, &tokenDef, &token) == mui_success, "a gradient");
     muiTokenValue read;
     CHECK(muiGetTokenValue(context, token, &read, NULL) == mui_success &&
               read.type == mui_tokenGradient && read.gradient.kind == mui_gradientRadial &&
@@ -169,7 +194,8 @@ static void TestTokensAreChecked(void)
     context = MakeContextWith(limits);
     (void)MakeToken(context, Number(1.0f));
     value = Number(2.0f);
-    CHECK(muiCreateToken(context, &value, &token) == mui_errorCapacity && token.index1 == 0,
+    tokenDef.value = value;
+    CHECK(muiCreateToken(context, &tokenDef, &token) == mui_errorCapacity && token.index1 == 0,
           "the token limit");
     muiDestroyContext(context);
 }

@@ -96,8 +96,11 @@ static void Paint(muiTextService* service)
     muiContextDef contextDef = muiDefaultContextDef();
     muiContext* context = nullptr;
     muiTextBlockId block = {0, 0};
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = s_text;
+    blockDef.length = sizeof s_text - 1;
     Expect(muiCreateContext(&contextDef, &context) == mui_success &&
-           muiCreateTextBlock(service, s_text, sizeof s_text - 1, &block) == mui_success);
+           muiCreateTextBlock(service, &blockDef, &block) == mui_success);
     muiTextSpan spans[3] = {{0, 3, MUI_PROPERTY_BIT(mui_propertyFontWeight), muiDefaultTextStyle()},
                             {4, 5, MUI_PROPERTY_BIT(mui_propertyFontSlant), muiDefaultTextStyle()},
                             {10, 3, MUI_PROPERTY_BIT(mui_propertyFontSize), muiDefaultTextStyle()}};

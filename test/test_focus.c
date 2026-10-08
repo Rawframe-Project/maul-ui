@@ -165,7 +165,8 @@ static void TestStyled(void)
     muiStyleId style;
     muiVisualStyle visual = muiDefaultVisualStyle();
     visual.background = (muiColor){1.0f, 0.0f, 0.0f, 1.0f};
-    CHECK(muiCreateStyle(context, &style) == mui_success &&
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    CHECK(muiCreateStyle(context, &styleDef, &style) == mui_success &&
               muiStyle_SetVisualValues(context, style, mui_variantFocusVisible, &visual,
                                        MUI_PROPERTY_BIT(mui_propertyBackground)) == mui_success &&
               muiNode_SetClasses(context, a, &style, 1) == mui_success,

@@ -56,8 +56,10 @@ static Scene MakeScene(const char* text, muiTextEditFlags flags)
     muiContextDef context = muiDefaultContextDef();
     CHECK(muiCreateContext(&context, &scene.context) == mui_success, "context");
     scene.host = (muiTextHost){scene.service, scene.context};
-    CHECK(muiCreateTextBlock(scene.service, text, strlen(text), &scene.block) == mui_success,
-          "block");
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = text;
+    blockDef.length = strlen(text);
+    CHECK(muiCreateTextBlock(scene.service, &blockDef, &scene.block) == mui_success, "block");
     muiTextEditDef edit = muiDefaultTextEditDef();
     edit.flags = flags;
     CHECK(muiTextBlock_SetEditing(scene.service, scene.block, &edit) == mui_success, "editing");
@@ -192,7 +194,10 @@ static void TestCalls(void)
           "past the text");
     def.filter = mui_filterNone;
     muiTextBlockId other = {0, 0};
-    CHECK(muiCreateTextBlock(scene.service, "\xC3\xA9", 2, &other) == mui_success, "another");
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = "\xC3\xA9";
+    blockDef.length = 2;
+    CHECK(muiCreateTextBlock(scene.service, &blockDef, &other) == mui_success, "another");
     muiTextSelection selection;
     CHECK(muiTextBlock_GetSelection(scene.service, other, &selection) == mui_errorInvalid,
           "a block not editing");
@@ -915,7 +920,10 @@ static void TestPasswordWithoutMemory(void)
         muiTextBlockId block = {0, 0};
         muiTextEditDef edit = muiDefaultTextEditDef();
         edit.flags = mui_editPassword;
-        CHECK(muiCreateTextBlock(service, "secret", 6, &block) == mui_success &&
+        muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+        blockDef.text = "secret";
+        blockDef.length = 6;
+        CHECK(muiCreateTextBlock(service, &blockDef, &block) == mui_success &&
                   muiTextBlock_SetEditing(service, block, &edit) == mui_success,
               "a password");
         left = budget;
@@ -987,7 +995,10 @@ static void TestTypingWithoutMemory(void)
         muiTextBlockId block = {0, 0};
         muiTextEditDef edit = muiDefaultTextEditDef();
         bool changed = false;
-        CHECK(muiCreateTextBlock(service, "ab", 2, &block) == mui_success &&
+        muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+        blockDef.text = "ab";
+        blockDef.length = 2;
+        CHECK(muiCreateTextBlock(service, &blockDef, &block) == mui_success &&
                   muiTextBlock_SetEditing(service, block, &edit) == mui_success &&
                   muiTextBlock_Select(service, block, (muiTextSelection){2, {2, 0}}) ==
                       mui_success &&

@@ -47,7 +47,8 @@ static muiSize MeasureAndEdit(void* user, muiNodeId nodeId, uint64_t hostKey, mu
     Host* host = user;
     muiStyleId style = s_nullStyle;
     muiLayoutStyle values = muiDefaultLayoutStyle();
-    host->refused[0] = muiCreateStyle(host->context, &style);
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    host->refused[0] = muiCreateStyle(host->context, &styleDef, &style);
     host->refused[1] = muiNode_SetStates(host->context, nodeId, mui_stateHovered);
     host->refused[2] = muiNode_SetLayoutValues(host->context, nodeId, &values, WIDTH);
     host->refused[3] = muiNode_SetClasses(host->context, nodeId, NULL, 0);
@@ -79,7 +80,8 @@ static muiNodeId MakeNode(muiContext* context)
 static muiStyleId MakeStyle(muiContext* context)
 {
     muiStyleId style = s_nullStyle;
-    CHECK(muiCreateStyle(context, &style) == mui_success, "create style");
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    CHECK(muiCreateStyle(context, &styleDef, &style) == mui_success, "create style");
     return style;
 }
 
@@ -128,9 +130,11 @@ static void TestDefaultLimitsAndTheirChecks(void)
     CHECK(muiCreateContext(&def, &context) == mui_errorInvalid, "sets over 2^31 - 1");
     context = MakeContextWith((muiLimits){.nodes = 1});
     muiStyleId style = s_nullStyle;
-    CHECK(muiCreateStyle(context, &style) == mui_errorCapacity, "no styles reserved");
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    CHECK(muiCreateStyle(context, &styleDef, &style) == mui_errorCapacity, "no styles reserved");
     muiNodeTypeId type = s_nullType;
-    CHECK(muiCreateNodeType(context, NULL, 0, &type) == mui_errorCapacity, "no types reserved");
+    muiNodeTypeDef typeDef = muiDefaultNodeTypeDef();
+    CHECK(muiCreateNodeType(context, &typeDef, &type) == mui_errorCapacity, "no types reserved");
     muiDestroyContext(context);
 }
 
@@ -139,7 +143,8 @@ static void TestStyleLifetime(void)
     muiContext* context = MakeContextWith((muiLimits){.nodes = 1, .styles = 1, .propertySets = 1});
     muiStyleId first = MakeStyle(context);
     muiStyleId second = s_nullStyle;
-    CHECK(muiCreateStyle(context, &second) == mui_errorCapacity, "style limit");
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    CHECK(muiCreateStyle(context, &styleDef, &second) == mui_errorCapacity, "style limit");
     CHECK(second.index1 == 0, "null id on failure");
     CHECK(muiDestroyStyle(context, first) == mui_success, "destroy");
     CHECK(muiDestroyStyle(context, first) == mui_errorStale, "destroyed once");
@@ -159,9 +164,12 @@ static void TestStyleLifetime(void)
           "the slot is reused with a new generation");
     CHECK(muiGetContextMisuse(context) == 0, "no misuse so far");
     CHECK(muiDestroyStyle(context, s_nullStyle) == mui_errorInvalid, "null id");
-    CHECK(muiCreateStyle(context, NULL) == mui_errorInvalid, "no out pointer");
+    CHECK(muiCreateStyle(context, &styleDef, NULL) == mui_errorInvalid, "no out pointer");
     CHECK(muiGetContextMisuse(context) == 2, "both counted");
-    CHECK(muiCreateStyle(NULL, &second) == mui_errorInvalid, "no context");
+    CHECK(muiCreateStyle(NULL, &styleDef, &second) == mui_errorInvalid, "no context");
+    CHECK(muiCreateStyle(context, NULL, &second) == mui_errorInvalid &&
+              muiCreateStyle(context, &(muiStyleDef){0}, &second) == mui_errorInvalid,
+          "no def, or one without its cookie");
     CHECK(muiDestroyStyle(NULL, second) == mui_errorInvalid, "no context to destroy in");
     muiDestroyContext(context);
 }
@@ -301,7 +309,10 @@ static void TestTypeClassesComeFirst(void)
     SetWidth(context, typeClass, mui_variantBase, 30.0f);
     SetWidth(context, ownClass, mui_variantBase, 40.0f);
     muiNodeTypeId type = s_nullType;
-    CHECK(muiCreateNodeType(context, &typeClass, 1, &type) == mui_success, "type");
+    muiNodeTypeDef typeDef = muiDefaultNodeTypeDef();
+    typeDef.classes = &typeClass;
+    typeDef.classCount = 1;
+    CHECK(muiCreateNodeType(context, &typeDef, &type) == mui_success, "type");
     CHECK(muiNode_SetType(context, node, type) == mui_success, "set type");
     CHECK(WidthAfterLayout(context, node, node) == 30.0f, "the type's class");
     CHECK(muiNode_SetClasses(context, node, &ownClass, 1) == mui_success, "own class");
@@ -317,12 +328,18 @@ static void TestTypeClassesComeFirst(void)
     CHECK(muiDestroyNodeType(context, type) == mui_errorStale, "destroyed once");
     CHECK(muiNodeType_SetClasses(context, type, NULL, 0) == mui_errorStale, "retype a gone type");
     muiStyleId many[MUI_MAX_CLASSES + 1] = {0};
-    CHECK(muiCreateNodeType(context, many, MUI_MAX_CLASSES + 1, &type) == mui_errorInvalid,
-          "too many classes");
-    CHECK(muiCreateNodeType(context, NULL, 1, &type) == mui_errorInvalid, "no classes");
-    CHECK(muiCreateNodeType(context, NULL, 0, NULL) == mui_errorInvalid, "no out pointer");
-    CHECK(muiCreateNodeType(context, many, MUI_MAX_CLASSES, &type) == mui_success,
-          "the limit itself");
+    typeDef.classes = many;
+    typeDef.classCount = MUI_MAX_CLASSES + 1;
+    CHECK(muiCreateNodeType(context, &typeDef, &type) == mui_errorInvalid, "too many classes");
+    typeDef.classes = NULL;
+    typeDef.classCount = 1;
+    CHECK(muiCreateNodeType(context, &typeDef, &type) == mui_errorInvalid, "no classes");
+    typeDef.classes = NULL;
+    typeDef.classCount = 0;
+    CHECK(muiCreateNodeType(context, &typeDef, NULL) == mui_errorInvalid, "no out pointer");
+    typeDef.classes = many;
+    typeDef.classCount = MUI_MAX_CLASSES;
+    CHECK(muiCreateNodeType(context, &typeDef, &type) == mui_success, "the limit itself");
     CHECK(muiNodeType_SetClasses(context, type, many, MUI_MAX_CLASSES + 1) == mui_errorInvalid,
           "too many to retype");
     CHECK(muiNodeType_SetClasses(context, s_nullType, NULL, 0) == mui_errorInvalid, "null type");
@@ -332,7 +349,12 @@ static void TestTypeClassesComeFirst(void)
     CHECK(muiNode_SetClasses(context, node, NULL, 1) == mui_errorInvalid, "none given");
     CHECK(muiNode_SetClasses(context, s_nullNode, NULL, 0) == mui_errorInvalid, "null node");
     CHECK(muiNode_SetType(context, s_nullNode, type) == mui_errorInvalid, "null node type");
-    CHECK(muiCreateNodeType(NULL, NULL, 0, &type) == mui_errorInvalid, "no context");
+    typeDef.classes = NULL;
+    typeDef.classCount = 0;
+    CHECK(muiCreateNodeType(NULL, &typeDef, &type) == mui_errorInvalid, "no context");
+    CHECK(muiCreateNodeType(context, NULL, &type) == mui_errorInvalid &&
+              muiCreateNodeType(context, &(muiNodeTypeDef){0}, &type) == mui_errorInvalid,
+          "no def, or one without its cookie");
     CHECK(muiDestroyNodeType(NULL, type) == mui_errorInvalid, "no context to destroy in");
     CHECK(muiNodeType_SetClasses(NULL, type, NULL, 0) == mui_errorInvalid, "no context retype");
     CHECK(muiNode_SetType(NULL, node, type) == mui_errorInvalid, "no context set type");
@@ -447,7 +469,8 @@ static void TestDirectWritesWinUntilReset(void)
           "a group with no such property");
     CHECK(muiNode_GetDirectProperties(context, node, 4) == 0, "no group past the last");
     muiStyleId group = s_nullStyle;
-    CHECK(muiCreateStyle(context, &group) == mui_success &&
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    CHECK(muiCreateStyle(context, &styleDef, &group) == mui_success &&
               muiStyle_ResetProperties(context, group, mui_variantBase, 4, WIDTH) ==
                   mui_errorInvalid &&
               muiStyle_ResetProperties(context, group, mui_variantBase, mui_groupInteraction,
@@ -538,7 +561,10 @@ static void TestClassValuesReachLayout(void)
     muiStyleId wide = MakeStyle(context);
     SetWidth(context, wide, mui_variantBase, 40.0f);
     muiNodeTypeId type = s_nullType;
-    CHECK(muiCreateNodeType(context, &wide, 1, &type) == mui_success, "type");
+    muiNodeTypeDef typeDef = muiDefaultNodeTypeDef();
+    typeDef.classes = &wide;
+    typeDef.classCount = 1;
+    CHECK(muiCreateNodeType(context, &typeDef, &type) == mui_success, "type");
     CHECK(muiNode_SetClasses(context, second, NULL, 0) == mui_success, "no classes");
     Compute(context, root, &host);
     CHECK(muiNode_SetType(context, second, type) == mui_success, "set type");

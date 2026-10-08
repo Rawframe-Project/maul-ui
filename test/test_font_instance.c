@@ -69,7 +69,10 @@ static Scene MakeScene(const unsigned char* data, size_t size, const char* text)
     CHECK(muiCreateContext(&context, &scene.context) == mui_success, "context");
     scene.host = (muiTextHost){scene.service, scene.context};
     muiTextBlockId block = {0, 0};
-    CHECK(muiCreateTextBlock(scene.service, text, strlen(text), &block) == mui_success, "block");
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = text;
+    blockDef.length = strlen(text);
+    CHECK(muiCreateTextBlock(scene.service, &blockDef, &block) == mui_success, "block");
     muiNodeDef node = muiDefaultNodeDef();
     node.hostKey = muiTextBlock_GetKey(block);
     CHECK(muiCreateNode(scene.context, &node, &scene.node) == mui_success, "node");

@@ -88,7 +88,8 @@ static muiNodeId Add(muiContext* context, muiNodeId parent, bool content)
 static muiStyleId MakeStyle(muiContext* context)
 {
     muiStyleId style = s_nullStyle;
-    CHECK(muiCreateStyle(context, &style) == mui_success, "create style");
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    CHECK(muiCreateStyle(context, &styleDef, &style) == mui_success, "create style");
     return style;
 }
 
@@ -365,7 +366,9 @@ static void TestTokensAndThemes(void)
     muiTokenValue ink = {.type = mui_tokenColor};
     ink.color = s_red;
     muiTokenId token = {0, 0};
-    CHECK(muiCreateToken(context, &ink, &token) == mui_success, "token");
+    muiTokenDef tokenDef = muiDefaultTokenDef();
+    tokenDef.value = ink;
+    CHECK(muiCreateToken(context, &tokenDef, &token) == mui_success, "token");
     muiStyleId style = MakeStyle(context);
     CHECK(muiStyle_SetToken(context, style, mui_variantBase, mui_propertyTextColor, token) ==
                   mui_success &&
@@ -374,7 +377,8 @@ static void TestTokensAndThemes(void)
     muiTokenValue body = {.type = mui_tokenDimension};
     body.dimension = Value(0.0f, 18.0f);
     muiTokenId size = {0, 0};
-    CHECK(muiCreateToken(context, &body, &size) == mui_success &&
+    tokenDef.value = body;
+    CHECK(muiCreateToken(context, &tokenDef, &size) == mui_success &&
               muiStyle_SetToken(context, style, mui_variantBase, mui_propertyFontSize, size) ==
                   mui_success,
           "a size token");
@@ -386,7 +390,8 @@ static void TestTokensAndThemes(void)
     muiThemeId theme = {0, 0};
     muiTokenValue dark = {.type = mui_tokenColor};
     dark.color = s_blue;
-    CHECK(muiCreateTheme(context, &theme) == mui_success &&
+    const muiThemeDef themeDef = muiDefaultThemeDef();
+    CHECK(muiCreateTheme(context, &themeDef, &theme) == mui_success &&
               muiTheme_SetTokenValue(context, theme, token, &dark) == mui_success &&
               muiNode_SetTheme(context, themed, theme) == mui_success &&
               muiNode_SetClasses(context, themed, &style, 1) == mui_success,

@@ -123,7 +123,10 @@ static void TestDamagedFonts(void)
     CHECK(muiCreateContext(&contextDef, &context) == mui_success, "context");
     muiTextBlockId block = {0, 0};
     const char text[] = "AV fi \xD7\x90\xD7\x91 \xD8\xB3\xD9\x84\xD8\xA7\xD9\x85";
-    CHECK(muiCreateTextBlock(service, text, sizeof text - 1, &block) == mui_success, "block");
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = text;
+    blockDef.length = sizeof text - 1;
+    CHECK(muiCreateTextBlock(service, &blockDef, &block) == mui_success, "block");
     muiNodeDef nodeDef = muiDefaultNodeDef();
     nodeDef.hostKey = muiTextBlock_GetKey(block);
     muiNodeId node = {0, 0};
@@ -350,7 +353,10 @@ static void TestRandomText(void)
                   muiSetFallbackFonts(service, &other, 1) == mui_success,
               "fonts");
         muiTextBlockId block = {0, 0};
-        CHECK(muiCreateTextBlock(service, text, length, &block) == mui_success, "block");
+        muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+        blockDef.text = text;
+        blockDef.length = length;
+        CHECK(muiCreateTextBlock(service, &blockDef, &block) == mui_success, "block");
         muiNodeDef nodeDef = muiDefaultNodeDef();
         nodeDef.hostKey = muiTextBlock_GetKey(block);
         muiNodeId node = {0, 0};
@@ -465,7 +471,10 @@ static void TestRandomEdits(void)
     char text[TEXT_LIMIT];
     size_t length = RandomText(text, &state);
     muiTextBlockId block = {0, 0};
-    CHECK(muiCreateTextBlock(service, text, length, &block) == mui_success, "block");
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = text;
+    blockDef.length = length;
+    CHECK(muiCreateTextBlock(service, &blockDef, &block) == mui_success, "block");
     muiNodeDef nodeDef = muiDefaultNodeDef();
     nodeDef.hostKey = muiTextBlock_GetKey(block);
     muiNodeId node = {0, 0};

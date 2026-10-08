@@ -501,8 +501,9 @@ static void Build(void* user, SampleApp* app)
     SampleFill(app, app->root, s_background);
     muiVisualStyle active = muiDefaultVisualStyle();
     active.background = SampleColor(s_active);
+    const muiStyleDef styleDef = muiDefaultStyleDef();
     SampleAppCheck(app,
-                   muiCreateStyle(app->context, &pickers->optionStyle) == mui_success &&
+                   muiCreateStyle(app->context, &styleDef, &pickers->optionStyle) == mui_success &&
                        muiStyle_SetVisualValues(
                            app->context, pickers->optionStyle, mui_variantSelected, &active,
                            MUI_PROPERTY_BIT(mui_propertyBackground)) == mui_success,

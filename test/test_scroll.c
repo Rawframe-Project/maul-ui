@@ -910,7 +910,8 @@ static void TestStyled(void)
     muiStyleId scrolling = {0, 0};
     muiLayoutStyle style = muiDefaultLayoutStyle();
     style.scrollAxes = mui_scrollVertical;
-    CHECK(muiCreateStyle(context, &scrolling) == mui_success &&
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    CHECK(muiCreateStyle(context, &styleDef, &scrolling) == mui_success &&
               muiStyle_SetLayoutValues(context, scrolling, mui_variantBase, &style, SCROLL) ==
                   mui_success &&
               muiNode_SetClasses(context, s, &scrolling, 1) == mui_success,

@@ -22,6 +22,8 @@
 #include <stdint.h>
 #include <string.h>
 
+#define TEXT_BLOCK_DEF_COOKIE 0x6D757462u // "mutb"
+
 enum
 {
     // Texts are indexed by 32-bit offsets, with room for one past the
@@ -216,17 +218,25 @@ static bool IsTextValid(const char* text, size_t length)
     return (text != nullptr || length == 0) && length <= MAX_TEXT;
 }
 
-muiResult muiCreateTextBlock(muiTextService* service, const char* text, size_t length,
+muiTextBlockDef muiDefaultTextBlockDef(void)
+{
+    return (muiTextBlockDef){.cookie = TEXT_BLOCK_DEF_COOKIE};
+}
+
+muiResult muiCreateTextBlock(muiTextService* service, const muiTextBlockDef* def,
                              muiTextBlockId* blockOut)
 {
     if (blockOut != nullptr)
     {
         *blockOut = (muiTextBlockId){0};
     }
-    if (service == nullptr || blockOut == nullptr || !IsTextValid(text, length))
+    if (service == nullptr || def == nullptr || blockOut == nullptr ||
+        def->cookie != TEXT_BLOCK_DEF_COOKIE || !IsTextValid(def->text, def->length))
     {
         return mui_errorInvalid;
     }
+    const char* text = def->text;
+    size_t length = def->length;
     muiTextBlockStore* store = &service->blocks;
     uint32_t slot = muiPoolTake(&store->pool);
     if (slot == 0)

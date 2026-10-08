@@ -47,7 +47,8 @@ static muiNodeId MakeNode(muiContext* context)
 static muiStyleId MakeStyle(muiContext* context)
 {
     muiStyleId style = s_nullStyle;
-    CHECK(muiCreateStyle(context, &style) == mui_success, "create style");
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    CHECK(muiCreateStyle(context, &styleDef, &style) == mui_success, "create style");
     return style;
 }
 

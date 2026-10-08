@@ -237,7 +237,10 @@ static void TestLayout(void)
     CHECK(muiCreateContext(&contextDef, &context) == mui_success, "context");
     muiTextHost host = {service, context};
     muiTextBlockId block = {0, 0};
-    CHECK(muiCreateTextBlock(service, "X", 1, &block) == mui_success, "block");
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = "X";
+    blockDef.length = 1;
+    CHECK(muiCreateTextBlock(service, &blockDef, &block) == mui_success, "block");
     muiNodeDef nodeDef = muiDefaultNodeDef();
     nodeDef.hostKey = muiTextBlock_GetKey(block);
     muiNodeId node = {0, 0};
@@ -323,7 +326,10 @@ static void TestKeysApart(void)
     CHECK(muiCreateContext(&contextDef, &context) == mui_success, "context");
     muiTextHost host = {service, context};
     muiTextBlockId block = {0, 0};
-    CHECK(muiCreateTextBlock(service, "X", 1, &block) == mui_success, "block");
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = "X";
+    blockDef.length = 1;
+    CHECK(muiCreateTextBlock(service, &blockDef, &block) == mui_success, "block");
     muiNodeDef nodeDef = muiDefaultNodeDef();
     nodeDef.hostKey = muiTextBlock_GetKey(block);
     muiNodeId node = {0, 0};

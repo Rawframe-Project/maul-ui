@@ -107,7 +107,8 @@ static muiNodeTypeId MakeType(muiContext* context, const muiLayoutStyle* style,
                               const muiLayoutStyle* hovered, bool painted)
 {
     muiStyleId class = {0, 0};
-    Check(muiCreateStyle(context, &class), "class");
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    Check(muiCreateStyle(context, &styleDef, &class), "class");
     Check(muiStyle_SetLayoutValues(context, class, mui_variantBase, style, MUI_LAYOUT_PROPERTIES),
           "values");
     if (hovered != NULL)
@@ -132,7 +133,10 @@ static muiNodeTypeId MakeType(muiContext* context, const muiLayoutStyle* style,
               "painted hovered");
     }
     muiNodeTypeId type = {0, 0};
-    Check(muiCreateNodeType(context, &class, 1, &type), "type");
+    muiNodeTypeDef typeDef = muiDefaultNodeTypeDef();
+    typeDef.classes = &class;
+    typeDef.classCount = 1;
+    Check(muiCreateNodeType(context, &typeDef, &type), "type");
     return type;
 }
 

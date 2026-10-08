@@ -301,7 +301,8 @@ A class names the look of a kind of node once:
 // pressed; and a node type of buttons, which lists it.
 static muiResult MakeButtonType(muiContext* context, muiStyleId* classOut, muiNodeTypeId* typeOut)
 {
-    muiResult result = muiCreateStyle(context, classOut);
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    muiResult result = muiCreateStyle(context, &styleDef, classOut);
     muiStyleId button = *classOut;
     if (result != mui_success)
     {
@@ -330,7 +331,10 @@ static muiResult MakeButtonType(muiContext* context, muiStyleId* classOut, muiNo
     {
         return result;
     }
-    return muiCreateNodeType(context, &button, 1, typeOut);
+    muiNodeTypeDef typeDef = muiDefaultNodeTypeDef();
+    typeDef.classes = &button;
+    typeDef.classCount = 1;
+    return muiCreateNodeType(context, &typeDef, typeOut);
 }
 ```
 
@@ -349,7 +353,8 @@ variant of the class, set as a state's are:
 // A class that stacks a row's children on small viewports, a phone's.
 static muiResult MakeStacking(muiContext* context, muiStyleId* classOut)
 {
-    muiResult result = muiCreateStyle(context, classOut);
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    muiResult result = muiCreateStyle(context, &styleDef, classOut);
     muiCondition small = muiDefaultCondition();
     small.viewports = mui_viewportSmall;
     muiVariant variant = mui_variantBase;
@@ -384,7 +389,9 @@ static muiResult UseAccent(muiContext* context, muiStyleId button, muiNodeId war
     muiTokenValue value = {.type = mui_tokenColor, .color = {0.2f, 0.4f, 0.8f, 1.0f}};
     muiTokenId accent = {0, 0};
     muiThemeId alert = {0, 0};
-    muiResult result = muiCreateToken(context, &value, &accent);
+    muiTokenDef tokenDef = muiDefaultTokenDef();
+    tokenDef.value = value;
+    muiResult result = muiCreateToken(context, &tokenDef, &accent);
     if (result == mui_success)
     {
         result =
@@ -392,7 +399,8 @@ static muiResult UseAccent(muiContext* context, muiStyleId button, muiNodeId war
     }
     if (result == mui_success)
     {
-        result = muiCreateTheme(context, &alert);
+        const muiThemeDef themeDef = muiDefaultThemeDef();
+        result = muiCreateTheme(context, &themeDef, &alert);
     }
     value.color = (muiColor){0.9f, 0.5f, 0.1f, 1.0f};
     if (result == mui_success)
@@ -468,7 +476,10 @@ static muiNodeId AddLabel(muiContext* context, muiTextService* service, muiNodeI
                           const char* text, muiTextBlockId* blockOut)
 {
     muiNodeId node = {0, 0};
-    if (muiCreateTextBlock(service, text, strlen(text), blockOut) != mui_success)
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = text;
+    blockDef.length = strlen(text);
+    if (muiCreateTextBlock(service, &blockDef, blockOut) != mui_success)
     {
         return node;
     }
@@ -1041,7 +1052,8 @@ static muiResult MakeFading(muiContext* context, muiStyleId* classOut)
     muiVisualStyle gone = muiDefaultVisualStyle();
     gone.opacity = 0.0f;
     const muiPropertyMask opacity = MUI_PROPERTY_BIT(mui_propertyOpacity);
-    muiResult result = muiCreateStyle(context, classOut);
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    muiResult result = muiCreateStyle(context, &styleDef, classOut);
     if (result == mui_success)
     {
         result = muiCreateTransition(context, &def, &fade);

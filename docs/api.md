@@ -1089,9 +1089,14 @@ muiEnvironment muiGetContextEnvironment(const muiContext* context);
 Returns the environment conditions read.  @param context  The context. @return The environment; muiDefaultEnvironment's for a NULL context. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
-MUI_NODISCARD MUI_API muiResult muiCreateStyle(muiContext* context, muiStyleId* styleIdOut);
+muiStyleDef muiDefaultStyleDef(void);
 ```
-Creates a style class with no values set.  @param context     The context. @param styleIdOut  Receives the class; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a call from a measure or paint function; `mui_errorCapacity` when the context's style limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Returns the default style class def.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiCreateStyle(muiContext* context, const muiStyleDef* def, muiStyleId* styleIdOut);
+```
+Creates a style class with no values set.  @param context     The context. @param def         The class: a valid cookie. @param styleIdOut  Receives the class; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie or a call from a measure or paint function; `mui_errorCapacity` when the context's style limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyStyle(muiContext* context, muiStyleId styleId);
@@ -1134,9 +1139,14 @@ MUI_NODISCARD MUI_API muiResult muiStyle_ClearConditions(muiContext* context, mu
 Removes every condition of a class and its values. Every node is styled again at the next muiComputeLayout.  @param context  The context. @param styleId  The class. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for an id whose class is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
-MUI_NODISCARD MUI_API muiResult muiCreateNodeType(muiContext* context, const muiStyleId* classes, uint32_t count, muiNodeTypeId* typeIdOut);
+muiNodeTypeDef muiDefaultNodeTypeDef(void);
 ```
-Creates a node type with an ordered list of classes.  @param context    The context. @param classes    count classes, kept as given; a class destroyed later is skipped. NULL when count is 0. @param count      At most MUI_MAX_CLASSES. @param typeIdOut  Receives the type; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a count over the limit or a call from a measure or paint function; `mui_errorCapacity` when the context's node type limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Returns the default node type def: no classes.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiCreateNodeType(muiContext* context, const muiNodeTypeDef* def, muiNodeTypeId* typeIdOut);
+```
+Creates a node type with an ordered list of classes.  @param context    The context. @param def        The type: a valid cookie and its classes. @param typeIdOut  Receives the type; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie, classes NULL with a count, a count over the limit or a call from a measure or paint function; `mui_errorCapacity` when the context's node type limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyNodeType(muiContext* context, muiNodeTypeId typeId);
@@ -1207,9 +1217,14 @@ Destroys a service and every font in it. Every id it gave out becomes meaningles
 Text blocks (record mui-0006): UTF-8 text the text service lays out as a node's host content. A node whose host key is a block's key, and whose content is the host's, is measured by muiMeasureText and painted by muiPaintText in its computed text style: lines broken where Unicode allows (UAX #14), runs ordered by the Unicode bidirectional algorithm (UAX #9), glyphs shaped by HarfBuzz. White space is kept as written, line breaks in the text end lines, and spaces ending a wrapped line hang past it.
 
 ```c
-MUI_NODISCARD MUI_API muiResult muiCreateTextBlock(muiTextService* service, const char* text, size_t length, muiTextBlockId* blockOut);
+muiTextBlockDef muiDefaultTextBlockDef(void);
 ```
-Creates a text block holding a copy of UTF-8 text. Ill-formed sequences are laid out as U+FFFD.  @param service  The service. @param text     The text; may be NULL when length is 0. @param length   Its length in bytes, below 2^31. @param blockOut Receives the block's id; the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a length of 2^31 or more; `mui_errorCapacity` when the service's limit of blocks is reached or memory runs out. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+Returns the default text block def: no text.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiCreateTextBlock(muiTextService* service, const muiTextBlockDef* def, muiTextBlockId* blockOut);
+```
+Creates a text block holding a copy of a def's text.  @param service  The service. @param def      The block: a valid cookie and its text. @param blockOut Receives the block's id; the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie, text NULL with a length or a length of 2^31 or more; `mui_errorCapacity` when the service's limit of blocks is reached or memory runs out. @par Thread safety Safe from any thread; the service is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyTextBlock(muiTextService* service, muiTextBlockId blockId);
@@ -1463,9 +1478,14 @@ Reads a node's computed text style, as of its last muiComputeLayout; a measure o
 Themes: sets of token values that override the context's tokens for the subtree a theme is set on (record mui-0004). A node reads a token from the nearest theme above it, itself included, that overrides it, then the next one out, then the context; an alias read in a subtree is read there too. Editing a theme restyles every node; setting one on a node restyles the nodes whose themes it changes.
 
 ```c
-MUI_NODISCARD MUI_API muiResult muiCreateTheme(muiContext* context, muiThemeId* themeIdOut);
+muiThemeDef muiDefaultThemeDef(void);
 ```
-Creates a theme that overrides no token.  @param context     The context. @param themeIdOut  Receives the theme; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a call from a measure or paint function; `mui_errorCapacity` when the context's theme limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Returns the default theme def.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiCreateTheme(muiContext* context, const muiThemeDef* def, muiThemeId* themeIdOut);
+```
+Creates a theme that overrides no token.  @param context     The context. @param def         The theme: a valid cookie. @param themeIdOut  Receives the theme; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie or a call from a measure or paint function; `mui_errorCapacity` when the context's theme limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyTheme(muiContext* context, muiThemeId themeId);
@@ -1512,9 +1532,14 @@ Reads a token's value as a node reads it, through the themes above it as of the 
 Tokens: typed values that class variants name in place of a property's value, so that a theme is a change of token values (record mui-0004). A token holds a literal of its type, or an alias to another token of that type; aliases never form a cycle. Changing a token restyles every node, as a class edit does, and named transitions move the change.
 
 ```c
-MUI_NODISCARD MUI_API muiResult muiCreateToken(muiContext* context, const muiTokenValue* value, muiTokenId* tokenIdOut);
+muiTokenDef muiDefaultTokenDef(void);
 ```
-Creates a token holding a value; its type is the value's, for good.  @param context     The context. @param value       The value: a known type and a member valid for it (components of a color from 0 to 1, a finite number, a dimension of a known kind with finite parts, a shadow and a gradient as muiStyle_SetVisualValues takes them). @param tokenIdOut  Receives the token; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a value outside the above or a call from a measure or paint function; `mui_errorCapacity` when the context's token limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Returns the default token def: the number 0.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiCreateToken(muiContext* context, const muiTokenDef* def, muiTokenId* tokenIdOut);
+```
+Creates a token holding a value.  @param context     The context. @param def         The token: a valid cookie and its value. @param tokenIdOut  Receives the token; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie, a value outside the def's or a call from a measure or paint function; `mui_errorCapacity` when the context's token limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyToken(muiContext* context, muiTokenId tokenId);
@@ -1839,4 +1864,4 @@ Asks the window to accept text with its caret at a rectangle of a node's border 
 
 ---
 
-334 functions across 40 headers.
+339 functions across 40 headers.

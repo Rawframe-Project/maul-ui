@@ -73,7 +73,10 @@ static void FreeScene(Scene* scene)
 // A root showing a block's text at size 10.
 static muiNodeId AddText(Scene* scene, const char* text, muiTextBlockId* blockOut)
 {
-    CHECK(muiCreateTextBlock(scene->service, text, strlen(text), blockOut) == mui_success, "block");
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = text;
+    blockDef.length = strlen(text);
+    CHECK(muiCreateTextBlock(scene->service, &blockDef, blockOut) == mui_success, "block");
     muiNodeDef def = muiDefaultNodeDef();
     def.hostKey = muiTextBlock_GetKey(*blockOut);
     muiNodeId node = s_nullNode;

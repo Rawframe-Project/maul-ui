@@ -198,7 +198,8 @@ static void TestFinished(void)
     muiTransitionId transition = {0};
     CHECK(muiCreateTransition(context, &fade, &transition) == mui_success, "transition");
     muiStyleId style = {0};
-    CHECK(muiCreateStyle(context, &style) == mui_success, "class");
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    CHECK(muiCreateStyle(context, &styleDef, &style) == mui_success, "class");
     muiVisualStyle visual = muiDefaultVisualStyle();
     visual.opacity = 0.0f;
     CHECK(muiStyle_SetVisualValues(context, style, mui_variantExiting, &visual,

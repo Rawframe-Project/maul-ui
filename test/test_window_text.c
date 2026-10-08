@@ -68,7 +68,10 @@ static void MakeScene(Test* test)
     muiContextDef context = muiDefaultContextDef();
     CHECK(muiCreateContext(&context, &test->context) == mui_success, "context");
     test->host = (muiTextHost){test->service, test->context};
-    CHECK(muiCreateTextBlock(test->service, "abc", 3, &test->block) == mui_success, "block");
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = "abc";
+    blockDef.length = 3;
+    CHECK(muiCreateTextBlock(test->service, &blockDef, &test->block) == mui_success, "block");
 
     muiNodeDef node = muiDefaultNodeDef();
     CHECK(muiCreateNode(test->context, &node, &test->root) == mui_success, "root");

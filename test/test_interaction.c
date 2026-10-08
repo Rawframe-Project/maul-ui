@@ -197,7 +197,8 @@ static void TestStyled(void)
     values.passThrough = true;
     muiInteractionStyle read = muiDefaultInteractionStyle();
     muiPropertyMask mask = 0;
-    CHECK(muiCreateStyle(context, &style) == mui_success &&
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    CHECK(muiCreateStyle(context, &styleDef, &style) == mui_success &&
               muiStyle_SetInteractionValues(context, style, mui_variantHovered, &values,
                                             HIT_MODE) == mui_success &&
               muiStyle_GetInteractionValues(context, style, mui_variantHovered, &read, &mask) ==
@@ -220,8 +221,8 @@ static void TestStyled(void)
     muiStyleId passing = {0, 0};
     muiInteractionStyle through = muiDefaultInteractionStyle();
     through.passThrough = true;
-    CHECK(muiCreateStyle(context, &none) == mui_success &&
-              muiCreateStyle(context, &passing) == mui_success &&
+    CHECK(muiCreateStyle(context, &styleDef, &none) == mui_success &&
+              muiCreateStyle(context, &styleDef, &passing) == mui_success &&
               muiStyle_SetInteractionValues(context, none, mui_variantBase, &values, HIT_MODE) ==
                   mui_success &&
               muiStyle_SetInteractionValues(context, passing, mui_variantBase, &through,
@@ -637,7 +638,8 @@ static void TestContract(void)
     CHECK(values.hitMode == mui_hitAuto && !values.passThrough, "the defaults");
     values.hitMode = 3;
     muiStyleId style = {0, 0};
-    CHECK(muiCreateStyle(context, &style) == mui_success &&
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    CHECK(muiCreateStyle(context, &styleDef, &style) == mui_success &&
               muiNode_SetInteractionValues(context, root, &values, HIT_MODE) == mui_errorInvalid &&
               muiStyle_SetInteractionValues(context, style, mui_variantBase, &values, HIT_MODE) ==
                   mui_errorInvalid &&

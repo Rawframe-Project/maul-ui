@@ -69,8 +69,9 @@ static muiStyleId Class(SampleApp* app, const uint8_t base[3], muiVariant varian
     values.background = SampleColor(base);
     muiVisualStyle other = muiDefaultVisualStyle();
     other.background = SampleColor(varied);
+    const muiStyleDef styleDef = muiDefaultStyleDef();
     SampleAppCheck(app,
-                   muiCreateStyle(app->context, &style) == mui_success &&
+                   muiCreateStyle(app->context, &styleDef, &style) == mui_success &&
                        muiStyle_SetVisualValues(app->context, style, mui_variantBase, &values,
                                                 s_background_bit) == mui_success &&
                        muiStyle_SetVisualValues(app->context, style, variant, &other,

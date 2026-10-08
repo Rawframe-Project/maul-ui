@@ -98,8 +98,9 @@ static void MakeRow(Tour* tour, SampleApp* app)
     muiVisualStyle pressed = muiDefaultVisualStyle();
     pressed.background = SampleColor(s_pressed);
     const muiPropertyMask background = MUI_PROPERTY_BIT(mui_propertyBackground);
+    const muiStyleDef styleDef = muiDefaultStyleDef();
     SampleAppCheck(app,
-                   muiCreateStyle(app->context, &pressable) == mui_success &&
+                   muiCreateStyle(app->context, &styleDef, &pressable) == mui_success &&
                        muiStyle_SetVisualValues(app->context, pressable, mui_variantBase, &visual,
                                                 background) == mui_success &&
                        muiStyle_SetVisualValues(app->context, pressable, mui_variantPressed,

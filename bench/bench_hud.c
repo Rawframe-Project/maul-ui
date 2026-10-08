@@ -105,7 +105,8 @@ typedef struct Hud
 static muiStyleId MakePanelClass(muiContext* context)
 {
     muiStyleId panel = {0, 0};
-    Check(muiCreateStyle(context, &panel), "class");
+    const muiStyleDef styleDef = muiDefaultStyleDef();
+    Check(muiCreateStyle(context, &styleDef, &panel), "class");
     muiVisualStyle visual = muiDefaultVisualStyle();
     visual.opacity = 0.6f;
     Check(muiStyle_SetVisualValues(context, panel, mui_variantHovered, &visual,

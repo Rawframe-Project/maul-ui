@@ -46,20 +46,38 @@ extern "C"
         const muiContext* context;
     } muiTextHost;
 
-    /// Creates a text block holding a copy of UTF-8 text. Ill-formed
-    /// sequences are laid out as U+FFFD.
+    // How a text block is made. Build it with muiDefaultTextBlockDef.
+    typedef struct muiTextBlockDef
+    {
+        uint32_t cookie;
+        // UTF-8 text, copied; ill-formed sequences are laid out as
+        // U+FFFD. May be NULL when length is 0.
+        const char* text;
+        // Its length in bytes, below 2^31.
+        size_t length;
+    } muiTextBlockDef;
+
+    /// Returns the default text block def: no text.
+    ///
+    /// @return The def, with a valid cookie.
+    /// @par Thread safety
+    /// Safe from any thread.
+    MUI_API muiTextBlockDef muiDefaultTextBlockDef(void);
+
+    /// Creates a text block holding a copy of a def's text.
     ///
     /// @param service  The service.
-    /// @param text     The text; may be NULL when length is 0.
-    /// @param length   Its length in bytes, below 2^31.
+    /// @param def      The block: a valid cookie and its text.
     /// @param blockOut Receives the block's id; the null id on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a
-    ///         length of 2^31 or more; `mui_errorCapacity` when the
-    ///         service's limit of blocks is reached or memory runs out.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
+    ///         cookie, text NULL with a length or a length of 2^31 or more;
+    ///         `mui_errorCapacity` when the service's limit of blocks is
+    ///         reached or memory runs out.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiCreateTextBlock(muiTextService* service, const char* text,
-                                                       size_t length, muiTextBlockId* blockOut);
+    MUI_NODISCARD MUI_API muiResult muiCreateTextBlock(muiTextService* service,
+                                                       const muiTextBlockDef* def,
+                                                       muiTextBlockId* blockOut);
 
     /// Destroys a text block.
     ///

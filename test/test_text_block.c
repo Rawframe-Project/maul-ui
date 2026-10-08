@@ -108,7 +108,10 @@ static void FreeScene(Scene* scene)
 static muiNodeId AddText(Scene* scene, muiNodeId parent, const char* text)
 {
     muiTextBlockId block = {0, 0};
-    CHECK(muiCreateTextBlock(scene->service, text, strlen(text), &block) == mui_success, "block");
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = text;
+    blockDef.length = strlen(text);
+    CHECK(muiCreateTextBlock(scene->service, &blockDef, &block) == mui_success, "block");
     muiNodeDef def = muiDefaultNodeDef();
     def.hostKey = muiTextBlock_GetKey(block);
     muiNodeId node = s_nullNode;
@@ -172,17 +175,27 @@ static void TestBlocksAndKeys(void)
     muiTextBlockId a = {0, 0};
     muiTextBlockId b = {0, 0};
     muiTextBlockId c = {7, 7};
-    CHECK(muiCreateTextBlock(service, "a", 1, &a) == mui_success &&
-              muiCreateTextBlock(service, NULL, 0, &b) == mui_success,
-          "two blocks, one empty");
-    CHECK(muiCreateTextBlock(service, "c", 1, &c) == mui_errorCapacity && c.index1 == 0,
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    const muiTextBlockDef empty = muiDefaultTextBlockDef();
+    blockDef.text = "a";
+    blockDef.length = 1;
+    CHECK(muiCreateTextBlock(service, &blockDef, &a) == mui_success &&
+              muiCreateTextBlock(service, &empty, &b) == mui_success,
+          "two blocks, the default def's empty");
+    blockDef.text = "c";
+    CHECK(muiCreateTextBlock(service, &blockDef, &c) == mui_errorCapacity && c.index1 == 0,
           "the limit");
     CHECK(muiTextBlock_GetKey(a) != 0 && muiTextBlock_GetKey(a) != muiTextBlock_GetKey(b), "keys");
-    CHECK(muiCreateTextBlock(NULL, "a", 1, &c) == mui_errorInvalid &&
-              muiCreateTextBlock(service, NULL, 1, &c) == mui_errorInvalid &&
-              muiCreateTextBlock(service, "a", 1, NULL) == mui_errorInvalid &&
-              muiCreateTextBlock(service, "a", (size_t)1 << 31, &c) == mui_errorInvalid,
-          "arguments");
+    blockDef.text = "a";
+    const muiTextBlockDef noText = {empty.cookie, NULL, 1};
+    const muiTextBlockDef tooLong = {empty.cookie, "a", (size_t)1 << 31};
+    CHECK(muiCreateTextBlock(NULL, &blockDef, &c) == mui_errorInvalid &&
+              muiCreateTextBlock(service, NULL, &c) == mui_errorInvalid &&
+              muiCreateTextBlock(service, &(muiTextBlockDef){0, "a", 1}, &c) == mui_errorInvalid &&
+              muiCreateTextBlock(service, &noText, &c) == mui_errorInvalid &&
+              muiCreateTextBlock(service, &blockDef, NULL) == mui_errorInvalid &&
+              muiCreateTextBlock(service, &tooLong, &c) == mui_errorInvalid,
+          "arguments: no def, no cookie, no text for a length, too long");
     CHECK(muiTextBlock_SetText(service, a, "abc", 3) == mui_success &&
               muiTextBlock_SetText(service, a, NULL, 1) == mui_errorInvalid &&
               muiTextBlock_SetText(NULL, a, "a", 1) == mui_errorInvalid &&
@@ -767,10 +780,15 @@ static void TestMemoryRunningOut(void)
     FailingAllocator failing = {0, 0};
     Scene scene = MakeScene(&failing);
     muiTextBlockId block = {0, 0};
-    CHECK(muiCreateTextBlock(scene.service, "ab", 2, &block) == mui_success, "block");
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = "ab";
+    blockDef.length = 2;
+    CHECK(muiCreateTextBlock(scene.service, &blockDef, &block) == mui_success, "block");
     failing = (FailingAllocator){0, 1};
+    blockDef.text = "x";
+    blockDef.length = 1;
     CHECK(muiTextBlock_SetText(scene.service, block, "abcd", 4) == mui_errorCapacity &&
-              muiCreateTextBlock(scene.service, "x", 1, &block) == mui_success,
+              muiCreateTextBlock(scene.service, &blockDef, &block) == mui_success,
           "refused, then fine");
     FreeScene(&scene);
 }

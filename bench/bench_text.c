@@ -130,7 +130,10 @@ static Scene MakeScene(void)
 static muiNodeId AddText(Scene* scene, const char* text, size_t length)
 {
     muiTextBlockId block = {0, 0};
-    Check(muiCreateTextBlock(scene->service, text, length, &block), "block");
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = text;
+    blockDef.length = length;
+    Check(muiCreateTextBlock(scene->service, &blockDef, &block), "block");
     muiNodeDef def = muiDefaultNodeDef();
     def.hostKey = muiTextBlock_GetKey(block);
     muiNodeId node = {0, 0};
@@ -261,7 +264,10 @@ static double TimeTyping(uint32_t words)
         text[i] = text[i] == ' ' && spaces % 60 == 0 ? '\n' : text[i];
     }
     muiTextBlockId block = {0, 0};
-    Check(muiCreateTextBlock(scene.service, text, length, &block), "block");
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = text;
+    blockDef.length = length;
+    Check(muiCreateTextBlock(scene.service, &blockDef, &block), "block");
     muiNodeDef def = muiDefaultNodeDef();
     def.hostKey = muiTextBlock_GetKey(block);
     // In a view 600 tall that scrolls, as an editor shows it.

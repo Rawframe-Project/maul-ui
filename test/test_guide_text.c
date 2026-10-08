@@ -58,7 +58,10 @@ static muiNodeId AddLabel(muiContext* context, muiTextService* service, muiNodeI
                           const char* text, muiTextBlockId* blockOut)
 {
     muiNodeId node = {0, 0};
-    if (muiCreateTextBlock(service, text, strlen(text), blockOut) != mui_success)
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = text;
+    blockDef.length = strlen(text);
+    if (muiCreateTextBlock(service, &blockDef, blockOut) != mui_success)
     {
         return node;
     }
