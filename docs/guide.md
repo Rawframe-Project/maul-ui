@@ -1005,3 +1005,75 @@ the context reports with `mui_notificationPopupDismissed`; the program
 closes it, with whatever exit it likes (section 10). A popup anchored
 inside another nests under it, and a press inside the inner one keeps
 both open.
+
+## 10. Transitions and exits
+
+A transition says how a property moves to a new value: over a
+duration along an easing curve, as CSS names them, or as a spring that
+keeps its speed when the target changes. A class's variants name
+transitions for properties as they name values, and the spec for a
+change resolves through the same layers, from the state after the
+change. Numbers, dimensions, radii, colors (in Oklab) and shadows
+move; what cannot, an enumerator, an image key, a direct write, and
+everything under reduced motion, changes at once. Transitions run
+against the time each frame hands to layout (`timeNs`), so a program
+that renders when something changes keeps drawing while
+`muiIsUpdatePending` says one runs.
+
+```c
+// A class whose nodes' opacity moves over 150 ms, easing out, and which
+// fades them to nothing while they leave.
+static muiResult MakeFading(muiContext* context, muiStyleId* classOut)
+{
+    muiTransitionDef def = muiDefaultTransitionDef();
+    def.kind = mui_transitionTimed;
+    def.durationNs = 150000000;
+    def.easing = mui_easingEaseOut;
+    muiTransitionId fade = {0, 0};
+    muiVisualStyle gone = muiDefaultVisualStyle();
+    gone.opacity = 0.0f;
+    const muiPropertyMask opacity = MUI_PROPERTY_BIT(mui_propertyOpacity);
+    muiResult result = muiCreateStyle(context, classOut);
+    if (result == mui_success)
+    {
+        result = muiCreateTransition(context, &def, &fade);
+    }
+    if (result == mui_success)
+    {
+        result = muiStyle_SetTransition(context, *classOut, mui_variantBase, fade, mui_groupVisual,
+                                        opacity);
+    }
+    return result == mui_success
+               ? muiStyle_SetVisualValues(context, *classOut, mui_variantExiting, &gone, opacity)
+               : result;
+}
+```
+
+A node that leaves plays its way out before it goes. `muiNode_BeginExit`
+puts it and its subtree in the exiting state, so its classes' exiting
+variants and their transitions apply; it leaves hit testing, focus and
+navigation at once. When nothing moves in it any more, the context
+reports it, once:
+
+```c
+// Destroys the nodes whose exits finished, as a frame's notifications
+// say. A node leaves with muiNode_BeginExit; the library never destroys
+// it.
+static void DestroyExited(muiContext* context)
+{
+    muiNotification notification;
+    while (muiNextNotification(context, &notification) == mui_success)
+    {
+        if (notification.kind == mui_notificationExitFinished)
+        {
+            (void)muiDestroyNode(context, notification.nodeId);
+        }
+    }
+}
+```
+
+A toast of the fading class begins its exit fully opaque, is half way
+out 75 ms later and still in the tree, and at 150 ms is transparent,
+its exit reported and the node destroyed. `muiNode_CancelExit` brings a
+leaving node back: the exiting state goes, it takes input again, and
+its transitions move it back.

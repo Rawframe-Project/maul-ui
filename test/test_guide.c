@@ -12,6 +12,7 @@
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
 #include "maul-ui/event.h"
+#include "maul-ui/exit.h"
 #include "maul-ui/focus.h"
 #include "maul-ui/interaction.h"
 #include "maul-ui/layout.h"
@@ -22,6 +23,7 @@
 #include "maul-ui/style.h"
 #include "maul-ui/theme.h"
 #include "maul-ui/token.h"
+#include "maul-ui/transition.h"
 #include "maul-ui/virtual.h"
 #include "maul-ui/visual.h"
 
@@ -397,6 +399,50 @@ static muiResult OpenMenu(muiContext* context, muiNodeId menu, muiNodeId button)
     return result == mui_success ? muiNode_SetPopup(context, menu, &popup) : result;
 }
 
+// Section 10: transitions and exits.
+
+// A class whose nodes' opacity moves over 150 ms, easing out, and which
+// fades them to nothing while they leave.
+static muiResult MakeFading(muiContext* context, muiStyleId* classOut)
+{
+    muiTransitionDef def = muiDefaultTransitionDef();
+    def.kind = mui_transitionTimed;
+    def.durationNs = 150000000;
+    def.easing = mui_easingEaseOut;
+    muiTransitionId fade = {0, 0};
+    muiVisualStyle gone = muiDefaultVisualStyle();
+    gone.opacity = 0.0f;
+    const muiPropertyMask opacity = MUI_PROPERTY_BIT(mui_propertyOpacity);
+    muiResult result = muiCreateStyle(context, classOut);
+    if (result == mui_success)
+    {
+        result = muiCreateTransition(context, &def, &fade);
+    }
+    if (result == mui_success)
+    {
+        result = muiStyle_SetTransition(context, *classOut, mui_variantBase, fade, mui_groupVisual,
+                                        opacity);
+    }
+    return result == mui_success
+               ? muiStyle_SetVisualValues(context, *classOut, mui_variantExiting, &gone, opacity)
+               : result;
+}
+
+// Destroys the nodes whose exits finished, as a frame's notifications
+// say. A node leaves with muiNode_BeginExit; the library never destroys
+// it.
+static void DestroyExited(muiContext* context)
+{
+    muiNotification notification;
+    while (muiNextNotification(context, &notification) == mui_success)
+    {
+        if (notification.kind == mui_notificationExitFinished)
+        {
+            (void)muiDestroyNode(context, notification.nodeId);
+        }
+    }
+}
+
 static void TestRefusals(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -693,6 +739,45 @@ static void TestLists(void)
     muiDestroyContext(context);
 }
 
+static float Opacity(muiContext* context, muiNodeId root, muiNodeId node, uint64_t timeNs)
+{
+    const muiLayoutInput layout = {800.0f, 600.0f, NULL, NULL, timeNs, NULL, {0, 0, 0, 0}};
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    CHECK(muiComputeLayout(context, root, &layout) == mui_success, "laid out");
+    if (muiNode_GetVisualStyle(context, node, &visual) != mui_success)
+    {
+        return -1.0f;
+    }
+    return visual.opacity;
+}
+
+static void TestExits(void)
+{
+    muiContextDef def = muiDefaultContextDef();
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "a context");
+    muiNodeDef nodeDef = muiDefaultNodeDef();
+    muiNodeId root = {0, 0};
+    CHECK(muiCreateNode(context, &nodeDef, &root) == mui_success, "a root");
+    muiNodeId toast = Child(context, root);
+    muiStyleId fading = {0, 0};
+    CHECK(MakeFading(context, &fading) == mui_success &&
+              muiNode_SetClasses(context, toast, &fading, 1) == mui_success &&
+              Opacity(context, root, toast, 1000000000) == 1.0f,
+          "a toast shown");
+    CHECK(muiNode_BeginExit(context, toast) == mui_success &&
+              Opacity(context, root, toast, 1000000000) == 1.0f,
+          "leaving");
+    float half = Opacity(context, root, toast, 1075000000);
+    CHECK(half > 0.0f && half < 1.0f && muiIsUpdatePending(context, root), "half way out");
+    DestroyExited(context);
+    CHECK(muiNode_IsValid(context, toast), "still there");
+    CHECK(Opacity(context, root, toast, 1150000000) == 0.0f, "gone from sight");
+    DestroyExited(context);
+    CHECK(!muiNode_IsValid(context, toast), "destroyed once its exit finished");
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestRefusals();
@@ -702,5 +787,6 @@ int main(void)
     TestDrawing();
     TestInput();
     TestLists();
+    TestExits();
     return s_failures == 0 ? 0 : 1;
 }
