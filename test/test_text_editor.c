@@ -22,6 +22,7 @@
 #include "maul-ui/text_style.h"
 
 #include <math.h>
+#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -868,8 +869,8 @@ static void* Budgeted(size_t size, size_t alignment, void* context)
         return NULL;
     }
     (*left)--;
-    size_t align = alignment < sizeof(void*) ? sizeof(void*) : alignment;
-    return aligned_alloc(align, (size + align - 1) / align * align);
+    // The library asks for no more than max_align_t, which malloc serves.
+    return alignment <= alignof(max_align_t) ? malloc(size) : NULL;
 }
 
 static void Unbudgeted(void* memory, size_t size, size_t alignment, void* context)
