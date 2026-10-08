@@ -3,7 +3,8 @@
 //
 // Numbers the library writes without printf (src/chars.c): held to the C
 // library's own output, "%g" to six and nine digits over random doubles
-// of every exponent, values of few digits and near halfway cases, and
+// of every exponent, values of few digits and near halfway cases, small
+// and large, and
 // special values to each precision up to 15; integers and hex; and text
 // cut where it does not fit.
 
@@ -89,7 +90,7 @@ static void TestGeneral(void)
     {
         uint64_t bits = Next(&state);
         double value = 0.0;
-        switch (n % 4)
+        switch (n % 5)
         {
         case 0:
             memcpy(&value, &bits, sizeof value);
@@ -105,6 +106,11 @@ static void TestGeneral(void)
         case 2:
             // Thousandths, many lying near halfway at six digits.
             value = (double)((int64_t)(bits % 20000000001u) - 10000000000) / 1000.0;
+            break;
+        case 3:
+            // Large values near halfway, not exact in binary, found by
+            // dividing.
+            value = (double)((int64_t)(bits % 20000000001u) - 10000000000) / 1000.0 * 1e19;
             break;
         default:
             value = (double)(float)((double)(bits >> 11) * 0x1p-53 * 1e4);
