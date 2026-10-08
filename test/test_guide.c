@@ -9,6 +9,7 @@
 
 #include "test_harness.h"
 
+#include "maul-ui/access.h"
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
 #include "maul-ui/event.h"
@@ -30,6 +31,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // Section 2: results, ids and refusals.
 
@@ -241,13 +243,17 @@ typedef struct App
 } App;
 
 // The function routed events reach, at each node from the root down to
-// the target, then back up; true stops them. A click on the OK button
-// is the program's.
+// the target, then back up; true stops them. The OK button clicked, or
+// activated by a gamepad's confirm button or by assistive technology, is
+// the program's.
 static bool OnEvent(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* event)
 {
     App* app = user;
-    if (phase == mui_phaseBubble && event->kind == mui_eventPointer &&
-        event->pointer->kind == mui_pointerRecordClick && nodeId.index1 == app->ok.index1 &&
+    bool clicked =
+        event->kind == mui_eventPointer && event->pointer->kind == mui_pointerRecordClick;
+    bool activated =
+        event->kind == mui_eventNavigation && event->navigation == mui_navigateActivate;
+    if (phase == mui_phaseBubble && (clicked || activated) && nodeId.index1 == app->ok.index1 &&
         nodeId.generation == app->ok.generation)
     {
         app->clicks++;
@@ -441,6 +447,33 @@ static void DestroyExited(muiContext* context)
             (void)muiDestroyNode(context, notification.nodeId);
         }
     }
+}
+
+// Section 11: accessibility.
+
+// Tells assistive technology what a node is: a button, and its name.
+static muiResult Describe(muiContext* context, muiNodeId button, const char* name)
+{
+    muiResult result = muiNode_SetAccessRole(context, button, mui_roleButton);
+    return result == mui_success
+               ? muiNode_SetAccessText(context, button, mui_accessLabel, name, strlen(name))
+               : result;
+}
+
+// A frame's accessibility, once the root is enabled: the update of what
+// changed since the last, for the platform's adapter, then the requests
+// it queued from assistive technology, applied on the program's thread.
+static muiResult AccessFrame(muiContext* context, muiNodeId root, muiAccessUpdate* updateOut,
+                             const muiAccessRequest* requests, uint32_t requestCount)
+{
+    muiResult result = muiBuildAccessUpdate(context, root, updateOut);
+    for (uint32_t i = 0; result == mui_success && i < requestCount; i++)
+    {
+        // A node that does not take the action, or is gone, is skipped.
+        muiResult applied = muiPerformAccessAction(context, &requests[i], NULL);
+        result = applied == mui_errorInvalid ? applied : mui_success;
+    }
+    return result;
 }
 
 static void TestRefusals(void)
@@ -778,6 +811,40 @@ static void TestExits(void)
     muiDestroyContext(context);
 }
 
+static void TestAccess(void)
+{
+    muiContextDef def = muiDefaultContextDef();
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "a context");
+    muiNodeDef nodeDef = muiDefaultNodeDef();
+    muiNodeId root = {0, 0};
+    CHECK(muiCreateNode(context, &nodeDef, &root) == mui_success, "a root");
+    App app = {Button(context, root), 0};
+    CHECK(muiSetEventFunction(context, OnEvent, &app) == mui_success &&
+              Describe(context, app.ok, "OK") == mui_success &&
+              muiAccess_Enable(context, root) == mui_success,
+          "a described button, its root enabled");
+    const muiLayoutInput layout = {800.0f, 600.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
+    muiAccessUpdate update;
+    CHECK(muiComputeLayout(context, root, &layout) == mui_success &&
+              AccessFrame(context, root, &update, NULL, 0) == mui_success &&
+              update.root == muiAccessIdOf(root),
+          "the first update, the whole tree");
+    bool found = false;
+    for (uint32_t i = 0; i < update.nodeCount; i++)
+    {
+        const muiAccessNode* node = update.nodes[i];
+        found = found || (node->id == muiAccessIdOf(app.ok) && node->role == mui_roleButton &&
+                          node->textLength[mui_accessLabel] == 2 &&
+                          memcmp(node->text[mui_accessLabel], "OK", 2) == 0);
+    }
+    CHECK(found, "the button, named OK");
+    const muiAccessRequest click = {.action = mui_actionClick, .target = muiAccessIdOf(app.ok)};
+    CHECK(AccessFrame(context, root, &update, &click, 1) == mui_success && app.clicks == 1,
+          "clicked by assistive technology");
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestRefusals();
@@ -788,5 +855,6 @@ int main(void)
     TestInput();
     TestLists();
     TestExits();
+    TestAccess();
     return s_failures == 0 ? 0 : 1;
 }
