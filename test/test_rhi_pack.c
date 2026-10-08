@@ -93,12 +93,18 @@ static void TestBoxes(void)
     muiRhiGlyphs glyphs = {0};
     CHECK(muiRhiPrepareCull(&cull, &list, 64, 64) == mui_success, "bounds worked out");
     muiRhiInstance instances[13];
-    const muiRhiPacking packing = {&images, &glyphs, &cull};
+    const muiRhiPacking packing = {&images, &glyphs, &cull, false};
     uint32_t count = muiRhiPackInstances(&list, &packing, instances);
     const float xs[8] = {1, 64.5f, 8, 33, 30, -30, 40, 200};
     CHECK(
         Packed(instances, count, xs, 8),
         "the target, its margin, clips inverted, nested and out of order, turned, scaled, a blur");
+    // Projected, the target bounds nothing: a quad past it is kept, one
+    // past its clip is not.
+    const muiRhiBounds unbounded = {-INFINITY, -INFINITY, INFINITY, INFINITY};
+    CHECK(muiRhiPrepareCullWithin(&cull, &list, unbounded) == mui_success, "unbounded");
+    const uint32_t projected = muiRhiPackInstances(&list, &packing, instances);
+    CHECK(projected > count && projected < 13, "a projected list culled by its clips alone");
     muiRhiFreeCull(&cull);
     muiRhiFreeImages(&images);
 }
@@ -126,7 +132,7 @@ static void TestImages(void)
     muiRhiImages images = muiRhiMakeImages(&(muiAllocator){0}, NULL, CountCalls, &calls);
     muiRhiGlyphs glyphs = {0};
     muiRhiInstance instances[2];
-    const muiRhiPacking packing = {&images, &glyphs, &cull};
+    const muiRhiPacking packing = {&images, &glyphs, &cull, false};
     // 128 device pixels at a scale of 2 are 64 units: the first image is
     // past them.
     CHECK(muiRhiPrepareCull(&cull, &list, 128, 128) == mui_success &&
@@ -169,7 +175,7 @@ static void TestOneDraw(void)
     muiRhiImages images = muiRhiMakeImages(&(muiAllocator){0}, NULL, NULL, NULL);
     muiRhiGlyphs glyphs = {0};
     muiRhiInstance instances[12];
-    const muiRhiPacking packing = {&images, &glyphs, &cull};
+    const muiRhiPacking packing = {&images, &glyphs, &cull, false};
     CHECK(muiRhiPrepareCull(&cull, &list, 64, 64) == mui_success, "bounds worked out");
     uint32_t count = muiRhiPackInstances(&list, &packing, instances);
     muiRhiPlan plan = {0};

@@ -328,7 +328,8 @@ static uint32_t PackRun(const muiDrawList* list, const muiDrawCommand* command,
     uint32_t transform = Index(command->transform, list->transformCount);
     const muiDrawTransform moved = list->transformCount > 0 ? list->transforms[transform]
                                                             : (muiDrawTransform){1, 0, 0, 1, 0, 0};
-    bool moves = moved.a == 1.0f && moved.b == 0.0f && moved.c == 0.0f && moved.d == 1.0f;
+    bool moves = !packing->projected && moved.a == 1.0f && moved.b == 0.0f && moved.c == 0.0f &&
+                 moved.d == 1.0f;
     float scale = list->header.scale;
     float drawn = run->size * scale * sqrtf(fabsf(moved.a * moved.d - moved.b * moved.c));
     uint32_t count = 0;
@@ -450,6 +451,14 @@ uint32_t muiRhiPackTransforms(const muiDrawList* list, muiRhiTransform* transfor
             (muiRhiTransform){{from->a, from->b, from->c, from->d}, {from->e, from->f, 0.0f, 0.0f}};
     }
     return count;
+}
+
+void muiRhiPackProjection(const float projection[16], muiRhiTransform* records)
+{
+    memcpy(records[0].linear, projection, 4 * sizeof(float));
+    memcpy(records[0].offset, projection + 4, 4 * sizeof(float));
+    memcpy(records[1].linear, projection + 8, 4 * sizeof(float));
+    memcpy(records[1].offset, projection + 12, 4 * sizeof(float));
 }
 
 uint32_t muiRhiPackClips(const muiDrawList* list, muiRhiClip* clips)

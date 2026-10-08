@@ -55,10 +55,14 @@ struct Between {
     @location(0) local: vec2f,
     @location(1) @interpolate(flat) index: u32,
     @location(2) @interpolate(flat) span: f32,
+    @location(3) point: vec2f,
 }
 
-// The fragment's span, as quad.frag's input.
+// Device pixels a unit of the quad spans, and a logical unit: from the
+// transform and the list's scale, or under a projection from the
+// fragment's derivatives.
 var<private> span: f32;
+var<private> unitPixels: f32;
 // Whether an image's fragment falls in a gap its spaced tiles leave.
 var<private> gapped: bool;
 
@@ -83,7 +87,16 @@ fn vs(@builtin(vertex_index) vertex: u32, @builtin(instance_index) instance: u32
     out.local = local;
     out.index = instance;
     out.span = quadSpan;
+    out.point = after;
     out.position = vec4f(pixel.x * root.frame.x - 1.0, 1.0 - pixel.y * root.frame.y, 0.0, 1.0);
+    // Projected: the point of the list through the matrix whose columns
+    // follow the list's transforms, root.frame.w the first of their two.
+    if (root.frame.w != 0.0) {
+        let view = u32(root.frame.w);
+        let projection = mat4x4f(transforms[view].linear, transforms[view].offset,
+                                 transforms[view + 1u].linear, transforms[view + 1u].offset);
+        out.position = projection * vec4f(after, 0.0, 1.0);
+    }
     return out;
 }
 
@@ -353,9 +366,15 @@ fn glyph(index: u32, local: vec2f, size: vec2f) -> vec4f {
 }
 
 // How much of the fragment its clips keep.
-fn clipped(first: u32, position: vec2f) -> f32 {
-    let scale = root.frame.z;
-    let p = position / scale;
+// Device pixels a unit of a varying spans at the fragment.
+fn footprint(v: vec2f) -> f32 {
+    let dx = dpdx(v);
+    let dy = dpdy(v);
+    return inverseSqrt(max(0.5 * (dot(dx, dx) + dot(dy, dy)), 1e-12));
+}
+
+// How much of the fragment its clips keep, at its point of the list.
+fn clipped(first: u32, p: vec2f) -> f32 {
     var clip = first;
     var kept = 1.0;
     for (var depth = 0; depth < 16 && clip != 0u; depth++) {
@@ -368,7 +387,7 @@ fn clipped(first: u32, position: vec2f) -> f32 {
                        determinant != 0.0);
         let rect = clips[clip].rect;
         let distance = roundedRect(q - (rect.xy + rect.zw * 0.5), rect.zw * 0.5, clips[clip].radii);
-        let inside = clamp(0.5 - distance * scale * sqrt(abs(determinant)), 0.0, 1.0);
+        let inside = clamp(0.5 - distance * unitPixels * sqrt(abs(determinant)), 0.0, 1.0);
         kept *= select(inside, 1.0 - inside, clips[clip].tags.z != 0u);
         clip = clips[clip].tags.x;
     }
@@ -377,7 +396,11 @@ fn clipped(first: u32, position: vec2f) -> f32 {
 
 @fragment
 fn fs(in: Between) -> @location(0) vec4f {
-    span = in.span;
+    let projected = root.frame.w != 0.0;
+    let localPixels = footprint(in.local);
+    let pointPixels = footprint(in.point);
+    span = select(in.span, localPixels, projected);
+    unitPixels = select(root.frame.z, pointPixels, projected);
     let size = instances[in.index].rect.zw * root.frame.z;
     let kind = instances[in.index].tags.x;
     let uvs = imageUv(in.index, in.local);
@@ -395,5 +418,6 @@ fn fs(in: Between) -> @location(0) vec4f {
     } else {
         color = box(in.index, in.local, size);
     }
-    return color * clipped(instances[in.index].tags.y, in.position.xy);
+    let at = select(in.position.xy / root.frame.z, in.point, projected);
+    return color * clipped(instances[in.index].tags.y, at);
 }

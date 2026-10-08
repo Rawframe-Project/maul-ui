@@ -87,6 +87,9 @@ typedef struct muiRhiPacking
     muiRhiImages* images;
     muiRhiGlyphs* glyphs;
     const muiRhiCull* cull;
+    // Whether the list is drawn through a projection: every glyph run
+    // then from its distance field, as one a transform scales.
+    bool projected;
 } muiRhiPacking;
 
 // A list's commands as instances, at most as many as muiRhiCountInstances
@@ -102,6 +105,10 @@ uint32_t muiRhiPackGradients(const muiDrawList* list, muiRhiGradient* gradients)
 
 // A list's transform table, as muiRhiPackGradients.
 uint32_t muiRhiPackTransforms(const muiDrawList* list, muiRhiTransform* transforms);
+
+// A projection's column-major 4x4 matrix as two records of the transform
+// table, its first two columns then its last two.
+void muiRhiPackProjection(const float projection[16], muiRhiTransform* records);
 
 // A list's clip table, as muiRhiPackGradients.
 uint32_t muiRhiPackClips(const muiDrawList* list, muiRhiClip* clips);

@@ -136,6 +136,15 @@ clip chain evaluated in its shaders, which keeps batches whole.
   Maul RHI's test driver and on lavapipe, comparing probed pixels with
   what the list says, under the Vulkan validation layer, and the same
   probes run on its WGSL in headless Chrome's WebGPU.
+- **World space is the same list through a projection the renderer
+  applies,** as NoesisGUI 3.2 and Unity's world-space canvas draw UI in
+  3D, not into a texture first as Unreal's widget component does. The
+  reference renderer's target takes an optional column-major 4x4 matrix
+  from the list's logical units into clip space; under it edges and
+  clips are antialiased by the pixels a unit covers at each fragment,
+  clips are evaluated at the fragment's point of the list, every glyph
+  run is drawn from its distance field, and only clips cull. The host
+  turns its ray into a point of the list for hit testing.
   Gradients come from the list's table in a second storage buffer,
   mixed in premultiplied Oklab as the core's transitions mix colors (a
   conic one's turn found from the point's angle about the centre);

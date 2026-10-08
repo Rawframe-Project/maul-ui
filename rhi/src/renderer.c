@@ -28,6 +28,7 @@
 #include "maul-rhi/resources.h"
 #include "maul-rhi/shader.h"
 
+#include <math.h>
 #include <stdalign.h>
 #include <stddef.h>
 #include <string.h>
@@ -65,6 +66,8 @@ struct muiRhiRenderer
     mrhiPassId upload;
     mrhiPassId draw;
     float frame[4];
+    // The transform record the frame's projection starts at; 0 for none.
+    uint32_t view;
     // The device's frameUploadBytes, as the def gave it.
     uint64_t uploadBytes;
 };
@@ -244,9 +247,12 @@ static muiResult Pack(muiRhiRenderer* renderer, const muiDrawList* list, const m
 {
     muiRhiStream* streams = renderer->streams;
     muiResult reset = muiRhiResetImages(&renderer->images, muiRhiCountImages(list));
-    reset = reset == mui_success
-                ? muiRhiPrepareCull(&renderer->cull, list, target->width, target->height)
-                : reset;
+    // A projected list's bounds on the target are its clips' alone.
+    const muiRhiBounds unbounded = {-INFINITY, -INFINITY, INFINITY, INFINITY};
+    reset = reset != mui_success ? reset
+            : target->projected
+                ? muiRhiPrepareCullWithin(&renderer->cull, list, unbounded)
+                : muiRhiPrepareCull(&renderer->cull, list, target->width, target->height);
     if (reset != mui_success)
     {
         return reset;
@@ -254,7 +260,7 @@ static muiResult Pack(muiRhiRenderer* renderer, const muiDrawList* list, const m
     const uint32_t counts[kStreamCount] = {
         [kInstances] = muiRhiCountInstances(list),
         [kGradients] = muiRhiPackGradients(list, nullptr),
-        [kTransforms] = muiRhiPackTransforms(list, nullptr),
+        [kTransforms] = muiRhiPackTransforms(list, nullptr) + (target->projected ? 2u : 0u),
         [kClips] = muiRhiPackClips(list, nullptr),
     };
     for (uint32_t i = 0; i < kStreamCount; i++)
@@ -267,7 +273,8 @@ static muiResult Pack(muiRhiRenderer* renderer, const muiDrawList* list, const m
         }
     }
     muiRhiNextGlyphFrame(&renderer->glyphs);
-    const muiRhiPacking packing = {&renderer->images, &renderer->glyphs, &renderer->cull};
+    const muiRhiPacking packing = {&renderer->images, &renderer->glyphs, &renderer->cull,
+                                   target->projected};
     streams[kInstances].count = muiRhiPackInstances(list, &packing, streams[kInstances].staging);
     muiRhiListTextures(&renderer->images);
     muiResult prepared = muiRhiPrepareGlyphs(&renderer->glyphs);
@@ -276,7 +283,13 @@ static muiResult Pack(muiRhiRenderer* renderer, const muiDrawList* list, const m
         return prepared;
     }
     (void)muiRhiPackGradients(list, streams[kGradients].staging);
-    (void)muiRhiPackTransforms(list, streams[kTransforms].staging);
+    uint32_t transforms = muiRhiPackTransforms(list, streams[kTransforms].staging);
+    if (target->projected)
+    {
+        muiRhiPackProjection(target->projection,
+                             (muiRhiTransform*)streams[kTransforms].staging + transforms);
+    }
+    renderer->view = target->projected ? transforms : 0u;
     (void)muiRhiPackClips(list, streams[kClips].staging);
     return mui_success;
 }
@@ -399,7 +412,9 @@ muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* 
     renderer->frame[0] = 2.0f / (float)target->width;
     renderer->frame[1] = 2.0f / (float)target->height;
     renderer->frame[2] = list->header.scale;
-    renderer->frame[3] = 0.0f;
+    // The projection's first record, 0 for none (record 0 is the
+    // identity transform).
+    renderer->frame[3] = (float)renderer->view;
     renderer->added = true;
     return mui_success;
 }

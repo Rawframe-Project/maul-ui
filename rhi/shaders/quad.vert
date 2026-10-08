@@ -47,6 +47,7 @@ layout(push_constant) uniform Root
 layout(location = 0) out vec2 outLocal;
 layout(location = 1) flat out uint outIndex;
 layout(location = 2) flat out float outSpan;
+layout(location = 3) out vec2 outPoint;
 
 const vec2 kCorners[6] = vec2[](vec2(0.0, 0.0), vec2(1.0, 0.0), vec2(0.0, 1.0), vec2(0.0, 1.0),
                                 vec2(1.0, 0.0), vec2(1.0, 1.0));
@@ -68,5 +69,16 @@ void main()
     outLocal = local;
     outIndex = uint(gl_InstanceIndex);
     outSpan = span;
+    outPoint = after;
     gl_Position = vec4(pixel.x * root.frame.x - 1.0, 1.0 - pixel.y * root.frame.y, 0.0, 1.0);
+    // Projected: the point of the list through the matrix whose columns
+    // follow the list's transforms, root.frame.w the first of their two.
+    if (root.frame.w != 0.0)
+    {
+        uint view = uint(root.frame.w);
+        mat4 projection = mat4(transforms.items[view].linear, transforms.items[view].offset,
+                               transforms.items[view + 1u].linear,
+                               transforms.items[view + 1u].offset);
+        gl_Position = projection * vec4(after, 0.0, 1.0);
+    }
 }

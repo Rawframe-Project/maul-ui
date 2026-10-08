@@ -50,6 +50,13 @@ static muiRhiBounds Meet(muiRhiBounds a, muiRhiBounds b)
 muiResult muiRhiPrepareCull(muiRhiCull* cull, const muiDrawList* list, uint32_t width,
                             uint32_t height)
 {
+    float scale = list->header.scale > 0.0f ? list->header.scale : 1.0f;
+    const muiRhiBounds target = {0.0f, 0.0f, (float)width / scale, (float)height / scale};
+    return muiRhiPrepareCullWithin(cull, list, target);
+}
+
+muiResult muiRhiPrepareCullWithin(muiRhiCull* cull, const muiDrawList* list, muiRhiBounds target)
+{
     uint32_t count = list->clipCount > 0 ? list->clipCount : 1;
     if (count > cull->capacity)
     {
@@ -66,7 +73,6 @@ muiResult muiRhiPrepareCull(muiRhiCull* cull, const muiDrawList* list, uint32_t 
     float scale = list->header.scale > 0.0f ? list->header.scale : 1.0f;
     // An edge covers half a device pixel past its quad, grown by one.
     cull->margin = 1.0f / scale;
-    const muiRhiBounds target = {0.0f, 0.0f, (float)width / scale, (float)height / scale};
     cull->count = count;
     cull->bounds[0] = target;
     for (uint32_t i = 1; i < count; i++)

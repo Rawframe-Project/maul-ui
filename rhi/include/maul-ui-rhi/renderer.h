@@ -90,6 +90,15 @@ extern "C"
         bool clear;
         // Linear and premultiplied, when clear is set.
         muiLinearColor clearColor;
+        // Whether the list is drawn through projection, as a panel in a
+        // 3D scene (record mui-0005): a column-major 4x4 matrix taking a
+        // point of the list, in logical units with z 0, into the target's
+        // clip space. Its edges and glyphs stay sharp at any angle: every
+        // glyph run is drawn from its distance field, and edges and clips
+        // are antialiased by the pixels a unit covers where it is drawn.
+        // Unset, the list is drawn at the target's pixels by its scale.
+        bool projected;
+        float projection[16];
     } muiRhiTarget;
 
     /// The default def: the C library's allocation, no device, an

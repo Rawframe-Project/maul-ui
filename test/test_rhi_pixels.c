@@ -161,9 +161,10 @@ static bool AwaitReady(Gpu* gpu, muiRhiRenderer* renderer)
     return muiRhiRenderer_IsReady(renderer);
 }
 
-// Draws a list into a square target of a side and reads it back as RGBA8.
-static bool Render(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList* list, uint32_t side,
-                   uint8_t* pixels)
+// Draws a list into a square target of a side, through a projection
+// when one is given, and reads it back as RGBA8.
+static bool RenderThrough(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList* list,
+                          uint32_t side, const float* projection, uint8_t* pixels)
 {
     mrhiFrameDef frame = mrhiDefaultFrameDef();
     mrhiTextureDef targetDef = mrhiDefaultTextureDef();
@@ -176,11 +177,16 @@ static bool Render(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList* list, 
     {
         return false;
     }
-    const muiRhiTarget into = {.resource = target,
-                               .width = side,
-                               .height = side,
-                               .clear = true,
-                               .clearColor = {0.0f, 0.0f, 0.0f, 1.0f}};
+    muiRhiTarget into = {.resource = target,
+                         .width = side,
+                         .height = side,
+                         .clear = true,
+                         .clearColor = {0.0f, 0.0f, 0.0f, 1.0f}};
+    if (projection != NULL)
+    {
+        into.projected = true;
+        memcpy(into.projection, projection, sizeof into.projection);
+    }
     const mrhiAccess read = {.resource = target,
                              .kind = mrhi_accessCopySource,
                              .range = {.mipCount = 1, .layerCount = 1}};
@@ -220,6 +226,12 @@ static bool Render(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList* list, 
     size_t taken = 0;
     return mrhiTakeReadback(gpu->device, readback, pixels, size, &taken) == mrhi_success &&
            taken == size;
+}
+
+static bool Render(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList* list, uint32_t side,
+                   uint8_t* pixels)
+{
+    return RenderThrough(gpu, renderer, list, side, NULL, pixels);
 }
 
 static muiDrawCommand Box(float x, float y, float width, float height, muiLinearColor fill)
@@ -812,6 +824,140 @@ static void TestTiling(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels, int 
           "an unknown repeat stretches");
 }
 
+// Where a point of a list lands in a square target of a side, through a
+// column-major projection: clip space's x right and y up, from -1 to 1.
+static void Project(const float m[16], float x, float y, uint32_t side, int* px, int* py)
+{
+    float cx = m[0] * x + m[4] * y + m[12];
+    float cy = m[1] * x + m[5] * y + m[13];
+    float cw = m[3] * x + m[7] * y + m[15];
+    *px = (int)floorf((cx / cw + 1.0f) * 0.5f * (float)side);
+    *py = (int)floorf((1.0f - cy / cw) * 0.5f * (float)side);
+}
+
+// The projection that draws a list as the target's pixels at a scale do.
+static void ScreenProjection(float m[16], float scale, uint32_t side)
+{
+    memset(m, 0, 16 * sizeof(float));
+    m[0] = 2.0f * scale / (float)side;
+    m[5] = -2.0f * scale / (float)side;
+    m[10] = 1.0f;
+    m[12] = -1.0f;
+    m[13] = 1.0f;
+    m[15] = 1.0f;
+}
+
+// A 64-unit panel turned 60 degrees about its vertical middle, its right
+// half toward the eye, seen in perspective from 48 units: a point x, y
+// of it is at X = cos (x - 32), Y = 32 - y, Z = sin (x - 32), w = 48 - Z.
+static void TurnedProjection(float m[16])
+{
+    const float c = 0.5f;
+    const float s = 0.8660254f;
+    memset(m, 0, 16 * sizeof(float));
+    m[0] = c;
+    m[12] = -32.0f * c;
+    m[5] = -1.0f;
+    m[13] = 32.0f;
+    m[3] = -s;
+    m[15] = 48.0f + 32.0f * s;
+    m[2] = -0.5f * s;
+    m[14] = 0.5f * (48.0f + 32.0f * s);
+}
+
+// A list of boxes, one rounded, and one in a round clip.
+static muiDrawList PanelList(muiDrawCommand commands[4], const muiDrawClip clips[2], float scale)
+{
+    commands[0] = Box(4, 4, 24, 24, (muiLinearColor){1, 0, 0, 1});
+    commands[0].box.radii = (muiCorners){6, 6, 6, 6};
+    commands[1] = Box(36, 4, 24, 24, (muiLinearColor){0, 1, 0, 1});
+    commands[2] = Box(4, 36, 24, 24, (muiLinearColor){0, 0, 1, 1});
+    commands[3] = Box(36, 36, 24, 24, (muiLinearColor){1, 1, 1, 1});
+    commands[3].clip = 1;
+    muiDrawList list = {.commands = commands, .commandCount = 4};
+    list.clips = clips;
+    list.clipCount = 2;
+    list.header.scale = scale;
+    list.header.width = 64.0f;
+    list.header.height = 64.0f;
+    return list;
+}
+
+// Projection (record mui-0005): a projection equal to the target's own
+// mapping draws what no projection draws, within 2, edges and clips
+// included; and a panel turned in perspective puts each box, and its
+// outer edges, where the matrix takes them.
+static void TestProjection(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels, int scale)
+{
+    const uint32_t side = 64u * (uint32_t)scale;
+    const size_t size = (size_t)side * side * 4;
+    muiDrawCommand commands[4];
+    const muiDrawClip clips[2] = {{0}, {.rect = {36, 36, 24, 24}, .radii = {12, 12, 12, 12}}};
+    muiDrawList list = PanelList(commands, clips, (float)scale);
+    uint8_t* plain = malloc(size);
+    float m[16];
+    ScreenProjection(m, (float)scale, side);
+    if (plain == NULL || !Render(gpu, renderer, &list, side, plain) ||
+        !RenderThrough(gpu, renderer, &list, side, m, pixels))
+    {
+        free(plain);
+        CHECK(false, "a list drawn with and without a projection");
+        return;
+    }
+    int worst = 0;
+    for (size_t i = 0; i < size; i++)
+    {
+        int d = abs((int)plain[i] - (int)pixels[i]);
+        worst = d > worst ? d : worst;
+    }
+    free(plain);
+    CHECK(worst <= 2, "the screen's own projection draws the same pixels");
+    list.header.scale = 1.0f;
+    TurnedProjection(m);
+    if (!RenderThrough(gpu, renderer, &list, side, m, pixels))
+    {
+        CHECK(false, "a turned panel drawn");
+        return;
+    }
+    const int black[4] = {0, 0, 0, 255};
+    const int red[4] = {255, 0, 0, 255};
+    const int green[4] = {0, 255, 0, 255};
+    const int blue[4] = {0, 0, 255, 255};
+    const int white[4] = {255, 255, 255, 255};
+    int x[4];
+    int y[4];
+    const float centres[4][2] = {{16, 16}, {48, 16}, {16, 48}, {48, 48}};
+    for (int i = 0; i < 4; i++)
+    {
+        Project(m, centres[i][0], centres[i][1], side, &x[i], &y[i]);
+    }
+    CHECK(Near(pixels, side, x[0], y[0], red, 2) && Near(pixels, side, x[1], y[1], green, 2) &&
+              Near(pixels, side, x[2], y[2], blue, 2) && Near(pixels, side, x[3], y[3], white, 2),
+          "each box where the projection takes its centre");
+    int gapX = 0;
+    int gapY = 0;
+    Project(m, 32, 16, side, &gapX, &gapY);
+    int cornerX = 0;
+    int cornerY = 0;
+    Project(m, 37.5f, 37.5f, side, &cornerX, &cornerY);
+    CHECK(Near(pixels, side, gapX, gapY, black, 2) &&
+              Near(pixels, side, cornerX, cornerY, black, 2),
+          "the gap between boxes, and the clip's cut corner, clear");
+    // The outer edges where the matrix takes them, probed 2 pixels in
+    // and out: a far unit covers a fifth of a pixel, a near one more.
+    int left = 0;
+    int leftY = 0;
+    int right = 0;
+    int rightY = 0;
+    Project(m, 4, 16, side, &left, &leftY);
+    Project(m, 60, 16, side, &right, &rightY);
+    CHECK(Near(pixels, side, left + 2, leftY, red, 2) &&
+              Near(pixels, side, left - 2, leftY, black, 2) &&
+              Near(pixels, side, right - 2, rightY, green, 2) &&
+              Near(pixels, side, right + 2, rightY, black, 2),
+          "the outer edges where perspective puts them");
+}
+
 #if MUI_TEST_TEXT
 
 #include "maul-ui/font.h"
@@ -847,6 +993,43 @@ static muiTextService* MakeText(uint64_t* fontOut, uint64_t* colorOut)
     *fontOut = muiFont_GetKey(ahem);
     *colorOut = muiFont_GetKey(colorId);
     return service;
+}
+
+// A glyph run on the turned panel's near half, drawn from its distance
+// field: the square of glyph 4 at an em of 30 (34 to 64 across, 26 to 50
+// down) where the matrix takes its middle, and clear above it.
+static void TestProjectedGlyphs(Gpu* gpu, muiRhiRenderer* renderer, uint64_t font, uint8_t* pixels)
+{
+    const uint32_t side = 64u;
+    const muiGlyph glyphs[1] = {{4, 0, 0}};
+    muiDrawCommand command = {.kind = mui_drawGlyphRun};
+    command.glyphRun = (muiDrawGlyphRun){.font = font,
+                                         .originX = 34,
+                                         .originY = 50,
+                                         .size = 30,
+                                         .glyphCount = 1,
+                                         .color = {0, 1, 0, 1}};
+    muiDrawList list = {.commands = &command, .commandCount = 1};
+    list.glyphs = glyphs;
+    list.glyphCount = 1;
+    list.header.scale = 1.0f;
+    float m[16];
+    TurnedProjection(m);
+    if (!RenderThrough(gpu, renderer, &list, side, m, pixels))
+    {
+        CHECK(false, "a projected run drawn");
+        return;
+    }
+    const int black[4] = {0, 0, 0, 255};
+    const int green[4] = {0, 255, 0, 255};
+    int x = 0;
+    int y = 0;
+    int aboveX = 0;
+    int aboveY = 0;
+    Project(m, 49, 38, side, &x, &y);
+    Project(m, 49, 18, side, &aboveX, &aboveY);
+    CHECK(Near(pixels, side, x, y, green, 2) && Near(pixels, side, aboveX, aboveY, black, 2),
+          "a projected glyph from its field");
 }
 
 static void TestGlyphs(Gpu* gpu, muiRhiRenderer* renderer, uint64_t font, uint8_t* pixels,
@@ -1157,9 +1340,12 @@ int main(void)
         TestImages(&gpu, renderer, pixels, 2);
         TestTiling(&gpu, renderer, pixels, 1);
         TestTiling(&gpu, renderer, pixels, 2);
+        TestProjection(&gpu, renderer, pixels, 1);
+        TestProjection(&gpu, renderer, pixels, 2);
 #if MUI_TEST_TEXT
         TestGlyphs(&gpu, renderer, font, pixels, 1);
         TestGlyphs(&gpu, renderer, font, pixels, 2);
+        TestProjectedGlyphs(&gpu, renderer, font, pixels);
         TestFields(&gpu, renderer, font, pixels, 1);
         TestFields(&gpu, renderer, font, pixels, 2);
         TestFieldCorners(&gpu, renderer, font, pixels, 1);

@@ -43,6 +43,10 @@ void muiRhiFreeCull(muiRhiCull* cull);
 muiResult muiRhiPrepareCull(muiRhiCull* cull, const muiDrawList* list, uint32_t width,
                             uint32_t height);
 
+// The same within bounds of the target in the list's units: unbounded
+// for a list drawn through a projection, whose clips alone bound it.
+muiResult muiRhiPrepareCullWithin(muiRhiCull* cull, const muiDrawList* list, muiRhiBounds target);
+
 // Whether a quad, in the units of a transform of the list, misses the
 // bounds of a clip; both indices are the list's own, checked.
 bool muiRhiIsCulled(const muiRhiCull* cull, const muiDrawList* list, muiRect quad, uint32_t clip,

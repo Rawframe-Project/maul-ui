@@ -93,7 +93,14 @@ layout(push_constant) uniform Root
 
 layout(location = 0) in vec2 local;
 layout(location = 1) flat in uint index;
-layout(location = 2) flat in float span;
+layout(location = 2) flat in float quadSpan;
+layout(location = 3) in vec2 point;
+
+// Device pixels a unit of the quad spans, and a logical unit: from the
+// transform and the list's scale, or under a projection from the
+// fragment's derivatives.
+float span;
+float unitPixels;
 layout(location = 0) out vec4 outColor;
 
 const uint kShadow = 2u;
@@ -395,11 +402,18 @@ vec4 Glyph(vec2 size)
     return instances.items[index].colors[2].y != 0.0 ? texel * fill.a : fill * coverage;
 }
 
-// How much of the fragment its clips keep.
+// Device pixels a unit of a varying spans at the fragment.
+float Footprint(vec2 v)
+{
+    vec2 dx = dFdx(v);
+    vec2 dy = dFdy(v);
+    return inversesqrt(max(0.5 * (dot(dx, dx) + dot(dy, dy)), 1e-12));
+}
+
+// How much of the fragment its clips keep, at its point of the list.
 float Clipped(uint clip)
 {
-    float scale = root.frame.z;
-    vec2 p = gl_FragCoord.xy / scale;
+    vec2 p = root.frame.w != 0.0 ? point : gl_FragCoord.xy / root.frame.z;
     float kept = 1.0;
     for (int depth = 0; depth < 16 && clip != 0u; depth++)
     {
@@ -413,7 +427,7 @@ float Clipped(uint clip)
         vec4 rect = clips.items[clip].rect;
         float distance = RoundedRect(q - (rect.xy + rect.zw * 0.5), rect.zw * 0.5,
                                      clips.items[clip].radii);
-        float inside = clamp(0.5 - distance * scale * sqrt(abs(determinant)), 0.0, 1.0);
+        float inside = clamp(0.5 - distance * unitPixels * sqrt(abs(determinant)), 0.0, 1.0);
         kept *= clips.items[clip].tags.z != 0u ? 1.0 - inside : inside;
         clip = clips.items[clip].tags.x;
     }
@@ -422,6 +436,11 @@ float Clipped(uint clip)
 
 void main()
 {
+    bool projected = root.frame.w != 0.0;
+    float localPixels = Footprint(local);
+    float pointPixels = Footprint(point);
+    span = projected ? localPixels : quadSpan;
+    unitPixels = projected ? pointPixels : root.frame.z;
     vec2 size = instances.items[index].rect.zw * root.frame.z;
     uint kind = instances.items[index].tags.x;
     bool gap = false;

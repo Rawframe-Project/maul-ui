@@ -10,6 +10,12 @@ format.
 
 ### Changed
 
+- World-space panels: `muiRhiTarget` takes an optional projection, a
+  column-major 4x4 matrix from the list's logical units into clip
+  space, so the reference renderer draws a list as a panel in a 3D
+  scene, its edges, clips and glyphs (all from distance fields) sharp
+  at any angle. The projection rides at the end of the transform table.
+
 - Image tiling: `muiDrawImage` carries `repeatX` and `repeatY`, and the
   visual style `imageRepeatX` and `imageRepeatY` (properties 86 and
   87): an image's middle, or the whole of one without slices, stretched
