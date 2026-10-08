@@ -1141,3 +1141,71 @@ Automation on Windows, NSAccessibility on macOS, UIAccessibility on
 iOS, Android's accessibility, and ARIA elements on the web
 (`maul-ui/access_*.h`). Maul Window's glue connects the one for the
 window's platform.
+
+## 12. Building and testing
+
+Maul UI builds with CMake 3.25 and a C23 compiler, GCC 14 or Clang 19
+or newer, `clang-cl` on Windows; the text component needs a C++
+compiler for HarfBuzz. A program takes it as a subdirectory or, once
+installed, as a package; both give the target `maul-ui::maul-ui`, and
+the install a pkg-config file as well:
+
+```cmake
+add_subdirectory(maul-ui)
+# or: find_package(maul-ui REQUIRED)
+target_link_libraries(app PRIVATE maul-ui::maul-ui)
+```
+
+Its parts are options:
+
+- `MAUL_UI_TEXT`, on: the text service. It fetches FreeType, HarfBuzz
+  and Maul Unicode at configure time; the `FETCHCONTENT_SOURCE_DIR_*`
+  variables the README names point at local copies to build offline,
+  and `MAUL_UI_TEXT_SYSTEM_LIBRARIES` links the installed FreeType and
+  HarfBuzz instead. Off, the core
+  alone needs none of them.
+- `MAUL_UI_ACCESS_TREE`, on, and the adapter for the platform built,
+  each its own option (`MAUL_UI_ATSPI`, `MAUL_UI_UIA` and so on).
+- `MAUL_UI_RHI`, off: the reference renderer, `maul-ui-rhi::maul-ui-rhi`,
+  with Maul RHI.
+- `MAUL_UI_WINDOW`, off: the glue to Maul Window, `maul-ui-window`.
+- `MAUL_UI_BUILD_SHARED`, off: a shared library instead of a static
+  one.
+
+Nothing in the core needs a window, a GPU or a thread: a program's
+interface is tested by building its screen in a context and reading
+what layout and drawing give, as this guide's own tests do
+(`test/test_guide*.c`). The context counts its work, so a test can
+hold a frame to what it should cost:
+
+```c
+// A test a program can run with no window and no GPU: its screen laid
+// out and drawn twice with nothing changed, the second frame doing no
+// work at all.
+static bool StillFrameIsFree(muiContext* context, muiNodeId root)
+{
+    const muiLayoutInput layout = {800.0f, 600.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
+    const muiDrawInput draw = {1, 1.0f, NULL, NULL};
+    if (muiComputeLayout(context, root, &layout) != mui_success ||
+        muiBuildDrawList(context, root, &draw) != mui_success)
+    {
+        return false;
+    }
+    muiWorkCounts before = muiGetWorkCounts(context);
+    if (muiComputeLayout(context, root, &layout) != mui_success ||
+        muiBuildDrawList(context, root, &draw) != mui_success)
+    {
+        return false;
+    }
+    muiWorkCounts after = muiGetWorkCounts(context);
+    return after.styled == before.styled && after.sized == before.sized &&
+           after.measured == before.measured && after.painted == before.painted;
+}
+```
+
+The library's own tests run under AddressSanitizer, UndefinedBehavior
+Sanitizer and ThreadSanitizer (`MAUL_UI_SANITIZE`, `MAUL_UI_TSAN`); its
+layout is held to Chrome's on a corpus of fixtures; and the bytes fonts
+bring have libFuzzer targets (`MAUL_UI_FUZZ`, with Clang), which CI
+runs on every push. Maul Window's headless test backend runs the
+glue's tests without a window system.

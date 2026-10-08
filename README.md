@@ -18,15 +18,17 @@ renderer draws the list. Output is bit-identical on every platform. It
 starts no threads and calls application code only to measure content
 the host itself owns, inside the call that runs the frame.
 
+[The guide](docs/guide.md) walks through each part, and
+[the API reference](docs/api.md) lists every public function,
+generated from the headers.
+
 ## Status
 
-Not released. The node tree, flex layout checked against Chrome,
-style (classes, states, conditions, transitions, tokens and themes) and
-the draw-command list are in place. The text service lays out
-paragraphs (shaping, bidirectional text, line breaking, baselines),
-renders glyph images and distance fields and packs them into atlases;
-font fallback and editing come next, then interaction, accessibility
-and a renderer.
+Not released. Every part above is in place: the node tree, flex
+layout checked against Chrome, style, the text service with font
+fallback and editing, interaction, virtualization and popups, the
+accessibility tree with its six platform adapters, the reference
+renderer on Maul RHI and the glue to Maul Window.
 
 ## Building
 

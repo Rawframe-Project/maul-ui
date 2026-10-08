@@ -476,6 +476,31 @@ static muiResult AccessFrame(muiContext* context, muiNodeId root, muiAccessUpdat
     return result;
 }
 
+// Section 12: testing a program.
+
+// A test a program can run with no window and no GPU: its screen laid
+// out and drawn twice with nothing changed, the second frame doing no
+// work at all.
+static bool StillFrameIsFree(muiContext* context, muiNodeId root)
+{
+    const muiLayoutInput layout = {800.0f, 600.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
+    const muiDrawInput draw = {1, 1.0f, NULL, NULL};
+    if (muiComputeLayout(context, root, &layout) != mui_success ||
+        muiBuildDrawList(context, root, &draw) != mui_success)
+    {
+        return false;
+    }
+    muiWorkCounts before = muiGetWorkCounts(context);
+    if (muiComputeLayout(context, root, &layout) != mui_success ||
+        muiBuildDrawList(context, root, &draw) != mui_success)
+    {
+        return false;
+    }
+    muiWorkCounts after = muiGetWorkCounts(context);
+    return after.styled == before.styled && after.sized == before.sized &&
+           after.measured == before.measured && after.painted == before.painted;
+}
+
 static void TestRefusals(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -845,6 +870,20 @@ static void TestAccess(void)
     muiDestroyContext(context);
 }
 
+static void TestStill(void)
+{
+    muiContextDef def = muiDefaultContextDef();
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "a context");
+    muiNodeDef nodeDef = muiDefaultNodeDef();
+    muiNodeId root = {0, 0};
+    CHECK(muiCreateNode(context, &nodeDef, &root) == mui_success, "a root");
+    Button(context, root);
+    Button(context, root);
+    CHECK(StillFrameIsFree(context, root), "a still frame free");
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestRefusals();
@@ -856,5 +895,6 @@ int main(void)
     TestLists();
     TestExits();
     TestAccess();
+    TestStill();
     return s_failures == 0 ? 0 : 1;
 }
