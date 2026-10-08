@@ -144,7 +144,12 @@ clip chain evaluated in its shaders, which keeps batches whole.
   clips are antialiased by the pixels a unit covers at each fragment,
   clips are evaluated at the fragment's point of the list, every glyph
   run is drawn from its distance field, and only clips cull. The host
-  turns its ray into a point of the list for hit testing.
+  turns its ray into a point of the list for hit testing. A renderer
+  made with a depth format tests a projected panel against a depth
+  texture the target names, never writing it, as Unity's UI shader
+  tests the scene's depth with its writes off: UI is drawn after the
+  scene's opaque geometry, and what stands in front of a panel hides
+  it.
   Gradients come from the list's table in a second storage buffer,
   mixed in premultiplied Oklab as the core's transitions mix colors (a
   conic one's turn found from the point's angle about the centre);

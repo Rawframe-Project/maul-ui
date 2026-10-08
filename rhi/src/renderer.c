@@ -50,9 +50,15 @@ struct muiRhiRenderer
     muiAllocator allocator;
     mrhiDevice* device;
     mrhiShaderId shader;
-    mrhiGraphicsPipelineId pipeline;
-    mrhiRequestId request;
+    // Its pipelines: drawing alone, and testing depth when the def names
+    // a depth format; ready when every one made is.
+    mrhiGraphicsPipelineId pipelines[2];
+    mrhiRequestId requests[2];
+    bool readied[2];
+    uint32_t pipelineCount;
     bool ready;
+    // Whether the frame's target has a depth texture.
+    bool depthTested;
     muiRhiStream streams[kStreamCount];
     muiRhiImages images;
     muiRhiGlyphs glyphs;
@@ -79,6 +85,7 @@ muiRhiRendererDef muiDefaultRhiRendererDef(void)
         .targetFormat = mrhi_formatRgba8UnormSrgb,
         .instances = 1024,
         .uploadBytes = 1u << 20,
+        .depthCompare = mrhi_compareLessEqual,
     };
 }
 
@@ -89,16 +96,18 @@ static bool IsValid(const muiRhiRendererDef* def)
            def->uploadBytes != 0;
 }
 
-static bool MakePipeline(muiRhiRenderer* renderer, mrhiFormat format)
+// A pipeline drawing into targets of a format, testing depth in a depth
+// format with a compare function unless it is mrhi_formatNone.
+static bool MakePipeline(muiRhiRenderer* renderer, mrhiFormat format, mrhiFormat depthFormat,
+                         mrhiCompareFunction compare)
 {
-    mrhiShaderDef shaderDef = mrhiDefaultShaderDef();
-    shaderDef.bytes = s_quadContainer;
-    shaderDef.byteCount = sizeof(s_quadContainer);
-    if (mrhiCreateShader(renderer->device, &shaderDef, &renderer->shader) != mrhi_success)
-    {
-        return false;
-    }
+    uint32_t at = renderer->pipelineCount;
     mrhiGraphicsPipelineDef def = mrhiDefaultGraphicsPipelineDef();
+    if (depthFormat != mrhi_formatNone)
+    {
+        def.depthStencilFormat = depthFormat;
+        def.depthCompare = compare;
+    }
     def.shader = renderer->shader;
     def.vertexEntry = "vs";
     def.vertexEntryLength = 2;
@@ -111,8 +120,21 @@ static bool MakePipeline(muiRhiRenderer* renderer, mrhiFormat format)
     const mrhiBlendComponent over = {mrhi_blendOne, mrhi_blendOneMinusSrcAlpha, mrhi_blendAdd};
     def.colorTargets[0].color = over;
     def.colorTargets[0].alpha = over;
-    return mrhiCreateGraphicsPipeline(renderer->device, &def, &renderer->pipeline,
-                                      &renderer->request) == mrhi_success;
+    if (mrhiCreateGraphicsPipeline(renderer->device, &def, &renderer->pipelines[at],
+                                   &renderer->requests[at]) != mrhi_success)
+    {
+        return false;
+    }
+    renderer->pipelineCount++;
+    return true;
+}
+
+static bool MakeShader(muiRhiRenderer* renderer)
+{
+    mrhiShaderDef shaderDef = mrhiDefaultShaderDef();
+    shaderDef.bytes = s_quadContainer;
+    shaderDef.byteCount = sizeof(s_quadContainer);
+    return mrhiCreateShader(renderer->device, &shaderDef, &renderer->shader) == mrhi_success;
 }
 
 // The sampler of images and the placeholder texture.
@@ -169,7 +191,10 @@ muiResult muiCreateRhiRenderer(const muiRhiRendererDef* def, muiRhiRenderer** re
                                      0, i == kInstances ? def->instances : 16);
     }
     if (status == mui_success &&
-        (!MakeTextures(renderer) || !MakePipeline(renderer, def->targetFormat)))
+        (!MakeTextures(renderer) || !MakeShader(renderer) ||
+         !MakePipeline(renderer, def->targetFormat, mrhi_formatNone, mrhi_compareAlways) ||
+         (def->depthFormat != mrhi_formatNone &&
+          !MakePipeline(renderer, def->targetFormat, def->depthFormat, def->depthCompare))))
     {
         status = mui_errorPlatform;
     }
@@ -189,9 +214,9 @@ void muiDestroyRhiRenderer(muiRhiRenderer* renderer)
         return;
     }
     mrhiDevice* device = renderer->device;
-    if (renderer->pipeline.index1 != 0)
+    for (uint32_t i = 0; i < renderer->pipelineCount; i++)
     {
-        (void)mrhiDestroyGraphicsPipeline(device, renderer->pipeline);
+        (void)mrhiDestroyGraphicsPipeline(device, renderer->pipelines[i]);
     }
     if (renderer->shader.index1 != 0)
     {
@@ -219,20 +244,28 @@ void muiDestroyRhiRenderer(muiRhiRenderer* renderer)
 
 mrhiRequestId muiRhiRenderer_GetPipelineRequest(const muiRhiRenderer* renderer)
 {
-    return renderer != nullptr ? renderer->request : (mrhiRequestId){0};
+    return renderer != nullptr ? renderer->requests[0] : (mrhiRequestId){0};
 }
 
 bool muiRhiRenderer_Notify(muiRhiRenderer* renderer, const mrhiDeviceNotification* notification)
 {
     if (renderer == nullptr || notification == nullptr ||
-        notification->kind != mrhi_devicePipelineReady ||
-        notification->requestId.index1 != renderer->request.index1 ||
-        notification->requestId.generation != renderer->request.generation)
+        notification->kind != mrhi_devicePipelineReady)
     {
         return false;
     }
-    renderer->ready = notification->outcome == mrhi_success;
-    return true;
+    for (uint32_t i = 0; i < renderer->pipelineCount; i++)
+    {
+        if (notification->requestId.index1 == renderer->requests[i].index1 &&
+            notification->requestId.generation == renderer->requests[i].generation)
+        {
+            renderer->readied[i] = notification->outcome == mrhi_success;
+            renderer->ready =
+                renderer->readied[0] && (renderer->pipelineCount < 2 || renderer->readied[1]);
+            return true;
+        }
+    }
+    return false;
 }
 
 bool muiRhiRenderer_IsReady(const muiRhiRenderer* renderer)
@@ -340,14 +373,39 @@ static void Keep(muiRhiRenderer* renderer)
     muiRhiGlyphsWritten(&renderer->glyphs);
 }
 
+// The draw pass: into the target, cleared or kept, testing its depth
+// texture, if any, without writing it, so the scene's depth stays as it
+// was.
+static mrhiPassDef DrawPassDef(const muiRhiRenderer* renderer, const muiRhiTarget* target)
+{
+    const muiLinearColor clear = target->clearColor;
+    mrhiPassDef def = mrhiDefaultPassDef();
+    def.colorTargets[0] = (mrhiColorTarget){
+        .resource = target->resource,
+        .load = target->clear ? mrhi_loadClear : mrhi_loadKeep,
+        .store = mrhi_storeKeep,
+        .clear = {clear.r, clear.g, clear.b, clear.a},
+    };
+    def.colorTargetCount = 1;
+    def.depthTarget = (mrhiDepthTarget){.resource = target->depth,
+                                        .depthLoad = mrhi_loadKeep,
+                                        .depthStore = mrhi_storeKeep,
+                                        .readOnly = true};
+    def.accesses = renderer->plan.accesses;
+    def.accessCount = renderer->plan.accessCount;
+    return def;
+}
+
 muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* list,
                                    const muiRhiTarget* target)
 {
+    bool depth = target != nullptr && target->depth.index1 != 0;
     if (renderer == nullptr || list == nullptr || target == nullptr || target->width == 0 ||
-        target->height == 0)
+        target->height == 0 || (depth && (!target->projected || renderer->pipelineCount < 2)))
     {
         return mui_errorInvalid;
     }
+    renderer->depthTested = depth;
     renderer->added = false;
     if (!renderer->ready)
     {
@@ -393,17 +451,7 @@ muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* 
     uploadDef.passClass = mrhi_passTransfer;
     uploadDef.accesses = renderer->plan.uploads;
     uploadDef.accessCount = renderer->plan.uploadCount;
-    const muiLinearColor clear = target->clearColor;
-    mrhiPassDef drawDef = mrhiDefaultPassDef();
-    drawDef.colorTargets[0] = (mrhiColorTarget){
-        .resource = target->resource,
-        .load = target->clear ? mrhi_loadClear : mrhi_loadKeep,
-        .store = mrhi_storeKeep,
-        .clear = {clear.r, clear.g, clear.b, clear.a},
-    };
-    drawDef.colorTargetCount = 1;
-    drawDef.accesses = renderer->plan.accesses;
-    drawDef.accessCount = renderer->plan.accessCount;
+    const mrhiPassDef drawDef = DrawPassDef(renderer, target);
     if (mrhiAddPass(device, &uploadDef, &renderer->upload) != mrhi_success ||
         mrhiAddPass(device, &drawDef, &renderer->draw) != mrhi_success)
     {
@@ -444,7 +492,8 @@ static bool Draw(muiRhiRenderer* renderer)
         bindings[i] = (mrhiBinding){
             .slot = i, .resource = renderer->streams[i].resource, .size = MRHI_WHOLE_SIZE};
     }
-    if (mrhiSetGraphicsPipeline(device, pass, renderer->pipeline) != mrhi_success ||
+    mrhiGraphicsPipelineId pipeline = renderer->pipelines[renderer->depthTested ? 1 : 0];
+    if (mrhiSetGraphicsPipeline(device, pass, pipeline) != mrhi_success ||
         mrhiSetBindings(device, pass, 0, bindings, kStreamCount) != mrhi_success ||
         mrhiSetRootBlock(device, pass, 0, renderer->frame, sizeof(renderer->frame)) != mrhi_success)
     {

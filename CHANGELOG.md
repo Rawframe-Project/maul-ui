@@ -15,6 +15,9 @@ format.
   space, so the reference renderer draws a list as a panel in a 3D
   scene, its edges, clips and glyphs (all from distance fields) sharp
   at any angle. The projection rides at the end of the transform table.
+  A renderer made with `depthFormat` and `depthCompare` tests such a
+  panel against a depth texture the target names (`depth`), never
+  writing it, through a second pipeline.
 
 - Image tiling: `muiDrawImage` carries `repeatX` and `repeatY`, and the
   visual style `imageRepeatX` and `imageRepeatY` (properties 86 and

@@ -31,7 +31,10 @@
 //   them, and a run a transform moves; runs a transform scales by 2 or
 //   turns a quarter, drawn from distance fields.
 // - tiling: each repeat mode across and up, tiles at 9-slice edges and
-//   in a seam on a mipmapped image, and with the slices' fit.
+//   in a seam on a mipmapped image, and with the slices' fit;
+// - projection: the screen's own matrix drawing as none, one scaling by
+//   2 as a scale of 2, a panel turned in perspective, its glyphs from
+//   fields, and depth tested against the host's.
 // Skips (77) without an adapter, unless MUI_RHI_REQUIRED is set. On the
 // web it runs in headless Chrome's WebGPU through the web runner, its
 // waits sleeping through JSPI, and ends with the runner's exit line.
@@ -162,9 +165,10 @@ static bool AwaitReady(Gpu* gpu, muiRhiRenderer* renderer)
 }
 
 // Draws a list into a square target of a side, through a projection
-// when one is given, and reads it back as RGBA8.
-static bool RenderThrough(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList* list,
-                          uint32_t side, const float* projection, uint8_t* pixels)
+// when one is given, over a depth texture cleared to a depth in a pass
+// of its own when the depth is 0 or more, and reads it back as RGBA8.
+static bool RenderInDepth(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList* list,
+                          uint32_t side, const float* projection, float depth, uint8_t* pixels)
 {
     mrhiFrameDef frame = mrhiDefaultFrameDef();
     mrhiTextureDef targetDef = mrhiDefaultTextureDef();
@@ -187,6 +191,23 @@ static bool RenderThrough(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList*
         into.projected = true;
         memcpy(into.projection, projection, sizeof into.projection);
     }
+    mrhiPassDef clearDef = mrhiDefaultPassDef();
+    mrhiPassId clearing = {0};
+    if (depth >= 0.0f)
+    {
+        mrhiTextureDef depthDef = targetDef;
+        depthDef.format = mrhi_formatDepth32Float;
+        if (mrhiDeclareTexture(gpu->device, &depthDef, &into.depth) != mrhi_success)
+        {
+            (void)mrhiDropFrame(gpu->device);
+            return false;
+        }
+        clearDef.depthTarget = (mrhiDepthTarget){.resource = into.depth,
+                                                 .depthLoad = mrhi_loadClear,
+                                                 .depthStore = mrhi_storeKeep,
+                                                 .clearDepth = depth};
+        clearDef.neverCull = true;
+    }
     const mrhiAccess read = {.resource = target,
                              .kind = mrhi_accessCopySource,
                              .range = {.mipCount = 1, .layerCount = 1}};
@@ -200,10 +221,13 @@ static bool RenderThrough(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList*
     const mrhiExtent3d extent = {side, side, 1};
     mrhiRequestId readback = {0};
     mrhiRequestId token = {0};
+    bool cleared = depth < 0.0f || mrhiAddPass(gpu->device, &clearDef, &clearing) == mrhi_success;
     bool recorded =
-        muiRhiRenderer_AddPasses(renderer, list, &into) == mui_success &&
+        cleared && muiRhiRenderer_AddPasses(renderer, list, &into) == mui_success &&
         mrhiAddPass(gpu->device, &readDef, &reading) == mrhi_success &&
         mrhiCompileFrame(gpu->device) == mrhi_success &&
+        (depth < 0.0f || (mrhiBeginPass(gpu->device, clearing) == mrhi_success &&
+                          mrhiEndPass(gpu->device, clearing) == mrhi_success)) &&
         muiRhiRenderer_Record(renderer) == mui_success &&
         mrhiBeginPass(gpu->device, reading) == mrhi_success &&
         mrhiReadTexture(gpu->device, reading, &source, &extent, &readback) == mrhi_success &&
@@ -226,6 +250,12 @@ static bool RenderThrough(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList*
     size_t taken = 0;
     return mrhiTakeReadback(gpu->device, readback, pixels, size, &taken) == mrhi_success &&
            taken == size;
+}
+
+static bool RenderThrough(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList* list,
+                          uint32_t side, const float* projection, uint8_t* pixels)
+{
+    return RenderInDepth(gpu, renderer, list, side, projection, -1.0f, pixels);
 }
 
 static bool Render(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList* list, uint32_t side,
@@ -992,6 +1022,69 @@ static void TestProjectionScale(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pix
           "a box past the target's size brought into view");
 }
 
+// Whether a renderer refuses a target, in a frame then dropped.
+static bool Refuses(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList* list, bool projected,
+                    bool depth)
+{
+    mrhiFrameDef frame = mrhiDefaultFrameDef();
+    mrhiTextureDef def = mrhiDefaultTextureDef();
+    def.format = mrhi_formatRgba8UnormSrgb;
+    def.width = 64;
+    def.height = 64;
+    muiRhiTarget into = {.width = 64, .height = 64, .projected = projected};
+    ScreenProjection(into.projection, 1.0f, 64);
+    if (mrhiBeginFrame(gpu->device, &frame) != mrhi_success ||
+        mrhiDeclareTexture(gpu->device, &def, &into.resource) != mrhi_success)
+    {
+        return false;
+    }
+    def.format = mrhi_formatDepth32Float;
+    bool declared = !depth || mrhiDeclareTexture(gpu->device, &def, &into.depth) == mrhi_success;
+    bool refused = declared && muiRhiRenderer_AddPasses(renderer, list, &into) == mui_errorInvalid;
+    (void)mrhiDropFrame(gpu->device);
+    return refused;
+}
+
+// Depth (record mui-0005): a renderer made with a depth format tests a
+// projected panel against the host's depth, never writing it: the turned
+// panel, at depth 0.5 throughout (its matrix's z is half its w), drawn
+// over a depth of 0.6 and hidden by one of 0.4 under less-or-equal. A
+// depth texture without a projection, or given a renderer made without a
+// depth format, is refused.
+static void TestDepth(Gpu* gpu, muiRhiRenderer* plain, uint8_t* pixels)
+{
+    muiRhiRendererDef def = muiDefaultRhiRendererDef();
+    def.device = gpu->device;
+    def.depthFormat = mrhi_formatDepth32Float;
+    muiRhiRenderer* renderer = NULL;
+    if (muiCreateRhiRenderer(&def, &renderer) != mui_success || !AwaitReady(gpu, renderer))
+    {
+        muiDestroyRhiRenderer(renderer);
+        CHECK(false, "a renderer testing depth, ready");
+        return;
+    }
+    muiDrawCommand commands[4];
+    const muiDrawClip clips[2] = {{0}, {.rect = {36, 36, 24, 24}, .radii = {12, 12, 12, 12}}};
+    muiDrawList list = PanelList(commands, clips, 1.0f);
+    float m[16];
+    TurnedProjection(m);
+    int x = 0;
+    int y = 0;
+    Project(m, 48, 16, 64, &x, &y);
+    const int black[4] = {0, 0, 0, 255};
+    const int green[4] = {0, 255, 0, 255};
+    CHECK(RenderInDepth(gpu, renderer, &list, 64, m, 0.6f, pixels) &&
+              Near(pixels, 64, x, y, green, 2),
+          "a panel in front of the scene's depth drawn");
+    CHECK(RenderInDepth(gpu, renderer, &list, 64, m, 0.4f, pixels) &&
+              Near(pixels, 64, x, y, black, 2),
+          "a panel behind it hidden");
+    CHECK(Refuses(gpu, renderer, &list, false, true) && Refuses(gpu, plain, &list, true, true) &&
+              !Refuses(gpu, renderer, &list, true, false),
+          "depth without a projection or a depth format refused");
+    muiDestroyRhiRenderer(renderer);
+}
+
 #if MUI_TEST_TEXT
 
 #include "maul-ui/font.h"
@@ -1388,6 +1481,7 @@ int main(void)
         TestProjection(&gpu, renderer, pixels, 1);
         TestProjection(&gpu, renderer, pixels, 2);
         TestProjectionScale(&gpu, renderer, pixels);
+        TestDepth(&gpu, renderer, pixels);
 #if MUI_TEST_TEXT
         TestGlyphs(&gpu, renderer, font, pixels, 1);
         TestGlyphs(&gpu, renderer, font, pixels, 2);

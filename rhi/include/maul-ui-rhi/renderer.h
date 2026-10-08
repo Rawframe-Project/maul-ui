@@ -77,6 +77,13 @@ extern "C"
         // which needs Maul UI built with its text component
         // (MAUL_UI_TEXT). The service outlives the renderer.
         muiTextService* text;
+        // The format of the depth textures projected targets may carry, so
+        // that a panel in a 3D scene is hidden by what stands in front of
+        // it (record mui-0005), and the test against them; mrhi_formatNone,
+        // the default, for none. Depth is tested, never written, as UI is
+        // drawn after a scene's opaque geometry.
+        mrhiFormat depthFormat;
+        mrhiCompareFunction depthCompare;
     } muiRhiRendererDef;
 
     // Where a frame's list is drawn: a texture of the frame, its size in
@@ -99,10 +106,15 @@ extern "C"
         // Unset, the list is drawn at the target's pixels by its scale.
         bool projected;
         float projection[16];
+        // A depth texture of the frame in the def's depthFormat, its
+        // depth tested against the projection's and never written; a null
+        // id for none. Only with a projection.
+        mrhiResourceId depth;
     } muiRhiTarget;
 
     /// The default def: the C library's allocation, no device, an
-    /// sRGB RGBA8 target, room for 1024 instances.
+    /// sRGB RGBA8 target, room for 1024 instances, no depth and a
+    /// less-or-equal depth test.
     ///
     /// @return The def.
     /// @par Thread safety
@@ -159,7 +171,8 @@ extern "C"
     MUI_RHI_API bool muiRhiRenderer_Notify(muiRhiRenderer* renderer,
                                            const mrhiDeviceNotification* notification);
 
-    /// Whether its pipeline is ready, so that frames draw.
+    /// Whether its pipelines are ready, so that frames draw: one, and a
+    /// second testing depth when the def names a depth format.
     ///
     /// @param renderer  The renderer.
     /// @return Whether it is ready; false for a NULL renderer.
@@ -176,9 +189,10 @@ extern "C"
     /// @param renderer  The renderer.
     /// @param list      The list.
     /// @param target    Where it is drawn.
-    /// @return `mui_success`; `mui_empty` when its pipeline is not ready
+    /// @return `mui_success`; `mui_empty` when its pipelines are not ready
     ///         yet, nothing added; `mui_errorInvalid` for a NULL
-    ///         argument or a target of no size; `mui_errorCapacity` when
+    ///         argument, a target of no size, or a depth texture without
+    ///         a projection or a def's depth format; `mui_errorCapacity` when
     ///         memory runs out, or the frame's uploads would not fit the
     ///         def's uploadBytes, nothing added; `mui_errorPlatform` when
     ///         the device refuses a pass, a buffer or a texture.
