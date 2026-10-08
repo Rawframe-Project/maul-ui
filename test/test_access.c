@@ -471,6 +471,8 @@ static const char* s_read = "Two";
 static int s_reads;
 static muiContext* s_reader;
 static muiResult s_editFromReader;
+static muiResult s_disableFromReader;
+static muiResult s_functionFromReader;
 
 static bool ReadText(void* user, muiNodeId nodeId, uint64_t hostKey, const char** textOut,
                      size_t* lengthOut)
@@ -478,6 +480,8 @@ static bool ReadText(void* user, muiNodeId nodeId, uint64_t hostKey, const char*
     (void)user;
     s_reads++;
     s_editFromReader = muiNode_SetAccessRole(s_reader, nodeId, mui_roleButton);
+    s_disableFromReader = muiAccess_Disable(s_reader, nodeId);
+    s_functionFromReader = muiSetAccessTextFunction(s_reader, NULL, NULL);
     const char* text = hostKey == 1   ? "One"
                        : hostKey == 2 ? s_read
                        : hostKey == 3 ? "\xC0\x80"
@@ -544,7 +548,9 @@ static void TestContentText(void)
               Sent(&update, empty)->text[mui_accessValue] == NULL &&
               Sent(&update, empty)->role == mui_roleGeneric,
           "ill-formed, nothing, not content, not read, empty");
-    CHECK(s_editFromReader == mui_errorInvalid && s_reads == 7, "read once each, editing nothing");
+    CHECK(s_editFromReader == mui_errorInvalid && s_disableFromReader == mui_errorInvalid &&
+              s_functionFromReader == mui_errorInvalid && s_reads == 7,
+          "read once each, editing, disabling and replacing the reader refused");
     // The host's value wins, unread.
     Text(context, one, mui_accessValue, "Uno");
     s_reads = 0;
@@ -1316,6 +1322,89 @@ static void TestRoots(void)
     muiDestroyContext(context);
 }
 
+// A full table drops a destroyed node's entry for a new one, the last
+// entry moving into its place: every node keeps its own data.
+static void TestCompacted(void)
+{
+    muiContextDef def = muiDefaultContextDef();
+    def.limits.accessNodes = 3;
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    muiNodeId a = Node(context, s_nullNode);
+    muiNodeId b = Node(context, s_nullNode);
+    muiNodeId c = Node(context, s_nullNode);
+    muiNodeId d = Node(context, s_nullNode);
+    Text(context, a, mui_accessLabel, "A");
+    Text(context, b, mui_accessLabel, "B");
+    Text(context, c, mui_accessLabel, "C");
+    CHECK(muiDestroyNode(context, a) == mui_success, "the first gone");
+    Text(context, d, mui_accessLabel, "D");
+    Text(context, c, mui_accessDescription, "moved");
+    const char* text = NULL;
+    size_t length = 0;
+    bool kept = true;
+    const muiNodeId nodes[] = {b, c, d};
+    const char* names[] = {"B", "C", "D"};
+    for (int i = 0; i < 3; i++)
+    {
+        kept = kept &&
+               muiNode_GetAccessText(context, nodes[i], mui_accessLabel, &text, &length) ==
+                   mui_success &&
+               strcmp(text, names[i]) == 0;
+    }
+    CHECK(kept &&
+              muiNode_GetAccessText(context, c, mui_accessDescription, &text, &length) ==
+                  mui_success &&
+              strcmp(text, "moved") == 0 &&
+              muiNode_GetAccessText(context, b, mui_accessDescription, &text, &length) == mui_empty,
+          "each node's own texts, the moved one edited in place");
+    muiDestroyContext(context);
+}
+
+// What every call refuses: no context, a destroyed node, no root, and
+// what reads asks for no room.
+static void TestRefusals(void)
+{
+    muiContextDef def = muiDefaultContextDef();
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    muiNodeId gone = Node(context, s_nullNode);
+    CHECK(muiDestroyNode(context, gone) == mui_success, "a node gone");
+    muiAccessValues values = muiDefaultAccessValues();
+    muiNodeId targets[1] = {gone};
+    uint32_t count = 0;
+    CHECK(muiNode_SetAccessRole(NULL, gone, mui_roleButton) == mui_errorInvalid &&
+              muiNode_SetAccessText(NULL, gone, mui_accessLabel, "a", 1) == mui_errorInvalid &&
+              muiNode_SetAccessFlags(NULL, gone, 0) == mui_errorInvalid &&
+              muiNode_SetAccessRelation(NULL, gone, mui_relationControls, NULL, 0) ==
+                  mui_errorInvalid &&
+              muiNode_SetAccessValues(NULL, gone, &values) == mui_errorInvalid &&
+              muiAccess_Enable(NULL, gone) == mui_errorInvalid &&
+              muiAccess_Disable(NULL, gone) == mui_errorInvalid,
+          "no context");
+    const char* text = NULL;
+    size_t length = 0;
+    muiAccessFlags flags = 0;
+    CHECK(muiNode_SetAccessText(context, gone, mui_accessLabel, "a", 1) == mui_errorStale &&
+              muiNode_SetAccessFlags(context, gone, 0) == mui_errorStale &&
+              muiNode_SetAccessRelation(context, gone, mui_relationControls, NULL, 0) ==
+                  mui_errorStale &&
+              muiNode_SetAccessValues(context, gone, &values) == mui_errorStale &&
+              muiNode_GetAccessText(context, gone, mui_accessLabel, &text, &length) ==
+                  mui_errorStale &&
+              muiNode_GetAccessFlags(context, gone, &flags) == mui_errorStale,
+          "a destroyed node");
+    muiNodeId node = Node(context, s_nullNode);
+    CHECK(muiAccess_Disable(context, s_nullNode) == mui_errorInvalid &&
+              muiNode_GetAccessRelation(context, node, mui_relationControls, targets, 1, NULL) ==
+                  mui_errorInvalid &&
+              muiNode_GetAccessRelation(context, node, mui_relationControls, NULL, 1, &count) ==
+                  mui_errorInvalid &&
+              muiNode_GetAccessValues(context, node, NULL) == mui_errorInvalid,
+          "no root, nowhere to write");
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestWholeThenChanged();
@@ -1333,5 +1422,7 @@ int main(void)
     TestHostData();
     TestMemory();
     TestRoots();
+    TestCompacted();
+    TestRefusals();
     return s_failures == 0 ? 0 : 1;
 }

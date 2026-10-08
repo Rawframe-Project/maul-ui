@@ -916,6 +916,92 @@ static void TestPasswordWithoutMemory(void)
     muiDestroyTextService(service);
 }
 
+// What editing meets beside typing: a read-only field's erasing keys
+// change nothing; the host setting the text keeps the selection within
+// it, at a character's start, and forgets the history; an erase to a
+// point inside a character is refused, and one during a composition
+// waits for it.
+static void TestEditingEdges(void)
+{
+    Scene scene = MakeScene("abc", mui_editReadOnly);
+    Layout(&scene);
+    Clipboard clipboard = {0};
+    Select(&scene, 3, 3);
+    CHECK(!Key(&scene, mui_keymapPc, &clipboard, mui_codeBackspace, 0, 0).changed &&
+              !Key(&scene, mui_keymapPc, &clipboard, mui_codeDelete, 0, mui_modControl).changed &&
+              Holds(&scene, "abc"),
+          "a read-only field erases nothing");
+    FreeScene(&scene);
+    scene = MakeScene("abcdef", 0);
+    Select(&scene, 6, 6);
+    Type(&scene, "g");
+    Select(&scene, 2, 7);
+    CHECK(muiTextBlock_SetText(scene.service, scene.block, "a\xC3\xA9", 3) == mui_success &&
+              Selects(&scene, 1, 3) && !Undo(&scene),
+          "the host's text: the selection within it at characters' starts, no history");
+    bool changed = true;
+    CHECK(muiTextBlock_EraseTo(scene.service, scene.block, 2, &changed) == mui_errorInvalid &&
+              !changed && Holds(&scene, "a\xC3\xA9"),
+          "no erase to inside a character");
+    Select(&scene, 3, 3);
+    CHECK(muiTextBlock_Compose(scene.service, scene.block, "x", 1, 1, NULL, 0, NULL) ==
+                  mui_success &&
+              muiTextBlock_EraseTo(scene.service, scene.block, 0, &changed) == mui_success &&
+              !changed && Holds(&scene, "a\xC3\xA9x"),
+          "no erase while composing");
+    FreeScene(&scene);
+}
+
+// Typing that finds no memory, at each allocation that can fail, keeps
+// the text, and leaves no undo of an edit that did not happen.
+static void TestTypingWithoutMemory(void)
+{
+    int left = 1000;
+    muiTextServiceDef def = muiDefaultTextServiceDef();
+    def.allocator = (muiAllocator){Budgeted, Unbudgeted, &left};
+    muiTextService* service = NULL;
+    CHECK(muiCreateTextService(&def, &service) == mui_success, "service");
+    bool kept = true;
+    bool failed = false;
+    bool typed = false;
+    for (int budget = 0; budget < 40 && !typed; budget++)
+    {
+        left = 1000;
+        muiTextBlockId block = {0, 0};
+        muiTextEditDef edit = muiDefaultTextEditDef();
+        bool changed = false;
+        CHECK(muiCreateTextBlock(service, "ab", 2, &block) == mui_success &&
+                  muiTextBlock_SetEditing(service, block, &edit) == mui_success &&
+                  muiTextBlock_Select(service, block, (muiTextSelection){2, {2, 0}}) ==
+                      mui_success &&
+                  muiTextBlock_Type(service, block, "c", 1, NULL) == mui_success,
+              "a field typed in");
+        left = budget;
+        muiResult result = muiTextBlock_Type(service, block, "d", 1, &changed);
+        left = 1000;
+        const char* text = NULL;
+        size_t length = 0;
+        CHECK(muiTextBlock_GetText(service, block, &text, &length) == mui_success, "its text");
+        if (result == mui_errorCapacity)
+        {
+            failed = true;
+            kept = kept && !changed && length == 3 && memcmp(text, "abc", 3) == 0;
+            // An undo, if any, takes back what was typed before.
+            CHECK(muiTextBlock_Undo(service, block, &changed) == mui_success &&
+                      muiTextBlock_GetText(service, block, &text, &length) == mui_success,
+                  "an undo");
+            kept = kept && (length == 2 || length == 3) && memcmp(text, "ab", 2) == 0;
+        }
+        else
+        {
+            typed = result == mui_success && changed && length == 4 && memcmp(text, "abcd", 4) == 0;
+        }
+        CHECK(muiDestroyTextBlock(service, block) == mui_success, "destroyed");
+    }
+    CHECK(kept && failed && typed, "the text kept until there is memory, then typed");
+    muiDestroyTextService(service);
+}
+
 // Sizes the scene's node, its content box that size.
 static void Size(Scene* scene, float width, float height)
 {
@@ -1012,6 +1098,8 @@ int main(void)
     TestMacLines();
     TestDragAndEmpty();
     TestPasswordWithoutMemory();
+    TestEditingEdges();
+    TestTypingWithoutMemory();
     TestEvents();
     TestComposition();
     TestPassword();
