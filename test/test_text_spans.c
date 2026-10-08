@@ -11,6 +11,7 @@
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
 #include "maul-ui/font.h"
+#include "maul-ui/glyph_image.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
@@ -20,6 +21,7 @@
 #include "maul-ui/text_style.h"
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "ahem.inc"
@@ -481,6 +483,63 @@ static void TestManyRunStyles(void)
     FreeScene(&scene);
 }
 
+// A table's offset in a font, 0 for none.
+static uint32_t TableOf(const unsigned char* font, const char* tag)
+{
+    uint32_t count = (uint32_t)font[4] << 8 | font[5];
+    for (uint32_t i = 0; i < count; i++)
+    {
+        const unsigned char* record = font + 12 + 16 * i;
+        if (memcmp(record, tag, 4) == 0)
+        {
+            return (uint32_t)record[8] << 24 | (uint32_t)record[9] << 16 |
+                   (uint32_t)record[10] << 8 | record[11];
+        }
+    }
+    return 0;
+}
+
+// A damaged font whose cmap names glyphs past the count its maxp gives:
+// text in it is drawn with its missing glyph, which renders, and never
+// with a glyph the font does not have (found by fuzz_font).
+static void TestGlyphsPastTheCount(void)
+{
+    Scene scene = MakeScene();
+    unsigned char* damaged = malloc(sizeof s_ahem);
+    CHECK(damaged != NULL, "a copy");
+    if (damaged == NULL)
+    {
+        FreeScene(&scene);
+        return;
+    }
+    memcpy(damaged, s_ahem, sizeof s_ahem);
+    uint32_t maxp = TableOf(damaged, "maxp");
+    CHECK(maxp != 0, "Ahem's maxp");
+    // Ten glyphs: its letters' boxes lie past them.
+    damaged[maxp + 4] = 0;
+    damaged[maxp + 5] = 10;
+    muiFontDef def = muiDefaultFontDef();
+    def.data = damaged;
+    def.size = sizeof s_ahem;
+    def.dataMode = mui_fontDataBorrow;
+    muiFontId font = {0, 0};
+    CHECK(muiCreateFont(scene.service, &def, &font) == mui_success &&
+              muiSetDefaultFont(scene.service, font) == mui_success,
+          "the damaged font");
+    muiTextBlockId block = {0, 0};
+    muiNodeId node = AddText(&scene, "ab", &block);
+    muiDrawList list = Paint(&scene, node);
+    muiGlyphImage image;
+    static unsigned char s_image[4096];
+    CHECK(list.commandCount == 1 && list.glyphCount == 2 && list.glyphs[0].id == 0 &&
+              list.glyphs[1].id == 0 &&
+              muiRenderGlyph(scene.service, list.commands[0].glyphRun.font, list.glyphs[0].id,
+                             10.0f, 0.0f, &image, s_image, sizeof s_image) == mui_success,
+          "the missing glyph drawn, and rendered");
+    FreeScene(&scene);
+    free(damaged);
+}
+
 int main(void)
 {
     TestChecks();
@@ -491,5 +550,6 @@ int main(void)
     TestShifts();
     TestRunStyles();
     TestManyRunStyles();
+    TestGlyphsPastTheCount();
     return s_failures == 0 ? 0 : 1;
 }

@@ -277,6 +277,9 @@ static muiResult Open(muiTextService* service, const muiFontDef* def, muiFont* f
     {
         return mui_errorCapacity;
     }
+    // FreeType's count of glyphs is the font's: HarfBuzz's may differ in
+    // a damaged font, and shaping keeps its glyphs below it.
+    hb_face_set_glyph_count(font->shapingFace, (unsigned int)font->face->num_glyphs);
     hb_face_make_immutable(font->shapingFace);
     font->shapingFont = hb_font_create(font->shapingFace);
     if (font->shapingFont == hb_font_get_empty())

@@ -277,11 +277,15 @@ static bool ShapeWithin(muiTextService* service, hb_buffer_t* buffer, hb_font_t*
     const hb_glyph_info_t* infos = hb_buffer_get_glyph_infos(buffer, nullptr);
     const hb_glyph_position_t* positions = hb_buffer_get_glyph_positions(buffer, nullptr);
     muiShapedGlyph* glyphs = (muiShapedGlyph*)out->glyphs->data + *out->count;
+    // A damaged font's cmap or substitutions can name a glyph it does not
+    // have: its missing glyph is drawn instead.
+    unsigned int glyphCount = hb_face_get_glyph_count(hb_font_get_face(font));
     for (unsigned int i = 0; i < count; i++)
     {
         uint32_t cluster = infos[i].cluster + offset;
-        glyphs[i] = (muiShapedGlyph){infos[i].codepoint, cluster, positions[i].x_advance,
-                                     positions[i].x_offset, positions[i].y_offset};
+        uint32_t glyph = infos[i].codepoint < glyphCount ? infos[i].codepoint : 0;
+        glyphs[i] = (muiShapedGlyph){glyph, cluster, positions[i].x_advance, positions[i].x_offset,
+                                     positions[i].y_offset};
         if (out->unsafe != nullptr &&
             (hb_glyph_info_get_glyph_flags(&infos[i]) & HB_GLYPH_FLAG_UNSAFE_TO_BREAK) != 0)
         {
