@@ -667,6 +667,23 @@ static void TestRoot(void)
     CHECK(ReferenceIs(Answer(Call(ROOT_PATH, "org.a11y.atspi.Accessible", "GetApplication")),
                       s_test.plugName, ROOT_PATH),
           "the application is the root");
+    int32_t index = 0;
+    reply = Answer(Call(ROOT_PATH, "org.a11y.atspi.Accessible", "GetIndexInParent"));
+    CHECK(FirstOf(reply, mui_dbusTypeInt32, &index) && index == -1,
+          "the root's index in its parent, -1 as AT-SPI asks");
+    if (reply != NULL)
+    {
+        s_test.dbus.unrefMessage(reply);
+    }
+    // A generic node the window flattens away is none of its children.
+    index = 0;
+    reply = Answer(
+        Call("/org/a11y/atspi/accessible/w1n3", "org.a11y.atspi.Accessible", "GetIndexInParent"));
+    CHECK(FirstOf(reply, mui_dbusTypeInt32, &index) && index == -1, "a flattened node's index, -1");
+    if (reply != NULL)
+    {
+        s_test.dbus.unrefMessage(reply);
+    }
 }
 
 static void TestNodes(void)
@@ -1179,6 +1196,24 @@ static void TestEvents(muiAtspiAdapter* adapter, Built* built)
                         "accessible-name 0 w1n6 Box 2; Announcement  1 w1n6 Box 2"),
           "states, names, values and announcements");
     CHECK(!adapter->reshaped, "no walk for states, names and values");
+    // States past the first 32 bits, indeterminate 32 and read only 43
+    // (found by a mutant reading them from the wrong word).
+    check.flags |= mui_accessMixed;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&check}, 1, built->children, 0) &&
+              EventsAre("StateChanged indeterminate 1 w1n1a"),
+          "mixed");
+    check.flags &= ~(muiAccessFlags)mui_accessMixed;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&check}, 1, built->children, 0) &&
+              EventsAre("StateChanged indeterminate 0 w1n1a"),
+          "and not");
+    slider.flags |= mui_accessReadOnly;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&slider}, 1, built->children, 0) &&
+              EventsAre("StateChanged read-only 1 w1n8"),
+          "made read only");
+    slider.flags &= ~(muiAccessFlags)mui_accessReadOnly;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&slider}, 1, built->children, 0) &&
+              EventsAre("StateChanged read-only 0 w1n8"),
+          "and back");
     // Added to the group: a button 10, and a scroller 11 that clips,
     // holding a button 12.
     muiAccessNode added = {.id = 10, .role = mui_roleButton, .bounds = {0, 0, 10, 10}};

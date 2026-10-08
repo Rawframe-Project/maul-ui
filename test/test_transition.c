@@ -402,6 +402,32 @@ static void TestSpringKeepsItsSpeed(void)
     muiDestroyContext(scene.context);
 }
 
+// A critical spring follows its closed form, x0 (1 + wt) e^(-wt) from its
+// target, on every channel: here the width's scale, 25% to 50% of 400
+// (found by a mutant moving every channel but the first).
+static void TestSpringOnItsCurve(void)
+{
+    Scene scene = MakeScene(muiDefaultContextDef().limits);
+    SetWidth(scene.context, scene.style, mui_variantBase,
+             (muiDimension){0.25f, 0.0f, mui_dimensionValue});
+    SetWidth(scene.context, scene.style, mui_variantHovered,
+             (muiDimension){0.5f, 0.0f, mui_dimensionValue});
+    Bind(scene.context, scene.style, mui_variantBase, MakeSpring(scene.context, 2.0f, 1.0f), WIDTH);
+    CHECK(WidthAt(scene.context, scene.node, T0) == 100.0f, "a quarter of 400");
+    Hover(&scene, true);
+    (void)WidthAt(scene.context, scene.node, T0);
+    bool on = true;
+    for (uint64_t ms = 40; ms <= 400; ms += 120)
+    {
+        double wt = 2.0 * 3.14159265358979323846 * 2.0 * (double)ms / 1000.0;
+        double expected = 400.0 * (0.5 - 0.25 * (1.0 + wt) * exp(-wt));
+        double width = (double)WidthAt(scene.context, scene.node, T0 + ms * MS);
+        on = on && fabs(width - expected) < 0.05;
+    }
+    CHECK(on, "on the critical spring's curve");
+    muiDestroyContext(scene.context);
+}
+
 static void TestSpringsStayInRange(void)
 {
     muiContext* context = MakeContext();
@@ -709,6 +735,7 @@ int main(void)
     TestDelayHoldsTheStart();
     TestReversalIsShortened();
     TestSpringKeepsItsSpeed();
+    TestSpringOnItsCurve();
     TestSpringsStayInRange();
     TestReducedMotionAndDirectWritesApplyAtOnce();
     TestOnlyMovableValuesMove();

@@ -1039,6 +1039,40 @@ static void TestContract(void)
     muiDestroyAccessTree(tree);
 }
 
+// A full tree takes an update that sends only nodes it holds: none of
+// them is new, so none needs room (found by a mutant counting every node
+// sent as new).
+static void TestFullTreeUpdated(void)
+{
+    muiAccessTreeDef def = muiDefaultAccessTreeDef();
+    def.nodes = 3;
+    muiAccessTree* tree = NULL;
+    CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "a tree of three");
+    muiAccessNode root = {.id = 1, .childCount = 2};
+    muiAccessNode a = {.id = 2};
+    muiAccessNode b = {.id = 3};
+    const muiAccessNode* all[3] = {&root, &a, &b};
+    const uint64_t children[2] = {2, 3};
+    muiAccessUpdate update = Update(all, 3, children, 1, 1);
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "full");
+    a.role = mui_roleButton;
+    b.role = mui_roleCheckBox;
+    update = Update(all, 3, children, 0, 2);
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "all three sent again");
+    const muiAccessNode* changed[1] = {&b};
+    update = Update(changed, 1, NULL, 0, 3);
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success &&
+              muiAccessTree_Find(tree, 3)->role == mui_roleCheckBox,
+          "one sent again");
+    muiAccessNode d = {.id = 4};
+    root.childCount = 3;
+    const uint64_t more[3] = {2, 3, 4};
+    const muiAccessNode* grown[2] = {&root, &d};
+    update = Update(grown, 2, more, 0, 1);
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorCapacity, "a fourth refused");
+    muiDestroyAccessTree(tree);
+}
+
 int main(void)
 {
     TestUpdatesApplied();
@@ -1052,5 +1086,6 @@ int main(void)
     TestNamesAndBounds();
     TestMemory();
     TestContract();
+    TestFullTreeUpdated();
     return s_failures == 0 ? 0 : 1;
 }

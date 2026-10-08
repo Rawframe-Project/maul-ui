@@ -4,6 +4,7 @@
 // Creating and destroying contexts, their refusals, and where the parts
 // of a context's block fall. White-box: it reads the parts' addresses.
 
+#include "allocator.h"
 #include "context.h"
 #include "test_harness.h"
 
@@ -184,6 +185,21 @@ static void TestPartsStartOnCacheLines(void)
     }
 }
 
+// A block's parts follow one another, each padded only up to its own
+// alignment: one that already starts aligned is not padded (found by a
+// mutant padding a whole alignment more).
+static void TestPartsPacked(void)
+{
+    muiLayout layout = {0, false};
+    CHECK(muiLayoutAdd(&layout, 3, 8, 8) == 0 && layout.size == 24, "three eights");
+    CHECK(muiLayoutAdd(&layout, 2, 4, 8) == 24 && layout.size == 32, "aligned already");
+    CHECK(muiLayoutAdd(&layout, 1, 2, 2) == 32 && layout.size == 34, "two bytes");
+    CHECK(muiLayoutAdd(&layout, 1, 16, 16) == 48 && layout.size == 64, "padded to sixteen");
+    CHECK(muiLayoutAdd(&layout, SIZE_MAX, 2, 1) == 0 && layout.overflow &&
+              muiLayoutAdd(&layout, 1, 1, 1) == 0,
+          "an overflow, and nothing after it");
+}
+
 static void TestNullContextIsHarmless(void)
 {
     muiDestroyContext(NULL);
@@ -198,5 +214,6 @@ int main(void)
     TestAllocatorFailureIsCapacity();
     TestNullContextIsHarmless();
     TestPartsStartOnCacheLines();
+    TestPartsPacked();
     return s_failures == 0 ? 0 : 1;
 }
