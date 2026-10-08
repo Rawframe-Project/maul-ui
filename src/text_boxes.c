@@ -8,6 +8,7 @@
 
 #include "text_boxes.h"
 
+#include "text_lines.h"
 #include "text_mask.h"
 
 #include "maul-ui/layout.h"
@@ -25,8 +26,8 @@ muiResult muiLayText(const muiTextHost* host, muiNodeId nodeId, float width, mui
         return host->service->failures != failures ? mui_errorCapacity : mui_errorStale;
     }
     muiParagraph* paragraph = &out->paragraph;
-    if (!muiBreakParagraph(paragraph, muiParagraphBreakMode(paragraph, mui_measureAtMost), width,
-                           &out->lineCount))
+    if (!muiLayLines(paragraph, muiParagraphBreakMode(paragraph, mui_measureAtMost), width,
+                     &out->lineCount))
     {
         return mui_errorCapacity;
     }

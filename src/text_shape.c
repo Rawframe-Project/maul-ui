@@ -452,6 +452,7 @@ static bool ReserveTables(muiTextService* service, muiTextBlock* block, const mu
 static bool Shape(muiTextService* service, muiTextBlock* block, const muiRunChains* chains,
                   bool rtl)
 {
+    block->shapings++;
     block->glyphCount = 0;
     block->itemCount = 0;
     Region region = {0};
@@ -553,8 +554,8 @@ static bool SpliceItems(muiTextService* service, muiTextBlock* block, uint32_t s
 static bool Reshape(muiTextService* service, muiTextBlock* block, const muiRunChains* chains,
                     bool rtl)
 {
-    uint32_t start = block->staleStart;
-    uint32_t end = block->staleEnd;
+    uint32_t start = block->stale.start;
+    uint32_t end = block->stale.end;
     int64_t delta = (int64_t)block->length - (int64_t)block->shapedLength;
     uint32_t oldEnd = (uint32_t)((int64_t)end - delta);
     size_t tail = (size_t)block->shapedLength - oldEnd + 1u;
@@ -583,7 +584,7 @@ bool muiShapeTextBlock(muiTextService* service, muiTextBlock* block, const muiRu
 {
     bool same =
         block->shaped && block->shapedChain == chains->chain.identity && block->shapedRtl == rtl;
-    if (same && !block->stale)
+    if (same && !block->stale.on)
     {
         return true;
     }
@@ -592,7 +593,7 @@ bool muiShapeTextBlock(muiTextService* service, muiTextBlock* block, const muiRu
     block->shapedChain = chains->chain.identity;
     block->shapedRtl = rtl;
     block->shapedLength = block->length;
-    block->stale = false;
+    block->stale.on = false;
     return block->shaped;
 }
 

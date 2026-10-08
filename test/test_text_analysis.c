@@ -15,6 +15,7 @@
 // paragraphs, and every shaped table compared: levels, fonts, unsafe
 // marks, items, glyphs and the sums of advances and clusters.
 
+#include "line_break.h"
 #include "test_harness.h"
 #include "text_block.h"
 #include "text_blocks.h"
@@ -183,6 +184,28 @@ static bool SameShaping(const muiTextBlock* a, const muiTextBlock* b)
            SameBytes(&a->clusters, &b->clusters, entries * sizeof(uint32_t));
 }
 
+// Whether two blocks keep the same lines for each break mode both have
+// lines for: the edited block's broken again where edits reached, the
+// other's whole. Returns how many modes were compared.
+static uint32_t SameLines(const muiTextBlock* a, const muiTextBlock* b, bool* same)
+{
+    uint32_t compared = 0;
+    for (int i = 0; i < MUI_LINE_CACHES; i++)
+    {
+        const muiLineCache* x = &a->lineCaches[i];
+        const muiLineCache* y = &b->lineCaches[i];
+        if (x->shaping == 0 || y->shaping == 0 || x->stale.on || y->stale.on)
+        {
+            continue;
+        }
+        compared++;
+        *same = *same && x->count == y->count && x->widest == y->widest && x->length == y->length &&
+                SameBytes(&x->lines, &y->lines, x->count * sizeof(muiTextLine)) &&
+                SameBytes(&x->widths, &y->widths, x->count * sizeof(float));
+    }
+    return compared;
+}
+
 typedef struct Shaping
 {
     muiTextService* service;
@@ -250,6 +273,7 @@ static void TestShaping(void)
     static char inserted[64];
     uint32_t state = 0x85EBCA6Bu;
     uint32_t compared = 0;
+    uint32_t modes = 0;
     bool same = true;
     for (uint32_t round = 0; round < ROUNDS / 2 && shaping.root.index1 != 0; round++)
     {
@@ -287,8 +311,10 @@ static void TestShaping(void)
                           mui_success &&
                       LayOut(&shaping),
                   "laid out");
-            same = same && SameShaping(muiResolveTextBlock(shaping.service, shaping.blocks[0]),
-                                       muiResolveTextBlock(shaping.service, shaping.blocks[1]));
+            const muiTextBlock* edited = muiResolveTextBlock(shaping.service, shaping.blocks[0]);
+            const muiTextBlock* whole = muiResolveTextBlock(shaping.service, shaping.blocks[1]);
+            same = same && SameShaping(edited, whole);
+            modes += SameLines(edited, whole, &same);
             compared++;
         }
         CHECK(muiDestroyNode(shaping.context, shaping.nodes[0]) == mui_success &&
@@ -297,7 +323,8 @@ static void TestShaping(void)
                   muiDestroyTextBlock(shaping.service, shaping.blocks[1]) == mui_success,
               "destroyed");
     }
-    CHECK(same && compared > ROUNDS * EDITS / 8, "edited shaping is the whole text's");
+    CHECK(same && compared > ROUNDS * EDITS / 8 && modes >= compared,
+          "edited shaping and lines are the whole text's");
     muiDestroyContext(shaping.context);
     muiDestroyTextService(shaping.service);
 }

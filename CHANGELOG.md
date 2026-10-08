@@ -10,15 +10,16 @@ format.
 
 ### Changed
 
-- Long text: an edit to a text block analyses and shapes again only the
-  paragraphs it reaches, and a paint function may ask its sink what
-  part of the content box can be seen (`muiDrawSink_GetVisibleRect`);
-  text of more than 64 lines paints the lines seen and one more each
-  way. A node that asks is painted again by every build, scrolling
-  included. A keystroke in 100 KB of text in a scrolling view goes from
-  about 9.7 ms to about 1 ms on the project's machine. A combining mark
-  that starts a paragraph is now drawn in the first font that has it,
-  not the font before the line break.
+- Long text: an edit to a text block analyses, shapes and breaks into
+  lines again only the paragraphs it reaches, and a paint function may
+  ask its sink what part of the content box can be seen
+  (`muiDrawSink_GetVisibleRect`); text of more than 64 lines paints the
+  lines seen and one more each way. A node that asks is painted again
+  by every build, scrolling included. A keystroke in 100 KB of text in
+  a scrolling view goes from about 9.7 ms to about 0.15 ms on the
+  project's machine. A combining mark that starts a paragraph is now
+  drawn in the first font that has it, not the font before the line
+  break.
 
 - World-space panels: `muiRhiTarget` takes an optional projection, a
   column-major 4x4 matrix from the list's logical units into clip

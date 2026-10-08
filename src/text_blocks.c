@@ -448,22 +448,20 @@ static bool Splice(const muiAllocator* allocator, const muiTextBlock* block, uin
 // Marks paragraphs from up to to (in the new text) stale after bytes
 // start up to end became length bytes, joined with what was stale
 // before, moved through the edit.
-static void MarkStale(muiTextBlock* block, uint32_t start, uint32_t end, uint32_t length,
-                      uint32_t from, uint32_t to)
+static void MarkStale(muiStale* stale, uint32_t start, uint32_t end, uint32_t length, uint32_t from,
+                      uint32_t to)
 {
-    if (block->stale)
+    if (stale->on)
     {
         int64_t delta = (int64_t)length - (int64_t)(end - start);
-        uint32_t a = block->staleStart;
-        uint32_t b = block->staleEnd;
+        uint32_t a = stale->start;
+        uint32_t b = stale->end;
         a = a <= start ? a : (a >= end ? (uint32_t)((int64_t)a + delta) : start);
         b = b <= start ? b : (b >= end ? (uint32_t)((int64_t)b + delta) : start + length);
         from = a < from ? a : from;
         to = b > to ? b : to;
     }
-    block->stale = true;
-    block->staleStart = from;
-    block->staleEnd = to;
+    *stale = (muiStale){true, from, to};
 }
 
 // Replaces bytes start up to end of a block with length bytes, finding
@@ -499,7 +497,13 @@ static bool ReplaceRange(muiTextService* service, muiTextBlock* block, uint32_t 
     if (keep)
     {
         block->shaped = true;
-        MarkStale(block, start, end, length, from, to);
+        MarkStale(&block->stale, start, end, length, from, to);
+        // Lines kept from the shaping follow it; those of an older one are
+        // broken whole.
+        for (int i = 0; i < MUI_LINE_CACHES; i++)
+        {
+            MarkStale(&block->lineCaches[i].stale, start, end, length, from, to);
+        }
     }
     return true;
 }

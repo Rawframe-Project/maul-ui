@@ -59,4 +59,13 @@ float muiTextWidth(const muiTextBlock* block, const muiLineScale* scale, uint32_
 uint32_t muiBreakLines(const muiTextBlock* block, const muiLineScale* scale, muiBreakMode mode,
                        float width, muiTextLine* lines, uint32_t capacity);
 
+// muiBreakLines for the whole paragraphs from from up to to alone; the
+// empty last line is theirs when to is the text's end.
+uint32_t muiBreakLinesWithin(const muiTextBlock* block, const muiLineScale* scale,
+                             muiBreakMode mode, float width, uint32_t from, uint32_t to,
+                             muiTextLine* lines, uint32_t capacity);
+
+// How many break opportunities a block has past from up to to.
+uint32_t muiCountBreaksWithin(const muiTextBlock* block, uint32_t from, uint32_t to);
+
 #endif // MAUL_UI_SRC_LINE_BREAK_H

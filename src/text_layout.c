@@ -8,6 +8,7 @@
 // block's spans give), an input method's composition underlined after.
 
 #include "text_boxes.h"
+#include "text_lines.h"
 #include "text_paragraph.h"
 #include "text_runs.h"
 
@@ -21,26 +22,15 @@ muiSize muiMeasureText(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasur
 {
     (void)height;
     muiParagraph paragraph;
-    uint32_t count = 0;
+    float widest = 0.0f;
+    float tall = 0.0f;
     if (!muiPrepareParagraph(user, nodeId, hostKey, &paragraph) ||
-        !muiBreakParagraph(&paragraph, muiParagraphBreakMode(&paragraph, width.mode), width.size,
-                           &count))
+        !muiMeasureLines(&paragraph, muiParagraphBreakMode(&paragraph, width.mode), width.size,
+                         &widest, &tall))
     {
         return (muiSize){0.0f, 0.0f};
     }
-    const muiTextLine* lines = paragraph.service->lines.data;
-    float widest = 0.0f;
-    for (uint32_t i = 0; i < count; i++)
-    {
-        muiLineGlyphs glyphs;
-        if (!muiGetLineGlyphs(&paragraph, &lines[i], &glyphs))
-        {
-            return (muiSize){0.0f, 0.0f};
-        }
-        widest = fmaxf(widest, glyphs.width);
-    }
-    return (muiSize){width.mode == mui_measureExact ? width.size : widest,
-                     muiParagraphHeight(lines, count)};
+    return (muiSize){width.mode == mui_measureExact ? width.size : widest, tall};
 }
 
 // What paints a stretch of text.
@@ -355,9 +345,8 @@ void muiPaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width, f
     muiLaidText laid;
     uint32_t count = 0;
     if (!muiPrepareParagraph(user, nodeId, hostKey, &laid.paragraph) ||
-        !muiBreakParagraph(&laid.paragraph,
-                           muiParagraphBreakMode(&laid.paragraph, mui_measureAtMost), width,
-                           &count))
+        !muiLayLines(&laid.paragraph, muiParagraphBreakMode(&laid.paragraph, mui_measureAtMost),
+                     width, &count))
     {
         return;
     }

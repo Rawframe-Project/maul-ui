@@ -128,6 +128,41 @@ typedef struct muiTextEditing
 // by paragraph, so an edit redoes only the paragraphs it reaches.
 uint32_t muiParagraphEnd(const char* text, uint32_t length, uint32_t from);
 
+// Paragraphs edits have changed since something was made of a text:
+// while on, from start up to end of the text now; what was made holds
+// before them, and after them moved by the change in length.
+typedef struct muiStale
+{
+    bool on;
+    uint32_t start;
+    uint32_t end;
+} muiStale;
+
+// A block's lines for a break mode (src/text_lines.h), kept between
+// layouts: count muiTextLine and, per line, its glyphs' width (float),
+// the widest of them, for the text of length bytes, the block's whole
+// shaping numbered shaping (0 none), a line scale of size and spacing,
+// and, wrapping, a width.
+typedef struct muiLineCache
+{
+    muiBuffer lines;
+    muiBuffer widths;
+    uint32_t count;
+    uint32_t length;
+    uint64_t shaping;
+    float size;
+    float spacing;
+    float width;
+    float widest;
+    muiStale stale;
+} muiLineCache;
+
+enum
+{
+    // Wrapping, only mandatory breaks, and every opportunity.
+    MUI_LINE_CACHES = 3
+};
+
 typedef struct muiTextBlock muiTextBlock;
 
 struct muiTextBlock
@@ -142,17 +177,16 @@ struct muiTextBlock
     muiBuffer scripts;
     uint32_t scriptCount;
     // The shaping, valid when shaped, for the font chain of identity
-    // shapedChain and shapedRtl, of a text shapedLength bytes long. While
-    // stale, edits since have changed whole paragraphs from staleStart up
-    // to staleEnd: the shaping holds before them, and after them moved by
-    // the change in length.
+    // shapedChain and shapedRtl, of a text shapedLength bytes long, with
+    // the paragraphs edits changed since; shapings counts the times the
+    // whole text was shaped, which the line caches follow.
     bool shaped;
     bool shapedRtl;
-    bool stale;
     uint64_t shapedChain;
     uint32_t shapedLength;
-    uint32_t staleStart;
-    uint32_t staleEnd;
+    muiStale stale;
+    uint64_t shapings;
+    muiLineCache lineCaches[MUI_LINE_CACHES];
     // A byte per byte: the place in the chain of the font it is drawn in.
     muiBuffer faces;
     // A bidi level per byte.

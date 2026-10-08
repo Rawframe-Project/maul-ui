@@ -36,6 +36,7 @@ target_sources(maul-ui PRIVATE
     src/text_hit.c
     src/text_move.c
     src/text_layout.c
+    src/text_lines.c
     src/text_paragraph.c
     src/text_service.c
     src/text_editing.c
