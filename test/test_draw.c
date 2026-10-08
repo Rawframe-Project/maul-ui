@@ -1419,9 +1419,11 @@ static void PaintTwoGlyphs(void* user, muiNodeId nodeId, uint64_t hostKey, float
                       mui_errorInvalid &&
                   muiDrawSink_AddRect(sink, (muiRect){0.0f, 0.0f, 1.0f, -1.0f}, s_red) ==
                       mui_errorInvalid &&
+                  muiDrawSink_AddRect(sink, (muiRect){3.0f, 4.0f, 0.0f, 0.0f}, s_red) ==
+                      mui_success &&
                   muiDrawSink_AddRect(sink, (muiRect){0.0f, 0.0f, 1.0f, 1.0f},
                                       (muiColor){0.0f, 0.0f, 0.0f, 1.5f}) == mui_errorInvalid,
-              "rectangles");
+              "rectangles: refused unless finite, of a size not below 0 and a unit color");
     }
     if (host->rect)
     {

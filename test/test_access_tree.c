@@ -939,6 +939,30 @@ static void TestNamesAndBounds(void)
     muiDestroyAccessTree(tree);
 }
 
+// A node turned an eighth the other way, from 100, 100: its first
+// corner alone is leftmost, so its box starts there.
+static void TestTurnedBounds(void)
+{
+    muiAccessTreeDef def = muiDefaultAccessTreeDef();
+    muiAccessTree* tree = NULL;
+    CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
+    const float turn = 0.70710678f;
+    muiAccessNode root = {.id = 1, .childCount = 1, .transform = {1, 0, 0, 1, 0, 0}};
+    muiAccessNode turned = {.id = 2,
+                            .role = mui_roleButton,
+                            .bounds = {0, 0, 40, 20},
+                            .transform = {turn, -turn, turn, turn, 100, 100}};
+    const muiAccessNode* all[2] = {&root, &turned};
+    const uint64_t children[1] = {2};
+    muiAccessUpdate update = Update(all, 2, children, 1, 0);
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "applied");
+    muiRect bounds = {0};
+    CHECK(muiAccessTree_GetBounds(tree, 2, &bounds) == mui_success && bounds.x == 100.0f &&
+              bounds.y < 100.0f && bounds.x + bounds.width > 140.0f,
+          "a turned box from its leftmost corner");
+    muiDestroyAccessTree(tree);
+}
+
 typedef struct Counter
 {
     size_t live;
@@ -1084,6 +1108,7 @@ int main(void)
     TestLeavingNotARing();
     TestShown();
     TestNamesAndBounds();
+    TestTurnedBounds();
     TestMemory();
     TestContract();
     TestFullTreeUpdated();

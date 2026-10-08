@@ -417,14 +417,16 @@ static void TestElsewhere(void)
 // character led by E2).
 static void TestParagraphSeparators(void)
 {
+    // The dagger, U+2020, shares the separators' first two bytes.
     Scene scene = MakeScene("a\xE2\x82\xAC"
+                            "\xE2\x80\xA0"
                             "b\xE2\x80\xA8"
                             "c",
                             mui_editMultiline);
     Layout(&scene);
     CHECK(muiTextEditPress(&scene.host, scene.node, 1.0f, 5.0f, 3, false) == mui_success &&
-              Selects(&scene, 0, 5),
-          "a triple click: a, the euro sign and b, up to the line separator");
+              Selects(&scene, 0, 8),
+          "a triple click: a, the euro sign, the dagger and b, up to the line separator");
     FreeScene(&scene);
 }
 

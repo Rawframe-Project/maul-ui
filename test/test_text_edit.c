@@ -519,6 +519,12 @@ static void TestDeletion(void)
               Deletes(&scene, "\xF0\x9F\x87\xB9\xF0\x9F\x87\xB7", 8, back, 0, 8) &&
               Deletes(&scene, "1\xEF\xB8\x8F\xE2\x83\xA3", 7, back, 0, 7),
           "emoji, flags and keycaps whole");
+    // A letter after an emoji: the letter alone, the emoji kept.
+    CHECK(Deletes(&scene,
+                  "\xF0\x9F\x98\x80"
+                  "a",
+                  5, back, 4, 5),
+          "the cluster before, not the one before it");
     // A variation selector with what it selects; CR with its LF.
     CHECK(Deletes(&scene, "a\xEF\xB8\x8E", 4, back, 0, 4) &&
               Deletes(&scene, "a\xEF\xB8\x80", 4, back, 0, 4) &&

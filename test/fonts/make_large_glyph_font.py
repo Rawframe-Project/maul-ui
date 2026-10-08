@@ -4,7 +4,9 @@
 # Writes MaulLargeGlyph.ttf, the font the glyph image tests render too
 # large in (record mui-0006): 16 units per em, the fewest a font may
 # have, and an A that is a box 16 ems a side, so at the largest size an
-# image would be far wider than FreeType's rasterizer allows. Needs
+# image would be far wider than FreeType's rasterizer allows; a B 16 ems
+# wide and 1 tall and a C 1 em wide and 16 tall, too large one way
+# alone. Needs
 # fontTools (pip install fonttools); its timestamps are fixed, so it
 # writes the same bytes each time.
 #
@@ -20,23 +22,24 @@ from fontTools.pens.ttGlyphPen import TTGlyphPen
 TIMESTAMP = 3850070400
 
 
-def box(side):
+def box(width, height=None):
+    height = width if height is None else height
     pen = TTGlyphPen(None)
-    if side:
+    if width:
         pen.moveTo((0, 0))
-        pen.lineTo((0, side))
-        pen.lineTo((side, side))
-        pen.lineTo((side, 0))
+        pen.lineTo((0, height))
+        pen.lineTo((width, height))
+        pen.lineTo((width, 0))
         pen.closePath()
     return pen.glyph()
 
 
 def main():
     builder = FontBuilder(16, isTTF=True)
-    builder.setupGlyphOrder([".notdef", "A"])
-    builder.setupCharacterMap({0x41: "A"})
-    builder.setupGlyf({".notdef": box(0), "A": box(256)})
-    builder.setupHorizontalMetrics({".notdef": (8, 0), "A": (256, 0)})
+    builder.setupGlyphOrder([".notdef", "A", "B", "C"])
+    builder.setupCharacterMap({0x41: "A", 0x42: "B", 0x43: "C"})
+    builder.setupGlyf({".notdef": box(0), "A": box(256), "B": box(256, 16), "C": box(16, 256)})
+    builder.setupHorizontalMetrics({".notdef": (8, 0), "A": (256, 0), "B": (256, 0), "C": (16, 0)})
     builder.setupHorizontalHeader(ascent=13, descent=-3)
     builder.setupNameTable({
         "familyName": "Maul Large Glyph",

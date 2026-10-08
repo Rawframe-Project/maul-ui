@@ -224,6 +224,22 @@ static void TestTooLarge(void)
                          &image, NULL, 0) == mui_errorFormat &&
               SameImage(image, 0, 0, 0, 0),
           "65,536 pixels a side refused");
+    // B is 16 ems wide and 1 tall, C 1 wide and 16 tall: too large one
+    // way alone is refused too.
+    for (uint32_t glyph = 2; glyph <= 3; glyph++)
+    {
+        image = (muiGlyphImage){0, 0, 0, 0};
+        CHECK(muiRenderGlyph(fonts.service, muiFont_GetKey(large), glyph, MUI_MAX_GLYPH_PIXEL_SIZE,
+                             0.0f, &image, NULL, 0) == mui_errorFormat &&
+                  SameImage(image, 0, 0, 0, 0),
+              "65,536 pixels one way refused");
+        image = (muiGlyphImage){0, 0, 0, 0};
+        CHECK(muiRenderGlyphField(fonts.service, muiFont_GetKey(large), glyph,
+                                  MUI_MAX_GLYPH_PIXEL_SIZE, 4, &image, NULL,
+                                  0) == mui_errorFormat &&
+                  SameImage(image, 0, 0, 0, 0),
+              "a field 65,536 pixels one way refused");
+    }
     muiDestroyTextService(fonts.service);
 }
 

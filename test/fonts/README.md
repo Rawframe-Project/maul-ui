@@ -31,8 +31,9 @@ published.
   bytes each time.
 
 - `MaulLargeGlyph.ttf`: written by `make_large_glyph_font.py`
-  (fontTools 4.60.1), MIT: 16 units per em and an A 16 ems a side,
-  too large to render at the largest size.
+  (fontTools 4.66.1), MIT: 16 units per em, an A 16 ems a side, too
+  large to render at the largest size, and a B 16 ems wide and 1 tall
+  and a C 1 wide and 16 tall, too large one way alone.
 
 - `MaulOverlap.ttf`: written by `make_overlap_font.py` (fontTools
   4.60.1), MIT: an A of two overlapping boxes marked with the TrueType
@@ -92,7 +93,7 @@ b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448  Ahem.ttf
 9c24e493eb1de06a1a22433224b3b605a2c06449b4eee02e8381850c4fd8e62c  MaulColor.ttf
 665a276933f1b6948326ed2db09ea0ec19a1f4efc2c180dbed6f93282ade316f  MaulCoverage.ttf
 433d1ea83dfbcbc4ec1379b7753dc0a778a2072f1d53cc19f2a6b98dc03f3ed3  MaulItalic.ttf
-1a0b8e0c87b9cf3fd2b847c47f677cdbd2af980a3e5d2fb3fbfeb8133bbbcc8f  MaulLargeGlyph.ttf
+7d96ba83890719760d8c41366b3f15ba3fbe3405d5e215d67366974ac9fc3146  MaulLargeGlyph.ttf
 a4e7b6f71982af76fa911502cac52db2e1290d4db5b64becc65d562f8afe1a63  MaulOverlap.ttf
 9b4986cd1f4ef4f6fe938f62d2476fae1cf5cb7734066b6f39ab6b49616c6385  MaulSbix.ttf
 4103c45d335e421ab154ad5ec2b9c962024ef1a9a023eed47c614abfd09b7446  MaulVariable.ttf

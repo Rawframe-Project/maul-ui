@@ -902,6 +902,24 @@ static void TestVirtualItems(void)
     CHECK(Sent(&update, items[0]) != NULL && Sent(&update, items[0])->values.setPosition == 0 &&
               node != NULL && update.children[node->firstChild + 2] == muiAccessIdOf(items[0]),
           "past the count");
+    // A list whose first two children are bound the wrong way round.
+    muiNodeId pair = Node(context, root);
+    Column(context, pair, true);
+    Size(context, pair, 200.0f, 100.0f);
+    virtualList.count = 10;
+    CHECK(muiNode_SetVirtualList(context, pair, &virtualList) == mui_success, "a second list");
+    muiNodeId second = Node(context, pair);
+    muiNodeId first = Node(context, pair);
+    CHECK(muiNode_SetItem(context, second, 1) == mui_success &&
+              muiNode_SetItem(context, first, 0) == mui_success,
+          "bound 1, then 0");
+    Layout(context, root);
+    update = Build(context, root);
+    node = Sent(&update, pair);
+    CHECK(node != NULL && node->childCount == 2 &&
+              update.children[node->firstChild] == muiAccessIdOf(first) &&
+              update.children[node->firstChild + 1] == muiAccessIdOf(second),
+          "the first two read by item");
     muiDestroyContext(context);
 }
 

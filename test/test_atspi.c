@@ -589,7 +589,9 @@ static muiAccessUpdate Build(Built* built)
     group->text[mui_accessDescription] = "Settings";
     group->textLength[mui_accessDescription] = 8;
     // Text is set through the set-value action too, but is no range.
-    Add(built, 7, mui_roleTextInput, "Go", 10, 10, 50, 20)->actions = 1u << mui_actionSetValue;
+    muiAccessNode* go = Add(built, 7, mui_roleTextInput, "Go", 10, 10, 50, 20);
+    go->actions = 1u << mui_actionSetValue;
+    go->flags = mui_accessRequired;
     muiAccessNode* progress = Add(built, 9, mui_roleProgressIndicator, "Load", 10, 30, 50, 10);
     progress->flags = mui_accessNumeric;
     progress->maximum = 1.0f;
@@ -731,9 +733,10 @@ static void TestNodes(void)
         s_test.dbus.unrefMessage(reply);
     }
     // Focusable 11, focused 12, enabled 8, showing 25, checked 4,
-    // checkable 41.
+    // checkable 41, required 33.
     CHECK(HasState(ok, 11) && HasState(ok, 12) && HasState(ok, 8) && HasState(ok, 25) &&
-              !HasState(agree, 12) && HasState(agree, 4) && HasState(agree, 41),
+              !HasState(ok, 33) && !HasState(agree, 12) && HasState(agree, 4) &&
+              HasState(agree, 41) && HasState("/org/a11y/atspi/accessible/w1n7", 33),
           "states");
     const char* xml = NULL;
     reply = Answer(Call(ok, "org.freedesktop.DBus.Introspectable", "Introspect"));
@@ -800,6 +803,8 @@ static bool PairIs(const char* path, const char* member, int coordinates, int32_
     int32_t got[2] = {-1, -1};
     muiDBusIter out;
     muiDBusIter tuple;
+    // Two ints, and nothing after them.
+    bool pair = false;
     if (reply != NULL && s_test.dbus.iterInit(reply, &out) &&
         s_test.dbus.argType(&out) == mui_dbusTypeStruct)
     {
@@ -809,12 +814,13 @@ static bool PairIs(const char* path, const char* member, int coordinates, int32_
             s_test.dbus.getBasic(&tuple, &got[i]);
             (void)s_test.dbus.next(&tuple);
         }
+        pair = s_test.dbus.argType(&tuple) == mui_dbusTypeInvalid;
     }
     if (reply != NULL)
     {
         s_test.dbus.unrefMessage(reply);
     }
-    return got[0] == a && got[1] == b;
+    return pair && got[0] == a && got[1] == b;
 }
 
 // How a node is drawn, by the Component interface: a widget's layer, no

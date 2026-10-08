@@ -657,9 +657,37 @@ static void TestContract(void)
     muiDestroyContext(context);
 }
 
+// Each player's hold on focus is let go on its own: after player 0's
+// node is destroyed and player 0 focuses and lets go of another, player
+// 1's node destroyed still loses player 1's focus.
+static void TestDestroyedPerPlayer(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId root = Place(context, s_nullNode, 0.0f, 0.0f, 300.0f, mui_focusNone, 0);
+    muiNodeId a = Place(context, root, 0.0f, 0.0f, 50.0f, mui_focusAll, 0);
+    muiNodeId b = Place(context, root, 60.0f, 0.0f, 50.0f, mui_focusAll, 0);
+    muiNodeId c = Place(context, root, 120.0f, 0.0f, 50.0f, mui_focusAll, 0);
+    Layout(context, root);
+    CHECK(muiFocus_Set(context, 0, a, mui_focusByCode) == mui_success &&
+              muiFocus_Set(context, 1, b, mui_focusByCode) == mui_success,
+          "player 0 on a, player 1 on b");
+    CHECK(muiDestroyNode(context, a) == mui_success && muiFocus_Get(context, 0).index1 == 0 &&
+              Same(muiFocus_Get(context, 1), b),
+          "a destroyed: player 0's focus gone, player 1's kept");
+    CHECK(muiFocus_Set(context, 0, c, mui_focusByCode) == mui_success &&
+              muiFocus_Set(context, 0, s_nullNode, mui_focusByCode) == mui_success,
+          "player 0 on c, then on nothing");
+    Drain(context);
+    CHECK(muiDestroyNode(context, b) == mui_success && muiFocus_Get(context, 1).index1 == 0 &&
+              Noted(context, mui_notificationFocusLost, b, 1),
+          "b destroyed: player 1's focus gone, and told");
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestSet();
+    TestDestroyedPerPlayer();
     TestStyled();
     TestOrder();
     TestLayers();
