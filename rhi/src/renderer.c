@@ -76,7 +76,8 @@ struct muiRhiRenderer
     float frame[4];
     // The transform record the frame's projection starts at; 0 for none.
     uint32_t view;
-    // The device's frameUploadBytes, as the def gave it.
+    // Its uploads' budget a frame: the def's share, or the device's
+    // frameUploadBytes.
     uint64_t uploadBytes;
 };
 
@@ -86,7 +87,6 @@ muiRhiRendererDef muiDefaultRhiRendererDef(void)
         .cookie = DEF_COOKIE,
         .targetFormat = mrhi_formatRgba8UnormSrgb,
         .instances = 1024,
-        .uploadBytes = 1u << 20,
         .depthCompare = mrhi_compareLessEqual,
     };
 }
@@ -94,8 +94,7 @@ muiRhiRendererDef muiDefaultRhiRendererDef(void)
 static bool IsValid(const muiRhiRendererDef* def)
 {
     return def->cookie == DEF_COOKIE && muiRhiIsAllocatorValid(&def->allocator) &&
-           def->device != nullptr && def->instances != 0 && def->instances <= (1u << 24) &&
-           def->uploadBytes != 0;
+           def->device != nullptr && def->instances != 0 && def->instances <= (1u << 24);
 }
 
 // A pipeline drawing into targets of a format, testing depth in a depth
@@ -161,7 +160,11 @@ muiResult muiCreateRhiRenderer(const muiRhiRendererDef* def, muiRhiRenderer** re
     {
         *rendererOut = nullptr;
     }
-    if (def == nullptr || rendererOut == nullptr || !IsValid(def))
+    // A share of the device's upload budget no larger than the whole.
+    mrhiDeviceLimits limits = {0};
+    if (def == nullptr || rendererOut == nullptr || !IsValid(def) ||
+        mrhiGetDeviceOwnLimits(def->device, &limits) != mrhi_success ||
+        def->uploadBytes > limits.frameUploadBytes)
     {
         return mui_errorInvalid;
     }
@@ -183,7 +186,7 @@ muiResult muiCreateRhiRenderer(const muiRhiRendererDef* def, muiRhiRenderer** re
             },
         .images = muiRhiMakeImages(&def->allocator, def->device, def->image, def->imageContext),
         .cull = {.allocator = def->allocator},
-        .uploadBytes = def->uploadBytes,
+        .uploadBytes = def->uploadBytes != 0 ? def->uploadBytes : limits.frameUploadBytes,
         .plan = {.allocator = def->allocator},
         .targetFormat = def->targetFormat,
     };

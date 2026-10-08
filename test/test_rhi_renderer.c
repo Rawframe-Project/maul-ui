@@ -39,6 +39,10 @@ typedef struct Gpu
 
 // A ready device on the test driver, its pipelines answered with an
 // outcome.
+// The upload budget a frame of the next device Open makes; 0 for Maul
+// RHI's default.
+static uint32_t s_uploadBudget = 0;
+
 static bool Open(Gpu* gpu, mrhiResult pipelines)
 {
     *gpu = (Gpu){0};
@@ -70,6 +74,10 @@ static bool Open(Gpu* gpu, mrhiResult pipelines)
     }
     mrhiDeviceDef deviceDef = mrhiDefaultDeviceDef();
     deviceDef.adapter = adapter;
+    if (s_uploadBudget != 0)
+    {
+        deviceDef.deviceLimits.frameUploadBytes = s_uploadBudget;
+    }
     return mrhiCreateDevice(gpu->instance, &deviceDef, &gpu->device, &request) == mrhi_success &&
            mrhiNextInstanceNotification(gpu->instance, &record) == mrhi_success &&
            record.kind == mrhi_instanceDeviceReady && record.outcome == mrhi_success;
@@ -416,11 +424,13 @@ static void TestNoText(void)
 static void TestChanges(void)
 {
     Gpu gpu;
+    // A device whose frames upload four 512-byte blocks: the tables'
+    // three and one of records. The renderer reads the budget from it.
+    s_uploadBudget = 4 * 512;
     CHECK(Open(&gpu, mrhi_success), "a device");
+    s_uploadBudget = 0;
     muiRhiRendererDef def = muiDefaultRhiRendererDef();
     def.device = gpu.device;
-    // Four 512-byte blocks: the tables' three and one of records.
-    def.uploadBytes = 4 * 512;
     muiRhiRenderer* renderer = NULL;
     CHECK(muiCreateRhiRenderer(&def, &renderer) == mui_success, "a renderer");
     muiDrawCommand commands[8];
@@ -456,6 +466,38 @@ static void TestChanges(void)
           "a frame past the upload budget refused, nothing added");
     CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes == Staged(3),
           "the next frame within it drawn");
+    muiDestroyRhiRenderer(renderer);
+    Close(&gpu);
+}
+
+// A host sharing the frame's uploads gives the renderer a share of the
+// device's budget, no more than the whole.
+static void TestUploadShare(void)
+{
+    Gpu gpu;
+    CHECK(Open(&gpu, mrhi_success), "a device of 1 MiB uploads a frame");
+    muiRhiRendererDef def = muiDefaultRhiRendererDef();
+    def.device = gpu.device;
+    def.uploadBytes = (1u << 20) + 1;
+    muiRhiRenderer* renderer = NULL;
+    CHECK(muiCreateRhiRenderer(&def, &renderer) == mui_errorInvalid && renderer == NULL,
+          "a share above the device's budget refused");
+    def.uploadBytes = 4 * 512;
+    CHECK(muiCreateRhiRenderer(&def, &renderer) == mui_success, "a share of four blocks");
+    muiDrawCommand commands[8];
+    for (uint32_t i = 0; i < 8; i++)
+    {
+        commands[i] = Box((float)i, 0);
+    }
+    muiDrawList longer = ListOf(commands, 8);
+    muiDrawList list = ListOf(commands, 3);
+    CHECK(DrawFrame(&gpu, renderer, &list) == mui_empty && muiRhiRenderer_IsReady(renderer),
+          "ready");
+    s_log = (mrhiTestFrameLog){0};
+    CHECK(DrawFrame(&gpu, renderer, &longer) == mui_errorCapacity && s_log.frames == 0,
+          "a frame past the share refused, though the device's budget holds it");
+    CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes == Staged(3),
+          "a frame within the share drawn");
     muiDestroyRhiRenderer(renderer);
     Close(&gpu);
 }
@@ -524,6 +566,7 @@ int main(void)
     TestDraws();
     TestImages();
     TestChanges();
+    TestUploadShare();
 #if MUI_TEST_TEXT
     TestGlyphs();
 #else

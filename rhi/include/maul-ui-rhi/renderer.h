@@ -64,11 +64,13 @@ extern "C"
         // The instances it holds room for at first; it grows as lists
         // need, at least 1.
         uint32_t instances;
-        // The device's frameUploadBytes (its mrhiDeviceLimits), 1 MiB by
-        // default as Maul RHI's: a frame whose uploads would not fit is
-        // refused. A frame uploads only the records that changed since
-        // the last, but a list's first frame uploads 144 bytes a drawn
-        // command and its glyphs' new images.
+        // The share of the device's frameUploadBytes (its
+        // mrhiDeviceLimits) a frame's uploads may take, for a host whose
+        // own uploads share the frame's budget; 0, the default, for all
+        // of it, read from the device. A frame whose uploads would not
+        // fit is refused. A frame uploads only the records that changed
+        // since the last, but a list's first frame uploads 144 bytes a
+        // drawn command and its glyphs' new images.
         uint64_t uploadBytes;
         // The host's images, and the context handed to the function; with
         // no function, images are not drawn.
@@ -131,7 +133,8 @@ extern "C"
     /// @param rendererOut  Receives the renderer; NULL on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
     ///         def not from muiDefaultRhiRendererDef, a half-set
-    ///         allocator, no device, instances or upload bytes, or a text service
+    ///         allocator, no device or instances, an upload share above
+    ///         the device's frameUploadBytes, or a text service
     ///         where Maul UI was built without text; `mui_errorCapacity`
     ///         when memory runs out; `mui_errorPlatform` when the device
     ///         refuses the shader, the pipeline, a buffer or a texture.
@@ -196,7 +199,7 @@ extern "C"
     ///         argument, a target of no size, or a depth texture without
     ///         a projection or a def's depth format; `mui_errorCapacity` when
     ///         memory runs out, or the frame's uploads would not fit the
-    ///         def's uploadBytes, nothing added; `mui_errorPlatform` when
+    ///         renderer's upload budget, nothing added; `mui_errorPlatform` when
     ///         the device refuses a pass, a buffer or a texture.
     /// @par Thread safety
     /// Safe from any thread; the renderer and its device are used by one
