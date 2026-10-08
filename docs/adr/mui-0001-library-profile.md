@@ -40,7 +40,9 @@ lists, layout fixtures) and rely on a static screen costing nothing.
   (record mui-0008). Running a
   frame (style, layout, emission) and handling input do not allocate:
   per-node results live with the node, and retained command lists are
-  bounded by a limit set at creation.
+  bounded by a limit set at creation. The text service grows its scratch
+  buffers to the largest text it has laid out, shaped and painted, and
+  then allocates nothing more for frames of it (`test_frame_memory`).
 - **Platform dependencies:** the C library only, with `sqrt` from
   libm, for the core. The text component, on by default, builds
   FreeType 2.14.3, HarfBuzz 14.5.1 and Maul Unicode 0.2.0 into the

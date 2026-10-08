@@ -450,6 +450,8 @@ if(MAUL_UI_BUILD_TESTS)
             ${PROJECT_BINARY_DIR}/test_fonts/coverage.inc s_coverage)
         maul_add_test(text_block)
         target_include_directories(test_text_block PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
+        maul_add_test(frame_memory)
+        target_include_directories(test_frame_memory PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         # Edits' analysis against the whole text's; the block's headers
         # reach FreeType's and HarfBuzz's.
         maul_add_test(text_analysis WHITEBOX)
