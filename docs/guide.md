@@ -757,3 +757,118 @@ gives it. Each frame, `muiRhiRenderer_AddPasses` adds its upload and
 draw passes into the program's frame, and `muiRhiRenderer_Record`
 records them once the frame is compiled. The samples (`samples/`) run
 it in a window with Maul Window.
+
+## 8. Input
+
+The program hands the context its platform's input; the context finds
+the nodes it concerns and routes it to one function of the program's,
+at each node from the root down to the target (tunnel), then back up
+(bubble). Whatever no node handles is the program's again: a game
+behind its interface takes the clicks and keys the interface leaves.
+
+```c
+// What the program keeps: the button it watches and its clicks.
+typedef struct App
+{
+    muiNodeId ok;
+    int clicks;
+} App;
+
+// The function routed events reach, at each node from the root down to
+// the target, then back up; true stops them. A click on the OK button
+// is the program's.
+static bool OnEvent(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* event)
+{
+    App* app = user;
+    if (phase == mui_phaseBubble && event->kind == mui_eventPointer &&
+        event->pointer->kind == mui_pointerRecordClick && nodeId.index1 == app->ok.index1 &&
+        nodeId.generation == app->ok.generation)
+    {
+        app->clicks++;
+        return true;
+    }
+    return false;
+}
+```
+
+`muiSetEventFunction(context, OnEvent, &app)` sets it. Pointer events
+go in after the frame's layout, which hit testing reads; each makes
+records, which the program takes and routes:
+
+```c
+// Takes a platform's pointer event after the frame's layout, then
+// routes the records it made: presses, releases, clicks, drags. Whether
+// the interface used it, a record handled or a node under the pointer
+// that does not let input through; the rest is the game's, behind it.
+static bool Pointer(muiContext* context, muiNodeId root, const muiPointerEvent* event)
+{
+    if (muiPointerInput(context, root, event) != mui_success)
+    {
+        return false;
+    }
+    bool handled = false;
+    muiPointerRecord record;
+    while (muiNextPointerRecord(context, &record) == mui_success)
+    {
+        bool taken = false;
+        (void)muiDispatchPointerRecord(context, &record, &taken);
+        handled = handled || taken;
+    }
+    muiHit hit;
+    return handled ||
+           (muiHitTest(context, root, event->x, event->y, &hit) == mui_success && !hit.passThrough);
+}
+```
+
+Moving over a node puts it and its ancestors in the hovered state, and
+a press in the pressed state while the button is held, as CSS's
+`:hover` and `:active`; a press and release on the same node make a
+click, two close in time a double click (`muiSetClickRule`). A node
+can capture a pointer (`muiPointer_SetCapture`) to keep its moves, and
+a press that moves past the drag threshold starts a drag, whose records
+offer data to the nodes it passes over. A node whose interaction style
+lets input pass through, a HUD over a game world, is hit and hovered
+but leaves the press to what lies behind.
+
+The focus is the node a player's keys and gamepad go to, one per
+player for local multiplayer. A press on a node that takes the focus
+focuses it; code moves it with `muiFocus_Set`, and keys do:
+
+```c
+// Lets a node take the focus from keys and pointers alike.
+static muiResult MakeFocusable(muiContext* context, muiNodeId node)
+{
+    muiInteractionStyle interaction = muiDefaultInteractionStyle();
+    interaction.focusMode = mui_focusAll;
+    return muiNode_SetInteractionValues(context, node, &interaction,
+                                        MUI_PROPERTY_BIT(mui_propertyFocusMode));
+}
+```
+
+```c
+// Hands a key to the focus under the root. Unhandled, Tab moves the
+// focus, arrows move it toward their side or scroll, and the rest is
+// the game's.
+static bool Key(muiContext* context, muiNodeId root, muiKeyCode code, muiModifiers modifiers,
+                bool down)
+{
+    const muiKeyEvent event = {
+        .key = MUI_KEY_NAMED | code, .code = code, .modifiers = modifiers, .down = down};
+    bool handled = false;
+    return muiKeyInput(context, root, &event, &handled) == mui_success && handled;
+}
+```
+
+Unhandled, Tab and Shift with Tab move the focus in tree order, or in
+the tab order the interaction style gives; arrows move it toward the
+nearest node on their side, as a gamepad's stick does
+(`muiNavigationInput`), or scroll the container holding it. The
+focused node is in the focused state, and in focus visible when keys
+moved the focus there, so that a style can ring it then and not after
+a click. Typed text goes to the focus with `muiTextInput`, and a text
+field there takes it (section 6).
+
+Maul Window's glue (`maul-ui-window`, `MAUL_UI_WINDOW`) does this
+translation for a program: its events into pointer, key, text and
+wheel input, input method compositions into the focused field, and the
+clipboard.

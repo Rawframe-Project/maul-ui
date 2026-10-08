@@ -11,8 +11,12 @@
 
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
+#include "maul-ui/event.h"
+#include "maul-ui/focus.h"
+#include "maul-ui/interaction.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
+#include "maul-ui/pointer.h"
 #include "maul-ui/style.h"
 #include "maul-ui/theme.h"
 #include "maul-ui/token.h"
@@ -222,6 +226,79 @@ static void PaintGauge(void* user, muiNodeId nodeId, uint64_t hostKey, float wid
     (void)muiDrawSink_AddRect(sink, (muiRect){0.0f, 0.0f, filled, height}, green);
 }
 
+// Section 8: routed events.
+
+// What the program keeps: the button it watches and its clicks.
+typedef struct App
+{
+    muiNodeId ok;
+    int clicks;
+} App;
+
+// The function routed events reach, at each node from the root down to
+// the target, then back up; true stops them. A click on the OK button
+// is the program's.
+static bool OnEvent(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* event)
+{
+    App* app = user;
+    if (phase == mui_phaseBubble && event->kind == mui_eventPointer &&
+        event->pointer->kind == mui_pointerRecordClick && nodeId.index1 == app->ok.index1 &&
+        nodeId.generation == app->ok.generation)
+    {
+        app->clicks++;
+        return true;
+    }
+    return false;
+}
+
+// Section 8: pointers.
+
+// Takes a platform's pointer event after the frame's layout, then
+// routes the records it made: presses, releases, clicks, drags. Whether
+// the interface used it, a record handled or a node under the pointer
+// that does not let input through; the rest is the game's, behind it.
+static bool Pointer(muiContext* context, muiNodeId root, const muiPointerEvent* event)
+{
+    if (muiPointerInput(context, root, event) != mui_success)
+    {
+        return false;
+    }
+    bool handled = false;
+    muiPointerRecord record;
+    while (muiNextPointerRecord(context, &record) == mui_success)
+    {
+        bool taken = false;
+        (void)muiDispatchPointerRecord(context, &record, &taken);
+        handled = handled || taken;
+    }
+    muiHit hit;
+    return handled ||
+           (muiHitTest(context, root, event->x, event->y, &hit) == mui_success && !hit.passThrough);
+}
+
+// Section 8: keys and focus.
+
+// Lets a node take the focus from keys and pointers alike.
+static muiResult MakeFocusable(muiContext* context, muiNodeId node)
+{
+    muiInteractionStyle interaction = muiDefaultInteractionStyle();
+    interaction.focusMode = mui_focusAll;
+    return muiNode_SetInteractionValues(context, node, &interaction,
+                                        MUI_PROPERTY_BIT(mui_propertyFocusMode));
+}
+
+// Hands a key to the focus under the root. Unhandled, Tab moves the
+// focus, arrows move it toward their side or scroll, and the rest is
+// the game's.
+static bool Key(muiContext* context, muiNodeId root, muiKeyCode code, muiModifiers modifiers,
+                bool down)
+{
+    const muiKeyEvent event = {
+        .key = MUI_KEY_NAMED | code, .code = code, .modifiers = modifiers, .down = down};
+    bool handled = false;
+    return muiKeyInput(context, root, &event, &handled) == mui_success && handled;
+}
+
 static void TestRefusals(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -386,6 +463,66 @@ static void TestDrawing(void)
     muiDestroyContext(context);
 }
 
+static muiNodeId Button(muiContext* context, muiNodeId parent)
+{
+    muiNodeId node = Child(context, parent);
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.sizing.width = (muiDimension){0.0f, 100.0f, mui_dimensionValue};
+    layout.sizing.height = (muiDimension){0.0f, 40.0f, mui_dimensionValue};
+    CHECK(muiNode_SetLayoutValues(context, node, &layout, MUI_LAYOUT_PROPERTIES) == mui_success &&
+              MakeFocusable(context, node) == mui_success,
+          "a button");
+    return node;
+}
+
+static muiPointerEvent Mouse(muiPointerAction action, float x, float y)
+{
+    muiPointerEvent event = {0};
+    event.kind = mui_pointerMouse;
+    event.action = action;
+    event.buttons = action == mui_pointerPress ? 1u : 0u;
+    event.x = x;
+    event.y = y;
+    return event;
+}
+
+static void TestInput(void)
+{
+    muiContextDef def = muiDefaultContextDef();
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "a context");
+    muiNodeDef nodeDef = muiDefaultNodeDef();
+    muiNodeId root = {0, 0};
+    muiLayoutStyle full = muiDefaultLayoutStyle();
+    full.sizing.width = (muiDimension){1.0f, 0.0f, mui_dimensionValue};
+    full.sizing.height = (muiDimension){1.0f, 0.0f, mui_dimensionValue};
+    CHECK(muiCreateNode(context, &nodeDef, &root) == mui_success &&
+              muiNode_SetLayoutValues(context, root, &full, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "a root");
+    App app = {Button(context, root), 0};
+    muiNodeId cancel = Button(context, root);
+    CHECK(muiSetEventFunction(context, OnEvent, &app) == mui_success, "routed");
+    const muiLayoutInput layout = {800.0f, 600.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
+    CHECK(muiComputeLayout(context, root, &layout) == mui_success, "laid out");
+    muiPointerEvent move = Mouse(mui_pointerMove, 50.0f, 20.0f);
+    muiPointerEvent press = Mouse(mui_pointerPress, 50.0f, 20.0f);
+    muiPointerEvent release = Mouse(mui_pointerRelease, 50.0f, 20.0f);
+    CHECK(Pointer(context, root, &move) &&
+              (muiNode_GetStates(context, app.ok) & mui_stateHovered) != 0,
+          "hovered");
+    CHECK(Pointer(context, root, &press) && Pointer(context, root, &release) && app.clicks == 1,
+          "clicked");
+    CHECK(muiFocus_Get(context, 0).index1 == app.ok.index1, "a press focuses");
+    CHECK(Key(context, root, mui_codeTab, 0, true) &&
+              muiFocus_Get(context, 0).index1 == cancel.index1 &&
+              Key(context, root, mui_codeTab, mui_modShift, true) &&
+              muiFocus_Get(context, 0).index1 == app.ok.index1,
+          "Tab forward, Shift and Tab back");
+    muiPointerEvent away = Mouse(mui_pointerMove, 700.0f, 500.0f);
+    CHECK(Pointer(context, root, &away), "the root, opaque, uses a pointer over it");
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestRefusals();
@@ -393,5 +530,6 @@ int main(void)
     TestTree();
     TestStyles();
     TestDrawing();
+    TestInput();
     return s_failures == 0 ? 0 : 1;
 }
