@@ -347,7 +347,7 @@ static void TestPainting(void)
 
 // Lines of "a" at size 10, each 10 tall, in a scroll container 50 tall,
 // scrolled down by scroll; the list painted.
-static muiDrawList PaintScrolled(Scene* scene, uint32_t lines, float scroll)
+static muiDrawList PaintScrolled(Scene* scene, uint32_t lines, float scroll, float scale)
 {
     static char text[2 * 128];
     uint32_t length = 0;
@@ -375,6 +375,11 @@ static muiDrawList PaintScrolled(Scene* scene, uint32_t lines, float scroll)
     CHECK(muiNode_SetLayoutValues(scene->context, node, &item,
                                   MUI_PROPERTY_BIT(mui_propertyAlignSelf)) == mui_success,
           "its full height");
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.scale = (muiLocalScale){scale, 1.0f, 0.0f, 0.0f};
+    CHECK(muiNode_SetVisualValues(scene->context, node, &visual,
+                                  MUI_PROPERTY_BIT(mui_propertyScaleX)) == mui_success,
+          "scaled");
     Layout(scene, root, 1000.0f);
     CHECK(muiNode_SetScroll(scene->context, root, 0.0f, scroll) == mui_success, "scrolled");
     return Paint(scene, root);
@@ -397,20 +402,24 @@ static bool PaintsLines(const muiDrawList* list, uint32_t first, uint32_t end)
 static void TestPaintingWhatIsSeen(void)
 {
     Scene scene = MakeScene(NULL);
-    muiDrawList list = PaintScrolled(&scene, 100, 0.0f);
+    muiDrawList list = PaintScrolled(&scene, 100, 0.0f, 1.0f);
     CHECK(PaintsLines(&list, 0, 7), "lines 0 to 5 meet the port, and line 6");
     FreeScene(&scene);
     scene = MakeScene(NULL);
-    list = PaintScrolled(&scene, 100, 200.0f);
+    list = PaintScrolled(&scene, 100, 200.0f, 1.0f);
     CHECK(PaintsLines(&list, 18, 27), "lines 19 to 25 meet it scrolled 200, and one each way");
     FreeScene(&scene);
     scene = MakeScene(NULL);
-    list = PaintScrolled(&scene, 100, 950.0f);
+    list = PaintScrolled(&scene, 100, 950.0f, 1.0f);
     CHECK(PaintsLines(&list, 93, 100), "at the end, lines 94 to 99 and one before");
     FreeScene(&scene);
     scene = MakeScene(NULL);
-    list = PaintScrolled(&scene, 64, 200.0f);
+    list = PaintScrolled(&scene, 64, 200.0f, 1.0f);
     CHECK(PaintsLines(&list, 0, 64), "64 lines are painted whole");
+    FreeScene(&scene);
+    scene = MakeScene(NULL);
+    list = PaintScrolled(&scene, 100, 0.0f, 0.0f);
+    CHECK(list.commandCount == 0, "none when nothing can be seen");
     FreeScene(&scene);
 }
 

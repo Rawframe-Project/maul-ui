@@ -1573,9 +1573,9 @@ static void BuildSeeing(muiContext* context, muiNodeId root, SeeingHost* host)
 static void TestVisibleRect(void)
 {
     muiContext* context = MakeContext();
-    // A scroll container of 100 by 50 at 80 down a surface 100 tall, a
-    // host node of 80 by 300 in it.
-    muiNodeId root = Add(context, s_nullNode, 200.0f, 100.0f, (muiEdges){0.0f, 0.0f, 80.0f, 0.0f});
+    // A scroll container of 100 by 50 at 20 across and 80 down a surface
+    // 100 tall, a host node of 80 by 300 in it.
+    muiNodeId root = Add(context, s_nullNode, 200.0f, 100.0f, (muiEdges){20.0f, 0.0f, 80.0f, 0.0f});
     muiNodeId scroller = Add(context, root, 100.0f, 50.0f, (muiEdges){0});
     muiNodeId text = Add(context, scroller, 80.0f, 300.0f, (muiEdges){0});
     muiNodeId sibling = Add(context, root, 10.0f, 10.0f, (muiEdges){0});
@@ -1619,6 +1619,12 @@ static void TestVisibleRect(void)
     SetScale(context, scroller, (muiLocalScale){0.0f, 1.0f, 0.0f, 0.0f});
     BuildSeeing(context, root, &host);
     CHECK(Saw(&host, 0.0f, 0.0f, 0.0f, 0.0f), "scaled to nothing");
+    // So is the node itself, inside a clip that is not.
+    SetScale(context, scroller, (muiLocalScale){1.0f, 1.0f, 0.0f, 0.0f});
+    SetScale(context, text, (muiLocalScale){0.0f, 1.0f, 0.0f, 0.0f});
+    BuildSeeing(context, root, &host);
+    CHECK(Saw(&host, 0.0f, 0.0f, 0.0f, 0.0f), "the node scaled to nothing");
+    SetScale(context, text, (muiLocalScale){1.0f, 1.0f, 0.0f, 0.0f});
     // Below the surface, nothing is seen either.
     SetScale(context, scroller, (muiLocalScale){1.0f, 1.0f, 0.0f, 0.0f});
     muiLayoutStyle down = muiDefaultLayoutStyle();
