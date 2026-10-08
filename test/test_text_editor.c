@@ -428,6 +428,59 @@ static void TestParagraphSeparators(void)
     FreeScene(&scene);
 }
 
+// Stray UTF-8 continuation bytes are characters of their own, as the
+// U+FFFD each is laid out as; a byte inside a sequence is not. Text that
+// starts with one keeps a selection within it (found by fuzz_text: the
+// selection, pulled back from inside such a byte, wrapped past 0 and
+// took minutes).
+static void TestStrayBytes(void)
+{
+    Scene scene = MakeScene("ab", mui_editMultiline);
+    Select(&scene, 1, 1);
+    CHECK(muiTextBlock_SetText(scene.service, scene.block, "\x80\xBF", 2) == mui_success &&
+              Selects(&scene, 1, 1),
+          "the selection kept at the second stray byte");
+    CHECK(muiTextBlock_Select(scene.service, scene.block,
+                              (muiTextSelection){0, {2, mui_affinityDownstream}}) == mui_success,
+          "each stray byte a character");
+    CHECK(muiTextBlock_SetText(scene.service, scene.block, "\xC3\xA9\xE2\x82\x82\x82", 6) ==
+                  mui_success &&
+              muiTextBlock_Select(scene.service, scene.block,
+                                  (muiTextSelection){1, {1, mui_affinityDownstream}}) ==
+                  mui_errorInvalid &&
+              muiTextBlock_Select(scene.service, scene.block,
+                                  (muiTextSelection){2, {5, mui_affinityDownstream}}) ==
+                  mui_success &&
+              muiTextBlock_Select(scene.service, scene.block,
+                                  (muiTextSelection){4, {4, mui_affinityDownstream}}) ==
+                  mui_errorInvalid,
+          "inside a sequence is not a start; past one, a stray byte is");
+    FreeScene(&scene);
+}
+
+// An edit ends a press: a drag after the text changed extends from the
+// selection, never from the press's paragraph in the old text (found by
+// fuzz_text: an anchor past the text's end).
+static void TestDragAfterAnEdit(void)
+{
+    Scene scene = MakeScene("ab cd\nef gh", mui_editMultiline);
+    Layout(&scene);
+    CHECK(muiTextEditPress(&scene.host, scene.node, 15.0f, 15.0f, 3, false) == mui_success &&
+              Selects(&scene, 6, 11),
+          "a triple click, the second paragraph");
+    Select(&scene, 0, 11);
+    bool changed = false;
+    CHECK(muiTextBlock_Erase(scene.service, scene.block, mui_deleteBackward, &changed) ==
+                  mui_success &&
+              changed,
+          "all of it erased");
+    Layout(&scene);
+    CHECK(muiTextEditDrag(&scene.host, scene.node, 5.0f, 5.0f) == mui_success &&
+              Selects(&scene, 0, 0),
+          "a drag in the empty text");
+    FreeScene(&scene);
+}
+
 // Presses place the caret, select words and paragraphs, and drags extend
 // by the same unit; moves collapse a selection to the edge they go to.
 static void TestPointer(void)
@@ -1121,6 +1174,8 @@ int main(void)
     TestElsewhere();
     TestPointer();
     TestParagraphSeparators();
+    TestDragAfterAnEdit();
+    TestStrayBytes();
     TestPcKeys();
     TestMacKeys();
     TestPcLines();

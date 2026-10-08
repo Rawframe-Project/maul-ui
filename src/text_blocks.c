@@ -16,6 +16,7 @@
 
 #include "maul-ui/text_block.h"
 #include "maul-ui/text_edit.h"
+#include "maul-unicode/encoding.h"
 #include "maul-unicode/script.h"
 #include "maul-unicode/segment.h"
 
@@ -635,11 +636,29 @@ muiResult muiTextBlock_SetComposition(muiTextService* service, muiTextBlockId bl
     return mui_success;
 }
 
-// Whether a byte begins a character: not a UTF-8 continuation byte.
-static bool IsCharacterEdge(const muiTextBlock* block, uint32_t at)
+bool muiIsCharacterStart(const muiTextBlock* block, uint32_t at)
 {
     const unsigned char* text = block->text.data;
-    return at == block->length || (text[at] & 0xC0u) != 0x80u;
+    if (at >= block->length || (text[at] & 0xC0u) != 0x80u)
+    {
+        return at <= block->length;
+    }
+    // A continuation byte: inside the sequence of the lead before it, if
+    // that lead's sequence reaches it, as no sequence is over four bytes.
+    uint32_t lead = at;
+    while (lead > 0 && at - lead < 3 && (text[lead - 1] & 0xC0u) == 0x80u)
+    {
+        lead--;
+    }
+    if (lead == 0 || (text[lead - 1] & 0xC0u) == 0x80u)
+    {
+        return true;
+    }
+    lead--;
+    uint32_t point = 0;
+    size_t size = 1;
+    (void)muniDecodeUtf8((const char*)text + lead, block->length - lead, &point, &size);
+    return lead + size <= at;
 }
 
 // The text properties a span may set: what painting reads, the font,
@@ -661,8 +680,9 @@ static bool AreSpansValid(const muiTextBlock* block, const muiTextSpan* spans, u
     {
         const muiTextSpan* span = &spans[i];
         if (span->length == 0 || span->start > block->length ||
-            span->length > block->length - span->start || !IsCharacterEdge(block, span->start) ||
-            !IsCharacterEdge(block, span->start + span->length) ||
+            span->length > block->length - span->start ||
+            !muiIsCharacterStart(block, span->start) ||
+            !muiIsCharacterStart(block, span->start + span->length) ||
             (span->mask & ~(muiPropertyMask)SPAN_PROPERTIES) != 0 ||
             !muiArePropertiesValid((muiConstValuesRef){nullptr, nullptr, &span->style, nullptr},
                                    muiPropertiesOf(mui_groupText, span->mask)))

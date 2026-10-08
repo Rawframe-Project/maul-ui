@@ -29,6 +29,12 @@ bool muiSetBlockText(muiTextService* service, muiTextBlock* block, const char* t
 // with length bytes is within the text and keeps it within its limit.
 bool muiFitsBlockText(const muiTextBlock* block, uint32_t start, uint32_t end, size_t length);
 
+// Whether an offset begins a character of a block's text, or is its end,
+// as decoding reads it: a byte past what a sequence's lead takes begins
+// one of its own, as the U+FFFD it is laid out as. The text's start
+// always does.
+bool muiIsCharacterStart(const muiTextBlock* block, uint32_t at);
+
 // Replaces the bytes of a block's text from start up to end with a text
 // of length bytes, valid UTF-8 of the block's limit, moving its spans and
 // composition: `mui_success`, `mui_errorInvalid` for a range out of the

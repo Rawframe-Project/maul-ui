@@ -72,6 +72,9 @@ typedef struct Test
     // paths cut to what follows /accessible/.
     char events[2048];
     size_t eventsLength;
+    // Whether the registry answers Embed with the desktop's path as a
+    // string rather than an object path.
+    bool pathAsString;
 } Test;
 
 static Test s_test;
@@ -152,7 +155,9 @@ static muiDBusHandled Registry(DBusConnection* connection, DBusMessage* message,
     dbus->iterInitAppend(reply, &out);
     (void)(dbus->openContainer(&out, mui_dbusTypeStruct, NULL, &desktop) &&
            dbus->appendBasic(&desktop, mui_dbusTypeString, (const void*)&name) &&
-           dbus->appendBasic(&desktop, mui_dbusTypeObjectPath, (const void*)&path) &&
+           dbus->appendBasic(&desktop,
+                             s_test.pathAsString ? mui_dbusTypeString : mui_dbusTypeObjectPath,
+                             (const void*)&path) &&
            dbus->closeContainer(&out, &desktop));
     (void)dbus->send(connection, reply, NULL);
     dbus->unrefMessage(reply);
@@ -837,6 +842,11 @@ static void TestComponentReads(void)
           "a size, and a position in the window and in the parent");
     CHECK(HoldsIn(input, 30, 30, 2) && !HoldsIn(input, 130, 30, 2),
           "points in the parent's coordinates");
+    // A client's point at the edge of int32's range is held by no node,
+    // its sum with the parent's origin never overflowing (found by
+    // fuzz_atspi).
+    CHECK(!HoldsIn(input, INT32_MAX - 1, 30, 2) && !HoldsIn(input, 30, INT32_MAX, 2),
+          "points past the range, in the parent's coordinates");
     muiDBusBool done = 0;
     reply = Answer(Call(input, "org.a11y.atspi.Component", "ScrollTo"));
     CHECK(FirstOf(reply, mui_dbusTypeBoolean, &done) && done &&
@@ -860,6 +870,8 @@ static void TestComponent(muiAtspiAdapter* adapter)
     CHECK(ExtentsAre(ok, 0, 120, 70, 200, 80) && ExtentsAre(ok, 1, 20, 20, 200, 80) &&
               ExtentsAre(label, 2, 20, 120, 200, 40),
           "extents on the screen, in the window, in the parent");
+    CHECK(!Holds(ok, INT32_MIN + 1, 70) && !Holds(ok, 130, INT32_MIN),
+          "points past the range on the screen, less the window's place");
     DBusMessage* call =
         Call("/org/a11y/atspi/accessible/w1n1", "org.a11y.atspi.Component", "GetAccessibleAtPoint");
     muiDBusIter iter;
@@ -1494,6 +1506,33 @@ static void TestLimits(const char* address)
     muiDestroyAtspiAdapter(first);
     // Its Embed not answered yet: destroying cancels the call.
     muiDestroyAtspiApp(app);
+    // A desktop path sent as a string is not taken: only what libdbus
+    // checked as an object path is ever sent as one (found by
+    // fuzz_atspi, libdbus aborting on a path it does not allow).
+    def = muiDefaultAtspiAppDef();
+    def.name = "Odd";
+    muiAtspiApp* odd = NULL;
+    muiAtspiApp* plain = NULL;
+    s_test.pathAsString = true;
+    CHECK(muiCreateAtspiApp(&def, &odd) == mui_success, "an application");
+    for (int i = 0; i < 200; i++)
+    {
+        muiAtspiApp_Pump(odd);
+        PumpBoth();
+        Wait();
+    }
+    s_test.pathAsString = false;
+    CHECK(!muiAtspiApp_IsRegistered(odd), "a path as a string: not embedded");
+    CHECK(muiCreateAtspiApp(&def, &plain) == mui_success, "another");
+    for (int i = 0; i < 200; i++)
+    {
+        muiAtspiApp_Pump(plain);
+        PumpBoth();
+        Wait();
+    }
+    CHECK(muiAtspiApp_IsRegistered(plain), "an object path: embedded, as long a wait");
+    muiDestroyAtspiApp(plain);
+    muiDestroyAtspiApp(odd);
 }
 
 // The session bus's org.a11y.Bus, served by a child process while an

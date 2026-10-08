@@ -144,8 +144,10 @@ format.
 
 - Fuzz targets (`MAUL_UI_FUZZ`, with Clang): libFuzzer over zlib
   streams, PNG images and fonts, the font target laying out, painting
-  and rendering every glyph of any bytes that open; CI runs each for a
-  minute on every push, from the seeds `tools/fuzz_seed.py` writes.
+  and rendering every glyph of any bytes that open; over text, laid out
+  and edited by every kind of edit; and over AT-SPI method calls as
+  libdbus reads them off the bus; CI runs each for a minute on every
+  push, from the seeds `tools/fuzz_seed.py` writes.
 
 - Atlases of colour glyphs: `mui_atlasColor` pages hold colour glyphs,
   which `muiGlyphAtlas_GetColor` renders and packs for a palette and a
@@ -677,6 +679,20 @@ format.
   fonts are refused with the new `mui_errorFormat`.
 
 ### Fixed
+
+- Text that holds stray UTF-8 continuation bytes treats each as a
+  character, the U+FFFD it is drawn as; text starting with one no
+  longer takes minutes to keep an editing block's selection within it.
+  A drag after the text changed extends from the selection, not from a
+  press's word or paragraph in the old text, which put the selection
+  past the text's end. Found by the text fuzz target.
+
+- An AT-SPI client's point at the edge of the 32-bit range, in parent
+  or screen coordinates, is held by no node; before, its sum with an
+  origin overflowed. A node's extents are kept within the range too.
+  The registry's answer to Embed is taken only with the desktop's path
+  as an object path, never a string, which libdbus would have aborted
+  on when the path was later sent. Found by the AT-SPI fuzz target.
 
 - Text in a damaged font whose cmap or substitutions name a glyph past
   the count its maxp gives is drawn with the font's missing glyph;

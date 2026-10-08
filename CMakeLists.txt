@@ -555,7 +555,7 @@ if(MAUL_UI_FUZZ AND MAUL_UI_TEXT)
     # the sanitizers watch its code, not only the targets'.
     target_compile_options(maul-ui PRIVATE -fsanitize=fuzzer-no-link,address,undefined)
     target_link_options(maul-ui PUBLIC -fsanitize=address,undefined)
-    foreach(area inflate png font)
+    foreach(area inflate png font text)
         add_executable(fuzz_${area} test/fuzz_${area}.c)
         target_link_libraries(fuzz_${area} PRIVATE maul-ui)
         # The targets reach the library's own functions.
@@ -564,6 +564,20 @@ if(MAUL_UI_FUZZ AND MAUL_UI_TEXT)
         target_compile_options(fuzz_${area} PRIVATE -fsanitize=fuzzer,address,undefined)
         target_link_options(fuzz_${area} PRIVATE -fsanitize=fuzzer,address,undefined)
     endforeach()
+    # Text is laid out in a real font, kerned and with a line gap.
+    mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/LiberationSans-Regular.ttf
+        ${PROJECT_BINARY_DIR}/test_fonts/liberation_sans.inc s_liberationSans)
+    target_include_directories(fuzz_text PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
+    # AT-SPI calls, answered with libdbus's message functions, which the
+    # library loads at run time.
+    if(MAUL_UI_ATSPI)
+        add_executable(fuzz_atspi test/fuzz_atspi.c)
+        target_link_libraries(fuzz_atspi PRIVATE maul-ui ${CMAKE_DL_LIBS})
+        target_include_directories(fuzz_atspi PRIVATE ${PROJECT_SOURCE_DIR}/src)
+        maul_apply_flags(fuzz_atspi)
+        target_compile_options(fuzz_atspi PRIVATE -fsanitize=fuzzer,address,undefined)
+        target_link_options(fuzz_atspi PRIVATE -fsanitize=fuzzer,address,undefined)
+    endif()
 endif()
 
 if(MAUL_UI_TEXT)

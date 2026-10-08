@@ -27,17 +27,11 @@ muiTextEditDef muiDefaultTextEditDef(void)
     return (muiTextEditDef){0, mui_filterNone, mui_purposeText, 0, DEFAULT_UNDO_LIMIT};
 }
 
-static bool IsCharacterStart(const muiTextBlock* block, uint32_t at)
-{
-    return at <= block->length &&
-           (at == block->length || (((const unsigned char*)block->text.data)[at] & 0xC0u) != 0x80u);
-}
-
 // An offset kept within a block's text, at a character's start.
 static uint32_t Within(const muiTextBlock* block, uint32_t at)
 {
     at = at < block->length ? at : block->length;
-    while (!IsCharacterStart(block, at))
+    while (!muiIsCharacterStart(block, at))
     {
         at--;
     }
@@ -47,6 +41,13 @@ static uint32_t Within(const muiTextBlock* block, uint32_t at)
 static muiTextSelection Collapsed(uint32_t at)
 {
     return (muiTextSelection){at, {at, mui_affinityDownstream}};
+}
+
+void muiEndPress(muiTextEditing* editing)
+{
+    editing->grain = MUI_GRAIN_CLUSTER;
+    editing->pressStart = editing->selection.anchor;
+    editing->pressEnd = editing->selection.anchor;
 }
 
 void muiPlaceSelection(muiTextBlock* block, muiTextSelection selection)
@@ -78,7 +79,7 @@ muiResult muiEditingBlock(const muiTextService* service, muiTextBlockId blockId,
         editing->selection.anchor = Within(block, editing->selection.anchor);
         editing->selection.caret.offset = Within(block, editing->selection.caret.offset);
         editing->preferredX = -1.0f;
-        editing->grain = MUI_GRAIN_CLUSTER;
+        muiEndPress(editing);
         editing->revision = block->revision;
     }
     *blockOut = block;
@@ -123,7 +124,7 @@ muiResult muiTextBlock_SetEditing(muiTextService* service, muiTextBlockId blockI
     editing->def = *def;
     editing->selection = Collapsed(block->length);
     editing->preferredX = -1.0f;
-    editing->grain = MUI_GRAIN_CLUSTER;
+    muiEndPress(editing);
     editing->revision = block->revision;
     return mui_success;
 }
@@ -150,15 +151,15 @@ muiResult muiTextBlock_Select(muiTextService* service, muiTextBlockId blockId,
     {
         return result;
     }
-    if (!IsCharacterStart(block, selection.anchor) ||
-        !IsCharacterStart(block, selection.caret.offset) ||
+    if (!muiIsCharacterStart(block, selection.anchor) ||
+        !muiIsCharacterStart(block, selection.caret.offset) ||
         selection.caret.affinity > mui_affinityUpstream)
     {
         return muiRefuseText(service);
     }
     muiPlaceSelection(block, selection);
     block->editing.preferredX = -1.0f;
-    block->editing.grain = MUI_GRAIN_CLUSTER;
+    muiEndPress(&block->editing);
     return mui_success;
 }
 
@@ -205,7 +206,7 @@ static muiResult Edit(muiTextService* service, muiTextBlock* block, uint32_t sta
     }
     editing->selection = edit.after;
     editing->preferredX = -1.0f;
-    editing->grain = MUI_GRAIN_CLUSTER;
+    muiEndPress(editing);
     editing->revision = block->revision;
     if (changedOut != nullptr)
     {
@@ -229,6 +230,7 @@ static muiResult EndComposing(muiTextService* service, muiTextBlockId blockId, m
     if (result == mui_success)
     {
         muiPlaceSelection(block, Collapsed(start));
+        muiEndPress(&block->editing);
         block->editing.revision = block->revision;
     }
     return result;
@@ -342,7 +344,7 @@ muiResult muiTextBlock_EraseTo(muiTextService* service, muiTextBlockId blockId, 
         return result;
     }
     offset = offset < block->length ? offset : block->length;
-    if (!IsCharacterStart(block, offset))
+    if (!muiIsCharacterStart(block, offset))
     {
         return muiRefuseText(service);
     }
@@ -413,7 +415,7 @@ static muiResult Step(muiTextService* service, muiTextBlockId blockId, bool back
     }
     muiPlaceSelection(block, back ? edit->before : edit->after);
     editing->preferredX = -1.0f;
-    editing->grain = MUI_GRAIN_CLUSTER;
+    muiEndPress(editing);
     editing->revision = block->revision;
     if (changedOut != nullptr)
     {
@@ -514,6 +516,7 @@ muiResult muiTextBlock_Compose(muiTextService* service, muiTextBlockId blockId, 
         return result;
     }
     muiPlaceSelection(block, Collapsed(block->compositionStart + caret));
+    muiEndPress(&block->editing);
     block->editing.revision = block->revision;
     if (changedOut != nullptr)
     {

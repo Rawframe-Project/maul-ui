@@ -40,6 +40,11 @@ muiResult muiEditBlock(muiTextService* service, muiTextBlockId blockId, muiTextB
 // unless the service is NULL.
 muiResult muiRefuseEdit(muiTextService* service);
 
+// Ends a press's gesture: what a drag extends from is the selection's
+// anchor, a cluster at a time. Called wherever the selection is placed
+// or the text changes by anything but the press and its drags.
+void muiEndPress(muiTextEditing* editing);
+
 // Places a block's selection, which ends a run of typing or deleting
 // undone together.
 void muiPlaceSelection(muiTextBlock* block, muiTextSelection selection);

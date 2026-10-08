@@ -108,7 +108,7 @@ muiResult muiTextEditMove(const muiTextHost* host, muiNodeId nodeId, muiTextMove
     }
     muiPlaceSelection(block,
                       extend ? (muiTextSelection){selection.anchor, moved} : Collapsed(moved));
-    editing->grain = MUI_GRAIN_CLUSTER;
+    muiEndPress(editing);
     if (!vertical)
     {
         editing->preferredX = -1.0f;

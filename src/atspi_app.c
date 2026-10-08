@@ -37,9 +37,11 @@ muiAtspiAdapterDef muiDefaultAtspiAdapterDef(void)
 }
 
 // Copies a string a message holds; false for none, or one too long.
-static bool ReadString(const muiDBusApi* dbus, muiDBusIter* iter, char* out, size_t size)
+// Reads a string of a type, a string or an object path: what libdbus
+// checked as that type is all that may later be sent as it.
+static bool ReadString(const muiDBusApi* dbus, muiDBusIter* iter, int type, char* out, size_t size)
 {
-    if (dbus->argType(iter) != mui_dbusTypeString && dbus->argType(iter) != mui_dbusTypeObjectPath)
+    if (dbus->argType(iter) != type)
     {
         return false;
     }
@@ -76,8 +78,8 @@ static bool AddressOf(const muiDBusApi* dbus, char* out, size_t size)
         call != nullptr ? dbus->sendWithReplyAndBlock(session, call, ADDRESS_TIMEOUT_MS, nullptr)
                         : nullptr;
     muiDBusIter iter;
-    bool found =
-        reply != nullptr && dbus->iterInit(reply, &iter) && ReadString(dbus, &iter, out, size);
+    bool found = reply != nullptr && dbus->iterInit(reply, &iter) &&
+                 ReadString(dbus, &iter, mui_dbusTypeString, out, size);
     if (reply != nullptr)
     {
         dbus->unrefMessage(reply);
@@ -138,9 +140,10 @@ static void TakeEmbedding(muiAtspiApp* app)
         dbus->iterInit(reply, &iter) && dbus->argType(&iter) == mui_dbusTypeStruct)
     {
         dbus->recurse(&iter, &desktop);
-        app->registered = ReadString(dbus, &desktop, app->desktopName, ATSPI_NAME_SIZE) &&
-                          dbus->next(&desktop) &&
-                          ReadString(dbus, &desktop, app->desktopPath, ATSPI_NAME_SIZE);
+        app->registered =
+            ReadString(dbus, &desktop, mui_dbusTypeString, app->desktopName, ATSPI_NAME_SIZE) &&
+            dbus->next(&desktop) &&
+            ReadString(dbus, &desktop, mui_dbusTypeObjectPath, app->desktopPath, ATSPI_NAME_SIZE);
     }
     if (reply != nullptr)
     {
