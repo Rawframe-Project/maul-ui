@@ -48,10 +48,3 @@ target_include_directories(maul-ui-window PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 target_link_libraries(maul-ui-window PUBLIC maul-ui maul-window::maul-window)
 maul_apply_flags(maul-ui-window)
-# Under Visual Studio's ClangCL toolset this target, made after Maul
-# Window is fetched, was compiled below C23 though its C_STANDARD is 23,
-# while the core, made before, was not: C23 is asked of clang-cl here
-# directly until the family's flags find why.
-if(MSVC)
-    target_compile_options(maul-ui-window PRIVATE /clang:-std=c23)
-endif()
