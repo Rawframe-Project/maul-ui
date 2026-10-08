@@ -422,6 +422,65 @@ static void TestShifts(void)
     FreeScene(&scene);
 }
 
+// Run styles as rich text makes them: an italic run; a span of color
+// alone, which splits no run; two bold spans apart sharing one style; a
+// span naming no font drawn in the node's.
+static void TestRunStyles(void)
+{
+    Scene scene = MakeScene();
+    muiTextBlockId block = {0, 0};
+    muiNodeId node = AddText(&scene, "abcdef", &block);
+    muiTextSpan spans[5] = {Span(0, 1, MUI_PROPERTY_BIT(mui_propertyFontSlant)), Span(1, 1, COLOR),
+                            Span(2, 1, MUI_PROPERTY_BIT(mui_propertyFontWeight)),
+                            Span(4, 1, MUI_PROPERTY_BIT(mui_propertyFontWeight)),
+                            Span(5, 1, MUI_PROPERTY_BIT(mui_propertyFont))};
+    spans[0].style.slant = mui_slantItalic;
+    spans[1].style.color = s_red;
+    spans[2].style.weight = 700.0f;
+    spans[3].style.weight = 700.0f;
+    spans[4].style.font = 0xDEADu;
+    CHECK(muiTextBlock_SetSpans(scene.service, block, spans, 5) == mui_success, "spans");
+    muiDrawList list = Paint(&scene, node);
+    uint64_t ahem = muiFont_GetKey(scene.font);
+    CHECK(list.commandCount == 6, "a run a letter");
+    CHECK(list.commands[0].glyphRun.font != ahem &&
+              (list.commands[0].glyphRun.font & 0xFFFFFFFFu) == (ahem & 0xFFFFFFFFu),
+          "a in an italic instance of the node's font");
+    CHECK(list.commands[1].glyphRun.font == ahem && IsGlyph(&list, 1, 10.0f, s_red),
+          "b in the node's font, red");
+    CHECK(list.commands[2].glyphRun.font == list.commands[4].glyphRun.font &&
+              list.commands[2].glyphRun.font != ahem && list.commands[3].glyphRun.font == ahem,
+          "c and e bold alike, d not");
+    CHECK(list.commands[5].glyphRun.font == ahem, "f, in no font, drawn in the node's");
+    FreeScene(&scene);
+}
+
+// More run styles than a block keeps: those past the table draw in the
+// style under them, each span still a run of its own.
+static void TestManyRunStyles(void)
+{
+    Scene scene = MakeScene();
+    muiTextBlockId block = {0, 0};
+    muiNodeId node = AddText(&scene, "abcdefghijklmnopqrstuvwxyzabcdefghijklmn", &block);
+    muiTextSpan spans[40];
+    for (uint32_t i = 0; i < 40; i++)
+    {
+        spans[i] = Span(i, 1, MUI_PROPERTY_BIT(mui_propertyFontSize));
+        spans[i].style.size =
+            (muiDimension){1.0f + 0.1f * (float)(i + 1), 0.0f, mui_dimensionValue};
+    }
+    CHECK(muiTextBlock_SetSpans(scene.service, block, spans, 40) == mui_success, "40 sizes");
+    muiDrawList list = Paint(&scene, node);
+    bool kept = list.commandCount == 40;
+    for (uint32_t i = 0; i < 40 && kept; i++)
+    {
+        float size = i < 31 ? 10.0f + (float)(i + 1) : 10.0f;
+        kept = Near(list.commands[i].glyphRun.size, size);
+    }
+    CHECK(kept, "31 sizes kept, the last nine bytes at the node's");
+    FreeScene(&scene);
+}
+
 int main(void)
 {
     TestChecks();
@@ -430,5 +489,7 @@ int main(void)
     TestSizes();
     TestFonts();
     TestShifts();
+    TestRunStyles();
+    TestManyRunStyles();
     return s_failures == 0 ? 0 : 1;
 }
