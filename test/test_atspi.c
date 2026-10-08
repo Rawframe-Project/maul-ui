@@ -1396,6 +1396,33 @@ static void TestGone(muiAtspiAdapter* adapter, Built* built)
           "a window taken out");
 }
 
+// Whether a state's bit is set in a state set's words.
+static bool Bit(const uint32_t words[2], uint32_t state)
+{
+    return (words[state / 32] & (1u << (state % 32))) != 0;
+}
+
+// A state set from a node's flags: collapsed only when expandable and
+// not expanded, multiselectable when the flag says so (found by mutants
+// inverting each). Collapsed is 5, expandable 9, expanded 10 and
+// multiselectable 18.
+static void TestStateSets(void)
+{
+    uint32_t words[2];
+    muiAccessNode node = {.id = 1, .role = mui_roleList};
+    muiAtspiRecordStatesOf(&node, words);
+    CHECK(!Bit(words, 5) && !Bit(words, 9) && !Bit(words, 10) && !Bit(words, 18), "none of them");
+    node.flags = mui_accessExpandable;
+    muiAtspiRecordStatesOf(&node, words);
+    CHECK(Bit(words, 5) && Bit(words, 9) && !Bit(words, 10), "expandable, collapsed");
+    node.flags = mui_accessExpandable | mui_accessExpanded;
+    muiAtspiRecordStatesOf(&node, words);
+    CHECK(!Bit(words, 5) && Bit(words, 9) && Bit(words, 10), "expanded");
+    node.flags = mui_accessMultiselectable;
+    muiAtspiRecordStatesOf(&node, words);
+    CHECK(Bit(words, 18), "multiselectable");
+}
+
 static void TestContract(void)
 {
     muiAtspiAppDef def = muiDefaultAtspiAppDef();
@@ -1596,6 +1623,7 @@ int main(void)
     CHECK(EventsAre("ChildrenChanged add 0 root w1n1; StateChanged focused 1 w1n2"),
           "a window's root added to the application's, its nodes not told; the focus");
     TestContract();
+    TestStateSets();
     TestRoot();
     TestNodes();
     TestProperties();

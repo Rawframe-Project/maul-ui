@@ -492,6 +492,15 @@ if(MAUL_UI_BUILD_TESTS)
         target_include_directories(test_glyph_atlas PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(skyline WHITEBOX)
         maul_add_test(glyph_table WHITEBOX)
+        maul_add_test(font_key WHITEBOX)
+        # Whitebox tests are not built for a shared library.
+        if(TARGET test_font_key AND TARGET maul_ui_freetype)
+            target_include_directories(test_font_key SYSTEM PRIVATE
+                $<TARGET_PROPERTY:maul_ui_freetype,INTERFACE_INCLUDE_DIRECTORIES>
+                $<TARGET_PROPERTY:harfbuzz::harfbuzz,INTERFACE_INCLUDE_DIRECTORIES>)
+        elseif(TARGET test_font_key)
+            target_link_libraries(test_font_key PRIVATE Freetype::Freetype harfbuzz::harfbuzz)
+        endif()
         maul_add_test(inflate WHITEBOX)
         # Whitebox: not built against a shared library.
         maul_add_test(png WHITEBOX)

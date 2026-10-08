@@ -62,6 +62,7 @@ enum
 static unsigned char s_pixels[4096];
 static unsigned char s_large[64 * 64 * 4];
 static unsigned char s_damaged[sizeof s_color];
+static unsigned char s_onePalette[sizeof s_color];
 
 typedef struct Scene
 {
@@ -441,9 +442,52 @@ static void TestDamage(void)
     CHECK(made > DAMAGE_ROUNDS / 2 && drawn > made, "damaged fonts made and their glyphs drawn");
 }
 
+// A colour font with one palette, as most have: its colours are used
+// (found by a mutant asking for two). A copy of Maul Color whose CPAL
+// says one palette; the second's index after it is left, unread.
+static void TestOnePalette(void)
+{
+    memcpy(s_onePalette, s_color, sizeof s_color);
+    uint32_t tables = (uint32_t)s_color[4] << 8 | s_color[5];
+    size_t cpal = 0;
+    for (uint32_t i = 0; i < tables; i++)
+    {
+        const unsigned char* record = &s_color[12 + 16 * (size_t)i];
+        if (memcmp(record, "CPAL", 4) == 0)
+        {
+            cpal = (size_t)record[8] << 24 | (size_t)record[9] << 16 | (size_t)record[10] << 8 |
+                   record[11];
+        }
+    }
+    CHECK(cpal != 0 && s_onePalette[cpal + 4] == 0 && s_onePalette[cpal + 5] == 2,
+          "Maul Color's CPAL, two palettes");
+    s_onePalette[cpal + 5] = 1;
+    muiTextServiceDef def = muiDefaultTextServiceDef();
+    muiTextService* service = NULL;
+    CHECK(muiCreateTextService(&def, &service) == mui_success, "a text service");
+    muiFontDef font = muiDefaultFontDef();
+    font.data = s_onePalette;
+    font.size = sizeof s_onePalette;
+    font.dataMode = mui_fontDataBorrow;
+    muiFontId id = {0, 0};
+    CHECK(muiCreateFont(service, &font, &id) == mui_success, "one palette");
+    const muiLinearColor green = {0.0f, 1.0f, 0.0f, 1.0f};
+    muiGlyphImage image = {0};
+    CHECK(muiRenderColorGlyph(service, muiFont_GetKey(id), GLYPH_A, 10.0f, 0.0f, 0, green, &image,
+                              s_pixels, sizeof s_pixels) == mui_success &&
+              Is(&image, 1, 7, 255, 0, 0, 255) && Is(&image, 8, 0, 187, 0, 188, 255),
+          "its palette's colours");
+    CHECK(muiRenderColorGlyph(service, muiFont_GetKey(id), GLYPH_A, 10.0f, 0.0f, 1, green, &image,
+                              s_pixels, sizeof s_pixels) == mui_success &&
+              Is(&image, 1, 7, 255, 0, 0, 255),
+          "the second, past the font's, is the first");
+    muiDestroyTextService(service);
+}
+
 int main(void)
 {
     TestLayers();
+    TestOnePalette();
     TestPaints();
     TestGradients();
     TestHardStop();

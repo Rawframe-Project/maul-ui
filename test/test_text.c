@@ -24,6 +24,9 @@ typedef struct CountingAllocator
     int allocations;
     int frees;
     size_t liveBytes;
+    // Alignments given less those returned: 0 when every block went back
+    // with its own.
+    size_t liveAlignment;
     int failAt;
 } CountingAllocator;
 
@@ -37,15 +40,16 @@ static void* CountingAlloc(size_t size, size_t alignment, void* context)
     }
     counter->allocations++;
     counter->liveBytes += size;
+    counter->liveAlignment += alignment;
     return alignment <= alignof(max_align_t) ? malloc(size) : NULL;
 }
 
 static void CountingFree(void* memory, size_t size, size_t alignment, void* context)
 {
-    (void)alignment;
     CountingAllocator* counter = context;
     counter->frees++;
     counter->liveBytes -= size;
+    counter->liveAlignment -= alignment;
     free(memory);
 }
 
@@ -156,6 +160,8 @@ static void TestAhemMetrics(void)
     muiDestroyTextService(service);
     CHECK(counter.liveBytes == 0 && counter.allocations == counter.frees,
           "every block, FreeType's too, returned");
+    // Found by a mutant returning a font's copy with another alignment.
+    CHECK(counter.liveAlignment == 0, "each with the alignment it was given");
 }
 
 static void TestFontArguments(void)

@@ -12,7 +12,9 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 // An allocator that counts what it hands out and can be told to fail.
 typedef struct CountingAllocator
@@ -200,6 +202,68 @@ static void TestPartsPacked(void)
           "an overflow, and nothing after it");
 }
 
+// Each count's largest, 2^31 - 1 (one less where a slot is kept, and
+// MUI_MAX_POINTERS for pointers), asks only for memory; one past it is
+// invalid (found by a mutant refusing the largest notifications).
+static void TestLimitsAtTheirLargest(void)
+{
+    typedef struct Count
+    {
+        size_t offset;
+        uint32_t largest;
+    } Count;
+    const uint32_t most = 0x7FFFFFFFu;
+    const Count counts[] = {
+        {offsetof(muiLimits, nodes), most},
+        {offsetof(muiLimits, styles), most},
+        {offsetof(muiLimits, nodeTypes), most},
+        {offsetof(muiLimits, propertySets), most},
+        {offsetof(muiLimits, notifications), most},
+        {offsetof(muiLimits, transitions), most},
+        {offsetof(muiLimits, animations), most},
+        {offsetof(muiLimits, tokens), most},
+        {offsetof(muiLimits, tokenNames), most},
+        {offsetof(muiLimits, themes), most},
+        {offsetof(muiLimits, themeOverrides), most},
+        {offsetof(muiLimits, drawCommands), most},
+        {offsetof(muiLimits, drawClips), most - 1},
+        {offsetof(muiLimits, drawGradients), most - 1},
+        {offsetof(muiLimits, drawGlyphs), most},
+        {offsetof(muiLimits, layers), most},
+        {offsetof(muiLimits, pointers), MUI_MAX_POINTERS},
+        {offsetof(muiLimits, pointerRecords), most},
+        {offsetof(muiLimits, neighbors), most},
+        {offsetof(muiLimits, drawTransforms), most - 1},
+        {offsetof(muiLimits, ranges), most},
+        {offsetof(muiLimits, popups), most},
+        {offsetof(muiLimits, exits), most},
+        {offsetof(muiLimits, virtualLists), most},
+        {offsetof(muiLimits, virtualItems), most},
+        {offsetof(muiLimits, accessNodes), most},
+        {offsetof(muiLimits, accessRoots), most},
+    };
+    bool held = true;
+    for (size_t i = 0; i < sizeof counts / sizeof counts[0]; i++)
+    {
+        CountingAllocator counter = {.fail = true};
+        muiContextDef def = muiDefaultContextDef();
+        def.allocator = MakeAllocator(&counter);
+        muiContext* context = NULL;
+        uint32_t value = counts[i].largest;
+        memcpy((unsigned char*)&def.limits + counts[i].offset, &value, sizeof value);
+        bool largest = muiCreateContext(&def, &context) == mui_errorCapacity;
+        value++;
+        memcpy((unsigned char*)&def.limits + counts[i].offset, &value, sizeof value);
+        bool past = muiCreateContext(&def, &context) == mui_errorInvalid;
+        if (!largest || !past)
+        {
+            fprintf(stderr, "count %zu: largest %d, past %d\n", i, largest, past);
+        }
+        held = held && largest && past;
+    }
+    CHECK(held, "the largest asks for memory, one past it is invalid");
+}
+
 static void TestNullContextIsHarmless(void)
 {
     muiDestroyContext(NULL);
@@ -215,5 +279,6 @@ int main(void)
     TestNullContextIsHarmless();
     TestPartsStartOnCacheLines();
     TestPartsPacked();
+    TestLimitsAtTheirLargest();
     return s_failures == 0 ? 0 : 1;
 }
