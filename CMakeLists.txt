@@ -25,6 +25,7 @@ option(MAUL_UI_SANITIZE "Instrument with AddressSanitizer and UBSan" OFF)
 option(MAUL_UI_TSAN "Instrument with ThreadSanitizer" OFF)
 option(MAUL_UI_COVERAGE "Instrument for gcov coverage" OFF)
 option(MAUL_UI_TEXT "Build the text component: fonts, shaping and paragraphs (record mui-0006)" ON)
+option(MAUL_UI_FUZZ "Build the libFuzzer targets (Clang, with the text component)" OFF)
 option(MAUL_UI_RHI "Build maul-ui-rhi, the reference renderer on Maul RHI (record mui-0005)" OFF)
 option(MAUL_UI_WINDOW "Build maul-ui-window, the glue to Maul Window (record mui-0007)" OFF)
 option(MAUL_UI_ACCESS_TREE
@@ -528,6 +529,25 @@ endif()
 # glue, with text (record mui-0005).
 if(MAUL_UI_BUILD_SAMPLES AND MAUL_UI_RHI AND MAUL_UI_WINDOW AND MAUL_UI_TEXT)
     add_subdirectory(samples)
+endif()
+
+# The fuzz targets: test/fuzz_<area>.c, run as fuzz_<area> <corpus dir>,
+# over the bytes the text component reads from fonts; tools/fuzz_seed.py
+# writes their seeds.
+if(MAUL_UI_FUZZ AND MAUL_UI_TEXT)
+    # The library is instrumented too: its coverage guides libFuzzer, and
+    # the sanitizers watch its code, not only the targets'.
+    target_compile_options(maul-ui PRIVATE -fsanitize=fuzzer-no-link,address,undefined)
+    target_link_options(maul-ui PUBLIC -fsanitize=address,undefined)
+    foreach(area inflate png font)
+        add_executable(fuzz_${area} test/fuzz_${area}.c)
+        target_link_libraries(fuzz_${area} PRIVATE maul-ui)
+        # The targets reach the library's own functions.
+        target_include_directories(fuzz_${area} PRIVATE ${PROJECT_SOURCE_DIR}/src)
+        maul_apply_flags(fuzz_${area})
+        target_compile_options(fuzz_${area} PRIVATE -fsanitize=fuzzer,address,undefined)
+        target_link_options(fuzz_${area} PRIVATE -fsanitize=fuzzer,address,undefined)
+    endforeach()
 endif()
 
 if(MAUL_UI_TEXT)
