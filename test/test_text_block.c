@@ -423,6 +423,39 @@ static void TestPaintingWhatIsSeen(void)
     FreeScene(&scene);
 }
 
+// Kept lines follow the line scale: a block measured again after its
+// size or spacing changes measures as one given them first.
+static void TestKeptLines(void)
+{
+    Scene scene = MakeScene(NULL);
+    const char* text = "aaaa bbbb cccc\ndddd";
+    muiNodeId kept = AddText(&scene, s_nullNode, text);
+    // Laid out at the width measured, so the width alone breaks nothing
+    // again.
+    Layout(&scene, kept, 100.0f);
+    muiSize before = Measure(&scene, kept, mui_measureAtMost, 100.0f);
+    CHECK(SameSize(before, 90.0f, 30.0f), "two words, then one, then the last paragraph");
+    muiTextStyle style = muiDefaultTextStyle();
+    style.size = (muiDimension){0.0f, 20.0f, mui_dimensionValue};
+    SetText(&scene, kept, style, SIZE);
+    Layout(&scene, kept, 100.0f);
+    muiNodeId fresh = AddText(&scene, s_nullNode, text);
+    SetText(&scene, fresh, style, SIZE);
+    Layout(&scene, fresh, 1000.0f);
+    muiSize after = Measure(&scene, kept, mui_measureAtMost, 100.0f);
+    muiSize first = Measure(&scene, fresh, mui_measureAtMost, 100.0f);
+    CHECK(SameSize(after, 80.0f, 80.0f) && SameSize(after, first.width, first.height),
+          "a word a line at size 20, as a block given it first");
+    style.letterSpacing = (muiDimension){0.0f, 5.0f, mui_dimensionValue};
+    SetText(&scene, kept, style, SIZE | SPACING);
+    SetText(&scene, fresh, style, SIZE | SPACING);
+    Layout(&scene, kept, 100.0f);
+    after = Measure(&scene, kept, mui_measureMaxContent, 0.0f);
+    first = Measure(&scene, fresh, mui_measureMaxContent, 0.0f);
+    CHECK(after.width == first.width && after.width > 280.0f, "spacing as given first");
+    FreeScene(&scene);
+}
+
 static void TestLineHeightSpacingAndSlack(void)
 {
     Scene scene = MakeScene(NULL);
@@ -733,6 +766,7 @@ int main(void)
     TestLineBreaksInText();
     TestPainting();
     TestPaintingWhatIsSeen();
+    TestKeptLines();
     TestLineHeightSpacingAndSlack();
     TestBidiOrder();
     TestFontsAndChanges();
