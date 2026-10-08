@@ -995,6 +995,40 @@ static muiTextService* MakeText(uint64_t* fontOut, uint64_t* colorOut)
     return service;
 }
 
+// Projection that scales: a matrix scaling by 2 draws a list of scale 1
+// as a scale of 2 draws it, within 2, edge and clip widths included
+// (their pixels a unit come from the fragment, not the list); and one
+// scaling by a half brings a box past the target's own size into view,
+// as culling by the target alone would not.
+static void TestProjectionScale(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels)
+{
+    const uint32_t side = 128u;
+    const size_t size = (size_t)side * side * 4;
+    muiDrawCommand commands[5];
+    const muiDrawClip clips[2] = {{0}, {.rect = {36, 36, 24, 24}, .radii = {12, 12, 12, 12}}};
+    muiDrawList list = PanelList(commands, clips, 2.0f);
+    uint8_t* plain = malloc(size);
+    float m[16];
+    ScreenProjection(m, 2.0f, side);
+    bool drawn = plain != NULL && Render(gpu, renderer, &list, side, plain);
+    list.header.scale = 1.0f;
+    drawn = drawn && RenderThrough(gpu, renderer, &list, side, m, pixels);
+    int worst = drawn ? 0 : 255;
+    for (size_t i = 0; drawn && i < size; i++)
+    {
+        int d = abs((int)plain[i] - (int)pixels[i]);
+        worst = d > worst ? d : worst;
+    }
+    free(plain);
+    CHECK(worst <= 2, "a projection scaling by 2 draws as a scale of 2");
+    commands[4] = Box(80, 80, 20, 20, (muiLinearColor){1, 1, 0, 1});
+    list.commandCount = 5;
+    ScreenProjection(m, 0.5f, 64);
+    const int yellow[4] = {255, 255, 0, 255};
+    CHECK(RenderThrough(gpu, renderer, &list, 64, m, pixels) && Near(pixels, 64, 45, 45, yellow, 2),
+          "a box past the target's size brought into view");
+}
+
 // A glyph run on the turned panel's near half, drawn from its distance
 // field: the square of glyph 4 at an em of 30 (34 to 64 across, 26 to 50
 // down) where the matrix takes its middle, and clear above it.
@@ -1030,6 +1064,17 @@ static void TestProjectedGlyphs(Gpu* gpu, muiRhiRenderer* renderer, uint64_t fon
     Project(m, 49, 18, side, &aboveX, &aboveY);
     CHECK(Near(pixels, side, x, y, green, 2) && Near(pixels, side, aboveX, aboveY, black, 2),
           "a projected glyph from its field");
+    // Magnified 2 times, its square (4 to 14 across, 12 to 22 down at an
+    // em of 10) stays solid to a pixel inside its edge, as a field draws
+    // it and coverage drawn at the list's pixels, magnified, would not.
+    command.glyphRun.originX = 4;
+    command.glyphRun.originY = 20;
+    command.glyphRun.size = 10;
+    ScreenProjection(m, 2.0f, 128);
+    CHECK(RenderThrough(gpu, renderer, &list, 128, m, pixels) &&
+              Near(pixels, 128, 8, 34, green, 2) && Near(pixels, 128, 27, 34, green, 2) &&
+              Near(pixels, 128, 6, 34, black, 2),
+          "a magnified projected glyph sharp to its edge");
 }
 
 static void TestGlyphs(Gpu* gpu, muiRhiRenderer* renderer, uint64_t font, uint8_t* pixels,
@@ -1342,6 +1387,7 @@ int main(void)
         TestTiling(&gpu, renderer, pixels, 2);
         TestProjection(&gpu, renderer, pixels, 1);
         TestProjection(&gpu, renderer, pixels, 2);
+        TestProjectionScale(&gpu, renderer, pixels);
 #if MUI_TEST_TEXT
         TestGlyphs(&gpu, renderer, font, pixels, 1);
         TestGlyphs(&gpu, renderer, font, pixels, 2);
