@@ -475,6 +475,49 @@ static void TestFailedPipeline(void)
     Close(&gpu);
 }
 
+// A renderer made with a depth format makes two pipelines and is ready
+// only when both are: the first pipeline's notification (the request
+// muiRhiRenderer_GetPipelineRequest names) handed over before the other.
+static void TestDepthPipelines(void)
+{
+    Gpu gpu;
+    CHECK(Open(&gpu, mrhi_success), "a device");
+    muiRhiRendererDef def = muiDefaultRhiRendererDef();
+    def.device = gpu.device;
+    def.depthFormat = mrhi_formatDepth32Float;
+    muiRhiRenderer* renderer = NULL;
+    CHECK(muiCreateRhiRenderer(&def, &renderer) == mui_success, "made with a depth format");
+    mrhiDeviceNotification records[8];
+    uint32_t count = 0;
+    while (count < 8 && mrhiNextDeviceNotification(gpu.device, &records[count]) == mrhi_success)
+    {
+        count++;
+    }
+    const mrhiRequestId first = muiRhiRenderer_GetPipelineRequest(renderer);
+    bool handedFirst = false;
+    for (uint32_t i = 0; i < count; i++)
+    {
+        if (records[i].requestId.index1 == first.index1 &&
+            records[i].requestId.generation == first.generation)
+        {
+            handedFirst = muiRhiRenderer_Notify(renderer, &records[i]);
+        }
+    }
+    bool readyAfterFirst = muiRhiRenderer_IsReady(renderer);
+    int others = 0;
+    for (uint32_t i = 0; i < count; i++)
+    {
+        others += records[i].requestId.index1 != first.index1 &&
+                          muiRhiRenderer_Notify(renderer, &records[i])
+                      ? 1
+                      : 0;
+    }
+    CHECK(handedFirst && !readyAfterFirst && others == 1 && muiRhiRenderer_IsReady(renderer),
+          "ready after both pipelines, not after the first");
+    muiDestroyRhiRenderer(renderer);
+    Close(&gpu);
+}
+
 int main(void)
 {
     TestContract();
@@ -487,5 +530,6 @@ int main(void)
     TestNoText();
 #endif
     TestFailedPipeline();
+    TestDepthPipelines();
     return s_failures == 0 ? 0 : 1;
 }
