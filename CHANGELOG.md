@@ -10,10 +10,11 @@ format.
 
 ### Changed
 
-- A smaller text component: FreeType is built without the TrueType
-  bytecode interpreter and the PostScript hinter, as glyphs are always
-  loaded unhinted, 13.5 KB less of wasm; a CFF test font now checks the
-  CFF driver.
+- A smaller library: FreeType is built without the TrueType bytecode
+  interpreter and the PostScript hinter, as glyphs are always loaded
+  unhinted, 13.5 KB less of the text component's wasm, and a CFF test
+  font now checks the CFF driver; the core writes its numbers itself,
+  as printf writes them, without the C library's printf, 6.6 KB less.
 
 - Layout bounded by the change: a node whose answers to its parent's
   sizing queries hold after a change is laid out alone, its parent not

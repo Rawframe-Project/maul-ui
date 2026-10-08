@@ -45,7 +45,8 @@ access: access_store allocator context tree
 access_build: access access_store context focus layer place range scroll_store style_store tree virtual virtual_store
 access_record:
 access_tree_store:
-access_tree: access_tree_store allocator
+chars:
+access_tree: access_tree_store allocator chars
 access_apply: access_tree access_tree_store allocator
 access_view: access_tree_store
 id_map:
@@ -57,7 +58,7 @@ android_jni: allocator android
 android_node: android
 aria: id_map
 aria_adapter: allocator aria
-aria_elements: aria
+aria_elements: aria chars
 aria_page: aria
 atspi: dbus_api id_map
 ns: id_map
@@ -74,8 +75,8 @@ atspi_events: access_record allocator atspi
 atspi_actions: atspi
 atspi_app: allocator atspi dbus_api
 atspi_component: atspi
-atspi_objects: allocator atspi
-atspi_properties: allocator atspi
+atspi_objects: allocator atspi chars
+atspi_properties: allocator atspi chars
 atspi_roles: atspi
 uia: id_map uia_com uia_ids
 uia_com:

@@ -89,6 +89,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/animation.c
     src/allocator.c
     src/base.c
+    src/chars.c
     src/color.c
     src/condition.c
     src/context.c
@@ -297,6 +298,7 @@ if(MAUL_UI_BUILD_TESTS)
     endif()
     maul_add_test(condition)
     maul_add_test(context WHITEBOX)
+    maul_add_test(chars WHITEBOX)
     maul_add_test(draw)
     maul_add_test(interaction)
     maul_add_test(pointer)

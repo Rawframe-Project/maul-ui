@@ -7,9 +7,8 @@
 
 #include "allocator.h"
 #include "atspi.h"
+#include "chars.h"
 
-#include <inttypes.h>
-#include <stdio.h>
 #include <string.h>
 
 #define ERROR_UNKNOWN_OBJECT "org.freedesktop.DBus.Error.UnknownObject"
@@ -130,11 +129,15 @@ void muiAtspiPathOf(const muiAtspiObject* object, char pathOut[ATSPI_PATH_SIZE])
 {
     if (object->node == nullptr)
     {
-        (void)snprintf(pathOut, ATSPI_PATH_SIZE, "%s", ATSPI_ROOT_PATH);
+        muiChars root = muiCharsIn(pathOut, ATSPI_PATH_SIZE);
+        muiPutText(&root, ATSPI_ROOT_PATH);
         return;
     }
-    (void)snprintf(pathOut, ATSPI_PATH_SIZE, "%sw%" PRIu32 "n%" PRIx64, ATSPI_PREFIX,
-                   object->adapter->window, object->node->id);
+    muiChars chars = muiCharsIn(pathOut, ATSPI_PATH_SIZE);
+    muiPutText(&chars, ATSPI_PREFIX "w");
+    muiPutUnsigned(&chars, object->adapter->window);
+    muiPutText(&chars, "n");
+    muiPutHex(&chars, object->node->id, 1, false);
 }
 
 bool muiAtspiAppendReference(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object)
@@ -282,23 +285,21 @@ uint32_t muiAtspiInterfacesOf(const muiAtspiObject* object, const char* interfac
 static void Introspect(muiAtspiApp* app, DBusMessage* call, const muiAtspiObject* object)
 {
     char xml[1024];
-    size_t length = (size_t)snprintf(
-        xml, sizeof(xml),
-        "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\" "
-        "\"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n<node>\n"
-        "  <interface name=\"" INTERFACE_INTROSPECT "\"/>\n"
-        "  <interface name=\"" INTERFACE_PROPERTIES "\"/>\n");
+    muiChars chars = muiCharsIn(xml, sizeof xml);
+    muiPutText(&chars,
+               "<!DOCTYPE node PUBLIC \"-//freedesktop//DTD D-BUS Object Introspection 1.0//EN\" "
+               "\"http://www.freedesktop.org/standards/dbus/1.0/introspect.dtd\">\n<node>\n"
+               "  <interface name=\"" INTERFACE_INTROSPECT "\"/>\n"
+               "  <interface name=\"" INTERFACE_PROPERTIES "\"/>\n");
     const char* interfaces[4];
     uint32_t count = muiAtspiInterfacesOf(object, interfaces);
-    for (uint32_t i = 0; i < count && length < sizeof(xml); i++)
+    for (uint32_t i = 0; i < count; i++)
     {
-        length += (size_t)snprintf(xml + length, sizeof(xml) - length,
-                                   "  <interface name=\"%s\"/>\n", interfaces[i]);
+        muiPutText(&chars, "  <interface name=\"");
+        muiPutText(&chars, interfaces[i]);
+        muiPutText(&chars, "\"/>\n");
     }
-    if (length < sizeof(xml))
-    {
-        (void)snprintf(xml + length, sizeof(xml) - length, "</node>\n");
-    }
+    muiPutText(&chars, "</node>\n");
     DBusMessage* reply = app->dbus.newMethodReturn(call);
     muiDBusIter iter;
     if (reply != nullptr)
@@ -425,7 +426,8 @@ static bool AppendAttribute(muiAtspiApp* app, muiDBusIter* array, const char* na
 static bool AppendNumber(muiAtspiApp* app, muiDBusIter* array, const char* name, uint32_t value)
 {
     char text[16];
-    (void)snprintf(text, sizeof(text), "%" PRIu32, value);
+    muiChars chars = muiCharsIn(text, sizeof text);
+    muiPutUnsigned(&chars, value);
     return value == 0 || AppendAttribute(app, array, name, text);
 }
 

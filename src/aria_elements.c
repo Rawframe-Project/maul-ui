@@ -6,9 +6,8 @@
 // written whole or where an old record and the new one differ.
 
 #include "aria.h"
+#include "chars.h"
 
-#include <inttypes.h>
-#include <stdio.h>
 #include <string.h>
 
 // Room for an attribute's value written here: a number, or the ids of a
@@ -220,7 +219,15 @@ bool muiAriaIsRange(const muiAccessNode* node)
 
 void muiAriaIdOf(int page, uint64_t id, char out[ARIA_ID_SIZE])
 {
-    (void)snprintf(out, ARIA_ID_SIZE, "mui%d-%" PRIx64, page, id);
+    muiChars chars = muiCharsIn(out, ARIA_ID_SIZE);
+    muiPutText(&chars, "mui");
+    if (page < 0)
+    {
+        muiPutText(&chars, "-");
+    }
+    muiPutUnsigned(&chars, page < 0 ? (uint64_t)-(int64_t)page : (uint64_t)page);
+    muiPutText(&chars, "-");
+    muiPutHex(&chars, id, 1, false);
 }
 
 // The text a node names itself by: its label, or a label node's value.
@@ -261,7 +268,8 @@ static const char* Number(char buffer[VALUE_SIZE], double value, bool zeroIsNone
     {
         return nullptr;
     }
-    (void)snprintf(buffer, VALUE_SIZE, "%.9g", value);
+    muiChars chars = muiCharsIn(buffer, VALUE_SIZE);
+    muiPutGeneral(&chars, value, 9);
     return buffer;
 }
 
@@ -288,7 +296,9 @@ static const char* Relation(const muiAriaAdapter* adapter, const muiAccessNode* 
         {
             break;
         }
-        (void)snprintf(buffer + length, VALUE_SIZE - length, "%s%s", length != 0 ? " " : "", id);
+        muiChars chars = muiCharsIn(buffer + length, VALUE_SIZE - length);
+        muiPutText(&chars, length != 0 ? " " : "");
+        muiPutText(&chars, id);
         length += size;
     }
     return length != 0 ? buffer : nullptr;

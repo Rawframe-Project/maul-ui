@@ -7,8 +7,8 @@
 
 #include "allocator.h"
 #include "atspi.h"
+#include "chars.h"
 
-#include <stdio.h>
 #include <string.h>
 
 #define INTERFACE_ACCESSIBLE   "org.a11y.atspi.Accessible"
@@ -109,8 +109,12 @@ static bool AppendAccessible(muiAtspiApp* app, muiDBusIter* iter, const muiAtspi
 static bool AppendApplication(muiAtspiApp* app, muiDBusIter* iter, const char* name, bool* ok)
 {
     char version[32];
-    (void)snprintf(version, sizeof(version), "%d.%d.%d", MUI_VERSION_MAJOR, MUI_VERSION_MINOR,
-                   MUI_VERSION_PATCH);
+    muiChars chars = muiCharsIn(version, sizeof version);
+    muiPutUnsigned(&chars, MUI_VERSION_MAJOR);
+    muiPutText(&chars, ".");
+    muiPutUnsigned(&chars, MUI_VERSION_MINOR);
+    muiPutText(&chars, ".");
+    muiPutUnsigned(&chars, MUI_VERSION_PATCH);
     const char* toolkit = "Maul UI";
     const char* atspi = "2.1";
     const char* text = strcmp(name, "ToolkitName") == 0    ? toolkit
