@@ -406,3 +406,146 @@ static muiResult UseAccent(muiContext* context, muiStyleId button, muiNodeId war
 The buttons are blue; under the node with the theme, orange. Changing a
 token restyles every node, and transitions (section 10) move the
 change.
+
+## 5. Text
+
+The core lays out and draws no text: it measures and paints a node's
+host content through the functions the frame gives it. The library's
+text component, built by default (`MAUL_UI_TEXT`), is a text service
+that does both: fonts read by FreeType, text shaped by HarfBuzz, lines
+broken and runs ordered by Unicode's rules. A program may bring
+another text stack instead and hand its own functions to the frame.
+
+```c
+#include "maul-ui/font.h"
+#include "maul-ui/layout.h"
+#include "maul-ui/node.h"
+#include "maul-ui/style.h"
+#include "maul-ui/text.h"
+#include "maul-ui/text_block.h"
+#include "maul-ui/text_style.h"
+```
+
+The service holds fonts, families and text blocks. A font is the bytes
+of a TrueType, OpenType or collection file, copied or borrowed:
+
+```c
+// A text service whose default font is one the program loaded.
+static muiTextService* MakeTextService(const void* fontData, size_t fontSize)
+{
+    muiTextServiceDef def = muiDefaultTextServiceDef();
+    muiTextService* service = NULL;
+    if (muiCreateTextService(&def, &service) != mui_success)
+    {
+        return NULL;
+    }
+    muiFontDef font = muiDefaultFontDef();
+    font.data = fontData;
+    font.size = fontSize;
+    muiFontId fontId = {0, 0};
+    if (muiCreateFont(service, &font, &fontId) != mui_success ||
+        muiSetDefaultFont(service, fontId) != mui_success)
+    {
+        muiDestroyTextService(service);
+        return NULL;
+    }
+    return service;
+}
+```
+
+A block is UTF-8 text the service lays out. A node shows it when its
+host key is the block's key and its content is the host's; its text
+style, the font, size, color, weight, alignment and wrapping, comes
+through the same layers as every property and is inherited as CSS
+inherits it:
+
+```c
+// A label: a node showing a block of text at 16 units, dark grey.
+static muiNodeId AddLabel(muiContext* context, muiTextService* service, muiNodeId parent,
+                          const char* text, muiTextBlockId* blockOut)
+{
+    muiNodeId node = {0, 0};
+    if (muiCreateTextBlock(service, text, strlen(text), blockOut) != mui_success)
+    {
+        return node;
+    }
+    muiNodeDef def = muiDefaultNodeDef();
+    def.hostKey = muiTextBlock_GetKey(*blockOut);
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.content = mui_contentHost;
+    muiTextStyle style = muiDefaultTextStyle();
+    style.size = (muiDimension){0.0f, 16.0f, mui_dimensionValue};
+    style.color = (muiColor){0.2f, 0.2f, 0.2f, 1.0f};
+    if (muiCreateNode(context, &def, &node) != mui_success ||
+        muiNode_SetLayoutValues(context, node, &layout, MUI_PROPERTY_BIT(mui_propertyContent)) !=
+            mui_success ||
+        muiNode_SetTextValues(context, node, &style,
+                              MUI_PROPERTY_BIT(mui_propertyFontSize) |
+                                  MUI_PROPERTY_BIT(mui_propertyTextColor)) != mui_success ||
+        muiNode_InsertChild(context, parent, node, (muiNodeId){0, 0}) != mui_success)
+    {
+        return (muiNodeId){0, 0};
+    }
+    return node;
+}
+```
+
+The frame hands the service's functions to layout and drawing, with a
+`muiTextHost` naming the service and the context:
+
+```c
+// Lays a root out and draws it, its text measured and painted by the
+// service.
+static muiResult FrameWithText(muiContext* context, muiTextService* service, muiNodeId root,
+                               float width, float height)
+{
+    muiTextHost host = {service, context};
+    const muiLayoutInput layout = {width, height,          muiMeasureText, &host,
+                                   0,     muiTextBaseline, {0, 0, 0, 0}};
+    const muiDrawInput draw = {1, 1.0f, muiPaintText, &host};
+    muiResult result = muiComputeLayout(context, root, &layout);
+    return result == mui_success ? muiBuildDrawList(context, root, &draw) : result;
+}
+```
+
+A label in a column 120 wide takes one line for "Hello" and wraps a
+longer text onto as many as it needs, at the break opportunities
+Unicode gives, its height growing. Each line's glyphs reach the draw
+list as glyph runs, in their font and size; section 7 draws them.
+
+A block's text is the program's to change. The context does not watch
+it: marking the node's content changed has it measured and painted
+again, its siblings moving if its size changes.
+
+```c
+// Replaces a label's text: the block takes it, and the node is measured
+// and painted again at the next frame.
+static muiResult SetLabel(muiContext* context, muiTextService* service, muiNodeId label,
+                          muiTextBlockId block, const char* text)
+{
+    muiResult result = muiTextBlock_SetText(service, block, text, strlen(text));
+    return result == mui_success ? muiNode_MarkContentChanged(context, label) : result;
+}
+```
+
+Spans style parts of a block's text over the node's style: color,
+decoration, font, size, weight, slant and baseline shift, each by
+bytes. A span's text is drawn as glyph runs of its own:
+
+```c
+// Makes bytes from start up to end of a label's text bold.
+static muiResult Embolden(muiContext* context, muiTextService* service, muiNodeId label,
+                          muiTextBlockId block, uint32_t start, uint32_t end)
+{
+    muiTextSpan bold = {start, end - start, MUI_PROPERTY_BIT(mui_propertyFontWeight),
+                        muiDefaultTextStyle()};
+    bold.style.weight = 700.0f;
+    muiResult result = muiTextBlock_SetSpans(service, block, &bold, 1);
+    return result == mui_success ? muiNode_MarkContentChanged(context, label) : result;
+}
+```
+
+`muiSetFallbackFonts` names fonts tried for characters the style's
+font lacks, an emoji font or one for another script; a font family
+(`muiCreateFontFamily`) picks a face by weight, width and slant as CSS
+does, a variable font's axes set from them.
