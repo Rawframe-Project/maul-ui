@@ -32,6 +32,14 @@ enum
 muiResult muiEditingBlock(const muiTextService* service, muiTextBlockId blockId,
                           muiTextBlock** blockOut);
 
+// muiEditingBlock for an edit: invalid input counted as the service's
+// misuse.
+muiResult muiEditBlock(muiTextService* service, muiTextBlockId blockId, muiTextBlock** blockOut);
+
+// Refuses an editor's invalid input, counted as the service's misuse
+// unless the service is NULL.
+muiResult muiRefuseEdit(muiTextService* service);
+
 // Places a block's selection, which ends a run of typing or deleting
 // undone together.
 void muiPlaceSelection(muiTextBlock* block, muiTextSelection selection);

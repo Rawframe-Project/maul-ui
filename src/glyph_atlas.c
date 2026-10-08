@@ -130,7 +130,7 @@ muiResult muiCreateGlyphAtlas(muiTextService* service, const muiGlyphAtlasDef* d
     if (service == nullptr || def == nullptr || atlasOut == nullptr ||
         def->cookie != GLYPH_ATLAS_DEF_COOKIE || !IsDefValid(def))
     {
-        return mui_errorInvalid;
+        return muiRefuseText(service);
     }
     uint32_t plotsPerPage = (def->pageWidth / def->plotWidth) * (def->pageHeight / def->plotHeight);
     size_t plots = (size_t)plotsPerPage * def->maxPages;
@@ -510,7 +510,7 @@ static muiResult Find(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, uint3
     }
     if (glyph >= record->metrics.glyphCount)
     {
-        return mui_errorInvalid;
+        return muiRefuseText(atlas->service);
     }
     *glyphOut = (muiAtlasGlyph){0, 0, 0, 0, 0, 0, 0};
     if (atlas->format == mui_atlasColor && !record->colorLayers && !muiHasColorBitmaps(record))
@@ -562,7 +562,7 @@ static muiResult GetAt(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, floa
     if (glyphOut == nullptr || !IsSizeValid(pixelSize) || !(fabsf(penX) <= MAX_PEN) ||
         !(fabsf(baselineY) <= MAX_PEN))
     {
-        return mui_errorInvalid;
+        return muiRefuseText(atlas->service);
     }
     // The pen to the nearest quarter pixel.
     int64_t quarters = FloorToInteger(penX * 4.0f + 0.5f);
@@ -584,7 +584,7 @@ muiResult muiGlyphAtlas_Get(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
 {
     return atlas != nullptr && atlas->format == mui_atlasOneChannel
                ? GetAt(atlas, font, glyph, pixelSize, penX, baselineY, 0, 0, glyphOut)
-               : mui_errorInvalid;
+               : muiRefuseText(atlas != nullptr ? atlas->service : nullptr);
 }
 
 muiResult muiGlyphAtlas_GetColor(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
@@ -594,7 +594,7 @@ muiResult muiGlyphAtlas_GetColor(muiGlyphAtlas* atlas, uint64_t font, uint32_t g
     return atlas != nullptr && atlas->format == mui_atlasColor
                ? GetAt(atlas, font, glyph, pixelSize, penX, baselineY, palette,
                        PackTint(foreground), glyphOut)
-               : mui_errorInvalid;
+               : muiRefuseText(atlas != nullptr ? atlas->service : nullptr);
 }
 
 // Gets a field, of one channel or of four as the atlas is.
@@ -604,7 +604,7 @@ static muiResult GetField(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, f
     if (glyphOut == nullptr || !IsSizeValid(pixelSize) || spread < MUI_MIN_FIELD_SPREAD ||
         spread > MUI_MAX_FIELD_SPREAD)
     {
-        return mui_errorInvalid;
+        return muiRefuseText(atlas->service);
     }
     const muiAtlasEntry* entry = nullptr;
     muiResult result =
@@ -622,7 +622,7 @@ muiResult muiGlyphAtlas_GetField(muiGlyphAtlas* atlas, uint64_t font, uint32_t g
 {
     return atlas != nullptr && atlas->format == mui_atlasOneChannel
                ? GetField(atlas, font, glyph, pixelSize, spread, glyphOut)
-               : mui_errorInvalid;
+               : muiRefuseText(atlas != nullptr ? atlas->service : nullptr);
 }
 
 muiResult muiGlyphAtlas_GetMultiField(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
@@ -630,7 +630,7 @@ muiResult muiGlyphAtlas_GetMultiField(muiGlyphAtlas* atlas, uint64_t font, uint3
 {
     return atlas != nullptr && atlas->format == mui_atlasFourChannel
                ? GetField(atlas, font, glyph, pixelSize, spread, glyphOut)
-               : mui_errorInvalid;
+               : muiRefuseText(atlas != nullptr ? atlas->service : nullptr);
 }
 
 uint32_t muiGlyphAtlas_GetPageCount(const muiGlyphAtlas* atlas)
@@ -654,7 +654,7 @@ muiResult muiGlyphAtlas_TakeUpdates(muiGlyphAtlas* atlas, muiAtlasUpdate* update
 {
     if (atlas == nullptr || countOut == nullptr || (updates == nullptr && capacity != 0))
     {
-        return mui_errorInvalid;
+        return muiRefuseText(atlas != nullptr ? atlas->service : nullptr);
     }
     *countOut = atlas->dirtyCount;
     if (capacity < atlas->dirtyCount)

@@ -11,6 +11,7 @@
 #include "maul-ui/text_editor.h"
 
 #include "text_editing.h"
+#include "text_service.h"
 
 #include "maul-ui/layout.h"
 #include "maul-ui/text_edit.h"
@@ -24,13 +25,13 @@ static muiResult EditingOf(const muiTextHost* host, muiNodeId nodeId, muiTextBlo
 {
     if (host == nullptr || host->service == nullptr || host->context == nullptr)
     {
-        return mui_errorInvalid;
+        return muiRefuseText(host != nullptr ? host->service : nullptr);
     }
     uint64_t key = muiNode_GetHostKey(host->context, nodeId);
     muiTextBlockId blockId = {(uint32_t)key, (uint32_t)(key >> 32)};
     *contentOut = muiNode_GetContentRect(host->context, nodeId);
-    return blockId.index1 != 0 ? muiEditingBlock(host->service, blockId, blockOut)
-                               : mui_errorInvalid;
+    return blockId.index1 != 0 ? muiEditBlock(host->service, blockId, blockOut)
+                               : muiRefuseText(host->service);
 }
 
 static muiTextSelection Collapsed(muiTextPosition at)
@@ -72,8 +73,9 @@ muiResult muiTextEditMove(const muiTextHost* host, muiNodeId nodeId, muiTextMove
 {
     muiTextBlock* block = nullptr;
     muiRect content;
-    muiResult result =
-        movement <= mui_moveTextEnd ? EditingOf(host, nodeId, &block, &content) : mui_errorInvalid;
+    muiResult result = movement <= mui_moveTextEnd
+                           ? EditingOf(host, nodeId, &block, &content)
+                           : muiRefuseText(host != nullptr ? host->service : nullptr);
     if (result != mui_success)
     {
         return result;
@@ -243,7 +245,7 @@ static muiResult PositionAt(const muiTextHost* host, muiNodeId nodeId, const mui
 {
     return isfinite(x) && isfinite(y) ? muiTextHitTest(host, nodeId, content->width, x - content->x,
                                                        y - content->y, positionOut)
-                                      : mui_errorInvalid;
+                                      : muiRefuseText(host->service);
 }
 
 muiResult muiTextEditPress(const muiTextHost* host, muiNodeId nodeId, float x, float y,
@@ -252,8 +254,8 @@ muiResult muiTextEditPress(const muiTextHost* host, muiNodeId nodeId, float x, f
     muiTextBlock* block = nullptr;
     muiRect content;
     muiTextPosition position = {0, mui_affinityDownstream};
-    muiResult result =
-        clickCount != 0 ? EditingOf(host, nodeId, &block, &content) : mui_errorInvalid;
+    muiResult result = clickCount != 0 ? EditingOf(host, nodeId, &block, &content)
+                                       : muiRefuseText(host != nullptr ? host->service : nullptr);
     result = result == mui_success ? PositionAt(host, nodeId, &content, x, y, &position) : result;
     if (result != mui_success)
     {

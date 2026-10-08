@@ -322,7 +322,7 @@ muiResult muiRenderColorGlyph(muiTextService* service, uint64_t font, uint32_t g
     if (service == nullptr || imageOut == nullptr || (pixels == nullptr && capacity != 0) ||
         !muiIsGlyphSizeValid(pixelSize) || !(offsetX >= 0.0f && offsetX < 1.0f))
     {
-        return mui_errorInvalid;
+        return muiRefuseText(service);
     }
     muiResult result = mui_success;
     ColorGlyph color = {.glyph = glyph};

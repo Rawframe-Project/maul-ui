@@ -10,6 +10,7 @@
 #include "text_blocks.h"
 #include "text_history.h"
 #include "text_rules.h"
+#include "text_service.h"
 
 #include "maul-ui/text_edit.h"
 
@@ -84,6 +85,16 @@ muiResult muiEditingBlock(const muiTextService* service, muiTextBlockId blockId,
     return mui_success;
 }
 
+muiResult muiEditBlock(muiTextService* service, muiTextBlockId blockId, muiTextBlock** blockOut)
+{
+    return muiCountText(service, muiEditingBlock(service, blockId, blockOut));
+}
+
+muiResult muiRefuseEdit(muiTextService* service)
+{
+    return muiRefuseText(service);
+}
+
 muiResult muiTextBlock_SetEditing(muiTextService* service, muiTextBlockId blockId,
                                   const muiTextEditDef* def)
 {
@@ -92,7 +103,7 @@ muiResult muiTextBlock_SetEditing(muiTextService* service, muiTextBlockId blockI
          ((def->flags & ~(mui_editMultiline | mui_editReadOnly | mui_editPassword)) != 0 ||
           def->filter > mui_filterDecimal || def->purpose > mui_purposeUrl)))
     {
-        return mui_errorInvalid;
+        return muiRefuseText(service);
     }
     muiTextBlock* block = muiResolveTextBlock(service, blockId);
     if (block == nullptr)
@@ -134,7 +145,7 @@ muiResult muiTextBlock_Select(muiTextService* service, muiTextBlockId blockId,
                               muiTextSelection selection)
 {
     muiTextBlock* block = nullptr;
-    muiResult result = muiEditingBlock(service, blockId, &block);
+    muiResult result = muiEditBlock(service, blockId, &block);
     if (result != mui_success)
     {
         return result;
@@ -143,7 +154,7 @@ muiResult muiTextBlock_Select(muiTextService* service, muiTextBlockId blockId,
         !IsCharacterStart(block, selection.caret.offset) ||
         selection.caret.affinity > mui_affinityUpstream)
     {
-        return mui_errorInvalid;
+        return muiRefuseText(service);
     }
     muiPlaceSelection(block, selection);
     block->editing.preferredX = -1.0f;
@@ -175,7 +186,7 @@ static muiResult Edit(muiTextService* service, muiTextBlock* block, uint32_t sta
     }
     if (!muiFitsBlockText(block, start, end, length))
     {
-        return mui_errorInvalid;
+        return muiRefuseText(service);
     }
     const muiTextEdit edit = {
         start, end - start, length, 0, editing->selection, Collapsed(start + length), kind};
@@ -232,8 +243,8 @@ static muiResult Put(muiTextService* service, muiTextBlockId blockId, const char
         *changedOut = false;
     }
     muiTextBlock* block = nullptr;
-    muiResult result = text != nullptr || length == 0 ? muiEditingBlock(service, blockId, &block)
-                                                      : mui_errorInvalid;
+    muiResult result = text != nullptr || length == 0 ? muiEditBlock(service, blockId, &block)
+                                                      : muiRefuseText(service);
     if (result != mui_success || (block->editing.def.flags & mui_editReadOnly) != 0)
     {
         return result;
@@ -297,8 +308,8 @@ muiResult muiTextBlock_Erase(muiTextService* service, muiTextBlockId blockId,
         *changedOut = false;
     }
     muiTextBlock* block = nullptr;
-    muiResult result = deletion <= mui_deleteForward ? muiEditingBlock(service, blockId, &block)
-                                                     : mui_errorInvalid;
+    muiResult result = deletion <= mui_deleteForward ? muiEditBlock(service, blockId, &block)
+                                                     : muiRefuseText(service);
     uint32_t start = 0;
     uint32_t end = 0;
     result = result == mui_success && (block->editing.def.flags & mui_editReadOnly) == 0
@@ -325,7 +336,7 @@ muiResult muiTextBlock_EraseTo(muiTextService* service, muiTextBlockId blockId, 
         *changedOut = false;
     }
     muiTextBlock* block = nullptr;
-    muiResult result = muiEditingBlock(service, blockId, &block);
+    muiResult result = muiEditBlock(service, blockId, &block);
     if (result != mui_success)
     {
         return result;
@@ -333,7 +344,7 @@ muiResult muiTextBlock_EraseTo(muiTextService* service, muiTextBlockId blockId, 
     offset = offset < block->length ? offset : block->length;
     if (!IsCharacterStart(block, offset))
     {
-        return mui_errorInvalid;
+        return muiRefuseText(service);
     }
     if (block->compositionLength != 0)
     {
@@ -373,7 +384,7 @@ static muiResult Step(muiTextService* service, muiTextBlockId blockId, bool back
         *changedOut = false;
     }
     muiTextBlock* block = nullptr;
-    muiResult result = muiEditingBlock(service, blockId, &block);
+    muiResult result = muiEditBlock(service, blockId, &block);
     muiTextEditing* editing = result == mui_success ? &block->editing : nullptr;
     if (editing == nullptr || (editing->def.flags & mui_editReadOnly) != 0 ||
         block->compositionLength != 0 ||
@@ -463,8 +474,8 @@ muiResult muiTextBlock_Compose(muiTextService* service, muiTextBlockId blockId, 
     }
     muiTextBlock* block = nullptr;
     muiResult result = (text != nullptr || length == 0) && caret <= length
-                           ? muiEditingBlock(service, blockId, &block)
-                           : mui_errorInvalid;
+                           ? muiEditBlock(service, blockId, &block)
+                           : muiRefuseText(service);
     // A password takes no composition, as platforms turn input methods
     // off in one.
     if (result != mui_success ||
@@ -484,7 +495,7 @@ muiResult muiTextBlock_Compose(muiTextService* service, muiTextBlockId blockId, 
     }
     if (caret < length && (((const unsigned char*)text)[caret] & 0xC0u) == 0x80u)
     {
-        return mui_errorInvalid;
+        return muiRefuseText(service);
     }
     // A composition starting over a selection takes its place, as typing
     // would: undone as an edit of its own.

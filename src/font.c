@@ -307,7 +307,7 @@ muiResult muiCreateFont(muiTextService* service, const muiFontDef* def, muiFontI
         def->cookie != FONT_DEF_COOKIE || def->data == nullptr || def->size < HEADER_SIZE ||
         def->size > INT32_MAX || def->dataMode > mui_fontDataBorrow)
     {
-        return mui_errorInvalid;
+        return muiRefuseText(service);
     }
     uint32_t faces = 0;
     muiResult counted = muiCountFontFaces(def->data, def->size, &faces);
@@ -346,7 +346,7 @@ muiResult muiDestroyFont(muiTextService* service, muiFontId fontId)
 {
     if (service == nullptr || fontId.index1 == 0)
     {
-        return mui_errorInvalid;
+        return muiRefuseText(service);
     }
     uint32_t slot = Resolve(service, fontId);
     if (slot == 0)

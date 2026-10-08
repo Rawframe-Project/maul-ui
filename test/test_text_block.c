@@ -13,11 +13,14 @@
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
 #include "maul-ui/font.h"
+#include "maul-ui/glyph_atlas.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/scroll.h"
 #include "maul-ui/text.h"
 #include "maul-ui/text_block.h"
+#include "maul-ui/text_edit.h"
+#include "maul-ui/text_editor.h"
 #include "maul-ui/text_style.h"
 
 #include <math.h>
@@ -291,6 +294,51 @@ static void TestWrapChanged(void)
     CHECK(muiNode_GetRect(scene.context, node).height == 10.0f, "not wrapped, one line");
     muiDestroyContext(scene.context);
     muiDestroyTextService(scene.service);
+}
+
+// Invalid input against a live service counts one misuse each, its
+// atlases' and its editing's included; a NULL service, a stale id and a
+// query taking the service as const count nothing.
+static void TestMisuse(void)
+{
+    Scene scene = MakeScene(NULL);
+    muiTextService* service = scene.service;
+    CHECK(muiGetTextServiceMisuse(service) == 0 && muiGetTextServiceMisuse(NULL) == 0, "none yet");
+    muiTextBlockId block = {0, 0};
+    CHECK(muiCreateTextBlock(service, &(muiTextBlockDef){0}, &block) == mui_errorInvalid &&
+              muiGetTextServiceMisuse(service) == 1,
+          "a def without its cookie");
+    CHECK(muiCreateTextBlock(NULL, &(muiTextBlockDef){0}, &block) == mui_errorInvalid &&
+              muiGetTextServiceMisuse(service) == 1,
+          "no service: nowhere to count");
+    const muiTextBlockDef def = muiDefaultTextBlockDef();
+    CHECK(muiCreateTextBlock(service, &def, &block) == mui_success, "a block");
+    const muiTextSelection all = {0, {0, mui_affinityDownstream}};
+    CHECK(muiTextBlock_Select(service, block, all) == mui_errorInvalid &&
+              muiGetTextServiceMisuse(service) == 2,
+          "selecting in a block not editing");
+    const uint64_t zero = 0;
+    CHECK(muiSetFallbackFonts(service, &zero, 1) == mui_errorInvalid &&
+              muiGetTextServiceMisuse(service) == 3,
+          "a fallback that names nothing");
+    muiGlyphAtlas* atlas = NULL;
+    const muiGlyphAtlasDef atlasDef = muiDefaultGlyphAtlasDef();
+    muiAtlasGlyph glyph = {0};
+    const muiLinearColor black = {0.0f, 0.0f, 0.0f, 1.0f};
+    CHECK(muiCreateGlyphAtlas(service, &atlasDef, &atlas) == mui_success &&
+              muiGlyphAtlas_GetColor(atlas, 0, 1, 10.0f, 0.0f, 0.0f, 0, black, &glyph) ==
+                  mui_errorInvalid &&
+              muiGetTextServiceMisuse(service) == 4,
+          "a colour glyph from a one-channel atlas, counted on its service");
+    muiDestroyGlyphAtlas(atlas);
+    CHECK(muiDestroyTextBlock(service, block) == mui_success &&
+              muiDestroyTextBlock(service, block) == mui_errorStale &&
+              muiGetTextServiceMisuse(service) == 4,
+          "a stale id is no misuse");
+    CHECK(muiFont_GetMetrics(service, scene.font, NULL) == mui_errorInvalid &&
+              muiGetTextServiceMisuse(service) == 4,
+          "a const query counts nothing");
+    FreeScene(&scene);
 }
 
 static void TestLineBreaksInText(void)
@@ -799,6 +847,7 @@ int main(void)
     TestAccessText();
     TestMeasuring();
     TestWrapChanged();
+    TestMisuse();
     TestLineBreaksInText();
     TestPainting();
     TestPaintingWhatIsSeen();

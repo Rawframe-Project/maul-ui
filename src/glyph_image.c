@@ -25,7 +25,7 @@ muiResult muiRenderGlyph(muiTextService* service, uint64_t font, uint32_t glyph,
     if (service == nullptr || imageOut == nullptr || (pixels == nullptr && capacity != 0) ||
         !muiIsGlyphSizeValid(pixelSize) || !(offsetX >= 0.0f && offsetX < 1.0f))
     {
-        return mui_errorInvalid;
+        return muiRefuseText(service);
     }
     muiResult result = mui_success;
     uint64_t key = 0;
@@ -158,7 +158,7 @@ static muiResult RenderField(muiTextService* service, uint64_t font, uint32_t gl
         !muiIsGlyphSizeValid(pixelSize) || spread < MUI_MIN_FIELD_SPREAD ||
         spread > MUI_MAX_FIELD_SPREAD)
     {
-        return mui_errorInvalid;
+        return muiRefuseText(service);
     }
     muiResult result = mui_success;
     uint64_t key = 0;

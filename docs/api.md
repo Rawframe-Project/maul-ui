@@ -1212,6 +1212,11 @@ void muiDestroyTextService(muiTextService* service);
 ```
 Destroys a service and every font in it. Every id it gave out becomes meaningless.  @param service  The service, or NULL for nothing. @par Thread safety Safe from any thread; the service is used by one thread at a time.
 
+```c
+uint64_t muiGetTextServiceMisuse(const muiTextService* service);
+```
+Returns how many calls the service has refused as invalid input (`mui_errorInvalid`), its glyph atlases' and text editing's among them: a count release builds can watch to catch a host's bugs. Stale ids are not misuse, and queries taking the service as const count nothing.  @param service  The service. @return The count; 0 for a NULL service. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
 ## `text_block.h`
 
 Text blocks (record mui-0006): UTF-8 text the text service lays out as a node's host content. A node whose host key is a block's key, and whose content is the host's, is measured by muiMeasureText and painted by muiPaintText in its computed text style: lines broken where Unicode allows (UAX #14), runs ordered by the Unicode bidirectional algorithm (UAX #9), glyphs shaped by HarfBuzz. White space is kept as written, line breaks in the text end lines, and spaces ending a wrapped line hang past it.
@@ -1864,4 +1869,4 @@ Asks the window to accept text with its caret at a rectangle of a node's border 
 
 ---
 
-339 functions across 40 headers.
+340 functions across 40 headers.

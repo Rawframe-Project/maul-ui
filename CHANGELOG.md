@@ -132,6 +132,10 @@ format.
 
 ### Added
 
+- The text service counts misuse, as the context does: every call
+  refused as invalid input against a live service, its glyph atlases'
+  and text editing's included, read by `muiGetTextServiceMisuse`.
+
 - A guide (`docs/guide.md`): the model, then part by part, from nodes
   and style to text, editing, painting, input, scrolling, transitions,
   accessibility, building and testing; each of its C snippets is built

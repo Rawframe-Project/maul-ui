@@ -294,12 +294,12 @@ muiResult muiTextEditEvent(const muiTextHost* host, muiNodeId nodeId, const muiE
         event == nullptr || input == nullptr || outcomeOut == nullptr ||
         input->keymap > mui_keymapMac)
     {
-        return mui_errorInvalid;
+        return muiRefuseEdit(host != nullptr ? host->service : nullptr);
     }
     muiTextEditOutcome outcome = {false, false, false};
     muiTextBlockId blockId = BlockOf(host, nodeId);
     muiTextBlock* block = nullptr;
-    muiResult result = muiEditingBlock(host->service, blockId, &block);
+    muiResult result = muiEditBlock(host->service, blockId, &block);
     if (result == mui_success && event->kind == mui_eventText)
     {
         // Control characters are the keys' to act on.

@@ -40,6 +40,8 @@ struct muiTextService
     uint32_t fallbackCount;
     // Blocks that could not be laid out for want of memory.
     uint64_t failures;
+    // Calls refused as invalid input against the service or its atlases.
+    uint64_t misuse;
     // Scratch for laying out and painting: lines, bidi runs, glyphs and
     // bidi resolution's workspace.
     muiBuffer lines;
@@ -93,5 +95,23 @@ struct muiTextService
 // The font a key names, key 0 naming the default font, and the key it
 // resolves to; NULL when it names none.
 muiFont* muiFindFont(const muiTextService* service, uint64_t key, uint64_t* keyOut);
+
+// Refuses invalid input, counting it as the service's misuse; a NULL
+// service, having nowhere to count, is refused uncounted.
+static inline muiResult muiRefuseText(muiTextService* service)
+{
+    if (service != nullptr)
+    {
+        service->misuse++;
+    }
+    return mui_errorInvalid;
+}
+
+// A status passed on from a check that could not count: invalid input
+// counted as the service's misuse.
+static inline muiResult muiCountText(muiTextService* service, muiResult status)
+{
+    return status == mui_errorInvalid ? muiRefuseText(service) : status;
+}
 
 #endif // MAUL_UI_SRC_TEXT_SERVICE_H
