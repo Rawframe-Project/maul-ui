@@ -109,6 +109,67 @@ static void TestBoxes(void)
     muiRhiFreeImages(&images);
 }
 
+// The margin an edge covers on every side: a quad half a unit off the
+// left or top kept, two units off culled; and a list with no transform
+// table read as untransformed.
+static void TestEdges(void)
+{
+    muiDrawCommand commands[6] = {
+        Box(-1.5f, 1, 1, 1, 0), // kept: within the margin left
+        Box(-3, 1, 1, 1, 0),    // culled: past it
+        Box(1, -1.5f, 1, 1, 0), // kept: within the margin above
+        Box(2, -3, 1, 1, 0),    // culled: past it
+        Box(60, -58, 4, 4, 0),  // culled: above the target, untransformed
+        Box(4, 4, 4, 4, 0),     // kept
+    };
+    muiDrawList list = {.commands = commands, .commandCount = 6};
+    list.header.scale = 1.0f;
+    muiRhiCull cull = {0};
+    muiRhiImages images = muiRhiMakeImages(&(muiAllocator){0}, NULL, NULL, NULL);
+    muiRhiGlyphs glyphs = {0};
+    CHECK(muiRhiPrepareCull(&cull, &list, 64, 64) == mui_success, "bounds worked out");
+    muiRhiInstance instances[6];
+    const muiRhiPacking packing = {&images, &glyphs, &cull, false};
+    uint32_t count = muiRhiPackInstances(&list, &packing, instances);
+    const float xs[3] = {-1.5f, 1, 4};
+    CHECK(Packed(instances, count, xs, 3), "the margin left and above; no transforms");
+    muiRhiFreeCull(&cull);
+    muiRhiFreeImages(&images);
+}
+
+// An outer shadow's spread grows each corner radius by the spread where
+// the radius is at least as large, by less where it is smaller (CSS
+// Backgrounds 3), and keeps a square corner square; an inset one's
+// shrinks them, not below 0.
+static void TestSpreadRadii(void)
+{
+    muiDrawCommand commands[2] = {{.kind = mui_drawShadow}, {.kind = mui_drawShadow}};
+    commands[0].shadow = (muiDrawShadow){.rect = {10, 10, 30, 30}, .spread = 4};
+    commands[0].shadow.radii = (muiCorners){2, 8, 0, 4};
+    commands[1].shadow = commands[0].shadow;
+    commands[1].shadow.inset = 1;
+    muiDrawList list = {.commands = commands, .commandCount = 2};
+    list.header.scale = 1.0f;
+    muiRhiCull cull = {0};
+    muiRhiImages images = muiRhiMakeImages(&(muiAllocator){0}, NULL, NULL, NULL);
+    muiRhiGlyphs glyphs = {0};
+    CHECK(muiRhiPrepareCull(&cull, &list, 64, 64) == mui_success, "bounds worked out");
+    muiRhiInstance instances[2];
+    const muiRhiPacking packing = {&images, &glyphs, &cull, false};
+    CHECK(muiRhiPackInstances(&list, &packing, instances) == 2, "both kept");
+    // 2 against 4: 2 + 4 (1 + (2 / 4 - 1)^3) = 5.5.
+    const muiCorners outer = instances[0].radii;
+    CHECK(outer.topLeft == 5.5f && outer.topRight == 12.0f && outer.bottomRight == 0.0f &&
+              outer.bottomLeft == 8.0f,
+          "an outer spread's radii");
+    const muiCorners inner = instances[1].radii;
+    CHECK(inner.topLeft == 0.0f && inner.topRight == 4.0f && inner.bottomRight == 0.0f &&
+              inner.bottomLeft == 0.0f,
+          "an inset spread's radii");
+    muiRhiFreeCull(&cull);
+    muiRhiFreeImages(&images);
+}
+
 // The host's function counts its calls and has no images.
 static bool CountCalls(void* context, uint64_t key, muiRhiImage* imageOut)
 {
@@ -224,6 +285,8 @@ static void TestTextureSplits(void)
 int main(void)
 {
     TestBoxes();
+    TestEdges();
+    TestSpreadRadii();
     TestImages();
     TestOneDraw();
     TestTextureSplits();

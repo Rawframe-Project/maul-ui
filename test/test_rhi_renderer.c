@@ -22,6 +22,7 @@
 #include "maul-rhi/test.h"
 #include "maul-ui-rhi/renderer.h"
 
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -100,6 +101,46 @@ static int Pump(Gpu* gpu, muiRhiRenderer* renderer)
         its += muiRhiRenderer_Notify(renderer, &record) ? 1 : 0;
     }
     return its;
+}
+
+// The renderer's memory: allocation failAt fails (from 1, 0 for none),
+// and the bytes live are counted. Blocks are aligned by hand, as not
+// every C library has aligned_alloc.
+typedef struct Memory
+{
+    uint32_t allocations;
+    uint32_t failAt;
+    size_t live;
+} Memory;
+
+static void* Allocate(size_t size, size_t alignment, void* context)
+{
+    Memory* memory = context;
+    if (++memory->allocations == memory->failAt)
+    {
+        return NULL;
+    }
+    size_t room = alignment > sizeof(void*) ? alignment : sizeof(void*);
+    unsigned char* raw = malloc(size + room + sizeof(void*));
+    if (raw == NULL)
+    {
+        return NULL;
+    }
+    uintptr_t start = (uintptr_t)(raw + sizeof(void*));
+    unsigned char* block = raw + sizeof(void*) + (room - start % room) % room;
+    memcpy(block - sizeof(void*), &raw, sizeof raw);
+    memory->live += size;
+    return block;
+}
+
+static void Release(void* block, size_t size, size_t alignment, void* context)
+{
+    (void)alignment;
+    Memory* memory = context;
+    void* raw = NULL;
+    memcpy(&raw, (unsigned char*)block - sizeof(void*), sizeof raw);
+    memory->live -= size;
+    free(raw);
 }
 
 static muiRhiRenderer* Make(Gpu* gpu, uint32_t instances)
@@ -251,8 +292,8 @@ static void TestDraws(void)
     Close(&gpu);
 }
 
-// The host's images: keys 1 and 2 name texture A, 3 names B, others
-// nothing; it counts its calls.
+// The host's images: keys 1 and 2 name texture A, 3 names B, 5 names A
+// with no size, others nothing; it counts its calls.
 typedef struct Host
 {
     mrhiTextureId a;
@@ -264,11 +305,12 @@ static bool FindImage(void* context, uint64_t key, muiRhiImage* imageOut)
 {
     Host* host = context;
     host->calls++;
-    if (key < 1 || key > 3)
+    if (key < 1 || key > 5 || key == 4)
     {
         return false;
     }
-    *imageOut = (muiRhiImage){.texture = key == 3 ? host->b : host->a, .width = 8, .height = 8};
+    uint32_t width = key == 5 ? 0 : 8;
+    *imageOut = (muiRhiImage){.texture = key == 3 ? host->b : host->a, .width = width, .height = 8};
     return true;
 }
 
@@ -315,9 +357,83 @@ static void TestImages(void)
           "images in a draw a texture, the host asked once a key, key 4 not drawn");
     CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && host.calls == 8,
           "asked again the next frame");
+    // An image of no size is not drawn: three boxes fill 432 of a
+    // staging block, which a fourth instance would pass.
+    const muiDrawCommand empty[4] = {Box(0, 0), Box(0, 0), Box(0, 0), Image(5)};
+    muiDrawList none = ListOf(empty, 4);
+    muiRhiRenderer_Forget(renderer);
+    CHECK(DrawFrame(&gpu, renderer, &none) == mui_success && s_log.stagingBytes == Staged(3),
+          "an image of no size not drawn");
     muiDestroyRhiRenderer(renderer);
     (void)mrhiDestroyTexture(gpu.device, host.a);
     (void)mrhiDestroyTexture(gpu.device, host.b);
+    Close(&gpu);
+}
+
+// Fourteen host textures, keys 1 to 14.
+typedef struct Many
+{
+    mrhiTextureId textures[14];
+} Many;
+
+static bool FindMany(void* context, uint64_t key, muiRhiImage* imageOut)
+{
+    const Many* many = context;
+    if (key < 1 || key > 14)
+    {
+        return false;
+    }
+    *imageOut = (muiRhiImage){.texture = many->textures[key - 1], .width = 4, .height = 4};
+    return true;
+}
+
+// Frames sampling more textures each, 8 up to 14, on one renderer: the
+// plan's table of accesses (the streams, each texture, the target) grows
+// past 16 entries on the way, and holds every one (the sanitizers check).
+static void TestManyTextures(void)
+{
+    Gpu gpu;
+    CHECK(Open(&gpu, mrhi_success), "a device");
+    Many many = {0};
+    mrhiTextureDef textureDef = mrhiDefaultTextureDef();
+    textureDef.format = mrhi_formatRgba8UnormSrgb;
+    textureDef.width = 4;
+    textureDef.height = 4;
+    textureDef.usage = mrhi_textureSampled;
+    bool made = true;
+    for (uint32_t i = 0; i < 14; i++)
+    {
+        made =
+            made && mrhiCreateTexture(gpu.device, &textureDef, &many.textures[i]) == mrhi_success;
+    }
+    muiRhiRendererDef def = muiDefaultRhiRendererDef();
+    def.device = gpu.device;
+    def.image = FindMany;
+    def.imageContext = &many;
+    muiRhiRenderer* renderer = NULL;
+    CHECK(made && muiCreateRhiRenderer(&def, &renderer) == mui_success,
+          "fourteen textures and a renderer");
+    muiDrawCommand box = Box(0, 0);
+    muiDrawList one = ListOf(&box, 1);
+    CHECK(DrawFrame(&gpu, renderer, &one) == mui_empty && muiRhiRenderer_IsReady(renderer),
+          "ready");
+    muiDrawCommand commands[14];
+    bool drawn = true;
+    for (uint32_t count = 8; count <= 14; count++)
+    {
+        for (uint32_t i = 0; i < count; i++)
+        {
+            commands[i] = Image(i + 1);
+        }
+        muiDrawList list = ListOf(commands, count);
+        drawn = drawn && DrawFrame(&gpu, renderer, &list) == mui_success;
+    }
+    CHECK(drawn, "8 to 14 textures a frame drawn");
+    muiDestroyRhiRenderer(renderer);
+    for (uint32_t i = 0; i < 14; i++)
+    {
+        (void)mrhiDestroyTexture(gpu.device, many.textures[i]);
+    }
     Close(&gpu);
 }
 
@@ -333,7 +449,10 @@ static void TestGlyphs(void)
 {
     Gpu gpu;
     CHECK(Open(&gpu, mrhi_success), "a device");
+    // The service's memory counted: the renderer's atlases are its.
+    Memory memory = {0};
     muiTextServiceDef serviceDef = muiDefaultTextServiceDef();
+    serviceDef.allocator = (muiAllocator){Allocate, Release, &memory};
     muiTextService* service = NULL;
     muiFontDef fontDef = muiDefaultFontDef();
     fontDef.data = s_ahem;
@@ -347,6 +466,12 @@ static void TestGlyphs(void)
     def.device = gpu.device;
     def.text = service;
     muiRhiRenderer* renderer = NULL;
+    // A renderer made and destroyed gives its atlases back.
+    const size_t before = memory.live;
+    CHECK(muiCreateRhiRenderer(&def, &renderer) == mui_success && memory.live > before,
+          "a renderer's atlases from the service");
+    muiDestroyRhiRenderer(renderer);
+    CHECK(memory.live == before, "the renderer's atlases given back to the service");
     CHECK(muiCreateRhiRenderer(&def, &renderer) == mui_success, "a renderer with text");
     muiDrawCommand box = Box(0, 0);
     muiDrawList one = ListOf(&box, 1);
@@ -399,6 +524,7 @@ static void TestGlyphs(void)
           "a run past the glyph table not drawn");
     muiDestroyRhiRenderer(renderer);
     muiDestroyTextService(service);
+    CHECK(memory.live == 0, "the service's memory all given back");
     Close(&gpu);
 }
 
@@ -502,6 +628,47 @@ static void TestUploadShare(void)
     Close(&gpu);
 }
 
+// Every allocation of the renderer failing in turn, as it is made and
+// draws a list that grows its streams: each call succeeds or reports
+// capacity, and every byte comes back.
+static void TestMemory(void)
+{
+    muiDrawCommand commands[40];
+    for (uint32_t i = 0; i < 40; i++)
+    {
+        commands[i] = Box((float)(i % 6), (float)(i / 6));
+    }
+    muiDrawList list = ListOf(commands, 40);
+    bool held = true;
+    uint32_t succeeded = 0;
+    for (uint32_t failAt = 1; failAt <= 60 && held; failAt++)
+    {
+        Gpu gpu;
+        CHECK(Open(&gpu, mrhi_success), "a device");
+        Memory memory = {.failAt = failAt};
+        muiRhiRendererDef def = muiDefaultRhiRendererDef();
+        def.device = gpu.device;
+        def.instances = 4;
+        def.allocator = (muiAllocator){Allocate, Release, &memory};
+        muiRhiRenderer* renderer = NULL;
+        muiResult made = muiCreateRhiRenderer(&def, &renderer);
+        held = made == mui_success || (made == mui_errorCapacity && renderer == NULL);
+        if (made == mui_success)
+        {
+            muiResult first = DrawFrame(&gpu, renderer, &list);
+            muiResult drawn = DrawFrame(&gpu, renderer, &list);
+            held = held && (first == mui_empty || first == mui_errorCapacity) &&
+                   (drawn == mui_success || drawn == mui_errorCapacity);
+            succeeded += drawn == mui_success ? 1 : 0;
+            muiDestroyRhiRenderer(renderer);
+        }
+        held = held && memory.live == 0;
+        Close(&gpu);
+    }
+    CHECK(held, "every allocation failing in turn: success or capacity, nothing kept");
+    CHECK(succeeded > 0, "some drawn, past the allocations that fail");
+}
+
 static void TestFailedPipeline(void)
 {
     Gpu gpu;
@@ -565,8 +732,10 @@ int main(void)
     TestContract();
     TestDraws();
     TestImages();
+    TestManyTextures();
     TestChanges();
     TestUploadShare();
+    TestMemory();
 #if MUI_TEST_TEXT
     TestGlyphs();
 #else
