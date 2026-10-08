@@ -1025,18 +1025,26 @@ static void Edit(muiContext* context, muiNodeId* nodes, uint32_t count, Random* 
 }
 
 // Paints a few glyphs in the node's text color and size, which a parent's
-// text style reaches; user is the context.
+// text style reaches; user is the context. Every fourth node asks what
+// is visible and places its glyphs by it, so a copy of what it saw
+// before would show.
 static void PaintGlyphs(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
                         muiDrawSink* sink)
 {
     (void)hostKey;
     muiComputedTextStyle style;
     CHECK(muiNode_GetTextStyle(user, nodeId, &style) == mui_success, "a paint function reads");
+    muiRect seen = {0.0f, 0.0f, 0.0f, 0.0f};
+    if (nodeId.index1 % 4 == 0)
+    {
+        CHECK(muiDrawSink_GetVisibleRect(sink, &seen) == mui_success, "what is visible");
+    }
     muiGlyph glyphs[3];
     uint32_t count = 1 + nodeId.index1 % 3;
     for (uint32_t i = 0; i < count; i++)
     {
-        glyphs[i] = (muiGlyph){nodeId.index1 * 10 + i, (float)i * style.size * 0.5f, 0.0f};
+        glyphs[i] = (muiGlyph){nodeId.index1 * 10 + i,
+                               (float)i * style.size * 0.5f + seen.x + seen.width, seen.y};
     }
     const muiGlyphRun run = {style.font, style.size, style.color, width > 30.0f ? 2.0f : 0.0f,
                              fminf(height, style.size) * 0.75f};
@@ -1523,6 +1531,106 @@ static void TestGlyphRuns(void)
     muiDestroyContext(context);
 }
 
+typedef struct SeeingHost
+{
+    int calls;
+    muiRect seen;
+} SeeingHost;
+
+static void PaintSeeing(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
+                        muiDrawSink* sink)
+{
+    (void)nodeId;
+    (void)hostKey;
+    (void)width;
+    (void)height;
+    SeeingHost* host = user;
+    host->calls++;
+    CHECK(muiDrawSink_GetVisibleRect(sink, &host->seen) == mui_success &&
+              muiDrawSink_GetVisibleRect(sink, NULL) == mui_errorInvalid &&
+              muiDrawSink_GetVisibleRect(NULL, &host->seen) == mui_errorInvalid,
+          "asked");
+}
+
+static bool Saw(const SeeingHost* host, float x, float y, float width, float height)
+{
+    return host->seen.x == x && host->seen.y == y && host->seen.width == width &&
+           host->seen.height == height;
+}
+
+static void BuildSeeing(muiContext* context, muiNodeId root, SeeingHost* host)
+{
+    const muiLayoutInput layout = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
+    CHECK(muiComputeLayout(context, root, &layout) == mui_success &&
+              muiBuildDrawList(context, root, &(muiDrawInput){7, 1.0f, PaintSeeing, host}) ==
+                  mui_success,
+          "built");
+}
+
+// What host content can be seen: within the surface and its clips,
+// through the scales and scroll offsets above it; a node that asked is
+// painted again by every build, scrolling alone included.
+static void TestVisibleRect(void)
+{
+    muiContext* context = MakeContext();
+    // A scroll container of 100 by 50 at 80 down a surface 100 tall, a
+    // host node of 80 by 300 in it.
+    muiNodeId root = Add(context, s_nullNode, 200.0f, 100.0f, (muiEdges){0.0f, 0.0f, 80.0f, 0.0f});
+    muiNodeId scroller = Add(context, root, 100.0f, 50.0f, (muiEdges){0});
+    muiNodeId text = Add(context, scroller, 80.0f, 300.0f, (muiEdges){0});
+    muiNodeId sibling = Add(context, root, 10.0f, 10.0f, (muiEdges){0});
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.scrollAxes = mui_scrollVertical;
+    CHECK(muiNode_SetLayoutValues(context, scroller, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyScrollAxes)) == mui_success,
+          "a scroll container");
+    layout.content = mui_contentHost;
+    CHECK(muiNode_SetLayoutValues(context, text, &layout, MUI_PROPERTY_BIT(mui_propertyContent)) ==
+              mui_success,
+          "host content");
+    SeeingHost host = {0, {0}};
+    BuildSeeing(context, root, &host);
+    CHECK(host.calls == 1 && Saw(&host, 0.0f, 0.0f, 100.0f, 20.0f),
+          "the container's port down to the surface's bottom");
+
+    // Scrolling alone paints it again, seeing further down.
+    CHECK(muiNode_SetScroll(context, scroller, 0.0f, 30.0f) == mui_success, "scrolled");
+    muiDrawList list;
+    CHECK(muiGetDrawList(context, &list) == mui_success, "get");
+    uint64_t generation = list.header.generation;
+    BuildSeeing(context, root, &host);
+    CHECK(muiGetDrawList(context, &list) == mui_success &&
+              list.header.generation == generation + 1 && host.calls == 2 &&
+              Saw(&host, 0.0f, 30.0f, 100.0f, 20.0f),
+          "scrolled 30");
+    // A static frame keeps the list; a sibling's change paints it again.
+    BuildSeeing(context, root, &host);
+    CHECK(host.calls == 2, "kept");
+    Paint(context, sibling, s_blue);
+    BuildSeeing(context, root, &host);
+    CHECK(host.calls == 3, "not copied");
+
+    // The container at half about its top left: its port 50 by 25 from
+    // 80 down, 20 of it on the surface, 40 of the content's units.
+    SetScale(context, scroller, (muiLocalScale){0.5f, 0.5f, 0.0f, 0.0f});
+    BuildSeeing(context, root, &host);
+    CHECK(Saw(&host, 0.0f, 30.0f, 100.0f, 40.0f), "through a scale");
+    // Scaled to nothing, nothing is seen.
+    SetScale(context, scroller, (muiLocalScale){0.0f, 1.0f, 0.0f, 0.0f});
+    BuildSeeing(context, root, &host);
+    CHECK(Saw(&host, 0.0f, 0.0f, 0.0f, 0.0f), "scaled to nothing");
+    // Below the surface, nothing is seen either.
+    SetScale(context, scroller, (muiLocalScale){1.0f, 1.0f, 0.0f, 0.0f});
+    muiLayoutStyle down = muiDefaultLayoutStyle();
+    down.padding.top = 120.0f;
+    CHECK(muiNode_SetLayoutValues(context, root, &down, MUI_PROPERTY_BIT(mui_propertyPaddingTop)) ==
+              mui_success,
+          "moved down");
+    BuildSeeing(context, root, &host);
+    CHECK(Saw(&host, 0.0f, 0.0f, 0.0f, 0.0f), "off the surface");
+    muiDestroyContext(context);
+}
+
 static void TestGlyphRunsRightToLeftAndLimits(void)
 {
     muiContext* context = MakeContext();
@@ -1603,6 +1711,7 @@ int main(void)
     TestRetainedEdges();
     TestGlyphRuns();
     TestGlyphRunsRightToLeftAndLimits();
+    TestVisibleRect();
     if (getenv(UPDATE_VARIABLE) != NULL)
     {
         WriteGolden();

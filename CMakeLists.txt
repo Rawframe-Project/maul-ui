@@ -93,6 +93,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/condition.c
     src/context.c
     src/draw.c
+    src/draw_transform.c
     src/easing.c
     src/flex.c
     src/flex_resolve.c

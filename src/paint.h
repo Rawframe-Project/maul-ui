@@ -41,6 +41,10 @@ typedef struct muiPainter
     uint32_t glyphCapacity;
     uint32_t transformCapacity;
     float scale;
+    // The list's root, and how many nodes' host content asked what is
+    // visible so far.
+    uint32_t root;
+    uint32_t culled;
     bool full;
     muiPaintFunction paint;
     void* paintUser;

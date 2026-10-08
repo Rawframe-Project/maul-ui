@@ -9,6 +9,7 @@
 
 #include "paint_host.h"
 
+#include "draw_transform.h"
 #include "layout_node.h"
 #include "tree.h"
 
@@ -85,6 +86,54 @@ muiResult muiDrawSink_AddGlyphRun(muiDrawSink* sink, const muiGlyphRun* run, con
     drawn->color = muiPaintColor(painter, run->color, sink->state->opacity);
     memcpy(&out->glyphs[out->glyphCount], glyphs, glyphCount * sizeof *glyphs);
     out->glyphCount += glyphCount;
+    return mui_success;
+}
+
+// Narrows a span from low up to high to where it meets one.
+static void Meet(float* low, float* high, float otherLow, float otherHigh)
+{
+    *low = fmaxf(*low, otherLow);
+    *high = fminf(*high, otherHigh);
+}
+
+muiResult muiDrawSink_GetVisibleRect(muiDrawSink* sink, muiRect* rectOut)
+{
+    if (sink == nullptr || rectOut == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    muiPainter* painter = sink->painter;
+    const muiContext* context = painter->context;
+    const muiDrawTables* out = painter->out;
+    const muiRect* surface = &context->layout[painter->root - 1].rect;
+    // On the surface, through every clip the content is drawn in, each
+    // as its rectangle: corners and transforms only take away.
+    float left = 0.0f;
+    float top = 0.0f;
+    float right = surface->width;
+    float bottom = surface->height;
+    for (uint32_t at = sink->state->clip; at != 0; at = out->clips[at].parent)
+    {
+        const muiDrawClip* clip = &out->clips[at];
+        muiDrawTransform t =
+            muiTransformOf(context, painter->root, out, clip->transform, painter->scale);
+        Meet(&left, &right, t.a * clip->rect.x + t.e,
+             t.a * (clip->rect.x + clip->rect.width) + t.e);
+        Meet(&top, &bottom, t.d * clip->rect.y + t.f,
+             t.d * (clip->rect.y + clip->rect.height) + t.f);
+    }
+    // Back through the content's transform, from the content box's top
+    // left; scaled to nothing, nothing shows.
+    muiDrawTransform t =
+        muiTransformOf(context, painter->root, out, sink->state->transform, painter->scale);
+    *rectOut = (muiRect){0.0f, 0.0f, 0.0f, 0.0f};
+    if (t.a > 0.0f && t.d > 0.0f && right > left && bottom > top)
+    {
+        float x = (left - t.e) / t.a - sink->x;
+        float y = (top - t.f) / t.d - sink->y;
+        *rectOut = (muiRect){x, y, (right - left) / t.a, (bottom - top) / t.d};
+    }
+    painter->culled++;
     return mui_success;
 }
 

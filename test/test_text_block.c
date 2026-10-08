@@ -15,6 +15,7 @@
 #include "maul-ui/font.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
+#include "maul-ui/scroll.h"
 #include "maul-ui/text.h"
 #include "maul-ui/text_block.h"
 #include "maul-ui/text_style.h"
@@ -344,6 +345,75 @@ static void TestPainting(void)
     FreeScene(&scene);
 }
 
+// Lines of "a" at size 10, each 10 tall, in a scroll container 50 tall,
+// scrolled down by scroll; the list painted.
+static muiDrawList PaintScrolled(Scene* scene, uint32_t lines, float scroll)
+{
+    static char text[2 * 128];
+    uint32_t length = 0;
+    for (uint32_t i = 0; i < lines; i++)
+    {
+        text[length++] = 'a';
+        text[length++] = '\n';
+    }
+    text[length - 1] = '\0';
+    muiNodeDef def = muiDefaultNodeDef();
+    muiNodeId root = s_nullNode;
+    CHECK(muiCreateNode(scene->context, &def, &root) == mui_success, "root");
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.sizing.width = (muiDimension){0.0f, 100.0f, mui_dimensionValue};
+    layout.sizing.height = (muiDimension){0.0f, 50.0f, mui_dimensionValue};
+    layout.scrollAxes = mui_scrollVertical;
+    CHECK(muiNode_SetLayoutValues(scene->context, root, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyWidth) |
+                                      MUI_PROPERTY_BIT(mui_propertyHeight) |
+                                      MUI_PROPERTY_BIT(mui_propertyScrollAxes)) == mui_success,
+          "a scroll container");
+    muiNodeId node = AddText(scene, root, text);
+    muiLayoutStyle item = muiDefaultLayoutStyle();
+    item.item.alignSelf = mui_alignStart;
+    CHECK(muiNode_SetLayoutValues(scene->context, node, &item,
+                                  MUI_PROPERTY_BIT(mui_propertyAlignSelf)) == mui_success,
+          "its full height");
+    Layout(scene, root, 1000.0f);
+    CHECK(muiNode_SetScroll(scene->context, root, 0.0f, scroll) == mui_success, "scrolled");
+    return Paint(scene, root);
+}
+
+// Whether a list's runs, one a line, are lines first up to end in order.
+static bool PaintsLines(const muiDrawList* list, uint32_t first, uint32_t end)
+{
+    bool in = list->commandCount == end - first;
+    for (uint32_t i = 0; in && i < list->commandCount; i++)
+    {
+        in = list->commands[i].kind == mui_drawGlyphRun &&
+             list->commands[i].glyphRun.originY == (float)(first + i) * 10.0f + 8.0f;
+    }
+    return in;
+}
+
+// A paragraph of many lines paints those that can be seen and one more
+// each way; one of few paints them all.
+static void TestPaintingWhatIsSeen(void)
+{
+    Scene scene = MakeScene(NULL);
+    muiDrawList list = PaintScrolled(&scene, 100, 0.0f);
+    CHECK(PaintsLines(&list, 0, 7), "lines 0 to 5 meet the port, and line 6");
+    FreeScene(&scene);
+    scene = MakeScene(NULL);
+    list = PaintScrolled(&scene, 100, 200.0f);
+    CHECK(PaintsLines(&list, 18, 27), "lines 19 to 25 meet it scrolled 200, and one each way");
+    FreeScene(&scene);
+    scene = MakeScene(NULL);
+    list = PaintScrolled(&scene, 100, 950.0f);
+    CHECK(PaintsLines(&list, 93, 100), "at the end, lines 94 to 99 and one before");
+    FreeScene(&scene);
+    scene = MakeScene(NULL);
+    list = PaintScrolled(&scene, 64, 200.0f);
+    CHECK(PaintsLines(&list, 0, 64), "64 lines are painted whole");
+    FreeScene(&scene);
+}
+
 static void TestLineHeightSpacingAndSlack(void)
 {
     Scene scene = MakeScene(NULL);
@@ -653,6 +723,7 @@ int main(void)
     TestMeasuring();
     TestLineBreaksInText();
     TestPainting();
+    TestPaintingWhatIsSeen();
     TestLineHeightSpacingAndSlack();
     TestBidiOrder();
     TestFontsAndChanges();

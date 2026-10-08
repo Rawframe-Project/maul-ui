@@ -17,6 +17,7 @@
 #include "maul-ui/glyph_image.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
+#include "maul-ui/scroll.h"
 #include "maul-ui/style.h"
 #include "maul-ui/text.h"
 #include "maul-ui/text_block.h"
@@ -263,13 +264,29 @@ static double TimeTyping(uint32_t words)
     Check(muiCreateTextBlock(scene.service, text, length, &block), "block");
     muiNodeDef def = muiDefaultNodeDef();
     def.hostKey = muiTextBlock_GetKey(block);
+    // In a view 600 tall that scrolls, as an editor shows it.
+    muiNodeDef viewDef = muiDefaultNodeDef();
+    muiNodeId view = {0, 0};
+    Check(muiCreateNode(scene.context, &viewDef, &view), "view");
+    Check(muiNode_InsertChild(scene.context, scene.root, view, (muiNodeId){0, 0}), "insert");
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.sizing.width = (muiDimension){0.0f, 600.0f, mui_dimensionValue};
+    layout.sizing.height = (muiDimension){0.0f, 600.0f, mui_dimensionValue};
+    layout.scrollAxes = mui_scrollVertical;
+    Check(muiNode_SetLayoutValues(scene.context, view, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyWidth) |
+                                      MUI_PROPERTY_BIT(mui_propertyHeight) |
+                                      MUI_PROPERTY_BIT(mui_propertyScrollAxes)),
+          "a view");
     muiNodeId node = {0, 0};
     Check(muiCreateNode(scene.context, &def, &node), "node");
-    Check(muiNode_InsertChild(scene.context, scene.root, node, (muiNodeId){0, 0}), "insert");
-    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    Check(muiNode_InsertChild(scene.context, view, node, (muiNodeId){0, 0}), "insert");
+    layout = muiDefaultLayoutStyle();
     layout.content = mui_contentHost;
+    layout.item.alignSelf = mui_alignStart;
     Check(muiNode_SetLayoutValues(scene.context, node, &layout,
-                                  MUI_PROPERTY_BIT(mui_propertyContent)),
+                                  MUI_PROPERTY_BIT(mui_propertyContent) |
+                                      MUI_PROPERTY_BIT(mui_propertyAlignSelf)),
           "content");
     muiTextEditDef edit = muiDefaultTextEditDef();
     edit.flags = mui_editMultiline;
@@ -282,6 +299,10 @@ static double TimeTyping(uint32_t words)
     const muiTextPosition at = {middle, mui_affinityDownstream};
     Check(muiTextBlock_Select(scene.service, block, (muiTextSelection){middle, at}), "select");
     (void)TimeLayout(&scene, 600.0f);
+    // Scrolled to the middle, where the typing is.
+    Check(muiNode_SetScroll(scene.context, view, 0.0f,
+                            muiNode_GetContentRect(scene.context, node).height / 2.0f),
+          "scrolled");
     (void)TimePaint(&scene);
     double total = 0.0;
     for (int key = 0; key < 20; key++)

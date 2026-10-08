@@ -60,7 +60,12 @@ clip chain evaluated in its shaders, which keeps batches whole.
   pixel, for underlines and the like) through a sink at positions
   relative to the content box, and the build converts their colors and
   multiplies opacity as for every command. The context refuses edits made from
-  it; reads, such as a node's computed text style, are allowed.
+  it; reads, such as a node's computed text style, are allowed. The
+  sink also tells the part of the content box that can be seen (within
+  the surface and the clips, through scales and scroll offsets, corners
+  taken as rectangles), so long content paints what is seen; a node
+  whose function asks is painted again by every build, scrolling alone
+  included, never copied from the last list with what it saw then.
 - **Paint order** is depth first; per node, its outer shadow, its box,
   its inner shadow (inside the padding box), its image and its host
   content, then its children; host content is drawn inside the node's

@@ -316,6 +316,39 @@ static void PaintComposition(const muiLaidText* laid, uint32_t index, muiDrawSin
     }
 }
 
+enum
+{
+    // A paragraph of more lines than this paints only those that can be
+    // seen; one of fewer paints them all and is copied while it can be.
+    CULLED_LINES = 64
+};
+
+// The lines from first up to end that meet what can be seen, and one
+// more each way, as glyphs may reach past their line; lines go down the
+// paragraph in order.
+static void SeenLines(const muiTextLine* lines, uint32_t count, const muiRect* seen,
+                      uint32_t* first, uint32_t* end)
+{
+    if (seen->width <= 0.0f || seen->height <= 0.0f)
+    {
+        *first = 0;
+        *end = 0;
+        return;
+    }
+    uint32_t low = 0;
+    while (low < count && lines[low].top + lines[low].height < seen->y)
+    {
+        low++;
+    }
+    uint32_t high = low;
+    while (high < count && lines[high].top <= seen->y + seen->height)
+    {
+        high++;
+    }
+    *first = low > 0 ? low - 1 : 0;
+    *end = high < count ? high + 1 : count;
+}
+
 void muiPaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
                   muiDrawSink* sink)
 {
@@ -334,11 +367,18 @@ void muiPaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width, f
     // An editing block is drawn scrolled to its caret.
     muiFollowCaret(&laid, height);
     const muiTextLine* lines = laid.lines;
-    for (uint32_t i = 0; i < count; i++)
+    uint32_t first = 0;
+    uint32_t end = count;
+    muiRect seen;
+    if (count > CULLED_LINES && muiDrawSink_GetVisibleRect(sink, &seen) == mui_success)
+    {
+        SeenLines(lines, count, &seen, &first, &end);
+    }
+    for (uint32_t i = first; i < end; i++)
     {
         PaintLine(&laid.paragraph, &lines[i], width, lines[i].baseline, sink);
     }
-    for (uint32_t i = 0; laid.paragraph.block->compositionLength != 0 && i < count; i++)
+    for (uint32_t i = first; laid.paragraph.block->compositionLength != 0 && i < end; i++)
     {
         PaintComposition(&laid, i, sink);
     }

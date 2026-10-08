@@ -313,6 +313,28 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiDrawSink_AddRect(muiDrawSink* sink, muiRect rect,
                                                         muiColor color);
 
+    /// Gives the part of the content box's plane the paint function's
+    /// content can be seen in: within the surface and every clip it is
+    /// drawn in, through the scales and scroll offsets above it. Rounded
+    /// corners are taken as their rectangles, so the part may be larger
+    /// than what shows, never smaller. A paint function may leave out what
+    /// lies outside it.
+    ///
+    /// A node whose paint function asks is painted again by every build
+    /// rather than copied from the last list, scrolling alone included,
+    /// as what can be seen changes with it; a function that paints much
+    /// gains, one that paints little need not ask.
+    ///
+    /// @param sink     The sink the paint function was given.
+    /// @param rectOut  Receives the part, relative to the content box's
+    ///                 top left; of width and height 0 when nothing of it
+    ///                 can be seen. It may reach past the content box.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument.
+    /// @par Thread safety
+    /// Safe from any thread; the sink is used by one thread at a time, and
+    /// only during the call of the paint function given it.
+    MUI_NODISCARD MUI_API muiResult muiDrawSink_GetVisibleRect(muiDrawSink* sink, muiRect* rectOut);
+
     /// Paints a root's subtree, as its last muiComputeLayout left it, into
     /// the context's list, and clears the subtree's paint requests. When
     /// nothing below the root asked for paint since the last build of the
