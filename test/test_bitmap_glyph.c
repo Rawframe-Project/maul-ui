@@ -224,10 +224,71 @@ static void TestDamage(void)
           "damaged fonts made and drawn or refused");
 }
 
+// An image's bytes, four a pixel, as an FNV-1a hash.
+static uint32_t Hash(const muiGlyphImage* image)
+{
+    uint32_t hash = 2166136261u;
+    for (size_t i = 0; i < (size_t)image->width * image->height * 4; i++)
+    {
+        hash = (hash ^ s_pixels[i]) * 16777619u;
+    }
+    return hash;
+}
+
+// A rendering's result with its image: the hash, or the status for none.
+static uint32_t Outcome(muiResult result, const muiGlyphImage* image)
+{
+    return result == mui_success ? Hash(image) : (uint32_t)result;
+}
+
+// Every bitmap glyph whole: CBDT strikes at, below, between and above
+// their sizes and at a pen half a pixel on, and sbix's; the same bytes
+// on every platform (record mui-0001).
+static void TestWholeImages(void)
+{
+    static const uint32_t expected[16] = {0x1b305de5u, 0x3638be45u, 0xe2296f15u, 0x9eba52c5u,
+                                          0x23ccbe19u, 0xca6dca85u, 0x5a17b5a5u, 0x4ab8dbffu,
+                                          0x9c7559a5u, 0xe21bb2b5u, 0x904a5fc5u, 0x50c0069du,
+                                          0x50c0069du, 0x10abb889u, 0x5f035bc6u, 0xa5c32621u};
+    const struct
+    {
+        bool sbix;
+        uint32_t glyph;
+        float size;
+        float offset;
+    } draws[16] = {{false, 1, 5.0f, 0.0f},   {false, 1, 10.0f, 0.0f},  {false, 1, 15.0f, 0.0f},
+                   {false, 1, 20.0f, 0.0f},  {false, 1, 30.0f, 0.0f},  {false, 1, 10.0f, 0.5f},
+                   {false, 12, 10.0f, 0.0f}, {false, 1, 41.0f, 0.25f}, {true, 1, 10.0f, 0.0f},
+                   {true, 1, 15.0f, 0.0f},   {true, 1, 20.0f, 0.0f},   {true, 2, 10.0f, 0.0f},
+                   {true, 3, 10.0f, 0.0f},   {true, 6, 10.0f, 0.0f},   {true, 1, 33.0f, 0.5f},
+                   {true, 6, 7.0f, 0.25f}};
+    Scene bitmap;
+    Scene sbix;
+    CHECK(MakeScene(&bitmap, s_bitmap, sizeof s_bitmap) && MakeScene(&sbix, s_sbix, sizeof s_sbix),
+          "both fonts");
+    uint32_t got[16];
+    for (uint32_t i = 0; i < 16; i++)
+    {
+        muiGlyphImage image = {0};
+        muiResult result = Draw(draws[i].sbix ? &sbix : &bitmap, draws[i].glyph, draws[i].size,
+                                draws[i].offset, &image);
+        got[i] = Outcome(result, &image);
+    }
+    bool held = true;
+    for (uint32_t i = 0; i < 16; i++)
+    {
+        held = held && got[i] == expected[i];
+    }
+    CHECK(held, "every bitmap glyph's bytes, as on every platform");
+    muiDestroyTextService(bitmap.service);
+    muiDestroyTextService(sbix.service);
+}
+
 int main(void)
 {
     TestFormats();
     TestScaling();
+    TestWholeImages();
     TestSbix();
     TestDamage();
     return s_failures == 0 ? 0 : 1;

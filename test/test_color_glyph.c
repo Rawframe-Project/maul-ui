@@ -484,9 +484,79 @@ static void TestOnePalette(void)
     muiDestroyTextService(service);
 }
 
+// An image's bytes, four a pixel, as an FNV-1a hash.
+static uint32_t Hash(const muiGlyphImage* image)
+{
+    uint32_t hash = 2166136261u;
+    for (size_t i = 0; i < (size_t)image->width * image->height * 4; i++)
+    {
+        hash = (hash ^ s_pixels[i]) * 16777619u;
+    }
+    return hash;
+}
+
+// A rendering's result with its image: the hash, or the status for none.
+static uint32_t Outcome(muiResult result, const muiGlyphImage* image)
+{
+    return result == mui_success ? Hash(image) : (uint32_t)result;
+}
+
+// Every colour glyph the font has, whole: layers in both palettes, at
+// fractional sizes and pens, and each version 1 paint graph at two
+// sizes; the same bytes on every platform (record mui-0001).
+static void TestWholeImages(void)
+{
+    static const uint32_t expected[52] = {
+        0x2fed08adu, 0x833ebec5u, 0xeb5adc49u, 0xc1250710u, 0x382aa79fu, 0x78aa4bd1u, 0xb946cfb4u,
+        0x22fde81du, 0xc283f329u, 0xcd2fb1c5u, 0x1b94ae85u, 0xa2767263u, 0x27eef589u, 0x4f10afefu,
+        0xb7c33b52u, 0xcf292541u, 0xe81bb10du, 0x88e09b2du, 0xcf90dfe4u, 0x3d6d9149u, 0xfffffffcu,
+        0xfffffffcu, 0xfffffffcu, 0xfffffffcu, 0x0e132485u, 0x37eb84abu, 0xfffffffcu, 0xfffffffcu,
+        0x49391f5du, 0x1616abb5u, 0xa4694479u, 0x8e5e632du, 0xb2ed311du, 0xf9cb89cdu, 0xd469375au,
+        0x3b83c7a5u, 0xdac84861u, 0x9084a53du, 0x5e60b5cdu, 0x9df109fdu, 0x21d8da2cu, 0xd5b27da9u,
+        0x49391f5du, 0x1616abb5u, 0xb308f82fu, 0xcc829421u, 0x55280b9eu, 0xc83af64au, 0xc0187ec5u,
+        0xd64992a5u, 0x316fa0f9u, 0x3a5908f5u};
+    Scene scene = MakeScene();
+    const muiLinearColor ink = {0.2f, 0.4f, 0.8f, 0.75f};
+    const struct
+    {
+        float size;
+        float offset;
+        uint32_t palette;
+    } layers[4] = {{10.0f, 0.0f, 0}, {13.5f, 0.25f, 0}, {10.0f, 0.5f, 1}, {33.0f, 0.75f, 1}};
+    uint32_t got[52];
+    uint32_t n = 0;
+    for (uint32_t k = 0; k < 4; k++)
+    {
+        muiGlyphImage image = {0};
+        muiResult result = muiRenderColorGlyph(scene.service, scene.font, GLYPH_A, layers[k].size,
+                                               layers[k].offset, layers[k].palette, ink, &image,
+                                               s_pixels, sizeof s_pixels);
+        got[n++] = Outcome(result, &image);
+    }
+    for (uint32_t glyph = LAYERED; glyph <= COMPOSITED; glyph++)
+    {
+        for (uint32_t k = 0; k < 2; k++)
+        {
+            muiGlyphImage image = {0};
+            muiResult result = muiRenderColorGlyph(scene.service, scene.font, glyph,
+                                                   k == 0 ? 16.0f : 27.5f, k == 0 ? 0.0f : 0.25f, 0,
+                                                   ink, &image, s_pixels, sizeof s_pixels);
+            got[n++] = Outcome(result, &image);
+        }
+    }
+    bool held = n == 52;
+    for (uint32_t i = 0; i < n; i++)
+    {
+        held = held && got[i] == expected[i];
+    }
+    CHECK(held, "every colour glyph's bytes, as on every platform");
+    muiDestroyTextService(scene.service);
+}
+
 int main(void)
 {
     TestLayers();
+    TestWholeImages();
     TestOnePalette();
     TestPaints();
     TestGradients();
