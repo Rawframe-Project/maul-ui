@@ -27,7 +27,8 @@ jobs:
         timeout-minutes: 10
         run: |
           sudo apt-get $APT_OPTIONS update -q
-          sudo apt-get $APT_OPTIONS install -y -q clang-20 clang-tidy-20 ninja-build
+          sudo apt-get $APT_OPTIONS install -y -q --no-install-recommends clang-20 clang-tidy-20
+          sudo apt-get $APT_OPTIONS install -y -q ninja-build
           pip install clang-format==22.1.5 >/dev/null
       - name: clang-format
         run: |
@@ -90,7 +91,10 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get $APT_OPTIONS update -q
-          sudo apt-get $APT_OPTIONS install -y -q gcc-14 g++-14 clang-20 ninja-build
+          # clang without its recommends, which pull llvm-20-dev, the
+          # download that stalled; the sanitizers' runtime by name.
+          sudo apt-get $APT_OPTIONS install -y -q --no-install-recommends clang-20 libclang-rt-20-dev
+          sudo apt-get $APT_OPTIONS install -y -q gcc-14 g++-14 ninja-build
       - name: Configure
         run: |
           cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }} -D${PREFIX}_WERROR=ON \
@@ -167,8 +171,9 @@ jobs:
         timeout-minutes: 10
         run: |
           sudo apt-get $APT_OPTIONS update -q
-          sudo apt-get $APT_OPTIONS install -y -q clang-20 clang-tidy-20 ninja-build mesa-vulkan-drivers \
-            vulkan-validationlayers
+          sudo apt-get $APT_OPTIONS install -y -q --no-install-recommends clang-20 clang-tidy-20 \
+            libclang-rt-20-dev
+          sudo apt-get $APT_OPTIONS install -y -q ninja-build mesa-vulkan-drivers vulkan-validationlayers
       - name: Configure
         run: >
           cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -D${PREFIX}_WERROR=ON
@@ -246,7 +251,8 @@ jobs:
         timeout-minutes: 10
         run: |
           sudo apt-get $APT_OPTIONS update -q
-          sudo apt-get $APT_OPTIONS install -y -q clang-20 clang-tidy-20 ninja-build
+          sudo apt-get $APT_OPTIONS install -y -q --no-install-recommends clang-20 clang-tidy-20
+          sudo apt-get $APT_OPTIONS install -y -q ninja-build
       - name: Configure
         run: >
           cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -D${PREFIX}_WERROR=ON
