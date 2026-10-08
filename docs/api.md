@@ -523,6 +523,11 @@ MUI_NODISCARD MUI_API muiResult muiDrawSink_AddRect(muiDrawSink* sink, muiRect r
 Adds a filled rectangle to the node being painted, after what it added before, in the clip its children are drawn in: a box command with no radii, borders or gradient. At the identity transform its edges snap to device pixels, and a side that was not empty keeps one, so a thin line never vanishes. Its color is converted as a glyph run's.  @param sink   The sink the paint function was given. @param rect   The rectangle, relative to the content box's top left. @param color  Its color, sRGB-encoded with straight alpha. @return `mui_success`; `mui_errorInvalid` for a NULL sink, a rectangle not finite or of a negative size, or a color outside 0 to 1; `mui_errorCapacity` when the list needs more commands than the context's limits, which fails the build. @par Thread safety Safe from any thread; the sink is used by one thread at a time, and only during the call of the paint function given it.
 
 ```c
+MUI_NODISCARD MUI_API muiResult muiDrawSink_GetVisibleRect(muiDrawSink* sink, muiRect* rectOut);
+```
+Gives the part of the content box's plane the paint function's content can be seen in: within the surface and every clip it is drawn in, through the scales and scroll offsets above it. Rounded corners are taken as their rectangles, so the part may be larger than what shows, never smaller. A paint function may leave out what lies outside it.  A node whose paint function asks is painted again by every build rather than copied from the last list, scrolling alone included, as what can be seen changes with it; a function that paints much gains, one that paints little need not ask.  @param sink     The sink the paint function was given. @param rectOut  Receives the part, relative to the content box's top left; of width and height 0 when nothing of it can be seen. It may reach past the content box. @return `mui_success`; `mui_errorInvalid` for a NULL argument. @par Thread safety Safe from any thread; the sink is used by one thread at a time, and only during the call of the paint function given it.
+
+```c
 MUI_NODISCARD MUI_API muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawInput* input);
 ```
 Paints a root's subtree, as its last muiComputeLayout left it, into the context's list, and clears the subtree's paint requests. When nothing below the root asked for paint since the last build of the same root, surface and scale, the list stays as it is, generation and all; otherwise subtrees nothing asked to repaint, at the origin and opacity they were painted at, copy their commands from the last list, which gives the bytes a build from nothing would. Per node, in paint order: its outer shadow, its box, its inner shadow, its image and what the paint function adds for host content, then its children, depth first; a node that clips draws its host content and its children inside its rounded border box. Opacity multiplies down the subtree into every command's colors. At the identity transform, box and image edges and clips snap to device pixels, and border widths to whole device pixels, at least one.  @param context  The context. @param rootId   The root. @param input    The surface, the scale and the paint function. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, a scale that is not a finite number above 0, or a call from a measure or paint function; `mui_errorStale` for a root that is gone; `mui_errorCapacity` when the list needs more commands, clips, gradients or glyphs than the context's limits, which leaves the list empty. @par Thread safety Safe from any thread; the context is used by one thread at a time.
@@ -739,12 +744,12 @@ Glyph images (record mui-0006): a glyph of a text service's font rendered for a 
 ```c
 MUI_NODISCARD MUI_API muiResult muiRenderGlyph(muiTextService* service, uint64_t font, uint32_t glyph, float pixelSize, float offsetX, muiGlyphImage* imageOut, unsigned char* pixels, size_t capacity);
 ```
-Renders a glyph as coverage: a byte per pixel, rows from the top, 0 outside the outline to 255 inside, linear in the area covered (a renderer applies any gamma). A glyph with no outline, such as a space, has an empty image. A glyph run's glyph at (x, y) from its origin, drawn at a scale, has its pen at (originX + x) * scale and its baseline at (originY + y) * scale, y rounded to a pixel; its em is the run's size times the scale.  @param service    The service. @param font       A font key, as a glyph run carries; 0 for the default font. @param glyph      A glyph id of the font. @param pixelSize  The em in device pixels, from 1/64 to MUI_MAX_GLYPH_PIXEL_SIZE. @param offsetX    How far the pen is right of a pixel boundary, from 0 up to 1; the image's left is counted from that boundary. @param imageOut   Receives the image's place and size, also when pixels hold too few bytes. @param pixels     Receives width * height bytes; may be NULL when capacity is 0. @param capacity   How many bytes pixels holds. @return `mui_success`; `mui_errorCapacity` when pixels hold fewer bytes than imageOut asks for, or memory runs out; `mui_errorInvalid` for a NULL service or imageOut, NULL pixels with a capacity, a size or offset outside the above, or a glyph id the font does not have; `mui_errorStale` for a key that names no font; `mui_errorFormat` for a glyph whose outline cannot be read or is too large to render. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+Renders a glyph as coverage: a byte per pixel, rows from the top, 0 outside the outline to 255 inside, linear in the area covered (a renderer applies any gamma). A glyph with no outline, such as a space or any glyph of a font of bitmaps alone, has an empty image. A glyph run's glyph at (x, y) from its origin, drawn at a scale, has its pen at (originX + x) * scale and its baseline at (originY + y) * scale, y rounded to a pixel; its em is the run's size times the scale.  @param service    The service. @param font       A font key, as a glyph run carries; 0 for the default font. @param glyph      A glyph id of the font. @param pixelSize  The em in device pixels, from 1/64 to MUI_MAX_GLYPH_PIXEL_SIZE. @param offsetX    How far the pen is right of a pixel boundary, from 0 up to 1; the image's left is counted from that boundary. @param imageOut   Receives the image's place and size, also when pixels hold too few bytes. @param pixels     Receives width * height bytes; may be NULL when capacity is 0. @param capacity   How many bytes pixels holds. @return `mui_success`; `mui_errorCapacity` when pixels hold fewer bytes than imageOut asks for, or memory runs out; `mui_errorInvalid` for a NULL service or imageOut, NULL pixels with a capacity, a size or offset outside the above, or a glyph id the font does not have; `mui_errorStale` for a key that names no font; `mui_errorFormat` for a glyph whose outline cannot be read or is too large to render. @par Thread safety Safe from any thread; the service is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiRenderColorGlyph(muiTextService* service, uint64_t font, uint32_t glyph, float pixelSize, float offsetX, uint32_t palette, muiLinearColor foreground, muiGlyphImage* imageOut, unsigned char* pixels, size_t capacity);
 ```
-Renders a glyph's colour layers (a COLR version 0 glyph, with its CPAL palettes) at a size, placed as muiRenderGlyph places coverage: four bytes a pixel, rows from the top, red, green, blue and alpha. Each layer is another glyph's outline filled with its palette entry or, for entry 0xFFFF, with the text's colour, the layers composited in order in premultiplied linear light; the pixels are stored as an sRGB texture holds premultiplied colour, red, green and blue encoded with sRGB's transfer function and alpha linear. A glyph without colour layers gives `mui_empty` and an empty image, to be drawn as coverage.  @param service     The service. @param font        A font key, as a glyph run carries; 0 for the default font. @param glyph       A glyph id of the font. @param pixelSize   The em in device pixels, from 1/64 to MUI_MAX_GLYPH_PIXEL_SIZE. @param offsetX     How far the pen is right of a pixel boundary, from 0 up to 1, as muiRenderGlyph takes it. @param palette     The font's palette to fill from; the first for one the font does not have. @param foreground  The text's colour, linear and premultiplied. @param imageOut    Receives the image's place and size, also when pixels hold too few bytes. @param pixels      Receives width * height * 4 bytes; may be NULL when capacity is 0. @param capacity    How many bytes pixels holds. @return `mui_success`; `mui_empty` for a glyph without colour layers; otherwise as muiRenderGlyph. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+Renders a colour glyph (COLR, with its CPAL palettes) at a size, placed as muiRenderGlyph places coverage: four bytes a pixel, rows from the top, red, green, blue and alpha. A version 1 glyph's paint graph is drawn where the glyph has one: its layers, solid fills, gradients, glyph outlines, other colour glyphs, transforms, composites and clip box. A version 0 glyph's layers are each another glyph's outline filled with its palette entry. Entry 0xFFFF is the text's colour, and everything is composited in premultiplied linear light; the pixels are stored as an sRGB texture holds premultiplied colour, red, green and blue encoded with sRGB's transfer function and alpha linear. A glyph without COLR colour is drawn from its colour bitmap where the font has one (CBLC and CBDT, or sbix), from the strike that suits the size, scaled to it. A glyph without colour gives `mui_empty` and an empty image, to be drawn as coverage.  @param service     The service. @param font        A font key, as a glyph run carries; 0 for the default font. @param glyph       A glyph id of the font. @param pixelSize   The em in device pixels, from 1/64 to MUI_MAX_GLYPH_PIXEL_SIZE. @param offsetX     How far the pen is right of a pixel boundary, from 0 up to 1, as muiRenderGlyph takes it. @param palette     The font's palette to fill from; the first for one the font does not have. @param foreground  The text's colour, linear and premultiplied. @param imageOut    Receives the image's place and size, also when pixels hold too few bytes. @param pixels      Receives width * height * 4 bytes; may be NULL when capacity is 0. @param capacity    How many bytes pixels holds. @return `mui_success`; `mui_empty` for a glyph without colour; `mui_errorFormat` for a paint graph more than 64 paints deep, as one that paints itself is; otherwise as muiRenderGlyph. @par Thread safety Safe from any thread; the service is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiRenderGlyphField(muiTextService* service, uint64_t font, uint32_t glyph, float pixelSize, uint32_t spread, muiGlyphImage* imageOut, unsigned char* pixels, size_t capacity);
@@ -1663,6 +1668,175 @@ MUI_NODISCARD MUI_API muiResult muiNode_GetVisualStyle(const muiContext* context
 ```
 Reads a node's resolved visual values: its direct writes, and for the other properties what its classes and states gave at the last muiComputeLayout that reached it, where its transitions have them.  @param context    The context. @param nodeId     The node. @param valuesOut  Receives the values. @return `mui_success`; `mui_errorInvalid` for a NULL argument or the null id; `mui_errorStale` for an id whose node is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
+## The `maul-ui-rhi` part
+
+### `renderer.h`
+
+The reference renderer (record mui-0005), the optional target maul-ui-rhi: a draw list drawn with Maul RHI, every command an instance of one pipeline whose fragment shader evaluates it. Each frame, while the host builds it, muiRhiRenderer_AddPasses adds the renderer's upload and draw passes into the host's target; after mrhiCompileFrame, muiRhiRenderer_Record records them. The core and the text component never depend on it; it is a static library, whose functions MUI_RHI_API marks.
+
+```c
+muiRhiRendererDef muiDefaultRhiRendererDef(void);
+```
+The default def: the C library's allocation, no device, an sRGB RGBA8 target, room for 1024 instances, no depth and a less-or-equal depth test.  @return The def. @par Thread safety Safe from any thread.
+
+```c
+MUI_NODISCARD MUI_RHI_API muiResult muiCreateRhiRenderer(const muiRhiRendererDef* def, muiRhiRenderer** rendererOut);
+```
+Makes a renderer: its shader, its pipeline, whose creation finishes later (muiRhiRenderer_GetPipelineRequest), and its instance buffer.  @param def          The def, from muiDefaultRhiRendererDef. @param rendererOut  Receives the renderer; NULL on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a def not from muiDefaultRhiRendererDef, a half-set allocator, no device, instances or upload bytes, or a text service where Maul UI was built without text; `mui_errorCapacity` when memory runs out; `mui_errorPlatform` when the device refuses the shader, the pipeline, a buffer or a texture. @par Thread safety Safe from any thread; the renderer and its device are used by one thread at a time.
+
+```c
+void muiDestroyRhiRenderer(muiRhiRenderer* renderer);
+```
+Destroys a renderer and its device objects, which the device retires after the frames that used them; NULL is ignored.  @param renderer  The renderer. @par Thread safety Safe from any thread; the renderer and its device are used by one thread at a time.
+
+```c
+mrhiRequestId muiRhiRenderer_GetPipelineRequest(const muiRhiRenderer* renderer);
+```
+The request its pipeline's creation answers on the device's notification queue (mrhi_devicePipelineReady).  @param renderer  The renderer. @return The request; a null one for a NULL renderer. @par Thread safety Safe from any thread; the renderer and its device are used by one thread at a time.
+
+```c
+bool muiRhiRenderer_Notify(muiRhiRenderer* renderer, const mrhiDeviceNotification* notification);
+```
+Hands the renderer a notification the host took from the device's queue (mrhiNextDeviceNotification): the one answering its pipeline makes it ready, or failed.  @param renderer      The renderer. @param notification  The notification. @return Whether the notification was the renderer's. @par Thread safety Safe from any thread; the renderer and its device are used by one thread at a time.
+
+```c
+bool muiRhiRenderer_IsReady(const muiRhiRenderer* renderer);
+```
+Whether its pipelines are ready, so that frames draw: one, and a second testing depth when the def names a depth format.  @param renderer  The renderer. @return Whether it is ready; false for a NULL renderer. @par Thread safety Safe from any thread; the renderer and its device are used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_RHI_API muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* list, const muiRhiTarget* target);
+```
+Adds the renderer's passes to the frame the device is building: one uploading what changed of the list's instances and the glyph images the atlas changed, one drawing them into the target. The list is read now; it may change after the call.  @param renderer  The renderer. @param list      The list. @param target    Where it is drawn. @return `mui_success`; `mui_empty` when its pipelines are not ready yet, nothing added; `mui_errorInvalid` for a NULL argument, a target of no size, or a depth texture without a projection or a def's depth format; `mui_errorCapacity` when memory runs out, or the frame's uploads would not fit the def's uploadBytes, nothing added; `mui_errorPlatform` when the device refuses a pass, a buffer or a texture. @par Thread safety Safe from any thread; the renderer and its device are used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_RHI_API muiResult muiRhiRenderer_Record(muiRhiRenderer* renderer);
+```
+Records the passes muiRhiRenderer_AddPasses added, after the frame is compiled; nothing when it added none.  @param renderer  The renderer. @return `mui_success`; `mui_errorInvalid` for a NULL renderer; `mui_errorPlatform` when the device refuses a command. @par Thread safety Safe from any thread; the renderer and its device are used by one thread at a time.
+
+```c
+void muiRhiRenderer_Forget(muiRhiRenderer* renderer);
+```
+Forgets what the last recorded frame uploaded, after the host dropped that frame instead of submitting it: the next frame uploads every record and the glyph images that frame wrote.  @param renderer  The renderer, or NULL for nothing. @par Thread safety Safe from any thread; the renderer is used by one thread at a time.
+
+## The `maul-ui-window` part
+
+### `access.h`
+
+Accessibility through the Maul Window glue (record mui-0008), in maul-ui-window where Maul UI builds its accessibility tree's consumer: one access a glue makes the adapter built for its window's platform over the window's native handles, feeds it the root's updates and hands its root to the window (mwinRequestAccessibilityRoot) as it changes. A window of a platform with no adapter built, or of Maul Window's test backend, keeps the tree alone, so a program can check what its clients would be told without them.
+
+```c
+muiWindowAccessDef muiDefaultWindowAccessDef(void);
+```
+Returns the default access def: no glue, 4096 nodes, no AT-SPI application, on the web the elements waiting for a button labelled "Enable accessibility" (as muiDefaultAriaAdapterDef), the context doing what clients ask.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
+
+```c
+MUI_NODISCARD MUI_WINDOW_API muiResult muiCreateWindowAccess(const muiWindowAccessDef* def, muiWindowAccess** accessOut);
+```
+Makes a glue's access: enables the root's updates (muiAccess_Enable) and makes the adapter for the window's platform (UI Automation on Win32, NSAccessibility on macOS, UIAccessibility on iOS, Android's over the activity's view, ARIA in the element Maul Window keeps over the canvas, AT-SPI on X11 and Wayland with an application), or a tree alone. A program may make it once mwin_eventAccessibilityRequested arrives, to build no tree before a client asks where the platform says so.  @param def        The access: a valid cookie and allocator, a glue and at least 1 node. @param accessOut  Receives the access; set to NULL on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a def outside the above, or a window with no surface; `mui_errorCapacity` when the context has its limit of enabled roots, the AT-SPI application its windows, or memory runs out; as the adapter's creation otherwise. @par Thread safety Main thread only, as the adapters.
+
+```c
+void muiDestroyWindowAccess(muiWindowAccess* access);
+```
+Destroys an access: hands the window no root, lets the adapter go and stops the root's updates (muiAccess_Disable).  @param access  The access, or NULL for nothing. @par Thread safety Main thread only.
+
+```c
+MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowAccess_Update(muiWindowAccess* access);
+```
+Sends the root's changes since the last call (muiBuildAccessUpdate) to the adapter, and hands the window the adapter's root if it changed. The program calls it each frame after layout.  @param access  The access. @return `mui_success`; `mui_errorInvalid` for a NULL access, or a root request Maul Window refuses; as muiBuildAccessUpdate and the adapter's update otherwise. @par Thread safety Main thread only.
+
+```c
+MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowAccess_HandleEvent(muiWindowAccess* access, const mwinEvent* event);
+```
+Takes a record the host drained: a scale change of the window rescales the adapter's bounds where they are in pixels (UI Automation, Android, AT-SPI), and a move places an AT-SPI window on the screen. Others it leaves.  @param access  The access. @param event   The record. @return `mui_success`; `mui_errorInvalid` for a NULL argument. @par Thread safety Main thread only.
+
+```c
+const muiAccessTree* muiWindowAccess_GetTree(const muiWindowAccess* access);
+```
+Returns the tree the access holds, the adapter's or its own.  @param access  The access. @return The tree; NULL for a NULL access. @par Thread safety Safe from any thread; the access is used by one thread at a time.
+
+```c
+bool muiWindowAccess_HasAdapter(const muiWindowAccess* access);
+```
+Returns whether the access made a platform's adapter, rather than keeping a tree alone.  @param access  The access. @return Whether it did; false for a NULL access. @par Thread safety Safe from any thread; the access is used by one thread at a time.
+
+### `clipboard.h`
+
+The clipboard of the Maul Window glue for text editing (record mui-0007), in maul-ui-window where Maul UI has its text component: copies and cuts written to the window's clipboard, and a paste asked of it and taken into an editing block when the window answers, as Maul Window reads the clipboard by request.
+
+```c
+void muiWindowGlue_WriteClipboard(void* glue, const char* text, size_t length);
+```
+Writes text to the glue's window's clipboard, as a muiClipboardWriteFunction whose user is the glue (muiTextEditInput). A write the window refuses (text past its clipboard limit, too many requests) is dropped, as a failed copy is on every platform.  @param glue    The glue. @param text    UTF-8 text. @param length  Its length in bytes. @par Thread safety Main thread only, as Maul Window's requests.
+
+```c
+MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_RequestPaste(muiWindowGlue* glue);
+```
+Asks the window for its clipboard's text, for a paste muiTextEditEvent asked for (outcome.paste); muiWindowGlue_Paste takes the answer.  @param glue  The glue. @return `mui_success`; `mui_errorInvalid` for a NULL glue or a request the window refuses. @par Thread safety Main thread only, as Maul Window's requests.
+
+```c
+MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_Paste(muiWindowGlue* glue, muiTextService* service, muiTextBlockId blockId, const mwinEvent* event, bool* changedOut);
+```
+Pastes the clipboard's text into an editing block when an event answers a clipboard read with it (mwin_eventRequestCompleted, a read done); other events pass.  @param glue        The glue. @param service     The service. @param blockId     The editing block. @param event       The window's event. @param changedOut  Receives whether the text changed; may be NULL. @return `mui_success` for a paste, changed or not; `mui_empty` for another event; `mui_errorInvalid` for a NULL argument; `mui_errorCapacity` when memory for the text runs out; or as muiTextBlock_Paste. @par Thread safety Main thread only, as Maul Window's calls.
+
+### `composition.h`
+
+Compositions and carets of the Maul Window glue (record mui-0007), in maul-ui-window where Maul UI has its text component: an input method's preedit set into a text block, and the candidate window placed at a position of a node's text. Maul Window's preedit styles and segment limit are Maul UI's composition styles and limit. An editing block takes a preedit through muiWindowCompose, and its field's purpose picks the on-screen keyboard (muiWindowGlue_RequestKeyboard).
+
+```c
+MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowSetComposition(muiTextService* service, muiTextBlockId blockId, uint32_t offset, const mwinPreeditEvent* preedit, int32_t* caretOut);
+```
+Sets a block's composition from an input method's preedit (muiTextBlock_SetComposition): its text, and its segments as they come; an empty preedit removes the composition and ends it, the committed text arriving as text input after it.  @param service   The service. @param blockId   The block. @param offset    Where a new composition goes, as muiTextBlock_SetComposition takes it. @param preedit   The record's preedit (data.preedit). @param caretOut  Receives where the input method's caret is in the block, or -1 where it hides it or the composition ended. May be NULL. Unchanged on failure. @return As muiTextBlock_SetComposition, with `mui_errorInvalid` for a NULL preedit. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowCompose(muiTextService* service, muiTextBlockId blockId, const mwinPreeditEvent* preedit, bool* changedOut);
+```
+Shows an input method's preedit in an editing block (muiTextBlock_Compose): its text, its caret, at the end where the method hides it, and its segments as they come; an empty preedit takes the composition out, the committed text arriving as text input after it.  @param service     The service. @param blockId     The block. @param preedit     The record's preedit (data.preedit). @param changedOut  Receives whether the text changed; may be NULL. @return As muiTextBlock_Compose, with `mui_errorInvalid` for a NULL preedit. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_SetTextCaret(muiWindowGlue* glue, const muiTextHost* host, muiNodeId nodeId, muiTextPosition position, mwinRect* placedOut);
+```
+Asks the window to accept text with its caret at a position of a node's text (muiTextGetCaret in the node's content box, then muiWindowGlue_SetCaret), the caret a rectangle as tall as its line and of no width.  @param glue       The glue. @param host       The text host the node's block is in. @param nodeId     A node whose host key is a block's. @param position   The position. @param placedOut  As muiWindowGlue_SetCaret's. @return As muiTextGetCaret and muiWindowGlue_SetCaret. @par Thread safety Main thread only, as Maul Window's requests.
+
+```c
+MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_RequestKeyboard(muiWindowGlue* glue, const muiTextHost* host, muiNodeId nodeId);
+```
+Asks for the window's on-screen keyboard, where the platform has one, laid out for what a node's editing block takes (muiTextBlock_GetInputPurpose; plain text for a block not editing), or, with the null id, to hide it (mwinRequestVirtualKeyboard). Ask as the focus enters and leaves a field.  @param glue    The glue. @param host    The text host the node's block is in. @param nodeId  The node, or the null id to hide the keyboard. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a request Maul Window refuses. @par Thread safety Main thread only, as Maul Window's requests.
+
+### `glue.h`
+
+The Maul Window glue (record mui-0007), the optional target maul-ui-window: one glue a window feeds the records the host drains from Maul Window to a Maul UI context, keeping what Maul Window does not (the cursor's place, the buttons held) and saying of each record whether the UI handled it, so that the host hands the rest to its game. Keys and text pass as they come, the codes, meanings and modifiers being the same; the cursor is a mouse pointer, a touch a touch pointer and the pen a pen pointer, their records dispatched at once; the wheel turns at the cursor's last place; a reset or a lost focus cancels every pointer. The core and the text component never depend on it; it is a static library, whose functions MUI_WINDOW_API marks.
+
+```c
+muiWindowGlueDef muiDefaultWindowGlueDef(void);
+```
+Returns the default glue def: no window, context or root, player 0, no gamepads, and the defaults above for those who take them.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
+
+```c
+MUI_NODISCARD MUI_WINDOW_API muiResult muiCreateWindowGlue(const muiWindowGlueDef* def, muiWindowGlue** glueOut);
+```
+Makes a glue for a window.  @param def      The glue: a valid cookie and allocator, a Maul Window context, a context, a root and a player. @param glueOut  Receives the glue; set to NULL on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a def outside the above; `mui_errorCapacity` when memory runs out. @par Thread safety Safe from any thread.
+
+```c
+void muiDestroyWindowGlue(muiWindowGlue* glue);
+```
+Destroys a glue.  @param glue  The glue, or NULL for nothing. @par Thread safety Safe from any thread; the glue is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_HandleEvent(muiWindowGlue* glue, const mwinEvent* event, bool* handledOut);
+```
+Takes a record the host drained from Maul Window. A record of its window goes to the context: a key or text to the player's focus (muiKeyInput, muiTextInput); the cursor as the player's mouse (muiPointerInput, its records dispatched with muiDispatchPointerRecord), Maul Window's button b its index b - 1; a touch as a touch pointer holding the primary button while in contact; the pen as a pen pointer, its tip in contact the primary button or button 5 while it erases, its barrel the secondary, as the W3C's Pointer Events number them; the wheel at the cursor's last place (muiWheelInput); a reset or a lost focus as a cancel of every pointer holding a button. A pointer's records are the UI's when a record it posts is handled, while the UI holds the pointer (pressed or captured), or where the point hits a node that does not pass input through (muiHitTest); a key, text or wheel is the UI's when routing handles it. A glue that takes gamepads takes their records, which have no window, as navigation for the player the host names (muiNavigationInput): the d-pad, and the left stick past its threshold, the four directions; the south face activate and the east cancel, or the other way with confirmEast; the left and right shoulders previous and next. Records of other windows and of other kinds are not the UI's.  @param glue        The glue. @param event       The record. @param handledOut  Receives whether the UI handled it. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a call from a measure, paint or event function, or a record Maul UI refuses (its own checks pass it on); `mui_errorStale` for a root that is gone; `mui_errorCapacity` for a pointer past the context's limit. @par Thread safety Safe from any thread; the glue and its context are used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_Tick(muiWindowGlue* glue, uint64_t nowNs, bool* handledOut);
+```
+Continues the directions gamepads hold, for a glue that takes gamepads: each direction held past the repeat delay navigates again (muiNavigationInput) at the repeat interval, one direction a call. The host calls it each frame with the time on the records' clock.  @param glue        The glue. @param nowNs       The time, in nanoseconds on Maul Window's monotonic clock. @param handledOut  Receives whether the UI handled what repeated. @return As muiWindowGlue_HandleEvent. @par Thread safety Safe from any thread; the glue and its context are used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_SetCaret(muiWindowGlue* glue, muiNodeId nodeId, muiRect caret, mwinRect* placedOut);
+```
+Asks the window to accept text with its caret at a rectangle of a node's border box, carried into the window (muiNode_MapToRoot), so the platform places its candidate window there (mwinRequestTextInput); or, with the null id, to stop. Ask again as the caret moves, or as layout or scrolling moves the node. mwin_eventImePreedit records then report what an input method composes; they are not the UI's, and the host hands them to its text field (maul-ui-window/composition.h).  @param glue       The glue. @param nodeId     The node, or the null id to stop accepting text. @param caret      The caret, from the node's border box's top left; not read with the null id. @param placedOut  Receives the caret in the window, for a host that draws its own candidates (a fullscreen game where the platform's do not show); all zero with the null id. May be NULL. Unchanged on failure. @return `mui_success`; `mui_errorInvalid` for a NULL glue, a caret not finite or of a negative size, or a request Maul Window refuses; `mui_errorStale` for a node that is gone. @par Thread safety Main thread only, as Maul Window's requests.
+
 ---
 
-304 functions across 35 headers.
+334 functions across 40 headers.

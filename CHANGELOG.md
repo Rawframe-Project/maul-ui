@@ -124,6 +124,17 @@ format.
 
 ### Added
 
+- A guide (`docs/guide.md`): the model, then part by part, from nodes
+  and style to text, editing, painting, input, scrolling, transitions,
+  accessibility, building and testing; each of its C snippets is built
+  and run by the tests as written. The README points to it and to the
+  API reference, which CI now holds to the headers.
+
+- Fuzz targets (`MAUL_UI_FUZZ`, with Clang): libFuzzer over zlib
+  streams, PNG images and fonts, the font target laying out, painting
+  and rendering every glyph of any bytes that open; CI runs each for a
+  minute on every push, from the seeds `tools/fuzz_seed.py` writes.
+
 - Atlases of colour glyphs: `mui_atlasColor` pages hold colour glyphs,
   which `muiGlyphAtlas_GetColor` renders and packs for a palette and a
   text colour; glyphs without colour layers, and fonts without a COLR
@@ -654,6 +665,11 @@ format.
   fonts are refused with the new `mui_errorFormat`.
 
 ### Fixed
+
+- Text in a damaged font whose cmap or substitutions name a glyph past
+  the count its maxp gives is drawn with the font's missing glyph;
+  before, the glyph image calls refused the glyphs shaping gave. Found
+  by the font fuzz target.
 
 - An install without the text component no longer carries
   `text_editor.h`, and the size report counts the editor as text, not
