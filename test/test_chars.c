@@ -2,11 +2,11 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Numbers the library writes without printf (src/chars.c): held to the C
-// library's own output, "%g" to six and nine digits over random doubles
-// of every exponent, values of few digits and near halfway cases, small
-// and large, and
-// special values to each precision up to 15; integers and hex; and text
-// cut where it does not fit.
+// library's own output, its trailing zeros trimmed as C requires, "%g"
+// to six and nine digits over random doubles of every exponent, values
+// of few digits and near halfway cases, small and large, and special
+// values to each precision up to 15; integers and hex; and text cut
+// where it does not fit.
 
 #include "chars.h"
 #include "test_harness.h"
@@ -24,6 +24,31 @@ static uint64_t Next(uint64_t* state)
     return *state;
 }
 
+// Drops a "%g" text's trailing zeros after its point, and the point if
+// nothing follows, as C requires: the BSD C libraries of Apple and
+// Android keep a zero that rounding a tie to even left (-8358105 to six
+// digits, -8.35810e+06).
+static void Trimmed(char* text)
+{
+    char* point = strchr(text, '.');
+    if (point == NULL)
+    {
+        return;
+    }
+    char* exponent = strchr(point, 'e');
+    char* end = exponent != NULL ? exponent : point + strlen(point);
+    char* last = end;
+    while (last > point + 1 && last[-1] == '0')
+    {
+        last--;
+    }
+    if (last == point + 1)
+    {
+        last = point;
+    }
+    memmove(last, end, strlen(end) + 1);
+}
+
 // Whether muiPutGeneral writes a value as snprintf's "%.*g" does.
 static bool SameGeneral(double value, uint32_t digits)
 {
@@ -32,6 +57,7 @@ static bool SameGeneral(double value, uint32_t digits)
     muiChars chars = muiCharsIn(ours, sizeof ours);
     muiPutGeneral(&chars, value, digits);
     (void)snprintf(theirs, sizeof theirs, "%.*g", (int)digits, value);
+    Trimmed(theirs);
     if (strcmp(ours, theirs) != 0)
     {
         printf("%.17g to %u digits: %s, printf %s\n", value, digits, ours, theirs);
@@ -83,7 +109,13 @@ static void TestGeneral(void)
             }
         }
     }
-    CHECK(same, "special values to every precision");
+    CHECK(same && SameGeneral(-8358105.0, 6), "special values to every precision");
+    char kept[] = "-8.35810e+06";
+    char point[] = "2.000";
+    Trimmed(kept);
+    Trimmed(point);
+    CHECK(strcmp(kept, "-8.3581e+06") == 0 && strcmp(point, "2") == 0,
+          "a BSD printf's zeros trimmed");
     uint64_t state = 88172645463325252u;
     same = true;
     for (uint32_t n = 0; n < 200000 && same; n++)
