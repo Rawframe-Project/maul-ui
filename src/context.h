@@ -41,9 +41,6 @@ struct muiContext
     // given (muiLayoutInput).
     muiEdges* paddings;
     muiSides safeArea;
-    // The extents each node's parent gave it when it was last laid out in
-    // full, beside its cache's final size (src/layout_bound.c).
-    muiSize* extents;
     // Resolved visual values per node, parallel to the tree's slots: paint
     // reads them, layout never.
     muiVisualStyle* visual;

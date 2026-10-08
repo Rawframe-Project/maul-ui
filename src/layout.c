@@ -175,7 +175,6 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
         .scrolls = context->scrolls,
         .work = &context->work,
         .paddings = context->paddings,
-        .extents = context->extents,
         .safeArea = input->safeArea,
     };
     muiSizingInput sizingInput = muiRootInput(&context->layout[root - 1].style, &input->safeArea,

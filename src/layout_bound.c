@@ -140,16 +140,14 @@ static Checked* Deepest(Bound* bound)
 // laid out alone itself.
 static void LayOutAlone(const muiSolver* solver, const Checked* checked)
 {
-    uint32_t node = checked->node;
-    const muiSize* extents = &solver->extents[node - 1];
+    // Exact on both axes, a node reads no extent of its parent's: limits
+    // and an aspect ratio bear only on a size not given.
     const muiSizingInput input = {
         .width = {checked->old.finalSize.width, mui_measureExact},
         .height = {checked->old.finalSize.height, mui_measureExact},
-        .parentWidth = extents->width,
-        .parentHeight = extents->height,
         .rtl = checked->old.finalRtl,
     };
-    (void)solver->solve(solver, node, &input, true);
+    (void)solver->solve(solver, checked->node, &input, true);
 }
 
 bool muiBoundLayout(const muiSolver* solver, uint32_t root)

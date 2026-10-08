@@ -359,7 +359,6 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
         cache->finalValid = true;
         cache->finalRtl = input->rtl;
         cache->finalSize = size;
-        solver->extents[node - 1] = (muiSize){input->parentWidth, input->parentHeight};
         Published(solver, node, size, own.rtl);
     }
     else

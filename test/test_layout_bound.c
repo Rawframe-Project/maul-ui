@@ -397,6 +397,40 @@ static void TestBoundedMatchesWhole(void)
     muiDestroyContext(edited.context);
 }
 
+// A row 161 wide laid out alone under a right-to-left root keeps the
+// direction it inherits: its label at its right.
+static void TestRightToLeftAlone(void)
+{
+    static Edit edits[16];
+    uint32_t count = 0;
+    Tree tree = MakeTree();
+    const Edit made[] = {
+        {kindCreate, 0, 0, 0, 0},  {kindCreate, 0, 0, 0, 0},  {kindCreate, 0, 1, 0, 1},
+        {kindStyle, 0, 0, 16, 2},  {kindStyle, 0, 0, 3, 2},   {kindStyle, 0, 0, 0, 153},
+        {kindStyle, 1, 0, 0, 153}, {kindContent, 2, 0, 0, 3},
+    };
+    for (size_t i = 0; i < sizeof made / sizeof made[0]; i++)
+    {
+        Record(edits, &count, &tree, made[i]);
+    }
+    tree.space = 300.0f;
+    LayOut(&tree);
+    Record(edits, &count, &tree, (Edit){kindContent, 2, 0, 0, 4});
+    LayOut(&tree);
+    Tree whole = MakeTree();
+    whole.space = 300.0f;
+    for (uint32_t k = 0; k < count; k++)
+    {
+        Apply(&whole, &edits[k]);
+    }
+    LayOut(&whole);
+    muiRect label = muiNode_GetRect(tree.context, tree.nodes[2]);
+    bool same = Same(&tree, &whole);
+    CHECK(same && label.x > 0.0f, "mirrored as a whole layout mirrors it");
+    muiDestroyContext(whole.context);
+    muiDestroyContext(tree.context);
+}
+
 // One label's new text in a list of 40 rows that keep their size
 // solves the label and its row, not the list.
 static void TestOneChangeIsBounded(void)
@@ -490,6 +524,7 @@ static void TestBaselinesAreRead(void)
 int main(void)
 {
     TestBaselinesAreRead();
+    TestRightToLeftAlone();
     TestBoundedMatchesWhole();
     TestOneChangeIsBounded();
     return s_failures == 0 ? 0 : 1;
