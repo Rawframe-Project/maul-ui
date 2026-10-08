@@ -61,8 +61,12 @@ lists, layout fixtures) and rely on a static screen costing nothing.
   builds 304,248 and 224,100. CI reports both (`tools/size_report.py`);
   a release checks them, and they are only tightened.
 - **Commit areas:** `a11y`, `api`, `bench`, `build`, `ci`, `docs`,
-  `draw`, `input`, `layout`, `samples`, `style`, `tests`, `text`,
-  `tools`, `tree`, `virtual`.
+  `draw`, `input`, `layout`, `rhi`, `samples`, `style`, `tests`,
+  `text`, `tools`, `tree`, `virtual`, `window`. The reference renderer
+  and the window glue are parts with sources of their own (family
+  record 0020), `rhi` and `window`; fuzz targets and tests found by
+  mutants are `tests`, motion and easing `style`, pointers and
+  navigation `input`.
 
 ## Consequences
 
