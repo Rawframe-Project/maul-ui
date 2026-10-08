@@ -7,8 +7,9 @@
 #   tRNS, Adam7 interlacing and the five filters;
 # - font: the test fonts, TrueType, CFF, variable, COLR, CBDT and sbix;
 # - text: texts in several scripts and directions, with marks, emoji,
-#   line and paragraph breaks and ill-formed UTF-8, each after the four
-#   bytes fuzz_text reads first and before edits of every kind;
+#   line and paragraph breaks and ill-formed UTF-8, each after the six
+#   bytes fuzz_text reads first (an allocation to fail among them) and
+#   before edits of every kind;
 # - atspi: D-Bus method calls, marshalled as on the wire, of every method
 #   the adapter answers, on the root and each node of fuzz_atspi's tree.
 # The standard library only.
@@ -118,7 +119,9 @@ def text_seeds(directory):
     samples = [t.encode("utf-8") for t in TEXTS] + [b"ok\xff\xc0\x80 \xed\xa0\x80 \xf4\x90\x80\x80"]
     for i, text in enumerate(samples):
         for flags in (0, 0x09, 0x36):
-            head = bytes([30 + 20 * (i % 3), flags]) + struct.pack("<H", len(text))
+            # Every third seed fails an allocation, early or late.
+            fail = (0, 40, 400)[(i + flags) % 3]
+            head = bytes([30 + 20 * (i % 3), flags]) + struct.pack("<HH", len(text), fail)
             write(directory, f"text{i}-{flags:02x}", head + text + edits())
 
 

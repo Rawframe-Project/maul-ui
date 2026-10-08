@@ -9,7 +9,9 @@
 // then each edit (typing, pasting, erasing, selecting, moving, pressing,
 // composing, undoing) is made and the block laid out again; each edit
 // succeeds or is refused, the selection stays within the text, and
-// nothing touches memory it does not own.
+// nothing touches memory it does not own. The input also chooses one of
+// the service's allocations to fail, or none: every call then fails
+// cleanly or succeeds, and every block comes back.
 
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
@@ -22,6 +24,8 @@
 #include "maul-ui/text_editor.h"
 #include "maul-ui/text_style.h"
 
+#include <stdalign.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -31,7 +35,7 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size);
 
 enum
 {
-    HEADER = 4,
+    HEADER = 6,
     MAX_EDITS = 24,
     // The kinds of edit an input's bytes choose among.
     EDIT_KINDS = 12
@@ -50,6 +54,37 @@ static bool IsAllowed(muiResult result)
 {
     return result == mui_success || result == mui_errorInvalid || result == mui_errorCapacity ||
            result == mui_empty;
+}
+
+// The service's memory: allocation failAt fails (counting from 1, 0 for
+// none), and what is live is counted.
+typedef struct Memory
+{
+    uint32_t allocations;
+    uint32_t failAt;
+    size_t liveBytes;
+} Memory;
+
+static void* Allocate(size_t size, size_t alignment, void* context)
+{
+    Memory* memory = context;
+    if (++memory->allocations == memory->failAt)
+    {
+        return nullptr;
+    }
+    size_t rounded = (size + alignment - 1) / alignment * alignment;
+    void* block =
+        alignment <= alignof(max_align_t) ? malloc(size) : aligned_alloc(alignment, rounded);
+    memory->liveBytes += block != nullptr ? size : 0;
+    return block;
+}
+
+static void Release(void* block, size_t size, size_t alignment, void* context)
+{
+    (void)alignment;
+    Memory* memory = context;
+    memory->liveBytes -= size;
+    free(block);
 }
 
 // The input as it is read: bytes taken from the front.
@@ -199,6 +234,47 @@ static void Edit(Scene* scene, Reader* reader)
     Expect(IsAllowed(result));
 }
 
+// Whether a creation's result is one its contract allows, memory
+// running out included; false when it ran out.
+static bool Made(muiResult result)
+{
+    Expect(result == mui_success || result == mui_errorCapacity);
+    return result == mui_success;
+}
+
+// The service, its font, the context and the block, editing; false when
+// memory ran out on the way.
+static bool Make(Scene* scene, Memory* memory, uint8_t flags, const char* text, size_t length)
+{
+    muiTextServiceDef serviceDef = muiDefaultTextServiceDef();
+    serviceDef.allocator = (muiAllocator){Allocate, Release, memory};
+    if (!Made(muiCreateTextService(&serviceDef, &scene->service)))
+    {
+        return false;
+    }
+    muiFontDef fontDef = muiDefaultFontDef();
+    fontDef.data = s_liberationSans;
+    fontDef.size = sizeof s_liberationSans;
+    fontDef.dataMode = mui_fontDataBorrow;
+    muiFontId font = {0, 0};
+    if (!Made(muiCreateFont(scene->service, &fontDef, &font)))
+    {
+        return false;
+    }
+    Expect(muiSetDefaultFont(scene->service, font) == mui_success);
+    muiContextDef contextDef = muiDefaultContextDef();
+    Expect(muiCreateContext(&contextDef, &scene->context) == mui_success);
+    scene->host = (muiTextHost){scene->service, scene->context};
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = text;
+    blockDef.length = length;
+    muiTextEditDef editDef = muiDefaultTextEditDef();
+    editDef.flags = (muiTextEditFlags)(flags & 7);
+    editDef.undoLimit = 8;
+    return Made(muiCreateTextBlock(scene->service, &blockDef, &scene->block)) &&
+           Made(muiTextBlock_SetEditing(scene->service, scene->block, &editDef));
+}
+
 int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
     if (size < HEADER)
@@ -209,25 +285,16 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     Scene scene = {.width = (float)Byte(&reader) * 4.0f};
     uint8_t flags = Byte(&reader);
     size_t textLength = (size_t)Byte(&reader) | (size_t)Byte(&reader) << 8;
-    muiTextServiceDef serviceDef = muiDefaultTextServiceDef();
-    Expect(muiCreateTextService(&serviceDef, &scene.service) == mui_success);
-    muiFontDef fontDef = muiDefaultFontDef();
-    fontDef.data = s_liberationSans;
-    fontDef.size = sizeof s_liberationSans;
-    fontDef.dataMode = mui_fontDataBorrow;
-    muiFontId font = {0, 0};
-    Expect(muiCreateFont(scene.service, &fontDef, &font) == mui_success &&
-           muiSetDefaultFont(scene.service, font) == mui_success);
-    muiContextDef contextDef = muiDefaultContextDef();
-    Expect(muiCreateContext(&contextDef, &scene.context) == mui_success);
-    scene.host = (muiTextHost){scene.service, scene.context};
-    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
-    blockDef.text = Take(&reader, textLength, &blockDef.length);
-    Expect(muiCreateTextBlock(scene.service, &blockDef, &scene.block) == mui_success);
-    muiTextEditDef editDef = muiDefaultTextEditDef();
-    editDef.flags = (muiTextEditFlags)(flags & 7);
-    editDef.undoLimit = 8;
-    Expect(muiTextBlock_SetEditing(scene.service, scene.block, &editDef) == mui_success);
+    Memory memory = {.failAt = (uint32_t)Byte(&reader) | (uint32_t)Byte(&reader) << 8};
+    size_t length = 0;
+    const char* text = Take(&reader, textLength, &length);
+    if (!Make(&scene, &memory, flags, text, length))
+    {
+        muiDestroyContext(scene.context);
+        muiDestroyTextService(scene.service);
+        Expect(memory.liveBytes == 0);
+        return 0;
+    }
     muiNodeDef nodeDef = muiDefaultNodeDef();
     nodeDef.hostKey = muiTextBlock_GetKey(scene.block);
     Expect(muiCreateNode(scene.context, &nodeDef, &scene.node) == mui_success);
@@ -255,5 +322,6 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     LayOut(&scene, true);
     muiDestroyContext(scene.context);
     muiDestroyTextService(scene.service);
+    Expect(memory.liveBytes == 0);
     return 0;
 }

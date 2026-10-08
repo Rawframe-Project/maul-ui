@@ -145,7 +145,8 @@ format.
 - Fuzz targets (`MAUL_UI_FUZZ`, with Clang): libFuzzer over zlib
   streams, PNG images and fonts, the font target laying out, painting
   and rendering every glyph of any bytes that open; over text, laid out
-  and edited by every kind of edit; and over AT-SPI method calls as
+  and edited by every kind of edit, an allocation the input chooses
+  failing; and over AT-SPI method calls as
   libdbus reads them off the bus; CI runs each for a minute on every
   push, from the seeds `tools/fuzz_seed.py` writes.
 
