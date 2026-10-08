@@ -27,7 +27,6 @@
 #include "maul-ui/transition.h"
 #include "maul-ui/visual.h"
 
-#include <stdalign.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -47,11 +46,21 @@ typedef struct Counter
     uint64_t allocations;
 } Counter;
 
+// Any alignment, as Windows has no aligned_alloc: the block from malloc
+// is kept just before the aligned one.
 static void* Allocate(size_t size, size_t alignment, void* context)
 {
     ((Counter*)context)->allocations++;
-    size_t rounded = (size + alignment - 1) / alignment * alignment;
-    return alignment <= alignof(max_align_t) ? malloc(size) : aligned_alloc(alignment, rounded);
+    size_t room = alignment > sizeof(void*) ? alignment : sizeof(void*);
+    unsigned char* raw = malloc(size + room + sizeof(void*));
+    if (raw == nullptr)
+    {
+        return nullptr;
+    }
+    uintptr_t start = (uintptr_t)(raw + sizeof(void*));
+    unsigned char* aligned = raw + sizeof(void*) + (room - start % room) % room;
+    memcpy(aligned - sizeof(void*), &raw, sizeof raw);
+    return aligned;
 }
 
 static void Release(void* memory, size_t size, size_t alignment, void* context)
@@ -59,7 +68,12 @@ static void Release(void* memory, size_t size, size_t alignment, void* context)
     (void)size;
     (void)alignment;
     (void)context;
-    free(memory);
+    if (memory != nullptr)
+    {
+        void* raw = nullptr;
+        memcpy(&raw, (unsigned char*)memory - sizeof(void*), sizeof raw);
+        free(raw);
+    }
 }
 
 typedef struct Scene
