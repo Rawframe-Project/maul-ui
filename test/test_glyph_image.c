@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include "ahem.inc"
+#include "cff.inc"
 #include "large_glyph.inc"
 #include "liberation_sans.inc"
 #include "overlap.inc"
@@ -271,6 +272,17 @@ static void TestFields(void)
                  At(image, image.width - 1 - x, middle) >= At(image, image.width - x, middle);
     }
     CHECK(SameImage(image, -8, 78, 106, 86) && rising && At(image, 45, middle) == 255, "one shape");
+    // The same A in CFF outlines, unhinted: the same field, byte for byte.
+    static unsigned char s_trueType[sizeof s_pixels];
+    memcpy(s_trueType, s_pixels, (size_t)image.width * image.height);
+    def.data = s_cff;
+    def.size = sizeof s_cff;
+    muiFontId cff = {0, 0};
+    CHECK(muiCreateFont(fonts.service, &def, &cff) == mui_success, "the CFF font");
+    muiGlyphImage outlined = RenderField(&fonts, cff, 1, 100.0f, 8);
+    CHECK(SameImage(outlined, -8, 78, 106, 86) &&
+              memcmp(s_trueType, s_pixels, (size_t)image.width * image.height) == 0,
+          "CFF outlines as TrueType ones");
     muiDestroyTextService(fonts.service);
 }
 

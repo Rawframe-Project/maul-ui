@@ -10,6 +10,11 @@ format.
 
 ### Changed
 
+- A smaller text component: FreeType is built without the TrueType
+  bytecode interpreter and the PostScript hinter, as glyphs are always
+  loaded unhinted, 13.5 KB less of wasm; a CFF test font now checks the
+  CFF driver.
+
 - Layout bounded by the change: a node whose answers to its parent's
   sizing queries hold after a change is laid out alone, its parent not
   solved again, unless a baseline is read through it. One label's new

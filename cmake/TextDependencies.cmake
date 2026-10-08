@@ -61,7 +61,6 @@ else()
         ${ft}/src/base/ftsystem.c
         ${ft}/src/cff/cff.c
         ${ft}/src/psaux/psaux.c
-        ${ft}/src/pshinter/pshinter.c
         ${ft}/src/psnames/psnames.c
         ${ft}/src/sfnt/sfnt.c
         ${ft}/src/smooth/smooth.c

@@ -125,8 +125,7 @@ static Parts LayOut(muiLayout* layout, const muiTextLimits* limits)
 // Whether every module the text component reads fonts with is there.
 static bool HasModules(FT_Library library)
 {
-    static const char* const names[] = {"truetype", "cff",     "sfnt",  "psaux",
-                                        "pshinter", "psnames", "smooth"};
+    static const char* const names[] = {"truetype", "cff", "sfnt", "psaux", "psnames", "smooth"};
     for (size_t i = 0; i < sizeof names / sizeof names[0]; i++)
     {
         if (FT_Get_Module(library, names[i]) == nullptr)

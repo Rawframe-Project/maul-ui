@@ -421,6 +421,8 @@ if(MAUL_UI_BUILD_TESTS)
             ${PROJECT_BINARY_DIR}/test_fonts/large_glyph.inc s_largeGlyph)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulOverlap.ttf
             ${PROJECT_BINARY_DIR}/test_fonts/overlap.inc s_overlap)
+        mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulCff.otf
+            ${PROJECT_BINARY_DIR}/test_fonts/cff.inc s_cff)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulColor.ttf
             ${PROJECT_BINARY_DIR}/test_fonts/color.inc s_color)
         mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/MaulBitmap.ttf

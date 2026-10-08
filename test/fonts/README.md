@@ -38,6 +38,10 @@ published.
   4.60.1), MIT: an A of two overlapping boxes marked with the TrueType
   overlap flag, for distance fields of overlapping contours.
 
+- `MaulCff.otf`: written by `make_cff_font.py` (fontTools 4.66.1), MIT:
+  the same A in CFF outlines, so the CFF driver's unhinted field is held
+  to the TrueType one.
+
 - `MaulColor.ttf`: written by `make_color_font.py` (fontTools
   4.66.1), MIT: an A of COLR version 0 layers (one with no outline, a
   box of palette entry 0, its right half of entry 1, a small box of the
@@ -60,6 +64,7 @@ SHA-256 of each file:
 b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448  Ahem.ttf
 76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8  LiberationSans-Regular.ttf
 5c1132f0c118d748d7717212d950f39e13475b3cbab2ba402d169e42c376a4a6  MaulBreakTest.ttf
+54006ca29b1100a85e93568294e006596c0abf35d44e3dd01d4885b8aca85ee7  MaulCff.otf
 665a276933f1b6948326ed2db09ea0ec19a1f4efc2c180dbed6f93282ade316f  MaulCoverage.ttf
 433d1ea83dfbcbc4ec1379b7753dc0a778a2072f1d53cc19f2a6b98dc03f3ed3  MaulItalic.ttf
 1a0b8e0c87b9cf3fd2b847c47f677cdbd2af980a3e5d2fb3fbfeb8133bbbcc8f  MaulLargeGlyph.ttf
