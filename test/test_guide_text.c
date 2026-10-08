@@ -4,18 +4,22 @@
 // The guide's text snippets (docs/guide.md, section 5), each as written
 // there (tools/check_guide.py checks it, family record 0019), run in
 // Liberation Sans and their results checked: a label measured, wrapped
-// and painted, its text changed, a word made bold.
+// and painted, its text changed, a word made bold; a field typed in,
+// copied from, pasted into and undone, its caret found.
 
 #include "test_harness.h"
 
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
+#include "maul-ui/event.h"
 #include "maul-ui/font.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
 #include "maul-ui/text.h"
 #include "maul-ui/text_block.h"
+#include "maul-ui/text_edit.h"
+#include "maul-ui/text_editor.h"
 #include "maul-ui/text_style.h"
 
 #include <string.h>
@@ -116,6 +120,73 @@ static muiResult Embolden(muiContext* context, muiTextService* service, muiNodeI
     return result == mui_success ? muiNode_MarkContentChanged(context, label) : result;
 }
 
+// Section 6: a field.
+
+// Makes a label's block an editable field: one line, at most 64
+// characters, undo keeping the last 100 edits.
+static muiResult MakeField(muiTextService* service, muiTextBlockId block)
+{
+    muiTextEditDef def = muiDefaultTextEditDef();
+    def.maxLength = 64;
+    def.undoLimit = 100;
+    return muiTextBlock_SetEditing(service, block, &def);
+}
+
+// Section 6: events.
+
+// What the program's clipboard holds, as the editor copies and cuts.
+static char s_clipboard[256];
+
+static void WriteClipboard(void* user, const char* text, size_t length)
+{
+    (void)user;
+    size_t kept = length < sizeof s_clipboard - 1 ? length : sizeof s_clipboard - 1;
+    memcpy(s_clipboard, text, kept);
+    s_clipboard[kept] = '\0';
+}
+
+// Hands an event to the focused field: keys, typed text and the
+// pointer; a paste it asks for is answered from the clipboard. Whether
+// the field took the event.
+static bool FieldEvent(muiContext* context, muiTextService* service, muiNodeId field,
+                       muiTextBlockId block, const muiEvent* event)
+{
+    muiTextHost host = {service, context};
+    const muiTextEditInput input = {mui_keymapPc, WriteClipboard, NULL};
+    muiTextEditOutcome outcome = {false, false, false};
+    if (muiTextEditEvent(&host, field, event, &input, &outcome) != mui_success)
+    {
+        return false;
+    }
+    if (outcome.paste)
+    {
+        bool pasted = false;
+        if (muiTextBlock_Paste(service, block, s_clipboard, strlen(s_clipboard), &pasted) ==
+            mui_success)
+        {
+            outcome.changed = outcome.changed || pasted;
+        }
+    }
+    if (outcome.changed)
+    {
+        (void)muiNode_MarkContentChanged(context, field);
+    }
+    return outcome.handled;
+}
+
+// Section 6: the caret.
+
+// Where to draw the caret, in the field's content box as laid out.
+static bool CaretOf(muiContext* context, muiTextService* service, muiNodeId field,
+                    muiTextBlockId block, muiTextCaret* caretOut)
+{
+    muiTextHost host = {service, context};
+    muiTextSelection selection;
+    float width = muiNode_GetContentRect(context, field).width;
+    return muiTextBlock_GetSelection(service, block, &selection) == mui_success &&
+           muiTextGetCaret(&host, field, width, selection.caret, caretOut) == mui_success;
+}
+
 // The glyph runs of the last list.
 static uint32_t Runs(const muiContext* context, uint32_t* glyphsOut)
 {
@@ -132,6 +203,65 @@ static uint32_t Runs(const muiContext* context, uint32_t* glyphsOut)
         }
     }
     return runs;
+}
+
+static bool Holds(muiTextService* service, muiTextBlockId block, const char* expected)
+{
+    const char* text = NULL;
+    size_t length = 0;
+    return muiTextBlock_GetText(service, block, &text, &length) == mui_success &&
+           length == strlen(expected) && memcmp(text, expected, length) == 0;
+}
+
+static muiEvent Key(muiKeyCode code, muiKey key, muiModifiers modifiers)
+{
+    muiEvent event = {0};
+    event.kind = mui_eventKeyDown;
+    event.code = code;
+    event.key = key != 0 ? key : MUI_KEY_NAMED | code;
+    event.modifiers = modifiers;
+    return event;
+}
+
+static void TestField(muiContext* context, muiTextService* service, muiNodeId root)
+{
+    enum
+    {
+        CODE_A = 4,
+        CODE_C = 6,
+        CODE_V = 25,
+        CODE_Z = 29
+    };
+    muiTextBlockId block = {0, 0};
+    muiNodeId field = AddLabel(context, service, root, "", &block);
+    CHECK(field.index1 != 0 && MakeField(service, block) == mui_success, "a field");
+    muiEvent typed = {0};
+    typed.kind = mui_eventText;
+    typed.text = "hello";
+    typed.length = 5;
+    muiEvent backspace = Key(mui_codeBackspace, 0, 0);
+    CHECK(FieldEvent(context, service, field, block, &typed) &&
+              FieldEvent(context, service, field, block, &backspace) &&
+              Holds(service, block, "hell"),
+          "typed, a letter erased");
+    muiEvent all = Key(CODE_A, 'a', mui_modControl);
+    muiEvent copy = Key(CODE_C, 'c', mui_modControl);
+    muiEvent paste = Key(CODE_V, 'v', mui_modControl);
+    muiEvent undo = Key(CODE_Z, 'z', mui_modControl);
+    CHECK(FieldEvent(context, service, field, block, &all) &&
+              FieldEvent(context, service, field, block, &copy) && strcmp(s_clipboard, "hell") == 0,
+          "copied");
+    CHECK(FieldEvent(context, service, field, block, &paste) &&
+              FieldEvent(context, service, field, block, &paste) &&
+              Holds(service, block, "hellhell"),
+          "pasted over the selection, then after it");
+    CHECK(FieldEvent(context, service, field, block, &undo) && Holds(service, block, "hell"),
+          "the second paste undone");
+    muiTextCaret caret;
+    CHECK(FrameWithText(context, service, root, 800.0f, 600.0f) == mui_success &&
+              CaretOf(context, service, field, block, &caret) && caret.x > 20.0f &&
+              caret.height > 16.0f,
+          "a caret after the text");
 }
 
 int main(void)
@@ -165,6 +295,7 @@ int main(void)
               FrameWithText(context, service, root, 800.0f, 600.0f) == mui_success &&
               Runs(context, &glyphs) >= 3,
           "a bold word its own run");
+    TestField(context, service, root);
     muiDestroyContext(context);
     muiDestroyTextService(service);
     return s_failures == 0 ? 0 : 1;
