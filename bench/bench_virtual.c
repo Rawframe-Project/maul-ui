@@ -3,7 +3,8 @@
 //
 // Virtualization timings (record mui-0007): a tree of 100,000 rows, each
 // an indent and a label 24 or 36 units tall, estimated at 28 until
-// measured; and a table of 100,000 rows of eight cells, fixed at 24. A
+// measured; a table of 100,000 rows of eight cells, fixed at 24; and the
+// same table with every fifth row 48 tall, estimated at 28. A
 // viewport of 800 scrolls each from top to bottom by 997 units a frame,
 // then jumps to 500 places across it. The host realizes every window
 // from a pool of rows, rebinding them and marking their labels' content
@@ -62,8 +63,16 @@ static muiDimension Length(float offset)
 static uint32_t s_labelItem[NODE_LIMIT + 1];
 static uint64_t s_measures;
 
-// A label is 7 units per character of a made-up text, and in the tree
-// 36 tall for every third item, else 24.
+typedef enum Kind
+{
+    kindTree,
+    kindTable,
+    kindVariable
+} Kind;
+
+// A label is 7 units per character of a made-up text; in the tree 36
+// tall for every third item, in the variable table 48 for every fifth,
+// else 24.
 static muiSize MeasureLabel(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasureAxis width,
                             muiMeasureAxis height)
 {
@@ -71,9 +80,11 @@ static muiSize MeasureLabel(void* user, muiNodeId nodeId, uint64_t hostKey, muiM
     (void)height;
     (void)hostKey;
     s_measures++;
-    bool tree = *(const bool*)user;
+    Kind kind = *(const Kind*)user;
     uint32_t item = s_labelItem[nodeId.index1];
-    float tall = tree && item % 3 == 0 ? 36.0f : 24.0f;
+    float tall = kind == kindTree && item % 3 == 0       ? 36.0f
+                 : kind == kindVariable && item % 5 == 0 ? 48.0f
+                                                         : 24.0f;
     return (muiSize){(float)(item % 30 + 5) * 7.0f, tall};
 }
 
@@ -96,6 +107,7 @@ typedef struct Scene
     muiContext* context;
     muiNodeId root;
     muiNodeId list;
+    Kind kind;
     bool tree;
     // Rows bound now, and rows waiting in the pool, detached.
     muiNodeId bound[POOL];
@@ -202,13 +214,14 @@ static void Realize(Scene* scene)
     }
 }
 
-static void MakeScene(Scene* scene, bool tree)
+static void MakeScene(Scene* scene, Kind kind)
 {
+    bool tree = kind == kindTree;
     muiContextDef def = muiDefaultContextDef();
     def.limits.nodes = NODE_LIMIT;
     def.limits.virtualItems = ROWS;
     def.limits.drawCommands = 16384;
-    *scene = (Scene){.tree = tree};
+    *scene = (Scene){.kind = kind, .tree = tree};
     Check(muiCreateContext(&def, &scene->context), "context");
     muiLayoutStyle root = muiDefaultLayoutStyle();
     root.sizing.width = Length(400.0f);
@@ -224,8 +237,8 @@ static void MakeScene(Scene* scene, bool tree)
                           MUI_PROPERTY_BIT(mui_propertyFlexDirection));
     muiVirtualList virtualList = muiDefaultVirtualList();
     virtualList.count = ROWS;
-    virtualList.extent = tree ? 28.0f : 24.0f;
-    virtualList.fixed = !tree;
+    virtualList.extent = kind == kindTable ? 24.0f : 28.0f;
+    virtualList.fixed = kind == kindTable;
     virtualList.overscan = 200.0f;
     Check(muiNode_SetVirtualList(scene->context, scene->list, &virtualList), "list");
 }
@@ -259,7 +272,7 @@ static void Frame(Scene* scene, uint64_t frame, Timing* timing)
 {
     muiContext* context = scene->context;
     const muiLayoutInput input = {
-        400.0f, 800.0f, MeasureLabel, &scene->tree, frame * 8333333ull, NULL, {0, 0, 0, 0}};
+        400.0f, 800.0f, MeasureLabel, &scene->kind, frame * 8333333ull, NULL, {0, 0, 0, 0}};
     const muiDrawInput draw = {1, 1.0f, NULL, NULL};
     uint64_t measures = s_measures;
     double start = Seconds();
@@ -290,10 +303,10 @@ static void Frame(Scene* scene, uint64_t frame, Timing* timing)
 static Timing s_scrolled;
 static Timing s_jumped;
 
-static void Run(bool tree)
+static void Run(Kind kind)
 {
     Scene scene;
-    MakeScene(&scene, tree);
+    MakeScene(&scene, kind);
     uint64_t frame = 0;
     Frame(&scene, frame++, &s_scrolled);
     s_scrolled = (Timing){0};
@@ -314,10 +327,11 @@ static void Run(bool tree)
         Check(muiNode_SetScroll(scene.context, scene.list, 0.0f, y), "jump");
         Frame(&scene, frame++, &s_jumped);
     }
-    printf("%s, %u nodes at most, content %.0f:\n",
-           tree ? "tree, 100000 rows of 24 or 36, estimated at 28"
-                : "table, 100000 rows of 8 cells, fixed at 24",
-           scene.alive, (double)extent.height);
+    const char* names[3] = {"tree, 100000 rows of 24 or 36, estimated at 28",
+                            "table, 100000 rows of 8 cells, fixed at 24",
+                            "table, 100000 rows of 8 cells, 24 or 48, estimated at 28"};
+    printf("%s, %u nodes at most, content %.0f:\n", names[kind], scene.alive,
+           (double)extent.height);
     Report("scrolled by 997", &s_scrolled);
     Report("jumped", &s_jumped);
     muiDestroyContext(scene.context);
@@ -325,7 +339,8 @@ static void Run(bool tree)
 
 int main(void)
 {
-    Run(true);
-    Run(false);
+    Run(kindTree);
+    Run(kindTable);
+    Run(kindVariable);
     return 0;
 }
