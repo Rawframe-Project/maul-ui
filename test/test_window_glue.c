@@ -570,9 +570,17 @@ static void SetCaret(Test* test)
           "a caret of a negative size or not finite refused, the output kept");
 }
 
+// The platform carries out a request as its frame ends: the caret the
+// last frame placed, then none.
 static void StopCaret(Test* test, mwinContext* windows)
 {
     CHECK(AcceptsText(test, windows), "the window accepts text");
+    bool enabled = false;
+    mwinRect caret = {0};
+    CHECK(mwinTestGetTextInput(windows, test->window, &enabled, &caret) == mwin_success &&
+              enabled && caret.x == 15.0f && caret.y == 16.0f && caret.width == 0.0f &&
+              caret.height == 20.0f,
+          "the platform's caret where it was placed");
     mwinRect placed = {1.0f, 1.0f, 1.0f, 1.0f};
     CHECK(muiWindowGlue_SetCaret(test->glue, s_nullNode, (muiRect){0}, &placed) == mui_success &&
               placed.x == 0.0f && placed.height == 0.0f,
@@ -649,6 +657,11 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
     default:
         Feed(test, windows);
         CHECK(!AcceptsText(test, windows), "the window no longer accepts text");
+        bool enabled = true;
+        mwinRect caret = {1.0f, 1.0f, 1.0f, 1.0f};
+        CHECK(mwinTestGetTextInput(windows, test->window, &enabled, &caret) == mwin_success &&
+                  !enabled && caret.x == 0.0f && caret.height == 0.0f,
+              "the platform takes no text, its caret empty");
         test->done = true;
         break;
     }

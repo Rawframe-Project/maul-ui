@@ -50,6 +50,9 @@ typedef struct Test
     muiNodeId field;
     mwinWindowId window;
     muiWindowGlue* glue;
+    // The caret the first frame placed in the window.
+    mwinRect placed;
+    int frame;
     bool done;
 } Test;
 
@@ -175,6 +178,7 @@ static void TestCaret(Test* test)
               placed.x == 36.0f && placed.y == 36.0f + caret.y && placed.width == 0.0f &&
               placed.height == caret.height,
           "the window's caret past the content and the field's place");
+    test->placed = placed;
     CHECK(muiWindowGlue_SetTextCaret(test->glue, NULL, test->field, position, &placed) ==
               mui_errorInvalid,
           "a NULL host");
@@ -198,7 +202,8 @@ static mwinResult Init(mwinContext* windows, void* user)
 
 static void TestEditing(Test* test)
 {
-    const muiTextEditDef edit = muiDefaultTextEditDef();
+    muiTextEditDef edit = muiDefaultTextEditDef();
+    edit.purpose = mui_purposeEmail;
     CHECK(muiTextBlock_SetText(test->service, test->block, "abc", 3) == mui_success &&
               muiTextBlock_SetEditing(test->service, test->block, &edit) == mui_success,
           "editing");
@@ -240,22 +245,49 @@ static void TestEditing(Test* test)
           "nothing read, nothing pasted");
     CHECK(muiWindowGlue_Paste(NULL, test->service, test->block, &event, NULL) == mui_errorInvalid,
           "no glue");
-    CHECK(muiWindowGlue_RequestKeyboard(test->glue, &test->host, test->field) == mui_success &&
-              muiWindowGlue_RequestKeyboard(test->glue, &test->host, s_nullNode) == mui_success &&
-              muiWindowGlue_RequestKeyboard(NULL, &test->host, test->field) == mui_errorInvalid &&
+    CHECK(muiWindowGlue_RequestKeyboard(test->glue, &test->host, test->field) == mui_success,
+          "the keyboard asked for");
+    CHECK(muiWindowGlue_RequestKeyboard(NULL, &test->host, test->field) == mui_errorInvalid &&
               muiWindowGlue_RequestKeyboard(test->glue, NULL, test->field) == mui_errorInvalid,
-          "the keyboard shown and hidden");
+          "the keyboard asked for without a glue or a host");
 }
 
 static mwinFrameResult Frame(mwinContext* windows, void* user)
 {
-    (void)windows;
     Test* test = user;
-    TestComposition(test);
-    TestCaret(test);
-    TestEditing(test);
-    test->done = true;
-    return mwin_frameStop;
+    bool enabled = false;
+    mwinRect caret = {0};
+    bool visible = false;
+    mwinInputPurpose purpose = mwin_purposeText;
+    // The platform carries out the requests as a frame ends, so each
+    // frame reads what the one before asked for.
+    switch (test->frame++)
+    {
+    case 0:
+        TestComposition(test);
+        TestCaret(test);
+        TestEditing(test);
+        return mwin_frameContinue;
+    case 1:
+        CHECK(mwinTestGetTextInput(windows, test->window, &enabled, &caret) == mwin_success &&
+                  enabled && caret.x == test->placed.x && caret.y == test->placed.y &&
+                  caret.height == test->placed.height,
+              "the platform's caret where the field's is");
+        CHECK(mwinTestGetVirtualKeyboard(windows, test->window, &visible, &purpose) ==
+                      mwin_success &&
+                  visible && purpose == mwin_purposeEmail,
+              "the keyboard shown for the field's purpose");
+        CHECK(muiWindowGlue_RequestKeyboard(test->glue, &test->host, s_nullNode) == mui_success,
+              "the keyboard let go");
+        return mwin_frameContinue;
+    default:
+        CHECK(mwinTestGetVirtualKeyboard(windows, test->window, &visible, &purpose) ==
+                      mwin_success &&
+                  !visible,
+              "the keyboard hidden");
+        test->done = true;
+        return mwin_frameStop;
+    }
 }
 
 int main(void)

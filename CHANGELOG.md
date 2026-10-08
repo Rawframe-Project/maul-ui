@@ -309,7 +309,7 @@ format.
   Chrome's WebGPU through the web runner, which now gives Chrome WebGPU
   and a program its arguments (record mui-0005).
 - The Maul Window glue, `maul-ui-window` (`MAUL_UI_WINDOW`, off by
-  default; `maul-ui-window/glue.h`), with Maul Window 0.8.0: a glue a
+  default; `maul-ui-window/glue.h`), with Maul Window 0.10.0: a glue a
   window takes the records the host drains and feeds them to a context,
   saying of each whether the UI handled it: keys and text to the focus,
   the cursor as a mouse pointer, touches as touch pointers (up to
