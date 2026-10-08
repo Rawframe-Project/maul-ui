@@ -452,6 +452,14 @@ if(MAUL_UI_BUILD_TESTS)
         target_include_directories(test_text_block PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(frame_memory)
         target_include_directories(test_frame_memory PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
+        # Contexts on threads at once (record mui-0001): POSIX threads,
+        # so not on Windows or the web.
+        if(NOT EMSCRIPTEN)
+            maul_add_test(threads POSIX)
+            if(TARGET test_threads)
+                target_include_directories(test_threads PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
+            endif()
+        endif()
         # Edits' analysis against the whole text's; the block's headers
         # reach FreeType's and HarfBuzz's.
         maul_add_test(text_analysis WHITEBOX)

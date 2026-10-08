@@ -30,7 +30,8 @@ lists, layout fixtures) and rely on a static screen costing nothing.
     releases whose results are integers.
 - **Threads:** none of its own (family record 0017). A context is used
   by one thread at a time; the host may run separate contexts on
-  separate threads.
+  separate threads, with the same results as on one (`test_threads`,
+  under ThreadSanitizer in CI).
 - **Memory:** the owner object is the context, created with the
   caller's allocator, and the text service is an owner object of its
   own; HarfBuzz, inside it, allocates from the C library (record
