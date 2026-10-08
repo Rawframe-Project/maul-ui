@@ -51,6 +51,11 @@ releases. The installed library carries all three inside it.
 `-DMAUL_UI_TEXT=OFF` builds the core alone, which needs none of
 them.
 
+`cmake --install build --prefix <prefix>` installs the headers, the
+library, a CMake package (`find_package(maul-ui)`, target
+`maul-ui::maul-ui`) and a pkg-config file; `samples/minimal` is a
+program built against them alone.
+
 ## Layout fixtures
 
 The layout tests run the corpus in `test/layout/`, whose expected

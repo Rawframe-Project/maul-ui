@@ -103,9 +103,21 @@ jobs:
         run: cmake --build build -j 4
       - name: Test
         run: ctest --test-dir build --output-on-failure
+      # The installed package, shared and static, used as a program uses
+      # it: samples/minimal built by CMake and by pkg-config, and run.
       - name: Package
-        if: matrix.name == 'linux-shared'
-        run: cmake --install build --prefix "$PWD/package"
+        if: matrix.name == 'linux-shared' || matrix.name == 'linux-gcc-14'
+        run: |
+          cmake --install build --prefix "$PWD/package"
+          cmake -S samples/minimal -B build-minimal -DCMAKE_C_COMPILER=${{ matrix.cc }} \
+            -DCMAKE_PREFIX_PATH="$PWD/package"
+          cmake --build build-minimal
+          LD_LIBRARY_PATH="$PWD/package/lib" ./build-minimal/minimal
+          static=$([ "${{ matrix.name }}" = linux-gcc-14 ] && echo --static || true)
+          export PKG_CONFIG_PATH="$PWD/package/lib/pkgconfig"
+          ${{ matrix.cc }} -std=c17 samples/minimal/main.c -o minimal-pc \
+            $(pkg-config $static --cflags --libs maul-ui)
+          LD_LIBRARY_PATH="$PWD/package/lib" ./minimal-pc
 
   # Each fuzz target runs for one minute on every push, over the bytes
   # the text component reads from fonts, from tools/fuzz_seed.py's seeds.
