@@ -22,6 +22,7 @@
 #include "maul-ui/text_style.h"
 
 #include <math.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "ahem.inc"
@@ -590,6 +591,124 @@ static void TestMacKeys(void)
     FreeScene(&scene);
 }
 
+// The keys of a multi-line field on a PC: up and down by line, Control
+// and left by word, Control and Home or End to the text's ends, the
+// erasing keys, and Shift and Delete cutting.
+static void TestPcLines(void)
+{
+    Scene scene = MakeScene("ab cd\nef gh", mui_editMultiline);
+    Layout(&scene);
+    Clipboard clipboard = {0};
+    const muiModifiers ctrl = mui_modControl;
+    Select(&scene, 8, 8);
+    Key(&scene, mui_keymapPc, &clipboard, mui_codeArrowUp, 0, 0);
+    CHECK(Selects(&scene, 2, 2), "up a line, at the same x");
+    Key(&scene, mui_keymapPc, &clipboard, mui_codeArrowDown, 0, 0);
+    CHECK(Selects(&scene, 8, 8), "and down");
+    Key(&scene, mui_keymapPc, &clipboard, mui_codeArrowLeft, 0, ctrl);
+    CHECK(Selects(&scene, 6, 6), "Control and left, the word's start");
+    Key(&scene, mui_keymapPc, &clipboard, mui_codeHome, 0, ctrl);
+    CHECK(Selects(&scene, 0, 0), "Control and Home, the text's start");
+    Key(&scene, mui_keymapPc, &clipboard, mui_codeEnd, 0, ctrl);
+    CHECK(Selects(&scene, 11, 11), "Control and End, its end");
+    CHECK(Key(&scene, mui_keymapPc, &clipboard, mui_codeBackspace, 0, 0).changed &&
+              Holds(&scene, "ab cd\nef g"),
+          "Backspace, a cluster");
+    Select(&scene, 0, 0);
+    CHECK(Key(&scene, mui_keymapPc, &clipboard, mui_codeDelete, 0, 0).changed &&
+              Holds(&scene, "b cd\nef g"),
+          "Delete, the next");
+    CHECK(Key(&scene, mui_keymapPc, &clipboard, mui_codeDelete, 0, ctrl).changed &&
+              Holds(&scene, "cd\nef g"),
+          "Control and Delete, to the next word");
+    Select(&scene, 0, 2);
+    CHECK(Key(&scene, mui_keymapPc, &clipboard, mui_codeDelete, 0, mui_modShift).changed &&
+              Holds(&scene, "\nef g") && clipboard.length == 2 &&
+              memcmp(clipboard.text, "cd", 2) == 0,
+          "Shift and Delete cut");
+    FreeScene(&scene);
+}
+
+// The Mac's other keys: Command and left to the line's start, Option and
+// right to a word's end, up and down by line, Command and up to the
+// text's start, Delete and Option and Backspace; Option and Command
+// together are the host's.
+static void TestMacLines(void)
+{
+    Scene scene = MakeScene("ab cd\nef", mui_editMultiline);
+    Layout(&scene);
+    Clipboard clipboard = {0};
+    const muiModifiers command = mui_modMeta;
+    const muiModifiers option = mui_modAlt;
+    Select(&scene, 4, 4);
+    Key(&scene, mui_keymapMac, &clipboard, mui_codeArrowLeft, 0, command);
+    CHECK(Selects(&scene, 0, 0), "Command and left, the line's start");
+    Key(&scene, mui_keymapMac, &clipboard, mui_codeArrowRight, 0, option);
+    CHECK(Selects(&scene, 2, 2), "Option and right, the word's end");
+    Key(&scene, mui_keymapMac, &clipboard, mui_codeArrowDown, 0, 0);
+    CHECK(Selects(&scene, 8, 8), "down a line");
+    Key(&scene, mui_keymapMac, &clipboard, mui_codeArrowUp, 0, 0);
+    CHECK(Selects(&scene, 2, 2), "up a line");
+    Select(&scene, 7, 7);
+    Key(&scene, mui_keymapMac, &clipboard, mui_codeArrowUp, 0, command);
+    CHECK(Selects(&scene, 0, 0), "Command and up, the text's start");
+    CHECK(Key(&scene, mui_keymapMac, &clipboard, mui_codeDelete, 0, 0).changed &&
+              Holds(&scene, "b cd\nef"),
+          "Delete, the next cluster");
+    Select(&scene, 4, 4);
+    CHECK(Key(&scene, mui_keymapMac, &clipboard, mui_codeBackspace, 0, option).changed &&
+              Holds(&scene, "b \nef"),
+          "Option and Backspace, a word");
+    CHECK(!Key(&scene, mui_keymapMac, &clipboard, mui_codeArrowLeft, 0, option | command).handled,
+          "Option and Command left to the host");
+    FreeScene(&scene);
+}
+
+// A drag's records through events extend what a press placed; an empty
+// password holds its caret at the start.
+static void TestDragAndEmpty(void)
+{
+    Scene scene = MakeScene("ab cd", 0);
+    Layout(&scene);
+    Clipboard clipboard = {0};
+    const muiTextEditInput input = {mui_keymapPc, WriteClipboard, &clipboard};
+    muiPointerRecord record = {0};
+    record.kind = mui_pointerRecordPress;
+    record.clickCount = 1;
+    record.x = 1.0f;
+    record.y = 5.0f;
+    muiEvent event = {0};
+    event.kind = mui_eventPointer;
+    event.pointer = &record;
+    muiTextEditOutcome outcome;
+    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+              outcome.handled && Selects(&scene, 0, 0),
+          "a press");
+    record.kind = mui_pointerRecordDragMove;
+    record.x = 31.0f;
+    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+              outcome.handled && Selects(&scene, 0, 3),
+          "a drag extends");
+    FreeScene(&scene);
+    scene = MakeScene("", mui_editPassword);
+    Layout(&scene);
+    muiTextCaret caret;
+    muiTextPosition at = {5, 0};
+    CHECK(muiTextGetCaret(&scene.host, scene.node, 1000.0f, (muiTextPosition){0, 0}, &caret) ==
+                  mui_success &&
+              caret.x == 0.0f &&
+              muiTextHitTest(&scene.host, scene.node, 1000.0f, 15.0f, 5.0f, &at) == mui_success &&
+              at.offset == 0,
+          "an empty password: the caret and a hit at its start");
+    Type(&scene, "a");
+    Layout(&scene);
+    CHECK(muiTextGetCaret(&scene.host, scene.node, 1000.0f, (muiTextPosition){1, 0}, &caret) ==
+                  mui_success &&
+              caret.x == 10.0f,
+          "a bullet once typed");
+    FreeScene(&scene);
+}
+
 // A password copies and cuts nothing; typed text types, control
 // characters are the keys'; the pointer through events.
 static void TestEvents(void)
@@ -740,6 +859,63 @@ static void TestPassword(void)
     FreeScene(&scene);
 }
 
+// Allocations that fail once a budget, given in context, runs out.
+static void* Budgeted(size_t size, size_t alignment, void* context)
+{
+    int* left = context;
+    if (*left <= 0)
+    {
+        return NULL;
+    }
+    (*left)--;
+    size_t align = alignment < sizeof(void*) ? sizeof(void*) : alignment;
+    return aligned_alloc(align, (size + align - 1) / align * align);
+}
+
+static void Unbudgeted(void* memory, size_t size, size_t alignment, void* context)
+{
+    (void)size;
+    (void)alignment;
+    (void)context;
+    free(memory);
+}
+
+// A password whose mask finds no memory reads as nothing, never as its
+// text, at every allocation that can fail.
+static void TestPasswordWithoutMemory(void)
+{
+    int left = 1000;
+    muiTextServiceDef def = muiDefaultTextServiceDef();
+    def.allocator = (muiAllocator){Budgeted, Unbudgeted, &left};
+    muiTextService* service = NULL;
+    CHECK(muiCreateTextService(&def, &service) == mui_success, "service");
+    muiTextHost host = {service, NULL};
+    bool hidden = true;
+    bool masked = false;
+    for (int budget = 0; budget < 40 && !masked; budget++)
+    {
+        left = 1000;
+        muiTextBlockId block = {0, 0};
+        muiTextEditDef edit = muiDefaultTextEditDef();
+        edit.flags = mui_editPassword;
+        CHECK(muiCreateTextBlock(service, "secret", 6, &block) == mui_success &&
+                  muiTextBlock_SetEditing(service, block, &edit) == mui_success,
+              "a password");
+        left = budget;
+        const char* text = NULL;
+        size_t length = 0;
+        if (muiAccessTextOf(&host, s_nullNode, muiTextBlock_GetKey(block), &text, &length))
+        {
+            masked = length == 18 && memcmp(text, "\xE2\x80\xA2", 3) == 0;
+            hidden = hidden && masked;
+        }
+        left = 1000;
+        CHECK(muiDestroyTextBlock(service, block) == mui_success, "destroyed");
+    }
+    CHECK(hidden && masked, "nothing read until the mask is made, then bullets");
+    muiDestroyTextService(service);
+}
+
 // Sizes the scene's node, its content box that size.
 static void Size(Scene* scene, float width, float height)
 {
@@ -832,6 +1008,10 @@ int main(void)
     TestPointer();
     TestPcKeys();
     TestMacKeys();
+    TestPcLines();
+    TestMacLines();
+    TestDragAndEmpty();
+    TestPasswordWithoutMemory();
     TestEvents();
     TestComposition();
     TestPassword();
