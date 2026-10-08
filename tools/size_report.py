@@ -30,8 +30,8 @@ import tempfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 HEADERS = ROOT / "include" / "maul-ui"
-# The text component's public headers, from the list check_modules.py
-# keeps whole.
+# The text component's public headers, from the list
+# check_text_headers.py keeps whole.
 TEXT_HEADERS = {line.split("#", 1)[0].strip()
                 for line in (ROOT / "tools" / "text-headers.txt").read_text(encoding="utf-8")
                 .splitlines()} - {""}

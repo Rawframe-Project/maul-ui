@@ -626,8 +626,8 @@ format.
   `text_editor.h`, and the size report counts the editor as text, not
   core (the core read 301% of its ceiling; it is at 93%). The text
   component's public headers are one list, `tools/text-headers.txt`,
-  which `check_modules.py` holds to the headers declaring a function
-  the component's sources define.
+  which `tools/check_text_headers.py` holds to the headers declaring a
+  function the component's sources define.
 
 - A layer whose parent is painted after it (in a layer above it) or not
   at all (below a node of opacity 0) is drawn through its ancestors'

@@ -1,7 +1,8 @@
 # The text component's public headers (cmake/Text.cmake, record
 # mui-0006): the size report counts their functions as text, and an
-# install without the component leaves them out. check_modules.py holds
-# this to the headers declaring a function the component's sources define.
+# install without the component leaves them out. check_text_headers.py
+# holds this to the headers declaring a function the component's sources
+# define.
 font.h
 glyph_atlas.h
 glyph_image.h
