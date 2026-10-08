@@ -191,6 +191,37 @@ static muiResult UseAccent(muiContext* context, muiStyleId button, muiNodeId war
     return result == mui_success ? muiNode_SetTheme(context, warning, alert) : result;
 }
 
+// Section 7: the draw list.
+
+// Where a box command lands on the surface, in device pixels: its rect
+// through its transform, at the list's scale. A renderer's walk does
+// this for each command, in order, in the command's clip.
+static muiRect DeviceRect(const muiDrawList* list, uint32_t index)
+{
+    const muiDrawCommand* command = &list->commands[index];
+    const muiDrawTransform* to = &list->transforms[command->transform];
+    const muiRect r = command->box.rect;
+    float scale = list->header.scale;
+    // Scale and translation only, as layout makes them; a renderer takes
+    // the whole affine transform.
+    return (muiRect){(to->a * r.x + to->e) * scale, (to->d * r.y + to->f) * scale,
+                     to->a * r.width * scale, to->d * r.height * scale};
+}
+
+// Section 7: painting host content.
+
+// A gauge the program draws itself: a node whose host key is a fill
+// level in thousandths, painted as a bar of that much of its width.
+static void PaintGauge(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
+                       muiDrawSink* sink)
+{
+    (void)user;
+    (void)nodeId;
+    const muiColor green = {0.2f, 0.7f, 0.3f, 1.0f};
+    float filled = width * (float)hostKey / 1000.0f;
+    (void)muiDrawSink_AddRect(sink, (muiRect){0.0f, 0.0f, filled, height}, green);
+}
+
 static void TestRefusals(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -325,11 +356,42 @@ static void TestStyles(void)
     muiDestroyContext(context);
 }
 
+static void TestDrawing(void)
+{
+    muiContextDef def = muiDefaultContextDef();
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "a context");
+    muiNodeDef nodeDef = muiDefaultNodeDef();
+    nodeDef.hostKey = 250;
+    muiNodeId gauge = {0, 0};
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.sizing.width = (muiDimension){0.0f, 200.0f, mui_dimensionValue};
+    layout.sizing.height = (muiDimension){0.0f, 10.0f, mui_dimensionValue};
+    layout.content = mui_contentHost;
+    CHECK(muiCreateNode(context, &nodeDef, &gauge) == mui_success &&
+              muiNode_SetLayoutValues(context, gauge, &layout, MUI_LAYOUT_PROPERTIES) ==
+                  mui_success,
+          "a gauge a quarter full");
+    const muiLayoutInput layoutInput = {800.0f, 600.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
+    const muiDrawInput draw = {1, 2.0f, PaintGauge, NULL};
+    muiDrawList list = {0};
+    CHECK(muiComputeLayout(context, gauge, &layoutInput) == mui_success &&
+              muiBuildDrawList(context, gauge, &draw) == mui_success &&
+              muiGetDrawList(context, &list) == mui_success && list.commandCount == 1 &&
+              list.commands[0].kind == mui_drawBox,
+          "its bar, a box");
+    muiRect device = DeviceRect(&list, 0);
+    CHECK(device.x == 0.0f && device.y == 0.0f && device.width == 100.0f && device.height == 20.0f,
+          "50 units wide, 100 device pixels at a scale of 2");
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestRefusals();
     TestLimits();
     TestTree();
     TestStyles();
+    TestDrawing();
     return s_failures == 0 ? 0 : 1;
 }

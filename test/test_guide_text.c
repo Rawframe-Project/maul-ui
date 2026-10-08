@@ -13,6 +13,7 @@
 #include "maul-ui/draw.h"
 #include "maul-ui/event.h"
 #include "maul-ui/font.h"
+#include "maul-ui/glyph_atlas.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
@@ -187,6 +188,41 @@ static bool CaretOf(muiContext* context, muiTextService* service, muiNodeId fiel
            muiTextGetCaret(&host, field, width, selection.caret, caretOut) == mui_success;
 }
 
+// Section 7: glyph images.
+
+// Makes sure every glyph of a list is in the atlas, then takes the
+// rectangles of its pages that changed, which a renderer uploads. How
+// many glyphs are packed.
+static uint32_t PackGlyphs(muiGlyphAtlas* atlas, const muiDrawList* list, muiAtlasUpdate* updates,
+                           uint32_t capacity, uint32_t* updateCount)
+{
+    uint32_t packed = 0;
+    float scale = list->header.scale;
+    muiGlyphAtlas_NextFrame(atlas);
+    for (uint32_t i = 0; i < list->commandCount; i++)
+    {
+        const muiDrawGlyphRun* run = &list->commands[i].glyphRun;
+        if (list->commands[i].kind != mui_drawGlyphRun)
+        {
+            continue;
+        }
+        for (uint32_t g = 0; g < run->glyphCount; g++)
+        {
+            const muiGlyph* glyph = &list->glyphs[run->firstGlyph + g];
+            muiAtlasGlyph image;
+            if (muiGlyphAtlas_Get(atlas, run->font, glyph->id, run->size * scale,
+                                  (run->originX + glyph->x) * scale,
+                                  (run->originY + glyph->y) * scale, &image) == mui_success)
+            {
+                packed++;
+            }
+        }
+    }
+    *updateCount = 0;
+    (void)muiGlyphAtlas_TakeUpdates(atlas, updates, capacity, updateCount);
+    return packed;
+}
+
 // The glyph runs of the last list.
 static uint32_t Runs(const muiContext* context, uint32_t* glyphsOut)
 {
@@ -264,6 +300,25 @@ static void TestField(muiContext* context, muiTextService* service, muiNodeId ro
           "a caret after the text");
 }
 
+static void TestAtlas(muiContext* context, muiTextService* service)
+{
+    muiGlyphAtlasDef def = muiDefaultGlyphAtlasDef();
+    muiGlyphAtlas* atlas = NULL;
+    muiDrawList list = {0};
+    muiAtlasUpdate updates[16];
+    uint32_t count = 0;
+    CHECK(muiCreateGlyphAtlas(service, &def, &atlas) == mui_success &&
+              muiGetDrawList(context, &list) == mui_success,
+          "an atlas");
+    uint32_t glyphs = 0;
+    Runs(context, &glyphs);
+    CHECK(PackGlyphs(atlas, &list, updates, 16, &count) == glyphs && count > 0,
+          "every glyph packed, rectangles to upload");
+    CHECK(PackGlyphs(atlas, &list, updates, 16, &count) == glyphs && count == 0,
+          "the next frame's, packed already");
+    muiDestroyGlyphAtlas(atlas);
+}
+
 int main(void)
 {
     muiTextService* service = MakeTextService(s_liberationSans, sizeof s_liberationSans);
@@ -296,6 +351,7 @@ int main(void)
               Runs(context, &glyphs) >= 3,
           "a bold word its own run");
     TestField(context, service, root);
+    TestAtlas(context, service);
     muiDestroyContext(context);
     muiDestroyTextService(service);
     return s_failures == 0 ? 0 : 1;

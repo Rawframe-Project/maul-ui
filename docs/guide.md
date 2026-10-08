@@ -418,6 +418,7 @@ another text stack instead and hand its own functions to the frame.
 
 ```c
 #include "maul-ui/font.h"
+#include "maul-ui/glyph_atlas.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
@@ -653,3 +654,106 @@ static bool CaretOf(muiContext* context, muiTextService* service, muiNodeId fiel
 
 `muiTextHitTest` finds the position under a point, and `muiTextMove`
 moves one by cluster, word or line, as the keys do.
+
+## 7. Painting
+
+A draw list is what a renderer draws for a root: fixed-size commands in
+paint order, boxes with their rounded corners, borders and gradients,
+shadows, images and glyph runs. Coordinates are logical units, colors
+linear light with premultiplied alpha, and the same tree gives the same
+bytes. Each command names a clip and a transform by index; index 0 of
+the clip table is none, and entry 0 of the transform table the
+identity, so a renderer can batch across them:
+
+```c
+// Where a box command lands on the surface, in device pixels: its rect
+// through its transform, at the list's scale. A renderer's walk does
+// this for each command, in order, in the command's clip.
+static muiRect DeviceRect(const muiDrawList* list, uint32_t index)
+{
+    const muiDrawCommand* command = &list->commands[index];
+    const muiDrawTransform* to = &list->transforms[command->transform];
+    const muiRect r = command->box.rect;
+    float scale = list->header.scale;
+    // Scale and translation only, as layout makes them; a renderer takes
+    // the whole affine transform.
+    return (muiRect){(to->a * r.x + to->e) * scale, (to->d * r.y + to->f) * scale,
+                     to->a * r.width * scale, to->d * r.height * scale};
+}
+```
+
+A node with host content is painted by the frame's paint function,
+which adds glyph runs and rectangles through a sink, relative to the
+node's content box, in the node's clip and opacity. This is how a
+program draws what the library does not, a chart, a gauge:
+
+```c
+// A gauge the program draws itself: a node whose host key is a fill
+// level in thousandths, painted as a bar of that much of its width.
+static void PaintGauge(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
+                       muiDrawSink* sink)
+{
+    (void)user;
+    (void)nodeId;
+    const muiColor green = {0.2f, 0.7f, 0.3f, 1.0f};
+    float filled = width * (float)hostKey / 1000.0f;
+    (void)muiDrawSink_AddRect(sink, (muiRect){0.0f, 0.0f, filled, height}, green);
+}
+```
+
+A node 200 units wide and a quarter full is painted as one box, 50
+units wide, which lands 100 device pixels wide at a scale of 2. An
+image is a visual property, a host key naming the image (with nine-slice
+insets, tint and repeat), which the renderer looks up.
+
+Glyph runs name a font key, a size and glyph ids; a renderer draws
+their images from an atlas, which renders them once (coverage, distance
+fields or color, as `muiRenderGlyph` and its siblings do) and packs
+them into pages it keeps:
+
+```c
+// Makes sure every glyph of a list is in the atlas, then takes the
+// rectangles of its pages that changed, which a renderer uploads. How
+// many glyphs are packed.
+static uint32_t PackGlyphs(muiGlyphAtlas* atlas, const muiDrawList* list, muiAtlasUpdate* updates,
+                           uint32_t capacity, uint32_t* updateCount)
+{
+    uint32_t packed = 0;
+    float scale = list->header.scale;
+    muiGlyphAtlas_NextFrame(atlas);
+    for (uint32_t i = 0; i < list->commandCount; i++)
+    {
+        const muiDrawGlyphRun* run = &list->commands[i].glyphRun;
+        if (list->commands[i].kind != mui_drawGlyphRun)
+        {
+            continue;
+        }
+        for (uint32_t g = 0; g < run->glyphCount; g++)
+        {
+            const muiGlyph* glyph = &list->glyphs[run->firstGlyph + g];
+            muiAtlasGlyph image;
+            if (muiGlyphAtlas_Get(atlas, run->font, glyph->id, run->size * scale,
+                                  (run->originX + glyph->x) * scale,
+                                  (run->originY + glyph->y) * scale, &image) == mui_success)
+            {
+                packed++;
+            }
+        }
+    }
+    *updateCount = 0;
+    (void)muiGlyphAtlas_TakeUpdates(atlas, updates, capacity, updateCount);
+    return packed;
+}
+```
+
+The first frame packs every glyph and gives the rectangles to upload;
+the next, its glyphs packed already, gives none. A plot of glyphs no
+frame has used lately is emptied when room runs out.
+
+The reference renderer, the optional `maul-ui-rhi` (`MAUL_UI_RHI`),
+does all this with Maul RHI: each command an instance of one pipeline,
+its glyphs from atlases it keeps, images from a function the program
+gives it. Each frame, `muiRhiRenderer_AddPasses` adds its upload and
+draw passes into the program's frame, and `muiRhiRenderer_Record`
+records them once the frame is compiled. The samples (`samples/`) run
+it in a window with Maul Window.
