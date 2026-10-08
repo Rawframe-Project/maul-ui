@@ -31,9 +31,31 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <time.h>
+#include <unistd.h>
 
 #define ROOT_PATH "/org/a11y/atspi/accessible/root"
+
+#if defined(__SANITIZE_THREAD__)
+#define UNDER_TSAN 1
+#elif defined(__has_feature)
+#if __has_feature(thread_sanitizer)
+#define UNDER_TSAN 1
+#endif
+#endif
+
+#ifdef UNDER_TSAN
+// libdbus takes its own locks in orders ThreadSanitizer reports as
+// inverted: finding the accessibility bus on the session bus, then
+// registering on it, then closing. The library uses libdbus from one
+// thread, where no such order can deadlock; races are still reported.
+const char* __tsan_default_suppressions(void);
+const char* __tsan_default_suppressions(void)
+{
+    return "deadlock:libdbus-1.so\n";
+}
+#endif
 
 typedef struct Test
 {
@@ -536,7 +558,8 @@ static void List(Built* built, muiAccessNode* parent, const uint64_t* ids, uint3
 // The window 1: a focused button 2 that clicks; a generic 3 around a
 // label 4; a checked checkbox 0x1a labelled by 4, described by 2 and
 // controlling 99, which is not held; a group 6, second of three at level
-// 2 and politely live, with a text input 7 and a progress bar 9 in it;
+// 2, politely live and described as settings, with a text input 7 and
+// a progress bar 9 in it;
 // a slider 8 at 30 of 0 to 100.
 static muiAccessUpdate Build(Built* built)
 {
@@ -558,6 +581,8 @@ static muiAccessUpdate Build(Built* built)
     group->values.setPosition = 2;
     group->values.setSize = 3;
     group->values.live = mui_livePolite;
+    group->text[mui_accessDescription] = "Settings";
+    group->textLength[mui_accessDescription] = 8;
     // Text is set through the set-value action too, but is no range.
     Add(built, 7, mui_roleTextInput, "Go", 10, 10, 50, 20)->actions = 1u << mui_actionSetValue;
     muiAccessNode* progress = Add(built, 9, mui_roleProgressIndicator, "Load", 10, 30, 50, 10);
@@ -712,12 +737,11 @@ static DBusMessage* PointCall(int32_t x, int32_t y, uint32_t coordinates)
     return call;
 }
 
-// Whether a node holds a point on the screen.
-static bool Holds(const char* path, int32_t x, int32_t y)
+// Whether a node holds a point in a coordinate type.
+static bool HoldsIn(const char* path, int32_t x, int32_t y, uint32_t screen)
 {
     DBusMessage* call = Call(path, "org.a11y.atspi.Component", "Contains");
     muiDBusIter iter;
-    uint32_t screen = 0;
     muiDBusBool holds = 0;
     s_test.dbus.iterInitAppend(call, &iter);
     (void)(s_test.dbus.appendBasic(&iter, mui_dbusTypeInt32, &x) &&
@@ -730,6 +754,83 @@ static bool Holds(const char* path, int32_t x, int32_t y)
         s_test.dbus.unrefMessage(reply);
     }
     return ok && holds != 0;
+}
+
+// Whether a node holds a point on the screen.
+static bool Holds(const char* path, int32_t x, int32_t y)
+{
+    return HoldsIn(path, x, y, 0);
+}
+
+// A Component method's two numbers, asked with a coordinate type or
+// none.
+static bool PairIs(const char* path, const char* member, int coordinates, int32_t a, int32_t b)
+{
+    DBusMessage* call = Call(path, "org.a11y.atspi.Component", member);
+    muiDBusIter iter;
+    uint32_t type = (uint32_t)coordinates;
+    s_test.dbus.iterInitAppend(call, &iter);
+    if (coordinates >= 0)
+    {
+        (void)s_test.dbus.appendBasic(&iter, mui_dbusTypeUint32, &type);
+    }
+    DBusMessage* reply = Answer(call);
+    int32_t got[2] = {-1, -1};
+    muiDBusIter out;
+    muiDBusIter tuple;
+    if (reply != NULL && s_test.dbus.iterInit(reply, &out) &&
+        s_test.dbus.argType(&out) == mui_dbusTypeStruct)
+    {
+        s_test.dbus.recurse(&out, &tuple);
+        for (int i = 0; i < 2 && s_test.dbus.argType(&tuple) == mui_dbusTypeInt32; i++)
+        {
+            s_test.dbus.getBasic(&tuple, &got[i]);
+            (void)s_test.dbus.next(&tuple);
+        }
+    }
+    if (reply != NULL)
+    {
+        s_test.dbus.unrefMessage(reply);
+    }
+    return got[0] == a && got[1] == b;
+}
+
+// How a node is drawn, by the Component interface: a widget's layer, no
+// MDI order, opaque; its size and position; points in its parent's
+// coordinates; scrolling to it asked of the host; calls with no point or
+// an unknown member refused.
+static void TestComponentReads(void)
+{
+    const char* ok = "/org/a11y/atspi/accessible/w1n2";
+    const char* input = "/org/a11y/atspi/accessible/w1n7";
+    uint32_t layer = 0;
+    int16_t order = 0;
+    double alpha = 0.0;
+    DBusMessage* reply = Answer(Call(ok, "org.a11y.atspi.Component", "GetLayer"));
+    CHECK(FirstOf(reply, mui_dbusTypeUint32, &layer) && layer == 3, "a widget's layer");
+    s_test.dbus.unrefMessage(reply);
+    reply = Answer(Call(ok, "org.a11y.atspi.Component", "GetMDIZOrder"));
+    CHECK(FirstOf(reply, mui_dbusTypeInt16, &order) && order == -1, "no MDI order");
+    s_test.dbus.unrefMessage(reply);
+    reply = Answer(Call(ok, "org.a11y.atspi.Component", "GetAlpha"));
+    CHECK(FirstOf(reply, mui_dbusTypeDouble, &alpha) && alpha == 1.0, "opaque");
+    s_test.dbus.unrefMessage(reply);
+    CHECK(PairIs(ok, "GetSize", -1, 200, 80) && PairIs(ok, "GetPosition", 1, 20, 20) &&
+              PairIs(input, "GetPosition", 2, 20, 20),
+          "a size, and a position in the window and in the parent");
+    CHECK(HoldsIn(input, 30, 30, 2) && !HoldsIn(input, 130, 30, 2),
+          "points in the parent's coordinates");
+    muiDBusBool done = 0;
+    reply = Answer(Call(input, "org.a11y.atspi.Component", "ScrollTo"));
+    CHECK(FirstOf(reply, mui_dbusTypeBoolean, &done) && done &&
+              s_test.asked.action == mui_actionScrollIntoView && s_test.asked.target == 7,
+          "scrolling to a node asked of the host");
+    s_test.dbus.unrefMessage(reply);
+    CHECK(IsError(Answer(Call(ok, "org.a11y.atspi.Component", "Contains")),
+                  "org.freedesktop.DBus.Error.InvalidArgs") &&
+              IsError(Answer(Call(ok, "org.a11y.atspi.Component", "Fold")),
+                      "org.freedesktop.DBus.Error.UnknownMethod"),
+          "no point, or an unknown member");
 }
 
 static void TestComponent(muiAtspiAdapter* adapter)
@@ -824,6 +925,118 @@ static bool ReplyIs(const char* path, const char* interface, const char* member,
     return strcmp(got, expected) == 0;
 }
 
+// GetAll of an interface's properties, its strings and unsigned numbers
+// flattened.
+static bool AllAre(const char* path, const char* interface, const char* expected)
+{
+    DBusMessage* call = Call(path, "org.freedesktop.DBus.Properties", "GetAll");
+    muiDBusIter iter;
+    s_test.dbus.iterInitAppend(call, &iter);
+    (void)s_test.dbus.appendBasic(&iter, mui_dbusTypeString, (const void*)&interface);
+    DBusMessage* reply = Answer(call);
+    char got[512] = "";
+    size_t length = 0;
+    if (reply != NULL && s_test.dbus.iterInit(reply, &iter))
+    {
+        Flatten(&iter, got, sizeof(got), &length);
+    }
+    if (reply != NULL)
+    {
+        s_test.dbus.unrefMessage(reply);
+    }
+    if (strcmp(got, expected) != 0)
+    {
+        fprintf(stderr, "GetAll %s of %s: %s\n", interface, path, got);
+    }
+    return strcmp(got, expected) == 0;
+}
+
+// Get of a property, its error's name when it fails.
+static bool GetFails(const char* path, const char* interface, const char* name, const char* error)
+{
+    DBusMessage* call = Call(path, "org.freedesktop.DBus.Properties", "Get");
+    muiDBusIter iter;
+    s_test.dbus.iterInitAppend(call, &iter);
+    (void)(s_test.dbus.appendBasic(&iter, mui_dbusTypeString, (const void*)&interface) &&
+           s_test.dbus.appendBasic(&iter, mui_dbusTypeString, (const void*)&name));
+    return IsError(Answer(call), error);
+}
+
+// The properties a screen reader reads beside a node's name: its
+// description, the texts no node has, the application's versions, and
+// GetAll over each interface; what an object lacks is refused.
+static void TestProperties(void)
+{
+    const char* window = "/org/a11y/atspi/accessible/w1n1";
+    const char* ok = "/org/a11y/atspi/accessible/w1n2";
+    const char* agree = "/org/a11y/atspi/accessible/w1n1a";
+    const char* slider = "/org/a11y/atspi/accessible/w1n8";
+    const char* accessible = "org.a11y.atspi.Accessible";
+    char text[256] = "";
+    CHECK(PropertyOf("/org/a11y/atspi/accessible/w1n6", accessible, "Description",
+                     mui_dbusTypeString, text) &&
+              strcmp(text, "Settings") == 0,
+          "a node's own description");
+    // A node described by another tells it as a relation, not here.
+    CHECK(PropertyOf(agree, accessible, "Description", mui_dbusTypeString, text) &&
+              strcmp(text, "") == 0 &&
+              PropertyOf(window, accessible, "Description", mui_dbusTypeString, text) &&
+              strcmp(text, "") == 0,
+          "none, empty");
+    bool empty = true;
+    const char* none[] = {"Locale", "AccessibleId", "HelpText"};
+    for (int i = 0; i < 3; i++)
+    {
+        empty = empty && PropertyOf(ok, accessible, none[i], mui_dbusTypeString, text) &&
+                strcmp(text, "") == 0;
+    }
+    CHECK(empty, "the locale, an id and help text, empty");
+    char version[32];
+    (void)snprintf(version, sizeof version, "%d.%d.%d", MUI_VERSION_MAJOR, MUI_VERSION_MINOR,
+                   MUI_VERSION_PATCH);
+    uint32_t interfaceVersion = 0;
+    CHECK(PropertyOf(ROOT_PATH, "org.a11y.atspi.Application", "AtspiVersion", mui_dbusTypeString,
+                     text) &&
+              strcmp(text, "2.1") == 0 &&
+              PropertyOf(ROOT_PATH, "org.a11y.atspi.Application", "Version", mui_dbusTypeString,
+                         text) &&
+              strcmp(text, version) == 0 &&
+              PropertyOf(ROOT_PATH, "org.a11y.atspi.Application", "ToolkitVersion",
+                         mui_dbusTypeString, text) &&
+              strcmp(text, version) == 0 &&
+              PropertyOf(ROOT_PATH, "org.a11y.atspi.Application", "InterfaceVersion",
+                         mui_dbusTypeUint32, &interfaceVersion) &&
+              interfaceVersion == 1,
+          "the application's versions");
+    char all[768];
+    // Empty texts flatten to nothing between their spaces.
+    (void)snprintf(all, sizeof all,
+                   "Name OK Description  Parent %s %s ChildCount Locale  "
+                   "AccessibleId  HelpText ",
+                   s_test.plugName, window);
+    CHECK(AllAre(ok, accessible, all), "every Accessible property of a node");
+    (void)snprintf(all, sizeof all,
+                   "ToolkitName Maul UI Version %s ToolkitVersion %s "
+                   "AtspiVersion 2.1 InterfaceVersion 1 Id",
+                   version, version);
+    CHECK(AllAre(ROOT_PATH, "org.a11y.atspi.Application", all), "the application's");
+    CHECK(AllAre(ok, "org.a11y.atspi.Action", "NActions") &&
+              AllAre(slider, "org.a11y.atspi.Value",
+                     "MinimumValue MaximumValue MinimumIncrement CurrentValue Text "),
+          "an action's and a range's");
+    CHECK(AllAre(ok, "org.a11y.atspi.Value", "") && AllAre(ok, "org.a11y.atspi.Nothing", ""),
+          "none of an interface the node lacks, or of one unknown");
+    CHECK(GetFails(ok, accessible, "Colour", "org.freedesktop.DBus.Error.UnknownProperty") &&
+              GetFails(ok, "org.a11y.atspi.Value", "CurrentValue",
+                       "org.freedesktop.DBus.Error.UnknownProperty") &&
+              GetFails(ok, "org.a11y.atspi.Application", "ToolkitName",
+                       "org.freedesktop.DBus.Error.UnknownProperty"),
+          "an unknown property, a range's of a button, the application's of a node");
+    CHECK(IsError(Answer(Call(ok, "org.freedesktop.DBus.Properties", "GetAll")),
+                  "org.freedesktop.DBus.Error.InvalidArgs"),
+          "GetAll without an interface refused");
+}
+
 static DBusMessage* Indexed(const char* path, const char* member, int32_t index)
 {
     DBusMessage* call = Call(path, "org.a11y.atspi.Action", member);
@@ -886,6 +1099,29 @@ static void TestActionsAndValues(void)
               IsError(Answer(Call(label, "org.a11y.atspi.Action", "GetActions")),
                       "org.freedesktop.DBus.Error.UnknownMethod"),
           "actions by name, none past the last, none for a node without");
+    CHECK(ReplyIs(ok, "org.a11y.atspi.Accessible", "GetRoleName", "push button") &&
+              ReplyIs(slider, "org.a11y.atspi.Accessible", "GetLocalizedRoleName", "slider"),
+          "role names");
+    const char* readers[] = {"GetLocalizedName", "GetDescription", "GetKeyBinding"};
+    const char* expected[] = {"click", "", ""};
+    bool read = true;
+    for (int i = 0; i < 3; i++)
+    {
+        reply = Answer(Indexed(ok, readers[i], 0));
+        const char* text = NULL;
+        read = read && FirstOf(reply, mui_dbusTypeString, (void*)&text) &&
+               strcmp(text, expected[i]) == 0;
+        if (reply != NULL)
+        {
+            s_test.dbus.unrefMessage(reply);
+        }
+    }
+    CHECK(read &&
+              IsError(Answer(Indexed(ok, "GetDescription", 1)),
+                      "org.freedesktop.DBus.Error.InvalidArgs") &&
+              IsError(Answer(Indexed(ok, "Undo", 0)), "org.freedesktop.DBus.Error.UnknownMethod"),
+          "an action's localized name, no description or key binding; none past the last; an "
+          "unknown member");
     double value = 0.0;
     double maximum = 0.0;
     CHECK(PropertyOf(slider, "org.a11y.atspi.Value", "CurrentValue", mui_dbusTypeDouble, &value) &&
@@ -1146,6 +1382,143 @@ static void TestContract(void)
     muiDestroyAtspiApp(NULL);
 }
 
+// Allocations that fail after a number succeed, given in context.
+static void* Failing(size_t size, size_t alignment, void* context)
+{
+    int* left = context;
+    if (*left <= 0)
+    {
+        return NULL;
+    }
+    (*left)--;
+    return Poisoned(size, alignment, NULL);
+}
+
+// What creating an application or a window meets: no memory, no bus at
+// the address named, a window more than the application holds, and an
+// application destroyed while its registry has not answered.
+static void TestLimits(const char* address)
+{
+    muiAtspiAppDef def = muiDefaultAtspiAppDef();
+    def.name = "limits";
+    int left = 0;
+    def.allocator = (muiAllocator){Failing, Unpoisoned, &left};
+    muiAtspiApp* app = NULL;
+    CHECK(muiCreateAtspiApp(&def, &app) == mui_errorCapacity && app == NULL,
+          "no memory for the application");
+    def.allocator = (muiAllocator){Poisoned, Unpoisoned, NULL};
+    (void)setenv("AT_SPI_BUS_ADDRESS", "unix:path=/nonexistent/maul-ui-bus", 1);
+    CHECK(muiCreateAtspiApp(&def, &app) == mui_errorPlatform && app == NULL,
+          "no bus at the address named");
+    (void)setenv("AT_SPI_BUS_ADDRESS", address, 1);
+    def.windows = 1;
+    left = 1;
+    def.allocator = (muiAllocator){Failing, Unpoisoned, &left};
+    CHECK(muiCreateAtspiApp(&def, &app) == mui_success, "an application of one window");
+    muiAtspiAdapterDef adapterDef = muiDefaultAtspiAdapterDef();
+    adapterDef.action = Act;
+    muiAtspiAdapter* first = NULL;
+    muiAtspiAdapter* second = NULL;
+    CHECK(muiCreateAtspiAdapter(app, &adapterDef, &first) == mui_errorCapacity && first == NULL,
+          "no memory for a window");
+    left = 1;
+    CHECK(muiCreateAtspiAdapter(app, &adapterDef, &first) == mui_errorCapacity && first == NULL,
+          "no memory for its tree");
+    left = 1000;
+    CHECK(muiCreateAtspiAdapter(app, &adapterDef, &first) == mui_success &&
+              muiCreateAtspiAdapter(app, &adapterDef, &second) == mui_errorCapacity &&
+              second == NULL,
+          "one window, none more");
+    muiDestroyAtspiAdapter(first);
+    // Its Embed not answered yet: destroying cancels the call.
+    muiDestroyAtspiApp(app);
+}
+
+// The session bus's org.a11y.Bus, served by a child process while an
+// application blocks asking it: GetAddress answers the test's bus. A
+// process, not a thread, so that libdbus's locks are never shared.
+static muiDBusHandled AnswerAddress(DBusConnection* connection, DBusMessage* message, void* data)
+{
+    int* asked = data;
+    const muiDBusApi* dbus = &s_test.dbus;
+    const char* member = dbus->member(message);
+    if (dbus->messageType(message) != mui_dbusMethodCall || member == NULL ||
+        strcmp(member, "GetAddress") != 0)
+    {
+        return mui_dbusNotHandled;
+    }
+    DBusMessage* reply = dbus->newMethodReturn(message);
+    muiDBusIter out;
+    const char* address = getenv("DBUS_SESSION_BUS_ADDRESS");
+    dbus->iterInitAppend(reply, &out);
+    (void)dbus->appendBasic(&out, mui_dbusTypeString, (const void*)&address);
+    (void)dbus->send(connection, reply, NULL);
+    dbus->unrefMessage(reply);
+    (*asked)++;
+    return mui_dbusHandled;
+}
+
+// The child: owns the name, tells the parent through a pipe, answers
+// until asked once or ten seconds pass; its exit status how many asked.
+static void ServeAddress(int ready)
+{
+    const muiDBusApi* dbus = &s_test.dbus;
+    int asked = 0;
+    DBusConnection* connection = dbus->openPrivate(getenv("DBUS_SESSION_BUS_ADDRESS"), NULL);
+    bool ok = connection != NULL && dbus->busRegister(connection, NULL) &&
+              dbus->requestName(connection, "org.a11y.Bus", 4, NULL) == 1 &&
+              dbus->addFilter(connection, AnswerAddress, &asked, NULL);
+    if (write(ready, ok ? "1" : "0", 1) != 1)
+    {
+        ok = false;
+    }
+    for (int i = 0; ok && i < 10000 && asked == 0; i++)
+    {
+        (void)dbus->readWrite(connection, 1);
+        while (dbus->dispatch(connection) == mui_dbusDataRemains)
+        {
+        }
+    }
+    // The answer written before the process ends.
+    (void)dbus->readWrite(connection, 100);
+    _exit(asked);
+}
+
+// With no AT_SPI_BUS_ADDRESS, as on a desktop, an application asks the
+// session bus's org.a11y.Bus for the accessibility bus, then registers.
+static void TestDiscovery(const char* address)
+{
+    (void)unsetenv("AT_SPI_BUS_ADDRESS");
+    (void)setenv("DBUS_SESSION_BUS_ADDRESS", address, 1);
+    int pipes[2];
+    CHECK(pipe(pipes) == 0, "a pipe");
+    pid_t child = fork();
+    if (child == 0)
+    {
+        ServeAddress(pipes[1]);
+    }
+    char ready = '0';
+    CHECK(child > 0 && read(pipes[0], &ready, 1) == 1 && ready == '1', "a session bus service");
+    (void)close(pipes[0]);
+    (void)close(pipes[1]);
+    muiAtspiAppDef def = muiDefaultAtspiAppDef();
+    def.name = "discovered";
+    muiAtspiApp* found = NULL;
+    CHECK(muiCreateAtspiApp(&def, &found) == mui_success, "an application finding its bus");
+    for (int i = 0; i < 5000 && found != NULL && !muiAtspiApp_IsRegistered(found); i++)
+    {
+        muiAtspiApp_Pump(found);
+        PumpBoth();
+        Wait();
+    }
+    int status = 0;
+    CHECK(found != NULL && muiAtspiApp_IsRegistered(found) && child > 0 &&
+              waitpid(child, &status, 0) == child && WIFEXITED(status) && WEXITSTATUS(status) == 1,
+          "the session bus asked once, the application registered on what it gave");
+    muiDestroyAtspiApp(found);
+    (void)setenv("AT_SPI_BUS_ADDRESS", address, 1);
+}
+
 int main(void)
 {
     char address[512];
@@ -1190,10 +1563,14 @@ int main(void)
     TestContract();
     TestRoot();
     TestNodes();
+    TestProperties();
     TestComponent(adapter);
+    TestComponentReads();
     TestActionsAndValues();
     TestEvents(adapter, &s_built);
     TestGone(adapter, &s_built);
+    TestDiscovery(address);
+    TestLimits(address);
     muiDestroyAtspiApp(s_test.app);
     s_test.dbus.close(s_test.registry);
     s_test.dbus.unrefConnection(s_test.registry);
