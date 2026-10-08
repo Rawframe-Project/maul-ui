@@ -263,6 +263,23 @@ static void TestMeasuring(void)
     muiDestroyTextService(scene.service);
 }
 
+// Changing wrapping alone lays the text out again (found by a mutant
+// seeing a change only when the automatic line height changed with it).
+static void TestWrapChanged(void)
+{
+    Scene scene = MakeScene(NULL);
+    muiNodeId node = AddText(&scene, s_nullNode, "ab cd");
+    Layout(&scene, node, 35.0f);
+    CHECK(muiNode_GetRect(scene.context, node).height == 20.0f, "wrapped at 35, two lines");
+    muiTextStyle style = muiDefaultTextStyle();
+    style.wrap = mui_textNoWrap;
+    SetText(&scene, node, style, WRAP);
+    Layout(&scene, node, 35.0f);
+    CHECK(muiNode_GetRect(scene.context, node).height == 10.0f, "not wrapped, one line");
+    muiDestroyContext(scene.context);
+    muiDestroyTextService(scene.service);
+}
+
 static void TestLineBreaksInText(void)
 {
     Scene scene = MakeScene(NULL);
@@ -763,6 +780,7 @@ int main(void)
     TestBlocksAndKeys();
     TestAccessText();
     TestMeasuring();
+    TestWrapChanged();
     TestLineBreaksInText();
     TestPainting();
     TestPaintingWhatIsSeen();

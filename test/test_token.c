@@ -495,6 +495,43 @@ static void TestNameLimit(void)
     muiDestroyContext(context);
 }
 
+// Of three names in a variant, any one taken away goes back to the
+// pool, and the other two stay (found by a mutant stepping to the wrong
+// name past one it kept).
+static void TestOneNameOfThree(void)
+{
+    const muiProperty named[3] = {mui_propertyPaddingStart, mui_propertyPaddingEnd,
+                                  mui_propertyPaddingTop};
+    bool held = true;
+    for (uint32_t which = 0; which < 3; which++)
+    {
+        muiLimits limits = muiDefaultContextDef().limits;
+        limits.tokenNames = 3;
+        muiContext* context = MakeContextWith(limits);
+        muiStyleId style = MakeStyle(context);
+        muiTokenId gap = MakeToken(context, Number(4.0f));
+        for (uint32_t i = 0; i < 3; i++)
+        {
+            held = held &&
+                   muiStyle_SetToken(context, style, mui_variantBase, named[i], gap) == mui_success;
+        }
+        held = held && muiStyle_SetToken(context, style, mui_variantBase, named[which],
+                                         s_nullToken) == mui_success;
+        for (uint32_t i = 0; i < 3; i++)
+        {
+            muiTokenId token = s_nullToken;
+            held = held &&
+                   muiStyle_GetToken(context, style, mui_variantBase, named[i], &token) ==
+                       mui_success &&
+                   SameId(token, i == which ? s_nullToken : gap);
+        }
+        held = held && muiStyle_SetToken(context, style, mui_variantBase, mui_propertyPaddingBottom,
+                                         gap) == mui_success;
+        muiDestroyContext(context);
+    }
+    CHECK(held, "the one gone, its name free, the others kept");
+}
+
 // Edge cases of names beside the rest of the style system.
 static void TestNamesAmongTheRest(void)
 {
@@ -581,6 +618,7 @@ int main(void)
     TestResolutionReadsTokens();
     TestThemeSwitchesMove();
     TestNameLimit();
+    TestOneNameOfThree();
     TestNamesAmongTheRest();
     return s_failures == 0 ? 0 : 1;
 }

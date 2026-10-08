@@ -119,12 +119,14 @@ static uint64_t RunFont(Scene* scene)
 }
 
 // The image of a glyph in a key's instance at a size in pixels.
+// The last glyph image's coverage, rows from the top.
+static unsigned char s_pixels[128 * 128];
+
 static muiGlyphImage ImageAt(Scene* scene, uint64_t font, uint32_t glyph, float size)
 {
-    static unsigned char pixels[128 * 128];
     muiGlyphImage image = {0, 0, 0, 0};
-    CHECK(muiRenderGlyph(scene->service, font, glyph, size, 0.0f, &image, pixels, sizeof pixels) ==
-              mui_success,
+    CHECK(muiRenderGlyph(scene->service, font, glyph, size, 0.0f, &image, s_pixels,
+                         sizeof s_pixels) == mui_success,
           "image");
     return image;
 }
@@ -263,6 +265,9 @@ static void TestSynthesis(void)
     image = ImageAt(&scene, boldKey, GLYPH_X, 48.0f);
     CHECK(image.left == 0 && image.width == 50 && image.top == 41 && image.height == 51,
           "bold grows right and up from the left side");
+    // Grown by whole pixels, its right column and top row are covered
+    // whole (found by a mutant growing it by an em/25).
+    CHECK(s_pixels[25 * 50 + 49] == 255 && s_pixels[1 * 50 + 25] == 255, "by exactly 2 pixels");
     CHECK(Width(&scene, 10.0f, 400.0f, mui_slantItalic) == 10.0f, "oblique keeps the advance");
     uint64_t italicKey = RunFont(&scene);
     image = Image(&scene, italicKey, GLYPH_X);

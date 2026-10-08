@@ -470,6 +470,43 @@ static void TestOneChangeIsBounded(void)
     muiDestroyContext(tree.context);
 }
 
+// A change at the foot of a deep chain, under a box of fixed size, is
+// solved there: the box keeps its answers and, with nothing aligned by
+// baselines, its moved baseline is read by none, so none of the thirty
+// ancestors is solved again (found by mutants that stopped the bound,
+// and that took every node's baseline as read).
+static void TestDeepChangeIsBounded(void)
+{
+    static Edit edits[40];
+    uint32_t count = 0;
+    Tree tree = MakeTree();
+    Record(edits, &count, &tree, (Edit){kindCreate, 0, 0, 0, 0});
+    for (uint32_t i = 1; i <= 30; i++)
+    {
+        Record(edits, &count, &tree, (Edit){kindCreate, 0, i - 1, 0, 0});
+    }
+    // The deepest a box of 109 by 69, its text three characters.
+    Record(edits, &count, &tree, (Edit){kindStyle, 30, 0, 0, 101});
+    Record(edits, &count, &tree, (Edit){kindStyle, 30, 0, 1, 61});
+    Record(edits, &count, &tree, (Edit){kindCreate, 0, 30, 0, 1});
+    Record(edits, &count, &tree, (Edit){kindContent, 31, 0, 0, 3});
+    LayOut(&tree);
+    muiWorkCounts before = muiGetWorkCounts(tree.context);
+    Record(edits, &count, &tree, (Edit){kindContent, 31, 0, 0, 4});
+    LayOut(&tree);
+    muiWorkCounts after = muiGetWorkCounts(tree.context);
+    CHECK(after.sized - before.sized <= 8, "the text and its box alone");
+    Tree whole = MakeTree();
+    for (uint32_t k = 0; k < count; k++)
+    {
+        Apply(&whole, &edits[k]);
+    }
+    LayOut(&whole);
+    CHECK(Same(&tree, &whole), "as the whole tree laid out");
+    muiDestroyContext(whole.context);
+    muiDestroyContext(tree.context);
+}
+
 // A node of fixed size keeps its answers when its first child's text
 // moves its baseline; a container aligning by baselines still places it
 // anew. By its items' alignment, then by its own.
@@ -527,5 +564,6 @@ int main(void)
     TestRightToLeftAlone();
     TestBoundedMatchesWhole();
     TestOneChangeIsBounded();
+    TestDeepChangeIsBounded();
     return s_failures == 0 ? 0 : 1;
 }

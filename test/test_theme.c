@@ -198,6 +198,71 @@ static void TestThemesAreChecked(void)
     muiDestroyContext(context);
 }
 
+// A cycle is found through the first token made (found by a mutant that
+// stopped every walk there): x is the first token, the first is y, so y
+// may not be x.
+static void TestCycleThroughTheFirstToken(void)
+{
+    muiContext* context = MakeContext();
+    muiTokenId first = MakeToken(context, s_light);
+    muiTokenId x = MakeToken(context, s_blue);
+    muiTokenId y = MakeToken(context, s_red);
+    CHECK(muiSetTokenAlias(context, x, first) == mui_success &&
+              muiSetTokenAlias(context, first, y) == mui_success,
+          "x is the first, the first is y");
+    muiThemeId theme = MakeTheme(context);
+    CHECK(muiTheme_SetTokenAlias(context, theme, y, x) == mui_errorInvalid, "y may not be x");
+    muiDestroyContext(context);
+}
+
+// Every theme at the limit overrides every token, each its own colour,
+// and each reads back as set (found by a mutant placing the themes'
+// tables a row too far, the last past the end).
+static void TestEveryOverride(void)
+{
+    enum
+    {
+        THEMES = 3,
+        TOKENS = 16
+    };
+    muiLimits limits = muiDefaultContextDef().limits;
+    limits.themes = THEMES;
+    limits.tokens = TOKENS;
+    limits.themeOverrides = THEMES * TOKENS;
+    muiContext* context = MakeContextWith(limits);
+    muiThemeId themes[THEMES];
+    muiTokenId tokens[TOKENS];
+    for (uint32_t t = 0; t < THEMES; t++)
+    {
+        themes[t] = MakeTheme(context);
+    }
+    for (uint32_t k = 0; k < TOKENS; k++)
+    {
+        tokens[k] = MakeToken(context, s_light);
+    }
+    for (uint32_t t = 0; t < THEMES; t++)
+    {
+        for (uint32_t k = 0; k < TOKENS; k++)
+        {
+            Override(context, themes[t], tokens[k],
+                     (muiColor){(float)t / 4.0f, (float)k / 16.0f, 0.0f, 1.0f});
+        }
+    }
+    bool held = true;
+    for (uint32_t t = 0; t < THEMES; t++)
+    {
+        for (uint32_t k = 0; k < TOKENS; k++)
+        {
+            muiTokenValue read;
+            held = held &&
+                   muiTheme_GetToken(context, themes[t], tokens[k], &read, NULL) == mui_success &&
+                   SameColor(read.color, (muiColor){(float)t / 4.0f, (float)k / 16.0f, 0.0f, 1.0f});
+        }
+    }
+    CHECK(held, "every override as set");
+    muiDestroyContext(context);
+}
+
 static void TestLimits(void)
 {
     muiLimits limits = muiDefaultContextDef().limits;
@@ -397,6 +462,8 @@ int main(void)
 {
     TestThemesAreChecked();
     TestLimits();
+    TestCycleThroughTheFirstToken();
+    TestEveryOverride();
     TestSubtreesReadTheirTheme();
     TestNestedThemes();
     TestDepth();

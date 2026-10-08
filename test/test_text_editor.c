@@ -407,6 +407,22 @@ static void TestElsewhere(void)
     FreeScene(&scene);
 }
 
+// A paragraph ends only at a separator, not at a character that shares
+// the line separator's first byte (found by a mutant ending one at every
+// character led by E2).
+static void TestParagraphSeparators(void)
+{
+    Scene scene = MakeScene("a\xE2\x82\xAC"
+                            "b\xE2\x80\xA8"
+                            "c",
+                            mui_editMultiline);
+    Layout(&scene);
+    CHECK(muiTextEditPress(&scene.host, scene.node, 1.0f, 5.0f, 3, false) == mui_success &&
+              Selects(&scene, 0, 5),
+          "a triple click: a, the euro sign and b, up to the line separator");
+    FreeScene(&scene);
+}
+
 // Presses place the caret, select words and paragraphs, and drags extend
 // by the same unit; moves collapse a selection to the edge they go to.
 static void TestPointer(void)
@@ -1093,6 +1109,7 @@ int main(void)
     TestLength();
     TestElsewhere();
     TestPointer();
+    TestParagraphSeparators();
     TestPcKeys();
     TestMacKeys();
     TestPcLines();

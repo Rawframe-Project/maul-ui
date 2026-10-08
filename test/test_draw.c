@@ -681,6 +681,32 @@ static void TestLocalScale(void)
     muiDestroyContext(context);
 }
 
+// A destroyed layer's entry, left until room is needed, is passed over:
+// nothing is drawn as a layer in its place (found by a mutant taking the
+// first slot's node for it).
+static void TestDestroyedLayer(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId first = Add(context, s_nullNode, 50.0f, 20.0f, (muiEdges){0});
+    muiNodeId root = Add(context, s_nullNode, 200.0f, 100.0f, (muiEdges){0});
+    CHECK(muiNode_InsertChild(context, root, first, s_nullNode) == mui_success,
+          "the first node made, under the root");
+    muiNodeId layer = Add(context, root, 20.0f, 10.0f, (muiEdges){0});
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    visual.background = s_red;
+    SetVisual(context, first, &visual, MUI_PROPERTY_BIT(mui_propertyBackground));
+    SetVisual(context, layer, &visual, MUI_PROPERTY_BIT(mui_propertyBackground));
+    muiInteractionStyle interaction = muiDefaultInteractionStyle();
+    interaction.layer = mui_layerOverlay;
+    CHECK(muiNode_SetInteractionValues(context, layer, &interaction,
+                                       MUI_PROPERTY_BIT(mui_propertyLayer)) == mui_success,
+          "a layer");
+    CHECK(Build(context, root, 1.0f).commandCount == 2, "the node and the layer");
+    CHECK(muiDestroyNode(context, layer) == mui_success, "the layer destroyed");
+    CHECK(Build(context, root, 1.0f).commandCount == 1, "the node once, no layer");
+    muiDestroyContext(context);
+}
+
 static void TestArgumentsAndLimits(void)
 {
     muiContext* context = MakeContext();
@@ -1711,6 +1737,7 @@ int main(void)
     TestColorsAndOpacity();
     TestRightToLeft();
     TestLocalScale();
+    TestDestroyedLayer();
     TestArgumentsAndLimits();
     TestEdgeCases();
     TestBuildsFromTheLastListMatchWholeOnes();

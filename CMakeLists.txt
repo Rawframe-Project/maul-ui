@@ -504,6 +504,7 @@ if(MAUL_UI_BUILD_TESTS)
         maul_add_test(inflate WHITEBOX)
         # Whitebox: not built against a shared library.
         maul_add_test(png WHITEBOX)
+        maul_add_test(image_scale WHITEBOX)
         if(TARGET test_png)
             target_include_directories(test_png PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         endif()
