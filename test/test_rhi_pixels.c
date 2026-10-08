@@ -958,6 +958,40 @@ static void TestProjection(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels, 
           "the outer edges where perspective puts them");
 }
 
+// Projection that scales: a matrix scaling by 2 draws a list of scale 1
+// as a scale of 2 draws it, within 2, edge and clip widths included
+// (their pixels a unit come from the fragment, not the list); and one
+// scaling by a half brings a box past the target's own size into view,
+// as culling by the target alone would not.
+static void TestProjectionScale(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels)
+{
+    const uint32_t side = 128u;
+    const size_t size = (size_t)side * side * 4;
+    muiDrawCommand commands[5];
+    const muiDrawClip clips[2] = {{0}, {.rect = {36, 36, 24, 24}, .radii = {12, 12, 12, 12}}};
+    muiDrawList list = PanelList(commands, clips, 2.0f);
+    uint8_t* plain = malloc(size);
+    float m[16];
+    ScreenProjection(m, 2.0f, side);
+    bool drawn = plain != NULL && Render(gpu, renderer, &list, side, plain);
+    list.header.scale = 1.0f;
+    drawn = drawn && RenderThrough(gpu, renderer, &list, side, m, pixels);
+    int worst = drawn ? 0 : 255;
+    for (size_t i = 0; drawn && i < size; i++)
+    {
+        int d = abs((int)plain[i] - (int)pixels[i]);
+        worst = d > worst ? d : worst;
+    }
+    free(plain);
+    CHECK(worst <= 2, "a projection scaling by 2 draws as a scale of 2");
+    commands[4] = Box(80, 80, 20, 20, (muiLinearColor){1, 1, 0, 1});
+    list.commandCount = 5;
+    ScreenProjection(m, 0.5f, 64);
+    const int yellow[4] = {255, 255, 0, 255};
+    CHECK(RenderThrough(gpu, renderer, &list, 64, m, pixels) && Near(pixels, 64, 45, 45, yellow, 2),
+          "a box past the target's size brought into view");
+}
+
 #if MUI_TEST_TEXT
 
 #include "maul-ui/font.h"
@@ -993,40 +1027,6 @@ static muiTextService* MakeText(uint64_t* fontOut, uint64_t* colorOut)
     *fontOut = muiFont_GetKey(ahem);
     *colorOut = muiFont_GetKey(colorId);
     return service;
-}
-
-// Projection that scales: a matrix scaling by 2 draws a list of scale 1
-// as a scale of 2 draws it, within 2, edge and clip widths included
-// (their pixels a unit come from the fragment, not the list); and one
-// scaling by a half brings a box past the target's own size into view,
-// as culling by the target alone would not.
-static void TestProjectionScale(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels)
-{
-    const uint32_t side = 128u;
-    const size_t size = (size_t)side * side * 4;
-    muiDrawCommand commands[5];
-    const muiDrawClip clips[2] = {{0}, {.rect = {36, 36, 24, 24}, .radii = {12, 12, 12, 12}}};
-    muiDrawList list = PanelList(commands, clips, 2.0f);
-    uint8_t* plain = malloc(size);
-    float m[16];
-    ScreenProjection(m, 2.0f, side);
-    bool drawn = plain != NULL && Render(gpu, renderer, &list, side, plain);
-    list.header.scale = 1.0f;
-    drawn = drawn && RenderThrough(gpu, renderer, &list, side, m, pixels);
-    int worst = drawn ? 0 : 255;
-    for (size_t i = 0; drawn && i < size; i++)
-    {
-        int d = abs((int)plain[i] - (int)pixels[i]);
-        worst = d > worst ? d : worst;
-    }
-    free(plain);
-    CHECK(worst <= 2, "a projection scaling by 2 draws as a scale of 2");
-    commands[4] = Box(80, 80, 20, 20, (muiLinearColor){1, 1, 0, 1});
-    list.commandCount = 5;
-    ScreenProjection(m, 0.5f, 64);
-    const int yellow[4] = {255, 255, 0, 255};
-    CHECK(RenderThrough(gpu, renderer, &list, 64, m, pixels) && Near(pixels, 64, 45, 45, yellow, 2),
-          "a box past the target's size brought into view");
 }
 
 // A glyph run on the turned panel's near half, drawn from its distance
