@@ -438,6 +438,16 @@ if(MAUL_UI_BUILD_TESTS)
             ${PROJECT_BINARY_DIR}/test_fonts/coverage.inc s_coverage)
         maul_add_test(text_block)
         target_include_directories(test_text_block PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
+        # Edits' analysis against the whole text's; the block's headers
+        # reach FreeType's and HarfBuzz's.
+        maul_add_test(text_analysis WHITEBOX)
+        if(TARGET test_text_analysis AND TARGET maul_ui_freetype)
+            target_include_directories(test_text_analysis SYSTEM PRIVATE
+                $<TARGET_PROPERTY:maul_ui_freetype,INTERFACE_INCLUDE_DIRECTORIES>
+                $<TARGET_PROPERTY:harfbuzz::harfbuzz,INTERFACE_INCLUDE_DIRECTORIES>)
+        elseif(TARGET test_text_analysis)
+            target_link_libraries(test_text_analysis PRIVATE Freetype::Freetype harfbuzz::harfbuzz)
+        endif()
         maul_add_test(text_edit)
         target_include_directories(test_text_edit PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(text_spans)

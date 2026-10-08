@@ -39,6 +39,15 @@ typedef struct Analysis
     uint32_t scriptCount;
 } Analysis;
 
+// Room Maul Unicode's answers for one paragraph take, kept across the
+// paragraphs of an analysis.
+typedef struct Scratch
+{
+    muiBuffer offsets;
+    muiBuffer mandatory;
+    muiBuffer runs;
+} Scratch;
+
 static void FreeAnalysis(const muiAllocator* allocator, Analysis* analysis)
 {
     muiFreeBuffer(allocator, &analysis->text);
@@ -46,66 +55,121 @@ static void FreeAnalysis(const muiAllocator* allocator, Analysis* analysis)
     muiFreeBuffer(allocator, &analysis->scripts);
 }
 
-// The line break opportunities, through scratch arrays of Maul Unicode's
-// types.
-static bool FindBreaks(muiTextService* service, const char* text, uint32_t length,
-                       Analysis* analysis)
+static void FreeScratch(const muiAllocator* allocator, Scratch* scratch)
+{
+    muiFreeBuffer(allocator, &scratch->offsets);
+    muiFreeBuffer(allocator, &scratch->mandatory);
+    muiFreeBuffer(allocator, &scratch->runs);
+}
+
+// The end of the paragraph a text has at from: past its mandatory break
+// (UAX #14's BK, CR, LF and NL: VT, FF, LS and PS, CR, LF, CR LF and
+// NEL), or the text's end.
+static uint32_t ParagraphEnd(const char* text, uint32_t length, uint32_t from)
+{
+    const unsigned char* bytes = (const unsigned char*)text;
+    for (uint32_t i = from; i < length; i++)
+    {
+        unsigned char c = bytes[i];
+        if (c == '\n' || c == '\v' || c == '\f')
+        {
+            return i + 1;
+        }
+        if (c == '\r')
+        {
+            return i + 1 < length && bytes[i + 1] == '\n' ? i + 2 : i + 1;
+        }
+        if (c == 0xC2 && i + 1 < length && bytes[i + 1] == 0x85)
+        {
+            return i + 2;
+        }
+        if (c == 0xE2 && i + 2 < length && bytes[i + 1] == 0x80 &&
+            (bytes[i + 2] == 0xA8 || bytes[i + 2] == 0xA9))
+        {
+            return i + 3;
+        }
+    }
+    return length;
+}
+
+// Appends a paragraph's line break opportunities, its offsets from at.
+static bool FindBreaks(const muiAllocator* allocator, Scratch* scratch, const char* text,
+                       uint32_t at, uint32_t length, Analysis* analysis)
 {
     size_t count = 0;
-    if (muniFindLineBreaks(text, length, nullptr, nullptr, 0, &count) != muni_errorCapacity ||
+    if (muniFindLineBreaks(text + at, length, nullptr, nullptr, 0, &count) != muni_errorCapacity ||
         count == 0)
     {
         return true;
     }
-    const muiAllocator* allocator = &service->allocator;
-    muiBuffer offsets = {0};
-    muiBuffer mandatory = {0};
-    bool fits = muiReserve(allocator, &offsets, count * sizeof(size_t)) &&
-                muiReserve(allocator, &mandatory, count * sizeof(bool)) &&
-                muiReserve(allocator, &analysis->breaks, count * sizeof(muiTextBreak));
-    if (fits)
+    size_t kept = analysis->breakCount;
+    if (!muiReserve(allocator, &scratch->offsets, count * sizeof(size_t)) ||
+        !muiReserve(allocator, &scratch->mandatory, count * sizeof(bool)) ||
+        !muiReserveKeeping(allocator, &analysis->breaks, (kept + count) * sizeof(muiTextBreak),
+                           kept * sizeof(muiTextBreak)))
     {
-        size_t found = 0;
-        (void)muniFindLineBreaks(text, length, offsets.data, mandatory.data, count, &found);
-        const size_t* at = offsets.data;
-        const bool* must = mandatory.data;
-        muiTextBreak* breaks = analysis->breaks.data;
-        for (size_t i = 0; i < count; i++)
-        {
-            breaks[i] = (muiTextBreak){(uint32_t)at[i], must[i] ? 1u : 0u};
-        }
-        analysis->breakCount = (uint32_t)count;
+        return false;
     }
-    muiFreeBuffer(allocator, &offsets);
-    muiFreeBuffer(allocator, &mandatory);
-    return fits;
+    size_t found = 0;
+    (void)muniFindLineBreaks(text + at, length, scratch->offsets.data, scratch->mandatory.data,
+                             count, &found);
+    const size_t* offsets = scratch->offsets.data;
+    const bool* must = scratch->mandatory.data;
+    muiTextBreak* breaks = (muiTextBreak*)analysis->breaks.data + kept;
+    for (size_t i = 0; i < count; i++)
+    {
+        breaks[i] = (muiTextBreak){at + (uint32_t)offsets[i], must[i] ? 1u : 0u};
+    }
+    analysis->breakCount += (uint32_t)count;
+    return true;
 }
 
-static bool FindScripts(muiTextService* service, const char* text, uint32_t length,
-                        Analysis* analysis)
+// Appends a paragraph's script runs, their ends from at.
+static bool FindScripts(const muiAllocator* allocator, Scratch* scratch, const char* text,
+                        uint32_t at, uint32_t length, Analysis* analysis)
 {
     size_t count = 0;
-    if (muniFindScriptRuns(text, length, nullptr, 0, &count) != muni_errorCapacity || count == 0)
+    if (muniFindScriptRuns(text + at, length, nullptr, 0, &count) != muni_errorCapacity ||
+        count == 0)
     {
         return true;
     }
-    const muiAllocator* allocator = &service->allocator;
-    muiBuffer runs = {0};
-    bool fits = muiReserve(allocator, &runs, count * sizeof(muniScriptRun)) &&
-                muiReserve(allocator, &analysis->scripts, count * sizeof(muiTextScript));
-    if (fits)
+    size_t kept = analysis->scriptCount;
+    if (!muiReserve(allocator, &scratch->runs, count * sizeof(muniScriptRun)) ||
+        !muiReserveKeeping(allocator, &analysis->scripts, (kept + count) * sizeof(muiTextScript),
+                           kept * sizeof(muiTextScript)))
     {
-        size_t found = 0;
-        (void)muniFindScriptRuns(text, length, runs.data, count, &found);
-        const muniScriptRun* run = runs.data;
-        muiTextScript* scripts = analysis->scripts.data;
-        for (size_t i = 0; i < count; i++)
-        {
-            scripts[i] = (muiTextScript){(uint32_t)run[i].end, run[i].script};
-        }
-        analysis->scriptCount = (uint32_t)count;
+        return false;
     }
-    muiFreeBuffer(allocator, &runs);
+    size_t found = 0;
+    (void)muniFindScriptRuns(text + at, length, scratch->runs.data, count, &found);
+    const muniScriptRun* runs = scratch->runs.data;
+    muiTextScript* scripts = (muiTextScript*)analysis->scripts.data + kept;
+    for (size_t i = 0; i < count; i++)
+    {
+        scripts[i] = (muiTextScript){at + (uint32_t)runs[i].end, runs[i].script};
+    }
+    analysis->scriptCount += (uint32_t)count;
+    return true;
+}
+
+// Appends the breaks and script runs of a text's paragraphs from start
+// up to end, each paragraph found alone (UAX #14 breaks and UAX #24
+// runs never reach across a mandatory break), so that an edit finds a
+// paragraph's again as a whole text's analysis does.
+static bool AnalyzeParagraphs(const muiAllocator* allocator, const char* text, uint32_t start,
+                              uint32_t end, Analysis* analysis)
+{
+    Scratch scratch = {0};
+    bool fits = true;
+    for (uint32_t at = start; fits && at < end;)
+    {
+        uint32_t next = ParagraphEnd(text, end, at);
+        fits = FindBreaks(allocator, &scratch, text, at, next - at, analysis) &&
+               FindScripts(allocator, &scratch, text, at, next - at, analysis);
+        at = next;
+    }
+    FreeScratch(allocator, &scratch);
     return fits;
 }
 
@@ -116,19 +180,18 @@ typedef struct Piece
     uint32_t length;
 } Piece;
 
-// Analyzes the text the pieces make in turn, copied first, so a piece may
-// be the block's own old text.
-static bool Analyze(muiTextService* service, const Piece* pieces, uint32_t count,
-                    Analysis* analysis)
+// Copies the text the pieces make in turn into an analysis, so a piece
+// may be the block's own old text.
+static bool Join(const muiAllocator* allocator, const Piece* pieces, uint32_t count,
+                 Analysis* analysis, uint32_t* lengthOut)
 {
-    *analysis = (Analysis){0};
     uint32_t length = 0;
     for (uint32_t i = 0; i < count; i++)
     {
         length += pieces[i].length;
     }
     // At least a byte, so an empty text has a buffer too.
-    if (!muiReserve(&service->allocator, &analysis->text, length + 1u))
+    if (!muiReserve(allocator, &analysis->text, length + 1u))
     {
         return false;
     }
@@ -140,8 +203,18 @@ static bool Analyze(muiTextService* service, const Piece* pieces, uint32_t count
             memcpy(copy + at, pieces[i].bytes, pieces[i].length);
         }
     }
-    if (!FindBreaks(service, copy, length, analysis) ||
-        !FindScripts(service, copy, length, analysis))
+    *lengthOut = length;
+    return true;
+}
+
+// Analyzes the text the pieces make in turn, copied first.
+static bool Analyze(muiTextService* service, const Piece* pieces, uint32_t count,
+                    Analysis* analysis)
+{
+    *analysis = (Analysis){0};
+    uint32_t length = 0;
+    if (!Join(&service->allocator, pieces, count, analysis, &length) ||
+        !AnalyzeParagraphs(&service->allocator, analysis->text.data, 0, length, analysis))
     {
         FreeAnalysis(&service->allocator, analysis);
         return false;
@@ -303,17 +376,132 @@ static void MoveSpans(muiTextBlock* block, uint32_t start, uint32_t end, uint32_
 // Replaces the bytes of a block's text from start up to end, both within
 // it, with a text, which may be part of the old; false when memory runs
 // out, which keeps the old.
+// Where the paragraph an edit at start lands in begins: past the last
+// mandatory break before it, whose paragraph the edit leaves as it was.
+static uint32_t ParagraphBefore(const muiTextBlock* block, uint32_t start)
+{
+    const muiTextBreak* breaks = block->breaks.data;
+    uint32_t low = 0;
+    uint32_t high = block->breakCount;
+    // The first break at start or past it.
+    while (low < high)
+    {
+        uint32_t middle = low + (high - low) / 2;
+        low = breaks[middle].offset < start ? middle + 1 : low;
+        high = breaks[middle].offset < start ? high : middle;
+    }
+    while (low > 0 && breaks[low - 1].mandatory == 0)
+    {
+        low--;
+    }
+    return low > 0 ? breaks[low - 1].offset : 0;
+}
+
+// How many of a table's entries lie at or before an offset.
+static uint32_t CountBreaksTo(const muiTextBreak* breaks, uint32_t count, uint32_t offset)
+{
+    uint32_t low = 0;
+    while (low < count && breaks[low].offset <= offset)
+    {
+        low++;
+    }
+    return low;
+}
+
+static uint32_t CountScriptsTo(const muiTextScript* scripts, uint32_t count, uint32_t offset)
+{
+    uint32_t low = 0;
+    while (low < count && scripts[low].end <= offset)
+    {
+        low++;
+    }
+    return low;
+}
+
+// memcpy, which takes no null pointer even for no bytes.
+static void Copy(void* to, const void* from, size_t bytes)
+{
+    if (bytes != 0)
+    {
+        memcpy(to, from, bytes);
+    }
+}
+
+// The block's tables with its old paragraphs from 0 up to from and from
+// oldTo on, moved by delta, around a region's: in analysis, made whole.
+static bool Splice(const muiAllocator* allocator, const muiTextBlock* block, uint32_t from,
+                   uint32_t oldTo, int64_t delta, Analysis* analysis)
+{
+    Analysis region = *analysis;
+    analysis->breaks = (muiBuffer){0};
+    analysis->scripts = (muiBuffer){0};
+    const muiTextBreak* breaks = block->breaks.data;
+    const muiTextScript* scripts = block->scripts.data;
+    uint32_t breaksBefore = CountBreaksTo(breaks, block->breakCount, from);
+    uint32_t breaksAfter = block->breakCount - CountBreaksTo(breaks, block->breakCount, oldTo);
+    uint32_t scriptsBefore = CountScriptsTo(scripts, block->scriptCount, from);
+    uint32_t scriptsAfter = block->scriptCount - CountScriptsTo(scripts, block->scriptCount, oldTo);
+    analysis->breakCount = breaksBefore + region.breakCount + breaksAfter;
+    analysis->scriptCount = scriptsBefore + region.scriptCount + scriptsAfter;
+    bool fits =
+        muiReserve(allocator, &analysis->breaks, analysis->breakCount * sizeof(muiTextBreak) + 1) &&
+        muiReserve(allocator, &analysis->scripts,
+                   analysis->scriptCount * sizeof(muiTextScript) + 1);
+    if (fits)
+    {
+        muiTextBreak* outBreaks = analysis->breaks.data;
+        Copy(outBreaks, breaks, breaksBefore * sizeof(muiTextBreak));
+        Copy(outBreaks + breaksBefore, region.breaks.data,
+             region.breakCount * sizeof(muiTextBreak));
+        for (uint32_t i = 0; i < breaksAfter; i++)
+        {
+            muiTextBreak moved = breaks[block->breakCount - breaksAfter + i];
+            moved.offset = (uint32_t)((int64_t)moved.offset + delta);
+            outBreaks[breaksBefore + region.breakCount + i] = moved;
+        }
+        muiTextScript* outScripts = analysis->scripts.data;
+        Copy(outScripts, scripts, scriptsBefore * sizeof(muiTextScript));
+        Copy(outScripts + scriptsBefore, region.scripts.data,
+             region.scriptCount * sizeof(muiTextScript));
+        for (uint32_t i = 0; i < scriptsAfter; i++)
+        {
+            muiTextScript moved = scripts[block->scriptCount - scriptsAfter + i];
+            moved.end = (uint32_t)((int64_t)moved.end + delta);
+            outScripts[scriptsBefore + region.scriptCount + i] = moved;
+        }
+    }
+    muiFreeBuffer(allocator, &region.breaks);
+    muiFreeBuffer(allocator, &region.scripts);
+    return fits;
+}
+
+// Replaces bytes start up to end of a block with length bytes, finding
+// again the breaks and script runs of the paragraphs the edit reaches
+// alone: from past the last mandatory break before it up to the first
+// paragraph's end past it, whose separator the edit leaves as it was;
+// the rest moves by the change.
 static bool ReplaceRange(muiTextService* service, muiTextBlock* block, uint32_t start, uint32_t end,
                          const char* text, uint32_t length)
 {
+    const muiAllocator* allocator = &service->allocator;
     const char* old = block->text.data;
     const Piece pieces[3] = {{old, start}, {text, length}, {old + end, block->length - end}};
-    Analysis analysis;
-    if (!Analyze(service, pieces, 3, &analysis))
+    Analysis analysis = {0};
+    uint32_t total = 0;
+    if (!Join(allocator, pieces, 3, &analysis, &total))
     {
         return false;
     }
-    Adopt(&service->allocator, block, &analysis, block->length - (end - start) + length);
+    uint32_t from = ParagraphBefore(block, start);
+    uint32_t to = ParagraphEnd(analysis.text.data, total, start + length);
+    int64_t delta = (int64_t)total - (int64_t)block->length;
+    if (!AnalyzeParagraphs(allocator, analysis.text.data, from, to, &analysis) ||
+        !Splice(allocator, block, from, (uint32_t)((int64_t)to - delta), delta, &analysis))
+    {
+        FreeAnalysis(allocator, &analysis);
+        return false;
+    }
+    Adopt(allocator, block, &analysis, total);
     return true;
 }
 
