@@ -9,6 +9,7 @@
 #include "animation.h"
 #include "context.h"
 #include "exit.h"
+#include "layout_bound.h"
 #include "layout_node.h"
 #include "popup.h"
 #include "property.h"
@@ -114,7 +115,7 @@ static void NoteSafeArea(muiContext* context, uint32_t root, const muiSides* saf
 }
 
 // Forgets what the solver remembers about every node on a path to a
-// change, then clears their layout flags.
+// change.
 static void Invalidate(muiContext* context, uint32_t root)
 {
     muiTree* tree = &context->tree;
@@ -123,7 +124,6 @@ static void Invalidate(muiContext* context, uint32_t root)
     {
         context->layout[at - 1].cache = (muiLayoutCache){0};
     }
-    muiTreeSweep(tree, root, mui_stageLayout);
 }
 
 muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayoutInput* input)
@@ -162,7 +162,6 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
     // Exits whose transitions have ended, or never began, are reported.
     muiExitAdvance(context, root);
     NoteSafeArea(context, root, &input->safeArea);
-    Invalidate(context, root);
     muiSolver solver = {
         .tree = &context->tree,
         .nodes = context->layout,
@@ -176,11 +175,19 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
         .scrolls = context->scrolls,
         .work = &context->work,
         .paddings = context->paddings,
+        .extents = context->extents,
         .safeArea = input->safeArea,
     };
     muiSizingInput sizingInput = muiRootInput(&context->layout[root - 1].style, &input->safeArea,
                                               input->availableWidth, input->availableHeight);
     context->inHostCall = true;
+    // A change its subtree's answers bound is laid out there; any other
+    // clears every owing node's cache.
+    if (!muiBoundLayout(&solver, root))
+    {
+        Invalidate(context, root);
+    }
+    muiTreeSweep(&context->tree, root, mui_stageLayout);
     muiSize size = muiSolveNode(&solver, root, &sizingInput, false);
     sizingInput.width = (muiMeasureAxis){size.width, mui_measureExact};
     sizingInput.height = (muiMeasureAxis){size.height, mui_measureExact};

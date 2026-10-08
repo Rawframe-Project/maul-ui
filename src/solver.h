@@ -48,6 +48,8 @@ struct muiSolver
     // parent reads; and the safe area.
     muiEdges* paddings;
     muiSides safeArea;
+    // The parent extents of each node's last full layout.
+    muiSize* extents;
     // Where sizes solved and measure calls are counted.
     muiWorkCounts* work;
 };

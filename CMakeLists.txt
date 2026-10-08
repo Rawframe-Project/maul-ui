@@ -114,6 +114,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/range.c
     src/scroll.c
     src/layout.c
+    src/layout_bound.c
     src/motion_math.c
     src/node.c
     src/node_style.c
@@ -396,6 +397,7 @@ if(MAUL_UI_BUILD_TESTS)
     endif()
     maul_add_test(pan)
     maul_add_test(layout)
+    maul_add_test(layout_bound)
     maul_add_test(layout_fixtures)
     maul_add_test(motion WHITEBOX)
     maul_add_test(node)

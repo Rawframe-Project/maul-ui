@@ -78,6 +78,7 @@ static const muiCacheEntry* FindCached(const muiLayoutCache* cache, const muiSiz
 
 static void StoreCached(muiLayoutCache* cache, const muiSizingInput* input, muiSize size)
 {
+    cache->replaced = cache->replaced || cache->entries[cache->next].valid;
     cache->entries[cache->next] = (muiCacheEntry){.input = *input, .size = size, .valid = true};
     cache->next = (uint8_t)((cache->next + 1) % MUI_CACHE_ENTRIES);
 }
@@ -358,6 +359,7 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
         cache->finalValid = true;
         cache->finalRtl = input->rtl;
         cache->finalSize = size;
+        solver->extents[node - 1] = (muiSize){input->parentWidth, input->parentHeight};
         Published(solver, node, size, own.rtl);
     }
     else

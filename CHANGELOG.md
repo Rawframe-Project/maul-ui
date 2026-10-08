@@ -10,6 +10,13 @@ format.
 
 ### Changed
 
+- Layout bounded by the change: a node whose answers to its parent's
+  sizing queries hold after a change is laid out alone, its parent not
+  solved again, unless a baseline is read through it. One label's new
+  text in a list of 10,000 rows goes from milliseconds to tens of
+  microseconds; a changed node's parent is still solved when the
+  node's own style changed.
+
 - Long text: an edit to a text block analyses, shapes and breaks into
   lines again only the paragraphs it reaches, and a paint function may
   ask its sink what part of the content box can be seen

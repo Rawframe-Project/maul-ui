@@ -44,8 +44,11 @@ enum
 typedef struct muiLayoutCache
 {
     muiCacheEntry entries[MUI_CACHE_ENTRIES];
-    // The entry the next miss replaces.
+    // The entry the next miss replaces, and whether a miss replaced a
+    // valid entry since the cache was cleared: a query its parent asked
+    // may be lost (src/layout_bound.c).
     uint8_t next;
+    bool replaced;
     bool finalValid;
     bool finalRtl;
     muiSize finalSize;
