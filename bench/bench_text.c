@@ -6,7 +6,9 @@
 // shapes every block), at a new width (which only breaks lines), and
 // painted; and one paragraph of 4,000 words, measured cold, at ten
 // widths, and painted at one; and the labels' glyphs got from a glyph
-// atlas, first rendering and packing each, then all found; and distance
+// atlas, first rendering and packing each, then all found; and a
+// keystroke in the middle of an editing block of 25 and of 100 KB, in
+// paragraphs of 60 words, typed, laid out and painted; and distance
 // fields of 52 letters at 32 pixels. Prints the best of five runs in
 // microseconds.
 

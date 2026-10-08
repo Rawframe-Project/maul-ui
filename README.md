@@ -65,7 +65,8 @@ Chrome nor puppeteer is needed to build or test the library.
 
 The rules every Maul library follows are in `docs/conventions.md` and
 `docs/adr/`; the records particular to this library are listed in
-`docs/adr/mui.md`.
+`docs/adr/mui.md`, and the published sources its algorithms come from
+in `docs/references.md`.
 
 ## License
 

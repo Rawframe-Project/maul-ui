@@ -46,7 +46,26 @@ published.
   4.66.1), MIT: an A of COLR version 0 layers (one with no outline, a
   box of palette entry 0, its right half of entry 1, a small box of the
   text's colour and one of an entry past the palettes) over two CPAL
-  palettes, and a B with no colour, for colour glyphs.
+  palettes, a B with no colour, and glyphs of COLR version 1 paint
+  graphs, one for each kind of paint the tests draw (layers, solid
+  fills; linear gradients padded, repeated and reflected, radial and
+  sweep ones; translations, rotations, scales, skews and affine
+  transforms; another glyph's graph reused, nested, or looping back to
+  itself; clip boxes and composite modes), for colour glyphs.
+
+- `MaulBitmap.ttf`: written by `make_bitmap_font.py` (fontTools
+  4.66.1 and Pillow), MIT: no outlines, and CBLC and CBDT tables written
+  byte by byte so every index format (1 to 5) and image format (17 to
+  19) is used, in colour strikes of 10 and 20 ppem and a 15 ppem
+  strike not of colour, with glyphs missing from a strike, a PNG whose
+  length runs past its image and one at half alpha, for colour bitmap
+  glyphs.
+
+- `MaulSbix.ttf`: written by `make_sbix_font.py` (fontTools 4.66.1 and
+  Pillow), MIT: an sbix table written byte by byte, strikes of 20 and 10
+  ppem, with origin offsets, a glyph without an outline, a 'dupe' of
+  another and one of itself, a JPEG graphic and a PNG labelled as one,
+  for sbix glyphs.
 
 - `MaulVariable.ttf`, `MaulVariableSlant.ttf`, `MaulVariableItalic.ttf`
   and `MaulItalic.ttf`: written by `make_instance_fonts.py` (fontTools
@@ -58,17 +77,24 @@ published.
   a tab, a space, an A, a comma, a combining acute and U+4E00, for font
   fallback.
 
+Every font written by a script here was written again on 2026-10-08
+with fontTools 4.66.1 and Pillow 12.3.0 and came out byte for byte the
+file below.
+
 SHA-256 of each file:
 
 ```text
 b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448  Ahem.ttf
 76d04c18ea243f426b7de1f3ad208e927008f961dc5945e5aad352d0dfde8ee8  LiberationSans-Regular.ttf
+3bde0479097f718488487cd2db85c334633e5b5ac5d49f6654a2d16395e17f66  MaulBitmap.ttf
 5c1132f0c118d748d7717212d950f39e13475b3cbab2ba402d169e42c376a4a6  MaulBreakTest.ttf
 54006ca29b1100a85e93568294e006596c0abf35d44e3dd01d4885b8aca85ee7  MaulCff.otf
+9c24e493eb1de06a1a22433224b3b605a2c06449b4eee02e8381850c4fd8e62c  MaulColor.ttf
 665a276933f1b6948326ed2db09ea0ec19a1f4efc2c180dbed6f93282ade316f  MaulCoverage.ttf
 433d1ea83dfbcbc4ec1379b7753dc0a778a2072f1d53cc19f2a6b98dc03f3ed3  MaulItalic.ttf
 1a0b8e0c87b9cf3fd2b847c47f677cdbd2af980a3e5d2fb3fbfeb8133bbbcc8f  MaulLargeGlyph.ttf
 a4e7b6f71982af76fa911502cac52db2e1290d4db5b64becc65d562f8afe1a63  MaulOverlap.ttf
+9b4986cd1f4ef4f6fe938f62d2476fae1cf5cb7734066b6f39ab6b49616c6385  MaulSbix.ttf
 4103c45d335e421ab154ad5ec2b9c962024ef1a9a023eed47c614abfd09b7446  MaulVariable.ttf
 553014f54c138cb998407e2a3cb08c3b51a85e430ef09f311149e45342e22ea8  MaulVariableItalic.ttf
 05289f6fbd722881c3d81dfb3564c932aa899b3a323ee7e2179f0959ec8124c7  MaulVariableSlant.ttf
