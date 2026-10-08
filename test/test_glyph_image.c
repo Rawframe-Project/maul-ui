@@ -227,6 +227,72 @@ static void TestTooLarge(void)
     muiDestroyTextService(fonts.service);
 }
 
+static uint32_t Big(const unsigned char* at, int bytes)
+{
+    uint32_t value = 0;
+    for (int i = 0; i < bytes; i++)
+    {
+        value = value << 8 | at[i];
+    }
+    return value;
+}
+
+// A table's offset in a font, 0 for none.
+static uint32_t TableOf(const unsigned char* font, const char* tag)
+{
+    uint32_t count = Big(font + 4, 2);
+    for (uint32_t i = 0; i < count; i++)
+    {
+        const unsigned char* record = font + 12 + 16 * i;
+        if (memcmp(record, tag, 4) == 0)
+        {
+            return Big(record + 8, 4);
+        }
+    }
+    return 0;
+}
+
+// A font damaged in one glyph, as a file cut or overwritten is: its box
+// claims more contours than its bytes hold. That glyph's image and field
+// are refused as malformed; the font's other glyphs still render.
+static void TestDamaged(void)
+{
+    Fonts fonts = MakeFonts();
+    unsigned char* damaged = malloc(sizeof s_ahem);
+    CHECK(damaged != NULL, "a copy");
+    if (damaged == NULL)
+    {
+        muiDestroyTextService(fonts.service);
+        return;
+    }
+    memcpy(damaged, s_ahem, sizeof s_ahem);
+    uint32_t head = TableOf(damaged, "head");
+    uint32_t loca = TableOf(damaged, "loca");
+    uint32_t glyf = TableOf(damaged, "glyf");
+    bool wide = Big(damaged + head + 50, 2) != 0;
+    uint32_t start =
+        wide ? Big(damaged + loca + 4 * AHEM_BOX, 4) : 2 * Big(damaged + loca + 2 * AHEM_BOX, 2);
+    CHECK(head != 0 && loca != 0 && glyf != 0, "Ahem's tables");
+    damaged[glyf + start] = 0x7F;
+    damaged[glyf + start + 1] = 0xFF;
+    muiFontDef def = muiDefaultFontDef();
+    def.data = damaged;
+    def.size = sizeof s_ahem;
+    def.dataMode = mui_fontDataBorrow;
+    muiFontId font = {0, 0};
+    CHECK(muiCreateFont(fonts.service, &def, &font) == mui_success, "the damaged font opens");
+    muiGlyphImage image = {0, 0, 0, 0};
+    CHECK(muiRenderGlyph(fonts.service, muiFont_GetKey(font), AHEM_BOX, 10.0f, 0.0f, &image,
+                         s_pixels, sizeof s_pixels) == mui_errorFormat &&
+              muiRenderGlyphField(fonts.service, muiFont_GetKey(font), AHEM_BOX, 10.0f, 4, &image,
+                                  s_pixels, sizeof s_pixels) == mui_errorFormat,
+          "the damaged glyph refused");
+    CHECK(SameImage(Render(&fonts, font, AHEM_BOX + 1, 10.0f, 0.0f), 0, 8, 10, 10),
+          "the next glyph rendered");
+    muiDestroyTextService(fonts.service);
+    free(damaged);
+}
+
 static muiGlyphImage RenderField(const Fonts* fonts, muiFontId font, uint32_t glyph, float size,
                                  uint32_t spread)
 {
@@ -411,6 +477,7 @@ int main(void)
     TestSameEverywhere();
     TestContract();
     TestTooLarge();
+    TestDamaged();
     TestFields();
     TestFieldContract();
     TestMultiFields();
