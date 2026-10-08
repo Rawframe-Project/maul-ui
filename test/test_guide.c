@@ -17,9 +17,12 @@
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/pointer.h"
+#include "maul-ui/popup.h"
+#include "maul-ui/scroll.h"
 #include "maul-ui/style.h"
 #include "maul-ui/theme.h"
 #include "maul-ui/token.h"
+#include "maul-ui/virtual.h"
 #include "maul-ui/visual.h"
 
 #include <stddef.h>
@@ -299,6 +302,101 @@ static bool Key(muiContext* context, muiNodeId root, muiKeyCode code, muiModifie
     return muiKeyInput(context, root, &event, &handled) == mui_success && handled;
 }
 
+// Section 9: virtual lists.
+
+// A list of 10,000 rows 24 units high that scrolls, of which only the
+// rows near its viewport exist as nodes.
+static muiResult MakeList(muiContext* context, muiNodeId list)
+{
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.scrollAxes = mui_scrollVertical;
+    muiVirtualList items = muiDefaultVirtualList();
+    items.count = 10000;
+    items.extent = 24.0f;
+    items.fixed = true;
+    muiResult result =
+        muiNode_SetLayoutValues(context, list, &layout, MUI_PROPERTY_BIT(mui_propertyScrollAxes));
+    return result == mui_success ? muiNode_SetVirtualList(context, list, &items) : result;
+}
+
+// Makes the rows the list's window asks for: a node bound to each index
+// from first up to end. The old rows go and the window's are made anew;
+// a program reuses them instead, binding a row that left to an index
+// that came and resetting what it showed.
+static muiResult Realize(muiContext* context, muiNodeId list)
+{
+    uint32_t first = 0;
+    uint32_t end = 0;
+    muiResult result = muiNode_GetVirtualWindow(context, list, &first, &end);
+    for (muiNodeId row = muiNode_GetFirstChild(context, list);
+         result == mui_success && row.index1 != 0; row = muiNode_GetFirstChild(context, list))
+    {
+        result = muiDestroyNode(context, row);
+    }
+    muiNodeDef def = muiDefaultNodeDef();
+    for (uint32_t index = first; result == mui_success && index < end; index++)
+    {
+        muiNodeId row = {0, 0};
+        result = muiCreateNode(context, &def, &row);
+        if (result == mui_success)
+        {
+            result = muiNode_InsertChild(context, list, row, (muiNodeId){0, 0});
+        }
+        if (result == mui_success)
+        {
+            result = muiNode_SetItem(context, row, index);
+        }
+    }
+    return result;
+}
+
+// A frame with a list: layout says when the list's window changed, the
+// rows are made, and layout places them.
+static muiResult ListFrame(muiContext* context, muiNodeId root, muiNodeId list,
+                           const muiLayoutInput* input)
+{
+    muiResult result = muiComputeLayout(context, root, input);
+    bool changed = false;
+    muiNotification notification;
+    while (result == mui_success && muiNextNotification(context, &notification) == mui_success)
+    {
+        changed = changed || (notification.kind == mui_notificationWindowChanged &&
+                              notification.nodeId.index1 == list.index1);
+    }
+    if (result == mui_success && changed)
+    {
+        result = Realize(context, list);
+        result = result == mui_success ? muiComputeLayout(context, root, input) : result;
+    }
+    return result;
+}
+
+// Section 9: popups.
+
+// Opens a menu below a button: absolutely placed, so it takes no room
+// in the tree, painted in the overlay layer above everything, and put
+// beside its anchor after each layout. A press outside it or Escape
+// dismisses it.
+static muiResult OpenMenu(muiContext* context, muiNodeId menu, muiNodeId button)
+{
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.placement.position = mui_positionAbsolute;
+    muiInteractionStyle interaction = muiDefaultInteractionStyle();
+    interaction.layer = mui_layerOverlay;
+    muiPopup popup = muiDefaultPopup();
+    popup.anchor = button;
+    popup.side = mui_popupBelow;
+    popup.gap = 4.0f;
+    muiResult result =
+        muiNode_SetLayoutValues(context, menu, &layout, MUI_PROPERTY_BIT(mui_propertyPosition));
+    if (result == mui_success)
+    {
+        result = muiNode_SetInteractionValues(context, menu, &interaction,
+                                              MUI_PROPERTY_BIT(mui_propertyLayer));
+    }
+    return result == mui_success ? muiNode_SetPopup(context, menu, &popup) : result;
+}
+
 static void TestRefusals(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -523,6 +621,78 @@ static void TestInput(void)
     muiDestroyContext(context);
 }
 
+static uint32_t Rows(const muiContext* context, muiNodeId list, uint32_t* firstOut)
+{
+    uint32_t end = 0;
+    CHECK(muiNode_GetVirtualWindow(context, list, firstOut, &end) == mui_success, "a window");
+    uint32_t rows = 0;
+    for (muiNodeId row = muiNode_GetFirstChild(context, list); row.index1 != 0;
+         row = muiNode_GetNextSibling(context, row))
+    {
+        uint32_t index = 0;
+        CHECK(muiNode_GetItem(context, row, &index) == mui_success && index >= *firstOut &&
+                  index < end,
+              "a row in the window");
+        rows++;
+    }
+    CHECK(rows == end - *firstOut, "every index of the window a row");
+    return rows;
+}
+
+static void TestLists(void)
+{
+    muiContextDef def = muiDefaultContextDef();
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "a context");
+    muiNodeDef nodeDef = muiDefaultNodeDef();
+    muiNodeId root = {0, 0};
+    muiLayoutStyle full = muiDefaultLayoutStyle();
+    full.sizing.width = (muiDimension){1.0f, 0.0f, mui_dimensionValue};
+    full.sizing.height = (muiDimension){1.0f, 0.0f, mui_dimensionValue};
+    full.container.direction = mui_flexColumn;
+    CHECK(muiCreateNode(context, &nodeDef, &root) == mui_success &&
+              muiNode_SetLayoutValues(context, root, &full, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "a root");
+    muiNodeId button = Button(context, root);
+    muiNodeId list = Child(context, root);
+    muiLayoutStyle grow = muiDefaultLayoutStyle();
+    grow.item.grow = 1.0f;
+    grow.item.basis = (muiDimension){0.0f, 0.0f, mui_dimensionValue};
+    CHECK(muiNode_SetLayoutValues(context, list, &grow,
+                                  MUI_PROPERTY_BIT(mui_propertyGrow) |
+                                      MUI_PROPERTY_BIT(mui_propertyBasis)) == mui_success &&
+              MakeList(context, list) == mui_success,
+          "a list filling the rest");
+    const muiLayoutInput layout = {400.0f, 340.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
+    uint32_t first = 0;
+    CHECK(ListFrame(context, root, list, &layout) == mui_success, "a frame");
+    uint32_t rows = Rows(context, list, &first);
+    CHECK(first == 0 && rows > 12 && rows < 40, "a viewport's rows and the overscan's");
+    CHECK(muiNode_SetScroll(context, list, 0.0f, 24.0f * 5000.0f) == mui_success &&
+              ListFrame(context, root, list, &layout) == mui_success,
+          "scrolled to row 5,000");
+    rows = Rows(context, list, &first);
+    CHECK(first < 5000 && first + rows > 5000 && rows < 40, "the rows around it");
+    muiNodeId menu = Child(context, root);
+    CHECK(OpenMenu(context, menu, button) == mui_success &&
+              ListFrame(context, root, list, &layout) == mui_success,
+          "a menu open");
+    muiRect below = muiNode_GetRect(context, menu);
+    CHECK(below.y == 44.0f, "4 below the button");
+    muiPointerEvent press = Mouse(mui_pointerPress, 300.0f, 300.0f);
+    muiPointerEvent release = Mouse(mui_pointerRelease, 300.0f, 300.0f);
+    CHECK(Pointer(context, root, &press) && Pointer(context, root, &release), "a press outside");
+    muiNotification notification;
+    bool dismissed = false;
+    while (muiNextNotification(context, &notification) == mui_success)
+    {
+        dismissed = dismissed || (notification.kind == mui_notificationPopupDismissed &&
+                                  notification.nodeId.index1 == menu.index1);
+    }
+    CHECK(dismissed, "the menu dismissed");
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestRefusals();
@@ -531,5 +701,6 @@ int main(void)
     TestStyles();
     TestDrawing();
     TestInput();
+    TestLists();
     return s_failures == 0 ? 0 : 1;
 }
