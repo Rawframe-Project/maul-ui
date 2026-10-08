@@ -9,16 +9,27 @@
 // digits, spaces and brackets, take random replaces (inserting,
 // removing and replacing, separators and the halves of CR LF among
 // them); after each, the edited block's tables are compared, entry by
-// entry, with those of a block given the whole new text.
+// entry, with those of a block given the whole new text. Then the same
+// for shaping: both blocks laid out in Liberation Sans with a fallback
+// font after each edit, the edited one shaping again only its stale
+// paragraphs, and every shaped table compared: levels, fonts, unsafe
+// marks, items, glyphs and the sums of advances and clusters.
 
 #include "test_harness.h"
 #include "text_block.h"
 #include "text_blocks.h"
 
+#include "maul-ui/context.h"
+#include "maul-ui/font.h"
+#include "maul-ui/layout.h"
+#include "maul-ui/node.h"
 #include "maul-ui/text.h"
 #include "maul-ui/text_block.h"
 
 #include <string.h>
+
+#include "coverage.inc"
+#include "liberation_sans.inc"
 
 enum
 {
@@ -151,8 +162,149 @@ static void TestEdits(void)
     muiDestroyTextService(service);
 }
 
+static bool SameBytes(const muiBuffer* a, const muiBuffer* b, size_t bytes)
+{
+    return bytes == 0 || memcmp(a->data, b->data, bytes) == 0;
+}
+
+static bool SameShaping(const muiTextBlock* a, const muiTextBlock* b)
+{
+    size_t entries = (size_t)a->length + 1u;
+    // Bytes a paragraph's sums leave alone are never read, so the sums
+    // are compared whole: both blocks write every entry.
+    return a->shaped && b->shaped && a->length == b->length && a->itemCount == b->itemCount &&
+           a->glyphCount == b->glyphCount &&
+           SameBytes(&a->items, &b->items, a->itemCount * sizeof(muiTextItem)) &&
+           SameBytes(&a->glyphs, &b->glyphs, a->glyphCount * sizeof(muiShapedGlyph)) &&
+           SameBytes(&a->levels, &b->levels, a->length) &&
+           SameBytes(&a->faces, &b->faces, a->length) &&
+           SameBytes(&a->unsafe, &b->unsafe, a->length) &&
+           SameBytes(&a->advances, &b->advances, entries * sizeof(double)) &&
+           SameBytes(&a->clusters, &b->clusters, entries * sizeof(uint32_t));
+}
+
+typedef struct Shaping
+{
+    muiTextService* service;
+    muiContext* context;
+    muiNodeId root;
+    muiNodeId nodes[2];
+    muiTextBlockId blocks[2];
+} Shaping;
+
+static muiNodeId TextNode(muiContext* context, muiNodeId root, muiTextBlockId block)
+{
+    muiNodeDef def = muiDefaultNodeDef();
+    def.hostKey = muiTextBlock_GetKey(block);
+    muiNodeId node = {0, 0};
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.content = mui_contentHost;
+    CHECK(muiCreateNode(context, &def, &node) == mui_success &&
+              muiNode_InsertChild(context, root, node, (muiNodeId){0, 0}) == mui_success &&
+              muiNode_SetLayoutValues(context, node, &layout,
+                                      MUI_PROPERTY_BIT(mui_propertyContent)) == mui_success,
+          "a text node");
+    return node;
+}
+
+static bool LayOut(Shaping* shaping)
+{
+    muiTextHost host = {shaping->service, shaping->context};
+    const muiLayoutInput input = {300.0f, 1e9f, muiMeasureText, &host, 0, NULL, {0, 0, 0, 0}};
+    return muiNode_MarkContentChanged(shaping->context, shaping->nodes[0]) == mui_success &&
+           muiNode_MarkContentChanged(shaping->context, shaping->nodes[1]) == mui_success &&
+           muiComputeLayout(shaping->context, shaping->root, &input) == mui_success;
+}
+
+static Shaping MakeShaping(void)
+{
+    Shaping shaping = {0};
+    muiTextServiceDef def = muiDefaultTextServiceDef();
+    muiContextDef contextDef = muiDefaultContextDef();
+    muiFontDef font = muiDefaultFontDef();
+    font.dataMode = mui_fontDataBorrow;
+    muiFontId liberation = {0, 0};
+    muiFontId coverage = {0, 0};
+    CHECK(muiCreateTextService(&def, &shaping.service) == mui_success &&
+              muiCreateContext(&contextDef, &shaping.context) == mui_success,
+          "a service and a context");
+    font.data = s_liberationSans;
+    font.size = sizeof s_liberationSans;
+    CHECK(muiCreateFont(shaping.service, &font, &liberation) == mui_success, "Liberation Sans");
+    font.data = s_coverage;
+    font.size = sizeof s_coverage;
+    CHECK(muiCreateFont(shaping.service, &font, &coverage) == mui_success, "the fallback");
+    uint64_t fallback = muiFont_GetKey(coverage);
+    muiNodeDef nodeDef = muiDefaultNodeDef();
+    CHECK(muiSetDefaultFont(shaping.service, liberation) == mui_success &&
+              muiSetFallbackFonts(shaping.service, &fallback, 1) == mui_success &&
+              muiCreateNode(shaping.context, &nodeDef, &shaping.root) == mui_success,
+          "fonts and a root");
+    return shaping;
+}
+
+static void TestShaping(void)
+{
+    Shaping shaping = MakeShaping();
+    static char text[LIMIT + 64];
+    static char inserted[64];
+    uint32_t state = 0x85EBCA6Bu;
+    uint32_t compared = 0;
+    bool same = true;
+    for (uint32_t round = 0; round < ROUNDS / 2 && shaping.root.index1 != 0; round++)
+    {
+        uint32_t length = Pieces(text, 1 + Next(&state) % 120, LIMIT, &state);
+        CHECK(muiCreateTextBlock(shaping.service, text, length, &shaping.blocks[0]) ==
+                      mui_success &&
+                  muiCreateTextBlock(shaping.service, "", 0, &shaping.blocks[1]) == mui_success,
+              "blocks");
+        shaping.nodes[0] = TextNode(shaping.context, shaping.root, shaping.blocks[0]);
+        shaping.nodes[1] = TextNode(shaping.context, shaping.root, shaping.blocks[1]);
+        CHECK(LayOut(&shaping), "shaped first");
+        for (uint32_t edit = 0; edit < EDITS / 2; edit++)
+        {
+            uint32_t start = CharacterStart(text, length, &state);
+            uint32_t end = CharacterStart(text, length, &state);
+            uint32_t low = start < end ? start : end;
+            uint32_t high = start < end ? end : start;
+            uint32_t size =
+                Next(&state) % 4 == 0 ? 0 : Pieces(inserted, 1 + Next(&state) % 3, 32, &state);
+            if (length - (high - low) + size > LIMIT ||
+                muiTextBlock_Replace(shaping.service, shaping.blocks[0], low, high, inserted,
+                                     size) != mui_success)
+            {
+                continue;
+            }
+            memmove(text + low + size, text + high, length - high);
+            memcpy(text + low, inserted, size);
+            length = length - (high - low) + size;
+            // Now and then two edits before the next layout.
+            if (Next(&state) % 3 == 0)
+            {
+                continue;
+            }
+            CHECK(muiTextBlock_SetText(shaping.service, shaping.blocks[1], text, length) ==
+                          mui_success &&
+                      LayOut(&shaping),
+                  "laid out");
+            same = same && SameShaping(muiResolveTextBlock(shaping.service, shaping.blocks[0]),
+                                       muiResolveTextBlock(shaping.service, shaping.blocks[1]));
+            compared++;
+        }
+        CHECK(muiDestroyNode(shaping.context, shaping.nodes[0]) == mui_success &&
+                  muiDestroyNode(shaping.context, shaping.nodes[1]) == mui_success &&
+                  muiDestroyTextBlock(shaping.service, shaping.blocks[0]) == mui_success &&
+                  muiDestroyTextBlock(shaping.service, shaping.blocks[1]) == mui_success,
+              "destroyed");
+    }
+    CHECK(same && compared > ROUNDS * EDITS / 8, "edited shaping is the whole text's");
+    muiDestroyContext(shaping.context);
+    muiDestroyTextService(shaping.service);
+}
+
 int main(void)
 {
     TestEdits();
+    TestShaping();
     return s_failures == 0 ? 0 : 1;
 }

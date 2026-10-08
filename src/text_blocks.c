@@ -62,36 +62,6 @@ static void FreeScratch(const muiAllocator* allocator, Scratch* scratch)
     muiFreeBuffer(allocator, &scratch->runs);
 }
 
-// The end of the paragraph a text has at from: past its mandatory break
-// (UAX #14's BK, CR, LF and NL: VT, FF, LS and PS, CR, LF, CR LF and
-// NEL), or the text's end.
-static uint32_t ParagraphEnd(const char* text, uint32_t length, uint32_t from)
-{
-    const unsigned char* bytes = (const unsigned char*)text;
-    for (uint32_t i = from; i < length; i++)
-    {
-        unsigned char c = bytes[i];
-        if (c == '\n' || c == '\v' || c == '\f')
-        {
-            return i + 1;
-        }
-        if (c == '\r')
-        {
-            return i + 1 < length && bytes[i + 1] == '\n' ? i + 2 : i + 1;
-        }
-        if (c == 0xC2 && i + 1 < length && bytes[i + 1] == 0x85)
-        {
-            return i + 2;
-        }
-        if (c == 0xE2 && i + 2 < length && bytes[i + 1] == 0x80 &&
-            (bytes[i + 2] == 0xA8 || bytes[i + 2] == 0xA9))
-        {
-            return i + 3;
-        }
-    }
-    return length;
-}
-
 // Appends a paragraph's line break opportunities, its offsets from at.
 static bool FindBreaks(const muiAllocator* allocator, Scratch* scratch, const char* text,
                        uint32_t at, uint32_t length, Analysis* analysis)
@@ -164,7 +134,7 @@ static bool AnalyzeParagraphs(const muiAllocator* allocator, const char* text, u
     bool fits = true;
     for (uint32_t at = start; fits && at < end;)
     {
-        uint32_t next = ParagraphEnd(text, end, at);
+        uint32_t next = muiParagraphEnd(text, end, at);
         fits = FindBreaks(allocator, &scratch, text, at, next - at, analysis) &&
                FindScripts(allocator, &scratch, text, at, next - at, analysis);
         at = next;
@@ -475,6 +445,27 @@ static bool Splice(const muiAllocator* allocator, const muiTextBlock* block, uin
     return fits;
 }
 
+// Marks paragraphs from up to to (in the new text) stale after bytes
+// start up to end became length bytes, joined with what was stale
+// before, moved through the edit.
+static void MarkStale(muiTextBlock* block, uint32_t start, uint32_t end, uint32_t length,
+                      uint32_t from, uint32_t to)
+{
+    if (block->stale)
+    {
+        int64_t delta = (int64_t)length - (int64_t)(end - start);
+        uint32_t a = block->staleStart;
+        uint32_t b = block->staleEnd;
+        a = a <= start ? a : (a >= end ? (uint32_t)((int64_t)a + delta) : start);
+        b = b <= start ? b : (b >= end ? (uint32_t)((int64_t)b + delta) : start + length);
+        from = a < from ? a : from;
+        to = b > to ? b : to;
+    }
+    block->stale = true;
+    block->staleStart = from;
+    block->staleEnd = to;
+}
+
 // Replaces bytes start up to end of a block with length bytes, finding
 // again the breaks and script runs of the paragraphs the edit reaches
 // alone: from past the last mandatory break before it up to the first
@@ -493,7 +484,7 @@ static bool ReplaceRange(muiTextService* service, muiTextBlock* block, uint32_t 
         return false;
     }
     uint32_t from = ParagraphBefore(block, start);
-    uint32_t to = ParagraphEnd(analysis.text.data, total, start + length);
+    uint32_t to = muiParagraphEnd(analysis.text.data, total, start + length);
     int64_t delta = (int64_t)total - (int64_t)block->length;
     if (!AnalyzeParagraphs(allocator, analysis.text.data, from, to, &analysis) ||
         !Splice(allocator, block, from, (uint32_t)((int64_t)to - delta), delta, &analysis))
@@ -501,7 +492,15 @@ static bool ReplaceRange(muiTextService* service, muiTextBlock* block, uint32_t 
         FreeAnalysis(allocator, &analysis);
         return false;
     }
+    // Spans' run styles are found for the whole text again, so a block
+    // with spans is shaped whole.
+    bool keep = block->shaped && block->spanCount == 0;
     Adopt(allocator, block, &analysis, total);
+    if (keep)
+    {
+        block->shaped = true;
+        MarkStale(block, start, end, length, from, to);
+    }
     return true;
 }
 

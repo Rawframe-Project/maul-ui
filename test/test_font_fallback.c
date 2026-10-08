@@ -210,10 +210,12 @@ static void TestChoosing(void)
           "a comma after a fallback");
     list = Paint(&scene);
     CHECK(RunsIn(&list, (muiFontId[]){scene.coverage}, 1), "one run");
-    // So does a mark that starts a cluster, after a line break.
+    // A mark that starts a paragraph is chosen within its own paragraph,
+    // as paragraphs are shaped apart: the first font that has it.
     (void)Show(&scene, liberation, "\xE4\xB8\x80\n\xCC\x81");
     list = Paint(&scene);
-    CHECK(RunsIn(&list, (muiFontId[]){scene.coverage, scene.coverage}, 2), "a mark alone");
+    CHECK(RunsIn(&list, (muiFontId[]){scene.coverage, scene.liberation}, 2),
+          "a mark alone, in its own paragraph");
     // A tab is no character a font is chosen for.
     (void)Show(&scene, liberation, "A\tA");
     list = Paint(&scene);

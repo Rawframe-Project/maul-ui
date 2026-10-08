@@ -122,6 +122,12 @@ typedef struct muiTextEditing
     uint64_t revision;
 } muiTextEditing;
 
+// The end of the paragraph a text has at from: past its mandatory break
+// (UAX #14's BK, CR, LF and NL: VT, FF, LS and PS, CR, LF, CR LF and
+// NEL), or the text's end. A block's analysis and shaping go paragraph
+// by paragraph, so an edit redoes only the paragraphs it reaches.
+uint32_t muiParagraphEnd(const char* text, uint32_t length, uint32_t from);
+
 typedef struct muiTextBlock muiTextBlock;
 
 struct muiTextBlock
@@ -136,10 +142,17 @@ struct muiTextBlock
     muiBuffer scripts;
     uint32_t scriptCount;
     // The shaping, valid when shaped, for the font chain of identity
-    // shapedChain and shapedRtl.
+    // shapedChain and shapedRtl, of a text shapedLength bytes long. While
+    // stale, edits since have changed whole paragraphs from staleStart up
+    // to staleEnd: the shaping holds before them, and after them moved by
+    // the change in length.
     bool shaped;
     bool shapedRtl;
+    bool stale;
     uint64_t shapedChain;
+    uint32_t shapedLength;
+    uint32_t staleStart;
+    uint32_t staleEnd;
     // A byte per byte: the place in the chain of the font it is drawn in.
     muiBuffer faces;
     // A bidi level per byte.
@@ -153,9 +166,11 @@ struct muiTextBlock
     // A byte per byte: 1 where HarfBuzz marks the cluster starting there
     // unsafe to break.
     muiBuffer unsafe;
-    // length + 1 sums from the start of the text: of advances in ems
-    // (double), as glyphs of fonts of different units per em add, and of
-    // clusters (uint32_t).
+    // length + 1 sums from the start of each paragraph: of advances in
+    // ems (double), as glyphs of fonts of different units per em add, and
+    // of clusters (uint32_t). A paragraph's end is the next one's start,
+    // where its sums start again from 0, so differences are taken within
+    // a paragraph, as a line's always lie.
     muiBuffer advances;
     muiBuffer clusters;
     // An input method's composition, while compositionLength is not 0:

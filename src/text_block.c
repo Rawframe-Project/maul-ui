@@ -49,6 +49,36 @@ void muiFreeBuffer(const muiAllocator* allocator, muiBuffer* buffer)
     *buffer = (muiBuffer){0};
 }
 
+// The end of the paragraph a text has at from: past its mandatory break
+// (UAX #14's BK, CR, LF and NL: VT, FF, LS and PS, CR, LF, CR LF and
+// NEL), or the text's end.
+uint32_t muiParagraphEnd(const char* text, uint32_t length, uint32_t from)
+{
+    const unsigned char* bytes = (const unsigned char*)text;
+    for (uint32_t i = from; i < length; i++)
+    {
+        unsigned char c = bytes[i];
+        if (c == '\n' || c == '\v' || c == '\f')
+        {
+            return i + 1;
+        }
+        if (c == '\r')
+        {
+            return i + 1 < length && bytes[i + 1] == '\n' ? i + 2 : i + 1;
+        }
+        if (c == 0xC2 && i + 1 < length && bytes[i + 1] == 0x85)
+        {
+            return i + 2;
+        }
+        if (c == 0xE2 && i + 2 < length && bytes[i + 1] == 0x80 &&
+            (bytes[i + 2] == 0xA8 || bytes[i + 2] == 0xA9))
+        {
+            return i + 3;
+        }
+    }
+    return length;
+}
+
 void muiReleaseTextBlock(const muiAllocator* allocator, muiTextBlock* block)
 {
     muiBuffer* buffers[] = {
