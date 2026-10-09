@@ -704,8 +704,9 @@ static muiSizingInput FinalInput(const Frame* frame, uint32_t child)
     // Its height is definite when stretched (once its line's size is,
     // section 9.8), given, or in a row from its aspect ratio; in a column,
     // after flexing, when the column's height or its own basis is
-    // definite, or its ratio gives it from a definite width. Otherwise it
-    // is its content's.
+    // definite, or its ratio gives it from the width it fits, its height
+    // given counting only under an automatic basis, which a given one
+    // replaces (both as in Chrome). Otherwise it is its content's.
     float base = 0.0f;
     if (frame->row)
     {
@@ -714,12 +715,10 @@ static muiSizingInput FinalInput(const Frame* frame, uint32_t child)
     }
     else
     {
-        muiAxisSizing cross = muiResolveAxis(&style->sizing, true, frame->extentCross);
-        bool fromRatio = style->sizing.aspectRatio > 0.0f &&
-                         CrossConstraint(frame, style, &cross, true).mode == mui_measureExact;
-        input.contentHeight = frame->extentMain < 0.0f && !fromRatio &&
+        input.contentHeight = frame->extentMain < 0.0f && style->sizing.aspectRatio <= 0.0f &&
                               !muiResolveDimension(style->item.basis, frame->extentMain, &base) &&
-                              !muiResolveAxis(&style->sizing, false, frame->extentMain).definite;
+                              (style->item.basis.kind != mui_dimensionAuto ||
+                               !muiResolveAxis(&style->sizing, false, frame->extentMain).definite);
     }
     return input;
 }

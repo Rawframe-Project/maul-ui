@@ -188,3 +188,11 @@ fixture wrap_row_width_content_basis available=500x400
 node wrap=wrap => 0 0 140 10
   node basis=20 content=100x10 => 0 0 100 10
   node width=40 => 100 0 40 10
+
+# In a column, a given basis replaces the height, so the height alone
+# does not make an item definite.
+fixture column_basis_replaces_height available=500x400
+node => 0 0 0 0
+  node height=25% direction=column => 0 0 0 0
+    node height=80 basis=100%-20 => 0 0 0 0
+      node height=10%+10 => 0 0 0 0

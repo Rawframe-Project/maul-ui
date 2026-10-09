@@ -106,9 +106,11 @@ static float StaticOffset(const muiLayoutStyle* container, const muiLayoutStyle*
     }
     else
     {
-        reverse = container->container.wrap == mui_wrapReverse;
         muiAlign align = child->item.alignSelf != mui_alignAuto ? child->item.alignSelf
                                                                 : container->container.alignItems;
+        // Baseline, with no group to share, falls back to the writing
+        // mode's start, which wrap-reverse does not flip (as in Chrome).
+        reverse = container->container.wrap == mui_wrapReverse && align != mui_alignBaseline;
         lead = align == mui_alignEnd ? freeSpace
                                      : (align == mui_alignCenter ? freeSpace / 2.0f : 0.0f);
     }
@@ -165,9 +167,11 @@ static float Offset(const muiLayoutStyle* container, const muiLayoutStyle* child
     float end = muiEdgeEnd(&margins, horizontal);
     if (insets->hasStart && insets->hasEnd)
     {
-        // Automatic margins share what the insets leave, as CSS solves an
-        // over-constrained box; without them the end inset gives way.
-        float freeSpace = span->paddingSize - insets->start - insets->end - size - start - end;
+        // Automatic margins share what the insets leave, none when they
+        // cross (as in Chrome), as CSS solves an over-constrained box;
+        // without them the end inset gives way.
+        float space = fmaxf(span->paddingSize - insets->start - insets->end, 0.0f);
+        float freeSpace = space - size - start - end;
         bool autoStart = muiIsMarginAutoStart(child, horizontal, rtl);
         bool autoEnd = muiIsMarginAutoEnd(child, horizontal, rtl);
         if (autoStart && autoEnd && horizontal)
@@ -178,7 +182,7 @@ static float Offset(const muiLayoutStyle* container, const muiLayoutStyle* child
         {
             // Vertically they may be negative (CSS 2.1 section 10.6.4), in
             // the space the insets leave, none when they cross.
-            start = (fmaxf(span->paddingSize - insets->start - insets->end, 0.0f) - size) / 2.0f;
+            start = (space - size) / 2.0f;
         }
         else if (autoStart)
         {

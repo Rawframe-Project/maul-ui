@@ -410,3 +410,29 @@ node max-width=10 => 0 0 10 4
   node width=75% => 0 0 7.5 4
     node width=75% align-items=end => 0 0 5.625 4
       node width=30 aspect=1.5 padding=2 => 0 0 6 4
+
+# In a column, a ratio item's height from the width it fits is definite.
+fixture aspect_column_wrap_ratio_height_definite available=500x400
+node => 0 0 0 0
+  node position=absolute direction=column wrap=wrap => 0 0 10 20
+    node aspect=0.5 => 0 0 10 20
+      node height=75% border=7,3,7,0 => 0 0 10 15
+
+fixture aspect_column_wrap_ratio_abs available=500x400
+node => 0 0 0 0
+  node position=absolute direction=column wrap=wrap => 0 0 10 20
+    node aspect=0.5 => 0 0 10 20
+      node height=75% border=7,3,7,0 => 0 0 10 15
+
+fixture aspect_column_wrap_ratio_width available=500x400
+node => 0 0 40 0
+  node width=40 direction=column wrap=wrap => 0 0 40 0
+    node aspect=1 => 0 0 40 0
+      node height=50% => 0 0 0 0
+
+fixture aspect_column_wrap_ratio_two available=500x400
+node => 0 0 40 100
+  node width=40 height=100 direction=column wrap=wrap => 0 0 40 100
+    node aspect=1 => 0 0 40 0
+      node height=50% => 0 0 0 0
+    node width=20 height=20 => 0 0 20 20

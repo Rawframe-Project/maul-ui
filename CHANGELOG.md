@@ -10,6 +10,14 @@ format.
 
 ### Changed
 
+- In a column, a given basis replaces an item's height, so the height
+  alone does not make it definite, and a ratio item's height from the
+  width it fits is definite; an absolute child aligned by baseline sits
+  at the writing mode's start under wrap-reverse too; and over crossed
+  insets an absolute box's horizontal automatic margins share none of
+  the space, so a box may overflow it. All as Chrome does; nineteen
+  Chrome fixtures hold the cases.
+
 - Asked an item's baseline, a row lays the item out at its content's
   height, as it lays it out after, so a percentage height below it does
   not resolve there either. As Chrome does; one Chrome fixture holds it.
