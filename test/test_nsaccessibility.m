@@ -39,11 +39,15 @@
 @end
 
 static muiAccessRequest s_asked;
+static char s_askedText[64];
 
 static bool Act(void* user, const muiAccessRequest* request)
 {
     (void)user;
     s_asked = *request;
+    size_t kept = request->length < sizeof s_askedText ? request->length : 0;
+    memcpy(s_askedText, request->text != NULL ? request->text : "", kept);
+    s_askedText[kept] = '\0';
     return true;
 }
 
@@ -340,6 +344,64 @@ static void TestContract(NSView* view)
     muiDestroyNsAdapter(NULL);
 }
 
+// The heading 7 made a text input being edited, "héllo 𝄞\nnext" on two
+// lines, the caret after é: its characters in UTF-16, its lines, ranges
+// and selection, set through the host.
+static void TestText(muiNsAdapter* adapter, id root, const Built* built)
+{
+    static const char s_value[] = "h\xC3\xA9llo \xF0\x9D\x84\x9E\nnext";
+    static const uint32_t s_lines[2] = {0, 12};
+    muiAccessNode input = built->nodes[5];
+    input.role = mui_roleTextInput;
+    input.text[mui_accessValue] = s_value;
+    input.textLength[mui_accessValue] = sizeof s_value - 1;
+    input.marks = (muiAccessTextMarks){
+        .anchor = 3, .focus = 3, .selected = true, .lineStarts = s_lines, .lineCount = 2};
+    input.actions = 1u << mui_actionSetSelection | 1u << mui_actionReplaceText;
+    const muiAccessUpdate update = {(const muiAccessNode*[]){&input}, 1, built->children, 0, 0};
+    muiNsPostFunction saved = adapter->post;
+    adapter->post = Record;
+    s_posted = [[NSMutableArray alloc] init];
+    CHECK(muiNsAdapter_Apply(adapter, &update) == mui_success, "a text input");
+    [s_posted removeAllObjects];
+    id field = [[root accessibilityChildren] objectAtIndex:3];
+    CHECK(
+        [field accessibilityNumberOfCharacters] == 13 &&
+            NSEqualRanges([field accessibilitySelectedTextRange], NSMakeRange(2, 0)) &&
+            [field accessibilityInsertionPointLineNumber] == 0 &&
+            [field accessibilityLineForIndex:9] == 1 &&
+            NSEqualRanges([field accessibilityRangeForLine:1], NSMakeRange(9, 4)) &&
+            NSEqualRanges([field accessibilityRangeForIndex:6], NSMakeRange(6, 2)) &&
+            [[field accessibilityStringForRange:NSMakeRange(1, 4)] isEqualToString:@"\u00e9llo"] &&
+            [field accessibilityStringForRange:NSMakeRange(10, 9)] == nil,
+        "characters in UTF-16, a surrogate pair whole; lines and ranges");
+    CHECK([field isAccessibilitySelectorAllowed:@selector(setAccessibilitySelectedTextRange:)] &&
+              [field isAccessibilitySelectorAllowed:@selector(accessibilityRangeForLine:)] &&
+              ![[[root accessibilityChildren] firstObject]
+                  isAccessibilitySelectorAllowed:@selector(accessibilityRangeForLine:)],
+          "text methods on text alone");
+    s_asked = (muiAccessRequest){0};
+    [field setAccessibilitySelectedTextRange:NSMakeRange(1, 5)];
+    CHECK(s_asked.action == mui_actionSetSelection && s_asked.target == 7 && s_asked.anchor == 1 &&
+              s_asked.focus == 7,
+          "a selection asked in bytes");
+    [field setAccessibilitySelectedText:@"a"];
+    CHECK(s_asked.action == mui_actionReplaceText && s_asked.anchor == 3 && s_asked.focus == 3 &&
+              strcmp(s_askedText, "a") == 0,
+          "text put at the caret");
+    [field setAccessibilityValue:@"new"];
+    CHECK(s_asked.action == mui_actionReplaceText && s_asked.anchor == 0 &&
+              s_asked.focus == sizeof s_value - 1 && strcmp(s_askedText, "new") == 0,
+          "the whole text set");
+    input.marks.anchor = 7;
+    CHECK(muiNsAdapter_Apply(adapter, &update) == mui_success &&
+              PostedAre(@"AXSelectedTextChanged 7") &&
+              [[field accessibilitySelectedText] isEqualToString:@"llo "],
+          "a selection told and read");
+    [s_posted release];
+    adapter->post = saved;
+}
+
 int main(void)
 {
     @autoreleasepool
@@ -365,6 +427,7 @@ int main(void)
         TestTree(root, view);
         TestActions(root);
         TestNotifications(adapter, &s_built);
+        TestText(adapter, root, &s_built);
         id button = [[[root accessibilityChildren] firstObject] retain];
         CHECK(muiNsAdapter_SetScale(adapter, 2.0f) == mui_success &&
                   Same([button accessibilityFrame], OnScreen(view, NSMakeRect(40, 40, 200, 80))),

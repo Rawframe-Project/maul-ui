@@ -32,6 +32,20 @@ format.
   the host with the text component's `muiTextPerformAccessAction`,
   which edits as a paste does. AT-SPI's caret, selection and
   EditableText methods ask for them; the clipboard stays the host's.
+- UI Automation's Text pattern (ITextProvider2) on text inputs and
+  text being edited: the document, the selection and the caret as
+  ranges, which normalize and move by character, word, line, paragraph
+  and document, read their text, find text in it and select through
+  the host; text changed and text selection changed raised. Character
+  geometry and attributes are not given yet. One module gives every
+  adapter a text's boundaries by unit and its offsets in code points
+  and UTF-16.
+- NSAccessibility's text on text inputs and text being edited: the
+  number of characters, the selected text and its range, the
+  insertion point's line, a line's range and an index's line, the
+  string and the character of a range, all in UTF-16; the selection,
+  the selected text and the whole value set through the host; the
+  selected text changed posted.
 
 ### Changed
 

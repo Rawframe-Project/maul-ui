@@ -167,7 +167,7 @@ if(MAUL_UI_NSACCESSIBILITY)
     # code.
     enable_language(OBJC)
     target_sources(maul-ui PRIVATE src/ns_adapter.m src/ns_events.m src/ns_node.m
-                                   src/ns_roles.m)
+                                   src/ns_roles.m src/ns_text.m)
     set_target_properties(maul-ui PROPERTIES
         OBJC_STANDARD 23
         OBJC_STANDARD_REQUIRED ON
@@ -237,7 +237,8 @@ if(MAUL_UI_UIA)
     # UI Automation's own functions are loaded at run time, as MinGW has
     # no import library of them; COM's come from ole32 and oleaut32.
     target_sources(maul-ui PRIVATE src/uia_adapter.c src/uia_events.c src/uia_node.c
-                                   src/uia_patterns.c src/uia_props.c src/uia_values.c)
+                                   src/uia_patterns.c src/uia_props.c src/uia_range.c
+                                   src/uia_text.c src/uia_values.c)
     target_link_libraries(maul-ui PUBLIC ole32 oleaut32)
     set(MAUL_PKG_LIBS_PRIVATE "-lole32 -loleaut32")
 endif()
@@ -324,7 +325,7 @@ if(MAUL_UI_BUILD_TESTS)
     maul_add_test(access)
     if(MAUL_UI_ACCESS_TREE)
         maul_add_test(access_tree)
-        maul_add_test(access_text)
+        maul_add_test(access_text WHITEBOX)
         maul_add_test(access_wrap WHITEBOX)
         maul_add_test(id_map WHITEBOX)
     endif()

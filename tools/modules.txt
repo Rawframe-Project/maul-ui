@@ -67,19 +67,20 @@ ns_adapter: access_record allocator ns
 ns_events: access_record ns
 ns_node: access_record allocator ns
 ns_roles: ns
+ns_text: access_text ns
 uikit: id_map
 uikit_adapter: access_record allocator uikit
 uikit_events: access_record uikit
 uikit_node: uikit
 uikit_traits: uikit
-atspi_events: access_record allocator atspi
+atspi_events: access_record access_text allocator atspi
 atspi_actions: atspi
 atspi_app: allocator atspi dbus_api
 atspi_component: atspi
 atspi_objects: allocator atspi chars
 atspi_properties: allocator atspi chars
 atspi_roles: access_record atspi
-atspi_text: allocator atspi
+atspi_text: access_text allocator atspi
 uia: id_map uia_com uia_ids
 uia_com:
 uia_ids:
@@ -88,6 +89,8 @@ uia_events: access_record uia
 uia_node: access_record uia
 uia_patterns: uia
 uia_props: access_record allocator uia
+uia_range: access_text uia
+uia_text: access_record uia
 uia_values: uia
 access_action: access context event layout_node notify range scroll_store tree
 popup: context layout_node popup_store scroll tree notify

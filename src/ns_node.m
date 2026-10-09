@@ -178,11 +178,17 @@ static bool Has(const muiAccessNode* node, muiAccessAction action)
     return StringOf(node->text[mui_accessValue]);
 }
 
+// A range's number, or an edited text's whole text, as the host takes it.
 - (void)setAccessibilityValue:(id)value
 {
     const muiAccessNode* node = NodeOf(self);
-    if (node != nullptr && Has(node, mui_actionSetValue) &&
-        [value respondsToSelector:@selector(floatValue)])
+    if (node != nullptr && Has(node, mui_actionReplaceText) &&
+        [value isKindOfClass:[NSString class]])
+    {
+        (void)muiNsReplaceAll(self, value);
+    }
+    else if (node != nullptr && Has(node, mui_actionSetValue) &&
+             [value respondsToSelector:@selector(floatValue)])
     {
         (void)muiNsAct(adapter, mui_actionSetValue, nodeId, [value floatValue]);
     }
@@ -337,7 +343,13 @@ static bool Has(const muiAccessNode* node, muiAccessAction action)
     }
     if (selector == @selector(setAccessibilityValue:))
     {
-        return Has(node, mui_actionSetValue);
+        return Has(node, mui_actionSetValue) || Has(node, mui_actionReplaceText);
+    }
+    if (muiNsIsTextSelector(selector))
+    {
+        bool input = (node->role >= mui_roleTextInput && node->role <= mui_roleUrlInput) ||
+                     node->role == mui_roleEditableComboBox;
+        return (input || node->marks.selected) && muiNsAllowsText(node, selector);
     }
     if (selector == @selector(isAccessibilitySelected))
     {

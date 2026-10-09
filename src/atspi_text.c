@@ -7,6 +7,7 @@
 // count bytes. Sentences are not given: an empty answer, which Orca
 // reads as no sentence support.
 
+#include "access_text.h"
 #include "allocator.h"
 #include "atspi.h"
 
@@ -36,21 +37,6 @@ typedef struct Span
     uint32_t end;
 } Span;
 
-// A node's value text: the record's, ending in a NUL, or empty.
-typedef struct Text
-{
-    const char* bytes;
-    uint32_t length;
-    const muiAccessTextMarks* marks;
-} Text;
-
-static Text TextOf(const muiAccessNode* node)
-{
-    const char* bytes = node->text[mui_accessValue];
-    return (Text){bytes != nullptr ? bytes : "",
-                  bytes != nullptr ? node->textLength[mui_accessValue] : 0, &node->marks};
-}
-
 bool muiAtspiHasText(const muiAccessNode* node)
 {
     bool input = (node->role >= mui_roleTextInput && node->role <= mui_roleUrlInput) ||
@@ -64,63 +50,30 @@ static bool IsLead(char byte)
     return ((unsigned char)byte & 0xC0u) != 0x80u;
 }
 
-int32_t muiAtspiCharsBefore(const char* text, uint32_t offset)
-{
-    int32_t count = 0;
-    for (uint32_t i = 0; i < offset; i++)
-    {
-        count += IsLead(text[i]) ? 1 : 0;
-    }
-    return count;
-}
-
 // The byte where a text's character of an index starts, clamped to the
-// text: its end for an index past it, 0 below 0.
-static uint32_t ByteOf(const Text* text, int32_t index)
+// text: 0 below 0.
+static uint32_t ByteOf(const muiAccessText* text, int32_t index)
 {
-    uint32_t at = 0;
-    for (int32_t seen = 0; at < text->length && seen < index;)
-    {
-        at++;
-        while (at < text->length && !IsLead(text->bytes[at]))
-        {
-            at++;
-        }
-        seen++;
-    }
-    return at;
+    return index > 0 ? muiAccessByteOfPoints(text, (uint32_t)index) : 0;
 }
 
-static uint32_t NextChar(const Text* text, uint32_t at)
+static int32_t PointsBefore(const muiAccessText* text, uint32_t offset)
 {
-    if (at >= text->length)
-    {
-        return text->length;
-    }
-    at++;
-    while (at < text->length && !IsLead(text->bytes[at]))
-    {
-        at++;
-    }
-    return at;
+    return (int32_t)muiAccessPointsBefore(text->bytes, offset);
 }
 
-static uint32_t PreviousChar(const Text* text, uint32_t at)
+// The unit at a byte: from its last boundary at or before the byte to the
+// next after it.
+static Span UnitAt(const muiAccessText* text, muiAccessUnit unit, uint32_t at)
 {
-    while (at > 0)
-    {
-        at--;
-        if (IsLead(text->bytes[at]))
-        {
-            break;
-        }
-    }
-    return at;
+    uint32_t next = muiAccessBoundaryAfter(text, mui_unitCharacter, at);
+    return (Span){muiAccessBoundaryBefore(text, unit, next > at ? next : at),
+                  muiAccessBoundaryAfter(text, unit, at)};
 }
 
 // The word at a byte, or the one before: from its start to the next
 // word's, or the text's end; none before the first.
-static Span WordAt(const Text* text, uint32_t at)
+static Span WordAt(const muiAccessText* text, uint32_t at)
 {
     const muiAccessTextMarks* marks = text->marks;
     uint32_t found = UINT32_MAX;
@@ -136,90 +89,25 @@ static Span WordAt(const Text* text, uint32_t at)
     return (Span){marks->words[found].start, end};
 }
 
-// The line at a byte: from its start to the next line's, or the end; one
-// line when none are given.
-static Span LineAt(const Text* text, uint32_t at)
-{
-    const muiAccessTextMarks* marks = text->marks;
-    Span span = {0, text->length};
-    for (uint32_t i = 0; i < marks->lineCount && marks->lineStarts[i] <= at; i++)
-    {
-        span.start = marks->lineStarts[i];
-        span.end = i + 1 < marks->lineCount ? marks->lineStarts[i + 1] : text->length;
-    }
-    return span;
-}
-
-// The bytes of a mandatory break at a byte, 0 for none: LF, VT, FF, CR
-// (with an LF after it), NEL, LS and PS, as UAX #14 breaks paragraphs.
-static uint32_t BreakAt(const Text* text, uint32_t at)
-{
-    const unsigned char* bytes = (const unsigned char*)text->bytes;
-    uint32_t left = text->length - at;
-    if (bytes[at] == '\r')
-    {
-        return left > 1 && bytes[at + 1] == '\n' ? 2 : 1;
-    }
-    if (bytes[at] == '\n' || bytes[at] == '\v' || bytes[at] == '\f')
-    {
-        return 1;
-    }
-    if (left > 1 && bytes[at] == 0xC2 && bytes[at + 1] == 0x85)
-    {
-        return 2;
-    }
-    return left > 2 && bytes[at] == 0xE2 && bytes[at + 1] == 0x80 &&
-                   (bytes[at + 2] == 0xA8 || bytes[at + 2] == 0xA9)
-               ? 3
-               : 0;
-}
-
-// The paragraph at a byte: from after the break before it to after the
-// break that ends it, or the text's ends.
-static Span ParagraphAt(const Text* text, uint32_t at)
-{
-    Span span = {0, text->length};
-    for (uint32_t i = 0; i < text->length;)
-    {
-        uint32_t size = BreakAt(text, i);
-        if (size == 0)
-        {
-            i++;
-            continue;
-        }
-        if (i + size <= at)
-        {
-            span.start = i + size;
-        }
-        else
-        {
-            span.end = i + size;
-            break;
-        }
-        i += size;
-    }
-    return span;
-}
-
-static Span SpanAt(const Text* text, uint32_t at, uint32_t grain)
+static Span SpanAt(const muiAccessText* text, uint32_t at, uint32_t grain)
 {
     switch (grain)
     {
     case GRAIN_CHAR:
-        return (Span){at, NextChar(text, at)};
+        return (Span){at, muiAccessBoundaryAfter(text, mui_unitCharacter, at)};
     case GRAIN_WORD:
         return WordAt(text, at);
     case GRAIN_LINE:
-        return LineAt(text, at);
+        return UnitAt(text, mui_unitLine, at);
     case GRAIN_PARAGRAPH:
-        return ParagraphAt(text, at);
+        return UnitAt(text, mui_unitParagraph, at);
     default:
         return (Span){0, 0};
     }
 }
 
 // Writes a span's text and its offsets in characters, (sii).
-static bool AppendSpan(muiAtspiApp* app, muiDBusIter* iter, const Text* text, Span span)
+static bool AppendSpan(muiAtspiApp* app, muiDBusIter* iter, const muiAccessText* text, Span span)
 {
     uint32_t size = span.end - span.start;
     char* copy = muiAllocate(&app->allocator, (size_t)size + 1, 1);
@@ -229,8 +117,8 @@ static bool AppendSpan(muiAtspiApp* app, muiDBusIter* iter, const Text* text, Sp
     }
     memcpy(copy, text->bytes + span.start, size);
     copy[size] = '\0';
-    const int32_t start = muiAtspiCharsBefore(text->bytes, span.start);
-    const int32_t end = muiAtspiCharsBefore(text->bytes, span.end);
+    const int32_t start = PointsBefore(text, span.start);
+    const int32_t end = PointsBefore(text, span.end);
     bool ok = muiAtspiAppendString(app, iter, copy) &&
               app->dbus.appendBasic(iter, mui_dbusTypeInt32, &start) &&
               app->dbus.appendBasic(iter, mui_dbusTypeInt32, &end);
@@ -277,8 +165,8 @@ static uint32_t GrainOfBoundary(uint32_t boundary)
 
 // GetStringAtOffset and the older Get{Before,At,After}Offset: the span at
 // the offset, or the one before or after it.
-static bool AppendSpanAt(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call, const Text* text,
-                         const char* member, bool* ok)
+static bool AppendSpanAt(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
+                         const muiAccessText* text, const char* member, bool* ok)
 {
     int32_t args[2] = {0, 0};
     *ok = ReadInts(&app->dbus, call, "iu", args);
@@ -288,9 +176,10 @@ static bool AppendSpanAt(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
     Span span = SpanAt(text, at, grain);
     if (strcmp(member, "GetTextBeforeOffset") == 0)
     {
-        span = span.start != 0 && grain != GRAIN_NONE
-                   ? SpanAt(text, PreviousChar(text, span.start), grain)
-                   : (Span){0, 0};
+        span =
+            span.start != 0 && grain != GRAIN_NONE
+                ? SpanAt(text, muiAccessBoundaryBefore(text, mui_unitCharacter, span.start), grain)
+                : (Span){0, 0};
     }
     else if (strcmp(member, "GetTextAfterOffset") == 0)
     {
@@ -303,14 +192,14 @@ static bool AppendSpanAt(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
 
 // The code point at a byte, 0 past the text. The record's text is
 // well-formed UTF-8.
-static int32_t PointAt(const Text* text, uint32_t at)
+static int32_t PointAt(const muiAccessText* text, uint32_t at)
 {
     if (at >= text->length)
     {
         return 0;
     }
     const unsigned char* bytes = (const unsigned char*)text->bytes + at;
-    uint32_t size = NextChar(text, at) - at;
+    uint32_t size = muiAccessBoundaryAfter(text, mui_unitCharacter, at) - at;
     uint32_t point = size == 1 ? bytes[0] : bytes[0] & (0x7Fu >> size);
     for (uint32_t i = 1; i < size; i++)
     {
@@ -321,7 +210,7 @@ static int32_t PointAt(const Text* text, uint32_t at)
 
 // The selection's bytes, the lower first; empty for a caret alone or
 // none.
-static Span SelectionOf(const Text* text)
+static Span SelectionOf(const muiAccessText* text)
 {
     const muiAccessTextMarks* marks = text->marks;
     if (!marks->selected || marks->anchor == marks->focus)
@@ -333,8 +222,8 @@ static Span SelectionOf(const Text* text)
 }
 
 // Writes the answers that read the text.
-static bool AppendRead(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call, const Text* text,
-                       const char* member, bool* ok)
+static bool AppendRead(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
+                       const muiAccessText* text, const char* member, bool* ok)
 {
     const muiDBusApi* dbus = &app->dbus;
     int32_t args[2] = {0, 0};
@@ -384,7 +273,8 @@ static bool Ask(const muiAtspiObject* object, const muiAccessRequest* request)
 
 // Asks the host to select from one character to another, the caret at
 // the second.
-static bool Select(const muiAtspiObject* object, const Text* text, int32_t anchor, int32_t focus)
+static bool Select(const muiAtspiObject* object, const muiAccessText* text, int32_t anchor,
+                   int32_t focus)
 {
     const muiAccessRequest request = {.action = mui_actionSetSelection,
                                       .target = object->node->id,
@@ -395,8 +285,9 @@ static bool Select(const muiAtspiObject* object, const Text* text, int32_t ancho
 
 // The answers that set the selection: the caret placed, the one
 // selection set, added where there is none, or taken back to the caret.
-static muiDBusBool SetSelection(DBusMessage* call, const muiAtspiObject* object, const Text* text,
-                                const char* member, const muiDBusApi* dbus, bool* ok)
+static muiDBusBool SetSelection(DBusMessage* call, const muiAtspiObject* object,
+                                const muiAccessText* text, const char* member,
+                                const muiDBusApi* dbus, bool* ok)
 {
     int32_t args[3] = {0, 0, 0};
     Span selection = SelectionOf(text);
@@ -417,15 +308,15 @@ static muiDBusBool SetSelection(DBusMessage* call, const muiAtspiObject* object,
         return *ok && none && Select(object, text, args[0], args[1]);
     }
     *ok = ReadInts(dbus, call, "i", args);
-    int32_t caret = muiAtspiCharsBefore(text->bytes, text->marks->focus);
+    int32_t caret = PointsBefore(text, text->marks->focus);
     return *ok && args[0] == 0 && !none && Select(object, text, caret, caret);
 }
 
 // Writes the answers about the selection, and about scrolling to text,
 // which is not offered.
 static bool AppendSelection(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
-                            const muiAtspiObject* object, const Text* text, const char* member,
-                            bool* ok)
+                            const muiAtspiObject* object, const muiAccessText* text,
+                            const char* member, bool* ok)
 {
     const muiDBusApi* dbus = &app->dbus;
     Span selection = SelectionOf(text);
@@ -439,8 +330,8 @@ static bool AppendSelection(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* ca
     {
         *ok = ReadInts(dbus, call, "i", args);
         Span chosen = args[0] == 0 ? selection : (Span){0, 0};
-        const int32_t start = muiAtspiCharsBefore(text->bytes, chosen.start);
-        const int32_t end = muiAtspiCharsBefore(text->bytes, chosen.end);
+        const int32_t start = PointsBefore(text, chosen.start);
+        const int32_t end = PointsBefore(text, chosen.end);
         *ok = *ok && dbus->appendBasic(iter, mui_dbusTypeInt32, &start) &&
               dbus->appendBasic(iter, mui_dbusTypeInt32, &end);
     }
@@ -473,13 +364,13 @@ static bool AppendNoAttributes(muiAtspiApp* app, muiDBusIter* iter)
 
 // Writes the answers about attributes and geometry: none of either yet,
 // the whole text one run of no attributes, extents empty.
-static bool AppendOther(muiAtspiApp* app, muiDBusIter* iter, const Text* text, const char* member,
-                        bool* ok)
+static bool AppendOther(muiAtspiApp* app, muiDBusIter* iter, const muiAccessText* text,
+                        const char* member, bool* ok)
 {
     const muiDBusApi* dbus = &app->dbus;
     const int32_t zero = 0;
     const int32_t nowhere = -1;
-    const int32_t count = muiAtspiCharsBefore(text->bytes, text->length);
+    const int32_t count = PointsBefore(text, text->length);
     if (strcmp(member, "GetAttributes") == 0 || strcmp(member, "GetAttributeRun") == 0)
     {
         *ok = AppendNoAttributes(app, iter) && dbus->appendBasic(iter, mui_dbusTypeInt32, &zero) &&
@@ -527,7 +418,7 @@ bool muiAtspiAnswerText(muiAtspiApp* app, DBusMessage* call, const muiAtspiObjec
         muiAtspiSend(app, call, nullptr);
         return true;
     }
-    const Text text = TextOf(object->node);
+    const muiAccessText text = muiAccessValueOf(object->node);
     muiDBusIter iter;
     app->dbus.iterInitAppend(reply, &iter);
     bool ok = true;
@@ -550,15 +441,15 @@ bool muiAtspiAnswerText(muiAtspiApp* app, DBusMessage* call, const muiAtspiObjec
 bool muiAtspiAppendTextProperty(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object,
                                 const char* name, bool* ok)
 {
-    const Text text = TextOf(object->node);
+    const muiAccessText text = muiAccessValueOf(object->node);
     int32_t value = 0;
     if (strcmp(name, "CharacterCount") == 0)
     {
-        value = muiAtspiCharsBefore(text.bytes, text.length);
+        value = PointsBefore(&text, text.length);
     }
     else if (strcmp(name, "CaretOffset") == 0)
     {
-        value = text.marks->selected ? muiAtspiCharsBefore(text.bytes, text.marks->focus) : -1;
+        value = text.marks->selected ? PointsBefore(&text, text.marks->focus) : -1;
     }
     else
     {
@@ -570,8 +461,8 @@ bool muiAtspiAppendTextProperty(muiAtspiApp* app, muiDBusIter* iter, const muiAt
 
 // Asks the host to replace text from one character to another; whether
 // it was done.
-static bool Replace(const muiAtspiObject* object, const Text* text, int32_t start, int32_t end,
-                    const char* with, size_t length)
+static bool Replace(const muiAtspiObject* object, const muiAccessText* text, int32_t start,
+                    int32_t end, const char* with, size_t length)
 {
     const muiAccessRequest request = {.action = mui_actionReplaceText,
                                       .target = object->node->id,
@@ -599,7 +490,7 @@ bool muiAtspiAnswerEditableText(muiAtspiApp* app, DBusMessage* call, const muiAt
                                 const char* member)
 {
     const muiDBusApi* dbus = &app->dbus;
-    const Text text = TextOf(object->node);
+    const muiAccessText text = muiAccessValueOf(object->node);
     int32_t args[2] = {0, 0};
     const char* with = nullptr;
     bool ok = true;

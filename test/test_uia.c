@@ -9,7 +9,8 @@
 //   point;
 // - the focus, and focusing asked of the host;
 // - patterns: Invoke, Toggle, RangeValue, ExpandCollapse, Scroll, Value
-//   and SelectionItem, read and turned into the host's actions;
+//   and SelectionItem, read and turned into the host's actions; Text's
+//   ranges read, moved by unit and selected;
 // - events: the focus moving, and a checkbox's state changing;
 // - a node removed answering UIA_E_ELEMENTNOTAVAILABLE.
 
@@ -37,6 +38,20 @@
 // src/uia_ids.h) against the headers: the same layouts and values.
 static_assert(sizeof(muiUiaSimpleTable) == sizeof(IRawElementProviderSimpleVtbl),
               "IRawElementProviderSimpleVtbl");
+static_assert(sizeof(muiUiaRangeTable) == sizeof(ITextRangeProviderVtbl), "ITextRangeProviderVtbl");
+static_assert(offsetof(muiUiaRangeTable, Move) == offsetof(ITextRangeProviderVtbl, Move),
+              "ITextRangeProviderVtbl Move");
+static_assert(offsetof(muiUiaRangeTable, GetChildren) ==
+                  offsetof(ITextRangeProviderVtbl, GetChildren),
+              "ITextRangeProviderVtbl GetChildren");
+static_assert(sizeof(muiUiaTextTable) == sizeof(ITextProvider2Vtbl), "ITextProvider2Vtbl");
+static_assert(offsetof(muiUiaTextTable, get_SupportedTextSelection) ==
+                  offsetof(ITextProvider2Vtbl, get_SupportedTextSelection),
+              "ITextProvider2Vtbl get_SupportedTextSelection");
+static_assert(offsetof(muiUiaTextTable, GetCaretRange) ==
+                  offsetof(ITextProvider2Vtbl, GetCaretRange),
+              "ITextProvider2Vtbl GetCaretRange");
+static_assert(sizeof(muiUiaPoint) == sizeof(struct UiaPoint), "UiaPoint");
 static_assert(offsetof(muiUiaSimpleTable, QueryInterface) ==
                   offsetof(IRawElementProviderSimpleVtbl, QueryInterface),
               "IRawElementProviderSimpleVtbl QueryInterface");
@@ -357,7 +372,18 @@ static void TestIds(void)
             PATTERN_SCROLL == UIA_ScrollPatternId &&
             PATTERN_EXPAND_COLLAPSE == UIA_ExpandCollapsePatternId &&
             PATTERN_SELECTION_ITEM == UIA_SelectionItemPatternId &&
-            PATTERN_TOGGLE == UIA_TogglePatternId && PATTERN_SCROLL_ITEM == UIA_ScrollItemPatternId,
+            PATTERN_TOGGLE == UIA_TogglePatternId &&
+            PATTERN_SCROLL_ITEM == UIA_ScrollItemPatternId && PATTERN_TEXT == UIA_TextPatternId &&
+            PATTERN_TEXT2 == UIA_TextPattern2Id &&
+            EVENT_TEXT_CHANGED == UIA_Text_TextChangedEventId &&
+            EVENT_TEXT_SELECTION_CHANGED == UIA_Text_TextSelectionChangedEventId &&
+            UNIT_CHARACTER == TextUnit_Character && UNIT_FORMAT == TextUnit_Format &&
+            UNIT_WORD == TextUnit_Word && UNIT_LINE == TextUnit_Line &&
+            UNIT_PARAGRAPH == TextUnit_Paragraph && UNIT_PAGE == TextUnit_Page &&
+            UNIT_DOCUMENT == TextUnit_Document &&
+            ENDPOINT_START == TextPatternRangeEndpoint_Start &&
+            ENDPOINT_END == TextPatternRangeEndpoint_End &&
+            TEXT_SELECTION_SINGLE == SupportedTextSelection_Single,
         "the ids");
 }
 
@@ -414,8 +440,13 @@ static muiAccessUpdate Build(Built* built)
     (void)Add(built, 6, mui_roleNavigation, "Links", 10, 120, 100, 20);
     muiAccessNode* input = Add(built, 7, mui_roleTextInput, "Name", 10, 150, 200, 24);
     input->flags = mui_accessFocusable;
-    input->text[mui_accessValue] = "Ada";
-    input->textLength[mui_accessValue] = 3;
+    // Edited, the caret before its second word.
+    static const uint32_t s_lines[1] = {0};
+    static const muiAccessWord s_words[2] = {{0, 3}, {4, 12}};
+    input->text[mui_accessValue] = "Ada Lovelace";
+    input->textLength[mui_accessValue] = 12;
+    input->marks = (muiAccessTextMarks){4, 4, true, s_lines, 1, s_words, 2};
+    input->actions = 1u << mui_actionSetSelection | 1u << mui_actionReplaceText;
     muiAccessNode* check = Add(built, 8, mui_roleCheckBox, "Agree", 220, 10, 100, 20);
     check->flags = mui_accessCheckable | mui_accessChecked;
     check->actions = 1u << mui_actionClick;
@@ -650,6 +681,65 @@ static void CheckRangeAndExpand(IUIAutomationElement** children)
     }
 }
 
+// A range's text is expected.
+static bool RangeReads(IUIAutomationTextRange* range, const WCHAR* expected)
+{
+    BSTR text = NULL;
+    bool same = range != NULL && SUCCEEDED(IUIAutomationTextRange_GetText(range, -1, &text)) &&
+                text != NULL && wcscmp(text, expected) == 0;
+    if (!same)
+    {
+        printf("range: %ls\n", text != NULL ? text : L"(none)");
+    }
+    SysFreeString(text);
+    return same;
+}
+
+// The text input's Text pattern: the document, the caret's word, moves
+// by unit, a selection asked of the host.
+static void CheckText(IUIAutomationElement** children)
+{
+    IUIAutomationTextPattern2* text = NULL;
+    IUIAutomationTextRange* document = NULL;
+    IUIAutomationTextRange* caret = NULL;
+    BOOL active = FALSE;
+    int moved = 0;
+    CHECK(SUCCEEDED(IUIAutomationElement_GetCurrentPatternAs(
+              children[4], UIA_TextPattern2Id, &IID_IUIAutomationTextPattern2, (void**)&text)) &&
+              text != NULL &&
+              SUCCEEDED(IUIAutomationTextPattern2_get_DocumentRange(text, &document)) &&
+              RangeReads(document, L"Ada Lovelace"),
+          "the document");
+    CHECK(SUCCEEDED(IUIAutomationTextPattern2_GetCaretRange(text, &active, &caret)) &&
+              caret != NULL && active && RangeReads(caret, L"") &&
+              SUCCEEDED(IUIAutomationTextRange_ExpandToEnclosingUnit(caret, TextUnit_Word)) &&
+              RangeReads(caret, L"Lovelace"),
+          "the caret, focused, in its word");
+    CHECK(SUCCEEDED(IUIAutomationTextRange_Move(caret, TextUnit_Word, -1, &moved)) && moved == -1 &&
+              RangeReads(caret, L"Ada ") &&
+              SUCCEEDED(IUIAutomationTextRange_Move(caret, TextUnit_Word, 5, &moved)) &&
+              moved == 1 && RangeReads(caret, L"Lovelace"),
+          "a word back, the space with it; forward no further than the last");
+    CHECK(SUCCEEDED(IUIAutomationTextRange_MoveEndpointByUnit(caret, TextPatternRangeEndpoint_End,
+                                                              TextUnit_Character, -6, &moved)) &&
+              moved == -6 && RangeReads(caret, L"Lo") &&
+              SUCCEEDED(IUIAutomationTextRange_Select(caret)) && Asked(mui_actionSetSelection, 7) &&
+              s_program.asked.anchor == 4 && s_program.asked.focus == 6,
+          "its end six characters back, selected through the host");
+    if (caret != NULL)
+    {
+        IUIAutomationTextRange_Release(caret);
+    }
+    if (document != NULL)
+    {
+        IUIAutomationTextRange_Release(document);
+    }
+    if (text != NULL)
+    {
+        IUIAutomationTextPattern2_Release(text);
+    }
+}
+
 static void CheckScrollAndValue(IUIAutomation* automation, IUIAutomationElement** children)
 {
     IUIAutomationScrollPattern* scroll = NULL;
@@ -673,7 +763,7 @@ static void CheckScrollAndValue(IUIAutomation* automation, IUIAutomationElement*
               children[4], UIA_ValuePatternId, &IID_IUIAutomationValuePattern, (void**)&value)) &&
               value != NULL &&
               SUCCEEDED(IUIAutomationValuePattern_get_CurrentValue(value, &text)) && text != NULL &&
-              wcscmp(text, L"Ada") == 0,
+              wcscmp(text, L"Ada Lovelace") == 0,
           "a text input's value");
     SysFreeString(text);
     IUIAutomationTreeWalker* walker = NULL;
@@ -883,6 +973,7 @@ static void Inspect(IUIAutomation* automation)
         CheckInvokeAndToggle(children);
         CheckRangeAndExpand(children);
         CheckScrollAndValue(automation, children);
+        CheckText(children);
         CheckEvents(automation, children[5]);
     }
     if (count != 0)

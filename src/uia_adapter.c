@@ -38,6 +38,9 @@ static bool Load(muiUiaFunctions* uia)
     memcpy((void*)&uia->clientsAreListening, (const void*)&listening, sizeof(listening));
     memcpy((void*)&uia->raiseEvent, (const void*)&raise, sizeof(raise));
     memcpy((void*)&uia->raisePropertyChanged, (const void*)&changed, sizeof(changed));
+    // Optional: without it, a text attribute not given reads as empty.
+    FARPROC none = GetProcAddress(uia->module, "UiaGetReservedNotSupportedValue");
+    memcpy((void*)&uia->reservedNotSupported, (const void*)&none, sizeof(none));
     if (host == nullptr || give == nullptr || disconnect == nullptr || listening == nullptr ||
         raise == nullptr || changed == nullptr)
     {

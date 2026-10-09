@@ -145,6 +145,14 @@ static void RaiseChange(muiUiaAdapter* adapter, const muiAccessNode* now, int pr
     }
 }
 
+// Whether a text's selection or caret moved.
+static bool SelectionMoved(const muiAccessNode* old, const muiAccessNode* now)
+{
+    return old->marks.selected != now->marks.selected ||
+           (now->marks.selected &&
+            (old->marks.anchor != now->marks.anchor || old->marks.focus != now->marks.focus));
+}
+
 void muiUiaUpdated(void* user, const muiAccessTree* tree, const muiAccessNode* old)
 {
     muiUiaAdapter* adapter = user;
@@ -170,6 +178,17 @@ void muiUiaUpdated(void* user, const muiAccessTree* tree, const muiAccessNode* o
     if (now->values.live != mui_liveOff && (spoken || old->values.live == mui_liveOff))
     {
         Raise(adapter, now->id, EVENT_LIVE_REGION_CHANGED);
+    }
+    // A text's edits, then its caret or selection moving, which Narrator
+    // reads the caret from.
+    if (muiUiaHasText(now) && muiRecordTextDiffers(old, now, mui_accessValue))
+    {
+        Raise(adapter, now->id, EVENT_TEXT_CHANGED);
+    }
+    if (muiUiaHasText(now) &&
+        (SelectionMoved(old, now) || muiRecordTextDiffers(old, now, mui_accessValue)))
+    {
+        Raise(adapter, now->id, EVENT_TEXT_SELECTION_CHANGED);
     }
 }
 

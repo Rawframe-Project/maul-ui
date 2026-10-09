@@ -73,6 +73,13 @@ void muiNsTellDestroyed(const muiNsAdapter* adapter, MUIAccessibilityNode* objec
 void muiNsTellLayout(muiNsAdapter* adapter);
 void muiNsTellFocus(muiNsAdapter* adapter);
 
+// The text methods (ns_text.m): whether a selector is one of them;
+// whether a text node answers it (the setters while the host takes the
+// request); replacing all of a text through the host.
+bool muiNsIsTextSelector(SEL selector);
+bool muiNsAllowsText(const muiAccessNode* node, SEL selector);
+bool muiNsReplaceAll(const MUIAccessibilityNode* object, NSString* value);
+
 // A node's AppKit role and subrole (nil for none).
 NSAccessibilityRole muiNsRoleOf(const muiAccessNode* node);
 NSAccessibilitySubrole muiNsSubroleOf(const muiAccessNode* node);

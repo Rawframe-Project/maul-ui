@@ -156,11 +156,10 @@ void muiAtspiRecordStatesOf(const muiAccessNode* node, uint32_t statesOut[2]);
 const char* muiAtspiStateName(uint32_t state);
 
 // The Text interface (src/atspi_text.c): whether a node has it, the
-// characters of a text before a byte offset, the methods, and the
-// CharacterCount and CaretOffset properties; the EditableText
-// interface's methods, on a node whose text may be replaced.
+// methods, and the CharacterCount and CaretOffset properties; the
+// EditableText interface's methods, on a node whose text may be
+// replaced.
 bool muiAtspiHasText(const muiAccessNode* node);
-int32_t muiAtspiCharsBefore(const char* text, uint32_t offset);
 bool muiAtspiAnswerText(muiAtspiApp* app, DBusMessage* call, const muiAtspiObject* object,
                         const char* member);
 bool muiAtspiAppendTextProperty(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object,

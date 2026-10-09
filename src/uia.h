@@ -29,6 +29,9 @@ typedef struct muiUiaFunctions
     BOOL(WINAPI* clientsAreListening)(void);
     HRESULT(WINAPI* raiseEvent)(muiUiaSimple*, int);
     HRESULT(WINAPI* raisePropertyChanged)(muiUiaSimple*, int, VARIANT, VARIANT);
+    // UiaGetReservedNotSupportedValue, for a text attribute not given;
+    // NULL when the module lacks it.
+    HRESULT(WINAPI* reservedNotSupported)(IUnknown**);
 } muiUiaFunctions;
 
 // A provider object: one per node UI Automation asked for, and the root,
@@ -50,6 +53,7 @@ typedef struct muiUiaNode
     muiUiaScroll scroll;
     muiUiaScrollItem scrollItem;
     muiUiaSelectionItem selectionItem;
+    muiUiaText text;
     LONG references;
     // NULL once detached.
     muiUiaAdapter* adapter;
@@ -94,6 +98,16 @@ HRESULT muiUiaQuery(muiUiaNode* node, REFIID id, void** out);
 // and Value's, RangeValue's and Scroll's.
 void muiUiaInitPatterns(muiUiaNode* node);
 void muiUiaInitValuePatterns(muiUiaNode* node);
+
+// The Text pattern (src/uia_text.c): whether a node has it, and its
+// table set on a new object; a new range of a node's text from one byte
+// offset to another (src/uia_range.c), holding a reference to the
+// object, with one of its own, or NULL when the heap is out of memory;
+// letting go of a reference to a range.
+bool muiUiaHasText(const muiAccessNode* node);
+void muiUiaInitTextPattern(muiUiaNode* node);
+muiUiaRange* muiUiaMakeRange(muiUiaNode* node, uint32_t start, uint32_t end);
+void muiUiaReleaseRange(muiUiaRange* range);
 
 // The interface of a pattern a node has, with a reference for the
 // caller, or NULL.

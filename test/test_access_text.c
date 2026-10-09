@@ -6,6 +6,7 @@
 // sends, kept where they fit the text; the tree copying them, refusing
 // those that do not fit, and writing them.
 
+#include "access_text.h"
 #include "test_harness.h"
 
 #include "maul-ui/access.h"
@@ -319,8 +320,61 @@ static void TestTree(void)
     muiDestroyAccessTree(tree);
 }
 
+// The boundaries every adapter reads a text by, and its offsets in code
+// points and UTF-16: "héllo wörld\r\nnext 𝄞" on lines from 7 and 14,
+// its words at 0, 7 and 15.
+static void TestBoundaries(void)
+{
+    static const char s_value[] = "h\xC3\xA9llo w\xC3\xB6rld\r\nnext \xF0\x9D\x84\x9E";
+    static const uint32_t s_starts[3] = {0, 7, 15};
+    static const muiAccessWord s_three[3] = {{0, 6}, {7, 13}, {15, 19}};
+    muiAccessNode node = {.id = 1};
+    node.text[mui_accessValue] = s_value;
+    node.textLength[mui_accessValue] = sizeof s_value - 1;
+    node.marks = (muiAccessTextMarks){
+        .lineStarts = s_starts, .lineCount = 3, .words = s_three, .wordCount = 3};
+    muiAccessText text = muiAccessValueOf(&node);
+    CHECK(text.length == 24 && muiAccessBoundaryAfter(&text, mui_unitCharacter, 1) == 3 &&
+              muiAccessBoundaryBefore(&text, mui_unitCharacter, 3) == 1 &&
+              muiAccessBoundaryAfter(&text, mui_unitCharacter, 20) == 24 &&
+              muiAccessBoundaryBefore(&text, mui_unitCharacter, 24) == 20,
+          "characters: code points");
+    CHECK(muiAccessBoundaryAfter(&text, mui_unitWord, 0) == 7 &&
+              muiAccessBoundaryAfter(&text, mui_unitWord, 15) == 24 &&
+              muiAccessBoundaryBefore(&text, mui_unitWord, 7) == 0 &&
+              muiAccessBoundaryBefore(&text, mui_unitWord, 9) == 7,
+          "words from start to start, the text's ends");
+    CHECK(muiAccessBoundaryAfter(&text, mui_unitLine, 3) == 7 &&
+              muiAccessBoundaryAfter(&text, mui_unitLine, 14) == 15 &&
+              muiAccessBoundaryBefore(&text, mui_unitLine, 15) == 7,
+          "lines from their starts");
+    CHECK(muiAccessBoundaryAfter(&text, mui_unitParagraph, 0) == 15 &&
+              muiAccessBoundaryAfter(&text, mui_unitParagraph, 13) == 15 &&
+              muiAccessBoundaryAfter(&text, mui_unitParagraph, 15) == 24 &&
+              muiAccessBoundaryBefore(&text, mui_unitParagraph, 20) == 15 &&
+              muiAccessBoundaryBefore(&text, mui_unitParagraph, 15) == 0,
+          "paragraphs after CR LF, kept whole");
+    CHECK(muiAccessBoundaryAfter(&text, mui_unitDocument, 5) == 24 &&
+              muiAccessBoundaryBefore(&text, mui_unitDocument, 5) == 0 &&
+              muiAccessBoundaryAfter(&text, mui_unitWord, 24) == 24 &&
+              muiAccessBoundaryBefore(&text, mui_unitLine, 0) == 0,
+          "the document; nothing past the ends");
+    CHECK(muiAccessPointsBefore(s_value, 24) == 19 && muiAccessUtf16Before(s_value, 24) == 20 &&
+              muiAccessUtf16Before(s_value, 3) == 2 && muiAccessByteOfPoints(&text, 2) == 3 &&
+              muiAccessByteOfPoints(&text, 99) == 24 && muiAccessByteOfUtf16(&text, 18) == 20 &&
+              muiAccessByteOfUtf16(&text, 19) == 20 && muiAccessByteOfUtf16(&text, 20) == 24,
+          "code points and UTF-16 units, a surrogate pair kept whole");
+    node.marks = (muiAccessTextMarks){0};
+    node.text[mui_accessValue] = NULL;
+    text = muiAccessValueOf(&node);
+    CHECK(text.length == 0 && muiAccessBoundaryAfter(&text, mui_unitLine, 0) == 0 &&
+              muiAccessByteOfUtf16(&text, 3) == 0,
+          "no text");
+}
+
 int main(void)
 {
+    TestBoundaries();
     TestRead();
     TestUnfit();
     TestActions();
