@@ -41,6 +41,12 @@ typedef struct muiAccessText
 
 muiAccessText muiAccessValueOf(const muiAccessNode* node);
 
+// Whether a node is a text input (a text input's roles, an editable
+// combo box); whether the adapters give its value as text being edited:
+// a text input's, or one with a selection.
+bool muiAccessIsTextInput(const muiAccessNode* node);
+bool muiAccessIsEdited(const muiAccessNode* node);
+
 // The first boundary of a unit after a byte offset, the text's end past
 // the last; the last before it, 0 before the first. A character is a
 // code point; a word runs from its start to the next word's, as AT-SPI

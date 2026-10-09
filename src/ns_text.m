@@ -17,10 +17,7 @@ static const muiAccessNode* TextNodeOf(const MUIAccessibilityNode* object)
     const muiAccessNode* node = object->adapter != nullptr
                                     ? muiAccessTree_Find(object->adapter->tree, object->nodeId)
                                     : nullptr;
-    bool input =
-        node != nullptr && ((node->role >= mui_roleTextInput && node->role <= mui_roleUrlInput) ||
-                            node->role == mui_roleEditableComboBox);
-    return node != nullptr && (input || node->marks.selected) ? node : nullptr;
+    return node != nullptr && muiAccessIsEdited(node) ? node : nullptr;
 }
 
 // A byte range of a text as AppKit's, in UTF-16.

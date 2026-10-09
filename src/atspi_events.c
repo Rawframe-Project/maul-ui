@@ -266,9 +266,7 @@ static void TellText(muiAtspiApp* app, const muiAtspiObject* object, const muiAc
     }
     // A label's new text is told by its name; edits are told of what is
     // typed into, so a list that reuses its rows sends no flood.
-    bool input = (now->role >= mui_roleTextInput && now->role <= mui_roleUrlInput) ||
-                 now->role == mui_roleEditableComboBox;
-    bool edited = (input || now->marks.selected) && TellEdits(app, object, old);
+    bool edited = muiAccessIsEdited(now) && TellEdits(app, object, old);
     const char* oldText = old->text[mui_accessValue] != nullptr ? old->text[mui_accessValue] : "";
     const char* text = now->text[mui_accessValue] != nullptr ? now->text[mui_accessValue] : "";
     int32_t was =

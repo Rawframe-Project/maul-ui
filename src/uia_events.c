@@ -9,6 +9,7 @@
 // region event.
 
 #include "access_record.h"
+#include "access_text.h"
 #include "uia.h"
 
 #include <string.h>
@@ -181,11 +182,11 @@ void muiUiaUpdated(void* user, const muiAccessTree* tree, const muiAccessNode* o
     }
     // A text's edits, then its caret or selection moving, which Narrator
     // reads the caret from.
-    if (muiUiaHasText(now) && muiRecordTextDiffers(old, now, mui_accessValue))
+    if (muiAccessIsEdited(now) && muiRecordTextDiffers(old, now, mui_accessValue))
     {
         Raise(adapter, now->id, EVENT_TEXT_CHANGED);
     }
-    if (muiUiaHasText(now) &&
+    if (muiAccessIsEdited(now) &&
         (SelectionMoved(old, now) || muiRecordTextDiffers(old, now, mui_accessValue)))
     {
         Raise(adapter, now->id, EVENT_TEXT_SELECTION_CHANGED);

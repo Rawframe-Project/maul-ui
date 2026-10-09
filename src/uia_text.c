@@ -11,13 +11,6 @@
 
 #include <stddef.h>
 
-bool muiUiaHasText(const muiAccessNode* node)
-{
-    bool input = (node->role >= mui_roleTextInput && node->role <= mui_roleUrlInput) ||
-                 node->role == mui_roleEditableComboBox;
-    return input || node->marks.selected;
-}
-
 static muiUiaNode* FromText(muiUiaText* self)
 {
     return (muiUiaNode*)((char*)self - offsetof(muiUiaNode, text));

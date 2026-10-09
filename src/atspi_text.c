@@ -39,9 +39,7 @@ typedef struct Span
 
 bool muiAtspiHasText(const muiAccessNode* node)
 {
-    bool input = (node->role >= mui_roleTextInput && node->role <= mui_roleUrlInput) ||
-                 node->role == mui_roleEditableComboBox;
-    return input ||
+    return muiAccessIsTextInput(node) ||
            (node->text[mui_accessValue] != nullptr && (node->flags & mui_accessNumeric) == 0);
 }
 

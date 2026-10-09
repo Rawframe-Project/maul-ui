@@ -67,6 +67,17 @@ muiAccessText muiAccessValueOf(const muiAccessNode* node)
                            bytes != nullptr ? node->textLength[mui_accessValue] : 0, &node->marks};
 }
 
+bool muiAccessIsTextInput(const muiAccessNode* node)
+{
+    return (node->role >= mui_roleTextInput && node->role <= mui_roleUrlInput) ||
+           node->role == mui_roleEditableComboBox;
+}
+
+bool muiAccessIsEdited(const muiAccessNode* node)
+{
+    return muiAccessIsTextInput(node) || node->marks.selected;
+}
+
 static bool IsLead(char byte)
 {
     return ((unsigned char)byte & 0xC0u) != 0x80u;

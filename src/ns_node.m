@@ -9,6 +9,7 @@
 // only what a node has.
 
 #include "access_record.h"
+#include "access_text.h"
 #include "allocator.h"
 #include "ns.h"
 
@@ -347,9 +348,7 @@ static bool Has(const muiAccessNode* node, muiAccessAction action)
     }
     if (muiNsIsTextSelector(selector))
     {
-        bool input = (node->role >= mui_roleTextInput && node->role <= mui_roleUrlInput) ||
-                     node->role == mui_roleEditableComboBox;
-        return (input || node->marks.selected) && muiNsAllowsText(node, selector);
+        return muiAccessIsEdited(node) && muiNsAllowsText(node, selector);
     }
     if (selector == @selector(isAccessibilitySelected))
     {

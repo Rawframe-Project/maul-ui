@@ -65,13 +65,14 @@ atspi: dbus_api id_map
 ns: id_map
 ns_adapter: access_record allocator ns
 ns_events: access_record ns
-ns_node: access_record allocator ns
+ns_node: access_record access_text allocator ns
 ns_roles: ns
 ns_text: access_text ns
 uikit: id_map
-uikit_adapter: access_record allocator uikit
+uikit_adapter: access_record access_text allocator uikit
 uikit_events: access_record uikit
 uikit_node: uikit
+uikit_text: access_record access_text uikit
 uikit_traits: uikit
 atspi_events: access_record access_text allocator atspi
 atspi_actions: atspi
@@ -85,9 +86,9 @@ uia: id_map uia_com uia_ids
 uia_com:
 uia_ids:
 uia_adapter: allocator id_map uia
-uia_events: access_record uia
+uia_events: access_record access_text uia
 uia_node: access_record uia
-uia_patterns: uia
+uia_patterns: access_text uia
 uia_props: access_record allocator uia
 uia_range: access_text uia
 uia_text: access_record uia

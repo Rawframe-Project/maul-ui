@@ -6,6 +6,7 @@
 // SelectionItem, each turned into the host's actions; Text's are in
 // src/uia_text.c.
 
+#include "access_text.h"
 #include "uia.h"
 
 #include <stddef.h>
@@ -85,7 +86,7 @@ static bool Has(const muiAccessNode* node, int pattern)
         return (flags & mui_accessSelectable) != 0;
     case PATTERN_TEXT:
     case PATTERN_TEXT2:
-        return muiUiaHasText(node);
+        return muiAccessIsEdited(node);
     default:
         return false;
     }

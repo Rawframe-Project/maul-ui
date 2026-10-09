@@ -186,7 +186,7 @@ if(MAUL_UI_UIACCESSIBILITY)
     # code.
     enable_language(OBJC)
     target_sources(maul-ui PRIVATE src/uikit_adapter.m src/uikit_events.m src/uikit_node.m
-                                   src/uikit_traits.m)
+                                   src/uikit_text.m src/uikit_traits.m)
     set_target_properties(maul-ui PROPERTIES
         OBJC_STANDARD 23
         OBJC_STANDARD_REQUIRED ON

@@ -18,7 +18,11 @@
 //   focus, then at a node turned modal; the layout with the focus when
 //   it moved, else with none; live names announced, queued when polite;
 //   nothing for a rename that is not live, nor for an update that
-//   changes nothing.
+//   changes nothing;
+// - a text input's element through UITextInput: its text, caret and
+//   units in UTF-16 by the tree's words and lines, the selection and
+//   edits asked of the host, the input delegate told; the element remade
+//   as the node starts and ends being edited.
 
 #include "test_harness.h"
 #include "uikit.h"
@@ -31,11 +35,15 @@
 #include <string.h>
 
 static muiAccessRequest s_asked;
+static char s_askedText[64];
 
 static bool Act(void* user, const muiAccessRequest* request)
 {
     (void)user;
     s_asked = *request;
+    size_t kept = request->length < sizeof s_askedText ? request->length : 0;
+    memcpy(s_askedText, request->text != NULL ? request->text : "", kept);
+    s_askedText[kept] = '\0';
     return true;
 }
 
@@ -382,6 +390,196 @@ static void TestNotifications(UIView* view)
     muiDestroyUikitAdapter(adapter);
 }
 
+// An input delegate writing down what it is told.
+@interface TestTextDelegate : NSObject <UITextInputDelegate>
+{
+  @public
+    NSMutableString* told;
+}
+@end
+
+@implementation TestTextDelegate
+
+- (void)selectionWillChange:(id<UITextInput>)textInput
+{
+    (void)textInput;
+    [told appendString:@"selection will; "];
+}
+
+- (void)selectionDidChange:(id<UITextInput>)textInput
+{
+    (void)textInput;
+    [told appendString:@"selection did; "];
+}
+
+- (void)textWillChange:(id<UITextInput>)textInput
+{
+    (void)textInput;
+    [told appendString:@"text will; "];
+}
+
+- (void)textDidChange:(id<UITextInput>)textInput
+{
+    (void)textInput;
+    [told appendString:@"text did; "];
+}
+
+@end
+
+static NSInteger IndexOf(id<UITextInput> field, UITextPosition* position)
+{
+    return position != nil
+               ? [field offsetFromPosition:[field beginningOfDocument] toPosition:position]
+               : -1;
+}
+
+static UITextPosition* At(id<UITextInput> field, NSInteger index)
+{
+    return [field positionFromPosition:[field beginningOfDocument] offset:index];
+}
+
+static NSString* TextOf(id<UITextInput> field, UITextRange* range)
+{
+    return range != nil ? [field textInRange:range] : nil;
+}
+
+static void TestTextReading(id<UITextInput> field)
+{
+    UITextRange* all = [field textRangeFromPosition:[field beginningOfDocument]
+                                         toPosition:[field endOfDocument]];
+    UITextRange* selected = [field selectedTextRange];
+    CHECK([TextOf(field, all) isEqualToString:@"h\u00e9llo \U0001D11E\nnext"] &&
+              IndexOf(field, [field endOfDocument]) == 13 && [field hasText] &&
+              [selected isEmpty] && IndexOf(field, [selected start]) == 2 && At(field, 13) != nil &&
+              At(field, 14) == nil && ![field isSecureTextEntry],
+          "a text input's text in UTF-16, its caret");
+    id<UITextInputTokenizer> words = [field tokenizer];
+    CHECK([TextOf(field, [words rangeEnclosingPosition:At(field, 2)
+                                       withGranularity:UITextGranularityWord
+                                           inDirection:UITextStorageDirectionForward])
+              isEqualToString:@"h\u00e9llo \U0001D11E\n"] &&
+              [TextOf(field, [words rangeEnclosingPosition:At(field, 13)
+                                           withGranularity:UITextGranularityWord
+                                               inDirection:UITextStorageDirectionBackward])
+                  isEqualToString:@"next"] &&
+              IndexOf(field, [words positionFromPosition:At(field, 2)
+                                              toBoundary:UITextGranularityWord
+                                             inDirection:UITextStorageDirectionForward]) == 9 &&
+              IndexOf(field, [words positionFromPosition:At(field, 2)
+                                              toBoundary:UITextGranularityWord
+                                             inDirection:UITextStorageDirectionBackward]) == 0 &&
+              [words isPosition:At(field, 9)
+                     atBoundary:UITextGranularityWord
+                    inDirection:UITextStorageDirectionForward] &&
+              ![words isPosition:At(field, 2)
+                      atBoundary:UITextGranularityWord
+                     inDirection:UITextStorageDirectionForward] &&
+              [words isPosition:At(field, 0)
+                  withinTextUnit:UITextGranularityWord
+                     inDirection:UITextStorageDirectionForward] &&
+              ![words isPosition:At(field, 13)
+                  withinTextUnit:UITextGranularityWord
+                     inDirection:UITextStorageDirectionForward],
+          "words by the tree's, a word to the next one's start");
+    CHECK([TextOf(field, [words rangeEnclosingPosition:At(field, 0)
+                                       withGranularity:UITextGranularitySentence
+                                           inDirection:UITextStorageDirectionForward])
+              isEqualToString:@"h\u00e9llo \U0001D11E\n"] &&
+              [TextOf(field, [words rangeEnclosingPosition:At(field, 9)
+                                           withGranularity:UITextGranularityLine
+                                               inDirection:UITextStorageDirectionForward])
+                  isEqualToString:@"next"] &&
+              IndexOf(field, [field positionFromPosition:At(field, 2)
+                                             inDirection:UITextLayoutDirectionDown
+                                                  offset:1]) == 11 &&
+              IndexOf(field, [field positionFromPosition:At(field, 11)
+                                             inDirection:UITextLayoutDirectionUp
+                                                  offset:1]) == 2 &&
+              [field positionFromPosition:At(field, 11)
+                              inDirection:UITextLayoutDirectionDown
+                                   offset:1] == nil &&
+              [TextOf(field, [field characterRangeByExtendingPosition:At(field, 6)
+                                                          inDirection:UITextLayoutDirectionRight])
+                  isEqualToString:@"\U0001D11E"],
+          "sentences as paragraphs, lines, a surrogate pair whole");
+}
+
+static void TestTextRequests(id<UITextInput> field)
+{
+    s_asked = (muiAccessRequest){0};
+    [field setSelectedTextRange:[field textRangeFromPosition:At(field, 1) toPosition:At(field, 6)]];
+    CHECK(s_asked.action == mui_actionSetSelection && s_asked.target == 7 && s_asked.anchor == 1 &&
+              s_asked.focus == 7,
+          "a selection asked in bytes");
+    [field insertText:@"a"];
+    CHECK(s_asked.action == mui_actionReplaceText && s_asked.anchor == 3 && s_asked.focus == 3 &&
+              strcmp(s_askedText, "a") == 0,
+          "text typed at the caret");
+    [field deleteBackward];
+    CHECK(s_asked.action == mui_actionReplaceText && s_asked.anchor == 1 && s_asked.focus == 3 &&
+              s_askedText[0] == '\0',
+          "the character before the caret deleted");
+    [field replaceRange:[field textRangeFromPosition:At(field, 0) toPosition:At(field, 1)]
+               withText:@"H"];
+    CHECK(s_asked.action == mui_actionReplaceText && s_asked.anchor == 0 && s_asked.focus == 1 &&
+              strcmp(s_askedText, "H") == 0,
+          "a range replaced");
+}
+
+// The heading 7 made a text input and back: its element remade each
+// way, the layout told.
+static void TestText(muiUikitAdapter* adapter, id root, const Built* built)
+{
+    static const char s_value[] = "h\xC3\xA9llo \xF0\x9D\x84\x9E\nnext";
+    static const uint32_t s_lines[2] = {0, 12};
+    static const muiAccessWord s_words[2] = {{0, 6}, {12, 16}};
+    muiAccessNode input = built->nodes[7];
+    input.role = mui_roleTextInput;
+    input.text[mui_accessValue] = s_value;
+    input.textLength[mui_accessValue] = sizeof s_value - 1;
+    input.marks = (muiAccessTextMarks){.anchor = 3,
+                                       .focus = 3,
+                                       .selected = true,
+                                       .lineStarts = s_lines,
+                                       .lineCount = 2,
+                                       .words = s_words,
+                                       .wordCount = 2};
+    input.actions = 1u << mui_actionSetSelection | 1u << mui_actionReplaceText;
+    muiUikitPostFunction saved = adapter->post;
+    adapter->post = Record;
+    s_posted = [[NSMutableArray alloc] init];
+    id heading = [[[root accessibilityElements] objectAtIndex:4] retain];
+    CHECK(Send(adapter, (const muiAccessNode*[]){&input}, 1, built->children, 0) &&
+              PostedAre(@"layout nil"),
+          "a text input: the layout told");
+    id field = [[root accessibilityElements] objectAtIndex:4];
+    CHECK(IsElementOf(field, 7) && [field isKindOfClass:[MUIAccessibilityTextElement class]] &&
+              [field conformsToProtocol:@protocol(UITextInput)] && field != heading &&
+              [heading accessibilityLabel] == nil &&
+              [field performSelector:@selector(accessibilityTextInputResponder)] == field,
+          "a text element in place of the element");
+    [heading release];
+    TestTextReading(field);
+    TestTextRequests(field);
+    TestTextDelegate* delegate = [[TestTextDelegate alloc] init];
+    delegate->told = [[NSMutableString alloc] init];
+    [field setInputDelegate:delegate];
+    input.marks.anchor = 7;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&input}, 1, built->children, 0) &&
+              PostedAre(@"") && [delegate->told isEqualToString:@"selection will; selection did; "],
+          "a selection told to the input delegate");
+    [delegate->told release];
+    [delegate release];
+    CHECK(Send(adapter, (const muiAccessNode*[]){&built->nodes[7]}, 1, built->children, 0) &&
+              PostedAre(@"layout nil") &&
+              ![[[root accessibilityElements] objectAtIndex:4]
+                  isKindOfClass:[MUIAccessibilityTextElement class]],
+          "a heading again: an element again");
+    [s_posted release];
+    s_posted = nil;
+    adapter->post = saved;
+}
+
 static void TestContract(UIView* view)
 {
     muiUikitAdapterDef def = muiDefaultUikitAdapterDef();
@@ -421,6 +619,7 @@ static void RunTests(UIView* view)
     TestAttributes(root, view);
     TestActions(root);
     TestNotifications(view);
+    TestText(adapter, root, &s_built);
     id button = [[[root accessibilityElements] objectAtIndex:1] retain];
     CHECK(muiUikitAdapter_SetScale(adapter, 2.0f) == mui_success &&
               Same([button accessibilityFrame], UIAccessibilityConvertFrameToScreenCoordinates(

@@ -51,6 +51,13 @@ format.
   string and the character of a range, all in UTF-16; the selection,
   the selected text and the whole value set through the host; the
   selected text changed posted.
+- UIAccessibility's text on text inputs and text being edited: the
+  element adopts UITextInput, through which VoiceOver reads the text
+  and moves by character, word, line and paragraph (a tokenizer on the
+  boundaries every adapter shares), in UTF-16; the selection set, text
+  typed, deleted and replaced through the host; the input delegate told
+  of text and selection changes. A node that starts or ends being
+  edited gets a new element, and the layout is told.
 
 ### Changed
 
