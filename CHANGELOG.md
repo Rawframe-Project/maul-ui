@@ -348,7 +348,8 @@ format.
   test; `test/layout/words.txt` holds fifteen cases.
   `tools/random_layouts.py generate SEED COUNT --words` draws a seed's
   `--wide` layouts with some content made words; earlier draws are
-  unchanged.
+  unchanged. `--deep` draws word layouts in trees up to five levels deep and
+  four children a node.
 
 - `docs/releasing.md`: the steps a release takes, the family's and Maul
   UI's own (the size budget's check, recorded runs with each screen
