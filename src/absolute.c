@@ -176,9 +176,11 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
     };
     if (layout->popped)
     {
-        // Where its exit popped it, at that size.
+        // Where its exit popped it, at that size, its height its
+        // content's unless its style gives one.
         input.width = muiExact(layout->rect.width);
         input.height = muiExact(layout->rect.height);
+        input.contentHeight = !muiResolveAxis(&style->sizing, false, spanY->paddingSize).definite;
         (void)solver->solve(solver, child, &input, true);
         return;
     }
@@ -210,6 +212,8 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
     layout->rect = (muiRect){x, y, width, height};
     input.width = muiExact(width);
     input.height = muiExact(height);
+    // A height neither given nor set by both insets is its content's.
+    input.contentHeight = !fixedHeight;
     (void)solver->solve(solver, child, &input, true);
 }
 

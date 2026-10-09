@@ -25,6 +25,13 @@ typedef struct muiSizingInput
     float parentHeight;
     // The direction the node inherits: right to left when set.
     bool rtl;
+    // Whether an exact height is the node's own content height: a flex
+    // item's that was not stretched, a column item's flexed in a column
+    // with no definite height, a root's or an absolute node's automatic
+    // one. CSS keeps such a height indefinite (Flexbox 9.8): percentages
+    // below do not resolve against it, nor do its stretched items count
+    // as definite.
+    bool contentHeight;
 } muiSizingInput;
 
 typedef struct muiCacheEntry
@@ -55,10 +62,12 @@ typedef struct muiLayoutCache
     // 1 for the width and 2 for the height.
     uint8_t loose : 3;
     // Whether a miss replaced a valid entry since the cache was cleared:
-    // a query its parent asked may be lost (src/layout_bound.c).
-    bool replaced;
-    bool finalValid;
-    bool finalRtl;
+    // a query its parent asked may be lost (src/layout_bound.c); and the
+    // direction and content height the node was last laid out with.
+    bool replaced : 1;
+    bool finalValid : 1;
+    bool finalRtl : 1;
+    bool finalContentHeight : 1;
     muiSize finalSize;
 } muiLayoutCache;
 

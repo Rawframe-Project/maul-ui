@@ -616,14 +616,16 @@ static void CheckBoundedMatchesFresh(uint32_t seed)
     muiDestroyContext(edited.context);
 }
 
-// Three histories; the second and third once took a content size for the
+// Four histories; the second and third once took a content size for the
 // own one of a node with an aspect ratio below it, or its own (research
-// 93).
+// 93), the fourth a scaled width's answer for another parent extent
+// (research 94).
 static void TestBoundedMatchesFresh(void)
 {
     CheckBoundedMatchesFresh(0x85EBCA6Bu);
     CheckBoundedMatchesFresh(0x9E3779B1u);
     CheckBoundedMatchesFresh(0x33333335u);
+    CheckBoundedMatchesFresh(0xF0F0F0F1u);
 }
 
 // A row 161 wide laid out alone under a right-to-left root keeps the

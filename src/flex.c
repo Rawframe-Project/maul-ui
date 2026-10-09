@@ -32,7 +32,8 @@ typedef struct Frame
     muiAxisSizing mainLimits;
     muiAxisSizing crossLimits;
     // The children's percentage bases along each axis, negative when
-    // indefinite.
+    // indefinite: a size not given exactly, or a height that is the
+    // container's content height (muiSizingInput.contentHeight).
     float extentMain;
     float extentCross;
     float gap;
@@ -55,6 +56,7 @@ static muiSizingInput ChildInput(const Frame* frame, muiMeasureAxis main, muiMea
     input.parentWidth = frame->row ? frame->extentMain : frame->extentCross;
     input.parentHeight = frame->row ? frame->extentCross : frame->extentMain;
     input.rtl = frame->rtl;
+    input.contentHeight = false;
     return input;
 }
 
@@ -83,12 +85,14 @@ static bool IsBaselineAligned(const Frame* frame, const muiLayoutStyle* child)
            !muiIsMarginAutoStart(child, false) && !muiIsMarginAutoEnd(child, false);
 }
 
-// Whether a child takes its line's cross size: it aligns by stretch and
-// neither cross margin is automatic.
+// Whether a child takes its line's cross size: it aligns by stretch, its
+// cross size is automatic (a percentage that cannot resolve is not,
+// section 9.4 step 11) and neither cross margin is automatic.
 static bool IsStretched(const Frame* frame, const muiLayoutStyle* child)
 {
-    return AlignOf(frame, child) == mui_alignStretch && !muiIsMarginAutoStart(child, !frame->row) &&
-           !muiIsMarginAutoEnd(child, !frame->row);
+    muiDimension cross = frame->row ? child->sizing.height : child->sizing.width;
+    return AlignOf(frame, child) == mui_alignStretch && cross.kind == mui_dimensionAuto &&
+           !muiIsMarginAutoStart(child, !frame->row) && !muiIsMarginAutoEnd(child, !frame->row);
 }
 
 // A child's padding with the safe area, in the direction it lays out in.
@@ -99,7 +103,8 @@ static muiEdges ChildPadding(const Frame* frame, const muiLayoutStyle* child)
 
 // The constraint a child is sized under on the cross axis: its own
 // definite size; with stretch, the line's size when the container's cross
-// size is definite; otherwise fit-content within the container.
+// size is definite, not its content height; otherwise fit-content within
+// the container.
 static muiMeasureAxis CrossConstraint(const Frame* frame, const muiLayoutStyle* child,
                                       const muiAxisSizing* cross, bool stretch)
 {
@@ -115,7 +120,7 @@ static muiMeasureAxis CrossConstraint(const Frame* frame, const muiLayoutStyle* 
     {
         float space = fmaxf(frame->innerCross - margin, 0.0f);
         // Only a single line's size is known before the lines are.
-        if (stretch && !frame->multiLine && IsStretched(frame, child))
+        if (stretch && !frame->multiLine && frame->extentCross >= 0.0f && IsStretched(frame, child))
         {
             return muiExact(muiClampSize(space, cross->minimum, cross->maximum, boxCross));
         }
@@ -282,15 +287,17 @@ static Frame Setup(const muiSolver* solver, uint32_t node, const muiSizingInput*
     frame.rtl = input->rtl;
     frame.extentMain = -1.0f;
     frame.extentCross = -1.0f;
+    bool mainDefinite = !(input->contentHeight && !frame.row);
+    bool crossDefinite = !(input->contentHeight && frame.row);
     if (frame.mainIn.mode == mui_measureExact)
     {
         frame.innerMain = fmaxf(frame.mainIn.size - frame.boxMain, 0.0f);
-        frame.extentMain = frame.innerMain;
+        frame.extentMain = mainDefinite ? frame.innerMain : -1.0f;
     }
     if (frame.crossIn.mode == mui_measureExact)
     {
         frame.innerCross = fmaxf(frame.crossIn.size - frame.boxCross, 0.0f);
-        frame.extentCross = frame.innerCross;
+        frame.extentCross = crossDefinite ? frame.innerCross : -1.0f;
     }
     return frame;
 }
@@ -551,9 +558,28 @@ static float CrossOffset(const Frame* frame, const muiLayoutStyle* style,
 static muiSizingInput FinalInput(const Frame* frame, uint32_t child)
 {
     const muiFlexItemState* item = ItemOf(frame, child);
+    const muiLayoutStyle* style = &frame->solver->nodes[child - 1].style;
     muiSizingInput input = ChildInput(frame, muiExact(item->target), muiExact(item->cross));
-    input.parentWidth = frame->row ? frame->innerMain : frame->innerCross;
-    input.parentHeight = frame->row ? frame->innerCross : frame->innerMain;
+    float extentMain = frame->extentMain >= 0.0f ? frame->innerMain : -1.0f;
+    float extentCross = frame->extentCross >= 0.0f ? frame->innerCross : -1.0f;
+    input.parentWidth = frame->row ? frame->innerMain : extentCross;
+    input.parentHeight = frame->row ? extentCross : extentMain;
+    // Its height is definite when stretched (once its line's size is,
+    // section 9.8) or given; in a column, after flexing, when the
+    // column's height or its own basis is definite. Otherwise it is its
+    // content's.
+    float base = 0.0f;
+    if (frame->row)
+    {
+        input.contentHeight = !IsStretched(frame, style) &&
+                              !muiResolveAxis(&style->sizing, false, frame->extentCross).definite;
+    }
+    else
+    {
+        input.contentHeight = frame->extentMain < 0.0f &&
+                              !muiResolveDimension(style->item.basis, frame->extentMain, &base) &&
+                              !muiResolveAxis(&style->sizing, false, frame->extentMain).definite;
+    }
     return input;
 }
 

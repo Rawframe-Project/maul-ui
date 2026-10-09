@@ -29,7 +29,10 @@ extern "C"
         // maximum, no limit; as a minimum, the automatic minimum size.
         mui_dimensionAuto = 0,
         // scale x the parent's content extent on the axis + offset; with an
-        // indefinite parent extent, automatic.
+        // indefinite parent extent, automatic. As in CSS, a parent's height
+        // is indefinite when it is its content's: not given, not stretched
+        // across a line, not flexed in a column of definite height. A
+        // scaled cross size is not automatic, so it does not stretch.
         mui_dimensionValue = 1,
     };
 

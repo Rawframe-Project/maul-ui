@@ -10,6 +10,16 @@ format.
 
 ### Changed
 
+- A height that is a node's own content height is indefinite, as in
+  CSS (Flexbox 9.8), matching Chrome: a flex item not stretched across
+  its line, a column item flexed in a column of no definite height, and
+  a root or absolute node of automatic height. Percentage heights below
+  such a node are automatic, and its stretched items take no flex base
+  from an aspect ratio, so a row of content height keeps an
+  aspect-ratio item at its content's width rather than squeezing its
+  siblings. A cross size given as a percentage no longer stretches when
+  it cannot resolve. Four Chrome fixtures hold each case.
+
 - The measure function's contract is written out: its answer depends on
   the request alone, and content that fits within a size measures the
   same within any smaller size it still fits, as text broken greedily
@@ -708,6 +718,11 @@ format.
   stretched cross size, makes the ratio give the other, which a content
   query does not, so a content size no longer answers its exact or
   limited queries, as for percentages.
+
+- A node whose own width or height is a percentage answers a query from
+  its cache only for the same parent extents: one asked with none, as an
+  aspect ratio leaves its size open, took a size resolved against
+  another's.
 
 - A virtual list's extent no longer counts where its bound items were
   placed before: an item popped by its exit, which keeps its rectangle

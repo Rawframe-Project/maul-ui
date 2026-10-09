@@ -126,6 +126,30 @@ static void Invalidate(muiContext* context, uint32_t root)
     }
 }
 
+// Sizes the root in the host's space and lays its subtree out: a change
+// its subtree's answers bound is laid out there; any other clears every
+// owing node's cache.
+static muiSize SolveRoot(muiContext* context, const muiSolver* solver, uint32_t root,
+                         const muiLayoutInput* input)
+{
+    muiSizingInput sizingInput = muiRootInput(&context->layout[root - 1].style, &input->safeArea,
+                                              input->availableWidth, input->availableHeight);
+    context->inHostCall = true;
+    if (!muiBoundLayout(solver, root))
+    {
+        Invalidate(context, root);
+    }
+    muiTreeSweep(&context->tree, root, mui_stageLayout);
+    muiSize size = muiSolveNode(solver, root, &sizingInput, false);
+    // A height not given is the root's content's, as an automatic one.
+    sizingInput.contentHeight = sizingInput.height.mode != mui_measureExact;
+    sizingInput.width = (muiMeasureAxis){size.width, mui_measureExact};
+    sizingInput.height = (muiMeasureAxis){size.height, mui_measureExact};
+    (void)muiSolveNode(solver, root, &sizingInput, true);
+    context->inHostCall = false;
+    return size;
+}
+
 muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayoutInput* input)
 {
     if (context == nullptr)
@@ -177,21 +201,7 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
         .paddings = context->paddings,
         .safeArea = input->safeArea,
     };
-    muiSizingInput sizingInput = muiRootInput(&context->layout[root - 1].style, &input->safeArea,
-                                              input->availableWidth, input->availableHeight);
-    context->inHostCall = true;
-    // A change its subtree's answers bound is laid out there; any other
-    // clears every owing node's cache.
-    if (!muiBoundLayout(&solver, root))
-    {
-        Invalidate(context, root);
-    }
-    muiTreeSweep(&context->tree, root, mui_stageLayout);
-    muiSize size = muiSolveNode(&solver, root, &sizingInput, false);
-    sizingInput.width = (muiMeasureAxis){size.width, mui_measureExact};
-    sizingInput.height = (muiMeasureAxis){size.height, mui_measureExact};
-    (void)muiSolveNode(&solver, root, &sizingInput, true);
-    context->inHostCall = false;
+    muiSize size = SolveRoot(context, &solver, root, input);
     const muiRect rect = {0.0f, 0.0f, size.width, size.height};
     context->layout[root - 1].rect = rect;
     if (!muiIsSameRect(rect, context->draw.states[root - 1].rect))

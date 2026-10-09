@@ -44,11 +44,14 @@ static bool AxisAnswers(muiMeasureAxis next, muiMeasureAxis old, float result, b
     return false;
 }
 
-// Whether a node's own sizing reads its parent's extents: only its scaled
-// limits do, as the parent resolves the node's size itself.
+// Whether a node's own sizing reads its parent's extents: a scaled size or
+// limit, which the node resolves against the extents in its input (a
+// parent resolves a scaled size too, but a query it leaves open, as with
+// an aspect ratio, still reaches the node's own).
 static bool ReadsParentExtent(const muiSizing* sizing)
 {
-    return muiIsScaled(sizing->minWidth) || muiIsScaled(sizing->maxWidth) ||
+    return muiIsScaled(sizing->width) || muiIsScaled(sizing->height) ||
+           muiIsScaled(sizing->minWidth) || muiIsScaled(sizing->maxWidth) ||
            muiIsScaled(sizing->minHeight) || muiIsScaled(sizing->maxHeight);
 }
 
@@ -94,8 +97,9 @@ static const muiCacheEntry* FindCached(const muiSolver* solver, uint32_t node,
                                            entry->input.parentHeight == input->parentHeight);
         // Direction is part of the key: a safe area on a start or end edge
         // below can change a size with it, though most direction moves
-        // children alone.
+        // children alone; so is whether a height is the content's own.
         if (entry->valid && sameExtents && entry->input.rtl == input->rtl &&
+            entry->input.contentHeight == input->contentHeight &&
             AxisAnswers(input->width, entry->input.width, entry->size.width, (loose & 1u) != 0) &&
             AxisAnswers(input->height, entry->input.height, entry->size.height, (loose & 2u) != 0))
         {
@@ -360,6 +364,7 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
     {
         MUI_ASSERT(input->width.mode == mui_measureExact && input->height.mode == mui_measureExact);
         if (cache->finalValid && cache->finalRtl == input->rtl &&
+            cache->finalContentHeight == input->contentHeight &&
             cache->finalSize.width == input->width.size &&
             cache->finalSize.height == input->height.size)
         {
@@ -400,6 +405,7 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
         }
         cache->finalValid = true;
         cache->finalRtl = input->rtl;
+        cache->finalContentHeight = input->contentHeight;
         cache->finalSize = size;
         Published(solver, node, size, own.rtl);
     }

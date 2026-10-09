@@ -74,3 +74,36 @@ fixture aspect_minimum_zero_lets_ratio_win available=500x400
 node width=200 aspect=4 min-height=0 direction=column => 0 0 200 50
   node width=20 height=30 => 0 0 20 21.421875
   node width=20 height=40 => 0 21.421875 20 28.578125
+
+# A row whose height is its content's, not stretched: the height is not
+# definite (Flexbox 9.8), so its stretched items take no base from their
+# ratio and keep their content's main size.
+fixture aspect_content_height_row_keeps_base available=500x400
+node width=400 align-items=start => 0 0 400 160
+  node => 0 0 50 160
+    node width=20 height=160 => 0 0 20 160
+    node aspect=0.75 min-width=0 content=30x10 => 20 0 30 160
+
+# The same row stretched in an automatic-height root: its height is
+# definite once its line's is, so the ratio gives the base and the row's
+# items shrink to its width.
+fixture aspect_stretched_row_gives_base available=500x400
+node width=400 => 0 0 400 160
+  node => 0 0 50 160
+    node width=20 height=160 => 0 0 7.140625 160
+    node aspect=0.75 min-width=0 content=30x10 => 7.140625 0 42.859375 160
+
+# A percentage height in a row whose height is its content's resolves
+# against nothing: automatic.
+fixture percent_height_in_content_height_row available=500x400
+node width=400 height=300 align-items=start => 0 0 400 300
+  node => 0 0 30 160
+    node width=20 height=160 => 0 0 20 160
+    node width=10 height=50% => 20 0 10 0
+
+# The same in a stretched row resolves against the row's height.
+fixture percent_height_in_stretched_row available=500x400
+node width=400 height=300 => 0 0 400 300
+  node => 0 0 30 300
+    node width=20 height=160 => 0 0 20 160
+    node width=10 height=50% => 20 0 10 150
