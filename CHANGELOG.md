@@ -45,6 +45,10 @@ format.
   geometry and attributes are not given yet. One module gives every
   adapter a text's boundaries by unit and its offsets in code points
   and UTF-16.
+- UI Automation's Value pattern sets a text input's text whole through
+  the host (`mui_actionReplaceText`), UTF-16 read as UTF-8, while it is
+  being edited; its IsReadOnly is false only for a text input neither
+  read only nor disabled, as Chromium answers.
 - NSAccessibility's text on text inputs and text being edited: the
   number of characters, the selected text and its range, the
   insertion point's line, a line's range and an index's line, the

@@ -102,6 +102,38 @@ ranges and virtual lists.
   `mui_notificationAccessAction`. A request a node does not take now
   is refused as empty; one from an event function is misuse, as other
   input is.
+- **Text being read and edited.** A node's value text carries marks
+  (`muiAccessTextMarks`), in byte offsets at characters' starts: the
+  selection, its caret at the focus, while the text is being edited;
+  where each line starts, as painted; its words (UAX #29 word segments
+  with a letter or a number); and where it is shown, a box each line
+  and the grapheme clusters line after line with their left and right
+  edges, in the node's own space. The host's text function gives them
+  only for a node the update sends, told the part of the node its
+  scrolling ancestors leave shown, and may leave out the clusters of
+  lines far from it (`omitted`); the text component reads them from
+  the lines and clusters it hit tests and paints by, at most 16,384
+  clusters, the nearest lines first. The tree refuses marks that do
+  not fit their text. Every adapter reads text through one module: which
+  nodes have text being edited (a text input, or text with a
+  selection), the boundaries of characters (code points), words (a
+  word to the next word's start, as AT-SPI and UI Automation read
+  them), lines and paragraphs (after a hard break), offsets in code
+  points and UTF-16, and, from the tree, a range's rectangles and the
+  character at a point. Two requests change text, applied by the host
+  because the context does not hold it: `mui_actionSetSelection` and
+  `mui_actionReplaceText`, taken while the text is being edited (the
+  latter unless read only); the text component applies them
+  (`muiTextPerformAccessAction`) as a paste, under the field's own
+  rules and undone alone. Each adapter speaks its platform's text:
+  AT-SPI's Text and EditableText, UI Automation's Text pattern
+  (ITextProvider2 with its ranges) and Value set whole,
+  NSAccessibility's text attributes and parameterized attributes,
+  UIKit's UITextInput on a text element with its own tokenizer, and
+  Android's movement granularities, selection, text actions and
+  character locations; each tells its platform's text and selection
+  events for text being edited only, so a list that reuses rows does
+  not flood a reader.
 
 - **The consumer** (`maul-ui/access_tree.h`, the component
   `MAUL_UI_ACCESS_TREE`, on by default) keeps the copy adapters read:
@@ -141,9 +173,10 @@ ranges and virtual lists.
   actions: Toggle for a checkable node and SelectionItem for a
   selectable one (both clicked, as on the screen, and never also
   Invoke), ExpandCollapse, RangeValue for a numeric node, Value for a
-  value text (read only until text editing brings setting text; a
-  password input's is only the text service's mask, a host's own value
-  text left out of its record for every adapter),
+  value text (set whole through the host while it is being edited,
+  read only but for a text input; a password input's is only the text
+  service's mask, a host's own value text left out of its record for
+  every adapter), Text for text being edited,
   Scroll for a scrolling container (a small step scrolls a page, as the
   tree knows no line height), and ScrollItem. Applying an update raises
   UI Automation's events from the changes the consumer reports, while

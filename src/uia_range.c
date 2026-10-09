@@ -12,8 +12,7 @@
 
 #include <string.h>
 
-// UIA_E_INVALIDOPERATION, and UIA_IsReadOnlyAttributeId.
-#define INVALID_OPERATION   ((HRESULT)0x80131509)
+// UIA_IsReadOnlyAttributeId.
 #define ATTRIBUTE_READ_ONLY 40015
 
 static const IID s_unknown = {

@@ -1111,10 +1111,11 @@ Every node of a root is a node of its accessibility tree, with a role,
 texts, flags and actions. Most come from what the library holds:
 rectangles, scrolling, focus, states, value ranges, virtual lists,
 host content's text through the service (`muiAccessTextOf`, set with
-`muiSetAccessTextFunction`), with an editing field's selection and
-its lines and words; a screen reader's requests to move that
-selection or change the text go to the text component
-(`muiTextPerformAccessAction`). The rest the program says:
+`muiSetAccessTextFunction`), with an editing field's selection, its
+lines and words, and where its characters are near what is shown; a
+screen reader's requests to move that selection or change the text go
+to the text component (`muiTextPerformAccessAction`), which applies
+them as a paste. The rest the program says:
 
 ```c
 // Tells assistive technology what a node is: a button, and its name.
@@ -1157,7 +1158,10 @@ static muiResult AccessFrame(muiContext* context, muiNodeId root, muiAccessUpdat
 
 The first update after enabling holds the whole tree, the button in it
 named "OK"; a press requested by assistive technology reaches the
-program as the button's activation (section 8).
+program as the button's activation (section 8). A request to move a
+text's selection or change its text is not the context's, so this loop
+skips it; a program with an editing field gives those two to
+`muiTextPerformAccessAction` instead, as `samples/app.c` does.
 
 The adapters, each its own component, are AT-SPI on Linux, UI
 Automation on Windows, NSAccessibility on macOS, UIAccessibility on

@@ -13,10 +13,12 @@
 
 #include "maul-ui/access_uia.h"
 
-// UI Automation's errors, as HRESULTs: UIA_E_ELEMENTNOTAVAILABLE and
-// UIA_E_NOTSUPPORTED.
-#define ELEMENT_GONE  ((HRESULT)0x80040201)
-#define NOT_SUPPORTED ((HRESULT)0x80040204)
+// UI Automation's errors, as HRESULTs: UIA_E_ELEMENTNOTAVAILABLE,
+// UIA_E_NOTSUPPORTED, UIA_E_ELEMENTNOTENABLED and UIA_E_INVALIDOPERATION.
+#define ELEMENT_GONE        ((HRESULT)0x80040201)
+#define NOT_SUPPORTED       ((HRESULT)0x80040204)
+#define ELEMENT_NOT_ENABLED ((HRESULT)0x80040200)
+#define INVALID_OPERATION   ((HRESULT)0x80131509)
 
 // The functions of uiautomationcore.dll the adapter calls, loaded when it
 // is made, as MinGW has no import library of them.

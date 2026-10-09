@@ -93,7 +93,7 @@ uia_patterns: access_text uia
 uia_props: access_record allocator uia
 uia_range: access_text uia
 uia_text: access_record uia
-uia_values: uia
+uia_values: access_text allocator uia
 access_action: access context event layout_node notify range scroll_store tree
 popup: context layout_node popup_store scroll tree notify
 scroll: context scroll_store tree layer motion_math

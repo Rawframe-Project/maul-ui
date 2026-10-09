@@ -9,7 +9,8 @@
 //   point;
 // - the focus, and focusing asked of the host;
 // - patterns: Invoke, Toggle, RangeValue, ExpandCollapse, Scroll, Value
-//   and SelectionItem, read and turned into the host's actions; Text's
+//   (a text input's set whole) and SelectionItem, read and turned into
+//   the host's actions; Text's
 //   ranges read, moved by unit and selected, on the screen as lines,
 //   and the character at a point;
 // - events: the focus moving, and a checkbox's state changing;
@@ -504,6 +505,8 @@ typedef struct Program
     // What the host was asked last, by the window's thread.
     volatile LONG focusAsked;
     muiAccessRequest asked;
+    // The text it carried, while it fits.
+    char askedText[64];
 } Program;
 
 static Program s_program;
@@ -516,6 +519,9 @@ static bool Act(void* user, const muiAccessRequest* request)
         InterlockedExchange(&program->focusAsked, (LONG)request->target);
     }
     program->asked = *request;
+    size_t kept = request->length < sizeof program->askedText ? request->length : 0;
+    memcpy(program->askedText, request->text != NULL ? request->text : "", kept);
+    program->askedText[kept] = '\0';
     MemoryBarrier();
     return true;
 }
@@ -827,6 +833,29 @@ static void CheckScrollAndValue(IUIAutomation* automation, IUIAutomationElement*
               wcscmp(text, L"Ada Lovelace") == 0,
           "a text input's value");
     SysFreeString(text);
+    BOOL readOnly = TRUE;
+    // As a BSTR, which the call may marshal.
+    BSTR typed = SysAllocString(L"Zo\u00eb \U0001F600");
+    CHECK(value != NULL &&
+              SUCCEEDED(IUIAutomationValuePattern_get_CurrentIsReadOnly(value, &readOnly)) &&
+              !readOnly && SUCCEEDED(IUIAutomationValuePattern_SetValue(value, typed)) &&
+              Asked(mui_actionReplaceText, 7) && s_program.asked.anchor == 0 &&
+              s_program.asked.focus == 12 &&
+              strcmp(s_program.askedText, "Zo\xC3\xAB \xF0\x9F\x98\x80") == 0,
+          "a text input's value set whole through the host, in UTF-8");
+    IUIAutomationValuePattern* label = NULL;
+    CHECK(SUCCEEDED(IUIAutomationElement_GetCurrentPatternAs(
+              children[1], UIA_ValuePatternId, &IID_IUIAutomationValuePattern, (void**)&label)) &&
+              label != NULL &&
+              SUCCEEDED(IUIAutomationValuePattern_get_CurrentIsReadOnly(label, &readOnly)) &&
+              readOnly &&
+              IUIAutomationValuePattern_SetValue(label, typed) == (HRESULT)UIA_E_INVALIDOPERATION,
+          "a label's value read only, not set");
+    if (label != NULL)
+    {
+        IUIAutomationValuePattern_Release(label);
+    }
+    SysFreeString(typed);
     IUIAutomationTreeWalker* walker = NULL;
     IUIAutomationElement* item = NULL;
     IUIAutomationSelectionItemPattern* selection = NULL;
