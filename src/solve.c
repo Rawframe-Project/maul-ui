@@ -274,16 +274,23 @@ static float ContentSize(const muiSolver* solver, uint32_t node, const muiSizing
     return horizontal ? size.width : size.height;
 }
 
-// The node's min-content height at the width input gives, its height to
-// come from its aspect ratio.
-static float RatioContentHeight(const muiSolver* solver, uint32_t node, const muiSizingInput* input)
+// The node's content height at the width input gives, its height to come
+// from its aspect ratio as size: a row is laid out at that height, which
+// its items' percentages resolve against; a column or a leaf measures its
+// content.
+static float RatioContentHeight(const muiSolver* solver, uint32_t node, const muiSizingInput* input,
+                                float size)
 {
-    if (muiTreeAt(solver->tree, node)->links.firstChild == 0)
+    muiFlexDirection direction = solver->nodes[node - 1].style.container.direction;
+    if (muiTreeAt(solver->tree, node)->links.firstChild == 0 ||
+        (direction != mui_flexRow && direction != mui_flexRowReverse))
     {
         return ContentSize(solver, node, input, false);
     }
+    // A row laid out at the ratio's height, definite for its items.
     muiSizingInput probe = *input;
-    probe.height = (muiMeasureAxis){0.0f, mui_measureMinContent};
+    probe.height = muiExact(size);
+    probe.contentHeight = false;
     return muiFlexRatioContentHeight(solver, node, &probe);
 }
 
@@ -305,7 +312,7 @@ static muiMeasureAxis RatioAxis(const muiSolver* solver, uint32_t node, const mu
         // measures its items, the node counts its content in full.
         bool full = horizontal || input->height.mode == mui_measureMinContent;
         size = fmaxf(size, full ? ContentSize(solver, node, input, horizontal)
-                                : RatioContentHeight(solver, node, input));
+                                : RatioContentHeight(solver, node, input, size));
     }
     return muiExact(muiClampSize(size, axis.minimum, axis.maximum,
                                  muiBoxSum(&solver->paddings[node - 1], style, horizontal)));

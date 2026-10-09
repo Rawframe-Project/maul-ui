@@ -10,6 +10,12 @@ format.
 
 ### Changed
 
+- The content floor of a row's height from its aspect ratio counts a
+  stretched item's minimum height, a percentage resolved against the
+  ratio's height, and its margins, as Chrome does; the row is measured
+  at that height. Two Chrome fixtures hold it, and one more random
+  layout joins the corpus.
+
 - A single-line column sized by its content takes its width from its
   items' contributions, each item's width with its height left open
   (Flexbox 9.9.2), as Chrome does, rather than from their widths at

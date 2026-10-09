@@ -42,8 +42,10 @@ typedef struct Frame
     bool wrapReverse;
     // The container's direction, which its children inherit.
     bool rtl;
-    // Its height is to come from its aspect ratio (muiFlexRatioContentHeight).
+    // Its height is to come from its aspect ratio (muiFlexRatioContentHeight),
+    // and the extent its lines reach across.
     bool ratioHeight;
+    float contentCross;
     uint32_t count;
     uint32_t lineCount;
     float innerMain;
@@ -402,7 +404,9 @@ static float HypotheticalCross(const Frame* frame, uint32_t first, uint32_t coun
         muiFlexItemState* item = ItemOf(frame, c);
         if (frame->ratioHeight && frame->row && !frame->multiLine && IsStretched(frame, style))
         {
-            item->cross = 0.0f;
+            // It takes the line's height; only its minimum holds the line.
+            item->cross = item->minCross;
+            line = fmaxf(line, item->minCross + item->marginCross);
             continue;
         }
         muiAxisSizing cross = muiResolveAxis(&style->sizing, !frame->row, frame->extentCross);
@@ -527,6 +531,7 @@ static void SizeCross(Frame* frame)
         total += ItemOf(frame, first)->lineCross;
     }
     total += Gaps(frame->crossGap, frame->lineCount);
+    frame->contentCross = total + frame->boxCross;
     if (!frame->row && !frame->multiLine && frame->crossIn.mode != mui_measureExact)
     {
         total = ColumnContribution(frame);
@@ -841,7 +846,7 @@ static muiSize Flex(const muiSolver* solver, uint32_t node, const muiSizingInput
         (void)Place(&frame, 0, 0);
     }
     float mainSize = frame.innerMain + frame.boxMain;
-    float crossSize = frame.innerCross + frame.boxCross;
+    float crossSize = ratioHeight ? frame.contentCross : frame.innerCross + frame.boxCross;
     return row ? (muiSize){mainSize, crossSize} : (muiSize){crossSize, mainSize};
 }
 

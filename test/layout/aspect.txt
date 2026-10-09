@@ -296,3 +296,18 @@ fixture column_width_from_contribution_column_item available=500x400
 node direction=column align-items=start => 0 0 20 40
   node aspect=2 direction=column => 0 0 80 40
     node content=20x40 => 0 0 80 40
+
+# A stretched item of a row whose height comes from its ratio holds the
+# floor with its minimum height, its percentage resolved against the
+# ratio's height, and its margins.
+fixture aspect_floor_stretched_minimum_percent available=500x400
+node => 0 0 7 15.25
+  node => 0 0 7 15.25
+    node aspect=1 => 0 0 15.25 15.25
+      node min-height=75% margin=0,7,7,3 => 0 7 0 11.4375
+
+fixture aspect_floor_stretched_percent_margins available=500x400
+node => 0 0 3 11.5
+  node => 0 0 3 11.5
+    node aspect=0.5 => 0 0 5.75 11.5
+      node height=75% margin=3,0,7,0 => 3 7 0 8.625
