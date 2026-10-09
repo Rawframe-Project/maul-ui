@@ -252,6 +252,8 @@ static bool RatioTakesHeight(const muiLayoutStyle* style, const muiEdges* paddin
     float box = muiBoxSum(padding, style, true);
     *height = fminf(fmaxf(*height, fmaxf(across.minimum, box) / ratio),
                     fmaxf(across.maximum, box) / ratio);
+    // Its own maximum holds over what the width carries (as Chrome).
+    *height = fminf(*height, fmaxf(down.maximum, muiBoxSum(padding, style, false)));
     return *fixedWidth;
 }
 

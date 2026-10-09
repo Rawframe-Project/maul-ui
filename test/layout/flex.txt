@@ -103,3 +103,47 @@ fixture row_percent_basis_width available=500x400
 node align-items=start => 0 0 50 30
   node => 0 0 50 30
     node width=50 basis=50% content=20x30 => 0 0 25 30
+
+# A flex item's base from its content is unclamped by its own limits;
+# only its hypothetical size is clamped.
+fixture flex_base_unclamped_ratio_row available=500x400
+node => 0 0 80 80
+  node min-height=80 aspect=1 => 0 0 80 80
+    node min-width=40 grow=2 => 0 0 40 80
+    node grow=2 => 40 0 40 80
+
+fixture flex_base_unclamped_plain available=500x400
+node => 0 0 80 80
+  node width=80 height=80 => 0 0 80 80
+    node min-width=40 grow=2 => 0 0 40 80
+    node grow=2 => 40 0 40 80
+
+fixture flex_base_unclamped_uneven available=500x400
+node => 0 0 100 10
+  node width=100 height=10 => 0 0 100 10
+    node min-width=30 grow=1 => 0 0 30 10
+    node grow=3 => 30 0 70 10
+
+fixture flex_base_unclamped_violates available=500x400
+node => 0 0 100 10
+  node width=100 height=10 => 0 0 100 10
+    node min-width=70 grow=1 => 0 0 70 10
+    node grow=1 => 70 0 30 10
+
+fixture flex_base_unclamped_basis available=500x400
+node => 0 0 100 10
+  node width=100 height=10 => 0 0 100 10
+    node basis=10 min-width=40 grow=1 => 0 0 50 10
+    node basis=10 grow=1 => 50 0 50 10
+
+fixture flex_base_unclamped_max available=500x400
+node => 0 0 100 10
+  node width=100 height=10 => 0 0 100 10
+    node basis=60 max-width=30 grow=1 => 0 0 30 10
+    node grow=1 => 30 0 70 10
+
+fixture flex_base_unclamped_shrink available=500x400
+node => 0 0 100 10
+  node width=100 height=10 => 0 0 100 10
+    node basis=80 max-width=50 shrink=1 => 0 0 50 10
+    node basis=80 shrink=1 => 50 0 50 10

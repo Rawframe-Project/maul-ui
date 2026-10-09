@@ -145,11 +145,13 @@ static muiMeasureAxis CrossConstraint(const Frame* frame, const muiLayoutStyle* 
     return (muiMeasureAxis){0.0f, frame->crossIn.mode};
 }
 
-// The child's main size measured from its content under mode.
+// The child's main size measured from its content under mode; with
+// contentOnly, its own limits and ratio left out.
 static float ContentMain(const Frame* frame, uint32_t child, muiMeasureMode mode,
-                         muiMeasureAxis cross)
+                         muiMeasureAxis cross, bool contentOnly)
 {
     muiSizingInput input = ChildInput(frame, (muiMeasureAxis){0.0f, mode}, cross);
+    input.contentOnly = contentOnly;
     return MainOf(frame, frame->solver->solve(frame->solver, child, &input, false));
 }
 
@@ -170,6 +172,22 @@ static float RatioBase(const Frame* frame, uint32_t child, muiMeasureMode mode,
     return frame->row ? size * ratio : size / ratio;
 }
 
+// A base from content (section 9.2.3 E): its content's size, its own
+// limits left out, asked apart only when it has some, the answer then
+// differing; through its aspect ratio from its cross size instead where
+// RatioBase says.
+static float ContentBase(const Frame* frame, uint32_t child, const muiAxisSizing* main,
+                         muiMeasureMode mode, muiMeasureAxis cross)
+{
+    float ratio = frame->solver->nodes[child - 1].style.sizing.aspectRatio;
+    if (ratio > 0.0f && !main->definite && (!frame->row || cross.mode == mui_measureExact))
+    {
+        return RatioBase(frame, child, mode, cross);
+    }
+    bool limited = !main->minimumAuto || main->maximum < INFINITY;
+    return ContentMain(frame, child, mode, cross, limited && ratio <= 0.0f);
+}
+
 // CSS Flexbox section 4.5: for any item but a scroll container, the
 // smaller of the specified size and the min-content size, each within
 // the maximum. A size the aspect ratio gives is not a specified size: the
@@ -185,7 +203,7 @@ static float AutomaticMinimum(const Frame* frame, uint32_t child, const muiAxisS
     {
         return 0.0f;
     }
-    float content = ContentMain(frame, child, mui_measureMinContent, cross);
+    float content = ContentMain(frame, child, mui_measureMinContent, cross, false);
     float ratio = frame->solver->nodes[child - 1].style.sizing.aspectRatio;
     if (ratio > 0.0f && cross.mode == mui_measureExact)
     {
@@ -266,12 +284,7 @@ static float PrepareItem(const Frame* frame, uint32_t child, float* aloneOut)
         // width is known and sizes by the width before.
         fromContent =
             !main.definite || (!frame->row && style->item.basis.kind != mui_dimensionAuto);
-        base = fromContent ? ContentMain(frame, child, mode, crossConstraint) : main.size;
-        bool fromCross = !frame->row || crossConstraint.mode == mui_measureExact;
-        if (fromContent && !main.definite && style->sizing.aspectRatio > 0.0f && fromCross)
-        {
-            base = RatioBase(frame, child, mode, crossConstraint);
-        }
+        base = fromContent ? ContentBase(frame, child, &main, mode, crossConstraint) : main.size;
     }
     item->base = fmaxf(base, boxMain);
     item->innerBase = item->base - boxMain;
@@ -295,7 +308,8 @@ static float PrepareItem(const Frame* frame, uint32_t child, float* aloneOut)
     {
         return *aloneOut;
     }
-    float size = main.definite ? main.size : ContentMain(frame, child, mode, crossConstraint);
+    float size =
+        main.definite ? main.size : ContentMain(frame, child, mode, crossConstraint, false);
     float alone = size;
     if (!(frame->multiLine && mode == mui_measureMinContent))
     {
@@ -374,6 +388,12 @@ static Frame Setup(const muiSolver* solver, uint32_t node, const muiSizingInput*
     float parentCross = frame.row ? input->parentHeight : input->parentWidth;
     frame.mainLimits = muiResolveAxis(&style->sizing, frame.row, parentMain);
     frame.crossLimits = muiResolveAxis(&style->sizing, !frame.row, parentCross);
+    if (input->contentOnly)
+    {
+        // The content's answer alone, its own limits left out.
+        frame.mainLimits.minimum = frame.crossLimits.minimum = 0.0f;
+        frame.mainLimits.maximum = frame.crossLimits.maximum = INFINITY;
+    }
     frame.gap = frame.row ? style->container.columnGap : style->container.rowGap;
     frame.crossGap = frame.row ? style->container.rowGap : style->container.columnGap;
     frame.multiLine = style->container.wrap != mui_wrapNone;

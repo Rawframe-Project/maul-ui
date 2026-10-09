@@ -10,6 +10,12 @@ format.
 
 ### Changed
 
+- A flex item's base from its content is no longer clamped by its own
+  minimum or maximum (Flexbox 9.2.3): an item with a minimum width and a
+  grow factor took less of the free space than Chrome gives it. And an
+  absolute ratio box's height carried from its width stays under its own
+  maximum height. As Chrome does; eight Chrome fixtures hold the cases.
+
 - In a column, a ratio item's automatic minimum counts its content's
   width through the ratio when its width is not exact, as Chrome does;
   the solver asks a node for its content's answer with its aspect ratio

@@ -351,3 +351,11 @@ node height=10 => 0 0 0 10
 fixture abs_stretch_between_insets_s8 available=500x400
 node height=10 => 0 0 0 10
   node position=absolute top=8 bottom=8 margin=0,0,5,5 content=10x4 => 0 13 10 0
+
+# An absolute ratio box's height carried from its width stays under its
+# own maximum height, no lower than its box.
+fixture abs_ratio_height_under_own_maximum available=500x400
+node => 0 0 0 0
+  node => 0 0 0 0
+    node => 0 0 0 0
+      node max-height=75% position=absolute top=10 bottom=5 aspect=0.5 padding=0,3,3,0 => 0 10 3 3

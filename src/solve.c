@@ -97,8 +97,7 @@ static const muiCacheEntry* FindCached(const muiSolver* solver, uint32_t node,
                                            entry->input.parentHeight == input->parentHeight);
         // Direction is part of the key: a safe area on a start or end edge
         // below can change a size with it, though most direction moves
-        // children alone; so are whether a height is the content's own
-        // and whether the answer leaves the ratio out.
+        // children alone; so is whether a height is the content's own.
         if (entry->valid && sameExtents && entry->input.rtl == input->rtl &&
             entry->input.contentHeight == input->contentHeight &&
             entry->input.contentOnly == input->contentOnly &&
@@ -156,6 +155,10 @@ static muiSize SizeLeaf(const muiSolver* solver, uint32_t node, const muiSizingI
     }
     muiAxisSizing width = muiResolveAxis(&style->sizing, true, input->parentWidth);
     muiAxisSizing height = muiResolveAxis(&style->sizing, false, input->parentHeight);
+    if (input->contentOnly)
+    {
+        width = height = (muiAxisSizing){.maximum = INFINITY};
+    }
     muiSize size;
     size.width =
         input->width.mode == mui_measureExact

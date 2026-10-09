@@ -33,8 +33,10 @@ typedef struct muiSizingInput
     // as definite.
     bool contentHeight;
     // Whether the answer is the content's alone, the node's aspect ratio
-    // left out: a column's automatic minimum for a ratio item reads its
-    // content's width (Flexbox 4.5, as Chrome).
+    // and its own limits left out: a flex item's base from its content
+    // is its max-content size, unclamped (Flexbox 9.2.3), and a column's
+    // automatic minimum for a ratio item reads its content's width
+    // (section 4.5, as Chrome).
     bool contentOnly;
 } muiSizingInput;
 
