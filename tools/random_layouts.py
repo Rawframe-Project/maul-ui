@@ -7,10 +7,12 @@
 #
 # "generate SEED COUNT" prints COUNT random fixtures drawn from SEED in the
 # corpus format: trees up to three levels deep, at most three children a
-# node, every key the corpus knows. Put them in a file under test/layout/,
-# render it with gen_layout_fixtures.py --oracle and run
-# test_layout_fixtures to see which part from Chrome; the ones that agree
-# may stay in the corpus.
+# node, most keys the corpus knows; --wide adds scaled dimensions with an
+# offset, automatic margins, baseline alignment and anchors, under names
+# random_<seed>w_<n>, leaving the default draws as they were. Put them in
+# a file under test/layout/, render it with gen_layout_fixtures.py
+# --oracle and run test_layout_fixtures to see which part from Chrome; the
+# ones that agree may stay in the corpus.
 #
 # "reduce FILE NAME" shrinks fixture NAME of corpus file FILE, which parts
 # from Chrome, to a smallest case that still does. It copies the tree's
@@ -23,7 +25,7 @@
 # reduce also needs CMake and a C23 compiler (CC names one if the default
 # is older).
 #
-# usage: random_layouts.py generate SEED COUNT
+# usage: random_layouts.py generate SEED COUNT [--wide]
 #        random_layouts.py reduce FILE NAME
 
 import os
@@ -48,8 +50,11 @@ def call(args, **options):
 class Generator:
     """Draws fixtures; a seed always draws the same ones."""
 
-    def __init__(self, seed):
+    def __init__(self, seed, wide=False):
         self.rng = random.Random(seed)
+        # Wide draws add keys the default leaves out; the default's draws
+        # stay as they were, so its seeds keep their layouts.
+        self.wide = wide
 
     def dimension(self):
         r = self.rng.random()
@@ -57,7 +62,10 @@ class Generator:
             return None
         if r < 0.8:
             return str(self.rng.choice([0, 10, 20, 30, 40, 60, 80, 120, 150]))
-        return f"{self.rng.choice([10, 25, 50, 75, 100])}%"
+        scale = f"{self.rng.choice([10, 25, 50, 75, 100])}%"
+        if self.wide and self.rng.random() < 0.4:
+            return scale + self.rng.choice(["+", "-"]) + str(self.rng.choice([5, 10, 20]))
+        return scale
 
     def edges(self):
         if self.rng.random() < 0.6:
@@ -74,11 +82,14 @@ class Generator:
         if self.rng.random() < 0.15:
             basis = self.dimension()
             keys += [f"basis={basis}"] if basis else []
-        keys += self.pick(0.2, "align-self", ["auto", "stretch", "start", "end", "center"])
+        aligns = ["auto", "stretch", "start", "end", "center"] + (["baseline"] if self.wide else [])
+        keys += self.pick(0.2, "align-self", aligns)
         if self.rng.random() < 0.08:
             keys.append("position=absolute")
             for inset in ("start", "end", "top", "bottom"):
                 keys += self.pick(0.4, inset, [0, 5, 10, 20])
+            if self.wide and self.rng.random() < 0.3:
+                keys.append(f"anchor={self.rng.choice([0, 0.5, 1])},{self.rng.choice([0, 0.5, 1])}")
         return keys
 
     def node(self, depth, root=False):
@@ -98,6 +109,8 @@ class Generator:
         keys += self.pick(0.12, "aspect", [0.5, 1, 1.5, 2])
         for key in ("margin", "border", "padding"):
             value = self.edges()
+            if key == "margin" and self.wide and self.rng.random() < 0.15:
+                value = ",".join(self.rng.choice(["auto", "0", "5"]) for _ in range(4))
             if value and not (key == "margin" and root):
                 keys.append(f"{key}={value}")
         if depth >= 3 or self.rng.random() < (0.35 if depth > 0 else 0.0):
@@ -113,7 +126,8 @@ class Generator:
         keys += self.pick(0.3, "wrap", ["nowrap", "wrap", "wrap-reverse"])
         aligns = ["start", "end", "center", "space-between", "space-around", "space-evenly"]
         keys += self.pick(0.3, "justify", aligns)
-        keys += self.pick(0.3, "align-items", ["stretch", "start", "end", "center"])
+        items = ["stretch", "start", "end", "center"] + (["baseline"] if self.wide else [])
+        keys += self.pick(0.3, "align-items", items)
         keys += self.pick(0.2, "align-content", ["stretch"] + aligns)
         keys += self.pick(0.15, "row-gap", [0, 4, 10]) + self.pick(0.15, "column-gap", [0, 4, 10])
         keys += self.pick(0.1, "dir", ["ltr", "rtl"])
@@ -136,12 +150,13 @@ def flatten(tree, depth=0):
     return nodes
 
 
-def generate(seed, count):
-    generator = Generator(seed)
-    out = [f"# Random layouts, seed {seed} (tools/random_layouts.py).", "# chrome 0", ""]
+def generate(seed, count, wide=False):
+    generator = Generator(seed, wide)
+    tag = f"{seed}w" if wide else f"{seed}"
+    out = [f"# Random layouts, seed {tag} (tools/random_layouts.py).", "# chrome 0", ""]
     for i in range(count):
         tree = generator.node(0, root=True)
-        out += [render(f"random_{seed}_{i}", "500x400", flatten(tree)), ""]
+        out += [render(f"random_{tag}_{i}", "500x400", flatten(tree)), ""]
     return "\n".join(out)
 
 
@@ -227,12 +242,12 @@ def reduce(path, name):
 
 def main():
     args = sys.argv[1:]
-    if len(args) == 3 and args[0] == "generate":
-        print(generate(int(args[1]), int(args[2])))
+    if len(args) in (3, 4) and args[0] == "generate" and args[3:] in ([], ["--wide"]):
+        print(generate(int(args[1]), int(args[2]), args[3:] == ["--wide"]))
     elif len(args) == 3 and args[0] == "reduce":
         reduce(args[1], args[2])
     else:
-        sys.exit("usage: random_layouts.py generate SEED COUNT | reduce FILE NAME")
+        sys.exit("usage: random_layouts.py generate SEED COUNT [--wide] | reduce FILE NAME")
 
 
 if __name__ == "__main__":

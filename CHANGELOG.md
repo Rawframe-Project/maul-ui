@@ -284,6 +284,10 @@ format.
 
 ### Added
 
+- `tools/random_layouts.py generate SEED COUNT --wide` also draws scaled
+  dimensions with an offset, automatic margins, baseline alignment and
+  anchors; the default draws are unchanged.
+
 - `tools/random_layouts.py`, a development tool: `generate SEED COUNT`
   draws random layouts in the fixture corpus's format, to render in
   Chrome with `gen_layout_fixtures.py --oracle`; `reduce FILE NAME`
