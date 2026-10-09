@@ -157,19 +157,22 @@ const char* muiAtspiStateName(uint32_t state);
 
 // The Text interface (src/atspi_text.c): whether a node has it, the
 // characters of a text before a byte offset, the methods, and the
-// CharacterCount and CaretOffset properties.
+// CharacterCount and CaretOffset properties; the EditableText
+// interface's methods, on a node whose text may be replaced.
 bool muiAtspiHasText(const muiAccessNode* node);
 int32_t muiAtspiCharsBefore(const char* text, uint32_t offset);
 bool muiAtspiAnswerText(muiAtspiApp* app, DBusMessage* call, const muiAtspiObject* object,
                         const char* member);
 bool muiAtspiAppendTextProperty(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object,
                                 const char* name, bool* ok);
+bool muiAtspiAnswerEditableText(muiAtspiApp* app, DBusMessage* call, const muiAtspiObject* object,
+                                const char* member);
 
 // An object's path.
 void muiAtspiPathOf(const muiAtspiObject* object, char pathOut[ATSPI_PATH_SIZE]);
 
 // The interfaces an object has, at most MUI_ATSPI_INTERFACES; how many.
-#define MUI_ATSPI_INTERFACES 5
+#define MUI_ATSPI_INTERFACES 6
 uint32_t muiAtspiInterfacesOf(const muiAtspiObject* object,
                               const char* interfacesOut[MUI_ATSPI_INTERFACES]);
 

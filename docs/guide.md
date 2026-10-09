@@ -1112,7 +1112,9 @@ texts, flags and actions. Most come from what the library holds:
 rectangles, scrolling, focus, states, value ranges, virtual lists,
 host content's text through the service (`muiAccessTextOf`, set with
 `muiSetAccessTextFunction`), with an editing field's selection and
-its lines and words. The rest the program says:
+its lines and words; a screen reader's requests to move that
+selection or change the text go to the text component
+(`muiTextPerformAccessAction`). The rest the program says:
 
 ```c
 // Tells assistive technology what a node is: a button, and its name.

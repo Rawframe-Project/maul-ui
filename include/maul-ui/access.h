@@ -240,6 +240,12 @@ extern "C"
         mui_actionScrollLeft = 11,
         mui_actionScrollRight = 12,
         mui_actionSetScrollOffset = 13,
+        // A value text's selection set, or a range of it replaced with
+        // text: offered while the host's text function gives a selection,
+        // and applied by the host, not muiPerformAccessAction (the text
+        // component's muiTextPerformAccessAction, maul-ui/text_editor.h).
+        mui_actionSetSelection = 14,
+        mui_actionReplaceText = 15,
     };
 
     // How one node names others.
@@ -459,6 +465,14 @@ extern "C"
         // For mui_actionSetScrollOffset.
         float x;
         float y;
+        // For mui_actionSetSelection, the selection, the caret at the
+        // focus; for mui_actionReplaceText, the range replaced, either
+        // way round, and the UTF-8 text put there, valid while the
+        // request is applied. Byte offsets into the value text.
+        uint32_t anchor;
+        uint32_t focus;
+        const char* text;
+        uint32_t length;
     } muiAccessRequest;
 
     // What host content reads as: its text, and where it is selected and
@@ -581,7 +595,8 @@ extern "C"
     ///                    widget handled, a focus or value or offset that
     ///                    moved, a request posted. May be NULL.
     /// @return `mui_success`; `mui_empty` for a node that does not take
-    ///         the action; `mui_errorInvalid` for a NULL context or
+    ///         the action, and for the text actions, which the host
+    ///         applies; `mui_errorInvalid` for a NULL context or
     ///         request, an unknown action, a value that is not finite, or
     ///         a call from a measure, paint or event function;
     ///         `mui_errorStale` for a node that is gone.

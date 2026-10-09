@@ -967,7 +967,8 @@ static bool Hear(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* e
     heard->phase = phase;
     heard->kind = event->kind;
     heard->navigation = event->navigation;
-    const muiAccessRequest request = {mui_actionClick, muiAccessIdOf(event->target), 0, 0, 0};
+    const muiAccessRequest request = {.action = mui_actionClick,
+                                      .target = muiAccessIdOf(event->target)};
     heard->nested = muiPerformAccessAction(heard->context, &request, NULL);
     // Handled where it was aimed.
     return phase == mui_phaseBubble && nodeId.index1 == event->target.index1;
@@ -983,7 +984,7 @@ static void TestActions(void)
     Layout(context, scene.root);
     // A click: activation routed to the button, which handles it; an
     // action from inside the route is refused.
-    muiAccessRequest request = {mui_actionClick, muiAccessIdOf(scene.button), 0, 0, 0};
+    muiAccessRequest request = {.action = mui_actionClick, .target = muiAccessIdOf(scene.button)};
     bool handled = false;
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled &&
               heard.kind == mui_eventNavigation && heard.navigation == mui_navigateActivate &&
@@ -1001,7 +1002,7 @@ static void TestActions(void)
                                        MUI_PROPERTY_BIT(mui_propertyFocusMode)) == mui_success,
           "focusable");
     Layout(context, scene.root);
-    request = (muiAccessRequest){mui_actionFocus, muiAccessIdOf(scene.button), 0, 0, 0};
+    request = (muiAccessRequest){.action = mui_actionFocus, .target = muiAccessIdOf(scene.button)};
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled &&
               muiFocus_Get(context, 0).index1 == scene.button.index1,
           "focused");
@@ -1019,7 +1020,8 @@ static void TestActions(void)
     while (muiNextNotification(context, &record) == mui_success)
     {
     }
-    request = (muiAccessRequest){mui_actionIncrement, muiAccessIdOf(scene.leaf), 0, 0, 0};
+    request =
+        (muiAccessRequest){.action = mui_actionIncrement, .target = muiAccessIdOf(scene.leaf)};
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled, "up");
     request.action = mui_actionSetValue;
     request.value = 20.4f;
@@ -1038,7 +1040,7 @@ static void TestActions(void)
     // Expand: the host's, posted.
     CHECK(muiNode_SetAccessFlags(context, scene.group, mui_accessExpandable) == mui_success,
           "expandable");
-    request = (muiAccessRequest){mui_actionExpand, muiAccessIdOf(scene.group), 0, 0, 0};
+    request = (muiAccessRequest){.action = mui_actionExpand, .target = muiAccessIdOf(scene.group)};
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled &&
               muiNextNotification(context, &record) == mui_success &&
               record.kind == mui_notificationAccessAction &&
@@ -1048,10 +1050,11 @@ static void TestActions(void)
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_empty, "not expanded");
     // Misuse.
     uint64_t misuse = muiGetContextMisuse(context);
-    request =
-        (muiAccessRequest){mui_actionSetScrollOffset + 1, muiAccessIdOf(scene.group), 0, 0, 0};
+    request = (muiAccessRequest){.action = mui_actionReplaceText + 1,
+                                 .target = muiAccessIdOf(scene.group)};
     CHECK(muiPerformAccessAction(context, &request, NULL) == mui_errorInvalid, "unknown");
-    request = (muiAccessRequest){mui_actionSetValue, muiAccessIdOf(scene.leaf), INFINITY, 0, 0};
+    request = (muiAccessRequest){
+        .action = mui_actionSetValue, .target = muiAccessIdOf(scene.leaf), .value = INFINITY};
     CHECK(muiPerformAccessAction(context, &request, NULL) == mui_errorInvalid &&
               muiPerformAccessAction(context, NULL, NULL) == mui_errorInvalid &&
               muiPerformAccessAction(NULL, &request, NULL) == mui_errorInvalid &&
@@ -1081,24 +1084,26 @@ static void TestScrollActions(void)
     Layout(context, root);
     float x = 0.0f;
     float y = 0.0f;
-    muiAccessRequest request = {mui_actionScrollDown, muiAccessIdOf(pane), 0, 0, 0};
+    muiAccessRequest request = {.action = mui_actionScrollDown, .target = muiAccessIdOf(pane)};
     bool handled = false;
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled &&
               muiNode_GetScroll(context, pane, &x, &y) == mui_success && y > 0.0f,
           "a page down");
     request.action = mui_actionScrollLeft;
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_empty, "not across");
-    request = (muiAccessRequest){mui_actionSetScrollOffset, muiAccessIdOf(pane), 0, 0, 1000.0f};
+    request = (muiAccessRequest){
+        .action = mui_actionSetScrollOffset, .target = muiAccessIdOf(pane), .y = 1000.0f};
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled &&
               muiNode_GetScroll(context, pane, &x, &y) == mui_success && y == 200.0f,
           "to the end");
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && !handled,
           "there already");
-    request = (muiAccessRequest){mui_actionScrollUp, muiAccessIdOf(pane), 0, 0, 0};
+    request = (muiAccessRequest){.action = mui_actionScrollUp, .target = muiAccessIdOf(pane)};
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled &&
               muiNode_GetScroll(context, pane, &x, &y) == mui_success && y < 200.0f,
           "a page up");
-    request = (muiAccessRequest){mui_actionScrollIntoView, muiAccessIdOf(rows[0]), 0, 0, 0};
+    request =
+        (muiAccessRequest){.action = mui_actionScrollIntoView, .target = muiAccessIdOf(rows[0])};
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled &&
               muiNode_GetScroll(context, pane, &x, &y) == mui_success && y == 0.0f,
           "into view");
@@ -1121,7 +1126,7 @@ static void TestScrollActions(void)
     CHECK(muiAccess_Enable(context, root) == mui_success, "enabled");
     Layout(context, root);
     (void)Build(context, root);
-    request = (muiAccessRequest){mui_actionScrollLeft, muiAccessIdOf(across), 0, 0, 0};
+    request = (muiAccessRequest){.action = mui_actionScrollLeft, .target = muiAccessIdOf(across)};
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled &&
               muiNode_GetScroll(context, across, &x, &y) == mui_success && x > 0.0f,
           "a page left, right to left");

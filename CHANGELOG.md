@@ -24,8 +24,14 @@ format.
   methods too), the character count, the caret and the selection; text
   changes told as deletions and insertions, the caret's moves and the
   selection's changes. Orca reads a field's words and lines and follows
-  its caret. Sentences, attributes, character geometry and setting the
-  selection are not given yet.
+  its caret. Sentences, attributes and character geometry are not
+  given yet.
+- Assistive technology sets a text's selection and replaces its text:
+  `mui_actionSetSelection` and `mui_actionReplaceText`, offered while
+  the text is edited (the selection alone when read only), applied by
+  the host with the text component's `muiTextPerformAccessAction`,
+  which edits as a paste does. AT-SPI's caret, selection and
+  EditableText methods ask for them; the clipboard stays the host's.
 
 ### Changed
 

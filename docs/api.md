@@ -59,7 +59,7 @@ Builds the update for an enabled root after its layout: the nodes whose role, te
 ```c
 MUI_NODISCARD MUI_API muiResult muiPerformAccessAction(muiContext* context, const muiAccessRequest* request, bool* handledOut);
 ```
-Applies a request to a node that takes its action.  @param context     The context. @param request     The request. @param handledOut  Receives whether it did anything: a click a widget handled, a focus or value or offset that moved, a request posted. May be NULL. @return `mui_success`; `mui_empty` for a node that does not take the action; `mui_errorInvalid` for a NULL context or request, an unknown action, a value that is not finite, or a call from a measure, paint or event function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Applies a request to a node that takes its action.  @param context     The context. @param request     The request. @param handledOut  Receives whether it did anything: a click a widget handled, a focus or value or offset that moved, a request posted. May be NULL. @return `mui_success`; `mui_empty` for a node that does not take the action, and for the text actions, which the host applies; `mui_errorInvalid` for a NULL context or request, an unknown action, a value that is not finite, or a call from a measure, paint or event function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetAccessRole(muiContext* context, muiNodeId nodeId, muiRole role);
@@ -1454,6 +1454,11 @@ MUI_NODISCARD MUI_API muiResult muiTextEditDrag(const muiTextHost* host, muiNode
 ```
 Extends the selection of a node's editing block to where a drag is, by the unit its press selected, keeping what the press selected.  @param host    The text host. @param nodeId  A node whose host key is an editing block's. @param x       The point, in the node's border box. @param y       The point's y. @return As muiTextEditPress. @par Thread safety Safe from any thread; the host's context and service are used by one thread at a time.
 
+```c
+MUI_NODISCARD MUI_API muiResult muiTextPerformAccessAction(const muiTextHost* host, const muiAccessRequest* request, muiTextEditOutcome* outcomeOut);
+```
+Applies what assistive technology asks of a node's editing block: its selection set (mui_actionSetSelection) or a range of its text replaced (mui_actionReplaceText, maul-ui/access.h), in offsets of the text as accessibility reads it (a password's mask), at the starts of characters. Text replaced goes in as a paste does, under the block's rules, the caret after it; a read-only block keeps its text. The host tells the accessibility tree what changed, as after muiTextEditEvent.  @param host        The text host. @param request     The request; its target a node whose host key is a block's. @param outcomeOut  Receives whether the request was taken, the text changed and the selection moved, whatever the result. @return `mui_success`; `mui_empty` for another action; `mui_errorInvalid` for a NULL argument, a block not editing, an offset past the text or inside a character, or a NULL text with a length; `mui_errorStale` for a node or block that is gone; `mui_errorCapacity` when memory runs out. @par Thread safety Safe from any thread; the host's context and service are used by one thread at a time.
+
 ## `text_style.h`
 
 Text style (record mui-0004): the values a text service reads to lay out and draw a node's text, set through the same classes, variants, conditions, tokens, themes, transitions and direct writes as every property. They are inherited as CSS inherits them: a property no layer gives a node takes its parent's value, and a root the defaults. The core draws no text; a change marks a node with host content to be measured or painted again.
@@ -1874,4 +1879,4 @@ Asks the window to accept text with its caret at a rectangle of a node's border 
 
 ---
 
-341 functions across 40 headers.
+342 functions across 40 headers.

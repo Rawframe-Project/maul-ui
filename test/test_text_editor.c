@@ -1164,6 +1164,78 @@ static void TestScroll(void)
     FreeScene(&scene);
 }
 
+// Assistive technology's requests: the selection set and text replaced
+// in the offsets accessibility reads, a paste's edit, the caret after it;
+// a password's by its bullets; offsets out of place refused.
+static muiTextEditOutcome Request(Scene* scene, muiAccessAction action, uint32_t anchor,
+                                  uint32_t focus, const char* text, muiResult expected)
+{
+    const muiAccessRequest request = {.action = action,
+                                      .target = muiAccessIdOf(scene->node),
+                                      .anchor = anchor,
+                                      .focus = focus,
+                                      .text = text,
+                                      .length = text != NULL ? (uint32_t)strlen(text) : 0};
+    muiTextEditOutcome outcome = {true, true, true, true};
+    CHECK(muiTextPerformAccessAction(&scene->host, &request, &outcome) == expected, "a request");
+    return outcome;
+}
+
+static void TestAccessRequests(void)
+{
+    Scene scene = MakeScene("h\xC3\xA9llo world", 0);
+    muiTextEditOutcome outcome = Request(&scene, mui_actionSetSelection, 7, 1, NULL, mui_success);
+    CHECK(Selects(&scene, 7, 1) && outcome.handled && outcome.selected && !outcome.changed,
+          "selected backward");
+    outcome = Request(&scene, mui_actionSetSelection, 7, 1, NULL, mui_success);
+    CHECK(!outcome.selected && !outcome.changed, "the same: nothing moved");
+    outcome = Request(&scene, mui_actionSetSelection, 2, 2, NULL, mui_errorInvalid);
+    CHECK(Selects(&scene, 7, 1) && !outcome.handled, "inside a character refused");
+    outcome = Request(&scene, mui_actionReplaceText, 12, 7, "there", mui_success);
+    CHECK(Holds(&scene, "h\xC3\xA9llo there") && Selects(&scene, 12, 12) && outcome.changed &&
+              outcome.selected,
+          "a word replaced, the caret after it");
+    CHECK(muiTextBlock_Undo(scene.service, scene.block, NULL) == mui_success &&
+              Holds(&scene, "h\xC3\xA9llo world"),
+          "undone as one edit");
+    outcome = Request(&scene, mui_actionReplaceText, 0, 3, NULL, mui_success);
+    CHECK(Holds(&scene, "llo world") && outcome.changed, "deleted");
+    (void)Request(&scene, mui_actionSetSelection, 2, 10, NULL, mui_errorInvalid);
+    CHECK(Selects(&scene, 0, 0), "past the end refused, the selection kept");
+    const muiAccessRequest nulled = {
+        .action = mui_actionReplaceText, .target = muiAccessIdOf(scene.node), .length = 2};
+    CHECK(muiTextPerformAccessAction(&scene.host, &nulled, &outcome) == mui_errorInvalid &&
+              !outcome.handled,
+          "a NULL text with a length refused");
+    (void)Request(&scene, mui_actionClick, 0, 0, NULL, mui_empty);
+    CHECK(muiTextPerformAccessAction(NULL, &nulled, &outcome) == mui_errorInvalid &&
+              muiTextPerformAccessAction(&scene.host, NULL, &outcome) == mui_errorInvalid &&
+              muiTextPerformAccessAction(&scene.host, &nulled, NULL) == mui_errorInvalid,
+          "NULL arguments refused");
+    const muiAccessRequest stray = {.action = mui_actionSetSelection, .target = 1u << 20};
+    CHECK(muiTextPerformAccessAction(&scene.host, &stray, &outcome) == mui_errorStale,
+          "a node that is not");
+    FreeScene(&scene);
+    // Read only: selected, its text kept.
+    scene = MakeScene("abc", mui_editReadOnly);
+    outcome = Request(&scene, mui_actionReplaceText, 0, 1, "x", mui_success);
+    CHECK(Holds(&scene, "abc") && !outcome.changed && outcome.selected, "read only: kept");
+    FreeScene(&scene);
+    // A password, by its bullets of three bytes.
+    scene = MakeScene("ab\xC3\xA9", mui_editPassword);
+    outcome = Request(&scene, mui_actionSetSelection, 3, 9, NULL, mui_success);
+    CHECK(Selects(&scene, 1, 4) && outcome.selected, "a password selected by its bullets");
+    (void)Request(&scene, mui_actionSetSelection, 1, 3, NULL, mui_errorInvalid);
+    outcome = Request(&scene, mui_actionReplaceText, 0, 3, "z", mui_success);
+    CHECK(Holds(&scene, "zb\xC3\xA9") && outcome.changed, "a password's character replaced");
+    FreeScene(&scene);
+    // Not editing: refused.
+    scene = MakeScene("abc", 0);
+    CHECK(muiTextBlock_SetEditing(scene.service, scene.block, NULL) == mui_success, "not editing");
+    (void)Request(&scene, mui_actionSetSelection, 0, 1, NULL, mui_errorInvalid);
+    FreeScene(&scene);
+}
+
 int main(void)
 {
     TestCalls();
@@ -1190,5 +1262,6 @@ int main(void)
     TestComposition();
     TestPassword();
     TestScroll();
+    TestAccessRequests();
     return s_failures == 0 ? 0 : 1;
 }

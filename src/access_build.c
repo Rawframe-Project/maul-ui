@@ -321,7 +321,10 @@ static uint64_t ReadContent(muiContext* context, uint32_t slot, bool boundaries,
     bool read = store->textFunction(store->textUser, muiTreeIdOf(&context->tree, slot),
                                     muiTreeAt(&context->tree, slot)->hostKey, boundaries, &content);
     context->inHostCall = false;
-    if (!read || content.text == nullptr || content.length == 0 || content.length > INT32_MAX ||
+    // Empty text is none, unless it is being edited: an empty field.
+    bool edited = content.marks.selected && content.length == 0;
+    if (!read || content.text == nullptr || (content.length == 0 && !edited) ||
+        content.length > INT32_MAX ||
         !muiAccessIsUtf8((const unsigned char*)content.text, content.length))
     {
         return 0;
@@ -330,6 +333,13 @@ static uint64_t ReadContent(muiContext* context, uint32_t slot, bool boundaries,
     node->textLength[mui_accessValue] = (uint32_t)content.length;
     node->marks = MarksOf(&content, boundaries);
     node->role = node->role == mui_roleGeneric ? mui_roleLabel : node->role;
+    // Text being edited takes its selection set and, unless read only,
+    // its text replaced, as the host applies them.
+    if (node->marks.selected && (node->flags & mui_accessDisabled) == 0)
+    {
+        node->actions |= Bit(mui_actionSetSelection);
+        node->actions |= (node->flags & mui_accessReadOnly) == 0 ? Bit(mui_actionReplaceText) : 0;
+    }
     // A changed text whose fingerprint matches the last, one in 2^64, is
     // not sent again.
     uint64_t print =

@@ -13,6 +13,7 @@
 #include "maul-ui/context.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
+#include "maul-ui/style.h"
 
 #include <string.h>
 
@@ -163,6 +164,93 @@ static void TestUnfit(void)
     muiDestroyContext(context);
 }
 
+static bool Takes(const muiAccessNode* node, muiAccessAction action)
+{
+    return node != NULL && (node->actions & (1u << action)) != 0;
+}
+
+// Text being edited takes its selection set and its text replaced; read
+// only, its selection alone; disabled or not edited, neither. An empty
+// field is a value. The context leaves both to the host.
+static void TestActions(void)
+{
+    muiContextDef def = muiDefaultContextDef();
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    muiNodeId root = Content(context, s_nullNode);
+    CHECK(muiSetAccessTextFunction(context, ReadMarks, NULL) == mui_success &&
+              muiAccess_Enable(context, root) == mui_success,
+          "reading");
+    muiAccessUpdate update = Build(context, root);
+    CHECK(Takes(Sent(&update, root), mui_actionSetSelection) &&
+              Takes(Sent(&update, root), mui_actionReplaceText),
+          "both taken");
+    bool handled = true;
+    muiAccessRequest request = {.action = mui_actionReplaceText, .target = muiAccessIdOf(root)};
+    CHECK(muiPerformAccessAction(context, &request, &handled) == mui_empty && !handled,
+          "the host's, not the context's");
+    request.action = mui_actionSetSelection;
+    CHECK(muiPerformAccessAction(context, &request, &handled) == mui_empty && !handled,
+          "a selection too");
+    CHECK(muiNode_SetAccessFlags(context, root, mui_accessReadOnly) == mui_success, "read only");
+    update = Build(context, root);
+    CHECK(Takes(Sent(&update, root), mui_actionSetSelection) &&
+              !Takes(Sent(&update, root), mui_actionReplaceText),
+          "read only: the selection alone");
+    CHECK(muiNode_SetAccessFlags(context, root, 0) == mui_success &&
+              muiNode_SetStates(context, root, mui_stateDisabled) == mui_success,
+          "disabled");
+    update = Build(context, root);
+    CHECK(!Takes(Sent(&update, root), mui_actionSetSelection) &&
+              !Takes(Sent(&update, root), mui_actionReplaceText),
+          "disabled: neither");
+    CHECK(muiNode_SetStates(context, root, 0) == mui_success, "enabled");
+    s_marks.selected = false;
+    update = Build(context, root);
+    CHECK(!Takes(Sent(&update, root), mui_actionSetSelection), "not edited: neither");
+    muiDestroyContext(context);
+    s_marks.selected = true;
+}
+
+// An empty text being edited is an empty value with its caret; not
+// edited, none.
+static const char* s_emptyText = "";
+static bool ReadEmpty(void* user, muiNodeId nodeId, uint64_t hostKey, bool boundaries,
+                      muiAccessContent* contentOut)
+{
+    (void)user;
+    (void)nodeId;
+    (void)hostKey;
+    (void)boundaries;
+    *contentOut = (muiAccessContent){s_emptyText, 0, {.selected = s_marks.selected}};
+    return true;
+}
+
+static void TestEmpty(void)
+{
+    muiContextDef def = muiDefaultContextDef();
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    muiNodeId root = Content(context, s_nullNode);
+    CHECK(muiSetAccessTextFunction(context, ReadEmpty, NULL) == mui_success &&
+              muiAccess_Enable(context, root) == mui_success,
+          "reading");
+    muiAccessUpdate update = Build(context, root);
+    const muiAccessNode* node = Sent(&update, root);
+    CHECK(node != NULL && node->text[mui_accessValue] != NULL &&
+              node->textLength[mui_accessValue] == 0 && node->marks.selected &&
+              node->marks.focus == 0 && Takes(node, mui_actionReplaceText),
+          "an empty field: an empty value, the caret at 0");
+    s_marks.selected = false;
+    CHECK(muiNode_MarkAccessChanged(context, root) == mui_success, "marked");
+    update = Build(context, root);
+    node = Sent(&update, root);
+    CHECK(node != NULL && node->text[mui_accessValue] == NULL && !node->marks.selected,
+          "not edited: none");
+    s_marks.selected = true;
+    muiDestroyContext(context);
+}
+
 static muiAccessUpdate One(const muiAccessNode* const* node)
 {
     return (muiAccessUpdate){node, 1, NULL, 1, 1};
@@ -235,6 +323,8 @@ int main(void)
 {
     TestRead();
     TestUnfit();
+    TestActions();
+    TestEmpty();
     TestTree();
     return s_failures == 0 ? 0 : 1;
 }

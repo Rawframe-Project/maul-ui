@@ -16,14 +16,15 @@
 #define ERROR_INVALID_ARGS   "org.freedesktop.DBus.Error.InvalidArgs"
 #define ERROR_NO_MEMORY      "org.freedesktop.DBus.Error.NoMemory"
 
-#define INTERFACE_ACCESSIBLE  "org.a11y.atspi.Accessible"
-#define INTERFACE_ACTION      "org.a11y.atspi.Action"
-#define INTERFACE_APPLICATION "org.a11y.atspi.Application"
-#define INTERFACE_COMPONENT   "org.a11y.atspi.Component"
-#define INTERFACE_TEXT        "org.a11y.atspi.Text"
-#define INTERFACE_VALUE       "org.a11y.atspi.Value"
-#define INTERFACE_PROPERTIES  "org.freedesktop.DBus.Properties"
-#define INTERFACE_INTROSPECT  "org.freedesktop.DBus.Introspectable"
+#define INTERFACE_ACCESSIBLE    "org.a11y.atspi.Accessible"
+#define INTERFACE_ACTION        "org.a11y.atspi.Action"
+#define INTERFACE_APPLICATION   "org.a11y.atspi.Application"
+#define INTERFACE_COMPONENT     "org.a11y.atspi.Component"
+#define INTERFACE_TEXT          "org.a11y.atspi.Text"
+#define INTERFACE_EDITABLE_TEXT "org.a11y.atspi.EditableText"
+#define INTERFACE_VALUE         "org.a11y.atspi.Value"
+#define INTERFACE_PROPERTIES    "org.freedesktop.DBus.Properties"
+#define INTERFACE_INTROSPECT    "org.freedesktop.DBus.Introspectable"
 
 // AT-SPI's application role.
 #define ROLE_APPLICATION 75
@@ -284,6 +285,11 @@ uint32_t muiAtspiInterfacesOf(const muiAtspiObject* object,
     if (muiAtspiHasText(object->node))
     {
         interfacesOut[count++] = INTERFACE_TEXT;
+    }
+    if (muiAtspiHasText(object->node) &&
+        (object->node->actions & (1u << mui_actionReplaceText)) != 0)
+    {
+        interfacesOut[count++] = INTERFACE_EDITABLE_TEXT;
     }
     return count;
 }
@@ -583,6 +589,12 @@ bool muiAtspiAnswer(muiAtspiApp* app, DBusMessage* call)
     }
     else if (strcmp(interface, INTERFACE_TEXT) == 0 && object.node != nullptr &&
              muiAtspiHasText(object.node) && muiAtspiAnswerText(app, call, &object, member))
+    {
+    }
+    else if (strcmp(interface, INTERFACE_EDITABLE_TEXT) == 0 && object.node != nullptr &&
+             muiAtspiHasText(object.node) &&
+             (object.node->actions & (1u << mui_actionReplaceText)) != 0 &&
+             muiAtspiAnswerEditableText(app, call, &object, member))
     {
     }
     else if (strcmp(interface, INTERFACE_COMPONENT) != 0 || object.node == nullptr ||

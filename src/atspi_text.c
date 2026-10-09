@@ -238,22 +238,31 @@ static bool AppendSpan(muiAtspiApp* app, muiDBusIter* iter, const Text* text, Sp
     return ok;
 }
 
-// Reads a call's arguments of types 'i' and 'u' into values, as many as
-// types names; false for others.
-static bool ReadInts(const muiDBusApi* dbus, DBusMessage* call, const char* types, int32_t* values)
+// Reads a call's arguments of the types named, 'i', 'u' or 's': the
+// integers into values and the strings into strings, each in order;
+// false for others.
+static bool ReadArgs(const muiDBusApi* dbus, DBusMessage* call, const char* types, int32_t* values,
+                     const char** strings)
 {
     muiDBusIter iter;
     bool ok = dbus->iterInit(call, &iter);
     for (size_t i = 0; ok && types[i] != '\0'; i++)
     {
-        int type = types[i] == 'i' ? mui_dbusTypeInt32 : mui_dbusTypeUint32;
+        int type = types[i] == 'i'   ? mui_dbusTypeInt32
+                   : types[i] == 'u' ? mui_dbusTypeUint32
+                                     : mui_dbusTypeString;
         ok = (i == 0 || dbus->next(&iter)) && dbus->argType(&iter) == type;
         if (ok)
         {
-            dbus->getBasic(&iter, &values[i]);
+            dbus->getBasic(&iter, type == mui_dbusTypeString ? (void*)strings++ : (void*)values++);
         }
     }
     return ok;
+}
+
+static bool ReadInts(const muiDBusApi* dbus, DBusMessage* call, const char* types, int32_t* values)
+{
+    return ReadArgs(dbus, call, types, values, nullptr);
 }
 
 // The granularity an older boundary type stands for; none for the
@@ -365,9 +374,58 @@ static bool AppendRead(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call, c
     return true;
 }
 
-// Writes the answers about the selection; setting it is not offered yet.
+// Asks the host for a request on a node that takes its action; whether
+// it was done.
+static bool Ask(const muiAtspiObject* object, const muiAccessRequest* request)
+{
+    return (object->node->actions & (1u << request->action)) != 0 &&
+           object->adapter->action(object->adapter->user, request);
+}
+
+// Asks the host to select from one character to another, the caret at
+// the second.
+static bool Select(const muiAtspiObject* object, const Text* text, int32_t anchor, int32_t focus)
+{
+    const muiAccessRequest request = {.action = mui_actionSetSelection,
+                                      .target = object->node->id,
+                                      .anchor = ByteOf(text, anchor),
+                                      .focus = ByteOf(text, focus)};
+    return Ask(object, &request);
+}
+
+// The answers that set the selection: the caret placed, the one
+// selection set, added where there is none, or taken back to the caret.
+static muiDBusBool SetSelection(DBusMessage* call, const muiAtspiObject* object, const Text* text,
+                                const char* member, const muiDBusApi* dbus, bool* ok)
+{
+    int32_t args[3] = {0, 0, 0};
+    Span selection = SelectionOf(text);
+    bool none = selection.start == selection.end;
+    if (strcmp(member, "SetCaretOffset") == 0)
+    {
+        *ok = ReadInts(dbus, call, "i", args);
+        return *ok && Select(object, text, args[0], args[0]);
+    }
+    if (strcmp(member, "SetSelection") == 0)
+    {
+        *ok = ReadInts(dbus, call, "iii", args);
+        return *ok && args[0] == 0 && Select(object, text, args[1], args[2]);
+    }
+    if (strcmp(member, "AddSelection") == 0)
+    {
+        *ok = ReadInts(dbus, call, "ii", args);
+        return *ok && none && Select(object, text, args[0], args[1]);
+    }
+    *ok = ReadInts(dbus, call, "i", args);
+    int32_t caret = muiAtspiCharsBefore(text->bytes, text->marks->focus);
+    return *ok && args[0] == 0 && !none && Select(object, text, caret, caret);
+}
+
+// Writes the answers about the selection, and about scrolling to text,
+// which is not offered.
 static bool AppendSelection(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
-                            const Text* text, const char* member, bool* ok)
+                            const muiAtspiObject* object, const Text* text, const char* member,
+                            bool* ok)
 {
     const muiDBusApi* dbus = &app->dbus;
     Span selection = SelectionOf(text);
@@ -387,8 +445,12 @@ static bool AppendSelection(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* ca
               dbus->appendBasic(iter, mui_dbusTypeInt32, &end);
     }
     else if (strcmp(member, "SetCaretOffset") == 0 || strcmp(member, "SetSelection") == 0 ||
-             strcmp(member, "AddSelection") == 0 || strcmp(member, "RemoveSelection") == 0 ||
-             strcmp(member, "ScrollSubstringTo") == 0 ||
+             strcmp(member, "AddSelection") == 0 || strcmp(member, "RemoveSelection") == 0)
+    {
+        const muiDBusBool done = SetSelection(call, object, text, member, dbus, ok);
+        *ok = *ok && dbus->appendBasic(iter, mui_dbusTypeBoolean, &done);
+    }
+    else if (strcmp(member, "ScrollSubstringTo") == 0 ||
              strcmp(member, "ScrollSubstringToPoint") == 0)
     {
         const muiDBusBool done = 0;
@@ -470,7 +532,7 @@ bool muiAtspiAnswerText(muiAtspiApp* app, DBusMessage* call, const muiAtspiObjec
     app->dbus.iterInitAppend(reply, &iter);
     bool ok = true;
     if (!AppendRead(app, &iter, call, &text, member, &ok) &&
-        !AppendSelection(app, &iter, call, &text, member, &ok) &&
+        !AppendSelection(app, &iter, call, object, &text, member, &ok) &&
         !AppendOther(app, &iter, &text, member, &ok))
     {
         app->dbus.unrefMessage(reply);
@@ -503,5 +565,79 @@ bool muiAtspiAppendTextProperty(muiAtspiApp* app, muiDBusIter* iter, const muiAt
         return false;
     }
     *ok = muiAtspiAppendVariant(app, iter, mui_dbusTypeInt32, &value);
+    return true;
+}
+
+// Asks the host to replace text from one character to another; whether
+// it was done.
+static bool Replace(const muiAtspiObject* object, const Text* text, int32_t start, int32_t end,
+                    const char* with, size_t length)
+{
+    const muiAccessRequest request = {.action = mui_actionReplaceText,
+                                      .target = object->node->id,
+                                      .anchor = ByteOf(text, start),
+                                      .focus = ByteOf(text, end),
+                                      .text = with,
+                                      .length = (uint32_t)length};
+    return length <= INT32_MAX && Ask(object, &request);
+}
+
+// InsertText's text: as many bytes as its length says, or all for a
+// negative one, cut back to a character's start.
+static size_t InsertedLength(const char* with, int32_t length)
+{
+    size_t all = strlen(with);
+    size_t kept = length >= 0 && (size_t)length < all ? (size_t)length : all;
+    while (kept > 0 && kept < all && !IsLead(with[kept]))
+    {
+        kept--;
+    }
+    return kept;
+}
+
+bool muiAtspiAnswerEditableText(muiAtspiApp* app, DBusMessage* call, const muiAtspiObject* object,
+                                const char* member)
+{
+    const muiDBusApi* dbus = &app->dbus;
+    const Text text = TextOf(object->node);
+    int32_t args[2] = {0, 0};
+    const char* with = nullptr;
+    bool ok = true;
+    muiDBusBool done = 0;
+    if (strcmp(member, "SetTextContents") == 0)
+    {
+        ok = ReadArgs(dbus, call, "s", args, &with);
+        done = ok && Replace(object, &text, 0, INT32_MAX, with, strlen(with));
+    }
+    else if (strcmp(member, "InsertText") == 0)
+    {
+        ok = ReadArgs(dbus, call, "isi", args, &with);
+        done = ok && Replace(object, &text, args[0], args[0], with, InsertedLength(with, args[1]));
+    }
+    else if (strcmp(member, "DeleteText") == 0)
+    {
+        ok = ReadInts(dbus, call, "ii", args);
+        done = ok && Replace(object, &text, args[0], args[1] < 0 ? INT32_MAX : args[1], "", 0);
+    }
+    else if (strcmp(member, "CopyText") != 0 && strcmp(member, "CutText") != 0 &&
+             strcmp(member, "PasteText") != 0)
+    {
+        return false;
+    }
+    // The clipboard is the host's: copying, cutting and pasting are not
+    // offered, CopyText answering nothing.
+    DBusMessage* reply =
+        ok ? dbus->newMethodReturn(call) : dbus->newError(call, ERROR_INVALID_ARGS, member);
+    muiDBusIter iter;
+    if (reply != nullptr && ok && strcmp(member, "CopyText") != 0)
+    {
+        dbus->iterInitAppend(reply, &iter);
+        if (!dbus->appendBasic(&iter, mui_dbusTypeBoolean, &done))
+        {
+            dbus->unrefMessage(reply);
+            reply = nullptr;
+        }
+    }
+    muiAtspiSend(app, call, reply);
     return true;
 }

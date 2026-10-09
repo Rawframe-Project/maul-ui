@@ -66,8 +66,11 @@ typedef struct Test
     // What Embed was given: the application's bus name and root's path.
     char plugName[256];
     char plugPath[256];
-    // What the host was asked last.
+    // What the host was asked last, and the text it was given, which
+    // lives only while it is asked; what it answers.
     muiAccessRequest asked;
+    char askedText[64];
+    bool refuse;
     // The events received, "member kind detail1 from data; ..." with
     // paths cut to what follows /accessible/.
     char events[2048];
@@ -302,7 +305,10 @@ static bool Act(void* user, const muiAccessRequest* request)
 {
     (void)user;
     s_test.asked = *request;
-    return true;
+    size_t kept = request->length < sizeof s_test.askedText ? request->length : 0;
+    memcpy(s_test.askedText, request->text != NULL ? request->text : "", kept);
+    s_test.askedText[kept] = '\0';
+    return !s_test.refuse;
 }
 
 // A call to one of the application's objects, to fill in.
@@ -1534,11 +1540,128 @@ static void TestTextChanges(muiAtspiAdapter* adapter, Built* built, muiAccessNod
           "emptied, no caret");
 }
 
+// Whether the host was last asked to select or replace, at bytes, with
+// text; for the action 0, whether it was asked nothing.
+static bool AskedText(muiAccessAction action, uint32_t anchor, uint32_t focus, const char* text)
+{
+    bool same = s_test.asked.action == action && s_test.asked.target == (action != 0 ? 7u : 0u) &&
+                s_test.asked.anchor == anchor && s_test.asked.focus == focus &&
+                strcmp(s_test.askedText, text) == 0;
+    if (!same)
+    {
+        fprintf(stderr, "asked %d %u-%u '%s'\n", (int)s_test.asked.action,
+                (unsigned)s_test.asked.anchor, (unsigned)s_test.asked.focus, s_test.askedText);
+    }
+    s_test.asked = (muiAccessRequest){0};
+    s_test.askedText[0] = '\0';
+    return same;
+}
+
+static bool Edited(const char* member, const char* types, const int32_t* ints, const char* text,
+                   const char* expected)
+{
+    DBusMessage* call =
+        Call("/org/a11y/atspi/accessible/w1n7", "org.a11y.atspi.EditableText", member);
+    muiDBusIter iter;
+    s_test.dbus.iterInitAppend(call, &iter);
+    for (size_t i = 0; types[i] != '\0'; i++)
+    {
+        (void)(types[i] == 's'
+                   ? s_test.dbus.appendBasic(&iter, mui_dbusTypeString, (const void*)&text)
+                   : s_test.dbus.appendBasic(&iter, mui_dbusTypeInt32, ints++));
+    }
+    DBusMessage* reply = Answer(call);
+    muiDBusBool done = 0;
+    bool got = reply != NULL && s_test.dbus.messageType(reply) == mui_dbusMethodReturn;
+    char answer[8] = "none";
+    if (got && FirstOf(reply, mui_dbusTypeBoolean, &done))
+    {
+        (void)snprintf(answer, sizeof answer, "%s", done ? "true" : "false");
+    }
+    if (reply != NULL)
+    {
+        s_test.dbus.unrefMessage(reply);
+    }
+    if (!got || strcmp(answer, expected) != 0)
+    {
+        fprintf(stderr, "%s: %s\n", member, got ? answer : "an error");
+    }
+    return got && strcmp(answer, expected) == 0;
+}
+
+// The caret and selection set and the text replaced, asked of the host
+// in bytes; EditableText only where the text may be replaced.
+static void TestTextRequests(muiAtspiAdapter* adapter, Built* built, muiAccessNode* input)
+{
+    static const char s_value[] = "h\xC3\xA9llo";
+    input->text[mui_accessValue] = s_value;
+    input->textLength[mui_accessValue] = sizeof s_value - 1;
+    input->marks = (muiAccessTextMarks){.anchor = 1, .focus = 1, .selected = true};
+    input->actions |= 1u << mui_actionSetSelection | 1u << mui_actionReplaceText;
+    CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
+              ReplyIs("/org/a11y/atspi/accessible/w1n7", "org.a11y.atspi.Accessible",
+                      "GetInterfaces",
+                      "org.a11y.atspi.Accessible org.a11y.atspi.Component "
+                      "org.a11y.atspi.Text org.a11y.atspi.EditableText"),
+          "editable text");
+    (void)EventsAre("TextChanged insert 0/5 w1n7 h\xC3\xA9llo; TextCaretMoved  1 w1n7");
+    CHECK(TextIs("SetCaretOffset", "i", (const int32_t[]){2}, "") &&
+              AskedText(mui_actionSetSelection, 3, 3, "") &&
+              TextIs("SetSelection", "iii", (const int32_t[]){0, 4, 1}, "") &&
+              AskedText(mui_actionSetSelection, 5, 1, "") &&
+              TextIs("SetSelection", "iii", (const int32_t[]){1, 0, 2}, "") &&
+              AskedText(0, 0, 0, "") && TextIs("AddSelection", "ii", (const int32_t[]){0, 9}, "") &&
+              AskedText(mui_actionSetSelection, 0, 6, "") &&
+              TextIs("RemoveSelection", "i", (const int32_t[]){0}, "") && AskedText(0, 0, 0, ""),
+          "the caret and a selection asked in bytes, none to remove");
+    input->marks.anchor = 3;
+    CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
+              TextIs("AddSelection", "ii", (const int32_t[]){0, 1}, "") && AskedText(0, 0, 0, "") &&
+              TextIs("RemoveSelection", "i", (const int32_t[]){0}, "") &&
+              AskedText(mui_actionSetSelection, 1, 1, ""),
+          "one selection: none added, removed to the caret");
+    (void)EventsAre("TextSelectionChanged  0 w1n7");
+    CHECK(Edited("SetTextContents", "s", NULL, "abc", "true") &&
+              AskedText(mui_actionReplaceText, 0, 6, "abc") &&
+              Edited("InsertText", "isi", (const int32_t[]){2, 2}, "x\xC3\xA9z", "true") &&
+              AskedText(mui_actionReplaceText, 3, 3, "x") &&
+              Edited("InsertText", "isi", (const int32_t[]){9, -1}, "yz", "true") &&
+              AskedText(mui_actionReplaceText, 6, 6, "yz") &&
+              Edited("DeleteText", "ii", (const int32_t[]){1, 3}, NULL, "true") &&
+              AskedText(mui_actionReplaceText, 1, 4, "") &&
+              Edited("DeleteText", "ii", (const int32_t[]){4, -1}, NULL, "true") &&
+              AskedText(mui_actionReplaceText, 5, 6, ""),
+          "text set, inserted and deleted, asked in bytes");
+    s_test.refuse = true;
+    CHECK(Edited("SetTextContents", "s", NULL, "abc", "false") &&
+              TextIs("SetCaretOffset", "i", (const int32_t[]){2}, "") &&
+              Edited("CutText", "ii", (const int32_t[]){0, 1}, NULL, "false") &&
+              Edited("PasteText", "i", (const int32_t[]){0}, NULL, "false") &&
+              Edited("CopyText", "ii", (const int32_t[]){0, 1}, NULL, "none") &&
+              IsError(Answer(Call("/org/a11y/atspi/accessible/w1n7", "org.a11y.atspi.EditableText",
+                                  "Nothing")),
+                      "org.freedesktop.DBus.Error.UnknownMethod"),
+          "refused; the clipboard not offered");
+    s_test.refuse = false;
+    s_test.asked = (muiAccessRequest){0};
+    input->actions &= ~(1u << mui_actionReplaceText | 1u << mui_actionSetSelection);
+    CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
+              IsError(Answer(Call("/org/a11y/atspi/accessible/w1n7", "org.a11y.atspi.EditableText",
+                                  "DeleteText")),
+                      "org.freedesktop.DBus.Error.UnknownMethod") &&
+              TextIs("SetCaretOffset", "i", (const int32_t[]){2}, "") && AskedText(0, 0, 0, ""),
+          "not editable: no EditableText, the caret not asked");
+    *input = built->nodes[6];
+    CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0), "back");
+    (void)EventsAre("TextChanged delete 0/5 w1n7 h\xC3\xA9llo");
+}
+
 static void TestText(muiAtspiAdapter* adapter, Built* built)
 {
     muiAccessNode input = built->nodes[6];
     TestTextReads(adapter, built, &input);
     TestTextChanges(adapter, built, &input);
+    TestTextRequests(adapter, built, &input);
 }
 
 static void TestGone(muiAtspiAdapter* adapter, Built* built)

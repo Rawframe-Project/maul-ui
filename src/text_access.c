@@ -3,11 +3,13 @@
 //
 // What a text block reads as to accessibility (records mui-0006 and
 // mui-0008, I123): its text as shown, its editing selection, its lines as
-// painting breaks them, and its words.
+// painting breaks them, and its words; and the requests that set the
+// selection and replace text, in the offsets it reads as.
 
 #include "allocator.h"
 #include "text_block.h"
 #include "text_blocks.h"
+#include "text_editing.h"
 #include "text_lines.h"
 #include "text_mask.h"
 #include "text_paragraph.h"
@@ -98,7 +100,9 @@ bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, bool bounda
     {
         return false;
     }
-    *contentOut = (muiAccessContent){.text = shown->text.data, .length = shown->length};
+    // An empty block may have no buffer yet.
+    const char* text = shown->text.data != nullptr ? shown->text.data : "";
+    *contentOut = (muiAccessContent){.text = text, .length = shown->length};
     muiAccessTextMarks* marks = &contentOut->marks;
     if (block->editing.on)
     {
@@ -120,4 +124,65 @@ bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, bool bounda
         marks->wordCount = 0;
     }
     return true;
+}
+
+// Whether an offset of the text as shown lies at a character's start.
+static bool IsShownStart(const muiTextBlock* shown, uint32_t offset)
+{
+    const unsigned char* text = shown->text.data;
+    return offset == shown->length || (offset < shown->length && (text[offset] & 0xC0u) != 0x80u);
+}
+
+muiResult muiTextPerformAccessAction(const muiTextHost* host, const muiAccessRequest* request,
+                                     muiTextEditOutcome* outcomeOut)
+{
+    if (host == nullptr || host->service == nullptr || host->context == nullptr ||
+        request == nullptr || outcomeOut == nullptr)
+    {
+        return muiRefuseEdit(host != nullptr ? host->service : nullptr);
+    }
+    *outcomeOut = (muiTextEditOutcome){false, false, false, false};
+    if (request->action != mui_actionSetSelection && request->action != mui_actionReplaceText)
+    {
+        return mui_empty;
+    }
+    muiNodeId nodeId = muiNodeIdOfAccess(request->target);
+    uint64_t key = muiNode_GetHostKey(host->context, nodeId);
+    const muiTextBlockId blockId = {(uint32_t)key, (uint32_t)(key >> 32)};
+    muiTextBlock* block = key != 0 ? muiResolveTextBlock(host->service, blockId) : nullptr;
+    if (block == nullptr)
+    {
+        return mui_errorStale;
+    }
+    const muiTextBlock* shown = muiShownBlock(host->service, block);
+    if (shown == nullptr)
+    {
+        return mui_errorCapacity;
+    }
+    if (!block->editing.on || !IsShownStart(shown, request->anchor) ||
+        !IsShownStart(shown, request->focus) ||
+        (request->action == mui_actionReplaceText && request->text == nullptr &&
+         request->length != 0))
+    {
+        return muiRefuseEdit(host->service);
+    }
+    const muiTextSelection before = block->editing.selection;
+    const muiTextSelection selection = {
+        muiUnmaskOffset(block, request->anchor),
+        {muiUnmaskOffset(block, request->focus), mui_affinityDownstream}};
+    muiTextEditOutcome outcome = {true, false, false, false};
+    muiResult result = muiTextBlock_Select(host->service, blockId, selection);
+    // Text replaced goes in as a paste does: under the block's rules, an
+    // edit undone alone.
+    if (result == mui_success && request->action == mui_actionReplaceText)
+    {
+        result = muiTextBlock_Paste(host->service, blockId, request->text, request->length,
+                                    &outcome.changed);
+    }
+    const muiTextSelection* after = &block->editing.selection;
+    outcome.selected = after->anchor != before.anchor ||
+                       after->caret.offset != before.caret.offset ||
+                       after->caret.affinity != before.caret.affinity;
+    *outcomeOut = outcome;
+    return result;
 }

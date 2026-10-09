@@ -372,6 +372,34 @@ static muiAtspiApp* JoinAtspi(SampleApp* app)
 }
 #endif
 
+// What a client asks of a node: a text's selection or its text to the
+// editor, told to the tree as an edit is; the rest to the context.
+static bool Act(void* user, const muiAccessRequest* request)
+{
+    SampleApp* app = user;
+    if (request->action != mui_actionSetSelection && request->action != mui_actionReplaceText)
+    {
+        bool handled = false;
+        return muiPerformAccessAction(app->context, request, &handled) == mui_success && handled;
+    }
+    muiNodeId node = muiNodeIdOfAccess(request->target);
+    muiTextEditOutcome outcome = {false, false, false, false};
+    bool done = muiTextPerformAccessAction(&app->host, request, &outcome) == mui_success;
+    SampleAppCheck(
+        app, !outcome.changed || muiNode_MarkContentChanged(app->context, node) == mui_success,
+        "a client's edit shown");
+    SampleAppCheck(app,
+                   outcome.changed || !outcome.selected ||
+                       muiNode_MarkAccessChanged(app->context, node) == mui_success,
+                   "a client's selection told");
+    if (outcome.changed && app->def->edited != NULL)
+    {
+        app->def->edited(app->def->user, app, node);
+    }
+    // A read-only text keeps its text: not done.
+    return done && (request->action == mui_actionSetSelection || outcome.changed);
+}
+
 // One frame: the records, the access once the window has its surface
 // (which its first records bring), layout at now, the accessibility
 // tree's changes, the list painted and drawn, into a texture headless,
@@ -384,6 +412,8 @@ static bool Step(SampleApp* app)
     {
         muiWindowAccessDef access = muiDefaultWindowAccessDef();
         access.glue = app->glue;
+        access.action = Act;
+        access.user = app;
 #if SAMPLE_ATSPI
         access.atspiApp = JoinAtspi(app);
 #endif
