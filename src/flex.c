@@ -172,8 +172,14 @@ static float AutomaticMinimum(const Frame* frame, uint32_t child, const muiAxisS
 }
 
 // Section 9.2: a child's margins, limits, flex base size and
-// hypothetical main size.
-static void PrepareItem(const Frame* frame, uint32_t child)
+// hypothetical main size. Returns its outer contribution to a container
+// sized by its content: section 9.9.1's web-compatible sum, with 9.9.3's
+// contributions as Chrome reads them. In a row, an item counts its
+// preferred size, else its content's, capped by a given basis if it
+// cannot grow and floored by it if it cannot shrink (neither for a
+// wrapping row's min-content size), within its limits, its automatic
+// minimum among them. A column counts hypothetical sizes, as Chrome does.
+static float PrepareItem(const Frame* frame, uint32_t child)
 {
     muiLayoutNode* layout = &frame->solver->nodes[child - 1];
     const muiLayoutStyle* style = &layout->style;
@@ -193,10 +199,11 @@ static void PrepareItem(const Frame* frame, uint32_t child)
     };
     float base = 0.0f;
     bool fromContent = false;
-    if (!muiResolveDimension(style->item.basis, frame->extentMain, &base))
+    bool basisGiven = muiResolveDimension(style->item.basis, frame->extentMain, &base);
+    muiMeasureMode mode =
+        frame->mainIn.mode == mui_measureMinContent ? mui_measureMinContent : mui_measureMaxContent;
+    if (!basisGiven)
     {
-        muiMeasureMode mode = frame->mainIn.mode == mui_measureMinContent ? mui_measureMinContent
-                                                                          : mui_measureMaxContent;
         // A definite cross size gives the base through the aspect ratio
         // (section 9.2.3 B) when the child is sized with an exact cross
         // size and an automatic main one.
@@ -219,6 +226,17 @@ static void PrepareItem(const Frame* frame, uint32_t child)
     }
     item->minMain = fmaxf(minimum, boxMain);
     item->hypothetical = muiClampSize(item->base, item->minMain, item->maxMain, boxMain);
+    if (!basisGiven || !frame->row || frame->mainIn.mode == mui_measureExact)
+    {
+        return item->hypothetical + item->marginMain;
+    }
+    float size = main.definite ? main.size : ContentMain(frame, child, mode, crossConstraint);
+    if (!(frame->multiLine && mode == mui_measureMinContent))
+    {
+        size = style->item.grow == 0.0f ? fminf(size, item->base) : size;
+        size = style->item.shrink == 0.0f ? fmaxf(size, item->base) : size;
+    }
+    return muiClampSize(size, item->minMain, item->maxMain, boxMain) + item->marginMain;
 }
 
 static muiFlexItemState* ItemOf(const Frame* frame, uint32_t child)
@@ -321,8 +339,7 @@ static void SizeMain(Frame* frame)
     for (uint32_t c = muiFirstFlowChild(tree, frame->solver->nodes, frame->node); c != 0;
          c = muiNextFlowChild(tree, frame->solver->nodes, c))
     {
-        PrepareItem(frame, c);
-        float outer = ItemOf(frame, c)->hypothetical + ItemOf(frame, c)->marginMain;
+        float outer = PrepareItem(frame, c);
         sum += outer;
         widest = fmaxf(widest, outer);
         frame->count++;

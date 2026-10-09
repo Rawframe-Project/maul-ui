@@ -10,6 +10,16 @@ format.
 
 ### Changed
 
+- A row sized by its content sums its items' contributions, the
+  specification's Web-compatible algorithm as Chrome applies it, not
+  their flex bases: an item counts its preferred width, else its
+  content's, capped by a given basis if it cannot grow and floored by
+  it if it cannot shrink (neither for a wrapping row's min-content
+  width), within its limits. An empty item with a basis of 120 in rows
+  of automatic width leaves them 0 wide, as in Chrome. Columns keep
+  summing their items' hypothetical sizes, as Chrome does. Thirteen
+  Chrome fixtures hold the cases (test/layout/intrinsic.txt).
+
 - A box with an aspect ratio and neither size known takes its content's
   width within its height's limits carried through the ratio, padding
   and border among them, its own width limits winning, and its height

@@ -1,0 +1,92 @@
+# A flex container's size from its content along its main axis (section
+# 9.9.1's sum of contributions, section 9.9.3 as Chrome reads it).
+# chrome 154.0.8037.57
+
+# An item that cannot grow counts its content, capped by its basis.
+fixture row_basis_caps_item_that_cannot_grow available=500x400
+node => 0 0 0 0
+  node align-self=start => 0 0 0 0
+    node basis=120 => 0 0 0 0
+
+# An item that cannot shrink counts at least its basis.
+fixture row_basis_floors_item_that_cannot_shrink available=500x400
+node => 0 0 120 0
+  node align-self=start => 0 0 120 0
+    node basis=120 shrink=0 => 0 0 120 0
+
+# An item that can grow and shrink counts its content alone.
+fixture row_growing_item_counts_content available=500x400
+node => 0 0 50 10
+  node align-self=start => 0 0 50 10
+    node basis=120 grow=1 content=50x10 => 0 0 50 10
+
+# The cap gives way to the automatic minimum, the content's.
+fixture row_automatic_minimum_beats_cap available=500x400
+node => 0 0 100 10
+  node align-self=start => 0 0 100 10
+    node basis=30 content=100x10 => 0 0 100 10
+
+# A preferred width counts, not the larger of it and the content.
+fixture row_preferred_width_counts available=500x400
+node => 0 0 50 10
+  node align-self=start => 0 0 50 10
+    node width=50 content=100x10 => 0 0 50 10
+
+# A basis floors a preferred width when the item cannot shrink.
+fixture row_basis_floors_preferred_width available=500x400
+node => 0 0 120 0
+  node align-self=start => 0 0 120 0
+    node width=50 basis=120 shrink=0 => 0 0 120 0
+
+# Limits clamp the result.
+fixture row_limits_clamp_contribution available=500x400
+node => 0 0 80 0
+  node align-self=start => 0 0 80 0
+    node basis=120 shrink=0 max-width=80 => 0 0 80 0
+
+# A single-line row's min-content width sums min-content contributions.
+fixture row_min_content_sum available=500x400
+node width=0 align-items=start => 0 0 0 10
+  node => 0 0 160 10
+    node basis=120 => 0 0 0 10
+    node basis=120 shrink=0 => 0 0 120 10
+    node basis=10 content=40x10 => 120 0 40 10
+
+# A wrapping row's min-content width is its largest min-content
+# contribution, which no basis floors.
+fixture row_wrapping_min_content_largest available=500x400
+node width=0 align-items=start => 0 0 0 10
+  node wrap=wrap => 0 0 40 10
+    node basis=120 shrink=0 => 0 0 120 0
+    node content=40x10 => 0 0 40 10
+
+# A wrapping row's max-content width sums contributions.
+fixture row_wrapping_max_content_sum available=500x400
+node => 0 0 160 10
+  node align-self=start wrap=wrap => 0 0 160 10
+    node basis=120 shrink=0 => 0 0 120 0
+    node basis=120 => 0 0 120 10
+    node content=40x10 => 120 0 40 10
+
+# A basis from content neither caps nor floors.
+fixture row_content_basis_no_floor available=500x400
+node width=0 align-items=start => 0 0 0 10
+  node => 0 0 40 10
+    node shrink=0 wrap=wrap => 0 0 80 10
+      node content=40x10 => 0 0 40 10
+      node content=40x10 => 40 0 40 10
+
+# Margins count.
+fixture row_margins_count available=500x400
+node => 0 0 160 20
+  node align-self=start => 0 0 160 20
+    node basis=120 shrink=0 margin=5 => 5 5 120 10
+    node basis=120 margin=5 content=20x10 => 135 5 20 10
+
+# A column's height is its items' hypothetical sizes, bases included.
+fixture column_sums_bases available=500x400
+node width=300 height=300 align-items=start => 0 0 300 300
+  node direction=column => 0 0 40 200
+    node basis=120 => 0 0 40 120
+    node basis=50 shrink=0 => 0 120 40 50
+    node basis=10 content=40x30 => 0 170 40 30
