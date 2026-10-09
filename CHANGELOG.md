@@ -8,6 +8,17 @@ format.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-10-09
+
+The first release: the node tree, flex layout checked against Chrome,
+style, the text service with font fallback and editing, interaction,
+virtualization and popups, the accessibility tree with its six
+platform adapters, the reference renderer on Maul RHI and the glue to
+Maul Window. Known issues: no adapter has text interfaces yet, the
+active descendant is shown by the ARIA adapter alone, and Orca 46 does
+not announce the first focus in a window that opens with nothing
+focused.
+
 ### Changed
 
 - A ratio item's width, floored by its content, is capped by its
