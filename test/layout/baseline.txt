@@ -322,3 +322,11 @@ node align-items=baseline => 0 0 35 30
     node width=20 height=10 margin=5,0,0,0 => 5 0 20 10
     node width=10 height=10 content=10x6 => 5 10 10 10
   node height=30 content=10x20 => 25 0 10 30
+
+# Asked its baseline, an item is laid out at its content's height, as it
+# then is: a percentage height below it does not resolve.
+fixture baseline_query_content_height available=500x400
+node align-items=baseline => 0 0 0 0
+  node => 0 0 0 0
+  node => 0 0 0 0
+    node height=75%+10 => 0 0 0 0

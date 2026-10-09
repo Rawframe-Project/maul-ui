@@ -473,8 +473,13 @@ static float HypotheticalCross(const Frame* frame, uint32_t first, uint32_t coun
             float own = frame->rtl ? item->cross : 0.0f;
             if (frame->row)
             {
+                // Its height its content's, as it is laid out (not
+                // stretched, it is so unless given or from its ratio).
                 muiSizingInput at =
                     ChildInput(frame, muiExact(item->target), muiExact(item->cross));
+                at.contentHeight =
+                    style->sizing.aspectRatio <= 0.0f &&
+                    !muiResolveAxis(&style->sizing, false, frame->extentCross).definite;
                 own = frame->solver->baseline(frame->solver, c, &at);
             }
             muiEdges margins = muiMarginsOf(style, frame->rtl);

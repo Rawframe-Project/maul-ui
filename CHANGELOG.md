@@ -10,6 +10,10 @@ format.
 
 ### Changed
 
+- Asked an item's baseline, a row lays the item out at its content's
+  height, as it lays it out after, so a percentage height below it does
+  not resolve there either. As Chrome does; one Chrome fixture holds it.
+
 - A wrapping row's max-content width is the larger of its items'
   single-line sum and its widest item alone on a line, a basis capping
   only the sum; and an absolute box aligned by baseline between both
