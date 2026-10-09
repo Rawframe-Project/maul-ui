@@ -311,9 +311,13 @@ static void TestNotifications(muiNsAdapter* adapter, const Built* built)
     muiAccessNode window = root;
     window.links = s_active;
     window.linkCount = 1;
-    CHECK(Send(adapter, &window, more, 1) && PostedAre(@"AXFocusedUIElementChanged 6"),
+    // The tree's focus moves too, which may show a hidden node: the
+    // layout first.
+    CHECK(Send(adapter, &window, more, 1) &&
+              PostedAre(@"AXLayoutChanged 1; AXFocusedUIElementChanged 6"),
           "an active descendant: the focus shown");
-    CHECK(Send(adapter, &root, more, 2) && PostedAre(@"AXFocusedUIElementChanged 2"),
+    CHECK(Send(adapter, &root, more, 2) &&
+              PostedAre(@"AXLayoutChanged 1; AXFocusedUIElementChanged 2"),
           "none: the focus back");
     [s_posted release];
     adapter->post = saved;
