@@ -311,3 +311,17 @@ node => 0 0 3 11.5
   node => 0 0 3 11.5
     node aspect=0.5 => 0 0 5.75 11.5
       node height=75% margin=3,0,7,0 => 3 7 0 8.625
+
+# A box whose style gives its height takes its width through the ratio
+# when asked its width with its height open, as a column measures it.
+fixture column_item_height_gives_width available=500x400
+node => 0 0 120 60
+  node => 0 0 120 60
+    node direction=column => 0 0 120 60
+      node height=60 aspect=2 => 0 0 120 60
+
+fixture column_item_percent_height_gives_width available=500x400
+node => 0 0 112.5 150
+  node height=150 => 0 0 112.5 150
+    node direction=column-reverse => 0 0 112.5 150
+      node height=75% aspect=1 => 0 37.5 112.5 112.5

@@ -356,6 +356,16 @@ static void ApplyAspectRatio(const muiSolver* solver, uint32_t node, muiSizingIn
         input->width = muiExact(size);
         input->height = RatioAxis(solver, node, input, false, size / ratio);
     }
+    else if (!exactWidth && !exactHeight && !width.definite && height.definite)
+    {
+        // Its style gives the height, the ratio the width, whatever the
+        // query leaves open, as a column asks its items' widths.
+        const muiLayoutStyle* style = &solver->nodes[node - 1].style;
+        input->height =
+            muiExact(muiClampSize(height.size, height.minimum, height.maximum,
+                                  muiBoxSum(&solver->paddings[node - 1], style, false)));
+        input->width = RatioAxis(solver, node, input, true, input->height.size * ratio);
+    }
     else if (exactHeight && input->width.mode == mui_measureMinContent && width.definite &&
              muiRatioWidthMinimum(&solver->nodes[node - 1].style) &&
              (solver->nodes[node - 1].absolute || muiTreeAt(solver->tree, node)->links.parent == 0))

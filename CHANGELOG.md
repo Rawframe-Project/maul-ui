@@ -10,6 +10,13 @@ format.
 
 ### Changed
 
+- A box whose style gives its height and whose width is automatic takes
+  its width through its aspect ratio when asked its width with its
+  height left open, as a column asks its items, as Chrome does: an item
+  60 high at 2:1 in a column of automatic width is 120 wide, and so is
+  the column. Two Chrome fixtures hold it, and one more random layout
+  joins the corpus.
+
 - The content floor of a row's height from its aspect ratio counts a
   stretched item's minimum height, a percentage resolved against the
   ratio's height, and its margins, as Chrome does; the row is measured
