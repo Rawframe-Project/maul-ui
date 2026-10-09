@@ -10,6 +10,15 @@ format.
 
 ### Changed
 
+- In a column, a ratio item's content size suggestion is capped by its
+  maximum width through the ratio (Flexbox 4.5), and its base comes from
+  the width it fits through the ratio, its content counting through its
+  automatic minimum (Flexbox 9.2.3 B); the suggestion's floor through
+  the ratio counts the item's cross padding and border; and an absolute
+  box's vertical automatic margins centre it in the space its insets
+  leave, none when they cross. All as Chrome does; six Chrome fixtures
+  hold the cases.
+
 - A column asking an item's width contribution gives it the height its
   style gives; a ratio item's content size suggestion is floored by its
   cross minimum through the ratio (Flexbox 4.5); and an absolute box

@@ -376,3 +376,37 @@ node => 0 0 10 16
     node width=50% align-items=start => 0 0 5 16
       node width=50% min-height=25% aspect=1 => 0 0 2.5 4
       node content=10x16 => 2.5 0 10 16
+
+# In a column, a ratio item's content size suggestion is capped by its
+# cross maximum through the ratio.
+fixture aspect_column_suggestion_cross_maximum available=500x400
+node => 0 0 0 0
+  node direction=column-reverse => 0 0 0 0
+    node max-width=0 aspect=1.5 => 0 0 0 0
+      node content=50x40 => 0 0 50 0
+
+fixture aspect_column_suggestion_cross_maximum_padding available=500x400
+node => 0 0 54 40
+  node => 0 0 54 40
+    node direction=column-reverse => 0 0 54 40
+      node max-width=60 aspect=1.5 padding=2 content=50x40 => 0 0 54 40
+
+fixture aspect_column_suggestion_cross_maximum_margin available=500x400
+node => 0 0 40 30
+  node direction=column-reverse => 0 0 40 30
+    node max-width=60 aspect=2 => 0 0 40 30
+      node margin=10 content=20x20 => 10 10 20 10
+
+# A column ratio item's base is its width through the ratio, its content
+# left to its automatic minimum.
+fixture aspect_column_base_from_width available=500x400
+node direction=column-reverse => 0 0 0 0
+  node max-width=0 aspect=1 => 0 0 0 0
+    node border=10 => 0 0 20 20
+
+# The content size suggestion is floored by padding and border.
+fixture aspect_content_suggestion_padding_floor available=500x400
+node max-width=10 => 0 0 10 4
+  node width=75% => 0 0 7.5 4
+    node width=75% align-items=end => 0 0 5.625 4
+      node width=30 aspect=1.5 padding=2 => 0 0 6 4

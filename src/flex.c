@@ -148,6 +148,23 @@ static float ContentMain(const Frame* frame, uint32_t child, muiMeasureMode mode
     return MainOf(frame, frame->solver->solve(frame->solver, child, &input, false));
 }
 
+// The base an item with an aspect ratio and a `content` basis takes from
+// its cross size (section 9.2.3 B), its content left to its automatic
+// minimum: an exact cross size, or in a column the width it fits, as in
+// Chrome.
+static float RatioBase(const Frame* frame, uint32_t child, muiMeasureMode mode,
+                       muiMeasureAxis cross)
+{
+    float ratio = frame->solver->nodes[child - 1].style.sizing.aspectRatio;
+    float size = cross.size;
+    if (cross.mode != mui_measureExact)
+    {
+        muiSizingInput input = ChildInput(frame, (muiMeasureAxis){0.0f, mode}, cross);
+        size = CrossOf(frame, frame->solver->solve(frame->solver, child, &input, false));
+    }
+    return frame->row ? size * ratio : size / ratio;
+}
+
 // CSS Flexbox section 4.5: for any item but a scroll container, the
 // smaller of the specified size and the min-content size, each within
 // the maximum. A size the aspect ratio gives is not a specified size: the
@@ -171,10 +188,16 @@ static float AutomaticMinimum(const Frame* frame, uint32_t child, const muiAxisS
     }
     if (ratio > 0.0f)
     {
-        // Floored by its cross minimum through the ratio (section 4.5).
+        // Floored by its cross minimum through the ratio (section 4.5),
+        // padding and border among it; in a column capped by its cross
+        // maximum so too, a row's left as it is, as in Chrome.
         const muiFlexItemState* item = &frame->solver->nodes[child - 1].item;
+        const muiLayoutStyle* style = &frame->solver->nodes[child - 1].style;
+        const muiEdges padding = ChildPadding(frame, style);
+        float floor = fmaxf(item->minCross, muiBoxSum(&padding, style, !frame->row));
         float scale = frame->row ? ratio : 1.0f / ratio;
-        content = fmaxf(content, item->minCross * scale);
+        float cap = frame->row ? INFINITY : item->maxCross * scale;
+        content = fminf(fmaxf(content, floor * scale), cap);
     }
     content = fminf(content, main->maximum);
     if (main->definite)
@@ -227,6 +250,11 @@ static float PrepareItem(const Frame* frame, uint32_t child)
         fromContent =
             !main.definite || (!frame->row && style->item.basis.kind != mui_dimensionAuto);
         base = fromContent ? ContentMain(frame, child, mode, crossConstraint) : main.size;
+        bool fromCross = !frame->row || crossConstraint.mode == mui_measureExact;
+        if (fromContent && !main.definite && style->sizing.aspectRatio > 0.0f && fromCross)
+        {
+            base = RatioBase(frame, child, mode, crossConstraint);
+        }
     }
     item->base = fmaxf(base, boxMain);
     item->innerBase = item->base - boxMain;

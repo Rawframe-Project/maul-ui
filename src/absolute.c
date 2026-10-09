@@ -162,9 +162,15 @@ static float Offset(const muiLayoutStyle* container, const muiLayoutStyle* child
         float freeSpace = span->paddingSize - insets->start - insets->end - size - start - end;
         bool autoStart = muiIsMarginAutoStart(child, horizontal, rtl);
         bool autoEnd = muiIsMarginAutoEnd(child, horizontal, rtl);
-        if (autoStart && autoEnd)
+        if (autoStart && autoEnd && horizontal)
         {
             start += fmaxf(freeSpace, 0.0f) / 2.0f;
+        }
+        else if (autoStart && autoEnd)
+        {
+            // Vertically they may be negative (CSS 2.1 section 10.6.4), in
+            // the space the insets leave, none when they cross.
+            start = (fmaxf(span->paddingSize - insets->start - insets->end, 0.0f) - size) / 2.0f;
         }
         else if (autoStart)
         {
