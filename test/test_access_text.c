@@ -31,14 +31,14 @@ static muiAccessTextMarks s_marks = {1, 1, true, s_lines, 2, s_words, 2, NULL, N
 static uint32_t s_reads;
 static uint32_t s_boundaryReads;
 
-static bool ReadMarks(void* user, muiNodeId nodeId, uint64_t hostKey, bool boundaries,
+static bool ReadMarks(void* user, muiNodeId nodeId, uint64_t hostKey, const muiRect* shown,
                       muiAccessContent* contentOut)
 {
     (void)user;
     (void)nodeId;
     (void)hostKey;
     s_reads++;
-    s_boundaryReads += boundaries ? 1u : 0u;
+    s_boundaryReads += shown != NULL ? 1u : 0u;
     *contentOut = (muiAccessContent){s_text, sizeof s_text - 1, s_marks};
     return true;
 }
@@ -218,13 +218,13 @@ static void TestActions(void)
 // An empty text being edited is an empty value with its caret; not
 // edited, none.
 static const char* s_emptyText = "";
-static bool ReadEmpty(void* user, muiNodeId nodeId, uint64_t hostKey, bool boundaries,
+static bool ReadEmpty(void* user, muiNodeId nodeId, uint64_t hostKey, const muiRect* shown,
                       muiAccessContent* contentOut)
 {
     (void)user;
     (void)nodeId;
     (void)hostKey;
-    (void)boundaries;
+    (void)shown;
     *contentOut = (muiAccessContent){s_emptyText, 0, {.selected = s_marks.selected}};
     return true;
 }
@@ -329,7 +329,7 @@ static void TestTree(void)
 static void TestGeometry(void)
 {
     static const uint32_t s_starts[2] = {0, 7};
-    static const muiAccessLineBox s_boxes[2] = {{0.0f, 10.0f, 0}, {10.0f, 20.0f, 6}};
+    static const muiAccessLineBox s_boxes[2] = {{0.0f, 10.0f, 0, false}, {10.0f, 20.0f, 6, false}};
     static const muiAccessCluster s_clusters[11] = {
         {0, 1, 0.0f, 5.0f},     {1, 3, 5.0f, 10.0f},    {3, 4, 10.0f, 13.0f},  {4, 5, 13.0f, 16.0f},
         {5, 6, 16.0f, 22.0f},   {6, 7, 22.0f, 25.0f},   {7, 8, 0.0f, 8.0f},    {8, 10, 8.0f, 14.0f},
@@ -408,6 +408,24 @@ static void TestGeometry(void)
     badBoxes[1].firstCluster = 6;
     wrong.marks.lineBoxes = NULL;
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "clusters without boxes");
+    // The second line's clusters left out: placed across the node, its
+    // characters at its start; clusters on it refused.
+    wrong = node;
+    badBoxes[1] = (muiAccessLineBox){10.0f, 20.0f, 6, true};
+    wrong.marks.lineBoxes = badBoxes;
+    wrong.marks.clusters = s_clusters;
+    wrong.marks.clusterCount = 6;
+    sent[0] = &wrong;
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success &&
+              muiAccessTree_GetTextRects(tree, 1, 4, 9, rects, 2, &count) == mui_success &&
+              count == 2 && rects[0].x == 126.0f && rects[1].x == 100.0f &&
+              rects[1].width == 80.0f && rects[1].y == 70.0f &&
+              muiAccessTree_GetTextOffsetAt(tree, 1, 150.0f, 75.0f, &offset) == mui_success &&
+              offset == 7,
+          "a line whose clusters are left out");
+    wrong.marks.clusterCount = 11;
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid,
+          "clusters on a line said to have none");
     // Without geometry: nothing to answer by.
     node.marks = (muiAccessTextMarks){0};
     sent[0] = &node;

@@ -9,9 +9,12 @@
 // atlas, first rendering and packing each, then all found; and a
 // keystroke in the middle of an editing block of 25 and of 100 KB, in
 // paragraphs of 60 words, typed, laid out and painted; and distance
-// fields of 52 letters at 32 pixels. Prints the best of five runs in
-// microseconds.
+// fields of 52 letters at 32 pixels; and a 1 MB editing block sent to
+// the accessibility tree after each keystroke. Prints the best of five
+// runs in microseconds.
 
+#include "maul-ui/access.h"
+#include "maul-ui/access_tree.h"
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
 #include "maul-ui/font.h"
@@ -342,6 +345,106 @@ static void RunTyping(void)
     printf("typing    100 KB      %10.1f us\n", best[1]);
 }
 
+// An editing block of about 1 MB, in paragraphs of 60 words, in a view
+// 600 tall scrolled to its middle with the caret there, sent to the
+// accessibility tree whole: the build reading its text, lines, words and
+// clusters, and the tree copying them. Twenty sends, each after a
+// keystroke; the mean, and how many clusters the tree holds.
+static double TimeAccessSend(uint32_t* clustersOut)
+{
+    static char text[1100000];
+    Scene scene = MakeScene();
+    uint32_t state = 17;
+    size_t length = MakeText(text, sizeof text, 160000, &state);
+    for (size_t i = 0, spaces = 0; i < length; i++)
+    {
+        spaces += text[i] == ' ' ? 1 : 0;
+        text[i] = text[i] == ' ' && spaces % 60 == 0 ? '\n' : text[i];
+    }
+    muiTextBlockId block = {0, 0};
+    muiTextBlockDef blockDef = muiDefaultTextBlockDef();
+    blockDef.text = text;
+    blockDef.length = length;
+    Check(muiCreateTextBlock(scene.service, &blockDef, &block), "block");
+    muiNodeDef viewDef = muiDefaultNodeDef();
+    muiNodeId view = {0, 0};
+    Check(muiCreateNode(scene.context, &viewDef, &view), "view");
+    Check(muiNode_InsertChild(scene.context, scene.root, view, (muiNodeId){0, 0}), "insert");
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.sizing.width = (muiDimension){0.0f, 600.0f, mui_dimensionValue};
+    layout.sizing.height = (muiDimension){0.0f, 600.0f, mui_dimensionValue};
+    layout.scrollAxes = mui_scrollVertical;
+    Check(muiNode_SetLayoutValues(scene.context, view, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyWidth) |
+                                      MUI_PROPERTY_BIT(mui_propertyHeight) |
+                                      MUI_PROPERTY_BIT(mui_propertyScrollAxes)),
+          "a view");
+    muiNodeDef def = muiDefaultNodeDef();
+    def.hostKey = muiTextBlock_GetKey(block);
+    muiNodeId node = {0, 0};
+    Check(muiCreateNode(scene.context, &def, &node), "node");
+    Check(muiNode_InsertChild(scene.context, view, node, (muiNodeId){0, 0}), "insert");
+    layout = muiDefaultLayoutStyle();
+    layout.content = mui_contentHost;
+    layout.item.alignSelf = mui_alignStart;
+    Check(muiNode_SetLayoutValues(scene.context, node, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyContent) |
+                                      MUI_PROPERTY_BIT(mui_propertyAlignSelf)),
+          "content");
+    muiTextEditDef edit = muiDefaultTextEditDef();
+    edit.flags = mui_editMultiline;
+    Check(muiTextBlock_SetEditing(scene.service, block, &edit), "editing");
+    uint32_t middle = (uint32_t)length / 2;
+    while (middle < length && text[middle] != ' ')
+    {
+        middle++;
+    }
+    const muiTextPosition at = {middle, mui_affinityDownstream};
+    Check(muiTextBlock_Select(scene.service, block, (muiTextSelection){middle, at}), "select");
+    const muiLayoutInput input = {600.0f, 1e9f, muiMeasureText, &scene.host, 0, NULL, {0, 0, 0, 0}};
+    Check(muiComputeLayout(scene.context, scene.root, &input), "layout");
+    Check(muiNode_SetScroll(scene.context, view, 0.0f,
+                            muiNode_GetContentRect(scene.context, node).height / 2.0f),
+          "scrolled");
+    Check(muiSetAccessTextFunction(scene.context, muiAccessTextOf, &scene.host), "reader");
+    Check(muiAccess_Enable(scene.context, scene.root), "enabled");
+    muiAccessTreeDef treeDef = muiDefaultAccessTreeDef();
+    treeDef.nodes = 16;
+    muiAccessTree* tree = NULL;
+    Check(muiCreateAccessTree(&treeDef, &tree), "tree");
+    muiAccessUpdate update;
+    Check(muiBuildAccessUpdate(scene.context, scene.root, &update), "first build");
+    Check(muiAccessTree_Apply(tree, &update, NULL), "first apply");
+    double total = 0.0;
+    for (int key = 0; key < 20; key++)
+    {
+        Check(muiTextBlock_Type(scene.service, block, "a", 1, NULL), "type");
+        Check(muiNode_MarkContentChanged(scene.context, node), "changed");
+        Check(muiComputeLayout(scene.context, scene.root, &input), "layout");
+        double start = Seconds();
+        Check(muiBuildAccessUpdate(scene.context, scene.root, &update), "build");
+        Check(muiAccessTree_Apply(tree, &update, NULL), "apply");
+        total += (Seconds() - start) * 1e6;
+    }
+    const muiAccessNode* held = muiAccessTree_Find(tree, muiAccessIdOf(node));
+    *clustersOut = held != NULL ? held->marks.clusterCount : 0;
+    muiDestroyAccessTree(tree);
+    muiDestroyContext(scene.context);
+    muiDestroyTextService(scene.service);
+    return total / 20.0;
+}
+
+static void RunAccess(void)
+{
+    double best = 1e30;
+    uint32_t clusters = 0;
+    for (int run = 0; run < RUNS; run++)
+    {
+        Keep(&best, TimeAccessSend(&clusters));
+    }
+    printf("access    1 MB send   %10.1f us (%u clusters held)\n", best, clusters);
+}
+
 // Liberation Sans's A to Z and a to z are glyphs 36 to 87.
 static void RunFields(void)
 {
@@ -371,5 +474,6 @@ int main(void)
     RunParagraph();
     RunFields();
     RunTyping();
+    RunAccess();
     return 0;
 }

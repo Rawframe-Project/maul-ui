@@ -402,7 +402,7 @@ static void TestText(muiNsAdapter* adapter, id root, const Built* built)
               [[field accessibilitySelectedText] isEqualToString:@"llo "],
           "a selection told and read");
     // Clusters 5 wide, lines 10 high, the second's from "n".
-    static const muiAccessLineBox s_boxes[2] = {{0.0f, 10.0f, 0}, {10.0f, 20.0f, 7}};
+    static const muiAccessLineBox s_boxes[2] = {{0.0f, 10.0f, 0, false}, {10.0f, 20.0f, 7, false}};
     static const uint32_t s_starts[12] = {0, 1, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16};
     muiAccessCluster clusters[11];
     for (uint32_t i = 0; i < 11; i++)

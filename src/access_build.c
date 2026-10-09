@@ -21,6 +21,8 @@
 
 #include "maul-ui/access.h"
 
+#include <math.h>
+
 // Roles that take a click without saying so.
 static bool IsClicked(muiRole role)
 {
@@ -308,11 +310,69 @@ static muiAccessTextMarks MarksOf(const muiAccessContent* content, bool boundari
     return marks;
 }
 
+// The part of a node its scrolling ancestors leave shown, in its own
+// space: its box cut by each ancestor that scrolls, and by the root's,
+// carried back through the places and scrolls between, as painting
+// carries them forward.
+static muiRect ShownOf(const muiContext* context, uint32_t slot)
+{
+    const muiLayoutNode* own = &context->layout[slot - 1];
+    double left = 0.0;
+    double top = 0.0;
+    double right = (double)own->rect.width;
+    double bottom = (double)own->rect.height;
+    // From the node's space to the current ancestor's: x * scale + offset.
+    double scaleX = 1.0;
+    double scaleY = 1.0;
+    double offsetX = 0.0;
+    double offsetY = 0.0;
+    uint32_t steps = 0;
+    for (uint32_t at = slot; at != 0 && steps <= context->tree.used; steps++)
+    {
+        uint32_t parent = muiTreeAt(&context->tree, at)->links.parent;
+        const muiPlace step = muiPlaceStep(context, at);
+        double shiftX = step.offsetX;
+        double shiftY = step.offsetY;
+        if (parent != 0)
+        {
+            shiftX += (double)muiScrollShiftX(&context->layout[parent - 1],
+                                              &context->scrolls[parent - 1]);
+            shiftY += (double)muiScrollShiftY(&context->layout[parent - 1],
+                                              &context->scrolls[parent - 1]);
+        }
+        scaleX *= step.scaleX;
+        scaleY *= step.scaleY;
+        offsetX = offsetX * step.scaleX + shiftX;
+        offsetY = offsetY * step.scaleY + shiftY;
+        at = parent;
+        const muiLayoutNode* layout = at != 0 ? &context->layout[at - 1] : nullptr;
+        bool root = at != 0 && muiTreeAt(&context->tree, at)->links.parent == 0;
+        if (layout == nullptr || scaleX == 0.0 || scaleY == 0.0 ||
+            (layout->style.scrollAxes == mui_scrollNone && !root))
+        {
+            continue;
+        }
+        // The ancestor's box, back in the node's space.
+        double x0 = (0.0 - offsetX) / scaleX;
+        double x1 = ((double)layout->rect.width - offsetX) / scaleX;
+        double y0 = (0.0 - offsetY) / scaleY;
+        double y1 = ((double)layout->rect.height - offsetY) / scaleY;
+        left = fmax(left, fmin(x0, x1));
+        right = fmin(right, fmax(x0, x1));
+        top = fmax(top, fmin(y0, y1));
+        bottom = fmin(bottom, fmax(y0, y1));
+    }
+    right = right > left ? right : left;
+    bottom = bottom > top ? bottom : top;
+    return (muiRect){(float)left, (float)top, (float)(right - left), (float)(bottom - top)};
+}
+
 // Reads host content's text from the host's text function into a node
 // whose value the host did not set, labelling a node the host gave no
-// role, with its selection, and its lines and words when boundaries are
-// asked for, of a node a first read gave its value; a fingerprint of the
-// text and the selection, 0 for none.
+// role, with its selection, and its lines, words and clusters when
+// boundaries are asked for, of a node a first read gave its value, told
+// the part of it shown; a fingerprint of the text and the selection, 0
+// for none.
 static uint64_t ReadContent(muiContext* context, uint32_t slot, bool boundaries,
                             muiAccessNode* node)
 {
@@ -326,8 +386,10 @@ static uint64_t ReadContent(muiContext* context, uint32_t slot, bool boundaries,
     muiAccessContent content = {0};
     // As the measure function, it may not edit the context.
     context->inHostCall = true;
+    const muiRect shown = boundaries ? ShownOf(context, slot) : (muiRect){0};
     bool read = store->textFunction(store->textUser, muiTreeIdOf(&context->tree, slot),
-                                    muiTreeAt(&context->tree, slot)->hostKey, boundaries, &content);
+                                    muiTreeAt(&context->tree, slot)->hostKey,
+                                    boundaries ? &shown : nullptr, &content);
     context->inHostCall = false;
     // Empty text is none, unless it is being edited: an empty field.
     bool edited = content.marks.selected && content.length == 0;

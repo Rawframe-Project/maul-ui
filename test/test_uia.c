@@ -454,7 +454,7 @@ static muiAccessUpdate Build(Built* built)
                                         .words = s_words,
                                         .wordCount = 2};
     // Its characters 10 wide from 2, its line from 2 to 22 down.
-    static const muiAccessLineBox s_box[1] = {{2.0f, 22.0f, 0}};
+    static const muiAccessLineBox s_box[1] = {{2.0f, 22.0f, 0, false}};
     static muiAccessCluster s_clusters[12];
     for (uint32_t i = 0; i < 12; i++)
     {

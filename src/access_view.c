@@ -298,7 +298,8 @@ muiResult muiAccessTree_GetTextRects(const muiAccessTree* tree, uint64_t id, uin
     {
         return mui_empty;
     }
-    uint32_t count = muiAccessRangeRects(marks, start, end, rectsOut, capacity);
+    uint32_t count = muiAccessRangeRects(marks, tree->held[slot - 1].node.bounds, start, end,
+                                         rectsOut, capacity);
     muiDrawTransform m = TransformOf(tree, slot);
     for (uint32_t i = 0; i < count && i < capacity; i++)
     {

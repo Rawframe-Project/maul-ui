@@ -230,13 +230,13 @@ static void TestAccessText(void)
     muiNodeId node = AddText(&scene, s_nullNode, "Save");
     uint64_t key = muiNode_GetHostKey(scene.context, node);
     muiAccessContent content;
-    CHECK(muiAccessTextOf(&scene.host, node, key, false, &content) && content.length == 4 &&
+    CHECK(muiAccessTextOf(&scene.host, node, key, NULL, &content) && content.length == 4 &&
               memcmp(content.text, "Save", 4) == 0 && !content.marks.selected &&
               content.marks.lineCount == 0 && content.marks.wordCount == 0,
           "the block's text, no boundaries unasked");
-    CHECK(!muiAccessTextOf(&scene.host, node, key + 1, false, &content) &&
-              !muiAccessTextOf(NULL, node, key, false, &content) &&
-              !muiAccessTextOf(&scene.host, node, key, false, NULL),
+    CHECK(!muiAccessTextOf(&scene.host, node, key + 1, NULL, &content) &&
+              !muiAccessTextOf(NULL, node, key, NULL, &content) &&
+              !muiAccessTextOf(&scene.host, node, key, NULL, NULL),
           "no block");
     CHECK(muiSetAccessTextFunction(scene.context, muiAccessTextOf, &scene.host) == mui_success &&
               muiAccess_Enable(scene.context, node) == mui_success,
@@ -254,12 +254,28 @@ static void TestAccessText(void)
     Layout(&scene, wrapped, 35.0f);
     key = muiNode_GetHostKey(scene.context, wrapped);
     const muiAccessTextMarks* marks = &content.marks;
-    CHECK(muiAccessTextOf(&scene.host, wrapped, key, true, &content) && marks->lineCount == 3 &&
+    const muiRect all = {0.0f, 0.0f, 1e6f, 1e6f};
+    CHECK(muiAccessTextOf(&scene.host, wrapped, key, &all, &content) && marks->lineCount == 3 &&
               marks->lineStarts[0] == 0 && marks->lineStarts[1] == 3 && marks->lineStarts[2] == 7 &&
               marks->wordCount == 3 && marks->words[0].end == 2 && marks->words[1].start == 3 &&
               marks->words[1].end == 5 && marks->words[2].start == 7 && marks->words[2].end == 9 &&
               !marks->selected,
           "lines as painted, words");
+    CHECK(marks->clusterCount != 0 && !marks->lineBoxes[0].omitted && !marks->lineBoxes[2].omitted,
+          "every line's clusters, all of it shown");
+    // Shown far below: every line's clusters left out; shown at the
+    // first line's top only: the first line's clusters alone.
+    const muiRect below = {0.0f, 1e5f, 35.0f, 10.0f};
+    CHECK(muiAccessTextOf(&scene.host, wrapped, key, &below, &content) && marks->lineCount == 3 &&
+              marks->clusterCount == 0 && marks->lineBoxes[0].omitted &&
+              marks->lineBoxes[2].omitted,
+          "far from what is shown: no clusters, the line boxes still");
+    const muiRect top = {0.0f, 0.0f, 35.0f, 1.0f};
+    CHECK(muiAccessTextOf(&scene.host, wrapped, key, &top, &content) && marks->clusterCount != 0 &&
+              !marks->lineBoxes[0].omitted && marks->lineBoxes[1].omitted &&
+              marks->lineBoxes[2].omitted &&
+              marks->lineBoxes[1].firstCluster == marks->clusterCount,
+          "near what is shown: the first line's clusters alone");
     FreeScene(&scene);
 }
 

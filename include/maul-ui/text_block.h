@@ -331,17 +331,20 @@ extern "C"
     /// and hostKey a block's key. The block's text, which the record
     /// leaves out when it is not well-formed UTF-8; for an editing
     /// password (maul-ui/text_editor.h), a bullet per character, as it
-    /// is shown. An editing block gives its selection; asked for
-    /// boundaries, its lines as painting breaks them at the node's
-    /// content box's width, and its words, a password none.
+    /// is shown. An editing block gives its selection; given shown, its
+    /// lines as painting breaks them at the node's content box's width,
+    /// with their grapheme clusters for the lines within a shown height
+    /// of shown (at most 16,384 clusters, the nearest lines first), and
+    /// its words, a password none.
     ///
     /// @param user        A muiTextHost.
     /// @param nodeId      The node.
     /// @param hostKey     The block's key.
-    /// @param boundaries  Whether its lines and words are read.
-    /// @param contentOut  Receives the text, its selection, lines and
-    ///                    words, valid until the block is edited or
-    ///                    destroyed, or read again.
+    /// @param shown       The part of the node shown, in its own space;
+    ///                    NULL to read neither lines nor words.
+    /// @param contentOut  Receives the text, its selection, lines, words
+    ///                    and clusters, valid until the block is edited
+    ///                    or destroyed, or read again.
     /// @return Whether the key names a block; false, too, when memory
     ///         for a password's bullets runs out, or for a NULL
     ///         contentOut. Lines and words that cannot be read for want
@@ -349,8 +352,8 @@ extern "C"
     /// @par Thread safety
     /// Safe from any thread; the service and context are used by one
     /// thread at a time.
-    MUI_API bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, bool boundaries,
-                                 muiAccessContent* contentOut);
+    MUI_API bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey,
+                                 const muiRect* shown, muiAccessContent* contentOut);
 
     /// muiBaselineFunction: user is a muiTextHost, and hostKey a block's
     /// key. Lines are a line height apart from the content box's top, so

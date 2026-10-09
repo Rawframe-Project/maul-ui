@@ -86,8 +86,12 @@ format.
 
 - `muiAccessTextFunction`, and the text component's `muiAccessTextOf`,
   fill a `muiAccessContent` (the text, its selection, its lines, words
-  and clusters) and are told whether lines and words are wanted, in
-  place of a text and its length.
+  and clusters) and are given the part of the node shown when lines,
+  words and clusters are wanted (NULL otherwise), in place of a text and
+  its length. The text component reads clusters only for the lines
+  within a shown height of it, at most 16,384, the other lines marked
+  `omitted`: a 1 MB field's send after a keystroke went from 101 ms and
+  922,545 clusters to 32 ms and 9,678.
 - `muiTextEditOutcome` says whether the selection moved (`selected`),
   which the host tells the accessibility tree.
 - A typed id is named for what it names, as across the family:

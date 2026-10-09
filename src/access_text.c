@@ -77,8 +77,11 @@ static bool LineBoxesFit(const muiAccessTextMarks* marks)
     for (uint32_t i = 0; i < marks->lineCount; i++)
     {
         const muiAccessLineBox* box = &marks->lineBoxes[i];
+        uint32_t next =
+            i + 1 < marks->lineCount ? marks->lineBoxes[i + 1].firstCluster : marks->clusterCount;
         if (!IsSpan(box->top, box->bottom) || box->firstCluster < first ||
-            box->firstCluster > marks->clusterCount || (i == 0 && box->firstCluster != 0))
+            box->firstCluster > marks->clusterCount || (i == 0 && box->firstCluster != 0) ||
+            (box->omitted && next != box->firstCluster))
         {
             return false;
         }
@@ -117,14 +120,29 @@ static uint32_t EndOfLine(const muiAccessTextMarks* marks, uint32_t line)
                                        : marks->clusterCount;
 }
 
-uint32_t muiAccessRangeRects(const muiAccessTextMarks* marks, uint32_t start, uint32_t end,
-                             muiRect* rects, uint32_t capacity)
+// Whether a range has bytes of a line.
+static bool Touches(const muiAccessTextMarks* marks, uint32_t line, uint32_t start, uint32_t end)
+{
+    uint32_t from = marks->lineStarts != nullptr ? marks->lineStarts[line] : 0;
+    uint32_t to = line + 1 < marks->lineCount && marks->lineStarts != nullptr
+                      ? marks->lineStarts[line + 1]
+                      : UINT32_MAX;
+    return start < to && end > from;
+}
+
+uint32_t muiAccessRangeRects(const muiAccessTextMarks* marks, muiRect bounds, uint32_t start,
+                             uint32_t end, muiRect* rects, uint32_t capacity)
 {
     uint32_t count = 0;
     for (uint32_t line = 0; line < marks->lineCount && start < end; line++)
     {
         float left = INFINITY;
         float right = -INFINITY;
+        if (marks->lineBoxes[line].omitted && Touches(marks, line, start, end))
+        {
+            left = bounds.x;
+            right = bounds.x + bounds.width;
+        }
         for (uint32_t i = marks->lineBoxes[line].firstCluster; i < EndOfLine(marks, line); i++)
         {
             const muiAccessCluster* cluster = &marks->clusters[i];
@@ -167,7 +185,7 @@ uint32_t muiAccessOffsetAt(const muiAccessTextMarks* marks, float x, float y)
     }
     uint32_t first = marks->lineBoxes[line].firstCluster;
     uint32_t last = EndOfLine(marks, line);
-    if (first == last)
+    if (first == last || marks->lineBoxes[line].omitted)
     {
         return marks->lineStarts != nullptr ? marks->lineStarts[line] : 0;
     }

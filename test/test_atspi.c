@@ -1544,7 +1544,7 @@ static void TestTextChanges(muiAtspiAdapter* adapter, Built* built, muiAccessNod
     // the node at 420, 220 in the window, which is at 100, 50, at twice
     // the size.
     static const uint32_t s_one[1] = {0};
-    static const muiAccessLineBox s_box[1] = {{2.0f, 12.0f, 0}};
+    static const muiAccessLineBox s_box[1] = {{2.0f, 12.0f, 0, false}};
     static const uint32_t s_starts[12] = {0, 1, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13};
     muiAccessCluster clusters[12];
     for (uint32_t i = 0; i < 12; i++)

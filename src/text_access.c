@@ -47,10 +47,46 @@ static bool ReadClusters(const muiLaidText* laid, uint32_t index, muiRect conten
     return true;
 }
 
-// Where the lines of a node's text start and where its clusters are, as
-// painting lays them out in its content box, kept in the block; false
-// when they cannot be laid out.
-static bool ReadLines(const muiTextHost* host, muiNodeId nodeId, muiTextBlock* block,
+// The most clusters read of a text, so that a long one costs what is
+// near the screen.
+#define MOST_CLUSTERS 16384u
+
+// Marks which lines' clusters to leave out: all but those within a
+// shown height of shown, those overlapping shown first, then the rest
+// top down, while their bytes, which bound their clusters, stay within
+// MOST_CLUSTERS.
+static void OmitFar(const muiLaidText* laid, muiRect content, muiRect shown,
+                    muiAccessLineBox* lineBoxes)
+{
+    float nearTop = shown.y - shown.height;
+    float nearBottom = shown.y + 2.0f * shown.height;
+    uint32_t budget = MOST_CLUSTERS;
+    for (uint32_t i = 0; i < laid->lineCount; i++)
+    {
+        lineBoxes[i].omitted = true;
+    }
+    for (int pass = 0; pass < 2; pass++)
+    {
+        float from = pass == 0 ? shown.y : nearTop;
+        float to = pass == 0 ? shown.y + shown.height : nearBottom;
+        for (uint32_t i = 0; i < laid->lineCount; i++)
+        {
+            const muiTextLine* line = &laid->lines[i];
+            float top = content.y + line->top;
+            uint32_t bytes = line->end - line->start;
+            if (lineBoxes[i].omitted && top + line->height >= from && top <= to && bytes <= budget)
+            {
+                lineBoxes[i].omitted = false;
+                budget -= bytes;
+            }
+        }
+    }
+}
+
+// Where the lines of a node's text start and where the clusters of those
+// near what is shown are, as painting lays them out in its content box,
+// kept in the block; false when they cannot be laid out.
+static bool ReadLines(const muiTextHost* host, muiNodeId nodeId, muiRect shown, muiTextBlock* block,
                       muiAccessTextMarks* marks)
 {
     muiRect content = muiNode_GetContentRect(host->context, nodeId);
@@ -64,14 +100,16 @@ static bool ReadLines(const muiTextHost* host, muiNodeId nodeId, muiTextBlock* b
     }
     uint32_t* starts = block->accessLines.data;
     muiAccessLineBox* lineBoxes = block->accessLineBoxes.data;
+    OmitFar(&laid, content, shown, lineBoxes);
     uint32_t clusterCount = 0;
     for (uint32_t i = 0; i < laid.lineCount; i++)
     {
         const muiTextLine* line = &laid.lines[i];
         starts[i] = line->start;
-        lineBoxes[i] = (muiAccessLineBox){content.y + line->top,
-                                          content.y + line->top + line->height, clusterCount};
-        if (!ReadClusters(&laid, i, content, block, &clusterCount))
+        lineBoxes[i].top = content.y + line->top;
+        lineBoxes[i].bottom = content.y + line->top + line->height;
+        lineBoxes[i].firstCluster = clusterCount;
+        if (!lineBoxes[i].omitted && !ReadClusters(&laid, i, content, block, &clusterCount))
         {
             return false;
         }
@@ -118,7 +156,7 @@ static bool ReadWords(muiTextService* service, muiTextBlock* block, muiAccessTex
     return true;
 }
 
-bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, bool boundaries,
+bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, const muiRect* shown,
                      muiAccessContent* contentOut)
 {
     const muiTextHost* host = user;
@@ -127,14 +165,14 @@ bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, bool bounda
                               ? muiResolveTextBlock(host->service, blockId)
                               : nullptr;
     // A password reads as its mask.
-    const muiTextBlock* shown = block != nullptr ? muiShownBlock(host->service, block) : nullptr;
-    if (shown == nullptr || contentOut == nullptr)
+    const muiTextBlock* read = block != nullptr ? muiShownBlock(host->service, block) : nullptr;
+    if (read == nullptr || contentOut == nullptr)
     {
         return false;
     }
     // An empty block may have no buffer yet.
-    const char* text = shown->text.data != nullptr ? shown->text.data : "";
-    *contentOut = (muiAccessContent){.text = text, .length = shown->length};
+    const char* text = read->text.data != nullptr ? read->text.data : "";
+    *contentOut = (muiAccessContent){.text = text, .length = read->length};
     muiAccessTextMarks* marks = &contentOut->marks;
     if (block->editing.on)
     {
@@ -145,12 +183,12 @@ bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, bool bounda
     }
     // Lines and words left out when they cannot be read: the text is
     // still read. A password's bullets are no words.
-    if (boundaries && !ReadLines(host, nodeId, block, marks))
+    if (shown != nullptr && !ReadLines(host, nodeId, *shown, block, marks))
     {
         *marks = (muiAccessTextMarks){
             .anchor = marks->anchor, .focus = marks->focus, .selected = marks->selected};
     }
-    if (boundaries && !muiIsMasked(block) && !ReadWords(host->service, block, marks))
+    if (shown != nullptr && !muiIsMasked(block) && !ReadWords(host->service, block, marks))
     {
         marks->words = nullptr;
         marks->wordCount = 0;

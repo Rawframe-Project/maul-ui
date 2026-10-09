@@ -116,10 +116,19 @@ static void Show(muiAtspiAdapter* adapter)
     nodes[4].values.level = 2;
     nodes[5].actions = 1u << mui_actionSetValue;
     // A value of characters of one to three bytes, selected, on two lines
-    // of three words, for the Text interface's offsets.
+    // of three words, its characters placed 6 wide, for the Text
+    // interface's offsets and extents.
     static const char value[] = "h\xC3\xA9llo w\xE2\x82\xACrld\nnext";
     static const uint32_t lines[2] = {0, 15};
     static const muiAccessWord words[3] = {{0, 6}, {7, 14}, {15, 19}};
+    static const muiAccessLineBox boxes[2] = {{0.0f, 10.0f, 0, false}, {10.0f, 20.0f, 11, false}};
+    static const uint32_t starts[16] = {0, 1, 3, 4, 5, 6, 7, 8, 11, 12, 13, 15, 16, 17, 18, 19};
+    static muiAccessCluster clusters[15];
+    for (uint32_t i = 0; i < 15; i++)
+    {
+        float x = 6.0f * (float)(i < 11 ? i : i - 11);
+        clusters[i] = (muiAccessCluster){starts[i], i == 10 ? 14 : starts[i + 1], x, x + 6.0f};
+    }
     nodes[5].text[mui_accessValue] = value;
     nodes[5].textLength[mui_accessValue] = sizeof value - 1;
     nodes[5].marks = (muiAccessTextMarks){.anchor = 7,
@@ -128,7 +137,10 @@ static void Show(muiAtspiAdapter* adapter)
                                           .lineStarts = lines,
                                           .lineCount = 2,
                                           .words = words,
-                                          .wordCount = 3};
+                                          .wordCount = 3,
+                                          .lineBoxes = boxes,
+                                          .clusters = clusters,
+                                          .clusterCount = 15};
     nodes[6].flags = mui_accessNumeric;
     nodes[6].actions = 1u << mui_actionSetValue | 1u << mui_actionIncrement;
     nodes[6].value = 30.0f;

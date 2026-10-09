@@ -534,7 +534,7 @@ static void TestTextRequests(id<UITextInput> field)
 static void TestTextPlaces(muiUikitAdapter* adapter, id<UITextInput> field, muiAccessNode* input,
                            const Built* built)
 {
-    static const muiAccessLineBox s_boxes[2] = {{0.0f, 10.0f, 0}, {10.0f, 20.0f, 7}};
+    static const muiAccessLineBox s_boxes[2] = {{0.0f, 10.0f, 0, false}, {10.0f, 20.0f, 7, false}};
     static const uint32_t s_starts[12] = {0, 1, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16};
     static muiAccessCluster s_clusters[11];
     for (uint32_t i = 0; i < 11; i++)

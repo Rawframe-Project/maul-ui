@@ -75,7 +75,7 @@ static uint32_t Build(void)
     // The label's characters: H 10 wide, i and the space 5, the emoji 20,
     // on one line 20 high.
     static const uint32_t s_labelLines[1] = {0};
-    static const muiAccessLineBox s_labelBox[1] = {{0.0f, 20.0f, 0}};
+    static const muiAccessLineBox s_labelBox[1] = {{0.0f, 20.0f, 0, false}};
     static const muiAccessCluster s_labelClusters[4] = {
         {0, 1, 0.0f, 10.0f}, {1, 2, 10.0f, 15.0f}, {2, 3, 15.0f, 20.0f}, {3, 7, 20.0f, 40.0f}};
     Add(&count, 4, mui_roleLabel, "Hi \xF0\x9F\x98\x80", 5, 0, 100, 20)->marks =

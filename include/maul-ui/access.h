@@ -393,12 +393,15 @@ extern "C"
 
     // A line of a value text as shown: its top and bottom in the node's
     // own space, and its first cluster; its clusters run up to the next
-    // line's first.
+    // line's first. A line too far from what is shown may have its
+    // clusters left out (omitted): its characters are then placed only
+    // by the line, across the node.
     typedef struct muiAccessLineBox
     {
         float top;
         float bottom;
         uint32_t firstCluster;
+        bool omitted;
     } muiAccessLineBox;
 
     // Where a value text is selected, and where its lines and words are:
@@ -514,14 +517,17 @@ extern "C"
 
     /// The host's function for what host content reads as: a node's text,
     /// such as a text block's, with its selection, valid until the host
-    /// edits it; when boundaries are asked for, its lines, words and clusters too,
-    /// valid as long. It runs inside muiBuildAccessUpdate, as the measure
-    /// function runs inside layout, and may not change the context;
-    /// boundaries are asked for only of a node the update sends. The text
-    /// must be well-formed UTF-8 below 2^31 bytes; other text is left
-    /// out, and marks out of order or past it are.
+    /// edits it. Given shown, the part of the node not clipped away by
+    /// its scrolling ancestors, in its own space, its lines, words and
+    /// clusters too, valid as long; clusters may be left out of lines far
+    /// from shown, so a long text costs what is near the screen. It runs
+    /// inside muiBuildAccessUpdate, as the measure function runs inside
+    /// layout, and may not change the context; shown is given only for a
+    /// node the update sends, NULL otherwise. The text must be well-formed
+    /// UTF-8 below 2^31 bytes; other text is left out, and marks out of
+    /// order or past it are.
     typedef bool (*muiAccessTextFunction)(void* user, muiNodeId nodeId, uint64_t hostKey,
-                                          bool boundaries, muiAccessContent* contentOut);
+                                          const muiRect* shown, muiAccessContent* contentOut);
 
     /// The accessibility id of a node.
     ///

@@ -497,10 +497,10 @@ static muiResult s_editFromReader;
 static muiResult s_disableFromReader;
 static muiResult s_functionFromReader;
 
-static bool ReadText(void* user, muiNodeId nodeId, uint64_t hostKey, bool boundaries,
+static bool ReadText(void* user, muiNodeId nodeId, uint64_t hostKey, const muiRect* shown,
                      muiAccessContent* contentOut)
 {
-    (void)boundaries;
+    (void)shown;
     (void)user;
     s_reads++;
     s_editFromReader = muiNode_SetAccessRole(s_reader, nodeId, mui_roleButton);
