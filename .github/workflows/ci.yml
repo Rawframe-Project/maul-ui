@@ -102,7 +102,7 @@ jobs:
       - name: Build
         run: cmake --build build -j 4
       - name: Test
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build --output-on-failure --timeout 240
       # The installed package, shared and static, used as a program uses
       # it: samples/minimal built by CMake and by pkg-config, and run.
       - name: Package
@@ -160,7 +160,7 @@ jobs:
       - name: Build
         run: cmake --build build --config Release -j 4
       - name: Test
-        run: ctest --test-dir build -C Release --output-on-failure
+        run: ctest --test-dir build -C Release --output-on-failure --timeout 240
       # The public headers alone under MSVC's cl, as C17 and C++17 with
       # /W4 /WX, which cannot build the library itself (family record 0008).
       - name: Headers under MSVC
@@ -204,7 +204,7 @@ jobs:
           MUI_RHI_REQUIRED: 1
           VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
         run: |
-          ctest --test-dir build -R "rhi|sample" --output-on-failure | tee rhi.log
+          ctest --test-dir build -R "rhi|sample" --output-on-failure --timeout 240 | tee rhi.log
           ! grep -qiE "validation error|VUID" rhi.log
           build/test_rhi_pixels 2>&1 | tee pixels.log
           ! grep -qiE "validation error|VUID" pixels.log
@@ -218,7 +218,7 @@ jobs:
             -D${PREFIX}_SANITIZE=ON -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 \
             -D${PREFIX}_RHI=ON -D${PREFIX}_WINDOW=ON -DMAUL_WINDOW_WAYLAND=OFF -DMAUL_WINDOW_X11=OFF
           cmake --build build-sanitize -j 4
-          ctest --test-dir build-sanitize -R "rhi|sample" --output-on-failure
+          ctest --test-dir build-sanitize -R "rhi|sample" --output-on-failure --timeout 240
       - name: Without Maul UI's text component
         # Glyph runs need the text component's atlas; the renderer
         # refuses a text service without it and draws all else.
@@ -228,7 +228,7 @@ jobs:
           cmake -B build-notext -G Ninja -D${PREFIX}_WERROR=ON -D${PREFIX}_TEXT=OFF -D${PREFIX}_RHI=ON \
             -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20
           cmake --build build-notext -j 4
-          ctest --test-dir build-notext -R rhi --output-on-failure
+          ctest --test-dir build-notext -R rhi --output-on-failure --timeout 240
       - name: The samples in a window
         # Each sample presented on an X11 window's surface under Xvfb
         # through Maul Window's X11 backend, its last frame read back
@@ -279,14 +279,14 @@ jobs:
             clang-tidy-20 -p build --quiet --warnings-as-errors='*' "$f" || exit 1
           done
       - name: Test
-        run: ctest --test-dir build -R window --output-on-failure
+        run: ctest --test-dir build -R window --output-on-failure --timeout 240
       - name: Without Maul UI's text component
         run: |
           cmake -B build-notext -G Ninja -D${PREFIX}_WERROR=ON -D${PREFIX}_TEXT=OFF \
             -D${PREFIX}_WINDOW=ON -DMAUL_WINDOW_WAYLAND=OFF -DMAUL_WINDOW_X11=OFF \
             -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20
           cmake --build build-notext -j 4
-          ctest --test-dir build-notext -R window --output-on-failure
+          ctest --test-dir build-notext -R window --output-on-failure --timeout 240
 
   ios:
     # Every test in the iOS simulator, through simctl spawn, on an iPhone

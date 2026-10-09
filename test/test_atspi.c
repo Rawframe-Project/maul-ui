@@ -1604,10 +1604,12 @@ static void TestDiscovery(const char* address)
     {
         ServeAddress(pipes[1]);
     }
+    // The parent's end closed first, so that a child that dies before it
+    // writes ends the read rather than leaving it waiting.
+    (void)close(pipes[1]);
     char ready = '0';
     CHECK(child > 0 && read(pipes[0], &ready, 1) == 1 && ready == '1', "a session bus service");
     (void)close(pipes[0]);
-    (void)close(pipes[1]);
     muiAtspiAppDef def = muiDefaultAtspiAppDef();
     def.name = "discovered";
     muiAtspiApp* found = NULL;
