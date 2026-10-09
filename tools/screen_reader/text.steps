@@ -1,0 +1,17 @@
+# sample_text: the Notes field, typed into, read by character, word and
+# line, a selection made and deleted; then the Name field.
+key Tab
+key Tab
+type hello world
+key Left
+hold ctrl Left
+hold ctrl Left
+hold ctrl Right
+key End
+hold shift Left
+key BackSpace
+key Return
+type two
+key Up
+key Down
+hold shift Tab

@@ -1,0 +1,10 @@
+# sample_controls: focus through the controls, each acted on with space.
+key Tab
+key Tab
+key space
+key Tab
+key space
+key Tab
+key space
+key Tab
+key Tab

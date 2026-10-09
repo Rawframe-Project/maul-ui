@@ -21,7 +21,11 @@ and before the tag.
    check box act, a text field takes text, a list scrolls. The notes
    record what was run and what was heard; a run that could not be
    made is listed as not run, never as passed, and a failure is fixed
-   or listed as a known issue.
+   or listed as a known issue. On Linux, `tools/screen_reader_walk.sh`
+   walks a sample with Orca from a file of steps
+   (`tools/screen_reader/*.steps`): the sample under Xvfb on a private
+   session and accessibility bus, Orca with speech off, and what it
+   would have said written a line each.
 3. **Fuzzing**: each fuzz target (`fuzz_*`) runs for at least ten
    minutes from its seed corpus (`tools/fuzz_seed.py`) without a
    finding.
