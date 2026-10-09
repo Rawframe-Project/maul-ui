@@ -1468,7 +1468,7 @@ static void TestTextReads(muiAtspiAdapter* adapter, Built* built, muiAccessNode*
     static const muiAccessWord s_words[3] = {{0, 6}, {7, 13}, {14, 18}};
     input->text[mui_accessValue] = s_value;
     input->textLength[mui_accessValue] = sizeof s_value - 1;
-    input->marks = (muiAccessTextMarks){1, 1, true, s_lines, 2, s_words, 3};
+    input->marks = (muiAccessTextMarks){1, 1, true, s_lines, 2, s_words, 3, NULL, NULL, 0};
     CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
               EventsAre("TextChanged insert 0/16 w1n7 h\xC3\xA9llo w\xC3\xB6rld\nnext; "
                         "TextCaretMoved  1 w1n7"),
@@ -1507,8 +1507,9 @@ static void TestTextReads(muiAtspiAdapter* adapter, Built* built, muiAccessNode*
 }
 
 // Selecting, editing and the rest of the interface: selections; text
-// changed as deleted and inserted with the caret after; attributes and
-// geometry not given yet, setting the selection not offered.
+// changed as deleted and inserted with the caret after; attributes not
+// given yet; extents and the character at a point, by the clusters or
+// the node's extents without them.
 static void TestTextChanges(muiAtspiAdapter* adapter, Built* built, muiAccessNode* input)
 {
     input->marks.anchor = 7;
@@ -1522,7 +1523,7 @@ static void TestTextChanges(muiAtspiAdapter* adapter, Built* built, muiAccessNod
     static const char s_edited[] = "h\xC3\xA9llo w\xC3\xB6rld!";
     input->text[mui_accessValue] = s_edited;
     input->textLength[mui_accessValue] = sizeof s_edited - 1;
-    input->marks = (muiAccessTextMarks){14, 14, true, NULL, 0, NULL, 0};
+    input->marks = (muiAccessTextMarks){14, 14, true, NULL, 0, NULL, 0, NULL, NULL, 0};
     CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
               EventsAre("TextChanged delete 11/5 w1n7 \nnext; TextChanged insert 11/1 w1n7 !; "
                         "TextCaretMoved  12 w1n7; TextSelectionChanged  0 w1n7") &&
@@ -1532,11 +1533,44 @@ static void TestTextChanges(muiAtspiAdapter* adapter, Built* built, muiAccessNod
               TextIs("GetStringAtOffset", "iu", (const int32_t[]){3, 1}, "3 3"),
           "an edit, then one line and no words given");
     CHECK(TextIs("SetCaretOffset", "i", (const int32_t[]){2}, "") &&
-              TextIs("GetCharacterExtents", "iu", (const int32_t[]){2, 0}, "0 0 0 0") &&
-              TextIs("GetOffsetAtPoint", "iiu", (const int32_t[]){5, 5, 0}, "-1") &&
               TextIs("GetAttributes", "i", (const int32_t[]){2}, "0 12") &&
               TextIs("GetAttributeValue", "i", (const int32_t[]){2}, ""),
-          "geometry and attributes not given, the caret not set");
+          "attributes not given, the caret not set");
+    CHECK(TextIs("GetCharacterExtents", "iu", (const int32_t[]){2, 0}, "520 270 100 40") &&
+              TextIs("GetOffsetAtPoint", "iiu", (const int32_t[]){5, 5, 0}, "-1") &&
+              TextIs("GetOffsetAtPoint", "iiu", (const int32_t[]){530, 280, 0}, "0"),
+          "no clusters: the node's extents, the text's start within it");
+    // Clusters 4 wide from the node's left, a line from 2 to 12 down;
+    // the node at 420, 220 in the window, which is at 100, 50, at twice
+    // the size.
+    static const uint32_t s_one[1] = {0};
+    static const muiAccessLineBox s_box[1] = {{2.0f, 12.0f, 0}};
+    static const uint32_t s_starts[12] = {0, 1, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13};
+    muiAccessCluster clusters[12];
+    for (uint32_t i = 0; i < 12; i++)
+    {
+        uint32_t end = i + 1 < 12 ? s_starts[i + 1] : 14;
+        clusters[i] = (muiAccessCluster){s_starts[i], end, 4.0f * (float)i, 4.0f * (float)i + 4.0f};
+    }
+    input->marks = (muiAccessTextMarks){.anchor = 14,
+                                        .focus = 14,
+                                        .selected = true,
+                                        .lineStarts = s_one,
+                                        .lineCount = 1,
+                                        .lineBoxes = s_box,
+                                        .clusters = clusters,
+                                        .clusterCount = 12};
+    CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) && EventsAre("") &&
+              TextIs("GetCharacterExtents", "iu", (const int32_t[]){1, 0}, "528 274 8 20") &&
+              TextIs("GetCharacterExtents", "iu", (const int32_t[]){1, 1}, "428 224 8 20") &&
+              TextIs("GetRangeExtents", "iiu", (const int32_t[]){0, 3, 0}, "520 274 24 20") &&
+              TextIs("GetCharacterExtents", "iu", (const int32_t[]){12, 0}, "0 0 0 0") &&
+              TextIs("GetOffsetAtPoint", "iiu", (const int32_t[]){537, 280, 0}, "2") &&
+              TextIs("GetOffsetAtPoint", "iiu", (const int32_t[]){437, 230, 1}, "2"),
+          "a character's extents and a range's, the character at a point");
+    input->marks = (muiAccessTextMarks){.anchor = 14, .focus = 14, .selected = true};
+    CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) && EventsAre(""),
+          "the clusters gone");
     CHECK(IsError(Answer(Call("/org/a11y/atspi/accessible/w1n7", "org.a11y.atspi.Text", "Nothing")),
                   "org.freedesktop.DBus.Error.UnknownMethod") &&
               IsError(

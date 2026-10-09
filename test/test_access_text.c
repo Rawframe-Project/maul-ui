@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// A value text's marks (record mui-0008, I123): the selection, lines and
-// words the host's text function gives, read for a node the update
-// sends, kept where they fit the text; the tree copying them, refusing
-// those that do not fit, and writing them.
+// A value text's marks (record mui-0008, I123): the selection, lines,
+// words and clusters the host's text function gives, read for a node the
+// update sends, kept where they fit the text; the tree copying them,
+// refusing those that do not fit, writing them, and answering where a
+// range is and what lies at a point.
 
 #include "access_text.h"
 #include "test_harness.h"
@@ -16,6 +17,7 @@
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
 
+#include <math.h>
 #include <string.h>
 
 static const muiNodeId s_nullNode = {0, 0};
@@ -25,7 +27,7 @@ static const muiNodeId s_nullNode = {0, 0};
 static const char s_text[] = "h\xC3\xA9llo w\xC3\xB6rld";
 static uint32_t s_lines[2] = {0, 7};
 static muiAccessWord s_words[2] = {{0, 6}, {7, 13}};
-static muiAccessTextMarks s_marks = {1, 1, true, s_lines, 2, s_words, 2};
+static muiAccessTextMarks s_marks = {1, 1, true, s_lines, 2, s_words, 2, NULL, NULL, 0};
 static uint32_t s_reads;
 static uint32_t s_boundaryReads;
 
@@ -270,7 +272,7 @@ static void TestTree(void)
     muiAccessNode node = {.id = 1, .role = mui_roleTextInput};
     node.text[mui_accessValue] = s_text;
     node.textLength[mui_accessValue] = sizeof s_text - 1;
-    node.marks = (muiAccessTextMarks){3, 1, true, lines, 2, words, 2};
+    node.marks = (muiAccessTextMarks){3, 1, true, lines, 2, words, 2, NULL, NULL, 0};
     const muiAccessNode* sent[1] = {&node};
     muiAccessUpdate update = One(sent);
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "applied");
@@ -317,6 +319,101 @@ static void TestTree(void)
               muiAccessTree_Write(tree, text, sizeof text, &length) == mui_success &&
               strstr(text, "selection") == NULL && strstr(text, "lines") == NULL,
           "gone");
+    muiDestroyAccessTree(tree);
+}
+
+// Where a text is shown: "héllo wörld" on two lines, 10 high, the second
+// from 7, its node at 100, 50 at twice the size: rectangles of a range
+// and the character at a point, through the transform; geometry that
+// does not fit refused.
+static void TestGeometry(void)
+{
+    static const uint32_t s_starts[2] = {0, 7};
+    static const muiAccessLineBox s_boxes[2] = {{0.0f, 10.0f, 0}, {10.0f, 20.0f, 6}};
+    static const muiAccessCluster s_clusters[11] = {
+        {0, 1, 0.0f, 5.0f},     {1, 3, 5.0f, 10.0f},    {3, 4, 10.0f, 13.0f},  {4, 5, 13.0f, 16.0f},
+        {5, 6, 16.0f, 22.0f},   {6, 7, 22.0f, 25.0f},   {7, 8, 0.0f, 8.0f},    {8, 10, 8.0f, 14.0f},
+        {10, 11, 14.0f, 18.0f}, {11, 12, 18.0f, 21.0f}, {12, 13, 21.0f, 27.0f}};
+    muiAccessTreeDef def = muiDefaultAccessTreeDef();
+    def.nodes = 4;
+    muiAccessTree* tree = NULL;
+    CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
+    muiAccessNode node = {.id = 1,
+                          .role = mui_roleTextInput,
+                          .bounds = {0.0f, 0.0f, 40.0f, 20.0f},
+                          .transform = {2.0f, 0.0f, 0.0f, 2.0f, 100.0f, 50.0f}};
+    node.text[mui_accessValue] = s_text;
+    node.textLength[mui_accessValue] = sizeof s_text - 1;
+    node.marks = (muiAccessTextMarks){.lineStarts = s_starts,
+                                      .lineCount = 2,
+                                      .lineBoxes = s_boxes,
+                                      .clusters = s_clusters,
+                                      .clusterCount = 11};
+    const muiAccessNode* sent[1] = {&node};
+    muiAccessUpdate update = One(sent);
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "applied");
+    muiRect rects[2];
+    uint32_t count = 0;
+    CHECK(muiAccessTree_GetTextRects(tree, 1, 0, 13, rects, 2, &count) == mui_success &&
+              count == 2 && rects[0].x == 100.0f && rects[0].y == 50.0f &&
+              rects[0].width == 50.0f && rects[0].height == 20.0f && rects[1].y == 70.0f &&
+              rects[1].width == 54.0f,
+          "a range over two lines: a rectangle each, through the transform");
+    CHECK(muiAccessTree_GetTextRects(tree, 1, 1, 3, rects, 2, &count) == mui_success &&
+              count == 1 && rects[0].x == 110.0f && rects[0].width == 10.0f &&
+              muiAccessTree_GetTextRects(tree, 1, 3, 3, rects, 2, &count) == mui_success &&
+              count == 0,
+          "a character; an empty range, none");
+    CHECK(muiAccessTree_GetTextRects(tree, 1, 0, 13, rects, 1, &count) == mui_errorCapacity &&
+              count == 2 &&
+              muiAccessTree_GetTextRects(tree, 1, 0, 13, NULL, 0, &count) == mui_errorCapacity &&
+              count == 2,
+          "counted past the capacity");
+    uint32_t offset = 99;
+    CHECK(muiAccessTree_GetTextOffsetAt(tree, 1, 124.0f, 60.0f, &offset) == mui_success &&
+              offset == 3 &&
+              muiAccessTree_GetTextOffsetAt(tree, 1, 1000.0f, 75.0f, &offset) == mui_success &&
+              offset == 12 &&
+              muiAccessTree_GetTextOffsetAt(tree, 1, 104.0f, 0.0f, &offset) == mui_success &&
+              offset == 0,
+          "the character at a point, or the nearest");
+    char text[256];
+    size_t length = 0;
+    CHECK(muiAccessTree_Write(tree, text, sizeof text, &length) == mui_success &&
+              strstr(text, " lines=2 clusters=11\n") != NULL,
+          "written");
+    muiAccessCluster bad[11];
+    memcpy(bad, s_clusters, sizeof bad);
+    muiAccessLineBox badBoxes[2] = {s_boxes[0], s_boxes[1]};
+    muiAccessNode wrong = node;
+    wrong.marks.clusters = bad;
+    wrong.marks.lineBoxes = badBoxes;
+    sent[0] = &wrong;
+    bad[1].start = 2;
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "inside a character");
+    bad[1].start = 1;
+    bad[1].left = NAN;
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "an edge not finite");
+    bad[1].left = 5.0f;
+    badBoxes[1].firstCluster = 12;
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "past the clusters");
+    badBoxes[1].firstCluster = 6;
+    wrong.marks.lineBoxes = NULL;
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "clusters without boxes");
+    // Without geometry: nothing to answer by.
+    node.marks = (muiAccessTextMarks){0};
+    sent[0] = &node;
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success &&
+              muiAccessTree_GetTextRects(tree, 1, 0, 3, rects, 2, &count) == mui_empty &&
+              count == 0 &&
+              muiAccessTree_GetTextOffsetAt(tree, 1, 0.0f, 0.0f, &offset) == mui_empty &&
+              muiAccessTree_GetTextRects(tree, 9, 0, 3, rects, 2, &count) == mui_empty,
+          "no clusters; a node not held");
+    CHECK(muiAccessTree_GetTextRects(NULL, 1, 0, 3, rects, 2, &count) == mui_errorInvalid &&
+              muiAccessTree_GetTextRects(tree, 1, 0, 3, NULL, 2, &count) == mui_errorInvalid &&
+              muiAccessTree_GetTextOffsetAt(tree, 1, NAN, 0.0f, &offset) == mui_errorInvalid &&
+              muiAccessTree_GetTextOffsetAt(tree, 1, 0.0f, 0.0f, NULL) == mui_errorInvalid,
+          "refused");
     muiDestroyAccessTree(tree);
 }
 
@@ -375,6 +472,7 @@ static void TestBoundaries(void)
 int main(void)
 {
     TestBoundaries();
+    TestGeometry();
     TestRead();
     TestUnfit();
     TestActions();

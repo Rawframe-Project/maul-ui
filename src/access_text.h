@@ -21,6 +21,22 @@ bool muiAccessSelectionFits(const muiAccessTextMarks* marks, const char* text, u
 bool muiAccessLinesFit(const muiAccessTextMarks* marks, const char* text, uint32_t length);
 bool muiAccessWordsFit(const muiAccessTextMarks* marks, const char* text, uint32_t length);
 
+// Whether where marks show a text fits it: a box each line, tops above
+// bottoms, first clusters ascending from 0; clusters with bytes in them
+// at the starts of characters, left edges before right ones; all finite.
+// None given fits; clusters without line boxes do not.
+bool muiAccessGeometryFits(const muiAccessTextMarks* marks, const char* text, uint32_t length);
+
+// The rectangles of a byte range of a shown text in its node's own
+// space: one each line, around its clusters with bytes in the range,
+// those past capacity counted only; how many. The byte offset of the
+// character at a point there: on the line whose box holds its y, or the
+// nearest, the cluster whose edges hold its x, or the nearest; a line's
+// start when it has no clusters. Both need line boxes.
+uint32_t muiAccessRangeRects(const muiAccessTextMarks* marks, uint32_t start, uint32_t end,
+                             muiRect* rects, uint32_t capacity);
+uint32_t muiAccessOffsetAt(const muiAccessTextMarks* marks, float x, float y);
+
 // The units a value text is read and moved by.
 typedef enum muiAccessUnit
 {

@@ -387,6 +387,16 @@ MUI_NODISCARD MUI_API muiResult muiAccessTree_GetBounds(const muiAccessTree* tre
 A node's bounds where the root is placed (the window's client area, for a root laid out in it): its bounds carried through its own transform and each ancestor's, the root's included, as the box around them.  @param tree       The tree. @param id         The node's id. @param boundsOut  Receives the bounds. @return `mui_success`; `mui_empty` for a node not held; `mui_errorInvalid` for a NULL argument. @par Thread safety Safe from any thread; the tree is used by one thread at a time.
 
 ```c
+MUI_NODISCARD MUI_API muiResult muiAccessTree_GetTextRects(const muiAccessTree* tree, uint64_t id, uint32_t start, uint32_t end, muiRect* rectsOut, uint32_t capacity, uint32_t* countOut);
+```
+The rectangles of a node's value text from one byte offset up to another, where the root is placed (as muiAccessTree_GetBounds): for each line, the box around its clusters with bytes in the range, carried through the transforms. A range no cluster has bytes of (empty, or a line break alone) has none.  @param tree      The tree. @param id        The node's id. @param start     The range's first byte. @param end       The byte after its last. @param rectsOut  Receives the rectangles, as many as capacity; NULL with a capacity of 0 to count them. @param capacity  How many rectsOut holds. @param countOut  Receives how many there are. @return `mui_success`; `mui_empty` for a node not held or whose text has no clusters (none given), the count 0; `mui_errorCapacity` when there are more than capacity; `mui_errorInvalid` for a NULL tree or count, or NULL rectangles with a capacity. @par Thread safety Safe from any thread; the tree is used by one thread at a time.
+
+```c
+MUI_NODISCARD MUI_API muiResult muiAccessTree_GetTextOffsetAt(const muiAccessTree* tree, uint64_t id, float x, float y, uint32_t* offsetOut);
+```
+The character of a node's value text at a point where the root is placed: on the line whose box holds the point, or the nearest, the cluster whose edges hold it, or the nearest; a line with no clusters gives its start.  @param tree       The tree. @param id         The node's id. @param x          The point's x. @param y          The point's y. @param offsetOut  Receives the character's first byte. @return `mui_success`; `mui_empty` for a node not held, whose text has no clusters (none given), or whose transforms flatten it; `mui_errorInvalid` for a NULL argument or a point not finite. @par Thread safety Safe from any thread; the tree is used by one thread at a time.
+
+```c
 MUI_NODISCARD MUI_API muiResult muiAccessTree_Write(const muiAccessTree* tree, char* buffer, size_t capacity, size_t* lengthOut);
 ```
 Writes the tree as text, a node a line in tree order, indented by depth: its role's name, its id's index, and its flags, actions, size, place, texts, selection and counts of lines and words where it has them. Tests compare it.  @param tree       The tree. @param buffer     Receives the text, NUL-terminated; may be NULL when capacity is 0. @param capacity   Its size in bytes. @param lengthOut  Receives the text's length without its NUL. @return `mui_success`; `mui_errorCapacity` when it does not fit, as much written as fits; `mui_errorInvalid` for a NULL tree or length, or a NULL buffer with room. @par Thread safety Safe from any thread; the tree is used by one thread at a time.
@@ -1879,4 +1889,4 @@ Asks the window to accept text with its caret at a rectangle of a node's border 
 
 ---
 
-342 functions across 40 headers.
+344 functions across 40 headers.

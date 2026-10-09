@@ -380,8 +380,30 @@ extern "C"
         uint32_t end;
     } muiAccessWord;
 
+    // A grapheme cluster of a value text as shown: its bytes from start up
+    // to end, and its left and right edges in the node's own space (where
+    // its bounds are, before its transform).
+    typedef struct muiAccessCluster
+    {
+        uint32_t start;
+        uint32_t end;
+        float left;
+        float right;
+    } muiAccessCluster;
+
+    // A line of a value text as shown: its top and bottom in the node's
+    // own space, and its first cluster; its clusters run up to the next
+    // line's first.
+    typedef struct muiAccessLineBox
+    {
+        float top;
+        float bottom;
+        uint32_t firstCluster;
+    } muiAccessLineBox;
+
     // Where a value text is selected, and where its lines and words are:
-    // byte offsets into the text, at the starts of characters.
+    // byte offsets into the text, at the starts of characters; and where
+    // it is shown.
     typedef struct muiAccessTextMarks
     {
         // The selection, the caret at its focus, when selected says so:
@@ -396,6 +418,12 @@ extern "C"
         // Its words, in order, none overlapping; NULL for none.
         const muiAccessWord* words;
         uint32_t wordCount;
+        // Where it is shown, with its lines: a box each line (lineCount of
+        // them), and its clusters line after line, each line's left to
+        // right; NULL for none given.
+        const muiAccessLineBox* lineBoxes;
+        const muiAccessCluster* clusters;
+        uint32_t clusterCount;
     } muiAccessTextMarks;
 
     // A node as an update sends it: everything it is, whole.
@@ -486,7 +514,7 @@ extern "C"
 
     /// The host's function for what host content reads as: a node's text,
     /// such as a text block's, with its selection, valid until the host
-    /// edits it; when boundaries are asked for, its lines and words too,
+    /// edits it; when boundaries are asked for, its lines, words and clusters too,
     /// valid as long. It runs inside muiBuildAccessUpdate, as the measure
     /// function runs inside layout, and may not change the context;
     /// boundaries are asked for only of a node the update sends. The text

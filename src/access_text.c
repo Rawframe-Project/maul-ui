@@ -6,6 +6,8 @@
 
 #include "access_text.h"
 
+#include <math.h>
+
 // Whether offset is within the text at a character's start: the end, or
 // a byte that does not continue a UTF-8 sequence.
 static bool IsStart(const char* text, uint32_t length, uint32_t offset)
@@ -58,6 +60,125 @@ bool muiAccessWordsFit(const muiAccessTextMarks* marks, const char* text, uint32
         after = word.end;
     }
     return true;
+}
+
+// Two edges, finite and in order.
+static bool IsSpan(float low, float high)
+{
+    return isfinite(low) && isfinite(high) && low <= high;
+}
+
+static bool LineBoxesFit(const muiAccessTextMarks* marks)
+{
+    uint32_t first = 0;
+    for (uint32_t i = 0; i < marks->lineCount; i++)
+    {
+        const muiAccessLineBox* box = &marks->lineBoxes[i];
+        if (!IsSpan(box->top, box->bottom) || box->firstCluster < first ||
+            box->firstCluster > marks->clusterCount || (i == 0 && box->firstCluster != 0))
+        {
+            return false;
+        }
+        first = box->firstCluster;
+    }
+    return true;
+}
+
+bool muiAccessGeometryFits(const muiAccessTextMarks* marks, const char* text, uint32_t length)
+{
+    if (marks->lineBoxes == nullptr)
+    {
+        return marks->clusterCount == 0;
+    }
+    if (marks->lineCount == 0 || (marks->clusterCount != 0 && marks->clusters == nullptr) ||
+        !LineBoxesFit(marks))
+    {
+        return false;
+    }
+    for (uint32_t i = 0; i < marks->clusterCount; i++)
+    {
+        const muiAccessCluster* cluster = &marks->clusters[i];
+        if (cluster->end <= cluster->start || !IsStart(text, length, cluster->start) ||
+            !IsStart(text, length, cluster->end) || !IsSpan(cluster->left, cluster->right))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// A line's clusters: from its first up to the next line's.
+static uint32_t EndOfLine(const muiAccessTextMarks* marks, uint32_t line)
+{
+    return line + 1 < marks->lineCount ? marks->lineBoxes[line + 1].firstCluster
+                                       : marks->clusterCount;
+}
+
+uint32_t muiAccessRangeRects(const muiAccessTextMarks* marks, uint32_t start, uint32_t end,
+                             muiRect* rects, uint32_t capacity)
+{
+    uint32_t count = 0;
+    for (uint32_t line = 0; line < marks->lineCount && start < end; line++)
+    {
+        float left = INFINITY;
+        float right = -INFINITY;
+        for (uint32_t i = marks->lineBoxes[line].firstCluster; i < EndOfLine(marks, line); i++)
+        {
+            const muiAccessCluster* cluster = &marks->clusters[i];
+            if (cluster->start < end && cluster->end > start)
+            {
+                left = cluster->left < left ? cluster->left : left;
+                right = cluster->right > right ? cluster->right : right;
+            }
+        }
+        if (left <= right)
+        {
+            const muiAccessLineBox* box = &marks->lineBoxes[line];
+            if (count < capacity)
+            {
+                rects[count] = (muiRect){left, box->top, right - left, box->bottom - box->top};
+            }
+            count++;
+        }
+    }
+    return count;
+}
+
+// How far a value lies outside a span; 0 inside it.
+static float Outside(float value, float low, float high)
+{
+    return value < low ? low - value : value > high ? value - high : 0.0f;
+}
+
+uint32_t muiAccessOffsetAt(const muiAccessTextMarks* marks, float x, float y)
+{
+    uint32_t line = 0;
+    for (uint32_t i = 1; i < marks->lineCount; i++)
+    {
+        const muiAccessLineBox* box = &marks->lineBoxes[i];
+        const muiAccessLineBox* best = &marks->lineBoxes[line];
+        if (Outside(y, box->top, box->bottom) < Outside(y, best->top, best->bottom))
+        {
+            line = i;
+        }
+    }
+    uint32_t first = marks->lineBoxes[line].firstCluster;
+    uint32_t last = EndOfLine(marks, line);
+    if (first == last)
+    {
+        return marks->lineStarts != nullptr ? marks->lineStarts[line] : 0;
+    }
+    uint32_t nearest = first;
+    for (uint32_t i = first + 1; i < last; i++)
+    {
+        const muiAccessCluster* cluster = &marks->clusters[i];
+        const muiAccessCluster* best = &marks->clusters[nearest];
+        if (Outside(x, cluster->left, cluster->right) < Outside(x, best->left, best->right))
+        {
+            nearest = i;
+        }
+    }
+    return marks->clusters[nearest].start;
 }
 
 muiAccessText muiAccessValueOf(const muiAccessNode* node)

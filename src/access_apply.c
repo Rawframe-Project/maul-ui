@@ -161,7 +161,8 @@ static bool MarksFit(const muiAccessNode* node)
     uint32_t length = text != nullptr ? node->textLength[mui_accessValue] : 0;
     return muiAccessSelectionFits(&node->marks, text, length) &&
            muiAccessLinesFit(&node->marks, text, length) &&
-           muiAccessWordsFit(&node->marks, text, length);
+           muiAccessWordsFit(&node->marks, text, length) &&
+           muiAccessGeometryFits(&node->marks, text, length);
 }
 
 // Checks the lists sent leave a tree: every child known and listed once,
@@ -244,6 +245,9 @@ static void FreeStaged(const muiAccessTree* tree, const muiAccessNode* node,
     owned.node.marks.lineCount = node->marks.lineCount;
     owned.node.marks.words = staged->words;
     owned.node.marks.wordCount = node->marks.wordCount;
+    owned.node.marks.lineBoxes = staged->lineBoxes;
+    owned.node.marks.clusters = staged->clusters;
+    owned.node.marks.clusterCount = node->marks.clusterCount;
     owned.node.links = staged->links;
     muiFreeHeld(tree, &owned);
 }
@@ -292,6 +296,12 @@ static bool Stage(const muiAccessTree* tree, const muiAccessNode* node, const ui
                               alignof(uint32_t), &fits);
     staged->words = Copy(tree, marks->words, marks->wordCount * sizeof(muiAccessWord),
                          alignof(muiAccessWord), &fits);
+    staged->lineBoxes =
+        Copy(tree, marks->lineBoxes,
+             marks->lineBoxes != nullptr ? marks->lineCount * sizeof(muiAccessLineBox) : 0,
+             alignof(muiAccessLineBox), &fits);
+    staged->clusters = Copy(tree, marks->clusters, marks->clusterCount * sizeof(muiAccessCluster),
+                            alignof(muiAccessCluster), &fits);
     staged->links = Copy(tree, node->links, node->linkCount * sizeof(muiAccessLink),
                          alignof(muiAccessLink), &fits);
     staged->children = Copy(tree, node->childCount != 0 ? children + node->firstChild : nullptr,
@@ -316,6 +326,9 @@ static muiHeldNode HeldOf(const muiAccessNode* node, const muiStagedNode* staged
     held.node.marks.lineCount = staged->lineStarts != nullptr ? node->marks.lineCount : 0;
     held.node.marks.words = staged->words;
     held.node.marks.wordCount = staged->words != nullptr ? node->marks.wordCount : 0;
+    held.node.marks.lineBoxes = staged->lineBoxes;
+    held.node.marks.clusters = staged->clusters;
+    held.node.marks.clusterCount = staged->clusters != nullptr ? node->marks.clusterCount : 0;
     held.node.links = staged->links;
     held.node.linkCount = staged->links != nullptr ? node->linkCount : 0;
     held.node.firstChild = 0;

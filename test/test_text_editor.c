@@ -922,6 +922,12 @@ static void TestPassword(void)
               content.marks.selected && content.marks.anchor == 0 && content.marks.focus == 15 &&
               content.marks.lineCount == 1 && content.marks.wordCount == 0,
           "read as bullets, selected by them, no words");
+    const muiAccessCluster* clusters = content.marks.clusters;
+    CHECK(content.marks.lineBoxes != NULL && content.marks.lineBoxes[0].firstCluster == 0 &&
+              content.marks.clusterCount == 5 && clusters[3].start == 9 && clusters[3].end == 12 &&
+              clusters[3].left - clusters[0].left == 30.0f &&
+              clusters[3].right - clusters[3].left == 10.0f,
+          "where the bullets are, as hit testing has them");
     bool changed = true;
     CHECK(muiTextBlock_Compose(scene.service, scene.block, "x", 1, 1, NULL, 0, &changed) ==
                   mui_success &&

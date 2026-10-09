@@ -239,9 +239,12 @@ struct muiTextBlock
     muiTextBlock* mask;
     uint64_t maskRevision;
     // What accessibility last read of it (src/text_access.c): where its
-    // lines start (uint32_t) and its words (muiAccessWord).
+    // lines start (uint32_t), its words (muiAccessWord), its lines' boxes
+    // (muiAccessLineBox) and its clusters (muiAccessCluster).
     muiBuffer accessLines;
     muiBuffer accessWords;
+    muiBuffer accessLineBoxes;
+    muiBuffer accessClusters;
 };
 
 typedef struct muiTextBlockStore

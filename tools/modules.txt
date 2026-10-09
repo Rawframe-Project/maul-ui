@@ -49,7 +49,7 @@ access_tree_store:
 chars:
 access_tree: access_tree_store allocator chars
 access_apply: access_text access_tree access_tree_store allocator
-access_view: access_tree_store
+access_view: access_text access_tree_store
 id_map:
 dbus_api:
 android: id_map
@@ -141,7 +141,7 @@ text_lines: line_break text_block text_paragraph text_service
 text_hit: font_chain line_break text_block text_boxes text_paragraph text_service text_shape text_mask
 text_delete: text_block text_service
 text_move: font_chain line_break text_block text_boxes text_paragraph text_service text_shape text_mask
-text_access: allocator line_break text_block text_blocks text_editing text_lines text_mask text_paragraph text_service
+text_access: allocator line_break text_block text_blocks text_boxes text_editing text_mask text_service
 font: allocator font_store pool text_service
 distance_field:
 flatten: distance_field

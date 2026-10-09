@@ -135,6 +135,16 @@ void muiFreeHeld(const muiAccessTree* tree, const muiHeldNode* held)
         muiRelease(&tree->allocator, (void*)node->marks.words,
                    node->marks.wordCount * sizeof(muiAccessWord), alignof(muiAccessWord));
     }
+    if (node->marks.lineBoxes != nullptr)
+    {
+        muiRelease(&tree->allocator, (void*)node->marks.lineBoxes,
+                   node->marks.lineCount * sizeof(muiAccessLineBox), alignof(muiAccessLineBox));
+    }
+    if (node->marks.clusters != nullptr)
+    {
+        muiRelease(&tree->allocator, (void*)node->marks.clusters,
+                   node->marks.clusterCount * sizeof(muiAccessCluster), alignof(muiAccessCluster));
+    }
     if (node->links != nullptr)
     {
         muiRelease(&tree->allocator, (void*)node->links, node->linkCount * sizeof(muiAccessLink),
@@ -466,6 +476,10 @@ static void PutNode(Writer* writer, const muiAccessNode* node, uint32_t depth)
     if (marks->wordCount != 0)
     {
         PutCount(writer, " words=", marks->wordCount);
+    }
+    if (marks->lineBoxes != nullptr)
+    {
+        PutCount(writer, " clusters=", marks->clusterCount);
     }
     Put(writer, "\n", 1);
 }

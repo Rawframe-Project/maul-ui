@@ -122,7 +122,13 @@ static void Show(muiAtspiAdapter* adapter)
     static const muiAccessWord words[3] = {{0, 6}, {7, 14}, {15, 19}};
     nodes[5].text[mui_accessValue] = value;
     nodes[5].textLength[mui_accessValue] = sizeof value - 1;
-    nodes[5].marks = (muiAccessTextMarks){7, 1, true, lines, 2, words, 3};
+    nodes[5].marks = (muiAccessTextMarks){.anchor = 7,
+                                          .focus = 1,
+                                          .selected = true,
+                                          .lineStarts = lines,
+                                          .lineCount = 2,
+                                          .words = words,
+                                          .wordCount = 3};
     nodes[6].flags = mui_accessNumeric;
     nodes[6].actions = 1u << mui_actionSetValue | 1u << mui_actionIncrement;
     nodes[6].value = 30.0f;

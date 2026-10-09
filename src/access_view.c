@@ -7,10 +7,12 @@
 // children; names come from labels, the nodes that label, or contents;
 // bounds are carried into the root's placement through every transform.
 
+#include "access_text.h"
 #include "access_tree_store.h"
 
 #include "maul-ui/access_tree.h"
 
+#include <math.h>
 #include <string.h>
 
 // How filtering treats a node: shown; left out with its subtree; or left
@@ -245,18 +247,10 @@ muiResult muiAccessTree_GetShownChildren(const muiAccessTree* tree, uint64_t id,
     return count <= capacity ? mui_success : mui_errorCapacity;
 }
 
-muiResult muiAccessTree_GetBounds(const muiAccessTree* tree, uint64_t id, muiRect* boundsOut)
+// A held node's transforms composed, its own innermost: from its own
+// space to where the root is placed.
+static muiDrawTransform TransformOf(const muiAccessTree* tree, uint32_t slot)
 {
-    if (tree == nullptr || boundsOut == nullptr)
-    {
-        return mui_errorInvalid;
-    }
-    uint32_t slot = muiHeldSlotOf(tree, id);
-    if (slot == 0)
-    {
-        return mui_empty;
-    }
-    // The transforms composed, the node's innermost.
     muiDrawTransform m = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
     uint32_t steps = 0;
     for (uint32_t at = slot; at != 0 && steps <= tree->count;
@@ -268,7 +262,69 @@ muiResult muiAccessTree_GetBounds(const muiAccessTree* tree, uint64_t id, muiRec
             t->b * m.c + t->d * m.d, t->a * m.e + t->c * m.f + t->e, t->b * m.e + t->d * m.f + t->f,
         };
     }
+    return m;
+}
+
+muiResult muiAccessTree_GetBounds(const muiAccessTree* tree, uint64_t id, muiRect* boundsOut)
+{
+    if (tree == nullptr || boundsOut == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    uint32_t slot = muiHeldSlotOf(tree, id);
+    if (slot == 0)
+    {
+        return mui_empty;
+    }
+    muiDrawTransform m = TransformOf(tree, slot);
     *boundsOut = BoxOf(&m, tree->held[slot - 1].node.bounds);
+    return mui_success;
+}
+
+muiResult muiAccessTree_GetTextRects(const muiAccessTree* tree, uint64_t id, uint32_t start,
+                                     uint32_t end, muiRect* rectsOut, uint32_t capacity,
+                                     uint32_t* countOut)
+{
+    if (tree == nullptr || countOut == nullptr || (rectsOut == nullptr && capacity != 0))
+    {
+        return mui_errorInvalid;
+    }
+    *countOut = 0;
+    uint32_t slot = muiHeldSlotOf(tree, id);
+    const muiAccessTextMarks* marks = slot != 0 ? &tree->held[slot - 1].node.marks : nullptr;
+    if (marks == nullptr || marks->lineBoxes == nullptr)
+    {
+        return mui_empty;
+    }
+    uint32_t count = muiAccessRangeRects(marks, start, end, rectsOut, capacity);
+    muiDrawTransform m = TransformOf(tree, slot);
+    for (uint32_t i = 0; i < count && i < capacity; i++)
+    {
+        rectsOut[i] = BoxOf(&m, rectsOut[i]);
+    }
+    *countOut = count;
+    return count <= capacity ? mui_success : mui_errorCapacity;
+}
+
+muiResult muiAccessTree_GetTextOffsetAt(const muiAccessTree* tree, uint64_t id, float x, float y,
+                                        uint32_t* offsetOut)
+{
+    if (tree == nullptr || offsetOut == nullptr || !isfinite(x) || !isfinite(y))
+    {
+        return mui_errorInvalid;
+    }
+    uint32_t slot = muiHeldSlotOf(tree, id);
+    const muiAccessTextMarks* marks = slot != 0 ? &tree->held[slot - 1].node.marks : nullptr;
+    muiDrawTransform m = slot != 0 ? TransformOf(tree, slot) : (muiDrawTransform){0};
+    // The point taken back into the node's own space.
+    float det = m.a * m.d - m.b * m.c;
+    if (marks == nullptr || marks->lineBoxes == nullptr || det == 0.0f || !isfinite(det))
+    {
+        return mui_empty;
+    }
+    float dx = x - m.e;
+    float dy = y - m.f;
+    *offsetOut = muiAccessOffsetAt(marks, (m.d * dx - m.c * dy) / det, (m.a * dy - m.b * dx) / det);
     return mui_success;
 }
 

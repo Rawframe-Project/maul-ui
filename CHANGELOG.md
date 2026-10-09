@@ -68,13 +68,21 @@ format.
   and `ACTION_SET_TEXT` through the host; text changed and selection
   changed events, in UTF-16. The provider's packed record grows by the
   granularities and the selection.
+- Character geometry in the accessibility tree: `muiAccessTextMarks`
+  carries a box each line and the grapheme clusters line after line
+  (`muiAccessLineBox`, `muiAccessCluster`), in the node's own space, from
+  the text component's hit testing; `muiAccessTree_GetTextRects` gives a
+  range's rectangles a line each and `muiAccessTree_GetTextOffsetAt` the
+  character at a point, through the transforms. AT-SPI's character and
+  range extents and offset at a point answer from them, or from the
+  node's extents for text without clusters.
 
 ### Changed
 
 - `muiAccessTextFunction`, and the text component's `muiAccessTextOf`,
-  fill a `muiAccessContent` (the text, its selection, its lines and
-  words) and are told whether lines and words are wanted, in place of
-  a text and its length.
+  fill a `muiAccessContent` (the text, its selection, its lines, words
+  and clusters) and are told whether lines and words are wanted, in
+  place of a text and its length.
 - `muiTextEditOutcome` says whether the selection moved (`selected`),
   which the host tells the accessibility tree.
 - A typed id is named for what it names, as across the family:

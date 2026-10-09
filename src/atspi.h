@@ -208,9 +208,21 @@ uint64_t muiAtspiShownFocus(const muiAccessTree* tree);
 void muiAtspiStatesOf(const muiAtspiAdapter* adapter, const muiAccessNode* node,
                       uint32_t statesOut[2]);
 
-// A node's extents in pixels: in the window, with the window's place
-// on the screen added for screen coordinates.
+// A rectangle where the root is placed, and a node's, as extents in
+// pixels: in the window, with the window's place on the screen added for
+// screen coordinates.
+void muiAtspiExtentsOfRect(const muiAtspiAdapter* adapter, muiRect bounds, bool screen,
+                           int32_t extentsOut[4]);
 void muiAtspiExtentsOf(const muiAtspiAdapter* adapter, uint64_t id, bool screen,
                        int32_t extentsOut[4]);
+
+// A rectangle where the root is placed as extents in an AT-SPI
+// coordinate type, for an object (src/atspi_component.c); a point in a
+// coordinate type taken to where the root is placed, and whether the
+// object's extents hold it.
+void muiAtspiRectIn(const muiAtspiObject* object, muiRect bounds, uint32_t coordinates,
+                    int32_t extentsOut[4]);
+bool muiAtspiPointIn(const muiAtspiObject* object, uint32_t coordinates, int32_t x, int32_t y,
+                     float* xOut, float* yOut);
 
 #endif // MAUL_UI_SRC_ATSPI_H

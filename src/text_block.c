@@ -84,12 +84,12 @@ uint32_t muiParagraphEnd(const char* text, uint32_t length, uint32_t from)
 
 void muiReleaseTextBlock(const muiAllocator* allocator, muiTextBlock* block)
 {
-    muiBuffer* buffers[] = {&block->text,          &block->breaks,      &block->scripts,
-                            &block->levels,        &block->items,       &block->glyphs,
-                            &block->advances,      &block->clusters,    &block->unsafe,
-                            &block->faces,         &block->segments,    &block->spans,
-                            &block->runStyles,     &block->runs,        &block->editing.entries,
-                            &block->editing.bytes, &block->accessLines, &block->accessWords};
+    muiBuffer* buffers[] = {
+        &block->text,        &block->breaks,      &block->scripts,         &block->levels,
+        &block->items,       &block->glyphs,      &block->advances,        &block->clusters,
+        &block->unsafe,      &block->faces,       &block->segments,        &block->spans,
+        &block->runStyles,   &block->runs,        &block->editing.entries, &block->editing.bytes,
+        &block->accessLines, &block->accessWords, &block->accessLineBoxes, &block->accessClusters};
     for (size_t i = 0; i < sizeof buffers / sizeof buffers[0]; i++)
     {
         muiFreeBuffer(allocator, buffers[i]);

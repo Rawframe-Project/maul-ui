@@ -275,7 +275,7 @@ static uint64_t FoldWord(uint64_t print, uint64_t word)
 }
 
 // The marks the host gave that fit its text (src/access_text.h): the
-// selection, and the lines and words when they were asked for.
+// selection, and the lines, words and clusters when they were asked for.
 static muiAccessTextMarks MarksOf(const muiAccessContent* content, bool boundaries)
 {
     const muiAccessTextMarks* given = &content->marks;
@@ -296,6 +296,14 @@ static muiAccessTextMarks MarksOf(const muiAccessContent* content, bool boundari
     {
         marks.words = given->wordCount != 0 ? given->words : nullptr;
         marks.wordCount = given->wordCount;
+    }
+    // Where the text is shown goes with its lines.
+    if (marks.lineCount != 0 && given->lineBoxes != nullptr &&
+        muiAccessGeometryFits(given, content->text, length))
+    {
+        marks.lineBoxes = given->lineBoxes;
+        marks.clusters = given->clusterCount != 0 ? given->clusters : nullptr;
+        marks.clusterCount = given->clusterCount;
     }
     return marks;
 }

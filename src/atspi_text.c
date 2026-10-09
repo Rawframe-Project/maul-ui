@@ -11,6 +11,8 @@
 #include "allocator.h"
 #include "atspi.h"
 
+#include <math.h>
+#include <stdalign.h>
 #include <string.h>
 
 // AT-SPI's granularities, and the older boundary types.
@@ -360,14 +362,119 @@ static bool AppendNoAttributes(muiAtspiApp* app, muiDBusIter* iter)
            app->dbus.closeContainer(iter, &array);
 }
 
-// Writes the answers about attributes and geometry: none of either yet,
-// the whole text one run of no attributes, extents empty.
+// The box around a byte range's rectangles where the root is placed:
+// the node's own when its text has no clusters; none for an empty range.
+static bool RangeBox(const muiAtspiObject* object, uint32_t start, uint32_t end, muiRect* boxOut)
+{
+    const muiAccessTree* tree = object->adapter->tree;
+    uint32_t count = 0;
+    muiResult status =
+        muiAccessTree_GetTextRects(tree, object->node->id, start, end, nullptr, 0, &count);
+    if (status == mui_empty)
+    {
+        return start < end &&
+               muiAccessTree_GetBounds(tree, object->node->id, boxOut) == mui_success;
+    }
+    // A few lines on the stack, more from the heap.
+    muiRect small[8];
+    const muiAllocator* allocator = &object->adapter->app->allocator;
+    const uint32_t wanted = count;
+    muiRect* rects =
+        wanted <= 8 ? small : muiAllocate(allocator, wanted * sizeof(muiRect), alignof(muiRect));
+    if (wanted == 0 || rects == nullptr ||
+        muiAccessTree_GetTextRects(tree, object->node->id, start, end, rects, wanted, &count) !=
+            mui_success)
+    {
+        count = 0;
+    }
+    float left = INFINITY;
+    float top = INFINITY;
+    float right = -INFINITY;
+    float bottom = -INFINITY;
+    for (uint32_t i = 0; i < count; i++)
+    {
+        left = fminf(left, rects[i].x);
+        top = fminf(top, rects[i].y);
+        right = fmaxf(right, rects[i].x + rects[i].width);
+        bottom = fmaxf(bottom, rects[i].y + rects[i].height);
+    }
+    if (rects != nullptr && rects != small)
+    {
+        muiRelease(allocator, rects, wanted * sizeof(muiRect), alignof(muiRect));
+    }
+    *boxOut = (muiRect){left, top, right - left, bottom - top};
+    return count != 0;
+}
+
+// Writes the extents of characters from one to another in a coordinate
+// type, all zero for none.
+static bool AppendRangeExtents(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object,
+                               const muiAccessText* text, int32_t start, int32_t end,
+                               uint32_t coordinates)
+{
+    int32_t extents[4] = {0, 0, 0, 0};
+    muiRect box = {0};
+    uint32_t from = ByteOf(text, start < end ? start : end);
+    uint32_t to = ByteOf(text, start < end ? end : start);
+    if (RangeBox(object, from, to, &box))
+    {
+        muiAtspiRectIn(object, box, coordinates, extents);
+    }
+    bool ok = true;
+    for (int i = 0; i < 4 && ok; i++)
+    {
+        ok = app->dbus.appendBasic(iter, mui_dbusTypeInt32, &extents[i]);
+    }
+    return ok;
+}
+
+// Writes the answers about geometry: a character's extents, a range's,
+// the character at a point (-1 outside the node; the text's start when
+// it has no clusters).
+static bool AppendGeometry(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
+                           const muiAtspiObject* object, const muiAccessText* text,
+                           const char* member, bool* ok)
+{
+    int32_t args[3] = {0, 0, 0};
+    if (strcmp(member, "GetCharacterExtents") == 0)
+    {
+        *ok = ReadInts(&app->dbus, call, "iu", args) &&
+              AppendRangeExtents(app, iter, object, text, args[0], args[0] + 1, (uint32_t)args[1]);
+    }
+    else if (strcmp(member, "GetRangeExtents") == 0)
+    {
+        *ok = ReadInts(&app->dbus, call, "iiu", args) &&
+              AppendRangeExtents(app, iter, object, text, args[0], args[1], (uint32_t)args[2]);
+    }
+    else if (strcmp(member, "GetOffsetAtPoint") == 0)
+    {
+        *ok = ReadInts(&app->dbus, call, "iiu", args);
+        float x = 0.0f;
+        float y = 0.0f;
+        uint32_t at = 0;
+        int32_t offset = -1;
+        if (*ok && muiAtspiPointIn(object, (uint32_t)args[2], args[0], args[1], &x, &y))
+        {
+            muiResult status =
+                muiAccessTree_GetTextOffsetAt(object->adapter->tree, object->node->id, x, y, &at);
+            offset = status == mui_success ? PointsBefore(text, at) : 0;
+        }
+        *ok = *ok && app->dbus.appendBasic(iter, mui_dbusTypeInt32, &offset);
+    }
+    else
+    {
+        return false;
+    }
+    return true;
+}
+
+// Writes the answers about attributes: none yet, the whole text one run
+// of no attributes.
 static bool AppendOther(muiAtspiApp* app, muiDBusIter* iter, const muiAccessText* text,
                         const char* member, bool* ok)
 {
     const muiDBusApi* dbus = &app->dbus;
     const int32_t zero = 0;
-    const int32_t nowhere = -1;
     const int32_t count = PointsBefore(text, text->length);
     if (strcmp(member, "GetAttributes") == 0 || strcmp(member, "GetAttributeRun") == 0)
     {
@@ -382,17 +489,6 @@ static bool AppendOther(muiAtspiApp* app, muiDBusIter* iter, const muiAccessText
     else if (strcmp(member, "GetAttributeValue") == 0)
     {
         *ok = muiAtspiAppendString(app, iter, "");
-    }
-    else if (strcmp(member, "GetCharacterExtents") == 0 || strcmp(member, "GetRangeExtents") == 0)
-    {
-        for (int i = 0; i < 4 && *ok; i++)
-        {
-            *ok = dbus->appendBasic(iter, mui_dbusTypeInt32, &zero);
-        }
-    }
-    else if (strcmp(member, "GetOffsetAtPoint") == 0)
-    {
-        *ok = dbus->appendBasic(iter, mui_dbusTypeInt32, &nowhere);
     }
     else if (strcmp(member, "GetBoundedRanges") == 0)
     {
@@ -422,6 +518,7 @@ bool muiAtspiAnswerText(muiAtspiApp* app, DBusMessage* call, const muiAtspiObjec
     bool ok = true;
     if (!AppendRead(app, &iter, call, &text, member, &ok) &&
         !AppendSelection(app, &iter, call, object, &text, member, &ok) &&
+        !AppendGeometry(app, &iter, call, object, &text, member, &ok) &&
         !AppendOther(app, &iter, &text, member, &ok))
     {
         app->dbus.unrefMessage(reply);

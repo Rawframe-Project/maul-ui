@@ -445,7 +445,13 @@ static muiAccessUpdate Build(Built* built)
     static const muiAccessWord s_words[2] = {{0, 3}, {4, 12}};
     input->text[mui_accessValue] = "Ada Lovelace";
     input->textLength[mui_accessValue] = 12;
-    input->marks = (muiAccessTextMarks){4, 4, true, s_lines, 1, s_words, 2};
+    input->marks = (muiAccessTextMarks){.anchor = 4,
+                                        .focus = 4,
+                                        .selected = true,
+                                        .lineStarts = s_lines,
+                                        .lineCount = 1,
+                                        .words = s_words,
+                                        .wordCount = 2};
     input->actions = 1u << mui_actionSetSelection | 1u << mui_actionReplaceText;
     muiAccessNode* check = Add(built, 8, mui_roleCheckBox, "Agree", 220, 10, 100, 20);
     check->flags = mui_accessCheckable | mui_accessChecked;

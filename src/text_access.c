@@ -2,17 +2,17 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // What a text block reads as to accessibility (records mui-0006 and
-// mui-0008, I123): its text as shown, its editing selection, its lines as
-// painting breaks them, and its words; and the requests that set the
-// selection and replace text, in the offsets it reads as.
+// mui-0008, I123): its text as shown, its editing selection, its lines
+// and its grapheme clusters where painting lays them out, and its words;
+// and the requests that set the selection and replace text, in the
+// offsets it reads as.
 
 #include "allocator.h"
 #include "text_block.h"
 #include "text_blocks.h"
+#include "text_boxes.h"
 #include "text_editing.h"
-#include "text_lines.h"
 #include "text_mask.h"
-#include "text_paragraph.h"
 #include "text_service.h"
 
 #include "maul-ui/access.h"
@@ -21,34 +21,66 @@
 #include "maul-ui/text_editor.h"
 #include "maul-unicode/segment.h"
 
-// Where the lines of a node's text start as painting breaks them at its
-// content box's width, kept in the block; false when they cannot be laid
-// out.
-static bool ReadLines(const muiTextHost* host, muiNodeId nodeId, uint64_t hostKey,
-                      muiTextBlock* block, muiAccessTextMarks* marks)
+// A line's clusters, after those kept, in the node's own space: the
+// content box's place added; false when memory runs out.
+static bool ReadClusters(const muiLaidText* laid, uint32_t index, muiRect content,
+                         muiTextBlock* block, uint32_t* countInOut)
 {
-    muiParagraph paragraph;
-    if (!muiPrepareParagraph(host, nodeId, hostKey, &paragraph))
+    muiTextBoxes boxes;
+    muiTextService* service = laid->paragraph.service;
+    uint32_t kept = *countInOut;
+    if (!muiGetLineBoxes(laid, index, &boxes) ||
+        !muiReserveKeeping(&service->allocator, &block->accessClusters,
+                           (kept + boxes.count) * sizeof(muiAccessCluster),
+                           kept * sizeof(muiAccessCluster)))
     {
         return false;
     }
-    float width = muiNode_GetContentRect(host->context, nodeId).width;
-    uint32_t count = 0;
-    if (!muiLayLines(&paragraph, muiParagraphBreakMode(&paragraph, mui_measureAtMost), width,
-                     &count) ||
-        count == 0 ||
-        !muiReserve(&host->service->allocator, &block->accessLines, count * sizeof(uint32_t)))
+    muiAccessCluster* clusters = block->accessClusters.data;
+    for (uint32_t i = 0; i < boxes.count; i++)
+    {
+        const muiTextBox* box = &boxes.data[i];
+        clusters[kept + i] =
+            (muiAccessCluster){box->start, box->end, content.x + box->x0, content.x + box->x1};
+    }
+    *countInOut = kept + boxes.count;
+    return true;
+}
+
+// Where the lines of a node's text start and where its clusters are, as
+// painting lays them out in its content box, kept in the block; false
+// when they cannot be laid out.
+static bool ReadLines(const muiTextHost* host, muiNodeId nodeId, muiTextBlock* block,
+                      muiAccessTextMarks* marks)
+{
+    muiRect content = muiNode_GetContentRect(host->context, nodeId);
+    muiLaidText laid;
+    muiAllocator* allocator = &host->service->allocator;
+    if (muiLayText(host, nodeId, content.width, &laid) != mui_success || laid.lineCount == 0 ||
+        !muiReserve(allocator, &block->accessLines, laid.lineCount * sizeof(uint32_t)) ||
+        !muiReserve(allocator, &block->accessLineBoxes, laid.lineCount * sizeof(muiAccessLineBox)))
     {
         return false;
     }
-    const muiTextLine* lines = host->service->lines.data;
     uint32_t* starts = block->accessLines.data;
-    for (uint32_t i = 0; i < count; i++)
+    muiAccessLineBox* lineBoxes = block->accessLineBoxes.data;
+    uint32_t clusterCount = 0;
+    for (uint32_t i = 0; i < laid.lineCount; i++)
     {
-        starts[i] = lines[i].start;
+        const muiTextLine* line = &laid.lines[i];
+        starts[i] = line->start;
+        lineBoxes[i] = (muiAccessLineBox){content.y + line->top,
+                                          content.y + line->top + line->height, clusterCount};
+        if (!ReadClusters(&laid, i, content, block, &clusterCount))
+        {
+            return false;
+        }
     }
     marks->lineStarts = starts;
-    marks->lineCount = count;
+    marks->lineCount = laid.lineCount;
+    marks->lineBoxes = lineBoxes;
+    marks->clusters = clusterCount != 0 ? block->accessClusters.data : nullptr;
+    marks->clusterCount = clusterCount;
     return true;
 }
 
@@ -113,7 +145,7 @@ bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, bool bounda
     }
     // Lines and words left out when they cannot be read: the text is
     // still read. A password's bullets are no words.
-    if (boundaries && !ReadLines(host, nodeId, hostKey, block, marks))
+    if (boundaries && !ReadLines(host, nodeId, block, marks))
     {
         *marks = (muiAccessTextMarks){
             .anchor = marks->anchor, .focus = marks->focus, .selected = marks->selected};
