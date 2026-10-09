@@ -8,6 +8,17 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- A COLR version 1 graph that reaches one paint by many paths is
+  refused once 4096 paints were visited (`MUI_MAX_PAINT_VISITS`): a
+  damaged or hostile font of 30 levels, each painting the next twice,
+  stayed within the depth bound and took about two billion paints. The
+  size of a graph's surfaces, and of a colour glyph's image in floats,
+  is checked before it is reserved, so a large box many levels deep no
+  longer wraps where a size_t is 32 bits and has its surfaces written
+  past their end; a surface that cannot be had is a capacity error.
+
 ## [0.1.0] - 2026-10-09
 
 The first release: the node tree, flex layout checked against Chrome,

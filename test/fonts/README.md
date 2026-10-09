@@ -52,7 +52,8 @@ published.
   fills; linear gradients padded, repeated and reflected, radial and
   sweep ones; translations, rotations, scales, skews and affine
   transforms; another glyph's graph reused, nested, or looping back to
-  itself; clip boxes and composite modes), for colour glyphs.
+  itself; clip boxes and composite modes; a graph reaching one paint by
+  many paths, with and without a clip box), for colour glyphs.
 
 - `MaulBitmap.ttf`: written by `make_bitmap_font.py` (fontTools
   4.66.1 and Pillow), MIT: no outlines, and CBLC and CBDT tables written
@@ -90,7 +91,7 @@ b719ecb31c5b21fc573c03f6421c74ac63c271a5a3ff841e34f9705fb94b8448  Ahem.ttf
 3bde0479097f718488487cd2db85c334633e5b5ac5d49f6654a2d16395e17f66  MaulBitmap.ttf
 5c1132f0c118d748d7717212d950f39e13475b3cbab2ba402d169e42c376a4a6  MaulBreakTest.ttf
 54006ca29b1100a85e93568294e006596c0abf35d44e3dd01d4885b8aca85ee7  MaulCff.otf
-9c24e493eb1de06a1a22433224b3b605a2c06449b4eee02e8381850c4fd8e62c  MaulColor.ttf
+3170e8d0bf22c5cadf33f67b63c6dd864b750ff247c8e87e638e291d2b6b702e  MaulColor.ttf
 665a276933f1b6948326ed2db09ea0ec19a1f4efc2c180dbed6f93282ade316f  MaulCoverage.ttf
 433d1ea83dfbcbc4ec1379b7753dc0a778a2072f1d53cc19f2a6b98dc03f3ed3  MaulItalic.ttf
 7d96ba83890719760d8c41366b3f15ba3fbe3405d5e215d67366974ac9fc3146  MaulLargeGlyph.ttf

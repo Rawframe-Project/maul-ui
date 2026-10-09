@@ -231,6 +231,30 @@ GRAPHS = {
     },
 }
 
+# A graph that reaches one paint by many paths: each of its 30 levels
+# paints the next twice, so, 60 paints deep, within the depth bound, it
+# would visit about two billion paints; it is refused after
+# MUI_MAX_PAINT_VISITS. Glyph ids follow "composited": "branched", its
+# levels, then "boxedBranched", the same graph under a clip box, so its
+# box is not walked but its paints are.
+BRANCH_LEVELS = 30
+
+
+def branched():
+    names = ["branched"] + [f"branched{level}" for level in range(1, BRANCH_LEVELS)]
+    graphs = {}
+    for level, name in enumerate(names):
+        if level + 1 < len(names):
+            next_level = {"Format": PaintFormat.PaintColrGlyph, "Glyph": names[level + 1]}
+            graphs[name] = {"Format": PaintFormat.PaintColrLayers, "Layers": [next_level, next_level]}
+        else:
+            graphs[name] = shape("dot", solid(0))
+    graphs["boxedBranched"] = {"Format": PaintFormat.PaintColrGlyph, "Glyph": "branched"}
+    return graphs
+
+
+GRAPHS.update(branched())
+
 
 def main():
     names = [".notdef", "A", "B", "whole", "half", "dot", "empty", "stray", "bar", "left"]
@@ -267,7 +291,11 @@ def main():
     )
     # A layer with no outline, and one of an entry past the palettes.
     layers = [("empty", 0), ("whole", 0), ("half", 1), ("dot", 0xFFFF), ("stray", 2)]
-    builder.setupCOLR({"A": layers, **GRAPHS}, clipBoxes={"clipped": (300, 250, 500, 400), "boxedLoop": (300, 200, 500, 400)})
+    builder.setupCOLR({"A": layers, **GRAPHS}, clipBoxes={
+            "clipped": (300, 250, 500, 400),
+            "boxedLoop": (300, 200, 500, 400),
+            "boxedBranched": (300, 200, 500, 400),
+        },)
     builder.setupNameTable({"familyName": "Maul Color", "styleName": "Regular"})
     builder.setupOS2(sTypoAscender=800, sTypoDescender=-200, usWinAscent=800, usWinDescent=200)
     builder.setupPost()

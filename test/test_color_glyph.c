@@ -51,7 +51,9 @@ enum
     RADIAL_TANGENT,
     LINEAR_SHEARED,
     LINEAR_HARD,
-    COMPOSITED
+    COMPOSITED,
+    BRANCHED,
+    BOXED_BRANCHED = BRANCHED + 30
 };
 
 enum
@@ -301,6 +303,24 @@ static void TestComposite(void)
     CHECK(BoxIs(&scene, COMPOSITED, 0.0f, 1, 8, 8, 8, &image) && Is(&image, 2, 4, 0, 255, 0, 255) &&
               Is(&image, 6, 4, 0, 0, 0, 0) && Is(&image, 8, 4, 0, 0, 0, 0),
           "a composite, its source out of its backdrop");
+    muiDestroyTextService(scene.service);
+}
+
+// A graph that reaches one paint by many paths, within the depth bound,
+// is refused once it has visited MUI_MAX_PAINT_VISITS paints, where it
+// would otherwise take about two billion: its box walked, and, under a
+// clip box, its paints.
+static void TestBranched(void)
+{
+    Scene scene = MakeScene();
+    const muiLinearColor ink = {0.2f, 0.4f, 0.8f, 0.75f};
+    muiGlyphImage image = {0};
+    CHECK(muiRenderColorGlyph(scene.service, scene.font, BRANCHED, 10.0f, 0.0f, 0, ink, &image,
+                              s_pixels, sizeof s_pixels) == mui_errorFormat,
+          "a graph's box of too many paints refused");
+    CHECK(muiRenderColorGlyph(scene.service, scene.font, BOXED_BRANCHED, 10.0f, 0.0f, 0, ink,
+                              &image, s_pixels, sizeof s_pixels) == mui_errorFormat,
+          "a graph of too many paints refused");
     muiDestroyTextService(scene.service);
 }
 
@@ -562,6 +582,7 @@ int main(void)
     TestGradients();
     TestHardStop();
     TestComposite();
+    TestBranched();
     TestContract();
     TestDamage();
     return s_failures == 0 ? 0 : 1;
