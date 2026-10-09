@@ -65,6 +65,8 @@ headless Chrome and writes the rectangles back; it needs Node and
 puppeteer (`MUI_NODE_MODULES` names the `node_modules` that holds it).
 Without `--oracle` the script only regenerates the C tables. Neither
 Chrome nor puppeteer is needed to build or test the library.
+`tools/random_layouts.py` draws random layouts to compare with Chrome
+the same way and reduces one that disagrees to a smallest case.
 
 ## Design
 

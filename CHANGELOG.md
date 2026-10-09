@@ -177,6 +177,13 @@ format.
 
 ### Added
 
+- `tools/random_layouts.py`, a development tool: `generate SEED COUNT`
+  draws random layouts in the fixture corpus's format, to render in
+  Chrome with `gen_layout_fixtures.py --oracle`; `reduce FILE NAME`
+  shrinks one that parts from Chrome to a smallest case, in a temporary
+  copy of the tree. The corpus keeps seed 26's 172 layouts that agree
+  with Chrome (`test/layout/random.txt`).
+
 - The text service counts misuse, as the context does: every call
   refused as invalid input against a live service, its glyph atlases'
   and text editing's included, read by `muiGetTextServiceMisuse`.

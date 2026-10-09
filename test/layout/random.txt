@@ -1,0 +1,1772 @@
+# Random layouts that agree with Chrome: seed 26 of tools/random_layouts.py
+# (generate 26 200), less those that still part from it. One that parts
+# after a change is a regression; reduce it with random_layouts.py reduce.
+# chrome 154.0.8037.57
+
+fixture random_26_0 available=500x400
+node width=30 height=80 min-height=120 max-width=150 border=0,7,0,7 padding=2 align-items=stretch align-content=space-around => 0 0 30 120
+  node width=120 height=150 shrink=1 wrap=nowrap row-gap=10 => 2 2 30 150
+    node width=75% height=0 margin=10 border=0,0,7,0 row-gap=0 dir=rtl => 10 10 10 7
+      node min-width=0 margin=0 border=5 => 0 7 10 10
+
+fixture random_26_1 available=500x400
+node width=80 direction=column-reverse align-items=stretch align-content=start column-gap=10 => 0 0 80 20
+  node width=100% border=10 => 0 0 80 20
+
+fixture random_26_3 available=500x400
+node width=75% height=60 aspect=2 => 0 0 375 60
+  node width=75% height=50% border=10 align-items=end align-content=end column-gap=0 => 0 0 248 30
+    node min-width=80 margin=0 border=0,3,7,3 padding=7,0,3,0 => 10 7 80 13
+    node width=25% min-height=75% shrink=1 padding=0,3,7,0 align-content=space-evenly column-gap=0 => 90 -95 57 115
+      node height=60 => 0 7 0 60
+      node width=120 aspect=0.5 border=2 => 0 7 54 108
+  node height=100% aspect=2 margin=0 padding=2 content=10x40 => 248 0 120 60
+  node margin=0,7,3,3 => 368 3 0 54
+
+fixture random_26_4 available=500x400
+node width=400 height=10 border=10 justify=center => 0 0 400 20
+  node height=50% grow=2 align-self=auto row-gap=0 => 10 10 137.671875 0
+    node width=30 height=60 border=2 => 0 0 30 60
+    node height=10% grow=2 border=0,3,7,7 padding=0,0,0,0 => 30 0 107.671875 14
+  node width=60 height=0 grow=1 => 147.671875 10 112.328125 0
+  node height=10% margin=10 justify=space-around align-items=center column-gap=0 => 270 20 110 0
+    node width=10% align-self=center direction=column-reverse => 4.75 -43.5 11 87
+      node width=75% padding=7,3,0,7 content=20x40 => 0 40 10 47
+      node width=0 height=40 aspect=1 content=30x20 => 0 0 0 40
+      node width=50% => 0 0 5.5 0
+    node width=80 padding=2 direction=row column-gap=4 => 25.25 -12 80 24
+      node height=20 content=10x20 => 2 2 10 20
+      node height=20 position=absolute border=2 padding=7,3,7,0 content=30x20 => 2 2 44 20
+      node width=75% max-height=100% grow=1 shrink=3 align-self=end margin=2 border=7,7,7,0 => 18 13 58 7
+
+fixture random_26_5 available=500x400
+node width=10% height=40 min-height=40 aspect=0.5 direction=column-reverse => 0 0 50 40
+  node width=0 height=25% shrink=0 margin=7,7,0,0 padding=7,3,7,3 content=20x10 => 7 30 10 10
+
+fixture random_26_6 available=500x400
+node width=300 height=75% padding=0,7,7,7 direction=column wrap=wrap row-gap=0 dir=rtl => 0 0 300 300
+  node height=0 => 7 7 293 0
+    node width=30 height=0 min-height=20 grow=1 shrink=3 margin=2 content=80x10 => 2 2 289 20
+
+fixture random_26_7 available=500x400
+node width=200 height=80 max-height=50% aspect=1 padding=0,3,3,3 direction=row-reverse align-items=center row-gap=0 => 0 0 200 80
+  node width=120 basis=100% position=absolute end=20 border=5 justify=center => 60 20 120 40
+    node height=20 grow=0 margin=7,3,3,3 padding=7,0,0,0 wrap=wrap-reverse align-items=stretch => 0 8 87 20
+      node height=60 margin=10 content=20x16 => 17 -50 20 60
+      node min-width=75% align-self=start border=0 content=80x16 => 7 -76 80 16
+      node height=30 shrink=0 border=2 padding=5 => 7 -106 14 30
+    node direction=row align-items=start align-content=space-evenly row-gap=10 => 90 5 0 30
+      node width=10 position=absolute end=20 content=50x16 => -30 0 10 16
+      node width=10% shrink=1 position=absolute top=20 margin=10 padding=0,0,0,3 content=30x20 => 10 30 0 23
+    node width=50% height=30 border=0,7,7,0 padding=7,3,7,0 content=20x16 => 90 5 37 30
+
+fixture random_26_8 available=500x400
+node width=80 height=200 border=7,3,3,3 padding=0,0,7,3 wrap=nowrap justify=space-evenly row-gap=0 column-gap=10 => 0 0 80 200
+  node max-width=120 shrink=1 content=30x40 => 13.65625 10 30 184
+  node width=150 height=20 max-width=10 shrink=1 direction=row-reverse wrap=wrap-reverse justify=end => 60.328125 10 10 20
+    node max-width=150 margin=3,0,3,0 direction=column-reverse justify=center align-items=start row-gap=10 => 3 -67 47 87
+      node max-height=40 margin=3,7,3,0 border=0,3,0,0 padding=2 content=30x40 => 3 47 37 40
+      node max-width=10 border=0 padding=0,3,7,7 content=20x20 => 0 0 10 34
+    node max-height=150 direction=row align-content=stretch dir=rtl => 0 -91 17 21
+      node width=0 height=10% min-width=10 aspect=1.5 margin=0,7,0,7 border=3,7,7,7 content=10x16 => 7 0 10 14
+
+fixture random_26_9 available=500x400
+node width=150 min-height=20 wrap=nowrap justify=center align-items=center => 0 0 150 150
+  node width=30 height=150 grow=2 align-self=start border=0,0,0,3 wrap=wrap-reverse => 0 0 30 150
+    node width=80 height=0 border=0,7,0,3 padding=7,7,3,0 direction=row-reverse wrap=wrap-reverse align-items=stretch align-content=end => 0 141 41 6
+      node height=100% min-width=10% shrink=1 padding=10 => 7 3 20 20
+      node max-height=60 align-self=center => 7 13 0 0
+      node width=20 grow=2 shrink=0 align-self=stretch => 7 3 20 0
+    node height=75% max-width=100% grow=1 direction=row wrap=wrap => 0 15.375 30 110.25
+      node height=40 grow=2 content=30x16 => 0 0 30 40
+      node width=50% height=10% border=10 padding=3,7,3,7 content=30x16 => 0 60.125 30 30
+  node height=80 basis=120 position=absolute margin=0 wrap=wrap align-items=stretch align-content=stretch column-gap=0 => 69.5 35 11 80
+    node width=50% margin=0,7,3,7 => 0 3 4 70
+      node height=25% padding=2 => 0 0 4 17.5
+  node width=100% min-width=80 min-height=25% margin=0,0,3,7 border=10 padding=3,3,7,3 wrap=wrap => 30 8 120 130
+    node width=40 height=60 max-height=50% margin=0 border=0,0,7,0 align-content=space-around => 13 17 40 60
+      node height=10% align-self=stretch border=2 content=10x10 => 0 7 14 5.296875
+      node width=0 height=50% padding=0 => 14 7 0 26.5
+    node width=30 height=100% max-width=150 align-self=start margin=3,7,3,7 border=3,0,0,3 padding=0,7,7,7 content=80x10 => 56 20 30 27
+    node width=75% min-height=10 grow=0 justify=center align-content=space-between => 13 77 70.5 40
+      node basis=100% align-self=end position=absolute end=5 bottom=20 content=20x40 => 45.5 -20 20 40
+      node width=10 content=80x40 => 30.25 0 10 40
+
+fixture random_26_10 available=500x400
+node width=10% height=40 aspect=2 wrap=nowrap justify=space-evenly align-items=stretch => 0 0 90 40
+  node border=10 direction=column justify=start dir=ltr => 0 0 90 40
+    node height=40 border=7,3,0,0 direction=row-reverse => 10 10 70 8
+      node width=60 height=75% => 7 0 60 6
+    node height=10% basis=60 margin=3,7,0,0 => 13 18 60 12
+
+fixture random_26_11 available=500x400
+node width=400 height=75% border=0 wrap=wrap-reverse justify=center align-items=stretch row-gap=4 column-gap=4 => 0 0 400 300
+  node grow=0 aspect=2 border=3,0,7,0 padding=7,0,7,0 content=10x20 => 84 0 28 300
+  node width=75% max-width=50% grow=2 aspect=2 border=10 padding=3,3,7,7 justify=end => 116 0 200 300
+    node width=20 border=3,3,7,0 padding=5 => 167 17 20 266
+
+fixture random_26_12 available=500x400
+node width=120 height=75% direction=row-reverse justify=start align-content=space-evenly column-gap=0 => 0 0 120 300
+  node margin=5 border=3,3,3,0 padding=2 content=80x40 => 25 5 90 290
+  node margin=3,0,0,0 padding=3,3,3,7 wrap=wrap-reverse justify=center align-items=stretch => -136 0 156 300
+    node width=150 height=100% direction=column align-content=center => 3 3 150 290
+      node width=60 height=75% align-self=start padding=3,0,7,7 => 0 0 60 217.5
+      node width=50% margin=0 border=7,0,7,0 content=20x16 => 0 217.5 75 23
+
+fixture random_26_13 available=500x400
+node width=30 height=120 border=2 => 0 0 30 120
+  node width=80 align-content=start column-gap=0 => 2 2 80 116
+    node height=20 align-self=stretch aspect=0.5 padding=0,0,7,7 direction=row wrap=nowrap => 0 0 136 20
+      node min-height=100% shrink=0 border=3,3,0,7 content=50x40 => 0 7 56 7
+      node width=80 border=7,0,3,0 padding=5 => 56 7 80 13
+    node width=25% max-width=10% grow=0 padding=3,7,0,3 => 136 0 10 116
+    node height=30 grow=2 border=2 direction=column-reverse justify=space-between => 146 0 14 30
+      node width=25% height=75% max-width=10 basis=10% content=10x16 => 2 12 2.5 16
+  node width=10 max-height=40 shrink=3 => 82 2 10 40
+    node border=7,0,3,7 row-gap=0 column-gap=10 => 0 0 117 40
+      node width=60 max-height=100% shrink=1 border=10 => 7 3 50.703125 30
+      node width=40 height=75% basis=60 border=0,7,0,0 padding=7,0,3,7 => 67.703125 3 49.296875 22.5
+    node basis=20 border=5 padding=10 wrap=wrap justify=end => 117 0 83 40
+      node shrink=1 border=0 padding=3,0,3,7 content=50x40 => 15 15 53 50
+      node width=0 position=absolute top=20 content=50x10 => 68 25 0 10
+      node width=10% height=150 align-self=end border=0,3,7,0 content=50x40 => 62.703125 65 5.296875 150
+    node width=100% height=0 grow=0 shrink=0 align-self=end margin=10 padding=7,3,0,3 direction=row-reverse dir=rtl => 210 27 10 3
+      node width=40 basis=75% margin=10 border=7,3,3,0 content=20x16 => 13 10 30 3
+      node height=30 content=50x40 => 53 0 50 30
+      node width=20 height=75% min-width=120 align-self=stretch border=3,3,0,0 padding=5 => 103 0 120 10
+  node width=30 height=50% shrink=3 border=0,0,3,7 padding=7,3,0,7 content=50x16 => 92 2 30 58
+
+fixture random_26_14 available=500x400
+node width=60 height=30 border=7,3,0,3 padding=3,7,3,7 align-items=center align-content=space-around => 0 0 60 30
+  node width=50% height=0 max-height=20 align-self=end border=5 padding=0,3,3,0 content=30x20 => 10 7 20 13
+  node width=10 shrink=1 position=absolute start=10 top=5 bottom=10 margin=10 direction=row align-content=space-around => 27 15 10 0
+    node width=0 height=80 position=absolute margin=0 padding=2 direction=row-reverse justify=end row-gap=10 => 0 0 4 80
+      node shrink=3 aspect=2 border=5 content=30x16 => 42 2 152 76
+      node height=40 margin=0 border=5 content=30x16 => 2 2 40 40
+    node height=60 min-width=75% border=3,7,7,0 => 0 0 10 60
+    node width=0 height=150 min-width=60 shrink=1 padding=5 direction=row justify=space-around align-content=end => 10 0 60 150
+      node height=10% min-width=30 max-height=40 => 15 5 30 14
+
+fixture random_26_15 available=500x400
+node height=25% max-width=50% border=0,3,0,0 direction=row wrap=wrap-reverse row-gap=10 => 0 0 191 100
+  node height=0 min-height=25% padding=5 content=10x20 => 0 75 20 25
+  node aspect=0.5 border=5 direction=row => 20 -122 111 222
+    node width=10 shrink=1 border=2 padding=7,3,7,0 wrap=wrap align-items=center column-gap=10 => 5 5 14 212
+      node height=25% margin=0,3,3,0 => 9 38.9375 0 50.25
+      node width=0 aspect=0.5 margin=10 border=2 content=50x16 => 19 153.0625 4 20
+    node max-height=0 shrink=3 margin=0,7,7,3 content=80x10 => 19 12 80 0
+  node align-self=auto margin=0,7,3,7 content=50x10 => 131 -119 50 212
+
+fixture random_26_16 available=500x400
+node width=10 height=120 max-width=100% padding=5 justify=space-evenly align-content=end column-gap=0 => 0 0 10 120
+  node max-height=100% direction=row wrap=nowrap row-gap=0 column-gap=0 => 5 5 40 110
+    node width=50% shrink=1 align-items=stretch => 0 0 20 110
+      node height=0 margin=10 border=0 padding=3,7,3,7 => 10 10 10 10
+    node width=10 grow=2 padding=5 => 20 0 10 110
+      node height=60 margin=10 => 15 15 0 60
+    node width=25% padding=0,0,7,0 => 30 0 10 110
+  node width=60 align-self=center margin=10 border=2 justify=space-evenly align-items=stretch row-gap=10 => 55 38 60 44
+    node width=0 shrink=0 border=3,3,3,0 content=30x20 => 2 2 6 40
+    node width=120 height=40 align-self=stretch padding=5 wrap=wrap-reverse justify=start => 8 2 90 40
+      node margin=0 border=0 content=80x10 => 5 25 80 10
+      node width=40 height=40 shrink=3 align-self=center content=10x16 => 5 -72 40 40
+      node height=150 margin=2 => 47 -127 0 150
+
+fixture random_26_17 available=500x400
+node width=400 height=10 border=7,3,0,3 padding=3,0,3,0 wrap=wrap-reverse => 0 0 400 10
+  node height=40 shrink=1 aspect=1.5 margin=5 direction=row-reverse justify=end => 15 -38 80 40
+    node width=60 height=100% min-width=30 wrap=wrap align-items=stretch => 20 0 60 40
+      node height=0 grow=2 margin=10 padding=0 content=30x16 => 10 10 40 0
+      node aspect=1 padding=7,0,0,0 content=80x40 => 0 20 87 87
+      node height=120 shrink=1 basis=30 align-self=stretch position=absolute end=20 margin=10 border=5 padding=0,3,3,7 content=50x40 => -33 10 63 120
+    node width=20 margin=0 direction=column-reverse => 0 0 20 40
+      node width=20 height=60 => 0 0 20 40
+
+fixture random_26_18 available=500x400
+node width=50% height=50% border=0 => 0 0 250 200
+  node width=100% height=80 position=absolute margin=0,3,3,0 align-content=stretch => 0 3 250 80
+    node width=150 min-width=40 content=30x10 => 0 0 150 80
+
+fixture random_26_19 available=500x400
+node width=400 height=300 direction=column-reverse align-items=start row-gap=0 column-gap=4 => 0 0 400 300
+  node width=0 height=50% => 0 223.34375 0 76.65625
+    node width=150 height=50% shrink=1 aspect=1.5 margin=5 wrap=wrap align-content=space-around => 5 5 100 38.328125
+      node width=75% height=30 min-height=80 align-self=end border=7,3,7,0 padding=7,3,7,3 content=30x10 => 0 0 75 80
+      node aspect=1.5 padding=10 content=80x40 => 0 80 100 66.65625
+    node height=20 align-self=end padding=0 justify=end column-gap=10 => 110 56.65625 110 20
+      node height=120 grow=1 content=80x10 => 0 0 80 120
+      node width=40 height=60 max-width=20 => 90 0 20 60
+  node height=75% wrap=wrap-reverse justify=center align-items=start align-content=space-around => 0 132.75 106 90.59375
+    node width=100% height=25% basis=30 content=50x16 => 0 52.65625 50 22.640625
+    node height=40 margin=10 padding=10 direction=column-reverse justify=end => 60 25.296875 36 40
+      node width=10 max-width=60 margin=2 content=80x16 => 12 38 10 16
+      node width=25% max-width=40 max-height=120 border=3,3,3,3 content=10x20 => 10 10 6 26
+  node height=20 grow=0 basis=100% aspect=1.5 border=0 padding=10 content=20x20 => 0 0 199.125 132.75
+
+fixture random_26_20 available=500x400
+node width=120 direction=column justify=space-between => 0 0 120 140
+  node height=60 shrink=1 => 0 0 120 60
+    node width=10 grow=2 shrink=0 basis=120 align-self=center margin=0 border=5 padding=7,7,3,7 direction=column-reverse justify=center align-items=stretch => 0 0 120 60
+      node height=30 grow=0 margin=3,7,3,7 => 15 11 86 30
+    node width=25% grow=2 align-self=center margin=5 padding=2 direction=column-reverse align-items=start => 125 17.5 18 25
+      node width=80 position=absolute bottom=10 margin=0,7,0,0 padding=5 content=10x16 => 2 -11 80 26
+      node margin=0,7,0,7 border=0,7,7,7 => 2 2 7 14
+  node height=10% shrink=0 align-self=stretch => 0 60 120 80
+    node width=30 height=75% shrink=3 margin=0,3,7,3 padding=5 => 0 7 30 70
+      node width=100% min-width=10% padding=7,0,3,7 content=10x10 => 5 5 9.59375 60
+      node width=40 height=60 shrink=1 padding=3,0,3,0 => 14.59375 5 10.40625 60
+
+fixture random_26_21 available=500x400
+node padding=0,3,3,0 wrap=nowrap align-items=start align-content=space-between row-gap=4 => 0 0 359 153
+  node height=150 basis=120 border=2 padding=7,3,7,0 direction=row wrap=wrap-reverse justify=space-evenly row-gap=0 => 0 3 94 150
+    node height=10% basis=30 wrap=wrap align-items=center align-content=space-between => 9 134.109375 80 13.890625
+      node height=20 shrink=0 aspect=1.5 border=0,0,0,7 content=80x20 => 0 0 80 20
+      node content=10x40 => 0 20 10 40
+    node margin=0 wrap=wrap justify=center align-items=start => 9 9 80 74.0625
+      node height=10% margin=3,7,0,3 padding=0 => 38 0 0 7.40625
+      node width=60 margin=7,7,0,0 => 10 24.953125 60 0
+      node padding=10 => 30 39.515625 20 20
+  node margin=5 padding=3,7,7,0 dir=ltr => 99 8 93 130
+    node width=80 height=120 grow=1 margin=0,3,0,3 border=7,7,0,3 wrap=wrap justify=space-between align-items=stretch align-content=end => 3 7 80 120
+      node width=20 max-height=20 basis=50% margin=0 border=7,3,7,0 content=10x16 => 7 70 33 20
+      node width=20 height=10 min-width=150 basis=10 margin=5 border=7,0,0,3 padding=0,7,7,7 => 12 95 150 17
+      node height=0 grow=1 padding=0 => 7 117 66 0
+  node width=100% grow=1 => 197 3 159 10
+    node height=10 padding=3,3,3,0 wrap=nowrap => 0 0 133 10
+      node width=100% margin=2 => 5 5 60.625 3
+      node width=120 max-height=150 aspect=1.5 margin=3,0,3,3 padding=2 content=10x40 => 70.625 6 59.375 4
+
+fixture random_26_22 available=500x400
+node width=60 height=10 padding=3,0,3,7 wrap=wrap-reverse => 0 0 60 10
+  node width=10 height=80 shrink=0 align-self=auto margin=0,7,3,0 border=5 column-gap=10 => 3 -77 10 80
+    node width=20 height=30 content=30x40 => 5 5 20 30
+    node width=10% height=25% aspect=0.5 content=20x20 => 35 5 0 17.5
+    node max-height=25% shrink=3 aspect=0.5 margin=5 align-items=start => 50 10 157 17.5
+      node height=50% shrink=0 content=20x20 => 0 0 20 8.75
+      node width=120 padding=2 content=20x40 => 20 0 120 44
+      node min-height=80 grow=0 margin=7,0,3,3 padding=5 => 147 3 10 80
+
+fixture random_26_23 available=500x400
+node width=0 height=25% border=0 direction=column-reverse justify=space-between => 0 0 0 100
+  node width=75% grow=1 margin=0,0,7,0 padding=7,7,3,7 content=50x40 => 0 7 14 93
+
+fixture random_26_24 available=500x400
+node width=200 height=200 padding=0 wrap=wrap-reverse align-items=stretch => 0 0 200 200
+  node width=120 height=80 grow=2 margin=10 direction=row wrap=nowrap align-content=space-evenly => 10 110 180 80
+    node width=50% height=150 grow=1 shrink=0 aspect=0.5 border=7,7,0,3 padding=0,3,3,3 wrap=wrap-reverse justify=space-around column-gap=0 => 0 0 180 150
+      node width=0 position=absolute start=10 end=10 bottom=10 margin=0 border=5 => 17 127 10 10
+    node width=25% height=0 min-width=60 position=absolute end=5 margin=2 padding=3,0,0,0 => 113 2 60 0
+
+fixture random_26_26 available=500x400
+node width=400 height=10% border=5 padding=7,0,0,0 direction=column-reverse justify=start align-items=stretch => 0 0 400 40
+  node min-width=150 border=0,3,3,3 padding=5 direction=column wrap=nowrap align-items=end row-gap=0 => 12 -21 383 56
+    node width=30 height=40 grow=2 align-self=start content=20x16 => 5 8 30 40
+  node shrink=1 padding=0 direction=column-reverse wrap=wrap => 12 -65 383 44
+    node width=120 height=40 shrink=0 margin=2 border=0 direction=row-reverse justify=space-around => 2 2 120 40
+      node width=10 height=75% grow=2 border=2 content=10x40 => 24 0 96 30
+      node align-self=center position=absolute bottom=20 border=3,0,0,3 padding=3,0,3,0 => 57 14 6 6
+      node min-width=10 margin=7,7,7,7 => 7 7 10 26
+  node grow=0 basis=75% margin=3,0,7,0 border=3,7,3,7 align-content=start => 15 -116 380 51
+    node width=100% grow=0 margin=2 direction=column wrap=wrap align-items=stretch => 5 5 286 37
+      node margin=3,3,0,0 border=2 padding=0 => 3 0 128.5 4
+      node margin=3,7,3,7 padding=3,0,7,0 => 3 7 124.5 7
+      node height=100% padding=0 content=30x16 => 134.5 0 151.5 37
+    node height=30 min-width=80 border=5 wrap=nowrap align-items=start => 293 3 80 30
+      node height=30 align-self=auto content=20x10 => 5 5 20 30
+
+fixture random_26_27 available=500x400
+node width=400 height=10% direction=row wrap=wrap-reverse column-gap=0 => 0 0 400 40
+  node width=100% margin=0 border=5 align-items=start align-content=space-around => 0 0 400 40
+    node width=25% align-self=center position=absolute end=0 bottom=5 margin=3,0,7,3 border=5 direction=row-reverse align-items=start => 297.5 -17 97.5 44
+      node height=75% shrink=1 margin=0 border=7,3,7,7 padding=0 => 82.5 5 10 14
+      node height=75% grow=1 margin=3,3,7,7 content=50x20 => 8 12 71.5 20
+    node width=25% height=50% position=absolute margin=2 => 7 7 97.5 15
+      node width=0 grow=0 position=absolute start=0 end=20 top=0 bottom=0 => 0 0 0 15
+      node max-height=50% grow=1 border=3,0,0,0 => 0 0 73.125 7.5
+      node width=25% height=0 padding=0,0,0,7 content=80x16 => 73.125 0 24.375 7
+    node width=100% basis=10% border=0 padding=3,3,3,0 => 5 5 39 3
+
+fixture random_26_28 available=500x400
+node width=10 height=400 border=0 justify=start align-items=center => 0 0 10 400
+  node width=50% align-self=end border=7,7,3,7 direction=column-reverse wrap=wrap align-content=space-between => 0 267 14 133
+    node height=100% basis=75% align-self=auto padding=0,3,3,0 direction=column-reverse wrap=wrap => 7 3 123 123
+      node width=25% grow=0 margin=5 content=20x10 => 5 108 30 10
+      node width=100% margin=10 content=30x20 => 10 73 120 20
+      node width=25% height=60 min-width=120 grow=2 padding=2 content=10x40 => 0 3 120 60
+
+fixture random_26_29 available=500x400
+node width=40 height=75% column-gap=10 => 0 0 40 300
+  node height=150 grow=0 border=5 row-gap=10 => 0 0 170 150
+    node width=10 height=75% min-height=10 align-self=start margin=0,0,7,0 border=0 padding=0,0,0,7 => 5 12 8 105
+    node width=100% height=40 border=10 justify=end align-items=stretch => 13 5 132 40
+      node height=40 shrink=0 align-self=center position=absolute padding=0 content=30x40 => 92 0 30 40
+      node width=10% height=0 shrink=3 margin=3,7,0,3 padding=10 content=80x16 => 95 10 20 20
+    node width=20 height=75% grow=2 shrink=1 direction=row-reverse row-gap=4 => 145 5 20 105
+      node width=100% height=75% basis=75% position=absolute bottom=0 margin=5 padding=0 content=80x40 => -5 21.25 20 78.75
+      node width=50% height=60 align-self=auto border=3,7,3,7 => 10 0 10 60
+      node width=0 align-self=center aspect=2 margin=0 border=10 padding=5 content=30x10 => -20 32.5 30 40
+
+fixture random_26_30 available=500x400
+node width=120 height=0 max-height=0 wrap=wrap-reverse justify=space-between => 0 0 120 0
+  node width=50% height=150 grow=2 shrink=3 align-self=end position=absolute end=10 top=10 margin=7,0,3,3 direction=row-reverse => 50 13 60 150
+    node width=50% height=60 grow=1 border=5 => 45 0 15 60
+    node width=75% aspect=0.5 content=20x16 => 0 0 45 150
+
+fixture random_26_31 available=500x400
+node width=20 height=400 wrap=wrap-reverse align-items=center align-content=space-between => 0 0 20 400
+  node max-height=0 padding=2 direction=row-reverse justify=center align-content=center row-gap=10 => 0 396 44 4
+    node height=0 shrink=0 margin=0,0,0,3 border=5 direction=row-reverse justify=space-around dir=ltr => 22 2 20 10
+      node height=80 shrink=3 margin=7,0,7,0 padding=0,3,7,7 => 12 12 3 80
+    node width=10 height=25% margin=5 direction=column-reverse wrap=wrap row-gap=0 => 7 7 10 127
+      node width=10 height=120 align-self=auto padding=10 content=10x10 => 0 7 20 120
+      node grow=2 aspect=1.5 padding=0,7,7,0 => 0 0 20 7
+  node width=0 height=30 align-self=center content=30x40 => 0 261 0 30
+  node width=20 height=150 margin=7,7,3,3 padding=0 direction=column-reverse wrap=wrap dir=ltr => 7 3 20 150
+    node width=60 height=30 margin=2 content=30x10 => 2 118 60 30
+
+fixture random_26_32 available=500x400
+node width=50% height=75% align-items=center => 0 0 250 300
+  node grow=0 margin=3,7,7,0 direction=column-reverse justify=space-evenly row-gap=4 => 3 92.5 150 122
+    node width=100% height=75% grow=2 border=0 align-items=start => 0 58 150 64
+      node width=100% height=60 aspect=0.5 border=0,0,7,0 => 0 0 30 60
+      node width=30 margin=0,0,7,3 border=2 padding=5 content=20x40 => 30 7 30 54
+      node height=50% align-self=start margin=7,3,3,3 content=80x20 => 67 3 80 20
+    node width=60 height=100% basis=75% direction=row wrap=wrap-reverse row-gap=4 dir=ltr => 0 0 60 54
+      node width=30 padding=3,3,7,7 content=10x40 => 0 0 30 54
+
+fixture random_26_33 available=500x400
+node max-width=10 direction=column align-content=end => 0 0 10 47
+  node width=150 max-width=40 grow=2 border=0 padding=5 content=80x20 => 0 0 40 30
+  node width=30 height=10 grow=2 align-self=end margin=0,7,0,7 wrap=wrap-reverse row-gap=10 => -27 30 30 10
+    node width=80 height=25% grow=1 => 0 7.5 30 2.5
+    node width=60 height=20 align-self=auto padding=3,0,3,3 => 0 -22.5 60 20
+      node max-height=40 grow=0 border=3,7,3,7 => 3 3 10 14
+      node margin=0,3,7,0 border=0,3,3,7 content=30x40 => 13 10 33 10
+      node width=80 height=0 basis=100% align-self=center margin=0 content=50x10 => 49 10 50 0
+    node align-self=stretch padding=0,3,0,7 content=30x40 => 0 -79.5 33 47
+
+fixture random_26_34 available=500x400
+node width=100% height=10 padding=5 align-items=center => 0 0 500 10
+  node width=150 margin=2 wrap=nowrap => 7 -50 150 110
+    node basis=75% border=7,3,7,0 justify=start dir=ltr => 0 0 112.5 110
+      node min-height=50% grow=0 align-self=start aspect=0.5 margin=3,3,0,3 border=5 padding=3,7,3,0 content=30x40 => 10 7 50 100
+      node width=30 height=80 margin=3,0,3,0 => 66 10 30 80
+  node width=10 grow=0 border=0,7,3,3 direction=column-reverse wrap=wrap align-content=space-around dir=ltr => 159 -150 10 310
+    node height=0 direction=row-reverse column-gap=0 => 0 307 100 0
+      node width=50% max-width=75% shrink=0 position=absolute bottom=5 border=3,7,7,0 padding=7,7,0,0 content=10x16 => 50 -28 50 23
+      node grow=1 margin=5 => 65 5 30 0
+      node width=60 align-self=end => 0 0 60 0
+    node basis=75% direction=row align-content=space-evenly dir=rtl => 0 157 100 150
+      node width=0 height=75% min-width=0 shrink=3 aspect=0.5 border=10 padding=10 content=80x40 => 60 0 40 80
+      node height=150 content=30x16 => 30 0 30 150
+      node height=50% margin=0,0,3,3 content=30x16 => 0 3 30 16
+    node height=150 margin=2 padding=3,3,3,7 direction=column-reverse justify=space-evenly => 2 5 96 150
+      node width=50% grow=2 shrink=0 border=0 => 3 3 45 140
+
+fixture random_26_36 available=500x400
+node width=50% border=0,0,0,0 padding=0,0,3,0 align-items=stretch align-content=stretch => 0 0 250 67
+  node height=100% min-width=0 border=7,3,3,3 justify=space-around align-content=end => 0 3 14 10
+    node height=0 max-height=50% basis=30 position=absolute start=0 end=20 top=5 padding=0 direction=row wrap=nowrap justify=end => 7 8 0 0
+      node width=100% height=150 max-height=0 shrink=1 content=50x40 => -73 0 0 0
+      node width=80 height=25% margin=3,3,3,7 content=50x10 => -70 3 50 0
+      node height=120 grow=2 margin=2 border=0,3,0,7 padding=5 => -15 2 13 120
+    node width=100% align-self=stretch => 7 3 0 4
+    node height=100% align-self=stretch padding=2 => 7 3 4 4
+  node width=10% grow=2 margin=2 border=5 wrap=wrap align-items=end => 16 5 232 60
+    node width=60 height=30 aspect=1 margin=10 border=0,3,3,0 content=50x10 => 15 15 60 30
+
+fixture random_26_37 available=500x400
+node height=0 border=2 direction=column-reverse justify=center align-items=stretch row-gap=4 column-gap=10 => 0 0 54 4
+  node position=absolute bottom=20 margin=7,7,7,7 direction=column-reverse wrap=nowrap => 9 -49 150 24
+    node height=10 shrink=1 align-self=center margin=0,0,7,3 wrap=wrap justify=space-evenly => 61.5 11 27 10
+      node border=7,0,3,7 padding=0 content=20x40 => 0 0 27 50
+    node width=150 height=100% shrink=3 padding=2 => 0 0 150 4
+  node height=60 max-height=10% content=20x20 => 2 14 50 0
+  node width=25% height=10% padding=10 align-items=end row-gap=4 => 2 -10 20 20
+    node width=30 height=0 grow=0 padding=5 => 10 0 10 10
+      node height=10 shrink=3 => 5 5 0 10
+      node min-height=10% shrink=1 position=absolute start=5 border=0,3,3,0 => 5 5 3 3
+
+fixture random_26_38 available=500x400
+node border=0,3,3,3 align-content=stretch => 0 0 13 20
+  node width=10 max-height=10 padding=7,3,7,7 direction=column wrap=wrap align-content=start => 0 3 10 14
+    node width=120 height=10% grow=0 padding=7,3,7,3 => 7 7 120 10
+  node width=50% min-width=120 position=absolute start=10 border=5 padding=0 content=80x16 => 10 3 120 26
+
+fixture random_26_39 available=500x400
+node width=20 => 0 0 20 90
+  node width=30 height=80 shrink=3 margin=5 border=10 direction=column-reverse column-gap=0 dir=rtl => 5 5 30 80
+    node height=100% grow=1 margin=7,0,7,0 padding=0,0,7,7 content=30x40 => 10 16 3 54
+
+fixture random_26_40 available=500x400
+node width=0 height=300 border=3,3,7,3 padding=7,0,3,3 => 0 0 13 300
+  node height=20 min-width=75% basis=20 border=0 padding=10 => 10 10 20 20
+
+fixture random_26_41 available=500x400
+node height=60 border=5 padding=0,3,3,3 direction=row-reverse wrap=nowrap align-items=start column-gap=0 => 0 0 13 60
+  node height=75% grow=0 basis=25% position=absolute end=5 top=5 margin=2 border=5 direction=column-reverse align-items=end => -17 12 18 37.5
+    node height=25% margin=2 border=2 => 7 23.625 4 6.875
+      node width=10% height=30 => 2 2 0 30
+
+fixture random_26_43 available=500x400
+node width=300 aspect=2 border=3,0,0,3 wrap=wrap-reverse row-gap=10 => 0 0 300 150
+  node height=0 padding=2 => 3 143 70 4
+    node grow=1 border=10 padding=3,3,0,0 direction=column-reverse justify=end => 2 2 66 20
+      node height=30 content=20x40 => 13 30 40 30
+      node width=40 height=25% min-height=20 grow=2 aspect=2 border=2 => 13 10 40 20
+    node width=0 max-width=40 justify=space-between => 68 2 0 0
+      node height=0 max-height=50% content=30x20 => 0 0 30 0
+      node width=30 basis=30 aspect=0.5 => 30 0 0 0
+  node width=150 align-self=stretch margin=0 direction=row justify=space-between row-gap=0 => 73 0 150 147
+    node wrap=wrap align-content=space-evenly row-gap=0 => 0 0 58.96875 147
+      node width=0 height=0 align-self=auto border=7,3,3,3 content=30x16 => 0 35.65625 10 6
+      node width=40 height=30 min-height=10 border=5 padding=10 content=10x16 => 10 35.65625 40 30
+      node width=20 shrink=3 border=3,3,7,3 => 0 101.328125 20 10
+    node width=150 height=40 shrink=3 margin=3,7,7,0 border=2 direction=row-reverse align-items=stretch align-content=space-around column-gap=4 => 61.96875 7 81.03125 40
+      node width=100% aspect=0.5 padding=5 content=10x20 => 2 2 77.03125 36
+  node width=25% shrink=3 border=0,7,3,7 => 223 0 74.25 147
+
+fixture random_26_45 available=500x400
+node width=20 height=30 max-height=40 wrap=wrap-reverse justify=space-around align-content=stretch => 0 0 20 30
+  node width=150 shrink=1 margin=0 => 0 30 20 0
+  node height=40 aspect=1.5 direction=row align-items=center align-content=center column-gap=4 => 0 -10 129 40
+    node width=10% height=40 shrink=3 padding=5 direction=row justify=space-evenly => 0 0 12.890625 40
+      node height=80 grow=2 border=2 padding=2 content=50x16 => 5 5 58 80
+      node height=80 align-self=end border=0,0,3,3 => 63 -45 0 80
+      node height=10% border=7,0,7,0 padding=3,7,0,0 => 63 5 17 7
+    node height=30 aspect=1 margin=7,3,3,3 border=10 content=10x16 => 23.890625 5 30 30
+  node width=30 height=80 grow=1 align-self=auto border=0,3,3,3 padding=0,3,3,0 content=50x40 => 0 -90 30 80
+
+fixture random_26_46 available=500x400
+node width=10% height=25% justify=space-around align-items=start => 0 0 50 100
+  node margin=3,7,0,7 padding=10 justify=space-evenly align-items=stretch => 3 0 250 170
+    node width=50% height=25% grow=2 shrink=0 margin=0,7,3,0 padding=3,7,0,3 wrap=nowrap align-items=start => 10 13 115 52
+      node align-self=stretch margin=3,0,0,3 border=7,3,3,3 content=20x40 => 6 0 30 46
+    node width=150 height=150 aspect=1.5 padding=0 direction=row => 132 10 150 150
+      node width=25% min-height=50% border=7,7,7,0 => 0 0 37.5 150
+      node width=60 height=50% border=7,3,0,0 => 37.5 0 60 75
+    node content=30x16 => 282 10 30 150
+  node height=150 shrink=1 position=absolute start=10 end=0 margin=5 direction=column align-items=stretch => 15 5 30 150
+    node width=30 height=120 border=5 => 0 0 30 66.296875
+    node basis=60 margin=0,0,7,3 padding=0 => 0 73.296875 30 30.703125
+    node align-self=center => -5 107 40 43
+      node width=20 min-width=40 border=10 padding=7,3,7,0 content=20x16 => 0 0 40 43
+
+fixture random_26_47 available=500x400
+node justify=center align-content=space-between dir=ltr => 0 0 160 140
+  node width=25% shrink=1 border=0,3,7,0 padding=0,7,3,7 => 60 0 40 140
+    node width=150 height=25% padding=3,3,3,0 direction=row row-gap=0 column-gap=0 => 0 10 150 30.75
+      node width=40 height=0 content=10x40 => 3 3 40 0
+      node height=120 align-self=start border=2 padding=10 content=80x10 => 43 3 104 120
+
+fixture random_26_48 available=500x400
+node width=40 height=50% border=7,3,3,7 direction=column-reverse wrap=wrap justify=center align-items=center => 0 0 40 200
+  node min-width=10% padding=7,7,7,3 direction=column row-gap=10 => 7 19.5 74 157
+    node width=30 shrink=1 border=3,0,7,0 padding=7,7,0,0 content=30x10 => 7 7 30 17
+    node width=60 height=120 border=0,3,0,0 padding=7,3,7,7 => 7 34 60 120
+  node width=30 min-height=25% grow=2 border=0,3,3,0 align-items=center => 81 3 30 190
+    node width=25% grow=1 shrink=0 basis=75% aspect=2 margin=0,0,3,0 padding=2 content=50x40 => 0 76 20.25 44
+    node width=100% height=10% grow=2 margin=0 border=0,0,3,0 padding=2 content=20x40 => 20.25 87.15625 24 18.6875
+    node height=10 position=absolute end=20 bottom=0 border=0,0,3,3 column-gap=10 => -143 180 150 10
+      node width=150 height=10 grow=0 content=20x16 => 0 3 150 10
+
+fixture random_26_49 available=500x400
+node width=40 height=200 min-width=80 border=0,0,3,7 align-items=end => 0 0 80 200
+  node height=10% content=20x10 => 0 174 20 19
+  node width=30 height=60 grow=1 border=10 justify=end row-gap=4 => 20 133 60 60
+    node width=10% height=100% min-width=0 shrink=0 padding=0 column-gap=0 => 46 10 4 40
+      node height=60 => 0 0 0 60
+      node width=80 height=25% margin=7,3,0,0 => 7 0 0 10
+
+fixture random_26_50 available=500x400
+node height=10 border=0,0,3,0 direction=row => 0 0 195 10
+  node width=0 height=60 grow=0 shrink=0 => 0 3 0 60
+  node align-self=stretch margin=7,7,0,3 border=7,0,7,0 direction=row wrap=wrap-reverse => 7 3 121 7
+    node width=25% direction=column-reverse => 7 -53 28.5 60
+      node height=80 position=absolute end=0 bottom=20 margin=10 border=2 padding=0,7,0,0 => 7.5 -50 11 80
+      node grow=2 align-self=center border=10 content=80x40 => -35.75 0 100 60
+    node width=25% height=75% align-items=end => 35.5 7 28.5 0
+      node height=10 max-width=30 border=2 padding=0 content=10x20 => 0 -10 14 10
+  node height=50% grow=0 border=3,7,3,3 content=50x20 => 135 3 60 6
+
+fixture random_26_52 available=500x400
+node width=20 height=60 padding=7,0,3,3 column-gap=0 => 0 0 20 60
+  node height=80 min-width=30 margin=0 padding=0 justify=end => 7 3 30 80
+    node width=50% max-height=120 aspect=2 wrap=nowrap justify=end => -95 0 15 80
+      node max-height=0 shrink=0 align-self=end margin=0,7,3,0 padding=7,3,7,7 => -2 66 10 14
+    node width=100% height=10 shrink=3 basis=0 aspect=2 border=3,7,0,7 padding=10 content=50x20 => -80 0 30 27
+    node height=0 grow=0 shrink=0 content=80x20 => -50 0 80 0
+  node width=20 height=10 border=10 content=10x40 => 37 3 20 20
+  node content=10x40 => 57 3 10 54
+
+fixture random_26_53 available=500x400
+node width=400 border=7,3,3,0 padding=2 direction=column justify=end align-content=space-around dir=rtl => 0 0 400 7
+  node height=25% grow=2 basis=50% => 5 5 386 0
+
+fixture random_26_54 available=500x400
+node width=120 border=0,3,0,3 dir=rtl => 0 0 120 23
+  node width=150 height=20 border=0 padding=0,0,7,7 content=50x20 => 3 0 117 20
+
+fixture random_26_55 available=500x400
+node width=0 height=100% padding=7,3,7,0 row-gap=4 => 0 0 10 400
+  node width=10% height=80 margin=0,7,7,3 => 7 14 0 80
+  node width=80 margin=10 border=0,7,7,0 padding=0 direction=row-reverse => 24 17 80 373
+    node aspect=1 padding=2 => -665 7 738 366
+      node height=100% aspect=2 margin=7,3,3,7 border=3,7,3,7 padding=0,0,7,7 content=30x10 => 9 5 724 362
+    node width=50% height=30 max-height=75% shrink=3 border=7,0,7,0 direction=row-reverse wrap=wrap-reverse justify=end => -701.5 7 36.5 30
+      node width=10 position=absolute end=5 top=10 aspect=0.5 margin=5 => 16.5 22 10 20
+      node width=10% height=10 shrink=1 border=0,3,0,0 content=80x16 => 7 20 3 10
+      node height=50% grow=2 align-self=end margin=5 content=80x10 => 12 3.5 80 11.5
+    node height=10 min-width=120 grow=1 shrink=0 align-self=start margin=7,3,3,0 border=3,0,0,0 direction=row-reverse => -824.5 10 120 10
+      node height=150 margin=7,3,7,7 border=5 => 107 7 10 150
+  node margin=0,0,7,0 border=10 content=80x10 => 114 14 100 386
+
+fixture random_26_56 available=500x400
+node width=50% height=80 padding=5 wrap=nowrap align-items=stretch => 0 0 250 80
+  node width=60 height=150 min-width=100% align-self=stretch position=absolute top=5 margin=0,3,0,0 justify=space-evenly column-gap=10 dir=ltr => 5 5 250 150
+    node height=75% grow=2 content=20x20 => 0 0 20 112.5
+    node align-self=stretch aspect=1.5 => 30 0 225 150
+  node width=80 height=120 align-self=start margin=7,7,3,7 border=0 padding=7,3,3,7 content=30x10 => 12 8 80 120
+
+fixture random_26_57 available=500x400
+node height=50% max-width=10% direction=row-reverse align-content=stretch => 0 0 24 200
+  node align-self=auto margin=0 padding=2 content=20x40 => 0 0 24 200
+
+fixture random_26_58 available=500x400
+node width=80 height=75% wrap=nowrap => 0 0 80 300
+  node height=100% content=30x40 => 0 0 30 300
+  node width=0 grow=2 align-self=start border=0,7,0,0 padding=2 column-gap=4 => 30 0 50 74
+    node width=80 grow=2 padding=5 content=80x16 => 2 2 80 70
+    node height=60 min-height=40 border=0,0,3,3 content=20x16 => 86 2 20 60
+    node width=50% height=60 max-height=50% margin=5 border=0,3,7,7 padding=3,7,3,3 justify=center dir=ltr => 115 7 19.5 60
+      node width=60 margin=0,3,7,3 border=2 padding=7,3,7,0 => -2.5625 17 14 30
+      node width=10% content=20x20 => 14.4375 10 0.640625 40
+
+fixture random_26_59 available=500x400
+node width=50% padding=10 row-gap=0 => 0 0 250 144
+  node height=40 border=2 wrap=wrap-reverse justify=space-between align-items=center align-content=center => 10 10 14 40
+    node height=20 max-width=50% max-height=100% border=2 padding=3,3,7,0 => 2 10 10 20
+    node width=80 height=20 grow=2 position=absolute padding=10 direction=row-reverse dir=rtl => 2 10 80 20
+      node width=150 height=80 position=absolute bottom=10 => 10 -70 150 80
+      node height=75% margin=0 border=2 => 10 10 4 4
+  node shrink=3 padding=7,7,7,0 => 24 10 14 124
+  node width=80 border=0 wrap=wrap align-content=center => 38 10 80 124
+    node width=10 height=20 margin=5 padding=7,0,3,0 => 5 43.796875 10 20
+    node width=75% height=10% margin=2 wrap=wrap-reverse dir=ltr => 2 70.796875 60 12.390625
+      node height=80 min-width=0 grow=1 shrink=1 aspect=1 margin=3,0,7,3 border=0 padding=0 content=10x40 => 3 -70.609375 57 80
+    node height=25% align-self=stretch position=absolute end=10 aspect=2 margin=7,7,7,0 border=0,3,7,0 justify=space-evenly align-items=stretch => -40 7 103 31
+      node width=80 height=10 => 3.328125 7 80 10
+      node width=10% min-height=40 content=20x10 => 86.65625 7 10 40
+
+fixture random_26_60 available=500x400
+node width=20 height=40 border=0,7,0,0 padding=2 direction=column-reverse justify=start row-gap=4 => 0 0 20 40
+  node width=30 height=40 grow=2 align-self=stretch padding=0 content=10x10 => 2 2 30 36
+
+fixture random_26_62 available=500x400
+node width=80 border=5 padding=5 direction=column => 0 0 80 221
+  node align-self=end aspect=0.5 padding=7,7,7,3 wrap=wrap => -30.5 10 100.5 201
+    node width=10 height=120 border=0 => 7 7 10 120
+    node width=40 shrink=3 margin=2 => 19 9 40 118
+    node min-height=60 margin=0,0,0,7 border=3,0,0,3 padding=7,3,7,7 => 7 129 53 62
+      node height=50% grow=0 aspect=1 margin=0 padding=0 content=20x16 => 10 7 22.5 22.5
+      node width=75% max-width=25% grow=1 margin=0,0,0,7 border=7,3,3,0 padding=5 => 32.5 7 20 38
+
+fixture random_26_63 available=500x400
+node width=150 height=200 max-width=50% padding=10 wrap=nowrap align-content=stretch column-gap=10 => 0 0 150 200
+  node shrink=1 margin=5 padding=0,0,7,3 content=50x10 => 15 15 50 170
+
+fixture random_26_64 available=500x400
+node width=75% max-height=50% padding=5 direction=row-reverse wrap=wrap align-content=space-evenly row-gap=4 => 0 0 375 177
+  node width=150 margin=2 padding=0,7,3,0 direction=column => 218 7 150 163
+    node height=20 grow=2 basis=0 align-self=start => 0 3 0 0
+    node border=5 justify=center align-items=stretch => 0 3 143 160
+      node min-height=150 basis=75% padding=7,7,7,7 content=10x40 => 21.625 5 99.75 150
+
+fixture random_26_65 available=500x400
+node width=75% height=300 column-gap=4 => 0 0 375 300
+  node width=50% height=60 max-height=20 grow=0 border=7,3,7,7 padding=7,7,3,3 content=30x16 => 0 0 187.5 20
+  node height=60 => 191.5 0 44 60
+    node height=30 padding=0,3,3,0 => 0 0 3 30
+    node width=25% border=0 content=10x40 => 3 0 10 60
+    node width=20 height=75% max-height=50% margin=7,3,0,7 border=7,7,7,7 padding=7,0,7,0 justify=space-around align-items=end align-content=end => 20 0 21 30
+      node width=0 height=100% min-width=75% grow=0 margin=3,7,7,7 => 17 7 0 9
+  node width=20 margin=2 padding=0,3,0,3 content=20x40 => 241.5 2 20 296
+
+fixture random_26_66 available=500x400
+node width=20 border=3,0,3,3 direction=column-reverse row-gap=4 dir=ltr => 0 0 20 145
+  node width=25% height=30 align-self=auto direction=row wrap=wrap-reverse justify=center align-content=space-between => 3 112 4.25 30
+    node width=60 border=5 padding=0 align-items=start => -27.875 -10 60 40
+      node width=10 height=100% grow=0 align-self=center margin=7,7,7,3 padding=3,3,7,3 content=30x10 => 12 7 10 30
+      node width=120 height=20 aspect=2 content=20x10 => 29 5 40 20
+    node width=75% shrink=3 align-self=start margin=7,7,0,7 padding=0,0,7,7 => 2.125 -31 0 14
+  node height=30 margin=3,3,3,0 padding=0,0,3,0 content=80x20 => 6 78 11 30
+  node max-height=80 grow=1 align-self=end => -14 3 34 68
+    node grow=0 aspect=0.5 padding=2 content=30x20 => 0 0 34 68
+
+fixture random_26_67 available=500x400
+node width=200 height=75% max-height=100% padding=2 direction=row justify=center => 0 0 200 300
+  node width=80 height=75% content=50x10 => 60 2 80 222
+
+fixture random_26_68 available=500x400
+node width=0 height=80 padding=7,3,0,3 => 0 0 10 80
+  node height=120 align-self=center aspect=1.5 padding=5 justify=space-evenly => 7 -21.5 180 120
+    node width=30 height=50% padding=0,0,3,0 wrap=wrap-reverse column-gap=10 => 75 5 30 55
+      node width=25% grow=1 align-self=auto position=absolute end=0 bottom=10 content=80x10 => 22.5 35 7.5 10
+      node width=150 height=20 grow=1 aspect=1 margin=3,7,3,3 border=0,3,7,3 content=50x20 => 3 32 53 20
+
+fixture random_26_69 available=500x400
+node width=60 height=200 min-height=25% direction=row wrap=wrap-reverse align-content=space-around => 0 0 60 200
+  node height=75% padding=3,7,7,7 content=30x40 => 0 46 40 150
+  node grow=2 basis=80 margin=0 content=80x16 => 0 22 80 16
+  node width=150 height=10 grow=2 align-self=end padding=0,7,3,3 content=10x10 => 0 4 60 10
+
+fixture random_26_71 available=500x400
+node width=40 height=0 max-width=10 wrap=wrap align-content=start dir=rtl => 0 0 10 0
+  node aspect=1 direction=row align-content=space-evenly column-gap=4 => -44 0 54 54
+    node width=25% height=50% shrink=3 border=7,3,3,0 padding=7,3,0,0 => 34 0 20 27
+    node width=20 margin=7,3,0,7 border=3,7,3,3 => 3 0 20 47
+  node height=80 align-self=auto position=absolute top=0 bottom=10 margin=0,3,7,3 border=7,3,3,0 direction=column-reverse wrap=wrap => -171 7 181 80
+    node height=30 shrink=1 padding=2 align-content=space-evenly row-gap=10 => 3 50 171 30
+      node width=50% height=0 position=absolute bottom=10 => 83.5 20 85.5 0
+      node height=20 shrink=1 aspect=0.5 border=0 padding=0 content=10x10 => 159 2 10 20
+      node height=60 min-width=150 margin=0,7,0,3 content=80x40 => 9 2 150 60
+  node width=50% height=75% margin=7,3,3,3 direction=column-reverse justify=space-around => -2 57 5 0
+    node width=120 height=120 => -115 0 120 0
+
+fixture random_26_72 available=500x400
+node height=150 padding=5 => 0 0 210 150
+  node grow=1 border=0,0,0,0 content=30x16 => 5 5 30 140
+  node width=80 height=100% shrink=0 margin=10 border=0,7,0,0 justify=start column-gap=0 => 45 15 80 140
+    node height=150 max-width=100% shrink=1 align-self=auto margin=3,7,7,7 border=10 padding=2 justify=center => 3 7 27 150
+      node grow=0 basis=40 border=0 padding=0,3,3,3 => 12 12 3 126
+  node height=50% grow=1 aspect=1 padding=2 wrap=wrap-reverse justify=start align-items=center => 135 5 70 70
+    node height=75% position=absolute start=0 end=0 bottom=10 margin=3,0,3,7 border=3,7,0,3 direction=row-reverse justify=space-between align-items=center row-gap=4 column-gap=0 => 3 0.5 67 52.5
+      node height=10% margin=0 => 60 22.28125 0 4.9375
+      node margin=7,3,0,7 border=0 padding=0 => 53.5 21.25 0 0
+      node width=30 height=20 basis=40 border=5 content=30x10 => 3 14.75 40 20
+    node width=60 height=20 max-height=40 direction=column-reverse wrap=nowrap align-content=end => 2 41.5 60 20
+      node align-self=start margin=7,0,3,0 border=0,7,7,3 content=50x40 => 7 -30 57 50
+      node width=25% align-self=stretch padding=5 => 0 -43 15 10
+      node width=30 height=50% grow=2 shrink=3 content=10x40 => 0 -53 30 10
+    node width=50% height=25% border=10 direction=row-reverse align-content=space-around => 2 8.5 33 20
+      node width=10% basis=120 => 10 10 13 0
+
+fixture random_26_73 available=500x400
+node width=30 height=30 padding=0,7,0,7 direction=column wrap=wrap => 0 0 30 30
+  node height=150 margin=7,7,0,0 border=7,3,7,7 padding=5 direction=column-reverse justify=space-between => 7 0 140 103.65625
+    node grow=1 align-self=start aspect=1.5 wrap=nowrap justify=end => 12 69 33.984375 22.65625
+      node width=30 height=25% basis=10% margin=2 => 28.59375 2 3.390625 5.65625
+    node width=25% height=20 max-width=80 shrink=1 align-self=end margin=3,0,7,7 border=7,7,3,0 direction=row wrap=nowrap justify=center column-gap=0 => 102 42 30 20
+      node width=80 height=75% shrink=3 align-self=stretch border=0 padding=2 => 7 3 16 12.75
+    node width=120 max-height=60 border=0,3,3,0 align-content=end => 12 12 120 23
+      node width=50% height=0 grow=2 basis=0 margin=2 padding=0 content=50x16 => 2 5 113 0
+      node width=30 height=20 max-width=0 shrink=0 basis=75% content=80x16 => 117 3 0 20
+  node height=50% align-self=start border=5 direction=row align-items=start align-content=center => 154 0 30 11.5
+    node height=25% max-height=120 grow=0 shrink=3 padding=5 direction=row justify=space-between align-content=end dir=ltr => 5 5 20 10
+      node width=10 height=60 min-width=10 grow=0 shrink=1 border=0,7,7,0 padding=3,0,0,7 content=50x40 => 5 5 10 60
+  node width=60 margin=5 content=50x40 => 189 5 60 40
+
+fixture random_26_74 available=500x400
+node width=120 height=300 dir=rtl => 0 0 120 300
+  node width=25% height=10 grow=0 align-self=stretch wrap=nowrap justify=end align-items=end column-gap=0 => 90 0 30 10
+    node height=40 shrink=1 margin=7,7,7,3 => 114 -33 0 40
+    node width=120 height=20 wrap=nowrap align-items=stretch align-content=center row-gap=0 => 0 -10 107 20
+      node border=10 padding=3,7,3,0 => 77 0 30 23
+      node width=40 height=10 position=absolute start=20 end=20 bottom=10 margin=3,3,7,0 => 44 0 40 10
+      node border=7,0,3,7 padding=10 content=50x16 => 0 0 77 30
+  node height=10% grow=1 padding=3,0,7,3 align-content=stretch row-gap=4 => 0 0 90 30
+    node width=75% height=40 min-width=20 min-height=25% max-height=20 border=0 padding=10 => 35.640625 7 51.359375 20
+    node width=40 margin=7,0,3,7 border=3,0,7,7 justify=space-evenly => 0 10 28.640625 14
+      node margin=3,0,0,3 padding=10 => 1.328125 7 20 20
+
+fixture random_26_75 available=500x400
+node width=200 height=75% direction=column align-content=center row-gap=10 dir=ltr => 0 0 200 300
+  node height=30 grow=1 shrink=3 padding=5 align-items=end => 0 0 200 140
+    node width=20 shrink=3 => 5 135 0 0
+    node height=30 basis=10 aspect=2 border=2 direction=column-reverse align-content=space-between row-gap=0 => 5 105 157 30
+      node align-self=stretch border=3,3,7,3 content=10x20 => 2 -2 153 30
+      node width=150 aspect=1 margin=0,3,7,3 padding=10 content=30x16 => 2 -155 150 150
+      node shrink=1 border=2 padding=3,3,0,0 content=50x20 => 2 -186 153 24
+    node height=75% margin=0,7,0,0 wrap=wrap-reverse column-gap=4 => 162 37.5 27 97.5
+      node height=10% margin=7,3,0,3 border=7,7,3,0 padding=3,0,0,3 => 7 84.75 17 9.75
+      node width=100% margin=3,3,0,0 content=20x16 => 3 0 21 50.375
+  node max-width=100% border=0 align-content=stretch row-gap=4 => 0 150 200 150
+    node height=150 min-width=120 direction=row-reverse wrap=wrap align-items=end align-content=start => 0 0 120 150
+      node height=25% grow=0 align-self=start border=0 content=20x10 => 100 0 20 37.5
+      node min-height=75% grow=2 padding=0 => 80 0 20 112.5
+      node width=60 min-height=80 margin=10 content=80x10 => 10 22.5 60 80
+    node height=75% align-self=start border=0 padding=0,7,7,3 wrap=wrap-reverse => 120 0 67 112.5
+      node height=10% min-width=60 shrink=1 border=2 padding=5 content=10x16 => 0 95.5 60 14
+
+fixture random_26_76 available=500x400
+node height=100% min-width=0 border=10 => 0 0 220 400
+  node width=120 grow=0 margin=10 direction=column-reverse align-items=start => 20 20 70 360
+    node width=60 height=120 min-height=150 shrink=0 margin=7,3,3,7 content=30x20 => 7 203 60 150
+  node width=100% height=40 padding=2 content=10x16 => 100 10 64 40
+  node width=50% height=120 border=0,0,7,7 => 164 10 46 120
+    node height=80 margin=0 border=0 justify=space-around align-content=space-evenly row-gap=0 column-gap=10 => 0 7 46 80
+      node border=0,0,0,3 => 0 0 0 80
+      node height=150 shrink=1 margin=0,3,0,7 border=3,0,0,0 content=20x10 => 10 0 23 150
+      node width=50% min-width=25% => 46 0 11.5 80
+
+fixture random_26_77 available=500x400
+node width=10 height=80 aspect=1.5 padding=7,7,3,7 direction=row align-content=stretch => 0 0 145 80
+  node shrink=0 align-self=auto border=7,0,3,3 padding=0 => 7 3 7 70
+  node width=10 height=10% shrink=0 position=absolute margin=5 padding=2 wrap=wrap-reverse justify=center column-gap=0 => 12 8 10 8
+    node width=80 height=40 justify=space-evenly => -35 -34 80 40
+      node shrink=0 aspect=1.5 border=3,0,0,3 content=20x20 => 0 0 60 40
+      node width=20 height=30 margin=7,0,7,3 border=7,0,3,0 => 67 7 13 30
+    node width=120 height=25% margin=5 content=20x16 => -5 -40 20 1
+  node width=120 height=20 min-height=20 grow=1 margin=2 border=2 direction=column-reverse align-content=center dir=rtl => 16 5 120 20
+    node height=0 min-width=40 max-width=0 grow=0 padding=0,3,3,3 content=20x40 => 78 12 40 6
+    node height=25% grow=1 padding=10 wrap=wrap => 2 -8 116 20
+      node height=10 grow=1 => 100 10 6 10
+      node width=80 height=100% margin=7,3,0,3 padding=2 content=50x10 => 13 10 80 4
+
+fixture random_26_78 available=500x400
+node height=60 direction=column-reverse align-items=end align-content=start dir=ltr => 0 0 158 60
+  node grow=2 shrink=3 margin=2 padding=2 direction=row-reverse wrap=nowrap align-items=stretch dir=ltr => 2 21 154 37
+    node grow=2 content=30x16 => 122 2 30 33
+    node height=10 min-width=120 justify=start align-items=center column-gap=10 => 2 2 120 10
+      node width=30 position=absolute start=5 margin=3,7,0,7 border=3,0,3,3 padding=5 content=20x20 => 8 -16.5 30 36
+  node margin=3,0,3,3 wrap=wrap-reverse align-items=stretch row-gap=10 => 124 9 34 7
+    node width=20 margin=0 padding=0 => 0 0 20 7
+    node height=100% padding=7,7,7,0 => 20 0 14 7
+  node height=10% shrink=0 border=3,3,0,0 direction=column-reverse => 2 0 156 6
+    node height=20 grow=2 column-gap=10 => 3 -14 150 20
+      node width=80 max-height=25% shrink=0 content=50x20 => 0 0 80 5
+      node basis=75% align-self=stretch border=3,7,7,3 content=50x40 => 90 0 60 20
+
+fixture random_26_79 available=500x400
+node height=80 direction=row wrap=wrap-reverse justify=space-evenly => 0 0 80 80
+  node width=80 aspect=1 padding=0,7,3,7 content=80x10 => 0 0 80 80
+
+fixture random_26_80 available=500x400
+node width=120 height=60 min-height=10 => 0 0 120 60
+  node padding=0,3,3,7 align-items=end => 0 0 197 60
+    node height=20 max-width=120 margin=0,3,7,7 align-content=start row-gap=4 => 0 26 120 20
+      node width=40 max-width=10% => 0 0 0 20
+      node height=150 min-width=120 basis=10 align-self=auto margin=10 border=0 content=80x40 => 10 10 120 150
+    node height=60 margin=7,3,7,3 border=0,7,3,3 padding=2 content=50x16 => 130 -10 61 60
+
+fixture random_26_81 available=500x400
+node width=150 height=100% aspect=0.5 padding=10 wrap=wrap justify=space-around align-items=stretch row-gap=10 => 0 0 190 400
+  node width=150 align-self=auto => 20 10 150 116
+    node grow=2 margin=5 direction=column-reverse align-items=end align-content=center => 5 5 140 106
+      node width=10 height=100% shrink=1 padding=2 => 130 0 10 106
+    node min-width=120 align-self=stretch position=absolute start=20 bottom=20 margin=7,3,3,0 padding=7,0,0,3 => 27 93 120 3
+    node width=10% basis=60 position=absolute bottom=5 => 0 111 15 0
+  node min-width=150 margin=10 padding=0 => 20 146 150 102
+  node width=50% max-height=40 direction=column-reverse column-gap=10 => 52.5 268 85 40
+    node width=30 height=10 grow=0 shrink=1 padding=10 content=80x20 => 0 20 30 20
+
+fixture random_26_82 available=500x400
+node height=60 border=2 direction=column align-items=start align-content=center => 0 0 84 60
+  node width=10 margin=0,0,0,3 align-items=stretch => 2 2 10 170
+    node max-width=40 grow=2 margin=5 padding=5 => 5 5 40 160
+      node width=60 height=150 max-width=60 shrink=0 border=3,0,3,7 => 5 5 60 150
+  node width=80 height=80 border=2 padding=0 content=20x16 => 2 175 80 20
+  node width=10% height=0 grow=2 basis=80 aspect=1 content=10x20 => 2 195 8 0
+
+fixture random_26_83 available=500x400
+node height=40 padding=3,0,3,7 direction=column wrap=wrap column-gap=4 => 0 0 73 40
+  node height=60 border=10 content=50x10 => 3 3 70 30
+
+fixture random_26_84 available=500x400
+node width=20 height=200 max-width=150 padding=5 wrap=nowrap justify=space-between => 0 0 20 200
+  node width=30 height=30 shrink=0 margin=10 content=20x10 => 15 15 30 30
+  node width=50% grow=2 shrink=0 align-self=start margin=10 border=10 padding=10 justify=space-between => 65 15 40 200
+    node height=25% grow=2 shrink=0 padding=0,7,0,7 direction=row => 20 20 90 160
+      node width=50% height=150 margin=0,3,3,0 content=80x20 => 0 3 41.5 150
+      node width=0 height=50% min-height=0 shrink=1 => 44.5 0 0 0
+    node height=75% shrink=0 margin=7,7,7,0 direction=row row-gap=10 => 117 27 80 80
+      node height=80 content=80x40 => 0 0 80 80
+      node width=0 height=40 min-width=0 shrink=3 position=absolute margin=7,0,3,7 => 7 3 0 40
+    node align-self=stretch aspect=2 padding=0,3,0,3 direction=row-reverse justify=end align-items=start => 204 20 118 160
+      node height=20 position=absolute end=20 top=5 bottom=5 border=7,3,0,0 content=10x16 => 78 5 20 20
+      node width=0 max-height=25% align-self=center margin=7,0,7,0 padding=7,7,0,0 content=50x20 => 101 72 14 20
+      node width=10% height=10% grow=1 basis=40 margin=7,7,0,7 content=80x20 => 7 0 80 15.6875
+  node grow=0 align-self=start margin=0,0,7,0 content=20x10 => 115 12 20 10
+
+fixture random_26_85 available=500x400
+node width=75% height=0 border=2 padding=5 direction=column-reverse justify=center => 0 0 375 14
+  node height=80 grow=1 margin=5 border=7,7,3,0 padding=10 wrap=wrap justify=space-evenly column-gap=0 => 12 -31 351 80
+    node max-width=120 border=3,0,0,7 padding=0,7,7,0 wrap=wrap align-items=center align-content=center => 120.5 13 110 74
+      node height=10% min-width=60 content=20x10 => 3 34 60 6
+      node height=60 border=0 padding=7,3,3,3 content=30x10 => 63 7 40 60
+  node height=10% min-width=50% grow=1 border=2 wrap=nowrap align-content=space-around => 7 -40 361 4
+    node width=20 padding=7,0,7,3 justify=center => 2 2 20 10
+      node width=80 align-self=stretch padding=0 => -26.5 7 0 0
+      node max-height=80 grow=0 border=0 padding=0 content=80x10 => -26.5 7 80 0
+    node width=10 height=75% min-height=25% => 22 2 10 0
+    node align-self=start aspect=1 margin=5 direction=row => 37 7 197 197
+      node border=7,7,0,7 content=50x40 => 0 0 64 197
+      node border=0,3,3,7 padding=3,7,3,0 => 64 0 13 197
+      node width=120 => 77 0 120 197
+
+fixture random_26_88 available=500x400
+node width=50% height=100% border=0 padding=0 align-content=stretch => 0 0 250 400
+  node width=100% height=60 border=7,3,0,7 => 0 0 250 60
+
+fixture random_26_89 available=500x400
+node width=200 height=120 border=2 direction=row-reverse => 0 0 200 120
+  node height=10% grow=0 align-self=center border=10 padding=0,3,0,7 => 175 46.5 23 27
+  node width=100% min-width=10 grow=1 aspect=1 margin=0 direction=row justify=space-between row-gap=4 => 2 2 173 116
+    node grow=2 align-self=start aspect=1 margin=3,7,3,3 => 3 3 43 43
+    node height=80 shrink=1 align-self=start position=absolute top=10 align-content=start => 0 10 24 80
+      node height=0 shrink=0 margin=3,7,7,0 border=7,7,0,3 => 3 7 14 3
+    node width=120 grow=0 margin=0 border=10 padding=10 align-items=start column-gap=4 => 53 0 120 116
+      node width=20 height=75% grow=2 border=0 => 20 20 0 57
+      node width=0 height=10% shrink=1 align-self=start aspect=1.5 padding=2 content=80x16 => 24 20 4 7.59375
+      node width=80 min-width=30 shrink=0 border=2 padding=0,0,7,7 content=10x40 => 32 20 80 58
+  node max-width=10 shrink=1 => 2 2 0 116
+
+fixture random_26_90 available=500x400
+node width=75% height=10 justify=space-between => 0 0 375 10
+  node height=0 border=3,7,3,0 padding=2 content=80x20 => 0 0 94 7
+
+fixture random_26_91 available=500x400
+node width=10% height=20 border=3,0,3,3 align-items=center row-gap=4 => 0 0 50 20
+  node width=25% height=150 grow=2 basis=150 align-self=center margin=0,7,7,3 border=2 align-items=stretch align-content=center => 3 -63 11.75 150
+    node width=0 max-height=10 => 2 2 0 10
+      node height=150 align-self=start padding=5 => 0 0 10 150
+    node height=80 basis=40 border=5 padding=2 direction=column => 2 2 140 80
+      node height=80 padding=7,0,0,0 content=20x10 => 7 7 126 24.28125
+      node height=50% min-width=30 min-height=25% align-self=stretch margin=0,0,7,0 border=2 content=10x10 => 7 38.28125 126 16.5
+      node width=120 height=60 grow=2 margin=3,3,0,0 padding=0 => 10 54.78125 120 18.21875
+  node width=10% max-height=60 => 21.75 -10 4.6875 40
+    node width=30 height=10 max-height=50% justify=center => 0 0 30 10
+      node shrink=1 border=10 padding=5 => -15 0 30 30
+      node width=100% height=20 padding=0,0,0,7 content=50x20 => 15 0 30 20
+    node width=80 height=40 min-width=60 grow=2 position=absolute start=0 end=10 border=2 direction=row wrap=wrap-reverse => 0 0 80 40
+      node width=50% grow=0 border=3,7,7,3 padding=5 content=20x20 => 2 -2 38 40
+    node width=80 height=30 min-height=0 margin=0,0,3,7 padding=0 => 30 3 0 30
+  node width=30 shrink=3 border=2 direction=column wrap=wrap justify=space-around => 26.4375 -19 30 58
+    node grow=1 padding=5 justify=end => 2 2 54 54
+      node max-height=80 grow=0 align-self=start position=absolute => 49 5 0 0
+      node width=75% margin=2 content=30x40 => 7 7 30 40
+      node width=10 height=40 max-width=20 border=2 content=20x40 => 39 5 10 40
+
+fixture random_26_92 available=500x400
+node height=100% min-width=150 padding=10 direction=column-reverse align-content=stretch => 0 0 150 400
+  node width=0 height=0 grow=2 shrink=0 align-self=center border=2 align-items=end => 73 10 4 380
+    node width=150 height=30 min-width=50% padding=0,3,3,7 content=80x40 => 2 348 3 30
+    node width=40 height=50% min-width=150 max-height=10% grow=2 position=absolute top=20 margin=2 border=3,7,0,0 => 4 24 150 37.59375
+
+fixture random_26_93 available=500x400
+node height=200 aspect=2 padding=10 justify=space-between column-gap=4 => 0 0 400 200
+  node width=100% height=120 border=10 direction=column-reverse wrap=nowrap justify=space-around row-gap=10 column-gap=0 => 10 10 380 120
+    node width=40 height=50% basis=100% aspect=2 direction=row-reverse wrap=wrap align-content=stretch dir=rtl => 10 10 40 100
+      node width=0 height=20 min-height=120 shrink=1 margin=5 border=5 content=50x10 => 5 5 10 120
+      node height=40 shrink=1 align-self=end margin=2 => 22 88 0 40
+
+fixture random_26_94 available=500x400
+node direction=row justify=end column-gap=10 => 0 0 276 62
+  node width=50% min-width=0 align-self=start margin=0,0,7,3 padding=3,3,7,0 direction=column-reverse => 0 7 130.53125 51
+    node width=30 height=10% margin=7,0,7,7 padding=0,0,7,3 => 10 34 30 10
+    node width=10 align-self=center border=0 align-items=start => 60.265625 27 10 0
+      node height=60 position=absolute start=20 bottom=5 border=5 padding=0,3,7,0 content=30x16 => 20 -65 43 60
+      node width=50% max-height=60 => 0 0 5 0
+      node position=absolute start=0 padding=0 => 0 0 0 0
+    node width=120 height=20 min-width=60 grow=1 border=0 padding=3,3,7,7 content=80x16 => 3 7 120 20
+  node height=100% border=5 dir=rtl => 140.53125 0 50 62
+    node width=40 height=10% direction=column-reverse => 5 5 40 52
+      node shrink=3 align-self=end padding=3,3,3,3 content=50x16 => 0 30 56 22
+      node height=30 grow=2 => 0 0 40 30
+  node width=80 height=10% grow=1 border=0 => 200.53125 0 75.46875 0
+
+fixture random_26_95 available=500x400
+node width=40 => 0 0 40 163
+  node shrink=1 margin=3,3,0,3 align-items=start => 3 0 150 160
+    node width=10 height=150 align-self=stretch margin=5 padding=5 content=10x40 => 5 5 10 150
+    node height=50% grow=2 margin=2 padding=0,3,3,3 direction=column-reverse align-content=space-evenly => 22 2 126 80
+      node width=80 height=60 shrink=1 position=absolute start=0 end=10 bottom=20 margin=5 padding=7,0,3,0 => 5 -5 80 60
+      node width=10 min-width=120 shrink=1 margin=0,3,0,7 padding=5 content=80x20 => 0 40 120 30
+      node width=60 padding=5 content=10x16 => 0 14 60 26
+  node width=120 height=20 align-self=end padding=3,7,7,3 direction=column justify=space-evenly align-content=space-around column-gap=0 => 156 143 80 20
+    node width=60 height=75% margin=5 border=7,0,7,0 padding=7,0,7,3 content=30x40 => 8 12 60 17
+    node width=20 margin=10 padding=3,0,0,0 direction=column-reverse wrap=wrap-reverse justify=end => 13 44 20 247
+      node width=150 height=50% max-height=100% aspect=1 margin=3,7,0,7 content=50x40 => -137 90 150 123.5
+      node aspect=1 border=7,3,7,7 content=80x16 => -140 0 160 90
+
+fixture random_26_96 available=500x400
+node width=25% height=0 padding=3,0,0,7 direction=column justify=center row-gap=4 => 0 0 125 7
+  node width=80 grow=1 border=3,3,0,3 padding=0,0,7,0 content=30x20 => 3 -24 80 30
+  node width=60 height=10 grow=2 align-self=center padding=3,3,7,7 justify=start => 34 10 60 14
+    node max-width=75% border=7,0,3,3 justify=end align-items=center => 3 7 24 6
+      node position=absolute top=20 margin=3,0,7,0 padding=3,7,0,7 content=80x10 => -66 30 90 17
+      node shrink=3 margin=0,3,3,7 border=2 padding=5 => 7 -6 14 14
+    node width=60 grow=2 margin=3,0,7,3 border=0 content=20x40 => 30 14 27 0
+
+fixture random_26_97 available=500x400
+node width=120 height=10 border=0,0,7,7 padding=0,3,7,0 direction=column-reverse align-items=end => 0 0 120 21
+  node align-self=stretch aspect=2 border=0 padding=0 direction=row-reverse => 0 -44.5 117 58.5
+    node width=20 height=75% margin=0,3,7,3 direction=row align-items=start row-gap=0 => 94 7 20 43.875
+      node width=150 height=50% content=10x16 => 0 0 10 21.9375
+      node width=80 grow=2 margin=0,7,3,7 padding=5 => 10 3 10 10
+      node width=75% height=60 position=absolute end=5 top=5 bottom=20 => 0 5 15 60
+  node width=25% height=10 margin=2 border=10 justify=start align-content=space-evenly => 85.75 -66.5 29.25 20
+    node height=100% margin=10 border=3,3,7,0 padding=7,3,0,0 align-items=start align-content=space-around => 20 20 30 7
+      node grow=0 margin=2 content=10x10 => 12 9 10 10
+    node height=0 min-height=10% margin=3,7,3,0 content=10x20 => 63 13 10 0
+    node width=120 height=120 grow=1 margin=0,0,3,0 border=3,3,7,7 wrap=wrap justify=space-evenly => 80 13 53 120
+      node height=30 aspect=1 margin=3,7,0,0 padding=0,7,0,7 content=30x40 => 6 7 37 30
+
+fixture random_26_98 available=500x400
+node width=30 height=400 border=0,3,0,7 wrap=wrap align-items=start align-content=center dir=ltr => 0 0 30 400
+  node height=10 grow=2 aspect=1.5 margin=0 => 0 188 80 10
+    node width=25% padding=0 content=80x16 => 0 0 20 10
+  node width=0 height=0 aspect=2 margin=3,3,7,0 border=0 content=20x10 => 3 205 0 0
+
+fixture random_26_99 available=500x400
+node width=200 min-width=60 border=7,7,7,7 direction=row align-content=space-around column-gap=4 dir=rtl => 0 0 200 134
+  node height=20 margin=7,3,0,3 wrap=wrap-reverse align-items=stretch align-content=center => 52 7 134 20
+    node width=10% padding=7,7,0,0 direction=row-reverse row-gap=4 => 120 -67 14 154
+      node width=100% height=60 shrink=1 => 7 0 0 60
+      node height=80 grow=1 margin=0 border=0 => 7 0 0 80
+      node width=120 height=30 grow=0 aspect=2 content=30x10 => 7 0 60 30
+    node width=60 height=60 shrink=3 content=10x20 => 60 27 60 60
+    node align-self=center aspect=2 margin=2 padding=10 wrap=nowrap => 18 -65 40 150
+      node height=120 margin=0,3,7,3 => 30 17 0 120
+      node width=150 shrink=3 position=absolute end=20 top=0 border=0 padding=3,3,0,3 content=10x20 => 20 0 150 23
+      node height=120 margin=7,3,0,3 padding=0 => 20 10 0 120
+  node width=40 min-height=40 wrap=wrap-reverse align-items=start row-gap=4 => 5 7 40 120
+    node width=150 direction=row-reverse row-gap=4 => -58 94 98 26
+      node width=10% height=10 grow=2 align-self=stretch border=0 padding=7,7,7,3 content=50x10 => 0 0 47.328125 10
+      node height=75% grow=1 margin=10 border=7,7,3,3 padding=0 => 57.328125 10 30.671875 6
+    node width=25% align-self=center content=30x20 => 30 17.5 10 20
+    node height=100% max-height=10 shrink=3 align-self=center border=0 justify=end align-content=end => 10 22.5 20 10
+      node width=10% height=75% min-width=20 grow=2 aspect=2 => 0 0 20 7.5
+  node width=60 height=120 shrink=3 aspect=0.5 padding=3,7,0,3 => -59 7 60 120
+
+fixture random_26_101 available=500x400
+node height=400 border=2 padding=10 direction=row-reverse => 0 0 58 400
+  node width=30 height=120 max-width=80 grow=1 margin=2 border=7,7,3,3 content=80x10 => 14 14 30 120
+
+fixture random_26_102 available=500x400
+node width=50% wrap=wrap-reverse => 0 0 250 20
+  node width=50% height=20 grow=1 border=7,0,7,3 align-items=start => 0 0 250 20
+    node width=75% grow=1 margin=10 border=7,0,0,0 padding=7,3,0,7 direction=row-reverse align-items=end => 17 17 223 164
+      node width=80 height=150 max-width=30 margin=7,0,0,7 => 190 0 30 150
+      node height=30 grow=2 aspect=1.5 => 14 127 169 30
+
+fixture random_26_103 available=500x400
+node width=40 height=200 padding=3,3,0,7 justify=space-between => 0 0 40 200
+  node width=40 height=10 margin=7,3,3,7 padding=3,3,0,3 content=20x16 => 10 3 26 10
+  node grow=0 margin=2 => 41 2 0 189
+  node width=75% height=75% align-self=auto aspect=2 margin=5 border=7,0,7,7 direction=row justify=center => 48 5 25.5 144.75
+    node aspect=1 margin=2 border=2 padding=7,7,3,7 direction=row wrap=wrap justify=start => -47.125 9 126.75 126.75
+      node width=30 height=150 shrink=3 margin=5 border=5 padding=5 content=10x10 => 14 10 30 150
+      node width=50% height=25% margin=3,7,3,3 border=7,7,3,0 => 52 8 54.375 28.1875
+
+fixture random_26_104 available=500x400
+node width=10% height=10% border=5 direction=row-reverse column-gap=4 => 0 0 50 40
+  node width=50% border=3,0,3,7 padding=2 content=20x20 => 25 5 20 30
+  node height=10% grow=1 aspect=2 content=20x40 => 1 5 20 3
+  node width=120 height=100% min-width=20 direction=row align-content=end => -23 5 20 30
+    node height=40 shrink=1 padding=7,3,3,7 justify=start => 0 0 21 40
+      node width=0 height=10 grow=1 align-self=start margin=0 content=80x16 => 7 3 0 10
+      node width=0 margin=2 border=0,0,3,3 content=50x16 => 9 5 0 26
+      node width=100% height=20 grow=2 padding=7,0,7,0 => 11 3 7 20
+    node width=60 margin=3,0,3,0 border=7,3,0,0 padding=2 direction=column-reverse row-gap=4 => 24 3 48 27
+      node width=20 height=80 border=5 content=50x20 => 9 -5 20 30
+      node max-width=60 padding=7,7,0,3 content=20x10 => 9 -22 34 13
+
+fixture random_26_105 available=500x400
+node width=30 height=10% align-content=center => 0 0 30 40
+  node height=75% shrink=1 align-self=center justify=space-between => 0 5 287 30
+    node width=150 grow=2 shrink=0 margin=3,3,3,3 border=7,3,3,0 content=30x10 => 3 3 150 24
+    node margin=0,7,3,0 padding=10 justify=start row-gap=4 => 156 3 124 27
+      node width=150 height=100% position=absolute border=2 => 10 10 150 27
+      node width=100% height=120 border=7,7,7,7 content=10x16 => 10 10 24 120
+      node width=100% min-width=80 grow=0 padding=0 content=50x20 => 34 10 80 7
+  node width=100% height=10% shrink=1 border=3,7,3,7 padding=0 => 287 0 10 10
+
+fixture random_26_106 available=500x400
+node width=200 height=100% padding=10 column-gap=4 dir=ltr => 0 0 200 400
+  node width=25% padding=3,0,0,0 direction=row dir=rtl => 10 10 45 380
+    node height=120 shrink=0 margin=2 padding=5 content=50x40 => -20 2 60 120
+    node height=30 border=0 direction=row justify=space-evenly row-gap=0 => -212 0 190 30
+      node width=50% height=100% shrink=3 basis=10 content=30x10 => 160 0 30 30
+      node width=150 padding=0,3,0,7 => 10 0 150 30
+      node width=30 height=25% max-width=10 => 0 0 10 7.5
+    node width=80 grow=2 position=absolute start=5 top=20 direction=row-reverse justify=start align-items=start => -40 20 80 10
+      node width=120 height=0 margin=5 content=30x40 => 5 5 70 0
+  node width=50% shrink=3 wrap=wrap => 59 10 90 380
+    node min-height=10% margin=2 border=7,3,7,7 content=10x40 => 2 2 20 376
+
+fixture random_26_107 available=500x400
+node height=25% border=5 align-content=stretch column-gap=10 => 0 0 90 100
+  node height=75% min-height=30 direction=column-reverse align-items=start column-gap=0 => 5 5 60 67.5
+    node border=0,3,0,3 padding=3,7,7,0 wrap=nowrap => 0 -92.5 23 160
+      node height=150 margin=0 content=10x16 => 3 7 10 150
+    node max-height=60 align-self=end margin=0,0,0,3 direction=column-reverse wrap=wrap-reverse => 0 -142.5 60 47
+      node width=10 border=2 => 50 43 10 4
+      node height=40 grow=1 border=0,0,0,0 content=10x10 => 0 3 60 40
+      node width=60 grow=0 padding=3,7,0,3 => 0 0 60 3
+  node width=10 height=40 grow=0 border=2 content=50x20 => 75 5 10 40
+
+fixture random_26_108 available=500x400
+node height=150 border=10 wrap=wrap justify=end align-items=stretch => 0 0 50 150
+  node min-height=120 position=absolute bottom=5 margin=2 border=0 align-content=space-around column-gap=4 => -284 13 322 120
+    node width=150 height=20 shrink=0 margin=5 border=7,3,3,7 content=30x16 => 5 5 150 20
+    node grow=0 border=10 => 164 0 20 120
+    node height=20 min-width=30 min-height=30 shrink=1 align-self=start border=2 justify=center align-items=stretch row-gap=4 => 188 0 134 30
+      node width=0 grow=2 margin=10 padding=5 => 10.5 12 10 10
+      node height=40 grow=0 border=5 content=80x10 => 30.5 2 90 40
+      node width=10% height=25% shrink=0 align-self=stretch border=0 content=10x10 => 120.5 2 13 6.5
+  node grow=2 border=7,3,7,7 content=20x16 => 10 10 30 130
+
+fixture random_26_109 available=500x400
+node width=400 border=3,0,7,0 align-content=center => 0 0 400 153.328125
+  node width=10 grow=1 shrink=3 padding=7,0,0,3 direction=row-reverse justify=end => 3 7 241 146.328125
+    node basis=100% margin=0 border=5 direction=column-reverse => 105.40625 0 135.59375 143.328125
+      node width=75% height=10 min-height=100% grow=0 position=absolute => 5 5 94.1875 133.328125
+      node height=50% margin=7,7,7,3 border=7,3,3,3 padding=10 content=10x16 => 12 68.671875 111.59375 66.65625
+      node width=10 height=10% margin=5 padding=10 => 10 36.671875 20 20
+    node width=75% direction=column align-items=start => 7 0 98.40625 143.328125
+      node width=80 aspect=1.5 padding=0 content=30x20 => 0 0 80 53.328125
+      node border=10 padding=0 content=10x20 => 0 53.328125 30 40
+      node height=40 margin=5 padding=10 content=50x20 => 5 98.328125 70 40
+  node width=150 aspect=1.5 => 244 7 150 146.328125
+  node height=75% min-height=0 max-height=40 border=3,0,0,3 padding=0,3,0,0 => 394 7 6 3
+
+fixture random_26_114 available=500x400
+node width=75% height=400 max-width=10% wrap=nowrap align-items=end => 0 0 50 400
+  node width=30 height=60 shrink=0 margin=2 border=3,3,3,7 direction=column wrap=nowrap justify=space-evenly => 2 338 30 60
+    node width=75% grow=2 position=absolute start=0 bottom=0 justify=end => 3 33 18 20
+      node width=10% height=20 min-width=30 max-width=30 margin=7,0,0,0 border=0,0,3,0 => -22 0 30 20
+      node height=20 align-self=stretch content=10x40 => 8 0 10 20
+    node width=80 height=80 shrink=0 align-self=start margin=7,7,3,3 direction=row => 10 6 80 80
+      node height=50% basis=10% content=30x10 => 0 0 30 40
+      node width=75% grow=0 border=5 padding=3,3,0,0 => 30 0 16 80
+      node width=60 margin=3,7,0,3 content=50x20 => 49 0 50 77
+  node margin=7,3,3,0 border=0,0,0,7 wrap=wrap => 41 296 50 104
+    node width=20 margin=5 border=10 padding=10 align-items=start => 5 5 40 87
+      node align-self=auto margin=0 border=2 padding=7,0,0,3 content=10x10 => 20 20 21 17
+      node margin=7,7,7,0 content=10x40 => 48 27 10 40
+      node width=100% height=0 position=absolute top=10 content=80x40 => 20 20 20 0
+    node width=10 height=0 max-width=20 align-self=start justify=space-between align-content=end row-gap=10 => 0 97 10 0
+      node width=20 height=20 align-self=auto => 0 0 10 20
+
+fixture random_26_115 available=500x400
+node height=20 border=0 wrap=wrap justify=end => 0 0 30 20
+  node width=50% height=120 shrink=1 basis=100% position=absolute start=0 end=10 top=0 bottom=10 aspect=0.5 wrap=wrap-reverse => 0 0 30 120
+    node width=20 grow=2 margin=7,3,0,0 => 7 80 20 40
+    node grow=1 wrap=nowrap justify=space-evenly align-content=start => 0 0 30 80
+      node width=25% align-self=end aspect=1.5 padding=0 content=10x40 => 11.25 40 7.5 40
+  node width=30 padding=0 => 0 0 30 20
+
+fixture random_26_116 available=500x400
+node height=400 border=3,7,7,3 direction=row-reverse wrap=nowrap => 0 0 247 400
+  node width=100% grow=2 margin=7,3,7,7 padding=3,0,0,0 align-items=center align-content=end => 120 14 117 376
+    node width=30 height=30 border=5 => 3 173 30 30
+      node width=120 height=20 basis=10% align-self=center border=0,7,3,3 => 5 5 7 20
+    node border=3,7,0,3 direction=row column-gap=10 => 33 126.5 84 123
+      node height=120 shrink=3 basis=150 => 3 0 0 120
+      node width=100% max-height=50% margin=2 border=5 content=10x10 => 15 2 20 116
+      node height=75% align-self=end padding=5 content=20x40 => 47 70 30 50
+  node height=40 margin=5 direction=column align-items=start => 8 12 100 40
+    node width=20 height=100% max-width=30 margin=3,3,7,7 padding=10 align-items=start row-gap=4 => 3 7 20 40
+      node width=40 height=100% aspect=0.5 padding=5 content=30x10 => 10 10 40 20
+    node grow=0 align-content=end row-gap=0 => 0 54 100 50
+      node height=30 margin=10 content=80x20 => 10 10 80 30
+
+fixture random_26_117 available=500x400
+node height=30 direction=row align-items=end row-gap=10 dir=ltr => 0 0 217 30
+  node width=150 margin=0 border=0 column-gap=0 => 0 -30 150 60
+    node width=80 margin=0 border=3,3,3,0 padding=5 => 0 0 80 60
+    node width=60 height=120 position=absolute top=20 bottom=0 justify=end column-gap=10 => 0 20 60 120
+      node height=10 grow=1 align-self=auto border=3,7,3,7 => -10 0 10 10
+      node width=20 basis=150 content=50x20 => 10 0 20 120
+      node width=10 height=100% align-self=center border=10 => 40 0 20 120
+    node width=40 height=60 => 80 0 40 60
+  node width=30 border=3,7,3,3 content=50x40 => 150 -16 30 46
+  node margin=5 direction=column align-items=center => 185 -22 27 47
+    node width=0 height=30 => 13.5 0 0 30
+    node height=0 margin=2 border=3,0,3,3 padding=0,0,7,0 content=20x10 => 2 32 23 13
+    node width=40 height=20 max-height=10 position=absolute top=10 bottom=10 aspect=0.5 border=3,3,3,3 padding=0,7,7,7 content=50x20 => -18 10 63 20
+
+fixture random_26_119 available=500x400
+node height=40 max-width=0 dir=ltr => 0 0 0 40
+  node height=120 direction=column align-items=end dir=rtl => 0 0 50 120
+    node width=30 height=100% margin=10 border=0 padding=0 column-gap=10 => 10 10 30 120
+      node width=75% max-height=40 grow=2 content=30x16 => 7.5 0 22.5 40
+      node width=150 height=150 min-width=40 margin=10 padding=0,0,7,0 => -52.5 10 40 150
+    node width=20 height=0 grow=0 margin=2 padding=3,0,0,0 direction=column-reverse justify=center align-items=center => 2 142 20 0
+      node min-width=25% max-height=120 grow=0 shrink=1 margin=2 border=0,0,7,7 => 6.375 3 4.25 14
+      node height=30 margin=7,7,3,3 padding=3,3,7,7 => 5.5 -16 6 14
+    node width=50% height=100% align-self=start margin=0,7,3,0 border=5 padding=0,7,3,0 => 25 147 25 13
+
+fixture random_26_122 available=500x400
+node width=120 height=300 direction=row wrap=wrap justify=end align-items=start => 0 0 120 300
+  node width=25% height=10% min-height=20 aspect=1.5 border=10 padding=0,7,0,7 => 0 0 30 30
+    node height=30 content=80x20 => 10 10 80 30
+    node width=50% height=40 align-self=auto border=0,3,7,0 content=10x40 => 90 10 3 40
+    node width=120 height=75% grow=1 shrink=3 aspect=1.5 margin=7,7,0,7 align-items=end row-gap=10 => 100 10 110 2.25
+      node max-height=10% content=10x40 => 0 2.03125 10 0.21875
+      node width=40 height=25% min-height=120 align-self=start margin=0,3,7,0 padding=2 => 10 7 40 120
+      node border=7,0,0,0 content=50x10 => 53 -7.75 57 10
+  node width=0 grow=2 shrink=3 aspect=2 border=2 padding=10 => 30 0 90 45
+
+fixture random_26_123 available=500x400
+node width=80 height=60 padding=7,7,3,3 direction=column => 0 0 80 60
+  node width=10% height=10 border=2 content=20x40 => 7 3 6.59375 10
+  node width=60 min-width=50% position=absolute end=10 top=10 bottom=5 content=10x10 => 10 10 60 45
+
+fixture random_26_124 available=500x400
+node width=25% height=25% min-height=150 border=0,3,7,3 justify=space-around column-gap=4 => 0 0 125 150
+  node width=25% direction=column align-items=end align-content=space-evenly column-gap=4 => 0 7 0 140
+    node width=20 height=25% min-width=0 position=absolute start=20 top=0 margin=2 border=0 align-items=stretch row-gap=4 => 22 2 20 35
+      node width=100% height=40 => 0 0 20 40
+    node height=120 grow=1 => 0 0 0 140
+  node height=20 max-width=60 shrink=1 margin=5 justify=center align-content=space-evenly row-gap=4 => 9 12 60 20
+    node height=25% grow=1 margin=7,7,3,7 padding=5 => -57 3 10 10
+    node width=80 height=80 align-self=auto aspect=2 border=0,7,3,3 padding=0 direction=column-reverse wrap=nowrap align-items=start align-content=start => -40 0 80 80
+      node height=30 min-height=120 align-self=stretch padding=5 content=10x16 => 0 -43 73 120
+      node width=60 height=10 min-width=60 max-height=120 shrink=1 aspect=0.5 margin=3,0,0,7 content=50x20 => 3 -60 60 10
+    node height=100% grow=1 margin=5 padding=7,0,0,7 => 45 5 74 20
+      node height=75% max-width=80 max-height=50% border=0 padding=0,3,3,7 => 7 0 3 10
+      node width=50% height=20 min-height=40 grow=0 shrink=0 align-self=auto content=10x40 => 10 0 33.5 40
+      node grow=0 border=2 content=50x16 => 43.5 0 54 13
+  node min-width=50% padding=0,0,0,0 direction=row-reverse => 78 7 61 140
+    node grow=1 align-self=center wrap=wrap-reverse row-gap=0 => 20 70 41 0
+      node width=150 height=10% grow=0 align-self=center position=absolute aspect=0.5 margin=0 => 0 0 150 0
+    node width=20 height=20 aspect=1 align-content=center row-gap=0 => 0 0 20 20
+      node width=60 height=50% max-height=120 align-self=auto margin=7,0,0,7 border=0 => 7 0 3 10
+      node width=10 grow=2 padding=5 => 10 0 10 20
+    node width=0 height=100% align-self=start position=absolute start=20 end=20 top=20 margin=7,7,3,0 content=80x40 => 27 23 0 140
+
+fixture random_26_125 available=500x400
+node width=30 height=300 padding=7,7,0,7 direction=column-reverse wrap=wrap-reverse justify=end => 0 0 30 300
+  node aspect=2 margin=3,0,0,0 wrap=wrap-reverse row-gap=10 column-gap=10 => -5 279 28 14
+    node height=25% border=7,7,7,7 => 0 0 14 14
+    node width=25% grow=2 shrink=0 position=absolute start=10 padding=3,3,0,7 => 10 7 7 7
+  node width=100% height=75% aspect=1 wrap=nowrap justify=space-around align-items=start => 7 59.25 16 219.75
+    node max-width=10 shrink=0 aspect=1.5 padding=10 align-items=start => 0 0 20 50
+      node align-self=auto position=absolute end=10 top=10 border=0 => 10 10 0 0
+      node grow=1 shrink=0 basis=40 content=30x16 => 10 10 40 16
+      node width=0 aspect=1.5 border=0,0,7,3 padding=5 content=30x10 => 50 10 10 30
+    node width=150 height=100% align-self=center margin=7,3,7,0 justify=end => 27 3.5 150 219.75
+      node width=10% height=75% min-width=20 aspect=2 border=0 => 90 0 20 164.8125
+      node width=40 grow=0 border=10 padding=0,7,0,7 content=10x40 => 110 0 40 219.75
+  node grow=1 padding=7,0,3,3 => -8 0 31 59.25
+
+fixture random_26_128 available=500x400
+node width=50% height=100% max-height=150 border=10 direction=column-reverse wrap=nowrap align-items=center row-gap=10 => 0 0 250 150
+  node height=30 align-self=start margin=3,0,0,3 justify=space-around => 13 107 100 30
+    node width=10 height=50% align-self=auto border=0,0,0,3 => 0 0 10 15
+    node align-self=start margin=0,0,3,0 content=30x20 => 10 3 30 20
+    node width=60 border=10 padding=0 content=10x40 => 40 0 60 30
+  node shrink=0 content=20x10 => 115 87 20 10
+
+fixture random_26_129 available=500x400
+node height=120 aspect=1.5 direction=row-reverse align-items=stretch column-gap=0 => 0 0 180 120
+  node width=100% height=10% max-height=10 grow=0 margin=0,7,3,3 content=20x20 => 114 3 59 10
+  node height=150 align-self=start border=10 padding=5 align-content=end row-gap=0 => 0 0 114 150
+    node width=30 grow=1 basis=10 position=absolute end=10 border=7,7,3,3 padding=3,7,3,0 wrap=wrap-reverse column-gap=4 => 64 15 30 29
+      node width=50% height=25% margin=0 border=10 => 10 6 20 20
+    node height=100% margin=2 direction=row align-items=center row-gap=0 => 17 17 30 120
+      node width=25% height=60 shrink=1 padding=7,3,0,7 content=20x40 => 0 30 10 60
+    node padding=7,3,3,7 wrap=wrap => 49 15 50 120
+      node width=10 height=25% min-height=25% max-width=50% aspect=1 border=5 content=50x40 => 7 3 10 27.5
+      node width=20 height=10% min-height=60 max-height=80 align-self=auto margin=10 => 17 41.75 20 60
+
+fixture random_26_130 available=500x400
+node width=300 height=20 max-height=10% padding=5 direction=column wrap=wrap justify=end align-items=stretch align-content=end => 0 0 300 20
+  node width=100% height=150 basis=20 content=30x20 => 5 -5 290 20
+
+fixture random_26_131 available=500x400
+node width=80 height=10 max-height=20 border=3,0,7,3 justify=end row-gap=4 => 0 0 80 10
+  node width=0 margin=3,7,0,3 border=0 padding=2 => -48 7 4 4
+  node min-width=25% basis=0 padding=10 direction=column-reverse => -37 7 20 20
+    node height=100% grow=0 basis=10 aspect=0.5 border=2 padding=10 => 10 -14 24 24
+  node height=30 min-height=60 grow=2 align-self=stretch aspect=0.5 direction=column-reverse wrap=wrap => -17 7 97 60
+    node height=0 shrink=3 padding=0 direction=row-reverse => 0 60 107 0
+      node aspect=0.5 margin=0,7,0,0 content=20x20 => 80 0 20 0
+      node width=40 height=25% border=10 padding=5 content=20x10 => 40 0 40 30
+    node width=100% height=30 grow=1 shrink=3 margin=5 direction=column-reverse align-content=space-evenly => 5 5 97 50
+      node height=50% max-height=30 shrink=0 align-self=center padding=0,0,7,0 => 48.5 25 0 25
+      node height=10% margin=0,7,7,3 content=80x20 => 0 17 90 5
+      node width=150 align-self=end position=absolute start=5 border=10 content=80x16 => 5 14 150 36
+    node width=25% min-width=25% min-height=40 position=absolute end=0 direction=column => 72.75 2 24.25 58
+      node height=20 border=0,7,0,3 content=80x40 => 0 0 24.25 20
+      node height=10 border=5 content=80x10 => 0 20 24.25 10
+      node height=50% shrink=3 margin=0,3,7,7 border=2 content=20x10 => 0 37 21.25 14
+
+fixture random_26_132 available=500x400
+node width=30 height=30 padding=0 column-gap=4 => 0 0 30 30
+  node shrink=1 align-self=center margin=10 border=2 content=50x20 => 10 3 54 24
+  node height=25% min-width=10% basis=75% margin=7,3,7,3 border=0,0,0,0 => 85 7 3 7.5
+    node width=120 shrink=0 position=absolute margin=0,7,0,0 padding=5 content=20x20 => 0 0 120 30
+
+fixture random_26_133 available=500x400
+node width=0 height=120 border=10 padding=5 direction=row justify=space-between align-content=space-evenly => 0 0 30 120
+  node width=100% align-self=auto margin=0,3,0,7 padding=7,3,0,0 => 15 15 10 83
+
+fixture random_26_134 available=500x400
+node height=30 padding=3,3,3,7 direction=column-reverse => 0 0 257 30
+  node width=75% height=120 grow=2 margin=7,3,3,3 => 10 20 188.25 0
+  node width=80 height=50% basis=10% position=absolute top=20 aspect=2 margin=2 border=3,0,0,7 => 5 22 80 15
+  node height=60 align-self=start direction=row-reverse wrap=wrap-reverse align-items=center => 3 -43 251 60
+    node width=75% padding=0 align-items=stretch => 62.75 40 188.25 20
+      node grow=2 margin=3,3,3,7 content=10x10 => 3 3 182.25 10
+    node margin=0 padding=5 direction=column wrap=wrap-reverse justify=start => 25.75 40 37 20
+      node height=10 max-width=50% max-height=10% grow=1 align-self=start aspect=0.5 border=7,0,3,3 content=20x10 => 18.5 5 13.5 10
+    node border=7,3,0,7 padding=0 wrap=nowrap column-gap=4 => 53 -7 198 47
+      node width=25% height=25% padding=2 content=80x20 => 7 0 47 24
+      node width=60 min-width=25% grow=2 align-self=center position=absolute end=10 top=5 aspect=2 margin=7,0,0,3 content=30x40 => 125 5 60 40
+      node height=50% max-height=60 margin=10 padding=0,0,3,7 content=80x10 => 68 10 80 20
+
+fixture random_26_135 available=500x400
+node width=100% height=200 border=7,0,0,0 padding=0,0,0,0 align-content=space-between dir=ltr => 0 0 500 200
+  node width=40 height=10 align-self=start margin=0,7,0,7 wrap=nowrap align-content=center row-gap=4 => 7 0 40 10
+    node height=40 grow=1 border=10 direction=row justify=start => 0 0 184 40
+      node width=60 height=100% min-width=120 grow=2 align-self=auto margin=7,7,7,0 border=7,0,7,0 => 17 17 133 20
+      node width=10% height=10% max-width=30 shrink=3 align-self=center margin=0 border=7,7,7,7 padding=3,0,7,0 content=20x10 => 157 9.5 17 21
+    node width=50% align-items=end => 184 0 20 10
+      node width=25% max-width=50% grow=2 shrink=3 padding=0 content=80x40 => 0 -30 10 40
+  node height=10 min-height=150 grow=1 shrink=3 margin=10 padding=7,0,7,7 direction=row wrap=nowrap => 64 10 376.703125 150
+    node width=60 shrink=3 margin=3,7,3,3 border=0,0,0,0 => 10 10 60 130
+      node height=60 shrink=1 align-self=auto margin=7,3,7,7 padding=10 content=10x10 => 7 7 30 60
+      node width=75% height=10 min-height=0 grow=0 basis=25% border=7,3,7,0 => 40 0 15 10
+    node height=30 max-width=75% margin=10 border=10 wrap=nowrap align-items=stretch row-gap=4 => 87 17 70 30
+      node width=30 min-height=150 margin=10 border=3,3,7,3 content=50x16 => 20 20 30 150
+    node padding=3,3,7,3 content=10x40 => 167 7 16 136
+  node width=10% height=40 content=50x20 => 450.703125 0 49.296875 40
+
+fixture random_26_136 available=500x400
+node width=0 padding=7,3,0,0 => 0 0 10 34
+  node max-width=50% grow=1 margin=10 border=5 padding=2 => 17 10 14 14
+
+fixture random_26_137 available=500x400
+node width=40 height=200 direction=column align-items=end => 0 0 40 200
+  node width=20 grow=2 padding=3,3,7,7 justify=space-between align-items=start => 20 0 20 131.328125
+    node height=60 border=0,0,0,3 justify=space-evenly row-gap=10 => 3 7 94 60
+      node width=80 height=100% min-height=40 border=0,0,3,3 content=80x10 => 0 0 80 57
+      node width=0 height=80 border=7,3,3,3 padding=2 content=50x40 => 80 0 14 80
+  node grow=1 align-items=end => 20 131.328125 20 68.671875
+    node height=40 shrink=1 basis=50% align-self=end content=20x16 => 0 28.671875 20 40
+
+fixture random_26_138 available=500x400
+node width=300 height=10% border=2 direction=column-reverse => 0 0 300 40
+  node width=120 grow=2 align-self=center border=0,7,3,0 padding=0 direction=row-reverse => 90 15 120 23
+    node width=0 padding=2 direction=row align-content=end dir=rtl => 109 3 4 20
+      node height=0 margin=0,7,0,3 border=0 content=80x20 => -78 2 80 0
+    node width=40 height=80 grow=1 position=absolute start=10 bottom=5 margin=0 padding=0 justify=space-evenly align-content=stretch => 10 -62 40 80
+      node width=150 content=20x16 => 0 0 20.453125 80
+      node width=80 padding=5 => 20.453125 0 19.546875 80
+    node width=0 height=20 max-height=25% grow=0 align-self=auto border=3,3,0,0 content=20x16 => 103 3 6 5
+  node grow=0 aspect=1.5 direction=column wrap=wrap-reverse align-items=stretch row-gap=10 => 2 -182.328125 296 197.328125
+    node width=20 grow=0 padding=10 justify=start align-items=end => 276 0 20 80
+      node width=25% shrink=0 border=2 content=80x10 => 10 56 4 14
+      node width=50% height=60 align-self=auto border=3,0,0,3 padding=3,0,0,7 content=10x20 => 14 10 6 60
+      node padding=7,7,0,0 content=50x40 => 20 30 64 40
+
+fixture random_26_139 available=500x400
+node height=400 padding=7,7,3,0 => 0 0 44 400
+  node width=100% height=100% min-height=100% align-self=start border=7,3,3,0 direction=column-reverse => 7 3 30 397
+    node width=10 height=150 margin=5 content=10x10 => 12 242 10 150
+
+fixture random_26_140 available=500x400
+node width=20 height=30 aspect=1 wrap=wrap-reverse => 0 0 63 30
+  node width=25% height=0 max-width=60 shrink=1 margin=0,3,3,3 direction=row wrap=wrap-reverse row-gap=4 => 0 27 15.75 0
+    node padding=2 content=80x20 => 0 -24 84 24
+    node height=30 shrink=3 padding=10 => 0 -58 120 30
+      node width=40 padding=2 => 10 10 23.640625 10
+      node width=75% height=10% align-self=start => 33.640625 10 40.90625 1
+      node width=60 height=30 padding=3,3,3,7 content=10x16 => 74.546875 10 35.453125 30
+    node basis=150 align-self=center position=absolute end=10 justify=space-between row-gap=10 => -44.25 -15 50 30
+      node height=10% grow=2 align-self=end padding=10 content=30x10 => 0 0 50 30
+  node width=20 height=0 align-self=stretch margin=3,7,0,0 border=3,3,3,0 align-content=stretch => 21.75 27 20 3
+    node align-self=auto margin=0 direction=column-reverse wrap=wrap align-items=end row-gap=10 => 3 3 40 0
+      node width=40 height=10 min-width=50% border=3,7,3,7 content=10x10 => 0 -10 40 10
+    node height=120 max-width=60 shrink=3 basis=150 direction=row-reverse justify=start row-gap=10 => 43 3 60 120
+      node height=60 margin=3,3,3,7 content=30x20 => 27 3 30 60
+      node width=75% shrink=1 position=absolute bottom=10 padding=2 content=50x16 => 15 90 45 20
+      node width=20 height=60 grow=2 aspect=1.5 margin=5 border=0 => -1 5 20 60
+
+fixture random_26_141 available=500x400
+node height=120 min-height=50% padding=2 justify=space-evenly align-items=start dir=rtl => 0 0 74 200
+  node width=30 height=25% align-self=end border=7,7,3,3 => 35.5 149 30 49
+    node height=40 align-self=center border=10 justify=start align-content=space-evenly => -77 4.5 100 40
+      node width=40 height=100% position=absolute end=20 padding=0 content=20x16 => 30 10 40 20
+      node align-self=stretch content=80x40 => 10 10 80 20
+    node height=120 shrink=1 basis=80 border=3,7,7,0 align-items=end => -110 3 33 120
+      node height=150 margin=3,7,3,0 border=3,0,7,3 content=10x20 => 14 -30 13 150
+  node width=10% height=30 shrink=0 border=0,3,0,0 content=30x16 => 22 2 7 30
+  node height=80 align-self=auto padding=7,0,7,0 => 8.5 2 7 80
+
+fixture random_26_142 available=500x400
+node width=400 height=10% border=7,3,0,0 wrap=wrap justify=space-between column-gap=4 => 0 0 400 40
+  node height=40 shrink=0 margin=10 direction=row => 17 10 30 40
+    node width=30 height=25% max-width=10 shrink=1 align-self=start margin=10 padding=5 => 10 10 10 10
+      node width=30 height=50% aspect=1.5 border=0 content=20x40 => 5 5 20 0
+  node height=25% min-width=150 padding=7,7,7,7 direction=row-reverse wrap=wrap-reverse => 213 0 184 14
+    node width=75% min-width=50% padding=0,7,0,0 wrap=wrap-reverse align-content=space-between => 49.5 -99 127.5 106
+      node width=75% height=30 shrink=0 margin=2 border=3,3,7,0 padding=10 => 2 74 90.375 30
+      node grow=0 basis=40 margin=3,0,3,3 border=0 content=80x40 => 3 29 80 40
+      node height=20 margin=3,7,3,3 border=0,7,7,7 padding=3,0,3,0 content=30x10 => 3 3 40 20
+  node width=75% grow=0 shrink=0 wrap=wrap => 7 60 292.5 159
+    node height=120 grow=0 align-self=end => 0 0 0 120
+    node width=100% grow=0 margin=5 border=7,3,3,0 padding=7,3,7,3 content=30x16 => 5 125 282.5 29
+
+fixture random_26_143 available=500x400
+node width=20 max-height=20 border=0 direction=row-reverse wrap=wrap-reverse => 0 0 20 20
+  node width=150 align-self=end aspect=1 wrap=wrap row-gap=0 => 0 0 20 20
+    node width=10% height=120 position=absolute bottom=10 dir=rtl => 0 -110 2 120
+      node grow=1 shrink=0 padding=10 => -18 0 20 120
+
+fixture random_26_144 available=500x400
+node width=20 height=300 max-height=30 row-gap=0 => 0 0 20 30
+  node height=40 aspect=1.5 => 0 0 60 40
+
+fixture random_26_145 available=500x400
+node width=0 height=400 aspect=2 padding=5 wrap=nowrap align-items=center align-content=space-between => 0 0 152 400
+  node width=10 grow=0 aspect=2 border=3,3,3,3 => 5 197 10 6
+  node width=30 height=10 margin=0,0,3,0 border=0,0,3,0 justify=start => 15 196.5 30 10
+    node width=10% height=60 grow=2 padding=2 direction=column align-items=center => 0 3 4 60
+      node width=75% => 2 2 0 0
+      node width=40 align-self=end content=80x10 => -38 2 40 10
+      node padding=10 => -8 12 20 20
+    node width=75% align-self=end border=2 padding=7,3,7,7 direction=row-reverse align-items=start align-content=space-evenly dir=ltr => 4 -24 22.5 34
+      node border=7,7,0,0 content=80x16 => -76.5 9 94 16
+      node min-width=10 align-self=start border=0,3,7,3 => -86.5 9 10 10
+      node height=30 max-height=10 padding=0,0,3,3 => -86.5 9 0 10
+    node min-width=30 grow=2 basis=10% aspect=2 margin=5 padding=5 content=20x10 => 31.5 8 30 10
+  node height=50% max-width=100% margin=3,0,7,0 border=3,0,0,3 padding=5 align-content=end => 48 106 99 195
+    node width=80 height=40 margin=3,3,0,7 => 11 5 80 40
+      node width=120 height=75% grow=0 margin=0,3,0,7 border=7,3,0,7 content=80x20 => 0 0 90 30
+      node width=100% height=20 min-width=60 position=absolute start=20 bottom=10 border=5 content=10x20 => 20 10 80 20
+
+fixture random_26_146 available=500x400
+node width=400 height=200 aspect=1.5 wrap=wrap-reverse align-items=end align-content=space-evenly => 0 0 400 200
+  node justify=space-around => 0 116.65625 99 60
+    node height=60 border=3,3,0,7 padding=3,3,7,7 => 0 0 12 60
+    node margin=5 padding=3,7,7,0 direction=row wrap=wrap align-items=stretch column-gap=4 => 17 5 77 50
+      node width=60 aspect=2 margin=7,0,3,7 border=3,0,3,0 padding=0,7,3,0 => 10 10 60 33
+    node width=50% height=40 grow=0 position=absolute start=20 bottom=0 direction=column-reverse => 20 20 49.5 40
+      node max-width=10 max-height=100% shrink=3 => 0 40 10 0
+      node height=20 grow=2 aspect=1.5 border=7,7,3,3 => 0 20 49.5 20
+      node grow=2 margin=2 content=50x20 => 2 -2 45.5 20
+  node width=100% border=10 => 0 23.328125 400 70
+    node max-height=100% shrink=3 basis=40 margin=3,0,3,3 column-gap=10 => 13 13 83 44
+      node width=25% grow=1 basis=20 content=10x16 => 0 0 10 44
+      node height=10 margin=10 border=0,0,7,3 padding=3,0,7,7 => 30 10 3 24
+      node height=50% aspect=1.5 padding=10 => 53 0 33 22
+
+fixture random_26_147 available=500x400
+node width=30 height=60 min-height=60 border=10 wrap=nowrap justify=space-between => 0 0 30 60
+  node width=120 margin=3,3,7,0 direction=row-reverse align-items=center => 13 17 43 33
+    node aspect=2 border=3,3,7,0 padding=7,0,7,7 content=30x20 => 0 -4 43 41
+
+fixture random_26_148 available=500x400
+node height=25% border=3,0,0,0 padding=5 wrap=wrap-reverse column-gap=0 => 0 0 13 100
+  node height=20 min-height=25% => 8 72.5 0 22.5
+
+fixture random_26_149 available=500x400
+node width=150 height=0 wrap=wrap align-content=space-around => 0 0 150 0
+  node width=30 grow=1 shrink=1 basis=10 border=3,0,3,0 padding=0 content=30x20 => 0 0 62.5 60
+  node width=10% height=10 grow=1 content=50x20 => 62.5 0 67.5 10
+  node width=20 height=60 shrink=3 border=5 direction=column-reverse => 130 0 20 60
+    node shrink=0 aspect=0.5 padding=2 direction=row wrap=wrap-reverse justify=space-around align-content=center => 5 -129 10 184
+      node width=150 height=50% grow=2 content=20x16 => 2 184 20 90
+      node width=20 height=100% basis=40 margin=2 border=3,7,7,3 => 4 2 10 180
+      node height=150 max-height=50% grow=1 padding=2 => 2 -90 6 90
+    node width=50% height=0 align-self=start margin=2 padding=5 direction=row justify=start => 7 -141 10 10
+      node height=50% border=2 padding=2 content=30x16 => 5 5 38 8
+      node width=50% shrink=1 basis=30 margin=10 padding=2 => 53 15 4 4
+      node min-width=20 margin=3,0,7,3 padding=0 content=30x10 => 70 12 20 0
+
+fixture random_26_150 available=500x400
+node width=10 height=120 border=7,3,3,3 padding=3,7,0,3 align-items=center row-gap=10 => 0 0 20 120
+  node width=25% height=75% padding=0 content=10x40 => 10 16.875 0 83.25
+
+fixture random_26_151 available=500x400
+node width=20 align-items=stretch column-gap=4 => 0 0 20 0
+  node width=80 height=0 grow=2 direction=row justify=space-evenly align-items=stretch => 0 0 72 0
+    node width=20 height=150 max-height=80 justify=space-around align-content=space-between column-gap=0 dir=ltr => 0 0 20 80
+      node width=60 border=0,7,0,0 padding=0,7,0,0 content=20x16 => 0 0 34 80
+      node height=100% align-self=stretch padding=5 content=50x16 => 34 0 60 80
+      node height=0 grow=1 shrink=0 content=80x16 => 94 0 80 0
+    node height=25% shrink=0 padding=2 => 20 0 4 4
+    node shrink=0 margin=7,7,7,3 border=2 => 31 7 34 4
+      node width=30 height=50% max-width=10% grow=0 align-self=center content=10x16 => 2 2 3 0
+      node width=20 height=50% max-width=60 align-self=center position=absolute start=20 bottom=0 margin=3,0,3,7 border=7,0,3,7 => 25 -15 20 10
+
+fixture random_26_152 available=500x400
+node height=75% border=0 padding=10 direction=row => 0 0 308 300
+  node height=10% direction=row-reverse wrap=nowrap justify=space-evenly align-items=center => 10 10 288 28
+    node padding=0,7,3,0 direction=row justify=end align-items=center row-gap=0 => 120 -12.5 168 53
+      node border=5 content=20x40 => 0 3 30 50
+      node width=0 height=10% margin=7,0,3,7 border=2 => 37 24 4 4
+      node width=120 align-self=stretch border=10 => 41 3 120 50
+    node width=120 aspect=0.5 justify=end row-gap=0 => 0 -106 120 240
+      node width=50% border=2 content=10x16 => 0 0 60 240
+      node width=60 align-self=center content=20x16 => 60 112 60 16
+      node height=0 min-width=120 grow=1 align-self=start position=absolute top=20 => 0 20 120 0
+
+fixture random_26_153 available=500x400
+node height=150 min-height=25% padding=10 direction=row-reverse justify=start => 0 0 110 150
+  node width=80 grow=0 aspect=1.5 margin=3,7,0,0 wrap=nowrap align-content=center => 13 10 80 130
+    node width=60 min-height=0 grow=0 shrink=0 padding=5 justify=space-around => 0 0 60 130
+      node width=20 content=10x10 => 5 5 20 120
+      node width=20 margin=3,7,3,0 => 28 8 20 117
+
+fixture random_26_154 available=500x400
+node width=60 padding=0,3,3,3 => 0 0 60 156
+  node width=50% grow=2 align-self=start border=7,7,7,7 => 0 3 14 14
+  node width=80 padding=0,0,3,7 => 14 3 48 150
+    node min-height=10 basis=150 align-self=end wrap=wrap align-items=stretch => 0 89 20 54
+      node width=10 shrink=0 basis=100% margin=2 border=5 padding=3,3,0,0 content=30x40 => 2 2 20 50
+    node grow=2 margin=7,7,3,7 border=7,0,7,0 padding=0,7,3,0 => 27 6 14 130
+  node width=10% height=150 border=2 padding=7,7,7,7 => 62 3 18 150
+
+fixture random_26_157 available=500x400
+node width=50% height=150 border=7,0,0,7 wrap=wrap => 0 0 250 150
+  node width=20 grow=2 border=10 justify=space-between => 7 0 243 154
+    node height=120 margin=7,3,7,7 padding=5 align-items=end => 17 17 40 120
+      node width=10 height=80 aspect=1 margin=10 padding=3,0,3,3 content=10x16 => 15 25 10 80
+  node width=40 position=absolute start=10 top=5 bottom=10 border=0,0,0,3 padding=3,7,3,7 content=30x40 => 17 5 40 128
+
+fixture random_26_158 available=500x400
+node min-height=100% border=0,7,7,3 => 0 0 21 400
+  node height=10 align-self=center margin=2 padding=5 => 2 197 10 10
+  node grow=2 align-self=auto position=absolute top=5 margin=2 border=3,7,0,3 content=10x20 => 2 14 20 23
+
+fixture random_26_159 available=500x400
+node width=25% height=100% border=10 direction=column-reverse wrap=wrap => 0 0 125 400
+  node width=10% height=25% dir=ltr => 10 295 10.5 95
+    node width=10% height=100% grow=0 basis=10 => 0 0 10 95
+    node width=100% position=absolute start=20 end=0 margin=3,3,7,7 border=5 => 23 7 10.5 10
+
+fixture random_26_160 available=500x400
+node width=40 max-height=40 border=10 direction=row => 0 0 40 20
+  node height=20 min-height=40 grow=2 position=absolute top=5 bottom=5 border=0,7,0,0 padding=5 wrap=nowrap align-items=stretch align-content=space-evenly column-gap=4 => 10 15 61 40
+    node position=absolute top=20 bottom=0 wrap=nowrap justify=start align-items=stretch align-content=start => 5 20 243 20
+      node aspect=2 margin=5 content=50x16 => 5 5 50 10
+      node width=120 min-width=30 margin=3,0,7,3 border=0,3,3,0 padding=7,0,0,7 content=30x10 => 63 7 120 10
+      node width=60 height=30 border=10 => 183 0 60 30
+    node content=30x16 => 5 5 30 30
+    node width=10 height=30 margin=0 direction=column-reverse justify=end align-content=space-around => 39 5 10 30
+      node width=80 max-height=75% aspect=1.5 border=0 padding=7,3,3,7 content=20x16 => 0 0 80 22.5
+
+fixture random_26_161 available=500x400
+node height=0 max-width=150 padding=2 align-items=center align-content=center row-gap=0 => 0 0 150 4
+  node height=10% max-height=0 direction=row-reverse wrap=nowrap justify=start align-content=stretch row-gap=10 => 2 2 160 0
+    node height=30 grow=2 align-self=auto position=absolute start=0 bottom=0 margin=10 border=2 direction=row-reverse => 10 -40 127 30
+      node width=40 height=30 margin=3,0,0,0 border=7,7,0,3 content=30x16 => 85 2 40 30
+      node height=0 content=80x10 => 2 2 80 0
+    node width=120 height=150 border=5 content=50x20 => 40 0 120 150
+    node width=40 height=0 margin=0 border=3,3,3,7 direction=row justify=space-around => 0 0 40 10
+      node height=100% content=20x40 => 3 3 20 0
+      node width=40 border=7,3,3,3 content=50x16 => 23 3 40 6
+      node height=20 margin=10 padding=7,3,3,3 content=80x10 => 73 13 90 20
+  node width=0 align-self=auto border=5 padding=5 => 162 -8 20 20
+
+fixture random_26_162 available=500x400
+node width=10 height=100% max-width=30 max-height=80 align-items=end column-gap=10 => 0 0 10 80
+  node width=150 height=60 max-height=80 align-self=auto align-content=space-evenly column-gap=0 => 0 20 57 60
+    node min-height=60 direction=column-reverse justify=space-around => 0 0 30 60
+      node height=50% shrink=1 content=30x40 => 0 15 30 30
+    node height=10% grow=1 shrink=0 align-self=stretch margin=0,7,3,7 padding=5 content=10x10 => 30 3 20 10
+  node width=150 min-width=100% grow=2 shrink=0 align-self=center margin=7,0,3,0 padding=10 align-items=stretch column-gap=10 => 74 21.5 150 40
+    node max-width=10% grow=2 align-self=center => 10 20 13 0
+    node grow=2 content=10x20 => 33 10 107 20
+  node width=60 height=60 grow=2 border=0,3,0,0 padding=5 content=20x10 => 234 20 33 60
+
+fixture random_26_163 available=500x400
+node width=150 height=50% border=2 padding=5 => 0 0 150 200
+  node width=50% max-width=150 grow=0 align-self=center wrap=nowrap column-gap=0 => 7 87 68 26
+    node width=0 height=10% shrink=0 margin=7,7,7,3 content=50x16 => 7 7 0 16
+  node border=2 padding=0,0,0,7 content=10x10 => 75 7 14 186
+
+fixture random_26_164 available=500x400
+node width=150 padding=7,7,0,0 align-content=space-between dir=rtl => 0 0 150 107
+  node width=100% shrink=0 align-self=auto border=10 padding=0,0,3,0 direction=column align-items=stretch align-content=stretch row-gap=4 => 7 0 136 107
+    node height=150 max-height=40 shrink=1 padding=10 direction=row wrap=wrap-reverse justify=end align-content=space-between row-gap=4 => 10 13 116 40
+      node width=10% height=80 margin=0 => 44 -50 9.59375 80
+      node width=20 max-height=40 align-self=stretch position=absolute end=20 margin=2 padding=7,0,7,3 content=30x10 => 22 8 20 20
+      node height=40 grow=0 border=2 content=30x16 => 10 -10 34 40
+    node height=75% max-width=60 shrink=3 align-content=start column-gap=10 => 66 57 60 40
+      node grow=2 padding=0 content=10x40 => 0 0 60 40
+  node width=25% grow=1 margin=3,3,7,0 padding=2 content=80x20 => -30 7 34 100
+  node width=40 height=20 grow=1 margin=7,7,7,3 border=3,0,3,0 padding=10 content=80x16 => -80 7 40 23
+
+fixture random_26_166 available=500x400
+node width=120 height=10% padding=2 => 0 0 120 40
+  node height=60 margin=0,0,0,3 border=7,0,3,0 padding=10 => 2 2 27 60
+  node grow=1 margin=3,3,3,0 border=0 => 32 5 73 33
+    node height=100% padding=0,7,0,7 => 0 0 7 33
+  node width=10 height=20 shrink=0 content=80x10 => 108 2 10 20
+
+fixture random_26_167 available=500x400
+node width=100% height=150 direction=row-reverse justify=end => 0 0 500 150
+  node height=30 margin=2 direction=row-reverse => 2 2 53 30
+    node basis=0 padding=0,3,7,7 wrap=nowrap align-content=center dir=ltr => 10 0 43 30
+      node min-width=40 align-self=start margin=0 => 0 7 40 0
+    node width=10 min-width=10% direction=row wrap=nowrap => 0 0 10 30
+      node height=50% max-height=100% margin=10 padding=10 => 10 10 20 20
+      node height=60 shrink=1 margin=7,7,0,0 border=10 => 47 0 20 60
+
+fixture random_26_168 available=500x400
+node width=0 height=400 direction=row-reverse => 0 0 0 400
+  node height=50% min-height=150 align-self=center aspect=1 border=2 content=80x40 => -200 100 200 200
+
+fixture random_26_170 available=500x400
+node height=80 max-width=10 padding=0 direction=row wrap=wrap-reverse align-items=stretch => 0 0 10 80
+  node max-width=10 max-height=20 shrink=0 => 0 80 0 0
+  node width=120 height=80 direction=row-reverse wrap=nowrap => 0 0 14 80
+    node width=10 grow=2 basis=80 align-self=start border=2 padding=7,3,7,0 wrap=nowrap => 0 0 14 91
+      node height=10% align-self=auto margin=10 border=0,0,3,7 padding=0,3,7,3 content=20x40 => 19 19 23 60
+      node width=25% height=0 border=0 content=80x16 => 52 9 0 0
+
+fixture random_26_171 available=500x400
+node width=300 height=300 border=2 padding=7,0,7,0 => 0 0 300 300
+  node width=20 height=10% min-width=150 grow=0 shrink=3 aspect=1.5 border=3,0,3,3 => 9 9 150 28.890625
+  node width=25% basis=80 align-self=auto dir=rtl => 159 9 80 289
+    node align-self=auto content=80x40 => 0 0 80 289
+    node width=10 height=20 grow=0 shrink=3 margin=0,7,3,7 border=5 justify=center align-items=stretch row-gap=0 => -10 3 10 20
+      node width=30 height=50% grow=0 aspect=1 border=7,0,3,7 content=20x20 => -5 5 27 10
+      node width=0 max-width=10 grow=1 margin=2 content=10x10 => -7 7 0 6
+      node margin=0,0,3,3 padding=3,0,7,7 => -12 8 3 14
+
+fixture random_26_172 available=500x400
+node width=75% height=200 aspect=1.5 direction=row-reverse align-content=center => 0 0 375 200
+  node width=10 max-width=120 aspect=2 margin=0 padding=7,7,7,7 direction=column-reverse justify=end => 361 0 14 200
+    node width=30 height=80 margin=10 content=20x40 => 17 17 30 80
+  node width=40 height=40 align-self=auto align-items=end => 321 0 40 40
+    node width=120 basis=80 content=80x40 => 0 0 80 40
+    node width=10% grow=1 margin=3,7,7,3 border=7,7,0,7 padding=0 content=10x40 => 83 -10 14 47
+    node width=0 position=absolute start=20 bottom=5 justify=center => 20 19 0 16
+      node height=100% position=absolute start=5 end=5 padding=7,0,7,3 => 5 0 7 16
+      node width=30 min-width=10% content=80x16 => 0 0 0 16
+
+fixture random_26_173 available=500x400
+node height=0 border=7,7,7,3 => 0 0 71 10
+  node width=100% height=10% margin=5 border=0 => 12 12 47 0
+    node align-self=center align-content=end => 0 -40 47 80
+      node height=80 border=0 => 0 0 0 80
+      node width=30 min-width=40 min-height=25% aspect=1.5 margin=0,7,3,0 border=2 padding=3,7,0,7 => 0 3 40 77
+
+fixture random_26_174 available=500x400
+node padding=2 direction=row wrap=wrap justify=end align-content=stretch => 0 0 114 112
+  node width=25% height=100% border=10 => 84.5 2 27.5 20
+  node width=100% shrink=0 align-self=auto => 2 22 110 60
+    node width=10 height=60 shrink=1 align-items=center => 0 0 10 60
+      node width=75% height=25% grow=0 align-self=center border=10 content=50x10 => 0 20 20 20
+    node width=100% height=10 grow=1 padding=10 content=30x20 => 10 0 100 20
+    node width=150 height=120 max-width=80 grow=0 position=absolute bottom=20 margin=2 padding=10 direction=column-reverse => 2 -82 80 120
+      node width=0 height=25% grow=1 => 10 53 0 57
+      node width=120 height=40 margin=7,3,3,0 border=2 => 17 13 120 40
+  node width=20 height=100% align-self=auto margin=5 padding=3,7,7,0 justify=end align-items=center dir=ltr => 87 87 20 18
+    node grow=2 margin=7,0,0,7 direction=row wrap=nowrap => -17 7 30 4
+      node width=30 grow=2 border=2 => 0 0 30 4
+
+fixture random_26_176 available=500x400
+node width=120 height=75% align-items=start => 0 0 120 300
+  node width=100% align-self=center position=absolute top=10 border=10 justify=space-between dir=ltr => 0 10 120 181
+    node basis=150 border=10 padding=3,3,7,7 direction=row-reverse wrap=nowrap => 10 10 100 161
+      node height=120 margin=3,3,0,7 content=10x10 => 74 17 10 120
+  node max-height=75% grow=2 align-self=auto margin=0,3,7,7 border=2 padding=0,3,3,7 direction=row-reverse wrap=wrap-reverse => 0 7 160 155.75
+    node min-width=30 shrink=3 margin=0,3,0,7 row-gap=10 => 2 119.75 150 20
+      node width=150 height=10 basis=10% border=2 content=10x40 => 0 0 15 10
+      node width=50% height=20 max-height=60 => 15 0 75 20
+      node height=75% grow=1 position=absolute start=0 end=5 content=30x20 => 0 0 145 15
+    node width=75% shrink=0 aspect=1 content=10x10 => 40.25 5 114.75 114.75
+  node width=20 max-height=0 => 163 0 0 0
+
+fixture random_26_177 available=500x400
+node width=10 height=200 max-height=60 justify=space-evenly => 0 0 10 60
+  node width=25% height=150 max-width=25% border=3,3,0,0 padding=0 direction=row => 0 0 6 150
+    node height=120 margin=0,7,7,7 content=50x40 => 3 7 50 120
+    node width=10% height=25% shrink=1 border=3,0,7,0 padding=0 direction=row-reverse wrap=wrap-reverse => 60 0 3 37.5
+      node height=10% align-self=center border=0 => 3 20.71875 0 3.046875
+      node width=25% max-width=10 shrink=0 content=10x16 => 3 7 0 30.5
+    node => 63 0 0 150
+  node height=120 position=absolute end=5 margin=7,7,7,7 padding=10 => -22 7 20 120
+  node width=10% height=120 aspect=2 border=10 justify=end row-gap=0 => 6 0 20 120
+    node width=75% grow=1 padding=2 content=30x20 => -34 10 4 100
+    node width=50% height=150 max-width=0 shrink=3 margin=10 border=5 padding=3,7,0,0 wrap=nowrap align-items=start => -20 20 20 150
+      node width=10 height=10 align-self=auto => 8 5 0 10
+      node height=30 max-width=80 border=5 => 8 5 10 30
+      node shrink=1 content=80x20 => 18 5 80 20
+
+fixture random_26_178 available=500x400
+node width=10% height=75% border=10 align-content=space-evenly => 0 0 50 300
+  node width=25% height=20 basis=10 content=30x20 => 10 10 10 20
+
+fixture random_26_180 available=500x400
+node width=40 min-width=50% padding=0 direction=row-reverse align-items=end => 0 0 250 60
+  node width=20 basis=100% margin=10 border=2 content=80x16 => 83 30 157 20
+  node width=40 height=10 shrink=3 border=0 justify=end dir=ltr => 33 50 40 10
+    node width=150 height=20 min-height=60 margin=2 padding=7,3,0,0 wrap=wrap-reverse align-items=end column-gap=4 dir=rtl => -76 2 100 60
+      node shrink=0 basis=25% padding=0 content=50x40 => 43 20 50 40
+      node max-height=40 margin=7,3,7,7 => 32 27 0 0
+      node height=60 margin=3,7,7,7 content=80x16 => 10 -47 80 60
+    node position=absolute border=3,7,3,0 padding=7,0,0,3 content=30x40 => -7 0 47 46
+    node width=75% max-width=0 shrink=3 aspect=0.5 padding=7,7,3,7 => 26 0 14 10
+  node height=40 margin=10 direction=row wrap=wrap-reverse justify=end align-content=stretch column-gap=0 => 10 10 13 40
+    node max-height=30 grow=0 shrink=1 align-self=center padding=0,3,3,0 wrap=wrap column-gap=10 => 0 5 13 30
+      node width=10 height=120 max-height=75% => 0 3 10 120
+
+fixture random_26_181 available=500x400
+node direction=row wrap=wrap-reverse justify=space-between column-gap=0 => 0 0 10 40
+  node width=40 max-width=10 basis=75% padding=7,3,7,3 wrap=nowrap => 0 0 10 40
+    node grow=0 border=0,7,3,0 column-gap=4 => 7 7 61 30
+      node width=80 position=absolute top=5 bottom=20 margin=3,0,0,0 content=30x16 => 3 8 80 2
+      node width=40 max-height=30 shrink=3 border=7,0,0,3 padding=10 => 0 3 40 27
+      node height=20 margin=0 content=10x40 => 44 3 10 20
+    node width=40 height=30 content=20x10 => 68 7 20 30
+
+fixture random_26_182 available=500x400
+node width=40 height=400 border=0,3,7,7 padding=10 direction=column align-items=stretch row-gap=0 => 0 0 40 400
+  node width=25% height=60 min-width=25% margin=0 border=2 padding=0,7,7,3 content=20x10 => 10 17 11 60
+
+fixture random_26_184 available=500x400
+node width=200 height=400 border=0 direction=row-reverse wrap=wrap => 0 0 200 400
+  node width=10 position=absolute start=5 bottom=20 border=0,3,7,0 padding=3,7,3,3 content=20x16 => 5 351 13 29
+  node width=120 padding=2 => 80 0 120 400
+  node min-width=30 shrink=3 content=20x16 => 50 0 30 400
+
+fixture random_26_185 available=500x400
+node width=40 height=50% padding=3,0,0,0 direction=column justify=start align-content=space-around dir=ltr => 0 0 40 200
+  node height=120 grow=1 basis=50% wrap=wrap justify=space-evenly align-items=center align-content=end dir=rtl => 3 0 37 26
+    node height=20 grow=2 shrink=1 border=7,7,3,3 padding=7,7,3,3 align-content=space-between => -79 6 116 20
+      node height=150 margin=3,0,0,7 padding=2 content=20x16 => 75 6 24 150
+      node margin=10 => 65 16 0 0
+      node height=120 margin=7,3,7,0 border=7,0,0,3 padding=2 content=20x16 => 17 13 31 120
+  node grow=2 shrink=3 basis=0 padding=0 dir=rtl => 3 26 37 154
+    node margin=2 direction=row-reverse => -115 2 150 150
+      node width=10 min-height=150 align-self=start border=10 => 0 0 20 150
+      node width=120 height=75% align-self=auto margin=3,7,7,7 padding=0,3,7,3 content=20x20 => 27 7 120 112.5
+  node width=120 height=10% border=2 align-items=start align-content=stretch => 3 180 120 20
+    node width=60 grow=1 border=3,3,3,7 padding=3,7,3,3 wrap=nowrap => 2 2 60 42
+      node grow=1 shrink=1 margin=3,3,3,7 border=7,0,3,0 padding=3,0,0,3 content=80x10 => 9 9 90 16
+      node width=150 height=10 align-self=center padding=5 => 102 14 10 10
+    node width=80 grow=0 padding=7,7,7,3 content=20x10 => 62 2 56 20
+
+fixture random_26_186 available=500x400
+node width=10% border=0,3,7,3 direction=row align-items=end => 0 0 50 114
+  node width=30 grow=0 align-content=start dir=rtl => 0 7 30 104
+    node width=100% height=75% max-width=120 max-height=75% shrink=1 border=0,7,7,7 direction=column => 0 0 30 104
+      node width=40 max-height=50% grow=2 margin=10 content=50x10 => -20 17 40 10
+      node height=10 position=absolute border=10 content=30x20 => -20 7 50 20
+      node width=75% height=60 shrink=3 border=7,7,7,0 => 12.75 37 17.25 60
+  node height=80 grow=0 align-self=auto margin=2 => 32 29 0 80
+  node width=20 height=50% grow=2 shrink=3 aspect=2 border=3,3,0,0 padding=0 => 34 101 20 10
+    node width=10% height=60 content=20x16 => 3 0 1.390625 60
+    node min-height=40 align-self=center direction=column justify=center align-items=center => 4.390625 -15 0 40
+      node height=0 position=absolute start=0 end=0 top=20 margin=5 border=0 => 5 25 0 0
+
+fixture random_26_187 available=500x400
+node height=75% border=0,7,3,0 padding=5 direction=column wrap=wrap align-items=stretch => 0 0 167.5 300
+  node height=10 margin=0,0,3,7 padding=5 justify=space-evenly align-items=end align-content=center => 5 11 150.5 10
+    node height=40 margin=0,7,3,7 padding=3,7,7,7 => 46.75 -42 50 40
+      node position=absolute bottom=0 margin=3,3,7,3 content=80x40 => 6 -3 80 40
+      node height=120 padding=3,7,3,7 content=30x20 => 3 7 40 120
+  node height=50% aspect=1 margin=7,0,0,3 wrap=wrap justify=space-between align-items=center => 12 28 143.5 143.5
+    node width=20 height=60 shrink=1 padding=7,0,7,7 => 0 41.75 20 60
+    node width=10% height=10% min-height=80 shrink=3 align-self=auto wrap=wrap-reverse justify=space-between align-items=center align-content=start => 129.15625 31.75 14.34375 80
+      node height=20 grow=2 border=0,0,3,7 content=30x16 => 0 60 30 20
+
+fixture random_26_188 available=500x400
+node width=60 border=0,0,3,7 padding=10 => 0 0 60 183
+  node shrink=3 aspect=1.5 margin=0,3,0,3 padding=7,0,7,7 justify=space-evenly align-items=center => 10 13 127 150
+    node width=30 height=60 align-self=auto padding=3,0,3,3 direction=column => 23.65625 45 30 60
+      node width=120 height=50% position=absolute end=10 aspect=1.5 margin=10 border=0 content=50x40 => -110 13 120 30
+      node width=25% height=100% min-height=75% max-width=0 grow=1 => 3 3 0 54
+    node width=25% shrink=0 margin=5 direction=column wrap=wrap align-items=stretch row-gap=10 => 75.328125 33.5 30 83
+      node width=25% height=50% padding=0,0,3,0 content=80x40 => 0 0 7.5 43
+      node width=80 height=0 position=absolute start=0 top=10 bottom=5 aspect=0.5 margin=3,0,0,3 content=80x20 => 3 10 80 0
+      node width=75% height=30 shrink=0 align-self=center => 3.75 53 22.5 30
+  node width=20 height=150 margin=7,7,3,0 border=3,7,0,0 direction=column => 147 16 20 150
+    node width=0 height=75% => 3 0 0 112.5
+      node align-self=center margin=0,0,7,0 padding=5 content=50x40 => 0 34.75 60 50
+      node shrink=3 padding=7,0,7,7 content=80x20 => 60 0 87 112.5
+    node width=100% shrink=1 margin=7,0,7,0 padding=3,3,0,3 => 10 119.5 10 3
+
+fixture random_26_189 available=500x400
+node width=200 border=2 justify=space-evenly => 0 0 200 4
+  node width=50% height=0 padding=0 => 51 2 98 0
+
+fixture random_26_190 available=500x400
+node height=40 => 0 0 194 40
+  node width=75% min-width=60 margin=7,7,7,3 content=30x16 => 7 7 95.0625 30
+  node width=0 max-height=50% grow=2 basis=10 => 109.0625 0 6.53125 20
+  node width=120 height=40 shrink=1 wrap=wrap-reverse => 115.59375 0 78.40625 40
+    node padding=0,0,7,0 => 0 0 0 40
+    node height=20 aspect=0.5 margin=5 border=3,3,3,0 padding=0,0,0,0 content=50x40 => 5 15 56 20
+
+fixture random_26_191 available=500x400
+node width=10 height=10% max-height=30 aspect=2 justify=space-between align-content=center column-gap=4 => 0 0 60 30
+  node width=60 min-width=0 shrink=3 align-self=start border=5 justify=center column-gap=0 => 0 0 60 90
+    node height=0 min-height=80 max-height=100% grow=1 border=3,3,3,3 justify=end => -19.5 5 36 80
+      node width=10% height=75% shrink=1 content=30x40 => 30 3 3 55.5
+    node width=100% height=60 min-width=60 basis=10% margin=3,0,7,0 justify=space-between => 19.5 12 60 60
+      node width=25% height=20 max-width=60 grow=1 margin=7,3,0,3 => 7 0 0 20
+      node height=40 => 10 0 0 40
+      node height=25% margin=3,0,7,3 border=0,7,7,0 padding=0,0,3,3 content=50x20 => 13 7 57 15
+
+fixture random_26_192 available=500x400
+node width=200 padding=0,7,3,0 => 0 0 200 16
+  node width=10% grow=2 align-self=stretch position=absolute end=5 margin=2 align-items=center => 173 5 20 30
+    node min-height=75% align-self=stretch border=7,0,3,3 padding=10 wrap=wrap align-content=start row-gap=0 => 0 0 107 30
+      node => 17 13 0 0
+      node height=0 aspect=1.5 content=80x10 => 17 13 80 0
+      node height=100% border=2 => 17 13 4 4
+    node width=80 direction=row justify=space-between align-items=stretch => 107 15 14 0
+      node width=10% basis=20 border=7,7,0,0 => 0 0 14 0
+    node width=100% border=0 content=30x10 => 121 10 20 10
+  node width=75% grow=2 basis=100% align-self=end border=5 padding=7,3,0,3 => 0 3 193 13
+
+fixture random_26_193 available=500x400
+node width=200 height=40 min-height=10% border=7,0,0,7 wrap=wrap-reverse justify=space-between => 0 0 200 40
+  node width=50% height=0 align-self=end aspect=1.5 border=0 padding=3,0,0,0 content=30x16 => 7 0 96.5 0
+  node height=75% border=2 => 196 8.25 4 24.75
+
+fixture random_26_194 available=500x400
+node width=150 padding=0 wrap=wrap-reverse column-gap=0 => 0 0 150 49
+  node width=75% height=50% margin=0,3,3,3 wrap=nowrap row-gap=10 => 0 46 112.5 0
+    node height=150 shrink=0 position=absolute top=0 margin=3,7,3,7 border=2 => 3 3 4 150
+  node width=150 height=40 position=absolute direction=row justify=space-between => 0 9 150 40
+    node width=100% height=25% grow=0 shrink=1 basis=150 border=3,0,3,3 wrap=wrap-reverse row-gap=10 => 0 0 150 10
+      node width=20 height=40 => 3 -33 20 40
+      node width=20 height=100% grow=2 content=80x10 => 23 3 117 4
+      node height=75% shrink=3 content=10x16 => 140 4 10 3
+  node width=25% min-width=120 min-height=0 grow=1 border=3,3,0,3 content=50x40 => 0 0 150 43
+
+fixture random_26_195 available=500x400
+node width=150 height=80 direction=column-reverse justify=center align-content=center row-gap=0 => 0 0 150 80
+  node width=120 height=80 aspect=1.5 border=2 row-gap=4 => 0 11 120 80
+    node width=50% height=120 min-width=100% shrink=0 border=10 padding=10 direction=column wrap=wrap => 2 2 116 120
+      node width=75% height=100% min-width=30 margin=5 padding=10 => 25 25 57 70
+      node width=80 height=25% align-self=start position=absolute start=0 end=5 margin=3,0,0,0 border=5 padding=7,7,7,0 content=80x16 => 13 20 80 25
+    node height=20 align-self=center position=absolute start=20 end=10 wrap=wrap-reverse => 22 30 86 20
+      node width=10 height=0 position=absolute bottom=10 margin=7,7,0,3 border=5 padding=3,3,3,0 => 7 -6 16 13
+      node width=75% height=10 align-self=stretch aspect=2 margin=0 border=2 content=50x40 => 0 10 64.5 10
+    node height=75% row-gap=4 => 118 2 30 57
+      node width=0 margin=10 border=5 content=20x16 => 10 10 10 37
+  node grow=0 align-self=stretch border=7,0,3,3 content=20x16 => 0 -11 150 22
+  node align-self=end => 150 -11 0 0
+
+fixture random_26_196 available=500x400
+node width=50% justify=space-around align-items=stretch align-content=space-between => 0 0 250 40
+  node width=120 height=40 grow=1 border=10 padding=5 justify=space-between => 0 0 250 40
+    node height=100% padding=5 content=10x16 => 15 15 20 10
+
+fixture random_26_197 available=500x400
+node width=300 max-width=100% direction=column-reverse wrap=wrap-reverse align-items=stretch => 0 0 300 164
+  node max-width=120 margin=2 border=5 padding=0,0,0,0 direction=column wrap=wrap-reverse => 178 2 120 160
+    node height=150 grow=0 padding=7,7,0,7 direction=row justify=end => 5 5 110 150
+      node padding=3,0,7,0 => 100 0 3 143
+
+fixture random_26_198 available=500x400
+node width=60 height=120 aspect=0.5 border=0 wrap=nowrap => 0 0 151 120
+  node height=80 margin=2 border=0 padding=5 direction=row-reverse align-items=start align-content=stretch column-gap=0 => 2 2 27 80
+    node max-height=25% margin=0 border=7,0,3,3 padding=3,7,7,0 => 5 5 17 13
+  node width=100% grow=2 aspect=1 wrap=nowrap justify=space-between align-items=start align-content=center => 31 0 120 120
+    node width=40 wrap=nowrap align-items=end => 0 0 40 40
+      node shrink=3 content=20x40 => 0 0 20 40
+      node grow=2 align-self=end margin=0 padding=0 => 20 40 10 0
+      node border=5 padding=0 => 30 30 10 10
