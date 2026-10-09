@@ -335,9 +335,11 @@ def fixture_html(fixture):
             if words:
                 # Inline blocks in a block with no strut: lines exactly as
                 # high as the boxes; a row's item shrinks to its width, one
-                # box at least.
+                # box at least. Not stretched: the node is sized by its
+                # lines, as by a box (stretched, Chrome lets the lines
+                # overflow a ratio's height).
                 word = f'<span style="display:inline-block;width:{w}px;height:{h}px"></span>'
-                content = ('<div data-content style="display:block;flex:0 1 auto;'
+                content = ('<div data-content style="display:block;flex:0 1 auto;align-self:start;'
                            'font-size:0;line-height:0">'
                            + word * int(words) + "</div>")
         parts.append(f'<div data-i="{index}" style="{css_style(node["props"], inherited)}">'

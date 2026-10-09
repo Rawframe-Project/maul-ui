@@ -345,7 +345,7 @@ format.
 - Wrapping host content in the layout fixtures: `content=WxH*N` is N
   boxes W by H that break greedily into lines, as text does, rendered
   in Chrome as inline blocks and measured the same way by the fixture
-  test; `test/layout/words.txt` holds thirteen cases.
+  test; `test/layout/words.txt` holds fifteen cases.
   `tools/random_layouts.py generate SEED COUNT --words` draws a seed's
   `--wide` layouts with some content made words; earlier draws are
   unchanged.
