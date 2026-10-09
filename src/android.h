@@ -99,6 +99,10 @@ enum
 // android.view.View.NO_ID.
 #define MUI_ANDROID_NO_ID (-1)
 
+// AccessibilityNodeInfo's EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_MAX_LENGTH:
+// the most characters' locations asked for at once.
+#define MUI_ANDROID_MOST_LOCATIONS 20000
+
 // Tells clients of an event on a virtual view (muiAndroidTell, through
 // the provider, or a test's): its type, and content change types.
 typedef void (*muiAndroidTellFunction)(const muiAndroidAdapter* adapter, jint virtualId, jint type,

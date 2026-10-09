@@ -79,6 +79,8 @@ format.
   range and range for a position, and UIKit's first rectangle, caret
   rectangle, selection rectangles and positions at a point answer from
   them, or from the node's rectangle for text without clusters.
+  Android's provider offers `EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY`,
+  a rectangle on the screen for each UTF-16 unit asked for.
 
 ### Changed
 

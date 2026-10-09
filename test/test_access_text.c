@@ -377,6 +377,14 @@ static void TestGeometry(void)
               muiAccessTree_GetTextOffsetAt(tree, 1, 104.0f, 0.0f, &offset) == mui_success &&
               offset == 0,
           "the character at a point, or the nearest");
+    // UTF-16 from é: é, l, l, o, the space, w on the second line, then
+    // past the end.
+    const muiAllocator allocator = {0};
+    muiRect units[12];
+    CHECK(muiAccessUnitRects(tree, 1, 1, 12, &allocator, units) && units[0].x == 110.0f &&
+              units[0].width == 10.0f && units[5].x == 100.0f && units[5].y == 70.0f &&
+              units[9].width == 12.0f && units[10].width == -1.0f && units[11].width == -1.0f,
+          "a rectangle each UTF-16 unit, none past the text");
     char text[256];
     size_t length = 0;
     CHECK(muiAccessTree_Write(tree, text, sizeof text, &length) == mui_success &&

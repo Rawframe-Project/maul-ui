@@ -57,6 +57,13 @@ muiResult muiAccessGetRects(const muiAccessTree* tree, uint64_t id, uint32_t sta
                             const muiAllocator* allocator, muiAccessRects* out);
 void muiAccessFreeRects(muiAccessRects* rects);
 
+// The rectangle of each UTF-16 unit of a node's value text from one up
+// to a count, where the root is placed: its cluster's, a line high; a
+// width of -1 for a unit no cluster holds or past the text. False for a
+// node not held, text without clusters, or memory run out.
+bool muiAccessUnitRects(const muiAccessTree* tree, uint64_t id, uint32_t first, uint32_t count,
+                        const muiAllocator* allocator, muiRect* rectsOut);
+
 // The box around a range's rectangles where the root is placed: the
 // node's bounds when its text has no clusters and the range is not
 // empty; false for none.

@@ -5,6 +5,7 @@ package maul.ui;
 
 import android.content.Context;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewParent;
@@ -13,6 +14,7 @@ import android.view.accessibility.AccessibilityManager;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction;
 import android.view.accessibility.AccessibilityNodeProvider;
+import java.util.Collections;
 
 /**
  * Maul UI's accessibility tree shown to Android (record mui-0008): the
@@ -112,6 +114,12 @@ public class AccessProvider extends AccessibilityNodeProvider {
             AccessibilityNodeInfo.ACTION_ARGUMENT_MOVEMENT_GRANULARITY_INT;
     private static final String EXTEND_ARGUMENT =
             AccessibilityNodeInfo.ACTION_ARGUMENT_EXTEND_SELECTION_BOOLEAN;
+    private static final String LOCATION_KEY =
+            AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY;
+    private static final String LOCATION_START_ARGUMENT =
+            AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_START_INDEX;
+    private static final String LOCATION_LENGTH_ARGUMENT =
+            AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_LENGTH;
     private static final String SELECTION_START_ARGUMENT =
             AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT;
     private static final String SELECTION_END_ARGUMENT =
@@ -151,6 +159,8 @@ public class AccessProvider extends AccessibilityNodeProvider {
     private static native boolean select(long handle, int id, int start, int end);
 
     private static native boolean setText(long handle, int id, String text);
+
+    private static native float[] characterBoxes(long handle, int id, int start, int length);
 
     @Override
     public AccessibilityNodeInfo createAccessibilityNodeInfo(int id) {
@@ -194,6 +204,9 @@ public class AccessProvider extends AccessibilityNodeProvider {
         }
         if (node[SELECTION_START] >= 0) {
             info.setTextSelection(node[SELECTION_START], node[SELECTION_END]);
+        }
+        if (node[GRANULARITIES] != 0) {
+            info.setAvailableExtraData(Collections.singletonList(LOCATION_KEY));
         }
         for (int i = 0; i < OFFERED.length; i++) {
             if ((node[ACTIONS] & (1 << i)) != 0) {
@@ -243,6 +256,35 @@ public class AccessProvider extends AccessibilityNodeProvider {
         if (role != null) {
             info.getExtras().putCharSequence(ROLE_KEY, role);
         }
+    }
+
+    /**
+     * Where a node's text's characters are on the screen, for
+     * EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY: a RectF for each UTF-16 unit
+     * of the start and length asked for, null for one with none.
+     */
+    @Override
+    public void addExtraDataToAccessibilityNodeInfo(int id, AccessibilityNodeInfo info,
+            String key, Bundle arguments) {
+        if (handle == 0 || !LOCATION_KEY.equals(key) || arguments == null) {
+            return;
+        }
+        int start = arguments.getInt(LOCATION_START_ARGUMENT, -1);
+        int length = arguments.getInt(LOCATION_LENGTH_ARGUMENT, -1);
+        float[] boxes = characterBoxes(handle, id, start, length);
+        if (boxes == null) {
+            return;
+        }
+        int[] at = new int[2];
+        host.getLocationOnScreen(at);
+        RectF[] places = new RectF[length];
+        for (int i = 0; i < length; i++) {
+            if (!Float.isNaN(boxes[4 * i])) {
+                places[i] = new RectF(boxes[4 * i] + at[0], boxes[4 * i + 1] + at[1],
+                        boxes[4 * i + 2] + at[0], boxes[4 * i + 3] + at[1]);
+            }
+        }
+        info.getExtras().putParcelableArray(key, places);
     }
 
     @Override

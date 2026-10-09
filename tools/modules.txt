@@ -49,13 +49,13 @@ access_tree_store:
 chars:
 access_tree: access_tree_store allocator chars
 access_apply: access_text access_tree access_tree_store allocator
-access_view: access_text access_tree_store
+access_view: access_text access_tree_store allocator
 id_map:
 dbus_api:
 android: id_map
 android_adapter: access_record allocator android
 android_events: access_record access_text android
-android_jni: access_record allocator android
+android_jni: access_record access_text allocator android
 android_node: access_record access_text android
 android_text: access_text allocator android
 aria: id_map

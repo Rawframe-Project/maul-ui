@@ -9,10 +9,12 @@
 
 #include "access_text.h"
 #include "access_tree_store.h"
+#include "allocator.h"
 
 #include "maul-ui/access_tree.h"
 
 #include <math.h>
+#include <stdalign.h>
 #include <string.h>
 
 // How filtering treats a node: shown; left out with its subtree; or left
@@ -304,6 +306,107 @@ muiResult muiAccessTree_GetTextRects(const muiAccessTree* tree, uint64_t id, uin
     }
     *countOut = count;
     return count <= capacity ? mui_success : mui_errorCapacity;
+}
+
+// The line a cluster lies on: the last whose first cluster is not after
+// it.
+static uint32_t LineOfCluster(const muiAccessTextMarks* marks, uint32_t cluster)
+{
+    uint32_t low = 0;
+    uint32_t high = marks->lineCount;
+    while (high - low > 1)
+    {
+        uint32_t middle = low + (high - low) / 2;
+        if (marks->lineBoxes[middle].firstCluster <= cluster)
+        {
+            low = middle;
+        }
+        else
+        {
+            high = middle;
+        }
+    }
+    return low;
+}
+
+// For each byte of a span, the cluster holding it, plus 1; 0 for none.
+static void MapClusters(const muiAccessTextMarks* marks, uint32_t from, uint32_t to, uint32_t* map)
+{
+    memset(map, 0, (size_t)(to - from) * sizeof(uint32_t));
+    for (uint32_t i = 0; i < marks->clusterCount; i++)
+    {
+        const muiAccessCluster* cluster = &marks->clusters[i];
+        uint32_t start = cluster->start > from ? cluster->start : from;
+        uint32_t end = cluster->end < to ? cluster->end : to;
+        for (uint32_t b = start; b < end; b++)
+        {
+            map[b - from] = i + 1;
+        }
+    }
+}
+
+// A character's rectangle where the root is placed, a line high; none
+// when no cluster holds it.
+static muiRect CharacterRect(const muiAccessTextMarks* marks, const muiDrawTransform* m,
+                             uint32_t cluster)
+{
+    if (cluster == 0)
+    {
+        return (muiRect){0.0f, 0.0f, -1.0f, -1.0f};
+    }
+    const muiAccessCluster* c = &marks->clusters[cluster - 1];
+    const muiAccessLineBox* line = &marks->lineBoxes[LineOfCluster(marks, cluster - 1)];
+    return BoxOf(m, (muiRect){c->left, line->top, c->right - c->left, line->bottom - line->top});
+}
+
+bool muiAccessUnitRects(const muiAccessTree* tree, uint64_t id, uint32_t first, uint32_t count,
+                        const muiAllocator* allocator, muiRect* rectsOut)
+{
+    uint32_t slot = muiHeldSlotOf(tree, id);
+    const muiAccessNode* node = slot != 0 ? &tree->held[slot - 1].node : nullptr;
+    if (node == nullptr || node->marks.lineBoxes == nullptr)
+    {
+        return false;
+    }
+    const muiAccessTextMarks* marks = &node->marks;
+    muiAccessText text = muiAccessValueOf(node);
+    uint32_t last = count > UINT32_MAX - first ? UINT32_MAX : first + count;
+    uint32_t from = muiAccessByteOfUtf16(&text, first);
+    uint32_t to = muiAccessByteOfUtf16(&text, last);
+    // A last unit inside a surrogate pair takes the pair.
+    if (to < text.length && muiAccessUtf16Before(text.bytes, to) < last)
+    {
+        to = muiAccessBoundaryAfter(&text, mui_unitCharacter, to);
+    }
+    size_t size = (size_t)(to - from + 1) * sizeof(uint32_t);
+    uint32_t* map = muiAllocate(allocator, size, alignof(uint32_t));
+    if (map == nullptr)
+    {
+        return false;
+    }
+    MapClusters(marks, from, to, map);
+    muiDrawTransform m = TransformOf(tree, slot);
+    for (uint32_t i = 0; i < count; i++)
+    {
+        rectsOut[i] = (muiRect){0.0f, 0.0f, -1.0f, -1.0f};
+    }
+    uint32_t unit = muiAccessUtf16Before(text.bytes, from);
+    for (uint32_t at = from; at < to;)
+    {
+        uint32_t next = muiAccessBoundaryAfter(&text, mui_unitCharacter, at);
+        muiRect rect = CharacterRect(marks, &m, map[at - from]);
+        // Four bytes are two units, a surrogate pair.
+        for (uint32_t k = next - at == 4 ? 2 : 1; k > 0; k--, unit++)
+        {
+            if (unit >= first && unit - first < count)
+            {
+                rectsOut[unit - first] = rect;
+            }
+        }
+        at = next;
+    }
+    muiRelease(allocator, map, size, alignof(uint32_t));
+    return true;
 }
 
 muiResult muiAccessTree_GetTextOffsetAt(const muiAccessTree* tree, uint64_t id, float x, float y,

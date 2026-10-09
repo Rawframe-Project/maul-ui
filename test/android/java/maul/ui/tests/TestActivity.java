@@ -6,7 +6,9 @@ package maul.ui.tests;
 import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction;
@@ -32,7 +34,8 @@ import java.util.Arrays;
  *   typed into, its change and its selection in UTF-16;
  * - text: granularities and the selection in the info, the caret moved
  *   by granularity through the host and extended, a label's words
- *   through a cursor of the provider's, the selection and the text set;
+ *   through a cursor of the provider's, the selection and the text set,
+ *   where characters are on the screen;
  * - a node gone, and the adapter gone, answering nothing.
  * It writes its failures and a closing "result: N failures" to
  * files/out.
@@ -136,6 +139,7 @@ public final class TestActivity extends Activity {
         testNodes(provider, host, root, button, label, field, box, slider, heading);
         testActions(provider, button, label, field, box, slider);
         testText(provider, label, field, button);
+        testLocations(provider, host, label);
         testEvents(adapter, root, button, label, field, box, slider);
         removeButton(adapter);
         check(provider.createAccessibilityNodeInfo(button) == null
@@ -288,6 +292,28 @@ public final class TestActivity extends Activity {
                 && provider.performAction(label,
                         AccessibilityNodeInfo.ACTION_CLEAR_ACCESSIBILITY_FOCUS, null),
                 "a label's words through the provider's cursor, none past the last");
+    }
+
+    // The label at 10, 100 in the view's pixels: H 20 wide, i and the
+    // space 10, the emoji 40 for both its units; nothing past the text.
+    // getParcelableArray(String) is the one Android 11 has; newer
+    // platforms deprecate it for a typed form.
+    @SuppressWarnings("deprecation")
+    private void testLocations(AccessibilityNodeProvider provider, View host, int label) {
+        String key = AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY;
+        AccessibilityNodeInfo info = provider.createAccessibilityNodeInfo(label);
+        Bundle range = new Bundle();
+        range.putInt(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_START_INDEX, 0);
+        range.putInt(AccessibilityNodeInfo.EXTRA_DATA_TEXT_CHARACTER_LOCATION_ARG_LENGTH, 6);
+        provider.addExtraDataToAccessibilityNodeInfo(label, info, key, range);
+        Parcelable[] places = info.getExtras().getParcelableArray(key);
+        int[] at = new int[2];
+        host.getLocationOnScreen(at);
+        check(info.getAvailableExtraData().contains(key) && places != null && places.length == 6
+                && new RectF(at[0] + 10, at[1] + 100, at[0] + 30, at[1] + 140).equals(places[0])
+                && new RectF(at[0] + 50, at[1] + 100, at[0] + 90, at[1] + 140).equals(places[3])
+                && places[3].equals(places[4]) && places[5] == null,
+                "where a label's characters are on the screen, a pair's units alike");
     }
 
     private void testActions(AccessibilityNodeProvider provider, int button, int label,

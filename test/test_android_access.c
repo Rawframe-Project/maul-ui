@@ -7,7 +7,7 @@
 // checks), at 2 pixels a unit, with a tree:
 // the window 1, "Main"; a focused button 2 that clicks; a generic 3
 // around a label 4 whose name is past the Basic Multilingual Plane, of
-// two words; a text field 5 "Name" holding "Ada", one word, being edited
+// two words, its characters placed; a text field 5 "Name" holding "Ada", one word, being edited
 // with the caret at its end, whose selection and text are set; a
 // checked check box 7; a slider 8 at 30 of 100 that steps and is set,
 // described and with a value text; a live heading 9. The host's action
@@ -72,8 +72,20 @@ static uint32_t Build(void)
     muiAccessNode* generic = Add(&count, 3, mui_roleGeneric, NULL, 0, 50, 200, 20);
     static const muiAccessWord s_labelWords[2] = {{0, 2}, {3, 7}};
     static const muiAccessWord s_fieldWords[1] = {{0, 3}};
+    // The label's characters: H 10 wide, i and the space 5, the emoji 20,
+    // on one line 20 high.
+    static const uint32_t s_labelLines[1] = {0};
+    static const muiAccessLineBox s_labelBox[1] = {{0.0f, 20.0f, 0}};
+    static const muiAccessCluster s_labelClusters[4] = {
+        {0, 1, 0.0f, 10.0f}, {1, 2, 10.0f, 15.0f}, {2, 3, 15.0f, 20.0f}, {3, 7, 20.0f, 40.0f}};
     Add(&count, 4, mui_roleLabel, "Hi \xF0\x9F\x98\x80", 5, 0, 100, 20)->marks =
-        (muiAccessTextMarks){.words = s_labelWords, .wordCount = 2};
+        (muiAccessTextMarks){.lineStarts = s_labelLines,
+                             .lineCount = 1,
+                             .words = s_labelWords,
+                             .wordCount = 2,
+                             .lineBoxes = s_labelBox,
+                             .clusters = s_labelClusters,
+                             .clusterCount = 4};
     muiAccessNode* field = Add(&count, 5, mui_roleTextInput, "Name", 10, 80, 200, 30);
     field->flags = mui_accessFocusable;
     field->actions = 1u << mui_actionSetSelection | 1u << mui_actionReplaceText;
