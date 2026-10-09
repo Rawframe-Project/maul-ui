@@ -64,14 +64,16 @@ static bool IsLimited(const muiSizing* sizing, bool horizontal)
 // On which axes a node's content size is the content's own (the cache's
 // loose bits): not where its minimum or maximum may have clamped it, as
 // text held to a maximum width is one line long at max-content and wraps
-// at that width, nor anywhere when sizes below resolve against the node,
-// which a content query leaves automatic.
+// at that width; nor anywhere when the node has an aspect ratio, which
+// gives one axis from the other only when that one is definite, or when
+// sizes below take a definite size above them (muiScaledBelow).
 static unsigned LooseOf(const muiSolver* solver, uint32_t node)
 {
     muiLayoutNode* layout = &solver->nodes[node - 1];
     if (layout->cache.loose == 0)
     {
-        bool scaled = muiScaledBelow(solver->tree, solver->nodes, node);
+        bool scaled = layout->style.sizing.aspectRatio != 0.0f ||
+                      muiScaledBelow(solver->tree, solver->nodes, node);
         const muiSizing* sizing = &layout->style.sizing;
         layout->cache.loose = (uint8_t)(4u | (!scaled && !IsLimited(sizing, true) ? 1u : 0u) |
                                         (!scaled && !IsLimited(sizing, false) ? 2u : 0u));

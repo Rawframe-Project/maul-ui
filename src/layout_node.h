@@ -143,10 +143,12 @@ static inline bool muiIsScaled(muiDimension dimension)
     return dimension.kind == mui_dimensionValue && dimension.scale != 0.0f;
 }
 
-// Whether a node below node resolves a size against its parent's extents,
-// which a content query leaves indefinite and an exact or limited one
-// may give: then a content size answers content queries alone. Kept in
-// the cache and cleared with it, as any change below clears it.
+// Whether a node below node sizes itself from a definite size above it:
+// a size resolved against its parent's extents, or an aspect ratio,
+// which a stretched cross size makes definite. A content query leaves
+// those sizes indefinite where an exact or limited one may give them, so
+// a content size then answers content queries alone. Kept in the cache
+// and cleared with it, as any change below clears it.
 static inline bool muiScaledBelow(const muiTree* tree, muiLayoutNode* nodes, uint32_t node)
 {
     muiLayoutCache* cache = &nodes[node - 1].cache;
@@ -161,7 +163,8 @@ static inline bool muiScaledBelow(const muiTree* tree, muiLayoutNode* nodes, uin
             scaled = muiIsScaled(sizing->width) || muiIsScaled(sizing->height) ||
                      muiIsScaled(sizing->minWidth) || muiIsScaled(sizing->maxWidth) ||
                      muiIsScaled(sizing->minHeight) || muiIsScaled(sizing->maxHeight) ||
-                     muiIsScaled(style->item.basis) || muiScaledBelow(tree, nodes, c);
+                     muiIsScaled(style->item.basis) || sizing->aspectRatio != 0.0f ||
+                     muiScaledBelow(tree, nodes, c);
         }
         cache->scaledBelow = scaled ? 2 : 1;
     }

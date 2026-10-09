@@ -703,6 +703,12 @@ format.
   automatic, so text half its width overflowed it, and which answer
   came first depended on the layouts before.
 
+- A node with an aspect ratio, or with one below it, is laid out the
+  same whatever its cache holds: a definite size on one axis, such as a
+  stretched cross size, makes the ratio give the other, which a content
+  query does not, so a content size no longer answers its exact or
+  limited queries, as for percentages.
+
 - A virtual list's extent no longer counts where its bound items were
   placed before: an item popped by its exit, which keeps its rectangle
   through layout, held the extent at its old offset after the list was

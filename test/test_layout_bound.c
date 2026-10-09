@@ -39,7 +39,9 @@ typedef enum Kind
     kindSpace,
     kindList,
     kindBind,
-    kindExit
+    kindExit,
+    kindSafe,
+    kindScroll
 } Kind;
 
 // One edit: a node made under parent (host content when value is not 0),
@@ -47,7 +49,8 @@ typedef enum Kind
 // value characters long, a node removed, the space laid out in, a node
 // made a virtual list of what value picks (estimated when property is
 // not 0), a list's child bound to item value, which takes it out of the
-// flow, or a node's exit begun popped (value odd) or cancelled.
+// flow, a node's exit begun popped (value odd) or cancelled, the
+// surface's safe-area insets, or a node scrolled to what value picks.
 typedef struct Edit
 {
     Kind kind;
@@ -68,6 +71,7 @@ typedef struct Tree
     uint32_t items[MAX_NODES];
     uint32_t count;
     float space;
+    muiSides safe;
 } Tree;
 
 // Characters of each host node's text, by its key, as both trees read.
@@ -136,85 +140,157 @@ static muiDimension Dimension(uint32_t value)
     }
 }
 
-// Sets property (an index into the list below) to what value picks.
+// The layout properties an edit sets, all but content, which makes a
+// node host content or not.
+static const muiProperty s_properties[] = {
+    mui_propertyWidth,         mui_propertyHeight,        mui_propertyMinWidth,
+    mui_propertyMinHeight,     mui_propertyMaxWidth,      mui_propertyMaxHeight,
+    mui_propertyAspectRatio,   mui_propertyFlexDirection, mui_propertyFlexWrap,
+    mui_propertyJustify,       mui_propertyAlignItems,    mui_propertyAlignContent,
+    mui_propertyRowGap,        mui_propertyColumnGap,     mui_propertyGrow,
+    mui_propertyShrink,        mui_propertyBasis,         mui_propertyAlignSelf,
+    mui_propertyMarginStart,   mui_propertyMarginEnd,     mui_propertyMarginTop,
+    mui_propertyMarginBottom,  mui_propertyMarginAuto,    mui_propertyBorderStart,
+    mui_propertyBorderEnd,     mui_propertyBorderTop,     mui_propertyBorderBottom,
+    mui_propertyPaddingStart,  mui_propertyPaddingEnd,    mui_propertyPaddingTop,
+    mui_propertyPaddingBottom, mui_propertyPosition,      mui_propertyInsetStart,
+    mui_propertyInsetEnd,      mui_propertyInsetTop,      mui_propertyInsetBottom,
+    mui_propertyAnchorX,       mui_propertyAnchorY,       mui_propertyTextDirection,
+    mui_propertyScrollAxes,    mui_propertySafeArea,
+};
+
+// Sets a property (property picks one of s_properties) to what value
+// picks: a dimension, a length, a small count or an enumeration.
 static void SetStyle(Tree* tree, uint32_t node, uint32_t property, uint32_t value)
 {
     muiLayoutStyle style = muiDefaultLayoutStyle();
     float length = (float)(value % 24);
-    muiProperty id = mui_propertyWidth;
-    switch (property % 18)
+    float edge = (float)(value % 6);
+    muiProperty id = s_properties[property % (sizeof s_properties / sizeof s_properties[0])];
+    switch (id)
     {
-    case 0:
+    case mui_propertyWidth:
         style.sizing.width = Dimension(value);
-        id = mui_propertyWidth;
         break;
-    case 1:
+    case mui_propertyHeight:
         style.sizing.height = Dimension(value);
-        id = mui_propertyHeight;
         break;
-    case 2:
+    case mui_propertyMinWidth:
+        style.sizing.minWidth = Dimension(value);
+        break;
+    case mui_propertyMinHeight:
+        style.sizing.minHeight = Dimension(value);
+        break;
+    case mui_propertyMaxWidth:
         style.sizing.maxWidth = value % 2 == 0 ? style.sizing.maxWidth : Dimension(value | 1u);
-        id = mui_propertyMaxWidth;
         break;
-    case 3:
+    case mui_propertyMaxHeight:
+        style.sizing.maxHeight = value % 2 == 0 ? style.sizing.maxHeight : Dimension(value | 1u);
+        break;
+    case mui_propertyAspectRatio:
+        style.sizing.aspectRatio = value % 3 == 0 ? 0.0f : 0.5f + (float)(value % 6) * 0.25f;
+        break;
+    case mui_propertyFlexDirection:
         style.container.direction = (muiFlexDirection)(value % 4);
-        id = mui_propertyFlexDirection;
         break;
-    case 4:
+    case mui_propertyFlexWrap:
         style.container.wrap = (muiFlexWrap)(value % 3);
-        id = mui_propertyFlexWrap;
         break;
-    case 5:
-        style.container.alignItems = (muiAlign)(1 + value % 5);
-        id = mui_propertyAlignItems;
-        break;
-    case 6:
-        style.item.alignSelf = (muiAlign)(value % 6);
-        id = mui_propertyAlignSelf;
-        break;
-    case 7:
-        style.item.grow = (float)(value % 3);
-        id = mui_propertyGrow;
-        break;
-    case 8:
-        style.item.shrink = (float)(value % 3);
-        id = mui_propertyShrink;
-        break;
-    case 9:
-        style.item.basis = Dimension(value);
-        id = mui_propertyBasis;
-        break;
-    case 10:
-        style.margin.start = length;
-        id = mui_propertyMarginStart;
-        break;
-    case 11:
-        style.margin.top = length;
-        id = mui_propertyMarginTop;
-        break;
-    case 12:
-        style.padding.start = length;
-        id = mui_propertyPaddingStart;
-        break;
-    case 13:
-        style.padding.top = length;
-        id = mui_propertyPaddingTop;
-        break;
-    case 14:
+    case mui_propertyJustify:
         style.container.justify = (muiJustify)(value % 6);
-        id = mui_propertyJustify;
         break;
-    case 15:
+    case mui_propertyAlignItems:
+        style.container.alignItems = (muiAlign)(1 + value % 5);
+        break;
+    case mui_propertyAlignContent:
+        style.container.alignContent = (muiAlignContent)(value % 7);
+        break;
+    case mui_propertyRowGap:
+        style.container.rowGap = (float)(value % 12);
+        break;
+    case mui_propertyColumnGap:
+        style.container.columnGap = (float)(value % 12);
+        break;
+    case mui_propertyGrow:
+        style.item.grow = (float)(value % 3);
+        break;
+    case mui_propertyShrink:
+        style.item.shrink = (float)(value % 3);
+        break;
+    case mui_propertyBasis:
+        style.item.basis = Dimension(value);
+        break;
+    case mui_propertyAlignSelf:
+        style.item.alignSelf = (muiAlign)(value % 6);
+        break;
+    case mui_propertyMarginStart:
+        style.margin.start = length;
+        break;
+    case mui_propertyMarginEnd:
+        style.margin.end = length;
+        break;
+    case mui_propertyMarginTop:
+        style.margin.top = length;
+        break;
+    case mui_propertyMarginBottom:
+        style.margin.bottom = length;
+        break;
+    case mui_propertyMarginAuto:
+        style.marginAuto = (muiEdgeMask)(value % 3 == 0 ? value % 16 : 0);
+        break;
+    case mui_propertyBorderStart:
+        style.border.start = edge;
+        break;
+    case mui_propertyBorderEnd:
+        style.border.end = edge;
+        break;
+    case mui_propertyBorderTop:
+        style.border.top = edge;
+        break;
+    case mui_propertyBorderBottom:
+        style.border.bottom = edge;
+        break;
+    case mui_propertyPaddingStart:
+        style.padding.start = length;
+        break;
+    case mui_propertyPaddingEnd:
+        style.padding.end = length;
+        break;
+    case mui_propertyPaddingTop:
+        style.padding.top = length;
+        break;
+    case mui_propertyPaddingBottom:
+        style.padding.bottom = length;
+        break;
+    case mui_propertyPosition:
         style.placement.position = (muiPositionKind)(value % 5 == 0 ? 1 : 0);
-        id = mui_propertyPosition;
         break;
-    case 16:
+    case mui_propertyInsetStart:
+        style.placement.inset.start = Dimension(value);
+        break;
+    case mui_propertyInsetEnd:
+        style.placement.inset.end = Dimension(value);
+        break;
+    case mui_propertyInsetTop:
+        style.placement.inset.top = Dimension(value);
+        break;
+    case mui_propertyInsetBottom:
+        style.placement.inset.bottom = Dimension(value);
+        break;
+    case mui_propertyAnchorX:
+        style.placement.anchorX = (float)(value % 5) * 0.25f;
+        break;
+    case mui_propertyAnchorY:
+        style.placement.anchorY = (float)(value % 5) * 0.25f;
+        break;
+    case mui_propertyTextDirection:
         style.textDirection = (muiTextDirection)(value % 3);
-        id = mui_propertyTextDirection;
+        break;
+    case mui_propertyScrollAxes:
+        style.scrollAxes = (muiScrollAxes)(value % 4);
         break;
     default:
-        style.scrollAxes = (muiScrollAxes)(value % 4);
-        id = mui_propertyScrollAxes;
+        style.safeArea = (muiEdgeMask)(value % 16);
         break;
     }
     CHECK(muiNode_SetLayoutValues(tree->context, tree->nodes[node], &style, MUI_PROPERTY_BIT(id)) ==
@@ -281,6 +357,15 @@ static void Apply(Tree* tree, const Edit* edit)
         CHECK(muiNode_SetItem(tree->context, tree->nodes[edit->node], edit->value) == mui_success,
               "bound");
         break;
+    case kindSafe:
+        tree->safe = (muiSides){(float)(edit->value % 9), (float)(edit->value / 9 % 9),
+                                (float)(edit->value / 81 % 9), (float)(edit->value / 729 % 9)};
+        break;
+    case kindScroll:
+        CHECK(muiNode_SetScroll(tree->context, tree->nodes[edit->node], (float)(edit->value % 200),
+                                (float)(edit->value / 200 % 200)) == mui_success,
+              "scrolled");
+        break;
     case kindExit:
         if (edit->value % 2 != 0)
         {
@@ -303,7 +388,7 @@ static void Apply(Tree* tree, const Edit* edit)
 
 static void LayOut(Tree* tree)
 {
-    const muiLayoutInput input = {tree->space, 600.0f, Measure, NULL, 0, Baseline, {0, 0, 0, 0}};
+    const muiLayoutInput input = {tree->space, 600.0f, Measure, NULL, 0, Baseline, tree->safe};
     CHECK(muiComputeLayout(tree->context, tree->nodes[0], &input) == mui_success, "laid out");
 }
 
@@ -363,8 +448,8 @@ static bool IsLeaf(const Tree* tree, uint32_t node)
     return true;
 }
 
-// A random edit the tree can take; with history, estimated lists and
-// exits too, which a replay laid out once cannot match.
+// A random edit the tree can take; with history, estimated lists, exits
+// and scrolling too, which a replay laid out once cannot match.
 static Edit RandomEdit(const Tree* tree, uint32_t* state, bool history)
 {
     uint32_t pick = Next(state) % 16;
@@ -407,6 +492,14 @@ static Edit RandomEdit(const Tree* tree, uint32_t* state, bool history)
     if (pick == 10 && history && node != 0)
     {
         return (Edit){kindExit, node, 0, 0, Next(state)};
+    }
+    if (pick == 11)
+    {
+        return (Edit){kindSafe, 0, 0, 0, Next(state)};
+    }
+    if (pick == 12 && history)
+    {
+        return (Edit){kindScroll, node, 0, 0, Next(state)};
     }
     return (Edit){kindStyle, node, 0, Next(state), Next(state)};
 }
@@ -481,9 +574,9 @@ static void Both(Tree* tree, Tree* twin, Edit edit)
 // from nothing: estimated lists, which keep what they measured, and
 // popped exits, which keep their last rectangle, have one history in
 // both.
-static void TestBoundedMatchesFresh(void)
+static void CheckBoundedMatchesFresh(uint32_t seed)
 {
-    uint32_t state = 0x85EBCA6Bu;
+    uint32_t state = seed;
     Tree edited = MakeTree();
     Tree twin = MakeTree();
     Both(&edited, &twin, (Edit){kindCreate, 0, 0, 0, 0});
@@ -523,6 +616,16 @@ static void TestBoundedMatchesFresh(void)
     muiDestroyContext(edited.context);
 }
 
+// Three histories; the second and third once took a content size for the
+// own one of a node with an aspect ratio below it, or its own (research
+// 93).
+static void TestBoundedMatchesFresh(void)
+{
+    CheckBoundedMatchesFresh(0x85EBCA6Bu);
+    CheckBoundedMatchesFresh(0x9E3779B1u);
+    CheckBoundedMatchesFresh(0x33333335u);
+}
+
 // A row 161 wide laid out alone under a right-to-left root keeps the
 // direction it inherits: its label at its right.
 static void TestRightToLeftAlone(void)
@@ -532,7 +635,7 @@ static void TestRightToLeftAlone(void)
     Tree tree = MakeTree();
     const Edit made[] = {
         {kindCreate, 0, 0, 0, 0},  {kindCreate, 0, 0, 0, 0},  {kindCreate, 0, 1, 0, 1},
-        {kindStyle, 0, 0, 16, 2},  {kindStyle, 0, 0, 3, 2},   {kindStyle, 0, 0, 0, 153},
+        {kindStyle, 0, 0, 38, 2},  {kindStyle, 0, 0, 7, 2},   {kindStyle, 0, 0, 0, 153},
         {kindStyle, 1, 0, 0, 153}, {kindContent, 2, 0, 0, 3},
     };
     for (size_t i = 0; i < sizeof made / sizeof made[0]; i++)
@@ -651,7 +754,7 @@ static void TestBaselinesAreRead(void)
             {kindCreate, 0, 1, 0, 0},
             {kindCreate, 0, 2, 0, 1},
             {kindCreate, 0, 1, 0, 1},
-            {kindStyle, own == 0 ? 1u : 2u, 0, own == 0 ? 5u : 6u, own == 0 ? 4u : 5u},
+            {kindStyle, own == 0 ? 1u : 2u, 0, own == 0 ? 10u : 17u, own == 0 ? 4u : 5u},
             {kindStyle, 2, 0, 0, 101},
             {kindStyle, 2, 0, 1, 61},
             {kindContent, 3, 0, 0, 3},
@@ -665,7 +768,7 @@ static void TestBaselinesAreRead(void)
         // too, so the box's moves it.
         if (own == 1)
         {
-            Record(edits, &count, &tree, (Edit){kindStyle, 4, 0, 6, 5});
+            Record(edits, &count, &tree, (Edit){kindStyle, 4, 0, 17, 5});
         }
         LayOut(&tree);
         // One character more: the same size, a baseline one lower.
