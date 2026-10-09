@@ -1,0 +1,74 @@
+# Host content that wraps: words, boxes of one size that break greedily
+# into lines, as text does (content=<width>x<height>*<count>).
+# chrome 154.0.8037.57
+
+# A row item shrinks to its row and wraps to its width.
+fixture words_row_item_wraps_to_its_row available=500x400
+node width=100 => 0 0 100 20
+  node content=30x10*5 => 0 0 100 20
+
+# A stretched column item wraps to the column's width.
+fixture words_column_item_wraps_to_column available=500x400
+node width=100 direction=column => 0 0 100 20
+  node content=30x10*5 => 0 0 100 20
+
+# An unstretched column item fits its content within the column.
+fixture words_column_item_fits_content available=500x400
+node width=100 direction=column align-items=start => 0 0 100 30
+  node content=30x10*5 => 0 0 100 20
+  node content=30x10*2 => 0 20 60 10
+
+# Two items shrink by their bases and wrap at what is left.
+fixture words_row_items_share_shrinking available=500x400
+node width=100 => 0 0 100 20
+  node content=20x10*4 => 0 0 50 20
+  node content=20x10*4 => 50 0 50 20
+
+# An item narrower than one word keeps one word a line.
+fixture words_narrow_item_one_word_a_line available=500x400
+node width=100 => 0 0 100 30
+  node width=15 min-width=0 content=20x10*3 => 0 0 15 30
+
+# The automatic minimum is the widest word.
+fixture words_automatic_minimum_is_one_word available=500x400
+node width=10 => 0 0 10 40
+  node content=25x10*4 => 0 0 25 40
+
+# A fixed height under the lines: the automatic minimum keeps the lines.
+fixture words_column_minimum_keeps_lines available=500x400
+node width=60 height=10 direction=column => 0 0 60 10
+  node content=30x10*4 => 0 0 60 20
+
+# A container sized by its content takes the words on one line.
+fixture words_container_takes_one_line available=500x400
+node align-items=start => 0 0 82 18
+  node padding=5 => 0 0 82 18
+    node content=12x8*6 => 5 5 72 8
+
+# An absolute box fits its words to the space its insets leave.
+fixture words_absolute_fits_to_insets available=500x400
+node width=100 height=100 => 0 0 100 100
+  node position=absolute start=10 end=30 content=20x10*5 => 10 0 60 20
+
+# A wrapping row: the words item takes a line of its own, wrapped.
+fixture words_wrapping_row_line_of_own available=500x400
+node width=100 wrap=wrap => 0 0 100 30
+  node width=40 height=10 => 0 0 40 10
+  node content=20x10*6 => 0 10 100 20
+
+# Baseline alignment counts the first line's bottom.
+fixture words_baseline_first_line available=500x400
+node width=100 align-items=baseline => 0 0 100 45
+  node content=20x10*3 => 0 15 50 20
+  node margin=0,0,5,0 content=20x20*3 => 50 5 50 40
+
+# A growing item with words beside a fixed item.
+fixture words_grow_beside_fixed available=500x400
+node width=120 => 0 0 120 20
+  node width=50 => 0 0 50 20
+  node grow=1 basis=0 content=16x10*7 => 50 0 70 20
+
+# Fractional words wrap at the same points as Chrome.
+fixture words_fractional_sizes available=500x400
+node width=101.5 => 0 0 101.5 21.75
+  node content=33.5x7.25*7 => 0 0 101.5 21.75

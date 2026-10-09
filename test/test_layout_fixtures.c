@@ -22,19 +22,43 @@ enum
 
 static const float TOLERANCE = 1.0f / 32.0f;
 
-// Host content: the fixture node whose index is the host key.
+// Host content: the fixture node whose index is the host key. Words wrap
+// greedily as Chrome's inline blocks do: as many a line as the width
+// holds, at least one.
 static muiSize MeasureFixture(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasureAxis width,
                               muiMeasureAxis height)
 {
     (void)nodeId;
-    (void)width;
     (void)height;
     const LayoutFixture* fixture = user;
-    return fixture->nodes[hostKey].content;
+    const LayoutFixtureNode* node = &fixture->nodes[hostKey];
+    if (node->words == 0 || node->content.width <= 0.0f)
+    {
+        return node->content;
+    }
+    float word = node->content.width;
+    float words = (float)node->words;
+    float wide = words * word;
+    float size = wide;
+    if (width.mode == mui_measureExact)
+    {
+        size = width.size;
+    }
+    else if (width.mode == mui_measureAtMost)
+    {
+        size = fminf(wide, fmaxf(word, width.size));
+    }
+    else if (width.mode == mui_measureMinContent)
+    {
+        size = word;
+    }
+    float perLine = fmaxf(floorf((size + TOLERANCE) / word), 1.0f);
+    return (muiSize){size, ceilf(words / perLine) * node->content.height};
 }
 
 // Its baseline: Chrome renders host content as a box of its size at the
-// top of the content box, whose baseline is its bottom.
+// top of the content box, whose baseline is its bottom; words, as the
+// bottom of their first line.
 static float BaselineFixture(void* user, muiNodeId nodeId, uint64_t hostKey, float width,
                              float height)
 {

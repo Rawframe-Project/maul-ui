@@ -27,8 +27,9 @@
 # border padding (one value, or start,end,top,bottom; margins may be
 # auto), position (flow absolute), start end top bottom (insets, as
 # dimensions), anchor (<x>,<y> from 0 to 1), dir (inherit ltr rtl),
-# content (<width>x<height>:
-# host content of that size).
+# content (<width>x<height>: host content of that size;
+# <width>x<height>*<count>: that many boxes of that size, words, which wrap
+# greedily into lines, at least one a line).
 #
 # usage: gen_layout_fixtures.py [--check | --oracle]
 
@@ -120,8 +121,8 @@ def parse_node(text, number):
             if value not in ENUMS[key]:
                 raise CorpusError(f"line {number}: {key} cannot be {value!r}")
         elif key == "content":
-            if not re.match(r"^[0-9.]+x[0-9.]+$", value):
-                raise CorpusError(f"line {number}: content is <width>x<height>")
+            if not re.match(r"^[0-9.]+x[0-9.]+(\*[1-9][0-9]*)?$", value):
+                raise CorpusError(f"line {number}: content is <width>x<height>[*<count>]")
         else:
             raise CorpusError(f"line {number}: unknown key {key!r}")
         props[key] = value
@@ -233,10 +234,12 @@ def generate():
                 raise CorpusError(f"{name}: run --oracle to fill in the expectations")
             out.append(f"static const LayoutFixtureNode s_{name}[] = {{")
             for node in fixture["nodes"]:
-                content = node["props"].get("content", "0x0").split("x")
+                box, _, words = node["props"].get("content", "0x0").partition("*")
+                content = box.split("x")
                 expected = ", ".join(c_float(v) for v in node["expected"])
                 out.append(f"    {{{node['depth']}, {c_style(node['props'])},")
-                out.append(f"     {{{c_float(content[0])}, {c_float(content[1])}}}, {{{expected}}}}},")
+                out.append(f"     {{{c_float(content[0])}, {c_float(content[1])}}}, {words or 0}, "
+                           f"{{{expected}}}}},")
             out.append("};")
             out.append("")
             width, height = fixture["available"]
@@ -326,8 +329,17 @@ def fixture_html(fixture):
         rtl[node["depth"] + 1:] = [resolved]
         content = ""
         if "content" in node["props"]:
-            w, h = node["props"]["content"].split("x")
+            box, _, words = node["props"]["content"].partition("*")
+            w, h = box.split("x")
             content = f'<div data-content style="width:{w}px;height:{h}px;flex:none"></div>'
+            if words:
+                # Inline blocks in a block with no strut: lines exactly as
+                # high as the boxes; a row's item shrinks to its width, one
+                # box at least.
+                word = f'<span style="display:inline-block;width:{w}px;height:{h}px"></span>'
+                content = ('<div data-content style="display:block;flex:0 1 auto;'
+                           'font-size:0;line-height:0">'
+                           + word * int(words) + "</div>")
         parts.append(f'<div data-i="{index}" style="{css_style(node["props"], inherited)}">'
                      f'{content}')
         stack.append(node["depth"])

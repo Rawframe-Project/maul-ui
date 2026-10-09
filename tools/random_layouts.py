@@ -9,7 +9,10 @@
 # corpus format: trees up to three levels deep, at most three children a
 # node, most keys the corpus knows; --wide adds scaled dimensions with an
 # offset, automatic margins, baseline alignment and anchors, under names
-# random_<seed>w_<n>, leaving the default draws as they were. Put them in
+# random_<seed>w_<n>, leaving the default draws as they were; --words
+# draws the --wide layouts again, some host content made words that wrap
+# (from a stream of its own, so the layouts are otherwise the same),
+# under names random_<seed>t_<n>. Put them in
 # a file under test/layout/, render it with gen_layout_fixtures.py
 # --oracle and run test_layout_fixtures to see which part from Chrome; the
 # ones that agree may stay in the corpus.
@@ -25,7 +28,7 @@
 # reduce also needs CMake and a C23 compiler (CC names one if the default
 # is older).
 #
-# usage: random_layouts.py generate SEED COUNT [--wide]
+# usage: random_layouts.py generate SEED COUNT [--wide | --words]
 #        random_layouts.py reduce FILE NAME
 
 import os
@@ -50,11 +53,14 @@ def call(args, **options):
 class Generator:
     """Draws fixtures; a seed always draws the same ones."""
 
-    def __init__(self, seed, wide=False):
+    def __init__(self, seed, wide=False, words=False):
         self.rng = random.Random(seed)
         # Wide draws add keys the default leaves out; the default's draws
         # stay as they were, so its seeds keep their layouts.
-        self.wide = wide
+        self.wide = wide or words
+        # Words come from a stream of their own: a seed's word layouts are
+        # its wide ones, some content wrapping.
+        self.words = random.Random(seed ^ 0x5A5A5A5A) if words else None
 
     def dimension(self):
         r = self.rng.random()
@@ -116,7 +122,10 @@ class Generator:
         if depth >= 3 or self.rng.random() < (0.35 if depth > 0 else 0.0):
             if self.rng.random() < 0.6:
                 width = self.rng.choice([10, 20, 30, 50, 80])
-                keys.append(f"content={width}x{self.rng.choice([10, 16, 20, 40])}")
+                content = f"content={width}x{self.rng.choice([10, 16, 20, 40])}"
+                if self.words and self.words.random() < 0.5:
+                    content += f"*{self.words.randint(2, 8)}"
+                keys.append(content)
             return keys, []
         return self.container(keys, depth)
 
@@ -150,9 +159,9 @@ def flatten(tree, depth=0):
     return nodes
 
 
-def generate(seed, count, wide=False):
-    generator = Generator(seed, wide)
-    tag = f"{seed}w" if wide else f"{seed}"
+def generate(seed, count, draws=""):
+    generator = Generator(seed, draws == "--wide", draws == "--words")
+    tag = f"{seed}{ {'--wide': 'w', '--words': 't'}.get(draws, '')}"
     out = [f"# Random layouts, seed {tag} (tools/random_layouts.py).", "# chrome 0", ""]
     for i in range(count):
         tree = generator.node(0, root=True)
@@ -242,12 +251,12 @@ def reduce(path, name):
 
 def main():
     args = sys.argv[1:]
-    if len(args) in (3, 4) and args[0] == "generate" and args[3:] in ([], ["--wide"]):
-        print(generate(int(args[1]), int(args[2]), args[3:] == ["--wide"]))
+    if len(args) in (3, 4) and args[0] == "generate" and args[3:] in ([], ["--wide"], ["--words"]):
+        print(generate(int(args[1]), int(args[2]), "".join(args[3:])))
     elif len(args) == 3 and args[0] == "reduce":
         reduce(args[1], args[2])
     else:
-        sys.exit("usage: random_layouts.py generate SEED COUNT [--wide] | reduce FILE NAME")
+        sys.exit("usage: random_layouts.py generate SEED COUNT [--wide | --words] | reduce FILE NAME")
 
 
 if __name__ == "__main__":
