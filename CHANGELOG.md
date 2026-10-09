@@ -10,6 +10,11 @@ format.
 
 ### Changed
 
+- A wrapping column's min-content height is its max-content height, as
+  for any height in CSS, rather than its tallest item: its automatic
+  minimum no longer lets a column of content height shrink it into more
+  lines than Chrome does. Two Chrome fixtures hold it.
+
 - A row sized by its content sums its items' contributions, the
   specification's Web-compatible algorithm as Chrome applies it, not
   their flex bases: an item counts its preferred width, else its

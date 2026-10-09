@@ -346,8 +346,10 @@ static void SizeMain(Frame* frame)
     }
     if (frame->mainIn.mode != mui_measureExact)
     {
-        // A container that wraps is at its narrowest one child per line.
-        bool narrowest = frame->multiLine && frame->mainIn.mode == mui_measureMinContent;
+        // A row that wraps is at its narrowest one child per line; a
+        // column's min-content height is its max-content one, as in CSS.
+        bool narrowest =
+            frame->row && frame->multiLine && frame->mainIn.mode == mui_measureMinContent;
         float content = narrowest ? widest : sum + Gaps(frame->gap, frame->count);
         float outer = muiClampSize(content + frame->boxMain, frame->mainLimits.minimum,
                                    frame->mainLimits.maximum, frame->boxMain);

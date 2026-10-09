@@ -122,3 +122,23 @@ fixture wrap_reverse_end_with_margins available=500x400
 node width=100 height=100 wrap=wrap-reverse align-items=end => 0 0 100 100
   node width=60 height=10 margin=0,0,3,7 => 0 56.5 60 10
   node width=60 height=20 margin=0,0,5,2 => 0 5 60 20
+
+# A wrapping column's min-content height is its max-content one, as for
+# any height in CSS: its automatic minimum keeps it from shrinking into
+# more lines.
+fixture wrap_column_automatic_minimum available=500x400
+node align-items=start => 0 0 10 50
+  node direction=column height=50 => 0 0 10 50
+    node direction=column wrap=wrap => 0 0 10 60
+      node content=10x20 => 0 0 10 20
+      node content=10x20 => 0 20 10 20
+      node content=10x20 => 0 40 10 20
+
+fixture wrap_column_reverse_automatic_minimum available=500x400
+node height=100 => 0 0 10 100
+  node direction=column-reverse => 0 0 10 100
+    node => 0 -50 10 150
+      node height=150 => 0 0 0 150
+    node direction=column-reverse wrap=wrap-reverse => 0 -63 10 13
+      node content=10x10 => 0 3 10 10
+      node padding=3,7,0,3 => 0 0 10 3
