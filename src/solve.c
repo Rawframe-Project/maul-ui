@@ -304,8 +304,8 @@ static float RatioContentHeight(const muiSolver* solver, uint32_t node, const mu
 }
 
 // The size the aspect ratio gives an axis from the other one's, at least
-// the content's min-content size when the axis's minimum is automatic (CSS
-// Sizing 4). A width given as a percentage that cannot resolve takes that
+// the content's min-content size when the axis's minimum is automatic
+// (CSS Sizing 4). A width given as a percentage that cannot resolve takes that
 // minimum too; a height so given does not, as in Chrome. Within its
 // limits.
 static muiMeasureAxis RatioAxis(const muiSolver* solver, uint32_t node, const muiSizingInput* input,
@@ -320,8 +320,18 @@ static muiMeasureAxis RatioAxis(const muiSolver* solver, uint32_t node, const mu
         // leave its floor; asked its min-content height, as a column
         // measures its items, the node counts its content in full.
         bool full = horizontal || input->height.mode == mui_measureMinContent;
-        size = fmaxf(size, full ? ContentSize(solver, node, input, horizontal)
-                                : RatioContentHeight(solver, node, input, size));
+        float floor = full ? ContentSize(solver, node, input, horizontal)
+                           : RatioContentHeight(solver, node, input, size);
+        muiAxisSizing height = muiResolveAxis(&style->sizing, false, input->parentHeight);
+        if (horizontal && !height.definite)
+        {
+            // A width's floor is capped by the height's maximum through
+            // the ratio, a height not given (as Chrome; a height's floor
+            // is not capped by the width's).
+            float box = muiBoxSum(&solver->paddings[node - 1], style, false);
+            floor = fminf(floor, muiAxisCeiling(&height, box) * style->sizing.aspectRatio);
+        }
+        size = fmaxf(size, floor);
     }
     return muiExact(muiClampSize(size, axis.minimum, axis.maximum,
                                  muiBoxSum(&solver->paddings[node - 1], style, horizontal)));

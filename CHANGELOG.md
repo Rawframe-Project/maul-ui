@@ -10,6 +10,12 @@ format.
 
 ### Changed
 
+- A ratio item's width, floored by its content, is capped by its
+  maximum height through the ratio when no height is given (CSS Sizing
+  4), as a column's lines measure it; a row's ratio item still counts
+  its content in full for its automatic minimum. As Chrome does; seven
+  Chrome fixtures hold the cases.
+
 - Absolute boxes, as Chrome does (CSS Position 3, section 4.1): one with
   both insets automatic on an axis fits the room from its static
   position to the containing block's edge it aligns away from, not the

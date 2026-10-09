@@ -60,8 +60,11 @@ float muiFlexAutomaticMinimum(const muiFlexFrame* frame, uint32_t child, const m
     {
         return 0.0f;
     }
-    float content = ContentMain(frame, child, mui_measureMinContent, cross, false);
+    // A row's ratio item counts its content's own answer, the ratio and
+    // its limits applied below (as Chrome).
     float ratio = frame->solver->nodes[child - 1].style.sizing.aspectRatio;
+    float content =
+        ContentMain(frame, child, mui_measureMinContent, cross, ratio > 0.0f && frame->row);
     if (ratio > 0.0f && cross.mode == mui_measureExact)
     {
         content = fmaxf(content, frame->row ? cross.size * ratio : cross.size / ratio);

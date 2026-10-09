@@ -515,3 +515,38 @@ node width=100 height=100 => 0 0 100 100
 fixture ratio_carried_maximum_under_minimum_insets available=500x400
 node width=100 height=100 => 0 0 100 100
   node position=absolute start=0 end=0 aspect=2 min-height=10 max-height=0 => 0 0 20 10
+
+# A ratio item's width floor, its content's min-content width, is capped
+# by its maximum height through the ratio when no height is given (CSS
+# Sizing 4: the min-content size capped by the maximum size).
+
+fixture ratio_column_item_given_height_floors_width available=500x400
+node direction=column align-items=start => 0 0 50 10
+  node height=10 aspect=1 content=50x10 => 0 0 50 10
+
+fixture ratio_wrap_column_item_max_height_caps_floor available=500x400
+node direction=column wrap=wrap => 0 0 10 10
+  node max-height=10 aspect=1 content=50x10 => 0 0 10 10
+
+fixture ratio_column_item_max_height_caps_floor available=500x400
+node width=100 direction=column align-items=start => 0 0 100 10
+  node max-height=10 aspect=1 content=50x10 => 0 0 10 10
+
+fixture ratio_wrap_column_item_words_capped available=500x400
+node direction=column wrap=wrap => 0 0 10 10
+  node max-height=10 aspect=1 content=25x10*2 => 0 0 10 10
+
+fixture ratio_nested_wrap_column_item_capped available=500x400
+node => 0 0 10 10
+  node direction=column wrap=wrap => 0 0 10 10
+    node max-height=10 aspect=1 content=50x10 => 0 0 10 10
+
+fixture ratio_column_in_column_item_capped available=500x400
+node direction=column align-items=start => 0 0 10 10
+  node direction=column align-items=start => 0 0 10 10
+    node max-height=10 aspect=1 content=50x10 => 0 0 10 10
+
+fixture ratio_column_floor_holds_capped_item available=500x400
+node => 0 0 10 10
+  node aspect=1.5 direction=column-reverse wrap=wrap-reverse => 0 0 10 10
+    node max-height=10 aspect=1 content=50x10 => 0 0 10 10
