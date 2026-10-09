@@ -390,8 +390,9 @@ static void TestNotifications(UIView* view)
     muiDestroyUikitAdapter(adapter);
 }
 
-// An input delegate writing down what it is told.
-@interface TestTextDelegate : NSObject <UITextInputDelegate>
+// An input delegate writing down what it is told; it does not declare
+// the protocol, whose required methods grow with the SDK.
+@interface TestTextDelegate : NSObject
 {
   @public
     NSMutableString* told;
@@ -563,7 +564,7 @@ static void TestText(muiUikitAdapter* adapter, id root, const Built* built)
     TestTextRequests(field);
     TestTextDelegate* delegate = [[TestTextDelegate alloc] init];
     delegate->told = [[NSMutableString alloc] init];
-    [field setInputDelegate:delegate];
+    [field setInputDelegate:(id<UITextInputDelegate>)delegate];
     input.marks.anchor = 7;
     CHECK(Send(adapter, (const muiAccessNode*[]){&input}, 1, built->children, 0) &&
               PostedAre(@"") && [delegate->told isEqualToString:@"selection will; selection did; "],
