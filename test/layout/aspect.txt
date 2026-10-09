@@ -325,3 +325,21 @@ node => 0 0 112.5 150
   node height=150 => 0 0 112.5 150
     node direction=column-reverse => 0 0 112.5 150
       node height=75% aspect=1 => 0 37.5 112.5 112.5
+
+# A column item with a ratio and a given height: stretched across a
+# single line its width is definite and its ratio keeps its height;
+# aligned otherwise its automatic minimum is its content's and it shrinks.
+fixture column_ratio_item_shrinks available=500x400
+node align-items=start => 0 0 30 10
+  node direction=column height=10 => 0 0 30 10
+    node height=20 aspect=1.5 => 0 0 30 20
+
+fixture column_ratio_item_shrinks_aligned available=500x400
+node align-items=start => 0 0 30 10
+  node direction=column height=10 align-items=start => 0 0 30 10
+    node height=20 aspect=1.5 => 0 0 15 10
+
+fixture column_ratio_item_content_floor available=500x400
+node align-items=start => 0 0 30 10
+  node direction=column height=10 => 0 0 30 10
+    node height=20 aspect=1.5 content=10x15 => 0 0 30 20

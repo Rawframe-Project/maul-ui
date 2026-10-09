@@ -117,6 +117,37 @@ static float StaticOffset(const muiLayoutStyle* container, const muiLayoutStyle*
     return span->contentStart + offset;
 }
 
+// Where a margin box of size outer starts in the padding box, aligned by
+// align between both insets (CSS Position 3): crossing insets leave no
+// space, at the start inset; a box that overflows the space covers it,
+// aligned as far as the bounding box of the space and the padding box
+// allows, or starts that box when larger (CSS Box Alignment 4.4.1.2).
+static float AlignBetweenInsets(muiAlign align, float padding, const Insets* insets, float outer)
+{
+    if (align != mui_alignStart && align != mui_alignEnd && align != mui_alignCenter)
+    {
+        return insets->start;
+    }
+    float start = insets->start;
+    float end = fmaxf(padding - insets->end, start);
+    float free = end - start - outer;
+    float place =
+        start + (align == mui_alignEnd ? free : (align == mui_alignCenter ? free / 2.0f : 0.0f));
+    if (free >= 0.0f)
+    {
+        return place;
+    }
+    float limitStart = fminf(start, 0.0f);
+    float limitEnd = fmaxf(end, padding);
+    if (outer > limitEnd - limitStart)
+    {
+        return limitStart;
+    }
+    float low = fmaxf(end - outer, limitStart);
+    float high = fminf(start, limitEnd - outer);
+    return fminf(fmaxf(place, low), high);
+}
+
 // The child's offset from the container's border box along an axis.
 static float Offset(const muiLayoutStyle* container, const muiLayoutStyle* child, bool horizontal,
                     const Span* span, const Insets* insets, float size, bool rtl)
@@ -142,12 +173,10 @@ static float Offset(const muiLayoutStyle* container, const muiLayoutStyle* child
         else if (!autoEnd && !horizontal)
         {
             // Vertically its own align-self places it in the space the
-            // insets leave, none when they cross (CSS Position 3, as
-            // Chrome); horizontally it starts at its inset.
-            float space = fmaxf(span->paddingSize - insets->start - insets->end, 0.0f);
-            float lead = space - size - muiEdgeSum(&margins, false);
-            muiAlign align = child->item.alignSelf;
-            start += align == mui_alignEnd ? lead : (align == mui_alignCenter ? lead / 2.0f : 0.0f);
+            // insets leave; horizontally it starts at its inset.
+            return span->paddingStart + start +
+                   AlignBetweenInsets(child->item.alignSelf, span->paddingSize, insets,
+                                      size + muiEdgeSum(&margins, false));
         }
         return span->paddingStart + insets->start + start;
     }
@@ -164,10 +193,10 @@ static float Offset(const muiLayoutStyle* container, const muiLayoutStyle* child
 
 // With an aspect ratio, a height from both insets gives way to the ratio
 // when the width is fixed, and the function returns true; otherwise it
-// gives the width, the width's limits through the ratio clamping it (CSS
-// Sizing 4, as Chrome).
-static bool RatioTakesHeight(const muiLayoutStyle* style, const Span* spanX, const Span* spanY,
-                             bool fixedWidth, float* height)
+// gives the width, the width's limits, its padding and border among them,
+// through the ratio clamping it (CSS Sizing 4, as Chrome).
+static bool RatioTakesHeight(const muiLayoutStyle* style, const muiEdges* padding,
+                             const Span* spanX, const Span* spanY, bool fixedWidth, float* height)
 {
     float ratio = style->sizing.aspectRatio;
     if (ratio <= 0.0f || muiResolveAxis(&style->sizing, false, spanY->paddingSize).definite)
@@ -175,8 +204,20 @@ static bool RatioTakesHeight(const muiLayoutStyle* style, const Span* spanX, con
         return false;
     }
     muiAxisSizing across = muiResolveAxis(&style->sizing, true, spanX->paddingSize);
-    *height = fminf(fmaxf(*height, across.minimum / ratio), across.maximum / ratio);
+    float minimum = fmaxf(across.minimum, muiBoxSum(padding, style, true));
+    *height = fminf(fmaxf(*height, minimum / ratio), across.maximum / ratio);
     return fixedWidth;
+}
+
+// The vertical insets that size a child: between both, start, end or
+// centre alignment makes its height fit-content, not stretched (CSS
+// Position 3 section 4.1), so the end inset does not size it.
+static Insets SizingInsets(const muiLayoutStyle* style, Insets insets)
+{
+    muiAlign align = style->item.alignSelf;
+    insets.hasEnd = insets.hasEnd && align != mui_alignStart && align != mui_alignEnd &&
+                    align != mui_alignCenter;
+    return insets;
 }
 
 static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container, uint32_t child,
@@ -218,9 +259,11 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
     float height = 0.0f;
     // Its padding with the safe area, in the direction it inherits.
     const muiEdges padding = muiPaddingOf(style, &solver->safeArea, muiIsRtl(style, rtl));
-    bool fixedHeight = FixedSize(style, &padding, false, spanX, spanY, &insetY, &height);
+    Insets sizingY = SizingInsets(style, insetY);
+    bool fixedHeight = FixedSize(style, &padding, false, spanX, spanY, &sizingY, &height);
     bool fixedWidth = FixedSize(style, &padding, true, spanX, spanY, &insetX, &width);
-    fixedHeight = fixedHeight && !RatioTakesHeight(style, spanX, spanY, fixedWidth, &height);
+    fixedHeight =
+        fixedHeight && !RatioTakesHeight(style, &padding, spanX, spanY, fixedWidth, &height);
     if (!fixedWidth)
     {
         muiEdges margins = muiMarginsOf(style, rtl);

@@ -10,6 +10,18 @@ format.
 
 ### Changed
 
+- Absolute boxes between both vertical insets follow CSS Position 3 and
+  CSS Box Alignment as Chrome does: with start, end or centre
+  `align-self` the automatic height is fit-content, not stretched; a box
+  that overflows the space between its insets covers it, aligned as far
+  as the bounding box of that space and the container allows. An
+  absolute box's aspect ratio carries its width's padding and border to
+  its height as a minimum. A column's min-content height query of an
+  item with a ratio and a given height is answered by the content, so
+  such an item can shrink. Eight Chrome fixtures hold the cases, and the
+  corpus keeps seed 27's 194 random layouts that agree with Chrome
+  (`test/layout/random27.txt`).
+
 - A box whose style gives its height and whose width is automatic takes
   its width through its aspect ratio when asked its width with its
   height left open, as a column asks its items, as Chrome does: an item
