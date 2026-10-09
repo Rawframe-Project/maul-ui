@@ -10,6 +10,13 @@ format.
 
 ### Changed
 
+- A box's start and end margins, automatic margins and insets follow its
+  own direction, as CSS Logical maps them and Chrome does: a
+  right-to-left item in a left-to-right row takes its start margin on
+  its right. Children that inherit their direction are unchanged. Nine
+  Chrome fixtures hold the cases, and three more random layouts join
+  the corpus.
+
 - `space-around` and `space-evenly` with too little room put the content's
   start at the writing mode's start, as CSS Box Alignment's safe-centre
   fallback says and Chrome does, also when the direction is reversed or

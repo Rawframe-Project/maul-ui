@@ -68,3 +68,45 @@ node width=200 height=100 dir=rtl => 0 0 200 100
   node position=absolute start=10 top=10 width=100 height=30 => 90 10 100 30
     node width=30 height=10 => 70 0 30 10
     node width=20 height=10 => 50 0 20 10
+
+# A box's logical margins and insets follow its own direction, not its
+# parent's (CSS Logical).
+fixture rtl_item_margin_start_in_ltr_parent available=500x400
+node => 0 0 7 14
+  node => 0 0 7 14
+    node margin=7,0,7,7 dir=rtl => 0 7 0 0
+
+fixture rtl_item_margin_start_zero_width available=500x400
+node => 0 0 7 3
+  node => 0 0 7 3
+    node margin=7,0,3,0 dir=rtl => 0 3 0 0
+
+fixture rtl_absolute_end_inset available=500x400
+node => 0 0 0 0
+  node position=absolute end=20 dir=rtl => 20 0 0 0
+
+fixture own_direction_rtl_item_in_ltr_row available=500x400
+node width=200 align-items=start => 0 0 200 10
+  node width=40 height=10 dir=rtl margin=10,30,0,0 => 30 0 40 10
+  node width=40 height=10 => 80 0 40 10
+
+fixture own_direction_ltr_item_in_rtl_row available=500x400
+node width=200 dir=rtl align-items=start => 0 0 200 10
+  node width=40 height=10 dir=ltr margin=10,30,0,0 => 130 0 40 10
+  node width=40 height=10 => 80 0 40 10
+
+fixture own_direction_rtl_item_auto_start_margin available=500x400
+node width=200 align-items=start => 0 0 200 10
+  node width=40 height=10 dir=rtl margin=auto,0,0,0 => 0 0 40 10
+
+fixture own_direction_rtl_item_in_ltr_column available=500x400
+node width=200 direction=column => 0 0 200 10
+  node height=10 dir=rtl margin=10,30,0,0 => 30 0 160 10
+
+fixture own_direction_rtl_absolute_start_inset available=500x400
+node width=200 height=100 => 0 0 200 100
+  node position=absolute start=10 top=0 width=40 height=10 dir=rtl => 150 0 40 10
+
+fixture own_direction_ltr_absolute_in_rtl available=500x400
+node width=200 height=100 dir=rtl => 0 0 200 100
+  node position=absolute end=10 top=0 width=40 height=10 dir=ltr margin=5,0,0,0 => 150 0 40 10

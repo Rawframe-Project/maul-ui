@@ -376,6 +376,15 @@ node width=100% height=10 padding=5 align-items=center => 0 0 500 10
     node height=150 margin=2 padding=3,3,3,7 direction=column-reverse justify=space-evenly => 2 5 96 150
       node width=50% grow=2 shrink=0 border=0 => 3 3 45 140
 
+fixture random_26_35 available=500x400
+node direction=column wrap=wrap-reverse => 0 0 0 0
+  node width=25% height=150 basis=10% position=absolute end=20 top=10 bottom=5 margin=0 border=7,0,0,7 padding=3,0,7,3 dir=rtl => 20 10 10 150
+    node width=150 height=10 content=10x10 => -10 7 10 10
+    node width=75% margin=0 padding=10 justify=space-evenly align-items=center column-gap=0 => -30 7 20 133
+      node width=20 height=25% content=30x20 => -10 52.375 20 28.25
+      node height=120 margin=5 => -15 6.5 0 120
+      node min-height=20 max-height=40 => -20 56.5 0 20
+
 fixture random_26_36 available=500x400
 node width=50% border=0,0,0,0 padding=0,0,3,0 align-items=stretch align-content=stretch => 0 0 250 67
   node height=100% min-width=0 border=7,3,3,3 justify=space-around align-content=end => 0 3 14 10
@@ -523,6 +532,28 @@ node height=10 border=0,0,3,0 direction=row => 0 0 195 10
     node width=25% height=75% align-items=end => 35.5 7 28.5 0
       node height=10 max-width=30 border=2 padding=0 content=10x20 => 0 -10 14 10
   node height=50% grow=0 border=3,7,3,3 content=50x20 => 135 3 60 6
+
+fixture random_26_51 available=500x400
+node width=75% height=25% border=0 direction=column-reverse wrap=wrap => 0 0 375 100
+  node width=25% height=120 grow=0 margin=0,0,7,3 wrap=wrap justify=start => 0 -23 93.75 120
+    node height=100% shrink=3 margin=3,3,0,3 border=0 align-content=end => 3 0 84 120
+      node width=0 border=3,7,3,0 content=10x40 => 0 0 10 120
+      node width=50% grow=1 shrink=3 margin=2 border=0 content=50x40 => 12 2 50 116
+      node height=25% min-height=40 margin=10 => 74 10 0 40
+    node height=100% grow=1 margin=0,0,7,3 border=5 align-items=stretch => 0 130 140 120
+      node width=75% grow=0 padding=3,7,3,7 content=50x10 => 5 5 60 110
+      node width=75% height=40 grow=1 => 65 5 0 40
+      node height=80 align-self=center margin=0,0,3,3 border=10 content=50x40 => 65 20 70 80
+    node height=75% min-height=80 content=50x16 => 0 253 50 90
+  node width=150 grow=0 border=3,7,3,0 padding=10 => 159.375 -76 150 176
+    node width=50% height=75% align-self=center border=0,7,0,3 align-items=stretch row-gap=10 column-gap=4 => 13 32.125 60 114.75
+      node height=150 shrink=0 padding=3,0,0,3 content=80x40 => 0 0 83 150
+      node width=20 height=10 shrink=3 margin=2 padding=7,3,7,7 content=30x10 => 89 2 20 14
+      node max-height=50% shrink=1 border=0,3,0,3 => 115 0 3 55.875
+    node grow=0 margin=7,0,3,0 padding=7,3,0,0 direction=column dir=rtl => 73 16 90 150
+      node width=25% height=100% position=absolute start=10 end=5 top=10 border=7,0,3,7 content=30x16 => 57.5 10 22.5 150
+      node width=80 grow=1 align-self=end border=2 => 3 0 80 140
+      node width=100% shrink=1 padding=3,3,3,7 => 3 140 80 10
 
 fixture random_26_52 available=500x400
 node width=20 height=60 padding=7,0,3,3 column-gap=0 => 0 0 20 60
@@ -1230,6 +1261,14 @@ node width=150 height=0 min-width=0 border=10 direction=row-reverse justify=star
       node height=40 min-width=75% position=absolute start=0 end=20 border=10 padding=10 => 0 2 83 40
       node height=50% border=3,7,3,0 padding=7,3,7,7 content=50x16 => 2 2 70 17
       node width=120 height=20 min-width=20 basis=20 margin=10 border=0,7,0,3 content=50x20 => 82 12 20 20
+
+fixture random_26_121 available=500x400
+node width=40 height=10 direction=row align-items=stretch => 0 0 40 10
+  node width=20 align-self=start aspect=1.5 border=10 => 0 0 20 20
+  node margin=0,0,0,3 border=0 align-items=stretch => 20 0 57 7
+    node height=30 grow=2 margin=7,0,7,7 direction=row-reverse justify=end column-gap=4 dir=rtl => 0 7 50 30
+      node width=25% grow=1 shrink=1 content=50x20 => 0 0 50 30
+      node height=30 position=absolute end=20 border=0,3,0,0 => 20 0 3 30
 
 fixture random_26_122 available=500x400
 node width=120 height=300 direction=row wrap=wrap justify=end align-items=start => 0 0 120 300

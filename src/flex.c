@@ -84,7 +84,8 @@ static muiAlign AlignOf(const Frame* frame, const muiLayoutStyle* child)
 static bool IsBaselineAligned(const Frame* frame, const muiLayoutStyle* child)
 {
     return frame->row && AlignOf(frame, child) == mui_alignBaseline &&
-           !muiIsMarginAutoStart(child, false) && !muiIsMarginAutoEnd(child, false);
+           !muiIsMarginAutoStart(child, false, frame->rtl) &&
+           !muiIsMarginAutoEnd(child, false, frame->rtl);
 }
 
 // Whether a child takes its line's cross size: it aligns by stretch, its
@@ -94,7 +95,8 @@ static bool IsStretched(const Frame* frame, const muiLayoutStyle* child)
 {
     muiDimension cross = frame->row ? child->sizing.height : child->sizing.width;
     return AlignOf(frame, child) == mui_alignStretch && cross.kind == mui_dimensionAuto &&
-           !muiIsMarginAutoStart(child, !frame->row) && !muiIsMarginAutoEnd(child, !frame->row);
+           !muiIsMarginAutoStart(child, !frame->row, frame->rtl) &&
+           !muiIsMarginAutoEnd(child, !frame->row, frame->rtl);
 }
 
 // A child's padding with the safe area, in the direction it lays out in.
@@ -112,7 +114,7 @@ static muiMeasureAxis CrossConstraint(const Frame* frame, const muiLayoutStyle* 
 {
     const muiEdges padding = ChildPadding(frame, child);
     float boxCross = muiBoxSum(&padding, child, !frame->row);
-    muiEdges margins = muiMarginsOf(child);
+    muiEdges margins = muiMarginsOf(child, frame->rtl);
     float margin = muiEdgeSum(&margins, !frame->row);
     if (cross->definite)
     {
@@ -191,7 +193,7 @@ static float PrepareItem(const Frame* frame, uint32_t child)
     const muiEdges padding = ChildPadding(frame, style);
     float boxMain = muiBoxSum(&padding, style, frame->row);
     muiMeasureAxis crossConstraint = CrossConstraint(frame, style, &cross, true);
-    muiEdges margins = muiMarginsOf(style);
+    muiEdges margins = muiMarginsOf(style, frame->rtl);
     *item = (muiFlexItemState){
         .marginMain = muiEdgeSum(&margins, frame->row),
         .marginCross = muiEdgeSum(&margins, !frame->row),
@@ -409,7 +411,7 @@ static float HypotheticalCross(const Frame* frame, uint32_t first, uint32_t coun
         float outer = item->cross + item->marginCross;
         if (IsBaselineAligned(frame, style))
         {
-            muiEdges margins = muiMarginsOf(style);
+            muiEdges margins = muiMarginsOf(style, frame->rtl);
             muiSizingInput at = ChildInput(frame, muiExact(item->target), muiExact(item->cross));
             item->ascent =
                 muiEdgeStart(&margins, false) + frame->solver->baseline(frame->solver, c, &at);
@@ -527,11 +529,11 @@ static void SizeCross(Frame* frame)
 static float AutoCrossOffset(const Frame* frame, const muiLayoutStyle* style,
                              const muiFlexItemState* item, float line)
 {
-    muiEdges margins = muiMarginsOf(style);
+    muiEdges margins = muiMarginsOf(style, frame->rtl);
     float start = muiEdgeStart(&margins, !frame->row);
     float freeSpace = line - item->cross - item->marginCross;
-    bool autoStart = muiIsMarginAutoStart(style, !frame->row);
-    bool autoEnd = muiIsMarginAutoEnd(style, !frame->row);
+    bool autoStart = muiIsMarginAutoStart(style, !frame->row, frame->rtl);
+    bool autoEnd = muiIsMarginAutoEnd(style, !frame->row, frame->rtl);
     if (freeSpace <= 0.0f)
     {
         // An automatic start margin is already zero in start.
@@ -550,11 +552,12 @@ static float AutoCrossOffset(const Frame* frame, const muiLayoutStyle* style,
 static float CrossOffset(const Frame* frame, const muiLayoutStyle* style,
                          const muiFlexItemState* item, float line, float baseline)
 {
-    if (muiIsMarginAutoStart(style, !frame->row) || muiIsMarginAutoEnd(style, !frame->row))
+    if (muiIsMarginAutoStart(style, !frame->row, frame->rtl) ||
+        muiIsMarginAutoEnd(style, !frame->row, frame->rtl))
     {
         return AutoCrossOffset(frame, style, item, line);
     }
-    muiEdges margins = muiMarginsOf(style);
+    muiEdges margins = muiMarginsOf(style, frame->rtl);
     float start = muiEdgeStart(&margins, !frame->row);
     float end = muiEdgeEnd(&margins, !frame->row);
     muiAlign align = AlignOf(frame, style);
@@ -659,8 +662,8 @@ static Offsets PlaceLine(const Frame* frame, uint32_t first, uint32_t count, uin
     {
         const muiLayoutStyle* style = &frame->solver->nodes[c - 1].style;
         used += ItemOf(frame, c)->target + ItemOf(frame, c)->marginMain;
-        autoMargins += (uint32_t)muiIsMarginAutoStart(style, frame->row) +
-                       (uint32_t)muiIsMarginAutoEnd(style, frame->row);
+        autoMargins += (uint32_t)muiIsMarginAutoStart(style, frame->row, frame->rtl) +
+                       (uint32_t)muiIsMarginAutoEnd(style, frame->row, frame->rtl);
     }
     float freeSpace = frame->innerMain - used;
     float lead = 0.0f;
@@ -685,9 +688,9 @@ static Offsets PlaceLine(const Frame* frame, uint32_t first, uint32_t count, uin
     {
         const muiLayoutStyle* style = &frame->solver->nodes[c - 1].style;
         const muiFlexItemState* item = ItemOf(frame, c);
-        muiEdges margins = muiMarginsOf(style);
-        bool autoStart = muiIsMarginAutoStart(style, frame->row);
-        bool autoEnd = muiIsMarginAutoEnd(style, frame->row);
+        muiEdges margins = muiMarginsOf(style, frame->rtl);
+        bool autoStart = muiIsMarginAutoStart(style, frame->row, frame->rtl);
+        bool autoEnd = muiIsMarginAutoEnd(style, frame->row, frame->rtl);
         float start = muiEdgeStart(&margins, frame->row) + (autoStart ? autoShare : 0.0f);
         float end = muiEdgeEnd(&margins, frame->row) + (autoEnd ? autoShare : 0.0f);
         // In a reversed container the flow starts at the physical end.

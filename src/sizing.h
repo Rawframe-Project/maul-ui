@@ -89,19 +89,33 @@ static inline float muiEdgeSum(const muiEdges* edges, bool horizontal)
     return muiEdgeStart(edges, horizontal) + muiEdgeEnd(edges, horizontal);
 }
 
-// Whether the start or end margin along an axis is automatic.
-static inline bool muiIsMarginAutoStart(const muiLayoutStyle* style, bool horizontal)
+// Whether a node's own direction runs against its parent's, which lays
+// it out: its logical margins and insets then map to the other physical
+// sides, as CSS Logical maps a box's properties by its own direction.
+static inline bool muiAgainstParent(const muiLayoutStyle* style, bool parentRtl)
 {
-    return (style->marginAuto & (horizontal ? mui_edgeStart : mui_edgeTop)) != 0;
+    return style->textDirection != mui_textInherit &&
+           (style->textDirection == mui_textRightToLeft) != parentRtl;
 }
 
-static inline bool muiIsMarginAutoEnd(const muiLayoutStyle* style, bool horizontal)
+// Whether the start or end margin along an axis is automatic, in the
+// parent's direction.
+static inline bool muiIsMarginAutoStart(const muiLayoutStyle* style, bool horizontal,
+                                        bool parentRtl)
 {
-    return (style->marginAuto & (horizontal ? mui_edgeEnd : mui_edgeBottom)) != 0;
+    muiEdgeMask start = muiAgainstParent(style, parentRtl) ? mui_edgeEnd : mui_edgeStart;
+    return (style->marginAuto & (horizontal ? start : mui_edgeTop)) != 0;
 }
 
-// A node's margins with its automatic sides as zero.
-static inline muiEdges muiMarginsOf(const muiLayoutStyle* style)
+static inline bool muiIsMarginAutoEnd(const muiLayoutStyle* style, bool horizontal, bool parentRtl)
+{
+    muiEdgeMask end = muiAgainstParent(style, parentRtl) ? mui_edgeStart : mui_edgeEnd;
+    return (style->marginAuto & (horizontal ? end : mui_edgeBottom)) != 0;
+}
+
+// A node's margins with its automatic sides as zero, in its parent's
+// direction.
+static inline muiEdges muiMarginsOf(const muiLayoutStyle* style, bool parentRtl)
 {
     muiEdges margins = style->margin;
     muiEdgeMask mask = style->marginAuto;
@@ -109,6 +123,12 @@ static inline muiEdges muiMarginsOf(const muiLayoutStyle* style)
     margins.end = (mask & mui_edgeEnd) != 0 ? 0.0f : margins.end;
     margins.top = (mask & mui_edgeTop) != 0 ? 0.0f : margins.top;
     margins.bottom = (mask & mui_edgeBottom) != 0 ? 0.0f : margins.bottom;
+    if (muiAgainstParent(style, parentRtl))
+    {
+        float start = margins.start;
+        margins.start = margins.end;
+        margins.end = start;
+    }
     return margins;
 }
 

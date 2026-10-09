@@ -46,13 +46,15 @@ static Span SpanOf(const muiLayoutStyle* container, const muiEdges* padding, flo
     };
 }
 
-static Insets InsetsOf(const muiInsets* inset, bool horizontal, float extent)
+// Its insets along an axis, horizontal ones swapped when its own direction
+// runs against its container's (muiAgainstParent).
+static Insets InsetsOf(const muiInsets* inset, bool horizontal, float extent, bool against)
 {
     Insets result = {0};
-    result.hasStart =
-        muiResolveDimension(horizontal ? inset->start : inset->top, extent, &result.start);
-    result.hasEnd =
-        muiResolveDimension(horizontal ? inset->end : inset->bottom, extent, &result.end);
+    muiDimension start = horizontal ? (against ? inset->end : inset->start) : inset->top;
+    muiDimension end = horizontal ? (against ? inset->start : inset->end) : inset->bottom;
+    result.hasStart = muiResolveDimension(start, extent, &result.start);
+    result.hasEnd = muiResolveDimension(end, extent, &result.end);
     return result;
 }
 
@@ -63,7 +65,7 @@ static bool FixedSize(const muiLayoutStyle* style, const muiEdges* padding, bool
 {
     const Span* span = horizontal ? spanX : spanY;
     muiAxisSizing axis = muiResolveAxis(&style->sizing, horizontal, span->paddingSize);
-    muiEdges margins = muiMarginsOf(style);
+    muiEdges margins = muiMarginsOf(style, false);
     float box = muiBoxSum(padding, style, horizontal);
     if (axis.definite)
     {
@@ -84,11 +86,11 @@ static bool FixedSize(const muiLayoutStyle* style, const muiEdges* padding, bool
 // container's only flex item, under justify-content on the main axis and
 // align-self on the cross axis.
 static float StaticOffset(const muiLayoutStyle* container, const muiLayoutStyle* child,
-                          bool horizontal, const Span* span, float size)
+                          bool horizontal, const Span* span, float size, bool rtl)
 {
     muiFlexDirection direction = container->container.direction;
     bool row = direction == mui_flexRow || direction == mui_flexRowReverse;
-    muiEdges margins = muiMarginsOf(child);
+    muiEdges margins = muiMarginsOf(child, rtl);
     float start = muiEdgeStart(&margins, horizontal);
     float end = muiEdgeEnd(&margins, horizontal);
     float freeSpace = span->contentSize - size - start - end;
@@ -117,9 +119,9 @@ static float StaticOffset(const muiLayoutStyle* container, const muiLayoutStyle*
 
 // The child's offset from the container's border box along an axis.
 static float Offset(const muiLayoutStyle* container, const muiLayoutStyle* child, bool horizontal,
-                    const Span* span, const Insets* insets, float size)
+                    const Span* span, const Insets* insets, float size, bool rtl)
 {
-    muiEdges margins = muiMarginsOf(child);
+    muiEdges margins = muiMarginsOf(child, rtl);
     float start = muiEdgeStart(&margins, horizontal);
     float end = muiEdgeEnd(&margins, horizontal);
     if (insets->hasStart && insets->hasEnd)
@@ -127,8 +129,8 @@ static float Offset(const muiLayoutStyle* container, const muiLayoutStyle* child
         // Automatic margins share what the insets leave, as CSS solves an
         // over-constrained box; without them the end inset gives way.
         float freeSpace = span->paddingSize - insets->start - insets->end - size - start - end;
-        bool autoStart = muiIsMarginAutoStart(child, horizontal);
-        bool autoEnd = muiIsMarginAutoEnd(child, horizontal);
+        bool autoStart = muiIsMarginAutoStart(child, horizontal, rtl);
+        bool autoEnd = muiIsMarginAutoEnd(child, horizontal, rtl);
         if (autoStart && autoEnd)
         {
             start += fmaxf(freeSpace, 0.0f) / 2.0f;
@@ -147,7 +149,7 @@ static float Offset(const muiLayoutStyle* container, const muiLayoutStyle* child
     {
         return span->paddingStart + span->paddingSize - insets->end - end - size;
     }
-    return StaticOffset(container, child, horizontal, span, size);
+    return StaticOffset(container, child, horizontal, span, size, rtl);
 }
 
 static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container, uint32_t child,
@@ -155,8 +157,9 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
 {
     muiLayoutNode* layout = &solver->nodes[child - 1];
     const muiLayoutStyle* style = &layout->style;
-    Insets insetX = InsetsOf(&style->placement.inset, true, spanX->paddingSize);
-    Insets insetY = InsetsOf(&style->placement.inset, false, spanY->paddingSize);
+    bool against = muiAgainstParent(style, rtl);
+    Insets insetX = InsetsOf(&style->placement.inset, true, spanX->paddingSize, against);
+    Insets insetY = InsetsOf(&style->placement.inset, false, spanY->paddingSize, against);
     if (layout->listed)
     {
         // An item of a virtual list: across it, its content box; along it,
@@ -191,7 +194,7 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
     bool fixedHeight = FixedSize(style, &padding, false, spanX, spanY, &insetY, &height);
     if (!FixedSize(style, &padding, true, spanX, spanY, &insetX, &width))
     {
-        muiEdges margins = muiMarginsOf(style);
+        muiEdges margins = muiMarginsOf(style, rtl);
         float space = spanX->paddingSize - (insetX.hasStart ? insetX.start : 0.0f) -
                       (insetX.hasEnd ? insetX.end : 0.0f) - muiEdgeSum(&margins, true);
         input.width = (muiMeasureAxis){fmaxf(space, 0.0f), mui_measureAtMost};
@@ -213,8 +216,8 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
         input.height = (muiMeasureAxis){0.0f, mui_measureMaxContent};
         height = solver->solve(solver, child, &input, false).height;
     }
-    float x = Offset(container, style, true, spanX, &insetX, width);
-    float y = Offset(container, style, false, spanY, &insetY, height);
+    float x = Offset(container, style, true, spanX, &insetX, width, rtl);
+    float y = Offset(container, style, false, spanY, &insetY, height, rtl);
     x -= style->placement.anchorX * width;
     y -= style->placement.anchorY * height;
     layout->rect = (muiRect){x, y, width, height};

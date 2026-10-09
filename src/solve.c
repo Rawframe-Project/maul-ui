@@ -195,9 +195,10 @@ static void MarkMoved(const muiSolver* solver, uint32_t node)
 // A scroll container's extent, while its children are still in logical
 // coordinates: the furthest end of their margin boxes (border boxes for
 // absolute ones) plus its end padding, from its padding box's start, at
-// least the padding box; its offsets are brought within it. What changes
-// an extent repaints the container, and so its transform.
-static void MeasureExtent(const muiSolver* solver, uint32_t node, muiSize size)
+// least the padding box; its offsets are brought within it, rtl its own
+// direction. What changes an extent repaints the container, and so its
+// transform.
+static void MeasureExtent(const muiSolver* solver, uint32_t node, muiSize size, bool rtl)
 {
     const muiLayoutStyle* style = &solver->nodes[node - 1].style;
     const muiEdges* padding = &solver->paddings[node - 1];
@@ -215,7 +216,7 @@ static void MeasureExtent(const muiSolver* solver, uint32_t node, muiSize size)
             // reaches past it, and across it the content box holds it.
             continue;
         }
-        muiEdges margins = child->absolute ? (muiEdges){0} : muiMarginsOf(&child->style);
+        muiEdges margins = child->absolute ? (muiEdges){0} : muiMarginsOf(&child->style, rtl);
         reachX = fmaxf(reachX, child->rect.x + child->rect.width + margins.end);
         reachY = fmaxf(reachY, child->rect.y + child->rect.height + margins.bottom);
     }
@@ -242,7 +243,7 @@ static muiSize SizeContainer(const muiSolver* solver, uint32_t node, const muiSi
         muiPlaceAbsolute(solver, node, size, input->rtl);
         if (solver->nodes[node - 1].style.scrollAxes != mui_scrollNone)
         {
-            MeasureExtent(solver, node, size);
+            MeasureExtent(solver, node, size, input->rtl);
         }
         if (input->rtl)
         {
@@ -450,7 +451,7 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
         if (muiTreeAt(solver->tree, node)->links.firstChild == 0 &&
             style->scrollAxes != mui_scrollNone)
         {
-            MeasureExtent(solver, node, size);
+            MeasureExtent(solver, node, size, own.rtl);
         }
         cache->finalValid = true;
         cache->finalRtl = input->rtl;
