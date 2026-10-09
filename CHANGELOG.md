@@ -10,6 +10,13 @@ format.
 
 ### Changed
 
+- In a column of no definite height, a percentage flex-basis that cannot
+  resolve is `content`, as CSS Flexbox 7.2.3 says and Chrome does: the
+  item takes its content's height, not its height property's. Rows
+  resolve the percentage once their width is known, as before. Four
+  Chrome fixtures hold the cases, and one more random layout joins the
+  corpus.
+
 - A box's start and end margins, automatic margins and insets follow its
   own direction, as CSS Logical maps them and Chrome does: a
   right-to-left item in a left-to-right row takes its start margin on

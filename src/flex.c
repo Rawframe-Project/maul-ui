@@ -210,9 +210,13 @@ static float PrepareItem(const Frame* frame, uint32_t child)
     {
         // A definite cross size gives the base through the aspect ratio
         // (section 9.2.3 B) when the child is sized with an exact cross
-        // size and an automatic main one.
-        fromContent = !main.definite;
-        base = main.definite ? main.size : ContentMain(frame, child, mode, crossConstraint);
+        // size and an automatic main one. In a column of no definite
+        // height a basis that cannot resolve is `content` (section 7.2.3),
+        // ignoring the height, as in Chrome; a row resolves it once its
+        // width is known and sizes by the width before.
+        fromContent =
+            !main.definite || (!frame->row && style->item.basis.kind != mui_dimensionAuto);
+        base = fromContent ? ContentMain(frame, child, mode, crossConstraint) : main.size;
     }
     item->base = fmaxf(base, boxMain);
     item->innerBase = item->base - boxMain;

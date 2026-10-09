@@ -78,3 +78,28 @@ fixture grow_fraction_with_frozen_max available=500x400
 node width=300 height=50 => 0 0 300 50
   node basis=100 max-width=50 grow=0.3 => 0 0 50 50
   node basis=0 grow=0.3 => 50 0 75 50
+
+# A percentage basis that cannot resolve is `content` in a column of no
+# definite height (section 7.2.3, as Chrome); a row resolves it against
+# its width once known.
+fixture column_percent_basis_ignores_height available=500x400
+node => 0 0 0 0
+  node => 0 0 0 0
+    node direction=column => 0 0 0 0
+      node height=150 basis=10% => 0 0 0 0
+
+fixture column_percent_basis_content available=500x400
+node align-items=start => 0 0 20 80
+  node direction=column => 0 0 20 80
+    node height=50 basis=50% content=20x30 => 0 0 20 30
+    node height=50 => 0 30 20 50
+
+fixture column_percent_basis_definite available=500x400
+node align-items=start => 0 0 20 200
+  node direction=column height=200 => 0 0 20 200
+    node height=50 basis=50% content=20x30 => 0 0 20 100
+
+fixture row_percent_basis_width available=500x400
+node align-items=start => 0 0 50 30
+  node => 0 0 50 30
+    node width=50 basis=50% content=20x30 => 0 0 25 30
