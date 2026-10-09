@@ -115,6 +115,14 @@ static void Show(muiAtspiAdapter* adapter)
     nodes[3].linkCount = 2;
     nodes[4].values.level = 2;
     nodes[5].actions = 1u << mui_actionSetValue;
+    // A value of characters of one to three bytes, selected, on two lines
+    // of three words, for the Text interface's offsets.
+    static const char value[] = "h\xC3\xA9llo w\xE2\x82\xACrld\nnext";
+    static const uint32_t lines[2] = {0, 15};
+    static const muiAccessWord words[3] = {{0, 6}, {7, 14}, {15, 19}};
+    nodes[5].text[mui_accessValue] = value;
+    nodes[5].textLength[mui_accessValue] = sizeof value - 1;
+    nodes[5].marks = (muiAccessTextMarks){7, 1, true, lines, 2, words, 3};
     nodes[6].flags = mui_accessNumeric;
     nodes[6].actions = 1u << mui_actionSetValue | 1u << mui_actionIncrement;
     nodes[6].value = 30.0f;

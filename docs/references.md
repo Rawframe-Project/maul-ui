@@ -103,6 +103,12 @@ engine's behaviour, not its source.
 - **Semantics on the web:** an invisible semantics tree, and a live
   region emptied 300 ms after an announcement, as Flutter's web engine
   makes them. `src/aria_page.c`.
+- **Text to assistive technology:** a text's selection, lines and
+  words carried in the accessibility tree, as AccessKit's text runs and
+  Chromium's inline text boxes carry them; AT-SPI's Text interface as
+  at-spi2-core's `xml/Text.xml` defines it, an edit told as Chromium
+  tells one, the start and end it keeps left out. `src/access_text.c`,
+  `src/text_access.c`, `src/atspi_text.c`.
 
 ## Hashing
 

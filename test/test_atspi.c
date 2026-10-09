@@ -217,6 +217,7 @@ static muiDBusHandled Listen(DBusConnection* connection, DBusMessage* message, v
     muiDBusIter iter;
     char kind[64] = "";
     int32_t detail1 = 0;
+    int32_t detail2 = 0;
     char any[300] = "";
     if (dbus->messageType(message) != mui_dbusSignal || interface == NULL ||
         (strcmp(interface, "org.a11y.atspi.Event.Object") != 0 &&
@@ -227,16 +228,22 @@ static muiDBusHandled Listen(DBusConnection* connection, DBusMessage* message, v
     }
     (void)(ReadString(&iter, kind, sizeof(kind)) && dbus->next(&iter));
     dbus->getBasic(&iter, &detail1);
-    (void)(dbus->next(&iter) && dbus->next(&iter));
+    (void)dbus->next(&iter);
+    dbus->getBasic(&iter, &detail2);
+    (void)dbus->next(&iter);
     DataOf(&iter, any, sizeof(any));
+    char details[32];
+    // The second detail, a text change's length, only where it is given.
+    (void)(detail2 != 0 ? snprintf(details, sizeof details, "%d/%d", (int)detail1, (int)detail2)
+                        : snprintf(details, sizeof details, "%d", (int)detail1));
     if (s_test.eventsLength >= sizeof(s_test.events) - 1)
     {
         return mui_dbusHandled;
     }
     s_test.eventsLength += (size_t)snprintf(
         s_test.events + s_test.eventsLength, sizeof(s_test.events) - s_test.eventsLength,
-        "%s%s %s %d %s%s", s_test.eventsLength != 0 ? "; " : "", dbus->member(message), kind,
-        (int)detail1, Short(dbus->path(message)), any);
+        "%s%s %s %s %s%s", s_test.eventsLength != 0 ? "; " : "", dbus->member(message), kind,
+        details, Short(dbus->path(message)), any);
     return mui_dbusHandled;
 }
 
@@ -263,6 +270,9 @@ static bool EventsAre(const char* expected)
     s_test.eventsLength = 0;
     return same;
 }
+
+// Whether Flatten writes signed integers too.
+static bool s_flattenInts;
 
 // Fills what it gives with garbage, so that memory read before it is
 // written shows.
@@ -936,6 +946,13 @@ static void Flatten(muiDBusIter* iter, char* out, size_t size, size_t* length)
             *length += (size_t)snprintf(out + *length, size - *length, "%s%u",
                                         *length != 0 ? " " : "", number);
         }
+        else if (type == mui_dbusTypeInt32 && s_flattenInts)
+        {
+            int32_t signed32 = 0;
+            s_test.dbus.getBasic(iter, &signed32);
+            *length += (size_t)snprintf(out + *length, size - *length, "%s%d",
+                                        *length != 0 ? " " : "", (int)signed32);
+        }
     }
 }
 
@@ -1119,7 +1136,7 @@ static void TestActionsAndValues(void)
                       "org.a11y.atspi.Accessible org.a11y.atspi.Component org.a11y.atspi.Action "
                       "org.a11y.atspi.Value") &&
               ReplyIs(label, "org.a11y.atspi.Accessible", "GetInterfaces",
-                      "org.a11y.atspi.Accessible org.a11y.atspi.Component"),
+                      "org.a11y.atspi.Accessible org.a11y.atspi.Component org.a11y.atspi.Text"),
           "interfaces as the node has them");
     DBusMessage* reply = Answer(Indexed(ok, "DoAction", 0));
     CHECK(PropertyOf(ok, "org.a11y.atspi.Action", "NActions", mui_dbusTypeInt32, &count) &&
@@ -1392,6 +1409,136 @@ static void TestActiveDescendant(muiAtspiAdapter* adapter, Built* built)
     CHECK(Send(adapter, sent, 1, built->children, 2) &&
               EventsAre("StateChanged focused 0 w1n6; StateChanged focused 1 w1n2"),
           "the focus back where it was");
+}
+
+// A Text method's reply, its integers too, flattened; its arguments
+// integers of the types named, 'i' or 'u'.
+static bool TextIs(const char* member, const char* types, const int32_t* args, const char* expected)
+{
+    DBusMessage* call = Call("/org/a11y/atspi/accessible/w1n7", "org.a11y.atspi.Text", member);
+    muiDBusIter iter;
+    s_test.dbus.iterInitAppend(call, &iter);
+    for (size_t i = 0; types[i] != '\0'; i++)
+    {
+        int type = types[i] == 'i' ? mui_dbusTypeInt32 : mui_dbusTypeUint32;
+        (void)s_test.dbus.appendBasic(&iter, type, &args[i]);
+    }
+    DBusMessage* reply = Answer(call);
+    char got[512] = "";
+    size_t length = 0;
+    s_flattenInts = true;
+    if (reply != NULL && s_test.dbus.iterInit(reply, &iter))
+    {
+        Flatten(&iter, got, sizeof(got), &length);
+    }
+    s_flattenInts = false;
+    if (reply != NULL)
+    {
+        s_test.dbus.unrefMessage(reply);
+    }
+    if (strcmp(got, expected) != 0)
+    {
+        fprintf(stderr, "%s: %s\n", member, got);
+    }
+    return strcmp(got, expected) == 0;
+}
+
+// The text input 7 given "héllo wörld\nnext", the caret after h: two
+// lines, three words. Characters, words, lines, paragraphs; the older
+// boundary methods; no sentences.
+static void TestTextReads(muiAtspiAdapter* adapter, Built* built, muiAccessNode* input)
+{
+    static const char s_value[] = "h\xC3\xA9llo w\xC3\xB6rld\nnext";
+    static const uint32_t s_lines[2] = {0, 14};
+    static const muiAccessWord s_words[3] = {{0, 6}, {7, 13}, {14, 18}};
+    input->text[mui_accessValue] = s_value;
+    input->textLength[mui_accessValue] = sizeof s_value - 1;
+    input->marks = (muiAccessTextMarks){1, 1, true, s_lines, 2, s_words, 3};
+    CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
+              EventsAre("TextChanged insert 0/16 w1n7 h\xC3\xA9llo w\xC3\xB6rld\nnext; "
+                        "TextCaretMoved  1 w1n7"),
+          "the text inserted, the caret placed");
+    int32_t count = 0;
+    int32_t caret = 0;
+    CHECK(PropertyOf("/org/a11y/atspi/accessible/w1n7", "org.a11y.atspi.Text", "CharacterCount",
+                     mui_dbusTypeInt32, &count) &&
+              count == 16 &&
+              PropertyOf("/org/a11y/atspi/accessible/w1n7", "org.a11y.atspi.Text", "CaretOffset",
+                         mui_dbusTypeInt32, &caret) &&
+              caret == 1,
+          "sixteen characters, the caret at 1");
+    CHECK(TextIs("GetText", "ii", (const int32_t[]){0, -1}, s_value) &&
+              TextIs("GetText", "ii", (const int32_t[]){1, 5}, "\xC3\xA9llo") &&
+              TextIs("GetText", "ii", (const int32_t[]){5, 2}, "") &&
+              TextIs("GetCharacterAtOffset", "i", (const int32_t[]){1}, "233") &&
+              TextIs("GetCharacterAtOffset", "i", (const int32_t[]){16}, "0"),
+          "text by character");
+    CHECK(TextIs("GetStringAtOffset", "iu", (const int32_t[]){0, 0}, "h 0 1") &&
+              TextIs("GetStringAtOffset", "iu", (const int32_t[]){2, 1}, "h\xC3\xA9llo  0 6") &&
+              TextIs("GetStringAtOffset", "iu", (const int32_t[]){5, 1}, "h\xC3\xA9llo  0 6") &&
+              TextIs("GetStringAtOffset", "iu", (const int32_t[]){13, 3}, "next 12 16") &&
+              TextIs("GetStringAtOffset", "iu", (const int32_t[]){3, 3},
+                     "h\xC3\xA9llo w\xC3\xB6rld\n 0 12") &&
+              TextIs("GetStringAtOffset", "iu", (const int32_t[]){12, 4}, "next 12 16") &&
+              TextIs("GetStringAtOffset", "iu", (const int32_t[]){3, 2}, "0 0"),
+          "characters, words, lines and paragraphs; no sentences");
+    CHECK(TextIs("GetTextAtOffset", "iu", (const int32_t[]){7, 1}, "w\xC3\xB6rld\n 6 12") &&
+              TextIs("GetTextBeforeOffset", "iu", (const int32_t[]){7, 1}, "h\xC3\xA9llo  0 6") &&
+              TextIs("GetTextAfterOffset", "iu", (const int32_t[]){7, 1}, "next 12 16") &&
+              TextIs("GetTextBeforeOffset", "iu", (const int32_t[]){2, 1}, "0 0") &&
+              TextIs("GetTextAfterOffset", "iu", (const int32_t[]){13, 5}, "16 16") &&
+              TextIs("GetTextAtOffset", "iu", (const int32_t[]){7, 2}, "0 0"),
+          "the older boundaries: word and line starts");
+}
+
+// Selecting, editing and the rest of the interface: selections; text
+// changed as deleted and inserted with the caret after; attributes and
+// geometry not given yet, setting the selection not offered.
+static void TestTextChanges(muiAtspiAdapter* adapter, Built* built, muiAccessNode* input)
+{
+    input->marks.anchor = 7;
+    input->marks.focus = 13;
+    CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
+              EventsAre("TextCaretMoved  11 w1n7; TextSelectionChanged  0 w1n7") &&
+              TextIs("GetNSelections", "", NULL, "1") &&
+              TextIs("GetSelection", "i", (const int32_t[]){0}, "6 11") &&
+              TextIs("GetSelection", "i", (const int32_t[]){1}, "0 0"),
+          "a word selected");
+    static const char s_edited[] = "h\xC3\xA9llo w\xC3\xB6rld!";
+    input->text[mui_accessValue] = s_edited;
+    input->textLength[mui_accessValue] = sizeof s_edited - 1;
+    input->marks = (muiAccessTextMarks){14, 14, true, NULL, 0, NULL, 0};
+    CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
+              EventsAre("TextChanged delete 11/5 w1n7 \nnext; TextChanged insert 11/1 w1n7 !; "
+                        "TextCaretMoved  12 w1n7; TextSelectionChanged  0 w1n7") &&
+              TextIs("GetNSelections", "", NULL, "0") &&
+              TextIs("GetStringAtOffset", "iu", (const int32_t[]){3, 3},
+                     "h\xC3\xA9llo w\xC3\xB6rld! 0 12") &&
+              TextIs("GetStringAtOffset", "iu", (const int32_t[]){3, 1}, "3 3"),
+          "an edit, then one line and no words given");
+    CHECK(TextIs("SetCaretOffset", "i", (const int32_t[]){2}, "") &&
+              TextIs("GetCharacterExtents", "iu", (const int32_t[]){2, 0}, "0 0 0 0") &&
+              TextIs("GetOffsetAtPoint", "iiu", (const int32_t[]){5, 5, 0}, "-1") &&
+              TextIs("GetAttributes", "i", (const int32_t[]){2}, "0 12") &&
+              TextIs("GetAttributeValue", "i", (const int32_t[]){2}, ""),
+          "geometry and attributes not given, the caret not set");
+    CHECK(IsError(Answer(Call("/org/a11y/atspi/accessible/w1n7", "org.a11y.atspi.Text", "Nothing")),
+                  "org.freedesktop.DBus.Error.UnknownMethod") &&
+              IsError(
+                  Answer(Call("/org/a11y/atspi/accessible/w1n2", "org.a11y.atspi.Text", "GetText")),
+                  "org.freedesktop.DBus.Error.UnknownMethod"),
+          "no such method; a button has no text");
+    *input = built->nodes[6];
+    CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
+              EventsAre("TextChanged delete 0/12 w1n7 h\xC3\xA9llo w\xC3\xB6rld!"),
+          "emptied, no caret");
+}
+
+static void TestText(muiAtspiAdapter* adapter, Built* built)
+{
+    muiAccessNode input = built->nodes[6];
+    TestTextReads(adapter, built, &input);
+    TestTextChanges(adapter, built, &input);
 }
 
 static void TestGone(muiAtspiAdapter* adapter, Built* built)
@@ -1740,6 +1887,7 @@ int main(void)
     TestActionsAndValues();
     TestEvents(adapter, &s_built);
     TestActiveDescendant(adapter, &s_built);
+    TestText(adapter, &s_built);
     TestGone(adapter, &s_built);
     TestDiscovery(address);
     TestLimits(address);

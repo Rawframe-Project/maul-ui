@@ -19,6 +19,13 @@ format.
   out marks that do not fit the text; the tree copies them and refuses
   an update whose marks do not fit. `muiNode_MarkAccessChanged` tells
   the tree a selection moved.
+- AT-SPI's Text interface on text inputs and nodes with a value text:
+  the text by character, word, line and paragraph (the older boundary
+  methods too), the character count, the caret and the selection; text
+  changes told as deletions and insertions, the caret's moves and the
+  selection's changes. Orca reads a field's words and lines and follows
+  its caret. Sentences, attributes, character geometry and setting the
+  selection are not given yet.
 
 ### Changed
 

@@ -79,6 +79,7 @@ atspi_component: atspi
 atspi_objects: allocator atspi chars
 atspi_properties: allocator atspi chars
 atspi_roles: access_record atspi
+atspi_text: allocator atspi
 uia: id_map uia_com uia_ids
 uia_com:
 uia_ids:
