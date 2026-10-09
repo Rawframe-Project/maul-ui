@@ -10,6 +10,12 @@ format.
 
 ### Changed
 
+- A wrapping row's max-content width is the larger of its items'
+  single-line sum and its widest item alone on a line, a basis capping
+  only the sum; and an absolute box aligned by baseline between both
+  insets falls back to start (CSS Box Alignment section 9.3). Both as
+  Chrome does; eight Chrome fixtures hold the cases.
+
 - A line's largest ascent and descent may be negative when baselines lie
   outside their items (Flexbox 9.4); baseline-aligned items in a column
   line up their line-left edges as one group rather than acting as

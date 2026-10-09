@@ -117,6 +117,13 @@ static float StaticOffset(const muiLayoutStyle* container, const muiLayoutStyle*
     return span->contentStart + offset;
 }
 
+// An absolute box's align-self between insets: baseline, with no group to
+// share, falls back to start (CSS Box Alignment section 9.3).
+static muiAlign InsetAlign(muiAlign align)
+{
+    return align == mui_alignBaseline ? mui_alignStart : align;
+}
+
 // Where a margin box of size outer starts in the padding box, aligned by
 // align between both insets (CSS Position 3): crossing insets leave no
 // space, at the start inset; a box that overflows the space covers it,
@@ -124,6 +131,7 @@ static float StaticOffset(const muiLayoutStyle* container, const muiLayoutStyle*
 // allows, or starts that box when larger (CSS Box Alignment 4.4.1.2).
 static float AlignBetweenInsets(muiAlign align, float padding, const Insets* insets, float outer)
 {
+    align = InsetAlign(align);
     if (align != mui_alignStart && align != mui_alignEnd && align != mui_alignCenter)
     {
         return insets->start;
@@ -255,7 +263,7 @@ static float RatioHeightFloor(const muiSolver* solver, uint32_t child, muiSizing
 // Position 3 section 4.1), so the end inset does not size it.
 static Insets SizingInsets(const muiLayoutStyle* style, Insets insets)
 {
-    muiAlign align = style->item.alignSelf;
+    muiAlign align = InsetAlign(style->item.alignSelf);
     insets.hasEnd = insets.hasEnd && align != mui_alignStart && align != mui_alignEnd &&
                     align != mui_alignCenter;
     return insets;

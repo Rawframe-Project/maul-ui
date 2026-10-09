@@ -150,3 +150,41 @@ node width=200 height=60 direction=column align-items=start => 0 0 200 60
   node shrink=0 direction=column => 0 0 30 40
     node aspect=1 => 0 0 30 30
     node content=30x10 => 0 30 30 10
+
+# A wrapping row's max-content width is the larger of its single-line
+# sum, a basis capping an item that cannot grow, and its widest item alone.
+fixture wrap_row_width_two_basis available=500x400
+node wrap=wrap => 0 0 150 0
+  node width=150 basis=60 => 0 0 60 0
+  node width=40 => 60 0 40 0
+
+fixture wrap_row_width_two_plain available=500x400
+node wrap=wrap => 0 0 190 0
+  node width=150 => 0 0 150 0
+  node width=40 => 150 0 40 0
+
+fixture wrap_row_width_two_basis_second available=500x400
+node wrap=wrap => 0 0 150 0
+  node width=40 => 0 0 40 0
+  node width=150 basis=60 => 40 0 60 0
+
+fixture wrap_row_width_basis_grow available=500x400
+node wrap=wrap => 0 0 190 0
+  node width=150 basis=60 grow=1 => 0 0 150 0
+  node width=40 => 150 0 40 0
+
+fixture wrap_row_width_basis_larger available=500x400
+node wrap=wrap => 0 0 100 0
+  node width=60 basis=150 => 0 0 100 0
+  node width=40 => 0 0 40 0
+
+fixture wrap_row_width_three available=500x400
+node wrap=wrap => 0 0 150 0
+  node width=150 basis=60 => 0 0 60 0
+  node width=40 => 60 0 40 0
+  node width=30 basis=10 => 100 0 10 0
+
+fixture wrap_row_width_content_basis available=500x400
+node wrap=wrap => 0 0 140 10
+  node basis=20 content=100x10 => 0 0 100 10
+  node width=40 => 100 0 40 10

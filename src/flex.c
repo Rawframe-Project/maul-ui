@@ -216,11 +216,12 @@ static float AutomaticMinimum(const Frame* frame, uint32_t child, const muiAxisS
 // sized by its content: section 9.9.1's web-compatible sum, with 9.9.3's
 // contributions as Chrome reads them. In a row, an item counts its
 // preferred size, else its content's, capped by a given basis if it
-// cannot grow (on a single line) and floored by it if it cannot shrink
-// (but for a wrapping row's min-content size), within its limits, its
-// automatic minimum among them. A column counts hypothetical sizes, as
-// Chrome does.
-static float PrepareItem(const Frame* frame, uint32_t child)
+// cannot grow and floored by it if it cannot shrink (but for a wrapping
+// row's min-content size), within its limits, its automatic minimum among
+// them; alone on a line, in aloneOut, the cap is left out, as Chrome
+// sizes a wrapping row. A column counts hypothetical sizes, as Chrome
+// does.
+static float PrepareItem(const Frame* frame, uint32_t child, float* aloneOut)
 {
     muiLayoutNode* layout = &frame->solver->nodes[child - 1];
     const muiLayoutStyle* style = &layout->style;
@@ -277,16 +278,20 @@ static float PrepareItem(const Frame* frame, uint32_t child)
     }
     item->minMain = fmaxf(minimum, boxMain);
     item->hypothetical = muiClampSize(item->base, item->minMain, item->maxMain, boxMain);
+    *aloneOut = item->hypothetical + item->marginMain;
     if (!basisGiven || !frame->row || frame->mainIn.mode == mui_measureExact)
     {
-        return item->hypothetical + item->marginMain;
+        return *aloneOut;
     }
     float size = main.definite ? main.size : ContentMain(frame, child, mode, crossConstraint);
+    float alone = size;
     if (!(frame->multiLine && mode == mui_measureMinContent))
     {
-        size = style->item.grow == 0.0f && !frame->multiLine ? fminf(size, item->base) : size;
+        alone = style->item.shrink == 0.0f ? fmaxf(size, item->base) : size;
+        size = style->item.grow == 0.0f ? fminf(alone, item->base) : alone;
         size = style->item.shrink == 0.0f ? fmaxf(size, item->base) : size;
     }
+    *aloneOut = muiClampSize(alone, item->minMain, item->maxMain, boxMain) + item->marginMain;
     return muiClampSize(size, item->minMain, item->maxMain, boxMain) + item->marginMain;
 }
 
@@ -390,18 +395,20 @@ static void SizeMain(Frame* frame)
     for (uint32_t c = muiFirstFlowChild(tree, frame->solver->nodes, frame->node); c != 0;
          c = muiNextFlowChild(tree, frame->solver->nodes, c))
     {
-        float outer = PrepareItem(frame, c);
-        sum += outer;
-        widest = fmaxf(widest, outer);
+        float alone = 0.0f;
+        sum += PrepareItem(frame, c, &alone);
+        widest = fmaxf(widest, alone);
         frame->count++;
     }
     if (frame->mainIn.mode != mui_measureExact)
     {
-        // A row that wraps is at its narrowest one child per line; a
-        // column's min-content height is its max-content one, as in CSS.
-        bool narrowest =
-            frame->row && frame->multiLine && frame->mainIn.mode == mui_measureMinContent;
+        // A row that wraps is at its narrowest one child per line, and at
+        // its widest at least as wide as each child alone; a column's
+        // min-content height is its max-content one, as in CSS.
+        bool wraps = frame->row && frame->multiLine;
+        bool narrowest = wraps && frame->mainIn.mode == mui_measureMinContent;
         float content = narrowest ? widest : sum + Gaps(frame->gap, frame->count);
+        content = wraps ? fmaxf(content, widest) : content;
         float outer = muiClampSize(content + frame->boxMain, frame->mainLimits.minimum,
                                    frame->mainLimits.maximum, frame->boxMain);
         frame->innerMain = outer - frame->boxMain;

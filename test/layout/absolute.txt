@@ -234,3 +234,11 @@ node => 0 0 0 0
   node => 0 0 0 0
     node => 0 0 0 0
       node position=absolute top=10 bottom=5 margin=0,5,auto,auto padding=0,0,0,3 => 0 8.5 0 3
+
+# Aligned by baseline between both insets, an absolute box falls back to
+# start: fit-content, at the start inset.
+fixture abs_baseline_between_insets available=500x400
+node => 0 0 0 0
+  node => 0 0 0 0
+    node => 0 0 0 0
+      node align-self=baseline position=absolute top=0 bottom=10 content=10x20 => 0 0 10 20
