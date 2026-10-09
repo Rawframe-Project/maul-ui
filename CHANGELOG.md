@@ -867,6 +867,13 @@ format.
 
 ### Fixed
 
+- A bounded layout lays the nodes that hold out alone outermost first,
+  leaving one an outer one's layout reached: a node below a container
+  whose direction changed kept the direction it had before. A popped
+  exit in a right-to-left container keeps the rectangle it was drawn at
+  instead of mirroring it to and fro, which moved it by a rounding step
+  on each layout. Two histories of the bounded layout test hold them.
+
 - A scroll container whose children are all removed has the extent of
   its padding box, and its offsets are brought within it; before, it
   kept the extent its children reached. One made without children has

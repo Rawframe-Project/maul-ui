@@ -364,12 +364,6 @@ void muiPlaceAbsolute(const muiSolver* solver, uint32_t container, muiSize size,
         muiLayoutNode* layout = &solver->nodes[c - 1];
         if (layout->absolute)
         {
-            if (layout->popped && rtl)
-            {
-                // Its last rectangle is where it was drawn; laid out from
-                // the start, as the container mirrors it back after this.
-                layout->rect.x = size.width - layout->rect.x - layout->rect.width;
-            }
             PlaceChild(solver, style, c, &spanX, &spanY, rtl);
         }
     }

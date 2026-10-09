@@ -30,6 +30,7 @@ typedef struct Checked
     muiLayoutCache old;
     bool done;
     bool holds;
+    bool laid;
 } Checked;
 
 typedef struct Bound
@@ -60,7 +61,7 @@ static bool Clear(Bound* bound, uint32_t node)
     }
     muiLayoutCache* cache = &bound->solver->nodes[node - 1].cache;
     bound->checked[bound->count++] =
-        (Checked){node, DepthOf(bound->solver->tree, node), *cache, false, false};
+        (Checked){node, DepthOf(bound->solver->tree, node), *cache, false, false, false};
     *cache = (muiLayoutCache){0};
     return true;
 }
@@ -137,6 +138,21 @@ static Checked* Deepest(Bound* bound)
     return deepest;
 }
 
+// The shallowest node that holds and is not yet laid out, or none.
+static Checked* Shallowest(Bound* bound)
+{
+    Checked* shallowest = nullptr;
+    for (uint32_t i = 0; i < bound->count; i++)
+    {
+        Checked* c = &bound->checked[i];
+        if (c->holds && !c->laid && (shallowest == nullptr || c->depth < shallowest->depth))
+        {
+            shallowest = c;
+        }
+    }
+    return shallowest;
+}
+
 // Lays a node that holds out alone, at the input it last had. Each node
 // between it and a change below was cleared on the way up, so its
 // layout reaches them; one a change below did not reach that far was
@@ -182,11 +198,15 @@ bool muiBoundLayout(const muiSolver* solver, uint32_t root)
             return false;
         }
     }
-    // Those inside a cleared parent are laid out with it.
-    for (uint32_t i = 0; i < bound.count; i++)
+    // Those inside a cleared parent are laid out with it; the rest alone,
+    // outermost first. An outer one's layout may reach an inner one, as
+    // when its direction changed, and lays it out at the input it now
+    // has: one so laid out already is left as it is.
+    for (Checked* c = Shallowest(&bound); c != nullptr; c = Shallowest(&bound))
     {
-        const Checked* c = &bound.checked[i];
-        if (c->holds && !IsCleared(&bound, muiTreeAt(tree, c->node)->links.parent))
+        c->laid = true;
+        if (!IsCleared(&bound, muiTreeAt(tree, c->node)->links.parent) &&
+            !solver->nodes[c->node - 1].cache.finalValid)
         {
             LayOutAlone(solver, c);
         }

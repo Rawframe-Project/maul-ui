@@ -574,7 +574,7 @@ static void Both(Tree* tree, Tree* twin, Edit edit)
 // from nothing: estimated lists, which keep what they measured, and
 // popped exits, which keep their last rectangle, have one history in
 // both.
-static void CheckBoundedMatchesFresh(uint32_t seed)
+static void CheckBoundedMatchesFresh(uint32_t seed, uint32_t steps)
 {
     uint32_t state = seed;
     Tree edited = MakeTree();
@@ -590,7 +590,7 @@ static void CheckBoundedMatchesFresh(uint32_t seed)
         s_characters[edited.count] = 1 + Next(&state) % 30;
     }
     bool same = true;
-    for (uint32_t step = 0; step < STEPS && same; step++)
+    for (uint32_t step = 0; step < steps && same; step++)
     {
         uint32_t many = 1 + Next(&state) % 3;
         for (uint32_t k = 0; k < many; k++)
@@ -616,16 +616,23 @@ static void CheckBoundedMatchesFresh(uint32_t seed)
     muiDestroyContext(edited.context);
 }
 
-// Four histories; the second and third once took a content size for the
+// Six histories; the second and third once took a content size for the
 // own one of a node with an aspect ratio below it, or its own (research
 // 93), the fourth a scaled width's answer for another parent extent
-// (research 94).
+// (research 94); the fifth laid a held node out alone in the direction
+// it had before a list above it turned, the sixth moved a popped exit by
+// mirroring it to and fro (research 127), each run as far as it went.
 static void TestBoundedMatchesFresh(void)
 {
-    CheckBoundedMatchesFresh(0x85EBCA6Bu);
-    CheckBoundedMatchesFresh(0x9E3779B1u);
-    CheckBoundedMatchesFresh(0x33333335u);
-    CheckBoundedMatchesFresh(0xF0F0F0F1u);
+    CheckBoundedMatchesFresh(0x85EBCA6Bu, STEPS);
+    CheckBoundedMatchesFresh(0x9E3779B1u, STEPS);
+    CheckBoundedMatchesFresh(0x33333335u, STEPS);
+    CheckBoundedMatchesFresh(0xF0F0F0F1u, STEPS);
+    // These two from no text, as they were found.
+    memset(s_characters, 0, sizeof s_characters);
+    CheckBoundedMatchesFresh(0x777777A2u, 580);
+    memset(s_characters, 0, sizeof s_characters);
+    CheckBoundedMatchesFresh(0x999999C3u, 1322);
 }
 
 // A row 161 wide laid out alone under a right-to-left root keeps the

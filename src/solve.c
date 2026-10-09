@@ -172,8 +172,9 @@ static void Mirror(const muiSolver* solver, uint32_t node, float width)
     for (uint32_t c = muiTreeAt(solver->tree, node)->links.firstChild; c != 0;
          c = muiTreeAt(solver->tree, c)->links.next)
     {
+        // A popped child keeps where it was drawn (src/absolute.c).
         muiRect* rect = &solver->nodes[c - 1].rect;
-        rect->x = width - rect->x - rect->width;
+        rect->x = solver->nodes[c - 1].popped ? rect->x : width - rect->x - rect->width;
     }
 }
 
@@ -217,7 +218,10 @@ static void MeasureExtent(const muiSolver* solver, uint32_t node, muiSize size, 
             continue;
         }
         muiEdges margins = child->absolute ? (muiEdges){0} : muiMarginsOf(&child->style, rtl);
-        reachX = fmaxf(reachX, child->rect.x + child->rect.width + margins.end);
+        // A popped child is where it was drawn, mirrored under rtl.
+        float x =
+            child->popped && rtl ? size.width - child->rect.x - child->rect.width : child->rect.x;
+        reachX = fmaxf(reachX, x + child->rect.width + margins.end);
         reachY = fmaxf(reachY, child->rect.y + child->rect.height + margins.bottom);
     }
     muiScrollState* scroll = &solver->scrolls[node - 1];
