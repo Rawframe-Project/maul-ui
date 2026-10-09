@@ -194,16 +194,28 @@ static float Offset(const muiLayoutStyle* container, const muiLayoutStyle* child
 // With an aspect ratio, a height from both insets gives way to the ratio
 // when the width is fixed, and the function returns true; otherwise it
 // gives the width, the width's limits, its padding and border among them,
-// through the ratio clamping it (CSS Sizing 4, as Chrome).
+// through the ratio clamping it (CSS Sizing 4, as Chrome). A width from
+// both insets is clamped likewise by the height's limits.
 static bool RatioTakesHeight(const muiLayoutStyle* style, const muiEdges* padding,
-                             const Span* spanX, const Span* spanY, bool fixedWidth, float* height)
+                             const Span* spanX, const Span* spanY, bool fixedWidth,
+                             bool fixedHeight, float* width, float* height)
 {
     float ratio = style->sizing.aspectRatio;
-    if (ratio <= 0.0f || muiResolveAxis(&style->sizing, false, spanY->paddingSize).definite)
+    if (ratio <= 0.0f)
     {
         return false;
     }
     muiAxisSizing across = muiResolveAxis(&style->sizing, true, spanX->paddingSize);
+    muiAxisSizing down = muiResolveAxis(&style->sizing, false, spanY->paddingSize);
+    if (fixedWidth && !across.definite)
+    {
+        float minimum = fmaxf(down.minimum, muiBoxSum(padding, style, false));
+        *width = fminf(fmaxf(*width, minimum * ratio), down.maximum * ratio);
+    }
+    if (!fixedHeight || down.definite)
+    {
+        return false;
+    }
     float minimum = fmaxf(across.minimum, muiBoxSum(padding, style, true));
     *height = fminf(fmaxf(*height, minimum / ratio), across.maximum / ratio);
     return fixedWidth;
@@ -262,8 +274,9 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
     Insets sizingY = SizingInsets(style, insetY);
     bool fixedHeight = FixedSize(style, &padding, false, spanX, spanY, &sizingY, &height);
     bool fixedWidth = FixedSize(style, &padding, true, spanX, spanY, &insetX, &width);
-    fixedHeight =
-        fixedHeight && !RatioTakesHeight(style, &padding, spanX, spanY, fixedWidth, &height);
+    fixedHeight = !RatioTakesHeight(style, &padding, spanX, spanY, fixedWidth, fixedHeight, &width,
+                                    &height) &&
+                  fixedHeight;
     if (!fixedWidth)
     {
         muiEdges margins = muiMarginsOf(style, rtl);

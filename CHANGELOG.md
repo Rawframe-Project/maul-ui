@@ -10,6 +10,15 @@ format.
 
 ### Changed
 
+- Three aspect-ratio cases follow Chrome: a root given both sizes keeps
+  its width's limits, its ratio flooring it only at the content; an
+  absolute box's width from both insets is clamped by its height's
+  limits, padding and border among them, through the ratio; a column
+  item's height its ratio gives from a definite width is definite for
+  percentages below. Three Chrome fixtures hold the cases; the corpus
+  keeps seed 28's 196 random layouts that agree with Chrome
+  (`test/layout/random28.txt`) and one more of seed 26.
+
 - Absolute boxes between both vertical insets follow CSS Position 3 and
   CSS Box Alignment as Chrome does: with start, end or centre
   `align-self` the automatic height is fit-content, not stretched; a box

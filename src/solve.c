@@ -374,7 +374,10 @@ static void ApplyAspectRatio(const muiSolver* solver, uint32_t node, muiSizingIn
              (solver->nodes[node - 1].absolute || muiTreeAt(solver->tree, node)->links.parent == 0))
     {
         float content = fminf(ContentSize(solver, node, input, true), width.maximum);
-        input->width = muiExact(fmaxf(width.size, content));
+        const muiLayoutStyle* style = &solver->nodes[node - 1].style;
+        float own = muiClampSize(width.size, width.minimum, width.maximum,
+                                 muiBoxSum(&solver->paddings[node - 1], style, true));
+        input->width = muiExact(fmaxf(own, content));
     }
 }
 

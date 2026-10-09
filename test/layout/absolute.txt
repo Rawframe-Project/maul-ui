@@ -177,3 +177,10 @@ fixture absolute_ratio_width_border_floors_height available=500x400
 node => 0 0 0 0
   node => 0 0 0 0
     node position=absolute top=0 bottom=20 aspect=1 border=3,7,0,0 => 0 0 10 10
+
+# A width from both insets is clamped by the height's limits, padding
+# and border among them, through the ratio.
+fixture absolute_ratio_inset_width_floored_by_height available=500x400
+node => 0 0 0 0
+  node => 0 0 0 0
+    node position=absolute start=0 end=5 aspect=1 padding=0,0,3,7 => 0 0 10 10

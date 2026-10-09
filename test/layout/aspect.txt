@@ -343,3 +343,17 @@ fixture column_ratio_item_content_floor available=500x400
 node align-items=start => 0 0 30 10
   node direction=column height=10 => 0 0 30 10
     node height=20 aspect=1.5 content=10x15 => 0 0 30 20
+
+# A root given both sizes keeps its width's limits; its ratio floors
+# only at the content.
+fixture aspect_root_both_sizes_maximum_width available=500x400
+node width=50% height=25% max-width=20 aspect=1 => 0 0 20 100
+
+# A column item's height its ratio gives from a definite width is
+# definite for percentages below.
+fixture aspect_column_item_ratio_height_definite available=500x400
+node align-items=start => 0 0 20 20
+  node direction=column => 0 0 20 20
+    node width=20 aspect=1 => 0 0 20 20
+      node height=75% => 0 0 0 15
+
