@@ -26,16 +26,19 @@ static const char* const s_value[] = {"MinimumValue", "MaximumValue", "MinimumIn
 static const char* const s_application[] = {"ToolkitName",  "Version",          "ToolkitVersion",
                                             "AtspiVersion", "InterfaceVersion", "Id"};
 
-// A node's name, or the application's, as a variant.
+// A node's name, or the application's, as a variant: a window's root
+// without a name of its own takes the application's, as its title.
 static bool AppendName(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object)
 {
-    if (object->node == nullptr)
+    const muiAccessTree* tree = object->node != nullptr ? object->adapter->tree : nullptr;
+    size_t length = 0;
+    bool named = tree != nullptr && muiAccessTree_GetName(tree, object->node->id, nullptr, 0,
+                                                          &length) == mui_errorCapacity;
+    if (!named && (tree == nullptr || object->node->id == muiAccessTree_GetRoot(tree)))
     {
         return muiAtspiAppendVariant(app, iter, mui_dbusTypeString, (const void*)&app->name);
     }
-    const muiAccessTree* tree = object->adapter->tree;
-    size_t length = 0;
-    if (muiAccessTree_GetName(tree, object->node->id, nullptr, 0, &length) != mui_errorCapacity)
+    if (!named)
     {
         const char* none = "";
         return muiAtspiAppendVariant(app, iter, mui_dbusTypeString, (const void*)&none);

@@ -121,7 +121,10 @@ static const uint8_t s_roles[MUI_ROLE_LAST + 1] = {
     [mui_roleCheckBox] = ROLE_CHECK_BOX,
     [mui_roleRadioButton] = ROLE_RADIO_BUTTON,
     [mui_roleRadioGroup] = ROLE_GROUPING,
-    [mui_roleSwitch] = ROLE_SWITCH,
+    // A toggle button: AT-SPI's switch role (2.56) is past the last role
+    // older clients know, which they show as "last defined" (as GTK and
+    // the browsers map it).
+    [mui_roleSwitch] = ROLE_TOGGLE_BUTTON,
     [mui_roleTextInput] = ROLE_ENTRY,
     [mui_roleMultilineTextInput] = ROLE_ENTRY,
     [mui_roleSearchInput] = ROLE_ENTRY,
@@ -274,12 +277,16 @@ static const RoleName s_names[] = {
     {ROLE_LOG, "log"},
     {ROLE_MARQUEE, "marquee"},
     {ROLE_TIMER, "timer"},
-    {ROLE_SWITCH, "switch"},
 };
 
-uint32_t muiAtspiRoleOf(const muiAccessNode* node)
+uint32_t muiAtspiRoleOf(const muiAccessTree* tree, const muiAccessNode* node)
 {
-    return node->role <= MUI_ROLE_LAST ? s_roles[node->role] : ROLE_UNKNOWN;
+    uint32_t role = node->role <= MUI_ROLE_LAST ? s_roles[node->role] : ROLE_UNKNOWN;
+    // A window's root is its top-level object, which clients look for
+    // as a frame or a dialog to follow focus within: no other window
+    // stands for it on the bus.
+    bool top = role == ROLE_FRAME || role == ROLE_DIALOG;
+    return node->id == muiAccessTree_GetRoot(tree) && !top ? ROLE_FRAME : role;
 }
 
 const char* muiAtspiRoleName(uint32_t role)
@@ -388,6 +395,12 @@ void muiAtspiRecordStatesOf(const muiAccessNode* node, uint32_t statesOut[2])
     Set(statesOut, STATE_INVALID_ENTRY, values->invalid != mui_invalidNone);
 }
 
+bool muiAtspiShowsFocus(const muiAccessTree* tree, const muiAccessNode* node)
+{
+    return node->id == muiAccessTree_GetFocus(tree) &&
+           (node->id != muiAccessTree_GetRoot(tree) || (node->flags & mui_accessFocusable) != 0);
+}
+
 void muiAtspiStatesOf(const muiAtspiAdapter* adapter, const muiAccessNode* node,
                       uint32_t statesOut[2])
 {
@@ -396,7 +409,7 @@ void muiAtspiStatesOf(const muiAtspiAdapter* adapter, const muiAccessNode* node,
     muiAtspiRecordStatesOf(node, statesOut);
     Set(statesOut, STATE_VISIBLE, shown);
     Set(statesOut, STATE_SHOWING, shown && !IsClipped(tree, node->id, adapter->nodes));
-    Set(statesOut, STATE_FOCUSED, node->id == muiAccessTree_GetFocus(tree));
+    Set(statesOut, STATE_FOCUSED, muiAtspiShowsFocus(tree, node));
     // A window's root is active: the host does not yet say when its
     // window loses the system's focus.
     Set(statesOut, STATE_ACTIVE, node->id == muiAccessTree_GetRoot(tree));

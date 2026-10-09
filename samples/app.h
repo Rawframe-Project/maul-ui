@@ -21,6 +21,9 @@
 #include "maul-ui-rhi/renderer.h"
 #include "maul-ui-window/access.h"
 #include "maul-ui-window/glue.h"
+#if SAMPLE_ATSPI
+#include "maul-ui/access_atspi.h"
+#endif
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
 #include "maul-ui/layout.h"
@@ -89,6 +92,13 @@ struct SampleApp
     mwinWindowId window;
     muiWindowGlue* glue;
     muiWindowAccess* access;
+#if SAMPLE_ATSPI
+    // Windowed on Linux, the program on the accessibility bus, when one
+    // is reachable.
+    muiAtspiApp* atspi;
+#endif
+    // The program's name, as it was run.
+    const char* name;
     muiRhiRenderer* renderer;
     // Headless, or windowed for frames frames (0 until closed).
     bool headless;

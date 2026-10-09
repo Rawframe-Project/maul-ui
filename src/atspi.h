@@ -182,9 +182,13 @@ muiAtspiObject muiAtspiParentOf(const muiAtspiObject* object);
 // windows' roots for the application root); how many.
 uint32_t muiAtspiChildrenOf(const muiAtspiObject* object, const uint64_t** idsOut);
 
-// AT-SPI's role of a node, and its name.
-uint32_t muiAtspiRoleOf(const muiAccessNode* node);
+// AT-SPI's role of a node of a tree, and its name.
+uint32_t muiAtspiRoleOf(const muiAccessTree* tree, const muiAccessNode* node);
 const char* muiAtspiRoleName(uint32_t role);
+
+// Whether a node is shown focused: the tree's focus, unless that is a
+// root that cannot take focus (the window, active instead).
+bool muiAtspiShowsFocus(const muiAccessTree* tree, const muiAccessNode* node);
 
 // AT-SPI's state set of a node, as two words of bits.
 void muiAtspiStatesOf(const muiAtspiAdapter* adapter, const muiAccessNode* node,

@@ -461,7 +461,8 @@ static bool AppendAttributes(muiAtspiApp* app, muiDBusIter* iter, const muiAtspi
 static bool AppendAccessible(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
                              const muiAtspiObject* object, const char* member, bool* ok)
 {
-    uint32_t role = object->node != nullptr ? muiAtspiRoleOf(object->node) : ROLE_APPLICATION;
+    uint32_t role = object->node != nullptr ? muiAtspiRoleOf(object->adapter->tree, object->node)
+                                            : ROLE_APPLICATION;
     int32_t index = 0;
     muiAtspiObject child;
     if (strcmp(member, "GetChildAtIndex") == 0)

@@ -347,6 +347,27 @@ static bool Surface(SampleApp* app)
     return Size(app, width, height, state.scale);
 }
 
+#if SAMPLE_ATSPI
+// Windowed, the program's application on the accessibility bus, as a
+// Linux host makes one; none headless or without a bus, the program
+// then running without assistive technology.
+static muiAtspiApp* JoinAtspi(SampleApp* app)
+{
+    if (app->headless || app->atspi != NULL)
+    {
+        return app->atspi;
+    }
+    muiAtspiAppDef def = muiDefaultAtspiAppDef();
+    def.name = app->name;
+    def.windows = 1;
+    if (muiCreateAtspiApp(&def, &app->atspi) != mui_success)
+    {
+        app->atspi = NULL;
+    }
+    return app->atspi;
+}
+#endif
+
 // One frame: the records, the access once the window has its surface
 // (which its first records bring), layout at now, the accessibility
 // tree's changes, the list painted and drawn, into a texture headless,
@@ -359,9 +380,18 @@ static bool Step(SampleApp* app)
     {
         muiWindowAccessDef access = muiDefaultWindowAccessDef();
         access.glue = app->glue;
+#if SAMPLE_ATSPI
+        access.atspiApp = JoinAtspi(app);
+#endif
         SampleAppCheck(app, muiCreateWindowAccess(&access, &app->access) == mui_success,
                        "an access");
     }
+#if SAMPLE_ATSPI
+    if (app->atspi != NULL)
+    {
+        muiAtspiApp_Pump(app->atspi);
+    }
+#endif
     if (app->def->update != NULL)
     {
         app->def->update(app->def->user, app);
@@ -576,6 +606,8 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
 // The arguments: --headless, and --frames N for a window shown N frames.
 static bool Arguments(SampleApp* app, int count, char** arguments)
 {
+    const char* slash = count > 0 ? strrchr(arguments[0], '/') : NULL;
+    app->name = slash != NULL ? slash + 1 : (count > 0 ? arguments[0] : "sample");
     for (int i = 1; i < count; i++)
     {
         if (strcmp(arguments[i], "--headless") == 0)
@@ -628,6 +660,10 @@ static void Release(SampleApp* app)
     SampleSurfaceClose(&app->sample, &app->surface);
     muiDestroyWindowAccess(app->access);
     app->access = NULL;
+#if SAMPLE_ATSPI
+    muiDestroyAtspiApp(app->atspi);
+    app->atspi = NULL;
+#endif
     muiDestroyWindowGlue(app->glue);
     app->glue = NULL;
 }

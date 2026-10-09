@@ -12,7 +12,8 @@
 #include "allocator.h"
 #include "atspi.h"
 
-#define INTERFACE_EVENT "org.a11y.atspi.Event.Object"
+#define INTERFACE_EVENT  "org.a11y.atspi.Event.Object"
+#define INTERFACE_WINDOW "org.a11y.atspi.Event.Window"
 
 // What a signal carries in its variant: an integer, a string, a number,
 // a role or an object.
@@ -23,15 +24,15 @@ typedef struct Any
     const muiAtspiObject* object;
 } Any;
 
-// Sends a signal (siiva{sv}) from an object; with no client, the bus
-// drops it.
-static void Emit(muiAtspiApp* app, const muiAtspiObject* from, const char* member, const char* kind,
-                 int32_t detail1, const Any* any)
+// Sends a signal (siiva{sv}) of an interface from an object; with no
+// client, the bus drops it.
+static void EmitOf(muiAtspiApp* app, const muiAtspiObject* from, const char* interface,
+                   const char* member, const char* kind, int32_t detail1, const Any* any)
 {
     const muiDBusApi* dbus = &app->dbus;
     char path[ATSPI_PATH_SIZE];
     muiAtspiPathOf(from, path);
-    DBusMessage* signal = dbus->newSignal(path, INTERFACE_EVENT, member);
+    DBusMessage* signal = dbus->newSignal(path, interface, member);
     if (signal == nullptr)
     {
         return;
@@ -63,6 +64,12 @@ static void Emit(muiAtspiApp* app, const muiAtspiObject* from, const char* membe
         (void)dbus->send(app->connection, signal, nullptr);
     }
     dbus->unrefMessage(signal);
+}
+
+static void Emit(muiAtspiApp* app, const muiAtspiObject* from, const char* member, const char* kind,
+                 int32_t detail1, const Any* any)
+{
+    EmitOf(app, from, INTERFACE_EVENT, member, kind, detail1, any);
 }
 
 static void EmitState(muiAtspiApp* app, const muiAtspiObject* from, const char* state, bool on)
@@ -150,7 +157,7 @@ static void TellProperties(muiAtspiApp* app, const muiAtspiObject* object, const
     }
     if (now->role != old->role)
     {
-        const uint32_t role = muiAtspiRoleOf(now);
+        const uint32_t role = muiAtspiRoleOf(object->adapter->tree, now);
         const Any any = {mui_dbusTypeUint32, &role, nullptr};
         Emit(app, object, "PropertyChange", "accessible-role", 0, &any);
     }
@@ -357,6 +364,14 @@ static void Learn(muiAtspiAdapter* adapter, uint32_t count)
         if (place->tell && IsKnown(adapter, parent))
         {
             TellChild(adapter, parent, id, (int32_t)place->index);
+            if (parent == 0)
+            {
+                // A window's root, new under the application: the window
+                // is active, as a toolkit says when its window opens.
+                muiAccessNode stand;
+                const muiAtspiObject window = ObjectOf(adapter, id, &stand);
+                EmitOf(adapter->app, &window, INTERFACE_WINDOW, "Activate", "", 0, nullptr);
+            }
         }
         told->parent = parent;
         told->index = place->index;
@@ -382,11 +397,15 @@ static void TellFocus(muiAtspiAdapter* adapter)
     adapter->focusMoved = false;
     const muiAtspiObject from = muiAtspiObjectOf(adapter, adapter->focusFrom);
     const muiAtspiObject to = muiAtspiObjectOf(adapter, adapter->focusTo);
-    if (from.node != nullptr)
+    // A root that cannot take focus is not told focused, nor unfocused.
+    bool fromShown =
+        from.node != nullptr && (from.node->id != muiAccessTree_GetRoot(adapter->tree) ||
+                                 (from.node->flags & mui_accessFocusable) != 0);
+    if (fromShown)
     {
         EmitState(adapter->app, &from, "focused", false);
     }
-    if (to.node != nullptr)
+    if (to.node != nullptr && muiAtspiShowsFocus(adapter->tree, to.node))
     {
         EmitState(adapter->app, &to, "focused", true);
     }

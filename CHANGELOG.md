@@ -363,6 +363,10 @@ format.
 
 ### Added
 
+- The samples, windowed on Linux, join the accessibility bus as a host
+  does (one application each, named as the program), so a screen reader
+  reads them.
+
 - Wrapping host content in the layout fixtures: `content=WxH*N` is N
   boxes W by H that break greedily into lines, as text does, rendered
   in Chrome as inline blocks and measured the same way by the fixture
@@ -935,6 +939,15 @@ format.
   fonts are refused with the new `mui_errorFormat`.
 
 ### Fixed
+
+- AT-SPI, as Orca 46 found in a first recorded run: a window's root is
+  a frame (unless a dialog), titled by the application when it has no
+  name of its own, and told active when it appears (window:activate);
+  a root that cannot take focus is not shown focused, so the first
+  control focused in it is announced; a switch is a toggle button, as
+  AT-SPI before 2.56 has no switch role and showed it as "last
+  defined". Orca had stopped following focus in a window it could not
+  find.
 
 - A bounded layout lays the nodes that hold out alone outermost first,
   leaving one an outer one's layout reached: a node below a container

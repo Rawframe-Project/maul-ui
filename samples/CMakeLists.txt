@@ -16,6 +16,9 @@ function(mui_add_sample name)
     target_link_libraries(${target} PRIVATE maul-ui maul-ui-rhi maul-ui-window)
     target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                                                  ${CMAKE_CURRENT_BINARY_DIR}/fonts)
+    # Windowed on Linux, a sample joins the accessibility bus as a host
+    # does, for a screen reader to read.
+    target_compile_definitions(${target} PRIVATE SAMPLE_ATSPI=$<BOOL:${MAUL_UI_ATSPI}>)
     maul_apply_flags(${target})
     if(MSVC)
         target_compile_options(${target} PRIVATE /clang:-std=c23)

@@ -207,7 +207,7 @@ static void DataOf(muiDBusIter* iter, char* out, size_t size)
     }
 }
 
-// Logs the application's events.
+// Logs the application's events, of objects and of windows.
 static muiDBusHandled Listen(DBusConnection* connection, DBusMessage* message, void* data)
 {
     (void)connection;
@@ -219,7 +219,9 @@ static muiDBusHandled Listen(DBusConnection* connection, DBusMessage* message, v
     int32_t detail1 = 0;
     char any[300] = "";
     if (dbus->messageType(message) != mui_dbusSignal || interface == NULL ||
-        strcmp(interface, "org.a11y.atspi.Event.Object") != 0 || !dbus->iterInit(message, &iter))
+        (strcmp(interface, "org.a11y.atspi.Event.Object") != 0 &&
+         strcmp(interface, "org.a11y.atspi.Event.Window") != 0) ||
+        !dbus->iterInit(message, &iter))
     {
         return mui_dbusNotHandled;
     }
@@ -1313,10 +1315,11 @@ static void TestEvents(muiAtspiAdapter* adapter, Built* built)
                                    1, 0};
     muiResult raised = muiAtspiAdapter_Apply(adapter, &raise);
     CHECK(raised == mui_success &&
-              EventsAre("ChildrenChanged remove -1 root w1n1; ChildrenChanged add 0 root w1n14") &&
+              EventsAre("ChildrenChanged remove -1 root w1n1; ChildrenChanged add 0 root w1n14; "
+                        "Activate  0 w1n14") &&
               muiAtspiAdapter_Apply(adapter, &lower) == mui_success &&
               EventsAre("ChildrenChanged remove -1 root w1n14; StateChanged defunct 1 w1n14; "
-                        "ChildrenChanged add 0 root w1n1"),
+                        "ChildrenChanged add 0 root w1n1; Activate  0 w1n1"),
           "a new root above the old, and taken away");
     // The group taken out with what it holds: one removal and defunct.
     muiAccessNode root = built->nodes[0];
@@ -1378,8 +1381,7 @@ static void TestGone(muiAtspiAdapter* adapter, Built* built)
     const muiAccessNode* sent[1] = {&root};
     const muiAccessUpdate update = {sent, 1, built->children, 0, 0};
     CHECK(muiAtspiAdapter_Apply(adapter, &update) == mui_success &&
-              EventsAre("ChildrenChanged remove -1 w1n1 w1n2; StateChanged defunct 1 w1n2; "
-                        "StateChanged focused 1 w1n1") &&
+              EventsAre("ChildrenChanged remove -1 w1n1 w1n2; StateChanged defunct 1 w1n2") &&
               IsError(Answer(Call("/org/a11y/atspi/accessible/w1n2", "org.a11y.atspi.Accessible",
                                   "GetRole")),
                       "org.freedesktop.DBus.Error.UnknownObject") &&
@@ -1389,17 +1391,40 @@ static void TestGone(muiAtspiAdapter* adapter, Built* built)
     def.action = Act;
     muiAtspiAdapter* second = NULL;
     muiAtspiAdapter* third = NULL;
-    muiAccessNode alone = {.id = 9, .role = mui_roleWindow};
-    const muiAccessNode* aloneSent[1] = {&alone};
-    const muiAccessUpdate aloneUpdate = {aloneSent, 1, NULL, 9, 9};
+    // A window whose root is a group with no name, focused itself, and a
+    // switch in it.
+    const uint64_t aloneChildren[1] = {10};
+    muiAccessNode alone = {.id = 9,
+                           .role = mui_roleGroup,
+                           .bounds = {0.0f, 0.0f, 50.0f, 50.0f},
+                           .transform = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f},
+                           .childCount = 1};
+    muiAccessNode toggle = {.id = 10,
+                            .role = mui_roleSwitch,
+                            .flags = mui_accessFocusable | mui_accessCheckable,
+                            .bounds = {0.0f, 0.0f, 10.0f, 10.0f},
+                            .transform = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f}};
+    const muiAccessNode* aloneSent[2] = {&alone, &toggle};
+    const muiAccessUpdate aloneUpdate = {aloneSent, 2, aloneChildren, 9, 9};
     CHECK(muiCreateAtspiAdapter(s_test.app, &def, &second) == mui_success &&
               ChildrenAre(ROOT_PATH, "w1n1"),
           "a window with no tree is no child");
     CHECK(muiCreateAtspiAdapter(s_test.app, &def, &third) == mui_success &&
               muiAtspiAdapter_Apply(third, &aloneUpdate) == mui_success &&
-              EventsAre("ChildrenChanged add 1 root w3n9; StateChanged focused 1 w3n9") &&
+              EventsAre("ChildrenChanged add 1 root w3n9; Activate  0 w3n9") &&
               ChildrenAre(ROOT_PATH, "w1n1 w3n9"),
-          "a third window, after the second with no tree");
+          "a third window, after the second with no tree, active");
+    // Its root is the window: a frame, titled by the application, active
+    // and, unable to take focus, not focused; the switch a toggle button
+    // (AT-SPI 2.56's switch role is past what older clients know).
+    CHECK(RoleOf("/org/a11y/atspi/accessible/w3n9") == 23, "a window's root a frame");
+    CHECK(NameIs("/org/a11y/atspi/accessible/w3n9", "maul test"), "titled by the application");
+    CHECK(HasState("/org/a11y/atspi/accessible/w3n9", 1) &&
+              !HasState("/org/a11y/atspi/accessible/w3n9", 12),
+          "active, not focused");
+    CHECK(ChildrenAre("/org/a11y/atspi/accessible/w3n9", "w3na") &&
+              RoleOf("/org/a11y/atspi/accessible/w3na") == 62,
+          "the switch a toggle button");
     muiDestroyAtspiAdapter(adapter);
     CHECK(EventsAre("ChildrenChanged remove -1 root w1n1; StateChanged defunct 1 w1n1") &&
               ChildrenAre(ROOT_PATH, "w3n9") && RoleOf("/org/a11y/atspi/accessible/w3n9") == 23,
@@ -1646,6 +1671,8 @@ int main(void)
           "the registry");
     s_test.dbus.addMatch(s_test.registry, "type='signal',interface='org.a11y.atspi.Event.Object'",
                          NULL);
+    s_test.dbus.addMatch(s_test.registry, "type='signal',interface='org.a11y.atspi.Event.Window'",
+                         NULL);
     muiAtspiAppDef def = muiDefaultAtspiAppDef();
     def.name = "maul test";
     def.allocator = (muiAllocator){Poisoned, Unpoisoned, NULL};
@@ -1667,8 +1694,9 @@ int main(void)
               muiAtspiAdapter_Apply(adapter, &update) == mui_success &&
               muiAccessTree_Count(muiAtspiAdapter_GetTree(adapter)) == 9,
           "a window");
-    CHECK(EventsAre("ChildrenChanged add 0 root w1n1; StateChanged focused 1 w1n2"),
-          "a window's root added to the application's, its nodes not told; the focus");
+    CHECK(
+        EventsAre("ChildrenChanged add 0 root w1n1; Activate  0 w1n1; StateChanged focused 1 w1n2"),
+        "a window's root added to the application's and active, its nodes not told; the focus");
     TestContract();
     TestStateSets();
     TestRoot();
