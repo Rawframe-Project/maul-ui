@@ -118,7 +118,7 @@ Reads the typed values the host set on a node.  @param context    The context. @
 
 ## `access_android.h`
 
-The Android accessibility adapter (record mui-0008), the component MAUL_UI_ANDROID_ACCESSIBILITY builds on Android: the accessibility tree's consumer shown to Android through maul.ui.AccessProvider (java/maul/ui/AccessProvider.java, which the host builds into its application), a provider whose virtual views are the shown nodes. The provider is the host view's (Maul Window's mwinRequestAccessibilityRoot gives it); clients' actions come back through a function of the host's. The header is C: the JNI's types pass as void*.
+The Android accessibility adapter (record mui-0008), the component MAUL_UI_ANDROID_ACCESSIBILITY builds on Android: the accessibility tree's consumer shown to Android through maul.ui.AccessProvider (java/maul/ui/AccessProvider.java, which the host builds into its application, adding java/proguard-rules.pro to its rules when it shrinks its code), a provider whose virtual views are the shown nodes. The provider is the host view's (Maul Window's mwinRequestAccessibilityRoot gives it); clients' actions come back through a function of the host's. The header is C: the JNI's types pass as void*.
 
 ```c
 muiAndroidAdapterDef muiDefaultAndroidAdapterDef(void);

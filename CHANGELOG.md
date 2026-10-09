@@ -85,6 +85,10 @@ format.
   them, or from the node's rectangle for text without clusters.
   Android's provider offers `EXTRA_DATA_TEXT_CHARACTER_LOCATION_KEY`,
   a rectangle on the screen for each UTF-16 unit asked for.
+- `java/proguard-rules.pro`: what an application that shrinks its code
+  keeps for the Android adapter's Java, which native code reaches by
+  name; the Android test application is shrunk with it, as a release
+  build is.
 
 ### Changed
 

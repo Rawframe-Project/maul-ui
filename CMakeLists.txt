@@ -364,7 +364,7 @@ if(MAUL_UI_BUILD_TESTS)
     endif()
     if(MAUL_UI_ANDROID_ACCESSIBILITY AND NOT MAUL_UI_BUILD_SHARED AND DEFINED ENV{ANDROID_HOME})
         # An application in the emulator, built by tools/build_android_app.sh
-        # without Gradle and run by tools/run_android_app.sh; its Java asks
+        # without Gradle, shrunk by R8 with the library's keep rules, and run by tools/run_android_app.sh; its Java asks
         # the provider as clients do; whitebox.
         set(package maul.ui.tests.android_access)
         add_library(test_android_access SHARED test/test_android_access.c)
@@ -380,6 +380,8 @@ if(MAUL_UI_BUILD_TESTS)
                     $<TARGET_FILE:test_android_access> ${package} ${ANDROID_ABI}
             DEPENDS test_android_access ${MUI_JAVA_SOURCES}
                     ${PROJECT_SOURCE_DIR}/test/android/AndroidManifest.xml
+                    ${PROJECT_SOURCE_DIR}/java/proguard-rules.pro
+                    ${PROJECT_SOURCE_DIR}/test/android/proguard-rules.pro
                     ${PROJECT_SOURCE_DIR}/tools/build_android_app.sh
             VERBATIM)
         add_custom_target(test_android_access_apk ALL

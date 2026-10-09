@@ -290,7 +290,9 @@ ranges and virtual lists.
   the component `MAUL_UI_ANDROID_ACCESSIBILITY`, on by default on
   Android) shows the tree through a Java class of Maul UI's own,
   `maul.ui.AccessProvider` (`java/maul/ui/AccessProvider.java`), which
-  the host builds into its application; the adapter finds it through
+  the host builds into its application, with `java/proguard-rules.pro`
+  among its rules when it shrinks its code (a shrinker renames and
+  removes what only native code reaches); the adapter finds it through
   the view's class loader and binds its native methods with
   `RegisterNatives`, so that no JNI name is exported. Java asks native
   code for a node's packed numbers (class, states, actions, box,
@@ -312,8 +314,10 @@ ranges and virtual lists.
   changed; the view focused when the focus moved. Android throws for an
   event sent while accessibility is off, so the provider sends only
   while it is on. The test is an application in the Android emulator,
-  built without Gradle, whose Java asks the provider as clients do;
-  the events are recorded in place of the provider's.
+  built without Gradle and shrunk as a release build is, with the
+  library's rules and the test's own alone, whose Java asks the
+  provider as clients do; the events are recorded in place of the
+  provider's.
 - **Through the Maul Window glue** (`maul-ui-window/access.h`, with the
   consumer): one access a glue makes the adapter built for its window's
   platform over Maul Window's native handles (UI Automation over the

@@ -1167,7 +1167,11 @@ The adapters, each its own component, are AT-SPI on Linux, UI
 Automation on Windows, NSAccessibility on macOS, UIAccessibility on
 iOS, Android's accessibility, and ARIA elements on the web
 (`maul-ui/access_*.h`). Maul Window's glue connects the one for the
-window's platform.
+window's platform. Android's is partly Java, `java/maul/ui`, which the
+application compiles with its own; its native code reaches that Java by
+name, so an application that shrinks its code (as a Gradle release
+build does, with ProGuard's rules) adds `java/proguard-rules.pro` to
+its rules.
 
 ## 12. Building and testing
 
