@@ -73,7 +73,8 @@ the same way and reduces one that disagrees to a smallest case.
 The rules every Maul library follows are in `docs/conventions.md` and
 `docs/adr/`; the records particular to this library are listed in
 `docs/adr/mui.md`, and the published sources its algorithms come from
-in `docs/references.md`.
+in `docs/references.md`. The steps a release takes are in
+`docs/releasing.md`.
 
 ## License
 

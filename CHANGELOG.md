@@ -342,6 +342,10 @@ format.
 
 ### Added
 
+- `docs/releasing.md`: the steps a release takes, the family's and Maul
+  UI's own (the size budget's check, recorded runs with each screen
+  reader, fuzzing, the guide and API reference current).
+
 - `tools/random_layouts.py generate SEED COUNT --wide` also draws scaled
   dimensions with an offset, automatic margins, baseline alignment and
   anchors; the default draws are unchanged.
