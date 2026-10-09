@@ -195,9 +195,10 @@ static float Offset(const muiLayoutStyle* container, const muiLayoutStyle* child
 // when the width is fixed, and the function returns true; otherwise it
 // gives the width, the width's limits, its padding and border among them,
 // through the ratio clamping it (CSS Sizing 4, as Chrome). A width from
-// both insets is clamped likewise by the height's limits.
+// both insets is clamped likewise by the height's limits; a height the
+// style gives sets the width through the ratio instead of the insets.
 static bool RatioTakesHeight(const muiLayoutStyle* style, const muiEdges* padding,
-                             const Span* spanX, const Span* spanY, bool fixedWidth,
+                             const Span* spanX, const Span* spanY, bool* fixedWidth,
                              bool fixedHeight, float* width, float* height)
 {
     float ratio = style->sizing.aspectRatio;
@@ -207,7 +208,12 @@ static bool RatioTakesHeight(const muiLayoutStyle* style, const muiEdges* paddin
     }
     muiAxisSizing across = muiResolveAxis(&style->sizing, true, spanX->paddingSize);
     muiAxisSizing down = muiResolveAxis(&style->sizing, false, spanY->paddingSize);
-    if (fixedWidth && !across.definite)
+    if (down.definite && !across.definite)
+    {
+        *fixedWidth = false;
+        return false;
+    }
+    if (*fixedWidth && !across.definite)
     {
         float minimum = fmaxf(down.minimum, muiBoxSum(padding, style, false));
         *width = fminf(fmaxf(*width, minimum * ratio), down.maximum * ratio);
@@ -218,7 +224,7 @@ static bool RatioTakesHeight(const muiLayoutStyle* style, const muiEdges* paddin
     }
     float minimum = fmaxf(across.minimum, muiBoxSum(padding, style, true));
     *height = fminf(fmaxf(*height, minimum / ratio), across.maximum / ratio);
-    return fixedWidth;
+    return *fixedWidth;
 }
 
 // The vertical insets that size a child: between both, start, end or
@@ -274,7 +280,7 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
     Insets sizingY = SizingInsets(style, insetY);
     bool fixedHeight = FixedSize(style, &padding, false, spanX, spanY, &sizingY, &height);
     bool fixedWidth = FixedSize(style, &padding, true, spanX, spanY, &insetX, &width);
-    fixedHeight = !RatioTakesHeight(style, &padding, spanX, spanY, fixedWidth, fixedHeight, &width,
+    fixedHeight = !RatioTakesHeight(style, &padding, spanX, spanY, &fixedWidth, fixedHeight, &width,
                                     &height) &&
                   fixedHeight;
     if (!fixedWidth)

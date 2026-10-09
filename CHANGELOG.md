@@ -10,6 +10,14 @@ format.
 
 ### Changed
 
+- An absolute box with an aspect ratio and a height from its style takes
+  its width through the ratio rather than from its horizontal insets; a
+  stretched item's padding and border hold the floor of a ratio row's
+  height; and a basis caps an item's contribution to its row's content
+  width only on a single line, a wrapping row counting the item's
+  preferred width or content. All as Chrome does; eleven Chrome fixtures
+  hold the cases.
+
 - Three aspect-ratio cases follow Chrome: a root given both sizes keeps
   its width's limits, its ratio flooring it only at the content; an
   absolute box's width from both insets is clamped by its height's

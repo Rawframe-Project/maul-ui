@@ -184,3 +184,19 @@ fixture absolute_ratio_inset_width_floored_by_height available=500x400
 node => 0 0 0 0
   node => 0 0 0 0
     node position=absolute start=0 end=5 aspect=1 padding=0,0,3,7 => 0 0 10 10
+
+# A height the style gives sets an absolute box's width through its ratio,
+# not its horizontal insets.
+fixture absolute_ratio_height_beats_inset_width available=500x400
+node height=75% => 0 0 0 300
+  node height=75% position=absolute start=0 end=10 aspect=2 => 0 0 450 225
+
+fixture absolute_ratio_percent_height_beats_insets available=500x400
+node height=80 => 0 0 0 80
+  node height=50% position=absolute start=0 end=20 aspect=1.5 => 0 0 60 40
+
+fixture absolute_ratio_zero_height_beats_insets available=500x400
+node => 0 0 30 0
+  node width=30 => 0 0 30 0
+    node width=75% => 0 0 22.5 0
+      node height=25% position=absolute start=0 end=0 aspect=1.5 => 0 0 0 0

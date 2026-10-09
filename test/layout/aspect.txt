@@ -357,3 +357,7 @@ node align-items=start => 0 0 20 20
     node width=20 aspect=1 => 0 0 20 20
       node height=75% => 0 0 0 15
 
+# A stretched item's padding and border hold a ratio row's floor.
+fixture aspect_floor_stretched_border available=500x400
+node aspect=1.5 => 0 0 3 3
+  node border=3,0,0,3 => 0 0 3 3

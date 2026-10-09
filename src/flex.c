@@ -182,9 +182,10 @@ static float AutomaticMinimum(const Frame* frame, uint32_t child, const muiAxisS
 // sized by its content: section 9.9.1's web-compatible sum, with 9.9.3's
 // contributions as Chrome reads them. In a row, an item counts its
 // preferred size, else its content's, capped by a given basis if it
-// cannot grow and floored by it if it cannot shrink (neither for a
-// wrapping row's min-content size), within its limits, its automatic
-// minimum among them. A column counts hypothetical sizes, as Chrome does.
+// cannot grow (on a single line) and floored by it if it cannot shrink
+// (but for a wrapping row's min-content size), within its limits, its
+// automatic minimum among them. A column counts hypothetical sizes, as
+// Chrome does.
 static float PrepareItem(const Frame* frame, uint32_t child)
 {
     muiLayoutNode* layout = &frame->solver->nodes[child - 1];
@@ -244,7 +245,7 @@ static float PrepareItem(const Frame* frame, uint32_t child)
     float size = main.definite ? main.size : ContentMain(frame, child, mode, crossConstraint);
     if (!(frame->multiLine && mode == mui_measureMinContent))
     {
-        size = style->item.grow == 0.0f ? fminf(size, item->base) : size;
+        size = style->item.grow == 0.0f && !frame->multiLine ? fminf(size, item->base) : size;
         size = style->item.shrink == 0.0f ? fmaxf(size, item->base) : size;
     }
     return muiClampSize(size, item->minMain, item->maxMain, boxMain) + item->marginMain;
@@ -404,9 +405,11 @@ static float HypotheticalCross(const Frame* frame, uint32_t first, uint32_t coun
         muiFlexItemState* item = ItemOf(frame, c);
         if (frame->ratioHeight && frame->row && !frame->multiLine && IsStretched(frame, style))
         {
-            // It takes the line's height; only its minimum holds the line.
-            item->cross = item->minCross;
-            line = fmaxf(line, item->minCross + item->marginCross);
+            // It takes the line's height; only its minimum, padding and
+            // border among it, holds the line.
+            const muiEdges padding = ChildPadding(frame, style);
+            item->cross = fmaxf(item->minCross, muiBoxSum(&padding, style, !frame->row));
+            line = fmaxf(line, item->cross + item->marginCross);
             continue;
         }
         muiAxisSizing cross = muiResolveAxis(&style->sizing, !frame->row, frame->extentCross);
