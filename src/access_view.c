@@ -332,7 +332,9 @@ static void JoinLabellers(Name* name, const muiAccessTree* tree, const muiAccess
     }
 }
 
-// Whether a role takes its name from what is inside it.
+// Whether a role takes its name from what is inside it: ARIA 1.2's roles
+// supporting name from content (accname 1.2, step 2F). A list item's
+// name is its author's alone.
 static bool IsNamedByContents(muiRole role)
 {
     switch (role)
@@ -347,14 +349,24 @@ static bool IsNamedByContents(muiRole role)
     case mui_roleMenuItemCheckBox:
     case mui_roleMenuItemRadio:
     case mui_roleTab:
+    case mui_roleCell:
+    case mui_roleGridCell:
+    case mui_roleRowHeader:
+    case mui_roleColumnHeader:
+    case mui_roleRow:
+    case mui_roleListBoxOption:
+    case mui_roleTreeItem:
+    case mui_roleTooltip:
+    case mui_roleHeading:
         return true;
     default:
         return false;
     }
 }
 
-// The texts of the labels and images inside a node, in tree order;
-// hidden subtrees give none.
+// The texts of the labels and images inside a node, in tree order, of
+// what has a label of its own, which stands for all of it, and of what
+// is named by its content; hidden subtrees give none.
 static void JoinContents(Name* name, const muiAccessTree* tree, uint32_t slot)
 {
     uint32_t count = 0;
@@ -371,10 +383,16 @@ static void JoinContents(Name* name, const muiAccessTree* tree, uint32_t slot)
         {
             continue;
         }
-        if (node->role == mui_roleLabel || node->role == mui_roleImage)
+        if (node->role == mui_roleLabel || node->role == mui_roleImage ||
+            node->text[mui_accessLabel] != nullptr)
         {
             JoinTextOf(name, node);
             continue;
+        }
+        // One named by its content gives its own text, then its inside's.
+        if (IsNamedByContents(node->role))
+        {
+            Join(name, node->text[mui_accessValue], node->textLength[mui_accessValue]);
         }
         for (uint32_t k = node->childCount; k > 0 && count < tree->capacity; k--)
         {
@@ -400,8 +418,11 @@ muiResult muiAccessTree_GetName(const muiAccessTree* tree, uint64_t id, char* bu
         {
             JoinLabellers(&name, tree, node);
         }
+        // Named by contents: its own content's text (host content read
+        // into its value), then what is inside it.
         if (name.length == 0 && IsNamedByContents(node->role))
         {
+            Join(&name, node->text[mui_accessValue], node->textLength[mui_accessValue]);
             JoinContents(&name, tree, slot);
         }
     }

@@ -1373,6 +1373,15 @@ static void TestEvents(muiAtspiAdapter* adapter, Built* built)
               Send(adapter, (const muiAccessNode*[]){&built->nodes[3]}, 1, built->children, 0) &&
               EventsAre("PropertyChange accessible-name 0 w1n4 Hello"),
           "a name from another text; a value on a node that is no range");
+    // A label's text changed: its name told, no edit, as a list reusing
+    // its rows would send a flood of them.
+    label = built->nodes[3];
+    label.text[mui_accessValue] = "Help";
+    CHECK(Send(adapter, (const muiAccessNode*[]){&label}, 1, built->children, 0) &&
+              EventsAre("PropertyChange accessible-name 0 w1n4 Help") &&
+              Send(adapter, (const muiAccessNode*[]){&built->nodes[3]}, 1, built->children, 0) &&
+              EventsAre("PropertyChange accessible-name 0 w1n4 Hello"),
+          "a label's new text told by its name alone");
     // Two siblings swapped: the one out of order told moved.
     const uint64_t swapped[5] = {2, 3, 0x1a, 8, 6};
     root.childCount = 5;

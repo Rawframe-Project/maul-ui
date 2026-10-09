@@ -1097,8 +1097,57 @@ static void TestFullTreeUpdated(void)
     muiDestroyAccessTree(tree);
 }
 
+// Names from content (accname 1.2, step 2F): a tree item from its label, a heading from its own
+// text, a cell from a labelled button and a label, a row from its cells; a list item's is its
+// author's alone.
+static void TestNamesFromContent(void)
+{
+    muiAccessTreeDef def = muiDefaultAccessTreeDef();
+    def.nodes = 16;
+    muiAccessTree* tree = NULL;
+    CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
+    muiAccessNode nodes[10] = {
+        {.id = 1, .role = mui_roleWindow, .firstChild = 0, .childCount = 4},
+        {.id = 2, .role = mui_roleTreeItem, .firstChild = 4, .childCount = 1},
+        {.id = 3, .role = mui_roleLabel},
+        {.id = 4, .role = mui_roleListItem, .firstChild = 5, .childCount = 1},
+        {.id = 5, .role = mui_roleLabel},
+        {.id = 6, .role = mui_roleHeading},
+        {.id = 10, .role = mui_roleRow, .firstChild = 6, .childCount = 1},
+        {.id = 7, .role = mui_roleCell, .firstChild = 7, .childCount = 2},
+        {.id = 8, .role = mui_roleButton},
+        {.id = 9, .role = mui_roleLabel},
+    };
+    const uint64_t children[9] = {2, 4, 6, 10, 3, 5, 7, 8, 9};
+    nodes[2].text[mui_accessValue] = "Docs";
+    nodes[2].textLength[mui_accessValue] = 4;
+    nodes[4].text[mui_accessValue] = "Item";
+    nodes[4].textLength[mui_accessValue] = 4;
+    nodes[5].text[mui_accessValue] = "Intro";
+    nodes[5].textLength[mui_accessValue] = 5;
+    nodes[8].text[mui_accessLabel] = "OK";
+    nodes[8].textLength[mui_accessLabel] = 2;
+    nodes[9].text[mui_accessValue] = "now";
+    nodes[9].textLength[mui_accessValue] = 3;
+    // The cell's own text first, as host content reads into it.
+    nodes[7].text[mui_accessValue] = "At";
+    nodes[7].textLength[mui_accessValue] = 2;
+    const muiAccessNode* sent[10] = {&nodes[0], &nodes[1], &nodes[2], &nodes[3], &nodes[4],
+                                     &nodes[5], &nodes[6], &nodes[7], &nodes[8], &nodes[9]};
+    const muiAccessUpdate update = {sent, 10, children, 1, 1};
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "built");
+    char name[16];
+    size_t length = 0;
+    CHECK(NameIs(tree, 2, "Docs") && NameIs(tree, 6, "Intro") && NameIs(tree, 7, "At OK now") &&
+              NameIs(tree, 10, "At OK now") &&
+              muiAccessTree_GetName(tree, 4, name, sizeof(name), &length) == mui_empty,
+          "named from content; a list item not");
+    muiDestroyAccessTree(tree);
+}
+
 int main(void)
 {
+    TestNamesFromContent();
     TestUpdatesApplied();
     TestNewRoot();
     TestRefused();

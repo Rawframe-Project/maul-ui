@@ -10,6 +10,11 @@ format.
 
 ### Added
 
+- `tools/screen_reader_walk.sh`: a sample walked with Orca from a file
+  of steps (`tools/screen_reader/*.steps`), under Xvfb on a private
+  session bus, Orca's speech written out a line each, as a release's
+  assistive technology step runs on Linux.
+
 - A value text's marks in the accessibility tree (`muiAccessTextMarks`
   in `muiAccessNode`): its selection, the caret at its focus, where its
   lines start and its words, as byte offsets, for the platform
@@ -57,6 +62,13 @@ format.
   which the host tells the accessibility tree.
 
 ### Fixed
+
+- A cell, a header, a row, an option, a tree item, a tooltip and a
+  heading with no name of their own are named from their content, as
+  ARIA 1.2's roles supporting name from content are (accname 1.2, step
+  2F), for every platform adapter: a tree's and a list box's items were
+  nameless to Orca. A node named so takes its own content's text first,
+  and a labelled node inside stands for its whole subtree.
 
 - A COLR version 1 graph that reaches one paint by many paths is
   refused once 4096 paints were visited (`MUI_MAX_PAINT_VISITS`): a
