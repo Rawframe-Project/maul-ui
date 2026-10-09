@@ -56,7 +56,9 @@ static inline muiAxisSizing muiResolveAxis(const muiSizing* sizing, bool horizon
     axis.minimumAuto = minimum.kind == mui_dimensionAuto;
     if (!muiResolveDimension(minimum, extent, &axis.minimum))
     {
-        axis.minimum = 0.0f;
+        // A scale against an indefinite extent resolves against 0, its
+        // offset kept (CSS Sizing 3 section 5.2.1), as in Chrome.
+        axis.minimum = minimum.kind == mui_dimensionValue ? fmaxf(minimum.offset, 0.0f) : 0.0f;
     }
     if (!muiResolveDimension(maximum, extent, &axis.maximum))
     {

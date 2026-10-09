@@ -10,6 +10,14 @@ format.
 
 ### Changed
 
+- A line's largest ascent and descent may be negative when baselines lie
+  outside their items (Flexbox 9.4); baseline-aligned items in a column
+  line up their line-left edges as one group rather than acting as
+  start; a minimum whose scale cannot resolve keeps its offset (CSS
+  Sizing 3 section 5.2.1); and a column of open width lays its items out
+  at the width it finds, so stretched ones take it. All as Chrome does;
+  twenty-five Chrome fixtures hold the cases.
+
 - In a column, a ratio item's content size suggestion is capped by its
   maximum width through the ratio (Flexbox 4.5), and its base comes from
   the width it fits through the ratio, its content counting through its

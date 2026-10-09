@@ -46,6 +46,8 @@ typedef struct Frame
     // and the extent its lines reach across.
     bool ratioHeight;
     float contentCross;
+    // Some child was stretched wider than it was measured.
+    bool widened;
     uint32_t count;
     uint32_t lineCount;
     float innerMain;
@@ -81,13 +83,15 @@ static muiAlign AlignOf(const Frame* frame, const muiLayoutStyle* child)
 }
 
 // Whether a child takes part in its line's baseline alignment (section
-// 9.4 step 8): it aligns by baseline in a row, whose main axis is the
-// inline axis, and neither cross margin is automatic.
+// 9.4 step 8): it aligns by baseline and neither cross margin is
+// automatic. In a column the cross axis is the inline axis, where a box
+// has no baseline: one is synthesized from its line-left border edge, so
+// the group lines those edges up, as in Chrome.
 static bool IsBaselineAligned(const Frame* frame, const muiLayoutStyle* child)
 {
-    return frame->row && AlignOf(frame, child) == mui_alignBaseline &&
-           !muiIsMarginAutoStart(child, false, frame->rtl) &&
-           !muiIsMarginAutoEnd(child, false, frame->rtl);
+    return AlignOf(frame, child) == mui_alignBaseline &&
+           !muiIsMarginAutoStart(child, !frame->row, frame->rtl) &&
+           !muiIsMarginAutoEnd(child, !frame->row, frame->rtl);
 }
 
 // Whether a child takes its line's cross size: it aligns by stretch, its
@@ -431,8 +435,8 @@ static void SizeMain(Frame* frame)
 static float HypotheticalCross(const Frame* frame, uint32_t first, uint32_t count)
 {
     float line = 0.0f;
-    float ascent = 0.0f;
-    float descent = 0.0f;
+    float ascent = -INFINITY;
+    float descent = -INFINITY;
     for (uint32_t c = first, i = 0; i < count;
          c = muiNextFlowChild(frame->solver->tree, frame->solver->nodes, c), i++)
     {
@@ -457,10 +461,17 @@ static float HypotheticalCross(const Frame* frame, uint32_t first, uint32_t coun
         float outer = item->cross + item->marginCross;
         if (IsBaselineAligned(frame, style))
         {
+            // A column's is synthesized at the border box's line-left edge,
+            // its cross end under rtl.
+            float own = frame->rtl ? item->cross : 0.0f;
+            if (frame->row)
+            {
+                muiSizingInput at =
+                    ChildInput(frame, muiExact(item->target), muiExact(item->cross));
+                own = frame->solver->baseline(frame->solver, c, &at);
+            }
             muiEdges margins = muiMarginsOf(style, frame->rtl);
-            muiSizingInput at = ChildInput(frame, muiExact(item->target), muiExact(item->cross));
-            item->ascent =
-                muiEdgeStart(&margins, false) + frame->solver->baseline(frame->solver, c, &at);
+            item->ascent = muiEdgeStart(&margins, !frame->row) + own;
             ascent = fmaxf(ascent, item->ascent);
             descent = fmaxf(descent, outer - item->ascent);
             ItemOf(frame, first)->lineBaselines = true;
@@ -478,8 +489,8 @@ static float HypotheticalCross(const Frame* frame, uint32_t first, uint32_t coun
 // wrap-reverse puts at the physical end.
 static float LineBaseline(const Frame* frame, uint32_t first, uint32_t count)
 {
-    float ascent = 0.0f;
-    float descent = 0.0f;
+    float ascent = -INFINITY;
+    float descent = -INFINITY;
     for (uint32_t c = first, i = 0; i < count;
          c = muiNextFlowChild(frame->solver->tree, frame->solver->nodes, c), i++)
     {
@@ -495,7 +506,7 @@ static float LineBaseline(const Frame* frame, uint32_t first, uint32_t count)
 }
 
 // Section 9.4 step 11: stretched children take their line's cross size.
-static void Stretch(const Frame* frame, uint32_t first, uint32_t count)
+static void Stretch(Frame* frame, uint32_t first, uint32_t count)
 {
     float line = ItemOf(frame, first)->lineCross;
     for (uint32_t c = first, i = 0; i < count;
@@ -507,8 +518,10 @@ static void Stretch(const Frame* frame, uint32_t first, uint32_t count)
         if (!cross.definite && IsStretched(frame, style))
         {
             const muiEdges padding = ChildPadding(frame, style);
+            float measured = item->cross;
             item->cross = muiClampSize(line - item->marginCross, item->minCross, item->maxCross,
                                        muiBoxSum(&padding, style, !frame->row));
+            frame->widened = frame->widened || item->cross > measured;
         }
     }
 }
@@ -640,16 +653,11 @@ static float CrossOffset(const Frame* frame, const muiLayoutStyle* style,
     float start = muiEdgeStart(&margins, !frame->row);
     float end = muiEdgeEnd(&margins, !frame->row);
     muiAlign align = AlignOf(frame, style);
-    if (align == mui_alignBaseline && frame->row)
+    if (align == mui_alignBaseline)
     {
         // Section 9.6 step 14: the line's baseline-aligned children share
         // its baseline.
         return baseline - item->ascent + start;
-    }
-    if (align == mui_alignBaseline)
-    {
-        // In a column the cross axis is the inline axis: start.
-        align = mui_alignStart;
     }
     if (frame->wrapReverse && (align == mui_alignStart || align == mui_alignEnd))
     {
@@ -834,7 +842,7 @@ static float FirstBaseline(const Frame* frame)
     {
         child = frame->reverse ? c : child;
     }
-    if (head->lineBaselines)
+    if (head->lineBaselines && frame->row)
     {
         return frame->boxCrossStart + LineStart(frame, head) +
                LineBaseline(frame, line, head->lineCount);
@@ -844,6 +852,25 @@ static float FirstBaseline(const Frame* frame)
     Offsets offsets = Place(frame, line, child);
     return own +
            (frame->row ? frame->boxCrossStart + offsets.cross : frame->boxMainStart + offsets.main);
+}
+
+// Whether a column sized at an open width lays out otherwise at the width
+// it found: a child was stretched wider than it was measured, or sizes by
+// the container's width.
+static bool WidthMatters(const Frame* frame)
+{
+    for (uint32_t c = muiFirstFlowChild(frame->solver->tree, frame->solver->nodes, frame->node);
+         c != 0 && !frame->widened;
+         c = muiNextFlowChild(frame->solver->tree, frame->solver->nodes, c))
+    {
+        const muiSizing* sizing = &frame->solver->nodes[c - 1].style.sizing;
+        if (muiIsScaled(sizing->width) || muiIsScaled(sizing->minWidth) ||
+            muiIsScaled(sizing->maxWidth))
+        {
+            return true;
+        }
+    }
+    return frame->widened;
 }
 
 // Sizes a row container's width as fit-content: its max-content size
@@ -880,10 +907,21 @@ static muiSize Flex(const muiSolver* solver, uint32_t node, const muiSizingInput
         // min-content and max-content heights are the same in CSS.
         *main = row ? FitMain(solver, node, input) : (muiMeasureAxis){0.0f, mui_measureMaxContent};
     }
-    Frame frame = Setup(solver, node, &fitted);
-    frame.ratioHeight = ratioHeight;
-    SizeMain(&frame);
-    SizeCross(&frame);
+    Frame frame;
+    for (;;)
+    {
+        frame = Setup(solver, node, &fitted);
+        frame.ratioHeight = ratioHeight;
+        SizeMain(&frame);
+        SizeCross(&frame);
+        if (row || fitted.width.mode != mui_measureAtMost || !WidthMatters(&frame))
+        {
+            break;
+        }
+        // A column's width comes first, as CSS sizes a box's width before
+        // its height: its items are laid out again at the width it found.
+        fitted.width = muiExact(frame.innerCross + frame.boxCross);
+    }
     if (baseline != nullptr)
     {
         *baseline = FirstBaseline(&frame);

@@ -26,3 +26,47 @@ fixture scale_in_auto_parent_is_auto available=500x400
 node height=50 => 0 0 20 50
   node width=50% height=10 => 0 0 6.671875 10
   node width=20 height=10 => 6.671875 0 13.328125 10
+
+# A minimum whose scale cannot resolve resolves it against 0 and keeps its
+# offset (CSS Sizing 3 section 5.2.1); a maximum or size so given does not
+# count.
+fixture scale_min_width_offset_kept available=500x400
+node => 0 0 5 0
+  node => 0 0 5 0
+    node => 0 0 5 0
+      node min-width=100%+5 => 0 0 10 0
+
+fixture scale_min_width_offset_kept_half available=500x400
+node => 0 0 10 0
+  node => 0 0 10 0
+    node min-width=50%+10 => 0 0 15 0
+
+fixture scale_min_width_offset_kept_column available=500x400
+node => 0 0 10 0
+  node direction=column => 0 0 10 0
+    node min-width=50%+10 => 0 0 15 0
+
+fixture scale_min_height_offset_kept available=500x400
+node width=100 => 0 0 100 10
+  node direction=column => 0 0 0 10
+    node min-height=50%+10 => 0 0 0 15
+
+fixture scale_min_height_offset_kept_row available=500x400
+node width=100 => 0 0 100 10
+  node => 0 0 0 10
+    node min-height=50%+10 => 0 0 0 15
+
+fixture scale_max_width_offset_not_counted available=500x400
+node => 0 0 40 10
+  node => 0 0 40 10
+    node max-width=50%+10 content=40x10 => 0 0 30 10
+
+fixture scale_width_offset_not_counted available=500x400
+node => 0 0 40 10
+  node => 0 0 40 10
+    node width=50%+10 content=40x10 => 0 0 30 10
+
+fixture scale_max_height_offset_not_counted available=500x400
+node width=100 => 0 0 100 40
+  node direction=column => 0 0 10 40
+    node max-height=50%+10 content=10x40 => 0 0 10 30

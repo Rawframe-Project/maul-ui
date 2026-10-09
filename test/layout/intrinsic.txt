@@ -129,3 +129,24 @@ fixture basis_cap_wrap_reverse_row available=500x400
 node => 0 0 30 0
   node wrap=wrap-reverse => 0 0 30 0
     node width=30 basis=20 => 0 0 20 0
+
+# A column of open width lays its items out at the width it finds, as
+# CSS sizes a box's width before its height: a stretched item with a
+# ratio takes its height from that width.
+fixture column_items_at_found_width available=500x400
+node direction=column-reverse => 0 0 10 20
+  node direction=column-reverse => 0 0 10 20
+    node aspect=1 => 0 10 10 10
+    node padding=5 => 0 0 10 10
+
+fixture column_items_at_found_width_nested_end available=500x400
+node width=200 height=60 direction=column => 0 0 200 60
+  node align-self=end shrink=0 direction=column => 160 0 40 30
+    node width=100% aspect=2 => 0 0 40 20
+    node content=40x10 => 0 20 40 10
+
+fixture column_items_at_found_width_nested_stretch_text available=500x400
+node width=200 height=60 direction=column align-items=start => 0 0 200 60
+  node shrink=0 direction=column => 0 0 30 40
+    node aspect=1 => 0 0 30 30
+    node content=30x10 => 0 30 30 10
