@@ -96,6 +96,9 @@ format.
   within a shown height of it, at most 16,384, the other lines marked
   `omitted`: a 1 MB field's send after a keystroke went from 101 ms and
   922,545 clusters to 32 ms and 9,678.
+- The text component keeps a block's words between reads and, after an
+  edit, segments again only the paragraphs it changed, moving the words
+  after them: the 1 MB field's send went from 32 ms to 7 ms.
 - `muiTextEditOutcome` says whether the selection moved (`selected`),
   which the host tells the accessibility tree.
 - A typed id is named for what it names, as across the family:

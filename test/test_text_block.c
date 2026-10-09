@@ -279,6 +279,115 @@ static void TestAccessText(void)
     FreeScene(&scene);
 }
 
+// The words of a block read as a new block's of its text are.
+static bool SameWords(Scene* scene, muiNodeId node, uint64_t key, const char* text, size_t length)
+{
+    const muiRect all = {0.0f, 0.0f, 1e6f, 1e6f};
+    muiAccessContent kept;
+    muiAccessContent fresh;
+    muiTextBlockId block = {0, 0};
+    muiTextBlockDef def = muiDefaultTextBlockDef();
+    def.text = text;
+    def.length = length;
+    CHECK(muiCreateTextBlock(scene->service, &def, &block) == mui_success, "a new block");
+    bool same =
+        muiAccessTextOf(&scene->host, node, key, &all, &kept) &&
+        muiAccessTextOf(&scene->host, node, muiTextBlock_GetKey(block), &all, &fresh) &&
+        kept.marks.wordCount == fresh.marks.wordCount &&
+        (kept.marks.wordCount == 0 || memcmp(kept.marks.words, fresh.marks.words,
+                                             kept.marks.wordCount * sizeof(muiAccessWord)) == 0);
+    CHECK(muiDestroyTextBlock(scene->service, block) == mui_success, "destroyed");
+    return same;
+}
+
+// Words kept across reads follow edits as a new segmentation would have
+// them: letters, spaces, punctuation, combining marks and every
+// paragraph separator put in and taken out at random, CR LF joined and
+// split among them, read after each edit or after a few; and segmented
+// whole again after memory ran out reading them.
+static void TestKeptWords(void)
+{
+    static const char* const pieces[] = {"a",
+                                         " ",
+                                         "x'y",
+                                         ",",
+                                         "7",
+                                         ".",
+                                         "\n",
+                                         "\r",
+                                         "\r\n",
+                                         "\v",
+                                         "\f",
+                                         "\xC2\x85",
+                                         "\xE2\x80\xA8",
+                                         "\xE2\x80\xA9",
+                                         "\xCC\x81",
+                                         "\xF0\x9F\x98\x80",
+                                         "ab cd\nef"};
+    Scene scene = MakeScene(NULL);
+    muiNodeId node = AddText(&scene, s_nullNode, "one two\nthree, four's 5.5\r\nsix");
+    uint64_t key = muiNode_GetHostKey(scene.context, node);
+    const muiTextBlockId block = {(uint32_t)key, (uint32_t)(key >> 32)};
+    uint32_t state = 7;
+    bool same = true;
+    for (int step = 0; step < 3000 && same; step++)
+    {
+        const char* text = NULL;
+        size_t length = 0;
+        CHECK(muiTextBlock_GetText(scene.service, block, &text, &length) == mui_success, "text");
+        state = state * 1103515245u + 12345u;
+        uint32_t start = (uint32_t)((state >> 8) % (length + 1));
+        uint32_t end = start + (uint32_t)((state >> 20) % 4);
+        end = end > length ? (uint32_t)length : end;
+        while (start > 0 && ((unsigned char)text[start] & 0xC0) == 0x80)
+        {
+            start--;
+        }
+        while (end < length && ((unsigned char)text[end] & 0xC0) == 0x80)
+        {
+            end++;
+        }
+        const char* piece = length > 300 ? "" : pieces[(state >> 4) % 17];
+        CHECK(muiTextBlock_Replace(scene.service, block, start, end, piece, strlen(piece)) ==
+                  mui_success,
+              "an edit");
+        if (step % 3 != 1)
+        {
+            CHECK(muiTextBlock_GetText(scene.service, block, &text, &length) == mui_success,
+                  "text");
+            same = SameWords(&scene, node, key, text, length);
+        }
+    }
+    CHECK(same, "words kept through every edit as found afresh");
+    FreeScene(&scene);
+    FailingAllocator failing = {0, 0};
+    scene = MakeScene(&failing);
+    node = AddText(&scene, s_nullNode, "ab cd\nef gh");
+    key = muiNode_GetHostKey(scene.context, node);
+    const muiTextBlockId failed = {(uint32_t)key, (uint32_t)(key >> 32)};
+    const muiRect all = {0.0f, 0.0f, 1e6f, 1e6f};
+    muiAccessContent content;
+    CHECK(muiAccessTextOf(&scene.host, node, key, &all, &content) && content.marks.wordCount == 4,
+          "four words");
+    // Each allocation of a read after an edit fails in turn.
+    bool wordless = false;
+    bool found = true;
+    for (int failAt = 1; failAt <= 12; failAt++)
+    {
+        CHECK(muiTextBlock_Replace(scene.service, failed, 2, 2, "x", 1) == mui_success &&
+                  muiTextBlock_Replace(scene.service, failed, 2, 3, "", 0) == mui_success,
+              "an edit");
+        failing.allocations = 0;
+        failing.failAt = failAt;
+        wordless = wordless || (muiAccessTextOf(&scene.host, node, key, &all, &content) &&
+                                content.marks.wordCount == 0);
+        failing.failAt = 0;
+        found = found && SameWords(&scene, node, key, "ab cd\nef gh", 11);
+    }
+    CHECK(wordless && found, "no words when memory runs out, found whole the next time");
+    FreeScene(&scene);
+}
+
 static void TestMeasuring(void)
 {
     Scene scene = MakeScene(NULL);
@@ -875,6 +984,7 @@ int main(void)
 {
     TestBlocksAndKeys();
     TestAccessText();
+    TestKeptWords();
     TestMeasuring();
     TestWrapChanged();
     TestMisuse();

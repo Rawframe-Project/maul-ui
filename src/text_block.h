@@ -167,6 +167,20 @@ enum
     MUI_LINE_CACHES = 3
 };
 
+// A block's words as accessibility reads them (src/text_access.c), kept
+// between sends: count muiAccessWord in words, made for the text of
+// revision revision, length bytes long, but for the paragraphs stale
+// names; none made until made is true.
+typedef struct muiWordCache
+{
+    muiBuffer words;
+    uint32_t count;
+    uint32_t length;
+    uint64_t revision;
+    bool made;
+    muiStale stale;
+} muiWordCache;
+
 typedef struct muiTextBlock muiTextBlock;
 
 struct muiTextBlock
@@ -239,10 +253,10 @@ struct muiTextBlock
     muiTextBlock* mask;
     uint64_t maskRevision;
     // What accessibility last read of it (src/text_access.c): where its
-    // lines start (uint32_t), its words (muiAccessWord), its lines' boxes
-    // (muiAccessLineBox) and its clusters (muiAccessCluster).
+    // lines start (uint32_t), its lines' boxes (muiAccessLineBox) and its
+    // clusters (muiAccessCluster); and its words, which edits follow.
     muiBuffer accessLines;
-    muiBuffer accessWords;
+    muiWordCache accessWords;
     muiBuffer accessLineBoxes;
     muiBuffer accessClusters;
 };

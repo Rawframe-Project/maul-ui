@@ -21,6 +21,8 @@
 #include "maul-ui/text_editor.h"
 #include "maul-unicode/segment.h"
 
+#include <string.h>
+
 // A line's clusters, after those kept, in the node's own space: the
 // content box's place added; false when memory runs out.
 static bool ReadClusters(const muiLaidText* laid, uint32_t index, muiRect content,
@@ -122,37 +124,123 @@ static bool ReadLines(const muiTextHost* host, muiNodeId nodeId, muiRect shown, 
     return true;
 }
 
-// A text's words, the word segments with a letter or a number, kept in
-// the block; false when memory runs out.
-static bool ReadWords(muiTextService* service, muiTextBlock* block, muiAccessTextMarks* marks)
+// The word segments with a letter or a number of bytes from up to to of
+// a text, put in a buffer after count words, the count moved past them;
+// false when memory runs out. A paragraph's start and end are word
+// breaks, so whole paragraphs are segmented alone.
+static bool SegmentWords(const muiAllocator* allocator, const char* text, uint32_t from,
+                         uint32_t to, muiBuffer* buffer, uint32_t* countInOut)
 {
-    const char* text = block->text.data;
     muniSegmentIterator iterator;
-    if (block->length == 0 ||
-        muniInitWordIterator(&iterator, text, block->length, false) != muni_success)
+    if (to == from ||
+        muniInitWordIterator(&iterator, text + from, to - from, false) != muni_success)
     {
         return true;
     }
-    uint32_t count = 0;
+    uint32_t count = *countInOut;
     size_t start = 0;
     size_t end = 0;
     while (muniNextSegmentBreak(&iterator, &end) == muni_success)
     {
-        if (end > start && muiIsWordSegment(text, start, end))
+        if (end > start && muiIsWordSegment(text + from, start, end))
         {
-            if (!muiReserveKeeping(&service->allocator, &block->accessWords,
-                                   (count + 1) * sizeof(muiAccessWord),
+            if (!muiReserveKeeping(allocator, buffer, (count + 1) * sizeof(muiAccessWord),
                                    count * sizeof(muiAccessWord)))
             {
                 return false;
             }
-            ((muiAccessWord*)block->accessWords.data)[count++] =
-                (muiAccessWord){(uint32_t)start, (uint32_t)end};
+            ((muiAccessWord*)buffer->data)[count++] =
+                (muiAccessWord){from + (uint32_t)start, from + (uint32_t)end};
         }
         start = end;
     }
-    marks->words = count != 0 ? block->accessWords.data : nullptr;
-    marks->wordCount = count;
+    *countInOut = count;
+    return true;
+}
+
+// The first of count words that ends past an offset (start false) or
+// starts at it or past it (start true).
+static uint32_t WordFrom(const muiAccessWord* words, uint32_t count, uint32_t offset, bool start)
+{
+    uint32_t low = 0;
+    uint32_t high = count;
+    while (low < high)
+    {
+        uint32_t middle = low + (high - low) / 2;
+        bool before = start ? words[middle].start < offset : words[middle].end <= offset;
+        low = before ? middle + 1 : low;
+        high = before ? high : middle;
+    }
+    return low;
+}
+
+// The words of the paragraphs edits changed in place of those they had,
+// segmented apart; those after moved by the change in length.
+static bool SpliceWords(const muiAllocator* allocator, const char* text, uint32_t length,
+                        muiWordCache* cache)
+{
+    uint32_t from = cache->stale.start;
+    uint32_t to = cache->stale.end;
+    int64_t delta = (int64_t)length - (int64_t)cache->length;
+    uint32_t first = WordFrom(cache->words.data, cache->count, from, false);
+    uint32_t after =
+        WordFrom(cache->words.data, cache->count, (uint32_t)((int64_t)to - delta), true);
+    muiBuffer region = {0};
+    uint32_t added = 0;
+    uint32_t tail = cache->count - after;
+    size_t size = sizeof(muiAccessWord);
+    bool fits = SegmentWords(allocator, text, from, to, &region, &added) &&
+                muiReserveKeeping(allocator, &cache->words, (first + added + tail) * size,
+                                  cache->count * size);
+    if (fits)
+    {
+        muiAccessWord* words = cache->words.data;
+        memmove(words + first + added, words + after, tail * size);
+        if (added != 0)
+        {
+            memcpy(words + first, region.data, added * size);
+        }
+        for (uint32_t i = first + added; i < first + added + tail; i++)
+        {
+            words[i].start = (uint32_t)((int64_t)words[i].start + delta);
+            words[i].end = (uint32_t)((int64_t)words[i].end + delta);
+        }
+        cache->count = first + added + tail;
+    }
+    muiFreeBuffer(allocator, &region);
+    return fits;
+}
+
+// A text's words, kept in the block between reads: segmented whole the
+// first time and after a change they did not follow, else only in the
+// paragraphs edits changed since. False when memory runs out, the words
+// then segmented whole the next time.
+static bool ReadWords(muiTextService* service, muiTextBlock* block, muiAccessTextMarks* marks)
+{
+    muiWordCache* cache = &block->accessWords;
+    const char* text = block->text.data;
+    bool kept = cache->made && cache->revision == block->revision;
+    cache->made = false;
+    if (!kept)
+    {
+        cache->count = 0;
+        if (!SegmentWords(&service->allocator, text, 0, block->length, &cache->words,
+                          &cache->count))
+        {
+            return false;
+        }
+    }
+    else if (cache->stale.on && !SpliceWords(&service->allocator, text, block->length, cache))
+    {
+        return false;
+    }
+    *cache = (muiWordCache){.words = cache->words,
+                            .count = cache->count,
+                            .length = block->length,
+                            .revision = block->revision,
+                            .made = true};
+    marks->words = cache->count != 0 ? cache->words.data : nullptr;
+    marks->wordCount = cache->count;
     return true;
 }
 
