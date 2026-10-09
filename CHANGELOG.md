@@ -10,6 +10,14 @@ format.
 
 ### Changed
 
+- An aspect ratio's automatic minimum follows CSS Sizing 4 as Chrome
+  reads it. A flex item whose width comes through its ratio from a
+  definite height keeps that width as its automatic minimum; a root or
+  absolute node given a height and a width keeps at least its content's
+  min-content width, unless its minimum width is set; and a percentage
+  size that cannot resolve takes no content minimum. Five Chrome
+  fixtures hold the cases.
+
 - A height that is a node's own content height is indefinite, as in
   CSS (Flexbox 9.8), matching Chrome: a flex item not stretched across
   its line, a column item flexed in a column of no definite height, and

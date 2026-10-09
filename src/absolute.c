@@ -199,6 +199,14 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
             fixedHeight ? muiExact(height) : (muiMeasureAxis){0.0f, mui_measureMaxContent};
         width = solver->solve(solver, child, &input, false).width;
     }
+    else if (fixedHeight && muiRatioWidthMinimum(style) &&
+             muiResolveAxis(&style->sizing, true, spanX->paddingSize).definite)
+    {
+        // Its ratio may give it a minimum width (src/solve.c).
+        input.width = (muiMeasureAxis){0.0f, mui_measureMinContent};
+        input.height = muiExact(height);
+        width = fmaxf(width, solver->solve(solver, child, &input, false).width);
+    }
     if (!fixedHeight)
     {
         input.width = muiExact(width);

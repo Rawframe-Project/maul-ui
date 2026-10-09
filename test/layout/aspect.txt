@@ -107,3 +107,39 @@ node width=400 height=300 => 0 0 400 300
   node => 0 0 30 300
     node width=20 height=160 => 0 0 20 160
     node width=10 height=50% => 20 0 10 150
+
+# An aspect ratio's automatic minimum: a flex item whose width comes
+# through its ratio from a definite height keeps at least that width, and
+# a percentage size that cannot resolve takes no content minimum.
+fixture aspect_minimum_from_stretched_height available=500x400
+node => 0 0 10 10
+  node => 0 0 10 10
+    node border=5 => 0 0 10 10
+    node width=75% aspect=0.5 => 10 0 5 10
+
+fixture aspect_percent_height_unresolved available=500x400
+node => 0 0 0 10
+  node width=0 => 0 0 0 10
+    node width=150 height=50% aspect=1.5 margin=5 => 5 5 7.5 5
+
+fixture aspect_percent_height_fills_row available=500x400
+node => 0 0 6 6
+  node => 0 0 6 6
+    node height=100% aspect=1 => 0 0 6 6
+      node padding=3,3,7,3 => 0 0 6 10
+
+# Both sizes given: the width depends on the ratio, so its automatic
+# minimum keeps the content's min-content width, for a root and for an
+# absolute node; a minimum width of zero, or no ratio, drops it.
+fixture aspect_root_keeps_content_width available=500x400
+node width=150 height=100% aspect=0.5 => 0 0 170 400
+  node min-width=150 margin=10 => 10 10 150 380
+
+fixture aspect_absolute_keeps_content_width available=500x400
+node width=300 height=300 => 0 0 300 300
+  node position=absolute start=0 top=0 width=150 height=200 aspect=0.5 => 0 0 170 200
+    node min-width=150 margin=10 => 10 10 150 180
+  node position=absolute start=0 top=0 width=150 height=200 aspect=0.5 min-width=0 => 0 0 150 200
+    node min-width=150 margin=10 => 10 10 150 180
+  node position=absolute start=0 top=0 width=150 height=200 => 0 0 150 200
+    node min-width=150 margin=10 => 10 10 150 180

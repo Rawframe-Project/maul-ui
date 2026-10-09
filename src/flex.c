@@ -146,7 +146,9 @@ static float ContentMain(const Frame* frame, uint32_t child, muiMeasureMode mode
 // smaller of the specified size and the min-content size, each within
 // the maximum. A size the aspect ratio gives is not a specified size: the
 // content wins over it, as CSS Sizing 4 says for the ratio-dependent
-// axis.
+// axis. With an aspect ratio and a definite cross size, the min-content
+// size is at least that size through the ratio (the transferred size
+// suggestion), so an empty item keeps its ratio's width.
 static float AutomaticMinimum(const Frame* frame, uint32_t child, const muiAxisSizing* main,
                               muiMeasureAxis cross)
 {
@@ -155,7 +157,13 @@ static float AutomaticMinimum(const Frame* frame, uint32_t child, const muiAxisS
     {
         return 0.0f;
     }
-    float content = fminf(ContentMain(frame, child, mui_measureMinContent, cross), main->maximum);
+    float content = ContentMain(frame, child, mui_measureMinContent, cross);
+    float ratio = frame->solver->nodes[child - 1].style.sizing.aspectRatio;
+    if (ratio > 0.0f && cross.mode == mui_measureExact)
+    {
+        content = fmaxf(content, frame->row ? cross.size * ratio : cross.size / ratio);
+    }
+    content = fminf(content, main->maximum);
     if (main->definite)
     {
         content = fminf(content, fminf(main->size, main->maximum));

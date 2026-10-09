@@ -163,4 +163,16 @@ static inline float muiClampSize(float size, float minimum, float maximum, float
     return fmaxf(fmaxf(fminf(size, maximum), minimum), box);
 }
 
+// Whether a box given both sizes keeps its content's min-content width:
+// with an aspect ratio, Chrome takes the width as the ratio-dependent
+// axis once the height is not automatic, and CSS Sizing 4 section 4.3
+// gives that axis the content's min-content size as an automatic
+// minimum. A box scrolling across has none.
+static inline bool muiRatioWidthMinimum(const muiLayoutStyle* style)
+{
+    return style->sizing.aspectRatio > 0.0f && style->sizing.minWidth.kind == mui_dimensionAuto &&
+           style->sizing.height.kind != mui_dimensionAuto &&
+           (style->scrollAxes & mui_scrollHorizontal) == 0;
+}
+
 #endif // MAUL_UI_SRC_SIZING_H
