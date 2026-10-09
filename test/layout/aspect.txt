@@ -143,3 +143,45 @@ node width=300 height=300 => 0 0 300 300
     node min-width=150 margin=10 => 10 10 150 180
   node position=absolute start=0 top=0 width=150 height=200 => 0 0 150 200
     node min-width=150 margin=10 => 10 10 150 180
+
+# Neither size known: the width is its content's within the height's
+# limits through the ratio, padding and border among them, and its own
+# limits win; the height follows from the width.
+fixture aspect_vertical_padding_gives_width available=500x400
+node aspect=2 padding=0,0,3,7 => 0 0 20 10
+
+fixture aspect_border_gives_width available=500x400
+node => 0 0 30 20
+  node aspect=1.5 border=10 => 0 0 30 20
+
+fixture aspect_padding_gives_width_nested available=500x400
+node => 0 0 40 20
+  node => 0 0 40 20
+    node aspect=2 padding=10 => 0 0 40 20
+
+fixture aspect_minimum_height_gives_width available=500x400
+node => 0 0 160 50
+  node aspect=2 min-height=30 => 0 0 60 50
+  node aspect=2 min-height=30 content=100x10 => 60 0 100 50
+
+fixture aspect_maximum_width_wins available=500x400
+node aspect=2 padding=0,0,5,5 max-width=15 => 0 0 15 10
+
+fixture aspect_maximum_height_limits_width available=500x400
+node width=300 => 0 0 300 10
+  node align-self=start => 0 0 20 10
+    node aspect=2 max-height=10 content=100x5 => 0 0 20 10
+
+fixture aspect_padding_gives_width_absolute available=500x400
+node width=300 height=300 => 0 0 300 300
+  node position=absolute start=0 top=0 aspect=2 padding=0,0,10,10 => 0 0 40 20
+
+fixture aspect_padding_gives_width_column available=500x400
+node width=300 height=300 direction=column align-items=start => 0 0 300 300
+  node aspect=2 padding=0,0,10,10 => 0 0 40 20
+
+fixture aspect_given_height_in_content_row available=500x400
+node width=300 => 0 0 300 50
+  node align-self=start => 0 0 200 50
+    node height=50 aspect=2 => 0 0 100 50
+    node height=50 aspect=2 min-width=0 content=10x10 => 100 0 100 50

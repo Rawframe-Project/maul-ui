@@ -10,6 +10,13 @@ format.
 
 ### Changed
 
+- A box with an aspect ratio and neither size known takes its content's
+  width within its height's limits carried through the ratio, padding
+  and border among them, its own width limits winning, and its height
+  from that width, as in Chrome: an empty 2:1 box with padding 10 is 40
+  by 20, not 20 by 20, and a minimum or maximum height widens or narrows
+  it. Nine Chrome fixtures hold the cases.
+
 - An aspect ratio's automatic minimum follows CSS Sizing 4 as Chrome
   reads it. A flex item whose width comes through its ratio from a
   definite height keeps that width as its automatic minimum; a root or
