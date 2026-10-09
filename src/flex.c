@@ -493,6 +493,29 @@ static void DistributeLines(const Frame* frame, float used)
 
 // Section 9.4: the lines' cross sizes, the container's, the lines'
 // places, and stretched children's cross sizes.
+// Section 9.9.2: a single-line column sized by its content is as wide as
+// its widest item's contribution, its width with its height left open, as
+// Chrome sizes it, not as wide as its items are at their flexed heights.
+static float ColumnContribution(const Frame* frame)
+{
+    float widest = 0.0f;
+    for (uint32_t c = muiFirstFlowChild(frame->solver->tree, frame->solver->nodes, frame->node);
+         c != 0; c = muiNextFlowChild(frame->solver->tree, frame->solver->nodes, c))
+    {
+        const muiLayoutStyle* style = &frame->solver->nodes[c - 1].style;
+        const muiFlexItemState* item = ItemOf(frame, c);
+        muiAxisSizing cross = muiResolveAxis(&style->sizing, true, frame->extentCross);
+        muiMeasureAxis constraint = CrossConstraint(frame, style, &cross, false);
+        muiSizingInput input =
+            ChildInput(frame, (muiMeasureAxis){0.0f, mui_measureMaxContent}, constraint);
+        float size = frame->solver->solve(frame->solver, c, &input, false).width;
+        const muiEdges padding = ChildPadding(frame, style);
+        size = muiClampSize(size, item->minCross, item->maxCross, muiBoxSum(&padding, style, true));
+        widest = fmaxf(widest, size + item->marginCross);
+    }
+    return widest;
+}
+
 static void SizeCross(Frame* frame)
 {
     float total = 0.0f;
@@ -504,6 +527,10 @@ static void SizeCross(Frame* frame)
         total += ItemOf(frame, first)->lineCross;
     }
     total += Gaps(frame->crossGap, frame->lineCount);
+    if (!frame->row && !frame->multiLine && frame->crossIn.mode != mui_measureExact)
+    {
+        total = ColumnContribution(frame);
+    }
     if (frame->crossIn.mode != mui_measureExact)
     {
         float outer = muiClampSize(total + frame->boxCross, frame->crossLimits.minimum,

@@ -10,6 +10,13 @@ format.
 
 ### Changed
 
+- A single-line column sized by its content takes its width from its
+  items' contributions, each item's width with its height left open
+  (Flexbox 9.9.2), as Chrome does, rather than from their widths at
+  their flexed heights: an item whose width follows its height through
+  an aspect ratio no longer widens the column. Four Chrome fixtures hold
+  the cases.
+
 - Absolute boxes follow Chrome in two more ways. With an aspect ratio
   and a fixed width, the height comes from the ratio even when both
   vertical insets are set; otherwise a height from the insets gives the

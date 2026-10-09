@@ -274,3 +274,25 @@ fixture aspect_ratio_height_definite_absolute available=500x400
 node width=300 height=300 => 0 0 300 300
   node position=absolute start=0 top=0 width=100 aspect=2 => 0 0 100 50
     node width=20 height=50% => 0 0 20 25
+
+# A column sized by its content is as wide as its items' contributions,
+# their widths with their heights left open (section 9.9.2), so an item
+# whose width follows its height through a ratio overflows it.
+fixture column_width_from_contribution_row_item available=500x400
+node direction=column align-items=start => 0 0 20 40
+  node aspect=2 => 0 0 80 40
+    node content=20x40 => 0 0 20 40
+
+fixture column_width_from_contribution_unstretched available=500x400
+node direction=column align-items=start => 0 0 20 40
+  node aspect=2 align-items=start => 0 0 80 40
+    node content=20x40 => 0 0 20 40
+
+fixture column_width_from_contribution_leaf available=500x400
+node direction=column align-items=start => 0 0 20 40
+  node aspect=2 content=20x40 => 0 0 80 40
+
+fixture column_width_from_contribution_column_item available=500x400
+node direction=column align-items=start => 0 0 20 40
+  node aspect=2 direction=column => 0 0 80 40
+    node content=20x40 => 0 0 80 40
