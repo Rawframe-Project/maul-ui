@@ -10,6 +10,13 @@ format.
 
 ### Changed
 
+- A column asking an item's width contribution gives it the height its
+  style gives; a ratio item's content size suggestion is floored by its
+  cross minimum through the ratio (Flexbox 4.5); and an absolute box
+  with a ratio and a height from both insets is at least its width's
+  height through the ratio and, its minimum automatic, its content's.
+  All as Chrome does; eight Chrome fixtures hold the cases.
+
 - An absolute box with an aspect ratio and a height from its style takes
   its width through the ratio rather than from its horizontal insets; a
   stretched item's padding and border hold the floor of a ratio row's

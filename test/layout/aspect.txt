@@ -361,3 +361,18 @@ node align-items=start => 0 0 20 20
 fixture aspect_floor_stretched_border available=500x400
 node aspect=1.5 => 0 0 3 3
   node border=3,0,0,3 => 0 0 3 3
+
+# A column asking an item's width gives it the height its style gives.
+fixture column_contribution_at_items_own_height available=500x400
+node direction=column-reverse => 0 0 120 60
+  node height=60 => 0 0 120 60
+    node aspect=2 => 0 0 120 60
+
+# A ratio item's content size suggestion is floored by its cross minimum
+# through the ratio.
+fixture aspect_content_suggestion_cross_minimum available=500x400
+node => 0 0 10 16
+  node => 0 0 10 16
+    node width=50% align-items=start => 0 0 5 16
+      node width=50% min-height=25% aspect=1 => 0 0 2.5 4
+      node content=10x16 => 2.5 0 10 16

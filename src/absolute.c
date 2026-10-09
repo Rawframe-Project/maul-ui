@@ -227,6 +227,23 @@ static bool RatioTakesHeight(const muiLayoutStyle* style, const muiEdges* paddin
     return *fixedWidth;
 }
 
+// A height from both insets, with an aspect ratio, is at least the
+// width's through the ratio and, its minimum automatic, the content's at
+// that width (as Chrome).
+static float RatioHeightFloor(const muiSolver* solver, uint32_t child, muiSizingInput* input,
+                              const Span* spanY, float width, float height)
+{
+    const muiLayoutStyle* style = &solver->nodes[child - 1].style;
+    if (style->sizing.aspectRatio <= 0.0f ||
+        muiResolveAxis(&style->sizing, false, spanY->paddingSize).definite)
+    {
+        return height;
+    }
+    input->width = muiExact(width);
+    input->height = (muiMeasureAxis){0.0f, mui_measureMaxContent};
+    return fmaxf(height, solver->solve(solver, child, input, false).height);
+}
+
 // The vertical insets that size a child: between both, start, end or
 // centre alignment makes its height fit-content, not stretched (CSS
 // Position 3 section 4.1), so the end inset does not size it.
@@ -301,6 +318,7 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
         input.height = muiExact(height);
         width = fmaxf(width, solver->solve(solver, child, &input, false).width);
     }
+    height = fixedHeight ? RatioHeightFloor(solver, child, &input, spanY, width, height) : height;
     if (!fixedHeight)
     {
         input.width = muiExact(width);

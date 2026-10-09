@@ -200,3 +200,29 @@ node => 0 0 30 0
   node width=30 => 0 0 30 0
     node width=75% => 0 0 22.5 0
       node height=25% position=absolute start=0 end=0 aspect=1.5 => 0 0 0 0
+
+# A height from both insets with a ratio is at least the width's through
+# the ratio and, its minimum automatic, the content's.
+fixture absolute_ratio_inset_height_content_floor available=500x400
+node => 0 0 0 0
+  node position=absolute top=0 bottom=0 aspect=1 content=10x20 => 0 0 10 20
+
+fixture abs_ratio_insets_small available=500x400
+node width=200 height=5 => 0 0 200 5
+  node position=absolute top=0 bottom=0 aspect=1 content=10x20 => 0 0 10 20
+
+fixture abs_ratio_insets_room available=500x400
+node width=200 height=100 => 0 0 200 100
+  node position=absolute top=0 bottom=0 aspect=1 content=10x20 => 0 0 100 100
+
+fixture abs_noratio_insets_small available=500x400
+node width=200 height=5 => 0 0 200 5
+  node position=absolute top=0 bottom=0 content=10x20 => 0 0 10 5
+
+fixture abs_ratio_insets_small_wide available=500x400
+node width=200 height=5 => 0 0 200 5
+  node position=absolute top=0 bottom=0 aspect=4 content=10x20 => 0 0 20 20
+
+fixture abs_ratio_insets_small_min0 available=500x400
+node width=200 height=5 => 0 0 200 5
+  node position=absolute top=0 bottom=0 aspect=1 min-height=0 content=10x20 => 0 0 10 10

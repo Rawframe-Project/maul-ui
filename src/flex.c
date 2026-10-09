@@ -169,6 +169,13 @@ static float AutomaticMinimum(const Frame* frame, uint32_t child, const muiAxisS
     {
         content = fmaxf(content, frame->row ? cross.size * ratio : cross.size / ratio);
     }
+    if (ratio > 0.0f)
+    {
+        // Floored by its cross minimum through the ratio (section 4.5).
+        const muiFlexItemState* item = &frame->solver->nodes[child - 1].item;
+        float scale = frame->row ? ratio : 1.0f / ratio;
+        content = fmaxf(content, item->minCross * scale);
+    }
     content = fminf(content, main->maximum);
     if (main->definite)
     {
@@ -513,10 +520,15 @@ static float ColumnContribution(const Frame* frame)
         const muiFlexItemState* item = ItemOf(frame, c);
         muiAxisSizing cross = muiResolveAxis(&style->sizing, true, frame->extentCross);
         muiMeasureAxis constraint = CrossConstraint(frame, style, &cross, false);
-        muiSizingInput input =
-            ChildInput(frame, (muiMeasureAxis){0.0f, mui_measureMaxContent}, constraint);
-        float size = frame->solver->solve(frame->solver, c, &input, false).width;
+        // A height the item's style gives is its own, open otherwise.
+        muiAxisSizing main = muiResolveAxis(&style->sizing, false, frame->extentMain);
         const muiEdges padding = ChildPadding(frame, style);
+        muiMeasureAxis height = main.definite
+                                    ? muiExact(muiClampSize(main.size, main.minimum, main.maximum,
+                                                            muiBoxSum(&padding, style, false)))
+                                    : (muiMeasureAxis){0.0f, mui_measureMaxContent};
+        muiSizingInput input = ChildInput(frame, height, constraint);
+        float size = frame->solver->solve(frame->solver, c, &input, false).width;
         size = muiClampSize(size, item->minCross, item->maxCross, muiBoxSum(&padding, style, true));
         widest = fmaxf(widest, size + item->marginCross);
     }
