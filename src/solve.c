@@ -288,17 +288,16 @@ static float RatioContentHeight(const muiSolver* solver, uint32_t node, const mu
 
 // The size the aspect ratio gives an axis from the other one's, at least
 // the content's min-content size when the axis's minimum is automatic (CSS
-// Sizing 4) and its size automatic: a percentage that cannot resolve
-// behaves as automatic but takes no such minimum, as in Chrome. Within
-// its limits.
+// Sizing 4). A width given as a percentage that cannot resolve takes that
+// minimum too; a height so given does not, as in Chrome. Within its
+// limits.
 static muiMeasureAxis RatioAxis(const muiSolver* solver, uint32_t node, const muiSizingInput* input,
                                 bool horizontal, float size)
 {
     const muiLayoutStyle* style = &solver->nodes[node - 1].style;
     muiAxisSizing axis = muiResolveAxis(&style->sizing, horizontal,
                                         horizontal ? input->parentWidth : input->parentHeight);
-    muiDimension own = horizontal ? style->sizing.width : style->sizing.height;
-    if (axis.minimumAuto && own.kind == mui_dimensionAuto)
+    if (axis.minimumAuto && (horizontal || style->sizing.height.kind == mui_dimensionAuto))
     {
         // A row's stretched items take a height from the ratio, so they
         // leave its floor; asked its min-content height, as a column

@@ -10,6 +10,13 @@ format.
 
 ### Changed
 
+- A width given as a percentage that cannot resolve, on a box with an
+  aspect ratio, keeps the content's min-content width as its automatic
+  minimum where the ratio gives less, as in Chrome: an empty-looking
+  item 100% wide and 0 high with content 80 wide is 80 wide, not 0. A
+  height so given still takes no such minimum. Three Chrome fixtures
+  hold the cases, and three more random layouts join the corpus.
+
 - A height from an aspect ratio is floored at the content's height as
   Chrome does: a row's stretched items take that height (Flexbox 9.8),
   so they no longer raise it; a 2:1 row 20 wide holding content 40 high

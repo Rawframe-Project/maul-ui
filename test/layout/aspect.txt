@@ -233,3 +233,23 @@ node => 0 0 80 20
   node height=20 => 0 0 80 20
     node direction=column-reverse wrap=wrap-reverse => 0 0 80 20
       node aspect=1 content=80x16 => 0 -60 80 80
+
+# An item whose width is a percentage that cannot resolve sizes through
+# its ratio from a definite height, but keeps its content's min-content
+# width as its automatic minimum.
+fixture aspect_percent_width_keeps_content available=500x400
+node => 0 0 80 0
+  node => 0 0 80 0
+    node => 0 0 80 0
+      node width=100% height=0 aspect=0.5 content=80x20 => 0 0 80 0
+
+fixture aspect_percent_width_percent_height available=500x400
+node => 0 0 80 53.328125
+  node => 0 0 80 53.328125
+    node => 0 0 80 53.328125
+      node width=100% height=10% aspect=1.5 content=80x16 => 0 0 80 5.328125
+
+# Once the row's width is known the percentage resolves against it.
+fixture aspect_percent_width_resolves_in_row available=500x400
+node align-items=start => 0 0 30 10
+  node width=50% height=10 aspect=1 content=30x5 => 0 0 15 10
