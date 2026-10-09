@@ -54,9 +54,10 @@ id_map:
 dbus_api:
 android: id_map
 android_adapter: access_record allocator android
-android_events: access_record android
+android_events: access_record access_text android
 android_jni: access_record allocator android
-android_node: access_record android
+android_node: access_record access_text android
+android_text: access_text allocator android
 aria: id_map
 aria_adapter: allocator aria
 aria_elements: aria chars

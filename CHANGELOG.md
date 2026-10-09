@@ -58,6 +58,16 @@ format.
   typed, deleted and replaced through the host; the input delegate told
   of text and selection changes. A node that starts or ends being
   edited gets a new element, and the layout is told.
+- Android's text: an edit text's value, and a text view's when its name
+  is its value text, moved through by character, word, line and
+  paragraph (`ACTION_NEXT_AT_MOVEMENT_GRANULARITY` and its previous)
+  as Android's own views move, words being the tree's, with the
+  traversal event; text being edited moves its caret through the host,
+  extending the selection when asked, other text a cursor of the
+  provider's. The selection in the node info; `ACTION_SET_SELECTION`
+  and `ACTION_SET_TEXT` through the host; text changed and selection
+  changed events, in UTF-16. The provider's packed record grows by the
+  granularities and the selection.
 
 ### Changed
 

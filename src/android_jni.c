@@ -87,8 +87,8 @@ static jsize Utf16Of(const unsigned char* text, size_t length, jchar* out)
     return units;
 }
 
-static jstring StringOf(JNIEnv* env, const muiAndroidAdapter* adapter, const char* text,
-                        size_t length)
+jstring muiAndroidStringOf(JNIEnv* env, const muiAndroidAdapter* adapter, const char* text,
+                           size_t length)
 {
     if (length == 0)
     {
@@ -113,7 +113,7 @@ static jstring NameOf(JNIEnv* env, const muiAndroidAdapter* adapter, uint64_t id
     muiResult status = muiAccessTree_GetName(adapter->tree, id, small, sizeof(small), &length);
     if (status == mui_success)
     {
-        return StringOf(env, adapter, small, length);
+        return muiAndroidStringOf(env, adapter, small, length);
     }
     if (status != mui_errorCapacity)
     {
@@ -124,7 +124,7 @@ static jstring NameOf(JNIEnv* env, const muiAndroidAdapter* adapter, uint64_t id
     if (name != nullptr &&
         muiAccessTree_GetName(adapter->tree, id, name, length + 1, &length) == mui_success)
     {
-        string = StringOf(env, adapter, name, length);
+        string = muiAndroidStringOf(env, adapter, name, length);
     }
     if (name != nullptr)
     {
@@ -148,7 +148,7 @@ static jstring TextOf(JNIEnv* env, jclass type, jlong handle, jint virtualId, ji
     {
         return name;
     }
-    return StringOf(env, adapter, source.text, strlen(source.text));
+    return muiAndroidStringOf(env, adapter, source.text, strlen(source.text));
 }
 
 static jboolean Act(JNIEnv* env, jclass type, jlong handle, jint virtualId, jint action,
@@ -179,6 +179,60 @@ static jint NodeAt(JNIEnv* env, jclass type, jlong handle, jfloat x, jfloat y)
     return at != 0 ? muiAndroidVirtualOf(adapter, at) : MUI_ANDROID_NO_ID;
 }
 
+// A move through a node's text: the segment passed and the selection
+// after, in UTF-16, or nullptr.
+static jintArray Traverse(JNIEnv* env, jclass type, jlong handle, jint virtualId, jint granularity,
+                          jboolean forward, jboolean extend, jint cursor)
+{
+    (void)type;
+    const muiAndroidAdapter* adapter = AdapterOf(handle);
+    const muiAccessNode* node = ShownOf(adapter, virtualId);
+    jint moved[4] = {0};
+    if (node == nullptr || !muiAndroidTraverse(adapter, node, granularity, forward == JNI_TRUE,
+                                               extend == JNI_TRUE, cursor, moved))
+    {
+        return nullptr;
+    }
+    jintArray out = (*env)->NewIntArray(env, 4);
+    if (out != nullptr)
+    {
+        (*env)->SetIntArrayRegion(env, out, 0, 4, moved);
+    }
+    return out;
+}
+
+static jboolean Select(JNIEnv* env, jclass type, jlong handle, jint virtualId, jint start, jint end)
+{
+    (void)env;
+    (void)type;
+    const muiAndroidAdapter* adapter = AdapterOf(handle);
+    const muiAccessNode* node = ShownOf(adapter, virtualId);
+    return node != nullptr && muiAndroidSelect(adapter, node, start, end) ? JNI_TRUE : JNI_FALSE;
+}
+
+// The new text read as UTF-16, past the JNI's modified UTF-8.
+static jboolean SetText(JNIEnv* env, jclass type, jlong handle, jint virtualId, jstring text)
+{
+    (void)type;
+    const muiAndroidAdapter* adapter = AdapterOf(handle);
+    const muiAccessNode* node = ShownOf(adapter, virtualId);
+    if (node == nullptr || text == nullptr)
+    {
+        return JNI_FALSE;
+    }
+    jsize count = (*env)->GetStringLength(env, text);
+    size_t size = ((size_t)count + 1) * sizeof(jchar);
+    jchar* units = muiAllocate(&adapter->allocator, size, alignof(jchar));
+    if (units == nullptr)
+    {
+        return JNI_FALSE;
+    }
+    (*env)->GetStringRegion(env, text, 0, count, units);
+    bool done = muiAndroidSetText(adapter, node, units, count);
+    muiRelease(&adapter->allocator, units, size, alignof(jchar));
+    return done ? JNI_TRUE : JNI_FALSE;
+}
+
 bool muiAndroidRegister(JNIEnv* env, jclass providerClass)
 {
     const JNINativeMethod methods[] = {
@@ -188,6 +242,9 @@ bool muiAndroidRegister(JNIEnv* env, jclass providerClass)
         {"act", "(JIIF)Z", (void*)Act},
         {"focusOf", "(J)I", (void*)FocusOf},
         {"nodeAt", "(JFF)I", (void*)NodeAt},
+        {"traverse", "(JIIZZI)[I", (void*)Traverse},
+        {"select", "(JIII)Z", (void*)Select},
+        {"setText", "(JILjava/lang/String;)Z", (void*)SetText},
     };
     jint count = (jint)(sizeof(methods) / sizeof(methods[0]));
     if ((*env)->RegisterNatives(env, providerClass, methods, count) != JNI_OK)

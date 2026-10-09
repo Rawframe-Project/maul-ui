@@ -132,8 +132,11 @@ static muiResult MakeProvider(muiAndroidAdapter* adapter, JNIEnv* env, jobject v
                          : nullptr;
     adapter->handle = found != nullptr ? (*env)->GetFieldID(env, found, "handle", "J") : nullptr;
     adapter->send = found != nullptr ? (*env)->GetMethodID(env, found, "send", "(III)V") : nullptr;
+    adapter->sendText =
+        found != nullptr ? (*env)->GetMethodID(env, found, "sendText", "(IIIIILjava/lang/String;)V")
+                         : nullptr;
     jobject provider = make != nullptr && adapter->handle != nullptr && adapter->send != nullptr &&
-                               muiAndroidRegister(env, found)
+                               adapter->sendText != nullptr && muiAndroidRegister(env, found)
                            ? (*env)->NewObject(env, found, make, view, (jlong)(intptr_t)adapter)
                            : nullptr;
     bool made = !Threw(env) && provider != nullptr;
@@ -192,6 +195,7 @@ muiResult muiCreateAndroidAdapter(const muiAndroidAdapterDef* def, muiAndroidAda
         .user = def->user,
         .nodes = def->nodes,
         .tell = muiAndroidTell,
+        .tellText = muiAndroidTellText,
     };
     Lay(adapter, block);
     JNIEnv* env = def->env;

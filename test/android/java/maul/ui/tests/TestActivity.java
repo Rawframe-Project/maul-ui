@@ -13,6 +13,8 @@ import android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction;
 import android.view.accessibility.AccessibilityNodeProvider;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 /**
  * The Android accessibility adapter against Android's classes (record
@@ -26,7 +28,11 @@ import java.io.PrintWriter;
  *   cursor; the input focus; the node under a place;
  * - the events an update makes, recorded in place of the provider's:
  *   a content description, a text or a state changed, or a change
- *   unsaid; the subtree; the view focused; none for no change;
+ *   unsaid; the subtree; the view focused; none for no change; a text
+ *   typed into, its change and its selection in UTF-16;
+ * - text: granularities and the selection in the info, the caret moved
+ *   by granularity through the host and extended, a label's words
+ *   through a cursor of the provider's, the selection and the text set;
  * - a node gone, and the adapter gone, answering nothing.
  * It writes its failures and a closing "result: N failures" to
  * files/out.
@@ -38,6 +44,8 @@ public final class TestActivity extends Activity {
     private static final int INCREMENT = 5;
     private static final int DECREMENT = 6;
     private static final int SET_VALUE = 7;
+    private static final int SET_SELECTION = 14;
+    private static final int REPLACE_TEXT = 15;
 
     private PrintWriter out;
     private int failures;
@@ -53,6 +61,12 @@ public final class TestActivity extends Activity {
     private static native long askedTarget();
 
     private static native float askedValue();
+
+    private static native int askedAnchor();
+
+    private static native int askedFocus();
+
+    private static native byte[] askedText();
 
     private static native String toldAfter(long adapter, int step);
 
@@ -121,6 +135,7 @@ public final class TestActivity extends Activity {
                 "the host's one child");
         testNodes(provider, host, root, button, label, field, box, slider, heading);
         testActions(provider, button, label, field, box, slider);
+        testText(provider, label, field, button);
         testEvents(adapter, root, button, label, field, box, slider);
         removeButton(adapter);
         check(provider.createAccessibilityNodeInfo(button) == null
@@ -197,10 +212,82 @@ public final class TestActivity extends Activity {
         String got = toldAfter(adapter, 8);
         check(got.contains("8 " + box + " 0;"),
                 "a focused window's active descendant: the view focused, told \"" + got + "\"");
+        told(adapter, 9, "2048 " + field + " 2;16 " + field + " 3 0 1 Ada;8192 " + field
+                + " 4 4 4 -;", "a field typed into: its text and its selection");
     }
 
     private boolean asked(int action, long target) {
         return askedAction() == action && askedTarget() == target;
+    }
+
+    private static Bundle moving(int granularity, boolean extend) {
+        Bundle arguments = new Bundle();
+        arguments.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_MOVEMENT_GRANULARITY_INT,
+                granularity);
+        arguments.putBoolean(AccessibilityNodeInfo.ACTION_ARGUMENT_EXTEND_SELECTION_BOOLEAN,
+                extend);
+        return arguments;
+    }
+
+    private boolean selectionAsked(int anchor, int focus) {
+        return asked(SET_SELECTION, 5) && askedAnchor() == anchor && askedFocus() == focus;
+    }
+
+    // The field "Ada" (UTF-16 as its bytes) with the caret at 3; the
+    // label "Hi 😀", 5 units of 7 bytes, of the words "Hi" and "😀".
+    private void testText(AccessibilityNodeProvider provider, int label, int field, int button) {
+        final int all = AccessibilityNodeInfo.MOVEMENT_GRANULARITY_CHARACTER
+                | AccessibilityNodeInfo.MOVEMENT_GRANULARITY_WORD
+                | AccessibilityNodeInfo.MOVEMENT_GRANULARITY_LINE
+                | AccessibilityNodeInfo.MOVEMENT_GRANULARITY_PARAGRAPH;
+        final int word = AccessibilityNodeInfo.MOVEMENT_GRANULARITY_WORD;
+        final int character = AccessibilityNodeInfo.MOVEMENT_GRANULARITY_CHARACTER;
+        final int next = AccessibilityNodeInfo.ACTION_NEXT_AT_MOVEMENT_GRANULARITY;
+        final int previous = AccessibilityNodeInfo.ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY;
+        AccessibilityNodeInfo info = provider.createAccessibilityNodeInfo(field);
+        check(info.getMovementGranularities() == all && info.getTextSelectionStart() == 3
+                && info.getTextSelectionEnd() == 3
+                && offers(info, AccessibilityAction.ACTION_NEXT_AT_MOVEMENT_GRANULARITY)
+                && offers(info, AccessibilityAction.ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY)
+                && offers(info, AccessibilityAction.ACTION_SET_SELECTION)
+                && offers(info, AccessibilityAction.ACTION_SET_TEXT),
+                "a field being edited: its granularities, its caret, its text actions");
+        info = provider.createAccessibilityNodeInfo(label);
+        check(info.getMovementGranularities() == all && info.getTextSelectionStart() == -1
+                && !offers(info, AccessibilityAction.ACTION_SET_SELECTION),
+                "a label's granularities, no selection");
+        check(provider.createAccessibilityNodeInfo(button).getMovementGranularities() == 0,
+                "a button's none");
+        check(provider.performAction(field, previous, moving(word, false))
+                && selectionAsked(0, 0), "the caret moved back a word through the host");
+        check(provider.performAction(field, previous, moving(character, true))
+                && selectionAsked(3, 2), "the selection extended back a character");
+        check(!provider.performAction(field, next, moving(character, false)),
+                "no character past the end");
+        Bundle range = new Bundle();
+        range.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_START_INT, 1);
+        range.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, 2);
+        check(provider.performAction(field, AccessibilityNodeInfo.ACTION_SET_SELECTION, range)
+                && selectionAsked(1, 2), "a selection set");
+        range.putInt(AccessibilityNodeInfo.ACTION_ARGUMENT_SELECTION_END_INT, 9);
+        check(!provider.performAction(field, AccessibilityNodeInfo.ACTION_SET_SELECTION, range),
+                "no selection past the text");
+        Bundle text = new Bundle();
+        text.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                "Zo\u00eb \ud83d\ude00");
+        check(provider.performAction(field, AccessibilityNodeInfo.ACTION_SET_TEXT, text)
+                && asked(REPLACE_TEXT, 5) && askedAnchor() == 0 && askedFocus() == 3
+                && Arrays.equals(askedText(),
+                        "Zo\u00eb \ud83d\ude00".getBytes(StandardCharsets.UTF_8)),
+                "the text set, past the Basic Multilingual Plane");
+        check(provider.performAction(label, AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null)
+                && provider.performAction(label, next, moving(word, false))
+                && provider.performAction(label, next, moving(word, false))
+                && !provider.performAction(label, next, moving(word, false))
+                && provider.performAction(label, previous, moving(word, false))
+                && provider.performAction(label,
+                        AccessibilityNodeInfo.ACTION_CLEAR_ACCESSIBILITY_FOCUS, null),
+                "a label's words through the provider's cursor, none past the last");
     }
 
     private void testActions(AccessibilityNodeProvider provider, int button, int label,

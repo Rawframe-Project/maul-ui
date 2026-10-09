@@ -6,12 +6,14 @@
 // (test/android/java/maul/ui/tests/TestActivity.java, which holds the
 // checks), at 2 pixels a unit, with a tree:
 // the window 1, "Main"; a focused button 2 that clicks; a generic 3
-// around a label 4 whose name is past the Basic Multilingual Plane; a
-// text field 5 "Name" holding "Ada"; a checked check box 7; a slider 8
-// at 30 of 100 that steps and is set, described and with a value text;
-// a live heading 9. The host's action function records what it is asked,
-// and the adapter's events are recorded in place of the provider's, as
-// "type id changes;" each.
+// around a label 4 whose name is past the Basic Multilingual Plane, of
+// two words; a text field 5 "Name" holding "Ada", one word, being edited
+// with the caret at its end, whose selection and text are set; a
+// checked check box 7; a slider 8 at 30 of 100 that steps and is set,
+// described and with a value text; a live heading 9. The host's action
+// function records what it is asked, and the adapter's events are
+// recorded in place of the provider's, as "type id changes;" each, a
+// text event as "type id numbers before;".
 
 #include "android.h"
 
@@ -21,6 +23,7 @@
 #include <string.h>
 
 static muiAccessRequest s_asked = {.action = 0xFF};
+static char s_askedText[64];
 static muiAccessNode s_nodes[9];
 static const muiAccessNode* s_sent[9];
 static uint64_t s_children[8];
@@ -29,6 +32,9 @@ static bool Act(void* user, const muiAccessRequest* request)
 {
     (void)user;
     s_asked = *request;
+    size_t kept = request->length < sizeof s_askedText ? request->length : 0;
+    memcpy(s_askedText, request->text != NULL ? request->text : "", kept);
+    s_askedText[kept] = '\0';
     return true;
 }
 
@@ -64,10 +70,16 @@ static uint32_t Build(void)
     button->flags = mui_accessFocusable;
     button->actions = 1u << mui_actionClick;
     muiAccessNode* generic = Add(&count, 3, mui_roleGeneric, NULL, 0, 50, 200, 20);
-    (void)Add(&count, 4, mui_roleLabel, "Hi \xF0\x9F\x98\x80", 5, 0, 100, 20);
+    static const muiAccessWord s_labelWords[2] = {{0, 2}, {3, 7}};
+    static const muiAccessWord s_fieldWords[1] = {{0, 3}};
+    Add(&count, 4, mui_roleLabel, "Hi \xF0\x9F\x98\x80", 5, 0, 100, 20)->marks =
+        (muiAccessTextMarks){.words = s_labelWords, .wordCount = 2};
     muiAccessNode* field = Add(&count, 5, mui_roleTextInput, "Name", 10, 80, 200, 30);
     field->flags = mui_accessFocusable;
+    field->actions = 1u << mui_actionSetSelection | 1u << mui_actionReplaceText;
     SetText(field, mui_accessValue, "Ada");
+    field->marks = (muiAccessTextMarks){
+        .anchor = 3, .focus = 3, .selected = true, .words = s_fieldWords, .wordCount = 1};
     Add(&count, 7, mui_roleCheckBox, "Agree", 10, 120, 100, 20)->flags =
         mui_accessCheckable | mui_accessChecked;
     muiAccessNode* slider = Add(&count, 8, mui_roleSlider, "Volume", 10, 150, 100, 20);
@@ -148,6 +160,36 @@ JNIEXPORT jlong JNICALL Java_maul_ui_tests_TestActivity_askedTarget(JNIEnv* env,
     return (jlong)s_asked.target;
 }
 
+JNIEXPORT jint JNICALL Java_maul_ui_tests_TestActivity_askedAnchor(JNIEnv* env, jclass type);
+JNIEXPORT jint JNICALL Java_maul_ui_tests_TestActivity_askedAnchor(JNIEnv* env, jclass type)
+{
+    (void)env;
+    (void)type;
+    return (jint)s_asked.anchor;
+}
+
+JNIEXPORT jint JNICALL Java_maul_ui_tests_TestActivity_askedFocus(JNIEnv* env, jclass type);
+JNIEXPORT jint JNICALL Java_maul_ui_tests_TestActivity_askedFocus(JNIEnv* env, jclass type)
+{
+    (void)env;
+    (void)type;
+    return (jint)s_asked.focus;
+}
+
+// The text asked for, as its UTF-8 bytes.
+JNIEXPORT jbyteArray JNICALL Java_maul_ui_tests_TestActivity_askedText(JNIEnv* env, jclass type);
+JNIEXPORT jbyteArray JNICALL Java_maul_ui_tests_TestActivity_askedText(JNIEnv* env, jclass type)
+{
+    (void)type;
+    jsize length = (jsize)strlen(s_askedText);
+    jbyteArray bytes = (*env)->NewByteArray(env, length);
+    if (bytes != NULL)
+    {
+        (*env)->SetByteArrayRegion(env, bytes, 0, length, (const jbyte*)s_askedText);
+    }
+    return bytes;
+}
+
 JNIEXPORT jfloat JNICALL Java_maul_ui_tests_TestActivity_askedValue(JNIEnv* env, jclass type);
 JNIEXPORT jfloat JNICALL Java_maul_ui_tests_TestActivity_askedValue(JNIEnv* env, jclass type)
 {
@@ -166,25 +208,39 @@ static void Record(const muiAndroidAdapter* adapter, jint virtualId, jint type, 
                    (int)changes);
 }
 
+static void RecordText(const muiAndroidAdapter* adapter, jint virtualId, jint type,
+                       const jint numbers[3], const char* before, uint32_t length)
+{
+    (void)adapter;
+    size_t used = strlen(s_told);
+    (void)snprintf(s_told + used, sizeof(s_told) - used, "%d %d %d %d %d %.*s;", (int)type,
+                   (int)virtualId, (int)numbers[0], (int)numbers[1], (int)numbers[2],
+                   before != NULL ? (int)length : 1, before != NULL ? before : "-");
+}
+
 // The update of a step, applied: 1 the button renamed, 2 the label's
 // value, 3 the slider's value text, 4 the check box unchecked, 5 the
 // field renamed, 6 the button again unchanged, 7 the focus to the field,
-// 8 the window focused, naming the check box its active descendant.
+// 8 the window focused, naming the check box its active descendant,
+// 9 the field's "Ada" typed into, "Adam" with the caret at its end.
 static void Step(muiAndroidAdapter* adapter, jint step)
 {
-    muiAccessNode node = s_nodes[step == 1 || step == 6 ? 1
-                                 : step == 2            ? 3
-                                 : step == 3            ? 6
-                                 : step == 4            ? 5
-                                 : step == 5            ? 4
-                                                        : 0];
+    static const muiAccessWord s_typed[1] = {{0, 4}};
+    muiAccessNode node = s_nodes[step == 1 || step == 6   ? 1
+                                 : step == 2              ? 3
+                                 : step == 3              ? 6
+                                 : step == 4              ? 5
+                                 : step == 5 || step == 9 ? 4
+                                                          : 0];
     if (step == 1 || step == 6)
     {
         SetText(&node, mui_accessLabel, "Okay");
     }
     else if (step == 2)
     {
+        // Its words no longer fit.
         SetText(&node, mui_accessValue, "Hey");
+        node.marks = (muiAccessTextMarks){0};
     }
     else if (step == 3)
     {
@@ -197,6 +253,14 @@ static void Step(muiAndroidAdapter* adapter, jint step)
     else if (step == 5)
     {
         SetText(&node, mui_accessLabel, "Your name");
+    }
+    else if (step == 9)
+    {
+        SetText(&node, mui_accessLabel, "Your name");
+        SetText(&node, mui_accessValue, "Adam");
+        node.marks.anchor = 4;
+        node.marks.focus = 4;
+        node.marks.words = s_typed;
     }
     static const muiAccessLink s_active[1] = {{7, mui_relationActiveDescendant}};
     if (step == 8)
@@ -219,10 +283,13 @@ JNIEXPORT jstring JNICALL Java_maul_ui_tests_TestActivity_toldAfter(JNIEnv* env,
     (void)type;
     muiAndroidAdapter* made = (muiAndroidAdapter*)(intptr_t)adapter;
     muiAndroidTellFunction tell = made->tell;
+    muiAndroidTellTextFunction tellText = made->tellText;
     made->tell = Record;
+    made->tellText = RecordText;
     s_told[0] = '\0';
     Step(made, step);
     made->tell = tell;
+    made->tellText = tellText;
     return (*env)->NewStringUTF(env, s_told);
 }
 
