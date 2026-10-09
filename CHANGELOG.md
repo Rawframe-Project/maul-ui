@@ -10,6 +10,13 @@ format.
 
 ### Changed
 
+- `space-around` and `space-evenly` with too little room put the content's
+  start at the writing mode's start, as CSS Box Alignment's safe-centre
+  fallback says and Chrome does, also when the direction is reversed or
+  the lines wrap in reverse, where the content started at the flex start
+  before. `space-between` keeps the flex start. Twelve Chrome fixtures
+  hold the cases, and seven more random layouts join the corpus.
+
 - A height an aspect ratio gives is definite, as in Chrome: percentages
   below resolve against it for a flex item in a row, a root and an
   absolute node, where they behaved as automatic. Four Chrome fixtures

@@ -473,7 +473,7 @@ static void DistributeLines(const Frame* frame, float used)
     float between = 0.0f;
     float grow = 0.0f;
     muiAlignContentSpacing(frame->style->container.alignContent, frame->innerCross - used,
-                           frame->lineCount, &lead, &between, &grow);
+                           frame->lineCount, frame->wrapReverse, &lead, &between, &grow);
     float offset = lead;
     for (uint32_t first = muiFirstFlowChild(frame->solver->tree, frame->solver->nodes, frame->node);
          first != 0; first = Skip(frame, first, ItemOf(frame, first)->lineCount))
@@ -674,7 +674,8 @@ static Offsets PlaceLine(const Frame* frame, uint32_t first, uint32_t count, uin
     }
     else
     {
-        muiJustifySpacing(frame->style->container.justify, freeSpace, count, &lead, &between);
+        muiJustifySpacing(frame->style->container.justify, freeSpace, count, frame->reverse, &lead,
+                          &between);
     }
     float lineStart = LineStart(frame, head);
     float baseline = head->lineBaselines ? LineBaseline(frame, first, count) : NAN;

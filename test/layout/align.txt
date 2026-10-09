@@ -86,3 +86,69 @@ fixture justify_end_overflow available=500x400
 node width=100 height=50 justify=end => 0 0 100 50
   node width=80 shrink=0 => -60 0 80 50
   node width=80 shrink=0 => 20 0 80 50
+
+# Distributed alignment that overflows falls back to safe centring, so
+# the content starts at the writing mode's start, whichever way the
+# axis or the lines run (CSS Box Alignment).
+fixture align_content_space_around_overflow_wrap_reverse available=500x400
+node height=0 => 0 0 4 0
+  node wrap=wrap-reverse align-content=space-around => 0 0 4 0
+    node border=2 => 0 0 4 4
+
+fixture align_content_space_evenly_overflow_wrap_reverse available=500x400
+node => 0 0 20 20
+  node wrap=wrap-reverse align-content=space-evenly => 0 0 20 20
+    node height=75% margin=10 => 10 10 0 15
+
+fixture align_content_space_around_overflow_content available=500x400
+node height=0 => 0 0 20 0
+  node wrap=wrap-reverse align-content=space-around => 0 0 20 0
+    node content=20x16 => 0 0 20 16
+
+fixture align_content_space_evenly_overflow_column available=500x400
+node => 0 0 7 10
+  node => 0 0 7 10
+    node direction=column wrap=wrap-reverse align-content=space-evenly => 0 0 7 10
+      node width=10% margin=0,7,3,7 => 0 3 0.6875 0
+
+fixture align_content_space_around_overflow_margins available=500x400
+node => 0 0 3 14
+  node wrap=wrap-reverse align-content=space-around => 0 0 3 14
+    node height=100% margin=3,0,7,7 => 3 7 0 14
+
+fixture justify_space_evenly_overflow_column_reverse available=500x400
+node height=60 border=7,3,3,0 => 0 0 60 60
+  node margin=7,3,7,7 border=5 direction=column-reverse justify=space-evenly => 14 10 40 43
+    node => 5 12 30 27
+      node border=0,0,7,0 padding=5 content=20x10 => 0 0 30 27
+    node border=3,7,7,0 => 5 5 30 7
+
+fixture justify_space_evenly_overflow_row_reverse available=500x400
+node width=150 direction=row-reverse justify=space-evenly => 0 0 150 60
+  node padding=10 content=20x40 => 120 0 40 60
+  node min-width=120 => 0 0 120 60
+
+fixture overflow_rtl_row available=500x400
+node width=100 dir=rtl justify=space-around => 0 0 100 0
+  node width=80 shrink=0 => 20 0 80 0
+  node width=40 shrink=0 => -20 0 40 0
+
+fixture overflow_rtl_row_reverse available=500x400
+node width=100 dir=rtl direction=row-reverse justify=space-evenly => 0 0 100 0
+  node width=80 shrink=0 => -20 0 80 0
+  node width=40 shrink=0 => 60 0 40 0
+
+fixture overflow_rtl_column_wrap_reverse available=500x400
+node width=30 height=40 dir=rtl direction=column wrap=wrap-reverse align-content=space-around => 0 0 30 40
+  node width=20 height=30 => -10 0 20 30
+  node width=20 height=30 => 10 0 20 30
+
+fixture overflow_column_reverse available=500x400
+node height=50 direction=column-reverse justify=space-around => 0 0 0 50
+  node height=40 shrink=0 => 0 30 0 40
+  node height=30 shrink=0 => 0 0 0 30
+
+fixture overflow_between_reverse available=500x400
+node width=100 direction=row-reverse justify=space-between => 0 0 100 0
+  node width=80 shrink=0 => 20 0 80 0
+  node width=40 shrink=0 => -20 0 40 0
