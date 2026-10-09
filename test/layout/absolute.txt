@@ -359,3 +359,89 @@ node => 0 0 0 0
   node => 0 0 0 0
     node => 0 0 0 0
       node max-height=75% position=absolute top=10 bottom=5 aspect=0.5 padding=0,3,3,0 => 0 10 3 3
+
+# An absolute box with both insets automatic fits the room from its
+# static position, the content box, to the containing block's edge it
+# aligns away from; centred, as far each way as the nearer edge (CSS
+# Position 3, section 4.1). Words read the width.
+
+fixture absolute_static_room_start available=500x400
+node width=40 padding=5 => 0 0 40 10
+  node position=absolute content=10x10*8 => 5 5 35 30
+
+fixture absolute_static_room_row_reverse available=500x400
+node width=40 padding=5,15,0,0 direction=row-reverse => 0 0 40 0
+  node position=absolute content=10x10*8 => 0 0 25 40
+
+fixture absolute_static_room_centered available=500x400
+node width=60 padding=5,25,0,0 justify=center => 0 0 60 0
+  node position=absolute content=10x10*8 => 0 0 40 20
+
+fixture absolute_static_room_end available=500x400
+node width=60 padding=5,25,0,0 justify=end => 0 0 60 0
+  node position=absolute content=10x10*8 => 0 0 35 30
+
+fixture absolute_static_room_column_end available=500x400
+node width=60 padding=10,20,0,0 direction=column align-items=end => 0 0 60 0
+  node position=absolute content=10x10*8 => 0 0 40 20
+
+fixture absolute_static_room_column_centered available=500x400
+node width=60 padding=10,20,0,0 direction=column align-items=center => 0 0 60 0
+  node position=absolute content=10x10*8 => 0 0 50 20
+
+fixture absolute_static_room_wrap_reverse available=500x400
+node width=60 padding=10,20,0,0 direction=column wrap=wrap-reverse => 0 0 60 0
+  node position=absolute content=10x10*8 => 0 0 40 20
+
+fixture absolute_static_room_rtl available=500x400
+node width=60 padding=10,20,0,0 dir=rtl => 0 0 60 0
+  node position=absolute content=10x10*8 => 0 0 50 20
+
+fixture absolute_static_room_margins available=500x400
+node width=60 padding=10,20,0,0 => 0 0 60 0
+  node position=absolute margin=3,4,0,0 content=10x10*8 => 13 0 43 20
+
+fixture absolute_static_room_border available=500x400
+node width=60 border=4,6,0,0 padding=10,20,0,0 => 0 0 60 0
+  node position=absolute content=10x10*8 => 14 0 40 20
+
+# Stretched by its own align-self, an absolute box of a given height
+# that overflows its insets is placed by start's overflow rule; with a
+# ratio, its height is the insets' as if given, and a width not given
+# follows it through the ratio (as Chrome).
+
+fixture absolute_stretch_given_height_overflows available=500x400
+node => 0 0 0 0
+  node height=80 align-self=stretch position=absolute top=20 bottom=0 => 0 0 0 80
+
+fixture absolute_stretch_given_height_overflows_box available=500x400
+node height=50 => 0 0 0 50
+  node height=80 align-self=stretch position=absolute top=20 bottom=0 => 0 0 0 80
+
+fixture absolute_stretch_given_height_fits available=500x400
+node height=50 => 0 0 0 50
+  node height=20 align-self=stretch position=absolute top=20 bottom=0 => 0 20 0 20
+
+fixture absolute_stretch_given_height_between available=500x400
+node height=100 => 0 0 0 100
+  node height=60 align-self=stretch position=absolute top=20 bottom=40 => 0 20 0 60
+
+fixture absolute_stretch_ratio_both_given available=500x400
+node height=80 width=100 => 0 0 100 80
+  node width=60 height=80 aspect=1.5 align-self=stretch position=absolute top=20 bottom=0 => 0 0 60 80
+
+fixture absolute_stretch_ratio_crossed_insets available=500x400
+node => 0 0 0 0
+  node width=40 aspect=0.5 align-self=stretch position=absolute top=20 bottom=0 => 0 20 40 0
+
+fixture absolute_stretch_ratio_content_overflows available=500x400
+node height=100 width=100 => 0 0 100 100
+  node width=40 aspect=1 align-self=stretch position=absolute top=10 bottom=10 content=40x90 => 0 10 40 80
+
+fixture absolute_stretch_ratio_height_from_insets available=500x400
+node height=100 width=100 => 0 0 100 100
+  node width=40 aspect=1 align-self=stretch position=absolute top=10 bottom=10 => 0 10 40 80
+
+fixture absolute_stretch_ratio_width_follows available=500x400
+node height=100 width=100 => 0 0 100 100
+  node aspect=2 align-self=stretch position=absolute top=10 bottom=10 start=10 end=10 => 10 10 160 80

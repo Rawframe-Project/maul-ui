@@ -360,7 +360,7 @@ static void ApplyAspectRatio(const muiSolver* solver, uint32_t node, muiSizingIn
         float box = muiBoxSum(&solver->paddings[node - 1], style, false);
         float size = ContentAnswer(solver, node, input).width;
         size = fminf(fmaxf(size, fmaxf(height.minimum, box) * ratio),
-                     fmaxf(height.maximum, box) * ratio);
+                     muiAxisCeiling(&height, box) * ratio);
         size = muiClampSize(size, width.minimum, width.maximum,
                             muiBoxSum(&solver->paddings[node - 1], style, true));
         input->width = muiExact(size);

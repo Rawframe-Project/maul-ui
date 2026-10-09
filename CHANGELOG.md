@@ -10,6 +10,15 @@ format.
 
 ### Changed
 
+- Absolute boxes, as Chrome does (CSS Position 3, section 4.1): one with
+  both insets automatic on an axis fits the room from its static
+  position to the containing block's edge it aligns away from, not the
+  whole containing block; one stretched by its own align-self is placed
+  by start's overflow rule when a given height overflows its insets, and
+  with a ratio takes its height from its insets, its width following. A
+  maximum carried through a ratio no longer falls under its axis's
+  minimum. Twenty-three Chrome fixtures hold the cases.
+
 - A wrapping row sized by its content is at least as wide as each item's
   min-content contribution: an item that cannot grow, alone on a line,
   counts its content at its narrowest under a smaller basis, not its
@@ -357,9 +366,9 @@ format.
   unchanged. `--deep` draws word layouts in trees up to five levels deep and
   four children a node.
 
-- `docs/releasing.md`: the steps a release takes, the family's and Maul
-  UI's own (the size budget's check, recorded runs with each screen
-  reader, fuzzing, the guide and API reference current).
+- `docs/releasing.md`: Maul UI's own release steps, taken within the
+  family's checklist (the size budget's check, recorded runs with each
+  screen reader, fuzzing, the guide and API reference current).
 
 - `tools/random_layouts.py generate SEED COUNT --wide` also draws scaled
   dimensions with an offset, automatic margins, baseline alignment and

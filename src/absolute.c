@@ -82,41 +82,77 @@ static bool FixedSize(const muiLayoutStyle* style, const muiEdges* padding, bool
     return false;
 }
 
-// Where an absolute child with no inset on an axis sits: as the
+// How an absolute child with no inset on an axis aligns as the
 // container's only flex item, under justify-content on the main axis and
-// align-self on the cross axis.
-static float StaticOffset(const muiLayoutStyle* container, const muiLayoutStyle* child,
-                          bool horizontal, const Span* span, float size, bool rtl)
+// align-self on the cross axis: the share of the free space before it in
+// its flow (0, a half or 1), and whether the flow runs reversed.
+static float StaticShare(const muiLayoutStyle* container, const muiLayoutStyle* child,
+                         bool horizontal, bool* reverseOut)
 {
     muiFlexDirection direction = container->container.direction;
     bool row = direction == mui_flexRow || direction == mui_flexRowReverse;
-    muiEdges margins = muiMarginsOf(child, rtl);
-    float start = muiEdgeStart(&margins, horizontal);
-    float end = muiEdgeEnd(&margins, horizontal);
-    float freeSpace = span->contentSize - size - start - end;
-    bool reverse = false;
-    float lead = 0.0f;
     if (horizontal == row)
     {
-        reverse = direction == mui_flexRowReverse || direction == mui_flexColumnReverse;
+        *reverseOut = direction == mui_flexRowReverse || direction == mui_flexColumnReverse;
         muiJustify justify = container->container.justify;
         bool centered = justify == mui_justifyCenter || justify == mui_justifySpaceAround ||
                         justify == mui_justifySpaceEvenly;
-        lead = justify == mui_justifyEnd ? freeSpace : (centered ? freeSpace / 2.0f : 0.0f);
+        return justify == mui_justifyEnd ? 1.0f : (centered ? 0.5f : 0.0f);
     }
-    else
-    {
-        muiAlign align = child->item.alignSelf != mui_alignAuto ? child->item.alignSelf
-                                                                : container->container.alignItems;
-        // Baseline, with no group to share, falls back to the writing
-        // mode's start, which wrap-reverse does not flip (as in Chrome).
-        reverse = container->container.wrap == mui_wrapReverse && align != mui_alignBaseline;
-        lead = align == mui_alignEnd ? freeSpace
-                                     : (align == mui_alignCenter ? freeSpace / 2.0f : 0.0f);
-    }
+    muiAlign align = child->item.alignSelf != mui_alignAuto ? child->item.alignSelf
+                                                            : container->container.alignItems;
+    // Baseline, with no group to share, falls back to the writing mode's
+    // start, which wrap-reverse does not flip (as in Chrome).
+    *reverseOut = container->container.wrap == mui_wrapReverse && align != mui_alignBaseline;
+    return align == mui_alignEnd ? 1.0f : (align == mui_alignCenter ? 0.5f : 0.0f);
+}
+
+// Where an absolute child with no inset on an axis sits.
+static float StaticOffset(const muiLayoutStyle* container, const muiLayoutStyle* child,
+                          bool horizontal, const Span* span, float size, bool rtl)
+{
+    muiEdges margins = muiMarginsOf(child, rtl);
+    float start = muiEdgeStart(&margins, horizontal);
+    float end = muiEdgeEnd(&margins, horizontal);
+    bool reverse = false;
+    float lead = StaticShare(container, child, horizontal, &reverse) *
+                 (span->contentSize - size - start - end);
     float flow = lead + (reverse ? end : start);
     float offset = reverse ? span->contentSize - flow - size : flow;
     return span->contentStart + offset;
+}
+
+// The room an absolute child with no inset on an axis has: from its
+// static position, the container's content box, to the containing
+// block's edge it aligns away from; centred, as far each way from the
+// content box's centre as the nearer edge (CSS Position 3, section 4.1).
+static float StaticRoom(const muiLayoutStyle* container, const muiLayoutStyle* child,
+                        bool horizontal, const Span* span)
+{
+    bool reverse = false;
+    float share = StaticShare(container, child, horizontal, &reverse);
+    share = reverse ? 1.0f - share : share;
+    float before = span->contentStart - span->paddingStart;
+    float after = span->paddingSize - before - span->contentSize;
+    if (share == 0.5f)
+    {
+        return 2.0f * fminf(before, after) + span->contentSize;
+    }
+    return span->paddingSize - (share == 0.0f ? before : after);
+}
+
+// The width an absolute child and its margins fit within: what its
+// insets leave of the padding box, or with neither inset its static
+// room.
+static float WidthRoom(const muiLayoutStyle* container, const muiLayoutStyle* child,
+                       const Span* spanX, const Insets* insetX)
+{
+    if (!insetX->hasStart && !insetX->hasEnd)
+    {
+        return StaticRoom(container, child, true, spanX);
+    }
+    return spanX->paddingSize - (insetX->hasStart ? insetX->start : 0.0f) -
+           (insetX->hasEnd ? insetX->end : 0.0f);
 }
 
 // An absolute box's align-self between insets: baseline, with no group to
@@ -192,13 +228,11 @@ static float Offset(const muiLayoutStyle* container, const muiLayoutStyle* child
         {
             // Vertically its own align-self places it in the space the
             // insets leave; horizontally it starts at its inset.
-            // Stretched by its own align-self, its height automatic, it
-            // fills the space, or at its smallest overflows it and start's
-            // overflow rule places it; automatic alignment starts it at
-            // its inset (both as Chrome).
-            bool stretched = child->item.alignSelf == mui_alignStretch &&
-                             child->sizing.height.kind == mui_dimensionAuto &&
-                             child->sizing.aspectRatio <= 0.0f;
+            // Stretched by its own align-self, it fills the space, or
+            // overflows it and start's overflow rule places it, its height
+            // automatic or given; automatic alignment starts it at its
+            // inset (both as Chrome).
+            bool stretched = child->item.alignSelf == mui_alignStretch;
             muiAlign align = stretched ? mui_alignStart : child->item.alignSelf;
             return span->paddingStart + start +
                    AlignBetweenInsets(align, span->paddingSize, insets,
@@ -234,6 +268,14 @@ static bool RatioTakesHeight(const muiLayoutStyle* style, const muiEdges* paddin
     }
     muiAxisSizing across = muiResolveAxis(&style->sizing, true, spanX->paddingSize);
     muiAxisSizing down = muiResolveAxis(&style->sizing, false, spanY->paddingSize);
+    if (style->item.alignSelf == mui_alignStretch && fixedHeight && !down.definite)
+    {
+        // Stretched by its own align-self, its height is the insets' as
+        // if given, and a width not given follows it through the ratio,
+        // past its own insets (as Chrome).
+        *fixedWidth = across.definite;
+        return false;
+    }
     if (down.definite && !across.definite)
     {
         *fixedWidth = false;
@@ -243,7 +285,7 @@ static bool RatioTakesHeight(const muiLayoutStyle* style, const muiEdges* paddin
     {
         float box = muiBoxSum(padding, style, false);
         *width = fminf(fmaxf(*width, fmaxf(down.minimum, box) * ratio),
-                       fmaxf(down.maximum, box) * ratio);
+                       muiAxisCeiling(&down, box) * ratio);
     }
     if (!fixedHeight || down.definite)
     {
@@ -251,20 +293,21 @@ static bool RatioTakesHeight(const muiLayoutStyle* style, const muiEdges* paddin
     }
     float box = muiBoxSum(padding, style, true);
     *height = fminf(fmaxf(*height, fmaxf(across.minimum, box) / ratio),
-                    fmaxf(across.maximum, box) / ratio);
+                    muiAxisCeiling(&across, box) / ratio);
     // Its own maximum holds over what the width carries (as Chrome).
-    *height = fminf(*height, fmaxf(down.maximum, muiBoxSum(padding, style, false)));
+    *height = fminf(*height, muiAxisCeiling(&down, muiBoxSum(padding, style, false)));
     return *fixedWidth;
 }
 
 // A height from both insets, with an aspect ratio, is at least the
 // width's through the ratio and, its minimum automatic, the content's at
-// that width (as Chrome).
+// that width; stretched by its own align-self, it is the insets' as if
+// given (both as Chrome).
 static float RatioHeightFloor(const muiSolver* solver, uint32_t child, muiSizingInput* input,
                               const Span* spanY, float width, float height)
 {
     const muiLayoutStyle* style = &solver->nodes[child - 1].style;
-    if (style->sizing.aspectRatio <= 0.0f ||
+    if (style->sizing.aspectRatio <= 0.0f || style->item.alignSelf == mui_alignStretch ||
         muiResolveAxis(&style->sizing, false, spanY->paddingSize).definite)
     {
         return height;
@@ -333,8 +376,8 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
     if (!fixedWidth)
     {
         muiEdges margins = muiMarginsOf(style, rtl);
-        float space = spanX->paddingSize - (insetX.hasStart ? insetX.start : 0.0f) -
-                      (insetX.hasEnd ? insetX.end : 0.0f) - muiEdgeSum(&margins, true);
+        float room = WidthRoom(container, style, spanX, &insetX);
+        float space = room - muiEdgeSum(&margins, true);
         input.width = (muiMeasureAxis){fmaxf(space, 0.0f), mui_measureAtMost};
         input.height =
             fixedHeight ? muiExact(height) : (muiMeasureAxis){0.0f, mui_measureMaxContent};

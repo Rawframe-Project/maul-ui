@@ -67,6 +67,13 @@ static inline muiAxisSizing muiResolveAxis(const muiSizing* sizing, bool horizon
     return axis;
 }
 
+// An axis's maximum as it holds: under its minimum and its box, which
+// win over it (CSS 2.1 section 10.4), for carrying through a ratio.
+static inline float muiAxisCeiling(const muiAxisSizing* axis, float box)
+{
+    return fmaxf(fmaxf(axis->maximum, axis->minimum), box);
+}
+
 static inline muiMeasureAxis muiExact(float size)
 {
     return (muiMeasureAxis){size, mui_measureExact};
