@@ -395,10 +395,24 @@ void muiAtspiRecordStatesOf(const muiAccessNode* node, uint32_t statesOut[2])
     Set(statesOut, STATE_INVALID_ENTRY, values->invalid != mui_invalidNone);
 }
 
-bool muiAtspiShowsFocus(const muiAccessTree* tree, const muiAccessNode* node)
+uint64_t muiAtspiShownFocus(const muiAccessTree* tree)
 {
-    return node->id == muiAccessTree_GetFocus(tree) &&
-           (node->id != muiAccessTree_GetRoot(tree) || (node->flags & mui_accessFocusable) != 0);
+    const muiAccessNode* focus = muiAccessTree_Find(tree, muiAccessTree_GetFocus(tree));
+    if (focus == nullptr)
+    {
+        return 0;
+    }
+    for (uint32_t i = 0; i < focus->linkCount; i++)
+    {
+        const muiAccessLink* link = &focus->links[i];
+        if (link->kind == mui_relationActiveDescendant &&
+            muiAccessTree_Find(tree, link->target) != nullptr)
+        {
+            return link->target;
+        }
+    }
+    bool window = focus->id == muiAccessTree_GetRoot(tree);
+    return window && (focus->flags & mui_accessFocusable) == 0 ? 0 : focus->id;
 }
 
 void muiAtspiStatesOf(const muiAtspiAdapter* adapter, const muiAccessNode* node,
@@ -409,7 +423,7 @@ void muiAtspiStatesOf(const muiAtspiAdapter* adapter, const muiAccessNode* node,
     muiAtspiRecordStatesOf(node, statesOut);
     Set(statesOut, STATE_VISIBLE, shown);
     Set(statesOut, STATE_SHOWING, shown && !IsClipped(tree, node->id, adapter->nodes));
-    Set(statesOut, STATE_FOCUSED, muiAtspiShowsFocus(tree, node));
+    Set(statesOut, STATE_FOCUSED, node->id == muiAtspiShownFocus(tree));
     // A window's root is active: the host does not yet say when its
     // window loses the system's focus.
     Set(statesOut, STATE_ACTIVE, node->id == muiAccessTree_GetRoot(tree));

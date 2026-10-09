@@ -1361,6 +1361,39 @@ static void TestEvents(muiAtspiAdapter* adapter, Built* built)
           "and back");
 }
 
+// A focused container's active descendant is the focus clients see:
+// told focused in its place, with active-descendant-changed on the
+// container; another one moves it, and none gives it back.
+static void TestActiveDescendant(muiAtspiAdapter* adapter, Built* built)
+{
+    const char* group = "/org/a11y/atspi/accessible/w1n6";
+    const muiAccessLink first[1] = {{7, mui_relationActiveDescendant}};
+    const muiAccessLink second[1] = {{9, mui_relationActiveDescendant}};
+    muiAccessNode box = built->nodes[5];
+    const muiAccessNode* sent[1] = {&box};
+    box.links = first;
+    box.linkCount = 1;
+    CHECK(Send(adapter, sent, 1, built->children, 6) &&
+              EventsAre("StateChanged focused 0 w1n2; StateChanged focused 1 w1n7; "
+                        "ActiveDescendantChanged  0 w1n6 w1n7") &&
+              HasState("/org/a11y/atspi/accessible/w1n7", 12) && !HasState(group, 12),
+          "the active descendant focused in its container's place");
+    box.links = second;
+    CHECK(Send(adapter, sent, 1, built->children, 6) &&
+              EventsAre("StateChanged focused 0 w1n7; StateChanged focused 1 w1n9; "
+                        "ActiveDescendantChanged  0 w1n6 w1n9"),
+          "another active descendant");
+    box.linkCount = 0;
+    CHECK(Send(adapter, sent, 1, built->children, 6) &&
+              EventsAre("StateChanged focused 0 w1n9; StateChanged focused 1 w1n6") &&
+              HasState(group, 12),
+          "none: the container focused");
+    sent[0] = &built->nodes[5];
+    CHECK(Send(adapter, sent, 1, built->children, 2) &&
+              EventsAre("StateChanged focused 0 w1n6; StateChanged focused 1 w1n2"),
+          "the focus back where it was");
+}
+
 static void TestGone(muiAtspiAdapter* adapter, Built* built)
 {
     CHECK(IsError(Answer(Call("/org/a11y/atspi/accessible/w9n1", "org.a11y.atspi.Accessible",
@@ -1706,6 +1739,7 @@ int main(void)
     TestComponentReads();
     TestActionsAndValues();
     TestEvents(adapter, &s_built);
+    TestActiveDescendant(adapter, &s_built);
     TestGone(adapter, &s_built);
     TestDiscovery(address);
     TestLimits(address);

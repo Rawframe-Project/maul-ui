@@ -97,11 +97,10 @@ struct muiAtspiAdapter
     uint32_t freeCount;
     muiIdMap toldById;
     uint32_t pass;
-    // The focus's move in the update being applied, told last; whether
-    // the update may have changed what is shown, so the tree is walked.
-    uint64_t focusFrom;
-    uint64_t focusTo;
-    bool focusMoved;
+    // The object clients were last told focused (0 for none); whether
+    // the update being applied may have changed what is shown, so the
+    // tree is walked.
+    uint64_t toldFocus;
     bool reshaped;
 };
 
@@ -186,9 +185,10 @@ uint32_t muiAtspiChildrenOf(const muiAtspiObject* object, const uint64_t** idsOu
 uint32_t muiAtspiRoleOf(const muiAccessTree* tree, const muiAccessNode* node);
 const char* muiAtspiRoleName(uint32_t role);
 
-// Whether a node is shown focused: the tree's focus, unless that is a
-// root that cannot take focus (the window, active instead).
-bool muiAtspiShowsFocus(const muiAccessTree* tree, const muiAccessNode* node);
+// The node shown focused, 0 for none: the tree's focus, or the active
+// descendant it names, held in the tree; none for a root that cannot
+// take focus (the window, active instead).
+uint64_t muiAtspiShownFocus(const muiAccessTree* tree);
 
 // AT-SPI's state set of a node, as two words of bits.
 void muiAtspiStatesOf(const muiAtspiAdapter* adapter, const muiAccessNode* node,

@@ -177,17 +177,6 @@ static void ShownChanged(void* user, const muiAccessTree* tree)
     ((muiAtspiAdapter*)user)->reshaped = true;
 }
 
-static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint64_t focus)
-{
-    (void)tree;
-    // The consumer reports one move an update, from where the focus was
-    // before it.
-    muiAtspiAdapter* adapter = user;
-    adapter->focusFrom = old;
-    adapter->focusTo = focus;
-    adapter->focusMoved = true;
-}
-
 // The window root's index among the application root's children.
 static int32_t WindowIndex(const muiAtspiAdapter* adapter)
 {
@@ -388,26 +377,34 @@ static void TellStructure(muiAtspiAdapter* adapter)
     Learn(adapter, count);
 }
 
+// Tells where the shown focus went, when it moved: off the object told
+// before, if it is still held, and onto the new one; an active
+// descendant's container tells it too, as toolkits do.
 static void TellFocus(muiAtspiAdapter* adapter)
 {
-    if (!adapter->focusMoved)
+    uint64_t shown = muiAtspiShownFocus(adapter->tree);
+    if (shown == adapter->toldFocus)
     {
         return;
     }
-    adapter->focusMoved = false;
-    const muiAtspiObject from = muiAtspiObjectOf(adapter, adapter->focusFrom);
-    const muiAtspiObject to = muiAtspiObjectOf(adapter, adapter->focusTo);
-    // A root that cannot take focus is not told focused, nor unfocused.
-    bool fromShown =
-        from.node != nullptr && (from.node->id != muiAccessTree_GetRoot(adapter->tree) ||
-                                 (from.node->flags & mui_accessFocusable) != 0);
-    if (fromShown)
+    const muiAtspiObject from = muiAtspiObjectOf(adapter, adapter->toldFocus);
+    const muiAtspiObject to = muiAtspiObjectOf(adapter, shown);
+    adapter->toldFocus = shown;
+    if (from.node != nullptr)
     {
         EmitState(adapter->app, &from, "focused", false);
     }
-    if (to.node != nullptr && muiAtspiShowsFocus(adapter->tree, to.node))
+    if (to.node == nullptr)
     {
-        EmitState(adapter->app, &to, "focused", true);
+        return;
+    }
+    EmitState(adapter->app, &to, "focused", true);
+    uint64_t focus = muiAccessTree_GetFocus(adapter->tree);
+    if (shown != focus)
+    {
+        const muiAtspiObject container = muiAtspiObjectOf(adapter, focus);
+        const Any any = {0, nullptr, &to};
+        Emit(adapter->app, &container, "ActiveDescendantChanged", "", 0, &any);
     }
 }
 
@@ -417,11 +414,8 @@ muiResult muiAtspiAdapter_Apply(muiAtspiAdapter* adapter, const muiAccessUpdate*
     {
         return mui_errorInvalid;
     }
-    const muiAccessChanges changes = {.user = adapter,
-                                      .updated = Updated,
-                                      .shownChanged = ShownChanged,
-                                      .focusMoved = FocusMoved};
-    adapter->focusMoved = false;
+    const muiAccessChanges changes = {
+        .user = adapter, .updated = Updated, .shownChanged = ShownChanged};
     adapter->reshaped = false;
     muiResult status = muiAccessTree_Apply(adapter->tree, update, &changes);
     if (status == mui_success)

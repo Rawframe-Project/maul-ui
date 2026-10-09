@@ -19,6 +19,12 @@ format.
   longer wraps where a size_t is 32 bits and has its surfaces written
   past their end; a surface that cannot be had is a capacity error.
 
+- AT-SPI shows a focused container's active descendant
+  (`mui_relationActiveDescendant`) as the focus, as browsers do: told
+  focused in the container's place, with active-descendant-changed on
+  the container. Moving within a tree or a list box by arrows was silent
+  to Orca.
+
 ## [0.1.0] - 2026-10-09
 
 The first release: the node tree, flex layout checked against Chrome,
