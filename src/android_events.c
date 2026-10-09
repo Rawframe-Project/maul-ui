@@ -99,7 +99,7 @@ void muiAndroidTellChanges(muiAndroidAdapter* adapter)
         jint seen = root != 0 ? SeenOf(adapter, root) : MUI_ANDROID_NO_ID;
         adapter->tell(adapter, seen, TYPE_WINDOW_CONTENT_CHANGED, CHANGE_SUBTREE);
     }
-    uint64_t focus = muiAccessTree_GetFocus(adapter->tree);
+    uint64_t focus = muiRecordActiveFocus(adapter->tree);
     if (adapter->focusMoved && focus != 0)
     {
         jint virtualId = muiAndroidVirtualOf(adapter, focus);

@@ -8,6 +8,7 @@
 // the record it replaced; a live region's text changing raises the live
 // region event.
 
+#include "access_record.h"
 #include "uia.h"
 
 #include <string.h>
@@ -183,11 +184,15 @@ void muiUiaAdded(void* user, const muiAccessTree* tree, uint64_t id)
     }
 }
 
-void muiUiaFocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint64_t focus)
+void muiUiaTellFocus(muiUiaAdapter* adapter)
 {
-    (void)old;
-    muiUiaAdapter* adapter = user;
-    if (adapter->listening && focus != 0 && muiAccessTree_IsShown(tree, focus))
+    uint64_t focus = muiRecordActiveFocus(adapter->tree);
+    if (focus == adapter->toldFocus)
+    {
+        return;
+    }
+    adapter->toldFocus = focus;
+    if (adapter->listening && focus != 0 && muiAccessTree_IsShown(adapter->tree, focus))
     {
         Raise(adapter, focus, EVENT_AUTOMATION_FOCUS_CHANGED);
     }

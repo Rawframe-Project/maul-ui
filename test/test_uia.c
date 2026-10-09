@@ -449,6 +449,7 @@ typedef struct Program
     // Set by the client: a change wanted; by the handlers: events seen.
     HANDLE change;
     volatile LONG focusSeen;
+    volatile LONG activeSeen;
     volatile LONG toggleSeen;
     HANDLE done;
     // What the host was asked last, by the window's thread.
@@ -787,6 +788,10 @@ static HRESULT STDMETHODCALLTYPE FocusChanged(IUIAutomationFocusChangedEventHand
     {
         InterlockedExchange(&s_program.focusSeen, 1);
     }
+    if (sender != NULL && NameIs(sender, L"First"))
+    {
+        InterlockedExchange(&s_program.activeSeen, 1);
+    }
     return S_OK;
 }
 
@@ -856,6 +861,7 @@ static void CheckEvents(IUIAutomation* automation, IUIAutomationElement* check)
     SetEvent(s_program.change);
     CHECK(Seen(&s_program.toggleSeen), "the checkbox's state change raised");
     CHECK(Seen(&s_program.focusSeen), "the focus moving raised");
+    CHECK(Seen(&s_program.activeSeen), "a focused list's active descendant raised as the focus");
     (void)IUIAutomation_RemoveAllEventHandlers(automation);
 }
 
@@ -944,6 +950,15 @@ static void Change(const Built* built)
     const muiAccessNode* sent[1] = {&check};
     const muiAccessUpdate update = {sent, 1, NULL, 0, 8};
     CHECK(muiUiaAdapter_Apply(s_program.adapter, &update) == mui_success, "changed");
+    // The list focused, its item the active descendant: the item is the
+    // focus shown, as browsers show aria-activedescendant.
+    static const muiAccessLink s_active[1] = {{12, mui_relationActiveDescendant}};
+    muiAccessNode list = built->nodes[10];
+    list.links = s_active;
+    list.linkCount = 1;
+    const muiAccessNode* listSent[1] = {&list};
+    const muiAccessUpdate active = {listSent, 1, built->children, 0, 11};
+    CHECK(muiUiaAdapter_Apply(s_program.adapter, &active) == mui_success, "an active descendant");
 }
 
 // Pumps the window's messages until the client is done, changing the

@@ -168,7 +168,8 @@ static void Record(const muiAndroidAdapter* adapter, jint virtualId, jint type, 
 
 // The update of a step, applied: 1 the button renamed, 2 the label's
 // value, 3 the slider's value text, 4 the check box unchecked, 5 the
-// field renamed, 6 the button again unchanged, 7 the focus to the field.
+// field renamed, 6 the button again unchanged, 7 the focus to the field,
+// 8 the window focused, naming the check box its active descendant.
 static void Step(muiAndroidAdapter* adapter, jint step)
 {
     muiAccessNode node = s_nodes[step == 1 || step == 6 ? 1
@@ -197,8 +198,16 @@ static void Step(muiAndroidAdapter* adapter, jint step)
     {
         SetText(&node, mui_accessLabel, "Your name");
     }
+    static const muiAccessLink s_active[1] = {{7, mui_relationActiveDescendant}};
+    if (step == 8)
+    {
+        node.links = s_active;
+        node.linkCount = 1;
+    }
     const muiAccessUpdate update = {(const muiAccessNode*[]){&node}, 1, s_children, 0,
-                                    step == 7 ? 5 : 0};
+                                    step == 7   ? 5
+                                    : step == 8 ? 1
+                                                : 0};
     (void)muiAndroidAdapter_Apply(adapter, &update);
 }
 

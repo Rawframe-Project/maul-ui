@@ -7,6 +7,7 @@
 // whose node goes are let go, their adapter cleared, so that a client
 // still holding one gets nothing.
 
+#include "access_record.h"
 #include "allocator.h"
 #include "uikit.h"
 
@@ -270,6 +271,13 @@ muiResult muiUikitAdapter_Apply(muiUikitAdapter* adapter, const muiAccessUpdate*
     adapter->focusMoved = false;
     adapter->screen = 0;
     muiResult status = muiAccessTree_Apply(adapter->tree, update, &changes);
+    if (status == mui_success)
+    {
+        // The focus shown moves with the active descendant too.
+        uint64_t shown = muiRecordActiveFocus(adapter->tree);
+        adapter->focusMoved = adapter->focusMoved || shown != adapter->toldFocus;
+        adapter->toldFocus = shown;
+    }
     if (status == mui_success)
     {
         muiUikitTellChanges(adapter, oldRoot);

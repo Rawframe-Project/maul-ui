@@ -19,11 +19,14 @@ format.
   longer wraps where a size_t is 32 bits and has its surfaces written
   past their end; a surface that cannot be had is a capacity error.
 
-- AT-SPI shows a focused container's active descendant
-  (`mui_relationActiveDescendant`) as the focus, as browsers do: told
-  focused in the container's place, with active-descendant-changed on
-  the container. Moving within a tree or a list box by arrows was silent
-  to Orca.
+- Every platform adapter shows a focused container's active descendant
+  (`mui_relationActiveDescendant`) as the focus, as browsers do: AT-SPI
+  tells it focused in the container's place, with active-descendant-
+  changed on the container; UI Automation raises its focus change and
+  gives it keyboard focus; NSAccessibility, UIAccessibility and Android
+  move their focus to it. Moving within a tree or a list box by arrows
+  was silent to Orca; only the ARIA adapter, through the browser, had
+  it.
 
 ## [0.1.0] - 2026-10-09
 

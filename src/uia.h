@@ -67,8 +67,10 @@ struct muiUiaAdapter
     muiUiaActionFunction action;
     void* user;
     muiUiaFunctions uia;
-    // Whether a client listened when the apply under way began.
+    // Whether a client listened when the apply under way began, and the
+    // focus last shown.
     bool listening;
+    uint64_t toldFocus;
     muiUiaNode* root;
     // Provider objects by node id, each holding a reference.
     muiIdMap objects;
@@ -122,10 +124,11 @@ POINT muiUiaClientOrigin(const muiUiaAdapter* adapter);
 HRESULT muiUiaSetText(VARIANT* out, const char* text, size_t length);
 
 // What applying an update changed, raised as UI Automation's events
-// when a client listens.
+// when a client listens; the focus last, when the one shown moved (its
+// active descendant included).
 void muiUiaAdded(void* user, const muiAccessTree* tree, uint64_t id);
 void muiUiaUpdated(void* user, const muiAccessTree* tree, const muiAccessNode* old);
-void muiUiaFocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint64_t focus);
+void muiUiaTellFocus(muiUiaAdapter* adapter);
 
 // Asks the host to perform an action on a node.
 HRESULT muiUiaPerform(muiUiaAdapter* adapter, muiAccessAction action, uint64_t target);

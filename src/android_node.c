@@ -9,6 +9,7 @@
 // and a text field's its value, the name then its hint; any other node's
 // name is its content description, its value text its state.
 
+#include "access_record.h"
 #include "android.h"
 
 #include <math.h>
@@ -110,7 +111,7 @@ static jint FlagsOf(const muiAndroidAdapter* adapter, const muiAccessNode* node)
     bits |= (flags & mui_accessChecked) != 0 ? MUI_ANDROID_CHECKED : 0;
     bits |= (flags & mui_accessDisabled) == 0 ? MUI_ANDROID_ENABLED : 0;
     bits |= (flags & mui_accessFocusable) != 0 ? MUI_ANDROID_FOCUSABLE : 0;
-    bits |= muiAccessTree_GetFocus(adapter->tree) == node->id ? MUI_ANDROID_FOCUSED : 0;
+    bits |= muiRecordActiveFocus(adapter->tree) == node->id ? MUI_ANDROID_FOCUSED : 0;
     bits |= (flags & mui_accessSelected) != 0 ? MUI_ANDROID_SELECTED : 0;
     bits |= (flags & mui_accessScrolls) != 0 ? MUI_ANDROID_SCROLLABLE : 0;
     bits |= node->role == mui_rolePasswordInput ? MUI_ANDROID_PASSWORD : 0;
@@ -147,7 +148,7 @@ static bool HostActionOf(const muiAndroidAdapter* adapter, const muiAccessNode* 
                          muiAccessAction* actionOut)
 {
     uint32_t flags = node->flags;
-    bool focused = muiAccessTree_GetFocus(adapter->tree) == node->id;
+    bool focused = muiRecordActiveFocus(adapter->tree) == node->id;
     bool focusable = (flags & mui_accessFocusable) != 0;
     bool expanded = (flags & mui_accessExpanded) != 0;
     switch (action)

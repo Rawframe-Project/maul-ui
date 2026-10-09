@@ -8,6 +8,7 @@
 // apply is answered per node, as AccessKit does, so that clients offer
 // only what a node has.
 
+#include "access_record.h"
 #include "allocator.h"
 #include "ns.h"
 
@@ -225,7 +226,7 @@ static bool Has(const muiAccessNode* node, muiAccessAction action)
 
 - (BOOL)isAccessibilityFocused
 {
-    return NodeOf(self) != nullptr && muiAccessTree_GetFocus(adapter->tree) == nodeId;
+    return NodeOf(self) != nullptr && muiRecordActiveFocus(adapter->tree) == nodeId;
 }
 
 - (void)setAccessibilityFocused:(BOOL)focused
@@ -294,7 +295,7 @@ static bool Has(const muiAccessNode* node, muiAccessAction action)
 
 - (id)accessibilityFocusedUIElement
 {
-    return NodeOf(self) != nullptr ? muiNsObjectOf(adapter, muiAccessTree_GetFocus(adapter->tree))
+    return NodeOf(self) != nullptr ? muiNsObjectOf(adapter, muiRecordActiveFocus(adapter->tree))
                                    : nil;
 }
 

@@ -194,6 +194,9 @@ public final class TestActivity extends Activity {
         told(adapter, 6, "", "no change");
         told(adapter, 7, "2048 " + root + " 1;8 " + field + " 0;",
                 "the focus moved: the subtree, then the view focused");
+        String got = toldAfter(adapter, 8);
+        check(got.contains("8 " + box + " 0;"),
+                "a focused window's active descendant: the view focused, told \"" + got + "\"");
     }
 
     private boolean asked(int action, long target) {

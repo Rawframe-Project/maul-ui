@@ -305,6 +305,17 @@ static void TestNotifications(muiNsAdapter* adapter, const Built* built)
     CHECK(muiNsAdapter_Apply(adapter, &back) == mui_success &&
               PostedAre(@"AXLayoutChanged 1; AXFocusedUIElementChanged 2"),
           "back, the layout before the focus");
+    // The window focused, naming the check box its active descendant: the
+    // check box is the focus shown, as browsers show aria-activedescendant.
+    static const muiAccessLink s_active[1] = {{6, mui_relationActiveDescendant}};
+    muiAccessNode window = built->nodes[0];
+    window.links = s_active;
+    window.linkCount = 1;
+    CHECK(Send(adapter, &window, built->children, 1) && PostedAre(@"AXFocusedUIElementChanged 6"),
+          "an active descendant: the focus shown");
+    CHECK(Send(adapter, &built->nodes[0], built->children, 2) &&
+              PostedAre(@"AXFocusedUIElementChanged 2"),
+          "none: the focus back");
     [s_posted release];
     adapter->post = saved;
 }

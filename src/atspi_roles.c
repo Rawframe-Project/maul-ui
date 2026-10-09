@@ -5,6 +5,7 @@
 // role's AT-SPI role, the names AT-SPI gives its roles, and a node's
 // state set from its flags. The values are atspi-constants.h's.
 
+#include "access_record.h"
 #include "atspi.h"
 
 // The AT-SPI roles the adapter gives, with their names.
@@ -397,22 +398,10 @@ void muiAtspiRecordStatesOf(const muiAccessNode* node, uint32_t statesOut[2])
 
 uint64_t muiAtspiShownFocus(const muiAccessTree* tree)
 {
-    const muiAccessNode* focus = muiAccessTree_Find(tree, muiAccessTree_GetFocus(tree));
-    if (focus == nullptr)
-    {
-        return 0;
-    }
-    for (uint32_t i = 0; i < focus->linkCount; i++)
-    {
-        const muiAccessLink* link = &focus->links[i];
-        if (link->kind == mui_relationActiveDescendant &&
-            muiAccessTree_Find(tree, link->target) != nullptr)
-        {
-            return link->target;
-        }
-    }
-    bool window = focus->id == muiAccessTree_GetRoot(tree);
-    return window && (focus->flags & mui_accessFocusable) == 0 ? 0 : focus->id;
+    uint64_t shown = muiRecordActiveFocus(tree);
+    const muiAccessNode* node = muiAccessTree_Find(tree, shown);
+    bool window = shown == muiAccessTree_GetRoot(tree);
+    return node == nullptr || (window && (node->flags & mui_accessFocusable) == 0) ? 0 : shown;
 }
 
 void muiAtspiStatesOf(const muiAtspiAdapter* adapter, const muiAccessNode* node,

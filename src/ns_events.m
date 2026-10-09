@@ -82,7 +82,7 @@ void muiNsTellLayout(muiNsAdapter* adapter)
 
 void muiNsTellFocus(muiNsAdapter* adapter)
 {
-    MUIAccessibilityNode* focus = muiNsObjectOf(adapter, muiAccessTree_GetFocus(adapter->tree));
+    MUIAccessibilityNode* focus = muiNsObjectOf(adapter, muiRecordActiveFocus(adapter->tree));
     if (focus != nil)
     {
         adapter->post(focus, NSAccessibilityFocusedUIElementChangedNotification, nil);

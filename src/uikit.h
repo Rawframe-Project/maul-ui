@@ -60,6 +60,8 @@ struct muiUikitAdapter
     bool reshaped;
     bool focusMoved;
     uint64_t screen;
+    // The focus shown last: the tree's, or its active descendant.
+    uint64_t toldFocus;
 };
 
 // The element or the container of a held node, made when first asked

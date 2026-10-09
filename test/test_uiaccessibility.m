@@ -348,6 +348,18 @@ static void TestNotifications(UIView* view)
     CHECK(Send(adapter, (const muiAccessNode*[]){&s_built.nodes[0]}, 1, s_built.children, 8) &&
               PostedAre(@"layout 8"),
           "the focus moved: the layout, with it");
+    // The window focused, naming node 5 its active descendant: the focus
+    // shown, as browsers show aria-activedescendant.
+    static const muiAccessLink s_active[1] = {{5, mui_relationActiveDescendant}};
+    muiAccessNode window = s_built.nodes[0];
+    window.links = s_active;
+    window.linkCount = 1;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&window}, 1, s_built.children, 1) &&
+              PostedAre(@"layout 5"),
+          "an active descendant: the focus shown");
+    CHECK(Send(adapter, (const muiAccessNode*[]){&s_built.nodes[0]}, 1, s_built.children, 8) &&
+              PostedAre(@"layout 8"),
+          "none: the focus back");
     // A modal dialog 12 added under the root, then taken away.
     muiAccessNode root = s_built.nodes[0];
     const uint64_t more[7] = {2, 3, 5, 7, 8, 10, 12};

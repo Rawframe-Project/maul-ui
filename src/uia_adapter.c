@@ -190,9 +190,14 @@ muiResult muiUiaAdapter_Apply(muiUiaAdapter* adapter, const muiAccessUpdate* upd
         return mui_errorInvalid;
     }
     adapter->listening = adapter->uia.clientsAreListening() != FALSE;
-    const muiAccessChanges changes = {adapter, muiUiaAdded,      muiUiaUpdated,
-                                      Removed, muiUiaFocusMoved, nullptr};
-    return muiAccessTree_Apply(adapter->tree, update, &changes);
+    const muiAccessChanges changes = {adapter, muiUiaAdded, muiUiaUpdated,
+                                      Removed, nullptr,     nullptr};
+    muiResult status = muiAccessTree_Apply(adapter->tree, update, &changes);
+    if (status == mui_success)
+    {
+        muiUiaTellFocus(adapter);
+    }
+    return status;
 }
 
 const muiAccessTree* muiUiaAdapter_GetTree(const muiUiaAdapter* adapter)

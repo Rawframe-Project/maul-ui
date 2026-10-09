@@ -7,6 +7,7 @@
 // let go, its adapter cleared, so that a client still holding it gets
 // nothing.
 
+#include "access_record.h"
 #include "allocator.h"
 #include "ns.h"
 
@@ -193,6 +194,13 @@ muiResult muiNsAdapter_Apply(muiNsAdapter* adapter, const muiAccessUpdate* updat
     adapter->reshaped = false;
     adapter->focusMoved = false;
     muiResult status = muiAccessTree_Apply(adapter->tree, update, &changes);
+    if (status == mui_success)
+    {
+        // The focus shown moves with the active descendant too.
+        uint64_t shown = muiRecordActiveFocus(adapter->tree);
+        adapter->focusMoved = adapter->focusMoved || shown != adapter->toldFocus;
+        adapter->toldFocus = shown;
+    }
     if (status == mui_success && adapter->reshaped)
     {
         muiNsTellLayout(adapter);

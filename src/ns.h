@@ -47,6 +47,8 @@ struct muiNsAdapter
     // What the update being applied changed: the shown tree, the focus.
     bool reshaped;
     bool focusMoved;
+    // The focus shown last: the tree's, or its active descendant.
+    uint64_t toldFocus;
 };
 
 // The object of a held node, made when first asked for; nil for none.

@@ -60,7 +60,7 @@ void muiUikitTellUpdated(muiUikitAdapter* adapter, const muiAccessNode* old,
 void muiUikitTellChanges(muiUikitAdapter* adapter, uint64_t oldRoot)
 {
     uint64_t root = muiAccessTree_GetRoot(adapter->tree);
-    uint64_t focus = muiAccessTree_GetFocus(adapter->tree);
+    uint64_t focus = muiRecordActiveFocus(adapter->tree);
     if (adapter->screen == 0 && root != oldRoot && root != 0)
     {
         adapter->screen = focus != 0 ? focus : root;

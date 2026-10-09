@@ -7,6 +7,7 @@
 // as UTF-16: the JNI's own UTF-8 is a modified one, which a character
 // past the Basic Multilingual Plane breaks.
 
+#include "access_record.h"
 #include "allocator.h"
 #include "android.h"
 
@@ -165,7 +166,7 @@ static jint FocusOf(JNIEnv* env, jclass type, jlong handle)
     (void)env;
     (void)type;
     muiAndroidAdapter* adapter = AdapterOf(handle);
-    uint64_t focus = muiAccessTree_GetFocus(adapter->tree);
+    uint64_t focus = muiRecordActiveFocus(adapter->tree);
     return focus != 0 ? muiAndroidVirtualOf(adapter, focus) : MUI_ANDROID_NO_ID;
 }
 
