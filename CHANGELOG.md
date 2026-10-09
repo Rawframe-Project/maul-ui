@@ -10,6 +10,15 @@ format.
 
 ### Changed
 
+- Absolute boxes follow Chrome in two more ways. With an aspect ratio
+  and a fixed width, the height comes from the ratio even when both
+  vertical insets are set; otherwise a height from the insets gives the
+  width, clamped by the width's limits through the ratio. With both
+  vertical insets and a height of its own, a box is placed between them
+  by its own `align-self` (CSS Position 3), at the top inset when they
+  cross. Fifteen Chrome fixtures hold the cases, and one more random
+  layout joins the corpus.
+
 - In a column of no definite height, a percentage flex-basis that cannot
   resolve is `content`, as CSS Flexbox 7.2.3 says and Chrome does: the
   item takes its content's height, not its height property's. Rows

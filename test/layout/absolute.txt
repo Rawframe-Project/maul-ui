@@ -80,3 +80,71 @@ node width=200 height=100 => 0 0 200 100
 fixture absolute_stretch_between_insets_less_margins available=500x400
 node width=200 height=100 => 0 0 200 100
   node position=absolute start=5 end=15 top=6 bottom=4 margin=3,4,5,6 => 8 11 173 79
+
+# An absolute box with an aspect ratio whose width is fixed takes its
+# height from the ratio despite both vertical insets; otherwise the
+# insets' height gives the width, clamped by the width's limits through
+# the ratio (CSS Sizing 4, as Chrome).
+fixture absolute_ratio_minimum_width_through_insets available=500x400
+node => 0 0 0 0
+  node min-width=10 position=absolute top=20 bottom=20 aspect=0.5 => 0 20 10 20
+
+fixture absolute_ratio_width_beats_insets available=500x400
+node width=200 height=100 => 0 0 200 100
+  node position=absolute top=20 bottom=20 width=10 aspect=0.5 => 0 20 10 20
+
+fixture absolute_ratio_from_inset_height available=500x400
+node width=200 height=100 => 0 0 200 100
+  node position=absolute top=0 bottom=0 aspect=2 => 0 0 200 100
+
+fixture absolute_ratio_from_inset_height_start available=500x400
+node width=200 height=100 => 0 0 200 100
+  node position=absolute top=0 bottom=0 start=0 aspect=2 => 0 0 200 100
+
+fixture absolute_ratio_all_insets available=500x400
+node width=200 height=100 => 0 0 200 100
+  node position=absolute top=0 bottom=0 start=0 end=0 aspect=4 => 0 0 200 50
+
+fixture absolute_ratio_inset_height_content available=500x400
+node width=200 height=100 => 0 0 200 100
+  node position=absolute top=10 bottom=10 aspect=0.5 content=10x5 => 0 10 40 80
+
+# Between both vertical insets a box with its own height is placed by its
+# own align-self, at the top inset when they cross; horizontally it keeps
+# its start inset (CSS Position 3, as Chrome).
+fixture absolute_align_self_center_between_insets available=500x400
+node height=100 => 0 0 0 100
+  node align-self=center position=absolute top=10 bottom=20 height=10 => 0 40 0 10
+
+fixture absolute_align_self_center_insets_cross available=500x400
+node height=20 => 0 0 0 20
+  node align-self=center position=absolute top=10 bottom=20 height=10 => 0 5 0 10
+
+fixture absolute_align_self_end_insets_cross available=500x400
+node height=20 => 0 0 0 20
+  node align-self=end position=absolute top=10 bottom=20 height=10 => 0 0 0 10
+
+fixture absolute_align_self_start_insets_cross available=500x400
+node height=20 => 0 0 0 20
+  node align-self=start position=absolute top=10 bottom=20 height=10 => 0 10 0 10
+
+fixture absolute_align_self_center_overflow available=500x400
+node height=100 => 0 0 0 100
+  node align-self=center position=absolute top=10 bottom=20 height=90 => 0 0 0 90
+
+
+fixture absolute_align_items_not_between_insets available=500x400
+node height=100 align-items=center => 0 0 0 100
+  node position=absolute top=10 bottom=20 height=10 => 0 10 0 10
+
+fixture absolute_align_self_between_insets_in_column available=500x400
+node height=100 width=100 direction=column => 0 0 100 100
+  node align-self=center position=absolute top=10 bottom=20 height=10 width=10 => 45 40 10 10
+
+fixture absolute_align_self_not_horizontal_column available=500x400
+node height=100 width=100 direction=column => 0 0 100 100
+  node align-self=center position=absolute start=10 end=20 height=10 width=10 => 10 0 10 10
+
+fixture absolute_justify_not_between_insets available=500x400
+node height=100 width=100 justify=center => 0 0 100 100
+  node position=absolute start=10 end=20 height=10 width=10 => 10 0 10 10

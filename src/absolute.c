@@ -139,6 +139,16 @@ static float Offset(const muiLayoutStyle* container, const muiLayoutStyle* child
         {
             start += freeSpace;
         }
+        else if (!autoEnd && !horizontal)
+        {
+            // Vertically its own align-self places it in the space the
+            // insets leave, none when they cross (CSS Position 3, as
+            // Chrome); horizontally it starts at its inset.
+            float space = fmaxf(span->paddingSize - insets->start - insets->end, 0.0f);
+            float lead = space - size - muiEdgeSum(&margins, false);
+            muiAlign align = child->item.alignSelf;
+            start += align == mui_alignEnd ? lead : (align == mui_alignCenter ? lead / 2.0f : 0.0f);
+        }
         return span->paddingStart + insets->start + start;
     }
     if (insets->hasStart)
@@ -150,6 +160,23 @@ static float Offset(const muiLayoutStyle* container, const muiLayoutStyle* child
         return span->paddingStart + span->paddingSize - insets->end - end - size;
     }
     return StaticOffset(container, child, horizontal, span, size, rtl);
+}
+
+// With an aspect ratio, a height from both insets gives way to the ratio
+// when the width is fixed, and the function returns true; otherwise it
+// gives the width, the width's limits through the ratio clamping it (CSS
+// Sizing 4, as Chrome).
+static bool RatioTakesHeight(const muiLayoutStyle* style, const Span* spanX, const Span* spanY,
+                             bool fixedWidth, float* height)
+{
+    float ratio = style->sizing.aspectRatio;
+    if (ratio <= 0.0f || muiResolveAxis(&style->sizing, false, spanY->paddingSize).definite)
+    {
+        return false;
+    }
+    muiAxisSizing across = muiResolveAxis(&style->sizing, true, spanX->paddingSize);
+    *height = fminf(fmaxf(*height, across.minimum / ratio), across.maximum / ratio);
+    return fixedWidth;
 }
 
 static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container, uint32_t child,
@@ -192,7 +219,9 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
     // Its padding with the safe area, in the direction it inherits.
     const muiEdges padding = muiPaddingOf(style, &solver->safeArea, muiIsRtl(style, rtl));
     bool fixedHeight = FixedSize(style, &padding, false, spanX, spanY, &insetY, &height);
-    if (!FixedSize(style, &padding, true, spanX, spanY, &insetX, &width))
+    bool fixedWidth = FixedSize(style, &padding, true, spanX, spanY, &insetX, &width);
+    fixedHeight = fixedHeight && !RatioTakesHeight(style, spanX, spanY, fixedWidth, &height);
+    if (!fixedWidth)
     {
         muiEdges margins = muiMarginsOf(style, rtl);
         float space = spanX->paddingSize - (insetX.hasStart ? insetX.start : 0.0f) -

@@ -1594,6 +1594,15 @@ node width=60 padding=0,3,3,3 => 0 0 60 156
     node grow=2 margin=7,7,3,7 border=7,0,7,0 padding=0,7,3,0 => 27 6 14 130
   node width=10% height=150 border=2 padding=7,7,7,7 => 62 3 18 150
 
+fixture random_26_156 available=500x400
+node width=300 height=300 wrap=wrap row-gap=0 => 0 0 300 300
+  node width=0 height=80 margin=7,7,0,0 direction=row justify=start align-items=end => 7 0 0 80
+    node width=20 height=20 grow=0 shrink=0 wrap=nowrap row-gap=4 => 0 60 20 20
+      node height=40 grow=1 shrink=0 position=absolute end=10 top=5 bottom=5 margin=7,3,0,3 padding=0,7,7,0 content=10x40 => -10 5 17 40
+    node width=50% height=25% shrink=1 align-self=center padding=3,0,7,0 direction=row wrap=nowrap column-gap=0 => 20 30 3 20
+      node width=30 height=10 aspect=1.5 padding=2 => 3 7 15 10
+  node width=40 height=0 grow=0 align-self=center position=absolute end=0 top=5 bottom=0 margin=0 border=7,3,3,7 padding=3,0,3,0 => 260 146 40 13
+
 fixture random_26_157 available=500x400
 node width=50% height=150 border=7,0,0,7 wrap=wrap => 0 0 250 150
   node width=20 grow=2 border=10 justify=space-between => 7 0 243 154
