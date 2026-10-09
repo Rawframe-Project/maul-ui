@@ -267,6 +267,15 @@ POINT muiUiaClientOrigin(const muiUiaAdapter* adapter)
     return origin;
 }
 
+muiUiaRect muiUiaScreenRectOf(const muiUiaAdapter* adapter, muiRect bounds)
+{
+    POINT origin = muiUiaClientOrigin(adapter);
+    double scale = (double)adapter->scale;
+    return (muiUiaRect){(double)origin.x + (double)bounds.x * scale,
+                        (double)origin.y + (double)bounds.y * scale, (double)bounds.width * scale,
+                        (double)bounds.height * scale};
+}
+
 muiUiaRect muiUiaScreenRect(const muiUiaAdapter* adapter, uint64_t id)
 {
     muiRect bounds = {0};
@@ -274,11 +283,15 @@ muiUiaRect muiUiaScreenRect(const muiUiaAdapter* adapter, uint64_t id)
     {
         return (muiUiaRect){0};
     }
+    return muiUiaScreenRectOf(adapter, bounds);
+}
+
+void muiUiaRootPointOf(const muiUiaAdapter* adapter, double x, double y, float* xOut, float* yOut)
+{
     POINT origin = muiUiaClientOrigin(adapter);
     double scale = (double)adapter->scale;
-    return (muiUiaRect){(double)origin.x + (double)bounds.x * scale,
-                        (double)origin.y + (double)bounds.y * scale, (double)bounds.width * scale,
-                        (double)bounds.height * scale};
+    *xOut = (float)((x - (double)origin.x) / scale);
+    *yOut = (float)((y - (double)origin.y) / scale);
 }
 
 HRESULT muiUiaPerformRequest(muiUiaAdapter* adapter, const muiAccessRequest* request)

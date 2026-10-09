@@ -74,8 +74,11 @@ format.
   the text component's hit testing; `muiAccessTree_GetTextRects` gives a
   range's rectangles a line each and `muiAccessTree_GetTextOffsetAt` the
   character at a point, through the transforms. AT-SPI's character and
-  range extents and offset at a point answer from them, or from the
-  node's extents for text without clusters.
+  range extents and offset at a point, UI Automation's bounding
+  rectangles and range from a point, NSAccessibility's frame for a
+  range and range for a position, and UIKit's first rectangle, caret
+  rectangle, selection rectangles and positions at a point answer from
+  them, or from the node's rectangle for text without clusters.
 
 ### Changed
 

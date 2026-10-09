@@ -4,8 +4,9 @@
 // The NSAccessibility adapter's text (record mui-0008, research 143): a
 // text input's or an edited text's characters, selection, lines and
 // ranges, in UTF-16 as AppKit counts, through the boundaries every
-// adapter shares; the selection and the text set through the host.
-// Character geometry is not given yet: a range's frame is the node's.
+// adapter shares; the selection and the text set through the host; where
+// its characters are, from the tree's clusters, or the node's frame for
+// text without them.
 
 #include "access_text.h"
 #include "ns.h"
@@ -79,7 +80,8 @@ bool muiNsIsTextSelector(SEL selector)
            selector == @selector(accessibilityStringForRange:) ||
            selector == @selector(accessibilityRangeForIndex:) ||
            selector == @selector(accessibilityStyleRangeForIndex:) ||
-           selector == @selector(accessibilityFrameForRange:);
+           selector == @selector(accessibilityFrameForRange:) ||
+           selector == @selector(accessibilityRangeForPosition:);
 }
 
 bool muiNsAllowsText(const muiAccessNode* node, SEL selector)
@@ -280,10 +282,51 @@ bool muiNsReplaceAll(const MUIAccessibilityNode* object, NSString* value)
     return [self accessibilityVisibleCharacterRange];
 }
 
+// The box around the range's lines on the screen; none for an empty
+// range of text with clusters.
 - (NSRect)accessibilityFrameForRange:(NSRange)range
 {
-    (void)range;
-    return TextNodeOf(self) != nullptr ? muiNsScreenRectOf(adapter, nodeId) : NSZeroRect;
+    const muiAccessNode* node = TextNodeOf(self);
+    uint32_t start = 0;
+    uint32_t end = 0;
+    muiRect box = {0};
+    if (node == nullptr)
+    {
+        return NSZeroRect;
+    }
+    muiAccessText text = muiAccessValueOf(node);
+    if (!BytesOf(&text, range, &start, &end) ||
+        !muiAccessTextBox(adapter->tree, nodeId, start, end, &adapter->allocator, &box))
+    {
+        return NSZeroRect;
+    }
+    return muiNsScreenRectOfBox(adapter, box);
+}
+
+// The character at a point on the screen, or the nearest; the text's
+// first without clusters; none for no text.
+- (NSRange)accessibilityRangeForPosition:(NSPoint)point
+{
+    const muiAccessNode* node = TextNodeOf(self);
+    if (node == nullptr)
+    {
+        return NSMakeRange(NSNotFound, 0);
+    }
+    muiAccessText text = muiAccessValueOf(node);
+    float x = 0.0f;
+    float y = 0.0f;
+    uint32_t at = 0;
+    muiNsRootPointOf(adapter, point, &x, &y);
+    if (muiAccessTree_GetTextOffsetAt(adapter->tree, nodeId, x, y, &at) != mui_success)
+    {
+        at = 0;
+    }
+    if (at >= text.length)
+    {
+        return text.length == 0 ? NSMakeRange(NSNotFound, 0)
+                                : RangeOf(&text, text.length, text.length);
+    }
+    return RangeOf(&text, at, muiAccessBoundaryAfter(&text, mui_unitCharacter, at));
 }
 
 @end

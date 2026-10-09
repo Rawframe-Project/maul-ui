@@ -127,8 +127,11 @@ const muiAccessNode* muiUiaNodeFor(const muiUiaNode* node);
 HRESULT muiUiaPropertyValue(muiUiaAdapter* adapter, const muiAccessNode* node, int property,
                             VARIANT* out);
 
-// A node's bounds in screen pixels.
+// A rectangle where the root is placed, and a node's bounds, in screen
+// pixels; a point in screen pixels where the root is placed.
+muiUiaRect muiUiaScreenRectOf(const muiUiaAdapter* adapter, muiRect bounds);
 muiUiaRect muiUiaScreenRect(const muiUiaAdapter* adapter, uint64_t id);
+void muiUiaRootPointOf(const muiUiaAdapter* adapter, double x, double y, float* xOut, float* yOut);
 
 // The top left of the window's client area on the screen, in pixels.
 POINT muiUiaClientOrigin(const muiUiaAdapter* adapter);

@@ -17,7 +17,10 @@
 // - notifications, recorded in place of AppKit's: titles and values
 //   changed, static text's value, live names announced on the window at
 //   their priority, the focus, an element destroyed, the layout; none
-//   for an update that changes nothing.
+//   for an update that changes nothing;
+// - a text input's text in UTF-16: characters, lines, ranges, the
+//   selection set and told, a range's frame from its clusters and the
+//   character at a point.
 
 #include "ns.h"
 #include "test_harness.h"
@@ -398,6 +401,31 @@ static void TestText(muiNsAdapter* adapter, id root, const Built* built)
               PostedAre(@"AXSelectedTextChanged 7") &&
               [[field accessibilitySelectedText] isEqualToString:@"llo "],
           "a selection told and read");
+    // Clusters 5 wide, lines 10 high, the second's from "n".
+    static const muiAccessLineBox s_boxes[2] = {{0.0f, 10.0f, 0}, {10.0f, 20.0f, 7}};
+    static const uint32_t s_starts[12] = {0, 1, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16};
+    muiAccessCluster clusters[11];
+    for (uint32_t i = 0; i < 11; i++)
+    {
+        float x = 5.0f * (float)(i < 7 ? i : i - 7);
+        // The line break has no cluster: 𝄞's ends at 11.
+        uint32_t end = i == 6 ? 11 : s_starts[i + 1];
+        clusters[i] = (muiAccessCluster){s_starts[i], end, x, x + 5.0f};
+    }
+    input.marks.lineBoxes = s_boxes;
+    input.marks.clusters = clusters;
+    input.marks.clusterCount = 11;
+    NSRect frame = [field accessibilityFrame];
+    CHECK(muiNsAdapter_Apply(adapter, &update) == mui_success &&
+              NSEqualRects([field accessibilityFrameForRange:NSMakeRange(1, 1)],
+                           NSMakeRect(NSMinX(frame) + 5.0, NSMaxY(frame) - 10.0, 5.0, 10.0)) &&
+              NSEqualRects([field accessibilityFrameForRange:NSMakeRange(4, 7)],
+                           NSMakeRect(NSMinX(frame), NSMaxY(frame) - 20.0, 35.0, 20.0)) &&
+              NSEqualRanges([field accessibilityRangeForPosition:NSMakePoint(NSMinX(frame) + 12.5,
+                                                                             NSMaxY(frame) - 15.0)],
+                            NSMakeRange(11, 1)) &&
+              [field isAccessibilitySelectorAllowed:@selector(accessibilityRangeForPosition:)],
+          "a range's frame from its clusters, the character at a point");
     [s_posted release];
     adapter->post = saved;
 }

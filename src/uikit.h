@@ -94,8 +94,10 @@ id muiUikitParentOf(muiUikitAdapter* adapter, uint64_t node);
 // A node's shown children, into the adapter's scratch; how many.
 uint32_t muiUikitChildrenOf(const muiUikitAdapter* adapter, uint64_t id);
 
-// A node's box in the view, and on the screen, in points.
+// A node's box in the view, a box where the root is placed in the view,
+// and a node's box on the screen, in points.
 CGRect muiUikitViewRectOf(const muiUikitAdapter* adapter, uint64_t id);
+CGRect muiUikitViewRectOfBox(const muiUikitAdapter* adapter, muiRect box);
 CGRect muiUikitScreenRectOf(const muiUikitAdapter* adapter, uint64_t id);
 
 // Asks the host for an action on a node; whether it did it.

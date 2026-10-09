@@ -11,8 +11,6 @@
 #include "allocator.h"
 #include "atspi.h"
 
-#include <math.h>
-#include <stdalign.h>
 #include <string.h>
 
 // AT-SPI's granularities, and the older boundary types.
@@ -362,50 +360,6 @@ static bool AppendNoAttributes(muiAtspiApp* app, muiDBusIter* iter)
            app->dbus.closeContainer(iter, &array);
 }
 
-// The box around a byte range's rectangles where the root is placed:
-// the node's own when its text has no clusters; none for an empty range.
-static bool RangeBox(const muiAtspiObject* object, uint32_t start, uint32_t end, muiRect* boxOut)
-{
-    const muiAccessTree* tree = object->adapter->tree;
-    uint32_t count = 0;
-    muiResult status =
-        muiAccessTree_GetTextRects(tree, object->node->id, start, end, nullptr, 0, &count);
-    if (status == mui_empty)
-    {
-        return start < end &&
-               muiAccessTree_GetBounds(tree, object->node->id, boxOut) == mui_success;
-    }
-    // A few lines on the stack, more from the heap.
-    muiRect small[8];
-    const muiAllocator* allocator = &object->adapter->app->allocator;
-    const uint32_t wanted = count;
-    muiRect* rects =
-        wanted <= 8 ? small : muiAllocate(allocator, wanted * sizeof(muiRect), alignof(muiRect));
-    if (wanted == 0 || rects == nullptr ||
-        muiAccessTree_GetTextRects(tree, object->node->id, start, end, rects, wanted, &count) !=
-            mui_success)
-    {
-        count = 0;
-    }
-    float left = INFINITY;
-    float top = INFINITY;
-    float right = -INFINITY;
-    float bottom = -INFINITY;
-    for (uint32_t i = 0; i < count; i++)
-    {
-        left = fminf(left, rects[i].x);
-        top = fminf(top, rects[i].y);
-        right = fmaxf(right, rects[i].x + rects[i].width);
-        bottom = fmaxf(bottom, rects[i].y + rects[i].height);
-    }
-    if (rects != nullptr && rects != small)
-    {
-        muiRelease(allocator, rects, wanted * sizeof(muiRect), alignof(muiRect));
-    }
-    *boxOut = (muiRect){left, top, right - left, bottom - top};
-    return count != 0;
-}
-
 // Writes the extents of characters from one to another in a coordinate
 // type, all zero for none.
 static bool AppendRangeExtents(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object,
@@ -416,7 +370,8 @@ static bool AppendRangeExtents(muiAtspiApp* app, muiDBusIter* iter, const muiAts
     muiRect box = {0};
     uint32_t from = ByteOf(text, start < end ? start : end);
     uint32_t to = ByteOf(text, start < end ? end : start);
-    if (RangeBox(object, from, to, &box))
+    if (muiAccessTextBox(object->adapter->tree, object->node->id, from, to,
+                         &object->adapter->app->allocator, &box))
     {
         muiAtspiRectIn(object, box, coordinates, extents);
     }

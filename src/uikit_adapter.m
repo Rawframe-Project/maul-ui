@@ -334,6 +334,11 @@ CGRect muiUikitViewRectOf(const muiUikitAdapter* adapter, uint64_t id)
 {
     muiRect box = {0};
     (void)muiAccessTree_GetBounds(adapter->tree, id, &box);
+    return muiUikitViewRectOfBox(adapter, box);
+}
+
+CGRect muiUikitViewRectOfBox(const muiUikitAdapter* adapter, muiRect box)
+{
     CGFloat scale = (CGFloat)adapter->scale;
     return CGRectMake((CGFloat)box.x * scale, (CGFloat)box.y * scale, (CGFloat)box.width * scale,
                       (CGFloat)box.height * scale);

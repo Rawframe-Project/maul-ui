@@ -6,7 +6,10 @@
 
 #include "access_text.h"
 
+#include "allocator.h"
+
 #include <math.h>
+#include <stdalign.h>
 
 // Whether offset is within the text at a character's start: the end, or
 // a byte that does not continue a UTF-8 sequence.
@@ -179,6 +182,74 @@ uint32_t muiAccessOffsetAt(const muiAccessTextMarks* marks, float x, float y)
         }
     }
     return marks->clusters[nearest].start;
+}
+
+muiResult muiAccessGetRects(const muiAccessTree* tree, uint64_t id, uint32_t start, uint32_t end,
+                            const muiAllocator* allocator, muiAccessRects* out)
+{
+    *out = (muiAccessRects){.allocator = allocator};
+    out->rects = out->small;
+    uint32_t count = 0;
+    muiResult status = muiAccessTree_GetTextRects(tree, id, start, end, nullptr, 0, &count);
+    if (status != mui_success && status != mui_errorCapacity)
+    {
+        return status == mui_empty ? mui_empty : mui_errorCapacity;
+    }
+    if (count > 8)
+    {
+        out->rects = muiAllocate(allocator, count * sizeof(muiRect), alignof(muiRect));
+        if (out->rects == nullptr)
+        {
+            out->rects = out->small;
+            return mui_errorCapacity;
+        }
+        out->room = count;
+    }
+    status = muiAccessTree_GetTextRects(tree, id, start, end, out->rects, count, &out->count);
+    if (status != mui_success)
+    {
+        muiAccessFreeRects(out);
+        return mui_errorCapacity;
+    }
+    return mui_success;
+}
+
+void muiAccessFreeRects(muiAccessRects* rects)
+{
+    if (rects->rects != rects->small && rects->rects != nullptr)
+    {
+        muiRelease(rects->allocator, rects->rects, rects->room * sizeof(muiRect), alignof(muiRect));
+    }
+    rects->rects = rects->small;
+    rects->count = 0;
+    rects->room = 0;
+}
+
+bool muiAccessTextBox(const muiAccessTree* tree, uint64_t id, uint32_t start, uint32_t end,
+                      const muiAllocator* allocator, muiRect* boxOut)
+{
+    muiAccessRects got;
+    muiResult status = muiAccessGetRects(tree, id, start, end, allocator, &got);
+    if (status == mui_empty)
+    {
+        return start < end && muiAccessTree_GetBounds(tree, id, boxOut) == mui_success;
+    }
+    float left = INFINITY;
+    float top = INFINITY;
+    float right = -INFINITY;
+    float bottom = -INFINITY;
+    for (uint32_t i = 0; i < got.count; i++)
+    {
+        const muiRect* r = &got.rects[i];
+        left = fminf(left, r->x);
+        top = fminf(top, r->y);
+        right = fmaxf(right, r->x + r->width);
+        bottom = fmaxf(bottom, r->y + r->height);
+    }
+    bool found = got.count != 0;
+    muiAccessFreeRects(&got);
+    *boxOut = (muiRect){left, top, right - left, bottom - top};
+    return found;
 }
 
 muiAccessText muiAccessValueOf(const muiAccessNode* node)

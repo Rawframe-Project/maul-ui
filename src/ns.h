@@ -54,8 +54,11 @@ struct muiNsAdapter
 // The object of a held node, made when first asked for; nil for none.
 MUIAccessibilityNode* muiNsObjectOf(muiNsAdapter* adapter, uint64_t id);
 
-// A node's box on the screen, in points.
+// A box where the root is placed, and a node's box, on the screen in
+// points; a point on the screen where the root is placed.
+NSRect muiNsScreenRectOfBox(const muiNsAdapter* adapter, muiRect box);
 NSRect muiNsScreenRectOf(const muiNsAdapter* adapter, uint64_t id);
+void muiNsRootPointOf(const muiNsAdapter* adapter, NSPoint screen, float* xOut, float* yOut);
 
 // The deepest shown node under a point on the screen, 0 for none.
 uint64_t muiNsNodeAt(const muiNsAdapter* adapter, NSPoint screen);

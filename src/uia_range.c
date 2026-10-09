@@ -356,8 +356,7 @@ static HRESULT STDMETHODCALLTYPE GetAttributeValue(muiUiaRange* self, int attrib
     return S_OK;
 }
 
-// An empty array of a type, as character geometry and embedded objects
-// are not given yet.
+// An empty array of a type, as embedded objects are not given yet.
 static HRESULT Empty(VARTYPE type, SAFEARRAY** out)
 {
     if (out == nullptr)
@@ -368,9 +367,66 @@ static HRESULT Empty(VARTYPE type, SAFEARRAY** out)
     return *out != nullptr ? S_OK : E_OUTOFMEMORY;
 }
 
+// Writes rectangles where the root is placed into an array's doubles,
+// on the screen: left, top, width and height each.
+static HRESULT PutRects(const muiUiaAdapter* adapter, const muiRect* rects, uint32_t count,
+                        SAFEARRAY** out)
+{
+    *out = SafeArrayCreateVector(VT_R8, 0, count * 4);
+    double* values = nullptr;
+    HRESULT result = *out == nullptr ? E_OUTOFMEMORY
+                     : count == 0    ? S_OK
+                                     : SafeArrayAccessData(*out, (void**)&values);
+    if (SUCCEEDED(result) && values != nullptr)
+    {
+        for (uint32_t i = 0; i < count; i++)
+        {
+            muiUiaRect rect = muiUiaScreenRectOf(adapter, rects[i]);
+            values[4 * i] = rect.left;
+            values[4 * i + 1] = rect.top;
+            values[4 * i + 2] = rect.width;
+            values[4 * i + 3] = rect.height;
+        }
+        result = SafeArrayUnaccessData(*out);
+    }
+    if (FAILED(result) && *out != nullptr)
+    {
+        (void)SafeArrayDestroy(*out);
+        *out = nullptr;
+    }
+    return result;
+}
+
+// A rectangle each line the range lies on; the node's bounds for text
+// without clusters; none for an empty range.
 static HRESULT STDMETHODCALLTYPE GetBoundingRectangles(muiUiaRange* self, SAFEARRAY** out)
 {
-    return muiUiaNodeFor(self->node) != nullptr ? Empty(VT_R8, out) : ELEMENT_GONE;
+    muiAccessText text;
+    if (out == nullptr)
+    {
+        return E_POINTER;
+    }
+    *out = nullptr;
+    if (!TextOf(self, &text))
+    {
+        return ELEMENT_GONE;
+    }
+    muiUiaAdapter* adapter = self->node->adapter;
+    uint64_t id = muiUiaNodeFor(self->node)->id;
+    muiAccessRects got;
+    muiResult status =
+        muiAccessGetRects(adapter->tree, id, self->start, self->end, &adapter->allocator, &got);
+    if (status == mui_errorCapacity)
+    {
+        return E_OUTOFMEMORY;
+    }
+    muiRect whole = {0};
+    bool asWhole = status == mui_empty && self->start < self->end &&
+                   muiAccessTree_GetBounds(adapter->tree, id, &whole) == mui_success;
+    HRESULT result = status == mui_empty ? PutRects(adapter, &whole, asWhole ? 1 : 0, out)
+                                         : PutRects(adapter, got.rects, got.count, out);
+    muiAccessFreeRects(&got);
+    return result;
 }
 
 static HRESULT STDMETHODCALLTYPE GetChildren(muiUiaRange* self, SAFEARRAY** out)

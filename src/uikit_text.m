@@ -7,8 +7,9 @@
 // UIKit counts, on the boundaries every adapter shares (the tokenizer is
 // the adapter's own); the selection and the text are set through the
 // host. The keyboard edits the host's view, the first responder: marked
-// text is not the element's. Character geometry is not given yet: a
-// range's rectangle is the node's, a point the text's start.
+// text is not the element's. Where characters are comes from the tree's
+// clusters, in the host's view; text without them answers the node's
+// rectangle and its start.
 
 #include "access_record.h"
 #include "access_text.h"
@@ -66,6 +67,45 @@ static MUITextRange* RangeFrom(NSUInteger from, NSUInteger to)
 - (BOOL)isEmpty
 {
     return from == to;
+}
+
+@end
+
+// A line's part of a selection, in the view.
+@interface MUITextSelectionRect : UITextSelectionRect
+{
+  @public
+    CGRect box;
+    BOOL first;
+    BOOL last;
+}
+@end
+
+@implementation MUITextSelectionRect
+
+- (CGRect)rect
+{
+    return box;
+}
+
+- (NSWritingDirection)writingDirection
+{
+    return NSWritingDirectionNatural;
+}
+
+- (BOOL)containsStart
+{
+    return first;
+}
+
+- (BOOL)containsEnd
+{
+    return last;
+}
+
+- (BOOL)isVertical
+{
+    return NO;
 }
 
 @end
@@ -311,6 +351,21 @@ static void LineBytes(const muiAccessText* text, uint32_t line, uint32_t* startO
     *lastOut = line + 1 < marks->lineCount
                    ? muiAccessBoundaryBefore(text, mui_unitCharacter, marks->lineStarts[line + 1])
                    : text->length;
+}
+
+// The byte at a point in the view: the character there or nearest; the
+// text's start without clusters.
+static uint32_t ByteAtPoint(const MUIAccessibilityElement* element, CGPoint point)
+{
+    const muiUikitAdapter* adapter = element->adapter;
+    CGFloat scale = (CGFloat)adapter->scale;
+    uint32_t at = 0;
+    if (muiAccessTree_GetTextOffsetAt(adapter->tree, element->nodeId, (float)(point.x / scale),
+                                      (float)(point.y / scale), &at) != mui_success)
+    {
+        at = 0;
+    }
+    return at;
 }
 
 @implementation MUIAccessibilityTextElement
@@ -582,50 +637,130 @@ static void LineBytes(const muiAccessText* text, uint32_t line, uint32_t* startO
     (void)range;
 }
 
-// Without character geometry, a range is the node's rectangle in the
-// view.
+// The first line's part of a range in the view; the node's rectangle
+// for text without clusters; none for an empty range.
 - (CGRect)firstRectForRange:(UITextRange*)range
 {
-    (void)range;
-    return TextNodeOf(self) != nullptr ? muiUikitViewRectOf(adapter, nodeId) : CGRectNull;
+    const muiAccessNode* node = TextNodeOf(self);
+    uint32_t start = 0;
+    uint32_t end = 0;
+    if (node == nullptr)
+    {
+        return CGRectNull;
+    }
+    muiAccessText text = muiAccessValueOf(node);
+    if (!BytesOf(&text, range, &start, &end))
+    {
+        return CGRectNull;
+    }
+    muiAccessRects got;
+    muiResult status =
+        muiAccessGetRects(adapter->tree, nodeId, start, end, &adapter->allocator, &got);
+    CGRect first = status == mui_empty ? muiUikitViewRectOf(adapter, nodeId)
+                   : status == mui_success && got.count != 0
+                       ? muiUikitViewRectOfBox(adapter, got.rects[0])
+                       : CGRectNull;
+    muiAccessFreeRects(&got);
+    return first;
 }
 
+// A caret's rectangle, no wider than a line: at the left of the
+// character after it, or the right of the one before; the node's
+// rectangle for text without clusters.
 - (CGRect)caretRectForPosition:(UITextPosition*)position
 {
-    (void)position;
-    return TextNodeOf(self) != nullptr ? muiUikitViewRectOf(adapter, nodeId) : CGRectNull;
+    const muiAccessNode* node = TextNodeOf(self);
+    uint32_t at = 0;
+    if (node == nullptr)
+    {
+        return CGRectNull;
+    }
+    muiAccessText text = muiAccessValueOf(node);
+    if (!ByteOf(&text, position, &at))
+    {
+        return CGRectNull;
+    }
+    bool after = at < text.length;
+    uint32_t start = after ? at : muiAccessBoundaryBefore(&text, mui_unitCharacter, at);
+    uint32_t end = after ? muiAccessBoundaryAfter(&text, mui_unitCharacter, at) : at;
+    muiRect box = {0};
+    if (!muiAccessTextBox(adapter->tree, nodeId, start, end, &adapter->allocator, &box))
+    {
+        return muiUikitViewRectOf(adapter, nodeId);
+    }
+    CGRect rect = muiUikitViewRectOfBox(adapter, box);
+    rect.origin.x = after ? CGRectGetMinX(rect) : CGRectGetMaxX(rect);
+    rect.size.width = 0.0;
+    return rect;
 }
 
+// Each line's part of a range in the view.
 - (NSArray*)selectionRectsForRange:(UITextRange*)range
 {
-    (void)range;
-    return @[];
+    const muiAccessNode* node = TextNodeOf(self);
+    uint32_t start = 0;
+    uint32_t end = 0;
+    muiAccessRects got;
+    if (node == nullptr)
+    {
+        return @[];
+    }
+    muiAccessText text = muiAccessValueOf(node);
+    if (!BytesOf(&text, range, &start, &end) ||
+        muiAccessGetRects(adapter->tree, nodeId, start, end, &adapter->allocator, &got) !=
+            mui_success)
+    {
+        return @[];
+    }
+    NSMutableArray* rects = [NSMutableArray arrayWithCapacity:got.count];
+    for (uint32_t i = 0; i < got.count; i++)
+    {
+        MUITextSelectionRect* part = [[MUITextSelectionRect alloc] init];
+        part->box = muiUikitViewRectOfBox(adapter, got.rects[i]);
+        part->first = i == 0;
+        part->last = i + 1 == got.count;
+        [rects addObject:part];
+        [part release];
+    }
+    muiAccessFreeRects(&got);
+    return rects;
 }
 
-// Without character geometry, a point is the text's start.
 - (UITextPosition*)closestPositionToPoint:(CGPoint)point
 {
-    (void)point;
-    return TextNodeOf(self) != nullptr ? PositionAt(0) : nil;
-}
-
-- (UITextPosition*)closestPositionToPoint:(CGPoint)point withinRange:(UITextRange*)range
-{
-    (void)point;
-    return TextNodeOf(self) != nullptr && [range isKindOfClass:[MUITextRange class]] ? [range start]
-                                                                                     : nil;
-}
-
-- (UITextRange*)characterRangeAtPoint:(CGPoint)point
-{
-    (void)point;
     const muiAccessNode* node = TextNodeOf(self);
     if (node == nullptr)
     {
         return nil;
     }
     muiAccessText text = muiAccessValueOf(node);
-    return RangeOfBytes(&text, 0, muiAccessBoundaryAfter(&text, mui_unitCharacter, 0));
+    return PositionAt(UnitsBefore(&text, ByteAtPoint(self, point)));
+}
+
+- (UITextPosition*)closestPositionToPoint:(CGPoint)point withinRange:(UITextRange*)range
+{
+    UITextPosition* at = [self closestPositionToPoint:point];
+    if (at == nil || ![range isKindOfClass:[MUITextRange class]])
+    {
+        return nil;
+    }
+    NSUInteger index = ((MUITextPosition*)at)->index;
+    const MUITextRange* within = (const MUITextRange*)range;
+    return PositionAt(index < within->from ? within->from
+                      : index > within->to ? within->to
+                                           : index);
+}
+
+- (UITextRange*)characterRangeAtPoint:(CGPoint)point
+{
+    const muiAccessNode* node = TextNodeOf(self);
+    if (node == nullptr)
+    {
+        return nil;
+    }
+    muiAccessText text = muiAccessValueOf(node);
+    uint32_t at = ByteAtPoint(self, point);
+    return RangeOfBytes(&text, at, muiAccessBoundaryAfter(&text, mui_unitCharacter, at));
 }
 
 - (id<UITextInputDelegate>)inputDelegate

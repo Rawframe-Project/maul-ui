@@ -21,8 +21,9 @@
 //   changes nothing;
 // - a text input's element through UITextInput: its text, caret and
 //   units in UTF-16 by the tree's words and lines, the selection and
-//   edits asked of the host, the input delegate told; the element remade
-//   as the node starts and ends being edited.
+//   edits asked of the host, the input delegate told, rectangles and
+//   points from the tree's clusters; the element remade as the node
+//   starts and ends being edited.
 
 #include "test_harness.h"
 #include "uikit.h"
@@ -527,6 +528,44 @@ static void TestTextRequests(id<UITextInput> field)
           "a range replaced");
 }
 
+// The text input 7 at 20, 160 in the view given clusters 5 wide on lines 10 high,
+// the second's from "n": rectangles in the view, carets, the character
+// at a point.
+static void TestTextPlaces(muiUikitAdapter* adapter, id<UITextInput> field, muiAccessNode* input,
+                           const Built* built)
+{
+    static const muiAccessLineBox s_boxes[2] = {{0.0f, 10.0f, 0}, {10.0f, 20.0f, 7}};
+    static const uint32_t s_starts[12] = {0, 1, 3, 4, 5, 6, 7, 12, 13, 14, 15, 16};
+    static muiAccessCluster s_clusters[11];
+    for (uint32_t i = 0; i < 11; i++)
+    {
+        float x = 5.0f * (float)(i < 7 ? i : i - 7);
+        // The line break has no cluster.
+        s_clusters[i] = (muiAccessCluster){s_starts[i], i == 6 ? 11 : s_starts[i + 1], x, x + 5.0f};
+    }
+    input->marks.lineBoxes = s_boxes;
+    input->marks.clusters = s_clusters;
+    input->marks.clusterCount = 11;
+    UITextRange* across = [field textRangeFromPosition:At(field, 4) toPosition:At(field, 10)];
+    NSArray* parts = nil;
+    CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
+              Same([field firstRectForRange:across], CGRectMake(40, 160, 15, 10)) &&
+              Same([field caretRectForPosition:At(field, 2)], CGRectMake(30, 160, 0, 10)) &&
+              Same([field caretRectForPosition:At(field, 13)], CGRectMake(40, 170, 0, 10)),
+          "a range's first line, carets before a character and at the end, in the view");
+    parts = [field selectionRectsForRange:across];
+    CHECK([parts count] == 2 && Same([parts[0] rect], CGRectMake(40, 160, 15, 10)) &&
+              [parts[0] containsStart] && ![parts[0] containsEnd] &&
+              Same([parts[1] rect], CGRectMake(20, 170, 5, 10)) && [parts[1] containsEnd],
+          "a selection's rectangles, a line each");
+    CGPoint point = CGPointMake(32.5, 175.0);
+    UITextRange* first = [field textRangeFromPosition:At(field, 0) toPosition:At(field, 5)];
+    CHECK(IndexOf(field, [field closestPositionToPoint:point]) == 11 &&
+              [TextOf(field, [field characterRangeAtPoint:point]) isEqualToString:@"x"] &&
+              IndexOf(field, [field closestPositionToPoint:point withinRange:first]) == 5,
+          "the character at a point, kept within a range");
+}
+
 // The heading 7 made a text input and back: its element remade each
 // way, the layout told.
 static void TestText(muiUikitAdapter* adapter, id root, const Built* built)
@@ -569,6 +608,8 @@ static void TestText(muiUikitAdapter* adapter, id root, const Built* built)
     CHECK(Send(adapter, (const muiAccessNode*[]){&input}, 1, built->children, 0) &&
               PostedAre(@"") && [delegate->told isEqualToString:@"selection will; selection did; "],
           "a selection told to the input delegate");
+    TestTextPlaces(adapter, field, &input, built);
+    CHECK(PostedAre(@""), "where the text is: nothing to tell");
     [delegate->told release];
     [delegate release];
     CHECK(Send(adapter, (const muiAccessNode*[]){&built->nodes[7]}, 1, built->children, 0) &&

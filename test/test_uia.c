@@ -10,7 +10,8 @@
 // - the focus, and focusing asked of the host;
 // - patterns: Invoke, Toggle, RangeValue, ExpandCollapse, Scroll, Value
 //   and SelectionItem, read and turned into the host's actions; Text's
-//   ranges read, moved by unit and selected;
+//   ranges read, moved by unit and selected, on the screen as lines,
+//   and the character at a point;
 // - events: the focus moving, and a checkbox's state changing;
 // - a node removed answering UIA_E_ELEMENTNOTAVAILABLE.
 
@@ -427,8 +428,8 @@ static void List(Built* built, muiAccessNode* parent, const uint64_t* ids, uint3
 
 // The window 1: a button 2; a generic 3 around a label 4; a heading 5 of
 // level 2; a navigation landmark 6; a text input 7, focused, holding
-// "Ada"; a checked checkbox 8; a slider 9 at 30 of 0 to 100; a tree item
-// 10, collapsed; a list 11 scrolled 50 of 200 with a selected item 12.
+// "Ada Lovelace", its characters 10 wide; a checked checkbox 8; a slider 9 at 30 of 0 to 100; a
+// tree item 10, collapsed; a list 11 scrolled 50 of 200 with a selected item 12.
 static muiAccessUpdate Build(Built* built)
 {
     *built = (Built){0};
@@ -452,6 +453,17 @@ static muiAccessUpdate Build(Built* built)
                                         .lineCount = 1,
                                         .words = s_words,
                                         .wordCount = 2};
+    // Its characters 10 wide from 2, its line from 2 to 22 down.
+    static const muiAccessLineBox s_box[1] = {{2.0f, 22.0f, 0}};
+    static muiAccessCluster s_clusters[12];
+    for (uint32_t i = 0; i < 12; i++)
+    {
+        s_clusters[i] =
+            (muiAccessCluster){i, i + 1, 2.0f + 10.0f * (float)i, 12.0f + 10.0f * (float)i};
+    }
+    input->marks.lineBoxes = s_box;
+    input->marks.clusters = s_clusters;
+    input->marks.clusterCount = 12;
     input->actions = 1u << mui_actionSetSelection | 1u << mui_actionReplaceText;
     muiAccessNode* check = Add(built, 8, mui_roleCheckBox, "Agree", 220, 10, 100, 20);
     check->flags = mui_accessCheckable | mui_accessChecked;
@@ -703,6 +715,48 @@ static bool RangeReads(IUIAutomationTextRange* range, const WCHAR* expected)
 
 // The text input's Text pattern: the document, the caret's word, moves
 // by unit, a selection asked of the host.
+static bool Near(double a, double b)
+{
+    return a > b - 0.01 && a < b + 0.01;
+}
+
+// The document's rectangle on the screen, a line's at the scale; the
+// character at a point.
+static void CheckTextPlaces(IUIAutomationTextPattern2* text, IUIAutomationTextRange* document)
+{
+    POINT origin = {0, 0};
+    (void)ClientToScreen(s_program.window, &origin);
+    SAFEARRAY* rects = NULL;
+    double* values = NULL;
+    LONG last = -1;
+    bool placed = document != NULL &&
+                  SUCCEEDED(IUIAutomationTextRange_GetBoundingRectangles(document, &rects)) &&
+                  rects != NULL && SUCCEEDED(SafeArrayGetUBound(rects, 1, &last)) && last == 3 &&
+                  SUCCEEDED(SafeArrayAccessData(rects, (void**)&values));
+    CHECK(placed && Near(values[0], origin.x + 18.0) && Near(values[1], origin.y + 228.0) &&
+              Near(values[2], 180.0) && Near(values[3], 30.0),
+          "the document's line on the screen");
+    if (values != NULL)
+    {
+        (void)SafeArrayUnaccessData(rects);
+    }
+    if (rects != NULL)
+    {
+        (void)SafeArrayDestroy(rects);
+    }
+    IUIAutomationTextRange* at = NULL;
+    POINT point = {origin.x + 100, origin.y + 243};
+    CHECK(text != NULL && SUCCEEDED(IUIAutomationTextPattern2_RangeFromPoint(text, point, &at)) &&
+              at != NULL && RangeReads(at, L"") &&
+              SUCCEEDED(IUIAutomationTextRange_ExpandToEnclosingUnit(at, TextUnit_Character)) &&
+              RangeReads(at, L"o"),
+          "the character at a point");
+    if (at != NULL)
+    {
+        IUIAutomationTextRange_Release(at);
+    }
+}
+
 static void CheckText(IUIAutomationElement** children)
 {
     IUIAutomationTextPattern2* text = NULL;
@@ -732,6 +786,7 @@ static void CheckText(IUIAutomationElement** children)
               SUCCEEDED(IUIAutomationTextRange_Select(caret)) && Asked(mui_actionSetSelection, 7) &&
               s_program.asked.anchor == 4 && s_program.asked.focus == 6,
           "its end six characters back, selected through the host");
+    CheckTextPlaces(text, document);
     if (caret != NULL)
     {
         IUIAutomationTextRange_Release(caret);

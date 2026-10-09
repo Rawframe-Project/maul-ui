@@ -10,6 +10,7 @@
 #define MAUL_UI_SRC_ACCESS_TEXT_H
 
 #include "maul-ui/access.h"
+#include "maul-ui/access_tree.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -36,6 +37,31 @@ bool muiAccessGeometryFits(const muiAccessTextMarks* marks, const char* text, ui
 uint32_t muiAccessRangeRects(const muiAccessTextMarks* marks, uint32_t start, uint32_t end,
                              muiRect* rects, uint32_t capacity);
 uint32_t muiAccessOffsetAt(const muiAccessTextMarks* marks, float x, float y);
+
+// A byte range's rectangles where the root is placed, from the tree
+// (muiAccessTree_GetTextRects): a few held here, more from the heap,
+// let go with muiAccessFreeRects.
+typedef struct muiAccessRects
+{
+    const muiAllocator* allocator;
+    muiRect* rects;
+    uint32_t count;
+    uint32_t room;
+    muiRect small[8];
+} muiAccessRects;
+
+// Gets a range's rectangles: `mui_success` (perhaps none), `mui_empty`
+// when the node's text has no clusters or the node is not held,
+// `mui_errorCapacity` when memory runs out; none but on success.
+muiResult muiAccessGetRects(const muiAccessTree* tree, uint64_t id, uint32_t start, uint32_t end,
+                            const muiAllocator* allocator, muiAccessRects* out);
+void muiAccessFreeRects(muiAccessRects* rects);
+
+// The box around a range's rectangles where the root is placed: the
+// node's bounds when its text has no clusters and the range is not
+// empty; false for none.
+bool muiAccessTextBox(const muiAccessTree* tree, uint64_t id, uint32_t start, uint32_t end,
+                      const muiAllocator* allocator, muiRect* boxOut);
 
 // The units a value text is read and moved by.
 typedef enum muiAccessUnit
