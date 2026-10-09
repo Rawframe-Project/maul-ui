@@ -152,7 +152,10 @@ node width=200 height=60 direction=column align-items=start => 0 0 200 60
     node content=30x10 => 0 30 30 10
 
 # A wrapping row's max-content width is the larger of its single-line
-# sum, a basis capping an item that cannot grow, and its widest item alone.
+# sum, a basis capping an item that cannot grow, and its widest item alone:
+# its min-content contribution, a preferred width uncapped, content at
+# its narrowest (the row's max-content width is never under its
+# min-content one).
 fixture wrap_row_width_two_basis available=500x400
 node wrap=wrap => 0 0 150 0
   node width=150 basis=60 => 0 0 60 0
@@ -183,6 +186,36 @@ node wrap=wrap => 0 0 150 0
   node width=150 basis=60 => 0 0 60 0
   node width=40 => 60 0 40 0
   node width=30 basis=10 => 100 0 10 0
+
+fixture wrap_row_width_words_basis_under_narrowest available=500x400
+node wrap=wrap => 0 0 30 160
+  node basis=10 content=30x40*4 => 0 0 30 160
+
+fixture wrap_row_width_words_basis_over_narrowest available=500x400
+node wrap=wrap => 0 0 60 80
+  node basis=60 content=30x40*4 => 0 0 60 80
+
+fixture wrap_row_width_words_beside_width available=500x400
+node wrap=wrap => 0 0 100 80
+  node basis=60 content=30x40*4 => 0 0 60 80
+  node width=40 => 60 0 40 80
+
+fixture wrap_row_width_words_minimum available=500x400
+node wrap=wrap => 0 0 50 160
+  node basis=10 min-width=50 content=30x40*4 => 0 0 50 160
+
+fixture wrap_row_width_words_nested available=500x400
+node wrap=wrap => 0 0 30 160
+  node basis=10 => 0 0 30 160
+    node content=30x40*4 => 0 0 30 160
+
+fixture wrap_row_width_words_maximum available=500x400
+node wrap=wrap => 0 0 60 80
+  node basis=60 max-width=90 content=30x40*4 => 0 0 60 80
+
+fixture wrap_row_width_words_preferred available=500x400
+node wrap=wrap => 0 0 150 80
+  node width=150 basis=60 content=30x40*4 => 0 0 60 80
 
 fixture wrap_row_width_content_basis available=500x400
 node wrap=wrap => 0 0 140 10

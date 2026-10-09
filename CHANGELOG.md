@@ -10,6 +10,12 @@ format.
 
 ### Changed
 
+- A wrapping row sized by its content is at least as wide as each item's
+  min-content contribution: an item that cannot grow, alone on a line,
+  counts its content at its narrowest under a smaller basis, not its
+  content at its widest. As Chrome does; seven Chrome fixtures with
+  wrapping content hold the cases.
+
 - A flex item's base from its content is no longer clamped by its own
   minimum or maximum (Flexbox 9.2.3): an item with a minimum width and a
   grow factor took less of the free space than Chrome gives it. And an

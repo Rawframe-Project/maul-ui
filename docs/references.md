@@ -8,11 +8,12 @@ engine's behaviour, not its source.
 ## Layout and style
 
 - **Flexbox:** W3C, "CSS Flexible Box Layout Module Level 1", section 9
-  (the layout algorithm). `src/flex.c`, `src/flex_resolve.c`.
+  (the layout algorithm). `src/flex.c`, `src/flex_item.c`,
+  `src/flex_resolve.c`.
 - **Alignment:** W3C, "CSS Box Alignment Module Level 3".
   `src/flex_resolve.c`.
 - **Aspect ratios:** W3C, "CSS Box Sizing Module Level 4", the
-  ratio-dependent minimum. `src/flex.c`.
+  ratio-dependent minimum. `src/flex_item.c`.
 - **Cached sizes:** the rules by which Yoga's measure cache answers a
   new constraint with an earlier size. `src/solve.c`.
 
