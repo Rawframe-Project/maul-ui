@@ -192,8 +192,16 @@ static float Offset(const muiLayoutStyle* container, const muiLayoutStyle* child
         {
             // Vertically its own align-self places it in the space the
             // insets leave; horizontally it starts at its inset.
+            // Stretched by its own align-self, its height automatic, it
+            // fills the space, or at its smallest overflows it and start's
+            // overflow rule places it; automatic alignment starts it at
+            // its inset (both as Chrome).
+            bool stretched = child->item.alignSelf == mui_alignStretch &&
+                             child->sizing.height.kind == mui_dimensionAuto &&
+                             child->sizing.aspectRatio <= 0.0f;
+            muiAlign align = stretched ? mui_alignStart : child->item.alignSelf;
             return span->paddingStart + start +
-                   AlignBetweenInsets(child->item.alignSelf, span->paddingSize, insets,
+                   AlignBetweenInsets(align, span->paddingSize, insets,
                                       size + muiEdgeSum(&margins, false));
         }
         return span->paddingStart + insets->start + start;
@@ -233,15 +241,17 @@ static bool RatioTakesHeight(const muiLayoutStyle* style, const muiEdges* paddin
     }
     if (*fixedWidth && !across.definite)
     {
-        float minimum = fmaxf(down.minimum, muiBoxSum(padding, style, false));
-        *width = fminf(fmaxf(*width, minimum * ratio), down.maximum * ratio);
+        float box = muiBoxSum(padding, style, false);
+        *width = fminf(fmaxf(*width, fmaxf(down.minimum, box) * ratio),
+                       fmaxf(down.maximum, box) * ratio);
     }
     if (!fixedHeight || down.definite)
     {
         return false;
     }
-    float minimum = fmaxf(across.minimum, muiBoxSum(padding, style, true));
-    *height = fminf(fmaxf(*height, minimum / ratio), across.maximum / ratio);
+    float box = muiBoxSum(padding, style, true);
+    *height = fminf(fmaxf(*height, fmaxf(across.minimum, box) / ratio),
+                    fmaxf(across.maximum, box) / ratio);
     return *fixedWidth;
 }
 

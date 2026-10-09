@@ -10,6 +10,12 @@ format.
 
 ### Changed
 
+- A maximum carried through an aspect ratio is no lower than the box's
+  padding and border; and an absolute box stretched by its own
+  align-self over insets that leave too little overflows as start does,
+  kept within its container's padding box. As Chrome does; ten Chrome
+  fixtures hold the cases.
+
 - In a row, a ratio item's content size suggestion is capped by its
   cross maximum through the ratio while its cross size is not definite,
   and in rows and columns the cap is no lower than its cross padding

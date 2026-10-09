@@ -304,3 +304,50 @@ node width=30 dir=rtl => 0 0 30 0
 fixture abs_auto_margin_overflow_fits available=500x400
 node width=100 => 0 0 100 0
   node position=absolute width=20 start=10 end=10 margin=auto,0,0,0 => 70 0 20 0
+
+# An absolute box's maximum through its ratio is no lower than its
+# padding and border.
+fixture abs_ratio_maximum_floored_by_box available=500x400
+node => 0 0 0 0
+  node => 0 0 0 0
+    node => 0 0 0 0
+      node max-height=20 position=absolute aspect=2 border=0,3,7,7 padding=10 => 0 0 68 34
+
+# Stretched by its own align-self over insets that leave too little, an
+# absolute box overflows as start does; automatic alignment starts it at
+# its inset.
+fixture abs_stretch_self_overflows_as_start available=500x400
+node => 0 0 0 0
+  node align-self=stretch position=absolute top=5 bottom=10 margin=5,5,5,0 => 5 5 0 0
+
+fixture abs_stretch_between_insets_s1 available=500x400
+node => 0 0 0 0
+  node position=absolute top=5 bottom=10 margin=0,0,5,0 => 0 10 0 0
+
+fixture abs_stretch_between_insets_s2 available=500x400
+node height=20 => 0 0 0 20
+  node position=absolute top=5 bottom=10 margin=0,0,8,0 => 0 13 0 0
+
+fixture abs_stretch_between_insets_s3 available=500x400
+node height=10 => 0 0 0 10
+  node position=absolute top=5 bottom=10 => 0 5 0 0
+
+fixture abs_stretch_between_insets_s4 available=500x400
+node height=10 => 0 0 0 10
+  node position=absolute top=8 bottom=8 margin=0,0,5,5 => 0 13 0 0
+
+fixture abs_stretch_between_insets_s5 available=500x400
+node height=10 => 0 0 0 10
+  node position=absolute top=8 bottom=8 margin=0,0,5,5 align-self=start => 0 5 0 0
+
+fixture abs_stretch_between_insets_s6 available=500x400
+node height=20 => 0 0 0 20
+  node position=absolute top=5 bottom=10 margin=0,0,0,8 => 0 5 0 0
+
+fixture abs_stretch_between_insets_s7 available=500x400
+node height=10 => 0 0 0 10
+  node position=absolute top=8 bottom=8 margin=0,0,5,5 align-self=end => 0 5 0 0
+
+fixture abs_stretch_between_insets_s8 available=500x400
+node height=10 => 0 0 0 10
+  node position=absolute top=8 bottom=8 margin=0,0,5,5 content=10x4 => 0 13 10 0
