@@ -600,13 +600,13 @@ static muiSizingInput FinalInput(const Frame* frame, uint32_t child)
     input.parentWidth = frame->row ? frame->innerMain : extentCross;
     input.parentHeight = frame->row ? extentCross : extentMain;
     // Its height is definite when stretched (once its line's size is,
-    // section 9.8) or given; in a column, after flexing, when the
-    // column's height or its own basis is definite. Otherwise it is its
-    // content's.
+    // section 9.8), given, or in a row from its aspect ratio; in a column,
+    // after flexing, when the column's height or its own basis is
+    // definite. Otherwise it is its content's.
     float base = 0.0f;
     if (frame->row)
     {
-        input.contentHeight = !IsStretched(frame, style) &&
+        input.contentHeight = !IsStretched(frame, style) && style->sizing.aspectRatio <= 0.0f &&
                               !muiResolveAxis(&style->sizing, false, frame->extentCross).definite;
     }
     else

@@ -10,6 +10,11 @@ format.
 
 ### Changed
 
+- A height an aspect ratio gives is definite, as in Chrome: percentages
+  below resolve against it for a flex item in a row, a root and an
+  absolute node, where they behaved as automatic. Four Chrome fixtures
+  hold the cases, and two more random layouts join the corpus.
+
 - A width given as a percentage that cannot resolve, on a box with an
   aspect ratio, keeps the content's min-content width as its automatic
   minimum where the ratio gives less, as in Chrome: an empty-looking

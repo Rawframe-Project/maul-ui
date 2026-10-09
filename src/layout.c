@@ -142,8 +142,10 @@ static muiSize SolveRoot(muiContext* context, const muiSolver* solver, uint32_t 
     muiTreeSweep(&context->tree, root, mui_stageLayout);
     muiRatioRootWidth(solver, root, &sizingInput);
     muiSize size = muiSolveNode(solver, root, &sizingInput, false);
-    // A height not given is the root's content's, as an automatic one.
-    sizingInput.contentHeight = sizingInput.height.mode != mui_measureExact;
+    // A height not given is the root's content's, as an automatic one,
+    // unless its aspect ratio gives it.
+    sizingInput.contentHeight = sizingInput.height.mode != mui_measureExact &&
+                                context->layout[root - 1].style.sizing.aspectRatio <= 0.0f;
     sizingInput.width = (muiMeasureAxis){size.width, mui_measureExact};
     sizingInput.height = (muiMeasureAxis){size.height, mui_measureExact};
     (void)muiSolveNode(solver, root, &sizingInput, true);

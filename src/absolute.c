@@ -220,8 +220,9 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
     layout->rect = (muiRect){x, y, width, height};
     input.width = muiExact(width);
     input.height = muiExact(height);
-    // A height neither given nor set by both insets is its content's.
-    input.contentHeight = !fixedHeight;
+    // A height neither given nor set by both insets is its content's,
+    // unless its aspect ratio gives it.
+    input.contentHeight = !fixedHeight && style->sizing.aspectRatio <= 0.0f;
     (void)solver->solve(solver, child, &input, true);
 }
 

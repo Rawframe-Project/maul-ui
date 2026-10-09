@@ -253,3 +253,24 @@ node => 0 0 80 53.328125
 fixture aspect_percent_width_resolves_in_row available=500x400
 node align-items=start => 0 0 30 10
   node width=50% height=10 aspect=1 content=30x5 => 0 0 15 10
+
+# A height from the aspect ratio is definite: percentages below resolve
+# against it, in a row, at the root and in an absolute box.
+fixture aspect_ratio_height_definite_in_row available=500x400
+node align-items=end => 0 0 20 20
+  node aspect=1 => 0 0 20 20
+    node width=20 height=25% => 0 0 20 5
+
+fixture aspect_ratio_height_definite_centred available=500x400
+node => 0 0 20 40
+  node align-self=center aspect=0.5 => 0 0 20 40
+    node height=100% padding=10 => 0 0 20 40
+
+fixture aspect_ratio_height_definite_root available=500x400
+node width=100 aspect=2 => 0 0 100 50
+  node width=20 height=50% => 0 0 20 25
+
+fixture aspect_ratio_height_definite_absolute available=500x400
+node width=300 height=300 => 0 0 300 300
+  node position=absolute start=0 top=0 width=100 aspect=2 => 0 0 100 50
+    node width=20 height=50% => 0 0 20 25
