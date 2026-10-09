@@ -49,7 +49,7 @@ extern "C"
 
     /// Pastes the clipboard's text into an editing block when an event
     /// answers a clipboard read with it (mwin_eventRequestCompleted, a
-    /// read done); other events pass.
+    /// read done, whose text no later read replaced); other events pass.
     ///
     /// @param glue        The glue.
     /// @param service     The service.
@@ -57,7 +57,8 @@ extern "C"
     /// @param event       The window's event.
     /// @param changedOut  Receives whether the text changed; may be NULL.
     /// @return `mui_success` for a paste, changed or not; `mui_empty` for
-    ///         another event; `mui_errorInvalid` for a NULL argument;
+    ///         another event or a read a later one replaced;
+    ///         `mui_errorInvalid` for a NULL argument;
     ///         `mui_errorCapacity` when memory for the text runs out; or
     ///         as muiTextBlock_Paste.
     /// @par Thread safety

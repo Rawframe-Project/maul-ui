@@ -92,6 +92,10 @@ format.
 
 ### Changed
 
+- The Maul Window glue builds on Maul Window 0.13.0 and the text
+  component on Maul Unicode 0.3.0, the release Window 0.13.0 builds on.
+  `muiWindowGlue_Paste` reads the text of the read its event answers,
+  and passes (`mui_empty`) a read whose text a later read replaced.
 - `muiAccessTextFunction`, and the text component's `muiAccessTextOf`,
   fill a `muiAccessContent` (the text, its selection, its lines, words
   and clusters) and are given the part of the node shown when lines,

@@ -1827,7 +1827,7 @@ Asks the window for its clipboard's text, for a paste muiTextEditEvent asked for
 ```c
 MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_Paste(muiWindowGlue* glue, muiTextService* service, muiTextBlockId blockId, const mwinEvent* event, bool* changedOut);
 ```
-Pastes the clipboard's text into an editing block when an event answers a clipboard read with it (mwin_eventRequestCompleted, a read done); other events pass.  @param glue        The glue. @param service     The service. @param blockId     The editing block. @param event       The window's event. @param changedOut  Receives whether the text changed; may be NULL. @return `mui_success` for a paste, changed or not; `mui_empty` for another event; `mui_errorInvalid` for a NULL argument; `mui_errorCapacity` when memory for the text runs out; or as muiTextBlock_Paste. @par Thread safety Main thread only, as Maul Window's calls.
+Pastes the clipboard's text into an editing block when an event answers a clipboard read with it (mwin_eventRequestCompleted, a read done, whose text no later read replaced); other events pass.  @param glue        The glue. @param service     The service. @param blockId     The editing block. @param event       The window's event. @param changedOut  Receives whether the text changed; may be NULL. @return `mui_success` for a paste, changed or not; `mui_empty` for another event or a read a later one replaced; `mui_errorInvalid` for a NULL argument; `mui_errorCapacity` when memory for the text runs out; or as muiTextBlock_Paste. @par Thread safety Main thread only, as Maul Window's calls.
 
 ### `composition.h`
 

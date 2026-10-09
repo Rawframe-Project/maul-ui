@@ -9,8 +9,9 @@
 // the composition; then the window's caret at a position of the text,
 // carried through the content box and the field's place. Then the block
 // edits: a preedit shown at its caret, at the end where the method hides
-// it, taken out by an empty one; a paste asked for, other events passing
-// the paste by, and a read answered with nothing pasting nothing.
+// it, taken out by an empty one; a paste asked for, other events and a
+// read Maul Window did not answer passing the paste by, and the read
+// answered the next frame pasting the text written.
 
 #include "test_harness.h"
 
@@ -50,6 +51,7 @@ typedef struct Test
     muiTextBlockId block;
     muiNodeId root;
     muiNodeId field;
+    mwinContext* windows;
     mwinWindowId window;
     muiWindowGlue* glue;
     // The glue's memory: the bytes live, counted.
@@ -216,6 +218,7 @@ static void Release(void* block, size_t size, size_t alignment, void* context)
 static mwinResult Init(mwinContext* windows, void* user)
 {
     Test* test = user;
+    test->windows = windows;
     mwinWindowDef window = mwinDefaultWindowDef();
     window.size = (mwinSize){640.0f, 480.0f};
     CHECK(mwinCreateWindow(windows, &window, &test->window, NULL) == mwin_success, "a window");
@@ -270,9 +273,9 @@ static void TestEditing(Test* test)
           "a refused read passes");
     event.data.completion.outcome = mwin_outcomeDone;
     CHECK(muiWindowGlue_Paste(test->glue, test->service, test->block, &event, &changed) ==
-                  mui_success &&
+                  mui_empty &&
               !changed && TextIs(test, "abc"),
-          "nothing read, nothing pasted");
+          "a read Maul Window did not answer passes");
     CHECK(muiWindowGlue_Paste(test->glue, NULL, test->block, &event, NULL) == mui_errorInvalid &&
               muiWindowGlue_Paste(test->glue, test->service, test->block, NULL, NULL) ==
                   mui_errorInvalid,
@@ -284,6 +287,24 @@ static void TestEditing(Test* test)
     CHECK(muiWindowGlue_RequestKeyboard(NULL, &test->host, test->field) == mui_errorInvalid &&
               muiWindowGlue_RequestKeyboard(test->glue, NULL, test->field) == mui_errorInvalid,
           "the keyboard asked for without a glue or a host");
+}
+
+// The read asked for the frame before, answered as the frame ended,
+// after the write asked before it: the text written pasted at the caret.
+static void TestPasted(Test* test)
+{
+    mwinEvent event;
+    int pasted = 0;
+    bool changed = false;
+    while (mwinNextEvent(test->windows, &event) == mwin_success)
+    {
+        bool now = false;
+        muiResult result =
+            muiWindowGlue_Paste(test->glue, test->service, test->block, &event, &now);
+        pasted += result == mui_success ? 1 : 0;
+        changed = changed || now;
+    }
+    CHECK(pasted == 1 && changed && TextIs(test, "abcabc"), "the clipboard's text pasted");
 }
 
 static mwinFrameResult Frame(mwinContext* windows, void* user)
@@ -303,6 +324,7 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
         TestEditing(test);
         return mwin_frameContinue;
     case 1:
+        TestPasted(test);
         CHECK(mwinTestGetTextInput(windows, test->window, &enabled, &caret) == mwin_success &&
                   enabled && caret.x == test->placed.x && caret.y == test->placed.y &&
                   caret.height == test->placed.height,

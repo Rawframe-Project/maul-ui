@@ -46,7 +46,7 @@ lists, layout fixtures) and rely on a static screen costing nothing.
   then allocates nothing more for frames of it (`test_frame_memory`).
 - **Platform dependencies:** the C library only, with `sqrt` from
   libm, for the core. The text component, on by default, builds
-  FreeType 2.14.3, HarfBuzz 14.5.1 and Maul Unicode 0.2.1 into the
+  FreeType 2.14.3, HarfBuzz 14.5.1 and Maul Unicode 0.3.0 into the
   library (record mui-0006). Accessibility adapters use their platform's
   accessibility API, each in its own optional target.
 - **No engine concept in the API:** no identifier of the public

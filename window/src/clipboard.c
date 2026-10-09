@@ -48,8 +48,15 @@ muiResult muiWindowGlue_Paste(muiWindowGlue* glue, muiTextService* service, muiT
     {
         return mui_empty;
     }
+    // A read whose text a later read replaced passes: the later one's
+    // answer brings the clipboard's text.
     size_t length = 0;
-    mwinResult status = mwinGetClipboardText(glue->windows, nullptr, 0, &length);
+    mwinResult status =
+        mwinGetClipboardText(glue->windows, completion->request, nullptr, 0, &length);
+    if (status == mwin_errorStale)
+    {
+        return mui_empty;
+    }
     if (length == 0)
     {
         return status == mwin_success ? mui_success : mui_errorInvalid;
@@ -61,7 +68,8 @@ muiResult muiWindowGlue_Paste(muiWindowGlue* glue, muiTextService* service, muiT
         return mui_errorCapacity;
     }
     muiResult result = mui_errorInvalid;
-    if (mwinGetClipboardText(glue->windows, text, size, &length) == mwin_success)
+    if (mwinGetClipboardText(glue->windows, completion->request, text, size, &length) ==
+        mwin_success)
     {
         result = muiTextBlock_Paste(service, blockId, text, length, changedOut);
     }
