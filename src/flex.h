@@ -19,4 +19,10 @@ muiSize muiLayoutFlex(const muiSolver* solver, uint32_t node, const muiSizingInp
 // from the top of its border box; NaN when it has no flow children.
 float muiFlexBaseline(const muiSolver* solver, uint32_t node, const muiSizingInput* input);
 
+// A container's content height under input when its height is to come
+// from its aspect ratio: a single-line row's stretched items will take
+// that height (Flexbox 9.8), so only its other items count.
+float muiFlexRatioContentHeight(const muiSolver* solver, uint32_t node,
+                                const muiSizingInput* input);
+
 #endif // MAUL_UI_SRC_FLEX_H

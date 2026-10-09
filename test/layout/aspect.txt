@@ -185,3 +185,51 @@ node width=300 => 0 0 300 50
   node align-self=start => 0 0 200 50
     node height=50 aspect=2 => 0 0 100 50
     node height=50 aspect=2 min-width=0 content=10x10 => 100 0 100 50
+
+# A height from the ratio is floored at the content's, but a row's
+# stretched items take that height (Flexbox 9.8) and so leave the floor;
+# items not stretched, a column's items and a leaf's content count.
+fixture aspect_height_floor_leaves_stretched_items available=500x400
+node align-items=start => 0 0 60 20
+  node aspect=2 => 0 0 20 10
+    node content=20x40 => 0 0 20 10
+  node aspect=2 width=40 => 20 0 40 20
+    node content=20x40 => 0 0 20 20
+
+fixture aspect_height_floor_stretched_in_row available=500x400
+node => 0 0 20 10
+  node => 0 0 20 10
+    node aspect=2 => 0 0 20 10
+      node content=20x40 => 0 0 20 10
+
+fixture aspect_height_floor_flexed_width available=500x400
+node width=300 align-items=start => 0 0 300 150
+  node aspect=2 grow=1 => 0 0 300 150
+    node content=20x200 => 0 0 20 150
+
+fixture aspect_height_floor_counts_unstretched available=500x400
+node align-items=start => 0 0 60 40
+  node aspect=2 align-items=start => 0 0 20 40
+    node content=20x40 => 0 0 20 40
+  node aspect=2 direction=column => 20 0 20 40
+    node content=20x40 => 0 0 20 40
+  node aspect=2 content=20x40 => 40 0 20 40
+
+fixture aspect_root_height_floor_leaves_stretched available=500x400
+node aspect=2 => 0 0 20 10
+  node content=20x40 => 0 0 20 10
+
+# A column measuring an item with a ratio counts its content in full:
+# its automatic minimum is its min-content height, whatever stretches.
+fixture aspect_column_item_counts_content available=500x400
+node width=200 direction=column align-items=start => 0 0 200 50
+  node aspect=2 => 0 0 80 40
+    node content=20x40 => 0 0 20 40
+  node aspect=2 => 0 40 20 10
+    node content=20x4 => 0 0 20 10
+
+fixture aspect_wrapping_column_item_keeps_ratio available=500x400
+node => 0 0 80 20
+  node height=20 => 0 0 80 20
+    node direction=column-reverse wrap=wrap-reverse => 0 0 80 20
+      node aspect=1 content=80x16 => 0 -60 80 80

@@ -42,6 +42,8 @@ typedef struct Frame
     bool wrapReverse;
     // The container's direction, which its children inherit.
     bool rtl;
+    // Its height is to come from its aspect ratio (muiFlexRatioContentHeight).
+    bool ratioHeight;
     uint32_t count;
     uint32_t lineCount;
     float innerMain;
@@ -213,10 +215,11 @@ static float PrepareItem(const Frame* frame, uint32_t child)
     item->base = fmaxf(base, boxMain);
     item->innerBase = item->base - boxMain;
     float minimum = main.minimum;
-    if (main.minimumAuto && fromContent)
+    if (main.minimumAuto && fromContent && style->sizing.aspectRatio <= 0.0f)
     {
         // A base from content is never below its automatic minimum, which
-        // therefore only matters if the line shrinks.
+        // therefore only matters if the line shrinks; one through an
+        // aspect ratio may be.
         item->minimumPending = true;
         minimum = 0.0f;
     }
@@ -391,6 +394,11 @@ static float HypotheticalCross(const Frame* frame, uint32_t first, uint32_t coun
     {
         const muiLayoutStyle* style = &frame->solver->nodes[c - 1].style;
         muiFlexItemState* item = ItemOf(frame, c);
+        if (frame->ratioHeight && frame->row && !frame->multiLine && IsStretched(frame, style))
+        {
+            item->cross = 0.0f;
+            continue;
+        }
         muiAxisSizing cross = muiResolveAxis(&style->sizing, !frame->row, frame->extentCross);
         muiMeasureAxis constraint = CrossConstraint(frame, style, &cross, false);
         muiSizingInput input = ChildInput(frame, muiExact(item->target), constraint);
@@ -772,7 +780,7 @@ static muiMeasureAxis FitMain(const muiSolver* solver, uint32_t node, const muiS
 // baseline, finds its first baseline instead. The one caller of the
 // steps, so that they inline into it.
 static muiSize Flex(const muiSolver* solver, uint32_t node, const muiSizingInput* input,
-                    bool perform, float* baseline)
+                    bool perform, float* baseline, bool ratioHeight)
 {
     const muiLayoutStyle* style = &solver->nodes[node - 1].style;
     bool row = style->container.direction == mui_flexRow ||
@@ -786,6 +794,7 @@ static muiSize Flex(const muiSolver* solver, uint32_t node, const muiSizingInput
         *main = row ? FitMain(solver, node, input) : (muiMeasureAxis){0.0f, mui_measureMaxContent};
     }
     Frame frame = Setup(solver, node, &fitted);
+    frame.ratioHeight = ratioHeight;
     SizeMain(&frame);
     SizeCross(&frame);
     if (baseline != nullptr)
@@ -804,12 +813,17 @@ static muiSize Flex(const muiSolver* solver, uint32_t node, const muiSizingInput
 muiSize muiLayoutFlex(const muiSolver* solver, uint32_t node, const muiSizingInput* input,
                       bool perform)
 {
-    return Flex(solver, node, input, perform, nullptr);
+    return Flex(solver, node, input, perform, nullptr, false);
 }
 
 float muiFlexBaseline(const muiSolver* solver, uint32_t node, const muiSizingInput* input)
 {
     float baseline = NAN;
-    (void)Flex(solver, node, input, false, &baseline);
+    (void)Flex(solver, node, input, false, &baseline, false);
     return baseline;
+}
+
+float muiFlexRatioContentHeight(const muiSolver* solver, uint32_t node, const muiSizingInput* input)
+{
+    return Flex(solver, node, input, false, nullptr, true).height;
 }

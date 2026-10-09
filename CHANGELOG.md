@@ -10,6 +10,15 @@ format.
 
 ### Changed
 
+- A height from an aspect ratio is floored at the content's height as
+  Chrome does: a row's stretched items take that height (Flexbox 9.8),
+  so they no longer raise it; a 2:1 row 20 wide holding content 40 high
+  is 20 by 10, not 20 by 40. Items not stretched, a column's items and a
+  leaf's content still count, and a column measuring an item with a
+  ratio counts its content in full. An item with a ratio takes its
+  automatic minimum at once, as a base through the ratio may fall below
+  it. Seven Chrome fixtures hold the cases.
+
 - A wrapping column's min-content height is its max-content height, as
   for any height in CSS, rather than its tallest item: its automatic
   minimum no longer lets a column of content height shrink it into more

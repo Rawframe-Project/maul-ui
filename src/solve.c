@@ -273,6 +273,19 @@ static float ContentSize(const muiSolver* solver, uint32_t node, const muiSizing
     return horizontal ? size.width : size.height;
 }
 
+// The node's min-content height at the width input gives, its height to
+// come from its aspect ratio.
+static float RatioContentHeight(const muiSolver* solver, uint32_t node, const muiSizingInput* input)
+{
+    if (muiTreeAt(solver->tree, node)->links.firstChild == 0)
+    {
+        return ContentSize(solver, node, input, false);
+    }
+    muiSizingInput probe = *input;
+    probe.height = (muiMeasureAxis){0.0f, mui_measureMinContent};
+    return muiFlexRatioContentHeight(solver, node, &probe);
+}
+
 // The size the aspect ratio gives an axis from the other one's, at least
 // the content's min-content size when the axis's minimum is automatic (CSS
 // Sizing 4) and its size automatic: a percentage that cannot resolve
@@ -287,7 +300,12 @@ static muiMeasureAxis RatioAxis(const muiSolver* solver, uint32_t node, const mu
     muiDimension own = horizontal ? style->sizing.width : style->sizing.height;
     if (axis.minimumAuto && own.kind == mui_dimensionAuto)
     {
-        size = fmaxf(size, ContentSize(solver, node, input, horizontal));
+        // A row's stretched items take a height from the ratio, so they
+        // leave its floor; asked its min-content height, as a column
+        // measures its items, the node counts its content in full.
+        bool full = horizontal || input->height.mode == mui_measureMinContent;
+        size = fmaxf(size, full ? ContentSize(solver, node, input, horizontal)
+                                : RatioContentHeight(solver, node, input));
     }
     return muiExact(muiClampSize(size, axis.minimum, axis.maximum,
                                  muiBoxSum(&solver->paddings[node - 1], style, horizontal)));
