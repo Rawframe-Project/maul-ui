@@ -458,6 +458,29 @@ static void TestScaledChildKeepsItsRootsHeight(void)
     muiDestroyContext(context);
 }
 
+// Text held to a maximum width narrower than its line is one line long
+// at max-content, clamped to that width, and wraps at it when laid out
+// there: two lines, and its row as tall.
+static void TestLimitedTextWrapsAtItsLimit(void)
+{
+    muiContext* context = MakeContext();
+    muiLayoutStyle row = muiDefaultLayoutStyle();
+    row.container.alignItems = mui_alignStart;
+    muiNodeId root = MakeNode(context, &row);
+    muiNodeId text = MakeText(context, root, TextKey(100, 10));
+    muiLayoutStyle limited = muiDefaultLayoutStyle();
+    limited.content = mui_contentHost;
+    limited.sizing.minWidth = Length(0.0f);
+    limited.sizing.maxWidth = Length(50.0f);
+    CHECK(muiNode_SetLayoutStyle(context, text, &limited) == mui_success, "limited");
+    muiLayoutInput input = {400.0f, 300.0f, MeasureText, NULL, 0, NULL, {0, 0, 0, 0}};
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    muiRect rect = muiNode_GetRect(context, text);
+    CHECK(rect.width == 50.0f && rect.height == 20.0f, "two lines at its limit");
+    CHECK(muiNode_GetRect(context, root).height == 20.0f, "the row as tall");
+    muiDestroyContext(context);
+}
+
 static void TestDirectionChangeReachesInheritingDescendants(void)
 {
     muiContext* context = MakeContext();
@@ -610,6 +633,7 @@ int main(void)
     TestTextFollowsTheSpaceBothWays();
     TestScaledChildWrapsInItsBox();
     TestScaledChildKeepsItsRootsHeight();
+    TestLimitedTextWrapsAtItsLimit();
     TestDirectionChangeReachesInheritingDescendants();
     TestSafeArea();
     TestSafeAreaSizeFollowsDirection();

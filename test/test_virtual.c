@@ -8,6 +8,8 @@
 #include "test_harness.h"
 
 #include "maul-ui/context.h"
+#include "maul-ui/exit.h"
+#include "maul-ui/interaction.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/scroll.h"
@@ -212,6 +214,42 @@ static void TestShrunk(void)
           "three measured at 20: shorter at once");
     Layout(context, scene.root);
     CHECK(ExtentOf(context, scene.list, false) == 140.0f, "and after");
+    muiDestroyContext(context);
+}
+
+// A list's extent is its items' length, not where its bound nodes were
+// placed before: one bound to the last of ten items and popped by its
+// exit, which keeps the rectangle it had through layout, then rebound
+// after the list is cut to three, leaves the extent at the viewport,
+// layout after layout.
+static void TestRebound(void)
+{
+    Scene scene;
+    muiVirtualList list = ListOf(10, 20.0f, true, 0.0f, 0.0f);
+    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    muiContext* context = scene.context;
+    muiNodeId item[1];
+    Realize(&scene, 9, 10, -1.0f, 20.0f, item);
+    Layout(context, scene.root);
+    CHECK(muiNode_GetRect(context, item[0]).y == 180.0f &&
+              ExtentOf(context, scene.list, false) == 200.0f,
+          "the last of ten");
+    muiInteractionStyle pop = muiDefaultInteractionStyle();
+    pop.exitLayout = mui_exitPop;
+    CHECK(muiNode_SetInteractionValues(context, item[0], &pop,
+                                       MUI_PROPERTY_BIT(mui_propertyExitLayout)) == mui_success &&
+              muiNode_BeginExit(context, item[0]) == mui_success,
+          "popped");
+    list.count = 3;
+    CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success &&
+              muiNode_SetItem(context, item[0], 2) == mui_success,
+          "cut to three, rebound");
+    Layout(context, scene.root);
+    CHECK(muiNode_GetRect(context, item[0]).y == 40.0f &&
+              ExtentOf(context, scene.list, false) == 100.0f,
+          "the viewport");
+    Layout(context, scene.root);
+    CHECK(ExtentOf(context, scene.list, false) == 100.0f, "and after");
     muiDestroyContext(context);
 }
 
@@ -836,6 +874,7 @@ int main(void)
 {
     TestEstimated();
     TestShrunk();
+    TestRebound();
     TestFixed();
     TestGapAndOverscan();
     TestHorizontal();

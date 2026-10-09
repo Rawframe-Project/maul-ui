@@ -22,11 +22,10 @@ static bool IsSized(muiMeasureMode mode)
 // Whether a size computed under an old constraint answers a new one, by
 // the rules Yoga's cache uses: the same constraint; an exact size equal to
 // what an unshrunk sizing gave; a max-content size that fits the new
-// space; or a smaller space the old size still fits. When sizes below
-// resolve against the node (scaled), a content query leaves them
-// automatic where an exact or limited one does not: only the same kind
-// of constraint answers.
-static bool AxisAnswers(muiMeasureAxis next, muiMeasureAxis old, float result, bool scaled)
+// space; or a smaller space the old size still fits. The two that take a
+// content size for an exact or limited one hold only while it is the
+// content's own (loose).
+static bool AxisAnswers(muiMeasureAxis next, muiMeasureAxis old, float result, bool loose)
 {
     if (next.mode == old.mode && (!IsSized(next.mode) || next.size == old.size))
     {
@@ -34,11 +33,11 @@ static bool AxisAnswers(muiMeasureAxis next, muiMeasureAxis old, float result, b
     }
     if (next.mode == mui_measureExact)
     {
-        return !scaled && old.mode != mui_measureMinContent && next.size == result;
+        return loose && old.mode != mui_measureMinContent && next.size == result;
     }
     if (next.mode == mui_measureAtMost)
     {
-        bool fitsMaxContent = !scaled && old.mode == mui_measureMaxContent;
+        bool fitsMaxContent = loose && old.mode == mui_measureMaxContent;
         bool stricter = old.mode == mui_measureAtMost && next.size < old.size;
         return (fitsMaxContent || stricter) && result <= next.size;
     }
@@ -53,20 +52,50 @@ static bool ReadsParentExtent(const muiSizing* sizing)
            muiIsScaled(sizing->minHeight) || muiIsScaled(sizing->maxHeight);
 }
 
-static const muiCacheEntry* FindCached(const muiLayoutCache* cache, const muiSizingInput* input,
-                                       bool keyExtents, bool scaled)
+// Whether a node's own minimum or maximum limits it along an axis.
+static bool IsLimited(const muiSizing* sizing, bool horizontal)
 {
+    return horizontal ? sizing->minWidth.kind != mui_dimensionAuto ||
+                            sizing->maxWidth.kind != mui_dimensionAuto
+                      : sizing->minHeight.kind != mui_dimensionAuto ||
+                            sizing->maxHeight.kind != mui_dimensionAuto;
+}
+
+// On which axes a node's content size is the content's own (the cache's
+// loose bits): not where its minimum or maximum may have clamped it, as
+// text held to a maximum width is one line long at max-content and wraps
+// at that width, nor anywhere when sizes below resolve against the node,
+// which a content query leaves automatic.
+static unsigned LooseOf(const muiSolver* solver, uint32_t node)
+{
+    muiLayoutNode* layout = &solver->nodes[node - 1];
+    if (layout->cache.loose == 0)
+    {
+        bool scaled = muiScaledBelow(solver->tree, solver->nodes, node);
+        const muiSizing* sizing = &layout->style.sizing;
+        layout->cache.loose = (uint8_t)(4u | (!scaled && !IsLimited(sizing, true) ? 1u : 0u) |
+                                        (!scaled && !IsLimited(sizing, false) ? 2u : 0u));
+    }
+    return layout->cache.loose;
+}
+
+static const muiCacheEntry* FindCached(const muiSolver* solver, uint32_t node,
+                                       const muiSizingInput* input)
+{
+    const muiLayoutNode* layout = &solver->nodes[node - 1];
+    bool keyExtents = ReadsParentExtent(&layout->style.sizing);
+    unsigned loose = LooseOf(solver, node);
     for (int i = 0; i < MUI_CACHE_ENTRIES; i++)
     {
-        const muiCacheEntry* entry = &cache->entries[i];
+        const muiCacheEntry* entry = &layout->cache.entries[i];
         bool sameExtents = !keyExtents || (entry->input.parentWidth == input->parentWidth &&
                                            entry->input.parentHeight == input->parentHeight);
         // Direction is part of the key: a safe area on a start or end edge
         // below can change a size with it, though most direction moves
         // children alone.
         if (entry->valid && sameExtents && entry->input.rtl == input->rtl &&
-            AxisAnswers(input->width, entry->input.width, entry->size.width, scaled) &&
-            AxisAnswers(input->height, entry->input.height, entry->size.height, scaled))
+            AxisAnswers(input->width, entry->input.width, entry->size.width, (loose & 1u) != 0) &&
+            AxisAnswers(input->height, entry->input.height, entry->size.height, (loose & 2u) != 0))
         {
             return entry;
         }
@@ -174,6 +203,12 @@ static void MeasureExtent(const muiSolver* solver, uint32_t node, muiSize size)
          c = muiTreeAt(solver->tree, c)->links.next)
     {
         const muiLayoutNode* child = &solver->nodes[c - 1];
+        if (child->listed)
+        {
+            // Placed along its list after layout: the list's length below
+            // reaches past it, and across it the content box holds it.
+            continue;
+        }
         muiEdges margins = child->absolute ? (muiEdges){0} : muiMarginsOf(&child->style);
         reachX = fmaxf(reachX, child->rect.x + child->rect.width + margins.end);
         reachY = fmaxf(reachY, child->rect.y + child->rect.height + margins.bottom);
@@ -336,9 +371,7 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
         {
             return (muiSize){input->width.size, input->height.size};
         }
-        const muiCacheEntry* hit =
-            FindCached(cache, input, ReadsParentExtent(&solver->nodes[node - 1].style.sizing),
-                       muiScaledBelow(solver->tree, solver->nodes, node));
+        const muiCacheEntry* hit = FindCached(solver, node, input);
         if (hit != nullptr)
         {
             return hit->size;

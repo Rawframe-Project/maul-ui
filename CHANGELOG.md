@@ -703,6 +703,17 @@ format.
   automatic, so text half its width overflowed it, and which answer
   came first depended on the layouts before.
 
+- A virtual list's extent no longer counts where its bound items were
+  placed before: an item popped by its exit, which keeps its rectangle
+  through layout, held the extent at its old offset after the list was
+  shortened, until the list was laid out again.
+
+- Text held to a maximum width narrower than its line wraps at that
+  width and its node is as tall as the lines; before, the node could
+  take the height of the one line its max-content measurement gave, so
+  the text overflowed it. Any node with a minimum or maximum on an axis
+  is measured there again rather than answered from its content size.
+
 - A node popped out of a right-to-left container by its exit stays
   where it was; before, each layout of the container mirrored it to
   the other side and back.

@@ -50,6 +50,10 @@ typedef struct muiLayoutCache
     // (muiScaledBelow): 0 not yet known, 1 none does, 2 one does.
     uint8_t next : 2;
     uint8_t scaledBelow : 2;
+    // On which axes a content size is the content's own, so answers an
+    // exact or limited query (src/solve.c): 0 not yet known, else 4 with
+    // 1 for the width and 2 for the height.
+    uint8_t loose : 3;
     // Whether a miss replaced a valid entry since the cache was cleared:
     // a query its parent asked may be lost (src/layout_bound.c).
     bool replaced;
