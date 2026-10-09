@@ -10,6 +10,12 @@ format.
 
 ### Changed
 
+- In a row, a ratio item's content size suggestion is capped by its
+  cross maximum through the ratio while its cross size is not definite,
+  and in rows and columns the cap is no lower than its cross padding
+  and border through the ratio. As Chrome does; twelve Chrome fixtures
+  hold the cases.
+
 - In a column, a given basis replaces an item's height, so the height
   alone does not make it definite, and a ratio item's height from the
   width it fits is definite; an absolute child aligned by baseline sits

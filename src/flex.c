@@ -193,14 +193,16 @@ static float AutomaticMinimum(const Frame* frame, uint32_t child, const muiAxisS
     if (ratio > 0.0f)
     {
         // Floored by its cross minimum through the ratio (section 4.5),
-        // padding and border among it; in a column capped by its cross
-        // maximum so too, a row's left as it is, as in Chrome.
+        // padding and border among it, and capped by its cross maximum so
+        // too, no lower than that floor: in a row only while its cross
+        // size is not definite, as in Chrome.
         const muiFlexItemState* item = &frame->solver->nodes[child - 1].item;
         const muiLayoutStyle* style = &frame->solver->nodes[child - 1].style;
         const muiEdges padding = ChildPadding(frame, style);
         float floor = fmaxf(item->minCross, muiBoxSum(&padding, style, !frame->row));
         float scale = frame->row ? ratio : 1.0f / ratio;
-        float cap = frame->row ? INFINITY : item->maxCross * scale;
+        bool capped = !frame->row || cross.mode != mui_measureExact;
+        float cap = capped ? fmaxf(item->maxCross, floor) * scale : INFINITY;
         content = fminf(fmaxf(content, floor * scale), cap);
     }
     content = fminf(content, main->maximum);

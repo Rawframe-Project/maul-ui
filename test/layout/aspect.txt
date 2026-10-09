@@ -436,3 +436,55 @@ node => 0 0 40 100
     node aspect=1 => 0 0 40 0
       node height=50% => 0 0 0 0
     node width=20 height=20 => 0 0 20 20
+
+# In a row, a ratio item's content size suggestion is capped by its cross
+# maximum through the ratio while its cross size is not definite.
+fixture aspect_row_suggestion_cross_maximum available=500x400
+node => 0 0 14 24
+  node width=100% max-height=20 aspect=0.5 margin=2 padding=3,3,0,3 => 2 2 10 20
+    node margin=5 => 8 5 0 7
+
+fixture aspect_row_suggestion_cross_maximum_q1 available=500x400
+node width=14 => 0 0 14 24
+  node width=100% max-height=20 aspect=0.5 margin=2 => 2 2 10 20
+
+fixture aspect_row_suggestion_cross_maximum_q2 available=500x400
+node width=14 => 0 0 14 24
+  node width=100% max-height=20 aspect=0.5 margin=2 padding=3,3,0,3 => 2 2 10 20
+    node margin=5 => 8 5 0 7
+
+fixture aspect_row_suggestion_cross_maximum_q3 available=500x400
+node width=30 => 0 0 30 10
+  node width=150 max-height=0 aspect=2 padding=3,3,7,3 content=20x10 => 0 0 30 10
+
+fixture aspect_row_suggestion_cross_maximum_q4 available=500x400
+node width=30 => 0 0 30 10
+  node width=150 max-height=10 aspect=2 content=60x10 => 0 0 30 10
+
+fixture aspect_row_suggestion_cross_maximum_q5 available=500x400
+node width=30 => 0 0 30 10
+  node width=150 max-height=10 aspect=2 padding=3,3,7,3 content=60x10 => 0 0 30 10
+
+fixture aspect_row_suggestion_cross_maximum_q6 available=500x400
+node width=30 => 0 0 30 10
+  node max-height=10 aspect=2 content=60x10 => 0 0 20 10
+
+fixture aspect_row_suggestion_cross_maximum_q7 available=500x400
+node width=30 => 0 0 30 10
+  node width=100% max-height=10 aspect=2 content=60x10 => 0 0 30 10
+
+fixture aspect_row_suggestion_cross_maximum_q8 available=500x400
+node width=30 => 0 0 30 10
+  node width=150 max-height=5 aspect=2 padding=3,3,7,3 content=60x10 => 0 0 30 10
+
+fixture aspect_row_suggestion_cross_maximum_q9 available=500x400
+node width=30 => 0 0 30 14
+  node width=150 max-height=10 aspect=2 content=60x10 margin=2 => 2 2 26 10
+
+fixture aspect_row_suggestion_cross_maximum_q10 available=500x400
+node width=30 => 0 0 30 10
+  node width=150 height=40 max-height=10 aspect=2 content=60x10 => 0 0 60 10
+
+fixture aspect_row_suggestion_cross_maximum_q11 available=500x400
+node width=30 align-items=start => 0 0 30 10
+  node width=150 max-height=10 aspect=2 content=60x10 => 0 0 30 10
