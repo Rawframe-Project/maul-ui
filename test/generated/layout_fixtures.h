@@ -1621,6 +1621,17 @@ static const LayoutFixtureNode s_aspect_row_suggestion_cross_maximum_q11[] = {
      {60.0f, 10.0f}, {0.0f, 0.0f, 30.0f, 10.0f}},
 };
 
+static const LayoutFixtureNode s_aspect_column_minimum_content_width[] = {
+    {0, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.1f, 0.0f, 1}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, {0.0f, 0.0f, 80.0f, 40.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, {0.0f, 0.0f, 80.0f, 40.0f}},
+    {2, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {3, 0, 0, 4, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, {0.0f, 0.0f, 80.0f, 40.0f}},
+    {3, {{{0.0f, 0.0f, 0}, {0.0f, 80.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 1.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 1, 0, 0},
+     {50.0f, 40.0f}, {15.0f, -10.0f, 50.0f, 50.0f}},
+};
+
 static const LayoutFixtureNode s_baseline_basic[] = {
     {0, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 5, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
      {0.0f, 0.0f}, {0.0f, 0.0f, 60.0f, 33.0f}},
@@ -15502,6 +15513,7 @@ static const LayoutFixture s_layoutFixtures[] = {
     {"aspect_row_suggestion_cross_maximum_q9", 500.0f, 400.0f, s_aspect_row_suggestion_cross_maximum_q9, 2},
     {"aspect_row_suggestion_cross_maximum_q10", 500.0f, 400.0f, s_aspect_row_suggestion_cross_maximum_q10, 2},
     {"aspect_row_suggestion_cross_maximum_q11", 500.0f, 400.0f, s_aspect_row_suggestion_cross_maximum_q11, 2},
+    {"aspect_column_minimum_content_width", 500.0f, 400.0f, s_aspect_column_minimum_content_width, 4},
     {"baseline_basic", 500.0f, 400.0f, s_baseline_basic, 4},
     {"baseline_empty_items", 500.0f, 400.0f, s_baseline_empty_items, 4},
     {"baseline_container_item", 500.0f, 400.0f, s_baseline_container_item, 5},

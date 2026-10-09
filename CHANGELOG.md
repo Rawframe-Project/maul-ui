@@ -10,6 +10,11 @@ format.
 
 ### Changed
 
+- In a column, a ratio item's automatic minimum counts its content's
+  width through the ratio when its width is not exact, as Chrome does;
+  the solver asks a node for its content's answer with its aspect ratio
+  left out to find it. One Chrome fixture holds it.
+
 - A maximum carried through an aspect ratio is no lower than the box's
   padding and border; and an absolute box stretched by its own
   align-self over insets that leave too little overflows as start does,

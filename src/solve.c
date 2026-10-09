@@ -97,9 +97,11 @@ static const muiCacheEntry* FindCached(const muiSolver* solver, uint32_t node,
                                            entry->input.parentHeight == input->parentHeight);
         // Direction is part of the key: a safe area on a start or end edge
         // below can change a size with it, though most direction moves
-        // children alone; so is whether a height is the content's own.
+        // children alone; so are whether a height is the content's own
+        // and whether the answer leaves the ratio out.
         if (entry->valid && sameExtents && entry->input.rtl == input->rtl &&
             entry->input.contentHeight == input->contentHeight &&
+            entry->input.contentOnly == input->contentOnly &&
             AxisAnswers(input->width, entry->input.width, entry->size.width, (loose & 1u) != 0) &&
             AxisAnswers(input->height, entry->input.height, entry->size.height, (loose & 2u) != 0))
         {
@@ -468,7 +470,10 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
     // Its padding with the safe area, in its direction, which its own
     // sizing reads and later readers find beside it.
     solver->paddings[node - 1] = muiPaddingOf(style, &solver->safeArea, own.rtl);
-    ApplyAspectRatio(solver, node, &own);
+    if (!own.contentOnly)
+    {
+        ApplyAspectRatio(solver, node, &own);
+    }
     muiSize size = muiTreeAt(solver->tree, node)->links.firstChild == 0
                        ? SizeLeaf(solver, node, &own)
                        : SizeContainer(solver, node, &own, perform);

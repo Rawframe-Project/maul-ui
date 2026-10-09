@@ -32,6 +32,10 @@ typedef struct muiSizingInput
     // below do not resolve against it, nor do its stretched items count
     // as definite.
     bool contentHeight;
+    // Whether the answer is the content's alone, the node's aspect ratio
+    // left out: a column's automatic minimum for a ratio item reads its
+    // content's width (Flexbox 4.5, as Chrome).
+    bool contentOnly;
 } muiSizingInput;
 
 typedef struct muiCacheEntry

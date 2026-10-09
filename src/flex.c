@@ -63,6 +63,7 @@ static muiSizingInput ChildInput(const Frame* frame, muiMeasureAxis main, muiMea
     input.parentHeight = frame->row ? frame->extentCross : frame->extentMain;
     input.rtl = frame->rtl;
     input.contentHeight = false;
+    input.contentOnly = false;
     return input;
 }
 
@@ -189,6 +190,15 @@ static float AutomaticMinimum(const Frame* frame, uint32_t child, const muiAxisS
     if (ratio > 0.0f && cross.mode == mui_measureExact)
     {
         content = fmaxf(content, frame->row ? cross.size * ratio : cross.size / ratio);
+    }
+    else if (ratio > 0.0f && !frame->row)
+    {
+        // In a column, the width its content fits through the ratio.
+        muiSizingInput input =
+            ChildInput(frame, (muiMeasureAxis){0.0f, mui_measureMaxContent}, cross);
+        input.contentOnly = true;
+        content =
+            fmaxf(content, frame->solver->solve(frame->solver, child, &input, false).width / ratio);
     }
     if (ratio > 0.0f)
     {

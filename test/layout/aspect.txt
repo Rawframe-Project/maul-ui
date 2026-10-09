@@ -488,3 +488,11 @@ node width=30 => 0 0 30 10
 fixture aspect_row_suggestion_cross_maximum_q11 available=500x400
 node width=30 align-items=start => 0 0 30 10
   node width=150 max-height=10 aspect=2 content=60x10 => 0 0 30 10
+
+# In a column, a ratio item's automatic minimum counts its content's
+# width through the ratio.
+fixture aspect_column_minimum_content_width available=500x400
+node max-height=10% => 0 0 80 40
+  node => 0 0 80 40
+    node direction=column-reverse align-items=center => 0 0 80 40
+      node height=80 aspect=1 content=50x40 => 15 -10 50 50
