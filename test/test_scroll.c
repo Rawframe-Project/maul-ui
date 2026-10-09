@@ -174,6 +174,43 @@ static void TestExtent(void)
     muiDestroyContext(context);
 }
 
+// A scroll container whose children are all removed has the extent of
+// its padding box, not the one its children reached, and its offset is
+// brought back within it, as one made without children has.
+static void TestEmptied(void)
+{
+    muiContext* context = MakeContext(8);
+    muiNodeId root = Make(context, s_nullNode);
+    muiNodeId box = Sized(context, root, 100.0f, 80.0f);
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.scrollAxes = mui_scrollBoth;
+    style.padding = (muiEdges){10.0f, 10.0f, 10.0f, 10.0f};
+    SetLayout(context, box, &style, SCROLL | PADDING);
+    // Shrunk across the row to 80, 400 tall: it reaches 100 by 420.
+    muiNodeId child = Sized(context, box, 300.0f, 400.0f);
+    Layout(context, root);
+    muiSize extent = {0};
+    float x = -1.0f;
+    float y = -1.0f;
+    CHECK(muiNode_GetScrollExtent(context, box, &extent) == mui_success && extent.width == 100.0f &&
+              extent.height == 420.0f &&
+              muiNode_SetScroll(context, box, 0.0f, 340.0f) == mui_success,
+          "the child's reach, scrolled to its end");
+    CHECK(muiDestroyNode(context, child) == mui_success, "the child removed");
+    Layout(context, root);
+    CHECK(muiNode_GetScrollExtent(context, box, &extent) == mui_success && extent.width == 100.0f &&
+              extent.height == 80.0f && muiNode_GetScroll(context, box, &x, &y) == mui_success &&
+              x == 0.0f && y == 0.0f,
+          "emptied: the padding box, the offset back at 0");
+    muiNodeId fresh = Sized(context, root, 100.0f, 80.0f);
+    SetLayout(context, fresh, &style, SCROLL | PADDING);
+    Layout(context, root);
+    CHECK(muiNode_GetScrollExtent(context, fresh, &extent) == mui_success &&
+              extent.width == 100.0f && extent.height == 80.0f,
+          "made without children: the padding box too");
+    muiDestroyContext(context);
+}
+
 static void TestMinimum(void)
 {
     // A column of 200 holds a container whose content is 500 tall: as a
@@ -933,6 +970,7 @@ static void TestStyled(void)
 int main(void)
 {
     TestExtent();
+    TestEmptied();
     TestMinimum();
     TestRightToLeft();
     TestPainting();

@@ -9,10 +9,13 @@
 #include "test_harness.h"
 
 #include "maul-ui/context.h"
+#include "maul-ui/exit.h"
+#include "maul-ui/interaction.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/scroll.h"
 #include "maul-ui/style.h"
+#include "maul-ui/virtual.h"
 
 #include <math.h>
 #include <string.h>
@@ -33,12 +36,18 @@ typedef enum Kind
     kindStyle,
     kindContent,
     kindRemove,
-    kindSpace
+    kindSpace,
+    kindList,
+    kindBind,
+    kindExit
 } Kind;
 
 // One edit: a node made under parent (host content when value is not 0),
 // a property of a node set to what value picks, a host node's text made
-// value characters long, a node removed, or the space laid out in.
+// value characters long, a node removed, the space laid out in, a node
+// made a virtual list of what value picks (estimated when property is
+// not 0), a list's child bound to item value, which takes it out of the
+// flow, or a node's exit begun popped (value odd) or cancelled.
 typedef struct Edit
 {
     Kind kind;
@@ -55,6 +64,8 @@ typedef struct Tree
     bool live[MAX_NODES];
     bool host[MAX_NODES];
     uint32_t parent[MAX_NODES];
+    // A virtual list's item count; 0 for a node that is none.
+    uint32_t items[MAX_NODES];
     uint32_t count;
     float space;
 } Tree;
@@ -68,21 +79,28 @@ static muiSize Measure(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasur
     (void)user;
     (void)nodeId;
     (void)height;
+    // Words of WORD units but the last, which takes what is left, broken
+    // greedily: a line takes words while they fit, at least one.
     float wide = (float)s_characters[hostKey] * 7.0f;
-    float words = ceilf(wide / (float)WORD);
-    float across = wide;
-    if (width.mode == mui_measureMinContent)
+    float space = width.mode == mui_measureMinContent   ? 0.0f
+                  : width.mode == mui_measureMaxContent ? INFINITY
+                                                        : width.size;
+    float across = 0.0f;
+    float line = 0.0f;
+    float lines = 1.0f;
+    for (float left = wide; left > 0.0f; left -= (float)WORD)
     {
-        across = fminf(wide, (float)WORD);
+        float word = fminf(left, (float)WORD);
+        if (line > 0.0f && line + word > space)
+        {
+            across = fmaxf(across, line);
+            lines += 1.0f;
+            line = 0.0f;
+        }
+        line += word;
     }
-    else if (width.mode != mui_measureMaxContent)
-    {
-        // Whole words a line, at least one.
-        float perLine = fmaxf(floorf(width.size / (float)WORD), 1.0f);
-        across = fminf(wide, perLine * (float)WORD);
-    }
-    float lines = across > 0.0f ? ceilf(words * (float)WORD / fmaxf(across, (float)WORD)) : 0.0f;
-    return (muiSize){across, fmaxf(lines, 1.0f) * (float)LINE};
+    across = fmaxf(across, line);
+    return (muiSize){across, lines * (float)LINE};
 }
 
 // A baseline that moves with the text though its size may not.
@@ -247,6 +265,39 @@ static void Apply(Tree* tree, const Edit* edit)
     case kindSpace:
         tree->space = (float)edit->value;
         break;
+    case kindList:
+    {
+        muiVirtualList list = muiDefaultVirtualList();
+        list.count = 1 + edit->value % 12;
+        list.extent = (float)(16 + edit->value % 24);
+        list.fixed = edit->property == 0;
+        list.overscan = 0.0f;
+        CHECK(muiNode_SetVirtualList(tree->context, tree->nodes[edit->node], &list) == mui_success,
+              "a list");
+        tree->items[edit->node] = list.count;
+        break;
+    }
+    case kindBind:
+        CHECK(muiNode_SetItem(tree->context, tree->nodes[edit->node], edit->value) == mui_success,
+              "bound");
+        break;
+    case kindExit:
+        if (edit->value % 2 != 0)
+        {
+            muiInteractionStyle values = muiDefaultInteractionStyle();
+            values.exitLayout = mui_exitPop;
+            CHECK(muiNode_SetInteractionValues(tree->context, tree->nodes[edit->node], &values,
+                                               MUI_PROPERTY_BIT(mui_propertyExitLayout)) ==
+                          mui_success &&
+                      muiNode_BeginExit(tree->context, tree->nodes[edit->node]) == mui_success,
+                  "popped");
+        }
+        else
+        {
+            CHECK(muiNode_CancelExit(tree->context, tree->nodes[edit->node]) == mui_success,
+                  "back");
+        }
+        break;
     }
 }
 
@@ -292,6 +343,9 @@ static Tree MakeTree(void)
     Tree tree;
     memset(&tree, 0, sizeof tree);
     muiContextDef def = muiDefaultContextDef();
+    // Any node may become a list, or exit.
+    def.limits.virtualLists = MAX_NODES;
+    def.limits.exits = MAX_NODES;
     CHECK(muiCreateContext(&def, &tree.context) == mui_success, "a context");
     tree.space = 400.0f;
     return tree;
@@ -309,8 +363,9 @@ static bool IsLeaf(const Tree* tree, uint32_t node)
     return true;
 }
 
-// A random edit the tree can take.
-static Edit RandomEdit(const Tree* tree, uint32_t* state)
+// A random edit the tree can take; with history, estimated lists and
+// exits too, which a replay laid out once cannot match.
+static Edit RandomEdit(const Tree* tree, uint32_t* state, bool history)
 {
     uint32_t pick = Next(state) % 16;
     uint32_t node = Next(state) % tree->count;
@@ -339,6 +394,19 @@ static Edit RandomEdit(const Tree* tree, uint32_t* state)
     if (pick == 7)
     {
         return (Edit){kindSpace, 0, 0, 0, 120 + Next(state) % 400};
+    }
+    if (pick == 8 && !tree->host[node] && tree->items[node] == 0)
+    {
+        return (Edit){kindList, node, 0, history ? Next(state) % 2 : 0u, Next(state)};
+    }
+    uint32_t parent = tree->parent[node];
+    if (pick == 9 && node != 0 && tree->live[parent] && tree->items[parent] != 0)
+    {
+        return (Edit){kindBind, node, 0, 0, Next(state) % tree->items[parent]};
+    }
+    if (pick == 10 && history && node != 0)
+    {
+        return (Edit){kindExit, node, 0, 0, Next(state)};
     }
     return (Edit){kindStyle, node, 0, Next(state), Next(state)};
 }
@@ -377,7 +445,7 @@ static void TestBoundedMatchesWhole(void)
         uint32_t many = 1 + Next(&state) % 3;
         for (uint32_t k = 0; k < many; k++)
         {
-            Record(edits, &count, &edited, RandomEdit(&edited, &state));
+            Record(edits, &count, &edited, RandomEdit(&edited, &state, false));
         }
         LayOut(&edited);
         Tree whole = MakeTree();
@@ -394,6 +462,64 @@ static void TestBoundedMatchesWhole(void)
         muiDestroyContext(whole.context);
     }
     CHECK(same, "a bounded layout is the whole one");
+    muiDestroyContext(edited.context);
+}
+
+// Gives an edit to a tree and its twin.
+static void Both(Tree* tree, Tree* twin, Edit edit)
+{
+    if (edit.kind == kindContent)
+    {
+        s_characters[edit.node + 1] = edit.value;
+    }
+    Apply(tree, &edit);
+    Apply(twin, &edit);
+}
+
+// A tree edited at random beside a twin given the same edits at the same
+// steps, every node of it marked before each layout so that it is solved
+// from nothing: estimated lists, which keep what they measured, and
+// popped exits, which keep their last rectangle, have one history in
+// both.
+static void TestBoundedMatchesFresh(void)
+{
+    uint32_t state = 0x85EBCA6Bu;
+    Tree edited = MakeTree();
+    Tree twin = MakeTree();
+    Both(&edited, &twin, (Edit){kindCreate, 0, 0, 0, 0});
+    for (uint32_t i = 1; i < 24; i++)
+    {
+        Both(&edited, &twin, (Edit){kindCreate, 0, Next(&state) % i, 0, 0});
+    }
+    for (uint32_t i = 0; i < 24; i++)
+    {
+        Both(&edited, &twin, (Edit){kindCreate, 0, i, 0, 1});
+        s_characters[edited.count] = 1 + Next(&state) % 30;
+    }
+    bool same = true;
+    for (uint32_t step = 0; step < STEPS && same; step++)
+    {
+        uint32_t many = 1 + Next(&state) % 3;
+        for (uint32_t k = 0; k < many; k++)
+        {
+            Both(&edited, &twin, RandomEdit(&edited, &state, true));
+        }
+        LayOut(&edited);
+        for (uint32_t i = 0; i < twin.count; i++)
+        {
+            CHECK(!twin.live[i] ||
+                      muiNode_MarkContentChanged(twin.context, twin.nodes[i]) == mui_success,
+                  "marked");
+        }
+        LayOut(&twin);
+        same = Same(&edited, &twin);
+        if (!same)
+        {
+            printf("step %u\n", step);
+        }
+    }
+    CHECK(same, "a bounded layout is a fresh one, history and all");
+    muiDestroyContext(twin.context);
     muiDestroyContext(edited.context);
 }
 
@@ -563,6 +689,7 @@ int main(void)
     TestBaselinesAreRead();
     TestRightToLeftAlone();
     TestBoundedMatchesWhole();
+    TestBoundedMatchesFresh();
     TestOneChangeIsBounded();
     TestDeepChangeIsBounded();
     return s_failures == 0 ? 0 : 1;

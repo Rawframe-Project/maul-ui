@@ -561,17 +561,29 @@ static void PlaceList(muiContext* context, uint32_t slot, muiVirtualEntry* entry
     muiVirtualShift(context, slot, entry, shift);
     Position(context, slot, entry);
     SetLength(context, slot, entry);
+    // The length its items now need, longer or shorter, with what its
+    // children reached at its last layout; its offset brought within.
     const muiEdges* padding = &context->paddings[slot - 1];
+    const muiLayoutNode* layout = &context->layout[slot - 1];
     muiScrollState* scroll = &context->scrolls[slot - 1];
-    if (entry->list.axis == mui_listHorizontal)
+    bool horizontal = entry->list.axis == mui_listHorizontal;
+    if (horizontal)
     {
         scroll->extentWidth =
-            fmaxf(scroll->extentWidth, padding->start + scroll->listX + padding->end);
+            fmaxf(scroll->reachWidth, padding->start + scroll->listX + padding->end);
     }
     else
     {
         scroll->extentHeight =
-            fmaxf(scroll->extentHeight, padding->top + scroll->listY + padding->bottom);
+            fmaxf(scroll->reachHeight, padding->top + scroll->listY + padding->bottom);
+    }
+    muiSize size = {layout->rect.width, layout->rect.height};
+    float* offset = horizontal ? &scroll->x : &scroll->y;
+    float limit = muiScrollLimit(&layout->style, size, scroll, horizontal);
+    if (*offset > limit)
+    {
+        *offset = limit;
+        muiNoteScrolled(context, slot);
     }
 }
 

@@ -222,8 +222,15 @@ void muiPlaceAbsolute(const muiSolver* solver, uint32_t container, muiSize size,
     for (uint32_t c = muiTreeAt(solver->tree, container)->links.firstChild; c != 0;
          c = muiTreeAt(solver->tree, c)->links.next)
     {
-        if (solver->nodes[c - 1].absolute)
+        muiLayoutNode* layout = &solver->nodes[c - 1];
+        if (layout->absolute)
         {
+            if (layout->popped && rtl)
+            {
+                // Its last rectangle is where it was drawn; laid out from
+                // the start, as the container mirrors it back after this.
+                layout->rect.x = size.width - layout->rect.x - layout->rect.width;
+            }
             PlaceChild(solver, style, c, &spanX, &spanY, rtl);
         }
     }

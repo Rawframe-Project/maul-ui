@@ -386,6 +386,36 @@ static void TestPop(void)
     muiDestroyContext(context);
 }
 
+// A node popped out of a right-to-left row stays where it was, however
+// often the row is laid out again.
+static void TestPopRightToLeft(void)
+{
+    muiContextDef def = muiDefaultContextDef();
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    muiNodeId root = Sized(context, s_nullNode, 400.0f, 100.0f);
+    muiLayoutStyle rtl = muiDefaultLayoutStyle();
+    rtl.textDirection = mui_textRightToLeft;
+    CHECK(muiNode_SetLayoutValues(context, root, &rtl,
+                                  MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
+          "right to left");
+    muiNodeId a = Sized(context, root, 100.0f, 50.0f);
+    muiNodeId b = Sized(context, root, 100.0f, 50.0f);
+    Layout(context, root, 0);
+    CHECK(muiNode_GetRect(context, a).x == 300.0f && muiNode_GetRect(context, b).x == 200.0f,
+          "from the right");
+    SetExitLayout(context, b, mui_exitPop);
+    CHECK(muiNode_BeginExit(context, b) == mui_success, "popped");
+    for (int i = 0; i < 3; i++)
+    {
+        CHECK(muiNode_MarkContentChanged(context, root) == mui_success, "the row again");
+        Layout(context, root, 0);
+        CHECK(muiNode_GetRect(context, b).x == 200.0f && muiNode_GetRect(context, a).x == 300.0f,
+              "where it was, each time");
+    }
+    muiDestroyContext(context);
+}
+
 static void TestContract(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -432,6 +462,7 @@ int main(void)
     TestLayers();
     TestOtherTree();
     TestPop();
+    TestPopRightToLeft();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }

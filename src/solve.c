@@ -22,8 +22,11 @@ static bool IsSized(muiMeasureMode mode)
 // Whether a size computed under an old constraint answers a new one, by
 // the rules Yoga's cache uses: the same constraint; an exact size equal to
 // what an unshrunk sizing gave; a max-content size that fits the new
-// space; or a smaller space the old size still fits.
-static bool AxisAnswers(muiMeasureAxis next, muiMeasureAxis old, float result)
+// space; or a smaller space the old size still fits. When sizes below
+// resolve against the node (scaled), a content query leaves them
+// automatic where an exact or limited one does not: only the same kind
+// of constraint answers.
+static bool AxisAnswers(muiMeasureAxis next, muiMeasureAxis old, float result, bool scaled)
 {
     if (next.mode == old.mode && (!IsSized(next.mode) || next.size == old.size))
     {
@@ -31,32 +34,27 @@ static bool AxisAnswers(muiMeasureAxis next, muiMeasureAxis old, float result)
     }
     if (next.mode == mui_measureExact)
     {
-        return old.mode != mui_measureMinContent && next.size == result;
+        return !scaled && old.mode != mui_measureMinContent && next.size == result;
     }
     if (next.mode == mui_measureAtMost)
     {
-        bool fitsMaxContent = old.mode == mui_measureMaxContent;
+        bool fitsMaxContent = !scaled && old.mode == mui_measureMaxContent;
         bool stricter = old.mode == mui_measureAtMost && next.size < old.size;
         return (fitsMaxContent || stricter) && result <= next.size;
     }
     return false;
 }
 
-static bool IsScaled(muiDimension dimension)
-{
-    return dimension.kind == mui_dimensionValue && dimension.scale != 0.0f;
-}
-
 // Whether a node's own sizing reads its parent's extents: only its scaled
 // limits do, as the parent resolves the node's size itself.
 static bool ReadsParentExtent(const muiSizing* sizing)
 {
-    return IsScaled(sizing->minWidth) || IsScaled(sizing->maxWidth) ||
-           IsScaled(sizing->minHeight) || IsScaled(sizing->maxHeight);
+    return muiIsScaled(sizing->minWidth) || muiIsScaled(sizing->maxWidth) ||
+           muiIsScaled(sizing->minHeight) || muiIsScaled(sizing->maxHeight);
 }
 
 static const muiCacheEntry* FindCached(const muiLayoutCache* cache, const muiSizingInput* input,
-                                       bool keyExtents)
+                                       bool keyExtents, bool scaled)
 {
     for (int i = 0; i < MUI_CACHE_ENTRIES; i++)
     {
@@ -67,8 +65,8 @@ static const muiCacheEntry* FindCached(const muiLayoutCache* cache, const muiSiz
         // below can change a size with it, though most direction moves
         // children alone.
         if (entry->valid && sameExtents && entry->input.rtl == input->rtl &&
-            AxisAnswers(input->width, entry->input.width, entry->size.width) &&
-            AxisAnswers(input->height, entry->input.height, entry->size.height))
+            AxisAnswers(input->width, entry->input.width, entry->size.width, scaled) &&
+            AxisAnswers(input->height, entry->input.height, entry->size.height, scaled))
         {
             return entry;
         }
@@ -181,11 +179,12 @@ static void MeasureExtent(const muiSolver* solver, uint32_t node, muiSize size)
         reachY = fmaxf(reachY, child->rect.y + child->rect.height + margins.bottom);
     }
     muiScrollState* scroll = &solver->scrolls[node - 1];
+    scroll->reachWidth = reachX + padding->end - startX;
+    scroll->reachHeight = reachY + padding->bottom - startY;
     // A virtual list's items reach as far as they need, realized or not.
-    reachX = fmaxf(reachX, startX + padding->start + scroll->listX);
-    reachY = fmaxf(reachY, startY + padding->top + scroll->listY);
-    scroll->extentWidth = reachX + padding->end - startX;
-    scroll->extentHeight = reachY + padding->bottom - startY;
+    scroll->extentWidth = fmaxf(scroll->reachWidth, padding->start + scroll->listX + padding->end);
+    scroll->extentHeight =
+        fmaxf(scroll->reachHeight, padding->top + scroll->listY + padding->bottom);
     // At the size given here: its parent sets its rectangle after this.
     scroll->x = fminf(scroll->x, muiScrollLimit(style, size, scroll, true));
     scroll->y = fminf(scroll->y, muiScrollLimit(style, size, scroll, false));
@@ -338,7 +337,8 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
             return (muiSize){input->width.size, input->height.size};
         }
         const muiCacheEntry* hit =
-            FindCached(cache, input, ReadsParentExtent(&solver->nodes[node - 1].style.sizing));
+            FindCached(cache, input, ReadsParentExtent(&solver->nodes[node - 1].style.sizing),
+                       muiScaledBelow(solver->tree, solver->nodes, node));
         if (hit != nullptr)
         {
             return hit->size;
@@ -356,6 +356,13 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
                        : SizeContainer(solver, node, &own, perform);
     if (perform)
     {
+        // A scroll container without children still has an extent, its
+        // padding box with its list's reach, and its offsets within it.
+        if (muiTreeAt(solver->tree, node)->links.firstChild == 0 &&
+            style->scrollAxes != mui_scrollNone)
+        {
+            MeasureExtent(solver, node, size);
+        }
         cache->finalValid = true;
         cache->finalRtl = input->rtl;
         cache->finalSize = size;

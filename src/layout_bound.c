@@ -116,7 +116,10 @@ static bool Holds(const muiSolver* solver, const Checked* checked)
             return false;
         }
     }
-    return true;
+    // What its parent's cache knew of sizes resolved below it, if read.
+    return checked->old.scaledBelow == 0 ||
+           (checked->old.scaledBelow == 2) ==
+               muiScaledBelow(solver->tree, solver->nodes, checked->node);
 }
 
 // The deepest node not yet checked, or none.

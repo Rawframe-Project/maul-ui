@@ -396,6 +396,68 @@ static void TestTextFollowsTheSpaceBothWays(void)
     CheckTextFollowsSpace(60.0f, 100.0f);
 }
 
+// A box as wide as its content holding text half its width: the text
+// is as wide as it would be at its own size to give the box that width
+// (CSS's percentages in an intrinsic size), then half of it, wrapping
+// to two lines, and the box is as tall as they are, not as its
+// max-content height at the same width.
+static void TestScaledChildWrapsInItsBox(void)
+{
+    muiContext* context = MakeContext();
+    muiLayoutStyle row = muiDefaultLayoutStyle();
+    row.container.alignItems = mui_alignStart;
+    muiNodeId root = MakeNode(context, &row);
+    muiNodeId box = MakeNode(context, &row);
+    CHECK(muiNode_InsertChild(context, root, box, s_null) == mui_success, "box");
+    muiNodeId text = MakeText(context, box, TextKey(100, 10));
+    muiLayoutStyle half = muiDefaultLayoutStyle();
+    half.content = mui_contentHost;
+    half.sizing.minWidth = Length(0.0f);
+    half.sizing.width = (muiDimension){0.5f, 0.0f, mui_dimensionValue};
+    CHECK(muiNode_SetLayoutStyle(context, text, &half) == mui_success, "half");
+    muiLayoutInput input = {400.0f, 300.0f, MeasureText, NULL, 0, NULL, {0, 0, 0, 0}};
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    muiRect inner = muiNode_GetRect(context, text);
+    CHECK(muiNode_GetRect(context, box).width == 100.0f && inner.width == 50.0f &&
+              inner.height == 20.0f,
+          "its content's width; the text half of it, on two lines");
+    CHECK(muiNode_GetRect(context, box).height == 20.0f, "the box as tall as the text");
+    muiDestroyContext(context);
+}
+
+// A root as wide as its content holding a box a tenth of its width with
+// text in it: laid out in a limited space, the box is a tenth of the
+// root's width and its text wraps to its height. A change that leaves
+// the root's cache, as one in another text's wrapper, keeps that, not
+// the root's max-content size, where the tenth counted as automatic.
+static void TestScaledChildKeepsItsRootsHeight(void)
+{
+    muiContext* context = MakeContext();
+    muiLayoutStyle row = muiDefaultLayoutStyle();
+    row.container.alignItems = mui_alignStart;
+    muiNodeId root = MakeNode(context, &row);
+    muiLayoutStyle tenth = muiDefaultLayoutStyle();
+    tenth.container.alignItems = mui_alignStart;
+    tenth.sizing.width = (muiDimension){0.1f, 0.0f, mui_dimensionValue};
+    muiNodeId box = MakeNode(context, &tenth);
+    CHECK(muiNode_InsertChild(context, root, box, s_null) == mui_success, "box");
+    muiNodeId text = MakeText(context, box, TextKey(100, 10));
+    muiNodeId wrapper = MakeNode(context, &row);
+    CHECK(muiNode_InsertChild(context, root, wrapper, s_null) == mui_success, "wrapper");
+    muiNodeId other = MakeText(context, wrapper, TextKey(20, 10));
+    muiLayoutInput input = {400.0f, 300.0f, MeasureText, NULL, 0, NULL, {0, 0, 0, 0}};
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    muiRect first = muiNode_GetRect(context, root);
+    CHECK(first.width == 120.0f && muiNode_GetRect(context, box).width == 12.0f &&
+              muiNode_GetRect(context, text).height == 90.0f && first.height == 90.0f,
+          "a tenth of 120, the text on nine lines");
+    CHECK(muiNode_MarkContentChanged(context, other) == mui_success, "the other text");
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "again");
+    muiRect second = muiNode_GetRect(context, root);
+    CHECK(second.width == 120.0f && second.height == 90.0f, "the same root");
+    muiDestroyContext(context);
+}
+
 static void TestDirectionChangeReachesInheritingDescendants(void)
 {
     muiContext* context = MakeContext();
@@ -546,6 +608,8 @@ int main(void)
     TestScaledLimitFollowsTheParent();
     TestShrunkTextIsNotTakenFromItsMinContentSize();
     TestTextFollowsTheSpaceBothWays();
+    TestScaledChildWrapsInItsBox();
+    TestScaledChildKeepsItsRootsHeight();
     TestDirectionChangeReachesInheritingDescendants();
     TestSafeArea();
     TestSafeAreaSizeFollowsDirection();

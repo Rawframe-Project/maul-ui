@@ -323,7 +323,11 @@ extern "C"
     // muiComputeLayout, on the calling thread, and may not change the
     // context; a call that would is refused as misuse. It is never asked
     // with both axes exact, as the size is then decided: a host lays its
-    // content out for painting at the node's rectangle.
+    // content out for painting at the node's rectangle. Its answer is to
+    // depend on the request alone, and content that fits within a size is
+    // to measure the same within any smaller one it still fits, as text
+    // broken greedily into lines does: layout keeps answers and gives them
+    // again to such requests.
     typedef muiSize (*muiMeasureFunction)(void* user, muiNodeId nodeId, uint64_t hostKey,
                                           muiMeasureAxis width, muiMeasureAxis height);
 

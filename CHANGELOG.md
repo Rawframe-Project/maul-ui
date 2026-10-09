@@ -10,6 +10,11 @@ format.
 
 ### Changed
 
+- The measure function's contract is written out: its answer depends on
+  the request alone, and content that fits within a size measures the
+  same within any smaller size it still fits, as text broken greedily
+  into lines does. Layout's cache has always relied on it.
+
 - Every creation takes a def, as the family's API asks: `muiCreateStyle`,
   `muiCreateNodeType`, `muiCreateTheme`, `muiCreateToken` and
   `muiCreateTextBlock` take a `muiStyleDef`, `muiNodeTypeDef` (its
@@ -680,6 +685,27 @@ format.
   fonts are refused with the new `mui_errorFormat`.
 
 ### Fixed
+
+- A scroll container whose children are all removed has the extent of
+  its padding box, and its offsets are brought within it; before, it
+  kept the extent its children reached. One made without children has
+  that extent too, where it had none.
+
+- An estimated virtual list whose items are measured smaller than their
+  estimate has the shorter extent at once; before, the extent only grew
+  until the list was laid out again, and its offset could stay past
+  the end.
+
+- A container sized by its content whose children, or nodes below them,
+  take a percentage of their parent's size is as large as they are at
+  the size it gets; before, a size it was measured at could be taken
+  from its max-content answer, where the percentages counted as
+  automatic, so text half its width overflowed it, and which answer
+  came first depended on the layouts before.
+
+- A node popped out of a right-to-left container by its exit stays
+  where it was; before, each layout of the container mirrored it to
+  the other side and back.
 
 - Text that holds stray UTF-8 continuation bytes treats each as a
   character, the U+FFFD it is drawn as; text starting with one no

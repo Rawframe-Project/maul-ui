@@ -36,6 +36,7 @@ typedef struct muiCacheEntry
 
 enum
 {
+    // A power of two that fits the cache's next field.
     MUI_CACHE_ENTRIES = 4
 };
 
@@ -44,10 +45,13 @@ enum
 typedef struct muiLayoutCache
 {
     muiCacheEntry entries[MUI_CACHE_ENTRIES];
-    // The entry the next miss replaces, and whether a miss replaced a
-    // valid entry since the cache was cleared: a query its parent asked
-    // may be lost (src/layout_bound.c).
-    uint8_t next;
+    // The entry the next miss replaces, of MUI_CACHE_ENTRIES; whether a
+    // node below resolves a size against its parent's extents
+    // (muiScaledBelow): 0 not yet known, 1 none does, 2 one does.
+    uint8_t next : 2;
+    uint8_t scaledBelow : 2;
+    // Whether a miss replaced a valid entry since the cache was cleared:
+    // a query its parent asked may be lost (src/layout_bound.c).
     bool replaced;
     bool finalValid;
     bool finalRtl;
@@ -128,6 +132,37 @@ typedef struct muiLayoutNode
 // Nodes are whole cache lines, so that every node's rectangle and cache
 // sit on the same lines in each.
 static_assert(sizeof(muiLayoutNode) % 64 == 0, "a layout node is whole cache lines");
+
+// Whether a dimension scales its parent's extent.
+static inline bool muiIsScaled(muiDimension dimension)
+{
+    return dimension.kind == mui_dimensionValue && dimension.scale != 0.0f;
+}
+
+// Whether a node below node resolves a size against its parent's extents,
+// which a content query leaves indefinite and an exact or limited one
+// may give: then a content size answers content queries alone. Kept in
+// the cache and cleared with it, as any change below clears it.
+static inline bool muiScaledBelow(const muiTree* tree, muiLayoutNode* nodes, uint32_t node)
+{
+    muiLayoutCache* cache = &nodes[node - 1].cache;
+    if (cache->scaledBelow == 0)
+    {
+        bool scaled = false;
+        for (uint32_t c = muiTreeAt(tree, node)->links.firstChild; c != 0 && !scaled;
+             c = muiTreeAt(tree, c)->links.next)
+        {
+            const muiLayoutStyle* style = &nodes[c - 1].style;
+            const muiSizing* sizing = &style->sizing;
+            scaled = muiIsScaled(sizing->width) || muiIsScaled(sizing->height) ||
+                     muiIsScaled(sizing->minWidth) || muiIsScaled(sizing->maxWidth) ||
+                     muiIsScaled(sizing->minHeight) || muiIsScaled(sizing->maxHeight) ||
+                     muiIsScaled(style->item.basis) || muiScaledBelow(tree, nodes, c);
+        }
+        cache->scaledBelow = scaled ? 2 : 1;
+    }
+    return cache->scaledBelow == 2;
+}
 
 // A node's content box in its border box, as layout sized it: inside the
 // border and the padding it was laid out with, whose start is the right in

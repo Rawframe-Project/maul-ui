@@ -194,6 +194,27 @@ static void TestEstimated(void)
     muiDestroyContext(context);
 }
 
+// Items measured smaller than their estimate shorten the extent at the
+// layout that measures them, as larger ones lengthen it.
+static void TestShrunk(void)
+{
+    Scene scene;
+    muiVirtualList list = ListOf(5, 40.0f, false, 0.0f, 0.0f);
+    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    muiContext* context = scene.context;
+    Layout(context, scene.root);
+    CHECK(ExtentOf(context, scene.list, false) == 200.0f, "five estimated");
+    muiNodeId items[3];
+    Realize(&scene, 0, 3, -1.0f, 20.0f, items);
+    Layout(context, scene.root);
+    CHECK(muiNode_GetRect(context, items[2]).y == 40.0f &&
+              ExtentOf(context, scene.list, false) == 140.0f,
+          "three measured at 20: shorter at once");
+    Layout(context, scene.root);
+    CHECK(ExtentOf(context, scene.list, false) == 140.0f, "and after");
+    muiDestroyContext(context);
+}
+
 static void TestFixed(void)
 {
     Scene scene;
@@ -814,6 +835,7 @@ static void TestContract(void)
 int main(void)
 {
     TestEstimated();
+    TestShrunk();
     TestFixed();
     TestGapAndOverscan();
     TestHorizontal();
