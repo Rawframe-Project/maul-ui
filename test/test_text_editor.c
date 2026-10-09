@@ -561,7 +561,7 @@ static muiTextEditOutcome Key(Scene* scene, muiKeymap keymap, Clipboard* clipboa
     event.key = key != 0 ? key : MUI_KEY_NAMED | code;
     event.modifiers = modifiers;
     const muiTextEditInput input = {keymap, WriteClipboard, clipboard};
-    muiTextEditOutcome outcome = {true, true, true};
+    muiTextEditOutcome outcome = {true, true, true, true};
     CHECK(muiTextEditEvent(&scene->host, scene->node, &event, &input, &outcome) == mui_success,
           "an event");
     return outcome;
@@ -915,12 +915,13 @@ static void TestPassword(void)
     CHECK(muiTextEditPress(host, scene.node, 15.0f, 5.0f, 2, false) == mui_success &&
               Selects(&scene, 0, 7),
           "a double click, the whole password");
-    const char* text = NULL;
-    size_t length = 0;
-    CHECK(muiAccessTextOf(&scene.host, scene.node, muiTextBlock_GetKey(scene.block), &text,
-                          &length) &&
-              length == 15 && memcmp(text, "\xE2\x80\xA2", 3) == 0,
-          "read as bullets");
+    muiAccessContent content;
+    CHECK(muiAccessTextOf(&scene.host, scene.node, muiTextBlock_GetKey(scene.block), true,
+                          &content) &&
+              content.length == 15 && memcmp(content.text, "\xE2\x80\xA2", 3) == 0 &&
+              content.marks.selected && content.marks.anchor == 0 && content.marks.focus == 15 &&
+              content.marks.lineCount == 1 && content.marks.wordCount == 0,
+          "read as bullets, selected by them, no words");
     bool changed = true;
     CHECK(muiTextBlock_Compose(scene.service, scene.block, "x", 1, 1, NULL, 0, &changed) ==
                   mui_success &&
@@ -982,11 +983,10 @@ static void TestPasswordWithoutMemory(void)
                   muiTextBlock_SetEditing(service, block, &edit) == mui_success,
               "a password");
         left = budget;
-        const char* text = NULL;
-        size_t length = 0;
-        if (muiAccessTextOf(&host, s_nullNode, muiTextBlock_GetKey(block), &text, &length))
+        muiAccessContent content;
+        if (muiAccessTextOf(&host, s_nullNode, muiTextBlock_GetKey(block), false, &content))
         {
-            masked = length == 18 && memcmp(text, "\xE2\x80\xA2", 3) == 0;
+            masked = content.length == 18 && memcmp(content.text, "\xE2\x80\xA2", 3) == 0;
             hidden = hidden && masked;
         }
         left = 1000;

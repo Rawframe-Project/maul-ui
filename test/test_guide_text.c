@@ -157,7 +157,7 @@ static bool FieldEvent(muiContext* context, muiTextService* service, muiNodeId f
 {
     muiTextHost host = {service, context};
     const muiTextEditInput input = {mui_keymapPc, WriteClipboard, NULL};
-    muiTextEditOutcome outcome = {false, false, false};
+    muiTextEditOutcome outcome = {false, false, false, false};
     if (muiTextEditEvent(&host, field, event, &input, &outcome) != mui_success)
     {
         return false;
@@ -171,9 +171,14 @@ static bool FieldEvent(muiContext* context, muiTextService* service, muiNodeId f
             outcome.changed = outcome.changed || pasted;
         }
     }
+    // A moved caret changes only what assistive technology reads.
     if (outcome.changed)
     {
         (void)muiNode_MarkContentChanged(context, field);
+    }
+    else if (outcome.selected)
+    {
+        (void)muiNode_MarkAccessChanged(context, field);
     }
     return outcome.handled;
 }

@@ -366,6 +366,32 @@ extern "C"
         muiAccessCurrent current;
     } muiAccessValues;
 
+    // A word of a value text: its bytes from start up to end, a UAX #29
+    // word segment with a letter or a number in it.
+    typedef struct muiAccessWord
+    {
+        uint32_t start;
+        uint32_t end;
+    } muiAccessWord;
+
+    // Where a value text is selected, and where its lines and words are:
+    // byte offsets into the text, at the starts of characters.
+    typedef struct muiAccessTextMarks
+    {
+        // The selection, the caret at its focus, when selected says so:
+        // the text is being edited.
+        uint32_t anchor;
+        uint32_t focus;
+        bool selected;
+        // Where each line starts, ascending from 0, as the text is shown;
+        // NULL for none given.
+        const uint32_t* lineStarts;
+        uint32_t lineCount;
+        // Its words, in order, none overlapping; NULL for none.
+        const muiAccessWord* words;
+        uint32_t wordCount;
+    } muiAccessTextMarks;
+
     // A node as an update sends it: everything it is, whole.
     typedef struct muiAccessNode
     {
@@ -397,6 +423,9 @@ extern "C"
         // none: the host's end in a NUL, the text function's need not.
         const char* text[MUI_ACCESS_TEXTS];
         uint32_t textLength[MUI_ACCESS_TEXTS];
+        // Its value text's selection, lines and words, as the host's text
+        // function gives them; none for a value the host set.
+        muiAccessTextMarks marks;
         // The nodes it names, in order of kind, then as the host gave
         // them; NULL for none.
         const muiAccessLink* links;
@@ -432,13 +461,25 @@ extern "C"
         float y;
     } muiAccessRequest;
 
+    // What host content reads as: its text, and where it is selected and
+    // where its lines and words are.
+    typedef struct muiAccessContent
+    {
+        const char* text;
+        size_t length;
+        muiAccessTextMarks marks;
+    } muiAccessContent;
+
     /// The host's function for what host content reads as: a node's text,
-    /// such as a text block's, valid until the host edits it. It runs
-    /// inside muiBuildAccessUpdate, as the measure function runs inside
-    /// layout, and may not change the context. The text must be
-    /// well-formed UTF-8 below 2^31 bytes; other text is left out.
+    /// such as a text block's, with its selection, valid until the host
+    /// edits it; when boundaries are asked for, its lines and words too,
+    /// valid as long. It runs inside muiBuildAccessUpdate, as the measure
+    /// function runs inside layout, and may not change the context;
+    /// boundaries are asked for only of a node the update sends. The text
+    /// must be well-formed UTF-8 below 2^31 bytes; other text is left
+    /// out, and marks out of order or past it are.
     typedef bool (*muiAccessTextFunction)(void* user, muiNodeId nodeId, uint64_t hostKey,
-                                          const char** textOut, size_t* lengthOut);
+                                          bool boundaries, muiAccessContent* contentOut);
 
     /// The accessibility id of a node.
     ///
@@ -471,6 +512,22 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiSetAccessTextFunction(muiContext* context,
                                                              muiAccessTextFunction function,
                                                              void* user);
+
+    /// Tells the accessibility tree what the host's text function gives
+    /// for a node changed while its content did not: its selection
+    /// moved. muiNode_MarkContentChanged tells it too; the text editor's
+    /// functions that take a node (maul-ui/text_editor.h) tell it
+    /// themselves.
+    ///
+    /// @param context  The context.
+    /// @param nodeId   The node.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
+    ///         null id or a call from a measure or paint function;
+    ///         `mui_errorStale` for a node that is gone.
+    /// @par Thread safety
+    /// Safe from any thread; the context is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiNode_MarkAccessChanged(muiContext* context,
+                                                              muiNodeId nodeId);
 
     /// Builds updates for a root's tree from now on, the next one whole.
     /// Enabling an enabled root makes its next update whole again, as

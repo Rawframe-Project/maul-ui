@@ -612,7 +612,7 @@ static bool FieldEvent(muiContext* context, muiTextService* service, muiNodeId f
 {
     muiTextHost host = {service, context};
     const muiTextEditInput input = {mui_keymapPc, WriteClipboard, NULL};
-    muiTextEditOutcome outcome = {false, false, false};
+    muiTextEditOutcome outcome = {false, false, false, false};
     if (muiTextEditEvent(&host, field, event, &input, &outcome) != mui_success)
     {
         return false;
@@ -626,15 +626,22 @@ static bool FieldEvent(muiContext* context, muiTextService* service, muiNodeId f
             outcome.changed = outcome.changed || pasted;
         }
     }
+    // A moved caret changes only what assistive technology reads.
     if (outcome.changed)
     {
         (void)muiNode_MarkContentChanged(context, field);
+    }
+    else if (outcome.selected)
+    {
+        (void)muiNode_MarkAccessChanged(context, field);
     }
     return outcome.handled;
 }
 ```
 
-A field fed "hello", then Backspace, holds "hell"; Control and A, then
+A moved caret is told to the accessibility tree, which reads the
+selection through the text function (section 11). A field fed
+"hello", then Backspace, holds "hell"; Control and A, then
 C, copies it; two pastes give "hellhell", and Control and Z takes the
 second back. Shift with a key extends the selection; Control moves and
 erases by word.
@@ -1103,7 +1110,9 @@ its transitions move it back.
 Every node of a root is a node of its accessibility tree, with a role,
 texts, flags and actions. Most come from what the library holds:
 rectangles, scrolling, focus, states, value ranges, virtual lists,
-host content's text through the service. The rest the program says:
+host content's text through the service (`muiAccessTextOf`, set with
+`muiSetAccessTextFunction`), with an editing field's selection and
+its lines and words. The rest the program says:
 
 ```c
 // Tells assistive technology what a node is: a button, and its name.

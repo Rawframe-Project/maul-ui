@@ -42,12 +42,13 @@ virtual: context layout_node notify scroll_store tree virtual_store
 virtual_edit: context tree virtual virtual_store
 access_store: allocator
 access: access_store allocator context tree
-access_build: access access_store context focus layer place range scroll_store style_store tree virtual virtual_store
+access_build: access access_store access_text context focus layer place range scroll_store style_store tree virtual virtual_store
 access_record:
+access_text:
 access_tree_store:
 chars:
 access_tree: access_tree_store allocator chars
-access_apply: access_tree access_tree_store allocator
+access_apply: access_text access_tree access_tree_store allocator
 access_view: access_tree_store
 id_map:
 dbus_api:
@@ -134,6 +135,7 @@ text_lines: line_break text_block text_paragraph text_service
 text_hit: font_chain line_break text_block text_boxes text_paragraph text_service text_shape text_mask
 text_delete: text_block text_service
 text_move: font_chain line_break text_block text_boxes text_paragraph text_service text_shape text_mask
+text_access: allocator line_break text_block text_blocks text_lines text_mask text_paragraph text_service
 font: allocator font_store pool text_service
 distance_field:
 flatten: distance_field

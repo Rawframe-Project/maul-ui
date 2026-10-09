@@ -8,6 +8,27 @@ format.
 
 ## [Unreleased]
 
+### Added
+
+- A value text's marks in the accessibility tree (`muiAccessTextMarks`
+  in `muiAccessNode`): its selection, the caret at its focus, where its
+  lines start and its words, as byte offsets, for the platform
+  adapters' text interfaces. The text component gives an editing
+  block's selection, its lines as painted and its UAX #29 words; the
+  build asks for lines and words only of a node it sends, and leaves
+  out marks that do not fit the text; the tree copies them and refuses
+  an update whose marks do not fit. `muiNode_MarkAccessChanged` tells
+  the tree a selection moved.
+
+### Changed
+
+- `muiAccessTextFunction`, and the text component's `muiAccessTextOf`,
+  fill a `muiAccessContent` (the text, its selection, its lines and
+  words) and are told whether lines and words are wanted, in place of
+  a text and its length.
+- `muiTextEditOutcome` says whether the selection moved (`selected`),
+  which the host tells the accessibility tree.
+
 ### Fixed
 
 - A COLR version 1 graph that reaches one paint by many paths is

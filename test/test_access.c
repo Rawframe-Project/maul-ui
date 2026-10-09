@@ -497,9 +497,10 @@ static muiResult s_editFromReader;
 static muiResult s_disableFromReader;
 static muiResult s_functionFromReader;
 
-static bool ReadText(void* user, muiNodeId nodeId, uint64_t hostKey, const char** textOut,
-                     size_t* lengthOut)
+static bool ReadText(void* user, muiNodeId nodeId, uint64_t hostKey, bool boundaries,
+                     muiAccessContent* contentOut)
 {
+    (void)boundaries;
     (void)user;
     s_reads++;
     s_editFromReader = muiNode_SetAccessRole(s_reader, nodeId, mui_roleButton);
@@ -515,8 +516,8 @@ static bool ReadText(void* user, muiNodeId nodeId, uint64_t hostKey, const char*
     {
         return false;
     }
-    *textOut = text;
-    *lengthOut = strlen(text);
+    contentOut->text = text;
+    contentOut->length = strlen(text);
     return hostKey != 5;
 }
 
@@ -572,8 +573,9 @@ static void TestContentText(void)
               Sent(&update, empty)->role == mui_roleGeneric,
           "ill-formed, nothing, not content, not read, empty");
     CHECK(s_editFromReader == mui_errorInvalid && s_disableFromReader == mui_errorInvalid &&
-              s_functionFromReader == mui_errorInvalid && s_reads == 7,
-          "read once each, editing, disabling and replacing the reader refused");
+              s_functionFromReader == mui_errorInvalid && s_reads == 10,
+          "read once each, again for the boundaries of those sent; editing, disabling and "
+          "replacing the reader refused");
     // The host's value wins, unread.
     Text(context, one, mui_accessValue, "Uno");
     s_reads = 0;

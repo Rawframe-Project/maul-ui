@@ -19,7 +19,7 @@ starts no threads and calls application code only to measure content
 the host itself owns, inside the call that runs the frame.
 
 [The guide](docs/guide.md) walks through each part, and
-[the API reference](docs/api.md) lists all 340 public functions,
+[the API reference](docs/api.md) lists all 341 public functions,
 generated from the headers.
 
 ## Status

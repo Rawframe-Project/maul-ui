@@ -37,6 +37,11 @@ MUI_NODISCARD MUI_API muiResult muiSetAccessTextFunction(muiContext* context, mu
 Sets the function host content's text comes from: a node whose content is the host's (maul-ui/layout.h's mui_contentHost) and whose value text the host did not set reads as what it returns, and as a label when the host gave it no role. NULL reads nothing.  @param context   The context. @param function  The function, or NULL. @param user      Passed to it. @return `mui_success`; `mui_errorInvalid` for a NULL context or a call from a measure or paint function. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
+MUI_NODISCARD MUI_API muiResult muiNode_MarkAccessChanged(muiContext* context, muiNodeId nodeId);
+```
+Tells the accessibility tree what the host's text function gives for a node changed while its content did not: its selection moved. muiNode_MarkContentChanged tells it too; the text editor's functions that take a node (maul-ui/text_editor.h) tell it themselves.  @param context  The context. @param nodeId   The node. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+
+```c
 MUI_NODISCARD MUI_API muiResult muiAccess_Enable(muiContext* context, muiNodeId rootId);
 ```
 Builds updates for a root's tree from now on, the next one whole. Enabling an enabled root makes its next update whole again, as when an adapter starts over. The first root enabled allocates a copy of each node as last sent and the update's buffers.  @param context  The context. @param rootId   A node without a parent. @return `mui_success`; `mui_errorCapacity` when `limits.accessRoots` roots are enabled or memory runs out; `mui_errorInvalid` for a NULL context, the null id, a node with a parent, or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
@@ -324,7 +329,7 @@ Destroys a tree and all it holds; NULL is ignored.  @param tree  The tree. @par 
 ```c
 MUI_NODISCARD MUI_API muiResult muiAccessTree_Apply(muiAccessTree* tree, const muiAccessUpdate* update, const muiAccessChanges* changes);
 ```
-Applies an update whole, or nothing of it: the nodes sent replace those held, new ones join, and a node a parent sent no longer lists, which no other node sent lists, leaves with its subtree, as does a node sent with no parent that is not the root (told only as removed). The first update a tree takes, and any naming a new root, must be whole.  @param tree     The tree. @param update   The update. @param changes  Told what changed; may be NULL. @return `mui_success`; `mui_errorCapacity` when the nodes would not fit or memory runs out, which changes nothing; `mui_errorInvalid` for a NULL tree or update, or an update that does not fit the tree: no root for an empty tree, a node with the id 0 or sent twice, a child neither held nor sent, a root, or focus, that is neither, or lists that do not leave a tree: a child listed twice, or by a node sent while a node not sent lists it, the root listed, or a node under itself. @par Thread safety Safe from any thread; the tree is used by one thread at a time.
+Applies an update whole, or nothing of it: the nodes sent replace those held, new ones join, and a node a parent sent no longer lists, which no other node sent lists, leaves with its subtree, as does a node sent with no parent that is not the root (told only as removed). The first update a tree takes, and any naming a new root, must be whole.  @param tree     The tree. @param update   The update. @param changes  Told what changed; may be NULL. @return `mui_success`; `mui_errorCapacity` when the nodes would not fit or memory runs out, which changes nothing; `mui_errorInvalid` for a NULL tree or update, or an update that does not fit the tree: no root for an empty tree, a node with the id 0 or sent twice, a child neither held nor sent, a root, or focus, that is neither, or lists that do not leave a tree: a child listed twice, or by a node sent while a node not sent lists it, the root listed, or a node under itself; or a node whose marks do not fit its value text: offsets past it or inside a character, lines not ascending from 0, words out of order or empty. @par Thread safety Safe from any thread; the tree is used by one thread at a time.
 
 ```c
 uint64_t muiAccessTree_GetRoot(const muiAccessTree* tree);
@@ -384,7 +389,7 @@ A node's bounds where the root is placed (the window's client area, for a root l
 ```c
 MUI_NODISCARD MUI_API muiResult muiAccessTree_Write(const muiAccessTree* tree, char* buffer, size_t capacity, size_t* lengthOut);
 ```
-Writes the tree as text, a node a line in tree order, indented by depth: its role's name, its id's index, and its flags, actions, size, place and texts where it has them. Tests compare it.  @param tree       The tree. @param buffer     Receives the text, NUL-terminated; may be NULL when capacity is 0. @param capacity   Its size in bytes. @param lengthOut  Receives the text's length without its NUL. @return `mui_success`; `mui_errorCapacity` when it does not fit, as much written as fits; `mui_errorInvalid` for a NULL tree or length, or a NULL buffer with room. @par Thread safety Safe from any thread; the tree is used by one thread at a time.
+Writes the tree as text, a node a line in tree order, indented by depth: its role's name, its id's index, and its flags, actions, size, place, texts, selection and counts of lines and words where it has them. Tests compare it.  @param tree       The tree. @param buffer     Receives the text, NUL-terminated; may be NULL when capacity is 0. @param capacity   Its size in bytes. @param lengthOut  Receives the text's length without its NUL. @return `mui_success`; `mui_errorCapacity` when it does not fit, as much written as fits; `mui_errorInvalid` for a NULL tree or length, or a NULL buffer with room. @par Thread safety Safe from any thread; the tree is used by one thread at a time.
 
 ```c
 const char* muiAccessRoleName(muiRole role);
@@ -1302,9 +1307,9 @@ void muiPaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width, f
 Paints a text block's lines into a draw list, as a muiPaintFunction: user is a muiTextHost, and hostKey a block's key. Lines break to the content box's width, are ordered for display and aligned by the text style, and are drawn as glyph runs.  @param user     A muiTextHost. @param nodeId   The node, whose text style is read. @param hostKey  The block's key. @param width    The content box's width. @param height   The content box's height. @param sink     Where the runs go. @par Thread safety Safe from any thread; the service and context are used by one thread at a time.
 
 ```c
-bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, const char** textOut, size_t* lengthOut);
+bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, bool boundaries, muiAccessContent* contentOut);
 ```
-Reads a text block's text for accessibility, as a maul-ui/access.h's muiAccessTextFunction: user is a muiTextHost, and hostKey a block's key. The block's text, which the record leaves out when it is not well-formed UTF-8; for an editing password (maul-ui/text_editor.h), a bullet per character, as it is shown.  @param user       A muiTextHost. @param nodeId     The node. @param hostKey    The block's key. @param textOut    Receives the text, valid until the block is edited or destroyed. @param lengthOut  Receives its length. @return Whether the key names a block; false, too, when memory for a password's bullets runs out. @par Thread safety Safe from any thread; the service and context are used by one thread at a time.
+Reads a text block's text for accessibility, as a maul-ui/access.h's muiAccessTextFunction: user is a muiTextHost, and hostKey a block's key. The block's text, which the record leaves out when it is not well-formed UTF-8; for an editing password (maul-ui/text_editor.h), a bullet per character, as it is shown. An editing block gives its selection; asked for boundaries, its lines as painting breaks them at the node's content box's width, and its words, a password none.  @param user        A muiTextHost. @param nodeId      The node. @param hostKey     The block's key. @param boundaries  Whether its lines and words are read. @param contentOut  Receives the text, its selection, lines and words, valid until the block is edited or destroyed, or read again. @return Whether the key names a block; false, too, when memory for a password's bullets runs out, or for a NULL contentOut. Lines and words that cannot be read for want of memory or a font are left out. @par Thread safety Safe from any thread; the service and context are used by one thread at a time.
 
 ```c
 float muiTextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height);
@@ -1869,4 +1874,4 @@ Asks the window to accept text with its caret at a rectangle of a node's border 
 
 ---
 
-340 functions across 40 headers.
+341 functions across 40 headers.

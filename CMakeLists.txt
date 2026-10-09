@@ -113,6 +113,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/virtual_edit.c
     src/access.c
     src/access_build.c
+    src/access_text.c
     src/access_action.c
     src/range.c
     src/scroll.c
@@ -322,6 +323,7 @@ if(MAUL_UI_BUILD_TESTS)
     maul_add_test(access)
     if(MAUL_UI_ACCESS_TREE)
         maul_add_test(access_tree)
+        maul_add_test(access_text)
         maul_add_test(access_wrap WHITEBOX)
         maul_add_test(id_map WHITEBOX)
     endif()

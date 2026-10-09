@@ -229,13 +229,14 @@ static void TestAccessText(void)
     Scene scene = MakeScene(NULL);
     muiNodeId node = AddText(&scene, s_nullNode, "Save");
     uint64_t key = muiNode_GetHostKey(scene.context, node);
-    const char* text = NULL;
-    size_t length = 0;
-    CHECK(muiAccessTextOf(&scene.host, node, key, &text, &length) && length == 4 &&
-              memcmp(text, "Save", 4) == 0,
-          "the block's text");
-    CHECK(!muiAccessTextOf(&scene.host, node, key + 1, &text, &length) &&
-              !muiAccessTextOf(NULL, node, key, &text, &length),
+    muiAccessContent content;
+    CHECK(muiAccessTextOf(&scene.host, node, key, false, &content) && content.length == 4 &&
+              memcmp(content.text, "Save", 4) == 0 && !content.marks.selected &&
+              content.marks.lineCount == 0 && content.marks.wordCount == 0,
+          "the block's text, no boundaries unasked");
+    CHECK(!muiAccessTextOf(&scene.host, node, key + 1, false, &content) &&
+              !muiAccessTextOf(NULL, node, key, false, &content) &&
+              !muiAccessTextOf(&scene.host, node, key, false, NULL),
           "no block");
     CHECK(muiSetAccessTextFunction(scene.context, muiAccessTextOf, &scene.host) == mui_success &&
               muiAccess_Enable(scene.context, node) == mui_success,
@@ -244,8 +245,21 @@ static void TestAccessText(void)
     CHECK(muiBuildAccessUpdate(scene.context, node, &update) == mui_success &&
               update.nodeCount == 1 && update.nodes[0]->role == mui_roleLabel &&
               update.nodes[0]->textLength[mui_accessValue] == 4 &&
-              memcmp(update.nodes[0]->text[mui_accessValue], "Save", 4) == 0,
-          "a label reading Save");
+              memcmp(update.nodes[0]->text[mui_accessValue], "Save", 4) == 0 &&
+              update.nodes[0]->marks.lineCount == 1 && update.nodes[0]->marks.wordCount == 1,
+          "a label reading Save, a line and a word");
+    // Laid out 35 wide, a word a line, as painted; its words are the
+    // segments with letters.
+    muiNodeId wrapped = AddText(&scene, s_nullNode, "ab cd, ef");
+    Layout(&scene, wrapped, 35.0f);
+    key = muiNode_GetHostKey(scene.context, wrapped);
+    const muiAccessTextMarks* marks = &content.marks;
+    CHECK(muiAccessTextOf(&scene.host, wrapped, key, true, &content) && marks->lineCount == 3 &&
+              marks->lineStarts[0] == 0 && marks->lineStarts[1] == 3 && marks->lineStarts[2] == 7 &&
+              marks->wordCount == 3 && marks->words[0].end == 2 && marks->words[1].start == 3 &&
+              marks->words[1].end == 5 && marks->words[2].start == 7 && marks->words[2].end == 9 &&
+              !marks->selected,
+          "lines as painted, words");
     FreeScene(&scene);
 }
 

@@ -110,13 +110,16 @@ extern "C"
     } muiTextEditInput;
 
     // What an event did: whether the editor took it, whether the text
-    // changed, and whether it asks for a paste, which the host answers
-    // with muiTextBlock_Paste once its clipboard is read.
+    // changed, whether it asks for a paste, which the host answers with
+    // muiTextBlock_Paste once its clipboard is read, and whether the
+    // selection moved, which the host tells the accessibility tree
+    // (muiNode_MarkAccessChanged) when the text did not change.
     typedef struct muiTextEditOutcome
     {
         bool handled;
         bool changed;
         bool paste;
+        bool selected;
     } muiTextEditOutcome;
 
     // A selection: from the anchor to the caret, empty where they meet.

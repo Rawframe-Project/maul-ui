@@ -230,12 +230,16 @@ static void TakePaste(SampleApp* app, const mwinEvent* event)
 bool SampleEdit(SampleApp* app, muiNodeId node, const muiEvent* event, bool* changedOut)
 {
     const muiTextEditInput input = {SAMPLE_KEYMAP, muiWindowGlue_WriteClipboard, app->glue};
-    muiTextEditOutcome outcome = {false, false, false};
+    muiTextEditOutcome outcome = {false, false, false, false};
     SampleAppCheck(app, muiTextEditEvent(&app->host, node, event, &input, &outcome) == mui_success,
                    "an event edited");
     SampleAppCheck(
         app, !outcome.changed || muiNode_MarkContentChanged(app->context, node) == mui_success,
         "an edit shown");
+    SampleAppCheck(app,
+                   outcome.changed || !outcome.selected ||
+                       muiNode_MarkAccessChanged(app->context, node) == mui_success,
+                   "a caret moved told");
     if (outcome.paste)
     {
         uint64_t key = muiNode_GetHostKey(app->context, node);

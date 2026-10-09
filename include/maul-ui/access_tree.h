@@ -102,7 +102,9 @@ extern "C"
     ///         sent, a root, or focus, that is neither, or lists that do
     ///         not leave a tree: a child listed twice, or by a node sent
     ///         while a node not sent lists it, the root listed, or a node
-    ///         under itself.
+    ///         under itself; or a node whose marks do not fit its value
+    ///         text: offsets past it or inside a character, lines not
+    ///         ascending from 0, words out of order or empty.
     /// @par Thread safety
     /// Safe from any thread; the tree is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiAccessTree_Apply(muiAccessTree* tree,
@@ -250,7 +252,8 @@ extern "C"
 
     /// Writes the tree as text, a node a line in tree order, indented by
     /// depth: its role's name, its id's index, and its flags, actions,
-    /// size, place and texts where it has them. Tests compare it.
+    /// size, place, texts, selection and counts of lines and words where
+    /// it has them. Tests compare it.
     ///
     /// @param tree       The tree.
     /// @param buffer     Receives the text, NUL-terminated; may be NULL
