@@ -484,7 +484,7 @@ static void Update(void* user, SampleApp* app)
     while (muiNextNotification(app->context, &notification) == mui_success)
     {
         if (notification.kind == mui_notificationPopupDismissed &&
-            SampleSame(notification.nodeId, sample->menu))
+            SampleSame(notification.node, sample->menu))
         {
             CloseMenu(sample);
         }

@@ -644,7 +644,7 @@ static void ExpectOscillation(muiContext* context, muiNodeId node)
     muiNotification record = {0};
     CHECK(muiNextNotification(context, &record) == mui_success, "a record");
     CHECK(record.kind == mui_notificationOscillation, "an oscillation");
-    CHECK(record.nodeId.index1 == node.index1 && record.nodeId.generation == node.generation,
+    CHECK(record.node.index1 == node.index1 && record.node.generation == node.generation,
           "of the node");
     CHECK(muiNextNotification(context, &record) == mui_empty, "only one");
 }
@@ -716,11 +716,11 @@ static void TestNotificationsPastTheLimitAreCounted(void)
     RunWhilePending(context, root);
     muiNotification record = {0};
     CHECK(muiNextNotification(context, &record) == mui_success &&
-              record.kind == mui_notificationOscillation && record.nodeId.index1 == first.index1,
+              record.kind == mui_notificationOscillation && record.node.index1 == first.index1,
           "the first, in tree order");
     CHECK(muiNextNotification(context, &record) == mui_success &&
               record.kind == mui_notificationDropped && record.count == 2 &&
-              record.nodeId.index1 == 0,
+              record.node.index1 == 0,
           "then a count of the rest");
     CHECK(muiNextNotification(context, &record) == mui_empty, "then nothing");
     CHECK(muiNextNotification(context, NULL) == mui_errorInvalid, "no out pointer");
@@ -749,10 +749,10 @@ static void TestNotificationsKeepTheirOrder(void)
     RunWhilePending(context, root);
     muiNotification record = {0};
     CHECK(muiNextNotification(context, &record) == mui_success &&
-              record.nodeId.index1 == first.index1,
+              record.node.index1 == first.index1,
           "the first");
     CHECK(muiNextNotification(context, &record) == mui_success &&
-              record.nodeId.index1 == second.index1,
+              record.node.index1 == second.index1,
           "then the second");
     muiDestroyContext(context);
     // With room for one: a record lost keeps later ones from overtaking
@@ -767,7 +767,7 @@ static void TestNotificationsKeepTheirOrder(void)
     MakeOscillator(context, root, style);
     RunWhilePending(context, root);
     CHECK(muiNextNotification(context, &record) == mui_success &&
-              record.nodeId.index1 == first.index1,
+              record.node.index1 == first.index1,
           "the one kept");
     MakeOscillator(context, root, style);
     RunWhilePending(context, root);

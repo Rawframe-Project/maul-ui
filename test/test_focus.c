@@ -85,7 +85,7 @@ static bool Noted(muiContext* context, muiNotificationKind kind, muiNodeId node,
 {
     muiNotification record = {0};
     return muiNextNotification(context, &record) == mui_success && record.kind == kind &&
-           Same(record.nodeId, node) && record.count == player;
+           Same(record.node, node) && record.count == player;
 }
 
 static bool Quiet(muiContext* context)

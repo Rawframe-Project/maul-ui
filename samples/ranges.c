@@ -209,14 +209,14 @@ static void Update(void* user, SampleApp* app)
         {
             continue;
         }
-        if (SampleSame(notification.nodeId, ranges->slider))
+        if (SampleSame(notification.node, ranges->slider))
         {
             SampleAppCheck(app,
                            muiNode_SetRangeValue(app->context, ranges->progress,
                                                  RangeOf(app, ranges->slider).value) == mui_success,
                            "the progress set");
         }
-        else if (SampleSame(notification.nodeId, ranges->scrollbar))
+        else if (SampleSame(notification.node, ranges->scrollbar))
         {
             SampleAppCheck(app,
                            muiNode_SetScroll(app->context, ranges->list,

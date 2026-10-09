@@ -60,6 +60,12 @@ format.
   a text and its length.
 - `muiTextEditOutcome` says whether the selection moved (`selected`),
   which the host tells the accessibility tree.
+- A typed id is named for what it names, as across the family:
+  `muiNotification`'s `nodeId` field is `node`, a source change; the
+  out-parameters `nodeIdOut`, `styleIdOut`, `themeIdOut`, `tokenIdOut`,
+  `transitionIdOut` and `typeIdOut` are `nodeOut`, `styleOut`,
+  `themeOut`, `tokenOut`, `transitionOut` and `typeOut`, which changes
+  no caller.
 
 ### Fixed
 

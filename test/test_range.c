@@ -80,7 +80,7 @@ static int Changes(muiContext* context, muiNodeId node)
     muiNotification note = {0};
     while (muiNextNotification(context, &note) == mui_success)
     {
-        count += note.kind == mui_notificationRangeChanged && Same(note.nodeId, node);
+        count += note.kind == mui_notificationRangeChanged && Same(note.node, node);
     }
     return count;
 }

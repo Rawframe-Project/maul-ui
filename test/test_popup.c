@@ -414,7 +414,7 @@ static int Dismissed(muiContext* context, muiNodeId* nodes, muiDismissReason* re
     {
         if (record.kind == mui_notificationPopupDismissed && count < 4)
         {
-            nodes[count] = record.nodeId;
+            nodes[count] = record.node;
             reasons[count] = (muiDismissReason)record.count;
             count++;
         }

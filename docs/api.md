@@ -869,9 +869,9 @@ muiNodeDef muiDefaultNodeDef(void);
 Returns the default node def: host key 0.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
 
 ```c
-MUI_NODISCARD MUI_API muiResult muiCreateNode(muiContext* context, const muiNodeDef* def, muiNodeId* nodeIdOut);
+MUI_NODISCARD MUI_API muiResult muiCreateNode(muiContext* context, const muiNodeDef* def, muiNodeId* nodeOut);
 ```
-Creates a node, a root until it is inserted into a parent.  @param context    The context. @param def        The node: a valid cookie. @param nodeIdOut  Receives the node's id; the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a bad cookie; `mui_errorCapacity` when the context's node limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Creates a node, a root until it is inserted into a parent.  @param context    The context. @param def        The node: a valid cookie. @param nodeOut  Receives the node's id; the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a bad cookie; `mui_errorCapacity` when the context's node limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyNode(muiContext* context, muiNodeId nodeId);
@@ -1099,9 +1099,9 @@ muiStyleDef muiDefaultStyleDef(void);
 Returns the default style class def.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
 
 ```c
-MUI_NODISCARD MUI_API muiResult muiCreateStyle(muiContext* context, const muiStyleDef* def, muiStyleId* styleIdOut);
+MUI_NODISCARD MUI_API muiResult muiCreateStyle(muiContext* context, const muiStyleDef* def, muiStyleId* styleOut);
 ```
-Creates a style class with no values set.  @param context     The context. @param def         The class: a valid cookie. @param styleIdOut  Receives the class; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie or a call from a measure or paint function; `mui_errorCapacity` when the context's style limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Creates a style class with no values set.  @param context     The context. @param def         The class: a valid cookie. @param styleOut  Receives the class; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie or a call from a measure or paint function; `mui_errorCapacity` when the context's style limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyStyle(muiContext* context, muiStyleId styleId);
@@ -1149,9 +1149,9 @@ muiNodeTypeDef muiDefaultNodeTypeDef(void);
 Returns the default node type def: no classes.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
 
 ```c
-MUI_NODISCARD MUI_API muiResult muiCreateNodeType(muiContext* context, const muiNodeTypeDef* def, muiNodeTypeId* typeIdOut);
+MUI_NODISCARD MUI_API muiResult muiCreateNodeType(muiContext* context, const muiNodeTypeDef* def, muiNodeTypeId* typeOut);
 ```
-Creates a node type with an ordered list of classes.  @param context    The context. @param def        The type: a valid cookie and its classes. @param typeIdOut  Receives the type; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie, classes NULL with a count, a count over the limit or a call from a measure or paint function; `mui_errorCapacity` when the context's node type limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Creates a node type with an ordered list of classes.  @param context    The context. @param def        The type: a valid cookie and its classes. @param typeOut  Receives the type; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie, classes NULL with a count, a count over the limit or a call from a measure or paint function; `mui_errorCapacity` when the context's node type limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyNodeType(muiContext* context, muiNodeTypeId typeId);
@@ -1498,9 +1498,9 @@ muiThemeDef muiDefaultThemeDef(void);
 Returns the default theme def.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
 
 ```c
-MUI_NODISCARD MUI_API muiResult muiCreateTheme(muiContext* context, const muiThemeDef* def, muiThemeId* themeIdOut);
+MUI_NODISCARD MUI_API muiResult muiCreateTheme(muiContext* context, const muiThemeDef* def, muiThemeId* themeOut);
 ```
-Creates a theme that overrides no token.  @param context     The context. @param def         The theme: a valid cookie. @param themeIdOut  Receives the theme; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie or a call from a measure or paint function; `mui_errorCapacity` when the context's theme limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Creates a theme that overrides no token.  @param context     The context. @param def         The theme: a valid cookie. @param themeOut  Receives the theme; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie or a call from a measure or paint function; `mui_errorCapacity` when the context's theme limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyTheme(muiContext* context, muiThemeId themeId);
@@ -1533,9 +1533,9 @@ MUI_NODISCARD MUI_API muiResult muiNode_SetTheme(muiContext* context, muiNodeId 
 Sets the theme a node and its subtree read; the null id sets none.  @param context  The context. @param nodeId   The node. @param themeId  The theme, or the null id. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null node id or a call from a measure or paint function; `mui_errorStale` for a node or a theme that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
-MUI_NODISCARD MUI_API muiResult muiNode_GetTheme(const muiContext* context, muiNodeId nodeId, muiThemeId* themeIdOut);
+MUI_NODISCARD MUI_API muiResult muiNode_GetTheme(const muiContext* context, muiNodeId nodeId, muiThemeId* themeOut);
 ```
-Reads the theme set on a node.  @param context     The context. @param nodeId      The node. @param themeIdOut  Receives the theme set, or the null id. @return `mui_success`; `mui_errorInvalid` for a NULL argument or the null id; `mui_errorStale` for an id whose node is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Reads the theme set on a node.  @param context     The context. @param nodeId      The node. @param themeOut  Receives the theme set, or the null id. @return `mui_success`; `mui_errorInvalid` for a NULL argument or the null id; `mui_errorStale` for an id whose node is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetTokenValue(const muiContext* context, muiNodeId nodeId, muiTokenId tokenId, muiTokenValue* valueOut);
@@ -1552,9 +1552,9 @@ muiTokenDef muiDefaultTokenDef(void);
 Returns the default token def: the number 0.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
 
 ```c
-MUI_NODISCARD MUI_API muiResult muiCreateToken(muiContext* context, const muiTokenDef* def, muiTokenId* tokenIdOut);
+MUI_NODISCARD MUI_API muiResult muiCreateToken(muiContext* context, const muiTokenDef* def, muiTokenId* tokenOut);
 ```
-Creates a token holding a value.  @param context     The context. @param def         The token: a valid cookie and its value. @param tokenIdOut  Receives the token; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie, a value outside the def's or a call from a measure or paint function; `mui_errorCapacity` when the context's token limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Creates a token holding a value.  @param context     The context. @param def         The token: a valid cookie and its value. @param tokenOut  Receives the token; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie, a value outside the def's or a call from a measure or paint function; `mui_errorCapacity` when the context's token limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyToken(muiContext* context, muiTokenId tokenId);
@@ -1582,9 +1582,9 @@ MUI_NODISCARD MUI_API muiResult muiStyle_SetToken(muiContext* context, muiStyleI
 Names a token for a property in one variant of a class, in place of a value: resolution reads the token there. A value the property does not allow, or no value, leaves that layer silent for the property. Setting a value for the property with muiStyle_SetLayoutValues or muiStyle_SetVisualValues ends the name, and this ends the value; the null id ends the name alone.  @param context   The context. @param styleId   The class. @param variant   The variant. @param property  The property; one that takes a token of a type above, which a condition of the variant does not read. @param tokenId   The token, of the property's type, or the null id. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null class id, an unknown variant or property, a property of no token type or another type than the token's, one the variant's condition reads, or a call from a measure function; `mui_errorStale` for a class or a token that is gone; `mui_errorCapacity` when the context's limit of token names, or of property sets for a variant with nothing set, is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
-MUI_NODISCARD MUI_API muiResult muiStyle_GetToken(const muiContext* context, muiStyleId styleId, muiVariant variant, muiProperty property, muiTokenId* tokenIdOut);
+MUI_NODISCARD MUI_API muiResult muiStyle_GetToken(const muiContext* context, muiStyleId styleId, muiVariant variant, muiProperty property, muiTokenId* tokenOut);
 ```
-Reads the token one variant of a class names for a property.  @param context     The context. @param styleId     The class. @param variant     The variant. @param property    The property. @param tokenIdOut  Receives the token; the null id for none. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown variant or property; `mui_errorStale` for an id whose class is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Reads the token one variant of a class names for a property.  @param context     The context. @param styleId     The class. @param variant     The variant. @param property    The property. @param tokenOut  Receives the token; the null id for none. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown variant or property; `mui_errorStale` for an id whose class is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ## `transition.h`
 
@@ -1596,9 +1596,9 @@ muiTransitionDef muiDefaultTransitionDef(void);
 Returns the default transition def: timed, 250 ms, ease, no delay; as a spring, 2 Hz and critically damped.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
 
 ```c
-MUI_NODISCARD MUI_API muiResult muiCreateTransition(muiContext* context, const muiTransitionDef* def, muiTransitionId* transitionIdOut);
+MUI_NODISCARD MUI_API muiResult muiCreateTransition(muiContext* context, const muiTransitionDef* def, muiTransitionId* transitionOut);
 ```
-Creates a transition spec.  @param context          The context. @param def              The spec: a valid cookie, a known kind and easing, bezier x from 0 to 1 and finite y, and a finite frequency and damping ratio above 0. @param transitionIdOut  Receives the spec; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a def outside the above or a call from a measure or paint function; `mui_errorCapacity` when the context's transition limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Creates a transition spec.  @param context          The context. @param def              The spec: a valid cookie, a known kind and easing, bezier x from 0 to 1 and finite y, and a finite frequency and damping ratio above 0. @param transitionOut  Receives the spec; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a def outside the above or a call from a measure or paint function; `mui_errorCapacity` when the context's transition limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyTransition(muiContext* context, muiTransitionId transitionId);
@@ -1611,9 +1611,9 @@ MUI_NODISCARD MUI_API muiResult muiStyle_SetTransition(muiContext* context, muiS
 Names the spec one variant of a class gives properties; the null id takes the variant's spec away from them.  @param context       The context. @param styleId       The class. @param variant       The variant. @param transitionId  The spec, or the null id. @param group         The properties' group. @param mask          The properties, within the group's. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null class id, an unknown variant, group or property bit or a call from a measure or paint function; `mui_errorStale` for a class or a spec that is gone; `mui_errorCapacity` when the variant already names MUI_MAX_VARIANT_TRANSITIONS specs, or has no values yet and the context's limit of property sets is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
-MUI_NODISCARD MUI_API muiResult muiStyle_GetTransition(const muiContext* context, muiStyleId styleId, muiVariant variant, muiProperty property, muiTransitionId* transitionIdOut);
+MUI_NODISCARD MUI_API muiResult muiStyle_GetTransition(const muiContext* context, muiStyleId styleId, muiVariant variant, muiProperty property, muiTransitionId* transitionOut);
 ```
-Reads the spec one variant of a class gives a property.  @param context          The context. @param styleId          The class. @param variant          The variant. @param property         The property. @param transitionIdOut  Receives the spec; the null id for none. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown variant or property; `mui_errorStale` for an id whose class is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Reads the spec one variant of a class gives a property.  @param context          The context. @param styleId          The class. @param variant          The variant. @param property         The property. @param transitionOut  Receives the spec; the null id for none. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown variant or property; `mui_errorStale` for an id whose class is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 bool muiNode_IsTransitioning(const muiContext* context, muiNodeId nodeId, muiProperty property);

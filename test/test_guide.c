@@ -377,7 +377,7 @@ static muiResult ListFrame(muiContext* context, muiNodeId root, muiNodeId list,
     while (result == mui_success && muiNextNotification(context, &notification) == mui_success)
     {
         changed = changed || (notification.kind == mui_notificationWindowChanged &&
-                              notification.nodeId.index1 == list.index1);
+                              notification.node.index1 == list.index1);
     }
     if (result == mui_success && changed)
     {
@@ -453,7 +453,7 @@ static void DestroyExited(muiContext* context)
     {
         if (notification.kind == mui_notificationExitFinished)
         {
-            (void)muiDestroyNode(context, notification.nodeId);
+            (void)muiDestroyNode(context, notification.node);
         }
     }
 }
@@ -800,7 +800,7 @@ static void TestLists(void)
     while (muiNextNotification(context, &notification) == mui_success)
     {
         dismissed = dismissed || (notification.kind == mui_notificationPopupDismissed &&
-                                  notification.nodeId.index1 == menu.index1);
+                                  notification.node.index1 == menu.index1);
     }
     CHECK(dismissed, "the menu dismissed");
     muiDestroyContext(context);

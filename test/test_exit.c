@@ -83,7 +83,7 @@ static int Finished(muiContext* context, muiNodeId* nodeOut)
     {
         if (record.kind == mui_notificationExitFinished)
         {
-            *nodeOut = record.nodeId;
+            *nodeOut = record.node;
             count++;
         }
     }
@@ -136,7 +136,7 @@ static void TestInteraction(void)
     CHECK(muiNode_BeginExit(context, scene.panel) == mui_success, "exit");
     while (muiNextNotification(context, &record) == mui_success)
     {
-        lost = record.kind == mui_notificationFocusLost ? record.nodeId : lost;
+        lost = record.kind == mui_notificationFocusLost ? record.node : lost;
     }
     CHECK(Same(lost, scene.child) && muiFocus_Get(context, 0).index1 == 0, "focus given up");
     CHECK((muiNode_GetStates(context, scene.panel) & mui_stateExiting) != 0 &&

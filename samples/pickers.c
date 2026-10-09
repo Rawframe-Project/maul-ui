@@ -556,7 +556,7 @@ static void Update(void* user, SampleApp* app)
         for (int c = 0; c < 2; c++)
         {
             if (notification.kind == mui_notificationPopupDismissed &&
-                SampleSame(notification.nodeId, combos[c]->list))
+                SampleSame(notification.node, combos[c]->list))
             {
                 Close(app, combos[c]);
             }

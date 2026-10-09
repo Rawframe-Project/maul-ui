@@ -162,7 +162,7 @@ extern "C"
     {
         muiNotificationKind kind;
         // The node it is about; the null id for mui_notificationDropped.
-        muiNodeId nodeId;
+        muiNodeId node;
         // For mui_notificationDropped, how many were dropped; for focus,
         // the player; for a popup, the reason.
         uint32_t count;
