@@ -117,13 +117,14 @@ jobs:
           npx @guidepup/setup setup --ci
           npx @guidepup/setup install nvda
           # NVDA reads a caret move only if the caret moves within 100 ms of
-          # the key; the sample draws on SwiftShader, a frame slower than a
-          # device, so its walks give it 500 (NVDA's own setting, up to 2000).
+          # the key; the sample draws on SwiftShader, where a frame has taken
+          # seconds, so its walks give it NVDA's longest, 2000 (its own
+          # setting): the caret moved on every step, unread when late.
           ini=$(ls "$(cygpath -u "$LOCALAPPDATA")"/guidepup/nvda/all/*/extracted/userConfig/nvda.ini)
           if grep -q '^\[editableText\]' "$ini"; then
-            sed -i 's/^\[editableText\]\r\?$/[editableText]\ncaretMoveTimeoutMs = 500/' "$ini"
+            sed -i 's/^\[editableText\]\r\?$/[editableText]\ncaretMoveTimeoutMs = 2000/' "$ini"
           else
-            printf '\n[editableText]\ncaretMoveTimeoutMs = 500\n' >> "$ini"
+            printf '\n[editableText]\ncaretMoveTimeoutMs = 2000\n' >> "$ini"
           fi
           grep -A1 '^\[editableText\]' "$ini"
       - name: Walk the samples in Chrome
