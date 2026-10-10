@@ -8,6 +8,14 @@ format.
 
 ## [Unreleased]
 
+### Changed
+
+- A column that wraps is, at its min-content width, as wide as its
+  widest item's min-content contribution, not the sum of its lines; its
+  max-content width stays the sum of its lines (CSS Flexbox 9.9.2 as it
+  now reads, and Chrome). A wrapping column shrunk by its row may
+  overflow its later lines, where it held the row wider.
+
 ### Fixed
 
 - In a column that wraps, an item with an automatic width that is not

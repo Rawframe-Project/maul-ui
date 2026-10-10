@@ -328,9 +328,11 @@ static void DistributeLines(const muiFlexFrame* frame, float used)
 
 // Section 9.4: the lines' cross sizes, the container's, the lines'
 // places, and stretched children's cross sizes.
-// Section 9.9.2: a single-line column sized by its content is as wide as
-// its widest item's contribution, its width with its height left open, as
-// Chrome sizes it, not as wide as its items are at their flexed heights.
+// Section 9.9.2: a single-line column sized by its content, and a
+// wrapping one asked its min-content width, is as wide as its widest
+// item's contribution, its width with its height left open, as Chrome
+// sizes it, not as wide as its items are at their flexed heights; a
+// wrapping column's other widths are its lines'.
 static float ColumnContribution(const muiFlexFrame* frame)
 {
     float widest = 0.0f;
@@ -368,7 +370,8 @@ static void SizeCross(muiFlexFrame* frame)
     }
     total += Gaps(frame->crossGap, frame->lineCount);
     frame->contentCross = total + frame->boxCross;
-    if (!frame->row && !frame->multiLine && frame->crossIn.mode != mui_measureExact)
+    if (!frame->row && frame->crossIn.mode != mui_measureExact &&
+        (!frame->multiLine || frame->crossIn.mode == mui_measureMinContent))
     {
         total = ColumnContribution(frame);
     }
