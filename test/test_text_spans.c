@@ -157,7 +157,7 @@ static void TestChecks(void)
         Span(2, 1, COLOR),
         Span(1, 1, COLOR),
         Span(0, 1, MUI_PROPERTY_BIT(mui_propertyLineHeight)),
-        Span(0, 1, MUI_PROPERTY_BIT(mui_propertyTextBaselineShift + 1)),
+        Span(0, 1, MUI_PROPERTY_BIT(mui_propertyFontSynthesis + 1)),
     };
     const char* what[] = {"empty",     "past the text",          "from inside a sequence",
                           "to inside", "a paragraph's property", "past the group"};

@@ -300,6 +300,38 @@ static void TestSynthesis(void)
     FreeScene(&scene);
 }
 
+// The style's synthesis forbids each made face apart: a face that
+// cannot reach 600 stays as it is, an upright one unslanted, the font's
+// own key in each, as CSS's font-synthesis none.
+static void TestSynthesisForbidden(void)
+{
+    Scene scene = MakeScene(s_ahem, sizeof s_ahem, "X");
+    muiTextStyle style = muiDefaultTextStyle();
+    style.synthesis = mui_synthesisNoBold;
+    CHECK(muiNode_SetTextValues(scene.context, scene.node, &style,
+                                MUI_PROPERTY_BIT(mui_propertyFontSynthesis)) == mui_success,
+          "no bold");
+    CHECK(Width(&scene, 10.0f, 700.0f, mui_slantNormal) == 10.0f &&
+              RunFont(&scene) == muiFont_GetKey(scene.font),
+          "700 asked of a regular face, shown as it is");
+    CHECK(Width(&scene, 10.0f, 400.0f, mui_slantItalic) == 10.0f &&
+              RunFont(&scene) != muiFont_GetKey(scene.font),
+          "the oblique still made");
+    style.synthesis = mui_synthesisNoOblique;
+    CHECK(muiNode_SetTextValues(scene.context, scene.node, &style,
+                                MUI_PROPERTY_BIT(mui_propertyFontSynthesis)) == mui_success,
+          "no oblique");
+    CHECK(Width(&scene, 10.0f, 400.0f, mui_slantItalic) == 10.0f &&
+              RunFont(&scene) == muiFont_GetKey(scene.font),
+          "italic asked of an upright face, shown upright");
+    CHECK(Width(&scene, 10.0f, 700.0f, mui_slantNormal) > 10.0f, "the bold still made");
+    style.synthesis = mui_synthesisNone + 1;
+    CHECK(muiNode_SetTextValues(scene.context, scene.node, &style,
+                                MUI_PROPERTY_BIT(mui_propertyFontSynthesis)) == mui_errorInvalid,
+          "an unknown synthesis refused");
+    FreeScene(&scene);
+}
+
 static void TestKeys(void)
 {
     Scene scene = MakeScene(s_ahem, sizeof s_ahem, "X");
@@ -338,6 +370,7 @@ int main(void)
     TestItalicFace();
     TestMarksSlanted();
     TestSynthesis();
+    TestSynthesisForbidden();
     TestKeys();
     return s_failures == 0 ? 0 : 1;
 }

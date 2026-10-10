@@ -8,6 +8,15 @@ format.
 
 ## [Unreleased]
 
+### Added
+
+- `muiTextStyle.synthesis` (`mui_propertyFontSynthesis`, inherited):
+  which faces the text service may make when a font cannot show the
+  weight or slant asked, as CSS's `font-synthesis-weight` and
+  `font-synthesis-style`. 0, the default, keeps making both;
+  `mui_synthesisNoBold` and `mui_synthesisNoOblique` show a lighter or
+  an upright face as it is. Spans keep their node's.
+
 ## [0.4.0] - 2026-10-11
 
 Layout closer to the browsers: wrapping columns sized as the current CSS
