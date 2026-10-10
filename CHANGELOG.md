@@ -124,6 +124,9 @@ format.
 
 ### Fixed
 
+- AT-SPI's `GetCharacterExtents` at the largest offset a client can
+  name no longer overflows working out the next one; it answers no
+  extents, as past any text's end (found by fuzzing).
 - `maul-ui-rhi` links as C, as maul-ui does: linked with maul-ui's
   HarfBuzz objects it linked as C++, and Visual Studio's project lost
   its C standard, so it did not build with ClangCL.

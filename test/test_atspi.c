@@ -1565,6 +1565,7 @@ static void TestTextChanges(muiAtspiAdapter* adapter, Built* built, muiAccessNod
               TextIs("GetCharacterExtents", "iu", (const int32_t[]){1, 1}, "428 224 8 20") &&
               TextIs("GetRangeExtents", "iiu", (const int32_t[]){0, 3, 0}, "520 274 24 20") &&
               TextIs("GetCharacterExtents", "iu", (const int32_t[]){12, 0}, "0 0 0 0") &&
+              TextIs("GetCharacterExtents", "iu", (const int32_t[]){INT32_MAX, 0}, "0 0 0 0") &&
               TextIs("GetOffsetAtPoint", "iiu", (const int32_t[]){537, 280, 0}, "2") &&
               TextIs("GetOffsetAtPoint", "iiu", (const int32_t[]){437, 230, 1}, "2"),
           "a character's extents and a range's, the character at a point");

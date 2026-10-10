@@ -393,8 +393,11 @@ static bool AppendGeometry(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* cal
     int32_t args[3] = {0, 0, 0};
     if (strcmp(member, "GetCharacterExtents") == 0)
     {
+        // The character to the next; the last offset a client can name
+        // is past any text's end.
         *ok = ReadInts(&app->dbus, call, "iu", args) &&
-              AppendRangeExtents(app, iter, object, text, args[0], args[0] + 1, (uint32_t)args[1]);
+              AppendRangeExtents(app, iter, object, text, args[0],
+                                 args[0] < INT32_MAX ? args[0] + 1 : args[0], (uint32_t)args[1]);
     }
     else if (strcmp(member, "GetRangeExtents") == 0)
     {
