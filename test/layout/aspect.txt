@@ -768,3 +768,29 @@ node width=40 aspect=2 direction=column wrap=wrap => 0 0 40 30
   node height=15 width=10 => 0 0 10 15
   node height=15 width=10 => 13.328125 0 10 15
   node height=30 width=10 => 26.671875 0 10 30
+
+
+fixture ratio_percent_width_floor_in_rows available=500x400
+node => 0 0 80 80
+  node => 0 0 80 80
+    node width=10% aspect=1 => 0 0 8 80
+      node min-height=80 content=20x40*4 => 0 0 20 80
+
+fixture ratio_floor_in_rows_automatic_width available=500x400
+node => 0 0 80 80
+  node => 0 0 80 80
+    node aspect=1 => 0 0 80 80
+      node min-height=80 content=20x40*4 => 0 0 80 80
+
+fixture ratio_percent_width_floor_in_a_row available=500x400
+node width=80 => 0 0 80 80
+  node width=10% aspect=1 => 0 0 8 80
+    node min-height=80 content=20x40*4 => 0 0 20 80
+
+fixture ratio_floor_in_rows_in_a_column available=500x400
+node => 0 0 80 40
+  node height=40 direction=column => 0 0 80 40
+    node => 0 0 80 80
+      node => 0 0 80 80
+        node width=10% aspect=1 => 0 0 8 80
+          node min-height=80 content=20x40*4 => 0 0 20 80
