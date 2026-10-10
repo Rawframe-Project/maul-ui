@@ -86,6 +86,25 @@ static bool ColumnContentHeight(const muiFlexFrame* frame, const muiLayoutStyle*
             !muiResolveAxis(&style->sizing, false, frame->extentMain).definite);
 }
 
+// A box whose height its ratio gives, its container not fixing it:
+// percentages below resolve against the ratio's height, not the one its
+// content grew it to, and a column that wraps breaks its lines there,
+// as browsers do.
+static void RatioExtent(muiFlexFrame* frame, const muiLayoutStyle* style,
+                        const muiSizingInput* input)
+{
+    if (!input->ratioPercent || input->width.mode != mui_measureExact)
+    {
+        return;
+    }
+    muiAxisSizing height = muiResolveAxis(&style->sizing, false, input->parentHeight);
+    float box = frame->row ? frame->boxCross : frame->boxMain;
+    float ratioHeight = muiClampSize(input->width.size / style->sizing.aspectRatio, height.minimum,
+                                     height.maximum, box);
+    *(frame->row ? &frame->extentCross : &frame->extentMain) = fmaxf(ratioHeight - box, 0.0f);
+    frame->ratioBreak = frame->row || !frame->multiLine ? -1.0f : frame->extentMain;
+}
+
 static muiFlexFrame Setup(const muiSolver* solver, uint32_t node, const muiSizingInput* input)
 {
     const muiLayoutStyle* style = &solver->nodes[node - 1].style;
@@ -119,6 +138,7 @@ static muiFlexFrame Setup(const muiSolver* solver, uint32_t node, const muiSizin
     frame.rtl = input->rtl;
     frame.extentMain = -1.0f;
     frame.extentCross = -1.0f;
+    frame.ratioBreak = -1.0f;
     bool mainDefinite = !(input->contentHeight && !frame.row);
     bool crossDefinite = !(input->contentHeight && frame.row);
     if (frame.mainIn.mode == mui_measureExact)
@@ -131,16 +151,7 @@ static muiFlexFrame Setup(const muiSolver* solver, uint32_t node, const muiSizin
         frame.innerCross = fmaxf(frame.crossIn.size - frame.boxCross, 0.0f);
         frame.extentCross = crossDefinite ? frame.innerCross : -1.0f;
     }
-    if (input->ratioPercent && input->width.mode == mui_measureExact)
-    {
-        // Percentages resolve against the ratio's height, not the one its
-        // content grew it to.
-        muiAxisSizing height = muiResolveAxis(&style->sizing, false, input->parentHeight);
-        float box = frame.row ? frame.boxCross : frame.boxMain;
-        float ratioHeight = muiClampSize(input->width.size / style->sizing.aspectRatio,
-                                         height.minimum, height.maximum, box);
-        *(frame.row ? &frame.extentCross : &frame.extentMain) = fmaxf(ratioHeight - box, 0.0f);
-    }
+    RatioExtent(&frame, style, input);
     return frame;
 }
 
@@ -169,14 +180,33 @@ static void SizeMain(muiFlexFrame* frame)
         bool narrowest = wraps && frame->mainIn.mode == mui_measureMinContent;
         float content = narrowest ? widest : sum + Gaps(frame->gap, frame->count);
         content = wraps ? fmaxf(content, widest) : content;
+        if (frame->ratioBreak >= 0.0f)
+        {
+            // Its longest line, broken at the ratio's height.
+            content = 0.0f;
+            for (uint32_t first = muiFirstFlowChild(tree, frame->solver->nodes, frame->node);
+                 first != 0;)
+            {
+                uint32_t count = muiCollectLine(tree, frame->solver->nodes, first,
+                                                frame->ratioBreak, frame->gap, true);
+                float used = Gaps(frame->gap, count);
+                for (uint32_t i = 0; i < count;
+                     i++, first = muiNextFlowChild(tree, frame->solver->nodes, first))
+                {
+                    used += ItemOf(frame, first)->hypothetical + ItemOf(frame, first)->marginMain;
+                }
+                content = fmaxf(content, used);
+            }
+        }
         float outer = muiClampSize(content + frame->boxMain, frame->mainLimits.minimum,
                                    frame->mainLimits.maximum, frame->boxMain);
         frame->innerMain = outer - frame->boxMain;
     }
     for (uint32_t first = muiFirstFlowChild(tree, frame->solver->nodes, frame->node); first != 0;)
     {
-        uint32_t count = muiCollectLine(tree, frame->solver->nodes, first, frame->innerMain,
-                                        frame->gap, frame->multiLine);
+        float length = frame->ratioBreak >= 0.0f ? frame->ratioBreak : frame->innerMain;
+        uint32_t count =
+            muiCollectLine(tree, frame->solver->nodes, first, length, frame->gap, frame->multiLine);
         float used = Gaps(frame->gap, count);
         for (uint32_t c = first, i = 0; i < count;
              c = muiNextFlowChild(tree, frame->solver->nodes, c), i++)
