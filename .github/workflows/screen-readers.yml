@@ -1,8 +1,8 @@
 # Screen readers walking the samples (record mui-0008, research 148):
 # VoiceOver on a macOS runner and NVDA on a Windows runner, set up and
 # driven by Guidepup, as tools/screen_reader_walk.sh walks them with
-# Orca, each walk checking the phrases its steps file expects. A
-# workflow of its own: the readers' timing on the runners' virtual GPUs
+# Orca, and NVDA over the ARIA adapter in Chrome, each walk checking the
+# phrases its steps file expects. A workflow of its own: the readers' timing on the runners' virtual GPUs
 # makes a walk miss a phrase now and then, so each walk is tried three
 # times, every try kept as an artifact; a reader that cannot read the
 # tree misses on every try.
@@ -82,4 +82,49 @@ jobs:
         if: always()
         with:
           name: walk-${{ matrix.name }}
+          path: walk-*
+
+  web:
+    # NVDA over the ARIA adapter (record mui-0008, research 152): the
+    # controls sample built for the web, in a Chrome with a window drawing
+    # WebGPU on SwiftShader, walked as on the desktop from its own steps,
+    # which first enable the page's accessibility tree as a screen reader
+    # user does.
+    name: nvda-chrome
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+      - uses: emscripten-core/setup-emsdk@v16
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - name: Build the sample for the web
+        run: |
+          emcmake cmake -B build-web -G Ninja -DCMAKE_BUILD_TYPE=Release -DMAUL_UI_RHI=ON \
+            -DMAUL_UI_WINDOW=ON -DMAUL_UI_BUILD_TESTS=OFF
+          cmake --build build-web -j 4 --target sample_controls
+      - name: Set up the screen reader and the browser
+        run: |
+          mkdir -p "$RUNNER_TEMP/walk" && cd "$RUNNER_TEMP/walk"
+          cp "$GITHUB_WORKSPACE/tools/screen_reader/walk.mjs" .
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund @guidepup/guidepup@0.35.0 @guidepup/setup@0.29.1 \
+            puppeteer@25.13.0
+          npx @guidepup/setup setup --ci
+          npx @guidepup/setup install nvda
+      - name: Walk the sample in Chrome
+        run: |
+          for try in 1 2 3; do
+            node "$RUNNER_TEMP/walk/walk.mjs" "$PWD/build-web/sample_controls.js" \
+              tools/screen_reader/controls-web.steps "walk-web-$try" && exit 0
+          done
+          exit 1
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: walk-nvda-chrome
           path: walk-*

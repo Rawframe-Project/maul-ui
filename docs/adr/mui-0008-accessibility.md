@@ -340,7 +340,9 @@ ranges and virtual lists.
   every push (`tools/screen_reader/walk.mjs`, through Guidepup), from
   the same steps files, each walk checking the phrases its file
   expects: the controls' names and a state, a field's name and the
-  words typed into it.
+  words typed into it. NVDA also walks the controls sample built for
+  the web in Chrome, over the ARIA adapter, enabling the page's tree
+  through its hidden button as a screen reader user does.
 
 ## Consequences
 

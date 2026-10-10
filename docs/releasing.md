@@ -17,21 +17,22 @@ and before the tag.
    over UI Automation on Windows, Orca over AT-SPI on Linux, VoiceOver
    on macOS and iOS, TalkBack on Android, and a screen reader over the
    ARIA tree in a browser. Each run walks the widget samples: focus
-   moves, names, roles, states and values are read, a button and a
-   check box act, a text field takes text, a list scrolls. The notes
-   record what was run and what was heard; a run that could not be
-   made is listed as not run, never as passed, and a failure is fixed
-   or listed as a known issue. On Linux, `tools/screen_reader_walk.sh`
-   walks a sample with Orca from a file of steps
+   moves, names, roles, states and values are read, a button and a check
+   box act, a text field takes text, a list scrolls. The notes record
+   what was run and what was heard; a run that could not be made is
+   listed as not run, never as passed, and a failure is fixed or listed
+   as a known issue. On Linux, `tools/screen_reader_walk.sh` walks a
+   sample with Orca from a file of steps
    (`tools/screen_reader/*.steps`): the sample under Xvfb on a private
    session and accessibility bus, Orca with speech off, and what it
    would have said written a line each. VoiceOver on macOS and NVDA on
-   Windows walk the same steps in the `screen-readers` workflow on
-   every push (`tools/screen_reader/walk.mjs`, through Guidepup); its
-   run on the release commit is the release's, its artifacts what was
-   heard; a reader whose setup the machine refused is a warning there
-   and counts as not run, so the job is run again. Every walk checks
-   the phrases its steps file expects.
+   Windows (and NVDA over the ARIA tree in Chrome) walk the same steps
+   in the `screen-readers` workflow on every push
+   (`tools/screen_reader/walk.mjs`, through Guidepup); its run on the
+   release commit is the release's, its artifacts what was heard; a
+   reader whose setup the machine refused is a warning there and counts
+   as not run, so the job is run again. Every walk checks the phrases
+   its steps file expects.
 3. **Fuzzing**: each fuzz target (`fuzz_*`) runs for at least ten
    minutes from its seed corpus (`tools/fuzz_seed.py`) without a
    finding.

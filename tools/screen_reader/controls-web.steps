@@ -1,0 +1,22 @@
+# sample_controls in a browser: the hidden button that enables the
+# page's accessibility tree, found as a screen reader user finds it, by
+# the reader's own move to the next button (NVDA's b in browse mode),
+# then pressed; then the controls as on the desktop, the reader asked
+# after each move what has the focus.
+key b
+key Return
+wait 3
+key Tab
+focus
+key Tab
+focus
+key space
+key Tab
+focus
+key space
+key Tab
+focus
+# Said by NVDA in Chrome as by the desktop readers.
+expect Subtitles
+expect checked
+expect Sound

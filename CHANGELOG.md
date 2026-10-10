@@ -8,6 +8,14 @@ format.
 
 ## [Unreleased]
 
+### Added
+
+- NVDA walks the controls sample in Chrome over the ARIA adapter in the
+  `screen-readers` workflow, enabling the page's tree through its hidden
+  button as a screen reader user does; `tools/screen_reader/walk.mjs`
+  serves and opens a web sample, and its steps may ask the reader what
+  has the focus (`focus`).
+
 ### Fixed
 
 - ARIA: Tab on the adapter's elements is kept from the browser. The

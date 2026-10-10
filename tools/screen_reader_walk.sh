@@ -17,6 +17,8 @@
 #                     it: xdotool lets one go before the caret's event
 #                     reaches Orca, which then reads Control alone
 #   wait 2            seconds to wait
+#   focus             the reader asked what has the focus, where it has
+#                     such a command (NVDA's); nothing here
 #   expect Notes      a phrase the reader must have said by the end,
 #                     in any case; every screen reader's walk checks it
 #
@@ -78,7 +80,7 @@ dbus-run-session -- bash -c '
           xdotool keydown "$1"; sleep 0.3; xdotool key "$2"; sleep 1.5
           xdotool keyup "$1"; sleep 0.5 ;;
       wait) sleep "$rest" ;;
-      expect) continue ;;
+      expect|focus) continue ;;
       *) echo "unknown step: $verb" >&2 ;;
       esac
       echo "$verb $rest" >>"$WALK_OUT/steps.txt"
