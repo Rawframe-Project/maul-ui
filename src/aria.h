@@ -126,6 +126,9 @@ void muiAriaPerform(muiAriaAdapter* adapter, muiAriaEvent event, uint32_t slot, 
 // The enabling button was pressed, a client acted on an element: called
 // from the page.
 void muiAriaEnableFromPage(muiAriaAdapter* adapter);
+// The enabling button pressed: as muiAriaAdapter_Enable, the DOM focus
+// going on to the program's focused node whether or not the button had it.
+void muiAriaEnablePressed(muiAriaAdapter* adapter);
 void muiAriaEventFromPage(muiAriaAdapter* adapter, int kind, uint32_t slot, double value);
 // Room the page writes a text of length bytes into, which
 // muiAriaTextFromPage takes back; NULL when there is none.

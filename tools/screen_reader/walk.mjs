@@ -106,7 +106,8 @@ async function startWeb(script) {
   });
   const tab = (await browser.pages())[0] ?? (await browser.newPage());
   tab.on("console", (message) => console.log(`page: ${message.text()}`));
-  await tab.goto(`http://127.0.0.1:${server.address().port}/`);
+  // A page on SwiftShader has taken more than Puppeteer's 30 s to load.
+  await tab.goto(`http://127.0.0.1:${server.address().port}/`, { timeout: 120000 });
   const adapter = await tab.evaluate(async () => {
     const found = navigator.gpu ? await navigator.gpu.requestAdapter() : null;
     return found ? `${found.info?.vendor} ${found.info?.architecture} ${found.info?.description}` : "none";

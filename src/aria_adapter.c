@@ -534,18 +534,31 @@ muiResult muiAriaAdapter_SetScale(muiAriaAdapter* adapter, float scale)
     return mui_success;
 }
 
-void muiAriaAdapter_Enable(muiAriaAdapter* adapter)
+// Builds the elements; the DOM focus goes on to the program's focused
+// node when the button had it or was pressed.
+static void Enable(muiAriaAdapter* adapter, bool pressed)
 {
     if (adapter == nullptr || adapter->enabled)
     {
         return;
     }
     adapter->enabled = true;
-    // A screen reader user pressed the button: the focus goes on to the
-    // program's.
     bool focused = muiAriaPageDropButton(adapter->page);
     Restructure(adapter);
-    TellFocus(adapter, focused);
+    TellFocus(adapter, focused || pressed);
+}
+
+void muiAriaAdapter_Enable(muiAriaAdapter* adapter)
+{
+    Enable(adapter, false);
+}
+
+void muiAriaEnablePressed(muiAriaAdapter* adapter)
+{
+    // A screen reader user pressed the button, asking for the program's
+    // elements: a reader in browse mode presses it without focusing it,
+    // and the focus left on the page would not reach them.
+    Enable(adapter, true);
 }
 
 bool muiAriaAdapter_IsEnabled(const muiAriaAdapter* adapter)

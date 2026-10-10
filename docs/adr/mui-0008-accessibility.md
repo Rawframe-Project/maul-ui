@@ -250,8 +250,10 @@ ranges and virtual lists.
   click is the node's click action, or expands or collapses what does
   that without one; a DOM focus the adapter did not give is the focus
   action; a range's input is the set-value action. The program's focus
-  takes the DOM focus only from within the adapter's elements, or from
-  the enabling button, as the canvas needs it for the keys otherwise.
+  takes the DOM focus only from within the adapter's elements, or when
+  the enabling button is pressed (focused or not, as a screen reader in
+  browse mode presses it), as the canvas needs it for the keys
+  otherwise.
   Relations are ARIA id references; a live node's new name is said
   through `ariaNotify`, else a live region emptied after 300 ms; a
   scroll of the host is put back. The test runs in headless Chrome,

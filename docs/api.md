@@ -192,7 +192,7 @@ Sets the CSS pixels per unit, as the host scales its UI, and places the elements
 ```c
 void muiAriaAdapter_Enable(muiAriaAdapter* adapter);
 ```
-Builds the elements, if building was deferred and has not begun, and takes the enabling button away. The button does the same.  @param adapter  The adapter; NULL is ignored. @par Thread safety Main thread only.
+Builds the elements, if building was deferred and has not begun, and takes the enabling button away. The button does the same, and gives the program's focused node the DOM focus.  @param adapter  The adapter; NULL is ignored. @par Thread safety Main thread only.
 
 ```c
 bool muiAriaAdapter_IsEnabled(const muiAriaAdapter* adapter);

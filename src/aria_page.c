@@ -17,7 +17,7 @@
 // The enabling button was pressed.
 EMSCRIPTEN_KEEPALIVE void muiAriaEnableFromPage(muiAriaAdapter* adapter)
 {
-    muiAriaAdapter_Enable(adapter);
+    muiAriaEnablePressed(adapter);
 }
 
 // An element was clicked, focused, or its range set.

@@ -52,6 +52,21 @@ EM_JS(void, FocusOn, (const char* selector), {
     document.querySelector(UTF8ToString(selector)).focus();
 });
 
+EM_JS(void, Blur, (void), {
+    if (document.activeElement) {
+        document.activeElement.blur();
+    }
+});
+
+// A press without the focus, as a screen reader in browse mode makes it;
+// the DOM focus left where it was.
+EM_JS(void, PressUnfocused, (const char* selector), {
+    if (document.activeElement) {
+        document.activeElement.blur();
+    }
+    document.querySelector(UTF8ToString(selector)).click();
+});
+
 // Whether a key pressed on an element was kept from the browser.
 EM_JS(int, KeyKept, (const char* selector, const char* key), {
     const event = new KeyboardEvent("keydown", {key: UTF8ToString(key), bubbles: true,
@@ -352,6 +367,7 @@ static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* ro
     // The focus: outside the elements, the program's does not take the
     // DOM's; a client's focus asked of the host; then the program's moves
     // it, asking nothing.
+    Blur();
     CHECK(IsActive("body"), "the DOM focus outside");
     FocusOn("#mui0-2");
     CHECK(s_asked.action == mui_actionFocus && s_asked.target == 2 && IsActive("#mui0-2"),
@@ -436,6 +452,23 @@ static void TestEnablingFocus(void)
     FocusOn("#host button");
     CHECK(Ask("press #host button") && muiAriaAdapter_IsEnabled(adapter) && IsActive("#mui0-5"),
           "the focus on from the enabling button");
+    muiDestroyAriaAdapter(adapter);
+    // Pressed without the focus, the button gives it to the program's
+    // focused node all the same; enabled by the program, nothing moves.
+    CHECK(muiCreateAriaAdapter(&def, &adapter) == mui_success &&
+              muiAriaAdapter_Apply(adapter, &update) == mui_success,
+          "a third adapter");
+    PressUnfocused("#host button");
+    CHECK(muiAriaAdapter_IsEnabled(adapter) && IsActive("#mui0-5"),
+          "the focus on from a press that did not focus the button");
+    muiDestroyAriaAdapter(adapter);
+    CHECK(muiCreateAriaAdapter(&def, &adapter) == mui_success &&
+              muiAriaAdapter_Apply(adapter, &update) == mui_success,
+          "a fourth adapter");
+    PressUnfocused("body");
+    muiAriaAdapter_Enable(adapter);
+    CHECK(muiAriaAdapter_IsEnabled(adapter) && IsActive("body"),
+          "enabled by the program, the DOM focus left where it was");
     muiDestroyAriaAdapter(adapter);
 }
 
@@ -606,7 +639,8 @@ int main(void)
               !muiAriaAdapter_IsEnabled(adapter),
           "made, deferred");
     CHECK(TreeIs("button \"Enable accessibility\" focusable=true"), "only the enabling button");
-    CHECK(Ask("press #host button") && muiAriaAdapter_IsEnabled(adapter), "pressed");
+    CHECK(Ask("press #host button") && muiAriaAdapter_IsEnabled(adapter) && IsActive("#mui0-2"),
+          "pressed, the focus on to the program's");
     CHECK(
         TreeIs("group \"Main\" | "
                "  button \"OK\" focusable=true | "

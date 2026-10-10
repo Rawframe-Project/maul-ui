@@ -28,6 +28,10 @@ format.
 
 ### Changed
 
+- ARIA: the enabling button, pressed, gives the program's focused node
+  the DOM focus whether or not the button had it. A screen reader in
+  browse mode presses it without focusing it, and the focus left on the
+  page reached neither the program nor the reader's next Tab.
 - `muiContextDef` and `muiTextServiceDef` carry the version of the
   headers the program was built with (`version`, after the cookie), and
   `muiDefaultContextDef` and `muiDefaultTextServiceDef` are `static
