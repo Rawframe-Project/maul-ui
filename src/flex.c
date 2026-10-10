@@ -271,7 +271,10 @@ static float LineBaseline(const muiFlexFrame* frame, uint32_t first, uint32_t co
     return frame->wrapReverse ? line - descent : ascent;
 }
 
-// Section 9.4 step 11: stretched children take their line's cross size.
+// Section 9.4 step 11: stretched children take their line's cross size;
+// in a column that wraps, the others with an automatic width are fitted
+// again with their line's width as the space (CSSWG issue 11784, as
+// Chrome), their heights kept.
 static void Stretch(muiFlexFrame* frame, uint32_t first, uint32_t count)
 {
     float line = ItemOf(frame, first)->lineCross;
@@ -281,14 +284,25 @@ static void Stretch(muiFlexFrame* frame, uint32_t first, uint32_t count)
         const muiLayoutStyle* style = &frame->solver->nodes[c - 1].style;
         muiFlexItemState* item = ItemOf(frame, c);
         muiAxisSizing cross = muiResolveAxis(&style->sizing, !frame->row, frame->extentCross);
+        const muiEdges padding = muiFlexChildPadding(frame, style);
+        float measured = item->cross;
         if (!cross.definite && muiFlexIsStretched(frame, style))
         {
-            const muiEdges padding = muiFlexChildPadding(frame, style);
-            float measured = item->cross;
             item->cross = muiClampSize(line - item->marginCross, item->minCross, item->maxCross,
                                        muiBoxSum(&padding, style, !frame->row));
-            frame->widened = frame->widened || item->cross > measured;
         }
+        else if (!cross.definite && !frame->row && frame->multiLine &&
+                 !IsBaselineAligned(frame, style) && line - item->marginCross > item->cross)
+        {
+            // Fitted to a narrower space, it grows no wider than its line.
+            muiMeasureAxis space = {line - item->marginCross, mui_measureAtMost};
+            muiSizingInput input = muiFlexChildInput(frame, muiExact(item->target), space);
+            input.contentHeight = ColumnContentHeight(frame, style);
+            float size = frame->solver->solve(frame->solver, c, &input, false).width;
+            item->cross = muiClampSize(size, item->minCross, item->maxCross,
+                                       muiBoxSum(&padding, style, true));
+        }
+        frame->widened = frame->widened || item->cross > measured;
     }
 }
 

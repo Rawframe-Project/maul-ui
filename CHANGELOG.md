@@ -8,6 +8,14 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- In a column that wraps, an item with an automatic width that is not
+  stretched is fitted to its line's width, not the column's, its height
+  kept (CSS Flexbox 9.4 step 11, as the CSS Working Group resolved in
+  2025 and Chrome does). An item beside a wider one was as narrow as the
+  column left it.
+
 ## [0.3.0] - 2026-10-10
 
 Text fields in a browser: the ARIA tree's text inputs are real inputs

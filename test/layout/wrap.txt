@@ -142,3 +142,44 @@ node height=100 => 0 0 10 100
     node direction=column-reverse wrap=wrap-reverse => 0 -63 10 13
       node content=10x10 => 0 3 10 10
       node padding=3,7,0,3 => 0 0 10 3
+
+fixture wrap_column_item_fitted_to_its_line available=500x400
+node width=0 direction=column wrap=wrap => 0 0 0 20
+  node width=120 => 0 0 120 0
+  node align-self=start content=80x10*2 => 0 0 120 20
+
+fixture wrap_column_item_fitted_to_its_line_centred available=500x400
+node width=0 direction=column wrap=wrap => 0 0 0 20
+  node width=120 => 0 0 120 0
+  node align-self=center content=80x10*2 => 0 0 120 20
+
+fixture wrap_column_item_fitted_to_its_line_reverse available=500x400
+node width=0 direction=column-reverse wrap=wrap-reverse => 0 0 0 20
+  node width=120 => -120 20 120 0
+  node align-self=start content=80x10*2 => -120 0 120 20
+
+fixture wrap_column_item_fitted_to_its_line_max_content available=500x400
+node width=0 direction=column wrap=wrap => 0 0 0 20
+  node width=200 => 0 0 200 0
+  node align-self=start content=80x10*2 => 0 0 160 20
+
+fixture wrap_column_item_fitted_to_its_line_height_kept available=500x400
+node width=100 height=40 direction=column wrap=wrap => 0 0 100 40
+  node width=50 height=40 => 0 0 50 40
+  node align-self=start content=80x10*4 => 50 0 200 40
+  node width=200 => 50 40 200 0
+
+fixture wrap_column_item_fitted_to_its_line_limits available=500x400
+node width=0 direction=column wrap=wrap => 0 0 0 20
+  node width=120 => 0 0 120 0
+  node align-self=start max-width=100 content=80x10*2 => 0 0 100 20
+
+fixture wrap_column_item_fitted_to_its_line_margins available=500x400
+node width=0 direction=column wrap=wrap => 0 0 0 25
+  node width=120 => 0 0 120 0
+  node align-self=start content=80x10*2 margin=0,5,0,5 => 0 0 115 20
+
+fixture wrap_column_single_line_item_fitted_to_the_column available=500x400
+node width=0 direction=column => 0 0 0 20
+  node width=120 => 0 0 120 0
+  node align-self=start content=80x10*2 => 0 0 80 20
