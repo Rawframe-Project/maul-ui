@@ -233,8 +233,10 @@ ranges and virtual lists.
   A text input whose text the host replaces is a real field, an
   `input` of its type or, multiline, a `textarea`, as only those give
   a browser's editing to screen readers (their caret, echo and
-  braille): the field holds the value, and while it has the DOM focus
-  the program's selection, in UTF-16 units. Its text stays the
+  braille), keeping a search box's, a spin button's or a combo box's
+  role, a number field asking a phone's browser for digits
+  (`inputmode=decimal`): the field holds the value, and while it has
+  the DOM focus the program's selection, in UTF-16 units. Its text stays the
   program's: typed text (`beforeinput`) is kept from the field and
   asked as a replacement of the selection in bytes; a composition shows
   in the field as it runs and is asked for whole at its end; other

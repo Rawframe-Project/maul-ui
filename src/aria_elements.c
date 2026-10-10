@@ -144,6 +144,7 @@ enum
     A_max,
     A_step,
     A_value,
+    A_inputMode,
     A_labelledBy,
     A_describedBy,
     A_controls,
@@ -186,6 +187,7 @@ static const char* const s_names[A_count] = {
     [A_max] = "max",
     [A_step] = "step",
     [A_value] = "value",
+    [A_inputMode] = "inputmode",
     [A_labelledBy] = "aria-labelledby",
     [A_describedBy] = "aria-describedby",
     [A_controls] = "aria-controls",
@@ -244,6 +246,8 @@ const char* muiAriaInputTypeOf(const muiAccessNode* node)
         return "tel";
     case mui_roleUrlInput:
         return "url";
+    case mui_roleSearchInput:
+        return "search";
     default:
         return "text";
     }
@@ -464,9 +468,18 @@ static const char* ValueOf(const muiAriaAdapter* adapter, const muiAccessNode* n
     if (which == A_role)
     {
         // A range input is a slider already; saying so again is harmless.
-        // A field is a text box by its tag, and a password field none.
+        // A field is a text box by its tag, and a password field none
+        // (s_roles has one a text box's); a search box, a spin button or
+        // a combo box says what it is beyond that.
         const char* role = node->role <= MUI_ROLE_LAST ? s_roles[node->role] : "group";
-        return role[0] != '\0' && kind < mui_ariaLine ? role : nullptr;
+        return role[0] != '\0' && (kind < mui_ariaLine || strcmp(role, "textbox") != 0) ? role
+                                                                                        : nullptr;
+    }
+    if (which == A_inputMode)
+    {
+        // A phone's browser shows digits for a number field; the program
+        // still filters what is typed.
+        return kind >= mui_ariaLine && node->role == mui_roleNumberInput ? "decimal" : nullptr;
     }
     if (which == A_value && kind >= mui_ariaLine)
     {

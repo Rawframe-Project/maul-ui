@@ -19,7 +19,8 @@
 // - text fields: inputs and a textarea holding their values, the
 //   program's selection written, typing, a composition and a client's
 //   selection asked of the host in bytes, other edits and caret keys
-//   kept from the browser, a field no longer edited made a div.
+//   kept from the browser, roles beyond a text box's kept, a number
+//   field asking for digits, a field no longer edited made a div.
 // Under Node, with no page, it is skipped.
 
 #include "aria.h"
@@ -534,6 +535,27 @@ static void TestFields(void)
     Compose("#mui0-2", "compositionend", "\xC3\xBC");
     CHECK(AskedText(mui_actionReplaceText, 1, 2, "\xC3\xBC"),
           "asked for whole over the selection it started on");
+    // Roles beyond a text box's kept, each input of its type, a number
+    // field asking for digits.
+    CHECK(AttributeIs("#mui0-4", "role", NULL) && AttributeIs("#mui0-4", "inputmode", NULL),
+          "a password field with no role");
+    secret.role = mui_roleNumberInput;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&secret}, 1, children) &&
+              FieldIs("#mui0-4", "INPUT", "text", NULL) &&
+              AttributeIs("#mui0-4", "role", "spinbutton") &&
+              AttributeIs("#mui0-4", "inputmode", "decimal"),
+          "a number field: a text input, a spin button, asking for digits");
+    secret.role = mui_roleSearchInput;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&secret}, 1, children) &&
+              FieldIs("#mui0-4", "INPUT", "search", NULL) &&
+              AttributeIs("#mui0-4", "role", "searchbox") &&
+              AttributeIs("#mui0-4", "inputmode", NULL),
+          "a search field");
+    secret.role = mui_roleEditableComboBox;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&secret}, 1, children) &&
+              FieldIs("#mui0-4", "INPUT", "text", NULL) &&
+              AttributeIs("#mui0-4", "role", "combobox"),
+          "an editable combo box");
     // No longer edited: a div again.
     name.actions = 1u << mui_actionFocus;
     CHECK(Send(adapter, (const muiAccessNode*[]){&name}, 1, children) &&

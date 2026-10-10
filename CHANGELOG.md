@@ -16,7 +16,9 @@ format.
   serves and opens a web sample, and its steps may ask the reader what
   has the focus (`focus`).
 - The ARIA adapter shows a text input the host edits as a real `input`
-  or `textarea`, holding its value and the program's selection: typed
+  or `textarea` (a search box, a spin button or a combo box keeping its
+  role, a number field asking a phone's browser for digits), holding
+  its value and the program's selection: typed
   text and IME compositions are asked of the host as replacements of
   the selection, and a client's selection as the set-selection action,
   while other edits and caret keys stay the program's.

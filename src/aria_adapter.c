@@ -364,15 +364,18 @@ static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* 
     {
         return;
     }
-    if (muiAriaKindOf(old) != muiAriaKindOf(node))
+    muiAriaKind kind = muiAriaKindOf(node);
+    if (muiAriaKindOf(old) != kind ||
+        (kind == mui_ariaLine && strcmp(muiAriaInputTypeOf(old), muiAriaInputTypeOf(node)) != 0))
     {
-        // Another kind of element: the walk makes it anew.
+        // Another kind of element, or an input of another type: the walk
+        // makes it anew.
         Forget(adapter, slot);
         adapter->reshaped = true;
         return;
     }
     muiAriaWriteAttributes(adapter, slot, old, node);
-    if (muiAriaKindOf(node) >= mui_ariaLine)
+    if (kind >= mui_ariaLine)
     {
         Select(adapter, slot, node);
     }
