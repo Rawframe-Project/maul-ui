@@ -125,15 +125,17 @@ async function startWeb(script) {
   return {
     pid: browser.process().pid,
     // What the page has focused, for steps.txt, with whether the page
-    // has the system's focus and how many elements the ARIA adapter
-    // shows (none before its tree is enabled).
+    // has the system's focus, how many elements the ARIA adapter shows
+    // (none before its tree is enabled) and a field's selection.
     focused: () =>
       tab.evaluate(() => {
         const element = document.activeElement;
         const where = element ? `${element.tagName} ${element.getAttribute("role") ?? ""} ` +
           `"${element.getAttribute("aria-label") ?? element.textContent.slice(0, 30)}"` : "none";
         const shown = document.querySelectorAll("[id^=mui][id*='-']:not([aria-live])").length;
-        return `${where} focus=${document.hasFocus()} elements=${shown}`;
+        const field = element && "selectionStart" in element && element.selectionStart !== null
+          ? ` selection=${element.selectionStart}-${element.selectionEnd}` : "";
+        return `${where} focus=${document.hasFocus()} elements=${shown}${field}`;
       }),
     // Whether the page has the system's focus: its window is the one the
     // reader's keys go to.
