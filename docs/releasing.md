@@ -25,7 +25,11 @@ and before the tag.
    walks a sample with Orca from a file of steps
    (`tools/screen_reader/*.steps`): the sample under Xvfb on a private
    session and accessibility bus, Orca with speech off, and what it
-   would have said written a line each.
+   would have said written a line each. VoiceOver on macOS and NVDA on
+   Windows walk the same steps in the `screen-readers` workflow on
+   every push (`tools/screen_reader/walk.mjs`, through Guidepup); its
+   run on the release commit is the release's, its artifacts what was
+   heard. Every walk checks the phrases its steps file expects.
 3. **Fuzzing**: each fuzz target (`fuzz_*`) runs for at least ten
    minutes from its seed corpus (`tools/fuzz_seed.py`) without a
    finding.

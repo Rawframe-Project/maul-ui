@@ -334,6 +334,13 @@ ranges and virtual lists.
   window with no adapter, Maul Window's test backend's among them,
   keeps the tree alone, which tests read; every cell of a platform with
   an adapter builds the glue and runs those tests.
+- **Heard by screen readers**: the samples, in a window through the
+  glue, are walked with Orca here (`tools/screen_reader_walk.sh`) and
+  with VoiceOver on a macOS runner and NVDA on a Windows runner on
+  every push (`tools/screen_reader/walk.mjs`, through Guidepup), from
+  the same steps files, each walk checking the phrases its file
+  expects: the controls' names and a state, a field's name and the
+  words typed into it.
 
 ## Consequences
 

@@ -15,3 +15,8 @@ type two
 key Up
 key Down
 hold shift Tab
+# Said by Orca, NVDA and VoiceOver alike.
+expect Notes
+expect hello
+expect world
+expect two

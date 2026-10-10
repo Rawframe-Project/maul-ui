@@ -90,6 +90,12 @@ format.
   name; the Android test application is shrunk with it, as a release
   build is.
 
+- The `screen-readers` workflow: VoiceOver on macOS and NVDA on Windows
+  walk the controls and text samples on every push through Guidepup
+  (`tools/screen_reader/walk.mjs`), from the steps files the Orca walk
+  reads; steps files name phrases every reader must say (`expect`),
+  which the Orca walk checks too.
+
 ### Changed
 
 - The Maul Window glue builds on Maul Window 0.13.0 and the text
@@ -118,6 +124,9 @@ format.
 
 ### Fixed
 
+- `maul-ui-rhi` links as C, as maul-ui does: linked with maul-ui's
+  HarfBuzz objects it linked as C++, and Visual Studio's project lost
+  its C standard, so it did not build with ClangCL.
 - A cell, a header, a row, an option, a tree item, a tooltip and a
   heading with no name of their own are named from their content, as
   ARIA 1.2's roles supporting name from content are (accname 1.2, step

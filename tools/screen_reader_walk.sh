@@ -17,6 +17,8 @@
 #                     it: xdotool lets one go before the caret's event
 #                     reaches Orca, which then reads Control alone
 #   wait 2            seconds to wait
+#   expect Notes      a phrase the reader must have said by the end,
+#                     in any case; every screen reader's walk checks it
 #
 # Lines starting with # are skipped. Each key and text waits 1.5 seconds
 # for Orca. The display defaults to :143. Needs Xvfb, dbus-run-session,
@@ -76,6 +78,7 @@ dbus-run-session -- bash -c '
           xdotool keydown "$1"; sleep 0.3; xdotool key "$2"; sleep 1.5
           xdotool keyup "$1"; sleep 0.5 ;;
       wait) sleep "$rest" ;;
+      expect) continue ;;
       *) echo "unknown step: $verb" >&2 ;;
       esac
       echo "$verb $rest" >>"$WALK_OUT/steps.txt"
@@ -95,3 +98,11 @@ dbus-run-session -- bash -c '
 ' 2>/dev/null
 sed -n "s/.*SPEECH OUTPUT: '\(.*\)' {.*/\1/p" "$out/orca-debug.txt" >"$out/speech.txt"
 cat "$out/speech.txt"
+status=0
+while read -r verb phrase; do
+    if [ "$verb" = expect ] && ! grep -qiF -- "$phrase" "$out/speech.txt"; then
+        echo "not said: $phrase" >&2
+        status=1
+    fi
+done <"$steps"
+exit $status
