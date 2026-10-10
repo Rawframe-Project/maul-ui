@@ -59,12 +59,12 @@ const settle = mac || process.argv[2].endsWith(".js") ? 4000 : 2500;
 // The sample's window brought to the front, by its process: a program
 // started from a shell is not activated on macOS, and Windows gives the
 // foreground only to whom the user last worked with.
-function front(pid, title) {
+function front(pid) {
   const [command, args] = mac
     ? ["osascript", ["-e", `tell application "System Events" to set frontmost of ` +
                            `(first process whose unix id is ${pid}) to true`]]
     : ["powershell", ["-NoProfile", "-Command",
-                      `(New-Object -ComObject WScript.Shell).AppActivate(${title ? `'${title}'` : pid})`]];
+                      `(New-Object -ComObject WScript.Shell).AppActivate(${pid})`]];
   const result = spawnSync(command, args, { encoding: "utf8" });
   console.log(`front: ${result.status} ${result.stdout.trim()} ${result.stderr.trim()}`);
 }
@@ -124,7 +124,6 @@ async function startWeb(script) {
   console.log(`page title: ${title}`);
   return {
     pid: browser.process().pid,
-    title,
     // What the page has focused, for steps.txt.
     focused: () =>
       tab.evaluate(() => {
@@ -132,6 +131,9 @@ async function startWeb(script) {
         return element ? `${element.tagName} ${element.getAttribute("role") ?? ""} ` +
           `"${element.getAttribute("aria-label") ?? element.textContent.slice(0, 30)}"` : "none";
       }),
+    // Whether the page has the system's focus: its window is the one the
+    // reader's keys go to.
+    hasFocus: () => tab.evaluate(() => document.hasFocus()),
     tree: async () => JSON.stringify(await tab.accessibility.snapshot()).slice(0, 4000),
     stop: async () => {
       await browser.close();
@@ -154,8 +156,19 @@ if (!web) {
   await reader.start({ capture: true });
 }
 await sleep(2000);
-front(app.pid, web ? app.title : null);
+// The browser's window by its process, as the sample's: by its title
+// Windows never found it, and a walk whose keys went to another window
+// heard nothing. A page is asked whether it has the focus, again until it
+// does.
+front(app.pid);
 await sleep(3000);
+for (let tries = 0; web && tries < 5 && !(await app.hasFocus()); tries++) {
+  front(app.pid);
+  await sleep(2000);
+}
+if (web) {
+  console.log(`page focused: ${await app.hasFocus()}`);
+}
 const told = [];
 const expected = [];
 let said = 0;
