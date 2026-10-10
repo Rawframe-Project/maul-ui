@@ -577,3 +577,36 @@ node => 0 0 120 60
       node height=25% aspect=2 => 0 0 120 60
         node => 0 0 120 60
           node content=30x40*4 => 0 0 120 60
+
+fixture ratio_column_item_width_from_its_flexed_height available=500x400
+node height=60 direction=column => 0 0 80 60
+  node min-height=25% align-self=center aspect=1 content=80x20 => 10 0 60 60
+
+fixture ratio_column_item_width_from_its_flexed_height_basis available=500x400
+node direction=column => 0 0 80 50
+  node basis=50 min-height=0 align-self=center aspect=1 content=80x20 => 15 0 50 50
+
+fixture ratio_column_item_width_from_its_flexed_height_minimum available=500x400
+node height=60 direction=column => 0 0 80 60
+  node min-height=0 align-self=center aspect=1 min-width=70 content=80x20 => 5 0 70 60
+
+fixture ratio_column_item_width_from_its_flexed_height_padding available=500x400
+node height=60 direction=column => 0 0 100 60
+  node min-height=0 align-self=center aspect=1 padding=10 content=80x20 => 20 0 60 60
+
+fixture ratio_column_item_width_from_its_flexed_height_children available=500x400
+node height=60 direction=column => 0 0 80 60
+  node min-height=0 align-self=center aspect=1 => 10 0 60 60
+    node width=80 height=20 => 0 0 60 20
+
+fixture ratio_column_item_width_from_its_flexed_height_words available=500x400
+node height=60 direction=column => 0 0 240 60
+  node min-height=0 align-self=center aspect=1 content=80x20*3 => 90 0 60 60
+
+fixture ratio_column_item_width_floor_under_its_given_height available=500x400
+node height=60 direction=column => 0 0 100 60
+  node height=100 min-height=0 align-self=center aspect=1 content=80x20 => 10 0 80 60
+
+fixture ratio_absolute_width_floor_between_insets available=500x400
+node width=200 height=60 => 0 0 200 60
+  node position=absolute start=0 top=0 bottom=0 aspect=1 content=80x20 => 0 0 80 80

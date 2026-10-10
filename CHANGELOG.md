@@ -15,6 +15,11 @@ format.
   kept (CSS Flexbox 9.4 step 11, as the CSS Working Group resolved in
   2025 and Chrome does). An item beside a wider one was as narrow as the
   column left it.
+- An item with an aspect ratio and no height of its own, shrunk or
+  given its basis in a column, takes its width from that height through
+  the ratio, within its width limits, as Chrome does; its content's
+  min-content width no longer holds it wider. A height its style gives,
+  or an absolute box's, keeps the content as its width's floor.
 
 ## [0.3.0] - 2026-10-10
 

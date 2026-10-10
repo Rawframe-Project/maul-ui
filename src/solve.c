@@ -339,10 +339,16 @@ static muiMeasureAxis RatioAxis(const muiSolver* solver, uint32_t node, const mu
         if (horizontal && !height.definite)
         {
             // A width's floor is capped by the height's maximum through
-            // the ratio, a height not given (as Chrome; a height's floor
-            // is not capped by the width's).
+            // the ratio, a height not given, and by the height a column's
+            // flexing fixes, not an absolute box's insets (as Chrome; a
+            // height's floor is not capped by the width's).
             float box = muiBoxSum(&solver->paddings[node - 1], style, false);
-            floor = fminf(floor, muiAxisCeiling(&height, box) * style->sizing.aspectRatio);
+            float ceiling = muiAxisCeiling(&height, box);
+            if (input->height.mode == mui_measureExact && !solver->nodes[node - 1].absolute)
+            {
+                ceiling = fminf(ceiling, input->height.size);
+            }
+            floor = fminf(floor, ceiling * style->sizing.aspectRatio);
         }
         size = fmaxf(size, floor);
     }
