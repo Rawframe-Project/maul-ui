@@ -374,7 +374,7 @@ static void DistributeLines(const muiFlexFrame* frame, float used)
 // item's contribution, its width with its height left open, as Chrome
 // sizes it, not as wide as its items are at their flexed heights; a
 // wrapping column's other widths are its lines'.
-static float ColumnContribution(const muiFlexFrame* frame)
+static float ColumnContribution(const muiFlexFrame* frame, bool narrowest)
 {
     float widest = 0.0f;
     for (uint32_t c = muiFirstFlowChild(frame->solver->tree, frame->solver->nodes, frame->node);
@@ -384,6 +384,10 @@ static float ColumnContribution(const muiFlexFrame* frame)
         const muiFlexItemState* item = ItemOf(frame, c);
         muiAxisSizing cross = muiResolveAxis(&style->sizing, true, frame->extentCross);
         muiMeasureAxis constraint = muiFlexCrossConstraint(frame, style, &cross, false);
+        if (narrowest && !cross.definite)
+        {
+            constraint = (muiMeasureAxis){0.0f, mui_measureMinContent};
+        }
         // A height the item's style gives is its own, open otherwise.
         muiAxisSizing main = muiResolveAxis(&style->sizing, false, frame->extentMain);
         const muiEdges padding = muiFlexChildPadding(frame, style);
@@ -414,7 +418,14 @@ static void SizeCross(muiFlexFrame* frame)
     if (!frame->row && frame->crossIn.mode != mui_measureExact &&
         (!frame->multiLine || frame->crossIn.mode == mui_measureMinContent))
     {
-        total = ColumnContribution(frame);
+        total = ColumnContribution(frame, false);
+    }
+    else if (!frame->row && frame->crossIn.mode == mui_measureAtMost)
+    {
+        // A wrapping column fits the space it is given, no narrower than
+        // its min-content width (CSS Sizing 3 fit-content).
+        float space = fmaxf(frame->crossIn.size - frame->boxCross, 0.0f);
+        total = total > space ? fmaxf(space, ColumnContribution(frame, true)) : total;
     }
     if (frame->crossIn.mode != mui_measureExact)
     {
