@@ -24,12 +24,12 @@ generated from the headers.
 
 ## Status
 
-0.1.0 is the current release, the first. Every part above is in
-place: the node tree, flex layout checked against Chrome, style, the
-text service with font fallback and editing, interaction,
-virtualization and popups, the accessibility tree with its six
-platform adapters, the reference renderer on Maul RHI and the glue to
-Maul Window. Its known issues are in the changelog.
+0.2.0 is the current release. Every part above is in place: the node
+tree, flex layout checked against Chrome, style, the text service with
+font fallback and editing, interaction, virtualization and popups, the
+accessibility tree with its six platform adapters, each reading and
+editing text, the reference renderer on Maul RHI and the glue to Maul
+Window. Its known issues are in the changelog.
 
 ## Building
 

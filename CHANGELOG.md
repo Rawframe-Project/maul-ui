@@ -8,6 +8,18 @@ format.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-10
+
+Text for assistive technology on every platform: a field's selection,
+lines, words and where its characters are, read through each adapter's
+text interface, and screen readers' edits applied as a paste; VoiceOver
+and NVDA walking the samples in CI beside Orca; Maul Window 0.13.0 and
+Maul Unicode 0.3.0. Known issues: Orca 46 does not announce the first
+focus in a window that opens with nothing focused; TalkBack, VoiceOver
+on iOS and a browser's screen reader have not walked the samples, their
+adapters being tested against the platforms' interfaces in the
+emulator, the simulator and headless Chrome.
+
 ### Added
 
 - `tools/screen_reader_walk.sh`: a sample walked with Orca from a file
