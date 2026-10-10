@@ -44,9 +44,11 @@ format.
 
 ### Fixed
 
-- Layout: host content in a node with a maximum width is measured within
-  it. A column item with `max-width` holding text took the height of the
-  text on fewer lines than it showed, measured at the column's width.
+- Layout: host content is measured at the width its node ends at, within
+  its maximum width and at least its minimum one. A column item with
+  `max-width` (or a `min-width` above the space it was offered) holding
+  text took the height of the text on other lines than it showed,
+  measured at the column's width.
 - Layout: a column sizing an item across lays it out at a height its
   content gave as the final layout does, indefinite. A ratio item
   stretched in such a row took a width from that height, and a

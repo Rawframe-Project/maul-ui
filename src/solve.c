@@ -150,13 +150,17 @@ static muiSize SizeLeaf(const muiSolver* solver, uint32_t node, const muiSizingI
     }
     if (style->content == mui_contentHost && solver->measure != nullptr && !decided)
     {
-        // The content is laid out within the node's maximum width, as the
-        // width it ends at: text measured wider would keep the height of
-        // fewer lines than it shows.
+        // The content is laid out within the width the node ends at, which
+        // its minimum floors and its maximum caps: text measured in other
+        // space would keep the height of other lines than it shows.
         muiMeasureAxis across = input->width;
-        float cap = fmaxf(fmaxf(width.maximum, width.minimum), boxWidth);
-        if (cap < INFINITY && (across.mode == mui_measureMaxContent ||
-                               (across.mode == mui_measureAtMost && across.size > cap)))
+        float floor = fmaxf(width.minimum, boxWidth);
+        float cap = fmaxf(width.maximum, floor);
+        if (across.mode == mui_measureAtMost)
+        {
+            across.size = fminf(fmaxf(across.size, floor), cap);
+        }
+        else if (across.mode == mui_measureMaxContent && cap < INFINITY)
         {
             across = (muiMeasureAxis){cap, mui_measureAtMost};
         }

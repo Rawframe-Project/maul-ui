@@ -99,3 +99,11 @@ node => 0 0 0 80
       node => 0 0 0 80
         node direction=column => 0 0 0 80
           node max-width=0 content=50x16*5 => 0 0 0 80
+
+# Its minimum width too: words break at the width the item ends at, not
+# the space it was offered (random seed 37, words, 281, reduced).
+fixture words_column_item_min_width available=500x400
+node => 0 0 80 30
+  node width=80 => 0 0 80 30
+    node width=75% direction=column-reverse align-items=center => 0 0 60 30
+      node min-width=150 content=50x10*7 => -45 0 150 30
