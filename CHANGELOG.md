@@ -32,6 +32,9 @@ format.
   inline` in the headers, so the program builds them and they stamp its
   version, not the library's. Source compatible; a def built field by
   field must set `version` to `MUI_DEF_VERSION`.
+- The reference renderer builds against Maul RHI 0.7.0 (contract
+  version 5), whose default instance def is built in the program: a
+  program using `maul-ui-rhi` rebuilds against 0.7.0's headers.
 
 ### Fixed
 

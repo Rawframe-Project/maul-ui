@@ -706,8 +706,8 @@ static void TestDepthPipelines(void)
     bool handedFirst = false;
     for (uint32_t i = 0; i < count; i++)
     {
-        if (records[i].requestId.index1 == first.index1 &&
-            records[i].requestId.generation == first.generation)
+        if (records[i].request.index1 == first.index1 &&
+            records[i].request.generation == first.generation)
         {
             handedFirst = muiRhiRenderer_Notify(renderer, &records[i]);
         }
@@ -716,7 +716,7 @@ static void TestDepthPipelines(void)
     int others = 0;
     for (uint32_t i = 0; i < count; i++)
     {
-        others += records[i].requestId.index1 != first.index1 &&
+        others += records[i].request.index1 != first.index1 &&
                           muiRhiRenderer_Notify(renderer, &records[i])
                       ? 1
                       : 0;

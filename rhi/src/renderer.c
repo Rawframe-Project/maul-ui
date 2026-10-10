@@ -262,8 +262,8 @@ bool muiRhiRenderer_Notify(muiRhiRenderer* renderer, const mrhiDeviceNotificatio
     }
     for (uint32_t i = 0; i < renderer->pipelineCount; i++)
     {
-        if (notification->requestId.index1 == renderer->requests[i].index1 &&
-            notification->requestId.generation == renderer->requests[i].generation)
+        if (notification->request.index1 == renderer->requests[i].index1 &&
+            notification->request.generation == renderer->requests[i].generation)
         {
             renderer->readied[i] = notification->outcome == mrhi_success;
             renderer->ready =
