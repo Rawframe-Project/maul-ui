@@ -81,3 +81,21 @@ node width=60 aspect=2 border=10 content=30x20*2 => 0 0 60 60
 fixture words_ratio_item_minimum_counts_lines available=500x400
 node width=40 align-items=start => 0 0 40 112
   node aspect=2 content=80x16*7 => 0 0 80 112
+
+# A column item's maximum width is the width its words break at (random
+# seed 36, deep, 217 and 282, reduced).
+fixture words_column_item_max_width available=500x400
+node => 0 0 10 320
+  node => 0 0 10 320
+    node => 0 0 10 320
+      node => 0 0 10 320
+        node direction=column => 0 0 10 320
+          node max-width=10 content=50x40*8 => 0 0 10 320
+
+fixture words_column_item_max_width_zero available=500x400
+node => 0 0 0 80
+  node => 0 0 0 80
+    node => 0 0 0 80
+      node => 0 0 0 80
+        node direction=column => 0 0 0 80
+          node max-width=0 content=50x16*5 => 0 0 0 80

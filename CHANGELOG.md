@@ -40,6 +40,9 @@ format.
 
 ### Fixed
 
+- Layout: host content in a node with a maximum width is measured within
+  it. A column item with `max-width` holding text took the height of the
+  text on fewer lines than it showed, measured at the column's width.
 - ARIA: Tab on the adapter's elements is kept from the browser. The
   program moves its focus and the elements follow it, but the browser
   moved the DOM focus too, out of the elements, which are not in the
