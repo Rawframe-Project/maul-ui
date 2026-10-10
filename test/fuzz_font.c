@@ -152,7 +152,10 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     fontDef.size = size;
     muiFontId font = {0, 0};
     muiResult created = muiCreateFont(service, &fontDef, &font);
-    Expect(created == mui_success || created == mui_errorFormat || created == mui_errorCapacity);
+    // A size under a font's 12-byte header is out of the def's range, not
+    // a malformed font (muiCreateFont's contract).
+    Expect(created == mui_success || created == mui_errorFormat || created == mui_errorCapacity ||
+           (size < 12 && created == mui_errorInvalid));
     if (created == mui_success)
     {
         muiFontMetrics metrics;
