@@ -608,6 +608,41 @@ static void TestSafeAreaSizeFollowsDirection(void)
     muiDestroyContext(context);
 }
 
+// A row 40 wide with a ratio of 2, stretched in a row, holding a child
+// 50% high and one 60 high: its content grows it to 60, and the line
+// stretches it there, so the 50% is 30, as in Firefox (Chrome reads it
+// against the ratio's 20). Not stretched, it is 10 in both.
+static void TestStretchedRatioRowResolvesAgainstItsHeight(void)
+{
+    for (int stretched = 0; stretched < 2; stretched++)
+    {
+        muiContext* context = MakeContext();
+        muiLayoutStyle outer = muiDefaultLayoutStyle();
+        outer.container.alignItems = stretched ? mui_alignStretch : mui_alignStart;
+        muiNodeId root = MakeNode(context, &outer);
+        muiLayoutStyle ratio = muiDefaultLayoutStyle();
+        ratio.sizing.width = Length(40.0f);
+        ratio.sizing.aspectRatio = 2.0f;
+        muiNodeId box = MakeNode(context, &ratio);
+        CHECK(muiNode_InsertChild(context, root, box, s_null) == mui_success, "box");
+        muiLayoutStyle half = muiDefaultLayoutStyle();
+        half.sizing.height = (muiDimension){0.5f, 0.0f, mui_dimensionValue};
+        muiNodeId child = MakeNode(context, &half);
+        CHECK(muiNode_InsertChild(context, box, child, s_null) == mui_success, "child");
+        muiLayoutStyle tall = muiDefaultLayoutStyle();
+        tall.sizing.height = Length(60.0f);
+        muiNodeId sibling = MakeNode(context, &tall);
+        CHECK(muiNode_InsertChild(context, box, sibling, s_null) == mui_success, "sibling");
+        Host host = {0};
+        muiLayoutInput input = Input(&host);
+        CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+        CHECK(muiNode_GetRect(context, box).height == 60.0f, "grown to its content");
+        CHECK(muiNode_GetRect(context, child).height == (stretched ? 30.0f : 10.0f),
+              "against its height stretched, else its ratio's");
+        muiDestroyContext(context);
+    }
+}
+
 static void TestRectOfUnknownNodeIsZero(void)
 {
     muiContext* context = MakeContext();
@@ -637,6 +672,7 @@ int main(void)
     TestDirectionChangeReachesInheritingDescendants();
     TestSafeArea();
     TestSafeAreaSizeFollowsDirection();
+    TestStretchedRatioRowResolvesAgainstItsHeight();
     TestRectOfUnknownNodeIsZero();
     return s_failures == 0 ? 0 : 1;
 }

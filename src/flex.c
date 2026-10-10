@@ -131,6 +131,16 @@ static muiFlexFrame Setup(const muiSolver* solver, uint32_t node, const muiSizin
         frame.innerCross = fmaxf(frame.crossIn.size - frame.boxCross, 0.0f);
         frame.extentCross = crossDefinite ? frame.innerCross : -1.0f;
     }
+    if (input->ratioPercent && input->width.mode == mui_measureExact)
+    {
+        // Percentages resolve against the ratio's height, not the one its
+        // content grew it to.
+        muiAxisSizing height = muiResolveAxis(&style->sizing, false, input->parentHeight);
+        float box = frame.row ? frame.boxCross : frame.boxMain;
+        float ratioHeight = muiClampSize(input->width.size / style->sizing.aspectRatio,
+                                         height.minimum, height.maximum, box);
+        *(frame.row ? &frame.extentCross : &frame.extentMain) = fmaxf(ratioHeight - box, 0.0f);
+    }
     return frame;
 }
 
@@ -290,6 +300,7 @@ static void Stretch(muiFlexFrame* frame, uint32_t first, uint32_t count)
         {
             item->cross = muiClampSize(line - item->marginCross, item->minCross, item->maxCross,
                                        muiBoxSum(&padding, style, !frame->row));
+            item->resized = item->cross != measured;
         }
         else if (!cross.definite && !frame->row && frame->multiLine &&
                  !IsBaselineAligned(frame, style) && line - item->marginCross > item->cross)
@@ -480,9 +491,17 @@ static muiSizingInput FinalInput(const muiFlexFrame* frame, uint32_t child)
     // replaces (both as in Chrome). Otherwise it is its content's.
     if (frame->row)
     {
-        input.contentHeight = !muiFlexIsStretched(frame, style) &&
-                              style->sizing.aspectRatio <= 0.0f &&
-                              !muiResolveAxis(&style->sizing, false, frame->extentCross).definite;
+        bool given = muiResolveAxis(&style->sizing, false, frame->extentCross).definite;
+        input.contentHeight =
+            !muiFlexIsStretched(frame, style) && style->sizing.aspectRatio <= 0.0f && !given;
+        // Its ratio's height holds its percentages unless stretched: a
+        // row always, as Firefox; a column when stretching resized it,
+        // laid out again at that size (section 9.4 step 11, as Chrome).
+        muiFlexDirection direction = style->container.direction;
+        bool column = direction == mui_flexColumn || direction == mui_flexColumnReverse;
+        input.ratioPercent =
+            style->sizing.aspectRatio > 0.0f && !given &&
+            (!muiFlexIsStretched(frame, style) || (column && !ItemOf(frame, child)->resized));
     }
     else
     {

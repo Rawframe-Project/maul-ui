@@ -101,6 +101,7 @@ static const muiCacheEntry* FindCached(const muiSolver* solver, uint32_t node,
         if (entry->valid && sameExtents && entry->input.rtl == input->rtl &&
             entry->input.contentHeight == input->contentHeight &&
             entry->input.contentOnly == input->contentOnly &&
+            entry->input.ratioPercent == input->ratioPercent &&
             AxisAnswers(input->width, entry->input.width, entry->size.width, (loose & 1u) != 0) &&
             AxisAnswers(input->height, entry->input.height, entry->size.height, (loose & 2u) != 0))
         {
@@ -307,7 +308,10 @@ static float RatioContentHeight(const muiSolver* solver, uint32_t node, const mu
     if (muiTreeAt(solver->tree, node)->links.firstChild == 0 ||
         (direction != mui_flexRow && direction != mui_flexRowReverse))
     {
-        return ContentSize(solver, node, input, false);
+        // Its items' percentages against the ratio's height.
+        muiSizingInput probe = *input;
+        probe.ratioPercent = true;
+        return ContentSize(solver, node, &probe, false);
     }
     // A row laid out at the ratio's height, definite for its items.
     muiSizingInput probe = *input;
@@ -477,6 +481,7 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
         MUI_ASSERT(input->width.mode == mui_measureExact && input->height.mode == mui_measureExact);
         if (cache->finalValid && cache->finalRtl == input->rtl &&
             cache->finalContentHeight == input->contentHeight &&
+            cache->finalRatioPercent == input->ratioPercent &&
             cache->finalSize.width == input->width.size &&
             cache->finalSize.height == input->height.size)
         {
@@ -521,6 +526,7 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
         cache->finalValid = true;
         cache->finalRtl = input->rtl;
         cache->finalContentHeight = input->contentHeight;
+        cache->finalRatioPercent = input->ratioPercent;
         cache->finalSize = size;
         Published(solver, node, size, own.rtl);
     }

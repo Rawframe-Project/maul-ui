@@ -635,3 +635,110 @@ fixture ratio_wrapping_column_item_percentage_basis_over_its_height_minimum avai
 node width=100 direction=column wrap=wrap => 0 0 100 50
   node aspect=1 height=30 basis=25% min-width=50 align-self=start => 0 0 50 50
 
+
+
+fixture ratio_percent_against_ratio_height_not_stretched available=500x400
+node align-items=start => 0 0 40 60
+  node width=40 aspect=2 => 0 0 40 60
+    node height=50% => 0 0 0 10
+    node height=60 => 0 0 0 60
+
+fixture ratio_percent_against_height_flexed_in_column available=500x400
+node direction=column => 0 0 40 60
+  node width=40 aspect=2 => 0 0 40 60
+    node height=50% => 0 0 0 30
+    node height=60 => 0 0 0 60
+
+fixture ratio_percent_column_stretched_to_its_own_floor available=500x400
+node => 0 0 40 70
+  node width=40 aspect=2 direction=column => 0 0 40 70
+    node height=50% => 0 0 40 10
+    node height=60 => 0 10 40 60
+
+fixture ratio_percent_stretched_to_a_definite_line available=500x400
+node height=100 => 0 0 40 100
+  node width=40 aspect=2 => 0 0 40 100
+    node height=50% => 0 0 0 50
+    node height=60 => 0 0 0 60
+
+fixture ratio_percent_against_ratio_height_root available=500x400
+node width=40 aspect=2 => 0 0 40 60
+  node height=50% => 0 0 0 10
+  node height=60 => 0 0 0 60
+
+fixture ratio_percent_flexed_in_column_stretched_across available=500x400
+node direction=column align-items=stretch => 0 0 0 60
+  node aspect=2 => 0 0 0 60
+    node height=50% => 0 0 0 30
+    node height=60 => 0 0 0 60
+
+fixture ratio_percent_column_flexed_in_column available=500x400
+node direction=column => 0 0 40 60
+  node width=40 aspect=2 direction=column => 0 0 40 60
+    node height=50% => 0 0 40 20
+    node height=60 => 0 20 40 40
+
+fixture ratio_percent_flexed_in_column_aligned_start available=500x400
+node direction=column align-items=start => 0 0 40 60
+  node width=40 aspect=2 => 0 0 40 60
+    node height=50% => 0 0 0 30
+    node height=60 => 0 0 0 60
+
+fixture ratio_percent_flexed_in_column_auto_margins available=500x400
+node direction=column => 0 0 40 60
+  node width=40 aspect=2 margin=0,auto,0,auto => 0 0 40 60
+    node height=50% => 0 0 0 30
+    node height=60 => 0 0 0 60
+
+fixture ratio_percent_against_ratio_height_absolute available=500x400
+node width=200 height=200 => 0 0 200 200
+  node position=absolute width=40 aspect=2 => 0 0 40 60
+    node height=50% => 0 0 0 10
+    node height=60 => 0 0 0 60
+
+fixture ratio_percent_against_ratio_height_auto_margins available=500x400
+node => 0 0 40 60
+  node width=40 aspect=2 margin=auto,0,auto,0 => 0 0 40 60
+    node height=50% => 0 0 0 10
+    node height=60 => 0 0 0 60
+
+fixture ratio_percent_minimum_given available=500x400
+node => 0 0 40 20
+  node width=40 aspect=2 min-height=10 => 0 0 40 20
+    node height=50% => 0 0 0 10
+    node height=60 => 0 0 0 60
+
+fixture ratio_percent_child_beside_a_taller_one available=500x400
+node => 0 0 5 120
+  node => 0 0 5 120
+    node => 0 0 5 120
+      node => 0 0 5 120
+        node aspect=2 margin=auto,5,auto,0 => 0 0 0 120
+          node height=120 => 0 0 0 120
+          node height=50%-5 => 0 0 0 0
+
+fixture ratio_percent_column_child_at_full_height available=500x400
+node => 0 0 400 203
+  node => 0 0 400 203
+    node => 0 0 406 203
+      node => 0 0 406 203
+        node aspect=2 direction=column => 0 0 406 203
+          node height=100% margin=0,0,0,3 content=80x10*5 => 0 0 406 200
+
+fixture ratio_percent_column_reverse_grown available=500x400
+node aspect=0.5 direction=column-reverse => 0 0 20 70
+  node height=100%-10 => 0 40 20 30
+  node content=20x40 => 0 0 20 40
+
+fixture ratio_percent_column_stretched_past_its_floor available=500x400
+node => 0 0 300 10
+  node align-self=baseline => 0 0 300 10
+    node aspect=2 direction=column-reverse => 0 0 0 10
+      node height=25% => 0 7.5 0 2.5
+    node content=50x10*6 => 0 0 300 10
+
+fixture ratio_percent_column_stretched_below_its_ratio available=500x400
+node align-items=start => 0 0 120 60
+  node max-height=60 => 0 0 120 60
+    node aspect=0.5 direction=column => 0 0 120 60
+      node width=120 height=75%+10 => 0 0 120 55
