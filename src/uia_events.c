@@ -3,7 +3,9 @@
 //
 // The UI Automation adapter's events (record mui-0008): what applying an
 // update changed, raised while the tree holds all of it and only when a
-// client listens. Focus moving raises the focus event; a node updated
+// client listens. Focus moving raises the focus event, before the other
+// events of the update, as native controls raise it before the caret of
+// the field they focus; a node updated
 // raises a property change for each property whose value differs from
 // the record it replaced; a live region's text changing raises the live
 // region event.
@@ -157,6 +159,7 @@ static bool SelectionMoved(const muiAccessNode* old, const muiAccessNode* now)
 void muiUiaUpdated(void* user, const muiAccessTree* tree, const muiAccessNode* old)
 {
     muiUiaAdapter* adapter = user;
+    muiUiaTellFocus(adapter);
     const muiAccessNode* now = muiAccessTree_Find(tree, old->id);
     if (!adapter->listening || now == nullptr || !muiAccessTree_IsShown(tree, now->id))
     {
@@ -196,6 +199,7 @@ void muiUiaUpdated(void* user, const muiAccessTree* tree, const muiAccessNode* o
 void muiUiaAdded(void* user, const muiAccessTree* tree, uint64_t id)
 {
     muiUiaAdapter* adapter = user;
+    muiUiaTellFocus(adapter);
     const muiAccessNode* node = muiAccessTree_Find(tree, id);
     if (adapter->listening && node != nullptr && node->values.live != mui_liveOff &&
         node->text[NameKindOf(node)] != nullptr && muiAccessTree_IsShown(tree, id))

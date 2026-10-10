@@ -28,6 +28,10 @@ format.
 
 ### Changed
 
+- UI Automation: the focus event is raised before the other events of
+  the same update, as native controls raise it before the caret of the
+  field they focus. A field's selection event went first, and NVDA now
+  and then said nothing of the field Tab moved to.
 - ARIA: the enabling button, pressed, gives the program's focused node
   the DOM focus whether or not the button had it. A screen reader in
   browse mode presses it without focusing it, and the focus left on the
