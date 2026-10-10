@@ -4,7 +4,9 @@
 # deleted, the reader asked what has the focus as the walk reaches it.
 key b
 key Return
-wait 3
+# The page builds its elements and the reader reads them anew: on the
+# runner's SwiftShader the first control's focus was lost under 3 s.
+wait 10
 key Tab
 key Tab
 focus
