@@ -10,16 +10,17 @@ format.
 
 ## [0.4.0] - 2026-10-11
 
-Layout closer to the browsers: wrapping columns sized as the current
-CSS Flexbox text, Chrome and Firefox size them, and boxes whose height
-an aspect ratio gives resolving percentages and breaking lines where
-both engines do; and the ARIA adapter for programs built without
-Emscripten. Where Chrome and Firefox part, the library takes the reading
-the specification gives (a row stretched in a row resolves its
-children's percentages against its stretched height, as Firefox does). Known issues: as in 0.3.0, TalkBack and
-VoiceOver on iOS have not walked the samples; Orca 46 does not announce
-the first focus in a window that opens with nothing focused; NVDA reads
-some caret moves late in CI, so a walk may pass on a retry.
+Layout closer to the browsers: wrapping columns sized as the current CSS
+Flexbox text, Chrome and Firefox size them, and boxes whose height an
+aspect ratio gives resolving percentages and breaking lines where both
+engines do; and the ARIA adapter for programs built without Emscripten.
+Where Chrome and Firefox part, the library takes the reading the
+specification gives (a row stretched in a row resolves its children's
+percentages against its stretched height, as Firefox does). Known
+issues: as in 0.3.0, TalkBack and VoiceOver on iOS have not walked the
+samples; Orca 46 does not announce the first focus in a window that
+opens with nothing focused; NVDA reads some caret moves late in CI, so a
+walk may pass on a retry.
 
 ### Added
 
