@@ -550,3 +550,30 @@ fixture ratio_column_floor_holds_capped_item available=500x400
 node => 0 0 10 10
   node aspect=1.5 direction=column-reverse wrap=wrap-reverse => 0 0 10 10
     node max-height=10 aspect=1 content=50x10 => 0 0 10 10
+
+# A row's height its content gave is indefinite while a column sizes it
+# across, as when it is laid out (I87): a ratio item stretched to it
+# takes no width from it, nor a percentage height a base (random seed 36,
+# deep, 244, 11 and 66, reduced).
+fixture ratio_stretched_in_content_row_across available=500x400
+node => 0 0 10 3
+  node align-self=baseline direction=column align-items=start => 0 0 10 3
+    node => 0 0 10 3
+      node aspect=0.5 => 0 0 0 3
+      node padding=7,3,0,3 => 0 0 10 3
+
+fixture ratio_stretched_in_content_row_auto_margin available=500x400
+node => 0 0 4 9
+  node => 0 0 4 9
+    node align-self=start direction=column-reverse => 0 0 4 9
+      node margin=auto,0,0,5 => 0 0 4 4
+        node aspect=1.5 => 0 0 0 4
+        node border=2 => 0 0 4 4
+
+fixture ratio_percentage_height_in_content_column available=500x400
+node => 0 0 120 60
+  node align-self=baseline direction=column => 0 0 120 60
+    node align-self=start => 0 0 120 60
+      node height=25% aspect=2 => 0 0 120 60
+        node => 0 0 120 60
+          node content=30x40*4 => 0 0 120 60

@@ -43,6 +43,10 @@ format.
 - Layout: host content in a node with a maximum width is measured within
   it. A column item with `max-width` holding text took the height of the
   text on fewer lines than it showed, measured at the column's width.
+- Layout: a column sizing an item across lays it out at a height its
+  content gave as the final layout does, indefinite. A ratio item
+  stretched in such a row took a width from that height, and a
+  percentage height inside resolved against it, widening the row.
 - ARIA: Tab on the adapter's elements is kept from the browser. The
   program moves its focus and the elements follow it, but the browser
   moved the DOM focus too, out of the elements, which are not in the
