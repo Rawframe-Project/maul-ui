@@ -13,3 +13,4 @@ are listed in [README.md](README.md).
 | [mui-0006](mui-0006-text-service.md) | The text service | Accepted |
 | [mui-0007](mui-0007-interaction.md) | Interaction | Accepted |
 | [mui-0008](mui-0008-accessibility.md) | Accessibility | Accepted |
+| [mui-0009](mui-0009-web-without-emscripten.md) | The web without Emscripten | Accepted |

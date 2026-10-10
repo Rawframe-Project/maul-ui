@@ -61,7 +61,8 @@ android_text: access_text allocator android
 aria: id_map
 aria_adapter: access_text allocator aria
 aria_elements: access_text aria chars
-aria_page: allocator aria
+web_js:
+aria_page: allocator aria web_js
 atspi: dbus_api id_map
 ns: id_map
 ns_adapter: access_record allocator ns

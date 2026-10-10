@@ -370,6 +370,37 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure --timeout 240
 
+  web-wasi:
+    # The web without Emscripten (mui-0009): Clang's wasm32-wasi, every
+    # test under Node's WASI and the ARIA test in headless Chrome. The
+    # text component is left out: FreeType needs setjmp, which wasi-libc
+    # as packaged lacks, and a host building it supplies its own.
+    name: web-wasi
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Toolchain
+        timeout-minutes: 15
+        run: |
+          sudo apt-get $APT_OPTIONS update -q
+          sudo apt-get $APT_OPTIONS install -y -q --no-install-recommends clang-20 lld-20 wasi-libc \
+            libclang-rt-20-dev-wasm32
+      - name: Configure
+        run: >
+          cmake -B build -DCMAKE_TOOLCHAIN_FILE=cmake/wasm32-wasi.cmake -DCMAKE_C_COMPILER=clang-20
+          -DCMAKE_BUILD_TYPE=Release -D${PREFIX}_WERROR=ON -D${PREFIX}_TEXT=OFF
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Install Puppeteer and its headless Chrome
+        run: npm install --prefix /tmp/browser puppeteer
+      - name: Test
+        # A skipped test fails the step: the ARIA test without a browser
+        # would otherwise pass with nothing tested.
+        run: |
+          set -o pipefail
+          MUI_NODE_MODULES=/tmp/browser/node_modules ctest --test-dir build --output-on-failure --timeout 300 2>&1 | tee ctest.log
+          if grep -q "(Skipped)" ctest.log; then echo "::error::a test was skipped"; exit 1; fi
+
   web:
     name: web-emscripten
     runs-on: ubuntu-24.04

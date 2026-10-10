@@ -8,6 +8,16 @@ format.
 
 ## [Unreleased]
 
+### Added
+
+- The ARIA adapter serves programs built without Emscripten, with
+  Clang's `wasm32-wasi` (record mui-0009): its page side is imports the
+  build writes into `maul-ui.mjs` (`maulUiImports`, named by the
+  library's `MAUL_UI_WEB_GLUE` property), from the same `EM_JS`
+  functions, now named `muiAriaJs...`, so they meet no other library's.
+  `cmake/wasm32-wasi.cmake` builds the library and its tests; the
+  `web-wasi` CI cell runs them, the ARIA test in headless Chrome.
+
 ### Changed
 
 - A column that wraps is, at its min-content width, as wide as its

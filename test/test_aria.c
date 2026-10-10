@@ -21,18 +21,28 @@
 //   selection asked of the host in bytes, other edits and caret keys
 //   kept from the browser, roles beyond a text box's kept, a number
 //   field asking for digits, a field no longer edited made a div.
-// Under Node, with no page, it is skipped.
+// Under Node, with no page, it is skipped. Built without Emscripten
+// (mui-0009) it runs the same, its imports the glue written beside it.
 
 #include "aria.h"
 #include "test_harness.h"
+#include "web_js.h"
 
 #include "maul-ui/access_aria.h"
 
-#include <emscripten/em_js.h>
-#include <emscripten/emscripten.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef __EMSCRIPTEN__
+#define TestSleep emscripten_sleep
+#else
+// Without Emscripten (mui-0009) the runner gives the sleep as a
+// suspending import and calls main through JavaScript promise
+// integration, where Emscripten's build sleeps through Asyncify.
+MUI_WEB_IMPORT(muiTestSleep) void muiTestSleep(unsigned milliseconds);
+#define TestSleep muiTestSleep
+#endif
 
 // clang-format off
 EM_JS(int, HasPage, (void), {
@@ -176,7 +186,7 @@ static bool Ask(const char* command)
     fflush(stdout);
     for (int i = 0; i < 4000 && AnswerCount() == before; i++)
     {
-        emscripten_sleep(5);
+        TestSleep(5);
     }
     return AnswerCount() > before && AnswerAt(before) != 0;
 }
@@ -311,7 +321,7 @@ static bool Send(muiAriaAdapter* adapter, const muiAccessNode* const* nodes, uin
 
 static void Sleep(void)
 {
-    emscripten_sleep(20);
+    TestSleep(20);
 }
 
 // Relations, clicks, a range set, the focus both ways, announcements and
@@ -419,7 +429,7 @@ static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* ro
         Sleep();
     }
     CHECK(HostTop() == 0, "the host's scroll put back");
-    emscripten_sleep(350);
+    TestSleep(350);
     CHECK(TextIs("#mui0-assertive", ""), "the announcement taken away after a while");
     heading.values = (muiAccessValues){.level = 3};
     heading.text[mui_accessLabel] = "Topic";

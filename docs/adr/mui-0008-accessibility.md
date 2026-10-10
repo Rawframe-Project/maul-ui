@@ -220,8 +220,9 @@ ranges and virtual lists.
   node's role or label, a box where it or its parent clips). A value or
   a name changing costs its signal and no walk.
 - **The ARIA adapter** (`maul-ui/access_aria.h`, the component
-  `MAUL_UI_ARIA`, on by default for Emscripten) mirrors the shown tree
-  into elements of the page, the web's only accessibility interface:
+  `MAUL_UI_ARIA`, on by default for Emscripten and, since mui-0009,
+  for `wasm32-wasi`) mirrors the shown tree into elements of the page,
+  the web's only accessibility interface:
   in an element over the canvas the host names by a CSS selector (Maul
   Window's accessibility host), a container of its own made invisible
   as Flutter makes its semantics (`filter: opacity(0%)`), then one

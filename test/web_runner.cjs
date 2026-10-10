@@ -25,7 +25,13 @@
 // MUI_WEB_CANVAS, when set, starts Chrome's compositor on Vulkan, which a
 // program presenting into a canvas needs.
 //
-// usage: node web_runner.cjs <test.js> [argument...]
+// A test built without Emscripten (a module, mui-0009) is a reactor: the
+// page gives it a minimal WASI (standard output to the console, the
+// clocks, random bytes), the imports written beside it (<test>.mjs) and
+// a sleep that suspends it through JavaScript promise integration, then
+// calls its main, as Maul Window's runner does (mwin-0022).
+//
+// usage: node web_runner.cjs <test.js | test module> [argument...]
 
 const http = require('http');
 const fs = require('fs');
@@ -42,6 +48,9 @@ try {
 
 const script = path.resolve(process.argv[2]);
 const root = path.dirname(script);
+// A WebAssembly module, by its first bytes: CMake names one with or
+// without .wasm, as its version's WASI platform does.
+const wasi = fs.readFileSync(script).subarray(0, 4).equals(Buffer.from([0, 0x61, 0x73, 0x6d]));
 const required = process.env.MUI_RHI_REQUIRED || '';
 const moduleSetup = `var Module = {arguments: ${JSON.stringify(process.argv.slice(3))},
     preRun: [() => { if (Module.ENV && ${JSON.stringify(required)}) {
@@ -51,14 +60,77 @@ const page = `<!doctype html><html><head><meta charset="utf-8"></head><body styl
 <script>addEventListener('error', e => console.log(
     'page error at ' + e.filename + ':' + e.lineno + ':' + e.colno + ': ' + e.message));
 ${moduleSetup}</script>
-<script src="${path.basename(script)}"></script></body></html>`;
-const types = {'.js': 'text/javascript', '.wasm': 'application/wasm'};
+${wasi ? '<script type="module" src="/__wasi.mjs"></script>'
+       : `<script src="${path.basename(script)}"></script>`}</body></html>`;
+const types = {'.js': 'text/javascript', '.mjs': 'text/javascript', '.wasm': 'application/wasm'};
+
+// The page of a test without Emscripten: the calls of WASI a test makes,
+// the rest answered ENOSYS.
+const moduleFile = path.basename(script);
+const glue = path.basename(script, '.wasm') + '.mjs';
+const wasiPage = `import {maulUiImports} from './${glue}';
+let instance = null;
+const memory = () => instance.exports.memory.buffer;
+const view = () => new DataView(memory());
+const decoder = new TextDecoder();
+let line = '';
+const system = {
+    fd_write(fd, vectors, count, written) {
+        let total = 0;
+        for (let i = 0; i < count; i++) {
+            const at = view().getUint32(vectors + 8 * i, true);
+            const length = view().getUint32(vectors + 8 * i + 4, true);
+            line += decoder.decode(new Uint8Array(memory(), at, length));
+            total += length;
+        }
+        for (let end = line.indexOf('\\n'); end >= 0; end = line.indexOf('\\n')) {
+            console.log(line.slice(0, end));
+            line = line.slice(end + 1);
+        }
+        view().setUint32(written, total, true);
+        return 0;
+    },
+    fd_fdstat_get(fd, out) {
+        view().setUint8(out, 2);
+        view().setUint16(out + 2, 0, true);
+        view().setBigUint64(out + 8, 0n, true);
+        view().setBigUint64(out + 16, 0n, true);
+        return 0;
+    },
+    fd_close: () => 0,
+    fd_seek: () => 70,
+    clock_time_get(id, precision, out) {
+        view().setBigUint64(out, BigInt(Math.round(performance.now() * 1e6)), true);
+        return 0;
+    },
+    random_get(at, length) {
+        crypto.getRandomValues(new Uint8Array(memory(), at, length));
+        return 0;
+    },
+    proc_exit(status) {
+        throw new Error('exit ' + status);
+    },
+};
+const wasiImports = new Proxy(system, {get: (target, key) => target[key] || (() => 52)});
+const env = maulUiImports(() => instance.exports);
+env.muiTestSleep = new WebAssembly.Suspending(milliseconds =>
+    new Promise(resolve => setTimeout(resolve, milliseconds)));
+const bytes = await (await fetch('./${moduleFile}')).arrayBuffer();
+({instance} = await WebAssembly.instantiate(bytes, {env, wasi_snapshot_preview1: wasiImports}));
+instance.exports._initialize();
+await WebAssembly.promising(instance.exports.main)();
+`;
 
 const server = http.createServer((request, response) => {
     const name = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
     if (name === '/') {
         response.writeHead(200, {'Content-Type': 'text/html'});
         response.end(page);
+        return;
+    }
+    if (wasi && name === '/__wasi.mjs') {
+        response.writeHead(200, {'Content-Type': 'text/javascript'});
+        response.end(wasiPage);
         return;
     }
     const file = path.join(root, path.normalize(name));
