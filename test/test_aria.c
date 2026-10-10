@@ -15,7 +15,11 @@
 // - relations as ids; clicks, expanding and collapsing, a range set;
 //   the focus both ways, and on from the enabling button; live names
 //   announced through ariaNotify and through live regions; the host's
-//   scroll put back.
+//   scroll put back;
+// - text fields: inputs and a textarea holding their values, the
+//   program's selection written, typing, a composition and a client's
+//   selection asked of the host in bytes, other edits and caret keys
+//   kept from the browser, a field no longer edited made a div.
 // Under Node, with no page, it is skipped.
 
 #include "aria.h"
@@ -100,6 +104,45 @@ EM_JS(int, NotifiedIs, (const char* expected), {
     return globalThis.muiNotified.join(" ") === UTF8ToString(expected) ? 1 : 0;
 });
 
+EM_JS(int, FieldIs, (const char* selector, const char* tag, const char* type,
+                    const char* value), {
+    const field = document.querySelector(UTF8ToString(selector));
+    return field.tagName === UTF8ToString(tag) && (!type || field.type === UTF8ToString(type)) &&
+           (!value || field.value === UTF8ToString(value)) ? 1 : 0;
+});
+
+EM_JS(int, SelectionIs, (const char* selector, int start, int end, int backward), {
+    const field = document.querySelector(UTF8ToString(selector));
+    return field.selectionStart === start && field.selectionEnd === end &&
+           (start === end || (field.selectionDirection === "backward") === (backward !== 0))
+               ? 1 : 0;
+});
+
+EM_JS(void, SelectIn, (const char* selector, int start, int end), {
+    document.querySelector(UTF8ToString(selector)).setSelectionRange(start, end);
+});
+
+// What a browser fires as a client edits a field: whether it was kept
+// from the browser.
+EM_JS(int, InputKept, (const char* selector, const char* type, const char* data), {
+    const event = new InputEvent("beforeinput", {inputType: UTF8ToString(type),
+                                                 data: data ? UTF8ToString(data) : null,
+                                                 bubbles: true, cancelable: true});
+    document.querySelector(UTF8ToString(selector)).dispatchEvent(event);
+    return event.defaultPrevented ? 1 : 0;
+});
+
+EM_JS(void, Compose, (const char* selector, const char* type, const char* data), {
+    document.querySelector(UTF8ToString(selector))
+        .dispatchEvent(new CompositionEvent(UTF8ToString(type), {data: UTF8ToString(data),
+                                                                  bubbles: true}));
+});
+
+EM_JS(void, Input, (const char* selector), {
+    document.querySelector(UTF8ToString(selector)).dispatchEvent(new Event("input",
+                                                                           {bubbles: true}));
+});
+
 EM_JS(int, AnswerCount, (void), {
     return (globalThis.muiTestAnswers || []).length;
 });
@@ -137,6 +180,7 @@ static bool BoxIs(const char* id, int x, int y, int width, int height)
 }
 
 static muiAccessRequest s_asked;
+static char s_text[64];
 
 // Fills what it gives with garbage, so that memory read before it is
 // written shows.
@@ -166,6 +210,13 @@ static bool Act(void* user, const muiAccessRequest* request)
 {
     (void)user;
     s_asked = *request;
+    // The text is the adapter's only while the request is applied.
+    if (request->text != NULL && request->length < sizeof(s_text))
+    {
+        memcpy(s_text, request->text, request->length);
+        s_text[request->length] = '\0';
+        s_asked.text = s_text;
+    }
     return true;
 }
 
@@ -387,6 +438,110 @@ static void TestEnablingFocus(void)
     muiDestroyAriaAdapter(adapter);
 }
 
+// Whether the host was asked for a text request: an action on node 2 over
+// bytes anchor to focus, with a text or none.
+static bool AskedText(muiAccessAction action, uint32_t anchor, uint32_t focus, const char* text)
+{
+    return s_asked.action == action && s_asked.target == 2 && s_asked.anchor == anchor &&
+           s_asked.focus == focus &&
+           (text == NULL ? s_asked.text == NULL
+                         : s_asked.text != NULL && strcmp(s_asked.text, text) == 0 &&
+                               s_asked.length == strlen(text));
+}
+
+// A window 1 with a text input 2 holding "a", an emoji and "b" (a code
+// point of 4 bytes, 2 UTF-16 units), selected backward over the emoji
+// and focused; a multiline text input 3 and a password input 4.
+static void TestFields(void)
+{
+    muiAriaAdapterDef def = muiDefaultAriaAdapterDef();
+    def.host = "#host";
+    def.action = Act;
+    def.allocator = (muiAllocator){Poisoned, Unpoisoned, NULL};
+    muiAriaAdapter* adapter = NULL;
+    const uint32_t edits =
+        1u << mui_actionFocus | 1u << mui_actionSetSelection | 1u << mui_actionReplaceText;
+    static const char s_emoji[] = "a\U0001F600b";
+    muiAccessNode root = {.id = 1, .role = mui_roleWindow, .childCount = 3};
+    muiAccessNode name = {.id = 2,
+                          .role = mui_roleTextInput,
+                          .flags = mui_accessFocusable,
+                          .actions = edits,
+                          .bounds = {0, 0, 100, 20},
+                          .text = {[mui_accessLabel] = "Name", [mui_accessValue] = s_emoji},
+                          .textLength = {[mui_accessLabel] = 4, [mui_accessValue] = 6},
+                          .marks = {.anchor = 5, .focus = 1, .selected = true}};
+    muiAccessNode notes = {.id = 3,
+                           .role = mui_roleMultilineTextInput,
+                           .actions = edits,
+                           .text = {[mui_accessLabel] = "Notes", [mui_accessValue] = "one\ntwo"},
+                           .textLength = {[mui_accessLabel] = 5, [mui_accessValue] = 7}};
+    muiAccessNode secret = {.id = 4, .role = mui_rolePasswordInput, .actions = edits};
+    const uint64_t children[3] = {2, 3, 4};
+    const muiAccessUpdate update = {(const muiAccessNode*[]){&root, &name, &notes, &secret}, 4,
+                                    children, 1, 2};
+    CHECK(muiCreateAriaAdapter(&def, &adapter) == mui_success &&
+              muiAriaAdapter_Apply(adapter, &update) == mui_success,
+          "an adapter of fields");
+    FocusOn("#host button");
+    CHECK(Ask("press #host button") && IsActive("#mui0-2"), "enabled, the field focused");
+    CHECK(FieldIs("#mui0-2", "INPUT", "text", s_emoji) &&
+              FieldIs("#mui0-3", "TEXTAREA", NULL, "one\ntwo") &&
+              FieldIs("#mui0-4", "INPUT", "password", "") && AttributeIs("#mui0-2", "role", NULL),
+          "inputs and a textarea holding their values, with no role of their own");
+    CHECK(SelectionIs("#mui0-2", 1, 3, 1), "the program's selection written in UTF-16 units");
+    s_asked = (muiAccessRequest){0};
+    CHECK(InputKept("#mui0-2", "insertText", "x") && AskedText(mui_actionReplaceText, 1, 5, "x") &&
+              FieldIs("#mui0-2", "INPUT", NULL, s_emoji),
+          "typing kept from the field, asked of the host over the selection in bytes");
+    s_asked = (muiAccessRequest){.action = mui_actionScrollRight};
+    CHECK(InputKept("#mui0-2", "deleteContentBackward", NULL) &&
+              InputKept("#mui0-2", "insertFromPaste", NULL) &&
+              s_asked.action == mui_actionScrollRight,
+          "other edits kept from the field, asking nothing: the program's keys make them");
+    CHECK(KeyKept("#mui0-2", "ArrowLeft") && KeyKept("#mui0-2", "End") &&
+              !KeyKept("#mui0-2", "a") && !KeyKept("#mui0-2", "Backspace"),
+          "caret keys kept from the browser; the program moves the caret");
+    Input("#mui0-2");
+    CHECK(s_asked.action == mui_actionScrollRight, "a field's input no range set");
+    // A client's selection, sent as the selection changes.
+    SelectIn("#mui0-2", 0, 4);
+    for (int waited = 0; waited < 50 && s_asked.action == mui_actionScrollRight; waited++)
+    {
+        Sleep();
+    }
+    CHECK(AskedText(mui_actionSetSelection, 0, 6, NULL), "a client's selection asked in bytes");
+    // The program's own, written, asking nothing.
+    name.marks = (muiAccessTextMarks){.anchor = 6, .focus = 6, .selected = true};
+    s_asked = (muiAccessRequest){.action = mui_actionScrollRight};
+    CHECK(Send(adapter, (const muiAccessNode*[]){&name}, 1, children) &&
+              SelectionIs("#mui0-2", 4, 4, 0),
+          "the program's caret written");
+    Sleep();
+    CHECK(s_asked.action == mui_actionScrollRight, "asking nothing back");
+    // A composition shown as it runs, asked for whole at its end.
+    name.text[mui_accessValue] = "ab";
+    name.textLength[mui_accessValue] = 2;
+    name.marks = (muiAccessTextMarks){.anchor = 1, .focus = 2, .selected = true};
+    CHECK(Send(adapter, (const muiAccessNode*[]){&name}, 1, children) &&
+              FieldIs("#mui0-2", "INPUT", NULL, "ab") && SelectionIs("#mui0-2", 1, 2, 0),
+          "a new value and selection");
+    Compose("#mui0-2", "compositionstart", "");
+    CHECK(!InputKept("#mui0-2", "insertCompositionText", "u"), "a composition shown as it runs");
+    SelectIn("#mui0-2", 2, 2);
+    Sleep();
+    CHECK(s_asked.action == mui_actionScrollRight, "its selection not the program's");
+    Compose("#mui0-2", "compositionend", "\xC3\xBC");
+    CHECK(AskedText(mui_actionReplaceText, 1, 2, "\xC3\xBC"),
+          "asked for whole over the selection it started on");
+    // No longer edited: a div again.
+    name.actions = 1u << mui_actionFocus;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&name}, 1, children) &&
+              FieldIs("#mui0-2", "DIV", NULL, NULL) && AttributeIs("#mui0-2", "role", "textbox"),
+          "a field no longer edited made a div");
+    muiDestroyAriaAdapter(adapter);
+}
+
 static void TestContract(void)
 {
     muiAriaAdapterDef def = muiDefaultAriaAdapterDef();
@@ -520,6 +675,7 @@ int main(void)
     muiDestroyAriaAdapter(adapter);
     CHECK(TreeIs(""), "destroyed");
     TestEnablingFocus();
+    TestFields();
     printf("mui-test: exit %d\n", s_failures == 0 ? 0 : 1);
     return 0;
 }

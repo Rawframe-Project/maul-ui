@@ -9,6 +9,7 @@
 // placed again with what they hold, as each element's place is relative
 // to its parent's.
 
+#include "access_text.h"
 #include "allocator.h"
 #include "aria.h"
 
@@ -231,7 +232,7 @@ static uint32_t Make(muiAriaAdapter* adapter, const muiAccessNode* node)
     (void)muiIdMapInsert(&adapter->elementById, node->id, element);
     char id[ARIA_ID_SIZE];
     muiAriaIdOf(adapter->page, node->id, id);
-    muiAriaPageMake(adapter->page, slot, muiAriaIsRange(node), id);
+    muiAriaPageMake(adapter->page, slot, muiAriaKindOf(node), muiAriaInputTypeOf(node), id);
     muiAriaWriteAttributes(adapter, slot, nullptr, node);
     return slot;
 }
@@ -331,6 +332,21 @@ static void Announce(muiAriaAdapter* adapter, const muiAccessNode* node)
     }
 }
 
+// A field's selection from its marks, which the page writes while the
+// field has the DOM focus.
+static void Select(const muiAriaAdapter* adapter, uint32_t slot, const muiAccessNode* node)
+{
+    const muiAccessTextMarks* marks = &node->marks;
+    muiAccessText text = muiAccessValueOf(node);
+    if (marks->selected && marks->anchor <= text.length && marks->focus <= text.length)
+    {
+        uint32_t anchor = muiAccessUtf16Before(text.bytes, marks->anchor);
+        uint32_t focus = muiAccessUtf16Before(text.bytes, marks->focus);
+        muiAriaPageSelect(adapter->page, slot, anchor < focus ? anchor : focus,
+                          anchor < focus ? focus : anchor, focus < anchor);
+    }
+}
+
 static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* old)
 {
     muiAriaAdapter* adapter = user;
@@ -348,7 +364,7 @@ static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* 
     {
         return;
     }
-    if (muiAriaIsRange(old) != muiAriaIsRange(node))
+    if (muiAriaKindOf(old) != muiAriaKindOf(node))
     {
         // Another kind of element: the walk makes it anew.
         Forget(adapter, slot);
@@ -356,6 +372,10 @@ static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* 
         return;
     }
     muiAriaWriteAttributes(adapter, slot, old, node);
+    if (muiAriaKindOf(node) >= mui_ariaLine)
+    {
+        Select(adapter, slot, node);
+    }
     if (node->values.live != mui_liveOff && muiAriaNameChanged(old, node))
     {
         Announce(adapter, node);
@@ -379,10 +399,16 @@ static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint
 // Gives the focused node's element the DOM focus, as the page allows.
 static void TellFocus(muiAriaAdapter* adapter, bool always)
 {
-    uint32_t slot = muiAriaSlotOf(adapter, muiAccessTree_GetFocus(adapter->tree));
+    uint64_t focus = muiAccessTree_GetFocus(adapter->tree);
+    uint32_t slot = muiAriaSlotOf(adapter, focus);
     if (slot != ARIA_NO_SLOT)
     {
         muiAriaPageFocus(adapter->page, slot, always);
+        const muiAccessNode* node = muiAccessTree_Find(adapter->tree, focus);
+        if (node != nullptr && muiAriaKindOf(node) >= mui_ariaLine)
+        {
+            Select(adapter, slot, node);
+        }
     }
 }
 
@@ -418,6 +444,33 @@ void muiAriaPerform(muiAriaAdapter* adapter, muiAriaEvent event, uint32_t slot, 
     else
     {
         return;
+    }
+    (void)adapter->action(adapter->user, &request);
+}
+
+void muiAriaPerformText(muiAriaAdapter* adapter, uint32_t slot, uint32_t start, uint32_t end,
+                        const char* text, uint32_t length)
+{
+    uint64_t id = slot < adapter->nodes ? adapter->elements[slot].id : 0;
+    const muiAccessNode* node = muiAccessTree_Find(adapter->tree, id);
+    if (node == nullptr)
+    {
+        return;
+    }
+    muiAccessText value = muiAccessValueOf(node);
+    muiAccessAction action = text != nullptr ? mui_actionReplaceText : mui_actionSetSelection;
+    if ((node->actions & (1u << action)) == 0)
+    {
+        return;
+    }
+    muiAccessRequest request = {.action = action,
+                                .target = id,
+                                .anchor = muiAccessByteOfUtf16(&value, start),
+                                .focus = muiAccessByteOfUtf16(&value, end)};
+    if (text != nullptr)
+    {
+        request.text = text;
+        request.length = length;
     }
     (void)adapter->action(adapter->user, &request);
 }

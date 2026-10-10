@@ -230,6 +230,16 @@ ranges and virtual lists.
   are `aria-label`, or the element's text where ARIA names from
   content; states and values are ARIA attributes; a range the host
   sets is an `input type=range`, which touch screen readers adjust.
+  A text input whose text the host replaces is a real field, an
+  `input` of its type or, multiline, a `textarea`, as only those give
+  a browser's editing to screen readers (their caret, echo and
+  braille): the field holds the value, and while it has the DOM focus
+  the program's selection, in UTF-16 units. Its text stays the
+  program's: typed text (`beforeinput`) is kept from the field and
+  asked as a replacement of the selection in bytes; a composition shows
+  in the field as it runs and is asked for whole at its end; other
+  edits and caret keys are kept from the browser and made by the
+  program's keys; a client's selection is the set-selection action.
   The same `shownChanged` signal starts one walk that removes, makes
   and places elements; `updated` writes the attributes that changed
   and places again the boxes that moved. Nothing is built until the

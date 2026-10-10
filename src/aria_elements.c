@@ -5,6 +5,7 @@
 // ARIA role, and every attribute of a node's element from its record,
 // written whole or where an old record and the new one differ.
 
+#include "access_text.h"
 #include "aria.h"
 #include "chars.h"
 
@@ -217,6 +218,37 @@ bool muiAriaIsRange(const muiAccessNode* node)
            (node->actions & (1u << mui_actionSetValue)) != 0;
 }
 
+// A text input whose text the host replaces is a field the page edits.
+muiAriaKind muiAriaKindOf(const muiAccessNode* node)
+{
+    if (muiAriaIsRange(node))
+    {
+        return mui_ariaRange;
+    }
+    if (!muiAccessIsTextInput(node) || (node->actions & (1u << mui_actionReplaceText)) == 0)
+    {
+        return mui_ariaDiv;
+    }
+    return node->role == mui_roleMultilineTextInput ? mui_ariaLines : mui_ariaLine;
+}
+
+const char* muiAriaInputTypeOf(const muiAccessNode* node)
+{
+    switch (node->role)
+    {
+    case mui_rolePasswordInput:
+        return "password";
+    case mui_roleEmailInput:
+        return "email";
+    case mui_rolePhoneNumberInput:
+        return "tel";
+    case mui_roleUrlInput:
+        return "url";
+    default:
+        return "text";
+    }
+}
+
 void muiAriaIdOf(int page, uint64_t id, char out[ARIA_ID_SIZE])
 {
     muiChars chars = muiCharsIn(out, ARIA_ID_SIZE);
@@ -377,7 +409,10 @@ static const char* TextOf(const muiAccessNode* node, uint32_t which)
     case A_keyShortcuts:
         return node->text[mui_accessKeyboardShortcut];
     case A_valueText:
-        return node->role == mui_roleLabel ? nullptr : node->text[mui_accessValue];
+        // A field holds its value as its own.
+        return node->role == mui_roleLabel || muiAriaKindOf(node) >= mui_ariaLine
+                   ? nullptr
+                   : node->text[mui_accessValue];
     default:
         return nullptr;
     }
@@ -425,11 +460,18 @@ static const char* ValueOf(const muiAriaAdapter* adapter, const muiAccessNode* n
     {
         return Relation(adapter, node, which, buffer);
     }
+    muiAriaKind kind = muiAriaKindOf(node);
     if (which == A_role)
     {
         // A range input is a slider already; saying so again is harmless.
+        // A field is a text box by its tag, and a password field none.
         const char* role = node->role <= MUI_ROLE_LAST ? s_roles[node->role] : "group";
-        return role[0] != '\0' ? role : nullptr;
+        return role[0] != '\0' && kind < mui_ariaLine ? role : nullptr;
+    }
+    if (which == A_value && kind >= mui_ariaLine)
+    {
+        const char* value = node->text[mui_accessValue];
+        return value != nullptr ? value : "";
     }
     const char* text = TextOf(node, which);
     if (text != nullptr)

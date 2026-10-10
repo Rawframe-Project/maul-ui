@@ -59,9 +59,9 @@ android_jni: access_record access_text allocator android
 android_node: access_record access_text android
 android_text: access_text allocator android
 aria: id_map
-aria_adapter: allocator aria
-aria_elements: aria chars
-aria_page: aria
+aria_adapter: access_text allocator aria
+aria_elements: access_text aria chars
+aria_page: allocator aria
 atspi: dbus_api id_map
 ns: id_map
 ns_adapter: access_record allocator ns

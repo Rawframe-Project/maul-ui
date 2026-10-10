@@ -86,10 +86,10 @@ jobs:
 
   web:
     # NVDA over the ARIA adapter (record mui-0008, research 152): the
-    # controls sample built for the web, in a Chrome with a window drawing
-    # WebGPU on SwiftShader, walked as on the desktop from its own steps,
-    # which first enable the page's accessibility tree as a screen reader
-    # user does.
+    # controls and text samples built for the web, in a Chrome with a
+    # window drawing WebGPU on SwiftShader, walked as on the desktop from
+    # steps of their own, which first enable the page's accessibility
+    # tree as a screen reader user does.
     name: nvda-chrome
     runs-on: windows-2025
     timeout-minutes: 60
@@ -106,7 +106,7 @@ jobs:
         run: |
           emcmake cmake -B build-web -G Ninja -DCMAKE_BUILD_TYPE=Release -DMAUL_UI_RHI=ON \
             -DMAUL_UI_WINDOW=ON -DMAUL_UI_BUILD_TESTS=OFF
-          cmake --build build-web -j 4 --target sample_controls
+          cmake --build build-web -j 4 --target sample_controls sample_text
       - name: Set up the screen reader and the browser
         run: |
           mkdir -p "$RUNNER_TEMP/walk" && cd "$RUNNER_TEMP/walk"
@@ -116,13 +116,15 @@ jobs:
             puppeteer@25.13.0
           npx @guidepup/setup setup --ci
           npx @guidepup/setup install nvda
-      - name: Walk the sample in Chrome
+      - name: Walk the samples in Chrome
         run: |
-          for try in 1 2 3; do
-            node "$RUNNER_TEMP/walk/walk.mjs" "$PWD/build-web/sample_controls.js" \
-              tools/screen_reader/controls-web.steps "walk-web-$try" && exit 0
+          for sample in controls text; do
+            for try in 1 2 3; do
+              node "$RUNNER_TEMP/walk/walk.mjs" "$PWD/build-web/sample_$sample.js" \
+                "tools/screen_reader/$sample-web.steps" "walk-web-$sample-$try" && continue 2
+            done
+            exit 1
           done
-          exit 1
       - uses: actions/upload-artifact@v5
         if: always()
         with:

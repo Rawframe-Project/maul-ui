@@ -1,0 +1,27 @@
+# sample_text in a browser: the page's tree enabled through its hidden
+# button, as for the controls; then the Notes field as on the desktop,
+# typed into, read by character, word and line, a selection made and
+# deleted, the reader asked what has the focus as the walk reaches it.
+key b
+key Return
+wait 3
+key Tab
+key Tab
+focus
+type hello world
+key Left
+hold ctrl Left
+hold ctrl Left
+hold ctrl Right
+key End
+hold shift Left
+key BackSpace
+key Return
+type two
+key Up
+key Down
+# Said by NVDA in Chrome as by the desktop readers.
+expect Notes
+expect hello
+expect world
+expect two

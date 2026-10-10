@@ -15,6 +15,11 @@ format.
   button as a screen reader user does; `tools/screen_reader/walk.mjs`
   serves and opens a web sample, and its steps may ask the reader what
   has the focus (`focus`).
+- The ARIA adapter shows a text input the host edits as a real `input`
+  or `textarea`, holding its value and the program's selection: typed
+  text and IME compositions are asked of the host as replacements of
+  the selection, and a client's selection as the set-selection action,
+  while other edits and caret keys stay the program's.
 - `mui_errorVersion`: a context or a text service refuses a def built
   against headers of another major or minor version (family record
   0044), before reading the rest of it.
