@@ -15,6 +15,18 @@ format.
   button as a screen reader user does; `tools/screen_reader/walk.mjs`
   serves and opens a web sample, and its steps may ask the reader what
   has the focus (`focus`).
+- `mui_errorVersion`: a context or a text service refuses a def built
+  against headers of another major or minor version (family record
+  0044), before reading the rest of it.
+
+### Changed
+
+- `muiContextDef` and `muiTextServiceDef` carry the version of the
+  headers the program was built with (`version`, after the cookie), and
+  `muiDefaultContextDef` and `muiDefaultTextServiceDef` are `static
+  inline` in the headers, so the program builds them and they stamp its
+  version, not the library's. Source compatible; a def built field by
+  field must set `version` to `MUI_DEF_VERSION`.
 
 ### Fixed
 

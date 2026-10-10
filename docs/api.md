@@ -494,9 +494,9 @@ The root's object, for the view to give as its element (mwinRequestAccessibility
 The context: the root object that owns a tree of nodes and every result computed over it.
 
 ```c
-muiContextDef muiDefaultContextDef(void);
+static inline muiContextDef muiDefaultContextDef(void);
 ```
-Returns the default context def: 4,096 nodes, 256 styles, 64 node types, 1,024 property sets, 64 notifications, 64 transitions, 256 running transitions, 256 tokens, 1,024 token names, 16 themes, 512 theme overrides, draw lists of 8,192 commands, 256 clips, 256 gradients and 16,384 glyphs, 64 layers, 16 popups, 64 exits, 8 virtual lists of 16,384 estimated items together, and the C library's allocator.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
+Returns the default context def: 4,096 nodes, 256 styles, 64 node types, 1,024 property sets, 64 notifications, 64 transitions, 256 running transitions, 256 tokens, 1,024 token names, 16 themes, 512 theme overrides, draw lists of 8,192 commands, 256 clips, 256 gradients and 16,384 glyphs, 64 layers, 16 popups, 64 exits, 8 virtual lists of 16,384 estimated items together, and the C library's allocator.  Built in the program from the headers it includes, so it carries their version (MUI_DEF_VERSION), which the context checks.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut);
@@ -1213,9 +1213,9 @@ Returns which properties of a group a node writes directly.  @param context  The
 The text service (record mui-0006): fonts, shaping and paragraphs, in the library when it is built with its text component (MAUL_UI_TEXT). The core reaches text only through host content, so a host may use another text stack instead.
 
 ```c
-muiTextServiceDef muiDefaultTextServiceDef(void);
+static inline muiTextServiceDef muiDefaultTextServiceDef(void);
 ```
-Returns the default service def: 64 fonts, 1,024 text blocks, 16 font families and the C library's allocator.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
+Returns the default service def: 64 fonts, 1,024 text blocks, 16 font families and the C library's allocator.  Built in the program from the headers it includes, so it carries their version (MUI_DEF_VERSION), which the service checks.  @return The def, with a valid cookie. @par Thread safety Safe from any thread.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiCreateTextService(const muiTextServiceDef* def, muiTextService** serviceOut);

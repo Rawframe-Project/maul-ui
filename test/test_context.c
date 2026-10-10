@@ -86,6 +86,14 @@ static void TestInvalidDefsAreRefused(void)
     muiContextDef bad = def;
     bad.cookie = 0;
     CHECK(muiCreateContext(&bad, &context) == mui_errorInvalid, "bad cookie");
+    // Headers of another minor or major are refused; another patch's are
+    // the same version.
+    bad = def;
+    bad.version = MUI_DEF_VERSION + 1;
+    CHECK(muiCreateContext(&bad, &context) == mui_errorVersion && context == NULL,
+          "another minor version");
+    bad.version = MUI_DEF_VERSION ^ (1u << 16);
+    CHECK(muiCreateContext(&bad, &context) == mui_errorVersion, "another major version");
     bad = def;
     bad.limits.nodes = 0;
     CHECK(muiCreateContext(&bad, &context) == mui_errorInvalid, "zero nodes");
