@@ -1,0 +1,21 @@
+# The <math.h> functions src/ may call (family F43, record mui-0001):
+# each exactly rounded, so its results are the same under every C
+# library; any other is refused by tools/check_source.py. The library's
+# own exp, log, trigonometry and kin are in src/motion_math.h.
+ceil
+ceilf
+copysignf
+fabs
+fabsf
+floor
+floorf
+fmax
+fmaxf
+fmin
+fminf
+lround
+lroundf
+roundf
+sqrt
+sqrtf
+truncf
