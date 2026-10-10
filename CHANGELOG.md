@@ -8,6 +8,14 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- ARIA: Tab on the adapter's elements is kept from the browser. The
+  program moves its focus and the elements follow it, but the browser
+  moved the DOM focus too, out of the elements, which are not in the
+  page's tab order, to the canvas; a screen reader then lost the focus
+  after one Tab (found by NVDA walking the controls sample in Chrome).
+
 ## [0.2.0] - 2026-10-10
 
 Text for assistive technology on every platform: a field's selection,

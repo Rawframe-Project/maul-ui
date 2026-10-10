@@ -78,6 +78,14 @@ EM_JS(int, OpenPage, (const char* host, int deferred, const char* label, void* a
         send(1, e.target, 0);
     });
     root.addEventListener("input", e => send(2, e.target, parseFloat(e.target.value)));
+    // Tab moves the program's focus, which the elements follow; they are
+    // out of the page's tab order, so the browser's own move would take
+    // the focus out of them, to the canvas or the page's end.
+    root.addEventListener("keydown", e => {
+        if (e.key === "Tab") {
+            e.preventDefault();
+        }
+    });
     // The program scrolls its own content: a scroll of the host, as a
     // screen reader brings an element into view, is put back.
     page.unscroll = () => {

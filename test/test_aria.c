@@ -47,6 +47,14 @@ EM_JS(void, FocusOn, (const char* selector), {
     document.querySelector(UTF8ToString(selector)).focus();
 });
 
+// Whether a key pressed on an element was kept from the browser.
+EM_JS(int, KeyKept, (const char* selector, const char* key), {
+    const event = new KeyboardEvent("keydown", {key: UTF8ToString(key), bubbles: true,
+                                                cancelable: true});
+    document.querySelector(UTF8ToString(selector)).dispatchEvent(event);
+    return event.defaultPrevented ? 1 : 0;
+});
+
 EM_JS(int, IsActive, (const char* selector), {
     return document.activeElement === document.querySelector(UTF8ToString(selector)) ? 1 : 0;
 });
@@ -296,6 +304,8 @@ static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* ro
     FocusOn("#mui0-2");
     CHECK(s_asked.action == mui_actionFocus && s_asked.target == 2 && IsActive("#mui0-2"),
           "a client's focus asked of the host");
+    CHECK(KeyKept("#mui0-2", "Tab") && !KeyKept("#mui0-2", "a"),
+          "Tab kept from the browser, which would move the focus out; other keys not");
     s_asked = (muiAccessRequest){.action = mui_actionScrollRight};
     const muiAccessUpdate focus = {(const muiAccessNode*[]){root}, 1, rootChildren, 0, 8};
     CHECK(muiAriaAdapter_Apply(adapter, &focus) == mui_success && IsActive("#mui0-8") &&
