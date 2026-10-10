@@ -29,7 +29,9 @@ and before the tag.
    Windows walk the same steps in the `screen-readers` workflow on
    every push (`tools/screen_reader/walk.mjs`, through Guidepup); its
    run on the release commit is the release's, its artifacts what was
-   heard. Every walk checks the phrases its steps file expects.
+   heard; a reader whose setup the machine refused is a warning there
+   and counts as not run, so the job is run again. Every walk checks
+   the phrases its steps file expects.
 3. **Fuzzing**: each fuzz target (`fuzz_*`) runs for at least ten
    minutes from its seed corpus (`tools/fuzz_seed.py`) without a
    finding.

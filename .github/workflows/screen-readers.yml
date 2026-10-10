@@ -41,19 +41,33 @@ jobs:
         with:
           node-version: 24
       # macOS's setup has failed now and then turning on Do Not Disturb,
-      # passing on the next try.
+      # passing on the next try. On some machines it never passes, macOS
+      # refusing the runner's Apple events to System Events: VoiceOver is
+      # then not run there, said by a warning, and the walk skipped
+      # (research 148, I135); any other failure fails.
       - name: Set up the screen reader
+        id: setup
         run: |
           mkdir -p "$RUNNER_TEMP/walk" && cd "$RUNNER_TEMP/walk"
           cp "$GITHUB_WORKSPACE/tools/screen_reader/walk.mjs" .
           npm init -y >/dev/null
           npm install --no-audit --no-fund @guidepup/guidepup@0.35.0 @guidepup/setup@0.29.1
           for try in 1 2 3; do
-            npx @guidepup/setup setup --ci && break
-            [ "$try" -lt 3 ] && sleep 10 || exit 1
+            npx @guidepup/setup setup --ci 2>&1 | tee setup.log && break
+            if [ "$try" -eq 3 ]; then
+              if grep -qE "Not authorized to send Apple events|not allowed to send keystrokes" setup.log; then
+                echo "::warning::${{ matrix.name }} not run: this machine refused Guidepup's setup"
+                echo "ran=false" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+              exit 1
+            fi
+            sleep 10
           done
           npx @guidepup/setup install ${{ matrix.name }}
+          echo "ran=true" >> "$GITHUB_OUTPUT"
       - name: Walk the samples
+        if: steps.setup.outputs.ran == 'true'
         run: |
           status=0
           for sample in controls text; do
