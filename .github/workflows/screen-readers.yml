@@ -120,6 +120,9 @@ jobs:
         run: |
           for sample in controls text; do
             for try in 1 2 3; do
+              # A reader that stopped answering in a try is not left to the
+              # next: each starts with no NVDA running.
+              taskkill //F //IM nvda.exe > /dev/null 2>&1 || true
               node "$RUNNER_TEMP/walk/walk.mjs" "$PWD/build-web/sample_$sample.js" \
                 "tools/screen_reader/$sample-web.steps" "walk-web-$sample-$try" && continue 2
             done

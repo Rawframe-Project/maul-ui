@@ -210,15 +210,20 @@ for (const line of readFileSync(steps, "utf8").split("\n")) {
   said = log.length;
 }
 const log = await reader.spokenPhraseLog();
+// A browser closes before its reader, the reverse of their start: a
+// reader stopped under a running Chrome heard nothing on the next try.
+if (web) {
+  writeFileSync(`${out}/tree.json`, await app.tree());
+  await app.stop();
+}
 await reader.stop();
 // Where the sample's threads are, should it have stopped answering.
 if (mac && !web) {
   spawnSync("sample", [String(app.pid), "2", "-file", `${out}/stack.txt`]);
 }
-if (web) {
-  writeFileSync(`${out}/tree.json`, await app.tree());
+if (!web) {
+  app.kill();
 }
-await (web ? app.stop() : app.kill());
 writeFileSync(`${out}/speech.txt`, log.join("\n") + "\n");
 writeFileSync(`${out}/steps.txt`, told.join("\n") + "\n");
 console.log(told.join("\n"));
