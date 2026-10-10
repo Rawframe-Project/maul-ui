@@ -8,6 +8,21 @@ format.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-10
+
+Text fields in a browser: the ARIA tree's text inputs are real inputs
+that screen readers read and edit, NVDA walking the controls and text
+samples in Chrome on every push; defs stamped with the version of the
+headers a program was built with, and refused across versions; Maul RHI
+0.7.0 for the reference renderer; layout fixes for text in boxes with
+width limits and for items in columns sized by their content. Known
+issues: TalkBack and VoiceOver on iOS have not walked the samples, their
+adapters tested against the platforms' interfaces in the emulator and
+the simulator; Orca 46 does not announce the first focus in a window
+that opens with nothing focused; NVDA in Chrome on CI's software
+renderer reads some caret moves late, so the text walk may pass on a
+retry.
+
 ### Added
 
 - NVDA walks the controls sample in Chrome over the ARIA adapter in the
