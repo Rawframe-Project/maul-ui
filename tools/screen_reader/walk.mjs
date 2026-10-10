@@ -119,6 +119,10 @@ async function startWeb(script) {
   await tab.evaluate(() => {
     document.body.tabIndex = -1;
     document.body.focus();
+    // Every click, by its target, for steps.txt: whether a reader's press
+    // reached the page, and where.
+    globalThis.muiClicks = [];
+    document.addEventListener("click", (e) => globalThis.muiClicks.push(e.target.tagName), true);
   });
   const title = await tab.title();
   console.log(`page title: ${title}`);
@@ -126,7 +130,8 @@ async function startWeb(script) {
     pid: browser.process().pid,
     // What the page has focused, for steps.txt, with whether the page
     // has the system's focus, how many elements the ARIA adapter shows
-    // (none before its tree is enabled) and a field's selection.
+    // (none before its tree is enabled), a field's selection, whether the
+    // enabling button is there and the clicks since the last step.
     focused: () =>
       tab.evaluate(() => {
         const element = document.activeElement;
@@ -135,7 +140,10 @@ async function startWeb(script) {
         const shown = document.querySelectorAll("[id^=mui][id*='-']:not([aria-live])").length;
         const field = element && "selectionStart" in element && element.selectionStart !== null
           ? ` selection=${element.selectionStart}-${element.selectionEnd}` : "";
-        return `${where} focus=${document.hasFocus()} elements=${shown}${field}`;
+        const button = document.querySelector("button") ? " button" : "";
+        const clicks = globalThis.muiClicks.splice(0).join(",");
+        return `${where} focus=${document.hasFocus()} elements=${shown}${field}${button}` +
+          (clicks ? ` clicks=${clicks}` : "");
       }),
     // Whether the page has the system's focus: its window is the one the
     // reader's keys go to.
