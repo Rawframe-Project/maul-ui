@@ -13,12 +13,19 @@ Unicode, built into the library, counts against its own budget: the
 public functions of it that Maul UI's code calls are measured above an
 empty program and taken off the text component's bytes.
 
-Usage: size_report.py BUILD_DIR, BUILD_DIR configured by emcmake with
-CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON, CMAKE_BUILD_TYPE=MinSizeRel and
--Oz for C and C++, and built; emcc, em++ and emnm on the PATH
-(emsdk_env). Prints the sizes against the ceilings; the
-ceilings are checked when a release is made, so it fails only when a
+Usage: size_report.py BUILD_DIR [--functions COUNT], BUILD_DIR
+configured by emcmake with CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON,
+CMAKE_BUILD_TYPE=MinSizeRel and -Oz for C and C++, and built; emcc, em++
+and emnm on the PATH (emsdk_env). Prints the sizes against the ceilings;
+the ceilings are checked when a release is made, so it fails only when a
 program does not build.
+
+With --functions, it then says where the core's bytes go: the core's
+program linked again keeping its functions' names and without the
+whole-program optimizer's inlining (-O1), which would fold a function
+into its only caller, the COUNT largest functions and every source
+file's total. Those are bytes of that link, larger than the measure's;
+they rank, they do not add up to it.
 """
 
 import pathlib
@@ -126,8 +133,117 @@ def wasm_bytes(directory, name, source, archives, includes):
     return (directory / f"{name}.wasm").stat().st_size
 
 
+def leb128(data, at):
+    """An unsigned LEB128 number and the offset past it."""
+    value = shift = 0
+    while True:
+        byte = data[at]
+        at += 1
+        value |= (byte & 0x7F) << shift
+        shift += 7
+        if byte < 0x80:
+            return value, at
+
+
+def function_sizes(wasm):
+    """Each function's name and its body's bytes, from the code section and
+    the name section."""
+    data = wasm.read_bytes()
+    at, imported, bodies, names = 8, 0, [], {}
+    while at < len(data):
+        section = data[at]
+        size, at = leb128(data, at + 1)
+        end, cursor = at + size, at
+        if section == 2:
+            count, cursor = leb128(data, cursor)
+            for _ in range(count):
+                for _ in range(2):
+                    length, cursor = leb128(data, cursor)
+                    cursor += length
+                kind, cursor = data[cursor], cursor + 1
+                if kind == 0:
+                    imported += 1
+                    _, cursor = leb128(data, cursor)
+                elif kind == 1:
+                    flags, cursor = leb128(data, cursor + 1)
+                    for _ in range(2 if flags & 1 else 1):
+                        _, cursor = leb128(data, cursor)
+                elif kind == 2:
+                    flags, cursor = leb128(data, cursor)
+                    for _ in range(2 if flags & 1 else 1):
+                        _, cursor = leb128(data, cursor)
+                else:
+                    cursor += 2
+        elif section == 10:
+            count, cursor = leb128(data, cursor)
+            for _ in range(count):
+                length, body = leb128(data, cursor)
+                bodies.append(body - cursor + length)
+                cursor = body + length
+        elif section == 0:
+            length, cursor = leb128(data, cursor)
+            if data[cursor:cursor + length] == b"name":
+                cursor += length
+                while cursor < end:
+                    kind = data[cursor]
+                    length, cursor = leb128(data, cursor + 1)
+                    if kind == 1:
+                        count, entry = leb128(data, cursor)
+                        for _ in range(count):
+                            index, entry = leb128(data, entry)
+                            length2, entry = leb128(data, entry)
+                            names[index] = data[entry:entry + length2].decode()
+                            entry += length2
+                    cursor += length
+        at = end
+    return [(names.get(imported + index, f"function {index}"), size)
+            for index, size in enumerate(bodies)]
+
+
+def owners(archives):
+    """The object file defining each function of the archives."""
+    output = subprocess.run([shutil.which("emnm"), "-A", *archives], check=True,
+                            capture_output=True, text=True).stdout
+    found = {}
+    for line in output.splitlines():
+        place, _, rest = line.rpartition(": ")
+        fields = rest.split()
+        if len(fields) >= 2 and fields[-2] in ("T", "t"):
+            found.setdefault(fields[-1], place.rpartition(":")[2])
+    return found
+
+
+def where_bytes_go(directory, source, archives, includes, count):
+    """Prints the core's largest functions and its source files' totals."""
+    path = directory / "names.c"
+    path.write_text(source, encoding="utf-8")
+    subprocess.run(["emcc", "-Oz", "-std=c23", *[f"-I{include}" for include in includes], "-c",
+                    str(path), "-o", str(directory / "names.o")], check=True)
+    subprocess.run(["em++", "-O1", "--profiling-funcs", "-sALLOW_MEMORY_GROWTH",
+                    str(directory / "names.o"), *archives, "-o", str(directory / "names.js")],
+                   check=True)
+    # Link-time optimization renames a static function it promotes.
+    sizes = [(re.sub(r"\.llvm\.\d+$", "", name), size)
+             for name, size in function_sizes(directory / "names.wasm")]
+    found = owners(archives)
+    print(f"where the core's bytes go, linked at -O1 with names ({sum(s for _, s in sizes)} "
+          "bytes of code):")
+    for name, size in sorted(sizes, key=lambda pair: -pair[1])[:count]:
+        print(f"{size:8d} {name} ({found.get(name, 'the C library')})")
+    files = {}
+    for name, size in sizes:
+        owner = found.get(name, "the C library")
+        files[owner] = files.get(owner, 0) + size
+    print("by source file:")
+    for owner, size in sorted(files.items(), key=lambda pair: -pair[1]):
+        print(f"{size:8d} {owner}")
+
+
 def main():
-    if len(sys.argv) != 2:
+    functions = None
+    if len(sys.argv) == 4 and sys.argv[2] == "--functions" and sys.argv[3].isdigit():
+        functions = int(sys.argv[3])
+    elif len(sys.argv) != 2:
         sys.exit(__doc__)
     build = pathlib.Path(sys.argv[1]).resolve()
     archives = [str(path) for path in sorted(build.rglob("*.a"))]
@@ -150,6 +266,8 @@ def main():
         with_core, core_count = measure("core", [core])
         with_text, all_count = measure("text", [core, text])
         with_unicode, unicode_count = measure("unicode", [unicode])
+        if functions is not None:
+            where_bytes_go(directory, program([core], defined)[0], archives, includes, functions)
     linked = with_text - with_core
     unicode_bytes = with_unicode - empty
     sizes = {"core": with_core - empty, "text": linked - unicode_bytes}
