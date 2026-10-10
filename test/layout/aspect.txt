@@ -610,3 +610,28 @@ node height=60 direction=column => 0 0 100 60
 fixture ratio_absolute_width_floor_between_insets available=500x400
 node width=200 height=60 => 0 0 200 60
   node position=absolute start=0 top=0 bottom=0 aspect=1 content=80x20 => 0 0 80 80
+
+fixture ratio_wrapping_column_item_percentage_basis_over_its_height available=500x400
+node width=100 direction=column wrap=wrap => 0 0 100 0
+  node aspect=1 height=30 basis=25% => 0 0 100 0
+
+fixture ratio_column_item_percentage_basis_over_its_height_stretched available=500x400
+node width=100 direction=column => 0 0 100 100
+  node aspect=1 height=30 basis=25% => 0 0 100 100
+
+fixture ratio_column_item_percentage_basis_over_its_height_fitted available=500x400
+node width=100 direction=column => 0 0 100 20
+  node aspect=1 height=30 basis=25% align-self=start content=20x20 => 0 0 20 20
+
+fixture ratio_wrapping_column_item_percentage_basis_over_its_height_fitted available=500x400
+node width=100 direction=column wrap=wrap => 0 0 100 20
+  node aspect=1 height=30 basis=25% align-self=start content=20x20 => 0 0 20 20
+
+fixture ratio_wrapping_column_item_percentage_basis_over_its_height_content available=500x400
+node width=100 direction=column wrap=wrap => 0 0 100 20
+  node aspect=1 height=30 basis=25% content=20x20 => 0 0 100 20
+
+fixture ratio_wrapping_column_item_percentage_basis_over_its_height_minimum available=500x400
+node width=100 direction=column wrap=wrap => 0 0 100 50
+  node aspect=1 height=30 basis=25% min-width=50 align-self=start => 0 0 50 50
+

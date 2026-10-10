@@ -1960,6 +1960,48 @@ static const LayoutFixtureNode s_ratio_absolute_width_floor_between_insets[] = {
      {80.0f, 20.0f}, 0, {0.0f, 0.0f, 80.0f, 80.0f}},
 };
 
+static const LayoutFixtureNode s_ratio_wrapping_column_item_percentage_basis_over_its_height[] = {
+    {0, {{{0.0f, 100.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {2, 1, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 100.0f, 0.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 30.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 1.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.25f, 0.0f, 1}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 100.0f, 0.0f}},
+};
+
+static const LayoutFixtureNode s_ratio_column_item_percentage_basis_over_its_height_stretched[] = {
+    {0, {{{0.0f, 100.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {2, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 100.0f, 100.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 30.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 1.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.25f, 0.0f, 1}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 100.0f, 100.0f}},
+};
+
+static const LayoutFixtureNode s_ratio_column_item_percentage_basis_over_its_height_fitted[] = {
+    {0, {{{0.0f, 100.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {2, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 100.0f, 20.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 30.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 1.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.25f, 0.0f, 1}, 2}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 1, 0, 0},
+     {20.0f, 20.0f}, 0, {0.0f, 0.0f, 20.0f, 20.0f}},
+};
+
+static const LayoutFixtureNode s_ratio_wrapping_column_item_percentage_basis_over_its_height_fitted[] = {
+    {0, {{{0.0f, 100.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {2, 1, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 100.0f, 20.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 30.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 1.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.25f, 0.0f, 1}, 2}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 1, 0, 0},
+     {20.0f, 20.0f}, 0, {0.0f, 0.0f, 20.0f, 20.0f}},
+};
+
+static const LayoutFixtureNode s_ratio_wrapping_column_item_percentage_basis_over_its_height_content[] = {
+    {0, {{{0.0f, 100.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {2, 1, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 100.0f, 20.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 30.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 1.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.25f, 0.0f, 1}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 1, 0, 0},
+     {20.0f, 20.0f}, 0, {0.0f, 0.0f, 100.0f, 20.0f}},
+};
+
+static const LayoutFixtureNode s_ratio_wrapping_column_item_percentage_basis_over_its_height_minimum[] = {
+    {0, {{{0.0f, 100.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {2, 1, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 100.0f, 50.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 30.0f, 1}, {0.0f, 50.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 1.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.25f, 0.0f, 1}, 2}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 50.0f, 50.0f}},
+};
+
 static const LayoutFixtureNode s_baseline_basic[] = {
     {0, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 5, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
      {0.0f, 0.0f}, 0, {0.0f, 0.0f, 60.0f, 33.0f}},
@@ -16244,6 +16286,12 @@ static const LayoutFixture s_layoutFixtures[] = {
     {"ratio_column_item_width_from_its_flexed_height_words", 500.0f, 400.0f, s_ratio_column_item_width_from_its_flexed_height_words, 2},
     {"ratio_column_item_width_floor_under_its_given_height", 500.0f, 400.0f, s_ratio_column_item_width_floor_under_its_given_height, 2},
     {"ratio_absolute_width_floor_between_insets", 500.0f, 400.0f, s_ratio_absolute_width_floor_between_insets, 2},
+    {"ratio_wrapping_column_item_percentage_basis_over_its_height", 500.0f, 400.0f, s_ratio_wrapping_column_item_percentage_basis_over_its_height, 2},
+    {"ratio_column_item_percentage_basis_over_its_height_stretched", 500.0f, 400.0f, s_ratio_column_item_percentage_basis_over_its_height_stretched, 2},
+    {"ratio_column_item_percentage_basis_over_its_height_fitted", 500.0f, 400.0f, s_ratio_column_item_percentage_basis_over_its_height_fitted, 2},
+    {"ratio_wrapping_column_item_percentage_basis_over_its_height_fitted", 500.0f, 400.0f, s_ratio_wrapping_column_item_percentage_basis_over_its_height_fitted, 2},
+    {"ratio_wrapping_column_item_percentage_basis_over_its_height_content", 500.0f, 400.0f, s_ratio_wrapping_column_item_percentage_basis_over_its_height_content, 2},
+    {"ratio_wrapping_column_item_percentage_basis_over_its_height_minimum", 500.0f, 400.0f, s_ratio_wrapping_column_item_percentage_basis_over_its_height_minimum, 2},
     {"baseline_basic", 500.0f, 400.0f, s_baseline_basic, 4},
     {"baseline_empty_items", 500.0f, 400.0f, s_baseline_empty_items, 4},
     {"baseline_container_item", 500.0f, 400.0f, s_baseline_container_item, 5},

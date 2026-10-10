@@ -20,6 +20,11 @@ format.
   the ratio, within its width limits, as Chrome does; its content's
   min-content width no longer holds it wider. A height its style gives,
   or an absolute box's, keeps the content as its width's floor.
+- An item with an aspect ratio, a height of its own and a percentage
+  basis a column of no definite height cannot resolve takes its base
+  from its width through the ratio, its content's width where its width
+  is not yet known, not from its height, which the `content` basis
+  leaves out (CSS Flexbox 7.2.3, as Chrome does).
 
 ## [0.3.0] - 2026-10-10
 
