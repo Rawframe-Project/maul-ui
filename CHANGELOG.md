@@ -43,6 +43,27 @@ format.
   from its width through the ratio, its content's width where its width
   is not yet known, not from its height, which the `content` basis
   leaves out (CSS Flexbox 7.2.3, as Chrome does).
+- Percentage heights inside a box whose height its aspect ratio gives
+  resolve against the ratio's height, before the box grows to its
+  content, as Chrome and Firefox do, where the box is a root, an
+  absolute box, a flex item that is not stretched, or a column its line
+  does not resize; they resolved against the grown height. A box whose
+  height a flex container fixes (flexed in a column, a row stretched in
+  a row, a column stretched to another size) keeps resolving against
+  that height, as Firefox does for the stretched row.
+- A column that wraps, whose height its aspect ratio gives, breaks its
+  lines at the ratio's height and then grows to its longest line, as
+  Chrome and Firefox do; it broke them at the height it grew to, often
+  one line where browsers make several.
+- A column that wraps, given a width to fit in, is no wider than that
+  space unless its min-content width is (fit-content, as Chrome and
+  Firefox size it); it was as wide as its lines whatever the space, as
+  in an absolute box in a narrow containing block.
+- A row asked its min-content height lays its items out at their
+  max-content heights, as CSS gives a box one intrinsic height; it
+  passed the min-content query down, and a ratio box inside counted its
+  content's narrowest layout as its floor, making a column's item
+  taller than Chrome and Firefox do.
 
 ## [0.3.0] - 2026-10-10
 
