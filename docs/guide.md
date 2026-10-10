@@ -1173,6 +1173,12 @@ name, so an application that shrinks its code (as a Gradle release
 build does, with ProGuard's rules) adds `java/proguard-rules.pro` to
 its rules.
 
+A window should open with a control focused, as platform toolkits'
+windows do: a keyboard user then has a place to start, and Orca 46
+announces nothing for the first focus of a window that opened with
+none, taking that focus silently while it handles the key that moved
+it.
+
 ## 12. Building and testing
 
 Maul UI builds with CMake 3.25 and a C23 compiler, GCC 14 or Clang 19
