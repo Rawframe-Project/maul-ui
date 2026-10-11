@@ -2581,6 +2581,15 @@ static const LayoutFixtureNode s_ratio_percent_height_pending_definite_basis[] =
      {0.0f, 0.0f}, 0, {-300.0f, 0.0f, 300.0f, 150.0f}},
 };
 
+static const LayoutFixtureNode s_ratio_percent_height_pending_maximum_width[] = {
+    {0, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {2, 0, 0, 2, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 20.0f, 10.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.5f, 0.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 50.0f, 1}, {0.0f, 10.0f, 1}, 2.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 50.0f, 10.0f}},
+    {2, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 1, 0, 0},
+     {80.0f, 20.0f}, 0, {0.0f, 0.0f, 80.0f, 10.0f}},
+};
+
 static const LayoutFixtureNode s_baseline_basic[] = {
     {0, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 5, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
      {0.0f, 0.0f}, 0, {0.0f, 0.0f, 60.0f, 33.0f}},
@@ -17182,6 +17191,7 @@ static const LayoutFixture s_layoutFixtures[] = {
     {"ratio_percent_height_pending_padding", 500.0f, 400.0f, s_ratio_percent_height_pending_padding, 3},
     {"ratio_percent_height_pending_words", 500.0f, 400.0f, s_ratio_percent_height_pending_words, 3},
     {"ratio_percent_height_pending_definite_basis", 500.0f, 400.0f, s_ratio_percent_height_pending_definite_basis, 3},
+    {"ratio_percent_height_pending_maximum_width", 500.0f, 400.0f, s_ratio_percent_height_pending_maximum_width, 3},
     {"baseline_basic", 500.0f, 400.0f, s_baseline_basic, 4},
     {"baseline_empty_items", 500.0f, 400.0f, s_baseline_empty_items, 4},
     {"baseline_container_item", 500.0f, 400.0f, s_baseline_container_item, 5},

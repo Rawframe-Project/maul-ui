@@ -979,3 +979,8 @@ fixture ratio_percent_height_pending_definite_basis available=500x400
 node align-items=center => 0 0 0 150
   node direction=column align-items=end => 0 0 0 150
     node height=25% basis=150 aspect=2 => -300 0 300 150
+
+fixture ratio_percent_height_pending_maximum_width available=500x400
+node direction=column align-items=start => 0 0 20 10
+  node height=50% max-height=10 max-width=50 aspect=2 => 0 0 50 10
+    node content=80x20 => 0 0 80 10
