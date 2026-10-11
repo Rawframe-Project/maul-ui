@@ -29,6 +29,10 @@ format.
   minimum width is automatic, as Chrome and Firefox do; a given minimum
   width now replaces it, so a maximum height carried through the ratio
   caps the width.
+- A wrapping column of indefinite height that its container shrinks
+  below its items breaks its lines at the height it is given again, as
+  Chrome and Firefox do; 0.5.1 kept such a column on one line, as it
+  rightly keeps one whose items fit its height.
 
 ## [0.5.1] - 2026-10-11
 

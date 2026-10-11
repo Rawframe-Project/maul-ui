@@ -224,12 +224,13 @@ static void SizeMain(muiFlexFrame* frame)
                                    frame->mainLimits.maximum, frame->boxMain);
         frame->innerMain = outer - frame->boxMain;
     }
-    // A column of indefinite height is one line unless its maximum breaks
-    // it: items with negative margins may sum shorter than they run
-    // (section 9.3, as Chrome and Firefox).
+    // A column of indefinite height whose items fit it, its height its
+    // content's, is one line: items with negative margins may sum shorter
+    // than they run. One a maximum or its container shrank below them
+    // breaks there (section 9.3, as Chrome and Firefox).
     float breakLength = frame->innerMain;
-    if (!frame->row && frame->extentMain < 0.0f &&
-        sum + Gaps(frame->gap, frame->count) + frame->boxMain <= frame->mainLimits.maximum)
+    float fits = frame->innerMain + fmaxf(fabsf(frame->innerMain), 1.0f) * 1.0e-5f;
+    if (!frame->row && frame->extentMain < 0.0f && sum + Gaps(frame->gap, frame->count) <= fits)
     {
         breakLength = INFINITY;
     }
