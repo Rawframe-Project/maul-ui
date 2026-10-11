@@ -8,6 +8,12 @@ format.
 
 ## [Unreleased]
 
+### Changed
+
+- The dialogs sample keeps a floating dialog dragged by its title bar
+  inside the window, whole, so the bar stays within the pointer's
+  reach; dragged past an edge, it left the window for good.
+
 ## [0.5.1] - 2026-10-11
 
 Layout closer to the browsers again, with no change to the API: five

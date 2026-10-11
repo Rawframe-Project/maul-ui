@@ -10,8 +10,9 @@
 // library gives the focus back to the button that opened it. The
 // floating dialogs are activation layers placed by their insets: a press
 // in one raises it above the other, and a drag of its title bar moves
-// it. Headless, each is used as a person would and the pixels, the
-// focus and the accessibility tree checked.
+// it, kept inside the root so its bar stays within reach. Headless,
+// each is used as a person would and the pixels, the focus and the
+// accessibility tree checked.
 
 #include "app.h"
 
@@ -24,6 +25,7 @@
 #include "maul-ui/popup.h"
 #include "maul-ui/style.h"
 
+#include <math.h>
 #include <string.h>
 
 #define FLOATING 2
@@ -252,10 +254,17 @@ static bool FloatingHears(Dialogs* dialogs, Floating* floating, muiNodeId nodeId
         floating->dragY = floating->y;
         [[fallthrough]];
     case mui_pointerRecordDragMove:
-        floating->x = floating->dragX + record->offsetX;
-        floating->y = floating->dragY + record->offsetY;
+    {
+        // Kept inside the root, whole, as a dialog dragged past an edge
+        // would take its bar out of the pointer's reach.
+        muiRect root = muiNode_GetRect(app->context, app->root);
+        muiRect box = muiNode_GetRect(app->context, floating->node);
+        floating->x = fmaxf(fminf(floating->dragX + record->offsetX, root.width - box.width), 0.0f);
+        floating->y =
+            fmaxf(fminf(floating->dragY + record->offsetY, root.height - box.height), 0.0f);
         Place(app, floating);
         return true;
+    }
     default:
         return false;
     }
@@ -424,6 +433,32 @@ static void Click(SampleApp* app, muiNodeId node, float x, float y)
     SamplePostAt(app, mwin_eventButtonUp, rootX, rootY, 0);
 }
 
+// Drags a floating dialog's bar by an offset, from a point near its
+// start.
+static void DragBar(SampleApp* app, const Floating* floating, float dx, float dy)
+{
+    float x = 0.0f;
+    float y = 0.0f;
+    SampleAppCheck(
+        app, muiNode_MapToRoot(app->context, floating->bar, 20.0f, 8.0f, &x, &y) == mui_success,
+        "a dialog's bar");
+    SamplePostAt(app, mwin_eventCursorMoved, x, y, 0);
+    SamplePostAt(app, mwin_eventButtonDown, x, y, 1);
+    SamplePostAt(app, mwin_eventCursorMoved, x + dx / 3.0f, y + dy / 4.0f, 1);
+    SamplePostAt(app, mwin_eventCursorMoved, x + dx, y + dy, 1);
+    SamplePostAt(app, mwin_eventButtonUp, x + dx, y + dy, 0);
+}
+
+// Whether a floating dialog's border box is at a point of the root.
+static bool At(SampleApp* app, const Floating* floating, float x, float y)
+{
+    float rootX = 0.0f;
+    float rootY = 0.0f;
+    return muiNode_MapToRoot(app->context, floating->node, 0.0f, 0.0f, &rootX, &rootY) ==
+               mui_success &&
+           rootX == x && rootY == y;
+}
+
 static bool Script(void* user, SampleApp* app, int frame)
 {
     Dialogs* dialogs = user;
@@ -475,30 +510,25 @@ static bool Script(void* user, SampleApp* app, int frame)
                        "raised by the blocked press");
         // A press on Notes' body raises it; a drag of its bar moves it.
         Click(app, notes->node, 20.0f, 40.0f);
-        float x = 0.0f;
-        float y = 0.0f;
-        SampleAppCheck(
-            app, muiNode_MapToRoot(app->context, notes->bar, 20.0f, 8.0f, &x, &y) == mui_success,
-            "Notes' bar");
-        SamplePostAt(app, mwin_eventCursorMoved, x, y, 0);
-        SamplePostAt(app, mwin_eventButtonDown, x, y, 1);
-        SamplePostAt(app, mwin_eventCursorMoved, x + 10.0f, y + 5.0f, 1);
-        SamplePostAt(app, mwin_eventCursorMoved, x + 30.0f, y + 20.0f, 1);
-        SamplePostAt(app, mwin_eventButtonUp, x + 30.0f, y + 20.0f, 0);
+        DragBar(app, notes, 30.0f, 20.0f);
         return true;
     }
+    case 7:
+        SampleAppCheck(
+            app, SampleNear(Overlap(dialogs, app), s_bodies[0]) && At(app, notes, 54.0f, 100.0f),
+            "Notes raised over Tools and moved by its bar's drag");
+        // Dragged past the root's corners, it stops at them, whole.
+        DragBar(app, notes, 400.0f, 400.0f);
+        return true;
+    case 8:
+        SampleAppCheck(app, At(app, notes, 170.0f, 164.0f),
+                       "Notes dragged past the bottom right corner stopped inside it");
+        DragBar(app, notes, -400.0f, -400.0f);
+        return true;
     default:
-    {
-        float x = 0.0f;
-        float y = 0.0f;
-        SampleAppCheck(app,
-                       SampleNear(Overlap(dialogs, app), s_bodies[0]) &&
-                           muiNode_MapToRoot(app->context, notes->node, 0.0f, 0.0f, &x, &y) ==
-                               mui_success &&
-                           x == 54.0f && y == 100.0f,
-                       "Notes raised over Tools and moved by its bar's drag");
+        SampleAppCheck(app, At(app, notes, 0.0f, 0.0f),
+                       "Notes dragged past the top left corner stopped inside it");
         return false;
-    }
     }
 }
 
