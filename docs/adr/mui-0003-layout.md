@@ -40,7 +40,10 @@ tree that did not change.
   per line, and places the lines by `align-content` (stretch by
   default, as CSS's `normal`); a container that does not wrap has one
   line as large as its inner cross size. At its narrowest, a wrapping
-  container is as wide as its widest child.
+  container is as wide as its widest child. A wrapping column whose
+  height is its content's breaks its lines only at its maximum height;
+  one of open width is as wide as its lines' contributions (each
+  item's width with its height left open), within its space.
 - **Absolute nodes.** A node placed absolutely takes no part in its
   parent's flex layout or size. Its Scale+Offset insets and sizes
   resolve against the parent's padding box (CSS's containing block).
