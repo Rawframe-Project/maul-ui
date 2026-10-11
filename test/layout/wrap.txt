@@ -324,6 +324,15 @@ node => 0 0 10 40
     node content=10x40*2 => 0 0 20 40
     node margin=0,-10,0,0 => 20 0 0 40
 
+# An item of a definite width contributes that width, its min-content
+# one (Firefox makes the outer node 0 here; the wrapping row is 20 in
+# both engines).
+fixture wrap_row_negative_margin_definite_floor available=500x400
+node => 0 0 20 40
+  node wrap=wrap => 0 0 20 40
+    node width=20 height=40 => 0 0 20 40
+    node margin=-10,-10,0,0 => 10 0 0 40
+
 # A wrapping column of open height longer than its maximum breaks its
 # lines at the maximum and is as tall as its longest line (research 176,
 # case 235).
