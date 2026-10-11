@@ -31,6 +31,12 @@ format.
   last otherwise. Each frame drawn again had kept a browser on a CPU
   renderer busy on every core.
 
+### Fixed
+
+- A wrapping column of open height whose items pass its maximum height
+  breaks its lines at the maximum and is as tall as its longest line,
+  as Chrome and Firefox lay it out; it took the maximum.
+
 ## [0.4.0] - 2026-10-11
 
 Layout closer to the browsers: wrapping columns sized as the current CSS

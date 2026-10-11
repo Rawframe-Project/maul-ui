@@ -158,6 +158,26 @@ static muiFlexFrame Setup(const muiSolver* solver, uint32_t node, const muiSizin
 // Section 9.2 and 9.3: every child's hypothetical main size, the
 // container's inner main size from its content when not given, then the
 // lines and each line's flexible lengths.
+// The longest of the lines the items make broken at a length.
+static float LongestLine(const muiFlexFrame* frame, float length)
+{
+    const muiTree* tree = frame->solver->tree;
+    float longest = 0.0f;
+    for (uint32_t first = muiFirstFlowChild(tree, frame->solver->nodes, frame->node); first != 0;)
+    {
+        uint32_t count =
+            muiCollectLine(tree, frame->solver->nodes, first, length, frame->gap, true);
+        float used = Gaps(frame->gap, count);
+        for (uint32_t i = 0; i < count;
+             i++, first = muiNextFlowChild(tree, frame->solver->nodes, first))
+        {
+            used += ItemOf(frame, first)->hypothetical + ItemOf(frame, first)->marginMain;
+        }
+        longest = fmaxf(longest, used);
+    }
+    return longest;
+}
+
 static void SizeMain(muiFlexFrame* frame)
 {
     const muiTree* tree = frame->solver->tree;
@@ -180,24 +200,16 @@ static void SizeMain(muiFlexFrame* frame)
         bool narrowest = wraps && frame->mainIn.mode == mui_measureMinContent;
         float content = narrowest ? widest : sum + Gaps(frame->gap, frame->count);
         content = wraps ? fmaxf(content, widest) : content;
-        if (frame->ratioBreak >= 0.0f)
+        // A wrapping column longer than its maximum height breaks its lines
+        // there, as Chrome and Firefox do; the ratio's height breaks them
+        // otherwise.
+        float breakAt = frame->ratioBreak;
+        if (breakAt < 0.0f && !frame->row && frame->multiLine &&
+            content + frame->boxMain > frame->mainLimits.maximum)
         {
-            // Its longest line, broken at the ratio's height.
-            content = 0.0f;
-            for (uint32_t first = muiFirstFlowChild(tree, frame->solver->nodes, frame->node);
-                 first != 0;)
-            {
-                uint32_t count = muiCollectLine(tree, frame->solver->nodes, first,
-                                                frame->ratioBreak, frame->gap, true);
-                float used = Gaps(frame->gap, count);
-                for (uint32_t i = 0; i < count;
-                     i++, first = muiNextFlowChild(tree, frame->solver->nodes, first))
-                {
-                    used += ItemOf(frame, first)->hypothetical + ItemOf(frame, first)->marginMain;
-                }
-                content = fmaxf(content, used);
-            }
+            breakAt = fmaxf(frame->mainLimits.maximum - frame->boxMain, 0.0f);
         }
+        content = breakAt >= 0.0f ? LongestLine(frame, breakAt) : content;
         float outer = muiClampSize(content + frame->boxMain, frame->mainLimits.minimum,
                                    frame->mainLimits.maximum, frame->boxMain);
         frame->innerMain = outer - frame->boxMain;
