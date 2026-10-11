@@ -14,6 +14,13 @@ format.
   inside the window, whole, so the bar stays within the pointer's
   reach; dragged past an edge, it left the window for good.
 
+### Fixed
+
+- An absolute box with an aspect ratio between both insets, its content
+  growing it taller than the insets leave, resolves its children's
+  percentage heights against the insets' height, as Chrome and Firefox
+  do; they resolved against the grown height.
+
 ## [0.5.1] - 2026-10-11
 
 Layout closer to the browsers again, with no change to the API: five

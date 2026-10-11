@@ -445,3 +445,22 @@ node height=100 width=100 => 0 0 100 100
 fixture absolute_stretch_ratio_width_follows available=500x400
 node height=100 width=100 => 0 0 100 100
   node aspect=2 align-self=stretch position=absolute top=10 bottom=10 start=10 end=10 => 10 10 160 80
+
+# An absolute ratio box between both insets whose content grows it past
+# the insets' height resolves its children's percentages against the
+# insets' height, its ratio's, not the grown one (research 225).
+fixture absolute_ratio_grown_percent_basis available=500x400
+node height=100 => 0 0 0 100
+  node position=absolute top=5 bottom=10 aspect=1 => 0 5 85 90
+    node height=100%+5 => 0 0 0 90
+
+fixture absolute_ratio_no_room_percent_basis available=500x400
+node height=10 => 0 0 0 10
+  node position=absolute top=5 bottom=10 aspect=1 => 0 5 0 5
+    node height=100%+5 => 0 0 0 5
+
+fixture absolute_ratio_no_room_full_percent available=500x400
+node => 0 0 0 0
+  node position=absolute top=5 bottom=10 aspect=1 => 0 5 0 5
+    node height=5 => 0 0 0 5
+    node height=100% => 0 0 0 0
