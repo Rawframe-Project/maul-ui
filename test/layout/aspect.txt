@@ -876,3 +876,13 @@ node height=60 => 0 0 120 60
   node => 0 0 120 60
     node => 0 0 120 60
       node basis=20 aspect=2 content=10x10 => 0 0 120 60
+
+# The same with the item's own height a percentage of that loose height:
+# no minimum through it either (research 176, case 199 again).
+fixture ratio_contribution_stretched_loose_percent_height available=500x400
+node => 0 0 20 10
+  node => 0 0 20 10
+    node => 0 0 20 10
+      node => 0 0 20 10
+        node => 0 0 20 10
+          node width=150 height=100%+10 basis=20 aspect=2 => 0 0 40 20

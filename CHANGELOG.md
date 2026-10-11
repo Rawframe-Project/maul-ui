@@ -41,7 +41,8 @@ format.
   it, as Chrome and Firefox do; it kept one line and grew past them.
 - A row sized by its content no longer takes an item's automatic
   minimum through its aspect ratio from a height the item has only by
-  stretching in rows sized by their content, so the same item
+  stretching in rows sized by their content, or from its percentage
+  height of that height, so the same item
   contributes the same at any depth, as in Chrome; a height a style
   fixes above still carries it.
 
