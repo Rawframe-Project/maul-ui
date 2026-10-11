@@ -106,6 +106,7 @@ static const muiCacheEntry* FindCached(const muiSolver* solver, uint32_t node,
         if (entry->valid && sameExtents && entry->input.rtl == input->rtl &&
             entry->input.contentHeight == input->contentHeight &&
             entry->input.contentOnly == input->contentOnly &&
+            entry->input.contentOnlyHeight == input->contentOnlyHeight &&
             entry->input.ratioPercent == input->ratioPercent &&
             entry->input.ratioLines == input->ratioLines &&
             (!keyLoose || entry->input.looseHeight == input->looseHeight) &&
@@ -154,7 +155,7 @@ static muiSize SizeLeaf(const muiSolver* solver, uint32_t node, const muiSizingI
     muiAxisSizing height = muiResolveAxis(&style->sizing, false, input->parentHeight);
     if (input->contentOnly)
     {
-        width = height = (muiAxisSizing){.maximum = INFINITY};
+        *(input->contentOnlyHeight ? &height : &width) = (muiAxisSizing){.maximum = INFINITY};
     }
     if (style->content == mui_contentHost && solver->measure != nullptr && !decided)
     {

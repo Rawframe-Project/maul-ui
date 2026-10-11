@@ -14,6 +14,10 @@ format.
   with its children's percentage heights against its ratio's height, as
   it is laid out, as Chrome and Firefox do; they resolved against the
   height its content grew it to, which grew its line.
+- A column's flex item with its own height limits takes its base from
+  its content laid out within its width limits, as Chrome and Firefox
+  do; the base left out every limit of the item, so a minimum width did
+  not hold its content, which wrapped narrower and grew it taller.
 
 ## [0.5.0] - 2026-10-11
 

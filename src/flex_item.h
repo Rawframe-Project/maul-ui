@@ -70,6 +70,7 @@ static inline muiSizingInput muiFlexChildInput(const muiFlexFrame* frame, muiMea
     input.rtl = frame->rtl;
     input.contentHeight = false;
     input.contentOnly = false;
+    input.contentOnlyHeight = false;
     input.ratioPercent = false;
     input.ratioLines = false;
     input.looseHeight = frame->row && frame->crossLoose;

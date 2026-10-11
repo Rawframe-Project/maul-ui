@@ -132,9 +132,12 @@ static muiFlexFrame Setup(const muiSolver* solver, uint32_t node, const muiSizin
     frame.crossLimits = muiResolveAxis(&style->sizing, !frame.row, parentCross);
     if (input->contentOnly)
     {
-        // The content's answer alone, its own limits left out.
-        frame.mainLimits.minimum = frame.crossLimits.minimum = 0.0f;
-        frame.mainLimits.maximum = frame.crossLimits.maximum = INFINITY;
+        // The content's answer alone, its own limits along its
+        // container's main axis left out.
+        muiAxisSizing* left =
+            frame.row != input->contentOnlyHeight ? &frame.mainLimits : &frame.crossLimits;
+        left->minimum = 0.0f;
+        left->maximum = INFINITY;
     }
     frame.gap = frame.row ? style->container.columnGap : style->container.rowGap;
     frame.crossGap = frame.row ? style->container.rowGap : style->container.columnGap;

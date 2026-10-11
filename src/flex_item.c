@@ -16,6 +16,7 @@ static float ContentMain(const muiFlexFrame* frame, uint32_t child, muiMeasureMo
 {
     muiSizingInput input = muiFlexChildInput(frame, (muiMeasureAxis){0.0f, mode}, cross);
     input.contentOnly = contentOnly;
+    input.contentOnlyHeight = contentOnly && !frame->row;
     return muiFlexMainOf(frame, frame->solver->solve(frame->solver, child, &input, false));
 }
 
@@ -33,6 +34,7 @@ static float RatioBase(const muiFlexFrame* frame, uint32_t child, muiMeasureMode
     {
         muiSizingInput input = muiFlexChildInput(frame, (muiMeasureAxis){0.0f, mode}, cross);
         input.contentOnly = ownLeft;
+        input.contentOnlyHeight = ownLeft && !frame->row;
         size = muiFlexCrossOf(frame, frame->solver->solve(frame->solver, child, &input, false));
     }
     if (cross.mode != mui_measureExact && ownLeft)
@@ -111,6 +113,7 @@ float muiFlexAutomaticMinimum(const muiFlexFrame* frame, uint32_t child, const m
         muiSizingInput input =
             muiFlexChildInput(frame, (muiMeasureAxis){0.0f, mui_measureMaxContent}, cross);
         input.contentOnly = true;
+        input.contentOnlyHeight = true;
         content =
             fmaxf(content, frame->solver->solve(frame->solver, child, &input, false).width / ratio);
     }

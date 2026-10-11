@@ -1038,3 +1038,15 @@ node => 0 0 5 6.875
     node aspect=2 => 0 0 5 6.875
       node height=75% margin=auto,5,5,auto => 0 5 0 1.875
     node => 5 6.875 0 0
+
+# A column item's base from its content leaves out its own height
+# limits only: its minimum width still sizes the content it wraps
+# (research 198, case 60d_139; Chrome and Firefox agree).
+
+fixture content_base_keeps_cross_minimum available=500x400
+node => 0 0 150 80
+  node => 0 0 150 80
+    node => 0 0 150 80
+      node direction=column align-items=end => 0 0 150 80
+        node min-width=150 max-height=150 => 0 0 150 80
+          node width=25%-5 content=10x40*6 => 0 0 32.5 80
