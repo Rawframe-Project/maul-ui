@@ -19,7 +19,8 @@ format.
 
 ### Changed
 
-- The samples draw a frame only when its list changed (a new
+- Where the platform paces the frames (a browser, macOS, iOS,
+  Android), the samples draw a frame only when its list changed (a new
   generation), the window being new, resized, rescaled, hidden or
   covered since, or its image read back; the window keeps showing the
   last otherwise. Each frame drawn again had kept a browser on a CPU

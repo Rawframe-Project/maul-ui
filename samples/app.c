@@ -21,6 +21,15 @@
 
 static const muiNodeId s_nullNode = {0, 0};
 
+// Whether the platform gives the frames at the display's pace (a
+// browser's animation frames, a display link, Android's choreographer),
+// rather than Maul Window's own loop running them back to back.
+#if defined(__EMSCRIPTEN__) || defined(__APPLE__) || defined(__ANDROID__)
+#define SAMPLE_PACED true
+#else
+#define SAMPLE_PACED false
+#endif
+
 bool SampleAppCheck(SampleApp* app, bool condition, const char* what)
 {
     return SampleCheck(&app->sample, condition, what);
@@ -470,8 +479,10 @@ static bool Step(SampleApp* app)
     // Nothing asked for paint since the list the window shows: the
     // surface keeps it, and a frame drawn again would keep the machine
     // busy for no change (a browser's frames on a CPU renderer took the
-    // whole runner).
-    if (built && !app->reading && list.header.generation == app->shown)
+    // whole runner). Only where the platform paces the frames: on
+    // Windows, X11 and Wayland the loop runs as fast as the program
+    // lets it, and presenting is what waits for the display.
+    if (SAMPLE_PACED && built && !app->reading && list.header.generation == app->shown)
     {
         return true;
     }
