@@ -8,6 +8,17 @@ format.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-11
+
+Layout closer to the browsers again, with no change to the API: five
+more cases where Chrome and Firefox agree and the library did not,
+from aspect-ratio items' baselines and bases, full wrapping lines and
+wrapping columns' widths and lines, each found by random layouts
+checked against both engines. A program built against 0.5.0 runs with
+0.5.1. Known issues: as in 0.5.0, TalkBack and VoiceOver on iOS have
+not walked the samples, and Orca 46 does not announce the first focus
+in a window that opens with nothing focused.
+
 ### Fixed
 
 - A baseline-aligned flex item with an aspect ratio finds its baseline
