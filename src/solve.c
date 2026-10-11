@@ -403,6 +403,17 @@ static void ApplyAspectRatio(const muiSolver* solver, uint32_t node, muiSizingIn
     else if (exactHeight && !exactWidth && !width.definite)
     {
         input->width = RatioAxis(solver, node, input, true, input->height.size * ratio);
+        if (sizing->height.kind != mui_dimensionAuto && !height.definite)
+        {
+            // A percentage height with nothing to resolve against, which
+            // a column flexed to an exact size: the width through the
+            // ratio is at least the content's min-content width, within
+            // the maximum (as Chrome and Firefox).
+            muiSizingInput probe = *input;
+            probe.width = (muiMeasureAxis){0.0f, mui_measureMinContent};
+            float least = fminf(ContentAnswer(solver, node, &probe).width, width.maximum);
+            input->width.size = fmaxf(input->width.size, least);
+        }
     }
     else if (!exactWidth && !exactHeight && !width.definite && !height.definite)
     {

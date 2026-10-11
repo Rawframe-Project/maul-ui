@@ -58,6 +58,10 @@ format.
   whose height its own ratio gives, takes its base from that ratio's
   height before the row's content grows it, as Chrome and Firefox do;
   it took the grown height and came out too wide.
+- A box with an aspect ratio whose height is a percentage of an
+  unknown height, its height set by a column, is no narrower than its
+  content's min-content width, as Chrome and Firefox lay it out; its
+  width came from the ratio alone and its content overflowed it.
 
 ## [0.4.0] - 2026-10-11
 
