@@ -18,7 +18,8 @@
 // screen reader starts; the steps go to it as keys, in the steps files'
 // form (key, type, hold, wait, focus, expect). <out-dir> receives
 // speech.txt, a line per utterance, steps.txt, each step with what was
-// said after it (and, on the web, what the page had focused), on macOS
+// said after it (and, on the web, what the page had focused; on Windows,
+// what UI Automation reports focused), on macOS
 // stack.txt, the sample's threads as the walk ends, and on the web
 // tree.json, the browser's accessibility tree at the end. The exit
 // status is 1 when a phrase expected was not said, or nothing was.
@@ -157,6 +158,19 @@ async function startWeb(script) {
   };
 }
 
+// On Windows, the element UI Automation reports focused, for steps.txt:
+// its name, control type and process, from a client apart from the
+// reader, so a step the reader said nothing after tells whether the
+// focus had moved.
+function uiaFocus() {
+  const script = "Add-Type -AssemblyName UIAutomationClient; " +
+    "$e = [System.Windows.Automation.AutomationElement]::FocusedElement; " +
+    "if ($e) { $c = $e.Current; '{0} / {1} / {2}' -f $c.Name, $c.ControlType.ProgrammaticName, $c.ProcessId }";
+  const result = spawnSync("powershell", ["-NoProfile", "-Command", script],
+                           { encoding: "utf8", timeout: 20000 });
+  return (result.stdout ?? "").trim() || `none (${result.status})`;
+}
+
 mkdirSync(out, { recursive: true });
 // A browser takes long to start and keeps the machine busy meanwhile,
 // so the reader starts first for a web sample, after the sample
@@ -216,7 +230,8 @@ for (const line of readFileSync(steps, "utf8").split("\n")) {
   }
   await sleep(settle);
   const log = await reader.spokenPhraseLog();
-  const where = web ? ` [${await app.focused()}]` : "";
+  const where = web ? ` [${await app.focused()}]`
+    : process.platform === "win32" ? ` [uia ${uiaFocus()}]` : "";
   told.push(`${line.trim()}\t${log.slice(said).join(" | ")}${where}`);
   said = log.length;
 }
