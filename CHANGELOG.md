@@ -54,6 +54,10 @@ format.
   again: since the fix above, whether a height was loose split each
   node's measurement cache, though only a row with children reads it,
   so a virtualized list's labels were measured twice a frame.
+- A stretched item with an aspect ratio, in the single line of a row
+  whose height its own ratio gives, takes its base from that ratio's
+  height before the row's content grows it, as Chrome and Firefox do;
+  it took the grown height and came out too wide.
 
 ## [0.4.0] - 2026-10-11
 

@@ -921,3 +921,31 @@ node => 0 0 160 120
     node => 0 0 110 120
       node content=50x16*2 => 0 0 50 120
       node min-width=20 max-width=60 aspect=2 content=80x20*6 => 50 0 60 120
+
+# A container whose height its ratio gives, before its content floor,
+# is the cross size a stretched ratio item in its single line takes its
+# base from, as Chrome and Firefox do (research 184, case 49w_160).
+fixture ratio_stretched_item_pre_floor_height available=500x400
+node aspect=2 => 0 0 7 14
+  node aspect=1.5 => 0 0 5.25 14
+  node margin=0,7,7,7 => 5.25 7 0 0
+
+fixture ratio_stretched_item_pre_floor_padding available=500x400
+node aspect=2 padding=3 => 0 0 13 20
+  node aspect=1.5 => 3 3 0.75 14
+  node margin=0,7,7,7 => 3.75 10 0 0
+
+fixture ratio_stretched_item_pre_floor_margins available=500x400
+node aspect=2 => 0 0 7 14
+  node aspect=1.5 margin=0,0,2,2 => 0 2 0 10
+  node margin=0,7,7,7 => 0 7 0 0
+
+fixture ratio_stretched_item_pre_floor_taller_sibling available=500x400
+node aspect=1 => 0 0 20 30
+  node aspect=1.5 => 0 0 30 30
+  node width=20 height=30 => 30 0 0 30
+
+fixture ratio_stretched_item_pre_floor_min_height available=500x400
+node aspect=2 => 0 0 22 14
+  node aspect=1.5 min-height=10 => 0 0 16.5 14
+  node margin=0,7,7,7 => 16.5 7 0 0

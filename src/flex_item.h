@@ -111,8 +111,9 @@ static inline muiEdges muiFlexChildPadding(const muiFlexFrame* frame, const muiL
 
 // The constraint a child is sized under on the cross axis: its own
 // definite size; with stretch, the line's size when the container's cross
-// size is definite, not its content height; otherwise fit-content within
-// the container.
+// size is definite, not its content height, and for a container whose
+// ratio gives its height the ratio's, before its content floor (as
+// Chrome and Firefox); otherwise fit-content within the container.
 static inline muiMeasureAxis muiFlexCrossConstraint(const muiFlexFrame* frame,
                                                     const muiLayoutStyle* child,
                                                     const muiAxisSizing* cross, bool stretch)
@@ -132,7 +133,8 @@ static inline muiMeasureAxis muiFlexCrossConstraint(const muiFlexFrame* frame,
         if (stretch && !frame->multiLine && frame->extentCross >= 0.0f &&
             muiFlexIsStretched(frame, child))
         {
-            return muiExact(muiClampSize(space, cross->minimum, cross->maximum, boxCross));
+            float line = fmaxf(frame->extentCross - margin, 0.0f);
+            return muiExact(muiClampSize(line, cross->minimum, cross->maximum, boxCross));
         }
         return (muiMeasureAxis){space, mui_measureAtMost};
     }
