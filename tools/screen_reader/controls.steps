@@ -1,13 +1,22 @@
 # sample_controls: focus through the controls, each acted on with space.
+# After each Tab the reader is asked what has the focus, as in the text
+# walk (NVDA on the runner leaves some focus moves unsaid; its walkers
+# elsewhere ask nothing), the focus event itself tested by test_uia.
 key Tab
+focus
 key Tab
+focus
 key space
 key Tab
+focus
 key space
 key Tab
+focus
 key space
 key Tab
+focus
 key Tab
+focus
 # Said by Orca, NVDA and VoiceOver alike.
 expect Subtitles
 expect checked
