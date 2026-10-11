@@ -886,3 +886,28 @@ node => 0 0 20 10
       node => 0 0 20 10
         node => 0 0 20 10
           node width=150 height=100%+10 basis=20 aspect=2 => 0 0 40 20
+
+# The same breaks for a column that wraps in reverse (mutants, item 172).
+fixture ratio_wrapping_column_reverse_in_column available=500x400
+node direction=column width=10 => 0 0 10 140
+  node aspect=2 direction=column-reverse wrap=wrap => 0 0 10 140
+    node height=140 => 0 0 5 140
+    node height=10 => 5 130 5 10
+
+# A loose item's own height read, not its next sibling's, whose height is
+# given (mutants, item 172).
+fixture ratio_contribution_stretched_loose_sibling_height available=500x400
+node => 0 0 20 120
+  node => 0 0 20 120
+    node => 0 0 20 120
+      node width=150 basis=20 aspect=2 content=10x40*6 => 0 0 150 120
+      node height=10 => 150 0 0 10
+
+# A ratio's break at 0 is taken before a maximum's (mutants, item 172).
+fixture ratio_wrapping_column_zero_break_maximum available=500x400
+node direction=column width=0 => 0 0 0 10
+  node aspect=2 direction=column wrap=wrap max-height=30 => 0 0 0 10
+    node height=10 => 0 0 0 10
+    node height=10 => 0 0 0 10
+    node height=10 => 0 0 0 10
+    node height=10 => 0 0 0 10
