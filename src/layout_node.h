@@ -49,6 +49,11 @@ typedef struct muiSizingInput
     // without: its min-content height, which a column measuring it as an
     // item asks, its content otherwise counted in full (as Chrome).
     bool ratioLines : 1;
+    // Whether an exact height is definite only through stretching in rows
+    // whose heights are their content's, which no style fixes: definite
+    // for percentages (Flexbox 9.8), but a row sizing its content carries
+    // no ratio's minimum through it (as Chrome).
+    bool looseHeight : 1;
 } muiSizingInput;
 
 typedef struct muiCacheEntry
@@ -86,6 +91,7 @@ typedef struct muiLayoutCache
     bool finalRtl : 1;
     bool finalContentHeight : 1;
     bool finalRatioPercent : 1;
+    bool finalLooseHeight : 1;
     muiSize finalSize;
 } muiLayoutCache;
 

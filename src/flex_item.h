@@ -47,6 +47,9 @@ typedef struct muiFlexFrame
     float contentCross;
     // Some child was stretched wider than it was measured.
     bool widened;
+    // A row whose height is its content's, or definite only through
+    // stretching in such rows (looseHeight): its stretched items' too.
+    bool crossLoose;
     uint32_t count;
     uint32_t lineCount;
     float innerMain;
@@ -69,6 +72,7 @@ static inline muiSizingInput muiFlexChildInput(const muiFlexFrame* frame, muiMea
     input.contentOnly = false;
     input.ratioPercent = false;
     input.ratioLines = false;
+    input.looseHeight = frame->row && frame->crossLoose;
     return input;
 }
 

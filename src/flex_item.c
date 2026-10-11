@@ -80,7 +80,15 @@ float muiFlexAutomaticMinimum(const muiFlexFrame* frame, uint32_t child, const m
     float ratio = frame->solver->nodes[child - 1].style.sizing.aspectRatio;
     float content =
         ContentMain(frame, child, mui_measureMinContent, cross, ratio > 0.0f && frame->row);
-    if (ratio > 0.0f && cross.mode == mui_measureExact)
+    // A row sizing its content, its height definite only through
+    // stretching in rows no style fixes, carries no minimum through a
+    // stretched item's ratio (as Chrome, which sizes content before
+    // heights).
+    bool loose =
+        frame->row && frame->mainIn.mode != mui_measureExact && frame->crossLoose &&
+        !muiResolveAxis(&frame->solver->nodes[child - 1].style.sizing, false, frame->extentCross)
+             .definite;
+    if (ratio > 0.0f && cross.mode == mui_measureExact && !loose)
     {
         content = fmaxf(content, frame->row ? cross.size * ratio : cross.size / ratio);
     }

@@ -156,6 +156,8 @@ static muiFlexFrame Setup(const muiSolver* solver, uint32_t node, const muiSizin
         frame.innerCross = fmaxf(frame.crossIn.size - frame.boxCross, 0.0f);
         frame.extentCross = crossDefinite ? frame.innerCross : -1.0f;
     }
+    frame.crossLoose = frame.row && (input->contentHeight || input->looseHeight) &&
+                       !muiResolveAxis(&style->sizing, false, input->parentHeight).definite;
     RatioExtent(&frame, style, input);
     return frame;
 }
@@ -560,6 +562,7 @@ static muiSizingInput FinalInput(const muiFlexFrame* frame, uint32_t child)
         input.ratioPercent =
             style->sizing.aspectRatio > 0.0f && !given &&
             (!muiFlexIsStretched(frame, style) || (column && !ItemOf(frame, child)->resized));
+        input.looseHeight = frame->crossLoose && muiFlexIsStretched(frame, style) && !given;
     }
     else
     {

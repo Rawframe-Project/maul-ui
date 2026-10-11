@@ -39,6 +39,11 @@ format.
 - A box with an aspect ratio that wraps as a column, itself a column's
   item, breaks its lines at the ratio's height when its column measures
   it, as Chrome and Firefox do; it kept one line and grew past them.
+- A row sized by its content no longer takes an item's automatic
+  minimum through its aspect ratio from a height the item has only by
+  stretching in rows sized by their content, so the same item
+  contributes the same at any depth, as in Chrome; a height a style
+  fixes above still carries it.
 
 ## [0.4.0] - 2026-10-11
 
