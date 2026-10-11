@@ -328,6 +328,14 @@ static bool Surface(SampleApp* app)
     {
         return false;
     }
+    // A window hidden or covered may not keep what it showed: drawn again
+    // once it is seen, as on a new or resized surface.
+    if (state.occluded || !state.visible || app->surface.surface.index1 == 0 ||
+        width != app->surface.config.width || height != app->surface.config.height ||
+        state.scale != app->scale)
+    {
+        app->shown = 0;
+    }
     if (app->surface.surface.index1 == 0)
     {
         mwinNativeHandles handles;
@@ -403,8 +411,8 @@ static bool Act(void* user, const muiAccessRequest* request)
 // One frame: the records, the access once the window has its surface
 // (which its first records bring), layout at now, the accessibility
 // tree's changes, the list painted and drawn, into a texture headless,
-// else onto the window's surface once the renderer is ready. Whether it
-// was drawn.
+// else onto the window's surface once the renderer is ready, unless the
+// window shows that list already. Whether the window shows the frame.
 static bool Step(SampleApp* app)
 {
     Drain(app);
@@ -459,11 +467,20 @@ static bool Step(SampleApp* app)
                        "a frame drawn");
         return true;
     }
+    // Nothing asked for paint since the list the window shows: the
+    // surface keeps it, and a frame drawn again would keep the machine
+    // busy for no change (a browser's frames on a CPU renderer took the
+    // whole runner).
+    if (built && !app->reading && list.header.generation == app->shown)
+    {
+        return true;
+    }
     SamplePresented presented =
         built ? SamplePresent(&app->sample, &app->surface, app->renderer, &list, app->reading)
               : sample_failed;
     SampleAppCheck(app, presented != sample_failed, "a frame presented");
     app->closing = app->closing || presented == sample_lost_device;
+    app->shown = presented == sample_presented ? list.header.generation : 0;
     return presented == sample_presented;
 }
 

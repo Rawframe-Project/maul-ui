@@ -108,6 +108,9 @@ struct SampleApp
     bool released;
     // Frames spent waiting for the last presented image's readback.
     int waits;
+    // The generation of the list the window shows, 0 for none: a frame
+    // whose list is still that one is not drawn again.
+    uint64_t shown;
     SampleSurface surface;
     // The frame's pixels when read back, their size and scale.
     uint8_t* pixels;

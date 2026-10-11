@@ -17,6 +17,14 @@ format.
   `mui_synthesisNoBold` and `mui_synthesisNoOblique` show a lighter or
   an upright face as it is. Spans keep their node's.
 
+### Changed
+
+- The samples draw a frame only when its list changed (a new
+  generation), the window being new, resized, rescaled, hidden or
+  covered since, or its image read back; the window keeps showing the
+  last otherwise. Each frame drawn again had kept a browser on a CPU
+  renderer busy on every core.
+
 ## [0.4.0] - 2026-10-11
 
 Layout closer to the browsers: wrapping columns sized as the current CSS
