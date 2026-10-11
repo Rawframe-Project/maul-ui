@@ -64,7 +64,11 @@ static float ContentBase(const muiFlexFrame* frame, uint32_t child, const muiAxi
         return RatioBase(frame, child, mode, cross, true);
     }
     bool limited = !main->minimumAuto || main->maximum < INFINITY;
-    return ContentMain(frame, child, mode, cross, limited && ratio <= 0.0f);
+    float content = ContentMain(frame, child, mode, cross, limited && ratio <= 0.0f);
+    // A ratio item's content may pass its own limits, which clamp its
+    // hypothetical size, not its base (section 9.2.3 E).
+    return limited && ratio > 0.0f ? fmaxf(content, ContentMain(frame, child, mode, cross, true))
+                                   : content;
 }
 
 float muiFlexAutomaticMinimum(const muiFlexFrame* frame, uint32_t child, const muiAxisSizing* main,

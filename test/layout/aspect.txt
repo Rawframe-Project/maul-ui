@@ -911,3 +911,13 @@ node direction=column width=0 => 0 0 0 10
     node height=10 => 0 0 0 10
     node height=10 => 0 0 0 10
     node height=10 => 0 0 0 10
+
+# A ratio item's base from content is not clamped by its own maximum
+# width; only its hypothetical size is, so it stays flexible and shrinks
+# against that maximum (research 179, case 47t_233).
+fixture ratio_base_unclamped_by_own_maximum available=500x400
+node => 0 0 160 120
+  node width=10%-20 align-items=start => 0 0 0 120
+    node => 0 0 110 120
+      node content=50x16*2 => 0 0 50 120
+      node min-width=20 max-width=60 aspect=2 content=80x20*6 => 50 0 60 120

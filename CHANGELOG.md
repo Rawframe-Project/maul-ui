@@ -45,6 +45,11 @@ format.
   height of that height, so the same item
   contributes the same at any depth, as in Chrome; a height a style
   fixes above still carries it.
+- A flex item with an aspect ratio and its own width limits takes its
+  base from its content unclamped by them, as Chrome and Firefox do;
+  only its hypothetical size is clamped, so a line that shrinks freezes
+  it at its maximum and the others shrink, where the shrinking was
+  shared.
 
 ## [0.4.0] - 2026-10-11
 
