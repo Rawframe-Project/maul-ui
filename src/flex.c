@@ -290,9 +290,11 @@ static float HypotheticalCross(const muiFlexFrame* frame, uint32_t first, uint32
                 // stretched, it is so unless given or from its ratio).
                 muiSizingInput at =
                     muiFlexChildInput(frame, muiExact(item->target), muiExact(item->cross));
-                at.contentHeight =
-                    style->sizing.aspectRatio <= 0.0f &&
-                    !muiResolveAxis(&style->sizing, false, frame->extentCross).definite;
+                bool given = muiResolveAxis(&style->sizing, false, frame->extentCross).definite;
+                at.contentHeight = style->sizing.aspectRatio <= 0.0f && !given;
+                // Its ratio's height holds its percentages, as when it is
+                // laid out (FinalInput).
+                at.ratioPercent = style->sizing.aspectRatio > 0.0f && !given;
                 own = frame->solver->baseline(frame->solver, c, &at);
             }
             muiEdges margins = muiMarginsOf(style, frame->rtl);

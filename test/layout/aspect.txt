@@ -1027,3 +1027,14 @@ fixture ratio_base_free_of_own_maximum_growing available=500x400
 node width=400 => 0 0 400 83.328125
   node max-width=300 grow=1 aspect=2 content=50x10 => 0 0 166.671875 83.328125
   node grow=2 => 166.671875 0 233.328125 83.328125
+
+# A baseline-aligned ratio item's baseline is found with its children's
+# percentages against its ratio's height, as it is laid out (research
+# 197, case 59t_193; Firefox agrees within 1/64).
+
+fixture ratio_baseline_item_percent_height available=500x400
+node => 0 0 5 6.875
+  node align-items=baseline => 0 0 5 6.875
+    node aspect=2 => 0 0 5 6.875
+      node height=75% margin=auto,5,5,auto => 0 5 0 1.875
+    node => 5 6.875 0 0

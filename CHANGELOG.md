@@ -8,6 +8,13 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- A baseline-aligned flex item with an aspect ratio finds its baseline
+  with its children's percentage heights against its ratio's height, as
+  it is laid out, as Chrome and Firefox do; they resolved against the
+  height its content grew it to, which grew its line.
+
 ## [0.5.0] - 2026-10-11
 
 Layout closer to the browsers again: seven more cases where Chrome and
