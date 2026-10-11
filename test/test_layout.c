@@ -269,6 +269,34 @@ static void TestLooseRowLabelIsMeasuredOnce(void)
     CHECK(host.measured == 1, "the label measured once");
     muiRect rect = muiNode_GetRect(context, label);
     CHECK(rect.width == 30.0f && rect.height == 12.0f, "its size");
+
+    muiDestroyContext(context);
+
+    // A column there reads no loose height either: asked with and
+    // without it, it keeps one answer, and the four nodes are sized
+    // eight times (nine when the flag split the column's entries).
+    context = MakeContext();
+    host = (Host){.context = context, .content = {30.0f, 12.0f}};
+    style = muiDefaultLayoutStyle();
+    style.sizing.width = Length(200.0f);
+    style.sizing.height = Length(200.0f);
+    root = MakeNode(context, &style);
+    style = muiDefaultLayoutStyle();
+    style.item.alignSelf = mui_alignStart;
+    row = MakeNode(context, &style);
+    style = muiDefaultLayoutStyle();
+    style.container.direction = mui_flexColumn;
+    muiNodeId column = MakeNode(context, &style);
+    style = muiDefaultLayoutStyle();
+    style.content = mui_contentHost;
+    label = MakeNode(context, &style);
+    CHECK(muiNode_InsertChild(context, root, row, s_null) == mui_success &&
+              muiNode_InsertChild(context, row, column, s_null) == mui_success &&
+              muiNode_InsertChild(context, column, label, s_null) == mui_success,
+          "insert the column");
+    input = Input(&host);
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout the column");
+    CHECK(muiGetWorkCounts(context).sized == 8, "the column sized once a query");
     muiDestroyContext(context);
 }
 
