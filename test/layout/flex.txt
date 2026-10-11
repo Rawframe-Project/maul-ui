@@ -164,3 +164,15 @@ node direction=column height=0 width=50 => 0 0 50 0
 fixture column_of_no_height_full_child_no_minimum available=500x400
 node direction=column height=0 => 0 0 10 0
   node height=100% min-height=0 content=10x10 => 0 0 10 0
+
+# A line whose clamps cancel exactly freezes every child (section 9.7):
+# float error in the total violation does not freeze only the ones at
+# their maximum, which left the last a smaller share of the space
+# through its flex factor under 1 (research 229).
+fixture flex_shrink_violations_cancel available=500x400
+node width=80 => 0 0 80 80
+  node => 0 0 97 80
+    node => 0 0 97 80
+      node margin=7,7,3,0 border=10 content=30x10*5 => 7 3 50 77
+      node max-width=0 border=3,0,3,7 shrink=0.25 content=50x10 => 64 0 3 80
+      node width=100% shrink=0.25 content=30x20*4 => 67 0 30 80

@@ -20,6 +20,10 @@ format.
   growing it taller than the insets leave, resolves its children's
   percentage heights against the insets' height, as Chrome and Firefox
   do; they resolved against the grown height.
+- A flex line whose limits cancel exactly when it shrinks or grows
+  freezes every item at its clamped size, as Chrome and Firefox do;
+  float error in the sum froze only the items at one limit, and an item
+  left with a flex factor under 1 took too small a share of the space.
 
 ## [0.5.1] - 2026-10-11
 

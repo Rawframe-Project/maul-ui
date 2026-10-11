@@ -100,6 +100,10 @@ static float Distribute(const muiTree* tree, muiLayoutNode* nodes, uint32_t firs
     return violation;
 }
 
+// The relative error a total violation may carry and still be zero: the
+// clamps then cancel exactly, as browsers' fixed-point sums find.
+static const float VIOLATION_SLACK = 1.0e-5f;
+
 // Freezes every unfrozen child when the total violation is zero, the
 // ones raised to their minimum when it is positive, and the ones lowered
 // to their maximum when it is negative.
@@ -170,7 +174,8 @@ void muiResolveFlexibleLengths(const muiTree* tree, muiLayoutNode* nodes, uint32
             }
         }
         float violation = Distribute(tree, nodes, first, count, freeSpace, growing, &totals);
-        FreezeViolators(tree, nodes, first, count, violation);
+        bool cancels = fabsf(violation) <= fmaxf(fabsf(available), 1.0f) * VIOLATION_SLACK;
+        FreezeViolators(tree, nodes, first, count, cancels ? 0.0f : violation);
     }
 }
 
