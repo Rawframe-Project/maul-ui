@@ -24,6 +24,11 @@ format.
   freezes every item at its clamped size, as Chrome and Firefox do;
   float error in the sum froze only the items at one limit, and an item
   left with a flex factor under 1 took too small a share of the space.
+- A box with an aspect ratio whose percentage height cannot resolve
+  keeps its content's min-content width as a floor only while its
+  minimum width is automatic, as Chrome and Firefox do; a given minimum
+  width now replaces it, so a maximum height carried through the ratio
+  caps the width.
 
 ## [0.5.1] - 2026-10-11
 

@@ -1050,3 +1050,15 @@ node => 0 0 150 80
       node direction=column align-items=end => 0 0 150 80
         node min-width=150 max-height=150 => 0 0 150 80
           node width=25%-5 content=10x40*6 => 0 0 32.5 80
+
+# A ratio box whose percentage height cannot resolve is no narrower
+# than its content only while its minimum width is automatic: a given
+# minimum width replaces that floor, and the maximum height carried
+# through the ratio caps the width (research 232).
+fixture aspect_percent_height_given_minimum_width available=500x400
+node => 0 0 80 80
+  node => 0 0 80 80
+    node align-items=end => 0 0 80 80
+      node direction=column align-items=start => 0 0 80 80
+        node height=25% min-width=50% max-height=80 aspect=1 => 0 0 80 80
+          node width=120 => 0 0 80 80
