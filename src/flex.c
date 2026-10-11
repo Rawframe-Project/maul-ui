@@ -484,12 +484,12 @@ static void SizeCross(muiFlexFrame* frame)
     }
     else if (!frame->row && frame->crossIn.mode == mui_measureAtMost)
     {
-        // A wrapping column fits the space it is given, no narrower than
-        // its min-content width and, within the space, as wide as its
-        // lines' contributions (CSS Sizing 3 fit-content).
+        // A wrapping column is as wide as its lines' contributions; past
+        // its space, as wide as the space but no narrower than its
+        // min-content width (CSS Sizing 3 fit-content).
         float space = fmaxf(frame->crossIn.size - frame->boxCross, 0.0f);
-        total = total > space ? fmaxf(space, ColumnContribution(frame, true))
-                              : fminf(fmaxf(total, LinesContribution(frame)), space);
+        float most = LinesContribution(frame);
+        total = most > space ? fmaxf(space, ColumnContribution(frame, true)) : most;
     }
     if (frame->crossIn.mode != mui_measureExact)
     {

@@ -21,10 +21,11 @@ format.
 - Items that fill a wrapping line exactly stay on it: the float sum of
   their lengths could round past the line's and send the last to a new
   line, where Chrome and Firefox keep one.
-- A wrapping column of open width counts its items' contributions when
-  it fits its space, as Chrome and Firefox do: an item with an aspect
-  ratio shrunk along the column kept its line, and the column, to its
-  shrunk width instead of the width its own height gives it.
+- A wrapping column of open width takes its width from its items'
+  contributions, as Chrome and Firefox do, not from its lines as laid
+  out: an item with an aspect ratio shrunk along the column kept the
+  column to its shrunk width instead of the width its own height gives
+  it, and one flexed from its basis widened the column.
 
 ## [0.5.0] - 2026-10-11
 

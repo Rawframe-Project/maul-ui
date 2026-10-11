@@ -16945,6 +16945,13 @@ static const LayoutFixtureNode s_wrap_column_fits_its_lines_contributions_two_li
      {0.0f, 0.0f}, 0, {25.0f, 0.0f, 5.0f, 10.0f}},
 };
 
+static const LayoutFixtureNode s_wrap_column_fits_its_lines_contributions_basis[] = {
+    {0, {{{0.0f, 0.0f, 0}, {0.0f, 20.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {2, 1, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 20.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 1.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 30.0f, 1}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 20.0f, 20.0f}},
+};
+
 static const LayoutFixtureNode s_wrap_column_maximum_longest_line[] = {
     {0, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
      {0.0f, 0.0f}, 0, {0.0f, 0.0f, 10.0f, 40.0f}},
@@ -18187,6 +18194,7 @@ static const LayoutFixture s_layoutFixtures[] = {
     {"wrap_column_fits_its_lines_contributions", 500.0f, 400.0f, s_wrap_column_fits_its_lines_contributions, 2},
     {"wrap_column_fits_its_lines_contributions_start", 500.0f, 400.0f, s_wrap_column_fits_its_lines_contributions_start, 2},
     {"wrap_column_fits_its_lines_contributions_two_lines", 500.0f, 400.0f, s_wrap_column_fits_its_lines_contributions_two_lines, 3},
+    {"wrap_column_fits_its_lines_contributions_basis", 500.0f, 400.0f, s_wrap_column_fits_its_lines_contributions_basis, 2},
     {"wrap_column_maximum_longest_line", 500.0f, 400.0f, s_wrap_column_maximum_longest_line, 5},
     {"wrap_column_maximum_three_lines", 500.0f, 400.0f, s_wrap_column_maximum_three_lines, 6},
     {"wrap_column_maximum_gap", 500.0f, 400.0f, s_wrap_column_maximum_gap, 5},

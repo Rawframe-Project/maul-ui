@@ -286,6 +286,13 @@ node height=20 direction=column wrap=wrap => 0 0 30 20
   node height=30 aspect=1 => 0 0 25 20
   node height=10 => 25 0 5 10
 
+# Its width is its contributions even when its laid-out line is wider:
+# a basis is no contribution, so the column is 0 wide and its item
+# overflows (research 208).
+fixture wrap_column_fits_its_lines_contributions_basis available=500x400
+node height=20 direction=column wrap=wrap => 0 0 0 20
+  node basis=30 aspect=1 => 0 0 20 20
+
 # A wrapping column of open height longer than its maximum breaks its
 # lines at the maximum and is as tall as its longest line (research 176,
 # case 235).
