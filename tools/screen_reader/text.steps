@@ -1,7 +1,13 @@
 # sample_text: the Notes field, typed into, read by character, word and
-# line, a selection made and deleted; then the Name field.
+# line, a selection made and deleted; then the Name field. After each
+# Tab the reader is asked what has the focus, as a user does (NVDA's
+# Insert+Tab; Orca's walker and VoiceOver ask nothing): NVDA on the
+# runner, which has no audio device, left half the moves into the
+# fields unsaid while UI Automation had the field focused.
 key Tab
+focus
 key Tab
+focus
 type hello world
 key Left
 hold ctrl Left
