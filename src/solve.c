@@ -89,6 +89,11 @@ static const muiCacheEntry* FindCached(const muiSolver* solver, uint32_t node,
 {
     const muiLayoutNode* layout = &solver->nodes[node - 1];
     bool keyExtents = ReadsParentExtent(&layout->style.sizing);
+    // Only a row with children reads whether its height is loose
+    // (src/flex.c); for any other node the flag would split its entries.
+    muiFlexDirection direction = layout->style.container.direction;
+    bool keyLoose = (direction == mui_flexRow || direction == mui_flexRowReverse) &&
+                    muiTreeAt(solver->tree, node)->links.firstChild != 0;
     unsigned loose = LooseOf(solver, node);
     for (int i = 0; i < MUI_CACHE_ENTRIES; i++)
     {
@@ -103,7 +108,7 @@ static const muiCacheEntry* FindCached(const muiSolver* solver, uint32_t node,
             entry->input.contentOnly == input->contentOnly &&
             entry->input.ratioPercent == input->ratioPercent &&
             entry->input.ratioLines == input->ratioLines &&
-            entry->input.looseHeight == input->looseHeight &&
+            (!keyLoose || entry->input.looseHeight == input->looseHeight) &&
             AxisAnswers(input->width, entry->input.width, entry->size.width, (loose & 1u) != 0) &&
             AxisAnswers(input->height, entry->input.height, entry->size.height, (loose & 2u) != 0))
         {

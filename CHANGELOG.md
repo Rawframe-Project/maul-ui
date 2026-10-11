@@ -50,6 +50,10 @@ format.
   only its hypothetical size is clamped, so a line that shrinks freezes
   it at its maximum and the others shrink, where the shrinking was
   shared.
+- A host's content in a row sized by its content is measured once
+  again: since the fix above, whether a height was loose split each
+  node's measurement cache, though only a row with children reads it,
+  so a virtualized list's labels were measured twice a frame.
 
 ## [0.4.0] - 2026-10-11
 

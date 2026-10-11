@@ -245,6 +245,33 @@ static void TestDecidedSizesAreNotMeasured(void)
     muiDestroyContext(context);
 }
 
+static void TestLooseRowLabelIsMeasuredOnce(void)
+{
+    // A row of its content's height inside a row: its label is asked the
+    // same once, whether its height is loose being no key of a leaf's.
+    muiContext* context = MakeContext();
+    Host host = {.context = context, .content = {30.0f, 12.0f}};
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.sizing.width = Length(200.0f);
+    style.sizing.height = Length(200.0f);
+    muiNodeId root = MakeNode(context, &style);
+    style = muiDefaultLayoutStyle();
+    style.item.alignSelf = mui_alignStart;
+    muiNodeId row = MakeNode(context, &style);
+    style = muiDefaultLayoutStyle();
+    style.content = mui_contentHost;
+    muiNodeId label = MakeNode(context, &style);
+    CHECK(muiNode_InsertChild(context, root, row, s_null) == mui_success &&
+              muiNode_InsertChild(context, row, label, s_null) == mui_success,
+          "insert");
+    muiLayoutInput input = Input(&host);
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(host.measured == 1, "the label measured once");
+    muiRect rect = muiNode_GetRect(context, label);
+    CHECK(rect.width == 30.0f && rect.height == 12.0f, "its size");
+    muiDestroyContext(context);
+}
+
 static void TestStyleChangeRelaysTheParent(void)
 {
     muiContext* context = MakeContext();
@@ -661,6 +688,7 @@ int main(void)
     TestEditsFromMeasureAreRefused();
     TestUnchangedTreeIsNotMeasuredAgain();
     TestDecidedSizesAreNotMeasured();
+    TestLooseRowLabelIsMeasuredOnce();
     TestStyleChangeRelaysTheParent();
     TestNewSpaceRelaysAnUnchangedTree();
     TestScaledLimitFollowsTheParent();
