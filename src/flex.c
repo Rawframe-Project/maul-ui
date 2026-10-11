@@ -224,9 +224,18 @@ static void SizeMain(muiFlexFrame* frame)
                                    frame->mainLimits.maximum, frame->boxMain);
         frame->innerMain = outer - frame->boxMain;
     }
+    // A column of indefinite height is one line unless its maximum breaks
+    // it: items with negative margins may sum shorter than they run
+    // (section 9.3, as Chrome and Firefox).
+    float breakLength = frame->innerMain;
+    if (!frame->row && frame->extentMain < 0.0f &&
+        sum + Gaps(frame->gap, frame->count) + frame->boxMain <= frame->mainLimits.maximum)
+    {
+        breakLength = INFINITY;
+    }
     for (uint32_t first = muiFirstFlowChild(tree, frame->solver->nodes, frame->node); first != 0;)
     {
-        float length = frame->ratioBreak >= 0.0f ? frame->ratioBreak : frame->innerMain;
+        float length = frame->ratioBreak >= 0.0f ? frame->ratioBreak : breakLength;
         uint32_t count =
             muiCollectLine(tree, frame->solver->nodes, first, length, frame->gap, frame->multiLine);
         float used = Gaps(frame->gap, count);

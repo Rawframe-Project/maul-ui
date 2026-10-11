@@ -26,6 +26,10 @@ format.
   out: an item with an aspect ratio shrunk along the column kept the
   column to its shrunk width instead of the width its own height gives
   it, and one flexed from its basis widened the column.
+- A wrapping column of indefinite height keeps its items on one line
+  unless its maximum height breaks them, as Chrome and Firefox do: items
+  with negative margins, summing shorter than they run, were broken
+  into more lines at their own sum.
 
 ## [0.5.0] - 2026-10-11
 

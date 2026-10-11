@@ -293,6 +293,15 @@ fixture wrap_column_fits_its_lines_contributions_basis available=500x400
 node height=20 direction=column wrap=wrap => 0 0 0 20
   node basis=30 aspect=1 => 0 0 20 20
 
+# A wrapping column of indefinite height is one line: an item with a
+# negative margin makes its items sum shorter than they run, and the
+# column does not break them at that sum (research 212).
+fixture wrap_column_of_open_height_is_one_line available=500x400
+node direction=column wrap=wrap => 0 0 80 10
+  node content=80x10 => 0 0 80 10
+  node padding=5 => 0 10 80 10
+  node margin=5,-5,0,-10 => 5 20 80 0
+
 # A wrapping column of open height longer than its maximum breaks its
 # lines at the maximum and is as tall as its longest line (research 176,
 # case 235).
