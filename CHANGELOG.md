@@ -66,6 +66,10 @@ format.
   contributions, each item's width with its height left open, as Chrome
   and Firefox do; it summed its lines as laid out, so an item sized
   through its ratio from its flex basis widened the column.
+- A flex item with an aspect ratio and its own width limits, whose base
+  comes from its content past those limits, is still capped by its
+  maximum height through the ratio, as Chrome and Firefox do; its
+  content widened it past that.
 
 ## [0.4.0] - 2026-10-11
 
