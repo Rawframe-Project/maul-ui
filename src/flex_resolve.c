@@ -117,6 +117,9 @@ static void FreezeViolators(const muiTree* tree, muiLayoutNode* nodes, uint32_t 
     }
 }
 
+// The relative excess a line's float sum may carry and still fit.
+static const float LINE_SLACK = 1.0e-5f;
+
 uint32_t muiCollectLine(const muiTree* tree, const muiLayoutNode* nodes, uint32_t first,
                         float innerMain, float gap, bool wrap)
 {
@@ -126,7 +129,10 @@ uint32_t muiCollectLine(const muiTree* tree, const muiLayoutNode* nodes, uint32_
     {
         float outer = Outer(&nodes[c - 1].item, nodes[c - 1].item.hypothetical);
         float next = count == 0 ? outer : used + gap + outer;
-        if (wrap && count > 0 && next > innerMain)
+        // Lengths that fit exactly can pass by a rounding of their float
+        // sum (a line 59.95 long holding 19.95 and 40): only a real
+        // excess breaks the line, as in Chrome's fixed-point layout.
+        if (wrap && count > 0 && next > innerMain + fmaxf(fabsf(innerMain), 1.0f) * LINE_SLACK)
         {
             break;
         }

@@ -17023,6 +17023,19 @@ static const LayoutFixtureNode s_wrap_column_width_leaves_out_ratio_basis_unstre
      {0.0f, 0.0f}, 0, {0.0f, 0.0f, 30.0f, 20.0f}},
 };
 
+static const LayoutFixtureNode s_wrap_column_exact_fill_one_line[] = {
+    {0, {{{0.25f, 0.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 125.0f, 66.9375f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {2, 0, 0, 1, 0, 0.0f, 0.0f}, {2.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 125.0f, 66.9375f}},
+    {2, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {3, 1, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {3.0f, 3.0f, 7.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 125.0f, 66.9375f}},
+    {3, {{{0.1f, 0.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 2.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {3.0f, 3.0f, 7.0f, 7.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {6.0f, 54.0f, 11.890625f, 5.9375f}},
+    {3, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {10.0f, 10.0f, 10.0f, 10.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 1, 0, 0},
+     {10.0f, 20.0f}, 0, {3.0f, 7.0f, 119.0f, 40.0f}},
+};
+
 static const LayoutFixture s_layoutFixtures[] = {
     {"absolute_insets_from_padding_box", 500.0f, 400.0f, s_absolute_insets_from_padding_box, 4},
     {"absolute_stretches_between_insets", 500.0f, 400.0f, s_absolute_stretches_between_insets, 2},
@@ -18157,6 +18170,7 @@ static const LayoutFixture s_layoutFixtures[] = {
     {"wrap_column_width_leaves_out_ratio_basis", 500.0f, 400.0f, s_wrap_column_width_leaves_out_ratio_basis, 3},
     {"wrap_column_width_leaves_out_ratio_basis_content", 500.0f, 400.0f, s_wrap_column_width_leaves_out_ratio_basis_content, 3},
     {"wrap_column_width_leaves_out_ratio_basis_unstretched", 500.0f, 400.0f, s_wrap_column_width_leaves_out_ratio_basis_unstretched, 3},
+    {"wrap_column_exact_fill_one_line", 500.0f, 400.0f, s_wrap_column_exact_fill_one_line, 5},
 };
 
 #endif // MAUL_UI_TEST_GENERATED_LAYOUT_FIXTURES_H

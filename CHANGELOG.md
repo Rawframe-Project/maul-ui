@@ -18,6 +18,9 @@ format.
   its content laid out within its width limits, as Chrome and Firefox
   do; the base left out every limit of the item, so a minimum width did
   not hold its content, which wrapped narrower and grew it taller.
+- Items that fill a wrapping line exactly stay on it: the float sum of
+  their lengths could round past the line's and send the last to a new
+  line, where Chrome and Firefox keep one.
 
 ## [0.5.0] - 2026-10-11
 

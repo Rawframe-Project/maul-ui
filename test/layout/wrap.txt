@@ -331,3 +331,14 @@ fixture wrap_column_width_leaves_out_ratio_basis_unstretched available=500x400
 node align-items=start => 0 0 0 20
   node direction=column wrap=wrap => 0 0 0 20
     node basis=20 aspect=1.5 => 0 0 30 20
+
+# Items that fill a wrapping column's line exactly stay on it, the float
+# sum of their lengths rounding past the line's (research 199, case
+# 61w_198; Firefox agrees within 1/64).
+
+fixture wrap_column_exact_fill_one_line available=500x400
+node width=25% => 0 0 125 66.9375
+  node grow=2 direction=column => 0 0 125 66.9375
+    node padding=3,3,7,0 direction=column-reverse wrap=wrap => 0 0 125 66.9375
+      node width=10% aspect=2 margin=3,3,7,7 => 6 54 11.890625 5.9375
+      node border=10 content=10x20 => 3 7 119 40
