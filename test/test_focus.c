@@ -794,6 +794,23 @@ static void TestGivenBack(void)
     CHECK(muiDestroyNode(context, p) == mui_success && muiFocus_Get(context, 0).index1 == 0,
           "made a layer around the focus");
 
+    // A layer whose kind changes keeps its openers, not those of the
+    // layer after it in the store.
+    p = Place(context, root, 200.0f, 0.0f, 50.0f, mui_focusNone, 0);
+    p1 = Place(context, p, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
+    muiNodeId q = Place(context, root, 200.0f, 100.0f, 50.0f, mui_focusNone, 0);
+    Layout(context, root);
+    CHECK(muiFocus_Set(context, 0, a, mui_focusByCode) == mui_success, "on a");
+    SetLayer(context, p, mui_layerActivation);
+    CHECK(muiFocus_Set(context, 0, b, mui_focusByCode) == mui_success, "on b");
+    SetLayer(context, q, mui_layerActivation);
+    SetLayer(context, p, mui_layerModal);
+    Layout(context, root);
+    CHECK(muiFocus_Set(context, 0, p1, mui_focusByCode) == mui_success &&
+              muiDestroyNode(context, p) == mui_success && Same(muiFocus_Get(context, 0), a),
+          "a kind changed: its own opener");
+    CHECK(muiDestroyNode(context, q) == mui_success, "q gone");
+
     // Detaching is a move, not a close: the focus stays.
     p = Place(context, root, 200.0f, 0.0f, 50.0f, mui_focusNone, 0);
     p1 = Place(context, p, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
