@@ -8,6 +8,20 @@ format.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-11
+
+Layout closer to the browsers again: seven more cases where Chrome and
+Firefox agree and the library did not, from aspect-ratio items in rows
+and columns and wrapping columns' widths, each found by random layouts
+checked against both engines. A closing layer gives the focus back to
+what each player focused before it, and a text style can turn off
+synthetic bold and oblique. The text style grows a field, so the version
+a def carries changes and one built against 0.4.0 is refused. Known
+issues: as in 0.4.0, TalkBack and VoiceOver on iOS have not walked the
+samples, and Orca 46 does not announce the first focus in a window that
+opens with nothing focused; NVDA in CI drops some focus announcements,
+so the desktop walks ask it for the focus after each Tab.
+
 ### Added
 
 - `muiTextStyle.synthesis` (`mui_propertyFontSynthesis`, inherited):
@@ -46,14 +60,11 @@ format.
   contributes the same at any depth, as in Chrome; a height a style
   fixes above still carries it.
 - A flex item with an aspect ratio and its own width limits takes its
-  base from its content unclamped by them, as Chrome and Firefox do;
-  only its hypothetical size is clamped, so a line that shrinks freezes
-  it at its maximum and the others shrink, where the shrinking was
-  shared.
-- A host's content in a row sized by its content is measured once
-  again: since the fix above, whether a height was loose split each
-  node's measurement cache, though only a row with children reads it,
-  so a virtualized list's labels were measured twice a frame.
+  base from its content's width, free of those limits and held by its
+  height limits through the ratio, as Chrome and Firefox do; only its
+  hypothetical size is clamped, so a line that shrinks freezes it at its
+  maximum and the others shrink, where the shrinking was shared, and a
+  minimum width no longer sets where it grows from.
 - A stretched item with an aspect ratio, in the single line of a row
   whose height its own ratio gives, takes its base from that ratio's
   height before the row's content grows it, as Chrome and Firefox do;
@@ -66,11 +77,6 @@ format.
   contributions, each item's width with its height left open, as Chrome
   and Firefox do; it summed its lines as laid out, so an item sized
   through its ratio from its flex basis widened the column.
-- A flex item with an aspect ratio and its own width limits, whose base
-  comes from its content past those limits, is still capped by its
-  maximum height through the ratio, and takes no base from its own
-  minimum width, as Chrome and Firefox do; its content widened it past
-  that maximum, and a minimum width made it grow from that width.
 
 ## [0.4.0] - 2026-10-11
 
