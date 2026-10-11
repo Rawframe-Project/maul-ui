@@ -447,6 +447,19 @@ static float ColumnContribution(const muiFlexFrame* frame, bool narrowest)
         UINT32_MAX, narrowest);
 }
 
+// A wrapping column's lines' widths from their items' contributions,
+// with the gaps.
+static float LinesContribution(const muiFlexFrame* frame)
+{
+    float total = Gaps(frame->crossGap, frame->lineCount);
+    for (uint32_t first = muiFirstFlowChild(frame->solver->tree, frame->solver->nodes, frame->node);
+         first != 0; first = Skip(frame, first, ItemOf(frame, first)->lineCount))
+    {
+        total += LineContribution(frame, first, ItemOf(frame, first)->lineCount, false);
+    }
+    return total;
+}
+
 static void SizeCross(muiFlexFrame* frame)
 {
     float total = 0.0f;
@@ -467,20 +480,16 @@ static void SizeCross(muiFlexFrame* frame)
     else if (!frame->row && frame->crossIn.mode == mui_measureMaxContent)
     {
         // A wrapping column's lines count their items' contributions.
-        total = Gaps(frame->crossGap, frame->lineCount);
-        for (uint32_t first =
-                 muiFirstFlowChild(frame->solver->tree, frame->solver->nodes, frame->node);
-             first != 0; first = Skip(frame, first, ItemOf(frame, first)->lineCount))
-        {
-            total += LineContribution(frame, first, ItemOf(frame, first)->lineCount, false);
-        }
+        total = LinesContribution(frame);
     }
     else if (!frame->row && frame->crossIn.mode == mui_measureAtMost)
     {
         // A wrapping column fits the space it is given, no narrower than
-        // its min-content width (CSS Sizing 3 fit-content).
+        // its min-content width and, within the space, as wide as its
+        // lines' contributions (CSS Sizing 3 fit-content).
         float space = fmaxf(frame->crossIn.size - frame->boxCross, 0.0f);
-        total = total > space ? fmaxf(space, ColumnContribution(frame, true)) : total;
+        total = total > space ? fmaxf(space, ColumnContribution(frame, true))
+                              : fminf(fmaxf(total, LinesContribution(frame)), space);
     }
     if (frame->crossIn.mode != mui_measureExact)
     {

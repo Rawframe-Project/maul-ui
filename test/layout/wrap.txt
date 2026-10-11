@@ -269,6 +269,23 @@ node width=200 height=200 => 0 0 200 200
     node padding=7,7,7,0 => 0 10 80 7
     node content=80x25 => 80 0 80 25
 
+# A wrapping column of open width is as wide as its lines'
+# contributions when they fit: a ratio item shrunk to a shorter line
+# still counts the width its own height gives it, and align-content
+# stretches the lines into the rest (research 205, case 116).
+fixture wrap_column_fits_its_lines_contributions available=500x400
+node height=20 direction=column wrap=wrap => 0 0 30 20
+  node height=30 aspect=1 => 0 0 30 20
+
+fixture wrap_column_fits_its_lines_contributions_start available=500x400
+node height=20 direction=column wrap=wrap align-items=start => 0 0 30 20
+  node height=30 aspect=1 => 0 0 20 20
+
+fixture wrap_column_fits_its_lines_contributions_two_lines available=500x400
+node height=20 direction=column wrap=wrap => 0 0 30 20
+  node height=30 aspect=1 => 0 0 25 20
+  node height=10 => 25 0 5 10
+
 # A wrapping column of open height longer than its maximum breaks its
 # lines at the maximum and is as tall as its longest line (research 176,
 # case 235).
