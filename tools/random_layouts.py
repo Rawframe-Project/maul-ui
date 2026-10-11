@@ -15,7 +15,11 @@
 # under names random_<seed>t_<n>; --deep draws word layouts in trees up
 # to five levels deep and four children a node, leaves only after 40
 # nodes (55 at most, under the fixture test's 64), under names
-# random_<seed>d_<n>. Put them in
+# random_<seed>d_<n>; --reach draws the --deep layouts again with what
+# the other draws never try, fractional grow and shrink factors,
+# negative margins and insets as scaled dimensions (from a stream of its
+# own, so the trees are otherwise the same), under names
+# random_<seed>r_<n>. Put them in
 # a file under test/layout/, render it with gen_layout_fixtures.py
 # --oracle and run test_layout_fixtures to see which part from Chrome; the
 # ones that agree may stay in the corpus.
@@ -31,7 +35,7 @@
 # reduce also needs CMake and a C23 compiler (CC names one if the default
 # is older).
 #
-# usage: random_layouts.py generate SEED COUNT [--wide | --words | --deep]
+# usage: random_layouts.py generate SEED COUNT [--wide | --words | --deep | --reach]
 #        random_layouts.py reduce FILE NAME
 
 import os
@@ -56,7 +60,8 @@ def call(args, **options):
 class Generator:
     """Draws fixtures; a seed always draws the same ones."""
 
-    def __init__(self, seed, wide=False, words=False, deep=False):
+    def __init__(self, seed, wide=False, words=False, deep=False, reach=False):
+        deep = deep or reach
         self.rng = random.Random(seed)
         # Wide draws add keys the default leaves out; the default's draws
         # stay as they were, so its seeds keep their layouts.
@@ -68,6 +73,25 @@ class Generator:
         # last, each open container (one a level) adds three leaves at most.
         self.shape = (5, 4, 40) if deep else (3, 3, None)
         self.nodes = 0
+        # Reach draws come from a stream of their own too: a seed's reach
+        # layouts are its deep ones, some keys replaced.
+        self.reach = random.Random(seed ^ 0x3C3C3C3C) if reach else None
+
+    def reached(self, keys, root):
+        """Keys with some replaced by what only the reach draws try."""
+        r = self.reach
+        replace = {}
+        if not root and r.random() < 0.2:
+            replace["grow"] = r.choice(["0.25", "0.5", "0.75"])
+        if not root and r.random() < 0.15:
+            replace["shrink"] = r.choice(["0.25", "0.5"])
+        if not root and r.random() < 0.12:
+            replace["margin"] = ",".join(r.choice(["-10", "-5", "0", "5"]) for _ in range(4))
+        for inset in ("start", "end", "top", "bottom"):
+            if any(key.startswith(inset + "=") for key in keys) and r.random() < 0.5:
+                replace[inset] = r.choice(["10%", "25%", "50%-10", "100%-20"])
+        kept = [key for key in keys if key.split("=", 1)[0] not in replace]
+        return kept + [f"{key}={value}" for key, value in replace.items()]
 
     def dimension(self):
         r = self.rng.random()
@@ -126,6 +150,8 @@ class Generator:
                 value = ",".join(self.rng.choice(["auto", "0", "5"]) for _ in range(4))
             if value and not (key == "margin" and root):
                 keys.append(f"{key}={value}")
+        if self.reach:
+            keys = self.reached(keys, root)
         levels, _, most = self.shape
         self.nodes += 1
         full = most is not None and self.nodes > most
@@ -170,8 +196,9 @@ def flatten(tree, depth=0):
 
 
 def generate(seed, count, draws=""):
-    generator = Generator(seed, draws == "--wide", draws == "--words", draws == "--deep")
-    tag = f"{seed}{ {'--wide': 'w', '--words': 't', '--deep': 'd'}.get(draws, '')}"
+    generator = Generator(seed, draws == "--wide", draws == "--words", draws == "--deep",
+                          draws == "--reach")
+    tag = f"{seed}{ {'--wide': 'w', '--words': 't', '--deep': 'd', '--reach': 'r'}.get(draws, '')}"
     out = [f"# Random layouts, seed {tag} (tools/random_layouts.py).", "# chrome 0", ""]
     for i in range(count):
         generator.nodes = 0
@@ -262,12 +289,14 @@ def reduce(path, name):
 
 def main():
     args = sys.argv[1:]
-    if len(args) in (3, 4) and args[0] == "generate" and args[3:] in ([], ["--wide"], ["--words"], ["--deep"]):
+    if len(args) in (3, 4) and args[0] == "generate" and args[3:] in ([], ["--wide"], ["--words"], ["--deep"],
+                                                                    ["--reach"]):
         print(generate(int(args[1]), int(args[2]), "".join(args[3:])))
     elif len(args) == 3 and args[0] == "reduce":
         reduce(args[1], args[2])
     else:
-        sys.exit("usage: random_layouts.py generate SEED COUNT [--wide | --words | --deep] | reduce FILE NAME")
+        sys.exit("usage: random_layouts.py generate SEED COUNT [--wide | --words | --deep | --reach] |"
+                 " reduce FILE NAME")
 
 
 if __name__ == "__main__":
