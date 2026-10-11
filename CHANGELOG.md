@@ -8,6 +8,18 @@ format.
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-10-12
+
+Layout fixes, with no change to the API: four more cases where Chrome
+and Firefox agree and the library did not, one of them a regression
+0.5.1 shipped (a wrapping column its container shrinks below its items
+kept one line), each found by random layouts checked against both
+engines; and the dialogs sample keeps a dragged dialog inside its
+window. A program built against 0.5.0 or 0.5.1 runs with 0.5.2. Known
+issues: as in 0.5.1, TalkBack and VoiceOver on iOS have not walked the
+samples, and Orca 46 does not announce the first focus in a window that
+opens with nothing focused.
+
 ### Changed
 
 - The dialogs sample keeps a floating dialog dragged by its title bar
