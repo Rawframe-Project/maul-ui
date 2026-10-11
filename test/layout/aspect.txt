@@ -1008,3 +1008,22 @@ fixture ratio_base_capped_min_width available=500x400
 node => 0 0 45 30
   node min-width=10 max-height=30 aspect=1.5 => 0 0 45 30
     node content=80x40 => 0 0 80 30
+
+# Nor does a row's ratio item take its base from its own minimum width:
+# it grows from its content's (research 192, case 56t_259).
+
+fixture ratio_base_free_of_own_minimum available=500x400
+node width=400 => 0 0 400 66.65625
+  node grow=2 => 0 0 400 66.65625
+    node min-width=60 grow=1 aspect=2 => 0 0 222.203125 66.65625
+    node grow=2 => 222.203125 0 177.796875 66.65625
+
+fixture ratio_base_free_of_own_minimum_held_by_min_height available=500x400
+node width=400 => 0 0 400 100
+  node min-width=60 min-height=50 grow=1 aspect=2 => 0 0 200 100
+  node grow=2 => 200 0 200 100
+
+fixture ratio_base_free_of_own_maximum_growing available=500x400
+node width=400 => 0 0 400 83.328125
+  node max-width=300 grow=1 aspect=2 content=50x10 => 0 0 166.671875 83.328125
+  node grow=2 => 166.671875 0 233.328125 83.328125

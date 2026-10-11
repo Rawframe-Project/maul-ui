@@ -64,17 +64,20 @@ static float ContentBase(const muiFlexFrame* frame, uint32_t child, const muiAxi
         return RatioBase(frame, child, mode, cross, true);
     }
     bool limited = !main->minimumAuto || main->maximum < INFINITY;
-    float content = ContentMain(frame, child, mode, cross, limited && ratio <= 0.0f);
     if (!limited || ratio <= 0.0f)
     {
-        return content;
+        return ContentMain(frame, child, mode, cross, limited);
     }
-    // A ratio item's content may pass its own limits, which clamp its
-    // hypothetical size, not its base (section 9.2.3 E); its cross
-    // maximum through the ratio still caps it (as Chrome and Firefox).
+    // A row's ratio item may pass its own width limits, which clamp its
+    // hypothetical size, not its base (section 9.2.3 E): its content's
+    // width, held by its height limits through the ratio (as Chrome and
+    // Firefox).
     const muiFlexItemState* item = &frame->solver->nodes[child - 1].item;
-    float cap = frame->row ? item->maxCross * ratio : item->maxCross / ratio;
-    return fmaxf(content, fminf(ContentMain(frame, child, mode, cross, true), cap));
+    const muiLayoutStyle* style = &frame->solver->nodes[child - 1].style;
+    const muiEdges padding = muiFlexChildPadding(frame, style);
+    float least = fmaxf(item->minCross, muiBoxSum(&padding, style, false));
+    return fminf(fmaxf(ContentMain(frame, child, mode, cross, true), least * ratio),
+                 fmaxf(item->maxCross, least) * ratio);
 }
 
 float muiFlexAutomaticMinimum(const muiFlexFrame* frame, uint32_t child, const muiAxisSizing* main,

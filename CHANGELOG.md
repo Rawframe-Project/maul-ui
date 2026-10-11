@@ -68,8 +68,9 @@ format.
   through its ratio from its flex basis widened the column.
 - A flex item with an aspect ratio and its own width limits, whose base
   comes from its content past those limits, is still capped by its
-  maximum height through the ratio, as Chrome and Firefox do; its
-  content widened it past that.
+  maximum height through the ratio, and takes no base from its own
+  minimum width, as Chrome and Firefox do; its content widened it past
+  that maximum, and a minimum width made it grow from that width.
 
 ## [0.4.0] - 2026-10-11
 
