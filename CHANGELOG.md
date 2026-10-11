@@ -36,6 +36,9 @@ format.
 - A wrapping column of open height whose items pass its maximum height
   breaks its lines at the maximum and is as tall as its longest line,
   as Chrome and Firefox lay it out; it took the maximum.
+- A box with an aspect ratio that wraps as a column, itself a column's
+  item, breaks its lines at the ratio's height when its column measures
+  it, as Chrome and Firefox do; it kept one line and grew past them.
 
 ## [0.4.0] - 2026-10-11
 

@@ -102,6 +102,7 @@ static const muiCacheEntry* FindCached(const muiSolver* solver, uint32_t node,
             entry->input.contentHeight == input->contentHeight &&
             entry->input.contentOnly == input->contentOnly &&
             entry->input.ratioPercent == input->ratioPercent &&
+            entry->input.ratioLines == input->ratioLines &&
             AxisAnswers(input->width, entry->input.width, entry->size.width, (loose & 1u) != 0) &&
             AxisAnswers(input->height, entry->input.height, entry->size.height, (loose & 2u) != 0))
         {
@@ -320,6 +321,16 @@ static float RatioContentHeight(const muiSolver* solver, uint32_t node, const mu
     return muiFlexRatioContentHeight(solver, node, &probe);
 }
 
+// Whether a node is a column that wraps, with items to wrap.
+static bool IsWrappingColumn(const muiSolver* solver, uint32_t node)
+{
+    const muiFlexContainer* container = &solver->nodes[node - 1].style.container;
+    return muiTreeAt(solver->tree, node)->links.firstChild != 0 &&
+           container->wrap != mui_wrapNone &&
+           (container->direction == mui_flexColumn ||
+            container->direction == mui_flexColumnReverse);
+}
+
 // The size the aspect ratio gives an axis from the other one's, at least
 // the content's min-content size when the axis's minimum is automatic
 // (CSS Sizing 4). A width given as a percentage that cannot resolve takes that
@@ -336,8 +347,12 @@ static muiMeasureAxis RatioAxis(const muiSolver* solver, uint32_t node, const mu
         // A row's stretched items take a height from the ratio, so they
         // leave its floor; asked its min-content height, as a column
         // measures its items, the node counts its content in full.
+        // A wrapping column so asked breaks its lines at the ratio's
+        // height all the same (as Chrome).
         bool full = horizontal || input->height.mode == mui_measureMinContent;
-        float floor = full ? ContentSize(solver, node, input, horizontal)
+        muiSizingInput lines = *input;
+        lines.ratioLines = !horizontal && IsWrappingColumn(solver, node);
+        float floor = full ? ContentSize(solver, node, &lines, horizontal)
                            : RatioContentHeight(solver, node, input, size);
         muiAxisSizing height = muiResolveAxis(&style->sizing, false, input->parentHeight);
         if (horizontal && !height.definite)

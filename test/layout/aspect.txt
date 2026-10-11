@@ -821,3 +821,29 @@ node width=40 height=30 aspect=1 padding=3 content=80x20 => 0 0 86 30
 fixture ratio_absolute_given_both_sizes_holds_host_content available=500x400
 node width=200 height=200 => 0 0 200 200
   node position=absolute width=40 height=30 aspect=1 padding=3 content=80x20 => 0 0 86 30
+
+# A ratio box wrapping as a column, a column's item: its min-content
+# height breaks its lines at the ratio's height, its percentages
+# resolving as without (research 176, case 219).
+fixture ratio_wrapping_column_in_column available=500x400
+node => 0 0 10 140
+  node => 0 0 10 140
+    node direction=column => 0 0 10 140
+      node aspect=2 direction=column wrap=wrap => 0 0 10 140
+        node width=0 => 0 0 0 140
+          node content=30x20*7 => 0 0 30 140
+        node border=5 => 0 0 10 10
+
+fixture ratio_wrapping_column_in_column_lines available=500x400
+node direction=column width=10 => 0 0 10 140
+  node aspect=2 direction=column wrap=wrap => 0 0 10 140
+    node height=140 => 0 0 5 140
+    node height=10 => 5 0 5 10
+
+fixture ratio_wrapping_column_in_column_percent available=500x400
+node => 0 0 0 140
+  node => 0 0 0 140
+    node direction=column => 0 0 0 140
+      node aspect=2 direction=column wrap=wrap => 0 0 0 140
+        node width=0 height=75% => 0 0 0 105
+          node content=30x20*7 => 0 0 30 105

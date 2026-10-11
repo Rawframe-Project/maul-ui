@@ -89,11 +89,12 @@ static bool ColumnContentHeight(const muiFlexFrame* frame, const muiLayoutStyle*
 // A box whose height its ratio gives, its container not fixing it:
 // percentages below resolve against the ratio's height, not the one its
 // content grew it to, and a column that wraps breaks its lines there,
-// as browsers do.
+// as browsers do; asked for its lines alone (ratioLines), only the
+// latter.
 static void RatioExtent(muiFlexFrame* frame, const muiLayoutStyle* style,
                         const muiSizingInput* input)
 {
-    if (!input->ratioPercent || input->width.mode != mui_measureExact)
+    if (!(input->ratioPercent || input->ratioLines) || input->width.mode != mui_measureExact)
     {
         return;
     }
@@ -101,8 +102,12 @@ static void RatioExtent(muiFlexFrame* frame, const muiLayoutStyle* style,
     float box = frame->row ? frame->boxCross : frame->boxMain;
     float ratioHeight = muiClampSize(input->width.size / style->sizing.aspectRatio, height.minimum,
                                      height.maximum, box);
-    *(frame->row ? &frame->extentCross : &frame->extentMain) = fmaxf(ratioHeight - box, 0.0f);
-    frame->ratioBreak = frame->row || !frame->multiLine ? -1.0f : frame->extentMain;
+    float extent = fmaxf(ratioHeight - box, 0.0f);
+    if (input->ratioPercent)
+    {
+        *(frame->row ? &frame->extentCross : &frame->extentMain) = extent;
+    }
+    frame->ratioBreak = frame->row || !frame->multiLine ? -1.0f : extent;
 }
 
 static muiFlexFrame Setup(const muiSolver* solver, uint32_t node, const muiSizingInput* input)

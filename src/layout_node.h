@@ -24,26 +24,31 @@ typedef struct muiSizingInput
     float parentWidth;
     float parentHeight;
     // The direction the node inherits: right to left when set.
-    bool rtl;
+    bool rtl : 1;
     // Whether an exact height is the node's own content height: a flex
     // item's that was not stretched, a column item's flexed in a column
     // with no definite height, a root's or an absolute node's automatic
     // one. CSS keeps such a height indefinite (Flexbox 9.8): percentages
     // below do not resolve against it, nor do its stretched items count
     // as definite.
-    bool contentHeight;
+    bool contentHeight : 1;
     // Whether the answer is the content's alone, the node's aspect ratio
     // and its own limits left out: a flex item's base from its content
     // is its max-content size, unclamped (Flexbox 9.2.3), and a column's
     // automatic minimum for a ratio item reads its content's width
     // (section 4.5, as Chrome).
-    bool contentOnly;
+    bool contentOnly : 1;
     // Whether percentages below resolve against the height the node's
     // aspect ratio gives from its exact width, before its content floor,
     // not against its height: set for a ratio box whose container did not
     // fix its height (a root, an absolute box, a flex row's item not
     // stretched, a column stretched in a row), as browsers do.
-    bool ratioPercent;
+    bool ratioPercent : 1;
+    // Whether a wrapping column breaks its lines at the height its aspect
+    // ratio gives from its exact width, its percentages resolving as
+    // without: its min-content height, which a column measuring it as an
+    // item asks, its content otherwise counted in full (as Chrome).
+    bool ratioLines : 1;
 } muiSizingInput;
 
 typedef struct muiCacheEntry
