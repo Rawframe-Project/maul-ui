@@ -361,9 +361,8 @@ static muiMeasureAxis RatioAxis(const muiSolver* solver, uint32_t node, const mu
 }
 
 // With an aspect ratio, a node given an exact size on one axis and an
-// automatic one on the other takes the other from the ratio. A root or
-// absolute node given both, with a minimum width from its ratio, answers
-// a query for its min-content width with at least its content's.
+// automatic one on the other takes the other from the ratio; given
+// neither, its content's width within the ratio's limits.
 static void ApplyAspectRatio(const muiSolver* solver, uint32_t node, muiSizingInput* input)
 {
     const muiSizing* sizing = &solver->nodes[node - 1].style.sizing;
@@ -398,29 +397,6 @@ static void ApplyAspectRatio(const muiSolver* solver, uint32_t node, muiSizingIn
                             muiBoxSum(&solver->paddings[node - 1], style, true));
         input->width = muiExact(size);
         input->height = RatioAxis(solver, node, input, false, size / ratio);
-    }
-    else if (!exactWidth && !exactHeight && !width.definite && height.definite &&
-             input->height.mode != mui_measureMinContent)
-    {
-        // Its style gives the height, the ratio the width, whatever the
-        // query leaves open, as a column asks its items' widths; asked
-        // its min-content height, as for a content size suggestion, its
-        // content answers.
-        const muiLayoutStyle* style = &solver->nodes[node - 1].style;
-        input->height =
-            muiExact(muiClampSize(height.size, height.minimum, height.maximum,
-                                  muiBoxSum(&solver->paddings[node - 1], style, false)));
-        input->width = RatioAxis(solver, node, input, true, input->height.size * ratio);
-    }
-    else if (exactHeight && input->width.mode == mui_measureMinContent && width.definite &&
-             muiRatioWidthMinimum(&solver->nodes[node - 1].style) &&
-             (solver->nodes[node - 1].absolute || muiTreeAt(solver->tree, node)->links.parent == 0))
-    {
-        float content = fminf(ContentSize(solver, node, input, true), width.maximum);
-        const muiLayoutStyle* style = &solver->nodes[node - 1].style;
-        float own = muiClampSize(width.size, width.minimum, width.maximum,
-                                 muiBoxSum(&solver->paddings[node - 1], style, true));
-        input->width = muiExact(fmaxf(own, content));
     }
 }
 

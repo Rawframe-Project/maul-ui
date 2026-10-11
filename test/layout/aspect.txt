@@ -794,3 +794,30 @@ node => 0 0 80 40
       node => 0 0 80 80
         node width=10% aspect=1 => 0 0 8 80
           node min-height=80 content=20x40*4 => 0 0 20 80
+
+
+fixture ratio_wrapping_column_item_base_beside_padding available=500x400
+node width=100 direction=column wrap=wrap => 0 0 100 50
+  node aspect=1 height=30 basis=25% align-self=start content=10x10 => 0 0 10 10
+  node padding=20 => 0 10 100 40
+
+fixture ratio_root_given_both_sizes_holds_its_content available=500x400
+node width=40 height=30 aspect=1 padding=3 => 0 0 86 30
+  node width=80 height=10 => 3 3 80 10
+
+fixture ratio_absolute_given_both_sizes_holds_its_child available=500x400
+node width=200 height=200 => 0 0 200 200
+  node position=absolute width=40 height=30 aspect=1 padding=3 => 0 0 86 30
+    node width=80 height=10 => 3 3 80 10
+
+fixture ratio_column_item_height_under_its_padding available=500x400
+node direction=column => 0 0 10 20
+  node aspect=1 height=4 padding=5 align-self=start => 0 0 10 10
+  node height=10 => 0 10 10 10
+
+fixture ratio_root_given_both_sizes_holds_host_content available=500x400
+node width=40 height=30 aspect=1 padding=3 content=80x20 => 0 0 86 30
+
+fixture ratio_absolute_given_both_sizes_holds_host_content available=500x400
+node width=200 height=200 => 0 0 200 200
+  node position=absolute width=40 height=30 aspect=1 padding=3 content=80x20 => 0 0 86 30
