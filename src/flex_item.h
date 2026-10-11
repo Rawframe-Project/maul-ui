@@ -173,6 +173,11 @@ float muiFlexAutomaticMinimum(const muiFlexFrame* frame, uint32_t child, const m
 // preferred size uncapped, content at its narrowest), as Chrome sizes a
 // wrapping row. A column counts hypothetical sizes, as Chrome
 // does.
+// A prepared child's min-content contribution along the main axis: its
+// definite main size or its content's min-content one, within its
+// limits, with its margins.
+float muiFlexMinContribution(const muiFlexFrame* frame, uint32_t child);
+
 float muiFlexPrepareItem(const muiFlexFrame* frame, uint32_t child, float* aloneOut);
 
 #endif

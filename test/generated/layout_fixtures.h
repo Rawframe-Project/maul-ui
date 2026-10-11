@@ -17039,6 +17039,17 @@ static const LayoutFixtureNode s_wrap_column_shrunk_below_its_items_breaks[] = {
      {80.0f, 10.0f}, 0, {-15.0f, 5.0f, 80.0f, 13.0f}},
 };
 
+static const LayoutFixtureNode s_wrap_row_negative_margin_min_content_floor[] = {
+    {0, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 10.0f, 40.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 1, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 10.0f, 40.0f}},
+    {2, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 1, 0, 0},
+     {10.0f, 40.0f}, 2, {0.0f, 0.0f, 20.0f, 40.0f}},
+    {2, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, -10.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {20.0f, 0.0f, 0.0f, 40.0f}},
+};
+
 static const LayoutFixtureNode s_wrap_column_maximum_longest_line[] = {
     {0, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
      {0.0f, 0.0f}, 0, {0.0f, 0.0f, 10.0f, 40.0f}},
@@ -18289,6 +18300,7 @@ static const LayoutFixture s_layoutFixtures[] = {
     {"wrap_column_fits_its_lines_contributions_basis", 500.0f, 400.0f, s_wrap_column_fits_its_lines_contributions_basis, 2},
     {"wrap_column_of_open_height_is_one_line", 500.0f, 400.0f, s_wrap_column_of_open_height_is_one_line, 4},
     {"wrap_column_shrunk_below_its_items_breaks", 500.0f, 400.0f, s_wrap_column_shrunk_below_its_items_breaks, 7},
+    {"wrap_row_negative_margin_min_content_floor", 500.0f, 400.0f, s_wrap_row_negative_margin_min_content_floor, 4},
     {"wrap_column_maximum_longest_line", 500.0f, 400.0f, s_wrap_column_maximum_longest_line, 5},
     {"wrap_column_maximum_three_lines", 500.0f, 400.0f, s_wrap_column_maximum_three_lines, 6},
     {"wrap_column_maximum_gap", 500.0f, 400.0f, s_wrap_column_maximum_gap, 5},

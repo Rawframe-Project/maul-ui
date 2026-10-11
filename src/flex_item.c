@@ -140,6 +140,22 @@ float muiFlexAutomaticMinimum(const muiFlexFrame* frame, uint32_t child, const m
     return content;
 }
 
+float muiFlexMinContribution(const muiFlexFrame* frame, uint32_t child)
+{
+    const muiLayoutNode* layout = &frame->solver->nodes[child - 1];
+    const muiLayoutStyle* style = &layout->style;
+    muiAxisSizing main = muiResolveAxis(&style->sizing, frame->row, frame->extentMain);
+    muiAxisSizing cross = muiResolveAxis(&style->sizing, !frame->row, frame->extentCross);
+    muiMeasureAxis crossConstraint = muiFlexCrossConstraint(frame, style, &cross, true);
+    const muiEdges padding = muiFlexChildPadding(frame, style);
+    float size = main.definite
+                     ? main.size
+                     : ContentMain(frame, child, mui_measureMinContent, crossConstraint, false);
+    return muiClampSize(size, layout->item.minMain, layout->item.maxMain,
+                        muiBoxSum(&padding, style, frame->row)) +
+           layout->item.marginMain;
+}
+
 float muiFlexPrepareItem(const muiFlexFrame* frame, uint32_t child, float* aloneOut)
 {
     muiLayoutNode* layout = &frame->solver->nodes[child - 1];

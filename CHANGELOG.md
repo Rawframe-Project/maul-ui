@@ -8,6 +8,13 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- A wrapping row of open width whose items, through a negative margin,
+  sum short of its widest item is as wide as its widest item's
+  min-content contribution, as Chrome and Firefox make it; it took the
+  widest item's max-content width.
+
 ## [0.5.2] - 2026-10-12
 
 Layout fixes, with no change to the API: four more cases where Chrome

@@ -188,6 +188,19 @@ static float LongestLine(const muiFlexFrame* frame, float length)
     return longest;
 }
 
+// The largest min-content contribution of the children, a wrapping
+// row's min-content width.
+static float WidestMinContribution(const muiFlexFrame* frame)
+{
+    float widest = 0.0f;
+    for (uint32_t c = muiFirstFlowChild(frame->solver->tree, frame->solver->nodes, frame->node);
+         c != 0; c = muiNextFlowChild(frame->solver->tree, frame->solver->nodes, c))
+    {
+        widest = fmaxf(widest, muiFlexMinContribution(frame, c));
+    }
+    return widest;
+}
+
 static void SizeMain(muiFlexFrame* frame)
 {
     const muiTree* tree = frame->solver->tree;
@@ -209,7 +222,11 @@ static void SizeMain(muiFlexFrame* frame)
         bool wraps = frame->row && frame->multiLine;
         bool narrowest = wraps && frame->mainIn.mode == mui_measureMinContent;
         float content = narrowest ? widest : sum + Gaps(frame->gap, frame->count);
-        content = wraps ? fmaxf(content, widest) : content;
+        // Items with negative margins may sum short of the widest alone:
+        // the row is then as wide as its min-content width (as Chrome and
+        // Firefox).
+        content =
+            wraps && content < widest ? fmaxf(content, WidestMinContribution(frame)) : content;
         // A wrapping column longer than its maximum height breaks its lines
         // there, as Chrome and Firefox do; the ratio's height breaks them
         // otherwise.
