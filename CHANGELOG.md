@@ -62,6 +62,10 @@ format.
   unknown height, its height set by a column, is no narrower than its
   content's min-content width, as Chrome and Firefox lay it out; its
   width came from the ratio alone and its content overflowed it.
+- A wrapping column asked its max-content width sums its lines' largest
+  contributions, each item's width with its height left open, as Chrome
+  and Firefox do; it summed its lines as laid out, so an item sized
+  through its ratio from its flex basis widened the column.
 
 ## [0.4.0] - 2026-10-11
 

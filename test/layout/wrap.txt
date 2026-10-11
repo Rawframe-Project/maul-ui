@@ -311,3 +311,23 @@ node => 0 0 30 50
   node width=30 max-height=60 padding=5 direction=column wrap=wrap => 0 0 30 50
     node height=30 => 5 5 10 30
     node height=40 => 15 5 10 40
+
+# A wrapping column asked its max-content width sums its lines' largest
+# contributions, an item's flex basis left out, as Chrome and Firefox:
+# an item 20 high by its basis and 30 wide by its ratio overflows a
+# column as wide as its content (research 188, case 51d_278).
+
+fixture wrap_column_width_leaves_out_ratio_basis available=500x400
+node => 0 0 0 20
+  node direction=column wrap=wrap => 0 0 0 20
+    node basis=20 aspect=1.5 => 0 0 30 20
+
+fixture wrap_column_width_leaves_out_ratio_basis_content available=500x400
+node => 0 0 10 20
+  node direction=column wrap=wrap => 0 0 10 20
+    node basis=20 aspect=1.5 content=10x10 => 0 0 30 20
+
+fixture wrap_column_width_leaves_out_ratio_basis_unstretched available=500x400
+node align-items=start => 0 0 0 20
+  node direction=column wrap=wrap => 0 0 0 20
+    node basis=20 aspect=1.5 => 0 0 30 20
