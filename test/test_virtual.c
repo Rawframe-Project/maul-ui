@@ -3,7 +3,8 @@
 //
 // Virtualization (record mui-0007): windows from offsets, fixed and
 // estimated extents, measured items, placing across and along lists, the
-// content extent, and the table's contract.
+// content extent, the table's contract, and the work a scrolled list
+// costs.
 
 #include "test_harness.h"
 
@@ -870,6 +871,140 @@ static void TestContract(void)
     muiDestroyContext(context);
 }
 
+// TestWork's labels: the item each shows, by node slot, and the
+// measurements asked; a label is 30 wide and 24 or 36 high by its item.
+enum
+{
+    WORK_ROWS = 1000,
+    WORK_POOL = 64,
+    WORK_NODES = 1 + 1 + 2 * WORK_POOL + 1,
+};
+
+static uint32_t s_workItem[WORK_NODES + 1];
+static int s_workMeasured;
+
+static muiSize MeasureWork(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasureAxis width,
+                           muiMeasureAxis height)
+{
+    (void)user;
+    (void)hostKey;
+    (void)width;
+    (void)height;
+    s_workMeasured++;
+    return (muiSize){30.0f, s_workItem[nodeId.index1] % 2 == 0 ? 24.0f : 36.0f};
+}
+
+typedef struct WorkScene
+{
+    Scene scene;
+    muiNodeId bound[WORK_POOL];
+    uint32_t boundCount;
+    muiNodeId pool[WORK_POOL];
+    uint32_t poolCount;
+} WorkScene;
+
+// A row: a row of a label, made once and bound again from the pool.
+static muiNodeId WorkRow(muiContext* context)
+{
+    muiNodeId row = Node(context, s_nullNode);
+    muiNodeId label = Node(context, row);
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.content = mui_contentHost;
+    CHECK(muiNode_SetLayoutValues(context, label, &style, MUI_PROPERTY_BIT(mui_propertyContent)) ==
+              mui_success,
+          "a label");
+    return row;
+}
+
+// Rows out of the window back to the pool, then a row bound for each item
+// in it without one; returns how many were bound.
+static int RealizeWork(WorkScene* work)
+{
+    muiContext* context = work->scene.context;
+    uint32_t first = 0;
+    uint32_t end = 0;
+    CHECK(muiNode_GetVirtualWindow(context, work->scene.list, &first, &end) == mui_success,
+          "window");
+    bool shown[WORK_POOL] = {0};
+    for (uint32_t i = 0; i < work->boundCount;)
+    {
+        uint32_t index = 0;
+        muiNodeId row = work->bound[i];
+        if (muiNode_GetItem(context, row, &index) == mui_success && index >= first && index < end)
+        {
+            shown[index - first] = true;
+            i++;
+            continue;
+        }
+        CHECK(muiNode_ClearItem(context, row) == mui_success &&
+                  muiNode_Detach(context, row) == mui_success,
+              "unbind");
+        work->pool[work->poolCount++] = row;
+        work->bound[i] = work->bound[--work->boundCount];
+    }
+    int bound = 0;
+    for (uint32_t index = first; index < end && work->boundCount < WORK_POOL; index++)
+    {
+        if (shown[index - first])
+        {
+            continue;
+        }
+        muiNodeId row = work->poolCount != 0 ? work->pool[--work->poolCount] : WorkRow(context);
+        muiNodeId label = muiNode_GetFirstChild(context, row);
+        CHECK(muiNode_InsertChild(context, work->scene.list, row, s_nullNode) == mui_success &&
+                  muiNode_SetItem(context, row, index) == mui_success &&
+                  muiNode_MarkContentChanged(context, label) == mui_success,
+              "bind");
+        s_workItem[label.index1] = index;
+        work->bound[work->boundCount++] = row;
+        bound++;
+    }
+    return bound;
+}
+
+// A frame: layout, and when the window changed the rows realized and
+// laid out again; returns how many labels it bound.
+static int WorkFrame(WorkScene* work)
+{
+    muiContext* context = work->scene.context;
+    const muiLayoutInput input = {400.0f, 300.0f, MeasureWork, NULL, 0, NULL, {0, 0, 0, 0}};
+    CHECK(muiComputeLayout(context, work->scene.root, &input) == mui_success, "layout");
+    if (Windows(context) == 0)
+    {
+        return 0;
+    }
+    int bound = RealizeWork(work);
+    CHECK(muiComputeLayout(context, work->scene.root, &input) == mui_success, "layout again");
+    (void)Windows(context);
+    return bound;
+}
+
+static void TestWork(void)
+{
+    WorkScene work = {0};
+    const muiVirtualList list = ListOf(WORK_ROWS, 28.0f, false, 0.0f, 0.0f);
+    MakeScene(&work.scene, false, 0.0f, mui_textInherit, &list);
+    (void)WorkFrame(&work);
+    // Scrolled by 97 a frame: each label bound is measured once, and each
+    // bound row and its label sized twice (asked, then laid out), the
+    // list once; nothing else is.
+    const int frames = 30;
+    int bound = 0;
+    s_workMeasured = 0;
+    muiWorkCounts before = muiGetWorkCounts(work.scene.context);
+    for (int frame = 1; frame <= frames; frame++)
+    {
+        CHECK(muiNode_SetScroll(work.scene.context, work.scene.list, 0.0f, (float)frame * 97.0f) ==
+                  mui_success,
+              "scroll");
+        bound += WorkFrame(&work);
+    }
+    uint64_t sized = muiGetWorkCounts(work.scene.context).sized - before.sized;
+    CHECK(bound > frames && s_workMeasured == bound, "each bound label measured once");
+    CHECK(sized == 4 * (uint64_t)bound + (uint64_t)frames, "rows sized twice, the list once");
+    muiDestroyContext(work.scene.context);
+}
+
 int main(void)
 {
     TestEstimated();
@@ -891,5 +1026,6 @@ int main(void)
     TestEditEdges();
     TestAnchorEdges();
     TestContract();
+    TestWork();
     return s_failures == 0 ? 0 : 1;
 }
