@@ -588,7 +588,7 @@ Routes a pointer record (muiNextPointerRecord) to its node; a record with no nod
 
 ## `exit.h`
 
-Exit transitions (record mui-0007): a node the host removes plays its way out before it goes. Beginning an exit gives the node the exiting state, so its classes' exiting variants and their transitions apply; the node and its subtree leave hit testing, focus and navigation at once, and focus inside it is given up. When no transition runs in the subtree any more, at a layout, mui_notificationExitFinished reports it, once; the library never destroys the node. The host destroys it then, or earlier, which ends the exit, or cancels the exit to bring it back.
+Exit transitions (record mui-0007): a node the host removes plays its way out before it goes. Beginning an exit gives the node the exiting state, so its classes' exiting variants and their transitions apply; the node and its subtree leave hit testing, focus and navigation at once, and focus inside it is given up: back to what the player focused when the outermost layer around it in the subtree became one, if that can still take it (record mui-0007). When no transition runs in the subtree any more, at a layout, mui_notificationExitFinished reports it, once; the library never destroys the node. The host destroys it then, or earlier, which ends the exit, or cancels the exit to bring it back.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_BeginExit(muiContext* context, muiNodeId nodeId);
@@ -886,7 +886,7 @@ Creates a node, a root until it is inserted into a parent.  @param context    Th
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyNode(muiContext* context, muiNodeId nodeId);
 ```
-Destroys a node and its whole subtree, detaching it from its parent first. The ids of every destroyed node become stale.  @param context  The context. @param nodeId   The node. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null id; `mui_errorStale` for an id whose node is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Destroys a node and its whole subtree, detaching it from its parent first. The ids of every destroyed node become stale. A player's focus inside goes back to what the player focused when the outermost layer around it in the subtree became one, if that can still take it (record mui-0007).  @param context  The context. @param nodeId   The node. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null id; `mui_errorStale` for an id whose node is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 bool muiNode_IsValid(const muiContext* context, muiNodeId nodeId);

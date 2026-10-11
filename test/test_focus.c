@@ -2,8 +2,9 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Focus (record mui-0007): per player slot, shown by cause, sequential
-// order with tab orders and layers, modal layers, pointer presses, nodes
-// that stop taking focus, notifications and calls outside the contract.
+// order with tab orders and layers, modal layers, the focus given back
+// when a layer closes, pointer presses, nodes that stop taking focus,
+// notifications and calls outside the contract.
 
 #include "test_harness.h"
 
@@ -684,6 +685,128 @@ static void TestDestroyedPerPlayer(void)
     muiDestroyContext(context);
 }
 
+// A layer gives the focus back to what each player focused outside it
+// when it became one (record mui-0007), as HTML's dialogs and popovers
+// give back their previously focused element.
+static void TestGivenBack(void)
+{
+    // Base: a, b. A dialog d with d1, and in it a menu m with m1.
+    muiContext* context = MakeContext();
+    muiNodeId root = Place(context, s_nullNode, 0.0f, 0.0f, 300.0f, mui_focusNone, 0);
+    muiNodeId a = Place(context, root, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
+    muiNodeId b = Place(context, root, 0.0f, 50.0f, 20.0f, mui_focusAll, 0);
+    muiNodeId d = Place(context, root, 100.0f, 100.0f, 100.0f, mui_focusNone, 0);
+    muiNodeId d1 = Place(context, d, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
+    muiNodeId m = Place(context, d, 50.0f, 0.0f, 40.0f, mui_focusNone, 0);
+    muiNodeId m1 = Place(context, m, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
+    Layout(context, root);
+    CHECK(muiFocus_Set(context, 0, a, mui_focusByNavigation) == mui_success &&
+              muiFocus_Set(context, 1, b, mui_focusByCode) == mui_success,
+          "player 0 on a, player 1 on b");
+    SetLayer(context, d, mui_layerModal);
+    Layout(context, root);
+    CHECK(muiFocus_Set(context, 0, d1, mui_focusByCode) == mui_success, "into the dialog");
+    SetLayer(context, m, mui_layerActivation);
+    Layout(context, root);
+    CHECK(muiFocus_Set(context, 0, m1, mui_focusByCode) == mui_success, "into the menu");
+    Drain(context);
+    // The menu closes with the focus inside: back to d1, shown as player
+    // 0's last cause shows it; player 1's focus was never inside.
+    CHECK(muiDestroyNode(context, m) == mui_success && Same(muiFocus_Get(context, 0), d1) &&
+              Noted(context, mui_notificationFocusLost, m1, 0) &&
+              Noted(context, mui_notificationFocusGained, d1, 0) && Quiet(context) &&
+              StatesOf(context, d1) == (mui_stateFocused | mui_stateFocusVisible) &&
+              Same(muiFocus_Get(context, 1), b),
+          "the menu destroyed: back to its opener");
+    // The dialog exits: back to a at once, which it no longer covers.
+    CHECK(muiNode_BeginExit(context, d) == mui_success && Same(muiFocus_Get(context, 0), a) &&
+              Noted(context, mui_notificationFocusLost, d1, 0) &&
+              Noted(context, mui_notificationFocusGained, a, 0) && Quiet(context),
+          "the dialog exiting: back to its opener");
+    CHECK(muiDestroyNode(context, d) == mui_success && Same(muiFocus_Get(context, 0), a) &&
+              Quiet(context),
+          "the focus outside: nothing to give back");
+
+    // A dialog closing with a menu of its own gives back its own opener,
+    // not the menu's, which closes with it.
+    d = Place(context, root, 100.0f, 100.0f, 100.0f, mui_focusNone, 0);
+    d1 = Place(context, d, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
+    m = Place(context, d, 50.0f, 0.0f, 40.0f, mui_focusNone, 0);
+    m1 = Place(context, m, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
+    SetLayer(context, d, mui_layerModal);
+    Layout(context, root);
+    CHECK(muiFocus_Set(context, 0, d1, mui_focusByCode) == mui_success, "into the dialog");
+    SetLayer(context, m, mui_layerActivation);
+    // Raised, the menu keeps its opener.
+    CHECK(muiFocus_Set(context, 0, m1, mui_focusByCode) == mui_success &&
+              muiNode_RaiseLayer(context, m) == mui_success &&
+              muiDestroyNode(context, d) == mui_success && Same(muiFocus_Get(context, 0), a),
+          "the outermost layer's opener");
+
+    // The focus taken out first, as a press elsewhere does, leaves nothing
+    // to give back.
+    muiNodeId p = Place(context, root, 200.0f, 0.0f, 50.0f, mui_focusNone, 0);
+    muiNodeId p1 = Place(context, p, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
+    SetLayer(context, p, mui_layerOverlay);
+    Layout(context, root);
+    CHECK(muiFocus_Set(context, 0, p1, mui_focusByCode) == mui_success &&
+              muiFocus_Set(context, 0, s_nullNode, mui_focusByPointer) == mui_success &&
+              muiDestroyNode(context, p) == mui_success && muiFocus_Get(context, 0).index1 == 0,
+          "taken out first");
+
+    // An opener gone, or covered by a modal layer opened since, gets
+    // nothing; the player keeps no focus, told as before.
+    muiNodeId gone = Place(context, root, 0.0f, 100.0f, 20.0f, mui_focusAll, 0);
+    p = Place(context, root, 200.0f, 0.0f, 50.0f, mui_focusNone, 0);
+    p1 = Place(context, p, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
+    Layout(context, root);
+    CHECK(muiFocus_Set(context, 0, gone, mui_focusByCode) == mui_success, "on gone");
+    SetLayer(context, p, mui_layerOverlay);
+    Layout(context, root);
+    CHECK(muiFocus_Set(context, 0, p1, mui_focusByCode) == mui_success &&
+              muiDestroyNode(context, gone) == mui_success,
+          "the opener destroyed");
+    Drain(context);
+    CHECK(muiDestroyNode(context, p) == mui_success && muiFocus_Get(context, 0).index1 == 0 &&
+              Noted(context, mui_notificationFocusLost, p1, 0) && Quiet(context),
+          "an opener gone");
+    p = Place(context, root, 200.0f, 0.0f, 50.0f, mui_focusNone, 0);
+    p1 = Place(context, p, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
+    muiNodeId cover = Place(context, root, 0.0f, 200.0f, 50.0f, mui_focusNone, 0);
+    Layout(context, root);
+    CHECK(muiFocus_Set(context, 0, a, mui_focusByCode) == mui_success, "on a");
+    SetLayer(context, p, mui_layerActivation);
+    Layout(context, root);
+    CHECK(muiFocus_Set(context, 0, p1, mui_focusByCode) == mui_success, "into p");
+    SetLayer(context, cover, mui_layerModal);
+    Layout(context, root);
+    CHECK(muiDestroyNode(context, p) == mui_success && muiFocus_Get(context, 0).index1 == 0,
+          "an opener covered");
+    CHECK(muiDestroyNode(context, cover) == mui_success, "the cover gone");
+
+    // A node made a layer with the focus already inside has no opener.
+    p = Place(context, root, 200.0f, 0.0f, 50.0f, mui_focusNone, 0);
+    p1 = Place(context, p, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
+    Layout(context, root);
+    CHECK(muiFocus_Set(context, 0, p1, mui_focusByCode) == mui_success, "on p1");
+    SetLayer(context, p, mui_layerActivation);
+    Layout(context, root);
+    CHECK(muiDestroyNode(context, p) == mui_success && muiFocus_Get(context, 0).index1 == 0,
+          "made a layer around the focus");
+
+    // Detaching is a move, not a close: the focus stays.
+    p = Place(context, root, 200.0f, 0.0f, 50.0f, mui_focusNone, 0);
+    p1 = Place(context, p, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
+    Layout(context, root);
+    CHECK(muiFocus_Set(context, 0, a, mui_focusByCode) == mui_success, "on a");
+    SetLayer(context, p, mui_layerActivation);
+    Layout(context, root);
+    CHECK(muiFocus_Set(context, 0, p1, mui_focusByCode) == mui_success &&
+              muiNode_Detach(context, p) == mui_success && Same(muiFocus_Get(context, 0), p1),
+          "detached: kept");
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestSet();
@@ -691,6 +814,7 @@ int main(void)
     TestStyled();
     TestOrder();
     TestLayers();
+    TestGivenBack();
     TestPointer();
     TestLoss();
     TestRandomOrder();

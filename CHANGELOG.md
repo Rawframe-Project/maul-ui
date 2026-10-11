@@ -16,6 +16,11 @@ format.
   `font-synthesis-style`. 0, the default, keeps making both;
   `mui_synthesisNoBold` and `mui_synthesisNoOblique` show a lighter or
   an upright face as it is. Spans keep their node's.
+- The focus given back when a layer closes: a node becoming a layer
+  remembers what each player focused outside it, and when it exits or
+  is destroyed with a player's focus inside, the player's focus goes
+  back there if that node can still take it, as HTML's dialogs and
+  popovers do. Each layer entry holds a node id per player.
 
 ### Changed
 

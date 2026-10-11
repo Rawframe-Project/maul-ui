@@ -6,12 +6,12 @@
 // WAI-ARIA Authoring Practices (record mui-0005). The modal dialog is a
 // modal layer centred on the root, made when it opens: the library keeps
 // Tab inside it and lets no point reach what lies below; the host
-// focuses its first button, closes it on Escape or a button, and gives
-// the focus back to the button that opened it. The floating dialogs are
-// activation layers placed by their insets: a press in one raises it
-// above the other, and a drag of its title bar moves it. Headless, each
-// is used as a person would and the pixels, the focus and the
-// accessibility tree checked.
+// focuses its first button and closes it on Escape or a button, and the
+// library gives the focus back to the button that opened it. The
+// floating dialogs are activation layers placed by their insets: a press
+// in one raises it above the other, and a drag of its title bar moves
+// it. Headless, each is used as a person would and the pixels, the
+// focus and the accessibility tree checked.
 
 #include "app.h"
 
@@ -153,15 +153,17 @@ static void OpenModal(Dialogs* dialogs)
     Focus(app, dialogs->cancel);
 }
 
-// Closes the modal dialog, the focus back on its opener.
+// Closes the modal dialog; the library gives the focus back to what had
+// it when the dialog became a layer, its opener.
 static void CloseModal(Dialogs* dialogs, const char* status)
 {
     SampleApp* app = dialogs->app;
-    SampleAppCheck(app, muiDestroyNode(app->context, dialogs->modal) == mui_success,
-                   "the modal dialog closed");
+    SampleAppCheck(app,
+                   muiDestroyNode(app->context, dialogs->modal) == mui_success &&
+                       SampleSame(muiFocus_Get(app->context, 0), dialogs->opener),
+                   "the modal dialog closed, the focus back on its opener");
     dialogs->modal = (muiNodeId){0, 0};
     SetStatus(dialogs, status);
-    Focus(app, dialogs->opener);
 }
 
 static void Place(SampleApp* app, Floating* floating)

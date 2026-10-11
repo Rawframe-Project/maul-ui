@@ -101,6 +101,15 @@ itself instead of each host repeating them.
   `mui_stateFocusVisible` while shown, a new state between focused and
   hovered. A pointer press focuses the nearest node from its target up
   that takes focus, for the event's player, or takes the focus away.
+- **Focus given back:** a node becoming a layer records, per player,
+  what the player focuses outside it (its opener), as HTML's dialogs
+  and popovers record their previously focused element. When a subtree
+  begins to exit or is destroyed with a player's focus inside, the
+  player gets back the opener of the outermost layer between the focus
+  and the subtree's root, if it still exists, takes focus and is not
+  covered; shown as code shows it, not scrolled into view. A press
+  that took the focus out first leaves nothing to give back, as
+  HTML's light dismiss; detaching is a move, not a close.
 - **Sequential navigation** (`muiFocus_Move`) runs over the layer that
   holds the focus, without the layers in it, and wraps; with no focus
   under the root, or a covered one, it starts in the top modal layer
