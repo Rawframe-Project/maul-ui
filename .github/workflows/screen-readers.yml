@@ -65,6 +65,21 @@ jobs:
             sleep 10
           done
           npx @guidepup/setup install ${{ matrix.name }}
+          if [ "${{ matrix.name }}" = nvda ]; then
+            # NVDA's own log at debug level with its events, kept with each
+            # try: whether a focus the walk did not hear reached NVDA.
+            ini=$(ls "$(cygpath -u "$LOCALAPPDATA")"/guidepup/nvda/all/*/extracted/userConfig/nvda.ini)
+            for section in general:loggingLevel=DEBUG debugLog:events=True; do
+              name=${section%%:*} line=${section#*:}
+              sed -i "/^${line%%=*} *=/d" "$ini"
+              if grep -q "^\[$name\]" "$ini"; then
+                sed -i "s/^\[$name\]\r\?$/[$name]\n${line/=/ = }/" "$ini"
+              else
+                printf '\n[%s]\n%s\n' "$name" "${line/=/ = }" >> "$ini"
+              fi
+            done
+            grep -A1 '^\[general\]\|^\[debugLog\]' "$ini"
+          fi
           echo "ran=true" >> "$GITHUB_OUTPUT"
       - name: Walk the samples
         if: steps.setup.outputs.ran == 'true'
@@ -72,8 +87,13 @@ jobs:
           status=0
           for sample in controls text; do
             for try in 1 2 3; do
+              result=0
               node "$RUNNER_TEMP/walk/walk.mjs" "$PWD/${{ matrix.bin }}/sample_$sample" \
-                "tools/screen_reader/$sample.steps" "walk-$sample-$try" && break
+                "tools/screen_reader/$sample.steps" "walk-$sample-$try" || result=$?
+              if [ "${{ matrix.name }}" = nvda ]; then
+                cp "$(cygpath -u "$TEMP")/nvda.log" "walk-$sample-$try/" 2>/dev/null || true
+              fi
+              [ "$result" -eq 0 ] && break
               [ "$try" -lt 3 ] || status=1
             done
           done
