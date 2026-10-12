@@ -8,6 +8,18 @@ format.
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-10-12
+
+Layout fixes, with no change to the API: three more cases where Chrome
+and Firefox agree and the library did not, each found by random layouts
+checked against both engines. They are a wrapping ratio column's floor
+when shrunk, a column that outgrows the space it measured in, and a
+column its maximum width clamps below its children. A program built
+against 0.5.0 to 0.5.3 runs with 0.5.4. Known issues: as in 0.5.3,
+TalkBack and VoiceOver on iOS have not walked the samples, and Orca 46
+does not announce the first focus in a window that opens with nothing
+focused.
+
 ### Fixed
 
 - A column's item that is a wrapping column with an aspect ratio and a
