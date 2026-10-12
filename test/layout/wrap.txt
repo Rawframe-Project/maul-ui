@@ -435,3 +435,9 @@ node height=200 direction=column => 0 0 120 200
   node width=120 height=100% basis=20 aspect=2 direction=column wrap=wrap => 0 0 120 120
     node width=60 height=120 => 0 0 60 120
     node width=35 height=7 => 72.5 0 35 7
+
+fixture wrap_column_ratio_minimum_breaks_at_ratio_height_reverse available=500x400
+node height=200 direction=column => 0 0 120 200
+  node width=120 height=100% basis=20 aspect=2 direction=column-reverse wrap=wrap => 0 0 120 120
+    node width=60 height=120 => 0 0 60 120
+    node width=35 height=7 => 72.5 113 35 7
