@@ -4,7 +4,8 @@
 // The shape of a layout fixture, as tools/gen_layout_fixtures.py writes
 // it: the nodes of one tree in preorder, each with its depth, style, host
 // content (a box of a size, or that many such boxes, words, wrapping)
-// and the rectangle Chrome gave it.
+// the rectangle Chrome gave it and, for a scroll container, its extent
+// (Chrome's scrollWidth and scrollHeight; zero for other nodes).
 
 #ifndef MAUL_UI_TEST_LAYOUT_FIXTURE_H
 #define MAUL_UI_TEST_LAYOUT_FIXTURE_H
@@ -18,6 +19,7 @@ typedef struct LayoutFixtureNode
     muiSize content;
     uint32_t words;
     muiRect expected;
+    muiSize extent;
 } LayoutFixtureNode;
 
 typedef struct LayoutFixture

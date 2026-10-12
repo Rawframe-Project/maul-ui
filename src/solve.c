@@ -220,20 +220,56 @@ static void MarkMoved(const muiSolver* solver, uint32_t node)
     }
 }
 
-// A scroll container's extent, while its children are still in logical
-// coordinates: the furthest end of their margin boxes (border boxes for
-// absolute ones) plus its end padding, from its padding box's start, at
-// least the padding box; its offsets are brought within it, rtl its own
-// direction. What changes an extent repaints the container, and so its
-// transform.
-static void MeasureExtent(const muiSolver* solver, uint32_t node, muiSize size, bool rtl)
+// The furthest left, right and bottom of the border boxes below a node,
+// in or out of the flow, from its border box's origin; a scroll
+// container below clips its own (CSS Overflow 3's scrollable overflow).
+typedef struct
+{
+    float left;
+    float right;
+    float bottom;
+} Reach;
+
+static void ReachBelow(const muiSolver* solver, uint32_t node, float x, float y, Reach* reach)
+{
+    for (uint32_t c = muiTreeAt(solver->tree, node)->links.firstChild; c != 0;
+         c = muiTreeAt(solver->tree, c)->links.next)
+    {
+        if (solver->nodes[c - 1].listed)
+        {
+            // Placed after layout: its list's own extent holds it.
+            continue;
+        }
+        const muiRect* rect = &solver->nodes[c - 1].rect;
+        float left = x + rect->x;
+        float top = y + rect->y;
+        reach->left = fminf(reach->left, left);
+        reach->right = fmaxf(reach->right, left + rect->width);
+        reach->bottom = fmaxf(reach->bottom, top + rect->height);
+        if (solver->nodes[c - 1].style.scrollAxes == mui_scrollNone)
+        {
+            ReachBelow(solver, c, left, top, reach);
+        }
+    }
+}
+
+// A scroll container's extent: the furthest end of its flow children's
+// margin boxes plus its end padding, or of any border box below it, from
+// its padding box's start, at least the padding box (as Chrome and
+// Firefox); its offsets are brought within it, rtl its own direction.
+// Its children are in logical coordinates unless mirrored says layout
+// already mirrored them.
+static void MeasureExtent(const muiSolver* solver, uint32_t node, muiSize size, bool rtl,
+                          bool mirrored)
 {
     const muiLayoutStyle* style = &solver->nodes[node - 1].style;
     const muiEdges* padding = &solver->paddings[node - 1];
     float startX = style->border.start;
     float startY = style->border.top;
-    float reachX = size.width - style->border.end - padding->end;
-    float reachY = size.height - style->border.bottom - padding->bottom;
+    float flowX = size.width - style->border.end - padding->end;
+    float flowY = size.height - style->border.bottom - padding->bottom;
+    float boxX = 0.0f;
+    float boxY = 0.0f;
     for (uint32_t c = muiTreeAt(solver->tree, node)->links.firstChild; c != 0;
          c = muiTreeAt(solver->tree, c)->links.next)
     {
@@ -244,16 +280,29 @@ static void MeasureExtent(const muiSolver* solver, uint32_t node, muiSize size, 
             // reaches past it, and across it the content box holds it.
             continue;
         }
-        muiEdges margins = child->absolute ? (muiEdges){0} : muiMarginsOf(&child->style, rtl);
         // A popped child is where it was drawn, mirrored under rtl.
-        float x =
-            child->popped && rtl ? size.width - child->rect.x - child->rect.width : child->rect.x;
-        reachX = fmaxf(reachX, x + child->rect.width + margins.end);
-        reachY = fmaxf(reachY, child->rect.y + child->rect.height + margins.bottom);
+        float x = rtl && (mirrored || child->popped)
+                      ? size.width - child->rect.x - child->rect.width
+                      : child->rect.x;
+        if (!child->absolute)
+        {
+            muiEdges margins = muiMarginsOf(&child->style, rtl);
+            flowX = fmaxf(flowX, x + child->rect.width + margins.end);
+            flowY = fmaxf(flowY, child->rect.y + child->rect.height + margins.bottom);
+        }
+        // What is below the child is in physical coordinates: under rtl
+        // its far end is its leftmost box.
+        Reach reach = {0.0f, child->rect.width, child->rect.height};
+        if (child->style.scrollAxes == mui_scrollNone)
+        {
+            ReachBelow(solver, c, 0.0f, 0.0f, &reach);
+        }
+        boxX = fmaxf(boxX, x + (rtl ? child->rect.width - reach.left : reach.right));
+        boxY = fmaxf(boxY, child->rect.y + reach.bottom);
     }
     muiScrollState* scroll = &solver->scrolls[node - 1];
-    scroll->reachWidth = reachX + padding->end - startX;
-    scroll->reachHeight = reachY + padding->bottom - startY;
+    scroll->reachWidth = fmaxf(flowX + padding->end, boxX) - startX;
+    scroll->reachHeight = fmaxf(flowY + padding->bottom, boxY) - startY;
     // A virtual list's items reach as far as they need, realized or not.
     scroll->extentWidth = fmaxf(scroll->reachWidth, padding->start + scroll->listX + padding->end);
     scroll->extentHeight =
@@ -261,6 +310,30 @@ static void MeasureExtent(const muiSolver* solver, uint32_t node, muiSize size, 
     // At the size given here: its parent sets its rectangle after this.
     scroll->x = fminf(scroll->x, muiScrollLimit(style, size, scroll, true));
     scroll->y = fminf(scroll->y, muiScrollLimit(style, size, scroll, false));
+}
+
+void muiMeasureExtentAbove(const muiSolver* solver, uint32_t root, uint32_t node)
+{
+    for (uint32_t at = node; at != root;)
+    {
+        at = muiTreeAt(solver->tree, at)->links.parent;
+        const muiLayoutNode* layout = &solver->nodes[at - 1];
+        if (layout->style.scrollAxes != mui_scrollNone)
+        {
+            // A changed extent or offset repaints it, and so its transform.
+            const muiScrollState* scroll = &solver->scrolls[at - 1];
+            muiScrollState before = *scroll;
+            MeasureExtent(solver, at, (muiSize){layout->rect.width, layout->rect.height},
+                          layout->rtl, true);
+            if (scroll->extentWidth != before.extentWidth ||
+                scroll->extentHeight != before.extentHeight || scroll->x != before.x ||
+                scroll->y != before.y)
+            {
+                muiTreeMark(solver->restyle, at, mui_stagePaint);
+            }
+            return;
+        }
+    }
 }
 
 // Lays a container out in logical coordinates, start on the left, and
@@ -274,7 +347,7 @@ static muiSize SizeContainer(const muiSolver* solver, uint32_t node, const muiSi
         muiPlaceAbsolute(solver, node, size, input->rtl);
         if (solver->nodes[node - 1].style.scrollAxes != mui_scrollNone)
         {
-            MeasureExtent(solver, node, size, input->rtl);
+            MeasureExtent(solver, node, size, input->rtl, false);
         }
         if (input->rtl)
         {
@@ -536,7 +609,7 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
         if (muiTreeAt(solver->tree, node)->links.firstChild == 0 &&
             style->scrollAxes != mui_scrollNone)
         {
-            MeasureExtent(solver, node, size, own.rtl);
+            MeasureExtent(solver, node, size, own.rtl, false);
         }
         cache->finalValid = true;
         cache->finalRtl = input->rtl;

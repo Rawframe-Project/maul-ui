@@ -18,6 +18,14 @@ format.
   either axis, and its content's height when it scrolls vertically, as
   Chrome does. Before, only a column flexed to a percentage height
   dropped its content's width, and only when scrolling horizontally.
+- A scroll container's extent (`muiNode_GetScrollExtent`) is its
+  scrollable overflow as Chrome and Firefox measure it: a box below a
+  child that overflows the child now reaches as far as it goes, an
+  absolute child reaches to its border box with no end padding after
+  it, and a child with a negative end margin still reaches its border
+  box. Before, the extent counted only children's margin boxes and
+  added the end padding after absolute ones, so content below a child
+  could not be scrolled into view.
 
 ## [0.5.4] - 2026-10-12
 

@@ -12,7 +12,7 @@
 # A corpus file holds fixtures:
 #
 #   fixture <name> available=<width>x<height>
-#   node <key>=<value> ... => <x> <y> <width> <height>
+#   node <key>=<value> ... => <x> <y> <width> <height> [<extent w> <extent h>]
 #     node ...                 (two spaces of indentation per depth)
 #
 # Lines starting with # are comments; "# chrome <version>" records the
@@ -28,7 +28,10 @@
 # auto), position (flow absolute), start end top bottom (insets, as
 # dimensions), anchor (<x>,<y> from 0 to 1), dir (inherit ltr rtl),
 # scroll (none horizontal vertical both: a scroll container, rendered
-# with overflow hidden on the axes it scrolls and clip on the other),
+# with overflow hidden on the axes it scrolls and clip on the other; its
+# line also gives Chrome's scrollWidth and scrollHeight, its extent,
+# unless it has content: a scroll container scrolls its children, and
+# the oracle renders content as a child),
 # content (<width>x<height>: host content of that size;
 # <width>x<height>*<count>: that many boxes of that size, words, which wrap
 # greedily into lines, at least one a line).
@@ -103,6 +106,10 @@ def parse_anchor(text):
     return parts
 
 
+def has_extent(props):
+    return props.get("scroll", "none") != "none" and "content" not in props
+
+
 def parse_node(text, number):
     props = {}
     for item in text.split():
@@ -157,11 +164,13 @@ def parse_file(path):
         depth = indent // 2
         if (not nodes and depth != 0) or (nodes and (depth == 0 or depth > nodes[-1]["depth"] + 1)):
             raise CorpusError(f"{path}:{number}: one root per fixture, children one level deeper")
+        props = parse_node(body, number)
         expected = [float(v) for v in expect.split()] if expect.strip() else None
-        if expected is not None and len(expected) != 4:
-            raise CorpusError(f"{path}:{number}: => x y width height")
-        nodes.append({"depth": depth, "props": parse_node(body, number), "expected": expected,
-                      "line": number - 1})
+        count = 6 if has_extent(props) else 4
+        if expected is not None and len(expected) != count:
+            raise CorpusError(f"{path}:{number}: => x y width height"
+                              + (" extent-width extent-height" if count == 6 else ""))
+        nodes.append({"depth": depth, "props": props, "expected": expected, "line": number - 1})
     return lines, fixtures
 
 
@@ -239,10 +248,11 @@ def generate():
             for node in fixture["nodes"]:
                 box, _, words = node["props"].get("content", "0x0").partition("*")
                 content = box.split("x")
-                expected = ", ".join(c_float(v) for v in node["expected"])
+                expected = ", ".join(c_float(v) for v in node["expected"][:4])
+                extent = ", ".join(c_float(v) for v in (node["expected"][4:] or [0, 0]))
                 out.append(f"    {{{node['depth']}, {c_style(node['props'])},")
                 out.append(f"     {{{c_float(content[0])}, {c_float(content[1])}}}, {words or 0}, "
-                           f"{{{expected}}}}},")
+                           f"{{{expected}}}, {{{extent}}}}},")
             out.append("};")
             out.append("")
             width, height = fixture["available"]
@@ -378,6 +388,8 @@ def run_oracle():
         for fixture in fixtures:
             rects = measured["fixtures"][fixture["name"]]
             for node, rect in zip(fixture["nodes"], rects):
+                if not has_extent(node["props"]):
+                    rect = rect[:4]
                 body = lines[node["line"]].split("=>")[0].rstrip()
                 lines[node["line"]] = body + " => " + " ".join(format_number(v) for v in rect)
         with open(path, "w", encoding="utf-8") as f:

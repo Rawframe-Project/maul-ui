@@ -211,6 +211,7 @@ bool muiBoundLayout(const muiSolver* solver, uint32_t root)
             !solver->nodes[c->node - 1].cache.finalValid)
         {
             LayOutAlone(solver, c);
+            solver->extentAbove(solver, root, c->node);
         }
     }
     return true;

@@ -2,9 +2,11 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Renders layout fixtures in headless Chrome and prints every node's
-// border box relative to its parent's, for tools/gen_layout_fixtures.py
-// --oracle. Reads a JSON array of {name, width, height, html} on stdin;
-// prints {version, fixtures: {name: [[x, y, width, height], ...]}}.
+// border box relative to its parent's, with its scrollWidth and
+// scrollHeight, for tools/gen_layout_fixtures.py --oracle. Reads a JSON
+// array of {name, width, height, html} on stdin; prints {version,
+// fixtures: {name: [[x, y, width, height, scrollWidth, scrollHeight],
+// ...]}}.
 // A development tool: it needs Node and puppeteer, which the library
 // and its tests do not. MUI_NODE_MODULES names the node_modules directory
 // that holds puppeteer when it is not installed beside this file, and
@@ -47,7 +49,8 @@ for (const fixture of fixtures) {
         return nodes.map((node) => {
             const box = node.getBoundingClientRect();
             const parent = node.parentElement.getBoundingClientRect();
-            return [box.x - parent.x, box.y - parent.y, box.width, box.height];
+            return [box.x - parent.x, box.y - parent.y, box.width, box.height, node.scrollWidth,
+                    node.scrollHeight];
         });
     });
 }

@@ -3,7 +3,8 @@
 //
 // Runs the layout fixture corpus (test/layout/*.txt): builds each tree,
 // lays it out, and compares every rectangle with Chrome's within 1/32
-// unit, twice Chrome's 1/64 px step.
+// unit, twice Chrome's 1/64 px step, and every scroll container's extent
+// with Chrome's scrollWidth and scrollHeight, whole pixels, within 1.
 
 #include "test_harness.h"
 
@@ -11,6 +12,7 @@
 #include "maul-ui/context.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
+#include "maul-ui/scroll.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -88,6 +90,18 @@ static void CheckRect(const LayoutFixture* fixture, int index, muiRect got)
     CHECK(same, "rectangle matches Chrome");
 }
 
+static void CheckExtent(const LayoutFixture* fixture, int index, muiSize got)
+{
+    muiSize want = fixture->nodes[index].extent;
+    bool same = fabsf(got.width - want.width) < 1.0f && fabsf(got.height - want.height) < 1.0f;
+    if (!same)
+    {
+        fprintf(stderr, "%s node %d: extent %g %g, Chrome %g %g\n", fixture->name, index,
+                (double)got.width, (double)got.height, (double)want.width, (double)want.height);
+    }
+    CHECK(same, "extent matches Chrome");
+}
+
 // Builds the fixture's tree, the root first; parents come before their
 // children in preorder, so each node's parent is the last one a level up.
 static bool Build(muiContext* context, const LayoutFixture* fixture, muiNodeId* ids)
@@ -132,6 +146,15 @@ static void RunFixture(const LayoutFixture* fixture)
     for (int i = 0; i < fixture->count; i++)
     {
         CheckRect(fixture, i, muiNode_GetRect(context, ids[i]));
+        // A scroll container's own content is not scrolled: the oracle
+        // renders it as a child, so its extent is not compared.
+        if (fixture->nodes[i].style.scrollAxes != mui_scrollNone &&
+            fixture->nodes[i].style.content != mui_contentHost)
+        {
+            muiSize extent = {0};
+            CHECK(muiNode_GetScrollExtent(context, ids[i], &extent) == mui_success, "extent");
+            CheckExtent(fixture, i, extent);
+        }
     }
     muiDestroyContext(context);
 }

@@ -1,10 +1,15 @@
 # Scroll containers (scroll=horizontal, vertical or both): an axis's
-# automatic minimum and a ratio's content floor, rendered with overflow
-# hidden on the axes the node scrolls and clip on the other. Chrome takes
-# each axis on its own, an absolute ratio box's width on either axis.
-# A flex item that scrolls only across its container's main axis is left
-# out: Chrome keeps its content minimum there and Firefox does not, and
-# the library follows Firefox (research 285).
+# automatic minimum, a ratio's content floor and the extent, rendered
+# with overflow hidden on the axes the node scrolls and clip on the
+# other. The extent is the scrollable overflow: in-flow children's
+# margin boxes with the end padding, and every border box below that no
+# nested scroll container clips; start overflow is unreachable. A
+# scroll container with content gives no extent: it scrolls its
+# children, and the oracle renders its content as a child. Chrome
+# takes each axis's floor on its own, an absolute ratio box's width on
+# either axis. A flex item that scrolls only across its container's main
+# axis is left out: Chrome keeps its content minimum there and Firefox
+# does not, and the library follows Firefox (research 285).
 # chrome 154.0.8037.57
 
 fixture scroll_ratio_width_floor_none available=500x400
@@ -126,3 +131,56 @@ node width=200 height=200 => 0 0 200 200
 fixture scroll_absolute_ratio_width_floor_both available=500x400
 node width=200 height=200 => 0 0 200 200
   node height=20 position=absolute start=0 aspect=1 scroll=both content=80x10 => 0 0 20 20
+
+fixture scroll_extent_row_margin_box_and_padding available=500x400
+node width=100 height=100 padding=10 scroll=both => 0 0 100 100 180 100
+  node width=150 height=50 shrink=0 margin=5 => 15 15 150 50
+
+fixture scroll_extent_column available=500x400
+node width=100 height=100 padding=10 direction=column scroll=both => 0 0 100 100 100 166
+  node height=70 shrink=0 => 10 10 80 70
+  node height=70 shrink=0 margin=0,0,6,0 => 10 86 80 70
+
+fixture scroll_extent_absolute_child_border_box available=500x400
+node width=100 height=100 padding=10 scroll=both => 0 0 100 100 167 177
+  node width=40 height=40 position=absolute start=120 top=130 margin=7 => 127 137 40 40
+
+fixture scroll_extent_rtl_row available=500x400
+node width=100 height=100 padding=10 dir=rtl scroll=both => 0 0 100 100 170 100
+  node width=150 height=50 shrink=0 => -60 10 150 50
+
+fixture scroll_extent_grandchild available=500x400
+node width=100 height=100 padding=10 scroll=both => 0 0 100 100 210 100
+  node width=50 height=50 => 10 10 50 50
+    node width=200 height=30 shrink=0 => 0 0 200 30
+
+fixture scroll_extent_negative_margin_border_box available=500x400
+node width=100 height=100 padding=10 scroll=both => 0 0 100 100 160 100
+  node width=150 height=50 shrink=0 margin=0,-30,0,0 => 10 10 150 50
+
+fixture scroll_extent_horizontal_only available=500x400
+node width=100 height=100 padding=10 scroll=horizontal => 0 0 100 100 170 170
+  node width=150 height=150 shrink=0 => 10 10 150 150
+
+fixture scroll_extent_fractional available=500x400
+node width=100 height=100 padding=10 scroll=both => 0 0 100 100 170 100
+  node width=150.4 height=50.6 shrink=0 => 10 10 150.390625 50.59375
+
+fixture scroll_extent_rtl_grandchild available=500x400
+node width=100 height=100 padding=10 dir=rtl scroll=both => 0 0 100 100 210 100
+  node width=50 height=50 => 40 10 50 50
+    node width=200 height=30 shrink=0 => -150 0 200 30
+
+fixture scroll_extent_rtl_absolute_child available=500x400
+node width=100 height=100 padding=10 dir=rtl scroll=both => 0 0 100 100 167 177
+  node width=40 height=40 position=absolute start=120 top=130 margin=7 => -67 137 40 40
+
+fixture scroll_extent_rtl_start_overflow_unreachable available=500x400
+node width=100 height=100 padding=10 dir=rtl scroll=both => 0 0 100 100 100 100
+  node width=50 height=50 dir=ltr => 40 10 50 50
+    node width=200 height=30 shrink=0 => 0 0 200 30
+
+fixture scroll_extent_nested_container_clips available=500x400
+node width=100 height=100 padding=10 scroll=both => 0 0 100 100 100 100
+  node width=50 height=50 scroll=both => 10 10 50 50 200 300
+    node width=200 height=300 shrink=0 => 0 0 200 300

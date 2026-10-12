@@ -1057,7 +1057,7 @@ Reads a node's scroll offset; 0 along an axis it does not scroll, as a node that
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetScrollExtent(const muiContext* context, muiNodeId nodeId, muiSize* extentOut);
 ```
-Reads the extent a scroll container's children reach, as its last muiComputeLayout measured it: from its padding box's start to the furthest end of its children's margin boxes plus its end padding, at least its padding box; for a scrollbar, the padding box over the extent is the thumb's share.  @param context    The context. @param nodeId     The node. @param extentOut  Receives the extent; 0 by 0 for a node that does not scroll or was not laid out since it does. @return `mui_success`; `mui_errorInvalid` for a NULL argument or the null id; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Reads the extent a scroll container's children reach, as its last muiComputeLayout measured it: from its padding box's start to the furthest end of its in-flow children's margin boxes plus its end padding, or of any border box below it that no nested scroll container clips, at least its padding box, as CSS's scrollable overflow; for a scrollbar, the padding box over the extent is the thumb's share.  @param context    The context. @param nodeId     The node. @param extentOut  Receives the extent; 0 by 0 for a node that does not scroll or was not laid out since it does. @return `mui_success`; `mui_errorInvalid` for a NULL argument or the null id; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_ScrollIntoView(muiContext* context, muiNodeId nodeId);
