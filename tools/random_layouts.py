@@ -19,7 +19,9 @@
 # the other draws never try, fractional grow and shrink factors,
 # negative margins and insets as scaled dimensions (from a stream of its
 # own, so the trees are otherwise the same), under names
-# random_<seed>r_<n>. Put them in
+# random_<seed>r_<n>; --scroll draws the --reach layouts again with some
+# nodes scroll containers (from a stream of its own again), under names
+# random_<seed>s_<n>. Put them in
 # a file under test/layout/, render it with gen_layout_fixtures.py
 # --oracle and run test_layout_fixtures to see which part from Chrome; the
 # ones that agree may stay in the corpus.
@@ -35,7 +37,8 @@
 # reduce also needs CMake and a C23 compiler (CC names one if the default
 # is older).
 #
-# usage: random_layouts.py generate SEED COUNT [--wide | --words | --deep | --reach]
+# usage: random_layouts.py generate SEED COUNT
+#            [--wide | --words | --deep | --reach | --scroll]
 #        random_layouts.py reduce FILE NAME
 
 import os
@@ -60,7 +63,8 @@ def call(args, **options):
 class Generator:
     """Draws fixtures; a seed always draws the same ones."""
 
-    def __init__(self, seed, wide=False, words=False, deep=False, reach=False):
+    def __init__(self, seed, wide=False, words=False, deep=False, reach=False, scroll=False):
+        reach = reach or scroll
         deep = deep or reach
         self.rng = random.Random(seed)
         # Wide draws add keys the default leaves out; the default's draws
@@ -76,6 +80,9 @@ class Generator:
         # Reach draws come from a stream of their own too: a seed's reach
         # layouts are its deep ones, some keys replaced.
         self.reach = random.Random(seed ^ 0x3C3C3C3C) if reach else None
+        # So do scroll draws: a seed's scroll layouts are its reach ones,
+        # some nodes scroll containers.
+        self.scroll = random.Random(seed ^ 0x69696969) if scroll else None
 
     def reached(self, keys, root):
         """Keys with some replaced by what only the reach draws try."""
@@ -152,6 +159,8 @@ class Generator:
                 keys.append(f"{key}={value}")
         if self.reach:
             keys = self.reached(keys, root)
+        if self.scroll and self.scroll.random() < 0.15:
+            keys.append(f"scroll={self.scroll.choice(['horizontal', 'vertical', 'both'])}")
         levels, _, most = self.shape
         self.nodes += 1
         full = most is not None and self.nodes > most
@@ -183,7 +192,10 @@ def render(name, available, nodes):
     """A fixture's text from (depth, keys) pairs, rectangles left zero."""
     lines = [f"fixture {name} available={available}"]
     for depth, keys in nodes:
-        lines.append("  " * depth + " ".join(["node"] + keys) + " => 0 0 0 0")
+        # A scroll container without content has its extent too.
+        names = [key.split("=", 1)[0] for key in keys]
+        zeros = " 0 0" if "scroll" in names and "content" not in names else ""
+        lines.append("  " * depth + " ".join(["node"] + keys) + " => 0 0 0 0" + zeros)
     return "\n".join(lines)
 
 
@@ -197,8 +209,9 @@ def flatten(tree, depth=0):
 
 def generate(seed, count, draws=""):
     generator = Generator(seed, draws == "--wide", draws == "--words", draws == "--deep",
-                          draws == "--reach")
-    tag = f"{seed}{ {'--wide': 'w', '--words': 't', '--deep': 'd', '--reach': 'r'}.get(draws, '')}"
+                          draws == "--reach", draws == "--scroll")
+    tags = {'--wide': 'w', '--words': 't', '--deep': 'd', '--reach': 'r', '--scroll': 's'}
+    tag = f"{seed}{tags.get(draws, '')}"
     out = [f"# Random layouts, seed {tag} (tools/random_layouts.py).", "# chrome 0", ""]
     for i in range(count):
         generator.nodes = 0
@@ -289,14 +302,14 @@ def reduce(path, name):
 
 def main():
     args = sys.argv[1:]
-    if len(args) in (3, 4) and args[0] == "generate" and args[3:] in ([], ["--wide"], ["--words"], ["--deep"],
-                                                                    ["--reach"]):
+    draws = ([], ["--wide"], ["--words"], ["--deep"], ["--reach"], ["--scroll"])
+    if len(args) in (3, 4) and args[0] == "generate" and args[3:] in draws:
         print(generate(int(args[1]), int(args[2]), "".join(args[3:])))
     elif len(args) == 3 and args[0] == "reduce":
         reduce(args[1], args[2])
     else:
-        sys.exit("usage: random_layouts.py generate SEED COUNT [--wide | --words | --deep | --reach] |"
-                 " reduce FILE NAME")
+        sys.exit("usage: random_layouts.py generate SEED COUNT"
+                 " [--wide | --words | --deep | --reach | --scroll] | reduce FILE NAME")
 
 
 if __name__ == "__main__":

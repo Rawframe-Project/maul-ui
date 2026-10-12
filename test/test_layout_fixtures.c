@@ -4,7 +4,8 @@
 // Runs the layout fixture corpus (test/layout/*.txt): builds each tree,
 // lays it out, and compares every rectangle with Chrome's within 1/32
 // unit, twice Chrome's 1/64 px step, and every scroll container's extent
-// with Chrome's scrollWidth and scrollHeight, whole pixels, within 1.
+// along the axes it scrolls with Chrome's scrollWidth and scrollHeight,
+// whole pixels, within 1.
 
 #include "test_harness.h"
 
@@ -90,10 +91,30 @@ static void CheckRect(const LayoutFixture* fixture, int index, muiRect got)
     CHECK(same, "rectangle matches Chrome");
 }
 
+// Whether a node below the one at index has host content: Chrome draws
+// it as a box that may overflow its node, which layout, knowing the node
+// alone, does not see.
+static bool ContentBelow(const LayoutFixture* fixture, int index)
+{
+    for (int i = index + 1;
+         i < fixture->count && fixture->nodes[i].depth > fixture->nodes[index].depth; i++)
+    {
+        if (fixture->nodes[i].style.content == mui_contentHost)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Along the axes the node scrolls: across one it does not, Chrome's
+// scroll size is its client size, as clip leaves nothing to scroll to.
 static void CheckExtent(const LayoutFixture* fixture, int index, muiSize got)
 {
     muiSize want = fixture->nodes[index].extent;
-    bool same = fabsf(got.width - want.width) < 1.0f && fabsf(got.height - want.height) < 1.0f;
+    muiScrollAxes axes = fixture->nodes[index].style.scrollAxes;
+    bool same = ((axes & mui_scrollHorizontal) == 0 || fabsf(got.width - want.width) < 1.0f) &&
+                ((axes & mui_scrollVertical) == 0 || fabsf(got.height - want.height) < 1.0f);
     if (!same)
     {
         fprintf(stderr, "%s node %d: extent %g %g, Chrome %g %g\n", fixture->name, index,
@@ -146,10 +167,11 @@ static void RunFixture(const LayoutFixture* fixture)
     for (int i = 0; i < fixture->count; i++)
     {
         CheckRect(fixture, i, muiNode_GetRect(context, ids[i]));
-        // A scroll container's own content is not scrolled: the oracle
-        // renders it as a child, so its extent is not compared.
+        // A scroll container's own content is not scrolled, and content
+        // below it overflows its node only in Chrome's rendering: such an
+        // extent is not compared.
         if (fixture->nodes[i].style.scrollAxes != mui_scrollNone &&
-            fixture->nodes[i].style.content != mui_contentHost)
+            fixture->nodes[i].style.content != mui_contentHost && !ContentBelow(fixture, i))
         {
             muiSize extent = {0};
             CHECK(muiNode_GetScrollExtent(context, ids[i], &extent) == mui_success, "extent");
