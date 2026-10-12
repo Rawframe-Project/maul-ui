@@ -802,25 +802,30 @@ static bool ScaledWidths(const muiFlexFrame* frame)
     return false;
 }
 
-// Whether a column grew wider than the space it measured its items in, a
-// child sizing its width to fit there (not stretched, its width
-// automatic), which fits a wider column otherwise.
-static bool Outgrew(const muiFlexFrame* frame)
+// Whether a child not stretched, its width automatic, fit its width to
+// the space the column measured it in, its outer width wider than wider.
+static bool Unfitted(const muiFlexFrame* frame, float wider)
 {
-    if (frame->innerCross <= frame->crossIn.size - frame->boxCross)
-    {
-        return false;
-    }
     for (uint32_t c = muiFirstFlowChild(frame->solver->tree, frame->solver->nodes, frame->node);
          c != 0; c = muiNextFlowChild(frame->solver->tree, frame->solver->nodes, c))
     {
         const muiLayoutStyle* style = &frame->solver->nodes[c - 1].style;
-        if (!muiFlexIsStretched(frame, style) && style->sizing.width.kind == mui_dimensionAuto)
+        const muiFlexItemState* item = ItemOf(frame, c);
+        if (!muiFlexIsStretched(frame, style) && style->sizing.width.kind == mui_dimensionAuto &&
+            item->cross + item->marginCross > wider)
         {
             return true;
         }
     }
     return false;
+}
+
+// Whether a column grew wider than the space it measured its items in, a
+// child sizing its width to fit there, which fits a wider column
+// otherwise.
+static bool Outgrew(const muiFlexFrame* frame)
+{
+    return frame->innerCross > frame->crossIn.size - frame->boxCross && Unfitted(frame, -INFINITY);
 }
 
 // Whether a column sized at an open width ended narrower than a child
@@ -829,22 +834,7 @@ static bool Outgrew(const muiFlexFrame* frame)
 // column's inside, which then fits it narrower.
 static bool Squeezed(const muiFlexFrame* frame)
 {
-    if (frame->narrowed)
-    {
-        return true;
-    }
-    for (uint32_t c = muiFirstFlowChild(frame->solver->tree, frame->solver->nodes, frame->node);
-         c != 0; c = muiNextFlowChild(frame->solver->tree, frame->solver->nodes, c))
-    {
-        const muiLayoutStyle* style = &frame->solver->nodes[c - 1].style;
-        const muiFlexItemState* item = ItemOf(frame, c);
-        if (!muiFlexIsStretched(frame, style) && style->sizing.width.kind == mui_dimensionAuto &&
-            item->cross + item->marginCross > frame->innerCross)
-        {
-            return true;
-        }
-    }
-    return false;
+    return frame->narrowed || Unfitted(frame, frame->innerCross);
 }
 
 // Whether a container sized at an open width lays out otherwise at the
