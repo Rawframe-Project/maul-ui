@@ -263,3 +263,30 @@ node width=90 direction=column align-items=start => 0 0 90 125
   node direction=column => 0 0 120 125
     node min-width=120 => 0 0 120 0
     node aspect=1 margin=auto,0,5,0 content=80x40*2 => 0 5 120 120
+
+# A column clamped by its maximum below the width its children were
+# measured at, while its container measures it, lays them out again at
+# its width, as Chrome and Firefox: its text wraps at 20 and is 160
+# high, where at its content's width it was one line, 40 high (research
+# 256, case 136d_243). Stretched or not, asked an intrinsic width or
+# fit-content.
+
+fixture intrinsic_column_maximum_narrows_its_text available=500x400
+node => 0 0 20 160
+  node direction=column => 0 0 20 160
+    node max-width=20 direction=column => 0 0 20 160
+      node content=50x40*4 => 0 0 20 160
+
+fixture intrinsic_column_maximum_narrows_centred_text available=500x400
+node => 0 0 20 160
+  node direction=column => 0 0 20 160
+    node max-width=20 direction=column align-items=center => 0 0 20 160
+      node content=50x40*4 => -15 0 50 160
+
+fixture intrinsic_column_maximum_narrows_fitted_rows available=500x400
+node direction=column => 0 0 20 160
+  node direction=column => 0 0 20 160
+    node max-width=20 direction=column-reverse align-items=end => 0 0 20 160
+      node => -30 0 50 160
+        node => 0 0 50 160
+          node content=50x40*4 => 0 0 50 160

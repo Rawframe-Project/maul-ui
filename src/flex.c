@@ -395,6 +395,7 @@ static void Stretch(muiFlexFrame* frame, uint32_t first, uint32_t count)
                                        muiBoxSum(&padding, style, true));
         }
         frame->restretched = frame->restretched || item->cross != measured;
+        frame->narrowed = frame->narrowed || item->cross < measured;
     }
 }
 
@@ -822,21 +823,49 @@ static bool Outgrew(const muiFlexFrame* frame)
     return false;
 }
 
+// Whether a column sized at an open width ended narrower than a child
+// was measured at, its own maximum clamping it: a stretched child
+// narrowed, or one not stretched, its width automatic, wider than the
+// column's inside, which then fits it narrower.
+static bool Squeezed(const muiFlexFrame* frame)
+{
+    if (frame->narrowed)
+    {
+        return true;
+    }
+    for (uint32_t c = muiFirstFlowChild(frame->solver->tree, frame->solver->nodes, frame->node);
+         c != 0; c = muiNextFlowChild(frame->solver->tree, frame->solver->nodes, c))
+    {
+        const muiLayoutStyle* style = &frame->solver->nodes[c - 1].style;
+        const muiFlexItemState* item = ItemOf(frame, c);
+        if (!muiFlexIsStretched(frame, style) && style->sizing.width.kind == mui_dimensionAuto &&
+            item->cross + item->marginCross > frame->innerCross)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 // Whether a container sized at an open width lays out otherwise at the
 // width it found, as CSS lays a box out at a definite width: a row asked
 // its max-content width whose children size by its width, which they
 // could not resolve against it (a wrapping column breaks its lines at
-// such rows' heights); a column whose child was stretched to another
-// width than it was measured at, sizes by its width or fits the space
-// the column outgrew.
+// such rows' heights); a column at fit-content whose child was stretched
+// to another width than it was measured at, sizes by its width or fits
+// the space the column outgrew; a column at fit-content or asked an
+// intrinsic width that ended narrower than a child was measured at.
 static bool WidthMatters(const muiFlexFrame* frame, const muiSizingInput* fitted)
 {
     if (frame->row)
     {
         return fitted->width.mode == mui_measureMaxContent && ScaledWidths(frame);
     }
-    return fitted->width.mode == mui_measureAtMost &&
-           (frame->restretched || ScaledWidths(frame) || Outgrew(frame));
+    if (fitted->width.mode == mui_measureAtMost)
+    {
+        return frame->restretched || ScaledWidths(frame) || Outgrew(frame) || Squeezed(frame);
+    }
+    return fitted->width.mode != mui_measureExact && Squeezed(frame);
 }
 
 // Sizes a row container's width as fit-content: its max-content size

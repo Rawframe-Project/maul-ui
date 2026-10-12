@@ -19,6 +19,11 @@ format.
   found, as Chrome and Firefox do. Before, a child that was not
   stretched (an automatic side margin) kept the height it had at the
   narrower width.
+- A column that its maximum width clamps below the width its children
+  were measured at, while its container measures it, lays them out
+  again at its own width, as Chrome and Firefox do: text in a column of
+  `max-width: 20` wraps there and the column takes its height. Before,
+  the container took the height of the text on one line.
 
 ## [0.5.3] - 2026-10-12
 

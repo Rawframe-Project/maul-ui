@@ -45,8 +45,10 @@ typedef struct muiFlexFrame
     // and the extent its lines reach across.
     bool ratioHeight;
     float contentCross;
-    // Some child was stretched to another size than it was measured at.
+    // Some child was stretched to another size than it was measured at;
+    // narrowed, to a smaller one.
     bool restretched;
+    bool narrowed;
     // A row whose height is its content's, or definite only through
     // stretching in such rows (looseHeight): its stretched items' too.
     bool crossLoose;
