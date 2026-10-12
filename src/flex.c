@@ -394,7 +394,7 @@ static void Stretch(muiFlexFrame* frame, uint32_t first, uint32_t count)
             item->cross = muiClampSize(size, item->minCross, item->maxCross,
                                        muiBoxSum(&padding, style, true));
         }
-        frame->widened = frame->widened || item->cross > measured;
+        frame->restretched = frame->restretched || item->cross != measured;
     }
 }
 
@@ -786,12 +786,12 @@ static float FirstBaseline(const muiFlexFrame* frame)
 }
 
 // Whether a column sized at an open width lays out otherwise at the width
-// it found: a child was stretched wider than it was measured, or sizes by
-// the container's width.
+// it found: a child was stretched to another width than it was measured
+// at, or sizes by the container's width.
 static bool WidthMatters(const muiFlexFrame* frame)
 {
     for (uint32_t c = muiFirstFlowChild(frame->solver->tree, frame->solver->nodes, frame->node);
-         c != 0 && !frame->widened;
+         c != 0 && !frame->restretched;
          c = muiNextFlowChild(frame->solver->tree, frame->solver->nodes, c))
     {
         const muiSizing* sizing = &frame->solver->nodes[c - 1].style.sizing;
@@ -801,7 +801,7 @@ static bool WidthMatters(const muiFlexFrame* frame)
             return true;
         }
     }
-    return frame->widened;
+    return frame->restretched;
 }
 
 // Sizes a row container's width as fit-content: its max-content size

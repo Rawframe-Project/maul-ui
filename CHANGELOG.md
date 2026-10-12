@@ -14,6 +14,11 @@ format.
   sum short of its widest item is as wide as its widest item's
   min-content contribution, as Chrome and Firefox make it; it took the
   widest item's max-content width.
+- A column of a maximum width, measured at an open width, lays its
+  stretched children out again at the width it finds when that is
+  narrower than they were measured at, as Chrome and Firefox do: text
+  in it wraps and its height grows, a row of a ratio item shrinks it;
+  the column kept the height of its children at their wider sizes.
 
 ## [0.5.2] - 2026-10-12
 

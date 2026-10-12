@@ -229,3 +229,16 @@ node => 0 0 0 0
   node height=25% direction=column => 0 0 0 0
     node height=80 basis=100%-20 => 0 0 0 0
       node height=10%+10 => 0 0 0 0
+
+# A column of a maximum width measured at an open width finds its width
+# capped, and lays its stretched children out again at it: text wraps,
+# a row's ratio item shrinks, and the column's height follows (research
+# 244).
+fixture intrinsic_column_maximum_width_wraps_its_text available=500x400
+node max-width=40 direction=column => 0 0 40 40
+  node content=20x20*4 => 0 0 40 40
+
+fixture intrinsic_column_maximum_width_shrinks_its_row available=500x400
+node max-width=40 direction=column => 0 0 40 20
+  node => 0 0 40 20
+    node width=60 aspect=2 => 0 0 40 20
