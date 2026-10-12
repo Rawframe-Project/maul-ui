@@ -242,3 +242,15 @@ fixture intrinsic_column_maximum_width_shrinks_its_row available=500x400
 node max-width=40 direction=column => 0 0 40 20
   node => 0 0 40 20
     node width=60 aspect=2 => 0 0 40 20
+
+# A column measured at an open width that grows past it, by a child of
+# a given width, lays its items out again at the width it finds: an
+# item with an automatic side margin fits that width, not the space,
+# and takes its height there, as Chrome and Firefox (research 252,
+# case 128d_69).
+
+fixture intrinsic_column_outgrows_its_space available=500x400
+node width=90 direction=column align-items=start => 0 0 90 125
+  node direction=column => 0 0 120 125
+    node width=120 => 0 0 120 0
+    node aspect=1 margin=auto,0,5,0 content=80x40*2 => 0 5 120 120

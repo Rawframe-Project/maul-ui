@@ -801,19 +801,42 @@ static bool ScaledWidths(const muiFlexFrame* frame)
     return false;
 }
 
+// Whether a column grew wider than the space it measured its items in, a
+// child sizing its width to fit there (not stretched, its width
+// automatic), which fits a wider column otherwise.
+static bool Outgrew(const muiFlexFrame* frame)
+{
+    if (frame->innerCross <= frame->crossIn.size - frame->boxCross)
+    {
+        return false;
+    }
+    for (uint32_t c = muiFirstFlowChild(frame->solver->tree, frame->solver->nodes, frame->node);
+         c != 0; c = muiNextFlowChild(frame->solver->tree, frame->solver->nodes, c))
+    {
+        const muiLayoutStyle* style = &frame->solver->nodes[c - 1].style;
+        if (!muiFlexIsStretched(frame, style) && style->sizing.width.kind == mui_dimensionAuto)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 // Whether a container sized at an open width lays out otherwise at the
 // width it found, as CSS lays a box out at a definite width: a row asked
 // its max-content width whose children size by its width, which they
 // could not resolve against it (a wrapping column breaks its lines at
 // such rows' heights); a column whose child was stretched to another
-// width than it was measured at, or sizes by its width.
+// width than it was measured at, sizes by its width or fits the space
+// the column outgrew.
 static bool WidthMatters(const muiFlexFrame* frame, const muiSizingInput* fitted)
 {
     if (frame->row)
     {
         return fitted->width.mode == mui_measureMaxContent && ScaledWidths(frame);
     }
-    return fitted->width.mode == mui_measureAtMost && (frame->restretched || ScaledWidths(frame));
+    return fitted->width.mode == mui_measureAtMost &&
+           (frame->restretched || ScaledWidths(frame) || Outgrew(frame));
 }
 
 // Sizes a row container's width as fit-content: its max-content size

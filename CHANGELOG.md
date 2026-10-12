@@ -8,6 +8,18 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- A column's item that is a wrapping column with an aspect ratio and a
+  given height shrinks to its content broken into lines at the ratio's
+  height, as Chrome and Firefox do. Before, its floor was its items in
+  one line, and it would not shrink below them.
+- A column measured at an open width that grows past it, by a child of
+  a given width, lays its other children out again at the width it
+  found, as Chrome and Firefox do. Before, a child that was not
+  stretched (an automatic side margin) kept the height it had at the
+  narrower width.
+
 ## [0.5.3] - 2026-10-12
 
 Layout fixes, with no change to the API: three more cases where Chrome

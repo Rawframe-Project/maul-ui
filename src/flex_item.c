@@ -91,10 +91,18 @@ float muiFlexAutomaticMinimum(const muiFlexFrame* frame, uint32_t child, const m
         return 0.0f;
     }
     // A row's ratio item counts its content's own answer, the ratio and
-    // its limits applied below (as Chrome).
-    float ratio = frame->solver->nodes[child - 1].style.sizing.aspectRatio;
-    float content =
-        ContentMain(frame, child, mui_measureMinContent, cross, ratio > 0.0f && frame->row);
+    // its limits applied below (as Chrome). A column's ratio item that
+    // wraps as a column breaks its lines at the ratio's height, as when
+    // its height is automatic (as Chrome and Firefox).
+    const muiLayoutStyle* own = &frame->solver->nodes[child - 1].style;
+    float ratio = own->sizing.aspectRatio;
+    muiSizingInput probe =
+        muiFlexChildInput(frame, (muiMeasureAxis){0.0f, mui_measureMinContent}, cross);
+    probe.contentOnly = ratio > 0.0f && frame->row;
+    probe.ratioLines = ratio > 0.0f && !frame->row && own->container.wrap != mui_wrapNone &&
+                       (own->container.direction == mui_flexColumn ||
+                        own->container.direction == mui_flexColumnReverse);
+    float content = muiFlexMainOf(frame, frame->solver->solve(frame->solver, child, &probe, false));
     // A row sizing its content, its height definite only through
     // stretching in rows no style fixes, carries no minimum through a
     // stretched item's ratio, nor through a percentage height of the
