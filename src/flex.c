@@ -785,14 +785,11 @@ static float FirstBaseline(const muiFlexFrame* frame)
            (frame->row ? frame->boxCrossStart + offsets.cross : frame->boxMainStart + offsets.main);
 }
 
-// Whether a column sized at an open width lays out otherwise at the width
-// it found: a child was stretched to another width than it was measured
-// at, or sizes by the container's width.
-static bool WidthMatters(const muiFlexFrame* frame)
+// Whether a child sizes its width by the container's.
+static bool ScaledWidths(const muiFlexFrame* frame)
 {
     for (uint32_t c = muiFirstFlowChild(frame->solver->tree, frame->solver->nodes, frame->node);
-         c != 0 && !frame->restretched;
-         c = muiNextFlowChild(frame->solver->tree, frame->solver->nodes, c))
+         c != 0; c = muiNextFlowChild(frame->solver->tree, frame->solver->nodes, c))
     {
         const muiSizing* sizing = &frame->solver->nodes[c - 1].style.sizing;
         if (muiIsScaled(sizing->width) || muiIsScaled(sizing->minWidth) ||
@@ -801,7 +798,22 @@ static bool WidthMatters(const muiFlexFrame* frame)
             return true;
         }
     }
-    return frame->restretched;
+    return false;
+}
+
+// Whether a container sized at an open width lays out otherwise at the
+// width it found, as CSS lays a box out at a definite width: a row asked
+// its max-content width whose children size by its width, which they
+// could not resolve against it (a wrapping column breaks its lines at
+// such rows' heights); a column whose child was stretched to another
+// width than it was measured at, or sizes by its width.
+static bool WidthMatters(const muiFlexFrame* frame, const muiSizingInput* fitted)
+{
+    if (frame->row)
+    {
+        return fitted->width.mode == mui_measureMaxContent && ScaledWidths(frame);
+    }
+    return fitted->width.mode == mui_measureAtMost && (frame->restretched || ScaledWidths(frame));
 }
 
 // Sizes a row container's width as fit-content: its max-content size
@@ -845,13 +857,14 @@ static muiSize Flex(const muiSolver* solver, uint32_t node, const muiSizingInput
         frame.ratioHeight = ratioHeight;
         SizeMain(&frame);
         SizeCross(&frame);
-        if (row || fitted.width.mode != mui_measureAtMost || !WidthMatters(&frame))
+        if (!WidthMatters(&frame, &fitted))
         {
             break;
         }
-        // A column's width comes first, as CSS sizes a box's width before
-        // its height: its items are laid out again at the width it found.
-        fitted.width = muiExact(frame.innerCross + frame.boxCross);
+        // A box's width comes first, as CSS sizes a box's width before its
+        // height: its items are laid out again at the width it found.
+        fitted.width =
+            muiExact(row ? frame.innerMain + frame.boxMain : frame.innerCross + frame.boxCross);
     }
     if (baseline != nullptr)
     {

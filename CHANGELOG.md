@@ -19,6 +19,13 @@ format.
   narrower than they were measured at, as Chrome and Firefox do: text
   in it wraps and its height grows, a row of a ratio item shrinks it;
   the column kept the height of its children at their wider sizes.
+- A row measured at its max-content width lays out again at that width
+  when a child's width, minimum or maximum width is a percentage, so
+  the percentage resolves, as
+  Chrome and Firefox do. A wrapping column measured for its width now
+  keeps such a row on one line where the row fits. Before, the
+  percentage stayed unresolved, the row came out taller and the column
+  broke a second line.
 
 ## [0.5.2] - 2026-10-12
 
