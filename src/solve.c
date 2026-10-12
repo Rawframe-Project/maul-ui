@@ -320,17 +320,10 @@ void muiMeasureExtentAbove(const muiSolver* solver, uint32_t root, uint32_t node
         const muiLayoutNode* layout = &solver->nodes[at - 1];
         if (layout->style.scrollAxes != mui_scrollNone)
         {
-            // A changed extent or offset repaints it, and so its transform.
-            const muiScrollState* scroll = &solver->scrolls[at - 1];
-            muiScrollState before = *scroll;
+            // Nothing painted reads the extent, and a draw list takes the
+            // offsets as it is built.
             MeasureExtent(solver, at, (muiSize){layout->rect.width, layout->rect.height},
                           layout->rtl, true);
-            if (scroll->extentWidth != before.extentWidth ||
-                scroll->extentHeight != before.extentHeight || scroll->x != before.x ||
-                scroll->y != before.y)
-            {
-                muiTreeMark(solver->restyle, at, mui_stagePaint);
-            }
             return;
         }
     }

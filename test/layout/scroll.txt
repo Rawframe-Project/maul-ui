@@ -184,3 +184,11 @@ fixture scroll_extent_nested_container_clips available=500x400
 node width=100 height=100 padding=10 scroll=both => 0 0 100 100 100 100
   node width=50 height=50 scroll=both => 10 10 50 50 200 300
     node width=200 height=300 shrink=0 => 0 0 200 300
+
+fixture scroll_extent_deep_box_beside_nested_clip available=500x400
+node width=100 height=100 padding=10 scroll=both => 0 0 100 100 210 100
+  node width=50 height=50 => 10 10 50 50
+    node width=40 height=40 shrink=0 => 0 0 40 40
+      node width=200 height=30 shrink=0 => 0 0 200 30
+    node width=40 height=40 shrink=0 scroll=both => 40 0 40 40 300 300
+      node width=300 height=300 shrink=0 => 0 0 300 300

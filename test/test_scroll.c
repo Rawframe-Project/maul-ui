@@ -283,6 +283,49 @@ static void TestRightToLeft(void)
     muiDestroyContext(context);
 }
 
+static void TestExtentBelow(void)
+{
+    // A box below a child, wider than it, reaches the extent; shrunk by a
+    // layout that lays the child out alone, at its fixed size, the extent
+    // follows, the offset is brought within it and the transform moves.
+    muiContext* context = MakeContext(64);
+    muiNodeId root = Sized(context, s_nullNode, 300.0f, 300.0f);
+    muiNodeId s = Sized(context, root, 100.0f, 50.0f);
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.scrollAxes = mui_scrollHorizontal;
+    SetLayout(context, s, &style, SCROLL);
+    muiNodeId child = Sized(context, s, 50.0f, 50.0f);
+    muiNodeId below = Sized(context, child, 300.0f, 50.0f);
+    muiLayoutStyle keep = muiDefaultLayoutStyle();
+    keep.item.shrink = 0.0f;
+    SetLayout(context, below, &keep, MUI_PROPERTY_BIT(mui_propertyShrink));
+    Layout(context, root);
+    muiSize extent = {0};
+    CHECK(muiNode_GetScrollExtent(context, s, &extent) == mui_success && extent.width == 300.0f,
+          "the box below reaches it");
+    const muiDrawInput input = {1, 1.0f, NULL, NULL};
+    muiDrawList drawn;
+    CHECK(muiNode_SetScroll(context, s, 200.0f, 0.0f) == mui_success &&
+              muiBuildDrawList(context, root, &input) == mui_success &&
+              muiGetDrawList(context, &drawn) == mui_success && drawn.transformCount == 2 &&
+              drawn.transforms[1].e == -200.0f,
+          "scrolled to its end");
+    muiLayoutStyle narrower = muiDefaultLayoutStyle();
+    narrower.sizing.width = Length(120.0f);
+    SetLayout(context, below, &narrower, WIDTH);
+    Layout(context, root);
+    float x = 0.0f;
+    float y = 0.0f;
+    CHECK(muiNode_GetScrollExtent(context, s, &extent) == mui_success && extent.width == 120.0f &&
+              muiNode_GetScroll(context, s, &x, &y) == mui_success && x == 20.0f,
+          "the extent follows, the offset within it");
+    CHECK(muiBuildDrawList(context, root, &input) == mui_success &&
+              muiGetDrawList(context, &drawn) == mui_success && drawn.transformCount == 2 &&
+              drawn.transforms[1].e == -20.0f,
+          "the transform follows");
+    muiDestroyContext(context);
+}
+
 // Whether every command of the list's items goes through transform.
 static bool ItemsThrough(const muiDrawList* list, uint32_t transform)
 {
@@ -973,6 +1016,7 @@ int main(void)
     TestEmptied();
     TestMinimum();
     TestRightToLeft();
+    TestExtentBelow();
     TestPainting();
     TestNested();
     TestHits();
