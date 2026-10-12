@@ -1,0 +1,128 @@
+# Scroll containers (scroll=horizontal, vertical or both): an axis's
+# automatic minimum and a ratio's content floor, rendered with overflow
+# hidden on the axes the node scrolls and clip on the other. Chrome takes
+# each axis on its own, an absolute ratio box's width on either axis.
+# A flex item that scrolls only across its container's main axis is left
+# out: Chrome keeps its content minimum there and Firefox does not, and
+# the library follows Firefox (research 285).
+# chrome 154.0.8037.57
+
+fixture scroll_ratio_width_floor_none available=500x400
+node direction=column align-items=start => 0 0 80 20
+  node height=20 aspect=1 content=80x10 => 0 0 80 20
+
+fixture scroll_ratio_width_floor_percent_height_none available=500x400
+node height=100 direction=column align-items=start => 0 0 80 100
+  node height=50% grow=1 aspect=1 content=80x10 => 0 0 100 100
+
+fixture scroll_absolute_ratio_height_floor_none available=500x400
+node width=200 height=200 => 0 0 200 200
+  node width=40 position=absolute top=0 aspect=2 content=10x80 => 0 0 40 80
+
+fixture scroll_row_item_shrinks_none available=500x400
+node width=50 => 0 0 50 10
+  node content=100x10 => 0 0 100 10
+
+fixture scroll_column_item_shrinks_none available=500x400
+node height=50 direction=column => 0 0 10 50
+  node content=10x100 => 0 0 10 100
+
+fixture scroll_ratio_width_floor_horizontal available=500x400
+node direction=column align-items=start => 0 0 20 20
+  node height=20 aspect=1 scroll=horizontal content=80x10 => 0 0 20 20
+
+fixture scroll_ratio_width_floor_percent_height_horizontal available=500x400
+node height=100 direction=column align-items=start => 0 0 50 100
+  node height=50% grow=1 aspect=1 scroll=horizontal content=80x10 => 0 0 100 100
+
+fixture scroll_absolute_ratio_height_floor_horizontal available=500x400
+node width=200 height=200 => 0 0 200 200
+  node width=40 position=absolute top=0 aspect=2 scroll=horizontal content=10x80 => 0 0 40 80
+
+fixture scroll_row_item_shrinks_horizontal available=500x400
+node width=50 => 0 0 50 10
+  node scroll=horizontal content=100x10 => 0 0 50 10
+
+fixture scroll_ratio_width_floor_vertical available=500x400
+node direction=column align-items=start => 0 0 80 20
+  node height=20 aspect=1 scroll=vertical content=80x10 => 0 0 80 20
+
+fixture scroll_ratio_width_floor_percent_height_vertical available=500x400
+node height=100 direction=column align-items=start => 0 0 80 100
+  node height=50% grow=1 aspect=1 scroll=vertical content=80x10 => 0 0 100 100
+
+fixture scroll_absolute_ratio_height_floor_vertical available=500x400
+node width=200 height=200 => 0 0 200 200
+  node width=40 position=absolute top=0 aspect=2 scroll=vertical content=10x80 => 0 0 40 20
+
+fixture scroll_column_item_shrinks_vertical available=500x400
+node height=50 direction=column => 0 0 10 50
+  node scroll=vertical content=10x100 => 0 0 10 50
+
+fixture scroll_ratio_width_floor_both available=500x400
+node direction=column align-items=start => 0 0 20 20
+  node height=20 aspect=1 scroll=both content=80x10 => 0 0 20 20
+
+fixture scroll_ratio_width_floor_percent_height_both available=500x400
+node height=100 direction=column align-items=start => 0 0 50 100
+  node height=50% grow=1 aspect=1 scroll=both content=80x10 => 0 0 100 100
+
+fixture scroll_absolute_ratio_height_floor_both available=500x400
+node width=200 height=200 => 0 0 200 200
+  node width=40 position=absolute top=0 aspect=2 scroll=both content=10x80 => 0 0 40 20
+
+fixture scroll_row_item_shrinks_both available=500x400
+node width=50 => 0 0 50 10
+  node scroll=both content=100x10 => 0 0 50 10
+
+fixture scroll_column_item_shrinks_both available=500x400
+node height=50 direction=column => 0 0 10 50
+  node scroll=both content=10x100 => 0 0 10 50
+
+fixture scroll_ratio_height_floor_none available=500x400
+node align-items=start => 0 0 20 80
+  node width=20 aspect=1 content=10x80 => 0 0 20 80
+
+fixture scroll_absolute_ratio_height_between_insets_none available=500x400
+node width=200 height=200 => 0 0 200 200
+  node width=40 position=absolute top=0 bottom=170 aspect=2 content=10x80 => 0 0 40 80
+
+fixture scroll_absolute_ratio_width_floor_none available=500x400
+node width=200 height=200 => 0 0 200 200
+  node height=20 position=absolute start=0 aspect=1 content=80x10 => 0 0 80 20
+
+fixture scroll_ratio_height_floor_horizontal available=500x400
+node align-items=start => 0 0 20 80
+  node width=20 aspect=1 scroll=horizontal content=10x80 => 0 0 20 80
+
+fixture scroll_absolute_ratio_height_between_insets_horizontal available=500x400
+node width=200 height=200 => 0 0 200 200
+  node width=40 position=absolute top=0 bottom=170 aspect=2 scroll=horizontal content=10x80 => 0 0 40 80
+
+fixture scroll_absolute_ratio_width_floor_horizontal available=500x400
+node width=200 height=200 => 0 0 200 200
+  node height=20 position=absolute start=0 aspect=1 scroll=horizontal content=80x10 => 0 0 20 20
+
+fixture scroll_ratio_height_floor_vertical available=500x400
+node align-items=start => 0 0 20 20
+  node width=20 aspect=1 scroll=vertical content=10x80 => 0 0 20 20
+
+fixture scroll_absolute_ratio_height_between_insets_vertical available=500x400
+node width=200 height=200 => 0 0 200 200
+  node width=40 position=absolute top=0 bottom=170 aspect=2 scroll=vertical content=10x80 => 0 0 40 20
+
+fixture scroll_absolute_ratio_width_floor_vertical available=500x400
+node width=200 height=200 => 0 0 200 200
+  node height=20 position=absolute start=0 aspect=1 scroll=vertical content=80x10 => 0 0 20 20
+
+fixture scroll_ratio_height_floor_both available=500x400
+node align-items=start => 0 0 20 20
+  node width=20 aspect=1 scroll=both content=10x80 => 0 0 20 20
+
+fixture scroll_absolute_ratio_height_between_insets_both available=500x400
+node width=200 height=200 => 0 0 200 200
+  node width=40 position=absolute top=0 bottom=170 aspect=2 scroll=both content=10x80 => 0 0 40 20
+
+fixture scroll_absolute_ratio_width_floor_both available=500x400
+node width=200 height=200 => 0 0 200 200
+  node height=20 position=absolute start=0 aspect=1 scroll=both content=80x10 => 0 0 20 20

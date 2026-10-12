@@ -27,6 +27,8 @@
 # border padding (one value, or start,end,top,bottom; margins may be
 # auto), position (flow absolute), start end top bottom (insets, as
 # dimensions), anchor (<x>,<y> from 0 to 1), dir (inherit ltr rtl),
+# scroll (none horizontal vertical both: a scroll container, rendered
+# with overflow hidden on the axes it scrolls and clip on the other),
 # content (<width>x<height>: host content of that size;
 # <width>x<height>*<count>: that many boxes of that size, words, which wrap
 # greedily into lines, at least one a line).
@@ -58,10 +60,11 @@ ENUMS = {
     "justify": ("start", "end", "center", "space-between", "space-around", "space-evenly"),
     "align-items": ("auto", "stretch", "start", "end", "center", "baseline"),
     "align-self": ("auto", "stretch", "start", "end", "center", "baseline"),
+    "scroll": ("none", "horizontal", "vertical", "both"),
 }
 DEFAULTS = {"direction": "row", "wrap": "nowrap", "dir": "inherit", "align-content": "stretch", "justify": "start", "align-items": "stretch",
             "align-self": "auto", "grow": "0", "shrink": "1", "row-gap": "0",
-            "column-gap": "0", "aspect": "0"}
+            "column-gap": "0", "aspect": "0", "scroll": "none"}
 DIMENSION = re.compile(r"^(?:(-?[0-9.]+)%)?([+-]?[0-9.]+)?$")
 
 
@@ -207,10 +210,10 @@ def c_style(props):
     placement = f"{{{position}, {{{insets}}}, {c_float(anchor[0])}, {c_float(anchor[1])}}}"
     direction = ENUMS["dir"].index(get("dir"))
     content = 1 if "content" in props else 0
-    # Scroll containers and the safe area are not in the corpus: no node
-    # scrolls or pads by it.
+    scroll = ENUMS["scroll"].index(get("scroll"))
+    # The safe area is not in the corpus: no node pads by it.
     return (f"{{{{{sizing}}}, {container}, {item}, {edges}, {placement}, {direction}, "
-            f"{content}, 0, 0}}")
+            f"{content}, {scroll}, 0}}")
 
 
 def generate():
@@ -310,6 +313,12 @@ def css_style(props, rtl):
         css.append(f"transform:translate({x * 100.0!r}%,{-y * 100.0!r}%);")
     if get("dir") != "inherit":
         css.append(f"direction:{get('dir')};")
+    scroll = ENUMS["scroll"].index(get("scroll"))
+    if scroll != 0:
+        # Hidden makes a scroll container with no scrollbar gutter; clip,
+        # not visible, keeps the other axis from computing to auto.
+        css.append(f"overflow-x:{'hidden' if scroll & 1 else 'clip'};"
+                   f"overflow-y:{'hidden' if scroll & 2 else 'clip'};")
     return "".join(css)
 
 

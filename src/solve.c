@@ -340,16 +340,21 @@ static bool IsWrappingColumn(const muiSolver* solver, uint32_t node)
 
 // The size the aspect ratio gives an axis from the other one's, at least
 // the content's min-content size when the axis's minimum is automatic
-// (CSS Sizing 4). A width given as a percentage that cannot resolve takes that
-// minimum too; a height so given does not, as in Chrome. Within its
-// limits.
+// and the node does not scroll along it (CSS Sizing 4; Chrome takes each
+// axis on its own, but an absolute box's width on either). A width given
+// as a percentage that cannot resolve takes that minimum too; a height so
+// given does not, as in Chrome. Within its limits.
 static muiMeasureAxis RatioAxis(const muiSolver* solver, uint32_t node, const muiSizingInput* input,
                                 bool horizontal, float size)
 {
     const muiLayoutStyle* style = &solver->nodes[node - 1].style;
     muiAxisSizing axis = muiResolveAxis(&style->sizing, horizontal,
                                         horizontal ? input->parentWidth : input->parentHeight);
-    if (axis.minimumAuto && (horizontal || style->sizing.height.kind == mui_dimensionAuto))
+    muiScrollAxes along = !horizontal                        ? mui_scrollVertical
+                          : solver->nodes[node - 1].absolute ? mui_scrollBoth
+                                                             : mui_scrollHorizontal;
+    if (axis.minimumAuto && (style->scrollAxes & along) == 0 &&
+        (horizontal || style->sizing.height.kind == mui_dimensionAuto))
     {
         // A row's stretched items take a height from the ratio, so they
         // leave its floor; asked its min-content height, as a column

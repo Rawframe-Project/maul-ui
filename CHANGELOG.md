@@ -8,6 +8,17 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- A scroll container with an aspect ratio no longer grows to its
+  content along an axis it scrolls, as Chrome and Firefox do: a box of
+  `height: 20` and ratio 1 that scrolls horizontally is 20 wide around
+  content 80 wide, not 80, and the width it gives its container
+  follows. An absolute one drops its content's width when it scrolls on
+  either axis, and its content's height when it scrolls vertically, as
+  Chrome does. Before, only a column flexed to a percentage height
+  dropped its content's width, and only when scrolling horizontally.
+
 ## [0.5.4] - 2026-10-12
 
 Layout fixes, with no change to the API: three more cases where Chrome
