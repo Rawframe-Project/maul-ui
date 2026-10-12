@@ -8,6 +8,18 @@ format.
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-10-12
+
+Layout fixes, with no change to the API: three more cases where Chrome
+and Firefox agree and the library did not, each found by random layouts
+checked against both engines. They are a wrapping row narrowed by
+negative margins, a column narrowed by its maximum width, and a row
+measured at its max-content width with percentage children. A program
+built against 0.5.0, 0.5.1 or 0.5.2 runs with 0.5.3. Known issues: as
+in 0.5.2, TalkBack and VoiceOver on iOS have not walked the samples,
+and Orca 46 does not announce the first focus in a window that opens
+with nothing focused.
+
 ### Fixed
 
 - A wrapping row of open width whose items, through a negative margin,
@@ -21,11 +33,10 @@ format.
   the column kept the height of its children at their wider sizes.
 - A row measured at its max-content width lays out again at that width
   when a child's width, minimum or maximum width is a percentage, so
-  the percentage resolves, as
-  Chrome and Firefox do. A wrapping column measured for its width now
-  keeps such a row on one line where the row fits. Before, the
-  percentage stayed unresolved, the row came out taller and the column
-  broke a second line.
+  the percentage resolves, as Chrome and Firefox do. A wrapping column
+  measured for its width now keeps such a row on one line where the row
+  fits. Before, the percentage stayed unresolved, the row came out
+  taller and the column broke a second line.
 
 ## [0.5.2] - 2026-10-12
 
