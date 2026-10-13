@@ -55,8 +55,8 @@ extern "C"
     /// Reads the extent a scroll container's children reach, as its last
     /// muiComputeLayout measured it: from its padding box's start to the
     /// furthest end of its in-flow children's margin boxes plus its end
-    /// padding, or of any border box below it that no nested scroll
-    /// container clips, at least its padding box, as CSS's scrollable
+    /// padding, or of any border box below it with an area that no nested
+    /// scroll container clips, at least its padding box, as CSS's scrollable
     /// overflow; for a scrollbar, the padding box over the extent is the
     /// thumb's share.
     ///

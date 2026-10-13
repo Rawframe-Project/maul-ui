@@ -231,6 +231,19 @@ typedef struct
     float bottom;
 } Reach;
 
+// Takes a border box at left, top into a reach: a box with no area
+// adds nothing, as in Chrome and Firefox, though what is below it may.
+static void Unite(Reach* reach, float left, float top, muiRect rect)
+{
+    if (rect.width > 0.0f && rect.height > 0.0f)
+    {
+        reach->left = fminf(reach->left, left);
+        reach->right = fmaxf(reach->right, left + rect.width);
+        reach->top = fminf(reach->top, top);
+        reach->bottom = fmaxf(reach->bottom, top + rect.height);
+    }
+}
+
 static void ReachBelow(const muiSolver* solver, uint32_t node, float x, float y, Reach* reach)
 {
     for (uint32_t c = muiTreeAt(solver->tree, node)->links.firstChild; c != 0;
@@ -244,10 +257,7 @@ static void ReachBelow(const muiSolver* solver, uint32_t node, float x, float y,
         const muiRect* rect = &solver->nodes[c - 1].rect;
         float left = x + rect->x;
         float top = y + rect->y;
-        reach->left = fminf(reach->left, left);
-        reach->right = fmaxf(reach->right, left + rect->width);
-        reach->top = fminf(reach->top, top);
-        reach->bottom = fmaxf(reach->bottom, top + rect->height);
+        Unite(reach, left, top, *rect);
         if (solver->nodes[c - 1].style.scrollAxes == mui_scrollNone)
         {
             ReachBelow(solver, c, left, top, reach);
@@ -294,7 +304,8 @@ static void AddChild(const muiSolver* solver, uint32_t c, Extents* e)
     }
     // What is below the child is in physical coordinates: from the right
     // or the bottom, its far end is its leftmost or topmost box.
-    Reach reach = {0.0f, width, 0.0f, height};
+    Reach reach = {INFINITY, -INFINITY, INFINITY, -INFINITY};
+    Unite(&reach, 0.0f, 0.0f, child->rect);
     if (child->style.scrollAxes == mui_scrollNone)
     {
         ReachBelow(solver, c, 0.0f, 0.0f, &reach);

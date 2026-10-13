@@ -425,3 +425,37 @@ fixture scroll_origin_column_reverse_grandchild available=500x400
 node width=100 height=100 padding=10 direction=column-reverse scroll=both => 0 0 100 100 100 100
   node width=50 height=50 => 10 40 50 50
     node width=30 height=200 shrink=0 => 0 0 30 200
+
+fixture scroll_extent_empty_absolute_box available=500x400
+node width=100 height=100 padding=10 scroll=both => 0 0 100 100 100 100
+  node width=0 height=0 position=absolute start=150 top=20 => 150 20 0 0
+
+fixture scroll_extent_absolute_line available=500x400
+node width=100 height=100 padding=10 scroll=both => 0 0 100 100 100 100
+  node width=0 height=50 position=absolute start=150 top=20 => 150 20 0 50
+
+fixture scroll_extent_absolute_flat_box_below available=500x400
+node width=100 height=100 padding=10 scroll=both => 0 0 100 100 100 100
+  node width=50 height=0 position=absolute start=20 top=150 => 20 150 50 0
+
+fixture scroll_extent_absolute_one_pixel available=500x400
+node width=100 height=100 padding=10 scroll=both => 0 0 100 100 151 100
+  node width=1 height=1 position=absolute start=150 top=20 => 150 20 1 1
+
+fixture scroll_extent_rtl_empty_absolute_box available=500x400
+node width=100 height=100 padding=10 scroll=both dir=rtl => 0 0 100 100 100 100
+  node width=0 height=0 position=absolute end=150 top=20 => 150 20 0 0
+
+fixture scroll_extent_empty_flow_child_margin available=500x400
+node width=100 height=100 padding=10 scroll=both => 0 0 100 100 170 100
+  node width=0 height=0 margin=150,0,0,0 shrink=0 => 160 10 0 0
+
+fixture scroll_extent_empty_grandchild available=500x400
+node width=100 height=100 padding=10 scroll=both => 0 0 100 100 100 100
+  node width=0 height=0 shrink=0 => 10 10 0 0
+    node width=0 height=0 margin=150,0,0,0 shrink=0 => 150 0 0 0
+
+fixture scroll_extent_wide_box_in_an_empty_box available=500x400
+node width=100 height=100 padding=10 scroll=both => 0 0 100 100 160 100
+  node width=0 height=0 shrink=0 => 10 10 0 0
+    node width=150 height=10 shrink=0 => 0 0 150 10

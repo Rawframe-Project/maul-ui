@@ -39,6 +39,11 @@ format.
   reach. Offsets stay 0 at the origin and grow away from it, as for
   right to left, and wheel, keys, panning, page actions, scrolling into
   view, the scrollbar thumb and virtual lists follow.
+- A box with no area (no width or no height) below a scroll container
+  no longer lengthens its extent, as in Chrome and Firefox: an empty
+  absolute box placed past the container's end, or a rule 0 wide,
+  scrolls nothing into view. A box below it still counts, and an
+  in-flow child's margin box counts as before.
 
 ## [0.5.4] - 2026-10-12
 
