@@ -340,8 +340,11 @@ static void MeasureExtent(const muiSolver* solver, uint32_t node, muiSize size, 
     };
     float padX = e.farStart ? padding->start : padding->end;
     float padY = e.bottom ? padding->top : padding->bottom;
-    e.flowX = size.width - (e.farStart ? style->border.start : style->border.end) - padX;
-    e.flowY = size.height - (e.bottom ? style->border.top : style->border.bottom) - padY;
+    // The padding box's far edges, from the origin.
+    float edgeX = size.width - (e.farStart ? style->border.start : style->border.end);
+    float edgeY = size.height - (e.bottom ? style->border.top : style->border.bottom);
+    e.flowX = edgeX - padX;
+    e.flowY = edgeY - padY;
     for (uint32_t c = muiTreeAt(solver->tree, node)->links.firstChild; c != 0;
          c = muiTreeAt(solver->tree, c)->links.next)
     {
@@ -356,10 +359,19 @@ static void MeasureExtent(const muiSolver* solver, uint32_t node, muiSize size, 
     muiScrollState* scroll = &solver->scrolls[node - 1];
     scroll->right = e.right;
     scroll->bottom = e.bottom;
-    scroll->reachWidth =
-        fmaxf(e.flowX + padX, e.boxX) - (e.farStart ? style->border.end : style->border.start);
-    scroll->reachHeight =
-        fmaxf(e.flowY + padY, e.boxY) - (e.bottom ? style->border.bottom : style->border.top);
+    float nearX = e.farStart ? style->border.end : style->border.start;
+    float nearY = e.bottom ? style->border.bottom : style->border.top;
+    float flowX = e.flowX + padX;
+    float flowY = e.flowY + padY;
+    if (!(flowX > nearX && flowY > nearY))
+    {
+        // The padding box and the flow with no area reach nothing past
+        // the padding box, as a box with none (Chrome and Firefox).
+        flowX = edgeX;
+        flowY = edgeY;
+    }
+    scroll->reachWidth = fmaxf(flowX, e.boxX) - nearX;
+    scroll->reachHeight = fmaxf(flowY, e.boxY) - nearY;
     // A virtual list's items reach as far as they need, realized or not.
     scroll->extentWidth = fmaxf(scroll->reachWidth, padding->start + scroll->listX + padding->end);
     scroll->extentHeight =

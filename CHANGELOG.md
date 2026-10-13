@@ -8,6 +8,14 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- A scroll container whose padding box and in-flow children together
+  have no area, such as one 0 wide holding a child 150 tall, reaches no
+  further than its padding box along either axis, as in Chrome and
+  Firefox; a box with an area below it still counts. Before, its
+  extent was the child's height.
+
 ## [0.5.5] - 2026-10-13
 
 Scroll container fixes, with no change to the API, each a case where

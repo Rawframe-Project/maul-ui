@@ -503,3 +503,36 @@ node width=40 height=20 aspect=1 scroll=vertical content=80x10 => 0 0 40 20
 
 fixture scroll_ratio_root_both_sizes_both available=500x400
 node width=40 height=20 aspect=1 scroll=both content=80x10 => 0 0 40 20
+
+fixture scroll_extent_flow_without_area_zero_width available=500x400
+node width=0 height=65 scroll=both => 0 0 0 65 0 65
+  node height=150 => 0 0 0 150
+
+fixture scroll_extent_flow_without_area_vertical available=500x400
+node width=0 height=65 scroll=vertical => 0 0 0 65 0 65
+  node height=150 => 0 0 0 150
+
+fixture scroll_extent_flow_without_area_flat_child available=500x400
+node width=65 height=0 scroll=both => 0 0 65 0 65 0
+  node width=150 height=0 shrink=0 => 0 0 150 0
+
+fixture scroll_extent_flow_with_area_empty_child available=500x400
+node width=65 height=0 scroll=both => 0 0 65 0 65 10
+  node width=0 height=10 shrink=0 => 0 0 0 10
+
+fixture scroll_extent_flow_with_area_padding available=500x400
+node width=0 height=65 padding=5 scroll=both => 0 0 10 65 10 160
+  node height=150 => 5 5 0 150
+
+fixture scroll_extent_flow_with_area_wide_child available=500x400
+node width=0 height=65 scroll=both => 0 0 0 65 10 150
+  node width=10 height=150 shrink=0 => 0 0 10 150
+
+fixture scroll_extent_flow_without_area_box_below available=500x400
+node width=0 height=65 scroll=both => 0 0 0 65 10 150
+  node height=150 => 0 0 10 150
+    node width=10 height=10 shrink=0 => 0 0 10 10
+
+fixture scroll_extent_flow_without_area_absolute_child available=500x400
+node width=0 height=65 scroll=both => 0 0 0 65 10 110
+  node position=absolute top=100 width=10 height=10 => 0 100 10 10
