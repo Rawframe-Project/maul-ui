@@ -21,8 +21,10 @@
 # own, so the trees are otherwise the same), under names
 # random_<seed>r_<n>; --scroll draws the --reach layouts again with some
 # nodes scroll containers (from a stream of its own again), under names
-# random_<seed>s_<n>. Put them in
-# a file under test/layout/, render it with gen_layout_fixtures.py
+# random_<seed>s_<n>; --placed draws the --reach layouts again with some
+# items made absolute and given insets, ratios, limits, padding and
+# borders far more often (from a stream of its own again), under names
+# random_<seed>p_<n>. Put them in a file under test/layout/, render it with gen_layout_fixtures.py
 # --oracle and run test_layout_fixtures to see which part from Chrome; the
 # ones that agree may stay in the corpus.
 #
@@ -43,7 +45,7 @@
 # is older).
 #
 # usage: random_layouts.py generate SEED COUNT
-#            [--wide | --words | --deep | --reach | --scroll]
+#            [--wide | --words | --deep | --reach | --scroll | --placed]
 #        random_layouts.py reduce FILE NAME [--firefox EXECUTABLE]
 
 import os
@@ -68,8 +70,9 @@ def call(args, **options):
 class Generator:
     """Draws fixtures; a seed always draws the same ones."""
 
-    def __init__(self, seed, wide=False, words=False, deep=False, reach=False, scroll=False):
-        reach = reach or scroll
+    def __init__(self, seed, wide=False, words=False, deep=False, reach=False, scroll=False,
+                 placed=False):
+        reach = reach or scroll or placed
         deep = deep or reach
         self.rng = random.Random(seed)
         # Wide draws add keys the default leaves out; the default's draws
@@ -88,6 +91,9 @@ class Generator:
         # So do scroll draws: a seed's scroll layouts are its reach ones,
         # some nodes scroll containers.
         self.scroll = random.Random(seed ^ 0x69696969) if scroll else None
+        # And placed draws: a seed's placed layouts are its reach ones,
+        # some items absolute boxes with the keys that size them.
+        self.placed = random.Random(seed ^ 0x2D2D2D2D) if placed else None
 
     def reached(self, keys, root):
         """Keys with some replaced by what only the reach draws try."""
@@ -102,6 +108,27 @@ class Generator:
         for inset in ("start", "end", "top", "bottom"):
             if any(key.startswith(inset + "=") for key in keys) and r.random() < 0.5:
                 replace[inset] = r.choice(["10%", "25%", "50%-10", "100%-20"])
+        kept = [key for key in keys if key.split("=", 1)[0] not in replace]
+        return kept + [f"{key}={value}" for key, value in replace.items()]
+
+    def placing(self, keys):
+        """Keys with an item made absolute, with insets, a ratio, limits,
+        padding and a border far more often than the other draws."""
+        p = self.placed
+        if p.random() >= 0.3:
+            return keys
+        replace = {"position": "absolute"}
+        for inset in ("start", "end", "top", "bottom"):
+            if p.random() < 0.5:
+                replace[inset] = p.choice(["0", "10", "25%", "50%-10", "100%-20"])
+        if p.random() < 0.6:
+            replace["aspect"] = p.choice(["0.5", "1", "1.5", "2"])
+        for limit in ("min-width", "min-height", "max-width", "max-height"):
+            if p.random() < 0.3:
+                replace[limit] = p.choice(["0", "3", "10", "40", "50%", "75%"])
+        for edge in ("padding", "border"):
+            if p.random() < 0.3:
+                replace[edge] = p.choice(["2", "7,3,3,0", "0,0,10,10", "30,0,0,0"])
         kept = [key for key in keys if key.split("=", 1)[0] not in replace]
         return kept + [f"{key}={value}" for key, value in replace.items()]
 
@@ -164,6 +191,8 @@ class Generator:
                 keys.append(f"{key}={value}")
         if self.reach:
             keys = self.reached(keys, root)
+        if self.placed and not root:
+            keys = self.placing(keys)
         if self.scroll and self.scroll.random() < 0.15:
             keys.append(f"scroll={self.scroll.choice(['horizontal', 'vertical', 'both'])}")
         levels, _, most = self.shape
@@ -214,8 +243,9 @@ def flatten(tree, depth=0):
 
 def generate(seed, count, draws=""):
     generator = Generator(seed, draws == "--wide", draws == "--words", draws == "--deep",
-                          draws == "--reach", draws == "--scroll")
-    tags = {'--wide': 'w', '--words': 't', '--deep': 'd', '--reach': 'r', '--scroll': 's'}
+                          draws == "--reach", draws == "--scroll", draws == "--placed")
+    tags = {'--wide': 'w', '--words': 't', '--deep': 'd', '--reach': 'r', '--scroll': 's',
+            '--placed': 'p'}
     tag = f"{seed}{tags.get(draws, '')}"
     out = [f"# Random layouts, seed {tag} (tools/random_layouts.py).", "# chrome 0", ""]
     for i in range(count):
@@ -349,14 +379,14 @@ def reduce(path, name, firefox=None):
 
 def main():
     args = sys.argv[1:]
-    draws = ([], ["--wide"], ["--words"], ["--deep"], ["--reach"], ["--scroll"])
+    draws = ([], ["--wide"], ["--words"], ["--deep"], ["--reach"], ["--scroll"], ["--placed"])
     if len(args) in (3, 4) and args[0] == "generate" and args[3:] in draws:
         print(generate(int(args[1]), int(args[2]), "".join(args[3:])))
     elif len(args) in (3, 5) and args[0] == "reduce" and args[3:4] in ([], ["--firefox"]):
         reduce(args[1], args[2], args[4] if len(args) == 5 else None)
     else:
         sys.exit("usage: random_layouts.py generate SEED COUNT"
-                 " [--wide | --words | --deep | --reach | --scroll]"
+                 " [--wide | --words | --deep | --reach | --scroll | --placed]"
                  " | reduce FILE NAME [--firefox EXECUTABLE]")
 
 
