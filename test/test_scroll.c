@@ -326,6 +326,53 @@ static void TestExtentBelow(void)
     muiDestroyContext(context);
 }
 
+static void TestReversedOrigin(void)
+{
+    // A reversed column scrolls from its bottom, its flex start: the item
+    // overflowing its top is reached by an offset growing upward, which
+    // moves the content down, and the thumb starts at the track's end.
+    muiContext* context = MakeContext(64);
+    muiNodeId root = Sized(context, s_nullNode, 300.0f, 300.0f);
+    muiNodeId s = Sized(context, root, 100.0f, 100.0f);
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.container.direction = mui_flexColumnReverse;
+    style.scrollAxes = mui_scrollVertical;
+    style.padding = (muiEdges){10.0f, 10.0f, 10.0f, 10.0f};
+    SetLayout(context, s, &style, DIRECTION | SCROLL | PADDING);
+    muiNodeId item = Sized(context, s, 50.0f, 150.0f);
+    muiLayoutStyle keep = muiDefaultLayoutStyle();
+    keep.item.shrink = 0.0f;
+    SetLayout(context, item, &keep, MUI_PROPERTY_BIT(mui_propertyShrink));
+    Layout(context, root);
+    muiSize extent = {0};
+    CHECK(muiNode_GetScrollExtent(context, s, &extent) == mui_success && extent.height == 170.0f &&
+              muiNode_GetRect(context, item).y == -60.0f,
+          "measured from the bottom");
+    muiScrollThumb thumb = {0};
+    CHECK(muiNode_GetScrollThumb(context, s, false, 100.0f, 0.0f, &thumb) == mui_success &&
+              fabsf(thumb.start + thumb.length - 100.0f) < 0.001f,
+          "the thumb at the track's end");
+    float x = 1.0f;
+    float y = 1.0f;
+    CHECK(muiNode_SetScroll(context, s, 0.0f, 70.0f) == mui_success &&
+              muiNode_GetScroll(context, s, &x, &y) == mui_success && y == 70.0f,
+          "scrolled to the top");
+    CHECK(muiNode_GetScrollThumb(context, s, false, 100.0f, 0.0f, &thumb) == mui_success &&
+              thumb.start == 0.0f,
+          "the thumb at the track's start");
+    // The item's top, 60 above the container, now shows at 10.
+    muiHit hit = {0};
+    CHECK(muiHitTest(context, root, 20.0f, 15.0f, &hit) == mui_success && Same(hit.node, item),
+          "hit at the top");
+    const muiDrawInput input = {1, 1.0f, NULL, NULL};
+    muiDrawList drawn;
+    CHECK(muiBuildDrawList(context, root, &input) == mui_success &&
+              muiGetDrawList(context, &drawn) == mui_success && drawn.transformCount == 2 &&
+              drawn.transforms[1].f == 70.0f,
+          "a transform downward");
+    muiDestroyContext(context);
+}
+
 // Whether every command of the list's items goes through transform.
 static bool ItemsThrough(const muiDrawList* list, uint32_t transform)
 {
@@ -1017,6 +1064,7 @@ int main(void)
     TestMinimum();
     TestRightToLeft();
     TestExtentBelow();
+    TestReversedOrigin();
     TestPainting();
     TestNested();
     TestHits();

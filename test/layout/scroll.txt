@@ -11,6 +11,8 @@
 # axis is left out: Chrome keeps its content minimum there and Firefox
 # does not, and the library follows Firefox (research 285). A scroll
 # container's baseline is held within its border box (research 288).
+# A reversed container scrolls from its flex start: the extent is
+# measured from there (research 289).
 # chrome 154.0.8037.57
 
 fixture scroll_ratio_width_floor_none available=500x400
@@ -381,3 +383,45 @@ node => 0 0 25 16
         node scroll=both => 0 0 25 16 25 23
           node height=10% margin=5,0,auto,auto content=20x16 => 5 7.203125 20 1.59375
       node => 25 16 0 0
+
+fixture scroll_origin_row_reverse available=500x400
+node width=100 height=100 padding=10 direction=row-reverse scroll=both => 0 0 100 100 170 100
+  node width=150 height=50 shrink=0 => -60 10 150 50
+
+fixture scroll_origin_row_rtl available=500x400
+node width=100 height=100 padding=10 dir=rtl scroll=both => 0 0 100 100 170 100
+  node width=150 height=50 shrink=0 => -60 10 150 50
+
+fixture scroll_origin_row_reverse_rtl available=500x400
+node width=100 height=100 padding=10 direction=row-reverse dir=rtl scroll=both => 0 0 100 100 170 100
+  node width=150 height=50 shrink=0 => 10 10 150 50
+
+fixture scroll_origin_column_reverse available=500x400
+node width=100 height=100 padding=10 direction=column-reverse scroll=both => 0 0 100 100 100 170
+  node width=50 height=150 shrink=0 => 10 -60 50 150
+
+fixture scroll_origin_column_reverse_two available=500x400
+node width=100 height=100 padding=10 direction=column-reverse scroll=both => 0 0 100 100 100 166
+  node width=50 height=70 shrink=0 => 10 20 50 70
+  node width=50 height=70 shrink=0 margin=0,0,6,0 => 10 -50 50 70
+
+fixture scroll_origin_wrap_reverse_row available=500x400
+node width=100 height=100 padding=10 wrap=wrap-reverse align-content=start scroll=both => 0 0 100 100 100 170
+  node width=50 height=150 shrink=0 => 10 -60 50 150
+
+fixture scroll_origin_wrap_reverse_column available=500x400
+node width=100 height=100 padding=10 direction=column wrap=wrap-reverse align-content=start scroll=both => 0 0 100 100 170 100
+  node width=150 height=50 shrink=0 => -60 10 150 50
+
+fixture scroll_origin_column_reverse_wide available=500x400
+node width=100 height=100 padding=10 direction=column-reverse scroll=both => 0 0 100 100 170 170
+  node width=150 height=150 shrink=0 => 10 -60 150 150
+
+fixture scroll_origin_column_reverse_absolute available=500x400
+node width=100 height=100 padding=10 direction=column-reverse scroll=both => 0 0 100 100 100 187
+  node width=40 height=40 position=absolute start=5 top=-90 margin=3 => 8 -87 40 40
+
+fixture scroll_origin_column_reverse_grandchild available=500x400
+node width=100 height=100 padding=10 direction=column-reverse scroll=both => 0 0 100 100 100 100
+  node width=50 height=50 => 10 40 50 50
+    node width=30 height=200 shrink=0 => 0 0 30 200

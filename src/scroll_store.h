@@ -33,6 +33,11 @@ typedef struct muiScrollState
     // that or the list's length, whichever is further.
     float reachWidth;
     float reachHeight;
+    // Whether its offsets grow from its right and from its bottom edge,
+    // not its left and top: its flex start on that axis, as CSS's scroll
+    // origin (research 289), as layout last measured it.
+    bool right;
+    bool bottom;
 } muiScrollState;
 
 // The default rule (muiDefaultScrollRule).
@@ -145,8 +150,8 @@ static inline void muiSyncScroll(muiScrollState* scroll, muiScrollAxes axes)
 }
 
 // How far a node moves its children on the surface: by its offsets and
-// its overscroll, the logical x leftward under right to left; nothing for
-// a node that does not scroll.
+// its overscroll, which grow away from its scroll origin; nothing for a
+// node that does not scroll.
 static inline float muiScrollShiftX(const muiLayoutNode* node, const muiScrollState* scroll)
 {
     if (node->style.scrollAxes == mui_scrollNone)
@@ -154,12 +159,17 @@ static inline float muiScrollShiftX(const muiLayoutNode* node, const muiScrollSt
         return 0.0f;
     }
     float x = scroll->x + scroll->overX;
-    return node->rtl ? x : -x;
+    return scroll->right ? x : -x;
 }
 
 static inline float muiScrollShiftY(const muiLayoutNode* node, const muiScrollState* scroll)
 {
-    return node->style.scrollAxes == mui_scrollNone ? 0.0f : -(scroll->y + scroll->overY);
+    if (node->style.scrollAxes == mui_scrollNone)
+    {
+        return 0.0f;
+    }
+    float y = scroll->y + scroll->overY;
+    return scroll->bottom ? y : -y;
 }
 
 #endif // MAUL_UI_SRC_SCROLL_STORE_H

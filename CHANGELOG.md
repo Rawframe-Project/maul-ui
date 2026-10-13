@@ -30,6 +30,15 @@ format.
   Chrome and Firefox hold it: a row aligned by baseline no longer
   places a scroll container, or a box holding one, by a baseline its
   content puts past its end or above its start.
+- A reversed scroll container scrolls from its flex start, as Chrome
+  and Firefox do: a `column-reverse` one from its bottom, a
+  `row-reverse` one from its right (its left under right to left), a
+  `wrap-reverse` one from its cross start. Content overflowing the
+  other edge, such as a chat log's older messages above a
+  `column-reverse` list, can be scrolled to; before, it was out of
+  reach. Offsets stay 0 at the origin and grow away from it, as for
+  right to left, and wheel, keys, panning, page actions, scrolling into
+  view, the scrollbar thumb and virtual lists follow.
 
 ## [0.5.4] - 2026-10-12
 

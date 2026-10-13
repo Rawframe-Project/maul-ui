@@ -227,6 +227,7 @@ typedef struct
 {
     float left;
     float right;
+    float top;
     float bottom;
 } Reach;
 
@@ -245,6 +246,7 @@ static void ReachBelow(const muiSolver* solver, uint32_t node, float x, float y,
         float top = y + rect->y;
         reach->left = fminf(reach->left, left);
         reach->right = fmaxf(reach->right, left + rect->width);
+        reach->top = fminf(reach->top, top);
         reach->bottom = fmaxf(reach->bottom, top + rect->height);
         if (solver->nodes[c - 1].style.scrollAxes == mui_scrollNone)
         {
@@ -253,56 +255,100 @@ static void ReachBelow(const muiSolver* solver, uint32_t node, float x, float y,
     }
 }
 
+// A scroll container's extent as it is measured: each axis from its
+// scroll origin, x mirrored from the right, y from the bottom; the
+// furthest flow (margin boxes) and box (border boxes) ends so far. Far
+// is the side away from the origin; farStart says the inline start is
+// (the right under rtl).
+typedef struct
+{
+    muiSize size;
+    bool rtl;
+    bool mirrored;
+    bool right;
+    bool bottom;
+    bool farStart;
+    float flowX;
+    float flowY;
+    float boxX;
+    float boxY;
+} Extents;
+
+// Takes a child's reach into the extents.
+static void AddChild(const muiSolver* solver, uint32_t c, Extents* e)
+{
+    const muiLayoutNode* child = &solver->nodes[c - 1];
+    // Logical under rtl until mirrored; a popped child is where it was
+    // drawn. Mirrored again from the right.
+    float width = child->rect.width;
+    float height = child->rect.height;
+    float x = e->rtl && !e->mirrored && !child->popped ? e->size.width - child->rect.x - width
+                                                       : child->rect.x;
+    x = e->right ? e->size.width - x - width : x;
+    float y = e->bottom ? e->size.height - child->rect.y - height : child->rect.y;
+    if (!child->absolute)
+    {
+        muiEdges margins = muiMarginsOf(&child->style, e->rtl);
+        e->flowX = fmaxf(e->flowX, x + width + (e->farStart ? margins.start : margins.end));
+        e->flowY = fmaxf(e->flowY, y + height + (e->bottom ? margins.top : margins.bottom));
+    }
+    // What is below the child is in physical coordinates: from the right
+    // or the bottom, its far end is its leftmost or topmost box.
+    Reach reach = {0.0f, width, 0.0f, height};
+    if (child->style.scrollAxes == mui_scrollNone)
+    {
+        ReachBelow(solver, c, 0.0f, 0.0f, &reach);
+    }
+    e->boxX = fmaxf(e->boxX, x + (e->right ? width - reach.left : reach.right));
+    e->boxY = fmaxf(e->boxY, y + (e->bottom ? height - reach.top : reach.bottom));
+}
+
 // A scroll container's extent: the furthest end of its flow children's
 // margin boxes plus its end padding, or of any border box below it, from
 // its padding box's start, at least the padding box (as Chrome and
-// Firefox); its offsets are brought within it, rtl its own direction.
-// Its children are in logical coordinates unless mirrored says layout
-// already mirrored them.
+// Firefox), each axis from its scroll origin, which it records; its
+// offsets are brought within it, rtl its own direction. Its children are
+// in logical coordinates unless mirrored says layout already mirrored
+// them.
 static void MeasureExtent(const muiSolver* solver, uint32_t node, muiSize size, bool rtl,
                           bool mirrored)
 {
     const muiLayoutStyle* style = &solver->nodes[node - 1].style;
     const muiEdges* padding = &solver->paddings[node - 1];
-    float startX = style->border.start;
-    float startY = style->border.top;
-    float flowX = size.width - style->border.end - padding->end;
-    float flowY = size.height - style->border.bottom - padding->bottom;
-    float boxX = 0.0f;
-    float boxY = 0.0f;
+    muiFlexDirection direction = style->container.direction;
+    bool row = direction == mui_flexRow || direction == mui_flexRowReverse;
+    bool wraps = style->container.wrap == mui_wrapReverse;
+    bool right = rtl != (row ? direction == mui_flexRowReverse : wraps);
+    Extents e = {
+        .size = size,
+        .rtl = rtl,
+        .mirrored = mirrored,
+        .right = right,
+        .bottom = row ? wraps : direction == mui_flexColumnReverse,
+        .farStart = right != rtl,
+    };
+    float padX = e.farStart ? padding->start : padding->end;
+    float padY = e.bottom ? padding->top : padding->bottom;
+    e.flowX = size.width - (e.farStart ? style->border.start : style->border.end) - padX;
+    e.flowY = size.height - (e.bottom ? style->border.top : style->border.bottom) - padY;
     for (uint32_t c = muiTreeAt(solver->tree, node)->links.firstChild; c != 0;
          c = muiTreeAt(solver->tree, c)->links.next)
     {
-        const muiLayoutNode* child = &solver->nodes[c - 1];
-        if (child->listed)
+        // A listed child is placed along its list after layout: the list's
+        // length below reaches past it, and across it the content box
+        // holds it.
+        if (!solver->nodes[c - 1].listed)
         {
-            // Placed along its list after layout: the list's length below
-            // reaches past it, and across it the content box holds it.
-            continue;
+            AddChild(solver, c, &e);
         }
-        // A popped child is where it was drawn, mirrored under rtl.
-        float x = rtl && (mirrored || child->popped)
-                      ? size.width - child->rect.x - child->rect.width
-                      : child->rect.x;
-        if (!child->absolute)
-        {
-            muiEdges margins = muiMarginsOf(&child->style, rtl);
-            flowX = fmaxf(flowX, x + child->rect.width + margins.end);
-            flowY = fmaxf(flowY, child->rect.y + child->rect.height + margins.bottom);
-        }
-        // What is below the child is in physical coordinates: under rtl
-        // its far end is its leftmost box.
-        Reach reach = {0.0f, child->rect.width, child->rect.height};
-        if (child->style.scrollAxes == mui_scrollNone)
-        {
-            ReachBelow(solver, c, 0.0f, 0.0f, &reach);
-        }
-        boxX = fmaxf(boxX, x + (rtl ? child->rect.width - reach.left : reach.right));
-        boxY = fmaxf(boxY, child->rect.y + reach.bottom);
     }
     muiScrollState* scroll = &solver->scrolls[node - 1];
-    scroll->reachWidth = fmaxf(flowX + padding->end, boxX) - startX;
-    scroll->reachHeight = fmaxf(flowY + padding->bottom, boxY) - startY;
+    scroll->right = e.right;
+    scroll->bottom = e.bottom;
+    scroll->reachWidth =
+        fmaxf(e.flowX + padX, e.boxX) - (e.farStart ? style->border.end : style->border.start);
+    scroll->reachHeight =
+        fmaxf(e.flowY + padY, e.boxY) - (e.bottom ? style->border.bottom : style->border.top);
     // A virtual list's items reach as far as they need, realized or not.
     scroll->extentWidth = fmaxf(scroll->reachWidth, padding->start + scroll->listX + padding->end);
     scroll->extentHeight =
