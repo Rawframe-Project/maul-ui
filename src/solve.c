@@ -636,6 +636,8 @@ static float LeafBaseline(const muiSolver* solver, uint32_t node, const muiSizin
     return top + solver->measureBaseline(solver->measureUser, id, hostKey, width, height);
 }
 
+// A scroll container's baseline is held within its border box (CSS Box
+// Alignment 3 section 9.1, as Chrome and Firefox).
 float muiSolveBaseline(const muiSolver* solver, uint32_t node, const muiSizingInput* input)
 {
     MUI_ASSERT(input->width.mode == mui_measureExact && input->height.mode == mui_measureExact);
@@ -643,7 +645,13 @@ float muiSolveBaseline(const muiSolver* solver, uint32_t node, const muiSizingIn
     float baseline = muiTreeAt(solver->tree, node)->links.firstChild == 0
                          ? LeafBaseline(solver, node, &own)
                          : muiFlexBaseline(solver, node, &own);
-    return isfinite(baseline) ? baseline : input->height.size;
+    if (!isfinite(baseline))
+    {
+        return input->height.size;
+    }
+    return solver->nodes[node - 1].style.scrollAxes != mui_scrollNone
+               ? fminf(fmaxf(baseline, 0.0f), input->height.size)
+               : baseline;
 }
 
 void muiRatioRootWidth(const muiSolver* solver, uint32_t root, muiSizingInput* input)

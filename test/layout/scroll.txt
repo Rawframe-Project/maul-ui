@@ -9,7 +9,8 @@
 # takes each axis's floor on its own, an absolute ratio box's width on
 # either axis. A flex item that scrolls only across its container's main
 # axis is left out: Chrome keeps its content minimum there and Firefox
-# does not, and the library follows Firefox (research 285).
+# does not, and the library follows Firefox (research 285). A scroll
+# container's baseline is held within its border box (research 288).
 # chrome 154.0.8037.57
 
 fixture scroll_ratio_width_floor_none available=500x400
@@ -192,3 +193,191 @@ node width=100 height=100 padding=10 scroll=both => 0 0 100 100 210 100
       node width=200 height=30 shrink=0 => 0 0 200 30
     node width=40 height=40 shrink=0 scroll=both => 40 0 40 40 300 300
       node width=300 height=300 shrink=0 => 0 0 300 300
+
+fixture scroll_baseline_inside_none available=500x400
+node align-items=baseline => 0 0 40 60
+  node content=20x30 => 0 0 20 30
+  node height=40 => 20 20 20 40
+    node content=20x10 => 0 0 20 40
+
+fixture scroll_baseline_at_its_end_none available=500x400
+node align-items=baseline => 0 0 40 40
+  node content=20x30 => 0 10 20 30
+  node height=40 => 20 0 20 40
+    node margin=0,0,30,0 content=20x10 => 0 30 20 10
+
+fixture scroll_baseline_past_its_end_none available=500x400
+node align-items=baseline => 0 0 40 60
+  node content=20x30 => 0 30 20 30
+  node height=40 => 20 0 20 40
+    node margin=0,0,50,0 content=20x10 => 0 50 20 0
+
+fixture scroll_baseline_past_its_end_held_in_a_box_none available=500x400
+node align-items=baseline => 0 0 40 60
+  node content=20x30 => 0 30 20 30
+  node => 20 0 20 40
+    node height=40 => 0 0 20 40
+      node margin=0,0,50,0 content=20x10 => 0 50 20 0
+
+fixture scroll_baseline_column_none available=500x400
+node align-items=baseline => 0 0 40 60
+  node content=20x30 => 0 0 20 30
+  node height=40 direction=column => 20 20 20 40
+    node content=20x10 => 0 0 20 10
+    node content=20x10 => 0 10 20 10
+
+fixture scroll_baseline_inside_horizontal available=500x400
+node align-items=baseline => 0 0 40 60
+  node content=20x30 => 0 0 20 30
+  node height=40 scroll=horizontal => 20 20 20 40 20 40
+    node content=20x10 => 0 0 20 40
+
+fixture scroll_baseline_at_its_end_horizontal available=500x400
+node align-items=baseline => 0 0 40 40
+  node content=20x30 => 0 10 20 30
+  node height=40 scroll=horizontal => 20 0 20 40 20 40
+    node margin=0,0,30,0 content=20x10 => 0 30 20 10
+
+fixture scroll_baseline_past_its_end_horizontal available=500x400
+node align-items=baseline => 0 0 40 40
+  node content=20x30 => 0 10 20 30
+  node height=40 scroll=horizontal => 20 0 20 40 20 60
+    node margin=0,0,50,0 content=20x10 => 0 50 20 0
+
+fixture scroll_baseline_past_its_end_held_in_a_box_horizontal available=500x400
+node align-items=baseline => 0 0 40 40
+  node content=20x30 => 0 10 20 30
+  node => 20 0 20 40
+    node height=40 scroll=horizontal => 0 0 20 40 20 60
+      node margin=0,0,50,0 content=20x10 => 0 50 20 0
+
+fixture scroll_baseline_column_horizontal available=500x400
+node align-items=baseline => 0 0 40 60
+  node content=20x30 => 0 0 20 30
+  node height=40 direction=column scroll=horizontal => 20 20 20 40 20 40
+    node content=20x10 => 0 0 20 10
+    node content=20x10 => 0 10 20 10
+
+fixture scroll_baseline_inside_vertical available=500x400
+node align-items=baseline => 0 0 40 60
+  node content=20x30 => 0 0 20 30
+  node height=40 scroll=vertical => 20 20 20 40 20 40
+    node content=20x10 => 0 0 20 40
+
+fixture scroll_baseline_at_its_end_vertical available=500x400
+node align-items=baseline => 0 0 40 40
+  node content=20x30 => 0 10 20 30
+  node height=40 scroll=vertical => 20 0 20 40 20 40
+    node margin=0,0,30,0 content=20x10 => 0 30 20 10
+
+fixture scroll_baseline_past_its_end_vertical available=500x400
+node align-items=baseline => 0 0 40 40
+  node content=20x30 => 0 10 20 30
+  node height=40 scroll=vertical => 20 0 20 40 20 60
+    node margin=0,0,50,0 content=20x10 => 0 50 20 0
+
+fixture scroll_baseline_past_its_end_held_in_a_box_vertical available=500x400
+node align-items=baseline => 0 0 40 40
+  node content=20x30 => 0 10 20 30
+  node => 20 0 20 40
+    node height=40 scroll=vertical => 0 0 20 40 20 60
+      node margin=0,0,50,0 content=20x10 => 0 50 20 0
+
+fixture scroll_baseline_column_vertical available=500x400
+node align-items=baseline => 0 0 40 60
+  node content=20x30 => 0 0 20 30
+  node height=40 direction=column scroll=vertical => 20 20 20 40 20 40
+    node content=20x10 => 0 0 20 10
+    node content=20x10 => 0 10 20 10
+
+fixture scroll_baseline_inside_both available=500x400
+node align-items=baseline => 0 0 40 60
+  node content=20x30 => 0 0 20 30
+  node height=40 scroll=both => 20 20 20 40 20 40
+    node content=20x10 => 0 0 20 40
+
+fixture scroll_baseline_at_its_end_both available=500x400
+node align-items=baseline => 0 0 40 40
+  node content=20x30 => 0 10 20 30
+  node height=40 scroll=both => 20 0 20 40 20 40
+    node margin=0,0,30,0 content=20x10 => 0 30 20 10
+
+fixture scroll_baseline_past_its_end_both available=500x400
+node align-items=baseline => 0 0 40 40
+  node content=20x30 => 0 10 20 30
+  node height=40 scroll=both => 20 0 20 40 20 60
+    node margin=0,0,50,0 content=20x10 => 0 50 20 0
+
+fixture scroll_baseline_past_its_end_held_in_a_box_both available=500x400
+node align-items=baseline => 0 0 40 40
+  node content=20x30 => 0 10 20 30
+  node => 20 0 20 40
+    node height=40 scroll=both => 0 0 20 40 20 60
+      node margin=0,0,50,0 content=20x10 => 0 50 20 0
+
+fixture scroll_baseline_column_both available=500x400
+node align-items=baseline => 0 0 40 60
+  node content=20x30 => 0 0 20 30
+  node height=40 direction=column scroll=both => 20 20 20 40 20 40
+    node content=20x10 => 0 0 20 10
+    node content=20x10 => 0 10 20 10
+
+fixture scroll_baseline_above_its_start_none available=500x400
+node align-items=baseline => 0 0 40 90
+  node content=20x30 => 0 0 20 30
+  node height=40 => 20 50 20 40
+    node margin=0,0,-30,0 content=20x10 => 0 -30 20 70
+
+fixture scroll_baseline_of_a_box_with_auto_margins_none available=500x400
+node => 0 0 25 23.203125
+  node => 0 0 25 23.203125
+    node align-items=baseline => 0 0 25 23.203125
+      node => 0 0 25 16
+        node => 0 0 25 16
+          node height=10% margin=5,0,auto,auto content=20x16 => 5 7.203125 20 1.59375
+      node => 25 23.203125 0 0
+
+fixture scroll_baseline_above_its_start_horizontal available=500x400
+node align-items=baseline => 0 0 40 70
+  node content=20x30 => 0 0 20 30
+  node height=40 scroll=horizontal => 20 30 20 40 20 40
+    node margin=0,0,-30,0 content=20x10 => 0 -30 20 70
+
+fixture scroll_baseline_of_a_box_with_auto_margins_horizontal available=500x400
+node => 0 0 25 16
+  node => 0 0 25 16
+    node align-items=baseline => 0 0 25 16
+      node => 0 0 25 16
+        node scroll=horizontal => 0 0 25 16 25 23
+          node height=10% margin=5,0,auto,auto content=20x16 => 5 7.203125 20 1.59375
+      node => 25 16 0 0
+
+fixture scroll_baseline_above_its_start_vertical available=500x400
+node align-items=baseline => 0 0 40 70
+  node content=20x30 => 0 0 20 30
+  node height=40 scroll=vertical => 20 30 20 40 20 40
+    node margin=0,0,-30,0 content=20x10 => 0 -30 20 70
+
+fixture scroll_baseline_of_a_box_with_auto_margins_vertical available=500x400
+node => 0 0 25 16
+  node => 0 0 25 16
+    node align-items=baseline => 0 0 25 16
+      node => 0 0 25 16
+        node scroll=vertical => 0 0 25 16 25 23
+          node height=10% margin=5,0,auto,auto content=20x16 => 5 7.203125 20 1.59375
+      node => 25 16 0 0
+
+fixture scroll_baseline_above_its_start_both available=500x400
+node align-items=baseline => 0 0 40 70
+  node content=20x30 => 0 0 20 30
+  node height=40 scroll=both => 20 30 20 40 20 40
+    node margin=0,0,-30,0 content=20x10 => 0 -30 20 70
+
+fixture scroll_baseline_of_a_box_with_auto_margins_both available=500x400
+node => 0 0 25 16
+  node => 0 0 25 16
+    node align-items=baseline => 0 0 25 16
+      node => 0 0 25 16
+        node scroll=both => 0 0 25 16 25 23
+          node height=10% margin=5,0,auto,auto content=20x16 => 5 7.203125 20 1.59375
+      node => 25 16 0 0

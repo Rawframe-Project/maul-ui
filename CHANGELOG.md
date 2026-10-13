@@ -26,6 +26,10 @@ format.
   box. Before, the extent counted only children's margin boxes and
   added the end padding after absolute ones, so content below a child
   could not be scrolled into view.
+- A scroll container's baseline is held within its border box, as
+  Chrome and Firefox hold it: a row aligned by baseline no longer
+  places a scroll container, or a box holding one, by a baseline its
+  content puts past its end or above its start.
 
 ## [0.5.4] - 2026-10-12
 
