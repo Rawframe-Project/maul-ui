@@ -8,6 +8,18 @@ format.
 
 ## [Unreleased]
 
+## [0.5.7] - 2026-10-13
+
+Two layout fixes, with no change to the API, each a case where Chrome
+and Firefox agree and the library did not, found by random layouts
+checked against both engines: a wrapping ratio column stretched to a
+height known before its lines, and an absolute ratio box whose width
+from its insets the height's limits clamped past its own. A program
+built against 0.5.0 to 0.5.6 runs with 0.5.7. Known issues: as in
+0.5.6, TalkBack and VoiceOver on iOS have not walked the samples, and
+Orca 46 does not announce the first focus in a window that opens with
+nothing focused.
+
 ### Fixed
 
 - A wrapping column with an aspect ratio, stretched in a row whose
