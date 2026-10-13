@@ -18,10 +18,11 @@ format.
   kept its ratio's height for them, and an empty last item started a
   line of its own.
 - An absolute box with an aspect ratio, its width from both insets and
-  capped through the ratio by its maximum height, is never narrower
-  than its padding and border, as in Chrome and Firefox. Before, a
-  maximum height of 10 under a ratio of 0.5 made a box with padding 30
-  only 5 wide.
+  clamped through the ratio by its height's limits, keeps its own
+  width limits and is never narrower than its padding and border, as
+  in Chrome and Firefox. Before, a maximum height of 10 under a ratio
+  of 0.5 made a box with padding 30 only 5 wide, and a minimum height
+  of 10 under a ratio of 1.5 made a box of `max-width: 8` 15 wide.
 
 ## [0.5.6] - 2026-10-13
 
