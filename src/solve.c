@@ -110,7 +110,6 @@ static const muiCacheEntry* FindCached(const muiSolver* solver, uint32_t node,
             entry->input.ratioPercent == input->ratioPercent &&
             entry->input.ratioLines == input->ratioLines &&
             (!keyLoose || entry->input.looseHeight == input->looseHeight) &&
-            entry->input.earlyHeight == input->earlyHeight &&
             AxisAnswers(input->width, entry->input.width, entry->size.width, (loose & 1u) != 0) &&
             AxisAnswers(input->height, entry->input.height, entry->size.height, (loose & 2u) != 0))
         {

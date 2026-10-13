@@ -698,6 +698,57 @@ static void TestStretchedRatioRowResolvesAgainstItsHeight(void)
     }
 }
 
+static void TestEarlyStretchLaysOutAgainWhenLate(void)
+{
+    // A ratio column stretched through a row its single-line parent of
+    // given height stretches lays out at that height from the start: its
+    // empty last item stays on the first line. Wrapping the parent makes
+    // the row's height known only after its lines, the same size: the
+    // clean row lays out again, and the column keeps its ratio's lines.
+    muiContext* context = MakeContext();
+    muiLayoutStyle outer = muiDefaultLayoutStyle();
+    outer.sizing.height = Length(100.0f);
+    muiNodeId root = MakeNode(context, &outer);
+    muiLayoutStyle plain = muiDefaultLayoutStyle();
+    muiNodeId row = MakeNode(context, &plain);
+    muiLayoutStyle ratio = muiDefaultLayoutStyle();
+    ratio.sizing.width = Length(80.0f);
+    ratio.sizing.aspectRatio = 1.5f;
+    ratio.container.direction = mui_flexColumn;
+    ratio.container.wrap = mui_wrapWrap;
+    muiNodeId column = MakeNode(context, &ratio);
+    muiLayoutStyle tall = muiDefaultLayoutStyle();
+    tall.sizing.height = Length(100.0f);
+    tall.item.shrink = 0.0f;
+    muiNodeId first = MakeNode(context, &tall);
+    muiLayoutStyle narrow = muiDefaultLayoutStyle();
+    narrow.sizing.width = Length(20.0f);
+    muiNodeId last = MakeNode(context, &narrow);
+    CHECK(muiNode_InsertChild(context, root, row, s_null) == mui_success &&
+              muiNode_InsertChild(context, row, column, s_null) == mui_success &&
+              muiNode_InsertChild(context, column, first, s_null) == mui_success &&
+              muiNode_InsertChild(context, column, last, s_null) == mui_success,
+          "insert");
+    Host host = {0};
+    muiLayoutInput input = Input(&host);
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    muiRect rect = muiNode_GetRect(context, last);
+    CHECK(rect.x == 0.0f && rect.y == 100.0f, "on the first line");
+    // Laid out again from within, it stays there.
+    narrow.sizing.width = Length(25.0f);
+    CHECK(muiNode_SetLayoutStyle(context, last, &narrow) == mui_success, "widen the last");
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout from within");
+    rect = muiNode_GetRect(context, last);
+    CHECK(rect.x == 0.0f && rect.y == 100.0f && rect.width == 25.0f, "still on the first line");
+    outer.container.wrap = mui_wrapWrap;
+    CHECK(muiNode_SetLayoutStyle(context, root, &outer) == mui_success, "wrap the parent");
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout again");
+    CHECK(muiNode_GetRect(context, row).height == 100.0f, "the row's size kept");
+    rect = muiNode_GetRect(context, last);
+    CHECK(rect.x > 0.0f && rect.y == 0.0f, "on a line of its own");
+    muiDestroyContext(context);
+}
+
 static void TestRectOfUnknownNodeIsZero(void)
 {
     muiContext* context = MakeContext();
@@ -717,6 +768,7 @@ int main(void)
     TestUnchangedTreeIsNotMeasuredAgain();
     TestDecidedSizesAreNotMeasured();
     TestLooseRowLabelIsMeasuredOnce();
+    TestEarlyStretchLaysOutAgainWhenLate();
     TestStyleChangeRelaysTheParent();
     TestNewSpaceRelaysAnUnchangedTree();
     TestScaledLimitFollowsTheParent();
