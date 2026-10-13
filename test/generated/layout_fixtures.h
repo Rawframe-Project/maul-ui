@@ -794,6 +794,20 @@ static const LayoutFixtureNode s_absolute_ratio_inset_width_takes_a_min_height_c
      {0.0f, 0.0f}, 0, {10.0f, 0.0f, 15.0f, 10.0f}, {0.0f, 0.0f}},
 };
 
+static const LayoutFixtureNode s_absolute_ratio_inset_width_min_width_over_a_max_height_carried[] = {
+    {0, {{{0.0f, 100.0f, 1}, {0.0f, 100.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 100.0f, 100.0f}, {0.0f, 0.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 40.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 10.0f, 1}, 1.5f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {1, {{0.0f, 10.0f, 1}, {0.0f, 20.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {10.0f, 0.0f, 40.0f, 10.0f}, {0.0f, 0.0f}},
+};
+
+static const LayoutFixtureNode s_absolute_ratio_inset_width_min_width_under_a_max_height_carried[] = {
+    {0, {{{0.0f, 100.0f, 1}, {0.0f, 100.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 100.0f, 100.0f}, {0.0f, 0.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 10.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 10.0f, 1}, 1.5f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {1, {{0.0f, 10.0f, 1}, {0.0f, 20.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {10.0f, 0.0f, 15.0f, 10.0f}, {0.0f, 0.0f}},
+};
+
 static const LayoutFixtureNode s_justify_end[] = {
     {0, {{{0.0f, 200.0f, 1}, {0.0f, 50.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 1, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
      {0.0f, 0.0f}, 0, {0.0f, 0.0f, 200.0f, 50.0f}, {0.0f, 0.0f}},
@@ -18517,6 +18531,8 @@ static const LayoutFixture s_layoutFixtures[] = {
     {"absolute_ratio_inset_width_max_width_caps_a_min_height_carried", 500.0f, 400.0f, s_absolute_ratio_inset_width_max_width_caps_a_min_height_carried, 2},
     {"absolute_ratio_inset_width_max_width_caps_padding_carried", 500.0f, 400.0f, s_absolute_ratio_inset_width_max_width_caps_padding_carried, 2},
     {"absolute_ratio_inset_width_takes_a_min_height_carried", 500.0f, 400.0f, s_absolute_ratio_inset_width_takes_a_min_height_carried, 2},
+    {"absolute_ratio_inset_width_min_width_over_a_max_height_carried", 500.0f, 400.0f, s_absolute_ratio_inset_width_min_width_over_a_max_height_carried, 2},
+    {"absolute_ratio_inset_width_min_width_under_a_max_height_carried", 500.0f, 400.0f, s_absolute_ratio_inset_width_min_width_under_a_max_height_carried, 2},
     {"justify_end", 500.0f, 400.0f, s_justify_end, 3},
     {"justify_center", 500.0f, 400.0f, s_justify_center, 3},
     {"justify_space_between", 500.0f, 400.0f, s_justify_space_between, 4},
