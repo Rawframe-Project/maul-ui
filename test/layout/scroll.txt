@@ -555,3 +555,19 @@ fixture scroll_column_item_horizontal_shrinks available=500x400
 node width=40 height=5 direction=column => 0 0 40 5
   node scroll=horizontal => 0 0 40 5 40 10
     node width=10 height=10 shrink=0 => 0 0 10 10
+
+fixture scroll_absolute_ratio_insets_height_auto_width_none available=500x400
+node width=200 height=200 => 0 0 200 200
+  node position=absolute start=0 top=0 bottom=170 aspect=2 scroll=none content=10x80 => 0 0 60 80
+
+fixture scroll_absolute_ratio_insets_height_auto_width_horizontal available=500x400
+node width=200 height=200 => 0 0 200 200
+  node position=absolute start=0 top=0 bottom=170 aspect=2 scroll=horizontal content=10x80 => 0 0 60 30
+
+fixture scroll_absolute_ratio_insets_height_auto_width_vertical available=500x400
+node width=200 height=200 => 0 0 200 200
+  node position=absolute start=0 top=0 bottom=170 aspect=2 scroll=vertical content=10x80 => 0 0 60 30
+
+fixture scroll_absolute_ratio_insets_height_auto_width_both available=500x400
+node width=200 height=200 => 0 0 200 200
+  node position=absolute start=0 top=0 bottom=170 aspect=2 scroll=both content=10x80 => 0 0 60 30
