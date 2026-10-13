@@ -256,6 +256,43 @@ static void TestAcross(void)
           "right to left at its start: rightward cannot");
     CHECK(Turn(context, root, 0, 150.0f, 25.0f, -1.0f, 0.0f, 0) && X(context, t) == 100.0f,
           "leftward scrolls on");
+    CHECK(Turn(context, root, 0, 150.0f, 25.0f, -0.5f, 0.0f, 0) && X(context, t) == 150.0f,
+          "a fractional turn leftward too");
+    muiDestroyContext(context);
+}
+
+static void TestReversed(void)
+{
+    // A reversed column scrolls from its bottom and a reversed row from
+    // its right: toward the origin they cannot, away from it they scroll.
+    muiContext* context = MakeContext();
+    muiNodeId root = Sized(context, s_nullNode, 300.0f, 300.0f);
+    muiNodeId s = Sized(context, root, 100.0f, 50.0f);
+    muiNodeId t = Sized(context, root, 100.0f, 50.0f);
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.scrollAxes = mui_scrollVertical;
+    style.container.direction = mui_flexColumnReverse;
+    SetLayout(context, s, &style,
+              MUI_PROPERTY_BIT(mui_propertyScrollAxes) |
+                  MUI_PROPERTY_BIT(mui_propertyFlexDirection));
+    style.scrollAxes = mui_scrollHorizontal;
+    style.container.direction = mui_flexRowReverse;
+    SetLayout(context, t, &style,
+              MUI_PROPERTY_BIT(mui_propertyScrollAxes) |
+                  MUI_PROPERTY_BIT(mui_propertyFlexDirection));
+    (void)Sized(context, s, 100.0f, 300.0f);
+    (void)Sized(context, t, 300.0f, 50.0f);
+    Layout(context, root);
+    CHECK(!Turn(context, root, 0, 50.0f, 25.0f, 0.0f, -1.0f, 0) && Y(context, s) == 0.0f,
+          "a reversed column at its bottom: downward cannot");
+    CHECK(Turn(context, root, 0, 50.0f, 25.0f, 0.0f, 1.0f, 0) && Y(context, s) == 100.0f,
+          "upward scrolls on");
+    CHECK(Turn(context, root, 0, 50.0f, 25.0f, 0.0f, 0.5f, 0) && Y(context, s) == 150.0f,
+          "a fractional turn upward too");
+    CHECK(!Turn(context, root, 0, 150.0f, 25.0f, 1.0f, 0.0f, 0) && X(context, t) == 0.0f,
+          "a reversed row at its right: rightward cannot");
+    CHECK(Turn(context, root, 0, 150.0f, 25.0f, -1.0f, 0.0f, 0) && X(context, t) == 100.0f,
+          "leftward scrolls on");
     muiDestroyContext(context);
 }
 
@@ -447,6 +484,7 @@ int main(void)
     TestChain();
     TestTime();
     TestAcross();
+    TestReversed();
     TestRouted();
     TestLayer();
     TestThumb();

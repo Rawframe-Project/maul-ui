@@ -1063,6 +1063,45 @@ static void TestActions(void)
     muiDestroyContext(context);
 }
 
+static void TestReversedScrollActions(void)
+{
+    // A reversed column scrolls from its bottom: a page up grows its
+    // offset, a page down brings it back.
+    muiContextDef def = muiDefaultContextDef();
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    muiEnvironment environment = muiDefaultEnvironment();
+    environment.reducedMotion = true;
+    CHECK(muiSetContextEnvironment(context, &environment) == mui_success, "at once");
+    muiNodeId root = Node(context, s_nullNode);
+    muiNodeId pane = Node(context, root);
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.scrollAxes = mui_scrollVertical;
+    style.container.direction = mui_flexColumnReverse;
+    CHECK(muiNode_SetLayoutValues(context, pane, &style,
+                                  MUI_PROPERTY_BIT(mui_propertyScrollAxes) |
+                                      MUI_PROPERTY_BIT(mui_propertyFlexDirection)) == mui_success,
+          "reversed");
+    Size(context, pane, 200.0f, 100.0f);
+    for (int i = 0; i < 5; i++)
+    {
+        Size(context, Node(context, pane), 200.0f, 60.0f);
+    }
+    Layout(context, root);
+    float x = 0.0f;
+    float y = 0.0f;
+    bool handled = false;
+    muiAccessRequest request = {.action = mui_actionScrollUp, .target = muiAccessIdOf(pane)};
+    CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled &&
+              muiNode_GetScroll(context, pane, &x, &y) == mui_success && y > 0.0f,
+          "a page up, away from the bottom");
+    request.action = mui_actionScrollDown;
+    CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled &&
+              muiNode_GetScroll(context, pane, &x, &y) == mui_success && y == 0.0f,
+          "a page down, back to it");
+    muiDestroyContext(context);
+}
+
 static void TestScrollActions(void)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -1467,6 +1506,7 @@ int main(void)
     TestPositionAlone();
     TestActions();
     TestScrollActions();
+    TestReversedScrollActions();
     TestScale();
     TestHostData();
     TestMemory();

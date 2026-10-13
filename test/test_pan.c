@@ -555,6 +555,38 @@ static void TestAcrossFling(void)
     muiDestroyContext(context);
 }
 
+static void TestReversedFling(void)
+{
+    // A reversed column 50 high, its content 400: a flick down goes on
+    // away from its bottom, its origin, and stops at its top.
+    muiContextDef def = muiDefaultContextDef();
+    Scene scene = {0};
+    CHECK(muiCreateContext(&def, &scene.context) == mui_success, "context");
+    muiContext* context = scene.context;
+    scene.root = Sized(context, s_nullNode, 300.0f, 300.0f);
+    scene.s = Sized(context, scene.root, 100.0f, 50.0f);
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.scrollAxes = mui_scrollVertical;
+    style.container.direction = mui_flexColumnReverse;
+    CHECK(muiNode_SetLayoutValues(context, scene.s, &style,
+                                  MUI_PROPERTY_BIT(mui_propertyScrollAxes) |
+                                      MUI_PROPERTY_BIT(mui_propertyFlexDirection)) == mui_success,
+          "reversed");
+    (void)Sized(context, scene.s, 100.0f, 400.0f);
+    Layout(context, scene.root, 0);
+    CHECK(Feed(&scene, 3, mui_pointerTouch, mui_pointerPress, 0, 50.0f, 5.0f) == 0 &&
+              Feed(&scene, 3, mui_pointerTouch, mui_pointerMove, 100 * MS, 50.0f, 15.0f) == 1 &&
+              Feed(&scene, 3, mui_pointerTouch, mui_pointerMove, 110 * MS, 50.0f, 45.0f) == 1 &&
+              Feed(&scene, 3, mui_pointerTouch, mui_pointerRelease, 120 * MS, 50.0f, 45.0f) == 1 &&
+              Y(context, scene.s) == 40.0f,
+          "a flick down");
+    Layout(context, scene.root, 420 * MS);
+    Layout(context, scene.root, 421 * MS);
+    CHECK(Y(context, scene.s) == 350.0f && !muiIsUpdatePending(context, scene.root),
+          "at its top, done");
+    muiDestroyContext(context);
+}
+
 static void TestSlowEnd(void)
 {
     // A fling of 1000 in a long list stops by slowing, short of a limit.
@@ -962,6 +994,7 @@ int main(void)
     TestMouseDrags();
     TestTables();
     TestAcrossFling();
+    TestReversedFling();
     TestSlowEnd();
     TestPurge();
     TestOverscroll();

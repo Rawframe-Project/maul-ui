@@ -331,6 +331,22 @@ static void TestHorizontal(void)
               muiNode_GetRect(context, items[1]).x == 80.0f,
           "right to left from the right");
     muiDestroyContext(context);
+    // A reversed column places its items from its bottom, its origin.
+    list = ListOf(10, 30.0f, true, 0.0f, 0.0f);
+    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    context = scene.context;
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.container.direction = mui_flexColumnReverse;
+    CHECK(muiNode_SetLayoutValues(context, scene.list, &style,
+                                  MUI_PROPERTY_BIT(mui_propertyFlexDirection)) == mui_success,
+          "reversed");
+    Layout(context, scene.root);
+    Realize(&scene, 0, 2, -1.0f, 30.0f, items);
+    Layout(context, scene.root);
+    CHECK(muiNode_GetRect(context, items[0]).y == 70.0f &&
+              muiNode_GetRect(context, items[1]).y == 40.0f,
+          "a reversed column from the bottom");
+    muiDestroyContext(context);
 }
 
 static void TestBinding(void)

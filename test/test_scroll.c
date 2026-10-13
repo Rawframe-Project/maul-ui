@@ -370,6 +370,29 @@ static void TestReversedOrigin(void)
               muiGetDrawList(context, &drawn) == mui_success && drawn.transformCount == 2 &&
               drawn.transforms[1].f == 70.0f,
           "a transform downward");
+    // A reversed row scrolls from its right, its thumb at the track's end;
+    // right to left as well, its inline start is the right: at the start.
+    muiNodeId row = Sized(context, root, 100.0f, 50.0f);
+    style = muiDefaultLayoutStyle();
+    style.container.direction = mui_flexRowReverse;
+    style.scrollAxes = mui_scrollHorizontal;
+    SetLayout(context, row, &style, DIRECTION | SCROLL);
+    SetLayout(context, Sized(context, row, 300.0f, 50.0f), &keep,
+              MUI_PROPERTY_BIT(mui_propertyShrink));
+    muiNodeId rtl = Sized(context, root, 100.0f, 50.0f);
+    style.container.direction = mui_flexRow;
+    style.textDirection = mui_textRightToLeft;
+    SetLayout(context, rtl, &style,
+              DIRECTION | SCROLL | MUI_PROPERTY_BIT(mui_propertyTextDirection));
+    SetLayout(context, Sized(context, rtl, 300.0f, 50.0f), &keep,
+              MUI_PROPERTY_BIT(mui_propertyShrink));
+    Layout(context, root);
+    CHECK(muiNode_GetScrollThumb(context, row, true, 90.0f, 0.0f, &thumb) == mui_success &&
+              thumb.start == 60.0f && thumb.length == 30.0f,
+          "a reversed row's thumb at the end");
+    CHECK(muiNode_GetScrollThumb(context, rtl, true, 90.0f, 0.0f, &thumb) == mui_success &&
+              thumb.start == 0.0f,
+          "right to left, at its inline start");
     muiDestroyContext(context);
 }
 

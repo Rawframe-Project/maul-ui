@@ -376,6 +376,30 @@ static void TestPages(void)
     muiDestroyContext(context);
 }
 
+static void TestReversedPages(void)
+{
+    // A reversed column scrolls from its bottom: a page down is toward its
+    // origin, a page up away from it, Home to its top and End back.
+    Scene scene;
+    MakeScene(&scene, false, 9);
+    muiContext* context = scene.context;
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.scrollAxes = mui_scrollVertical;
+    style.container.direction = mui_flexColumnReverse;
+    SetLayout(context, scene.s, &style,
+              MUI_PROPERTY_BIT(mui_propertyScrollAxes) |
+                  MUI_PROPERTY_BIT(mui_propertyFlexDirection));
+    Focusable(context, scene.items[0]);
+    Layout(context, scene.root, 0);
+    CHECK(muiFocus_Set(context, 0, scene.items[0], mui_focusByCode) == mui_success, "focus");
+    CHECK(!Key(context, scene.root, mui_codePageDown, 0) && Y(context, scene.s) == 0.0f,
+          "at its bottom: a page down cannot");
+    CHECK(Key(context, scene.root, mui_codePageUp, 0) && Y(context, scene.s) == 87.5f, "a page up");
+    CHECK(Key(context, scene.root, mui_codeHome, 0) && Y(context, scene.s) == 350.0f, "home");
+    CHECK(Key(context, scene.root, mui_codeEnd, 0) && Y(context, scene.s) == 0.0f, "end");
+    muiDestroyContext(context);
+}
+
 static void TestEaseMore(void)
 {
     // The list follows a step as it eases; scrolling into view stops it;
@@ -561,6 +585,7 @@ int main(void)
     TestFull();
     TestArrows();
     TestPages();
+    TestReversedPages();
     TestEaseMore();
     TestTableReused();
     TestBounds();
