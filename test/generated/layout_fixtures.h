@@ -17212,6 +17212,34 @@ static const LayoutFixtureNode s_scroll_extent_wide_box_in_an_empty_box[] = {
      {0.0f, 0.0f}, 0, {0.0f, 0.0f, 150.0f, 10.0f}, {0.0f, 0.0f}},
 };
 
+static const LayoutFixtureNode s_scroll_ratio_absolute_both_sizes_none[] = {
+    {0, {{{0.0f, 200.0f, 1}, {0.0f, 200.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 200.0f, 200.0f}, {0.0f, 0.0f}},
+    {1, {{{0.0f, 40.0f, 1}, {0.0f, 20.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 1.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {1, {{0.0f, 0.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 1}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 1, 0, 0},
+     {80.0f, 10.0f}, 0, {0.0f, 0.0f, 80.0f, 20.0f}, {0.0f, 0.0f}},
+};
+
+static const LayoutFixtureNode s_scroll_ratio_absolute_both_sizes_horizontal[] = {
+    {0, {{{0.0f, 200.0f, 1}, {0.0f, 200.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 200.0f, 200.0f}, {0.0f, 0.0f}},
+    {1, {{{0.0f, 40.0f, 1}, {0.0f, 20.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 1.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {1, {{0.0f, 0.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 1}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 1, 1, 0},
+     {80.0f, 10.0f}, 0, {0.0f, 0.0f, 40.0f, 20.0f}, {0.0f, 0.0f}},
+};
+
+static const LayoutFixtureNode s_scroll_ratio_absolute_both_sizes_vertical[] = {
+    {0, {{{0.0f, 200.0f, 1}, {0.0f, 200.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 200.0f, 200.0f}, {0.0f, 0.0f}},
+    {1, {{{0.0f, 40.0f, 1}, {0.0f, 20.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 1.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {1, {{0.0f, 0.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 1}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 1, 2, 0},
+     {80.0f, 10.0f}, 0, {0.0f, 0.0f, 40.0f, 20.0f}, {0.0f, 0.0f}},
+};
+
+static const LayoutFixtureNode s_scroll_ratio_absolute_both_sizes_both[] = {
+    {0, {{{0.0f, 200.0f, 1}, {0.0f, 200.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 200.0f, 200.0f}, {0.0f, 0.0f}},
+    {1, {{{0.0f, 40.0f, 1}, {0.0f, 20.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 1.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {1, {{0.0f, 0.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 1}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 1, 3, 0},
+     {80.0f, 10.0f}, 0, {0.0f, 0.0f, 40.0f, 20.0f}, {0.0f, 0.0f}},
+};
+
 static const LayoutFixtureNode s_words_row_item_wraps_to_its_row[] = {
     {0, {{{0.0f, 100.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
      {0.0f, 0.0f}, 0, {0.0f, 0.0f, 100.0f, 20.0f}, {0.0f, 0.0f}},
@@ -19263,6 +19291,10 @@ static const LayoutFixture s_layoutFixtures[] = {
     {"scroll_extent_empty_flow_child_margin", 500.0f, 400.0f, s_scroll_extent_empty_flow_child_margin, 2},
     {"scroll_extent_empty_grandchild", 500.0f, 400.0f, s_scroll_extent_empty_grandchild, 3},
     {"scroll_extent_wide_box_in_an_empty_box", 500.0f, 400.0f, s_scroll_extent_wide_box_in_an_empty_box, 3},
+    {"scroll_ratio_absolute_both_sizes_none", 500.0f, 400.0f, s_scroll_ratio_absolute_both_sizes_none, 2},
+    {"scroll_ratio_absolute_both_sizes_horizontal", 500.0f, 400.0f, s_scroll_ratio_absolute_both_sizes_horizontal, 2},
+    {"scroll_ratio_absolute_both_sizes_vertical", 500.0f, 400.0f, s_scroll_ratio_absolute_both_sizes_vertical, 2},
+    {"scroll_ratio_absolute_both_sizes_both", 500.0f, 400.0f, s_scroll_ratio_absolute_both_sizes_both, 2},
     {"words_row_item_wraps_to_its_row", 500.0f, 400.0f, s_words_row_item_wraps_to_its_row, 2},
     {"words_column_item_wraps_to_column", 500.0f, 400.0f, s_words_column_item_wraps_to_column, 2},
     {"words_column_item_fits_content", 500.0f, 400.0f, s_words_column_item_fits_content, 3},

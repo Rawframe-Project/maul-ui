@@ -390,10 +390,11 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
             fixedHeight ? muiExact(height) : (muiMeasureAxis){0.0f, mui_measureMaxContent};
         width = solver->solve(solver, child, &input, false).width;
     }
-    else if (fixedHeight && muiRatioWidthMinimum(style) &&
+    else if (fixedHeight && muiRatioWidthMinimum(style) && style->scrollAxes == mui_scrollNone &&
              muiResolveAxis(&style->sizing, true, spanX->paddingSize).definite)
     {
-        // Its ratio may give it a minimum width (src/solve.c).
+        // Its ratio may give it a minimum width (src/solve.c), unless it
+        // scrolls on either axis (as Chrome and Firefox).
         input.width = (muiMeasureAxis){0.0f, mui_measureMinContent};
         input.height = muiExact(height);
         width = fmaxf(width, solver->solve(solver, child, &input, false).width);

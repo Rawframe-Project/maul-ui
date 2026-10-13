@@ -459,3 +459,19 @@ fixture scroll_extent_wide_box_in_an_empty_box available=500x400
 node width=100 height=100 padding=10 scroll=both => 0 0 100 100 160 100
   node width=0 height=0 shrink=0 => 10 10 0 0
     node width=150 height=10 shrink=0 => 0 0 150 10
+
+fixture scroll_ratio_absolute_both_sizes_none available=500x400
+node width=200 height=200 => 0 0 200 200
+  node width=40 height=20 position=absolute start=0 top=0 aspect=1 scroll=none content=80x10 => 0 0 80 20
+
+fixture scroll_ratio_absolute_both_sizes_horizontal available=500x400
+node width=200 height=200 => 0 0 200 200
+  node width=40 height=20 position=absolute start=0 top=0 aspect=1 scroll=horizontal content=80x10 => 0 0 40 20
+
+fixture scroll_ratio_absolute_both_sizes_vertical available=500x400
+node width=200 height=200 => 0 0 200 200
+  node width=40 height=20 position=absolute start=0 top=0 aspect=1 scroll=vertical content=80x10 => 0 0 40 20
+
+fixture scroll_ratio_absolute_both_sizes_both available=500x400
+node width=200 height=200 => 0 0 200 200
+  node width=40 height=20 position=absolute start=0 top=0 aspect=1 scroll=both content=80x10 => 0 0 40 20
