@@ -8,6 +8,17 @@ format.
 
 ## [Unreleased]
 
+## [0.5.8] - 2026-10-13
+
+One layout fix, with no change to the API, a case where Chrome and
+Firefox agree and the library did not, found by random layouts
+checked against both engines: a negative end margin no longer pulls a
+scroll container's extent in front of the child it belongs to. A
+program built against 0.5.0 to 0.5.7 runs with 0.5.8. Known issues: as
+in 0.5.7, TalkBack and VoiceOver on iOS have not walked the samples,
+and Orca 46 does not announce the first focus in a window that opens
+with nothing focused.
+
 ### Fixed
 
 - A negative end margin pulls a scroll container's flow back at most
