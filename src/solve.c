@@ -298,9 +298,13 @@ static void AddChild(const muiSolver* solver, uint32_t c, Extents* e)
     float y = e->bottom ? e->size.height - child->rect.y - height : child->rect.y;
     if (!child->absolute)
     {
+        // A negative end margin pulls its end back at most to its start
+        // (as Chrome and Firefox).
         muiEdges margins = muiMarginsOf(&child->style, e->rtl);
-        e->flowX = fmaxf(e->flowX, x + width + (e->farStart ? margins.start : margins.end));
-        e->flowY = fmaxf(e->flowY, y + height + (e->bottom ? margins.top : margins.bottom));
+        e->flowX =
+            fmaxf(e->flowX, x + fmaxf(width + (e->farStart ? margins.start : margins.end), 0.0f));
+        e->flowY =
+            fmaxf(e->flowY, y + fmaxf(height + (e->bottom ? margins.top : margins.bottom), 0.0f));
     }
     // What is below the child is in physical coordinates: from the right
     // or the bottom, its far end is its leftmost or topmost box.

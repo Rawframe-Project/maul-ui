@@ -8,6 +8,13 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- A negative end margin pulls a scroll container's flow back at most
+  to the start of the child it belongs to, as in Chrome and Firefox. A
+  child 0 wide at 5 with an end margin of -5 now reaches 5 into the
+  scroll extent, where it reached nothing.
+
 ## [0.5.7] - 2026-10-13
 
 Two layout fixes, with no change to the API, each a case where Chrome
