@@ -244,8 +244,8 @@ muiResult muiSetScrollRule(muiContext* context, const muiScrollRule* rule)
 }
 
 // Whether a scroll container can move by right and down along either
-// axis, from where a step easing it goes or else from its offsets: the
-// way asked, not back within its limits from past them.
+// axis, from where a step easing it goes or else from its offsets, which
+// are always within its limits (overscroll is kept apart).
 static bool CanMove(const muiContext* context, uint32_t slot, float right, float down)
 {
     const muiScrollStore* store = &context->scrolling;
@@ -257,8 +257,7 @@ static bool CanMove(const muiContext* context, uint32_t slot, float right, float
     float toX = x;
     float toY = y;
     Reach(context, slot, &toX, &toY, right, down);
-    return (toX - x) * (scroll->right ? -right : right) > 0.0f ||
-           (toY - y) * (scroll->bottom ? -down : down) > 0.0f;
+    return toX != x || toY != y;
 }
 
 // Moves a scroll container's offsets by right and down, within its
