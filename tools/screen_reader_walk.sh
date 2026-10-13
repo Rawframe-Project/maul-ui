@@ -23,8 +23,8 @@
 #                     in any case; every screen reader's walk checks it
 #
 # Lines starting with # are skipped. Each key and text waits 1.5 seconds
-# for Orca. The display defaults to :143. Needs Xvfb, dbus-run-session,
-# at-spi-bus-launcher, orca and xdotool.
+# for Orca. The display defaults to :143. Needs Xvfb, xdpyinfo,
+# dbus-run-session, dbus-send, at-spi-bus-launcher, orca and xdotool.
 set -eu
 sample=$1
 steps=$2
@@ -49,13 +49,29 @@ cat > "$XDG_RUNTIME_DIR/orca/user-settings.conf" <<'SETTINGS'
 SETTINGS
 Xvfb "$display" -screen 0 1280x800x24 >/dev/null 2>&1 &
 xvfb=$!
-trap 'kill $xvfb 2>/dev/null; rm -rf "$XDG_RUNTIME_DIR"' EXIT
-sleep 1
+# The server is gone before the next walk takes its display.
+trap 'kill $xvfb 2>/dev/null; wait $xvfb 2>/dev/null; rm -rf "$XDG_RUNTIME_DIR"' EXIT
+# A loaded machine takes more than a moment to bring the server up, and
+# Orca and the sample need it from their start: wait for it, at most 30
+# seconds.
+for i in $(seq 1 120); do
+    xdpyinfo -display "$display" >/dev/null 2>&1 && break
+    if ! kill -0 $xvfb 2>/dev/null || [ "$i" = 120 ]; then
+        echo "Xvfb did not start on $display" >&2
+        exit 2
+    fi
+    sleep 0.25
+done
 export WALK_SAMPLE=$sample WALK_STEPS=$steps WALK_OUT=$out WALK_BUS=$bus
 dbus-run-session -- bash -c '
   "$WALK_BUS" --launch-immediately >/dev/null 2>&1 &
   launcher=$!
-  sleep 1
+  # The accessibility bus answers before Orca starts, at most 30 seconds.
+  for i in $(seq 1 120); do
+      dbus-send --session --dest=org.a11y.Bus --print-reply /org/a11y/bus \
+          org.a11y.Bus.GetAddress >/dev/null 2>&1 && break
+      sleep 0.25
+  done
   orca --replace -u "$XDG_RUNTIME_DIR/orca" --debug-file="$WALK_OUT/orca-debug.txt" \
       >"$WALK_OUT/orca-stdout.txt" 2>&1 &
   reader=$!
