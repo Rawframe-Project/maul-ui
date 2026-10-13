@@ -8,6 +8,18 @@ format.
 
 ## [Unreleased]
 
+## [0.5.6] - 2026-10-13
+
+Two scroll container fixes, with no change to the API. A scroll
+container is one on both axes, as CSS makes it: its aspect ratio's
+content floor is dropped on both, replacing the per-axis rule 0.5.5
+shipped, which followed a reading of `overflow: clip` beside `hidden`
+that only Chrome makes. A scroll container whose flow has no area
+scrolls nothing past its padding box. A program built against 0.5.0 to
+0.5.5 runs with 0.5.6. Known issues: as in 0.5.5, TalkBack and
+VoiceOver on iOS have not walked the samples, and Orca 46 does not
+announce the first focus in a window that opens with nothing focused.
+
 ### Fixed
 
 - A scroll container whose padding box and in-flow children together
