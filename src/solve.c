@@ -464,18 +464,20 @@ static bool IsWrappingColumn(const muiSolver* solver, uint32_t node)
 // The size the aspect ratio gives an axis from the other one's, at least
 // the content's min-content size when the axis's minimum is automatic
 // and the node does not scroll along it (CSS Sizing 4; Chrome takes each
-// axis on its own, but an absolute box's width on either). A width given
-// as a percentage that cannot resolve takes that minimum too; a height so
-// given does not, as in Chrome. Within its limits.
+// axis on its own, but an absolute box's or a root's width on either). A
+// width given as a percentage that cannot resolve takes that minimum too;
+// a height so given does not, as in Chrome. Within its limits.
 static muiMeasureAxis RatioAxis(const muiSolver* solver, uint32_t node, const muiSizingInput* input,
                                 bool horizontal, float size)
 {
     const muiLayoutStyle* style = &solver->nodes[node - 1].style;
     muiAxisSizing axis = muiResolveAxis(&style->sizing, horizontal,
                                         horizontal ? input->parentWidth : input->parentHeight);
-    muiScrollAxes along = !horizontal                        ? mui_scrollVertical
-                          : solver->nodes[node - 1].absolute ? mui_scrollBoth
-                                                             : mui_scrollHorizontal;
+    bool alone =
+        solver->nodes[node - 1].absolute || muiTreeAt(solver->tree, node)->links.parent == 0;
+    muiScrollAxes along = !horizontal ? mui_scrollVertical
+                          : alone     ? mui_scrollBoth
+                                      : mui_scrollHorizontal;
     if (axis.minimumAuto && (style->scrollAxes & along) == 0 &&
         (horizontal || style->sizing.height.kind == mui_dimensionAuto))
     {
@@ -713,7 +715,8 @@ float muiSolveBaseline(const muiSolver* solver, uint32_t node, const muiSizingIn
 
 void muiRatioRootWidth(const muiSolver* solver, uint32_t root, muiSizingInput* input)
 {
-    if (muiRatioWidthMinimum(&solver->nodes[root - 1].style) &&
+    const muiLayoutStyle* style = &solver->nodes[root - 1].style;
+    if (muiRatioWidthMinimum(style) && style->scrollAxes == mui_scrollNone &&
         input->width.mode == mui_measureExact && input->height.mode == mui_measureExact)
     {
         muiSizingInput probe = *input;

@@ -14,9 +14,9 @@ format.
   content along an axis it scrolls, as Chrome and Firefox do: a box of
   `height: 20` and ratio 1 that scrolls horizontally is 20 wide around
   content 80 wide, not 80, and the width it gives its container
-  follows. An absolute one drops its content's width when it scrolls on
-  either axis, its width given or not, and its content's height when it
-  scrolls vertically, as Chrome does. Before, only a column flexed to a percentage height
+  follows. An absolute one, or a root, drops its content's width when it
+  scrolls on either axis, its width given or not, and its content's
+  height when it scrolls vertically, as Chrome does. Before, only a column flexed to a percentage height
   dropped its content's width, and only when scrolling horizontally.
 - A scroll container's extent (`muiNode_GetScrollExtent`) is its
   scrollable overflow as Chrome and Firefox measure it: a box below a

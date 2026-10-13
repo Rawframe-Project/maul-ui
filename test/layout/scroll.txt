@@ -475,3 +475,31 @@ node width=200 height=200 => 0 0 200 200
 fixture scroll_ratio_absolute_both_sizes_both available=500x400
 node width=200 height=200 => 0 0 200 200
   node width=40 height=20 position=absolute start=0 top=0 aspect=1 scroll=both content=80x10 => 0 0 40 20
+
+fixture scroll_ratio_root_height_given_none available=500x400
+node height=40 aspect=1.5 scroll=none => 0 0 150 40
+  node width=150 shrink=0 => 0 0 150 40
+
+fixture scroll_ratio_root_height_given_horizontal available=500x400
+node height=40 aspect=1.5 scroll=horizontal => 0 0 60 40 150 40
+  node width=150 shrink=0 => 0 0 150 40
+
+fixture scroll_ratio_root_height_given_vertical available=500x400
+node height=40 aspect=1.5 scroll=vertical => 0 0 60 40 150 40
+  node width=150 shrink=0 => 0 0 150 40
+
+fixture scroll_ratio_root_height_given_both available=500x400
+node height=40 aspect=1.5 scroll=both => 0 0 60 40 150 40
+  node width=150 shrink=0 => 0 0 150 40
+
+fixture scroll_ratio_root_both_sizes_none available=500x400
+node width=40 height=20 aspect=1 scroll=none content=80x10 => 0 0 80 20
+
+fixture scroll_ratio_root_both_sizes_horizontal available=500x400
+node width=40 height=20 aspect=1 scroll=horizontal content=80x10 => 0 0 40 20
+
+fixture scroll_ratio_root_both_sizes_vertical available=500x400
+node width=40 height=20 aspect=1 scroll=vertical content=80x10 => 0 0 40 20
+
+fixture scroll_ratio_root_both_sizes_both available=500x400
+node width=40 height=20 aspect=1 scroll=both content=80x10 => 0 0 40 20
