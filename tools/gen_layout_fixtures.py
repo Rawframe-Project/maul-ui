@@ -28,7 +28,8 @@
 # auto), position (flow absolute), start end top bottom (insets, as
 # dimensions), anchor (<x>,<y> from 0 to 1), dir (inherit ltr rtl),
 # scroll (none horizontal vertical both: a scroll container, rendered
-# with overflow hidden on the axes it scrolls and clip on the other; its
+# with overflow hidden on both axes, as CSS computes one axis's clip
+# beside the other's hidden; its
 # line also gives Chrome's scrollWidth and scrollHeight, its extent,
 # unless it has content: a scroll container scrolls its children, and
 # the oracle renders content as a child),
@@ -325,10 +326,11 @@ def css_style(props, rtl):
         css.append(f"direction:{get('dir')};")
     scroll = ENUMS["scroll"].index(get("scroll"))
     if scroll != 0:
-        # Hidden makes a scroll container with no scrollbar gutter; clip,
-        # not visible, keeps the other axis from computing to auto.
-        css.append(f"overflow-x:{'hidden' if scroll & 1 else 'clip'};"
-                   f"overflow-y:{'hidden' if scroll & 2 else 'clip'};")
+        # Hidden makes a scroll container with no scrollbar gutter, on both
+        # axes: CSS Overflow 3 computes clip beside hidden to hidden, which
+        # Firefox does and Chrome does not. The fixture test compares the
+        # extent along the scrolled axes only.
+        css.append("overflow:hidden;")
     return "".join(css)
 
 

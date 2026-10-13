@@ -29,8 +29,7 @@ muiSizingInput muiRootInput(const muiLayoutStyle* style, const muiSides* safe, f
 // The muiExtentAboveFunction of the solver.
 void muiMeasureExtentAbove(const muiSolver* solver, uint32_t root, uint32_t node);
 
-// Widens a root given both sizes to the minimum its aspect ratio gives it,
-// unless it scrolls: a root takes an absolute box's floor (src/absolute.c).
+// Widens a root given both sizes to the minimum its aspect ratio gives it.
 void muiRatioRootWidth(const muiSolver* solver, uint32_t root, muiSizingInput* input);
 
 #endif // MAUL_UI_SRC_SOLVE_H

@@ -300,9 +300,9 @@ static bool RatioTakesHeight(const muiLayoutStyle* style, const muiEdges* paddin
 }
 
 // A height from both insets, with an aspect ratio, is at least the
-// width's through the ratio and, its minimum automatic and it not
-// scrolling vertically, the content's at that width (Chrome takes each
-// axis on its own); stretched by its own align-self, it is the insets' as if
+// width's through the ratio and, its minimum automatic and it not a
+// scroll container, the content's at that width; stretched by its own
+// align-self, it is the insets' as if
 // given (both as Chrome). Returns whether its content grew it past the
 // insets', which holds its children's percentages at its ratio's height,
 // the insets' (as Chrome and Firefox).
@@ -311,7 +311,7 @@ static bool RatioHeightFloor(const muiSolver* solver, uint32_t child, muiSizingI
 {
     const muiLayoutStyle* style = &solver->nodes[child - 1].style;
     if (style->sizing.aspectRatio <= 0.0f || style->item.alignSelf == mui_alignStretch ||
-        (style->scrollAxes & mui_scrollVertical) != 0 ||
+        style->scrollAxes != mui_scrollNone ||
         muiResolveAxis(&style->sizing, false, spanY->paddingSize).definite)
     {
         return false;
@@ -390,11 +390,10 @@ static void PlaceChild(const muiSolver* solver, const muiLayoutStyle* container,
             fixedHeight ? muiExact(height) : (muiMeasureAxis){0.0f, mui_measureMaxContent};
         width = solver->solve(solver, child, &input, false).width;
     }
-    else if (fixedHeight && muiRatioWidthMinimum(style) && style->scrollAxes == mui_scrollNone &&
+    else if (fixedHeight && muiRatioWidthMinimum(style) &&
              muiResolveAxis(&style->sizing, true, spanX->paddingSize).definite)
     {
-        // Its ratio may give it a minimum width (src/solve.c), unless it
-        // scrolls on either axis (as Chrome and Firefox).
+        // Its ratio may give it a minimum width (src/solve.c).
         input.width = (muiMeasureAxis){0.0f, mui_measureMinContent};
         input.height = muiExact(height);
         width = fmaxf(width, solver->solve(solver, child, &input, false).width);

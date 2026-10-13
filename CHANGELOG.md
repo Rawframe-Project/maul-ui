@@ -15,6 +15,13 @@ format.
   further than its padding box along either axis, as in Chrome and
   Firefox; a box with an area below it still counts. Before, its
   extent was the child's height.
+- A scroll container drops its aspect ratio's content floor on both
+  axes, whichever it scrolls, as CSS makes a box that scrolls on either
+  axis a scroll container on both and Chrome and Firefox render it: a
+  box of `height: 20` and ratio 1 that scrolls vertically is 20 wide
+  around content 80 wide. 0.5.5 dropped the floor only along a scrolled
+  axis, following Chrome's reading of `overflow: clip` beside `hidden`,
+  which CSS computes to `hidden`.
 
 ## [0.5.5] - 2026-10-13
 
