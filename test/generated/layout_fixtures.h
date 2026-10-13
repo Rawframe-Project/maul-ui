@@ -745,6 +745,27 @@ static const LayoutFixtureNode s_absolute_ratio_no_room_full_percent[] = {
      {0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
 };
 
+static const LayoutFixtureNode s_absolute_ratio_inset_width_capped_through_max_height[] = {
+    {0, {{{0.0f, 100.0f, 1}, {0.0f, 100.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 100.0f, 100.0f}, {0.0f, 0.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 10.0f, 1}, 0.5f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {1, {{0.1f, 0.0f, 1}, {0.1f, 0.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {10.0f, 0.0f, 5.0f, 10.0f}, {0.0f, 0.0f}},
+};
+
+static const LayoutFixtureNode s_absolute_ratio_inset_width_capped_not_below_its_padding[] = {
+    {0, {{{0.0f, 100.0f, 1}, {0.0f, 100.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 100.0f, 100.0f}, {0.0f, 0.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 10.0f, 1}, 0.5f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {30.0f, 0.0f, 0.0f, 0.0f}, {1, {{0.1f, 0.0f, 1}, {0.1f, 0.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {10.0f, 0.0f, 30.0f, 10.0f}, {0.0f, 0.0f}},
+};
+
+static const LayoutFixtureNode s_absolute_ratio_inset_width_capped_at_zero_keeps_its_padding[] = {
+    {0, {{{0.0f, 100.0f, 1}, {0.0f, 100.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 100.0f, 100.0f}, {0.0f, 0.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 1}, 0.5f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {7.0f, 3.0f, 3.0f, 0.0f}, {1, {{0.1f, 0.0f, 1}, {0.1f, 0.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {10.0f, 0.0f, 10.0f, 3.0f}, {0.0f, 0.0f}},
+};
+
 static const LayoutFixtureNode s_justify_end[] = {
     {0, {{{0.0f, 200.0f, 1}, {0.0f, 50.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 1, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
      {0.0f, 0.0f}, 0, {0.0f, 0.0f, 200.0f, 50.0f}, {0.0f, 0.0f}},
@@ -18461,6 +18482,9 @@ static const LayoutFixture s_layoutFixtures[] = {
     {"absolute_ratio_grown_percent_basis", 500.0f, 400.0f, s_absolute_ratio_grown_percent_basis, 3},
     {"absolute_ratio_no_room_percent_basis", 500.0f, 400.0f, s_absolute_ratio_no_room_percent_basis, 3},
     {"absolute_ratio_no_room_full_percent", 500.0f, 400.0f, s_absolute_ratio_no_room_full_percent, 4},
+    {"absolute_ratio_inset_width_capped_through_max_height", 500.0f, 400.0f, s_absolute_ratio_inset_width_capped_through_max_height, 2},
+    {"absolute_ratio_inset_width_capped_not_below_its_padding", 500.0f, 400.0f, s_absolute_ratio_inset_width_capped_not_below_its_padding, 2},
+    {"absolute_ratio_inset_width_capped_at_zero_keeps_its_padding", 500.0f, 400.0f, s_absolute_ratio_inset_width_capped_at_zero_keeps_its_padding, 2},
     {"justify_end", 500.0f, 400.0f, s_justify_end, 3},
     {"justify_center", 500.0f, 400.0f, s_justify_center, 3},
     {"justify_space_between", 500.0f, 400.0f, s_justify_space_between, 4},

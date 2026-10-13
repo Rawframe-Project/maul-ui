@@ -464,3 +464,15 @@ node => 0 0 0 0
   node position=absolute top=5 bottom=10 aspect=1 => 0 5 0 5
     node height=5 => 0 0 0 5
     node height=100% => 0 0 0 0
+
+fixture absolute_ratio_inset_width_capped_through_max_height available=500x400
+node width=100 height=100 => 0 0 100 100
+  node position=absolute max-height=10 aspect=0.5 start=10% end=10% => 10 0 5 10
+
+fixture absolute_ratio_inset_width_capped_not_below_its_padding available=500x400
+node width=100 height=100 => 0 0 100 100
+  node position=absolute max-height=10 aspect=0.5 padding=30,0,0,0 start=10% end=10% => 10 0 30 10
+
+fixture absolute_ratio_inset_width_capped_at_zero_keeps_its_padding available=500x400
+node width=100 height=100 => 0 0 100 100
+  node position=absolute max-height=0 aspect=0.5 padding=7,3,3,0 start=10% end=10% => 10 0 10 3

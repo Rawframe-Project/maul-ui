@@ -283,9 +283,11 @@ static bool RatioTakesHeight(const muiLayoutStyle* style, const muiEdges* paddin
     }
     if (*fixedWidth && !across.definite)
     {
+        // Never below its own padding and border (as Chrome and Firefox).
         float box = muiBoxSum(padding, style, false);
-        *width = fminf(fmaxf(*width, fmaxf(down.minimum, box) * ratio),
-                       muiAxisCeiling(&down, box) * ratio);
+        *width = fmaxf(fminf(fmaxf(*width, fmaxf(down.minimum, box) * ratio),
+                             muiAxisCeiling(&down, box) * ratio),
+                       muiBoxSum(padding, style, true));
     }
     if (!fixedHeight || down.definite)
     {
