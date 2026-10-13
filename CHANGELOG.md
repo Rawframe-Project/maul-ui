@@ -8,6 +8,18 @@ format.
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-10-13
+
+Scroll container fixes, with no change to the API, each a case where
+Chrome and Firefox agree and the library did not, found by random
+layouts with scroll containers checked against both engines: an aspect
+ratio's floor along a scrolled axis, the scrollable extent, a scroll
+container's baseline, a reversed container's scroll origin, and boxes
+with no area. A program built against 0.5.0 to 0.5.4 runs with 0.5.5.
+Known issues: as in 0.5.4, TalkBack and VoiceOver on iOS have not
+walked the samples, and Orca 46 does not announce the first focus in a
+window that opens with nothing focused.
+
 ### Fixed
 
 - A scroll container with an aspect ratio no longer grows to its
@@ -16,8 +28,9 @@ format.
   content 80 wide, not 80, and the width it gives its container
   follows. An absolute one, or a root, drops its content's width when it
   scrolls on either axis, its width given or not, and its content's
-  height when it scrolls vertically, as Chrome does. Before, only a column flexed to a percentage height
-  dropped its content's width, and only when scrolling horizontally.
+  height when it scrolls vertically, as Chrome does. Before, only a
+  column flexed to a percentage height dropped its content's width, and
+  only when scrolling horizontally.
 - A scroll container's extent (`muiNode_GetScrollExtent`) is its
   scrollable overflow as Chrome and Firefox measure it: a box below a
   child that overflows the child now reaches as far as it goes, an
