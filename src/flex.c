@@ -159,8 +159,9 @@ static muiFlexFrame Setup(const muiSolver* solver, uint32_t node, const muiSizin
         frame.innerCross = fmaxf(frame.crossIn.size - frame.boxCross, 0.0f);
         frame.extentCross = crossDefinite ? frame.innerCross : -1.0f;
     }
-    frame.crossLoose = frame.row && (input->contentHeight || input->looseHeight) &&
-                       !muiResolveAxis(&style->sizing, false, input->parentHeight).definite;
+    bool own = muiResolveAxis(&style->sizing, false, input->parentHeight).definite;
+    frame.crossLoose = frame.row && (input->contentHeight || input->looseHeight) && !own;
+    frame.crossEarly = frame.row && (input->earlyHeight || own);
     RatioExtent(&frame, style, input);
     return frame;
 }
@@ -632,10 +633,14 @@ static muiSizingInput FinalInput(const muiFlexFrame* frame, uint32_t child)
         // laid out again at that size (section 9.4 step 11, as Chrome).
         muiFlexDirection direction = style->container.direction;
         bool column = direction == mui_flexColumn || direction == mui_flexColumnReverse;
-        input.ratioPercent =
-            style->sizing.aspectRatio > 0.0f && !given &&
-            (!muiFlexIsStretched(frame, style) || (column && !ItemOf(frame, child)->resized));
+        // A single line of early height lays it out at that height from
+        // the start, whatever it is (as Chrome and Firefox).
+        bool early = muiFlexIsStretched(frame, style) && !frame->multiLine && frame->crossEarly;
+        input.ratioPercent = style->sizing.aspectRatio > 0.0f && !given &&
+                             (!muiFlexIsStretched(frame, style) ||
+                              (column && !ItemOf(frame, child)->resized && !early));
         input.looseHeight = frame->crossLoose && muiFlexIsStretched(frame, style) && !given;
+        input.earlyHeight = early;
     }
     else
     {

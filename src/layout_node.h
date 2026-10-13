@@ -57,6 +57,11 @@ typedef struct muiSizingInput
     // for percentages (Flexbox 9.8), but a row sizing its content carries
     // no ratio's minimum through it (as Chrome).
     bool looseHeight : 1;
+    // Whether an exact height was known before the node's container laid
+    // out its lines: its own style's, or a stretch in a single line of
+    // such a height. A stretched column with a ratio is laid out at it
+    // from the start, its lines and percentages too (as Chrome).
+    bool earlyHeight : 1;
 } muiSizingInput;
 
 typedef struct muiCacheEntry
@@ -95,6 +100,7 @@ typedef struct muiLayoutCache
     bool finalContentHeight : 1;
     bool finalRatioPercent : 1;
     bool finalLooseHeight : 1;
+    bool finalEarlyHeight : 1;
     muiSize finalSize;
 } muiLayoutCache;
 

@@ -110,6 +110,7 @@ static const muiCacheEntry* FindCached(const muiSolver* solver, uint32_t node,
             entry->input.ratioPercent == input->ratioPercent &&
             entry->input.ratioLines == input->ratioLines &&
             (!keyLoose || entry->input.looseHeight == input->looseHeight) &&
+            entry->input.earlyHeight == input->earlyHeight &&
             AxisAnswers(input->width, entry->input.width, entry->size.width, (loose & 1u) != 0) &&
             AxisAnswers(input->height, entry->input.height, entry->size.height, (loose & 2u) != 0))
         {
@@ -629,6 +630,7 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
             cache->finalContentHeight == input->contentHeight &&
             cache->finalRatioPercent == input->ratioPercent &&
             cache->finalLooseHeight == input->looseHeight &&
+            cache->finalEarlyHeight == input->earlyHeight &&
             cache->finalSize.width == input->width.size &&
             cache->finalSize.height == input->height.size)
         {
@@ -675,6 +677,7 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
         cache->finalContentHeight = input->contentHeight;
         cache->finalRatioPercent = input->ratioPercent;
         cache->finalLooseHeight = input->looseHeight;
+        cache->finalEarlyHeight = input->earlyHeight;
         cache->finalSize = size;
         Published(solver, node, size, own.rtl);
     }

@@ -52,6 +52,8 @@ typedef struct muiFlexFrame
     // A row whose height is its content's, or definite only through
     // stretching in such rows (looseHeight): its stretched items' too.
     bool crossLoose;
+    // A row whose height its style gives or was early (earlyHeight).
+    bool crossEarly;
     uint32_t count;
     uint32_t lineCount;
     float innerMain;
@@ -76,6 +78,7 @@ static inline muiSizingInput muiFlexChildInput(const muiFlexFrame* frame, muiMea
     input.ratioPercent = false;
     input.ratioLines = false;
     input.looseHeight = frame->row && frame->crossLoose;
+    input.earlyHeight = false;
     return input;
 }
 

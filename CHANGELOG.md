@@ -8,6 +8,16 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- A wrapping column with an aspect ratio, stretched in a row whose
+  height is known before its lines (given, or stretched in turn in such
+  a row), is laid out at that height from the start, as Chrome and
+  Firefox do: its lines break and its percentages resolve there, even
+  when the height equals the one its content would give. Before, it
+  kept its ratio's height for them, and an empty last item started a
+  line of its own.
+
 ## [0.5.6] - 2026-10-13
 
 Two scroll container fixes, with no change to the API. A scroll
