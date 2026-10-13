@@ -32,6 +32,11 @@
 # and drops subtrees and keys while Chrome and the library still part,
 # rendering each round's candidates in one Chrome call. It prints the
 # reduced fixture with Chrome's rectangles and the library's answers.
+# With --firefox it renders each round in that Firefox executable too
+# and keeps a candidate only while a node where Chrome and Firefox agree
+# parts from the library: where the engines part, the library may follow
+# either, and a reduction against Chrome alone can slide into such a
+# case.
 #
 # Both need what --oracle needs: Node and puppeteer (MUI_NODE_MODULES);
 # reduce also needs CMake and a C23 compiler (CC names one if the default
@@ -39,7 +44,7 @@
 #
 # usage: random_layouts.py generate SEED COUNT
 #            [--wide | --words | --deep | --reach | --scroll]
-#        random_layouts.py reduce FILE NAME
+#        random_layouts.py reduce FILE NAME [--firefox EXECUTABLE]
 
 import os
 import random
@@ -223,7 +228,8 @@ def generate(seed, count, draws=""):
 class Reducer:
     """A copy of the tree with the fixture test built, run on candidates."""
 
-    def __init__(self, work):
+    def __init__(self, work, firefox=None):
+        self.firefox = firefox
         self.source = os.path.join(work, "src")
         self.build = os.path.join(work, "build")
         files = call(["git", "-C", ROOT, "ls-files", "-z"]).split("\0")
@@ -247,17 +253,57 @@ class Reducer:
         with open(os.path.join(self.corpus, "cand.txt"), "w", encoding="utf-8") as f:
             f.write("\n".join(text))
 
-    def run(self, candidates, available):
-        """The indices of the candidates that part from Chrome, and the output."""
-        self.write(candidates, available)
+    def render(self, firefox=None):
+        """Renders the candidates in Chrome, or in the Firefox executable."""
+        env = {k: v for k, v in os.environ.items() if k != "MUI_ORACLE_FIREFOX"}
+        if firefox:
+            env["MUI_ORACLE_FIREFOX"] = firefox
         tool = os.path.join(self.source, "tools", "gen_layout_fixtures.py")
-        call([sys.executable, tool, "--oracle"], cwd=self.source)
+        call([sys.executable, tool, "--oracle"], cwd=self.source, env=env)
+
+    def run(self, candidates, available):
+        """The indices of the candidates that part from Chrome (with
+        Firefox, at a node where Firefox agrees with Chrome), and the
+        output."""
+        self.write(candidates, available)
+        firefox = {}
+        if self.firefox:
+            self.render(self.firefox)
+            firefox = rendered(os.path.join(self.corpus, "cand.txt"))
+        self.render()
         call(["cmake", "--build", self.build, "--target", "test_layout_fixtures"])
         test = os.path.join(self.build, "test_layout_fixtures")
         result = subprocess.run([test], capture_output=True, text=True)
         output = result.stdout + result.stderr
-        failing = {int(m.group(1)) for m in re.finditer(r"^cand_(\d+) ", output, re.M)}
+        if not self.firefox:
+            return {int(m.group(1)) for m in re.finditer(r"^cand_(\d+) ", output, re.M)}, output
+        failing = set()
+        for m in re.finditer(r"^cand_(\d+) node (\d+): (got|extent) ([^,]*), Chrome (.*)$",
+                             output, re.M):
+            name, node = f"cand_{m.group(1)}", int(m.group(2))
+            got = [float(v) for v in m.group(4).split()]
+            chrome = [float(v) for v in m.group(5).split()]
+            # Extents within a pixel, as the fixture test compares them;
+            # rectangles within the engines' rounding. Firefox agrees with
+            # Chrome on every number and parts from the library on one.
+            numbers = firefox[name][node]
+            ff, near = (numbers[:4], 0.05) if m.group(3) == "got" else (numbers[4:], 1.0)
+            agrees = len(ff) == len(chrome) and all(abs(a - b) < near for a, b in zip(ff, chrome))
+            if agrees and any(abs(a - b) >= near for a, b in zip(ff, got)):
+                failing.add(int(m.group(1)))
         return failing, output
+
+
+def rendered(path):
+    """Each fixture's rendered numbers in a corpus file, node by node."""
+    fixtures = {}
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("fixture "):
+                nodes = fixtures.setdefault(line.split()[1], [])
+            elif "=>" in line:
+                nodes.append([float(v) for v in line.split("=>")[1].split()])
+    return fixtures
 
 
 def candidates(nodes):
@@ -272,7 +318,7 @@ def candidates(nodes):
             yield nodes[:i] + [(depth, keys[:k] + keys[k + 1:])] + nodes[i + 1:]
 
 
-def reduce(path, name):
+def reduce(path, name, firefox=None):
     text = open(path, encoding="utf-8").read()
     match = re.search(r"^fixture " + re.escape(name) + r" available=(\S+)\n(.*?)(?:\n\n|\Z)",
                       text, re.S | re.M)
@@ -285,10 +331,11 @@ def reduce(path, name):
             depth = (len(line) - len(line.lstrip(" "))) // 2
             nodes.append((depth, line.split("=>")[0].split()[1:]))
     with tempfile.TemporaryDirectory(prefix="mui-reduce-") as work:
-        reducer = Reducer(work)
+        reducer = Reducer(work, firefox)
         failing, output = reducer.run([nodes], available)
         if failing != {0}:
-            sys.exit(f"random layouts: {name} agrees with Chrome")
+            sys.exit(f"random layouts: {name} agrees with Chrome" +
+                     (" wherever Firefox does" if firefox else ""))
         while True:
             options = list(candidates(nodes))
             failing, _ = reducer.run(options, available) if options else (set(), "")
@@ -305,11 +352,12 @@ def main():
     draws = ([], ["--wide"], ["--words"], ["--deep"], ["--reach"], ["--scroll"])
     if len(args) in (3, 4) and args[0] == "generate" and args[3:] in draws:
         print(generate(int(args[1]), int(args[2]), "".join(args[3:])))
-    elif len(args) == 3 and args[0] == "reduce":
-        reduce(args[1], args[2])
+    elif len(args) in (3, 5) and args[0] == "reduce" and args[3:4] in ([], ["--firefox"]):
+        reduce(args[1], args[2], args[4] if len(args) == 5 else None)
     else:
         sys.exit("usage: random_layouts.py generate SEED COUNT"
-                 " [--wide | --words | --deep | --reach | --scroll] | reduce FILE NAME")
+                 " [--wide | --words | --deep | --reach | --scroll]"
+                 " | reduce FILE NAME [--firefox EXECUTABLE]")
 
 
 if __name__ == "__main__":

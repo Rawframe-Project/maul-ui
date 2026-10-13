@@ -10,7 +10,9 @@
 // A development tool: it needs Node and puppeteer, which the library
 // and its tests do not. MUI_NODE_MODULES names the node_modules directory
 // that holds puppeteer when it is not installed beside this file, and
-// PUPPETEER_CACHE_DIR where its browser is.
+// PUPPETEER_CACHE_DIR where its browser is. MUI_ORACLE_FIREFOX names a
+// Firefox executable to render in instead, to compare the engines: the
+// corpus pins Chrome.
 
 import { createRequire } from 'node:module';
 import path from 'node:path';
@@ -38,7 +40,10 @@ function readStdin() {
 }
 
 const fixtures = JSON.parse(await readStdin());
-const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+const firefox = process.env.MUI_ORACLE_FIREFOX;
+const browser = await puppeteer.launch(firefox
+    ? { browser: 'firefox', executablePath: firefox, headless: true }
+    : { headless: true, args: ['--no-sandbox'] });
 const page = await browser.newPage();
 const result = { version: (await browser.version()).replace('Chrome/', ''), fixtures: {} };
 for (const fixture of fixtures) {
