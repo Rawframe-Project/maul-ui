@@ -10,6 +10,12 @@ format.
 
 ### Fixed
 
+- A wrapping column sized by its content breaks its lines at its items'
+  heights at the widths they take, so a percentage width inside an item
+  resolves against that width, as in Chrome and Firefox. Before, the
+  percentage was left unresolved, an item with an aspect ratio came out
+  too tall, and the column broke into an extra line and grew wider.
+
 - A row inside another row, sized by its content, is at least as wide
   as an item whose aspect ratio and the height its line stretches it
   to make it wider than its basis, as in Chrome and Firefox. Before,

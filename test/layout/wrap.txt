@@ -496,3 +496,38 @@ node height=300 => 0 0 300 300
       node height=150 aspect=2 direction=column wrap=wrap => 133 -7 34 17
         node margin=auto,5,5,5 => 29 5 0 0
         node padding=3,3,7,0 => 0 10 34 7
+
+# A wrapping column asked its width breaks its lines at its items'
+# heights at the widths they take: a percentage width inside resolves
+# against that width (audit, 385p 33).
+fixture wrap_column_breaks_at_items_laid_out_at_their_width available=500x400
+node height=300 => 0 0 150 300
+  node direction=column wrap=wrap => 0 0 150 300
+    node direction=column => 0 0 150 30
+      node width=10% aspect=0.5 => 0 0 15 30
+        node width=150 => 0 0 15 30
+    node content=20x20 => 0 30 150 20
+
+fixture wrap_column_breaks_at_items_laid_out_at_their_width_reverse available=500x400
+node height=300 => 0 0 150 300
+  node direction=column wrap=wrap-reverse => 0 0 150 300
+    node direction=column => 0 0 150 30
+      node width=10% aspect=0.5 => 0 0 15 30
+        node width=150 => 0 0 15 30
+    node content=20x20 => 0 30 150 20
+
+fixture wrap_column_breaks_at_items_laid_out_at_their_width_half available=500x400
+node height=300 => 0 0 150 300
+  node direction=column wrap=wrap => 0 0 150 300
+    node direction=column => 0 0 150 150
+      node width=50% aspect=0.5 => 0 0 75 150
+        node width=150 => 0 0 75 150
+    node content=20x20 => 0 150 150 20
+
+fixture wrap_column_breaks_at_items_laid_out_at_their_width_automatic available=500x400
+node height=300 => 0 0 170 300
+  node direction=column wrap=wrap => 0 0 170 300
+    node direction=column => 0 0 150 300
+      node aspect=0.5 => 0 0 150 300
+        node width=150 => 0 0 150 300
+    node content=20x20 => 150 0 20 20

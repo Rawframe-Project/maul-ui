@@ -168,6 +168,23 @@ float muiFlexMinContribution(const muiFlexFrame* frame, uint32_t child)
            layout->item.marginMain;
 }
 
+// A wrapping column asked its width breaks its lines at its items'
+// heights at the widths they take, against which percentages inside them
+// resolve (as Chrome): an item whose width is not definite is measured at
+// that width first.
+static muiMeasureAxis FittedCross(const muiFlexFrame* frame, uint32_t child,
+                                  const muiAxisSizing* cross, muiMeasureAxis constraint)
+{
+    if (frame->row || !frame->multiLine || cross->definite ||
+        (constraint.mode != mui_measureMaxContent && constraint.mode != mui_measureMinContent))
+    {
+        return constraint;
+    }
+    muiSizingInput probe =
+        muiFlexChildInput(frame, (muiMeasureAxis){0.0f, mui_measureMaxContent}, constraint);
+    return muiExact(frame->solver->solve(frame->solver, child, &probe, false).width);
+}
+
 float muiFlexPrepareItem(const muiFlexFrame* frame, uint32_t child, float* aloneOut)
 {
     muiLayoutNode* layout = &frame->solver->nodes[child - 1];
@@ -178,6 +195,7 @@ float muiFlexPrepareItem(const muiFlexFrame* frame, uint32_t child, float* alone
     const muiEdges padding = muiFlexChildPadding(frame, style);
     float boxMain = muiBoxSum(&padding, style, frame->row);
     muiMeasureAxis crossConstraint = muiFlexCrossConstraint(frame, style, &cross, true);
+    crossConstraint = FittedCross(frame, child, &cross, crossConstraint);
     muiEdges margins = muiMarginsOf(style, frame->rtl);
     *item = (muiFlexItemState){
         .marginMain = muiEdgeSum(&margins, frame->row),
