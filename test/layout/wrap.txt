@@ -488,3 +488,11 @@ node => 0 0 25 42
     node max-width=25 direction=column wrap=wrap => 0 0 25 42
       node width=40 height=10 => 0 0 40 10
       node content=10x16*4 => 0 10 40 32
+
+fixture wrap_column_ratio_as_wide_as_its_lines available=500x400
+node height=300 => 0 0 300 300
+  node height=10%-20 => 0 0 300 10
+    node direction=column-reverse align-items=center => 0 0 300 10
+      node height=150 aspect=2 direction=column wrap=wrap => 133 -7 34 17
+        node margin=auto,5,5,5 => 29 5 0 0
+        node padding=3,3,7,0 => 0 10 34 7

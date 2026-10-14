@@ -18571,6 +18571,21 @@ static const LayoutFixtureNode s_wrap_column_at_its_maximum_keeps_fixed_items[] 
      {10.0f, 16.0f}, 4, {0.0f, 10.0f, 40.0f, 32.0f}, {0.0f, 0.0f}},
 };
 
+static const LayoutFixtureNode s_wrap_column_ratio_as_wide_as_its_lines[] = {
+    {0, {{{0.0f, 0.0f, 0}, {0.0f, 300.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 300.0f, 300.0f}, {0.0f, 0.0f}},
+    {1, {{{0.0f, 0.0f, 0}, {0.1f, -20.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 300.0f, 10.0f}, {0.0f, 0.0f}},
+    {2, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {3, 0, 0, 4, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 0.0f, 300.0f, 10.0f}, {0.0f, 0.0f}},
+    {3, {{{0.0f, 0.0f, 0}, {0.0f, 150.0f, 1}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 2.0f}, {2, 1, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {133.0f, -7.0f, 34.0f, 17.0f}, {0.0f, 0.0f}},
+    {4, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 5.0f, 5.0f, 5.0f}, 1, {0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {29.0f, 5.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+    {4, {{{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, 0.0f}, {0, 0, 0, 1, 0, 0.0f, 0.0f}, {0.0f, 1.0f, {0.0f, 0.0f, 0}, 0}, {0.0f, 0.0f, 0.0f, 0.0f}, 0, {0.0f, 0.0f, 0.0f, 0.0f}, {3.0f, 3.0f, 7.0f, 0.0f}, {0, {{0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}, {0.0f, 0.0f, 0}}, 0.0f, 0.0f}, 0, 0, 0, 0},
+     {0.0f, 0.0f}, 0, {0.0f, 10.0f, 34.0f, 7.0f}, {0.0f, 0.0f}},
+};
+
 static const LayoutFixture s_layoutFixtures[] = {
     {"absolute_insets_from_padding_box", 500.0f, 400.0f, s_absolute_insets_from_padding_box, 4},
     {"absolute_stretches_between_insets", 500.0f, 400.0f, s_absolute_stretches_between_insets, 2},
@@ -19875,6 +19890,7 @@ static const LayoutFixture s_layoutFixtures[] = {
     {"wrap_column_at_its_maximum_breaks_words_there_reverse", 500.0f, 400.0f, s_wrap_column_at_its_maximum_breaks_words_there_reverse, 4},
     {"wrap_column_at_its_maximum_breaks_words_there_in_a_wide_row", 500.0f, 400.0f, s_wrap_column_at_its_maximum_breaks_words_there_in_a_wide_row, 4},
     {"wrap_column_at_its_maximum_keeps_fixed_items", 500.0f, 400.0f, s_wrap_column_at_its_maximum_keeps_fixed_items, 5},
+    {"wrap_column_ratio_as_wide_as_its_lines", 500.0f, 400.0f, s_wrap_column_ratio_as_wide_as_its_lines, 6},
 };
 
 #endif // MAUL_UI_TEST_GENERATED_LAYOUT_FIXTURES_H
