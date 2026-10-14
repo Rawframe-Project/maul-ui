@@ -8,6 +8,17 @@ format.
 
 ## [Unreleased]
 
+## [0.5.9] - 2026-10-14
+
+Two layout fixes, with no change to the API, found by random layouts
+checked against Chrome and Firefox: a baseline item in a wrapping
+column fitted to its line as Chrome fits it, and a flex share landing
+exactly on an item's minimum no longer freezing it there. A program
+built against 0.5.0 to 0.5.8 runs with 0.5.9. Known issues: as in
+0.5.8, TalkBack and VoiceOver on iOS have not walked the samples, and
+Orca 46 does not announce the first focus in a window that opens with
+nothing focused.
+
 ### Fixed
 
 - In a column that wraps, an item aligned by baseline is fitted to its
