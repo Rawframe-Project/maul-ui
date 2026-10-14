@@ -1129,3 +1129,58 @@ node direction=column => 0 0 240 120
     node => 0 0 240 120
       node height=120 aspect=2 => 0 0 240 120
       node basis=20 aspect=1 => 240 0 120 120
+
+# I158's seed case whole (45d 199): an item whose height is a percentage
+# of a loosely stretched height takes no minimum through it, even in a
+# min-content query; the engines part, the library keeps Chrome's reading
+# (mutants, research 316).
+fixture ratio_contribution_stretched_loose_percent_height_seed available=500x400
+node width=40 aspect=1.5 padding=5 direction=column-reverse wrap=wrap-reverse justify=end => 0 0 40 203
+  node max-width=25% grow=2 basis=50% content=30x16 => 27.5 5 7.5 193
+  node height=0 min-width=10 margin=0,0,7,3 direction=row align-items=center align-content=space-around => -333.5 12 361 0
+    node width=20 height=120 grow=1 border=0,7,7,0 => 0 -60 16.765625 120
+    node => 16.765625 -78.5 344.234375 157
+      node shrink=0 justify=start row-gap=0 => 0 0 318 157
+        node min-height=10 shrink=3 margin=0,7,3,0 direction=row-reverse => 0 3 30 154
+          node width=150 height=100%+10 basis=20 aspect=2 padding=7,3,0,7 content=10x40*6 => -120 0 150 164
+          node height=100% shrink=3 align-self=start padding=5 => -130 0 10 154
+        node width=50%+5 height=100%+20 margin=0 align-items=baseline => 37 0 138.4375 177
+          node min-width=30 shrink=3 padding=0,3,7,7 => 0 0 30 14
+        node grow=0 shrink=3 margin=2 border=5 wrap=wrap row-gap=0 => 177.4375 2 138.5625 153
+          node width=120 grow=1 basis=40 margin=0 content=50x20*4 => 5 5 57.0625 101.5
+          node height=25% aspect=2 margin=auto,auto,auto,auto border=7,0,0,7 content=10x16*6 => 62.0625 37.875 71.5 35.75
+          node width=10%+5 content=50x20 => 5 106.5 17.84375 41.5
+      node width=10% min-height=80 basis=0 margin=0,0,auto,5 => 318 72 34.421875 80
+        node width=80 max-height=60 content=20x40 => 0 0 34.421875 60
+        node shrink=3 position=absolute top=5 aspect=1 margin=0,auto,5,0 => 0 10 0 0
+      node align-self=center justify=space-evenly => 352.421875 0 60 157
+        node width=60 grow=2 direction=row-reverse => 0 0 60 157
+          node align-self=start padding=0 => 60 0 0 0
+          node height=150 margin=0,0,0,7 padding=7,3,7,0 content=30x20 => 20 0 40 150
+  node direction=column row-gap=10 => -413.5 5 80 193
+    node height=30 max-height=100% margin=0,0,3,0 wrap=nowrap justify=space-around column-gap=0 => 0 3 80 30
+      node width=80 max-width=150 align-items=stretch column-gap=0 => 0 0 80 30
+        node grow=1 basis=100%-10 margin=10 direction=column align-items=end => 10 10 60 10
+          node width=50% align-self=auto aspect=1 margin=5,0,5,0 border=7,3,3,3 padding=7,0,3,0 => 30 5 30 30
+          node height=10 min-width=50% align-self=center border=0 content=10x20*5 => 5 35 50 10
+          node width=75%+20 height=25%-10 margin=0,0,3,7 padding=7,3,3,0 => -5 48 65 3
+    node width=20 height=150 padding=7,0,3,0 wrap=wrap column-gap=4 => 0 43 20 150
+      node width=50%+5 direction=column-reverse align-content=start => 7 3 11.5 72
+        node width=75% grow=1 padding=0,3,3,7 wrap=nowrap justify=start => 0 54 8.625 18
+          node width=120 shrink=1 margin=7,3,0,0 => 7 3 0 8
+        node width=100% height=75% min-height=50%-5 border=3,3,7,0 content=80x40 => 0 0 11.5 54
+      node width=60 height=60 grow=1 align-self=stretch padding=7,0,3,0 align-content=space-evenly => 7 75 35.5 60
+        node width=25%-10 grow=0 shrink=3 aspect=0.5 margin=0 column-gap=10 => 7 3 0 57
+          node width=75%+10 padding=0,3,7,0 content=10x16*5 => 0 0 10 57
+  node margin=3,7,0,7 border=0,3,7,7 direction=row-reverse justify=space-around => -633.5 5 213 114
+    node width=60 height=75% direction=column-reverse wrap=wrap dir=ltr => 150 7 60 75
+      node width=100% shrink=3 margin=3,0,0,0 border=0 padding=0 wrap=nowrap => 3 -25 60 100
+        node width=20 height=40 grow=1 basis=120 border=0,7,7,3 padding=7,3,7,3 => 0 0 17 40
+        node min-width=100%-10 min-height=50% border=0 padding=2 content=50x20*3 => 17 0 50 100
+        node width=60 max-height=60 grow=0 border=5 padding=7,7,7,3 content=50x10*8 => 67 0 60 60
+        node height=50% align-self=center content=80x20*5 => 127 25 80 50
+      node grow=2 => 63 0 0 75
+      node width=10 height=150 grow=2 position=absolute content=50x40*5 => 0 -75 10 150
+    node height=60 min-height=0 align-self=end margin=10 content=10x16*3 => 111.53125 37 28.46875 60
+    node width=120 shrink=3 => 0 7 101.53125 100
+    node height=100% align-self=center position=absolute start=0 border=3,7,0,3 => 0 7 10 100
