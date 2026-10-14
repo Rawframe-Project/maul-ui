@@ -176,3 +176,14 @@ node width=80 => 0 0 80 80
       node margin=7,7,3,0 border=10 content=30x10*5 => 7 3 50 77
       node max-width=0 border=3,0,3,7 shrink=0.25 content=50x10 => 64 0 3 80
       node width=100% shrink=0.25 content=30x20*4 => 67 0 30 80
+
+fixture flex_shrink_share_landing_on_its_minimum available=500x400
+node width=0 => 0 0 0 10
+  node width=60 border=3,7,0,0 shrink=0.25 => 0 0 40 10
+  node padding=5,5,0,0 content=10x10 => 40 0 20 10
+
+fixture flex_shrink_share_landing_on_its_minimum_nested available=500x400
+node width=10 padding=5 direction=column-reverse => 0 0 10 30
+  node => 5 5 0 20
+    node width=60 border=3,7,3,3 shrink=0.25 margin=5,5,-5,5 => 5 -5 37.5 20
+    node padding=5 content=10x10 => 47.5 0 20 20

@@ -15,6 +15,12 @@ format.
   line's left edge is the item's start. Before, it kept the width its
   container's width gave it. Right to left, or wrapped in reverse, it
   keeps that width, as in Firefox.
+- An item whose share of the space a line takes away lands exactly on
+  its minimum is no longer frozen there by float error. It stays
+  flexible, as in Chrome and Firefox, so the rule for flex factors that
+  sum below one applies to it in the next round. Before, an item 60 wide
+  shrinking 0.25 beside one shrinking 1 ended at its minimum of 10
+  instead of 37.5.
 
 ## [0.5.8] - 2026-10-13
 
