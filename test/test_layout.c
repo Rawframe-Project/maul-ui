@@ -749,6 +749,52 @@ static void TestEarlyStretchLaysOutAgainWhenLate(void)
     muiDestroyContext(context);
 }
 
+static void TestBaselineItemFittedToItsLineFromItsLineLeft(void)
+{
+    // In a column that wraps, an item aligned by baseline is fitted to
+    // its line as one aligned at its start, its line's 14 for the 10 its
+    // container's width of 0 gave. Right to left its line-left edge,
+    // where a column synthesizes its baseline, is not its start: it keeps
+    // its width and its place (as Firefox), where Chrome widens it past
+    // its line's start.
+    muiContext* context = MakeContext();
+    muiLayoutStyle outer = muiDefaultLayoutStyle();
+    outer.sizing.width = Length(0.0f);
+    outer.container.direction = mui_flexColumn;
+    outer.container.wrap = mui_wrapWrap;
+    muiNodeId root = MakeNode(context, &outer);
+    muiLayoutStyle wide = muiDefaultLayoutStyle();
+    wide.sizing.width = Length(14.0f);
+    wide.sizing.height = Length(10.0f);
+    muiNodeId first = MakeNode(context, &wide);
+    muiLayoutStyle words = muiDefaultLayoutStyle();
+    words.item.alignSelf = mui_alignBaseline;
+    words.container.wrap = mui_wrapWrap;
+    muiNodeId item = MakeNode(context, &words);
+    CHECK(muiNode_InsertChild(context, root, first, s_null) == mui_success &&
+              muiNode_InsertChild(context, root, item, s_null) == mui_success,
+          "insert");
+    muiLayoutStyle word = muiDefaultLayoutStyle();
+    word.sizing.width = Length(10.0f);
+    word.sizing.height = Length(20.0f);
+    for (int i = 0; i < 3; i++)
+    {
+        CHECK(muiNode_InsertChild(context, item, MakeNode(context, &word), s_null) == mui_success,
+              "insert a word");
+    }
+    Host host = {0};
+    muiLayoutInput input = Input(&host);
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    muiRect rect = muiNode_GetRect(context, item);
+    CHECK(rect.x == 0.0f && rect.width == 14.0f, "fitted to its line");
+    outer.textDirection = mui_textRightToLeft;
+    CHECK(muiNode_SetLayoutStyle(context, root, &outer) == mui_success, "right to left");
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout right to left");
+    rect = muiNode_GetRect(context, item);
+    CHECK(rect.x == -10.0f && rect.width == 10.0f, "its width and place kept");
+    muiDestroyContext(context);
+}
+
 static void TestRectOfUnknownNodeIsZero(void)
 {
     muiContext* context = MakeContext();
@@ -769,6 +815,7 @@ int main(void)
     TestDecidedSizesAreNotMeasured();
     TestLooseRowLabelIsMeasuredOnce();
     TestEarlyStretchLaysOutAgainWhenLate();
+    TestBaselineItemFittedToItsLineFromItsLineLeft();
     TestStyleChangeRelaysTheParent();
     TestNewSpaceRelaysAnUnchangedTree();
     TestScaledLimitFollowsTheParent();

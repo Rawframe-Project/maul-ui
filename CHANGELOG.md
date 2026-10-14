@@ -8,6 +8,14 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- In a column that wraps, an item aligned by baseline is fitted to its
+  line's width like one aligned at its start, as in Chrome, where the
+  line's left edge is the item's start. Before, it kept the width its
+  container's width gave it. Right to left, or wrapped in reverse, it
+  keeps that width, as in Firefox.
+
 ## [0.5.8] - 2026-10-13
 
 One layout fix, with no change to the API, a case where Chrome and

@@ -441,3 +441,25 @@ node height=200 direction=column => 0 0 120 200
   node width=120 height=100% basis=20 aspect=2 direction=column-reverse wrap=wrap => 0 0 120 120
     node width=60 height=120 => 0 0 60 120
     node width=35 height=7 => 72.5 113 35 7
+
+fixture wrap_column_baseline_item_fitted_to_its_line available=500x400
+node width=0 direction=column wrap=wrap => 0 0 0 70
+  node border=7,7,3,7 => 0 0 14 10
+  node align-self=baseline content=10x20*3 => 0 10 14 60
+
+fixture wrap_column_baseline_items_fitted_to_their_line available=500x400
+node width=0 direction=column wrap=wrap => 0 0 0 80
+  node border=7,7,3,7 => 0 0 14 10
+  node align-self=baseline content=10x20*3 => 0 10 14 60
+  node align-self=baseline content=4x5*2 => 0 70 8 10
+
+fixture wrap_column_baseline_item_fitted_within_its_margin available=500x400
+node width=0 direction=column wrap=wrap => 0 0 0 70
+  node border=7,7,3,7 => 0 0 14 10
+  node align-self=baseline margin=2,0,0,0 content=10x20*3 => 2 10 12 60
+
+fixture wrap_column_baseline_item_fitted_rtl_reverse available=500x400
+node width=0 direction=column wrap=wrap-reverse dir=rtl => 0 0 0 80
+  node border=7,7,3,7 => 0 0 14 10
+  node align-self=baseline content=10x20*3 => 0 10 14 60
+  node align-self=baseline content=4x5*2 => 0 70 8 10

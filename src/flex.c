@@ -385,9 +385,14 @@ static void Stretch(muiFlexFrame* frame, uint32_t first, uint32_t count)
             item->resized = item->cross != measured;
         }
         else if (!cross.definite && !frame->row && frame->multiLine &&
-                 !IsBaselineAligned(frame, style) && line - item->marginCross > item->cross)
+                 (!IsBaselineAligned(frame, style) || frame->rtl == frame->wrapReverse) &&
+                 line - item->marginCross > item->cross)
         {
             // Fitted to a narrower space, it grows no wider than its line.
+            // Aligned by baseline, its line-left edge, where a column's is
+            // synthesized, stays put (as Chrome): fitting it is fitting it
+            // at its start only when that is its cross start; otherwise it
+            // keeps its width, as Firefox, rather than pass its line.
             muiMeasureAxis space = {line - item->marginCross, mui_measureAtMost};
             muiSizingInput input = muiFlexChildInput(frame, muiExact(item->target), space);
             input.contentHeight = ColumnContentHeight(frame, style);
