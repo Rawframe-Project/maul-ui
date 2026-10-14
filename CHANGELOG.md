@@ -8,6 +8,16 @@ format.
 
 ## [Unreleased]
 
+## [0.5.10] - 2026-10-14
+
+One layout fix, with no change to the API, found by random layouts
+checked against Chrome and Firefox: a wrapping column narrowed by its
+maximum width breaks its text at that width when its container is
+sized by its content. A program built against 0.5.0 to 0.5.9 runs with
+0.5.10. Known issues: as in 0.5.9, TalkBack and VoiceOver on iOS have
+not walked the samples, and Orca 46 does not announce the first focus
+in a window that opens with nothing focused.
+
 ### Fixed
 
 - A wrapping column whose maximum width makes it narrower than its
