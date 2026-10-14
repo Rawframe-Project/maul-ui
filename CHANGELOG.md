@@ -8,6 +8,15 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- A node made in the slot of one that was painted at the same box, and
+  read by the accessibility update before a layout gave it its box, has
+  that box sent once the layout gives it. Before, the slot kept what its
+  last node painted, the layout took the new node as unmoved, and
+  assistive technology was left with an empty box at the origin, so a
+  screen reader skipped the node in a scrolled container.
+
 ## [0.5.11] - 2026-10-14
 
 Two layout fixes, with no change to the API, found by random layouts

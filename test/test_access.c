@@ -8,7 +8,9 @@
 #include "test_harness.h"
 
 #include "maul-ui/access.h"
+#include "maul-ui/access_tree.h"
 #include "maul-ui/context.h"
+#include "maul-ui/draw.h"
 #include "maul-ui/event.h"
 #include "maul-ui/exit.h"
 #include "maul-ui/focus.h"
@@ -329,6 +331,42 @@ static void TestChildren(void)
     CHECK(root != NULL &&
               update.children[root->firstChild + root->childCount - 1] == muiAccessIdOf(again),
           "the new node listed");
+    muiDestroyContext(context);
+}
+
+// A node made in the slot of one that was painted where it now lies, and
+// read before a layout gave it a box: the box the layout gives it is sent,
+// though the last node painted in its slot had the same.
+static void TestReusedSlot(void)
+{
+    Scene scene;
+    MakeScene(&scene);
+    muiContext* context = scene.context;
+    muiAccessTreeDef copyDef = muiDefaultAccessTreeDef();
+    muiAccessTree* copy = NULL;
+    CHECK(muiCreateAccessTree(&copyDef, &copy) == mui_success, "a copy");
+    CHECK(muiAccess_Enable(context, scene.root) == mui_success, "enabled");
+    const muiDrawInput draw = {1, 1.0f, NULL, NULL};
+    muiNodeId first = Node(context, scene.group);
+    Size(context, first, 30.0f, 10.0f);
+    Layout(context, scene.root);
+    CHECK(muiBuildDrawList(context, scene.root, &draw) == mui_success, "painted");
+    muiAccessUpdate update = Build(context, scene.root);
+    CHECK(muiAccessTree_Apply(copy, &update, NULL) == mui_success, "applied");
+    CHECK(muiDestroyNode(context, first) == mui_success, "gone");
+    muiNodeId second = Node(context, scene.group);
+    Size(context, second, 30.0f, 10.0f);
+    CHECK(second.index1 == first.index1, "the same slot");
+    update = Build(context, scene.root);
+    CHECK(muiAccessTree_Apply(copy, &update, NULL) == mui_success, "read before a layout");
+    Layout(context, scene.root);
+    CHECK(muiBuildDrawList(context, scene.root, &draw) == mui_success, "painted");
+    update = Build(context, scene.root);
+    CHECK(muiAccessTree_Apply(copy, &update, NULL) == mui_success, "applied");
+    const muiAccessNode* sent = muiAccessTree_Find(copy, muiAccessIdOf(second));
+    CHECK(sent != NULL && sent->bounds.width == 30.0f && sent->bounds.height == 10.0f,
+          "its box once laid out");
+    muiDestroyAccessTree(copy);
     muiDestroyContext(context);
 }
 
@@ -1497,6 +1535,7 @@ int main(void)
     TestWholeThenChanged();
     TestPasswordValue();
     TestChildren();
+    TestReusedSlot();
     TestRelationsAndValues();
     TestContentText();
     TestDerived();
