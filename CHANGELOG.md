@@ -8,6 +8,14 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- A row inside another row, sized by its content, is at least as wide
+  as an item whose aspect ratio and the height its line stretches it
+  to make it wider than its basis, as in Chrome and Firefox. Before,
+  the row counted the item at its basis and was narrower than its
+  items.
+
 ## [0.5.10] - 2026-10-14
 
 One layout fix, with no change to the API, found by random layouts

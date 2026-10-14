@@ -1100,3 +1100,32 @@ node => 0 0 80 80
       node direction=column align-items=start => 0 0 80 80
         node height=25% min-width=50% max-height=80 aspect=1 => 0 0 80 80
           node width=120 => 0 0 80 80
+
+# A row's automatic minimum carries a ratio item's minimum through a
+# height stretched to its line by a sibling (audit, 383s 238).
+fixture ratio_minimum_stretched_by_sibling_two_rows_down available=500x400
+node => 0 0 240 120
+  node => 0 0 240 120
+    node => 0 0 360 120
+      node height=120 aspect=2 => 0 0 240 120
+      node basis=20 aspect=1 => 240 0 120 120
+
+fixture ratio_minimum_stretched_by_sibling_under_fixed_width available=500x400
+node width=300 => 0 0 300 120
+  node => 0 0 240 120
+    node => 0 0 360 120
+      node height=120 aspect=2 => 0 0 240 120
+      node basis=20 aspect=1 => 240 0 120 120
+
+fixture ratio_minimum_stretched_by_sibling_one_row_down available=500x400
+node => 0 0 240 120
+  node => 0 0 240 120
+    node height=120 aspect=2 => 0 0 240 120
+    node basis=20 aspect=1 => 240 0 120 120
+
+fixture ratio_minimum_stretched_by_sibling_under_column available=500x400
+node direction=column => 0 0 240 120
+  node => 0 0 240 120
+    node => 0 0 240 120
+      node height=120 aspect=2 => 0 0 240 120
+      node basis=20 aspect=1 => 240 0 120 120
