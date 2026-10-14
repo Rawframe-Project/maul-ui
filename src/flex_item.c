@@ -82,6 +82,33 @@ static float ContentBase(const muiFlexFrame* frame, uint32_t child, const muiAxi
                  fmaxf(item->maxCross, least) * ratio);
 }
 
+// A row sizing its content, its height definite only through stretching
+// in rows no style fixes, carries no minimum through a stretched item's
+// ratio, nor through a percentage height of the item's, which that height
+// would resolve (as Chrome, which sizes content before heights). Asked its
+// min-content width, as for its own automatic minimum, it carries one
+// through an automatic height stretched to its line, and so it does
+// whenever the item's own height at its base does not reach the line: a
+// sibling or a row above gave the line, which does not hang on the item
+// (as Chrome and Firefox).
+static bool LooseMinimum(const muiFlexFrame* frame, uint32_t child, muiMeasureAxis cross)
+{
+    const muiSizing* sizing = &frame->solver->nodes[child - 1].style.sizing;
+    bool loose =
+        frame->row && frame->mainIn.mode != mui_measureExact && frame->crossLoose &&
+        !muiResolveAxis(sizing, false, -1.0f).definite &&
+        (frame->mainIn.mode == mui_measureMaxContent || sizing->height.kind != mui_dimensionAuto);
+    if (!loose || sizing->aspectRatio <= 0.0f || cross.mode != mui_measureExact ||
+        sizing->height.kind != mui_dimensionAuto)
+    {
+        return loose;
+    }
+    const muiFlexItemState* state = &frame->solver->nodes[child - 1].item;
+    muiSizingInput input = muiFlexChildInput(frame, muiExact(state->base),
+                                             (muiMeasureAxis){0.0f, mui_measureMaxContent});
+    return frame->solver->solve(frame->solver, child, &input, false).height >= cross.size - 0.01f;
+}
+
 float muiFlexAutomaticMinimum(const muiFlexFrame* frame, uint32_t child, const muiAxisSizing* main,
                               muiMeasureAxis cross)
 {
@@ -103,18 +130,7 @@ float muiFlexAutomaticMinimum(const muiFlexFrame* frame, uint32_t child, const m
                        (own->container.direction == mui_flexColumn ||
                         own->container.direction == mui_flexColumnReverse);
     float content = muiFlexMainOf(frame, frame->solver->solve(frame->solver, child, &probe, false));
-    // A row sizing its content, its height definite only through
-    // stretching in rows no style fixes, carries no minimum through a
-    // stretched item's ratio, nor through a percentage height of the
-    // item's, which that height would resolve (as Chrome, which sizes
-    // content before heights). Asked its min-content width, as for its
-    // own automatic minimum, it carries one through an automatic height
-    // stretched to its line (as Chrome and Firefox).
-    const muiSizing* sizing = &frame->solver->nodes[child - 1].style.sizing;
-    bool loose =
-        frame->row && frame->mainIn.mode != mui_measureExact && frame->crossLoose &&
-        !muiResolveAxis(sizing, false, -1.0f).definite &&
-        (frame->mainIn.mode == mui_measureMaxContent || sizing->height.kind != mui_dimensionAuto);
+    bool loose = LooseMinimum(frame, child, cross);
     if (ratio > 0.0f && cross.mode == mui_measureExact && !loose)
     {
         content = fmaxf(content, frame->row ? cross.size * ratio : cross.size / ratio);

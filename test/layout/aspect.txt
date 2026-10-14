@@ -1184,3 +1184,23 @@ node width=40 aspect=1.5 padding=5 direction=column-reverse wrap=wrap-reverse ju
     node height=60 min-height=0 align-self=end margin=10 content=10x16*3 => 111.53125 37 28.46875 60
     node width=120 shrink=3 => 0 7 101.53125 100
     node height=100% align-self=center position=absolute start=0 border=3,7,0,3 => 0 7 10 100
+
+# The same deeper: every row from the second down is as wide as its
+# items, a sibling giving the line the item does not reach (research
+# 316's open ground, item 422).
+fixture ratio_minimum_stretched_by_sibling_three_rows_down available=500x400
+node => 0 0 240 120
+  node => 0 0 240 120
+    node => 0 0 360 120
+      node => 0 0 360 120
+        node height=120 aspect=2 => 0 0 240 120
+        node basis=20 aspect=1 => 240 0 120 120
+
+fixture ratio_minimum_stretched_by_sibling_four_rows_down available=500x400
+node => 0 0 240 120
+  node => 0 0 240 120
+    node => 0 0 360 120
+      node => 0 0 360 120
+        node => 0 0 360 120
+          node height=120 aspect=2 => 0 0 240 120
+          node basis=20 aspect=1 => 240 0 120 120

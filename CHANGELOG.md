@@ -18,6 +18,10 @@ format.
 
 ### Fixed
 
+- Rows nested three or more deep, sized by their content, are as wide
+  as a ratio item stretched to a line a sibling sets, as in Chrome and
+  Firefox, as two rows deep already were. Before, they counted the item
+  at its basis and were narrower than their items.
 - A node made in the slot of one that was painted at the same box, and
   read by the accessibility update before a layout gave it its box, has
   that box sent once the layout gives it. Before, the slot kept what its
