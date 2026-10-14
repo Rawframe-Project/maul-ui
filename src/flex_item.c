@@ -168,15 +168,16 @@ float muiFlexMinContribution(const muiFlexFrame* frame, uint32_t child)
            layout->item.marginMain;
 }
 
-// A wrapping column asked its width breaks its lines at its items'
-// heights at the widths they take, against which percentages inside them
-// resolve (as Chrome): an item whose width is not definite is measured at
-// that width first.
+// A wrapping column asked its max-content width breaks its lines at its
+// items' heights at the widths they take, against which percentages
+// inside them resolve (as Chrome): an item whose width is not definite is
+// measured at that width first. Its min-content width is its widest
+// item's, whatever its lines.
 static muiMeasureAxis FittedCross(const muiFlexFrame* frame, uint32_t child,
                                   const muiAxisSizing* cross, muiMeasureAxis constraint)
 {
     if (frame->row || !frame->multiLine || cross->definite ||
-        (constraint.mode != mui_measureMaxContent && constraint.mode != mui_measureMinContent))
+        constraint.mode != mui_measureMaxContent)
     {
         return constraint;
     }
