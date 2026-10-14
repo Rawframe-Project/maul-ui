@@ -463,3 +463,28 @@ node width=0 direction=column wrap=wrap-reverse dir=rtl => 0 0 0 80
   node border=7,7,3,7 => 0 0 14 10
   node align-self=baseline content=10x20*3 => 0 10 14 60
   node align-self=baseline content=4x5*2 => 0 70 8 10
+
+fixture wrap_column_at_its_maximum_breaks_words_there available=500x400
+node => 0 0 25 32
+  node direction=column => 0 0 25 32
+    node max-width=25 direction=column wrap=wrap => 0 0 25 32
+      node content=10x16*4 => 0 0 25 32
+
+fixture wrap_column_at_its_maximum_breaks_words_there_reverse available=500x400
+node => 0 0 0 64
+  node direction=column-reverse => 0 0 0 64
+    node max-width=0 direction=column wrap=wrap-reverse => 0 0 0 64
+      node content=10x16*4 => -10 0 10 64
+
+fixture wrap_column_at_its_maximum_breaks_words_there_in_a_wide_row available=500x400
+node width=100 => 0 0 100 32
+  node direction=column align-items=start => 0 0 25 32
+    node max-width=25 direction=column wrap=wrap => 0 0 25 32
+      node content=10x16*4 => 0 0 25 32
+
+fixture wrap_column_at_its_maximum_keeps_fixed_items available=500x400
+node => 0 0 25 42
+  node direction=column => 0 0 25 42
+    node max-width=25 direction=column wrap=wrap => 0 0 25 42
+      node width=40 height=10 => 0 0 40 10
+      node content=10x16*4 => 0 10 40 32

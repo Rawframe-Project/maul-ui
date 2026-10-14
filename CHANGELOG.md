@@ -8,6 +8,14 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- A wrapping column whose maximum width makes it narrower than its
+  content, in a container sized by its content, breaks its items' text
+  at its own width, as in Chrome and Firefox. Before, it was measured
+  at its content's width, so the container sized itself to one line of
+  text while the column laid out several.
+
 ## [0.5.9] - 2026-10-14
 
 Two layout fixes, with no change to the API, found by random layouts

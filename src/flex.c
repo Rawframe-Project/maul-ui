@@ -530,6 +530,7 @@ static void SizeCross(muiFlexFrame* frame)
         float outer = muiClampSize(total + frame->boxCross, frame->crossLimits.minimum,
                                    frame->crossLimits.maximum, frame->boxCross);
         frame->innerCross = outer - frame->boxCross;
+        frame->clamped = frame->multiLine && frame->innerCross < total;
     }
     uint32_t first = muiFirstFlowChild(frame->solver->tree, frame->solver->nodes, frame->node);
     if (!frame->multiLine && first != 0)
@@ -840,11 +841,12 @@ static bool Outgrew(const muiFlexFrame* frame)
 
 // Whether a column sized at an open width ended narrower than a child
 // was measured at, its own maximum clamping it: a stretched child
-// narrowed, or one not stretched, its width automatic, wider than the
-// column's inside, which then fits it narrower.
+// narrowed, one not stretched, its width automatic, wider than the
+// column's inside, which then fits it narrower, or a wrapping column
+// narrower than its lines, whose items then fit its width.
 static bool Squeezed(const muiFlexFrame* frame)
 {
-    return frame->narrowed || Unfitted(frame, frame->innerCross);
+    return frame->narrowed || frame->clamped || Unfitted(frame, frame->innerCross);
 }
 
 // Whether a container sized at an open width lays out otherwise at the

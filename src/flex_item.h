@@ -49,6 +49,8 @@ typedef struct muiFlexFrame
     // narrowed, to a smaller one.
     bool restretched;
     bool narrowed;
+    // A wrapping column its own limits made narrower than its lines.
+    bool clamped;
     // A row whose height is its content's, or definite only through
     // stretching in such rows (looseHeight): its stretched items' too.
     bool crossLoose;
