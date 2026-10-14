@@ -8,6 +8,17 @@ format.
 
 ## [Unreleased]
 
+## [0.5.12] - 2026-10-14
+
+The core's wasm about 4.8 KB smaller in builds optimized for size, and
+two fixes, with no change to the API: rows nested three or more deep
+as wide as a ratio item a sibling's line stretches, and a node made in
+a reused slot sent to assistive technology with its box. A program
+built against 0.5.0 to 0.5.11 runs with 0.5.12. Known issues: as in
+0.5.11, TalkBack and VoiceOver on iOS have not walked the samples, and
+Orca 46 does not announce the first focus in a window that opens with
+nothing focused.
+
 ### Changed
 
 - Built for size (`-Os`, `-Oz`), 38 small internal helpers stay out of
