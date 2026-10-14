@@ -8,6 +8,14 @@ format.
 
 ## [Unreleased]
 
+### Changed
+
+- Built for size (`-Os`, `-Oz`), 38 small internal helpers stay out of
+  line instead of inlined at every call: the core's wasm is about
+  4.8 KB smaller (154,231 bytes in CI, against 159,003) and the text
+  component's 0.9 KB, at some speed in such builds. Other builds are
+  unchanged.
+
 ### Fixed
 
 - A node made in the slot of one that was painted at the same box, and
