@@ -9,6 +9,7 @@
 #define MAUL_UI_SRC_SCROLL_STORE_H
 
 #include "layout_node.h"
+#include "outline.h"
 
 #include "maul-ui/scroll.h"
 
@@ -123,8 +124,8 @@ static inline void muiScrollInit(muiScrollStore* store)
 // The furthest an offset goes along an axis: the extent less the padding
 // box, of a node of a style and border box size, for an axis it scrolls,
 // else 0.
-static inline float muiScrollLimit(const muiLayoutStyle* style, muiSize size,
-                                   const muiScrollState* scroll, bool horizontal)
+static inline MUI_SIZE_OUTLINE float muiScrollLimit(const muiLayoutStyle* style, muiSize size,
+                                                    const muiScrollState* scroll, bool horizontal)
 {
     muiScrollAxes axis = horizontal ? mui_scrollHorizontal : mui_scrollVertical;
     if ((style->scrollAxes & axis) == 0)
@@ -152,7 +153,8 @@ static inline void muiSyncScroll(muiScrollState* scroll, muiScrollAxes axes)
 // How far a node moves its children on the surface: by its offsets and
 // its overscroll, which grow away from its scroll origin; nothing for a
 // node that does not scroll.
-static inline float muiScrollShiftX(const muiLayoutNode* node, const muiScrollState* scroll)
+static inline MUI_SIZE_OUTLINE float muiScrollShiftX(const muiLayoutNode* node,
+                                                     const muiScrollState* scroll)
 {
     if (node->style.scrollAxes == mui_scrollNone)
     {
@@ -162,7 +164,8 @@ static inline float muiScrollShiftX(const muiLayoutNode* node, const muiScrollSt
     return scroll->right ? x : -x;
 }
 
-static inline float muiScrollShiftY(const muiLayoutNode* node, const muiScrollState* scroll)
+static inline MUI_SIZE_OUTLINE float muiScrollShiftY(const muiLayoutNode* node,
+                                                     const muiScrollState* scroll)
 {
     if (node->style.scrollAxes == mui_scrollNone)
     {

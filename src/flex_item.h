@@ -9,6 +9,7 @@
 #ifndef MAUL_UI_SRC_FLEX_ITEM_H
 #define MAUL_UI_SRC_FLEX_ITEM_H
 
+#include "outline.h"
 #include "sizing.h"
 #include "solver.h"
 
@@ -89,12 +90,13 @@ static inline float muiFlexMainOf(const muiFlexFrame* frame, muiSize size)
     return frame->row ? size.width : size.height;
 }
 
-static inline float muiFlexCrossOf(const muiFlexFrame* frame, muiSize size)
+static inline MUI_SIZE_OUTLINE float muiFlexCrossOf(const muiFlexFrame* frame, muiSize size)
 {
     return frame->row ? size.height : size.width;
 }
 
-static inline muiAlign muiFlexAlignOf(const muiFlexFrame* frame, const muiLayoutStyle* child)
+static inline MUI_SIZE_OUTLINE muiAlign muiFlexAlignOf(const muiFlexFrame* frame,
+                                                       const muiLayoutStyle* child)
 {
     return child->item.alignSelf != mui_alignAuto ? child->item.alignSelf
                                                   : frame->style->container.alignItems;
