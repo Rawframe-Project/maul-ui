@@ -106,6 +106,7 @@ static void RatioExtent(muiFlexFrame* frame, const muiLayoutStyle* style,
     if (input->ratioPercent)
     {
         *(frame->row ? &frame->extentCross : &frame->extentMain) = extent;
+        frame->ratioExtent = true;
     }
     frame->ratioBreak = frame->row || !frame->multiLine ? -1.0f : extent;
 }
@@ -619,8 +620,14 @@ static muiSizingInput FinalInput(const muiFlexFrame* frame, uint32_t child)
     const muiFlexItemState* item = ItemOf(frame, child);
     const muiLayoutStyle* style = &frame->solver->nodes[child - 1].style;
     muiSizingInput input = muiFlexChildInput(frame, muiExact(item->target), muiExact(item->cross));
-    float extentMain = frame->extentMain >= 0.0f ? frame->innerMain : -1.0f;
-    float extentCross = frame->extentCross >= 0.0f ? frame->innerCross : -1.0f;
+    // Against the ratio's height where it holds the children's
+    // percentages, as their own sizes were resolved.
+    float extentMain = frame->extentMain < 0.0f            ? -1.0f
+                       : frame->ratioExtent && !frame->row ? frame->extentMain
+                                                           : frame->innerMain;
+    float extentCross = frame->extentCross < 0.0f          ? -1.0f
+                        : frame->ratioExtent && frame->row ? frame->extentCross
+                                                           : frame->innerCross;
     input.parentWidth = frame->row ? frame->innerMain : extentCross;
     input.parentHeight = frame->row ? extentCross : extentMain;
     // Its height is definite when stretched (once its line's size is,

@@ -8,6 +8,14 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- In a box with an aspect ratio whose children's percentage heights
+  resolve against its ratio's height, those children lay out their own
+  children against that same height, as in Chrome and Firefox. Before,
+  they got the box's final height there, so a child's percentage
+  minimum could differ between its size and its children's.
+
 ## [0.5.12] - 2026-10-14
 
 The core's wasm about 4.8 KB smaller in builds optimized for size, and
