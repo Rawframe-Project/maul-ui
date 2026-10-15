@@ -109,6 +109,19 @@ static bool LooseMinimum(const muiFlexFrame* frame, uint32_t child, muiMeasureAx
     return frame->solver->solve(frame->solver, child, &input, false).height >= cross.size - 0.01f;
 }
 
+// Whether a column item's content counts as one line for its automatic
+// minimum: a wrapping column without a ratio whose maximum height is a
+// percentage, which does not break its lines there (as Chrome and
+// Firefox) but caps the content after.
+static bool OneLineMinimum(const muiFlexFrame* frame, const muiLayoutStyle* own)
+{
+    bool column = own->container.direction == mui_flexColumn ||
+                  own->container.direction == mui_flexColumnReverse;
+    return !frame->row && column && own->container.wrap != mui_wrapNone &&
+           own->sizing.aspectRatio <= 0.0f && own->sizing.maxHeight.kind != mui_dimensionAuto &&
+           own->sizing.maxHeight.scale != 0.0f;
+}
+
 float muiFlexAutomaticMinimum(const muiFlexFrame* frame, uint32_t child, const muiAxisSizing* main,
                               muiMeasureAxis cross)
 {
@@ -126,6 +139,7 @@ float muiFlexAutomaticMinimum(const muiFlexFrame* frame, uint32_t child, const m
     muiSizingInput probe =
         muiFlexChildInput(frame, (muiMeasureAxis){0.0f, mui_measureMinContent}, cross);
     probe.contentOnly = ratio > 0.0f && frame->row;
+    probe.parentHeight = OneLineMinimum(frame, own) ? -1.0f : probe.parentHeight;
     probe.ratioLines = ratio > 0.0f && !frame->row && own->container.wrap != mui_wrapNone &&
                        (own->container.direction == mui_flexColumn ||
                         own->container.direction == mui_flexColumnReverse);

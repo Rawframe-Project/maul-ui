@@ -531,3 +531,50 @@ node height=300 => 0 0 170 300
       node aspect=0.5 => 0 0 150 300
         node width=150 => 0 0 150 300
     node content=20x20 => 150 0 20 20
+
+# A wrapping column's automatic minimum is its content in one line when
+# its maximum height is a percentage, capped by the maximum (audit, 481t
+# 273): 80 + 80 and padding, 180, capped at 145, as Chrome and Firefox.
+# A pixel maximum breaks the lines in Chrome (Firefox caps one line);
+# the library follows Chrome there, and a ratio item keeps its lines.
+fixture wrap_column_minimum_ignores_percentage_maximum available=500x400
+node height=150 direction=column => 0 0 30 150
+  node width=30 max-height=100%-5 basis=0 padding=10 direction=column wrap=wrap-reverse => 0 0 30 145
+    node basis=80 => 20 10 0 80
+    node content=10x40*2 => 10 10 10 80
+
+fixture wrap_column_minimum_ignores_percentage_maximum_offset available=500x400
+node height=150 direction=column => 0 0 30 150
+  node width=30 max-height=50%+70 basis=0 padding=10 direction=column wrap=wrap => 0 0 30 145
+    node basis=80 => 10 10 0 80
+    node content=10x40*2 => 10 10 10 80
+
+fixture wrap_column_minimum_ignores_percentage_maximum_small available=500x400
+node height=150 direction=column => 0 0 30 150
+  node width=30 max-height=50% basis=0 padding=10 direction=column wrap=wrap => 0 0 30 75
+    node basis=80 => 10 10 0 55
+    node content=10x40*2 => 10 10 10 80
+
+fixture wrap_column_minimum_ignores_percentage_maximum_minimum available=500x400
+node height=150 direction=column => 0 0 30 150
+  node width=30 max-height=100%-5 min-height=40 basis=0 padding=10 direction=column wrap=wrap => 0 0 30 40
+    node basis=80 => 10 10 0 20
+    node content=10x40*2 => 10 10 10 80
+
+fixture wrap_column_minimum_breaks_at_pixel_maximum available=500x400
+node height=150 direction=column => 0 0 30 150
+  node width=30 max-height=145 basis=0 padding=10 direction=column wrap=wrap => 0 0 30 100
+    node basis=80 => 10 10 0 80
+    node content=10x40*2 => 10 10 10 80
+
+fixture wrap_column_minimum_percentage_maximum_single_line available=500x400
+node height=150 direction=column => 0 0 30 150
+  node width=30 max-height=100%-5 basis=0 padding=10 direction=column => 0 0 30 145
+    node basis=80 => 10 10 10 45
+    node content=10x40*2 => 10 55 10 80
+
+fixture wrap_column_minimum_percentage_maximum_ratio available=500x400
+node height=150 direction=column => 0 0 30 150
+  node width=30 aspect=0.25 max-height=100%-5 basis=0 padding=10 direction=column wrap=wrap => 0 0 30 120
+    node basis=80 => 10 10 0 80
+    node content=10x40*2 => 10 10 10 80

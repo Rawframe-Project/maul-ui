@@ -8,6 +8,13 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- A wrapping column item whose maximum height is a percentage counts
+  its content in one line for its automatic minimum, capped by that
+  maximum, as in Chrome and Firefox. Before, it broke its lines at the
+  maximum and could be shorter than in both.
+
 ## [0.5.14] - 2026-10-15
 
 One layout fix, with no change to the API, found by random layouts
