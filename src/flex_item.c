@@ -202,6 +202,32 @@ static muiMeasureAxis FittedCross(const muiFlexFrame* frame, uint32_t child,
     return muiExact(frame->solver->solve(frame->solver, child, &probe, false).width);
 }
 
+// Section 9.9.3 as Chrome reads it: a single-line row asked its width
+// counts a stretched ratio child of definite width with its automatic
+// minimum through the row's own height where its style gives one, not
+// the height the row is laid out at (a column that flexed it), as Chrome
+// sizes a box's width before its height.
+static muiMeasureAxis OwnLineCross(const muiFlexFrame* frame, uint32_t child,
+                                   const muiAxisSizing* cross, muiMeasureAxis constraint)
+{
+    const muiLayoutStyle* style = &frame->solver->nodes[child - 1].style;
+    const muiAxisSizing* own = &frame->crossLimits;
+    if (!frame->row || frame->mainIn.mode == mui_measureExact || frame->multiLine ||
+        !own->definite || style->sizing.aspectRatio <= 0.0f ||
+        !muiResolveAxis(&style->sizing, true, frame->extentMain).definite ||
+        !muiFlexIsStretched(frame, style))
+    {
+        return constraint;
+    }
+    float inner =
+        muiClampSize(own->size, own->minimum, own->maximum, frame->boxCross) - frame->boxCross;
+    const muiEdges padding = muiFlexChildPadding(frame, style);
+    muiEdges margins = muiMarginsOf(style, frame->rtl);
+    float line = fmaxf(inner - muiEdgeSum(&margins, false), 0.0f);
+    return muiExact(
+        muiClampSize(line, cross->minimum, cross->maximum, muiBoxSum(&padding, style, false)));
+}
+
 float muiFlexPrepareItem(const muiFlexFrame* frame, uint32_t child, float* aloneOut)
 {
     muiLayoutNode* layout = &frame->solver->nodes[child - 1];
@@ -251,7 +277,8 @@ float muiFlexPrepareItem(const muiFlexFrame* frame, uint32_t child, float* alone
     }
     else if (main.minimumAuto)
     {
-        minimum = muiFlexAutomaticMinimum(frame, child, &main, crossConstraint);
+        minimum = muiFlexAutomaticMinimum(frame, child, &main,
+                                          OwnLineCross(frame, child, &cross, crossConstraint));
     }
     item->minMain = fmaxf(minimum, boxMain);
     item->hypothetical = muiClampSize(item->base, item->minMain, item->maxMain, boxMain);

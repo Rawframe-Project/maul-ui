@@ -8,6 +8,15 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- A row sized by its content, laid out at another height than its style
+  gives (a column shrank or grew it), counts a stretched child with an
+  aspect ratio and a definite width at no less than that width or the
+  row's own height through the ratio, the smaller, as in Chrome. Before,
+  it took the height the row was laid out at, and a shrunk row was
+  narrower than in Chrome and Firefox.
+
 ## [0.5.13] - 2026-10-15
 
 One layout fix, with no change to the API, found by random layouts

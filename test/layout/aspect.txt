@@ -1244,3 +1244,48 @@ node => 0 0 5 10
         node max-height=10% => 0 0 10 0
           node content=10x10*5 => 0 0 10 0
       node margin=7,7,7,7 => 7 7 0 0
+
+# A row asked its width counts a stretched ratio child of definite width
+# with its automatic minimum through the row's own height, not the
+# height a column shrank it to (audit, 444s 135): the child is at least
+# 40 (its width, under 30 through its ratio), so the row is 40 wide, its
+# child laid out 20 wide at the shrunk height.
+fixture ratio_minimum_through_row_own_height available=500x400
+node height=10 => 0 0 40 10
+  node => 0 0 40 10
+    node => 0 0 40 10
+      node direction=column-reverse => 0 0 40 10
+        node height=30 margin=auto,auto,0,0 => 0 -3.328125 40 13.328125
+          node width=40 basis=20 aspect=1.5 => 0 0 20 13.328125
+
+fixture ratio_minimum_through_row_own_height_wrapping_column available=500x400
+node height=10 => 0 0 40 10
+  node => 0 0 40 10
+    node => 0 0 40 10
+      node direction=column wrap=wrap align-items=start => 0 0 40 10
+        node height=30 => 0 0 40 13.328125
+          node width=40 basis=20 aspect=1.5 => 0 0 20 13.328125
+
+fixture ratio_minimum_through_row_own_height_below_width available=500x400
+node height=10 => 0 0 30 10
+  node => 0 0 30 10
+    node => 0 0 30 10
+      node direction=column align-items=start => 0 0 30 10
+        node height=20 => 0 0 30 13.328125
+          node width=40 basis=20 aspect=1.5 => 0 0 20 13.328125
+
+fixture ratio_minimum_through_row_own_height_grown available=500x400
+node height=200 => 0 0 30 200
+  node => 0 0 30 200
+    node => 0 0 30 200
+      node direction=column align-items=start => 0 0 30 200
+        node height=30 grow=1 => 0 0 30 200
+          node width=60 basis=20 aspect=1 => 0 0 60 200
+
+fixture ratio_minimum_through_row_own_height_no_width available=500x400
+node height=10 => 0 0 60 10
+  node => 0 0 60 10
+    node => 0 0 60 10
+      node direction=column align-items=start => 0 0 60 10
+        node height=30 => 0 0 20 10
+          node basis=150 aspect=2 => 0 0 20 10
