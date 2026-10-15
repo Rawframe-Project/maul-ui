@@ -8,6 +8,16 @@ format.
 
 ## [Unreleased]
 
+## [0.5.15] - 2026-10-15
+
+One layout fix, with no change to the API, found by random layouts
+checked against Chrome and Firefox: a wrapping column whose maximum
+height is a percentage counts its content in one line for its automatic
+minimum. A program built against 0.5.0 to 0.5.14 runs with 0.5.15.
+Known issues: as in 0.5.14, TalkBack and VoiceOver on iOS have not
+walked the samples, and Orca 46 does not announce the first focus in a
+window that opens with nothing focused.
+
 ### Fixed
 
 - A wrapping column item whose maximum height is a percentage counts
