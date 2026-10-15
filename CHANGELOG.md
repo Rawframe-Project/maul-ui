@@ -8,6 +8,16 @@ format.
 
 ## [Unreleased]
 
+## [0.5.14] - 2026-10-15
+
+One layout fix, with no change to the API, found by random layouts
+checked against Chrome and Firefox: a row sized by its content counts a
+stretched child with an aspect ratio through the row's own height when
+a column shrank or grew the row. A program built against 0.5.0 to
+0.5.13 runs with 0.5.14. Known issues: as in 0.5.13, TalkBack and
+VoiceOver on iOS have not walked the samples, and Orca 46 does not
+announce the first focus in a window that opens with nothing focused.
+
 ### Fixed
 
 - A row sized by its content, laid out at another height than its style
