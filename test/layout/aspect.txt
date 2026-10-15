@@ -1289,3 +1289,48 @@ node height=10 => 0 0 60 10
       node direction=column align-items=start => 0 0 60 10
         node height=30 => 0 0 20 10
           node basis=150 aspect=2 => 0 0 20 10
+
+# The row's own height within its limits, less its box and the child's
+# margins; the child stretched; its height definite; a single line.
+fixture ratio_minimum_through_row_own_height_capped available=500x400
+node height=10 => 0 0 30 10
+  node => 0 0 30 10
+    node => 0 0 30 10
+      node direction=column align-items=start => 0 0 30 10
+        node height=60 max-height=30 => 0 0 30 20
+          node width=60 basis=20 aspect=1 => 0 0 20 20
+
+fixture ratio_minimum_through_row_own_height_padded available=500x400
+node height=10 => 0 0 30 10
+  node => 0 0 30 10
+    node => 0 0 30 10
+      node direction=column align-items=start => 0 0 30 10
+        node height=30 padding=5 => 0 0 30 30
+          node width=60 basis=20 aspect=1 => 5 5 20 20
+
+fixture ratio_minimum_through_row_own_height_child_margins available=500x400
+node height=10 => 0 0 30 10
+  node => 0 0 30 10
+    node => 0 0 30 10
+      node direction=column align-items=start => 0 0 30 10
+        node height=30 => 0 0 30 25
+          node width=60 basis=20 aspect=1 margin=5,0,5,0 => 5 5 20 20
+
+fixture ratio_minimum_through_row_own_height_child_not_stretched available=500x400
+node height=10 => 0 0 20 10
+  node => 0 0 20 10
+    node => 0 0 20 10
+      node direction=column align-items=start => 0 0 20 10
+        node height=30 align-items=start => 0 0 20 13.328125
+          node width=40 basis=20 aspect=1.5 => 0 0 20 13.328125
+
+fixture ratio_minimum_through_stretched_row_height available=500x400
+node height=300 => 0 0 120 300
+  node => 0 0 120 300
+    node => 0 0 120 300
+      node width=120 basis=80 aspect=1 => 0 0 120 300
+
+fixture ratio_minimum_in_wrapping_row_at_its_height available=500x400
+node height=75%+20 wrap=wrap-reverse => 0 0 220 320
+  node content=20x20*8 => 0 0 160 320
+  node width=120 basis=60 aspect=0.5 => 160 0 60 320
