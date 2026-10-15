@@ -8,6 +8,16 @@ format.
 
 ## [Unreleased]
 
+## [0.5.13] - 2026-10-15
+
+One layout fix, with no change to the API, found by random layouts
+checked against Chrome and Firefox: the children of a box with an
+aspect ratio lay out their own children against the height their sizes
+were resolved against. A program built against 0.5.0 to 0.5.12 runs
+with 0.5.13. Known issues: as in 0.5.12, TalkBack and VoiceOver on iOS
+have not walked the samples, and Orca 46 does not announce the first
+focus in a window that opens with nothing focused.
+
 ### Fixed
 
 - In a box with an aspect ratio whose children's percentage heights
