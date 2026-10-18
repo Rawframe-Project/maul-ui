@@ -17,8 +17,8 @@
 
 #include <math.h>
 
-muiSize muiMeasureText(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasureAxis width,
-                       muiMeasureAxis height)
+static muiSize MeasureText(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasureAxis width,
+                           muiMeasureAxis height)
 {
     (void)height;
     muiParagraph paragraph;
@@ -31,6 +31,20 @@ muiSize muiMeasureText(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasur
         return (muiSize){0.0f, 0.0f};
     }
     return (muiSize){width.mode == mui_measureExact ? width.size : widest, tall};
+}
+
+muiSize muiMeasureText(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasureAxis width,
+                       muiMeasureAxis height)
+{
+    const muiTextHost* host = user;
+    muiTextService* entered = host != nullptr ? host->service : nullptr;
+    if (muiEnterText(entered) != mui_success)
+    {
+        return (muiSize){0.0f, 0.0f};
+    }
+    muiSize result = MeasureText(user, nodeId, hostKey, width, height);
+    muiLeaveText(entered);
+    return result;
 }
 
 // What paints a stretch of text.
@@ -250,7 +264,7 @@ static void PaintLine(const muiParagraph* paragraph, const muiTextLine* line, fl
     }
 }
 
-float muiTextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height)
+static float TextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height)
 {
     (void)height;
     muiParagraph paragraph;
@@ -269,6 +283,19 @@ float muiTextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float widt
         return paragraph.baseline;
     }
     return ((const muiTextLine*)paragraph.service->lines.data)[0].baseline;
+}
+
+float muiTextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height)
+{
+    const muiTextHost* host = user;
+    muiTextService* entered = host != nullptr ? host->service : nullptr;
+    if (muiEnterText(entered) != mui_success)
+    {
+        return NAN;
+    }
+    float result = TextBaseline(user, nodeId, hostKey, width, height);
+    muiLeaveText(entered);
+    return result;
 }
 
 // Underlines a block's composition on a line: each segment's stretches,
@@ -339,8 +366,8 @@ static void SeenLines(const muiTextLine* lines, uint32_t count, const muiRect* s
     *end = high < count ? high + 1 : count;
 }
 
-void muiPaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
-                  muiDrawSink* sink)
+static void PaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
+                      muiDrawSink* sink)
 {
     muiLaidText laid;
     uint32_t count = 0;
@@ -370,5 +397,17 @@ void muiPaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width, f
     for (uint32_t i = first; laid.paragraph.block->compositionLength != 0 && i < end; i++)
     {
         PaintComposition(&laid, i, sink);
+    }
+}
+
+void muiPaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
+                  muiDrawSink* sink)
+{
+    const muiTextHost* host = user;
+    muiTextService* entered = host != nullptr ? host->service : nullptr;
+    if (muiEnterText(entered) == mui_success)
+    {
+        PaintText(user, nodeId, hostKey, width, height, sink);
+        muiLeaveText(entered);
     }
 }

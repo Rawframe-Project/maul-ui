@@ -317,10 +317,10 @@ static muiResult RenderBitmap(muiTextService* service, const muiBitmapGlyph* bit
     return mui_success;
 }
 
-muiResult muiRenderColorGlyph(muiTextService* service, uint64_t font, uint32_t glyph,
-                              float pixelSize, float offsetX, uint32_t palette,
-                              muiLinearColor foreground, muiGlyphImage* imageOut,
-                              unsigned char* pixels, size_t capacity)
+static muiResult RenderColorGlyph(muiTextService* service, uint64_t font, uint32_t glyph,
+                                  float pixelSize, float offsetX, uint32_t palette,
+                                  muiLinearColor foreground, muiGlyphImage* imageOut,
+                                  unsigned char* pixels, size_t capacity)
 {
     if (service == nullptr || imageOut == nullptr || (pixels == nullptr && capacity != 0) ||
         !muiIsGlyphSizeValid(pixelSize) || !(offsetX >= 0.0f && offsetX < 1.0f))
@@ -349,4 +349,19 @@ muiResult muiRenderColorGlyph(muiTextService* service, uint64_t font, uint32_t g
         return RenderBitmap(service, &bitmap, pixelSize, offsetX, imageOut, pixels, capacity);
     }
     return mui_empty;
+}
+
+muiResult muiRenderColorGlyph(muiTextService* service, uint64_t font, uint32_t glyph,
+                              float pixelSize, float offsetX, uint32_t palette,
+                              muiLinearColor foreground, muiGlyphImage* imageOut,
+                              unsigned char* pixels, size_t capacity)
+{
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = RenderColorGlyph(service, font, glyph, pixelSize, offsetX, palette, foreground,
+                                  imageOut, pixels, capacity);
+        muiLeaveText(service);
+    }
+    return status;
 }

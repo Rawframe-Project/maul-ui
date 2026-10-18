@@ -59,13 +59,13 @@ extern "C"
     /// @param pixels     Receives width * height bytes; may be NULL when
     ///                   capacity is 0.
     /// @param capacity   How many bytes pixels holds.
-    /// @return `mui_success`; `mui_errorCapacity` when pixels hold fewer
-    ///         bytes than imageOut asks for, or memory runs out;
-    ///         `mui_errorInvalid` for a NULL service or imageOut, NULL
-    ///         pixels with a capacity, a size or offset outside the above,
-    ///         or a glyph id the font does not have; `mui_errorStale` for
-    ///         a key that names no font; `mui_errorFormat` for a glyph
-    ///         whose outline cannot be read or is too large to render.
+    /// @return `mui_success`; `mui_errorCapacity` when pixels hold fewer bytes
+    ///         than imageOut asks for, or memory runs out; `mui_errorInvalid`
+    ///         for a NULL service or imageOut, NULL pixels with a capacity, a
+    ///         size or offset outside the above, or a glyph id the font does
+    ///         not have; `mui_errorStale` for a key that names no font;
+    ///         `mui_errorFormat` for a glyph whose outline cannot be read or is
+    ///         too large to render; `mui_errorState` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiRenderGlyph(muiTextService* service, uint64_t font,
@@ -105,9 +105,9 @@ extern "C"
     ///                    when capacity is 0.
     /// @param capacity    How many bytes pixels holds.
     /// @return `mui_success`; `mui_empty` for a glyph without colour;
-    ///         `mui_errorFormat` for a paint graph more than 64 paints
-    ///         deep, as one that paints itself is; otherwise as
-    ///         muiRenderGlyph.
+    ///         `mui_errorFormat` for a paint graph more than 64 paints deep, as
+    ///         one that paints itself is; otherwise as muiRenderGlyph;
+    ///         `mui_errorState` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiRenderColorGlyph(muiTextService* service, uint64_t font,
@@ -141,13 +141,13 @@ extern "C"
     /// @param pixels     Receives width * height bytes; may be NULL when
     ///                   capacity is 0.
     /// @param capacity   How many bytes pixels holds.
-    /// @return `mui_success`; `mui_errorCapacity` when pixels hold fewer
-    ///         bytes than imageOut asks for, or memory runs out;
-    ///         `mui_errorInvalid` for a NULL service or imageOut, NULL
-    ///         pixels with a capacity, a size or spread outside the above,
-    ///         or a glyph id the font does not have; `mui_errorStale` for
-    ///         a key that names no font; `mui_errorFormat` for a glyph
-    ///         whose outline cannot be read or is too large to render.
+    /// @return `mui_success`; `mui_errorCapacity` when pixels hold fewer bytes
+    ///         than imageOut asks for, or memory runs out; `mui_errorInvalid`
+    ///         for a NULL service or imageOut, NULL pixels with a capacity, a
+    ///         size or spread outside the above, or a glyph id the font does
+    ///         not have; `mui_errorStale` for a key that names no font;
+    ///         `mui_errorFormat` for a glyph whose outline cannot be read or is
+    ///         too large to render; `mui_errorState` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiRenderGlyphField(muiTextService* service, uint64_t font,
@@ -180,7 +180,8 @@ extern "C"
     /// @param pixels     Receives width * height * 4 bytes, red, green, blue
     ///                   and alpha a pixel; may be NULL when capacity is 0.
     /// @param capacity   How many bytes pixels holds.
-    /// @return As muiRenderGlyphField.
+    /// @return As muiRenderGlyphField; `mui_errorState` while the service is
+    ///         busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiRenderGlyphMultiField(

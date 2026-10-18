@@ -30,6 +30,14 @@ format.
   counts one misuse.
 - `muiNextNotification` and `muiNextPointerRecord` were not refused from
   host code.
+- The text service and the glyph atlas let the allocator, FreeType's
+  memory through it and the clipboard writer call back in. A service is
+  now busy while one of its functions that use it runs (those given a
+  `muiTextHost` among them), and an atlas while one that changes it
+  runs: a call back in answers `mui_errorState`, or an empty answer
+  where the function returns no status (`muiMeasureText`,
+  `muiPaintText`, `muiAccessTextOf`, `muiTextBaseline`), and counts one
+  misuse; the destroys do nothing.
 
 ## [0.5.15] - 2026-10-15
 

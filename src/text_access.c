@@ -12,6 +12,7 @@
 #include "text_blocks.h"
 #include "text_boxes.h"
 #include "text_editing.h"
+#include "text_entry.h"
 #include "text_mask.h"
 #include "text_service.h"
 
@@ -244,8 +245,8 @@ static bool ReadWords(muiTextService* service, muiTextBlock* block, muiAccessTex
     return true;
 }
 
-bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, const muiRect* shown,
-                     muiAccessContent* contentOut)
+static bool AccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, const muiRect* shown,
+                         muiAccessContent* contentOut)
 {
     const muiTextHost* host = user;
     const muiTextBlockId blockId = {(uint32_t)hostKey, (uint32_t)(hostKey >> 32)};
@@ -284,6 +285,20 @@ bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, const muiRe
     return true;
 }
 
+bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, const muiRect* shown,
+                     muiAccessContent* contentOut)
+{
+    const muiTextHost* host = user;
+    muiTextService* entered = host != nullptr ? host->service : nullptr;
+    if (muiEnterText(entered) != mui_success)
+    {
+        return false;
+    }
+    bool result = AccessTextOf(user, nodeId, hostKey, shown, contentOut);
+    muiLeaveText(entered);
+    return result;
+}
+
 // Whether an offset of the text as shown lies at a character's start.
 static bool IsShownStart(const muiTextBlock* shown, uint32_t offset)
 {
@@ -291,8 +306,8 @@ static bool IsShownStart(const muiTextBlock* shown, uint32_t offset)
     return offset == shown->length || (offset < shown->length && (text[offset] & 0xC0u) != 0x80u);
 }
 
-muiResult muiTextPerformAccessAction(const muiTextHost* host, const muiAccessRequest* request,
-                                     muiTextEditOutcome* outcomeOut)
+static muiResult TextPerformAccessAction(const muiTextHost* host, const muiAccessRequest* request,
+                                         muiTextEditOutcome* outcomeOut)
 {
     if (host == nullptr || host->service == nullptr || host->context == nullptr ||
         request == nullptr || outcomeOut == nullptr)
@@ -329,13 +344,13 @@ muiResult muiTextPerformAccessAction(const muiTextHost* host, const muiAccessReq
         muiUnmaskOffset(block, request->anchor),
         {muiUnmaskOffset(block, request->focus), mui_affinityDownstream}};
     muiTextEditOutcome outcome = {true, false, false, false};
-    muiResult result = muiTextBlock_Select(host->service, blockId, selection);
+    muiResult result = muiSelectText(host->service, blockId, selection);
     // Text replaced goes in as a paste does: under the block's rules, an
     // edit undone alone.
     if (result == mui_success && request->action == mui_actionReplaceText)
     {
-        result = muiTextBlock_Paste(host->service, blockId, request->text, request->length,
-                                    &outcome.changed);
+        result =
+            muiPasteText(host->service, blockId, request->text, request->length, &outcome.changed);
     }
     const muiTextSelection* after = &block->editing.selection;
     outcome.selected = after->anchor != before.anchor ||
@@ -343,4 +358,17 @@ muiResult muiTextPerformAccessAction(const muiTextHost* host, const muiAccessReq
                        after->caret.affinity != before.caret.affinity;
     *outcomeOut = outcome;
     return result;
+}
+
+muiResult muiTextPerformAccessAction(const muiTextHost* host, const muiAccessRequest* request,
+                                     muiTextEditOutcome* outcomeOut)
+{
+    muiTextService* entered = host != nullptr ? host->service : nullptr;
+    muiResult status = muiEnterText(entered);
+    if (status == mui_success)
+    {
+        status = TextPerformAccessAction(host, request, outcomeOut);
+        muiLeaveText(entered);
+    }
+    return status;
 }

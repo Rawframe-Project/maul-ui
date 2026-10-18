@@ -11,6 +11,7 @@
 #include "maul-ui/text_editor.h"
 
 #include "text_editing.h"
+#include "text_entry.h"
 #include "text_service.h"
 
 #include "maul-ui/layout.h"
@@ -52,9 +53,9 @@ static muiResult EdgeOf(const muiTextHost* host, muiNodeId nodeId, float width,
     {
         muiTextCaret a;
         muiTextCaret b;
-        muiResult result = muiTextGetCaret(host, nodeId, width, anchor, &a);
-        result = result == mui_success ? muiTextGetCaret(host, nodeId, width, selection->caret, &b)
-                                       : result;
+        muiResult result = muiCaretOf(host, nodeId, width, anchor, &a);
+        result =
+            result == mui_success ? muiCaretOf(host, nodeId, width, selection->caret, &b) : result;
         if (result != mui_success)
         {
             return result;
@@ -68,8 +69,8 @@ static muiResult EdgeOf(const muiTextHost* host, muiNodeId nodeId, float width,
     return mui_success;
 }
 
-muiResult muiTextEditMove(const muiTextHost* host, muiNodeId nodeId, muiTextMovement movement,
-                          bool extend)
+muiResult muiEditMove(const muiTextHost* host, muiNodeId nodeId, muiTextMovement movement,
+                      bool extend)
 {
     muiTextBlock* block = nullptr;
     muiRect content;
@@ -94,11 +95,11 @@ muiResult muiTextEditMove(const muiTextHost* host, muiNodeId nodeId, muiTextMove
         muiTextCaret caret;
         if (vertical && editing->preferredX < 0.0f)
         {
-            result = muiTextGetCaret(host, nodeId, content.width, selection.caret, &caret);
+            result = muiCaretOf(host, nodeId, content.width, selection.caret, &caret);
             editing->preferredX = result == mui_success ? caret.x : -1.0f;
         }
         result = result == mui_success
-                     ? muiTextMove(host, nodeId, content.width, selection.caret, movement,
+                     ? muiMoveText(host, nodeId, content.width, selection.caret, movement,
                                    fmaxf(editing->preferredX, 0.0f), &moved)
                      : result;
     }
@@ -114,6 +115,19 @@ muiResult muiTextEditMove(const muiTextHost* host, muiNodeId nodeId, muiTextMove
         editing->preferredX = -1.0f;
     }
     return mui_success;
+}
+
+muiResult muiTextEditMove(const muiTextHost* host, muiNodeId nodeId, muiTextMovement movement,
+                          bool extend)
+{
+    muiTextService* entered = host != nullptr ? host->service : nullptr;
+    muiResult status = muiEnterText(entered);
+    if (status == mui_success)
+    {
+        status = muiEditMove(host, nodeId, movement, extend);
+        muiLeaveText(entered);
+    }
+    return status;
 }
 
 // The word, or the white space between words, at an offset: a segment of
@@ -243,13 +257,13 @@ static void ExtendTo(muiTextBlock* block, muiTextPosition position)
 static muiResult PositionAt(const muiTextHost* host, muiNodeId nodeId, const muiRect* content,
                             float x, float y, muiTextPosition* positionOut)
 {
-    return isfinite(x) && isfinite(y) ? muiTextHitTest(host, nodeId, content->width, x - content->x,
-                                                       y - content->y, positionOut)
+    return isfinite(x) && isfinite(y) ? muiHitText(host, nodeId, content->width, x - content->x,
+                                                   y - content->y, positionOut)
                                       : muiRefuseText(host->service);
 }
 
-muiResult muiTextEditPress(const muiTextHost* host, muiNodeId nodeId, float x, float y,
-                           uint32_t clickCount, bool extend)
+muiResult muiEditPress(const muiTextHost* host, muiNodeId nodeId, float x, float y,
+                       uint32_t clickCount, bool extend)
 {
     muiTextBlock* block = nullptr;
     muiRect content;
@@ -280,7 +294,20 @@ muiResult muiTextEditPress(const muiTextHost* host, muiNodeId nodeId, float x, f
     return mui_success;
 }
 
-muiResult muiTextEditDrag(const muiTextHost* host, muiNodeId nodeId, float x, float y)
+muiResult muiTextEditPress(const muiTextHost* host, muiNodeId nodeId, float x, float y,
+                           uint32_t clickCount, bool extend)
+{
+    muiTextService* entered = host != nullptr ? host->service : nullptr;
+    muiResult status = muiEnterText(entered);
+    if (status == mui_success)
+    {
+        status = muiEditPress(host, nodeId, x, y, clickCount, extend);
+        muiLeaveText(entered);
+    }
+    return status;
+}
+
+muiResult muiEditDrag(const muiTextHost* host, muiNodeId nodeId, float x, float y)
 {
     muiTextBlock* block = nullptr;
     muiRect content;
@@ -293,4 +320,16 @@ muiResult muiTextEditDrag(const muiTextHost* host, muiNodeId nodeId, float x, fl
         ExtendTo(block, position);
     }
     return result;
+}
+
+muiResult muiTextEditDrag(const muiTextHost* host, muiNodeId nodeId, float x, float y)
+{
+    muiTextService* entered = host != nullptr ? host->service : nullptr;
+    muiResult status = muiEnterText(entered);
+    if (status == mui_success)
+    {
+        status = muiEditDrag(host, nodeId, x, y);
+        muiLeaveText(entered);
+    }
+    return status;
 }

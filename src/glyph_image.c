@@ -18,9 +18,9 @@
 #include <stddef.h>
 #include <string.h>
 
-muiResult muiRenderGlyph(muiTextService* service, uint64_t font, uint32_t glyph, float pixelSize,
-                         float offsetX, muiGlyphImage* imageOut, unsigned char* pixels,
-                         size_t capacity)
+static muiResult RenderGlyph(muiTextService* service, uint64_t font, uint32_t glyph,
+                             float pixelSize, float offsetX, muiGlyphImage* imageOut,
+                             unsigned char* pixels, size_t capacity)
 {
     if (service == nullptr || imageOut == nullptr || (pixels == nullptr && capacity != 0) ||
         !muiIsGlyphSizeValid(pixelSize) || !(offsetX >= 0.0f && offsetX < 1.0f))
@@ -62,6 +62,19 @@ muiResult muiRenderGlyph(muiTextService* service, uint64_t font, uint32_t glyph,
     // The rasterizer writes only what the outline covers.
     memset(pixels, 0, bytes);
     return muiRasterizeOutline(service, outline, &box, pixels, (int)box.width);
+}
+
+muiResult muiRenderGlyph(muiTextService* service, uint64_t font, uint32_t glyph, float pixelSize,
+                         float offsetX, muiGlyphImage* imageOut, unsigned char* pixels,
+                         size_t capacity)
+{
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = RenderGlyph(service, font, glyph, pixelSize, offsetX, imageOut, pixels, capacity);
+        muiLeaveText(service);
+    }
+    return status;
 }
 
 // Cuts the loaded outline into segments, then pieces, and reserves the
@@ -219,16 +232,44 @@ static muiResult RenderField(muiTextService* service, uint64_t font, uint32_t gl
     return mui_success;
 }
 
+static muiResult RenderGlyphField(muiTextService* service, uint64_t font, uint32_t glyph,
+                                  float pixelSize, uint32_t spread, muiGlyphImage* imageOut,
+                                  unsigned char* pixels, size_t capacity)
+{
+    return RenderField(service, font, glyph, pixelSize, spread, imageOut, pixels, capacity, false);
+}
+
 muiResult muiRenderGlyphField(muiTextService* service, uint64_t font, uint32_t glyph,
                               float pixelSize, uint32_t spread, muiGlyphImage* imageOut,
                               unsigned char* pixels, size_t capacity)
 {
-    return RenderField(service, font, glyph, pixelSize, spread, imageOut, pixels, capacity, false);
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status =
+            RenderGlyphField(service, font, glyph, pixelSize, spread, imageOut, pixels, capacity);
+        muiLeaveText(service);
+    }
+    return status;
+}
+
+static muiResult RenderGlyphMultiField(muiTextService* service, uint64_t font, uint32_t glyph,
+                                       float pixelSize, uint32_t spread, muiGlyphImage* imageOut,
+                                       unsigned char* pixels, size_t capacity)
+{
+    return RenderField(service, font, glyph, pixelSize, spread, imageOut, pixels, capacity, true);
 }
 
 muiResult muiRenderGlyphMultiField(muiTextService* service, uint64_t font, uint32_t glyph,
                                    float pixelSize, uint32_t spread, muiGlyphImage* imageOut,
                                    unsigned char* pixels, size_t capacity)
 {
-    return RenderField(service, font, glyph, pixelSize, spread, imageOut, pixels, capacity, true);
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = RenderGlyphMultiField(service, font, glyph, pixelSize, spread, imageOut, pixels,
+                                       capacity);
+        muiLeaveText(service);
+    }
+    return status;
 }

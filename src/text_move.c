@@ -5,6 +5,7 @@
 // cluster in the text or on screen, by word, and by line.
 
 #include "text_boxes.h"
+#include "text_entry.h"
 #include "text_mask.h"
 
 #include "maul-ui/text_edit.h"
@@ -167,7 +168,7 @@ static bool Move(const muiLaidText* laid, muiTextPosition from, muiTextMovement 
     }
 }
 
-muiResult muiTextMove(const muiTextHost* host, muiNodeId nodeId, float width, muiTextPosition from,
+muiResult muiMoveText(const muiTextHost* host, muiNodeId nodeId, float width, muiTextPosition from,
                       muiTextMovement movement, float preferredX, muiTextPosition* positionOut)
 {
     if (!muiIsTextHostValid(host) || positionOut == nullptr || movement > mui_moveTextEnd)
@@ -203,4 +204,17 @@ muiResult muiTextMove(const muiTextHost* host, muiNodeId nodeId, float width, mu
     }
     positionOut->offset = muiUnmaskOffset(source, positionOut->offset);
     return mui_success;
+}
+
+muiResult muiTextMove(const muiTextHost* host, muiNodeId nodeId, float width, muiTextPosition from,
+                      muiTextMovement movement, float preferredX, muiTextPosition* positionOut)
+{
+    muiTextService* entered = host != nullptr ? host->service : nullptr;
+    muiResult status = muiEnterText(entered);
+    if (status == mui_success)
+    {
+        status = muiMoveText(host, nodeId, width, from, movement, preferredX, positionOut);
+        muiLeaveText(entered);
+    }
+    return status;
 }

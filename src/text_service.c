@@ -253,7 +253,7 @@ uint64_t muiGetTextServiceMisuse(const muiTextService* service)
     return service != nullptr ? service->misuse : 0;
 }
 
-void muiDestroyTextService(muiTextService* service)
+static void DestroyTextService(muiTextService* service)
 {
     if (service == nullptr)
     {
@@ -281,6 +281,14 @@ void muiDestroyTextService(muiTextService* service)
         }
     }
     Release(service);
+}
+
+void muiDestroyTextService(muiTextService* service)
+{
+    if (muiEnterText(service) == mui_success)
+    {
+        DestroyTextService(service);
+    }
 }
 
 muiFont* muiFindFont(const muiTextService* service, uint64_t key, uint64_t* keyOut)

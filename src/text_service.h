@@ -42,6 +42,10 @@ struct muiTextService
     uint64_t failures;
     // Calls refused as invalid input against the service or its atlases.
     uint64_t misuse;
+    // Set while one of the service's functions that use it runs: host
+    // code it calls then (the allocator, the clipboard writer) may not
+    // call back in (conventions section 10).
+    bool busy;
     // Scratch for laying out and painting: lines, bidi runs, glyphs and
     // bidi resolution's workspace.
     muiBuffer lines;
@@ -105,6 +109,33 @@ static inline muiResult muiRefuseText(muiTextService* service)
         service->misuse++;
     }
     return mui_errorInvalid;
+}
+
+// Marks the service busy for one of its functions that use it:
+// mui_success, or mui_errorState with one misuse counted when it is busy
+// already. A NULL service is left to the function.
+static inline muiResult muiEnterText(muiTextService* service)
+{
+    if (service == nullptr)
+    {
+        return mui_success;
+    }
+    if (service->busy)
+    {
+        service->misuse++;
+        return mui_errorState;
+    }
+    service->busy = true;
+    return mui_success;
+}
+
+// Ends what muiEnterText began.
+static inline void muiLeaveText(muiTextService* service)
+{
+    if (service != nullptr)
+    {
+        service->busy = false;
+    }
 }
 
 // A status passed on from a check that could not count: invalid input

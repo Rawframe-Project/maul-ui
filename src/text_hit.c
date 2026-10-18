@@ -6,14 +6,15 @@
 // as boxes of grapheme clusters.
 
 #include "text_boxes.h"
+#include "text_entry.h"
 #include "text_mask.h"
 
 #include "maul-ui/text_edit.h"
 
 #include <math.h>
 
-muiResult muiTextHitTest(const muiTextHost* host, muiNodeId nodeId, float width, float x, float y,
-                         muiTextPosition* positionOut)
+muiResult muiHitText(const muiTextHost* host, muiNodeId nodeId, float width, float x, float y,
+                     muiTextPosition* positionOut)
 {
     if (!muiIsTextHostValid(host) || positionOut == nullptr || !isfinite(x) || !isfinite(y))
     {
@@ -39,8 +40,21 @@ muiResult muiTextHitTest(const muiTextHost* host, muiNodeId nodeId, float width,
     return mui_success;
 }
 
-muiResult muiTextGetCaret(const muiTextHost* host, muiNodeId nodeId, float width,
-                          muiTextPosition position, muiTextCaret* caretOut)
+muiResult muiTextHitTest(const muiTextHost* host, muiNodeId nodeId, float width, float x, float y,
+                         muiTextPosition* positionOut)
+{
+    muiTextService* entered = host != nullptr ? host->service : nullptr;
+    muiResult status = muiEnterText(entered);
+    if (status == mui_success)
+    {
+        status = muiHitText(host, nodeId, width, x, y, positionOut);
+        muiLeaveText(entered);
+    }
+    return status;
+}
+
+muiResult muiCaretOf(const muiTextHost* host, muiNodeId nodeId, float width,
+                     muiTextPosition position, muiTextCaret* caretOut)
 {
     if (!muiIsTextHostValid(host) || caretOut == nullptr)
     {
@@ -73,6 +87,19 @@ muiResult muiTextGetCaret(const muiTextHost* host, muiNodeId nodeId, float width
     return mui_success;
 }
 
+muiResult muiTextGetCaret(const muiTextHost* host, muiNodeId nodeId, float width,
+                          muiTextPosition position, muiTextCaret* caretOut)
+{
+    muiTextService* entered = host != nullptr ? host->service : nullptr;
+    muiResult status = muiEnterText(entered);
+    if (status == mui_success)
+    {
+        status = muiCaretOf(host, nodeId, width, position, caretOut);
+        muiLeaveText(entered);
+    }
+    return status;
+}
+
 // Adds a rectangle for each stretch of a line's boxes from start up to
 // end, those past capacity counted only; returns the count after them.
 static uint32_t AddStretches(const muiTextBoxes* boxes, uint32_t start, uint32_t end, float top,
@@ -92,9 +119,9 @@ static uint32_t AddStretches(const muiTextBoxes* boxes, uint32_t start, uint32_t
     return count;
 }
 
-muiResult muiTextGetRangeRects(const muiTextHost* host, muiNodeId nodeId, float width,
-                               uint32_t start, uint32_t end, muiRect* rects, uint32_t capacity,
-                               uint32_t* countOut)
+static muiResult TextGetRangeRects(const muiTextHost* host, muiNodeId nodeId, float width,
+                                   uint32_t start, uint32_t end, muiRect* rects, uint32_t capacity,
+                                   uint32_t* countOut)
 {
     if (!muiIsTextHostValid(host) || countOut == nullptr || (rects == nullptr && capacity != 0))
     {
@@ -125,4 +152,18 @@ muiResult muiTextGetRangeRects(const muiTextHost* host, muiNodeId nodeId, float 
     }
     *countOut = count;
     return count <= capacity ? mui_success : mui_errorCapacity;
+}
+
+muiResult muiTextGetRangeRects(const muiTextHost* host, muiNodeId nodeId, float width,
+                               uint32_t start, uint32_t end, muiRect* rects, uint32_t capacity,
+                               uint32_t* countOut)
+{
+    muiTextService* entered = host != nullptr ? host->service : nullptr;
+    muiResult status = muiEnterText(entered);
+    if (status == mui_success)
+    {
+        status = TextGetRangeRects(host, nodeId, width, start, end, rects, capacity, countOut);
+        muiLeaveText(entered);
+    }
+    return status;
 }

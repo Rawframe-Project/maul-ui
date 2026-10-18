@@ -297,7 +297,7 @@ static muiResult Open(muiTextService* service, const muiFontDef* def, muiFont* f
     return ReadStyle(service->freetype, font) ? mui_success : mui_errorCapacity;
 }
 
-muiResult muiCreateFont(muiTextService* service, const muiFontDef* def, muiFontId* fontOut)
+static muiResult CreateFont(muiTextService* service, const muiFontDef* def, muiFontId* fontOut)
 {
     if (fontOut != nullptr)
     {
@@ -337,12 +337,23 @@ muiResult muiCreateFont(muiTextService* service, const muiFontDef* def, muiFontI
     return mui_success;
 }
 
+muiResult muiCreateFont(muiTextService* service, const muiFontDef* def, muiFontId* fontOut)
+{
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = CreateFont(service, def, fontOut);
+        muiLeaveText(service);
+    }
+    return status;
+}
+
 static uint32_t Resolve(const muiTextService* service, muiFontId fontId)
 {
     return muiPoolResolve(&service->fonts.pool, fontId.index1, fontId.generation);
 }
 
-muiResult muiDestroyFont(muiTextService* service, muiFontId fontId)
+static muiResult DestroyFont(muiTextService* service, muiFontId fontId)
 {
     if (service == nullptr || fontId.index1 == 0)
     {
@@ -356,6 +367,17 @@ muiResult muiDestroyFont(muiTextService* service, muiFontId fontId)
     muiReleaseFont(&service->allocator, &service->fonts.fonts[slot - 1]);
     muiPoolGive(&service->fonts.pool, slot);
     return mui_success;
+}
+
+muiResult muiDestroyFont(muiTextService* service, muiFontId fontId)
+{
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = DestroyFont(service, fontId);
+        muiLeaveText(service);
+    }
+    return status;
 }
 
 bool muiFont_IsValid(const muiTextService* service, muiFontId fontId)

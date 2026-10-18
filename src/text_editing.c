@@ -8,6 +8,7 @@
 #include "text_editing.h"
 
 #include "text_blocks.h"
+#include "text_entry.h"
 #include "text_history.h"
 #include "text_rules.h"
 #include "text_service.h"
@@ -96,8 +97,8 @@ muiResult muiRefuseEdit(muiTextService* service)
     return muiRefuseText(service);
 }
 
-muiResult muiTextBlock_SetEditing(muiTextService* service, muiTextBlockId blockId,
-                                  const muiTextEditDef* def)
+static muiResult TextBlockSetEditing(muiTextService* service, muiTextBlockId blockId,
+                                     const muiTextEditDef* def)
 {
     if (service == nullptr || blockId.index1 == 0 ||
         (def != nullptr &&
@@ -129,6 +130,18 @@ muiResult muiTextBlock_SetEditing(muiTextService* service, muiTextBlockId blockI
     return mui_success;
 }
 
+muiResult muiTextBlock_SetEditing(muiTextService* service, muiTextBlockId blockId,
+                                  const muiTextEditDef* def)
+{
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = TextBlockSetEditing(service, blockId, def);
+        muiLeaveText(service);
+    }
+    return status;
+}
+
 muiResult muiTextBlock_GetSelection(const muiTextService* service, muiTextBlockId blockId,
                                     muiTextSelection* selectionOut)
 {
@@ -142,8 +155,7 @@ muiResult muiTextBlock_GetSelection(const muiTextService* service, muiTextBlockI
     return result;
 }
 
-muiResult muiTextBlock_Select(muiTextService* service, muiTextBlockId blockId,
-                              muiTextSelection selection)
+muiResult muiSelectText(muiTextService* service, muiTextBlockId blockId, muiTextSelection selection)
 {
     muiTextBlock* block = nullptr;
     muiResult result = muiEditBlock(service, blockId, &block);
@@ -161,6 +173,18 @@ muiResult muiTextBlock_Select(muiTextService* service, muiTextBlockId blockId,
     block->editing.preferredX = -1.0f;
     muiEndPress(&block->editing);
     return mui_success;
+}
+
+muiResult muiTextBlock_Select(muiTextService* service, muiTextBlockId blockId,
+                              muiTextSelection selection)
+{
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = muiSelectText(service, blockId, selection);
+        muiLeaveText(service);
+    }
+    return status;
 }
 
 static uint32_t SelectionStart(const muiTextSelection* selection)
@@ -225,8 +249,8 @@ static muiResult EndComposing(muiTextService* service, muiTextBlockId blockId, m
         return mui_success;
     }
     uint32_t start = block->compositionStart;
-    muiResult result = muiTextBlock_SetComposition(service, blockId, start, nullptr, 0, nullptr, 0);
-    result = result == mui_success ? muiTextBlock_EndComposition(service, blockId) : result;
+    muiResult result = muiSetComposition(service, blockId, start, nullptr, 0, nullptr, 0);
+    result = result == mui_success ? muiEndComposition(service, blockId) : result;
     if (result == mui_success)
     {
         muiPlaceSelection(block, Collapsed(start));
@@ -272,16 +296,40 @@ static muiResult Put(muiTextService* service, muiTextBlockId blockId, const char
     return Edit(service, block, start, end, service->editScratch.data, kept, kind, changedOut);
 }
 
+muiResult muiTypeText(muiTextService* service, muiTextBlockId blockId, const char* text,
+                      size_t length, bool* changedOut)
+{
+    return Put(service, blockId, text, length, MUI_EDIT_TYPING, changedOut);
+}
+
 muiResult muiTextBlock_Type(muiTextService* service, muiTextBlockId blockId, const char* text,
                             size_t length, bool* changedOut)
 {
-    return Put(service, blockId, text, length, MUI_EDIT_TYPING, changedOut);
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = muiTypeText(service, blockId, text, length, changedOut);
+        muiLeaveText(service);
+    }
+    return status;
+}
+
+muiResult muiPasteText(muiTextService* service, muiTextBlockId blockId, const char* text,
+                       size_t length, bool* changedOut)
+{
+    return Put(service, blockId, text, length, MUI_EDIT_OTHER, changedOut);
 }
 
 muiResult muiTextBlock_Paste(muiTextService* service, muiTextBlockId blockId, const char* text,
                              size_t length, bool* changedOut)
 {
-    return Put(service, blockId, text, length, MUI_EDIT_OTHER, changedOut);
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = muiPasteText(service, blockId, text, length, changedOut);
+        muiLeaveText(service);
+    }
+    return status;
 }
 
 // Deletes the selection, or with none, the bytes from start up to end.
@@ -302,8 +350,8 @@ static muiResult Remove(muiTextService* service, muiTextBlock* block, uint32_t s
     return Edit(service, block, start, end, nullptr, 0, kind, changedOut);
 }
 
-muiResult muiTextBlock_Erase(muiTextService* service, muiTextBlockId blockId,
-                             muiTextDeletion deletion, bool* changedOut)
+muiResult muiEraseText(muiTextService* service, muiTextBlockId blockId, muiTextDeletion deletion,
+                       bool* changedOut)
 {
     if (changedOut != nullptr)
     {
@@ -330,8 +378,20 @@ muiResult muiTextBlock_Erase(muiTextService* service, muiTextBlockId blockId,
     return Remove(service, block, start, end, kind, changedOut);
 }
 
-muiResult muiTextBlock_EraseTo(muiTextService* service, muiTextBlockId blockId, uint32_t offset,
-                               bool* changedOut)
+muiResult muiTextBlock_Erase(muiTextService* service, muiTextBlockId blockId,
+                             muiTextDeletion deletion, bool* changedOut)
+{
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = muiEraseText(service, blockId, deletion, changedOut);
+        muiLeaveText(service);
+    }
+    return status;
+}
+
+muiResult muiEraseTextTo(muiTextService* service, muiTextBlockId blockId, uint32_t offset,
+                         bool* changedOut)
 {
     if (changedOut != nullptr)
     {
@@ -356,6 +416,18 @@ muiResult muiTextBlock_EraseTo(muiTextService* service, muiTextBlockId blockId, 
     uint32_t caret = block->editing.selection.caret.offset;
     return Remove(service, block, caret < offset ? caret : offset, caret > offset ? caret : offset,
                   MUI_EDIT_OTHER, changedOut);
+}
+
+muiResult muiTextBlock_EraseTo(muiTextService* service, muiTextBlockId blockId, uint32_t offset,
+                               bool* changedOut)
+{
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = muiEraseTextTo(service, blockId, offset, changedOut);
+        muiLeaveText(service);
+    }
+    return status;
 }
 
 muiResult muiTextBlock_GetSelectedText(const muiTextService* service, muiTextBlockId blockId,
@@ -424,14 +496,36 @@ static muiResult Step(muiTextService* service, muiTextBlockId blockId, bool back
     return mui_success;
 }
 
-muiResult muiTextBlock_Undo(muiTextService* service, muiTextBlockId blockId, bool* changedOut)
+muiResult muiUndoText(muiTextService* service, muiTextBlockId blockId, bool* changedOut)
 {
     return Step(service, blockId, true, changedOut);
 }
 
-muiResult muiTextBlock_Redo(muiTextService* service, muiTextBlockId blockId, bool* changedOut)
+muiResult muiTextBlock_Undo(muiTextService* service, muiTextBlockId blockId, bool* changedOut)
+{
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = muiUndoText(service, blockId, changedOut);
+        muiLeaveText(service);
+    }
+    return status;
+}
+
+muiResult muiRedoText(muiTextService* service, muiTextBlockId blockId, bool* changedOut)
 {
     return Step(service, blockId, false, changedOut);
+}
+
+muiResult muiTextBlock_Redo(muiTextService* service, muiTextBlockId blockId, bool* changedOut)
+{
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = muiRedoText(service, blockId, changedOut);
+        muiLeaveText(service);
+    }
+    return status;
 }
 
 muiResult muiTextBlock_GetInputPurpose(const muiTextService* service, muiTextBlockId blockId,
@@ -466,9 +560,10 @@ muiResult muiTextBlock_GetUndoState(const muiTextService* service, muiTextBlockI
     return result;
 }
 
-muiResult muiTextBlock_Compose(muiTextService* service, muiTextBlockId blockId, const char* text,
-                               size_t length, uint32_t caret, const muiCompositionSegment* segments,
-                               uint32_t segmentCount, bool* changedOut)
+static muiResult TextBlockCompose(muiTextService* service, muiTextBlockId blockId, const char* text,
+                                  size_t length, uint32_t caret,
+                                  const muiCompositionSegment* segments, uint32_t segmentCount,
+                                  bool* changedOut)
 {
     if (changedOut != nullptr)
     {
@@ -507,10 +602,9 @@ muiResult muiTextBlock_Compose(muiTextService* service, muiTextBlockId blockId, 
         result = Edit(service, block, SelectionStart(selection), SelectionEnd(selection), nullptr,
                       0, MUI_EDIT_OTHER, nullptr);
     }
-    result = result == mui_success
-                 ? muiTextBlock_SetComposition(service, blockId, selection->caret.offset, text,
-                                               length, segments, segmentCount)
-                 : result;
+    result = result == mui_success ? muiSetComposition(service, blockId, selection->caret.offset,
+                                                       text, length, segments, segmentCount)
+                                   : result;
     if (result != mui_success)
     {
         return result;
@@ -523,4 +617,18 @@ muiResult muiTextBlock_Compose(muiTextService* service, muiTextBlockId blockId, 
         *changedOut = true;
     }
     return mui_success;
+}
+
+muiResult muiTextBlock_Compose(muiTextService* service, muiTextBlockId blockId, const char* text,
+                               size_t length, uint32_t caret, const muiCompositionSegment* segments,
+                               uint32_t segmentCount, bool* changedOut)
+{
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = TextBlockCompose(service, blockId, text, length, caret, segments, segmentCount,
+                                  changedOut);
+        muiLeaveText(service);
+    }
+    return status;
 }

@@ -97,7 +97,8 @@ extern "C"
         mui_keymapMac = 1,
     };
 
-    // Writes copied or cut text to the host's clipboard.
+    // Writes copied or cut text to the host's clipboard. It runs inside
+    // muiTextEditEvent, while the service is busy (maul-ui/text.h).
     typedef void (*muiClipboardWriteFunction)(void* user, const char* text, size_t length);
 
     // How muiTextEditEvent reads input: the keymap, and the clipboard
@@ -146,9 +147,10 @@ extern "C"
     /// @param service  The service.
     /// @param blockId  The block.
     /// @param def      The rules, or NULL.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL service, the
-    ///         null id, or a flag, filter or purpose out of range;
-    ///         `mui_errorStale` for a block that is gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL service, the null
+    ///         id, or a flag, filter or purpose out of range; `mui_errorStale`
+    ///         for a block that is gone; `mui_errorState` while the service is
+    ///         busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_SetEditing(muiTextService* service,
@@ -176,9 +178,10 @@ extern "C"
     /// @param blockId    The block.
     /// @param selection  The selection: offsets within the text, at the
     ///                   starts of characters.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL service, the
-    ///         null id, a block not editing or an offset out of place;
-    ///         `mui_errorStale` for a block that is gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL service, the null
+    ///         id, a block not editing or an offset out of place;
+    ///         `mui_errorStale` for a block that is gone; `mui_errorState`
+    ///         while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_Select(muiTextService* service,
@@ -195,12 +198,12 @@ extern "C"
     /// @param text        UTF-8 text; may be NULL when length is 0.
     /// @param length      Its length in bytes.
     /// @param changedOut  Receives whether the text changed; may be NULL.
-    /// @return `mui_success`, changed or not (read-only, filtered out, at
-    ///         the limit); `mui_errorInvalid` for a NULL service or text,
-    ///         the null id, a block not editing or text past the block's
-    ///         limit; `mui_errorStale` for a block that is gone;
-    ///         `mui_errorCapacity` when memory runs out, which changes
-    ///         nothing.
+    /// @return `mui_success`, changed or not (read-only, filtered out, at the
+    ///         limit); `mui_errorInvalid` for a NULL service or text, the null
+    ///         id, a block not editing or text past the block's limit;
+    ///         `mui_errorStale` for a block that is gone; `mui_errorCapacity`
+    ///         when memory runs out, which changes nothing; `mui_errorState`
+    ///         while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_Type(muiTextService* service,
@@ -215,7 +218,8 @@ extern "C"
     /// @param text        UTF-8 text; may be NULL when length is 0.
     /// @param length      Its length in bytes.
     /// @param changedOut  Receives whether the text changed; may be NULL.
-    /// @return As muiTextBlock_Type.
+    /// @return As muiTextBlock_Type; `mui_errorState` while the service is
+    ///         busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_Paste(muiTextService* service,
@@ -231,8 +235,8 @@ extern "C"
     /// @param blockId     The block.
     /// @param deletion    Which way.
     /// @param changedOut  Receives whether the text changed; may be NULL.
-    /// @return As muiTextBlock_Type; `mui_errorInvalid` for a deletion out
-    ///         of range.
+    /// @return As muiTextBlock_Type; `mui_errorInvalid` for a deletion out of
+    ///         range; `mui_errorState` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_Erase(muiTextService* service,
@@ -247,8 +251,8 @@ extern "C"
     /// @param offset      The other end, at the start of a character;
     ///                    past the text is its end.
     /// @param changedOut  Receives whether the text changed; may be NULL.
-    /// @return As muiTextBlock_Type; `mui_errorInvalid` for an offset
-    ///         inside a character.
+    /// @return As muiTextBlock_Type; `mui_errorInvalid` for an offset inside a
+    ///         character; `mui_errorState` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_EraseTo(muiTextService* service,
@@ -279,7 +283,8 @@ extern "C"
     /// @param service     The service.
     /// @param blockId     The block.
     /// @param changedOut  Receives whether the text changed; may be NULL.
-    /// @return As muiTextBlock_Type.
+    /// @return As muiTextBlock_Type; `mui_errorState` while the service is
+    ///         busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_Undo(muiTextService* service,
@@ -292,7 +297,8 @@ extern "C"
     /// @param service     The service.
     /// @param blockId     The block.
     /// @param changedOut  Receives whether the text changed; may be NULL.
-    /// @return As muiTextBlock_Type.
+    /// @return As muiTextBlock_Type; `mui_errorState` while the service is
+    ///         busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_Redo(muiTextService* service,
@@ -344,7 +350,8 @@ extern "C"
     /// @param segmentCount  How many.
     /// @param changedOut    Receives whether the text changed; may be NULL.
     /// @return As muiTextBlock_Type; `mui_errorInvalid` for a caret out of
-    ///         place or segments out of the text.
+    ///         place or segments out of the text; `mui_errorState` while the
+    ///         service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_Compose(muiTextService* service,
@@ -376,7 +383,7 @@ extern "C"
     /// @param event       The event.
     /// @param input       The keymap and the clipboard writer.
     /// @param outcomeOut  Receives what the event did.
-    /// @return As muiTextEditMove.
+    /// @return As muiTextEditMove; `mui_errorState` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
@@ -394,9 +401,9 @@ extern "C"
     /// @param movement  The movement.
     /// @param extend    Whether the anchor stays.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
-    ///         movement out of range or a block not editing;
-    ///         `mui_errorStale` for a node, block or font that is gone;
-    ///         `mui_errorCapacity` when memory runs out.
+    ///         movement out of range or a block not editing; `mui_errorStale`
+    ///         for a node, block or font that is gone; `mui_errorCapacity` when
+    ///         memory runs out; `mui_errorState` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
@@ -416,8 +423,8 @@ extern "C"
     /// @param clickCount  The press's place in a quick series: 1, 2, 3; a
     ///                    fourth goes round to 1, as on every platform.
     /// @param extend      Whether the anchor stays.
-    /// @return As muiTextEditMove; `mui_errorInvalid` for a point not
-    ///         finite or a click count of 0.
+    /// @return As muiTextEditMove; `mui_errorInvalid` for a point not finite or
+    ///         a click count of 0; `mui_errorState` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
@@ -433,7 +440,7 @@ extern "C"
     /// @param nodeId  A node whose host key is an editing block's.
     /// @param x       The point, in the node's border box.
     /// @param y       The point's y.
-    /// @return As muiTextEditPress.
+    /// @return As muiTextEditPress; `mui_errorState` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
@@ -456,10 +463,11 @@ extern "C"
     ///                    changed and the selection moved, whatever the
     ///                    result.
     /// @return `mui_success`; `mui_empty` for another action;
-    ///         `mui_errorInvalid` for a NULL argument, a block not editing,
-    ///         an offset past the text or inside a character, or a NULL
-    ///         text with a length; `mui_errorStale` for a node or block
-    ///         that is gone; `mui_errorCapacity` when memory runs out.
+    ///         `mui_errorInvalid` for a NULL argument, a block not editing, an
+    ///         offset past the text or inside a character, or a NULL text with
+    ///         a length; `mui_errorStale` for a node or block that is gone;
+    ///         `mui_errorCapacity` when memory runs out; `mui_errorState` while
+    ///         the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.

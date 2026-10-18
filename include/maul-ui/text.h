@@ -5,6 +5,13 @@
 // the library when it is built with its text component (MAUL_UI_TEXT).
 // The core reaches text only through host content, so a host may use
 // another text stack instead.
+//
+// A service is busy while one of its functions that use it runs, those
+// given a muiTextHost among them, and an atlas while one of its
+// functions that change it runs. Host code they call then (the
+// allocator, FreeType's memory through it, the clipboard writer) calls
+// none of those: one answers mui_errorState, or an empty answer where it
+// returns no status, and counts one misuse.
 
 #ifndef MAUL_UI_TEXT_H
 #define MAUL_UI_TEXT_H
@@ -86,7 +93,8 @@ extern "C"
                                                          muiTextService** serviceOut);
 
     /// Destroys a service and every font in it. Every id it gave out
-    /// becomes meaningless.
+    /// becomes meaningless. A call while the service is busy destroys
+    /// nothing and counts one misuse.
     ///
     /// @param service  The service, or NULL for nothing.
     /// @par Thread safety

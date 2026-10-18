@@ -248,7 +248,7 @@ static muiResult CheckFallbacks(const muiTextService* service, const uint64_t* k
     return result;
 }
 
-muiResult muiSetFallbackFonts(muiTextService* service, const uint64_t* keys, uint32_t count)
+static muiResult SetFallbackFonts(muiTextService* service, const uint64_t* keys, uint32_t count)
 {
     if (service == nullptr)
     {
@@ -266,6 +266,17 @@ muiResult muiSetFallbackFonts(muiTextService* service, const uint64_t* keys, uin
     return result;
 }
 
+muiResult muiSetFallbackFonts(muiTextService* service, const uint64_t* keys, uint32_t count)
+{
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = SetFallbackFonts(service, keys, count);
+        muiLeaveText(service);
+    }
+    return status;
+}
+
 muiFontFamilyDef muiDefaultFontFamilyDef(void)
 {
     return (muiFontFamilyDef){.cookie = FONT_FAMILY_DEF_COOKIE};
@@ -276,8 +287,8 @@ static uint32_t ResolveFamily(const muiTextService* service, muiFontFamilyId fam
     return muiPoolResolve(&service->families.pool, familyId.index1, familyId.generation);
 }
 
-muiResult muiCreateFontFamily(muiTextService* service, const muiFontFamilyDef* def,
-                              muiFontFamilyId* familyOut)
+static muiResult CreateFontFamily(muiTextService* service, const muiFontFamilyDef* def,
+                                  muiFontFamilyId* familyOut)
 {
     if (familyOut != nullptr)
     {
@@ -327,7 +338,19 @@ muiResult muiCreateFontFamily(muiTextService* service, const muiFontFamilyDef* d
     return mui_success;
 }
 
-muiResult muiDestroyFontFamily(muiTextService* service, muiFontFamilyId familyId)
+muiResult muiCreateFontFamily(muiTextService* service, const muiFontFamilyDef* def,
+                              muiFontFamilyId* familyOut)
+{
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = CreateFontFamily(service, def, familyOut);
+        muiLeaveText(service);
+    }
+    return status;
+}
+
+static muiResult DestroyFontFamily(muiTextService* service, muiFontFamilyId familyId)
 {
     if (service == nullptr || familyId.index1 == 0)
     {
@@ -341,6 +364,17 @@ muiResult muiDestroyFontFamily(muiTextService* service, muiFontFamilyId familyId
     muiReleaseFontFamily(&service->allocator, &service->families.families[slot - 1]);
     muiPoolGive(&service->families.pool, slot);
     return mui_success;
+}
+
+muiResult muiDestroyFontFamily(muiTextService* service, muiFontFamilyId familyId)
+{
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = DestroyFontFamily(service, familyId);
+        muiLeaveText(service);
+    }
+    return status;
 }
 
 bool muiFontFamily_IsValid(const muiTextService* service, muiFontFamilyId familyId)
