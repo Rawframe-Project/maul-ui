@@ -588,3 +588,50 @@ node => 0 0 120 90
           node width=20 content=30x20*4 => 0 0 20 80
       node => 0 80 0 30
         node height=30 => 0 0 0 30
+
+# A wrapping column measured for its flex base in a column breaks its
+# lines at a pixel maximum height and takes its longest line, as Chrome
+# (audit, 532l 200): the base from its content alone leaves the maximum
+# out of its size, not out of its lines. In a ratio box the box keeps
+# its ratio's 75, as Chrome and Firefox; as a column's item Firefox caps
+# one line at the maximum instead. A percentage maximum breaks no lines
+# (as both).
+
+fixture wrap_column_base_breaks_at_maximum_in_ratio_box available=500x400
+node => 0 0 150 75
+  node => 0 0 150 75
+    node direction=column-reverse => 0 0 150 75
+      node aspect=2 direction=column-reverse => 0 0 150 75
+        node width=150 height=10%+5 max-height=100 direction=column wrap=wrap-reverse => 0 62.5 150 12.5
+          node border=10 => 86.671875 0 63.328125 20
+          node height=30 => 43.328125 0 43.34375 12.5
+          node basis=60 => 0 0 43.328125 12.5
+
+fixture wrap_column_base_breaks_at_pixel_maximum available=500x400
+node direction=column => 0 0 150 60
+  node width=150 direction=column => 0 0 150 60
+    node width=150 max-height=100 direction=column wrap=wrap => 0 0 150 60
+      node border=10 => 0 0 85 20
+      node height=30 => 0 20 85 30
+      node basis=60 => 85 0 65 60
+
+fixture wrap_column_base_breaks_at_pixel_maximum_gap_padding available=500x400
+node direction=column => 0 0 150 70
+  node width=150 max-height=100 padding=5 row-gap=10 direction=column wrap=wrap => 0 0 150 70
+    node border=10 => 5 5 80 20
+    node height=30 => 5 35 80 30
+    node basis=60 => 85 5 60 60
+
+fixture wrap_column_base_breaks_at_pixel_maximum_minimum available=500x400
+node direction=column => 0 0 150 80
+  node width=150 min-height=80 max-height=100 direction=column wrap=wrap => 0 0 150 80
+    node border=10 => 0 0 85 20
+    node height=30 => 0 20 85 30
+    node basis=60 => 85 0 65 60
+
+fixture wrap_column_base_ignores_percentage_maximum available=500x400
+node height=300 direction=column => 0 0 150 300
+  node width=150 max-height=33.3333% direction=column wrap=wrap => 0 0 150 99.984375
+    node border=10 => 0 0 85 20
+    node height=30 => 0 20 85 30
+    node basis=60 => 85 0 65 60

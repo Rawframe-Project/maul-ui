@@ -31,6 +31,10 @@ typedef struct muiFlexFrame
     muiMeasureAxis crossIn;
     muiAxisSizing mainLimits;
     muiAxisSizing crossLimits;
+    // The maximum main size its style gives, where a wrapping column
+    // breaks its lines, also when its content alone is asked
+    // (muiSizingInput.contentOnly) and mainLimits leave it out.
+    float lineMaximum;
     // The children's percentage bases along each axis, negative when
     // indefinite: a size not given exactly, or a height that is the
     // container's content height (muiSizingInput.contentHeight).

@@ -110,6 +110,33 @@ static void RatioExtent(muiFlexFrame* frame, const muiLayoutStyle* style,
     frame->ratioBreak = frame->row || !frame->multiLine ? -1.0f : extent;
 }
 
+// The frame's limits along each axis, and the maximum where its lines
+// break. A content-only answer (muiSizingInput.contentOnly) leaves its
+// limits along its container's main axis out.
+static void LimitsOf(muiFlexFrame* frame, const muiSizingInput* input, float parentMain,
+                     float parentCross)
+{
+    const muiLayoutStyle* style = frame->style;
+    frame->mainLimits = muiResolveAxis(&style->sizing, frame->row, parentMain);
+    frame->crossLimits = muiResolveAxis(&style->sizing, !frame->row, parentCross);
+    frame->lineMaximum = frame->mainLimits.maximum;
+    if (!input->contentOnly)
+    {
+        return;
+    }
+    muiAxisSizing* left =
+        frame->row != input->contentOnlyHeight ? &frame->mainLimits : &frame->crossLimits;
+    left->minimum = 0.0f;
+    left->maximum = INFINITY;
+    // A percentage maximum breaks no lines of a base (as Chrome and
+    // Firefox); a pixel one still does.
+    const muiDimension* maximum = frame->row ? &style->sizing.maxWidth : &style->sizing.maxHeight;
+    if (left == &frame->mainLimits && maximum->scale != 0.0f)
+    {
+        frame->lineMaximum = INFINITY;
+    }
+}
+
 static muiFlexFrame Setup(const muiSolver* solver, uint32_t node, const muiSizingInput* input)
 {
     const muiLayoutStyle* style = &solver->nodes[node - 1].style;
@@ -128,17 +155,7 @@ static muiFlexFrame Setup(const muiSolver* solver, uint32_t node, const muiSizin
     frame.crossIn = frame.row ? input->height : input->width;
     float parentMain = frame.row ? input->parentWidth : input->parentHeight;
     float parentCross = frame.row ? input->parentHeight : input->parentWidth;
-    frame.mainLimits = muiResolveAxis(&style->sizing, frame.row, parentMain);
-    frame.crossLimits = muiResolveAxis(&style->sizing, !frame.row, parentCross);
-    if (input->contentOnly)
-    {
-        // The content's answer alone, its own limits along its
-        // container's main axis left out.
-        muiAxisSizing* left =
-            frame.row != input->contentOnlyHeight ? &frame.mainLimits : &frame.crossLimits;
-        left->minimum = 0.0f;
-        left->maximum = INFINITY;
-    }
+    LimitsOf(&frame, input, parentMain, parentCross);
     frame.gap = frame.row ? style->container.columnGap : style->container.rowGap;
     frame.crossGap = frame.row ? style->container.rowGap : style->container.columnGap;
     frame.multiLine = style->container.wrap != mui_wrapNone;
@@ -229,13 +246,14 @@ static void SizeMain(muiFlexFrame* frame)
         content =
             wraps && content < widest ? fmaxf(content, WidestMinContribution(frame)) : content;
         // A wrapping column longer than its maximum height breaks its lines
-        // there, as Chrome and Firefox do; the ratio's height breaks them
-        // otherwise.
+        // there, as Chrome and Firefox do, also for a base from its content
+        // alone, unclamped after (as Chrome); the ratio's height breaks
+        // them otherwise.
         float breakAt = frame->ratioBreak;
         if (breakAt < 0.0f && !frame->row && frame->multiLine &&
-            content + frame->boxMain > frame->mainLimits.maximum)
+            content + frame->boxMain > frame->lineMaximum)
         {
-            breakAt = fmaxf(frame->mainLimits.maximum - frame->boxMain, 0.0f);
+            breakAt = fmaxf(frame->lineMaximum - frame->boxMain, 0.0f);
         }
         content = breakAt >= 0.0f ? LongestLine(frame, breakAt) : content;
         float outer = muiClampSize(content + frame->boxMain, frame->mainLimits.minimum,

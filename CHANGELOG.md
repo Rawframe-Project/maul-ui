@@ -8,6 +8,14 @@ format.
 
 ## [Unreleased]
 
+### Fixed
+
+- A wrapping column measured for its flex base in a column breaks its
+  lines at a pixel maximum height and takes its longest line, as in
+  Chrome, also inside a box with an aspect ratio, where Chrome and
+  Firefox agree. Before, it counted its items in one line capped by
+  the maximum, and could make the box taller than its ratio.
+
 ## [0.6.0] - 2026-10-18
 
 Host code calling back in is refused everywhere. A measure, paint or
