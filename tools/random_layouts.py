@@ -27,7 +27,11 @@
 # random_<seed>p_<n>; --ratio draws the --reach layouts again with some
 # in-flow items given a ratio, with the sizes, percentages, limits, bases
 # and alignments a ratio meets, far more often (from a stream of its own
-# again), under names random_<seed>a_<n>. Put them in a file under test/layout/, render it with gen_layout_fixtures.py
+# again), under names random_<seed>a_<n>; --limits draws the --reach
+# layouts again with minimum and maximum sizes, percentages among them,
+# on many in-flow items, with bases beside them and some containers made
+# wrapping columns (from a stream of its own again), under names
+# random_<seed>l_<n>. Put them in a file under test/layout/, render it with gen_layout_fixtures.py
 # --oracle and run test_layout_fixtures to see which part from Chrome; the
 # ones that agree may stay in the corpus.
 #
@@ -48,7 +52,8 @@
 # is older).
 #
 # usage: random_layouts.py generate SEED COUNT
-#            [--wide | --words | --deep | --reach | --scroll | --placed | --ratio]
+#            [--wide | --words | --deep | --reach | --scroll | --placed | --ratio
+#             | --limits]
 #        random_layouts.py reduce FILE NAME [--firefox EXECUTABLE]
 
 import os
@@ -74,8 +79,8 @@ class Generator:
     """Draws fixtures; a seed always draws the same ones."""
 
     def __init__(self, seed, wide=False, words=False, deep=False, reach=False, scroll=False,
-                 placed=False, ratio=False):
-        reach = reach or scroll or placed or ratio
+                 placed=False, ratio=False, limits=False):
+        reach = reach or scroll or placed or ratio or limits
         deep = deep or reach
         self.rng = random.Random(seed)
         # Wide draws add keys the default leaves out; the default's draws
@@ -100,6 +105,9 @@ class Generator:
         # And ratio draws: a seed's ratio layouts are its reach ones, some
         # in-flow items given a ratio and what it meets.
         self.ratio = random.Random(seed ^ 0x52415449) if ratio else None
+        # And limits draws: a seed's limits layouts are its reach ones,
+        # many in-flow items given minimum and maximum sizes.
+        self.limits = random.Random(seed ^ 0x4C494D53) if limits else None
 
     def reached(self, keys, root):
         """Keys with some replaced by what only the reach draws try."""
@@ -158,6 +166,37 @@ class Generator:
             replace["align-self"] = q.choice(["stretch", "start", "center", "baseline"])
         dropped = set(replace) | {"position", "start", "end", "top", "bottom", "anchor"}
         kept = [key for key in keys if key.split("=", 1)[0] not in dropped]
+        return kept + [f"{key}={value}" for key, value in replace.items()]
+
+    def limiting(self, keys):
+        """Keys with an item kept in flow and given minimum and maximum
+        sizes, percentages and percentages with an offset among them, and
+        a basis beside them, far more often than the other draws."""
+        m = self.limits
+        if m.random() >= 0.5:
+            return keys
+        replace = {}
+        for limit in ("min-width", "min-height", "max-width", "max-height"):
+            if m.random() < 0.35:
+                replace[limit] = m.choice(["0", "10", "40", "100", "25%", "50%", "100%",
+                                           "50%+10", "100%-5", "75%-20"])
+        if m.random() < 0.3:
+            replace["basis"] = m.choice(["0", "20", "60", "50%", "100%-10"])
+        if m.random() < 0.2:
+            replace["height"] = m.choice(["20", "50%", "100%", "50%+10"])
+        dropped = set(replace) | {"position", "start", "end", "top", "bottom", "anchor"}
+        kept = [key for key in keys if key.split("=", 1)[0] not in dropped]
+        return kept + [f"{key}={value}" for key, value in replace.items()]
+
+    def lining(self, keys):
+        """Container keys with some made a wrapping column, where limits
+        meet the lines they break."""
+        m = self.limits
+        if m.random() >= 0.3:
+            return keys
+        replace = {"direction": m.choice(["column", "column-reverse"]),
+                   "wrap": m.choice(["wrap", "wrap-reverse"])}
+        kept = [key for key in keys if key.split("=", 1)[0] not in replace]
         return kept + [f"{key}={value}" for key, value in replace.items()]
 
     def dimension(self):
@@ -223,6 +262,8 @@ class Generator:
             keys = self.placing(keys)
         if self.ratio and not root:
             keys = self.ratioing(keys)
+        if self.limits and not root:
+            keys = self.limiting(keys)
         if self.scroll and self.scroll.random() < 0.15:
             keys.append(f"scroll={self.scroll.choice(['horizontal', 'vertical', 'both'])}")
         levels, _, most = self.shape
@@ -249,6 +290,8 @@ class Generator:
         keys += self.pick(0.2, "align-content", ["stretch"] + aligns)
         keys += self.pick(0.15, "row-gap", [0, 4, 10]) + self.pick(0.15, "column-gap", [0, 4, 10])
         keys += self.pick(0.1, "dir", ["ltr", "rtl"])
+        if self.limits:
+            keys = self.lining(keys)
         return keys, [self.node(depth + 1) for _ in range(r.randint(1, self.shape[1]))]
 
 
@@ -274,9 +317,9 @@ def flatten(tree, depth=0):
 def generate(seed, count, draws=""):
     generator = Generator(seed, draws == "--wide", draws == "--words", draws == "--deep",
                           draws == "--reach", draws == "--scroll", draws == "--placed",
-                          draws == "--ratio")
+                          draws == "--ratio", draws == "--limits")
     tags = {'--wide': 'w', '--words': 't', '--deep': 'd', '--reach': 'r', '--scroll': 's',
-            '--placed': 'p', '--ratio': 'a'}
+            '--placed': 'p', '--ratio': 'a', '--limits': 'l'}
     tag = f"{seed}{tags.get(draws, '')}"
     out = [f"# Random layouts, seed {tag} (tools/random_layouts.py).", "# chrome 0", ""]
     for i in range(count):
@@ -411,14 +454,15 @@ def reduce(path, name, firefox=None):
 def main():
     args = sys.argv[1:]
     draws = ([], ["--wide"], ["--words"], ["--deep"], ["--reach"], ["--scroll"], ["--placed"],
-             ["--ratio"])
+             ["--ratio"], ["--limits"])
     if len(args) in (3, 4) and args[0] == "generate" and args[3:] in draws:
         print(generate(int(args[1]), int(args[2]), "".join(args[3:])))
     elif len(args) in (3, 5) and args[0] == "reduce" and args[3:4] in ([], ["--firefox"]):
         reduce(args[1], args[2], args[4] if len(args) == 5 else None)
     else:
         sys.exit("usage: random_layouts.py generate SEED COUNT"
-                 " [--wide | --words | --deep | --reach | --scroll | --placed | --ratio]"
+                 " [--wide | --words | --deep | --reach | --scroll | --placed | --ratio"
+                 " | --limits]"
                  " | reduce FILE NAME [--firefox EXECUTABLE]")
 
 
