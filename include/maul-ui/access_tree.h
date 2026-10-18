@@ -88,6 +88,17 @@ extern "C"
     /// Safe from any thread; the tree is used by one thread at a time.
     MUI_API void muiDestroyAccessTree(muiAccessTree* tree);
 
+    /// Returns how many calls the tree refused as invalid input
+    /// (`mui_errorInvalid`) or as calls back in while busy
+    /// (`mui_errorState`): a count release builds can watch to catch a
+    /// host's bugs. Queries taking it as const count nothing.
+    ///
+    /// @param tree  The tree.
+    /// @return The count; 0 for a NULL tree.
+    /// @par Thread safety
+    /// Safe from any thread; the tree is used by one thread at a time.
+    MUI_API uint64_t muiGetAccessTreeMisuse(const muiAccessTree* tree);
+
     /// Applies an update whole, or nothing of it: the nodes sent replace
     /// those held, new ones join, and a node a parent sent no longer
     /// lists, which no other node sent lists, leaves with its subtree, as

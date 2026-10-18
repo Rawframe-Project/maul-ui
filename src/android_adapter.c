@@ -248,6 +248,11 @@ void muiDestroyAndroidAdapter(muiAndroidAdapter* adapter)
     DestroyAndroidAdapter(adapter);
 }
 
+uint64_t muiGetAndroidAdapterMisuse(const muiAndroidAdapter* adapter)
+{
+    return adapter != nullptr ? adapter->misuse : 0;
+}
+
 jint muiAndroidVirtualOf(muiAndroidAdapter* adapter, uint64_t id)
 {
     void* held = muiIdMapFind(&adapter->virtualById, id);
@@ -351,6 +356,7 @@ muiResult muiAndroidAdapter_Apply(muiAndroidAdapter* adapter, const muiAccessUpd
         return mui_errorState;
     }
     muiResult result = AndroidAdapterApply(adapter, update);
+    adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
     return result;
 }
@@ -381,6 +387,7 @@ muiResult muiAndroidAdapter_SetScale(muiAndroidAdapter* adapter, float scale)
         return mui_errorState;
     }
     muiResult result = AndroidAdapterSetScale(adapter, scale);
+    adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
     return result;
 }

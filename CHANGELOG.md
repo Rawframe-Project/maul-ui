@@ -13,6 +13,12 @@ format.
 - `mui_errorState`: a context's function that changes it, called from
   host code the context runs (the measure, baseline, paint and access
   text functions, the allocator), answers it and counts one misuse.
+- `muiGetAccessTreeMisuse`, `muiGetAtspiAppMisuse`,
+  `muiGetAriaAdapterMisuse`, `muiGetUiaAdapterMisuse`,
+  `muiGetAndroidAdapterMisuse`, `muiGetNsAdapterMisuse` and
+  `muiGetUikitAdapterMisuse`: how many calls the access tree and each
+  adapter refused as invalid input or as calls back in while busy, as
+  `muiGetContextMisuse` for a context.
 
 ### Changed
 

@@ -151,6 +151,11 @@ void muiDestroyAriaAdapter(muiAriaAdapter* adapter)
     DestroyAriaAdapter(adapter);
 }
 
+uint64_t muiGetAriaAdapterMisuse(const muiAriaAdapter* adapter)
+{
+    return adapter != nullptr ? adapter->misuse : 0;
+}
+
 uint32_t muiAriaSlotOf(const muiAriaAdapter* adapter, uint64_t id)
 {
     const muiAriaElement* element = muiIdMapFind(&adapter->elementById, id);
@@ -541,6 +546,7 @@ muiResult muiAriaAdapter_Apply(muiAriaAdapter* adapter, const muiAccessUpdate* u
         return mui_errorState;
     }
     muiResult result = AriaAdapterApply(adapter, update);
+    adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
     return result;
 }
@@ -575,6 +581,7 @@ muiResult muiAriaAdapter_SetScale(muiAriaAdapter* adapter, float scale)
         return mui_errorState;
     }
     muiResult result = AriaAdapterSetScale(adapter, scale);
+    adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
     return result;
 }

@@ -255,6 +255,11 @@ void muiDestroyAtspiApp(muiAtspiApp* app)
     DestroyAtspiApp(app);
 }
 
+uint64_t muiGetAtspiAppMisuse(const muiAtspiApp* app)
+{
+    return app != nullptr ? app->misuse : 0;
+}
+
 int muiAtspiApp_GetDescriptor(const muiAtspiApp* app)
 {
     int descriptor = -1;
@@ -408,6 +413,7 @@ muiResult muiCreateAtspiAdapter(muiAtspiApp* app, const muiAtspiAdapterDef* def,
         return mui_errorState;
     }
     muiResult result = CreateAtspiAdapter(app, def, adapterOut);
+    app->misuse += result == mui_errorInvalid;
     app->busy = false;
     return result;
 }
@@ -478,6 +484,7 @@ muiResult muiAtspiAdapter_SetScale(muiAtspiAdapter* adapter, float scale)
         return mui_errorState;
     }
     muiResult result = AtspiAdapterSetScale(adapter, scale);
+    adapter->app->misuse += result == mui_errorInvalid;
     adapter->app->busy = false;
     return result;
 }

@@ -539,6 +539,7 @@ muiResult muiAccessTree_Apply(muiAccessTree* tree, const muiAccessUpdate* update
         return mui_errorState;
     }
     muiResult result = AccessTreeApply(tree, update, changes);
+    tree->misuse += result == mui_errorInvalid;
     tree->busy = false;
     return result;
 }

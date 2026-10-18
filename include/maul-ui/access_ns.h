@@ -85,6 +85,17 @@ extern "C"
     /// Main thread only.
     MUI_API void muiDestroyNsAdapter(muiNsAdapter* adapter);
 
+    /// Returns how many calls the adapter refused as invalid input
+    /// (`mui_errorInvalid`) or as calls back in while busy
+    /// (`mui_errorState`): a count release builds can watch to catch a
+    /// host's bugs. Queries taking it as const count nothing.
+    ///
+    /// @param adapter  The adapter.
+    /// @return The count; 0 for a NULL adapter.
+    /// @par Thread safety
+    /// Main thread only.
+    MUI_API uint64_t muiGetNsAdapterMisuse(const muiNsAdapter* adapter);
+
     /// Applies an update to the adapter's tree (muiAccessTree_Apply).
     ///
     /// @param adapter  The adapter.

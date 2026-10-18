@@ -136,6 +136,11 @@ void muiDestroyAndroidAdapter(muiAndroidAdapter* adapter);
 Lets go of the provider, which answers nothing from then on, and destroys the adapter; NULL is ignored. Take the provider from the view first.  @param adapter  The adapter. @par Thread safety Main thread only.
 
 ```c
+uint64_t muiGetAndroidAdapterMisuse(const muiAndroidAdapter* adapter);
+```
+Returns how many calls the adapter refused as invalid input (`mui_errorInvalid`) or as calls back in while busy (`mui_errorState`): a count release builds can watch to catch a host's bugs. Queries taking it as const count nothing.  @param adapter  The adapter. @return The count; 0 for a NULL adapter. @par Thread safety Main thread only.
+
+```c
 MUI_NODISCARD MUI_API muiResult muiAndroidAdapter_Apply(muiAndroidAdapter* adapter, const muiAccessUpdate* update);
 ```
 Applies an update to the adapter's tree (muiAccessTree_Apply).  @param adapter  The adapter. @param update   The update. @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter; `mui_errorState` while the adapter is busy. @par Thread safety Main thread only.
@@ -173,6 +178,11 @@ Makes an adapter with an empty tree in the host element, with the enabling butto
 void muiDestroyAriaAdapter(muiAriaAdapter* adapter);
 ```
 Takes the adapter's elements out of the page and destroys it; NULL is ignored.  @param adapter  The adapter. @par Thread safety Main thread only.
+
+```c
+uint64_t muiGetAriaAdapterMisuse(const muiAriaAdapter* adapter);
+```
+Returns how many calls the adapter refused as invalid input (`mui_errorInvalid`) or as calls back in while busy (`mui_errorState`): a count release builds can watch to catch a host's bugs. Queries taking it as const count nothing.  @param adapter  The adapter. @return The count; 0 for a NULL adapter. @par Thread safety Main thread only.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiAriaAdapter_Apply(muiAriaAdapter* adapter, const muiAccessUpdate* update);
@@ -217,6 +227,11 @@ Joins the accessibility bus (the address AT_SPI_BUS_ADDRESS names, else the one 
 void muiDestroyAtspiApp(muiAtspiApp* app);
 ```
 Leaves the accessibility bus; NULL is ignored. Destroy its adapters first.  @param app  The application. @par Thread safety Main thread only.
+
+```c
+uint64_t muiGetAtspiAppMisuse(const muiAtspiApp* app);
+```
+Returns how many calls the application and its adapters refused as invalid input (`mui_errorInvalid`) or as calls back in while busy (`mui_errorState`): a count release builds can watch to catch a host's bugs. Queries taking it as const count nothing.  @param app  The application. @return The count; 0 for a NULL application. @par Thread safety Main thread only.
 
 ```c
 int muiAtspiApp_GetDescriptor(const muiAtspiApp* app);
@@ -288,6 +303,11 @@ void muiDestroyNsAdapter(muiNsAdapter* adapter);
 Lets go of the adapter's objects, which answer nothing from then on, and destroys it; NULL is ignored. Take its root from the view first.  @param adapter  The adapter. @par Thread safety Main thread only.
 
 ```c
+uint64_t muiGetNsAdapterMisuse(const muiNsAdapter* adapter);
+```
+Returns how many calls the adapter refused as invalid input (`mui_errorInvalid`) or as calls back in while busy (`mui_errorState`): a count release builds can watch to catch a host's bugs. Queries taking it as const count nothing.  @param adapter  The adapter. @return The count; 0 for a NULL adapter. @par Thread safety Main thread only.
+
+```c
 MUI_NODISCARD MUI_API muiResult muiNsAdapter_Apply(muiNsAdapter* adapter, const muiAccessUpdate* update);
 ```
 Applies an update to the adapter's tree (muiAccessTree_Apply).  @param adapter  The adapter. @param update   The update. @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter; `mui_errorState` while the adapter is busy. @par Thread safety Main thread only.
@@ -325,6 +345,11 @@ Creates an empty tree.  @param def      The def, from muiDefaultAccessTreeDef. @
 void muiDestroyAccessTree(muiAccessTree* tree);
 ```
 Destroys a tree and all it holds; NULL is ignored.  @param tree  The tree. @par Thread safety Safe from any thread; the tree is used by one thread at a time.
+
+```c
+uint64_t muiGetAccessTreeMisuse(const muiAccessTree* tree);
+```
+Returns how many calls the tree refused as invalid input (`mui_errorInvalid`) or as calls back in while busy (`mui_errorState`): a count release builds can watch to catch a host's bugs. Queries taking it as const count nothing.  @param tree  The tree. @return The count; 0 for a NULL tree. @par Thread safety Safe from any thread; the tree is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiAccessTree_Apply(muiAccessTree* tree, const muiAccessUpdate* update, const muiAccessChanges* changes);
@@ -426,6 +451,11 @@ void muiDestroyUiaAdapter(muiUiaAdapter* adapter);
 Destroys an adapter; NULL is ignored. Every provider object it gave out answers UIA_E_ELEMENTNOTAVAILABLE from then on, and UI Automation is told to let go of each. Take the root from the window first.  @param adapter  The adapter. @par Thread safety Main thread only.
 
 ```c
+uint64_t muiGetUiaAdapterMisuse(const muiUiaAdapter* adapter);
+```
+Returns how many calls the adapter refused as invalid input (`mui_errorInvalid`) or as calls back in while busy (`mui_errorState`): a count release builds can watch to catch a host's bugs. Queries taking it as const count nothing.  @param adapter  The adapter. @return The count; 0 for a NULL adapter. @par Thread safety Main thread only.
+
+```c
 MUI_NODISCARD MUI_API muiResult muiUiaAdapter_Apply(muiUiaAdapter* adapter, const muiAccessUpdate* update);
 ```
 Applies an update to the adapter's tree (muiAccessTree_Apply); the provider objects of nodes it removes answer UIA_E_ELEMENTNOTAVAILABLE from then on.  @param adapter  The adapter. @param update   The update. @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter; `mui_errorState` while the adapter is busy. @par Thread safety Main thread only.
@@ -468,6 +498,11 @@ Makes an adapter with an empty tree.  @param def         The def, from muiDefaul
 void muiDestroyUikitAdapter(muiUikitAdapter* adapter);
 ```
 Lets go of the adapter's objects, which answer nothing from then on, and destroys it; NULL is ignored. Take its root from the view first.  @param adapter  The adapter. @par Thread safety Main thread only.
+
+```c
+uint64_t muiGetUikitAdapterMisuse(const muiUikitAdapter* adapter);
+```
+Returns how many calls the adapter refused as invalid input (`mui_errorInvalid`) or as calls back in while busy (`mui_errorState`): a count release builds can watch to catch a host's bugs. Queries taking it as const count nothing.  @param adapter  The adapter. @return The count; 0 for a NULL adapter. @par Thread safety Main thread only.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiUikitAdapter_Apply(muiUikitAdapter* adapter, const muiAccessUpdate* update);
@@ -516,7 +551,7 @@ Takes the oldest notification.  @param context          The context. @param noti
 ```c
 uint64_t muiGetContextMisuse(const muiContext* context);
 ```
-Returns how many calls the context has refused as invalid input (`mui_errorInvalid`): a count release builds can watch to catch a host's bugs. Stale ids are not misuse.  @param context  The context. @return The count; 0 for a NULL context. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Returns how many calls the context has refused as invalid input (`mui_errorInvalid`) or as calls back in while it was busy (`mui_errorState`): a count release builds can watch to catch a host's bugs. Stale ids are not misuse.  @param context  The context. @return The count; 0 for a NULL context. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 muiWorkCounts muiGetWorkCounts(const muiContext* context);
@@ -1230,7 +1265,7 @@ Destroys a service and every font in it. Every id it gave out becomes meaningles
 ```c
 uint64_t muiGetTextServiceMisuse(const muiTextService* service);
 ```
-Returns how many calls the service has refused as invalid input (`mui_errorInvalid`), its glyph atlases' and text editing's among them: a count release builds can watch to catch a host's bugs. Stale ids are not misuse, and queries taking the service as const count nothing.  @param service  The service. @return The count; 0 for a NULL service. @par Thread safety Safe from any thread; the service is used by one thread at a time.
+Returns how many calls the service has refused as invalid input (`mui_errorInvalid`) or as calls back in while busy (`mui_errorState`), its glyph atlases' and text editing's among them: a count release builds can watch to catch a host's bugs. Stale ids are not misuse, and queries taking the service as const count nothing.  @param service  The service. @return The count; 0 for a NULL service. @par Thread safety Safe from any thread; the service is used by one thread at a time.
 
 ## `text_block.h`
 
@@ -1889,4 +1924,4 @@ Asks the window to accept text with its caret at a rectangle of a node's border 
 
 ---
 
-344 functions across 40 headers.
+351 functions across 40 headers.

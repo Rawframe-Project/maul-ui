@@ -156,6 +156,11 @@ void muiDestroyUikitAdapter(muiUikitAdapter* adapter)
     DestroyUikitAdapter(adapter);
 }
 
+uint64_t muiGetUikitAdapterMisuse(const muiUikitAdapter* adapter)
+{
+    return adapter != nullptr ? adapter->misuse : 0;
+}
+
 MUIAccessibilityElement* muiUikitElementOf(muiUikitAdapter* adapter, uint64_t id)
 {
     if (adapter == nullptr || muiAccessTree_Find(adapter->tree, id) == nullptr)
@@ -329,6 +334,7 @@ muiResult muiUikitAdapter_Apply(muiUikitAdapter* adapter, const muiAccessUpdate*
         return mui_errorState;
     }
     muiResult result = UikitAdapterApply(adapter, update);
+    adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
     return result;
 }
@@ -359,6 +365,7 @@ muiResult muiUikitAdapter_SetScale(muiUikitAdapter* adapter, float scale)
         return mui_errorState;
     }
     muiResult result = UikitAdapterSetScale(adapter, scale);
+    adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
     return result;
 }

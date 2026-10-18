@@ -1237,8 +1237,10 @@ int main(void)
         (void)WaitForSingleObject(client, DEADLINE_MS);
         CloseHandle(client);
     }
-    CHECK(s_program.actions > 0 && s_program.refused == s_program.actions,
-          "every action's call back into the adapter refused");
+    CHECK(s_program.actions > 0 && s_program.refused == s_program.actions &&
+              muiGetUiaAdapterMisuse(s_program.adapter) >= (uint64_t)s_program.actions &&
+              muiGetUiaAdapterMisuse(NULL) == 0,
+          "every action's call back into the adapter refused and counted");
     muiUiaAdapter* adapter = s_program.adapter;
     s_program.adapter = NULL;
     muiDestroyUiaAdapter(adapter);

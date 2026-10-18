@@ -191,6 +191,11 @@ void muiDestroyAccessTree(muiAccessTree* tree)
     DestroyAccessTree(tree);
 }
 
+uint64_t muiGetAccessTreeMisuse(const muiAccessTree* tree)
+{
+    return tree != nullptr ? tree->misuse : 0;
+}
+
 uint32_t muiAccessHome(const muiAccessTree* tree, uint64_t id)
 {
     return (uint32_t)((id * 0x9E3779B97F4A7C15ULL) >> 32) & tree->mask;

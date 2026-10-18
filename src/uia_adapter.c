@@ -189,6 +189,11 @@ void muiDestroyUiaAdapter(muiUiaAdapter* adapter)
     DestroyUiaAdapter(adapter);
 }
 
+uint64_t muiGetUiaAdapterMisuse(const muiUiaAdapter* adapter)
+{
+    return adapter != nullptr ? adapter->misuse : 0;
+}
+
 static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* old)
 {
     (void)tree;
@@ -229,6 +234,7 @@ muiResult muiUiaAdapter_Apply(muiUiaAdapter* adapter, const muiAccessUpdate* upd
         return mui_errorState;
     }
     muiResult result = UiaAdapterApply(adapter, update);
+    adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
     return result;
 }
@@ -307,6 +313,7 @@ muiResult muiUiaAdapter_SetScale(muiUiaAdapter* adapter, float scale)
         return mui_errorState;
     }
     muiResult result = UiaAdapterSetScale(adapter, scale);
+    adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
     return result;
 }

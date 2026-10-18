@@ -376,9 +376,11 @@ static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* ro
     // Clicks: the button's own; what expands, toggled.
     s_asked = (muiAccessRequest){0};
     s_reentry = adapter;
+    uint64_t misuse = muiGetAriaAdapterMisuse(adapter);
     CHECK(Ask("press #mui0-2") && s_asked.action == mui_actionClick && s_asked.target == 2 &&
-              s_reentered == mui_errorState,
-          "a click; a call back in from it refused");
+              s_reentered == mui_errorState && muiGetAriaAdapterMisuse(adapter) == misuse + 2 &&
+              muiGetAriaAdapterMisuse(NULL) == 0,
+          "a click; a call back in from it refused, it and the destroy counted");
     s_reentry = NULL;
     muiAccessNode added = *muiAccessTree_Find(tree, 10);
     added.text[mui_accessLabel] = "New";

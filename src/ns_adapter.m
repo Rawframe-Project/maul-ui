@@ -143,6 +143,11 @@ void muiDestroyNsAdapter(muiNsAdapter* adapter)
     DestroyNsAdapter(adapter);
 }
 
+uint64_t muiGetNsAdapterMisuse(const muiNsAdapter* adapter)
+{
+    return adapter != nullptr ? adapter->misuse : 0;
+}
+
 MUIAccessibilityNode* muiNsObjectOf(muiNsAdapter* adapter, uint64_t id)
 {
     if (adapter == nullptr || muiAccessTree_Find(adapter->tree, id) == nullptr)
@@ -238,6 +243,7 @@ muiResult muiNsAdapter_Apply(muiNsAdapter* adapter, const muiAccessUpdate* updat
         return mui_errorState;
     }
     muiResult result = NsAdapterApply(adapter, update);
+    adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
     return result;
 }
@@ -268,6 +274,7 @@ muiResult muiNsAdapter_SetScale(muiNsAdapter* adapter, float scale)
         return mui_errorState;
     }
     muiResult result = NsAdapterSetScale(adapter, scale);
+    adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
     return result;
 }

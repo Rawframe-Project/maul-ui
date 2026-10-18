@@ -568,6 +568,7 @@ muiResult muiAtspiAdapter_Apply(muiAtspiAdapter* adapter, const muiAccessUpdate*
         return mui_errorState;
     }
     muiResult result = AtspiAdapterApply(adapter, update);
+    adapter->app->misuse += result == mui_errorInvalid;
     adapter->app->busy = false;
     return result;
 }

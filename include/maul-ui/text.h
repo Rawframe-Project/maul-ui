@@ -102,7 +102,8 @@ extern "C"
     MUI_API void muiDestroyTextService(muiTextService* service);
 
     /// Returns how many calls the service has refused as invalid input
-    /// (`mui_errorInvalid`), its glyph atlases' and text editing's among
+    /// (`mui_errorInvalid`) or as calls back in while busy
+    /// (`mui_errorState`), its glyph atlases' and text editing's among
     /// them: a count release builds can watch to catch a host's bugs.
     /// Stale ids are not misuse, and queries taking the service as const
     /// count nothing.

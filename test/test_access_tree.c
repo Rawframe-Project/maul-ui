@@ -1064,14 +1064,18 @@ static void TestCallingBack(void)
     muiAccessTree* tree = NULL;
     CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
     calling.tree = tree;
-    CHECK(muiAccessTree_Apply(tree, NULL, NULL) == mui_errorInvalid, "refused as invalid outside");
+    CHECK(muiGetAccessTreeMisuse(NULL) == 0 && muiGetAccessTreeMisuse(tree) == 0, "no misuse yet");
+    CHECK(muiAccessTree_Apply(tree, NULL, NULL) == mui_errorInvalid &&
+              muiGetAccessTreeMisuse(tree) == 1,
+          "refused as invalid outside, counted");
     muiAccessNode node = {.id = 1, .text = {"A"}, .textLength = {1}};
     const muiAccessNode* sent[1] = {&node};
     muiAccessUpdate update = {sent, 1, NULL, 1, 1};
     calling.armed = true;
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success && calling.runs == 1 &&
-              calling.applied == mui_errorState && muiAccessTree_Count(tree) == 1,
-          "a call back in from the allocator refused, the tree kept");
+              calling.applied == mui_errorState && muiAccessTree_Count(tree) == 1 &&
+              muiGetAccessTreeMisuse(tree) == 3,
+          "a call back in from the allocator refused, the tree kept; it and the destroy counted");
     calling.armed = true;
     muiDestroyAccessTree(tree);
     CHECK(calling.runs == 2 && calling.applied == mui_errorState, "and from a free while it goes");

@@ -236,7 +236,8 @@ extern "C"
                                                         muiNotification* notificationOut);
 
     /// Returns how many calls the context has refused as invalid input
-    /// (`mui_errorInvalid`): a count release builds can watch to catch a
+    /// (`mui_errorInvalid`) or as calls back in while it was busy
+    /// (`mui_errorState`): a count release builds can watch to catch a
     /// host's bugs. Stale ids are not misuse.
     ///
     /// @param context  The context.
