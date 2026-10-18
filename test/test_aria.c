@@ -210,9 +210,19 @@ static char s_text[64];
 
 // Fills what it gives with garbage, so that memory read before it is
 // written shows.
+// An adapter the allocator calls back into once, when armed, and what
+// that answered (conventions section 10).
+static muiAriaAdapter* s_allocReentry;
+static muiResult s_allocReentered;
+
 static void* Poisoned(size_t size, size_t alignment, void* context)
 {
     (void)context;
+    if (s_allocReentry != NULL)
+    {
+        s_allocReentered = muiAriaAdapter_Apply(s_allocReentry, NULL);
+        s_allocReentry = NULL;
+    }
     // Some C libraries take no alignment below a pointer's.
     size_t align = alignment < sizeof(void*) ? sizeof(void*) : alignment;
     size_t rounded = (size + align - 1) / align * align;
@@ -549,9 +559,13 @@ static void TestFields(void)
           "inputs and a textarea holding their values, with no role of their own");
     CHECK(SelectionIs("#mui0-2", 1, 3, 1), "the program's selection written in UTF-16 units");
     s_asked = (muiAccessRequest){0};
+    s_allocReentry = adapter;
+    s_allocReentered = mui_success;
     CHECK(InputKept("#mui0-2", "insertText", "x") && AskedText(mui_actionReplaceText, 1, 5, "x") &&
-              FieldIs("#mui0-2", "INPUT", NULL, s_emoji),
-          "typing kept from the field, asked of the host over the selection in bytes");
+              FieldIs("#mui0-2", "INPUT", NULL, s_emoji) && s_allocReentry == NULL &&
+              s_allocReentered == mui_errorState,
+          "typing kept from the field, asked of the host over the selection in bytes; the "
+          "allocator's call back in for its text refused");
     s_asked = (muiAccessRequest){.action = mui_actionScrollRight};
     CHECK(InputKept("#mui0-2", "deleteContentBackward", NULL) &&
               InputKept("#mui0-2", "insertFromPaste", NULL) &&
