@@ -8,6 +8,21 @@ format.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-18
+
+Host code calling back in is refused everywhere. A measure, paint or
+access text function, an allocator, an event function, a clipboard
+writer or an adapter's action function that calls a function changing
+the object it serves gets `mui_errorState`, a new result, and the call
+is counted as misuse; before, some such calls corrupted the object
+(`muiDestroyContext` from a callback freed the context under its own
+call). The access tree and the adapters count misuse as the context
+does, each with a getter. A minor version: a def built against 0.5 is
+refused, and refusals from callbacks that answered `mui_errorInvalid`
+answer `mui_errorState`. Known issues: as in 0.5.15, TalkBack and
+VoiceOver on iOS have not walked the samples, and Orca 46 does not
+announce the first focus in a window that opens with nothing focused.
+
 ### Added
 
 - `mui_errorState`: a context's function that changes it, called from
