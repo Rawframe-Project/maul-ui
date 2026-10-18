@@ -39,8 +39,12 @@
 # from Chrome, to a smallest case that still does. It copies the tree's
 # tracked files to a temporary directory, builds the fixture test there,
 # and drops subtrees and keys while Chrome and the library still part,
-# rendering each round's candidates in one Chrome call. It prints the
-# reduced fixture with Chrome's rectangles and the library's answers.
+# rendering each round's candidates in one Chrome call. Only the nodes
+# and numbers that part in the case count: a candidate is kept while
+# one of them (a node known by its place in the case, and the same
+# number of its rectangle or extent) still parts, so that a reduction
+# does not slide to another parting. It prints the reduced fixture with
+# Chrome's rectangles and the library's answers.
 # With --firefox it renders each round in that Firefox executable too
 # and keeps a candidate only while a node where Chrome and Firefox agree
 # parts from the library: where the engines part, the library may follow
@@ -353,7 +357,7 @@ class Reducer:
     def write(self, candidates, available="500x400"):
         text = ["# chrome 0", ""]
         for i, nodes in enumerate(candidates):
-            text += [render(f"cand_{i}", available, nodes), ""]
+            text += [render(f"cand_{i}", available, [(d, k) for d, k, _ in nodes]), ""]
         with open(os.path.join(self.corpus, "cand.txt"), "w", encoding="utf-8") as f:
             f.write("\n".join(text))
 
@@ -366,9 +370,10 @@ class Reducer:
         call([sys.executable, tool, "--oracle"], cwd=self.source, env=env)
 
     def run(self, candidates, available):
-        """The indices of the candidates that part from Chrome (with
-        Firefox, at a node where Firefox agrees with Chrome), and the
-        output."""
+        """Each candidate's parting numbers as (node, number) pairs, the
+        node by its index in the case reduced and the number by its place
+        in the node's line, where the library parts from Chrome (with
+        Firefox, where Firefox agrees with Chrome), and the output."""
         self.write(candidates, available)
         firefox = {}
         if self.firefox:
@@ -379,23 +384,30 @@ class Reducer:
         test = os.path.join(self.build, "test_layout_fixtures")
         result = subprocess.run([test], capture_output=True, text=True)
         output = result.stdout + result.stderr
-        if not self.firefox:
-            return {int(m.group(1)) for m in re.finditer(r"^cand_(\d+) ", output, re.M)}, output
-        failing = set()
+        parting = {}
         for m in re.finditer(r"^cand_(\d+) node (\d+): (got|extent) ([^,]*), Chrome (.*)$",
                              output, re.M):
-            name, node = f"cand_{m.group(1)}", int(m.group(2))
+            index, node = int(m.group(1)), int(m.group(2))
+            name, original = f"cand_{index}", candidates[index][node][2]
             got = [float(v) for v in m.group(4).split()]
             chrome = [float(v) for v in m.group(5).split()]
+            offset = 0 if m.group(3) == "got" else 4
+            if not self.firefox:
+                parting.setdefault(index, set()).update(
+                    (original, offset + i) for i, (a, b) in enumerate(zip(got, chrome))
+                    if abs(a - b) > (1 / 32 if offset == 0 else 1.0))
+                continue
             # Extents within a pixel, as the fixture test compares them;
             # rectangles within the engines' rounding. Firefox agrees with
             # Chrome on every number and parts from the library on one.
             numbers = firefox[name][node]
             ff, near = (numbers[:4], 0.05) if m.group(3) == "got" else (numbers[4:], 1.0)
             agrees = len(ff) == len(chrome) and all(abs(a - b) < near for a, b in zip(ff, chrome))
-            if agrees and any(abs(a - b) >= near for a, b in zip(ff, got)):
-                failing.add(int(m.group(1)))
-        return failing, output
+            if agrees:
+                parting.setdefault(index, set()).update(
+                    (original, offset + i) for i, (a, b) in enumerate(zip(ff, got))
+                    if abs(a - b) >= near)
+        return parting, output
 
 
 def rendered(path):
@@ -417,9 +429,9 @@ def candidates(nodes):
         while end < len(nodes) and nodes[end][0] > nodes[i][0]:
             end += 1
         yield nodes[:i] + nodes[end:]
-    for i, (depth, keys) in enumerate(nodes):
+    for i, (depth, keys, original) in enumerate(nodes):
         for k in range(len(keys)):
-            yield nodes[:i] + [(depth, keys[:k] + keys[k + 1:])] + nodes[i + 1:]
+            yield nodes[:i] + [(depth, keys[:k] + keys[k + 1:], original)] + nodes[i + 1:]
 
 
 def reduce(path, name, firefox=None):
@@ -433,19 +445,23 @@ def reduce(path, name, firefox=None):
     for line in match.group(2).splitlines():
         if line.strip().startswith("node"):
             depth = (len(line) - len(line.lstrip(" "))) // 2
-            nodes.append((depth, line.split("=>")[0].split()[1:]))
+            nodes.append((depth, line.split("=>")[0].split()[1:], len(nodes)))
     with tempfile.TemporaryDirectory(prefix="mui-reduce-") as work:
         reducer = Reducer(work, firefox)
-        failing, output = reducer.run([nodes], available)
-        if failing != {0}:
+        parting, output = reducer.run([nodes], available)
+        if 0 not in parting:
             sys.exit(f"random layouts: {name} agrees with Chrome" +
                      (" wherever Firefox does" if firefox else ""))
+        # A candidate is kept only while a node that parted in the case
+        # still parts: a parting elsewhere would be another case.
+        targets = parting[0]
         while True:
             options = list(candidates(nodes))
-            failing, _ = reducer.run(options, available) if options else (set(), "")
-            if not failing:
+            parting, _ = reducer.run(options, available) if options else ({}, "")
+            kept = [i for i, parted in parting.items() if parted & targets]
+            if not kept:
                 break
-            nodes = options[min(failing)]
+            nodes = options[min(kept)]
         _, output = reducer.run([nodes], available)
         print(open(os.path.join(reducer.corpus, "cand.txt"), encoding="utf-8").read())
         print(output)
