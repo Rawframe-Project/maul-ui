@@ -117,8 +117,7 @@ muiResult muiEnter(muiContext* context);
 void muiLeave(muiContext* context);
 
 // The slot of a live node for an edit, or 0 with the status to return in
-// statusOut: misuse for the null id or an edit from a measure function,
-// stale for a gone node.
+// statusOut: misuse for the null id, stale for a gone node.
 uint32_t muiResolveEdit(muiContext* context, muiNodeId nodeId, muiResult* statusOut);
 
 // Marks a node for the accessibility tree after a change no other stage

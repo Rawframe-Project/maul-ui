@@ -11,6 +11,7 @@
 #include "access_record.h"
 #include "access_text.h"
 #include "allocator.h"
+#include "host_call.h"
 #include "ns.h"
 
 // A node's text as a string, nil for none.
@@ -38,7 +39,7 @@ NSString* muiNsNameOf(const muiNsAdapter* adapter, uint64_t id)
     {
         return nil;
     }
-    char* name = muiAllocate(&adapter->allocator, length + 1, 1);
+    char* name = muiAllocateMarked(&adapter->busy, &adapter->allocator, length + 1, 1);
     NSString* string = nil;
     if (name != nullptr &&
         muiAccessTree_GetName(adapter->tree, id, name, length + 1, &length) == mui_success)
@@ -47,7 +48,7 @@ NSString* muiNsNameOf(const muiNsAdapter* adapter, uint64_t id)
     }
     if (name != nullptr)
     {
-        muiRelease(&adapter->allocator, name, length + 1, 1);
+        muiReleaseMarked(&adapter->busy, &adapter->allocator, name, length + 1, 1);
     }
     return string;
 }

@@ -505,6 +505,10 @@ typedef struct Program
     // What the host was asked last, by the window's thread.
     volatile LONG focusAsked;
     muiAccessRequest asked;
+    // Actions asked, and how many found the adapter busy when they called
+    // back into it (conventions section 10).
+    int actions;
+    int refused;
     // The text it carried, while it fits.
     char askedText[64];
 } Program;
@@ -514,6 +518,8 @@ static Program s_program;
 static bool Act(void* user, const muiAccessRequest* request)
 {
     Program* program = user;
+    program->actions++;
+    program->refused += muiUiaAdapter_Apply(program->adapter, NULL) == mui_errorState;
     if (request->action == mui_actionFocus)
     {
         InterlockedExchange(&program->focusAsked, (LONG)request->target);
@@ -1231,6 +1237,8 @@ int main(void)
         (void)WaitForSingleObject(client, DEADLINE_MS);
         CloseHandle(client);
     }
+    CHECK(s_program.actions > 0 && s_program.refused == s_program.actions,
+          "every action's call back into the adapter refused");
     muiUiaAdapter* adapter = s_program.adapter;
     s_program.adapter = NULL;
     muiDestroyUiaAdapter(adapter);

@@ -118,7 +118,7 @@ Reads the typed values the host set on a node.  @param context    The context. @
 
 ## `access_android.h`
 
-The Android accessibility adapter (record mui-0008), the component MAUL_UI_ANDROID_ACCESSIBILITY builds on Android: the accessibility tree's consumer shown to Android through maul.ui.AccessProvider (java/maul/ui/AccessProvider.java, which the host builds into its application, adding java/proguard-rules.pro to its rules when it shrinks its code), a provider whose virtual views are the shown nodes. The provider is the host view's (Maul Window's mwinRequestAccessibilityRoot gives it); clients' actions come back through a function of the host's. The header is C: the JNI's types pass as void*.
+The Android accessibility adapter (record mui-0008), the component MAUL_UI_ANDROID_ACCESSIBILITY builds on Android: the accessibility tree's consumer shown to Android through maul.ui.AccessProvider (java/maul/ui/AccessProvider.java, which the host builds into its application, adding java/proguard-rules.pro to its rules when it shrinks its code), a provider whose virtual views are the shown nodes. The provider is the host view's (Maul Window's mwinRequestAccessibilityRoot gives it); clients' actions come back through a function of the host's. The header is C: the JNI's types pass as void*. An adapter is busy while one of its functions that change it runs, or its allocator or action function runs, from those or from its platform's calls: a call back into one that changes it answers mui_errorState, NULL or false, or does nothing where it returns no status, as the destroy does.
 
 ```c
 muiAndroidAdapterDef muiDefaultAndroidAdapterDef(void);
@@ -138,7 +138,7 @@ Lets go of the provider, which answers nothing from then on, and destroys the ad
 ```c
 MUI_NODISCARD MUI_API muiResult muiAndroidAdapter_Apply(muiAndroidAdapter* adapter, const muiAccessUpdate* update);
 ```
-Applies an update to the adapter's tree (muiAccessTree_Apply).  @param adapter  The adapter. @param update   The update. @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter. @par Thread safety Main thread only.
+Applies an update to the adapter's tree (muiAccessTree_Apply).  @param adapter  The adapter. @param update   The update. @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter; `mui_errorState` while the adapter is busy. @par Thread safety Main thread only.
 
 ```c
 const muiAccessTree* muiAndroidAdapter_GetTree(const muiAndroidAdapter* adapter);
@@ -148,7 +148,7 @@ The adapter's tree.  @param adapter  The adapter. @return The tree; NULL for a N
 ```c
 MUI_NODISCARD MUI_API muiResult muiAndroidAdapter_SetScale(muiAndroidAdapter* adapter, float scale);
 ```
-Sets the pixels per unit, as the host scales its UI.  @param adapter  The adapter. @param scale    The scale, above 0. @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale not above 0. @par Thread safety Main thread only.
+Sets the pixels per unit, as the host scales its UI.  @param adapter  The adapter. @param scale    The scale, above 0. @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale not above 0; `mui_errorState` while the adapter is busy. @par Thread safety Main thread only.
 
 ```c
 void* muiAndroidAdapter_GetRoot(muiAndroidAdapter* adapter);
@@ -157,7 +157,7 @@ The provider (a global reference to a maul.ui.AccessProvider), for the view to g
 
 ## `access_aria.h`
 
-The ARIA adapter (record mui-0008), the component MAUL_UI_ARIA builds for Emscripten: the accessibility tree's consumer mirrored into elements of the page, which the browser gives its accessibility clients. The elements are built in an element of the host's over the canvas (Maul Window's accessibility host, say), each placed over what it names and invisible; clients' actions come back through a function of the host's. A page cannot tell whether a screen reader runs, and the elements cost every user, so by default nothing is built until the program enables the adapter or a screen reader user presses the visually hidden button the adapter puts in the host. Every function here is used on the page's main thread.
+The ARIA adapter (record mui-0008), the component MAUL_UI_ARIA builds for Emscripten: the accessibility tree's consumer mirrored into elements of the page, which the browser gives its accessibility clients. The elements are built in an element of the host's over the canvas (Maul Window's accessibility host, say), each placed over what it names and invisible; clients' actions come back through a function of the host's. A page cannot tell whether a screen reader runs, and the elements cost every user, so by default nothing is built until the program enables the adapter or a screen reader user presses the visually hidden button the adapter puts in the host. Every function here is used on the page's main thread. An adapter is busy while one of its functions that change it runs, or its allocator or action function runs, from those or from its platform's calls: a call back into one that changes it answers mui_errorState, NULL or false, or does nothing where it returns no status, as the destroy does.
 
 ```c
 muiAriaAdapterDef muiDefaultAriaAdapterDef(void);
@@ -177,7 +177,7 @@ Takes the adapter's elements out of the page and destroys it; NULL is ignored.  
 ```c
 MUI_NODISCARD MUI_API muiResult muiAriaAdapter_Apply(muiAriaAdapter* adapter, const muiAccessUpdate* update);
 ```
-Applies an update to the adapter's tree (muiAccessTree_Apply) and, once enabled, brings the elements to it.  @param adapter  The adapter. @param update   The update. @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter. @par Thread safety Main thread only.
+Applies an update to the adapter's tree (muiAccessTree_Apply) and, once enabled, brings the elements to it.  @param adapter  The adapter. @param update   The update. @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter; `mui_errorState` while the adapter is busy. @par Thread safety Main thread only.
 
 ```c
 const muiAccessTree* muiAriaAdapter_GetTree(const muiAriaAdapter* adapter);
@@ -187,7 +187,7 @@ The adapter's tree.  @param adapter  The adapter. @return The tree; NULL for a N
 ```c
 MUI_NODISCARD MUI_API muiResult muiAriaAdapter_SetScale(muiAriaAdapter* adapter, float scale);
 ```
-Sets the CSS pixels per unit, as the host scales its UI, and places the elements again.  @param adapter  The adapter. @param scale    The scale, above 0. @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale not above 0. @par Thread safety Main thread only.
+Sets the CSS pixels per unit, as the host scales its UI, and places the elements again.  @param adapter  The adapter. @param scale    The scale, above 0. @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale not above 0; `mui_errorState` while the adapter is busy. @par Thread safety Main thread only.
 
 ```c
 void muiAriaAdapter_Enable(muiAriaAdapter* adapter);
@@ -201,7 +201,7 @@ Whether the elements are built.  @param adapter  The adapter. @return Whether th
 
 ## `access_atspi.h`
 
-The AT-SPI adapter (record mui-0008), the component MAUL_UI_ATSPI builds on Linux: the accessibility tree's consumer shown to AT-SPI, the accessibility service of Linux desktops. An application joins the accessibility bus and registers its root, whose children are its windows; each window is an adapter owning a consumer tree, applying the core's updates. Clients' actions come back through a function of the host's. Nothing here starts a thread or waits on the bus after the application is made: the host polls the application's descriptor for reading, with its other sources, and pumps it when it is readable and once a frame. Every function here is used on the thread that made the application, which "main thread" below means.
+The AT-SPI adapter (record mui-0008), the component MAUL_UI_ATSPI builds on Linux: the accessibility tree's consumer shown to AT-SPI, the accessibility service of Linux desktops. An application joins the accessibility bus and registers its root, whose children are its windows; each window is an adapter owning a consumer tree, applying the core's updates. Clients' actions come back through a function of the host's. Nothing here starts a thread or waits on the bus after the application is made: the host polls the application's descriptor for reading, with its other sources, and pumps it when it is readable and once a frame. Every function here is used on the thread that made the application, which "main thread" below means. An application and its adapters are busy while one of the functions that change them runs, or their allocator or an action function runs: a call back into one answers mui_errorState, NULL or false, or does nothing where it returns no status, as muiAtspiApp_Pump and the destroys do.
 
 ```c
 muiAtspiAppDef muiDefaultAtspiAppDef(void);
@@ -241,7 +241,7 @@ The default adapter def: 4096 nodes, a scale of 1, no action function.  @return 
 ```c
 MUI_NODISCARD MUI_API muiResult muiCreateAtspiAdapter(muiAtspiApp* app, const muiAtspiAdapterDef* def, muiAtspiAdapter** adapterOut);
 ```
-Adds a window to the application: an adapter with an empty tree, whose root becomes the application root's last child.  @param app         The application. @param def         The def, from muiDefaultAtspiAdapterDef. @param adapterOut  Receives the adapter; NULL on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a def not from muiDefaultAtspiAdapterDef, no nodes, no action function or a scale not above 0; `mui_errorCapacity` when the application has its windows or memory runs out. @par Thread safety Main thread only.
+Adds a window to the application: an adapter with an empty tree, whose root becomes the application root's last child.  @param app         The application. @param def         The def, from muiDefaultAtspiAdapterDef. @param adapterOut  Receives the adapter; NULL on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a def not from muiDefaultAtspiAdapterDef, no nodes, no action function or a scale not above 0; `mui_errorCapacity` when the application has its windows or memory runs out; `mui_errorState` while the application is busy. @par Thread safety Main thread only.
 
 ```c
 void muiDestroyAtspiAdapter(muiAtspiAdapter* adapter);
@@ -251,7 +251,7 @@ Takes a window out of the application; NULL is ignored. Its nodes answer as unkn
 ```c
 MUI_NODISCARD MUI_API muiResult muiAtspiAdapter_Apply(muiAtspiAdapter* adapter, const muiAccessUpdate* update);
 ```
-Applies an update to the adapter's tree (muiAccessTree_Apply).  @param adapter  The adapter. @param update   The update. @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter. @par Thread safety Main thread only.
+Applies an update to the adapter's tree (muiAccessTree_Apply).  @param adapter  The adapter. @param update   The update. @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter; `mui_errorState` while the application is busy. @par Thread safety Main thread only.
 
 ```c
 const muiAccessTree* muiAtspiAdapter_GetTree(const muiAtspiAdapter* adapter);
@@ -261,7 +261,7 @@ The adapter's tree.  @param adapter  The adapter. @return The tree; NULL for a N
 ```c
 MUI_NODISCARD MUI_API muiResult muiAtspiAdapter_SetScale(muiAtspiAdapter* adapter, float scale);
 ```
-Sets the pixels per unit, as the window's scale changes.  @param adapter  The adapter. @param scale    The scale, above 0. @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale not above 0. @par Thread safety Main thread only.
+Sets the pixels per unit, as the window's scale changes.  @param adapter  The adapter. @param scale    The scale, above 0. @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale not above 0; `mui_errorState` while the application is busy. @par Thread safety Main thread only.
 
 ```c
 void muiAtspiAdapter_SetPlace(muiAtspiAdapter* adapter, int32_t x, int32_t y);
@@ -270,7 +270,7 @@ Sets where the window's client area is on the screen, in pixels, for clients ask
 
 ## `access_ns.h`
 
-The NSAccessibility adapter (record mui-0008), the component MAUL_UI_NSACCESSIBILITY builds on macOS: the accessibility tree's consumer shown to AppKit's accessibility, one object a shown node that answers the NSAccessibility protocol. The window root's object is given to the view the tree lies in (Maul Window's mwinRequestAccessibilityRoot does that), whose child it is; clients' actions come back through a function of the host's. The header is C: AppKit's objects pass as void*.
+The NSAccessibility adapter (record mui-0008), the component MAUL_UI_NSACCESSIBILITY builds on macOS: the accessibility tree's consumer shown to AppKit's accessibility, one object a shown node that answers the NSAccessibility protocol. The window root's object is given to the view the tree lies in (Maul Window's mwinRequestAccessibilityRoot does that), whose child it is; clients' actions come back through a function of the host's. The header is C: AppKit's objects pass as void*. An adapter is busy while one of its functions that change it runs, or its allocator or action function runs, from those or from its platform's calls: a call back into one that changes it answers mui_errorState, NULL or false, or does nothing where it returns no status, as the destroy does.
 
 ```c
 muiNsAdapterDef muiDefaultNsAdapterDef(void);
@@ -290,7 +290,7 @@ Lets go of the adapter's objects, which answer nothing from then on, and destroy
 ```c
 MUI_NODISCARD MUI_API muiResult muiNsAdapter_Apply(muiNsAdapter* adapter, const muiAccessUpdate* update);
 ```
-Applies an update to the adapter's tree (muiAccessTree_Apply).  @param adapter  The adapter. @param update   The update. @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter. @par Thread safety Main thread only.
+Applies an update to the adapter's tree (muiAccessTree_Apply).  @param adapter  The adapter. @param update   The update. @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter; `mui_errorState` while the adapter is busy. @par Thread safety Main thread only.
 
 ```c
 const muiAccessTree* muiNsAdapter_GetTree(const muiNsAdapter* adapter);
@@ -300,7 +300,7 @@ The adapter's tree.  @param adapter  The adapter. @return The tree; NULL for a N
 ```c
 MUI_NODISCARD MUI_API muiResult muiNsAdapter_SetScale(muiNsAdapter* adapter, float scale);
 ```
-Sets the points per unit, as the host scales its UI.  @param adapter  The adapter. @param scale    The scale, above 0. @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale not above 0. @par Thread safety Main thread only.
+Sets the points per unit, as the host scales its UI.  @param adapter  The adapter. @param scale    The scale, above 0. @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale not above 0; `mui_errorState` while the adapter is busy. @par Thread safety Main thread only.
 
 ```c
 void* muiNsAdapter_GetRoot(muiNsAdapter* adapter);
@@ -309,7 +309,7 @@ The window root's object, for the view to give as its child (mwinRequestAccessib
 
 ## `access_tree.h`
 
-The accessibility tree's consumer (record mui-0008), the component MAUL_UI_ACCESS_TREE builds: the copy of a root's accessibility tree that platform adapters read, kept from the updates muiBuildAccessUpdate gives (maul-ui/access.h). Applying an update reports what it changed, so an adapter can raise its platform's events. A tree is used on one thread, the one its platform calls on: the window's, with UI Automation's COM threading on an STA thread.
+The accessibility tree's consumer (record mui-0008), the component MAUL_UI_ACCESS_TREE builds: the copy of a root's accessibility tree that platform adapters read, kept from the updates muiBuildAccessUpdate gives (maul-ui/access.h). Applying an update reports what it changed, so an adapter can raise its platform's events. A tree is used on one thread, the one its platform calls on: the window's, with UI Automation's COM threading on an STA thread. A tree is busy while one of its functions that change it runs or its allocator runs, from those or from its const queries: a call back into one that changes it answers mui_errorState, or does nothing where it returns no status.
 
 ```c
 muiAccessTreeDef muiDefaultAccessTreeDef(void);
@@ -329,7 +329,7 @@ Destroys a tree and all it holds; NULL is ignored.  @param tree  The tree. @par 
 ```c
 MUI_NODISCARD MUI_API muiResult muiAccessTree_Apply(muiAccessTree* tree, const muiAccessUpdate* update, const muiAccessChanges* changes);
 ```
-Applies an update whole, or nothing of it: the nodes sent replace those held, new ones join, and a node a parent sent no longer lists, which no other node sent lists, leaves with its subtree, as does a node sent with no parent that is not the root (told only as removed). The first update a tree takes, and any naming a new root, must be whole.  @param tree     The tree. @param update   The update. @param changes  Told what changed; may be NULL. @return `mui_success`; `mui_errorCapacity` when the nodes would not fit or memory runs out, which changes nothing; `mui_errorInvalid` for a NULL tree or update, or an update that does not fit the tree: no root for an empty tree, a node with the id 0 or sent twice, a child neither held nor sent, a root, or focus, that is neither, or lists that do not leave a tree: a child listed twice, or by a node sent while a node not sent lists it, the root listed, or a node under itself; or a node whose marks do not fit its value text: offsets past it or inside a character, lines not ascending from 0, words out of order or empty. @par Thread safety Safe from any thread; the tree is used by one thread at a time.
+Applies an update whole, or nothing of it: the nodes sent replace those held, new ones join, and a node a parent sent no longer lists, which no other node sent lists, leaves with its subtree, as does a node sent with no parent that is not the root (told only as removed). The first update a tree takes, and any naming a new root, must be whole.  @param tree     The tree. @param update   The update. @param changes  Told what changed; may be NULL. @return `mui_success`; `mui_errorCapacity` when the nodes would not fit or memory runs out, which changes nothing; `mui_errorInvalid` for a NULL tree or update, or an update that does not fit the tree: no root for an empty tree, a node with the id 0 or sent twice, a child neither held nor sent, a root, or focus, that is neither, or lists that do not leave a tree: a child listed twice, or by a node sent while a node not sent lists it, the root listed, or a node under itself; or a node whose marks do not fit its value text: offsets past it or inside a character, lines not ascending from 0, words out of order or empty; `mui_errorState` while the tree is busy. @par Thread safety Safe from any thread; the tree is used by one thread at a time.
 
 ```c
 uint64_t muiAccessTree_GetRoot(const muiAccessTree* tree);
@@ -408,7 +408,7 @@ A role's name, as its constant's after mui_role with a lower-case first letter: 
 
 ## `access_uia.h`
 
-The UI Automation adapter (record mui-0008), the component MAUL_UI_UIA builds on Windows: the accessibility tree's consumer shown to UI Automation through a provider object per node. The host hands the adapter's root to its window (mwinRequestAccessibilityRoot of Maul Window, or its own WM_GETOBJECT through muiUiaAdapter_HandleGetObject) and applies the core's updates through the adapter. Clients' actions come back through a function of the host's. An adapter lives on its window's thread, which must be in a COM single-threaded apartment (OleInitialize or CoInitializeEx with COINIT_APARTMENTTHREADED): UI Automation calls its providers there, as its window's messages are dispatched. "Main thread" below means that thread.
+The UI Automation adapter (record mui-0008), the component MAUL_UI_UIA builds on Windows: the accessibility tree's consumer shown to UI Automation through a provider object per node. The host hands the adapter's root to its window (mwinRequestAccessibilityRoot of Maul Window, or its own WM_GETOBJECT through muiUiaAdapter_HandleGetObject) and applies the core's updates through the adapter. Clients' actions come back through a function of the host's. An adapter lives on its window's thread, which must be in a COM single-threaded apartment (OleInitialize or CoInitializeEx with COINIT_APARTMENTTHREADED): UI Automation calls its providers there, as its window's messages are dispatched. "Main thread" below means that thread. An adapter is busy while one of its functions that change it runs, or its allocator or action function runs, from those or from its platform's calls: a call back into one that changes it answers mui_errorState, NULL or false, or does nothing where it returns no status, as the destroy does.
 
 ```c
 muiUiaAdapterDef muiDefaultUiaAdapterDef(void);
@@ -428,7 +428,7 @@ Destroys an adapter; NULL is ignored. Every provider object it gave out answers 
 ```c
 MUI_NODISCARD MUI_API muiResult muiUiaAdapter_Apply(muiUiaAdapter* adapter, const muiAccessUpdate* update);
 ```
-Applies an update to the adapter's tree (muiAccessTree_Apply); the provider objects of nodes it removes answer UIA_E_ELEMENTNOTAVAILABLE from then on.  @param adapter  The adapter. @param update   The update. @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter. @par Thread safety Main thread only.
+Applies an update to the adapter's tree (muiAccessTree_Apply); the provider objects of nodes it removes answer UIA_E_ELEMENTNOTAVAILABLE from then on.  @param adapter  The adapter. @param update   The update. @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter; `mui_errorState` while the adapter is busy. @par Thread safety Main thread only.
 
 ```c
 const muiAccessTree* muiUiaAdapter_GetTree(const muiUiaAdapter* adapter);
@@ -448,11 +448,11 @@ Answers WM_GETOBJECT for a window procedure of the host's own: for UiaRootObject
 ```c
 MUI_NODISCARD MUI_API muiResult muiUiaAdapter_SetScale(muiUiaAdapter* adapter, float scale);
 ```
-Sets the pixels per unit, as the window's DPI changes.  @param adapter  The adapter. @param scale    The scale, above 0. @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale not above 0. @par Thread safety Main thread only.
+Sets the pixels per unit, as the window's DPI changes.  @param adapter  The adapter. @param scale    The scale, above 0. @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale not above 0; `mui_errorState` while the adapter is busy. @par Thread safety Main thread only.
 
 ## `access_uikit.h`
 
-The UIAccessibility adapter (record mui-0008), the component MAUL_UI_UIACCESSIBILITY builds on iOS: the accessibility tree's consumer shown to UIKit's accessibility, an element object a shown node, and a container object a shown node with shown children whose elements are its node's element and then its children. The root's object is given to the view the tree lies in (Maul Window's mwinRequestAccessibilityRoot does that), its container; clients' actions come back through a function of the host's. The header is C: UIKit's objects pass as void*.
+The UIAccessibility adapter (record mui-0008), the component MAUL_UI_UIACCESSIBILITY builds on iOS: the accessibility tree's consumer shown to UIKit's accessibility, an element object a shown node, and a container object a shown node with shown children whose elements are its node's element and then its children. The root's object is given to the view the tree lies in (Maul Window's mwinRequestAccessibilityRoot does that), its container; clients' actions come back through a function of the host's. The header is C: UIKit's objects pass as void*. An adapter is busy while one of its functions that change it runs, or its allocator or action function runs, from those or from its platform's calls: a call back into one that changes it answers mui_errorState, NULL or false, or does nothing where it returns no status, as the destroy does.
 
 ```c
 muiUikitAdapterDef muiDefaultUikitAdapterDef(void);
@@ -472,7 +472,7 @@ Lets go of the adapter's objects, which answer nothing from then on, and destroy
 ```c
 MUI_NODISCARD MUI_API muiResult muiUikitAdapter_Apply(muiUikitAdapter* adapter, const muiAccessUpdate* update);
 ```
-Applies an update to the adapter's tree (muiAccessTree_Apply).  @param adapter  The adapter. @param update   The update. @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter. @par Thread safety Main thread only.
+Applies an update to the adapter's tree (muiAccessTree_Apply).  @param adapter  The adapter. @param update   The update. @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter; `mui_errorState` while the adapter is busy. @par Thread safety Main thread only.
 
 ```c
 const muiAccessTree* muiUikitAdapter_GetTree(const muiUikitAdapter* adapter);
@@ -482,7 +482,7 @@ The adapter's tree.  @param adapter  The adapter. @return The tree; NULL for a N
 ```c
 MUI_NODISCARD MUI_API muiResult muiUikitAdapter_SetScale(muiUikitAdapter* adapter, float scale);
 ```
-Sets the points per unit, as the host scales its UI.  @param adapter  The adapter. @param scale    The scale, above 0. @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale not above 0. @par Thread safety Main thread only.
+Sets the points per unit, as the host scales its UI.  @param adapter  The adapter. @param scale    The scale, above 0. @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale not above 0; `mui_errorState` while the adapter is busy. @par Thread safety Main thread only.
 
 ```c
 void* muiUikitAdapter_GetRoot(muiUikitAdapter* adapter);

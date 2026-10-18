@@ -14,6 +14,12 @@
 // COINIT_APARTMENTTHREADED): UI Automation calls its providers there,
 // as its window's messages are dispatched. "Main thread" below means
 // that thread.
+//
+// An adapter is busy while one of its functions that change it runs, or
+// its allocator or action function runs, from those or from its
+// platform's calls: a call back into one that changes it answers
+// mui_errorState, NULL or false, or does nothing where it returns no
+// status, as the destroy does.
 
 #ifndef MAUL_UI_ACCESS_UIA_H
 #define MAUL_UI_ACCESS_UIA_H
@@ -35,6 +41,7 @@ extern "C"
     // Performs an action a client asked for, by muiPerformAccessAction or
     // its own means; true when it did. Called on the window's thread
     // while UI Automation waits.
+    // It may call the context, not the adapter's functions that change it.
     typedef bool (*muiUiaActionFunction)(void* user, const muiAccessRequest* request);
 
     // How an adapter is made. Build it with muiDefaultUiaAdapterDef.
@@ -93,8 +100,8 @@ extern "C"
     ///
     /// @param adapter  The adapter.
     /// @param update   The update.
-    /// @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL
-    ///         adapter.
+    /// @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter;
+    ///         `mui_errorState` while the adapter is busy.
     /// @par Thread safety
     /// Main thread only.
     MUI_NODISCARD MUI_API muiResult muiUiaAdapter_Apply(muiUiaAdapter* adapter,
@@ -137,8 +144,8 @@ extern "C"
     ///
     /// @param adapter  The adapter.
     /// @param scale    The scale, above 0.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a
-    ///         scale not above 0.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale
+    ///         not above 0; `mui_errorState` while the adapter is busy.
     /// @par Thread safety
     /// Main thread only.
     MUI_NODISCARD MUI_API muiResult muiUiaAdapter_SetScale(muiUiaAdapter* adapter, float scale);

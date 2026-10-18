@@ -10,6 +10,7 @@
 #include "access_tree_store.h"
 #include "allocator.h"
 #include "chars.h"
+#include "host_call.h"
 
 #include <stdalign.h>
 #include <string.h>
@@ -114,50 +115,52 @@ muiResult muiCreateAccessTree(const muiAccessTreeDef* def, muiAccessTree** treeO
     return mui_success;
 }
 
-void muiFreeHeld(const muiAccessTree* tree, const muiHeldNode* held)
+void muiFreeHeld(muiAccessTree* tree, const muiHeldNode* held)
 {
     const muiAccessNode* node = &held->node;
     for (uint32_t kind = 0; kind < MUI_ACCESS_TEXTS; kind++)
     {
         if (node->text[kind] != nullptr)
         {
-            muiRelease(&tree->allocator, (void*)node->text[kind],
-                       (size_t)node->textLength[kind] + 1, 1);
+            muiReleaseMarked(&tree->busy, &tree->allocator, (void*)node->text[kind],
+                             (size_t)node->textLength[kind] + 1, 1);
         }
     }
     if (node->marks.lineStarts != nullptr)
     {
-        muiRelease(&tree->allocator, (void*)node->marks.lineStarts,
-                   node->marks.lineCount * sizeof(uint32_t), alignof(uint32_t));
+        muiReleaseMarked(&tree->busy, &tree->allocator, (void*)node->marks.lineStarts,
+                         node->marks.lineCount * sizeof(uint32_t), alignof(uint32_t));
     }
     if (node->marks.words != nullptr)
     {
-        muiRelease(&tree->allocator, (void*)node->marks.words,
-                   node->marks.wordCount * sizeof(muiAccessWord), alignof(muiAccessWord));
+        muiReleaseMarked(&tree->busy, &tree->allocator, (void*)node->marks.words,
+                         node->marks.wordCount * sizeof(muiAccessWord), alignof(muiAccessWord));
     }
     if (node->marks.lineBoxes != nullptr)
     {
-        muiRelease(&tree->allocator, (void*)node->marks.lineBoxes,
-                   node->marks.lineCount * sizeof(muiAccessLineBox), alignof(muiAccessLineBox));
+        muiReleaseMarked(&tree->busy, &tree->allocator, (void*)node->marks.lineBoxes,
+                         node->marks.lineCount * sizeof(muiAccessLineBox),
+                         alignof(muiAccessLineBox));
     }
     if (node->marks.clusters != nullptr)
     {
-        muiRelease(&tree->allocator, (void*)node->marks.clusters,
-                   node->marks.clusterCount * sizeof(muiAccessCluster), alignof(muiAccessCluster));
+        muiReleaseMarked(&tree->busy, &tree->allocator, (void*)node->marks.clusters,
+                         node->marks.clusterCount * sizeof(muiAccessCluster),
+                         alignof(muiAccessCluster));
     }
     if (node->links != nullptr)
     {
-        muiRelease(&tree->allocator, (void*)node->links, node->linkCount * sizeof(muiAccessLink),
-                   alignof(muiAccessLink));
+        muiReleaseMarked(&tree->busy, &tree->allocator, (void*)node->links,
+                         node->linkCount * sizeof(muiAccessLink), alignof(muiAccessLink));
     }
     if (held->children != nullptr)
     {
-        muiRelease(&tree->allocator, held->children, node->childCount * sizeof(uint64_t),
-                   alignof(uint64_t));
+        muiReleaseMarked(&tree->busy, &tree->allocator, held->children,
+                         node->childCount * sizeof(uint64_t), alignof(uint64_t));
     }
 }
 
-void muiDestroyAccessTree(muiAccessTree* tree)
+static void DestroyAccessTree(muiAccessTree* tree)
 {
     if (tree == nullptr)
     {
@@ -172,6 +175,20 @@ void muiDestroyAccessTree(muiAccessTree* tree)
     }
     const muiAllocator allocator = tree->allocator;
     muiRelease(&allocator, tree, tree->blockSize, alignof(max_align_t));
+}
+
+void muiDestroyAccessTree(muiAccessTree* tree)
+{
+    if (tree == nullptr)
+    {
+        DestroyAccessTree(tree);
+        return;
+    }
+    if (!muiEnterMarked(&tree->busy, &tree->misuse))
+    {
+        return;
+    }
+    DestroyAccessTree(tree);
 }
 
 uint32_t muiAccessHome(const muiAccessTree* tree, uint64_t id)

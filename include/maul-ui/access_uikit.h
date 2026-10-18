@@ -10,6 +10,12 @@
 // mwinRequestAccessibilityRoot does that), its container; clients'
 // actions come back through a function of the host's. The header is C:
 // UIKit's objects pass as void*.
+//
+// An adapter is busy while one of its functions that change it runs, or
+// its allocator or action function runs, from those or from its
+// platform's calls: a call back into one that changes it answers
+// mui_errorState, NULL or false, or does nothing where it returns no
+// status, as the destroy does.
 
 #ifndef MAUL_UI_ACCESS_UIKIT_H
 #define MAUL_UI_ACCESS_UIKIT_H
@@ -31,6 +37,7 @@ extern "C"
     // Performs an action a client asked for, by muiPerformAccessAction or
     // its own means; true when it did. Called from UIKit's accessibility
     // calls, on the main thread.
+    // It may call the context, not the adapter's functions that change it.
     typedef bool (*muiUikitActionFunction)(void* user, const muiAccessRequest* request);
 
     // How an adapter is made. Build it with muiDefaultUikitAdapterDef.
@@ -83,8 +90,8 @@ extern "C"
     ///
     /// @param adapter  The adapter.
     /// @param update   The update.
-    /// @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL
-    ///         adapter.
+    /// @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter;
+    ///         `mui_errorState` while the adapter is busy.
     /// @par Thread safety
     /// Main thread only.
     MUI_NODISCARD MUI_API muiResult muiUikitAdapter_Apply(muiUikitAdapter* adapter,
@@ -102,8 +109,8 @@ extern "C"
     ///
     /// @param adapter  The adapter.
     /// @param scale    The scale, above 0.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a
-    ///         scale not above 0.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale
+    ///         not above 0; `mui_errorState` while the adapter is busy.
     /// @par Thread safety
     /// Main thread only.
     MUI_NODISCARD MUI_API muiResult muiUikitAdapter_SetScale(muiUikitAdapter* adapter, float scale);

@@ -10,6 +10,7 @@
 #include "access_text.h"
 #include "access_tree_store.h"
 #include "allocator.h"
+#include "host_call.h"
 
 #include "maul-ui/access_tree.h"
 
@@ -361,7 +362,7 @@ static muiRect CharacterRect(const muiAccessTextMarks* marks, const muiDrawTrans
 }
 
 bool muiAccessUnitRects(const muiAccessTree* tree, uint64_t id, uint32_t first, uint32_t count,
-                        const muiAllocator* allocator, muiRect* rectsOut)
+                        const muiAllocator* allocator, const bool* busy, muiRect* rectsOut)
 {
     uint32_t slot = muiHeldSlotOf(tree, id);
     const muiAccessNode* node = slot != 0 ? &tree->held[slot - 1].node : nullptr;
@@ -380,7 +381,7 @@ bool muiAccessUnitRects(const muiAccessTree* tree, uint64_t id, uint32_t first, 
         to = muiAccessBoundaryAfter(&text, mui_unitCharacter, to);
     }
     size_t size = (size_t)(to - from + 1) * sizeof(uint32_t);
-    uint32_t* map = muiAllocate(allocator, size, alignof(uint32_t));
+    uint32_t* map = muiAllocateMarked(busy, allocator, size, alignof(uint32_t));
     if (map == nullptr)
     {
         return false;
@@ -406,7 +407,7 @@ bool muiAccessUnitRects(const muiAccessTree* tree, uint64_t id, uint32_t first, 
         }
         at = next;
     }
-    muiRelease(allocator, map, size, alignof(uint32_t));
+    muiReleaseMarked(busy, allocator, map, size, alignof(uint32_t));
     return true;
 }
 

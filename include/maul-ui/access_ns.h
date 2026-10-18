@@ -9,6 +9,12 @@
 // mwinRequestAccessibilityRoot does that), whose child it is; clients'
 // actions come back through a function of the host's. The header is C:
 // AppKit's objects pass as void*.
+//
+// An adapter is busy while one of its functions that change it runs, or
+// its allocator or action function runs, from those or from its
+// platform's calls: a call back into one that changes it answers
+// mui_errorState, NULL or false, or does nothing where it returns no
+// status, as the destroy does.
 
 #ifndef MAUL_UI_ACCESS_NS_H
 #define MAUL_UI_ACCESS_NS_H
@@ -30,6 +36,7 @@ extern "C"
     // Performs an action a client asked for, by muiPerformAccessAction or
     // its own means; true when it did. Called from AppKit's accessibility
     // calls, on the main thread.
+    // It may call the context, not the adapter's functions that change it.
     typedef bool (*muiNsActionFunction)(void* user, const muiAccessRequest* request);
 
     // How an adapter is made. Build it with muiDefaultNsAdapterDef.
@@ -82,8 +89,8 @@ extern "C"
     ///
     /// @param adapter  The adapter.
     /// @param update   The update.
-    /// @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL
-    ///         adapter.
+    /// @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter;
+    ///         `mui_errorState` while the adapter is busy.
     /// @par Thread safety
     /// Main thread only.
     MUI_NODISCARD MUI_API muiResult muiNsAdapter_Apply(muiNsAdapter* adapter,
@@ -101,8 +108,8 @@ extern "C"
     ///
     /// @param adapter  The adapter.
     /// @param scale    The scale, above 0.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a
-    ///         scale not above 0.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale
+    ///         not above 0; `mui_errorState` while the adapter is busy.
     /// @par Thread safety
     /// Main thread only.
     MUI_NODISCARD MUI_API muiResult muiNsAdapter_SetScale(muiNsAdapter* adapter, float scale);

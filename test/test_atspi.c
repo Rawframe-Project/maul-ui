@@ -71,6 +71,10 @@ typedef struct Test
     muiAccessRequest asked;
     char askedText[64];
     bool refuse;
+    // The main window's adapter, and what calling back into it from its
+    // action function answered (conventions section 10).
+    muiAtspiAdapter* adapter;
+    muiResult reentered;
     // The events received, "member kind detail1 from data; ..." with
     // paths cut to what follows /accessible/.
     char events[2048];
@@ -303,7 +307,14 @@ static void Unpoisoned(void* memory, size_t size, size_t alignment, void* contex
 
 static bool Act(void* user, const muiAccessRequest* request)
 {
-    (void)user;
+    // From the main window's: a call back in is refused, the pump and the
+    // destroy doing nothing.
+    if (user == &s_test && s_test.adapter != NULL)
+    {
+        s_test.reentered = muiAtspiAdapter_Apply(s_test.adapter, NULL);
+        muiAtspiApp_Pump(s_test.app);
+        muiDestroyAtspiAdapter(s_test.adapter);
+    }
     s_test.asked = *request;
     size_t kept = request->length < sizeof s_test.askedText ? request->length : 0;
     memcpy(s_test.askedText, request->text != NULL ? request->text : "", kept);
@@ -1147,8 +1158,9 @@ static void TestActionsAndValues(void)
     DBusMessage* reply = Answer(Indexed(ok, "DoAction", 0));
     CHECK(PropertyOf(ok, "org.a11y.atspi.Action", "NActions", mui_dbusTypeInt32, &count) &&
               count == 1 && FirstOf(reply, mui_dbusTypeBoolean, &done) && done &&
-              s_test.asked.action == mui_actionClick && s_test.asked.target == 2,
-          "a click listed and done");
+              s_test.asked.action == mui_actionClick && s_test.asked.target == 2 &&
+              s_test.reentered == mui_errorState,
+          "a click listed and done; a call back in from it refused");
     if (reply != NULL)
     {
         s_test.dbus.unrefMessage(reply);
@@ -2034,6 +2046,7 @@ int main(void)
           "registered, the root embedded");
     muiAtspiAdapterDef adapterDef = muiDefaultAtspiAdapterDef();
     adapterDef.action = Act;
+    adapterDef.user = &s_test;
     muiAtspiAdapter* adapter = NULL;
     static Built s_built;
     muiAccessUpdate update = Build(&s_built);
@@ -2041,6 +2054,7 @@ int main(void)
               muiAtspiAdapter_Apply(adapter, &update) == mui_success &&
               muiAccessTree_Count(muiAtspiAdapter_GetTree(adapter)) == 9,
           "a window");
+    s_test.adapter = adapter;
     CHECK(
         EventsAre("ChildrenChanged add 0 root w1n1; Activate  0 w1n1; StateChanged focused 1 w1n2"),
         "a window's root added to the application's and active, its nodes not told; the focus");

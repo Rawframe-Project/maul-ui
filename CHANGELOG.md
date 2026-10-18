@@ -38,6 +38,12 @@ format.
   where the function returns no status (`muiMeasureText`,
   `muiPaintText`, `muiAccessTextOf`, `muiTextBaseline`), and counts one
   misuse; the destroys do nothing.
+- The access tree and the platform adapters let the allocator and the
+  action functions call back in, from their own functions and from the
+  platform's calls (UI Automation, AT-SPI, the ARIA page, JNI, AppKit,
+  UIKit). Each is now busy for the length of that host code and of its
+  functions that change it, and a call back into one answers
+  `mui_errorState`, `NULL` or false, or does nothing.
 
 ## [0.5.15] - 2026-10-15
 

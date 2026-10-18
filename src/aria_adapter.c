@@ -12,6 +12,7 @@
 #include "access_text.h"
 #include "allocator.h"
 #include "aria.h"
+#include "host_call.h"
 
 #include <stdalign.h>
 #include <string.h>
@@ -121,7 +122,7 @@ muiResult muiCreateAriaAdapter(const muiAriaAdapterDef* def, muiAriaAdapter** ad
     return mui_success;
 }
 
-void muiDestroyAriaAdapter(muiAriaAdapter* adapter)
+static void DestroyAriaAdapter(muiAriaAdapter* adapter)
 {
     if (adapter == nullptr)
     {
@@ -134,6 +135,20 @@ void muiDestroyAriaAdapter(muiAriaAdapter* adapter)
     muiDestroyAccessTree(adapter->tree);
     const muiAllocator allocator = adapter->allocator;
     muiRelease(&allocator, adapter, adapter->blockSize, alignof(max_align_t));
+}
+
+void muiDestroyAriaAdapter(muiAriaAdapter* adapter)
+{
+    if (adapter == nullptr)
+    {
+        DestroyAriaAdapter(adapter);
+        return;
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return;
+    }
+    DestroyAriaAdapter(adapter);
 }
 
 uint32_t muiAriaSlotOf(const muiAriaAdapter* adapter, uint64_t id)
@@ -317,7 +332,7 @@ static void Announce(muiAriaAdapter* adapter, const muiAccessNode* node)
         muiAccessTree_GetName(adapter->tree, node->id, small, sizeof(small), &length);
     if (status == mui_errorCapacity)
     {
-        name = muiAllocate(&adapter->allocator, length + 1, 1);
+        name = muiAllocateMarked(&adapter->busy, &adapter->allocator, length + 1, 1);
         status = name != nullptr
                      ? muiAccessTree_GetName(adapter->tree, node->id, name, length + 1, &length)
                      : mui_errorCapacity;
@@ -328,7 +343,7 @@ static void Announce(muiAriaAdapter* adapter, const muiAccessNode* node)
     }
     if (name != small && name != nullptr)
     {
-        muiRelease(&adapter->allocator, name, length + 1, 1);
+        muiReleaseMarked(&adapter->busy, &adapter->allocator, name, length + 1, 1);
     }
 }
 
@@ -448,7 +463,7 @@ void muiAriaPerform(muiAriaAdapter* adapter, muiAriaEvent event, uint32_t slot, 
     {
         return;
     }
-    (void)adapter->action(adapter->user, &request);
+    (void)muiActMarked(&adapter->busy, adapter->action, adapter->user, &request);
 }
 
 void muiAriaPerformText(muiAriaAdapter* adapter, uint32_t slot, uint32_t start, uint32_t end,
@@ -475,10 +490,10 @@ void muiAriaPerformText(muiAriaAdapter* adapter, uint32_t slot, uint32_t start, 
         request.text = text;
         request.length = length;
     }
-    (void)adapter->action(adapter->user, &request);
+    (void)muiActMarked(&adapter->busy, adapter->action, adapter->user, &request);
 }
 
-muiResult muiAriaAdapter_Apply(muiAriaAdapter* adapter, const muiAccessUpdate* update)
+static muiResult AriaAdapterApply(muiAriaAdapter* adapter, const muiAccessUpdate* update)
 {
     if (adapter == nullptr)
     {
@@ -515,12 +530,27 @@ muiResult muiAriaAdapter_Apply(muiAriaAdapter* adapter, const muiAccessUpdate* u
     return status;
 }
 
+muiResult muiAriaAdapter_Apply(muiAriaAdapter* adapter, const muiAccessUpdate* update)
+{
+    if (adapter == nullptr)
+    {
+        return AriaAdapterApply(adapter, update);
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return mui_errorState;
+    }
+    muiResult result = AriaAdapterApply(adapter, update);
+    adapter->busy = false;
+    return result;
+}
+
 const muiAccessTree* muiAriaAdapter_GetTree(const muiAriaAdapter* adapter)
 {
     return adapter != nullptr ? adapter->tree : nullptr;
 }
 
-muiResult muiAriaAdapter_SetScale(muiAriaAdapter* adapter, float scale)
+static muiResult AriaAdapterSetScale(muiAriaAdapter* adapter, float scale)
 {
     if (adapter == nullptr || !(scale > 0.0f))
     {
@@ -532,6 +562,21 @@ muiResult muiAriaAdapter_SetScale(muiAriaAdapter* adapter, float scale)
         PlaceUnder(adapter, muiAccessTree_GetRoot(adapter->tree));
     }
     return mui_success;
+}
+
+muiResult muiAriaAdapter_SetScale(muiAriaAdapter* adapter, float scale)
+{
+    if (adapter == nullptr)
+    {
+        return AriaAdapterSetScale(adapter, scale);
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return mui_errorState;
+    }
+    muiResult result = AriaAdapterSetScale(adapter, scale);
+    adapter->busy = false;
+    return result;
 }
 
 // Builds the elements; the DOM focus goes on to the program's focused
@@ -548,9 +593,24 @@ static void Enable(muiAriaAdapter* adapter, bool pressed)
     TellFocus(adapter, focused || pressed);
 }
 
-void muiAriaAdapter_Enable(muiAriaAdapter* adapter)
+static void AriaAdapterEnable(muiAriaAdapter* adapter)
 {
     Enable(adapter, false);
+}
+
+void muiAriaAdapter_Enable(muiAriaAdapter* adapter)
+{
+    if (adapter == nullptr)
+    {
+        AriaAdapterEnable(adapter);
+        return;
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return;
+    }
+    AriaAdapterEnable(adapter);
+    adapter->busy = false;
 }
 
 void muiAriaEnablePressed(muiAriaAdapter* adapter)

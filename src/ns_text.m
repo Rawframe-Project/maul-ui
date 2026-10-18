@@ -9,6 +9,7 @@
 // text without them.
 
 #include "access_text.h"
+#include "host_call.h"
 #include "ns.h"
 
 #include <string.h>
@@ -63,7 +64,8 @@ static NSInteger LineOf(const muiAccessText* text, uint32_t at)
 static bool Ask(const MUIAccessibilityNode* object, const muiAccessRequest* request)
 {
     const muiNsAdapter* adapter = object->adapter;
-    return adapter != nullptr && adapter->action(adapter->user, request);
+    return adapter != nullptr &&
+           muiActMarked(&adapter->busy, adapter->action, adapter->user, request);
 }
 
 bool muiNsIsTextSelector(SEL selector)

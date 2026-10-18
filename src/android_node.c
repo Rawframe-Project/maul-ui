@@ -12,6 +12,7 @@
 #include "access_record.h"
 #include "access_text.h"
 #include "android.h"
+#include "host_call.h"
 
 #include <math.h>
 #include <string.h>
@@ -209,7 +210,7 @@ bool muiAndroidAct(const muiAndroidAdapter* adapter, const muiAccessNode* node, 
         return false;
     }
     const muiAccessRequest request = {.action = host, .target = node->id, .value = value};
-    return adapter->action(adapter->user, &request);
+    return muiActMarked(&adapter->busy, adapter->action, adapter->user, &request);
 }
 
 static jint BitsOf(float value)

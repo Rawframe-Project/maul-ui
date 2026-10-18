@@ -69,6 +69,11 @@ struct muiAriaAdapter
     uint32_t movedCount;
     // Whether the focus moved in the update being applied.
     bool focusMoved;
+    // Set while one of its functions that change it runs, or host code it
+    // calls (the allocator, an action function) runs: a call back in is
+    // refused (conventions section 10), and counted.
+    bool busy;
+    uint64_t misuse;
 };
 
 // The element showing a node, ARIA_NO_SLOT for none.

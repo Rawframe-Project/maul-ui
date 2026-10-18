@@ -7,6 +7,7 @@
 
 #include "access_text.h"
 #include "allocator.h"
+#include "host_call.h"
 #include "uia.h"
 
 #include <stddef.h>
@@ -64,7 +65,7 @@ static HRESULT STDMETHODCALLTYPE SetText(muiUiaValue* self, LPCWSTR text)
     int bytes =
         units != 0 ? WideCharToMultiByte(CP_UTF8, 0, text, units, nullptr, 0, nullptr, nullptr) : 0;
     muiUiaAdapter* adapter = node->adapter;
-    char* utf8 = muiAllocate(&adapter->allocator, (size_t)bytes + 1, 1);
+    char* utf8 = muiAllocateMarked(&adapter->busy, &adapter->allocator, (size_t)bytes + 1, 1);
     if (utf8 == nullptr)
     {
         return E_OUTOFMEMORY;
@@ -80,7 +81,7 @@ static HRESULT STDMETHODCALLTYPE SetText(muiUiaValue* self, LPCWSTR text)
                                       .text = utf8,
                                       .length = (uint32_t)bytes};
     HRESULT result = muiUiaPerformRequest(adapter, &request);
-    muiRelease(&adapter->allocator, utf8, (size_t)bytes + 1, 1);
+    muiReleaseMarked(&adapter->busy, &adapter->allocator, utf8, (size_t)bytes + 1, 1);
     return result;
 }
 

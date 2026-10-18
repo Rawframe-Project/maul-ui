@@ -12,6 +12,7 @@
 #include "access_text.h"
 #include "allocator.h"
 #include "android.h"
+#include "host_call.h"
 
 #include <string.h>
 
@@ -26,7 +27,9 @@ static bool NameIsValue(const muiAndroidAdapter* adapter, const muiAccessNode* n
     muiAccessText text = muiAccessValueOf(node);
     char small[256];
     size_t room = (size_t)text.length + 1;
-    char* name = room <= sizeof small ? small : muiAllocate(&adapter->allocator, room, 1);
+    char* name = room <= sizeof small
+                     ? small
+                     : muiAllocateMarked(&adapter->busy, &adapter->allocator, room, 1);
     size_t length = 0;
     bool same =
         name != nullptr &&
@@ -34,7 +37,7 @@ static bool NameIsValue(const muiAndroidAdapter* adapter, const muiAccessNode* n
         length == text.length && memcmp(name, text.bytes, length) == 0;
     if (name != nullptr && name != small)
     {
-        muiRelease(&adapter->allocator, name, room, 1);
+        muiReleaseMarked(&adapter->busy, &adapter->allocator, name, room, 1);
     }
     return same;
 }
@@ -154,7 +157,7 @@ static bool AskSelection(const muiAndroidAdapter* adapter, const muiAccessNode* 
 {
     const muiAccessRequest request = {
         .action = mui_actionSetSelection, .target = node->id, .anchor = anchor, .focus = focus};
-    return adapter->action(adapter->user, &request);
+    return muiActMarked(&adapter->busy, adapter->action, adapter->user, &request);
 }
 
 bool muiAndroidTraverse(const muiAndroidAdapter* adapter, const muiAccessNode* node,
@@ -265,7 +268,7 @@ bool muiAndroidSetText(const muiAndroidAdapter* adapter, const muiAccessNode* no
         return false;
     }
     size_t room = (size_t)count * 3 + 1;
-    char* bytes = muiAllocate(&adapter->allocator, room, 1);
+    char* bytes = muiAllocateMarked(&adapter->busy, &adapter->allocator, room, 1);
     if (bytes == nullptr)
     {
         return false;
@@ -277,7 +280,7 @@ bool muiAndroidSetText(const muiAndroidAdapter* adapter, const muiAccessNode* no
                                       .focus = muiAccessValueOf(node).length,
                                       .text = bytes,
                                       .length = (uint32_t)length};
-    bool done = adapter->action(adapter->user, &request);
-    muiRelease(&adapter->allocator, bytes, room, 1);
+    bool done = muiActMarked(&adapter->busy, adapter->action, adapter->user, &request);
+    muiReleaseMarked(&adapter->busy, &adapter->allocator, bytes, room, 1);
     return done;
 }

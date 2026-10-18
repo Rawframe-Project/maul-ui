@@ -11,6 +11,7 @@
 #include "access_text.h"
 #include "allocator.h"
 #include "android.h"
+#include "host_call.h"
 
 #include <math.h>
 #include <stdalign.h>
@@ -96,14 +97,16 @@ jstring muiAndroidStringOf(JNIEnv* env, const muiAndroidAdapter* adapter, const 
     {
         return nullptr;
     }
-    jchar* units = muiAllocate(&adapter->allocator, length * sizeof(jchar), alignof(jchar));
+    jchar* units = muiAllocateMarked(&adapter->busy, &adapter->allocator, length * sizeof(jchar),
+                                     alignof(jchar));
     if (units == nullptr)
     {
         return nullptr;
     }
     jstring string =
         (*env)->NewString(env, units, Utf16Of((const unsigned char*)text, length, units));
-    muiRelease(&adapter->allocator, units, length * sizeof(jchar), alignof(jchar));
+    muiReleaseMarked(&adapter->busy, &adapter->allocator, units, length * sizeof(jchar),
+                     alignof(jchar));
     return string;
 }
 
@@ -121,7 +124,7 @@ static jstring NameOf(JNIEnv* env, const muiAndroidAdapter* adapter, uint64_t id
     {
         return nullptr;
     }
-    char* name = muiAllocate(&adapter->allocator, length + 1, 1);
+    char* name = muiAllocateMarked(&adapter->busy, &adapter->allocator, length + 1, 1);
     jstring string = nullptr;
     if (name != nullptr &&
         muiAccessTree_GetName(adapter->tree, id, name, length + 1, &length) == mui_success)
@@ -130,7 +133,7 @@ static jstring NameOf(JNIEnv* env, const muiAndroidAdapter* adapter, uint64_t id
     }
     if (name != nullptr)
     {
-        muiRelease(&adapter->allocator, name, length + 1, 1);
+        muiReleaseMarked(&adapter->busy, &adapter->allocator, name, length + 1, 1);
     }
     return string;
 }
@@ -224,14 +227,14 @@ static jboolean SetText(JNIEnv* env, jclass type, jlong handle, jint virtualId, 
     }
     jsize count = (*env)->GetStringLength(env, text);
     size_t size = ((size_t)count + 1) * sizeof(jchar);
-    jchar* units = muiAllocate(&adapter->allocator, size, alignof(jchar));
+    jchar* units = muiAllocateMarked(&adapter->busy, &adapter->allocator, size, alignof(jchar));
     if (units == nullptr)
     {
         return JNI_FALSE;
     }
     (*env)->GetStringRegion(env, text, 0, count, units);
     bool done = muiAndroidSetText(adapter, node, units, count);
-    muiRelease(&adapter->allocator, units, size, alignof(jchar));
+    muiReleaseMarked(&adapter->busy, &adapter->allocator, units, size, alignof(jchar));
     return done ? JNI_TRUE : JNI_FALSE;
 }
 
@@ -250,13 +253,13 @@ static jfloatArray CharacterBoxes(JNIEnv* env, jclass type, jlong handle, jint v
         return nullptr;
     }
     size_t size = (size_t)length * sizeof(muiRect);
-    muiRect* rects = muiAllocate(&adapter->allocator, size, alignof(muiRect));
-    jfloat* boxes =
-        muiAllocate(&adapter->allocator, (size_t)length * 4 * sizeof(jfloat), alignof(jfloat));
+    muiRect* rects = muiAllocateMarked(&adapter->busy, &adapter->allocator, size, alignof(muiRect));
+    jfloat* boxes = muiAllocateMarked(&adapter->busy, &adapter->allocator,
+                                      (size_t)length * 4 * sizeof(jfloat), alignof(jfloat));
     jfloatArray out = nullptr;
     if (rects != nullptr && boxes != nullptr &&
         muiAccessUnitRects(adapter->tree, node->id, (uint32_t)start, (uint32_t)length,
-                           &adapter->allocator, rects))
+                           &adapter->allocator, &adapter->busy, rects))
     {
         float scale = adapter->scale;
         for (jint i = 0; i < length; i++)
@@ -276,12 +279,12 @@ static jfloatArray CharacterBoxes(JNIEnv* env, jclass type, jlong handle, jint v
     }
     if (rects != nullptr)
     {
-        muiRelease(&adapter->allocator, rects, size, alignof(muiRect));
+        muiReleaseMarked(&adapter->busy, &adapter->allocator, rects, size, alignof(muiRect));
     }
     if (boxes != nullptr)
     {
-        muiRelease(&adapter->allocator, boxes, (size_t)length * 4 * sizeof(jfloat),
-                   alignof(jfloat));
+        muiReleaseMarked(&adapter->busy, &adapter->allocator, boxes,
+                         (size_t)length * 4 * sizeof(jfloat), alignof(jfloat));
     }
     return out;
 }

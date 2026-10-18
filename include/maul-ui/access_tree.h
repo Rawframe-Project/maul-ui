@@ -8,6 +8,11 @@
 // so an adapter can raise its platform's events. A tree is used on one
 // thread, the one its platform calls on: the window's, with UI
 // Automation's COM threading on an STA thread.
+//
+// A tree is busy while one of its functions that change it runs or its
+// allocator runs, from those or from its const queries: a call back into
+// one that changes it answers mui_errorState, or does nothing where it
+// returns no status.
 
 #ifndef MAUL_UI_ACCESS_TREE_H
 #define MAUL_UI_ACCESS_TREE_H
@@ -94,17 +99,17 @@ extern "C"
     /// @param tree     The tree.
     /// @param update   The update.
     /// @param changes  Told what changed; may be NULL.
-    /// @return `mui_success`; `mui_errorCapacity` when the nodes would not
-    ///         fit or memory runs out, which changes nothing;
-    ///         `mui_errorInvalid` for a NULL tree or update, or an update
-    ///         that does not fit the tree: no root for an empty tree, a
-    ///         node with the id 0 or sent twice, a child neither held nor
-    ///         sent, a root, or focus, that is neither, or lists that do
-    ///         not leave a tree: a child listed twice, or by a node sent
-    ///         while a node not sent lists it, the root listed, or a node
-    ///         under itself; or a node whose marks do not fit its value
-    ///         text: offsets past it or inside a character, lines not
-    ///         ascending from 0, words out of order or empty.
+    /// @return `mui_success`; `mui_errorCapacity` when the nodes would not fit
+    ///         or memory runs out, which changes nothing; `mui_errorInvalid`
+    ///         for a NULL tree or update, or an update that does not fit the
+    ///         tree: no root for an empty tree, a node with the id 0 or sent
+    ///         twice, a child neither held nor sent, a root, or focus, that is
+    ///         neither, or lists that do not leave a tree: a child listed
+    ///         twice, or by a node sent while a node not sent lists it, the
+    ///         root listed, or a node under itself; or a node whose marks do
+    ///         not fit its value text: offsets past it or inside a character,
+    ///         lines not ascending from 0, words out of order or empty;
+    ///         `mui_errorState` while the tree is busy.
     /// @par Thread safety
     /// Safe from any thread; the tree is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiAccessTree_Apply(muiAccessTree* tree,

@@ -9,6 +9,7 @@
 
 #include "access_record.h"
 #include "allocator.h"
+#include "host_call.h"
 #include "ns.h"
 
 #include <stdalign.h>
@@ -108,7 +109,7 @@ static void Forget(MUIAccessibilityNode* object)
     [object release];
 }
 
-void muiDestroyNsAdapter(muiNsAdapter* adapter)
+static void DestroyNsAdapter(muiNsAdapter* adapter)
 {
     if (adapter == nullptr)
     {
@@ -126,6 +127,20 @@ void muiDestroyNsAdapter(muiNsAdapter* adapter)
     muiDestroyAccessTree(adapter->tree);
     const muiAllocator allocator = adapter->allocator;
     muiRelease(&allocator, adapter, adapter->blockSize, alignof(max_align_t));
+}
+
+void muiDestroyNsAdapter(muiNsAdapter* adapter)
+{
+    if (adapter == nullptr)
+    {
+        DestroyNsAdapter(adapter);
+        return;
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return;
+    }
+    DestroyNsAdapter(adapter);
 }
 
 MUIAccessibilityNode* muiNsObjectOf(muiNsAdapter* adapter, uint64_t id)
@@ -180,7 +195,7 @@ static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint
     ((muiNsAdapter*)user)->focusMoved = true;
 }
 
-muiResult muiNsAdapter_Apply(muiNsAdapter* adapter, const muiAccessUpdate* update)
+static muiResult NsAdapterApply(muiNsAdapter* adapter, const muiAccessUpdate* update)
 {
     if (adapter == nullptr)
     {
@@ -212,12 +227,27 @@ muiResult muiNsAdapter_Apply(muiNsAdapter* adapter, const muiAccessUpdate* updat
     return status;
 }
 
+muiResult muiNsAdapter_Apply(muiNsAdapter* adapter, const muiAccessUpdate* update)
+{
+    if (adapter == nullptr)
+    {
+        return NsAdapterApply(adapter, update);
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return mui_errorState;
+    }
+    muiResult result = NsAdapterApply(adapter, update);
+    adapter->busy = false;
+    return result;
+}
+
 const muiAccessTree* muiNsAdapter_GetTree(const muiNsAdapter* adapter)
 {
     return adapter != nullptr ? adapter->tree : nullptr;
 }
 
-muiResult muiNsAdapter_SetScale(muiNsAdapter* adapter, float scale)
+static muiResult NsAdapterSetScale(muiNsAdapter* adapter, float scale)
 {
     if (adapter == nullptr || !(scale > 0.0f))
     {
@@ -227,16 +257,46 @@ muiResult muiNsAdapter_SetScale(muiNsAdapter* adapter, float scale)
     return mui_success;
 }
 
-void* muiNsAdapter_GetRoot(muiNsAdapter* adapter)
+muiResult muiNsAdapter_SetScale(muiNsAdapter* adapter, float scale)
+{
+    if (adapter == nullptr)
+    {
+        return NsAdapterSetScale(adapter, scale);
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return mui_errorState;
+    }
+    muiResult result = NsAdapterSetScale(adapter, scale);
+    adapter->busy = false;
+    return result;
+}
+
+static void* NsAdapterGetRoot(muiNsAdapter* adapter)
 {
     return adapter != nullptr ? muiNsObjectOf(adapter, muiAccessTree_GetRoot(adapter->tree))
                               : nullptr;
 }
 
+void* muiNsAdapter_GetRoot(muiNsAdapter* adapter)
+{
+    if (adapter == nullptr)
+    {
+        return NsAdapterGetRoot(adapter);
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return nullptr;
+    }
+    void* result = NsAdapterGetRoot(adapter);
+    adapter->busy = false;
+    return result;
+}
+
 bool muiNsAct(const muiNsAdapter* adapter, muiAccessAction action, uint64_t id, float value)
 {
     const muiAccessRequest request = {.action = action, .target = id, .value = value};
-    return adapter->action(adapter->user, &request);
+    return muiActMarked(&adapter->busy, adapter->action, adapter->user, &request);
 }
 
 // A box in units, in the view's points, flipped or not.

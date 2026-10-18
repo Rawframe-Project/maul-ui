@@ -6,6 +6,7 @@
 // node under a point, and focusing and scrolling asked of the host.
 
 #include "atspi.h"
+#include "host_call.h"
 
 #include <math.h>
 #include <string.h>
@@ -200,7 +201,8 @@ static bool AppendInts(muiAtspiApp* app, muiDBusIter* iter, const int32_t* value
 static bool Act(const muiAtspiObject* object, muiAccessAction action)
 {
     const muiAccessRequest request = {.action = action, .target = object->node->id};
-    return object->adapter->action(object->adapter->user, &request);
+    return muiActMarked(&object->adapter->app->busy, object->adapter->action, object->adapter->user,
+                        &request);
 }
 
 // Writes the answer of a method that reads where the node is.

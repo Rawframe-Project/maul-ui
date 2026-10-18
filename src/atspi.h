@@ -48,6 +48,11 @@ struct muiAtspiApp
     bool registered;
     // The id the registry gives through the Application interface.
     int32_t id;
+    // Set while one of its functions that change it runs, or host code it
+    // calls (the allocator, an action function) runs: a call back in is
+    // refused (conventions section 10), and counted.
+    bool busy;
+    uint64_t misuse;
 };
 
 // What clients were last told of a shown node: its shown parent, 0 for

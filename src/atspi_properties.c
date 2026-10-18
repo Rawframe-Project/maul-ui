@@ -8,6 +8,7 @@
 #include "allocator.h"
 #include "atspi.h"
 #include "chars.h"
+#include "host_call.h"
 
 #include <string.h>
 
@@ -45,14 +46,14 @@ static bool AppendName(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject
         const char* none = "";
         return muiAtspiAppendVariant(app, iter, mui_dbusTypeString, (const void*)&none);
     }
-    char* name = muiAllocate(&app->allocator, length + 1, 1);
+    char* name = muiAllocateMarked(&app->busy, &app->allocator, length + 1, 1);
     bool ok =
         name != nullptr &&
         muiAccessTree_GetName(tree, object->node->id, name, length + 1, &length) == mui_success &&
         muiAtspiAppendVariant(app, iter, mui_dbusTypeString, (const void*)&name);
     if (name != nullptr)
     {
-        muiRelease(&app->allocator, name, length + 1, 1);
+        muiReleaseMarked(&app->busy, &app->allocator, name, length + 1, 1);
     }
     return ok;
 }

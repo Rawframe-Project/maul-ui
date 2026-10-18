@@ -13,6 +13,7 @@
 
 #include "access_record.h"
 #include "access_text.h"
+#include "host_call.h"
 #include "uikit.h"
 
 #include <string.h>
@@ -318,7 +319,8 @@ static bool Replace(const MUIAccessibilityElement* element, const muiAccessNode*
                                       .focus = end,
                                       .text = bytes,
                                       .length = (uint32_t)strlen(bytes)};
-    return element->adapter->action(element->adapter->user, &request);
+    return muiActMarked(&element->adapter->busy, element->adapter->action, element->adapter->user,
+                        &request);
 }
 
 // The selection's bytes, in order.
@@ -455,7 +457,7 @@ static uint32_t ByteAtPoint(const MUIAccessibilityElement* element, CGPoint poin
     {
         const muiAccessRequest request = {
             .action = mui_actionSetSelection, .target = node->id, .anchor = start, .focus = end};
-        (void)adapter->action(adapter->user, &request);
+        (void)muiActMarked(&adapter->busy, adapter->action, adapter->user, &request);
     }
 }
 

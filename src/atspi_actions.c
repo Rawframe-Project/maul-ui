@@ -6,6 +6,7 @@
 // host, and a range's numbers, its value set through the host.
 
 #include "atspi.h"
+#include "host_call.h"
 
 #include <string.h>
 
@@ -50,7 +51,8 @@ uint32_t muiAtspiActionCount(const muiAccessNode* node)
 static bool Perform(const muiAtspiObject* object, muiAccessAction action, float value)
 {
     const muiAccessRequest request = {.action = action, .target = object->node->id, .value = value};
-    return object->adapter->action(object->adapter->user, &request);
+    return muiActMarked(&object->adapter->app->busy, object->adapter->action, object->adapter->user,
+                        &request);
 }
 
 // Reads a call's index argument; NULL for none, or an index past the

@@ -1019,6 +1019,64 @@ static void TestMemory(void)
     CHECK(muiCreateAccessTree(&def, &tree) == mui_errorCapacity && tree == NULL, "no block");
 }
 
+// An allocator calling back into the tree it serves when armed: what
+// applying answered, and whether it ran (conventions section 10).
+typedef struct Calling
+{
+    muiAccessTree* tree;
+    bool armed;
+    int runs;
+    muiResult applied;
+} Calling;
+
+static void CallBack(Calling* calling)
+{
+    if (!calling->armed || calling->tree == NULL)
+    {
+        return;
+    }
+    calling->armed = false;
+    calling->runs++;
+    calling->applied = muiAccessTree_Apply(calling->tree, NULL, NULL);
+    // Destroying from here does nothing.
+    muiDestroyAccessTree(calling->tree);
+}
+
+static void* CallingAllocate(size_t size, size_t alignment, void* user)
+{
+    CallBack(user);
+    return alignment <= alignof(max_align_t) ? malloc(size) : NULL;
+}
+
+static void CallingRelease(void* memory, size_t size, size_t alignment, void* user)
+{
+    (void)size;
+    (void)alignment;
+    CallBack(user);
+    free(memory);
+}
+
+static void TestCallingBack(void)
+{
+    Calling calling = {NULL, false, 0, mui_success};
+    muiAccessTreeDef def = muiDefaultAccessTreeDef();
+    def.allocator = (muiAllocator){CallingAllocate, CallingRelease, &calling};
+    muiAccessTree* tree = NULL;
+    CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
+    calling.tree = tree;
+    CHECK(muiAccessTree_Apply(tree, NULL, NULL) == mui_errorInvalid, "refused as invalid outside");
+    muiAccessNode node = {.id = 1, .text = {"A"}, .textLength = {1}};
+    const muiAccessNode* sent[1] = {&node};
+    muiAccessUpdate update = {sent, 1, NULL, 1, 1};
+    calling.armed = true;
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success && calling.runs == 1 &&
+              calling.applied == mui_errorState && muiAccessTree_Count(tree) == 1,
+          "a call back in from the allocator refused, the tree kept");
+    calling.armed = true;
+    muiDestroyAccessTree(tree);
+    CHECK(calling.runs == 2 && calling.applied == mui_errorState, "and from a free while it goes");
+}
+
 static void TestContract(void)
 {
     muiAccessTreeDef def = muiDefaultAccessTreeDef();
@@ -1159,6 +1217,7 @@ int main(void)
     TestNamesAndBounds();
     TestTurnedBounds();
     TestMemory();
+    TestCallingBack();
     TestContract();
     TestFullTreeUpdated();
     return s_failures == 0 ? 0 : 1;

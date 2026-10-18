@@ -10,6 +10,7 @@
 #include "access_tree.h"
 #include "access_tree_store.h"
 #include "allocator.h"
+#include "host_call.h"
 
 #include "maul-ui/access_tree.h"
 
@@ -229,8 +230,7 @@ static muiResult Check(muiAccessTree* tree, const muiAccessUpdate* update)
     return tree->count + added <= tree->capacity ? mui_success : mui_errorCapacity;
 }
 
-static void FreeStaged(const muiAccessTree* tree, const muiAccessNode* node,
-                       const muiStagedNode* staged)
+static void FreeStaged(muiAccessTree* tree, const muiAccessNode* node, const muiStagedNode* staged)
 {
     muiHeldNode owned = {
         .node = {.linkCount = node->linkCount, .childCount = node->childCount},
@@ -254,14 +254,13 @@ static void FreeStaged(const muiAccessTree* tree, const muiAccessNode* node,
 
 // A copy of size bytes, NULL for none; when memory runs out, NULL and
 // fits made false. Nothing is copied once fits is false.
-static void* Copy(const muiAccessTree* tree, const void* from, size_t size, size_t align,
-                  bool* fits)
+static void* Copy(muiAccessTree* tree, const void* from, size_t size, size_t align, bool* fits)
 {
     if (!*fits || size == 0)
     {
         return nullptr;
     }
-    void* copy = muiAllocate(&tree->allocator, size, align);
+    void* copy = muiAllocateMarked(&tree->busy, &tree->allocator, size, align);
     *fits = copy != nullptr;
     if (copy != nullptr)
     {
@@ -272,7 +271,7 @@ static void* Copy(const muiAccessTree* tree, const void* from, size_t size, size
 
 // Copies what a node sent points at; false when memory runs out, with
 // nothing kept.
-static bool Stage(const muiAccessTree* tree, const muiAccessNode* node, const uint64_t* children,
+static bool Stage(muiAccessTree* tree, const muiAccessNode* node, const uint64_t* children,
                   muiStagedNode* staged)
 {
     *staged = (muiStagedNode){0};
@@ -282,7 +281,7 @@ static bool Stage(const muiAccessTree* tree, const muiAccessNode* node, const ui
         if (node->text[kind] != nullptr)
         {
             size_t length = node->textLength[kind];
-            staged->text[kind] = muiAllocate(&tree->allocator, length + 1, 1);
+            staged->text[kind] = muiAllocateMarked(&tree->busy, &tree->allocator, length + 1, 1);
             fits = staged->text[kind] != nullptr;
             if (fits)
             {
@@ -484,8 +483,8 @@ static void Prune(muiAccessTree* tree, const muiAccessUpdate* update, uint32_t r
     }
 }
 
-muiResult muiAccessTree_Apply(muiAccessTree* tree, const muiAccessUpdate* update,
-                              const muiAccessChanges* changes)
+static muiResult AccessTreeApply(muiAccessTree* tree, const muiAccessUpdate* update,
+                                 const muiAccessChanges* changes)
 {
     if (tree == nullptr || update == nullptr)
     {
@@ -526,4 +525,20 @@ muiResult muiAccessTree_Apply(muiAccessTree* tree, const muiAccessUpdate* update
                                                                                 : tree->root;
     Report(tree, changes, added, retired, oldRoot, oldFocus);
     return mui_success;
+}
+
+muiResult muiAccessTree_Apply(muiAccessTree* tree, const muiAccessUpdate* update,
+                              const muiAccessChanges* changes)
+{
+    if (tree == nullptr)
+    {
+        return AccessTreeApply(tree, update, changes);
+    }
+    if (!muiEnterMarked(&tree->busy, &tree->misuse))
+    {
+        return mui_errorState;
+    }
+    muiResult result = AccessTreeApply(tree, update, changes);
+    tree->busy = false;
+    return result;
 }

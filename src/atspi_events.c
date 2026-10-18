@@ -12,6 +12,7 @@
 #include "access_text.h"
 #include "allocator.h"
 #include "atspi.h"
+#include "host_call.h"
 
 #include <string.h>
 
@@ -110,7 +111,7 @@ static void TellName(muiAtspiApp* app, const muiAtspiObject* object)
     muiResult status = muiAccessTree_GetName(tree, id, small, sizeof(small), &length);
     if (status == mui_errorCapacity)
     {
-        name = muiAllocate(&app->allocator, length + 1, 1);
+        name = muiAllocateMarked(&app->busy, &app->allocator, length + 1, 1);
         status = name != nullptr ? muiAccessTree_GetName(tree, id, name, length + 1, &length)
                                  : mui_errorCapacity;
     }
@@ -134,7 +135,7 @@ static void TellName(muiAtspiApp* app, const muiAtspiObject* object)
     }
     if (name != small && name != nullptr)
     {
-        muiRelease(&app->allocator, name, length + 1, 1);
+        muiReleaseMarked(&app->busy, &app->allocator, name, length + 1, 1);
     }
 }
 
@@ -176,7 +177,7 @@ static bool IsLead(char byte)
 static void TellEdit(muiAtspiApp* app, const muiAtspiObject* object, const char* kind,
                      const char* text, uint32_t start, uint32_t end)
 {
-    char* copy = muiAllocate(&app->allocator, (size_t)(end - start) + 1, 1);
+    char* copy = muiAllocateMarked(&app->busy, &app->allocator, (size_t)(end - start) + 1, 1);
     if (copy == nullptr)
     {
         return;
@@ -187,7 +188,7 @@ static void TellEdit(muiAtspiApp* app, const muiAtspiObject* object, const char*
     const int32_t details[2] = {first, (int32_t)muiAccessPointsBefore(text, end) - first};
     const Any any = {mui_dbusTypeString, (const void*)&copy, nullptr};
     EmitOf(app, object, INTERFACE_EVENT, "TextChanged", kind, details, &any);
-    muiRelease(&app->allocator, copy, (size_t)(end - start) + 1, 1);
+    muiReleaseMarked(&app->busy, &app->allocator, copy, (size_t)(end - start) + 1, 1);
 }
 
 // A value text changed: what was deleted, then what was inserted, the
@@ -533,7 +534,7 @@ static void TellFocus(muiAtspiAdapter* adapter)
     }
 }
 
-muiResult muiAtspiAdapter_Apply(muiAtspiAdapter* adapter, const muiAccessUpdate* update)
+static muiResult AtspiAdapterApply(muiAtspiAdapter* adapter, const muiAccessUpdate* update)
 {
     if (adapter == nullptr)
     {
@@ -554,6 +555,21 @@ muiResult muiAtspiAdapter_Apply(muiAtspiAdapter* adapter, const muiAccessUpdate*
         TellFocus(adapter);
     }
     return status;
+}
+
+muiResult muiAtspiAdapter_Apply(muiAtspiAdapter* adapter, const muiAccessUpdate* update)
+{
+    if (adapter == nullptr)
+    {
+        return AtspiAdapterApply(adapter, update);
+    }
+    if (!muiEnterMarked(&adapter->app->busy, &adapter->app->misuse))
+    {
+        return mui_errorState;
+    }
+    muiResult result = AtspiAdapterApply(adapter, update);
+    adapter->app->busy = false;
+    return result;
 }
 
 void muiAtspiTellGone(muiAtspiAdapter* adapter)

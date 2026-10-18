@@ -83,6 +83,11 @@ struct muiUiaAdapter
     // Room for any node's shown children.
     uint64_t* scratch;
     uint32_t nodes;
+    // Set while one of its functions that change it runs, or host code it
+    // calls (the allocator, an action function) runs: a call back in is
+    // refused (conventions section 10), and counted.
+    bool busy;
+    uint64_t misuse;
 };
 
 // A new provider object with one reference, or NULL when the process

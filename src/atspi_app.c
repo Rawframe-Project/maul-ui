@@ -8,6 +8,7 @@
 
 #include "allocator.h"
 #include "atspi.h"
+#include "host_call.h"
 
 #include <stdalign.h>
 #include <stdlib.h>
@@ -217,7 +218,7 @@ muiResult muiCreateAtspiApp(const muiAtspiAppDef* def, muiAtspiApp** appOut)
     return mui_success;
 }
 
-void muiDestroyAtspiApp(muiAtspiApp* app)
+static void DestroyAtspiApp(muiAtspiApp* app)
 {
     if (app == nullptr)
     {
@@ -240,6 +241,20 @@ void muiDestroyAtspiApp(muiAtspiApp* app)
                alignof(max_align_t));
 }
 
+void muiDestroyAtspiApp(muiAtspiApp* app)
+{
+    if (app == nullptr)
+    {
+        DestroyAtspiApp(app);
+        return;
+    }
+    if (!muiEnterMarked(&app->busy, &app->misuse))
+    {
+        return;
+    }
+    DestroyAtspiApp(app);
+}
+
 int muiAtspiApp_GetDescriptor(const muiAtspiApp* app)
 {
     int descriptor = -1;
@@ -250,7 +265,7 @@ int muiAtspiApp_GetDescriptor(const muiAtspiApp* app)
     return descriptor;
 }
 
-void muiAtspiApp_Pump(muiAtspiApp* app)
+static void AtspiAppPump(muiAtspiApp* app)
 {
     if (app == nullptr)
     {
@@ -263,6 +278,21 @@ void muiAtspiApp_Pump(muiAtspiApp* app)
     }
     TakeEmbedding(app);
     (void)dbus->readWrite(app->connection, 0);
+}
+
+void muiAtspiApp_Pump(muiAtspiApp* app)
+{
+    if (app == nullptr)
+    {
+        AtspiAppPump(app);
+        return;
+    }
+    if (!muiEnterMarked(&app->busy, &app->misuse))
+    {
+        return;
+    }
+    AtspiAppPump(app);
+    app->busy = false;
 }
 
 bool muiAtspiApp_IsRegistered(const muiAtspiApp* app)
@@ -318,8 +348,8 @@ static void Lay(muiAtspiAdapter* adapter, unsigned char* block, uint32_t nodes)
     adapter->freeCount = nodes;
 }
 
-muiResult muiCreateAtspiAdapter(muiAtspiApp* app, const muiAtspiAdapterDef* def,
-                                muiAtspiAdapter** adapterOut)
+static muiResult CreateAtspiAdapter(muiAtspiApp* app, const muiAtspiAdapterDef* def,
+                                    muiAtspiAdapter** adapterOut)
 {
     if (adapterOut != nullptr)
     {
@@ -334,7 +364,8 @@ muiResult muiCreateAtspiAdapter(muiAtspiApp* app, const muiAtspiAdapterDef* def,
         return mui_errorCapacity;
     }
     size_t size = AdapterSize(def->nodes);
-    unsigned char* block = muiAllocate(&app->allocator, size, alignof(max_align_t));
+    unsigned char* block =
+        muiAllocateMarked(&app->busy, &app->allocator, size, alignof(max_align_t));
     if (block == nullptr)
     {
         return mui_errorCapacity;
@@ -356,7 +387,7 @@ muiResult muiCreateAtspiAdapter(muiAtspiApp* app, const muiAtspiAdapterDef* def,
     muiResult status = muiCreateAccessTree(&treeDef, &adapter->tree);
     if (status != mui_success)
     {
-        muiRelease(&app->allocator, block, size, alignof(max_align_t));
+        muiReleaseMarked(&app->busy, &app->allocator, block, size, alignof(max_align_t));
         return status;
     }
     app->nextWindow++;
@@ -365,7 +396,23 @@ muiResult muiCreateAtspiAdapter(muiAtspiApp* app, const muiAtspiAdapterDef* def,
     return mui_success;
 }
 
-void muiDestroyAtspiAdapter(muiAtspiAdapter* adapter)
+muiResult muiCreateAtspiAdapter(muiAtspiApp* app, const muiAtspiAdapterDef* def,
+                                muiAtspiAdapter** adapterOut)
+{
+    if (app == nullptr)
+    {
+        return CreateAtspiAdapter(app, def, adapterOut);
+    }
+    if (!muiEnterMarked(&app->busy, &app->misuse))
+    {
+        return mui_errorState;
+    }
+    muiResult result = CreateAtspiAdapter(app, def, adapterOut);
+    app->busy = false;
+    return result;
+}
+
+static void DestroyAtspiAdapter(muiAtspiAdapter* adapter)
 {
     if (adapter == nullptr)
     {
@@ -384,7 +431,25 @@ void muiDestroyAtspiAdapter(muiAtspiAdapter* adapter)
     }
     app->windowCount--;
     muiDestroyAccessTree(adapter->tree);
-    muiRelease(&app->allocator, adapter, adapter->blockSize, alignof(max_align_t));
+    muiReleaseMarked(&app->busy, &app->allocator, adapter, adapter->blockSize,
+                     alignof(max_align_t));
+}
+
+void muiDestroyAtspiAdapter(muiAtspiAdapter* adapter)
+{
+    if (adapter == nullptr)
+    {
+        DestroyAtspiAdapter(adapter);
+        return;
+    }
+    // The app outlives its adapter.
+    muiAtspiApp* app = adapter->app;
+    if (!muiEnterMarked(&app->busy, &app->misuse))
+    {
+        return;
+    }
+    DestroyAtspiAdapter(adapter);
+    app->busy = false;
 }
 
 const muiAccessTree* muiAtspiAdapter_GetTree(const muiAtspiAdapter* adapter)
@@ -392,7 +457,7 @@ const muiAccessTree* muiAtspiAdapter_GetTree(const muiAtspiAdapter* adapter)
     return adapter != nullptr ? adapter->tree : nullptr;
 }
 
-muiResult muiAtspiAdapter_SetScale(muiAtspiAdapter* adapter, float scale)
+static muiResult AtspiAdapterSetScale(muiAtspiAdapter* adapter, float scale)
 {
     if (adapter == nullptr || !(scale > 0.0f))
     {
@@ -402,11 +467,41 @@ muiResult muiAtspiAdapter_SetScale(muiAtspiAdapter* adapter, float scale)
     return mui_success;
 }
 
-void muiAtspiAdapter_SetPlace(muiAtspiAdapter* adapter, int32_t x, int32_t y)
+muiResult muiAtspiAdapter_SetScale(muiAtspiAdapter* adapter, float scale)
+{
+    if (adapter == nullptr)
+    {
+        return AtspiAdapterSetScale(adapter, scale);
+    }
+    if (!muiEnterMarked(&adapter->app->busy, &adapter->app->misuse))
+    {
+        return mui_errorState;
+    }
+    muiResult result = AtspiAdapterSetScale(adapter, scale);
+    adapter->app->busy = false;
+    return result;
+}
+
+static void AtspiAdapterSetPlace(muiAtspiAdapter* adapter, int32_t x, int32_t y)
 {
     if (adapter != nullptr)
     {
         adapter->x = x;
         adapter->y = y;
     }
+}
+
+void muiAtspiAdapter_SetPlace(muiAtspiAdapter* adapter, int32_t x, int32_t y)
+{
+    if (adapter == nullptr)
+    {
+        AtspiAdapterSetPlace(adapter, x, y);
+        return;
+    }
+    if (!muiEnterMarked(&adapter->app->busy, &adapter->app->misuse))
+    {
+        return;
+    }
+    AtspiAdapterSetPlace(adapter, x, y);
+    adapter->app->busy = false;
 }

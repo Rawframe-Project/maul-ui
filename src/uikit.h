@@ -76,6 +76,11 @@ struct muiUikitAdapter
     uint64_t screen;
     // The focus shown last: the tree's, or its active descendant.
     uint64_t toldFocus;
+    // Set while one of its functions that change it runs, or host code it
+    // calls (the allocator, an action function) runs: a call back in is
+    // refused (conventions section 10), and counted.
+    bool busy;
+    uint64_t misuse;
 };
 
 // The element or the container of a held node, made when first asked

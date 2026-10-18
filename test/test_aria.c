@@ -232,9 +232,20 @@ static void Unpoisoned(void* memory, size_t size, size_t alignment, void* contex
     free(memory);
 }
 
+// The adapter an action calls back into while it is asked, and what that
+// answered (conventions section 10).
+static muiAriaAdapter* s_reentry;
+static muiResult s_reentered;
+
 static bool Act(void* user, const muiAccessRequest* request)
 {
     (void)user;
+    if (s_reentry != NULL)
+    {
+        s_reentered = muiAriaAdapter_Apply(s_reentry, NULL);
+        // Destroying from here does nothing.
+        muiDestroyAriaAdapter(s_reentry);
+    }
     s_asked = *request;
     // The text is the adapter's only while the request is applied.
     if (request->text != NULL && request->length < sizeof(s_text))
@@ -354,8 +365,11 @@ static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* ro
           "relations gone");
     // Clicks: the button's own; what expands, toggled.
     s_asked = (muiAccessRequest){0};
-    CHECK(Ask("press #mui0-2") && s_asked.action == mui_actionClick && s_asked.target == 2,
-          "a click");
+    s_reentry = adapter;
+    CHECK(Ask("press #mui0-2") && s_asked.action == mui_actionClick && s_asked.target == 2 &&
+              s_reentered == mui_errorState,
+          "a click; a call back in from it refused");
+    s_reentry = NULL;
     muiAccessNode added = *muiAccessTree_Find(tree, 10);
     added.text[mui_accessLabel] = "New";
     added.flags = mui_accessExpandable;

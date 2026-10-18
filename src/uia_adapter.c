@@ -6,6 +6,7 @@
 // whose nodes leave.
 
 #include "allocator.h"
+#include "host_call.h"
 #include "uia.h"
 
 #include <stdalign.h>
@@ -151,7 +152,7 @@ static void LetGo(muiUiaAdapter* adapter, muiUiaNode* node, bool disconnect)
     muiUiaRelease(node);
 }
 
-void muiDestroyUiaAdapter(muiUiaAdapter* adapter)
+static void DestroyUiaAdapter(muiUiaAdapter* adapter)
 {
     if (adapter == nullptr)
     {
@@ -174,6 +175,20 @@ void muiDestroyUiaAdapter(muiUiaAdapter* adapter)
     FreeLibrary(module);
 }
 
+void muiDestroyUiaAdapter(muiUiaAdapter* adapter)
+{
+    if (adapter == nullptr)
+    {
+        DestroyUiaAdapter(adapter);
+        return;
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return;
+    }
+    DestroyUiaAdapter(adapter);
+}
+
 static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* old)
 {
     (void)tree;
@@ -186,7 +201,7 @@ static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* 
     }
 }
 
-muiResult muiUiaAdapter_Apply(muiUiaAdapter* adapter, const muiAccessUpdate* update)
+static muiResult UiaAdapterApply(muiUiaAdapter* adapter, const muiAccessUpdate* update)
 {
     if (adapter == nullptr)
     {
@@ -203,18 +218,48 @@ muiResult muiUiaAdapter_Apply(muiUiaAdapter* adapter, const muiAccessUpdate* upd
     return status;
 }
 
+muiResult muiUiaAdapter_Apply(muiUiaAdapter* adapter, const muiAccessUpdate* update)
+{
+    if (adapter == nullptr)
+    {
+        return UiaAdapterApply(adapter, update);
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return mui_errorState;
+    }
+    muiResult result = UiaAdapterApply(adapter, update);
+    adapter->busy = false;
+    return result;
+}
+
 const muiAccessTree* muiUiaAdapter_GetTree(const muiUiaAdapter* adapter)
 {
     return adapter != nullptr ? adapter->tree : nullptr;
 }
 
-void* muiUiaAdapter_GetRoot(muiUiaAdapter* adapter)
+static void* UiaAdapterGetRoot(muiUiaAdapter* adapter)
 {
     return adapter != nullptr ? &adapter->root->simple : nullptr;
 }
 
-bool muiUiaAdapter_HandleGetObject(muiUiaAdapter* adapter, uintptr_t wParam, intptr_t lParam,
-                                   intptr_t* resultOut)
+void* muiUiaAdapter_GetRoot(muiUiaAdapter* adapter)
+{
+    if (adapter == nullptr)
+    {
+        return UiaAdapterGetRoot(adapter);
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return nullptr;
+    }
+    void* result = UiaAdapterGetRoot(adapter);
+    adapter->busy = false;
+    return result;
+}
+
+static bool UiaAdapterHandleGetObject(muiUiaAdapter* adapter, uintptr_t wParam, intptr_t lParam,
+                                      intptr_t* resultOut)
 {
     if (adapter == nullptr || resultOut == nullptr || (LONG)lParam != ROOT_OBJECT_ID)
     {
@@ -225,7 +270,23 @@ bool muiUiaAdapter_HandleGetObject(muiUiaAdapter* adapter, uintptr_t wParam, int
     return true;
 }
 
-muiResult muiUiaAdapter_SetScale(muiUiaAdapter* adapter, float scale)
+bool muiUiaAdapter_HandleGetObject(muiUiaAdapter* adapter, uintptr_t wParam, intptr_t lParam,
+                                   intptr_t* resultOut)
+{
+    if (adapter == nullptr)
+    {
+        return UiaAdapterHandleGetObject(adapter, wParam, lParam, resultOut);
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return false;
+    }
+    bool result = UiaAdapterHandleGetObject(adapter, wParam, lParam, resultOut);
+    adapter->busy = false;
+    return result;
+}
+
+static muiResult UiaAdapterSetScale(muiUiaAdapter* adapter, float scale)
 {
     if (adapter == nullptr || !(scale > 0.0f))
     {
@@ -233,6 +294,21 @@ muiResult muiUiaAdapter_SetScale(muiUiaAdapter* adapter, float scale)
     }
     adapter->scale = scale;
     return mui_success;
+}
+
+muiResult muiUiaAdapter_SetScale(muiUiaAdapter* adapter, float scale)
+{
+    if (adapter == nullptr)
+    {
+        return UiaAdapterSetScale(adapter, scale);
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return mui_errorState;
+    }
+    muiResult result = UiaAdapterSetScale(adapter, scale);
+    adapter->busy = false;
+    return result;
 }
 
 muiUiaNode* muiUiaNodeOf(muiUiaAdapter* adapter, uint64_t id)
@@ -296,7 +372,8 @@ void muiUiaRootPointOf(const muiUiaAdapter* adapter, double x, double y, float* 
 
 HRESULT muiUiaPerformRequest(muiUiaAdapter* adapter, const muiAccessRequest* request)
 {
-    return adapter->action(adapter->user, request) ? S_OK : NOT_SUPPORTED;
+    return muiActMarked(&adapter->busy, adapter->action, adapter->user, request) ? S_OK
+                                                                                 : NOT_SUPPORTED;
 }
 
 HRESULT muiUiaPerform(muiUiaAdapter* adapter, muiAccessAction action, uint64_t target)

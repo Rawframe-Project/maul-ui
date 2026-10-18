@@ -10,6 +10,7 @@
 #include "access_record.h"
 #include "access_text.h"
 #include "allocator.h"
+#include "host_call.h"
 #include "uikit.h"
 
 #include <stdalign.h>
@@ -116,7 +117,7 @@ static void ForgetContainer(MUIAccessibilityContainer* container)
     [container release];
 }
 
-void muiDestroyUikitAdapter(muiUikitAdapter* adapter)
+static void DestroyUikitAdapter(muiUikitAdapter* adapter)
 {
     if (adapter == nullptr)
     {
@@ -139,6 +140,20 @@ void muiDestroyUikitAdapter(muiUikitAdapter* adapter)
     muiDestroyAccessTree(adapter->tree);
     const muiAllocator allocator = adapter->allocator;
     muiRelease(&allocator, adapter, adapter->blockSize, alignof(max_align_t));
+}
+
+void muiDestroyUikitAdapter(muiUikitAdapter* adapter)
+{
+    if (adapter == nullptr)
+    {
+        DestroyUikitAdapter(adapter);
+        return;
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return;
+    }
+    DestroyUikitAdapter(adapter);
 }
 
 MUIAccessibilityElement* muiUikitElementOf(muiUikitAdapter* adapter, uint64_t id)
@@ -272,7 +287,7 @@ static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint
     ((muiUikitAdapter*)user)->focusMoved = true;
 }
 
-muiResult muiUikitAdapter_Apply(muiUikitAdapter* adapter, const muiAccessUpdate* update)
+static muiResult UikitAdapterApply(muiUikitAdapter* adapter, const muiAccessUpdate* update)
 {
     if (adapter == nullptr)
     {
@@ -303,12 +318,27 @@ muiResult muiUikitAdapter_Apply(muiUikitAdapter* adapter, const muiAccessUpdate*
     return status;
 }
 
+muiResult muiUikitAdapter_Apply(muiUikitAdapter* adapter, const muiAccessUpdate* update)
+{
+    if (adapter == nullptr)
+    {
+        return UikitAdapterApply(adapter, update);
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return mui_errorState;
+    }
+    muiResult result = UikitAdapterApply(adapter, update);
+    adapter->busy = false;
+    return result;
+}
+
 const muiAccessTree* muiUikitAdapter_GetTree(const muiUikitAdapter* adapter)
 {
     return adapter != nullptr ? adapter->tree : nullptr;
 }
 
-muiResult muiUikitAdapter_SetScale(muiUikitAdapter* adapter, float scale)
+static muiResult UikitAdapterSetScale(muiUikitAdapter* adapter, float scale)
 {
     if (adapter == nullptr || !(scale > 0.0f))
     {
@@ -318,16 +348,46 @@ muiResult muiUikitAdapter_SetScale(muiUikitAdapter* adapter, float scale)
     return mui_success;
 }
 
-void* muiUikitAdapter_GetRoot(muiUikitAdapter* adapter)
+muiResult muiUikitAdapter_SetScale(muiUikitAdapter* adapter, float scale)
+{
+    if (adapter == nullptr)
+    {
+        return UikitAdapterSetScale(adapter, scale);
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return mui_errorState;
+    }
+    muiResult result = UikitAdapterSetScale(adapter, scale);
+    adapter->busy = false;
+    return result;
+}
+
+static void* UikitAdapterGetRoot(muiUikitAdapter* adapter)
 {
     uint64_t root = adapter != nullptr ? muiAccessTree_GetRoot(adapter->tree) : 0;
     return root != 0 ? muiUikitObjectOf(adapter, root) : nullptr;
 }
 
+void* muiUikitAdapter_GetRoot(muiUikitAdapter* adapter)
+{
+    if (adapter == nullptr)
+    {
+        return UikitAdapterGetRoot(adapter);
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return nullptr;
+    }
+    void* result = UikitAdapterGetRoot(adapter);
+    adapter->busy = false;
+    return result;
+}
+
 bool muiUikitAct(const muiUikitAdapter* adapter, muiAccessAction action, uint64_t id, float value)
 {
     const muiAccessRequest request = {.action = action, .target = id, .value = value};
-    return adapter->action(adapter->user, &request);
+    return muiActMarked(&adapter->busy, adapter->action, adapter->user, &request);
 }
 
 CGRect muiUikitViewRectOf(const muiUikitAdapter* adapter, uint64_t id)
@@ -363,7 +423,7 @@ NSString* muiUikitNameOf(const muiUikitAdapter* adapter, uint64_t id)
     {
         return nil;
     }
-    char* name = muiAllocate(&adapter->allocator, length + 1, 1);
+    char* name = muiAllocateMarked(&adapter->busy, &adapter->allocator, length + 1, 1);
     NSString* string = nil;
     if (name != nullptr &&
         muiAccessTree_GetName(adapter->tree, id, name, length + 1, &length) == mui_success)
@@ -372,7 +432,7 @@ NSString* muiUikitNameOf(const muiUikitAdapter* adapter, uint64_t id)
     }
     if (name != nullptr)
     {
-        muiRelease(&adapter->allocator, name, length + 1, 1);
+        muiReleaseMarked(&adapter->busy, &adapter->allocator, name, length + 1, 1);
     }
     return string;
 }

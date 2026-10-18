@@ -4,6 +4,7 @@ base:
 invariant:
 outline:
 allocator:
+host_call: allocator
 layout_node: tree outline
 pool: invariant
 token_store: invariant pool
@@ -48,54 +49,54 @@ access_record:
 access_text: allocator
 access_tree_store:
 chars:
-access_tree: access_tree_store allocator chars
-access_apply: access_text access_tree access_tree_store allocator
-access_view: access_text access_tree_store allocator
+access_tree: access_tree_store allocator chars host_call
+access_apply: access_text access_tree access_tree_store allocator host_call
+access_view: access_text access_tree_store allocator host_call
 id_map:
 dbus_api:
 android: id_map
-android_adapter: access_record allocator android
+android_adapter: access_record allocator android host_call
 android_events: access_record access_text android
-android_jni: access_record access_text allocator android
-android_node: access_record access_text android
-android_text: access_text allocator android
+android_jni: access_record access_text allocator android host_call
+android_node: access_record access_text android host_call
+android_text: access_text allocator android host_call
 aria: id_map
-aria_adapter: access_text allocator aria
+aria_adapter: access_text allocator aria host_call
 aria_elements: access_text aria chars
 web_js:
-aria_page: allocator aria web_js
+aria_page: allocator aria host_call web_js
 atspi: dbus_api id_map
 ns: id_map
-ns_adapter: access_record allocator ns
+ns_adapter: access_record allocator host_call ns
 ns_events: access_record ns
-ns_node: access_record access_text allocator ns
+ns_node: access_record access_text allocator host_call ns
 ns_roles: ns
-ns_text: access_text ns
+ns_text: access_text host_call ns
 uikit: id_map
-uikit_adapter: access_record access_text allocator uikit
+uikit_adapter: access_record access_text allocator host_call uikit
 uikit_events: access_record uikit
 uikit_node: uikit
-uikit_text: access_record access_text uikit
+uikit_text: access_record access_text host_call uikit
 uikit_traits: uikit
-atspi_events: access_record access_text allocator atspi
-atspi_actions: atspi
-atspi_app: allocator atspi dbus_api
-atspi_component: atspi
+atspi_events: access_record access_text allocator atspi host_call
+atspi_actions: atspi host_call
+atspi_app: allocator atspi dbus_api host_call
+atspi_component: atspi host_call
 atspi_objects: allocator atspi chars
-atspi_properties: allocator atspi chars
+atspi_properties: allocator atspi chars host_call
 atspi_roles: access_record atspi
-atspi_text: access_text allocator atspi
+atspi_text: access_text allocator atspi host_call
 uia: id_map uia_com uia_ids
 uia_com:
 uia_ids:
-uia_adapter: allocator id_map uia
+uia_adapter: allocator host_call id_map uia
 uia_events: access_record access_text uia
 uia_node: access_record uia
 uia_patterns: access_text uia
-uia_props: access_record allocator uia
+uia_props: access_record allocator host_call uia
 uia_range: access_text uia
 uia_text: access_record uia
-uia_values: access_text allocator uia
+uia_values: access_text allocator host_call uia
 access_action: access context event focus layout_node notify range scroll scroll_store tree
 popup: context layout_node popup_store scroll tree notify
 scroll: context scroll_store tree layer motion_math

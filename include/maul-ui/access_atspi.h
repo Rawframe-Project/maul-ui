@@ -14,6 +14,12 @@
 // reading, with its other sources, and pumps it when it is readable and
 // once a frame. Every function here is used on the thread that made the
 // application, which "main thread" below means.
+//
+// An application and its adapters are busy while one of the functions
+// that change them runs, or their allocator or an action function runs:
+// a call back into one answers mui_errorState, NULL or false, or does
+// nothing where it returns no status, as muiAtspiApp_Pump and the
+// destroys do.
 
 #ifndef MAUL_UI_ACCESS_ATSPI_H
 #define MAUL_UI_ACCESS_ATSPI_H
@@ -36,6 +42,7 @@ extern "C"
     // Performs an action a client asked for, by muiPerformAccessAction or
     // its own means; true when it did. Called while the application is
     // pumped.
+    // It may call the context, not the application's functions that change it.
     typedef bool (*muiAtspiActionFunction)(void* user, const muiAccessRequest* request);
 
     // How an application is made. Build it with muiDefaultAtspiAppDef.
@@ -135,11 +142,11 @@ extern "C"
     /// @param app         The application.
     /// @param def         The def, from muiDefaultAtspiAdapterDef.
     /// @param adapterOut  Receives the adapter; NULL on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
-    ///         def not from muiDefaultAtspiAdapterDef, no nodes, no
-    ///         action function or a scale not above 0;
-    ///         `mui_errorCapacity` when the application has its windows
-    ///         or memory runs out.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a def not
+    ///         from muiDefaultAtspiAdapterDef, no nodes, no action function or
+    ///         a scale not above 0; `mui_errorCapacity` when the application
+    ///         has its windows or memory runs out; `mui_errorState` while the
+    ///         application is busy.
     /// @par Thread safety
     /// Main thread only.
     MUI_NODISCARD MUI_API muiResult muiCreateAtspiAdapter(muiAtspiApp* app,
@@ -158,8 +165,8 @@ extern "C"
     ///
     /// @param adapter  The adapter.
     /// @param update   The update.
-    /// @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL
-    ///         adapter.
+    /// @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter;
+    ///         `mui_errorState` while the application is busy.
     /// @par Thread safety
     /// Main thread only.
     MUI_NODISCARD MUI_API muiResult muiAtspiAdapter_Apply(muiAtspiAdapter* adapter,
@@ -177,8 +184,8 @@ extern "C"
     ///
     /// @param adapter  The adapter.
     /// @param scale    The scale, above 0.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a
-    ///         scale not above 0.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale
+    ///         not above 0; `mui_errorState` while the application is busy.
     /// @par Thread safety
     /// Main thread only.
     MUI_NODISCARD MUI_API muiResult muiAtspiAdapter_SetScale(muiAtspiAdapter* adapter, float scale);

@@ -10,6 +10,7 @@
 #include "access_record.h"
 #include "allocator.h"
 #include "android.h"
+#include "host_call.h"
 
 #include <stdalign.h>
 #include <string.h>
@@ -217,7 +218,7 @@ muiResult muiCreateAndroidAdapter(const muiAndroidAdapterDef* def, muiAndroidAda
     return mui_success;
 }
 
-void muiDestroyAndroidAdapter(muiAndroidAdapter* adapter)
+static void DestroyAndroidAdapter(muiAndroidAdapter* adapter)
 {
     if (adapter == nullptr)
     {
@@ -231,6 +232,20 @@ void muiDestroyAndroidAdapter(muiAndroidAdapter* adapter)
     muiDestroyAccessTree(adapter->tree);
     const muiAllocator allocator = adapter->allocator;
     muiRelease(&allocator, adapter, adapter->blockSize, alignof(max_align_t));
+}
+
+void muiDestroyAndroidAdapter(muiAndroidAdapter* adapter)
+{
+    if (adapter == nullptr)
+    {
+        DestroyAndroidAdapter(adapter);
+        return;
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return;
+    }
+    DestroyAndroidAdapter(adapter);
 }
 
 jint muiAndroidVirtualOf(muiAndroidAdapter* adapter, uint64_t id)
@@ -297,7 +312,7 @@ static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint
     ((muiAndroidAdapter*)user)->focusMoved = true;
 }
 
-muiResult muiAndroidAdapter_Apply(muiAndroidAdapter* adapter, const muiAccessUpdate* update)
+static muiResult AndroidAdapterApply(muiAndroidAdapter* adapter, const muiAccessUpdate* update)
 {
     if (adapter == nullptr)
     {
@@ -325,12 +340,27 @@ muiResult muiAndroidAdapter_Apply(muiAndroidAdapter* adapter, const muiAccessUpd
     return status;
 }
 
+muiResult muiAndroidAdapter_Apply(muiAndroidAdapter* adapter, const muiAccessUpdate* update)
+{
+    if (adapter == nullptr)
+    {
+        return AndroidAdapterApply(adapter, update);
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return mui_errorState;
+    }
+    muiResult result = AndroidAdapterApply(adapter, update);
+    adapter->busy = false;
+    return result;
+}
+
 const muiAccessTree* muiAndroidAdapter_GetTree(const muiAndroidAdapter* adapter)
 {
     return adapter != nullptr ? adapter->tree : nullptr;
 }
 
-muiResult muiAndroidAdapter_SetScale(muiAndroidAdapter* adapter, float scale)
+static muiResult AndroidAdapterSetScale(muiAndroidAdapter* adapter, float scale)
 {
     if (adapter == nullptr || !(scale > 0.0f))
     {
@@ -340,7 +370,37 @@ muiResult muiAndroidAdapter_SetScale(muiAndroidAdapter* adapter, float scale)
     return mui_success;
 }
 
-void* muiAndroidAdapter_GetRoot(muiAndroidAdapter* adapter)
+muiResult muiAndroidAdapter_SetScale(muiAndroidAdapter* adapter, float scale)
+{
+    if (adapter == nullptr)
+    {
+        return AndroidAdapterSetScale(adapter, scale);
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return mui_errorState;
+    }
+    muiResult result = AndroidAdapterSetScale(adapter, scale);
+    adapter->busy = false;
+    return result;
+}
+
+static void* AndroidAdapterGetRoot(muiAndroidAdapter* adapter)
 {
     return adapter != nullptr ? (void*)adapter->provider : nullptr;
+}
+
+void* muiAndroidAdapter_GetRoot(muiAndroidAdapter* adapter)
+{
+    if (adapter == nullptr)
+    {
+        return AndroidAdapterGetRoot(adapter);
+    }
+    if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
+    {
+        return nullptr;
+    }
+    void* result = AndroidAdapterGetRoot(adapter);
+    adapter->busy = false;
+    return result;
 }
