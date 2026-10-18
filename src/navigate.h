@@ -18,4 +18,9 @@
 uint32_t muiNavigateFind(const muiContext* context, uint32_t scope, uint32_t focus,
                          muiDirection direction);
 
+// muiFocus_MoveToward without the busy mark, for the library's own calls
+// from inside a call that holds it.
+muiResult muiMoveFocusToward(muiContext* context, muiNodeId rootId, uint8_t player,
+                             muiDirection direction);
+
 #endif // MAUL_UI_SRC_NAVIGATE_H

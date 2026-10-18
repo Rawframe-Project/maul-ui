@@ -102,8 +102,8 @@ static void Rebind(muiContext* context, uint32_t slot, uint32_t first, uint32_t 
     }
 }
 
-muiResult muiNode_InsertVirtualItems(muiContext* context, muiNodeId nodeId, uint32_t index,
-                                     uint32_t count)
+static muiResult NodeInsertVirtualItems(muiContext* context, muiNodeId nodeId, uint32_t index,
+                                        uint32_t count)
 {
     if (context == nullptr)
     {
@@ -154,8 +154,20 @@ muiResult muiNode_InsertVirtualItems(muiContext* context, muiNodeId nodeId, uint
     return mui_success;
 }
 
-muiResult muiNode_RemoveVirtualItems(muiContext* context, muiNodeId nodeId, uint32_t index,
+muiResult muiNode_InsertVirtualItems(muiContext* context, muiNodeId nodeId, uint32_t index,
                                      uint32_t count)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NodeInsertVirtualItems(context, nodeId, index, count);
+        muiLeave(context);
+    }
+    return status;
+}
+
+static muiResult NodeRemoveVirtualItems(muiContext* context, muiNodeId nodeId, uint32_t index,
+                                        uint32_t count)
 {
     if (context == nullptr)
     {
@@ -198,7 +210,20 @@ muiResult muiNode_RemoveVirtualItems(muiContext* context, muiNodeId nodeId, uint
     return mui_success;
 }
 
-muiResult muiNode_MoveVirtualItem(muiContext* context, muiNodeId nodeId, uint32_t from, uint32_t to)
+muiResult muiNode_RemoveVirtualItems(muiContext* context, muiNodeId nodeId, uint32_t index,
+                                     uint32_t count)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NodeRemoveVirtualItems(context, nodeId, index, count);
+        muiLeave(context);
+    }
+    return status;
+}
+
+static muiResult NodeMoveVirtualItem(muiContext* context, muiNodeId nodeId, uint32_t from,
+                                     uint32_t to)
 {
     if (context == nullptr)
     {
@@ -269,4 +294,15 @@ muiResult muiNode_MoveVirtualItem(muiContext* context, muiNodeId nodeId, uint32_
     }
     muiTreeMarkLayout(&context->tree, slot);
     return mui_success;
+}
+
+muiResult muiNode_MoveVirtualItem(muiContext* context, muiNodeId nodeId, uint32_t from, uint32_t to)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NodeMoveVirtualItem(context, nodeId, from, to);
+        muiLeave(context);
+    }
+    return status;
 }

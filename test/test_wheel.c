@@ -428,7 +428,7 @@ static bool Refeed(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent*
     muiContext* context = user;
     const muiWheelEvent again = *event->wheel;
     bool handled = false;
-    CHECK(muiWheelInput(context, event->target, &again, &handled) == mui_errorInvalid,
+    CHECK(muiWheelInput(context, event->target, &again, &handled) == mui_errorState,
           "no input while dispatching");
     return false;
 }

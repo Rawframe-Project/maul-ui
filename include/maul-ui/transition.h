@@ -104,8 +104,8 @@ extern "C"
     ///                         above 0.
     /// @param transitionOut  Receives the spec; set to the null id on
     ///                         failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a def
-    ///         outside the above or a call from a measure or paint function;
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a def
+    ///         outside the above; `mui_errorState` while the context is busy;
     ///         `mui_errorCapacity` when the context's transition limit is
     ///         reached.
     /// @par Thread safety
@@ -119,8 +119,8 @@ extern "C"
     ///
     /// @param context       The context.
     /// @param transitionId  The spec.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id or a call from a measure or paint function; `mui_errorStale`
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
+    ///         id; `mui_errorState` while the context is busy; `mui_errorStale`
     ///         for an id whose spec is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -136,12 +136,12 @@ extern "C"
     /// @param transitionId  The spec, or the null id.
     /// @param group         The properties' group.
     /// @param mask          The properties, within the group's.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null class id, an unknown variant, group or property bit or a
-    ///         call from a measure or paint function; `mui_errorStale` for a class or a
-    ///         spec that is gone; `mui_errorCapacity` when the variant
-    ///         already names MUI_MAX_VARIANT_TRANSITIONS specs, or has no
-    ///         values yet and the context's limit of property sets is
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the null
+    ///         class id, an unknown variant, group or property bit;
+    ///         `mui_errorState` while the context is busy; `mui_errorStale` for
+    ///         a class or a spec that is gone; `mui_errorCapacity` when the
+    ///         variant already names MUI_MAX_VARIANT_TRANSITIONS specs, or has
+    ///         no values yet and the context's limit of property sets is
     ///         reached.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.

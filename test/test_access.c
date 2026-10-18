@@ -610,8 +610,8 @@ static void TestContentText(void)
               Sent(&update, empty)->text[mui_accessValue] == NULL &&
               Sent(&update, empty)->role == mui_roleGeneric,
           "ill-formed, nothing, not content, not read, empty");
-    CHECK(s_editFromReader == mui_errorInvalid && s_disableFromReader == mui_errorInvalid &&
-              s_functionFromReader == mui_errorInvalid && s_reads == 10,
+    CHECK(s_editFromReader == mui_errorState && s_disableFromReader == mui_errorState &&
+              s_functionFromReader == mui_errorState && s_reads == 10,
           "read once each, again for the boundaries of those sent; editing, disabling and "
           "replacing the reader refused");
     // The host's value wins, unread.
@@ -1027,7 +1027,7 @@ static void TestActions(void)
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled &&
               heard.kind == mui_eventNavigation && heard.navigation == mui_navigateActivate &&
               heard.node.index1 == scene.button.index1 && heard.count == 3 &&
-              heard.nested == mui_errorInvalid,
+              heard.nested == mui_errorState,
           "clicked");
     // Nothing to click on the label.
     request.target = muiAccessIdOf(scene.label);

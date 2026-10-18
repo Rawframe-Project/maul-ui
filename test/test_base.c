@@ -26,6 +26,7 @@ static void TestResultNames(void)
     CHECK(strcmp(muiResultName(mui_errorFormat), "mui_errorFormat") == 0, "format name");
     CHECK(strcmp(muiResultName(mui_errorPlatform), "mui_errorPlatform") == 0, "platform name");
     CHECK(strcmp(muiResultName(mui_errorVersion), "mui_errorVersion") == 0, "version name");
+    CHECK(strcmp(muiResultName(mui_errorState), "mui_errorState") == 0, "state name");
     CHECK(strcmp(muiResultName(12345), "unknown result") == 0, "unknown name");
 }
 

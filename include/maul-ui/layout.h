@@ -324,8 +324,9 @@ extern "C"
     } muiMeasureAxis;
 
     // Returns the content-box size of a node's host content. It runs inside
-    // muiComputeLayout, on the calling thread, and may not change the
-    // context; a call that would is refused as misuse. It is never asked
+    // muiComputeLayout, on the calling thread, and may read the context,
+    // not change it: a function that would answers mui_errorState and
+    // counts one misuse. It is never asked
     // with both axes exact, as the size is then decided: a host lays its
     // content out for painting at the node's rectangle. Its answer is to
     // depend on the request alone, and content that fits within a size is
@@ -388,9 +389,9 @@ extern "C"
     ///                 border and gaps at least 0, known enumerators and
     ///                 edge bits, alignItems not mui_alignAuto, and anchors
     ///                 from 0 to 1, and an aspect ratio of 0 or more.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
-    ///         null id, a value outside the above, or a call from a measure
-    ///         function; `mui_errorStale` for an id whose node is gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
+    ///         id or a value outside the above; `mui_errorState` while the
+    ///         context is busy; `mui_errorStale` for an id whose node is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_SetLayoutStyle(muiContext* context, muiNodeId nodeId,
@@ -429,9 +430,9 @@ extern "C"
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the null
-    ///         id or a call from a measure or paint function; `mui_errorStale` for an
-    ///         id whose node is gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
+    ///         id; `mui_errorState` while the context is busy; `mui_errorStale`
+    ///         for an id whose node is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_MarkContentChanged(muiContext* context,
@@ -443,10 +444,10 @@ extern "C"
     /// @param context  The context.
     /// @param rootId   A root: a node without a parent.
     /// @param input    The space and the measure function.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
-    ///         null id, a node with a parent, a negative or non-finite
-    ///         space, or a call from a measure or paint function; `mui_errorStale`
-    ///         for an id whose node is gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
+    ///         id, a node with a parent or a negative or non-finite space;
+    ///         `mui_errorState` while the context is busy; `mui_errorStale` for
+    ///         an id whose node is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiComputeLayout(muiContext* context, muiNodeId rootId,

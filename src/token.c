@@ -37,7 +37,7 @@ muiTokenDef muiDefaultTokenDef(void)
     return (muiTokenDef){.cookie = TOKEN_DEF_COOKIE, .value = {.type = mui_tokenNumber}};
 }
 
-muiResult muiCreateToken(muiContext* context, const muiTokenDef* def, muiTokenId* tokenOut)
+static muiResult CreateToken(muiContext* context, const muiTokenDef* def, muiTokenId* tokenOut)
 {
     if (tokenOut != nullptr)
     {
@@ -48,7 +48,7 @@ muiResult muiCreateToken(muiContext* context, const muiTokenDef* def, muiTokenId
         return mui_errorInvalid;
     }
     if (def == nullptr || tokenOut == nullptr || def->cookie != TOKEN_DEF_COOKIE ||
-        !muiIsTokenValueValid(&def->value) || muiIsInHostCall(context))
+        !muiIsTokenValueValid(&def->value))
     {
         return muiRefuse(context);
     }
@@ -64,10 +64,21 @@ muiResult muiCreateToken(muiContext* context, const muiTokenDef* def, muiTokenId
     return mui_success;
 }
 
+muiResult muiCreateToken(muiContext* context, const muiTokenDef* def, muiTokenId* tokenOut)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = CreateToken(context, def, tokenOut);
+        muiLeave(context);
+    }
+    return status;
+}
+
 // The slot of a live token for an edit, or 0 with the status.
 static uint32_t ResolveEdit(muiContext* context, muiTokenId tokenId, muiResult* statusOut)
 {
-    if (tokenId.index1 == 0 || muiIsInHostCall(context))
+    if (tokenId.index1 == 0)
     {
         *statusOut = muiRefuse(context);
         return 0;
@@ -77,7 +88,7 @@ static uint32_t ResolveEdit(muiContext* context, muiTokenId tokenId, muiResult* 
     return slot;
 }
 
-muiResult muiDestroyToken(muiContext* context, muiTokenId tokenId)
+static muiResult DestroyToken(muiContext* context, muiTokenId tokenId)
 {
     if (context == nullptr)
     {
@@ -93,7 +104,18 @@ muiResult muiDestroyToken(muiContext* context, muiTokenId tokenId)
     return status;
 }
 
-muiResult muiSetTokenValue(muiContext* context, muiTokenId tokenId, const muiTokenValue* value)
+muiResult muiDestroyToken(muiContext* context, muiTokenId tokenId)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = DestroyToken(context, tokenId);
+        muiLeave(context);
+    }
+    return status;
+}
+
+static muiResult SetTokenValue(muiContext* context, muiTokenId tokenId, const muiTokenValue* value)
 {
     if (context == nullptr)
     {
@@ -119,7 +141,18 @@ muiResult muiSetTokenValue(muiContext* context, muiTokenId tokenId, const muiTok
     return mui_success;
 }
 
-muiResult muiSetTokenAlias(muiContext* context, muiTokenId tokenId, muiTokenId target)
+muiResult muiSetTokenValue(muiContext* context, muiTokenId tokenId, const muiTokenValue* value)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = SetTokenValue(context, tokenId, value);
+        muiLeave(context);
+    }
+    return status;
+}
+
+static muiResult SetTokenAlias(muiContext* context, muiTokenId tokenId, muiTokenId target)
 {
     if (context == nullptr)
     {
@@ -150,6 +183,17 @@ muiResult muiSetTokenAlias(muiContext* context, muiTokenId tokenId, muiTokenId t
     token->alias = target;
     muiRestyleAll(context);
     return mui_success;
+}
+
+muiResult muiSetTokenAlias(muiContext* context, muiTokenId tokenId, muiTokenId target)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = SetTokenAlias(context, tokenId, target);
+        muiLeave(context);
+    }
+    return status;
 }
 
 muiResult muiGetTokenValue(const muiContext* context, muiTokenId tokenId, muiTokenValue* valueOut,
@@ -226,8 +270,8 @@ static bool MayName(const muiContext* context, const muiStyleClass* class, muiVa
     return slot == 0 || context->tokens.tokens[slot - 1].value.type == type;
 }
 
-muiResult muiStyle_SetToken(muiContext* context, muiStyleId styleId, muiVariant variant,
-                            muiProperty property, muiTokenId tokenId)
+static muiResult StyleSetToken(muiContext* context, muiStyleId styleId, muiVariant variant,
+                               muiProperty property, muiTokenId tokenId)
 {
     if (context == nullptr)
     {
@@ -278,6 +322,18 @@ muiResult muiStyle_SetToken(muiContext* context, muiStyleId styleId, muiVariant 
     context->textGiven |= MUI_PROPERTY_GROUP(property) == mui_groupText;
     muiRestyleAll(context);
     return mui_success;
+}
+
+muiResult muiStyle_SetToken(muiContext* context, muiStyleId styleId, muiVariant variant,
+                            muiProperty property, muiTokenId tokenId)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = StyleSetToken(context, styleId, variant, property, tokenId);
+        muiLeave(context);
+    }
+    return status;
 }
 
 muiResult muiStyle_GetToken(const muiContext* context, muiStyleId styleId, muiVariant variant,

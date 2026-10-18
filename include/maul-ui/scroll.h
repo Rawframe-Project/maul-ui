@@ -30,9 +30,9 @@ extern "C"
     /// @param nodeId   The node.
     /// @param x        The offset from the inline start, finite.
     /// @param y        The offset from the top, finite.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id, an offset not finite or a call from a measure or
-    ///         paint function; `mui_errorStale` for a node that is gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the null
+    ///         id or an offset not finite; `mui_errorState` while the context
+    ///         is busy; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_SetScroll(muiContext* context, muiNodeId nodeId,
@@ -82,9 +82,9 @@ extern "C"
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id or a call from a measure or paint function;
-    ///         `mui_errorStale` for a node that is gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
+    ///         id; `mui_errorState` while the context is busy; `mui_errorStale`
+    ///         for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_ScrollIntoView(muiContext* context, muiNodeId nodeId);
@@ -129,9 +129,8 @@ extern "C"
     ///
     /// @param context  The context.
     /// @param rule     The rule, as described above.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
-    ///         rule outside the above, or a call from a measure or paint
-    ///         function.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a rule
+    ///         outside the above; `mui_errorState` while the context is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiSetScrollRule(muiContext* context,

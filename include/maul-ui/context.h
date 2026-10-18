@@ -3,6 +3,14 @@
 //
 // The context: the root object that owns a tree of nodes and every
 // result computed over it.
+//
+// A context is busy while one of its functions that changes it runs. Host
+// code it calls then (the measure, baseline, paint and access text
+// functions, the allocator) may read it, and a function that changes it
+// answers mui_errorState and counts one misuse; muiDestroyContext does
+// nothing. The event function is the exception: the context is not busy
+// while it runs, and it may call all but the functions muiEventFunction
+// names.
 
 #ifndef MAUL_UI_CONTEXT_H
 #define MAUL_UI_CONTEXT_H
@@ -163,7 +171,8 @@ extern "C"
                                                      muiContext** contextOut);
 
     /// Destroys a context, every node in it and its memory. Every id it gave
-    /// out becomes meaningless.
+    /// out becomes meaningless. A call from host code the context runs, or
+    /// from its event function, destroys nothing and counts one misuse.
     ///
     /// @param context  The context, or NULL for nothing.
     /// @par Thread safety
@@ -219,7 +228,8 @@ extern "C"
     /// @param context          The context.
     /// @param notificationOut  Receives it.
     /// @return `mui_success`; `mui_empty` when none is waiting;
-    ///         `mui_errorInvalid` for a NULL argument.
+    ///         `mui_errorInvalid` for a NULL argument; `mui_errorState` while
+    ///         the context is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNextNotification(muiContext* context,

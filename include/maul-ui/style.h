@@ -346,8 +346,8 @@ extern "C"
     /// @param context      The context.
     /// @param environment  One viewport class bit, one input modality bit
     ///                     and a finite text scale above 0.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
-    ///         value outside the above or a call from a measure or paint function.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a value
+    ///         outside the above; `mui_errorState` while the context is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiSetContextEnvironment(muiContext* context,
@@ -379,8 +379,8 @@ extern "C"
     /// @param context     The context.
     /// @param def         The class: a valid cookie.
     /// @param styleOut  Receives the class; set to the null id on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
-    ///         cookie or a call from a measure or paint function;
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a bad
+    ///         cookie; `mui_errorState` while the context is busy;
     ///         `mui_errorCapacity` when the context's style limit is reached.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -392,8 +392,8 @@ extern "C"
     ///
     /// @param context  The context.
     /// @param styleId  The class.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id or a call from a measure or paint function; `mui_errorStale`
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
+    ///         id; `mui_errorState` while the context is busy; `mui_errorStale`
     ///         for an id whose class is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -408,12 +408,12 @@ extern "C"
     /// @param values   The values; only the fields mask names are read, and
     ///                 each must be one muiNode_SetLayoutStyle allows.
     /// @param mask     The properties, within MUI_LAYOUT_PROPERTIES.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
-    ///         null id, an unknown variant or property bit, a value outside
-    ///         the above, a property the variant's condition reads (its
-    ///         axis's sizes and limits, the aspect ratio, the text
-    ///         direction) or a call from a measure or paint function, which changes
-    ///         nothing; `mui_errorStale` for an id whose class is gone;
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
+    ///         id, an unknown variant or property bit, a value outside the
+    ///         above or a property the variant's condition reads (its axis's
+    ///         sizes and limits, the aspect ratio or the text direction), which
+    ///         changes nothing; `mui_errorState` while the context is busy;
+    ///         `mui_errorStale` for an id whose class is gone;
     ///         `mui_errorCapacity` when the variant had no values and the
     ///         context's limit of property sets is reached.
     /// @par Thread safety
@@ -432,9 +432,9 @@ extern "C"
     /// @param variant  The variant.
     /// @param group    The properties' group.
     /// @param mask     The properties, within the group's.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id, an unknown variant, group or property bit or a call
-    ///         from a measure or paint function; `mui_errorStale` for an id whose
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the null
+    ///         id, an unknown variant, group or property bit; `mui_errorState`
+    ///         while the context is busy; `mui_errorStale` for an id whose
     ///         class is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -471,11 +471,10 @@ extern "C"
     ///                    maximum not below it, known bits and choices.
     /// @param variantOut  Receives the condition's variant; set to
     ///                    mui_variantBase on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
-    ///         null id, a condition outside the above or a call from a
-    ///         measure or paint function; `mui_errorStale` for an id whose class is
-    ///         gone; `mui_errorCapacity` when the class has
-    ///         MUI_MAX_CONDITIONS.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
+    ///         id or a condition outside the above; `mui_errorState` while the
+    ///         context is busy; `mui_errorStale` for an id whose class is gone;
+    ///         `mui_errorCapacity` when the class has MUI_MAX_CONDITIONS.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiStyle_AddCondition(muiContext* context, muiStyleId styleId,
@@ -490,11 +489,10 @@ extern "C"
     /// @param variant    The condition's variant.
     /// @param condition  As muiStyle_AddCondition takes it, reading nothing
     ///                   the condition's values set.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
-    ///         null id, a variant that is not one of the class's
-    ///         conditions, a condition outside the above or a call from a
-    ///         measure or paint function; `mui_errorStale` for an id whose class is
-    ///         gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
+    ///         id, a variant that is not one of the class's conditions or a
+    ///         condition outside the above; `mui_errorState` while the context
+    ///         is busy; `mui_errorStale` for an id whose class is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiStyle_SetCondition(muiContext* context, muiStyleId styleId,
@@ -521,8 +519,8 @@ extern "C"
     ///
     /// @param context  The context.
     /// @param styleId  The class.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id or a call from a measure or paint function; `mui_errorStale`
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
+    ///         id; `mui_errorState` while the context is busy; `mui_errorStale`
     ///         for an id whose class is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -553,8 +551,8 @@ extern "C"
     /// @param def        The type: a valid cookie and its classes.
     /// @param typeOut  Receives the type; set to the null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
-    ///         cookie, classes NULL with a count, a count over the limit or a
-    ///         call from a measure or paint function; `mui_errorCapacity`
+    ///         cookie, classes NULL with a count or a count over the limit;
+    ///         `mui_errorState` while the context is busy; `mui_errorCapacity`
     ///         when the context's node type limit is reached.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -567,8 +565,8 @@ extern "C"
     ///
     /// @param context  The context.
     /// @param typeId   The type.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id or a call from a measure or paint function; `mui_errorStale`
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
+    ///         id; `mui_errorState` while the context is busy; `mui_errorStale`
     ///         for an id whose type is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -581,10 +579,10 @@ extern "C"
     /// @param typeId   The type.
     /// @param classes  count classes, as muiCreateNodeType takes them.
     /// @param count    At most MUI_MAX_CLASSES.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id, NULL classes with a count, a count over the limit or
-    ///         a call from a measure or paint function; `mui_errorStale` for an id
-    ///         whose type is gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the null
+    ///         id, NULL classes with a count or a count over the limit;
+    ///         `mui_errorState` while the context is busy; `mui_errorStale` for
+    ///         an id whose type is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNodeType_SetClasses(muiContext* context,
@@ -598,8 +596,8 @@ extern "C"
     /// @param context  The context.
     /// @param nodeId   The node.
     /// @param typeId   The type; the null id for none.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null node id or a call from a measure or paint function;
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
+    ///         node id; `mui_errorState` while the context is busy;
     ///         `mui_errorStale` for a node or a type that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -614,10 +612,10 @@ extern "C"
     /// @param classes  count classes, kept as given; a class destroyed later
     ///                 is skipped. NULL when count is 0.
     /// @param count    At most MUI_MAX_CLASSES.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id, NULL classes with a count, a count over the limit or
-    ///         a call from a measure or paint function; `mui_errorStale` for a node
-    ///         that is gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the null
+    ///         id, NULL classes with a count or a count over the limit;
+    ///         `mui_errorState` while the context is busy; `mui_errorStale` for
+    ///         a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_SetClasses(muiContext* context, muiNodeId nodeId,
@@ -632,9 +630,9 @@ extern "C"
     /// @param context  The context.
     /// @param nodeId   The node.
     /// @param states   muiState bits.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id or a call from a measure or paint function;
-    ///         `mui_errorStale` for a node that is gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
+    ///         id; `mui_errorState` while the context is busy; `mui_errorStale`
+    ///         for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_SetStates(muiContext* context, muiNodeId nodeId,
@@ -661,9 +659,9 @@ extern "C"
     /// @param values   The values; only the fields mask names are read, and
     ///                 each must be one muiNode_SetLayoutStyle allows.
     /// @param mask     The properties, within MUI_LAYOUT_PROPERTIES.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
-    ///         null id, an unknown property bit, a value outside the above
-    ///         or a call from a measure or paint function, which changes nothing;
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
+    ///         id, an unknown property bit or a value outside the above, which
+    ///         changes nothing; `mui_errorState` while the context is busy;
     ///         `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -678,9 +676,9 @@ extern "C"
     /// @param nodeId   The node.
     /// @param group    The properties' group.
     /// @param mask     The properties, within the group's.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id, an unknown group or property bit or a call from a
-    ///         measure or paint function; `mui_errorStale` for a node that is gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the null
+    ///         id or an unknown group or property bit; `mui_errorState` while
+    ///         the context is busy; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_ResetProperties(muiContext* context, muiNodeId nodeId,

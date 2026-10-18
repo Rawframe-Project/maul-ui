@@ -71,12 +71,12 @@ extern "C"
     /// @param context  The context.
     /// @param nodeId   The node.
     /// @param list     The list, as described above.
-    /// @return `mui_success`; `mui_errorCapacity` when the context holds
-    ///         its limit of lists, or the items of an estimated list do not
-    ///         fit what its limit of items leaves; `mui_errorInvalid` for a
-    ///         NULL argument, the null id, a list outside the above, or a
-    ///         call from a measure or paint function; `mui_errorStale` for a
-    ///         node that is gone.
+    /// @return `mui_success`; `mui_errorCapacity` when the context holds its
+    ///         limit of lists, or the items of an estimated list do not fit
+    ///         what its limit of items leaves; `mui_errorInvalid` for a NULL
+    ///         argument, the null id or a list outside the above;
+    ///         `mui_errorState` while the context is busy; `mui_errorStale` for
+    ///         a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_SetVirtualList(muiContext* context, muiNodeId nodeId,
@@ -86,10 +86,9 @@ extern "C"
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
-    /// @return `mui_success`, whether or not it was one;
-    ///         `mui_errorInvalid` for a NULL context, the null id or a call
-    ///         from a measure or paint function; `mui_errorStale` for a
-    ///         node that is gone.
+    /// @return `mui_success`, whether or not it was one; `mui_errorInvalid` for
+    ///         a NULL context or the null id; `mui_errorState` while the
+    ///         context is busy; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_ClearVirtualList(muiContext* context, muiNodeId nodeId);
@@ -135,10 +134,10 @@ extern "C"
     /// @param context  The context.
     /// @param nodeId   The node, a child of a list.
     /// @param index    Its item.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id, a node whose parent is not a list, an index past
-    ///         the list's count, or a call from a measure or paint
-    ///         function; `mui_errorStale` for a node that is gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the null
+    ///         id, a node whose parent is not a list or an index past the
+    ///         list's count; `mui_errorState` while the context is busy;
+    ///         `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_SetItem(muiContext* context, muiNodeId nodeId,
@@ -148,10 +147,9 @@ extern "C"
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
-    /// @return `mui_success`, whether or not it was bound;
-    ///         `mui_errorInvalid` for a NULL context, the null id or a call
-    ///         from a measure or paint function; `mui_errorStale` for a
-    ///         node that is gone.
+    /// @return `mui_success`, whether or not it was bound; `mui_errorInvalid`
+    ///         for a NULL context or the null id; `mui_errorState` while the
+    ///         context is busy; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_ClearItem(muiContext* context, muiNodeId nodeId);
@@ -180,11 +178,11 @@ extern "C"
     /// @param index    Where, up to the count.
     /// @param count    How many, at least 1.
     /// @return `mui_success`; `mui_empty` for a node that is not a list;
-    ///         `mui_errorCapacity` when an estimated list's items no longer
-    ///         fit its limit; `mui_errorInvalid` for a NULL context, the
-    ///         null id, an index past the count, no items or more than
-    ///         2^32 - 1 in all, or a call from a measure or paint function;
-    ///         `mui_errorStale` for a node that is gone.
+    ///         `mui_errorCapacity` when an estimated list's items no longer fit
+    ///         its limit; `mui_errorInvalid` for a NULL context, the null id,
+    ///         an index past the count, no items or more than 2^32 - 1 in all;
+    ///         `mui_errorState` while the context is busy; `mui_errorStale` for
+    ///         a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_InsertVirtualItems(muiContext* context,
@@ -202,8 +200,8 @@ extern "C"
     /// @param count    How many, at least 1, ending by the count.
     /// @return `mui_success`; `mui_empty` for a node that is not a list;
     ///         `mui_errorInvalid` for a NULL context, the null id, a range
-    ///         outside the list or empty, or a call from a measure or paint
-    ///         function; `mui_errorStale` for a node that is gone.
+    ///         outside the list or empty; `mui_errorState` while the context is
+    ///         busy; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_RemoveVirtualItems(muiContext* context,
@@ -219,8 +217,8 @@ extern "C"
     /// @param from     The item, below the count.
     /// @param to       Its new index, below the count.
     /// @return `mui_success`; `mui_empty` for a node that is not a list;
-    ///         `mui_errorInvalid` for a NULL context, the null id, an index
-    ///         past the count, or a call from a measure or paint function;
+    ///         `mui_errorInvalid` for a NULL context, the null id or an index
+    ///         past the count; `mui_errorState` while the context is busy;
     ///         `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.

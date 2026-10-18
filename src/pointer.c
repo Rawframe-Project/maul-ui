@@ -473,14 +473,17 @@ static void Settle(muiContext* context, muiPointer* pointer, const Target* hit,
     Hover(context, pointer, away ? 0 : HoverTarget(context, pointer, hit));
 }
 
-muiResult muiPointerInput(muiContext* context, muiNodeId rootId, const muiPointerEvent* event)
+static muiResult PointerInput(muiContext* context, muiNodeId rootId, const muiPointerEvent* event)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
-    if (event == nullptr || IsNull(rootId) || !IsValidEvent(event) || muiIsInHostCall(context) ||
-        context->events.dispatching)
+    if (context->events.dispatching)
+    {
+        return muiRefuseBusy(context);
+    }
+    if (event == nullptr || IsNull(rootId) || !IsValidEvent(event))
     {
         return muiRefuse(context);
     }
@@ -546,7 +549,18 @@ muiResult muiPointerInput(muiContext* context, muiNodeId rootId, const muiPointe
     return mui_success;
 }
 
-muiResult muiNextPointerRecord(muiContext* context, muiPointerRecord* recordOut)
+muiResult muiPointerInput(muiContext* context, muiNodeId rootId, const muiPointerEvent* event)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = PointerInput(context, rootId, event);
+        muiLeave(context);
+    }
+    return status;
+}
+
+static muiResult NextPointerRecord(muiContext* context, muiPointerRecord* recordOut)
 {
     if (context == nullptr || recordOut == nullptr)
     {
@@ -570,14 +584,25 @@ muiResult muiNextPointerRecord(muiContext* context, muiPointerRecord* recordOut)
     return mui_empty;
 }
 
-muiResult muiPointer_SetCapture(muiContext* context, uint32_t pointerId, muiNodeId nodeId)
+muiResult muiNextPointerRecord(muiContext* context, muiPointerRecord* recordOut)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NextPointerRecord(context, recordOut);
+        muiLeave(context);
+    }
+    return status;
+}
+
+static muiResult PointerSetCapture(muiContext* context, uint32_t pointerId, muiNodeId nodeId)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
     muiPointer* pointer = Find(&context->pointers, pointerId);
-    if (pointer == nullptr || pointer->buttons == 0 || muiIsInHostCall(context))
+    if (pointer == nullptr || pointer->buttons == 0)
     {
         return muiRefuse(context);
     }
@@ -597,19 +622,41 @@ muiResult muiPointer_SetCapture(muiContext* context, uint32_t pointerId, muiNode
     return mui_success;
 }
 
-muiResult muiPointer_ReleaseCapture(muiContext* context, uint32_t pointerId)
+muiResult muiPointer_SetCapture(muiContext* context, uint32_t pointerId, muiNodeId nodeId)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = PointerSetCapture(context, pointerId, nodeId);
+        muiLeave(context);
+    }
+    return status;
+}
+
+static muiResult PointerReleaseCapture(muiContext* context, uint32_t pointerId)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
     muiPointer* pointer = Find(&context->pointers, pointerId);
-    if (pointer == nullptr || muiIsInHostCall(context))
+    if (pointer == nullptr)
     {
         return muiRefuse(context);
     }
     Uncapture(context, pointer);
     return mui_success;
+}
+
+muiResult muiPointer_ReleaseCapture(muiContext* context, uint32_t pointerId)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = PointerReleaseCapture(context, pointerId);
+        muiLeave(context);
+    }
+    return status;
 }
 
 muiResult muiPointer_GetState(const muiContext* context, uint32_t pointerId,
@@ -634,13 +681,13 @@ muiResult muiPointer_GetState(const muiContext* context, uint32_t pointerId,
     return mui_empty;
 }
 
-muiResult muiSetClickRule(muiContext* context, uint64_t intervalNs, float distance)
+static muiResult SetClickRule(muiContext* context, uint64_t intervalNs, float distance)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
-    if (!isfinite(distance) || distance < 0.0f || muiIsInHostCall(context))
+    if (!isfinite(distance) || distance < 0.0f)
     {
         return muiRefuse(context);
     }
@@ -649,14 +696,25 @@ muiResult muiSetClickRule(muiContext* context, uint64_t intervalNs, float distan
     return mui_success;
 }
 
-muiResult muiPointer_Offer(muiContext* context, uint32_t pointerId, uint32_t kind, uint64_t key)
+muiResult muiSetClickRule(muiContext* context, uint64_t intervalNs, float distance)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = SetClickRule(context, intervalNs, distance);
+        muiLeave(context);
+    }
+    return status;
+}
+
+static muiResult PointerOffer(muiContext* context, uint32_t pointerId, uint32_t kind, uint64_t key)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
     muiPointer* pointer = Find(&context->pointers, pointerId);
-    if (pointer == nullptr || !pointer->dragging || kind == 0 || muiIsInHostCall(context))
+    if (pointer == nullptr || !pointer->dragging || kind == 0)
     {
         return muiRefuse(context);
     }
@@ -666,20 +724,41 @@ muiResult muiPointer_Offer(muiContext* context, uint32_t pointerId, uint32_t kin
     return mui_success;
 }
 
-muiResult muiSetDragThreshold(muiContext* context, float mouse, float touch)
+muiResult muiPointer_Offer(muiContext* context, uint32_t pointerId, uint32_t kind, uint64_t key)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = PointerOffer(context, pointerId, kind, key);
+        muiLeave(context);
+    }
+    return status;
+}
+
+static muiResult SetDragThreshold(muiContext* context, float mouse, float touch)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
-    if (!isfinite(mouse) || mouse < 0.0f || !isfinite(touch) || touch < 0.0f ||
-        muiIsInHostCall(context))
+    if (!isfinite(mouse) || mouse < 0.0f || !isfinite(touch) || touch < 0.0f)
     {
         return muiRefuse(context);
     }
     context->pointers.dragMouse = mouse;
     context->pointers.dragTouch = touch;
     return mui_success;
+}
+
+muiResult muiSetDragThreshold(muiContext* context, float mouse, float touch)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = SetDragThreshold(context, mouse, touch);
+        muiLeave(context);
+    }
+    return status;
 }
 
 bool muiCancelDrags(muiContext* context)

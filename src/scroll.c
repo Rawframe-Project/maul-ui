@@ -15,18 +15,6 @@
 
 #include <math.h>
 
-static uint32_t ResolveRead(const muiContext* context, muiNodeId nodeId, muiResult* statusOut)
-{
-    if (nodeId.index1 == 0)
-    {
-        *statusOut = mui_errorInvalid;
-        return 0;
-    }
-    uint32_t slot = muiTreeResolve(&context->tree, nodeId);
-    *statusOut = slot != 0 ? mui_success : mui_errorStale;
-    return slot;
-}
-
 // The step easing a node, or the end of the table.
 static uint32_t EaseOf(const muiScrollStore* store, uint32_t slot)
 {
@@ -76,7 +64,7 @@ static void Cancel(muiContext* context, uint32_t slot)
     }
 }
 
-muiResult muiNode_SetScroll(muiContext* context, muiNodeId nodeId, float x, float y)
+muiResult muiSetNodeScroll(muiContext* context, muiNodeId nodeId, float x, float y)
 {
     if (context == nullptr)
     {
@@ -102,6 +90,17 @@ muiResult muiNode_SetScroll(muiContext* context, muiNodeId nodeId, float x, floa
         muiNoteScrolled(context, slot);
     }
     return mui_success;
+}
+
+muiResult muiNode_SetScroll(muiContext* context, muiNodeId nodeId, float x, float y)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = muiSetNodeScroll(context, nodeId, x, y);
+        muiLeave(context);
+    }
+    return status;
 }
 
 // Moves a scroll container's offset, along one axis, so that its
@@ -206,7 +205,7 @@ void muiScrollReveal(muiContext* context, uint32_t slot)
     }
 }
 
-muiResult muiNode_ScrollIntoView(muiContext* context, muiNodeId nodeId)
+muiResult muiScrollNodeIntoView(muiContext* context, muiNodeId nodeId)
 {
     if (context == nullptr)
     {
@@ -221,12 +220,23 @@ muiResult muiNode_ScrollIntoView(muiContext* context, muiNodeId nodeId)
     return status;
 }
 
+muiResult muiNode_ScrollIntoView(muiContext* context, muiNodeId nodeId)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = muiScrollNodeIntoView(context, nodeId);
+        muiLeave(context);
+    }
+    return status;
+}
+
 muiScrollRule muiDefaultScrollRule(void)
 {
     return MUI_SCROLL_RULE;
 }
 
-muiResult muiSetScrollRule(muiContext* context, const muiScrollRule* rule)
+static muiResult SetScrollRule(muiContext* context, const muiScrollRule* rule)
 {
     if (context == nullptr)
     {
@@ -235,12 +245,23 @@ muiResult muiSetScrollRule(muiContext* context, const muiScrollRule* rule)
     if (rule == nullptr || !isfinite(rule->wheelStep) || rule->wheelStep < 0.0f ||
         !isfinite(rule->lineStep) || rule->lineStep < 0.0f || !(rule->pageFraction > 0.0f) ||
         rule->pageFraction > 1.0f || !(rule->decelerationRate > 0.0f) ||
-        !(rule->decelerationRate < 1.0f) || muiIsInHostCall(context))
+        !(rule->decelerationRate < 1.0f))
     {
         return muiRefuse(context);
     }
     context->scrolling.rule = *rule;
     return mui_success;
+}
+
+muiResult muiSetScrollRule(muiContext* context, const muiScrollRule* rule)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = SetScrollRule(context, rule);
+        muiLeave(context);
+    }
+    return status;
 }
 
 // Whether a scroll container can move by right and down along either
@@ -900,72 +921,6 @@ bool muiScrollWheel(muiContext* context, uint32_t root, muiNodeId hitId, const m
     store->latched = muiTreeIdOf(&context->tree, container);
     store->latchedNs = event->timeNs;
     return true;
-}
-
-muiResult muiNode_GetScrollThumb(const muiContext* context, muiNodeId nodeId, bool horizontal,
-                                 float track, float minimum, muiScrollThumb* thumbOut)
-{
-    if (context == nullptr || thumbOut == nullptr || !isfinite(track) || track < 0.0f ||
-        !isfinite(minimum) || minimum < 0.0f)
-    {
-        return mui_errorInvalid;
-    }
-    muiResult status = mui_success;
-    uint32_t slot = ResolveRead(context, nodeId, &status);
-    if (slot == 0)
-    {
-        return status;
-    }
-    const muiLayoutNode* layout = &context->layout[slot - 1];
-    const muiScrollState* scroll = &context->scrolls[slot - 1];
-    const muiSize size = {layout->rect.width, layout->rect.height};
-    float limit = muiScrollLimit(&layout->style, size, scroll, horizontal);
-    if (limit <= 0.0f)
-    {
-        *thumbOut = (muiScrollThumb){0.0f, track};
-        return mui_success;
-    }
-    float extent = horizontal ? scroll->extentWidth : scroll->extentHeight;
-    float length = fminf(fmaxf(track * (extent - limit) / extent, minimum), track);
-    float offset = horizontal ? scroll->x : scroll->y;
-    // From the track's start, which is the scroll origin's side unless the
-    // origin is the far edge of its top or inline start.
-    bool far = horizontal ? scroll->right != layout->rtl : scroll->bottom;
-    float placed = (track - length) * offset / limit;
-    *thumbOut = (muiScrollThumb){far ? track - length - placed : placed, length};
-    return mui_success;
-}
-
-muiResult muiNode_GetScroll(const muiContext* context, muiNodeId nodeId, float* xOut, float* yOut)
-{
-    if (context == nullptr || xOut == nullptr || yOut == nullptr)
-    {
-        return mui_errorInvalid;
-    }
-    muiResult status = mui_success;
-    uint32_t slot = ResolveRead(context, nodeId, &status);
-    if (slot != 0)
-    {
-        *xOut = context->scrolls[slot - 1].x;
-        *yOut = context->scrolls[slot - 1].y;
-    }
-    return status;
-}
-
-muiResult muiNode_GetScrollExtent(const muiContext* context, muiNodeId nodeId, muiSize* extentOut)
-{
-    if (context == nullptr || extentOut == nullptr)
-    {
-        return mui_errorInvalid;
-    }
-    muiResult status = mui_success;
-    uint32_t slot = ResolveRead(context, nodeId, &status);
-    if (slot != 0)
-    {
-        const muiScrollState* scroll = &context->scrolls[slot - 1];
-        *extentOut = (muiSize){scroll->extentWidth, scroll->extentHeight};
-    }
-    return status;
 }
 
 // The origin of a node's border box in the root's space: its place and

@@ -36,7 +36,7 @@ muiNodeDef muiDefaultNodeDef(void)
     return (muiNodeDef){.cookie = NODE_DEF_COOKIE};
 }
 
-muiResult muiCreateNode(muiContext* context, const muiNodeDef* def, muiNodeId* nodeOut)
+static muiResult CreateNode(muiContext* context, const muiNodeDef* def, muiNodeId* nodeOut)
 {
     if (nodeOut != nullptr)
     {
@@ -46,8 +46,7 @@ muiResult muiCreateNode(muiContext* context, const muiNodeDef* def, muiNodeId* n
     {
         return mui_errorInvalid;
     }
-    if (def == nullptr || nodeOut == nullptr || def->cookie != NODE_DEF_COOKIE ||
-        muiIsInHostCall(context))
+    if (def == nullptr || nodeOut == nullptr || def->cookie != NODE_DEF_COOKIE)
     {
         return muiRefuse(context);
     }
@@ -73,7 +72,18 @@ muiResult muiCreateNode(muiContext* context, const muiNodeDef* def, muiNodeId* n
     return mui_success;
 }
 
-muiResult muiDestroyNode(muiContext* context, muiNodeId nodeId)
+muiResult muiCreateNode(muiContext* context, const muiNodeDef* def, muiNodeId* nodeOut)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = CreateNode(context, def, nodeOut);
+        muiLeave(context);
+    }
+    return status;
+}
+
+static muiResult DestroyNode(muiContext* context, muiNodeId nodeId)
 {
     if (context == nullptr)
     {
@@ -95,13 +105,24 @@ muiResult muiDestroyNode(muiContext* context, muiNodeId nodeId)
     return status;
 }
 
+muiResult muiDestroyNode(muiContext* context, muiNodeId nodeId)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = DestroyNode(context, nodeId);
+        muiLeave(context);
+    }
+    return status;
+}
+
 bool muiNode_IsValid(const muiContext* context, muiNodeId nodeId)
 {
     return ResolveQuery(context, nodeId) != 0;
 }
 
-muiResult muiNode_InsertChild(muiContext* context, muiNodeId parentId, muiNodeId childId,
-                              muiNodeId beforeId)
+static muiResult NodeInsertChild(muiContext* context, muiNodeId parentId, muiNodeId childId,
+                                 muiNodeId beforeId)
 {
     if (context == nullptr)
     {
@@ -140,7 +161,19 @@ muiResult muiNode_InsertChild(muiContext* context, muiNodeId parentId, muiNodeId
     return mui_success;
 }
 
-muiResult muiNode_Detach(muiContext* context, muiNodeId nodeId)
+muiResult muiNode_InsertChild(muiContext* context, muiNodeId parentId, muiNodeId childId,
+                              muiNodeId beforeId)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NodeInsertChild(context, parentId, childId, beforeId);
+        muiLeave(context);
+    }
+    return status;
+}
+
+static muiResult NodeDetach(muiContext* context, muiNodeId nodeId)
 {
     if (context == nullptr)
     {
@@ -153,6 +186,17 @@ muiResult muiNode_Detach(muiContext* context, muiNodeId nodeId)
         muiPointersTaken taken = muiPointersOff(context, slot);
         muiTreeDetach(&context->tree, slot);
         muiPointersOn(context, taken);
+    }
+    return status;
+}
+
+muiResult muiNode_Detach(muiContext* context, muiNodeId nodeId)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NodeDetach(context, nodeId);
+        muiLeave(context);
     }
     return status;
 }

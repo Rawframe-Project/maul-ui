@@ -53,8 +53,8 @@ extern "C"
     /// @param context     The context.
     /// @param def         The theme: a valid cookie.
     /// @param themeOut  Receives the theme; set to the null id on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
-    ///         cookie or a call from a measure or paint function;
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a bad
+    ///         cookie; `mui_errorState` while the context is busy;
     ///         `mui_errorCapacity` when the context's theme limit is reached.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -66,8 +66,8 @@ extern "C"
     ///
     /// @param context  The context.
     /// @param themeId  The theme.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id or a call from a measure or paint function; `mui_errorStale`
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
+    ///         id; `mui_errorState` while the context is busy; `mui_errorStale`
     ///         for an id whose theme is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -80,10 +80,10 @@ extern "C"
     /// @param tokenId  The token.
     /// @param value    The value, of the token's type, as muiCreateToken
     ///                 takes it.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
-    ///         null id, a value of another type or outside muiCreateToken's
-    ///         or a call from a measure or paint function; `mui_errorStale` for a
-    ///         theme or a token that is gone; `mui_errorCapacity` when the
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a null
+    ///         id, a value of another type or outside muiCreateToken's;
+    ///         `mui_errorState` while the context is busy; `mui_errorStale` for
+    ///         a theme or a token that is gone; `mui_errorCapacity` when the
     ///         token was not overridden and the context's limit of theme
     ///         overrides is reached.
     /// @par Thread safety
@@ -99,11 +99,11 @@ extern "C"
     /// @param themeId  The theme.
     /// @param tokenId  The token.
     /// @param target   The token it gives the value of.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, a null
-    ///         id, a target of another type, an alias that would lead back
-    ///         to the token through this theme and the context, or a call
-    ///         from a measure or paint function; `mui_errorStale` for a theme, token
-    ///         or target that is gone; `mui_errorCapacity` as
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, a null id,
+    ///         a target of another type or an alias that would lead back to the
+    ///         token through this theme and the context; `mui_errorState` while
+    ///         the context is busy; `mui_errorStale` for a theme, token or
+    ///         target that is gone; `mui_errorCapacity` as
     ///         muiTheme_SetTokenValue.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -116,9 +116,9 @@ extern "C"
     /// @param themeId  The theme.
     /// @param tokenId  The token.
     /// @return `mui_success`, also when the theme did not override it;
-    ///         `mui_errorInvalid` for a NULL context, a null id or a call
-    ///         from a measure or paint function; `mui_errorStale` for a theme or a
-    ///         token that is gone.
+    ///         `mui_errorInvalid` for a NULL context or a null id;
+    ///         `mui_errorState` while the context is busy; `mui_errorStale` for
+    ///         a theme or a token that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTheme_ResetToken(muiContext* context, muiThemeId themeId,
@@ -148,8 +148,8 @@ extern "C"
     /// @param context  The context.
     /// @param nodeId   The node.
     /// @param themeId  The theme, or the null id.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null node id or a call from a measure or paint function;
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
+    ///         node id; `mui_errorState` while the context is busy;
     ///         `mui_errorStale` for a node or a theme that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.

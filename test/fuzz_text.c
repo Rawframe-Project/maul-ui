@@ -125,6 +125,14 @@ typedef struct Scene
     float width;
 } Scene;
 
+// Whether a context is left busy by no call that returned: a call it
+// refuses for its argument, which changes nothing, is not refused as busy
+// (conventions section 10).
+static bool IsIdle(muiContext* context)
+{
+    return muiNextNotification(context, NULL) == mui_errorInvalid;
+}
+
 static void LayOut(Scene* scene, bool paint)
 {
     const muiLayoutInput layoutInput = {scene->width, 1000.0f,     muiMeasureText, &scene->host, 0,
@@ -318,8 +326,10 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     {
         Edit(&scene, &reader);
         LayOut(&scene, false);
+        Expect(IsIdle(scene.context));
     }
     LayOut(&scene, true);
+    Expect(IsIdle(scene.context));
     muiDestroyContext(scene.context);
     muiDestroyTextService(scene.service);
     Expect(memory.liveBytes == 0);

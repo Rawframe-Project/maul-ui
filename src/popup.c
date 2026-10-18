@@ -69,7 +69,7 @@ muiPopup muiDefaultPopup(void)
     return (muiPopup){.side = mui_popupBelow, .align = mui_popupAlignStart, .lightDismiss = true};
 }
 
-muiResult muiNode_SetPopup(muiContext* context, muiNodeId nodeId, const muiPopup* popup)
+static muiResult NodeSetPopup(muiContext* context, muiNodeId nodeId, const muiPopup* popup)
 {
     if (context == nullptr)
     {
@@ -114,6 +114,17 @@ muiResult muiNode_SetPopup(muiContext* context, muiNodeId nodeId, const muiPopup
     return mui_success;
 }
 
+muiResult muiNode_SetPopup(muiContext* context, muiNodeId nodeId, const muiPopup* popup)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NodeSetPopup(context, nodeId, popup);
+        muiLeave(context);
+    }
+    return status;
+}
+
 muiResult muiNode_GetPopup(const muiContext* context, muiNodeId nodeId, muiPopup* popupOut)
 {
     if (context == nullptr || popupOut == nullptr)
@@ -145,15 +156,11 @@ muiResult muiNode_GetPopupSide(const muiContext* context, muiNodeId nodeId, muiP
     return mui_success;
 }
 
-muiResult muiNode_ClearPopup(muiContext* context, muiNodeId nodeId)
+static muiResult NodeClearPopup(muiContext* context, muiNodeId nodeId)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
-    }
-    if (muiIsInHostCall(context))
-    {
-        return muiRefuse(context);
     }
     muiResult status = mui_success;
     muiPopupEntry* entry = Find(context, nodeId, &status);
@@ -166,6 +173,17 @@ muiResult muiNode_ClearPopup(muiContext* context, muiNodeId nodeId)
         *entry = context->popups.entries[--context->popups.count];
     }
     return status == mui_empty ? mui_success : status;
+}
+
+muiResult muiNode_ClearPopup(muiContext* context, muiNodeId nodeId)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NodeClearPopup(context, nodeId);
+        muiLeave(context);
+    }
+    return status;
 }
 
 // One axis of a box on the surface.

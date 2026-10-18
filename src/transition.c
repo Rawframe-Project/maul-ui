@@ -61,8 +61,8 @@ static muiCurve CurveOf(const muiTransitionDef* def)
     return muiMakeCurve(p[0], p[1], p[2], p[3]);
 }
 
-muiResult muiCreateTransition(muiContext* context, const muiTransitionDef* def,
-                              muiTransitionId* transitionOut)
+static muiResult CreateTransition(muiContext* context, const muiTransitionDef* def,
+                                  muiTransitionId* transitionOut)
 {
     if (transitionOut != nullptr)
     {
@@ -72,7 +72,7 @@ muiResult muiCreateTransition(muiContext* context, const muiTransitionDef* def,
     {
         return mui_errorInvalid;
     }
-    if (def == nullptr || transitionOut == nullptr || !IsDefValid(def) || muiIsInHostCall(context))
+    if (def == nullptr || transitionOut == nullptr || !IsDefValid(def))
     {
         return muiRefuse(context);
     }
@@ -87,13 +87,25 @@ muiResult muiCreateTransition(muiContext* context, const muiTransitionDef* def,
     return mui_success;
 }
 
-muiResult muiDestroyTransition(muiContext* context, muiTransitionId transitionId)
+muiResult muiCreateTransition(muiContext* context, const muiTransitionDef* def,
+                              muiTransitionId* transitionOut)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = CreateTransition(context, def, transitionOut);
+        muiLeave(context);
+    }
+    return status;
+}
+
+static muiResult DestroyTransition(muiContext* context, muiTransitionId transitionId)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
-    if (transitionId.index1 == 0 || muiIsInHostCall(context))
+    if (transitionId.index1 == 0)
     {
         return muiRefuse(context);
     }
@@ -107,6 +119,17 @@ muiResult muiDestroyTransition(muiContext* context, muiTransitionId transitionId
     // find it gone.
     muiPoolGive(&store->specPool, slot);
     return mui_success;
+}
+
+muiResult muiDestroyTransition(muiContext* context, muiTransitionId transitionId)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = DestroyTransition(context, transitionId);
+        muiLeave(context);
+    }
+    return status;
 }
 
 // Takes properties away from every binding of a set, dropping empty
@@ -176,9 +199,9 @@ static muiResult SetBinding(muiContext* context, muiStyleClass* class, muiVarian
     return mui_success;
 }
 
-muiResult muiStyle_SetTransition(muiContext* context, muiStyleId styleId, muiVariant variant,
-                                 muiTransitionId transitionId, muiPropertyGroup group,
-                                 muiPropertyMask mask)
+static muiResult StyleSetTransition(muiContext* context, muiStyleId styleId, muiVariant variant,
+                                    muiTransitionId transitionId, muiPropertyGroup group,
+                                    muiPropertyMask mask)
 {
     if (context == nullptr)
     {
@@ -207,6 +230,19 @@ muiResult muiStyle_SetTransition(muiContext* context, muiStyleId styleId, muiVar
     if (status == mui_success)
     {
         muiRestyleAll(context);
+    }
+    return status;
+}
+
+muiResult muiStyle_SetTransition(muiContext* context, muiStyleId styleId, muiVariant variant,
+                                 muiTransitionId transitionId, muiPropertyGroup group,
+                                 muiPropertyMask mask)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = StyleSetTransition(context, styleId, variant, transitionId, group, mask);
+        muiLeave(context);
     }
     return status;
 }

@@ -445,14 +445,13 @@ static bool IsUnchanged(const muiContext* context, uint32_t root, const muiDrawI
            (!context->scrolled || store->culled == 0);
 }
 
-muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawInput* input)
+static muiResult BuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawInput* input)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
-    if (input == nullptr || rootId.index1 == 0 || !isfinite(input->scale) || input->scale <= 0.0f ||
-        muiIsInHostCall(context))
+    if (input == nullptr || rootId.index1 == 0 || !isfinite(input->scale) || input->scale <= 0.0f)
     {
         return muiRefuse(context);
     }
@@ -500,10 +499,7 @@ muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawI
     build.build = store->header.generation + 1;
     build.top.opacity = 1.0f;
     Empty(build.painter.out);
-    // The host's paint function may read the context, not edit it.
-    context->inHostCall = true;
     WalkAll(&build, root);
-    context->inHostCall = false;
     context->misuse += build.painter.misuse;
     context->work.painted += build.painted;
     store->current = next;
@@ -527,6 +523,17 @@ muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawI
     context->scrolled = false;
     (void)muiTreeSweep(&context->tree, root, mui_stagePaint);
     return mui_success;
+}
+
+muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawInput* input)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = BuildDrawList(context, rootId, input);
+        muiLeave(context);
+    }
+    return status;
 }
 
 muiResult muiGetDrawList(const muiContext* context, muiDrawList* listOut)

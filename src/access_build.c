@@ -384,13 +384,10 @@ static uint64_t ReadContent(muiContext* context, uint32_t slot, bool boundaries,
         return 0;
     }
     muiAccessContent content = {0};
-    // As the measure function, it may not edit the context.
-    context->inHostCall = true;
     const muiRect shown = boundaries ? ShownOf(context, slot) : (muiRect){0};
     bool read = store->textFunction(store->textUser, muiTreeIdOf(&context->tree, slot),
                                     muiTreeAt(&context->tree, slot)->hostKey,
                                     boundaries ? &shown : nullptr, &content);
-    context->inHostCall = false;
     // Empty text is none, unless it is being edited: an empty field.
     bool edited = content.marks.selected && content.length == 0;
     if (!read || content.text == nullptr || (content.length == 0 && !edited) ||
@@ -552,14 +549,15 @@ static uint64_t LayersOf(const muiContext* context, uint32_t root)
     return print;
 }
 
-muiResult muiBuildAccessUpdate(muiContext* context, muiNodeId rootId, muiAccessUpdate* updateOut)
+static muiResult BuildAccessUpdate(muiContext* context, muiNodeId rootId,
+                                   muiAccessUpdate* updateOut)
 {
     if (context == nullptr || updateOut == nullptr)
     {
         return mui_errorInvalid;
     }
     *updateOut = (muiAccessUpdate){0};
-    if (rootId.index1 == 0 || muiIsInHostCall(context))
+    if (rootId.index1 == 0)
     {
         return muiRefuse(context);
     }
@@ -607,4 +605,15 @@ muiResult muiBuildAccessUpdate(muiContext* context, muiNodeId rootId, muiAccessU
     };
     entry->whole = false;
     return mui_success;
+}
+
+muiResult muiBuildAccessUpdate(muiContext* context, muiNodeId rootId, muiAccessUpdate* updateOut)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = BuildAccessUpdate(context, rootId, updateOut);
+        muiLeave(context);
+    }
+    return status;
 }

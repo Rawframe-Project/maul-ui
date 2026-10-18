@@ -142,12 +142,12 @@ extern "C"
     /// @param values   The values; only the fields mask names are read: a
     ///                 known hit mode, layer kind and focus mode.
     /// @param mask     The properties, within MUI_INTERACTION_PROPERTIES.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
-    ///         null id, an unknown variant or property bit, a value outside
-    ///         the above or a call from a measure or paint function, which
-    ///         changes nothing; `mui_errorStale` for an id whose class is
-    ///         gone; `mui_errorCapacity` when the variant had no values and
-    ///         the context's limit of property sets is reached.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
+    ///         id, an unknown variant or property bit or a value outside the
+    ///         above, which changes nothing; `mui_errorState` while the context
+    ///         is busy; `mui_errorStale` for an id whose class is gone;
+    ///         `mui_errorCapacity` when the variant had no values and the
+    ///         context's limit of property sets is reached.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiStyle_SetInteractionValues(muiContext* context,
@@ -184,10 +184,10 @@ extern "C"
     /// @param values   The values, as muiStyle_SetInteractionValues takes
     ///                 them.
     /// @param mask     The properties, within MUI_INTERACTION_PROPERTIES.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
-    ///         null id, an unknown property bit, a value outside the above
-    ///         or a call from a measure or paint function, which changes
-    ///         nothing; `mui_errorStale` for a node that is gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
+    ///         id, an unknown property bit or a value outside the above, which
+    ///         changes nothing; `mui_errorState` while the context is busy;
+    ///         `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_SetInteractionValues(muiContext* context,
@@ -252,10 +252,9 @@ extern "C"
     /// @param context  The context.
     /// @param nodeId   A node that roots a layer, as its last style
     ///                 resolution or direct write left it.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the
-    ///         null id, a node that roots no layer or a call from a
-    ///         measure or paint function; `mui_errorStale` for a node that
-    ///         is gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the null
+    ///         id or a node that roots no layer; `mui_errorState` while the
+    ///         context is busy; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_RaiseLayer(muiContext* context, muiNodeId nodeId);

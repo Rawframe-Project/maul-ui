@@ -118,6 +118,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/access_action.c
     src/range.c
     src/scroll.c
+    src/scroll_query.c
     src/layout.c
     src/layout_bound.c
     src/motion_math.c
@@ -327,6 +328,7 @@ if(MAUL_UI_BUILD_TESTS)
     maul_add_test(virtual)
     maul_add_test(work)
     maul_add_test(access)
+    maul_add_test(reentry)
     if(MAUL_UI_ACCESS_TREE)
         maul_add_test(access_tree)
         maul_add_test(access_text WHITEBOX)

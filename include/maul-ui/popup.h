@@ -106,11 +106,11 @@ extern "C"
     /// @param nodeId   The node.
     /// @param popup    The popup: a live anchor other than the node, a
     ///                 known side and alignment, gap and margin as above.
-    /// @return `mui_success`; `mui_errorCapacity` when the context holds
-    ///         its limit of popups; `mui_errorInvalid` for a NULL argument,
-    ///         the null id, a popup outside the above, or a call from a
-    ///         measure or paint function; `mui_errorStale` for a node or
-    ///         anchor that is gone.
+    /// @return `mui_success`; `mui_errorCapacity` when the context holds its
+    ///         limit of popups; `mui_errorInvalid` for a NULL argument, the
+    ///         null id or a popup outside the above; `mui_errorState` while the
+    ///         context is busy; `mui_errorStale` for a node or anchor that is
+    ///         gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_SetPopup(muiContext* context, muiNodeId nodeId,
@@ -149,10 +149,9 @@ extern "C"
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
-    /// @return `mui_success`, whether or not it was one;
-    ///         `mui_errorInvalid` for a NULL context, the null id or a call
-    ///         from a measure or paint function; `mui_errorStale` for a
-    ///         node that is gone.
+    /// @return `mui_success`, whether or not it was one; `mui_errorInvalid` for
+    ///         a NULL context or the null id; `mui_errorState` while the
+    ///         context is busy; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_ClearPopup(muiContext* context, muiNodeId nodeId);

@@ -182,11 +182,15 @@ extern "C"
     };
 
     /// The host's function for routed events: whether it handled the
-    /// event at the node, which ends the route. It may edit the tree,
-    /// focus and style; it may not feed input or dispatch (the calls that
-    /// do are refused while it runs). The route was fixed before the first
-    /// call, so nodes it destroys are passed over and nodes it adds hear
-    /// nothing of this event.
+    /// event at the node, which ends the route. It may call the context's
+    /// functions, editing the tree, focus and style, but for those that
+    /// feed input or dispatch (muiKeyInput, muiTextInput,
+    /// muiNavigationInput, muiWheelInput, muiPointerInput,
+    /// muiDispatchPointerRecord, muiPerformAccessAction),
+    /// muiSetEventFunction and muiDestroyContext, which answer
+    /// mui_errorState and count one misuse while it runs. The route was
+    /// fixed before the first call, so nodes it destroys are passed over
+    /// and nodes it adds hear nothing of this event.
     typedef bool (*muiEventFunction)(void* user, muiNodeId nodeId, muiPhase phase,
                                      const muiEvent* event);
 
@@ -196,8 +200,9 @@ extern "C"
     /// @param context   The context.
     /// @param function  The function, or NULL.
     /// @param user      Passed to the function.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context or a
-    ///         call from a measure, paint or event function.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context;
+    ///         `mui_errorState` while the context is busy or its event function
+    ///         runs.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiSetEventFunction(muiContext* context,
@@ -228,10 +233,10 @@ extern "C"
     /// @param event       The key: a player below MUI_MAX_PLAYERS.
     /// @param handledOut  Receives whether the UI handled it; what it did
     ///                    not is the game's.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
-    ///         null id, an event outside the above, or a call from a
-    ///         measure, paint or event function; `mui_errorStale` for a
-    ///         root that is gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
+    ///         id or an event outside the above; `mui_errorState` while the
+    ///         context is busy or its event function runs; `mui_errorStale` for
+    ///         a root that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiKeyInput(muiContext* context, muiNodeId rootId,
@@ -245,7 +250,8 @@ extern "C"
     /// @param event       The text: non-NULL when its length is not 0, a
     ///                    player below MUI_MAX_PLAYERS.
     /// @param handledOut  Receives whether the UI handled it.
-    /// @return As muiKeyInput's.
+    /// @return As muiKeyInput's; `mui_errorState` while the context is busy or
+    ///         its event function runs.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextInput(muiContext* context, muiNodeId rootId,
@@ -262,7 +268,8 @@ extern "C"
     /// @param event       The action: a known one, a player below
     ///                    MUI_MAX_PLAYERS.
     /// @param handledOut  Receives whether the UI handled it.
-    /// @return As muiKeyInput's.
+    /// @return As muiKeyInput's; `mui_errorState` while the context is busy or
+    ///         its event function runs.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNavigationInput(muiContext* context, muiNodeId rootId,
@@ -285,7 +292,8 @@ extern "C"
     /// @param event       The turn: a finite point and deltas, a player
     ///                    below MUI_MAX_PLAYERS.
     /// @param handledOut  Receives whether the UI handled it.
-    /// @return As muiKeyInput's.
+    /// @return As muiKeyInput's; `mui_errorState` while the context is busy or
+    ///         its event function runs.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiWheelInput(muiContext* context, muiNodeId rootId,
@@ -301,8 +309,9 @@ extern "C"
     /// @param context     The context.
     /// @param record      The record.
     /// @param handledOut  Receives whether the UI handled it.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a
-    ///         call from a measure, paint or event function.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument;
+    ///         `mui_errorState` while the context is busy or its event function
+    ///         runs.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiDispatchPointerRecord(muiContext* context,

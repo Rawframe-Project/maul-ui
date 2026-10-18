@@ -76,7 +76,8 @@ muiValueRange muiDefaultValueRange(void)
     return (muiValueRange){.maximum = 100.0f, .step = 1.0f, .page = 10.0f};
 }
 
-muiResult muiNode_SetValueRange(muiContext* context, muiNodeId nodeId, const muiValueRange* range)
+static muiResult NodeSetValueRange(muiContext* context, muiNodeId nodeId,
+                                   const muiValueRange* range)
 {
     if (context == nullptr)
     {
@@ -116,6 +117,17 @@ muiResult muiNode_SetValueRange(muiContext* context, muiNodeId nodeId, const mui
     return mui_success;
 }
 
+muiResult muiNode_SetValueRange(muiContext* context, muiNodeId nodeId, const muiValueRange* range)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NodeSetValueRange(context, nodeId, range);
+        muiLeave(context);
+    }
+    return status;
+}
+
 // The entry of a node an argument names, with the status to return when
 // there is none.
 static muiRangeEntry* Find(const muiContext* context, muiNodeId nodeId, muiResult* statusOut)
@@ -147,13 +159,13 @@ muiResult muiNode_GetValueRange(const muiContext* context, muiNodeId nodeId,
     return status;
 }
 
-muiResult muiNode_SetRangeValue(muiContext* context, muiNodeId nodeId, float value)
+static muiResult NodeSetRangeValue(muiContext* context, muiNodeId nodeId, float value)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
-    if (!isfinite(value) || muiIsInHostCall(context))
+    if (!isfinite(value))
     {
         return muiRefuse(context);
     }
@@ -171,15 +183,22 @@ muiResult muiNode_SetRangeValue(muiContext* context, muiNodeId nodeId, float val
     return status;
 }
 
-muiResult muiNode_ClearValueRange(muiContext* context, muiNodeId nodeId)
+muiResult muiNode_SetRangeValue(muiContext* context, muiNodeId nodeId, float value)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NodeSetRangeValue(context, nodeId, value);
+        muiLeave(context);
+    }
+    return status;
+}
+
+static muiResult NodeClearValueRange(muiContext* context, muiNodeId nodeId)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
-    }
-    if (muiIsInHostCall(context))
-    {
-        return muiRefuse(context);
     }
     muiResult status = mui_success;
     muiRangeEntry* entry = Find(context, nodeId, &status);
@@ -193,6 +212,17 @@ muiResult muiNode_ClearValueRange(muiContext* context, muiNodeId nodeId)
         *entry = context->ranges.entries[--context->ranges.count];
     }
     return status == mui_empty ? mui_success : status;
+}
+
+muiResult muiNode_ClearValueRange(muiContext* context, muiNodeId nodeId)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NodeClearValueRange(context, nodeId);
+        muiLeave(context);
+    }
+    return status;
 }
 
 // Moves a range's value for input, on a step, reporting a change;

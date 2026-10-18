@@ -34,37 +34,37 @@ The node of an accessibility id.  @param id  The id. @return Its node. @par Thre
 ```c
 MUI_NODISCARD MUI_API muiResult muiSetAccessTextFunction(muiContext* context, muiAccessTextFunction function, void* user);
 ```
-Sets the function host content's text comes from: a node whose content is the host's (maul-ui/layout.h's mui_contentHost) and whose value text the host did not set reads as what it returns, and as a label when the host gave it no role. NULL reads nothing.  @param context   The context. @param function  The function, or NULL. @param user      Passed to it. @return `mui_success`; `mui_errorInvalid` for a NULL context or a call from a measure or paint function. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets the function host content's text comes from: a node whose content is the host's (maul-ui/layout.h's mui_contentHost) and whose value text the host did not set reads as what it returns, and as a label when the host gave it no role. NULL reads nothing.  @param context   The context. @param function  The function, or NULL. @param user      Passed to it. @return `mui_success`; `mui_errorInvalid` for a NULL context; `mui_errorState` while the context is busy. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_MarkAccessChanged(muiContext* context, muiNodeId nodeId);
 ```
-Tells the accessibility tree what the host's text function gives for a node changed while its content did not: its selection moved. muiNode_MarkContentChanged tells it too; the text editor's functions that take a node (maul-ui/text_editor.h) tell it themselves.  @param context  The context. @param nodeId   The node. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Tells the accessibility tree what the host's text function gives for a node changed while its content did not: its selection moved. muiNode_MarkContentChanged tells it too; the text editor's functions that take a node (maul-ui/text_editor.h) tell it themselves.  @param context  The context. @param nodeId   The node. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null id; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiAccess_Enable(muiContext* context, muiNodeId rootId);
 ```
-Builds updates for a root's tree from now on, the next one whole. Enabling an enabled root makes its next update whole again, as when an adapter starts over. The first root enabled allocates a copy of each node as last sent and the update's buffers.  @param context  The context. @param rootId   A node without a parent. @return `mui_success`; `mui_errorCapacity` when `limits.accessRoots` roots are enabled or memory runs out; `mui_errorInvalid` for a NULL context, the null id, a node with a parent, or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Builds updates for a root's tree from now on, the next one whole. Enabling an enabled root makes its next update whole again, as when an adapter starts over. The first root enabled allocates a copy of each node as last sent and the update's buffers.  @param context  The context. @param rootId   A node without a parent. @return `mui_success`; `mui_errorCapacity` when `limits.accessRoots` roots are enabled or memory runs out; `mui_errorInvalid` for a NULL context, the null id or a node with a parent; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiAccess_Disable(muiContext* context, muiNodeId rootId);
 ```
-Stops building updates for a root; the last root disabled frees what enabling allocated.  @param context  The context. @param rootId   The root. @return `mui_success`; `mui_empty` for a root not enabled; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Stops building updates for a root; the last root disabled frees what enabling allocated.  @param context  The context. @param rootId   The root. @return `mui_success`; `mui_empty` for a root not enabled; `mui_errorInvalid` for a NULL context or the null id; `mui_errorState` while the context is busy. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiBuildAccessUpdate(muiContext* context, muiNodeId rootId, muiAccessUpdate* updateOut);
 ```
-Builds the update for an enabled root after its layout: the nodes whose role, texts, flags, actions, bounds, transform, values or children changed since the last update, each whole.  @param context    The context. @param rootId     The root. @param updateOut  Receives the update. @return `mui_success`; `mui_empty` for a root not enabled; `mui_errorInvalid` for a NULL argument, the null id, or a call from a measure or paint function; `mui_errorStale` for a root that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Builds the update for an enabled root after its layout: the nodes whose role, texts, flags, actions, bounds, transform, values or children changed since the last update, each whole.  @param context    The context. @param rootId     The root. @param updateOut  Receives the update. @return `mui_success`; `mui_empty` for a root not enabled; `mui_errorInvalid` for a NULL argument or the null id; `mui_errorState` while the context is busy; `mui_errorStale` for a root that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiPerformAccessAction(muiContext* context, const muiAccessRequest* request, bool* handledOut);
 ```
-Applies a request to a node that takes its action.  @param context     The context. @param request     The request. @param handledOut  Receives whether it did anything: a click a widget handled, a focus or value or offset that moved, a request posted. May be NULL. @return `mui_success`; `mui_empty` for a node that does not take the action, and for the text actions, which the host applies; `mui_errorInvalid` for a NULL context or request, an unknown action, a value that is not finite, or a call from a measure, paint or event function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Applies a request to a node that takes its action.  @param context     The context. @param request     The request. @param handledOut  Receives whether it did anything: a click a widget handled, a focus or value or offset that moved, a request posted. May be NULL. @return `mui_success`; `mui_empty` for a node that does not take the action, and for the text actions, which the host applies; `mui_errorInvalid` for a NULL context or request, an unknown action or a value that is not finite; `mui_errorState` while the context is busy or its event function runs; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetAccessRole(muiContext* context, muiNodeId nodeId, muiRole role);
 ```
-Sets a node's role.  @param context  The context. @param nodeId   The node. @param role     The role, at most MUI_ROLE_LAST. @return `mui_success`; `mui_errorCapacity` when `limits.accessNodes` nodes have accessibility data; `mui_errorInvalid` for a NULL context, the null id, an unknown role, or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets a node's role.  @param context  The context. @param nodeId   The node. @param role     The role, at most MUI_ROLE_LAST. @return `mui_success`; `mui_errorCapacity` when `limits.accessNodes` nodes have accessibility data; `mui_errorInvalid` for a NULL context, the null id or an unknown role; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetAccessRole(const muiContext* context, muiNodeId nodeId, muiRole* roleOut);
@@ -74,7 +74,7 @@ Reads a node's role: mui_roleGeneric for one the host gave none.  @param context
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetAccessText(muiContext* context, muiNodeId nodeId, muiAccessTextKind kind, const char* text, size_t length);
 ```
-Sets one of a node's texts; a length of 0 clears it. The text is copied.  @param context  The context. @param nodeId   The node. @param kind     Which text. @param text     UTF-8, non-NULL when length is not 0, without NUL. @param length   Its length in bytes, below 2^31. @return `mui_success`; `mui_errorCapacity` when `limits.accessNodes` nodes have accessibility data or memory runs out; `mui_errorInvalid` for a NULL context, the null id, an unknown kind, text that is not UTF-8 or holds a NUL, or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets one of a node's texts; a length of 0 clears it. The text is copied.  @param context  The context. @param nodeId   The node. @param kind     Which text. @param text     UTF-8, non-NULL when length is not 0, without NUL. @param length   Its length in bytes, below 2^31. @return `mui_success`; `mui_errorCapacity` when `limits.accessNodes` nodes have accessibility data or memory runs out; `mui_errorInvalid` for a NULL context, the null id, an unknown kind, or text that is not UTF-8 or holds a NUL; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetAccessText(const muiContext* context, muiNodeId nodeId, muiAccessTextKind kind, const char** textOut, size_t* lengthOut);
@@ -84,7 +84,7 @@ Reads one of a node's texts.  @param context    The context. @param nodeId     T
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetAccessFlags(muiContext* context, muiNodeId nodeId, muiAccessFlags flags);
 ```
-Sets a node's flags, those the host sets.  @param context  The context. @param nodeId   The node. @param flags    Within MUI_ACCESS_HOST_FLAGS. @return `mui_success`; `mui_errorCapacity` when `limits.accessNodes` nodes have accessibility data; `mui_errorInvalid` for a NULL context, the null id, a flag outside those, or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets a node's flags, those the host sets.  @param context  The context. @param nodeId   The node. @param flags    Within MUI_ACCESS_HOST_FLAGS. @return `mui_success`; `mui_errorCapacity` when `limits.accessNodes` nodes have accessibility data; `mui_errorInvalid` for a NULL context, the null id or a flag outside those; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetAccessFlags(const muiContext* context, muiNodeId nodeId, muiAccessFlags* flagsOut);
@@ -94,7 +94,7 @@ Reads the flags the host set on a node.  @param context   The context. @param no
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetAccessRelation(muiContext* context, muiNodeId nodeId, muiAccessRelation kind, const muiNodeId* targets, uint32_t count);
 ```
-Names other nodes from a node by one relation, replacing those it named by it; a count of 0 clears it. The ids are copied; a node named that is destroyed later stays named, and adapters pass over ids they do not hold.  @param context  The context. @param nodeId   The node. @param kind     The relation. @param targets  The nodes, non-NULL when count is not 0. @param count    How many, below 2^16. @return `mui_success`; `mui_errorCapacity` when `limits.accessNodes` nodes have accessibility data or memory runs out; `mui_errorInvalid` for a NULL context, the null id as the node or a target, an unknown kind, or a call from a measure or paint function; `mui_errorStale` for a node or a target that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Names other nodes from a node by one relation, replacing those it named by it; a count of 0 clears it. The ids are copied; a node named that is destroyed later stays named, and adapters pass over ids they do not hold.  @param context  The context. @param nodeId   The node. @param kind     The relation. @param targets  The nodes, non-NULL when count is not 0. @param count    How many, below 2^16. @return `mui_success`; `mui_errorCapacity` when `limits.accessNodes` nodes have accessibility data or memory runs out; `mui_errorInvalid` for a NULL context, the null id as the node or a target or an unknown kind; `mui_errorState` while the context is busy; `mui_errorStale` for a node or a target that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetAccessRelation(const muiContext* context, muiNodeId nodeId, muiAccessRelation kind, muiNodeId* targetsOut, uint32_t capacity, uint32_t* countOut);
@@ -109,7 +109,7 @@ The default values: none of them.  @return The values. @par Thread safety Safe f
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetAccessValues(muiContext* context, muiNodeId nodeId, const muiAccessValues* values);
 ```
-Sets a node's typed values.  @param context  The context. @param nodeId   The node. @param values   The values, each enum within its own. @return `mui_success`; `mui_errorCapacity` when `limits.accessNodes` nodes have accessibility data; `mui_errorInvalid` for a NULL argument, the null id, an enum outside its values, or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets a node's typed values.  @param context  The context. @param nodeId   The node. @param values   The values, each enum within its own. @return `mui_success`; `mui_errorCapacity` when `limits.accessNodes` nodes have accessibility data; `mui_errorInvalid` for a NULL argument, the null id or an enum outside its values; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetAccessValues(const muiContext* context, muiNodeId nodeId, muiAccessValues* valuesOut);
@@ -491,7 +491,7 @@ The root's object, for the view to give as its element (mwinRequestAccessibility
 
 ## `context.h`
 
-The context: the root object that owns a tree of nodes and every result computed over it.
+The context: the root object that owns a tree of nodes and every result computed over it. A context is busy while one of its functions that changes it runs. Host code it calls then (the measure, baseline, paint and access text functions, the allocator) may read it, and a function that changes it answers mui_errorState and counts one misuse; muiDestroyContext does nothing. The event function is the exception: the context is not busy while it runs, and it may call all but the functions muiEventFunction names.
 
 ```c
 static inline muiContextDef muiDefaultContextDef(void);
@@ -506,12 +506,12 @@ Creates a context and reserves the memory its limits name.  @param def         T
 ```c
 void muiDestroyContext(muiContext* context);
 ```
-Destroys a context, every node in it and its memory. Every id it gave out becomes meaningless.  @param context  The context, or NULL for nothing. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Destroys a context, every node in it and its memory. Every id it gave out becomes meaningless. A call from host code the context runs, or from its event function, destroys nothing and counts one misuse.  @param context  The context, or NULL for nothing. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNextNotification(muiContext* context, muiNotification* notificationOut);
 ```
-Takes the oldest notification.  @param context          The context. @param notificationOut  Receives it. @return `mui_success`; `mui_empty` when none is waiting; `mui_errorInvalid` for a NULL argument. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Takes the oldest notification.  @param context          The context. @param notificationOut  Receives it. @return `mui_success`; `mui_empty` when none is waiting; `mui_errorInvalid` for a NULL argument; `mui_errorState` while the context is busy. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 uint64_t muiGetContextMisuse(const muiContext* context);
@@ -545,7 +545,7 @@ Gives the part of the content box's plane the paint function's content can be se
 ```c
 MUI_NODISCARD MUI_API muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawInput* input);
 ```
-Paints a root's subtree, as its last muiComputeLayout left it, into the context's list, and clears the subtree's paint requests. When nothing below the root asked for paint since the last build of the same root, surface and scale, the list stays as it is, generation and all; otherwise subtrees nothing asked to repaint, at the origin and opacity they were painted at, copy their commands from the last list, which gives the bytes a build from nothing would. Per node, in paint order: its outer shadow, its box, its inner shadow, its image and what the paint function adds for host content, then its children, depth first; a node that clips draws its host content and its children inside its rounded border box. Opacity multiplies down the subtree into every command's colors. At the identity transform, box and image edges and clips snap to device pixels, and border widths to whole device pixels, at least one.  @param context  The context. @param rootId   The root. @param input    The surface, the scale and the paint function. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, a scale that is not a finite number above 0, or a call from a measure or paint function; `mui_errorStale` for a root that is gone; `mui_errorCapacity` when the list needs more commands, clips, gradients or glyphs than the context's limits, which leaves the list empty. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Paints a root's subtree, as its last muiComputeLayout left it, into the context's list, and clears the subtree's paint requests. When nothing below the root asked for paint since the last build of the same root, surface and scale, the list stays as it is, generation and all; otherwise subtrees nothing asked to repaint, at the origin and opacity they were painted at, copy their commands from the last list, which gives the bytes a build from nothing would. Per node, in paint order: its outer shadow, its box, its inner shadow, its image and what the paint function adds for host content, then its children, depth first; a node that clips draws its host content and its children inside its rounded border box. Opacity multiplies down the subtree into every command's colors. At the identity transform, box and image edges and clips snap to device pixels, and border widths to whole device pixels, at least one.  @param context  The context. @param rootId   The root. @param input    The surface, the scale and the paint function. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id or a scale that is not a finite number above 0; `mui_errorState` while the context is busy; `mui_errorStale` for a root that is gone; `mui_errorCapacity` when the list needs more commands, clips, gradients or glyphs than the context's limits, which leaves the list empty. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiGetDrawList(const muiContext* context, muiDrawList* listOut);
@@ -559,32 +559,32 @@ Routed input (record mui-0007): keys, text and navigation go to a player's focus
 ```c
 MUI_NODISCARD MUI_API muiResult muiSetEventFunction(muiContext* context, muiEventFunction function, void* user);
 ```
-Sets the function routed events go to; NULL routes nothing, so every input is unhandled but for the library's defaults.  @param context   The context. @param function  The function, or NULL. @param user      Passed to the function. @return `mui_success`; `mui_errorInvalid` for a NULL context or a call from a measure, paint or event function. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets the function routed events go to; NULL routes nothing, so every input is unhandled but for the library's defaults.  @param context   The context. @param function  The function, or NULL. @param user      Passed to the function. @return `mui_success`; `mui_errorInvalid` for a NULL context; `mui_errorState` while the context is busy or its event function runs. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiKeyInput(muiContext* context, muiNodeId rootId, const muiKeyEvent* event, bool* handledOut);
 ```
-Routes a key to the player's focus under the root (a focus a modal layer covers: the top modal layer under the root; none: the root). Unhandled, a key down does what the library does by default: Tab, with Shift or not and no other modifier, moves the focus as muiFocus_Move does. Escape cancels every drag going (maul-ui/pointer.h). On a focused range (maul-ui/range.h), the unmodified keys of ARIA's slider pattern change its value: arrows along its axis a step, Page Up and Down a page, Home and End the ends. Else an arrow without modifiers, when the focus is in a scroll container along its axis (maul-ui/scroll.h), moves the focus to the candidate directional navigation finds inside it if that lies within half a scrollport of the visible part (or a link leads out), else steps the container a line while it can move, as Android's ScrollView does; otherwise it moves the focus as muiFocus_MoveToward does. Page Up and Down, Home and End without modifiers, and Space with Shift or not and no other modifier, step the vertical scroll container holding the focus a page or to an end. What moves is handled. A key down makes the player's next focus by code shown.  @param context     The context. @param rootId      The root of the subtree the player's input is for. @param event       The key: a player below MUI_MAX_PLAYERS. @param handledOut  Receives whether the UI handled it; what it did not is the game's. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an event outside the above, or a call from a measure, paint or event function; `mui_errorStale` for a root that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Routes a key to the player's focus under the root (a focus a modal layer covers: the top modal layer under the root; none: the root). Unhandled, a key down does what the library does by default: Tab, with Shift or not and no other modifier, moves the focus as muiFocus_Move does. Escape cancels every drag going (maul-ui/pointer.h). On a focused range (maul-ui/range.h), the unmodified keys of ARIA's slider pattern change its value: arrows along its axis a step, Page Up and Down a page, Home and End the ends. Else an arrow without modifiers, when the focus is in a scroll container along its axis (maul-ui/scroll.h), moves the focus to the candidate directional navigation finds inside it if that lies within half a scrollport of the visible part (or a link leads out), else steps the container a line while it can move, as Android's ScrollView does; otherwise it moves the focus as muiFocus_MoveToward does. Page Up and Down, Home and End without modifiers, and Space with Shift or not and no other modifier, step the vertical scroll container holding the focus a page or to an end. What moves is handled. A key down makes the player's next focus by code shown.  @param context     The context. @param rootId      The root of the subtree the player's input is for. @param event       The key: a player below MUI_MAX_PLAYERS. @param handledOut  Receives whether the UI handled it; what it did not is the game's. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id or an event outside the above; `mui_errorState` while the context is busy or its event function runs; `mui_errorStale` for a root that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiTextInput(muiContext* context, muiNodeId rootId, const muiTextEvent* event, bool* handledOut);
 ```
-Routes text to the player's focus under the root, as muiKeyInput routes a key; text has no default.  @param context     The context. @param rootId      The root. @param event       The text: non-NULL when its length is not 0, a player below MUI_MAX_PLAYERS. @param handledOut  Receives whether the UI handled it. @return As muiKeyInput's. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Routes text to the player's focus under the root, as muiKeyInput routes a key; text has no default.  @param context     The context. @param rootId      The root. @param event       The text: non-NULL when its length is not 0, a player below MUI_MAX_PLAYERS. @param handledOut  Receives whether the UI handled it. @return As muiKeyInput's; `mui_errorState` while the context is busy or its event function runs. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNavigationInput(muiContext* context, muiNodeId rootId, const muiNavigationEvent* event, bool* handledOut);
 ```
-Routes a navigation action to the player's focus under the root, as muiKeyInput routes a key. Unhandled, the four directions do what arrows do, a focused range's included, next and previous move the focus as muiFocus_Move does; a move is handled. Activate and cancel have no default. It makes the player's next focus by code shown.  @param context     The context. @param rootId      The root. @param event       The action: a known one, a player below MUI_MAX_PLAYERS. @param handledOut  Receives whether the UI handled it. @return As muiKeyInput's. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Routes a navigation action to the player's focus under the root, as muiKeyInput routes a key. Unhandled, the four directions do what arrows do, a focused range's included, next and previous move the focus as muiFocus_Move does; a move is handled. Activate and cancel have no default. It makes the player's next focus by code shown.  @param context     The context. @param rootId      The root. @param event       The action: a known one, a player below MUI_MAX_PLAYERS. @param handledOut  Receives whether the UI handled it. @return As muiKeyInput's; `mui_errorState` while the context is busy or its event function runs. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiWheelInput(muiContext* context, muiNodeId rootId, const muiWheelEvent* event, bool* handledOut);
 ```
-Routes a wheel turn to the node under its point, as muiHitTest finds it; a point over nothing is routed nowhere and not handled. Unhandled, it scrolls by the scroll rule's step a detent (maul-ui/scroll.h): the scroll container it scrolled last, while turns keep coming within the rule's latch time and the point stays over that container; otherwise the nearest scroll container from the node up that can move that way, not past the root of the node's layer. Shift turns a vertical-only turn horizontal, as on Windows. A turn a scroll container takes is handled, even at its end while latched.  @param context     The context. @param rootId      The root. @param event       The turn: a finite point and deltas, a player below MUI_MAX_PLAYERS. @param handledOut  Receives whether the UI handled it. @return As muiKeyInput's. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Routes a wheel turn to the node under its point, as muiHitTest finds it; a point over nothing is routed nowhere and not handled. Unhandled, it scrolls by the scroll rule's step a detent (maul-ui/scroll.h): the scroll container it scrolled last, while turns keep coming within the rule's latch time and the point stays over that container; otherwise the nearest scroll container from the node up that can move that way, not past the root of the node's layer. Shift turns a vertical-only turn horizontal, as on Windows. A turn a scroll container takes is handled, even at its end while latched.  @param context     The context. @param rootId      The root. @param event       The turn: a finite point and deltas, a player below MUI_MAX_PLAYERS. @param handledOut  Receives whether the UI handled it. @return As muiKeyInput's; `mui_errorState` while the context is busy or its event function runs. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDispatchPointerRecord(muiContext* context, const muiPointerRecord* record, bool* handledOut);
 ```
-Routes a pointer record (muiNextPointerRecord) to its node; a record with no node, or one gone, is routed nowhere and not handled. Unhandled, a press on a range or inside it, and a drag of one or of a node inside it, change its value (maul-ui/range.h), and are handled. The host hands what is not handled and passes through to the game.  @param context     The context. @param record      The record. @param handledOut  Receives whether the UI handled it. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a call from a measure, paint or event function. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Routes a pointer record (muiNextPointerRecord) to its node; a record with no node, or one gone, is routed nowhere and not handled. Unhandled, a press on a range or inside it, and a drag of one or of a node inside it, change its value (maul-ui/range.h), and are handled. The host hands what is not handled and passes through to the game.  @param context     The context. @param record      The record. @param handledOut  Receives whether the UI handled it. @return `mui_success`; `mui_errorInvalid` for a NULL argument; `mui_errorState` while the context is busy or its event function runs. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ## `exit.h`
 
@@ -593,12 +593,12 @@ Exit transitions (record mui-0007): a node the host removes plays its way out be
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_BeginExit(muiContext* context, muiNodeId nodeId);
 ```
-Begins a node's exit; nothing for a node already exiting.  @param context  The context. @param nodeId   The node. @return `mui_success`; `mui_errorCapacity` when the context holds its limit of exits; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Begins a node's exit; nothing for a node already exiting.  @param context  The context. @param nodeId   The node. @return `mui_success`; `mui_errorCapacity` when the context holds its limit of exits; `mui_errorInvalid` for a NULL context or the null id; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_CancelExit(muiContext* context, muiNodeId nodeId);
 ```
-Cancels a node's exit: the exiting state goes, and the node and its subtree take input again; nothing for a node not exiting.  @param context  The context. @param nodeId   The node. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Cancels a node's exit: the exiting state goes, and the node and its subtree take input again; nothing for a node not exiting.  @param context  The context. @param nodeId   The node. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null id; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ## `focus.h`
 
@@ -607,7 +607,7 @@ Focus (record mui-0007): the node each player's keys and gamepad go to, one per 
 ```c
 MUI_NODISCARD MUI_API muiResult muiFocus_Set(muiContext* context, uint8_t player, muiNodeId nodeId, muiFocusCause cause);
 ```
-Moves a player's focus to a node, or takes it away. A node takes focus when its focus mode (as its last style resolution or direct write left it) is not mui_focusNone, it is neither disabled nor exiting, and no modal layer covers it. The node gets mui_stateFocused, and mui_stateFocusVisible when the focus is shown; a focus that moves posts mui_notificationFocusLost for the node it leaves and mui_notificationFocusGained for the one it reaches, with the player as the count.  @param context  The context. @param player   The player, below MUI_MAX_PLAYERS. @param nodeId   The node; the null id takes the focus away. @param cause    What moved it. @return `mui_success`; `mui_errorInvalid` for a NULL context, a player or cause outside the above, a node that takes no focus or a call from a measure or paint function, which changes nothing; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Moves a player's focus to a node, or takes it away. A node takes focus when its focus mode (as its last style resolution or direct write left it) is not mui_focusNone, it is neither disabled nor exiting, and no modal layer covers it. The node gets mui_stateFocused, and mui_stateFocusVisible when the focus is shown; a focus that moves posts mui_notificationFocusLost for the node it leaves and mui_notificationFocusGained for the one it reaches, with the player as the count.  @param context  The context. @param player   The player, below MUI_MAX_PLAYERS. @param nodeId   The node; the null id takes the focus away. @param cause    What moved it. @return `mui_success`; `mui_errorInvalid` for a NULL context, a player or cause outside the above or a node that takes no focus, which changes nothing; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 muiNodeId muiFocus_Get(const muiContext* context, uint8_t player);
@@ -617,17 +617,17 @@ Returns the node a player focuses.  @param context  The context. @param player  
 ```c
 MUI_NODISCARD MUI_API muiResult muiFocus_Move(muiContext* context, muiNodeId rootId, uint8_t player, bool backward);
 ```
-Moves a player's focus to the next or previous node in sequential order (Tab and Shift+Tab), shown. The order runs over the nodes whose focus mode is mui_focusAll in the layer that holds the focus: a layer's subtree, or the root's subtree, without the layers in it; those with a tab order of 1 to 255 first, ascending, then the rest, ties in tree order; it wraps. With no focus under the root, or one a modal layer covers, it starts in the top modal layer under the root, or else the root's own content.  @param context   The context. @param rootId    The root of the subtree the player navigates. @param player    The player. @param backward  Whether to go to the previous node. @return `mui_success`; `mui_empty` when no node there takes focus, which leaves it; `mui_errorInvalid` for a NULL context, the null id, a player past MUI_MAX_PLAYERS or a call from a measure or paint function; `mui_errorStale` for a root that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Moves a player's focus to the next or previous node in sequential order (Tab and Shift+Tab), shown. The order runs over the nodes whose focus mode is mui_focusAll in the layer that holds the focus: a layer's subtree, or the root's subtree, without the layers in it; those with a tab order of 1 to 255 first, ascending, then the rest, ties in tree order; it wraps. With no focus under the root, or one a modal layer covers, it starts in the top modal layer under the root, or else the root's own content.  @param context   The context. @param rootId    The root of the subtree the player navigates. @param player    The player. @param backward  Whether to go to the previous node. @return `mui_success`; `mui_empty` when no node there takes focus, which leaves it; `mui_errorInvalid` for a NULL context, the null id or a player past MUI_MAX_PLAYERS; `mui_errorState` while the context is busy; `mui_errorStale` for a root that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiFocus_MoveToward(muiContext* context, muiNodeId rootId, uint8_t player, muiDirection direction);
 ```
-Moves a player's focus toward a direction on the screen (arrow keys, a gamepad's pad or stick), shown. A link the focused node has for the direction (muiNode_SetNeighbor) to a node that takes focus wins; a link to the node itself stops the move. Otherwise the nearest node in the direction is found as Android's focus search finds it, among the nodes sequential navigation reaches in the same layer: nodes overlapping the focus across the direction first, then the least of 13 times the square of the gap along the direction plus the square of the distance between centers across it, ties to the earlier in tree order. Boxes are as the last muiComputeLayout left them. With no focus under the root, or one a modal layer covers, it moves as muiFocus_Move does forward.  @param context    The context. @param rootId     The root of the subtree the player navigates. @param player     The player. @param direction  The direction. @return `mui_success`; `mui_empty` when nothing lies that way, which leaves the focus; `mui_errorInvalid` for a NULL context, the null id, a player past MUI_MAX_PLAYERS, an unknown direction or a call from a measure or paint function; `mui_errorStale` for a root that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Moves a player's focus toward a direction on the screen (arrow keys, a gamepad's pad or stick), shown. A link the focused node has for the direction (muiNode_SetNeighbor) to a node that takes focus wins; a link to the node itself stops the move. Otherwise the nearest node in the direction is found as Android's focus search finds it, among the nodes sequential navigation reaches in the same layer: nodes overlapping the focus across the direction first, then the least of 13 times the square of the gap along the direction plus the square of the distance between centers across it, ties to the earlier in tree order. Boxes are as the last muiComputeLayout left them. With no focus under the root, or one a modal layer covers, it moves as muiFocus_Move does forward.  @param context    The context. @param rootId     The root of the subtree the player navigates. @param player     The player. @param direction  The direction. @return `mui_success`; `mui_empty` when nothing lies that way, which leaves the focus; `mui_errorInvalid` for a NULL context, the null id, a player past MUI_MAX_PLAYERS or an unknown direction; `mui_errorState` while the context is busy; `mui_errorStale` for a root that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetNeighbor(muiContext* context, muiNodeId nodeId, muiDirection direction, muiNodeId targetId);
 ```
-Links a node to the node directional navigation moves to from it in a direction, over what geometry would find; the node itself stops movement that way. Links to nodes that do not take focus when the move is made leave it to geometry.  @param context    The context. @param nodeId     The node. @param direction  The direction. @param targetId   The node to move to; the null id removes the link. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id as the node, an unknown direction or a call from a measure or paint function; `mui_errorStale` for a node or target that is gone; `mui_errorCapacity` past the context's neighbors limit. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Links a node to the node directional navigation moves to from it in a direction, over what geometry would find; the node itself stops movement that way. Links to nodes that do not take focus when the move is made leave it to geometry.  @param context    The context. @param nodeId     The node. @param direction  The direction. @param targetId   The node to move to; the null id removes the link. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id as the node or an unknown direction; `mui_errorState` while the context is busy; `mui_errorStale` for a node or target that is gone; `mui_errorCapacity` past the context's neighbors limit. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 muiNodeId muiNode_GetNeighbor(const muiContext* context, muiNodeId nodeId, muiDirection direction);
@@ -788,7 +788,7 @@ Returns the default interaction values: hit in full, blocking, no layer, taking 
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_SetInteractionValues(muiContext* context, muiStyleId styleId, muiVariant variant, const muiInteractionStyle* values, muiPropertyMask mask);
 ```
-Sets interaction values of one variant of a class, as muiStyle_SetLayoutValues does layout ones.  @param context  The context. @param styleId  The class. @param variant  The variant. @param values   The values; only the fields mask names are read: a known hit mode, layer kind and focus mode. @param mask     The properties, within MUI_INTERACTION_PROPERTIES. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown variant or property bit, a value outside the above or a call from a measure or paint function, which changes nothing; `mui_errorStale` for an id whose class is gone; `mui_errorCapacity` when the variant had no values and the context's limit of property sets is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets interaction values of one variant of a class, as muiStyle_SetLayoutValues does layout ones.  @param context  The context. @param styleId  The class. @param variant  The variant. @param values   The values; only the fields mask names are read: a known hit mode, layer kind and focus mode. @param mask     The properties, within MUI_INTERACTION_PROPERTIES. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown variant or property bit or a value outside the above, which changes nothing; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose class is gone; `mui_errorCapacity` when the variant had no values and the context's limit of property sets is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_GetInteractionValues(const muiContext* context, muiStyleId styleId, muiVariant variant, muiInteractionStyle* valuesOut, muiPropertyMask* maskOut);
@@ -798,7 +798,7 @@ Reads the interaction values one variant of a class sets.  @param context    The
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetInteractionValues(muiContext* context, muiNodeId nodeId, const muiInteractionStyle* values, muiPropertyMask mask);
 ```
-Writes interaction properties of a node directly, as muiNode_SetLayoutValues does layout ones; neither its layout nor its paint is redone.  @param context  The context. @param nodeId   The node. @param values   The values, as muiStyle_SetInteractionValues takes them. @param mask     The properties, within MUI_INTERACTION_PROPERTIES. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown property bit, a value outside the above or a call from a measure or paint function, which changes nothing; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Writes interaction properties of a node directly, as muiNode_SetLayoutValues does layout ones; neither its layout nor its paint is redone.  @param context  The context. @param nodeId   The node. @param values   The values, as muiStyle_SetInteractionValues takes them. @param mask     The properties, within MUI_INTERACTION_PROPERTIES. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown property bit or a value outside the above, which changes nothing; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetInteractionStyle(const muiContext* context, muiNodeId nodeId, muiInteractionStyle* valuesOut);
@@ -813,7 +813,7 @@ Finds the topmost node of a root's subtree at a point, as its last muiComputeLay
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_RaiseLayer(muiContext* context, muiNodeId nodeId);
 ```
-Raises a layer above the others of its band, as activating a window brings it to the front: it becomes the latest activated.  @param context  The context. @param nodeId   A node that roots a layer, as its last style resolution or direct write left it. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id, a node that roots no layer or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Raises a layer above the others of its band, as activating a window brings it to the front: it becomes the latest activated.  @param context  The context. @param nodeId   A node that roots a layer, as its last style resolution or direct write left it. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id or a node that roots no layer; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ## `layout.h`
 
@@ -827,7 +827,7 @@ Returns the default layout style: CSS's initial values (row, one line, no grow, 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetLayoutStyle(muiContext* context, muiNodeId nodeId, const muiLayoutStyle* style);
 ```
-Writes every layout property of a node directly, so that they win over its style classes until reset (muiNode_SetLayoutValues in maul-ui/style.h writes some). The node and its parent are laid out again at the next muiComputeLayout.  @param context  The context. @param nodeId   The node. @param style    The values: finite numbers, grow and shrink, padding, border and gaps at least 0, known enumerators and edge bits, alignItems not mui_alignAuto, and anchors from 0 to 1, and an aspect ratio of 0 or more. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, a value outside the above, or a call from a measure function; `mui_errorStale` for an id whose node is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Writes every layout property of a node directly, so that they win over its style classes until reset (muiNode_SetLayoutValues in maul-ui/style.h writes some). The node and its parent are laid out again at the next muiComputeLayout.  @param context  The context. @param nodeId   The node. @param style    The values: finite numbers, grow and shrink, padding, border and gaps at least 0, known enumerators and edge bits, alignItems not mui_alignAuto, and anchors from 0 to 1, and an aspect ratio of 0 or more. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id or a value outside the above; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose node is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetLayoutStyle(const muiContext* context, muiNodeId nodeId, muiLayoutStyle* styleOut);
@@ -842,12 +842,12 @@ Whether a node's content runs right to left: the direction its own resolved layo
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_MarkContentChanged(muiContext* context, muiNodeId nodeId);
 ```
-Tells the solver a node's host content changed size, so it is measured again at the next muiComputeLayout.  @param context  The context. @param nodeId   The node. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for an id whose node is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Tells the solver a node's host content changed size, so it is measured again at the next muiComputeLayout.  @param context  The context. @param nodeId   The node. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null id; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose node is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayoutInput* input);
 ```
-Lays out a root and its subtree in the given space. Subtrees that did not change since the last call are not visited.  @param context  The context. @param rootId   A root: a node without a parent. @param input    The space and the measure function. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, a node with a parent, a negative or non-finite space, or a call from a measure or paint function; `mui_errorStale` for an id whose node is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Lays out a root and its subtree in the given space. Subtrees that did not change since the last call are not visited.  @param context  The context. @param rootId   A root: a node without a parent. @param input    The space and the measure function. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, a node with a parent or a negative or non-finite space; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose node is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 bool muiIsUpdatePending(const muiContext* context, muiNodeId rootId);
@@ -881,12 +881,12 @@ Returns the default node def: host key 0.  @return The def, with a valid cookie.
 ```c
 MUI_NODISCARD MUI_API muiResult muiCreateNode(muiContext* context, const muiNodeDef* def, muiNodeId* nodeOut);
 ```
-Creates a node, a root until it is inserted into a parent.  @param context    The context. @param def        The node: a valid cookie. @param nodeOut  Receives the node's id; the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a bad cookie; `mui_errorCapacity` when the context's node limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Creates a node, a root until it is inserted into a parent.  @param context    The context. @param def        The node: a valid cookie. @param nodeOut  Receives the node's id; the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a bad cookie; `mui_errorCapacity` when the context's node limit is reached; `mui_errorState` while the context is busy. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyNode(muiContext* context, muiNodeId nodeId);
 ```
-Destroys a node and its whole subtree, detaching it from its parent first. The ids of every destroyed node become stale. A player's focus inside goes back to what the player focused when the outermost layer around it in the subtree became one, if that can still take it (record mui-0007).  @param context  The context. @param nodeId   The node. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null id; `mui_errorStale` for an id whose node is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Destroys a node and its whole subtree, detaching it from its parent first. The ids of every destroyed node become stale. A player's focus inside goes back to what the player focused when the outermost layer around it in the subtree became one, if that can still take it (record mui-0007).  @param context  The context. @param nodeId   The node. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null id; `mui_errorStale` for an id whose node is gone; `mui_errorState` while the context is busy. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 bool muiNode_IsValid(const muiContext* context, muiNodeId nodeId);
@@ -896,12 +896,12 @@ Returns whether an id names a live node. A stale id is not misuse.  @param conte
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_InsertChild(muiContext* context, muiNodeId parentId, muiNodeId childId, muiNodeId beforeId);
 ```
-Inserts a root into a parent, before one of the parent's children or last.  @param context   The context. @param parentId  The parent. @param childId   The child: a root that is not the parent or one of its ancestors. @param beforeId  A child of the parent to insert before, or the null id to append. @return `mui_success`; `mui_errorInvalid` for a NULL context, a null parent or child, a child that has a parent, a child that is the parent or one of its ancestors, or a before id that is not the parent's child; `mui_errorStale` for an id whose node is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Inserts a root into a parent, before one of the parent's children or last.  @param context   The context. @param parentId  The parent. @param childId   The child: a root that is not the parent or one of its ancestors. @param beforeId  A child of the parent to insert before, or the null id to append. @return `mui_success`; `mui_errorInvalid` for a NULL context, a null parent or child, a child that has a parent, a child that is the parent or one of its ancestors, or a before id that is not the parent's child; `mui_errorStale` for an id whose node is gone; `mui_errorState` while the context is busy. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_Detach(muiContext* context, muiNodeId nodeId);
 ```
-Detaches a node from its parent, making it a root with its subtree. A root stays as it is.  @param context  The context. @param nodeId   The node. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null id; `mui_errorStale` for an id whose node is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Detaches a node from its parent, making it a root with its subtree. A root stays as it is.  @param context  The context. @param nodeId   The node. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null id; `mui_errorStale` for an id whose node is gone; `mui_errorState` while the context is busy. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 muiNodeId muiNode_GetParent(const muiContext* context, muiNodeId nodeId);
@@ -945,22 +945,22 @@ Pointer input (record mui-0007): the host's pointer events become hover and pres
 ```c
 MUI_NODISCARD MUI_API muiResult muiPointerInput(muiContext* context, muiNodeId rootId, const muiPointerEvent* event);
 ```
-Takes a pointer event. Hit testing finds the node at the point, as muiHitTest does, unless the pointer is captured; then the pointer's hover is updated, and so is its press and capture, and records are posted for muiNextPointerRecord.  A node is in mui_stateHovered while a pointer's topmost node is it or one of its descendants, as CSS's :hover, and in mui_statePressed while a pointer that pressed it or a descendant holds a button, wherever the pointer went since, as :active; both join the states the host sets, and the node is styled again at the next muiComputeLayout. A touch hovers only in contact. Hover reads the last layout: after one, a move to the same point updates it.  @param context  The context. @param rootId   The root of the subtree under the pointer. @param event    The event: a known kind and action, a button below 8, a point that is finite, a player below MUI_MAX_PLAYERS. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an event outside the above or a call from a measure, paint or event function, which changes nothing; `mui_errorStale` for a root that is gone; `mui_errorCapacity` for a new pointer past the context's pointers limit. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Takes a pointer event. Hit testing finds the node at the point, as muiHitTest does, unless the pointer is captured; then the pointer's hover is updated, and so is its press and capture, and records are posted for muiNextPointerRecord.  A node is in mui_stateHovered while a pointer's topmost node is it or one of its descendants, as CSS's :hover, and in mui_statePressed while a pointer that pressed it or a descendant holds a button, wherever the pointer went since, as :active; both join the states the host sets, and the node is styled again at the next muiComputeLayout. A touch hovers only in contact. Hover reads the last layout: after one, a move to the same point updates it.  @param context  The context. @param rootId   The root of the subtree under the pointer. @param event    The event: a known kind and action, a button below 8, a point that is finite, a player below MUI_MAX_PLAYERS. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id or an event outside the above, which changes nothing; `mui_errorState` while the context is busy or its event function runs; `mui_errorStale` for a root that is gone; `mui_errorCapacity` for a new pointer past the context's pointers limit. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNextPointerRecord(muiContext* context, muiPointerRecord* recordOut);
 ```
-Takes the oldest pointer record.  @param context    The context. @param recordOut  Receives the record. @return `mui_success`; `mui_empty` when none is waiting; `mui_errorInvalid` for a NULL argument. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Takes the oldest pointer record.  @param context    The context. @param recordOut  Receives the record. @return `mui_success`; `mui_empty` when none is waiting; `mui_errorInvalid` for a NULL argument; `mui_errorState` while the context is busy. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiPointer_SetCapture(muiContext* context, uint32_t pointer, muiNodeId nodeId);
 ```
-Sends every later event of a pointer that holds a button to a node, wherever it is, until its last button is released, it is cancelled, the capture is released or the node is destroyed. It hovers the node's chain from the next event on. A node that had the capture gets a capture-lost record.  @param context  The context. @param pointer  The host's id of the pointer. @param nodeId   The node. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id, a pointer the context does not know or that holds no button, or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sends every later event of a pointer that holds a button to a node, wherever it is, until its last button is released, it is cancelled, the capture is released or the node is destroyed. It hovers the node's chain from the next event on. A node that had the capture gets a capture-lost record.  @param context  The context. @param pointer  The host's id of the pointer. @param nodeId   The node. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id, a pointer the context does not know or that holds no button; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiPointer_ReleaseCapture(muiContext* context, uint32_t pointer);
 ```
-Releases a pointer's capture, with a capture-lost record; its next event hit tests again.  @param context  The context. @param pointer  The host's id of the pointer. @return `mui_success`, also when it was not captured; `mui_errorInvalid` for a NULL context, a pointer the context does not know, or a call from a measure or paint function. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Releases a pointer's capture, with a capture-lost record; its next event hit tests again.  @param context  The context. @param pointer  The host's id of the pointer. @return `mui_success`, also when it was not captured; `mui_errorInvalid` for a NULL context or a pointer the context does not know; `mui_errorState` while the context is busy. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiPointer_GetState(const muiContext* context, uint32_t pointer, muiPointerState* stateOut);
@@ -970,17 +970,17 @@ Reads a pointer's state.  @param context   The context. @param pointer   The hos
 ```c
 MUI_NODISCARD MUI_API muiResult muiSetClickRule(muiContext* context, uint64_t intervalNs, float distance);
 ```
-Sets when presses count as one series (a double click): a press of the same button within intervalNs of the last and within distance of it on each axis. The defaults are 500 ms and 2, Windows's; hosts pass the platform's setting.  @param context     The context. @param intervalNs  The time between presses, in nanoseconds. @param distance    The distance on each axis, finite and at least 0. @return `mui_success`; `mui_errorInvalid` for a NULL context, a distance outside the above, or a call from a measure or paint function. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets when presses count as one series (a double click): a press of the same button within intervalNs of the last and within distance of it on each axis. The defaults are 500 ms and 2, Windows's; hosts pass the platform's setting.  @param context     The context. @param intervalNs  The time between presses, in nanoseconds. @param distance    The distance on each axis, finite and at least 0. @return `mui_success`; `mui_errorInvalid` for a NULL context or a distance outside the above; `mui_errorState` while the context is busy. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiPointer_Offer(muiContext* context, uint32_t pointer, uint32_t kind, uint64_t key);
 ```
-Offers a thing to drop for a dragging pointer, from its drag start on: a kind, one or more of the application's bits, and the host's key for it. From then the drag looks for a target under the pointer, the nearest node from the one hit up whose accepts mask (maul-ui/interaction.h) shares a bit with the kind, and posts drop enter and leave records as it changes, and a drop record when the drag ends over one; a cancelled drag only leaves. A second offer replaces the first.  @param context  The context. @param pointer  The host's id of the pointer. @param kind     The kind: not 0. @param key      The host's key for the thing. @return `mui_success`; `mui_errorInvalid` for a NULL context, a pointer not dragging, a kind of 0, or a call from a measure or paint function. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Offers a thing to drop for a dragging pointer, from its drag start on: a kind, one or more of the application's bits, and the host's key for it. From then the drag looks for a target under the pointer, the nearest node from the one hit up whose accepts mask (maul-ui/interaction.h) shares a bit with the kind, and posts drop enter and leave records as it changes, and a drop record when the drag ends over one; a cancelled drag only leaves. A second offer replaces the first.  @param context  The context. @param pointer  The host's id of the pointer. @param kind     The kind: not 0. @param key      The host's key for the thing. @return `mui_success`; `mui_errorInvalid` for a NULL context, a pointer not dragging or a kind of 0; `mui_errorState` while the context is busy. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiSetDragThreshold(muiContext* context, float mouse, float touch);
 ```
-Sets how far a press moves before it becomes a drag, on either axis: for a mouse, and for touch and pens. The defaults are 4, Windows's, and 8, Android's touch slop; hosts pass the platform's.  @param context  The context. @param mouse    The distance for a mouse, finite and at least 0. @param touch    The distance for touch and pens, likewise. @return `mui_success`; `mui_errorInvalid` for a NULL context, a distance outside the above, or a call from a measure or paint function. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets how far a press moves before it becomes a drag, on either axis: for a mouse, and for touch and pens. The defaults are 4, Windows's, and 8, Android's touch slop; hosts pass the platform's.  @param context  The context. @param mouse    The distance for a mouse, finite and at least 0. @param touch    The distance for touch and pens, likewise. @return `mui_success`; `mui_errorInvalid` for a NULL context or a distance outside the above; `mui_errorState` while the context is busy. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ## `popup.h`
 
@@ -994,7 +994,7 @@ The default popup: below the null anchor, start edges aligned, no gap or margin,
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetPopup(muiContext* context, muiNodeId nodeId, const muiPopup* popup);
 ```
-Makes a node a popup, or sets its popup anew; placed at the next layout, and dismissible again.  @param context  The context. @param nodeId   The node. @param popup    The popup: a live anchor other than the node, a known side and alignment, gap and margin as above. @return `mui_success`; `mui_errorCapacity` when the context holds its limit of popups; `mui_errorInvalid` for a NULL argument, the null id, a popup outside the above, or a call from a measure or paint function; `mui_errorStale` for a node or anchor that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Makes a node a popup, or sets its popup anew; placed at the next layout, and dismissible again.  @param context  The context. @param nodeId   The node. @param popup    The popup: a live anchor other than the node, a known side and alignment, gap and margin as above. @return `mui_success`; `mui_errorCapacity` when the context holds its limit of popups; `mui_errorInvalid` for a NULL argument, the null id or a popup outside the above; `mui_errorState` while the context is busy; `mui_errorStale` for a node or anchor that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetPopup(const muiContext* context, muiNodeId nodeId, muiPopup* popupOut);
@@ -1009,7 +1009,7 @@ Reads the side a popup went to at the last layout that placed it, after flipping
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_ClearPopup(muiContext* context, muiNodeId nodeId);
 ```
-Makes a node no longer a popup; it keeps its last place until layout places it again.  @param context  The context. @param nodeId   The node. @return `mui_success`, whether or not it was one; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Makes a node no longer a popup; it keeps its last place until layout places it again.  @param context  The context. @param nodeId   The node. @return `mui_success`, whether or not it was one; `mui_errorInvalid` for a NULL context or the null id; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ## `range.h`
 
@@ -1023,7 +1023,7 @@ The default range: 0 to 100 by steps of 1, a page of 10, horizontal, at 0, witho
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetValueRange(muiContext* context, muiNodeId nodeId, const muiValueRange* range);
 ```
-Makes a node a range, or sets its range anew; the value is kept within the minimum and maximum and on a step.  @param context  The context. @param nodeId   The node. @param range    The range: finite numbers as described above. @return `mui_success`; `mui_errorCapacity` when the context holds its limit of ranges; `mui_errorInvalid` for a NULL argument, the null id, a range outside the above, or a call from a measure or paint function; `mui_errorStale` for a node or thumb that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Makes a node a range, or sets its range anew; the value is kept within the minimum and maximum and on a step.  @param context  The context. @param nodeId   The node. @param range    The range: finite numbers as described above. @return `mui_success`; `mui_errorCapacity` when the context holds its limit of ranges; `mui_errorInvalid` for a NULL argument, the null id or a range outside the above; `mui_errorState` while the context is busy; `mui_errorStale` for a node or thumb that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetValueRange(const muiContext* context, muiNodeId nodeId, muiValueRange* rangeOut);
@@ -1033,12 +1033,12 @@ Reads a node's range.  @param context   The context. @param nodeId    The node. 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetRangeValue(muiContext* context, muiNodeId nodeId, float value);
 ```
-Sets a range's value, kept within its minimum and maximum and on a step.  @param context  The context. @param nodeId   The node. @param value    The value, finite. @return `mui_success`; `mui_empty` for a node that is not a range; `mui_errorInvalid` for a NULL context, the null id, a value not finite or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets a range's value, kept within its minimum and maximum and on a step.  @param context  The context. @param nodeId   The node. @param value    The value, finite. @return `mui_success`; `mui_empty` for a node that is not a range; `mui_errorInvalid` for a NULL context, the null id or a value not finite; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_ClearValueRange(muiContext* context, muiNodeId nodeId);
 ```
-Makes a node no longer a range.  @param context  The context. @param nodeId   The node. @return `mui_success`, whether or not it was one; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Makes a node no longer a range.  @param context  The context. @param nodeId   The node. @return `mui_success`, whether or not it was one; `mui_errorInvalid` for a NULL context or the null id; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ## `scroll.h`
 
@@ -1047,7 +1047,7 @@ Scrolling (record mui-0007): a scroll container's offset (layout.h's scrollAxes)
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetScroll(muiContext* context, muiNodeId nodeId, float x, float y);
 ```
-Scrolls a node to an offset at once, stopping any step easing it: within 0 and its extent less its padding box along each axis it scrolls (0 along any other), as its last muiComputeLayout measured them; layout keeps it within them as sizes change. The next draw list moves the children.  @param context  The context. @param nodeId   The node. @param x        The offset from the inline start, finite. @param y        The offset from the top, finite. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id, an offset not finite or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Scrolls a node to an offset at once, stopping any step easing it: within 0 and its extent less its padding box along each axis it scrolls (0 along any other), as its last muiComputeLayout measured them; layout keeps it within them as sizes change. The next draw list moves the children.  @param context  The context. @param nodeId   The node. @param x        The offset from the inline start, finite. @param y        The offset from the top, finite. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id or an offset not finite; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetScroll(const muiContext* context, muiNodeId nodeId, float* xOut, float* yOut);
@@ -1062,7 +1062,7 @@ Reads the extent a scroll container's children reach, as its last muiComputeLayo
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_ScrollIntoView(muiContext* context, muiNodeId nodeId);
 ```
-Scrolls each scrolling ancestor of a node at once, the nearest first, stopping steps easing them: the least that brings the node's border box into its padding box, as CSSOM View's scrollIntoView with "nearest" does per axis. A node already inside stays; one past the start edge and no larger than the box aligns its start, one past the end its end; a larger one past either edge aligns the other, and one past both stays. Directional and sequential navigation does this to the node it focuses.  @param context  The context. @param nodeId   The node. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Scrolls each scrolling ancestor of a node at once, the nearest first, stopping steps easing them: the least that brings the node's border box into its padding box, as CSSOM View's scrollIntoView with "nearest" does per axis. A node already inside stays; one past the start edge and no larger than the box aligns its start, one past the end its end; a larger one past either edge aligns the other, and one past both stays. Directional and sequential navigation does this to the node it focuses.  @param context  The context. @param nodeId   The node. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null id; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 muiScrollRule muiDefaultScrollRule(void);
@@ -1072,7 +1072,7 @@ The default scroll rule: 100 a detent, Chrome's on Windows; 40 a line and 0.875 
 ```c
 MUI_NODISCARD MUI_API muiResult muiSetScrollRule(muiContext* context, const muiScrollRule* rule);
 ```
-Sets the context's scroll rule.  @param context  The context. @param rule     The rule, as described above. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a rule outside the above, or a call from a measure or paint function. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets the context's scroll rule.  @param context  The context. @param rule     The rule, as described above. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a rule outside the above; `mui_errorState` while the context is busy. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetScrollThumb(const muiContext* context, muiNodeId nodeId, bool horizontal, float track, float minimum, muiScrollThumb* thumbOut);
@@ -1096,7 +1096,7 @@ Returns the environment of a new context: a medium viewport, a pointer, a text s
 ```c
 MUI_NODISCARD MUI_API muiResult muiSetContextEnvironment(muiContext* context, const muiEnvironment* environment);
 ```
-Sets the environment conditions read. Every node is styled again at the next muiComputeLayout when it changes.  @param context      The context. @param environment  One viewport class bit, one input modality bit and a finite text scale above 0. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a value outside the above or a call from a measure or paint function. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets the environment conditions read. Every node is styled again at the next muiComputeLayout when it changes.  @param context      The context. @param environment  One viewport class bit, one input modality bit and a finite text scale above 0. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a value outside the above; `mui_errorState` while the context is busy. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 muiEnvironment muiGetContextEnvironment(const muiContext* context);
@@ -1111,22 +1111,22 @@ Returns the default style class def.  @return The def, with a valid cookie. @par
 ```c
 MUI_NODISCARD MUI_API muiResult muiCreateStyle(muiContext* context, const muiStyleDef* def, muiStyleId* styleOut);
 ```
-Creates a style class with no values set.  @param context     The context. @param def         The class: a valid cookie. @param styleOut  Receives the class; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie or a call from a measure or paint function; `mui_errorCapacity` when the context's style limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Creates a style class with no values set.  @param context     The context. @param def         The class: a valid cookie. @param styleOut  Receives the class; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a bad cookie; `mui_errorState` while the context is busy; `mui_errorCapacity` when the context's style limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyStyle(muiContext* context, muiStyleId styleId);
 ```
-Destroys a style class. Nodes and node types that list it skip it, and every node is styled again at the next muiComputeLayout.  @param context  The context. @param styleId  The class. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for an id whose class is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Destroys a style class. Nodes and node types that list it skip it, and every node is styled again at the next muiComputeLayout.  @param context  The context. @param styleId  The class. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null id; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose class is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_SetLayoutValues(muiContext* context, muiStyleId styleId, muiVariant variant, const muiLayoutStyle* values, muiPropertyMask mask);
 ```
-Sets layout properties in one variant of a class from the fields of values. Every node is styled again at the next muiComputeLayout.  @param context  The context. @param styleId  The class. @param variant  The variant. @param values   The values; only the fields mask names are read, and each must be one muiNode_SetLayoutStyle allows. @param mask     The properties, within MUI_LAYOUT_PROPERTIES. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown variant or property bit, a value outside the above, a property the variant's condition reads (its axis's sizes and limits, the aspect ratio, the text direction) or a call from a measure or paint function, which changes nothing; `mui_errorStale` for an id whose class is gone; `mui_errorCapacity` when the variant had no values and the context's limit of property sets is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets layout properties in one variant of a class from the fields of values. Every node is styled again at the next muiComputeLayout.  @param context  The context. @param styleId  The class. @param variant  The variant. @param values   The values; only the fields mask names are read, and each must be one muiNode_SetLayoutStyle allows. @param mask     The properties, within MUI_LAYOUT_PROPERTIES. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown variant or property bit, a value outside the above or a property the variant's condition reads (its axis's sizes and limits, the aspect ratio or the text direction), which changes nothing; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose class is gone; `mui_errorCapacity` when the variant had no values and the context's limit of property sets is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_ResetProperties(muiContext* context, muiStyleId styleId, muiVariant variant, muiPropertyGroup group, muiPropertyMask mask);
 ```
-Unsets properties in one variant of a class: their values and the tokens named for them. Every node is styled again at the next muiComputeLayout.  @param context  The context. @param styleId  The class. @param variant  The variant. @param group    The properties' group. @param mask     The properties, within the group's. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id, an unknown variant, group or property bit or a call from a measure or paint function; `mui_errorStale` for an id whose class is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Unsets properties in one variant of a class: their values and the tokens named for them. Every node is styled again at the next muiComputeLayout.  @param context  The context. @param styleId  The class. @param variant  The variant. @param group    The properties' group. @param mask     The properties, within the group's. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id, an unknown variant, group or property bit; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose class is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_GetLayoutValues(const muiContext* context, muiStyleId styleId, muiVariant variant, muiLayoutStyle* valuesOut, muiPropertyMask* maskOut);
@@ -1136,12 +1136,12 @@ Reads the values one variant of a class sets.  @param context    The context. @p
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_AddCondition(muiContext* context, muiStyleId styleId, const muiCondition* condition, muiVariant* variantOut);
 ```
-Adds a condition to a class, after its others. Its values are then set through the variant it gives. Every node is styled again at the next muiComputeLayout.  @param context     The context. @param styleId     The class. @param condition   Ranges with a finite minimum of 0 or more and a maximum not below it, known bits and choices. @param variantOut  Receives the condition's variant; set to mui_variantBase on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, a condition outside the above or a call from a measure or paint function; `mui_errorStale` for an id whose class is gone; `mui_errorCapacity` when the class has MUI_MAX_CONDITIONS. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Adds a condition to a class, after its others. Its values are then set through the variant it gives. Every node is styled again at the next muiComputeLayout.  @param context     The context. @param styleId     The class. @param condition   Ranges with a finite minimum of 0 or more and a maximum not below it, known bits and choices. @param variantOut  Receives the condition's variant; set to mui_variantBase on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id or a condition outside the above; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose class is gone; `mui_errorCapacity` when the class has MUI_MAX_CONDITIONS. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_SetCondition(muiContext* context, muiStyleId styleId, muiVariant variant, const muiCondition* condition);
 ```
-Replaces one of a class's conditions, keeping its values. Every node is styled again at the next muiComputeLayout.  @param context    The context. @param styleId    The class. @param variant    The condition's variant. @param condition  As muiStyle_AddCondition takes it, reading nothing the condition's values set. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, a variant that is not one of the class's conditions, a condition outside the above or a call from a measure or paint function; `mui_errorStale` for an id whose class is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Replaces one of a class's conditions, keeping its values. Every node is styled again at the next muiComputeLayout.  @param context    The context. @param styleId    The class. @param variant    The condition's variant. @param condition  As muiStyle_AddCondition takes it, reading nothing the condition's values set. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, a variant that is not one of the class's conditions or a condition outside the above; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose class is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_GetCondition(const muiContext* context, muiStyleId styleId, muiVariant variant, muiCondition* conditionOut);
@@ -1151,7 +1151,7 @@ Reads one of a class's conditions.  @param context       The context. @param sty
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_ClearConditions(muiContext* context, muiStyleId styleId);
 ```
-Removes every condition of a class and its values. Every node is styled again at the next muiComputeLayout.  @param context  The context. @param styleId  The class. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for an id whose class is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Removes every condition of a class and its values. Every node is styled again at the next muiComputeLayout.  @param context  The context. @param styleId  The class. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null id; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose class is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 muiNodeTypeDef muiDefaultNodeTypeDef(void);
@@ -1161,32 +1161,32 @@ Returns the default node type def: no classes.  @return The def, with a valid co
 ```c
 MUI_NODISCARD MUI_API muiResult muiCreateNodeType(muiContext* context, const muiNodeTypeDef* def, muiNodeTypeId* typeOut);
 ```
-Creates a node type with an ordered list of classes.  @param context    The context. @param def        The type: a valid cookie and its classes. @param typeOut  Receives the type; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie, classes NULL with a count, a count over the limit or a call from a measure or paint function; `mui_errorCapacity` when the context's node type limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Creates a node type with an ordered list of classes.  @param context    The context. @param def        The type: a valid cookie and its classes. @param typeOut  Receives the type; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie, classes NULL with a count or a count over the limit; `mui_errorState` while the context is busy; `mui_errorCapacity` when the context's node type limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyNodeType(muiContext* context, muiNodeTypeId typeId);
 ```
-Destroys a node type. Its nodes are left with no type, and every node is styled again at the next muiComputeLayout.  @param context  The context. @param typeId   The type. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for an id whose type is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Destroys a node type. Its nodes are left with no type, and every node is styled again at the next muiComputeLayout.  @param context  The context. @param typeId   The type. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null id; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose type is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNodeType_SetClasses(muiContext* context, muiNodeTypeId typeId, const muiStyleId* classes, uint32_t count);
 ```
-Replaces a node type's classes. Every node is styled again at the next muiComputeLayout.  @param context  The context. @param typeId   The type. @param classes  count classes, as muiCreateNodeType takes them. @param count    At most MUI_MAX_CLASSES. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id, NULL classes with a count, a count over the limit or a call from a measure or paint function; `mui_errorStale` for an id whose type is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Replaces a node type's classes. Every node is styled again at the next muiComputeLayout.  @param context  The context. @param typeId   The type. @param classes  count classes, as muiCreateNodeType takes them. @param count    At most MUI_MAX_CLASSES. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id, NULL classes with a count or a count over the limit; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose type is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetType(muiContext* context, muiNodeId nodeId, muiNodeTypeId typeId);
 ```
-Sets a node's type. The node is styled again at the next muiComputeLayout.  @param context  The context. @param nodeId   The node. @param typeId   The type; the null id for none. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null node id or a call from a measure or paint function; `mui_errorStale` for a node or a type that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets a node's type. The node is styled again at the next muiComputeLayout.  @param context  The context. @param nodeId   The node. @param typeId   The type; the null id for none. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null node id; `mui_errorState` while the context is busy; `mui_errorStale` for a node or a type that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetClasses(muiContext* context, muiNodeId nodeId, const muiStyleId* classes, uint32_t count);
 ```
-Replaces a node's own classes, which follow its type's. The node is styled again at the next muiComputeLayout.  @param context  The context. @param nodeId   The node. @param classes  count classes, kept as given; a class destroyed later is skipped. NULL when count is 0. @param count    At most MUI_MAX_CLASSES. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id, NULL classes with a count, a count over the limit or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Replaces a node's own classes, which follow its type's. The node is styled again at the next muiComputeLayout.  @param context  The context. @param nodeId   The node. @param classes  count classes, kept as given; a class destroyed later is skipped. NULL when count is 0. @param count    At most MUI_MAX_CLASSES. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id, NULL classes with a count or a count over the limit; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetStates(muiContext* context, muiNodeId nodeId, muiState states);
 ```
-Sets the states a node is in. The node is styled again at the next muiComputeLayout when they change. Pointer input's hover and press, and the players' focus, join them, apart: setting states leaves those. The exiting bit is the exits' (maul-ui/exit.h): setting states keeps it as it is.  @param context  The context. @param nodeId   The node. @param states   muiState bits. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets the states a node is in. The node is styled again at the next muiComputeLayout when they change. Pointer input's hover and press, and the players' focus, join them, apart: setting states leaves those. The exiting bit is the exits' (maul-ui/exit.h): setting states keeps it as it is.  @param context  The context. @param nodeId   The node. @param states   muiState bits. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null id; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 muiState muiNode_GetStates(const muiContext* context, muiNodeId nodeId);
@@ -1196,12 +1196,12 @@ Returns the states a node is in: those the host set, hover and press from pointe
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetLayoutValues(muiContext* context, muiNodeId nodeId, const muiLayoutStyle* values, muiPropertyMask mask);
 ```
-Writes layout properties of a node directly from the fields of values: they win over every class until reset, at once. The node and its parent are laid out again at the next muiComputeLayout. muiNode_SetLayoutStyle writes every layout property.  @param context  The context. @param nodeId   The node. @param values   The values; only the fields mask names are read, and each must be one muiNode_SetLayoutStyle allows. @param mask     The properties, within MUI_LAYOUT_PROPERTIES. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown property bit, a value outside the above or a call from a measure or paint function, which changes nothing; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Writes layout properties of a node directly from the fields of values: they win over every class until reset, at once. The node and its parent are laid out again at the next muiComputeLayout. muiNode_SetLayoutStyle writes every layout property.  @param context  The context. @param nodeId   The node. @param values   The values; only the fields mask names are read, and each must be one muiNode_SetLayoutStyle allows. @param mask     The properties, within MUI_LAYOUT_PROPERTIES. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown property bit or a value outside the above, which changes nothing; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_ResetProperties(muiContext* context, muiNodeId nodeId, muiPropertyGroup group, muiPropertyMask mask);
 ```
-Ends direct writes of a node's properties: they take their classes' values again at the next muiComputeLayout.  @param context  The context. @param nodeId   The node. @param group    The properties' group. @param mask     The properties, within the group's. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id, an unknown group or property bit or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Ends direct writes of a node's properties: they take their classes' values again at the next muiComputeLayout.  @param context  The context. @param nodeId   The node. @param group    The properties' group. @param mask     The properties, within the group's. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id or an unknown group or property bit; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 muiPropertyMask muiNode_GetDirectProperties(const muiContext* context, muiNodeId nodeId, muiPropertyGroup group);
@@ -1481,7 +1481,7 @@ Returns the default text style: opaque black, font 0, 16 logical units, the font
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_SetTextValues(muiContext* context, muiStyleId styleId, muiVariant variant, const muiTextStyle* values, muiPropertyMask mask);
 ```
-Sets text values in one variant of a class, as muiStyle_SetLayoutValues sets layout ones.  @param context  The context. @param styleId  The class. @param variant  The variant. @param values   The values; those mask names must be as muiTextStyle describes, and finite. @param mask     The properties, within MUI_TEXT_PROPERTIES. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown variant or property bit, a value outside the above or a call from a measure or paint function, which changes nothing; `mui_errorStale` for an id whose class is gone; `mui_errorCapacity` when the variant had no values and the context's limit of property sets is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets text values in one variant of a class, as muiStyle_SetLayoutValues sets layout ones.  @param context  The context. @param styleId  The class. @param variant  The variant. @param values   The values; those mask names must be as muiTextStyle describes, and finite. @param mask     The properties, within MUI_TEXT_PROPERTIES. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown variant or property bit or a value outside the above, which changes nothing; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose class is gone; `mui_errorCapacity` when the variant had no values and the context's limit of property sets is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_GetTextValues(const muiContext* context, muiStyleId styleId, muiVariant variant, muiTextStyle* valuesOut, muiPropertyMask* maskOut);
@@ -1491,7 +1491,7 @@ Reads the text values one variant of a class sets.  @param context    The contex
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetTextValues(muiContext* context, muiNodeId nodeId, const muiTextStyle* values, muiPropertyMask mask);
 ```
-Writes text values to a node directly, over its classes, as muiNode_SetLayoutValues writes layout ones. Its children inherit them at the next muiComputeLayout.  @param context  The context. @param nodeId   The node. @param values   The values; those mask names must be as muiTextStyle describes, and finite. @param mask     The properties, within MUI_TEXT_PROPERTIES. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown property bit, a value outside the above or a call from a measure or paint function, which changes nothing; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Writes text values to a node directly, over its classes, as muiNode_SetLayoutValues writes layout ones. Its children inherit them at the next muiComputeLayout.  @param context  The context. @param nodeId   The node. @param values   The values; those mask names must be as muiTextStyle describes, and finite. @param mask     The properties, within MUI_TEXT_PROPERTIES. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown property bit or a value outside the above, which changes nothing; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetTextStyle(const muiContext* context, muiNodeId nodeId, muiComputedTextStyle* styleOut);
@@ -1510,27 +1510,27 @@ Returns the default theme def.  @return The def, with a valid cookie. @par Threa
 ```c
 MUI_NODISCARD MUI_API muiResult muiCreateTheme(muiContext* context, const muiThemeDef* def, muiThemeId* themeOut);
 ```
-Creates a theme that overrides no token.  @param context     The context. @param def         The theme: a valid cookie. @param themeOut  Receives the theme; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie or a call from a measure or paint function; `mui_errorCapacity` when the context's theme limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Creates a theme that overrides no token.  @param context     The context. @param def         The theme: a valid cookie. @param themeOut  Receives the theme; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a bad cookie; `mui_errorState` while the context is busy; `mui_errorCapacity` when the context's theme limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyTheme(muiContext* context, muiThemeId themeId);
 ```
-Destroys a theme and its overrides. Nodes it was set on read through no theme of their own, and every node is restyled.  @param context  The context. @param themeId  The theme. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for an id whose theme is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Destroys a theme and its overrides. Nodes it was set on read through no theme of their own, and every node is restyled.  @param context  The context. @param themeId  The theme. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null id; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose theme is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiTheme_SetTokenValue(muiContext* context, muiThemeId themeId, muiTokenId tokenId, const muiTokenValue* value);
 ```
-Overrides a token in a theme with a literal value.  @param context  The context. @param themeId  The theme. @param tokenId  The token. @param value    The value, of the token's type, as muiCreateToken takes it. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a null id, a value of another type or outside muiCreateToken's or a call from a measure or paint function; `mui_errorStale` for a theme or a token that is gone; `mui_errorCapacity` when the token was not overridden and the context's limit of theme overrides is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Overrides a token in a theme with a literal value.  @param context  The context. @param themeId  The theme. @param tokenId  The token. @param value    The value, of the token's type, as muiCreateToken takes it. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a null id, a value of another type or outside muiCreateToken's; `mui_errorState` while the context is busy; `mui_errorStale` for a theme or a token that is gone; `mui_errorCapacity` when the token was not overridden and the context's limit of theme overrides is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiTheme_SetTokenAlias(muiContext* context, muiThemeId themeId, muiTokenId tokenId, muiTokenId target);
 ```
-Overrides a token in a theme with an alias of another token of its type, read in the subtree that reads the theme.  @param context  The context. @param themeId  The theme. @param tokenId  The token. @param target   The token it gives the value of. @return `mui_success`; `mui_errorInvalid` for a NULL context, a null id, a target of another type, an alias that would lead back to the token through this theme and the context, or a call from a measure or paint function; `mui_errorStale` for a theme, token or target that is gone; `mui_errorCapacity` as muiTheme_SetTokenValue. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Overrides a token in a theme with an alias of another token of its type, read in the subtree that reads the theme.  @param context  The context. @param themeId  The theme. @param tokenId  The token. @param target   The token it gives the value of. @return `mui_success`; `mui_errorInvalid` for a NULL context, a null id, a target of another type or an alias that would lead back to the token through this theme and the context; `mui_errorState` while the context is busy; `mui_errorStale` for a theme, token or target that is gone; `mui_errorCapacity` as muiTheme_SetTokenValue. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiTheme_ResetToken(muiContext* context, muiThemeId themeId, muiTokenId tokenId);
 ```
-Ends a theme's override of a token.  @param context  The context. @param themeId  The theme. @param tokenId  The token. @return `mui_success`, also when the theme did not override it; `mui_errorInvalid` for a NULL context, a null id or a call from a measure or paint function; `mui_errorStale` for a theme or a token that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Ends a theme's override of a token.  @param context  The context. @param themeId  The theme. @param tokenId  The token. @return `mui_success`, also when the theme did not override it; `mui_errorInvalid` for a NULL context or a null id; `mui_errorState` while the context is busy; `mui_errorStale` for a theme or a token that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiTheme_GetToken(const muiContext* context, muiThemeId themeId, muiTokenId tokenId, muiTokenValue* valueOut, muiTokenId* aliasOut);
@@ -1540,7 +1540,7 @@ Reads a theme's override of a token.  @param context   The context. @param theme
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetTheme(muiContext* context, muiNodeId nodeId, muiThemeId themeId);
 ```
-Sets the theme a node and its subtree read; the null id sets none.  @param context  The context. @param nodeId   The node. @param themeId  The theme, or the null id. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null node id or a call from a measure or paint function; `mui_errorStale` for a node or a theme that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets the theme a node and its subtree read; the null id sets none.  @param context  The context. @param nodeId   The node. @param themeId  The theme, or the null id. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null node id; `mui_errorState` while the context is busy; `mui_errorStale` for a node or a theme that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetTheme(const muiContext* context, muiNodeId nodeId, muiThemeId* themeOut);
@@ -1564,22 +1564,22 @@ Returns the default token def: the number 0.  @return The def, with a valid cook
 ```c
 MUI_NODISCARD MUI_API muiResult muiCreateToken(muiContext* context, const muiTokenDef* def, muiTokenId* tokenOut);
 ```
-Creates a token holding a value.  @param context     The context. @param def         The token: a valid cookie and its value. @param tokenOut  Receives the token; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie, a value outside the def's or a call from a measure or paint function; `mui_errorCapacity` when the context's token limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Creates a token holding a value.  @param context     The context. @param def         The token: a valid cookie and its value. @param tokenOut  Receives the token; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad cookie or a value outside the def's; `mui_errorState` while the context is busy; `mui_errorCapacity` when the context's token limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyToken(muiContext* context, muiTokenId tokenId);
 ```
-Destroys a token. Variants that name it, and tokens that alias it, then give no value through it, and every node is restyled.  @param context  The context. @param tokenId  The token. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for an id whose token is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Destroys a token. Variants that name it, and tokens that alias it, then give no value through it, and every node is restyled.  @param context  The context. @param tokenId  The token. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null id; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose token is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiSetTokenValue(muiContext* context, muiTokenId tokenId, const muiTokenValue* value);
 ```
-Gives a token a literal value, ending any alias, and restyles every node.  @param context  The context. @param tokenId  The token. @param value    The value, of the token's type, as muiCreateToken takes it. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, a value of another type or outside muiCreateToken's or a call from a measure or paint function; `mui_errorStale` for an id whose token is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Gives a token a literal value, ending any alias, and restyles every node.  @param context  The context. @param tokenId  The token. @param value    The value, of the token's type, as muiCreateToken takes it. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, a value of another type or outside muiCreateToken's; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose token is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiSetTokenAlias(muiContext* context, muiTokenId tokenId, muiTokenId target);
 ```
-Makes a token an alias of another of its type, so that it gives that token's value, and restyles every node.  @param context  The context. @param tokenId  The token. @param target   The token it gives the value of. @return `mui_success`; `mui_errorInvalid` for a NULL context, a null id, a target of another type, an alias that would lead back to the token or a call from a measure or paint function; `mui_errorStale` for a token or a target that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Makes a token an alias of another of its type, so that it gives that token's value, and restyles every node.  @param context  The context. @param tokenId  The token. @param target   The token it gives the value of. @return `mui_success`; `mui_errorInvalid` for a NULL context, a null id, a target of another type or an alias that would lead back to the token; `mui_errorState` while the context is busy; `mui_errorStale` for a token or a target that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiGetTokenValue(const muiContext* context, muiTokenId tokenId, muiTokenValue* valueOut, muiTokenId* aliasOut);
@@ -1589,7 +1589,7 @@ Reads a token's value, through its aliases, and what it aliases.  @param context
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_SetToken(muiContext* context, muiStyleId styleId, muiVariant variant, muiProperty property, muiTokenId tokenId);
 ```
-Names a token for a property in one variant of a class, in place of a value: resolution reads the token there. A value the property does not allow, or no value, leaves that layer silent for the property. Setting a value for the property with muiStyle_SetLayoutValues or muiStyle_SetVisualValues ends the name, and this ends the value; the null id ends the name alone.  @param context   The context. @param styleId   The class. @param variant   The variant. @param property  The property; one that takes a token of a type above, which a condition of the variant does not read. @param tokenId   The token, of the property's type, or the null id. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null class id, an unknown variant or property, a property of no token type or another type than the token's, one the variant's condition reads, or a call from a measure function; `mui_errorStale` for a class or a token that is gone; `mui_errorCapacity` when the context's limit of token names, or of property sets for a variant with nothing set, is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Names a token for a property in one variant of a class, in place of a value: resolution reads the token there. A value the property does not allow, or no value, leaves that layer silent for the property. Setting a value for the property with muiStyle_SetLayoutValues or muiStyle_SetVisualValues ends the name, and this ends the value; the null id ends the name alone.  @param context   The context. @param styleId   The class. @param variant   The variant. @param property  The property; one that takes a token of a type above, which a condition of the variant does not read. @param tokenId   The token, of the property's type, or the null id. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null class id, an unknown variant or property, a property of no token type or another type than the token's or one the variant's condition reads; `mui_errorState` while the context is busy; `mui_errorStale` for a class or a token that is gone; `mui_errorCapacity` when the context's limit of token names, or of property sets for a variant with nothing set, is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_GetToken(const muiContext* context, muiStyleId styleId, muiVariant variant, muiProperty property, muiTokenId* tokenOut);
@@ -1608,17 +1608,17 @@ Returns the default transition def: timed, 250 ms, ease, no delay; as a spring, 
 ```c
 MUI_NODISCARD MUI_API muiResult muiCreateTransition(muiContext* context, const muiTransitionDef* def, muiTransitionId* transitionOut);
 ```
-Creates a transition spec.  @param context          The context. @param def              The spec: a valid cookie, a known kind and easing, bezier x from 0 to 1 and finite y, and a finite frequency and damping ratio above 0. @param transitionOut  Receives the spec; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument, a def outside the above or a call from a measure or paint function; `mui_errorCapacity` when the context's transition limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Creates a transition spec.  @param context          The context. @param def              The spec: a valid cookie, a known kind and easing, bezier x from 0 to 1 and finite y, and a finite frequency and damping ratio above 0. @param transitionOut  Receives the spec; set to the null id on failure. @return `mui_success`; `mui_errorInvalid` for a NULL argument or a def outside the above; `mui_errorState` while the context is busy; `mui_errorCapacity` when the context's transition limit is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiDestroyTransition(muiContext* context, muiTransitionId transitionId);
 ```
-Destroys a transition spec. Variants that name it name none, and transitions it started run to their end.  @param context       The context. @param transitionId  The spec. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for an id whose spec is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Destroys a transition spec. Variants that name it name none, and transitions it started run to their end.  @param context       The context. @param transitionId  The spec. @return `mui_success`; `mui_errorInvalid` for a NULL context or the null id; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose spec is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_SetTransition(muiContext* context, muiStyleId styleId, muiVariant variant, muiTransitionId transitionId, muiPropertyGroup group, muiPropertyMask mask);
 ```
-Names the spec one variant of a class gives properties; the null id takes the variant's spec away from them.  @param context       The context. @param styleId       The class. @param variant       The variant. @param transitionId  The spec, or the null id. @param group         The properties' group. @param mask          The properties, within the group's. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null class id, an unknown variant, group or property bit or a call from a measure or paint function; `mui_errorStale` for a class or a spec that is gone; `mui_errorCapacity` when the variant already names MUI_MAX_VARIANT_TRANSITIONS specs, or has no values yet and the context's limit of property sets is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Names the spec one variant of a class gives properties; the null id takes the variant's spec away from them.  @param context       The context. @param styleId       The class. @param variant       The variant. @param transitionId  The spec, or the null id. @param group         The properties' group. @param mask          The properties, within the group's. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null class id, an unknown variant, group or property bit; `mui_errorState` while the context is busy; `mui_errorStale` for a class or a spec that is gone; `mui_errorCapacity` when the variant already names MUI_MAX_VARIANT_TRANSITIONS specs, or has no values yet and the context's limit of property sets is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_GetTransition(const muiContext* context, muiStyleId styleId, muiVariant variant, muiProperty property, muiTransitionId* transitionOut);
@@ -1642,12 +1642,12 @@ The default list: no items, vertical, estimated at 40 a piece, no gap, an oversc
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetVirtualList(muiContext* context, muiNodeId nodeId, const muiVirtualList* list);
 ```
-Makes a node a virtual list, or sets it anew, every estimated extent back to the estimate; its window is reported at the next layout. Set anew, as after its data was replaced, it keeps the item it showed first where it was, if the host binds that item's node again before the next layout, wherever the item now is.  @param context  The context. @param nodeId   The node. @param list     The list, as described above. @return `mui_success`; `mui_errorCapacity` when the context holds its limit of lists, or the items of an estimated list do not fit what its limit of items leaves; `mui_errorInvalid` for a NULL argument, the null id, a list outside the above, or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Makes a node a virtual list, or sets it anew, every estimated extent back to the estimate; its window is reported at the next layout. Set anew, as after its data was replaced, it keeps the item it showed first where it was, if the host binds that item's node again before the next layout, wherever the item now is.  @param context  The context. @param nodeId   The node. @param list     The list, as described above. @return `mui_success`; `mui_errorCapacity` when the context holds its limit of lists, or the items of an estimated list do not fit what its limit of items leaves; `mui_errorInvalid` for a NULL argument, the null id or a list outside the above; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_ClearVirtualList(muiContext* context, muiNodeId nodeId);
 ```
-Makes a node no longer a virtual list; its items stay bound.  @param context  The context. @param nodeId   The node. @return `mui_success`, whether or not it was one; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Makes a node no longer a virtual list; its items stay bound.  @param context  The context. @param nodeId   The node. @return `mui_success`, whether or not it was one; `mui_errorInvalid` for a NULL context or the null id; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetVirtualWindow(const muiContext* context, muiNodeId nodeId, uint32_t* firstOut, uint32_t* endOut);
@@ -1662,12 +1662,12 @@ Reads where an item of a list begins along its axis, from the start of the list'
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetItem(muiContext* context, muiNodeId nodeId, uint32_t index);
 ```
-Binds a child of a list to an item: the next layouts place it at the item's offset and measure it into the item's extent.  @param context  The context. @param nodeId   The node, a child of a list. @param index    Its item. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id, a node whose parent is not a list, an index past the list's count, or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Binds a child of a list to an item: the next layouts place it at the item's offset and measure it into the item's extent.  @param context  The context. @param nodeId   The node, a child of a list. @param index    Its item. @return `mui_success`; `mui_errorInvalid` for a NULL context, the null id, a node whose parent is not a list or an index past the list's count; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_ClearItem(muiContext* context, muiNodeId nodeId);
 ```
-Unbinds a node from its item; it joins its parent's flow again.  @param context  The context. @param nodeId   The node. @return `mui_success`, whether or not it was bound; `mui_errorInvalid` for a NULL context, the null id or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Unbinds a node from its item; it joins its parent's flow again.  @param context  The context. @param nodeId   The node. @return `mui_success`, whether or not it was bound; `mui_errorInvalid` for a NULL context or the null id; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetItem(const muiContext* context, muiNodeId nodeId, uint32_t* indexOut);
@@ -1677,17 +1677,17 @@ Reads the item a node is bound to.  @param context   The context. @param nodeId 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_InsertVirtualItems(muiContext* context, muiNodeId nodeId, uint32_t index, uint32_t count);
 ```
-Inserts items into a list before index, estimated; the items after keep their extents, and nodes bound to them follow them. Inserted above the viewport, they move the offset along, so what is shown stays put.  @param context  The context. @param nodeId   The list. @param index    Where, up to the count. @param count    How many, at least 1. @return `mui_success`; `mui_empty` for a node that is not a list; `mui_errorCapacity` when an estimated list's items no longer fit its limit; `mui_errorInvalid` for a NULL context, the null id, an index past the count, no items or more than 2^32 - 1 in all, or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Inserts items into a list before index, estimated; the items after keep their extents, and nodes bound to them follow them. Inserted above the viewport, they move the offset along, so what is shown stays put.  @param context  The context. @param nodeId   The list. @param index    Where, up to the count. @param count    How many, at least 1. @return `mui_success`; `mui_empty` for a node that is not a list; `mui_errorCapacity` when an estimated list's items no longer fit its limit; `mui_errorInvalid` for a NULL context, the null id, an index past the count, no items or more than 2^32 - 1 in all; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_RemoveVirtualItems(muiContext* context, muiNodeId nodeId, uint32_t index, uint32_t count);
 ```
-Removes items from a list; nodes bound to them stay out of the flow, placed nowhere, until the host destroys or binds them (muiNode_GetItem reports them empty), and the rest follow their items. Removed above the viewport, they move the offset back.  @param context  The context. @param nodeId   The list. @param index    The first. @param count    How many, at least 1, ending by the count. @return `mui_success`; `mui_empty` for a node that is not a list; `mui_errorInvalid` for a NULL context, the null id, a range outside the list or empty, or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Removes items from a list; nodes bound to them stay out of the flow, placed nowhere, until the host destroys or binds them (muiNode_GetItem reports them empty), and the rest follow their items. Removed above the viewport, they move the offset back.  @param context  The context. @param nodeId   The list. @param index    The first. @param count    How many, at least 1, ending by the count. @return `mui_success`; `mui_empty` for a node that is not a list; `mui_errorInvalid` for a NULL context, the null id, a range outside the list or empty; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_MoveVirtualItem(muiContext* context, muiNodeId nodeId, uint32_t from, uint32_t to);
 ```
-Moves an item of a list to another index, its extent with it; its node, bound, follows it, as do those between. What is shown stays put when the item crosses the viewport's start.  @param context  The context. @param nodeId   The list. @param from     The item, below the count. @param to       Its new index, below the count. @return `mui_success`; `mui_empty` for a node that is not a list; `mui_errorInvalid` for a NULL context, the null id, an index past the count, or a call from a measure or paint function; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Moves an item of a list to another index, its extent with it; its node, bound, follows it, as do those between. What is shown stays put when the item crosses the viewport's start.  @param context  The context. @param nodeId   The list. @param from     The item, below the count. @param to       Its new index, below the count. @return `mui_success`; `mui_empty` for a node that is not a list; `mui_errorInvalid` for a NULL context, the null id or an index past the count; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ## `visual.h`
 
@@ -1701,7 +1701,7 @@ Returns the default visual style: clear background, no gradient, square corners,
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_SetVisualValues(muiContext* context, muiStyleId styleId, muiVariant variant, const muiVisualStyle* values, muiPropertyMask mask);
 ```
-Sets visual properties in one variant of a class from the fields of values, as muiStyle_SetLayoutValues does layout ones.  @param context  The context. @param styleId  The class. @param variant  The variant. @param values   The values; only the fields mask names are read: colors with components from 0 to 1, a gradient of a known kind with 2 to MUI_MAX_GRADIENT_STOPS stops in order from 0 to 1 (or none with 0), Scale+Offset radii and slice insets of 0 or more, shadows with finite offsets and spread and a blur of 0 or more, opacity from 0 to 1. @param mask     The properties, within MUI_VISUAL_PROPERTIES. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown variant or property bit, a value outside the above or a call from a measure or paint function, which changes nothing; `mui_errorStale` for an id whose class is gone; `mui_errorCapacity` when the variant had no values and the context's limit of property sets is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Sets visual properties in one variant of a class from the fields of values, as muiStyle_SetLayoutValues does layout ones.  @param context  The context. @param styleId  The class. @param variant  The variant. @param values   The values; only the fields mask names are read: colors with components from 0 to 1, a gradient of a known kind with 2 to MUI_MAX_GRADIENT_STOPS stops in order from 0 to 1 (or none with 0), Scale+Offset radii and slice insets of 0 or more, shadows with finite offsets and spread and a blur of 0 or more, opacity from 0 to 1. @param mask     The properties, within MUI_VISUAL_PROPERTIES. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown variant or property bit or a value outside the above, which changes nothing; `mui_errorState` while the context is busy; `mui_errorStale` for an id whose class is gone; `mui_errorCapacity` when the variant had no values and the context's limit of property sets is reached. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiStyle_GetVisualValues(const muiContext* context, muiStyleId styleId, muiVariant variant, muiVisualStyle* valuesOut, muiPropertyMask* maskOut);
@@ -1711,7 +1711,7 @@ Reads the visual values one variant of a class sets.  @param context    The cont
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_SetVisualValues(muiContext* context, muiNodeId nodeId, const muiVisualStyle* values, muiPropertyMask mask);
 ```
-Writes visual properties of a node directly, as muiNode_SetLayoutValues does layout ones; the node's paint, not its layout, is redone.  @param context  The context. @param nodeId   The node. @param values   The values, as muiStyle_SetVisualValues takes them. @param mask     The properties, within MUI_VISUAL_PROPERTIES. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown property bit, a value outside the above or a call from a measure or paint function, which changes nothing; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
+Writes visual properties of a node directly, as muiNode_SetLayoutValues does layout ones; the node's paint, not its layout, is redone.  @param context  The context. @param nodeId   The node. @param values   The values, as muiStyle_SetVisualValues takes them. @param mask     The properties, within MUI_VISUAL_PROPERTIES. @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null id, an unknown property bit or a value outside the above, which changes nothing; `mui_errorState` while the context is busy; `mui_errorStale` for a node that is gone. @par Thread safety Safe from any thread; the context is used by one thread at a time.
 
 ```c
 MUI_NODISCARD MUI_API muiResult muiNode_GetVisualStyle(const muiContext* context, muiNodeId nodeId, muiVisualStyle* valuesOut);

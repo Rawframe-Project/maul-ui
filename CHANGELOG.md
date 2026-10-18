@@ -8,6 +8,29 @@ format.
 
 ## [Unreleased]
 
+### Added
+
+- `mui_errorState`: a context's function that changes it, called from
+  host code the context runs (the measure, baseline, paint and access
+  text functions, the allocator), answers it and counts one misuse.
+
+### Changed
+
+- A context is busy while any of its functions that change it runs, not
+  only while it measures or paints, so a call back in from the allocator
+  or from host code reached on another path is refused too.
+- Those refusals, and the event function's calls that feed input,
+  dispatch, perform an access action or set the event function, answer
+  `mui_errorState` instead of `mui_errorInvalid`.
+
+### Fixed
+
+- `muiDestroyContext` from host code or the event function destroyed
+  the context under the call that ran it; it now does nothing and
+  counts one misuse.
+- `muiNextNotification` and `muiNextPointerRecord` were not refused from
+  host code.
+
 ## [0.5.15] - 2026-10-15
 
 One layout fix, with no change to the API, found by random layouts

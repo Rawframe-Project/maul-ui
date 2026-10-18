@@ -126,13 +126,13 @@ void muiFocusAssign(muiContext* context, uint8_t player, uint32_t slot, bool sho
     }
 }
 
-muiResult muiFocus_Set(muiContext* context, uint8_t player, muiNodeId nodeId, muiFocusCause cause)
+muiResult muiSetFocus(muiContext* context, uint8_t player, muiNodeId nodeId, muiFocusCause cause)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
-    if (player >= MUI_MAX_PLAYERS || cause > mui_focusByNavigation || muiIsInHostCall(context))
+    if (player >= MUI_MAX_PLAYERS || cause > mui_focusByNavigation)
     {
         return muiRefuse(context);
     }
@@ -162,6 +162,17 @@ muiResult muiFocus_Set(muiContext* context, uint8_t player, muiNodeId nodeId, mu
         muiPopupFocus(context, slot);
     }
     return mui_success;
+}
+
+muiResult muiFocus_Set(muiContext* context, uint8_t player, muiNodeId nodeId, muiFocusCause cause)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = muiSetFocus(context, player, nodeId, cause);
+        muiLeave(context);
+    }
+    return status;
 }
 
 muiNodeId muiFocus_Get(const muiContext* context, uint8_t player)
@@ -330,13 +341,13 @@ void muiFocusNavigate(muiContext* context, uint8_t player, uint32_t slot)
     muiScrollReveal(context, slot);
 }
 
-muiResult muiFocus_Move(muiContext* context, muiNodeId rootId, uint8_t player, bool backward)
+muiResult muiMoveFocus(muiContext* context, muiNodeId rootId, uint8_t player, bool backward)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
-    if (IsNull(rootId) || player >= MUI_MAX_PLAYERS || muiIsInHostCall(context))
+    if (IsNull(rootId) || player >= MUI_MAX_PLAYERS)
     {
         return muiRefuse(context);
     }
@@ -357,6 +368,17 @@ muiResult muiFocus_Move(muiContext* context, muiNodeId rootId, uint8_t player, b
     }
     muiFocusNavigate(context, player, next);
     return mui_success;
+}
+
+muiResult muiFocus_Move(muiContext* context, muiNodeId rootId, uint8_t player, bool backward)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = muiMoveFocus(context, rootId, player, backward);
+        muiLeave(context);
+    }
+    return status;
 }
 
 void muiFocusPress(muiContext* context, uint8_t player, uint32_t slot)

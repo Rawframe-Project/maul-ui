@@ -63,4 +63,9 @@ bool muiScrollIsEasingUnder(const muiContext* context, uint32_t root);
 // muiNode_ScrollIntoView does.
 void muiScrollReveal(muiContext* context, uint32_t slot);
 
+// muiNode_SetScroll and muiNode_ScrollIntoView without the busy mark, for
+// the library's own calls from inside a call that holds it.
+muiResult muiSetNodeScroll(muiContext* context, muiNodeId nodeId, float x, float y);
+muiResult muiScrollNodeIntoView(muiContext* context, muiNodeId nodeId);
+
 #endif // MAUL_UI_SRC_SCROLL_H

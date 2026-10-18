@@ -410,6 +410,17 @@ void muiDestroyContext(muiContext* context)
     {
         return;
     }
+    // Refused from host code and from the event function; busy to the
+    // end, as the allocator's free runs.
+    if (context->events.dispatching)
+    {
+        (void)muiRefuseBusy(context);
+        return;
+    }
+    if (muiEnter(context) != mui_success)
+    {
+        return;
+    }
     const muiAllocator allocator = context->allocator;
     muiAccessRelease(&context->access, &allocator);
     muiRelease(&allocator, context, context->blockSize, alignof(max_align_t));
@@ -431,14 +442,37 @@ muiResult muiRefuse(muiContext* context)
     return mui_errorInvalid;
 }
 
-bool muiIsInHostCall(const muiContext* context)
+muiResult muiRefuseBusy(muiContext* context)
 {
-    return context->inHostCall;
+    context->misuse++;
+    return mui_errorState;
+}
+
+muiResult muiEnter(muiContext* context)
+{
+    if (context == nullptr)
+    {
+        return mui_success;
+    }
+    if (context->busy)
+    {
+        return muiRefuseBusy(context);
+    }
+    context->busy = true;
+    return mui_success;
+}
+
+void muiLeave(muiContext* context)
+{
+    if (context != nullptr)
+    {
+        context->busy = false;
+    }
 }
 
 uint32_t muiResolveEdit(muiContext* context, muiNodeId nodeId, muiResult* statusOut)
 {
-    if (nodeId.index1 == 0 || muiIsInHostCall(context))
+    if (nodeId.index1 == 0)
     {
         *statusOut = muiRefuse(context);
         return 0;
@@ -448,11 +482,22 @@ uint32_t muiResolveEdit(muiContext* context, muiNodeId nodeId, muiResult* status
     return slot;
 }
 
-muiResult muiNextNotification(muiContext* context, muiNotification* notificationOut)
+static muiResult NextNotification(muiContext* context, muiNotification* notificationOut)
 {
     if (context == nullptr || notificationOut == nullptr)
     {
         return mui_errorInvalid;
     }
     return muiNotifyTake(&context->notifications, notificationOut) ? mui_success : mui_empty;
+}
+
+muiResult muiNextNotification(muiContext* context, muiNotification* notificationOut)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NextNotification(context, notificationOut);
+        muiLeave(context);
+    }
+    return status;
 }

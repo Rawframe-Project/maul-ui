@@ -288,7 +288,8 @@ static bool FirstShown(const muiContext* context, uint32_t slot, const muiVirtua
     return found;
 }
 
-muiResult muiNode_SetVirtualList(muiContext* context, muiNodeId nodeId, const muiVirtualList* list)
+static muiResult NodeSetVirtualList(muiContext* context, muiNodeId nodeId,
+                                    const muiVirtualList* list)
 {
     if (context == nullptr)
     {
@@ -357,15 +358,22 @@ muiResult muiNode_SetVirtualList(muiContext* context, muiNodeId nodeId, const mu
     return mui_success;
 }
 
-muiResult muiNode_ClearVirtualList(muiContext* context, muiNodeId nodeId)
+muiResult muiNode_SetVirtualList(muiContext* context, muiNodeId nodeId, const muiVirtualList* list)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NodeSetVirtualList(context, nodeId, list);
+        muiLeave(context);
+    }
+    return status;
+}
+
+static muiResult NodeClearVirtualList(muiContext* context, muiNodeId nodeId)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
-    }
-    if (muiIsInHostCall(context))
-    {
-        return muiRefuse(context);
     }
     muiResult status = mui_success;
     muiVirtualEntry* entry = muiVirtualFind(context, nodeId, &status);
@@ -381,6 +389,17 @@ muiResult muiNode_ClearVirtualList(muiContext* context, muiNodeId nodeId)
         muiTreeMarkLayout(&context->tree, slot);
     }
     return status == mui_empty ? mui_success : status;
+}
+
+muiResult muiNode_ClearVirtualList(muiContext* context, muiNodeId nodeId)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NodeClearVirtualList(context, nodeId);
+        muiLeave(context);
+    }
+    return status;
 }
 
 muiResult muiNode_GetVirtualWindow(const muiContext* context, muiNodeId nodeId, uint32_t* firstOut,
@@ -436,7 +455,7 @@ static void Bind(muiContext* context, uint32_t slot, uint32_t item)
     muiTreeMarkLayout(&context->tree, slot);
 }
 
-muiResult muiNode_SetItem(muiContext* context, muiNodeId nodeId, uint32_t index)
+static muiResult NodeSetItem(muiContext* context, muiNodeId nodeId, uint32_t index)
 {
     if (context == nullptr)
     {
@@ -458,7 +477,18 @@ muiResult muiNode_SetItem(muiContext* context, muiNodeId nodeId, uint32_t index)
     return mui_success;
 }
 
-muiResult muiNode_ClearItem(muiContext* context, muiNodeId nodeId)
+muiResult muiNode_SetItem(muiContext* context, muiNodeId nodeId, uint32_t index)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NodeSetItem(context, nodeId, index);
+        muiLeave(context);
+    }
+    return status;
+}
+
+static muiResult NodeClearItem(muiContext* context, muiNodeId nodeId)
 {
     if (context == nullptr)
     {
@@ -469,6 +499,17 @@ muiResult muiNode_ClearItem(muiContext* context, muiNodeId nodeId)
     if (slot != 0 && context->lists.items[slot - 1] != 0)
     {
         Bind(context, slot, 0);
+    }
+    return status;
+}
+
+muiResult muiNode_ClearItem(muiContext* context, muiNodeId nodeId)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NodeClearItem(context, nodeId);
+        muiLeave(context);
     }
     return status;
 }

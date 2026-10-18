@@ -183,7 +183,7 @@ static void TestEditsFromMeasureAreRefused(void)
     muiLayoutInput input = Input(&host);
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
     CHECK(host.measured > 0, "measured");
-    CHECK(host.editStatus == mui_errorInvalid, "edit refused inside measure");
+    CHECK(host.editStatus == mui_errorState, "edit refused inside measure");
     muiNodeDef def = muiDefaultNodeDef();
     muiNodeId node = s_null;
     CHECK(muiCreateNode(context, &def, &node) == mui_success, "edits work again after");

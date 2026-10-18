@@ -646,7 +646,7 @@ static void TestStyleEditsAreRefusedWhileMeasuring(void)
     CHECK(muiComputeLayout(context, node, &input) == mui_success, "compute");
     for (int i = 0; i < 4; i++)
     {
-        CHECK(host.refused[i] == mui_errorInvalid, "refused while measuring");
+        CHECK(host.refused[i] == mui_errorState, "refused while measuring");
     }
     muiDestroyContext(context);
 }

@@ -72,7 +72,7 @@ bool muiNode_IsRightToLeft(const muiContext* context, muiNodeId nodeId)
     return false;
 }
 
-muiResult muiNode_MarkContentChanged(muiContext* context, muiNodeId nodeId)
+static muiResult NodeMarkContentChanged(muiContext* context, muiNodeId nodeId)
 {
     if (context == nullptr)
     {
@@ -83,6 +83,17 @@ muiResult muiNode_MarkContentChanged(muiContext* context, muiNodeId nodeId)
     if (slot != 0)
     {
         muiTreeMarkLayout(&context->tree, slot);
+    }
+    return status;
+}
+
+muiResult muiNode_MarkContentChanged(muiContext* context, muiNodeId nodeId)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NodeMarkContentChanged(context, nodeId);
+        muiLeave(context);
     }
     return status;
 }
@@ -134,7 +145,6 @@ static muiSize SolveRoot(muiContext* context, const muiSolver* solver, uint32_t 
 {
     muiSizingInput sizingInput = muiRootInput(&context->layout[root - 1].style, &input->safeArea,
                                               input->availableWidth, input->availableHeight);
-    context->inHostCall = true;
     if (!muiBoundLayout(solver, root))
     {
         Invalidate(context, root);
@@ -151,11 +161,10 @@ static muiSize SolveRoot(muiContext* context, const muiSolver* solver, uint32_t 
     sizingInput.width = (muiMeasureAxis){size.width, mui_measureExact};
     sizingInput.height = (muiMeasureAxis){size.height, mui_measureExact};
     (void)muiSolveNode(solver, root, &sizingInput, true);
-    context->inHostCall = false;
     return size;
 }
 
-muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayoutInput* input)
+static muiResult ComputeLayout(muiContext* context, muiNodeId rootId, const muiLayoutInput* input)
 {
     if (context == nullptr)
     {
@@ -223,6 +232,17 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
     // Popups go beside their anchors where layout and scrolling left them.
     muiPlacePopups(context, root);
     return mui_success;
+}
+
+muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayoutInput* input)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = ComputeLayout(context, rootId, input);
+        muiLeave(context);
+    }
+    return status;
 }
 
 muiRect muiNode_GetRect(const muiContext* context, muiNodeId nodeId)

@@ -160,7 +160,9 @@ error that names why. `mui_empty` says a queue had nothing to take.
 contract; `mui_errorStale` an id whose object is gone;
 `mui_errorCapacity` a limit or a buffer too small; `mui_errorFormat`
 damaged data, such as a font; `mui_errorPlatform` a refusal of the
-platform's. `muiResultName` names any of them.
+platform's; `mui_errorState` a call back into an object from host code
+it is running, such as a measure function editing the tree.
+`muiResultName` names any of them.
 
 Ids name what a context owns: a slot and a generation. A destroyed
 node's slot is used again, with a new generation, so an old id never

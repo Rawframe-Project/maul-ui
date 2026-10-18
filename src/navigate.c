@@ -217,15 +217,14 @@ uint32_t muiNavigateFind(const muiContext* context, uint32_t scope, uint32_t foc
     return next != focus ? next : 0;
 }
 
-muiResult muiFocus_MoveToward(muiContext* context, muiNodeId rootId, uint8_t player,
-                              muiDirection direction)
+muiResult muiMoveFocusToward(muiContext* context, muiNodeId rootId, uint8_t player,
+                             muiDirection direction)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
-    if (IsNull(rootId) || player >= MUI_MAX_PLAYERS || direction > mui_directionRight ||
-        muiIsInHostCall(context))
+    if (IsNull(rootId) || player >= MUI_MAX_PLAYERS || direction > mui_directionRight)
     {
         return muiRefuse(context);
     }
@@ -239,7 +238,7 @@ muiResult muiFocus_MoveToward(muiContext* context, muiNodeId rootId, uint8_t pla
     uint32_t scope = muiFocusScope(context, root, player, &focus);
     if (focus == 0)
     {
-        return muiFocus_Move(context, rootId, player, false);
+        return muiMoveFocus(context, rootId, player, false);
     }
     uint32_t next = muiNavigateFind(context, scope, focus, direction);
     if (next == 0)
@@ -248,6 +247,18 @@ muiResult muiFocus_MoveToward(muiContext* context, muiNodeId rootId, uint8_t pla
     }
     muiFocusNavigate(context, player, next);
     return mui_success;
+}
+
+muiResult muiFocus_MoveToward(muiContext* context, muiNodeId rootId, uint8_t player,
+                              muiDirection direction)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = muiMoveFocusToward(context, rootId, player, direction);
+        muiLeave(context);
+    }
+    return status;
 }
 
 // Takes out the links of nodes destroyed since.
@@ -264,14 +275,14 @@ static void Purge(muiContext* context)
     }
 }
 
-muiResult muiNode_SetNeighbor(muiContext* context, muiNodeId nodeId, muiDirection direction,
-                              muiNodeId targetId)
+static muiResult NodeSetNeighbor(muiContext* context, muiNodeId nodeId, muiDirection direction,
+                                 muiNodeId targetId)
 {
     if (context == nullptr)
     {
         return mui_errorInvalid;
     }
-    if (direction > mui_directionRight || muiIsInHostCall(context))
+    if (direction > mui_directionRight)
     {
         return muiRefuse(context);
     }
@@ -309,6 +320,18 @@ muiResult muiNode_SetNeighbor(muiContext* context, muiNodeId nodeId, muiDirectio
     }
     *link = (muiNeighbor){slot, muiTreeIdOf(&context->tree, slot).generation, direction, targetId};
     return mui_success;
+}
+
+muiResult muiNode_SetNeighbor(muiContext* context, muiNodeId nodeId, muiDirection direction,
+                              muiNodeId targetId)
+{
+    muiResult status = muiEnter(context);
+    if (status == mui_success)
+    {
+        status = NodeSetNeighbor(context, nodeId, direction, targetId);
+        muiLeave(context);
+    }
+    return status;
 }
 
 muiNodeId muiNode_GetNeighbor(const muiContext* context, muiNodeId nodeId, muiDirection direction)

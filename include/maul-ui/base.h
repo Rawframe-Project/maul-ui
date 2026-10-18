@@ -85,11 +85,18 @@ extern "C"
         // A root def was built against headers of another major or minor
         // version than the library's (MUI_DEF_VERSION).
         mui_errorVersion = -6,
+        // The object is busy: host code it is running (a measure, paint or
+        // access text function, the allocator, an action function, the
+        // clipboard writer) called one of its functions that changes it,
+        // or an event function called one it may not (muiEventFunction).
+        mui_errorState = -7,
     };
 
     // The allocator an owner object takes in its def and keeps for its
     // lifetime. Alignment is a power of two. A zeroed allocator means the C
-    // library's allocation functions.
+    // library's allocation functions. Its functions run inside the object's
+    // calls and call no function that changes it: one answers
+    // mui_errorState and counts one misuse.
     typedef struct muiAllocator
     {
         void* (*alloc)(size_t size, size_t alignment, void* context);
