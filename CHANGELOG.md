@@ -8,6 +8,15 @@ format.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-10-19
+
+One layout fix, with no change to the API, found by random layouts
+checked against Chrome and Firefox: a wrapping column measured for its
+flex base breaks its lines at its pixel maximum. A program built
+against 0.6.0 runs with 0.6.1. Known issues: as in 0.6.0, TalkBack and
+VoiceOver on iOS have not walked the samples, and Orca 46 does not
+announce the first focus in a window that opens with nothing focused.
+
 ### Fixed
 
 - A wrapping column measured for its flex base in a column breaks its

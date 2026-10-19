@@ -24,7 +24,7 @@ generated from the headers.
 
 ## Status
 
-0.6.0 is the current release. Every part above is in place: the node
+0.6.1 is the current release. Every part above is in place: the node
 tree, flex layout checked against Chrome (and Firefox where the two
 part), style, the text service with font fallback and editing,
 interaction, virtualization and popups, the accessibility tree with its
