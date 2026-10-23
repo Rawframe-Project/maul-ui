@@ -599,7 +599,7 @@ if(MAUL_UI_FUZZ AND MAUL_UI_TEXT)
     # the sanitizers watch its code, not only the targets'.
     target_compile_options(maul-ui PRIVATE -fsanitize=fuzzer-no-link,address,undefined)
     target_link_options(maul-ui PUBLIC -fsanitize=address,undefined)
-    foreach(area inflate png font text)
+    foreach(area inflate png font text api)
         add_executable(fuzz_${area} test/fuzz_${area}.c)
         target_link_libraries(fuzz_${area} PRIVATE maul-ui)
         # The targets reach the library's own functions.

@@ -11,7 +11,10 @@
 #   bytes fuzz_text reads first (an allocation to fail among them) and
 #   before edits of every kind;
 # - atspi: D-Bus method calls, marshalled as on the wire, of every method
-#   the adapter answers, on the root and each node of fuzz_atspi's tree.
+#   the adapter answers, on the root and each node of fuzz_atspi's tree;
+# - api: sequences of public calls in fuzz_api's encoding, trees made,
+#   styled and moved, then laid out and compared with a solve from
+#   nothing.
 # The standard library only.
 #
 # Usage: python3 tools/fuzz_seed.py [DIRECTORY]  (from the repository root;
@@ -237,6 +240,33 @@ def atspi_seeds(directory):
             write(directory, f"{p}-{i:02d}-{member}", data)
 
 
+def pick(index, count):
+    """A byte fuzz_api reads as the id at index among count it holds."""
+    return index + count * ((16 + count - 1) // count)
+
+
+def api_seeds(directory):
+    layout = bytes([7, 0, 1, 100, 100, 255, 0])
+    for shape in range(4):
+        out = bytearray()
+        count = 0
+        for i in range(10):
+            out += bytes([0, i % 3, 255])
+            count += 1
+            if i > 0:
+                parent = 0 if shape == 0 else (i - 1 if shape == 1 else (i - 1) // 2)
+                out += bytes([2, pick(parent, count), pick(i, count), 0])
+            # A raw write of a few bytes of the layout style, any mask.
+            out += bytes([4, pick(i, count), (i * 13) % 200, 4, i, 2, 0, 1, 0, 0, 0, 0xFF,
+                          0xFF, 0xFF, 0xFF])
+        out += bytes([7, pick(0, count), 1, 120, 80, 255, 0])
+        out += bytes([9, pick(0, count), 1, 4])
+        out += bytes([11, pick(0, count), 1, 0, 0, 1, 0, 1, 40, 40, 0])
+        out += bytes([12, pick(0, count), 0, 0])
+        out += bytes([3, pick(count // 2, count)]) + layout
+        write(directory, f"tree-{shape}", bytes(out))
+
+
 def main():
     base = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else pathlib.Path.cwd()
     inflate_seeds(base / "corpus-fuzz_inflate")
@@ -244,6 +274,7 @@ def main():
     font_seeds(base / "corpus-fuzz_font")
     text_seeds(base / "corpus-fuzz_text")
     atspi_seeds(base / "corpus-fuzz_atspi")
+    api_seeds(base / "corpus-fuzz_api")
 
 
 if __name__ == "__main__":
