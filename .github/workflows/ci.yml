@@ -46,7 +46,7 @@ jobs:
           python3 tools/check_guide.py
           python3 tools/gen_layout_fixtures.py --check
       - name: No engine concept in the API
-        # The litmus test of record mui-0001: any engine or application
+        # The litmus test: any engine or application
         # can drive Maul UI over its own tree.
         run: python3 tools/check_litmus.py
       - name: clang-tidy
@@ -72,7 +72,7 @@ jobs:
           - { name: linux-clang-20-asan, os: ubuntu-24.04, cc: clang-20, cxx: clang++-20, config: Debug,   extra: "-DMAUL_UI_SANITIZE=ON" }
           - { name: linux-clang-20-tsan, os: ubuntu-24.04, cc: clang-20, cxx: clang++-20, config: Debug,   extra: "-DMAUL_UI_TSAN=ON" }
           - { name: linux-shared,        os: ubuntu-24.04, cc: clang-20, cxx: clang++-20, config: Release, extra: "-DMAUL_UI_BUILD_SHARED=ON" }
-          # The core alone, without the text component (record mui-0006).
+          # The core alone, without the text component.
           - { name: linux-core,          os: ubuntu-24.04, cc: gcc-14,   cxx: g++-14,     config: Release, extra: "-DMAUL_UI_TEXT=OFF" }
           - { name: linux-arm64-gcc-14,  os: ubuntu-24.04-arm, cc: gcc-14, cxx: g++-14,   config: Release, extra: "" }
           # With the Maul Window glue, its NSAccessibility branch built.
@@ -155,14 +155,14 @@ jobs:
       - name: Test
         run: ctest --test-dir build -C Release --output-on-failure --timeout 240
       # The public headers alone under MSVC's cl, as C17 and C++17 with
-      # /W4 /WX, which cannot build the library itself (family record 0008).
+      # /W4 /WX, which cannot build the library itself.
       - name: Headers under MSVC
         run: |
           cmake -S cmake/HeaderCheck -B build-headers
           cmake --build build-headers --config Release
 
   rhi:
-    # The reference renderer (record mui-0005) with Maul RHI
+    # The reference renderer with Maul RHI
     # fetched: clang-tidy over its sources, its test on Maul RHI's test
     # driver, and its pixels and the samples on lavapipe, which must be
     # found, under the Vulkan validation layer, whose errors fail the
@@ -244,7 +244,7 @@ jobs:
           done
 
   window:
-    # The Maul Window glue (record mui-0007) with Maul Window fetched at
+    # The Maul Window glue with Maul Window fetched at
     # its release tag: clang-tidy over its sources, and its tests on Maul
     # Window's headless test backend, the platform backends off; then
     # again without the text component, which its compositions need.
@@ -283,7 +283,7 @@ jobs:
 
   ios:
     # Every test in the iOS simulator, through simctl spawn, on an iPhone
-    # of the newest runtime, as Maul Window's cell (record mui-0008).
+    # of the newest runtime, as Maul Window's cell.
     name: ios-simulator
     runs-on: macos-15
     steps:
@@ -316,7 +316,7 @@ jobs:
 
   android:
     # Every test in the Android emulator, Android 11 on x86_64 with KVM,
-    # through adb, as Maul Window's cell (record mui-0008). The runner
+    # through adb, as Maul Window's cell. The runner
     # carries the SDK and NDK r28; the emulator and its image are
     # installed here.
     name: android-emulator
@@ -364,7 +364,7 @@ jobs:
         run: ctest --test-dir build --output-on-failure --timeout 240
 
   web-wasi:
-    # The web without Emscripten (mui-0009): Clang's wasm32-wasi, every
+    # The web without Emscripten: Clang's wasm32-wasi, every
     # test under Node's WASI and the ARIA test in headless Chrome. The
     # text component is left out: FreeType needs setjmp, which wasi-libc
     # as packaged lacks, and a host building it supplies its own.
@@ -425,7 +425,7 @@ jobs:
         # The reference renderer drawing on WebGPU (SwiftShader), each
         # sample checking its pixels headless, then presenting into a
         # canvas from the browser's frames, its last frame read back and
-        # checked, in a build of its own (record mui-0005).
+        # checked, in a build of its own.
         run: |
           emcmake cmake -B build-sample -DCMAKE_BUILD_TYPE=Release -D${PREFIX}_WERROR=ON \
             -D${PREFIX}_RHI=ON -D${PREFIX}_WINDOW=ON
@@ -444,15 +444,14 @@ jobs:
           MUI_RHI_REQUIRED=1 MUI_NODE_MODULES=/tmp/browser/node_modules
           node test/web_runner.cjs build-sample/test_rhi_pixels.js
       - name: The reference renderer's WGSL in headless Chrome's WebGPU
-        # The shader tools pass WGSL through untouched (record mui-0005).
+        # The shader tools pass WGSL through untouched.
         run: MUI_NODE_MODULES=/tmp/browser/node_modules node tools/check_wgsl.cjs rhi/shaders/quad.wgsl
       - name: Size
-        # The static library's size, reported, not gated (family record
-        # 0013).
+        # The static library's size, reported, not gated.
         run: stat -c '%s bytes' build/libmaul-ui.a
       - name: Wasm size against the budget
-        # Each part's wasm at -Oz with link-time optimization, as record
-        # mui-0001's size budget measures it; reported, checked at release.
+        # Each part's wasm at -Oz with link-time optimization, as the size
+        # budget measures it; reported, checked at release.
         run: |
           emcmake cmake -B build-size -DCMAKE_BUILD_TYPE=MinSizeRel \
             -DCMAKE_C_FLAGS_MINSIZEREL="-Oz -DNDEBUG" -DCMAKE_CXX_FLAGS_MINSIZEREL="-Oz -DNDEBUG" \

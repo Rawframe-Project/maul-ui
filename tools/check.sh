@@ -107,7 +107,7 @@ source_checks() {
     python3 tools/check_text_headers.py
     python3 tools/check_litmus.py
     if [ -f "$org/scripts/docs_check.py" ]; then
-        python3 "$org/scripts/docs_check.py" --strict --exclude test/fonts
+        python3 "$org/scripts/docs_check.py" --strict
     else
         echo "skipped the organization's documentation check: no checkout at $org"
     fi

@@ -42,7 +42,7 @@ These are committed, because a build must not need their generators' tools:
 | `test/generated/layout_fixtures.h` | `python3 tools/gen_layout_fixtures.py` | `test/layout/*.txt`; CI checks that it is current |
 | `src/generated/inflate_tables.h` | `python3 tools/gen_inflate_tables.py` | RFC 1951's fixed codes; a family file |
 | `rhi/shaders/quad_container.h` | `python3 tools/gen_rhi_shaders.py <maul-rhi source tree>` | `rhi/shaders/quad.*`, with glslang, SPIRV-Tools, SPIRV-Cross and dxc |
-| `test/fonts/Maul*.ttf`, `MaulCff.otf` | `test/fonts/make_*.py` | fontTools (and Pillow for the bitmap fonts) |
+| `test/fonts/Maul*.ttf`, `MaulCff.otf` | `test/fonts/make_*.py` | fontTools (and Pillow for the bitmap fonts); [Test fonts](test-fonts.md) describes each |
 | `test/images/pngs.bin` | `test/images/make_pngs.py` | Pillow |
 
 Each generator writes the same bytes on every run. A change to a generated file names the generator or input change that caused it.

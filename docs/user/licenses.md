@@ -22,5 +22,5 @@ The reference renderer and the window glue link Maul RHI and Maul Window, both M
 
 ## What the repository holds
 
-- The test fonts in [test/fonts](../../test/fonts) are listed with their sources and licenses in that folder's README. Liberation Sans is under the SIL Open Font License 1.1, Ahem is in the public domain, and the fonts made by the scripts beside them are MIT. The samples embed Liberation Sans in their programs.
+- The test fonts in [test/fonts](../../test/fonts) are listed with their sources and licenses in [Test fonts](../operations/test-fonts.md). Liberation Sans is under the SIL Open Font License 1.1, Ahem is in the public domain, and the fonts made by the scripts beside them are MIT. The samples embed Liberation Sans in their programs.
 - The layout fixtures in `test/layout/` hold rectangles measured in Chrome, data under this repository's license.

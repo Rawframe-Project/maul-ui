@@ -1,4 +1,4 @@
-# Screen readers walking the samples (record mui-0008, research 148):
+# Screen readers walking the samples:
 # VoiceOver on a macOS runner and NVDA on a Windows runner, set up and
 # driven by Guidepup, as tools/screen_reader_walk.sh walks them with
 # Orca, and NVDA over the ARIA adapter in Chrome, each walk checking the
@@ -43,8 +43,8 @@ jobs:
       # macOS's setup has failed now and then turning on Do Not Disturb,
       # passing on the next try. On some machines it never passes, macOS
       # refusing the runner's Apple events to System Events: VoiceOver is
-      # then not run there, said by a warning, and the walk skipped
-      # (research 148, I135); any other failure fails.
+      # then not run there, said by a warning, and the walk skipped; any
+      # other failure fails.
       - name: Set up the screen reader
         id: setup
         run: |
@@ -85,7 +85,7 @@ jobs:
           path: walk-*
 
   web:
-    # NVDA over the ARIA adapter (record mui-0008, research 152): the
+    # NVDA over the ARIA adapter: the
     # controls and text samples built for the web, in a Chrome with a
     # window drawing WebGPU on SwiftShader, walked as on the desktop from
     # steps of their own, which first enable the page's accessibility
