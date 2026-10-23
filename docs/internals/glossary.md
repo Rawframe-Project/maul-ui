@@ -1,0 +1,42 @@
+# Glossary
+
+- **Host:** the program or engine that drives the library: it owns the window, the input, the renderer and whatever content the library does not draw.
+- **Context:** the owner object a host creates first (`muiCreateContext`), which owns the tree and everything the frame computes, in one block reserved at creation.
+- **Text service:** the text component's owner object (`muiCreateTextService`), separate from any context, holding fonts, families, text blocks and atlases.
+- **Def:** a struct that describes an object to create, built by its `muiDefault...Def` function and checked by its cookie. The context def and the text service def are the root defs and also carry the ABI version.
+- **Limit:** a named count in a def that fixes how much the object reserves at creation. Reaching one refuses with `mui_errorCapacity`.
+- **Node:** an element of the tree, named by an id. Every node is a flex container.
+- **Root:** a node without a parent. Each root is laid out, drawn and made accessible on its own.
+- **Host key:** a 64-bit value a node carries for the host, which the library passes back when it measures and paints the node and never reads.
+- **Host content:** what a node shows that the library does not draw (text, an image the host draws itself, a chart), measured and painted through the host's functions.
+- **Scale+Offset:** a dimension that is `scale x the parent's content extent + offset`, CSS's `calc(scale * 100% + offset)`.
+- **Class:** a style object with base values and one set of values per variant. Also called a style.
+- **Node type:** an ordered list of classes a node takes before its own.
+- **Variant:** a set of a class's values that applies in a state (hovered, pressed and so on) or under a condition.
+- **Condition:** a clause set over the node's size, direction and the environment (viewport class, input modality, text scale, reduced motion) under which a variant applies.
+- **Direct write:** a value set on a node itself, which wins over every class until reset.
+- **Token:** a typed named value, literal or an alias, that class variants name in place of a value. **Theme:** a set of token overrides for the subtree it is set on.
+- **Transition spec:** a context object saying how a property moves to a new value: timed with an easing, or a spring.
+- **Mark:** a request on a node for a stage (style, layout, paint, accessibility) to redo it, with flags up the parent chain.
+- **Draw list:** the build's output: fixed-size commands in paint order, with clip, gradient, transform and glyph tables.
+- **Clip chain:** a clip and its parents in the clip table; a command names the innermost.
+- **Generation (of a list):** a count of builds in the list's header, unchanged when a build keeps the last list.
+- **Layer:** a node that roots an activation layer, a modal layer or part of the overlay band, painted and hit above the content it is not in.
+- **Pass-through:** whether input a node is hit by but leaves unused goes on to what lies behind the UI.
+- **Pointer record:** an entry of the pointer ring (press, release, click, drag, drop, cancel, lost capture), taken by the host and dispatched.
+- **Player:** one of up to eight focus owners, for local multiplayer.
+- **Route:** the nodes an event visits, from the top of the target's tree down to the target and back up.
+- **Notification:** an entry of the context's queue (oscillation, a window of a virtual list, a popup dismissed, an exit finished, a range changed, a focus change, an access action), drained with `muiNextNotification`.
+- **Virtual list:** a scroll container of many items of which only a window exists as nodes.
+- **Window (of a virtual list):** the indices of the items that should exist as nodes after a layout.
+- **Text block:** UTF-8 text the text service lays out, shown by a node whose host key is the block's key.
+- **Span:** a byte range of a block styled apart from its node.
+- **Composition:** the text an input method is building before it commits it, kept in the block's text.
+- **Affinity:** which of the two places of an offset a position means: the end of a line or the start of the next, either side of a change of direction.
+- **Atlas:** pages of glyph images packed for a renderer, of one format each: coverage, multi-channel fields or colour.
+- **Update (accessibility):** the nodes that changed since the last, each whole, with the focus.
+- **Adapter:** the code for one platform's accessibility API, which keeps a consumer tree and answers the platform from it.
+- **Consumer tree:** the copy of the accessibility tree an adapter reads (`muiAccessTree`).
+- **Shown tree:** what platforms see of the consumer tree: hidden and clipped nodes left out, generic nodes flattened.
+- **Glue:** the window glue, `maul-ui-window`, which feeds a Maul Window window to a context.
+- **Fixture:** a layout of the corpus in `test/layout/` with the rectangles Chrome gives it.

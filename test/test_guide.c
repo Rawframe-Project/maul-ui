@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The guide's snippets after its first program (docs/guide.md), each as
-// written there (tools/check_guide.py checks it, family record 0019),
+// The snippets of docs/user/ after the first program, each as written
+// there (tools/check_guide.py checks it),
 // run and their results checked: refusals named and counted, and a
 // context in a counted allocator within its limits, a frame taking no
 // memory.

@@ -20,6 +20,7 @@ option(MAUL_UI_BUILD_SAMPLES
     "Build the samples, where the renderer, the Maul Window glue and text are built" ${PROJECT_IS_TOP_LEVEL})
 option(MAUL_UI_BUILD_SHARED "Build a shared library instead of a static one" OFF)
 option(MAUL_UI_INSTALL "Generate install rules" ${PROJECT_IS_TOP_LEVEL})
+option(MAUL_UI_TEST_PACKAGE "Test the installed package by building samples/minimal against it" OFF)
 option(MAUL_UI_WERROR "Treat compiler warnings as errors" OFF)
 option(MAUL_UI_SANITIZE "Instrument with AddressSanitizer and UBSan" OFF)
 option(MAUL_UI_TSAN "Instrument with ThreadSanitizer" OFF)
@@ -272,7 +273,8 @@ if(MAUL_UI_BUILD_TESTS)
             maul_add_test(rhi_pixels WHITEBOX)
         endif()
         target_link_libraries(test_rhi_pixels PRIVATE maul-ui-rhi)
-        set_tests_properties(rhi_pixels PROPERTIES SKIP_RETURN_CODE 77)
+        set_tests_properties(rhi_pixels PROPERTIES SKIP_RETURN_CODE 77
+                             FAIL_REGULAR_EXPRESSION "Validation Error")
         # Glyph runs, in Ahem, where Maul UI has its text component.
         if(MAUL_UI_TEXT)
             foreach(test rhi_renderer rhi_pixels)
@@ -559,6 +561,14 @@ if(MAUL_UI_BUILD_TESTS)
     if(WIN32)
         maul_add_test(windows_headers)
     endif()
+    # Tests that drive a real device, bus, platform API, browser, emulator
+    # or simulator: they may read the clock, and stay out of the
+    # changed-files check.
+    foreach(test rhi_pixels atspi aria uia nsaccessibility uiaccessibility android_access)
+        if(TEST ${test})
+            set_property(TEST ${test} APPEND PROPERTY LABELS ${test} integration)
+        endif()
+    endforeach()
     maul_add_header_tests()
     # On the web, suites hold several default contexts (8.4 MB each) at
     # once, past the 16 MiB Emscripten starts with: they grow their
@@ -632,4 +642,11 @@ if(MAUL_UI_INSTALL)
         list(REMOVE_ITEM MAUL_PUBLIC_HEADERS ${mui_text_headers})
     endif()
     include(cmake/Install.cmake)
+    if(MAUL_UI_TEST_PACKAGE AND MAUL_UI_BUILD_TESTS)
+        add_test(NAME package COMMAND ${CMAKE_COMMAND} -DBINARY_DIR=${PROJECT_BINARY_DIR}
+                 -DSOURCE_DIR=${PROJECT_SOURCE_DIR} -DGENERATOR=${CMAKE_GENERATOR}
+                 -DC_COMPILER=${CMAKE_C_COMPILER} -DSHARED=${MAUL_UI_BUILD_SHARED}
+                 -P ${PROJECT_SOURCE_DIR}/cmake/PackageTest.cmake)
+        set_tests_properties(package PROPERTIES LABELS package)
+    endif()
 endif()

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The guide's text snippets (docs/guide.md, section 5), each as written
-// there (tools/check_guide.py checks it, family record 0019), run in
+// The text snippets of docs/user/ (text.md and text-editing.md), each as
+// written there (tools/check_guide.py checks it), run in
 // Liberation Sans and their results checked: a label measured, wrapped
 // and painted, its text changed, a word made bold; a field typed in,
 // copied from, pasted into and undone, its caret found.

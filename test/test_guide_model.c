@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The guide's first program (docs/guide.md, section 1), as written there
-// (tools/check_guide.py checks it, family record 0019): a screen built,
+// The first program of docs/user/getting-started.md, as written there
+// (tools/check_guide.py checks it): a screen built,
 // laid out in a window's size and drawn as a list of boxes.
 
 #include "maul-ui/context.h"
