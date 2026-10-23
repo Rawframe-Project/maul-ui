@@ -3,8 +3,7 @@
 //
 // The context's draw lists: two of each table, the last list and the one
 // being built from it, reserved by the context's limits, and what each
-// node was last painted as, so that a clean subtree copies its commands
-//.
+// node was last painted as, so that a clean subtree copies its commands.
 
 #ifndef MAUL_UI_SRC_DRAW_STORE_H
 #define MAUL_UI_SRC_DRAW_STORE_H

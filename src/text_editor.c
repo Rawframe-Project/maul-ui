@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Placing an editing block's selection through a node's laid-out text
-//: moves, presses and drags. A press selects a cluster
-// edge, a word or a paragraph by its click count, as every platform's
-// double and triple click; a drag extends by the same unit, keeping what
-// the press selected. A move without Shift over a selection collapses it
-// to the edge that way instead of moving on, as every platform's arrows.
+// Placing an editing block's selection through a node's laid-out text:
+// moves, presses and drags. A press selects a cluster edge, a word or a
+// paragraph by its click count, as every platform's double and triple
+// click; a drag extends by the same unit, keeping what the press selected.
+// A move without Shift over a selection collapses it to the edge that way
+// instead of moving on, as every platform's arrows.
 
 #include "maul-ui/text_editor.h"
 

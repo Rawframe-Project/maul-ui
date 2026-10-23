@@ -2,20 +2,19 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Tabs, a tooltip and a context menu, composed over Maul UI's public
-// capabilities with the patterns of the WAI-ARIA Authoring Practices
-//. The tabs select on a click or as arrows, Home and
-// End move the focus among them (automatic activation), only the
-// selected one in the Tab order, each naming the panel it controls. The
-// tooltip is a manual popup above its trigger that takes no input,
-// shown once the pointer has rested on the trigger for a delay the host
-// times (the core keeps no clock of its own) and hidden when it leaves,
-// the trigger described by it. The context menu is a popup at the
-// pointer, or at the area's corner for the context menu key or
-// Shift+F10, taking the focus: arrows move it, Enter or a click picks
-// an item, and the library's light dismissal (an unhandled Escape, a
-// press outside) closes it, the focus going back to the area. Headless,
-// each is used as a person would and the texts, the pixels, the focus
-// and the accessibility tree checked.
+// capabilities with the patterns of the WAI-ARIA Authoring Practices. The
+// tabs select on a click or as arrows, Home and End move the focus among
+// them (automatic activation), only the selected one in the Tab order,
+// each naming the panel it controls. The tooltip is a manual popup above
+// its trigger that takes no input, shown once the pointer has rested on
+// the trigger for a delay the host times (the core keeps no clock of its
+// own) and hidden when it leaves, the trigger described by it. The context
+// menu is a popup at the pointer, or at the area's corner for the context
+// menu key or Shift+F10, taking the focus: arrows move it, Enter or a
+// click picks an item, and the library's light dismissal (an unhandled
+// Escape, a press outside) closes it, the focus going back to the area.
+// Headless, each is used as a person would and the texts, the pixels, the
+// focus and the accessibility tree checked.
 
 #include "app.h"
 

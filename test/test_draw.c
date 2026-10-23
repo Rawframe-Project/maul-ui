@@ -2,9 +2,9 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // The draw-command list: golden lists of scenes in a text form, bytes
-// equal across builds, snapping, colors, clips, opacity and limits
-//. Run with MAUL_UI_UPDATE_GOLDEN=1 to rewrite
-// test/draw_golden.inc from the current output.
+// equal across builds, snapping, colors, clips, opacity and limits. Run
+// with MAUL_UI_UPDATE_GOLDEN=1 to rewrite test/draw_golden.inc from the
+// current output.
 
 // The update path reads the environment and writes a file with the C
 // library's portable calls, which Microsoft's C library marks deprecated.

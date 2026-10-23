@@ -2,8 +2,7 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Transitions: their specs and checks, timed and spring motion against
-// host time, reversal, layers, reduced motion, direct writes, limits
-//.
+// host time, reversal, layers, reduced motion, direct writes, limits.
 
 #include "test_harness.h"
 
