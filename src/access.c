@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Accessibility (record mui-0008): the host's data per node, and the
-// roots updates are built for.
+// Accessibility: the host's data per node, and the roots updates are built
+// for.
 
 #include "maul-ui/access.h"
 

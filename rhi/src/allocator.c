@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The reference renderer's memory (record mui-0005), the one file of its
-// sources that reaches the C library's.
+// The reference renderer's memory, the one file of its sources that
+// reaches the C library's.
 
 #include "allocator.h"
 

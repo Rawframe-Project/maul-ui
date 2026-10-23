@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Spans and decorations (record mui-0006): a block's spans checked, moved
-// by edits and read back; painting splits glyph runs where a span's ink
-// changes, in visual order, and draws underlines and overlines before the
-// glyphs, line-through after, from the font's metrics.
+// Spans and decorations: a block's spans checked, moved by edits and read
+// back; painting splits glyph runs where a span's ink changes, in visual
+// order, and draws underlines and overlines before the glyphs,
+// line-through after, from the font's metrics.
 
 #include "test_harness.h"
 

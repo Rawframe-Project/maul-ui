@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Transitions: specs of how a property moves to a new value (timed with
-// an easing, or a spring), shared by the classes whose variants name
-// them, and run against the time the host passes to muiComputeLayout
-// (record mui-0004). The spec for a change is resolved through the same
-// layers as values, from the state after the change. Numbers, insets,
-// dimensions and radii that are Scale+Offset on both sides, colors (in
-// premultiplied Oklab) and shadows move, ending exactly on their target;
-// enumerators, flags, image keys, gradients, changes to or from
-// automatic, direct writes, and every change under reduced motion apply
-// at once.
+// Transitions: specs of how a property moves to a new value (timed with an
+// easing, or a spring), shared by the classes whose variants name them,
+// and run against the time the host passes to muiComputeLayout. The spec
+// for a change is resolved through the same layers as values, from the
+// state after the change. Numbers, insets, dimensions and radii that are
+// Scale+Offset on both sides, colors (in premultiplied Oklab) and shadows
+// move, ending exactly on their target; enumerators, flags, image keys,
+// gradients, changes to or from automatic, direct writes, and every change
+// under reduced motion apply at once.
 
 #ifndef MAUL_UI_TRANSITION_H
 #define MAUL_UI_TRANSITION_H
@@ -32,7 +31,7 @@ extern "C"
         MUI_MAX_VARIANT_TRANSITIONS = 4
     };
 
-    // A transition spec, in the shape of every id (family record 0016).
+    // A transition spec, in the shape of every id.
     typedef struct muiTransitionId
     {
         uint32_t index1;

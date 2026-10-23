@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Sirac Ozmen
 #
-# Builds the reference renderer's shader container (record mui-0005)
+# Builds the reference renderer's shader container
 # offline, as Maul RHI's own script does: glslangValidator compiles each stage of
 # rhi/shaders/quad.* under its entry name, spirv-link joins them, spirv-val
 # checks the module for Vulkan 1.3, and Maul RHI's tools cross it to

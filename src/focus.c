@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Focus (record mui-0007). Each player focuses at most one node; the node
-// keeps the players focusing it, and those showing it, as bits its
-// states read. Sequential navigation walks the layer holding the focus
-// once, keeping the nearest node on each side of it in the order.
+// Focus. Each player focuses at most one node; the node keeps the players
+// focusing it, and those showing it, as bits its states read. Sequential
+// navigation walks the layer holding the focus once, keeping the nearest
+// node on each side of it in the order.
 
 #include "maul-ui/focus.h"
 

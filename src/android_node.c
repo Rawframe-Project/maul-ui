@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The Android accessibility adapter's nodes (record mui-0008), as
-// AccessKit maps them: a class name from the role, which TalkBack speaks
-// the kind by; the states and the actions offered as the provider's
-// bits; the box in the view's pixels; the shown parent and children by
-// virtual id; a range; the live setting. A text view's text is its name
-// and a text field's its value, the name then its hint; any other node's
-// name is its content description, its value text its state.
+// The Android accessibility adapter's nodes, as AccessKit maps them: a
+// class name from the role, which TalkBack speaks the kind by; the states
+// and the actions offered as the provider's bits; the box in the view's
+// pixels; the shown parent and children by virtual id; a range; the live
+// setting. A text view's text is its name and a text field's its value,
+// the name then its hint; any other node's name is its content
+// description, its value text its state.
 
 #include "access_record.h"
 #include "access_text.h"

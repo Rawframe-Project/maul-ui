@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Focus (record mui-0007): per player slot, shown by cause, sequential
-// order with tab orders and layers, modal layers, the focus given back
-// when a layer closes, pointer presses, nodes that stop taking focus,
-// notifications and calls outside the contract.
+// Focus: per player slot, shown by cause, sequential order with tab orders
+// and layers, modal layers, the focus given back when a layer closes,
+// pointer presses, nodes that stop taking focus, notifications and calls
+// outside the contract.
 
 #include "test_harness.h"
 
@@ -685,9 +685,9 @@ static void TestDestroyedPerPlayer(void)
     muiDestroyContext(context);
 }
 
-// A layer gives the focus back to what each player focused outside it
-// when it became one (record mui-0007), as HTML's dialogs and popovers
-// give back their previously focused element.
+// A layer gives the focus back to what each player focused outside it when
+// it became one, as HTML's dialogs and popovers give back their previously
+// focused element.
 static void TestGivenBack(void)
 {
     // Base: a, b. A dialog d with d1, and in it a menu m with m1.

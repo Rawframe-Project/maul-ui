@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// A field's rules over text going in (record mui-0006). Control
-// characters other than tab and line breaks go, as keys' text a platform
-// delivers would otherwise type them; a single line takes each line
-// break as a space, as Firefox's paste does; a number filter keeps the
-// value a sign at the start then digits, with at most one point for a
-// decimal, dropping the characters going in that would break it; a
-// maximum length counts grapheme clusters, as Flutter's does, cutting
-// what goes in to fit.
+// A field's rules over text going in. Control characters other than tab
+// and line breaks go, as keys' text a platform delivers would otherwise
+// type them; a single line takes each line break as a space, as Firefox's
+// paste does; a number filter keeps the value a sign at the start then
+// digits, with at most one point for a decimal, dropping the characters
+// going in that would break it; a maximum length counts grapheme clusters,
+// as Flutter's does, cutting what goes in to fit.
 
 #include "text_rules.h"
 

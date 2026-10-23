@@ -1,4 +1,4 @@
-# The Maul Window glue (record mui-0007), maul-ui-window: a static library
+# The Maul Window glue, maul-ui-window: a static library
 # beside maul-ui that feeds a window's records to a context, Maul Window
 # found installed or fetched at its release tag as Maul RHI is. The core
 # and the text component never depend on it.

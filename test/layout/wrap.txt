@@ -272,7 +272,7 @@ node width=200 height=200 => 0 0 200 200
 # A wrapping column of open width is as wide as its lines'
 # contributions when they fit: a ratio item shrunk to a shorter line
 # still counts the width its own height gives it, and align-content
-# stretches the lines into the rest (research 205, case 116).
+# stretches the lines into the rest (random case 116).
 fixture wrap_column_fits_its_lines_contributions available=500x400
 node height=20 direction=column wrap=wrap => 0 0 30 20
   node height=30 aspect=1 => 0 0 30 20
@@ -288,14 +288,14 @@ node height=20 direction=column wrap=wrap => 0 0 30 20
 
 # Its width is its contributions even when its laid-out line is wider:
 # a basis is no contribution, so the column is 0 wide and its item
-# overflows (research 208).
+# overflows.
 fixture wrap_column_fits_its_lines_contributions_basis available=500x400
 node height=20 direction=column wrap=wrap => 0 0 0 20
   node basis=30 aspect=1 => 0 0 20 20
 
 # A wrapping column of indefinite height is one line: an item with a
 # negative margin makes its items sum shorter than they run, and the
-# column does not break them at that sum (research 212).
+# column does not break them at that sum.
 fixture wrap_column_of_open_height_is_one_line available=500x400
 node direction=column wrap=wrap => 0 0 80 10
   node content=80x10 => 0 0 80 10
@@ -305,7 +305,7 @@ node direction=column wrap=wrap => 0 0 80 10
 # One its container shrank below its items, though its own height is
 # not definite, breaks its lines at the height it was given: here a
 # column of `max-height: 25%` shrinks it to its minimum height 40, under
-# its items' 43 (research 233).
+# its items' 43.
 fixture wrap_column_shrunk_below_its_items_breaks available=500x400
 node => 0 0 100 43
   node => 0 0 100 43
@@ -317,7 +317,7 @@ node => 0 0 100 43
 
 # A wrapping row of open width whose items sum short of the widest
 # alone, through a negative margin, is as wide as its widest min-content
-# contribution, not its widest max-content one (research 239).
+# contribution, not its widest max-content one.
 fixture wrap_row_negative_margin_min_content_floor available=500x400
 node => 0 0 10 40
   node wrap=wrap => 0 0 10 40
@@ -334,8 +334,7 @@ node => 0 0 20 40
     node margin=-10,-10,0,0 => 10 0 0 40
 
 # A wrapping column of open height longer than its maximum breaks its
-# lines at the maximum and is as tall as its longest line (research 176,
-# case 235).
+# lines at the maximum and is as tall as its longest line (random case 235).
 fixture wrap_column_maximum_longest_line available=500x400
 node => 0 0 10 40
   node => 0 0 10 40
@@ -379,7 +378,7 @@ node => 0 0 30 50
 # A wrapping column asked its max-content width sums its lines' largest
 # contributions, an item's flex basis left out, as Chrome and Firefox:
 # an item 20 high by its basis and 30 wide by its ratio overflows a
-# column as wide as its content (research 188, case 51d_278).
+# column as wide as its content (random case 51d_278).
 
 fixture wrap_column_width_leaves_out_ratio_basis available=500x400
 node => 0 0 0 20
@@ -397,7 +396,7 @@ node align-items=start => 0 0 0 20
     node basis=20 aspect=1.5 => 0 0 30 20
 
 # Items that fill a wrapping column's line exactly stay on it, the float
-# sum of their lengths rounding past the line's (research 199, case
+# sum of their lengths rounding past the line's (random case
 # 61w_198; Firefox agrees within 1/64).
 
 fixture wrap_column_exact_fill_one_line available=500x400
@@ -410,7 +409,7 @@ node width=25% => 0 0 125 66.9375
 # A wrapping column measured for its width breaks its lines at items
 # laid out at their widths, as Chrome and Firefox: a row's 10% child
 # resolves against the row's max-content width, shrinks its ratio item
-# and keeps the row short enough for one line (research 245, case
+# and keeps the row short enough for one line (random case
 # 115r_299).
 
 fixture wrap_column_measures_rows_at_their_width available=500x400
@@ -427,7 +426,7 @@ node => 0 0 240 480
 # A wrapping column with a ratio and a given height, shrunk in a column,
 # is floored by its content broken into lines at the ratio's height, as
 # when its height is automatic, as Chrome and Firefox: the two items
-# take two lines, the floor is 120, not 127 (research 252, case
+# take two lines, the floor is 120, not 127 (random case
 # 128d_89).
 
 fixture wrap_column_ratio_minimum_breaks_at_ratio_height available=500x400

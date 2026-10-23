@@ -4,7 +4,7 @@
 """Checks that no engine concept is named in Maul UI's public API.
 
 Maul UI must be drivable by any engine or plain application over its own
-tree (record mui-0001's litmus test). This reads the public headers'
+tree, the litmus test of docs/internals/overview.md. This reads the public headers'
 identifiers, comments and strings left out, splits each into words at
 case changes, underscores and digits, and refuses the words that name an
 engine's concepts. Whole words, so that Gamepad and Description pass;

@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<!-- A test application's Info.plist in the iOS simulator (record
-     mui-0008): one scene, its delegate named by the application's
+<!-- A test application's Info.plist in the iOS simulator: one scene, its delegate named by the application's
      delegate, and a launch screen, without which iOS shows the
      application letterboxed. -->
 <plist version="1.0">

@@ -2,8 +2,8 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Host code an owner object calls, with the owner marked busy for the
-// length of the call and the mark restored after (conventions section
-// 10): for the code that runs host code from a platform's entry points
+// length of the call and the mark restored after (Maul conventions,
+// Threads): for the code that runs host code from a platform's entry points
 // as well as from the owner's own functions.
 
 #ifndef MAUL_UI_SRC_HOST_CALL_H

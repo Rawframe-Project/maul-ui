@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The NSAccessibility adapter's text (record mui-0008, research 143): a
-// text input's or an edited text's characters, selection, lines and
-// ranges, in UTF-16 as AppKit counts, through the boundaries every
-// adapter shares; the selection and the text set through the host; where
-// its characters are, from the tree's clusters, or the node's frame for
-// text without them.
+// The NSAccessibility adapter's text: a text input's or an edited text's
+// characters, selection, lines and ranges, in UTF-16 as AppKit counts,
+// through the boundaries every adapter shares; the selection and the text
+// set through the host; where its characters are, from the tree's
+// clusters, or the node's frame for text without them.
 
 #include "access_text.h"
 #include "host_call.h"

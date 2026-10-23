@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The UI Automation adapter's patterns of values (record mui-0008):
-// Value (a node's value text), RangeValue (a range's number) and Scroll
-// (a container's offsets, as percents of how far it scrolls).
+// The UI Automation adapter's patterns of values: Value (a node's value
+// text), RangeValue (a range's number) and Scroll (a container's offsets,
+// as percents of how far it scrolls).
 
 #include "access_text.h"
 #include "allocator.h"

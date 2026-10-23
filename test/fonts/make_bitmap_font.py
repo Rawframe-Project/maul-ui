@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Sirac Ozmen
 #
-# Writes MaulBitmap.ttf, the font the colour bitmap tests render (record
-# mui-0006): 1000 units per em, no outlines (as Noto Color Emoji has
-# none), and CBLC and CBDT tables written here byte by byte so that every
-# index format and image format is used. Two strikes, of 10 and 20 ppem.
-# In the 10 ppem strike:
+# Writes MaulBitmap.ttf, the font the colour bitmap tests render: 1000
+# units per em, no outlines (as Noto Color Emoji has none), and CBLC and
+# CBDT tables written here byte by byte so that every index format and
+# image format is used. Two strikes, of 10 and 20 ppem. In the 10 ppem
+# strike:
 #
 #   glyph 1 "one"    index format 1, image format 17: 8 by 8, red on its
 #                    left half and blue on its right, its top left at 1

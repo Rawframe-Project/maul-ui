@@ -2,13 +2,12 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Runs a web test in headless Chrome, as Maul Window's runner does
-// (copied by record 0004, with what this library's tests need): serves
-// the test's directory, opens a page that loads the test, and carries
-// out the commands the test prints ("mui-test: <command>"), answering
-// each by appending whether it held to globalThis.muiTestAnswers, which
-// the test waits on. The test ends by printing "mui-test: exit
-// <status>". Puppeteer comes from MUI_NODE_MODULES; without it the test
-// is skipped (status 77).
+// (copied, with what this library's tests need): serves the test's
+// directory, opens a page that loads the test, and carries out the
+// commands the test prints ("mui-test: <command>"), answering each by
+// appending whether it held to globalThis.muiTestAnswers, which the test
+// waits on. The test ends by printing "mui-test: exit <status>". Puppeteer
+// comes from MUI_NODE_MODULES; without it the test is skipped (status 77).
 //
 // Commands:
 // - ax <selector> <expected>: the browser's accessibility tree under an
@@ -25,11 +24,11 @@
 // MUI_WEB_CANVAS, when set, starts Chrome's compositor on Vulkan, which a
 // program presenting into a canvas needs.
 //
-// A test built without Emscripten (a module, mui-0009) is a reactor: the
-// page gives it a minimal WASI (standard output to the console, the
-// clocks, random bytes), the imports written beside it (<test>.mjs) and
-// a sleep that suspends it through JavaScript promise integration, then
-// calls its main, as Maul Window's runner does (mwin-0022).
+// A test built without Emscripten (a module) is a reactor: the page gives
+// it a minimal WASI (standard output to the console, the clocks, random
+// bytes), the imports written beside it (<test>.mjs) and a sleep that
+// suspends it through JavaScript promise integration, then calls its main,
+// as Maul Window's runner does.
 //
 // usage: node web_runner.cjs <test.js | test module> [argument...]
 

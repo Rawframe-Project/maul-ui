@@ -168,7 +168,7 @@ node direction=column height=0 => 0 0 10 0
 # A line whose clamps cancel exactly freezes every child (section 9.7):
 # float error in the total violation does not freeze only the ones at
 # their maximum, which left the last a smaller share of the space
-# through its flex factor under 1 (research 229).
+# through its flex factor under 1.
 fixture flex_shrink_violations_cancel available=500x400
 node width=80 => 0 0 80 80
   node => 0 0 97 80

@@ -1,4 +1,4 @@
-# Maul UI's further benchmarks (bench/Local.cmake, family record 0006):
+# Maul UI's further benchmarks, which the family's bench/CMakeLists.txt includes:
 # virtual lists of 100,000 rows, a HUD's frames, and text shaping and
 # layout, with the text component.
 add_executable(${PROJECT_NAME}_bench_virtual bench_virtual.c)

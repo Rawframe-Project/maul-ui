@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Sirac Ozmen
 #
-# tools/text-headers.txt lists the text component's public headers
-# (record mui-0006), which the size report counts as text and an install
-# without the component leaves out. It must name exactly the public
-# headers declaring a function that a source of cmake/Text.cmake defines.
+# tools/text-headers.txt lists the text component's public headers, which
+# the size report counts as text and an install without the component
+# leaves out. It must name exactly the public headers declaring a function
+# that a source of cmake/Text.cmake defines.
 #
 # usage: check_text_headers.py
 

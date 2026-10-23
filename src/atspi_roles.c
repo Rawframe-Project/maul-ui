@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The AT-SPI adapter's roles and states (record mui-0008): each Maul UI
-// role's AT-SPI role, the names AT-SPI gives its roles, and a node's
-// state set from its flags. The values are atspi-constants.h's.
+// The AT-SPI adapter's roles and states: each Maul UI role's AT-SPI role,
+// the names AT-SPI gives its roles, and a node's state set from its flags.
+// The values are atspi-constants.h's.
 
 #include "access_record.h"
 #include "atspi.h"

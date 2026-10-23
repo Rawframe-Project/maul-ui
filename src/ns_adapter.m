@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The NSAccessibility adapter (record mui-0008): making it, applying
-// updates, the node objects it holds by id, and where nodes lie on the
-// screen. Objects are made when first asked for; one whose node goes is
-// let go, its adapter cleared, so that a client still holding it gets
-// nothing.
+// The NSAccessibility adapter: making it, applying updates, the node
+// objects it holds by id, and where nodes lie on the screen. Objects are
+// made when first asked for; one whose node goes is let go, its adapter
+// cleared, so that a client still holding it gets nothing.
 
 #include "access_record.h"
 #include "allocator.h"

@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Seeded fuzzing of the text component (record mui-0006), run with every
-// test under the sanitizers: damaged fonts are refused or read without
-// harm, and random UTF-8 in random styles and widths lays out with
-// measuring and painting in agreement. The seeds are fixed, so a failure
-// repeats.
+// Seeded fuzzing of the text component, run with every test under the
+// sanitizers: damaged fonts are refused or read without harm, and random
+// UTF-8 in random styles and widths lays out with measuring and painting
+// in agreement. The seeds are fixed, so a failure repeats.
 
 #include "test_harness.h"
 

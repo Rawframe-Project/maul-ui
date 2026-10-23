@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Text blocks (record mui-0006): creating them, setting or replacing
-// part of their text, holding an input method's composition, and
-// finding its line break opportunities and script runs once, when it is
-// set. A new text is analyzed into new buffers before the old ones go,
-// so a failure keeps the old text. Keys and the default font too.
+// Text blocks: creating them, setting or replacing part of their text,
+// holding an input method's composition, and finding its line break
+// opportunities and script runs once, when it is set. A new text is
+// analyzed into new buffers before the old ones go, so a failure keeps the
+// old text. Keys and the default font too.
 
 #include "text_blocks.h"
 

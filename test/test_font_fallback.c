@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Font fallback (record mui-0006): each grapheme cluster drawn in the
-// first font of the chain (the style's font or family, the family's
-// fallbacks, the service's) that has all its characters, characters of
-// no one script staying in the font before them, glyph runs split where
-// the font changes, widths added across fonts of different units per em,
-// and calls outside the contract refused. MaulItalic.ttf has only an A,
-// half an em wide; Ahem has boxes an em wide for most characters, and no
-// combining acute, which Liberation Sans has.
+// Font fallback: each grapheme cluster drawn in the first font of the
+// chain (the style's font or family, the family's fallbacks, the
+// service's) that has all its characters, characters of no one script
+// staying in the font before them, glyph runs split where the font
+// changes, widths added across fonts of different units per em, and calls
+// outside the contract refused. MaulItalic.ttf has only an A, half an em
+// wide; Ahem has boxes an em wide for most characters, and no combining
+// acute, which Liberation Sans has.
 
 #include "test_harness.h"
 

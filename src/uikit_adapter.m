@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The UIAccessibility adapter (record mui-0008): making it, applying
-// updates, the element and container objects it holds by id, and where
-// nodes lie on the screen. Objects are made when first asked for; those
-// whose node goes are let go, their adapter cleared, so that a client
-// still holding one gets nothing.
+// The UIAccessibility adapter: making it, applying updates, the element
+// and container objects it holds by id, and where nodes lie on the screen.
+// Objects are made when first asked for; those whose node goes are let go,
+// their adapter cleared, so that a client still holding one gets nothing.
 
 #include "access_record.h"
 #include "access_text.h"

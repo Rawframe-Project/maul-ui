@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The AT-SPI adapter's properties (record mui-0008): the Accessible
-// interface's and, on the root, the Application interface's, read one
-// at a time or all at once, and the application id the registry sets.
+// The AT-SPI adapter's properties: the Accessible interface's and, on the
+// root, the Application interface's, read one at a time or all at once,
+// and the application id the registry sets.
 
 #include "allocator.h"
 #include "atspi.h"

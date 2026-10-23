@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Text blocks (record mui-0006): UTF-8 text the text service lays out as
-// a node's host content. A node whose host key is a block's key, and
-// whose content is the host's, is measured by muiMeasureText and painted
-// by muiPaintText in its computed text style: lines broken where Unicode
-// allows (UAX #14), runs ordered by the Unicode bidirectional algorithm
-// (UAX #9), glyphs shaped by HarfBuzz. White space is kept as written,
-// line breaks in the text end lines, and spaces ending a wrapped line
-// hang past it.
+// Text blocks: UTF-8 text the text service lays out as a node's host
+// content. A node whose host key is a block's key, and whose content is
+// the host's, is measured by muiMeasureText and painted by muiPaintText in
+// its computed text style: lines broken where Unicode allows (UAX
+// #14), runs ordered by the Unicode bidirectional algorithm (UAX #9),
+// glyphs shaped by HarfBuzz. White space is kept as written, line breaks
+// in the text end lines, and spaces ending a wrapped line hang past it.
 
 #ifndef MAUL_UI_TEXT_BLOCK_H
 #define MAUL_UI_TEXT_BLOCK_H
@@ -31,7 +30,7 @@ extern "C"
 {
 #endif
 
-    // A text block, in the shape of every id (family record 0016).
+    // A text block, in the shape of every id.
     typedef struct muiTextBlockId
     {
         uint32_t index1;
@@ -163,7 +162,7 @@ extern "C"
     /// font, size, weight and slant their runs are shaped in, the node's
     /// synthesis kept: a size is
     /// against the node's, as a child's text is against its parent's, and
-    /// a line is as tall as the runs on it reach (record mui-0006). A block
+    /// a line is as tall as the runs on it reach. A block
     /// takes up to 31 run styles apart from the node's; a span making more
     /// is shaped in the style under it. Setting the text drops them; replacing
     /// a range moves those after it, a span growing with text put strictly

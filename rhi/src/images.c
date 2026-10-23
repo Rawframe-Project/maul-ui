@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The images a frame draws (record mui-0005). Keys hash by a 64-bit mix
-// into buckets probed linearly; the table holds twice the buckets of the
-// keys a frame may name, so a probe ends at an empty bucket.
+// The images a frame draws. Keys hash by a 64-bit mix into buckets probed
+// linearly; the table holds twice the buckets of the keys a frame may
+// name, so a probe ends at an empty bucket.
 
 #include "images.h"
 

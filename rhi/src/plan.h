@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// A frame's passes (record mui-0005): the draw pass's instances split
-// into draws, a new draw only where an image's texture or a glyph's page
-// differs from the one the draw samples; the resources the draw pass
-// reads, and those the upload pass writes.
+// A frame's passes: the draw pass's instances split into draws, a new draw
+// only where an image's texture or a glyph's page differs from the one the
+// draw samples; the resources the draw pass reads, and those the upload
+// pass writes.
 
 #ifndef MAUL_UI_RHI_PLAN_H
 #define MAUL_UI_RHI_PLAN_H

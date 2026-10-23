@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Glyph images (record mui-0006): Ahem's boxes give exact coverage at
-// whole and fractional sizes and offsets and exact distance fields,
-// Liberation Sans renders the same bytes on every platform, overlapping
-// contours make one shape, and calls outside the contract are refused.
+// Glyph images: Ahem's boxes give exact coverage at whole and fractional
+// sizes and offsets and exact distance fields, Liberation Sans renders the
+// same bytes on every platform, overlapping contours make one shape, and
+// calls outside the contract are refused.
 
 #include "test_harness.h"
 

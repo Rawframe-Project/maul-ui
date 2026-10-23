@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Accessibility through the Maul Window glue (record mui-0008). The
-// adapters this build has are named by MUI_WINDOW_UIA, MUI_WINDOW_NS,
-// MUI_WINDOW_UIKIT, MUI_WINDOW_ANDROID, MUI_WINDOW_ARIA and
-// MUI_WINDOW_ATSPI, as Maul UI was built with them; a window takes the
-// one for its platform, or keeps a tree alone. NSAccessibility's and
-// UIAccessibility's roots are the tree root's objects and change with
-// it, so after each update the root is asked for again and handed over
-// when it changed. Maul Window runs an Android program on its
-// activity's main thread, whose JNIEnv the activity holds; the web's
-// element for the tree is the one Maul Window keeps over the canvas,
-// which takes no root.
+// Accessibility through the Maul Window glue. The adapters this build has
+// are named by MUI_WINDOW_UIA, MUI_WINDOW_NS, MUI_WINDOW_UIKIT,
+// MUI_WINDOW_ANDROID, MUI_WINDOW_ARIA and MUI_WINDOW_ATSPI, as Maul UI was
+// built with them; a window takes the one for its platform, or keeps a
+// tree alone. NSAccessibility's and UIAccessibility's roots are the tree
+// root's objects and change with it, so after each update the root is
+// asked for again and handed over when it changed. Maul Window runs an
+// Android program on its activity's main thread, whose JNIEnv the activity
+// holds; the web's element for the tree is the one Maul Window keeps over
+// the canvas, which takes no root.
 
 #include "maul-ui-window/access.h"
 

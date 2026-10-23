@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// PNG images (record mui-0006), as the PNG specification (third edition)
-// has them. The image data's chunks are joined in scratch, inflated after
-// them into their filtered rows, pass by pass where interlaced, the rows
-// unfiltered in place, and each pixel expanded to RGBA: samples below 8
-// bits scaled by repeating their bits, 16-bit samples by their high byte,
-// tRNS compared with the full sample. A chunk out of the specification's
-// order, an unknown critical chunk, a palette index past the palette, or
-// a CRC or checksum that does not match is mui_errorFormat.
+// PNG images, as the PNG specification (third edition) has them. The image
+// data's chunks are joined in scratch, inflated after them into their
+// filtered rows, pass by pass where interlaced, the rows unfiltered in
+// place, and each pixel expanded to RGBA: samples below 8 bits scaled by
+// repeating their bits, 16-bit samples by their high byte, tRNS compared
+// with the full sample. A chunk out of the specification's order, an
+// unknown critical chunk, a palette index past the palette, or a CRC or
+// checksum that does not match is mui_errorFormat.
 
 #include "png.h"
 

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Font families (record mui-0006): faces matched as CSS Fonts 4 matches
-// them, narrowing by width (toward normal), then style, then weight, a
-// variable face matching every value its axes reach.
+// Font families: faces matched as CSS Fonts 4 matches them, narrowing by
+// width (toward normal), then style, then weight, a variable face matching
+// every value its axes reach.
 
 #include "font_family.h"
 

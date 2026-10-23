@@ -122,9 +122,9 @@ extern "C"
         void* context;
     } muiAllocator;
 
-    // Ids name what a context owns (family record 0016): a 1-based slot,
-    // 0 for the null id, and a generation that tells a live object from
-    // the earlier occupants of its slot.
+    // Ids name what a context owns: a 1-based slot, 0 for the null id, and
+    // a generation that tells a live object from the earlier occupants of
+    // its slot.
     typedef struct muiNodeId
     {
         uint32_t index1;

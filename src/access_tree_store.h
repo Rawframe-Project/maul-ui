@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The accessibility tree's consumer (record mui-0008): the nodes a tree
-// holds, found by id, and what applying an update stages and retires.
+// The accessibility tree's consumer: the nodes a tree holds, found by id,
+// and what applying an update stages and retires.
 
 #ifndef MAUL_UI_SRC_ACCESS_TREE_STORE_H
 #define MAUL_UI_SRC_ACCESS_TREE_STORE_H
@@ -84,7 +84,7 @@ struct muiAccessTree
     uint64_t focus;
     // Set while one of its functions that change it runs, or host code it
     // calls (the allocator, an action function) runs: a call back in is
-    // refused (conventions section 10), and counted.
+    // refused (Maul conventions, Threads), and counted.
     bool busy;
     uint64_t misuse;
 };

@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Sirac Ozmen
 #
-# Writes MaulCff.otf, an OpenType font of CFF outlines (record mui-0006):
-# 1000 units per em and an A of two boxes that overlap, the outline of
-# MaulOverlap.ttf's A, so a test holds the CFF driver's field of it to
-# the TrueType one. Needs fontTools (pip install fonttools); its
-# timestamps are fixed, so it writes the same bytes each time.
+# Writes MaulCff.otf, an OpenType font of CFF outlines: 1000 units per em
+# and an A of two boxes that overlap, the outline of MaulOverlap.ttf's A,
+# so a test holds the CFF driver's field of it to the TrueType one. Needs
+# fontTools (pip install fonttools); its timestamps are fixed, so it
+# writes the same bytes each time.
 #
 #     python3 make_cff_font.py
 

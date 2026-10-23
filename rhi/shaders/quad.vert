@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The reference renderer's vertex entry "vs" (record mui-0005): each
+// The reference renderer's vertex entry "vs": each
 // instance a quad of six vertices, no vertex buffer, its record read
 // from the instance buffer in table 0, grown by a screen pixel each way
 // for the edge's coverage, and its corners carried through the command's

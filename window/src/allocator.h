@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The glue's memory (record mui-0007): through the host's allocator
-// alone, as Maul UI's own allocation functions stay inside a shared
-// build of Maul UI; a zeroed allocator is the C library's.
+// The glue's memory: through the host's allocator alone, as Maul UI's own
+// allocation functions stay inside a shared build of Maul UI; a zeroed
+// allocator is the C library's.
 
 #ifndef MAUL_UI_WINDOW_ALLOCATOR_H
 #define MAUL_UI_WINDOW_ALLOCATOR_H

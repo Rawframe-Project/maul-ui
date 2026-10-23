@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The UI Automation adapter's events (record mui-0008): what applying an
-// update changed, raised while the tree holds all of it and only when a
-// client listens. Focus moving raises the focus event, before the other
-// events of the update, as native controls raise it before the caret of
-// the field they focus; a node updated
-// raises a property change for each property whose value differs from
-// the record it replaced; a live region's text changing raises the live
-// region event.
+// The UI Automation adapter's events: what applying an update changed,
+// raised while the tree holds all of it and only when a client listens.
+// Focus moving raises the focus event, before the other events of the
+// update, as native controls raise it before the caret of the field they
+// focus; a node updated raises a property change for each property whose
+// value differs from the record it replaced; a live region's text changing
+// raises the live region event.
 
 #include "access_record.h"
 #include "access_text.h"

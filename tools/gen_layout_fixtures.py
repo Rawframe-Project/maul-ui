@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Sirac Ozmen
 #
-# The layout fixture corpus (record mui-0003): reads test/layout/*.txt and
+# The layout fixture corpus: reads test/layout/*.txt and
 # writes test/generated/layout_fixtures.h, the C tables test_layout_fixtures
 # runs. With --check it only reports whether that file is current, as CI
 # does. With --oracle it renders every fixture in Chrome through

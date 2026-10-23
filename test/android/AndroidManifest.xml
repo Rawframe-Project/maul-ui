@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A test application (tools/build_android_app.sh, record mui-0008):
+<!-- A test application (tools/build_android_app.sh):
      the tests' activity, which loads the test's native library, named
      in its meta-data. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="@PACKAGE@">

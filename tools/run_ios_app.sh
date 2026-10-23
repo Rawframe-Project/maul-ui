@@ -1,5 +1,5 @@
 #!/bin/sh
-# Runs a test application in the iOS simulator (record mui-0008), as
+# Runs a test application in the iOS simulator, as
 # Maul Window's runner does: installs the bundle on the booted device (or
 # MUI_IOS_DEVICE), launches it with its output in a file, and waits, a
 # minute at most, for the closing line it prints, "result: N failures".

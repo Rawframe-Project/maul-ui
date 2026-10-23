@@ -3,14 +3,14 @@
 //
 // Buttons and the checkable family, composed over Maul UI's public
 // capabilities with the roles, states and keys of the WAI-ARIA Authoring
-// Practices (record mui-0005): a button with an icon and a label, a
-// checkbox, a switch, and a radio group whose arrows move the choice.
-// Each widget is a node with a role, a focus mode and classes whose
-// variants answer its states; the host's event function activates it on
-// a click, Enter or Space (only Space for the checkable ones, as ARIA's
-// patterns say) and the navigation's activate, which accessibility
-// clients use too, and keeps its checked state. Headless, each is used
-// as a person would and the pixels and the accessibility tree checked.
+// Practices: a button with an icon and a label, a checkbox, a switch, and
+// a radio group whose arrows move the choice. Each widget is a node with a
+// role, a focus mode and classes whose variants answer its states; the
+// host's event function activates it on a click, Enter or Space (only
+// Space for the checkable ones, as ARIA's patterns say) and the
+// navigation's activate, which accessibility clients use too, and keeps
+// its checked state. Headless, each is used as a person would and the
+// pixels and the accessibility tree checked.
 
 #include "app.h"
 

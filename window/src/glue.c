@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The Maul Window glue (record mui-0007). Maul Window's button b is bit
-// b - 1 of its held mask and Maul UI's index b - 1 is bit b - 1 of its
-// own, so the masks pass as they are and an index is the button less
-// one. A touch's 64-bit id takes one of the touch slots while it lasts,
-// its pointer id the slot's; the pen's tip is the primary button, or
-// button 5 while it erases, and its barrel the secondary, as the W3C's
-// Pointer Events number them.
+// The Maul Window glue. Maul Window's button b is bit b - 1 of its held
+// mask and Maul UI's index b - 1 is bit b - 1 of its own, so the masks
+// pass as they are and an index is the button less one. A touch's 64-bit
+// id takes one of the touch slots while it lasts, its pointer id the
+// slot's; the pen's tip is the primary button, or button 5 while it
+// erases, and its barrel the secondary, as the W3C's Pointer Events number
+// them.
 
 #include "maul-ui-window/glue.h"
 

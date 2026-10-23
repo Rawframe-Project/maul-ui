@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Text style (record mui-0004): its defaults and checks, inheritance down
-// the tree with relative sizes, line heights inherited as written,
-// direct writes, moves between parents, tokens and themes, transitions
-// reaching inheriting children, and what a change marks on host content.
-// White-box: it reads the tree's marks.
+// Text style: its defaults and checks, inheritance down the tree with
+// relative sizes, line heights inherited as written, direct writes, moves
+// between parents, tokens and themes, transitions reaching inheriting
+// children, and what a change marks on host content. White-box: it reads
+// the tree's marks.
 
 #include "context.h"
 #include "test_harness.h"

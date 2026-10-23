@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Frames allocate nothing (record mui-0001): a scene of every part, its
-// context and its text service each on a counting allocator, is run
-// through warm-up frames, then frame after frame of pointer moves,
-// presses and wheel scrolling, focus moving, a hover's transition
-// running, an editing field's caret moving, layout and painting; neither
-// allocator counts an allocation more after the warm-up.
+// Frames allocate nothing: a scene of every part, its context and its text
+// service each on a counting allocator, is run through warm-up frames,
+// then frame after frame of pointer moves, presses and wheel scrolling,
+// focus moving, a hover's transition running, an editing field's caret
+// moving, layout and painting; neither allocator counts an allocation more
+// after the warm-up.
 
 #include "test_harness.h"
 

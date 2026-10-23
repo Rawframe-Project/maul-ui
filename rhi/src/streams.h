@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The renderer's streams (record mui-0005): a device buffer of records,
-// the staging a frame packs them into, and the records the buffer holds
-// as last written, so that a frame writes only the runs of records that
-// differ from them. Runs fewer bytes apart than an upload block are
-// merged; a buffer made anew holds nothing, and a frame writes it whole.
+// The renderer's streams: a device buffer of records, the staging a frame
+// packs them into, and the records the buffer holds as last written, so
+// that a frame writes only the runs of records that differ from them. Runs
+// fewer bytes apart than an upload block are merged; a buffer made anew
+// holds nothing, and a frame writes it whole.
 
 #ifndef MAUL_UI_RHI_STREAMS_H
 #define MAUL_UI_RHI_STREAMS_H

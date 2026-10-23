@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Measuring and painting text blocks (record mui-0006): a node's
-// paragraph broken into lines, and for painting reordered by UAX #9
-// rules L1 and L2, aligned, and drawn as a glyph run per line, item and
-// stretch of one ink (the color and decorations the node's style and the
-// block's spans give), an input method's composition underlined after.
+// Measuring and painting text blocks: a node's paragraph broken into
+// lines, and for painting reordered by UAX #9 rules L1 and L2, aligned,
+// and drawn as a glyph run per line, item and stretch of one ink (the
+// color and decorations the node's style and the block's spans give), an
+// input method's composition underlined after.
 
 #include "text_boxes.h"
 #include "text_lines.h"

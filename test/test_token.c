@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Tokens: their checks, values and aliases, classes that name them,
-// resolution through them, theme switches, and limits (record mui-0004).
+// resolution through them, theme switches, and limits.
 
 #include "test_harness.h"
 

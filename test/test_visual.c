@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Visual values: their defaults and checks, classes, variants,
-// conditions, direct writes and transitions, and that a change to one
-// marks paint, never layout (record mui-0004). White-box: it reads the
-// tree's paint marks.
+// Visual values: their defaults and checks, classes, variants, conditions,
+// direct writes and transitions, and that a change to one marks paint,
+// never layout. White-box: it reads the tree's paint marks.
 
 #include "context.h"
 #include "test_harness.h"

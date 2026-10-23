@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Visual values: what the draw-command list paints for a node, set
-// through the same classes, variants, conditions, transitions and direct
-// writes as layout values (record mui-0004). A change to one marks the
-// node's paint, never its layout.
+// Visual values: what the draw-command list paints for a node, set through
+// the same classes, variants, conditions, transitions and direct writes as
+// layout values. A change to one marks the node's paint, never its layout.
 
 #ifndef MAUL_UI_VISUAL_H
 #define MAUL_UI_VISUAL_H
@@ -109,7 +108,7 @@ extern "C"
     // A scale of a node and its subtree after layout: drawn, hit tested
     // and reported through it, about an origin in its border box, while
     // layout and what places by layout (scrolling, popups, directional
-    // navigation) keep its laid-out box (record mui-0005).
+    // navigation) keep its laid-out box.
     typedef struct muiLocalScale
     {
         // Per axis, finite and 0 or more; 1 leaves it as laid out, and 0

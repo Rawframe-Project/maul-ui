@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Sirac Ozmen
-"""Reports Maul UI's wasm size as record mui-0001's size budget measures it.
+"""Reports Maul UI's wasm size as its size budget measures it.
 
 Each part is measured as the bytes of wasm it adds to a program at -Oz
 with link-time optimization: the core above an empty program, and the

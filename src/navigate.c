@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Directional navigation (record mui-0007). A link the focused node has
-// for the direction decides first; otherwise every node sequential
-// navigation reaches in the focus's layer is compared with the best so
-// far as Android's focus search compares them: in the direction, in the
-// focus's beam, then by a distance weighted toward the direction's axis.
+// Directional navigation. A link the focused node has for the direction
+// decides first; otherwise every node sequential navigation reaches in the
+// focus's layer is compared with the best so far as Android's focus search
+// compares them: in the direction, in the focus's beam, then by a distance
+// weighted toward the direction's axis.
 
 #include "navigate.h"
 

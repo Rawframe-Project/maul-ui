@@ -448,7 +448,7 @@ node height=100 width=100 => 0 0 100 100
 
 # An absolute ratio box between both insets whose content grows it past
 # the insets' height resolves its children's percentages against the
-# insets' height, its ratio's, not the grown one (research 225).
+# insets' height, its ratio's, not the grown one.
 fixture absolute_ratio_grown_percent_basis available=500x400
 node height=100 => 0 0 0 100
   node position=absolute top=5 bottom=10 aspect=1 => 0 5 85 90

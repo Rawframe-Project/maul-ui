@@ -568,9 +568,9 @@ static bool RectIs(muiRect rect, float x, float y, float width, float height)
     return rect.x == x && rect.y == y && rect.width == width && rect.height == height;
 }
 
-// The safe area (record mui-0003): a node pads by the inset of each edge
-// it names, on the physical side the edge falls on, at least its own
-// padding; new insets lay it out again, the same ones nothing.
+// The safe area: a node pads by the inset of each edge it names, on the
+// physical side the edge falls on, at least its own padding; new insets
+// lay it out again, the same ones nothing.
 static void TestSafeArea(void)
 {
     muiContext* context = MakeContext();

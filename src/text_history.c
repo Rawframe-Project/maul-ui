@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// An editing block's undo history (record mui-0006). Typing joins the
-// edit before it while it goes on where that one ended, until a word
-// starts after white space: undo takes typing back a word at a time.
-// Backspaces join while each ends where the last began, forward
-// deletions while each begins where the last did: a run of either goes
-// back whole, as AppKit's does. Edits are kept in order, their bytes in
-// one buffer in the same order, so dropping the oldest or what was
-// undone moves no other edit's bytes but by a shift.
+// An editing block's undo history. Typing joins the edit before it while
+// it goes on where that one ended, until a word starts after white space:
+// undo takes typing back a word at a time. Backspaces join while each ends
+// where the last began, forward deletions while each begins where the last
+// did: a run of either goes back whole, as AppKit's does. Edits are kept
+// in order, their bytes in one buffer in the same order, so dropping the
+// oldest or what was undone moves no other edit's bytes but by a shift.
 
 #include "text_history.h"
 

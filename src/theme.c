@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The public functions over themes and the nodes they are set on (record
-// mui-0004). A cycle through a theme's own aliases and the context's is
-// refused when an alias is set; one that only nested themes close is
-// bounded when a token is read.
+// The public functions over themes and the nodes they are set on. A cycle
+// through a theme's own aliases and the context's is refused when an alias
+// is set; one that only nested themes close is bounded when a token is
+// read.
 
 #include "maul-ui/theme.h"
 

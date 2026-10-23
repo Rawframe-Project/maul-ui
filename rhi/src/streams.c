@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The renderer's streams (record mui-0005).
+// The renderer's streams.
 
 #include "streams.h"
 

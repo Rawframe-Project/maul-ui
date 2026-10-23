@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The draw-command list (record mui-0005): what a renderer draws for a
-// subtree, as fixed-size records in paint order, each with an index into
-// a clip table and a transform table, so that a renderer evaluates clips
-// per command and batches across them. Coordinates are logical units;
-// colors are linear light with premultiplied alpha. Identical trees give
+// The draw-command list: what a renderer draws for a subtree, as
+// fixed-size records in paint order, each with an index into a clip table
+// and a transform table, so that a renderer evaluates clips per command
+// and batches across them. Coordinates are logical units; colors are
+// linear light with premultiplied alpha. Identical trees give
 // byte-identical lists.
 
 #ifndef MAUL_UI_DRAW_H

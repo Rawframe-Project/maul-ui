@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The UIAccessibility adapter's objects (record mui-0008), answered from
-// the tree at each call. VoiceOver never looks inside an element, so a
-// shown node with shown children is a container, not an element, whose
-// first element is the node's own, as Flutter splits them; the
-// container's frame is the view's, so that a child outside its parent's
-// box is still found by touch. The label is the name; the value a
-// toggle's state, a range's text or number, or the node's value text;
-// the actions are asked of the host.
+// The UIAccessibility adapter's objects, answered from the tree at each
+// call. VoiceOver never looks inside an element, so a shown node with
+// shown children is a container, not an element, whose first element is
+// the node's own, as Flutter splits them; the container's frame is the
+// view's, so that a child outside its parent's box is still found by
+// touch. The label is the name; the value a toggle's state, a range's text
+// or number, or the node's value text; the actions are asked of the host.
 
 #include "uikit.h"
 

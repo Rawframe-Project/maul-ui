@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Wheel input (record mui-0007): routing, the default scroll of the
-// nearest scroll container that can move, chaining outward, latching,
-// Shift and right to left, layers, the scroll rule, scrollbar thumbs,
-// and calls outside the contract.
+// Wheel input: routing, the default scroll of the nearest scroll container
+// that can move, chaining outward, latching, Shift and right to left,
+// layers, the scroll rule, scrollbar thumbs, and calls outside the
+// contract.
 
 #include "test_harness.h"
 

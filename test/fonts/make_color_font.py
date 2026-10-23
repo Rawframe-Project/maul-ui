@@ -1,15 +1,15 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Sirac Ozmen
 #
-# Writes MaulColor.ttf, the font the colour glyph tests render (record
-# mui-0006): 1000 units per em, an A of COLR version 0 layers (one with no
-# outline, a box of palette entry 0, the box's right half of entry 1, a
-# small box of the text's colour, entry 0xFFFF, and a small box of entry
-# 2, past the palettes) over two CPAL palettes of two entries, a B with no
-# colour, its outline a plain box, and glyphs of version 1 paint graphs,
-# one for each kind of paint the tests draw (see GRAPHS). Needs fontTools
-# (pip install fonttools); its timestamps are fixed, so it writes the same
-# bytes each time.
+# Writes MaulColor.ttf, the font the colour glyph tests render: 1000 units
+# per em, an A of COLR version 0 layers (one with no outline, a box of
+# palette entry 0, the box's right half of entry 1, a small box of the
+# text's colour, entry 0xFFFF, and a small box of entry 2, past the
+# palettes) over two CPAL palettes of two entries, a B with no colour, its
+# outline a plain box, and glyphs of version 1 paint graphs, one for each
+# kind of paint the tests draw (see GRAPHS). Needs fontTools (pip install
+# fonttools); its timestamps are fixed, so it writes the same bytes each
+# time.
 #
 #     python3 make_color_font.py
 

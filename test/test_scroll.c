@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Scrolling (record mui-0007): scroll containers' automatic minimum and
-// extents, offsets clamped and kept within, children painted through a
-// transform that scrolling alone moves, hit testing, pointer points and
-// navigation through offsets, scrolling into view, and calls outside the
-// contract.
+// Scrolling: scroll containers' automatic minimum and extents, offsets
+// clamped and kept within, children painted through a transform that
+// scrolling alone moves, hit testing, pointer points and navigation
+// through offsets, scrolling into view, and calls outside the contract.
 
 #include "test_harness.h"
 
@@ -558,8 +557,8 @@ static void TestHits(void)
     muiDestroyContext(context);
 }
 
-// The list of TestHits scaled twice about its top left (record mui-0005):
-// every point on the surface is twice the one TestHits uses.
+// The list of TestHits scaled twice about its top left: every point on the
+// surface is twice the one TestHits uses.
 static void TestScaled(void)
 {
     List list;

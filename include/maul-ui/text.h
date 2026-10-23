@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The text service (record mui-0006): fonts, shaping and paragraphs, in
-// the library when it is built with its text component (MAUL_UI_TEXT).
-// The core reaches text only through host content, so a host may use
-// another text stack instead.
+// The text service: fonts, shaping and paragraphs, in the library when it
+// is built with its text component (MAUL_UI_TEXT). The core reaches text
+// only through host content, so a host may use another text stack instead.
 //
 // A service is busy while one of its functions that use it runs, those
 // given a muiTextHost among them, and an atlas while one of its
@@ -45,7 +44,8 @@ extern "C"
         uint32_t cookie;
         uint32_t version;
         // Gives the service's memory and FreeType's. HarfBuzz allocates
-        // from the C library (record mui-0006).
+        // from the C library, since its allocator is one for the whole
+        // process (docs/internals/text.md).
         muiAllocator allocator;
         muiTextLimits limits;
     } muiTextServiceDef;

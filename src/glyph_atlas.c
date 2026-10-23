@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Glyph atlases (record mui-0006): pages made as needed, cut into plots
-// each packed by a skyline; whole plots are evicted, least recently used
-// first, never one the current frame uses. Each image keeps a pixel of
-// empty gutter on every side, so filtering never reads a neighbor.
+// Glyph atlases: pages made as needed, cut into plots each packed by a
+// skyline; whole plots are evicted, least recently used first, never one
+// the current frame uses. Each image keeps a pixel of empty gutter on
+// every side, so filtering never reads a neighbor.
 
 #include "maul-ui/glyph_atlas.h"
 
@@ -90,7 +90,7 @@ struct muiGlyphAtlas
     unsigned char* scratch;
     muiGlyphTable table;
     // Set while one of the atlas's functions that change it runs: its
-    // allocator may not call back in (conventions section 10).
+    // allocator may not call back in (Maul conventions, Threads).
     bool busy;
 };
 

@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Range values (record mui-0007): the model and its steps, keys by
-// ARIA's slider pattern along the axis, presses paging, drags keeping
-// the grab, cancelling back, notifications, and calls outside the
-// contract.
+// Range values: the model and its steps, keys by ARIA's slider pattern
+// along the axis, presses paging, drags keeping the grab, cancelling back,
+// notifications, and calls outside the contract.
 
 #include "test_harness.h"
 

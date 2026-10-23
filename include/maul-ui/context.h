@@ -187,7 +187,7 @@ extern "C"
         // A node's conditions flipped back and forth with its own layout,
         // the same two sizes in turn; its conditions are held at their
         // last outcome until the host edits the node or its size leaves
-        // those two (record mui-0004).
+        // those two.
         mui_notificationOscillation = 1,
         // count notifications were dropped here, past the limit.
         mui_notificationDropped = 2,
@@ -211,8 +211,8 @@ extern "C"
         mui_notificationAccessAction = 9,
     };
 
-    // A record of something the host learns after the call that caused
-    // it, in the order it happened (family record 0018).
+    // A record of something the host learns after the call that caused it,
+    // in the order it happened.
     typedef struct muiNotification
     {
         muiNotificationKind kind;

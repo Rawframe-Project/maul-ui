@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Compositions and carets of the Maul Window glue (record mui-0007). The
-// segments pass as they are: Maul Window's preedit segments are Maul
-// UI's composition segments, member for member.
+// Compositions and carets of the Maul Window glue. The segments pass as
+// they are: Maul Window's preedit segments are Maul UI's composition
+// segments, member for member.
 
 #include "maul-ui-window/composition.h"
 

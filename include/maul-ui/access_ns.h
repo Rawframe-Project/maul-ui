@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The NSAccessibility adapter (record mui-0008), the component
-// MAUL_UI_NSACCESSIBILITY builds on macOS: the accessibility tree's
-// consumer shown to AppKit's accessibility, one object a shown node that
-// answers the NSAccessibility protocol. The window root's object is
-// given to the view the tree lies in (Maul Window's
-// mwinRequestAccessibilityRoot does that), whose child it is; clients'
-// actions come back through a function of the host's. The header is C:
-// AppKit's objects pass as void*.
+// The NSAccessibility adapter, the component MAUL_UI_NSACCESSIBILITY
+// builds on macOS: the accessibility tree's consumer shown to AppKit's
+// accessibility, one object a shown node that answers the NSAccessibility
+// protocol. The window root's object is given to the view the tree lies in
+// (Maul Window's mwinRequestAccessibilityRoot does that), whose child it
+// is; clients' actions come back through a function of the host's. The
+// header is C: AppKit's objects pass as void*.
 //
 // An adapter is busy while one of its functions that change it runs, or
 // its allocator or action function runs, from those or from its

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// A password's mask (record mui-0006).
+// A password's mask.
 
 #include "text_mask.h"
 

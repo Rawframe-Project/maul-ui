@@ -1,4 +1,4 @@
-# The samples (record mui-0005): programs that use Maul UI's parts
+# The samples: programs that use Maul UI's parts
 # together and check their own results, so that each is also a test,
 # skipped (77) without an adapter unless MUI_RHI_REQUIRED is set, as
 # Maul RHI's samples are. They need the reference renderer, the Maul

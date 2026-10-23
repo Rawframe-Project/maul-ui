@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The reference renderer's records (record mui-0005): a draw list's
-// commands and its gradient, transform and clip tables in the layouts
-// rhi/shaders/quad.* read. Every table has its entry 0, the identity
-// transform and no clip where the list has none, and every index into a
-// table is one of its entries, 0 where the list's is not, so the shaders
-// never read past a table whatever list they are given.
+// The reference renderer's records: a draw list's commands and its
+// gradient, transform and clip tables in the layouts rhi/shaders/quad.*
+// read. Every table has its entry 0, the identity transform and no clip
+// where the list has none, and every index into a table is one of its
+// entries, 0 where the list's is not, so the shaders never read past a
+// table whatever list they are given.
 
 #ifndef MAUL_UI_RHI_PACK_H
 #define MAUL_UI_RHI_PACK_H

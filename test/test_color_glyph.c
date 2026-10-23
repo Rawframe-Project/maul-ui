@@ -522,8 +522,8 @@ static uint32_t Outcome(muiResult result, const muiGlyphImage* image)
 }
 
 // Every colour glyph the font has, whole: layers in both palettes, at
-// fractional sizes and pens, and each version 1 paint graph at two
-// sizes; the same bytes on every platform (record mui-0001).
+// fractional sizes and pens, and each version 1 paint graph at two sizes;
+// the same bytes on every platform.
 static void TestWholeImages(void)
 {
     static const uint32_t expected[52] = {

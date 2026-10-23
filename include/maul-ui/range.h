@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Range values (record mui-0007): a value between a minimum and a
-// maximum on a node, as a slider, a scrollbar or a volume control holds
-// one. Unhandled input changes it by default: keys by ARIA's slider
-// pattern along the range's axis (muiKeyInput, muiNavigationInput),
-// and pointer records a host dispatches (muiDispatchPointerRecord): a
-// press on the track pages toward the point, and a drag of the range
-// (its node takes drags, maul-ui/interaction.h) moves the value with
-// the pointer, keeping where the thumb was grabbed. A change made so is
-// reported by mui_notificationRangeChanged; a change by code is not.
+// Range values: a value between a minimum and a maximum on a node, as a
+// slider, a scrollbar or a volume control holds one. Unhandled input
+// changes it by default: keys by ARIA's slider pattern along the range's
+// axis (muiKeyInput, muiNavigationInput), and pointer records a host
+// dispatches (muiDispatchPointerRecord): a press on the track pages toward
+// the point, and a drag of the range (its node takes drags,
+// maul-ui/interaction.h) moves the value with the pointer, keeping where
+// the thumb was grabbed. A change made so is reported by
+// mui_notificationRangeChanged; a change by code is not.
 
 #ifndef MAUL_UI_RANGE_H
 #define MAUL_UI_RANGE_H

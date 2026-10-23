@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// A block's analysis after edits (record mui-0006): a replace finds the
-// line breaks and script runs of the paragraphs it reaches again and
-// moves the rest, which must be what analyzing the whole new text finds.
-// Seeded random texts of paragraphs, every mandatory break among their
-// separators (LF, CR, CR LF, VT, FF, NEL, LS, PS), several scripts,
-// digits, spaces and brackets, take random replaces (inserting,
-// removing and replacing, separators and the halves of CR LF among
-// them); after each, the edited block's tables are compared, entry by
-// entry, with those of a block given the whole new text. Then the same
-// for shaping: both blocks laid out in Liberation Sans with a fallback
-// font after each edit, the edited one shaping again only its stale
-// paragraphs, and every shaped table compared: levels, fonts, unsafe
-// marks, items, glyphs and the sums of advances and clusters.
+// A block's analysis after edits: a replace finds the line breaks and
+// script runs of the paragraphs it reaches again and moves the rest, which
+// must be what analyzing the whole new text finds. Seeded random texts of
+// paragraphs, every mandatory break among their separators (LF, CR, CR LF,
+// VT, FF, NEL, LS, PS), several scripts, digits, spaces and brackets, take
+// random replaces (inserting, removing and replacing, separators and the
+// halves of CR LF among them); after each, the edited block's tables are
+// compared, entry by entry, with those of a block given the whole new
+// text. Then the same for shaping: both blocks laid out in Liberation Sans
+// with a fallback font after each edit, the edited one shaping again only
+// its stale paragraphs, and every shaped table compared: levels, fonts,
+// unsafe marks, items, glyphs and the sums of advances and clusters.
 
 #include "line_break.h"
 #include "test_harness.h"

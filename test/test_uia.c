@@ -506,7 +506,7 @@ typedef struct Program
     volatile LONG focusAsked;
     muiAccessRequest asked;
     // Actions asked, and how many found the adapter busy when they called
-    // back into it (conventions section 10).
+    // back into it (Maul conventions, Threads).
     int actions;
     int refused;
     // The text it carried, while it fits.

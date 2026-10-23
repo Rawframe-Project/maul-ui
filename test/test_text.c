@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The text service and its fonts (record mui-0006): creation, limits,
-// memory through the service's allocator, Ahem's metrics, and damaged
-// fonts refused without harm.
+// The text service and its fonts: creation, limits, memory through the
+// service's allocator, Ahem's metrics, and damaged fonts refused without
+// harm.
 
 #include "test_harness.h"
 

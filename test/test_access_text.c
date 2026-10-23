@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// A value text's marks (record mui-0008, I123): the selection, lines,
-// words and clusters the host's text function gives, read for a node the
-// update sends, kept where they fit the text; the tree copying them,
-// refusing those that do not fit, writing them, and answering where a
-// range is and what lies at a point.
+// A value text's marks: the selection, lines, words and clusters the
+// host's text function gives, read for a node the update sends, kept where
+// they fit the text; the tree copying them, refusing those that do not
+// fit, writing them, and answering where a range is and what lies at a
+// point.
 
 #include "access_text.h"
 #include "test_harness.h"

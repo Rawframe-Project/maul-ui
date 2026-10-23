@@ -403,7 +403,7 @@ void muiMeasureExtentAbove(const muiSolver* solver, uint32_t root, uint32_t node
 }
 
 // Lays a container out in logical coordinates, start on the left, and
-// mirrors it when its direction is right to left (record mui-0003).
+// mirrors it when its direction is right to left.
 static muiSize SizeContainer(const muiSolver* solver, uint32_t node, const muiSizingInput* input,
                              bool perform)
 {
@@ -588,10 +588,9 @@ static bool IsSameSize(muiSize a, muiSize b)
 }
 
 // Records the direction a node was laid out in and, when its conditions
-// read a size or direction this layout changed, requests its style for
-// the next pass: conditions read the state before the pass (record
-// mui-0004). A held node is styled again only when its size leaves the
-// two it oscillated between.
+// read a size or direction this layout changed, requests its style for the
+// next pass: conditions read the state before the pass. A held node is
+// styled again only when its size leaves the two it oscillated between.
 static void Published(const muiSolver* solver, uint32_t node, muiSize size, bool rtl)
 {
     muiLayoutNode* layout = &solver->nodes[node - 1];

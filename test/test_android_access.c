@@ -1,19 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The Android accessibility adapter's test, native half (record
-// mui-0008): the adapter for the test activity's view
-// (test/android/java/maul/ui/tests/TestActivity.java, which holds the
-// checks), at 2 pixels a unit, with a tree:
-// the window 1, "Main"; a focused button 2 that clicks; a generic 3
-// around a label 4 whose name is past the Basic Multilingual Plane, of
-// two words, its characters placed; a text field 5 "Name" holding "Ada", one word, being edited
-// with the caret at its end, whose selection and text are set; a
-// checked check box 7; a slider 8 at 30 of 100 that steps and is set,
-// described and with a value text; a live heading 9. The host's action
-// function records what it is asked, and the adapter's events are
-// recorded in place of the provider's, as "type id changes;" each, a
-// text event as "type id numbers before;".
+// The Android accessibility adapter's test, native half: the adapter for the test activity's view
+// (test/android/java/maul/ui/tests/TestActivity.java, which holds the checks), at 2 pixels a
+// unit, with a tree: the window 1, "Main"; a focused button 2 that clicks; a generic 3 around a
+// label 4 whose name is past the Basic Multilingual Plane, of two words, its characters placed; a
+// text field 5 "Name" holding "Ada", one word, being edited with the caret at its end, whose
+// selection and text are set; a checked check box 7; a slider 8 at 30 of 100 that steps and is
+// set, described and with a value text; a live heading 9. The host's action function records what
+// it is asked, and the adapter's events are recorded in place of the provider's, as "type id
+// changes;" each, a text event as "type id numbers before;".
 
 #include "android.h"
 

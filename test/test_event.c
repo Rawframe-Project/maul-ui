@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Routed input (record mui-0007): the route's order, handled in either
-// phase, targets under focus and modal layers, the defaults when nothing
-// handles a key or an action, a route fixed against edits, pointer
-// records, and calls outside the contract.
+// Routed input: the route's order, handled in either phase, targets under
+// focus and modal layers, the defaults when nothing handles a key or an
+// action, a route fixed against edits, pointer records, and calls outside
+// the contract.
 
 #include "test_harness.h"
 

@@ -3,9 +3,8 @@
 //
 // What style keeps: classes as property sets per variant, node types as
 // class lists, and per node its classes, type, states and which of its
-// properties are written directly (record mui-0004). Property sets live
-// in a pool of their own so that a class pays only for the variants it
-// uses.
+// properties are written directly. Property sets live in a pool of their
+// own so that a class pays only for the variants it uses.
 
 #ifndef MAUL_UI_SRC_STYLE_STORE_H
 #define MAUL_UI_SRC_STYLE_STORE_H

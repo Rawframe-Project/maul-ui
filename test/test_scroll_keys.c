@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Scrolling by keys and steps easing (record mui-0007): whole detents
-// and key steps easing out, retargeting, fractions at once, reduced
-// motion, a full table; arrows and navigation directions by Android's
-// ScrollView rule, page keys, and the scroll rule's steps.
+// Scrolling by keys and steps easing: whole detents and key steps easing
+// out, retargeting, fractions at once, reduced motion, a full table;
+// arrows and navigation directions by Android's ScrollView rule, page
+// keys, and the scroll rule's steps.
 
 #include "test_harness.h"
 

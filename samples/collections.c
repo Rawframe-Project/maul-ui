@@ -3,17 +3,17 @@
 //
 // A list, a tree and a table of 100,000 rows, composed over Maul UI's
 // virtual lists (maul-ui/virtual.h) with the listbox, tree and grid
-// patterns of the WAI-ARIA Authoring Practices (record mui-0005). Only
-// the rows near each viewport exist: after each layout the host reads
-// the window of items the library wants, binds pooled row nodes to the
-// items in it and lets go of the rest. The focus stays on each
-// collection while its active row, named as the active descendant,
-// moves by arrows, Page Up and Down, Home and End, the host scrolling it
-// into view from the item's offset, which the library keeps even for
-// rows that do not exist. The tree is a list whose folders insert and
-// remove their files' items as they open and close (Right and Left, or
-// Enter). Headless, each is used as a person would and the rows, the
-// nodes that exist, the pixels and the accessibility tree checked.
+// patterns of the WAI-ARIA Authoring Practices. Only the rows near each
+// viewport exist: after each layout the host reads the window of items the
+// library wants, binds pooled row nodes to the items in it and lets go of
+// the rest. The focus stays on each collection while its active row, named
+// as the active descendant, moves by arrows, Page Up and Down, Home and
+// End, the host scrolling it into view from the item's offset, which the
+// library keeps even for rows that do not exist. The tree is a list whose
+// folders insert and remove their files' items as they open and close
+// (Right and Left, or Enter). Headless, each is used as a person would and
+// the rows, the nodes that exist, the pixels and the accessibility tree
+// checked.
 
 #include "app.h"
 

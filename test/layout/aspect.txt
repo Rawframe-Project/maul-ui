@@ -552,7 +552,7 @@ node => 0 0 10 10
     node max-height=10 aspect=1 content=50x10 => 0 0 10 10
 
 # A row's height its content gave is indefinite while a column sizes it
-# across, as when it is laid out (I87): a ratio item stretched to it
+# across, as when it is laid out: a ratio item stretched to it
 # takes no width from it, nor a percentage height a base (random seed 36,
 # deep, 244, 11 and 66, reduced).
 fixture ratio_stretched_in_content_row_across available=500x400
@@ -862,7 +862,7 @@ node width=200 height=200 => 0 0 200 200
 
 # A ratio box wrapping as a column, a column's item: its min-content
 # height breaks its lines at the ratio's height, its percentages
-# resolving as without (research 176, case 219).
+# resolving as without (random case 219).
 fixture ratio_wrapping_column_in_column available=500x400
 node => 0 0 10 140
   node => 0 0 10 140
@@ -888,7 +888,7 @@ node => 0 0 0 140
 
 # A row sizing its content carries no ratio's minimum through a height
 # its item takes only by stretching in rows sized by their content, at
-# any depth; one a style fixes higher up, it does (research 176, case
+# any depth; one a style fixes higher up, it does (random case
 # 199).
 fixture ratio_contribution_stretched_loose_three_deep available=500x400
 node => 0 0 20 120
@@ -916,7 +916,7 @@ node height=60 => 0 0 120 60
       node basis=20 aspect=2 content=10x10 => 0 0 120 60
 
 # The same with the item's own height a percentage of that loose height:
-# no minimum through it either (research 176, case 199 again).
+# no minimum through it either (random case 199 again).
 fixture ratio_contribution_stretched_loose_percent_height available=500x400
 node => 0 0 20 10
   node => 0 0 20 10
@@ -925,7 +925,7 @@ node => 0 0 20 10
         node => 0 0 20 10
           node width=150 height=100%+10 basis=20 aspect=2 => 0 0 40 20
 
-# The same breaks for a column that wraps in reverse (mutants, item 172).
+# The same breaks for a column that wraps in reverse.
 fixture ratio_wrapping_column_reverse_in_column available=500x400
 node direction=column width=10 => 0 0 10 140
   node aspect=2 direction=column-reverse wrap=wrap => 0 0 10 140
@@ -933,7 +933,7 @@ node direction=column width=10 => 0 0 10 140
     node height=10 => 5 130 5 10
 
 # A loose item's own height read, not its next sibling's, whose height is
-# given (mutants, item 172).
+# given.
 fixture ratio_contribution_stretched_loose_sibling_height available=500x400
 node => 0 0 20 120
   node => 0 0 20 120
@@ -941,7 +941,7 @@ node => 0 0 20 120
       node width=150 basis=20 aspect=2 content=10x40*6 => 0 0 150 120
       node height=10 => 150 0 0 10
 
-# A ratio's break at 0 is taken before a maximum's (mutants, item 172).
+# A ratio's break at 0 is taken before a maximum's.
 fixture ratio_wrapping_column_zero_break_maximum available=500x400
 node direction=column width=0 => 0 0 0 10
   node aspect=2 direction=column wrap=wrap max-height=30 => 0 0 0 10
@@ -952,7 +952,7 @@ node direction=column width=0 => 0 0 0 10
 
 # A ratio item's base from content is not clamped by its own maximum
 # width; only its hypothetical size is, so it stays flexible and shrinks
-# against that maximum (research 179, case 47t_233).
+# against that maximum (random case 47t_233).
 fixture ratio_base_unclamped_by_own_maximum available=500x400
 node => 0 0 160 120
   node width=10%-20 align-items=start => 0 0 0 120
@@ -962,7 +962,7 @@ node => 0 0 160 120
 
 # A container whose height its ratio gives, before its content floor,
 # is the cross size a stretched ratio item in its single line takes its
-# base from, as Chrome and Firefox do (research 184, case 49w_160).
+# base from, as Chrome and Firefox do (random case 49w_160).
 fixture ratio_stretched_item_pre_floor_height available=500x400
 node aspect=2 => 0 0 7 14
   node aspect=1.5 => 0 0 5.25 14
@@ -991,7 +991,7 @@ node aspect=2 => 0 0 22 14
 # A ratio box whose height is a percentage with nothing to resolve
 # against, its height flexed in a column, takes its width through the
 # ratio but no less than its content's min-content width, within its
-# maximum; its minimum height still carries (research 185, case 50t_62;
+# maximum; its minimum height still carries (random case 50t_62;
 # Chrome and Firefox agree on each).
 fixture ratio_percent_height_pending_content_floor available=500x400
 node direction=column align-items=start => 0 0 20 10
@@ -1023,9 +1023,9 @@ node direction=column align-items=start => 0 0 20 10
   node height=50% max-height=10 max-width=50 aspect=2 => 0 0 50 10
     node content=80x20 => 0 0 80 10
 
-# A ratio item's base from its content, past its own width limits
-# (I159), is still capped by its cross maximum through the ratio, as
-# Chrome and Firefox (research 191, case 55w_31).
+# A ratio item's base from its content, past its own width limits, is
+# still capped by its cross maximum through the ratio, as Chrome and
+# Firefox (random case 55w_31).
 
 fixture ratio_base_capped_by_cross_maximum available=500x400
 node => 0 0 45 30
@@ -1048,7 +1048,7 @@ node => 0 0 45 30
     node content=80x40 => 0 0 80 30
 
 # Nor does a row's ratio item take its base from its own minimum width:
-# it grows from its content's (research 192, case 56t_259).
+# it grows from its content's (random case 56t_259).
 
 fixture ratio_base_free_of_own_minimum available=500x400
 node width=400 => 0 0 400 66.65625
@@ -1067,8 +1067,8 @@ node width=400 => 0 0 400 83.328125
   node grow=2 => 166.671875 0 233.328125 83.328125
 
 # A baseline-aligned ratio item's baseline is found with its children's
-# percentages against its ratio's height, as it is laid out (research
-# 197, case 59t_193; Firefox agrees within 1/64).
+# percentages against its ratio's height, as it is laid out (random case
+# 59t_193; Firefox agrees within 1/64).
 
 fixture ratio_baseline_item_percent_height available=500x400
 node => 0 0 5 6.875
@@ -1079,7 +1079,7 @@ node => 0 0 5 6.875
 
 # A column item's base from its content leaves out its own height
 # limits only: its minimum width still sizes the content it wraps
-# (research 198, case 60d_139; Chrome and Firefox agree).
+# (random case 60d_139; Chrome and Firefox agree).
 
 fixture content_base_keeps_cross_minimum available=500x400
 node => 0 0 150 80
@@ -1092,7 +1092,7 @@ node => 0 0 150 80
 # A ratio box whose percentage height cannot resolve is no narrower
 # than its content only while its minimum width is automatic: a given
 # minimum width replaces that floor, and the maximum height carried
-# through the ratio caps the width (research 232).
+# through the ratio caps the width.
 fixture aspect_percent_height_given_minimum_width available=500x400
 node => 0 0 80 80
   node => 0 0 80 80
@@ -1130,10 +1130,10 @@ node direction=column => 0 0 240 120
       node height=120 aspect=2 => 0 0 240 120
       node basis=20 aspect=1 => 240 0 120 120
 
-# I158's seed case whole (45d 199): an item whose height is a percentage
-# of a loosely stretched height takes no minimum through it, even in a
-# min-content query; the engines part, the library keeps Chrome's reading
-# (mutants, research 316).
+# The seed case whole (random case 45d_199): an item whose height is a
+# percentage of a loosely stretched height takes no minimum through it,
+# even in a min-content query; the engines part, the library keeps
+# Chrome's reading.
 fixture ratio_contribution_stretched_loose_percent_height_seed available=500x400
 node width=40 aspect=1.5 padding=5 direction=column-reverse wrap=wrap-reverse justify=end => 0 0 40 203
   node max-width=25% grow=2 basis=50% content=30x16 => 27.5 5 7.5 193
@@ -1186,8 +1186,7 @@ node width=40 aspect=1.5 padding=5 direction=column-reverse wrap=wrap-reverse ju
     node height=100% align-self=center position=absolute start=0 border=3,7,0,3 => 0 7 10 100
 
 # The same deeper: every row from the second down is as wide as its
-# items, a sibling giving the line the item does not reach (research
-# 316's open ground, item 422).
+# items, a sibling giving the line the item does not reach.
 fixture ratio_minimum_stretched_by_sibling_three_rows_down available=500x400
 node => 0 0 240 120
   node => 0 0 240 120

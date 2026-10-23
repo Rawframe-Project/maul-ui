@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// A slider, a progress bar and a scrollbar, composed over Maul UI's
-// range values (maul-ui/range.h, record mui-0007) with the roles and
-// keys of the WAI-ARIA Authoring Practices (record mui-0005). The library
-// keeps each value and moves it by ARIA's slider keys, by presses on the
-// track and by drags of the thumb; the host shows it: each frame it
-// reads the changes input made (mui_notificationRangeChanged) and sizes
-// the fill and places the thumb from the value. The progress bar shows
-// the slider's value, set by code; the scrollbar is a range over a
-// horizontally scrolling list's offset, both ways: a drag of its thumb
-// scrolls the list, and the thumb's place and length come from the list
-// (muiNode_GetScrollThumb). Headless, the slider is moved by End and the
-// scrollbar by a drag and a press on its track, the pixels and the
-// accessibility tree's values checked.
+// A slider, a progress bar and a scrollbar, composed over Maul UI's range
+// values (maul-ui/range.h) with the roles and keys of the WAI-ARIA
+// Authoring Practices. The library keeps each value and moves it by ARIA's
+// slider keys, by presses on the track and by drags of the thumb; the host
+// shows it: each frame it reads the changes input made
+// (mui_notificationRangeChanged) and sizes the fill and places the thumb
+// from the value. The progress bar shows the slider's value, set by code;
+// the scrollbar is a range over a horizontally scrolling list's offset,
+// both ways: a drag of its thumb scrolls the list, and the thumb's place
+// and length come from the list (muiNode_GetScrollThumb). Headless, the
+// slider is moved by End and the scrollbar by a drag and a press on its
+// track, the pixels and the accessibility tree's values checked.
 
 #include "app.h"
 

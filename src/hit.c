@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Hit testing (record mui-0007). Layers are tried from the top, then the
-// content they are not in. Each walk is preorder, as painting's, so the
-// last node whose rounded border box holds the point is the topmost; a
-// subtree whose hit mode is none, or below a clipping node the point is
-// outside, is passed over whole. The point goes into each node's space as
-// the walk goes down, in doubles, and back out as it comes up: places
-// alone are taken off and added back exactly, and a local scale is
-// divided out and multiplied back (record mui-0005).
+// Hit testing. Layers are tried from the top, then the content they are
+// not in. Each walk is preorder, as painting's, so the last node whose
+// rounded border box holds the point is the topmost; a subtree whose hit
+// mode is none, or below a clipping node the point is outside, is passed
+// over whole. The point goes into each node's space as the walk goes down,
+// in doubles, and back out as it comes up: places alone are taken off and
+// added back exactly, and a local scale is divided out and multiplied
+// back.
 
 #include "context.h"
 #include "layer.h"

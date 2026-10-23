@@ -3,16 +3,15 @@
 //
 // A modal dialog and floating dialogs, composed over Maul UI's layers
 // (maul-ui/interaction.h) and popups with the dialog patterns of the
-// WAI-ARIA Authoring Practices (record mui-0005). The modal dialog is a
-// modal layer centred on the root, made when it opens: the library keeps
-// Tab inside it and lets no point reach what lies below; the host
-// focuses its first button and closes it on Escape or a button, and the
-// library gives the focus back to the button that opened it. The
-// floating dialogs are activation layers placed by their insets: a press
-// in one raises it above the other, and a drag of its title bar moves
-// it, kept inside the root so its bar stays within reach. Headless,
-// each is used as a person would and the pixels, the focus and the
-// accessibility tree checked.
+// WAI-ARIA Authoring Practices. The modal dialog is a modal layer centred
+// on the root, made when it opens: the library keeps Tab inside it and
+// lets no point reach what lies below; the host focuses its first button
+// and closes it on Escape or a button, and the library gives the focus
+// back to the button that opened it. The floating dialogs are activation
+// layers placed by their insets: a press in one raises it above the other,
+// and a drag of its title bar moves it, kept inside the root so its bar
+// stays within reach. Headless, each is used as a person would and the
+// pixels, the focus and the accessibility tree checked.
 
 #include "app.h"
 

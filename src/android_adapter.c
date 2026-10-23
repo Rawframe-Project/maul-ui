@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The Android accessibility adapter (record mui-0008): making it and its
-// provider, applying updates, and the virtual ids its nodes have. A
-// virtual id is given when a client first sees a node and freed when the
-// node goes, the oldest freed given first, so that a client's stale id
-// is unlikely to name another node soon.
+// The Android accessibility adapter: making it and its provider, applying
+// updates, and the virtual ids its nodes have. A virtual id is given when
+// a client first sees a node and freed when the node goes, the oldest
+// freed given first, so that a client's stale id is unlikely to name
+// another node soon.
 
 #include "access_record.h"
 #include "allocator.h"

@@ -242,8 +242,8 @@ static uint32_t Outcome(muiResult result, const muiGlyphImage* image)
 }
 
 // Every bitmap glyph whole: CBDT strikes at, below, between and above
-// their sizes and at a pen half a pixel on, and sbix's; the same bytes
-// on every platform (record mui-0001).
+// their sizes and at a pen half a pixel on, and sbix's; the same bytes on
+// every platform.
 static void TestWholeImages(void)
 {
     static const uint32_t expected[16] = {0x1b305de5u, 0x3638be45u, 0xe2296f15u, 0x9eba52c5u,

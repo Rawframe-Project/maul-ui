@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Building draw lists (records mui-0005, mui-0007). The walk is preorder
-// over the tree's links, each node reading what its parent left in its
-// paint state, so it needs no stack; layers are walked after, from the
-// bottom. A list is built from the last one: a subtree no paint request
-// reaches, at the origin and opacity it was painted at, copies its
-// commands, clips, gradients and glyphs and renumbers them; a build with
-// nothing to repaint keeps the last list as it is.
+// Building draw lists. The walk is preorder over the tree's links, each
+// node reading what its parent left in its paint state, so it needs no
+// stack; layers are walked after, from the bottom. A list is built from
+// the last one: a subtree no paint request reaches, at the origin and
+// opacity it was painted at, copies its commands, clips, gradients and
+// glyphs and renumbers them; a build with nothing to repaint keeps the
+// last list as it is.
 
 #include "maul-ui/draw.h"
 

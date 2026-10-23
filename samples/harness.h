@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The samples' harness (record mui-0005): each sample is a program that
-// checks its own result, so the samples double as tests, as Maul RHI's
-// do. The harness opens a Maul RHI device on the first adapter, software
-// ones included, makes the textures a sample shows, draws a list into a
-// texture and reads it back, and turns the checks into an exit status:
-// 0 when every check passed, 77 when there is no adapter and none is
-// required (MUI_RHI_REQUIRED), 1 otherwise. A sample with a window draws
-// onto a surface made from Maul Window's native handles instead, its
-// images sRGB, and reads the image it presents back where the surface
-// allows copies.
+// The samples' harness: each sample is a program that checks its own
+// result, so the samples double as tests, as Maul RHI's do. The harness
+// opens a Maul RHI device on the first adapter, software ones included,
+// makes the textures a sample shows, draws a list into a texture and reads
+// it back, and turns the checks into an exit status: 0 when every check
+// passed, 77 when there is no adapter and none is required
+// (MUI_RHI_REQUIRED), 1 otherwise. A sample with a window draws onto a
+// surface made from Maul Window's native handles instead, its images sRGB,
+// and reads the image it presents back where the surface allows copies.
 
 #ifndef MAUL_UI_SAMPLES_HARNESS_H
 #define MAUL_UI_SAMPLES_HARNESS_H

@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The UIAccessibility adapter (record mui-0008), the component
-// MAUL_UI_UIACCESSIBILITY builds on iOS: the accessibility tree's
-// consumer shown to UIKit's accessibility, an element object a shown
-// node, and a container object a shown node with shown children whose
-// elements are its node's element and then its children. The root's
-// object is given to the view the tree lies in (Maul Window's
-// mwinRequestAccessibilityRoot does that), its container; clients'
-// actions come back through a function of the host's. The header is C:
-// UIKit's objects pass as void*.
+// The UIAccessibility adapter, the component MAUL_UI_UIACCESSIBILITY
+// builds on iOS: the accessibility tree's consumer shown to UIKit's
+// accessibility, an element object a shown node, and a container object a
+// shown node with shown children whose elements are its node's element and
+// then its children. The root's object is given to the view the tree lies
+// in (Maul Window's mwinRequestAccessibilityRoot does that), its
+// container; clients' actions come back through a function of the host's.
+// The header is C: UIKit's objects pass as void*.
 //
 // An adapter is busy while one of its functions that change it runs, or
 // its allocator or action function runs, from those or from its

@@ -154,8 +154,8 @@ static inline MUI_SIZE_OUTLINE bool muiIsRtl(const muiLayoutStyle* style, bool i
 }
 
 // A node's padding with the safe area it asks for: on each edge its mask
-// names, at least the inset on the physical side that edge falls on in
-// its direction (record mui-0003).
+// names, at least the inset on the physical side that edge falls on in its
+// direction.
 static inline MUI_SIZE_OUTLINE muiEdges muiPaddingOf(const muiLayoutStyle* style,
                                                      const muiSides* safe, bool rtl)
 {

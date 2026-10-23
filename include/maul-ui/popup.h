@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Popups (record mui-0007): a node placed beside an anchor node after
-// each layout. Its layer kind (maul-ui/interaction.h) says how it paints,
-// usually mui_layerOverlay; this says where. From the anchor's border box
-// on the surface, through scrolling, the popup's border box goes to the
-// side asked, aligned along it, then on each axis flips to the opposite
-// side when it overflows the root's box and the other side has more
-// room, and is clamped into the root's box, its start edge kept when it
-// cannot fit. Layout gives its size; an absolutely placed popup takes no
-// room where it sits in the tree.
+// Popups: a node placed beside an anchor node after each layout. Its layer
+// kind (maul-ui/interaction.h) says how it paints, usually
+// mui_layerOverlay; this says where. From the anchor's border box on the
+// surface, through scrolling, the popup's border box goes to the side
+// asked, aligned along it, then on each axis flips to the opposite side
+// when it overflows the root's box and the other side has more room, and
+// is clamped into the root's box, its start edge kept when it cannot fit.
+// Layout gives its size; an absolutely placed popup takes no room where it
+// sits in the tree.
 //
 // A popup record stands for an open popup: the host sets it when it
 // opens one and clears it, or destroys the node, when it closes. Light

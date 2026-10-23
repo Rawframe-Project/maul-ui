@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The reference renderer (record mui-0005), the optional
-// target maul-ui-rhi: a draw list drawn with Maul RHI, every command an
-// instance of one pipeline whose fragment shader evaluates it. Each
-// frame, while the host builds it, muiRhiRenderer_AddPasses adds the
-// renderer's upload and draw passes into the host's target; after
-// mrhiCompileFrame, muiRhiRenderer_Record records them. The core and the
-// text component never depend on it; it is a static library, whose
-// functions MUI_RHI_API marks.
+// The reference renderer, the optional target maul-ui-rhi: a draw list
+// drawn with Maul RHI, every command an instance of one pipeline whose
+// fragment shader evaluates it. Each frame, while the host builds it,
+// muiRhiRenderer_AddPasses adds the renderer's upload and draw passes into
+// the host's target; after mrhiCompileFrame, muiRhiRenderer_Record records
+// them. The core and the text component never depend on it; it is a static
+// library, whose functions MUI_RHI_API marks.
 
 #ifndef MAUL_UI_RHI_RENDERER_H
 #define MAUL_UI_RHI_RENDERER_H
@@ -83,9 +82,9 @@ extern "C"
         muiTextService* text;
         // The format of the depth textures projected targets may carry, so
         // that a panel in a 3D scene is hidden by what stands in front of
-        // it (record mui-0005), and the test against them; mrhi_formatNone,
-        // the default, for none. Depth is tested, never written, as UI is
-        // drawn after a scene's opaque geometry.
+        // it, and the test against them; mrhi_formatNone, the default, for
+        // none. Depth is tested, never written, as UI is drawn after a
+        // scene's opaque geometry.
         mrhiFormat depthFormat;
         mrhiCompareFunction depthCompare;
     } muiRhiRendererDef;
@@ -101,13 +100,13 @@ extern "C"
         bool clear;
         // Linear and premultiplied, when clear is set.
         muiLinearColor clearColor;
-        // Whether the list is drawn through projection, as a panel in a
-        // 3D scene (record mui-0005): a column-major 4x4 matrix taking a
-        // point of the list, in logical units with z 0, into the target's
-        // clip space. Its edges and glyphs stay sharp at any angle: every
-        // glyph run is drawn from its distance field, and edges and clips
-        // are antialiased by the pixels a unit covers where it is drawn.
-        // Unset, the list is drawn at the target's pixels by its scale.
+        // Whether the list is drawn through projection, as a panel in a 3D
+        // scene: a column-major 4x4 matrix taking a point of the list, in
+        // logical units with z 0, into the target's clip space. Its edges
+        // and glyphs stay sharp at any angle: every glyph run is drawn
+        // from its distance field, and edges and clips are antialiased by
+        // the pixels a unit covers where it is drawn. Unset, the list is
+        // drawn at the target's pixels by its scale.
         bool projected;
         float projection[16];
         // A depth texture of the frame in the def's depthFormat, its

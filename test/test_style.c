@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Style classes, node types, states and direct writes: their checks, and
-// the layers resolution applies them in (record mui-0004).
+// the layers resolution applies them in.
 
 #include "test_harness.h"
 

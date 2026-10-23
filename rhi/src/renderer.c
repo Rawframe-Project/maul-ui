@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The reference renderer (record mui-0005): a draw list's commands
-// packed into instance records and its gradient, transform and clip
-// tables beside them (pack.c), each a stream bound at its own slot,
-// uploaded in a pass of their own each frame, and drawn as six vertices
-// an instance by one pipeline whose shaders evaluate each
-// (rhi/shaders/quad.*), in draws split where the texture an image or a
-// glyph samples changes (plan.c), the texture and a linear sampler bound
-// in table 1; glyphs come from an atlas of the renderer's own (glyphs.c). It
-// allocates through the public allocator alone, as Maul UI's internals
-// stay inside a shared build.
+// The reference renderer: a draw list's commands packed into instance
+// records and its gradient, transform and clip tables beside them (pack.c),
+// each a stream bound at its own slot, uploaded in a pass of their own each
+// frame, and drawn as six vertices an instance by one pipeline whose shaders
+// evaluate each (rhi/shaders/quad.*), in draws split where the texture an
+// image or a glyph samples changes (plan.c), the texture and a linear
+// sampler bound in table 1; glyphs come from an atlas of the renderer's own
+// (glyphs.c). It allocates through the public allocator alone, as Maul UI's
+// internals stay inside a shared build.
 
 #include "maul-ui-rhi/renderer.h"
 

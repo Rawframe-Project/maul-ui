@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Layout: the authored values that size and place a node, the solver
-// that computes rectangles from them (CSS Flexbox, record mui-0003), and
-// the rectangles it publishes. Lengths are logical units; a node's
-// rectangle is relative to its parent's border box, and a root's
-// rectangle starts at 0, 0.
+// Layout: the authored values that size and place a node, the solver that
+// computes rectangles from them (CSS Flexbox), and the rectangles it
+// publishes. Lengths are logical units; a node's rectangle is relative to
+// its parent's border box, and a root's rectangle starts at 0, 0.
 
 #ifndef MAUL_UI_LAYOUT_H
 #define MAUL_UI_LAYOUT_H

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Accessibility (record mui-0008): requests from assistive technology,
-// performed by the library where it owns what they change, routed to
-// the node as activation for a click, posted to the host otherwise.
+// Accessibility: requests from assistive technology, performed by the
+// library where it owns what they change, routed to the node as activation
+// for a click, posted to the host otherwise.
 
 #include "access.h"
 #include "context.h"

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The UI Automation adapter's property values (record mui-0008): control
-// types from roles, texts as BSTRs, and states, positions and landmarks
-// from a node's flags and values.
+// The UI Automation adapter's property values: control types from roles,
+// texts as BSTRs, and states, positions and landmarks from a node's flags
+// and values.
 
 #include "access_record.h"
 #include "allocator.h"

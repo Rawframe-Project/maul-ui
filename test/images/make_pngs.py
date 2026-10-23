@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Sirac Ozmen
 #
-# Writes pngs.bin, the PNG decoder's cases (record mui-0006): images of
+# Writes pngs.bin, the PNG decoder's cases: images of
 # every colour type and bit depth, plain and interlaced, their rows
 # filtered by each of the five filters in turn, their data stored, fixed
 # or dynamic and split over several chunks; images Pillow encodes; and

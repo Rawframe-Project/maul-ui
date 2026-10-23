@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Popups (record mui-0007): the table of popups and their placement
-// beside their anchors after layout, flipping then clamping per axis as
-// Wayland's positioner does without resizing.
+// Popups: the table of popups and their placement beside their anchors
+// after layout, flipping then clamping per axis as Wayland's positioner
+// does without resizing.
 
 #include "maul-ui/popup.h"
 

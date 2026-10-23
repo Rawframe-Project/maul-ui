@@ -72,7 +72,7 @@ typedef struct Test
     char askedText[64];
     bool refuse;
     // The main window's adapter, and what calling back into it from its
-    // action function answered (conventions section 10).
+    // action function answered (Maul conventions, Threads).
     muiAtspiAdapter* adapter;
     muiResult reentered;
     // The events received, "member kind detail1 from data; ..." with

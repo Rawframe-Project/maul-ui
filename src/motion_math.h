@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The exponential, sine and cosine that springs need, the logarithm,
-// power and cube root that colors need, and the angle a sweep gradient
-// needs, written here so that they give
-// the same bits on every platform (record mui-0001): only arithmetic,
-// floor, sqrt and the exact scaling of a double by a power of two.
+// The exponential, sine and cosine that springs need, the logarithm, power
+// and cube root that colors need, and the angle a sweep gradient needs,
+// written here so that they give the same bits on every platform: only
+// arithmetic, floor, sqrt and the exact scaling of a double by a power of
+// two.
 
 #ifndef MAUL_UI_SRC_MOTION_MATH_H
 #define MAUL_UI_SRC_MOTION_MATH_H

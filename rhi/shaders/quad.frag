@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The reference renderer's fragment entry "fs" (record mui-0005), by the
+// The reference renderer's fragment entry "fs", by the
 // instance's kind:
 // - a box: coverage from its rounded rect's signed distance in pixels,
 //   split into the fill (inside the borders' inner edge, its radii shrunk

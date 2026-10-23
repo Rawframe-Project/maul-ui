@@ -3,8 +3,8 @@
 //
 // Compiles WGSL files with headless Chrome's WebGPU, on SwiftShader, and
 // fails on any error or warning its compilation reports, so that the
-// reference renderer's WGSL (record mui-0005) is checked where nothing
-// else compiles it: the shader tools pass WGSL through untouched.
+// reference renderer's WGSL is checked where nothing else compiles it: the
+// shader tools pass WGSL through untouched.
 //
 //   MUI_NODE_MODULES=<node_modules with puppeteer> node tools/check_wgsl.cjs <file.wgsl>...
 

@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Painting host content (record mui-0005): the host's paint function adds
-// glyph runs through a sink, at positions relative to the node's content
-// box.
+// Painting host content: the host's paint function adds glyph runs through
+// a sink, at positions relative to the node's content box.
 
 #ifndef MAUL_UI_SRC_PAINT_HOST_H
 #define MAUL_UI_SRC_PAINT_HOST_H

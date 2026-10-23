@@ -1,18 +1,17 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Virtualization timings (record mui-0007): a tree of 100,000 rows, each
-// an indent and a label 24 or 36 units tall, estimated at 28 until
-// measured; a table of 100,000 rows of eight cells, fixed at 24; and the
-// same table with every fifth row 48 tall, estimated at 28. A
-// viewport of 800 scrolls each from top to bottom by 997 units a frame,
-// then jumps to 500 places across it. The host realizes every window
-// from a pool of rows, rebinding them and marking their labels' content
-// changed, so no row keeps another's state. A frame is a layout, the
-// realization when the window changed and the layout it needs, and a
-// draw list. Prints the median, 99th percentile and worst frame in
-// microseconds, the host's measures per frame, which do not depend on
-// the machine, and the most nodes alive at once.
+// Virtualization timings: a tree of 100,000 rows, each an indent and a
+// label 24 or 36 units tall, estimated at 28 until measured; a table of
+// 100,000 rows of eight cells, fixed at 24; and the same table with every
+// fifth row 48 tall, estimated at 28. A viewport of 800 scrolls each from
+// top to bottom by 997 units a frame, then jumps to 500 places across it.
+// The host realizes every window from a pool of rows, rebinding them and
+// marking their labels' content changed, so no row keeps another's state.
+// A frame is a layout, the realization when the window changed and the
+// layout it needs, and a draw list. Prints the median, 99th percentile and
+// worst frame in microseconds, the host's measures per frame, which do not
+// depend on the machine, and the most nodes alive at once.
 
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"

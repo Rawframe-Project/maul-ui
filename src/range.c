@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Range values (record mui-0007): the table of ranges, values kept on
-// their steps, and the defaults keys and pointer records reach them by.
+// Range values: the table of ranges, values kept on their steps, and the
+// defaults keys and pointer records reach them by.
 
 #include "maul-ui/range.h"
 

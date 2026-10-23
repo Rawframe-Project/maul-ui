@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Accessibility (record mui-0008): whole updates and updates of what
-// changed, what the library derives, children leaving and coming back,
-// actions, and the contract of the host's data and the roots.
+// Accessibility: whole updates and updates of what changed, what the
+// library derives, children leaving and coming back, actions, and the
+// contract of the host's data and the roots.
 
 #include "test_harness.h"
 
@@ -1227,7 +1227,7 @@ static bool TransformIs(const muiAccessNode* node, muiDrawTransform t)
 }
 
 // A local scale reaches a node's transform about its origin, and a change
-// of it is sent (record mui-0005).
+// of it is sent.
 static void TestScale(void)
 {
     muiContextDef def = muiDefaultContextDef();

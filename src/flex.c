@@ -73,10 +73,10 @@ static void ResolvePendingMinimums(const muiFlexFrame* frame, uint32_t first, ui
     }
 }
 
-// Whether a column item's height after flexing is its content's (I87):
-// in a column of no definite height, without a definite basis, nor a
-// ratio giving it from the width it fits, its height given counting only
-// under an automatic basis, which a given one replaces (as in Chrome).
+// Whether a column item's height after flexing is its content's: in a
+// column of no definite height, without a definite basis, nor a ratio
+// giving it from the width it fits, its height given counting only under
+// an automatic basis, which a given one replaces (as in Chrome).
 static bool ColumnContentHeight(const muiFlexFrame* frame, const muiLayoutStyle* style)
 {
     float base = 0.0f;

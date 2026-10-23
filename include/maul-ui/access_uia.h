@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The UI Automation adapter (record mui-0008), the component MAUL_UI_UIA
-// builds on Windows: the accessibility tree's consumer shown to UI
-// Automation through a provider object per node. The host hands the
-// adapter's root to its window (mwinRequestAccessibilityRoot of Maul
-// Window, or its own WM_GETOBJECT through muiUiaAdapter_HandleGetObject)
-// and applies the core's updates through the adapter. Clients' actions
-// come back through a function of the host's.
+// The UI Automation adapter, the component MAUL_UI_UIA builds on Windows:
+// the accessibility tree's consumer shown to UI Automation through a
+// provider object per node. The host hands the adapter's root to its
+// window (mwinRequestAccessibilityRoot of Maul Window, or its own
+// WM_GETOBJECT through muiUiaAdapter_HandleGetObject) and applies the
+// core's updates through the adapter. Clients' actions come back through a
+// function of the host's.
 //
 // An adapter lives on its window's thread, which must be in a COM
 // single-threaded apartment (OleInitialize or CoInitializeEx with

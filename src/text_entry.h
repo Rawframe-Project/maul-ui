@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // The text functions the library calls from inside its own: the public
-// ones without the busy mark (conventions section 10), which the call
+// ones without the busy mark (Maul conventions, Threads), which the call
 // they are made from holds.
 
 #ifndef MAUL_UI_SRC_TEXT_ENTRY_H

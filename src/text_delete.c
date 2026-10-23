@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// What deleting from an offset removes (record mui-0006): a grapheme
-// cluster forward; back, a code point, but emoji, flags and keycaps whole,
-// as Blink's and Android's Backspace delete.
+// What deleting from an offset removes: a grapheme cluster forward; back,
+// a code point, but emoji, flags and keycaps whole, as Blink's and
+// Android's Backspace delete.
 
 #include "text_block.h"
 #include "text_service.h"

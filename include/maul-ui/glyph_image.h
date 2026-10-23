@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Glyph images (record mui-0006): a glyph of a text service's font
-// rendered for a renderer to draw, as 8-bit coverage or as a signed
-// distance field that scales. Outlines are rendered unhinted, as text is
-// laid out, so an image sits where its glyph run places it at every
-// size; images are the same on every platform.
+// Glyph images: a glyph of a text service's font rendered for a renderer
+// to draw, as 8-bit coverage or as a signed distance field that scales.
+// Outlines are rendered unhinted, as text is laid out, so an image sits
+// where its glyph run places it at every size; images are the same on
+// every platform.
 
 #ifndef MAUL_UI_GLYPH_IMAGE_H
 #define MAUL_UI_GLYPH_IMAGE_H

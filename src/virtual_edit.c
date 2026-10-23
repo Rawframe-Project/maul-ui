@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Virtualization (record mui-0007): items inserted, removed and moved by
-// index, their extents and bound nodes following them, and the offset
-// moved along so that what the viewport shows stays put.
+// Virtualization: items inserted, removed and moved by index, their
+// extents and bound nodes following them, and the offset moved along so
+// that what the viewport shows stays put.
 
 #include "context.h"
 #include "tree.h"

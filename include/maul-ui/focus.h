@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Focus (record mui-0007): the node each player's keys and gamepad go to,
-// one per player slot for local multiplayer, moved by code, pointer
-// presses and sequential navigation, and shown as the input that moved
-// it calls for.
+// Focus: the node each player's keys and gamepad go to, one per player
+// slot for local multiplayer, moved by code, pointer presses and
+// sequential navigation, and shown as the input that moved it calls for.
 
 #ifndef MAUL_UI_FOCUS_H
 #define MAUL_UI_FOCUS_H

@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Directional navigation's search (record mui-0007), for scrolling's
-// arrow rule.
+// Directional navigation's search, for scrolling's arrow rule.
 
 #ifndef MAUL_UI_SRC_NAVIGATE_H
 #define MAUL_UI_SRC_NAVIGATE_H

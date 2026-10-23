@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Routed input (record mui-0007): routing an event to a node for the
-// modules that deliver input of their own.
+// Routed input: routing an event to a node for the modules that deliver
+// input of their own.
 
 #ifndef MAUL_UI_SRC_EVENT_H
 #define MAUL_UI_SRC_EVENT_H

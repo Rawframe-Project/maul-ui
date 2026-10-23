@@ -1,4 +1,4 @@
-# The text component's dependencies (record mui-0006): FreeType and
+# The text component's dependencies: FreeType and
 # HarfBuzz at pinned releases, fetched by hash and built here in reduced
 # configurations, or the installed ones with
 # MAUL_UI_TEXT_SYSTEM_LIBRARIES; and Maul Unicode at its tag, its

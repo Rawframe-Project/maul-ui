@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The AT-SPI adapter's Action and Value interfaces (record mui-0008): a
-// node's actions listed by name and done by index, each asked of the
-// host, and a range's numbers, its value set through the host.
+// The AT-SPI adapter's Action and Value interfaces: a node's actions
+// listed by name and done by index, each asked of the host, and a range's
+// numbers, its value set through the host.
 
 #include "atspi.h"
 #include "host_call.h"

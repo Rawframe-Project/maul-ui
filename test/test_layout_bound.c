@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Layout bounded by the change (record mui-0003): a tree edited at random
-// and laid out after each step, which bounds what it solves, holds every
-// node's rectangle, content box and scroll extent to a tree built by
-// replaying every edit from nothing and laid out once.
+// Layout bounded by the change: a tree edited at random and laid out after
+// each step, which bounds what it solves, holds every node's rectangle,
+// content box and scroll extent to a tree built by replaying every edit
+// from nothing and laid out once.
 
 #include "test_harness.h"
 
@@ -616,12 +616,12 @@ static void CheckBoundedMatchesFresh(uint32_t seed, uint32_t steps)
     muiDestroyContext(edited.context);
 }
 
-// Six histories; the second and third once took a content size for the
-// own one of a node with an aspect ratio below it, or its own (research
-// 93), the fourth a scaled width's answer for another parent extent
-// (research 94); the fifth laid a held node out alone in the direction
-// it had before a list above it turned, the sixth moved a popped exit by
-// mirroring it to and fro (research 127), each run as far as it went.
+// Six histories; the second and third once took a content size for the own
+// one of a node with an aspect ratio below it, or its own, the fourth a
+// scaled width's answer for another parent extent; the fifth laid a held
+// node out alone in the direction it had before a list above it turned,
+// the sixth moved a popped exit by mirroring it to and fro, each run as
+// far as it went.
 static void TestBoundedMatchesFresh(void)
 {
     CheckBoundedMatchesFresh(0x85EBCA6Bu, STEPS);

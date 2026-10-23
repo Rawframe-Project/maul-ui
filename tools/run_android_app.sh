@@ -1,5 +1,5 @@
 #!/bin/sh
-# Runs a test application in the Android emulator (record mui-0008), as
+# Runs a test application in the Android emulator, as
 # Maul Window's runner does: installs it on the device ANDROID_SERIAL
 # names (else the only one), starts its activity, and waits, a minute at
 # most, for the closing line it writes to files/out, "result: N

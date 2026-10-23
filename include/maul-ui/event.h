@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Routed input (record mui-0007): keys, text and navigation go to a
-// player's focus, pointer records to their node, each along the target's
-// ancestors, top down and then back up, through one function of the
-// host's that says whether it handled the event. What the UI leaves
-// unhandled is the game's.
+// Routed input: keys, text and navigation go to a player's focus, pointer
+// records to their node, each along the target's ancestors, top down and
+// then back up, through one function of the host's that says whether it
+// handled the event. What the UI leaves unhandled is the game's.
 
 #ifndef MAUL_UI_EVENT_H
 #define MAUL_UI_EVENT_H

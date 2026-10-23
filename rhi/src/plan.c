@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// A frame's passes (record mui-0005). Boxes and shadows sample nothing,
-// so they join any draw; a draw takes the texture of its first image or
-// glyph, and the next of another texture starts a new one.
+// A frame's passes. Boxes and shadows sample nothing, so they join any
+// draw; a draw takes the texture of its first image or glyph, and the next
+// of another texture starts a new one.
 
 #include "plan.h"
 

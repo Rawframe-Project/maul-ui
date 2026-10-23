@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Interaction properties and hit testing (record mui-0007): the topmost
-// node at a point in reverse paint order, hit modes, clips and rounded
-// corners, pass-through, interaction values through classes and states,
-// and calls outside the contract refused.
+// Interaction properties and hit testing: the topmost node at a point in
+// reverse paint order, hit modes, clips and rounded corners, pass-through,
+// interaction values through classes and states, and calls outside the
+// contract refused.
 
 #include "test_harness.h"
 

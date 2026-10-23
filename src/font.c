@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Fonts (record mui-0006). FreeType opens and validates a face; HarfBuzz
-// reads the same bytes for shaping. Metrics are read once, from the
-// OpenType tables, in integers divided by the units per em.
+// Fonts. FreeType opens and validates a face; HarfBuzz reads the same
+// bytes for shaping. Metrics are read once, from the OpenType tables, in
+// integers divided by the units per em.
 
 #include "maul-ui/font.h"
 

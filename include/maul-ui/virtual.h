@@ -1,19 +1,18 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Virtualization (record mui-0007): a scroll container that stands for
-// many items of which only those near its viewport exist as nodes. The
-// library keeps every item's extent, fixed or estimated until measured,
-// works out after each layout the window of items that should exist (the
-// viewport plus overscan on each side), and reports it by
-// mui_notificationWindowChanged when it changes. The host realizes the
-// window: it creates or reuses a child node of the list for each index
-// in it, binds it (muiNode_SetItem), and destroys or pools the rest,
-// resetting a reused node so nothing of one key outlives it. The library
-// places bound items at their offsets along the axis, out of the flex
-// flow and stretched across the list's content box, sizes the content
-// to all the items so the scroll limits hold, and measures bound items
-// into their extents.
+// Virtualization: a scroll container that stands for many items of which
+// only those near its viewport exist as nodes. The library keeps every
+// item's extent, fixed or estimated until measured, works out after each
+// layout the window of items that should exist (the viewport plus overscan
+// on each side), and reports it by mui_notificationWindowChanged when it
+// changes. The host realizes the window: it creates or reuses a child node
+// of the list for each index in it, binds it (muiNode_SetItem), and
+// destroys or pools the rest, resetting a reused node so nothing of one
+// key outlives it. The library places bound items at their offsets along
+// the axis, out of the flex flow and stretched across the list's content
+// box, sizes the content to all the items so the scroll limits hold, and
+// measures bound items into their extents.
 
 #ifndef MAUL_UI_VIRTUAL_H
 #define MAUL_UI_VIRTUAL_H

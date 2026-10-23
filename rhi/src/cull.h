@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Culling as a list is packed (record mui-0005): each clip's bounds on
-// the screen, in logical units, worked out once a frame, and an instance
-// whose quad through its transform misses its clip's bounds is not
-// drawn. Bounds only ever hold more than a clip keeps: an inverted clip
-// bounds nothing, and a clip whose parent comes after it in the table
-// is bounded by the target alone.
+// Culling as a list is packed: each clip's bounds on the screen, in
+// logical units, worked out once a frame, and an instance whose quad
+// through its transform misses its clip's bounds is not drawn. Bounds only
+// ever hold more than a clip keeps: an inverted clip bounds nothing, and a
+// clip whose parent comes after it in the table is bounded by the target
+// alone.
 
 #ifndef MAUL_UI_RHI_CULL_H
 #define MAUL_UI_RHI_CULL_H

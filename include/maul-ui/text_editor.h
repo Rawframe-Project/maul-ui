@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Text editing (record mui-0006): a block opted into editing keeps a
-// selection, an undo history and its field's rules, and takes typing,
-// pastes, deletions, undo and redo; moves, presses and drags place the
-// selection through a node's laid-out text. muiTextEditEvent maps a
-// platform's keys, typed text and the pointer onto these; the clipboard
-// and focus stay the host's. An editing block's text scrolls in its
-// node's content box to keep the caret in view, back as far as the text
-// allows; muiPaintText draws it scrolled (a node that clips keeps it
-// inside), and the editing primitives (maul-ui/text_edit.h) take and give
-// points as drawn.
+// Text editing: a block opted into editing keeps a selection, an undo
+// history and its field's rules, and takes typing, pastes, deletions, undo
+// and redo; moves, presses and drags place the selection through a node's
+// laid-out text. muiTextEditEvent maps a platform's keys, typed text and
+// the pointer onto these; the clipboard and focus stay the host's. An
+// editing block's text scrolls in its node's content box to keep the caret
+// in view, back as far as the text allows; muiPaintText draws it scrolled
+// (a node that clips keeps it inside), and the editing primitives
+// (maul-ui/text_edit.h) take and give points as drawn.
 
 #ifndef MAUL_UI_TEXT_EDITOR_H
 #define MAUL_UI_TEXT_EDITOR_H

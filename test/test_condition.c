@@ -2,8 +2,8 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Style conditions: their checks, the static rejection of values a
-// condition reads, the environment, and the sizes and directions they
-// read from the last layout (record mui-0004).
+// condition reads, the environment, and the sizes and directions they read
+// from the last layout.
 
 #include "test_harness.h"
 

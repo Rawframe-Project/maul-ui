@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Gamepads as navigation (record mui-0007). A direction is the last
-// pressed of those held: a d-pad button, or the stick crossing its
-// threshold; when it lets go, another still held takes over without
-// navigating again.
+// Gamepads as navigation. A direction is the last pressed of those held: a
+// d-pad button, or the stick crossing its threshold; when it lets go,
+// another still held takes over without navigating again.
 
 #include "gamepads.h"
 

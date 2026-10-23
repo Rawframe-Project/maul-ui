@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Popups (record mui-0007): placement beside an anchor after layout,
-// each side and alignment, flipping, clamping, margins, right to left,
-// scrolling, nesting, and the table's contract.
+// Popups: placement beside an anchor after layout, each side and
+// alignment, flipping, clamping, margins, right to left, scrolling,
+// nesting, and the table's contract.
 
 #include "test_harness.h"
 
