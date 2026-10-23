@@ -500,7 +500,7 @@ static void TestClipsAndTransforms(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* 
         {2, 0, 0, 2, 0, 40},
     };
     const muiDrawClip clips[4] = {
-        {0},
+        {},
         // A circle, and a hole in it.
         {.rect = {0, 0, 32, 32}, .radii = {16, 16, 16, 16}},
         {.rect = {12, 12, 8, 8}, .parent = 1, .invert = 1},
@@ -922,7 +922,7 @@ static void TestProjection(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels, 
     const uint32_t side = 64u * (uint32_t)scale;
     const size_t size = (size_t)side * side * 4;
     muiDrawCommand commands[4];
-    const muiDrawClip clips[2] = {{0}, {.rect = {36, 36, 24, 24}, .radii = {12, 12, 12, 12}}};
+    const muiDrawClip clips[2] = {{}, {.rect = {36, 36, 24, 24}, .radii = {12, 12, 12, 12}}};
     muiDrawList list = PanelList(commands, clips, (float)scale);
     uint8_t* plain = malloc(size);
     float m[16];
@@ -998,7 +998,7 @@ static void TestProjectionScale(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pix
     const uint32_t side = 128u;
     const size_t size = (size_t)side * side * 4;
     muiDrawCommand commands[5];
-    const muiDrawClip clips[2] = {{0}, {.rect = {36, 36, 24, 24}, .radii = {12, 12, 12, 12}}};
+    const muiDrawClip clips[2] = {{}, {.rect = {36, 36, 24, 24}, .radii = {12, 12, 12, 12}}};
     muiDrawList list = PanelList(commands, clips, 2.0f);
     uint8_t* plain = malloc(size);
     float m[16];
@@ -1063,7 +1063,7 @@ static void TestDepth(Gpu* gpu, muiRhiRenderer* plain, uint8_t* pixels)
         return;
     }
     muiDrawCommand commands[4];
-    const muiDrawClip clips[2] = {{0}, {.rect = {36, 36, 24, 24}, .radii = {12, 12, 12, 12}}};
+    const muiDrawClip clips[2] = {{}, {.rect = {36, 36, 24, 24}, .radii = {12, 12, 12, 12}}};
     muiDrawList list = PanelList(commands, clips, 1.0f);
     float m[16];
     TurnedProjection(m);

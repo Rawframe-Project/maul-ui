@@ -51,7 +51,7 @@ static void TestBoxes(void)
     const muiDrawTransform transforms[3] = {
         {1, 0, 0, 1, 0, 0}, {turn, turn, -turn, turn, 32, 32}, {0.25f, 0, 0, 0.25f, 0, 0}};
     const muiDrawClip clips[6] = {
-        {0},
+        {},
         // 1: 0 to 10 each way.
         {.rect = {0, 0, 10, 10}},
         // 2: 0 to 10 each way, inverted.
@@ -209,7 +209,7 @@ static void TestImages(void)
 static void TestOneDraw(void)
 {
     const muiDrawTransform transforms[2] = {{1, 0, 0, 1, 0, 0}, {0, 1, -1, 0, 32, 0}};
-    const muiDrawClip clips[4] = {{0},
+    const muiDrawClip clips[4] = {{},
                                   {.rect = {0, 0, 32, 64}},
                                   {.rect = {0, 0, 64, 32}, .invert = 1},
                                   {.rect = {4, 4, 40, 40}, .parent = 1, .radii = {8, 8, 8, 8}}};
