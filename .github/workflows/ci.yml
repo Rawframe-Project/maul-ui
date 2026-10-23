@@ -117,6 +117,7 @@ jobs:
           - { preset: linux-core }
           - { preset: linux-parts }
           - { preset: linux-parts-core }
+          - { preset: linux-parts-gcc-14 }
           - { preset: macos-clang, runner: macos-15 }
           - { preset: windows-clang-cl, runner: windows-2025 }
     uses: Rawframe-Project/.github/.github/workflows/cpp.yml@ffd926f489c08984a43e40ac93e1f1feb784be93 # v0.0.8
@@ -397,9 +398,9 @@ jobs:
 
   # The library, the renderer and the glue built by Emscripten: the tests
   # under Node, the ARIA adapter, the renderer's pixels and the samples in
-  # headless Chrome's WebGPU (SwiftShader), then each sample presenting into
-  # a canvas from the browser's frames. The CI image has no Emscripten, so
-  # this job uses the runner and the emsdk action.
+  # headless Chrome's WebGPU (SwiftShader). The CI image has no Emscripten,
+  # so this job uses the runner and the emsdk action, and hands the samples
+  # to web-canvas.
   web-emscripten:
     needs: changes
     if: needs.changes.outputs.code == 'true'
@@ -431,17 +432,6 @@ jobs:
           if grep -E '\*\*\*(Skipped|Not Run)' "$RUNNER_TEMP/ctest.log"; then
             echo "::error::a test did not run"; exit 1
           fi
-      - name: The samples in a canvas
-        env:
-          MUI_RHI_REQUIRED: 1
-          MUI_WEB_CANVAS: 1
-        run: |
-          samples=(out/web-emscripten/sample_*.js)
-          [ -f "${samples[0]}" ] || { echo "::error::no sample was built"; exit 1; }
-          for sample in "${samples[@]}"; do
-            node test/web_runner.cjs "$sample" --frames 5 | tee "$RUNNER_TEMP/canvas.log"
-            grep -q "the presented frame checked" "$RUNNER_TEMP/canvas.log"
-          done
       - name: The renderer's WGSL in headless Chrome's WebGPU
         # The shader tools pass WGSL through untouched.
         run: node tools/check_wgsl.cjs rhi/shaders/quad.wgsl
@@ -453,6 +443,54 @@ jobs:
           path: out/web-emscripten/Testing/Temporary/
           if-no-files-found: ignore
           retention-days: 7
+      - name: Samples for web-canvas
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-samples
+          path: |
+            out/web-emscripten/sample_*.js
+            out/web-emscripten/sample_*.wasm
+          if-no-files-found: error
+          retention-days: 1
+
+  # Each sample built by web-emscripten presenting into a canvas from the
+  # browser's frames, its last frame read back and checked. Chrome's
+  # compositor needs Vulkan, which the CI image has as lavapipe and the
+  # runner has not.
+  web-canvas:
+    needs: web-emscripten
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container: ghcr.io/rawframe-project/ci-cpp:2026.10.4@sha256:9715ff153db04ba0ed4f520b6d2528ff7860f803de61ab011ba60a4eed572836
+    permissions:
+      contents: read
+    env:
+      MUI_RHI_REQUIRED: 1
+      MUI_WEB_CANVAS: 1
+      VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.json
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: web-samples
+          path: out/web-samples
+      - name: Browser
+        # puppeteer and its dependencies as test/browser's lockfile pins them.
+        run: |
+          mkdir -p "$RUNNER_TEMP/browser"
+          cp test/browser/package.json test/browser/package-lock.json "$RUNNER_TEMP/browser/"
+          npm ci --prefix "$RUNNER_TEMP/browser"
+          echo "MUI_NODE_MODULES=$RUNNER_TEMP/browser/node_modules" >> "$GITHUB_ENV"
+      - name: The samples in a canvas
+        run: |
+          samples=(out/web-samples/sample_*.js)
+          [ -f "${samples[0]}" ] || { echo "::error::no sample was handed over"; exit 1; }
+          for sample in "${samples[@]}"; do
+            node test/web_runner.cjs "$sample" --frames 5 | tee "$RUNNER_TEMP/canvas.log"
+            grep -q "the presented frame checked" "$RUNNER_TEMP/canvas.log"
+          done
 
   # The wasm each part adds to a program at -Oz with link-time optimization,
   # against its ceiling (tools/size_report.py): over a ceiling fails.
@@ -495,6 +533,7 @@ jobs:
       - android-emulator
       - web-wasi
       - web-emscripten
+      - web-canvas
       - size
     runs-on: ubuntu-24.04
     timeout-minutes: 2

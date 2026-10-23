@@ -99,6 +99,12 @@
       "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "MAUL_UI_TEXT": "OFF" }
     },
     {
+      "name": "linux-parts-gcc-14",
+      "displayName": "GCC 14, Release: the renderer on lavapipe and the window glue, with the samples",
+      "inherits": ["linux", "gcc", "parts"],
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
       "name": "web-wasi",
       "displayName": "Clang 20 for wasm32-wasi without the text component, tests under Node and in headless Chrome",
       "inherits": "linux",
@@ -152,6 +158,7 @@
     { "name": "linux-core", "configurePreset": "linux-core" },
     { "name": "linux-parts", "configurePreset": "linux-parts" },
     { "name": "linux-parts-core", "configurePreset": "linux-parts-core" },
+    { "name": "linux-parts-gcc-14", "configurePreset": "linux-parts-gcc-14" },
     { "name": "web-wasi", "configurePreset": "web-wasi" },
     { "name": "web-emscripten", "configurePreset": "web-emscripten" },
     { "name": "android-emulator", "configurePreset": "android-emulator" },
@@ -190,6 +197,7 @@
       "environment": { "ASAN_OPTIONS": "detect_leaks=0" }
     },
     { "name": "linux-parts-core", "inherits": "lavapipe", "configurePreset": "linux-parts-core" },
+    { "name": "linux-parts-gcc-14", "inherits": "lavapipe", "configurePreset": "linux-parts-gcc-14" },
     { "name": "web-wasi", "inherits": "base", "configurePreset": "web-wasi" },
     { "name": "web-emscripten", "inherits": "base", "configurePreset": "web-emscripten" },
     {

@@ -18,8 +18,8 @@
 #                            a short fuzzing pass.
 #   tools/check.sh full      also the other Linux presets (ThreadSanitizer,
 #                            shared, the core alone, the parts without
-#                            text, Clang and GCC Release) and longer
-#                            fuzzing.
+#                            text and with GCC, Clang and GCC Release) and
+#                            longer fuzzing.
 #
 # The builds are the CI cells' CMake presets (CMakePresets.json), in
 # out/<preset>; the other trees go to out/check-*. Needs what the
@@ -216,7 +216,7 @@ done
 
 [ "$tier" = full ] || exit 0
 
-for name in linux-clang-20-tsan linux-shared linux-core linux-parts-core linux-clang-20 linux-gcc-14; do
+for name in linux-clang-20-tsan linux-shared linux-core linux-parts-core linux-parts-gcc-14 linux-clang-20 linux-gcc-14; do
     preset "$name"
 done
 
