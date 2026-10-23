@@ -682,8 +682,7 @@ static void TestLocalScale(void)
 }
 
 // A destroyed layer's entry, left until room is needed, is passed over:
-// nothing is drawn as a layer in its place (found by a mutant taking the
-// first slot's node for it).
+// nothing is drawn as a layer in its place.
 static void TestDestroyedLayer(void)
 {
     muiContext* context = MakeContext();

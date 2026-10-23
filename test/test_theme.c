@@ -208,9 +208,9 @@ static void TestThemesAreChecked(void)
     muiDestroyContext(context);
 }
 
-// A cycle is found through the first token made (found by a mutant that
-// stopped every walk there): x is the first token, the first is y, so y
-// may not be x.
+// A cycle is found through the first token made, though a walk may stop
+// at the first slot: x is the first token, the first is y, so y may not
+// be x.
 static void TestCycleThroughTheFirstToken(void)
 {
     muiContext* context = MakeContext();
@@ -226,8 +226,7 @@ static void TestCycleThroughTheFirstToken(void)
 }
 
 // Every theme at the limit overrides every token, each its own colour,
-// and each reads back as set (found by a mutant placing the themes'
-// tables a row too far, the last past the end).
+// and each reads back as set, the last theme's too.
 static void TestEveryOverride(void)
 {
     enum

@@ -163,7 +163,6 @@ static void TestAhemMetrics(void)
     muiDestroyTextService(service);
     CHECK(counter.liveBytes == 0 && counter.allocations == counter.frees,
           "every block, FreeType's too, returned");
-    // Found by a mutant returning a font's copy with another alignment.
     CHECK(counter.liveAlignment == 0, "each with the alignment it was given");
 }
 

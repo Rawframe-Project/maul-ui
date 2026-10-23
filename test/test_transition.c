@@ -403,8 +403,8 @@ static void TestSpringKeepsItsSpeed(void)
 }
 
 // A critical spring follows its closed form, x0 (1 + wt) e^(-wt) from its
-// target, on every channel: here the width's scale, 25% to 50% of 400
-// (found by a mutant moving every channel but the first).
+// target, on every channel, not only the first: here the width's scale,
+// 25% to 50% of 400.
 static void TestSpringOnItsCurve(void)
 {
     Scene scene = MakeScene(muiDefaultContextDef().limits);

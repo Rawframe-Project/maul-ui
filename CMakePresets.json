@@ -37,6 +37,16 @@
       }
     },
     {
+      "name": "checked",
+      "hidden": true,
+      "description": "Assertions on, at -O1 as the sanitizers advise: the seeded simulations and measurements run several times faster than at -O0.",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_FLAGS_DEBUG": "-g -O1",
+        "CMAKE_CXX_FLAGS_DEBUG": "-g -O1"
+      }
+    },
+    {
       "name": "linux-gcc-14",
       "displayName": "GCC 14, Release, static, installed and used by samples/minimal",
       "inherits": ["linux", "gcc"],
@@ -51,14 +61,14 @@
     {
       "name": "linux-clang-20-asan",
       "displayName": "Clang 20, AddressSanitizer and UBSan, assertions on",
-      "inherits": ["linux", "clang"],
-      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "MAUL_UI_SANITIZE": "ON" }
+      "inherits": ["linux", "clang", "checked"],
+      "cacheVariables": { "MAUL_UI_SANITIZE": "ON" }
     },
     {
       "name": "linux-clang-20-tsan",
       "displayName": "Clang 20, ThreadSanitizer, assertions on",
-      "inherits": ["linux", "clang"],
-      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "MAUL_UI_TSAN": "ON" }
+      "inherits": ["linux", "clang", "checked"],
+      "cacheVariables": { "MAUL_UI_TSAN": "ON" }
     },
     {
       "name": "linux-shared",
@@ -79,8 +89,8 @@
     {
       "name": "linux-parts",
       "displayName": "Clang 20 with sanitizers: the renderer on lavapipe and the window glue, with the samples",
-      "inherits": ["linux", "clang", "parts"],
-      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "MAUL_UI_SANITIZE": "ON" }
+      "inherits": ["linux", "clang", "parts", "checked"],
+      "cacheVariables": { "MAUL_UI_SANITIZE": "ON" }
     },
     {
       "name": "linux-parts-core",

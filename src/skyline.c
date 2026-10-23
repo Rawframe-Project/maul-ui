@@ -6,6 +6,8 @@
 
 #include "skyline.h"
 
+#include "invariant.h"
+
 #include <string.h>
 
 void muiSkylineReset(muiSkyline* skyline)
@@ -91,6 +93,9 @@ bool muiSkylineInsert(muiSkyline* skyline, uint32_t width, uint32_t height, uint
                 (skyline->count - best - 1) * sizeof(muiSkylineNode));
         skyline->count--;
     }
+    // The segments still span the plot from edge to edge.
+    MUI_ASSERT(nodes[0].x == 0 &&
+               nodes[skyline->count - 1].x + nodes[skyline->count - 1].width == skyline->width);
     *xOut = x;
     *yOut = bestY;
     return true;

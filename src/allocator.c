@@ -6,6 +6,8 @@
 
 #include "allocator.h"
 
+#include "invariant.h"
+
 #include <stdckdint.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -50,6 +52,8 @@ size_t muiLayoutAdd(muiLayout* layout, size_t count, size_t itemSize, size_t ali
         return 0;
     }
     size_t offset = padded & ~(alignment - 1);
+    // A part is padded only up to its own alignment, never a whole one more.
+    MUI_ASSERT((alignment & (alignment - 1)) == 0 && offset - layout->size < alignment);
     if (ckd_add(&end, offset, bytes))
     {
         layout->overflow = true;

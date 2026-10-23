@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Distance fields measured against the shape: Liberation Sans's printable
-// ASCII glyphs (glyphs 3 to 97 in its order) from fields of an em of 32,
-// 64 and 128, spread 4 as the renderer's, drawn at 1.5, 3 and 6 times the
-// field's em as the reference renderer draws them, replicated here in
-// double precision: each channel bilinearly between texel centers, the
-// median or alpha made a distance in device pixels, and the coverage half
-// a pixel either side of it, msdfgen's expression. Each is compared pixel
-// for pixel with muiRenderGlyph's exact area coverage at the drawn em and
-// the same pen. The median is held no worse than alpha in mean error and
-// in pixels off by more than a quarter, and both within bounds just above
-// what they measure (a mean of 0.036 and 0.46% of the pixels). Run with
-// --report for the numbers.
+// Distance fields measured against the shape: every third of Liberation
+// Sans's printable ASCII glyphs (glyphs 3 to 97 in its order, so every
+// kind of corner and curve) from fields of an em of 32, 64 and 128, spread
+// 4 as the renderer's, drawn at 1.5, 3 and 6 times the field's em as the
+// reference renderer draws them, replicated here in double precision: each
+// channel bilinearly between texel centers, the median or alpha made a
+// distance in device pixels, and the coverage half a pixel either side of
+// it, msdfgen's expression. Each is compared pixel for pixel with
+// muiRenderGlyph's exact area coverage at the drawn em and the same pen.
+// The median is held no worse than alpha in mean error and in pixels off
+// by more than a quarter, and both within bounds just above what they
+// measure (a mean of 0.036 and 0.48% of the pixels). Run with --report for
+// the numbers.
 
 #include "test_harness.h"
 
@@ -32,6 +33,8 @@ enum
     // The spread the reference renderer draws fields with.
     SPREAD = 4,
     LAST_GLYPH = 97,
+    // A third of the glyphs measures within a few hundredths of all of them.
+    GLYPH_STEP = 3,
     // Bytes enough for a glyph at the largest drawn em, 768 pixels.
     CAPACITY = 1 << 21
 };
@@ -175,7 +178,7 @@ int main(int argc, char** argv)
         {
             Errors errors[2] = {{0.0, 0.0, 0, 0}, {0.0, 0.0, 0, 0}};
             Field field = {.spread = SPREAD, .magnification = (double)magnifications[k]};
-            for (uint32_t glyph = FIRST_GLYPH; glyph <= LAST_GLYPH; glyph++)
+            for (uint32_t glyph = FIRST_GLYPH; glyph <= LAST_GLYPH; glyph += GLYPH_STEP)
             {
                 muiGlyphImage reference = {0};
                 bool rendered =

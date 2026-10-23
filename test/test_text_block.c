@@ -418,8 +418,8 @@ static void TestMeasuring(void)
     muiDestroyTextService(scene.service);
 }
 
-// Changing wrapping alone lays the text out again (found by a mutant
-// seeing a change only when the automatic line height changed with it).
+// Changing wrapping alone lays the text out again, though the automatic
+// line height stays the same.
 static void TestWrapChanged(void)
 {
     Scene scene = MakeScene(NULL);

@@ -1254,8 +1254,8 @@ static void TestEvents(muiAtspiAdapter* adapter, Built* built)
                         "accessible-name 0 w1n6 Box 2; Announcement  1 w1n6 Box 2"),
           "states, names, values and announcements");
     CHECK(!adapter->reshaped, "no walk for states, names and values");
-    // States past the first 32 bits, indeterminate 32 and read only 43
-    // (found by a mutant reading them from the wrong word).
+    // States past the first 32 bits, indeterminate 32 and read only 43,
+    // come from the second word.
     check.flags |= mui_accessMixed;
     CHECK(Send(adapter, (const muiAccessNode*[]){&check}, 1, built->children, 0) &&
               EventsAre("StateChanged indeterminate 1 w1n1a"),
@@ -1808,9 +1808,8 @@ static bool Bit(const uint32_t words[2], uint32_t state)
 }
 
 // A state set from a node's flags: collapsed only when expandable and
-// not expanded, multiselectable when the flag says so (found by mutants
-// inverting each). Collapsed is 5, expandable 9, expanded 10 and
-// multiselectable 18.
+// not expanded, multiselectable when the flag says so. Collapsed is 5,
+// expandable 9, expanded 10 and multiselectable 18.
 static void TestStateSets(void)
 {
     uint32_t words[2];

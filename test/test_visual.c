@@ -2,12 +2,10 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Visual values: their defaults and checks, classes, variants, conditions,
-// direct writes and transitions, and that a change to one marks paint,
-// never layout. White-box: it reads the tree's paint marks.
+// direct writes and transitions, and that a change to one paints the node
+// again, never lays it out.
 
-#include "context.h"
 #include "test_harness.h"
-#include "tree.h"
 
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
@@ -91,10 +89,14 @@ static muiVisualStyle Read(const muiContext* context, muiNodeId node)
     return values;
 }
 
-static bool IsPaintMarked(muiContext* context, muiNodeId node)
+// Whether a build of the node's list paints it again rather than keeping
+// what it drew last.
+static bool Repaints(muiContext* context, muiNodeId root)
 {
-    uint32_t slot = muiTreeResolve(&context->tree, node);
-    return (muiTreeAt(&context->tree, slot)->dirty.request & mui_stagePaint) != 0;
+    const muiDrawInput input = {1, 1.0f, NULL, NULL};
+    uint64_t painted = muiGetWorkCounts(context).painted;
+    CHECK(muiBuildDrawList(context, root, &input) == mui_success, "drawn");
+    return muiGetWorkCounts(context).painted > painted;
 }
 
 // Drawing clears paint marks, and records the rectangles painted.
@@ -171,13 +173,13 @@ static void TestClassValuesMarkPaintOnly(void)
     CHECK(muiIsUpdatePending(context, node), "a class edit restyles");
     Layout(context, node, T0);
     CHECK(SameColor(Read(context, node).background, s_red), "the class's background");
-    CHECK(IsPaintMarked(context, node), "paint marked");
+    CHECK(Repaints(context, node), "paint marked");
     CHECK(s_measured == measured, "not laid out again");
 
     ClearPaint(context, node);
     SetBackground(context, style, mui_variantBase, s_red);
     Layout(context, node, T0);
-    CHECK(!IsPaintMarked(context, node), "the same value marks nothing");
+    CHECK(!Repaints(context, node), "the same value marks nothing");
 
     muiLayoutStyle layout = muiDefaultLayoutStyle();
     layout.sizing.width = (muiDimension){0.0f, 100.0f, mui_dimensionValue};
@@ -439,7 +441,7 @@ static void TestDirectWrites(void)
     muiVisualStyle values = muiDefaultVisualStyle();
     values.background = s_blue;
     CHECK(muiNode_SetVisualValues(context, node, &values, BACKGROUND) == mui_success, "direct");
-    CHECK(SameColor(Read(context, node).background, s_blue) && IsPaintMarked(context, node),
+    CHECK(SameColor(Read(context, node).background, s_blue) && Repaints(context, node),
           "at once, marking paint");
     CHECK(!muiIsUpdatePending(context, node), "nothing to lay out");
     Layout(context, node, T0);
@@ -530,7 +532,7 @@ static void TestTransitions(void)
     CHECK(muiNode_IsTransitioning(context, node, mui_propertyOpacity) &&
               muiNode_IsTransitioning(context, node, mui_propertyBackground),
           "which move");
-    CHECK(IsPaintMarked(context, node) && s_measured == measured, "moving marks paint only");
+    CHECK(Repaints(context, node) && s_measured == measured, "moving marks paint only");
     CHECK(muiIsUpdatePending(context, node), "pending while moving");
     Layout(context, node, T0 + 100 * MS);
     CHECK(Read(context, node).opacity == 0.0f && !muiIsUpdatePending(context, node), "done");
@@ -727,20 +729,20 @@ static void TestGradientsCompareUsedStops(void)
               mui_success,
           "an unused stop");
     Layout(context, node, T0);
-    CHECK(!IsPaintMarked(context, node), "changes nothing");
+    CHECK(!Repaints(context, node), "changes nothing");
     values.gradient.stops[1].color.g = 0.5f;
     CHECK(muiStyle_SetVisualValues(context, style, mui_variantBase, &values, GRADIENT) ==
               mui_success,
           "a used stop");
     Layout(context, node, T0);
-    CHECK(IsPaintMarked(context, node), "a change");
+    CHECK(Repaints(context, node), "a change");
     ClearPaint(context, node);
     values.gradient.angle = 90.0f;
     CHECK(muiStyle_SetVisualValues(context, style, mui_variantBase, &values, GRADIENT) ==
               mui_success,
           "the angle");
     Layout(context, node, T0);
-    CHECK(IsPaintMarked(context, node), "a change too");
+    CHECK(Repaints(context, node), "a change too");
     ClearPaint(context, node);
     // The unused stop it takes in is already there: only the count moves.
     values.gradient.stopCount = 3;
@@ -748,7 +750,7 @@ static void TestGradientsCompareUsedStops(void)
               mui_success,
           "a stop more");
     Layout(context, node, T0);
-    CHECK(IsPaintMarked(context, node), "a change as well");
+    CHECK(Repaints(context, node), "a change as well");
     muiDestroyContext(context);
 }
 
@@ -760,10 +762,10 @@ static void TestDrawingClearsPaint(void)
     muiVisualStyle values = muiDefaultVisualStyle();
     values.background = s_red;
     CHECK(muiNode_SetVisualValues(context, node, &values, BACKGROUND) == mui_success, "red");
-    CHECK(IsPaintMarked(context, node), "paint marked");
+    CHECK(Repaints(context, node), "paint marked");
     const muiDrawInput input = {1, 1.0f, NULL, NULL};
     CHECK(muiBuildDrawList(context, node, &input) == mui_success, "drawn");
-    CHECK(!IsPaintMarked(context, node), "and cleared");
+    CHECK(!Repaints(context, node), "and cleared");
     muiDestroyContext(context);
 }
 
