@@ -29,7 +29,8 @@ static muiResult AccessFrame(muiContext* context, muiNodeId root, muiAccessUpdat
     muiResult result = muiBuildAccessUpdate(context, root, updateOut);
     for (uint32_t i = 0; result == mui_success && i < requestCount; i++)
     {
-        // A node that does not take the action, or is gone, is skipped.
+        // A node that does not take the action or is gone, and a client's
+        // request that does not fit it, are skipped.
         muiResult applied = muiPerformAccessAction(context, &requests[i], NULL);
         result = applied == mui_errorInvalid ? applied : mui_success;
     }

@@ -330,12 +330,19 @@ static muiResult TextPerformAccessAction(const muiTextHost* host, const muiAcces
     {
         return mui_errorCapacity;
     }
-    if (!block->editing.on || !IsShownStart(shown, request->anchor) ||
-        !IsShownStart(shown, request->focus) ||
-        (request->action == mui_actionReplaceText && request->text == nullptr &&
-         request->length != 0))
+    if (request->action == mui_actionReplaceText && request->text == nullptr &&
+        request->length != 0)
     {
         return muiRefuseEdit(host->service);
+    }
+    // The offsets are a client's, mapped through the adapter's copy of the
+    // text, which may predate an edit: offsets that no longer fall on a
+    // character, or a block no longer editing, are the client's bad data,
+    // refused as such without misuse.
+    if (!block->editing.on || !IsShownStart(shown, request->anchor) ||
+        !IsShownStart(shown, request->focus))
+    {
+        return mui_errorFormat;
     }
     const muiTextSelection before = block->editing.selection;
     const muiTextSelection selection = {

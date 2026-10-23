@@ -450,6 +450,11 @@ void muiAriaPerform(muiAriaAdapter* adapter, muiAriaEvent event, uint32_t slot, 
     }
     else if (event == mui_ariaRangeSet)
     {
+        // The page's number, which a script or a client may have set.
+        if (!muiAccessValueFits(node, value))
+        {
+            return;
+        }
         request.action = mui_actionSetValue;
         request.value = (float)value;
     }

@@ -1086,18 +1086,34 @@ static void TestActions(void)
           "expand posted");
     request.action = mui_actionCollapse;
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_empty, "not expanded");
-    // Misuse.
+    // Misuse: what only a host bug passes.
     uint64_t misuse = muiGetContextMisuse(context);
     request = (muiAccessRequest){.action = mui_actionReplaceText + 1,
                                  .target = muiAccessIdOf(scene.group)};
     CHECK(muiPerformAccessAction(context, &request, NULL) == mui_errorInvalid, "unknown");
-    request = (muiAccessRequest){
-        .action = mui_actionSetValue, .target = muiAccessIdOf(scene.leaf), .value = INFINITY};
-    CHECK(muiPerformAccessAction(context, &request, NULL) == mui_errorInvalid &&
-              muiPerformAccessAction(context, NULL, NULL) == mui_errorInvalid &&
+    CHECK(muiPerformAccessAction(context, NULL, NULL) == mui_errorInvalid &&
               muiPerformAccessAction(NULL, &request, NULL) == mui_errorInvalid &&
-              muiGetContextMisuse(context) == misuse + 3,
-          "refused");
+              muiGetContextMisuse(context) == misuse + 2,
+          "refused as misuse");
+    // Numbers a client sent that are not finite: refused, but not counted,
+    // since the host passes on what the client asked.
+    misuse = muiGetContextMisuse(context);
+    const float wild[] = {NAN, INFINITY, -INFINITY};
+    bool refused = true;
+    for (size_t i = 0; i < sizeof wild / sizeof wild[0]; i++)
+    {
+        const muiAccessRequest value = {
+            .action = mui_actionSetValue, .target = muiAccessIdOf(scene.leaf), .value = wild[i]};
+        const muiAccessRequest x = {
+            .action = mui_actionSetScrollOffset, .target = muiAccessIdOf(scene.leaf), .x = wild[i]};
+        const muiAccessRequest y = {
+            .action = mui_actionSetScrollOffset, .target = muiAccessIdOf(scene.leaf), .y = wild[i]};
+        refused = refused && muiPerformAccessAction(context, &value, NULL) == mui_errorFormat &&
+                  muiPerformAccessAction(context, &x, NULL) == mui_errorFormat &&
+                  muiPerformAccessAction(context, &y, NULL) == mui_errorFormat;
+    }
+    CHECK(refused && muiGetContextMisuse(context) == misuse,
+          "a client's numbers not finite, refused without misuse");
     muiDestroyContext(context);
 }
 

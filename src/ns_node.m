@@ -189,9 +189,10 @@ static bool Has(const muiAccessNode* node, muiAccessAction action)
         (void)muiNsReplaceAll(self, value);
     }
     else if (node != nullptr && Has(node, mui_actionSetValue) &&
-             [value respondsToSelector:@selector(floatValue)])
+             [value respondsToSelector:@selector(doubleValue)] &&
+             muiAccessValueFits(node, [value doubleValue]))
     {
-        (void)muiNsAct(adapter, mui_actionSetValue, nodeId, [value floatValue]);
+        (void)muiNsAct(adapter, mui_actionSetValue, nodeId, (float)[value doubleValue]);
     }
 }
 

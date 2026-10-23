@@ -30,6 +30,7 @@
 
 #include "maul-ui/access_aria.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -399,6 +400,14 @@ static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* ro
     CHECK(s_asked.action == mui_actionSetValue && s_asked.target == 8 && s_asked.value == 55.0f &&
               slider->value == 40.0f,
           "a range set, asked of the host");
+    // The page's number, which a script or a client may set, that is not
+    // finite or lies past the slider's range asks nothing of the host.
+    uint32_t sliderSlot = muiAriaSlotOf(adapter, 8);
+    s_asked = (muiAccessRequest){0};
+    muiAriaPerform(adapter, mui_ariaRangeSet, sliderSlot, (double)NAN);
+    muiAriaPerform(adapter, mui_ariaRangeSet, sliderSlot, (double)INFINITY);
+    muiAriaPerform(adapter, mui_ariaRangeSet, sliderSlot, (double)slider->maximum + 1.0);
+    CHECK(s_asked.target == 0, "a value not finite or past the range asks nothing");
     // The focus: outside the elements, the program's does not take the
     // DOM's; a client's focus asked of the host; then the program's moves
     // it, asking nothing.

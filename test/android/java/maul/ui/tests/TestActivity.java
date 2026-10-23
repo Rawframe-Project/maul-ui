@@ -342,6 +342,16 @@ public final class TestActivity extends Activity {
         progress.putFloat(AccessibilityNodeInfo.ACTION_ARGUMENT_PROGRESS_VALUE, 55.0f);
         check(provider.performAction(slider, android.R.id.accessibilityActionSetProgress, progress)
                 && asked(SET_VALUE, 8) && askedValue() == 55.0f, "a range set");
+        // A client's number that is not finite, or lies past the range, never
+        // reaches the host: the last request stays the one above.
+        boolean taken = false;
+        for (float wild : new float[] {Float.NaN, Float.POSITIVE_INFINITY, 200.0f}) {
+            progress.putFloat(AccessibilityNodeInfo.ACTION_ARGUMENT_PROGRESS_VALUE, wild);
+            taken |= provider.performAction(slider, android.R.id.accessibilityActionSetProgress,
+                    progress);
+        }
+        check(!taken && asked(SET_VALUE, 8) && askedValue() == 55.0f,
+                "a value not finite or past the range refused");
         check(provider.performAction(box, AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null)
                 && provider.createAccessibilityNodeInfo(box).isAccessibilityFocused()
                 && same(provider.findFocus(AccessibilityNodeInfo.FOCUS_ACCESSIBILITY)

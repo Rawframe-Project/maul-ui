@@ -20,6 +20,7 @@
 
 #include "maul-ui/access_uia.h"
 
+#include <math.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -689,6 +690,11 @@ static void CheckRangeAndExpand(IUIAutomationElement** children)
               Asked(mui_actionSetValue, 9) && s_program.asked.value == 55.0f &&
               FAILED(IUIAutomationRangeValuePattern_SetValue(range, 200.0)),
           "a slider's value read and set, a value past its range refused");
+    // A client's number that is not finite never reaches the host.
+    CHECK(range != NULL && FAILED(IUIAutomationRangeValuePattern_SetValue(range, (double)NAN)) &&
+              FAILED(IUIAutomationRangeValuePattern_SetValue(range, (double)INFINITY)) &&
+              s_program.asked.value == 55.0f,
+          "a value not finite refused before the host");
     IUIAutomationExpandCollapsePattern* expand = NULL;
     enum ExpandCollapseState state = ExpandCollapseState_Expanded;
     CHECK(SUCCEEDED(IUIAutomationElement_GetCurrentPatternAs(

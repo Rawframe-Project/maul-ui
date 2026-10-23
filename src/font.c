@@ -304,10 +304,16 @@ static muiResult CreateFont(muiTextService* service, const muiFontDef* def, muiF
         *fontOut = (muiFontId){0};
     }
     if (service == nullptr || def == nullptr || fontOut == nullptr ||
-        def->cookie != FONT_DEF_COOKIE || def->data == nullptr || def->size < HEADER_SIZE ||
-        def->size > INT32_MAX || def->dataMode > mui_fontDataBorrow)
+        def->cookie != FONT_DEF_COOKIE || def->data == nullptr ||
+        def->dataMode > mui_fontDataBorrow)
     {
         return muiRefuseText(service);
+    }
+    // A file too short for a header or too long for FreeType is bad data,
+    // refused without misuse, as any other malformed font.
+    if (def->size > INT32_MAX)
+    {
+        return mui_errorFormat;
     }
     uint32_t faces = 0;
     muiResult counted = muiCountFontFaces(def->data, def->size, &faces);

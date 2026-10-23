@@ -26,6 +26,7 @@
 
 #include "maul-ui/access_atspi.h"
 
+#include <math.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1207,6 +1208,13 @@ static void TestActionsAndValues(void)
               s_test.asked.action == mui_actionSetValue && s_test.asked.value == 55.0f &&
               !SetValue(slider, 200.0) && !SetValue(label, 1.0),
           "a range's value read and set, a value past its range refused");
+    // A client's number that is not finite never reaches the host, and
+    // counts no misuse: the client is another program.
+    uint64_t before = muiGetAtspiAppMisuse(s_test.app);
+    CHECK(!SetValue(slider, (double)NAN) && !SetValue(slider, (double)INFINITY) &&
+              !SetValue(slider, -(double)INFINITY) && s_test.asked.value == 55.0f &&
+              muiGetAtspiAppMisuse(s_test.app) == before,
+          "a value not finite refused before the host, no misuse");
     s_test.asked = (muiAccessRequest){0};
     CHECK(
         !SetValue("/org/a11y/atspi/accessible/w1n9", 0.5) &&
