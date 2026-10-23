@@ -58,3 +58,14 @@ takes input and speaks to screen readers, the same on every platform.
 - Support for Linux, Windows with `clang-cl`, macOS, iOS, Android and
   the web, with Emscripten or Clang's wasm32-wasi; a static or shared
   library, a CMake package and a pkg-config module.
+
+### Changed
+
+- For programs moving from an earlier build of Maul UI (0.6.1 and
+  before): `MUI_DEF_VERSION` is now `MUI_ABI_VERSION`, and before 1.0 it
+  carries the whole version, patch included. `muiCreateContext` and
+  `muiCreateTextService` now refuse a def built with the headers of any
+  other release, another patch release too, with `mui_errorVersion`.
+  `muiDefaultContextDef` and `muiDefaultTextServiceDef` are inline and
+  stamp the headers' version, so build against the headers of the exact
+  library you link.
