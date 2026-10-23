@@ -25,40 +25,40 @@ option(MAUL_UI_WERROR "Treat compiler warnings as errors" OFF)
 option(MAUL_UI_SANITIZE "Instrument with AddressSanitizer and UBSan" OFF)
 option(MAUL_UI_TSAN "Instrument with ThreadSanitizer" OFF)
 option(MAUL_UI_COVERAGE "Instrument for gcov coverage" OFF)
-option(MAUL_UI_TEXT "Build the text component: fonts, shaping and paragraphs (record mui-0006)" ON)
+option(MAUL_UI_TEXT "Build the text component: fonts, shaping and paragraphs" ON)
 option(MAUL_UI_FUZZ "Build the libFuzzer targets (Clang, with the text component)" OFF)
-option(MAUL_UI_RHI "Build maul-ui-rhi, the reference renderer on Maul RHI (record mui-0005)" OFF)
-option(MAUL_UI_WINDOW "Build maul-ui-window, the glue to Maul Window (record mui-0007)" OFF)
+option(MAUL_UI_RHI "Build maul-ui-rhi, the reference renderer on Maul RHI" OFF)
+option(MAUL_UI_WINDOW "Build maul-ui-window, the glue to Maul Window" OFF)
 option(MAUL_UI_ACCESS_TREE
-    "Build the accessibility tree's consumer, which platform adapters read (record mui-0008)" ON)
+    "Build the accessibility tree's consumer, which platform adapters read" ON)
 if(WIN32)
-    option(MAUL_UI_UIA "Build the UI Automation adapter (record mui-0008)" ON)
+    option(MAUL_UI_UIA "Build the UI Automation adapter" ON)
 else()
     set(MAUL_UI_UIA OFF)
 endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    option(MAUL_UI_NSACCESSIBILITY "Build the NSAccessibility adapter (record mui-0008)" ON)
+    option(MAUL_UI_NSACCESSIBILITY "Build the NSAccessibility adapter" ON)
 else()
     set(MAUL_UI_NSACCESSIBILITY OFF)
 endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
-    option(MAUL_UI_UIACCESSIBILITY "Build the UIAccessibility adapter (record mui-0008)" ON)
+    option(MAUL_UI_UIACCESSIBILITY "Build the UIAccessibility adapter" ON)
 else()
     set(MAUL_UI_UIACCESSIBILITY OFF)
 endif()
 if(ANDROID)
-    option(MAUL_UI_ANDROID_ACCESSIBILITY "Build the Android accessibility adapter (record mui-0008)" ON)
+    option(MAUL_UI_ANDROID_ACCESSIBILITY "Build the Android accessibility adapter" ON)
 else()
     set(MAUL_UI_ANDROID_ACCESSIBILITY OFF)
 endif()
-# The web: Emscripten's, or a plain WebAssembly toolchain's (mui-0009).
+# The web: Emscripten's, or a plain WebAssembly toolchain's.
 if(EMSCRIPTEN OR CMAKE_SYSTEM_NAME STREQUAL "WASI")
-    option(MAUL_UI_ARIA "Build the ARIA adapter (record mui-0008)" ON)
+    option(MAUL_UI_ARIA "Build the ARIA adapter" ON)
 else()
     set(MAUL_UI_ARIA OFF)
 endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    option(MAUL_UI_ATSPI "Build the AT-SPI adapter (record mui-0008)" ON)
+    option(MAUL_UI_ATSPI "Build the AT-SPI adapter" ON)
 else()
     set(MAUL_UI_ATSPI OFF)
 endif()
@@ -144,7 +144,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/tree.c)
 maul_configure_library(maul-ui)
 # fmaxf, fminf and fabsf, the exactly rounded functions the solver takes
-# from libm (mui-0001).
+# from libm.
 if(NOT WIN32 AND NOT APPLE)
     target_link_libraries(maul-ui PUBLIC m)
     set(MAUL_PKG_LIBS_PRIVATE "-lm")
@@ -308,7 +308,7 @@ if(MAUL_UI_BUILD_TESTS)
             endforeach()
         endif()
     endif()
-    # The guide's snippets as written (family record 0019).
+    # The guide's snippets as written.
     maul_add_test(guide_model)
     maul_add_test(guide)
     maul_add_test(condition)
@@ -403,7 +403,7 @@ if(MAUL_UI_BUILD_TESTS)
         # (Asyncify lets it sleep); skipped without Puppeteer. Without
         # Emscripten the test is a reactor whose main the runner calls,
         # sleeping through JavaScript promise integration, with its
-        # imports beside it (mui-0009).
+        # imports beside it.
         maul_add_test(aria WHITEBOX MANUAL)
         if(EMSCRIPTEN)
             target_link_options(test_aria PRIVATE -sASYNCIFY)
@@ -478,7 +478,7 @@ if(MAUL_UI_BUILD_TESTS)
         target_include_directories(test_text_block PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(frame_memory)
         target_include_directories(test_frame_memory PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
-        # Contexts on threads at once (record mui-0001): POSIX threads,
+        # Contexts on threads at once: POSIX threads,
         # so not on Windows or the web.
         if(NOT EMSCRIPTEN AND NOT CMAKE_SYSTEM_NAME STREQUAL "WASI")
             maul_add_test(threads POSIX)
@@ -556,8 +556,7 @@ if(MAUL_UI_BUILD_TESTS)
             target_link_libraries(test_distance_field PRIVATE Freetype::Freetype)
         endif()
     endif()
-    # winnls.h defines MUI_ macros; this checks that none clash (family
-    # record 0007).
+    # winnls.h defines MUI_ macros; this checks that none clash.
     if(WIN32)
         maul_add_test(windows_headers)
     endif()
@@ -588,7 +587,7 @@ if(MAUL_UI_BUILD_BENCH AND EXISTS ${PROJECT_SOURCE_DIR}/bench/bench_main.c)
 endif()
 
 # The samples draw with the reference renderer through the Maul Window
-# glue, with text (record mui-0005).
+# glue, with text.
 if(MAUL_UI_BUILD_SAMPLES AND MAUL_UI_RHI AND MAUL_UI_WINDOW AND MAUL_UI_TEXT)
     add_subdirectory(samples)
 endif()

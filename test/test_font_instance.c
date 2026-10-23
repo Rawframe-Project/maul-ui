@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Font instances (record mui-0006): a text style's weight, slant and size
-// setting a variable font's wght, ital, slnt and opsz axes, in shaping and
-// in glyph images alike; bold and oblique made for faces without them;
-// and the keys glyph runs carry for them. MaulVariable.ttf's A is a box
-// 400 wide with an advance of 500 that each axis moves by a known amount
+// Font instances: a text style's weight, slant and size setting a variable
+// font's wght, ital, slnt and opsz axes, in shaping and in glyph images
+// alike; bold and oblique made for faces without them; and the keys glyph
+// runs carry for them. MaulVariable.ttf's A is a box 400 wide with an
+// advance of 500 that each axis moves by a known amount
 // (make_variable_font.py); Ahem's glyphs are boxes an em wide.
 
 #include "test_harness.h"

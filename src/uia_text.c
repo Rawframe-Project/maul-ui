@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The UI Automation adapter's Text pattern (record mui-0008, research
-// 143): ITextProvider2 on a text input or a text being edited, giving
-// the document, the selection and the caret as ranges (src/uia_range.c),
-// and the range at a point. Embedded objects have no ranges of their own
-// yet.
+// The UI Automation adapter's Text pattern: ITextProvider2 on a text input
+// or a text being edited, giving the document, the selection and the caret
+// as ranges (src/uia_range.c), and the range at a point. Embedded objects
+// have no ranges of their own yet.
 
 #include "access_record.h"
 #include "uia.h"

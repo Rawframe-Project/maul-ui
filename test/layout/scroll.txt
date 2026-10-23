@@ -1,16 +1,16 @@
 # Scroll containers (scroll=horizontal, vertical or both): an axis's
 # automatic minimum, a ratio's content floor and the extent, rendered
 # with overflow hidden on both axes (a scroll container on either axis
-# is one on both, research 294). The extent is the scrollable overflow:
+# is one on both). The extent is the scrollable overflow:
 # in-flow children's margin boxes with the end padding, and every border
 # box below that no nested scroll container clips; start overflow is
 # unreachable. A scroll container with content gives no extent: it
 # scrolls its children, and the oracle renders its content as a child.
 # A scroll container drops a ratio's content floor on both axes and has
 # an automatic minimum of 0. A scroll container's baseline is held
-# within its border box (research 288).
+# within its border box.
 # A reversed container scrolls from its flex start: the extent is
-# measured from there (research 289).
+# measured from there.
 # chrome 154.0.8037.57
 
 fixture scroll_ratio_width_floor_none available=500x400

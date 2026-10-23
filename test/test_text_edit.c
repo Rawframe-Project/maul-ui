@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Editing primitives (record mui-0006): hit testing, carets and range
-// rectangles over laid-out text, in left-to-right, right-to-left and
-// mixed lines, across wrapped lines, inside a ligature, with alignment
-// and letter spacing, and calls outside the contract refused. Ahem draws
-// every character as a box an em wide; at size 10 each is 10 wide.
+// Editing primitives: hit testing, carets and range rectangles over
+// laid-out text, in left-to-right, right-to-left and mixed lines, across
+// wrapped lines, inside a ligature, with alignment and letter spacing, and
+// calls outside the contract refused. Ahem draws every character as a box
+// an em wide; at size 10 each is 10 wide.
 
 #include "test_harness.h"
 

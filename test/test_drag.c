@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Drags (record mui-0007): the nearest node that takes drags, the
-// threshold per pointer kind, the records and their offsets, capture,
-// no click after a drag, the ways a drag is cancelled, routing, and
-// calls outside the contract.
+// Drags: the nearest node that takes drags, the threshold per pointer
+// kind, the records and their offsets, capture, no click after a drag, the
+// ways a drag is cancelled, routing, and calls outside the contract.
 
 #include "test_harness.h"
 

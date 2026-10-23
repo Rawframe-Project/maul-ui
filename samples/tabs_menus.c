@@ -3,7 +3,7 @@
 //
 // Tabs, a tooltip and a context menu, composed over Maul UI's public
 // capabilities with the patterns of the WAI-ARIA Authoring Practices
-// (record mui-0005). The tabs select on a click or as arrows, Home and
+//. The tabs select on a click or as arrows, Home and
 // End move the focus among them (automatic activation), only the
 // selected one in the Tab order, each naming the panel it controls. The
 // tooltip is a manual popup above its trigger that takes no input,

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Touch scrolling (record mui-0007): a touch's drag pans the nearest
-// scroll container, a release flings it by iOS's decay, a press stops
-// a fling; mice do not pan, nearer drags win, and the rule's rate.
+// Touch scrolling: a touch's drag pans the nearest scroll container, a
+// release flings it by iOS's decay, a press stops a fling; mice do not
+// pan, nearer drags win, and the rule's rate.
 
 #include "test_harness.h"
 

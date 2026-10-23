@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Accessibility (record mui-0008): what each node is, read from the
-// host's data and what the library holds, and updates of the nodes whose
-// record changed since it was last sent.
+// Accessibility: what each node is, read from the host's data and what the
+// library holds, and updates of the nodes whose record changed since it
+// was last sent.
 
 #include "access.h"
 #include "access_store.h"
@@ -230,7 +230,7 @@ uint32_t muiAccessDerive(const muiContext* context, uint32_t slot, muiAccessNode
     // A password input's value is never the host's own text, which would
     // be the password and would also keep the text service's mask from
     // being read: assistive technology reads only the mask, a bullet a
-    // cluster, as the input shows it (mui-0006, mui-0008).
+    // cluster, as the input shows it.
     if (nodeOut->role == mui_rolePasswordInput)
     {
         nodeOut->text[mui_accessValue] = nullptr;

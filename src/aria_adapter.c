@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The ARIA adapter (record mui-0008): making it, applying updates, and
-// keeping the page's elements to the shown tree. After an update that
-// may reshape the shown tree, one walk of it removes the elements of
-// nodes no longer shown, then makes and places the others in the walk's
-// order, so each parent's in rising index; nodes whose box changed are
-// placed again with what they hold, as each element's place is relative
-// to its parent's.
+// The ARIA adapter: making it, applying updates, and keeping the page's
+// elements to the shown tree. After an update that may reshape the shown
+// tree, one walk of it removes the elements of nodes no longer shown, then
+// makes and places the others in the walk's order, so each parent's in
+// rising index; nodes whose box changed are placed again with what they
+// hold, as each element's place is relative to its parent's.
 
 #include "access_text.h"
 #include "allocator.h"

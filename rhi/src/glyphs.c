@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The renderer's glyphs (record mui-0005), drawn with Maul UI's glyph
-// atlases where Maul UI has its text component (MUI_RHI_TEXT).
+// The renderer's glyphs, drawn with Maul UI's glyph atlases where Maul UI
+// has its text component (MUI_RHI_TEXT).
 
 #include "glyphs.h"
 

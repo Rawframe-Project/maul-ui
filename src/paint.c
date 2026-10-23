@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Painting one node (record mui-0005). Records are zeroed before their
-// fields are written, so equal trees give equal bytes.
+// Painting one node. Records are zeroed before their fields are written,
+// so equal trees give equal bytes.
 
 #include "paint.h"
 
@@ -255,7 +255,7 @@ static void AddImage(muiPainter* painter, const muiVisualStyle* visual, muiRect 
     command->image.uv = (muiRect){0.0f, 0.0f, 1.0f, 1.0f};
     // Its slice's start and end are its left and right; mirrored, it is
     // drawn from its right, a uv of negative width, and its insets are as
-    // drawn (record mui-0005).
+    // drawn.
     command->image.slice = (muiSides){slice->top, slice->end, slice->bottom, slice->start};
     if (visual->imageMirrors && rtl)
     {
@@ -320,11 +320,10 @@ bool muiPaintNode(muiPainter* painter, uint32_t slot, muiPaintState* state)
     const muiContext* context = painter->context;
     const muiLayoutNode* layout = &context->layout[slot - 1];
     const muiVisualStyle* visual = &context->visual[slot - 1];
-    // A scaled node and its subtree go through its scale (record
-    // mui-0005): its own commands too, so the state names it until the
-    // node is painted. A scroll container's children go through its
-    // offset after it (record mui-0007). Both come first: a layer below
-    // takes them though the node draws nothing.
+    // A scaled node and its subtree go through its scale: its own commands
+    // too, so the state names it until the node is painted. A scroll
+    // container's children go through its offset after it. Both come
+    // first: a layer below takes them though the node draws nothing.
     if (visual->scale.x != 1.0f || visual->scale.y != 1.0f)
     {
         state->transform = muiAddTransform(painter, slot | MUI_TRANSFORM_SCALE, state->transform);

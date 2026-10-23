@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Accessibility (record mui-0008): the platform-neutral accessibility
-// tree. Every node of a root's tree is a node of it, with a role, text,
-// flags and actions; most come from what the library already holds
-// (rectangles, scrolling, focus, states, value ranges, virtual lists),
-// the rest from the host. The library builds updates in the shape
-// AccessKit uses: the nodes that changed, each sent whole, the focus
-// with every update, the root with the first. The host hands them to
-// the adapters, which keep their own copies, and applies on its thread
-// the requests the adapters queued. Nothing is built until the host
-// enables a root, as when Maul Window reports that an assistive
-// technology asked for one.
+// Accessibility: the platform-neutral accessibility tree. Every node of a
+// root's tree is a node of it, with a role, text, flags and actions; most
+// come from what the library already holds (rectangles, scrolling, focus,
+// states, value ranges, virtual lists), the rest from the host. The
+// library builds updates in the shape AccessKit uses: the nodes that
+// changed, each sent whole, the focus with every update, the root with the
+// first. The host hands them to the adapters, which keep their own copies,
+// and applies on its thread the requests the adapters queued. Nothing is
+// built until the host enables a root, as when Maul Window reports that an
+// assistive technology asked for one.
 
 #ifndef MAUL_UI_ACCESS_H
 #define MAUL_UI_ACCESS_H

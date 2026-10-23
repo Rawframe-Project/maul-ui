@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The images a frame draws (record mui-0005): each key a list names found
-// through the host's function once a frame, its texture imported into
-// the open frame, and the frame's distinct textures, each once, for the
-// draw pass's accesses.
+// The images a frame draws: each key a list names found through the host's
+// function once a frame, its texture imported into the open frame, and the
+// frame's distinct textures, each once, for the draw pass's accesses.
 
 #ifndef MAUL_UI_RHI_IMAGES_H
 #define MAUL_UI_RHI_IMAGES_H

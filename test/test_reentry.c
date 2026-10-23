@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Host code calling back into the context it serves (conventions section
-// 10): from the measure, baseline, paint and access text functions and
+// Host code calling back into the context it serves (Maul conventions,
+// Threads): from the measure, baseline, paint and access text functions and
 // the allocator, every function that changes the context answers
 // mui_errorState and counts one misuse, its destroy among them. The event
 // function may call them all but the ones that feed input, dispatch,
-// perform an access action, set the event function or destroy the
-// context, and each call it makes is busy in turn.
+// perform an access action, set the event function or destroy the context,
+// and each call it makes is busy in turn.
 
 #include "test_harness.h"
 

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Running transitions (record mui-0004): one record per moving property
-// of a node, in a pool reserved at creation, linked from the node. A
-// record holds where the property started and is going; the node's
-// resolved values hold where it is now, which advancing moves.
+// Running transitions: one record per moving property of a node, in a pool
+// reserved at creation, linked from the node. A record holds where the
+// property started and is going; the node's resolved values hold where it
+// is now, which advancing moves.
 
 #ifndef MAUL_UI_SRC_ANIMATION_H
 #define MAUL_UI_SRC_ANIMATION_H

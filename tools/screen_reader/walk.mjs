@@ -2,8 +2,7 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Walks a sample with VoiceOver on macOS or NVDA on Windows through
-// Guidepup, as tools/screen_reader_walk.sh walks one with Orca (record
-// mui-0008):
+// Guidepup, as tools/screen_reader_walk.sh walks one with Orca:
 //
 //   node tools/screen_reader/walk.mjs <sample> <steps> <out-dir>
 //
@@ -54,7 +53,7 @@ const modifiers = { ctrl: mac ? "Option" : "Control", shift: "Shift", alt: mac ?
 const keyOf = (name) => keys[name] ?? name;
 // What a step waits for the sample and the reader to settle: longer on
 // macOS, where the runner's virtual GPU keeps the sample's main thread
-// waiting for a drawable a third of the time (research 148).
+// waiting for a drawable a third of the time.
 const settle = mac || process.argv[2].endsWith(".js") ? 4000 : 2500;
 
 // The sample's window brought to the front, by its process: a program

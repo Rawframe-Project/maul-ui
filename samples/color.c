@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// A colour picker, composed over Maul UI's public capabilities (record
-// mui-0005): a saturation and brightness area drawn by layered gradients
-// (maul-ui/visual.h), the pure hue under a white one across it and a
-// black one down it, with a thumb the host places, a press or a drag
-// setting both and arrows stepping them; a hue slider and an opacity
-// slider that are ranges (maul-ui/range.h) the library moves by ARIA's
-// slider keys and drags, the hue's track three gradient segments; a hex
-// field, an editing field of seven characters (SampleEdit), whose Enter
-// sets the colour; and a swatch showing the result.
-// The host keeps the colour as hue, saturation, brightness and opacity
-// and shows it each frame. Headless, each part is used as a person would
-// and the pixels, the values and the accessibility tree checked.
+// A colour picker, composed over Maul UI's public capabilities: a
+// saturation and brightness area drawn by layered gradients
+// (maul-ui/visual.h), the pure hue under a white one across it and a black
+// one down it, with a thumb the host places, a press or a drag setting
+// both and arrows stepping them; a hue slider and an opacity slider that
+// are ranges (maul-ui/range.h) the library moves by ARIA's slider keys and
+// drags, the hue's track three gradient segments; a hex field, an editing
+// field of seven characters (SampleEdit), whose Enter sets the colour; and
+// a swatch showing the result. The host keeps the colour as hue,
+// saturation, brightness and opacity and shows it each frame. Headless,
+// each part is used as a person would and the pixels, the values and the
+// accessibility tree checked.
 
 #include "app.h"
 

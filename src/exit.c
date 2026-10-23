@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Exit transitions (record mui-0007): the table of nodes exiting, their
-// state and flag, and the reports of exits no transition runs in.
+// Exit transitions: the table of nodes exiting, their state and flag, and
+// the reports of exits no transition runs in.
 
 #include "maul-ui/exit.h"
 

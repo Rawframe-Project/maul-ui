@@ -232,8 +232,7 @@ node => 0 0 0 0
 
 # A column of a maximum width measured at an open width finds its width
 # capped, and lays its stretched children out again at it: text wraps,
-# a row's ratio item shrinks, and the column's height follows (research
-# 244).
+# a row's ratio item shrinks, and the column's height follows.
 fixture intrinsic_column_maximum_width_wraps_its_text available=500x400
 node max-width=40 direction=column => 0 0 40 40
   node content=20x20*4 => 0 0 40 40
@@ -246,8 +245,7 @@ node max-width=40 direction=column => 0 0 40 20
 # A column measured at an open width that grows past it, by a child of
 # a given width, lays its items out again at the width it finds: an
 # item with an automatic side margin fits that width, not the space,
-# and takes its height there, as Chrome and Firefox (research 252,
-# case 128d_69).
+# and takes its height there, as Chrome and Firefox (random case 128d_69).
 
 fixture intrinsic_column_outgrows_its_space available=500x400
 node width=90 direction=column align-items=start => 0 0 90 125
@@ -267,8 +265,8 @@ node width=90 direction=column align-items=start => 0 0 90 125
 # A column clamped by its maximum below the width its children were
 # measured at, while its container measures it, lays them out again at
 # its width, as Chrome and Firefox: its text wraps at 20 and is 160
-# high, where at its content's width it was one line, 40 high (research
-# 256, case 136d_243). Stretched or not, asked an intrinsic width or
+# high, where at its content's width it was one line, 40 high (random
+# case 136d_243). Stretched or not, asked an intrinsic width or
 # fit-content.
 
 fixture intrinsic_column_maximum_narrows_its_text available=500x400

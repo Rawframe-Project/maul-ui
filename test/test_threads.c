@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Contexts on separate threads (record mui-0001): four threads at once,
-// each with its own text service, fonts and context, build the same scene
-// of styled text in several scripts, lay it out and paint it over frames
-// of hovering and transitions, and render glyphs from every kind of font
-// as images, fields and colour glyphs. Each thread's results, hashed,
-// are those of one thread alone; under ThreadSanitizer, nothing races.
+// Contexts on separate threads: four threads at once, each with its own
+// text service, fonts and context, build the same scene of styled text in
+// several scripts, lay it out and paint it over frames of hovering and
+// transitions, and render glyphs from every kind of font as images, fields
+// and colour glyphs. Each thread's results, hashed, are those of one
+// thread alone; under ThreadSanitizer, nothing races.
 
 #include "test_harness.h"
 

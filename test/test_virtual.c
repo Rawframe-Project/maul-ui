@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Virtualization (record mui-0007): windows from offsets, fixed and
-// estimated extents, measured items, placing across and along lists, the
-// content extent, the table's contract, and the work a scrolled list
-// costs.
+// Virtualization: windows from offsets, fixed and estimated extents,
+// measured items, placing across and along lists, the content extent, the
+// table's contract, and the work a scrolled list costs.
 
 #include "test_harness.h"
 

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The accessibility tree's consumer (record mui-0008): applying an
-// update whole or not at all. It is checked, then copied, then put in
-// place; nodes no node lists any more leave with their subtrees; then
-// the changes are reported and what was replaced is freed.
+// The accessibility tree's consumer: applying an update whole or not at
+// all. It is checked, then copied, then put in place; nodes no node lists
+// any more leave with their subtrees; then the changes are reported and
+// what was replaced is freed.
 
 #include "access_text.h"
 #include "access_tree.h"

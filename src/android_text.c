@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The Android accessibility adapter's text (record mui-0008, research
-// 145): which text a node's granularities move through, the moves as
-// AOSP's views make them (characters, lines and paragraphs on the
-// boundaries every adapter shares, words on the tree's words, without
-// the spaces after them), and the selection and text requests, in
-// UTF-16 as Java counts. Text being edited moves its caret through the
-// host; any other text a cursor the provider keeps.
+// The Android accessibility adapter's text: which text a node's
+// granularities move through, the moves as AOSP's views make them
+// (characters, lines and paragraphs on the boundaries every adapter
+// shares, words on the tree's words, without the spaces after them), and
+// the selection and text requests, in UTF-16 as Java counts. Text being
+// edited moves its caret through the host; any other text a cursor the
+// provider keeps.
 
 #include "access_text.h"
 #include "allocator.h"

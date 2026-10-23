@@ -1,5 +1,5 @@
 #!/bin/sh
-# Builds a test application for the Android emulator (record mui-0008),
+# Builds a test application for the Android emulator,
 # with the SDK's tools and no Gradle, as Maul Window's script does:
 #
 #   tools/build_android_app.sh <out.apk> <libname.so> <package> [abi]

@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Themes: their checks and overrides, the subtrees that read them, nested
-// themes, moves, limits and cycles (record mui-0004).
+// themes, moves, limits and cycles.
 
 #include "test_harness.h"
 

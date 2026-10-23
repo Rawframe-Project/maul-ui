@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Laid-out text as boxes (record mui-0006): a node's lines as hit
-// testing and caret movement read them.
+// Laid-out text as boxes: a node's lines as hit testing and caret movement
+// read them.
 
 #ifndef MAUL_UI_SRC_TEXT_BOXES_H
 #define MAUL_UI_SRC_TEXT_BOXES_H

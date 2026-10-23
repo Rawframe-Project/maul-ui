@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Text blocks (record mui-0006): their lifetime and keys, measuring
-// lines at every kind of width request, line height and letter spacing,
-// painting glyph runs aligned and in bidi order, and memory running out.
-// Ahem draws every glyph as a box one em wide, ascent 0.8 em and descent
-// 0.2 em, so every value is exact.
+// Text blocks: their lifetime and keys, measuring lines at every kind of
+// width request, line height and letter spacing, painting glyph runs
+// aligned and in bidi order, and memory running out. Ahem draws every
+// glyph as a box one em wide, ascent 0.8 em and descent 0.2 em, so every
+// value is exact.
 
 #include "test_harness.h"
 

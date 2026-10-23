@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Scrolling's queries (record mui-0007): a node's offset, its extent and
-// its thumb, read from what layout measured.
+// Scrolling's queries: a node's offset, its extent and its thumb, read
+// from what layout measured.
 
 #include "context.h"
 #include "layout_node.h"

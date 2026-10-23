@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Laid-out text as boxes (record mui-0006): each line laid out as
-// painting lays it out, as boxes of grapheme clusters left to right, a
-// glyph several clusters share cut into equal parts; positions are box
-// edges.
+// Laid-out text as boxes: each line laid out as painting lays it out, as
+// boxes of grapheme clusters left to right, a glyph several clusters share
+// cut into equal parts; positions are box edges.
 
 #include "text_boxes.h"
 

@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The AT-SPI adapter's events (record mui-0008): signals of
-// org.a11y.atspi.Event.Object for what an update changed. States and
-// properties come from comparing each replaced record with its new one;
-// the structure from a walk of the shown tree, compared with what
-// clients were last told; the focus last, so a node is added before it
-// is focused.
+// The AT-SPI adapter's events: signals of org.a11y.atspi.Event.Object for
+// what an update changed. States and properties come from comparing each
+// replaced record with its new one; the structure from a walk of the shown
+// tree, compared with what clients were last told; the focus last, so a
+// node is added before it is focused.
 
 #include "access_record.h"
 #include "access_text.h"

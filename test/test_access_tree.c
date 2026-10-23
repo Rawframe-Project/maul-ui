@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The accessibility tree's consumer (record mui-0008): applying the
-// core's updates, the changes reported, nodes leaving with their
-// subtrees, updates refused whole, and the tree written as text.
+// The accessibility tree's consumer: applying the core's updates, the
+// changes reported, nodes leaving with their subtrees, updates refused
+// whole, and the tree written as text.
 
 #include "test_harness.h"
 
@@ -1020,7 +1020,7 @@ static void TestMemory(void)
 }
 
 // An allocator calling back into the tree it serves when armed: what
-// applying answered, and whether it ran (conventions section 10).
+// applying answered, and whether it ran (Maul conventions, Threads).
 typedef struct Calling
 {
     muiAccessTree* tree;

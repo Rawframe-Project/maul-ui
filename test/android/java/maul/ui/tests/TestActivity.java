@@ -19,10 +19,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 /**
- * The Android accessibility adapter against Android's classes (record
- * mui-0008), in the emulator (tools/run_android_app.sh): the test's
- * native library (test/test_android_access.c) makes the adapter for a
- * view and a tree; the checks here ask the provider as clients do:
+ * The Android accessibility adapter against Android's classes, in the
+ * emulator (tools/run_android_app.sh): the test's native library
+ * (test/test_android_access.c) makes the adapter for a view and a tree;
+ * the checks here ask the provider as clients do:
  * - the host's one child, the root; class names, texts, content
  *   descriptions, hints, states, ranges, live settings, headings;
  * - bounds on the screen at the scale;

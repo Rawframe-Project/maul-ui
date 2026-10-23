@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Placing an editing block's selection through a node's laid-out text
-// (record mui-0006): moves, presses and drags. A press selects a cluster
+//: moves, presses and drags. A press selects a cluster
 // edge, a word or a paragraph by its click count, as every platform's
 // double and triple click; a drag extends by the same unit, keeping what
 // the press selected. A move without Shift over a selection collapses it

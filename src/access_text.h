@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// A value text's marks (record mui-0008, I123): its selection, lines and
-// words, checked against the text the build reads and the tree takes;
-// and the boundaries of its units and its offsets in the units platforms
-// count, which the adapters share (research 143).
+// A value text's marks: its selection, lines and words, checked against
+// the text the build reads and the tree takes; and the boundaries of its
+// units and its offsets in the units platforms count, which the adapters
+// share.
 
 #ifndef MAUL_UI_SRC_ACCESS_TEXT_H
 #define MAUL_UI_SRC_ACCESS_TEXT_H

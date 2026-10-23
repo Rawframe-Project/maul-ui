@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // The public functions over transition specs and the variants that name
-// them (record mui-0004).
+// them.
 
 #include "maul-ui/transition.h"
 

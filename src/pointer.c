@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Pointer input (record mui-0007). Each pointer counts itself in the
-// hover count of every node from its hovered node up, and while it holds
-// a button in the press count of every node from its pressed node up; a
-// count leaving or reaching 0 restyles its node. Tree edits take the
-// counts of the pointers below the edited node off and put them back.
+// Pointer input. Each pointer counts itself in the hover count of every
+// node from its hovered node up, and while it holds a button in the press
+// count of every node from its pressed node up; a count leaving or
+// reaching 0 restyles its node. Tree edits take the counts of the pointers
+// below the edited node off and put them back.
 
 #include "maul-ui/pointer.h"
 

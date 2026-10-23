@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Glyph outlines for images (record mui-0006): FreeType loads a glyph's
-// outline at a size, unhinted and without the font's embedded bitmaps,
-// and its smooth rasterizer renders coverage.
+// Glyph outlines for images: FreeType loads a glyph's outline at a size,
+// unhinted and without the font's embedded bitmaps, and its smooth
+// rasterizer renders coverage.
 
 #include "glyph_outline.h"
 

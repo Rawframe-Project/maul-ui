@@ -2,15 +2,15 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // A tour of Maul UI: a tree using its parts together, on the samples'
-// application frame (app.h), and what they did checked (record
-// mui-0005). A title in Liberation Sans, a generated picture, a button
-// whose class colours it while pressed, named for the accessibility
-// tree, and a scroll container of rows. Headless, records posted as a
-// platform reports them: checked, the background, the picture's
-// corners, the title's ink, the button hovered and not pressed,
-// pressed and let go, the rows cut at the container's edge and moved
-// by a wheel, and the button named in the accessibility tree; windowed
-// with --frames, the first of those on the last frame presented.
+// application frame (app.h), and what they did checked. A title in
+// Liberation Sans, a generated picture, a button whose class colours it
+// while pressed, named for the accessibility tree, and a scroll container
+// of rows. Headless, records posted as a platform reports them: checked,
+// the background, the picture's corners, the title's ink, the button
+// hovered and not pressed, pressed and let go, the rows cut at the
+// container's edge and moved by a wheel, and the button named in the
+// accessibility tree; windowed with --frames, the first of those on the
+// last frame presented.
 
 #include "app.h"
 

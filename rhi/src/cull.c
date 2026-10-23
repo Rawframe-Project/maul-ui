@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Culling as a list is packed (record mui-0005).
+// Culling as a list is packed.
 
 #include "cull.h"
 

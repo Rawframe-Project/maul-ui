@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Glyph atlases (record mui-0006): images packed with their gutters and
-// found again, pens rounded to quarter pixels, plots evicted least
-// recently used and never in the frame that uses them, changes taken by
-// the renderer, distance fields beside coverage, the lookup table
-// growing, memory running out, and calls outside the contract refused.
+// Glyph atlases: images packed with their gutters and found again, pens
+// rounded to quarter pixels, plots evicted least recently used and never
+// in the frame that uses them, changes taken by the renderer, distance
+// fields beside coverage, the lookup table growing, memory running out,
+// and calls outside the contract refused.
 
 #include "test_harness.h"
 

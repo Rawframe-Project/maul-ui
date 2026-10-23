@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Layers (record mui-0007). The store holds the nodes that root a layer,
-// in paint order from the bottom; entries of nodes destroyed since are
-// passed over, and taken out when room is needed.
+// Layers. The store holds the nodes that root a layer, in paint order from
+// the bottom; entries of nodes destroyed since are passed over, and taken
+// out when room is needed.
 
 #include "layer.h"
 

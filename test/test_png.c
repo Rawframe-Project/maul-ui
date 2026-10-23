@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The PNG decoder (record mui-0006) on pngs.bin, written by
-// make_pngs.py: every colour type and bit depth, plain and interlaced,
-// every filter, stored, fixed and dynamic data over several chunks, and
-// images Pillow encoded, each decoded to the RGBA it was made from; and
-// damaged images refused. Then seeded fuzzing, run under the sanitizers
-// with every test: the cases damaged at random, and half the time their
-// CRCs made right again so that the damage reaches the image data; and
-// their image data inflated, damaged and written again in stored blocks,
-// its checksum and CRCs right, so that the damage reaches unfiltering and
-// the samples; each is decoded or refused without harm. The seed is
-// fixed, so a failure repeats.
+// The PNG decoder on pngs.bin, written by make_pngs.py: every colour type
+// and bit depth, plain and interlaced, every filter, stored, fixed and
+// dynamic data over several chunks, and images Pillow encoded, each
+// decoded to the RGBA it was made from; and damaged images refused. Then
+// seeded fuzzing, run under the sanitizers with every test: the cases
+// damaged at random, and half the time their CRCs made right again so that
+// the damage reaches the image data; and their image data inflated,
+// damaged and written again in stored blocks, its checksum and CRCs right,
+// so that the damage reaches unfiltering and the samples; each is decoded
+// or refused without harm. The seed is fixed, so a failure repeats.
 
 #include "inflate.h"
 #include "png.h"

@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The samples' application frame (record mui-0005): what every sample
-// does around its own tree, in the order a host does it. It opens a
-// window through Maul Window, makes the context, the glue, the access
-// and the renderer, and runs frames: the window's records through the
-// glue, layout, the accessibility tree's changes, the list painted and
-// drawn. Headless (--headless) it runs on Maul Window's test backend,
-// draws into a texture it reads back each frame, and hands the sample
-// each frame to check and to post the next input; windowed it presents
-// onto the window's surface until the window is closed, or for --frames
-// N frames, the last read back where the surface allows and handed to
-// the sample's still check. Text is Liberation Sans.
+// The samples' application frame: what every sample does around its own
+// tree, in the order a host does it. It opens a window through Maul
+// Window, makes the context, the glue, the access and the renderer, and
+// runs frames: the window's records through the glue, layout, the
+// accessibility tree's changes, the list painted and drawn. Headless
+// (--headless) it runs on Maul Window's test backend, draws into a texture
+// it reads back each frame, and hands the sample each frame to check and
+// to post the next input; windowed it presents onto the window's surface
+// until the window is closed, or for --frames N frames, the last read back
+// where the surface allows and handed to the sample's still check. Text is
+// Liberation Sans.
 
 #ifndef MAUL_UI_SAMPLES_APP_H
 #define MAUL_UI_SAMPLES_APP_H

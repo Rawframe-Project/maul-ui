@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The samples' application frame (record mui-0005).
+// The samples' application frame.
 
 #include "app.h"
 

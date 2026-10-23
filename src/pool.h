@@ -3,7 +3,7 @@
 //
 // A fixed array of numbered slots handed out and taken back, with the
 // generation that tells an id's object from later occupants of its slot
-// (family record 0016). Slots are 1-based; 0 means none. Reuse is last
+//. Slots are 1-based; 0 means none. Reuse is last
 // in, first out, as the node store's.
 
 #ifndef MAUL_UI_SRC_POOL_H

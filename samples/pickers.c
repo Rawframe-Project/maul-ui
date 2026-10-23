@@ -3,19 +3,19 @@
 //
 // A select, a searchable select and a number input with drag scrub,
 // composed over Maul UI's public capabilities with the patterns of the
-// WAI-ARIA Authoring Practices (record mui-0005). Both selects are
-// comboboxes: the focus stays on them while their list, a popup in the
-// overlay layer (maul-ui/popup.h) made when it opens and destroyed when
-// it closes, shows the active option, which the combobox names by the
-// active descendant relation. The select opens by a click, Space, Enter
-// or Down; arrows move the active option and Enter picks it; the
-// library's light dismissal (a press outside, an unhandled Escape)
-// reports when the list should close. The searchable select is a text
-// field whose typing filters the options. The number input is a range
-// (maul-ui/range.h) the library moves by ARIA's keys, its drag taken by
-// the host, which scrubs the value by the pointer's travel instead of
-// following it. Headless, each is used as a person would and the
-// texts, the pixels and the accessibility tree checked.
+// WAI-ARIA Authoring Practices. Both selects are comboboxes: the focus
+// stays on them while their list, a popup in the overlay layer
+// (maul-ui/popup.h) made when it opens and destroyed when it closes, shows
+// the active option, which the combobox names by the active descendant
+// relation. The select opens by a click, Space, Enter or Down; arrows move
+// the active option and Enter picks it; the library's light dismissal (a
+// press outside, an unhandled Escape) reports when the list should close.
+// The searchable select is a text field whose typing filters the options.
+// The number input is a range (maul-ui/range.h) the library moves by
+// ARIA's keys, its drag taken by the host, which scrubs the value by the
+// pointer's travel instead of following it. Headless, each is used as a
+// person would and the texts, the pixels and the accessibility tree
+// checked.
 
 #include "app.h"
 

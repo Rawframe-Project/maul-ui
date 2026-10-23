@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Interaction properties and hit testing (record mui-0007): whether a node
-// and its children are hit by a point, whether input it leaves unused
-// passes through to what lies behind the UI, whether it roots a layer,
-// and which node is topmost at a point, in reverse paint order.
+// Interaction properties and hit testing: whether a node and its children
+// are hit by a point, whether input it leaves unused passes through to
+// what lies behind the UI, whether it roots a layer, and which node is
+// topmost at a point, in reverse paint order.
 
 #ifndef MAUL_UI_INTERACTION_H
 #define MAUL_UI_INTERACTION_H

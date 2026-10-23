@@ -2,21 +2,19 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Single and multi-line text inputs over Maul UI's text editor
-// (maul-ui/text_editor.h), with the roles and keys of the WAI-ARIA
-// Authoring Practices (record mui-0005). Each field is one node: its
-// box, its editing block as host content, the text input role, focus
-// and drags. The editor takes the field's events (muiTextEditEvent):
-// typed text, the platform's keys, presses and drags; its copies go to
-// the window's clipboard and its pastes come from it
-// (SampleEdit, maul-ui-window/clipboard.h). The paint function draws the selection's
-// rectangles and the caret over the text. An input method's preedit goes
-// into the focused field (muiWindowCompose) and the window's candidate
-// box follows the caret (muiWindowGlue_SetTextCaret), the on-screen
-// keyboard shown for the field's purpose as the focus enters it and
-// hidden as it leaves (muiWindowGlue_RequestKeyboard). Headless, a
-// person's typing, editing, selecting, copying, pasting, undoing and
-// composing is posted and the texts, the caret's pixels, the window's
-// caret and the accessibility tree checked.
+// (maul-ui/text_editor.h), with the roles and keys of the WAI-ARIA Authoring
+// Practices. Each field is one node: its box, its editing block as host content, the
+// text input role, focus and drags. The editor takes the field's events
+// (muiTextEditEvent): typed text, the platform's keys, presses and drags; its copies
+// go to the window's clipboard and its pastes come from it (SampleEdit,
+// maul-ui-window/clipboard.h). The paint function draws the selection's rectangles
+// and the caret over the text. An input method's preedit goes into the focused field
+// (muiWindowCompose) and the window's candidate box follows the caret
+// (muiWindowGlue_SetTextCaret), the on-screen keyboard shown for the field's purpose
+// as the focus enters it and hidden as it leaves (muiWindowGlue_RequestKeyboard).
+// Headless, a person's typing, editing, selecting, copying, pasting, undoing and
+// composing is posted and the texts, the caret's pixels, the window's caret and the
+// accessibility tree checked.
 
 #include "app.h"
 

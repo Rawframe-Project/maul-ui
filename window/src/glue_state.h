@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The glue's state (record mui-0007), which its other parts read: the
-// window, the context and the root it feeds.
+// The glue's state, which its other parts read: the window, the context
+// and the root it feeds.
 
 #ifndef MAUL_UI_WINDOW_GLUE_STATE_H
 #define MAUL_UI_WINDOW_GLUE_STATE_H

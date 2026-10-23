@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The accessibility tree's consumer (record mui-0008): the tree as
-// platforms see it. Filtering leaves out hidden subtrees and children
-// clipped wholly out of view, and flattens generic nodes into their
-// children; names come from labels, the nodes that label, or contents;
-// bounds are carried into the root's placement through every transform.
+// The accessibility tree's consumer: the tree as platforms see it.
+// Filtering leaves out hidden subtrees and children clipped wholly out of
+// view, and flattens generic nodes into their children; names come from
+// labels, the nodes that label, or contents; bounds are carried into the
+// root's placement through every transform.
 
 #include "access_text.h"
 #include "access_tree_store.h"

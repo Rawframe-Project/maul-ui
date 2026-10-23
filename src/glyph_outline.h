@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// A glyph's outline as FreeType loads it for images (record mui-0006):
-// the font of a key, its instance set, the outline at a size unhinted and
-// without embedded bitmaps, synthetic oblique and bold made, and coverage
-// rasterized into a box of whole pixels. Glyph images and colour glyphs
-// share it.
+// A glyph's outline as FreeType loads it for images: the font of a key,
+// its instance set, the outline at a size unhinted and without embedded
+// bitmaps, synthetic oblique and bold made, and coverage rasterized into a
+// box of whole pixels. Glyph images and colour glyphs share it.
 
 #ifndef MAUL_UI_SRC_GLYPH_OUTLINE_H
 #define MAUL_UI_SRC_GLYPH_OUTLINE_H

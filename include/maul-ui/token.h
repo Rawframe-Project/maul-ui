@@ -2,10 +2,10 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Tokens: typed values that class variants name in place of a property's
-// value, so that a theme is a change of token values (record mui-0004).
-// A token holds a literal of its type, or an alias to another token of
-// that type; aliases never form a cycle. Changing a token restyles every
-// node, as a class edit does, and named transitions move the change.
+// value, so that a theme is a change of token values. A token holds a
+// literal of its type, or an alias to another token of that type; aliases
+// never form a cycle. Changing a token restyles every node, as a class
+// edit does, and named transitions move the change.
 
 #ifndef MAUL_UI_TOKEN_H
 #define MAUL_UI_TOKEN_H
@@ -21,7 +21,7 @@ extern "C"
 {
 #endif
 
-    // A token, in the shape of every id (family record 0016).
+    // A token, in the shape of every id.
     typedef struct muiTokenId
     {
         uint32_t index1;

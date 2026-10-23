@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The reference renderer's memory (record mui-0005): through the host's
-// allocator alone, as Maul UI's own allocation functions stay inside a
-// shared build of Maul UI; a zeroed allocator is the C library's.
+// The reference renderer's memory: through the host's allocator alone, as
+// Maul UI's own allocation functions stay inside a shared build of Maul
+// UI; a zeroed allocator is the C library's.
 
 #ifndef MAUL_UI_RHI_ALLOCATOR_H
 #define MAUL_UI_RHI_ALLOCATOR_H

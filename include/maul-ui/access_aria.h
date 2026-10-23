@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The ARIA adapter (record mui-0008), the component MAUL_UI_ARIA builds
-// for Emscripten: the accessibility tree's consumer mirrored into
-// elements of the page, which the browser gives its accessibility
-// clients. The elements are built in an element of the host's over the
-// canvas (Maul Window's accessibility host, say), each placed over what
-// it names and invisible; clients' actions come back through a function
-// of the host's.
+// The ARIA adapter, the component MAUL_UI_ARIA builds for Emscripten: the
+// accessibility tree's consumer mirrored into elements of the page, which
+// the browser gives its accessibility clients. The elements are built in
+// an element of the host's over the canvas (Maul Window's accessibility
+// host, say), each placed over what it names and invisible; clients'
+// actions come back through a function of the host's.
 //
 // A page cannot tell whether a screen reader runs, and the elements
 // cost every user, so by default nothing is built until the program

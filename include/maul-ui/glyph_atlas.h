@@ -1,18 +1,16 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Glyph atlases (record mui-0006): glyph images of a text service's
-// fonts, rendered as muiRenderGlyph, muiRenderGlyphField and
-// muiRenderGlyphMultiField render them and packed into pages a renderer
-// uploads as textures. An atlas's pages are of one format: one byte a
-// pixel, holding coverage and distance fields both, four holding
-// multi-channel fields, or four holding colour glyphs; a renderer wanting
-// several makes an atlas of each, so their pages never share an index
-// space. Pages are split into
-// plots; when no plot has room, the least recently used plot that the
-// current frame has not used is emptied and packed again. The atlas
-// keeps the pages' pixels and tells which rectangles changed; it uses no
-// graphics API.
+// Glyph atlases: glyph images of a text service's fonts, rendered as
+// muiRenderGlyph, muiRenderGlyphField and muiRenderGlyphMultiField render
+// them and packed into pages a renderer uploads as textures. An atlas's
+// pages are of one format: one byte a pixel, holding coverage and distance
+// fields both, four holding multi-channel fields, or four holding colour
+// glyphs; a renderer wanting several makes an atlas of each, so their
+// pages never share an index space. Pages are split into plots; when no
+// plot has room, the least recently used plot that the current frame has
+// not used is emptied and packed again. The atlas keeps the pages' pixels
+// and tells which rectangles changed; it uses no graphics API.
 
 #ifndef MAUL_UI_GLYPH_ATLAS_H
 #define MAUL_UI_GLYPH_ATLAS_H

@@ -913,10 +913,10 @@ static muiDrawList PanelList(muiDrawCommand commands[4], const muiDrawClip clips
     return list;
 }
 
-// Projection (record mui-0005): a projection equal to the target's own
-// mapping draws what no projection draws, within 2, edges and clips
-// included; and a panel turned in perspective puts each box, and its
-// outer edges, where the matrix takes them.
+// Projection: a projection equal to the target's own mapping draws what no
+// projection draws, within 2, edges and clips included; and a panel turned
+// in perspective puts each box, and its outer edges, where the matrix
+// takes them.
 static void TestProjection(Gpu* gpu, muiRhiRenderer* renderer, uint8_t* pixels, int scale)
 {
     const uint32_t side = 64u * (uint32_t)scale;
@@ -1045,12 +1045,11 @@ static bool Refuses(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList* list,
     return refused;
 }
 
-// Depth (record mui-0005): a renderer made with a depth format tests a
-// projected panel against the host's depth, never writing it: the turned
-// panel, at depth 0.5 throughout (its matrix's z is half its w), drawn
-// over a depth of 0.6 and hidden by one of 0.4 under less-or-equal. A
-// depth texture without a projection, or given a renderer made without a
-// depth format, is refused.
+// Depth: a renderer made with a depth format tests a projected panel
+// against the host's depth, never writing it: the turned panel, at depth
+// 0.5 throughout (its matrix's z is half its w), drawn over a depth of 0.6
+// and hidden by one of 0.4 under less-or-equal. A depth texture without a
+// projection, or given a renderer made without a depth format, is refused.
 static void TestDepth(Gpu* gpu, muiRhiRenderer* plain, uint8_t* pixels)
 {
     muiRhiRendererDef def = muiDefaultRhiRendererDef();

@@ -2,9 +2,8 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // The public functions over style classes and node types. Any change to
-// one restyles every node at the next layout (record mui-0004): classes
-// change rarely, as a theme does, and no index from a class to its nodes
-// has to be kept.
+// one restyles every node at the next layout: classes change rarely, as a
+// theme does, and no index from a class to its nodes has to be kept.
 
 #include "maul-ui/style.h"
 

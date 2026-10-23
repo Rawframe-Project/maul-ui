@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Pointer input (record mui-0007): hover and press along chains, clicks
-// and their counts, capture, cancels, several pointers, tree edits under
-// pointers, the record ring and calls outside the contract.
+// Pointer input: hover and press along chains, clicks and their counts,
+// capture, cancels, several pointers, tree edits under pointers, the
+// record ring and calls outside the contract.
 
 #include "test_harness.h"
 

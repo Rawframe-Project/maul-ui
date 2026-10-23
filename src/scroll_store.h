@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Scroll state (record mui-0007): per node, its offset and the extent its
-// children reach, logical (x from the inline start), which layout
-// measures and src/scroll.c moves.
+// Scroll state: per node, its offset and the extent its children reach,
+// logical (x from the inline start), which layout measures and
+// src/scroll.c moves.
 
 #ifndef MAUL_UI_SRC_SCROLL_STORE_H
 #define MAUL_UI_SRC_SCROLL_STORE_H
@@ -36,7 +36,7 @@ typedef struct muiScrollState
     float reachHeight;
     // Whether its offsets grow from its right and from its bottom edge,
     // not its left and top: its flex start on that axis, as CSS's scroll
-    // origin (research 289), as layout last measured it.
+    // origin, as layout last measured it.
     bool right;
     bool bottom;
 } muiScrollState;

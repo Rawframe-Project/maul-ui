@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The accessibility tree's consumer (record mui-0008): making a tree,
-// finding its nodes by id, reading them, and writing the tree as text.
+// The accessibility tree's consumer: making a tree, finding its nodes by
+// id, reading them, and writing the tree as text.
 
 #include "maul-ui/access_tree.h"
 

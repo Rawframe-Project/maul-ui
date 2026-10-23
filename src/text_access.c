@@ -1,11 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// What a text block reads as to accessibility (records mui-0006 and
-// mui-0008, I123): its text as shown, its editing selection, its lines
-// and its grapheme clusters where painting lays them out, and its words;
-// and the requests that set the selection and replace text, in the
-// offsets it reads as.
+// What a text block reads as to accessibility: its text as shown, its editing selection, its lines
+// and its grapheme clusters where painting lays them out, and its words; and the requests that set
+// the selection and replace text, in the offsets it reads as.
 
 #include "allocator.h"
 #include "text_block.h"

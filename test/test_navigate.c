@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Directional navigation (record mui-0007): Android's focus search over a
-// grid, the beam, weighted distances and ties, links that win, stop or
-// fall back, layers as scopes, and calls outside the contract.
+// Directional navigation: Android's focus search over a grid, the beam,
+// weighted distances and ties, links that win, stop or fall back, layers
+// as scopes, and calls outside the contract.
 
 #include "test_harness.h"
 

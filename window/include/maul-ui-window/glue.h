@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The Maul Window glue (record mui-0007), the optional target
-// maul-ui-window: one glue a window feeds the records the host drains
-// from Maul Window to a Maul UI context, keeping what Maul Window does
-// not (the cursor's place, the buttons held) and saying of each record
-// whether the UI handled it, so that the host hands the rest to its
-// game. Keys and text pass as they come, the codes, meanings and
-// modifiers being the same; the cursor is a mouse pointer, a touch a
-// touch pointer and the pen a pen pointer, their records dispatched at
-// once; the wheel turns at the cursor's last place; a reset or a lost
-// focus cancels every pointer. The core and the text component
-// never depend on it; it is a static library, whose functions
+// The Maul Window glue, the optional target maul-ui-window: one glue a
+// window feeds the records the host drains from Maul Window to a Maul UI
+// context, keeping what Maul Window does not (the cursor's place, the
+// buttons held) and saying of each record whether the UI handled it, so
+// that the host hands the rest to its game. Keys and text pass as they
+// come, the codes, meanings and modifiers being the same; the cursor is a
+// mouse pointer, a touch a touch pointer and the pen a pen pointer, their
+// records dispatched at once; the wheel turns at the cursor's last place;
+// a reset or a lost focus cancels every pointer. The core and the text
+// component never depend on it; it is a static library, whose functions
 // MUI_WINDOW_API marks.
 
 #ifndef MAUL_UI_WINDOW_GLUE_H

@@ -21,8 +21,8 @@
 //   selection asked of the host in bytes, other edits and caret keys
 //   kept from the browser, roles beyond a text box's kept, a number
 //   field asking for digits, a field no longer edited made a div.
-// Under Node, with no page, it is skipped. Built without Emscripten
-// (mui-0009) it runs the same, its imports the glue written beside it.
+// Under Node, with no page, it is skipped. Built without Emscripten it
+// runs the same, its imports the glue written beside it.
 
 #include "aria.h"
 #include "test_harness.h"
@@ -37,9 +37,9 @@
 #ifdef __EMSCRIPTEN__
 #define TestSleep emscripten_sleep
 #else
-// Without Emscripten (mui-0009) the runner gives the sleep as a
-// suspending import and calls main through JavaScript promise
-// integration, where Emscripten's build sleeps through Asyncify.
+// Without Emscripten the runner gives the sleep as a suspending import and
+// calls main through JavaScript promise integration, where Emscripten's
+// build sleeps through Asyncify.
 MUI_WEB_IMPORT(muiTestSleep) void muiTestSleep(unsigned milliseconds);
 #define TestSleep muiTestSleep
 #endif
@@ -209,9 +209,8 @@ static muiAccessRequest s_asked;
 static char s_text[64];
 
 // Fills what it gives with garbage, so that memory read before it is
-// written shows.
-// An adapter the allocator calls back into once, when armed, and what
-// that answered (conventions section 10).
+// written shows. An adapter the allocator calls back into once, when
+// armed, and what that answered (Maul conventions, Threads).
 static muiAriaAdapter* s_allocReentry;
 static muiResult s_allocReentered;
 
@@ -243,7 +242,7 @@ static void Unpoisoned(void* memory, size_t size, size_t alignment, void* contex
 }
 
 // The adapter an action calls back into while it is asked, and what that
-// answered (conventions section 10).
+// answered (Maul conventions, Threads).
 static muiAriaAdapter* s_reentry;
 static muiResult s_reentered;
 

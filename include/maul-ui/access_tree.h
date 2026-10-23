@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The accessibility tree's consumer (record mui-0008), the component
-// MAUL_UI_ACCESS_TREE builds: the copy of a root's accessibility tree
-// that platform adapters read, kept from the updates muiBuildAccessUpdate
-// gives (maul-ui/access.h). Applying an update reports what it changed,
-// so an adapter can raise its platform's events. A tree is used on one
-// thread, the one its platform calls on: the window's, with UI
-// Automation's COM threading on an STA thread.
+// The accessibility tree's consumer, the component MAUL_UI_ACCESS_TREE
+// builds: the copy of a root's accessibility tree that platform adapters
+// read, kept from the updates muiBuildAccessUpdate gives
+// (maul-ui/access.h). Applying an update reports what it changed, so an
+// adapter can raise its platform's events. A tree is used on one thread,
+// the one its platform calls on: the window's, with UI Automation's COM
+// threading on an STA thread.
 //
 // A tree is busy while one of its functions that change it runs or its
 // allocator runs, from those or from its const queries: a call back into

@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The text editor (record mui-0006): typing undone word by word and
-// deletions in runs, redo dropped by a new edit, the undo limit, a
-// field's rules (read-only, password, single line, number filters, a
-// maximum length), text changed elsewhere, and presses, drags and moves
-// through laid-out text.
+// The text editor: typing undone word by word and deletions in runs, redo
+// dropped by a new edit, the undo limit, a field's rules (read-only,
+// password, single line, number filters, a maximum length), text changed
+// elsewhere, and presses, drags and moves through laid-out text.
 
 #include "test_harness.h"
 

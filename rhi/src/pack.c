@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The reference renderer's records (record mui-0005). A shadow's shape is
-// its box offset and grown by its spread, as CSS's box-shadow, its radii
-// grown with it by CSS's adjustment for small radii (or shrunk, inset);
-// an outer shadow's quad reaches three sigmas past its shape, an inset
-// one's is its box. An image's slice insets are one logical unit a texel
-// as drawn, all four shrunk by one factor where two facing ones would
-// not fit, as CSS's border-image shrinks them; its middle's tiles are
-// its texels at that size too, and the shader tiles them. A glyph run whose
-// transform only moves it is drawn as coverage the atlas renders at its
-// device pixels, the pen's place there and the quad's in the run's own
-// units; one a transform scales or turns, or a glyph too large for the
-// atlas as coverage, from a multi-channel distance field of an em of 32,
-// 64 or 128 pixels, the least at least the em drawn, its spread 4 field
-// pixels: a byte steps by a 32nd of a field pixel, and an em drawn at 8
-// pixels from a field of 32 still reaches a device pixel past the edge.
+// The reference renderer's records. A shadow's shape is its box offset and
+// grown by its spread, as CSS's box-shadow, its radii grown with it by
+// CSS's adjustment for small radii (or shrunk, inset); an outer shadow's
+// quad reaches three sigmas past its shape, an inset one's is its box. An
+// image's slice insets are one logical unit a texel as drawn, all four
+// shrunk by one factor where two facing ones would not fit, as CSS's
+// border-image shrinks them; its middle's tiles are its texels at that size
+// too, and the shader tiles them. A glyph run whose transform only moves it
+// is drawn as coverage the atlas renders at its device pixels, the pen's
+// place there and the quad's in the run's own units; one a transform scales
+// or turns, or a glyph too large for the atlas as coverage, from a
+// multi-channel distance field of an em of 32, 64 or 128 pixels, the least
+// at least the em drawn, its spread 4 field pixels: a byte steps by a 32nd
+// of a field pixel, and an em drawn at 8 pixels from a field of 32 still
+// reaches a device pixel past the edge.
 
 #include "pack.h"
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Creating and destroying text services (record mui-0006).
+// Creating and destroying text services.
 
 #include "text_service.h"
 

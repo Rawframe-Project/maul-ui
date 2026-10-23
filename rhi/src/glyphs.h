@@ -1,16 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The renderer's glyphs (record mui-0005): three atlases of its own over
-// the host's text service, one of a channel for coverage, one of four for
-// multi-channel fields and one of colour glyphs, their pages numbered
-// together in the order they are made, each an R8, RGBA8 or sRGB RGBA8
-// texture made when its atlas makes the page, and the rectangles the
-// atlases changed uploaded each frame.
-// A changed rectangle covers its images' empty gutters, so every texel a
-// glyph's quad samples has been written; what was never written is never
-// sampled. Without Maul UI's text component there are no atlases, and a
-// text service is refused.
+// The renderer's glyphs: three atlases of its own over the host's text
+// service, one of a channel for coverage, one of four for multi-channel
+// fields and one of colour glyphs, their pages numbered together in the
+// order they are made, each an R8, RGBA8 or sRGB RGBA8 texture made when
+// its atlas makes the page, and the rectangles the atlases changed
+// uploaded each frame. A changed rectangle covers its images' empty
+// gutters, so every texel a glyph's quad samples has been written; what
+// was never written is never sampled. Without Maul UI's text component
+// there are no atlases, and a text service is refused.
 
 #ifndef MAUL_UI_RHI_GLYPHS_H
 #define MAUL_UI_RHI_GLYPHS_H

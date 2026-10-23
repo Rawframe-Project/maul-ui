@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Sirac Ozmen
 #
-# Random layouts against Chrome (record mui-0003), a development tool
+# Random layouts against Chrome, a development tool
 # beside gen_layout_fixtures.py.
 #
 # "generate SEED COUNT" prints COUNT random fixtures drawn from SEED in the

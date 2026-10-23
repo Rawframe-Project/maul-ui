@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // The public functions over tokens and the class variants that name them
-// (record mui-0004). A cycle is refused when an alias is set, by walking
+//. A cycle is refused when an alias is set, by walking
 // from its target. A set keeps its names as a list; a property is in the
 // set's values or its names, never both.
 

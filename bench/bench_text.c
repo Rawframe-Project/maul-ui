@@ -1,17 +1,16 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Text timings (record mui-0006) in Liberation Sans at 14 units: a
-// column of 2,000 labels of one to four words, laid out cold (which
-// shapes every block), at a new width (which only breaks lines), and
-// painted; and one paragraph of 4,000 words, measured cold, at ten
-// widths, and painted at one; and the labels' glyphs got from a glyph
-// atlas, first rendering and packing each, then all found; and a
-// keystroke in the middle of an editing block of 25 and of 100 KB, in
-// paragraphs of 60 words, typed, laid out and painted; and distance
-// fields of 52 letters at 32 pixels; and a 1 MB editing block sent to
-// the accessibility tree after each keystroke. Prints the best of five
-// runs in microseconds.
+// Text timings in Liberation Sans at 14 units: a column of 2,000 labels of
+// one to four words, laid out cold (which shapes every block), at a new
+// width (which only breaks lines), and painted; and one paragraph of 4,000
+// words, measured cold, at ten widths, and painted at one; and the labels'
+// glyphs got from a glyph atlas, first rendering and packing each, then
+// all found; and a keystroke in the middle of an editing block of 25 and
+// of 100 KB, in paragraphs of 60 words, typed, laid out and painted; and
+// distance fields of 52 letters at 32 pixels; and a 1 MB editing block
+// sent to the accessibility tree after each keystroke. Prints the best of
+// five runs in microseconds.
 
 #include "maul-ui/access.h"
 #include "maul-ui/access_tree.h"

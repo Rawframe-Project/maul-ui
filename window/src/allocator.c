@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The glue's memory (record mui-0007), the one file of its sources
-// that reaches the C library's.
+// The glue's memory, the one file of its sources that reaches the C
+// library's.
 
 #include "allocator.h"
 

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The text service (record mui-0006): one block of its own and its font
-// records, a FreeType library whose memory is the service's allocator,
-// and HarfBuzz's Unicode functions from Maul Unicode.
+// The text service: one block of its own and its font records, a FreeType
+// library whose memory is the service's allocator, and HarfBuzz's Unicode
+// functions from Maul Unicode.
 
 #ifndef MAUL_UI_SRC_TEXT_SERVICE_H
 #define MAUL_UI_SRC_TEXT_SERVICE_H
@@ -42,9 +42,9 @@ struct muiTextService
     uint64_t failures;
     // Calls refused as invalid input against the service or its atlases.
     uint64_t misuse;
-    // Set while one of the service's functions that use it runs: host
-    // code it calls then (the allocator, the clipboard writer) may not
-    // call back in (conventions section 10).
+    // Set while one of the service's functions that use it runs: host code
+    // it calls then (the allocator, the clipboard writer) may not call
+    // back in (Maul conventions, Threads).
     bool busy;
     // Scratch for laying out and painting: lines, bidi runs, glyphs and
     // bidi resolution's workspace.

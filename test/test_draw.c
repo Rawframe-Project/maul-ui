@@ -3,7 +3,7 @@
 //
 // The draw-command list: golden lists of scenes in a text form, bytes
 // equal across builds, snapping, colors, clips, opacity and limits
-// (record mui-0005). Run with MAUL_UI_UPDATE_GOLDEN=1 to rewrite
+//. Run with MAUL_UI_UPDATE_GOLDEN=1 to rewrite
 // test/draw_golden.inc from the current output.
 
 // The update path reads the environment and writes a file with the C
@@ -587,9 +587,9 @@ static void SetScale(muiContext* context, muiNodeId node, muiLocalScale scale)
                   MUI_PROPERTY_BIT(mui_propertyScaleOriginY));
 }
 
-// Local scales (record mui-0005): a scaled node and its subtree go through
-// a transform of its own, about its origin; a scroll container's offset
-// goes through the scale above it; a scale of 1 adds nothing.
+// Local scales: a scaled node and its subtree go through a transform of
+// its own, about its origin; a scroll container's offset goes through the
+// scale above it; a scale of 1 adds nothing.
 static void TestLocalScale(void)
 {
     muiContext* context = MakeContext();

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Hit testing laid-out text (record mui-0006): points to positions,
-// positions to carets, and ranges to rectangles, over a node's lines read
-// as boxes of grapheme clusters.
+// Hit testing laid-out text: points to positions, positions to carets, and
+// ranges to rectangles, over a node's lines read as boxes of grapheme
+// clusters.
 
 #include "text_boxes.h"
 #include "text_entry.h"

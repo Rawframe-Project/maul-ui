@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Colour glyphs (record mui-0006): a COLR version 1 glyph's paint graph
-// (colr_paint.c) where it has one, else its version 0 layers, each another
-// glyph's outline, rendered as FreeType's coverage over the layers' joint
-// box and composited in order, source over, in premultiplied linear
-// light; a layer's colour is its palette entry, sRGB with straight alpha,
-// or for entry 0xFFFF the text's colour. A glyph without COLR colour is
-// drawn from its colour bitmap where the font has one (bitmap_glyph.c),
-// its PNG decoded and scaled from its strike to the size in linear light.
-// The result is stored as an sRGB texture holds premultiplied colour: red,
+// Colour glyphs: a COLR version 1 glyph's paint graph (colr_paint.c) where
+// it has one, else its version 0 layers, each another glyph's outline,
+// rendered as FreeType's coverage over the layers' joint box and
+// composited in order, source over, in premultiplied linear light; a
+// layer's colour is its palette entry, sRGB with straight alpha, or for
+// entry 0xFFFF the text's colour. A glyph without COLR colour is drawn
+// from its colour bitmap where the font has one (bitmap_glyph.c), its PNG
+// decoded and scaled from its strike to the size in linear light. The
+// result is stored as an sRGB texture holds premultiplied colour: red,
 // green and blue encoded with sRGB's transfer function, alpha linear.
 
 #include "bitmap_glyph.h"

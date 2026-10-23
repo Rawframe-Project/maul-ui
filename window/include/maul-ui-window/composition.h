@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Compositions and carets of the Maul Window glue (record mui-0007), in
-// maul-ui-window where Maul UI has its text component: an input method's
-// preedit set into a text block, and the candidate window placed at a
-// position of a node's text. Maul Window's preedit styles and segment
-// limit are Maul UI's composition styles and limit. An editing block
-// takes a preedit through muiWindowCompose, and its field's purpose
-// picks the on-screen keyboard (muiWindowGlue_RequestKeyboard).
+// Compositions and carets of the Maul Window glue, in maul-ui-window where
+// Maul UI has its text component: an input method's preedit set into a
+// text block, and the candidate window placed at a position of a node's
+// text. Maul Window's preedit styles and segment limit are Maul UI's
+// composition styles and limit. An editing block takes a preedit through
+// muiWindowCompose, and its field's purpose picks the on-screen keyboard
+// (muiWindowGlue_RequestKeyboard).
 
 #ifndef MAUL_UI_WINDOW_COMPOSITION_H
 #define MAUL_UI_WINDOW_COMPOSITION_H

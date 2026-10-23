@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Host content's glyph runs and rectangles (record mui-0005). A run's
-// glyphs are copied into the list's glyph table as given; its baseline
-// snaps to a device pixel at the identity transform, and its x keeps
-// subpixel precision. A rectangle is a box of one fill, snapped as boxes
-// are.
+// Host content's glyph runs and rectangles. A run's glyphs are copied into
+// the list's glyph table as given; its baseline snaps to a device pixel at
+// the identity transform, and its x keeps subpixel precision. A rectangle
+// is a box of one fill, snapped as boxes are.
 
 #include "paint_host.h"
 

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Scrolling (record mui-0007): offsets within the extents layout
-// measured, and a flag the next draw list reads to move transforms.
+// Scrolling: offsets within the extents layout measured, and a flag the
+// next draw list reads to move transforms.
 
 #include "maul-ui/scroll.h"
 

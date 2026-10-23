@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Moving positions through laid-out text (record mui-0006): by grapheme
-// cluster in the text or on screen, by word, and by line.
+// Moving positions through laid-out text: by grapheme cluster in the text
+// or on screen, by word, and by line.
 
 #include "text_boxes.h"
 #include "text_entry.h"

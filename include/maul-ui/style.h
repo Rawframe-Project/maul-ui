@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Style: classes of typed property values, the node types and node
-// states that pick them, and a node's direct writes (record mui-0004).
-// A node's values resolve in fixed layers, each later one winning: the
-// defaults, every class's base values in order, the state variants (the
-// states in the order of muiState, weakest first, and the classes in
-// order within each), the conditions that hold (classes in order, then
-// each class's conditions in order), and the node's direct writes. A
-// node's classes are its type's, then its own.
+// Style: classes of typed property values, the node types and node states
+// that pick them, and a node's direct writes. A node's values resolve in
+// fixed layers, each later one winning: the defaults, every class's base
+// values in order, the state variants (the states in the order of
+// muiState, weakest first, and the classes in order within each), the
+// conditions that hold (classes in order, then each class's conditions in
+// order), and the node's direct writes. A node's classes are its type's,
+// then its own.
 
 #ifndef MAUL_UI_STYLE_H
 #define MAUL_UI_STYLE_H
@@ -24,7 +24,7 @@ extern "C"
 {
 #endif
 
-    // A style class, in the shape of every id (family record 0016).
+    // A style class, in the shape of every id.
     typedef struct muiStyleId
     {
         uint32_t index1;

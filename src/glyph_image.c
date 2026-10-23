@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Glyph images (record mui-0006): FreeType loads a glyph's outline at a
-// size, unhinted and without the font's embedded bitmaps; its smooth
-// rasterizer renders coverage straight into the caller's bytes, and
-// distance fields are drawn from the outline cut into segments.
+// Glyph images: FreeType loads a glyph's outline at a size, unhinted and
+// without the font's embedded bitmaps; its smooth rasterizer renders
+// coverage straight into the caller's bytes, and distance fields are drawn
+// from the outline cut into segments.
 
 #include "maul-ui/glyph_image.h"
 

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Font families (record mui-0006): faces matched as CSS Fonts 4 matches
-// them, by width, then style, then weight, variable faces by their axes'
-// ranges; text laid out in the face chosen; faces gone passed over; and
-// calls outside the contract refused. Faces are Ahem with the OS/2
-// weight, width and selection a test asks for written in.
+// Font families: faces matched as CSS Fonts 4 matches them, by width, then
+// style, then weight, variable faces by their axes' ranges; text laid out
+// in the face chosen; faces gone passed over; and calls outside the
+// contract refused. Faces are Ahem with the OS/2 weight, width and
+// selection a test asks for written in.
 
 #include "test_harness.h"
 

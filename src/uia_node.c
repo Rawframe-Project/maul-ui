@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The UI Automation adapter's provider objects (record mui-0008): one
-// object with three interfaces, muiUiaSimple,
-// muiUiaFragment and, for the root, its FragmentRoot.
+// The UI Automation adapter's provider objects: one object with three
+// interfaces, muiUiaSimple, muiUiaFragment and, for the root, its
+// FragmentRoot.
 
 #include "access_record.h"
 #include "uia.h"

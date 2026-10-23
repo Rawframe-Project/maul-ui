@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Routed input (record mui-0007). The route is the target and its
-// ancestors, written down before the first call; the host's function
-// hears it from the top down, then from the target up, until it handles
-// it. Unhandled keys and navigation then do what the library does by
-// default: move the focus.
+// Routed input. The route is the target and its ancestors, written down
+// before the first call; the host's function hears it from the top down,
+// then from the target up, until it handles it. Unhandled keys and
+// navigation then do what the library does by default: move the focus.
 
 #include "maul-ui/event.h"
 
@@ -137,12 +136,12 @@ static bool MoveFocus(muiContext* context, muiNodeId rootId, uint8_t player, boo
     return result == mui_success;
 }
 
-// The direction an arrow key names, or 4 for another key.
-// A direction's default: inside a scroll container along its axis,
-// Android's ScrollView rule, a focus move to a candidate within half a
-// scrollport of the visible part (or one a link leads out to), else a
-// line's step while the container can move; otherwise, or at its end, a
-// focus move as muiFocus_MoveToward makes (record mui-0007).
+// The direction an arrow key names, or 4 for another key. A direction's
+// default: inside a scroll container along its axis, Android's ScrollView
+// rule, a focus move to a candidate within half a scrollport of the
+// visible part (or one a link leads out to), else a line's step while the
+// container can move; otherwise, or at its end, a focus move as
+// muiFocus_MoveToward makes.
 static bool Toward(muiContext* context, muiNodeId rootId, uint32_t root, uint8_t player,
                    muiDirection direction, uint64_t timeNs)
 {

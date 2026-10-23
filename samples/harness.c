@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The samples' harness (record mui-0005). On the web a browser answers
-// only between the page's tasks, so the harness sleeps there while it
-// waits (JSPI), as Maul RHI's samples do.
+// The samples' harness. On the web a browser answers only between the
+// page's tasks, so the harness sleeps there while it waits (JSPI), as Maul
+// RHI's samples do.
 
 #include "harness.h"
 

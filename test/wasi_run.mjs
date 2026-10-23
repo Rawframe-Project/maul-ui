@@ -2,9 +2,9 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Runs a test built for wasm32-wasi under Node's WASI
-// (cmake/wasm32-wasi.cmake), as Maul Window's does (mui-0009). The ARIA
-// test needs a page and runs in a browser instead (web_runner.cjs); here
-// the page's imports fail, since nothing reaches them without one.
+// (cmake/wasm32-wasi.cmake), as Maul Window's does. The ARIA test needs a
+// page and runs in a browser instead (web_runner.cjs); here the page's
+// imports fail, since nothing reaches them without one.
 //
 // usage: node wasi_run.mjs <test.wasm> [arguments]
 

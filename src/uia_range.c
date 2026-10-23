@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The UI Automation adapter's text ranges (record mui-0008, research
-// 143): two byte offsets into a node's value text, normalized and moved
-// by unit through the boundaries every adapter shares, read as UTF-16,
-// and selected through the host. The text may change while a client
-// holds a range: each use keeps the offsets within it.
+// The UI Automation adapter's text ranges: two byte offsets into a node's
+// value text, normalized and moved by unit through the boundaries every
+// adapter shares, read as UTF-16, and selected through the host. The text
+// may change while a client holds a range: each use keeps the offsets
+// within it.
 
 #include "access_text.h"
 #include "uia.h"

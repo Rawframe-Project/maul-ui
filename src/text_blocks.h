@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// What the text editor needs of text blocks (record mui-0006): a block
-// by its id, and replacing part of its text as muiTextBlock_Replace does.
+// What the text editor needs of text blocks: a block by its id, and
+// replacing part of its text as muiTextBlock_Replace does.
 
 #ifndef MAUL_UI_SRC_TEXT_BLOCKS_H
 #define MAUL_UI_SRC_TEXT_BLOCKS_H

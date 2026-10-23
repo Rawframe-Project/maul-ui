@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Scrolling (record mui-0007): what input, focus and layout ask of it.
+// Scrolling: what input, focus and layout ask of it.
 
 #ifndef MAUL_UI_SRC_SCROLL_H
 #define MAUL_UI_SRC_SCROLL_H

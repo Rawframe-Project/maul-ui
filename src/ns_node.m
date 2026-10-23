@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The NSAccessibility adapter's node objects (record mui-0008): the
-// protocol answered from the tree at each call. A node's name is its
-// title, or its value for static text; a check box's value is its state,
-// a range's its number; the actions are asked of the host. Which methods
-// apply is answered per node, as AccessKit does, so that clients offer
-// only what a node has.
+// The NSAccessibility adapter's node objects: the protocol answered from
+// the tree at each call. A node's name is its title, or its value for
+// static text; a check box's value is its state, a range's its number; the
+// actions are asked of the host. Which methods apply is answered per node,
+// as AccessKit does, so that clients offer only what a node has.
 
 #include "access_record.h"
 #include "access_text.h"

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Themes: sets of token values that override the context's tokens for
-// the subtree a theme is set on (record mui-0004). A node reads a token
-// from the nearest theme above it, itself included, that overrides it,
-// then the next one out, then the context; an alias read in a subtree
-// is read there too. Editing a theme restyles every node; setting one on
-// a node restyles the nodes whose themes it changes.
+// Themes: sets of token values that override the context's tokens for the
+// subtree a theme is set on. A node reads a token from the nearest theme
+// above it, itself included, that overrides it, then the next one out,
+// then the context; an alias read in a subtree is read there too. Editing
+// a theme restyles every node; setting one on a node restyles the nodes
+// whose themes it changes.
 
 #ifndef MAUL_UI_THEME_H
 #define MAUL_UI_THEME_H
@@ -28,7 +28,7 @@ extern "C"
         MUI_MAX_THEME_DEPTH = 8
     };
 
-    // A theme, in the shape of every id (family record 0016).
+    // A theme, in the shape of every id.
     typedef struct muiThemeId
     {
         uint32_t index1;

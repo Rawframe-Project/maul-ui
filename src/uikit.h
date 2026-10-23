@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The UIAccessibility adapter's internals (record mui-0008), for its
-// Objective-C files: the adapter, the element and container objects,
-// and what they share.
+// The UIAccessibility adapter's internals, for its Objective-C files: the
+// adapter, the element and container objects, and what they share.
 
 #ifndef MAUL_UI_SRC_UIKIT_H
 #define MAUL_UI_SRC_UIKIT_H
@@ -78,7 +77,7 @@ struct muiUikitAdapter
     uint64_t toldFocus;
     // Set while one of its functions that change it runs, or host code it
     // calls (the allocator, an action function) runs: a call back in is
-    // refused (conventions section 10), and counted.
+    // refused (Maul conventions, Threads), and counted.
     bool busy;
     uint64_t misuse;
 };

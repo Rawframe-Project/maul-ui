@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Work counts (record mui-0001): a static frame styles, sizes, measures
-// and paints nothing; a label's changed content measures it and sizes
-// what it moves without styling; a class's changed colour restyles (every
-// node, as a class edit does, record mui-0004) and paints without layout.
+// Work counts: a static frame styles, sizes, measures and paints nothing;
+// a label's changed content measures it and sizes what it moves without
+// styling; a class's changed colour restyles (every node, as a class edit
+// does) and paints without layout.
 
 #include "test_harness.h"
 

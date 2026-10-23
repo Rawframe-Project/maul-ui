@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The AT-SPI adapter's application and windows (record mui-0008):
-// joining the accessibility bus, registering the root with the
-// registry, pumping the connection without waiting, and the windows'
-// adapters.
+// The AT-SPI adapter's application and windows: joining the accessibility
+// bus, registering the root with the registry, pumping the connection
+// without waiting, and the windows' adapters.
 
 #include "allocator.h"
 #include "atspi.h"

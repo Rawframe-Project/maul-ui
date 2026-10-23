@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Exit transitions (record mui-0007): the exiting state, the subtree out
-// of hit testing, focus and navigation, the finished record once no
-// transition runs, cancelling, and the table's contract.
+// Exit transitions: the exiting state, the subtree out of hit testing,
+// focus and navigation, the finished record once no transition runs,
+// cancelling, and the table's contract.
 
 #include "test_harness.h"
 

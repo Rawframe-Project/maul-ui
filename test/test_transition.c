@@ -3,7 +3,7 @@
 //
 // Transitions: their specs and checks, timed and spring motion against
 // host time, reversal, layers, reduced motion, direct writes, limits
-// (record mui-0004).
+//.
 
 #include "test_harness.h"
 

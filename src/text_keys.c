@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Keys, typed text and the pointer for an editing block (record
-// mui-0006): a key's action by the keymap, PC's after Windows and the
-// desktop toolkits of Linux, Mac's after AppKit's standard bindings.
-// Shortcuts want exactly their modifier, so AltGr's Control and Alt,
-// which types on many layouts, takes none. Letters are read from what
-// the key means under the layout, as browsers read shortcuts.
+// Keys, typed text and the pointer for an editing block: a key's action by
+// the keymap, PC's after Windows and the desktop toolkits of Linux, Mac's
+// after AppKit's standard bindings. Shortcuts want exactly their modifier,
+// so AltGr's Control and Alt, which types on many layouts, takes none.
+// Letters are read from what the key means under the layout, as browsers
+// read shortcuts.
 
 #include "text_block.h"
 #include "text_editing.h"

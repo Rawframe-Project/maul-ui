@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Shaping a text block (record mui-0006). Buffers carry no language, so
-// the result does not depend on the process's locale.
+// Shaping a text block. Buffers carry no language, so the result does not
+// depend on the process's locale.
 
 #include "text_shape.h"
 

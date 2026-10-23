@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The AT-SPI adapter's Text interface (record mui-0008, I123): a node's
-// value text by character, word, line and paragraph, its caret and its
-// selection. AT-SPI counts characters (code points); the tree's marks
-// count bytes. Sentences are not given: an empty answer, which Orca
-// reads as no sentence support.
+// The AT-SPI adapter's Text interface: a node's value text by character,
+// word, line and paragraph, its caret and its selection. AT-SPI counts
+// characters (code points); the tree's marks count bytes. Sentences are
+// not given: an empty answer, which Orca reads as no sentence support.
 
 #include "access_text.h"
 #include "allocator.h"

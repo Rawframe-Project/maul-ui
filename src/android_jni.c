@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The Android accessibility adapter's native methods (record mui-0008),
-// which maul.ui.AccessProvider calls with the adapter as a handle, bound
-// with RegisterNatives so that no JNI name is exported. Texts go to Java
-// as UTF-16: the JNI's own UTF-8 is a modified one, which a character
-// past the Basic Multilingual Plane breaks.
+// The Android accessibility adapter's native methods, which
+// maul.ui.AccessProvider calls with the adapter as a handle, bound with
+// RegisterNatives so that no JNI name is exported. Texts go to Java as
+// UTF-16: the JNI's own UTF-8 is a modified one, which a character past
+// the Basic Multilingual Plane breaks.
 
 #include "access_record.h"
 #include "access_text.h"

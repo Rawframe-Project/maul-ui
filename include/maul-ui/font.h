@@ -1,10 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Fonts of a text service (record mui-0006): TrueType and OpenType fonts
-// and collections, from memory. Font files are hostile input: a font is
-// validated when it is created, and compressed web fonts (WOFF, WOFF2)
-// are refused.
+// Fonts of a text service: TrueType and OpenType fonts and collections,
+// from memory. Font files are hostile input: a font is validated when it
+// is created, and compressed web fonts (WOFF, WOFF2) are refused.
 
 #ifndef MAUL_UI_FONT_H
 #define MAUL_UI_FONT_H
@@ -19,7 +18,7 @@ extern "C"
 {
 #endif
 
-    // A font, in the shape of every id (family record 0016).
+    // A font, in the shape of every id.
     typedef struct muiFontId
     {
         uint32_t index1;

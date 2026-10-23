@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Gamepads as navigation (record mui-0007): a mapped gamepad's d-pad and
-// left stick give the four directions, its faces activate and cancel,
-// its shoulders previous and next. A direction held repeats after a
-// delay and then at an interval, timed by the records' clock; the
-// stick holds a direction past a threshold and lets it go below seven
-// tenths of it, so it does not flicker at the edge.
+// Gamepads as navigation: a mapped gamepad's d-pad and left stick give the
+// four directions, its faces activate and cancel, its shoulders previous
+// and next. A direction held repeats after a delay and then at an
+// interval, timed by the records' clock; the stick holds a direction past
+// a threshold and lets it go below seven tenths of it, so it does not
+// flicker at the edge.
 
 #ifndef MAUL_UI_WINDOW_GAMEPADS_H
 #define MAUL_UI_WINDOW_GAMEPADS_H

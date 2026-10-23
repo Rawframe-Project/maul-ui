@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Maul UI's FreeType options (record mui-0006): FreeType's defaults, less
-// what the text component refuses or does not need. Without zlib, LZW,
-// bzip2 or Brotli, compressed fonts (WOFF, WOFF2, gzip) are refused, and
-// without environment properties, nothing outside the build changes how
-// glyphs render.
+// Maul UI's FreeType options: FreeType's defaults, less what the text
+// component refuses or does not need. Without zlib, LZW, bzip2 or Brotli,
+// compressed fonts (WOFF, WOFF2, gzip) are refused, and without
+// environment properties, nothing outside the build changes how glyphs
+// render.
 #ifndef MAUL_UI_FTOPTION_H
 #define MAUL_UI_FTOPTION_H
 

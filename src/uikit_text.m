@@ -1,15 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The UIAccessibility adapter's text element (record mui-0008, research
-// 144): a node being edited adopts UITextInput, through which VoiceOver
-// reads its text and moves by character, word and line, in UTF-16 as
-// UIKit counts, on the boundaries every adapter shares (the tokenizer is
-// the adapter's own); the selection and the text are set through the
-// host. The keyboard edits the host's view, the first responder: marked
-// text is not the element's. Where characters are comes from the tree's
-// clusters, in the host's view; text without them answers the node's
-// rectangle and its start.
+// The UIAccessibility adapter's text element: a node being edited adopts
+// UITextInput, through which VoiceOver reads its text and moves by
+// character, word and line, in UTF-16 as UIKit counts, on the boundaries
+// every adapter shares (the tokenizer is the adapter's own); the selection
+// and the text are set through the host. The keyboard edits the host's
+// view, the first responder: marked text is not the element's. Where
+// characters are comes from the tree's clusters, in the host's view; text
+// without them answers the node's rectangle and its start.
 
 #include "access_record.h"
 #include "access_text.h"

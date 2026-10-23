@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Accessibility through the Maul Window glue (record mui-0008), in
-// maul-ui-window where Maul UI builds its accessibility tree's consumer:
-// one access a glue makes the adapter built for its window's platform
-// over the window's native handles, feeds it the root's updates and
-// hands its root to the window (mwinRequestAccessibilityRoot) as it
-// changes. A window of a platform with no adapter built, or of Maul
-// Window's test backend, keeps the tree alone, so a program can check
-// what its clients would be told without them.
+// Accessibility through the Maul Window glue, in maul-ui-window where Maul
+// UI builds its accessibility tree's consumer: one access a glue makes the
+// adapter built for its window's platform over the window's native
+// handles, feeds it the root's updates and hands its root to the window
+// (mwinRequestAccessibilityRoot) as it changes. A window of a platform
+// with no adapter built, or of Maul Window's test backend, keeps the tree
+// alone, so a program can check what its clients would be told without
+// them.
 
 #ifndef MAUL_UI_WINDOW_ACCESS_H
 #define MAUL_UI_WINDOW_ACCESS_H

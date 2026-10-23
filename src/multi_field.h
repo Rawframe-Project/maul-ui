@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Multi-channel distance fields of outlines made of line segments
-// (record mui-0006): four channels, red, green and blue whose median is
+//: four channels, red, green and blue whose median is
 // the distance with corners kept sharp, and alpha the one-channel field
 // (distance_field.h). The union's edge, as the one-channel field finds
 // it, is cut into edges at corners and where its chains end; edges are

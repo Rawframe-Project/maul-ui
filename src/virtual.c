@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Virtualization (record mui-0007): the table of virtual lists, their
-// items' extents in Fenwick trees, the windows reported after layout,
-// and bound items measured and placed.
+// Virtualization: the table of virtual lists, their items' extents in
+// Fenwick trees, the windows reported after layout, and bound items
+// measured and placed.
 
 #include "maul-ui/virtual.h"
 

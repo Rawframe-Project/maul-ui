@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The clipboard of the Maul Window glue for text editing (record
-// mui-0007). A paste's text is copied out of the window's context into
-// memory of the glue's allocator for as long as the paste takes.
+// The clipboard of the Maul Window glue for text editing. A paste's text
+// is copied out of the window's context into memory of the glue's
+// allocator for as long as the paste takes.
 
 #include "maul-ui-window/clipboard.h"
 

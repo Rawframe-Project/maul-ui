@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Pointer input (record mui-0007): the host's pointer events become hover
-// and press states for styling, pointer capture, and records of presses,
-// releases, clicks and cancels the host takes after each call.
+// Pointer input: the host's pointer events become hover and press states
+// for styling, pointer capture, and records of presses, releases, clicks
+// and cancels the host takes after each call.
 
 #ifndef MAUL_UI_POINTER_H
 #define MAUL_UI_POINTER_H

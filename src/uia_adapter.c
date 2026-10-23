@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The UI Automation adapter (record mui-0008): making it, applying
-// updates, handing out the root, and letting go of provider objects
-// whose nodes leave.
+// The UI Automation adapter: making it, applying updates, handing out the
+// root, and letting go of provider objects whose nodes leave.
 
 #include "allocator.h"
 #include "host_call.h"

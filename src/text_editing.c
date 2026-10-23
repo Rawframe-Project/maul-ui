@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Editing a text block (record mui-0006): its rules, its selection, and
-// the edits typing, pasting, deleting, undoing and redoing make, each
-// recorded before the text changes and dropped again if it cannot.
+// Editing a text block: its rules, its selection, and the edits typing,
+// pasting, deleting, undoing and redoing make, each recorded before the
+// text changes and dropped again if it cannot.
 
 #include "text_editing.h"
 

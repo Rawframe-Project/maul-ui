@@ -2,11 +2,11 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Host code calling back into the text service and the glyph atlas it
-// serves (conventions section 10): from the allocator, FreeType's memory
-// through it and the clipboard writer, every function that uses the
-// service answers mui_errorState, or an empty answer where it returns no
-// status, and counts one misuse; from the allocator while an atlas packs
-// a glyph, every function that changes the atlas does.
+// serves (Maul conventions, Threads): from the allocator, FreeType's memory
+// through it and the clipboard writer, every function that uses the service
+// answers mui_errorState, or an empty answer where it returns no status,
+// and counts one misuse; from the allocator while an atlas packs a glyph,
+// every function that changes the atlas does.
 
 #include "test_harness.h"
 

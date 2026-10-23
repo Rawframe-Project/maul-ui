@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Scrolling (record mui-0007): a scroll container's offset (layout.h's
-// scrollAxes) and the extent its children reach. Offsets are logical: x
-// runs from the inline start, so under right to left it grows leftward.
-// Painting moves the children by the offset through a transform, and
-// hit testing and navigation follow them.
+// Scrolling: a scroll container's offset (layout.h's scrollAxes) and the
+// extent its children reach. Offsets are logical: x runs from the inline
+// start, so under right to left it grows leftward. Painting moves the
+// children by the offset through a transform, and hit testing and
+// navigation follow them.
 
 #ifndef MAUL_UI_SCROLL_H
 #define MAUL_UI_SCROLL_H

@@ -127,7 +127,7 @@ typedef struct Scene
 
 // Whether the context and the service are left busy by no call that
 // returned: a call each refuses for its argument, which changes nothing,
-// is not refused as busy (conventions section 10).
+// is not refused as busy (Maul conventions, Threads).
 static bool IsIdle(const Scene* scene)
 {
     const muiTextSelection none = {0, {0, false}};

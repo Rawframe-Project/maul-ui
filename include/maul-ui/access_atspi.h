@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The AT-SPI adapter (record mui-0008), the component MAUL_UI_ATSPI
-// builds on Linux: the accessibility tree's consumer shown to AT-SPI,
-// the accessibility service of Linux desktops. An application joins the
-// accessibility bus and registers its root, whose children are its
-// windows; each window is an adapter owning a consumer tree, applying
-// the core's updates. Clients' actions come back through a function of
-// the host's.
+// The AT-SPI adapter, the component MAUL_UI_ATSPI builds on Linux: the
+// accessibility tree's consumer shown to AT-SPI, the accessibility service
+// of Linux desktops. An application joins the accessibility bus and
+// registers its root, whose children are its windows; each window is an
+// adapter owning a consumer tree, applying the core's updates. Clients'
+// actions come back through a function of the host's.
 //
 // Nothing here starts a thread or waits on the bus after the
 // application is made: the host polls the application's descriptor for

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The reference renderer's WGSL (record mui-0005): the entries of
+// The reference renderer's WGSL: the entries of
 // quad.vert and quad.frag, line for line.
 
 struct Root {

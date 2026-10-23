@@ -2,7 +2,7 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Text built in a fixed buffer, numbers written by the library itself
-// (record mui-0001): libc's printf would be 8 KB of the core's wasm for
+//: libc's printf would be 8 KB of the core's wasm for
 // a handful of calls. A float is written as "%g" writes it, its digits
 // rounded to nearest, ties to even, on the exact binary value: scaled by
 // an exact power of ten, the scaling's own error found exactly by
