@@ -1,294 +1,266 @@
-# Continuous integration for Maul UI.
+# Continuous integration: the pull request check, and the full check on
+# main and every night, which fuzzes longer and runs the iOS tests in the
+# simulator. Each desktop build cell is a CMake preset built by the
+# organization's shared workflow; the cells that need a simulator, an
+# emulator or a browser, and the other jobs, are here, each through its
+# preset too. docs/operations/checks.md explains each job, and
+# tools/check.sh runs the Linux ones locally.
 name: ci
 
 on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "41 2 * * *"
   workflow_dispatch:
+
+# A new push to a pull request cancels its running CI; runs on main get a
+# group of their own, so they are never cancelled.
+concurrency:
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
 
 env:
   PREFIX: MAUL_UI
-  # A mirror that stalls mid-download is given up on and tried again,
-  # rather than waited on until the step's limit.
-  APT_OPTIONS: -o Acquire::Retries=3 -o Acquire::http::Timeout=30
 
 jobs:
-  # The rules no compiler checks: formatting, static analysis and the
-  # family's source, module, documentation and length checks.
+  # Whether anything beyond documentation changed; the builds skip when not.
+  changes:
+    uses: Rawframe-Project/.github/.github/workflows/changes.yml@6880b317526459b0a1032bebd8a7bdec4148af23 # v0.0.7
+    permissions:
+      pull-requests: read
+
+  # The organization's documentation check; test/fonts holds third-party
+  # fonts and their licenses, kept as published.
+  docs:
+    uses: Rawframe-Project/.github/.github/workflows/docs-check.yml@6880b317526459b0a1032bebd8a7bdec4148af23 # v0.0.7
+    permissions:
+      contents: read
+    with:
+      exclude: test/fonts
+
+  zizmor:
+    uses: Rawframe-Project/.github/.github/workflows/zizmor.yml@6880b317526459b0a1032bebd8a7bdec4148af23 # v0.0.7
+    permissions:
+      contents: read
+
+  # The rules no compiler checks: formatting, the family's source, module,
+  # length, API documentation and snippet checks, the text component's
+  # header list, the litmus check on the API, the layout fixtures' tables,
+  # the documentation site, and clang-tidy over the core's, the renderer's
+  # and the glue's sources. It runs on documentation changes too, since the
+  # snippet check and the site read docs/.
   checks:
-    name: checks
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container: ghcr.io/rawframe-project/ci-cpp:2026.10.4@sha256:9715ff153db04ba0ed4f520b6d2528ff7860f803de61ab011ba60a4eed572836
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
-      - name: Install tools
-        # A package mirror that hangs fails the step, to be run again,
-        # rather than holding a runner for the job's six hours.
-        timeout-minutes: 10
-        run: |
-          sudo apt-get $APT_OPTIONS update -q
-          sudo apt-get $APT_OPTIONS install -y -q --no-install-recommends clang-20 clang-tidy-20
-          sudo apt-get $APT_OPTIONS install -y -q ninja-build
-          pip install clang-format==22.1.5 >/dev/null
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: clang-format
+        # The renderer's shader containers and the layout fixtures' tables
+        # are generated.
         run: |
           clang-format --version
-          # The renderer's cooked shader containers are generated.
-          clang-format --dry-run -Werror $(find include src test tools bench samples rhi window \
-            -name '*.[ch]' -not -name '*_container.h' 2>/dev/null)
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git ls-files 'include/*.h' 'src/*.[chm]' 'test/*.[chm]' 'tools/*.[ch]' 'bench/*.[ch]' \
+            'samples/*.[ch]' 'rhi/*.[ch]' 'window/*.[ch]' | grep -v -E '_container\.h$|^test/generated/' |
+            xargs --no-run-if-empty clang-format --dry-run -Werror
       - name: Family checks
         run: |
           python3 tools/check_source.py
           python3 tools/check_modules.py
-          python3 tools/check_text_headers.py
           python3 tools/check_docs.py
           python3 tools/check_lengths.py
           python3 tools/check_guide.py
-          python3 tools/gen_layout_fixtures.py --check
-      - name: No engine concept in the API
-        # The litmus test of record mui-0001: any engine or application
-        # can drive Maul UI over its own tree.
-        run: python3 tools/check_litmus.py
+          python3 tools/check_text_headers.py
+          python3 tools/check_litmus.py
+      - name: Layout fixture tables match the corpus
+        run: python3 tools/gen_layout_fixtures.py --check
+      - name: The documentation site builds
+        run: python3 tools/build_docs.py
       - name: clang-tidy
+        # The Linux build's sources with the renderer and the glue; the other
+        # platforms' code is compiled with warnings as errors by its own cell.
         run: |
-          cmake -B build -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-          # The sources of the Linux build; Windows code is checked by its cell.
-          for f in $(python3 -c "import json; print('\n'.join(sorted({e['file'] for e in json.load(open('build/compile_commands.json')) if '/src/' in e['file'] and '_deps' not in e['file']})))"); do
-            clang-tidy-20 -p build --quiet --warnings-as-errors='*' "$f" || exit 1
-          done
+          cmake --preset linux-parts -B out/tidy -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -D${PREFIX}_BUILD_TESTS=OFF -D${PREFIX}_BUILD_SAMPLES=OFF -D${PREFIX}_SANITIZE=OFF
+          cmake --build out/tidy
+          python3 tools/tidy_files.py out/tidy/compile_commands.json >out/tidy-files.txt
+          xargs -a out/tidy-files.txt -n 1 clang-tidy-20 -p out/tidy --quiet --warnings-as-errors='*'
 
-  # Every cell builds with warnings as errors and runs the whole suite,
-  # the header tests included.
-  build-test:
-    name: ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
+  # Every cell builds with warnings as errors and runs its whole suite, the
+  # header tests included. The gcc-14 and shared cells also install the
+  # library and build samples/minimal against it (the "package" test); the
+  # parts cells build the reference renderer and the Maul Window glue, and
+  # draw on lavapipe under the Vulkan validation layer.
+  build:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { name: linux-gcc-14,        os: ubuntu-24.04, cc: gcc-14,   cxx: g++-14,     config: Release, extra: "" }
-          - { name: linux-clang-20,      os: ubuntu-24.04, cc: clang-20, cxx: clang++-20, config: Release, extra: "" }
-          - { name: linux-clang-20-asan, os: ubuntu-24.04, cc: clang-20, cxx: clang++-20, config: Debug,   extra: "-DMAUL_UI_SANITIZE=ON" }
-          - { name: linux-clang-20-tsan, os: ubuntu-24.04, cc: clang-20, cxx: clang++-20, config: Debug,   extra: "-DMAUL_UI_TSAN=ON" }
-          - { name: linux-shared,        os: ubuntu-24.04, cc: clang-20, cxx: clang++-20, config: Release, extra: "-DMAUL_UI_BUILD_SHARED=ON" }
-          # The core alone, without the text component (record mui-0006).
-          - { name: linux-core,          os: ubuntu-24.04, cc: gcc-14,   cxx: g++-14,     config: Release, extra: "-DMAUL_UI_TEXT=OFF" }
-          - { name: linux-arm64-gcc-14,  os: ubuntu-24.04-arm, cc: gcc-14, cxx: g++-14,   config: Release, extra: "" }
-          # With the Maul Window glue, its NSAccessibility branch built.
-          - { name: macos-clang,         os: macos-15,     cc: clang,    cxx: clang++,    config: Release, extra: "-DMAUL_UI_WINDOW=ON" }
-    steps:
-      - uses: actions/checkout@v7
-      - name: Install compilers
-        timeout-minutes: 10
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get $APT_OPTIONS update -q
-          # clang without its recommends, which pull llvm-20-dev, the
-          # download that stalled; the sanitizers' runtime by name.
-          sudo apt-get $APT_OPTIONS install -y -q --no-install-recommends clang-20 libclang-rt-20-dev
-          sudo apt-get $APT_OPTIONS install -y -q gcc-14 g++-14 ninja-build
-      - name: Configure
-        run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.config }} -D${PREFIX}_WERROR=ON \
-            -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} ${{ matrix.extra }}
-      - name: Build
-        run: cmake --build build -j 4
-      - name: Test
-        run: ctest --test-dir build --output-on-failure --timeout 240
-      # The installed package, shared and static, used as a program uses
-      # it: samples/minimal built by CMake and by pkg-config, and run.
-      - name: Package
-        if: matrix.name == 'linux-shared' || matrix.name == 'linux-gcc-14'
-        run: |
-          cmake --install build --prefix "$PWD/package"
-          cmake -S samples/minimal -B build-minimal -DCMAKE_C_COMPILER=${{ matrix.cc }} \
-            -DCMAKE_PREFIX_PATH="$PWD/package"
-          cmake --build build-minimal
-          LD_LIBRARY_PATH="$PWD/package/lib" ./build-minimal/minimal
-          static=$([ "${{ matrix.name }}" = linux-gcc-14 ] && echo --static || true)
-          export PKG_CONFIG_PATH="$PWD/package/lib/pkgconfig"
-          ${{ matrix.cc }} -std=c17 samples/minimal/main.c -o minimal-pc \
-            $(pkg-config $static --cflags --libs maul-ui)
-          LD_LIBRARY_PATH="$PWD/package/lib" ./minimal-pc
+          - { preset: linux-gcc-14 }
+          - { preset: linux-gcc-14, runner: ubuntu-24.04-arm }
+          - { preset: linux-clang-20 }
+          - { preset: linux-clang-20-asan, repeat: 3 }
+          - { preset: linux-clang-20-tsan }
+          - { preset: linux-shared }
+          - { preset: linux-core }
+          - { preset: linux-parts }
+          - { preset: linux-parts-core }
+          - { preset: macos-clang, runner: macos-15 }
+          - { preset: windows-clang-cl, runner: windows-2025 }
+    uses: Rawframe-Project/.github/.github/workflows/cpp.yml@6880b317526459b0a1032bebd8a7bdec4148af23 # v0.0.7
+    permissions:
+      contents: read
+    with:
+      preset: ${{ matrix.preset }}
+      runner: ${{ matrix.runner || 'ubuntu-24.04' }}
+      repeat: ${{ matrix.repeat || 1 }}
 
-  # Each fuzz target runs for one minute on every push, over the bytes
-  # the text component reads from fonts, from tools/fuzz_seed.py's seeds.
-  fuzz:
-    name: fuzz
-    runs-on: ubuntu-24.04
+  # The public headers alone under MSVC's cl, as C17 and C++17 with /W4 /WX:
+  # consumers may compile them with it, though it cannot build the library.
+  msvc-headers:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: windows-2025
+    timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
-      - name: Install compilers
-        timeout-minutes: 10
-        run: |
-          sudo apt-get $APT_OPTIONS update -q
-          # libFuzzer's runtime, which clang only recommends.
-          sudo apt-get $APT_OPTIONS install -y -q --no-install-recommends clang-20 libclang-rt-20-dev
-          sudo apt-get $APT_OPTIONS install -y -q ninja-build
-      - name: Build
-        run: |
-          cmake -B build -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 \
-            -D${PREFIX}_FUZZ=ON -D${PREFIX}_BUILD_TESTS=OFF -D${PREFIX}_BUILD_BENCH=OFF \
-            -D${PREFIX}_WERROR=ON
-          cmake --build build
-      - name: Run
-        run: |
-          python3 tools/fuzz_seed.py
-          for target in build/fuzz_*; do
-            "$target" -max_total_time=60 -rss_limit_mb=4096 "corpus-$(basename $target)"
-          done
-
-  windows-clang-cl:
-    name: windows-clang-cl
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: bash
-    steps:
-      - uses: actions/checkout@v7
-      # With the Maul Window glue, its UI Automation branch built.
-      - name: Configure
-        run: cmake -B build -T ClangCL -D${PREFIX}_WERROR=ON -D${PREFIX}_WINDOW=ON
-      - name: Build
-        run: cmake --build build --config Release -j 4
-      - name: Test
-        run: ctest --test-dir build -C Release --output-on-failure --timeout 240
-      # The public headers alone under MSVC's cl, as C17 and C++17 with
-      # /W4 /WX, which cannot build the library itself (family record 0008).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Headers under MSVC
         run: |
-          cmake -S cmake/HeaderCheck -B build-headers
-          cmake --build build-headers --config Release
+          cmake -S cmake/HeaderCheck -B out/headers
+          cmake --build out/headers --config Release
 
-  rhi:
-    # The reference renderer (record mui-0005) with Maul RHI
-    # fetched: clang-tidy over its sources, its test on Maul RHI's test
-    # driver, and its pixels and the samples on lavapipe, which must be
-    # found, under the Vulkan validation layer, whose errors fail the
-    # step. The samples need the Maul Window glue, fetched with its
-    # platform backends off.
-    name: linux-rhi
+  # Each fuzz target runs over the bytes the library reads from fonts,
+  # images and the AT-SPI bus, from tools/fuzz_seed.py's seeds: briefly on a
+  # pull request, longer on main and at night.
+  fuzz:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container: ghcr.io/rawframe-project/ci-cpp:2026.10.4@sha256:9715ff153db04ba0ed4f520b6d2528ff7860f803de61ab011ba60a4eed572836
+    permissions:
+      contents: read
+    env:
+      FUZZ_SECONDS: ${{ github.event_name == 'pull_request' && 20 || 120 }}
     steps:
-      - uses: actions/checkout@v7
-      - name: Install the compiler, lavapipe and the validation layer
-        timeout-minutes: 10
-        run: |
-          sudo apt-get $APT_OPTIONS update -q
-          sudo apt-get $APT_OPTIONS install -y -q --no-install-recommends clang-20 clang-tidy-20 \
-            libclang-rt-20-dev
-          sudo apt-get $APT_OPTIONS install -y -q ninja-build mesa-vulkan-drivers vulkan-validationlayers
-      - name: Configure
-        run: >
-          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -D${PREFIX}_WERROR=ON
-          -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 -D${PREFIX}_RHI=ON
-          -D${PREFIX}_WINDOW=ON -DMAUL_WINDOW_WAYLAND=OFF -DMAUL_WINDOW_X11=OFF
-          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Build
-        run: cmake --build build -j 4
-      - name: clang-tidy
         run: |
-          for f in rhi/src/*.c; do
-            clang-tidy-20 -p build --quiet --warnings-as-errors='*' "$f" || exit 1
-          done
-      - name: Test
-        env:
-          MUI_RHI_REQUIRED: 1
-          VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
+          cmake -B out/fuzz -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 \
+            -D${PREFIX}_FUZZ=ON -D${PREFIX}_BUILD_TESTS=OFF -D${PREFIX}_BUILD_BENCH=OFF -D${PREFIX}_WERROR=ON
+          cmake --build out/fuzz
+      - name: Run
+        # Four targets at a time, one per core of the runner; each keeps its
+        # full time. A target's output goes to its log, printed when it
+        # finds something.
         run: |
-          ctest --test-dir build -R "rhi|sample" --output-on-failure --timeout 240 | tee rhi.log
-          ! grep -qiE "validation error|VUID" rhi.log
-          build/test_rhi_pixels 2>&1 | tee pixels.log
-          ! grep -qiE "validation error|VUID" pixels.log
-      - name: The renderer and the samples under the sanitizers
-        # AddressSanitizer and UBSan, aborting on any report, over the
-        # renderer's tests and the samples headless on lavapipe.
-        env:
-          MUI_RHI_REQUIRED: 1
+          python3 tools/fuzz_seed.py out/corpus
+          mkdir -p out/fuzz-logs
+          fuzz_one() {
+            name=$(basename "$1")
+            mkdir -p "out/corpus/corpus-$name"
+            if "$1" -max_total_time="$FUZZ_SECONDS" -rss_limit_mb=4096 "out/corpus/corpus-$name" \
+              >"out/fuzz-logs/$name.log" 2>&1; then
+              echo "$name: no finding"
+            else
+              tail -n 60 "out/fuzz-logs/$name.log"
+              echo "::error::$name found something"
+              return 1
+            fi
+          }
+          export -f fuzz_one
+          targets=(out/fuzz/fuzz_*)
+          [ -x "${targets[0]}" ] || { echo "::error::no fuzz target was built"; exit 1; }
+          printf '%s\n' "${targets[@]}" | xargs -P 4 -I {} bash -c 'fuzz_one "$1"' _ {}
+      - name: Fuzz logs and crash inputs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: fuzz
+          path: |
+            out/fuzz-logs/
+            crash-*
+            leak-*
+            timeout-*
+            oom-*
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # The samples presented on an X11 window's surface under Xvfb, through
+  # Maul Window's X11 backend, on lavapipe under the validation layer: each
+  # sample's last frame read back and checked.
+  samples-x11:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    container: ghcr.io/rawframe-project/ci-cpp:2026.10.4@sha256:9715ff153db04ba0ed4f520b6d2528ff7860f803de61ab011ba60a4eed572836
+    permissions:
+      contents: read
+    env:
+      MUI_RHI_REQUIRED: 1
+      VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build
         run: |
-          cmake -B build-sanitize -G Ninja -DCMAKE_BUILD_TYPE=Debug -D${PREFIX}_WERROR=ON \
-            -D${PREFIX}_SANITIZE=ON -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 \
-            -D${PREFIX}_RHI=ON -D${PREFIX}_WINDOW=ON -DMAUL_WINDOW_WAYLAND=OFF -DMAUL_WINDOW_X11=OFF
-          cmake --build build-sanitize -j 4
-          ctest --test-dir build-sanitize -R "rhi|sample" --output-on-failure --timeout 240
-      - name: Without Maul UI's text component
-        # Glyph runs need the text component's atlas; the renderer
-        # refuses a text service without it and draws all else.
-        env:
-          MUI_RHI_REQUIRED: 1
-        run: |
-          cmake -B build-notext -G Ninja -D${PREFIX}_WERROR=ON -D${PREFIX}_TEXT=OFF -D${PREFIX}_RHI=ON \
-            -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20
-          cmake --build build-notext -j 4
-          ctest --test-dir build-notext -R rhi --output-on-failure --timeout 240
+          cmake --preset linux-parts-core -B out/x11 -D${PREFIX}_TEXT=ON -DMAUL_WINDOW_X11=ON \
+            -D${PREFIX}_BUILD_TESTS=OFF
+          cmake --build out/x11
       - name: The samples in a window
-        # Each sample presented on an X11 window's surface under Xvfb
-        # through Maul Window's X11 backend, its last frame read back
-        # and checked, under the validation layer.
-        env:
-          MUI_RHI_REQUIRED: 1
-          VK_INSTANCE_LAYERS: VK_LAYER_KHRONOS_validation
         run: |
-          sudo apt-get $APT_OPTIONS install -y -q xvfb libxcb1-dev libxcb-randr0-dev libxcb-xkb-dev \
-            libxcb-cursor-dev libxcb-render0-dev libxcb-xinput-dev libxkbcommon-x11-dev
-          cmake -B build-x11 -G Ninja -D${PREFIX}_WERROR=ON -D${PREFIX}_RHI=ON \
-            -D${PREFIX}_WINDOW=ON -D${PREFIX}_BUILD_TESTS=OFF -DMAUL_WINDOW_WAYLAND=OFF \
-            -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20
-          cmake --build build-x11 -j 4
-          for sample in build-x11/sample_*; do
-            xvfb-run -a -s "-screen 0 1024x768x24" "$sample" --frames 5 2>&1 | tee window.log
-            test "${PIPESTATUS[0]}" -eq 0
-            grep -q "the presented frame checked" window.log
-            ! grep -qiE "validation error|VUID" window.log
+          samples=(out/x11/sample_*)
+          [ -x "${samples[0]}" ] || { echo "::error::no sample was built"; exit 1; }
+          for sample in "${samples[@]}"; do
+            xvfb-run -a -s "-screen 0 1024x768x24" "$sample" --frames 5 2>&1 | tee out/window.log
+            grep -q "the presented frame checked" out/window.log
+            ! grep -qiE "validation error|VUID" out/window.log
           done
 
-  window:
-    # The Maul Window glue (record mui-0007) with Maul Window fetched at
-    # its release tag: clang-tidy over its sources, and its tests on Maul
-    # Window's headless test backend, the platform backends off; then
-    # again without the text component, which its compositions need.
-    name: linux-window
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v7
-      - name: Install the compiler
-        timeout-minutes: 10
-        run: |
-          sudo apt-get $APT_OPTIONS update -q
-          sudo apt-get $APT_OPTIONS install -y -q --no-install-recommends clang-20 clang-tidy-20
-          sudo apt-get $APT_OPTIONS install -y -q ninja-build
-      - name: Configure
-        run: >
-          cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -D${PREFIX}_WERROR=ON
-          -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20
-          -D${PREFIX}_WINDOW=ON -DMAUL_WINDOW_WAYLAND=OFF -DMAUL_WINDOW_X11=OFF
-          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-      - name: Build
-        run: cmake --build build -j 4
-      - name: clang-tidy
-        run: |
-          for f in window/src/*.c; do
-            clang-tidy-20 -p build --quiet --warnings-as-errors='*' "$f" || exit 1
-          done
-      - name: Test
-        run: ctest --test-dir build -R window --output-on-failure --timeout 240
-      - name: Without Maul UI's text component
-        run: |
-          cmake -B build-notext -G Ninja -D${PREFIX}_WERROR=ON -D${PREFIX}_TEXT=OFF \
-            -D${PREFIX}_WINDOW=ON -DMAUL_WINDOW_WAYLAND=OFF -DMAUL_WINDOW_X11=OFF \
-            -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20
-          cmake --build build-notext -j 4
-          ctest --test-dir build-notext -R window --output-on-failure --timeout 240
-
-  ios:
-    # Every test in the iOS simulator, through simctl spawn, on an iPhone
-    # of the newest runtime, as Maul Window's cell (record mui-0008).
-    name: ios-simulator
+  # The iOS adapter and the glue: built with their tests on every pull
+  # request, the only cell that compiles them, and run in the simulator on
+  # main and every night. A simulator's boot and first launch take minutes
+  # on the macOS runners, more than the pull request check's budget leaves.
+  ios-simulator:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: macos-15
+    timeout-minutes: 25
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build
+        run: |
+          cmake --preset ios-simulator
+          cmake --build --preset ios-simulator -j 4
       - name: Boot a simulator
+        if: github.event_name != 'pull_request'
         run: |
           udid=$(xcrun simctl list devices available -j | python3 -c '
           import json, sys
@@ -298,46 +270,56 @@ jobs:
           print(next(d["udid"] for d in devices[runtimes[-1]] if d["name"].startswith("iPhone")))')
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
-          # The first application launch after a boot can take minutes;
-          # one of the system's, here, keeps that out of the tests.
-          start=$(date +%s)
+          # A new device's first launch takes minutes: paid here, not by a test.
           xcrun simctl launch "$udid" com.apple.Preferences
           xcrun simctl terminate "$udid" com.apple.Preferences
-          echo "a first launch took $(($(date +%s) - start)) s"
-          echo "MUI_IOS_DEVICE=$udid" >> "$GITHUB_ENV"
-      - name: Configure
-        run: >
-          cmake -B build -DCMAKE_TOOLCHAIN_FILE=cmake/ios-simulator.cmake
-          -DCMAKE_BUILD_TYPE=Release -D${PREFIX}_WERROR=ON -D${PREFIX}_WINDOW=ON
-      - name: Build
-        run: cmake --build build -j 4
       - name: Test
-        run: ctest --test-dir build --output-on-failure --timeout 240
+        if: github.event_name != 'pull_request'
+        run: |
+          ctest --preset ios-simulator --no-tests=error | tee "$RUNNER_TEMP/ctest.log"
+          if grep -E '\*\*\*(Skipped|Not Run)' "$RUNNER_TEMP/ctest.log"; then
+            echo "::error::a test did not run"; exit 1
+          fi
+      - name: Test logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-ios-simulator
+          path: out/ios-simulator/Testing/Temporary/
+          if-no-files-found: ignore
+          retention-days: 7
 
-  android:
-    # Every test in the Android emulator, Android 11 on x86_64 with KVM,
-    # through adb, as Maul Window's cell (record mui-0008). The runner
-    # carries the SDK and NDK r28; the emulator and its image are
-    # installed here.
-    name: android-emulator
+  # Every test in the Android emulator, Android 11 on x86_64 with KVM,
+  # through adb, the accessibility adapter's as an application. The runner
+  # carries the SDK and the NDK; the emulator and its system image come from
+  # the SDK manager.
+  android-emulator:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
     env:
       ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/28.2.13676358
       ANDROID_SERIAL: emulator-5554
       # Where avdmanager writes the device and the emulator reads it.
       ANDROID_AVD_HOME: /home/runner/.android/avd
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Boot the emulator
         timeout-minutes: 15
         run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules >/dev/null
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' |
+            sudo tee /etc/udev/rules.d/99-kvm4all.rules >/dev/null
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
           tools="$ANDROID_HOME/cmdline-tools/latest/bin"
           yes | "$tools/sdkmanager" --licenses >/dev/null 2>&1 || true
-          # Runner images move to newer NDKs: the pinned one is installed when
-          # the image lacks it.
+          # Runner images move to newer NDKs: the pinned one is installed
+          # when the image lacks it.
           [ -f "$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" ] ||
             "$tools/sdkmanager" --install "ndk;${ANDROID_NDK_HOME##*/}" >/dev/null
           mkdir -p "$ANDROID_AVD_HOME"
@@ -354,108 +336,176 @@ jobs:
           done
           "$adb" shell getprop sys.boot_completed | grep -q 1 || { tail -50 emulator.log; exit 1; }
           echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
-      - name: Configure
-        run: >
-          cmake -B build -DCMAKE_TOOLCHAIN_FILE=cmake/android-emulator.cmake
-          -DCMAKE_BUILD_TYPE=Release -D${PREFIX}_WERROR=ON -D${PREFIX}_WINDOW=ON
       - name: Build
-        run: cmake --build build -j 4
+        run: |
+          cmake --preset android-emulator
+          cmake --build --preset android-emulator -j 4
       - name: Test
-        run: ctest --test-dir build --output-on-failure --timeout 240
+        run: |
+          ctest --preset android-emulator --no-tests=error | tee "$RUNNER_TEMP/ctest.log"
+          if grep -E '\*\*\*(Skipped|Not Run)' "$RUNNER_TEMP/ctest.log"; then
+            echo "::error::a test did not run"; exit 1
+          fi
+      - name: Test logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-android-emulator
+          path: out/android-emulator/Testing/Temporary/
+          if-no-files-found: ignore
+          retention-days: 7
 
+  # The web without Emscripten: Clang's wasm32-wasi, every test under Node's
+  # WASI and the ARIA test in headless Chrome through puppeteer. The text
+  # component is left out: FreeType needs setjmp, which wasi-libc lacks.
   web-wasi:
-    # The web without Emscripten (mui-0009): Clang's wasm32-wasi, every
-    # test under Node's WASI and the ARIA test in headless Chrome. The
-    # text component is left out: FreeType needs setjmp, which wasi-libc
-    # as packaged lacks, and a host building it supplies its own.
-    name: web-wasi
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container: ghcr.io/rawframe-project/ci-cpp:2026.10.4@sha256:9715ff153db04ba0ed4f520b6d2528ff7860f803de61ab011ba60a4eed572836
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
-      - name: Toolchain
-        timeout-minutes: 15
-        run: |
-          sudo apt-get $APT_OPTIONS update -q
-          sudo apt-get $APT_OPTIONS install -y -q --no-install-recommends clang-20 lld-20 wasi-libc \
-            libclang-rt-20-dev-wasm32
-      - name: Configure
-        run: >
-          cmake -B build -DCMAKE_TOOLCHAIN_FILE=cmake/wasm32-wasi.cmake -DCMAKE_C_COMPILER=clang-20
-          -DCMAKE_BUILD_TYPE=Release -D${PREFIX}_WERROR=ON -D${PREFIX}_TEXT=OFF
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Build
-        run: cmake --build build -j 4
-      - name: Install Puppeteer and its headless Chrome
-        run: npm install --prefix /tmp/browser puppeteer
-      - name: Test
-        # A skipped test fails the step: the ARIA test without a browser
-        # would otherwise pass with nothing tested.
         run: |
-          set -o pipefail
-          MUI_NODE_MODULES=/tmp/browser/node_modules ctest --test-dir build --output-on-failure --timeout 300 2>&1 | tee ctest.log
-          if grep -q "(Skipped)" ctest.log; then echo "::error::a test was skipped"; exit 1; fi
+          cmake --preset web-wasi
+          cmake --build --preset web-wasi -j 4
+      - name: Browser
+        # puppeteer and its dependencies as test/browser's lockfile pins them.
+        run: |
+          mkdir -p "$RUNNER_TEMP/browser"
+          cp test/browser/package.json test/browser/package-lock.json "$RUNNER_TEMP/browser/"
+          npm ci --prefix "$RUNNER_TEMP/browser"
+      - name: Test
+        run: |
+          MUI_NODE_MODULES="$RUNNER_TEMP/browser/node_modules" ctest --preset web-wasi --no-tests=error |
+            tee "$RUNNER_TEMP/ctest.log"
+          if grep -E '\*\*\*(Skipped|Not Run)' "$RUNNER_TEMP/ctest.log"; then
+            echo "::error::a test did not run"; exit 1
+          fi
+      - name: Test logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-web-wasi
+          path: out/web-wasi/Testing/Temporary/
+          if-no-files-found: ignore
+          retention-days: 7
 
-  web:
-    name: web-emscripten
+  # The library, the renderer and the glue built by Emscripten: the tests
+  # under Node, the ARIA adapter, the renderer's pixels and the samples in
+  # headless Chrome's WebGPU (SwiftShader), then each sample presenting into
+  # a canvas from the browser's frames. The CI image has no Emscripten, so
+  # this job uses the runner and the emsdk action.
+  web-emscripten:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
-    env:
-      # Chrome's compositor on Vulkan through lavapipe, for canvases.
-      VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.json
+    timeout-minutes: 25
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
-      - uses: emscripten-core/setup-emsdk@v16
-      - name: Install lavapipe
-        timeout-minutes: 10
-        run: |
-          sudo apt-get $APT_OPTIONS update -q
-          sudo apt-get $APT_OPTIONS install -y -q mesa-vulkan-drivers
-      - name: Configure
-        run: emcmake cmake -B build -DCMAKE_BUILD_TYPE=Release -D${PREFIX}_WERROR=ON -D${PREFIX}_WINDOW=ON
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
       - name: Build
-        run: cmake --build build -j 4
+        run: |
+          cmake --preset web-emscripten
+          cmake --build --preset web-emscripten -j 4
+      - name: Browser
+        # puppeteer and its dependencies as test/browser's lockfile pins them.
+        run: |
+          mkdir -p "$RUNNER_TEMP/browser"
+          cp test/browser/package.json test/browser/package-lock.json "$RUNNER_TEMP/browser/"
+          npm ci --prefix "$RUNNER_TEMP/browser"
+          echo "MUI_NODE_MODULES=$RUNNER_TEMP/browser/node_modules" >> "$GITHUB_ENV"
       - name: Test
+        env:
+          MUI_RHI_REQUIRED: 1
         run: |
-          for t in build/test_*.js; do node "$t" || exit 1; done
-      - name: Install Puppeteer and its headless Chrome
-        run: npm install --prefix /tmp/browser puppeteer
-      - name: Test in headless Chrome
-        # The ARIA adapter against the browser's accessibility tree; a
-        # skip (77) fails the step, so green means it ran.
-        run: MUI_NODE_MODULES=/tmp/browser/node_modules node test/web_runner.cjs build/test_aria.js
-      - name: The samples in headless Chrome's WebGPU
-        # The reference renderer drawing on WebGPU (SwiftShader), each
-        # sample checking its pixels headless, then presenting into a
-        # canvas from the browser's frames, its last frame read back and
-        # checked, in a build of its own (record mui-0005).
+          ctest --preset web-emscripten --no-tests=error | tee "$RUNNER_TEMP/ctest.log"
+          if grep -E '\*\*\*(Skipped|Not Run)' "$RUNNER_TEMP/ctest.log"; then
+            echo "::error::a test did not run"; exit 1
+          fi
+      - name: The samples in a canvas
+        env:
+          MUI_RHI_REQUIRED: 1
+          MUI_WEB_CANVAS: 1
         run: |
-          emcmake cmake -B build-sample -DCMAKE_BUILD_TYPE=Release -D${PREFIX}_WERROR=ON \
-            -D${PREFIX}_RHI=ON -D${PREFIX}_WINDOW=ON
-          cmake --build build-sample -j 4
-          for sample in build-sample/sample_*.js; do
-            MUI_RHI_REQUIRED=1 MUI_NODE_MODULES=/tmp/browser/node_modules \
-              node test/web_runner.cjs "$sample" --headless || exit 1
-            MUI_WEB_CANVAS=1 MUI_RHI_REQUIRED=1 MUI_NODE_MODULES=/tmp/browser/node_modules \
-              node test/web_runner.cjs "$sample" --frames 5 | tee canvas.log
-            test "${PIPESTATUS[0]}" -eq 0
-            grep -q "the presented frame checked" canvas.log
+          samples=(out/web-emscripten/sample_*.js)
+          [ -f "${samples[0]}" ] || { echo "::error::no sample was built"; exit 1; }
+          for sample in "${samples[@]}"; do
+            node test/web_runner.cjs "$sample" --frames 5 | tee "$RUNNER_TEMP/canvas.log"
+            grep -q "the presented frame checked" "$RUNNER_TEMP/canvas.log"
           done
-      - name: The reference renderer's pixels in headless Chrome's WebGPU
-        # test_rhi_pixels on WGSL, as it runs on SPIR-V natively.
-        run: >
-          MUI_RHI_REQUIRED=1 MUI_NODE_MODULES=/tmp/browser/node_modules
-          node test/web_runner.cjs build-sample/test_rhi_pixels.js
-      - name: The reference renderer's WGSL in headless Chrome's WebGPU
-        # The shader tools pass WGSL through untouched (record mui-0005).
-        run: MUI_NODE_MODULES=/tmp/browser/node_modules node tools/check_wgsl.cjs rhi/shaders/quad.wgsl
-      - name: Size
-        # The static library's size, reported, not gated (family record
-        # 0013).
-        run: stat -c '%s bytes' build/libmaul-ui.a
-      - name: Wasm size against the budget
-        # Each part's wasm at -Oz with link-time optimization, as record
-        # mui-0001's size budget measures it; reported, checked at release.
+      - name: The renderer's WGSL in headless Chrome's WebGPU
+        # The shader tools pass WGSL through untouched.
+        run: node tools/check_wgsl.cjs rhi/shaders/quad.wgsl
+      - name: Test logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: logs-web-emscripten
+          path: out/web-emscripten/Testing/Temporary/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # The wasm each part adds to a program at -Oz with link-time optimization,
+  # against its ceiling (tools/size_report.py): over a ceiling fails.
+  size:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
+      - name: Build
         run: |
-          emcmake cmake -B build-size -DCMAKE_BUILD_TYPE=MinSizeRel \
+          emcmake cmake -B out/size -DCMAKE_BUILD_TYPE=MinSizeRel \
             -DCMAKE_C_FLAGS_MINSIZEREL="-Oz -DNDEBUG" -DCMAKE_CXX_FLAGS_MINSIZEREL="-Oz -DNDEBUG" \
             -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=ON -D${PREFIX}_BUILD_TESTS=OFF
-          cmake --build build-size -j 4
-          python3 tools/size_report.py build-size
+          cmake --build out/size -j 4
+      - name: Size against the ceilings
+        run: python3 tools/size_report.py out/size --check
+
+  # The one check the ruleset requires: it passes when every job above
+  # passed or was skipped for a documentation-only change, so adding or
+  # renaming a job never touches the ruleset.
+  required:
+    if: always()
+    needs:
+      - changes
+      - docs
+      - zizmor
+      - checks
+      - build
+      - msvc-headers
+      - fuzz
+      - samples-x11
+      - ios-simulator
+      - android-emulator
+      - web-wasi
+      - web-emscripten
+      - size
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Every job passed or was skipped
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "$RESULTS"
+          for r in $RESULTS; do
+            case "$r" in success | skipped) ;; *) exit 1 ;; esac
+          done

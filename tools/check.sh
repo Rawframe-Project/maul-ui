@@ -190,13 +190,7 @@ step "clang-tidy on the Linux build's sources"
 configure tidy -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
     -DMAUL_UI_BUILD_TESTS=OFF -DMAUL_UI_RHI=ON -DMAUL_UI_WINDOW=ON -DMAUL_WINDOW_WAYLAND=OFF -DMAUL_WINDOW_X11=OFF
 cmake --build "$out/check-tidy" -j "$jobs" >>"$out/check-tidy.log"
-python3 - "$out/check-tidy/compile_commands.json" "$root" >"$out/tidy-files.txt" <<'EOF'
-import json, os, sys
-root = sys.argv[2]
-mine = tuple(os.path.join(root, part, "") for part in ("src", "rhi/src", "window/src"))
-files = {e["file"] for e in json.load(open(sys.argv[1]))}
-print("\n".join(sorted(f for f in files if f.startswith(mine) and "/generated/" not in f)))
-EOF
+python3 tools/tidy_files.py "$out/check-tidy/compile_commands.json" >"$out/tidy-files.txt"
 xargs -P "$jobs" -n 1 clang-tidy-20 -p "$out/check-tidy" --quiet --warnings-as-errors='*' <"$out/tidy-files.txt" \
     2>/dev/null
 

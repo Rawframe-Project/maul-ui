@@ -13,12 +13,12 @@ Unicode, built into the library, counts against its own budget: the
 public functions of it that Maul UI's code calls are measured above an
 empty program and taken off the text component's bytes.
 
-Usage: size_report.py BUILD_DIR [--functions COUNT], BUILD_DIR
+Usage: size_report.py BUILD_DIR [--check | --functions COUNT], BUILD_DIR
 configured by emcmake with CMAKE_INTERPROCEDURAL_OPTIMIZATION=ON,
 CMAKE_BUILD_TYPE=MinSizeRel and -Oz for C and C++, and built; emcc, em++
-and emnm on the PATH (emsdk_env). Prints the sizes against the ceilings;
-the ceilings are checked when a release is made, so it fails only when a
-program does not build.
+and emnm on the PATH (emsdk_env). Prints the sizes against the ceilings.
+With --check, a part over its ceiling fails; the ceilings sit above the
+measured sizes, so an Emscripten update that moves them a little passes.
 
 With --functions, it then says where the core's bytes go: the core's
 program linked again keeping its functions' names and without the
@@ -246,9 +246,10 @@ def where_bytes_go(directory, source, archives, includes, count):
 
 def main():
     functions = None
+    check = len(sys.argv) == 3 and sys.argv[2] == "--check"
     if len(sys.argv) == 4 and sys.argv[2] == "--functions" and sys.argv[3].isdigit():
         functions = int(sys.argv[3])
-    elif len(sys.argv) != 2:
+    elif len(sys.argv) != 2 and not check:
         sys.exit(__doc__)
     build = pathlib.Path(sys.argv[1]).resolve()
     archives = [str(path) for path in sorted(build.rglob("*.a"))]
@@ -286,6 +287,8 @@ def main():
     print(f"maul-unicode as the text component calls it: {unicode_bytes} bytes for "
           f"{unicode_count} functions, against its own budget (the text component links "
           f"{linked} with it)")
+    if check and any(sizes[part] > CEILINGS[part] for part in CEILINGS):
+        sys.exit("size_report: a part is over its ceiling")
 
 
 if __name__ == "__main__":

@@ -31,7 +31,7 @@ ctest --preset linux-clang-20-asan -L text_editor     # one suite, by its label
 ctest --test-dir out/linux-clang-20-asan -LE integration   # what needs no device, bus or browser
 ```
 
-Add a CI cell as a preset, never as commands in a workflow. `linux-parts` builds the reference renderer and the window glue with the samples, on Maul Window's headless test backend, and runs the renderer's pixels and the samples on lavapipe. [Test environments](test-environments.md) covers the presets of the other platforms. `tools/check.sh` runs the Linux checks in tiers: `changed` before every push, `pr` and `full` through the workspace's heavy-job wrapper on the shared development machine.
+Add a CI cell as a preset, never as commands in a workflow. `linux-parts` builds the reference renderer and the window glue with the samples, on Maul Window's headless test backend, and runs the renderer's pixels and the samples on lavapipe. [Test environments](test-environments.md) covers the presets of the other platforms. `tools/check.sh` runs the Linux checks in tiers ([Checks](checks.md)): `changed` before every push, `pr` and `full` through the workspace's heavy-job wrapper on the shared development machine.
 
 ## Generated files
 
@@ -44,6 +44,7 @@ These are committed, because a build must not need their generators' tools:
 | `rhi/shaders/quad_container.h` | `python3 tools/gen_rhi_shaders.py <maul-rhi source tree>` | `rhi/shaders/quad.*`, with glslang, SPIRV-Tools, SPIRV-Cross and dxc |
 | `test/fonts/Maul*.ttf`, `MaulCff.otf` | `test/fonts/make_*.py` | fontTools (and Pillow for the bitmap fonts) |
 | `test/images/pngs.bin` | `test/images/make_pngs.py` | Pillow |
+| `test/browser/package-lock.json`, `tools/screen_reader/package-lock.json` | `npm install --package-lock-only` in the folder | the `package.json` beside it; Dependabot updates both weekly |
 
 Each generator writes the same bytes on every run. A change to a generated file names the generator or input change that caused it.
 
@@ -75,4 +76,4 @@ Always pass `-max_total_time`. A crash becomes a test in its module's suite with
 
 `bench/` holds plain C benchmarks with fixed inputs: layout, styling and draw lists over a list of 10,000 rows and a deep tree (`bench_main.c`), a game HUD's frames, 100,000 virtual rows, and text. They print their timings and are never a CI gate. A change meant to affect performance gives before and after numbers from the same machine in its pull request.
 
-`python3 tools/size_report.py <build>` measures the wasm a program links of the core and of the text component against their ceilings ([Overview](../internals/overview.md#profile)). It needs an Emscripten build at `-Oz` with link-time optimization; its header gives the configure line.
+`python3 tools/size_report.py <build>` measures the wasm a program links of the core and of the text component against their ceilings ([Overview](../internals/overview.md#profile)). It needs an Emscripten build at `-Oz` with link-time optimization; its header gives the configure line. CI runs it with `--check`, which fails when a part is over its ceiling; the ceilings sit above the measured sizes, so a toolchain update that moves them a little passes.
