@@ -4,7 +4,7 @@
 # Maul RHI's samples are. They need the reference renderer, the Maul
 # Window glue and the text component.
 
-# A sample's text: Liberation Sans, embedded (THIRD_PARTY.md).
+# A sample's text: Liberation Sans, embedded (docs/user/licenses.md).
 mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/LiberationSans-Regular.ttf
     ${CMAKE_CURRENT_BINARY_DIR}/fonts/sans.inc s_sans)
 
@@ -36,7 +36,10 @@ function(mui_add_sample name)
         else()
             add_test(NAME ${target} COMMAND ${target} --headless)
         endif()
-        set_tests_properties(${target} PROPERTIES SKIP_RETURN_CODE 77)
+        # A real device draws them: lavapipe under the validation layer, or
+        # the browser's WebGPU.
+        set_tests_properties(${target} PROPERTIES SKIP_RETURN_CODE 77 LABELS "${target};integration"
+                             FAIL_REGULAR_EXPRESSION "Validation Error")
     endif()
 endfunction()
 

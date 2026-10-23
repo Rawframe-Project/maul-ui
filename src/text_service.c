@@ -183,7 +183,7 @@ muiResult muiCreateTextService(const muiTextServiceDef* def, muiTextService** se
     }
     // Another version's def may be of another layout: nothing past the
     // version is read.
-    if (def->version != MUI_DEF_VERSION)
+    if (def->version != MUI_ABI_VERSION)
     {
         return mui_errorVersion;
     }

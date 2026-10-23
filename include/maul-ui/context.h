@@ -111,7 +111,7 @@ extern "C"
     /// allocator.
     ///
     /// Built in the program from the headers it includes, so it carries
-    /// their version (MUI_DEF_VERSION), which the context checks.
+    /// their version (MUI_ABI_VERSION), which the context checks.
     ///
     /// @return The def, with a valid cookie.
     /// @par Thread safety
@@ -124,7 +124,7 @@ extern "C"
     muiContextDef def = {0};
 #endif
         def.cookie = MUI_CONTEXT_DEF_COOKIE;
-        def.version = MUI_DEF_VERSION;
+        def.version = MUI_ABI_VERSION;
         def.limits.nodes = 4096;
         def.limits.styles = 256;
         def.limits.nodeTypes = 64;

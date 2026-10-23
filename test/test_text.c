@@ -87,7 +87,7 @@ static void TestServiceDefs(void)
     bad.cookie = 0;
     CHECK(muiCreateTextService(&bad, &service) == mui_errorInvalid, "bad cookie");
     bad = def;
-    bad.version = MUI_DEF_VERSION + 1;
+    bad.version = MUI_ABI_VERSION + 1;
     CHECK(muiCreateTextService(&bad, &service) == mui_errorVersion, "another version");
     bad = def;
     bad.limits.fonts = 0;

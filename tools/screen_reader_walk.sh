@@ -1,6 +1,6 @@
 #!/bin/bash
-# Walks a sample with Orca, as a release's assistive technology step does
-# on Linux (docs/releasing.md, record mui-0008):
+# Walks a sample with Orca, as the screen readers walk them in the nightly
+# run (docs/operations/test-environments.md):
 #
 #   tools/screen_reader_walk.sh <sample> <steps> <out-dir> [display]
 #

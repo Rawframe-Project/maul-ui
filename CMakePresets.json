@@ -1,0 +1,206 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": { "major": 3, "minor": 25, "patch": 0 },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "binaryDir": "${sourceDir}/out/${presetName}",
+      "cacheVariables": { "MAUL_UI_WERROR": "ON" }
+    },
+    {
+      "name": "linux",
+      "hidden": true,
+      "inherits": "base",
+      "generator": "Ninja",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" }
+    },
+    {
+      "name": "gcc",
+      "hidden": true,
+      "cacheVariables": { "CMAKE_C_COMPILER": "gcc-14", "CMAKE_CXX_COMPILER": "g++-14" }
+    },
+    {
+      "name": "clang",
+      "hidden": true,
+      "cacheVariables": { "CMAKE_C_COMPILER": "clang-20", "CMAKE_CXX_COMPILER": "clang++-20" }
+    },
+    {
+      "name": "parts",
+      "hidden": true,
+      "description": "The reference renderer and the Maul Window glue, on Maul Window's headless test backend.",
+      "cacheVariables": {
+        "MAUL_UI_RHI": "ON",
+        "MAUL_UI_WINDOW": "ON",
+        "MAUL_WINDOW_WAYLAND": "OFF",
+        "MAUL_WINDOW_X11": "OFF"
+      }
+    },
+    {
+      "name": "linux-gcc-14",
+      "displayName": "GCC 14, Release, static, installed and used by samples/minimal",
+      "inherits": ["linux", "gcc"],
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "MAUL_UI_TEST_PACKAGE": "ON" }
+    },
+    {
+      "name": "linux-clang-20",
+      "displayName": "Clang 20, Release",
+      "inherits": ["linux", "clang"],
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "linux-clang-20-asan",
+      "displayName": "Clang 20, AddressSanitizer and UBSan, assertions on",
+      "inherits": ["linux", "clang"],
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "MAUL_UI_SANITIZE": "ON" }
+    },
+    {
+      "name": "linux-clang-20-tsan",
+      "displayName": "Clang 20, ThreadSanitizer, assertions on",
+      "inherits": ["linux", "clang"],
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "MAUL_UI_TSAN": "ON" }
+    },
+    {
+      "name": "linux-shared",
+      "displayName": "Clang 20, shared library, installed and used by samples/minimal",
+      "inherits": ["linux", "clang"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "MAUL_UI_BUILD_SHARED": "ON",
+        "MAUL_UI_TEST_PACKAGE": "ON"
+      }
+    },
+    {
+      "name": "linux-core",
+      "displayName": "GCC 14, the core without the text component",
+      "inherits": ["linux", "gcc"],
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "MAUL_UI_TEXT": "OFF" }
+    },
+    {
+      "name": "linux-parts",
+      "displayName": "Clang 20 with sanitizers: the renderer on lavapipe and the window glue, with the samples",
+      "inherits": ["linux", "clang", "parts"],
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Debug", "MAUL_UI_SANITIZE": "ON" }
+    },
+    {
+      "name": "linux-parts-core",
+      "displayName": "Clang 20: the renderer and the window glue without the text component",
+      "inherits": ["linux", "clang", "parts"],
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "MAUL_UI_TEXT": "OFF" }
+    },
+    {
+      "name": "web-wasi",
+      "displayName": "Clang 20 for wasm32-wasi without the text component, tests under Node and in headless Chrome",
+      "inherits": "linux",
+      "toolchainFile": "${sourceDir}/cmake/wasm32-wasi.cmake",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "CMAKE_C_COMPILER": "clang-20", "MAUL_UI_TEXT": "OFF" }
+    },
+    {
+      "name": "web-emscripten",
+      "displayName": "Emscripten with the renderer and the window glue, tests in headless Chrome",
+      "inherits": ["linux", "parts"],
+      "toolchainFile": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release" }
+    },
+    {
+      "name": "android-emulator",
+      "displayName": "NDK for x86_64 with the window glue, tests in the Android emulator",
+      "inherits": "linux",
+      "toolchainFile": "${sourceDir}/cmake/android-emulator.cmake",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "MAUL_UI_WINDOW": "ON" }
+    },
+    {
+      "name": "macos-clang",
+      "displayName": "Apple Clang, Release, with the window glue",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" },
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "MAUL_UI_WINDOW": "ON" }
+    },
+    {
+      "name": "ios-simulator",
+      "displayName": "Apple Clang for the iOS simulator with the window glue, tests in a booted simulator",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Darwin" },
+      "toolchainFile": "${sourceDir}/cmake/ios-simulator.cmake",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "MAUL_UI_WINDOW": "ON" }
+    },
+    {
+      "name": "windows-clang-cl",
+      "displayName": "clang-cl through Visual Studio's ClangCL toolset, with the window glue",
+      "inherits": "base",
+      "toolset": { "value": "ClangCL", "strategy": "set" },
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Windows" },
+      "cacheVariables": { "MAUL_UI_WINDOW": "ON" }
+    }
+  ],
+  "buildPresets": [
+    { "name": "linux-gcc-14", "configurePreset": "linux-gcc-14" },
+    { "name": "linux-clang-20", "configurePreset": "linux-clang-20" },
+    { "name": "linux-clang-20-asan", "configurePreset": "linux-clang-20-asan" },
+    { "name": "linux-clang-20-tsan", "configurePreset": "linux-clang-20-tsan" },
+    { "name": "linux-shared", "configurePreset": "linux-shared" },
+    { "name": "linux-core", "configurePreset": "linux-core" },
+    { "name": "linux-parts", "configurePreset": "linux-parts" },
+    { "name": "linux-parts-core", "configurePreset": "linux-parts-core" },
+    { "name": "web-wasi", "configurePreset": "web-wasi" },
+    { "name": "web-emscripten", "configurePreset": "web-emscripten" },
+    { "name": "android-emulator", "configurePreset": "android-emulator" },
+    { "name": "macos-clang", "configurePreset": "macos-clang" },
+    { "name": "ios-simulator", "configurePreset": "ios-simulator" },
+    { "name": "windows-clang-cl", "configurePreset": "windows-clang-cl", "configuration": "Release" }
+  ],
+  "testPresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "output": { "outputOnFailure": true },
+      "execution": { "noTestsAction": "error", "timeout": 300, "jobs": 4 }
+    },
+    {
+      "name": "lavapipe",
+      "hidden": true,
+      "inherits": "base",
+      "description": "The renderer's pixels and the samples on lavapipe, which must be found, under the Vulkan validation layer, whose errors fail a test.",
+      "environment": {
+        "MUI_RHI_REQUIRED": "1",
+        "VK_INSTANCE_LAYERS": "VK_LAYER_KHRONOS_validation"
+      }
+    },
+    { "name": "linux-gcc-14", "inherits": "base", "configurePreset": "linux-gcc-14" },
+    { "name": "linux-clang-20", "inherits": "base", "configurePreset": "linux-clang-20" },
+    { "name": "linux-clang-20-asan", "inherits": "base", "configurePreset": "linux-clang-20-asan" },
+    { "name": "linux-clang-20-tsan", "inherits": "base", "configurePreset": "linux-clang-20-tsan" },
+    { "name": "linux-shared", "inherits": "base", "configurePreset": "linux-shared" },
+    { "name": "linux-core", "inherits": "base", "configurePreset": "linux-core" },
+    {
+      "name": "linux-parts",
+      "inherits": "lavapipe",
+      "configurePreset": "linux-parts",
+      "description": "Without leak detection: Mesa's Vulkan driver leaks when it is unloaded, from a module LeakSanitizer cannot name; linux-clang-20-asan keeps it for the core.",
+      "environment": { "ASAN_OPTIONS": "detect_leaks=0" }
+    },
+    { "name": "linux-parts-core", "inherits": "lavapipe", "configurePreset": "linux-parts-core" },
+    { "name": "web-wasi", "inherits": "base", "configurePreset": "web-wasi" },
+    { "name": "web-emscripten", "inherits": "base", "configurePreset": "web-emscripten" },
+    {
+      "name": "android-emulator",
+      "inherits": "base",
+      "configurePreset": "android-emulator",
+      "execution": { "jobs": 1, "timeout": 240 }
+    },
+    { "name": "macos-clang", "inherits": "base", "configurePreset": "macos-clang" },
+    {
+      "name": "ios-simulator",
+      "inherits": "base",
+      "configurePreset": "ios-simulator",
+      "execution": { "jobs": 1, "timeout": 600 }
+    },
+    {
+      "name": "windows-clang-cl",
+      "inherits": "base",
+      "configurePreset": "windows-clang-cl",
+      "configuration": "Release",
+      "execution": { "jobs": 1 }
+    }
+  ]
+}

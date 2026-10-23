@@ -82,6 +82,11 @@ def main():
     if len(sys.argv) != 2:
         sys.exit("usage: gen_rhi_shaders.py <a Maul RHI source tree>")
     tools = os.path.join(os.path.abspath(sys.argv[1]), "tools")
+    # A Maul RHI release that moved its tools fails here, before anything
+    # is compiled.
+    for script in ("mrhi_dxil.py", "mrhi_msl.py", "mrhi_container.py"):
+        if not os.path.isfile(os.path.join(tools, script)):
+            sys.exit(f"gen_rhi_shaders: no {script} in {tools}")
     with tempfile.TemporaryDirectory() as work:
         data = build(work, tools)
     path = os.path.join(SHADERS, f"{NAME}_container.h")

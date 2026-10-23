@@ -58,7 +58,7 @@ extern "C"
     /// font families and the C library's allocator.
     ///
     /// Built in the program from the headers it includes, so it carries
-    /// their version (MUI_DEF_VERSION), which the service checks.
+    /// their version (MUI_ABI_VERSION), which the service checks.
     ///
     /// @return The def, with a valid cookie.
     /// @par Thread safety
@@ -71,7 +71,7 @@ extern "C"
     muiTextServiceDef def = {0};
 #endif
         def.cookie = MUI_TEXT_SERVICE_DEF_COOKIE;
-        def.version = MUI_DEF_VERSION;
+        def.version = MUI_ABI_VERSION;
         def.limits.fonts = 64;
         def.limits.textBlocks = 1024;
         def.limits.fontFamilies = 16;

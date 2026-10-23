@@ -91,6 +91,11 @@ def unicode_functions(build, called):
     if found is None:
         return [], None
     headers = pathlib.Path(found.group(1)) / "include" / "maul-unicode"
+    # A build that fetched Maul Unicode must have its headers: without
+    # them the text component's size would silently lose Maul Unicode's
+    # share and look smaller than it is.
+    if not any(headers.glob("*.h")):
+        sys.exit(f"size_report: no Maul Unicode headers in {headers}")
     part = []
     for header in sorted(headers.glob("*.h")):
         names = [name for name in UNICODE_DECLARATION.findall(header.read_text(encoding="utf-8"))

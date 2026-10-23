@@ -16,17 +16,35 @@ extern "C"
 {
 #endif
 
-// The library version. CMake reads it from here.
+// The library version. CMake reads it from here, and release-please
+// moves it between the markers.
+// x-release-please-start-major
 #define MUI_VERSION_MAJOR 0
-#define MUI_VERSION_MINOR 6
+// x-release-please-end
+// x-release-please-start-minor
+#define MUI_VERSION_MINOR 0
+// x-release-please-end
+// x-release-please-start-patch
 #define MUI_VERSION_PATCH 1
+// x-release-please-end
 
-// The version a root def (muiContextDef, muiTextServiceDef) carries, set
-// by its default as the program is built: the headers' major and minor.
-// The creation refuses a def of another with mui_errorVersion before it
-// reads the rest, whose layout that version may not share (family
-// record 0044).
-#define MUI_DEF_VERSION ((uint32_t)(MUI_VERSION_MAJOR << 16 | MUI_VERSION_MINOR))
+// The binary interface a program is built for: the whole version before
+// 1.0, when any release may break it, and the major and minor version from
+// 1.0 on. The top bit is always set, so a zeroed def never matches. The
+// two root defs carry it (muiDefaultContextDef, muiDefaultTextServiceDef),
+// and their creations refuse a def built for another with
+// mui_errorVersion before they read the rest, whose layout that version
+// may not share; every other def is used under one of the two.
+#define MUI_ABI_VERSION                                                                            \
+    (UINT32_C(0x80000000) | ((uint32_t)MUI_VERSION_MAJOR << 16) |                                  \
+     (MUI_VERSION_MAJOR == 0 ? (((uint32_t)MUI_VERSION_MINOR << 8) | (uint32_t)MUI_VERSION_PATCH)  \
+                             : (uint32_t)MUI_VERSION_MINOR))
+#if MUI_VERSION_MAJOR > 0x7FFF || MUI_VERSION_MINOR > 0xFFFF
+#error "MUI_VERSION_MAJOR or MUI_VERSION_MINOR does not fit MUI_ABI_VERSION"
+#endif
+#if MUI_VERSION_MAJOR == 0 && (MUI_VERSION_MINOR > 0xFF || MUI_VERSION_PATCH > 0xFF)
+#error "before 1.0, MUI_VERSION_MINOR and MUI_VERSION_PATCH must fit 8 bits each"
+#endif
 
 // MUI_API marks the public functions: dllexport or dllimport in a
 // shared Windows build (maul_ui_EXPORTS is defined while building
@@ -82,8 +100,8 @@ extern "C"
         // not allow the call, such as a thread outside the apartment the
         // platform requires.
         mui_errorPlatform = -5,
-        // A root def was built against headers of another major or minor
-        // version than the library's (MUI_DEF_VERSION).
+        // A root def was built against headers of a release whose binary
+        // interface differs from the library's (MUI_ABI_VERSION).
         mui_errorVersion = -6,
         // The object is busy: host code it is running (a measure, paint or
         // access text function, the allocator, an action function, the
