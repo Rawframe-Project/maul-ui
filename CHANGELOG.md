@@ -5,14 +5,7 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
-## [0.0.1](https://github.com/Rawframe-Project/maul-ui/compare/v0.0.1...v0.0.1) (2026-10-23)
-
-
-### CI
-
-* build on the shared workflows and release with release-please ([#5](https://github.com/Rawframe-Project/maul-ui/issues/5)) ([2fccb54](https://github.com/Rawframe-Project/maul-ui/commit/2fccb542902ccd8431570cc7a433e114fb75b013)), closes [#1](https://github.com/Rawframe-Project/maul-ui/issues/1)
-
-## [0.0.1](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.0.1)
+## [0.0.1](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.0.1) (2026-10-23)
 
 The first release: a retained UI core that lays out, styles, draws,
 takes input and speaks to screen readers, the same on every platform.
