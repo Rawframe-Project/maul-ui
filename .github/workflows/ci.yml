@@ -33,21 +33,21 @@ env:
 jobs:
   # Whether anything beyond documentation changed; the builds skip when not.
   changes:
-    uses: Rawframe-Project/.github/.github/workflows/changes.yml@6880b317526459b0a1032bebd8a7bdec4148af23 # v0.0.7
+    uses: Rawframe-Project/.github/.github/workflows/changes.yml@ffd926f489c08984a43e40ac93e1f1feb784be93 # v0.0.8
     permissions:
       pull-requests: read
 
   # The organization's documentation check; test/fonts holds third-party
   # fonts and their licenses, kept as published.
   docs:
-    uses: Rawframe-Project/.github/.github/workflows/docs-check.yml@6880b317526459b0a1032bebd8a7bdec4148af23 # v0.0.7
+    uses: Rawframe-Project/.github/.github/workflows/docs-check.yml@ffd926f489c08984a43e40ac93e1f1feb784be93 # v0.0.8
     permissions:
       contents: read
     with:
       exclude: test/fonts
 
   zizmor:
-    uses: Rawframe-Project/.github/.github/workflows/zizmor.yml@6880b317526459b0a1032bebd8a7bdec4148af23 # v0.0.7
+    uses: Rawframe-Project/.github/.github/workflows/zizmor.yml@ffd926f489c08984a43e40ac93e1f1feb784be93 # v0.0.8
     permissions:
       contents: read
 
@@ -122,7 +122,7 @@ jobs:
           - { preset: linux-parts-core }
           - { preset: macos-clang, runner: macos-15 }
           - { preset: windows-clang-cl, runner: windows-2025 }
-    uses: Rawframe-Project/.github/.github/workflows/cpp.yml@6880b317526459b0a1032bebd8a7bdec4148af23 # v0.0.7
+    uses: Rawframe-Project/.github/.github/workflows/cpp.yml@ffd926f489c08984a43e40ac93e1f1feb784be93 # v0.0.8
     permissions:
       contents: read
     with:
