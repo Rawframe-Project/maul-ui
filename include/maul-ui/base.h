@@ -37,9 +37,8 @@ extern "C"
 // may not share; every other def is used under one of the two.
 #define MUI_ABI_VERSION                                                                            \
     (UINT32_C(0x80000000) | ((uint32_t)MUI_VERSION_MAJOR << 16) |                                  \
-     (MUI_VERSION_MAJOR == 0                                                                       \
-          ? (((uint32_t)MUI_VERSION_MINOR << 8) | (uint32_t)MUI_VERSION_PATCH)                     \
-          : (uint32_t)MUI_VERSION_MINOR))
+     (MUI_VERSION_MAJOR == 0 ? (((uint32_t)MUI_VERSION_MINOR << 8) | (uint32_t)MUI_VERSION_PATCH)  \
+                             : (uint32_t)MUI_VERSION_MINOR))
 #if MUI_VERSION_MAJOR > 0x7FFF || MUI_VERSION_MINOR > 0xFFFF
 #error "MUI_VERSION_MAJOR or MUI_VERSION_MINOR does not fit MUI_ABI_VERSION"
 #endif
