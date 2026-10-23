@@ -268,8 +268,8 @@ static void TestSynthesis(void)
     image = ImageAt(&scene, boldKey, GLYPH_X, 48.0f);
     CHECK(image.left == 0 && image.width == 50 && image.top == 41 && image.height == 51,
           "bold grows right and up from the left side");
-    // Grown by whole pixels, its right column and top row are covered
-    // whole (found by a mutant growing it by an em/25).
+    // Grown by whole pixels, not by a fraction of an em, its right column
+    // and top row are covered whole.
     CHECK(s_pixels[25 * 50 + 49] == 255 && s_pixels[1 * 50 + 25] == 255, "by exactly 2 pixels");
     CHECK(Width(&scene, 10.0f, 400.0f, mui_slantItalic) == 10.0f, "oblique keeps the advance");
     uint64_t italicKey = RunFont(&scene);

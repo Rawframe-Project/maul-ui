@@ -480,8 +480,8 @@ static void TestEdits(void)
               IsPressed(context, s.a),
           "other edits");
     CHECK(muiPointer_SetCapture(context, 1, s.b) == mui_success, "captured");
-    // a moved again with b in it: b keeps its capture (found by a mutant
-    // letting every capture go when a moved node's pointers come back).
+    // a moved again with b in it: b keeps its capture, though the moved
+    // node's own pointers come back.
     muiPointerState moved = {0};
     CHECK(muiNode_Detach(context, s.a) == mui_success &&
               muiNode_InsertChild(context, s.d, s.a, s_nullNode) == mui_success &&

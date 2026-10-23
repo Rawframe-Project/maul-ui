@@ -1,0 +1,10 @@
+{
+  "name": "maul-ui-screen-reader-walks",
+  "private": true,
+  "description": "Guidepup, which walk.mjs drives the screen readers with, and puppeteer for the walks in Chrome, installed with npm ci.",
+  "dependencies": {
+    "@guidepup/guidepup": "0.35.0",
+    "@guidepup/setup": "0.29.1",
+    "puppeteer": "25.14.0"
+  }
+}

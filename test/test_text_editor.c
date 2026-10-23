@@ -413,9 +413,8 @@ static void TestElsewhere(void)
     FreeScene(&scene);
 }
 
-// A paragraph ends only at a separator, not at a character that shares
-// the line separator's first byte (found by a mutant ending one at every
-// character led by E2).
+// A paragraph ends only at a separator, not at another character led by
+// the line separator's first byte, E2.
 static void TestParagraphSeparators(void)
 {
     // The dagger, U+2020, shares the separators' first two bytes.

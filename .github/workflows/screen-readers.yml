@@ -1,125 +1,102 @@
-# Screen readers walking the samples:
-# VoiceOver on a macOS runner and NVDA on a Windows runner, set up and
-# driven by Guidepup, as tools/screen_reader_walk.sh walks them with
-# Orca, and NVDA over the ARIA adapter in Chrome, each walk checking the
-# phrases its steps file expects. A workflow of its own: the readers' timing on the runners' virtual GPUs
-# makes a walk miss a phrase now and then, so each walk is tried three
-# times, every try kept as an artifact; a reader that cannot read the
-# tree misses on every try.
+# Screen readers walking the samples every night: VoiceOver on a macOS
+# runner and NVDA on a Windows runner, set up and driven by Guidepup as
+# tools/screen_reader_walk.sh walks them with Orca, and NVDA over the ARIA
+# adapter in Chrome; each walk checks the phrases its steps file expects.
+# The readers' timing on the runners' virtual GPUs makes a walk miss a
+# phrase now and then, so the walks stay out of the required check and are
+# never retried; issue #4 tracks every failure until they pass reliably.
 name: screen-readers
 
 on:
-  push:
-    branches: [main]
+  schedule:
+    - cron: "11 3 * * *"
   workflow_dispatch:
+
+permissions: {}
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   walk:
-    name: ${{ matrix.name }}
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    name: ${{ matrix.reader }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { name: voiceover, os: macos-15, configure: "-G Ninja", bin: build }
-          - { name: nvda, os: windows-2025, configure: "-T ClangCL", bin: build/Release }
-    defaults:
-      run:
-        shell: bash
+          - { reader: voiceover, runner: macos-15, configure: "", bin: out/walk }
+          - { reader: nvda, runner: windows-2025, configure: "-T ClangCL", bin: out/walk/Release }
     steps:
-      - uses: actions/checkout@v7
-      - name: Install Ninja
-        if: runner.os == 'macOS'
-        run: brew install ninja
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Build the samples
+        env:
+          CONFIGURE: ${{ matrix.configure }}
         run: |
-          cmake -B build ${{ matrix.configure }} -DCMAKE_BUILD_TYPE=Release -DMAUL_UI_RHI=ON \
+          cmake -B out/walk $CONFIGURE -DCMAKE_BUILD_TYPE=Release -DMAUL_UI_RHI=ON \
             -DMAUL_UI_WINDOW=ON -DMAUL_UI_BUILD_TESTS=OFF
-          cmake --build build --config Release -j 4 --target sample_controls sample_text
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 24
-      # macOS's setup has failed now and then turning on Do Not Disturb,
-      # passing on the next try. On some machines it never passes, macOS
-      # refusing the runner's Apple events to System Events: VoiceOver is
-      # then not run there, said by a warning, and the walk skipped; any
-      # other failure fails.
+          cmake --build out/walk --config Release -j 4 --target sample_controls sample_text
       - name: Set up the screen reader
-        id: setup
+        env:
+          READER: ${{ matrix.reader }}
+        # Guidepup as tools/screen_reader's lockfile pins it.
         run: |
-          mkdir -p "$RUNNER_TEMP/walk" && cd "$RUNNER_TEMP/walk"
-          cp "$GITHUB_WORKSPACE/tools/screen_reader/walk.mjs" .
-          npm init -y >/dev/null
-          npm install --no-audit --no-fund @guidepup/guidepup@0.35.0 @guidepup/setup@0.29.1
-          for try in 1 2 3; do
-            npx @guidepup/setup setup --ci 2>&1 | tee setup.log && break
-            if [ "$try" -eq 3 ]; then
-              if grep -qE "Not authorized to send Apple events|not allowed to send keystrokes" setup.log; then
-                echo "::warning::${{ matrix.name }} not run: this machine refused Guidepup's setup"
-                echo "ran=false" >> "$GITHUB_OUTPUT"
-                exit 0
-              fi
-              exit 1
-            fi
-            sleep 10
-          done
-          npx @guidepup/setup install ${{ matrix.name }}
-          echo "ran=true" >> "$GITHUB_OUTPUT"
+          npm ci --prefix tools/screen_reader --no-audit --no-fund
+          cd tools/screen_reader
+          npx @guidepup/setup setup --ci
+          npx @guidepup/setup install "$READER"
       - name: Walk the samples
-        if: steps.setup.outputs.ran == 'true'
+        env:
+          BIN: ${{ matrix.bin }}
         run: |
-          status=0
           for sample in controls text; do
-            for try in 1 2 3; do
-              node "$RUNNER_TEMP/walk/walk.mjs" "$PWD/${{ matrix.bin }}/sample_$sample" \
-                "tools/screen_reader/$sample.steps" "walk-$sample-$try" && break
-              [ "$try" -lt 3 ] || status=1
-            done
+            node tools/screen_reader/walk.mjs "$PWD/$BIN/sample_$sample" \
+              "tools/screen_reader/$sample.steps" "walk-$sample"
           done
-          exit $status
-      - uses: actions/upload-artifact@v7
+      - name: Walk logs
         if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: walk-${{ matrix.name }}
+          name: walk-${{ matrix.reader }}
           path: walk-*
+          if-no-files-found: ignore
+          retention-days: 14
 
-  web:
-    # NVDA over the ARIA adapter: the
-    # controls and text samples built for the web, in a Chrome with a
-    # window drawing WebGPU on SwiftShader, walked as on the desktop from
-    # steps of their own, which first enable the page's accessibility
-    # tree as a screen reader user does.
-    name: nvda-chrome
+  # NVDA over the ARIA adapter: the controls and text samples built for the
+  # web, in a Chrome with a window drawing WebGPU on SwiftShader, walked from
+  # steps of their own, which first enable the page's accessibility tree as a
+  # screen reader user does.
+  nvda-chrome:
     runs-on: windows-2025
-    timeout-minutes: 60
-    defaults:
-      run:
-        shell: bash
+    timeout-minutes: 45
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v7
-      - uses: emscripten-core/setup-emsdk@v16
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 24
-      - name: Build the sample for the web
+          persist-credentials: false
+      - uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
+      - name: Build the samples for the web
         run: |
-          emcmake cmake -B build-web -G Ninja -DCMAKE_BUILD_TYPE=Release -DMAUL_UI_RHI=ON \
+          emcmake cmake -B out/web -G Ninja -DCMAKE_BUILD_TYPE=Release -DMAUL_UI_RHI=ON \
             -DMAUL_UI_WINDOW=ON -DMAUL_UI_BUILD_TESTS=OFF
-          cmake --build build-web -j 4 --target sample_controls sample_text
+          cmake --build out/web -j 4 --target sample_controls sample_text
       - name: Set up the screen reader and the browser
+        # Guidepup and puppeteer as tools/screen_reader's lockfile pins them.
         run: |
-          mkdir -p "$RUNNER_TEMP/walk" && cd "$RUNNER_TEMP/walk"
-          cp "$GITHUB_WORKSPACE/tools/screen_reader/walk.mjs" .
-          npm init -y >/dev/null
-          npm install --no-audit --no-fund @guidepup/guidepup@0.35.0 @guidepup/setup@0.29.1 \
-            puppeteer@25.13.0
+          npm ci --prefix tools/screen_reader --no-audit --no-fund
+          cd tools/screen_reader
           npx @guidepup/setup setup --ci
           npx @guidepup/setup install nvda
           # NVDA reads a caret move only if the caret moves within 100 ms of
           # the key; the sample draws on SwiftShader, where a frame has taken
-          # seconds, so its walks give it NVDA's longest, 2000 (its own
-          # setting): the caret moved on every step, unread when late.
+          # seconds, so the walk gives it NVDA's longest, 2000.
           ini=$(ls "$(cygpath -u "$LOCALAPPDATA")"/guidepup/nvda/all/*/extracted/userConfig/nvda.ini)
           if grep -q '^\[editableText\]' "$ini"; then
             sed -i 's/^\[editableText\]\r\?$/[editableText]\ncaretMoveTimeoutMs = 2000/' "$ini"
@@ -130,17 +107,14 @@ jobs:
       - name: Walk the samples in Chrome
         run: |
           for sample in controls text; do
-            for try in 1 2 3; do
-              # A reader that stopped answering in a try is not left to the
-              # next: each starts with no NVDA running.
-              taskkill //F //IM nvda.exe > /dev/null 2>&1 || true
-              node "$RUNNER_TEMP/walk/walk.mjs" "$PWD/build-web/sample_$sample.js" \
-                "tools/screen_reader/$sample-web.steps" "walk-web-$sample-$try" && continue 2
-            done
-            exit 1
+            node tools/screen_reader/walk.mjs "$PWD/out/web/sample_$sample.js" \
+              "tools/screen_reader/$sample-web.steps" "walk-web-$sample"
           done
-      - uses: actions/upload-artifact@v7
+      - name: Walk logs
         if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: walk-nvda-chrome
           path: walk-*
+          if-no-files-found: ignore
+          retention-days: 14

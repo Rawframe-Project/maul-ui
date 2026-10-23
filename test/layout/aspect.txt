@@ -862,7 +862,7 @@ node width=200 height=200 => 0 0 200 200
 
 # A ratio box wrapping as a column, a column's item: its min-content
 # height breaks its lines at the ratio's height, its percentages
-# resolving as without (random case 219).
+# resolving as without.
 fixture ratio_wrapping_column_in_column available=500x400
 node => 0 0 10 140
   node => 0 0 10 140
@@ -888,8 +888,7 @@ node => 0 0 0 140
 
 # A row sizing its content carries no ratio's minimum through a height
 # its item takes only by stretching in rows sized by their content, at
-# any depth; one a style fixes higher up, it does (random case
-# 199).
+# any depth; one a style fixes higher up, it does.
 fixture ratio_contribution_stretched_loose_three_deep available=500x400
 node => 0 0 20 120
   node => 0 0 20 120
@@ -916,7 +915,7 @@ node height=60 => 0 0 120 60
       node basis=20 aspect=2 content=10x10 => 0 0 120 60
 
 # The same with the item's own height a percentage of that loose height:
-# no minimum through it either (random case 199 again).
+# no minimum through it either.
 fixture ratio_contribution_stretched_loose_percent_height available=500x400
 node => 0 0 20 10
   node => 0 0 20 10

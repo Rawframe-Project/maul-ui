@@ -1126,8 +1126,7 @@ static void TestContract(void)
 }
 
 // A full tree takes an update that sends only nodes it holds: none of
-// them is new, so none needs room (found by a mutant counting every node
-// sent as new).
+// them is new, so none needs room.
 static void TestFullTreeUpdated(void)
 {
     muiAccessTreeDef def = muiDefaultAccessTreeDef();

@@ -711,8 +711,7 @@ static void TestOneChangeIsBounded(void)
 // A change at the foot of a deep chain, under a box of fixed size, is
 // solved there: the box keeps its answers and, with nothing aligned by
 // baselines, its moved baseline is read by none, so none of the thirty
-// ancestors is solved again (found by mutants that stopped the bound,
-// and that took every node's baseline as read).
+// ancestors is solved again.
 static void TestDeepChangeIsBounded(void)
 {
     static Edit edits[40];

@@ -2,8 +2,8 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Images grown (src/image_scale.c): each output pixel the source sampled
-// bilinearly at its centre, between the four source pixels around it
-// (found by a mutant blending the lower two the wrong way). White box:
+// bilinearly at its centre, between the four source pixels around it,
+// each pair blended the right way. It tests the scaler directly, since
 // bitmap glyphs grown through it are compared only at whole pixels.
 
 #include "image_scale.h"

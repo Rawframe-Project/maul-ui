@@ -395,7 +395,9 @@ muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut)
     }
     memset(block, 0, size);
     unsigned char* base = block + (CACHE_LINE - (uintptr_t)block % CACHE_LINE) % CACHE_LINE;
-    MUI_ASSERT(base - block <= (ptrdiff_t)(CACHE_LINE - alignof(max_align_t)));
+    MUI_ASSERT((uintptr_t)base % CACHE_LINE == 0 &&
+               base - block <= (ptrdiff_t)(CACHE_LINE - alignof(max_align_t)) &&
+               base + layout.size <= block + size);
     muiContext* context = (muiContext*)block;
     context->allocator = def->allocator;
     context->blockSize = size;

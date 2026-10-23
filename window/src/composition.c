@@ -14,14 +14,17 @@
 #include <stddef.h>
 
 static_assert(MWIN_MAX_PREEDIT_SEGMENTS == MUI_MAX_COMPOSITION_SEGMENTS, "the segment limits");
-static_assert(mwin_preeditPlain == mui_compositionPlain &&
-                  mwin_preeditUnderline == mui_compositionUnderline &&
-                  mwin_preeditTarget == mui_compositionTarget &&
-                  mwin_preeditConverted == mui_compositionConverted,
+// Two libraries' enumerators, compared as the integers both pass across.
+static_assert((int)mwin_preeditPlain == (int)mui_compositionPlain &&
+                  (int)mwin_preeditUnderline == (int)mui_compositionUnderline &&
+                  (int)mwin_preeditTarget == (int)mui_compositionTarget &&
+                  (int)mwin_preeditConverted == (int)mui_compositionConverted,
               "the styles");
-static_assert(mwin_purposeText == mui_purposeText && mwin_purposeNumber == mui_purposeNumber &&
-                  mwin_purposeEmail == mui_purposeEmail &&
-                  mwin_purposePassword == mui_purposePassword && mwin_purposeUrl == mui_purposeUrl,
+static_assert((int)mwin_purposeText == (int)mui_purposeText &&
+                  (int)mwin_purposeNumber == (int)mui_purposeNumber &&
+                  (int)mwin_purposeEmail == (int)mui_purposeEmail &&
+                  (int)mwin_purposePassword == (int)mui_purposePassword &&
+                  (int)mwin_purposeUrl == (int)mui_purposeUrl,
               "the purposes");
 static_assert(sizeof(mwinPreeditSegment) == sizeof(muiCompositionSegment) &&
                   offsetof(mwinPreeditSegment, start) == offsetof(muiCompositionSegment, start) &&

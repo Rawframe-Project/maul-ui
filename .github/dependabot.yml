@@ -1,0 +1,41 @@
+# Keeps the pinned action commits and the lockfiles of the browser tests
+# and the screen-reader walks current: one grouped pull request a week for
+# each, titled as a conventional commit. A release is proposed only once it
+# is a week old, so a compromised one has time to be noticed.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message:
+      prefix: ci
+  # puppeteer and its dependencies, which drive the browser tests.
+  - package-ecosystem: npm
+    directory: /test/browser
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      browser:
+        patterns: ["*"]
+    commit-message:
+      prefix: test
+  # Guidepup and puppeteer, which drive the nightly screen-reader walks.
+  - package-ecosystem: npm
+    directory: /tools/screen_reader
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      screen-readers:
+        patterns: ["*"]
+    commit-message:
+      prefix: test

@@ -462,9 +462,9 @@ static void TestDamage(void)
     CHECK(made > DAMAGE_ROUNDS / 2 && drawn > made, "damaged fonts made and their glyphs drawn");
 }
 
-// A colour font with one palette, as most have: its colours are used
-// (found by a mutant asking for two). A copy of Maul Color whose CPAL
-// says one palette; the second's index after it is left, unread.
+// A colour font with one palette, as most have: its colours are used. A
+// copy of Maul Color whose CPAL says one palette; the second's index
+// after it is left, unread.
 static void TestOnePalette(void)
 {
     memcpy(s_onePalette, s_color, sizeof s_color);

@@ -10,6 +10,7 @@
 
 #include "flex_item.h"
 #include "flex_resolve.h"
+#include "invariant.h"
 #include "sizing.h"
 
 #include <math.h>
@@ -686,6 +687,8 @@ static void PlaceChild(const muiFlexFrame* frame, uint32_t child, float main, fl
     float crossAt = frame->boxCrossStart + cross;
     layout->rect = frame->row ? (muiRect){mainAt, crossAt, item->target, item->cross}
                               : (muiRect){crossAt, mainAt, item->cross, item->target};
+    // A size is never negative; one that overflowed to NaN passes.
+    MUI_ASSERT(!(layout->rect.width < 0.0f) && !(layout->rect.height < 0.0f));
     muiSizingInput input = FinalInput(frame, child);
     (void)frame->solver->solve(frame->solver, child, &input, true);
 }

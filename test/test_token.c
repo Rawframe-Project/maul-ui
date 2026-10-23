@@ -522,8 +522,7 @@ static void TestNameLimit(void)
 }
 
 // Of three names in a variant, any one taken away goes back to the
-// pool, and the other two stay (found by a mutant stepping to the wrong
-// name past one it kept).
+// pool, and the other two stay.
 static void TestOneNameOfThree(void)
 {
     const muiProperty named[3] = {mui_propertyPaddingStart, mui_propertyPaddingEnd,
