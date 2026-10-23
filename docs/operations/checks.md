@@ -41,7 +41,7 @@ A test that cannot run exits 77, which CTest reports as skipped, and every CI ce
 | Job | What it guards |
 |---|---|
 | `changes` | Whether a pull request changes anything beyond documentation; when it does not, the build jobs are skipped. |
-| `docs` | The organization's documentation check. `test/fonts` holds third-party fonts and their licenses and is excluded. |
+| `docs` | The organization's documentation check, over the whole repository. |
 | `zizmor` | The workflows: injection, persisted credentials, permissions, unpinned actions. |
 | `checks` | `clang-format`, the family's rules, the text header list, the litmus check, the layout fixture tables, that the documentation site builds, and clang-tidy. It runs on documentation changes too. |
 | `build` | One call of the organization's `cpp.yml` per preset: GCC 14 on x86-64 and on arm64, Clang 20 in Release, Clang with AddressSanitizer and UBSan (each test repeated up to three times on a pull request, so a flaky one fails before it merges), Clang with ThreadSanitizer, the shared library, the core without the text component, the renderer and the glue with and without text on lavapipe, macOS on its runner and `clang-cl` on Windows. All build with warnings as errors. |
