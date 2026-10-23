@@ -47,7 +47,10 @@ cat > "$XDG_RUNTIME_DIR/orca/user-settings.conf" <<'SETTINGS'
  "profiles": {"default": {"profile": ["Default", "default"], "enableSpeech": false}},
  "pronunciations": {}, "keybindings": {}}
 SETTINGS
-Xvfb "$display" -screen 0 1280x800x24 >/dev/null 2>&1 &
+# -noreset: without it the server resets whenever its last client leaves,
+# as the readiness probe below does, and a connection arriving during the
+# reset fails.
+Xvfb "$display" -screen 0 1280x800x24 -noreset >/dev/null 2>&1 &
 xvfb=$!
 # The server is gone before the next walk takes its display.
 trap 'kill $xvfb 2>/dev/null; wait $xvfb 2>/dev/null; rm -rf "$XDG_RUNTIME_DIR"' EXIT

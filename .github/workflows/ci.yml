@@ -235,7 +235,9 @@ jobs:
           samples=(out/x11/sample_*)
           [ -x "${samples[0]}" ] || { echo "::error::no sample was built"; exit 1; }
           for sample in "${samples[@]}"; do
-            xvfb-run -a -s "-screen 0 1024x768x24" "$sample" --frames 5 2>&1 | tee out/window.log
+            # -noreset: a server that resets when its last client leaves
+            # refuses a connection that arrives during the reset.
+            xvfb-run -a -s "-screen 0 1024x768x24 -noreset" "$sample" --frames 5 2>&1 | tee out/window.log
             grep -q "the presented frame checked" out/window.log
             ! grep -qiE "validation error|VUID" out/window.log
           done
