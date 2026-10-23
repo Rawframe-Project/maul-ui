@@ -1,10 +1,9 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Sirac Ozmen
 #
-# Writes the fonts the font instance tests read (record mui-0006): 1000
-# units per em and an A, a box 400 wide and 700 high with an advance of
-# 500 at the default instance, whose axes move it by amounts a test can
-# tell apart:
+# Writes the fonts the font instance tests read: 1000 units per em and an
+# A, a box 400 wide and 700 high with an advance of 500 at the default
+# instance, whose axes move it by amounts a test can tell apart:
 #
 # - wght, 100 to 900 from 400: the right side and the advance grow by
 #   400 at 900 and shrink by 150 at 100 (in MaulVariableSlant.ttf, 100

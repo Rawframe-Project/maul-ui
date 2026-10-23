@@ -2,11 +2,10 @@
 # Copyright (c) 2026 Sirac Ozmen
 #
 # Writes MaulOverlap.ttf, the font the distance field tests render
-# overlapping contours in (record mui-0006): 1000 units per em and an A
-# made of two boxes that overlap, as variable fonts' glyphs often are,
-# marked with the TrueType overlap flag. Needs fontTools (pip install
-# fonttools); its timestamps are fixed, so it writes the same bytes each
-# time.
+# overlapping contours in: 1000 units per em and an A made of two boxes
+# that overlap, as variable fonts' glyphs often are, marked with the
+# TrueType overlap flag. Needs fontTools (pip install fonttools); its
+# timestamps are fixed, so it writes the same bytes each time.
 #
 #     python3 make_overlap_font.py
 

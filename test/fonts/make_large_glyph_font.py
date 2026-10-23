@@ -2,13 +2,12 @@
 # Copyright (c) 2026 Sirac Ozmen
 #
 # Writes MaulLargeGlyph.ttf, the font the glyph image tests render too
-# large in (record mui-0006): 16 units per em, the fewest a font may
-# have, and an A that is a box 16 ems a side, so at the largest size an
-# image would be far wider than FreeType's rasterizer allows; a B 16 ems
-# wide and 1 tall and a C 1 em wide and 16 tall, too large one way
-# alone. Needs
-# fontTools (pip install fonttools); its timestamps are fixed, so it
-# writes the same bytes each time.
+# large in: 16 units per em, the fewest a font may have, and an A that is
+# a box 16 ems a side, so at the largest size an image would be far wider
+# than FreeType's rasterizer allows; a B 16 ems wide and 1 tall and a C 1
+# em wide and 16 tall, too large one way alone. Needs fontTools (pip
+# install fonttools); its timestamps are fixed, so it writes the same
+# bytes each time.
 #
 #     python3 make_large_glyph_font.py
 

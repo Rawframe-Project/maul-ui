@@ -1,13 +1,12 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Sirac Ozmen
 #
-# Writes MaulBreakTest.ttf, the font the text tests break lines in
-# (record mui-0006): shaping that differs when a line breaks inside it.
-# A hyphen kerns against V, and a space and x form a ligature, both
-# across line break opportunities; Hebrew alef and bet form one too, a
-# right-to-left glyph two clusters share. Every glyph is a box; 1000
-# units per em. Needs fontTools (pip install fonttools); its timestamps are fixed,
-# so it writes the same bytes each time.
+# Writes MaulBreakTest.ttf, the font the text tests break lines in: shaping that
+# differs when a line breaks inside it. A hyphen kerns against V, and a space and
+# x form a ligature, both across line break opportunities; Hebrew alef and bet
+# form one too, a right-to-left glyph two clusters share. Every glyph is a box;
+# 1000 units per em. Needs fontTools (pip install fonttools); its timestamps are
+# fixed, so it writes the same bytes each time.
 #
 #     python3 make_break_test_font.py
 

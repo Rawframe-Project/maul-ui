@@ -1,10 +1,10 @@
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Sirac Ozmen
 #
-# Writes MaulSbix.ttf, the font the sbix tests render (record mui-0006):
-# 1000 units per em, outlines in glyf, and an sbix table written here
-# byte by byte, its 20 ppem strike first and its 10 ppem strike second.
-# At 10 ppem a unit is a tenth of a pixel:
+# Writes MaulSbix.ttf, the font the sbix tests render: 1000 units per em,
+# outlines in glyf, and an sbix table written here byte by byte, its 20
+# ppem strike first and its 10 ppem strike second. At 10 ppem a unit is a
+# tenth of a pixel:
 #
 #   glyph 1 "boxed"  an outline box from 100 to 500 across and -100 to
 #                    300 up; 4 by 4 red, its origin offset 1, 0, so its

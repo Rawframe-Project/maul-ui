@@ -31,5 +31,6 @@
 
 - [Development](operations/development.md): toolchain, presets, generated files, layout fixtures, fuzz findings, benchmarks and size.
 - [Test environments](operations/test-environments.md): lavapipe, the test backend, buses, platforms, browsers and screen readers.
+- [Test fonts](operations/test-fonts.md): where each test font comes from, its license and its checksum.
 - [Checks](operations/checks.md): the local tiers, the tests and their labels, each CI job, fuzzing and the budgets.
 - [Release](operations/release.md): how a version is made and published.
