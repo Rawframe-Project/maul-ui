@@ -48,6 +48,10 @@ CONTAINER = f"rhi/shaders/{NAME}_container.h"
 # where each comes from), and the stamp's lines naming them: DXC's name
 # the family's release asset of microsoft/DirectXShaderCompiler and its
 # SHA-256, as Maul RHI's stamps do.
+# The commit each Maul RHI release tag names: a local tag of that name on
+# another commit is not the release.
+RHI_COMMITS = {"v0.0.1": "1d80691ee9b79c712e2fad2f867013bad945d19d"}
+
 PINNED = {
     "glslang": "glslang 15.1.0",
     "SPIRV-Tools": "SPIRV-Tools v2025.1",
@@ -141,13 +145,17 @@ def git_environment():
     and none of the caller's Git variables, so a developer's hooks, ignore
     rules or signing settings change neither what the checks see nor what
     the self-test does. Over the clone's own configuration, which may not
-    be the caller's, no file system monitor runs and no untracked cache is
-    read, and git speaks English, so its messages can be matched."""
+    be the caller's, no file system monitor runs, no untracked cache is
+    read, and nothing is fetched, though the clone be a partial one whose
+    missing objects git would fetch through its remote's transport (no
+    lazy fetch from Git 2.44, no protocol before it); and git speaks
+    English, so its messages can be matched."""
     environment = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
     environment.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1", LC_ALL="C",
-                       GIT_CONFIG_COUNT="2",
+                       GIT_NO_LAZY_FETCH="1", GIT_CONFIG_COUNT="3",
                        GIT_CONFIG_KEY_0="core.fsmonitor", GIT_CONFIG_VALUE_0="false",
-                       GIT_CONFIG_KEY_1="core.untrackedCache", GIT_CONFIG_VALUE_1="false")
+                       GIT_CONFIG_KEY_1="core.untrackedCache", GIT_CONFIG_VALUE_1="false",
+                       GIT_CONFIG_KEY_2="protocol.allow", GIT_CONFIG_VALUE_2="never")
     return environment
 
 
@@ -198,10 +206,12 @@ def checkout_differs(git, tree, algorithm, environment):
                 for path in ignored.stdout.split(b"\0")))
 
 
-def rhi_release(tree):
+def rhi_release(tree, commits=RHI_COMMITS):
     """The tag a clean Maul RHI checkout is at, and why it cannot be used
     when it is not: an edit or an untracked file there changes what its
-    tools write while the tag stays the same."""
+    tools write while the tag stays the same, and a tag of the release's
+    name on a commit other than the one commits pins for it is not the
+    release."""
     # The clone is trusted by its path: it may belong to another user, as a
     # tree mounted into a container does, and no system or global
     # configuration is read to say safe.directory for it.
@@ -223,7 +233,12 @@ def rhi_release(tree):
     if checkout_differs(git, tree, algorithm, environment):
         return None, f"{tree} has uncommitted changes or untracked files"
     tag = output(*git, "describe", "--tags", "--exact-match", env=environment).strip()
-    return (tag, None) if tag else (None, f"{tree} is not at a tag")
+    if not tag:
+        return None, f"{tree} is not at a tag"
+    head = output(*git, "rev-parse", "--verify", "HEAD^{commit}", env=environment).strip()
+    if head != commits.get(tag):
+        return None, f"{tree} is at a {tag} tag on {head}, not the release's commit"
+    return tag, None
 
 
 def stamp(root, rhi, data):
@@ -352,7 +367,8 @@ def self_test():
 
 def self_test_generation(work):
     """What generating refuses: tools other than the pins, and a Maul RHI
-    checkout that is edited, has untracked files, or is not at a tag."""
+    checkout that is edited, has untracked files, is not at a tag or at a
+    tag on another commit than the pinned one, or would fetch."""
     failures = []
     if unpinned(PINNED):
         failures.append("the pinned tools are refused")
@@ -371,13 +387,21 @@ def self_test_generation(work):
     for command in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "a release"],
                     ["tag", "v0.0.1"]):
         subprocess.run(git + command, capture_output=True, check=True, env=environment)
-    if rhi_release(tree) != ("v0.0.1", None):
+    commit = subprocess.run(git + ["rev-parse", "HEAD"], capture_output=True, text=True,
+                            check=True, env=environment).stdout.strip()
+
+    def released():
+        return rhi_release(tree, {"v0.0.1": commit})
+
+    if released() != ("v0.0.1", None):
         failures.append("a clean checkout at its tag is refused")
+    if rhi_release(tree, {"v0.0.1": "0" * 40})[0] is not None:
+        failures.append("a tag of the release's name on another commit is taken")
     # A clone's own configuration names a command git would run on status.
     marker = os.path.join(work, "fsmonitor-ran")
     subprocess.run(git + ["config", "core.fsmonitor", f"touch '{marker}' #"], capture_output=True,
                    check=True, env=environment)
-    rhi_release(tree)
+    released()
     if os.path.exists(marker):
         failures.append("a command the clone's configuration names is run")
     subprocess.run(git + ["config", "--unset", "core.fsmonitor"], capture_output=True, check=True,
@@ -391,7 +415,7 @@ def self_test_generation(work):
     subprocess.run(git + ["config", "filter.probe.clean", f"touch '{marker}'; cat"],
                    capture_output=True, check=True, env=environment)
     write("tools/mrhi_container.py", "# a tool\n")
-    if rhi_release(tree) != ("v0.0.1", None):
+    if released() != ("v0.0.1", None):
         failures.append("a clean checkout with a configured filter is refused")
     if os.path.exists(marker):
         failures.append("a filter the clone's configuration names is run")
@@ -403,28 +427,46 @@ def self_test_generation(work):
     with open(os.path.join(tree, ".git", "info", "exclude"), "w", encoding="utf-8") as file:
         file.write("extra.py\n")
     write("tools/extra.py", "# untracked\n")
-    if rhi_release(tree)[0] is not None:
+    if released()[0] is not None:
         failures.append("an untracked file .git/info/exclude hides is taken")
     os.remove(os.path.join(tree, ".git", "info", "exclude"))
     write("tools/.gitignore", ".gitignore\nextra.py\n")
-    if rhi_release(tree)[0] is not None:
+    if released()[0] is not None:
         failures.append("an untracked file an untracked .gitignore hides is taken")
     os.remove(os.path.join(tree, "tools", ".gitignore"))
     os.remove(os.path.join(tree, "tools", "extra.py"))
     write("tools/mrhi_container.py", "# a tool, edited\n")
-    if rhi_release(tree)[0] is not None:
+    if released()[0] is not None:
         failures.append("an edited Maul RHI checkout is taken")
     subprocess.run(git + ["checkout", "-q", "--", "."], capture_output=True, check=True,
                    env=environment)
     write("tools/extra.py", "# untracked\n")
-    if rhi_release(tree)[0] is not None:
+    if released()[0] is not None:
         failures.append("a Maul RHI checkout with an untracked file is taken")
     os.remove(os.path.join(tree, "tools", "extra.py"))
     write("tools/mrhi_container.py", "# a later tool\n")
     subprocess.run(git + ["commit", "-q", "-am", "after the release"], capture_output=True,
                    check=True, env=environment)
-    if rhi_release(tree)[0] is not None:
+    if released()[0] is not None:
         failures.append("a Maul RHI checkout past its tag is taken")
+    # A partial clone missing HEAD's tree, which git would fetch through
+    # the clone's remote with the ssh command its configuration names.
+    marker = os.path.join(work, "fetch-ran")
+    tree_id = subprocess.run(git + ["rev-parse", "HEAD^{tree}"], capture_output=True, text=True,
+                             check=True, env=environment).stdout.strip()
+    os.remove(os.path.join(tree, ".git", "objects", tree_id[:2], tree_id[2:]))
+    for key, value in (("core.repositoryformatversion", "1"),
+                       ("extensions.partialClone", "origin"),
+                       ("remote.origin.url", "ssh://promisor.invalid/maul-rhi"),
+                       ("remote.origin.promisor", "true"),
+                       ("remote.origin.partialclonefilter", "tree:0"),
+                       ("core.sshCommand", f"touch '{marker}' #")):
+        subprocess.run(git + ["config", key, value], capture_output=True, check=True,
+                       env=environment)
+    if released()[0] is not None:
+        failures.append("a partial clone missing objects is taken")
+    if os.path.exists(marker):
+        failures.append("a fetch the clone's configuration names is run")
     return failures
 
 
