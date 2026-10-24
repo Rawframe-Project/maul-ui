@@ -11,7 +11,12 @@
 #   bytes fuzz_text reads first (an allocation to fail among them) and
 #   before edits of every kind;
 # - atspi: D-Bus method calls, marshalled as on the wire, of every method
-#   the adapter answers, on the root and each node of fuzz_atspi's tree.
+#   the adapter answers, on the root and each node of fuzz_atspi's tree;
+# - api: sequences of public calls in fuzz_api's encoding, trees made,
+#   styled and moved, then laid out and compared with a solve from
+#   nothing, and one for each further family of calls (destroying,
+#   content changed, scrolling, hit tests, classes, states and
+#   gradients).
 # The standard library only.
 #
 # Usage: python3 tools/fuzz_seed.py [DIRECTORY]  (from the repository root;
@@ -237,6 +242,139 @@ def atspi_seeds(directory):
             write(directory, f"{p}-{i:02d}-{member}", data)
 
 
+def pick(index, count):
+    """A byte fuzz_api reads as the id at index among count it holds."""
+    return index + count * ((16 + count - 1) // count)
+
+
+# fuzz_api's call kinds, the first byte of each call.
+API_CREATE, API_DESTROY, API_INSERT, API_DETACH, API_VALUES = 0, 1, 2, 3, 4
+API_CONTENT, API_LAYOUT, API_SCROLL, API_HIT, API_CLASS, API_STATES = 6, 7, 10, 13, 14, 15
+API_VISUAL = 16
+# Byte offsets in muiLayoutStyle and muiVisualStyle on the 64-bit targets
+# fuzzing runs on, and property bits of their masks: a seed that drifts
+# from them still runs, it only writes another value.
+WIDTH, HEIGHT, MIN_WIDTH, PADDING_START, CONTENT, SCROLL_AXES = 4, 16, 28, 152, 229, 230
+BIT_WIDTH, BIT_HEIGHT, BIT_MIN_WIDTH, BIT_PADDING_START = 0, 1, 2, 27
+BIT_CONTENT, BIT_SCROLL_AXES = 39, 40
+BACKGROUND_BLUE, CLIP, BIT_BACKGROUND, BIT_CLIP = 8, 328, 0, 16
+GRADIENT, BIT_GRADIENT = 16, 1
+STATE_HOVERED, VARIANT_HOVERED = 16, 5
+
+
+def api_number(value):
+    """A byte fuzz_api reads as the small length value."""
+    assert value % 4 == 0 and -16 <= value <= 236
+    return (value + 16) // 4
+
+
+def api_values(node, at, data, bit, mask=None):
+    """A raw write of data at byte at of a node's layout style, under a
+    mask of one property or the mask given."""
+    mask = 1 << bit if mask is None else mask
+    return bytes([API_VALUES, node, at, len(data) - 1]) + data + struct.pack(">Q", mask)
+
+
+def api_visual(node, at, data, bit):
+    """A raw write of data at byte at of a node's visual style, one property in the mask."""
+    return bytes([API_VISUAL, node, at >> 8, at & 0xFF, len(data) - 1]) + data + \
+        struct.pack(">Q", 1 << bit)
+
+
+def api_length(node, at, value, bit):
+    """A dimension given value, written from its offset field at byte at."""
+    return api_values(node, at, struct.pack("<fB3x", value, 1), bit)
+
+
+def api_compare(root):
+    """A layout of root at 200 by 160, held to a solve from nothing."""
+    return bytes([API_LAYOUT, root, 1, api_number(200), api_number(160), 255, 0])
+
+
+def api_tree(count, parents, root_width=200, root_height=160):
+    """count nodes, node i under parents[i - 1], each painted blue, the
+    first sized, the others measured by the host and given a height."""
+    out = bytearray()
+    for i in range(count):
+        out += bytes([API_CREATE, 10 + 7 * i, 255])
+    for i, parent in enumerate(parents, 1):
+        out += bytes([API_INSERT, pick(parent, count), pick(i, count), 0])
+    out += api_length(pick(0, count), WIDTH, root_width, BIT_WIDTH)
+    out += api_length(pick(0, count), HEIGHT, root_height, BIT_HEIGHT)
+    for i in range(1, count):
+        out += api_values(pick(i, count), CONTENT, b"\x01", BIT_CONTENT)
+        out += api_length(pick(i, count), HEIGHT, 10 + i, BIT_HEIGHT)
+    for i in range(count):
+        out += api_visual(pick(i, count), BACKGROUND_BLUE, struct.pack("<ff", 1, 1),
+                          BIT_BACKGROUND)
+    return out
+
+
+def api_class(count, variant, node):
+    """A class with a padding in variant, listed on node."""
+    return bytes([API_CLASS, 0, API_CLASS, 1, 16, variant, PADDING_START + 3, 0x42]) + \
+        struct.pack(">Q", 1 << BIT_PADDING_START) + bytes([API_CLASS, 2, pick(node, count), 1, 16])
+
+
+def api_seeds(directory):
+    for shape in range(4):
+        out = bytearray()
+        count = 0
+        for i in range(10):
+            out += bytes([API_CREATE, i % 3, 255])
+            count += 1
+            if i > 0:
+                parent = 0 if shape == 0 else (i - 1 if shape == 1 else (i - 1) // 2)
+                out += bytes([API_INSERT, pick(parent, count), pick(i, count), 0])
+            # A raw write of a few bytes of the layout style, any mask.
+            out += api_values(pick(i, count), (i * 13) % 200, bytes([i, 2, 0, 1, 0]), 0,
+                              0xFFFFFFFF)
+        out += bytes([API_LAYOUT, pick(0, count), 1, 120, 80, 255, 0])
+        out += bytes([9, pick(0, count), 1, 4])
+        out += bytes([11, pick(0, count), 1, 0, 0, 1, 0, 1, 40, 40, 0])
+        out += bytes([12, pick(0, count), 0, 0])
+        out += bytes([API_DETACH, pick(count // 2, count)]) + api_compare(pick(0, count))
+        write(directory, f"tree-{shape}", bytes(out))
+    # One seed for each family of calls the trees leave out, each between
+    # two solves held to a solve from nothing.
+    count = 10
+    binary = [(i - 1) // 2 for i in range(1, count)]
+    root = pick(0, count)
+    out = api_tree(count, binary) + api_compare(root)
+    out += bytes([API_DESTROY, pick(2, count)]) + api_compare(root)
+    write(directory, "destroy", bytes(out))
+    out = api_tree(count, binary) + api_compare(root) + bytes([API_CONTENT, pick(4, count)]) + api_compare(root)
+    write(directory, "content", bytes(out))
+    # A row scrolled sideways: a clipping container 100 wide under the
+    # root, its children 60 wide at least.
+    out = api_tree(count, [0] + [1] * (count - 2))
+    out += api_length(pick(1, count), WIDTH, 100, BIT_WIDTH)
+    out += api_visual(pick(1, count), CLIP, b"\x01", BIT_CLIP)
+    out += api_values(pick(1, count), SCROLL_AXES, b"\x01", BIT_SCROLL_AXES)
+    for i in range(2, count):
+        out += api_length(pick(i, count), MIN_WIDTH, 60, BIT_MIN_WIDTH)
+    out += api_compare(root)
+    out += bytes([API_SCROLL, pick(1, count), api_number(48), api_number(0)]) + api_compare(root)
+    write(directory, "scroll", bytes(out))
+    out = api_tree(count, binary) + api_compare(root)
+    out += bytes([API_HIT, root, api_number(40), api_number(12)]) + api_compare(root)
+    write(directory, "hit", bytes(out))
+    out = api_tree(count, binary) + api_class(count, 0, 0) + api_compare(root)
+    write(directory, "class", bytes(out))
+    # Linear gradients of two stops at three angles; one node resized
+    # after, so the bounded build copies the others' entries.
+    out = api_tree(count, binary)
+    for i in range(1, 4):
+        out += api_visual(pick(i, count), GRADIENT, struct.pack("<BBxxf", 1, 2, 30 * i),
+                          BIT_GRADIENT)
+    out += api_compare(root) + api_length(pick(1, count), HEIGHT, 40, BIT_HEIGHT)
+    out += api_compare(root)
+    write(directory, "gradient", bytes(out))
+    out = api_tree(count, binary) + api_class(count, VARIANT_HOVERED, 0) + api_compare(root)
+    out += bytes([API_STATES, root, STATE_HOVERED]) + api_compare(root)
+    write(directory, "states", bytes(out))
+
+
 def main():
     base = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else pathlib.Path.cwd()
     inflate_seeds(base / "corpus-fuzz_inflate")
@@ -244,6 +382,7 @@ def main():
     font_seeds(base / "corpus-fuzz_font")
     text_seeds(base / "corpus-fuzz_text")
     atspi_seeds(base / "corpus-fuzz_atspi")
+    api_seeds(base / "corpus-fuzz_api")
 
 
 if __name__ == "__main__":
