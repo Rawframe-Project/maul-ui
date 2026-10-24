@@ -5,6 +5,52 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.1.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.0.1...v0.1.0) (2026-10-24)
+
+A release of fixes that change the API: a program built against 0.0.1
+must be rebuilt, and code that compares results to `mui_errorInvalid`
+may need to look for `mui_errorFormat` instead.
+
+### Changed
+
+- The access tree, AT-SPI application and ARIA, Android,
+  NSAccessibility, UI Automation and UIKit adapter defs carry the
+  version of the headers the program was built with, as the context
+  and text service defs do. A def built against other headers is
+  refused with `mui_errorVersion` before anything else in it is read
+  ([#22](https://github.com/Rawframe-Project/maul-ui/pull/22)).
+- Bad data that another program controls is refused with
+  `mui_errorFormat` and no longer counts as misuse, so every
+  `mui_errorInvalid` is now a bug in the host
+  ([#19](https://github.com/Rawframe-Project/maul-ui/pull/19)):
+  - `muiCreateFont` returns `mui_errorFormat` for font data shorter
+    than a header or longer than 2^31 - 1 bytes;
+  - `muiPerformAccessAction` returns it for a screen reader's value or
+    point that is not finite;
+  - `muiTextPerformAccessAction` returns it for offsets that are not
+    character starts of the text as it is now, or a field no longer
+    editing.
+
+### Removed
+
+- The library no longer exports `muiDefaultAccessTreeDef`,
+  `muiDefaultAtspiAppDef`, `muiDefaultAriaAdapterDef`,
+  `muiDefaultAndroidAdapterDef`, `muiDefaultNsAdapterDef`,
+  `muiDefaultUiaAdapterDef` or `muiDefaultUikitAdapterDef`. They are
+  `static inline` in the headers, so they stamp the program's version
+  ([#22](https://github.com/Rawframe-Project/maul-ui/pull/22)).
+
+### Fixed
+
+- Layout no longer hangs on a child far wider than its row that is
+  shrunk onto its minimum width
+  ([#17](https://github.com/Rawframe-Project/maul-ui/issues/17)).
+- The NSAccessibility, Android and ARIA adapters no longer pass a
+  screen reader's value that is not finite, or lies outside the
+  range, to the program's action function, as the AT-SPI and UI
+  Automation adapters already did not
+  ([#19](https://github.com/Rawframe-Project/maul-ui/pull/19)).
+
 ## [0.0.1](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.0.1) (2026-10-23)
 
 The first release: a retained UI core that lays out, styles, draws,
