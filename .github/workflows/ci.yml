@@ -510,7 +510,9 @@ jobs:
           done
 
   # The wasm each part adds to a program at -Oz with link-time optimization,
-  # against its ceiling (tools/size_report.py): over a ceiling fails.
+  # against its ceiling (tools/size_report.py): over a ceiling fails. The
+  # Emscripten version is pinned, so the sizes move only with our code or
+  # with a pull request that moves the pin.
   size:
     needs: changes
     if: needs.changes.outputs.code == 'true'
@@ -523,6 +525,8 @@ jobs:
         with:
           persist-credentials: false
       - uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
+        with:
+          version: 6.0.13
       - name: Build
         run: |
           emcmake cmake -B out/size -DCMAKE_BUILD_TYPE=MinSizeRel \
