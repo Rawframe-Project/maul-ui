@@ -70,8 +70,8 @@ TOOL_LINES = (
 )
 
 
-def run(*command):
-    result = subprocess.run(command, capture_output=True, text=True)
+def run(*command, cwd=None):
+    result = subprocess.run(command, capture_output=True, text=True, cwd=cwd)
     if result.returncode != 0:
         sys.exit(f"{command[0]} failed:\n{result.stdout}{result.stderr}")
 
@@ -99,11 +99,15 @@ def build(work, tools):
     reflection = os.path.join(SHADERS, f"{NAME}.json")
     dxil = os.path.join(work, "dxil")
     msl = os.path.join(work, "msl")
-    run(*tool_command(work, os.path.join(tools, "mrhi_dxil.py")), linked, reflection, dxil)
-    run(*tool_command(work, os.path.join(tools, "mrhi_msl.py")), linked, reflection, msl)
+    # The tools run in the work directory, so a path they take relative to
+    # where they run never names the caller's.
+    run(*tool_command(work, os.path.join(tools, "mrhi_dxil.py")), linked, reflection, dxil,
+        cwd=work)
+    run(*tool_command(work, os.path.join(tools, "mrhi_msl.py")), linked, reflection, msl,
+        cwd=work)
     container = os.path.join(work, f"{NAME}.mrsc")
     run(*tool_command(work, os.path.join(tools, "mrhi_container.py")), "--dxil", dxil, "--msl",
-        msl, linked, os.path.join(SHADERS, f"{NAME}.wgsl"), reflection, container)
+        msl, linked, os.path.join(SHADERS, f"{NAME}.wgsl"), reflection, container, cwd=work)
     with open(container, "rb") as file:
         return file.read()
 
@@ -284,18 +288,35 @@ def verified_checkout(git, tree, commit, algorithm, environment):
 
 def export_release(files, directory):
     """Writes a release's files as verified_checkout read and hashed them
-    into a fresh directory, from which its tools run: nothing else in the
-    clone, an ignored file or bytecode, is ever read or run."""
+    into a directory it creates, from which its tools run: nothing else in
+    the clone, an ignored file or bytecode, is ever read or run. Each file
+    is created anew, never through a link, and the links come last, each
+    of them resolving inside the directory. None, or why the release
+    cannot be exported: a link that is absolute or leads out of it."""
     root = os.fsencode(directory)
-    for path, (mode, data) in files.items():
+    os.makedirs(root)
+    links = []
+    for path, (mode, data) in sorted(files.items()):
         full = os.path.join(root, path)
-        os.makedirs(os.path.dirname(full), exist_ok=True)
         if mode == b"120000":
-            os.symlink(data, full)
-        else:
-            with open(full, "wb") as file:
-                file.write(data)
-            os.chmod(full, 0o755 if mode == b"100755" else 0o644)
+            if os.path.isabs(data):
+                return f"{path.decode(errors='replace')} is an absolute link"
+            links.append((path, full, data))
+            continue
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+        descriptor = os.open(full, flags, 0o600)
+        with os.fdopen(descriptor, "wb") as file:
+            os.fchmod(descriptor, 0o755 if mode == b"100755" else 0o644)
+            file.write(data)
+    for _, full, target in links:
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        os.symlink(target, full)
+    real_root = os.path.realpath(root)
+    for path, full, _ in links:
+        if os.path.commonpath([os.path.realpath(full), real_root]) != real_root:
+            return f"{path.decode(errors='replace')} is a link out of the release"
+    return None
 
 
 def rhi_release(tree, commits=RHI_COMMITS, export=None):
@@ -334,8 +355,9 @@ def rhi_release(tree, commits=RHI_COMMITS, export=None):
     files = verified_checkout(git, tree, head, algorithm, environment)
     if files is None:
         return None, f"{tree} has uncommitted changes or untracked files"
-    if export is not None:
-        export_release(files, export)
+    problem = export_release(files, export) if export is not None else None
+    if problem is not None:
+        return None, f"{tree}: {problem}"
     return tag, None
 
 
@@ -457,6 +479,7 @@ def self_test():
             failures.append("a container stamped by other tools passes")
         failures += self_test_generation(work)
         failures += self_test_isolation(os.path.join(work, "isolation"))
+        failures += self_test_links(os.path.join(work, "links"))
     for failure in failures:
         print(f"gen_rhi_shaders --self-test: {failure}")
     if failures:
@@ -634,11 +657,47 @@ def self_test_isolation(work):
     if rhi_release(tree, {"v0.0.1": commit}, export=release) != ("v0.0.1", None):
         failures.append("a release with ignored files is refused")
     ran = subprocess.run(tool_command(work, os.path.join(release, "tools", "script.py")),
-                         capture_output=True, text=True)
+                         capture_output=True, text=True, cwd=work)
     if ran.stdout.strip() != "1":
         failures.append("a tool of the exported release does not run")
     if any(os.path.exists(marker) for marker in markers):
         failures.append("code the clone holds outside the release is run")
+    return failures
+
+
+def self_test_links(work):
+    """A release's links exported only where they stay inside it: one to
+    a file or a directory of the release is kept; one that is absolute,
+    climbs out, or climbs out through another link refuses the release."""
+    failures = []
+
+    def release(name, links):
+        tree = os.path.join(work, name)
+        os.makedirs(os.path.join(tree, "tools"))
+        with open(os.path.join(tree, "tools", "helper.py"), "w", encoding="utf-8") as file:
+            file.write("VALUE = 1\n")
+        for path, target in links.items():
+            os.makedirs(os.path.dirname(os.path.join(tree, path)), exist_ok=True)
+            os.symlink(target, os.path.join(tree, path))
+        git = ["git", "-C", tree, "-c", "user.name=self-test",
+               "-c", "user.email=self-test@localhost"]
+        environment = git_environment()
+        for command in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "a release"],
+                        ["tag", "v0.0.1"]):
+            subprocess.run(git + command, capture_output=True, check=True, env=environment)
+        commit = subprocess.run(git + ["rev-parse", "HEAD"], capture_output=True, text=True,
+                                check=True, env=environment).stdout.strip()
+        return rhi_release(tree, {"v0.0.1": commit}, export=os.path.join(work, name + "-export"))
+
+    if release("contained", {"tools/ok": "helper.py", "docs": "tools"}) != ("v0.0.1", None):
+        failures.append("a release with links inside it is refused")
+    elif not os.path.isfile(os.path.join(work, "contained-export", "docs", "ok")):
+        failures.append("a release's links do not resolve in its export")
+    for name, links in (("climbing", {"tools/escape": "../../outside"}),
+                        ("absolute", {"tools/escape": "/etc/passwd"}),
+                        ("chained", {"a/up": "..", "escape": "a/up/../.."})):
+        if release(name, links)[0] is not None:
+            failures.append(f"a release with a link out of it ({name}) is taken")
     return failures
 
 
