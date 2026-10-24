@@ -16,6 +16,7 @@
 #include "virtual.h"
 #include "virtual_store.h"
 
+#include <float.h>
 #include <math.h>
 
 static bool IsLength(float value)
@@ -152,17 +153,24 @@ static double* SumsOf(const muiVirtualStore* store, const muiVirtualEntry* entry
 
 // Whether the tree's total, every item's extent and gap, is the sum of
 // the stored sizes, within rounding; a sum that overflowed is not
-// compared.
+// compared. Two sums of the same n terms in any order each lie within
+// gamma(n - 1) of the terms' magnitudes of the exact sum (Higham,
+// Accuracy and Stability of Numerical Algorithms, section 4.2), so they
+// differ by at most 2(n + 1) epsilon times that magnitude: a tolerance
+// that grows with the count, as a long list's rounding does.
 [[maybe_unused]] static bool TotalAgrees(const muiVirtualStore* store, const muiVirtualEntry* entry)
 {
     double sum = 0.0;
+    double magnitude = 0.0;
     for (uint32_t i = 0; i < entry->list.count; i++)
     {
-        sum += (double)store->sizes[entry->base + i] + (double)entry->list.gap;
+        double term = (double)store->sizes[entry->base + i] + (double)entry->list.gap;
+        sum += term;
+        magnitude += fabs(term);
     }
     double total = muiVirtualOffset(store, entry, entry->list.count);
-    return !isfinite(sum) || !isfinite(total) ||
-           fabs(total - sum) <= 1e-9 * fmax(fmax(fabs(total), fabs(sum)), 1.0);
+    double bound = 2.0 * ((double)entry->list.count + 1.0) * DBL_EPSILON * magnitude;
+    return !isfinite(sum) || !isfinite(total) || !isfinite(bound) || fabs(total - sum) <= bound;
 }
 
 void muiVirtualBuild(muiVirtualStore* store, const muiVirtualEntry* entry)
