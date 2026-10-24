@@ -12,6 +12,7 @@
 #include "bitmap_glyph.h"
 #include "color.h"
 #include "font_store.h"
+#include "fpenv.h"
 #include "glyph_table.h"
 #include "invariant.h"
 #include "skyline.h"
@@ -649,8 +650,9 @@ static muiResult GlyphAtlasGet(muiGlyphAtlas* atlas, uint64_t font, uint32_t gly
                : muiRefuseText(atlas != nullptr ? atlas->service : nullptr);
 }
 
-muiResult muiGlyphAtlas_Get(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, float pixelSize,
-                            float penX, float baselineY, muiAtlasGlyph* glyphOut)
+static MUI_NOINLINE muiResult GlyphAtlasGetWorker(muiGlyphAtlas* atlas, uint64_t font,
+                                                  uint32_t glyph, float pixelSize, float penX,
+                                                  float baselineY, muiAtlasGlyph* glyphOut)
 {
     muiResult status = EnterAtlas(atlas);
     if (status == mui_success)
@@ -659,6 +661,16 @@ muiResult muiGlyphAtlas_Get(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
         LeaveAtlas(atlas);
     }
     return status;
+}
+
+muiResult muiGlyphAtlas_Get(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, float pixelSize,
+                            float penX, float baselineY, muiAtlasGlyph* glyphOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result =
+        GlyphAtlasGetWorker(atlas, font, glyph, pixelSize, penX, baselineY, glyphOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static muiResult GlyphAtlasGetColor(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
@@ -671,9 +683,11 @@ static muiResult GlyphAtlasGetColor(muiGlyphAtlas* atlas, uint64_t font, uint32_
                : muiRefuseText(atlas != nullptr ? atlas->service : nullptr);
 }
 
-muiResult muiGlyphAtlas_GetColor(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
-                                 float pixelSize, float penX, float baselineY, uint32_t palette,
-                                 muiLinearColor foreground, muiAtlasGlyph* glyphOut)
+static MUI_NOINLINE muiResult GlyphAtlasGetColorWorker(muiGlyphAtlas* atlas, uint64_t font,
+                                                       uint32_t glyph, float pixelSize, float penX,
+                                                       float baselineY, uint32_t palette,
+                                                       muiLinearColor foreground,
+                                                       muiAtlasGlyph* glyphOut)
 {
     muiResult status = EnterAtlas(atlas);
     if (status == mui_success)
@@ -683,6 +697,17 @@ muiResult muiGlyphAtlas_GetColor(muiGlyphAtlas* atlas, uint64_t font, uint32_t g
         LeaveAtlas(atlas);
     }
     return status;
+}
+
+muiResult muiGlyphAtlas_GetColor(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
+                                 float pixelSize, float penX, float baselineY, uint32_t palette,
+                                 muiLinearColor foreground, muiAtlasGlyph* glyphOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = GlyphAtlasGetColorWorker(atlas, font, glyph, pixelSize, penX, baselineY,
+                                                palette, foreground, glyphOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // Gets a field, of one channel or of four as the atlas is.
@@ -713,8 +738,9 @@ static muiResult GlyphAtlasGetField(muiGlyphAtlas* atlas, uint64_t font, uint32_
                : muiRefuseText(atlas != nullptr ? atlas->service : nullptr);
 }
 
-muiResult muiGlyphAtlas_GetField(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
-                                 float pixelSize, uint32_t spread, muiAtlasGlyph* glyphOut)
+static MUI_NOINLINE muiResult GlyphAtlasGetFieldWorker(muiGlyphAtlas* atlas, uint64_t font,
+                                                       uint32_t glyph, float pixelSize,
+                                                       uint32_t spread, muiAtlasGlyph* glyphOut)
 {
     muiResult status = EnterAtlas(atlas);
     if (status == mui_success)
@@ -725,6 +751,15 @@ muiResult muiGlyphAtlas_GetField(muiGlyphAtlas* atlas, uint64_t font, uint32_t g
     return status;
 }
 
+muiResult muiGlyphAtlas_GetField(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
+                                 float pixelSize, uint32_t spread, muiAtlasGlyph* glyphOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = GlyphAtlasGetFieldWorker(atlas, font, glyph, pixelSize, spread, glyphOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
 static muiResult GlyphAtlasGetMultiField(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
                                          float pixelSize, uint32_t spread, muiAtlasGlyph* glyphOut)
 {
@@ -733,8 +768,10 @@ static muiResult GlyphAtlasGetMultiField(muiGlyphAtlas* atlas, uint64_t font, ui
                : muiRefuseText(atlas != nullptr ? atlas->service : nullptr);
 }
 
-muiResult muiGlyphAtlas_GetMultiField(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
-                                      float pixelSize, uint32_t spread, muiAtlasGlyph* glyphOut)
+static MUI_NOINLINE muiResult GlyphAtlasGetMultiFieldWorker(muiGlyphAtlas* atlas, uint64_t font,
+                                                            uint32_t glyph, float pixelSize,
+                                                            uint32_t spread,
+                                                            muiAtlasGlyph* glyphOut)
 {
     muiResult status = EnterAtlas(atlas);
     if (status == mui_success)
@@ -743,6 +780,16 @@ muiResult muiGlyphAtlas_GetMultiField(muiGlyphAtlas* atlas, uint64_t font, uint3
         LeaveAtlas(atlas);
     }
     return status;
+}
+
+muiResult muiGlyphAtlas_GetMultiField(muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph,
+                                      float pixelSize, uint32_t spread, muiAtlasGlyph* glyphOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result =
+        GlyphAtlasGetMultiFieldWorker(atlas, font, glyph, pixelSize, spread, glyphOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 uint32_t muiGlyphAtlas_GetPageCount(const muiGlyphAtlas* atlas)

@@ -5,6 +5,7 @@
 // ranges to rectangles, over a node's lines read as boxes of grapheme
 // clusters.
 
+#include "fpenv.h"
 #include "text_boxes.h"
 #include "text_entry.h"
 #include "text_mask.h"
@@ -40,8 +41,9 @@ muiResult muiHitText(const muiTextHost* host, muiNodeId nodeId, float width, flo
     return mui_success;
 }
 
-muiResult muiTextHitTest(const muiTextHost* host, muiNodeId nodeId, float width, float x, float y,
-                         muiTextPosition* positionOut)
+static MUI_NOINLINE muiResult TextHitTestWorker(const muiTextHost* host, muiNodeId nodeId,
+                                                float width, float x, float y,
+                                                muiTextPosition* positionOut)
 {
     muiTextService* entered = host != nullptr ? host->service : nullptr;
     muiResult status = muiEnterText(entered);
@@ -51,6 +53,15 @@ muiResult muiTextHitTest(const muiTextHost* host, muiNodeId nodeId, float width,
         muiLeaveText(entered);
     }
     return status;
+}
+
+muiResult muiTextHitTest(const muiTextHost* host, muiNodeId nodeId, float width, float x, float y,
+                         muiTextPosition* positionOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = TextHitTestWorker(host, nodeId, width, x, y, positionOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 muiResult muiCaretOf(const muiTextHost* host, muiNodeId nodeId, float width,
@@ -87,8 +98,9 @@ muiResult muiCaretOf(const muiTextHost* host, muiNodeId nodeId, float width,
     return mui_success;
 }
 
-muiResult muiTextGetCaret(const muiTextHost* host, muiNodeId nodeId, float width,
-                          muiTextPosition position, muiTextCaret* caretOut)
+static MUI_NOINLINE muiResult TextGetCaretWorker(const muiTextHost* host, muiNodeId nodeId,
+                                                 float width, muiTextPosition position,
+                                                 muiTextCaret* caretOut)
 {
     muiTextService* entered = host != nullptr ? host->service : nullptr;
     muiResult status = muiEnterText(entered);
@@ -98,6 +110,15 @@ muiResult muiTextGetCaret(const muiTextHost* host, muiNodeId nodeId, float width
         muiLeaveText(entered);
     }
     return status;
+}
+
+muiResult muiTextGetCaret(const muiTextHost* host, muiNodeId nodeId, float width,
+                          muiTextPosition position, muiTextCaret* caretOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = TextGetCaretWorker(host, nodeId, width, position, caretOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // Adds a rectangle for each stretch of a line's boxes from start up to
@@ -154,9 +175,10 @@ static muiResult TextGetRangeRects(const muiTextHost* host, muiNodeId nodeId, fl
     return count <= capacity ? mui_success : mui_errorCapacity;
 }
 
-muiResult muiTextGetRangeRects(const muiTextHost* host, muiNodeId nodeId, float width,
-                               uint32_t start, uint32_t end, muiRect* rects, uint32_t capacity,
-                               uint32_t* countOut)
+static MUI_NOINLINE muiResult TextGetRangeRectsWorker(const muiTextHost* host, muiNodeId nodeId,
+                                                      float width, uint32_t start, uint32_t end,
+                                                      muiRect* rects, uint32_t capacity,
+                                                      uint32_t* countOut)
 {
     muiTextService* entered = host != nullptr ? host->service : nullptr;
     muiResult status = muiEnterText(entered);
@@ -166,4 +188,15 @@ muiResult muiTextGetRangeRects(const muiTextHost* host, muiNodeId nodeId, float 
         muiLeaveText(entered);
     }
     return status;
+}
+
+muiResult muiTextGetRangeRects(const muiTextHost* host, muiNodeId nodeId, float width,
+                               uint32_t start, uint32_t end, muiRect* rects, uint32_t capacity,
+                               uint32_t* countOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result =
+        TextGetRangeRectsWorker(host, nodeId, width, start, end, rects, capacity, countOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }

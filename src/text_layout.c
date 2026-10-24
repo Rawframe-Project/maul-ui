@@ -7,6 +7,7 @@
 // color and decorations the node's style and the block's spans give), an
 // input method's composition underlined after.
 
+#include "fpenv.h"
 #include "text_boxes.h"
 #include "text_lines.h"
 #include "text_paragraph.h"
@@ -33,8 +34,8 @@ static muiSize MeasureText(void* user, muiNodeId nodeId, uint64_t hostKey, muiMe
     return (muiSize){width.mode == mui_measureExact ? width.size : widest, tall};
 }
 
-muiSize muiMeasureText(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasureAxis width,
-                       muiMeasureAxis height)
+static MUI_NOINLINE muiSize MeasureTextWorker(void* user, muiNodeId nodeId, uint64_t hostKey,
+                                              muiMeasureAxis width, muiMeasureAxis height)
 {
     const muiTextHost* host = user;
     muiTextService* entered = host != nullptr ? host->service : nullptr;
@@ -44,6 +45,15 @@ muiSize muiMeasureText(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasur
     }
     muiSize result = MeasureText(user, nodeId, hostKey, width, height);
     muiLeaveText(entered);
+    return result;
+}
+
+muiSize muiMeasureText(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasureAxis width,
+                       muiMeasureAxis height)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiSize result = MeasureTextWorker(user, nodeId, hostKey, width, height);
+    muiFloatEnvLeave(floatEnv);
     return result;
 }
 
@@ -285,7 +295,8 @@ static float TextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float 
     return ((const muiTextLine*)paragraph.service->lines.data)[0].baseline;
 }
 
-float muiTextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height)
+static MUI_NOINLINE float TextBaselineWorker(void* user, muiNodeId nodeId, uint64_t hostKey,
+                                             float width, float height)
 {
     const muiTextHost* host = user;
     muiTextService* entered = host != nullptr ? host->service : nullptr;
@@ -295,6 +306,14 @@ float muiTextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float widt
     }
     float result = TextBaseline(user, nodeId, hostKey, width, height);
     muiLeaveText(entered);
+    return result;
+}
+
+float muiTextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    float result = TextBaselineWorker(user, nodeId, hostKey, width, height);
+    muiFloatEnvLeave(floatEnv);
     return result;
 }
 
@@ -400,8 +419,8 @@ static void PaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float widt
     }
 }
 
-void muiPaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
-                  muiDrawSink* sink)
+static MUI_NOINLINE void PaintTextWorker(void* user, muiNodeId nodeId, uint64_t hostKey,
+                                         float width, float height, muiDrawSink* sink)
 {
     const muiTextHost* host = user;
     muiTextService* entered = host != nullptr ? host->service : nullptr;
@@ -410,4 +429,12 @@ void muiPaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width, f
         PaintText(user, nodeId, hostKey, width, height, sink);
         muiLeaveText(entered);
     }
+}
+
+void muiPaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
+                  muiDrawSink* sink)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    PaintTextWorker(user, nodeId, hostKey, width, height, sink);
+    muiFloatEnvLeave(floatEnv);
 }

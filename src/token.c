@@ -10,6 +10,7 @@
 
 #include "condition.h"
 #include "context.h"
+#include "fpenv.h"
 #include "pool.h"
 #include "property.h"
 #include "style_edit.h"
@@ -64,7 +65,8 @@ static muiResult CreateToken(muiContext* context, const muiTokenDef* def, muiTok
     return mui_success;
 }
 
-muiResult muiCreateToken(muiContext* context, const muiTokenDef* def, muiTokenId* tokenOut)
+static MUI_NOINLINE muiResult CreateTokenWorker(muiContext* context, const muiTokenDef* def,
+                                                muiTokenId* tokenOut)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -73,6 +75,14 @@ muiResult muiCreateToken(muiContext* context, const muiTokenDef* def, muiTokenId
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiCreateToken(muiContext* context, const muiTokenDef* def, muiTokenId* tokenOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = CreateTokenWorker(context, def, tokenOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // The slot of a live token for an edit, or 0 with the status.
@@ -141,7 +151,8 @@ static muiResult SetTokenValue(muiContext* context, muiTokenId tokenId, const mu
     return mui_success;
 }
 
-muiResult muiSetTokenValue(muiContext* context, muiTokenId tokenId, const muiTokenValue* value)
+static MUI_NOINLINE muiResult SetTokenValueWorker(muiContext* context, muiTokenId tokenId,
+                                                  const muiTokenValue* value)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -150,6 +161,14 @@ muiResult muiSetTokenValue(muiContext* context, muiTokenId tokenId, const muiTok
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiSetTokenValue(muiContext* context, muiTokenId tokenId, const muiTokenValue* value)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = SetTokenValueWorker(context, tokenId, value);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static muiResult SetTokenAlias(muiContext* context, muiTokenId tokenId, muiTokenId target)
@@ -324,8 +343,9 @@ static muiResult StyleSetToken(muiContext* context, muiStyleId styleId, muiVaria
     return mui_success;
 }
 
-muiResult muiStyle_SetToken(muiContext* context, muiStyleId styleId, muiVariant variant,
-                            muiProperty property, muiTokenId tokenId)
+static MUI_NOINLINE muiResult StyleSetTokenWorker(muiContext* context, muiStyleId styleId,
+                                                  muiVariant variant, muiProperty property,
+                                                  muiTokenId tokenId)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -334,6 +354,15 @@ muiResult muiStyle_SetToken(muiContext* context, muiStyleId styleId, muiVariant 
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiStyle_SetToken(muiContext* context, muiStyleId styleId, muiVariant variant,
+                            muiProperty property, muiTokenId tokenId)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = StyleSetTokenWorker(context, styleId, variant, property, tokenId);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 muiResult muiStyle_GetToken(const muiContext* context, muiStyleId styleId, muiVariant variant,

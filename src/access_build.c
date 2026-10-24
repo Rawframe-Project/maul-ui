@@ -10,6 +10,7 @@
 #include "access_text.h"
 #include "context.h"
 #include "focus.h"
+#include "fpenv.h"
 #include "layer.h"
 #include "place.h"
 #include "range.h"
@@ -367,6 +368,18 @@ static muiRect ShownOf(const muiContext* context, uint32_t slot)
     return (muiRect){(float)left, (float)top, (float)(right - left), (float)(bottom - top)};
 }
 
+// The host's access text function, run in the host's floating-point
+// environment.
+static MUI_NOINLINE bool HostAccessText(const muiAccessStore* store, muiNodeId nodeId,
+                                        uint64_t hostKey, const muiRect* shown,
+                                        muiAccessContent* contentOut)
+{
+    muiFloatHost host = muiFloatHostEnter();
+    bool read = store->textFunction(store->textUser, nodeId, hostKey, shown, contentOut);
+    muiFloatHostLeave(host);
+    return read;
+}
+
 // Reads host content's text from the host's text function into a node
 // whose value the host did not set, labelling a node the host gave no
 // role, with its selection, and its lines, words and clusters when
@@ -385,9 +398,9 @@ static uint64_t ReadContent(muiContext* context, uint32_t slot, bool boundaries,
     }
     muiAccessContent content = {0};
     const muiRect shown = boundaries ? ShownOf(context, slot) : (muiRect){0};
-    bool read = store->textFunction(store->textUser, muiTreeIdOf(&context->tree, slot),
-                                    muiTreeAt(&context->tree, slot)->hostKey,
-                                    boundaries ? &shown : nullptr, &content);
+    bool read = HostAccessText(store, muiTreeIdOf(&context->tree, slot),
+                               muiTreeAt(&context->tree, slot)->hostKey,
+                               boundaries ? &shown : nullptr, &content);
     // Empty text is none, unless it is being edited: an empty field.
     bool edited = content.marks.selected && content.length == 0;
     if (!read || content.text == nullptr || (content.length == 0 && !edited) ||
@@ -607,7 +620,8 @@ static muiResult BuildAccessUpdate(muiContext* context, muiNodeId rootId,
     return mui_success;
 }
 
-muiResult muiBuildAccessUpdate(muiContext* context, muiNodeId rootId, muiAccessUpdate* updateOut)
+static MUI_NOINLINE muiResult BuildAccessUpdateWorker(muiContext* context, muiNodeId rootId,
+                                                      muiAccessUpdate* updateOut)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -616,4 +630,12 @@ muiResult muiBuildAccessUpdate(muiContext* context, muiNodeId rootId, muiAccessU
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiBuildAccessUpdate(muiContext* context, muiNodeId rootId, muiAccessUpdate* updateOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = BuildAccessUpdateWorker(context, rootId, updateOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }

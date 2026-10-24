@@ -9,6 +9,7 @@
 #include "access_record.h"
 #include "access_text.h"
 #include "allocator.h"
+#include "fpenv.h"
 #include "host_call.h"
 #include "uikit.h"
 
@@ -54,7 +55,8 @@ static void LayMaps(muiUikitAdapter* adapter)
     muiIdMapInit(&adapter->containerById, more, (void**)(more + map), map);
 }
 
-muiResult muiCreateUikitAdapter(const muiUikitAdapterDef* def, muiUikitAdapter** adapterOut)
+static MUI_NOINLINE muiResult CreateUikitAdapterWorker(const muiUikitAdapterDef* def,
+                                                       muiUikitAdapter** adapterOut)
 {
     if (adapterOut != nullptr)
     {
@@ -104,6 +106,14 @@ muiResult muiCreateUikitAdapter(const muiUikitAdapterDef* def, muiUikitAdapter**
     adapter->view = [(UIView*)def->view retain];
     *adapterOut = adapter;
     return mui_success;
+}
+
+muiResult muiCreateUikitAdapter(const muiUikitAdapterDef* def, muiUikitAdapter** adapterOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = CreateUikitAdapterWorker(def, adapterOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // Lets an object go: it answers nothing from then on.
@@ -240,16 +250,24 @@ id muiUikitParentOf(muiUikitAdapter* adapter, uint64_t node)
     return parent != 0 ? (id)muiUikitContainerOf(adapter, parent) : (id)adapter->view;
 }
 
-static void Added(void* user, const muiAccessTree* tree, uint64_t id)
+static MUI_NOINLINE void AddedWorker(void* user, const muiAccessTree* tree, uint64_t id)
 {
     (void)tree;
     muiUikitTellAdded(user, id);
 }
 
+static void Added(void* user, const muiAccessTree* tree, uint64_t id)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    AddedWorker(user, tree, id);
+    muiFloatEnvLeave(floatEnv);
+}
+
 // A node starting or ending being edited needs the other class of
 // element: the one it has goes, and the next is made when asked for;
 // the layout is told, with the new one when it is the focus.
-static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* old)
+static MUI_NOINLINE void UpdatedWorker(void* user, const muiAccessTree* tree,
+                                       const muiAccessNode* old)
 {
     muiUikitAdapter* adapter = user;
     const muiAccessNode* node = muiAccessTree_Find(tree, old->id);
@@ -264,7 +282,15 @@ static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* 
     muiUikitTellUpdated(adapter, old, node);
 }
 
-static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* old)
+static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* old)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    UpdatedWorker(user, tree, old);
+    muiFloatEnvLeave(floatEnv);
+}
+
+static MUI_NOINLINE void RemovedWorker(void* user, const muiAccessTree* tree,
+                                       const muiAccessNode* old)
 {
     (void)tree;
     muiUikitAdapter* adapter = user;
@@ -280,18 +306,40 @@ static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* 
     }
 }
 
-static void ShownChanged(void* user, const muiAccessTree* tree)
+static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* old)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    RemovedWorker(user, tree, old);
+    muiFloatEnvLeave(floatEnv);
+}
+
+static MUI_NOINLINE void ShownChangedWorker(void* user, const muiAccessTree* tree)
 {
     (void)tree;
     ((muiUikitAdapter*)user)->reshaped = true;
 }
 
-static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint64_t focus)
+static void ShownChanged(void* user, const muiAccessTree* tree)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    ShownChangedWorker(user, tree);
+    muiFloatEnvLeave(floatEnv);
+}
+
+static MUI_NOINLINE void FocusMovedWorker(void* user, const muiAccessTree* tree, uint64_t old,
+                                          uint64_t focus)
 {
     (void)tree;
     (void)old;
     (void)focus;
     ((muiUikitAdapter*)user)->focusMoved = true;
+}
+
+static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint64_t focus)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    FocusMovedWorker(user, tree, old, focus);
+    muiFloatEnvLeave(floatEnv);
 }
 
 static muiResult UikitAdapterApply(muiUikitAdapter* adapter, const muiAccessUpdate* update)
@@ -325,7 +373,8 @@ static muiResult UikitAdapterApply(muiUikitAdapter* adapter, const muiAccessUpda
     return status;
 }
 
-muiResult muiUikitAdapter_Apply(muiUikitAdapter* adapter, const muiAccessUpdate* update)
+static MUI_NOINLINE muiResult UikitAdapterApplyWorker(muiUikitAdapter* adapter,
+                                                      const muiAccessUpdate* update)
 {
     if (adapter == nullptr)
     {
@@ -338,6 +387,14 @@ muiResult muiUikitAdapter_Apply(muiUikitAdapter* adapter, const muiAccessUpdate*
     muiResult result = UikitAdapterApply(adapter, update);
     adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
+    return result;
+}
+
+muiResult muiUikitAdapter_Apply(muiUikitAdapter* adapter, const muiAccessUpdate* update)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = UikitAdapterApplyWorker(adapter, update);
+    muiFloatEnvLeave(floatEnv);
     return result;
 }
 
@@ -356,7 +413,7 @@ static muiResult UikitAdapterSetScale(muiUikitAdapter* adapter, float scale)
     return mui_success;
 }
 
-muiResult muiUikitAdapter_SetScale(muiUikitAdapter* adapter, float scale)
+static MUI_NOINLINE muiResult UikitAdapterSetScaleWorker(muiUikitAdapter* adapter, float scale)
 {
     if (adapter == nullptr)
     {
@@ -369,6 +426,14 @@ muiResult muiUikitAdapter_SetScale(muiUikitAdapter* adapter, float scale)
     muiResult result = UikitAdapterSetScale(adapter, scale);
     adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
+    return result;
+}
+
+muiResult muiUikitAdapter_SetScale(muiUikitAdapter* adapter, float scale)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = UikitAdapterSetScaleWorker(adapter, scale);
+    muiFloatEnvLeave(floatEnv);
     return result;
 }
 

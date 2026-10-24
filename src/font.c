@@ -9,6 +9,7 @@
 
 #include "allocator.h"
 #include "font_store.h"
+#include "fpenv.h"
 #include "pool.h"
 #include "text_service.h"
 
@@ -343,7 +344,8 @@ static muiResult CreateFont(muiTextService* service, const muiFontDef* def, muiF
     return mui_success;
 }
 
-muiResult muiCreateFont(muiTextService* service, const muiFontDef* def, muiFontId* fontOut)
+static MUI_NOINLINE muiResult CreateFontWorker(muiTextService* service, const muiFontDef* def,
+                                               muiFontId* fontOut)
 {
     muiResult status = muiEnterText(service);
     if (status == mui_success)
@@ -352,6 +354,14 @@ muiResult muiCreateFont(muiTextService* service, const muiFontDef* def, muiFontI
         muiLeaveText(service);
     }
     return status;
+}
+
+muiResult muiCreateFont(muiTextService* service, const muiFontDef* def, muiFontId* fontOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = CreateFontWorker(service, def, fontOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static uint32_t Resolve(const muiTextService* service, muiFontId fontId)
@@ -375,7 +385,7 @@ static muiResult DestroyFont(muiTextService* service, muiFontId fontId)
     return mui_success;
 }
 
-muiResult muiDestroyFont(muiTextService* service, muiFontId fontId)
+static MUI_NOINLINE muiResult DestroyFontWorker(muiTextService* service, muiFontId fontId)
 {
     muiResult status = muiEnterText(service);
     if (status == mui_success)
@@ -384,6 +394,14 @@ muiResult muiDestroyFont(muiTextService* service, muiFontId fontId)
         muiLeaveText(service);
     }
     return status;
+}
+
+muiResult muiDestroyFont(muiTextService* service, muiFontId fontId)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = DestroyFontWorker(service, fontId);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 bool muiFont_IsValid(const muiTextService* service, muiFontId fontId)

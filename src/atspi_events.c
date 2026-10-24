@@ -11,6 +11,7 @@
 #include "access_text.h"
 #include "allocator.h"
 #include "atspi.h"
+#include "fpenv.h"
 #include "host_call.h"
 
 #include <string.h>
@@ -286,7 +287,8 @@ static void TellText(muiAtspiApp* app, const muiAtspiObject* object, const muiAc
     }
 }
 
-static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* old)
+static MUI_NOINLINE void UpdatedWorker(void* user, const muiAccessTree* tree,
+                                       const muiAccessNode* old)
 {
     muiAtspiAdapter* adapter = user;
     const muiAtspiObject object = {adapter, muiAccessTree_Find(tree, old->id)};
@@ -295,10 +297,24 @@ static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* 
     TellText(adapter->app, &object, old);
 }
 
-static void ShownChanged(void* user, const muiAccessTree* tree)
+static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* old)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    UpdatedWorker(user, tree, old);
+    muiFloatEnvLeave(floatEnv);
+}
+
+static MUI_NOINLINE void ShownChangedWorker(void* user, const muiAccessTree* tree)
 {
     (void)tree;
     ((muiAtspiAdapter*)user)->reshaped = true;
+}
+
+static void ShownChanged(void* user, const muiAccessTree* tree)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    ShownChangedWorker(user, tree);
+    muiFloatEnvLeave(floatEnv);
 }
 
 // The window root's index among the application root's children.
@@ -556,7 +572,8 @@ static muiResult AtspiAdapterApply(muiAtspiAdapter* adapter, const muiAccessUpda
     return status;
 }
 
-muiResult muiAtspiAdapter_Apply(muiAtspiAdapter* adapter, const muiAccessUpdate* update)
+static MUI_NOINLINE muiResult AtspiAdapterApplyWorker(muiAtspiAdapter* adapter,
+                                                      const muiAccessUpdate* update)
 {
     if (adapter == nullptr)
     {
@@ -569,6 +586,14 @@ muiResult muiAtspiAdapter_Apply(muiAtspiAdapter* adapter, const muiAccessUpdate*
     muiResult result = AtspiAdapterApply(adapter, update);
     adapter->app->misuse += result == mui_errorInvalid;
     adapter->app->busy = false;
+    return result;
+}
+
+muiResult muiAtspiAdapter_Apply(muiAtspiAdapter* adapter, const muiAccessUpdate* update)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = AtspiAdapterApplyWorker(adapter, update);
+    muiFloatEnvLeave(floatEnv);
     return result;
 }
 

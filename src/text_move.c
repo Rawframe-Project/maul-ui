@@ -4,6 +4,7 @@
 // Moving positions through laid-out text: by grapheme cluster in the text
 // or on screen, by word, and by line.
 
+#include "fpenv.h"
 #include "invariant.h"
 #include "text_blocks.h"
 #include "text_boxes.h"
@@ -212,8 +213,9 @@ muiResult muiMoveText(const muiTextHost* host, muiNodeId nodeId, float width, mu
     return mui_success;
 }
 
-muiResult muiTextMove(const muiTextHost* host, muiNodeId nodeId, float width, muiTextPosition from,
-                      muiTextMovement movement, float preferredX, muiTextPosition* positionOut)
+static MUI_NOINLINE muiResult TextMoveWorker(const muiTextHost* host, muiNodeId nodeId, float width,
+                                             muiTextPosition from, muiTextMovement movement,
+                                             float preferredX, muiTextPosition* positionOut)
 {
     muiTextService* entered = host != nullptr ? host->service : nullptr;
     muiResult status = muiEnterText(entered);
@@ -223,4 +225,13 @@ muiResult muiTextMove(const muiTextHost* host, muiNodeId nodeId, float width, mu
         muiLeaveText(entered);
     }
     return status;
+}
+
+muiResult muiTextMove(const muiTextHost* host, muiNodeId nodeId, float width, muiTextPosition from,
+                      muiTextMovement movement, float preferredX, muiTextPosition* positionOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = TextMoveWorker(host, nodeId, width, from, movement, preferredX, positionOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }

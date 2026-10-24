@@ -106,6 +106,7 @@ source_checks() {
     python3 tools/check_guide.py
     python3 tools/check_text_headers.py
     python3 tools/check_litmus.py
+    python3 tools/check_float_env.py
     python3 tools/gen_rhi_shaders.py --check
     python3 tools/gen_rhi_shaders.py --self-test
     if [ -f "$org/scripts/docs_check.py" ]; then

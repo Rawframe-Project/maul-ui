@@ -8,6 +8,7 @@
 // within it.
 
 #include "access_text.h"
+#include "fpenv.h"
 #include "uia.h"
 
 #include <string.h>
@@ -398,7 +399,7 @@ static HRESULT PutRects(const muiUiaAdapter* adapter, const muiRect* rects, uint
 
 // A rectangle each line the range lies on; the node's bounds for text
 // without clusters; none for an empty range.
-static HRESULT STDMETHODCALLTYPE GetBoundingRectangles(muiUiaRange* self, SAFEARRAY** out)
+static MUI_NOINLINE HRESULT GetBoundingRectanglesWorker(muiUiaRange* self, SAFEARRAY** out)
 {
     muiAccessText text;
     if (out == nullptr)
@@ -425,6 +426,14 @@ static HRESULT STDMETHODCALLTYPE GetBoundingRectangles(muiUiaRange* self, SAFEAR
     HRESULT result = status == mui_empty ? PutRects(adapter, &whole, asWhole ? 1 : 0, out)
                                          : PutRects(adapter, got.rects, got.count, out);
     muiAccessFreeRects(&got);
+    return result;
+}
+
+static HRESULT STDMETHODCALLTYPE GetBoundingRectangles(muiUiaRange* self, SAFEARRAY** out)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    HRESULT result = GetBoundingRectanglesWorker(self, out);
+    muiFloatEnvLeave(floatEnv);
     return result;
 }
 

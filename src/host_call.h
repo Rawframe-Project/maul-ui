@@ -10,6 +10,7 @@
 #define MAUL_UI_SRC_HOST_CALL_H
 
 #include "allocator.h"
+#include "fpenv.h"
 
 #include "maul-ui/access.h"
 
@@ -69,11 +70,15 @@ static inline bool muiAccessValueFits(const muiAccessNode* node, double value)
     return value >= (double)node->minimum && value <= (double)node->maximum;
 }
 
-// An adapter's action function, called with the adapter busy. A request
-// whose numbers are not finite, which a client may send, is dropped here,
-// so no adapter hands the host one that would be refused.
-static inline bool muiActMarked(const bool* busy, bool (*action)(void*, const muiAccessRequest*),
-                                void* user, const muiAccessRequest* request)
+// An adapter's action function, called with the adapter busy and in the
+// host's floating-point environment. A request whose numbers are not
+// finite, which a client may send, is dropped here, so no adapter hands
+// the host one that would be refused. Not inline, so none of its
+// caller's arithmetic moves across the switch; unused where an adapter
+// takes no action.
+[[maybe_unused]] static MUI_NOINLINE bool
+muiActMarked(const bool* busy, bool (*action)(void*, const muiAccessRequest*), void* user,
+             const muiAccessRequest* request)
 {
     if (!isfinite(request->value) || !isfinite(request->x) || !isfinite(request->y))
     {
@@ -81,7 +86,9 @@ static inline bool muiActMarked(const bool* busy, bool (*action)(void*, const mu
     }
     bool was = *busy;
     *muiMarkOf(busy) = true;
+    muiFloatHost host = muiFloatHostEnter();
     bool done = action(user, request);
+    muiFloatHostLeave(host);
     *muiMarkOf(busy) = was;
     return done;
 }

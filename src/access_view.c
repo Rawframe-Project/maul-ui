@@ -10,6 +10,7 @@
 #include "access_text.h"
 #include "access_tree_store.h"
 #include "allocator.h"
+#include "fpenv.h"
 #include "host_call.h"
 
 #include "maul-ui/access_tree.h"
@@ -181,14 +182,22 @@ static bool Trace(const muiAccessTree* tree, uint32_t slot, uint32_t* shownParen
     return true;
 }
 
-bool muiAccessTree_IsShown(const muiAccessTree* tree, uint64_t id)
+static MUI_NOINLINE bool AccessTreeIsShownWorker(const muiAccessTree* tree, uint64_t id)
 {
     uint32_t slot = tree != nullptr ? muiHeldSlotOf(tree, id) : 0;
     uint32_t parent = 0;
     return slot != 0 && Trace(tree, slot, &parent);
 }
 
-uint64_t muiAccessTree_GetShownParent(const muiAccessTree* tree, uint64_t id)
+bool muiAccessTree_IsShown(const muiAccessTree* tree, uint64_t id)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    bool result = AccessTreeIsShownWorker(tree, id);
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+static MUI_NOINLINE uint64_t AccessTreeGetShownParentWorker(const muiAccessTree* tree, uint64_t id)
 {
     uint32_t slot = tree != nullptr ? muiHeldSlotOf(tree, id) : 0;
     uint32_t parent = 0;
@@ -199,9 +208,18 @@ uint64_t muiAccessTree_GetShownParent(const muiAccessTree* tree, uint64_t id)
     return parent != 0 ? tree->held[parent - 1].node.id : 0;
 }
 
-muiResult muiAccessTree_GetShownChildren(const muiAccessTree* tree, uint64_t id,
-                                         uint64_t* childrenOut, uint32_t capacity,
-                                         uint32_t* countOut)
+uint64_t muiAccessTree_GetShownParent(const muiAccessTree* tree, uint64_t id)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    uint64_t result = AccessTreeGetShownParentWorker(tree, id);
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+static MUI_NOINLINE muiResult AccessTreeGetShownChildrenWorker(const muiAccessTree* tree,
+                                                               uint64_t id, uint64_t* childrenOut,
+                                                               uint32_t capacity,
+                                                               uint32_t* countOut)
 {
     if (tree == nullptr || countOut == nullptr || (childrenOut == nullptr && capacity != 0))
     {
@@ -250,6 +268,16 @@ muiResult muiAccessTree_GetShownChildren(const muiAccessTree* tree, uint64_t id,
     return count <= capacity ? mui_success : mui_errorCapacity;
 }
 
+muiResult muiAccessTree_GetShownChildren(const muiAccessTree* tree, uint64_t id,
+                                         uint64_t* childrenOut, uint32_t capacity,
+                                         uint32_t* countOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = AccessTreeGetShownChildrenWorker(tree, id, childrenOut, capacity, countOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
 // A held node's transforms composed, its own innermost: from its own
 // space to where the root is placed.
 static muiDrawTransform TransformOf(const muiAccessTree* tree, uint32_t slot)
@@ -268,7 +296,8 @@ static muiDrawTransform TransformOf(const muiAccessTree* tree, uint32_t slot)
     return m;
 }
 
-muiResult muiAccessTree_GetBounds(const muiAccessTree* tree, uint64_t id, muiRect* boundsOut)
+static MUI_NOINLINE muiResult AccessTreeGetBoundsWorker(const muiAccessTree* tree, uint64_t id,
+                                                        muiRect* boundsOut)
 {
     if (tree == nullptr || boundsOut == nullptr)
     {
@@ -284,9 +313,18 @@ muiResult muiAccessTree_GetBounds(const muiAccessTree* tree, uint64_t id, muiRec
     return mui_success;
 }
 
-muiResult muiAccessTree_GetTextRects(const muiAccessTree* tree, uint64_t id, uint32_t start,
-                                     uint32_t end, muiRect* rectsOut, uint32_t capacity,
-                                     uint32_t* countOut)
+muiResult muiAccessTree_GetBounds(const muiAccessTree* tree, uint64_t id, muiRect* boundsOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = AccessTreeGetBoundsWorker(tree, id, boundsOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+static MUI_NOINLINE muiResult AccessTreeGetTextRectsWorker(const muiAccessTree* tree, uint64_t id,
+                                                           uint32_t start, uint32_t end,
+                                                           muiRect* rectsOut, uint32_t capacity,
+                                                           uint32_t* countOut)
 {
     if (tree == nullptr || countOut == nullptr || (rectsOut == nullptr && capacity != 0))
     {
@@ -308,6 +346,17 @@ muiResult muiAccessTree_GetTextRects(const muiAccessTree* tree, uint64_t id, uin
     }
     *countOut = count;
     return count <= capacity ? mui_success : mui_errorCapacity;
+}
+
+muiResult muiAccessTree_GetTextRects(const muiAccessTree* tree, uint64_t id, uint32_t start,
+                                     uint32_t end, muiRect* rectsOut, uint32_t capacity,
+                                     uint32_t* countOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result =
+        AccessTreeGetTextRectsWorker(tree, id, start, end, rectsOut, capacity, countOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // The line a cluster lies on: the last whose first cluster is not after
@@ -411,8 +460,9 @@ bool muiAccessUnitRects(const muiAccessTree* tree, uint64_t id, uint32_t first, 
     return true;
 }
 
-muiResult muiAccessTree_GetTextOffsetAt(const muiAccessTree* tree, uint64_t id, float x, float y,
-                                        uint32_t* offsetOut)
+static MUI_NOINLINE muiResult AccessTreeGetTextOffsetAtWorker(const muiAccessTree* tree,
+                                                              uint64_t id, float x, float y,
+                                                              uint32_t* offsetOut)
 {
     if (tree == nullptr || offsetOut == nullptr || !isfinite(x) || !isfinite(y))
     {
@@ -431,6 +481,15 @@ muiResult muiAccessTree_GetTextOffsetAt(const muiAccessTree* tree, uint64_t id, 
     float dy = y - m.f;
     *offsetOut = muiAccessOffsetAt(marks, (m.d * dx - m.c * dy) / det, (m.a * dy - m.b * dx) / det);
     return mui_success;
+}
+
+muiResult muiAccessTree_GetTextOffsetAt(const muiAccessTree* tree, uint64_t id, float x, float y,
+                                        uint32_t* offsetOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = AccessTreeGetTextOffsetAtWorker(tree, id, x, y, offsetOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // A name as it is joined: parts with spaces between, past the room

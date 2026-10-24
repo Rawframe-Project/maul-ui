@@ -11,6 +11,7 @@
 
 #include "context.h"
 #include "focus.h"
+#include "fpenv.h"
 #include "place.h"
 #include "pointer.h"
 #include "popup.h"
@@ -549,7 +550,8 @@ static muiResult PointerInput(muiContext* context, muiNodeId rootId, const muiPo
     return mui_success;
 }
 
-muiResult muiPointerInput(muiContext* context, muiNodeId rootId, const muiPointerEvent* event)
+static MUI_NOINLINE muiResult PointerInputWorker(muiContext* context, muiNodeId rootId,
+                                                 const muiPointerEvent* event)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -558,6 +560,14 @@ muiResult muiPointerInput(muiContext* context, muiNodeId rootId, const muiPointe
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiPointerInput(muiContext* context, muiNodeId rootId, const muiPointerEvent* event)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = PointerInputWorker(context, rootId, event);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static muiResult NextPointerRecord(muiContext* context, muiPointerRecord* recordOut)
@@ -622,7 +632,8 @@ static muiResult PointerSetCapture(muiContext* context, uint32_t pointerId, muiN
     return mui_success;
 }
 
-muiResult muiPointer_SetCapture(muiContext* context, uint32_t pointerId, muiNodeId nodeId)
+static MUI_NOINLINE muiResult PointerSetCaptureWorker(muiContext* context, uint32_t pointerId,
+                                                      muiNodeId nodeId)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -631,6 +642,14 @@ muiResult muiPointer_SetCapture(muiContext* context, uint32_t pointerId, muiNode
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiPointer_SetCapture(muiContext* context, uint32_t pointerId, muiNodeId nodeId)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = PointerSetCaptureWorker(context, pointerId, nodeId);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static muiResult PointerReleaseCapture(muiContext* context, uint32_t pointerId)
@@ -648,7 +667,7 @@ static muiResult PointerReleaseCapture(muiContext* context, uint32_t pointerId)
     return mui_success;
 }
 
-muiResult muiPointer_ReleaseCapture(muiContext* context, uint32_t pointerId)
+static MUI_NOINLINE muiResult PointerReleaseCaptureWorker(muiContext* context, uint32_t pointerId)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -657,6 +676,14 @@ muiResult muiPointer_ReleaseCapture(muiContext* context, uint32_t pointerId)
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiPointer_ReleaseCapture(muiContext* context, uint32_t pointerId)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = PointerReleaseCaptureWorker(context, pointerId);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 muiResult muiPointer_GetState(const muiContext* context, uint32_t pointerId,
@@ -696,7 +723,8 @@ static muiResult SetClickRule(muiContext* context, uint64_t intervalNs, float di
     return mui_success;
 }
 
-muiResult muiSetClickRule(muiContext* context, uint64_t intervalNs, float distance)
+static MUI_NOINLINE muiResult SetClickRuleWorker(muiContext* context, uint64_t intervalNs,
+                                                 float distance)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -705,6 +733,14 @@ muiResult muiSetClickRule(muiContext* context, uint64_t intervalNs, float distan
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiSetClickRule(muiContext* context, uint64_t intervalNs, float distance)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = SetClickRuleWorker(context, intervalNs, distance);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static muiResult PointerOffer(muiContext* context, uint32_t pointerId, uint32_t kind, uint64_t key)
@@ -724,7 +760,8 @@ static muiResult PointerOffer(muiContext* context, uint32_t pointerId, uint32_t 
     return mui_success;
 }
 
-muiResult muiPointer_Offer(muiContext* context, uint32_t pointerId, uint32_t kind, uint64_t key)
+static MUI_NOINLINE muiResult PointerOfferWorker(muiContext* context, uint32_t pointerId,
+                                                 uint32_t kind, uint64_t key)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -733,6 +770,14 @@ muiResult muiPointer_Offer(muiContext* context, uint32_t pointerId, uint32_t kin
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiPointer_Offer(muiContext* context, uint32_t pointerId, uint32_t kind, uint64_t key)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = PointerOfferWorker(context, pointerId, kind, key);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static muiResult SetDragThreshold(muiContext* context, float mouse, float touch)
@@ -750,7 +795,7 @@ static muiResult SetDragThreshold(muiContext* context, float mouse, float touch)
     return mui_success;
 }
 
-muiResult muiSetDragThreshold(muiContext* context, float mouse, float touch)
+static MUI_NOINLINE muiResult SetDragThresholdWorker(muiContext* context, float mouse, float touch)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -759,6 +804,14 @@ muiResult muiSetDragThreshold(muiContext* context, float mouse, float touch)
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiSetDragThreshold(muiContext* context, float mouse, float touch)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = SetDragThresholdWorker(context, mouse, touch);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 bool muiCancelDrags(muiContext* context)

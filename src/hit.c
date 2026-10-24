@@ -11,6 +11,7 @@
 // back.
 
 #include "context.h"
+#include "fpenv.h"
 #include "layer.h"
 #include "layout_node.h"
 #include "paint.h"
@@ -197,7 +198,8 @@ static bool WalkLayers(Walk* walk, uint32_t root, bool* blockedOut)
     return false;
 }
 
-muiResult muiHitTest(const muiContext* context, muiNodeId rootId, float x, float y, muiHit* hitOut)
+static MUI_NOINLINE muiResult HitTestWorker(const muiContext* context, muiNodeId rootId, float x,
+                                            float y, muiHit* hitOut)
 {
     if (context == nullptr || hitOut == nullptr || rootId.index1 == 0 || !isfinite(x) ||
         !isfinite(y))
@@ -225,8 +227,16 @@ muiResult muiHitTest(const muiContext* context, muiNodeId rootId, float x, float
     return mui_success;
 }
 
-muiResult muiNode_MapToRoot(const muiContext* context, muiNodeId nodeId, float x, float y,
-                            float* xOut, float* yOut)
+muiResult muiHitTest(const muiContext* context, muiNodeId rootId, float x, float y, muiHit* hitOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = HitTestWorker(context, rootId, x, y, hitOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+static MUI_NOINLINE muiResult NodeMapToRootWorker(const muiContext* context, muiNodeId nodeId,
+                                                  float x, float y, float* xOut, float* yOut)
 {
     if (context == nullptr || xOut == nullptr || yOut == nullptr || !isfinite(x) || !isfinite(y))
     {
@@ -243,4 +253,13 @@ muiResult muiNode_MapToRoot(const muiContext* context, muiNodeId nodeId, float x
     *xOut = (float)muiPlaceX(&place, (double)x);
     *yOut = (float)muiPlaceY(&place, (double)y);
     return mui_success;
+}
+
+muiResult muiNode_MapToRoot(const muiContext* context, muiNodeId nodeId, float x, float y,
+                            float* xOut, float* yOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = NodeMapToRootWorker(context, nodeId, x, y, xOut, yOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }

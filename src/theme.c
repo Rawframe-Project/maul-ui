@@ -9,6 +9,7 @@
 #include "maul-ui/theme.h"
 
 #include "context.h"
+#include "fpenv.h"
 #include "pool.h"
 #include "property.h"
 #include "restyle.h"
@@ -174,8 +175,9 @@ static muiResult ThemeSetTokenValue(muiContext* context, muiThemeId themeId, mui
     return mui_success;
 }
 
-muiResult muiTheme_SetTokenValue(muiContext* context, muiThemeId themeId, muiTokenId tokenId,
-                                 const muiTokenValue* value)
+static MUI_NOINLINE muiResult ThemeSetTokenValueWorker(muiContext* context, muiThemeId themeId,
+                                                       muiTokenId tokenId,
+                                                       const muiTokenValue* value)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -184,6 +186,15 @@ muiResult muiTheme_SetTokenValue(muiContext* context, muiThemeId themeId, muiTok
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiTheme_SetTokenValue(muiContext* context, muiThemeId themeId, muiTokenId tokenId,
+                                 const muiTokenValue* value)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = ThemeSetTokenValueWorker(context, themeId, tokenId, value);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // Whether the aliases from target, read through one theme and the

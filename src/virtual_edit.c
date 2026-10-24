@@ -6,6 +6,7 @@
 // that what the viewport shows stays put.
 
 #include "context.h"
+#include "fpenv.h"
 #include "tree.h"
 #include "virtual.h"
 #include "virtual_store.h"
@@ -154,8 +155,8 @@ static muiResult NodeInsertVirtualItems(muiContext* context, muiNodeId nodeId, u
     return mui_success;
 }
 
-muiResult muiNode_InsertVirtualItems(muiContext* context, muiNodeId nodeId, uint32_t index,
-                                     uint32_t count)
+static MUI_NOINLINE muiResult NodeInsertVirtualItemsWorker(muiContext* context, muiNodeId nodeId,
+                                                           uint32_t index, uint32_t count)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -164,6 +165,15 @@ muiResult muiNode_InsertVirtualItems(muiContext* context, muiNodeId nodeId, uint
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiNode_InsertVirtualItems(muiContext* context, muiNodeId nodeId, uint32_t index,
+                                     uint32_t count)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = NodeInsertVirtualItemsWorker(context, nodeId, index, count);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static muiResult NodeRemoveVirtualItems(muiContext* context, muiNodeId nodeId, uint32_t index,
@@ -210,8 +220,8 @@ static muiResult NodeRemoveVirtualItems(muiContext* context, muiNodeId nodeId, u
     return mui_success;
 }
 
-muiResult muiNode_RemoveVirtualItems(muiContext* context, muiNodeId nodeId, uint32_t index,
-                                     uint32_t count)
+static MUI_NOINLINE muiResult NodeRemoveVirtualItemsWorker(muiContext* context, muiNodeId nodeId,
+                                                           uint32_t index, uint32_t count)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -220,6 +230,15 @@ muiResult muiNode_RemoveVirtualItems(muiContext* context, muiNodeId nodeId, uint
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiNode_RemoveVirtualItems(muiContext* context, muiNodeId nodeId, uint32_t index,
+                                     uint32_t count)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = NodeRemoveVirtualItemsWorker(context, nodeId, index, count);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static muiResult NodeMoveVirtualItem(muiContext* context, muiNodeId nodeId, uint32_t from,
@@ -296,7 +315,8 @@ static muiResult NodeMoveVirtualItem(muiContext* context, muiNodeId nodeId, uint
     return mui_success;
 }
 
-muiResult muiNode_MoveVirtualItem(muiContext* context, muiNodeId nodeId, uint32_t from, uint32_t to)
+static MUI_NOINLINE muiResult NodeMoveVirtualItemWorker(muiContext* context, muiNodeId nodeId,
+                                                        uint32_t from, uint32_t to)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -305,4 +325,12 @@ muiResult muiNode_MoveVirtualItem(muiContext* context, muiNodeId nodeId, uint32_
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiNode_MoveVirtualItem(muiContext* context, muiNodeId nodeId, uint32_t from, uint32_t to)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = NodeMoveVirtualItemWorker(context, nodeId, from, to);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }

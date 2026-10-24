@@ -10,6 +10,7 @@
 #include "access_tree.h"
 #include "access_tree_store.h"
 #include "allocator.h"
+#include "fpenv.h"
 #include "host_call.h"
 
 #include "maul-ui/access_tree.h"
@@ -401,6 +402,41 @@ static uint32_t Commit(muiAccessTree* tree, const muiAccessUpdate* update, uint3
 }
 
 // Tells the host what changed, then frees what was replaced.
+// The host's change functions, each run in the host's floating-point
+// environment.
+static MUI_NOINLINE void HostAdded(const muiAccessChanges* changes, const muiAccessTree* tree,
+                                   uint64_t id)
+{
+    muiFloatHost host = muiFloatHostEnter();
+    changes->added(changes->user, tree, id);
+    muiFloatHostLeave(host);
+}
+
+static MUI_NOINLINE void HostReport(void (*report)(void*, const muiAccessTree*,
+                                                   const muiAccessNode*),
+                                    void* user, const muiAccessTree* tree, const muiAccessNode* old)
+{
+    muiFloatHost host = muiFloatHostEnter();
+    report(user, tree, old);
+    muiFloatHostLeave(host);
+}
+
+static MUI_NOINLINE void HostShownChanged(const muiAccessChanges* changes,
+                                          const muiAccessTree* tree)
+{
+    muiFloatHost host = muiFloatHostEnter();
+    changes->shownChanged(changes->user, tree);
+    muiFloatHostLeave(host);
+}
+
+static MUI_NOINLINE void HostFocusMoved(const muiAccessChanges* changes, const muiAccessTree* tree,
+                                        uint64_t old, uint64_t focus)
+{
+    muiFloatHost host = muiFloatHostEnter();
+    changes->focusMoved(changes->user, tree, old, focus);
+    muiFloatHostLeave(host);
+}
+
 static void Report(muiAccessTree* tree, const muiAccessChanges* changes, uint32_t added,
                    uint32_t retired, uint64_t oldRoot, uint64_t oldFocus)
 {
@@ -417,7 +453,7 @@ static void Report(muiAccessTree* tree, const muiAccessChanges* changes, uint32_
             const muiHeldNode* held = &tree->held[tree->added[i] - 1];
             if (held->node.id != 0)
             {
-                changes->added(changes->user, tree, held->node.id);
+                HostAdded(changes, tree, held->node.id);
             }
         }
         for (uint32_t i = 0; i < retired; i++)
@@ -427,7 +463,7 @@ static void Report(muiAccessTree* tree, const muiAccessChanges* changes, uint32_
                 node->removed ? changes->removed : changes->updated;
             if (report != nullptr)
             {
-                report(changes->user, tree, &node->held.node);
+                HostReport(report, changes->user, tree, &node->held.node);
             }
             shown =
                 shown || (!node->removed &&
@@ -436,11 +472,11 @@ static void Report(muiAccessTree* tree, const muiAccessChanges* changes, uint32_
         }
         if (shown && changes->shownChanged != nullptr)
         {
-            changes->shownChanged(changes->user, tree);
+            HostShownChanged(changes, tree);
         }
         if (changes->focusMoved != nullptr && tree->focus != oldFocus)
         {
-            changes->focusMoved(changes->user, tree, oldFocus, tree->focus);
+            HostFocusMoved(changes, tree, oldFocus, tree->focus);
         }
     }
     for (uint32_t i = 0; i < retired; i++)
@@ -527,8 +563,9 @@ static muiResult AccessTreeApply(muiAccessTree* tree, const muiAccessUpdate* upd
     return mui_success;
 }
 
-muiResult muiAccessTree_Apply(muiAccessTree* tree, const muiAccessUpdate* update,
-                              const muiAccessChanges* changes)
+static MUI_NOINLINE muiResult AccessTreeApplyWorker(muiAccessTree* tree,
+                                                    const muiAccessUpdate* update,
+                                                    const muiAccessChanges* changes)
 {
     if (tree == nullptr)
     {
@@ -541,5 +578,14 @@ muiResult muiAccessTree_Apply(muiAccessTree* tree, const muiAccessUpdate* update
     muiResult result = AccessTreeApply(tree, update, changes);
     tree->misuse += result == mui_errorInvalid;
     tree->busy = false;
+    return result;
+}
+
+muiResult muiAccessTree_Apply(muiAccessTree* tree, const muiAccessUpdate* update,
+                              const muiAccessChanges* changes)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = AccessTreeApplyWorker(tree, update, changes);
+    muiFloatEnvLeave(floatEnv);
     return result;
 }

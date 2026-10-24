@@ -8,6 +8,7 @@
 // clusters, or the node's frame for text without them.
 
 #include "access_text.h"
+#include "fpenv.h"
 #include "host_call.h"
 #include "ns.h"
 
@@ -287,6 +288,15 @@ bool muiNsReplaceAll(const MUIAccessibilityNode* object, NSString* value)
 // range of text with clusters.
 - (NSRect)accessibilityFrameForRange:(NSRange)range
 {
+    uint64_t floatEnv = muiFloatEnvEnter();
+    NSRect result = [self muiWorkerAccessibilityFrameForRange:range];
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+// accessibilityFrameForRange's work, called through the runtime.
+- (NSRect)muiWorkerAccessibilityFrameForRange:(NSRange)range
+{
     const muiAccessNode* node = TextNodeOf(self);
     uint32_t start = 0;
     uint32_t end = 0;
@@ -307,6 +317,15 @@ bool muiNsReplaceAll(const MUIAccessibilityNode* object, NSString* value)
 // The character at a point on the screen, or the nearest; the text's
 // first without clusters; none for no text.
 - (NSRange)accessibilityRangeForPosition:(NSPoint)point
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    NSRange result = [self muiWorkerAccessibilityRangeForPosition:point];
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+// accessibilityRangeForPosition's work, called through the runtime.
+- (NSRange)muiWorkerAccessibilityRangeForPosition:(NSPoint)point
 {
     const muiAccessNode* node = TextNodeOf(self);
     if (node == nullptr)

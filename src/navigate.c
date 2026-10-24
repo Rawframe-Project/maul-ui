@@ -11,6 +11,7 @@
 
 #include "context.h"
 #include "focus.h"
+#include "fpenv.h"
 #include "scroll.h"
 #include "tree.h"
 
@@ -249,8 +250,8 @@ muiResult muiMoveFocusToward(muiContext* context, muiNodeId rootId, uint8_t play
     return mui_success;
 }
 
-muiResult muiFocus_MoveToward(muiContext* context, muiNodeId rootId, uint8_t player,
-                              muiDirection direction)
+static MUI_NOINLINE muiResult FocusMoveTowardWorker(muiContext* context, muiNodeId rootId,
+                                                    uint8_t player, muiDirection direction)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -259,6 +260,15 @@ muiResult muiFocus_MoveToward(muiContext* context, muiNodeId rootId, uint8_t pla
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiFocus_MoveToward(muiContext* context, muiNodeId rootId, uint8_t player,
+                              muiDirection direction)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = FocusMoveTowardWorker(context, rootId, player, direction);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // Takes out the links of nodes destroyed since.

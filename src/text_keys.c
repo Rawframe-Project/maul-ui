@@ -8,6 +8,7 @@
 // Letters are read from what the key means under the layout, as browsers
 // read shortcuts.
 
+#include "fpenv.h"
 #include "text_block.h"
 #include "text_editing.h"
 #include "text_entry.h"
@@ -188,6 +189,16 @@ static muiTextBlockId BlockOf(const muiTextHost* host, muiNodeId nodeId)
     return (muiTextBlockId){(uint32_t)key, (uint32_t)(key >> 32)};
 }
 
+// The host's clipboard function, run in the host's floating-point
+// environment.
+static MUI_NOINLINE void HostWriteClipboard(const muiTextEditInput* input, const char* text,
+                                            size_t length)
+{
+    muiFloatHost host = muiFloatHostEnter();
+    input->writeClipboard(input->user, text, length);
+    muiFloatHostLeave(host);
+}
+
 // Writes the selected text to the clipboard.
 static muiResult Copy(const muiTextService* service, muiTextBlockId blockId,
                       const muiTextEditInput* input)
@@ -197,7 +208,7 @@ static muiResult Copy(const muiTextService* service, muiTextBlockId blockId,
     muiResult result = muiTextBlock_GetSelectedText(service, blockId, &text, &length);
     if (result == mui_success && length != 0 && input->writeClipboard != nullptr)
     {
-        input->writeClipboard(input->user, text, length);
+        HostWriteClipboard(input, text, length);
     }
     return result;
 }
@@ -335,8 +346,10 @@ static muiResult TextEditEvent(const muiTextHost* host, muiNodeId nodeId, const 
     return result;
 }
 
-muiResult muiTextEditEvent(const muiTextHost* host, muiNodeId nodeId, const muiEvent* event,
-                           const muiTextEditInput* input, muiTextEditOutcome* outcomeOut)
+static MUI_NOINLINE muiResult TextEditEventWorker(const muiTextHost* host, muiNodeId nodeId,
+                                                  const muiEvent* event,
+                                                  const muiTextEditInput* input,
+                                                  muiTextEditOutcome* outcomeOut)
 {
     muiTextService* entered = host != nullptr ? host->service : nullptr;
     muiResult status = muiEnterText(entered);
@@ -346,4 +359,13 @@ muiResult muiTextEditEvent(const muiTextHost* host, muiNodeId nodeId, const muiE
         muiLeaveText(entered);
     }
     return status;
+}
+
+muiResult muiTextEditEvent(const muiTextHost* host, muiNodeId nodeId, const muiEvent* event,
+                           const muiTextEditInput* input, muiTextEditOutcome* outcomeOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = TextEditEventWorker(host, nodeId, event, input, outcomeOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }

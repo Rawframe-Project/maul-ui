@@ -11,6 +11,7 @@
 
 #include "access_record.h"
 #include "access_text.h"
+#include "fpenv.h"
 #include "uia.h"
 
 #include <string.h>
@@ -155,7 +156,8 @@ static bool SelectionMoved(const muiAccessNode* old, const muiAccessNode* now)
             (old->marks.anchor != now->marks.anchor || old->marks.focus != now->marks.focus));
 }
 
-void muiUiaUpdated(void* user, const muiAccessTree* tree, const muiAccessNode* old)
+static MUI_NOINLINE void UiaUpdatedWorker(void* user, const muiAccessTree* tree,
+                                          const muiAccessNode* old)
 {
     muiUiaAdapter* adapter = user;
     muiUiaTellFocus(adapter);
@@ -195,7 +197,14 @@ void muiUiaUpdated(void* user, const muiAccessTree* tree, const muiAccessNode* o
     }
 }
 
-void muiUiaAdded(void* user, const muiAccessTree* tree, uint64_t id)
+void muiUiaUpdated(void* user, const muiAccessTree* tree, const muiAccessNode* old)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    UiaUpdatedWorker(user, tree, old);
+    muiFloatEnvLeave(floatEnv);
+}
+
+static MUI_NOINLINE void UiaAddedWorker(void* user, const muiAccessTree* tree, uint64_t id)
 {
     muiUiaAdapter* adapter = user;
     muiUiaTellFocus(adapter);
@@ -205,6 +214,13 @@ void muiUiaAdded(void* user, const muiAccessTree* tree, uint64_t id)
     {
         Raise(adapter, id, EVENT_LIVE_REGION_CHANGED);
     }
+}
+
+void muiUiaAdded(void* user, const muiAccessTree* tree, uint64_t id)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    UiaAddedWorker(user, tree, id);
+    muiFloatEnvLeave(floatEnv);
 }
 
 void muiUiaTellFocus(muiUiaAdapter* adapter)

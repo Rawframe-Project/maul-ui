@@ -10,6 +10,7 @@
 #include "access_record.h"
 #include "access_text.h"
 #include "allocator.h"
+#include "fpenv.h"
 #include "host_call.h"
 #include "ns.h"
 
@@ -98,6 +99,15 @@ static bool Has(const muiAccessNode* node, muiAccessAction action)
 
 - (NSRect)accessibilityFrame
 {
+    uint64_t floatEnv = muiFloatEnvEnter();
+    NSRect result = [self muiWorkerAccessibilityFrame];
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+// accessibilityFrame's work, called through the runtime.
+- (NSRect)muiWorkerAccessibilityFrame
+{
     return NodeOf(self) != nullptr ? muiNsScreenRectOf(adapter, nodeId) : NSZeroRect;
 }
 
@@ -157,6 +167,15 @@ static bool Has(const muiAccessNode* node, muiAccessAction action)
 // range's number; else the node's value text.
 - (id)accessibilityValue
 {
+    uint64_t floatEnv = muiFloatEnvEnter();
+    id result = [self muiWorkerAccessibilityValue];
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+// accessibilityValue's work, called through the runtime.
+- (id)muiWorkerAccessibilityValue
+{
     const muiAccessNode* node = NodeOf(self);
     if (node == nullptr)
     {
@@ -182,6 +201,14 @@ static bool Has(const muiAccessNode* node, muiAccessAction action)
 // A range's number, or an edited text's whole text, as the host takes it.
 - (void)setAccessibilityValue:(id)value
 {
+    uint64_t floatEnv = muiFloatEnvEnter();
+    [self muiWorkerSetAccessibilityValue:value];
+    muiFloatEnvLeave(floatEnv);
+}
+
+// setAccessibilityValue's work, called through the runtime.
+- (void)muiWorkerSetAccessibilityValue:(id)value
+{
     const muiAccessNode* node = NodeOf(self);
     if (node != nullptr && Has(node, mui_actionReplaceText) &&
         [value isKindOfClass:[NSString class]])
@@ -198,6 +225,15 @@ static bool Has(const muiAccessNode* node, muiAccessAction action)
 
 - (id)accessibilityMinValue
 {
+    uint64_t floatEnv = muiFloatEnvEnter();
+    id result = [self muiWorkerAccessibilityMinValue];
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+// accessibilityMinValue's work, called through the runtime.
+- (id)muiWorkerAccessibilityMinValue
+{
     const muiAccessNode* node = NodeOf(self);
     return node != nullptr && (node->flags & mui_accessNumeric) != 0
                ? [NSNumber numberWithDouble:(double)node->minimum]
@@ -205,6 +241,15 @@ static bool Has(const muiAccessNode* node, muiAccessAction action)
 }
 
 - (id)accessibilityMaxValue
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    id result = [self muiWorkerAccessibilityMaxValue];
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+// accessibilityMaxValue's work, called through the runtime.
+- (id)muiWorkerAccessibilityMaxValue
 {
     const muiAccessNode* node = NodeOf(self);
     return node != nullptr && (node->flags & mui_accessNumeric) != 0
@@ -308,6 +353,15 @@ static bool Has(const muiAccessNode* node, muiAccessAction action)
 }
 
 - (id)accessibilityHitTest:(NSPoint)point
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    id result = [self muiWorkerAccessibilityHitTest:point];
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+// accessibilityHitTest's work, called through the runtime.
+- (id)muiWorkerAccessibilityHitTest:(NSPoint)point
 {
     if (NodeOf(self) == nullptr)
     {

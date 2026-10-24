@@ -8,6 +8,7 @@
 #include "maul-ui/popup.h"
 
 #include "context.h"
+#include "fpenv.h"
 #include "layout_node.h"
 #include "notify.h"
 #include "popup.h"
@@ -114,7 +115,8 @@ static muiResult NodeSetPopup(muiContext* context, muiNodeId nodeId, const muiPo
     return mui_success;
 }
 
-muiResult muiNode_SetPopup(muiContext* context, muiNodeId nodeId, const muiPopup* popup)
+static MUI_NOINLINE muiResult NodeSetPopupWorker(muiContext* context, muiNodeId nodeId,
+                                                 const muiPopup* popup)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -123,6 +125,14 @@ muiResult muiNode_SetPopup(muiContext* context, muiNodeId nodeId, const muiPopup
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiNode_SetPopup(muiContext* context, muiNodeId nodeId, const muiPopup* popup)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = NodeSetPopupWorker(context, nodeId, popup);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 muiResult muiNode_GetPopup(const muiContext* context, muiNodeId nodeId, muiPopup* popupOut)

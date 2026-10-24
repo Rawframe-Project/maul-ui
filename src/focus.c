@@ -10,6 +10,7 @@
 
 #include "context.h"
 #include "focus.h"
+#include "fpenv.h"
 #include "layer.h"
 #include "notify.h"
 #include "popup.h"
@@ -370,7 +371,8 @@ muiResult muiMoveFocus(muiContext* context, muiNodeId rootId, uint8_t player, bo
     return mui_success;
 }
 
-muiResult muiFocus_Move(muiContext* context, muiNodeId rootId, uint8_t player, bool backward)
+static MUI_NOINLINE muiResult FocusMoveWorker(muiContext* context, muiNodeId rootId, uint8_t player,
+                                              bool backward)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -379,6 +381,14 @@ muiResult muiFocus_Move(muiContext* context, muiNodeId rootId, uint8_t player, b
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiFocus_Move(muiContext* context, muiNodeId rootId, uint8_t player, bool backward)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = FocusMoveWorker(context, rootId, player, backward);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 void muiFocusPress(muiContext* context, uint8_t player, uint32_t slot)

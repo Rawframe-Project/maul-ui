@@ -5,6 +5,7 @@
 // a code point, but emoji, flags and keycaps whole, as Blink's and
 // Android's Backspace delete.
 
+#include "fpenv.h"
 #include "text_block.h"
 #include "text_service.h"
 
@@ -72,9 +73,10 @@ static uint32_t BackspaceStart(const char* text, uint32_t start, uint32_t end)
     return IsVariationSelector(lastPoint) ? previous : last;
 }
 
-muiResult muiTextBlock_FindDeletion(const muiTextService* service, muiTextBlockId blockId,
-                                    uint32_t offset, muiTextDeletion deletion, uint32_t* startOut,
-                                    uint32_t* endOut)
+static MUI_NOINLINE muiResult TextBlockFindDeletionWorker(const muiTextService* service,
+                                                          muiTextBlockId blockId, uint32_t offset,
+                                                          muiTextDeletion deletion,
+                                                          uint32_t* startOut, uint32_t* endOut)
 {
     if (service == nullptr || blockId.index1 == 0 || deletion > mui_deleteForward ||
         startOut == nullptr || endOut == nullptr)
@@ -109,4 +111,15 @@ muiResult muiTextBlock_FindDeletion(const muiTextService* service, muiTextBlockI
     *startOut = start;
     *endOut = offset;
     return mui_success;
+}
+
+muiResult muiTextBlock_FindDeletion(const muiTextService* service, muiTextBlockId blockId,
+                                    uint32_t offset, muiTextDeletion deletion, uint32_t* startOut,
+                                    uint32_t* endOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result =
+        TextBlockFindDeletionWorker(service, blockId, offset, deletion, startOut, endOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }

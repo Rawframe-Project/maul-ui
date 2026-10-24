@@ -10,6 +10,7 @@
 #include "access_store.h"
 #include "allocator.h"
 #include "context.h"
+#include "fpenv.h"
 #include "tree.h"
 
 #include <stdalign.h>
@@ -259,8 +260,9 @@ static muiResult NodeSetAccessText(muiContext* context, muiNodeId nodeId, muiAcc
     return mui_success;
 }
 
-muiResult muiNode_SetAccessText(muiContext* context, muiNodeId nodeId, muiAccessTextKind kind,
-                                const char* text, size_t length)
+static MUI_NOINLINE muiResult NodeSetAccessTextWorker(muiContext* context, muiNodeId nodeId,
+                                                      muiAccessTextKind kind, const char* text,
+                                                      size_t length)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -269,6 +271,15 @@ muiResult muiNode_SetAccessText(muiContext* context, muiNodeId nodeId, muiAccess
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiNode_SetAccessText(muiContext* context, muiNodeId nodeId, muiAccessTextKind kind,
+                                const char* text, size_t length)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = NodeSetAccessTextWorker(context, nodeId, kind, text, length);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 muiResult muiNode_GetAccessText(const muiContext* context, muiNodeId nodeId, muiAccessTextKind kind,
