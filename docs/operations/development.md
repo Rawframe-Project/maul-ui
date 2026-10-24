@@ -50,17 +50,17 @@ Each generator writes the same bytes on every run. A change to a generated file 
 
 ### The shader container
 
-CI has none of the shader tools, so it cannot rebuild the container. Instead the header carries a stamp: the SHA-256 of each input as Git stores it (the four `rhi/shaders/quad.*` sources and the generator, with LF line ends), the Maul RHI release, the SHA-256 of the container's bytes, and what each tool reported. `python3 tools/gen_rhi_shaders.py --check` needs no tool. It fails when a source or the generator changed without a regeneration, when `cmake/Rhi.cmake` pins another Maul RHI release, or when the container was edited by hand. `--self-test` shows on a copy that each of those fails the check. The `checks` job and every tier of `tools/check.sh` run both.
+CI has none of the shader tools, so it cannot rebuild the container. Instead the header carries a stamp: the SHA-256 of each input as Git stores it (the four `rhi/shaders/quad.*` sources and the generator, with LF line ends), the Maul RHI release, the pinned tools, and the SHA-256 of the container's bytes. `python3 tools/gen_rhi_shaders.py --check` needs no tool. It fails when a source or the generator changed without a regeneration, when `cmake/Rhi.cmake` pins another Maul RHI release, when the stamp names other tools than the pins, or when the container was edited by hand. `--self-test` shows on a copy that each of those fails the check, and that generating refuses what it must. The `checks` job and every tier of `tools/check.sh` run both.
 
-After any such change, regenerate on a machine with the tools. Other versions write other bytes, so use these, which reproduce the committed container:
+After any such change, regenerate on a machine with the tools. Other versions write other bytes, so the generator compares each tool's version with its pin exactly and refuses any other by name. These are the pins, the same as Maul RHI's:
 
-| Tool | Version |
-|---|---|
-| glslang (`glslangValidator`) | 15.1.0, Ubuntu 24.04's `glslang-tools` 15.1.0-2~ubuntu0.24.04.2 |
-| SPIRV-Tools (`spirv-link`, `spirv-val`) | v2025.1, `spirv-tools` 2025.1~rc1-1~ubuntu0.24.04.2 |
-| SPIRV-Cross (`spirv-cross`) | `spirv-cross` 2021.01.15+1.3.239.0-1build1 |
-| DXC (`dxc`) | 1.9.0.1, commit 0d3ee6b5, release `linux_dxc_2026_07_29` |
-| Maul RHI | the release `cmake/Rhi.cmake` pins, checked out at its tag |
+| Tool | Pinned version | Where it comes from |
+|---|---|---|
+| `glslangValidator` | 15.1.0 | Ubuntu 24.04's `glslang-tools` (15.1.0-2~ubuntu0.24.04.2) |
+| `spirv-link`, `spirv-val` | SPIRV-Tools v2025.1 | Ubuntu 24.04's `spirv-tools` (2025.1~rc1-1~ubuntu0.24.04.2) |
+| `spirv-cross` | 2021.01.15+1.3.239.0 | Ubuntu 24.04's `spirv-cross`; it reports no version itself, so the generator reads its package's |
+| `dxc` | v1.9.2607: libdxcompiler 1.9.0.1, commit 0d3ee6b5 | the release asset `linux_dxc_2026_07_29.x86_x64.tar.gz` of [microsoft/DirectXShaderCompiler](https://github.com/microsoft/DirectXShaderCompiler/releases/tag/v1.9.2607), SHA-256 `55665c87824051ed4774ff3280a79ccbbb7d39243b9736ca5e98222134112d54`; check the tarball against it, unpack it anywhere and put its `bin` on `PATH` |
+| Maul RHI | the release `cmake/Rhi.cmake` pins | a clean checkout at its tag |
 
 ```sh
 git clone --depth 1 --branch v0.0.1 https://github.com/Rawframe-Project/maul-rhi /tmp/maul-rhi
@@ -68,7 +68,7 @@ PATH=<dxc>/bin:$PATH python3 tools/gen_rhi_shaders.py /tmp/maul-rhi
 python3 tools/gen_rhi_shaders.py --check
 ```
 
-The generator refuses a Maul RHI tree at another tag than the pinned one.
+The generator refuses a Maul RHI tree at another tag than the pinned one, or with uncommitted changes or untracked files, since an edit to its tools changes the bytes while the tag stays. Moving a pin means regenerating with the new tool in a pull request of its own that says why the bytes changed.
 
 The build generates the rest and never commits it: `maul-ui.mjs` for wasm32-wasi builds (`tools/gen_web_glue.py`, [The web](../internals/web.md)), the embedded test fonts, and the API reference for the documentation site (`tools/gen_api.py`, run by `tools/build_docs.py`).
 

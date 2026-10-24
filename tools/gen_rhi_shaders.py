@@ -12,14 +12,17 @@
 # header is committed, and this script is run again whenever a source
 # changes.
 #
-# The header carries a stamp: the SHA-256 of each input (the sources, this
-# script, and the Maul RHI release, which must be the one cmake/Rhi.cmake
-# pins), the SHA-256 of the container, and what each tool reported. --check
-# needs no tool: it recomputes the hashes, so CI fails when a source or this
-# script changed without a regeneration, or the container was edited by
-# hand. Inputs are hashed as Git stores them, with LF line ends, so a
-# checkout with CRLF ends passes. --self-test shows on a copy that every
-# such change fails the check.
+# It generates only with the pinned tools (PINNED, compared exactly, as
+# Maul RHI's generators do) and a clean Maul RHI checkout at the tag
+# cmake/Rhi.cmake pins, and refuses anything else by name: other tools,
+# or an edited tree, write other bytes. The header carries a stamp: the
+# SHA-256 of each input (the sources and this script), the Maul RHI
+# release, the pinned tools, and the SHA-256 of the container. --check
+# needs no tool: it recomputes the hashes, so CI fails when a source or
+# this script changed without a regeneration, a pin moved, or the
+# container was edited by hand. Inputs are hashed as Git stores them,
+# with LF line ends, so a checkout with CRLF ends passes. --self-test
+# shows on a copy that every such change fails the check.
 #
 # usage: gen_rhi_shaders.py <a Maul RHI source tree, for its tools/>
 #        gen_rhi_shaders.py --check | --self-test
@@ -40,6 +43,24 @@ STAGES = (("vert", "vs"), ("frag", "fs"))
 INPUTS = tuple(f"rhi/shaders/{NAME}.{suffix}" for suffix in ("frag", "json", "vert", "wgsl")) + (
     "tools/gen_rhi_shaders.py",)
 CONTAINER = f"rhi/shaders/{NAME}_container.h"
+# The tools the committed container was made by, as tool_identities()
+# reads them (docs/operations/development.md#the-shader-container says
+# where each comes from), and the stamp's lines naming them: DXC's name
+# the family's release asset of microsoft/DirectXShaderCompiler and its
+# SHA-256, as Maul RHI's stamps do.
+PINNED = {
+    "glslang": "glslang 15.1.0",
+    "SPIRV-Tools": "SPIRV-Tools v2025.1",
+    "spirv-cross": "spirv-cross 2021.01.15+1.3.239.0",
+    "dxc": "libdxcompiler 1.9.0.1, 0d3ee6b5",
+}
+TOOL_LINES = (
+    PINNED["glslang"],
+    PINNED["SPIRV-Tools"],
+    PINNED["spirv-cross"],
+    "dxc linux_dxc_2026_07_29 (v1.9.2607, libdxcompiler 1.9.0.1, 0d3ee6b5)",
+    "dxc sha256:55665c87824051ed4774ff3280a79ccbbb7d39243b9736ca5e98222134112d54",
+)
 
 
 def run(*command):
@@ -86,29 +107,60 @@ def pinned_rhi(root):
     return "v" + found.group(1)
 
 
-def first_line(*command):
-    result = subprocess.run(command, capture_output=True, text=True)
-    lines = (result.stdout + result.stderr).strip().splitlines()
-    return lines[0] if lines else "unknown"
+def output(*command):
+    """What a command prints, or nothing when it is missing or fails."""
+    try:
+        result = subprocess.run(command, capture_output=True, text=True)
+    except OSError:
+        return ""
+    return result.stdout + result.stderr if result.returncode == 0 else ""
 
 
-def tool_versions():
-    return [
-        first_line("glslangValidator", "--version"),
-        first_line("spirv-val", "--version"),
-        "spirv-cross " + first_line("spirv-cross", "--revision"),
-        first_line("dxc", "--version"),
-    ]
+def tool_identities():
+    """The installed tools, as PINNED names them. spirv-cross built by a
+    distribution reports no version of its own; its package's is read."""
+    glslang = output("glslangValidator", "--version").split("\n")[0].rsplit(":", 1)[-1]
+    tools = " ".join(output("spirv-link", "--version").split()[:2])
+    cross = output("spirv-cross", "--revision").strip()
+    if cross in ("", "(Debian package)"):
+        cross = output("dpkg-query", "-W", "-f=${Version}", "spirv-cross").rsplit("-", 1)[0]
+    dxc = re.search(r"\((\d+)-(\w+)\)\(([\d.]+)\)", output("dxc", "--version"))
+    return {"glslang": f"glslang {glslang.strip()}", "SPIRV-Tools": tools,
+            "spirv-cross": f"spirv-cross {cross}",
+            "dxc": f"libdxcompiler {dxc.group(3)}, {dxc.group(2)}" if dxc else "dxc: not found"}
 
 
-def stamp(root, rhi, data, tools):
+def unpinned(found):
+    """Each installed tool whose identity is not exactly its pin."""
+    return [f"{name}: installed {found.get(name)}, pinned {pin}"
+            for name, pin in PINNED.items() if found.get(name) != pin]
+
+
+def rhi_release(tree):
+    """The tag a clean Maul RHI checkout is at, and why it cannot be used
+    when it is not: an edit or an untracked file there changes what its
+    tools write while the tag stays the same."""
+    try:
+        status = subprocess.run(["git", "-C", tree, "status", "--porcelain",
+                                 "--untracked-files=all"], capture_output=True, text=True)
+    except OSError:
+        return None, "git is not installed"
+    if status.returncode != 0:
+        return None, f"{tree} is not a Git checkout"
+    if status.stdout.strip():
+        return None, f"{tree} has uncommitted changes or untracked files"
+    tag = output("git", "-C", tree, "describe", "--tags", "--exact-match").strip()
+    return (tag, None) if tag else (None, f"{tree} is not at a tag")
+
+
+def stamp(root, rhi, data):
     lines = ["// The stamp tools/gen_rhi_shaders.py --check reads: the SHA-256 of",
              "// each input with LF line ends, the Maul RHI release, the SHA-256",
-             "// of the container, and the tools that built it."]
+             "// of the container, and the pinned tools that built it."]
     lines += [f"//   input {path} {input_hash(root, path)}" for path in INPUTS]
     lines.append(f"//   maul-rhi {rhi}")
     lines.append(f"//   container {hashlib.sha256(data).hexdigest()}")
-    lines += [f"//   tool {tool}" for tool in tools]
+    lines += [f"//   tool {tool}" for tool in TOOL_LINES]
     return lines
 
 
@@ -154,6 +206,8 @@ def problems(root):
     if rhi is None or rhi.group(1) != pinned_rhi(root):
         found.append(f"cmake/Rhi.cmake pins {pinned_rhi(root)}, the container was built with "
                      f"{rhi.group(1) if rhi else 'no release'}")
+    if tuple(re.findall(r"^//   tool (.*)$", text, re.M)) != TOOL_LINES:
+        found.append(f"{CONTAINER}: not built by the pinned tools")
     digest = re.search(r"^//   container ([0-9a-f]{64})$", text, re.M)
     body = text.split("= {", 1)[1] if "= {" in text else ""
     data = bytes(int(byte, 16) for byte in re.findall(r"0x([0-9A-F]{2}),", body))
@@ -211,11 +265,54 @@ def self_test():
         edit(CONTAINER, lambda data: data.replace(b"0x4D, 0x52", b"0x4D, 0x53", 1))
         if not any("bytes" in problem for problem in problems(work)):
             failures.append("a changed container byte passes")
+        copy()
+        edit(CONTAINER, lambda data: data.replace(b"spirv-cross 2021", b"spirv-cross 2022", 1))
+        if not any("pinned tools" in problem for problem in problems(work)):
+            failures.append("a container stamped by other tools passes")
+        failures += self_test_generation(work)
     for failure in failures:
         print(f"gen_rhi_shaders --self-test: {failure}")
     if failures:
         sys.exit(1)
     print("gen_rhi_shaders --self-test: every change fails the check")
+
+
+def self_test_generation(work):
+    """What generating refuses: tools other than the pins, and a Maul RHI
+    checkout that is edited, has untracked files, or is not at a tag."""
+    failures = []
+    if unpinned(PINNED):
+        failures.append("the pinned tools are refused")
+    if not unpinned({**PINNED, "spirv-cross": "spirv-cross 2022.01.01"}):
+        failures.append("another spirv-cross is taken")
+    tree = os.path.join(work, "maul-rhi")
+    os.makedirs(os.path.join(tree, "tools"))
+    git = ["git", "-C", tree, "-c", "user.name=self-test", "-c", "user.email=self-test@localhost"]
+
+    def write(path, text):
+        with open(os.path.join(tree, path), "w", encoding="utf-8") as file:
+            file.write(text)
+
+    write("tools/mrhi_container.py", "# a tool\n")
+    for command in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "a release"],
+                    ["tag", "v0.0.1"]):
+        subprocess.run(git + command, capture_output=True, check=True)
+    if rhi_release(tree) != ("v0.0.1", None):
+        failures.append("a clean checkout at its tag is refused")
+    write("tools/mrhi_container.py", "# a tool, edited\n")
+    if rhi_release(tree)[0] is not None:
+        failures.append("an edited Maul RHI checkout is taken")
+    subprocess.run(git + ["checkout", "-q", "--", "."], capture_output=True, check=True)
+    write("tools/extra.py", "# untracked\n")
+    if rhi_release(tree)[0] is not None:
+        failures.append("a Maul RHI checkout with an untracked file is taken")
+    os.remove(os.path.join(tree, "tools", "extra.py"))
+    write("tools/mrhi_container.py", "# a later tool\n")
+    subprocess.run(git + ["commit", "-q", "-am", "after the release"], capture_output=True,
+                   check=True)
+    if rhi_release(tree)[0] is not None:
+        failures.append("a Maul RHI checkout past its tag is taken")
+    return failures
 
 
 def main():
@@ -227,11 +324,17 @@ def main():
         sys.exit("usage: gen_rhi_shaders.py <a Maul RHI source tree> | --check | --self-test")
     tree = os.path.abspath(sys.argv[1])
     tools = os.path.join(tree, "tools")
-    # The release the build fetches, so the container matches the
-    # library it is loaded by.
-    rhi = first_line("git", "-C", tree, "describe", "--tags", "--exact-match")
+    # The release the build fetches, unedited, so the container matches
+    # the library it is loaded by.
+    rhi, why = rhi_release(tree)
+    if rhi is None:
+        sys.exit(f"gen_rhi_shaders: {why}")
     if rhi != pinned_rhi(ROOT):
         sys.exit(f"gen_rhi_shaders: {tree} is at {rhi}, cmake/Rhi.cmake pins {pinned_rhi(ROOT)}")
+    wrong = unpinned(tool_identities())
+    if wrong:
+        sys.exit("gen_rhi_shaders: the installed tools are not the pinned ones:\n  " +
+                 "\n  ".join(wrong))
     # A Maul RHI release that moved its tools fails here, before anything
     # is compiled.
     for script in ("mrhi_dxil.py", "mrhi_msl.py", "mrhi_container.py"):
@@ -241,7 +344,7 @@ def main():
         data = build(work, tools)
     path = os.path.join(ROOT, CONTAINER)
     with open(path, "w", encoding="utf-8", newline="\n") as file:
-        file.write(header(data, stamp(ROOT, rhi, data, tool_versions())))
+        file.write(header(data, stamp(ROOT, rhi, data)))
     print(f"{os.path.relpath(path, ROOT)}: {len(data)} bytes")
 
 

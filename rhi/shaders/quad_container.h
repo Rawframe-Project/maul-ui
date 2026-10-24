@@ -7,18 +7,19 @@
 //
 // The stamp tools/gen_rhi_shaders.py --check reads: the SHA-256 of
 // each input with LF line ends, the Maul RHI release, the SHA-256
-// of the container, and the tools that built it.
+// of the container, and the pinned tools that built it.
 //   input rhi/shaders/quad.frag 87ce04d99030bad806333c98f6afa7e80975686337e02ac80b830b801c88a7f9
 //   input rhi/shaders/quad.json 4e9902cfa50ab1002b263e4ae054a9a5bdc556105ad2b9aa158db108d3e843c6
 //   input rhi/shaders/quad.vert 109ab1908eca76dd7014005314e0ddf4a6d273e8fffd0b2d6fd50d60598335f8
 //   input rhi/shaders/quad.wgsl c6d778f07a58b71b303db52c42dc4c07f020e217c296cef798e7fd73a4d68ef2
-//   input tools/gen_rhi_shaders.py 9ee50aa11b8e2ca2b386993034b18258e36929476a7fd606a707923339a326b3
+//   input tools/gen_rhi_shaders.py e20b63bcb3fbc24183ec8f0f243faa7290190fb8fb50b0e30d421111d8c8a74a
 //   maul-rhi v0.0.1
 //   container e2c97b803109fd266a1a47c8dfcd50656a751ec8e30b64a96c8440a4efc3c298
-//   tool Glslang Version: 11:15.1.0
-//   tool SPIRV-Tools v2025.1 unknown hash, 2026-05-13T06:03:38+00:00
-//   tool spirv-cross (Debian package)
-//   tool libdxcompiler.so: 1.9(1-0d3ee6b5)(1.9.0.1)
+//   tool glslang 15.1.0
+//   tool SPIRV-Tools v2025.1
+//   tool spirv-cross 2021.01.15+1.3.239.0
+//   tool dxc linux_dxc_2026_07_29 (v1.9.2607, libdxcompiler 1.9.0.1, 0d3ee6b5)
+//   tool dxc sha256:55665c87824051ed4774ff3280a79ccbbb7d39243b9736ca5e98222134112d54
 
 #ifndef MAUL_UI_QUAD_CONTAINER_H
 #define MAUL_UI_QUAD_CONTAINER_H
