@@ -140,10 +140,62 @@ def git_environment():
     """The environment git runs in here: no global or system configuration
     and none of the caller's Git variables, so a developer's hooks, ignore
     rules or signing settings change neither what the checks see nor what
-    the self-test does."""
+    the self-test does. Over the clone's own configuration, which may not
+    be the caller's, no file system monitor runs and no untracked cache is
+    read, and git speaks English, so its messages can be matched."""
     environment = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
-    environment.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
+    environment.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1", LC_ALL="C",
+                       GIT_CONFIG_COUNT="2",
+                       GIT_CONFIG_KEY_0="core.fsmonitor", GIT_CONFIG_VALUE_0="false",
+                       GIT_CONFIG_KEY_1="core.untrackedCache", GIT_CONFIG_VALUE_1="false")
     return environment
+
+
+def blob_id(data, algorithm):
+    """The object id Git gives a blob of these bytes."""
+    digest = hashlib.new(algorithm)
+    digest.update(b"blob %d\0" % len(data))
+    digest.update(data)
+    return digest.hexdigest()
+
+
+def checkout_differs(git, tree, algorithm, environment):
+    """Whether a checkout's files differ from its HEAD, byte for byte, or
+    it has untracked files that its committed .gitignore files do not
+    ignore. Read without git status, which runs the clean filters and the
+    file system monitor a clone's own configuration names, and without the
+    clone's .git/info/exclude, which is not part of the release."""
+    head = subprocess.run(git + ["ls-tree", "-r", "-z", "HEAD"], capture_output=True,
+                          env=environment)
+    if head.returncode != 0:
+        return True
+    root = os.fsencode(tree)
+    for entry in filter(None, head.stdout.split(b"\0")):
+        meta, path = entry.split(b"\t", 1)
+        mode, _, object_id = meta.split(b" ")
+        full = os.path.join(root, path)
+        if mode in (b"100644", b"100755"):
+            if os.path.islink(full) or not os.path.isfile(full):
+                return True
+            if bool(os.stat(full).st_mode & 0o100) != (mode == b"100755"):
+                return True
+            with open(full, "rb") as file:
+                data = file.read()
+        elif mode == b"120000":
+            if not os.path.islink(full):
+                return True
+            data = os.readlink(full)
+        else:
+            return True
+        if blob_id(data, algorithm) != object_id.decode():
+            return True
+    untracked = git + ["ls-files", "-z", "--others", "--exclude-per-directory=.gitignore"]
+    others = subprocess.run(untracked, capture_output=True, env=environment)
+    # An untracked .gitignore could hide itself with the rest.
+    ignored = subprocess.run(untracked + ["--ignored"], capture_output=True, env=environment)
+    return (others.returncode != 0 or ignored.returncode != 0 or others.stdout != b"" or
+            any(os.path.basename(path) == b".gitignore"
+                for path in ignored.stdout.split(b"\0")))
 
 
 def rhi_release(tree):
@@ -154,19 +206,23 @@ def rhi_release(tree):
     # tree mounted into a container does, and no system or global
     # configuration is read to say safe.directory for it.
     git = ["git", "-c", f"safe.directory={os.path.realpath(tree)}", "-C", tree]
+    environment = git_environment()
     try:
-        status = subprocess.run(git + ["status", "--porcelain", "--untracked-files=all"],
-                                capture_output=True, text=True, env=git_environment())
+        top = subprocess.run(git + ["rev-parse", "--show-toplevel", "--show-object-format"],
+                             capture_output=True, text=True, env=environment)
     except OSError:
         return None, "git is not installed"
-    if status.returncode != 0:
-        if "dubious ownership" in status.stderr:
+    if top.returncode != 0:
+        if "dubious ownership" in top.stderr:
             return None, (f"{tree} belongs to another user, and git trusts such a checkout "
                           "only at its top directory: name the clone's top directory")
         return None, f"{tree} is not a Git checkout"
-    if status.stdout.strip():
+    toplevel, algorithm = top.stdout.split("\n")[:2]
+    if os.path.realpath(toplevel) != os.path.realpath(tree):
+        return None, f"{tree} is inside a checkout: name the clone's top directory"
+    if checkout_differs(git, tree, algorithm, environment):
         return None, f"{tree} has uncommitted changes or untracked files"
-    tag = output(*git, "describe", "--tags", "--exact-match", env=git_environment()).strip()
+    tag = output(*git, "describe", "--tags", "--exact-match", env=environment).strip()
     return (tag, None) if tag else (None, f"{tree} is not at a tag")
 
 
@@ -317,6 +373,44 @@ def self_test_generation(work):
         subprocess.run(git + command, capture_output=True, check=True, env=environment)
     if rhi_release(tree) != ("v0.0.1", None):
         failures.append("a clean checkout at its tag is refused")
+    # A clone's own configuration names a command git would run on status.
+    marker = os.path.join(work, "fsmonitor-ran")
+    subprocess.run(git + ["config", "core.fsmonitor", f"touch '{marker}' #"], capture_output=True,
+                   check=True, env=environment)
+    rhi_release(tree)
+    if os.path.exists(marker):
+        failures.append("a command the clone's configuration names is run")
+    subprocess.run(git + ["config", "--unset", "core.fsmonitor"], capture_output=True, check=True,
+                   env=environment)
+    # A clean filter the clone's attributes and configuration name, on a
+    # file whose stat data changed.
+    marker = os.path.join(work, "filter-ran")
+    os.makedirs(os.path.join(tree, ".git", "info"), exist_ok=True)
+    with open(os.path.join(tree, ".git", "info", "attributes"), "w", encoding="utf-8") as file:
+        file.write("* filter=probe\n")
+    subprocess.run(git + ["config", "filter.probe.clean", f"touch '{marker}'; cat"],
+                   capture_output=True, check=True, env=environment)
+    write("tools/mrhi_container.py", "# a tool\n")
+    if rhi_release(tree) != ("v0.0.1", None):
+        failures.append("a clean checkout with a configured filter is refused")
+    if os.path.exists(marker):
+        failures.append("a filter the clone's configuration names is run")
+    os.remove(os.path.join(tree, ".git", "info", "attributes"))
+    subprocess.run(git + ["config", "--remove-section", "filter.probe"], capture_output=True,
+                   check=True, env=environment)
+    # An untracked file the clone's own exclude file hides, and one an
+    # untracked .gitignore hides with itself.
+    with open(os.path.join(tree, ".git", "info", "exclude"), "w", encoding="utf-8") as file:
+        file.write("extra.py\n")
+    write("tools/extra.py", "# untracked\n")
+    if rhi_release(tree)[0] is not None:
+        failures.append("an untracked file .git/info/exclude hides is taken")
+    os.remove(os.path.join(tree, ".git", "info", "exclude"))
+    write("tools/.gitignore", ".gitignore\nextra.py\n")
+    if rhi_release(tree)[0] is not None:
+        failures.append("an untracked file an untracked .gitignore hides is taken")
+    os.remove(os.path.join(tree, "tools", ".gitignore"))
+    os.remove(os.path.join(tree, "tools", "extra.py"))
     write("tools/mrhi_container.py", "# a tool, edited\n")
     if rhi_release(tree)[0] is not None:
         failures.append("an edited Maul RHI checkout is taken")
