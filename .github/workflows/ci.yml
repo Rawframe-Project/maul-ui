@@ -527,6 +527,9 @@ jobs:
       - uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
         with:
           version: 6.0.13
+          # emsdk's own scripts at the commit of its 6.0.13 tag; left
+          # unset, they would come from that tag, which can move.
+          emsdk-version: 35659964bc2762fffec0d257997fb61475f765b7 # 6.0.13
       - name: Build
         run: |
           emcmake cmake -B out/size -DCMAKE_BUILD_TYPE=MinSizeRel \
