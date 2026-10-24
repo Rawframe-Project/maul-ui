@@ -55,7 +55,8 @@ static void LayMaps(muiUikitAdapter* adapter)
     muiIdMapInit(&adapter->containerById, more, (void**)(more + map), map);
 }
 
-muiResult muiCreateUikitAdapter(const muiUikitAdapterDef* def, muiUikitAdapter** adapterOut)
+static MUI_NOINLINE muiResult CreateUikitAdapterWorker(const muiUikitAdapterDef* def,
+                                                       muiUikitAdapter** adapterOut)
 {
     if (adapterOut != nullptr)
     {
@@ -105,6 +106,14 @@ muiResult muiCreateUikitAdapter(const muiUikitAdapterDef* def, muiUikitAdapter**
     adapter->view = [(UIView*)def->view retain];
     *adapterOut = adapter;
     return mui_success;
+}
+
+muiResult muiCreateUikitAdapter(const muiUikitAdapterDef* def, muiUikitAdapter** adapterOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = CreateUikitAdapterWorker(def, adapterOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // Lets an object go: it answers nothing from then on.

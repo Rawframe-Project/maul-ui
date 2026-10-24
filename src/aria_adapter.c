@@ -65,7 +65,8 @@ static void Lay(muiAriaAdapter* adapter, unsigned char* block, uint32_t nodes)
     adapter->freeCount = nodes;
 }
 
-muiResult muiCreateAriaAdapter(const muiAriaAdapterDef* def, muiAriaAdapter** adapterOut)
+static MUI_NOINLINE muiResult CreateAriaAdapterWorker(const muiAriaAdapterDef* def,
+                                                      muiAriaAdapter** adapterOut)
 {
     if (adapterOut != nullptr)
     {
@@ -119,6 +120,14 @@ muiResult muiCreateAriaAdapter(const muiAriaAdapterDef* def, muiAriaAdapter** ad
     }
     *adapterOut = adapter;
     return mui_success;
+}
+
+muiResult muiCreateAriaAdapter(const muiAriaAdapterDef* def, muiAriaAdapter** adapterOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = CreateAriaAdapterWorker(def, adapterOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static void DestroyAriaAdapter(muiAriaAdapter* adapter)

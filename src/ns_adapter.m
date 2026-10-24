@@ -51,7 +51,8 @@ static size_t SizeOf(uint32_t nodes)
            map * (sizeof(uint64_t) + sizeof(void*));
 }
 
-muiResult muiCreateNsAdapter(const muiNsAdapterDef* def, muiNsAdapter** adapterOut)
+static MUI_NOINLINE muiResult CreateNsAdapterWorker(const muiNsAdapterDef* def,
+                                                    muiNsAdapter** adapterOut)
 {
     if (adapterOut != nullptr)
     {
@@ -103,6 +104,14 @@ muiResult muiCreateNsAdapter(const muiNsAdapterDef* def, muiNsAdapter** adapterO
     adapter->view = [(NSView*)def->view retain];
     *adapterOut = adapter;
     return mui_success;
+}
+
+muiResult muiCreateNsAdapter(const muiNsAdapterDef* def, muiNsAdapter** adapterOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = CreateNsAdapterWorker(def, adapterOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // Lets an object go: it answers nothing from then on.

@@ -76,7 +76,8 @@ static muiResult MakeTree(muiUiaAdapter* adapter, const muiUiaAdapterDef* def)
     return muiCreateAccessTree(&treeDef, &adapter->tree);
 }
 
-muiResult muiCreateUiaAdapter(const muiUiaAdapterDef* def, muiUiaAdapter** adapterOut)
+static MUI_NOINLINE muiResult CreateUiaAdapterWorker(const muiUiaAdapterDef* def,
+                                                     muiUiaAdapter** adapterOut)
 {
     if (adapterOut != nullptr)
     {
@@ -140,6 +141,14 @@ muiResult muiCreateUiaAdapter(const muiUiaAdapterDef* def, muiUiaAdapter** adapt
     }
     *adapterOut = adapter;
     return mui_success;
+}
+
+muiResult muiCreateUiaAdapter(const muiUiaAdapterDef* def, muiUiaAdapter** adapterOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = CreateUiaAdapterWorker(def, adapterOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // Detaches an object, tells UI Automation to let go of it unless in a

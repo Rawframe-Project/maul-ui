@@ -166,7 +166,8 @@ static void LetGo(muiAndroidAdapter* adapter, JNIEnv* env)
     }
 }
 
-muiResult muiCreateAndroidAdapter(const muiAndroidAdapterDef* def, muiAndroidAdapter** adapterOut)
+static MUI_NOINLINE muiResult CreateAndroidAdapterWorker(const muiAndroidAdapterDef* def,
+                                                         muiAndroidAdapter** adapterOut)
 {
     if (adapterOut != nullptr)
     {
@@ -221,6 +222,14 @@ muiResult muiCreateAndroidAdapter(const muiAndroidAdapterDef* def, muiAndroidAda
     }
     *adapterOut = adapter;
     return mui_success;
+}
+
+muiResult muiCreateAndroidAdapter(const muiAndroidAdapterDef* def, muiAndroidAdapter** adapterOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = CreateAndroidAdapterWorker(def, adapterOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static void DestroyAndroidAdapter(muiAndroidAdapter* adapter)
