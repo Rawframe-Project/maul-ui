@@ -5,6 +5,22 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.2.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.1.0...v0.2.0) (2026-10-24)
+
+
+### Added
+
+* **style:** take easing curves and springs from Maul Tween ([#37](https://github.com/Rawframe-Project/maul-ui/issues/37)) ([fa1da00](https://github.com/Rawframe-Project/maul-ui/commit/fa1da0089123a615444d5d6e1f6de58e069692f6)), closes [#11](https://github.com/Rawframe-Project/maul-ui/issues/11)
+
+
+### Fixed
+
+* compute in the library's float environment, host code in the host's ([#42](https://github.com/Rawframe-Project/maul-ui/issues/42)) ([b65909f](https://github.com/Rawframe-Project/maul-ui/commit/b65909f84cf526c970a81d257d20f781e73f4904))
+* **edit:** empty the undo history when a composition is kept ([#30](https://github.com/Rawframe-Project/maul-ui/issues/30)) ([f700249](https://github.com/Rawframe-Project/maul-ui/commit/f700249ea37c73b51941fceebec5ac33ef8da203))
+* **edit:** keep the caret out of a character an edit's bytes join ([#29](https://github.com/Rawframe-Project/maul-ui/issues/29)) ([2fe88c8](https://github.com/Rawframe-Project/maul-ui/commit/2fe88c87d676ed4fa555575fe1b7423bec99c169))
+* **rhi:** regenerate the shader container from its sources ([#25](https://github.com/Rawframe-Project/maul-ui/issues/25)) ([1ee8a26](https://github.com/Rawframe-Project/maul-ui/commit/1ee8a266271757864cc8e27737e2420ad1b969e8))
+* **text:** shape each maximal ill-formed subpart as one U+FFFD ([#28](https://github.com/Rawframe-Project/maul-ui/issues/28)) ([cc8cf07](https://github.com/Rawframe-Project/maul-ui/commit/cc8cf0780a5ad3b6ae52deea5de8d67f257443dc))
+
 ## [0.1.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.0.1...v0.1.0) (2026-10-24)
 
 A release of fixes that change the API: a program built against 0.0.1
