@@ -460,6 +460,87 @@ static void TestStrayBytes(void)
     FreeScene(&scene);
 }
 
+static bool Erases(Scene* scene, muiTextDeletion deletion)
+{
+    bool changed = false;
+    return muiTextBlock_Erase(scene->service, scene->block, deletion, &changed) == mui_success &&
+           changed;
+}
+
+// Bytes an edit puts beside others can join them into one character, its
+// maximal ill-formed subpart: the caret goes after it, never inside, the
+// run of edits ends there, and undo and redo give the text back with the
+// caret on a character's start (found by fuzz_text).
+static void TestJoinedBytes(void)
+{
+    // E6 typed before 97: E6 97 is one character, 1 to 3.
+    Scene scene = MakeScene("a\x97", 0);
+    Select(&scene, 1, 1);
+    Type(&scene, "\xE6");
+    CHECK(Holds(&scene, "a\xE6\x97") && Selects(&scene, 3, 3), "typed: after the character");
+    CHECK(Undo(&scene) && Holds(&scene, "a\x97") && Selects(&scene, 1, 1) && Redo(&scene) &&
+              Holds(&scene, "a\xE6\x97") && Selects(&scene, 3, 3),
+          "undone and redone");
+    // A word typed before 8A: E2 8A is one character, 2 to 4; what is
+    // typed next is an edit of its own.
+    FreeScene(&scene);
+    scene = MakeScene("\x8A"
+                      "ee",
+                      0);
+    Select(&scene, 0, 0);
+    Type(&scene, "ur\xE2");
+    CHECK(Holds(&scene, "ur\xE2\x8A"
+                        "ee") &&
+              Selects(&scene, 4, 4),
+          "a word ending in a lead");
+    Type(&scene, "x");
+    CHECK(Holds(&scene, "ur\xE2\x8Ax"
+                        "ee") &&
+              Undo(&scene) &&
+              Holds(&scene, "ur\xE2\x8A"
+                            "ee") &&
+              Selects(&scene, 4, 4) && Undo(&scene) &&
+              Holds(&scene, "\x8A"
+                            "ee") &&
+              Selects(&scene, 0, 0),
+          "the run ended at the character");
+    FreeScene(&scene);
+    // A deleted between F0 9F and 91: F0 9F 91 is one character, 0 to 3,
+    // and a deletion after that is an edit of its own, back or forward.
+    scene = MakeScene("\xF0\x9F"
+                      "A\x91Z",
+                      0);
+    Select(&scene, 3, 3);
+    CHECK(Erases(&scene, mui_deleteBackward) && Holds(&scene, "\xF0\x9F\x91Z") &&
+              Selects(&scene, 3, 3),
+          "a backspace joining both sides");
+    CHECK(Erases(&scene, mui_deleteBackward) && Holds(&scene, "Z") && Selects(&scene, 0, 0) &&
+              Undo(&scene) && Holds(&scene, "\xF0\x9F\x91Z") && Selects(&scene, 3, 3) &&
+              Undo(&scene) &&
+              Holds(&scene, "\xF0\x9F"
+                            "A\x91Z") &&
+              Selects(&scene, 3, 3),
+          "backspaces undone one by one");
+    Select(&scene, 2, 2);
+    CHECK(Erases(&scene, mui_deleteForward) && Holds(&scene, "\xF0\x9F\x91Z") &&
+              Selects(&scene, 3, 3) && Erases(&scene, mui_deleteForward) &&
+              Holds(&scene, "\xF0\x9F\x91") && Undo(&scene) && Holds(&scene, "\xF0\x9F\x91Z") &&
+              Selects(&scene, 3, 3) && Undo(&scene) &&
+              Holds(&scene, "\xF0\x9F"
+                            "A\x91Z") &&
+              Selects(&scene, 2, 2),
+          "deletions forward undone one by one");
+    FreeScene(&scene);
+    // A composition ending in E6 before 97, its caret at its end.
+    scene = MakeScene("a\x97", 0);
+    Select(&scene, 1, 1);
+    CHECK(muiTextBlock_Compose(scene.service, scene.block, "\xE6", 1, 1, NULL, 0, NULL) ==
+                  mui_success &&
+              Holds(&scene, "a\xE6\x97") && Selects(&scene, 3, 3),
+          "a composition's caret after the character");
+    FreeScene(&scene);
+}
+
 // An edit ends a press: a drag after the text changed extends from the
 // selection, never from the press's paragraph in the old text (found by
 // fuzz_text: an anchor past the text's end).
@@ -1278,6 +1359,7 @@ int main(void)
     TestParagraphSeparators();
     TestDragAfterAnEdit();
     TestStrayBytes();
+    TestJoinedBytes();
     TestPcKeys();
     TestMacKeys();
     TestPcLines();
