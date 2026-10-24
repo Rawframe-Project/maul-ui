@@ -7,17 +7,49 @@ may change the API, the ABI and every data format.
 
 ## [0.1.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.0.1...v0.1.0) (2026-10-24)
 
+A release of fixes that change the API: a program built against 0.0.1
+must be rebuilt, and code that compares results to `mui_errorInvalid`
+may need to look for `mui_errorFormat` instead.
 
-### ⚠ BREAKING CHANGES
+### Changed
 
-* muiAccessTreeDef, muiAtspiAppDef, muiAriaAdapterDef, muiAndroidAdapterDef, muiNsAdapterDef, muiUiaAdapterDef and muiUikitAdapterDef have a uint32_t version after their cookie, and a def built against other headers is refused with mui_errorVersion. The library no longer exports muiDefaultAccessTreeDef, muiDefaultAtspiAppDef, muiDefaultAriaAdapterDef, muiDefaultAndroidAdapterDef, muiDefaultNsAdapterDef, muiDefaultUiaAdapterDef and muiDefaultUikitAdapterDef: they are static inline in the headers, and programs must be rebuilt against these headers.
-* **access:** muiCreateFont returns mui_errorFormat, not mui_errorInvalid, for font data shorter than a header or longer than 2^31 - 1 bytes. muiPerformAccessAction returns mui_errorFormat, not mui_errorInvalid, for a value or point that is not finite, and muiTextPerformAccessAction for offsets that are not character starts of the text or a block not editing; neither counts misuse for them. The NSAccessibility, Android and ARIA adapters no longer ask the host for a value that is not finite or lies outside the range.
+- The access tree, AT-SPI application and ARIA, Android,
+  NSAccessibility, UI Automation and UIKit adapter defs carry the
+  version of the headers the program was built with, as the context
+  and text service defs do. A def built against other headers is
+  refused with `mui_errorVersion` before anything else in it is read
+  ([#22](https://github.com/Rawframe-Project/maul-ui/pull/22)).
+- Bad data that another program controls is refused with
+  `mui_errorFormat` and no longer counts as misuse, so every
+  `mui_errorInvalid` is now a bug in the host
+  ([#19](https://github.com/Rawframe-Project/maul-ui/pull/19)):
+  - `muiCreateFont` returns `mui_errorFormat` for font data shorter
+    than a header or longer than 2^31 - 1 bytes;
+  - `muiPerformAccessAction` returns it for a screen reader's value or
+    point that is not finite;
+  - `muiTextPerformAccessAction` returns it for offsets that are not
+    character starts of the text as it is now, or a field no longer
+    editing.
+
+### Removed
+
+- The library no longer exports `muiDefaultAccessTreeDef`,
+  `muiDefaultAtspiAppDef`, `muiDefaultAriaAdapterDef`,
+  `muiDefaultAndroidAdapterDef`, `muiDefaultNsAdapterDef`,
+  `muiDefaultUiaAdapterDef` or `muiDefaultUikitAdapterDef`. They are
+  `static inline` in the headers, so they stamp the program's version
+  ([#22](https://github.com/Rawframe-Project/maul-ui/pull/22)).
 
 ### Fixed
 
-* **access:** refuse bad untrusted data as a format error, no misuse ([#19](https://github.com/Rawframe-Project/maul-ui/issues/19)) ([e4bf505](https://github.com/Rawframe-Project/maul-ui/commit/e4bf505be8d99a5c740d43302f25e61ef93ca2b7))
-* **layout:** end the flex loop when every clamp is within its slack ([#18](https://github.com/Rawframe-Project/maul-ui/issues/18)) ([b23665e](https://github.com/Rawframe-Project/maul-ui/commit/b23665e3060a659c1493c82aadeb803ff234cdb8)), closes [#17](https://github.com/Rawframe-Project/maul-ui/issues/17)
-* stamp every root def with the ABI version ([#22](https://github.com/Rawframe-Project/maul-ui/issues/22)) ([871607d](https://github.com/Rawframe-Project/maul-ui/commit/871607d8295494d375fa4d5c1e1bf247d0a19c48))
+- Layout no longer hangs on a child far wider than its row that is
+  shrunk onto its minimum width
+  ([#17](https://github.com/Rawframe-Project/maul-ui/issues/17)).
+- The NSAccessibility, Android and ARIA adapters no longer pass a
+  screen reader's value that is not finite, or lies outside the
+  range, to the program's action function, as the AT-SPI and UI
+  Automation adapters already did not
+  ([#19](https://github.com/Rawframe-Project/maul-ui/pull/19)).
 
 ## [0.0.1](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.0.1) (2026-10-23)
 
