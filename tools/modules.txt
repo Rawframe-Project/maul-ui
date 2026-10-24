@@ -40,7 +40,7 @@ exit_store:
 virtual_store:
 range: context range_store tree notify
 exit: animation context exit_store focus notify tree layout_node
-virtual: context layout_node notify scroll_store tree virtual_store
+virtual: context invariant layout_node notify scroll_store tree virtual_store
 virtual_edit: context tree virtual virtual_store
 access_store: allocator outline
 access: access_store allocator context tree
@@ -131,7 +131,7 @@ text_entry:
 text_service: allocator family_store font_instance font_store pool text_block
 text_block: allocator pool
 text_blocks: font_instance property text_block text_entry text_service
-text_editing: text_block text_blocks text_entry text_history text_rules text_service
+text_editing: invariant text_block text_blocks text_entry text_history text_rules text_service
 text_editor: text_block text_editing text_entry text_service
 text_keys: text_block text_editing text_entry
 text_mask: allocator text_block text_blocks text_service
@@ -145,7 +145,7 @@ text_boxes: font_chain line_break text_block text_lines text_paragraph text_serv
 text_lines: line_break text_block text_paragraph text_service
 text_hit: font_chain line_break text_block text_boxes text_entry text_mask text_paragraph text_service text_shape
 text_delete: text_block text_service
-text_move: font_chain line_break text_block text_boxes text_entry text_mask text_paragraph text_service text_shape
+text_move: font_chain invariant line_break text_block text_blocks text_boxes text_entry text_mask text_paragraph text_service text_shape
 text_access: allocator line_break text_block text_blocks text_boxes text_editing text_entry text_mask text_service
 font: allocator font_store pool text_service
 distance_field:
@@ -164,6 +164,6 @@ png: inflate text_block
 glyph_outline: font_instance font_store text_block text_service
 skyline: invariant
 glyph_table: allocator
-glyph_atlas: allocator bitmap_glyph color font_store glyph_table skyline text_service
+glyph_atlas: allocator bitmap_glyph color font_store glyph_table invariant skyline text_service
 property_bits: outline
 inherit: layout_node property tree
