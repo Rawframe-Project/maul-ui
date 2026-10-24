@@ -14,7 +14,7 @@
 - CMake 3.25 or newer.
 - GCC 14 or Clang 19 or newer. On Windows, `clang-cl`, the Visual Studio component "C++ Clang tools for Windows". The library is C23. Its public headers are C17 and C++17, so any C or C++ program can include them.
 - A C++ compiler as well for the text component, which builds HarfBuzz.
-- A network connection at configure time for the text component, unless the dependencies are given as local copies ([Build options](#build-options)).
+- A network connection at configure time, for Maul Tween and the text component's libraries, unless they are given as local copies ([Build options](#build-options)).
 
 ## Building and installing
 
@@ -33,13 +33,13 @@ target_link_libraries(app PRIVATE maul-ui::maul-ui)
 
 or through pkg-config as `maul-ui`. Before 1.0 the package accepts only its exact version, since any release may change the interface. [samples/minimal](../../samples/minimal) is a program built against an install alone.
 
-The text component's dependencies are built into the library, so an installed library links with nothing more than the C library and libm. A program that links the static library through CMake links as C, though the library holds HarfBuzz's C++ objects; this build sets `LINKER_LANGUAGE C` for its own programs, and a program in a Visual Studio project should do the same to keep its C standard.
+Maul Tween and the text component's dependencies are built into the library, so an installed library links with nothing more than the C library and libm. A program that links the static library through CMake links as C, though the library holds HarfBuzz's C++ objects; this build sets `LINKER_LANGUAGE C` for its own programs, and a program in a Visual Studio project should do the same to keep its C standard.
 
 ## Build options
 
 | Option | Default | What it builds |
 |---|---|---|
-| `MAUL_UI_TEXT` | on | The text component: fonts, shaping, paragraphs, editing and glyph images. Off, the library is the core alone and needs no other library. |
+| `MAUL_UI_TEXT` | on | The text component: fonts, shaping, paragraphs, editing and glyph images. Off, the library is the core alone, with Maul Tween built in. |
 | `MAUL_UI_ACCESS_TREE` | on | The accessibility tree's consumer, which the platform adapters read. |
 | `MAUL_UI_UIA`, `MAUL_UI_ATSPI`, `MAUL_UI_NSACCESSIBILITY`, `MAUL_UI_UIACCESSIBILITY`, `MAUL_UI_ANDROID_ACCESSIBILITY`, `MAUL_UI_ARIA` | on, on their platform | The accessibility adapter for Windows, Linux, macOS, iOS, Android and the web ([Accessibility](accessibility.md)). |
 | `MAUL_UI_RHI` | off | `maul-ui-rhi`, the reference renderer on Maul RHI ([Drawing](drawing.md#the-reference-renderer)). |
@@ -47,7 +47,14 @@ The text component's dependencies are built into the library, so an installed li
 | `MAUL_UI_BUILD_SHARED` | off | A shared library instead of a static one. |
 | `MAUL_UI_TEXT_SYSTEM_LIBRARIES` | off | Links the installed FreeType and HarfBuzz instead of building the pinned releases. Results then depend on their versions. |
 
-The core fetches Maul Tween, and the text component FreeType, HarfBuzz and Maul Unicode, at configure time, each checked by its hash or tag. To build offline, point `FETCHCONTENT_SOURCE_DIR_MAUL-TWEEN`, `FETCHCONTENT_SOURCE_DIR_MAUL_UI_FREETYPE`, `FETCHCONTENT_SOURCE_DIR_MAUL_UI_HARFBUZZ` and `FETCHCONTENT_SOURCE_DIR_MAUL-UNICODE` at local copies of the same releases. `MAUL_UI_RHI` and `MAUL_UI_WINDOW` find Maul RHI and Maul Window installed, or fetch them at their release tags.
+The core fetches Maul Tween, and the text component FreeType, HarfBuzz and Maul Unicode, at configure time, each checked by its hash or tag. To build offline, point `FETCHCONTENT_SOURCE_DIR_MAUL-TWEEN`, `FETCHCONTENT_SOURCE_DIR_MAUL_UI_FREETYPE`, `FETCHCONTENT_SOURCE_DIR_MAUL_UI_HARFBUZZ` and `FETCHCONTENT_SOURCE_DIR_MAUL-UNICODE` at local copies of the same releases; the core alone needs only Maul Tween's:
+
+```sh
+git clone --depth 1 --branch v0.0.1 https://github.com/Rawframe-Project/maul-tween.git ../maul-tween
+cmake -B build -DMAUL_UI_TEXT=OFF -DFETCHCONTENT_SOURCE_DIR_MAUL-TWEEN=$PWD/../maul-tween
+```
+
+`MAUL_UI_RHI` and `MAUL_UI_WINDOW` find Maul RHI and Maul Window installed, or fetch them at their release tags.
 
 ## The model
 
