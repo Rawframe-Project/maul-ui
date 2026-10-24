@@ -34,6 +34,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import zlib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHADERS = os.path.join(ROOT, "rhi", "shaders")
@@ -168,20 +169,75 @@ def blob_id(data, algorithm):
     return digest.hexdigest()
 
 
-def checkout_differs(git, tree, algorithm, environment):
-    """Whether a checkout's files differ from its HEAD, byte for byte, or
-    it has untracked files that its committed .gitignore files do not
-    ignore. Read without git status, which runs the clean filters and the
-    file system monitor a clone's own configuration names, and without the
-    clone's .git/info/exclude, which is not part of the release."""
-    head = subprocess.run(git + ["ls-tree", "-r", "-z", "HEAD"], capture_output=True,
-                          env=environment)
-    if head.returncode != 0:
+def release_files(git, commit, algorithm, environment):
+    """The files of a commit by path, their mode and blob id, read from its
+    objects through cat-file, each object hashed against its id: git
+    neither checks a loose or alternate object it reads against its id nor
+    lets ls-tree do so, so a clone could hold a forged commit or tree under
+    the release's ids. None when an object is missing, of another kind,
+    not what its id names, or not a tree of plain files."""
+    files = {}
+    command = git + ["cat-file", "--batch"]
+    with subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                          stderr=subprocess.DEVNULL, env=environment) as batch:
+
+        def read(object_id, kind):
+            batch.stdin.write(object_id.encode() + b"\n")
+            batch.stdin.flush()
+            header = batch.stdout.readline().split()
+            if len(header) != 3:
+                return None
+            length = int(header[2])
+            data = batch.stdout.read(length)
+            batch.stdout.read(1)
+            digest = hashlib.new(algorithm, b"%s %d\0" % (header[1], length) + data)
+            return data if header[1] == kind and digest.hexdigest() == object_id else None
+
+        try:
+            data = read(commit, b"commit")
+            if data is None or not data.startswith(b"tree "):
+                return None
+            trees = [(b"", data[5:data.index(b"\n")].decode())]
+            size = hashlib.new(algorithm).digest_size
+            while trees:
+                prefix, tree_id = trees.pop()
+                data = read(tree_id, b"tree")
+                if data is None:
+                    return None
+                at = 0
+                while at < len(data):
+                    space = data.index(b" ", at)
+                    end = data.index(b"\0", space)
+                    mode, name = data[at:space], data[space + 1:end]
+                    object_id = data[end + 1:end + 1 + size].hex()
+                    at = end + 1 + size
+                    if name in (b"", b".", b"..", b".git") or b"/" in name or len(object_id) != 2 * size:
+                        return None
+                    if mode == b"40000":
+                        trees.append((prefix + name + b"/", object_id))
+                    elif mode in (b"100644", b"100755", b"120000"):
+                        files[prefix + name] = (mode, object_id)
+                    else:
+                        return None
+        except (OSError, ValueError):
+            return None
+        finally:
+            batch.stdin.close()
+    return files
+
+
+def checkout_differs(git, tree, commit, algorithm, environment):
+    """Whether a checkout differs from a commit: a file's bytes, kind or
+    executable bit, an index that lists other paths, or untracked files
+    that its committed .gitignore files do not ignore. Read without git
+    status, which runs the clean filters and the file system monitor a
+    clone's own configuration names, and without the clone's
+    .git/info/exclude, which is not part of the release."""
+    files = release_files(git, commit, algorithm, environment)
+    if files is None:
         return True
     root = os.fsencode(tree)
-    for entry in filter(None, head.stdout.split(b"\0")):
-        meta, path = entry.split(b"\t", 1)
-        mode, _, object_id = meta.split(b" ")
+    for path, (mode, object_id) in files.items():
         full = os.path.join(root, path)
         if mode in (b"100644", b"100755"):
             if os.path.islink(full) or not os.path.isfile(full):
@@ -190,14 +246,18 @@ def checkout_differs(git, tree, algorithm, environment):
                 return True
             with open(full, "rb") as file:
                 data = file.read()
-        elif mode == b"120000":
+        else:
             if not os.path.islink(full):
                 return True
             data = os.readlink(full)
-        else:
+        if blob_id(data, algorithm) != object_id:
             return True
-        if blob_id(data, algorithm) != object_id.decode():
-            return True
+    # The index decides what ls-files counts as untracked: it must list
+    # the release's paths and no others.
+    cached = subprocess.run(git + ["ls-files", "-z", "--cached"], capture_output=True,
+                            env=environment)
+    if cached.returncode != 0 or set(filter(None, cached.stdout.split(b"\0"))) != set(files):
+        return True
     untracked = git + ["ls-files", "-z", "--others", "--exclude-per-directory=.gitignore"]
     others = subprocess.run(untracked, capture_output=True, env=environment)
     # An untracked .gitignore could hide itself with the rest.
@@ -209,10 +269,10 @@ def checkout_differs(git, tree, algorithm, environment):
 
 def rhi_release(tree, commits=RHI_COMMITS):
     """The tag a clean Maul RHI checkout is at, and why it cannot be used
-    when it is not: an edit or an untracked file there changes what its
-    tools write while the tag stays the same, and a tag of the release's
-    name on a commit other than the one commits pins for it is not the
-    release."""
+    when it is not: a tag of the release's name on a commit other than the
+    one commits pins for it is not the release, and an edit or an
+    untracked file in the checkout changes what its tools write while the
+    tag stays the same."""
     # The clone is trusted by its path: it may belong to another user, as a
     # tree mounted into a container does, and no system or global
     # configuration is read to say safe.directory for it.
@@ -231,14 +291,16 @@ def rhi_release(tree, commits=RHI_COMMITS):
     toplevel, algorithm = top.stdout.split("\n")[:2]
     if os.path.realpath(toplevel) != os.path.realpath(tree):
         return None, f"{tree} is inside a checkout: name the clone's top directory"
-    if checkout_differs(git, tree, algorithm, environment):
-        return None, f"{tree} has uncommitted changes or untracked files"
     tag = output(*git, "describe", "--tags", "--exact-match", env=environment).strip()
     if not tag:
         return None, f"{tree} is not at a tag"
     head = output(*git, "rev-parse", "--verify", "HEAD^{commit}", env=environment).strip()
     if head != commits.get(tag):
         return None, f"{tree} is at a {tag} tag on {head}, not the release's commit"
+    # The release's objects as its pinned commit id names them, not as the
+    # clone holds them.
+    if checkout_differs(git, tree, head, algorithm, environment):
+        return None, f"{tree} has uncommitted changes or untracked files"
     return tag, None
 
 
@@ -415,6 +477,7 @@ def self_test_generation(work):
                    env=environment)
     write("tools/mrhi_container.py", "# a tool\n")
     subprocess.run(git + ["add", "-A"], capture_output=True, check=True, env=environment)
+    failures += self_test_forgeries(tree, git, environment, commit, released)
     # A clone's own configuration names a command git would run on status.
     marker = os.path.join(work, "fsmonitor-ran")
     subprocess.run(git + ["config", "core.fsmonitor", f"touch '{marker}' #"], capture_output=True,
@@ -490,6 +553,86 @@ def self_test_generation(work):
     subprocess.run(git + ["ls-tree", "-r", "HEAD"], capture_output=True, env=lazy)
     if os.path.exists(marker):
         failures.append("a fetch the clone's configuration names is run")
+    return failures
+
+
+def self_test_forgeries(tree, git, environment, commit, released):
+    """Objects a clone forges under the release's ids, which git reads
+    without checking, and a file only its index lists: each refused."""
+    failures = []
+
+    def run(*arguments):
+        return subprocess.run(git + list(arguments), capture_output=True, text=True, check=True,
+                              env=environment).stdout.strip()
+
+    def object_path(objects, object_id):
+        return os.path.join(objects, object_id[:2], object_id[2:])
+
+    def forge(path, kind, content):
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        if os.path.exists(path):
+            os.chmod(path, 0o644)
+        with open(path, "wb") as file:
+            file.write(zlib.compress(b"%s %d\0" % (kind, len(content)) + content))
+
+    def edit():
+        with open(os.path.join(tree, "tools", "mrhi_container.py"), "w", encoding="utf-8") as file:
+            file.write("# a tool, forged\n")
+        return run("hash-object", "-w", "tools/mrhi_container.py")
+
+    def restore(path, data):
+        if os.path.exists(path):
+            os.chmod(path, 0o644)
+        with open(path, "wb") as file:
+            file.write(data)
+        with open(os.path.join(tree, "tools", "mrhi_container.py"), "w", encoding="utf-8") as file:
+            file.write("# a tool\n")
+
+    objects = os.path.join(tree, ".git", "objects")
+    tools = run("rev-parse", "HEAD:tools")
+    with open(object_path(objects, tools), "rb") as file:
+        genuine = file.read()
+    # A tree forged under the tools tree's id, naming an edited blob the
+    # checkout holds.
+    forged = b"100644 mrhi_container.py\0" + bytes.fromhex(edit())
+    forge(object_path(objects, tools), b"tree", forged)
+    if released()[0] is not None:
+        failures.append("a tree forged under the release's id is taken")
+    restore(object_path(objects, tools), genuine)
+    # The same, from an alternate object directory.
+    edit()
+    os.remove(object_path(objects, tools))
+    alternate = os.path.join(os.path.dirname(tree), "alternate")
+    forge(object_path(alternate, tools), b"tree", forged)
+    with open(os.path.join(objects, "info", "alternates"), "w", encoding="utf-8") as file:
+        file.write(alternate + "\n")
+    if released()[0] is not None:
+        failures.append("a tree forged in an alternate object directory is taken")
+    os.remove(os.path.join(objects, "info", "alternates"))
+    restore(object_path(objects, tools), genuine)
+    # A commit forged under the release's id, naming a tree of edited files.
+    with open(object_path(objects, commit), "rb") as file:
+        genuine = file.read()
+    edit()
+    run("add", "-A")
+    edited = run("write-tree")
+    forge(object_path(objects, commit), b"commit",
+          f"tree {edited}\nauthor a <a> 0 +0000\ncommitter a <a> 0 +0000\n\nforged\n".encode())
+    if released()[0] is not None:
+        failures.append("a commit forged under the release's id is taken")
+    restore(object_path(objects, commit), genuine)
+    run("add", "-A")
+    # A file the index lists that the release does not, which ls-files
+    # then counts as tracked.
+    with open(os.path.join(tree, "tools", "extra.py"), "w", encoding="utf-8") as file:
+        file.write("# only in the index\n")
+    run("add", "tools/extra.py")
+    if released()[0] is not None:
+        failures.append("a file only the index lists is taken")
+    run("rm", "-q", "--cached", "tools/extra.py")
+    os.remove(os.path.join(tree, "tools", "extra.py"))
+    if released() != ("v0.0.1", None):
+        failures.append("the release is refused after the forgeries are undone")
     return failures
 
 
