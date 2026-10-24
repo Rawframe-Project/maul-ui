@@ -89,6 +89,10 @@ jobs:
           python3 tools/check_litmus.py
       - name: Layout fixture tables match the corpus
         run: python3 tools/gen_layout_fixtures.py --check
+      - name: The shader container matches its stamped inputs
+        run: |
+          python3 tools/gen_rhi_shaders.py --check
+          python3 tools/gen_rhi_shaders.py --self-test
       - name: The documentation site builds
         run: python3 tools/build_docs.py
       - name: clang-tidy

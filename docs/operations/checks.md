@@ -16,7 +16,7 @@ What verifies a change, locally and in CI, and the time each may take.
 
 | Tier | Runs | Budget |
 |---|---|---|
-| `changed` | The source, module, length, API documentation, snippet, text header and litmus rules, the organization's documentation check, `clang-format` on the changed C and Objective-C files, and the tests whose labels the changed files reach, integration tests left out: the core's in `linux-clang-20-asan`, the renderer's and the glue's in `linux-parts`. | under 2 minutes |
+| `changed` | The source, module, length, API documentation, snippet, text header and litmus rules, the shader container's stamp, the organization's documentation check, `clang-format` on the changed C and Objective-C files, and the tests whose labels the changed files reach, integration tests left out: the core's in `linux-clang-20-asan`, the renderer's and the glue's in `linux-parts`. | under 2 minutes |
 | `pr` | Every rule on every file, the layout fixture tables against the corpus, that the documentation site builds, clang-tidy over the core's, the renderer's and the glue's sources, the whole `linux-clang-20-asan` and `linux-parts` suites, and 10 seconds of fuzzing per target. | under 10 minutes |
 | `full` | Also the other Linux presets (ThreadSanitizer, shared, the core alone, the parts without text and with GCC, Clang and GCC Release) and 60 seconds per fuzz target. | under 20 minutes |
 
@@ -43,7 +43,7 @@ A test that cannot run exits 77, which CTest reports as skipped, and every CI ce
 | `changes` | Whether a pull request changes anything beyond documentation; when it does not, the build jobs are skipped. |
 | `docs` | The organization's documentation check, over the whole repository. |
 | `zizmor` | The workflows: injection, persisted credentials, permissions, unpinned actions. |
-| `checks` | `clang-format`, the family's rules, the text header list, the litmus check, the layout fixture tables, that the documentation site builds, and clang-tidy. It runs on documentation changes too. |
+| `checks` | `clang-format`, the family's rules, the text header list, the litmus check, the layout fixture tables, the shader container's stamp, that the documentation site builds, and clang-tidy. It runs on documentation changes too. |
 | `build` | One call of the organization's `cpp.yml` per preset: GCC 14 on x86-64 and on arm64, Clang 20 in Release, Clang with AddressSanitizer and UBSan (each test repeated up to three times on a pull request, so a flaky one fails before it merges), Clang with ThreadSanitizer, the shared library, the core without the text component, the renderer and the glue on lavapipe with Clang and the sanitizers, with GCC 14, and without text, macOS on its runner and `clang-cl` on Windows. All build with warnings as errors. |
 | `msvc-headers` | Every public header compiled by MSVC's `cl` as C17 and C++17 with `/W4 /WX`. |
 | `fuzz` | Every fuzz target: 20 seconds each on a pull request, 120 on `main` and at night. |
