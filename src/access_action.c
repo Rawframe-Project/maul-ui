@@ -9,6 +9,7 @@
 #include "context.h"
 #include "event.h"
 #include "focus.h"
+#include "fpenv.h"
 #include "layout_node.h"
 #include "notify.h"
 #include "range.h"
@@ -147,8 +148,9 @@ static muiResult PerformAccessAction(muiContext* context, const muiAccessRequest
     return mui_success;
 }
 
-muiResult muiPerformAccessAction(muiContext* context, const muiAccessRequest* request,
-                                 bool* handledOut)
+static MUI_NOINLINE muiResult PerformAccessActionWorker(muiContext* context,
+                                                        const muiAccessRequest* request,
+                                                        bool* handledOut)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -157,4 +159,13 @@ muiResult muiPerformAccessAction(muiContext* context, const muiAccessRequest* re
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiPerformAccessAction(muiContext* context, const muiAccessRequest* request,
+                                 bool* handledOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = PerformAccessActionWorker(context, request, handledOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }

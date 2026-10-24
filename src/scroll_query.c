@@ -5,6 +5,7 @@
 // from what layout measured.
 
 #include "context.h"
+#include "fpenv.h"
 #include "layout_node.h"
 #include "scroll_store.h"
 #include "tree.h"
@@ -25,8 +26,9 @@ static uint32_t ResolveRead(const muiContext* context, muiNodeId nodeId, muiResu
     return slot;
 }
 
-muiResult muiNode_GetScrollThumb(const muiContext* context, muiNodeId nodeId, bool horizontal,
-                                 float track, float minimum, muiScrollThumb* thumbOut)
+static MUI_NOINLINE muiResult NodeGetScrollThumbWorker(const muiContext* context, muiNodeId nodeId,
+                                                       bool horizontal, float track, float minimum,
+                                                       muiScrollThumb* thumbOut)
 {
     if (context == nullptr || thumbOut == nullptr || !isfinite(track) || track < 0.0f ||
         !isfinite(minimum) || minimum < 0.0f)
@@ -57,6 +59,16 @@ muiResult muiNode_GetScrollThumb(const muiContext* context, muiNodeId nodeId, bo
     float placed = (track - length) * offset / limit;
     *thumbOut = (muiScrollThumb){far ? track - length - placed : placed, length};
     return mui_success;
+}
+
+muiResult muiNode_GetScrollThumb(const muiContext* context, muiNodeId nodeId, bool horizontal,
+                                 float track, float minimum, muiScrollThumb* thumbOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result =
+        NodeGetScrollThumbWorker(context, nodeId, horizontal, track, minimum, thumbOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 muiResult muiNode_GetScroll(const muiContext* context, muiNodeId nodeId, float* xOut, float* yOut)

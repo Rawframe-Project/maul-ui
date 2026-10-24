@@ -5,6 +5,7 @@
 // root, and letting go of provider objects whose nodes leave.
 
 #include "allocator.h"
+#include "fpenv.h"
 #include "host_call.h"
 #include "uia.h"
 
@@ -196,7 +197,8 @@ uint64_t muiGetUiaAdapterMisuse(const muiUiaAdapter* adapter)
     return adapter != nullptr ? adapter->misuse : 0;
 }
 
-static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* old)
+static MUI_NOINLINE void RemovedWorker(void* user, const muiAccessTree* tree,
+                                       const muiAccessNode* old)
 {
     (void)tree;
     muiUiaAdapter* adapter = user;
@@ -206,6 +208,13 @@ static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* 
         node->adapter = nullptr;
         muiUiaRelease(node);
     }
+}
+
+static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* old)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    RemovedWorker(user, tree, old);
+    muiFloatEnvLeave(floatEnv);
 }
 
 static muiResult UiaAdapterApply(muiUiaAdapter* adapter, const muiAccessUpdate* update)
@@ -225,7 +234,8 @@ static muiResult UiaAdapterApply(muiUiaAdapter* adapter, const muiAccessUpdate* 
     return status;
 }
 
-muiResult muiUiaAdapter_Apply(muiUiaAdapter* adapter, const muiAccessUpdate* update)
+static MUI_NOINLINE muiResult UiaAdapterApplyWorker(muiUiaAdapter* adapter,
+                                                    const muiAccessUpdate* update)
 {
     if (adapter == nullptr)
     {
@@ -238,6 +248,14 @@ muiResult muiUiaAdapter_Apply(muiUiaAdapter* adapter, const muiAccessUpdate* upd
     muiResult result = UiaAdapterApply(adapter, update);
     adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
+    return result;
+}
+
+muiResult muiUiaAdapter_Apply(muiUiaAdapter* adapter, const muiAccessUpdate* update)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = UiaAdapterApplyWorker(adapter, update);
+    muiFloatEnvLeave(floatEnv);
     return result;
 }
 
@@ -304,7 +322,7 @@ static muiResult UiaAdapterSetScale(muiUiaAdapter* adapter, float scale)
     return mui_success;
 }
 
-muiResult muiUiaAdapter_SetScale(muiUiaAdapter* adapter, float scale)
+static MUI_NOINLINE muiResult UiaAdapterSetScaleWorker(muiUiaAdapter* adapter, float scale)
 {
     if (adapter == nullptr)
     {
@@ -317,6 +335,14 @@ muiResult muiUiaAdapter_SetScale(muiUiaAdapter* adapter, float scale)
     muiResult result = UiaAdapterSetScale(adapter, scale);
     adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
+    return result;
+}
+
+muiResult muiUiaAdapter_SetScale(muiUiaAdapter* adapter, float scale)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = UiaAdapterSetScaleWorker(adapter, scale);
+    muiFloatEnvLeave(floatEnv);
     return result;
 }
 

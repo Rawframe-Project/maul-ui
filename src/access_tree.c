@@ -10,6 +10,7 @@
 #include "access_tree_store.h"
 #include "allocator.h"
 #include "chars.h"
+#include "fpenv.h"
 #include "host_call.h"
 
 #include <stdalign.h>
@@ -508,8 +509,8 @@ static void PutNode(Writer* writer, const muiAccessNode* node, uint32_t depth)
     Put(writer, "\n", 1);
 }
 
-muiResult muiAccessTree_Write(const muiAccessTree* tree, char* buffer, size_t capacity,
-                              size_t* lengthOut)
+static MUI_NOINLINE muiResult AccessTreeWriteWorker(const muiAccessTree* tree, char* buffer,
+                                                    size_t capacity, size_t* lengthOut)
 {
     if (tree == nullptr || lengthOut == nullptr || (buffer == nullptr && capacity != 0))
     {
@@ -550,4 +551,13 @@ muiResult muiAccessTree_Write(const muiAccessTree* tree, char* buffer, size_t ca
     }
     *lengthOut = writer.length;
     return writer.length < capacity ? mui_success : mui_errorCapacity;
+}
+
+muiResult muiAccessTree_Write(const muiAccessTree* tree, char* buffer, size_t capacity,
+                              size_t* lengthOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = AccessTreeWriteWorker(tree, buffer, capacity, lengthOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }

@@ -7,6 +7,7 @@
 #include "maul-ui/range.h"
 
 #include "context.h"
+#include "fpenv.h"
 #include "notify.h"
 #include "range.h"
 #include "range_store.h"
@@ -117,7 +118,8 @@ static muiResult NodeSetValueRange(muiContext* context, muiNodeId nodeId,
     return mui_success;
 }
 
-muiResult muiNode_SetValueRange(muiContext* context, muiNodeId nodeId, const muiValueRange* range)
+static MUI_NOINLINE muiResult NodeSetValueRangeWorker(muiContext* context, muiNodeId nodeId,
+                                                      const muiValueRange* range)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -126,6 +128,14 @@ muiResult muiNode_SetValueRange(muiContext* context, muiNodeId nodeId, const mui
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiNode_SetValueRange(muiContext* context, muiNodeId nodeId, const muiValueRange* range)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = NodeSetValueRangeWorker(context, nodeId, range);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // The entry of a node an argument names, with the status to return when
@@ -183,7 +193,8 @@ static muiResult NodeSetRangeValue(muiContext* context, muiNodeId nodeId, float 
     return status;
 }
 
-muiResult muiNode_SetRangeValue(muiContext* context, muiNodeId nodeId, float value)
+static MUI_NOINLINE muiResult NodeSetRangeValueWorker(muiContext* context, muiNodeId nodeId,
+                                                      float value)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -192,6 +203,14 @@ muiResult muiNode_SetRangeValue(muiContext* context, muiNodeId nodeId, float val
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiNode_SetRangeValue(muiContext* context, muiNodeId nodeId, float value)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = NodeSetRangeValueWorker(context, nodeId, value);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static muiResult NodeClearValueRange(muiContext* context, muiNodeId nodeId)

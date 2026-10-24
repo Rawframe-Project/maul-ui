@@ -11,6 +11,7 @@
 #include "access_text.h"
 #include "allocator.h"
 #include "aria.h"
+#include "fpenv.h"
 #include "host_call.h"
 
 #include <stdalign.h>
@@ -538,7 +539,8 @@ static muiResult AriaAdapterApply(muiAriaAdapter* adapter, const muiAccessUpdate
     return status;
 }
 
-muiResult muiAriaAdapter_Apply(muiAriaAdapter* adapter, const muiAccessUpdate* update)
+static MUI_NOINLINE muiResult AriaAdapterApplyWorker(muiAriaAdapter* adapter,
+                                                     const muiAccessUpdate* update)
 {
     if (adapter == nullptr)
     {
@@ -551,6 +553,14 @@ muiResult muiAriaAdapter_Apply(muiAriaAdapter* adapter, const muiAccessUpdate* u
     muiResult result = AriaAdapterApply(adapter, update);
     adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
+    return result;
+}
+
+muiResult muiAriaAdapter_Apply(muiAriaAdapter* adapter, const muiAccessUpdate* update)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = AriaAdapterApplyWorker(adapter, update);
+    muiFloatEnvLeave(floatEnv);
     return result;
 }
 
@@ -573,7 +583,7 @@ static muiResult AriaAdapterSetScale(muiAriaAdapter* adapter, float scale)
     return mui_success;
 }
 
-muiResult muiAriaAdapter_SetScale(muiAriaAdapter* adapter, float scale)
+static MUI_NOINLINE muiResult AriaAdapterSetScaleWorker(muiAriaAdapter* adapter, float scale)
 {
     if (adapter == nullptr)
     {
@@ -586,6 +596,14 @@ muiResult muiAriaAdapter_SetScale(muiAriaAdapter* adapter, float scale)
     muiResult result = AriaAdapterSetScale(adapter, scale);
     adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
+    return result;
+}
+
+muiResult muiAriaAdapter_SetScale(muiAriaAdapter* adapter, float scale)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = AriaAdapterSetScaleWorker(adapter, scale);
+    muiFloatEnvLeave(floatEnv);
     return result;
 }
 

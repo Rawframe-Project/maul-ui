@@ -8,6 +8,7 @@
 
 #include "context.h"
 #include "focus.h"
+#include "fpenv.h"
 #include "inherit.h"
 #include "layout_node.h"
 #include "pointer.h"
@@ -105,7 +106,7 @@ static muiResult DestroyNode(muiContext* context, muiNodeId nodeId)
     return status;
 }
 
-muiResult muiDestroyNode(muiContext* context, muiNodeId nodeId)
+static MUI_NOINLINE muiResult DestroyNodeWorker(muiContext* context, muiNodeId nodeId)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -114,6 +115,14 @@ muiResult muiDestroyNode(muiContext* context, muiNodeId nodeId)
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiDestroyNode(muiContext* context, muiNodeId nodeId)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = DestroyNodeWorker(context, nodeId);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 bool muiNode_IsValid(const muiContext* context, muiNodeId nodeId)
@@ -161,8 +170,8 @@ static muiResult NodeInsertChild(muiContext* context, muiNodeId parentId, muiNod
     return mui_success;
 }
 
-muiResult muiNode_InsertChild(muiContext* context, muiNodeId parentId, muiNodeId childId,
-                              muiNodeId beforeId)
+static MUI_NOINLINE muiResult NodeInsertChildWorker(muiContext* context, muiNodeId parentId,
+                                                    muiNodeId childId, muiNodeId beforeId)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -171,6 +180,15 @@ muiResult muiNode_InsertChild(muiContext* context, muiNodeId parentId, muiNodeId
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiNode_InsertChild(muiContext* context, muiNodeId parentId, muiNodeId childId,
+                              muiNodeId beforeId)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = NodeInsertChildWorker(context, parentId, childId, beforeId);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static muiResult NodeDetach(muiContext* context, muiNodeId nodeId)
@@ -190,7 +208,7 @@ static muiResult NodeDetach(muiContext* context, muiNodeId nodeId)
     return status;
 }
 
-muiResult muiNode_Detach(muiContext* context, muiNodeId nodeId)
+static MUI_NOINLINE muiResult NodeDetachWorker(muiContext* context, muiNodeId nodeId)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -199,6 +217,14 @@ muiResult muiNode_Detach(muiContext* context, muiNodeId nodeId)
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiNode_Detach(muiContext* context, muiNodeId nodeId)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = NodeDetachWorker(context, nodeId);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // The links of a live node, or NULL.

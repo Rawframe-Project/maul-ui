@@ -6,6 +6,7 @@
 // the selection and replace text, in the offsets it reads as.
 
 #include "allocator.h"
+#include "fpenv.h"
 #include "text_block.h"
 #include "text_blocks.h"
 #include "text_boxes.h"
@@ -283,8 +284,8 @@ static bool AccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, const m
     return true;
 }
 
-bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, const muiRect* shown,
-                     muiAccessContent* contentOut)
+static MUI_NOINLINE bool AccessTextOfWorker(void* user, muiNodeId nodeId, uint64_t hostKey,
+                                            const muiRect* shown, muiAccessContent* contentOut)
 {
     const muiTextHost* host = user;
     muiTextService* entered = host != nullptr ? host->service : nullptr;
@@ -294,6 +295,15 @@ bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, const muiRe
     }
     bool result = AccessTextOf(user, nodeId, hostKey, shown, contentOut);
     muiLeaveText(entered);
+    return result;
+}
+
+bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, const muiRect* shown,
+                     muiAccessContent* contentOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    bool result = AccessTextOfWorker(user, nodeId, hostKey, shown, contentOut);
+    muiFloatEnvLeave(floatEnv);
     return result;
 }
 
@@ -365,8 +375,9 @@ static muiResult TextPerformAccessAction(const muiTextHost* host, const muiAcces
     return result;
 }
 
-muiResult muiTextPerformAccessAction(const muiTextHost* host, const muiAccessRequest* request,
-                                     muiTextEditOutcome* outcomeOut)
+static MUI_NOINLINE muiResult TextPerformAccessActionWorker(const muiTextHost* host,
+                                                            const muiAccessRequest* request,
+                                                            muiTextEditOutcome* outcomeOut)
 {
     muiTextService* entered = host != nullptr ? host->service : nullptr;
     muiResult status = muiEnterText(entered);
@@ -376,4 +387,13 @@ muiResult muiTextPerformAccessAction(const muiTextHost* host, const muiAccessReq
         muiLeaveText(entered);
     }
     return status;
+}
+
+muiResult muiTextPerformAccessAction(const muiTextHost* host, const muiAccessRequest* request,
+                                     muiTextEditOutcome* outcomeOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = TextPerformAccessActionWorker(host, request, outcomeOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }

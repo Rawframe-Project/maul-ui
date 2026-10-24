@@ -102,6 +102,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/flex.c
     src/flex_item.c
     src/flex_resolve.c
+    src/fpenv.c
     src/hit.c
     src/inherit.c
     src/event.c
@@ -443,6 +444,12 @@ if(MAUL_UI_BUILD_TESTS)
     maul_add_test(layout_bound)
     maul_add_test(layout_fixtures)
     maul_add_test(motion WHITEBOX)
+    # The family's float environment module, and the shared library's
+    # exports: the public functions and no others, less the adapters
+    # another platform builds.
+    maul_add_test(fpenv WHITEBOX)
+    maul_add_exports_test(EXCLUDE access_uia.h access_ns.h access_uikit.h access_android.h
+                          access_aria.h)
     maul_add_test(node)
     maul_add_test(style)
     maul_add_test(text_style)
@@ -487,6 +494,12 @@ if(MAUL_UI_BUILD_TESTS)
         target_include_directories(test_text_block PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(frame_memory)
         target_include_directories(test_frame_memory PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
+        # A scene in every host float setting: WebAssembly has a single
+        # environment, so not there.
+        if(NOT EMSCRIPTEN AND NOT CMAKE_SYSTEM_NAME STREQUAL "WASI")
+            maul_add_test(host_float)
+            target_include_directories(test_host_float PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
+        endif()
         # Contexts on threads at once: POSIX threads,
         # so not on Windows or the web.
         if(NOT EMSCRIPTEN AND NOT CMAKE_SYSTEM_NAME STREQUAL "WASI")

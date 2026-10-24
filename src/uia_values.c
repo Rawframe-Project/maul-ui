@@ -7,6 +7,7 @@
 
 #include "access_text.h"
 #include "allocator.h"
+#include "fpenv.h"
 #include "host_call.h"
 #include "uia.h"
 
@@ -166,7 +167,7 @@ static ULONG STDMETHODCALLTYPE RangeRelease(muiUiaRangeValue* self)
     return left;
 }
 
-static HRESULT STDMETHODCALLTYPE SetNumber(muiUiaRangeValue* self, double value)
+static MUI_NOINLINE HRESULT SetNumberWorker(muiUiaRangeValue* self, double value)
 {
     muiUiaNode* node = FromRange(self);
     const muiAccessNode* held = muiUiaNodeFor(node);
@@ -181,6 +182,14 @@ static HRESULT STDMETHODCALLTYPE SetNumber(muiUiaRangeValue* self, double value)
     const muiAccessRequest request = {
         .action = mui_actionSetValue, .target = held->id, .value = (float)value};
     return muiUiaPerformRequest(node->adapter, &request);
+}
+
+static HRESULT STDMETHODCALLTYPE SetNumber(muiUiaRangeValue* self, double value)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    HRESULT result = SetNumberWorker(self, value);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // Which of a range's numbers a getter reads.
@@ -214,29 +223,69 @@ static HRESULT Read(muiUiaRangeValue* self, Number number, double* out)
     return S_OK;
 }
 
-static HRESULT STDMETHODCALLTYPE Current(muiUiaRangeValue* self, double* out)
+static MUI_NOINLINE HRESULT CurrentWorker(muiUiaRangeValue* self, double* out)
 {
     return Read(self, Number_value, out);
 }
 
-static HRESULT STDMETHODCALLTYPE Minimum(muiUiaRangeValue* self, double* out)
+static HRESULT STDMETHODCALLTYPE Current(muiUiaRangeValue* self, double* out)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    HRESULT result = CurrentWorker(self, out);
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+static MUI_NOINLINE HRESULT MinimumWorker(muiUiaRangeValue* self, double* out)
 {
     return Read(self, Number_minimum, out);
 }
 
-static HRESULT STDMETHODCALLTYPE Maximum(muiUiaRangeValue* self, double* out)
+static HRESULT STDMETHODCALLTYPE Minimum(muiUiaRangeValue* self, double* out)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    HRESULT result = MinimumWorker(self, out);
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+static MUI_NOINLINE HRESULT MaximumWorker(muiUiaRangeValue* self, double* out)
 {
     return Read(self, Number_maximum, out);
 }
 
-static HRESULT STDMETHODCALLTYPE SmallChange(muiUiaRangeValue* self, double* out)
+static HRESULT STDMETHODCALLTYPE Maximum(muiUiaRangeValue* self, double* out)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    HRESULT result = MaximumWorker(self, out);
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+static MUI_NOINLINE HRESULT SmallChangeWorker(muiUiaRangeValue* self, double* out)
 {
     return Read(self, Number_small, out);
 }
 
-static HRESULT STDMETHODCALLTYPE LargeChange(muiUiaRangeValue* self, double* out)
+static HRESULT STDMETHODCALLTYPE SmallChange(muiUiaRangeValue* self, double* out)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    HRESULT result = SmallChangeWorker(self, out);
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+static MUI_NOINLINE HRESULT LargeChangeWorker(muiUiaRangeValue* self, double* out)
 {
     return Read(self, Number_large, out);
+}
+
+static HRESULT STDMETHODCALLTYPE LargeChange(muiUiaRangeValue* self, double* out)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    HRESULT result = LargeChangeWorker(self, out);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static HRESULT STDMETHODCALLTYPE NumberIsReadOnly(muiUiaRangeValue* self, BOOL* out)
@@ -338,7 +387,7 @@ static bool OffsetOf(double percent, float offset, float limit, double* out)
     return percent >= 0.0 && percent <= 100.0;
 }
 
-static HRESULT STDMETHODCALLTYPE ScrollTo(muiUiaScroll* self, double horizontal, double vertical)
+static MUI_NOINLINE HRESULT ScrollToWorker(muiUiaScroll* self, double horizontal, double vertical)
 {
     muiUiaNode* node = FromScroll(self);
     const muiAccessNode* held = muiUiaNodeFor(node);
@@ -357,6 +406,14 @@ static HRESULT STDMETHODCALLTYPE ScrollTo(muiUiaScroll* self, double horizontal,
     request.x = (float)x;
     request.y = (float)y;
     return muiUiaPerformRequest(node->adapter, &request);
+}
+
+static HRESULT STDMETHODCALLTYPE ScrollTo(muiUiaScroll* self, double horizontal, double vertical)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    HRESULT result = ScrollToWorker(self, horizontal, vertical);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // Which of a container's measures a getter reads.
@@ -396,24 +453,56 @@ static HRESULT ReadMeasure(muiUiaScroll* self, Measure measure, double* out)
     return S_OK;
 }
 
-static HRESULT STDMETHODCALLTYPE PercentX(muiUiaScroll* self, double* out)
+static MUI_NOINLINE HRESULT PercentXWorker(muiUiaScroll* self, double* out)
 {
     return ReadMeasure(self, Measure_percentX, out);
 }
 
-static HRESULT STDMETHODCALLTYPE PercentY(muiUiaScroll* self, double* out)
+static HRESULT STDMETHODCALLTYPE PercentX(muiUiaScroll* self, double* out)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    HRESULT result = PercentXWorker(self, out);
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+static MUI_NOINLINE HRESULT PercentYWorker(muiUiaScroll* self, double* out)
 {
     return ReadMeasure(self, Measure_percentY, out);
 }
 
-static HRESULT STDMETHODCALLTYPE ViewX(muiUiaScroll* self, double* out)
+static HRESULT STDMETHODCALLTYPE PercentY(muiUiaScroll* self, double* out)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    HRESULT result = PercentYWorker(self, out);
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+static MUI_NOINLINE HRESULT ViewXWorker(muiUiaScroll* self, double* out)
 {
     return ReadMeasure(self, Measure_viewX, out);
 }
 
-static HRESULT STDMETHODCALLTYPE ViewY(muiUiaScroll* self, double* out)
+static HRESULT STDMETHODCALLTYPE ViewX(muiUiaScroll* self, double* out)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    HRESULT result = ViewXWorker(self, out);
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+static MUI_NOINLINE HRESULT ViewYWorker(muiUiaScroll* self, double* out)
 {
     return ReadMeasure(self, Measure_viewY, out);
+}
+
+static HRESULT STDMETHODCALLTYPE ViewY(muiUiaScroll* self, double* out)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    HRESULT result = ViewYWorker(self, out);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static HRESULT Scrollable(muiUiaScroll* self, bool horizontal, BOOL* out)
@@ -431,14 +520,30 @@ static HRESULT Scrollable(muiUiaScroll* self, bool horizontal, BOOL* out)
     return S_OK;
 }
 
-static HRESULT STDMETHODCALLTYPE ScrollableX(muiUiaScroll* self, BOOL* out)
+static MUI_NOINLINE HRESULT ScrollableXWorker(muiUiaScroll* self, BOOL* out)
 {
     return Scrollable(self, true, out);
 }
 
-static HRESULT STDMETHODCALLTYPE ScrollableY(muiUiaScroll* self, BOOL* out)
+static HRESULT STDMETHODCALLTYPE ScrollableX(muiUiaScroll* self, BOOL* out)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    HRESULT result = ScrollableXWorker(self, out);
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+static MUI_NOINLINE HRESULT ScrollableYWorker(muiUiaScroll* self, BOOL* out)
 {
     return Scrollable(self, false, out);
+}
+
+static HRESULT STDMETHODCALLTYPE ScrollableY(muiUiaScroll* self, BOOL* out)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    HRESULT result = ScrollableYWorker(self, out);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static const muiUiaScrollTable s_scrollTable = {

@@ -8,6 +8,7 @@
 
 #include "animation.h"
 #include "context.h"
+#include "fpenv.h"
 #include "pool.h"
 #include "property.h"
 #include "style_edit.h"
@@ -106,8 +107,9 @@ static muiResult CreateTransition(muiContext* context, const muiTransitionDef* d
     return mui_success;
 }
 
-muiResult muiCreateTransition(muiContext* context, const muiTransitionDef* def,
-                              muiTransitionId* transitionOut)
+static MUI_NOINLINE muiResult CreateTransitionWorker(muiContext* context,
+                                                     const muiTransitionDef* def,
+                                                     muiTransitionId* transitionOut)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -116,6 +118,15 @@ muiResult muiCreateTransition(muiContext* context, const muiTransitionDef* def,
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiCreateTransition(muiContext* context, const muiTransitionDef* def,
+                              muiTransitionId* transitionOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = CreateTransitionWorker(context, def, transitionOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static muiResult DestroyTransition(muiContext* context, muiTransitionId transitionId)

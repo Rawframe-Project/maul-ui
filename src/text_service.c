@@ -7,6 +7,7 @@
 
 #include "allocator.h"
 #include "font_instance.h"
+#include "fpenv.h"
 #include "pool.h"
 
 #include "maul-unicode/harfbuzz.h"
@@ -172,7 +173,8 @@ static void Release(muiTextService* service)
     muiRelease(&allocator, service, service->blockSize, alignof(max_align_t));
 }
 
-muiResult muiCreateTextService(const muiTextServiceDef* def, muiTextService** serviceOut)
+static MUI_NOINLINE muiResult CreateTextServiceWorker(const muiTextServiceDef* def,
+                                                      muiTextService** serviceOut)
 {
     if (serviceOut != nullptr)
     {
@@ -249,6 +251,14 @@ muiResult muiCreateTextService(const muiTextServiceDef* def, muiTextService** se
     return mui_success;
 }
 
+muiResult muiCreateTextService(const muiTextServiceDef* def, muiTextService** serviceOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = CreateTextServiceWorker(def, serviceOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
 uint64_t muiGetTextServiceMisuse(const muiTextService* service)
 {
     return service != nullptr ? service->misuse : 0;
@@ -284,12 +294,19 @@ static void DestroyTextService(muiTextService* service)
     Release(service);
 }
 
-void muiDestroyTextService(muiTextService* service)
+static MUI_NOINLINE void DestroyTextServiceWorker(muiTextService* service)
 {
     if (muiEnterText(service) == mui_success)
     {
         DestroyTextService(service);
     }
+}
+
+void muiDestroyTextService(muiTextService* service)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    DestroyTextServiceWorker(service);
+    muiFloatEnvLeave(floatEnv);
 }
 
 muiFont* muiFindFont(const muiTextService* service, uint64_t key, uint64_t* keyOut)

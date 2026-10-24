@@ -9,6 +9,7 @@
 // touch. The label is the name; the value a toggle's state, a range's text
 // or number, or the node's value text; the actions are asked of the host.
 
+#include "fpenv.h"
 #include "uikit.h"
 
 static NSString* StringOf(const char* text)
@@ -68,6 +69,15 @@ static NSString* RangeValueOf(const muiAccessNode* node)
 
 - (CGRect)accessibilityFrame
 {
+    uint64_t floatEnv = muiFloatEnvEnter();
+    CGRect result = [self muiWorkerAccessibilityFrame];
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+// accessibilityFrame's work, called through the runtime.
+- (CGRect)muiWorkerAccessibilityFrame
+{
     return Find(adapter, nodeId) != nullptr ? muiUikitScreenRectOf(adapter, nodeId) : CGRectZero;
 }
 
@@ -85,6 +95,15 @@ static NSString* RangeValueOf(const muiAccessNode* node)
 // A toggle's state, 1 or 0, as UIKit's switches give it; a range's
 // value; else the value text, but for a label, whose name it is.
 - (NSString*)accessibilityValue
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    NSString* result = [self muiWorkerAccessibilityValue];
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
+// accessibilityValue's work, called through the runtime.
+- (NSString*)muiWorkerAccessibilityValue
 {
     const muiAccessNode* node = Find(adapter, nodeId);
     if (node == nullptr || node->role == mui_roleLabel)

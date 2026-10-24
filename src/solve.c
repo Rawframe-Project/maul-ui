@@ -9,6 +9,7 @@
 #include "absolute.h"
 #include "condition.h"
 #include "flex.h"
+#include "fpenv.h"
 #include "invariant.h"
 #include "sizing.h"
 
@@ -141,6 +142,28 @@ static float SaneLength(float value)
     return isfinite(value) && value > 0.0f ? value : 0.0f;
 }
 
+// The host's measure function, run in the host's floating-point
+// environment.
+static MUI_NOINLINE muiSize HostMeasure(const muiSolver* solver, muiNodeId id, uint64_t hostKey,
+                                        muiMeasureAxis width, muiMeasureAxis height)
+{
+    muiFloatHost host = muiFloatHostEnter();
+    muiSize size = solver->measure(solver->measureUser, id, hostKey, width, height);
+    muiFloatHostLeave(host);
+    return size;
+}
+
+// The host's baseline function, run in the host's floating-point
+// environment.
+static MUI_NOINLINE float HostBaseline(const muiSolver* solver, muiNodeId id, uint64_t hostKey,
+                                       float width, float height)
+{
+    muiFloatHost host = muiFloatHostEnter();
+    float baseline = solver->measureBaseline(solver->measureUser, id, hostKey, width, height);
+    muiFloatHostLeave(host);
+    return baseline;
+}
+
 static muiSize SizeLeaf(const muiSolver* solver, uint32_t node, const muiSizingInput* input)
 {
     const muiLayoutStyle* style = &solver->nodes[node - 1].style;
@@ -176,8 +199,8 @@ static muiSize SizeLeaf(const muiSolver* solver, uint32_t node, const muiSizingI
         muiNodeId id = muiTreeIdOf(solver->tree, node);
         uint64_t hostKey = muiTreeAt(solver->tree, node)->hostKey;
         solver->work->measured++;
-        content = solver->measure(solver->measureUser, id, hostKey, ContentAxis(across, boxWidth),
-                                  ContentAxis(input->height, boxHeight));
+        content = HostMeasure(solver, id, hostKey, ContentAxis(across, boxWidth),
+                              ContentAxis(input->height, boxHeight));
         content.width = SaneLength(content.width);
         content.height = SaneLength(content.height);
     }
@@ -704,7 +727,7 @@ static float LeafBaseline(const muiSolver* solver, uint32_t node, const muiSizin
     float height = fmaxf(input->height.size - muiBoxSum(&padding, style, false), 0.0f);
     muiNodeId id = muiTreeIdOf(solver->tree, node);
     uint64_t hostKey = muiTreeAt(solver->tree, node)->hostKey;
-    return top + solver->measureBaseline(solver->measureUser, id, hostKey, width, height);
+    return top + HostBaseline(solver, id, hostKey, width, height);
 }
 
 // A scroll container's baseline is held within its border box (CSS Box

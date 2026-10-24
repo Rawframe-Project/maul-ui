@@ -9,6 +9,7 @@
 
 #include "allocator.h"
 #include "font_instance.h"
+#include "fpenv.h"
 #include "text_service.h"
 
 #include "maul-ui/text_block.h"
@@ -382,8 +383,9 @@ bool muiFontFamily_IsValid(const muiTextService* service, muiFontFamilyId family
     return service != nullptr && familyId.index1 != 0 && ResolveFamily(service, familyId) != 0;
 }
 
-muiResult muiFontFamily_MatchFace(const muiTextService* service, muiFontFamilyId familyId,
-                                  float weight, uint8_t slant, muiFontId* faceOut)
+static MUI_NOINLINE muiResult FontFamilyMatchFaceWorker(const muiTextService* service,
+                                                        muiFontFamilyId familyId, float weight,
+                                                        uint8_t slant, muiFontId* faceOut)
 {
     if (service == nullptr || faceOut == nullptr || familyId.index1 == 0 ||
         !(weight >= 1.0f && weight <= 1000.0f) || slant > mui_slantOblique)
@@ -403,4 +405,13 @@ muiResult muiFontFamily_MatchFace(const muiTextService* service, muiFontFamilyId
     }
     *faceOut = face;
     return mui_success;
+}
+
+muiResult muiFontFamily_MatchFace(const muiTextService* service, muiFontFamilyId familyId,
+                                  float weight, uint8_t slant, muiFontId* faceOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = FontFamilyMatchFaceWorker(service, familyId, weight, slant, faceOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }

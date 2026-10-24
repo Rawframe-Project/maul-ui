@@ -15,6 +15,7 @@
 #include "bitmap_glyph.h"
 #include "color.h"
 #include "colr_paint.h"
+#include "fpenv.h"
 #include "image_scale.h"
 #include "png.h"
 #include "text_service.h"
@@ -351,10 +352,11 @@ static muiResult RenderColorGlyph(muiTextService* service, uint64_t font, uint32
     return mui_empty;
 }
 
-muiResult muiRenderColorGlyph(muiTextService* service, uint64_t font, uint32_t glyph,
-                              float pixelSize, float offsetX, uint32_t palette,
-                              muiLinearColor foreground, muiGlyphImage* imageOut,
-                              unsigned char* pixels, size_t capacity)
+static MUI_NOINLINE muiResult RenderColorGlyphWorker(muiTextService* service, uint64_t font,
+                                                     uint32_t glyph, float pixelSize, float offsetX,
+                                                     uint32_t palette, muiLinearColor foreground,
+                                                     muiGlyphImage* imageOut, unsigned char* pixels,
+                                                     size_t capacity)
 {
     muiResult status = muiEnterText(service);
     if (status == mui_success)
@@ -364,4 +366,16 @@ muiResult muiRenderColorGlyph(muiTextService* service, uint64_t font, uint32_t g
         muiLeaveText(service);
     }
     return status;
+}
+
+muiResult muiRenderColorGlyph(muiTextService* service, uint64_t font, uint32_t glyph,
+                              float pixelSize, float offsetX, uint32_t palette,
+                              muiLinearColor foreground, muiGlyphImage* imageOut,
+                              unsigned char* pixels, size_t capacity)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = RenderColorGlyphWorker(service, font, glyph, pixelSize, offsetX, palette,
+                                              foreground, imageOut, pixels, capacity);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }

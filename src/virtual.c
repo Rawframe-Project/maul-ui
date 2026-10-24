@@ -8,6 +8,7 @@
 #include "maul-ui/virtual.h"
 
 #include "context.h"
+#include "fpenv.h"
 #include "invariant.h"
 #include "layout_node.h"
 #include "notify.h"
@@ -398,7 +399,8 @@ static muiResult NodeSetVirtualList(muiContext* context, muiNodeId nodeId,
     return mui_success;
 }
 
-muiResult muiNode_SetVirtualList(muiContext* context, muiNodeId nodeId, const muiVirtualList* list)
+static MUI_NOINLINE muiResult NodeSetVirtualListWorker(muiContext* context, muiNodeId nodeId,
+                                                       const muiVirtualList* list)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -407,6 +409,14 @@ muiResult muiNode_SetVirtualList(muiContext* context, muiNodeId nodeId, const mu
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiNode_SetVirtualList(muiContext* context, muiNodeId nodeId, const muiVirtualList* list)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = NodeSetVirtualListWorker(context, nodeId, list);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static muiResult NodeClearVirtualList(muiContext* context, muiNodeId nodeId)
@@ -431,7 +441,7 @@ static muiResult NodeClearVirtualList(muiContext* context, muiNodeId nodeId)
     return status == mui_empty ? mui_success : status;
 }
 
-muiResult muiNode_ClearVirtualList(muiContext* context, muiNodeId nodeId)
+static MUI_NOINLINE muiResult NodeClearVirtualListWorker(muiContext* context, muiNodeId nodeId)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -440,6 +450,14 @@ muiResult muiNode_ClearVirtualList(muiContext* context, muiNodeId nodeId)
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiNode_ClearVirtualList(muiContext* context, muiNodeId nodeId)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = NodeClearVirtualListWorker(context, nodeId);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 muiResult muiNode_GetVirtualWindow(const muiContext* context, muiNodeId nodeId, uint32_t* firstOut,
@@ -460,8 +478,9 @@ muiResult muiNode_GetVirtualWindow(const muiContext* context, muiNodeId nodeId, 
     return mui_success;
 }
 
-muiResult muiNode_GetVirtualItem(const muiContext* context, muiNodeId nodeId, uint32_t index,
-                                 float* offsetOut, float* extentOut)
+static MUI_NOINLINE muiResult NodeGetVirtualItemWorker(const muiContext* context, muiNodeId nodeId,
+                                                       uint32_t index, float* offsetOut,
+                                                       float* extentOut)
 {
     if (context == nullptr || offsetOut == nullptr || extentOut == nullptr)
     {
@@ -480,6 +499,15 @@ muiResult muiNode_GetVirtualItem(const muiContext* context, muiNodeId nodeId, ui
     *offsetOut = (float)muiVirtualOffset(&context->lists, entry, index);
     *extentOut = ExtentOf(&context->lists, entry, index);
     return mui_success;
+}
+
+muiResult muiNode_GetVirtualItem(const muiContext* context, muiNodeId nodeId, uint32_t index,
+                                 float* offsetOut, float* extentOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = NodeGetVirtualItemWorker(context, nodeId, index, offsetOut, extentOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // Binds or unbinds the node at slot, in or out of its parent's flow.

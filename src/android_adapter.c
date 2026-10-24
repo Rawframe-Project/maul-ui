@@ -10,6 +10,7 @@
 #include "access_record.h"
 #include "allocator.h"
 #include "android.h"
+#include "fpenv.h"
 #include "host_call.h"
 
 #include <stdalign.h>
@@ -287,7 +288,8 @@ uint64_t muiAndroidNodeOf(const muiAndroidAdapter* adapter, jint virtualId)
 }
 
 // A node gone frees its virtual id, to the back of the queue.
-static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* old)
+static MUI_NOINLINE void RemovedWorker(void* user, const muiAccessTree* tree,
+                                       const muiAccessNode* old)
 {
     (void)tree;
     muiAndroidAdapter* adapter = user;
@@ -302,23 +304,53 @@ static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* 
     adapter->freeCount++;
 }
 
-static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* old)
+static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* old)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    RemovedWorker(user, tree, old);
+    muiFloatEnvLeave(floatEnv);
+}
+
+static MUI_NOINLINE void UpdatedWorker(void* user, const muiAccessTree* tree,
+                                       const muiAccessNode* old)
 {
     muiAndroidTellUpdated(user, old, muiAccessTree_Find(tree, old->id));
 }
 
-static void ShownChanged(void* user, const muiAccessTree* tree)
+static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* old)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    UpdatedWorker(user, tree, old);
+    muiFloatEnvLeave(floatEnv);
+}
+
+static MUI_NOINLINE void ShownChangedWorker(void* user, const muiAccessTree* tree)
 {
     (void)tree;
     ((muiAndroidAdapter*)user)->reshaped = true;
 }
 
-static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint64_t focus)
+static void ShownChanged(void* user, const muiAccessTree* tree)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    ShownChangedWorker(user, tree);
+    muiFloatEnvLeave(floatEnv);
+}
+
+static MUI_NOINLINE void FocusMovedWorker(void* user, const muiAccessTree* tree, uint64_t old,
+                                          uint64_t focus)
 {
     (void)tree;
     (void)old;
     (void)focus;
     ((muiAndroidAdapter*)user)->focusMoved = true;
+}
+
+static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint64_t focus)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    FocusMovedWorker(user, tree, old, focus);
+    muiFloatEnvLeave(floatEnv);
 }
 
 static muiResult AndroidAdapterApply(muiAndroidAdapter* adapter, const muiAccessUpdate* update)
@@ -349,7 +381,8 @@ static muiResult AndroidAdapterApply(muiAndroidAdapter* adapter, const muiAccess
     return status;
 }
 
-muiResult muiAndroidAdapter_Apply(muiAndroidAdapter* adapter, const muiAccessUpdate* update)
+static MUI_NOINLINE muiResult AndroidAdapterApplyWorker(muiAndroidAdapter* adapter,
+                                                        const muiAccessUpdate* update)
 {
     if (adapter == nullptr)
     {
@@ -362,6 +395,14 @@ muiResult muiAndroidAdapter_Apply(muiAndroidAdapter* adapter, const muiAccessUpd
     muiResult result = AndroidAdapterApply(adapter, update);
     adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
+    return result;
+}
+
+muiResult muiAndroidAdapter_Apply(muiAndroidAdapter* adapter, const muiAccessUpdate* update)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = AndroidAdapterApplyWorker(adapter, update);
+    muiFloatEnvLeave(floatEnv);
     return result;
 }
 
@@ -380,7 +421,7 @@ static muiResult AndroidAdapterSetScale(muiAndroidAdapter* adapter, float scale)
     return mui_success;
 }
 
-muiResult muiAndroidAdapter_SetScale(muiAndroidAdapter* adapter, float scale)
+static MUI_NOINLINE muiResult AndroidAdapterSetScaleWorker(muiAndroidAdapter* adapter, float scale)
 {
     if (adapter == nullptr)
     {
@@ -393,6 +434,14 @@ muiResult muiAndroidAdapter_SetScale(muiAndroidAdapter* adapter, float scale)
     muiResult result = AndroidAdapterSetScale(adapter, scale);
     adapter->misuse += result == mui_errorInvalid;
     adapter->busy = false;
+    return result;
+}
+
+muiResult muiAndroidAdapter_SetScale(muiAndroidAdapter* adapter, float scale)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = AndroidAdapterSetScaleWorker(adapter, scale);
+    muiFloatEnvLeave(floatEnv);
     return result;
 }
 

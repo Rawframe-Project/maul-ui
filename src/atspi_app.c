@@ -7,6 +7,7 @@
 
 #include "allocator.h"
 #include "atspi.h"
+#include "fpenv.h"
 #include "host_call.h"
 
 #include <stdalign.h>
@@ -175,7 +176,7 @@ static size_t AppSize(uint32_t windows, size_t nameLength)
     return sizeof(muiAtspiApp) + windows * sizeof(muiAtspiAdapter*) + nameLength + 1;
 }
 
-muiResult muiCreateAtspiApp(const muiAtspiAppDef* def, muiAtspiApp** appOut)
+static MUI_NOINLINE muiResult CreateAtspiAppWorker(const muiAtspiAppDef* def, muiAtspiApp** appOut)
 {
     if (appOut != nullptr)
     {
@@ -219,6 +220,14 @@ muiResult muiCreateAtspiApp(const muiAtspiAppDef* def, muiAtspiApp** appOut)
     Embed(app);
     *appOut = app;
     return mui_success;
+}
+
+muiResult muiCreateAtspiApp(const muiAtspiAppDef* def, muiAtspiApp** appOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = CreateAtspiAppWorker(def, appOut);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 static void DestroyAtspiApp(muiAtspiApp* app)
@@ -288,7 +297,7 @@ static void AtspiAppPump(muiAtspiApp* app)
     (void)dbus->readWrite(app->connection, 0);
 }
 
-void muiAtspiApp_Pump(muiAtspiApp* app)
+static MUI_NOINLINE void AtspiAppPumpWorker(muiAtspiApp* app)
 {
     if (app == nullptr)
     {
@@ -301,6 +310,13 @@ void muiAtspiApp_Pump(muiAtspiApp* app)
     }
     AtspiAppPump(app);
     app->busy = false;
+}
+
+void muiAtspiApp_Pump(muiAtspiApp* app)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    AtspiAppPumpWorker(app);
+    muiFloatEnvLeave(floatEnv);
 }
 
 bool muiAtspiApp_IsRegistered(const muiAtspiApp* app)
@@ -404,8 +420,9 @@ static muiResult CreateAtspiAdapter(muiAtspiApp* app, const muiAtspiAdapterDef* 
     return mui_success;
 }
 
-muiResult muiCreateAtspiAdapter(muiAtspiApp* app, const muiAtspiAdapterDef* def,
-                                muiAtspiAdapter** adapterOut)
+static MUI_NOINLINE muiResult CreateAtspiAdapterWorker(muiAtspiApp* app,
+                                                       const muiAtspiAdapterDef* def,
+                                                       muiAtspiAdapter** adapterOut)
 {
     if (app == nullptr)
     {
@@ -418,6 +435,15 @@ muiResult muiCreateAtspiAdapter(muiAtspiApp* app, const muiAtspiAdapterDef* def,
     muiResult result = CreateAtspiAdapter(app, def, adapterOut);
     app->misuse += result == mui_errorInvalid;
     app->busy = false;
+    return result;
+}
+
+muiResult muiCreateAtspiAdapter(muiAtspiApp* app, const muiAtspiAdapterDef* def,
+                                muiAtspiAdapter** adapterOut)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = CreateAtspiAdapterWorker(app, def, adapterOut);
+    muiFloatEnvLeave(floatEnv);
     return result;
 }
 
@@ -476,7 +502,7 @@ static muiResult AtspiAdapterSetScale(muiAtspiAdapter* adapter, float scale)
     return mui_success;
 }
 
-muiResult muiAtspiAdapter_SetScale(muiAtspiAdapter* adapter, float scale)
+static MUI_NOINLINE muiResult AtspiAdapterSetScaleWorker(muiAtspiAdapter* adapter, float scale)
 {
     if (adapter == nullptr)
     {
@@ -489,6 +515,14 @@ muiResult muiAtspiAdapter_SetScale(muiAtspiAdapter* adapter, float scale)
     muiResult result = AtspiAdapterSetScale(adapter, scale);
     adapter->app->misuse += result == mui_errorInvalid;
     adapter->app->busy = false;
+    return result;
+}
+
+muiResult muiAtspiAdapter_SetScale(muiAtspiAdapter* adapter, float scale)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = AtspiAdapterSetScaleWorker(adapter, scale);
+    muiFloatEnvLeave(floatEnv);
     return result;
 }
 

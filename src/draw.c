@@ -14,6 +14,7 @@
 #include "context.h"
 #include "draw_store.h"
 #include "draw_transform.h"
+#include "fpenv.h"
 #include "layer.h"
 #include "paint.h"
 #include "paint_host.h"
@@ -525,7 +526,8 @@ static muiResult BuildDrawList(muiContext* context, muiNodeId rootId, const muiD
     return mui_success;
 }
 
-muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawInput* input)
+static MUI_NOINLINE muiResult BuildDrawListWorker(muiContext* context, muiNodeId rootId,
+                                                  const muiDrawInput* input)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -534,6 +536,14 @@ muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawI
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawInput* input)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = BuildDrawListWorker(context, rootId, input);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 muiResult muiGetDrawList(const muiContext* context, muiDrawList* listOut)

@@ -9,6 +9,7 @@
 #include "animation.h"
 #include "context.h"
 #include "exit.h"
+#include "fpenv.h"
 #include "layout_bound.h"
 #include "layout_node.h"
 #include "popup.h"
@@ -33,9 +34,18 @@ static bool IsLength(float value)
     return isfinite(value) && value >= 0.0f;
 }
 
-muiResult muiNode_SetLayoutStyle(muiContext* context, muiNodeId nodeId, const muiLayoutStyle* style)
+static MUI_NOINLINE muiResult NodeSetLayoutStyleWorker(muiContext* context, muiNodeId nodeId,
+                                                       const muiLayoutStyle* style)
 {
     return muiNode_SetLayoutValues(context, nodeId, style, MUI_LAYOUT_PROPERTIES);
+}
+
+muiResult muiNode_SetLayoutStyle(muiContext* context, muiNodeId nodeId, const muiLayoutStyle* style)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = NodeSetLayoutStyleWorker(context, nodeId, style);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 muiResult muiNode_GetLayoutStyle(const muiContext* context, muiNodeId nodeId,
@@ -234,7 +244,8 @@ static muiResult ComputeLayout(muiContext* context, muiNodeId rootId, const muiL
     return mui_success;
 }
 
-muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayoutInput* input)
+static MUI_NOINLINE muiResult ComputeLayoutWorker(muiContext* context, muiNodeId rootId,
+                                                  const muiLayoutInput* input)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -245,17 +256,33 @@ muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayou
     return status;
 }
 
+muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayoutInput* input)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = ComputeLayoutWorker(context, rootId, input);
+    muiFloatEnvLeave(floatEnv);
+    return result;
+}
+
 muiRect muiNode_GetRect(const muiContext* context, muiNodeId nodeId)
 {
     uint32_t slot = context != nullptr ? muiTreeResolve(&context->tree, nodeId) : 0;
     return slot != 0 ? context->layout[slot - 1].rect : (muiRect){0.0f, 0.0f, 0.0f, 0.0f};
 }
 
-muiRect muiNode_GetContentRect(const muiContext* context, muiNodeId nodeId)
+static MUI_NOINLINE muiRect NodeGetContentRectWorker(const muiContext* context, muiNodeId nodeId)
 {
     uint32_t slot = context != nullptr ? muiTreeResolve(&context->tree, nodeId) : 0;
     return slot != 0 ? muiContentBoxOf(&context->layout[slot - 1], &context->paddings[slot - 1])
                      : (muiRect){0.0f, 0.0f, 0.0f, 0.0f};
+}
+
+muiRect muiNode_GetContentRect(const muiContext* context, muiNodeId nodeId)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiRect result = NodeGetContentRectWorker(context, nodeId);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 bool muiIsUpdatePending(const muiContext* context, muiNodeId rootId)

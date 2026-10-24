@@ -10,6 +10,7 @@
 
 #include "maul-ui/text_editor.h"
 
+#include "fpenv.h"
 #include "text_editing.h"
 #include "text_entry.h"
 #include "text_service.h"
@@ -117,8 +118,8 @@ muiResult muiEditMove(const muiTextHost* host, muiNodeId nodeId, muiTextMovement
     return mui_success;
 }
 
-muiResult muiTextEditMove(const muiTextHost* host, muiNodeId nodeId, muiTextMovement movement,
-                          bool extend)
+static MUI_NOINLINE muiResult TextEditMoveWorker(const muiTextHost* host, muiNodeId nodeId,
+                                                 muiTextMovement movement, bool extend)
 {
     muiTextService* entered = host != nullptr ? host->service : nullptr;
     muiResult status = muiEnterText(entered);
@@ -128,6 +129,15 @@ muiResult muiTextEditMove(const muiTextHost* host, muiNodeId nodeId, muiTextMove
         muiLeaveText(entered);
     }
     return status;
+}
+
+muiResult muiTextEditMove(const muiTextHost* host, muiNodeId nodeId, muiTextMovement movement,
+                          bool extend)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = TextEditMoveWorker(host, nodeId, movement, extend);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // The word, or the white space between words, at an offset: a segment of
@@ -294,8 +304,9 @@ muiResult muiEditPress(const muiTextHost* host, muiNodeId nodeId, float x, float
     return mui_success;
 }
 
-muiResult muiTextEditPress(const muiTextHost* host, muiNodeId nodeId, float x, float y,
-                           uint32_t clickCount, bool extend)
+static MUI_NOINLINE muiResult TextEditPressWorker(const muiTextHost* host, muiNodeId nodeId,
+                                                  float x, float y, uint32_t clickCount,
+                                                  bool extend)
 {
     muiTextService* entered = host != nullptr ? host->service : nullptr;
     muiResult status = muiEnterText(entered);
@@ -305,6 +316,15 @@ muiResult muiTextEditPress(const muiTextHost* host, muiNodeId nodeId, float x, f
         muiLeaveText(entered);
     }
     return status;
+}
+
+muiResult muiTextEditPress(const muiTextHost* host, muiNodeId nodeId, float x, float y,
+                           uint32_t clickCount, bool extend)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = TextEditPressWorker(host, nodeId, x, y, clickCount, extend);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 muiResult muiEditDrag(const muiTextHost* host, muiNodeId nodeId, float x, float y)
@@ -322,7 +342,8 @@ muiResult muiEditDrag(const muiTextHost* host, muiNodeId nodeId, float x, float 
     return result;
 }
 
-muiResult muiTextEditDrag(const muiTextHost* host, muiNodeId nodeId, float x, float y)
+static MUI_NOINLINE muiResult TextEditDragWorker(const muiTextHost* host, muiNodeId nodeId, float x,
+                                                 float y)
 {
     muiTextService* entered = host != nullptr ? host->service : nullptr;
     muiResult status = muiEnterText(entered);
@@ -332,4 +353,12 @@ muiResult muiTextEditDrag(const muiTextHost* host, muiNodeId nodeId, float x, fl
         muiLeaveText(entered);
     }
     return status;
+}
+
+muiResult muiTextEditDrag(const muiTextHost* host, muiNodeId nodeId, float x, float y)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = TextEditDragWorker(host, nodeId, x, y);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }

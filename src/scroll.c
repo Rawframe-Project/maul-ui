@@ -7,6 +7,7 @@
 #include "maul-ui/scroll.h"
 
 #include "context.h"
+#include "fpenv.h"
 #include "layer.h"
 #include "motion_math.h"
 #include "scroll.h"
@@ -92,7 +93,8 @@ muiResult muiSetNodeScroll(muiContext* context, muiNodeId nodeId, float x, float
     return mui_success;
 }
 
-muiResult muiNode_SetScroll(muiContext* context, muiNodeId nodeId, float x, float y)
+static MUI_NOINLINE muiResult NodeSetScrollWorker(muiContext* context, muiNodeId nodeId, float x,
+                                                  float y)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -101,6 +103,14 @@ muiResult muiNode_SetScroll(muiContext* context, muiNodeId nodeId, float x, floa
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiNode_SetScroll(muiContext* context, muiNodeId nodeId, float x, float y)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = NodeSetScrollWorker(context, nodeId, x, y);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // Moves a scroll container's offset, along one axis, so that its
@@ -220,7 +230,7 @@ muiResult muiScrollNodeIntoView(muiContext* context, muiNodeId nodeId)
     return status;
 }
 
-muiResult muiNode_ScrollIntoView(muiContext* context, muiNodeId nodeId)
+static MUI_NOINLINE muiResult NodeScrollIntoViewWorker(muiContext* context, muiNodeId nodeId)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -229,6 +239,14 @@ muiResult muiNode_ScrollIntoView(muiContext* context, muiNodeId nodeId)
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiNode_ScrollIntoView(muiContext* context, muiNodeId nodeId)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = NodeScrollIntoViewWorker(context, nodeId);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 muiScrollRule muiDefaultScrollRule(void)
@@ -253,7 +271,7 @@ static muiResult SetScrollRule(muiContext* context, const muiScrollRule* rule)
     return mui_success;
 }
 
-muiResult muiSetScrollRule(muiContext* context, const muiScrollRule* rule)
+static MUI_NOINLINE muiResult SetScrollRuleWorker(muiContext* context, const muiScrollRule* rule)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -262,6 +280,14 @@ muiResult muiSetScrollRule(muiContext* context, const muiScrollRule* rule)
         muiLeave(context);
     }
     return status;
+}
+
+muiResult muiSetScrollRule(muiContext* context, const muiScrollRule* rule)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    muiResult result = SetScrollRuleWorker(context, rule);
+    muiFloatEnvLeave(floatEnv);
+    return result;
 }
 
 // Whether a scroll container can move by right and down along either

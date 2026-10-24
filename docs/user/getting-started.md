@@ -267,4 +267,6 @@ static muiContext* SmallContext(void)
 
 Its 65th node is refused, and destroying the context gives every byte back. The library asks an allocator for no alignment above `max_align_t`. A context is used from one thread at a time; separate contexts may run on separate threads.
 
+The library computes in a floating-point environment of its own: round to nearest, subnormal numbers kept, no traps. A thread may run with flush-to-zero, denormals-are-zero or another rounding mode. Each call that computes switches to the library's environment and gives the thread's back before it returns, and the program's own functions the library calls (measure, baseline, paint, access text, events, the allocator, an adapter's action function) run in the thread's. Layout, drawing and text come out the same whatever the thread has set. WebAssembly has only the library's environment, so nothing switches there.
+
 Next: [Nodes and layout](layout.md).
