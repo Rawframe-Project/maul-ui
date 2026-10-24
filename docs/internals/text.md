@@ -27,7 +27,7 @@ The core reaches text only through host content: the measure, paint and baseline
 A text block holds UTF-8 text the service copies ([text_block.c](../../src/text_block.c)).
 
 - When the text is set, its line break opportunities (UAX #14) and script runs (UAX #24) are found through Maul Unicode.
-- On first use with a font and direction, its paragraphs get bidi levels (UAX #9) and are split into items of one level and script. Each item is shaped by HarfBuzz with the whole text as context and without a language, so the result does not depend on the process's locale ([text_shape.c](../../src/text_shape.c)).
+- On first use with a font and direction, its paragraphs get bidi levels (UAX #9) and are split into items of one level and script. Each item is shaped by HarfBuzz with the text around it as context and without a language, so the result does not depend on the process's locale ([text_shape.c](../../src/text_shape.c)). HarfBuzz is given the item's code points as Maul Unicode decodes them, with the five on each side it reads as context, and its clusters are mapped back to bytes. Its own UTF-8 decoder would make each byte of an ill-formed sequence a U+FFFD and a cluster, so a caret could stop inside what the rest of the component reads as one character; decoded here, each maximal subpart is one U+FFFD, as the [Encoding Standard's UTF-8 decoder](https://encoding.spec.whatwg.org/#utf-8-decoder) and browsers have it.
 - That shaping is kept until the text, font or direction changes. Sizes and widths only scale it and break it into lines, so a resize reshapes nothing.
 
 `muiTextBlock_Replace` replaces a range, analyzing the new text whole before the old goes, and reanalysis is kept to the paragraphs an edit touched.

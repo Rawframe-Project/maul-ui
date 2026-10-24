@@ -52,6 +52,9 @@ struct muiTextService
     muiBuffer runs;
     muiBuffer glyphs;
     muiBuffer workspace;
+    // The code points of an item being shaped and its context, and the
+    // byte each starts at.
+    muiBuffer shapePoints;
     // A line shaped on its own: its items and glyphs.
     muiBuffer lineItems;
     muiBuffer lineGlyphs;
