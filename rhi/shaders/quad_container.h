@@ -12,7 +12,7 @@
 //   input rhi/shaders/quad.json 4e9902cfa50ab1002b263e4ae054a9a5bdc556105ad2b9aa158db108d3e843c6
 //   input rhi/shaders/quad.vert 109ab1908eca76dd7014005314e0ddf4a6d273e8fffd0b2d6fd50d60598335f8
 //   input rhi/shaders/quad.wgsl c6d778f07a58b71b303db52c42dc4c07f020e217c296cef798e7fd73a4d68ef2
-//   input tools/gen_rhi_shaders.py d70aba66ad53180ffd982bfe8bcc38dbe816d3bb94329fbb29297ba62bd7c6cd
+//   input tools/gen_rhi_shaders.py 106bdbb3d1041b89a389a6c62d98ec1e539f0dd93bf2314be2d65ae3604fa156
 //   maul-rhi v0.0.1
 //   container e2c97b803109fd266a1a47c8dfcd50656a751ec8e30b64a96c8440a4efc3c298
 //   tool glslang 15.1.0
