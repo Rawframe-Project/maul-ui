@@ -287,7 +287,9 @@ def self_test_generation(work):
         failures.append("another spirv-cross is taken")
     tree = os.path.join(work, "maul-rhi")
     os.makedirs(os.path.join(tree, "tools"))
-    git = ["git", "-C", tree, "-c", "user.name=self-test", "-c", "user.email=self-test@localhost"]
+    # A developer's signing settings must not reach the scratch repository.
+    git = ["git", "-C", tree, "-c", "user.name=self-test", "-c", "user.email=self-test@localhost",
+           "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"]
 
     def write(path, text):
         with open(os.path.join(tree, path), "w", encoding="utf-8") as file:
