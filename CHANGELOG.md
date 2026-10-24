@@ -11,20 +11,26 @@ may change the API, the ABI and every data format.
 
 - Easing curves and springs come from Maul Tween, the family's
   animation library, in place of Maul UI's own. Maul UI now fetches
-  Maul Tween 0.1.0 and links it. Animated values can differ from 0.1.0
-  by at most one float step, always toward the more accurate value;
-  linear and cubic Bezier easing give the same bits as before.
+  Maul Tween 0.1.0 and links it. A timed transition with an easing
+  keyword or a cubic Bezier, and rarely a spring, can give a value one
+  float step from what 0.1.0 gave, toward the exact curve: about 1% of
+  values on a curve and about 3 in 100,000 on a spring. Linear
+  transitions, and the frame on which a spring comes to rest, are
+  unchanged.
   ([#37](https://github.com/Rawframe-Project/maul-ui/pull/37))
 
 ### Fixed
 
 - A host that runs its threads with flush-to-zero, denormals-are-zero
-  or another rounding mode now gets the same layout, text and drawing
-  results as every other host. Every public call that computes switches
-  to the library's floating-point setting and restores the host's on
-  return. The allocator, task hooks, and the text measuring and
-  baseline callbacks run in the host's own setting. Results in the
-  default setting do not change.
+  or another rounding mode now gets the same layout, drawing, hit
+  testing, accessibility and text results as every other host. Every
+  call that computes (public functions, and the calls platforms make
+  into the accessibility adapters) switches to the library's
+  floating-point setting and gives the thread's back on return.
+  Functions the host passes (measure, baseline, paint, access text,
+  events, the clipboard writer, the allocator and the adapters' action
+  functions) run in the host's own setting. Results in the default
+  setting do not change.
   ([#42](https://github.com/Rawframe-Project/maul-ui/pull/42))
 - Ill-formed UTF-8 is shaped the way the rest of the text component
   reads it: each maximal ill-formed subpart becomes one U+FFFD, so caret
