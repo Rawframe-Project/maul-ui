@@ -290,7 +290,10 @@ extern "C"
 
     /// Ends a block's composition, keeping its text as typed text: what an
     /// input method that commits the composition as it is asks. Nothing
-    /// without one.
+    /// without one. For an editing block the kept text is a change made
+    /// outside the editor, which empties its undo history; to commit
+    /// text undo can take back, take the composition out with
+    /// muiTextBlock_Compose and type what the method commits.
     ///
     /// @param service  The service.
     /// @param blockId  The block.

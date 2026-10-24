@@ -31,7 +31,7 @@ Each line is read as boxes of grapheme clusters left to right, from the glyphs p
 
 ## Input method compositions
 
-Compositions live in the block's text, as browsers and platform controls keep them, so they shape, wrap and reorder with the text around them. `muiTextBlock_SetComposition` replaces the composition, or inserts one at an offset, with the method's text and its styled segments; an empty text removes it. `muiTextBlock_EndComposition` keeps its text as typed. A replacement before or after a composition moves it, and one over it ends it.
+Compositions live in the block's text, as browsers and platform controls keep them, so they shape, wrap and reorder with the text around them. `muiTextBlock_SetComposition` replaces the composition, or inserts one at an offset, with the method's text and its styled segments; an empty text removes it. `muiTextBlock_EndComposition` keeps its text as typed. For an editing block that is a change made outside the editor, as the history never recorded it, so it empties the undo history (below); a host that wants the commit undoable takes the composition out with `muiTextBlock_Compose` and types what the method commits. A replacement before or after a composition moves it, and one over it ends it.
 
 Painting underlines a composition after the glyphs, where an underline goes: thin for underlined and converted segments, twice as thick for the target, none for plain, and the whole composition thin when it has no segments. The host maps its window library's compositions to segments and gives the platform the caret rectangle from `muiTextGetCaret` for the candidate window.
 
@@ -44,7 +44,7 @@ A block opted into editing with a field's rules (`muiTextBlock_SetEditing`: mult
 - **Selection by pointer.** One, two and three clicks select an edge, a word and a paragraph, and a drag extends by that unit. A move without Shift over a selection collapses it toward the edge it goes.
 - **Events.** `muiTextEditEvent` takes a listener's events: typed text types; keys act by a keymap (`mui_keymapPc` after Windows and the Linux toolkits, `mui_keymapMac` after AppKit's standard bindings, shortcuts wanting exactly their modifier so AltGr still types); and a first-button press places the selection by its click count ([text_keys.c](../../src/text_keys.c)).
 - **Clipboard.** Copies and cuts go to a host function, and a password copies nothing. A paste is asked of the host, whose clipboard may answer later, and arrives as `muiTextBlock_Paste`.
-- **Compositions** go through `muiTextBlock_Compose`: shown at the caret, replacing a selection as an edit, taken out by empty text with the commit arriving as typing. Undo waits until a composition ends, and an edit while one shows takes it out first.
+- **Compositions** go through `muiTextBlock_Compose`: shown at the caret, replacing a selection as an edit, taken out by empty text with the commit arriving as typing. Undo waits until a composition ends, and an edit while one shows takes it out first. One kept by `muiTextBlock_EndComposition` instead empties the history, as text changed outside the editor.
 - **On-screen keyboards.** A field's rules name what it takes (`muiInputPurpose`: text, email, URL and so on), a password's and a number filter's own purposes first, with the values of Maul Window's.
 
 ## Keeping the caret in view
