@@ -39,6 +39,17 @@ static uint32_t Within(const muiTextBlock* block, uint32_t at)
     return at;
 }
 
+// The first character start at or after an offset: bytes put beside
+// others can join them into one character around it.
+static uint32_t Onward(const muiTextBlock* block, uint32_t at)
+{
+    while (!muiIsCharacterStart(block, at))
+    {
+        at++;
+    }
+    return at;
+}
+
 static muiTextSelection Collapsed(uint32_t at)
 {
     return (muiTextSelection){at, {at, mui_affinityDownstream}};
@@ -228,7 +239,21 @@ static muiResult Edit(muiTextService* service, muiTextBlock* block, uint32_t sta
         muiClearHistory(editing);
         return result;
     }
-    editing->selection = edit.after;
+    // An ill-formed end of what went in can join the bytes after it into
+    // one character, or a deletion join the bytes on either side: the
+    // caret goes after that character, as typing leaves it after what was
+    // typed, and the history keeps that place. The run ends there, as the
+    // next edit would not start where this one ended.
+    uint32_t caret = Onward(block, start + length);
+    if (caret != start + length)
+    {
+        editing->open = 0;
+        if (editing->done != 0)
+        {
+            ((muiTextEdit*)editing->entries.data)[editing->done - 1].after = Collapsed(caret);
+        }
+    }
+    editing->selection = Collapsed(caret);
     editing->preferredX = -1.0f;
     muiEndPress(editing);
     editing->revision = block->revision;
@@ -609,7 +634,9 @@ static muiResult TextBlockCompose(muiTextService* service, muiTextBlockId blockI
     {
         return result;
     }
-    muiPlaceSelection(block, Collapsed(block->compositionStart + caret));
+    // A caret at the composition's end can be inside a character its last
+    // bytes make with those after it: it goes after that character.
+    muiPlaceSelection(block, Collapsed(Onward(block, block->compositionStart + caret)));
     muiEndPress(&block->editing);
     block->editing.revision = block->revision;
     if (changedOut != nullptr)
