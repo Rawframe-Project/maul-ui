@@ -145,17 +145,18 @@ def git_environment():
     and none of the caller's Git variables, so a developer's hooks, ignore
     rules or signing settings change neither what the checks see nor what
     the self-test does. Over the clone's own configuration, which may not
-    be the caller's, no file system monitor runs, no untracked cache is
-    read, and nothing is fetched, though the clone be a partial one whose
+    be the caller's: no file system monitor runs and no untracked cache is
+    read; nothing is fetched, though the clone be a partial one whose
     missing objects git would fetch through its remote's transport (no
-    lazy fetch from Git 2.44, no protocol before it); and git speaks
-    English, so its messages can be matched."""
+    lazy fetch, and no protocol allowed whatever protocol.* the clone
+    sets); no replace ref stands an edited commit in for the release; and
+    git speaks English, so its messages can be matched."""
     environment = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
     environment.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1", LC_ALL="C",
-                       GIT_NO_LAZY_FETCH="1", GIT_CONFIG_COUNT="3",
+                       GIT_NO_LAZY_FETCH="1", GIT_ALLOW_PROTOCOL="none",
+                       GIT_NO_REPLACE_OBJECTS="1", GIT_CONFIG_COUNT="2",
                        GIT_CONFIG_KEY_0="core.fsmonitor", GIT_CONFIG_VALUE_0="false",
-                       GIT_CONFIG_KEY_1="core.untrackedCache", GIT_CONFIG_VALUE_1="false",
-                       GIT_CONFIG_KEY_2="protocol.allow", GIT_CONFIG_VALUE_2="never")
+                       GIT_CONFIG_KEY_1="core.untrackedCache", GIT_CONFIG_VALUE_1="false")
     return environment
 
 
@@ -397,6 +398,23 @@ def self_test_generation(work):
         failures.append("a clean checkout at its tag is refused")
     if rhi_release(tree, {"v0.0.1": "0" * 40})[0] is not None:
         failures.append("a tag of the release's name on another commit is taken")
+    # The release's commit replaced by an edited one, whose files the
+    # checkout holds.
+    write("tools/mrhi_container.py", "# a tool, replaced\n")
+    subprocess.run(git + ["add", "-A"], capture_output=True, check=True, env=environment)
+    edited_tree = subprocess.run(git + ["write-tree"], capture_output=True, text=True, check=True,
+                                 env=environment).stdout.strip()
+    edited = subprocess.run(git + ["commit-tree", edited_tree, "-p", commit, "-m", "edited"],
+                            capture_output=True, text=True, check=True,
+                            env=environment).stdout.strip()
+    subprocess.run(git + ["replace", commit, edited], capture_output=True, check=True,
+                   env=environment)
+    if released()[0] is not None:
+        failures.append("a release replaced by an edited commit is taken")
+    subprocess.run(git + ["replace", "-d", commit], capture_output=True, check=True,
+                   env=environment)
+    write("tools/mrhi_container.py", "# a tool\n")
+    subprocess.run(git + ["add", "-A"], capture_output=True, check=True, env=environment)
     # A clone's own configuration names a command git would run on status.
     marker = os.path.join(work, "fsmonitor-ran")
     subprocess.run(git + ["config", "core.fsmonitor", f"touch '{marker}' #"], capture_output=True,
@@ -460,11 +478,16 @@ def self_test_generation(work):
                        ("remote.origin.url", "ssh://promisor.invalid/maul-rhi"),
                        ("remote.origin.promisor", "true"),
                        ("remote.origin.partialclonefilter", "tree:0"),
+                       ("protocol.ssh.allow", "always"),
                        ("core.sshCommand", f"touch '{marker}' #")):
         subprocess.run(git + ["config", key, value], capture_output=True, check=True,
                        env=environment)
     if released()[0] is not None:
         failures.append("a partial clone missing objects is taken")
+    # With lazy fetching left on, as a Git without GIT_NO_LAZY_FETCH
+    # leaves it, the protocol allow-list alone stops the fetch.
+    lazy = {key: value for key, value in environment.items() if key != "GIT_NO_LAZY_FETCH"}
+    subprocess.run(git + ["ls-tree", "-r", "HEAD"], capture_output=True, env=lazy)
     if os.path.exists(marker):
         failures.append("a fetch the clone's configuration names is run")
     return failures
