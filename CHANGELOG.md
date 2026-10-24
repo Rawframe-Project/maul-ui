@@ -22,9 +22,9 @@ may change the API, the ABI and every data format.
   or another rounding mode now gets the same layout, text and drawing
   results as every other host. Every public call that computes switches
   to the library's floating-point setting and restores the host's on
-  return. The allocator, task hooks, text measuring and baseline
-  callbacks, and the platform adapters' callbacks run in the host's own
-  setting. Results in the default setting do not change.
+  return. The allocator, task hooks, and the text measuring and
+  baseline callbacks run in the host's own setting. Results in the
+  default setting do not change.
   ([#42](https://github.com/Rawframe-Project/maul-ui/pull/42))
 - Ill-formed UTF-8 is shaped the way the rest of the text component
   reads it: each maximal ill-formed subpart becomes one U+FFFD, so caret
