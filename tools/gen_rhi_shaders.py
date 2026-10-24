@@ -107,10 +107,10 @@ def pinned_rhi(root):
     return "v" + found.group(1)
 
 
-def output(*command):
+def output(*command, env=None):
     """What a command prints, or nothing when it is missing or fails."""
     try:
-        result = subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(command, capture_output=True, text=True, env=env)
     except OSError:
         return ""
     return result.stdout + result.stderr if result.returncode == 0 else ""
@@ -136,20 +136,32 @@ def unpinned(found):
             for name, pin in PINNED.items() if found.get(name) != pin]
 
 
+def git_environment():
+    """The environment git runs in here: no global or system configuration
+    and none of the caller's Git variables, so a developer's hooks, ignore
+    rules or signing settings change neither what the checks see nor what
+    the self-test does."""
+    environment = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+    environment.update(GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
+    return environment
+
+
 def rhi_release(tree):
     """The tag a clean Maul RHI checkout is at, and why it cannot be used
     when it is not: an edit or an untracked file there changes what its
     tools write while the tag stays the same."""
     try:
         status = subprocess.run(["git", "-C", tree, "status", "--porcelain",
-                                 "--untracked-files=all"], capture_output=True, text=True)
+                                 "--untracked-files=all"], capture_output=True, text=True,
+                                env=git_environment())
     except OSError:
         return None, "git is not installed"
     if status.returncode != 0:
         return None, f"{tree} is not a Git checkout"
     if status.stdout.strip():
         return None, f"{tree} has uncommitted changes or untracked files"
-    tag = output("git", "-C", tree, "describe", "--tags", "--exact-match").strip()
+    tag = output("git", "-C", tree, "describe", "--tags", "--exact-match",
+                 env=git_environment()).strip()
     return (tag, None) if tag else (None, f"{tree} is not at a tag")
 
 
@@ -288,6 +300,7 @@ def self_test_generation(work):
     tree = os.path.join(work, "maul-rhi")
     os.makedirs(os.path.join(tree, "tools"))
     git = ["git", "-C", tree, "-c", "user.name=self-test", "-c", "user.email=self-test@localhost"]
+    environment = git_environment()
 
     def write(path, text):
         with open(os.path.join(tree, path), "w", encoding="utf-8") as file:
@@ -296,20 +309,21 @@ def self_test_generation(work):
     write("tools/mrhi_container.py", "# a tool\n")
     for command in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", "a release"],
                     ["tag", "v0.0.1"]):
-        subprocess.run(git + command, capture_output=True, check=True)
+        subprocess.run(git + command, capture_output=True, check=True, env=environment)
     if rhi_release(tree) != ("v0.0.1", None):
         failures.append("a clean checkout at its tag is refused")
     write("tools/mrhi_container.py", "# a tool, edited\n")
     if rhi_release(tree)[0] is not None:
         failures.append("an edited Maul RHI checkout is taken")
-    subprocess.run(git + ["checkout", "-q", "--", "."], capture_output=True, check=True)
+    subprocess.run(git + ["checkout", "-q", "--", "."], capture_output=True, check=True,
+                   env=environment)
     write("tools/extra.py", "# untracked\n")
     if rhi_release(tree)[0] is not None:
         failures.append("a Maul RHI checkout with an untracked file is taken")
     os.remove(os.path.join(tree, "tools", "extra.py"))
     write("tools/mrhi_container.py", "# a later tool\n")
     subprocess.run(git + ["commit", "-q", "-am", "after the release"], capture_output=True,
-                   check=True)
+                   check=True, env=environment)
     if rhi_release(tree)[0] is not None:
         failures.append("a Maul RHI checkout past its tag is taken")
     return failures
