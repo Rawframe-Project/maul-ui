@@ -3,10 +3,10 @@
 //
 // Fuzzes sequences of public calls, the API's own untrusted input: any
 // bytes are a list of calls (nodes made, destroyed, moved and detached,
-// layout values written raw, so enumerators out of range and lengths not
-// finite reach the checks, classes and states, layouts, draw lists,
-// scrolling, pointers, focus and hit tests), with ids that may be stale,
-// null or made up. The calls go to two contexts alike, and each must
+// layout and visual values written raw, so enumerators out of range and
+// lengths not finite reach the checks, classes and states, layouts, draw
+// lists, scrolling, pointers, focus and hit tests), with ids that may be
+// stale, null or made up. The calls go to two contexts alike, and each must
 // answer both the same, with a status its contract allows. Now and then
 // every node of the second is marked changed, so it is solved from
 // nothing, and both are laid out: the first's bounded layout must give
@@ -23,6 +23,7 @@
 #include "maul-ui/pointer.h"
 #include "maul-ui/scroll.h"
 #include "maul-ui/style.h"
+#include "maul-ui/visual.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -38,7 +39,7 @@ enum
     MAX_STYLES = 4,
     MAX_CALLS = 256,
     // The kinds of call an input's bytes choose among.
-    CALL_KINDS = 16
+    CALL_KINDS = 17
 };
 
 static void Expect(bool condition)
@@ -392,12 +393,30 @@ static void Call(World* world, Reader* reader)
         }
         break;
     }
-    default:
+    case 15:
     {
         muiNodeId node = PickNode(world, reader);
         muiState states = (muiState)Byte(reader);
         (void)Both(muiNode_SetStates(contexts[0], node, states),
                    muiNode_SetStates(contexts[1], node, states));
+        break;
+    }
+    default:
+    {
+        // Visual values written raw, as the layout ones are, so the draw
+        // lists compared have something in them; the struct is longer than
+        // a byte reaches.
+        muiNodeId node = PickNode(world, reader);
+        muiVisualStyle style = muiDefaultVisualStyle();
+        size_t at = (size_t)(Byte(reader) << 8 | Byte(reader)) % sizeof style;
+        size_t length = 1 + Byte(reader) % 8;
+        for (size_t i = at; i < at + length && i < sizeof style; i++)
+        {
+            ((unsigned char*)&style)[i] = Byte(reader);
+        }
+        muiPropertyMask mask = (muiPropertyMask)Word(reader) << 32 | Word(reader);
+        (void)Both(muiNode_SetVisualValues(contexts[0], node, &style, mask),
+                   muiNode_SetVisualValues(contexts[1], node, &style, mask));
         break;
     }
     }
