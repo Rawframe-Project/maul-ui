@@ -41,12 +41,34 @@ These are committed, because a build must not need their generators' tools:
 |---|---|---|
 | `test/generated/layout_fixtures.h` | `python3 tools/gen_layout_fixtures.py` | `test/layout/*.txt`; CI checks that it is current |
 | `src/generated/inflate_tables.h` | `python3 tools/gen_inflate_tables.py` | RFC 1951's fixed codes; a family file |
-| `rhi/shaders/quad_container.h` | `python3 tools/gen_rhi_shaders.py <maul-rhi source tree>` | `rhi/shaders/quad.*`, with glslang, SPIRV-Tools, SPIRV-Cross and dxc |
+| `rhi/shaders/quad_container.h` | `python3 tools/gen_rhi_shaders.py <maul-rhi source tree>` | `rhi/shaders/quad.*`, with glslang, SPIRV-Tools, SPIRV-Cross and dxc ([the shader container](#the-shader-container)); CI checks its stamp |
 | `test/fonts/Maul*.ttf`, `MaulCff.otf` | `test/fonts/make_*.py` | fontTools (and Pillow for the bitmap fonts); [Test fonts](test-fonts.md) describes each |
 | `test/images/pngs.bin` | `test/images/make_pngs.py` | Pillow |
 | `test/browser/package-lock.json`, `tools/screen_reader/package-lock.json` | `npm install --package-lock-only` in the folder | the `package.json` beside it; Dependabot updates both weekly |
 
 Each generator writes the same bytes on every run. A change to a generated file names the generator or input change that caused it.
+
+### The shader container
+
+CI has none of the shader tools, so it cannot rebuild the container. Instead the header carries a stamp: the SHA-256 of each input as Git stores it (the four `rhi/shaders/quad.*` sources and the generator, with LF line ends), the Maul RHI release, the pinned tools, and the SHA-256 of the container's bytes. `python3 tools/gen_rhi_shaders.py --check` needs no tool. It fails when a source or the generator changed without a regeneration, when `cmake/Rhi.cmake` pins another Maul RHI release, when the stamp names other tools than the pins, or when the container was edited by hand. `--self-test` shows on a copy that each of those fails the check, and that generating refuses what it must. The `checks` job and every tier of `tools/check.sh` run both.
+
+After any such change, regenerate on a machine with the tools. Other versions write other bytes, so the generator compares each tool's version with its pin exactly and refuses any other by name. These are the pins, the same as Maul RHI's:
+
+| Tool | Pinned version | Where it comes from |
+|---|---|---|
+| `glslangValidator` | 15.1.0 | Ubuntu 24.04's `glslang-tools` (15.1.0-2~ubuntu0.24.04.2) |
+| `spirv-link`, `spirv-val` | SPIRV-Tools v2025.1 | Ubuntu 24.04's `spirv-tools` (2025.1~rc1-1~ubuntu0.24.04.2) |
+| `spirv-cross` | 2021.01.15+1.3.239.0 | Ubuntu 24.04's `spirv-cross`; it reports no version itself, so the generator reads its package's |
+| `dxc` | v1.9.2607: libdxcompiler 1.9.0.1, commit 0d3ee6b5 | the release asset `linux_dxc_2026_07_29.x86_x64.tar.gz` of [microsoft/DirectXShaderCompiler](https://github.com/microsoft/DirectXShaderCompiler/releases/tag/v1.9.2607), SHA-256 `55665c87824051ed4774ff3280a79ccbbb7d39243b9736ca5e98222134112d54`; check the tarball against it, unpack it anywhere and put its `bin` on `PATH` |
+| Maul RHI | the release `cmake/Rhi.cmake` pins | a clean checkout at its tag |
+
+```sh
+git clone --depth 1 --branch v0.0.1 https://github.com/Rawframe-Project/maul-rhi /tmp/maul-rhi
+PATH=<dxc>/bin:$PATH python3 tools/gen_rhi_shaders.py /tmp/maul-rhi
+python3 tools/gen_rhi_shaders.py --check
+```
+
+The generator refuses a Maul RHI tree at another tag than the pinned one, or with uncommitted changes or untracked files, since an edit to its tools changes the bytes while the tag stays. Moving a pin means regenerating with the new tool in a pull request of its own that says why the bytes changed.
 
 The build generates the rest and never commits it: `maul-ui.mjs` for wasm32-wasi builds (`tools/gen_web_glue.py`, [The web](../internals/web.md)), the embedded test fonts, and the API reference for the documentation site (`tools/gen_api.py`, run by `tools/build_docs.py`).
 

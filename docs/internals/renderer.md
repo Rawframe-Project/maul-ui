@@ -55,6 +55,6 @@ As the list is packed, an instance whose quad, through its transform, misses its
 
 ## Shaders
 
-The shaders are GLSL and WGSL in `rhi/shaders/`, made into a Maul RHI shader container offline by [gen_rhi_shaders.py](../../tools/gen_rhi_shaders.py), which needs a Maul RHI source tree for its cross-compilers. The container is committed as `rhi/shaders/quad_container.h`, because CI has none of those tools ([Development](../operations/development.md#generated-files)).
+The shaders are GLSL and WGSL in `rhi/shaders/`, made into a Maul RHI shader container offline by [gen_rhi_shaders.py](../../tools/gen_rhi_shaders.py), which needs a Maul RHI source tree for its cross-compilers. The container is committed as `rhi/shaders/quad_container.h`, because CI has none of those tools. A stamp of its inputs' hashes lets CI check that it is current without them ([Development](../operations/development.md#the-shader-container)).
 
 Its tests run on Maul RHI's test driver everywhere, and on lavapipe and headless Chrome's WebGPU where those exist, comparing probed pixels with what the list says, under the Vulkan validation layer ([Test environments](../operations/test-environments.md)).
