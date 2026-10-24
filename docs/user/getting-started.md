@@ -12,7 +12,8 @@
 ## Requirements
 
 - CMake 3.25 or newer.
-- GCC 14 or Clang 19 or newer. On Windows, `clang-cl`, the Visual Studio component "C++ Clang tools for Windows". The library is C23. Its public headers are C17 and C++17, so any C or C++ program can include them.
+- GCC 14 or newer, Clang 19 or newer, or Apple Clang. On Windows, `clang-cl`, the Visual Studio component "C++ Clang tools for Windows". The library is C23. Its public headers are C17 and C++17, so any C or C++ program can include them.
+- For the web, Emscripten, or Clang's `wasm32-wasi` with wasi-libc; [The web](../internals/web.md) says what each takes.
 - A C++ compiler as well for the text component, which builds HarfBuzz.
 - A network connection at configure time, for Maul Tween and the text component's libraries, unless they are given as local copies ([Build options](#build-options)).
 

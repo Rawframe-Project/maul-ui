@@ -21,6 +21,8 @@ A screen that does not change costs no work per frame. The library starts no thr
 
 ## Quick start
 
+It builds with CMake 3.25 or newer and GCC 14 or newer, Clang 19 or newer, or Apple Clang. On Linux and macOS:
+
 ```sh
 git clone https://github.com/Rawframe-Project/maul-ui.git
 cd maul-ui
@@ -28,6 +30,15 @@ cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ctest --test-dir build
 ```
+
+Ubuntu 24.04's default compiler is GCC 13, which the build refuses ("GCC 14 or newer is required for C23"). Install GCC 14 and configure again in a fresh build directory, since `build/` keeps the compiler it first found; then go on from `cmake --build build`:
+
+```sh
+sudo apt install gcc-14
+rm -rf build && CC=gcc-14 cmake -B build -DCMAKE_BUILD_TYPE=Release
+```
+
+On Windows the library builds with `clang-cl`, and on the web with Emscripten; [Getting started](docs/user/getting-started.md#requirements) lists what each needs.
 
 Install it with `cmake --install build --prefix <prefix>` and use it from CMake:
 
