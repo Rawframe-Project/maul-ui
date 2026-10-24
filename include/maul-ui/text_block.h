@@ -50,8 +50,9 @@ extern "C"
     typedef struct muiTextBlockDef
     {
         uint32_t cookie;
-        // UTF-8 text, copied; ill-formed sequences are laid out as
-        // U+FFFD. May be NULL when length is 0.
+        // UTF-8 text, copied; an ill-formed sequence is laid out as one
+        // U+FFFD for each maximal subpart, as browsers decode it. May be
+        // NULL when length is 0.
         const char* text;
         // Its length in bytes, below 2^31.
         size_t length;

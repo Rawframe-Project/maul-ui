@@ -484,6 +484,47 @@ static void TestMovingOnScreen(void)
     FreeScene(&scene);
 }
 
+static void TestIllFormed(void)
+{
+    // An ill-formed sequence's maximal subpart is one U+FFFD, as the
+    // Encoding Standard decodes it: F0 9F 91 is one, bytes 1 to 4, drawn
+    // as wide as a U+FFFD of three bytes, and moves on screen cross it
+    // whole, never landing inside it.
+    Scene scene = MakeScene();
+    ShowPlain(&scene, "a\xEF\xBF\xBD"
+                      "b");
+    float replaced = Caret(&scene, 100.0f, 4, DOWN).x;
+    ShowPlain(&scene, "a\xF0\x9F\x91"
+                      "b");
+    CHECK(replaced > 10.0f && Caret(&scene, 100.0f, 4, DOWN).x == replaced,
+          "a truncated sequence drawn as one U+FFFD");
+    CHECK(Moves(&scene, 100.0f, 4, DOWN, mui_moveLeft, 1, DOWN) &&
+              Moves(&scene, 100.0f, 1, UP, mui_moveRight, 4, UP) &&
+              Moves(&scene, 100.0f, 5, UP, mui_moveLeft, 4, DOWN),
+          "moved across whole");
+    CHECK(Hits(&scene, 100.0f, replaced - 1.0f, 5.0f, 4, UP), "hit at its end");
+    // At the text's end, where the fuzzer found it, and a two-byte prefix
+    // before a character that ends it.
+    ShowPlain(&scene, "a\xF0\x9F\x91");
+    CHECK(Moves(&scene, 100.0f, 4, UP, mui_moveLeft, 1, DOWN), "at the text's end");
+    ShowPlain(&scene, "a\xE0\xA4]");
+    CHECK(Moves(&scene, 100.0f, 3, DOWN, mui_moveLeft, 1, DOWN) &&
+              Moves(&scene, 100.0f, 1, UP, mui_moveRight, 3, UP),
+          "a prefix ended early");
+    // Well formed, of three scripts: x, alpha at 1 to 3, alef at 3 to 5
+    // and bet at 5 to 7 right to left, with the others as context, y at
+    // 7. On screen x, alpha, bet, alef, y: clusters are bytes, not the
+    // code points HarfBuzz was given.
+    ShowPlain(&scene, "x\xCE\xB1\xD7\x90\xD7\x91y");
+    CHECK(Moves(&scene, 100.0f, 1, UP, mui_moveRight, 3, UP) &&
+              Moves(&scene, 100.0f, 3, UP, mui_moveRight, 5, DOWN) &&
+              Moves(&scene, 100.0f, 5, DOWN, mui_moveRight, 3, DOWN) &&
+              Moves(&scene, 100.0f, 3, DOWN, mui_moveRight, 8, UP) &&
+              Moves(&scene, 100.0f, 8, UP, mui_moveLeft, 7, DOWN),
+          "clusters of several scripts at their bytes");
+    FreeScene(&scene);
+}
+
 // Whether a deletion from an offset of the block's text removes the
 // bytes from start up to end.
 static bool Deletes(Scene* scene, const char* text, uint32_t offset, muiTextDeletion deletion,
@@ -924,6 +965,7 @@ int main(void)
     TestInsideClusters();
     TestMovingInText();
     TestMovingOnScreen();
+    TestIllFormed();
     TestDeletion();
     TestReplace();
     TestComposition();
