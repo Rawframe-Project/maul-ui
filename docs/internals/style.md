@@ -53,12 +53,12 @@ Transitions run against host time: `muiLayoutInput.timeNs` is nanoseconds on a m
 - Numbers, insets, dimensions and radii that are Scale+Offset on both sides, colors and shadows move, through up to eight channels.
 - Enumerators, flags, image keys, gradients and changes to or from automatic apply at once. So does every change under reduced motion, which also ends running transitions, and a node's first styling, which has nothing to move from.
 - A timed transition follows its easing from the current value. A reversal is shortened by the share the old one covered, as CSS shortens it.
-- A spring starts from the current value and speed, so a new target keeps its momentum, and rests exactly on its target ([spring.c](../../src/spring.c)).
+- A spring starts from the current value and speed, so a new target keeps its momentum, and rests exactly on its target ([animation.c](../../src/animation.c)).
 - Values a property does not allow, such as a spring's overshoot below 0 for a length, are held at its bounds.
 
 Running transitions are pooled records up to a limit ([animation.c](../../src/animation.c)). A change that finds none free applies at once. A direct write stops the transition of its property. A record whose node is gone is freed when transitions next move. While one runs below a root, `muiIsUpdatePending` holds.
 
-The exponentials and trigonometry of easing and springs are the library's own ([motion_math.c](../../src/motion_math.c)), with arguments reduced as Cody and Waite's *Software Manual for the Elementary Functions* describes, so motion gives the same bits everywhere. Easing keywords and cubic Beziers are CSS Easing Functions Level 1's, and a spring follows the closed-form solutions of the damped harmonic oscillator.
+Easing curves and springs are [Maul Tween](https://github.com/Rawframe-Project/maul-tween)'s, which gives the same bits on every platform. Easing keywords and cubic Beziers are CSS Easing Functions Level 1's, solved by Newton's method inside a bracket to 1e-14 (`mtwnMakeCubicBezier`). A spring follows the closed-form solutions of the damped harmonic oscillator, made from its frequency and damping ratio (`mtwnMakeSpringFromFrequency`); one motion per frame (`mtwnSpringMotionAt`) moves every channel from its own start. Scrolling's exponentials and colour fonts' trigonometry stay the library's own ([motion_math.c](../../src/motion_math.c)), with arguments reduced as Cody and Waite's *Software Manual for the Elementary Functions* describes.
 
 ## Visual values and colors
 

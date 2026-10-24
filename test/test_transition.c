@@ -428,6 +428,51 @@ static void TestSpringOnItsCurve(void)
     muiDestroyContext(scene.context);
 }
 
+// Curves and springs are Maul Tween's: these widths are what it gives,
+// computed from Maul Tween 0.0.1 itself, so a change in it shows here.
+// At 54 ms the ease from 0 to 1 is one float step above what Maul UI's
+// own bisection gave (0x1.53cb0ep-2).
+static void TestMotionIsMaulTweens(void)
+{
+    Scene scene = MakeScene(muiDefaultContextDef().limits);
+    Bind(scene.context, scene.style, mui_variantBase,
+         MakeTimed(scene.context, 250 * MS, mui_easingEase, 0), WIDTH);
+    Hover(&scene, true);
+    (void)WidthAt(scene.context, scene.node, T0);
+    CHECK(WidthAt(scene.context, scene.node, T0 + 54 * MS) == 0x1.0a5da8p+7f &&
+              WidthAt(scene.context, scene.node, T0 + 125 * MS) == 0x1.687b0ep+7f,
+          "ease from 100 to 200");
+    muiDestroyContext(scene.context);
+    scene = MakeScene(muiDefaultContextDef().limits);
+    SetWidth(scene.context, scene.style, mui_variantBase, Length(0.0f));
+    SetWidth(scene.context, scene.style, mui_variantHovered, Length(1.0f));
+    CHECK(WidthAt(scene.context, scene.node, T0) == 0.0f, "starts at 0");
+    Bind(scene.context, scene.style, mui_variantBase,
+         MakeTimed(scene.context, 250 * MS, mui_easingEase, 0), WIDTH);
+    Hover(&scene, true);
+    (void)WidthAt(scene.context, scene.node, T0);
+    CHECK(WidthAt(scene.context, scene.node, T0 + 54 * MS) == 0x1.53cb1p-2f &&
+              WidthAt(scene.context, scene.node, T0 + 125 * MS) == 0x1.9ad49ep-1f,
+          "ease from 0 to 1");
+    muiDestroyContext(scene.context);
+    static const float springs[][2] = {{2.0f, 1.0f}, {4.0f, 0.3f}};
+    static const float expected[][3] = {{0x1.c4864cp+6f, 0x1.251de6p+7f, 0x1.88176ap+7f},
+                                        {0x1.35f0a6p+7f, 0x1.d99566p+7f, 0x1.9a2c6ep+7f}};
+    for (int s = 0; s < 2; s++)
+    {
+        scene = MakeScene(muiDefaultContextDef().limits);
+        Bind(scene.context, scene.style, mui_variantBase,
+             MakeSpring(scene.context, springs[s][0], springs[s][1]), WIDTH);
+        Hover(&scene, true);
+        (void)WidthAt(scene.context, scene.node, T0);
+        CHECK(WidthAt(scene.context, scene.node, T0 + 50 * MS) == expected[s][0] &&
+                  WidthAt(scene.context, scene.node, T0 + 125 * MS) == expected[s][1] &&
+                  WidthAt(scene.context, scene.node, T0 + 400 * MS) == expected[s][2],
+              "a spring's widths");
+        muiDestroyContext(scene.context);
+    }
+}
+
 static void TestSpringsStayInRange(void)
 {
     muiContext* context = MakeContext();
@@ -736,6 +781,7 @@ int main(void)
     TestReversalIsShortened();
     TestSpringKeepsItsSpeed();
     TestSpringOnItsCurve();
+    TestMotionIsMaulTweens();
     TestSpringsStayInRange();
     TestReducedMotionAndDirectWritesApplyAtOnce();
     TestOnlyMovableValuesMove();
