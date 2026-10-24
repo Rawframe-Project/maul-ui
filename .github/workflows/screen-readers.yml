@@ -9,7 +9,7 @@ name: screen-readers
 
 on:
   schedule:
-    - cron: "11 3 * * *"
+    - cron: "52 3 * * *"
   workflow_dispatch:
 
 permissions: {}
