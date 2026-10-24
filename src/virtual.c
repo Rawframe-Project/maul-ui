@@ -8,6 +8,7 @@
 #include "maul-ui/virtual.h"
 
 #include "context.h"
+#include "invariant.h"
 #include "layout_node.h"
 #include "notify.h"
 #include "scroll_store.h"
@@ -15,6 +16,7 @@
 #include "virtual.h"
 #include "virtual_store.h"
 
+#include <float.h>
 #include <math.h>
 
 static bool IsLength(float value)
@@ -134,6 +136,43 @@ static double* SumsOf(const muiVirtualStore* store, const muiVirtualEntry* entry
     return store->sums + entry->base - 1;
 }
 
+// Read only by MUI_ASSERT, which Release builds compile out.
+// Whether the tree's place of item i, its extent and the gap after it,
+// is what its stored size says, within the rounding of the double sums.
+// Sums that overflowed are not compared: finite sizes a caller gave can
+// add up past the doubles' range.
+[[maybe_unused]] static bool PlaceAgrees(const muiVirtualStore* store, const muiVirtualEntry* entry,
+                                         uint32_t i)
+{
+    double end = muiVirtualOffset(store, entry, i + 1);
+    double place = end - muiVirtualOffset(store, entry, i);
+    double size = (double)store->sizes[entry->base + i] + (double)entry->list.gap;
+    return !isfinite(end) || !isfinite(place) ||
+           fabs(place - size) <= 1e-9 * fmax(fmax(fabs(end), fabs(size)), 1.0);
+}
+
+// Whether the tree's total, every item's extent and gap, is the sum of
+// the stored sizes, within rounding; a sum that overflowed is not
+// compared. Two sums of the same n terms in any order each lie within
+// gamma(n - 1) of the terms' magnitudes of the exact sum (Higham,
+// Accuracy and Stability of Numerical Algorithms, section 4.2), so they
+// differ by at most 2(n + 1) epsilon times that magnitude: a tolerance
+// that grows with the count, as a long list's rounding does.
+[[maybe_unused]] static bool TotalAgrees(const muiVirtualStore* store, const muiVirtualEntry* entry)
+{
+    double sum = 0.0;
+    double magnitude = 0.0;
+    for (uint32_t i = 0; i < entry->list.count; i++)
+    {
+        double term = (double)store->sizes[entry->base + i] + (double)entry->list.gap;
+        sum += term;
+        magnitude += fabs(term);
+    }
+    double total = muiVirtualOffset(store, entry, entry->list.count);
+    double bound = 2.0 * ((double)entry->list.count + 1.0) * DBL_EPSILON * magnitude;
+    return !isfinite(sum) || !isfinite(total) || !isfinite(bound) || fabs(total - sum) <= bound;
+}
+
 void muiVirtualBuild(muiVirtualStore* store, const muiVirtualEntry* entry)
 {
     uint32_t count = entry->list.count;
@@ -152,6 +191,7 @@ void muiVirtualBuild(muiVirtualStore* store, const muiVirtualEntry* entry)
             sums[up] += sums[k];
         }
     }
+    MUI_ASSERT(TotalAgrees(store, entry));
 }
 
 // Adds delta to item i's extent in its entry's tree.
@@ -540,6 +580,7 @@ static double Measure(muiContext* context, uint32_t slot, const muiVirtualEntry*
             double delta = (double)size - (double)*known;
             Add(store, entry, item - 1, delta);
             *known = size;
+            MUI_ASSERT(PlaceAgrees(store, entry, item - 1));
             shift += muiVirtualOffset(store, entry, item - 1) < viewStart ? delta : 0.0;
         }
     }

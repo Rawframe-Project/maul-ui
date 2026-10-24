@@ -13,6 +13,7 @@
 #include "color.h"
 #include "font_store.h"
 #include "glyph_table.h"
+#include "invariant.h"
 #include "skyline.h"
 #include "text_service.h"
 
@@ -343,6 +344,8 @@ static bool TryPlot(muiGlyphAtlas* atlas, uint32_t plot, uint32_t width, uint32_
     {
         return false;
     }
+    // Inside its plot, so it overlaps no image of a neighboring one.
+    MUI_ASSERT(x + width <= atlas->plotWidth && y + height <= atlas->plotHeight);
     uint32_t originX = 0;
     uint32_t originY = 0;
     PlotOrigin(atlas, plot, &originX, &originY);

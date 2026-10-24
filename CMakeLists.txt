@@ -328,6 +328,12 @@ if(MAUL_UI_BUILD_TESTS)
     maul_add_test(popup)
     maul_add_test(exit)
     maul_add_test(virtual)
+    # A list long enough that its sums round, some 310 MB: not on the cells
+    # whose devices or runtimes have little memory.
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8 AND NOT ANDROID AND NOT CMAKE_SYSTEM_NAME STREQUAL "iOS" AND
+       NOT EMSCRIPTEN AND NOT CMAKE_SYSTEM_NAME STREQUAL "WASI")
+        maul_add_test(virtual_long)
+    endif()
     maul_add_test(work)
     maul_add_test(access)
     maul_add_test(reentry)

@@ -4,6 +4,8 @@
 // Moving positions through laid-out text: by grapheme cluster in the text
 // or on screen, by word, and by line.
 
+#include "invariant.h"
+#include "text_blocks.h"
 #include "text_boxes.h"
 #include "text_entry.h"
 #include "text_mask.h"
@@ -29,11 +31,15 @@ static uint32_t ClusterBoundary(const muiTextBlock* block, uint32_t offset, bool
     {
         if (next ? at > offset : at >= offset)
         {
-            return next ? (uint32_t)at : before;
+            uint32_t boundary = next ? (uint32_t)at : before;
+            // A cluster boundary is a character's start within the text.
+            MUI_ASSERT(muiIsCharacterStart(block, boundary));
+            return boundary;
         }
         before = (uint32_t)at;
     }
     // Past the last boundary, the text's end, for either direction.
+    MUI_ASSERT(before == block->length);
     return before;
 }
 

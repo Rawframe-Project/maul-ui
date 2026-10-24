@@ -7,6 +7,7 @@
 
 #include "text_editing.h"
 
+#include "invariant.h"
 #include "text_blocks.h"
 #include "text_entry.h"
 #include "text_history.h"
@@ -62,8 +63,19 @@ void muiEndPress(muiTextEditing* editing)
     editing->pressEnd = editing->selection.anchor;
 }
 
+// Read only by MUI_ASSERT, which Release builds compile out.
+// Whether a selection's ends are offsets of the block's text at a
+// character's start, as every edit and placement leaves them. They need
+// not be cluster boundaries: a host may place them inside a cluster.
+[[maybe_unused]] static bool EndsAtCharacters(const muiTextBlock* block, muiTextSelection selection)
+{
+    return muiIsCharacterStart(block, selection.anchor) &&
+           muiIsCharacterStart(block, selection.caret.offset);
+}
+
 void muiPlaceSelection(muiTextBlock* block, muiTextSelection selection)
 {
+    MUI_ASSERT(EndsAtCharacters(block, selection));
     block->editing.selection = selection;
     block->editing.open = 0;
 }
@@ -254,6 +266,7 @@ static muiResult Edit(muiTextService* service, muiTextBlock* block, uint32_t sta
         }
     }
     editing->selection = Collapsed(caret);
+    MUI_ASSERT(EndsAtCharacters(block, editing->selection));
     editing->preferredX = -1.0f;
     muiEndPress(editing);
     editing->revision = block->revision;
