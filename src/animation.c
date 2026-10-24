@@ -102,7 +102,9 @@ static double TimedProgress(const muiAnimation* animation, double elapsed)
     }
     const muiTransitionSpec* spec = &animation->spec;
     double x = elapsed / animation->seconds;
-    return spec->def.easing == mui_easingLinear ? x : muiEase(&spec->curve, x);
+    // Every timed easing is linear or a cubic Bezier: sampled so, Maul
+    // Tween's other curves stay out of the program.
+    return mtwnEaseCubicBezier(&spec->easing, x);
 }
 
 // A record's channels and velocity at nowNs; whether it has arrived.
@@ -126,13 +128,16 @@ static bool Sample(const muiAnimation* animation, uint64_t nowNs, float value[MU
     }
     bool resting = true;
     double toSpeed = TWO_PI * (double)animation->spec.def.frequency;
-    muiSpringTime time = muiSpringTimeAt(&animation->shape, elapsed);
+    mtwnSpringMotion motion = mtwnSpringMotionAt(&animation->spec.spring, elapsed);
     for (uint32_t i = 0; i < animation->channels; i++)
     {
         double offset = (double)animation->from[i] - (double)animation->to[i];
         if (nowNs >= animation->startNs)
         {
-            muiSpringAt(&animation->shape, &time, animation->starts[i], &offset, &velocity[i]);
+            double start = animation->offsets[i];
+            double speed = animation->velocities[i];
+            offset = motion.offsetFromOffset * start + motion.offsetFromVelocity * speed;
+            velocity[i] = motion.velocityFromOffset * start + motion.velocityFromVelocity * speed;
         }
         value[i] = (float)((double)animation->to[i] + offset);
         double rest = (double)animation->rest[i];
@@ -241,8 +246,6 @@ bool muiStartAnimation(const muiMotion* motion, uint32_t node, muiProperty prope
     animation->seconds = (double)spec->def.durationNs / NANOSECONDS * origin.shortening;
     animation->shortening = origin.shortening;
     muiReadPropertyValue(target, property, &animation->target);
-    animation->shape =
-        muiMakeSpringShape((double)spec->def.frequency, (double)spec->def.dampingRatio);
     double w0 = TWO_PI * (double)spec->def.frequency;
     for (uint32_t i = 0; i < MUI_MAX_CHANNELS; i++)
     {
@@ -250,7 +253,8 @@ bool muiStartAnimation(const muiMotion* motion, uint32_t node, muiProperty prope
         animation->to[i] = to[i];
         animation->reversingStart[i] = origin.reversingStart[i];
         double offset = (double)origin.current[i] - (double)to[i];
-        animation->starts[i] = muiStartSpring(&animation->shape, offset, origin.velocity[i]);
+        animation->offsets[i] = offset;
+        animation->velocities[i] = origin.velocity[i];
         // At rest within a thousandth of the channel's way: its offset, or
         // as far as its speed alone would carry it in a radian of its
         // motion.

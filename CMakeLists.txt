@@ -99,7 +99,6 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/context.c
     src/draw.c
     src/draw_transform.c
-    src/easing.c
     src/flex.c
     src/flex_item.c
     src/flex_resolve.c
@@ -134,7 +133,6 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/property.c
     src/restyle.c
     src/solve.c
-    src/spring.c
     src/style.c
     src/style_edit.c
     src/transition.c

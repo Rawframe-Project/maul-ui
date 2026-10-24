@@ -8,7 +8,6 @@
 
 #include "animation.h"
 #include "context.h"
-#include "easing.h"
 #include "pool.h"
 #include "property.h"
 #include "style_edit.h"
@@ -45,20 +44,35 @@ static bool IsDefValid(const muiTransitionDef* def)
            def->dampingRatio > 0.0f;
 }
 
-// The curve of an easing, from CSS Easing Functions' keywords.
-static muiCurve CurveOf(const muiTransitionDef* def)
+// A def's easing and spring, made by Maul Tween: the easing from CSS
+// Easing Functions' keywords or the def's curve. Whether Maul Tween takes
+// them, as it does every def IsDefValid passes.
+static bool MakeMotion(const muiTransitionDef* def, muiTransitionSpec* spec)
 {
     static const double keywords[][4] = {
-        {0.0, 0.0, 1.0, 1.0},  {0.25, 0.1, 0.25, 1.0}, {0.42, 0.0, 1.0, 1.0},
-        {0.0, 0.0, 0.58, 1.0}, {0.42, 0.0, 0.58, 1.0},
+        {0.25, 0.1, 0.25, 1.0},
+        {0.42, 0.0, 1.0, 1.0},
+        {0.0, 0.0, 0.58, 1.0},
+        {0.42, 0.0, 0.58, 1.0},
     };
-    if (def->easing == mui_easingCubicBezier)
+    mtwnResult easing = mtwn_success;
+    if (def->easing == mui_easingLinear)
     {
-        return muiMakeCurve((double)def->bezier[0], (double)def->bezier[1], (double)def->bezier[2],
-                            (double)def->bezier[3]);
+        spec->easing = mtwnLinearEasing();
     }
-    const double* p = keywords[def->easing];
-    return muiMakeCurve(p[0], p[1], p[2], p[3]);
+    else if (def->easing == mui_easingCubicBezier)
+    {
+        easing = mtwnMakeCubicBezier((double)def->bezier[0], (double)def->bezier[1],
+                                     (double)def->bezier[2], (double)def->bezier[3], &spec->easing);
+    }
+    else
+    {
+        const double* p = keywords[def->easing - 1];
+        easing = mtwnMakeCubicBezier(p[0], p[1], p[2], p[3], &spec->easing);
+    }
+    return easing == mtwn_success &&
+           mtwnMakeSpringFromFrequency((double)def->frequency, (double)def->dampingRatio,
+                                       &spec->spring) == mtwn_success;
 }
 
 static muiResult CreateTransition(muiContext* context, const muiTransitionDef* def,
@@ -76,13 +90,18 @@ static muiResult CreateTransition(muiContext* context, const muiTransitionDef* d
     {
         return muiRefuse(context);
     }
+    muiTransitionSpec spec = {.def = *def};
+    if (!MakeMotion(def, &spec))
+    {
+        return muiRefuse(context);
+    }
     muiAnimationStore* store = &context->animations;
     uint32_t slot = muiPoolTake(&store->specPool);
     if (slot == 0)
     {
         return mui_errorCapacity;
     }
-    store->specs[slot - 1] = (muiTransitionSpec){.def = *def, .curve = CurveOf(def)};
+    store->specs[slot - 1] = spec;
     *transitionOut = (muiTransitionId){slot, muiPoolGeneration(&store->specPool, slot)};
     return mui_success;
 }

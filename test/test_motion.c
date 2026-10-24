@@ -2,13 +2,11 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // The library's own exponential, trigonometry, logarithm, power and cube
-// root against the C library's, the easing curves, the spring's closed
-// form against its differential equation, and colors through Oklab.
+// root against the C library's, and colors through Oklab. The easing
+// curves and springs are Maul Tween's, tested there.
 
 #include "color.h"
-#include "easing.h"
 #include "motion_math.h"
-#include "spring.h"
 #include "test_harness.h"
 
 #include <float.h>
@@ -69,141 +67,6 @@ static void TestSinCosAreAccurate(void)
         CHECK(fabs(sine - sin(points[i])) < 1e-15 && fabs(cosine - cos(points[i])) < 1e-15,
               "every quadrant");
     }
-}
-
-// y at x by bisection to 1e-12, as a reference.
-static double ReferenceEase(double x1, double y1, double x2, double y2, double x)
-{
-    double low = 0.0;
-    double high = 1.0;
-    double t = 0.5;
-    for (int i = 0; i < 200; i++)
-    {
-        t = (low + high) * 0.5;
-        double u = 1.0 - t;
-        double sampled = 3.0 * u * u * t * x1 + 3.0 * u * t * t * x2 + t * t * t;
-        if (fabs(sampled - x) < 1e-12)
-        {
-            break;
-        }
-        if (sampled < x)
-        {
-            low = t;
-        }
-        else
-        {
-            high = t;
-        }
-    }
-    double u = 1.0 - t;
-    return 3.0 * u * u * t * y1 + 3.0 * u * t * t * y2 + t * t * t;
-}
-
-static void TestCurvesMatchTheirDefinition(void)
-{
-    // ease, ease-in, ease-out, ease-in-out, and one that overshoots.
-    const double curves[][4] = {
-        {0.25, 0.1, 0.25, 1.0}, {0.42, 0.0, 1.0, 1.0},     {0.0, 0.0, 0.58, 1.0},
-        {0.42, 0.0, 0.58, 1.0}, {0.68, -0.55, 0.27, 1.55}, {1.0, 0.0, 0.0, 1.0},
-    };
-    for (int c = 0; c < 6; c++)
-    {
-        const double* p = curves[c];
-        muiCurve curve = muiMakeCurve(p[0], p[1], p[2], p[3]);
-        double worst = 0.0;
-        for (int i = 0; i <= 1000; i++)
-        {
-            double x = (double)i / 1000.0;
-            double error = fabs(muiEase(&curve, x) - ReferenceEase(p[0], p[1], p[2], p[3], x));
-            worst = error > worst ? error : worst;
-        }
-        // The last curve's x has a flat point at the middle, where t, and so
-        // y, is known only to the cube root of a double's rounding.
-        CHECK(worst < (c == 5 ? 1e-5 : 1e-9), "y on the curve");
-        CHECK(muiEase(&curve, 0.0) == 0.0 && muiEase(&curve, 1.0) == 1.0, "fixed ends");
-        CHECK(muiEase(&curve, -1.0) == 0.0 && muiEase(&curve, 2.0) == 1.0, "clamped outside");
-    }
-    muiCurve linear = muiMakeCurve(0.0, 0.0, 1.0, 1.0);
-    muiCurve inOut = muiMakeCurve(0.42, 0.0, 0.58, 1.0);
-    for (int i = 1; i < 100; i++)
-    {
-        double x = (double)i / 100.0;
-        CHECK(fabs(muiEase(&linear, x) - x) < 1e-7, "the straight curve is the identity");
-        CHECK(fabs(muiEase(&inOut, x) + muiEase(&inOut, 1.0 - x) - 1.0) < 1e-6,
-              "ease-in-out is symmetric");
-    }
-}
-
-// A spring and one start, as the animation records hold them.
-typedef struct Spring
-{
-    muiSpringShape shape;
-    muiSpringStart start;
-} Spring;
-
-static Spring MakeSpring(double frequency, double ratio, double offset, double velocity)
-{
-    Spring spring = {muiMakeSpringShape(frequency, ratio), {0.0, 0.0}};
-    spring.start = muiStartSpring(&spring.shape, offset, velocity);
-    return spring;
-}
-
-static void SpringAt(const Spring* spring, double seconds, double* offset, double* velocity)
-{
-    muiSpringTime time = muiSpringTimeAt(&spring->shape, seconds);
-    muiSpringAt(&spring->shape, &time, spring->start, offset, velocity);
-}
-
-static void TestSpringsFollowTheirEquation(void)
-{
-    const double ratios[] = {0.2, 0.7, 1.0, 1.5, 0.999999, 1.000001};
-    for (int c = 0; c < 6; c++)
-    {
-        const double frequency = 2.0;
-        const double w0 = 6.28318530717958647692 * frequency;
-        Spring spring = MakeSpring(frequency, ratios[c], 40.0, -100.0);
-        double offset = 0.0;
-        double velocity = 0.0;
-        SpringAt(&spring, 0.0, &offset, &velocity);
-        CHECK(fabs(offset - 40.0) < 1e-9 && fabs(velocity + 100.0) < 1e-9, "starts as given");
-        for (int i = 1; i < 200; i++)
-        {
-            double t = (double)i * 0.01;
-            const double h = 1e-5;
-            double before = 0.0;
-            double after = 0.0;
-            double v = 0.0;
-            SpringAt(&spring, t - h, &before, &v);
-            SpringAt(&spring, t + h, &after, &v);
-            SpringAt(&spring, t, &offset, &velocity);
-            double slope = (after - before) / (2.0 * h);
-            double curvature = (after - 2.0 * offset + before) / (h * h);
-            CHECK(fabs(slope - velocity) < 1e-4 * fmax(1.0, fabs(velocity)),
-                  "the velocity is the offset's derivative");
-            double residual = curvature + 2.0 * ratios[c] * w0 * velocity + w0 * w0 * offset;
-            CHECK(fabs(residual) < 1e-2 * w0 * w0 * 40.0, "the equation of motion holds");
-        }
-        SpringAt(&spring, 10.0, &offset, &velocity);
-        CHECK(fabs(offset) < 1e-6 && fabs(velocity) < 1e-4, "comes to rest");
-    }
-    // Only an underdamped spring released at rest crosses its target.
-    Spring under = MakeSpring(1.0, 0.3, 1.0, 0.0);
-    Spring critical = MakeSpring(1.0, 1.0, 1.0, 0.0);
-    Spring over = MakeSpring(1.0, 2.0, 1.0, 0.0);
-    bool crossed = false;
-    bool others = false;
-    for (int i = 1; i < 500; i++)
-    {
-        double offset = 0.0;
-        double velocity = 0.0;
-        SpringAt(&under, (double)i * 0.01, &offset, &velocity);
-        crossed = crossed || offset < 0.0;
-        SpringAt(&critical, (double)i * 0.01, &offset, &velocity);
-        others = others || offset < 0.0;
-        SpringAt(&over, (double)i * 0.01, &offset, &velocity);
-        others = others || offset < 0.0;
-    }
-    CHECK(crossed && !others, "overshoot only when underdamped");
 }
 
 // How far muiCbrt is from the cube root in long double, in units in the
@@ -322,8 +185,6 @@ int main(void)
 {
     TestExpIsAccurate();
     TestSinCosAreAccurate();
-    TestCurvesMatchTheirDefinition();
-    TestSpringsFollowTheirEquation();
     TestLogPowCbrtAreAccurate();
     TestColorsThroughOklab();
     return s_failures == 0 ? 0 : 1;
