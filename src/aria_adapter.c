@@ -635,7 +635,7 @@ static void AriaAdapterEnable(muiAriaAdapter* adapter)
     Enable(adapter, false);
 }
 
-void muiAriaAdapter_Enable(muiAriaAdapter* adapter)
+static MUI_NOINLINE void AriaAdapterEnableWorker(muiAriaAdapter* adapter)
 {
     if (adapter == nullptr)
     {
@@ -648,6 +648,13 @@ void muiAriaAdapter_Enable(muiAriaAdapter* adapter)
     }
     AriaAdapterEnable(adapter);
     adapter->busy = false;
+}
+
+void muiAriaAdapter_Enable(muiAriaAdapter* adapter)
+{
+    uint64_t floatEnv = muiFloatEnvEnter();
+    AriaAdapterEnableWorker(adapter);
+    muiFloatEnvLeave(floatEnv);
 }
 
 void muiAriaEnablePressed(muiAriaAdapter* adapter)

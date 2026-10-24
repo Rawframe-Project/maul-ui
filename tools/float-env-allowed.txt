@@ -159,7 +159,6 @@ stored values and ids read, floats copied as they are:
 ids, flags, states, links, text and functions stored, no float checked:
     muiAccess_Disable
     muiAccess_Enable
-    muiAriaAdapter_Enable
     muiAtspiAdapter_SetPlace
     muiCountFontFaces
     muiFocus_Set
