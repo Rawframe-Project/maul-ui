@@ -5,6 +5,48 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.2.0](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.2.0) (2026-10-24)
+
+### Changed
+
+- Easing curves and springs come from Maul Tween, the family's
+  animation library, in place of Maul UI's own. Maul UI now fetches
+  Maul Tween 0.1.0 and links it. A timed transition with an easing
+  keyword or a cubic Bezier, and rarely a spring, can give a value one
+  float step from what 0.1.0 gave, toward the exact curve: about 1% of
+  values on a curve and about 3 in 100,000 on a spring. Linear
+  transitions, and the frame on which a spring comes to rest, are
+  unchanged.
+  ([#37](https://github.com/Rawframe-Project/maul-ui/pull/37))
+
+### Fixed
+
+- A host that runs its threads with flush-to-zero, denormals-are-zero
+  or another rounding mode now gets the same layout, drawing, hit
+  testing, accessibility and text results as every other host. Every
+  call that computes (public functions, and the calls platforms make
+  into the accessibility adapters) switches to the library's
+  floating-point setting and gives the thread's back on return.
+  Functions the host passes (measure, baseline, paint, access text,
+  events, the clipboard writer, the allocator and the adapters' action
+  functions) run in the host's own setting. Results in the default
+  setting do not change.
+  ([#42](https://github.com/Rawframe-Project/maul-ui/pull/42))
+- Ill-formed UTF-8 is shaped the way the rest of the text component
+  reads it: each maximal ill-formed subpart becomes one U+FFFD, so caret
+  moves and hit tests no longer land inside a character.
+  ([#28](https://github.com/Rawframe-Project/maul-ui/pull/28))
+- An edit whose bytes join the characters beside them no longer leaves
+  the caret inside the joined character, where the next keystroke split
+  it. A composition's caret at its end is checked too.
+  ([#29](https://github.com/Rawframe-Project/maul-ui/pull/29))
+- Undo after `muiTextBlock_EndComposition` no longer loses text: the
+  kept composition is recorded in the edit history.
+  ([#30](https://github.com/Rawframe-Project/maul-ui/pull/30))
+- The WebGPU quad shader embedded in the renderer matches its source
+  again.
+  ([#25](https://github.com/Rawframe-Project/maul-ui/pull/25))
+
 ## [0.1.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.0.1...v0.1.0) (2026-10-24)
 
 A release of fixes that change the API: a program built against 0.0.1
