@@ -150,18 +150,23 @@ def rhi_release(tree):
     """The tag a clean Maul RHI checkout is at, and why it cannot be used
     when it is not: an edit or an untracked file there changes what its
     tools write while the tag stays the same."""
+    # The clone is trusted by its path: it may belong to another user, as a
+    # tree mounted into a container does, and no system or global
+    # configuration is read to say safe.directory for it.
+    git = ["git", "-c", f"safe.directory={os.path.realpath(tree)}", "-C", tree]
     try:
-        status = subprocess.run(["git", "-C", tree, "status", "--porcelain",
-                                 "--untracked-files=all"], capture_output=True, text=True,
-                                env=git_environment())
+        status = subprocess.run(git + ["status", "--porcelain", "--untracked-files=all"],
+                                capture_output=True, text=True, env=git_environment())
     except OSError:
         return None, "git is not installed"
     if status.returncode != 0:
+        if "dubious ownership" in status.stderr:
+            return None, (f"{tree} belongs to another user, and git trusts such a checkout "
+                          "only at its top directory: name the clone's top directory")
         return None, f"{tree} is not a Git checkout"
     if status.stdout.strip():
         return None, f"{tree} has uncommitted changes or untracked files"
-    tag = output("git", "-C", tree, "describe", "--tags", "--exact-match",
-                 env=git_environment()).strip()
+    tag = output(*git, "describe", "--tags", "--exact-match", env=git_environment()).strip()
     return (tag, None) if tag else (None, f"{tree} is not at a tag")
 
 
