@@ -36,7 +36,7 @@ find_package(maul-ui REQUIRED CONFIG)
 target_link_libraries(app PRIVATE maul-ui::maul-ui)
 ```
 
-or through pkg-config as `maul-ui`. The text component, on by default, fetches FreeType, HarfBuzz and Maul Unicode at configure time and needs a C++ compiler for HarfBuzz; `-DMAUL_UI_TEXT=OFF` builds the core alone. To see it in a window, build the samples with `-DMAUL_UI_WINDOW=ON -DMAUL_UI_RHI=ON`. [Getting started](docs/user/getting-started.md) has the options and a first screen.
+or through pkg-config as `maul-ui`. The core fetches Maul Tween at configure time. The text component, on by default, fetches FreeType, HarfBuzz and Maul Unicode and needs a C++ compiler for HarfBuzz; `-DMAUL_UI_TEXT=OFF` builds the core alone. To see it in a window, build the samples with `-DMAUL_UI_WINDOW=ON -DMAUL_UI_RHI=ON`. [Getting started](docs/user/getting-started.md) has the options and a first screen.
 
 ## Platforms
 
@@ -58,7 +58,7 @@ CI builds and tests every platform: the desktops on their runners, iOS in the si
 - [How it works](docs/internals/overview.md) and [how to develop it](docs/operations/development.md).
 - [Changelog](CHANGELOG.md).
 
-Maul UI belongs to the Maul family of standalone C libraries, which share one set of conventions. It depends on [Maul Unicode](https://github.com/Rawframe-Project/maul-unicode) for text, and its optional parts on [Maul Window](https://github.com/Rawframe-Project/maul-window) and [Maul RHI](https://github.com/Rawframe-Project/maul-rhi).
+Maul UI belongs to the Maul family of standalone C libraries, which share one set of conventions. It depends on [Maul Tween](https://github.com/Rawframe-Project/maul-tween) for its curves and springs and on [Maul Unicode](https://github.com/Rawframe-Project/maul-unicode) for text, and its optional parts on [Maul Window](https://github.com/Rawframe-Project/maul-window) and [Maul RHI](https://github.com/Rawframe-Project/maul-rhi).
 
 ## Contributing
 

@@ -71,8 +71,9 @@ if(PROJECT_IS_TOP_LEVEL)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 endif()
 
-# The text component's dependencies come before the family modules
-# (cmake/TextDependencies.cmake says why).
+# Dependencies come before the family modules (cmake/Tween.cmake says
+# why): Maul Tween for the core, and the text component's.
+include(cmake/Tween.cmake)
 if(MAUL_UI_TEXT)
     include(cmake/TextDependencies.cmake)
 endif()
@@ -149,6 +150,11 @@ if(NOT WIN32 AND NOT APPLE)
     target_link_libraries(maul-ui PUBLIC m)
     set(MAUL_PKG_LIBS_PRIVATE "-lm")
 endif()
+# Maul Tween's objects, in the library as Maul Unicode's are, so it
+# installs as one archive.
+target_sources(maul-ui PRIVATE $<TARGET_OBJECTS:maul-tween>)
+target_include_directories(maul-ui SYSTEM PRIVATE
+    $<TARGET_PROPERTY:maul-tween,INTERFACE_INCLUDE_DIRECTORIES>)
 if(MAUL_UI_TEXT)
     include(cmake/Text.cmake)
 endif()
