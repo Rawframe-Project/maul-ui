@@ -20,7 +20,7 @@ Maul UI is a retained UI core. The host keeps its interface as a tree of nodes i
 - **Stale ids.** Ids outlive their objects by design: a host keeps node ids in its own structures, and records and notifications name nodes the host may destroy before it reads them. A stale id therefore counts no misuse; the call returns `mui_errorStale`, and a getter returns the zeroed value. Fonts, the PNG images of colour bitmap fonts with their zlib streams, and the AT-SPI calls of other programs are hostile bytes. Each has a fuzz target.
 - **Assertions.** `MUI_ASSERT` ([invariant.h](../../src/invariant.h)) checks internal invariants only. It traps in builds without `NDEBUG` (Debug, the sanitizers, fuzzing) and compiles out of Release, whose per-node loops must not pay for it.
 - **Dependencies.**
-  - The core needs the C library and libm.
+  - The core needs the C library and libm, and builds Maul Tween into the library.
   - The text component, on by default, builds FreeType, HarfBuzz and Maul Unicode into the library.
   - Each accessibility adapter uses its platform's accessibility API, and the Linux one opens libdbus-1 at run time.
   - The reference renderer needs Maul RHI, and the window glue needs Maul Window. Each is a library of its own beside the core (`rhi/`, `window/`), which the core and the text component never include.

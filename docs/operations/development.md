@@ -17,7 +17,7 @@ GCC 14 or Clang 20, CMake 3.25, Ninja, Python 3, the pinned `clang-format` and `
 docker run --rm -v "$PWD:/w" -w /w ghcr.io/rawframe-project/ci-cpp:<version> tools/check.sh pr
 ```
 
-GCC 13 and older are refused: the library is C23. The text component fetches FreeType, HarfBuzz and Maul Unicode at configure time; [Getting started](../user/getting-started.md#build-options) says how to build offline.
+GCC 13 and older are refused: the library is C23. The core fetches Maul Tween and the text component FreeType, HarfBuzz and Maul Unicode at configure time; [Getting started](../user/getting-started.md#build-options) says how to build offline.
 
 ## Building and running tests
 

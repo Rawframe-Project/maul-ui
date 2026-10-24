@@ -48,7 +48,7 @@ Run the `pr` and `full` tiers through the workspace's heavy-job wrapper on the s
 - **Public headers** are the common subset of C17 and C++17 and declare only the API; every public function has a `///` block with `@param`, `@return` and a thread safety paragraph from the list in `tools/check_docs.py`. No identifier names an engine concept (`tools/check_litmus.py`).
 - **Library version:** `MUI_VERSION_*` between the release-please markers in `include/maul-ui/base.h`; CMake reads it there and `MUI_ABI_VERSION` follows from it. Only release-please changes it. The root defs, the ones whose creation takes no other library object, carry the ABI version: the context, text service, access tree, AT-SPI application and the ARIA, Android, NSAccessibility, UI Automation and UIKit adapter defs. Their defaults are `static inline` in the headers, so they stamp the program's version.
 - **Web JavaScript** exists once, as `EM_JS` functions in `src/aria_page.c`; `tools/gen_web_glue.py` makes the wasm32-wasi imports from them. Every JavaScript function name starts with `muiAriaJs`.
-- **Dependencies:** FreeType and HarfBuzz are pinned by version and SHA-256, and Maul Unicode, Maul Window and Maul RHI by release tag, in `cmake/`. A new pin is a pull request of its own that names what changed.
+- **Dependencies:** FreeType and HarfBuzz are pinned by version and SHA-256, and Maul Tween, Maul Unicode, Maul Window and Maul RHI by release tag, in `cmake/`. A new pin is a pull request of its own that names what changed.
 - **Workflows:** every action is pinned by commit SHA with its version in a comment, every job declares the least `permissions` it needs, and no job installs packages the CI image could carry.
 
 ## Testing

@@ -47,7 +47,7 @@ The text component's dependencies are built into the library, so an installed li
 | `MAUL_UI_BUILD_SHARED` | off | A shared library instead of a static one. |
 | `MAUL_UI_TEXT_SYSTEM_LIBRARIES` | off | Links the installed FreeType and HarfBuzz instead of building the pinned releases. Results then depend on their versions. |
 
-The text component fetches FreeType, HarfBuzz and Maul Unicode at configure time, each checked by its hash or tag. To build offline, point `FETCHCONTENT_SOURCE_DIR_MAUL_UI_FREETYPE`, `FETCHCONTENT_SOURCE_DIR_MAUL_UI_HARFBUZZ` and `FETCHCONTENT_SOURCE_DIR_MAUL-UNICODE` at local copies of the same releases. `MAUL_UI_RHI` and `MAUL_UI_WINDOW` find Maul RHI and Maul Window installed, or fetch them at their release tags.
+The core fetches Maul Tween, and the text component FreeType, HarfBuzz and Maul Unicode, at configure time, each checked by its hash or tag. To build offline, point `FETCHCONTENT_SOURCE_DIR_MAUL-TWEEN`, `FETCHCONTENT_SOURCE_DIR_MAUL_UI_FREETYPE`, `FETCHCONTENT_SOURCE_DIR_MAUL_UI_HARFBUZZ` and `FETCHCONTENT_SOURCE_DIR_MAUL-UNICODE` at local copies of the same releases. `MAUL_UI_RHI` and `MAUL_UI_WINDOW` find Maul RHI and Maul Window installed, or fetch them at their release tags.
 
 ## The model
 

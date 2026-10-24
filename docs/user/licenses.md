@@ -4,6 +4,8 @@ Maul UI is under the MIT license ([LICENSE](../../LICENSE)).
 
 ## What a program ships
 
+The library always contains [Maul Tween](https://github.com/Rawframe-Project/maul-tween) 0.0.1, under the MIT license, fetched at its release tag ([Tween.cmake](../../cmake/Tween.cmake)).
+
 With the text component (`MAUL_UI_TEXT`, on by default), the library contains two outside libraries, built from their release archives, each checked by its SHA-256 at configure time ([TextDependencies.cmake](../../cmake/TextDependencies.cmake)). Neither is kept in this repository.
 
 | Library | Version | License |
