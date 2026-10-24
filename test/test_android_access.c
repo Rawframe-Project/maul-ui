@@ -108,6 +108,28 @@ static uint32_t Build(void)
     return count;
 }
 
+// The def carries the headers' version: another release's, or a zeroed
+// one, is refused before anything past it is read (the default has no
+// JNIEnv or view), the cookie first.
+JNIEXPORT jboolean JNICALL Java_maul_ui_tests_TestActivity_refusesOtherVersions(JNIEnv* env,
+                                                                                jclass type);
+JNIEXPORT jboolean JNICALL Java_maul_ui_tests_TestActivity_refusesOtherVersions(JNIEnv* env,
+                                                                                jclass type)
+{
+    (void)env;
+    (void)type;
+    muiAndroidAdapterDef def = muiDefaultAndroidAdapterDef();
+    muiAndroidAdapter* made = (void*)&def;
+    bool stamped = def.cookie == MUI_ANDROID_ADAPTER_DEF_COOKIE && def.version == MUI_ABI_VERSION;
+    def.version = MUI_ABI_VERSION + 1;
+    bool other = muiCreateAndroidAdapter(&def, &made) == mui_errorVersion && made == NULL;
+    def.version = 0;
+    bool zeroed = muiCreateAndroidAdapter(&def, &made) == mui_errorVersion;
+    def.cookie = 0;
+    bool cookieFirst = muiCreateAndroidAdapter(&def, &made) == mui_errorInvalid;
+    return stamped && other && zeroed && cookieFirst ? JNI_TRUE : JNI_FALSE;
+}
+
 JNIEXPORT jlong JNICALL Java_maul_ui_tests_TestActivity_make(JNIEnv* env, jclass type,
                                                              jobject host);
 JNIEXPORT jlong JNICALL Java_maul_ui_tests_TestActivity_make(JNIEnv* env, jclass type, jobject host)

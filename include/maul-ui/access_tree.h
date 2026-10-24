@@ -36,10 +36,15 @@ extern "C"
     typedef struct muiAccessTreeDef
     {
         uint32_t cookie;
+        uint32_t version;
         muiAllocator allocator;
         // The most nodes it holds at once, at least 1.
         uint32_t nodes;
     } muiAccessTreeDef;
+
+// The cookie of an access tree def, which muiDefaultAccessTreeDef sets and
+// muiCreateAccessTree checks.
+#define MUI_ACCESS_TREE_DEF_COOKIE 0x6D756174u
 
     // What applying an update changed, reported once the tree holds all
     // of it: nodes added, in the update's order; nodes updated, with
@@ -64,18 +69,34 @@ extern "C"
     /// The default def: the C library's allocation, 4096 nodes, as many as
     /// a default context's.
     ///
+    /// Built in the program from the headers it includes, so it carries
+    /// their version (MUI_ABI_VERSION), which muiCreateAccessTree checks.
+    ///
     /// @return The def.
     /// @par Thread safety
     /// Safe from any thread.
-    MUI_API muiAccessTreeDef muiDefaultAccessTreeDef(void);
+    static inline muiAccessTreeDef muiDefaultAccessTreeDef(void)
+    {
+#ifdef __cplusplus
+        muiAccessTreeDef def = {};
+#else
+    muiAccessTreeDef def = {0};
+#endif
+        def.cookie = MUI_ACCESS_TREE_DEF_COOKIE;
+        def.version = MUI_ABI_VERSION;
+        def.nodes = 4096;
+        return def;
+    }
 
     /// Creates an empty tree.
     ///
     /// @param def      The def, from muiDefaultAccessTreeDef.
     /// @param treeOut  Receives the tree; NULL on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
-    ///         def not from muiDefaultAccessTreeDef, a half-set allocator
-    ///         or no nodes; `mui_errorCapacity` when memory runs out.
+    /// @return `mui_success`; `mui_errorVersion` for a def built against
+    ///         headers of another binary interface (MUI_ABI_VERSION), before
+    ///         the rest of the def is read; `mui_errorInvalid` for a NULL
+    ///         argument, a def not from muiDefaultAccessTreeDef, a half-set
+    ///         allocator or no nodes; `mui_errorCapacity` when memory runs out.
     /// @par Thread safety
     /// Safe from any thread.
     MUI_NODISCARD MUI_API muiResult muiCreateAccessTree(const muiAccessTreeDef* def,

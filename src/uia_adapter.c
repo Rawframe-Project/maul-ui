@@ -11,13 +11,6 @@
 #include <stdalign.h>
 #include <string.h>
 
-#define UIA_DEF_COOKIE 0x6D756175u // "muau"
-
-muiUiaAdapterDef muiDefaultUiaAdapterDef(void)
-{
-    return (muiUiaAdapterDef){.cookie = UIA_DEF_COOKIE, .nodes = 4096, .scale = 1.0f};
-}
-
 // Loads what the adapter calls of uiautomationcore.dll.
 static bool Load(muiUiaFunctions* uia)
 {
@@ -61,9 +54,9 @@ static bool IsApartmentThreaded(void)
 
 static bool IsValid(const muiUiaAdapterDef* def)
 {
-    return def->cookie == UIA_DEF_COOKIE && muiIsAllocatorValid(&def->allocator) &&
-           def->nodes != 0 && def->nodes <= ((uint32_t)1 << 24) && def->window != nullptr &&
-           def->action != nullptr && def->scale > 0.0f;
+    return muiIsAllocatorValid(&def->allocator) && def->nodes != 0 &&
+           def->nodes <= ((uint32_t)1 << 24) && def->window != nullptr && def->action != nullptr &&
+           def->scale > 0.0f;
 }
 
 // The adapter's block: the adapter, the map's keys and values, and the
@@ -88,7 +81,17 @@ muiResult muiCreateUiaAdapter(const muiUiaAdapterDef* def, muiUiaAdapter** adapt
     {
         *adapterOut = nullptr;
     }
-    if (def == nullptr || adapterOut == nullptr || !IsValid(def))
+    if (def == nullptr || adapterOut == nullptr || def->cookie != MUI_UIA_ADAPTER_DEF_COOKIE)
+    {
+        return mui_errorInvalid;
+    }
+    // Another version's def may be of another layout: nothing past the
+    // version is read.
+    if (def->version != MUI_ABI_VERSION)
+    {
+        return mui_errorVersion;
+    }
+    if (!IsValid(def))
     {
         return mui_errorInvalid;
     }

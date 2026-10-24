@@ -13,8 +13,6 @@
 
 #include <stdalign.h>
 
-#define DEF_COOKIE 0x6D756E73u // "muns"
-
 static void Post(id element, NSAccessibilityNotificationName name, NSDictionary* info)
 {
     if (info != nil)
@@ -27,14 +25,9 @@ static void Post(id element, NSAccessibilityNotificationName name, NSDictionary*
     }
 }
 
-muiNsAdapterDef muiDefaultNsAdapterDef(void)
-{
-    return (muiNsAdapterDef){.cookie = DEF_COOKIE, .nodes = 4096, .scale = 1.0f};
-}
-
 static bool IsValid(const muiNsAdapterDef* def)
 {
-    return def->cookie == DEF_COOKIE && muiIsAllocatorValid(&def->allocator) && def->nodes != 0 &&
+    return muiIsAllocatorValid(&def->allocator) && def->nodes != 0 &&
            def->nodes <= ((uint32_t)1 << 24) && def->view != nullptr && def->action != nullptr &&
            def->scale > 0.0f;
 }
@@ -63,7 +56,17 @@ muiResult muiCreateNsAdapter(const muiNsAdapterDef* def, muiNsAdapter** adapterO
     {
         *adapterOut = nullptr;
     }
-    if (def == nullptr || adapterOut == nullptr || !IsValid(def))
+    if (def == nullptr || adapterOut == nullptr || def->cookie != MUI_NS_ADAPTER_DEF_COOKIE)
+    {
+        return mui_errorInvalid;
+    }
+    // Another version's def may be of another layout: nothing past the
+    // version is read.
+    if (def->version != MUI_ABI_VERSION)
+    {
+        return mui_errorVersion;
+    }
+    if (!IsValid(def))
     {
         return mui_errorInvalid;
     }

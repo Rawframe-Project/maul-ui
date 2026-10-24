@@ -15,15 +15,8 @@
 #include <stdalign.h>
 #include <string.h>
 
-#define TREE_DEF_COOKIE 0x6D756174u // "muat"
-
 // Slots fit 32 bits with room for the index's doubling.
 #define MAX_NODES ((uint32_t)1 << 24)
-
-muiAccessTreeDef muiDefaultAccessTreeDef(void)
-{
-    return (muiAccessTreeDef){.cookie = TREE_DEF_COOKIE, .nodes = 4096};
-}
 
 // Where each part of a tree's block starts.
 typedef struct Parts
@@ -72,8 +65,17 @@ muiResult muiCreateAccessTree(const muiAccessTreeDef* def, muiAccessTree** treeO
     {
         *treeOut = nullptr;
     }
-    if (def == nullptr || treeOut == nullptr || def->cookie != TREE_DEF_COOKIE ||
-        !muiIsAllocatorValid(&def->allocator) || def->nodes == 0 || def->nodes > MAX_NODES)
+    if (def == nullptr || treeOut == nullptr || def->cookie != MUI_ACCESS_TREE_DEF_COOKIE)
+    {
+        return mui_errorInvalid;
+    }
+    // Another version's def may be of another layout: nothing past the
+    // version is read.
+    if (def->version != MUI_ABI_VERSION)
+    {
+        return mui_errorVersion;
+    }
+    if (!muiIsAllocatorValid(&def->allocator) || def->nodes == 0 || def->nodes > MAX_NODES)
     {
         return mui_errorInvalid;
     }

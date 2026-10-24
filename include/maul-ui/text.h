@@ -84,9 +84,11 @@ extern "C"
     ///                    functions or neither, a font limit from 1 to
     ///                    65,536 and a family limit up to 65,536.
     /// @param serviceOut  Receives the service; set to NULL on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
-    ///         cookie, a half-set allocator or a limit out of range;
-    ///         `mui_errorCapacity` when memory runs out.
+    /// @return `mui_success`; `mui_errorVersion` for a def built against
+    ///         headers of another binary interface (MUI_ABI_VERSION), before
+    ///         the rest of the def is read; `mui_errorInvalid` for a NULL
+    ///         argument, a bad cookie, a half-set allocator or a limit out of
+    ///         range; `mui_errorCapacity` when memory runs out.
     /// @par Thread safety
     /// Safe from any thread.
     MUI_NODISCARD MUI_API muiResult muiCreateTextService(const muiTextServiceDef* def,

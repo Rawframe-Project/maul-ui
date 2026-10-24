@@ -13,7 +13,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define APP_DEF_COOKIE     0x6D756170u // "muap"
 #define ADAPTER_DEF_COOKIE 0x6D756177u // "muaw"
 
 // How long making the application waits for the session bus to give the
@@ -25,11 +24,6 @@
 
 // Room for the accessibility bus's address.
 #define ADDRESS_SIZE 1024
-
-muiAtspiAppDef muiDefaultAtspiAppDef(void)
-{
-    return (muiAtspiAppDef){.cookie = APP_DEF_COOKIE, .windows = 16};
-}
 
 muiAtspiAdapterDef muiDefaultAtspiAdapterDef(void)
 {
@@ -153,8 +147,8 @@ static void TakeEmbedding(muiAtspiApp* app)
 
 static bool IsValidApp(const muiAtspiAppDef* def)
 {
-    return def->cookie == APP_DEF_COOKIE && muiIsAllocatorValid(&def->allocator) &&
-           def->name != nullptr && def->windows != 0 && def->windows <= 4096;
+    return muiIsAllocatorValid(&def->allocator) && def->name != nullptr && def->windows != 0 &&
+           def->windows <= 4096;
 }
 
 // Joins the bus and serves the root; false when it cannot.
@@ -187,7 +181,17 @@ muiResult muiCreateAtspiApp(const muiAtspiAppDef* def, muiAtspiApp** appOut)
     {
         *appOut = nullptr;
     }
-    if (def == nullptr || appOut == nullptr || !IsValidApp(def))
+    if (def == nullptr || appOut == nullptr || def->cookie != MUI_ATSPI_APP_DEF_COOKIE)
+    {
+        return mui_errorInvalid;
+    }
+    // Another version's def may be of another layout: nothing past the
+    // version is read.
+    if (def->version != MUI_ABI_VERSION)
+    {
+        return mui_errorVersion;
+    }
+    if (!IsValidApp(def))
     {
         return mui_errorInvalid;
     }

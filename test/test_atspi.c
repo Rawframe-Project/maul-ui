@@ -1835,6 +1835,24 @@ static void TestStateSets(void)
     CHECK(Bit(words, 18), "multiselectable");
 }
 
+// The def carries the headers' version: another release's, or a zeroed
+// one, is refused before anything past it is read (the default has no name), the
+// cookie first.
+static void TestVersion(void)
+{
+    muiAtspiAppDef def = muiDefaultAtspiAppDef();
+    muiAtspiApp* made = (void*)&def;
+    CHECK(def.cookie == MUI_ATSPI_APP_DEF_COOKIE && def.version == MUI_ABI_VERSION,
+          "stamped with the headers' version");
+    def.version = MUI_ABI_VERSION + 1;
+    CHECK(muiCreateAtspiApp(&def, &made) == mui_errorVersion && made == NULL,
+          "another release refused");
+    def.version = 0;
+    CHECK(muiCreateAtspiApp(&def, &made) == mui_errorVersion, "a zeroed version refused");
+    def.cookie = 0;
+    CHECK(muiCreateAtspiApp(&def, &made) == mui_errorInvalid, "the cookie checked first");
+}
+
 static void TestContract(void)
 {
     muiAtspiAppDef def = muiDefaultAtspiAppDef();
@@ -2068,6 +2086,7 @@ int main(void)
     CHECK(
         EventsAre("ChildrenChanged add 0 root w1n1; Activate  0 w1n1; StateChanged focused 1 w1n2"),
         "a window's root added to the application's and active, its nodes not told; the focus");
+    TestVersion();
     TestContract();
     TestStateSets();
     TestRoot();

@@ -43,6 +43,7 @@ extern "C"
     typedef struct muiUikitAdapterDef
     {
         uint32_t cookie;
+        uint32_t version;
         muiAllocator allocator;
         // The most nodes its tree holds, at least 1.
         uint32_t nodes;
@@ -55,22 +56,43 @@ extern "C"
         void* user;
     } muiUikitAdapterDef;
 
+// The cookie of a UIKit adapter def, which muiDefaultUikitAdapterDef sets and
+// muiCreateUikitAdapter checks.
+#define MUI_UIKIT_ADAPTER_DEF_COOKIE 0x6D75756Bu
+
     /// The default def: the C library's allocation, 4096 nodes, no view,
     /// a scale of 1, no action function.
+    ///
+    /// Built in the program from the headers it includes, so it carries
+    /// their version (MUI_ABI_VERSION), which muiCreateUikitAdapter checks.
     ///
     /// @return The def.
     /// @par Thread safety
     /// Safe from any thread.
-    MUI_API muiUikitAdapterDef muiDefaultUikitAdapterDef(void);
+    static inline muiUikitAdapterDef muiDefaultUikitAdapterDef(void)
+    {
+#ifdef __cplusplus
+        muiUikitAdapterDef def = {};
+#else
+    muiUikitAdapterDef def = {0};
+#endif
+        def.cookie = MUI_UIKIT_ADAPTER_DEF_COOKIE;
+        def.version = MUI_ABI_VERSION;
+        def.nodes = 4096;
+        def.scale = 1.0f;
+        return def;
+    }
 
     /// Makes an adapter with an empty tree.
     ///
     /// @param def         The def, from muiDefaultUikitAdapterDef.
     /// @param adapterOut  Receives the adapter; NULL on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
-    ///         def not from muiDefaultUikitAdapterDef, a half-set allocator,
-    ///         no nodes, no view, no action function or a scale not above
-    ///         0; `mui_errorCapacity` when memory runs out.
+    /// @return `mui_success`; `mui_errorVersion` for a def built against
+    ///         headers of another binary interface (MUI_ABI_VERSION), before
+    ///         the rest of the def is read; `mui_errorInvalid` for a NULL
+    ///         argument, a def not from muiDefaultUikitAdapterDef, a half-set
+    ///         allocator, no nodes, no view, no action function or a scale not
+    ///         above 0; `mui_errorCapacity` when memory runs out.
     /// @par Thread safety
     /// Main thread only.
     MUI_NODISCARD MUI_API muiResult muiCreateUikitAdapter(const muiUikitAdapterDef* def,

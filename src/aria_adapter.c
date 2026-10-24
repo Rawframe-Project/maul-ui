@@ -16,20 +16,9 @@
 #include <stdalign.h>
 #include <string.h>
 
-#define DEF_COOKIE 0x6D756172u // "muar"
-
-muiAriaAdapterDef muiDefaultAriaAdapterDef(void)
-{
-    return (muiAriaAdapterDef){.cookie = DEF_COOKIE,
-                               .nodes = 4096,
-                               .scale = 1.0f,
-                               .deferred = true,
-                               .enableLabel = "Enable accessibility"};
-}
-
 static bool IsValid(const muiAriaAdapterDef* def)
 {
-    return def->cookie == DEF_COOKIE && muiIsAllocatorValid(&def->allocator) && def->nodes != 0 &&
+    return muiIsAllocatorValid(&def->allocator) && def->nodes != 0 &&
            def->nodes <= ((uint32_t)1 << 24) && def->host != nullptr &&
            def->enableLabel != nullptr && def->action != nullptr && def->scale > 0.0f;
 }
@@ -81,7 +70,17 @@ muiResult muiCreateAriaAdapter(const muiAriaAdapterDef* def, muiAriaAdapter** ad
     {
         *adapterOut = nullptr;
     }
-    if (def == nullptr || adapterOut == nullptr || !IsValid(def))
+    if (def == nullptr || adapterOut == nullptr || def->cookie != MUI_ARIA_ADAPTER_DEF_COOKIE)
+    {
+        return mui_errorInvalid;
+    }
+    // Another version's def may be of another layout: nothing past the
+    // version is read.
+    if (def->version != MUI_ABI_VERSION)
+    {
+        return mui_errorVersion;
+    }
+    if (!IsValid(def))
     {
         return mui_errorInvalid;
     }

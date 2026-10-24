@@ -15,17 +15,11 @@
 #include <stdalign.h>
 #include <string.h>
 
-#define DEF_COOKIE 0x6D75616Eu // "muan"
-#define PROVIDER   "maul.ui.AccessProvider"
-
-muiAndroidAdapterDef muiDefaultAndroidAdapterDef(void)
-{
-    return (muiAndroidAdapterDef){.cookie = DEF_COOKIE, .nodes = 4096, .scale = 1.0f};
-}
+#define PROVIDER "maul.ui.AccessProvider"
 
 static bool IsValid(const muiAndroidAdapterDef* def)
 {
-    return def->cookie == DEF_COOKIE && muiIsAllocatorValid(&def->allocator) && def->nodes != 0 &&
+    return muiIsAllocatorValid(&def->allocator) && def->nodes != 0 &&
            def->nodes <= ((uint32_t)1 << 24) && def->env != nullptr && def->view != nullptr &&
            def->action != nullptr && def->scale > 0.0f;
 }
@@ -177,7 +171,17 @@ muiResult muiCreateAndroidAdapter(const muiAndroidAdapterDef* def, muiAndroidAda
     {
         *adapterOut = nullptr;
     }
-    if (def == nullptr || adapterOut == nullptr || !IsValid(def))
+    if (def == nullptr || adapterOut == nullptr || def->cookie != MUI_ANDROID_ADAPTER_DEF_COOKIE)
+    {
+        return mui_errorInvalid;
+    }
+    // Another version's def may be of another layout: nothing past the
+    // version is read.
+    if (def->version != MUI_ABI_VERSION)
+    {
+        return mui_errorVersion;
+    }
+    if (!IsValid(def))
     {
         return mui_errorInvalid;
     }

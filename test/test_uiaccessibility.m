@@ -622,6 +622,24 @@ static void TestText(muiUikitAdapter* adapter, id root, const Built* built)
     adapter->post = saved;
 }
 
+// The def carries the headers' version: another release's, or a zeroed
+// one, is refused before anything past it is read (the default has no view), the
+// cookie first.
+static void TestVersion(void)
+{
+    muiUikitAdapterDef def = muiDefaultUikitAdapterDef();
+    muiUikitAdapter* made = (void*)&def;
+    CHECK(def.cookie == MUI_UIKIT_ADAPTER_DEF_COOKIE && def.version == MUI_ABI_VERSION,
+          "stamped with the headers' version");
+    def.version = MUI_ABI_VERSION + 1;
+    CHECK(muiCreateUikitAdapter(&def, &made) == mui_errorVersion && made == NULL,
+          "another release refused");
+    def.version = 0;
+    CHECK(muiCreateUikitAdapter(&def, &made) == mui_errorVersion, "a zeroed version refused");
+    def.cookie = 0;
+    CHECK(muiCreateUikitAdapter(&def, &made) == mui_errorInvalid, "the cookie checked first");
+}
+
 static void TestContract(UIView* view)
 {
     muiUikitAdapterDef def = muiDefaultUikitAdapterDef();
@@ -650,6 +668,7 @@ static void TestContract(UIView* view)
 
 static void RunTests(UIView* view)
 {
+    TestVersion();
     TestContract(view);
     muiUikitAdapterDef def = muiDefaultUikitAdapterDef();
     def.view = (void*)view;
