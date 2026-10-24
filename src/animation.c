@@ -102,7 +102,9 @@ static double TimedProgress(const muiAnimation* animation, double elapsed)
     }
     const muiTransitionSpec* spec = &animation->spec;
     double x = elapsed / animation->seconds;
-    return mtwnEase(&spec->easing, x, false);
+    // Every timed easing is linear or a cubic Bezier: sampled so, Maul
+    // Tween's other curves stay out of the program.
+    return mtwnEaseCubicBezier(&spec->easing, x);
 }
 
 // A record's channels and velocity at nowNs; whether it has arrived.

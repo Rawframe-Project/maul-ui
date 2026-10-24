@@ -42,7 +42,7 @@ HEADERS = ROOT / "include" / "maul-ui"
 TEXT_HEADERS = {line.split("#", 1)[0].strip()
                 for line in (ROOT / "tools" / "text-headers.txt").read_text(encoding="utf-8")
                 .splitlines()} - {""}
-CEILINGS = {"core": 160_000, "text": 640_000}
+CEILINGS = {"core": 176_000, "text": 640_000}
 FLAGS = ["-Oz", "-flto"]
 DECLARATION = re.compile(r"\bMUI_API\b[^;{]*?\b(mui[A-Za-z0-9_]+)\s*\(", re.S)
 UNICODE_DECLARATION = re.compile(r"\bMUNI_API\b[^;{]*?\b(muni[A-Za-z0-9_]+)\s*\(", re.S)

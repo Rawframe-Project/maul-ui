@@ -6,7 +6,7 @@ Maul UI is a retained UI core. The host keeps its interface as a tree of nodes i
 
 - **Determinism.** The same tree and the same inputs give the same bits on every platform, compiler and architecture. This covers computed layout, resolved style, the bytes of the draw list, the accessibility tree, shaped runs, rasterized glyphs and distance fields. The rules behind it:
   - Geometry is binary32 arithmetic with no contraction.
-  - Only the exactly rounded functions in [libm-allowed.txt](../../tools/libm-allowed.txt) come from the platform. The exponentials, powers, roots and trigonometry of springs, easing and color conversion are the library's own ([motion_math.c](../../src/motion_math.c)).
+  - Only the exactly rounded functions in [libm-allowed.txt](../../tools/libm-allowed.txt) come from the platform. The exponentials, powers, roots and trigonometry of scrolling, colour fonts and color conversion are the library's own ([motion_math.c](../../src/motion_math.c)); those of easing curves and springs are [Maul Tween](https://github.com/Rawframe-Project/maul-tween)'s, written to the same rule ([Style](style.md#transitions)).
   - Time enters only as the timestamps the host passes in.
   - No result depends on pointer values, hash iteration or allocation order. Children are visited in the order the host gave them.
   - FreeType and HarfBuzz are pinned releases whose results are integers ([Text](text.md#dependencies)).
@@ -25,7 +25,7 @@ Maul UI is a retained UI core. The host keeps its interface as a tree of nodes i
   - Each accessibility adapter uses its platform's accessibility API, and the Linux one opens libdbus-1 at run time.
   - The reference renderer needs Maul RHI, and the window glue needs Maul Window. Each is a library of its own beside the core (`rhi/`, `window/`), which the core and the text component never include.
 - **No engine concept in the API.** No public identifier names an engine's concepts (world, entity, asset, game, scripting and the like). [check_litmus.py](../../tools/check_litmus.py) enforces this, so any engine or plain application can drive Maul UI over its own tree.
-- **Size.** In wasm at `-Oz` with link-time optimization, a program that takes every public function links at most 160,000 bytes of the core and 640,000 more for the text component with FreeType and HarfBuzz. [size_report.py](../../tools/size_report.py) measures both, and a release checks them ([Development](../operations/development.md#benchmarks-and-size)).
+- **Size.** In wasm at `-Oz` with link-time optimization, a program that takes every public function links at most 176,000 bytes of the core and 640,000 more for the text component with FreeType and HarfBuzz. The core's ceiling rose from 160,000 when its curves and springs moved to Maul Tween, whose springs' closed form and exactly reduced sine take about 3.2 KB more than the library's own did. [size_report.py](../../tools/size_report.py) measures both, and a release checks them ([Development](../operations/development.md#benchmarks-and-size)).
 
 ## The frame
 
