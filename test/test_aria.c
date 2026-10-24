@@ -636,6 +636,24 @@ static void TestFields(void)
     muiDestroyAriaAdapter(adapter);
 }
 
+// The def carries the headers' version: another release's, or a zeroed
+// one, is refused before anything past it is read (the default has no host), the
+// cookie first.
+static void TestVersion(void)
+{
+    muiAriaAdapterDef def = muiDefaultAriaAdapterDef();
+    muiAriaAdapter* made = (void*)&def;
+    CHECK(def.cookie == MUI_ARIA_ADAPTER_DEF_COOKIE && def.version == MUI_ABI_VERSION,
+          "stamped with the headers' version");
+    def.version = MUI_ABI_VERSION + 1;
+    CHECK(muiCreateAriaAdapter(&def, &made) == mui_errorVersion && made == NULL,
+          "another release refused");
+    def.version = 0;
+    CHECK(muiCreateAriaAdapter(&def, &made) == mui_errorVersion, "a zeroed version refused");
+    def.cookie = 0;
+    CHECK(muiCreateAriaAdapter(&def, &made) == mui_errorInvalid, "the cookie checked first");
+}
+
 static void TestContract(void)
 {
     muiAriaAdapterDef def = muiDefaultAriaAdapterDef();
@@ -665,6 +683,7 @@ int main(void)
         return 0;
     }
     MakeHost();
+    TestVersion();
     TestContract();
     muiAriaAdapterDef def = muiDefaultAriaAdapterDef();
     def.host = "#host";

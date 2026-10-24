@@ -3,7 +3,7 @@
 - **Host:** the program or engine that drives the library: it owns the window, the input, the renderer and whatever content the library does not draw.
 - **Context:** the owner object a host creates first (`muiCreateContext`), which owns the tree and everything the frame computes, in one block reserved at creation.
 - **Text service:** the text component's owner object (`muiCreateTextService`), separate from any context, holding fonts, families, text blocks and atlases.
-- **Def:** a struct that describes an object to create, built by its `muiDefault...Def` function and checked by its cookie. The context def and the text service def are the root defs and also carry the ABI version.
+- **Def:** a struct that describes an object to create, built by its `muiDefault...Def` function and checked by its cookie. A root def, whose creation takes no other library object, also carries the ABI version, stamped by a `static inline` default in the program: the context, text service, access tree, AT-SPI application and the ARIA, Android, NSAccessibility, UI Automation and UIKit adapter defs.
 - **Limit:** a named count in a def that fixes how much the object reserves at creation. Reaching one refuses with `mui_errorCapacity`.
 - **Node:** an element of the tree, named by an id. Every node is a flex container.
 - **Root:** a node without a parent. Each root is laid out, drawn and made accessible on its own.

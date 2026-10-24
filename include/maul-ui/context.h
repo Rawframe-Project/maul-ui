@@ -161,9 +161,11 @@ extern "C"
     ///                    functions or neither, a node limit from 1 to
     ///                    2^31 - 1 and other limits from 0 to 2^31 - 1.
     /// @param contextOut  Receives the context; set to NULL on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
-    ///         cookie, a half-set allocator or a limit out of range;
-    ///         `mui_errorCapacity` when the allocator cannot give the
+    /// @return `mui_success`; `mui_errorVersion` for a def built against
+    ///         headers of another binary interface (MUI_ABI_VERSION), before
+    ///         the rest of the def is read; `mui_errorInvalid` for a NULL
+    ///         argument, a bad cookie, a half-set allocator or a limit out of
+    ///         range; `mui_errorCapacity` when the allocator cannot give the
     ///         memory.
     /// @par Thread safety
     /// Safe from any thread.

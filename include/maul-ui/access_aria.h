@@ -46,6 +46,7 @@ extern "C"
     typedef struct muiAriaAdapterDef
     {
         uint32_t cookie;
+        uint32_t version;
         muiAllocator allocator;
         // The most nodes its tree holds, at least 1.
         uint32_t nodes;
@@ -65,26 +66,49 @@ extern "C"
         void* user;
     } muiAriaAdapterDef;
 
+// The cookie of an ARIA adapter def, which muiDefaultAriaAdapterDef sets and
+// muiCreateAriaAdapter checks.
+#define MUI_ARIA_ADAPTER_DEF_COOKIE 0x6D756172u
+
     /// The default def: the C library's allocation, 4096 nodes, no host,
     /// a scale of 1, building deferred behind a button labelled "Enable
     /// accessibility", no action function.
     ///
+    /// Built in the program from the headers it includes, so it carries
+    /// their version (MUI_ABI_VERSION), which muiCreateAriaAdapter checks.
+    ///
     /// @return The def.
     /// @par Thread safety
     /// Safe from any thread.
-    MUI_API muiAriaAdapterDef muiDefaultAriaAdapterDef(void);
+    static inline muiAriaAdapterDef muiDefaultAriaAdapterDef(void)
+    {
+#ifdef __cplusplus
+        muiAriaAdapterDef def = {};
+#else
+    muiAriaAdapterDef def = {0};
+#endif
+        def.cookie = MUI_ARIA_ADAPTER_DEF_COOKIE;
+        def.version = MUI_ABI_VERSION;
+        def.nodes = 4096;
+        def.scale = 1.0f;
+        def.deferred = true;
+        def.enableLabel = "Enable accessibility";
+        return def;
+    }
 
     /// Makes an adapter with an empty tree in the host element, with the
     /// enabling button when building is deferred.
     ///
     /// @param def         The def, from muiDefaultAriaAdapterDef.
     /// @param adapterOut  Receives the adapter; NULL on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
-    ///         def not from muiDefaultAriaAdapterDef, a half-set
-    ///         allocator, no nodes, no host, no label, no action function
-    ///         or a scale not above 0; `mui_errorPlatform` when no element
-    ///         matches the host, or there is no page; `mui_errorCapacity`
-    ///         when memory runs out.
+    /// @return `mui_success`; `mui_errorVersion` for a def built against
+    ///         headers of another binary interface (MUI_ABI_VERSION), before
+    ///         the rest of the def is read; `mui_errorInvalid` for a NULL
+    ///         argument, a def not from muiDefaultAriaAdapterDef, a half-set
+    ///         allocator, no nodes, no host, no label, no action function or a
+    ///         scale not above 0; `mui_errorPlatform` when no element matches
+    ///         the host, or there is no page; `mui_errorCapacity` when memory
+    ///         runs out.
     /// @par Thread safety
     /// Main thread only.
     MUI_NODISCARD MUI_API muiResult muiCreateAriaAdapter(const muiAriaAdapterDef* def,

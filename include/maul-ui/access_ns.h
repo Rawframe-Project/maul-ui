@@ -42,6 +42,7 @@ extern "C"
     typedef struct muiNsAdapterDef
     {
         uint32_t cookie;
+        uint32_t version;
         muiAllocator allocator;
         // The most nodes its tree holds, at least 1.
         uint32_t nodes;
@@ -54,22 +55,43 @@ extern "C"
         void* user;
     } muiNsAdapterDef;
 
+// The cookie of an NSAccessibility adapter def, which muiDefaultNsAdapterDef sets and
+// muiCreateNsAdapter checks.
+#define MUI_NS_ADAPTER_DEF_COOKIE 0x6D756E73u
+
     /// The default def: the C library's allocation, 4096 nodes, no view,
     /// a scale of 1, no action function.
+    ///
+    /// Built in the program from the headers it includes, so it carries
+    /// their version (MUI_ABI_VERSION), which muiCreateNsAdapter checks.
     ///
     /// @return The def.
     /// @par Thread safety
     /// Safe from any thread.
-    MUI_API muiNsAdapterDef muiDefaultNsAdapterDef(void);
+    static inline muiNsAdapterDef muiDefaultNsAdapterDef(void)
+    {
+#ifdef __cplusplus
+        muiNsAdapterDef def = {};
+#else
+    muiNsAdapterDef def = {0};
+#endif
+        def.cookie = MUI_NS_ADAPTER_DEF_COOKIE;
+        def.version = MUI_ABI_VERSION;
+        def.nodes = 4096;
+        def.scale = 1.0f;
+        return def;
+    }
 
     /// Makes an adapter with an empty tree.
     ///
     /// @param def         The def, from muiDefaultNsAdapterDef.
     /// @param adapterOut  Receives the adapter; NULL on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
-    ///         def not from muiDefaultNsAdapterDef, a half-set allocator,
-    ///         no nodes, no view, no action function or a scale not above
-    ///         0; `mui_errorCapacity` when memory runs out.
+    /// @return `mui_success`; `mui_errorVersion` for a def built against
+    ///         headers of another binary interface (MUI_ABI_VERSION), before
+    ///         the rest of the def is read; `mui_errorInvalid` for a NULL
+    ///         argument, a def not from muiDefaultNsAdapterDef, a half-set
+    ///         allocator, no nodes, no view, no action function or a scale not
+    ///         above 0; `mui_errorCapacity` when memory runs out.
     /// @par Thread safety
     /// Main thread only.
     MUI_NODISCARD MUI_API muiResult muiCreateNsAdapter(const muiNsAdapterDef* def,

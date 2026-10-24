@@ -1081,6 +1081,25 @@ static void TestCallingBack(void)
     CHECK(calling.runs == 2 && calling.applied == mui_errorState, "and from a free while it goes");
 }
 
+// The def carries the headers' version: another release's, or a zeroed
+// one, is refused before anything past it is read (here no nodes), the
+// cookie first.
+static void TestVersion(void)
+{
+    muiAccessTreeDef def = muiDefaultAccessTreeDef();
+    muiAccessTree* made = (void*)&def;
+    CHECK(def.cookie == MUI_ACCESS_TREE_DEF_COOKIE && def.version == MUI_ABI_VERSION,
+          "stamped with the headers' version");
+    def.nodes = 0;
+    def.version = MUI_ABI_VERSION + 1;
+    CHECK(muiCreateAccessTree(&def, &made) == mui_errorVersion && made == NULL,
+          "another release refused");
+    def.version = 0;
+    CHECK(muiCreateAccessTree(&def, &made) == mui_errorVersion, "a zeroed version refused");
+    def.cookie = 0;
+    CHECK(muiCreateAccessTree(&def, &made) == mui_errorInvalid, "the cookie checked first");
+}
+
 static void TestContract(void)
 {
     muiAccessTreeDef def = muiDefaultAccessTreeDef();
@@ -1221,6 +1240,7 @@ int main(void)
     TestTurnedBounds();
     TestMemory();
     TestCallingBack();
+    TestVersion();
     TestContract();
     TestFullTreeUpdated();
     return s_failures == 0 ? 0 : 1;

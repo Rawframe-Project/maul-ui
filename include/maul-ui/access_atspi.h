@@ -48,12 +48,17 @@ extern "C"
     typedef struct muiAtspiAppDef
     {
         uint32_t cookie;
+        uint32_t version;
         muiAllocator allocator;
         // The application's name, UTF-8, NUL-terminated; copied.
         const char* name;
         // The most windows it has at once, at least 1.
         uint32_t windows;
     } muiAtspiAppDef;
+
+// The cookie of an AT-SPI application def, which muiDefaultAtspiAppDef sets and
+// muiCreateAtspiApp checks.
+#define MUI_ATSPI_APP_DEF_COOKIE 0x6D756170u
 
     // How a window's adapter is made. Build it with
     // muiDefaultAtspiAdapterDef.
@@ -71,10 +76,24 @@ extern "C"
     /// The default def: the C library's allocation, no name and 16
     /// windows.
     ///
+    /// Built in the program from the headers it includes, so it carries
+    /// their version (MUI_ABI_VERSION), which muiCreateAtspiApp checks.
+    ///
     /// @return The def.
     /// @par Thread safety
     /// Safe from any thread.
-    MUI_API muiAtspiAppDef muiDefaultAtspiAppDef(void);
+    static inline muiAtspiAppDef muiDefaultAtspiAppDef(void)
+    {
+#ifdef __cplusplus
+        muiAtspiAppDef def = {};
+#else
+    muiAtspiAppDef def = {0};
+#endif
+        def.cookie = MUI_ATSPI_APP_DEF_COOKIE;
+        def.version = MUI_ABI_VERSION;
+        def.windows = 16;
+        return def;
+    }
 
     /// Joins the accessibility bus (the address AT_SPI_BUS_ADDRESS names,
     /// else the one the session bus's org.a11y.Bus gives) and serves the
@@ -84,10 +103,12 @@ extern "C"
     ///
     /// @param def     The def, from muiDefaultAtspiAppDef.
     /// @param appOut  Receives the application; NULL on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
-    ///         def not from muiDefaultAtspiAppDef, a half-set allocator,
-    ///         no name or no windows; `mui_errorPlatform` when libdbus-1
-    ///         or the accessibility bus cannot be reached;
+    /// @return `mui_success`; `mui_errorVersion` for a def built against
+    ///         headers of another binary interface (MUI_ABI_VERSION), before
+    ///         the rest of the def is read; `mui_errorInvalid` for a NULL
+    ///         argument, a def not from muiDefaultAtspiAppDef, a half-set
+    ///         allocator, no name or no windows; `mui_errorPlatform` when
+    ///         libdbus-1 or the accessibility bus cannot be reached;
     ///         `mui_errorCapacity` when memory runs out.
     /// @par Thread safety
     /// Main thread only.

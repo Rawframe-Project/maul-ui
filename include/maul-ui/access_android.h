@@ -44,6 +44,7 @@ extern "C"
     typedef struct muiAndroidAdapterDef
     {
         uint32_t cookie;
+        uint32_t version;
         muiAllocator allocator;
         // The most nodes its tree holds, at least 1.
         uint32_t nodes;
@@ -58,13 +59,32 @@ extern "C"
         void* user;
     } muiAndroidAdapterDef;
 
+// The cookie of an Android adapter def, which muiDefaultAndroidAdapterDef sets and
+// muiCreateAndroidAdapter checks.
+#define MUI_ANDROID_ADAPTER_DEF_COOKIE 0x6D75616Eu
+
     /// The default def: the C library's allocation, 4096 nodes, no
     /// JNIEnv, no view, a scale of 1, no action function.
+    ///
+    /// Built in the program from the headers it includes, so it carries
+    /// their version (MUI_ABI_VERSION), which muiCreateAndroidAdapter checks.
     ///
     /// @return The def.
     /// @par Thread safety
     /// Safe from any thread.
-    MUI_API muiAndroidAdapterDef muiDefaultAndroidAdapterDef(void);
+    static inline muiAndroidAdapterDef muiDefaultAndroidAdapterDef(void)
+    {
+#ifdef __cplusplus
+        muiAndroidAdapterDef def = {};
+#else
+    muiAndroidAdapterDef def = {0};
+#endif
+        def.cookie = MUI_ANDROID_ADAPTER_DEF_COOKIE;
+        def.version = MUI_ABI_VERSION;
+        def.nodes = 4096;
+        def.scale = 1.0f;
+        return def;
+    }
 
     /// Makes an adapter with an empty tree, and its provider: the class
     /// maul.ui.AccessProvider is found through the view's class loader,
@@ -72,12 +92,14 @@ extern "C"
     ///
     /// @param def         The def, from muiDefaultAndroidAdapterDef.
     /// @param adapterOut  Receives the adapter; NULL on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
-    ///         def not from muiDefaultAndroidAdapterDef, a half-set
-    ///         allocator, no nodes, no JNIEnv, no view, no action
-    ///         function or a scale not above 0; `mui_errorCapacity` when
-    ///         memory runs out; `mui_errorPlatform` when the provider's
-    ///         class is not in the application or Java fails.
+    /// @return `mui_success`; `mui_errorVersion` for a def built against
+    ///         headers of another binary interface (MUI_ABI_VERSION), before
+    ///         the rest of the def is read; `mui_errorInvalid` for a NULL
+    ///         argument, a def not from muiDefaultAndroidAdapterDef, a half-set
+    ///         allocator, no nodes, no JNIEnv, no view, no action function or a
+    ///         scale not above 0; `mui_errorCapacity` when memory runs out;
+    ///         `mui_errorPlatform` when the provider's class is not in the
+    ///         application or Java fails.
     /// @par Thread safety
     /// Main thread only.
     MUI_NODISCARD MUI_API muiResult muiCreateAndroidAdapter(const muiAndroidAdapterDef* def,

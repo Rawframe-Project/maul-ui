@@ -330,6 +330,24 @@ static void TestNotifications(muiNsAdapter* adapter, const Built* built)
     adapter->post = saved;
 }
 
+// The def carries the headers' version: another release's, or a zeroed
+// one, is refused before anything past it is read (the default has no view), the
+// cookie first.
+static void TestVersion(void)
+{
+    muiNsAdapterDef def = muiDefaultNsAdapterDef();
+    muiNsAdapter* made = (void*)&def;
+    CHECK(def.cookie == MUI_NS_ADAPTER_DEF_COOKIE && def.version == MUI_ABI_VERSION,
+          "stamped with the headers' version");
+    def.version = MUI_ABI_VERSION + 1;
+    CHECK(muiCreateNsAdapter(&def, &made) == mui_errorVersion && made == NULL,
+          "another release refused");
+    def.version = 0;
+    CHECK(muiCreateNsAdapter(&def, &made) == mui_errorVersion, "a zeroed version refused");
+    def.cookie = 0;
+    CHECK(muiCreateNsAdapter(&def, &made) == mui_errorInvalid, "the cookie checked first");
+}
+
 static void TestContract(NSView* view)
 {
     muiNsAdapterDef def = muiDefaultNsAdapterDef();
@@ -441,6 +459,7 @@ int main(void)
                                                            defer:NO];
         FlippedView* view = [[FlippedView alloc] initWithFrame:NSMakeRect(0, 0, 400, 300)];
         [window setContentView:view];
+        TestVersion();
         TestContract(view);
         muiNsAdapterDef def = muiDefaultNsAdapterDef();
         def.view = (void*)view;

@@ -48,6 +48,7 @@ extern "C"
     typedef struct muiUiaAdapterDef
     {
         uint32_t cookie;
+        uint32_t version;
         // For the adapter's tables and its tree. Provider objects come
         // from the process heap, as clients decide how long they live.
         muiAllocator allocator;
@@ -61,24 +62,45 @@ extern "C"
         void* user;
     } muiUiaAdapterDef;
 
+// The cookie of a UI Automation adapter def, which muiDefaultUiaAdapterDef sets and
+// muiCreateUiaAdapter checks.
+#define MUI_UIA_ADAPTER_DEF_COOKIE 0x6D756175u
+
     /// The default def: the C library's allocation, 4096 nodes, a scale
     /// of 1, and no window or action function.
+    ///
+    /// Built in the program from the headers it includes, so it carries
+    /// their version (MUI_ABI_VERSION), which muiCreateUiaAdapter checks.
     ///
     /// @return The def.
     /// @par Thread safety
     /// Safe from any thread.
-    MUI_API muiUiaAdapterDef muiDefaultUiaAdapterDef(void);
+    static inline muiUiaAdapterDef muiDefaultUiaAdapterDef(void)
+    {
+#ifdef __cplusplus
+        muiUiaAdapterDef def = {};
+#else
+    muiUiaAdapterDef def = {0};
+#endif
+        def.cookie = MUI_UIA_ADAPTER_DEF_COOKIE;
+        def.version = MUI_ABI_VERSION;
+        def.nodes = 4096;
+        def.scale = 1.0f;
+        return def;
+    }
 
     /// Creates an adapter with an empty tree.
     ///
     /// @param def         The def, from muiDefaultUiaAdapterDef.
     /// @param adapterOut  Receives the adapter; NULL on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
-    ///         def not from muiDefaultUiaAdapterDef, a half-set allocator,
-    ///         no nodes, no window, no action function or a scale not
-    ///         above 0; `mui_errorPlatform` when the thread is not in a
-    ///         single-threaded apartment or UI Automation cannot be
-    ///         loaded; `mui_errorCapacity` when memory runs out.
+    /// @return `mui_success`; `mui_errorVersion` for a def built against
+    ///         headers of another binary interface (MUI_ABI_VERSION), before
+    ///         the rest of the def is read; `mui_errorInvalid` for a NULL
+    ///         argument, a def not from muiDefaultUiaAdapterDef, a half-set
+    ///         allocator, no nodes, no window, no action function or a scale
+    ///         not above 0; `mui_errorPlatform` when the thread is not in a
+    ///         single-threaded apartment or UI Automation cannot be loaded;
+    ///         `mui_errorCapacity` when memory runs out.
     /// @par Thread safety
     /// Main thread only.
     MUI_NODISCARD MUI_API muiResult muiCreateUiaAdapter(const muiUiaAdapterDef* def,

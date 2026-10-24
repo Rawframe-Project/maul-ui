@@ -1187,6 +1187,24 @@ static void Pump(Built* built)
     CHECK(false, "the client finished in time");
 }
 
+// The def carries the headers' version: another release's, or a zeroed
+// one, is refused before anything past it is read (the default has no window), the
+// cookie first.
+static void TestVersion(void)
+{
+    muiUiaAdapterDef def = muiDefaultUiaAdapterDef();
+    muiUiaAdapter* made = (void*)&def;
+    CHECK(def.cookie == MUI_UIA_ADAPTER_DEF_COOKIE && def.version == MUI_ABI_VERSION,
+          "stamped with the headers' version");
+    def.version = MUI_ABI_VERSION + 1;
+    CHECK(muiCreateUiaAdapter(&def, &made) == mui_errorVersion && made == NULL,
+          "another release refused");
+    def.version = 0;
+    CHECK(muiCreateUiaAdapter(&def, &made) == mui_errorVersion, "a zeroed version refused");
+    def.cookie = 0;
+    CHECK(muiCreateUiaAdapter(&def, &made) == mui_errorInvalid, "the cookie checked first");
+}
+
 static void TestContract(void)
 {
     muiUiaAdapterDef def = muiDefaultUiaAdapterDef();
@@ -1210,6 +1228,7 @@ int main(void)
     s_program.window = MakeWindow();
     CHECK(s_program.window != NULL, "a window");
     TestIds();
+    TestVersion();
     TestContract();
     muiUiaAdapterDef def = muiDefaultUiaAdapterDef();
     def.window = s_program.window;

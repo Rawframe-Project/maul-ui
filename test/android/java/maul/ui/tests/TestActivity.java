@@ -55,6 +55,8 @@ public final class TestActivity extends Activity {
 
     private static native long make(View host);
 
+    private static native boolean refusesOtherVersions();
+
     private static native Object providerOf(long adapter);
 
     private static native int virtualOf(long adapter, long node);
@@ -121,6 +123,7 @@ public final class TestActivity extends Activity {
     }
 
     private void test(View host) {
+        check(refusesOtherVersions(), "a def of another version refused, its cookie checked first");
         long adapter = make(host);
         check(adapter != 0, "made");
         if (adapter == 0) {
