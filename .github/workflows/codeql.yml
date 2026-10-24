@@ -21,7 +21,12 @@ jobs:
   analyze:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
-    container: ghcr.io/rawframe-project/ci-cpp:2026.10.6@sha256:50c383f608f992c272196139d749f15978e35143a2876362b1e0aef6993480bd
+    # The CI image, as cpp.yml runs it: --init gives the container a PID 1
+    # that reaps orphans, so a server or browser a step stops (Xvfb,
+    # Chrome's helpers) is gone rather than left a zombie.
+    container:
+      image: ghcr.io/rawframe-project/ci-cpp:2026.10.6@sha256:50c383f608f992c272196139d749f15978e35143a2876362b1e0aef6993480bd
+      options: --init
     permissions:
       contents: read
       security-events: write
