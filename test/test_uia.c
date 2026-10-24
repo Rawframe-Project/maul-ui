@@ -705,6 +705,7 @@ static void CheckRangeAndExpand(IUIAutomationElement** children)
     int valuesAsked = s_program.valuesAsked;
     CHECK(range != NULL && FAILED(IUIAutomationRangeValuePattern_SetValue(range, (double)NAN)) &&
               FAILED(IUIAutomationRangeValuePattern_SetValue(range, (double)INFINITY)) &&
+              FAILED(IUIAutomationRangeValuePattern_SetValue(range, -(double)INFINITY)) &&
               s_program.valuesAsked == valuesAsked && s_program.valueAsked == 55.0f,
           "a value not finite refused before the host");
     IUIAutomationExpandCollapsePattern* expand = NULL;
