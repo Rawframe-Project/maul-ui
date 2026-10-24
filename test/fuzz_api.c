@@ -203,6 +203,12 @@ static void Compare(World* world, muiNodeId root, const muiLayoutInput* input)
            memcmp(lists[0].clips, lists[1].clips, lists[0].clipCount * sizeof(muiDrawClip)) == 0 &&
            memcmp(lists[0].transforms, lists[1].transforms,
                   lists[0].transformCount * sizeof(muiDrawTransform)) == 0);
+    // The tables a command indexes, which a reused subtree copies.
+    Expect(lists[0].gradientCount == 0 ||
+           memcmp(lists[0].gradients, lists[1].gradients,
+                  lists[0].gradientCount * sizeof(muiDrawGradient)) == 0);
+    Expect(lists[0].glyphCount == 0 ||
+           memcmp(lists[0].glyphs, lists[1].glyphs, lists[0].glyphCount * sizeof(muiGlyph)) == 0);
 }
 
 static void Call(World* world, Reader* reader)

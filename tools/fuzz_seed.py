@@ -15,7 +15,8 @@
 # - api: sequences of public calls in fuzz_api's encoding, trees made,
 #   styled and moved, then laid out and compared with a solve from
 #   nothing, and one for each further family of calls (destroying,
-#   content changed, scrolling, hit tests, classes and states).
+#   content changed, scrolling, hit tests, classes, states and
+#   gradients).
 # The standard library only.
 #
 # Usage: python3 tools/fuzz_seed.py [DIRECTORY]  (from the repository root;
@@ -257,6 +258,7 @@ WIDTH, HEIGHT, MIN_WIDTH, PADDING_START, CONTENT, SCROLL_AXES = 4, 16, 28, 152, 
 BIT_WIDTH, BIT_HEIGHT, BIT_MIN_WIDTH, BIT_PADDING_START = 0, 1, 2, 27
 BIT_CONTENT, BIT_SCROLL_AXES = 39, 40
 BACKGROUND_BLUE, CLIP, BIT_BACKGROUND, BIT_CLIP = 8, 328, 0, 16
+GRADIENT, BIT_GRADIENT = 16, 1
 STATE_HOVERED, VARIANT_HOVERED = 16, 5
 
 
@@ -359,6 +361,15 @@ def api_seeds(directory):
     write(directory, "hit", bytes(out))
     out = api_tree(count, binary) + api_class(count, 0, 0) + api_compare(root)
     write(directory, "class", bytes(out))
+    # Linear gradients of two stops at three angles; one node resized
+    # after, so the bounded build copies the others' entries.
+    out = api_tree(count, binary)
+    for i in range(1, 4):
+        out += api_visual(pick(i, count), GRADIENT, struct.pack("<BBxxf", 1, 2, 30 * i),
+                          BIT_GRADIENT)
+    out += api_compare(root) + api_length(pick(1, count), HEIGHT, 40, BIT_HEIGHT)
+    out += api_compare(root)
+    write(directory, "gradient", bytes(out))
     out = api_tree(count, binary) + api_class(count, VARIANT_HOVERED, 0) + api_compare(root)
     out += bytes([API_STATES, root, STATE_HOVERED]) + api_compare(root)
     write(directory, "states", bytes(out))
