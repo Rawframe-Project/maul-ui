@@ -795,6 +795,29 @@ static void TestBaselineItemFittedToItsLineFromItsLineLeft(void)
     muiDestroyContext(context);
 }
 
+// A fuzz finding (fuzz_api): a child far wider than its row, shrunk onto
+// its minimum. At 2^38 a float steps by 32768, so its shrunk size is a
+// rounding, and the clamp to the minimum moved it by more than the row's
+// slack but less than its own: no pass froze it, and the loop of CSS
+// Flexbox 9.7 ran forever. Each pass now freezes a child.
+static void TestShrinkOntoAMinimumFarBelowTheBaseEnds(void)
+{
+    muiContext* context = MakeContext();
+    muiLayoutStyle row = muiDefaultLayoutStyle();
+    row.sizing.width = Length(200.0f);
+    muiNodeId root = MakeNode(context, &row);
+    muiLayoutStyle wide = muiDefaultLayoutStyle();
+    wide.sizing.width = Length(0x1.9p+38f);
+    wide.sizing.minWidth = Length(0x1.e001fep+5f);
+    muiNodeId child = MakeNode(context, &wide);
+    CHECK(muiNode_InsertChild(context, root, child, s_null) == mui_success, "child");
+    const muiLayoutInput input = {184.0f, 160.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
+    CHECK(muiComputeLayout(context, root, &input) == mui_success, "laid out");
+    muiRect rect = muiNode_GetRect(context, child);
+    CHECK(isfinite(rect.width) && rect.width >= 0x1.e001fep+5f, "finite, at its minimum or more");
+    muiDestroyContext(context);
+}
+
 static void TestRectOfUnknownNodeIsZero(void)
 {
     muiContext* context = MakeContext();
@@ -828,6 +851,7 @@ int main(void)
     TestSafeArea();
     TestSafeAreaSizeFollowsDirection();
     TestStretchedRatioRowResolvesAgainstItsHeight();
+    TestShrinkOntoAMinimumFarBelowTheBaseEnds();
     TestRectOfUnknownNodeIsZero();
     return s_failures == 0 ? 0 : 1;
 }
