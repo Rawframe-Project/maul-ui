@@ -596,8 +596,11 @@ endif()
 # writes their seeds.
 if(MAUL_UI_FUZZ AND MAUL_UI_TEXT)
     # The library is instrumented too: its coverage guides libFuzzer, and
-    # the sanitizers watch its code, not only the targets'.
-    target_compile_options(maul-ui PRIVATE -fsanitize=fuzzer-no-link,address,undefined)
+    # the sanitizers watch its code, not only the targets'. Undefined
+    # behavior stops the run, as an address error does, so libFuzzer
+    # reports the input rather than printing and going on.
+    target_compile_options(maul-ui PRIVATE -fsanitize=fuzzer-no-link,address,undefined
+                                           -fno-sanitize-recover=all)
     target_link_options(maul-ui PUBLIC -fsanitize=address,undefined)
     foreach(area inflate png font text api)
         add_executable(fuzz_${area} test/fuzz_${area}.c)
@@ -605,7 +608,8 @@ if(MAUL_UI_FUZZ AND MAUL_UI_TEXT)
         # The targets reach the library's own functions.
         target_include_directories(fuzz_${area} PRIVATE ${PROJECT_SOURCE_DIR}/src)
         maul_apply_flags(fuzz_${area})
-        target_compile_options(fuzz_${area} PRIVATE -fsanitize=fuzzer,address,undefined)
+        target_compile_options(fuzz_${area} PRIVATE -fsanitize=fuzzer,address,undefined
+                                                   -fno-sanitize-recover=all)
         target_link_options(fuzz_${area} PRIVATE -fsanitize=fuzzer,address,undefined)
     endforeach()
     # Text is laid out in a real font, kerned and with a line gap.
@@ -619,7 +623,8 @@ if(MAUL_UI_FUZZ AND MAUL_UI_TEXT)
         target_link_libraries(fuzz_atspi PRIVATE maul-ui ${CMAKE_DL_LIBS})
         target_include_directories(fuzz_atspi PRIVATE ${PROJECT_SOURCE_DIR}/src)
         maul_apply_flags(fuzz_atspi)
-        target_compile_options(fuzz_atspi PRIVATE -fsanitize=fuzzer,address,undefined)
+        target_compile_options(fuzz_atspi PRIVATE -fsanitize=fuzzer,address,undefined
+                                                  -fno-sanitize-recover=all)
         target_link_options(fuzz_atspi PRIVATE -fsanitize=fuzzer,address,undefined)
     endif()
 endif()
