@@ -206,7 +206,7 @@ bool muiAndroidAct(const muiAndroidAdapter* adapter, const muiAccessNode* node, 
 {
     muiAccessAction host = mui_actionClick;
     if (action > MUI_ANDROID_COLLAPSE || !HostActionOf(adapter, node, action, &host) ||
-        (host == mui_actionSetValue && !muiAccessValueFits(node, value)))
+        (host == mui_actionSetValue && !muiAccessValueFits(node, (double)value)))
     {
         return false;
     }

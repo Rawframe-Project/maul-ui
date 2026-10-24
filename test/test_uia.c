@@ -506,6 +506,11 @@ typedef struct Program
     // What the host was asked last, by the window's thread.
     volatile LONG focusAsked;
     muiAccessRequest asked;
+    // The values a host was asked to set, and the last: UI Automation
+    // focuses an element before it sets its value, so the last request
+    // may be the focus even when the value was refused.
+    int valuesAsked;
+    float valueAsked;
     // Actions asked, and how many found the adapter busy when they called
     // back into it (Maul conventions, Threads).
     int actions;
@@ -524,6 +529,11 @@ static bool Act(void* user, const muiAccessRequest* request)
     if (request->action == mui_actionFocus)
     {
         InterlockedExchange(&program->focusAsked, (LONG)request->target);
+    }
+    if (request->action == mui_actionSetValue)
+    {
+        program->valuesAsked++;
+        program->valueAsked = request->value;
     }
     program->asked = *request;
     size_t kept = request->length < sizeof program->askedText ? request->length : 0;
@@ -690,10 +700,12 @@ static void CheckRangeAndExpand(IUIAutomationElement** children)
               Asked(mui_actionSetValue, 9) && s_program.asked.value == 55.0f &&
               FAILED(IUIAutomationRangeValuePattern_SetValue(range, 200.0)),
           "a slider's value read and set, a value past its range refused");
-    // A client's number that is not finite never reaches the host.
+    // A client's number that is not finite never reaches the host as a
+    // value.
+    int valuesAsked = s_program.valuesAsked;
     CHECK(range != NULL && FAILED(IUIAutomationRangeValuePattern_SetValue(range, (double)NAN)) &&
               FAILED(IUIAutomationRangeValuePattern_SetValue(range, (double)INFINITY)) &&
-              s_program.asked.value == 55.0f,
+              s_program.valuesAsked == valuesAsked && s_program.valueAsked == 55.0f,
           "a value not finite refused before the host");
     IUIAutomationExpandCollapsePattern* expand = NULL;
     enum ExpandCollapseState state = ExpandCollapseState_Expanded;
