@@ -958,6 +958,27 @@ static void TestComposition(void)
     FreeScene(&scene);
 }
 
+// A composition ended by muiTextBlock_EndComposition keeps its text, which
+// the history never recorded: it starts over, rather than undoing what
+// came before at offsets the kept text moved (found by fuzz_text).
+static void TestKeptComposition(void)
+{
+    Scene scene = MakeScene("", 0);
+    Type(&scene, "abc");
+    Select(&scene, 0, 0);
+    CHECK(muiTextBlock_Compose(scene.service, scene.block, "XY", 2, 2, NULL, 0, NULL) ==
+                  mui_success &&
+              muiTextBlock_EndComposition(scene.service, scene.block) == mui_success &&
+              Holds(&scene, "XYabc") && Selects(&scene, 2, 2),
+          "kept, the caret after it");
+    CHECK(!Undo(&scene) && Holds(&scene, "XYabc"), "nothing from before to undo");
+    Type(&scene, "z");
+    CHECK(Holds(&scene, "XYzabc") && Undo(&scene) && Holds(&scene, "XYabc") &&
+              Selects(&scene, 2, 2),
+          "edits after it undone");
+    FreeScene(&scene);
+}
+
 // A password is laid out, hit and read as a bullet per cluster; it moves
 // and double-clicks as one word, and takes no composition.
 static void TestPassword(void)
@@ -1370,6 +1391,7 @@ int main(void)
     TestTypingWithoutMemory();
     TestEvents();
     TestComposition();
+    TestKeptComposition();
     TestPassword();
     TestScroll();
     TestAccessRequests();

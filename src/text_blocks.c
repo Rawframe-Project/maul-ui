@@ -831,7 +831,14 @@ muiResult muiEndComposition(muiTextService* service, muiTextBlockId blockId)
     {
         return mui_errorStale;
     }
-    service->blocks.blocks[slot - 1].compositionLength = 0;
+    muiTextBlock* block = &service->blocks.blocks[slot - 1];
+    // Text kept is the block's own from now on, a change an editor's
+    // history never recorded: a new revision makes it start over.
+    if (block->compositionLength != 0)
+    {
+        block->compositionLength = 0;
+        block->revision++;
+    }
     return mui_success;
 }
 
