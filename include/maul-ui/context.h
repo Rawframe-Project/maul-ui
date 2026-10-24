@@ -238,7 +238,9 @@ extern "C"
     /// Returns how many calls the context has refused as invalid input
     /// (`mui_errorInvalid`) or as calls back in while it was busy
     /// (`mui_errorState`): a count release builds can watch to catch a
-    /// host's bugs. Stale ids are not misuse.
+    /// host's bugs. Stale ids are not misuse, data another program
+    /// controls (`mui_errorFormat`) is not, and queries taking the context
+    /// as const count nothing.
     ///
     /// @param context  The context.
     /// @return The count; 0 for a NULL context.

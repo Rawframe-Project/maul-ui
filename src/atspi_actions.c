@@ -188,7 +188,6 @@ bool muiAtspiAppendValueProperty(muiAtspiApp* app, muiDBusIter* iter, const muiA
 bool muiAtspiSetValue(const muiAtspiObject* object, double value)
 {
     const muiAccessNode* node = object->node;
-    return value >= (double)node->minimum && value <= (double)node->maximum &&
-           (node->actions & (1u << mui_actionSetValue)) != 0 &&
+    return muiAccessValueFits(node, value) && (node->actions & (1u << mui_actionSetValue)) != 0 &&
            Perform(object, mui_actionSetValue, (float)value);
 }

@@ -87,14 +87,19 @@ extern "C"
         // A queue had nothing to take.
         mui_empty = 1,
         // An argument is invalid: a null pointer where one is required, a
-        // value out of range.
+        // value out of range. A correct program never passes one, so a live
+        // owner object counts it as misuse, but for a query that takes the
+        // object as const.
         mui_errorInvalid = -1,
         // A caller buffer or a named limit is too small for the result.
         mui_errorCapacity = -2,
         // An id names an object that no longer exists.
         mui_errorStale = -3,
         // Data is damaged, or in a format the call does not take, such as
-        // a font that fails validation or a compressed web font.
+        // a font that fails validation or a compressed web font, or a
+        // request another program sent does not fit what it names, such as
+        // a number that is not finite. Another program controls such data,
+        // so it counts no misuse.
         mui_errorFormat = -4,
         // The platform refused: a call of its failed, or its state does
         // not allow the call, such as a thread outside the apartment the

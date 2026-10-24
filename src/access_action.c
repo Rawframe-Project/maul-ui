@@ -113,10 +113,16 @@ static muiResult PerformAccessAction(muiContext* context, const muiAccessRequest
     {
         return muiRefuseBusy(context);
     }
-    if (request == nullptr || request->action > mui_actionReplaceText ||
-        !isfinite(request->value) || !isfinite(request->x) || !isfinite(request->y))
+    if (request == nullptr || request->action > mui_actionReplaceText)
     {
         return muiRefuse(context);
+    }
+    // The numbers come from an accessibility client, another program: a
+    // number that is not finite is its bad data, refused as such without
+    // misuse, which counts only what a correct host never passes.
+    if (!isfinite(request->value) || !isfinite(request->x) || !isfinite(request->y))
+    {
+        return mui_errorFormat;
     }
     muiResult status = mui_success;
     uint32_t slot = muiResolveEdit(context, muiNodeIdOfAccess(request->target), &status);

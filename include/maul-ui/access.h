@@ -630,10 +630,12 @@ extern "C"
     ///                    moved, a request posted. May be NULL.
     /// @return `mui_success`; `mui_empty` for a node that does not take the
     ///         action, and for the text actions, which the host applies;
-    ///         `mui_errorInvalid` for a NULL context or request, an unknown
-    ///         action or a value that is not finite; `mui_errorState` while the
-    ///         context is busy or its event function runs; `mui_errorStale` for
-    ///         a node that is gone.
+    ///         `mui_errorInvalid` for a NULL context or request or an unknown
+    ///         action, counted as misuse; `mui_errorFormat` for a value or
+    ///         point that is not finite, counted as none, since a client
+    ///         sends it;
+    ///         `mui_errorState` while the context is busy or its event function
+    ///         runs; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiPerformAccessAction(muiContext* context,

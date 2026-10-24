@@ -462,9 +462,12 @@ extern "C"
     ///                    changed and the selection moved, whatever the
     ///                    result.
     /// @return `mui_success`; `mui_empty` for another action;
-    ///         `mui_errorInvalid` for a NULL argument, a block not editing, an
-    ///         offset past the text or inside a character, or a NULL text with
-    ///         a length; `mui_errorStale` for a node or block that is gone;
+    ///         `mui_errorInvalid` for a NULL argument or a NULL text with a
+    ///         length, counted as misuse; `mui_errorFormat` for a block not
+    ///         editing or an offset past the text or inside a character,
+    ///         counted as none, since the offsets are a client's and the text
+    ///         may have changed since its adapter's update; `mui_errorStale`
+    ///         for a node or block that is gone;
     ///         `mui_errorCapacity` when memory runs out; `mui_errorState` while
     ///         the service is busy.
     /// @par Thread safety

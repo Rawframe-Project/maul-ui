@@ -202,6 +202,13 @@ static void TestActions(id root)
     [slider setAccessibilityValue:@55];
     CHECK(s_asked.action == mui_actionSetValue && s_asked.target == 8 && s_asked.value == 55.0f,
           "a range set");
+    // A client's number that is not finite, or lies past the range, never
+    // reaches the host.
+    s_asked = (muiAccessRequest){.action = mui_actionScrollRight};
+    [slider setAccessibilityValue:@(NAN)];
+    [slider setAccessibilityValue:@(INFINITY)];
+    [slider setAccessibilityValue:@200];
+    CHECK(s_asked.action == mui_actionScrollRight, "a value not finite or past the range refused");
     [button setAccessibilityFocused:YES];
     CHECK(s_asked.action == mui_actionFocus && s_asked.target == 2, "the focus asked for");
     CHECK([button isAccessibilitySelectorAllowed:@selector(accessibilityPerformPress)] &&

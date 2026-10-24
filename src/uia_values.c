@@ -174,7 +174,7 @@ static HRESULT STDMETHODCALLTYPE SetNumber(muiUiaRangeValue* self, double value)
     {
         return ELEMENT_GONE;
     }
-    if (!(value >= (double)held->minimum && value <= (double)held->maximum))
+    if (!muiAccessValueFits(held, value))
     {
         return E_INVALIDARG;
     }

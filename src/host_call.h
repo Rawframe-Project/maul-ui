@@ -13,6 +13,7 @@
 
 #include "maul-ui/access.h"
 
+#include <math.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -61,10 +62,23 @@ static inline void muiReleaseMarked(const bool* busy, const muiAllocator* alloca
     *muiMarkOf(busy) = was;
 }
 
-// An adapter's action function, called with the adapter busy.
+// Whether a value a client asks a range for is one it holds: finite, from
+// its minimum to its maximum. NaN fails both comparisons.
+static inline bool muiAccessValueFits(const muiAccessNode* node, double value)
+{
+    return value >= (double)node->minimum && value <= (double)node->maximum;
+}
+
+// An adapter's action function, called with the adapter busy. A request
+// whose numbers are not finite, which a client may send, is dropped here,
+// so no adapter hands the host one that would be refused.
 static inline bool muiActMarked(const bool* busy, bool (*action)(void*, const muiAccessRequest*),
                                 void* user, const muiAccessRequest* request)
 {
+    if (!isfinite(request->value) || !isfinite(request->x) || !isfinite(request->y))
+    {
+        return false;
+    }
     bool was = *busy;
     *muiMarkOf(busy) = true;
     bool done = action(user, request);

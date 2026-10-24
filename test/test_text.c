@@ -182,15 +182,19 @@ static void TestFontArguments(void)
     bad.data = NULL;
     CHECK(muiCreateFont(service, &bad, &font) == mui_errorInvalid, "no data");
     bad = def;
-    bad.size = 11;
-    CHECK(muiCreateFont(service, &bad, &font) == mui_errorInvalid, "too short");
-    bad = def;
     bad.dataMode = 2;
     CHECK(muiCreateFont(service, &bad, &font) == mui_errorInvalid, "unknown mode");
+    // A file too short or too long is bad data, which counts no misuse:
+    // whoever wrote the file must not move the program's counter.
+    uint64_t misuse = muiGetTextServiceMisuse(service);
+    bad = def;
+    bad.size = 11;
+    CHECK(muiCreateFont(service, &bad, &font) == mui_errorFormat, "too short");
     bad = def;
     bad.size = (size_t)INT32_MAX + 1u;
     bad.dataMode = mui_fontDataBorrow;
-    CHECK(muiCreateFont(service, &bad, &font) == mui_errorInvalid, "too long");
+    CHECK(muiCreateFont(service, &bad, &font) == mui_errorFormat, "too long");
+    CHECK(muiGetTextServiceMisuse(service) == misuse, "bad data counts no misuse");
     bad = def;
     bad.faceIndex = 1;
     CHECK(muiCreateFont(service, &bad, &font) == mui_errorFormat, "no second face");

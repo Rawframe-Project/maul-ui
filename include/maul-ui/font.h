@@ -101,14 +101,14 @@ extern "C"
     /// Creates a font from a face of a font file, validating it.
     ///
     /// @param service  The service.
-    /// @param def      The font: a valid cookie, data and a size from 12 to
-    ///                 2^31 - 1, and a data mode above.
+    /// @param def      The font: a valid cookie, data, and a data mode above.
     /// @param fontOut  Receives the font; the null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
-    ///         cookie, a size out of range or an unknown data mode;
-    ///         `mui_errorFormat` for data that is not a font the service reads,
-    ///         a face index past the file's faces, or a font that fails
-    ///         validation; `mui_errorCapacity` past the font limit or when
+    ///         cookie or an unknown data mode, each counted as misuse;
+    ///         `mui_errorFormat`, counted as none, for data that is not a font
+    ///         the service reads (shorter than a header, longer than 2^31 - 1
+    ///         bytes, or malformed), a face index past the file's faces, or a
+    ///         font that fails validation; `mui_errorCapacity` past the font limit or when
     ///         memory runs out; `mui_errorState` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
