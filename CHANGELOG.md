@@ -7,10 +7,16 @@ may change the API, the ABI and every data format.
 
 ## [0.3.3](https://github.com/Rawframe-Project/maul-ui/compare/v0.3.2...v0.3.3) (2026-10-25)
 
-
 ### Fixed
 
-* **scroll:** take a fling's decay from Maul Tween's deceleration ([#66](https://github.com/Rawframe-Project/maul-ui/issues/66)) ([736e05d](https://github.com/Rawframe-Project/maul-ui/commit/736e05d99e68c0eb0c44680363dd709d6da0a377)), closes [#34](https://github.com/Rawframe-Project/maul-ui/issues/34)
+- A fling's decay rate comes from Maul Tween's
+  `mtwnMakeDecayFromDeceleration`, whose logarithm is correctly rounded
+  more often than maul-ui's own. The rate changes in its last bit for
+  about 0.9% of deceleration rates; the default, 0.998, is unchanged,
+  and iOS's "fast" 0.99 moves by one ulp. No fling or drag output moved
+  in the tests, but an offset within about 1e-16 of a float rounding
+  boundary may still round differently
+  ([#66](https://github.com/Rawframe-Project/maul-ui/pull/66)).
 
 ## [0.3.2](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.3.2) (2026-10-25)
 
