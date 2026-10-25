@@ -5,16 +5,23 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
-## [0.3.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.2.1...v0.3.0) (2026-10-25)
+## [0.3.0](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.3.0) (2026-10-25)
 
+### Changed
 
-### ⚠ BREAKING CHANGES
-
-* **scroll:** a touch pan past a limit with overscroll on moves the children by Maul Tween's rubber band, computed in double and rounded once, in place of scroll's float form. The overscroll offset, and so the draw list's bytes during such a drag, change in the last bits: by at most 2.4e-4 units, which no screen shows, and more accurately near the limit, where the float form cancelled.
-
-### Fixed
-
-* **scroll:** take the rubber band from Maul Tween ([#50](https://github.com/Rawframe-Project/maul-ui/issues/50)) ([3853f86](https://github.com/Rawframe-Project/maul-ui/commit/3853f86eaba97cc85c60e29150a284ed99c46a1c)), closes [#34](https://github.com/Rawframe-Project/maul-ui/issues/34)
+- **Breaking:** with overscroll on, a touch pan past a limit moves the
+  children by Maul Tween's rubber band, iOS's `c x d / (c x + d)`
+  computed in double and rounded once, in place of Maul UI's own float
+  form. During such a drag the overscroll offset, and so the drawn
+  transform and the draw list's bytes, can change in the last bits: by
+  at most 2.4e-4 units, which no screen shows, and toward the exact
+  value near the limit, where the float form lost precision. Springing
+  back, flings and scrolling without overscroll are unchanged.
+  ([#50](https://github.com/Rawframe-Project/maul-ui/pull/50))
+- Flings and the spring back from overscroll come from Maul Tween's
+  decay and spring. On every input measured they give the same bits as
+  before; elsewhere a value can rarely differ by one float step.
+  ([#49](https://github.com/Rawframe-Project/maul-ui/pull/49))
 
 ## [0.2.1](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.2.1) (2026-10-25)
 
