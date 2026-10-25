@@ -13,7 +13,8 @@ may change the API, the ABI and every data format.
   scrollport's extent beyond a limit goes on from where they are. The
   pan used to start at the limit, so the children jumped back by the
   whole overscroll on the first move: 201 units under the finger after
-  a fast fling in the tests. Such a pan now takes a band twice as wide
+  a fast fling in the reproduction in
+  [#64](https://github.com/Rawframe-Project/maul-ui/issues/64). Such a pan now takes a band twice as wide
   as the overscroll it caught, for that pan only. Twice is the
   library's own choice, and what iOS does here is unverified. Below the
   scrollport's extent nothing changes, and the spring back after
@@ -22,7 +23,7 @@ may change the API, the ABI and every data format.
 
 ### Changed
 
-- The text component's wasm is 557,200 bytes, from 615,156 (87% of its
+- The text component's wasm is 557,106 bytes, from 615,064 (87% of its
   640,000 budget, from 96%). FreeType is built without the Adobe Glyph
   List, which only makes a Unicode charmap from glyph names: the text
   component maps characters through HarfBuzz and calls no FreeType
