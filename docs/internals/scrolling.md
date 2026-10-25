@@ -38,7 +38,7 @@ A drag that is not cancelled ends in a fling at the velocity of a least squares 
 
 Overscroll is off by default, as on desktop browsers. With the rule's `overscroll` on:
 
-- a pan past a limit keeps the offset at the limit and moves the children on by iOS's rubber band, `d (1 - 1 / (0.55 x / d + 1))` for `x` past the limit in a scrollport of `d`, drawn and hit but not counted as offset;
+- a pan past a limit keeps the offset at the limit and moves the children on by iOS's rubber band, `c x d / (c x + d)` with `c` 0.55 for `x` past the limit in a scrollport of `d` (Maul Tween's `mtwnRubberBand`, in double and rounded once), drawn and hit but not counted as offset;
 - released, it springs back on a critically damped spring of 14.14 radians a second, Flutter's iOS spring (stiffness 100 over mass 0.5; `mtwnSampleSpring`), and a pan catching it continues from where it is;
 - a fling meeting a limit springs on past it at the speed it met it, on the same spring: Maul Tween's bounded decay (`mtwnSampleBoundedDecay`), which hands over at the exact time the fling reaches the limit, all in closed form;
 - a step or setting the offset takes it back at once, as reduced motion does.
