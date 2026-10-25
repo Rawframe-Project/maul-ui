@@ -12,7 +12,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -110,37 +109,41 @@ bool SampleCheck(Sample* sample, bool condition, const char* what)
     return condition;
 }
 
-static double Seconds(void)
-{
-    struct timespec now = {0};
-    (void)timespec_get(&now, TIME_UTC);
-    return (double)now.tv_sec + (double)now.tv_nsec * 1e-9;
-}
-
-bool SampleAwaitReady(Sample* sample, muiRhiRenderer* renderer)
-{
-    double deadline = Seconds() + 10.0;
-    while (!muiRhiRenderer_IsReady(renderer) && Seconds() < deadline)
-    {
-        mrhiDeviceNotification record;
-        while (mrhiNextDeviceNotification(sample->device, &record) == mrhi_success)
-        {
-            (void)muiRhiRenderer_Notify(renderer, &record);
-        }
-#ifdef __EMSCRIPTEN__
-        emscripten_sleep(1);
-#endif
-    }
-    return muiRhiRenderer_IsReady(renderer);
-}
-
-bool SamplePump(Sample* sample, muiRhiRenderer* renderer)
+// Hands the renderer the device's notifications.
+static void Drain(Sample* sample, muiRhiRenderer* renderer)
 {
     mrhiDeviceNotification record;
     while (mrhiNextDeviceNotification(sample->device, &record) == mrhi_success)
     {
         (void)muiRhiRenderer_Notify(renderer, &record);
     }
+}
+
+// Natively, each notification the device queues is waited for, until the
+// pipeline's answer or none is owed; on the web, where the wait never
+// blocks, the browser answers between sleeps.
+bool SampleAwaitReady(Sample* sample, muiRhiRenderer* renderer)
+{
+    Drain(sample, renderer);
+#ifdef __EMSCRIPTEN__
+    for (int slept = 0; !muiRhiRenderer_IsReady(renderer) && slept < WAIT_SLEEPS; slept++)
+    {
+        emscripten_sleep(1);
+        Drain(sample, renderer);
+    }
+#else
+    while (!muiRhiRenderer_IsReady(renderer) &&
+           mrhiWaitDeviceNotification(sample->device, WAIT_NS) == mrhi_success)
+    {
+        Drain(sample, renderer);
+    }
+#endif
+    return muiRhiRenderer_IsReady(renderer);
+}
+
+bool SamplePump(Sample* sample, muiRhiRenderer* renderer)
+{
+    Drain(sample, renderer);
     return muiRhiRenderer_IsReady(renderer);
 }
 

@@ -49,8 +49,8 @@ int SampleExit(int status);
 // Records a check, printing what failed; returns the condition.
 bool SampleCheck(Sample* sample, bool condition, const char* what);
 
-// Polls the device, ten seconds at most, until a renderer's pipeline is
-// ready: whether it is.
+// Waits for the device's answers until a renderer's pipeline is ready:
+// whether it is.
 bool SampleAwaitReady(Sample* sample, muiRhiRenderer* renderer);
 
 // Hands the device's notifications to the renderer without waiting,
