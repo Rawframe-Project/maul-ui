@@ -29,7 +29,9 @@ extern "C"
     typedef struct muiGlyphAtlas muiGlyphAtlas;
 
     // The pixels of an atlas's pages.
-    typedef enum muiAtlasFormat
+    typedef uint8_t muiAtlasFormat;
+
+    enum
     {
         // A byte a pixel: coverage (muiGlyphAtlas_Get) and distance fields
         // (muiGlyphAtlas_GetField).
@@ -39,8 +41,8 @@ extern "C"
         mui_atlasFourChannel = 1,
         // Four bytes a pixel, premultiplied colour as an sRGB texture holds
         // it: colour glyphs (muiGlyphAtlas_GetColor).
-        mui_atlasColor = 2
-    } muiAtlasFormat;
+        mui_atlasColor = 2,
+    };
 
     // How an atlas is made. Build it with muiDefaultGlyphAtlasDef. Pages
     // are pageWidth by pageHeight pixels, cut into plots plotWidth by
