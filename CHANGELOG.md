@@ -5,6 +5,14 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.3.2](https://github.com/Rawframe-Project/maul-ui/compare/v0.3.1...v0.3.2) (2026-10-25)
+
+
+### Fixed
+
+* **scroll:** go on from an overscroll caught past the scrollport ([#63](https://github.com/Rawframe-Project/maul-ui/issues/63)) ([701ddad](https://github.com/Rawframe-Project/maul-ui/commit/701ddad1a6991bed1e396c2f671f7b288a86cac8)), closes [#64](https://github.com/Rawframe-Project/maul-ui/issues/64)
+* **text:** leave out FreeType's unused Adobe Glyph List ([#62](https://github.com/Rawframe-Project/maul-ui/issues/62)) ([28f9af2](https://github.com/Rawframe-Project/maul-ui/commit/28f9af25bf8bcc0824787353ce021a5ebc2115e0)), closes [#61](https://github.com/Rawframe-Project/maul-ui/issues/61)
+
 ## [0.3.1](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.3.1) (2026-10-25)
 
 ### Fixed
