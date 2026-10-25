@@ -23,15 +23,9 @@
 #undef FT_CONFIG_OPTION_INCREMENTAL
 #undef FT_CONFIG_OPTION_SVG
 #undef TT_CONFIG_OPTION_BDF
-// Glyphs are always loaded unhinted (FT_LOAD_NO_HINTING): distance fields
-// and outlines are drawn at any scale, so the TrueType bytecode
-// interpreter that hints them is never run.
-#undef TT_CONFIG_OPTION_BYTECODE_INTERPRETER
-#undef TT_CONFIG_OPTION_SUBPIXEL_HINTING
-// ftoption.h derives these two from the options above at its end, before
-// the lines above can take the options back, so they are taken back too.
-#undef TT_USE_BYTECODE_INTERPRETER
-#undef TT_SUPPORT_SUBPIXEL_HINTING_MINIMAL
+// The TrueType bytecode interpreter stays: glyphs load with
+// FT_LOAD_NO_HINTING, but FreeType still runs a tricky font's bytecode,
+// since those fonts assemble their glyphs in it.
 // The Adobe Glyph List only lets FreeType make a Unicode charmap from
 // glyph names. The text component maps characters through HarfBuzz and
 // reads no FreeType charmap or glyph name.
