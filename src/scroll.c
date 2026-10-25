@@ -554,19 +554,20 @@ static void PurgePans(muiContext* context)
     }
 }
 
-// iOS's rubber band: how far past a limit the children move for a pan
-// past it by past, in a scrollport of port, d (1 - 1 / (0.55 x / d + 1));
-// and the pan past it that moved them by over, its inverse.
-#define MUI_RUBBER_BAND 0.55f
+// iOS's rubber band, Maul Tween's: how far past a limit the children move
+// for a pan past it by past in a scrollport of port; and the pan past it
+// that moved them by over, its inverse, 0 from the scrollport on.
+#define MUI_RUBBER_BAND 0.55
 
 static float Band(float past, float port)
 {
-    return port > 0.0f ? port * (1.0f - 1.0f / (MUI_RUBBER_BAND * past / port + 1.0f)) : 0.0f;
+    return (float)mtwnRubberBand((double)past, (double)port, MUI_RUBBER_BAND);
 }
 
 static float Unband(float over, float port)
 {
-    return over < port ? port / MUI_RUBBER_BAND * over / (port - over) : 0.0f;
+    return over < port ? (float)mtwnRubberBandInverse((double)over, (double)port, MUI_RUBBER_BAND)
+                       : 0.0f;
 }
 
 // Where a pan along one axis puts the offset, within 0 and limit, and
