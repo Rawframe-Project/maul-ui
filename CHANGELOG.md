@@ -5,6 +5,13 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.2.1](https://github.com/Rawframe-Project/maul-ui/compare/v0.2.0...v0.2.1) (2026-10-25)
+
+
+### Fixed
+
+* **scroll:** stop a fling at a limit that layout moved behind its start ([#47](https://github.com/Rawframe-Project/maul-ui/issues/47)) ([73bbd47](https://github.com/Rawframe-Project/maul-ui/commit/73bbd47801af025356a9c267cb158b4029cb6c92)), closes [#46](https://github.com/Rawframe-Project/maul-ui/issues/46)
+
 ## [0.2.0](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.2.0) (2026-10-24)
 
 ### Changed
