@@ -391,7 +391,7 @@ extern "C"
     /// @param nodeId      A node whose host key is an editing block's.
     /// @param event       The event.
     /// @param input       The keymap and the clipboard writer.
-    /// @param outcomeOut  Receives what the event did.
+    /// @param outcomeOut  Receives what the event did; unchanged on failure.
     /// @return As muiTextEditMove; `mui_errorState` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by

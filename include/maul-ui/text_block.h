@@ -351,7 +351,8 @@ extern "C"
     ///                    NULL to read neither lines nor words.
     /// @param contentOut  Receives the text, its selection, lines, words
     ///                    and clusters, valid until the block is edited
-    ///                    or destroyed, or read again.
+    ///                    or destroyed, or read again; unchanged when the
+    ///                    call gives false.
     /// @return Whether the key names a block; false, too, when memory
     ///         for a password's bullets runs out, for a NULL contentOut
     ///         or while the service is busy, which counts one misuse.

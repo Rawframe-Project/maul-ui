@@ -197,7 +197,7 @@ extern "C"
     ///                  left; may be NULL when capacity is 0.
     /// @param capacity  How many rects holds.
     /// @param countOut  Receives how many rectangles there are, also when
-    ///                  rects holds fewer.
+    ///                  rects holds fewer; unchanged on any other failure.
     /// @return `mui_success`; `mui_errorCapacity` when rects holds fewer,
     ///         writing those that fit, or memory runs out; otherwise as
     ///         muiTextHitTest; `mui_errorState` while the service is busy.
