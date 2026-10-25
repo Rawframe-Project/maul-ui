@@ -34,7 +34,7 @@ Whole detents and key steps move toward a target over 150 ms with a cubic ease o
 
 For touch and pens, a scroll container is a drag node too where no nearer node takes drags. Its drag records, when dispatched, pan it opposite the pointer's offset from the drag's start ([scroll_pan.c](../../src/scroll_pan.c)).
 
-A drag that is not cancelled ends in a fling at the velocity of a least squares line through the moves of its last 100 ms, from 50 to 8,000 units a second. The fling is [Maul Tween](https://github.com/Rawframe-Project/maul-tween)'s decay, keeping the rule's `decelerationRate` of its speed a millisecond (0.998, iOS's; `mtwnMakeDecay` at `-1000 ln r` a second, `mtwnSampleDecay`), until it is under 10 units a second or meets a limit. A press, a step or setting the offset stops it, and reduced motion skips it.
+A drag that is not cancelled ends in a fling at the velocity of a least squares line through the moves of its last 100 ms, from 50 to 8,000 units a second. The fling is [Maul Tween](https://github.com/Rawframe-Project/maul-tween)'s decay, keeping the rule's `decelerationRate` of its speed a millisecond (0.998, iOS's; `mtwnMakeDecayFromDeceleration`, `-1000 ln r` a second by Maul Tween's logarithm, `mtwnSampleDecay`), until it is under 10 units a second or meets a limit. A press, a step or setting the offset stops it, and reduced motion skips it.
 
 Overscroll is off by default, as on desktop browsers. With the rule's `overscroll` on:
 

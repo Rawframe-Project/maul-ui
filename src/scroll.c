@@ -10,7 +10,6 @@
 #include "fpenv.h"
 #include "invariant.h"
 #include "layer.h"
-#include "motion_math.h"
 #include "scroll.h"
 #include "scroll_store.h"
 #include "tree.h"
@@ -449,10 +448,9 @@ static muiFlung FlingAxis(const mtwnDecay* decay, const mtwnSpring* spring, doub
 // enough with nothing past a limit, or settled along each axis.
 static bool Decay(muiContext* context, uint32_t slot, const muiScrollEase* ease, double elapsed)
 {
-    // -1000 ln r a second, by the library's logarithm as before: same bits.
     mtwnDecay decay;
     mtwnResult made =
-        mtwnMakeDecay(-muiLog((double)context->scrolling.rule.decelerationRate) * 1000.0, &decay);
+        mtwnMakeDecayFromDeceleration((double)context->scrolling.rule.decelerationRate, &decay);
     MUI_ASSERT(made == mtwn_success);
     const mtwnSpring spring = BounceSpring();
     double seconds = elapsed / 1e9;
