@@ -15,7 +15,7 @@ property: color invariant property_bits outline
 condition: property_bits
 motion_math:
 color: motion_math
-animation: inherit layout_node pool property style_store tree
+animation: inherit invariant layout_node pool property style_store tree
 style_edit: context pool style_store tree
 transition: animation context pool property style_edit style_store fpenv
 token: condition context pool property style_edit style_store token_store fpenv

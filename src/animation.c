@@ -8,6 +8,7 @@
 
 #include "animation.h"
 
+#include "invariant.h"
 #include "property.h"
 
 #include <math.h>
@@ -104,7 +105,11 @@ static double TimedProgress(const muiAnimation* animation, double elapsed)
     double x = elapsed / animation->seconds;
     // Every timed easing is linear or a cubic Bezier: sampled so, Maul
     // Tween's other curves stay out of the program.
-    return mtwnEaseCubicBezier(&spec->easing, x);
+    // The end, should Maul Tween refuse the sample.
+    double eased = 1.0;
+    mtwnResult sampled = mtwnEaseCubicBezier(&spec->easing, x, &eased);
+    MUI_ASSERT(sampled == mtwn_success);
+    return eased;
 }
 
 // A record's channels and velocity at nowNs; whether it has arrived.
@@ -128,7 +133,10 @@ static bool Sample(const muiAnimation* animation, uint64_t nowNs, float value[MU
     }
     bool resting = true;
     double toSpeed = TWO_PI * (double)animation->spec.def.frequency;
-    mtwnSpringMotion motion = mtwnSpringMotionAt(&animation->spec.spring, elapsed);
+    // No motion left, at the target, should Maul Tween refuse.
+    mtwnSpringMotion motion = {0};
+    mtwnResult moved = mtwnSpringMotionAt(&animation->spec.spring, elapsed, &motion);
+    MUI_ASSERT(moved == mtwn_success);
     for (uint32_t i = 0; i < animation->channels; i++)
     {
         double offset = (double)animation->from[i] - (double)animation->to[i];

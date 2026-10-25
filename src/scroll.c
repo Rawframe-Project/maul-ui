@@ -411,6 +411,17 @@ typedef struct muiFlung
     bool settled;
 } muiFlung;
 
+// When a decay from from at velocity v reaches edge; infinity when it
+// never does.
+static double CrossingTime(const mtwnDecay* decay, double from, double v, double edge)
+{
+    // Never, should Maul Tween refuse: the fling then stops at the limit.
+    double seconds = (double)INFINITY;
+    mtwnResult crossed = mtwnDecayCrossingTime(decay, from, v, edge, &seconds);
+    MUI_ASSERT(crossed == mtwn_success);
+    return seconds;
+}
+
 // An axis of a fling from from at velocity v on decay, seconds on:
 // within 0 and limit, the decay's; past one, at it, and with overscroll
 // the bounded decay's spring on past it, which takes over at the edge at
@@ -418,8 +429,10 @@ typedef struct muiFlung
 static muiFlung FlingAxis(const mtwnDecay* decay, const mtwnSpring* spring, double from, double v,
                           double limit, double seconds, bool overscroll)
 {
-    double at = 0.0;
-    mtwnSampleDecay(decay, from, v, seconds, &at, NULL);
+    // Where it began, should Maul Tween refuse the sample.
+    double at = from;
+    mtwnResult sampled = mtwnSampleDecay(decay, from, v, seconds, &at, NULL);
+    MUI_ASSERT(sampled == mtwn_success);
     if (at >= 0.0 && at <= limit)
     {
         return (muiFlung){(float)at, 0.0f, v == 0.0};
@@ -429,14 +442,16 @@ static muiFlung FlingAxis(const mtwnDecay* decay, const mtwnSpring* spring, doub
     // it, or that never meets the edge (by rounding) stops at the limit.
     bool began = from >= 0.0 && from <= limit;
     mtwnBoundedDecay bounded;
-    if (!overscroll || !began || isinf(mtwnDecayCrossingTime(decay, from, v, edge)) ||
+    if (!overscroll || !began || isinf(CrossingTime(decay, from, v, edge)) ||
         mtwnMakeBoundedDecay(decay, spring, 0.0, limit, &bounded) != mtwn_success)
     {
         return (muiFlung){(float)edge, 0.0f, true};
     }
-    double position = 0.0;
+    // At rest on the edge, should Maul Tween refuse the sample.
+    double position = edge;
     double moving = 0.0;
-    mtwnSampleBoundedDecay(&bounded, from, v, seconds, &position, &moving);
+    sampled = mtwnSampleBoundedDecay(&bounded, from, v, seconds, &position, &moving);
+    MUI_ASSERT(sampled == mtwn_success);
     double over = position - edge;
     bool rest = fabs(over) < (double)MUI_BOUNCE_REST && fabs(moving) < MUI_FLING_STOP;
     return (muiFlung){(float)edge, rest ? 0.0f : (float)over, rest};
@@ -454,8 +469,10 @@ static bool Decay(muiContext* context, uint32_t slot, const muiScrollEase* ease,
     MUI_ASSERT(made == mtwn_success);
     const mtwnSpring spring = BounceSpring();
     double seconds = elapsed / 1e9;
+    // None of the speed, should Maul Tween refuse: the fling then ends.
     double kept = 0.0;
-    mtwnSampleDecay(&decay, 0.0, 1.0, seconds, NULL, &kept);
+    mtwnResult sampled = mtwnSampleDecay(&decay, 0.0, 1.0, seconds, NULL, &kept);
+    MUI_ASSERT(sampled == mtwn_success);
     const muiLayoutNode* layout = &context->layout[slot - 1];
     muiScrollState* scroll = &context->scrolls[slot - 1];
     const muiSize size = {layout->rect.width, layout->rect.height};
@@ -483,10 +500,14 @@ static bool Bounce(muiContext* context, uint32_t slot, const muiScrollEase* ease
 {
     const mtwnSpring spring = BounceSpring();
     double seconds = elapsed / 1e9;
+    // None left, should Maul Tween refuse: the bounce then ends.
     double overX = 0.0;
     double overY = 0.0;
-    mtwnSampleSpring(&spring, (double)ease->fromX, 0.0, seconds, &overX, NULL);
-    mtwnSampleSpring(&spring, (double)ease->fromY, 0.0, seconds, &overY, NULL);
+    mtwnResult sampledX =
+        mtwnSampleSpring(&spring, (double)ease->fromX, 0.0, seconds, &overX, NULL);
+    mtwnResult sampledY =
+        mtwnSampleSpring(&spring, (double)ease->fromY, 0.0, seconds, &overY, NULL);
+    MUI_ASSERT(sampledX == mtwn_success && sampledY == mtwn_success);
     muiScrollState* scroll = &context->scrolls[slot - 1];
     scroll->overX = (float)overX;
     scroll->overY = (float)overY;
