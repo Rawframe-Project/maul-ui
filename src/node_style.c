@@ -96,6 +96,10 @@ static muiResult NodeSetStates(muiContext* context, muiNodeId nodeId, muiState s
     {
         return mui_errorInvalid;
     }
+    if ((states & ~MUI_KNOWN_STATES) != 0)
+    {
+        return muiRefuse(context);
+    }
     muiResult status = mui_success;
     uint32_t slot = muiResolveEdit(context, nodeId, &status);
     // Exiting is the library's (src/exit.c): kept as it is.

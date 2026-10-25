@@ -195,8 +195,10 @@ extern "C"
 #define MUI_INTERACTION_PROPERTIES ((muiPropertyMask)0xFFull)
 
     // The states a node can be in, as bits, weakest first: a later
-    // state's variant wins over an earlier one's.
-    typedef uint8_t muiState;
+    // state's variant wins over an earlier one's. Sixteen bits, of which
+    // eight are states, so that a state can be added without changing
+    // the type.
+    typedef uint16_t muiState;
 
     enum
     {
@@ -228,8 +230,11 @@ extern "C"
         mui_variantDisabled = 7,
         mui_variantExiting = 8,
         // The values of the class's first condition; condition i has
-        // mui_variantCondition0 + i.
-        mui_variantCondition0 = 9,
+        // mui_variantCondition0 + i. The conditions follow the variants of
+        // all sixteen state bits, so a state added later moves none of
+        // them; the variants between the states and the conditions are
+        // refused.
+        mui_variantCondition0 = 17,
     };
 
     enum
@@ -629,10 +634,10 @@ extern "C"
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
-    /// @param states   muiState bits.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
-    ///         id; `mui_errorState` while the context is busy; `mui_errorStale`
-    ///         for a node that is gone.
+    /// @param states   muiState bits, each one of the states above.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the null
+    ///         id or a bit that names no state; `mui_errorState` while the
+    ///         context is busy; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_SetStates(muiContext* context, muiNodeId nodeId,

@@ -189,6 +189,11 @@ static void TestClassValuesAreCheckedAndRead(void)
     CHECK(muiStyle_SetLayoutValues(context, style, mui_variantCondition0, &values, WIDTH) ==
               mui_errorInvalid,
           "unknown variant");
+    CHECK(muiStyle_SetLayoutValues(context, style, (muiVariant)(mui_variantExiting + 1), &values,
+                                   WIDTH) == mui_errorInvalid &&
+              muiStyle_SetLayoutValues(context, style, (muiVariant)(mui_variantCondition0 - 1),
+                                       &values, WIDTH) == mui_errorInvalid,
+          "the variants kept for later states, between the states and the conditions");
     CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, &values,
                                    MUI_PROPERTY_BIT(mui_propertySafeArea + 1)) == mui_errorInvalid,
           "unknown property");
@@ -408,6 +413,11 @@ static void TestStatesLayerAboveEveryBase(void)
           "only checked");
     CHECK(WidthAfterLayout(context, node, node) == 100.0f, "the variant of the state held");
     CHECK(muiNode_SetStates(context, s_nullNode, 0) == mui_errorInvalid, "null node");
+    uint64_t misuse = muiGetContextMisuse(context);
+    CHECK(muiNode_SetStates(context, node, (muiState)(mui_stateExiting << 1)) == mui_errorInvalid &&
+              muiGetContextMisuse(context) == misuse + 1 &&
+              muiNode_GetStates(context, node) == mui_stateChecked,
+          "a bit that names no state refused, as misuse, the states kept");
     CHECK(muiNode_SetStates(NULL, node, 0) == mui_errorInvalid, "no context");
     CHECK(muiNode_GetStates(NULL, node) == 0, "no context read");
     CHECK(muiDestroyNode(context, node) == mui_success, "destroy");
