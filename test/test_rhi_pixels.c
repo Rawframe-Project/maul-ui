@@ -50,7 +50,6 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
@@ -139,29 +138,31 @@ static void Close(Gpu* gpu)
     }
 }
 
-static double Seconds(void)
+// Hands the renderer the device's notifications.
+static void Drain(Gpu* gpu, muiRhiRenderer* renderer)
 {
-    struct timespec now = {0};
-    // hygiene: bounds the device's pipeline compile, which has no wait
-    (void)timespec_get(&now, TIME_UTC);
-    return (double)now.tv_sec + (double)now.tv_nsec * 1e-9;
+    mrhiDeviceNotification record;
+    while (mrhiNextDeviceNotification(gpu->device, &record) == mrhi_success)
+    {
+        (void)muiRhiRenderer_Notify(renderer, &record);
+    }
 }
 
-// Polls the device, ten seconds at most, for the renderer's pipeline.
+// Waits for the renderer's pipeline. A native driver makes it inside its
+// create call and answers at the first poll, so one that answers later
+// fails here by name; the browser answers between sleeps.
 static bool AwaitReady(Gpu* gpu, muiRhiRenderer* renderer)
 {
-    double deadline = Seconds() + 10.0;
-    while (!muiRhiRenderer_IsReady(renderer) && Seconds() < deadline)
-    {
-        mrhiDeviceNotification record;
-        while (mrhiNextDeviceNotification(gpu->device, &record) == mrhi_success)
-        {
-            (void)muiRhiRenderer_Notify(renderer, &record);
-        }
+    Drain(gpu, renderer);
 #ifdef __EMSCRIPTEN__
+    for (int slept = 0; !muiRhiRenderer_IsReady(renderer) && slept < WAIT_SLEEPS; slept++)
+    {
         emscripten_sleep(1);
-#endif
+        Drain(gpu, renderer);
     }
+#else
+    CHECK(muiRhiRenderer_IsReady(renderer), "the pipeline answered at the device's first poll");
+#endif
     return muiRhiRenderer_IsReady(renderer);
 }
 
