@@ -3,8 +3,8 @@
 //
 // Glyph images: Ahem's boxes give exact coverage at whole and fractional
 // sizes and offsets and exact distance fields, Liberation Sans renders the
-// same bytes on every platform, overlapping contours make one shape, and
-// calls outside the contract are refused.
+// same bytes on every platform, overlapping contours make one shape, a
+// tricky font's bytecode runs, and calls outside the contract are refused.
 
 #include "test_harness.h"
 
@@ -21,6 +21,7 @@
 #include "large_glyph.inc"
 #include "liberation_sans.inc"
 #include "overlap.inc"
+#include "tricky.inc"
 
 enum
 {
@@ -133,6 +134,23 @@ static void TestSameEverywhere(void)
     }
     CHECK(image.width > 200 && image.height > 250 && top > 0 && bottom == 255,
           "A large, filling its box");
+    muiDestroyTextService(fonts.service);
+}
+
+static void TestTricky(void)
+{
+    // FreeType runs a tricky font's glyph program although glyphs load
+    // unhinted: its A, a box from 2 to 10 pixels at 20, is moved 2 right.
+    Fonts fonts = MakeFonts();
+    muiFontDef def = muiDefaultFontDef();
+    def.data = s_tricky;
+    def.size = sizeof s_tricky;
+    def.dataMode = mui_fontDataBorrow;
+    muiFontId tricky = {0, 0};
+    CHECK(muiCreateFont(fonts.service, &def, &tricky) == mui_success, "the tricky font");
+    muiGlyphImage image = Render(&fonts, tricky, 1, 20.0f, 0.0f);
+    CHECK(SameImage(image, 4, 14, 8, 14) && At(image, 0, 0) == 255 && At(image, 7, 13) == 255,
+          "the box moved by its bytecode");
     muiDestroyTextService(fonts.service);
 }
 
@@ -491,6 +509,7 @@ int main(void)
 {
     TestBoxes();
     TestSameEverywhere();
+    TestTricky();
     TestContract();
     TestTooLarge();
     TestDamaged();

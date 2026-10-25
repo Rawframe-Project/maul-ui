@@ -23,10 +23,19 @@
 #undef FT_CONFIG_OPTION_INCREMENTAL
 #undef FT_CONFIG_OPTION_SVG
 #undef TT_CONFIG_OPTION_BDF
-// Glyphs are always loaded unhinted (FT_LOAD_NO_HINTING): distance fields
-// and outlines are drawn at any scale, so the TrueType bytecode
-// interpreter that hints them is never run.
+// The TrueType bytecode interpreter stays: glyphs load with
+// FT_LOAD_NO_HINTING, but FreeType still runs a tricky font's bytecode,
+// since those fonts assemble their glyphs in it. ftoption.h has already
+// derived TT_USE_BYTECODE_INTERPRETER, which builds it, so this undefine
+// leaves out only the cvar table's variations of the values bytecode
+// reads: no tricky font is a variable font.
 #undef TT_CONFIG_OPTION_BYTECODE_INTERPRETER
-#undef TT_CONFIG_OPTION_SUBPIXEL_HINTING
+#ifndef TT_USE_BYTECODE_INTERPRETER
+#error "tricky fonts need FreeType's TrueType bytecode interpreter"
+#endif
+// The Adobe Glyph List only lets FreeType make a Unicode charmap from
+// glyph names. The text component maps characters through HarfBuzz and
+// reads no FreeType charmap or glyph name.
+#undef FT_CONFIG_OPTION_ADOBE_GLYPH_LIST
 
 #endif // MAUL_UI_FTOPTION_H
