@@ -49,9 +49,7 @@ static void Reach(const muiContext* context, uint32_t slot, float* x, float* y, 
                muiScrollLimit(&layout->style, size, scroll, false));
 }
 
-// Stops the step easing a node, if one does.
-// Stops what moves the node at slot, and takes back its overscroll.
-static void Cancel(muiContext* context, uint32_t slot)
+void muiScrollCancel(muiContext* context, uint32_t slot)
 {
     muiScrollStore* store = &context->scrolling;
     uint32_t i = EaseOf(store, slot);
@@ -86,7 +84,7 @@ muiResult muiSetNodeScroll(muiContext* context, muiNodeId nodeId, float x, float
     }
     muiScrollState* scroll = &context->scrolls[slot - 1];
     Reach(context, slot, &x, &y, 0.0f, 0.0f);
-    Cancel(context, slot);
+    muiScrollCancel(context, slot);
     if (x != scroll->x || y != scroll->y)
     {
         scroll->x = x;
@@ -132,7 +130,7 @@ static void MoveContent(muiContext* context, uint32_t container, bool horizontal
     float* field = horizontal ? &scroll->x : &scroll->y;
     if (clamped != *field)
     {
-        Cancel(context, container);
+        muiScrollCancel(context, container);
         *field = clamped;
         muiNoteScrolled(context, container);
     }
@@ -339,7 +337,7 @@ static void Step(muiContext* context, uint32_t slot, float right, float down, ui
     uint32_t i = EaseOf(store, slot);
     if (i == store->easeCount || store->eases[i].kind != muiScrollEaseStep)
     {
-        Cancel(context, slot);
+        muiScrollCancel(context, slot);
         i = store->easeCount;
     }
     bool easing = i < store->easeCount;
@@ -529,201 +527,6 @@ void muiScrollAdvance(muiContext* context, uint64_t nowNs)
     }
 }
 
-// The pan of a pointer, which drags one node at a time; the end of the
-// table for none.
-static uint32_t PanOf(const muiScrollStore* store, uint32_t pointer)
-{
-    uint32_t i = 0;
-    while (i < store->panCount && store->pans[i].pointer != pointer)
-    {
-        i++;
-    }
-    return i;
-}
-
-// Takes out the pans of nodes destroyed since, whose drags end unseen.
-static void PurgePans(muiContext* context)
-{
-    muiScrollStore* store = &context->scrolling;
-    for (uint32_t i = store->panCount; i > 0; i--)
-    {
-        if (muiTreeResolve(&context->tree, store->pans[i - 1].node) == 0)
-        {
-            store->pans[i - 1] = store->pans[--store->panCount];
-        }
-    }
-}
-
-// iOS's rubber band, Maul Tween's: how far past a limit the children move
-// for a pan past it by past in a scrollport of port; and the pan past it
-// that moved them by over, its inverse, 0 from the scrollport on.
-#define MUI_RUBBER_BAND 0.55
-
-static float Band(float past, float port)
-{
-    return (float)mtwnRubberBand((double)past, (double)port, MUI_RUBBER_BAND);
-}
-
-static float Unband(float over, float port)
-{
-    return over < port ? (float)mtwnRubberBandInverse((double)over, (double)port, MUI_RUBBER_BAND)
-                       : 0.0f;
-}
-
-// Where a pan along one axis puts the offset, within 0 and limit, and
-// the overscroll past either, signed, when the rule allows it.
-static float Along(const muiContext* context, float wanted, float limit, float port, bool axis,
-                   float* overOut)
-{
-    float offset = fminf(fmaxf(wanted, 0.0f), limit);
-    *overOut = 0.0f;
-    if (context->scrolling.rule.overscroll && axis && wanted != offset)
-    {
-        *overOut = wanted < 0.0f ? -Band(-wanted, port) : Band(wanted - limit, port);
-    }
-    return offset;
-}
-
-// The scrollport of a node, its padding box.
-static muiSize PortOf(const muiLayoutNode* layout)
-{
-    const muiEdges* border = &layout->style.border;
-    return (muiSize){fmaxf(layout->rect.width - border->start - border->end, 0.0f),
-                     fmaxf(layout->rect.height - border->top - border->bottom, 0.0f)};
-}
-
-// Moves a panned container's offsets opposite the pointer's offset from
-// the drag's start, logical under right to left, within its limits; past
-// them, its overscroll when the rule allows it.
-static void Pan(muiContext* context, uint32_t slot, const muiScrollPan* pan,
-                const muiPointerRecord* record)
-{
-    const muiLayoutNode* layout = &context->layout[slot - 1];
-    muiScrollState* scroll = &context->scrolls[slot - 1];
-    const muiSize size = {layout->rect.width, layout->rect.height};
-    const muiSize port = PortOf(layout);
-    muiScrollAxes axes = layout->style.scrollAxes;
-    float across = scroll->right ? record->offsetX : -record->offsetX;
-    float down = scroll->bottom ? record->offsetY : -record->offsetY;
-    float overX = 0.0f;
-    float overY = 0.0f;
-    float x =
-        Along(context, pan->startX + across, muiScrollLimit(&layout->style, size, scroll, true),
-              port.width, (axes & mui_scrollHorizontal) != 0, &overX);
-    float y =
-        Along(context, pan->startY + down, muiScrollLimit(&layout->style, size, scroll, false),
-              port.height, (axes & mui_scrollVertical) != 0, &overY);
-    if (x != scroll->x || y != scroll->y || overX != scroll->overX || overY != scroll->overY)
-    {
-        scroll->x = x;
-        scroll->y = y;
-        scroll->overX = overX;
-        scroll->overY = overY;
-        muiNoteScrolled(context, slot);
-    }
-}
-
-// The flings' window of moves, and their least and greatest speeds, in
-// units a second.
-#define MUI_FLING_WINDOW_NS 100000000ull
-#define MUI_FLING_MIN       50.0
-#define MUI_FLING_MAX       8000.0
-
-// The slope of a least squares line through a pan's moves of the last
-// 100 ms, per axis, in units a second; 0 with fewer than two.
-static void VelocityOf(const muiScrollPan* pan, double* xOut, double* yOut)
-{
-    uint32_t count = pan->count < MUI_SCROLL_SAMPLES ? pan->count : MUI_SCROLL_SAMPLES;
-    const muiScrollSample* last = &pan->samples[(pan->count - 1) % MUI_SCROLL_SAMPLES];
-    double sumT = 0.0;
-    double sumX = 0.0;
-    double sumY = 0.0;
-    uint32_t used = 0;
-    for (uint32_t k = 0; k < count; k++)
-    {
-        const muiScrollSample* sample = &pan->samples[(pan->count - 1 - k) % MUI_SCROLL_SAMPLES];
-        if (last->timeNs - sample->timeNs > MUI_FLING_WINDOW_NS)
-        {
-            break;
-        }
-        // Seconds before the last.
-        sumT -= (double)(last->timeNs - sample->timeNs) / 1e9;
-        sumX += (double)sample->x;
-        sumY += (double)sample->y;
-        used++;
-    }
-    // One move, or moves at one time, give no spread: no velocity.
-    *xOut = 0.0;
-    *yOut = 0.0;
-    double meanT = sumT / used;
-    double meanX = sumX / used;
-    double meanY = sumY / used;
-    double spread = 0.0;
-    double alongX = 0.0;
-    double alongY = 0.0;
-    for (uint32_t k = 0; k < used; k++)
-    {
-        const muiScrollSample* sample = &pan->samples[(pan->count - 1 - k) % MUI_SCROLL_SAMPLES];
-        double t = -(double)(last->timeNs - sample->timeNs) / 1e9 - meanT;
-        spread += t * t;
-        alongX += t * ((double)sample->x - meanX);
-        alongY += t * ((double)sample->y - meanY);
-    }
-    if (spread > 0.0)
-    {
-        *xOut = alongX / spread;
-        *yOut = alongY / spread;
-    }
-}
-
-// Starts a fling of a panned container at the pan's velocity, the
-// offsets' opposite the pointer's; none below the least speed, under
-// reduced motion, or with the ease table full.
-static void StartFling(muiContext* context, uint32_t slot, const muiScrollPan* pan, uint64_t timeNs)
-{
-    muiScrollStore* store = &context->scrolling;
-    double vx = 0.0;
-    double vy = 0.0;
-    VelocityOf(pan, &vx, &vy);
-    double speed = sqrt(vx * vx + vy * vy);
-    if (speed < MUI_FLING_MIN || context->environment.reducedMotion ||
-        store->easeCount == MUI_SCROLL_EASES)
-    {
-        return;
-    }
-    double scale = speed > MUI_FLING_MAX ? MUI_FLING_MAX / speed : 1.0;
-    const muiScrollState* scroll = &context->scrolls[slot - 1];
-    store->eases[store->easeCount++] = (muiScrollEase){
-        .node = muiTreeIdOf(&context->tree, slot),
-        .fromX = scroll->x,
-        .fromY = scroll->y,
-        .startNs = timeNs,
-        .kind = muiScrollEaseFling,
-        .velocityX = (float)((scroll->right ? vx : -vx) * scale),
-        .velocityY = (float)((scroll->bottom ? vy : -vy) * scale),
-    };
-}
-
-// Springs a released overscroll back to none; at once under reduced
-// motion or with the ease table full.
-static void StartBounce(muiContext* context, uint32_t slot, uint64_t timeNs)
-{
-    muiScrollStore* store = &context->scrolling;
-    const muiScrollState* scroll = &context->scrolls[slot - 1];
-    if (context->environment.reducedMotion || store->easeCount == MUI_SCROLL_EASES)
-    {
-        Cancel(context, slot);
-        return;
-    }
-    store->eases[store->easeCount++] = (muiScrollEase){
-        .node = muiTreeIdOf(&context->tree, slot),
-        .fromX = scroll->overX,
-        .fromY = scroll->overY,
-        .startNs = timeNs,
-        .kind = muiScrollEaseBounce,
-    };
-}
-
 void muiScrollStopFlings(muiContext* context, uint32_t slot, uint64_t timeNs)
 {
     muiScrollStore* store = &context->scrolling;
@@ -747,69 +550,6 @@ void muiScrollStopFlings(muiContext* context, uint32_t slot, uint64_t timeNs)
         }
         Drop(store, i);
     }
-}
-
-bool muiScrollPointer(muiContext* context, const muiPointerRecord* record)
-{
-    muiScrollStore* store = &context->scrolling;
-    uint32_t node = muiTreeResolve(&context->tree, record->node);
-    if (node == 0)
-    {
-        return false;
-    }
-    bool drag = record->kind == mui_pointerRecordDragStart ||
-                record->kind == mui_pointerRecordDragMove ||
-                record->kind == mui_pointerRecordDragEnd;
-    if (!drag || record->pointerKind == mui_pointerMouse ||
-        context->layout[node - 1].style.scrollAxes == mui_scrollNone)
-    {
-        return false;
-    }
-    uint32_t i = PanOf(store, record->pointer);
-    if (record->kind == mui_pointerRecordDragStart)
-    {
-        PurgePans(context);
-        i = PanOf(store, record->pointer);
-        if (i == store->panCount)
-        {
-            if (store->panCount == MUI_SCROLL_PANS)
-            {
-                return false;
-            }
-            store->panCount++;
-        }
-        // A pan caught past a limit goes on from the pan that put it there.
-        const muiScrollState* scroll = &context->scrolls[node - 1];
-        const muiSize port = PortOf(&context->layout[node - 1]);
-        float startX =
-            scroll->x + copysignf(Unband(fabsf(scroll->overX), port.width), scroll->overX);
-        float startY =
-            scroll->y + copysignf(Unband(fabsf(scroll->overY), port.height), scroll->overY);
-        Cancel(context, node);
-        store->pans[i] = (muiScrollPan){record->pointer, record->node, startX, startY, 0, {{0}}};
-    }
-    if (i == store->panCount)
-    {
-        return false;
-    }
-    muiScrollPan* pan = &store->pans[i];
-    pan->samples[pan->count++ % MUI_SCROLL_SAMPLES] =
-        (muiScrollSample){record->timeNs, record->offsetX, record->offsetY};
-    Pan(context, node, pan, record);
-    if (record->kind == mui_pointerRecordDragEnd)
-    {
-        const muiScrollState* scroll = &context->scrolls[node - 1];
-        if (scroll->overX != 0.0f || scroll->overY != 0.0f)
-        {
-            StartBounce(context, node, record->timeNs);
-        }
-        else if (!record->cancelled)
-        {
-            StartFling(context, node, pan, record->timeNs);
-        }
-        store->pans[i] = store->pans[--store->panCount];
-    }
-    return true;
 }
 
 bool muiScrollIsEasingUnder(const muiContext* context, uint32_t root)
@@ -963,7 +703,7 @@ bool muiScrollWheel(muiContext* context, uint32_t root, muiNodeId hitId, const m
     }
     else
     {
-        Cancel(context, container);
+        muiScrollCancel(context, container);
         ScrollBy(context, container, right, down);
     }
     store->latched = muiTreeIdOf(&context->tree, container);

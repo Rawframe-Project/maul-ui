@@ -171,9 +171,14 @@ static double Band(double past)
     return BandIn(past, 100.0);
 }
 
+static double UnbandIn(double over, double port)
+{
+    return port / 0.55 * over / (port - over);
+}
+
 static double Unband(double over)
 {
-    return 100.0 / 0.55 * over / (100.0 - over);
+    return UnbandIn(over, 100.0);
 }
 
 // What a bounce keeps of its overscroll after seconds.
@@ -956,6 +961,100 @@ static void TestFlingShrunk(void)
     muiDestroyContext(context);
 }
 
+static void TestCaughtPastPort(void)
+{
+    // From 220, a flick of 8000 a second released at 380: its spring peaks
+    // about 207 past the end, more than any pan in the scrollport of 100
+    // shows. Caught there, it stays where it is, and the pan goes on in a
+    // band twice as wide as what it caught.
+    Scene scene;
+    MakeScene(&scene, 10);
+    muiContext* context = scene.context;
+    Overscroll(context, true);
+    CHECK(muiNode_SetScroll(context, scene.s, 0.0f, 220.0f) == mui_success &&
+              Touch(&scene, mui_pointerPress, 0, 95.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 10 * MS, 15.0f) == 1 &&
+              Touch(&scene, mui_pointerMove, 20 * MS, -65.0f) == 1 &&
+              Touch(&scene, mui_pointerRelease, 20 * MS, -65.0f) == 1 &&
+              Y(context, scene.s) == 380.0f,
+          "a fast flick");
+    Layout(context, scene.root, 95 * MS);
+    double over = FlingOver(380.0, 8000.0, 400.0, 0.075);
+    CHECK(over > 200.0 && Drawn(&scene, true) == roundf((float)(-400.0 - over)), "past the port");
+    double band = 2.0 * over;
+    double wanted = UnbandIn(over, band) + 11.0;
+    CHECK(Touch(&scene, mui_pointerPress, 95 * MS, 50.0f) == 0 &&
+              Drawn(&scene, true) == roundf((float)(-400.0 - over)) &&
+              Touch(&scene, mui_pointerMove, 105 * MS, 39.0f) == 1 &&
+              Y(context, scene.s) == 400.0f &&
+              Near(Drawn(&scene, true), roundf((float)(-400.0 - BandIn(wanted, band)))),
+          "caught where it was");
+    CHECK(Touch(&scene, mui_pointerMove, 115 * MS, 60.0f) == 1 &&
+              Near(Drawn(&scene, true), roundf((float)(-400.0 - BandIn(wanted - 21.0, band)))),
+          "pushed back in the wide band");
+    // Let go, it springs back as ever; caught again within the scrollport,
+    // the pan takes the scrollport's band.
+    double released = BandIn(wanted - 21.0, band);
+    CHECK(Touch(&scene, mui_pointerRelease, 125 * MS, 60.0f) == 1, "released");
+    Layout(context, scene.root, 225 * MS);
+    CHECK(Near(Drawn(&scene, true), roundf((float)(-400.0 - released * Kept(0.1)))),
+          "springing back");
+    Layout(context, scene.root, 325 * MS);
+    over = released * Kept(0.2);
+    CHECK(over < 100.0 && Touch(&scene, mui_pointerPress, 325 * MS, 50.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 335 * MS, 40.0f) == 1 &&
+              Near(Drawn(&scene, true), roundf((float)(-400.0 - Band(Unband(over) + 10.0)))),
+          "the scrollport's band again");
+    muiDestroyContext(context);
+}
+
+// Maul Tween's rubber band as the library rounds it: 40 past a limit in
+// a scrollport of 100.
+static float Banded40(void)
+{
+    double scaled = 0.55 * 40.0;
+    return (float)(scaled / (1.0 + scaled / 100.0));
+}
+
+// Pulled 40 past the top and let go, the scrollport set to port by the
+// layout of that moment, caught at once and pulled 11 further: where the
+// children are drawn, down, at a scale of 64.
+static float CaughtAtTop(float port)
+{
+    Scene scene;
+    MakeScene(&scene, 10);
+    muiContext* context = scene.context;
+    Overscroll(context, true);
+    float over = Banded40();
+    CHECK(Touch(&scene, mui_pointerPress, 0, 50.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 10 * MS, 90.0f) == 1 &&
+              Touch(&scene, mui_pointerRelease, 20 * MS, 90.0f) == 1 &&
+              DrawnAt(&scene, 64.0f, 1, true) == roundf(over * 64.0f) / 64.0f,
+          "pulled 40 past the top");
+    SetHeight(context, scene.s, port);
+    Layout(context, scene.root, 20 * MS);
+    CHECK(DrawnAt(&scene, 64.0f, 1, true) == roundf(over * 64.0f) / 64.0f, "the scrollport set");
+    CHECK(Touch(&scene, mui_pointerPress, 20 * MS, 5.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 30 * MS, 16.0f) == 1 && Y(context, scene.s) == 0.0f,
+          "caught and pulled");
+    float drawn = DrawnAt(&scene, 64.0f, 1, true);
+    muiDestroyContext(context);
+    return drawn;
+}
+
+static void TestCaughtAtPort(void)
+{
+    // Below the scrollport the band is the scrollport's, as it was; from
+    // it on, at it or shrunk past it by layout, twice the overscroll.
+    double over = (double)Banded40();
+    double below = over + 1.0;
+    CHECK(Near(CaughtAtTop((float)below), (float)BandIn(UnbandIn(over, below) + 11.0, below)),
+          "just below the scrollport");
+    double wide = BandIn(UnbandIn(over, 2.0 * over) + 11.0, 2.0 * over);
+    CHECK(Near(CaughtAtTop((float)over), (float)wide), "at the scrollport");
+    CHECK(Near(CaughtAtTop((float)(over / 2.0)), (float)wide), "past a shrunk scrollport");
+}
+
 static void TestSlowBounce(void)
 {
     // A fling of 100 a second meeting the end at 15 a second: it falls
@@ -1020,6 +1119,8 @@ int main(void)
     TestOverscrollPort();
     TestFlingBounce();
     TestFlingShrunk();
+    TestCaughtPastPort();
+    TestCaughtAtPort();
     TestSlowBounce();
     TestRule();
     return s_failures == 0 ? 0 : 1;

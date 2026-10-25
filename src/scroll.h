@@ -43,6 +43,9 @@ bool muiScrollPage(muiContext* context, uint32_t container, muiKeyCode code, boo
 // panned.
 bool muiScrollPointer(muiContext* context, const muiPointerRecord* record);
 
+// Stops what moves the node at slot, and takes back its overscroll.
+void muiScrollCancel(muiContext* context, uint32_t slot);
+
 // Stops the flings of the node at slot and the scroll containers above
 // it, as a press there at timeNs does; one past a limit springs back.
 void muiScrollStopFlings(muiContext* context, uint32_t slot, uint64_t timeNs);
