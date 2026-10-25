@@ -5,6 +5,13 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.3.1](https://github.com/Rawframe-Project/maul-ui/compare/v0.3.0...v0.3.1) (2026-10-25)
+
+
+### Fixed
+
+* **window:** time Windows input from when it happened ([#59](https://github.com/Rawframe-Project/maul-ui/issues/59)) ([ffc0e51](https://github.com/Rawframe-Project/maul-ui/commit/ffc0e517b519948bad71ab62b1b93e7d9d02b81d)), closes [#55](https://github.com/Rawframe-Project/maul-ui/issues/55)
+
 ## [0.3.0](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.3.0) (2026-10-25)
 
 ### Changed
