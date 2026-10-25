@@ -5,7 +5,7 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
-## [0.3.3](https://github.com/Rawframe-Project/maul-ui/compare/v0.3.2...v0.3.3) (2026-10-25)
+## [0.3.3](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.3.3) (2026-10-25)
 
 ### Fixed
 
@@ -14,8 +14,9 @@ may change the API, the ABI and every data format.
   more often than maul-ui's own. The rate changes in its last bit for
   about 0.9% of deceleration rates; the default, 0.998, is unchanged,
   and iOS's "fast" 0.99 moves by one ulp. No fling or drag output moved
-  in the tests, but an offset within about 1e-16 of a float rounding
-  boundary may still round differently
+  in a grid of 60,047 fling frames and 23,780 drags at 0.998 and 0.99,
+  nor in 320 million sampled offsets at 0.99, but an offset within
+  about 1e-16 of a float rounding boundary may still round differently
   ([#66](https://github.com/Rawframe-Project/maul-ui/pull/66)).
 
 ## [0.3.2](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.3.2) (2026-10-25)
