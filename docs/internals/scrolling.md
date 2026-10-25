@@ -34,13 +34,13 @@ Whole detents and key steps move toward a target over 150 ms with a cubic ease o
 
 For touch and pens, a scroll container is a drag node too where no nearer node takes drags. Its drag records, when dispatched, pan it opposite the pointer's offset from the drag's start.
 
-A drag that is not cancelled ends in a fling at the velocity of a least squares line through the moves of its last 100 ms, from 50 to 8,000 units a second. The fling decays by the rule's `decelerationRate` a millisecond (0.998, iOS's) in closed form, until it is under 10 units a second or meets a limit. A press, a step or setting the offset stops it, and reduced motion skips it.
+A drag that is not cancelled ends in a fling at the velocity of a least squares line through the moves of its last 100 ms, from 50 to 8,000 units a second. The fling is [Maul Tween](https://github.com/Rawframe-Project/maul-tween)'s decay, keeping the rule's `decelerationRate` of its speed a millisecond (0.998, iOS's; `mtwnMakeDecay` at `-1000 ln r` a second, `mtwnSampleDecay`), until it is under 10 units a second or meets a limit. A press, a step or setting the offset stops it, and reduced motion skips it.
 
 Overscroll is off by default, as on desktop browsers. With the rule's `overscroll` on:
 
 - a pan past a limit keeps the offset at the limit and moves the children on by iOS's rubber band, `d (1 - 1 / (0.55 x / d + 1))` for `x` past the limit in a scrollport of `d`, drawn and hit but not counted as offset;
-- released, it springs back on a critically damped spring of 14.14 radians a second, Flutter's iOS spring (stiffness 100 over mass 0.5), and a pan catching it continues from where it is;
-- a fling meeting a limit springs on past it at the speed it met it, on the same spring, all in closed form;
+- released, it springs back on a critically damped spring of 14.14 radians a second, Flutter's iOS spring (stiffness 100 over mass 0.5; `mtwnSampleSpring`), and a pan catching it continues from where it is;
+- a fling meeting a limit springs on past it at the speed it met it, on the same spring: Maul Tween's bounded decay (`mtwnSampleBoundedDecay`), which hands over at the exact time the fling reaches the limit, all in closed form;
 - a step or setting the offset takes it back at once, as reduced motion does.
 
 Without overscroll a fling stops at the limit. So does a fling that began outside the limits, layout having moved one behind it, whichever way it moves.
