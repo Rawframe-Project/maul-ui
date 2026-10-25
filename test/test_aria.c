@@ -448,14 +448,19 @@ static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* ro
     heading.values.live = mui_liveAssertive;
     heading.text[mui_accessLabel] = "Topic 3";
     CHECK(Send(adapter, (const muiAccessNode*[]){&heading}, 1, rootChildren), "renamed");
-    // hygiene: the browser updates the live region asynchronously
-    Sleep();
+    // The region is written as the browser runs its tasks: waited for, up
+    // to a second.
+    for (int waited = 0; waited < 50 && !TextIs("#mui0-assertive", "Topic 3"); waited++)
+    {
+        // hygiene: the browser updates the live region asynchronously
+        Sleep();
+    }
     CHECK(TextIs("#mui0-assertive", "Topic 3") && TextIs("#mui0-polite", ""),
           "announced through the assertive region");
     heading.values.level = 4;
     heading.text[mui_accessLabel] = "Topic 3";
     CHECK(Send(adapter, (const muiAccessNode*[]){&heading}, 1, rootChildren), "not renamed");
-    // hygiene: the browser updates the live region asynchronously
+    // hygiene: a fixed wait shows the region keeps the name
     Sleep();
     CHECK(TextIs("#mui0-assertive", "Topic 3"), "the region keeps the name a while");
     // A scroll event comes with the page's next rendering, whose time
