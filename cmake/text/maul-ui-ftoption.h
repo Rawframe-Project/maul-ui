@@ -28,5 +28,13 @@
 // interpreter that hints them is never run.
 #undef TT_CONFIG_OPTION_BYTECODE_INTERPRETER
 #undef TT_CONFIG_OPTION_SUBPIXEL_HINTING
+// ftoption.h derives these two from the options above at its end, before
+// the lines above can take the options back, so they are taken back too.
+#undef TT_USE_BYTECODE_INTERPRETER
+#undef TT_SUPPORT_SUBPIXEL_HINTING_MINIMAL
+// The Adobe Glyph List only lets FreeType make a Unicode charmap from
+// glyph names. The text component maps characters through HarfBuzz and
+// reads no FreeType charmap or glyph name.
+#undef FT_CONFIG_OPTION_ADOBE_GLYPH_LIST
 
 #endif // MAUL_UI_FTOPTION_H
