@@ -21,7 +21,7 @@ A screen that does not change costs no work per frame. The library starts no thr
 
 ## Quick start
 
-It builds with CMake 3.25 or newer and GCC 14 or newer, Clang 19 or newer, or Apple Clang. Ubuntu 24.04's default compiler is GCC 13, which the build refuses, so there install GCC 14, with Git, CMake and the C++ compiler the text component builds HarfBuzz with, and tell CMake to use it:
+It builds with CMake 3.25 or newer and GCC 14 or newer, Clang 19 or newer, or Apple Clang. Ubuntu 24.04's default compiler is GCC 13, which the build refuses, so there install GCC 14, with Git, CMake and the C++ compiler the text component builds HarfBuzz with, and tell CMake to use GCC 14:
 
 ```sh
 sudo apt install git cmake gcc-14 g++
@@ -38,7 +38,7 @@ cmake --build build
 ctest --test-dir build
 ```
 
-A `build/` that GCC 13 already configured keeps that compiler and fails again ("GCC 14 or newer is required for C23"). Remove it and configure again, with `CC` exported as above, then carry on with the rest of the block from `cmake --build build`:
+A `build/` that GCC 13 already configured keeps that compiler and fails again ("GCC 14 or newer is required"). Remove it and configure again, with `CC` exported as above, then carry on with the rest of the block from `cmake --build build`:
 
 ```sh
 rm -rf build && cmake -B build -DCMAKE_BUILD_TYPE=Release
