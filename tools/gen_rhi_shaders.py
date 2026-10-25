@@ -53,7 +53,7 @@ CONTAINER = f"rhi/shaders/{NAME}_container.h"
 # SHA-256, as Maul RHI's stamps do.
 # The commit each Maul RHI release tag names: a local tag of that name on
 # another commit is not the release.
-RHI_COMMITS = {"v0.4.1": "7f7bd19f82b0df2dbda52b490094a6e58f4231d5"}
+RHI_COMMITS = {"v0.6.0": "3e8db3b3d410f3a36954ded6c22097c149638e8e"}
 
 PINNED = {
     "glslang": "glslang 15.1.0",

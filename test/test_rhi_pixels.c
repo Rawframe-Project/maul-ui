@@ -148,9 +148,10 @@ static void Drain(Gpu* gpu, muiRhiRenderer* renderer)
     }
 }
 
-// Waits for the renderer's pipeline. A native driver makes it inside its
-// create call and answers at the first poll, so one that answers later
-// fails here by name; the browser answers between sleeps.
+// Waits for the renderer's pipeline: natively for each notification the
+// device queues, until the pipeline's answer or none is owed, as a native
+// driver answers inside the pipeline's create call; on the web, where the
+// wait never blocks, between sleeps the browser answers in.
 static bool AwaitReady(Gpu* gpu, muiRhiRenderer* renderer)
 {
     Drain(gpu, renderer);
@@ -161,7 +162,12 @@ static bool AwaitReady(Gpu* gpu, muiRhiRenderer* renderer)
         Drain(gpu, renderer);
     }
 #else
-    CHECK(muiRhiRenderer_IsReady(renderer), "the pipeline answered at the device's first poll");
+    while (!muiRhiRenderer_IsReady(renderer) &&
+           mrhiWaitDeviceNotification(gpu->device, WAIT_NS) == mrhi_success)
+    {
+        Drain(gpu, renderer);
+    }
+    CHECK(muiRhiRenderer_IsReady(renderer), "the device answered the pipeline");
 #endif
     return muiRhiRenderer_IsReady(renderer);
 }
