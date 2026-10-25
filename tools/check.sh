@@ -57,8 +57,10 @@ configure() { # name, then cmake arguments
     cmake -S "$root" -B "$out/$name" -G Ninja -DMAUL_UI_WERROR=ON "$@" >"$out/$name.log"
 }
 
+# Configures a preset, checks its tests' registrations, and builds it.
 build_preset() {
     cmake --preset "$1" >"$out/$1.log"
+    python3 tools/check_test_hygiene.py --ctest "out/$1"
     cmake --build --preset "$1" -j "$jobs" >>"$out/$1.log"
 }
 
@@ -98,7 +100,7 @@ labels_for() {
 }
 
 source_checks() {
-    step "source, module, length, documentation and snippet rules, the shader container's stamp"
+    step "source, module, length, documentation, snippet and test hygiene rules, the shader container's stamp"
     python3 tools/check_source.py
     python3 tools/check_modules.py
     python3 tools/check_lengths.py
@@ -107,6 +109,8 @@ source_checks() {
     python3 tools/check_text_headers.py
     python3 tools/check_litmus.py
     python3 tools/check_float_env.py
+    python3 tools/check_test_hygiene.py --self-test
+    python3 tools/check_test_hygiene.py
     python3 tools/gen_rhi_shaders.py --check
     python3 tools/gen_rhi_shaders.py --self-test
     if [ -f "$org/scripts/docs_check.py" ]; then

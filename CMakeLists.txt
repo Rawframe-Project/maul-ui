@@ -279,6 +279,7 @@ if(MAUL_UI_BUILD_TESTS)
             maul_add_test(rhi_pixels WHITEBOX)
         endif()
         target_link_libraries(test_rhi_pixels PRIVATE maul-ui-rhi)
+        # hygiene: no GPU adapter locally; CI fails any skip
         set_tests_properties(rhi_pixels PROPERTIES SKIP_RETURN_CODE 77
                              FAIL_REGULAR_EXPRESSION "Validation Error")
         # Glyph runs, in Ahem, where Maul UI has its text component.
@@ -429,6 +430,7 @@ if(MAUL_UI_BUILD_TESTS)
         endif()
         add_test(NAME aria COMMAND ${mui_web_node} ${PROJECT_SOURCE_DIR}/test/web_runner.cjs
                                    $<TARGET_FILE:test_aria>)
+        # hygiene: a browser missing locally; CI fails any skip
         set_tests_properties(aria PROPERTIES SKIP_RETURN_CODE 77)
     endif()
     if(MAUL_UI_ATSPI)

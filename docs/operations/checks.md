@@ -16,7 +16,7 @@ What verifies a change, locally and in CI, and the time each may take.
 
 | Tier | Runs | Budget |
 |---|---|---|
-| `changed` | The source, module, length, API documentation, snippet, text header, litmus and float environment rules, the shader container's stamp, the organization's documentation check, `clang-format` on the changed C and Objective-C files, and the tests whose labels the changed files reach, integration tests left out: the core's in `linux-clang-20-asan`, the renderer's and the glue's in `linux-parts`. | under 2 minutes |
+| `changed` | The source, module, length, API documentation, snippet, text header, litmus, float environment and test hygiene rules, the shader container's stamp, the organization's documentation check, `clang-format` on the changed C and Objective-C files, and the tests whose labels the changed files reach, integration tests left out: the core's in `linux-clang-20-asan`, the renderer's and the glue's in `linux-parts`. | under 2 minutes |
 | `pr` | Every rule on every file, the layout fixture tables against the corpus, that the documentation site builds, clang-tidy over the core's, the renderer's and the glue's sources, the whole `linux-clang-20-asan` and `linux-parts` suites, and 10 seconds of fuzzing per target. | under 10 minutes |
 | `full` | Also the other Linux presets (ThreadSanitizer, shared, the core alone, the parts without text and with GCC, Clang and GCC Release) and 60 seconds per fuzz target. | under 20 minutes |
 
@@ -32,6 +32,8 @@ Each suite is `test/test_<name>.c` (or `.m`), one executable registered with CTe
 
 Some suites are seeded simulations rather than examples: `layout_bound` edits a tree at random and compares the bounded layout with one solved from nothing, `text_fuzz` and `color_glyph` read seeded damaged fonts and random text, and `field_quality` measures distance fields against exact coverage. A seed reproduces a run, so a failure prints its seed and step.
 
+The family's test hygiene check (`tools/check_test_hygiene.py`) rejects a sleep, a wall clock, a retry loop or a skip in the test sources, and a test without a label in a configured build; `check.sh` runs it over the tree and after each preset's configure. A use that must stay, such as an integration test's wait for a browser or a bus, carries `// hygiene: <reason>` (`# hygiene:` in CMake) on its line or the line before.
+
 A test that cannot run exits 77, which CTest reports as skipped, and every CI cell fails on a skipped or unrun test, so a platform that did not start never passes with nothing tested. The renderer's test presets set `MUI_RHI_REQUIRED=1`, so a missing device fails rather than skips, and CTest fails a test whose output holds a Vulkan validation error. A failed test job uploads its CTest logs, kept for a week.
 
 ## In CI
@@ -41,9 +43,9 @@ A test that cannot run exits 77, which CTest reports as skipped, and every CI ce
 | Job | What it guards |
 |---|---|
 | `changes` | Whether a pull request changes anything beyond documentation; when it does not, the build jobs are skipped. |
-| `docs` | The organization's documentation check, over the whole repository. |
+| `docs` | The organization's documentation check, run from the pinned commit of `.github`, over the whole repository. |
 | `zizmor` | The workflows: injection, persisted credentials, permissions, unpinned actions. |
-| `checks` | `clang-format`, the family's rules (the float environment rule among them), the text header list, the litmus check, the layout fixture tables, the shader container's stamp, that the documentation site builds, and clang-tidy. It runs on documentation changes too. |
+| `checks` | `clang-format`, the family's rules (the float environment rule among them), the text header list, the litmus check, test hygiene and the labels of `linux-clang-20-asan`'s and `linux-parts`' tests, the layout fixture tables, the shader container's stamp, that the documentation site builds, and clang-tidy. It runs on documentation changes too. |
 | `build` | One call of the organization's `cpp.yml` per preset: GCC 14 on x86-64 and on arm64, Clang 20 in Release, Clang with AddressSanitizer and UBSan (each test repeated up to three times on a pull request, so a flaky one fails before it merges), Clang with ThreadSanitizer, the shared library, the core without the text component, the renderer and the glue on lavapipe with Clang and the sanitizers, with GCC 14, and without text, macOS on its runner and `clang-cl` on Windows. All build with warnings as errors. |
 | `msvc-headers` | Every public header compiled by MSVC's `cl` as C17 and C++17 with `/W4 /WX`. |
 | `fuzz` | Every fuzz target: 20 seconds each on a pull request, 120 on `main` and at night. |
