@@ -5,13 +5,30 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
-## [0.3.2](https://github.com/Rawframe-Project/maul-ui/compare/v0.3.1...v0.3.2) (2026-10-25)
-
+## [0.3.2](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.3.2) (2026-10-25)
 
 ### Fixed
 
-* **scroll:** go on from an overscroll caught past the scrollport ([#63](https://github.com/Rawframe-Project/maul-ui/issues/63)) ([701ddad](https://github.com/Rawframe-Project/maul-ui/commit/701ddad1a6991bed1e396c2f671f7b288a86cac8)), closes [#64](https://github.com/Rawframe-Project/maul-ui/issues/64)
-* **text:** leave out FreeType's unused Adobe Glyph List ([#62](https://github.com/Rawframe-Project/maul-ui/issues/62)) ([28f9af2](https://github.com/Rawframe-Project/maul-ui/commit/28f9af25bf8bcc0824787353ce021a5ebc2115e0)), closes [#61](https://github.com/Rawframe-Project/maul-ui/issues/61)
+- With overscroll on, a pan that catches the children at or past the
+  scrollport's extent beyond a limit goes on from where they are. The
+  pan used to start at the limit, so the children jumped back by the
+  whole overscroll on the first move: 201 units under the finger after
+  a fast fling in the tests. Such a pan now takes a band twice as wide
+  as the overscroll it caught, for that pan only. Twice is the
+  library's own choice, and what iOS does here is unverified. Below the
+  scrollport's extent nothing changes, and the spring back after
+  release is unchanged
+  ([#63](https://github.com/Rawframe-Project/maul-ui/pull/63)).
+
+### Changed
+
+- The text component's wasm is 557,200 bytes, from 615,156 (87% of its
+  640,000 budget, from 96%). FreeType is built without the Adobe Glyph
+  List, which only makes a Unicode charmap from glyph names: the text
+  component maps characters through HarfBuzz and calls no FreeType
+  charmap or glyph-name function. The bytecode interpreter stays,
+  since FreeType runs it for tricky fonts. Results do not change
+  ([#62](https://github.com/Rawframe-Project/maul-ui/pull/62)).
 
 ## [0.3.1](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.3.1) (2026-10-25)
 
