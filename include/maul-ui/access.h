@@ -611,7 +611,7 @@ extern "C"
     ///
     /// @param context    The context.
     /// @param rootId     The root.
-    /// @param updateOut  Receives the update.
+    /// @param updateOut  Receives the update. Zeroed on failure.
     /// @return `mui_success`; `mui_empty` for a root not enabled;
     ///         `mui_errorInvalid` for a NULL argument or the null id;
     ///         `mui_errorState` while the context is busy; `mui_errorStale` for
@@ -625,9 +625,9 @@ extern "C"
     ///
     /// @param context     The context.
     /// @param request     The request.
-    /// @param handledOut  Receives whether it did anything: a click a
-    ///                    widget handled, a focus or value or offset that
-    ///                    moved, a request posted. May be NULL.
+    /// @param handledOut  Receives whether it did anything: a click a widget
+    ///                    handled, a focus or value or offset that moved, a
+    ///                    request posted. May be NULL. False on failure.
     /// @return `mui_success`; `mui_empty` for a node that does not take the
     ///         action, and for the text actions, which the host applies;
     ///         `mui_errorInvalid` for a NULL context or request or an unknown
@@ -660,7 +660,7 @@ extern "C"
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
-    /// @param roleOut  Receives the role.
+    /// @param roleOut  Receives the role. 0 on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or
     ///         the null id; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
@@ -693,9 +693,9 @@ extern "C"
     /// @param context    The context.
     /// @param nodeId     The node.
     /// @param kind       Which text.
-    /// @param textOut    Receives it, NUL-terminated, valid until it is
-    ///                   set again or the node is destroyed.
-    /// @param lengthOut  Receives its length.
+    /// @param textOut    Receives it, NUL-terminated, valid until it is set
+    ///                   again or the node is destroyed. NULL on failure.
+    /// @param lengthOut  Receives its length. 0 on failure.
     /// @return `mui_success`; `mui_empty` for none; `mui_errorInvalid` for
     ///         a NULL argument, the null id or an unknown kind;
     ///         `mui_errorStale` for a node that is gone.
@@ -724,7 +724,7 @@ extern "C"
     ///
     /// @param context   The context.
     /// @param nodeId    The node.
-    /// @param flagsOut  Receives them, 0 for none.
+    /// @param flagsOut  Receives them; 0 for none and on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or
     ///         the null id; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
@@ -761,10 +761,12 @@ extern "C"
     /// @param context     The context.
     /// @param nodeId      The node.
     /// @param kind        The relation.
-    /// @param targetsOut  Receives the nodes, up to capacity; may be NULL
-    ///                    when capacity is 0.
+    /// @param targetsOut  Receives the nodes, up to capacity; may be NULL when
+    ///                    capacity is 0. Nothing is written to it on any other
+    ///                    failure.
     /// @param capacity    Room in targetsOut.
-    /// @param countOut    Receives how many it names, whatever the room.
+    /// @param countOut    Receives how many it names, whatever the room. 0 on
+    ///                    any other failure.
     /// @return `mui_success`; `mui_errorCapacity` when they do not fit,
     ///         those that fit written; `mui_errorInvalid` for a NULL
     ///         argument, the null id or an unknown kind; `mui_errorStale`
@@ -801,7 +803,8 @@ extern "C"
     ///
     /// @param context    The context.
     /// @param nodeId     The node.
-    /// @param valuesOut  Receives them; the defaults for none.
+    /// @param valuesOut  Receives them; the defaults for none. Zeroed on
+    ///                   failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or
     ///         the null id; `mui_errorStale` for a node that is gone.
     /// @par Thread safety

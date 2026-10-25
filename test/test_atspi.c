@@ -2041,8 +2041,19 @@ static void TestDiscovery(const char* address)
     (void)setenv("AT_SPI_BUS_ADDRESS", address, 1);
 }
 
+// A NULL application clears the adapter it would make (Maul conventions,
+// Errors and assertions).
+static void TestNullAppClearsAdapter(void)
+{
+    muiAtspiAdapterDef def = muiDefaultAtspiAdapterDef();
+    muiAtspiAdapter* adapter = (muiAtspiAdapter*)&def;
+    CHECK(muiCreateAtspiAdapter(NULL, &def, &adapter) == mui_errorInvalid && adapter == NULL,
+          "CreateAtspiAdapter clears the adapter");
+}
+
 int main(void)
 {
+    TestNullAppClearsAdapter();
     char address[512];
     if (!muiLoadDBus(&s_test.dbus) || !StartBus(address, sizeof(address)))
     {

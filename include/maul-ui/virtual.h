@@ -97,8 +97,8 @@ extern "C"
     ///
     /// @param context   The context.
     /// @param nodeId    The list.
-    /// @param firstOut  Receives the first index.
-    /// @param endOut    Receives the index past the last.
+    /// @param firstOut  Receives the first index. 0 on failure.
+    /// @param endOut    Receives the index past the last. 0 on failure.
     /// @return `mui_success`; `mui_empty` for a node that is not a list or
     ///         has not been laid out since it was set; `mui_errorInvalid`
     ///         for a NULL argument or the null id; `mui_errorStale` for a
@@ -115,8 +115,8 @@ extern "C"
     /// @param context    The context.
     /// @param nodeId     The list.
     /// @param index      The item, below the list's count.
-    /// @param offsetOut  Receives its offset.
-    /// @param extentOut  Receives its extent.
+    /// @param offsetOut  Receives its offset. 0 on failure.
+    /// @param extentOut  Receives its extent. 0 on failure.
     /// @return `mui_success`; `mui_empty` for a node that is not a list;
     ///         `mui_errorInvalid` for a NULL argument, the null id or an
     ///         index past the count; `mui_errorStale` for a node that is
@@ -157,7 +157,7 @@ extern "C"
     ///
     /// @param context   The context.
     /// @param nodeId    The node.
-    /// @param indexOut  Receives the index.
+    /// @param indexOut  Receives the index. 0 on failure.
     /// @return `mui_success`; `mui_empty` for a node bound to none, or to
     ///         an item since removed; `mui_errorInvalid` for a NULL
     ///         argument or the null id; `mui_errorStale` for a node that is

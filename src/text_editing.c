@@ -170,6 +170,10 @@ static MUI_NOINLINE muiResult TextBlockGetSelectionWorker(const muiTextService* 
                                                           muiTextBlockId blockId,
                                                           muiTextSelection* selectionOut)
 {
+    if (selectionOut != nullptr)
+    {
+        memset(selectionOut, 0, sizeof *selectionOut);
+    }
     muiTextBlock* block = nullptr;
     muiResult result =
         selectionOut != nullptr ? muiEditingBlock(service, blockId, &block) : mui_errorInvalid;
@@ -363,6 +367,10 @@ muiResult muiTypeText(muiTextService* service, muiTextBlockId blockId, const cha
 static MUI_NOINLINE muiResult TextBlockTypeWorker(muiTextService* service, muiTextBlockId blockId,
                                                   const char* text, size_t length, bool* changedOut)
 {
+    if (changedOut != nullptr)
+    {
+        *changedOut = false;
+    }
     muiResult status = muiEnterText(service);
     if (status == mui_success)
     {
@@ -391,6 +399,10 @@ static MUI_NOINLINE muiResult TextBlockPasteWorker(muiTextService* service, muiT
                                                    const char* text, size_t length,
                                                    bool* changedOut)
 {
+    if (changedOut != nullptr)
+    {
+        *changedOut = false;
+    }
     muiResult status = muiEnterText(service);
     if (status == mui_success)
     {
@@ -458,6 +470,10 @@ muiResult muiEraseText(muiTextService* service, muiTextBlockId blockId, muiTextD
 static MUI_NOINLINE muiResult TextBlockEraseWorker(muiTextService* service, muiTextBlockId blockId,
                                                    muiTextDeletion deletion, bool* changedOut)
 {
+    if (changedOut != nullptr)
+    {
+        *changedOut = false;
+    }
     muiResult status = muiEnterText(service);
     if (status == mui_success)
     {
@@ -508,6 +524,10 @@ static MUI_NOINLINE muiResult TextBlockEraseToWorker(muiTextService* service,
                                                      muiTextBlockId blockId, uint32_t offset,
                                                      bool* changedOut)
 {
+    if (changedOut != nullptr)
+    {
+        *changedOut = false;
+    }
     muiResult status = muiEnterText(service);
     if (status == mui_success)
     {
@@ -531,6 +551,14 @@ static MUI_NOINLINE muiResult TextBlockGetSelectedTextWorker(const muiTextServic
                                                              const char** textOut,
                                                              size_t* lengthOut)
 {
+    if (textOut != nullptr)
+    {
+        *textOut = nullptr;
+    }
+    if (lengthOut != nullptr)
+    {
+        *lengthOut = 0;
+    }
     muiTextBlock* block = nullptr;
     muiResult result = textOut != nullptr && lengthOut != nullptr
                            ? muiEditingBlock(service, blockId, &block)
@@ -611,6 +639,10 @@ muiResult muiUndoText(muiTextService* service, muiTextBlockId blockId, bool* cha
 static MUI_NOINLINE muiResult TextBlockUndoWorker(muiTextService* service, muiTextBlockId blockId,
                                                   bool* changedOut)
 {
+    if (changedOut != nullptr)
+    {
+        *changedOut = false;
+    }
     muiResult status = muiEnterText(service);
     if (status == mui_success)
     {
@@ -636,6 +668,10 @@ muiResult muiRedoText(muiTextService* service, muiTextBlockId blockId, bool* cha
 static MUI_NOINLINE muiResult TextBlockRedoWorker(muiTextService* service, muiTextBlockId blockId,
                                                   bool* changedOut)
 {
+    if (changedOut != nullptr)
+    {
+        *changedOut = false;
+    }
     muiResult status = muiEnterText(service);
     if (status == mui_success)
     {
@@ -657,6 +693,10 @@ static MUI_NOINLINE muiResult TextBlockGetInputPurposeWorker(const muiTextServic
                                                              muiTextBlockId blockId,
                                                              muiInputPurpose* purposeOut)
 {
+    if (purposeOut != nullptr)
+    {
+        *purposeOut = 0;
+    }
     muiTextBlock* block = nullptr;
     muiResult result =
         purposeOut != nullptr ? muiEditingBlock(service, blockId, &block) : mui_errorInvalid;
@@ -683,6 +723,14 @@ static MUI_NOINLINE muiResult TextBlockGetUndoStateWorker(const muiTextService* 
                                                           muiTextBlockId blockId, bool* undoOut,
                                                           bool* redoOut)
 {
+    if (undoOut != nullptr)
+    {
+        *undoOut = false;
+    }
+    if (redoOut != nullptr)
+    {
+        *redoOut = false;
+    }
     muiTextBlock* block = nullptr;
     muiResult result = undoOut != nullptr && redoOut != nullptr
                            ? muiEditingBlock(service, blockId, &block)
@@ -710,10 +758,6 @@ static muiResult TextBlockCompose(muiTextService* service, muiTextBlockId blockI
                                   const muiCompositionSegment* segments, uint32_t segmentCount,
                                   bool* changedOut)
 {
-    if (changedOut != nullptr)
-    {
-        *changedOut = false;
-    }
     muiTextBlock* block = nullptr;
     muiResult result = (text != nullptr || length == 0) && caret <= length
                            ? muiEditBlock(service, blockId, &block)
@@ -772,6 +816,10 @@ static MUI_NOINLINE muiResult TextBlockComposeWorker(muiTextService* service,
                                                      const muiCompositionSegment* segments,
                                                      uint32_t segmentCount, bool* changedOut)
 {
+    if (changedOut != nullptr)
+    {
+        *changedOut = false;
+    }
     muiResult status = muiEnterText(service);
     if (status == mui_success)
     {

@@ -1225,6 +1225,37 @@ static void TestNamesFromContent(void)
     muiDestroyAccessTree(tree);
 }
 
+// A query of a NULL tree clears its outputs (Maul conventions, Errors and
+// assertions).
+static void TestNullTreeClearsOutputs(void)
+{
+    uint32_t count = 7;
+    CHECK(muiAccessTree_GetChildren(NULL, 1, &count) == NULL && count == 0,
+          "GetChildren: no children of a NULL tree");
+    count = 7;
+    CHECK(muiAccessTree_GetShownChildren(NULL, 1, NULL, 0, &count) == mui_errorInvalid &&
+              count == 0,
+          "GetShownChildren clears its count");
+    size_t length = 7;
+    CHECK(muiAccessTree_GetName(NULL, 1, NULL, 0, &length) == mui_errorInvalid && length == 0,
+          "GetName clears its length");
+    muiRect bounds = {1.0f, 2.0f, 3.0f, 4.0f};
+    CHECK(muiAccessTree_GetBounds(NULL, 1, &bounds) == mui_errorInvalid && bounds.x == 0.0f &&
+              bounds.y == 0.0f && bounds.width == 0.0f && bounds.height == 0.0f,
+          "GetBounds clears its bounds");
+    count = 7;
+    CHECK(muiAccessTree_GetTextRects(NULL, 1, 0, 1, NULL, 0, &count) == mui_errorInvalid &&
+              count == 0,
+          "GetTextRects clears its count");
+    uint32_t offset = 7;
+    CHECK(muiAccessTree_GetTextOffsetAt(NULL, 1, 0.0f, 0.0f, &offset) == mui_errorInvalid &&
+              offset == 0,
+          "GetTextOffsetAt clears its offset");
+    length = 7;
+    CHECK(muiAccessTree_Write(NULL, NULL, 0, &length) == mui_errorInvalid && length == 0,
+          "Write clears its length");
+}
+
 int main(void)
 {
     TestNamesFromContent();
@@ -1243,5 +1274,6 @@ int main(void)
     TestVersion();
     TestContract();
     TestFullTreeUpdated();
+    TestNullTreeClearsOutputs();
     return s_failures == 0 ? 0 : 1;
 }

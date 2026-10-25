@@ -1242,6 +1242,15 @@ static void TestContract(void)
     muiDestroyUiaAdapter(NULL);
 }
 
+// A NULL adapter clears its result (Maul conventions, Errors and
+// assertions).
+static void TestNullAdapterClearsResult(void)
+{
+    intptr_t result = 7;
+    CHECK(!muiUiaAdapter_HandleGetObject(NULL, 0, 0, &result) && result == 0,
+          "HandleGetObject clears its result");
+}
+
 int main(void)
 {
     CHECK(SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED)), "an STA");
@@ -1250,6 +1259,7 @@ int main(void)
     TestIds();
     TestVersion();
     TestContract();
+    TestNullAdapterClearsResult();
     muiUiaAdapterDef def = muiDefaultUiaAdapterDef();
     def.window = s_program.window;
     def.scale = SCALE;

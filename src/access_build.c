@@ -23,6 +23,7 @@
 #include "maul-ui/access.h"
 
 #include <math.h>
+#include <string.h>
 
 // Roles that take a click without saying so.
 static bool IsClicked(muiRole role)
@@ -623,6 +624,10 @@ static muiResult BuildAccessUpdate(muiContext* context, muiNodeId rootId,
 static MUI_NOINLINE muiResult BuildAccessUpdateWorker(muiContext* context, muiNodeId rootId,
                                                       muiAccessUpdate* updateOut)
 {
+    if (updateOut != nullptr)
+    {
+        memset(updateOut, 0, sizeof *updateOut);
+    }
     muiResult status = muiEnter(context);
     if (status == mui_success)
     {

@@ -548,6 +548,10 @@ muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawI
 
 muiResult muiGetDrawList(const muiContext* context, muiDrawList* listOut)
 {
+    if (listOut != nullptr)
+    {
+        memset(listOut, 0, sizeof *listOut);
+    }
     if (context == nullptr || listOut == nullptr)
     {
         return mui_errorInvalid;

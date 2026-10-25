@@ -277,6 +277,10 @@ static muiResult KeyInput(muiContext* context, muiNodeId rootId, const muiKeyEve
 static MUI_NOINLINE muiResult KeyInputWorker(muiContext* context, muiNodeId rootId,
                                              const muiKeyEvent* event, bool* handledOut)
 {
+    if (handledOut != nullptr)
+    {
+        *handledOut = false;
+    }
     muiResult status = muiEnter(context);
     if (status == mui_success)
     {
@@ -326,6 +330,10 @@ static muiResult TextInput(muiContext* context, muiNodeId rootId, const muiTextE
 muiResult muiTextInput(muiContext* context, muiNodeId rootId, const muiTextEvent* event,
                        bool* handledOut)
 {
+    if (handledOut != nullptr)
+    {
+        *handledOut = false;
+    }
     muiResult status = muiEnter(context);
     if (status == mui_success)
     {
@@ -379,6 +387,10 @@ static MUI_NOINLINE muiResult NavigationInputWorker(muiContext* context, muiNode
                                                     const muiNavigationEvent* event,
                                                     bool* handledOut)
 {
+    if (handledOut != nullptr)
+    {
+        *handledOut = false;
+    }
     muiResult status = muiEnter(context);
     if (status == mui_success)
     {
@@ -436,6 +448,10 @@ static muiResult WheelInput(muiContext* context, muiNodeId rootId, const muiWhee
 static MUI_NOINLINE muiResult WheelInputWorker(muiContext* context, muiNodeId rootId,
                                                const muiWheelEvent* event, bool* handledOut)
 {
+    if (handledOut != nullptr)
+    {
+        *handledOut = false;
+    }
     muiResult status = muiEnter(context);
     if (status == mui_success)
     {
@@ -485,6 +501,10 @@ static MUI_NOINLINE muiResult DispatchPointerRecordWorker(muiContext* context,
                                                           const muiPointerRecord* record,
                                                           bool* handledOut)
 {
+    if (handledOut != nullptr)
+    {
+        *handledOut = false;
+    }
     muiResult status = muiEnter(context);
     if (status == mui_success)
     {

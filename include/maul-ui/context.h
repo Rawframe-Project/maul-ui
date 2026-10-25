@@ -106,9 +106,11 @@ extern "C"
     /// types, 1,024 property sets, 64 notifications, 64 transitions, 256
     /// running transitions, 256 tokens, 1,024 token names, 16 themes, 512
     /// theme overrides, draw lists of 8,192 commands, 256 clips, 256
-    /// gradients and 16,384 glyphs, 64 layers, 16 popups, 64 exits, 8 virtual lists of
-    /// 16,384 estimated items together, and the C library's
-    /// allocator.
+    /// gradients, 16,384 glyphs and 64 transforms, 64 layers, 16 pointers
+    /// and 64 pointer records, 256 neighbors, 64 ranges, 16 popups, 64
+    /// exits, 8 virtual lists of 16,384 estimated items together, 512
+    /// nodes with accessibility data and 4 accessibility roots, and the C
+    /// library's allocator.
     ///
     /// Built in the program from the headers it includes, so it carries
     /// their version (MUI_ABI_VERSION), which the context checks.
@@ -228,7 +230,7 @@ extern "C"
     /// Takes the oldest notification.
     ///
     /// @param context          The context.
-    /// @param notificationOut  Receives it.
+    /// @param notificationOut  Receives it. Zeroed on failure.
     /// @return `mui_success`; `mui_empty` when none is waiting;
     ///         `mui_errorInvalid` for a NULL argument; `mui_errorState` while
     ///         the context is busy.

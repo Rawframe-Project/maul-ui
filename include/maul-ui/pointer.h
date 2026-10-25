@@ -192,7 +192,7 @@ extern "C"
     /// Takes the oldest pointer record.
     ///
     /// @param context    The context.
-    /// @param recordOut  Receives the record.
+    /// @param recordOut  Receives the record. Zeroed on failure.
     /// @return `mui_success`; `mui_empty` when none is waiting;
     ///         `mui_errorInvalid` for a NULL argument; `mui_errorState` while
     ///         the context is busy.
@@ -251,7 +251,7 @@ extern "C"
     ///
     /// @param context   The context.
     /// @param pointer   The host's id of the pointer.
-    /// @param stateOut  Receives the state.
+    /// @param stateOut  Receives the state. Zeroed on failure.
     /// @return `mui_success`; `mui_empty` for a pointer the context does
     ///         not know (it left, lifted or was cancelled);
     ///         `mui_errorInvalid` for a NULL argument.

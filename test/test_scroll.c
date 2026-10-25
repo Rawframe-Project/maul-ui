@@ -630,8 +630,8 @@ static void TestMapToRoot(void)
           "the content box inside the padding");
     x = 7.0f;
     CHECK(muiNode_MapToRoot(context, list.items[0], NAN, 0.0f, &x, &y) == mui_errorInvalid &&
-              x == 7.0f,
-          "a point not finite refused, the outputs kept");
+              x == 0.0f && y == 0.0f,
+          "a point not finite refused, the outputs cleared");
     CHECK(muiNode_MapToRoot(context, list.items[0], 0.0f, 0.0f, NULL, &y) == mui_errorInvalid,
           "a NULL output refused");
     muiNodeId gone = list.items[4];

@@ -130,7 +130,7 @@ text_runs: font_chain text_block text_service
 text_entry:
 text_service: allocator family_store font_instance font_store pool text_block fpenv
 text_block: allocator pool
-text_blocks: font_instance property text_block text_entry text_service fpenv
+text_blocks: property text_block text_entry text_service fpenv
 text_editing: invariant text_block text_blocks text_entry text_history text_rules text_service fpenv
 text_editor: text_block text_editing text_entry text_service fpenv
 text_keys: text_block text_editing text_entry fpenv

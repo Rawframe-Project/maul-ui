@@ -584,8 +584,8 @@ static void TestDeletion(void)
                   mui_errorInvalid &&
               muiTextBlock_FindDeletion(scene.service, scene.block, 0, back, &start, NULL) ==
                   mui_errorInvalid &&
-              start == 7 && end == 7,
-          "deletion outside the contract");
+              start == 0 && end == 0,
+          "deletion outside the contract, which clears the offsets");
     FreeScene(&scene);
 }
 
@@ -834,8 +834,8 @@ static void TestCompositionContract(void)
                   mui_errorInvalid &&
               muiTextBlock_GetComposition(scene.service, scene.block, &at, NULL) ==
                   mui_errorInvalid &&
-              at == 7 && size == 7,
-          "ending and reading outside the contract");
+              at == 0 && size == 0,
+          "ending and reading outside the contract, which clears the place");
     muiTextBlockId gone = scene.block;
     CHECK(muiDestroyTextBlock(scene.service, gone) == mui_success &&
               muiTextBlock_SetComposition(scene.service, gone, 0, "x", 1, NULL, 0) ==

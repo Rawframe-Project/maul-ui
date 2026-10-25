@@ -512,6 +512,10 @@ static void PutNode(Writer* writer, const muiAccessNode* node, uint32_t depth)
 static MUI_NOINLINE muiResult AccessTreeWriteWorker(const muiAccessTree* tree, char* buffer,
                                                     size_t capacity, size_t* lengthOut)
 {
+    if (lengthOut != nullptr)
+    {
+        *lengthOut = 0;
+    }
     if (tree == nullptr || lengthOut == nullptr || (buffer == nullptr && capacity != 0))
     {
         return mui_errorInvalid;

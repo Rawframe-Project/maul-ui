@@ -181,9 +181,9 @@ extern "C"
     /// @param context    The context.
     /// @param styleId    The class.
     /// @param variant    The variant.
-    /// @param valuesOut  Receives the set values, and muiDefaultTextStyle's
-    ///                   for the rest.
-    /// @param maskOut    Receives which properties are set.
+    /// @param valuesOut  Receives the set values, and muiDefaultTextStyle's for
+    ///                   the rest. Zeroed on failure.
+    /// @param maskOut    Receives which properties are set. 0 on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id or an unknown variant; `mui_errorStale` for an id
     ///         whose class is gone.
@@ -218,7 +218,7 @@ extern "C"
     ///
     /// @param context   The context.
     /// @param nodeId    The node.
-    /// @param styleOut  Receives the computed values.
+    /// @param styleOut  Receives the computed values. Zeroed on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or the
     ///         null id; `mui_errorStale` for a node that is gone.
     /// @par Thread safety

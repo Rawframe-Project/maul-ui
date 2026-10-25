@@ -300,10 +300,6 @@ static muiResult Open(muiTextService* service, const muiFontDef* def, muiFont* f
 
 static muiResult CreateFont(muiTextService* service, const muiFontDef* def, muiFontId* fontOut)
 {
-    if (fontOut != nullptr)
-    {
-        *fontOut = (muiFontId){0};
-    }
     if (service == nullptr || def == nullptr || fontOut == nullptr ||
         def->cookie != FONT_DEF_COOKIE || def->data == nullptr ||
         def->dataMode > mui_fontDataBorrow)
@@ -347,6 +343,10 @@ static muiResult CreateFont(muiTextService* service, const muiFontDef* def, muiF
 static MUI_NOINLINE muiResult CreateFontWorker(muiTextService* service, const muiFontDef* def,
                                                muiFontId* fontOut)
 {
+    if (fontOut != nullptr)
+    {
+        memset(fontOut, 0, sizeof *fontOut);
+    }
     muiResult status = muiEnterText(service);
     if (status == mui_success)
     {
@@ -412,6 +412,10 @@ bool muiFont_IsValid(const muiTextService* service, muiFontId fontId)
 muiResult muiFont_GetMetrics(const muiTextService* service, muiFontId fontId,
                              muiFontMetrics* metricsOut)
 {
+    if (metricsOut != nullptr)
+    {
+        memset(metricsOut, 0, sizeof *metricsOut);
+    }
     if (service == nullptr || metricsOut == nullptr || fontId.index1 == 0)
     {
         return mui_errorInvalid;

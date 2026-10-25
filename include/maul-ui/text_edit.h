@@ -243,12 +243,12 @@ extern "C"
     /// @param blockId   The block.
     /// @param offset    The offset; past the text is its end.
     /// @param deletion  Which way.
-    /// @param startOut  Receives the first byte to remove.
-    /// @param endOut    Receives the byte after the last; startOut's value
-    ///                  when there is nothing.
+    /// @param startOut  Receives the first byte to remove. 0 on failure.
+    /// @param endOut    Receives the byte after the last; startOut's value when
+    ///                  there is nothing. 0 on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id or a deletion out of range; `mui_errorStale` for a
-    ///         block that is gone. Nothing is written on failure.
+    ///         block that is gone.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_FindDeletion(const muiTextService* service,
@@ -309,11 +309,11 @@ extern "C"
     ///
     /// @param service    The service.
     /// @param blockId    The block.
-    /// @param startOut   Receives its first byte in the text.
-    /// @param lengthOut  Receives its length; 0 when there is none.
+    /// @param startOut   Receives its first byte in the text. 0 on failure.
+    /// @param lengthOut  Receives its length; 0 when there is none and on
+    ///                   failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or the
-    ///         null id; `mui_errorStale` for a block that is gone. Nothing
-    ///         is written on failure.
+    ///         null id; `mui_errorStale` for a block that is gone.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_GetComposition(const muiTextService* service,

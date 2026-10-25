@@ -87,7 +87,7 @@ extern "C"
     ///
     /// @param context   The context.
     /// @param nodeId    The node.
-    /// @param rangeOut  Receives the range.
+    /// @param rangeOut  Receives the range. Zeroed on failure.
     /// @return `mui_success`; `mui_empty` for a node that is not a range;
     ///         `mui_errorInvalid` for a NULL argument or the null id;
     ///         `mui_errorStale` for a node that is gone.

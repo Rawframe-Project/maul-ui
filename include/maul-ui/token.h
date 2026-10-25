@@ -81,7 +81,7 @@ extern "C"
     ///
     /// @param context     The context.
     /// @param def         The token: a valid cookie and its value.
-    /// @param tokenOut  Receives the token; set to the null id on failure.
+    /// @param tokenOut  Receives the token. The null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
     ///         cookie or a value outside the def's; `mui_errorState` while the
     ///         context is busy; `mui_errorCapacity` when the context's token
@@ -138,10 +138,11 @@ extern "C"
     ///
     /// @param context     The context.
     /// @param tokenId     The token.
-    /// @param valueOut    Receives the value, with the token's type; its
-    ///                    member is zero when the result is `mui_empty`.
-    /// @param aliasOut    Receives the token it aliases, or the null id for
-    ///                    a literal; may be NULL.
+    /// @param valueOut    Receives the value, with the token's type; its member
+    ///                    is zero when the result is `mui_empty`. Zeroed on
+    ///                    failure.
+    /// @param aliasOut    Receives the token it aliases, or the null id for a
+    ///                    literal; may be NULL. The null id on failure.
     /// @return `mui_success`; `mui_empty` when an alias leads to a token
     ///         that is gone; `mui_errorInvalid` for a NULL context or
     ///         value, or the null id; `mui_errorStale` for an id whose
@@ -184,7 +185,8 @@ extern "C"
     /// @param styleId     The class.
     /// @param variant     The variant.
     /// @param property    The property.
-    /// @param tokenOut  Receives the token; the null id for none.
+    /// @param tokenOut  Receives the token; the null id for none. The null id
+    ///                  on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id, an unknown variant or property; `mui_errorStale`
     ///         for an id whose class is gone.

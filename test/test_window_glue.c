@@ -571,8 +571,8 @@ static void SetCaret(Test* test)
                                  &placed) == mui_errorInvalid &&
               muiWindowGlue_SetCaret(test->glue, test->button, (muiRect){0.0f, 0.0f, 0.0f, NAN},
                                      &placed) == mui_errorInvalid &&
-              placed.x == 7.0f,
-          "a caret of a negative size or not finite refused, the output kept");
+              placed.x == 0.0f && placed.height == 0.0f,
+          "a caret of a negative size or not finite refused, the output cleared");
 }
 
 // The platform carries out a request as its frame ends: the caret the
@@ -673,8 +673,25 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
     return test->done || test->frame > 20 ? mwin_frameStop : mwin_frameContinue;
 }
 
+// A NULL glue clears the outputs of its calls (Maul conventions, Errors
+// and assertions).
+static void TestNullGlueClearsOutputs(void)
+{
+    bool handled = true;
+    CHECK(muiWindowGlue_HandleEvent(NULL, NULL, &handled) == mui_errorInvalid && !handled,
+          "HandleEvent clears handled");
+    handled = true;
+    CHECK(muiWindowGlue_Tick(NULL, 0, &handled) == mui_errorInvalid && !handled,
+          "Tick clears handled");
+    mwinRect placed = {1, 2, 3, 4};
+    CHECK(muiWindowGlue_SetCaret(NULL, (muiNodeId){0}, (muiRect){0}, &placed) == mui_errorInvalid &&
+              placed.x == 0 && placed.y == 0 && placed.width == 0 && placed.height == 0,
+          "SetCaret clears the place");
+}
+
 int main(void)
 {
+    TestNullGlueClearsOutputs();
     Test test = {0};
     mwinAppDef def = mwinDefaultAppDef();
     def.context.backend = mwin_backendTest;

@@ -327,9 +327,10 @@ extern "C"
     /// gains, one that paints little need not ask.
     ///
     /// @param sink     The sink the paint function was given.
-    /// @param rectOut  Receives the part, relative to the content box's
-    ///                 top left; of width and height 0 when nothing of it
-    ///                 can be seen. It may reach past the content box.
+    /// @param rectOut  Receives the part, relative to the content box's top
+    ///                 left; of width and height 0 when nothing of it can be
+    ///                 seen. It may reach past the content box. Zeroed on
+    ///                 failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument.
     /// @par Thread safety
     /// Safe from any thread; the sink is used by one thread at a time, and
@@ -366,7 +367,8 @@ extern "C"
     /// Shows the context's last list.
     ///
     /// @param context  The context.
-    /// @param listOut  Receives the list; empty before any build.
+    /// @param listOut  Receives the list; empty before any build. Zeroed on
+    ///                 failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.

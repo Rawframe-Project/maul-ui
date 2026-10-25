@@ -15,6 +15,7 @@
 #include "style_store.h"
 
 #include <math.h>
+#include <string.h>
 
 #define TRANSITION_DEF_COOKIE 0x6D757472u // "mutr"
 
@@ -79,10 +80,6 @@ static bool MakeMotion(const muiTransitionDef* def, muiTransitionSpec* spec)
 static muiResult CreateTransition(muiContext* context, const muiTransitionDef* def,
                                   muiTransitionId* transitionOut)
 {
-    if (transitionOut != nullptr)
-    {
-        *transitionOut = (muiTransitionId){0, 0};
-    }
     if (context == nullptr)
     {
         return mui_errorInvalid;
@@ -111,6 +108,10 @@ static MUI_NOINLINE muiResult CreateTransitionWorker(muiContext* context,
                                                      const muiTransitionDef* def,
                                                      muiTransitionId* transitionOut)
 {
+    if (transitionOut != nullptr)
+    {
+        memset(transitionOut, 0, sizeof *transitionOut);
+    }
     muiResult status = muiEnter(context);
     if (status == mui_success)
     {
@@ -280,6 +281,10 @@ muiResult muiStyle_SetTransition(muiContext* context, muiStyleId styleId, muiVar
 muiResult muiStyle_GetTransition(const muiContext* context, muiStyleId styleId, muiVariant variant,
                                  muiProperty property, muiTransitionId* transitionOut)
 {
+    if (transitionOut != nullptr)
+    {
+        memset(transitionOut, 0, sizeof *transitionOut);
+    }
     if (context == nullptr || transitionOut == nullptr || styleId.index1 == 0 ||
         !muiIsPropertyKnown(property))
     {

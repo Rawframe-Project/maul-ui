@@ -495,6 +495,10 @@ static muiResult NextNotification(muiContext* context, muiNotification* notifica
 
 muiResult muiNextNotification(muiContext* context, muiNotification* notificationOut)
 {
+    if (notificationOut != nullptr)
+    {
+        memset(notificationOut, 0, sizeof *notificationOut);
+    }
     muiResult status = muiEnter(context);
     if (status == mui_success)
     {

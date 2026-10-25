@@ -17,6 +17,7 @@
 #include "tree.h"
 
 #include <math.h>
+#include <string.h>
 
 // The entry of the node at slot; NULL for a node that is no popup.
 static muiPopupEntry* EntryOf(const muiContext* context, uint32_t slot)
@@ -137,6 +138,10 @@ muiResult muiNode_SetPopup(muiContext* context, muiNodeId nodeId, const muiPopup
 
 muiResult muiNode_GetPopup(const muiContext* context, muiNodeId nodeId, muiPopup* popupOut)
 {
+    if (popupOut != nullptr)
+    {
+        memset(popupOut, 0, sizeof *popupOut);
+    }
     if (context == nullptr || popupOut == nullptr)
     {
         return mui_errorInvalid;
@@ -152,6 +157,10 @@ muiResult muiNode_GetPopup(const muiContext* context, muiNodeId nodeId, muiPopup
 
 muiResult muiNode_GetPopupSide(const muiContext* context, muiNodeId nodeId, muiPopupSide* sideOut)
 {
+    if (sideOut != nullptr)
+    {
+        *sideOut = 0;
+    }
     if (context == nullptr || sideOut == nullptr)
     {
         return mui_errorInvalid;

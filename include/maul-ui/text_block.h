@@ -69,7 +69,7 @@ extern "C"
     ///
     /// @param service  The service.
     /// @param def      The block: a valid cookie and its text.
-    /// @param blockOut Receives the block's id; the null id on failure.
+    /// @param blockOut Receives the block's id. The null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
     ///         cookie, text NULL with a length or a length of 2^31 or more;
     ///         `mui_errorCapacity` when the service's limit of blocks is
@@ -194,12 +194,12 @@ extern "C"
     ///
     /// @param service    The service.
     /// @param blockId    The block.
-    /// @param spansOut   Receives them, valid until its spans or text
-    ///                   change or the block is destroyed; NULL for none.
-    /// @param countOut   Receives how many.
+    /// @param spansOut   Receives them, valid until its spans or text change or
+    ///                   the block is destroyed; NULL for none and on
+    ///                   failure.
+    /// @param countOut   Receives how many. 0 on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or the
-    ///         null id; `mui_errorStale` for a block that is gone. Nothing
-    ///         is written on failure.
+    ///         null id; `mui_errorStale` for a block that is gone.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_GetSpans(const muiTextService* service,
@@ -212,11 +212,11 @@ extern "C"
     /// @param service    The service.
     /// @param blockId    The block.
     /// @param textOut    Receives its bytes, valid until its text is set,
-    ///                   replaced or the block destroyed; never NULL.
-    /// @param lengthOut  Receives its length in bytes.
+    ///                   replaced or the block destroyed; never NULL but on
+    ///                   failure, which gives NULL.
+    /// @param lengthOut  Receives its length in bytes. 0 on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or the
-    ///         null id; `mui_errorStale` for a block that is gone. Nothing
-    ///         is written on failure.
+    ///         null id; `mui_errorStale` for a block that is gone.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_GetText(const muiTextService* service,

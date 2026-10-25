@@ -21,6 +21,7 @@
 #include "maul-ui/interaction.h"
 
 #include <math.h>
+#include <string.h>
 
 // Whether a point, from a rounded box's top left, is in it: in the box,
 // half open, and inside the circle of any corner whose square it is in.
@@ -201,6 +202,10 @@ static bool WalkLayers(Walk* walk, uint32_t root, bool* blockedOut)
 static MUI_NOINLINE muiResult HitTestWorker(const muiContext* context, muiNodeId rootId, float x,
                                             float y, muiHit* hitOut)
 {
+    if (hitOut != nullptr)
+    {
+        memset(hitOut, 0, sizeof *hitOut);
+    }
     if (context == nullptr || hitOut == nullptr || rootId.index1 == 0 || !isfinite(x) ||
         !isfinite(y))
     {
@@ -238,6 +243,14 @@ muiResult muiHitTest(const muiContext* context, muiNodeId rootId, float x, float
 static MUI_NOINLINE muiResult NodeMapToRootWorker(const muiContext* context, muiNodeId nodeId,
                                                   float x, float y, float* xOut, float* yOut)
 {
+    if (xOut != nullptr)
+    {
+        *xOut = 0.0f;
+    }
+    if (yOut != nullptr)
+    {
+        *yOut = 0.0f;
+    }
     if (context == nullptr || xOut == nullptr || yOut == nullptr || !isfinite(x) || !isfinite(y))
     {
         return mui_errorInvalid;

@@ -221,11 +221,14 @@ static MUI_NOINLINE muiResult AccessTreeGetShownChildrenWorker(const muiAccessTr
                                                                uint32_t capacity,
                                                                uint32_t* countOut)
 {
+    if (countOut != nullptr)
+    {
+        *countOut = 0;
+    }
     if (tree == nullptr || countOut == nullptr || (childrenOut == nullptr && capacity != 0))
     {
         return mui_errorInvalid;
     }
-    *countOut = 0;
     uint32_t slot = muiHeldSlotOf(tree, id);
     if (slot == 0)
     {
@@ -299,6 +302,10 @@ static muiDrawTransform TransformOf(const muiAccessTree* tree, uint32_t slot)
 static MUI_NOINLINE muiResult AccessTreeGetBoundsWorker(const muiAccessTree* tree, uint64_t id,
                                                         muiRect* boundsOut)
 {
+    if (boundsOut != nullptr)
+    {
+        memset(boundsOut, 0, sizeof *boundsOut);
+    }
     if (tree == nullptr || boundsOut == nullptr)
     {
         return mui_errorInvalid;
@@ -326,11 +333,14 @@ static MUI_NOINLINE muiResult AccessTreeGetTextRectsWorker(const muiAccessTree* 
                                                            muiRect* rectsOut, uint32_t capacity,
                                                            uint32_t* countOut)
 {
+    if (countOut != nullptr)
+    {
+        *countOut = 0;
+    }
     if (tree == nullptr || countOut == nullptr || (rectsOut == nullptr && capacity != 0))
     {
         return mui_errorInvalid;
     }
-    *countOut = 0;
     uint32_t slot = muiHeldSlotOf(tree, id);
     const muiAccessTextMarks* marks = slot != 0 ? &tree->held[slot - 1].node.marks : nullptr;
     if (marks == nullptr || marks->lineBoxes == nullptr)
@@ -464,6 +474,10 @@ static MUI_NOINLINE muiResult AccessTreeGetTextOffsetAtWorker(const muiAccessTre
                                                               uint64_t id, float x, float y,
                                                               uint32_t* offsetOut)
 {
+    if (offsetOut != nullptr)
+    {
+        *offsetOut = 0;
+    }
     if (tree == nullptr || offsetOut == nullptr || !isfinite(x) || !isfinite(y))
     {
         return mui_errorInvalid;
@@ -624,6 +638,10 @@ static void JoinContents(Name* name, const muiAccessTree* tree, uint32_t slot)
 muiResult muiAccessTree_GetName(const muiAccessTree* tree, uint64_t id, char* buffer,
                                 size_t capacity, size_t* lengthOut)
 {
+    if (lengthOut != nullptr)
+    {
+        *lengthOut = 0;
+    }
     if (tree == nullptr || lengthOut == nullptr || (buffer == nullptr && capacity != 0))
     {
         return mui_errorInvalid;

@@ -375,10 +375,6 @@ static void Lay(muiAtspiAdapter* adapter, unsigned char* block, uint32_t nodes)
 static muiResult CreateAtspiAdapter(muiAtspiApp* app, const muiAtspiAdapterDef* def,
                                     muiAtspiAdapter** adapterOut)
 {
-    if (adapterOut != nullptr)
-    {
-        *adapterOut = nullptr;
-    }
     if (app == nullptr || def == nullptr || adapterOut == nullptr || !IsValidAdapter(def))
     {
         return mui_errorInvalid;
@@ -424,6 +420,10 @@ static MUI_NOINLINE muiResult CreateAtspiAdapterWorker(muiAtspiApp* app,
                                                        const muiAtspiAdapterDef* def,
                                                        muiAtspiAdapter** adapterOut)
 {
+    if (adapterOut != nullptr)
+    {
+        *adapterOut = nullptr;
+    }
     if (app == nullptr)
     {
         return CreateAtspiAdapter(app, def, adapterOut);

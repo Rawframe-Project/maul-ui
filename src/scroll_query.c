@@ -13,6 +13,7 @@
 #include "maul-ui/scroll.h"
 
 #include <math.h>
+#include <string.h>
 
 static uint32_t ResolveRead(const muiContext* context, muiNodeId nodeId, muiResult* statusOut)
 {
@@ -30,6 +31,10 @@ static MUI_NOINLINE muiResult NodeGetScrollThumbWorker(const muiContext* context
                                                        bool horizontal, float track, float minimum,
                                                        muiScrollThumb* thumbOut)
 {
+    if (thumbOut != nullptr)
+    {
+        memset(thumbOut, 0, sizeof *thumbOut);
+    }
     if (context == nullptr || thumbOut == nullptr || !isfinite(track) || track < 0.0f ||
         !isfinite(minimum) || minimum < 0.0f)
     {
@@ -73,6 +78,14 @@ muiResult muiNode_GetScrollThumb(const muiContext* context, muiNodeId nodeId, bo
 
 muiResult muiNode_GetScroll(const muiContext* context, muiNodeId nodeId, float* xOut, float* yOut)
 {
+    if (xOut != nullptr)
+    {
+        *xOut = 0.0f;
+    }
+    if (yOut != nullptr)
+    {
+        *yOut = 0.0f;
+    }
     if (context == nullptr || xOut == nullptr || yOut == nullptr)
     {
         return mui_errorInvalid;
@@ -89,6 +102,10 @@ muiResult muiNode_GetScroll(const muiContext* context, muiNodeId nodeId, float* 
 
 muiResult muiNode_GetScrollExtent(const muiContext* context, muiNodeId nodeId, muiSize* extentOut)
 {
+    if (extentOut != nullptr)
+    {
+        memset(extentOut, 0, sizeof *extentOut);
+    }
     if (context == nullptr || extentOut == nullptr)
     {
         return mui_errorInvalid;

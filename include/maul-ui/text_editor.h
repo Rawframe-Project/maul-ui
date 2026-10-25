@@ -160,10 +160,10 @@ extern "C"
     ///
     /// @param service       The service.
     /// @param blockId       The block.
-    /// @param selectionOut  Receives the selection.
+    /// @param selectionOut  Receives the selection. Zeroed on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id or a block not editing; `mui_errorStale` for a block
-    ///         that is gone. Nothing is written on failure.
+    ///         that is gone.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_GetSelection(const muiTextService* service,
@@ -196,7 +196,8 @@ extern "C"
     /// @param blockId     The block.
     /// @param text        UTF-8 text; may be NULL when length is 0.
     /// @param length      Its length in bytes.
-    /// @param changedOut  Receives whether the text changed; may be NULL.
+    /// @param changedOut  Receives whether the text changed; may be NULL. False
+    ///                    on failure.
     /// @return `mui_success`, changed or not (read-only, filtered out, at the
     ///         limit); `mui_errorInvalid` for a NULL service or text, the null
     ///         id, a block not editing or text past the block's limit;
@@ -216,7 +217,8 @@ extern "C"
     /// @param blockId     The block.
     /// @param text        UTF-8 text; may be NULL when length is 0.
     /// @param length      Its length in bytes.
-    /// @param changedOut  Receives whether the text changed; may be NULL.
+    /// @param changedOut  Receives whether the text changed; may be NULL. False
+    ///                    on failure.
     /// @return As muiTextBlock_Type; `mui_errorState` while the service is
     ///         busy.
     /// @par Thread safety
@@ -233,7 +235,8 @@ extern "C"
     /// @param service     The service.
     /// @param blockId     The block.
     /// @param deletion    Which way.
-    /// @param changedOut  Receives whether the text changed; may be NULL.
+    /// @param changedOut  Receives whether the text changed; may be NULL. False
+    ///                    on failure.
     /// @return As muiTextBlock_Type; `mui_errorInvalid` for a deletion out of
     ///         range; `mui_errorState` while the service is busy.
     /// @par Thread safety
@@ -249,7 +252,8 @@ extern "C"
     /// @param blockId     The block.
     /// @param offset      The other end, at the start of a character;
     ///                    past the text is its end.
-    /// @param changedOut  Receives whether the text changed; may be NULL.
+    /// @param changedOut  Receives whether the text changed; may be NULL. False
+    ///                    on failure.
     /// @return As muiTextBlock_Type; `mui_errorInvalid` for an offset inside a
     ///         character; `mui_errorState` while the service is busy.
     /// @par Thread safety
@@ -264,11 +268,12 @@ extern "C"
     ///
     /// @param service    The service.
     /// @param blockId    The block.
-    /// @param textOut    Receives the text, valid until the block changes.
-    /// @param lengthOut  Receives its length in bytes.
+    /// @param textOut    Receives the text, valid until the block changes. NULL
+    ///                   on failure.
+    /// @param lengthOut  Receives its length in bytes. 0 on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id or a block not editing; `mui_errorStale` for a block
-    ///         that is gone. Nothing is written on failure.
+    ///         that is gone.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_GetSelectedText(const muiTextService* service,
@@ -281,7 +286,8 @@ extern "C"
     ///
     /// @param service     The service.
     /// @param blockId     The block.
-    /// @param changedOut  Receives whether the text changed; may be NULL.
+    /// @param changedOut  Receives whether the text changed; may be NULL. False
+    ///                    on failure.
     /// @return As muiTextBlock_Type; `mui_errorState` while the service is
     ///         busy.
     /// @par Thread safety
@@ -295,7 +301,8 @@ extern "C"
     ///
     /// @param service     The service.
     /// @param blockId     The block.
-    /// @param changedOut  Receives whether the text changed; may be NULL.
+    /// @param changedOut  Receives whether the text changed; may be NULL. False
+    ///                    on failure.
     /// @return As muiTextBlock_Type; `mui_errorState` while the service is
     ///         busy.
     /// @par Thread safety
@@ -309,7 +316,7 @@ extern "C"
     ///
     /// @param service     The service.
     /// @param blockId     The block.
-    /// @param purposeOut  Receives the purpose.
+    /// @param purposeOut  Receives the purpose. 0 on failure.
     /// @return As muiTextBlock_GetSelection.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
@@ -321,8 +328,10 @@ extern "C"
     ///
     /// @param service  The service.
     /// @param blockId  The block.
-    /// @param undoOut  Receives whether muiTextBlock_Undo would undo one.
-    /// @param redoOut  Receives whether muiTextBlock_Redo would redo one.
+    /// @param undoOut  Receives whether muiTextBlock_Undo would undo one. False
+    ///                 on failure.
+    /// @param redoOut  Receives whether muiTextBlock_Redo would redo one. False
+    ///                 on failure.
     /// @return As muiTextBlock_GetSelection.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
@@ -348,6 +357,7 @@ extern "C"
     ///                      may be NULL when segmentCount is 0.
     /// @param segmentCount  How many.
     /// @param changedOut    Receives whether the text changed; may be NULL.
+    ///                      False on failure.
     /// @return As muiTextBlock_Type; `mui_errorInvalid` for a caret out of
     ///         place or segments out of the text; `mui_errorState` while the
     ///         service is busy.

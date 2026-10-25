@@ -308,6 +308,10 @@ static bool UiaAdapterHandleGetObject(muiUiaAdapter* adapter, uintptr_t wParam, 
 bool muiUiaAdapter_HandleGetObject(muiUiaAdapter* adapter, uintptr_t wParam, intptr_t lParam,
                                    intptr_t* resultOut)
 {
+    if (resultOut != nullptr)
+    {
+        *resultOut = 0;
+    }
     if (adapter == nullptr)
     {
         return UiaAdapterHandleGetObject(adapter, wParam, lParam, resultOut);

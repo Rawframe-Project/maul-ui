@@ -378,7 +378,7 @@ extern "C"
     ///
     /// @param context     The context.
     /// @param def         The class: a valid cookie.
-    /// @param styleOut  Receives the class; set to the null id on failure.
+    /// @param styleOut  Receives the class. The null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a bad
     ///         cookie; `mui_errorState` while the context is busy;
     ///         `mui_errorCapacity` when the context's style limit is reached.
@@ -449,8 +449,8 @@ extern "C"
     /// @param styleId    The class.
     /// @param variant    The variant.
     /// @param valuesOut  Receives the set values, and muiDefaultLayoutStyle's
-    ///                   for the rest.
-    /// @param maskOut    Receives which properties are set.
+    ///                   for the rest. Zeroed on failure.
+    /// @param maskOut    Receives which properties are set. 0 on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id or an unknown variant; `mui_errorStale` for an id
     ///         whose class is gone.
@@ -469,8 +469,8 @@ extern "C"
     /// @param styleId     The class.
     /// @param condition   Ranges with a finite minimum of 0 or more and a
     ///                    maximum not below it, known bits and choices.
-    /// @param variantOut  Receives the condition's variant; set to
-    ///                    mui_variantBase on failure.
+    /// @param variantOut  Receives the condition's variant; mui_variantBase
+    ///                    on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
     ///         id or a condition outside the above; `mui_errorState` while the
     ///         context is busy; `mui_errorStale` for an id whose class is gone;
@@ -504,7 +504,7 @@ extern "C"
     /// @param context       The context.
     /// @param styleId       The class.
     /// @param variant       The condition's variant.
-    /// @param conditionOut  Receives the condition.
+    /// @param conditionOut  Receives the condition. Zeroed on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id or a variant that is not one of the class's
     ///         conditions; `mui_errorStale` for an id whose class is gone.
@@ -549,7 +549,7 @@ extern "C"
     ///
     /// @param context    The context.
     /// @param def        The type: a valid cookie and its classes.
-    /// @param typeOut  Receives the type; set to the null id on failure.
+    /// @param typeOut  Receives the type. The null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
     ///         cookie, classes NULL with a count or a count over the limit;
     ///         `mui_errorState` while the context is busy; `mui_errorCapacity`

@@ -194,6 +194,10 @@ muiResult muiNode_SetAccessRole(muiContext* context, muiNodeId nodeId, muiRole r
 
 muiResult muiNode_GetAccessRole(const muiContext* context, muiNodeId nodeId, muiRole* roleOut)
 {
+    if (roleOut != nullptr)
+    {
+        *roleOut = 0;
+    }
     if (context == nullptr || roleOut == nullptr || nodeId.index1 == 0)
     {
         return mui_errorInvalid;
@@ -285,6 +289,14 @@ muiResult muiNode_SetAccessText(muiContext* context, muiNodeId nodeId, muiAccess
 muiResult muiNode_GetAccessText(const muiContext* context, muiNodeId nodeId, muiAccessTextKind kind,
                                 const char** textOut, size_t* lengthOut)
 {
+    if (textOut != nullptr)
+    {
+        *textOut = nullptr;
+    }
+    if (lengthOut != nullptr)
+    {
+        *lengthOut = 0;
+    }
     if (context == nullptr || textOut == nullptr || lengthOut == nullptr || nodeId.index1 == 0 ||
         kind >= MUI_ACCESS_TEXTS)
     {
@@ -348,6 +360,10 @@ muiResult muiNode_SetAccessFlags(muiContext* context, muiNodeId nodeId, muiAcces
 muiResult muiNode_GetAccessFlags(const muiContext* context, muiNodeId nodeId,
                                  muiAccessFlags* flagsOut)
 {
+    if (flagsOut != nullptr)
+    {
+        *flagsOut = 0;
+    }
     if (context == nullptr || flagsOut == nullptr || nodeId.index1 == 0)
     {
         return mui_errorInvalid;
@@ -646,6 +662,10 @@ muiResult muiNode_GetAccessRelation(const muiContext* context, muiNodeId nodeId,
                                     muiAccessRelation kind, muiNodeId* targetsOut,
                                     uint32_t capacity, uint32_t* countOut)
 {
+    if (countOut != nullptr)
+    {
+        *countOut = 0;
+    }
     if (context == nullptr || countOut == nullptr || (targetsOut == nullptr && capacity != 0) ||
         nodeId.index1 == 0 || kind >= MUI_ACCESS_RELATIONS)
     {
@@ -734,6 +754,10 @@ muiResult muiNode_SetAccessValues(muiContext* context, muiNodeId nodeId,
 muiResult muiNode_GetAccessValues(const muiContext* context, muiNodeId nodeId,
                                   muiAccessValues* valuesOut)
 {
+    if (valuesOut != nullptr)
+    {
+        memset(valuesOut, 0, sizeof *valuesOut);
+    }
     if (context == nullptr || valuesOut == nullptr || nodeId.index1 == 0)
     {
         return mui_errorInvalid;

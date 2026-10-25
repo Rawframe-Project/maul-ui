@@ -19,6 +19,8 @@
 #include "maul-ui/text_style.h"
 #include "maul-ui/visual.h"
 
+#include <string.h>
+
 #define NODE_DEF_COOKIE 0x6D756E64u // "mund"
 
 static bool IsNull(muiNodeId nodeId)
@@ -39,10 +41,6 @@ muiNodeDef muiDefaultNodeDef(void)
 
 static muiResult CreateNode(muiContext* context, const muiNodeDef* def, muiNodeId* nodeOut)
 {
-    if (nodeOut != nullptr)
-    {
-        *nodeOut = (muiNodeId){0, 0};
-    }
     if (context == nullptr)
     {
         return mui_errorInvalid;
@@ -75,6 +73,10 @@ static muiResult CreateNode(muiContext* context, const muiNodeDef* def, muiNodeI
 
 muiResult muiCreateNode(muiContext* context, const muiNodeDef* def, muiNodeId* nodeOut)
 {
+    if (nodeOut != nullptr)
+    {
+        memset(nodeOut, 0, sizeof *nodeOut);
+    }
     muiResult status = muiEnter(context);
     if (status == mui_success)
     {
