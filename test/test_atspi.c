@@ -109,6 +109,7 @@ static bool StartBus(char* address, size_t size)
 static void Wait(void)
 {
     const struct timespec pause = {0, 1000000};
+    // hygiene: the bus daemon delivers messages asynchronously
     (void)nanosleep(&pause, NULL);
 }
 

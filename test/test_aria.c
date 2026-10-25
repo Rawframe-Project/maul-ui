@@ -340,6 +340,7 @@ static bool Send(muiAriaAdapter* adapter, const muiAccessNode* const* nodes, uin
     return muiAriaAdapter_Apply(adapter, &update) == mui_success;
 }
 
+// hygiene: the browser's own event loop runs between checks
 static void Sleep(void)
 {
     TestSleep(20);
@@ -447,12 +448,14 @@ static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* ro
     heading.values.live = mui_liveAssertive;
     heading.text[mui_accessLabel] = "Topic 3";
     CHECK(Send(adapter, (const muiAccessNode*[]){&heading}, 1, rootChildren), "renamed");
+    // hygiene: the browser updates the live region asynchronously
     Sleep();
     CHECK(TextIs("#mui0-assertive", "Topic 3") && TextIs("#mui0-polite", ""),
           "announced through the assertive region");
     heading.values.level = 4;
     heading.text[mui_accessLabel] = "Topic 3";
     CHECK(Send(adapter, (const muiAccessNode*[]){&heading}, 1, rootChildren), "not renamed");
+    // hygiene: the browser updates the live region asynchronously
     Sleep();
     CHECK(TextIs("#mui0-assertive", "Topic 3"), "the region keeps the name a while");
     // A scroll event comes with the page's next rendering, whose time
@@ -460,6 +463,7 @@ static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* ro
     ScrollHost(40);
     for (int waited = 0; waited < 50 && HostTop() != 0; waited++)
     {
+        // hygiene: the compositor scrolls the host page asynchronously
         Sleep();
     }
     CHECK(HostTop() == 0, "the host's scroll put back");
@@ -590,6 +594,7 @@ static void TestFields(void)
     SelectIn("#mui0-2", 0, 4);
     for (int waited = 0; waited < 50 && s_asked.action == mui_actionScrollRight; waited++)
     {
+        // hygiene: the browser reports the selection change asynchronously
         Sleep();
     }
     CHECK(AskedText(mui_actionSetSelection, 0, 6, NULL), "a client's selection asked in bytes");
@@ -599,6 +604,7 @@ static void TestFields(void)
     CHECK(Send(adapter, (const muiAccessNode*[]){&name}, 1, children) &&
               SelectionIs("#mui0-2", 4, 4, 0),
           "the program's caret written");
+    // hygiene: the browser would report a selection change asynchronously
     Sleep();
     CHECK(s_asked.action == mui_actionScrollRight, "asking nothing back");
     // A composition shown as it runs, asked for whole at its end.
@@ -611,6 +617,7 @@ static void TestFields(void)
     Compose("#mui0-2", "compositionstart", "");
     CHECK(!InputKept("#mui0-2", "insertCompositionText", "u"), "a composition shown as it runs");
     SelectIn("#mui0-2", 2, 2);
+    // hygiene: the browser would report a selection change asynchronously
     Sleep();
     CHECK(s_asked.action == mui_actionScrollRight, "its selection not the program's");
     Compose("#mui0-2", "compositionend", "\xC3\xBC");

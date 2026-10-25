@@ -38,6 +38,7 @@ function(mui_add_sample name)
         endif()
         # A real device draws them: lavapipe under the validation layer, or
         # the browser's WebGPU.
+        # hygiene: no GPU adapter locally; CI fails any skip
         set_tests_properties(${target} PROPERTIES SKIP_RETURN_CODE 77 LABELS "${target};integration"
                              FAIL_REGULAR_EXPRESSION "Validation Error")
     endif()

@@ -1049,6 +1049,7 @@ static bool Seen(volatile LONG* flag)
 {
     for (int i = 0; i < 100 && *flag == 0; i++)
     {
+        // hygiene: UI Automation raises events on its own threads
         Sleep(50);
     }
     return *flag != 0;

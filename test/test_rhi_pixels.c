@@ -142,6 +142,7 @@ static void Close(Gpu* gpu)
 static double Seconds(void)
 {
     struct timespec now = {0};
+    // hygiene: bounds the device's pipeline compile, which has no wait
     (void)timespec_get(&now, TIME_UTC);
     return (double)now.tv_sec + (double)now.tv_nsec * 1e-9;
 }
@@ -1430,6 +1431,7 @@ int main(void)
             return Exit(1);
         }
         printf("no adapter: skipped\n");
+        // hygiene: no GPU adapter here; CI fails any skip
         return Exit(77);
     }
     Textures textures = {0};
