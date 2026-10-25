@@ -10,7 +10,7 @@
 
 A node whose layout scrolls on an axis (`scrollAxes`) is a scroll container: its children may reach past its box, and an offset moves them. `muiNode_SetScroll` sets the offset, and `muiNode_ScrollIntoView` brings a node into its containers' view. Unhandled wheel turns, keys and gamepad directions scroll the container under the pointer or holding the focus, eased as the scroll rule says (`muiSetScrollRule`): a wheel step, a latch time, the fling's deceleration and whether to overscroll. `muiNode_GetScrollThumb` gives a scrollbar's thumb along its track. Painting moves the children through a transform, so scrolling redraws nothing else.
 
-Touch and pens pan a scroll container by dragging it and fling it when let go, with iOS's deceleration. Overscroll is off by default, as on desktop browsers; turned on, a pan past the end stretches by iOS's rubber band and springs back.
+Touch and pens pan a scroll container by dragging it and fling it when let go, with iOS's deceleration. Overscroll is off by default, as on desktop browsers; turned on, a pan past the end stretches by iOS's rubber band and springs back, and a pan catching it goes on from where it is.
 
 ## Long lists
 

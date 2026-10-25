@@ -91,14 +91,18 @@ typedef struct muiScrollSample
     float y;
 } muiScrollSample;
 
-// A touch dragging a scroll container: its offsets when the drag began
-// and its latest moves, a ring.
+// A touch dragging a scroll container: its offsets when the drag began,
+// the band it caught an overscroll of the scrollport or more in on each
+// axis (0 for none, negative past the start), and its latest moves, a
+// ring.
 typedef struct muiScrollPan
 {
     uint32_t pointer;
     muiNodeId node;
     float startX;
     float startY;
+    float caughtX;
+    float caughtY;
     uint32_t count;
     muiScrollSample samples[MUI_SCROLL_SAMPLES];
 } muiScrollPan;

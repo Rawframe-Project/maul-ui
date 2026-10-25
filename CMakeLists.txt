@@ -120,6 +120,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/access_action.c
     src/range.c
     src/scroll.c
+    src/scroll_pan.c
     src/scroll_query.c
     src/layout.c
     src/layout_bound.c
