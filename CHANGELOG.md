@@ -5,12 +5,32 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
-## [0.3.1](https://github.com/Rawframe-Project/maul-ui/compare/v0.3.0...v0.3.1) (2026-10-25)
-
+## [0.3.1](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.3.1) (2026-10-25)
 
 ### Fixed
 
-* **window:** time Windows input from when it happened ([#59](https://github.com/Rawframe-Project/maul-ui/issues/59)) ([ffc0e51](https://github.com/Rawframe-Project/maul-ui/commit/ffc0e517b519948bad71ab62b1b93e7d9d02b81d)), closes [#55](https://github.com/Rawframe-Project/maul-ui/issues/55)
+- On Windows, a program using maul-ui-window now times flings, double
+  clicks and wheel latching from when the input happened, as on every
+  other platform. Input that waited behind a long frame or a modal loop
+  was timed by that wait: a fling could take the wrong velocity, two
+  clicks could be counted wrongly as a double click or not, and a wheel
+  turn could latch to the wrong scroll container. maul-ui-window now
+  takes Maul Window 0.4.0, which stamps Windows input with the time it
+  happened. Gamepad repeat is unchanged.
+  ([#59](https://github.com/Rawframe-Project/maul-ui/pull/59))
+
+### Changed
+
+- The reference renderer takes Maul RHI 0.3.0 (from 0.0.1). Drawing is
+  unchanged on Vulkan. On D3D12 the renderer's upload can now run on
+  the copy queue, with the drawing waiting for it. Maul RHI's changelog
+  lists what else changes for a program that also calls it directly.
+  ([#58](https://github.com/Rawframe-Project/maul-ui/pull/58))
+- The core takes Maul Tween 0.2.1 (from 0.1.0) and the text component
+  Maul Unicode 0.1.0 (from 0.0.1). Results are unchanged. In wasm the
+  core grows by about 0.5 KB and the text component by 0.3 KB.
+  ([#56](https://github.com/Rawframe-Project/maul-ui/pull/56),
+  [#57](https://github.com/Rawframe-Project/maul-ui/pull/57))
 
 ## [0.3.0](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.3.0) (2026-10-25)
 
