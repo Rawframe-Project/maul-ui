@@ -5,12 +5,19 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
-## [0.2.1](https://github.com/Rawframe-Project/maul-ui/compare/v0.2.0...v0.2.1) (2026-10-25)
-
+## [0.2.1](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.2.1) (2026-10-25)
 
 ### Fixed
 
-* **scroll:** stop a fling at a limit that layout moved behind its start ([#47](https://github.com/Rawframe-Project/maul-ui/issues/47)) ([73bbd47](https://github.com/Rawframe-Project/maul-ui/commit/73bbd47801af025356a9c267cb158b4029cb6c92)), closes [#46](https://github.com/Rawframe-Project/maul-ui/issues/46)
+- With overscroll on, a touch fling no longer throws the content far
+  past a limit that layout moved behind where the fling began, when the
+  fling heads back toward it. A fling up at 1,000 units a second from
+  357, whose limit fell from 400 to 100, drew the content about 20,650
+  units past the new limit and brought it back over about 400 ms. Such a
+  fling now stops at the new limit, as one moving away from it already
+  did. Other flings, and all scrolling without overscroll, are
+  unchanged.
+  ([#47](https://github.com/Rawframe-Project/maul-ui/pull/47))
 
 ## [0.2.0](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.2.0) (2026-10-24)
 
