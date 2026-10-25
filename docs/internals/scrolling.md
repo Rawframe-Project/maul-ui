@@ -43,7 +43,7 @@ Overscroll is off by default, as on desktop browsers. With the rule's `overscrol
 - a fling meeting a limit springs on past it at the speed it met it, on the same spring, all in closed form;
 - a step or setting the offset takes it back at once, as reduced motion does.
 
-Without overscroll a fling stops at the limit.
+Without overscroll a fling stops at the limit. So does a fling that began outside the limits, layout having moved one behind it, whichever way it moves.
 
 ## Virtual lists
 

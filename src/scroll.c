@@ -414,10 +414,12 @@ static muiFlung FlingAxis(double from, double v, double limit, double decay, dou
     }
     double edge = at > limit ? limit : 0.0;
     // It met the edge when it had kept left of v, having gone edge - from:
-    // v (1 - left) / decay. Left is in (0, 1] unless layout moved the
-    // limit behind where it began.
+    // v (1 - left) / decay. A fling that began outside the limits, layout
+    // having moved one behind it, stops at the limit: left can be in
+    // (0, 1] for one moving back toward it, an edge not yet met.
     double left = 1.0 - (edge - from) * decay / v;
-    if (!overscroll || !(left > 0.0 && left <= 1.0))
+    bool began = from >= 0.0 && from <= limit;
+    if (!overscroll || !began || !(left > 0.0 && left <= 1.0))
     {
         return (muiFlung){(float)edge, 0.0f, true};
     }

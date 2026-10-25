@@ -903,7 +903,8 @@ static void SetHeight(muiContext* context, muiNodeId node, float height)
 static void TestFlingShrunk(void)
 {
     // A fling whose limit layout moves behind where it began stops at the
-    // limit, with no spring, down or up.
+    // limit, with no spring, down or up, moving away from the new limit or
+    // toward it.
     Scene scene;
     MakeScene(&scene, 10);
     muiContext* context = scene.context;
@@ -935,6 +936,23 @@ static void TestFlingShrunk(void)
     Layout(context, scene.root, 1100 * MS);
     CHECK(Drawn(&scene, true) == -100.0f && !muiIsUpdatePending(context, scene.root),
           "at the new limit, up");
+    SetHeight(context, scene.s, 100.0f);
+    Layout(context, scene.root, 1800 * MS);
+    CHECK(muiNode_SetScroll(context, scene.s, 0.0f, 387.0f) == mui_success, "back again");
+    Layout(context, scene.root, 1900 * MS);
+    // 1000 a second up from 357, toward the new limit and on to rest past
+    // it: it stops there all the same, never drawn past it.
+    CHECK(Touch(&scene, mui_pointerPress, 2000 * MS, 20.0f) == 0 &&
+              Touch(&scene, mui_pointerMove, 2010 * MS, 30.0f) == 1 &&
+              Touch(&scene, mui_pointerMove, 2020 * MS, 50.0f) == 1 &&
+              Touch(&scene, mui_pointerRelease, 2030 * MS, 50.0f) == 1 &&
+              Y(context, scene.s) == 357.0f,
+          "a flick up");
+    Layout(context, scene.root, 2040 * MS);
+    SetHeight(context, scene.s, 400.0f);
+    Layout(context, scene.root, 2100 * MS);
+    CHECK(Drawn(&scene, true) == -100.0f && !muiIsUpdatePending(context, scene.root),
+          "at the new limit, toward it");
     muiDestroyContext(context);
 }
 
