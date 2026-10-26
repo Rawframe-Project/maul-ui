@@ -124,6 +124,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/scroll_query.c
     src/layout.c
     src/layout_bound.c
+    src/layout_node.c
     src/motion_math.c
     src/node.c
     src/node_style.c
