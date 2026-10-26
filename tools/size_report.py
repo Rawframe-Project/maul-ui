@@ -7,8 +7,12 @@ Each part is measured as the bytes of wasm it adds to a program at -Oz
 with link-time optimization: the core above an empty program, and the
 text component (Maul UI's text code with FreeType and HarfBuzz) above the
 core. A program that calls a few functions keeps only what those reach,
-so the measured programs take the address of every public function of
-their parts that the build defines, the most a program can link. Maul
+so the measured programs export every public function of their parts
+that the build defines, the most a program can link, and their export
+sections, the names a real program does not carry, are left out of the
+bytes. Exports, not taken addresses: the optimizer may empty a function
+whose address is taken but which nothing could call through it, and the
+measure would then count a stub where a program has the function. Maul
 Unicode, built into the library, counts against its own budget: the
 public functions of it that Maul UI's code calls are measured above an
 empty program and taken off the text component's bytes.
@@ -42,7 +46,7 @@ HEADERS = ROOT / "include" / "maul-ui"
 TEXT_HEADERS = {line.split("#", 1)[0].strip()
                 for line in (ROOT / "tools" / "text-headers.txt").read_text(encoding="utf-8")
                 .splitlines()} - {""}
-CEILINGS = {"core": 176_000, "text": 640_000}
+CEILINGS = {"core": 200_000, "text": 640_000}
 FLAGS = ["-Oz", "-flto"]
 DECLARATION = re.compile(r"\bMUI_API\b[^;{]*?\b(mui[A-Za-z0-9_]+)\s*\(", re.S)
 UNICODE_DECLARATION = re.compile(r"\bMUNI_API\b[^;{]*?\b(muni[A-Za-z0-9_]+)\s*\(", re.S)
@@ -83,13 +87,12 @@ def symbols(archives):
 
 
 def unicode_functions(build, called):
-    """Maul Unicode's public functions Maul UI calls, by header, and the
-    directory holding its headers; none when the build has no Maul
-    Unicode."""
+    """Maul Unicode's public functions Maul UI calls, by header; none when
+    the build has no Maul Unicode."""
     cache = (build / "CMakeCache.txt").read_text(encoding="utf-8")
     found = re.search(r"^maul-unicode_SOURCE_DIR:STATIC=(.*)$", cache, re.M)
     if found is None:
-        return [], None
+        return []
     headers = pathlib.Path(found.group(1)) / "include" / "maul-unicode"
     # A build that fetched Maul Unicode must have its headers: without
     # them the text component's size would silently lose Maul Unicode's
@@ -102,40 +105,33 @@ def unicode_functions(build, called):
                  if name in called]
         if names:
             part.append((header.name, names))
-    return part, headers.parent
+    return part
 
 
-def program(parts, defined):
-    """A program taking every defined function of the parts' headers."""
-    headers, names = [], []
-    for part in parts:
-        for header, found in part:
-            kept = [name for name in found if name in defined]
-            if kept:
-                headers.append(header if "/" in header else f"maul-ui/{header}")
-                names.extend(kept)
-    lines = [f'#include "{header}"' for header in headers]
-    lines += ["", "#include <stddef.h>", "#include <stdint.h>", "",
-              "typedef void (*Function)(void);", "static Function const s_functions[] = {"]
-    lines += [f"    (Function){name}," for name in names]
-    lines += ["};", "",
-              "int main(int count, char** arguments)", "{", "    (void)arguments;",
-              "    size_t at = (size_t)count % (sizeof s_functions / sizeof s_functions[0]);",
-              "    return (int)((uintptr_t)s_functions[at] & 1u);", "}", ""]
-    return "\n".join(lines), len(names)
+EMPTY = "int main(void)\n{\n    return 0;\n}\n"
 
 
-def wasm_bytes(directory, name, source, archives, includes):
-    """Builds a program and returns its wasm's bytes."""
+def exported(parts, defined):
+    """Every defined function of the parts' headers."""
+    return [name for part in parts for _, found in part for name in found if name in defined]
+
+
+def link(directory, name, archives, exports, flags):
+    """Links an empty program exporting the functions; returns its wasm."""
     path = directory / f"{name}.c"
-    path.write_text(source, encoding="utf-8")
+    path.write_text(EMPTY, encoding="utf-8")
     objects = directory / f"{name}.o"
-    output = directory / f"{name}.js"
-    subprocess.run(["emcc", *FLAGS, "-std=c23", *[f"-I{include}" for include in includes], "-c",
-                    str(path), "-o", str(objects)], check=True)
-    subprocess.run(["em++", *FLAGS, "-sALLOW_MEMORY_GROWTH", str(objects), *archives, "-o",
-                    str(output)], check=True)
-    return (directory / f"{name}.wasm").stat().st_size
+    subprocess.run(["emcc", *FLAGS, "-std=c23", "-c", str(path), "-o", str(objects)], check=True)
+    symbols = ",".join(["_main"] + [f"_{export}" for export in exports])
+    subprocess.run(["em++", *flags, "-sALLOW_MEMORY_GROWTH", f"-sEXPORTED_FUNCTIONS={symbols}",
+                    str(objects), *archives, "-o", str(directory / f"{name}.js")], check=True)
+    return directory / f"{name}.wasm"
+
+
+def wasm_bytes(directory, name, archives, exports):
+    """A program's wasm bytes, its export section left out."""
+    wasm = link(directory, name, archives, exports, FLAGS)
+    return wasm.stat().st_size - export_section_bytes(wasm)
 
 
 def leb128(data, at):
@@ -148,6 +144,19 @@ def leb128(data, at):
         shift += 7
         if byte < 0x80:
             return value, at
+
+
+def export_section_bytes(wasm):
+    """The bytes of the export section, its id and size included."""
+    data = wasm.read_bytes()
+    at = 8
+    while at < len(data):
+        section = data[at]
+        size, body = leb128(data, at + 1)
+        if section == 7:
+            return body + size - at
+        at = body + size
+    return 0
 
 
 def function_sizes(wasm):
@@ -218,18 +227,11 @@ def owners(archives):
     return found
 
 
-def where_bytes_go(directory, source, archives, includes, count):
+def where_bytes_go(directory, exports, archives, count):
     """Prints the core's largest functions and its source files' totals."""
-    path = directory / "names.c"
-    path.write_text(source, encoding="utf-8")
-    subprocess.run(["emcc", "-Oz", "-std=c23", *[f"-I{include}" for include in includes], "-c",
-                    str(path), "-o", str(directory / "names.o")], check=True)
-    subprocess.run(["em++", "-O1", "--profiling-funcs", "-sALLOW_MEMORY_GROWTH",
-                    str(directory / "names.o"), *archives, "-o", str(directory / "names.js")],
-                   check=True)
+    wasm = link(directory, "names", archives, exports, ["-O1", "--profiling-funcs"])
     # Link-time optimization renames a static function it promotes.
-    sizes = [(re.sub(r"\.llvm\.\d+$", "", name), size)
-             for name, size in function_sizes(directory / "names.wasm")]
+    sizes = [(re.sub(r"\.llvm\.\d+$", "", name), size) for name, size in function_sizes(wasm)]
     found = owners(archives)
     print(f"where the core's bytes go, linked at -O1 with names ({sum(s for _, s in sizes)} "
           "bytes of code):")
@@ -257,23 +259,20 @@ def main():
         sys.exit(f"size_report: no archives in {build}")
     defined, called = symbols(archives)
     core, text = public_functions()
-    unicode, unicode_include = unicode_functions(build, called)
-    unicode = [(f"maul-unicode/{header}", names) for header, names in unicode]
-    includes = [ROOT / "include"] + ([unicode_include] if unicode_include else [])
+    unicode = unicode_functions(build, called)
     with tempfile.TemporaryDirectory() as temporary:
         directory = pathlib.Path(temporary)
 
         def measure(name, parts):
-            source, count = program(parts, defined)
-            return wasm_bytes(directory, name, source, archives, includes), count
+            exports = exported(parts, defined)
+            return wasm_bytes(directory, name, archives, exports), len(exports)
 
-        empty = wasm_bytes(directory, "empty", "int main(void)\n{\n    return 0;\n}\n", archives,
-                           includes)
+        empty = wasm_bytes(directory, "empty", archives, [])
         with_core, core_count = measure("core", [core])
         with_text, all_count = measure("text", [core, text])
         with_unicode, unicode_count = measure("unicode", [unicode])
         if functions is not None:
-            where_bytes_go(directory, program([core], defined)[0], archives, includes, functions)
+            where_bytes_go(directory, exported([core], defined), archives, functions)
     linked = with_text - with_core
     unicode_bytes = with_unicode - empty
     sizes = {"core": with_core - empty, "text": linked - unicode_bytes}
