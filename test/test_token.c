@@ -331,14 +331,14 @@ static void TestClassesNameTokens(void)
     width.dimension = (muiDimension){0.0f, 80.0f, mui_dimensionValue};
     muiTokenId narrowWidth = MakeToken(context, width);
     muiCondition narrow = muiDefaultCondition();
-    narrow.width = (muiRange){0.0f, 100.0f};
+    narrow.width = (muiInterval){0.0f, 100.0f};
     muiVariant variant = mui_variantBase;
     CHECK(muiStyle_AddCondition(context, style, &narrow, &variant) == mui_success, "condition");
     CHECK(muiStyle_SetToken(context, style, variant, mui_propertyWidth, narrowWidth) ==
               mui_errorInvalid,
           "a width for a width condition");
     muiCondition tall = muiDefaultCondition();
-    tall.height = (muiRange){100.0f, INFINITY};
+    tall.height = (muiInterval){100.0f, INFINITY};
     CHECK(muiStyle_SetCondition(context, style, variant, &tall) == mui_success &&
               muiStyle_SetToken(context, style, variant, mui_propertyWidth, narrowWidth) ==
                   mui_success,
@@ -505,7 +505,7 @@ static void TestNameLimit(void)
     // So do cleared conditions.
     muiVariant variant = mui_variantBase;
     muiCondition any = muiDefaultCondition();
-    any.textScale = (muiRange){2.0f, INFINITY};
+    any.textScale = (muiInterval){2.0f, INFINITY};
     CHECK(muiStyle_ResetProperties(context, other, mui_variantBase, mui_groupLayout,
                                    MUI_LAYOUT_PROPERTIES) == mui_success &&
               muiStyle_ResetProperties(context, other, mui_variantBase, mui_groupVisual,
@@ -617,7 +617,7 @@ static void TestNamesAmongTheRest(void)
     // A condition's variant with names alone applies them.
     muiStyleId scaled = MakeStyle(context);
     muiCondition large = muiDefaultCondition();
-    large.textScale = (muiRange){2.0f, INFINITY};
+    large.textScale = (muiInterval){2.0f, INFINITY};
     muiVariant variant = mui_variantBase;
     CHECK(muiStyle_AddCondition(context, scaled, &large, &variant) == mui_success &&
               muiStyle_SetToken(context, scaled, variant, mui_propertyBorderColorTop, blue) ==

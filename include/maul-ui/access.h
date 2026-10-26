@@ -290,12 +290,12 @@ extern "C"
 
     enum
     {
-        mui_popupNone = 0,
-        mui_popupMenu = 1,
-        mui_popupListBox = 2,
-        mui_popupTree = 3,
-        mui_popupGrid = 4,
-        mui_popupDialog = 5,
+        mui_hasPopupNone = 0,
+        mui_hasPopupMenu = 1,
+        mui_hasPopupListBox = 2,
+        mui_hasPopupTree = 3,
+        mui_hasPopupGrid = 4,
+        mui_hasPopupDialog = 5,
     };
 
     // Which way a node's items or values run; none says nothing.

@@ -103,7 +103,7 @@ static void TestDefaults(void)
     CHECK(condition.width.min == 0.0f && condition.width.max == INFINITY, "every width");
     CHECK(condition.aspect.max == INFINITY && condition.textScale.max == INFINITY, "ranges");
     CHECK(condition.viewports == 7 && condition.inputs == 7, "every class and modality");
-    CHECK(condition.motion == mui_motionAny && condition.direction == mui_directionAny, "any");
+    CHECK(condition.motion == mui_motionAny && condition.direction == mui_inlineInherit, "any");
     muiEnvironment environment = muiDefaultEnvironment();
     CHECK(environment.viewport == mui_viewportMedium && environment.input == mui_inputPointer,
           "medium, pointer");
@@ -215,7 +215,7 @@ static void TestConditionsAreChecked(void)
         bad[i] = muiDefaultCondition();
     }
     bad[0].width.min = -1.0f;
-    bad[1].height = (muiRange){5.0f, 4.0f};
+    bad[1].height = (muiInterval){5.0f, 4.0f};
     bad[2].aspect.max = NAN;
     bad[3].textScale.min = INFINITY;
     bad[4].viewports = 8;
@@ -229,7 +229,7 @@ static void TestConditionsAreChecked(void)
               "refused");
     }
     muiCondition good = muiDefaultCondition();
-    good.width = (muiRange){3.0f, 3.0f};
+    good.width = (muiInterval){3.0f, 3.0f};
     good.viewports = 0;
     CHECK(muiStyle_AddCondition(context, style, &good, &variant) == mui_success,
           "an empty range and no viewports are well formed");
@@ -299,7 +299,7 @@ static void TestValuesMayNotSetWhatTheirConditionReads(void)
         {{.width = {0, INFINITY},
           .height = {0, INFINITY},
           .aspect = {0, INFINITY},
-          .direction = mui_directionRightToLeft},
+          .direction = mui_inlineRightToLeft},
          WIDTH | MUI_PROPERTY_BIT(mui_propertyAspectRatio),
          MUI_PROPERTY_BIT(mui_propertyTextDirection)},
     };
@@ -307,7 +307,7 @@ static void TestValuesMayNotSetWhatTheirConditionReads(void)
     for (uint32_t i = 0; i < sizeof cases / sizeof cases[0]; i++)
     {
         muiCondition condition = cases[i].condition;
-        condition.textScale = (muiRange){0.0f, INFINITY};
+        condition.textScale = (muiInterval){0.0f, INFINITY};
         condition.viewports = 7;
         condition.inputs = 7;
         muiVariant variant = mui_variantBase;
@@ -359,7 +359,7 @@ static void TestEnvironmentClauses(void)
     reduced.motion = mui_motionReduced;
     AddPadding(context, style, &reduced, 3.0f);
     muiCondition large = muiDefaultCondition();
-    large.textScale = (muiRange){1.5f, 2.0f};
+    large.textScale = (muiInterval){1.5f, 2.0f};
     AddPadding(context, style, &large, 4.0f);
     muiCondition full = muiDefaultCondition();
     full.motion = mui_motionFull;
@@ -436,7 +436,7 @@ static void TestSizeClausesReadTheLastLayout(void)
     SetWidth(context, node, 200.0f);
     muiStyleId style = MakeStyle(context);
     muiCondition narrow = muiDefaultCondition();
-    narrow.width = (muiRange){100.0f, 250.0f};
+    narrow.width = (muiInterval){100.0f, 250.0f};
     AddPadding(context, style, &narrow, 10.0f);
     CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
     CHECK(muiIsUpdatePending(context, root), "a new tree is pending");
@@ -455,7 +455,7 @@ static void TestSizeClausesReadTheLastLayout(void)
               mui_success,
           "zero height");
     muiCondition wide = muiDefaultCondition();
-    wide.aspect = (muiRange){2.0f, INFINITY};
+    wide.aspect = (muiInterval){2.0f, INFINITY};
     AddPadding(context, style, &wide, 20.0f);
     Compute(context, root);
     CHECK(PaddingAfterLayout(context, root, node) == 20.0f,
@@ -473,15 +473,15 @@ static void TestDirectionClauseReadsTheLastLayout(void)
     CHECK(muiNode_InsertChild(context, root, node, s_nullNode) == mui_success, "insert");
     muiStyleId style = MakeStyle(context);
     muiCondition rtl = muiDefaultCondition();
-    rtl.direction = mui_directionRightToLeft;
+    rtl.direction = mui_inlineRightToLeft;
     AddPadding(context, style, &rtl, 6.0f);
     muiCondition ltr = muiDefaultCondition();
-    ltr.direction = mui_directionLeftToRight;
+    ltr.direction = mui_inlineLeftToRight;
     AddPadding(context, style, &ltr, 3.0f);
     CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
     CHECK(PaddingAfterLayout(context, root, node) == 3.0f, "left to right at first");
     muiLayoutStyle flip = muiDefaultLayoutStyle();
-    flip.textDirection = mui_textRightToLeft;
+    flip.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutValues(context, root, &flip,
                                   MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
           "the root turns right to left");
@@ -519,7 +519,7 @@ static void TestAspectAndHeightClausesFollowLayout(void)
     SetSize(context, node, 100.0f, 100.0f);
     muiStyleId style = MakeStyle(context);
     muiCondition wide = muiDefaultCondition();
-    wide.aspect = (muiRange){2.0f, INFINITY};
+    wide.aspect = (muiInterval){2.0f, INFINITY};
     AddPadding(context, style, &wide, 5.0f);
     CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
     Settle(context, node);
@@ -528,7 +528,7 @@ static void TestAspectAndHeightClausesFollowLayout(void)
     Settle(context, node);
     CHECK(PaddingOf(context, node) == 5.0f, "an aspect clause alone follows a width change");
     muiCondition low = muiDefaultCondition();
-    low.height = (muiRange){0.0f, 50.0f};
+    low.height = (muiInterval){0.0f, 50.0f};
     AddPadding(context, style, &low, 7.0f);
     Settle(context, node);
     CHECK(PaddingOf(context, node) == 5.0f, "tall");
@@ -545,7 +545,7 @@ static void TestOnlyConditionsThatApplyAreWatched(void)
     SetSize(context, node, 100.0f, 100.0f);
     muiStyleId style = MakeStyle(context);
     muiCondition narrow = muiDefaultCondition();
-    narrow.width = (muiRange){0.0f, 150.0f};
+    narrow.width = (muiInterval){0.0f, 150.0f};
     muiVariant variant = mui_variantBase;
     CHECK(muiStyle_AddCondition(context, style, &narrow, &variant) == mui_success,
           "a condition with no values");
@@ -621,7 +621,7 @@ static muiStyleId MakeWidening(muiContext* context)
 {
     muiStyleId style = MakeStyle(context);
     muiCondition narrow = muiDefaultCondition();
-    narrow.width = (muiRange){0.0f, 100.0f};
+    narrow.width = (muiInterval){0.0f, 100.0f};
     AddPadding(context, style, &narrow, 50.0f);
     return style;
 }
@@ -688,7 +688,7 @@ static void TestHostEditsAreNotOscillation(void)
     muiNodeId node = MakeNode(context);
     muiStyleId style = MakeStyle(context);
     muiCondition narrow = muiDefaultCondition();
-    narrow.width = (muiRange){0.0f, 100.0f};
+    narrow.width = (muiInterval){0.0f, 100.0f};
     AddPadding(context, style, &narrow, 5.0f);
     CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
     for (int i = 0; i < 8; i++)
@@ -791,7 +791,7 @@ static void TestAlternatingSizesWithOneOutcomeAreNotOscillation(void)
     CHECK(muiNode_InsertChild(context, root, node, s_nullNode) == mui_success, "insert");
     muiStyleId style = MakeStyle(context);
     muiCondition any = muiDefaultCondition();
-    any.width = (muiRange){0.0f, 200.0f};
+    any.width = (muiInterval){0.0f, 200.0f};
     AddPadding(context, style, &any, 5.0f);
     CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
     for (int i = 0; i < 8; i++)
@@ -843,7 +843,7 @@ static void TestFlipsBetweenConditionsAreOscillation(void)
     muiNodeId root = MakeNode(context);
     muiStyleId style = MakeWidening(context);
     muiCondition wide = muiDefaultCondition();
-    wide.width = (muiRange){100.0f, INFINITY};
+    wide.width = (muiInterval){100.0f, INFINITY};
     AddPadding(context, style, &wide, 0.0f);
     muiNodeId node = MakeOscillator(context, root, style);
     RunWhilePending(context, root);

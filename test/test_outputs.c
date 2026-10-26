@@ -131,7 +131,7 @@ static void CheckQueries(const muiContext* context, muiNodeId node, muiStyleId s
     EXPECT(muiNode_GetValueRange(context, node, &outputs.range), CLEARED(range));
     EXPECT(muiNode_GetScroll(context, node, &outputs.x, &outputs.y), CLEARED(x) && CLEARED(y));
     EXPECT(muiNode_GetScrollExtent(context, node, &outputs.extent), CLEARED(extent));
-    EXPECT(muiNode_GetScrollThumb(context, node, true, 100.0f, 10.0f, &outputs.thumb),
+    EXPECT(muiNode_GetScrollThumb(context, node, mui_axisHorizontal, 100.0f, 10.0f, &outputs.thumb),
            CLEARED(thumb));
     EXPECT(
         muiStyle_GetLayoutValues(context, style, mui_variantBase, &outputs.layout, &outputs.mask),

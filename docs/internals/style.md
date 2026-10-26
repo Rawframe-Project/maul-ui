@@ -36,7 +36,7 @@ Direct writes win until reset. The node keeps which properties it writes directl
 
 ## Conditions
 
-A condition is a conjunction of typed clauses with its own values, up to eight a class: half-open ranges over the node's border-box width, height and aspect and the text scale; sets of viewport classes and input modalities; and choices for reduced motion and text direction. A clause at its default reads nothing.
+A condition is a conjunction of typed clauses with its own values, up to eight a class: half-open intervals over the node's border-box width, height and aspect and the text scale; sets of viewport classes and input modalities; and choices for reduced motion and text direction. A clause at its default reads nothing.
 
 Conditions read the state before the pass. Size and direction come from the node's last layout. The viewport class, input modality, text scale and reduced motion are the environment the host sets on the context, and a change to it restyles every node. When a layout changes a size or direction that a node's conditions read, the node's style is requested for the next run and `muiIsUpdatePending` tells the host a run is owed. No stage feeds an earlier one within a run. In exchange a size condition shows its effect one run late, and a node never laid out reads a size of 0.
 

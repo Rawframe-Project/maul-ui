@@ -224,7 +224,7 @@ static void TestRightToLeft(void)
     Scene scene;
     MakeScene(&scene, 150.0f, 100.0f);
     muiLayoutStyle style = muiDefaultLayoutStyle();
-    style.textDirection = mui_textRightToLeft;
+    style.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutValues(scene.context, scene.anchor, &style,
                                   MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
           "right to left");

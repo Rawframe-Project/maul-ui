@@ -126,7 +126,7 @@ static const Row s_layoutRows[] = {
     DIMENSION(placement.inset.bottom),
     NUMBER(placement.anchorX, kindFraction),
     NUMBER(placement.anchorY, kindFraction),
-    ENUM(textDirection, mui_textInherit, mui_textRightToLeft),
+    ENUM(textDirection, mui_inlineInherit, mui_inlineRightToLeft),
     ENUM(content, mui_contentNone, mui_contentHost),
     ENUM(scrollAxes, mui_scrollNone, mui_scrollBoth),
     ENUM(safeArea, 0, mui_edgeStart | mui_edgeEnd | mui_edgeTop | mui_edgeBottom),

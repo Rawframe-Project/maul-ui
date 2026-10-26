@@ -271,7 +271,7 @@ static void TestAgainstPainting(void)
         if (round % 2 == 1)
         {
             muiLayoutStyle rtl = muiDefaultLayoutStyle();
-            rtl.textDirection = mui_textRightToLeft;
+            rtl.textDirection = mui_inlineRightToLeft;
             CHECK(muiNode_SetLayoutValues(context, nodes[0], &rtl,
                                           MUI_PROPERTY_BIT(mui_propertyTextDirection)) ==
                       mui_success,

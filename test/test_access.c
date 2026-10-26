@@ -439,7 +439,7 @@ static void TestRelationsAndValues(void)
     values.rowCount = 10;
     values.columnIndex = 3;
     values.live = mui_livePolite;
-    values.popup = mui_popupMenu;
+    values.popup = mui_hasPopupMenu;
     values.sort = mui_sortDescending;
     values.invalid = mui_invalidSpelling;
     values.current = mui_currentPage;
@@ -448,7 +448,7 @@ static void TestRelationsAndValues(void)
     node = Sent(&update, scene.label);
     CHECK(update.nodeCount == 1 && node != NULL && node->values.level == 2 &&
               node->values.rowCount == 10 && node->values.columnIndex == 3 &&
-              node->values.live == mui_livePolite && node->values.popup == mui_popupMenu &&
+              node->values.live == mui_livePolite && node->values.popup == mui_hasPopupMenu &&
               node->values.sort == mui_sortDescending &&
               node->values.invalid == mui_invalidSpelling &&
               node->values.current == mui_currentPage,
@@ -495,7 +495,7 @@ static void TestRelationsAndValues(void)
     values.live = mui_liveAssertive + 1;
     CHECK(muiNode_SetAccessValues(context, scene.label, &values) == mui_errorInvalid, "live");
     values = muiDefaultAccessValues();
-    values.popup = mui_popupDialog + 1;
+    values.popup = mui_hasPopupDialog + 1;
     CHECK(muiNode_SetAccessValues(context, scene.label, &values) == mui_errorInvalid, "popup");
     values = muiDefaultAccessValues();
     values.orientation = mui_orientationVertical + 1;
@@ -1204,7 +1204,7 @@ static void TestScrollActions(void)
     muiNodeId across = Node(context, root);
     muiLayoutStyle style = muiDefaultLayoutStyle();
     style.scrollAxes = mui_scrollHorizontal;
-    style.textDirection = mui_textRightToLeft;
+    style.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutValues(context, across, &style,
                                   MUI_PROPERTY_BIT(mui_propertyScrollAxes) |
                                       MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,

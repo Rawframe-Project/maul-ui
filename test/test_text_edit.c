@@ -242,7 +242,7 @@ static void TestWrapped(void)
     // Right to left, the line starts at the right, at 25: "ab" from 5,
     // and an offset in the space hanging past its end at its left.
     muiLayoutStyle layout = muiDefaultLayoutStyle();
-    layout.textDirection = mui_textRightToLeft;
+    layout.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutValues(scene.context, scene.node, &layout,
                                   MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
           "direction");
@@ -321,7 +321,7 @@ static void TestRightToLeft(void)
     // A right-to-left paragraph: its empty caret at the right.
     ShowPlain(&scene, "");
     muiLayoutStyle layout = muiDefaultLayoutStyle();
-    layout.textDirection = mui_textRightToLeft;
+    layout.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutValues(scene.context, scene.node, &layout,
                                   MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
           "direction");
@@ -468,7 +468,7 @@ static void TestMovingOnScreen(void)
     // back to the line before's end, left from the left end on to the
     // next line, and from the last line's left end nowhere.
     muiLayoutStyle layout = muiDefaultLayoutStyle();
-    layout.textDirection = mui_textRightToLeft;
+    layout.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutValues(scene.context, scene.node, &layout,
                                   MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
           "direction");

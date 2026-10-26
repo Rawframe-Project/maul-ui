@@ -284,7 +284,7 @@ static void SetStyle(Tree* tree, uint32_t node, uint32_t property, uint32_t valu
         style.placement.anchorY = (float)(value % 5) * 0.25f;
         break;
     case mui_propertyTextDirection:
-        style.textDirection = (muiTextDirection)(value % 3);
+        style.textDirection = (muiInlineDirection)(value % 3);
         break;
     case mui_propertyScrollAxes:
         style.scrollAxes = (muiScrollAxes)(value % 4);

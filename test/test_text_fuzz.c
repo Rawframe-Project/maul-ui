@@ -247,7 +247,7 @@ static void RandomStyle(muiContext* context, muiNodeId node, uint32_t* state)
     CHECK(muiNode_SetTextValues(context, node, &style, MUI_TEXT_PROPERTIES) == mui_success,
           "style");
     muiLayoutStyle layout = muiDefaultLayoutStyle();
-    layout.textDirection = (muiTextDirection)(Next(state) % 3);
+    layout.textDirection = (muiInlineDirection)(Next(state) % 3);
     CHECK(muiNode_SetLayoutValues(context, node, &layout,
                                   MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
           "direction");

@@ -78,10 +78,10 @@ bool muiNode_IsRightToLeft(const muiContext* context, muiNodeId nodeId)
     for (uint32_t at = muiTreeResolve(&context->tree, nodeId); at != 0;
          at = muiTreeAt(&context->tree, at)->links.parent)
     {
-        muiTextDirection direction = context->layout[at - 1].style.textDirection;
-        if (direction != mui_textInherit)
+        muiInlineDirection direction = context->layout[at - 1].style.textDirection;
+        if (direction != mui_inlineInherit)
         {
-            return direction == mui_textRightToLeft;
+            return direction == mui_inlineRightToLeft;
         }
     }
     return false;

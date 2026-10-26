@@ -281,41 +281,32 @@ extern "C"
         mui_motionReduced = 2,
     };
 
-    // What a condition asks of a node's resolved text direction.
-    typedef uint8_t muiDirectionMatch;
-
-    enum
-    {
-        mui_directionAny = 0,
-        mui_directionLeftToRight = 1,
-        mui_directionRightToLeft = 2,
-    };
-
     // Values from min up to, but not including, max; max may be infinite.
-    typedef struct muiRange
+    typedef struct muiInterval
     {
         float min;
         float max;
-    } muiRange;
+    } muiInterval;
 
     // When a class's conditional values apply: when every clause holds. A
-    // clause at its default (the range [0, inf), every bit, any) holds
+    // clause at its default (the interval [0, inf), every bit, any) holds
     // always and reads nothing. Build it with muiDefaultCondition.
     typedef struct muiCondition
     {
         // The node's border box from its last layout. Aspect is width over
         // height: infinite for a zero height, 0 for an empty box.
-        muiRange width;
-        muiRange height;
-        muiRange aspect;
+        muiInterval width;
+        muiInterval height;
+        muiInterval aspect;
         // The environment's text scale.
-        muiRange textScale;
+        muiInterval textScale;
         // The viewport classes and input modalities it holds for.
         muiViewportClass viewports;
         muiInputModality inputs;
         muiMotionMatch motion;
-        // The node's resolved direction from its last layout.
-        muiDirectionMatch direction;
+        // The node's resolved direction from its last layout; inherit
+        // holds for either.
+        muiInlineDirection direction;
     } muiCondition;
 
     // What the host tells the context about where its UI is shown.
@@ -472,7 +463,7 @@ extern "C"
     ///
     /// @param context     The context.
     /// @param styleId     The class.
-    /// @param condition   Ranges with a finite minimum of 0 or more and a
+    /// @param condition   Intervals with a finite minimum of 0 or more and a
     ///                    maximum not below it, known bits and choices.
     /// @param variantOut  Receives the condition's variant; mui_variantBase
     ///                    on failure.

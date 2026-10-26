@@ -19,6 +19,7 @@
 
 #include "maul-ui/base.h"
 #include "maul-ui/context.h"
+#include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 
 #include <stdbool.h>
@@ -28,21 +29,13 @@ extern "C"
 {
 #endif
 
-    // Which way a list's items follow each other. The list should scroll
-    // that way (maul-ui/layout.h's scroll axes).
-    typedef uint8_t muiListAxis;
-
-    enum
-    {
-        mui_listVertical = 0,
-        // From the inline start: right to left under right to left.
-        mui_listHorizontal = 1,
-    };
-
     typedef struct muiVirtualList
     {
         uint32_t count;
-        muiListAxis axis;
+        // Which way the items follow each other, horizontally from the
+        // inline start: right to left under right to left. The list
+        // should scroll that way (maul-ui/layout.h's scroll axes).
+        muiAxis axis;
         // Every item's extent along the axis when fixed; otherwise each
         // item's estimate until it is measured. Finite and above 0.
         float extent;

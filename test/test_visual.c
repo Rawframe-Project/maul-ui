@@ -210,7 +210,7 @@ static void TestVariantsAndConditions(void)
     // Narrow nodes are rounder: a condition on width, which a visual value
     // cannot change, may set one.
     muiCondition narrow = muiDefaultCondition();
-    narrow.width = (muiRange){0.0f, 100.0f};
+    narrow.width = (muiInterval){0.0f, 100.0f};
     muiVariant variant = mui_variantBase;
     CHECK(muiStyle_AddCondition(context, style, &narrow, &variant) == mui_success, "condition");
     muiVisualStyle values = muiDefaultVisualStyle();

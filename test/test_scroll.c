@@ -248,7 +248,7 @@ static void TestRightToLeft(void)
     muiNodeId s = Sized(context, root, 100.0f, 50.0f);
     muiLayoutStyle style = muiDefaultLayoutStyle();
     style.scrollAxes = mui_scrollHorizontal;
-    style.textDirection = mui_textRightToLeft;
+    style.textDirection = mui_inlineRightToLeft;
     SetLayout(context, s, &style, SCROLL | MUI_PROPERTY_BIT(mui_propertyTextDirection));
     muiNodeId a = Sized(context, s, 80.0f, 50.0f);
     muiNodeId b = Sized(context, s, 80.0f, 50.0f);
@@ -348,7 +348,8 @@ static void TestReversedOrigin(void)
               muiNode_GetRect(context, item).y == -60.0f,
           "measured from the bottom");
     muiScrollThumb thumb = {0};
-    CHECK(muiNode_GetScrollThumb(context, s, false, 100.0f, 0.0f, &thumb) == mui_success &&
+    CHECK(muiNode_GetScrollThumb(context, s, mui_axisVertical, 100.0f, 0.0f, &thumb) ==
+                  mui_success &&
               fabsf(thumb.start + thumb.length - 100.0f) < 0.001f,
           "the thumb at the track's end");
     float x = 1.0f;
@@ -356,7 +357,8 @@ static void TestReversedOrigin(void)
     CHECK(muiNode_SetScroll(context, s, 0.0f, 70.0f) == mui_success &&
               muiNode_GetScroll(context, s, &x, &y) == mui_success && y == 70.0f,
           "scrolled to the top");
-    CHECK(muiNode_GetScrollThumb(context, s, false, 100.0f, 0.0f, &thumb) == mui_success &&
+    CHECK(muiNode_GetScrollThumb(context, s, mui_axisVertical, 100.0f, 0.0f, &thumb) ==
+                  mui_success &&
               thumb.start == 0.0f,
           "the thumb at the track's start");
     // The item's top, 60 above the container, now shows at 10.
@@ -380,16 +382,18 @@ static void TestReversedOrigin(void)
               MUI_PROPERTY_BIT(mui_propertyShrink));
     muiNodeId rtl = Sized(context, root, 100.0f, 50.0f);
     style.container.direction = mui_flexRow;
-    style.textDirection = mui_textRightToLeft;
+    style.textDirection = mui_inlineRightToLeft;
     SetLayout(context, rtl, &style,
               DIRECTION | SCROLL | MUI_PROPERTY_BIT(mui_propertyTextDirection));
     SetLayout(context, Sized(context, rtl, 300.0f, 50.0f), &keep,
               MUI_PROPERTY_BIT(mui_propertyShrink));
     Layout(context, root);
-    CHECK(muiNode_GetScrollThumb(context, row, true, 90.0f, 0.0f, &thumb) == mui_success &&
+    CHECK(muiNode_GetScrollThumb(context, row, mui_axisHorizontal, 90.0f, 0.0f, &thumb) ==
+                  mui_success &&
               thumb.start == 60.0f && thumb.length == 30.0f,
           "a reversed row's thumb at the end");
-    CHECK(muiNode_GetScrollThumb(context, rtl, true, 90.0f, 0.0f, &thumb) == mui_success &&
+    CHECK(muiNode_GetScrollThumb(context, rtl, mui_axisHorizontal, 90.0f, 0.0f, &thumb) ==
+                  mui_success &&
               thumb.start == 0.0f,
           "right to left, at its inline start");
     muiDestroyContext(context);
@@ -648,7 +652,7 @@ static void TestMapToRoot(void)
     muiNodeId root = Sized(context, s_nullNode, 300.0f, 300.0f);
     muiNodeId s = Sized(context, root, 100.0f, 50.0f);
     muiLayoutStyle style = muiDefaultLayoutStyle();
-    style.textDirection = mui_textRightToLeft;
+    style.textDirection = mui_inlineRightToLeft;
     style.border = (muiEdges){20.0f, 0.0f, 0.0f, 0.0f};
     SetLayout(context, s, &style, BORDER | MUI_PROPERTY_BIT(mui_propertyTextDirection));
     Layout(context, root);
@@ -897,7 +901,7 @@ static void TestRightToLeftBorders(void)
     muiNodeId s = Sized(context, root, 100.0f, 50.0f);
     muiLayoutStyle style = muiDefaultLayoutStyle();
     style.scrollAxes = mui_scrollHorizontal;
-    style.textDirection = mui_textRightToLeft;
+    style.textDirection = mui_inlineRightToLeft;
     style.border = (muiEdges){20.0f, 0.0f, 0.0f, 0.0f};
     SetLayout(context, s, &style, SCROLL | BORDER | MUI_PROPERTY_BIT(mui_propertyTextDirection));
     muiNodeId items[3];

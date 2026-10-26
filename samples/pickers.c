@@ -478,7 +478,7 @@ static void MakeCombo(Pickers* pickers, Combo* combo, const char* caption, const
     combo->picked = -1;
     combo->node = Field(app, caption, text, 160.0f, &combo->block);
     muiAccessValues values = muiDefaultAccessValues();
-    values.popup = mui_popupListBox;
+    values.popup = mui_hasPopupListBox;
     SampleAppCheck(app,
                    muiNode_SetAccessRole(app->context, combo->node, mui_roleComboBox) ==
                            mui_success &&
@@ -527,7 +527,7 @@ static void Build(void* user, SampleApp* app)
     interaction.drags = true;
     muiValueRange range = muiDefaultValueRange();
     range.value = 20.0f;
-    range.axis = mui_rangeVertical;
+    range.axis = mui_axisVertical;
     pickers->shownValue = 20.0f;
     SampleAppCheck(app,
                    muiNode_SetInteractionValues(app->context, pickers->number, &interaction,

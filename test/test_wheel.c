@@ -238,7 +238,7 @@ static void TestAcross(void)
     muiNodeId t = Sized(context, root, 100.0f, 50.0f);
     muiLayoutStyle style = muiDefaultLayoutStyle();
     style.scrollAxes = mui_scrollHorizontal;
-    style.textDirection = mui_textRightToLeft;
+    style.textDirection = mui_inlineRightToLeft;
     SetLayout(context, t, &style,
               MUI_PROPERTY_BIT(mui_propertyScrollAxes) |
                   MUI_PROPERTY_BIT(mui_propertyTextDirection));
@@ -377,45 +377,50 @@ static void TestThumb(void)
     muiContext* context = nest.context;
     muiScrollThumb thumb = {0};
     // Outer: scrollport 100 of 250; limit 150.
-    CHECK(muiNode_GetScrollThumb(context, nest.outer, false, 100.0f, 10.0f, &thumb) ==
+    CHECK(muiNode_GetScrollThumb(context, nest.outer, mui_axisVertical, 100.0f, 10.0f, &thumb) ==
                   mui_success &&
               thumb.start == 0.0f && thumb.length == 40.0f,
           "at the top");
     CHECK(muiNode_SetScroll(context, nest.outer, 0.0f, 75.0f) == mui_success &&
-              muiNode_GetScrollThumb(context, nest.outer, false, 100.0f, 10.0f, &thumb) ==
-                  mui_success &&
+              muiNode_GetScrollThumb(context, nest.outer, mui_axisVertical, 100.0f, 10.0f,
+                                     &thumb) == mui_success &&
               thumb.start == 30.0f && thumb.length == 40.0f,
           "half way");
-    CHECK(muiNode_GetScrollThumb(context, nest.outer, false, 100.0f, 50.0f, &thumb) ==
+    CHECK(muiNode_GetScrollThumb(context, nest.outer, mui_axisVertical, 100.0f, 50.0f, &thumb) ==
                   mui_success &&
               thumb.start == 25.0f && thumb.length == 50.0f,
           "a minimum");
-    CHECK(muiNode_GetScrollThumb(context, nest.outer, false, 100.0f, 500.0f, &thumb) ==
+    CHECK(muiNode_GetScrollThumb(context, nest.outer, mui_axisVertical, 100.0f, 500.0f, &thumb) ==
                   mui_success &&
               thumb.start == 0.0f && thumb.length == 100.0f,
           "at most the track");
-    CHECK(muiNode_GetScrollThumb(context, nest.outer, true, 80.0f, 10.0f, &thumb) == mui_success &&
+    CHECK(muiNode_GetScrollThumb(context, nest.outer, mui_axisHorizontal, 80.0f, 10.0f, &thumb) ==
+                  mui_success &&
               thumb.start == 0.0f && thumb.length == 80.0f,
           "an axis it does not scroll");
-    CHECK(muiNode_GetScrollThumb(context, nest.plain, false, 80.0f, 10.0f, &thumb) == mui_success &&
+    CHECK(muiNode_GetScrollThumb(context, nest.plain, mui_axisVertical, 80.0f, 10.0f, &thumb) ==
+                  mui_success &&
               thumb.start == 0.0f && thumb.length == 80.0f,
           "a node that does not scroll");
-    CHECK(muiNode_GetScrollThumb(NULL, nest.outer, false, 1.0f, 0.0f, &thumb) == mui_errorInvalid &&
-              muiNode_GetScrollThumb(context, nest.outer, false, 1.0f, 0.0f, NULL) ==
+    CHECK(muiNode_GetScrollThumb(NULL, nest.outer, mui_axisVertical, 1.0f, 0.0f, &thumb) ==
                   mui_errorInvalid &&
-              muiNode_GetScrollThumb(context, s_nullNode, false, 1.0f, 0.0f, &thumb) ==
+              muiNode_GetScrollThumb(context, nest.outer, mui_axisVertical, 1.0f, 0.0f, NULL) ==
                   mui_errorInvalid &&
-              muiNode_GetScrollThumb(context, nest.outer, false, NAN, 0.0f, &thumb) ==
+              muiNode_GetScrollThumb(context, s_nullNode, mui_axisVertical, 1.0f, 0.0f, &thumb) ==
                   mui_errorInvalid &&
-              muiNode_GetScrollThumb(context, nest.outer, false, -1.0f, 0.0f, &thumb) ==
+              muiNode_GetScrollThumb(context, nest.outer, mui_axisVertical + 1, 1.0f, 0.0f,
+                                     &thumb) == mui_errorInvalid &&
+              muiNode_GetScrollThumb(context, nest.outer, mui_axisVertical, NAN, 0.0f, &thumb) ==
                   mui_errorInvalid &&
-              muiNode_GetScrollThumb(context, nest.outer, false, 1.0f, INFINITY, &thumb) ==
+              muiNode_GetScrollThumb(context, nest.outer, mui_axisVertical, -1.0f, 0.0f, &thumb) ==
                   mui_errorInvalid &&
-              muiNode_GetScrollThumb(context, nest.outer, false, 1.0f, -1.0f, &thumb) ==
+              muiNode_GetScrollThumb(context, nest.outer, mui_axisVertical, 1.0f, INFINITY,
+                                     &thumb) == mui_errorInvalid &&
+              muiNode_GetScrollThumb(context, nest.outer, mui_axisVertical, 1.0f, -1.0f, &thumb) ==
                   mui_errorInvalid,
           "outside the contract");
     CHECK(muiDestroyNode(context, nest.plain) == mui_success &&
-              muiNode_GetScrollThumb(context, nest.plain, false, 1.0f, 0.0f, &thumb) ==
+              muiNode_GetScrollThumb(context, nest.plain, mui_axisVertical, 1.0f, 0.0f, &thumb) ==
                   mui_errorStale,
           "a node gone");
     muiDestroyContext(context);

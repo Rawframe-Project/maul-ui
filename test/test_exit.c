@@ -395,7 +395,7 @@ static void TestPopRightToLeft(void)
     CHECK(muiCreateContext(&def, &context) == mui_success, "context");
     muiNodeId root = Sized(context, s_nullNode, 400.0f, 100.0f);
     muiLayoutStyle rtl = muiDefaultLayoutStyle();
-    rtl.textDirection = mui_textRightToLeft;
+    rtl.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutValues(context, root, &rtl,
                                   MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
           "right to left");

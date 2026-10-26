@@ -28,15 +28,15 @@ static uint32_t ResolveRead(const muiContext* context, muiNodeId nodeId, muiResu
 }
 
 static MUI_NOINLINE muiResult NodeGetScrollThumbWorker(const muiContext* context, muiNodeId nodeId,
-                                                       bool horizontal, float track, float minimum,
+                                                       muiAxis axis, float track, float minimum,
                                                        muiScrollThumb* thumbOut)
 {
     if (thumbOut != nullptr)
     {
         memset(thumbOut, 0, sizeof *thumbOut);
     }
-    if (context == nullptr || thumbOut == nullptr || !isfinite(track) || track < 0.0f ||
-        !isfinite(minimum) || minimum < 0.0f)
+    if (context == nullptr || thumbOut == nullptr || axis > mui_axisVertical || !isfinite(track) ||
+        track < 0.0f || !isfinite(minimum) || minimum < 0.0f)
     {
         return mui_errorInvalid;
     }
@@ -49,6 +49,7 @@ static MUI_NOINLINE muiResult NodeGetScrollThumbWorker(const muiContext* context
     const muiLayoutNode* layout = &context->layout[slot - 1];
     const muiScrollState* scroll = &context->scrolls[slot - 1];
     const muiSize size = {layout->rect.width, layout->rect.height};
+    bool horizontal = axis == mui_axisHorizontal;
     float limit = muiScrollLimit(&layout->style, size, scroll, horizontal);
     if (limit <= 0.0f)
     {
@@ -66,12 +67,11 @@ static MUI_NOINLINE muiResult NodeGetScrollThumbWorker(const muiContext* context
     return mui_success;
 }
 
-muiResult muiNode_GetScrollThumb(const muiContext* context, muiNodeId nodeId, bool horizontal,
+muiResult muiNode_GetScrollThumb(const muiContext* context, muiNodeId nodeId, muiAxis axis,
                                  float track, float minimum, muiScrollThumb* thumbOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
-    muiResult result =
-        NodeGetScrollThumbWorker(context, nodeId, horizontal, track, minimum, thumbOut);
+    muiResult result = NodeGetScrollThumbWorker(context, nodeId, axis, track, minimum, thumbOut);
     muiFloatEnvLeave(floatEnv);
     return result;
 }
