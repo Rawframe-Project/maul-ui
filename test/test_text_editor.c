@@ -539,6 +539,32 @@ static void TestJoinedBytes(void)
               Holds(&scene, "a\xE6\x97") && Selects(&scene, 3, 3),
           "a composition's caret after the character");
     FreeScene(&scene);
+    // A composition between E3 and 81 8B, the E3 put before it by the
+    // host, taken out by an edit: E3 81 8B is one character, 0 to 3, and
+    // the edit lands after it (found by fuzz_text: the caret inside it).
+    for (int erase = 0; erase < 2; erase++)
+    {
+        scene = MakeScene("a\x81\x8B", 0);
+        Select(&scene, 1, 1);
+        CHECK(muiTextBlock_Compose(scene.service, scene.block, "x", 1, 1, NULL, 0, NULL) ==
+                      mui_success &&
+                  muiTextBlock_Replace(scene.service, scene.block, 0, 1, "\xE3", 1) ==
+                      mui_success &&
+                  Holds(&scene, "\xE3x\x81\x8B"),
+              "a lead put before the composition");
+        if (erase != 0)
+        {
+            CHECK(Erases(&scene, mui_deleteBackward) && Holds(&scene, "") && Selects(&scene, 0, 0),
+                  "a backspace erasing the joined character");
+        }
+        else
+        {
+            Type(&scene, "y");
+            CHECK(Holds(&scene, "\xE3\x81\x8By") && Selects(&scene, 4, 4),
+                  "typed after the joined character");
+        }
+        FreeScene(&scene);
+    }
 }
 
 // An edit ends a press: a drag after the text changed extends from the
