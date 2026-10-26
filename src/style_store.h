@@ -22,7 +22,9 @@ enum
 {
     // The variants a class can have: its base, its states and its
     // conditions.
-    MUI_VARIANT_SLOTS = mui_variantCondition0 + MUI_MAX_CONDITIONS
+    MUI_VARIANT_SLOTS = mui_variantCondition0 + MUI_MAX_CONDITIONS,
+    // The bits of muiState that name a state.
+    MUI_KNOWN_STATES = 0xFF,
 };
 
 typedef struct muiStyleClass

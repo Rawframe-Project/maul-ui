@@ -30,7 +30,7 @@ A node's values start from the defaults. Then come, each later layer winning:
 
 A node's classes are its node type's, then its own. A class destroyed while listed is skipped. Because the order is global, a hovered value of the first class beats the base value of the last, and precedence can be read off the layer a value came from.
 
-A class holds a base property set and one per variant. Each set is created when its first value is set and given back when its last is reset. The context reserves classes, node types and property sets at creation, each up to a named limit.
+`muiState` has sixteen bits for its eight states, and a class's variants are numbered after all sixteen: a state's variant is its bit's index plus one, and the conditions' start at `mui_variantCondition0`, 17. So a state can be added in a later release without moving any variant a program names. A bit that names no state, and a variant between the states and the conditions, are refused. A class holds a base property set and one per variant. Each set is created when its first value is set and given back when its last is reset. The context reserves classes, node types and property sets at creation, each up to a named limit.
 
 Direct writes win until reset. The node keeps which properties it writes directly, and resolution leaves those alone. `muiNode_SetLayoutValues` with every layout property writes the whole layout this way.
 
