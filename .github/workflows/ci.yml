@@ -33,7 +33,7 @@ env:
 jobs:
   # Whether anything beyond documentation changed; the builds skip when not.
   changes:
-    uses: Rawframe-Project/.github/.github/workflows/changes.yml@23883e3610442d449485b0a5ec5192709efbc33c # v0.0.23
+    uses: Rawframe-Project/.github/.github/workflows/changes.yml@56543e92d01e59abdb4299c4824a0c1facdc08ce # v0.0.25
     permissions:
       pull-requests: read
 
@@ -48,10 +48,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: Rawframe-Project/.github/.github/actions/docs-check@23883e3610442d449485b0a5ec5192709efbc33c # v0.0.23
+      - uses: Rawframe-Project/.github/.github/actions/docs-check@56543e92d01e59abdb4299c4824a0c1facdc08ce # v0.0.25
 
   zizmor:
-    uses: Rawframe-Project/.github/.github/workflows/zizmor.yml@23883e3610442d449485b0a5ec5192709efbc33c # v0.0.23
+    uses: Rawframe-Project/.github/.github/workflows/zizmor.yml@56543e92d01e59abdb4299c4824a0c1facdc08ce # v0.0.25
     permissions:
       contents: read
 
@@ -148,7 +148,7 @@ jobs:
           - { preset: linux-parts-gcc-14 }
           - { preset: macos-clang, runner: macos-15 }
           - { preset: windows-clang-cl, runner: windows-2025 }
-    uses: Rawframe-Project/.github/.github/workflows/cpp.yml@23883e3610442d449485b0a5ec5192709efbc33c # v0.0.23
+    uses: Rawframe-Project/.github/.github/workflows/cpp.yml@56543e92d01e59abdb4299c4824a0c1facdc08ce # v0.0.25
     permissions:
       contents: read
     with:
@@ -200,40 +200,23 @@ jobs:
           cmake --build out/fuzz
       - name: Run
         # Four targets at a time, one per core of the runner; each keeps its
-        # full time. A target's output goes to its log, printed when it
-        # finds something.
+        # full time. tools/fuzz_target.sh keeps each target's log and
+        # findings on the runner and reports a finding without its input;
+        # the reports print once every target has finished. Nothing is
+        # uploaded.
         run: |
           python3 tools/fuzz_seed.py out/corpus
-          mkdir -p out/fuzz-logs
-          fuzz_one() {
-            name=$(basename "$1")
-            mkdir -p "out/corpus/corpus-$name"
-            if "$1" -max_total_time="$FUZZ_SECONDS" -rss_limit_mb=4096 "out/corpus/corpus-$name" \
-              >"out/fuzz-logs/$name.log" 2>&1; then
-              echo "$name: no finding"
-            else
-              tail -n 60 "out/fuzz-logs/$name.log"
-              echo "::error::$name found something"
-              return 1
-            fi
-          }
-          export -f fuzz_one
           targets=(out/fuzz/fuzz_*)
           [ -x "${targets[0]}" ] || { echo "::error::no fuzz target was built"; exit 1; }
-          printf '%s\n' "${targets[@]}" | xargs -P 4 -I {} bash -c 'fuzz_one "$1"' _ {}
-      - name: Fuzz logs and crash inputs
-        if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: fuzz
-          path: |
-            out/fuzz-logs/
-            crash-*
-            leak-*
-            timeout-*
-            oom-*
-          if-no-files-found: ignore
-          retention-days: 7
+          rm -rf out/fuzz-reports
+          status=0
+          printf '%s\n' "${targets[@]}" |
+            xargs -P 4 -I {} sh -c 'corpus="out/corpus/corpus-$(basename "$1")" &&
+              mkdir -p "$corpus" &&
+              tools/fuzz_target.sh "$1" -max_total_time="$FUZZ_SECONDS" -rss_limit_mb=4096 "$corpus"' _ {} ||
+            status=$?
+          cat out/fuzz-reports/*.txt 2>/dev/null || true
+          exit "$status"
 
   # The samples presented on an X11 window's surface under Xvfb, through
   # Maul Window's X11 backend, on lavapipe under the validation layer: each
