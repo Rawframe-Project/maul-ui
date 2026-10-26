@@ -183,7 +183,7 @@ muiResult muiCreateRhiRenderer(const muiRhiRendererDef* def, muiRhiRenderer** re
                 [kTransforms] = {.stride = sizeof(muiRhiTransform)},
                 [kClips] = {.stride = sizeof(muiRhiClip)},
             },
-        .images = muiRhiMakeImages(&def->allocator, def->device, def->image, def->imageContext),
+        .images = muiRhiMakeImages(&def->allocator, def->device, def->image, def->imageUser),
         .cull = {.allocator = def->allocator},
         .uploadBytes = def->uploadBytes != 0 ? def->uploadBytes : limits.frameUploadBytes,
         .plan = {.allocator = def->allocator},

@@ -71,7 +71,7 @@ struct muiWindowAccess
     void* root;
     // Whether the window is X11's, whose place AT-SPI is told.
     bool placed;
-    muiWindowAccessActionFunction action;
+    muiAccessActionFunction action;
     void* user;
 };
 

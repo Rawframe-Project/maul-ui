@@ -200,7 +200,7 @@ static float Baseline(void* user, muiNodeId nodeId, uint64_t hostKey, float widt
 {
     Scene* scene = user;
     Called(scene->watch);
-    return muiTextBaseline(&scene->host, nodeId, hostKey, width, height);
+    return muiMeasureTextBaseline(&scene->host, nodeId, hostKey, width, height);
 }
 
 static void Paint(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
@@ -216,7 +216,7 @@ static bool AccessText(void* user, muiNodeId nodeId, uint64_t hostKey, const mui
 {
     Scene* scene = user;
     Called(scene->watch);
-    return muiAccessTextOf(&scene->host, nodeId, hostKey, shown, contentOut);
+    return muiReadAccessText(&scene->host, nodeId, hostKey, shown, contentOut);
 }
 
 static bool Event(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* event)

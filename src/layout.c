@@ -219,7 +219,7 @@ static muiResult ComputeLayout(muiContext* context, muiNodeId rootId, const muiL
         .tree = &context->tree,
         .nodes = context->layout,
         .measure = input->measure,
-        .measureUser = input->measureUser,
+        .user = input->user,
         .measureBaseline = input->baseline,
         .solve = muiSolveNode,
         .baseline = muiSolveBaseline,

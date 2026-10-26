@@ -405,7 +405,7 @@ static double TimeAccessSend(uint32_t* clustersOut)
     Check(muiNode_SetScroll(scene.context, view, 0.0f,
                             muiNode_GetContentRect(scene.context, node).height / 2.0f),
           "scrolled");
-    Check(muiSetAccessTextFunction(scene.context, muiAccessTextOf, &scene.host), "reader");
+    Check(muiSetAccessTextFunction(scene.context, muiReadAccessText, &scene.host), "reader");
     Check(muiAccess_Enable(scene.context, scene.root), "enabled");
     muiAccessTreeDef treeDef = muiDefaultAccessTreeDef();
     treeDef.nodes = 16;

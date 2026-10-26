@@ -28,10 +28,6 @@ extern "C"
 
     typedef struct muiWindowAccess muiWindowAccess;
 
-    /// What a platform's client asks of a node, as the adapters' action
-    /// functions take it: whether it was done.
-    typedef bool (*muiWindowAccessActionFunction)(void* user, const muiAccessRequest* request);
-
     // How an access is made. Build it with muiDefaultWindowAccessDef.
     typedef struct muiWindowAccessDef
     {
@@ -52,7 +48,7 @@ extern "C"
         const char* ariaEnableLabel;
         // What a client asks of a node; NULL has the context do it
         // (muiPerformAccessAction).
-        muiWindowAccessActionFunction action;
+        muiAccessActionFunction action;
         void* user;
     } muiWindowAccessDef;
 

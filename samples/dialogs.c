@@ -349,7 +349,7 @@ static void Build(void* user, SampleApp* app)
     MakeFloating(dialogs, 1, 104.0f, 120.0f);
     SampleAppCheck(app,
                    muiSetEventFunction(app->context, Hear, dialogs) == mui_success &&
-                       muiSetAccessTextFunction(app->context, muiAccessTextOf, &app->host) ==
+                       muiSetAccessTextFunction(app->context, muiReadAccessText, &app->host) ==
                            mui_success,
                    "the event and access text functions");
 }

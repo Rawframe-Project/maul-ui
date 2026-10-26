@@ -298,8 +298,8 @@ static MUI_NOINLINE bool AccessTextOfWorker(void* user, muiNodeId nodeId, uint64
     return result;
 }
 
-bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, const muiRect* shown,
-                     muiAccessContent* contentOut)
+bool muiReadAccessText(void* user, muiNodeId nodeId, uint64_t hostKey, const muiRect* shown,
+                       muiAccessContent* contentOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     bool result = AccessTextOfWorker(user, nodeId, hostKey, shown, contentOut);

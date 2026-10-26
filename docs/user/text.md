@@ -100,8 +100,8 @@ static muiResult FrameWithText(muiContext* context, muiTextService* service, mui
                                float width, float height)
 {
     muiTextHost host = {service, context};
-    const muiLayoutInput layout = {width, height,          muiMeasureText, &host,
-                                   0,     muiTextBaseline, {0, 0, 0, 0}};
+    const muiLayoutInput layout = {
+        width, height, muiMeasureText, &host, 0, muiMeasureTextBaseline, {0, 0, 0, 0}};
     const muiDrawInput draw = {1, 1.0f, muiPaintText, &host};
     muiResult result = muiComputeLayout(context, root, &layout);
     return result == mui_success ? muiBuildDrawList(context, root, &draw) : result;

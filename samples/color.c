@@ -495,7 +495,7 @@ static void Build(void* user, SampleApp* app)
     Labelled(app, picker->hex, mui_roleTextInput, "Hex");
     SampleAppCheck(app,
                    muiSetEventFunction(app->context, Hear, picker) == mui_success &&
-                       muiSetAccessTextFunction(app->context, muiAccessTextOf, &app->host) ==
+                       muiSetAccessTextFunction(app->context, muiReadAccessText, &app->host) ==
                            mui_success,
                    "the event and access text functions");
 }

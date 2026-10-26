@@ -38,12 +38,6 @@ extern "C"
     typedef struct muiAtspiApp muiAtspiApp;
     typedef struct muiAtspiAdapter muiAtspiAdapter;
 
-    // Performs an action a client asked for, by muiPerformAccessAction or
-    // its own means; true when it did. Called while the application is
-    // pumped.
-    // It may call the context, not the application's functions that change it.
-    typedef bool (*muiAtspiActionFunction)(void* user, const muiAccessRequest* request);
-
     // How an application is made. Build it with muiDefaultAtspiAppDef.
     typedef struct muiAtspiAppDef
     {
@@ -69,7 +63,10 @@ extern "C"
         uint32_t nodes;
         // Pixels per Maul UI unit, above 0.
         float scale;
-        muiAtspiActionFunction action;
+        // What a client asks of a node (muiAccessActionFunction), called
+        // while the application is pumped. It may not call the
+        // application's functions that change it either.
+        muiAccessActionFunction action;
         void* user;
     } muiAtspiAdapterDef;
 

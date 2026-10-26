@@ -1044,8 +1044,8 @@ static void TestPassword(void)
               Selects(&scene, 0, 7),
           "a double click, the whole password");
     muiAccessContent content;
-    CHECK(muiAccessTextOf(&scene.host, scene.node, muiTextBlock_GetKey(scene.block), &s_everything,
-                          &content) &&
+    CHECK(muiReadAccessText(&scene.host, scene.node, muiTextBlock_GetKey(scene.block),
+                            &s_everything, &content) &&
               content.length == 15 && memcmp(content.text, "\xE2\x80\xA2", 3) == 0 &&
               content.marks.selected && content.marks.anchor == 0 && content.marks.focus == 15 &&
               content.marks.lineCount == 1 && content.marks.wordCount == 0,
@@ -1118,7 +1118,7 @@ static void TestPasswordWithoutMemory(void)
               "a password");
         left = budget;
         muiAccessContent content;
-        if (muiAccessTextOf(&host, s_nullNode, muiTextBlock_GetKey(block), NULL, &content))
+        if (muiReadAccessText(&host, s_nullNode, muiTextBlock_GetKey(block), NULL, &content))
         {
             masked = content.length == 18 && memcmp(content.text, "\xE2\x80\xA2", 3) == 0;
             hidden = hidden && masked;

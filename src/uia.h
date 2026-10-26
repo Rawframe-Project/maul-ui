@@ -70,7 +70,7 @@ struct muiUiaAdapter
     muiAccessTree* tree;
     HWND window;
     float scale;
-    muiUiaActionFunction action;
+    muiAccessActionFunction action;
     void* user;
     muiUiaFunctions uia;
     // Whether a client listened when the apply under way began, and the

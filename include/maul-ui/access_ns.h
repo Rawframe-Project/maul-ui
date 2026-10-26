@@ -32,12 +32,6 @@ extern "C"
 
     typedef struct muiNsAdapter muiNsAdapter;
 
-    // Performs an action a client asked for, by muiPerformAccessAction or
-    // its own means; true when it did. Called from AppKit's accessibility
-    // calls, on the main thread.
-    // It may call the context, not the adapter's functions that change it.
-    typedef bool (*muiNsActionFunction)(void* user, const muiAccessRequest* request);
-
     // How an adapter is made. Build it with muiDefaultNsAdapterDef.
     typedef struct muiNsAdapterDef
     {
@@ -51,7 +45,9 @@ extern "C"
         void* view;
         // Points per Maul UI unit, above 0.
         float scale;
-        muiNsActionFunction action;
+        // What a client asks of a node (muiAccessActionFunction), called from
+        // AppKit's accessibility calls, on the main thread.
+        muiAccessActionFunction action;
         void* user;
     } muiNsAdapterDef;
 

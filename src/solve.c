@@ -148,7 +148,7 @@ static MUI_NOINLINE muiSize HostMeasure(const muiSolver* solver, muiNodeId id, u
                                         muiMeasureAxis width, muiMeasureAxis height)
 {
     muiFloatHost host = muiFloatHostEnter();
-    muiSize size = solver->measure(solver->measureUser, id, hostKey, width, height);
+    muiSize size = solver->measure(solver->user, id, hostKey, width, height);
     muiFloatHostLeave(host);
     return size;
 }
@@ -159,7 +159,7 @@ static MUI_NOINLINE float HostBaseline(const muiSolver* solver, muiNodeId id, ui
                                        float width, float height)
 {
     muiFloatHost host = muiFloatHostEnter();
-    float baseline = solver->measureBaseline(solver->measureUser, id, hostKey, width, height);
+    float baseline = solver->measureBaseline(solver->user, id, hostKey, width, height);
     muiFloatHostLeave(host);
     return baseline;
 }

@@ -470,7 +470,7 @@ static void Build(void* user, SampleApp* app)
             muiStyle_SetVisualValues(app->context, sample->itemStyle, mui_variantFocused, &focused,
                                      MUI_PROPERTY_BIT(mui_propertyBackground)) == mui_success &&
             muiSetEventFunction(app->context, Hear, sample) == mui_success &&
-            muiSetAccessTextFunction(app->context, muiAccessTextOf, &app->host) == mui_success,
+            muiSetAccessTextFunction(app->context, muiReadAccessText, &app->host) == mui_success,
         "the area, the items' class and the event function");
 }
 

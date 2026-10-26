@@ -286,7 +286,7 @@ static void TestBusyContextClearsOutputs(void)
     muiLayoutInput input = {.availableWidth = 100.0f,
                             .availableHeight = 100.0f,
                             .measure = MeasureWhileBusy,
-                            .measureUser = &busy};
+                            .user = &busy};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
     CHECK(busy.ran, "the measure function ran");
     muiDestroyContext(context);

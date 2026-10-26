@@ -335,8 +335,8 @@ static void TestSizes(void)
     CHECK(list.commands[3].glyphRun.originY == tall + m->ascent * 10.0f,
           "the second line below the first's height");
     CHECK(muiNode_GetRect(scene.context, node).height == tall + normal, "the measured height");
-    CHECK(muiTextBaseline(&scene.host, node, muiNode_GetHostKey(scene.context, node), 60.0f,
-                          0.0f) == above,
+    CHECK(muiMeasureTextBaseline(&scene.host, node, muiNode_GetHostKey(scene.context, node), 60.0f,
+                                 0.0f) == above,
           "the first baseline");
     muiTextPosition at = {0, 0};
     muiTextCaret caret = {0};

@@ -309,7 +309,8 @@ static MUI_NOINLINE float TextBaselineWorker(void* user, muiNodeId nodeId, uint6
     return result;
 }
 
-float muiTextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height)
+float muiMeasureTextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float width,
+                             float height)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     float result = TextBaselineWorker(user, nodeId, hostKey, width, height);

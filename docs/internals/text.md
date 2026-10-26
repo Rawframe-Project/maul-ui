@@ -20,7 +20,7 @@ The text modules are built into `maul-ui` when `MAUL_UI_TEXT` is on, the default
 
 The text service is an owner object of its own (`muiCreateTextService`), separate from any context and used by one thread at a time ([text_service.c](../../src/text_service.c)). Fonts are ids it gives out. A font's bytes are copied, or borrowed from a caller who keeps them unchanged until the font is destroyed.
 
-The core reaches text only through host content: the measure, paint and baseline functions. The service provides all three (`muiMeasureText`, `muiPaintText`, `muiTextBaseline`), with a user pointer naming the service and the context. A node's host key is a text block's key, and a text style's font is a font's key, 0 being the service's default font. The service reads a node's resolved text style and direction through public getters, so it uses the core exactly as any other text stack would.
+The core reaches text only through host content: the measure, paint and baseline functions. The service provides all three (`muiMeasureText`, `muiPaintText`, `muiMeasureTextBaseline`), with a user pointer naming the service and the context. A node's host key is a text block's key, and a text style's font is a font's key, 0 being the service's default font. The service reads a node's resolved text style and direction through public getters, so it uses the core exactly as any other text stack would.
 
 ## Text blocks and shaping
 

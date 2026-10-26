@@ -130,7 +130,7 @@ struct muiAndroidAdapter
     jmethodID send;
     jmethodID sendText;
     float scale;
-    muiAndroidActionFunction action;
+    muiAccessActionFunction action;
     void* user;
     uint32_t nodes;
     // Room for any node's shown children.

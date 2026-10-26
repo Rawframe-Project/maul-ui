@@ -80,7 +80,7 @@ muiResult muiCreateWindowGlue(const muiWindowGlueDef* def, muiWindowGlue** glueO
         .pads =
             {
                 .player = def->gamepadPlayer,
-                .playerContext = def->gamepadContext,
+                .playerUser = def->gamepadUser,
                 .confirmEast = def->confirmEast,
                 .threshold = def->stickThreshold,
                 .delayNs = def->repeatDelayNs,

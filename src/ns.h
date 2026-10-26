@@ -36,7 +36,7 @@ struct muiNsAdapter
     muiAccessTree* tree;
     NSView* view;
     float scale;
-    muiNsActionFunction action;
+    muiAccessActionFunction action;
     void* user;
     uint32_t nodes;
     // Room for any node's shown children.
