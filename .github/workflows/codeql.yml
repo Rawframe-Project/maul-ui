@@ -34,6 +34,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Dependencies
+        # Built before CodeQL starts tracing, so its results hold only
+        # this repository's code: FreeType, HarfBuzz and the Maul libraries
+        # stay exactly as published, and paths-ignore does not apply to a
+        # manual build.
+        run: |
+          cmake --preset linux-gcc-14 -B out/codeql -DCMAKE_BUILD_TYPE=Debug -DMAUL_UI_RHI=ON \
+            -DMAUL_UI_WINDOW=ON -DMAUL_WINDOW_WAYLAND=OFF -DMAUL_WINDOW_X11=OFF \
+            -DMAUL_UI_BUILD_BENCH=OFF -DMAUL_UI_TEST_PACKAGE=OFF
+          cmake --build out/codeql -j 4 --target maul_ui_freetype maul_ui_harfbuzz maul-tween \
+            maul-unicode maul-unicode-harfbuzz maul-rhi maul-window
       - uses: github/codeql-action/init@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           languages: c-cpp
@@ -41,11 +52,7 @@ jobs:
       - name: Build
         # The library with the text component, the AT-SPI adapter, the
         # reference renderer and the Maul Window glue, and the tests.
-        run: |
-          cmake --preset linux-gcc-14 -B out/codeql -DCMAKE_BUILD_TYPE=Debug -DMAUL_UI_RHI=ON \
-            -DMAUL_UI_WINDOW=ON -DMAUL_WINDOW_WAYLAND=OFF -DMAUL_WINDOW_X11=OFF \
-            -DMAUL_UI_BUILD_BENCH=OFF -DMAUL_UI_TEST_PACKAGE=OFF
-          cmake --build out/codeql -j 4
+        run: cmake --build out/codeql -j 4
       - uses: github/codeql-action/analyze@9b3254085494b55a0f7c4c2b3d2d52cc712ce370 # v4.39.1
         with:
           category: /language:c-cpp

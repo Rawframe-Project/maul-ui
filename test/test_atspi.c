@@ -28,6 +28,7 @@
 
 #include <math.h>
 #include <signal.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -173,6 +174,28 @@ static muiDBusHandled Registry(DBusConnection* connection, DBusMessage* message,
     return mui_dbusHandled;
 }
 
+// Appends formatted text to the text of *length bytes in out, a buffer
+// of size bytes: what does not fit is cut, so the length never passes the
+// buffer and a long answer fails its comparison rather than writing past
+// the end.
+__attribute__((format(printf, 4, 5))) static void Append(char* out, size_t size, size_t* length,
+                                                         const char* format, ...)
+{
+    if (*length + 1 >= size)
+    {
+        return;
+    }
+    va_list arguments;
+    va_start(arguments, format);
+    int written = vsnprintf(out + *length, size - *length, format, arguments);
+    va_end(arguments);
+    if (written > 0)
+    {
+        size_t room = size - 1 - *length;
+        *length += (size_t)written < room ? (size_t)written : room;
+    }
+}
+
 static const char* Short(const char* path)
 {
     const char* prefix = "/org/a11y/atspi/accessible/";
@@ -245,14 +268,9 @@ static muiDBusHandled Listen(DBusConnection* connection, DBusMessage* message, v
     // The second detail, a text change's length, only where it is given.
     (void)(detail2 != 0 ? snprintf(details, sizeof details, "%d/%d", (int)detail1, (int)detail2)
                         : snprintf(details, sizeof details, "%d", (int)detail1));
-    if (s_test.eventsLength >= sizeof(s_test.events) - 1)
-    {
-        return mui_dbusHandled;
-    }
-    s_test.eventsLength += (size_t)snprintf(
-        s_test.events + s_test.eventsLength, sizeof(s_test.events) - s_test.eventsLength,
-        "%s%s %s %s %s%s", s_test.eventsLength != 0 ? "; " : "", dbus->member(message), kind,
-        details, Short(dbus->path(message)), any);
+    Append(s_test.events, sizeof(s_test.events), &s_test.eventsLength, "%s%s %s %s %s%s",
+           s_test.eventsLength != 0 ? "; " : "", dbus->member(message), kind, details,
+           Short(dbus->path(message)), any);
     return mui_dbusHandled;
 }
 
@@ -473,9 +491,8 @@ static bool ChildrenAre(const char* path, const char* expected)
             if (ReadString(&reference, name, sizeof(name)) && s_test.dbus.next(&reference) &&
                 ReadString(&reference, child, sizeof(child)))
             {
-                length += (size_t)snprintf(got + length, sizeof(got) - length, "%s%s",
-                                           length != 0 ? " " : "",
-                                           child + strlen("/org/a11y/atspi/accessible/"));
+                Append(got, sizeof(got), &length, "%s%s", length != 0 ? " " : "",
+                       child + strlen("/org/a11y/atspi/accessible/"));
             }
             (void)s_test.dbus.next(&array);
         }
@@ -956,21 +973,18 @@ static void Flatten(muiDBusIter* iter, char* out, size_t size, size_t* length)
         else if (type == mui_dbusTypeString || type == mui_dbusTypeObjectPath)
         {
             s_test.dbus.getBasic(iter, (void*)&text);
-            *length += (size_t)snprintf(out + *length, size - *length, "%s%s",
-                                        *length != 0 ? " " : "", text);
+            Append(out, size, length, "%s%s", *length != 0 ? " " : "", text);
         }
         else if (type == mui_dbusTypeUint32)
         {
             s_test.dbus.getBasic(iter, &number);
-            *length += (size_t)snprintf(out + *length, size - *length, "%s%u",
-                                        *length != 0 ? " " : "", number);
+            Append(out, size, length, "%s%u", *length != 0 ? " " : "", number);
         }
         else if (type == mui_dbusTypeInt32 && s_flattenInts)
         {
             int32_t signed32 = 0;
             s_test.dbus.getBasic(iter, &signed32);
-            *length += (size_t)snprintf(out + *length, size - *length, "%s%d",
-                                        *length != 0 ? " " : "", (int)signed32);
+            Append(out, size, length, "%s%d", *length != 0 ? " " : "", (int)signed32);
         }
     }
 }
