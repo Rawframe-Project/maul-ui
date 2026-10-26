@@ -303,7 +303,8 @@ static muiResult Edit(muiTextService* service, muiTextBlock* block, uint32_t sta
 
 // Takes an input method's composition out of the text, the caret where it
 // began, so an edit lands where the history expects: what the method
-// commits comes as typing.
+// commits comes as typing. The bytes on its two sides can join into one
+// character around that place, and the caret then goes after it.
 static muiResult EndComposing(muiTextService* service, muiTextBlockId blockId, muiTextBlock* block)
 {
     if (block->compositionLength == 0)
@@ -315,7 +316,7 @@ static muiResult EndComposing(muiTextService* service, muiTextBlockId blockId, m
     result = result == mui_success ? muiEndComposition(service, blockId) : result;
     if (result == mui_success)
     {
-        muiPlaceSelection(block, Collapsed(start));
+        muiPlaceSelection(block, Collapsed(Onward(block, start)));
         muiEndPress(&block->editing);
         block->editing.revision = block->revision;
     }
