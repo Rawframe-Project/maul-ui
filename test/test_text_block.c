@@ -549,7 +549,7 @@ static void TestPainting(void)
 
     // Right to left, start alignment is to the right; the latin text in
     // it keeps its order.
-    layout.textDirection = mui_textRightToLeft;
+    layout.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutValues(scene.context, root, &layout,
                                   MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
           "right to left");
@@ -721,7 +721,7 @@ static void TestBidiOrder(void)
     uint32_t exclamation = list.glyphs[2].id;
     CHECK(list.glyphs[0].id == GLYPH_A, "left to right: a b !");
     muiLayoutStyle direction = muiDefaultLayoutStyle();
-    direction.textDirection = mui_textRightToLeft;
+    direction.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutValues(scene.context, mark, &direction,
                                   MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
           "right to left");
@@ -733,7 +733,7 @@ static void TestBidiOrder(void)
     muiNodeId parent = AddText(&scene, s_nullNode, "");
     muiNodeId child = AddText(&scene, parent, "ab");
     muiLayoutStyle layout = muiDefaultLayoutStyle();
-    layout.textDirection = mui_textRightToLeft;
+    layout.textDirection = mui_inlineRightToLeft;
     CHECK(!muiNode_IsRightToLeft(scene.context, child) &&
               muiNode_SetLayoutValues(scene.context, parent, &layout,
                                       MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success &&

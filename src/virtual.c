@@ -27,14 +27,14 @@ static bool IsLength(float value)
 
 static bool IsValid(const muiVirtualList* list)
 {
-    return list->axis <= mui_listHorizontal && isfinite(list->extent) && list->extent > 0.0f &&
+    return list->axis <= mui_axisVertical && isfinite(list->extent) && list->extent > 0.0f &&
            IsLength(list->gap) && IsLength(list->overscan);
 }
 
 muiVirtualList muiDefaultVirtualList(void)
 {
     return (muiVirtualList){
-        .axis = mui_listVertical, .extent = 40.0f, .gap = 0.0f, .overscan = 200.0f};
+        .axis = mui_axisVertical, .extent = 40.0f, .gap = 0.0f, .overscan = 200.0f};
 }
 
 // The entry of the list at slot; NULL for a node that is no list.
@@ -273,7 +273,7 @@ static void SetLength(muiContext* context, uint32_t slot, const muiVirtualEntry*
 {
     muiScrollState* scroll = &context->scrolls[slot - 1];
     float total = entry != nullptr ? (float)TotalOf(&context->lists, entry) : 0.0f;
-    bool horizontal = entry != nullptr && entry->list.axis == mui_listHorizontal;
+    bool horizontal = entry != nullptr && entry->list.axis == mui_axisHorizontal;
     scroll->listX = horizontal ? total : 0.0f;
     scroll->listY = entry != nullptr && !horizontal ? total : 0.0f;
 }
@@ -282,14 +282,14 @@ double muiVirtualViewStart(const muiContext* context, uint32_t slot, const muiVi
 {
     const muiScrollState* scroll = &context->scrolls[slot - 1];
     const muiEdges* padding = &context->paddings[slot - 1];
-    return entry->list.axis == mui_listHorizontal ? (double)scroll->x - (double)padding->start
+    return entry->list.axis == mui_axisHorizontal ? (double)scroll->x - (double)padding->start
                                                   : (double)scroll->y - (double)padding->top;
 }
 
 void muiVirtualShift(muiContext* context, uint32_t slot, const muiVirtualEntry* entry, double delta)
 {
     muiScrollState* scroll = &context->scrolls[slot - 1];
-    float* offset = entry->list.axis == mui_listHorizontal ? &scroll->x : &scroll->y;
+    float* offset = entry->list.axis == mui_axisHorizontal ? &scroll->x : &scroll->y;
     float moved = fmaxf((float)((double)*offset + delta), 0.0f);
     if (moved != *offset)
     {
@@ -606,7 +606,7 @@ static double Measure(muiContext* context, uint32_t slot, const muiVirtualEntry*
 {
     muiVirtualStore* store = &context->lists;
     const muiTree* tree = &context->tree;
-    bool horizontal = entry->list.axis == mui_listHorizontal;
+    bool horizontal = entry->list.axis == mui_axisHorizontal;
     double shift = 0.0;
     for (uint32_t c = muiTreeAt(tree, slot)->links.firstChild; c != 0 && muiVirtualStores(entry);
          c = muiTreeAt(tree, c)->links.next)
@@ -641,7 +641,7 @@ static void Position(muiContext* context, uint32_t slot, const muiVirtualEntry* 
     const muiLayoutNode* list = &context->layout[slot - 1];
     const muiLayoutStyle* style = &list->style;
     const muiEdges* padding = &context->paddings[slot - 1];
-    bool horizontal = entry->list.axis == mui_listHorizontal;
+    bool horizontal = entry->list.axis == mui_axisHorizontal;
     for (uint32_t c = muiTreeAt(tree, slot)->links.firstChild; c != 0;
          c = muiTreeAt(tree, c)->links.next)
     {
@@ -699,7 +699,7 @@ static void PlaceList(muiContext* context, uint32_t slot, muiVirtualEntry* entry
     const muiEdges* padding = &context->paddings[slot - 1];
     const muiLayoutNode* layout = &context->layout[slot - 1];
     muiScrollState* scroll = &context->scrolls[slot - 1];
-    bool horizontal = entry->list.axis == mui_listHorizontal;
+    bool horizontal = entry->list.axis == mui_axisHorizontal;
     if (horizontal)
     {
         scroll->extentWidth =
@@ -749,7 +749,7 @@ void muiVirtualWindows(muiContext* context, uint32_t root)
         // start, widened by the overscan. It ends at 0 or later: a box is
         // no smaller than its padding.
         const muiLayoutNode* list = &context->layout[slot - 1];
-        bool horizontal = entry->list.axis == mui_listHorizontal;
+        bool horizontal = entry->list.axis == mui_axisHorizontal;
         const muiLayoutStyle* style = &list->style;
         double start = muiVirtualViewStart(context, slot, entry);
         double port = horizontal ? (double)list->rect.width - (double)style->border.start -

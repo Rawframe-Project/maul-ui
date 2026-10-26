@@ -166,8 +166,8 @@ static void PlaceOf(const muiContext* context, uint32_t slot, muiAccessNode* nod
     }
     if (range != nullptr && values->orientation == mui_orientationNone)
     {
-        values->orientation = range->axis == mui_rangeHorizontal ? mui_orientationHorizontal
-                                                                 : mui_orientationVertical;
+        values->orientation =
+            range->axis == mui_axisHorizontal ? mui_orientationHorizontal : mui_orientationVertical;
     }
 }
 

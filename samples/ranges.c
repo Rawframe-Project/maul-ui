@@ -233,13 +233,13 @@ static void Update(void* user, SampleApp* app)
     float scrollX = 0.0f;
     float scrollY = 0.0f;
     muiScrollThumb thumb = {0.0f, TRACK};
-    SampleAppCheck(
-        app,
-        muiNode_GetScrollExtent(app->context, ranges->list, &extent) == mui_success &&
-            muiNode_GetScroll(app->context, ranges->list, &scrollX, &scrollY) == mui_success &&
-            muiNode_GetScrollThumb(app->context, ranges->list, true, TRACK, 20.0f, &thumb) ==
-                mui_success,
-        "the list's scrolling");
+    SampleAppCheck(app,
+                   muiNode_GetScrollExtent(app->context, ranges->list, &extent) == mui_success &&
+                       muiNode_GetScroll(app->context, ranges->list, &scrollX, &scrollY) ==
+                           mui_success &&
+                       muiNode_GetScrollThumb(app->context, ranges->list, mui_axisHorizontal, TRACK,
+                                              20.0f, &thumb) == mui_success,
+                   "the list's scrolling");
     // Set only when the list changed, so a drag going on is left alone.
     muiValueRange bar = RangeOf(app, ranges->scrollbar);
     float limit = fmaxf(extent.width - TRACK, 0.0f);

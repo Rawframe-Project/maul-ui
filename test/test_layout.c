@@ -555,7 +555,7 @@ static void TestDirectionChangeReachesInheritingDescendants(void)
     muiLayoutInput input = Input(&host);
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "left to right");
     CHECK(muiNode_GetRect(context, first).x == 0.0f, "at the left of inner");
-    row.textDirection = mui_textRightToLeft;
+    row.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutStyle(context, root, &row) == mui_success, "right to left");
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "again");
     CHECK(muiNode_GetRect(context, inner).x == 100.0f, "inner at the right of root");
@@ -587,13 +587,13 @@ static void TestSafeArea(void)
     CHECK(RectIs(muiNode_GetContentRect(context, root), 10.0f, 20.0f, 360.0f, 270.0f),
           "start 10 over a left of 0, end 30 from the right, top 20, bottom its own 10");
     // Right to left, start is the right: 30 there, the end's 0 on the left.
-    style.textDirection = mui_textRightToLeft;
+    style.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutStyle(context, root, &style) == mui_success, "right to left");
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "laid out");
     CHECK(RectIs(muiNode_GetContentRect(context, root), 0.0f, 20.0f, 370.0f, 270.0f),
           "the insets fall on the physical sides");
     // The bottom alone.
-    style.textDirection = mui_textInherit;
+    style.textDirection = mui_inlineInherit;
     style.safeArea = mui_edgeBottom;
     input.safeArea.bottom = 40.0f;
     CHECK(muiNode_SetLayoutStyle(context, root, &style) == mui_success, "the bottom");
@@ -654,7 +654,7 @@ static void TestSafeAreaSizeFollowsDirection(void)
     CHECK(muiComputeLayout(context, root, &input) == mui_success &&
               muiNode_GetRect(context, inner).width == 0.0f,
           "left to right, start is the left, of 0");
-    row.textDirection = mui_textRightToLeft;
+    row.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutStyle(context, root, &row) == mui_success, "right to left");
     CHECK(muiComputeLayout(context, root, &input) == mui_success &&
               muiNode_GetRect(context, inner).width == 30.0f &&
@@ -787,7 +787,7 @@ static void TestBaselineItemFittedToItsLineFromItsLineLeft(void)
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
     muiRect rect = muiNode_GetRect(context, item);
     CHECK(rect.x == 0.0f && rect.width == 14.0f, "fitted to its line");
-    outer.textDirection = mui_textRightToLeft;
+    outer.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutStyle(context, root, &outer) == mui_success, "right to left");
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout right to left");
     rect = muiNode_GetRect(context, item);

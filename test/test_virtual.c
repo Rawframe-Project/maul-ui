@@ -55,7 +55,7 @@ static void Size(muiContext* context, muiNodeId node, float width, float height)
 // Makes a node scroll along an axis, its children in a column or a row,
 // with padding all round and a direction.
 static void Scrolls(muiContext* context, muiNodeId node, bool horizontal, float padding,
-                    muiTextDirection direction)
+                    muiInlineDirection direction)
 {
     muiLayoutStyle style = muiDefaultLayoutStyle();
     style.scrollAxes = horizontal ? mui_scrollHorizontal : mui_scrollVertical;
@@ -114,7 +114,7 @@ typedef struct Scene
     muiNodeId list;
 } Scene;
 
-static void MakeScene(Scene* scene, bool horizontal, float padding, muiTextDirection direction,
+static void MakeScene(Scene* scene, bool horizontal, float padding, muiInlineDirection direction,
                       const muiVirtualList* list)
 {
     muiContextDef def = muiDefaultContextDef();
@@ -158,7 +158,7 @@ static void TestEstimated(void)
 {
     Scene scene;
     muiVirtualList list = ListOf(1000, 40.0f, false, 0.0f, 0.0f);
-    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
     muiContext* context = scene.context;
     uint32_t first = 0;
     uint32_t end = 0;
@@ -202,7 +202,7 @@ static void TestShrunk(void)
 {
     Scene scene;
     muiVirtualList list = ListOf(5, 40.0f, false, 0.0f, 0.0f);
-    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
     muiContext* context = scene.context;
     Layout(context, scene.root);
     CHECK(ExtentOf(context, scene.list, false) == 200.0f, "five estimated");
@@ -226,7 +226,7 @@ static void TestRebound(void)
 {
     Scene scene;
     muiVirtualList list = ListOf(10, 20.0f, true, 0.0f, 0.0f);
-    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
     muiContext* context = scene.context;
     muiNodeId item[1];
     Realize(&scene, 9, 10, -1.0f, 20.0f, item);
@@ -257,7 +257,7 @@ static void TestFixed(void)
 {
     Scene scene;
     muiVirtualList list = ListOf(100000, 20.0f, true, 0.0f, 0.0f);
-    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
     muiContext* context = scene.context;
     Layout(context, scene.root);
     CHECK(ExtentOf(context, scene.list, false) == 2000000.0f && WindowIs(context, scene.list, 0, 6),
@@ -282,7 +282,7 @@ static void TestGapAndOverscan(void)
 {
     Scene scene;
     muiVirtualList list = ListOf(100, 40.0f, false, 10.0f, 30.0f);
-    MakeScene(&scene, false, 10.0f, mui_textInherit, &list);
+    MakeScene(&scene, false, 10.0f, mui_inlineInherit, &list);
     muiContext* context = scene.context;
     Layout(context, scene.root);
     // The viewport from -10 to 90 in the items' space, widened to 120.
@@ -309,8 +309,8 @@ static void TestHorizontal(void)
 {
     Scene scene;
     muiVirtualList list = ListOf(10, 60.0f, true, 0.0f, 0.0f);
-    list.axis = mui_listHorizontal;
-    MakeScene(&scene, true, 0.0f, mui_textInherit, &list);
+    list.axis = mui_axisHorizontal;
+    MakeScene(&scene, true, 0.0f, mui_inlineInherit, &list);
     muiContext* context = scene.context;
     Layout(context, scene.root);
     muiNodeId items[4];
@@ -321,7 +321,7 @@ static void TestHorizontal(void)
               muiNode_GetRect(context, items[1]).height == 100.0f,
           "left to right, stretched down");
     muiDestroyContext(context);
-    MakeScene(&scene, true, 0.0f, mui_textRightToLeft, &list);
+    MakeScene(&scene, true, 0.0f, mui_inlineRightToLeft, &list);
     context = scene.context;
     Layout(context, scene.root);
     Realize(&scene, 0, 4, 60.0f, -1.0f, items);
@@ -332,7 +332,7 @@ static void TestHorizontal(void)
     muiDestroyContext(context);
     // A reversed column places its items from its bottom, its origin.
     list = ListOf(10, 30.0f, true, 0.0f, 0.0f);
-    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
     context = scene.context;
     muiLayoutStyle style = muiDefaultLayoutStyle();
     style.container.direction = mui_flexColumnReverse;
@@ -352,7 +352,7 @@ static void TestBinding(void)
 {
     Scene scene;
     muiVirtualList list = ListOf(10, 40.0f, false, 0.0f, 0.0f);
-    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
     muiContext* context = scene.context;
     muiNodeId item = Node(context, scene.list);
     Size(context, item, -1.0f, 30.0f);
@@ -394,7 +394,7 @@ static void TestEdges(void)
     // Four items: measuring the first updates the tree's root.
     Scene scene;
     muiVirtualList list = ListOf(4, 40.0f, false, 0.0f, 0.0f);
-    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
     muiContext* context = scene.context;
     Layout(context, scene.root);
     muiNodeId items[3];
@@ -435,7 +435,7 @@ static void TestFixedEdges(void)
     // Fixed with a gap and overscan: 20 long, 5 between, 30 beyond.
     Scene scene;
     muiVirtualList list = ListOf(100, 20.0f, true, 5.0f, 30.0f);
-    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
     muiContext* context = scene.context;
     Layout(context, scene.root);
     float offset = 0.0f;
@@ -457,7 +457,7 @@ static void TestLargeEstimated(void)
     // 1024 items, a power of two: the tree's full depth.
     Scene scene;
     muiVirtualList list = ListOf(1024, 40.0f, false, 0.0f, 0.0f);
-    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
     muiContext* context = scene.context;
     Layout(context, scene.root);
     CHECK(muiNode_SetScroll(context, scene.list, 0.0f, 40860.0f) == mui_success, "the end");
@@ -501,7 +501,7 @@ static void TestSetAnew(void)
     // ten again, then cleared: the padding box.
     Scene scene;
     muiVirtualList list = ListOf(10, 40.0f, false, 0.0f, 0.0f);
-    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
     muiContext* context = scene.context;
     muiNodeId item[1];
     Realize(&scene, 0, 1, -1.0f, 40.0f, item);
@@ -528,7 +528,7 @@ static void TestOtherRoot(void)
     // layout.
     Scene scene;
     muiVirtualList list = ListOf(10, 40.0f, false, 0.0f, 0.0f);
-    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
     muiContext* context = scene.context;
     CHECK(muiNode_Detach(context, scene.list) == mui_success, "its own tree");
     muiNodeId item = Node(context, scene.list);
@@ -565,7 +565,7 @@ static void TestEdits(void)
     // A thousand items of 40 scrolled to 400; items 10 to 12 realized.
     Scene scene;
     muiVirtualList list = ListOf(1000, 40.0f, false, 0.0f, 0.0f);
-    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
     muiContext* context = scene.context;
     Layout(context, scene.root);
     CHECK(muiNode_SetScroll(context, scene.list, 0.0f, 400.0f) == mui_success, "scrolled");
@@ -625,7 +625,7 @@ static void TestAnchoring(void)
     // anew keeps its first shown item where it was.
     Scene scene;
     muiVirtualList list = ListOf(1000, 40.0f, false, 0.0f, 0.0f);
-    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
     muiContext* context = scene.context;
     Layout(context, scene.root);
     CHECK(muiNode_SetScroll(context, scene.list, 0.0f, 410.0f) == mui_success, "scrolled");
@@ -710,7 +710,7 @@ static void TestEditEdges(void)
 {
     Scene scene;
     muiVirtualList list = ListOf(1000, 40.0f, false, 0.0f, 0.0f);
-    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
     muiContext* context = scene.context;
     Layout(context, scene.root);
     CHECK(muiNode_SetScroll(context, scene.list, 0.0f, 400.0f) == mui_success, "scrolled");
@@ -758,7 +758,7 @@ static void TestAnchorEdges(void)
     // Items 9 to 11 bound, 9 ending where the viewport starts.
     Scene scene;
     muiVirtualList list = ListOf(1000, 40.0f, false, 0.0f, 0.0f);
-    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
     muiContext* context = scene.context;
     Layout(context, scene.root);
     CHECK(muiNode_SetScroll(context, scene.list, 0.0f, 400.0f) == mui_success, "scrolled");
@@ -788,7 +788,7 @@ static void TestAnchorEdges(void)
     CHECK(ScrollY(context, scene.list) == 3900.0f, "clamped to the end");
     muiDestroyContext(context);
     // Set anew before any layout: nothing to keep.
-    MakeScene(&scene, false, 0.0f, mui_textInherit, &list);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
     context = scene.context;
     muiNodeId node = Node(context, scene.list);
     CHECK(muiNode_SetItem(context, node, 5) == mui_success &&
@@ -812,7 +812,7 @@ static void TestContract(void)
     muiNodeId b = Node(context, s_nullNode);
     muiNodeId c = Node(context, s_nullNode);
     muiVirtualList list = muiDefaultVirtualList();
-    CHECK(list.count == 0 && list.axis == mui_listVertical && list.extent == 40.0f && !list.fixed &&
+    CHECK(list.count == 0 && list.axis == mui_axisVertical && list.extent == 40.0f && !list.fixed &&
               list.gap == 0.0f && list.overscan == 200.0f,
           "default");
     uint64_t misuse = muiGetContextMisuse(context);
@@ -828,7 +828,7 @@ static void TestContract(void)
     bad.overscan = INFINITY;
     CHECK(muiNode_SetVirtualList(context, a, &bad) == mui_errorInvalid, "an overscan");
     bad = list;
-    bad.axis = 2;
+    bad.axis = mui_axisVertical + 1;
     CHECK(muiNode_SetVirtualList(context, a, &bad) == mui_errorInvalid, "an axis");
     CHECK(muiNode_SetVirtualList(context, a, NULL) == mui_errorInvalid &&
               muiNode_SetVirtualList(context, s_nullNode, &list) == mui_errorInvalid &&
@@ -998,7 +998,7 @@ static void TestWork(void)
 {
     WorkScene work = {0};
     const muiVirtualList list = ListOf(WORK_ROWS, 28.0f, false, 0.0f, 0.0f);
-    MakeScene(&work.scene, false, 0.0f, mui_textInherit, &list);
+    MakeScene(&work.scene, false, 0.0f, mui_inlineInherit, &list);
     (void)WorkFrame(&work);
     // Scrolled by 97 a frame: each label bound is measured once, and each
     // bound row and its label sized twice (asked, then laid out), the

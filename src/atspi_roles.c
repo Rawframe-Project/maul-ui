@@ -392,7 +392,7 @@ void muiAtspiRecordStatesOf(const muiAccessNode* node, uint32_t statesOut[2])
     Set(statesOut, STATE_HORIZONTAL, values->orientation == mui_orientationHorizontal);
     Set(statesOut, STATE_VERTICAL, values->orientation == mui_orientationVertical);
     Set(statesOut, STATE_IS_DEFAULT, node->role == mui_roleDefaultButton);
-    Set(statesOut, STATE_HAS_POPUP, values->popup != mui_popupNone);
+    Set(statesOut, STATE_HAS_POPUP, values->popup != mui_hasPopupNone);
     Set(statesOut, STATE_INVALID_ENTRY, values->invalid != mui_invalidNone);
 }
 

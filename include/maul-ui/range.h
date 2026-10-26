@@ -16,6 +16,7 @@
 
 #include "maul-ui/base.h"
 #include "maul-ui/context.h"
+#include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 
 #include <stdbool.h>
@@ -24,18 +25,6 @@
 extern "C"
 {
 #endif
-
-    // Which way a range runs.
-    typedef uint8_t muiRangeAxis;
-
-    enum
-    {
-        // The minimum at the inline start: on the left, or on the right
-        // under right to left.
-        mui_rangeHorizontal = 0,
-        // The minimum at the bottom.
-        mui_rangeVertical = 1,
-    };
 
     typedef struct muiValueRange
     {
@@ -52,7 +41,10 @@ extern "C"
         // What page keys and a press on the track move. Finite and at
         // least 0.
         float page;
-        muiRangeAxis axis;
+        // Which way the range runs. Horizontal puts the minimum at the
+        // inline start: on the left, or on the right under right to left.
+        // Vertical puts it at the bottom.
+        muiAxis axis;
         // The node inside the range the pointer grabs, whose length along
         // the axis the value's travel leaves room for; the null id for
         // none, the value then following the pointer.

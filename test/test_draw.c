@@ -515,7 +515,7 @@ static void TestRightToLeft(void)
     muiContext* context = MakeContext();
     muiNodeId root = Add(context, s_nullNode, 100.0f, 50.0f, (muiEdges){0});
     muiLayoutStyle layout = muiDefaultLayoutStyle();
-    layout.textDirection = mui_textRightToLeft;
+    layout.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutValues(context, root, &layout,
                                   MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
           "rtl");
@@ -543,7 +543,7 @@ static void TestRightToLeft(void)
               image->uv.height == 1.0f && image->slice.left == 2.0f && image->slice.right == 1.0f &&
               image->slice.top == 3.0f && image->slice.bottom == 4.0f,
           "a mirroring image under right to left");
-    layout.textDirection = mui_textLeftToRight;
+    layout.textDirection = mui_inlineLeftToRight;
     CHECK(muiNode_SetLayoutValues(context, root, &layout,
                                   MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
           "ltr");
@@ -633,7 +633,7 @@ static void TestLocalScale(void)
 
     // Under right to left, x's origin is from the start edge: the panel's
     // right, at 200.
-    layout.textDirection = mui_textRightToLeft;
+    layout.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutValues(context, root, &layout,
                                   MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
           "right to left");
@@ -1019,8 +1019,9 @@ static void Edit(muiContext* context, muiNodeId* nodes, uint32_t count, Random* 
         CHECK(muiNode_SetLayoutValues(context, node, &layout, WIDTH) == mui_success, "width");
         break;
     case 6:
-        layout.textDirection =
-            layout.textDirection == mui_textRightToLeft ? mui_textInherit : mui_textRightToLeft;
+        layout.textDirection = layout.textDirection == mui_inlineRightToLeft
+                                   ? mui_inlineInherit
+                                   : mui_inlineRightToLeft;
         CHECK(muiNode_SetLayoutValues(context, node, &layout,
                                       MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
               "direction");
@@ -1271,7 +1272,7 @@ static void TestRetainedEdges(void)
     muiDrawList list = BuildAt(context, full, 1000.0f, 7);
     CHECK(list.commands[0].box.radii.topLeft == 10.0f, "left to right");
     layout = muiDefaultLayoutStyle();
-    layout.textDirection = mui_textRightToLeft;
+    layout.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutValues(context, full, &layout,
                                   MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
           "right to left");
@@ -1673,7 +1674,7 @@ static void TestGlyphRunsRightToLeftAndLimits(void)
     muiNodeId label = AddLabel(context, root);
     muiLayoutStyle layout = muiDefaultLayoutStyle();
     CHECK(muiNode_GetLayoutStyle(context, label, &layout) == mui_success, "read");
-    layout.textDirection = mui_textRightToLeft;
+    layout.textDirection = mui_inlineRightToLeft;
     layout.padding.end = 7.0f;
     layout.padding.start = 3.0f;
     layout.sizing.width = Length(44.0f);

@@ -218,16 +218,16 @@ extern "C"
     } muiPlacement;
 
     // The inline direction of a node and the nodes below it that inherit.
-    typedef uint8_t muiTextDirection;
+    typedef uint8_t muiInlineDirection;
 
     enum
     {
         // The parent's direction; left to right for a root.
-        mui_textInherit = 0,
-        mui_textLeftToRight = 1,
+        mui_inlineInherit = 0,
+        mui_inlineLeftToRight = 1,
         // Start is on the right: rows run right to left and every start and
         // end edge, inset and anchor mirrors.
-        mui_textRightToLeft = 2,
+        mui_inlineRightToLeft = 2,
     };
 
     // What a node without children holds.
@@ -240,6 +240,16 @@ extern "C"
         // The host's content, sized by the measure function given to
         // muiComputeLayout. A node with children ignores it.
         mui_contentHost = 1,
+    };
+
+    // One of the two axes on screen: which way a range, a list or a
+    // scrollbar runs.
+    typedef uint8_t muiAxis;
+
+    enum
+    {
+        mui_axisHorizontal = 0,
+        mui_axisVertical = 1,
     };
 
     // The axes a node scrolls its children along. A node that scrolls in
@@ -271,7 +281,7 @@ extern "C"
         muiEdges border;
         muiEdges padding;
         muiPlacement placement;
-        muiTextDirection textDirection;
+        muiInlineDirection textDirection;
         muiContentKind content;
         muiScrollAxes scrollAxes;
         // The edges whose padding is at least the surface's safe-area

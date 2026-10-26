@@ -70,7 +70,7 @@ static bool IsValid(const muiValueRange* range)
 {
     return isfinite(range->minimum) && isfinite(range->maximum) && isfinite(range->value) &&
            range->maximum >= range->minimum && isfinite(range->step) && range->step >= 0.0f &&
-           isfinite(range->page) && range->page >= 0.0f && range->axis <= mui_rangeVertical;
+           isfinite(range->page) && range->page >= 0.0f && range->axis <= mui_axisVertical;
 }
 
 muiValueRange muiDefaultValueRange(void)
@@ -300,7 +300,7 @@ bool muiRangeKey(muiContext* context, uint32_t slot, muiKeyCode code)
     float small = SmallStep(range);
     // Right to left, the minimum is on the right.
     float right = context->layout[slot - 1].rtl ? -small : small;
-    bool horizontal = range->axis == mui_rangeHorizontal;
+    bool horizontal = range->axis == mui_axisHorizontal;
     float value = range->value;
     switch (code)
     {
@@ -377,7 +377,7 @@ static float Share(const muiContext* context, uint32_t slot, const muiValueRange
 {
     float span = range->maximum - range->minimum;
     float share = span > 0.0f ? (range->value - range->minimum) / span : 0.0f;
-    bool forward = range->axis == mui_rangeHorizontal && !context->layout[slot - 1].rtl;
+    bool forward = range->axis == mui_axisHorizontal && !context->layout[slot - 1].rtl;
     return forward ? share : 1.0f - share;
 }
 
@@ -386,7 +386,7 @@ static Track TrackOf(const muiContext* context, uint32_t slot, const muiValueRan
     const muiLayoutNode* layout = &context->layout[slot - 1];
     const muiLayoutStyle* style = &layout->style;
     const muiEdges* padding = &context->paddings[slot - 1];
-    bool horizontal = range->axis == mui_rangeHorizontal;
+    bool horizontal = range->axis == mui_axisHorizontal;
     Track track = {0};
     if (horizontal)
     {
@@ -422,7 +422,7 @@ static void Press(muiContext* context, muiRangeEntry* entry, uint32_t slot, uint
                   const muiPointerRecord* record)
 {
     const muiValueRange* range = &entry->range;
-    bool horizontal = range->axis == mui_rangeHorizontal;
+    bool horizontal = range->axis == mui_axisHorizontal;
     const Track track = TrackOf(context, slot, range);
     float point = Along(context, slot, node, record->x, record->y, horizontal);
     float center = track.thumb + track.length / 2.0f;
@@ -445,7 +445,7 @@ static void Follow(muiContext* context, muiRangeEntry* entry, uint32_t slot, flo
                    const muiPointerRecord* record)
 {
     const muiValueRange* range = &entry->range;
-    bool horizontal = range->axis == mui_rangeHorizontal;
+    bool horizontal = range->axis == mui_axisHorizontal;
     const Track track = TrackOf(context, slot, range);
     if (record->kind == mui_pointerRecordDragStart)
     {
@@ -498,7 +498,7 @@ bool muiRangePointer(muiContext* context, const muiPointerRecord* record)
     }
     else if (record->kind != mui_pointerRecordDragEnd)
     {
-        bool horizontal = entry->range.axis == mui_rangeHorizontal;
+        bool horizontal = entry->range.axis == mui_axisHorizontal;
         Follow(context, entry, slot, Along(context, slot, node, record->x, record->y, horizontal),
                record);
     }

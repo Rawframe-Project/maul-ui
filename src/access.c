@@ -694,7 +694,7 @@ muiAccessValues muiDefaultAccessValues(void)
 
 static bool AreValuesValid(const muiAccessValues* values)
 {
-    return values->live <= mui_liveAssertive && values->popup <= mui_popupDialog &&
+    return values->live <= mui_liveAssertive && values->popup <= mui_hasPopupDialog &&
            values->orientation <= mui_orientationVertical && values->sort <= mui_sortOther &&
            values->invalid <= mui_invalidSpelling && values->current <= mui_currentTime;
 }

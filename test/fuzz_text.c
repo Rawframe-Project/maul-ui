@@ -310,7 +310,7 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     Expect(muiCreateNode(scene.context, &nodeDef, &scene.node) == mui_success);
     muiLayoutStyle layout = muiDefaultLayoutStyle();
     layout.content = mui_contentHost;
-    layout.textDirection = (flags & 8) != 0 ? mui_textRightToLeft : mui_textLeftToRight;
+    layout.textDirection = (flags & 8) != 0 ? mui_inlineRightToLeft : mui_inlineLeftToRight;
     muiTextStyle style = muiDefaultTextStyle();
     style.size = (muiDimension){0.0f, (flags & 16) != 0 ? 24.0f : 13.0f, mui_dimensionValue};
     style.wrap = (flags & 32) != 0 ? mui_textNoWrap : mui_textWrap;

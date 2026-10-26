@@ -46,7 +46,7 @@ static muiNodeId Sized(muiContext* context, muiNodeId parent, float width, float
 }
 
 static void Scrolls(muiContext* context, muiNodeId node, muiScrollAxes axes, bool column,
-                    muiTextDirection direction)
+                    muiInlineDirection direction)
 {
     muiLayoutStyle style = muiDefaultLayoutStyle();
     style.scrollAxes = axes;
@@ -99,7 +99,7 @@ static void MakeScene(Scene* scene, int count)
     muiContext* context = scene->context;
     scene->root = Sized(context, s_nullNode, 300.0f, 400.0f);
     scene->s = Sized(context, scene->root, 200.0f, 100.0f);
-    Scrolls(context, scene->s, mui_scrollVertical, true, mui_textInherit);
+    Scrolls(context, scene->s, mui_scrollVertical, true, mui_inlineInherit);
     for (int i = 0; i < count; i++)
     {
         muiNodeId item = Sized(context, scene->s, 200.0f, 50.0f);
@@ -310,7 +310,7 @@ static void TestAcross(void)
     muiContext* context = scene.context;
     scene.root = Sized(context, s_nullNode, 300.0f, 300.0f);
     scene.s = Sized(context, scene.root, 100.0f, 50.0f);
-    Scrolls(context, scene.s, mui_scrollHorizontal, false, mui_textRightToLeft);
+    Scrolls(context, scene.s, mui_scrollHorizontal, false, mui_inlineRightToLeft);
     (void)Sized(context, scene.s, 400.0f, 50.0f);
     Layout(context, scene.root, 0);
     CHECK(Feed(&scene, 3, mui_pointerTouch, mui_pointerPress, 0, 50.0f, 25.0f) == 0 &&
@@ -449,7 +449,7 @@ static void TestTables(void)
     for (int i = 0; i < 9; i++)
     {
         lists[i] = Sized(context, scene.root, 100.0f, 100.0f);
-        Scrolls(context, lists[i], mui_scrollVertical, true, mui_textInherit);
+        Scrolls(context, lists[i], mui_scrollVertical, true, mui_inlineInherit);
         (void)Sized(context, lists[i], 100.0f, 300.0f);
     }
     Layout(context, scene.root, 0);
@@ -536,7 +536,7 @@ static void TestAcrossFling(void)
     muiContext* context = scene.context;
     scene.root = Sized(context, s_nullNode, 300.0f, 300.0f);
     scene.s = Sized(context, scene.root, 100.0f, 50.0f);
-    Scrolls(context, scene.s, mui_scrollHorizontal, false, mui_textRightToLeft);
+    Scrolls(context, scene.s, mui_scrollHorizontal, false, mui_inlineRightToLeft);
     (void)Sized(context, scene.s, 400.0f, 50.0f);
     Layout(context, scene.root, 0);
     CHECK(Feed(&scene, 3, mui_pointerTouch, mui_pointerPress, 0, 10.0f, 25.0f) == 0 &&
@@ -621,7 +621,7 @@ static void TestPurge(void)
     for (uint32_t i = 0; i < 4; i++)
     {
         muiNodeId list = Sized(context, scene.root, 200.0f, 100.0f);
-        Scrolls(context, list, mui_scrollVertical, true, mui_textInherit);
+        Scrolls(context, list, mui_scrollVertical, true, mui_inlineInherit);
         (void)Sized(context, list, 200.0f, 300.0f);
         Layout(context, scene.root, 0);
         CHECK(Feed(&scene, 50 + i, mui_pointerTouch, mui_pointerPress, 0, 250.0f, 50.0f) == 0 &&
@@ -748,7 +748,7 @@ static void TestOverscrollAcross(void)
     muiContext* context = scene.context;
     scene.root = Sized(context, s_nullNode, 300.0f, 300.0f);
     scene.s = Sized(context, scene.root, 100.0f, 50.0f);
-    Scrolls(context, scene.s, mui_scrollHorizontal, false, mui_textRightToLeft);
+    Scrolls(context, scene.s, mui_scrollHorizontal, false, mui_inlineRightToLeft);
     (void)Sized(context, scene.s, 400.0f, 50.0f);
     Overscroll(context, true);
     Layout(context, scene.root, 0);
@@ -803,9 +803,9 @@ static void TestOverscrollPort(void)
               Drawn(&scene, true) == roundf((float)BandIn(60.0, 80.0)),
           "the band of 80");
     // Scrolling turned off and on again mid-pan: the overscroll is gone.
-    Scrolls(context, scene.s, mui_scrollNone, true, mui_textInherit);
+    Scrolls(context, scene.s, mui_scrollNone, true, mui_inlineInherit);
     Layout(context, scene.root, 20 * MS);
-    Scrolls(context, scene.s, mui_scrollVertical, true, mui_textInherit);
+    Scrolls(context, scene.s, mui_scrollVertical, true, mui_inlineInherit);
     Layout(context, scene.root, 30 * MS);
     CHECK(Drawn(&scene, true) == 0.0f, "gone with scrolling");
     CHECK(Touch(&scene, mui_pointerCancel, 40 * MS, 90.0f) == 1, "cancelled");
@@ -813,7 +813,7 @@ static void TestOverscrollPort(void)
     // Borders of 10 at the start and the end: across, a scrollport of 180.
     MakeScene(&scene, 0);
     context = scene.context;
-    Scrolls(context, scene.s, mui_scrollHorizontal, false, mui_textInherit);
+    Scrolls(context, scene.s, mui_scrollHorizontal, false, mui_inlineInherit);
     (void)Sized(context, scene.s, 400.0f, 50.0f);
     style.border = (muiEdges){10.0f, 10.0f, 0.0f, 0.0f};
     CHECK(muiNode_SetLayoutValues(context, scene.s, &style,

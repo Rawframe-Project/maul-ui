@@ -94,7 +94,7 @@ typedef struct Scene
     muiNodeId thumb;
 } Scene;
 
-static void MakeScene(Scene* scene, muiTextDirection direction)
+static void MakeScene(Scene* scene, muiInlineDirection direction)
 {
     muiContextDef def = muiDefaultContextDef();
     *scene = (Scene){0};
@@ -149,11 +149,11 @@ static int Dispatch(const Scene* scene)
 static void TestModel(void)
 {
     Scene scene;
-    MakeScene(&scene, mui_textLeftToRight);
+    MakeScene(&scene, mui_inlineLeftToRight);
     muiContext* context = scene.context;
     muiValueRange range = muiDefaultValueRange();
     CHECK(range.minimum == 0.0f && range.maximum == 100.0f && range.value == 0.0f &&
-              range.step == 1.0f && range.page == 10.0f && range.axis == mui_rangeHorizontal &&
+              range.step == 1.0f && range.page == 10.0f && range.axis == mui_axisHorizontal &&
               range.thumb.index1 == 0,
           "the default");
     CHECK(muiNode_SetRangeValue(context, scene.slider, 33.4f) == mui_success &&
@@ -190,7 +190,7 @@ static void TestModel(void)
 static void TestKeys(void)
 {
     Scene scene;
-    MakeScene(&scene, mui_textLeftToRight);
+    MakeScene(&scene, mui_inlineLeftToRight);
     muiContext* context = scene.context;
     muiNodeId slider = scene.slider;
     CHECK(muiFocus_Set(context, 0, slider, mui_focusByCode) == mui_success, "focus");
@@ -222,7 +222,7 @@ static void TestKeys(void)
           "a gamepad's up: navigation, nothing there");
     // Vertical, continuous: up and down a hundredth of the span.
     muiValueRange range = {
-        .minimum = 0.0f, .maximum = 50.0f, .value = 10.0f, .axis = mui_rangeVertical};
+        .minimum = 0.0f, .maximum = 50.0f, .value = 10.0f, .axis = mui_axisVertical};
     CHECK(muiNode_SetValueRange(context, slider, &range) == mui_success &&
               Key(&scene, mui_codeArrowUp, 0) && Value(context, slider) == 10.5f &&
               Key(&scene, mui_codeArrowDown, 0) && Key(&scene, mui_codeArrowDown, 0) &&
@@ -232,7 +232,7 @@ static void TestKeys(void)
     CHECK(muiNode_ClearValueRange(context, slider) == mui_success && !Key(&scene, mui_codeHome, 0),
           "no range");
     muiDestroyContext(context);
-    MakeScene(&scene, mui_textRightToLeft);
+    MakeScene(&scene, mui_inlineRightToLeft);
     context = scene.context;
     CHECK(muiFocus_Set(context, 0, scene.slider, mui_focusByCode) == mui_success &&
               Key(&scene, mui_codeArrowLeft, 0) && Value(context, scene.slider) == 1.0f &&
@@ -244,7 +244,7 @@ static void TestKeys(void)
 static void TestPointer(void)
 {
     Scene scene;
-    MakeScene(&scene, mui_textLeftToRight);
+    MakeScene(&scene, mui_inlineLeftToRight);
     muiContext* context = scene.context;
     muiNodeId slider = scene.slider;
     // The thumb spans 10 to 30; a press right of it pages up, one on it
@@ -298,7 +298,7 @@ static void TestShapes(void)
 {
     // Without a thumb the value follows the pointer over the whole track.
     Scene scene;
-    MakeScene(&scene, mui_textLeftToRight);
+    MakeScene(&scene, mui_inlineLeftToRight);
     muiContext* context = scene.context;
     muiValueRange range = muiDefaultValueRange();
     CHECK(muiNode_SetValueRange(context, scene.slider, &range) == mui_success, "no thumb");
@@ -319,7 +319,7 @@ static void TestShapes(void)
     Mouse(&scene, mui_pointerRelease, 0, 105.0f);
     (void)Dispatch(&scene);
     muiDestroyContext(context);
-    MakeScene(&scene, mui_textRightToLeft);
+    MakeScene(&scene, mui_inlineRightToLeft);
     context = scene.context;
     // Right to left the thumb sits at the right, 190 to 210.
     Mouse(&scene, mui_pointerPress, 1, 50.0f);
@@ -352,7 +352,7 @@ static void TestVertical(void)
     muiNodeId thumb = Sized(context, slider, 20.0f, 20.0f);
     Layout(context, root);
     muiValueRange range = muiDefaultValueRange();
-    range.axis = mui_rangeVertical;
+    range.axis = mui_axisVertical;
     range.thumb = thumb;
     CHECK(muiNode_SetValueRange(context, slider, &range) == mui_success, "range");
     Scene scene = {context, root, slider, thumb};
@@ -372,7 +372,7 @@ static void TestEdges(void)
 {
     // A node in a destroyed range's slot is no range.
     Scene scene;
-    MakeScene(&scene, mui_textLeftToRight);
+    MakeScene(&scene, mui_inlineLeftToRight);
     muiContext* context = scene.context;
     muiValueRange range = muiDefaultValueRange();
     CHECK(muiDestroyNode(context, scene.slider) == mui_success, "gone");
@@ -385,7 +385,7 @@ static void TestEdges(void)
     muiDestroyContext(context);
     // A thumb outside the range, or the range itself, is no thumb: the
     // value follows the pointer.
-    MakeScene(&scene, mui_textLeftToRight);
+    MakeScene(&scene, mui_inlineLeftToRight);
     context = scene.context;
     range.thumb = scene.root;
     CHECK(muiNode_SetValueRange(context, scene.slider, &range) == mui_success, "outside");
@@ -425,11 +425,11 @@ static void TestEdges(void)
     muiDestroyContext(context);
     // Right to left with padding of 30 at the start (the right) and 10 at
     // the end: the track runs from 10 to 190, the thumb at 170.
-    MakeScene(&scene, mui_textRightToLeft);
+    MakeScene(&scene, mui_inlineRightToLeft);
     context = scene.context;
     muiLayoutStyle style = muiDefaultLayoutStyle();
     style.padding = (muiEdges){30.0f, 10.0f, 0.0f, 0.0f};
-    style.textDirection = mui_textRightToLeft;
+    style.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutValues(context, scene.slider, &style,
                                   MUI_PROPERTY_BIT(mui_propertyPaddingStart) |
                                       MUI_PROPERTY_BIT(mui_propertyPaddingEnd)) == mui_success,
@@ -493,7 +493,7 @@ static void TestContract(void)
     bad.page = -1.0f;
     CHECK(muiNode_SetValueRange(context, a, &bad) == mui_errorInvalid, "a negative page");
     bad = range;
-    bad.axis = 2;
+    bad.axis = mui_axisVertical + 1;
     CHECK(muiNode_SetValueRange(context, a, &bad) == mui_errorInvalid, "an axis");
     CHECK(muiGetContextMisuse(context) == misuse + 15, "counted");
     // The limit; a node gone frees its entry.

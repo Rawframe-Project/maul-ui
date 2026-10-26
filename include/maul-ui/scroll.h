@@ -151,19 +151,19 @@ extern "C"
     /// and placed as the offset is between 0 and its limit. A node that
     /// cannot scroll that way fills the track.
     ///
-    /// @param context     The context.
-    /// @param nodeId      The node.
-    /// @param horizontal  The axis: true for x.
-    /// @param track       The track's length, finite and at least 0.
-    /// @param minimum     The shortest thumb, finite and at least 0.
-    /// @param thumbOut    Receives the thumb. Zeroed on failure.
+    /// @param context   The context.
+    /// @param nodeId    The node.
+    /// @param axis      The axis.
+    /// @param track     The track's length, finite and at least 0.
+    /// @param minimum   The shortest thumb, finite and at least 0.
+    /// @param thumbOut  Receives the thumb. Zeroed on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
-    ///         null id or a length outside the above; `mui_errorStale` for
-    ///         a node that is gone.
+    ///         null id, an unknown axis or a length outside the above;
+    ///         `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_GetScrollThumb(const muiContext* context,
-                                                           muiNodeId nodeId, bool horizontal,
+                                                           muiNodeId nodeId, muiAxis axis,
                                                            float track, float minimum,
                                                            muiScrollThumb* thumbOut);
 
