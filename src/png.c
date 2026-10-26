@@ -353,7 +353,8 @@ static bool Develop(const Header* h, const Colors* c, uint8_t* raw, uint8_t* pix
             const uint8_t* row = raw + (size_t)y * (1 + rowBytes) + 1;
             for (uint32_t x = 0; x < p.width; x++)
             {
-                size_t at = ((size_t)(p.y + y * p.dy) * h->width + p.x + x * p.dx) * 4;
+                size_t at =
+                    (((size_t)p.y + (size_t)y * p.dy) * h->width + p.x + (size_t)x * p.dx) * 4;
                 if (!Expand(h, c, row, x, pixels + at))
                 {
                     return false;
