@@ -84,7 +84,7 @@ extern "C"
     ///         enabled roots, the AT-SPI application its windows, or
     ///         memory runs out; as the adapter's creation otherwise.
     /// @par Thread safety
-    /// Main thread only, as the adapters.
+    /// Main thread only. The adapters are too.
     MUI_NODISCARD MUI_WINDOW_API muiResult muiCreateWindowAccess(const muiWindowAccessDef* def,
                                                                  muiWindowAccess** accessOut);
 

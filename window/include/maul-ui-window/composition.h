@@ -80,7 +80,7 @@ extern "C"
     /// @param placedOut  As muiWindowGlue_SetCaret's. Zeroed on failure.
     /// @return As muiTextGetCaret and muiWindowGlue_SetCaret.
     /// @par Thread safety
-    /// Main thread only, as Maul Window's requests.
+    /// Main thread only. Maul Window's requests are too.
     MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_SetTextCaret(muiWindowGlue* glue,
                                                                       const muiTextHost* host,
                                                                       muiNodeId nodeId,
@@ -100,7 +100,7 @@ extern "C"
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a
     ///         request Maul Window refuses.
     /// @par Thread safety
-    /// Main thread only, as Maul Window's requests.
+    /// Main thread only. Maul Window's requests are too.
     MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_RequestKeyboard(muiWindowGlue* glue,
                                                                          const muiTextHost* host,
                                                                          muiNodeId nodeId);
