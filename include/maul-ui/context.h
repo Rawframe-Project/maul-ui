@@ -193,15 +193,15 @@ extern "C"
         // last outcome until the host edits the node or its size leaves
         // those two.
         mui_notificationOscillation = 1,
-        // count notifications were dropped here, past the limit.
+        // detail notifications were dropped here, past the limit.
         mui_notificationDropped = 2,
-        // A player's focus came to the node, or left it; count is the
+        // A player's focus came to the node, or left it; detail is the
         // player.
         mui_notificationFocusGained = 3,
         mui_notificationFocusLost = 4,
         // Input changed a range's value (maul-ui/range.h).
         mui_notificationRangeChanged = 5,
-        // A popup should close (maul-ui/popup.h); count is the reason, a
+        // A popup should close (maul-ui/popup.h); detail is the reason, a
         // muiDismissReason.
         mui_notificationPopupDismissed = 6,
         // The node's exit (maul-ui/exit.h) has no transition running in
@@ -211,7 +211,7 @@ extern "C"
         // (maul-ui/virtual.h).
         mui_notificationWindowChanged = 8,
         // Assistive technology asked the node to do what the host does
-        // (maul-ui/access.h); count is the muiAccessAction.
+        // (maul-ui/access.h); detail is the muiAccessAction.
         mui_notificationAccessAction = 9,
     };
 
@@ -222,9 +222,9 @@ extern "C"
         muiNotificationKind kind;
         // The node it is about; the null id for mui_notificationDropped.
         muiNodeId node;
-        // For mui_notificationDropped, how many were dropped; for focus,
-        // the player; for a popup, the reason.
-        uint32_t count;
+        // What its kind says above: how many were dropped, the player, the
+        // reason or the action; 0 for the other kinds.
+        uint32_t detail;
     } muiNotification;
 
     /// Takes the oldest notification.

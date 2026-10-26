@@ -118,8 +118,8 @@ static uint32_t ClustersLength(const char* text, uint32_t length, uint32_t clust
 static uint32_t Filter(const muiTextBlock* block, uint32_t start, uint32_t end, const char* text,
                        size_t length, char* out)
 {
-    const muiTextEditDef* def = &block->editing.def;
-    bool multiline = (def->flags & mui_editMultiline) != 0;
+    const muiTextEditRules* rules = &block->editing.rules;
+    bool multiline = (rules->flags & mui_editMultiline) != 0;
     Number number = NumberAround(block, start, end);
     uint32_t written = 0;
     for (size_t at = 0; at < length;)
@@ -135,9 +135,9 @@ static uint32_t Filter(const muiTextBlock* block, uint32_t start, uint32_t end, 
             size += point == '\r' && at + 1 < length && text[at + 1] == '\n' ? 1u : 0u;
             point = ' ';
         }
-        if (keep && def->filter != mui_filterNone)
+        if (keep && rules->filter != mui_filterNone)
         {
-            keep = KeepsNumber(&number, def->filter, point);
+            keep = KeepsNumber(&number, rules->filter, point);
         }
         if (keep && space)
         {
@@ -164,7 +164,7 @@ bool muiApplyEditRules(muiTextService* service, const muiTextBlock* block, uint3
     }
     char* kept = out->data;
     uint32_t written = Filter(block, start, end, text, length, kept);
-    uint32_t limit = block->editing.def.maxLength;
+    uint32_t limit = block->editing.rules.maxLength;
     if (limit != 0 && written != 0)
     {
         const char* old = block->text.data;

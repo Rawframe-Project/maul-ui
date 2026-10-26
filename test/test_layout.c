@@ -9,6 +9,7 @@
 #include "maul-ui/context.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
+#include "maul-ui/style.h"
 
 #include <math.h>
 
@@ -36,7 +37,8 @@ static muiSize Measure(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasur
     if (host->tryEdit)
     {
         muiLayoutStyle style = muiDefaultLayoutStyle();
-        host->editStatus = muiNode_SetLayoutStyle(host->context, nodeId, &style);
+        host->editStatus =
+            muiNode_SetLayoutValues(host->context, nodeId, &style, MUI_LAYOUT_PROPERTIES);
     }
     return host->content;
 }
@@ -86,7 +88,8 @@ static muiNodeId MakeNode(muiContext* context, const muiLayoutStyle* style)
     CHECK(muiCreateNode(context, &def, &node) == mui_success, "create node");
     if (style != NULL)
     {
-        CHECK(muiNode_SetLayoutStyle(context, node, style) == mui_success, "style");
+        CHECK(muiNode_SetLayoutValues(context, node, style, MUI_LAYOUT_PROPERTIES) == mui_success,
+              "style");
     }
     return node;
 }
@@ -138,17 +141,22 @@ static void TestBadStylesAreMisuse(void)
     bad[7].item.alignSelf = mui_alignBaseline + 1;
     for (int i = 0; i < 8; i++)
     {
-        CHECK(muiNode_SetLayoutStyle(context, node, &bad[i]) == mui_errorInvalid, "refused");
+        CHECK(muiNode_SetLayoutValues(context, node, &bad[i], MUI_LAYOUT_PROPERTIES) ==
+                  mui_errorInvalid,
+              "refused");
     }
-    CHECK(muiNode_SetLayoutStyle(context, node, NULL) == mui_errorInvalid, "NULL style");
+    CHECK(muiNode_SetLayoutValues(context, node, NULL, MUI_LAYOUT_PROPERTIES) == mui_errorInvalid,
+          "NULL style");
     CHECK(muiGetContextMisuse(context) == 9, "each counted");
     muiLayoutStyle baseline = muiDefaultLayoutStyle();
     baseline.container.alignItems = mui_alignBaseline;
     baseline.item.alignSelf = mui_alignBaseline;
-    CHECK(muiNode_SetLayoutStyle(context, node, &baseline) == mui_success, "baseline is valid");
+    CHECK(muiNode_SetLayoutValues(context, node, &baseline, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "baseline is valid");
     muiLayoutStyle negativeMargin = muiDefaultLayoutStyle();
     negativeMargin.margin.start = -5.0f;
-    CHECK(muiNode_SetLayoutStyle(context, node, &negativeMargin) == mui_success,
+    CHECK(muiNode_SetLayoutValues(context, node, &negativeMargin, MUI_LAYOUT_PROPERTIES) ==
+              mui_success,
           "negative margins are allowed");
     muiDestroyContext(context);
 }
@@ -318,7 +326,8 @@ static void TestStyleChangeRelaysTheParent(void)
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
     CHECK(muiNode_GetRect(context, second).x == 30.0f, "after the first");
     fixed.sizing.width = Length(45.0f);
-    CHECK(muiNode_SetLayoutStyle(context, first, &fixed) == mui_success, "widen first");
+    CHECK(muiNode_SetLayoutValues(context, first, &fixed, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "widen first");
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout again");
     CHECK(muiNode_GetRect(context, second).x == 45.0f, "the sibling moved");
     CHECK(muiNode_Detach(context, first) == mui_success, "detach");
@@ -382,7 +391,8 @@ static muiNodeId MakeText(muiContext* context, muiNodeId parent, uint64_t key)
     style.content = mui_contentHost;
     style.sizing.minWidth = Length(0.0f);
     CHECK(muiCreateNode(context, &def, &node) == mui_success, "text");
-    CHECK(muiNode_SetLayoutStyle(context, node, &style) == mui_success, "text style");
+    CHECK(muiNode_SetLayoutValues(context, node, &style, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "text style");
     CHECK(muiNode_InsertChild(context, parent, node, s_null) == mui_success, "text insert");
     return node;
 }
@@ -469,7 +479,8 @@ static void TestScaledChildWrapsInItsBox(void)
     half.content = mui_contentHost;
     half.sizing.minWidth = Length(0.0f);
     half.sizing.width = (muiDimension){0.5f, 0.0f, mui_dimensionValue};
-    CHECK(muiNode_SetLayoutStyle(context, text, &half) == mui_success, "half");
+    CHECK(muiNode_SetLayoutValues(context, text, &half, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "half");
     muiLayoutInput input = {400.0f, 300.0f, MeasureText, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
     muiRect inner = muiNode_GetRect(context, text);
@@ -527,7 +538,8 @@ static void TestLimitedTextWrapsAtItsLimit(void)
     limited.content = mui_contentHost;
     limited.sizing.minWidth = Length(0.0f);
     limited.sizing.maxWidth = Length(50.0f);
-    CHECK(muiNode_SetLayoutStyle(context, text, &limited) == mui_success, "limited");
+    CHECK(muiNode_SetLayoutValues(context, text, &limited, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "limited");
     muiLayoutInput input = {400.0f, 300.0f, MeasureText, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
     muiRect rect = muiNode_GetRect(context, text);
@@ -556,7 +568,8 @@ static void TestDirectionChangeReachesInheritingDescendants(void)
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "left to right");
     CHECK(muiNode_GetRect(context, first).x == 0.0f, "at the left of inner");
     row.textDirection = mui_inlineRightToLeft;
-    CHECK(muiNode_SetLayoutStyle(context, root, &row) == mui_success, "right to left");
+    CHECK(muiNode_SetLayoutValues(context, root, &row, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "right to left");
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "again");
     CHECK(muiNode_GetRect(context, inner).x == 100.0f, "inner at the right of root");
     CHECK(muiNode_GetRect(context, first).x == 70.0f, "and its child at its right, inherited");
@@ -588,7 +601,8 @@ static void TestSafeArea(void)
           "start 10 over a left of 0, end 30 from the right, top 20, bottom its own 10");
     // Right to left, start is the right: 30 there, the end's 0 on the left.
     style.textDirection = mui_inlineRightToLeft;
-    CHECK(muiNode_SetLayoutStyle(context, root, &style) == mui_success, "right to left");
+    CHECK(muiNode_SetLayoutValues(context, root, &style, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "right to left");
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "laid out");
     CHECK(RectIs(muiNode_GetContentRect(context, root), 0.0f, 20.0f, 370.0f, 270.0f),
           "the insets fall on the physical sides");
@@ -596,7 +610,8 @@ static void TestSafeArea(void)
     style.textDirection = mui_inlineInherit;
     style.safeArea = mui_edgeBottom;
     input.safeArea.bottom = 40.0f;
-    CHECK(muiNode_SetLayoutStyle(context, root, &style) == mui_success, "the bottom");
+    CHECK(muiNode_SetLayoutValues(context, root, &style, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "the bottom");
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "laid out");
     CHECK(RectIs(muiNode_GetContentRect(context, root), 10.0f, 10.0f, 390.0f, 250.0f),
           "the bottom's 40, the rest its own");
@@ -655,7 +670,8 @@ static void TestSafeAreaSizeFollowsDirection(void)
               muiNode_GetRect(context, inner).width == 0.0f,
           "left to right, start is the left, of 0");
     row.textDirection = mui_inlineRightToLeft;
-    CHECK(muiNode_SetLayoutStyle(context, root, &row) == mui_success, "right to left");
+    CHECK(muiNode_SetLayoutValues(context, root, &row, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "right to left");
     CHECK(muiComputeLayout(context, root, &input) == mui_success &&
               muiNode_GetRect(context, inner).width == 30.0f &&
               muiNode_GetRect(context, inner).x == 370.0f,
@@ -736,12 +752,14 @@ static void TestEarlyStretchLaysOutAgainWhenLate(void)
     CHECK(rect.x == 0.0f && rect.y == 100.0f, "on the first line");
     // Laid out again from within, it stays there.
     narrow.sizing.width = Length(25.0f);
-    CHECK(muiNode_SetLayoutStyle(context, last, &narrow) == mui_success, "widen the last");
+    CHECK(muiNode_SetLayoutValues(context, last, &narrow, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "widen the last");
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout from within");
     rect = muiNode_GetRect(context, last);
     CHECK(rect.x == 0.0f && rect.y == 100.0f && rect.width == 25.0f, "still on the first line");
     outer.container.wrap = mui_wrapWrap;
-    CHECK(muiNode_SetLayoutStyle(context, root, &outer) == mui_success, "wrap the parent");
+    CHECK(muiNode_SetLayoutValues(context, root, &outer, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "wrap the parent");
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout again");
     CHECK(muiNode_GetRect(context, row).height == 100.0f, "the row's size kept");
     rect = muiNode_GetRect(context, last);
@@ -788,7 +806,8 @@ static void TestBaselineItemFittedToItsLineFromItsLineLeft(void)
     muiRect rect = muiNode_GetRect(context, item);
     CHECK(rect.x == 0.0f && rect.width == 14.0f, "fitted to its line");
     outer.textDirection = mui_inlineRightToLeft;
-    CHECK(muiNode_SetLayoutStyle(context, root, &outer) == mui_success, "right to left");
+    CHECK(muiNode_SetLayoutValues(context, root, &outer, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "right to left");
     CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout right to left");
     rect = muiNode_GetRect(context, item);
     CHECK(rect.x == -10.0f && rect.width == 10.0f, "its width and place kept");

@@ -65,12 +65,6 @@ extern "C"
         mui_interpolateOklab = 1,
     };
 
-    enum
-    {
-        // The stops of a gradient in the list.
-        MUI_MAX_DRAW_STOPS = 4
-    };
-
     // A gradient of the gradient table. kind is mui_gradientLinear,
     // mui_gradientRadial or mui_gradientConic (maul-ui/visual.h); angle is
     // in degrees clockwise from toward the top, for a linear one and where
@@ -81,8 +75,8 @@ extern "C"
         uint32_t stopCount;
         muiDrawInterpolation interpolation;
         float angle;
-        muiLinearColor colors[MUI_MAX_DRAW_STOPS];
-        float positions[MUI_MAX_DRAW_STOPS];
+        muiLinearColor colors[MUI_MAX_GRADIENT_STOPS];
+        float positions[MUI_MAX_GRADIENT_STOPS];
     } muiDrawGradient;
 
     // A rounded box: rect is its border box. The gradient, an index into

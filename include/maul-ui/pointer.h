@@ -134,7 +134,7 @@ extern "C"
         mui_pointerRecordCaptureLost = 5,
         // A captured pointer moved.
         mui_pointerRecordMove = 6,
-        // clickCount records were dropped here, past the limit.
+        // dropped records were dropped here, past the limit.
         mui_pointerRecordDropped = 7,
         // A press on a node that takes drags (maul-ui/interaction.h)
         // moved past the drag threshold: the node captures the pointer,
@@ -169,9 +169,10 @@ extern "C"
         bool passThrough;
         uint32_t pointer;
         // The presses in a quick series this press, release or click
-        // belongs to: 2 for a double click; for a dropped record, how many
-        // were dropped.
+        // belongs to: 2 for a double click.
         uint32_t clickCount;
+        // For a dropped record, how many were dropped.
+        uint32_t dropped;
         // The node; the null id for a dropped record.
         muiNodeId node;
         // The point in the node's border box.

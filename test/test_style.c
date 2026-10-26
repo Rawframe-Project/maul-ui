@@ -447,7 +447,8 @@ static void TestDirectWritesWinUntilReset(void)
     CHECK(muiNode_GetDirectProperties(context, node, mui_groupLayout) == 0, "bit cleared");
     CHECK(WidthAfterLayout(context, node, node) == 25.0f, "the classes again");
     muiLayoutStyle all = muiDefaultLayoutStyle();
-    CHECK(muiNode_SetLayoutStyle(context, node, &all) == mui_success, "every property");
+    CHECK(muiNode_SetLayoutValues(context, node, &all, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "every property");
     CHECK(muiNode_GetDirectProperties(context, node, mui_groupLayout) == MUI_LAYOUT_PROPERTIES,
           "all direct");
     CHECK(WidthAfterLayout(context, node, node) == 0.0f, "a direct default wins too");
@@ -534,7 +535,8 @@ static void TestClassValuesReachLayout(void)
     muiNodeId root = MakeNode(context);
     muiLayoutStyle box = WithWidth(100.0f);
     box.sizing.height = (muiDimension){0.0f, 50.0f, mui_dimensionValue};
-    CHECK(muiNode_SetLayoutStyle(context, root, &box) == mui_success, "root");
+    CHECK(muiNode_SetLayoutValues(context, root, &box, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "root");
     muiNodeId first = MakeNode(context);
     muiNodeId second = MakeNode(context);
     muiLayoutStyle content = muiDefaultLayoutStyle();
@@ -599,12 +601,15 @@ static void TestEveryKindOfValueIsChecked(void)
     bad[4].container.alignItems = mui_alignAuto;
     for (int i = 0; i < 5; i++)
     {
-        CHECK(muiNode_SetLayoutStyle(context, node, &bad[i]) == mui_errorInvalid, "refused");
+        CHECK(muiNode_SetLayoutValues(context, node, &bad[i], MUI_LAYOUT_PROPERTIES) ==
+                  mui_errorInvalid,
+              "refused");
     }
     muiLayoutStyle good = muiDefaultLayoutStyle();
     good.placement.anchorX = 1.0f;
     good.margin.top = -4.0f;
-    CHECK(muiNode_SetLayoutStyle(context, node, &good) == mui_success, "the limits themselves");
+    CHECK(muiNode_SetLayoutValues(context, node, &good, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "the limits themselves");
     muiDestroyContext(context);
 }
 
@@ -651,7 +656,8 @@ static void TestStyleEditsAreRefusedWhileMeasuring(void)
     muiNodeId node = MakeNode(context);
     muiLayoutStyle content = muiDefaultLayoutStyle();
     content.content = mui_contentHost;
-    CHECK(muiNode_SetLayoutStyle(context, node, &content) == mui_success, "host content");
+    CHECK(muiNode_SetLayoutValues(context, node, &content, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "host content");
     muiLayoutInput input = {100.0f, 100.0f, MeasureAndEdit, &host, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(context, node, &input) == mui_success, "compute");
     for (int i = 0; i < 4; i++)

@@ -14,6 +14,7 @@
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/scroll.h"
+#include "maul-ui/style.h"
 
 #include <math.h>
 #include <stdio.h>
@@ -134,7 +135,8 @@ static bool Build(muiContext* context, const LayoutFixture* fixture, muiNodeId* 
         muiNodeDef def = muiDefaultNodeDef();
         def.hostKey = (uint64_t)i;
         if (muiCreateNode(context, &def, &ids[i]) != mui_success ||
-            muiNode_SetLayoutStyle(context, ids[i], &node->style) != mui_success)
+            muiNode_SetLayoutValues(context, ids[i], &node->style, MUI_LAYOUT_PROPERTIES) !=
+                mui_success)
         {
             return false;
         }

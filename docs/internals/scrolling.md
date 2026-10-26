@@ -50,7 +50,7 @@ Without overscroll a fling stops at the limit. So does a fling that began outsid
 
 A scroll container may be a list of many items, each fixed in extent or estimated until measured, with a gap and an overscan ([virtual.c](../../src/virtual.c)). Estimated extents live in a Fenwick tree per list, out of `limits.virtualItems`, so the offset of an item and the item at an offset each cost O(log n).
 
-- After each layout the window of items that should exist is found from the scroll offset and reported by `mui_notificationWindowChanged` when it changes. The host realizes it, binding child nodes to indices (`muiNode_SetItem`).
+- After each layout the window of items that should exist is found from the scroll offset and reported by `mui_notificationWindowChanged` when it changes. The host realizes it, binding child nodes to indices (`muiNode_BindVirtualItem`).
 - Bound items leave the flow, stretch across the list's content box, are measured into their extents and placed at their offsets. The list's extent covers every item, realized or not, so scrolling is not clamped to what exists.
 - Items are inserted, removed and moved by index ([virtual_edit.c](../../src/virtual_edit.c)). Their extents go with them and bound nodes follow their items. A removed item's node stays out of the flow, placed nowhere, until the host destroys or rebinds it.
 - The offset moves by whatever changed above the viewport's start, as does an item above it measured anew, so what is shown stays put, as CSS's scroll anchoring does.

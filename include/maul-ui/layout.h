@@ -388,25 +388,6 @@ extern "C"
     /// Safe from any thread.
     MUI_API muiLayoutStyle muiDefaultLayoutStyle(void);
 
-    /// Writes every layout property of a node directly, so that they win
-    /// over its style classes until reset (muiNode_SetLayoutValues in
-    /// maul-ui/style.h writes some). The node and its parent are laid out
-    /// again at the next muiComputeLayout.
-    ///
-    /// @param context  The context.
-    /// @param nodeId   The node.
-    /// @param style    The values: finite numbers, grow and shrink, padding,
-    ///                 border and gaps at least 0, known enumerators and
-    ///                 edge bits, alignItems not mui_alignAuto, and anchors
-    ///                 from 0 to 1, and an aspect ratio of 0 or more.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
-    ///         id or a value outside the above; `mui_errorState` while the
-    ///         context is busy; `mui_errorStale` for an id whose node is gone.
-    /// @par Thread safety
-    /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiNode_SetLayoutStyle(muiContext* context, muiNodeId nodeId,
-                                                           const muiLayoutStyle* style);
-
     /// Reads a node's resolved layout values: its direct writes, and for
     /// the other properties what its classes and states gave at the last
     /// muiComputeLayout that reached it.

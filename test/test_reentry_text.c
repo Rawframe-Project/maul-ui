@@ -230,7 +230,7 @@ static void MakeScene(Scene* scene)
     CHECK(muiCreateTextBlock(scene->service, &blockDef, &scene->block) == mui_success, "block");
     CHECK(scene->alloc.runs == 1 && scene->alloc.expected,
           "from the allocator while a block is made");
-    muiTextEditDef edit = muiDefaultTextEditDef();
+    muiTextEditRules edit = muiDefaultTextEditRules();
     CHECK(muiTextBlock_SetEditing(scene->service, scene->block, &edit) == mui_success, "editing");
     muiNodeDef node = muiDefaultNodeDef();
     node.hostKey = muiTextBlock_GetKey(scene->block);

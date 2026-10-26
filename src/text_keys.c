@@ -234,7 +234,7 @@ static muiResult Cut(const muiTextHost* host, muiTextBlockId blockId, const muiT
                      const muiTextEditInput* input, bool* changedOut)
 {
     const muiTextSelection* selection = &block->editing.selection;
-    if ((block->editing.def.flags & (mui_editReadOnly | mui_editPassword)) != 0 ||
+    if ((block->editing.rules.flags & (mui_editReadOnly | mui_editPassword)) != 0 ||
         selection->anchor == selection->caret.offset)
     {
         return mui_success;
@@ -268,7 +268,7 @@ static muiResult Act(const muiTextHost* host, muiNodeId nodeId, muiTextBlockId b
     case OP_CUT:
         return Cut(host, blockId, block, input, &outcome->changed);
     case OP_PASTE:
-        outcome->paste = (block->editing.def.flags & mui_editReadOnly) == 0;
+        outcome->paste = (block->editing.rules.flags & mui_editReadOnly) == 0;
         return mui_success;
     case OP_UNDO:
         return muiUndoText(service, blockId, &outcome->changed);
@@ -325,7 +325,7 @@ static muiResult TextEditEvent(const muiTextHost* host, muiNodeId nodeId, const 
     else if (result == mui_success && event->kind == mui_eventKeyDown)
     {
         Action action =
-            ActionOf(event, input->keymap, (block->editing.def.flags & mui_editMultiline) != 0);
+            ActionOf(event, input->keymap, (block->editing.rules.flags & mui_editMultiline) != 0);
         outcome.handled = action.op != OP_NONE;
         result = outcome.handled ? Act(host, nodeId, blockId, block, action,
                                        (event->modifiers & mui_modShift) != 0, input, &outcome)

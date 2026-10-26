@@ -81,7 +81,7 @@ static muiNodeId Add(muiContext* context, muiNodeId parent, const muiLayoutStyle
     }
     else
     {
-        Check(muiNode_SetLayoutStyle(context, node, style), "style");
+        Check(muiNode_SetLayoutValues(context, node, style, MUI_LAYOUT_PROPERTIES), "style");
     }
     if (parent.index1 != 0)
     {

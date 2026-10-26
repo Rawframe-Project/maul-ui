@@ -232,7 +232,7 @@ static void Edit(Scene* scene, Reader* reader)
         break;
     default:
     {
-        muiTextEditDef def = muiDefaultTextEditDef();
+        muiTextEditRules def = muiDefaultTextEditRules();
         def.flags = (muiTextEditFlags)(a & 7);
         def.filter = (muiTextFilter)(b % 4);
         def.maxLength = b >> 4;
@@ -278,7 +278,7 @@ static bool Make(Scene* scene, Memory* memory, uint8_t flags, const char* text, 
     muiTextBlockDef blockDef = muiDefaultTextBlockDef();
     blockDef.text = text;
     blockDef.length = length;
-    muiTextEditDef editDef = muiDefaultTextEditDef();
+    muiTextEditRules editDef = muiDefaultTextEditRules();
     editDef.flags = (muiTextEditFlags)(flags & 7);
     editDef.undoLimit = 8;
     return Made(muiCreateTextBlock(scene->service, &blockDef, &scene->block)) &&

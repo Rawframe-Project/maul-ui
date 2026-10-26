@@ -59,7 +59,7 @@ static muiResult Realize(muiContext* context, muiNodeId list)
         }
         if (result == mui_success)
         {
-            result = muiNode_SetItem(context, row, index);
+            result = muiNode_BindVirtualItem(context, row, index);
         }
     }
     return result;

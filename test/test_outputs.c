@@ -155,7 +155,7 @@ static void CheckQueries(const muiContext* context, muiNodeId node, muiStyleId s
            CLEARED(first) && CLEARED(end));
     EXPECT(muiNode_GetVirtualItem(context, node, 0, &outputs.x, &outputs.y),
            CLEARED(x) && CLEARED(y));
-    EXPECT(muiNode_GetItem(context, node, &outputs.count), CLEARED(count));
+    EXPECT(muiNode_GetBoundVirtualItem(context, node, &outputs.count), CLEARED(count));
     EXPECT(
         muiStyle_GetVisualValues(context, style, mui_variantBase, &outputs.visual, &outputs.mask),
         CLEARED(visual) && CLEARED(mask));
@@ -170,9 +170,9 @@ static void TestNullContextClearsOutputs(void)
     Outputs outputs;
     Fill(&outputs);
     const muiTokenId token = {1, 1};
-    CHECK(muiGetTokenValue(NULL, token, &outputs.value, &outputs.alias) == mui_errorInvalid &&
+    CHECK(muiToken_GetValue(NULL, token, &outputs.value, &outputs.alias) == mui_errorInvalid &&
               CLEARED(value) && CLEARED(alias),
-          "muiGetTokenValue clears its outputs");
+          "muiToken_GetValue clears its outputs");
     Fill(&outputs);
     CHECK(muiTheme_GetToken(NULL, (muiThemeId){1, 1}, token, &outputs.value, &outputs.alias) ==
                   mui_errorInvalid &&
@@ -281,7 +281,8 @@ static void TestBusyContextClearsOutputs(void)
     CHECK(muiCreateNode(context, &nodeDef, &root) == mui_success, "root");
     muiLayoutStyle style = muiDefaultLayoutStyle();
     style.content = mui_contentHost;
-    CHECK(muiNode_SetLayoutStyle(context, root, &style) == mui_success, "host content");
+    CHECK(muiNode_SetLayoutValues(context, root, &style, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "host content");
     Busy busy = {context, false};
     muiLayoutInput input = {.availableWidth = 100.0f,
                             .availableHeight = 100.0f,

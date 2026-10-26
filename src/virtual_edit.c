@@ -16,7 +16,8 @@
 #include <math.h>
 #include <string.h>
 
-muiResult muiNode_GetItem(const muiContext* context, muiNodeId nodeId, uint32_t* indexOut)
+muiResult muiNode_GetBoundVirtualItem(const muiContext* context, muiNodeId nodeId,
+                                      uint32_t* indexOut)
 {
     if (indexOut != nullptr)
     {

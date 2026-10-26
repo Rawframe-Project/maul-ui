@@ -35,20 +35,6 @@ static bool IsLength(float value)
     return isfinite(value) && value >= 0.0f;
 }
 
-static MUI_NOINLINE muiResult NodeSetLayoutStyleWorker(muiContext* context, muiNodeId nodeId,
-                                                       const muiLayoutStyle* style)
-{
-    return muiNode_SetLayoutValues(context, nodeId, style, MUI_LAYOUT_PROPERTIES);
-}
-
-muiResult muiNode_SetLayoutStyle(muiContext* context, muiNodeId nodeId, const muiLayoutStyle* style)
-{
-    uint64_t floatEnv = muiFloatEnvEnter();
-    muiResult result = NodeSetLayoutStyleWorker(context, nodeId, style);
-    muiFloatEnvLeave(floatEnv);
-    return result;
-}
-
 muiResult muiNode_GetLayoutStyle(const muiContext* context, muiNodeId nodeId,
                                  muiLayoutStyle* styleOut)
 {

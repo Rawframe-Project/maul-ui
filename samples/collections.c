@@ -288,7 +288,8 @@ static bool Realize(Collections* collections, Collection* collection)
     for (int slot = 0; slot < collection->rowCount; slot++)
     {
         uint32_t index = 0;
-        bool bound = muiNode_GetItem(app->context, collection->rows[slot], &index) == mui_success;
+        bool bound = muiNode_GetBoundVirtualItem(app->context, collection->rows[slot], &index) ==
+                     mui_success;
         collection->bound[slot] = bound ? index : UINT32_MAX;
         keep[slot] = bound && index >= first && index < end;
     }
@@ -315,7 +316,8 @@ static bool Realize(Collections* collections, Collection* collection)
         keep[slot] = true;
         collection->bound[slot] = index;
         SampleAppCheck(app,
-                       muiNode_SetItem(app->context, collection->rows[slot], index) == mui_success,
+                       muiNode_BindVirtualItem(app->context, collection->rows[slot], index) ==
+                           mui_success,
                        "a row bound");
         Fill(collections, collection, slot, index);
         changed = true;

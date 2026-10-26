@@ -479,7 +479,7 @@ static void Build(void* user, SampleApp* app)
     MakeSlider(picker, &picker->opacitySlider, "Opacity", 100.0f, 100.0f);
     Caption(app, "Hex");
     picker->hex = SampleTextNode(app, app->root, "", 15.0f, s_text, &picker->hexBlock);
-    muiTextEditDef edit = muiDefaultTextEditDef();
+    muiTextEditRules edit = muiDefaultTextEditRules();
     edit.maxLength = 7;
     SampleAppCheck(app, muiTextBlock_SetEditing(app->text, picker->hexBlock, &edit) == mui_success,
                    "the hex field edits");

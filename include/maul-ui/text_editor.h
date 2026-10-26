@@ -70,7 +70,9 @@ extern "C"
         mui_purposeUrl = 4,
     };
 
-    typedef struct muiTextEditDef
+    // A field's editing rules, for muiTextBlock_SetEditing. Build them with
+    // muiDefaultTextEditRules.
+    typedef struct muiTextEditRules
     {
         muiTextEditFlags flags;
         muiTextFilter filter;
@@ -84,7 +86,7 @@ extern "C"
         // The most edits undo keeps, the oldest dropped first; 0 keeps
         // none.
         uint32_t undoLimit;
-    } muiTextEditDef;
+    } muiTextEditRules;
 
     // Whose shortcuts keys follow: Control and Home and End, or Command
     // and Option.
@@ -135,7 +137,7 @@ extern "C"
     /// @return The rules.
     /// @par Thread safety
     /// Safe from any thread.
-    MUI_API muiTextEditDef muiDefaultTextEditDef(void);
+    MUI_API muiTextEditRules muiDefaultTextEditRules(void);
 
     /// Opts a block into editing with a field's rules, or out with NULL.
     /// Either way the history empties and the caret goes to the text's
@@ -145,7 +147,7 @@ extern "C"
     ///
     /// @param service  The service.
     /// @param blockId  The block.
-    /// @param def      The rules, or NULL.
+    /// @param rules    The rules, or NULL.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL service, the null
     ///         id, or a flag, filter or purpose out of range; `mui_errorStale`
     ///         for a block that is gone; `mui_errorState` while the service is
@@ -154,7 +156,7 @@ extern "C"
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_SetEditing(muiTextService* service,
                                                             muiTextBlockId blockId,
-                                                            const muiTextEditDef* def);
+                                                            const muiTextEditRules* rules);
 
     /// Reads an editing block's selection.
     ///

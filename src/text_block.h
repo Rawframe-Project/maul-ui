@@ -107,7 +107,7 @@ typedef struct muiTextEdit
 typedef struct muiTextEditing
 {
     bool on;
-    muiTextEditDef def;
+    muiTextEditRules rules;
     muiTextSelection selection;
     float preferredX;
     // How far the text is scrolled in the content box, the caret kept

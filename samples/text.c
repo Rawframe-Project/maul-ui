@@ -193,7 +193,7 @@ static void MakeField(Texts* texts, SampleApp* app, int index, const char* name,
     interaction.focusMode = mui_focusAll;
     // A drag selects.
     interaction.drags = true;
-    muiTextEditDef edit = muiDefaultTextEditDef();
+    muiTextEditRules edit = muiDefaultTextEditRules();
     edit.flags = multiline ? mui_editMultiline : 0;
     // Text scrolled to the caret stays inside the field.
     muiVisualStyle visual = muiDefaultVisualStyle();

@@ -235,7 +235,7 @@ static mwinResult Init(mwinContext* windows, void* user)
 
 static void TestEditing(Test* test)
 {
-    muiTextEditDef edit = muiDefaultTextEditDef();
+    muiTextEditRules edit = muiDefaultTextEditRules();
     edit.purpose = mui_purposeEmail;
     CHECK(muiTextBlock_SetText(test->service, test->block, "abc", 3) == mui_success &&
               muiTextBlock_SetEditing(test->service, test->block, &edit) == mui_success,

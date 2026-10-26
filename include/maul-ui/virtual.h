@@ -7,7 +7,7 @@
 // layout the window of items that should exist (the viewport plus overscan
 // on each side), and reports it by mui_notificationWindowChanged when it
 // changes. The host realizes the window: it creates or reuses a child node
-// of the list for each index in it, binds it (muiNode_SetItem), and
+// of the list for each index in it, binds it (muiNode_BindVirtualItem), and
 // destroys or pools the rest, resetting a reused node so nothing of one
 // key outlives it. The library places bound items at their offsets along
 // the axis, out of the flex flow and stretched across the list's content
@@ -132,8 +132,8 @@ extern "C"
     ///         `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiNode_SetItem(muiContext* context, muiNodeId nodeId,
-                                                    uint32_t index);
+    MUI_NODISCARD MUI_API muiResult muiNode_BindVirtualItem(muiContext* context, muiNodeId nodeId,
+                                                            uint32_t index);
 
     /// Unbinds a node from its item; it joins its parent's flow again.
     ///
@@ -144,7 +144,8 @@ extern "C"
     ///         context is busy; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiNode_ClearItem(muiContext* context, muiNodeId nodeId);
+    MUI_NODISCARD MUI_API muiResult muiNode_UnbindVirtualItem(muiContext* context,
+                                                              muiNodeId nodeId);
 
     /// Reads the item a node is bound to.
     ///
@@ -157,8 +158,9 @@ extern "C"
     ///         gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiNode_GetItem(const muiContext* context, muiNodeId nodeId,
-                                                    uint32_t* indexOut);
+    MUI_NODISCARD MUI_API muiResult muiNode_GetBoundVirtualItem(const muiContext* context,
+                                                                muiNodeId nodeId,
+                                                                uint32_t* indexOut);
 
     /// Inserts items into a list before index, estimated; the items after
     /// keep their extents, and nodes bound to them follow them. Inserted
@@ -183,7 +185,7 @@ extern "C"
 
     /// Removes items from a list; nodes bound to them stay out of the
     /// flow, placed nowhere, until the host destroys or binds them
-    /// (muiNode_GetItem reports them empty), and the rest follow their
+    /// (muiNode_GetBoundVirtualItem reports them empty), and the rest follow their
     /// items. Removed above the viewport, they move the offset back.
     ///
     /// @param context  The context.

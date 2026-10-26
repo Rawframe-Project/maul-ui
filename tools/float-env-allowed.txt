@@ -20,7 +20,7 @@ defs and values filled with constants:
     muiDefaultScrollRule
     muiDefaultStyleDef
     muiDefaultTextBlockDef
-    muiDefaultTextEditDef
+    muiDefaultTextEditRules
     muiDefaultTextStyle
     muiDefaultThemeDef
     muiDefaultTokenDef
@@ -98,7 +98,7 @@ stored values and ids read, floats copied as they are:
     muiFont_IsValid
     muiGetContextEnvironment
     muiGetDrawList
-    muiGetTokenValue
+    muiToken_GetValue
     muiGlyphAtlas_GetPage
     muiGlyphAtlas_GetPageCount
     muiGlyphAtlas_TakeUpdates
@@ -115,7 +115,7 @@ stored values and ids read, floats copied as they are:
     muiNode_GetFirstChild
     muiNode_GetHostKey
     muiNode_GetInteractionStyle
-    muiNode_GetItem
+    muiNode_GetBoundVirtualItem
     muiNode_GetLastChild
     muiNode_GetLayoutStyle
     muiNode_GetNeighbor
@@ -166,7 +166,7 @@ ids, flags, states, links, text and functions stored, no float checked:
     muiNodeType_SetClasses
     muiNode_BeginExit
     muiNode_CancelExit
-    muiNode_ClearItem
+    muiNode_UnbindVirtualItem
     muiNode_ClearPopup
     muiNode_ClearValueRange
     muiNode_MarkAccessChanged
@@ -178,7 +178,7 @@ ids, flags, states, links, text and functions stored, no float checked:
     muiNode_SetAccessRole
     muiNode_SetAccessValues
     muiNode_SetClasses
-    muiNode_SetItem
+    muiNode_BindVirtualItem
     muiNode_SetNeighbor
     muiNode_SetStates
     muiNode_SetTheme
@@ -187,7 +187,7 @@ ids, flags, states, links, text and functions stored, no float checked:
     muiSetDefaultFont
     muiSetEventFunction
     muiSetFallbackFonts
-    muiSetTokenAlias
+    muiToken_SetAlias
     muiStyle_ClearConditions
     muiStyle_ResetProperties
     muiStyle_SetTransition

@@ -84,7 +84,8 @@ static int CallAll(muiContext* context, muiResult results[CALLS])
         muiStyle_SetInteractionValues(context, (muiStyleId){0}, (muiVariant){0}, NULL, 0);
     results[count++] = muiNode_SetInteractionValues(context, (muiNodeId){0}, NULL, 0);
     results[count++] = muiNode_RaiseLayer(context, (muiNodeId){0});
-    results[count++] = muiNode_SetLayoutStyle(context, (muiNodeId){0}, NULL);
+    results[count++] =
+        muiNode_SetLayoutValues(context, (muiNodeId){0}, NULL, MUI_LAYOUT_PROPERTIES);
     results[count++] = muiNode_MarkContentChanged(context, (muiNodeId){0});
     results[count++] = muiComputeLayout(context, (muiNodeId){0}, NULL);
     results[count++] = muiCreateNode(context, NULL, NULL);
@@ -134,8 +135,8 @@ static int CallAll(muiContext* context, muiResult results[CALLS])
     results[count++] = muiNode_SetTheme(context, (muiNodeId){0}, (muiThemeId){0});
     results[count++] = muiCreateToken(context, NULL, NULL);
     results[count++] = muiDestroyToken(context, (muiTokenId){0});
-    results[count++] = muiSetTokenValue(context, (muiTokenId){0}, NULL);
-    results[count++] = muiSetTokenAlias(context, (muiTokenId){0}, (muiTokenId){0});
+    results[count++] = muiToken_SetValue(context, (muiTokenId){0}, NULL);
+    results[count++] = muiToken_SetAlias(context, (muiTokenId){0}, (muiTokenId){0});
     results[count++] = muiStyle_SetToken(context, (muiStyleId){0}, (muiVariant){0},
                                          (muiProperty){0}, (muiTokenId){0});
     results[count++] = muiCreateTransition(context, NULL, NULL);
@@ -144,8 +145,8 @@ static int CallAll(muiContext* context, muiResult results[CALLS])
                                               (muiTransitionId){0}, (muiPropertyGroup){0}, 0);
     results[count++] = muiNode_SetVirtualList(context, (muiNodeId){0}, NULL);
     results[count++] = muiNode_ClearVirtualList(context, (muiNodeId){0});
-    results[count++] = muiNode_SetItem(context, (muiNodeId){0}, 0);
-    results[count++] = muiNode_ClearItem(context, (muiNodeId){0});
+    results[count++] = muiNode_BindVirtualItem(context, (muiNodeId){0}, 0);
+    results[count++] = muiNode_UnbindVirtualItem(context, (muiNodeId){0});
     results[count++] = muiNode_InsertVirtualItems(context, (muiNodeId){0}, 0, 0);
     results[count++] = muiNode_RemoveVirtualItems(context, (muiNodeId){0}, 0, 0);
     results[count++] = muiNode_MoveVirtualItem(context, (muiNodeId){0}, 0, 0);
@@ -230,7 +231,8 @@ static muiNodeId MakeNode(muiContext* context, muiNodeId parent, uint64_t hostKe
     }
     if (style != NULL)
     {
-        CHECK(muiNode_SetLayoutStyle(context, node, style) == mui_success, "style");
+        CHECK(muiNode_SetLayoutValues(context, node, style, MUI_LAYOUT_PROPERTIES) == mui_success,
+              "style");
     }
     return node;
 }

@@ -298,7 +298,7 @@ static double TimeTyping(uint32_t words)
                                   MUI_PROPERTY_BIT(mui_propertyContent) |
                                       MUI_PROPERTY_BIT(mui_propertyAlignSelf)),
           "content");
-    muiTextEditDef edit = muiDefaultTextEditDef();
+    muiTextEditRules edit = muiDefaultTextEditRules();
     edit.flags = mui_editMultiline;
     Check(muiTextBlock_SetEditing(scene.service, block, &edit), "editing");
     uint32_t middle = (uint32_t)length / 2;
@@ -390,7 +390,7 @@ static double TimeAccessSend(uint32_t* clustersOut)
                                   MUI_PROPERTY_BIT(mui_propertyContent) |
                                       MUI_PROPERTY_BIT(mui_propertyAlignSelf)),
           "content");
-    muiTextEditDef edit = muiDefaultTextEditDef();
+    muiTextEditRules edit = muiDefaultTextEditRules();
     edit.flags = mui_editMultiline;
     Check(muiTextBlock_SetEditing(scene.service, block, &edit), "editing");
     uint32_t middle = (uint32_t)length / 2;

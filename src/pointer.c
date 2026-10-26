@@ -588,7 +588,7 @@ static muiResult NextPointerRecord(muiContext* context, muiPointerRecord* record
     if (store->dropped != 0)
     {
         *recordOut = (muiPointerRecord){
-            .kind = mui_pointerRecordDropped, .passThrough = true, .clickCount = store->dropped};
+            .kind = mui_pointerRecordDropped, .passThrough = true, .dropped = store->dropped};
         store->dropped = 0;
         return mui_success;
     }

@@ -562,7 +562,8 @@ static void TestOnlyConditionsThatApplyAreWatched(void)
     Settle(context, node);
     muiLayoutStyle all = muiDefaultLayoutStyle();
     all.sizing.width = Length(120.0f);
-    CHECK(muiNode_SetLayoutStyle(context, node, &all) == mui_success, "every property direct");
+    CHECK(muiNode_SetLayoutValues(context, node, &all, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "every property direct");
     CHECK(muiNode_SetStates(context, node, mui_stateHovered) == mui_success, "restyle");
     Settle(context, node);
     SetSize(context, node, 130.0f, 0.0f);
@@ -719,7 +720,7 @@ static void TestNotificationsPastTheLimitAreCounted(void)
               record.kind == mui_notificationOscillation && record.node.index1 == first.index1,
           "the first, in tree order");
     CHECK(muiNextNotification(context, &record) == mui_success &&
-              record.kind == mui_notificationDropped && record.count == 2 &&
+              record.kind == mui_notificationDropped && record.detail == 2 &&
               record.node.index1 == 0,
           "then a count of the rest");
     CHECK(muiNextNotification(context, &record) == mui_empty, "then nothing");
@@ -734,7 +735,7 @@ static void TestNotificationsPastTheLimitAreCounted(void)
     MakeOscillator(context, root, style);
     RunWhilePending(context, root);
     CHECK(muiNextNotification(context, &record) == mui_success &&
-              record.kind == mui_notificationDropped && record.count == 1,
+              record.kind == mui_notificationDropped && record.detail == 1,
           "with no room, only the count");
     muiDestroyContext(context);
 }
@@ -772,7 +773,7 @@ static void TestNotificationsKeepTheirOrder(void)
     MakeOscillator(context, root, style);
     RunWhilePending(context, root);
     CHECK(muiNextNotification(context, &record) == mui_success &&
-              record.kind == mui_notificationDropped && record.count == 2,
+              record.kind == mui_notificationDropped && record.detail == 2,
           "the later one counts with the lost one, though there was room");
     CHECK(muiNextNotification(context, &record) == mui_empty, "nothing after");
     muiDestroyContext(context);
