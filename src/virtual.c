@@ -463,6 +463,14 @@ muiResult muiNode_ClearVirtualList(muiContext* context, muiNodeId nodeId)
 muiResult muiNode_GetVirtualWindow(const muiContext* context, muiNodeId nodeId, uint32_t* firstOut,
                                    uint32_t* endOut)
 {
+    if (firstOut != nullptr)
+    {
+        *firstOut = 0;
+    }
+    if (endOut != nullptr)
+    {
+        *endOut = 0;
+    }
     if (context == nullptr || firstOut == nullptr || endOut == nullptr)
     {
         return mui_errorInvalid;
@@ -482,6 +490,14 @@ static MUI_NOINLINE muiResult NodeGetVirtualItemWorker(const muiContext* context
                                                        uint32_t index, float* offsetOut,
                                                        float* extentOut)
 {
+    if (offsetOut != nullptr)
+    {
+        *offsetOut = 0.0f;
+    }
+    if (extentOut != nullptr)
+    {
+        *extentOut = 0.0f;
+    }
     if (context == nullptr || offsetOut == nullptr || extentOut == nullptr)
     {
         return mui_errorInvalid;

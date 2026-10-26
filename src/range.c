@@ -14,6 +14,7 @@
 #include "tree.h"
 
 #include <math.h>
+#include <string.h>
 
 static bool IsNull(muiNodeId nodeId)
 {
@@ -156,6 +157,10 @@ static muiRangeEntry* Find(const muiContext* context, muiNodeId nodeId, muiResul
 muiResult muiNode_GetValueRange(const muiContext* context, muiNodeId nodeId,
                                 muiValueRange* rangeOut)
 {
+    if (rangeOut != nullptr)
+    {
+        memset(rangeOut, 0, sizeof *rangeOut);
+    }
     if (context == nullptr || rangeOut == nullptr)
     {
         return mui_errorInvalid;

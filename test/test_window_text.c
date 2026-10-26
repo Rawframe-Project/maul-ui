@@ -148,8 +148,8 @@ static void TestComposition(Test* test)
     caret = 7;
     CHECK(muiWindowSetComposition(test->service, test->block, 1, &preedit, &caret) ==
                   mui_errorInvalid &&
-              caret == 7 && TextIs(test, "axyzbc"),
-          "an unknown style refused, the composition and caret kept");
+              caret == 0 && TextIs(test, "axyzbc"),
+          "an unknown style refused, the composition kept and the caret cleared");
     preedit = (mwinPreeditEvent){.text = "w", .length = 1, .caret = -1};
     CHECK(muiWindowSetComposition(test->service, test->block, 1, &preedit, &caret) == mui_success &&
               TextIs(test, "awbc") && caret == -1,
@@ -346,8 +346,35 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
     }
 }
 
+// A NULL glue or service clears the outputs of the text calls (Maul
+// conventions, Errors and assertions).
+static void TestNullOwnersClearOutputs(void)
+{
+    const mwinPreeditEvent preedit = {0};
+    int32_t caret = 7;
+    CHECK(muiWindowSetComposition(NULL, (muiTextBlockId){1, 1}, 0, &preedit, &caret) ==
+                  mui_errorInvalid &&
+              caret == 0,
+          "SetComposition clears the caret");
+    bool changed = true;
+    CHECK(muiWindowCompose(NULL, (muiTextBlockId){1, 1}, &preedit, &changed) == mui_errorInvalid &&
+              !changed,
+          "Compose clears changed");
+    mwinRect placed = {1, 2, 3, 4};
+    CHECK(muiWindowGlue_SetTextCaret(NULL, NULL, (muiNodeId){0}, (muiTextPosition){0}, &placed) ==
+                  mui_errorInvalid &&
+              placed.x == 0 && placed.y == 0 && placed.width == 0 && placed.height == 0,
+          "SetTextCaret clears the place");
+    changed = true;
+    CHECK(muiWindowGlue_Paste(NULL, NULL, (muiTextBlockId){1, 1}, NULL, &changed) ==
+                  mui_errorInvalid &&
+              !changed,
+          "Paste clears changed");
+}
+
 int main(void)
 {
+    TestNullOwnersClearOutputs();
     Test test = {0};
     mwinAppDef def = mwinDefaultAppDef();
     def.context.backend = mwin_backendTest;

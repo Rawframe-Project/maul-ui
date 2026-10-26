@@ -70,6 +70,10 @@ static MUI_NOINLINE muiResult RenderGlyphWorker(muiTextService* service, uint64_
                                                 muiGlyphImage* imageOut, unsigned char* pixels,
                                                 size_t capacity)
 {
+    if (imageOut != nullptr)
+    {
+        memset(imageOut, 0, sizeof *imageOut);
+    }
     muiResult status = muiEnterText(service);
     if (status == mui_success)
     {
@@ -257,6 +261,10 @@ static MUI_NOINLINE muiResult RenderGlyphFieldWorker(muiTextService* service, ui
                                                      uint32_t spread, muiGlyphImage* imageOut,
                                                      unsigned char* pixels, size_t capacity)
 {
+    if (imageOut != nullptr)
+    {
+        memset(imageOut, 0, sizeof *imageOut);
+    }
     muiResult status = muiEnterText(service);
     if (status == mui_success)
     {
@@ -290,6 +298,10 @@ static MUI_NOINLINE muiResult RenderGlyphMultiFieldWorker(muiTextService* servic
                                                           uint32_t spread, muiGlyphImage* imageOut,
                                                           unsigned char* pixels, size_t capacity)
 {
+    if (imageOut != nullptr)
+    {
+        memset(imageOut, 0, sizeof *imageOut);
+    }
     muiResult status = muiEnterText(service);
     if (status == mui_success)
     {

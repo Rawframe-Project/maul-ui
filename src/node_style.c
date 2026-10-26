@@ -22,6 +22,8 @@
 #include "maul-ui/text_style.h"
 #include "maul-ui/visual.h"
 
+#include <string.h>
+
 static muiResult NodeSetType(muiContext* context, muiNodeId nodeId, muiNodeTypeId typeId)
 {
     if (context == nullptr)
@@ -328,6 +330,10 @@ muiResult muiNode_SetInteractionValues(muiContext* context, muiNodeId nodeId,
 muiResult muiNode_GetInteractionStyle(const muiContext* context, muiNodeId nodeId,
                                       muiInteractionStyle* valuesOut)
 {
+    if (valuesOut != nullptr)
+    {
+        memset(valuesOut, 0, sizeof *valuesOut);
+    }
     if (context == nullptr || valuesOut == nullptr || nodeId.index1 == 0)
     {
         return mui_errorInvalid;
@@ -344,6 +350,10 @@ muiResult muiNode_GetInteractionStyle(const muiContext* context, muiNodeId nodeI
 muiResult muiNode_GetTextStyle(const muiContext* context, muiNodeId nodeId,
                                muiComputedTextStyle* styleOut)
 {
+    if (styleOut != nullptr)
+    {
+        memset(styleOut, 0, sizeof *styleOut);
+    }
     if (context == nullptr || styleOut == nullptr || nodeId.index1 == 0)
     {
         return mui_errorInvalid;
@@ -360,6 +370,10 @@ muiResult muiNode_GetTextStyle(const muiContext* context, muiNodeId nodeId,
 muiResult muiNode_GetVisualStyle(const muiContext* context, muiNodeId nodeId,
                                  muiVisualStyle* valuesOut)
 {
+    if (valuesOut != nullptr)
+    {
+        memset(valuesOut, 0, sizeof *valuesOut);
+    }
     if (context == nullptr || valuesOut == nullptr || nodeId.index1 == 0)
     {
         return mui_errorInvalid;

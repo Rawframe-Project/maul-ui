@@ -34,13 +34,13 @@ muiResult muiWindowGlue_RequestPaste(muiWindowGlue* glue)
 muiResult muiWindowGlue_Paste(muiWindowGlue* glue, muiTextService* service, muiTextBlockId blockId,
                               const mwinEvent* event, bool* changedOut)
 {
-    if (glue == nullptr || service == nullptr || event == nullptr)
-    {
-        return mui_errorInvalid;
-    }
     if (changedOut != nullptr)
     {
         *changedOut = false;
+    }
+    if (glue == nullptr || service == nullptr || event == nullptr)
+    {
+        return mui_errorInvalid;
     }
     const mwinCompletion* completion = &event->data.completion;
     if (event->type != mwin_eventRequestCompleted ||

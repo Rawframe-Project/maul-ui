@@ -358,6 +358,10 @@ static MUI_NOINLINE muiResult RenderColorGlyphWorker(muiTextService* service, ui
                                                      muiGlyphImage* imageOut, unsigned char* pixels,
                                                      size_t capacity)
 {
+    if (imageOut != nullptr)
+    {
+        memset(imageOut, 0, sizeof *imageOut);
+    }
     muiResult status = muiEnterText(service);
     if (status == mui_success)
     {

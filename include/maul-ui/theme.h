@@ -52,7 +52,7 @@ extern "C"
     ///
     /// @param context     The context.
     /// @param def         The theme: a valid cookie.
-    /// @param themeOut  Receives the theme; set to the null id on failure.
+    /// @param themeOut  Receives the theme. The null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a bad
     ///         cookie; `mui_errorState` while the context is busy;
     ///         `mui_errorCapacity` when the context's theme limit is reached.
@@ -129,10 +129,10 @@ extern "C"
     /// @param context   The context.
     /// @param themeId   The theme.
     /// @param tokenId   The token.
-    /// @param valueOut  Receives the literal, with the token's type; its
-    ///                  member is zero for an alias or no override.
+    /// @param valueOut  Receives the literal, with the token's type; its member
+    ///                  is zero for an alias or no override. Zeroed on failure.
     /// @param aliasOut  Receives the token aliased, or the null id; may be
-    ///                  NULL.
+    ///                  NULL. The null id on failure.
     /// @return `mui_success`; `mui_empty` when the theme does not override
     ///         the token; `mui_errorInvalid` for a NULL context or value, or
     ///         a null id; `mui_errorStale` for a theme or a token that is
@@ -160,7 +160,8 @@ extern "C"
     ///
     /// @param context     The context.
     /// @param nodeId      The node.
-    /// @param themeOut  Receives the theme set, or the null id.
+    /// @param themeOut  Receives the theme set, or the null id. The null id on
+    ///                  failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or the
     ///         null id; `mui_errorStale` for an id whose node is gone.
     /// @par Thread safety
@@ -174,8 +175,9 @@ extern "C"
     /// @param context   The context.
     /// @param nodeId    The node.
     /// @param tokenId   The token.
-    /// @param valueOut  Receives the value, with the token's type; its
-    ///                  member is zero when the result is `mui_empty`.
+    /// @param valueOut  Receives the value, with the token's type; its member
+    ///                  is zero when the result is `mui_empty`. Zeroed on
+    ///                  failure.
     /// @return `mui_success`; `mui_empty` when the token gives the node no
     ///         value (an alias to a token that is gone, or a cycle that
     ///         only nested themes make); `mui_errorInvalid` for a NULL

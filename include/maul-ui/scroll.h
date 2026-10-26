@@ -43,8 +43,8 @@ extern "C"
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
-    /// @param xOut     Receives the offset from the inline start.
-    /// @param yOut     Receives the offset from the top.
+    /// @param xOut     Receives the offset from the inline start. 0 on failure.
+    /// @param yOut     Receives the offset from the top. 0 on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or
     ///         the null id; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
@@ -62,8 +62,9 @@ extern "C"
     ///
     /// @param context    The context.
     /// @param nodeId     The node.
-    /// @param extentOut  Receives the extent; 0 by 0 for a node that does
-    ///                   not scroll or was not laid out since it does.
+    /// @param extentOut  Receives the extent; 0 by 0 for a node that does not
+    ///                   scroll or was not laid out since it does. Zeroed on
+    ///                   failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or
     ///         the null id; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
@@ -155,7 +156,7 @@ extern "C"
     /// @param horizontal  The axis: true for x.
     /// @param track       The track's length, finite and at least 0.
     /// @param minimum     The shortest thumb, finite and at least 0.
-    /// @param thumbOut    Receives the thumb.
+    /// @param thumbOut    Receives the thumb. Zeroed on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id or a length outside the above; `mui_errorStale` for
     ///         a node that is gone.

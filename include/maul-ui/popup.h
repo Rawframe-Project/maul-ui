@@ -120,7 +120,7 @@ extern "C"
     ///
     /// @param context   The context.
     /// @param nodeId    The node.
-    /// @param popupOut  Receives the popup.
+    /// @param popupOut  Receives the popup. Zeroed on failure.
     /// @return `mui_success`; `mui_empty` for a node that is not a popup;
     ///         `mui_errorInvalid` for a NULL argument or the null id;
     ///         `mui_errorStale` for a node that is gone.
@@ -134,7 +134,7 @@ extern "C"
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
-    /// @param sideOut  Receives the side.
+    /// @param sideOut  Receives the side. 0 on failure.
     /// @return `mui_success`; `mui_empty` for a node that is not a popup or
     ///         has not been placed since it was set; `mui_errorInvalid`
     ///         for a NULL argument or the null id; `mui_errorStale` for a

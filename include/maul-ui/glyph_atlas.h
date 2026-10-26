@@ -115,7 +115,7 @@ extern "C"
     ///                  that divide the pages, at most 4,096 of them a
     ///                  page; from 1 to 64 pages; a format of
     ///                  muiAtlasFormat.
-    /// @param atlasOut  Receives the atlas; set to NULL on failure.
+    /// @param atlasOut  Receives the atlas. NULL on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
     ///         cookie, a size out of range or an unknown format;
     ///         `mui_errorCapacity` when memory runs out; `mui_errorState` while
@@ -155,8 +155,9 @@ extern "C"
     /// @param pixelSize  The em in device pixels, as muiRenderGlyph takes.
     /// @param penX       The pen, in device pixels, within 2^24 of 0.
     /// @param baselineY  The baseline, likewise.
-    /// @param glyphOut   Receives the image; when the image is larger than
-    ///                   a plot, its width and height only.
+    /// @param glyphOut   Receives the image; when the image is larger than a
+    ///                   plot, its width and height only. Zeroed on any other
+    ///                   failure.
     /// @return `mui_success`; `mui_errorCapacity` when the image is larger than
     ///         a plot, every plot is in use this frame, or memory runs out;
     ///         `mui_errorInvalid` for a NULL atlas or glyphOut, an atlas of
@@ -187,8 +188,9 @@ extern "C"
     /// @param baselineY   The baseline, likewise.
     /// @param palette     The font's palette to fill from.
     /// @param foreground  The text's colour, linear and premultiplied.
-    /// @param glyphOut    Receives the image; when the image is larger than
-    ///                    a plot, its width and height only.
+    /// @param glyphOut    Receives the image; when the image is larger than a
+    ///                    plot, its width and height only. Zeroed on any other
+    ///                    failure.
     /// @return As muiGlyphAtlas_Get, with `mui_empty` for a glyph without
     ///         colour layers and an atlas of another format invalid;
     ///         `mui_errorState` while the atlas is busy.
@@ -212,8 +214,9 @@ extern "C"
     /// @param spread     How far the field reaches past the outline, from
     ///                   MUI_MIN_FIELD_SPREAD to MUI_MAX_FIELD_SPREAD
     ///                   pixels.
-    /// @param glyphOut   Receives the image; when the image is larger than
-    ///                   a plot, its width and height only.
+    /// @param glyphOut   Receives the image; when the image is larger than a
+    ///                   plot, its width and height only. Zeroed on any other
+    ///                   failure.
     /// @return As muiGlyphAtlas_Get, with a spread out of range invalid;
     ///         `mui_errorState` while the atlas is busy.
     /// @par Thread safety
@@ -239,8 +242,9 @@ extern "C"
     /// @param spread     How far the field reaches past the outline, from
     ///                   MUI_MIN_FIELD_SPREAD to MUI_MAX_FIELD_SPREAD
     ///                   pixels.
-    /// @param glyphOut   Receives the image; when the image is larger than
-    ///                   a plot, its width and height only.
+    /// @param glyphOut   Receives the image; when the image is larger than a
+    ///                   plot, its width and height only. Zeroed on any other
+    ///                   failure.
     /// @return As muiGlyphAtlas_GetField, with an atlas of one channel invalid;
     ///         `mui_errorState` while the atlas is busy.
     /// @par Thread safety
@@ -263,7 +267,7 @@ extern "C"
     ///
     /// @param atlas    The atlas.
     /// @param page     A page the atlas has made.
-    /// @param pageOut  Receives the page; unchanged on failure.
+    /// @param pageOut  Receives the page. Zeroed on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a
     ///         page not made.
     /// @par Thread safety
@@ -280,7 +284,7 @@ extern "C"
     ///                  is 0.
     /// @param capacity  How many updates holds.
     /// @param countOut  Receives how many rectangles there are, also when
-    ///                  updates is too small.
+    ///                  updates is too small. 0 on any other failure.
     /// @return `mui_success`, taking them; `mui_errorCapacity` when updates
     ///         holds fewer, taking none; `mui_errorInvalid` for a NULL atlas or
     ///         countOut, or NULL updates with a capacity; `mui_errorState`

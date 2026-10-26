@@ -9,7 +9,6 @@
 
 #include "text_blocks.h"
 
-#include "font_instance.h"
 #include "fpenv.h"
 #include "property.h"
 #include "text_block.h"
@@ -229,10 +228,6 @@ muiTextBlockDef muiDefaultTextBlockDef(void)
 static muiResult CreateTextBlock(muiTextService* service, const muiTextBlockDef* def,
                                  muiTextBlockId* blockOut)
 {
-    if (blockOut != nullptr)
-    {
-        *blockOut = (muiTextBlockId){0};
-    }
     if (service == nullptr || def == nullptr || blockOut == nullptr ||
         def->cookie != TEXT_BLOCK_DEF_COOKIE || !IsTextValid(def->text, def->length))
     {
@@ -264,6 +259,10 @@ static MUI_NOINLINE muiResult CreateTextBlockWorker(muiTextService* service,
                                                     const muiTextBlockDef* def,
                                                     muiTextBlockId* blockOut)
 {
+    if (blockOut != nullptr)
+    {
+        memset(blockOut, 0, sizeof *blockOut);
+    }
     muiResult status = muiEnterText(service);
     if (status == mui_success)
     {
@@ -859,6 +858,14 @@ muiResult muiTextBlock_SetSpans(muiTextService* service, muiTextBlockId blockId,
 muiResult muiTextBlock_GetSpans(const muiTextService* service, muiTextBlockId blockId,
                                 const muiTextSpan** spansOut, uint32_t* countOut)
 {
+    if (spansOut != nullptr)
+    {
+        *spansOut = nullptr;
+    }
+    if (countOut != nullptr)
+    {
+        *countOut = 0;
+    }
     if (service == nullptr || blockId.index1 == 0 || spansOut == nullptr || countOut == nullptr)
     {
         return mui_errorInvalid;
@@ -910,6 +917,14 @@ muiResult muiTextBlock_EndComposition(muiTextService* service, muiTextBlockId bl
 muiResult muiTextBlock_GetComposition(const muiTextService* service, muiTextBlockId blockId,
                                       uint32_t* startOut, uint32_t* lengthOut)
 {
+    if (startOut != nullptr)
+    {
+        *startOut = 0;
+    }
+    if (lengthOut != nullptr)
+    {
+        *lengthOut = 0;
+    }
     if (service == nullptr || blockId.index1 == 0 || startOut == nullptr || lengthOut == nullptr)
     {
         return mui_errorInvalid;
@@ -928,6 +943,14 @@ muiResult muiTextBlock_GetComposition(const muiTextService* service, muiTextBloc
 muiResult muiTextBlock_GetText(const muiTextService* service, muiTextBlockId blockId,
                                const char** textOut, size_t* lengthOut)
 {
+    if (textOut != nullptr)
+    {
+        *textOut = nullptr;
+    }
+    if (lengthOut != nullptr)
+    {
+        *lengthOut = 0;
+    }
     if (service == nullptr || blockId.index1 == 0 || textOut == nullptr || lengthOut == nullptr)
     {
         return mui_errorInvalid;
@@ -946,42 +969,6 @@ muiResult muiTextBlock_GetText(const muiTextService* service, muiTextBlockId blo
 uint64_t muiTextBlock_GetKey(muiTextBlockId blockId)
 {
     return (uint64_t)blockId.generation << 32 | blockId.index1;
-}
-
-uint64_t muiFont_GetKey(muiFontId fontId)
-{
-    return fontId.index1 != 0 ? muiKeyOf(fontId.index1, fontId.generation) : 0;
-}
-
-uint64_t muiFontFamily_GetKey(muiFontFamilyId familyId)
-{
-    return familyId.index1 != 0 ? MUI_FAMILY_BIT | muiKeyOf(familyId.index1, familyId.generation)
-                                : 0;
-}
-
-static muiResult SetDefaultFont(muiTextService* service, muiFontId fontId)
-{
-    if (service == nullptr)
-    {
-        return mui_errorInvalid;
-    }
-    if (fontId.index1 != 0 && !muiFont_IsValid(service, fontId))
-    {
-        return mui_errorStale;
-    }
-    service->defaultFont = fontId;
-    return mui_success;
-}
-
-muiResult muiSetDefaultFont(muiTextService* service, muiFontId fontId)
-{
-    muiResult status = muiEnterText(service);
-    if (status == mui_success)
-    {
-        status = SetDefaultFont(service, fontId);
-        muiLeaveText(service);
-    }
-    return status;
 }
 
 uint64_t muiGetTextServiceFailures(const muiTextService* service)

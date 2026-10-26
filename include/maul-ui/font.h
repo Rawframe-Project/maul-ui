@@ -10,6 +10,7 @@
 
 #include "maul-ui/base.h"
 #include "maul-ui/text.h"
+#include "maul-ui/text_style.h"
 
 #include <stdbool.h>
 
@@ -102,7 +103,7 @@ extern "C"
     ///
     /// @param service  The service.
     /// @param def      The font: a valid cookie, data, and a data mode above.
-    /// @param fontOut  Receives the font; the null id on failure.
+    /// @param fontOut  Receives the font. The null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
     ///         cookie or an unknown data mode, each counted as misuse;
     ///         `mui_errorFormat`, counted as none, for data that is not a font
@@ -140,7 +141,7 @@ extern "C"
     ///
     /// @param service     The service.
     /// @param fontId      The font.
-    /// @param metricsOut  Receives the metrics; unchanged on failure.
+    /// @param metricsOut  Receives the metrics. Zeroed on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or the
     ///         null id; `mui_errorStale` for a font that is gone.
     /// @par Thread safety
@@ -190,7 +191,7 @@ extern "C"
     /// @param def        The family: a valid cookie, from 1 to 256 faces and
     ///                   up to 8 fallbacks, each the key of a font or a
     ///                   family.
-    /// @param familyOut  Receives the family; the null id on failure.
+    /// @param familyOut  Receives the family. The null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
     ///         cookie, NULL faces or fallbacks with a count, a count out of
     ///         range, or a fallback that is no font's or family's key;
@@ -231,8 +232,8 @@ extern "C"
     /// @param service   The service.
     /// @param familyId  The family.
     /// @param weight    From 1 to 1000.
-    /// @param slant     A muiFontSlant (maul-ui/text_style.h).
-    /// @param faceOut   Receives the face; unchanged on failure.
+    /// @param slant     The slant.
+    /// @param faceOut   Receives the face. The null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id, or a weight or slant out of range;
     ///         `mui_errorStale` for a family that is gone or whose faces
@@ -241,7 +242,7 @@ extern "C"
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiFontFamily_MatchFace(const muiTextService* service,
                                                             muiFontFamilyId familyId, float weight,
-                                                            uint8_t slant, muiFontId* faceOut);
+                                                            muiFontSlant slant, muiFontId* faceOut);
 
 #ifdef __cplusplus
 }

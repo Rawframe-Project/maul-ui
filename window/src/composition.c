@@ -12,6 +12,7 @@
 #include "maul-ui/layout.h"
 
 #include <stddef.h>
+#include <string.h>
 
 static_assert(MWIN_MAX_PREEDIT_SEGMENTS == MUI_MAX_COMPOSITION_SEGMENTS, "the segment limits");
 // Two libraries' enumerators, compared as the integers both pass across.
@@ -48,6 +49,10 @@ static const muiCompositionSegment* SegmentsOf(const mwinPreeditEvent* preedit,
 muiResult muiWindowCompose(muiTextService* service, muiTextBlockId blockId,
                            const mwinPreeditEvent* preedit, bool* changedOut)
 {
+    if (changedOut != nullptr)
+    {
+        *changedOut = false;
+    }
     if (preedit == nullptr || preedit->caret > (int32_t)preedit->length)
     {
         return mui_errorInvalid;
@@ -62,6 +67,10 @@ muiResult muiWindowCompose(muiTextService* service, muiTextBlockId blockId,
 muiResult muiWindowSetComposition(muiTextService* service, muiTextBlockId blockId, uint32_t offset,
                                   const mwinPreeditEvent* preedit, int32_t* caretOut)
 {
+    if (caretOut != nullptr)
+    {
+        *caretOut = 0;
+    }
     if (preedit == nullptr)
     {
         return mui_errorInvalid;
@@ -89,6 +98,10 @@ muiResult muiWindowSetComposition(muiTextService* service, muiTextBlockId blockI
 muiResult muiWindowGlue_SetTextCaret(muiWindowGlue* glue, const muiTextHost* host, muiNodeId nodeId,
                                      muiTextPosition position, mwinRect* placedOut)
 {
+    if (placedOut != nullptr)
+    {
+        memset(placedOut, 0, sizeof *placedOut);
+    }
     if (glue == nullptr || host == nullptr)
     {
         return mui_errorInvalid;

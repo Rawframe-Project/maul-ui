@@ -21,6 +21,7 @@
 #include "maul-ui/pointer.h"
 
 #include <stdalign.h>
+#include <string.h>
 
 #define DEF_COOKIE 0x6D757767u // "muwg"
 
@@ -418,6 +419,10 @@ muiResult muiWindowGlue_Tick(muiWindowGlue* glue, uint64_t nowNs, bool* handledO
 muiResult muiWindowGlue_SetCaret(muiWindowGlue* glue, muiNodeId nodeId, muiRect caret,
                                  mwinRect* placedOut)
 {
+    if (placedOut != nullptr)
+    {
+        memset(placedOut, 0, sizeof *placedOut);
+    }
     if (glue == nullptr)
     {
         return mui_errorInvalid;

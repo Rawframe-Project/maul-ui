@@ -129,7 +129,7 @@ extern "C"
     ///
     /// @param glue        The glue.
     /// @param event       The record.
-    /// @param handledOut  Receives whether the UI handled it.
+    /// @param handledOut  Receives whether the UI handled it. False on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
     ///         call from a measure, paint or event function, or a record
     ///         Maul UI refuses (its own checks pass it on);
@@ -152,7 +152,8 @@ extern "C"
     /// @param glue        The glue.
     /// @param nowNs       The time, in nanoseconds on Maul Window's
     ///                    monotonic clock.
-    /// @param handledOut  Receives whether the UI handled what repeated.
+    /// @param handledOut  Receives whether the UI handled what repeated. False
+    ///                    on failure.
     /// @return As muiWindowGlue_HandleEvent.
     /// @par Thread safety
     /// Safe from any thread; the glue and its context are used by one
@@ -174,9 +175,9 @@ extern "C"
     /// @param caret      The caret, from the node's border box's top left;
     ///                   not read with the null id.
     /// @param placedOut  Receives the caret in the window, for a host that
-    ///                   draws its own candidates (a fullscreen game
-    ///                   where the platform's do not show); all zero with
-    ///                   the null id. May be NULL. Unchanged on failure.
+    ///                   draws its own candidates (a fullscreen game where the
+    ///                   platform's do not show); all zero with the null id.
+    ///                   May be NULL. Zeroed on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL glue, a caret
     ///         not finite or of a negative size, or a request Maul Window
     ///         refuses; `mui_errorStale` for a node that is gone.

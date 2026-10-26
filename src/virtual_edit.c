@@ -18,6 +18,10 @@
 
 muiResult muiNode_GetItem(const muiContext* context, muiNodeId nodeId, uint32_t* indexOut)
 {
+    if (indexOut != nullptr)
+    {
+        *indexOut = 0;
+    }
     if (context == nullptr || indexOut == nullptr || nodeId.index1 == 0)
     {
         return mui_errorInvalid;

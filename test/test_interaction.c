@@ -632,8 +632,8 @@ static void TestContract(void)
               muiHitTest(context, root, NAN, 1.0f, &hit) == mui_errorInvalid &&
               muiHitTest(context, root, 1.0f, INFINITY, &hit) == mui_errorInvalid &&
               muiHitTest(context, root, 1.0f, 1.0f, NULL) == mui_errorInvalid &&
-              hit.node.index1 == 9 && hit.x == 9.0f,
-          "hit tests outside the contract");
+              hit.node.index1 == 0 && hit.x == 0.0f,
+          "hit tests outside the contract, which clear the hit");
     muiInteractionStyle values = muiDefaultInteractionStyle();
     CHECK(values.hitMode == mui_hitAuto && !values.passThrough, "the defaults");
     values.hitMode = 3;

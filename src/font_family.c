@@ -291,10 +291,6 @@ static uint32_t ResolveFamily(const muiTextService* service, muiFontFamilyId fam
 static muiResult CreateFontFamily(muiTextService* service, const muiFontFamilyDef* def,
                                   muiFontFamilyId* familyOut)
 {
-    if (familyOut != nullptr)
-    {
-        *familyOut = (muiFontFamilyId){0};
-    }
     if (service == nullptr || def == nullptr || familyOut == nullptr ||
         def->cookie != FONT_FAMILY_DEF_COOKIE || def->faces == nullptr || def->faceCount == 0 ||
         def->faceCount > MAX_FACES)
@@ -342,6 +338,10 @@ static muiResult CreateFontFamily(muiTextService* service, const muiFontFamilyDe
 muiResult muiCreateFontFamily(muiTextService* service, const muiFontFamilyDef* def,
                               muiFontFamilyId* familyOut)
 {
+    if (familyOut != nullptr)
+    {
+        memset(familyOut, 0, sizeof *familyOut);
+    }
     muiResult status = muiEnterText(service);
     if (status == mui_success)
     {
@@ -385,8 +385,12 @@ bool muiFontFamily_IsValid(const muiTextService* service, muiFontFamilyId family
 
 static MUI_NOINLINE muiResult FontFamilyMatchFaceWorker(const muiTextService* service,
                                                         muiFontFamilyId familyId, float weight,
-                                                        uint8_t slant, muiFontId* faceOut)
+                                                        muiFontSlant slant, muiFontId* faceOut)
 {
+    if (faceOut != nullptr)
+    {
+        memset(faceOut, 0, sizeof *faceOut);
+    }
     if (service == nullptr || faceOut == nullptr || familyId.index1 == 0 ||
         !(weight >= 1.0f && weight <= 1000.0f) || slant > mui_slantOblique)
     {
@@ -408,10 +412,46 @@ static MUI_NOINLINE muiResult FontFamilyMatchFaceWorker(const muiTextService* se
 }
 
 muiResult muiFontFamily_MatchFace(const muiTextService* service, muiFontFamilyId familyId,
-                                  float weight, uint8_t slant, muiFontId* faceOut)
+                                  float weight, muiFontSlant slant, muiFontId* faceOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = FontFamilyMatchFaceWorker(service, familyId, weight, slant, faceOut);
     muiFloatEnvLeave(floatEnv);
     return result;
+}
+
+uint64_t muiFont_GetKey(muiFontId fontId)
+{
+    return fontId.index1 != 0 ? muiKeyOf(fontId.index1, fontId.generation) : 0;
+}
+
+uint64_t muiFontFamily_GetKey(muiFontFamilyId familyId)
+{
+    return familyId.index1 != 0 ? MUI_FAMILY_BIT | muiKeyOf(familyId.index1, familyId.generation)
+                                : 0;
+}
+
+static muiResult SetDefaultFont(muiTextService* service, muiFontId fontId)
+{
+    if (service == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    if (fontId.index1 != 0 && !muiFont_IsValid(service, fontId))
+    {
+        return mui_errorStale;
+    }
+    service->defaultFont = fontId;
+    return mui_success;
+}
+
+muiResult muiSetDefaultFont(muiTextService* service, muiFontId fontId)
+{
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = SetDefaultFont(service, fontId);
+        muiLeaveText(service);
+    }
+    return status;
 }

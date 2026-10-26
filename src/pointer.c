@@ -21,6 +21,7 @@
 #include "maul-ui/interaction.h"
 
 #include <math.h>
+#include <string.h>
 
 static bool IsNull(muiNodeId nodeId)
 {
@@ -596,6 +597,10 @@ static muiResult NextPointerRecord(muiContext* context, muiPointerRecord* record
 
 muiResult muiNextPointerRecord(muiContext* context, muiPointerRecord* recordOut)
 {
+    if (recordOut != nullptr)
+    {
+        memset(recordOut, 0, sizeof *recordOut);
+    }
     muiResult status = muiEnter(context);
     if (status == mui_success)
     {
@@ -689,6 +694,10 @@ muiResult muiPointer_ReleaseCapture(muiContext* context, uint32_t pointerId)
 muiResult muiPointer_GetState(const muiContext* context, uint32_t pointerId,
                               muiPointerState* stateOut)
 {
+    if (stateOut != nullptr)
+    {
+        memset(stateOut, 0, sizeof *stateOut);
+    }
     if (context == nullptr || stateOut == nullptr)
     {
         return mui_errorInvalid;

@@ -165,7 +165,8 @@ extern "C"
     /// @param adapter    The adapter.
     /// @param wParam     The message's WPARAM.
     /// @param lParam     The message's LPARAM.
-    /// @param resultOut  Receives the LRESULT to return when answered.
+    /// @param resultOut  Receives the LRESULT to return when answered. 0 on
+    ///                   failure.
     /// @return Whether it answered; when not, the message goes on to
     ///         DefWindowProc.
     /// @par Thread safety

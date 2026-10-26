@@ -19,6 +19,8 @@
 #include "token_store.h"
 #include "tree.h"
 
+#include <string.h>
+
 #define THEME_DEF_COOKIE 0x6D757468u // "muth"
 
 muiThemeDef muiDefaultThemeDef(void)
@@ -28,10 +30,6 @@ muiThemeDef muiDefaultThemeDef(void)
 
 static muiResult CreateTheme(muiContext* context, const muiThemeDef* def, muiThemeId* themeOut)
 {
-    if (themeOut != nullptr)
-    {
-        *themeOut = (muiThemeId){0, 0};
-    }
     if (context == nullptr)
     {
         return mui_errorInvalid;
@@ -53,6 +51,10 @@ static muiResult CreateTheme(muiContext* context, const muiThemeDef* def, muiThe
 
 muiResult muiCreateTheme(muiContext* context, const muiThemeDef* def, muiThemeId* themeOut)
 {
+    if (themeOut != nullptr)
+    {
+        memset(themeOut, 0, sizeof *themeOut);
+    }
     muiResult status = muiEnter(context);
     if (status == mui_success)
     {
@@ -320,6 +322,14 @@ muiResult muiTheme_ResetToken(muiContext* context, muiThemeId themeId, muiTokenI
 muiResult muiTheme_GetToken(const muiContext* context, muiThemeId themeId, muiTokenId tokenId,
                             muiTokenValue* valueOut, muiTokenId* aliasOut)
 {
+    if (valueOut != nullptr)
+    {
+        memset(valueOut, 0, sizeof *valueOut);
+    }
+    if (aliasOut != nullptr)
+    {
+        memset(aliasOut, 0, sizeof *aliasOut);
+    }
     if (context == nullptr || valueOut == nullptr || themeId.index1 == 0 || tokenId.index1 == 0)
     {
         return mui_errorInvalid;
@@ -378,6 +388,10 @@ muiResult muiNode_SetTheme(muiContext* context, muiNodeId nodeId, muiThemeId the
 
 muiResult muiNode_GetTheme(const muiContext* context, muiNodeId nodeId, muiThemeId* themeOut)
 {
+    if (themeOut != nullptr)
+    {
+        memset(themeOut, 0, sizeof *themeOut);
+    }
     if (context == nullptr || themeOut == nullptr || nodeId.index1 == 0)
     {
         return mui_errorInvalid;
@@ -394,6 +408,10 @@ muiResult muiNode_GetTheme(const muiContext* context, muiNodeId nodeId, muiTheme
 muiResult muiNode_GetTokenValue(const muiContext* context, muiNodeId nodeId, muiTokenId tokenId,
                                 muiTokenValue* valueOut)
 {
+    if (valueOut != nullptr)
+    {
+        memset(valueOut, 0, sizeof *valueOut);
+    }
     if (context == nullptr || valueOut == nullptr || nodeId.index1 == 0 || tokenId.index1 == 0)
     {
         return mui_errorInvalid;

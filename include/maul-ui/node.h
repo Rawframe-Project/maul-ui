@@ -37,7 +37,7 @@ extern "C"
     ///
     /// @param context    The context.
     /// @param def        The node: a valid cookie.
-    /// @param nodeOut  Receives the node's id; the null id on failure.
+    /// @param nodeOut  Receives the node's id. The null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a bad
     ///         cookie; `mui_errorCapacity` when the context's node limit is
     ///         reached; `mui_errorState` while the context is busy.

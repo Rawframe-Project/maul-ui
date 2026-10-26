@@ -17,6 +17,8 @@
 #include "style_store.h"
 #include "token_store.h"
 
+#include <string.h>
+
 #define TOKEN_DEF_COOKIE 0x6D75746Bu // "mutk"
 
 // Whether the aliases from target lead to slot.
@@ -40,10 +42,6 @@ muiTokenDef muiDefaultTokenDef(void)
 
 static muiResult CreateToken(muiContext* context, const muiTokenDef* def, muiTokenId* tokenOut)
 {
-    if (tokenOut != nullptr)
-    {
-        *tokenOut = (muiTokenId){0, 0};
-    }
     if (context == nullptr)
     {
         return mui_errorInvalid;
@@ -68,6 +66,10 @@ static muiResult CreateToken(muiContext* context, const muiTokenDef* def, muiTok
 static MUI_NOINLINE muiResult CreateTokenWorker(muiContext* context, const muiTokenDef* def,
                                                 muiTokenId* tokenOut)
 {
+    if (tokenOut != nullptr)
+    {
+        memset(tokenOut, 0, sizeof *tokenOut);
+    }
     muiResult status = muiEnter(context);
     if (status == mui_success)
     {
@@ -218,6 +220,14 @@ muiResult muiSetTokenAlias(muiContext* context, muiTokenId tokenId, muiTokenId t
 muiResult muiGetTokenValue(const muiContext* context, muiTokenId tokenId, muiTokenValue* valueOut,
                            muiTokenId* aliasOut)
 {
+    if (valueOut != nullptr)
+    {
+        memset(valueOut, 0, sizeof *valueOut);
+    }
+    if (aliasOut != nullptr)
+    {
+        memset(aliasOut, 0, sizeof *aliasOut);
+    }
     if (context == nullptr || valueOut == nullptr || tokenId.index1 == 0)
     {
         return mui_errorInvalid;
@@ -368,6 +378,10 @@ muiResult muiStyle_SetToken(muiContext* context, muiStyleId styleId, muiVariant 
 muiResult muiStyle_GetToken(const muiContext* context, muiStyleId styleId, muiVariant variant,
                             muiProperty property, muiTokenId* tokenOut)
 {
+    if (tokenOut != nullptr)
+    {
+        memset(tokenOut, 0, sizeof *tokenOut);
+    }
     if (context == nullptr || tokenOut == nullptr || styleId.index1 == 0 ||
         !muiIsPropertyKnown(property))
     {

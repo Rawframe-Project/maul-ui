@@ -402,7 +402,7 @@ extern "C"
     ///
     /// @param context   The context.
     /// @param nodeId    The node.
-    /// @param styleOut  Receives the values.
+    /// @param styleOut  Receives the values. Zeroed on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or the
     ///         null id; `mui_errorStale` for an id whose node is gone.
     /// @par Thread safety
@@ -501,8 +501,8 @@ extern "C"
     /// @param nodeId   The node.
     /// @param x        The point, from the border box's top left.
     /// @param y        Likewise.
-    /// @param xOut     Receives the point's x there; unchanged on failure.
-    /// @param yOut     Likewise its y.
+    /// @param xOut     Receives the point's x there. 0 on failure.
+    /// @param yOut     Likewise its y. 0 on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a
     ///         point not finite; `mui_errorStale` for a node that is gone.
     /// @par Thread safety

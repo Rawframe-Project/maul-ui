@@ -23,6 +23,7 @@
 #include "maul-ui/style.h"
 
 #include <math.h>
+#include <string.h>
 
 muiLayoutStyle muiDefaultLayoutStyle(void)
 {
@@ -51,6 +52,10 @@ muiResult muiNode_SetLayoutStyle(muiContext* context, muiNodeId nodeId, const mu
 muiResult muiNode_GetLayoutStyle(const muiContext* context, muiNodeId nodeId,
                                  muiLayoutStyle* styleOut)
 {
+    if (styleOut != nullptr)
+    {
+        memset(styleOut, 0, sizeof *styleOut);
+    }
     if (context == nullptr || styleOut == nullptr || nodeId.index1 == 0)
     {
         return mui_errorInvalid;

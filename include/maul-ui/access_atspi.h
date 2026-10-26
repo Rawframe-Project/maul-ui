@@ -172,7 +172,7 @@ extern "C"
     ///
     /// @param app         The application.
     /// @param def         The def, from muiDefaultAtspiAdapterDef.
-    /// @param adapterOut  Receives the adapter; NULL on failure.
+    /// @param adapterOut  Receives the adapter. NULL on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a def not
     ///         from muiDefaultAtspiAdapterDef, no nodes, no action function or
     ///         a scale not above 0; `mui_errorCapacity` when the application

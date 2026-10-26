@@ -152,6 +152,10 @@ static MUI_NOINLINE muiResult PerformAccessActionWorker(muiContext* context,
                                                         const muiAccessRequest* request,
                                                         bool* handledOut)
 {
+    if (handledOut != nullptr)
+    {
+        *handledOut = false;
+    }
     muiResult status = muiEnter(context);
     if (status == mui_success)
     {

@@ -203,7 +203,7 @@ Every call that can fail returns a `muiResult`: `mui_success`, or a value that n
 | `mui_errorVersion` | A root def built against another release's headers. |
 | `mui_errorState` | A call back into an object from host code it is running, such as a measure function editing the tree. |
 
-`muiResultName` names any of them. Ids name what a context owns: a slot and a generation. A destroyed node's slot is used again with a new generation, so an old id never names its successor. Refusals of invalid input are counted, a number a release build can watch for a program's bugs; stale ids are not:
+A call on a context, a text service, an access tree, a glyph atlas or a window glue clears what it writes on any failure, before it looks at its arguments: zeros, the null id, `NULL`. The count or length a too-small buffer needed is the one exception. A `mui_empty` answer, which reads nothing, leaves zeros too, unless the call's header says what it gives, and each header says what a call leaves. `muiResultName` names any of them. Ids name what a context owns: a slot and a generation. A destroyed node's slot is used again with a new generation, so an old id never names its successor. Refusals of invalid input are counted, a number a release build can watch for a program's bugs; stale ids are not:
 
 ```c
 // What a context says of calls that went wrong.

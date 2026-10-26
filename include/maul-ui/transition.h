@@ -101,8 +101,7 @@ extern "C"
     ///                         easing, bezier x from 0 to 1 and finite y,
     ///                         and a finite frequency and damping ratio
     ///                         above 0.
-    /// @param transitionOut  Receives the spec; set to the null id on
-    ///                         failure.
+    /// @param transitionOut  Receives the spec. The null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a def
     ///         outside the above; `mui_errorState` while the context is busy;
     ///         `mui_errorCapacity` when the context's transition limit is
@@ -156,7 +155,8 @@ extern "C"
     /// @param styleId          The class.
     /// @param variant          The variant.
     /// @param property         The property.
-    /// @param transitionOut  Receives the spec; the null id for none.
+    /// @param transitionOut  Receives the spec; the null id for none. The null
+    ///                       id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
     ///         null id, an unknown variant or property; `mui_errorStale`
     ///         for an id whose class is gone.

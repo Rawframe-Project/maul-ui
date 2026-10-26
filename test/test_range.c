@@ -380,7 +380,7 @@ static void TestEdges(void)
     muiNodeId again = s_nullNode;
     CHECK(muiCreateNode(context, &def, &again) == mui_success &&
               again.index1 == scene.slider.index1 &&
-              muiNode_GetValueRange(context, again, &range) == mui_empty,
+              muiNode_GetValueRange(context, again, &(muiValueRange){0}) == mui_empty,
           "the slot reused");
     muiDestroyContext(context);
     // A thumb outside the range, or the range itself, is no thumb: the

@@ -107,6 +107,10 @@ static void Meet(float* low, float* high, float otherLow, float otherHigh)
 
 static MUI_NOINLINE muiResult DrawSinkGetVisibleRectWorker(muiDrawSink* sink, muiRect* rectOut)
 {
+    if (rectOut != nullptr)
+    {
+        memset(rectOut, 0, sizeof *rectOut);
+    }
     if (sink == nullptr || rectOut == nullptr)
     {
         return mui_errorInvalid;
