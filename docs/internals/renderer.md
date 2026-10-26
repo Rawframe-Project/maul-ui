@@ -23,7 +23,7 @@ The plan starts a new draw only where a texture changes ([plan.c](../../rhi/src/
 
 ## Frames
 
-Each frame, `muiRhiRenderer_AddPasses` adds the renderer's upload and draw passes into the host's target while the host builds its frame, and `muiRhiRenderer_Record` records them after the frame is compiled ([renderer.c](../../rhi/src/renderer.c)). The pipeline's creation is answered on the device's queue, which the host reads and hands on; until then frames draw nothing. A frame whose uploads would not fit the device's frame uploads is refused before any pass is added.
+Each frame, `muiRhiRenderer_AddPasses` adds the renderer's upload and draw passes into the host's target while the host builds its frame, and `muiRhiRenderer_Record` records them after the frame is compiled ([renderer.c](../../rhi/src/renderer.c)). The pipeline's creation is answered on the device's queue, which the host reads and hands on; until then frames draw nothing. A frame whose uploads would not fit the device's frame uploads is refused before any pass is added. A buffer or texture the renderer makes, a stream's buffer grown, a glyph page or the placeholder, reads as zeros in the first frame that uses it: Maul RHI clears it in a pass of its own before the renderer's, which costs that frame a clear and nothing after.
 
 ## Shapes, gradients and shadows
 

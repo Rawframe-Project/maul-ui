@@ -265,9 +265,11 @@ static void TestDraws(void)
           "nothing drawn before its pipeline is ready");
     CHECK(muiRhiRenderer_IsReady(renderer), "the device's notification made it ready");
     // The four uploads, then the pipeline, table 0, the root block, and
-    // table 1 (the placeholder) and the draw.
-    CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.passes == 3 &&
-              s_log.stagingBytes == Staged(2) && s_log.commands == 9,
+    // table 1 (the placeholder) and the draw. Maul RHI zeroes what is new
+    // to the frame first, in a pass of its own: the four buffers and the
+    // placeholder, a clear each.
+    CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.passes == 4 &&
+              s_log.stagingBytes == Staged(2) && s_log.commands == 9 + 5,
           "upload and draw passes, two boxes uploaded, an image with no host not drawn");
     const muiRhiTarget empty = {.width = 0, .height = SIZE};
     CHECK(muiRhiRenderer_AddPasses(renderer, &list, &empty) == mui_errorInvalid,
@@ -351,9 +353,11 @@ static void TestImages(void)
                                         Image(3),  Image(1), Image(4), Image(4)};
     muiDrawList list = ListOf(commands, 8);
     // Six instances in three draws, A's, B's and A's: the uploads, the
-    // pipeline, table 0, the root block, and table 1 and a draw each.
+    // pipeline, table 0, the root block, and table 1 and a draw each. The
+    // first frame drawn also clears what is new to it: the four buffers
+    // and textures A and B, not the placeholder, which images replace.
     CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes == Staged(6) &&
-              s_log.commands == 4 + 3 + 3 * 2 && host.calls == 4,
+              s_log.commands == 4 + 3 + 3 * 2 + 6 && host.calls == 4,
           "images in a draw a texture, the host asked once a key, key 4 not drawn");
     CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && host.calls == 8,
           "asked again the next frame");
