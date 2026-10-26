@@ -1446,7 +1446,7 @@ int main(void)
     muiRhiRendererDef def = muiDefaultRhiRendererDef();
     def.device = gpu.device;
     def.image = FindImage;
-    def.imageContext = &textures;
+    def.imageUser = &textures;
 #if MUI_TEST_TEXT
     uint64_t font = 0;
     uint64_t color = 0;

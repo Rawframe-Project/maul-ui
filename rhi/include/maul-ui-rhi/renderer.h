@@ -46,7 +46,7 @@ extern "C"
     // Finds the image a key names, while muiRhiRenderer_AddPasses runs, at
     // most once a key a frame: true and the image, or false for a key the
     // host has no image for, which is then not drawn.
-    typedef bool (*muiRhiImageFunction)(void* context, uint64_t key, muiRhiImage* imageOut);
+    typedef bool (*muiRhiImageFunction)(void* user, uint64_t key, muiRhiImage* imageOut);
 
     // How a renderer is made. Build it with muiDefaultRhiRendererDef.
     typedef struct muiRhiRendererDef
@@ -71,10 +71,10 @@ extern "C"
         // since the last, but a list's first frame uploads 144 bytes a
         // drawn command and its glyphs' new images.
         uint64_t uploadBytes;
-        // The host's images, and the context handed to the function; with
+        // The host's images, and the pointer handed to the function; with
         // no function, images are not drawn.
         muiRhiImageFunction image;
-        void* imageContext;
+        void* imageUser;
         // The text service whose fonts glyph runs name, or NULL to draw
         // none: the renderer packs its glyphs into an atlas of its own,
         // which needs Maul UI built with its text component

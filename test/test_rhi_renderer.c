@@ -337,7 +337,7 @@ static void TestImages(void)
     muiRhiRendererDef def = muiDefaultRhiRendererDef();
     def.device = gpu.device;
     def.image = FindImage;
-    def.imageContext = &host;
+    def.imageUser = &host;
     muiRhiRenderer* renderer = NULL;
     CHECK(mrhiCreateTexture(gpu.device, &textureDef, &host.a) == mrhi_success &&
               mrhiCreateTexture(gpu.device, &textureDef, &host.b) == mrhi_success &&
@@ -409,7 +409,7 @@ static void TestManyTextures(void)
     muiRhiRendererDef def = muiDefaultRhiRendererDef();
     def.device = gpu.device;
     def.image = FindMany;
-    def.imageContext = &many;
+    def.imageUser = &many;
     muiRhiRenderer* renderer = NULL;
     CHECK(made && muiCreateRhiRenderer(&def, &renderer) == mui_success,
           "fourteen textures and a renderer");

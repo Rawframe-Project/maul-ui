@@ -29,7 +29,7 @@ typedef struct muiRhiImages
     muiAllocator allocator;
     mrhiDevice* device;
     muiRhiImageFunction find;
-    void* context;
+    void* user;
     muiRhiImageEntry* entries;
     uint32_t count;
     uint32_t capacity;
@@ -45,7 +45,7 @@ typedef struct muiRhiImages
 // An empty table for a device and the host's function, which may be
 // NULL; it allocates nothing until a frame names images.
 muiRhiImages muiRhiMakeImages(const muiAllocator* allocator, mrhiDevice* device,
-                              muiRhiImageFunction find, void* context);
+                              muiRhiImageFunction find, void* user);
 
 void muiRhiFreeImages(muiRhiImages* images);
 

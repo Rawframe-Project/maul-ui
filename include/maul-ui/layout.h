@@ -360,14 +360,15 @@ extern "C"
         float availableHeight;
         // Sizes host content; NULL sizes it as empty.
         muiMeasureFunction measure;
-        void* measureUser;
+        // Handed to the measure and baseline functions.
+        void* user;
         // Now, in nanoseconds on a monotonic clock, as Maul Window stamps
         // events: running transitions move to it. A time before the last
         // counts as no time passed.
         uint64_t timeNs;
-        // Gives host content's baseline, for baseline alignment, with
-        // measureUser; NULL gives none, and a baseline is then the bottom
-        // of the node's border box, as CSS synthesizes one.
+        // Gives host content's baseline, for baseline alignment; NULL
+        // gives none, and a baseline is then the bottom of the node's
+        // border box, as CSS synthesizes one.
         muiBaselineFunction baseline;
         // The surface's safe-area insets, physical, finite and 0 or more:
         // what a display's cutouts, rounded corners and system bars cover,

@@ -59,7 +59,7 @@ struct muiUikitAdapter
     muiAccessTree* tree;
     UIView* view;
     float scale;
-    muiUikitActionFunction action;
+    muiAccessActionFunction action;
     void* user;
     uint32_t nodes;
     // Room for any node's shown children.

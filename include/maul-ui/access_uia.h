@@ -38,12 +38,6 @@ extern "C"
 
     typedef struct muiUiaAdapter muiUiaAdapter;
 
-    // Performs an action a client asked for, by muiPerformAccessAction or
-    // its own means; true when it did. Called on the window's thread
-    // while UI Automation waits.
-    // It may call the context, not the adapter's functions that change it.
-    typedef bool (*muiUiaActionFunction)(void* user, const muiAccessRequest* request);
-
     // How an adapter is made. Build it with muiDefaultUiaAdapterDef.
     typedef struct muiUiaAdapterDef
     {
@@ -58,7 +52,9 @@ extern "C"
         void* window;
         // Pixels per Maul UI unit, above 0.
         float scale;
-        muiUiaActionFunction action;
+        // What a client asks of a node (muiAccessActionFunction), called on the
+        // window's thread while UI Automation waits.
+        muiAccessActionFunction action;
         void* user;
     } muiUiaAdapterDef;
 

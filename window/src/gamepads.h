@@ -41,7 +41,7 @@ typedef struct muiWindowPads
 {
     muiWindowPad pads[MUI_WINDOW_GAMEPADS];
     muiWindowPlayerFunction player;
-    void* playerContext;
+    void* playerUser;
     bool confirmEast;
     float threshold;
     uint64_t delayNs;

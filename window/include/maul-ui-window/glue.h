@@ -41,7 +41,7 @@ extern "C"
     /// The host's function naming the player a gamepad is: one below
     /// MUI_MAX_PLAYERS, or any other for a gamepad whose navigation the
     /// UI is not to have.
-    typedef uint8_t (*muiWindowPlayerFunction)(void* context, mwinGamepadId gamepad);
+    typedef uint8_t (*muiWindowPlayerFunction)(void* user, mwinGamepadId gamepad);
 
     // How a glue is made. Build it with muiDefaultWindowGlueDef.
     typedef struct muiWindowGlueDef
@@ -61,10 +61,10 @@ extern "C"
         // Whether it takes the context's gamepad records, as navigation:
         // one glue a Maul Window context does.
         bool gamepads;
-        // The players gamepads are, or NULL for player 0, and the context
+        // The players gamepads are, or NULL for player 0, and the pointer
         // handed to the function.
         muiWindowPlayerFunction gamepadPlayer;
-        void* gamepadContext;
+        void* gamepadUser;
         // Whether the east face confirms and the south cancels, as some
         // platforms' conventions have it; the south confirms otherwise.
         bool confirmEast;

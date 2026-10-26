@@ -136,7 +136,7 @@ static bool MakeRenderer(SampleApp* app, mrhiFormat format)
     def.device = app->sample.device;
     def.targetFormat = format;
     def.image = app->def->image;
-    def.imageContext = app->def->user;
+    def.imageUser = app->def->user;
     def.text = app->text;
     return SampleAppCheck(app,
                           muiCreateRhiRenderer(&def, &app->renderer) == mui_success &&

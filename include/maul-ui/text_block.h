@@ -361,8 +361,8 @@ extern "C"
     /// @par Thread safety
     /// Safe from any thread; the service and context are used by one
     /// thread at a time.
-    MUI_API bool muiAccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey,
-                                 const muiRect* shown, muiAccessContent* contentOut);
+    MUI_API bool muiReadAccessText(void* user, muiNodeId nodeId, uint64_t hostKey,
+                                   const muiRect* shown, muiAccessContent* contentOut);
 
     /// muiBaselineFunction: user is a muiTextHost, and hostKey a block's
     /// key. Lines are a line height apart from the content box's top, so
@@ -381,8 +381,8 @@ extern "C"
     /// @par Thread safety
     /// Safe from any thread; the service and context are used by one
     /// thread at a time.
-    MUI_API float muiTextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float width,
-                                  float height);
+    MUI_API float muiMeasureTextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey,
+                                         float width, float height);
 
 #ifdef __cplusplus
 }

@@ -42,7 +42,7 @@ static muiWindowPad* Find(muiWindowPads* pads, mwinGamepadId id)
 static muiWindowAsk Ask(const muiWindowPads* pads, const muiWindowPad* pad, uint64_t timeNs,
                         muiNavigation action)
 {
-    uint8_t player = pads->player != nullptr ? pads->player(pads->playerContext, pad->id) : 0;
+    uint8_t player = pads->player != nullptr ? pads->player(pads->playerUser, pad->id) : 0;
     return (muiWindowAsk){
         .asks = player < MUI_MAX_PLAYERS,
         .navigation = {.timeNs = timeNs, .action = action, .player = player},

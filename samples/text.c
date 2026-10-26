@@ -233,7 +233,7 @@ static void Build(void* user, SampleApp* app)
     MakeField(texts, app, 1, "Notes", "", 80.0f, true);
     SampleAppCheck(app,
                    muiSetEventFunction(app->context, Hear, texts) == mui_success &&
-                       muiSetAccessTextFunction(app->context, muiAccessTextOf, &app->host) ==
+                       muiSetAccessTextFunction(app->context, muiReadAccessText, &app->host) ==
                            mui_success,
                    "the event and access text functions");
 }

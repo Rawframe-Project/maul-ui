@@ -627,7 +627,7 @@ static void Build(void* user, SampleApp* app)
     MakeTable(collections, app->root);
     SampleAppCheck(app,
                    muiSetEventFunction(app->context, Hear, collections) == mui_success &&
-                       muiSetAccessTextFunction(app->context, muiAccessTextOf, &app->host) ==
+                       muiSetAccessTextFunction(app->context, muiReadAccessText, &app->host) ==
                            mui_success,
                    "the event and access text functions");
 }

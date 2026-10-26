@@ -230,15 +230,15 @@ static void TestAccessText(void)
     muiNodeId node = AddText(&scene, s_nullNode, "Save");
     uint64_t key = muiNode_GetHostKey(scene.context, node);
     muiAccessContent content;
-    CHECK(muiAccessTextOf(&scene.host, node, key, NULL, &content) && content.length == 4 &&
+    CHECK(muiReadAccessText(&scene.host, node, key, NULL, &content) && content.length == 4 &&
               memcmp(content.text, "Save", 4) == 0 && !content.marks.selected &&
               content.marks.lineCount == 0 && content.marks.wordCount == 0,
           "the block's text, no boundaries unasked");
-    CHECK(!muiAccessTextOf(&scene.host, node, key + 1, NULL, &content) &&
-              !muiAccessTextOf(NULL, node, key, NULL, &content) &&
-              !muiAccessTextOf(&scene.host, node, key, NULL, NULL),
+    CHECK(!muiReadAccessText(&scene.host, node, key + 1, NULL, &content) &&
+              !muiReadAccessText(NULL, node, key, NULL, &content) &&
+              !muiReadAccessText(&scene.host, node, key, NULL, NULL),
           "no block");
-    CHECK(muiSetAccessTextFunction(scene.context, muiAccessTextOf, &scene.host) == mui_success &&
+    CHECK(muiSetAccessTextFunction(scene.context, muiReadAccessText, &scene.host) == mui_success &&
               muiAccess_Enable(scene.context, node) == mui_success,
           "read");
     muiAccessUpdate update;
@@ -255,7 +255,7 @@ static void TestAccessText(void)
     key = muiNode_GetHostKey(scene.context, wrapped);
     const muiAccessTextMarks* marks = &content.marks;
     const muiRect all = {0.0f, 0.0f, 1e6f, 1e6f};
-    CHECK(muiAccessTextOf(&scene.host, wrapped, key, &all, &content) && marks->lineCount == 3 &&
+    CHECK(muiReadAccessText(&scene.host, wrapped, key, &all, &content) && marks->lineCount == 3 &&
               marks->lineStarts[0] == 0 && marks->lineStarts[1] == 3 && marks->lineStarts[2] == 7 &&
               marks->wordCount == 3 && marks->words[0].end == 2 && marks->words[1].start == 3 &&
               marks->words[1].end == 5 && marks->words[2].start == 7 && marks->words[2].end == 9 &&
@@ -266,14 +266,14 @@ static void TestAccessText(void)
     // Shown far below: every line's clusters left out; shown at the
     // first line's top only: the first line's clusters alone.
     const muiRect below = {0.0f, 1e5f, 35.0f, 10.0f};
-    CHECK(muiAccessTextOf(&scene.host, wrapped, key, &below, &content) && marks->lineCount == 3 &&
+    CHECK(muiReadAccessText(&scene.host, wrapped, key, &below, &content) && marks->lineCount == 3 &&
               marks->clusterCount == 0 && marks->lineBoxes[0].omitted &&
               marks->lineBoxes[2].omitted,
           "far from what is shown: no clusters, the line boxes still");
     const muiRect top = {0.0f, 0.0f, 35.0f, 1.0f};
-    CHECK(muiAccessTextOf(&scene.host, wrapped, key, &top, &content) && marks->clusterCount != 0 &&
-              !marks->lineBoxes[0].omitted && marks->lineBoxes[1].omitted &&
-              marks->lineBoxes[2].omitted &&
+    CHECK(muiReadAccessText(&scene.host, wrapped, key, &top, &content) &&
+              marks->clusterCount != 0 && !marks->lineBoxes[0].omitted &&
+              marks->lineBoxes[1].omitted && marks->lineBoxes[2].omitted &&
               marks->lineBoxes[1].firstCluster == marks->clusterCount,
           "near what is shown: the first line's clusters alone");
     FreeScene(&scene);
@@ -291,8 +291,8 @@ static bool SameWords(Scene* scene, muiNodeId node, uint64_t key, const char* te
     def.length = length;
     CHECK(muiCreateTextBlock(scene->service, &def, &block) == mui_success, "a new block");
     bool same =
-        muiAccessTextOf(&scene->host, node, key, &all, &kept) &&
-        muiAccessTextOf(&scene->host, node, muiTextBlock_GetKey(block), &all, &fresh) &&
+        muiReadAccessText(&scene->host, node, key, &all, &kept) &&
+        muiReadAccessText(&scene->host, node, muiTextBlock_GetKey(block), &all, &fresh) &&
         kept.marks.wordCount == fresh.marks.wordCount &&
         (kept.marks.wordCount == 0 || memcmp(kept.marks.words, fresh.marks.words,
                                              kept.marks.wordCount * sizeof(muiAccessWord)) == 0);
@@ -367,7 +367,7 @@ static void TestKeptWords(void)
     const muiTextBlockId failed = {(uint32_t)key, (uint32_t)(key >> 32)};
     const muiRect all = {0.0f, 0.0f, 1e6f, 1e6f};
     muiAccessContent content;
-    CHECK(muiAccessTextOf(&scene.host, node, key, &all, &content) && content.marks.wordCount == 4,
+    CHECK(muiReadAccessText(&scene.host, node, key, &all, &content) && content.marks.wordCount == 4,
           "four words");
     // Each allocation of a read after an edit fails in turn.
     bool wordless = false;
@@ -379,7 +379,7 @@ static void TestKeptWords(void)
               "an edit");
         failing.allocations = 0;
         failing.failAt = failAt;
-        wordless = wordless || (muiAccessTextOf(&scene.host, node, key, &all, &content) &&
+        wordless = wordless || (muiReadAccessText(&scene.host, node, key, &all, &content) &&
                                 content.marks.wordCount == 0);
         failing.failAt = 0;
         found = found && SameWords(&scene, node, key, "ab cd\nef gh", 11);
@@ -910,13 +910,13 @@ static void TestBaselines(void)
     CHECK(muiNode_SetLayoutValues(scene.context, large, &layout,
                                   MUI_PROPERTY_BIT(mui_propertyPaddingTop)) == mui_success,
           "padding");
-    CHECK(muiTextBaseline(&scene.host, small, muiNode_GetHostKey(scene.context, small), 0.0f,
-                          0.0f) == 8.0f &&
-              isnan(muiTextBaseline(&scene.host, empty, muiNode_GetHostKey(scene.context, empty),
-                                    0.0f, 0.0f)),
+    CHECK(muiMeasureTextBaseline(&scene.host, small, muiNode_GetHostKey(scene.context, small), 0.0f,
+                                 0.0f) == 8.0f &&
+              isnan(muiMeasureTextBaseline(&scene.host, empty,
+                                           muiNode_GetHostKey(scene.context, empty), 0.0f, 0.0f)),
           "first baselines");
-    const muiLayoutInput input = {500.0f, 1000.0f,         muiMeasureText, &scene.host,
-                                  0,      muiTextBaseline, {0, 0, 0, 0}};
+    const muiLayoutInput input = {
+        500.0f, 1000.0f, muiMeasureText, &scene.host, 0, muiMeasureTextBaseline, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(scene.context, row, &input) == mui_success, "layout");
     // Empty text has no baseline, so its box's bottom is one.
     muiRect rects[3] = {muiNode_GetRect(scene.context, small),

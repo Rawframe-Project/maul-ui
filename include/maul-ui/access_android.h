@@ -34,12 +34,6 @@ extern "C"
 
     typedef struct muiAndroidAdapter muiAndroidAdapter;
 
-    // Performs an action a client asked for, by muiPerformAccessAction or
-    // its own means; true when it did. Called from the provider, on the
-    // main thread.
-    // It may call the context, not the adapter's functions that change it.
-    typedef bool (*muiAndroidActionFunction)(void* user, const muiAccessRequest* request);
-
     // How an adapter is made. Build it with muiDefaultAndroidAdapterDef.
     typedef struct muiAndroidAdapterDef
     {
@@ -55,7 +49,9 @@ extern "C"
         void* view;
         // Pixels per Maul UI unit, above 0.
         float scale;
-        muiAndroidActionFunction action;
+        // What a client asks of a node (muiAccessActionFunction), called from
+        // the provider, on the main thread.
+        muiAccessActionFunction action;
         void* user;
     } muiAndroidAdapterDef;
 

@@ -160,7 +160,7 @@ static void RunFixture(const LayoutFixture* fixture)
         .availableWidth = fixture->availableWidth,
         .availableHeight = fixture->availableHeight,
         .measure = MeasureFixture,
-        .measureUser = (void*)fixture,
+        .user = (void*)fixture,
         .baseline = BaselineFixture,
     };
     CHECK(muiComputeLayout(context, ids[0], &input) == mui_success, "layout");

@@ -51,7 +51,7 @@ struct muiAriaAdapter
     bool enabled;
     // Whether the update being applied may have changed the shown tree.
     bool reshaped;
-    muiAriaActionFunction action;
+    muiAccessActionFunction action;
     void* user;
     uint32_t nodes;
     // Room for any node's shown children, and the walk of the shown tree.

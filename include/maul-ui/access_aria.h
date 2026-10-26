@@ -37,11 +37,6 @@ extern "C"
 
     typedef struct muiAriaAdapter muiAriaAdapter;
 
-    // Performs an action a client asked for, by muiPerformAccessAction or
-    // its own means; true when it did. Called from the page's events.
-    // It may call the context, not the adapter's functions that change it.
-    typedef bool (*muiAriaActionFunction)(void* user, const muiAccessRequest* request);
-
     // How an adapter is made. Build it with muiDefaultAriaAdapterDef.
     typedef struct muiAriaAdapterDef
     {
@@ -62,7 +57,9 @@ extern "C"
         // The enabling button's label, UTF-8, NUL-terminated; read when
         // the adapter is made.
         const char* enableLabel;
-        muiAriaActionFunction action;
+        // What a client asks of a node (muiAccessActionFunction), called from
+        // the page's events.
+        muiAccessActionFunction action;
         void* user;
     } muiAriaAdapterDef;
 

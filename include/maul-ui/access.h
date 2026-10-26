@@ -505,6 +505,12 @@ extern "C"
         uint32_t length;
     } muiAccessRequest;
 
+    // Performs an action a client asked for, by muiPerformAccessAction or
+    // its own means; true when it did. Each adapter's def says when it is
+    // called. It may call the context, not the adapter's functions that
+    // change it.
+    typedef bool (*muiAccessActionFunction)(void* user, const muiAccessRequest* request);
+
     // What host content reads as: its text, and where it is selected and
     // where its lines and words are.
     typedef struct muiAccessContent

@@ -14,10 +14,9 @@
 #include <string.h>
 
 muiRhiImages muiRhiMakeImages(const muiAllocator* allocator, mrhiDevice* device,
-                              muiRhiImageFunction find, void* context)
+                              muiRhiImageFunction find, void* user)
 {
-    return (muiRhiImages){
-        .allocator = *allocator, .device = device, .find = find, .context = context};
+    return (muiRhiImages){.allocator = *allocator, .device = device, .find = find, .user = user};
 }
 
 static void Drop(muiRhiImages* images)
@@ -111,7 +110,7 @@ static uint64_t Mix(uint64_t key)
 static muiRhiImageEntry Look(const muiRhiImages* images, uint64_t key)
 {
     muiRhiImageEntry entry = {.key = key};
-    if (images->find == nullptr || !images->find(images->context, key, &entry.image))
+    if (images->find == nullptr || !images->find(images->user, key, &entry.image))
     {
         return entry;
     }

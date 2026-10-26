@@ -36,7 +36,7 @@ struct muiSolver
     const muiTree* tree;
     muiLayoutNode* nodes;
     muiMeasureFunction measure;
-    void* measureUser;
+    void* user;
     muiBaselineFunction measureBaseline;
     muiSolveFunction solve;
     muiBaselineSolveFunction baseline;

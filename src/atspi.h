@@ -86,7 +86,7 @@ struct muiAtspiAdapter
     float scale;
     int32_t x;
     int32_t y;
-    muiAtspiActionFunction action;
+    muiAccessActionFunction action;
     void* user;
     // Room for any node's shown children.
     uint64_t* scratch;

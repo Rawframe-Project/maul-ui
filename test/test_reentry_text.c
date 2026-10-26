@@ -169,9 +169,9 @@ static void CallBack(Probe* probe)
         const muiMeasureAxis axis = {100.0f, mui_measureAtMost};
         uint64_t key = muiTextBlock_GetKey(scene->block);
         muiSize size = muiMeasureText(&scene->host, scene->node, key, axis, axis);
-        float baseline = muiTextBaseline(&scene->host, scene->node, key, 100.0f, 100.0f);
+        float baseline = muiMeasureTextBaseline(&scene->host, scene->node, key, 100.0f, 100.0f);
         muiAccessContent content = {0};
-        bool read = muiAccessTextOf(&scene->host, scene->node, key, NULL, &content);
+        bool read = muiReadAccessText(&scene->host, scene->node, key, NULL, &content);
         muiPaintText(&scene->host, scene->node, key, 100.0f, 100.0f, NULL);
         muiDestroyTextService(scene->service);
         expected =
@@ -244,8 +244,8 @@ static void MakeScene(Scene* scene)
               muiNode_SetTextValues(scene->context, scene->node, &style,
                                     MUI_PROPERTY_BIT(mui_propertyFontSize)) == mui_success,
           "host content");
-    const muiLayoutInput input = {1000.0f, 100.0f,          muiMeasureText, &scene->host,
-                                  0,       muiTextBaseline, {0, 0, 0, 0}};
+    const muiLayoutInput input = {
+        1000.0f, 100.0f, muiMeasureText, &scene->host, 0, muiMeasureTextBaseline, {0, 0, 0, 0}};
     CHECK(muiComputeLayout(scene->context, scene->node, &input) == mui_success, "laid out");
     muiGlyphAtlasDef atlasDef = muiDefaultGlyphAtlasDef();
     CHECK(muiCreateGlyphAtlas(scene->service, &atlasDef, &scene->atlas) == mui_success, "atlas");
