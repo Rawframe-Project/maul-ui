@@ -4,8 +4,9 @@
 // Glyph atlases: images packed with their gutters and found again, pens
 // rounded to quarter pixels, plots evicted least recently used and never
 // in the frame that uses them, changes taken by the renderer, distance
-// fields beside coverage, the lookup table growing, memory running out,
-// and calls outside the contract refused.
+// fields beside coverage, a colour glyph with a reversed clip box refused,
+// the lookup table growing, memory running out, and calls outside the
+// contract refused.
 
 #include "test_harness.h"
 
@@ -688,6 +689,57 @@ static void TestColorGlyphs(void)
     Free(&fixture);
 }
 
+// Maul Color with its clipped glyph's (17) clip box reversed, minimum
+// and maximum swapped, which once made an image near UINT32_MAX wide whose
+// width and gutter wrapped to fit a plot: refused, nothing packed.
+static unsigned char s_reversed[sizeof s_color];
+
+static void TestReversedClipBox(void)
+{
+    static const unsigned char box[9] = {1, 0x01, 0x2C, 0x00, 0xFA, 0x01, 0xF4, 0x01, 0x90};
+    static const unsigned char reversed[9] = {1, 0x01, 0xF4, 0x01, 0x90, 0x01, 0x2C, 0x00, 0xFA};
+    memcpy(s_reversed, s_color, sizeof s_color);
+    uint32_t found = 0;
+    for (size_t at = 0; at + sizeof box <= sizeof s_reversed; at++)
+    {
+        if (memcmp(s_reversed + at, box, sizeof box) == 0)
+        {
+            memcpy(s_reversed + at, reversed, sizeof reversed);
+            found++;
+        }
+    }
+    CHECK(found == 1, "the clipped glyph's clip box");
+    Fixture fixture = Make(64, 32, 1, NULL);
+    muiFontDef fontDef = muiDefaultFontDef();
+    fontDef.data = s_reversed;
+    fontDef.size = sizeof s_reversed;
+    fontDef.dataMode = mui_fontDataBorrow;
+    muiFontId colorFont = {0, 0};
+    CHECK(muiCreateFont(fixture.service, &fontDef, &colorFont) == mui_success,
+          "a reversed clip box");
+    muiGlyphAtlasDef def = muiDefaultGlyphAtlasDef();
+    def.pageWidth = 64;
+    def.pageHeight = 64;
+    def.plotWidth = 32;
+    def.plotHeight = 32;
+    def.maxPages = 1;
+    def.format = mui_atlasColor;
+    muiGlyphAtlas* atlas = NULL;
+    CHECK(muiCreateGlyphAtlas(fixture.service, &def, &atlas) == mui_success, "colour glyphs");
+    const muiLinearColor green = {0.0f, 1.0f, 0.0f, 1.0f};
+    muiAtlasGlyph glyph = {0};
+    CHECK(muiGlyphAtlas_GetColor(atlas, muiFont_GetKey(colorFont), 17, 10.0f, 0.0f, 0.0f, 0, green,
+                                 &glyph) == mui_errorFormat &&
+              glyph.width == 0 && glyph.height == 0,
+          "refused as malformed");
+    CHECK(muiGlyphAtlas_GetColor(atlas, muiFont_GetKey(colorFont), 1, 10.0f, 0.0f, 0.0f, 0, green,
+                                 &glyph) == mui_success &&
+              glyph.u == 1 && glyph.v == 1 && glyph.width == 8,
+          "the font's other glyphs packed where the first would be");
+    muiDestroyGlyphAtlas(atlas);
+    Free(&fixture);
+}
+
 // Many tints of one glyph, each in both palettes, in a larger atlas of
 // colour glyphs, enough that their keys share probe chains: each found
 // with its own. The text's colour in each image (its small box, at 4, 3
@@ -817,6 +869,7 @@ int main(void)
     TestFields();
     TestMultiFields();
     TestColorGlyphs();
+    TestReversedClipBox();
     TestTints();
     TestMemoryRunningOut();
     return s_failures == 0 ? 0 : 1;

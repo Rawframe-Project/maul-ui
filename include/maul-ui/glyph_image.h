@@ -106,7 +106,9 @@ extern "C"
     /// @param capacity    How many bytes pixels holds.
     /// @return `mui_success`; `mui_empty` for a glyph without colour;
     ///         `mui_errorFormat` for a paint graph more than 64 paints deep, as
-    ///         one that paints itself is; otherwise as muiRenderGlyph;
+    ///         one that paints itself is, a clip box whose maximum is below
+    ///         its minimum, or a bitmap of 2^28 pixels or more, as 16384 by
+    ///         16384 is; otherwise as muiRenderGlyph;
     ///         `mui_errorState` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.

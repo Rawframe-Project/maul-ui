@@ -7,7 +7,8 @@
 // image format, two strikes; and an sbix font with outlines, placing its
 // graphics by them. Glyphs drawn at their strike's size match its pixels;
 // others are scaled, the strike chosen as the smallest reaching the size.
-// Then both fonts damaged at random, their glyphs drawn or refused without
+// A PNG claiming 16384 by 16384 pixels is refused before memory is asked
+// for it. Then both fonts damaged at random, their glyphs drawn or refused without
 // harm under the sanitizers; the seed is fixed, so a failure repeats.
 
 #include "test_harness.h"
@@ -16,6 +17,9 @@
 #include "maul-ui/glyph_image.h"
 #include "maul-ui/text_block.h"
 
+#include <stdalign.h>
+#include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "bitmap.inc"
@@ -181,6 +185,86 @@ static void TestSbix(void)
     muiDestroyTextService(scene.service);
 }
 
+// An allocator that refuses more than 64 MiB at once and keeps the
+// largest size asked for.
+static size_t s_largest;
+
+static void* BoundedAlloc(size_t size, size_t alignment, void* context)
+{
+    (void)context;
+    s_largest = size > s_largest ? size : s_largest;
+    return size <= ((size_t)64 << 20) && alignment <= alignof(max_align_t) ? malloc(size) : NULL;
+}
+
+static void BoundedFree(void* memory, size_t size, size_t alignment, void* context)
+{
+    (void)size;
+    (void)alignment;
+    (void)context;
+    free(memory);
+}
+
+static uint32_t Crc32(const unsigned char* data, size_t size)
+{
+    uint32_t crc = 0xFFFFFFFFu;
+    for (size_t i = 0; i < size; i++)
+    {
+        crc ^= data[i];
+        for (int bit = 0; bit < 8; bit++)
+        {
+            crc = (crc >> 1) ^ (0xEDB88320u & (0u - (crc & 1u)));
+        }
+    }
+    return ~crc;
+}
+
+static void PutBig32(unsigned char* p, uint32_t value)
+{
+    p[0] = (unsigned char)(value >> 24);
+    p[1] = (unsigned char)(value >> 16);
+    p[2] = (unsigned char)(value >> 8);
+    p[3] = (unsigned char)value;
+}
+
+// A copy of MaulSbix.ttf whose first PNG, glyph 1's at 20 pixels, says
+// it is 16384 by 16384, its header's checksum made again: 2^28 pixels,
+// whose 16 bytes each in linear light are 2^32 and wrapped to 0 where a
+// size_t is 32 bits. Refused as malformed on every platform, before the
+// service asks for memory for it.
+static void TestOversizedBitmap(void)
+{
+    memcpy(s_font, s_sbix, sizeof s_sbix);
+    size_t header = 0;
+    for (size_t at = 4; at + 21 <= sizeof s_sbix && header == 0; at++)
+    {
+        header = memcmp(s_font + at, "IHDR", 4) == 0 ? at : 0;
+    }
+    CHECK(header != 0 && s_font[header - 1] == 13 && s_font[header + 7] == 8,
+          "glyph 1's PNG header, 8 pixels wide");
+    PutBig32(s_font + header + 4, 16384);
+    PutBig32(s_font + header + 8, 16384);
+    PutBig32(s_font + header + 17, Crc32(s_font + header, 17));
+    muiTextServiceDef def = muiDefaultTextServiceDef();
+    def.allocator = (muiAllocator){BoundedAlloc, BoundedFree, NULL};
+    muiFontDef fontDef = muiDefaultFontDef();
+    fontDef.data = s_font;
+    fontDef.size = sizeof s_sbix;
+    fontDef.dataMode = mui_fontDataBorrow;
+    muiFontId id = {0, 0};
+    Scene scene = {0};
+    CHECK(muiCreateTextService(&def, &scene.service) == mui_success &&
+              muiCreateFont(scene.service, &fontDef, &id) == mui_success,
+          "a PNG of 16384 by 16384 pixels");
+    scene.font = muiFont_GetKey(id);
+    s_largest = 0;
+    muiGlyphImage image = {0};
+    CHECK(Draw(&scene, 1, 20.0f, 0.0f, &image) == mui_errorFormat && image.width == 0,
+          "refused as malformed");
+    CHECK(s_largest < ((size_t)1 << 20), "without asking for its pixels' memory");
+    CHECK(BoxIs(&scene, 2, 10.0f, 0.0f, 1, 4, 2, 2, &image), "the font's other glyphs drawn");
+    muiDestroyTextService(scene.service);
+}
+
 static uint32_t Next(uint32_t* state)
 {
     *state ^= *state << 13;
@@ -290,6 +374,7 @@ int main(void)
     TestScaling();
     TestWholeImages();
     TestSbix();
+    TestOversizedBitmap();
     TestDamage();
     return s_failures == 0 ? 0 : 1;
 }

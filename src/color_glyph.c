@@ -185,7 +185,10 @@ static muiResult Prepare(muiTextService* service, const muiPixelBox* box, muiGly
                          size_t capacity, float** accumulatedOut)
 {
     *accumulatedOut = nullptr;
-    if (box->width > MUI_MAX_IMAGE_EXTENT || box->height > MUI_MAX_IMAGE_EXTENT)
+    // A clip box's corners are the font's, and FreeType keeps them in the
+    // order given: one whose maximum is below its minimum is refused.
+    if (box->width < 0 || box->height < 0 || box->width > MUI_MAX_IMAGE_EXTENT ||
+        box->height > MUI_MAX_IMAGE_EXTENT)
     {
         return mui_errorFormat;
     }
@@ -248,6 +251,13 @@ static muiResult DecodeBitmap(muiTextService* service, const muiBitmapGlyph* bit
     if (result != mui_errorCapacity)
     {
         return result == mui_success ? mui_errorFormat : result;
+    }
+    // The image is kept in linear light, 16 bytes a pixel: one of more
+    // than 4 GiB is refused as malformed on every platform, before its
+    // size would wrap where a size_t is 32 bits.
+    if ((uint64_t)width * height > UINT32_MAX / (4 * sizeof(float)))
+    {
+        return mui_errorFormat;
     }
     size_t count = (size_t)width * height;
     if (!muiReserve(&service->allocator, &service->bitmapRgba, count * 4) ||

@@ -9,7 +9,8 @@
 // the palettes' two; palette 0 is opaque red and half transparent blue,
 // palette 1 green and yellow. Its B has no colour layers. Glyphs 10 on are
 // version 1 paint graphs, one for each kind of paint, described in the
-// font's script. Then the font damaged at random, half its flips in its
+// font's script. A clip box whose corners are reversed is refused. Then
+// the font damaged at random, half its flips in its
 // COLR and CPAL tables, every glyph drawn or refused without harm under
 // the sanitizers; the seed is fixed, so a failure repeats.
 
@@ -65,6 +66,7 @@ static unsigned char s_pixels[4096];
 static unsigned char s_large[64 * 64 * 4];
 static unsigned char s_damaged[sizeof s_color];
 static unsigned char s_onePalette[sizeof s_color];
+static unsigned char s_reversed[sizeof s_color];
 
 typedef struct Scene
 {
@@ -504,6 +506,48 @@ static void TestOnePalette(void)
     muiDestroyTextService(service);
 }
 
+// A copy of Maul Color whose clipped glyph's clip box, 300, 250 to 500,
+// 400 in font units, has its minimum and maximum swapped: at 10 pixels a
+// width of -2 and a height of -1, whose product, 2 pixels, once passed
+// for an image more than four billion pixels wide.
+static void TestReversedClipBox(void)
+{
+    static const unsigned char box[9] = {1, 0x01, 0x2C, 0x00, 0xFA, 0x01, 0xF4, 0x01, 0x90};
+    static const unsigned char reversed[9] = {1, 0x01, 0xF4, 0x01, 0x90, 0x01, 0x2C, 0x00, 0xFA};
+    memcpy(s_reversed, s_color, sizeof s_color);
+    uint32_t colr = 0;
+    uint32_t length = 0;
+    uint32_t found = 0;
+    for (uint32_t at = 0; FindTable("COLR", &colr, &length) && at + sizeof box <= length; at++)
+    {
+        if (memcmp(s_reversed + colr + at, box, sizeof box) == 0)
+        {
+            memcpy(s_reversed + colr + at, reversed, sizeof reversed);
+            found++;
+        }
+    }
+    CHECK(found == 1, "the clipped glyph's clip box");
+    muiTextServiceDef def = muiDefaultTextServiceDef();
+    muiTextService* service = NULL;
+    CHECK(muiCreateTextService(&def, &service) == mui_success, "a text service");
+    muiFontDef font = muiDefaultFontDef();
+    font.data = s_reversed;
+    font.size = sizeof s_reversed;
+    font.dataMode = mui_fontDataBorrow;
+    muiFontId id = {0, 0};
+    CHECK(muiCreateFont(service, &font, &id) == mui_success, "a reversed clip box");
+    const muiLinearColor green = {0.0f, 1.0f, 0.0f, 1.0f};
+    muiGlyphImage image = {7, 7, 7, 7};
+    CHECK(muiRenderColorGlyph(service, muiFont_GetKey(id), CLIPPED, 10.0f, 0.0f, 0, green, &image,
+                              s_pixels, sizeof s_pixels) == mui_errorFormat &&
+              image.width == 0 && image.height == 0,
+          "refused as malformed, with no image");
+    CHECK(muiRenderColorGlyph(service, muiFont_GetKey(id), MOVED, 10.0f, 0.0f, 0, green, &image,
+                              s_pixels, sizeof s_pixels) == mui_success,
+          "the font's other glyphs drawn");
+    muiDestroyTextService(service);
+}
+
 // An image's bytes, four a pixel, as an FNV-1a hash.
 static uint32_t Hash(const muiGlyphImage* image)
 {
@@ -584,6 +628,7 @@ int main(void)
     TestComposite();
     TestBranched();
     TestContract();
+    TestReversedClipBox();
     TestDamage();
     return s_failures == 0 ? 0 : 1;
 }
