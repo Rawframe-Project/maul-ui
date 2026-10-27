@@ -493,8 +493,10 @@ static muiResult Add(muiGlyphAtlas* atlas, const muiGlyphKey* key, muiAtlasEntry
     muiGlyphImage image = {0, 0, 0, 0};
     // A glyph without colour layers is empty, to be drawn as coverage.
     muiResult result = Render(atlas, key, &image);
+    // Compared without a sum, which a width near UINT32_MAX would wrap; a
+    // plot is wider and taller than its gutter.
     bool tooLarge =
-        image.width + GUTTER > atlas->plotWidth || image.height + GUTTER > atlas->plotHeight;
+        image.width > atlas->plotWidth - GUTTER || image.height > atlas->plotHeight - GUTTER;
     if ((result == mui_success || result == mui_errorCapacity) && tooLarge)
     {
         glyphOut->width = image.width;

@@ -4,7 +4,9 @@
 // The PNG decoder on pngs.bin, written by make_pngs.py: every colour type
 // and bit depth, plain and interlaced, every filter, stored, fixed and
 // dynamic data over several chunks, and images Pillow encoded, each
-// decoded to the RGBA it was made from; and damaged images refused. Then
+// decoded to the RGBA it was made from; and damaged images refused. An
+// image whose filtered rows pass 4 GiB is refused for its size, never
+// read into less memory. Then
 // seeded fuzzing, run under the sanitizers with every test: the cases
 // damaged at random, and half the time their CRCs made right again so that
 // the damage reaches the image data; and their image data inflated,
@@ -378,6 +380,57 @@ static size_t Rebuild(const Case* c, uint32_t* state)
     return at;
 }
 
+// An allocator that refuses more than 64 MiB at once and keeps the
+// largest size asked for.
+static size_t s_largest;
+
+static void* BoundedAlloc(size_t size, size_t alignment, void* context)
+{
+    (void)alignment;
+    (void)context;
+    s_largest = size > s_largest ? size : s_largest;
+    return size <= ((size_t)64 << 20) ? malloc(size) : NULL;
+}
+
+static void BoundedFree(void* memory, size_t size, size_t alignment, void* context)
+{
+    (void)size;
+    (void)alignment;
+    (void)context;
+    free(memory);
+}
+
+// One row of 2^29 pixels of 16-bit RGBA: 2^32 bytes and a filter byte,
+// which a 32-bit size_t wrapped to 1, so the decoder made room for its
+// data and one byte and inflated into that. Refused for its size; any
+// memory asked for is the whole size, on every platform. The pixels are
+// never written, so the capacity claims room for them.
+static void TestWrappedSize(void)
+{
+    uint8_t png[64];
+    memcpy(png, (const uint8_t[]){137, 80, 78, 71, 13, 10, 26, 10}, 8);
+    uint8_t header[13] = {0};
+    PutBig32(header, 1u << 29);
+    PutBig32(header + 4, 1);
+    header[8] = 16;
+    header[9] = 6;
+    size_t size = 8 + PutChunk(png + 8, "IHDR", header, sizeof header);
+    const uint8_t data[2] = {0x78, 0x01};
+    size += PutChunk(png + size, "IDAT", data, sizeof data);
+    size += PutChunk(png + size, "IEND", NULL, 0);
+    const muiAllocator allocator = {BoundedAlloc, BoundedFree, NULL};
+    muiBuffer scratch = {0};
+    uint32_t width = 0;
+    uint32_t height = 0;
+    s_largest = 0;
+    CHECK(muiDecodePng(&allocator, &scratch, png, size, 1u << 30, &width, &height, s_pixels,
+                       SIZE_MAX) == mui_errorCapacity &&
+              width == 1u << 29 && height == 1,
+          "rows past 4 GiB refused for their size");
+    CHECK(s_largest == 0 || s_largest > UINT32_MAX, "never read into less memory");
+    muiFreeBuffer(&allocator, &scratch);
+}
+
 static void TestDamagedData(void)
 {
     uint32_t state = 0x85EBCA6Bu;
@@ -407,6 +460,7 @@ int main(void)
     CHECK(ReadCases(), "the cases");
     TestCases();
     TestContract();
+    TestWrappedSize();
     TestDamage();
     TestDamagedData();
     const muiAllocator allocator = {0};

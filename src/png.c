@@ -165,14 +165,16 @@ static size_t RowBytes(const Header* h, uint32_t width)
     return ((size_t)width * h->channels * h->depth + 7) / 8;
 }
 
-// The filtered rows' bytes, a filter byte a row.
-static size_t RawSize(const Header* h)
+// The filtered rows' bytes, a filter byte a row, counted in 64 bits: where
+// a size_t is 32 bits, a large image's rows do not fit one.
+static uint64_t RawSize(const Header* h)
 {
-    size_t size = 0;
+    uint64_t size = 0;
     for (uint32_t pass = 0; pass < (h->interlaced ? 7u : 1u); pass++)
     {
         Pass p = PassOf(h, pass);
-        size += p.width > 0 ? (size_t)p.height * (1 + RowBytes(h, p.width)) : 0;
+        uint64_t row = ((uint64_t)p.width * h->channels * h->depth + 7) / 8;
+        size += p.width > 0 ? (uint64_t)p.height * (1 + row) : 0;
     }
     return size;
 }
@@ -498,13 +500,18 @@ muiResult muiDecodePng(const muiAllocator* allocator, muiBuffer* scratch, const 
     const Header* h = &r.header;
     *widthOut = h->width;
     *heightOut = h->height;
-    size_t bytes = (size_t)h->width * h->height * 4;
+    uint64_t bytes = (uint64_t)h->width * h->height * 4;
     if (pixels == nullptr || bytes > capacity)
     {
         return mui_errorCapacity;
     }
-    size_t raw = RawSize(h);
-    if (r.dataSize > SIZE_MAX - raw || !muiReserve(allocator, scratch, r.dataSize + raw))
+    uint64_t rawSize = RawSize(h);
+    if (rawSize > SIZE_MAX || r.dataSize > SIZE_MAX - (size_t)rawSize)
+    {
+        return mui_errorCapacity;
+    }
+    size_t raw = (size_t)rawSize;
+    if (!muiReserve(allocator, scratch, r.dataSize + raw))
     {
         return mui_errorCapacity;
     }
