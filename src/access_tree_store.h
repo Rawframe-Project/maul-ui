@@ -99,4 +99,9 @@ void muiFreeHeld(muiAccessTree* tree, const muiHeldNode* held);
 // its old one did, by what the view's rules read (access_view.c).
 bool muiViewDiffers(const muiAccessTree* tree, const muiHeldNode* old, const muiHeldNode* now);
 
+// Whether the view shows a node only while it holds the focus: hidden,
+// a generic node without a label, or it or a node above it clipped out.
+// False for a node the tree does not hold.
+bool muiShownForFocus(const muiAccessTree* tree, uint64_t id);
+
 #endif // MAUL_UI_SRC_ACCESS_TREE_STORE_H

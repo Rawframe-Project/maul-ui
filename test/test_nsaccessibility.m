@@ -16,8 +16,9 @@
 //   nothing;
 // - notifications, recorded in place of AppKit's: titles and values
 //   changed, static text's value, live names announced on the window at
-//   their priority, the focus, an element destroyed, the layout; none
-//   for an update that changes nothing;
+//   their priority, the focus, an element destroyed, the layout, but
+//   not for a focus moving between nodes shown anyway; none for an
+//   update that changes nothing;
 // - a text input's text in UTF-16: characters, lines, ranges, the
 //   selection set and told, a range's frame from its clusters and the
 //   character at a point.
@@ -294,9 +295,15 @@ static void TestNotifications(muiNsAdapter* adapter, const Built* built)
     CHECK(Send(adapter, &heading, built->children, 0) &&
               PostedAre(@"AXTitleChanged 7; AXAnnouncementRequested window Topic 2/90"),
           "an assertive name announced");
+    // VoiceOver takes a layout change while its cursor is on the old
+    // focus as a reason to focus that again: none for a focus moving
+    // between nodes shown anyway.
     CHECK(Send(adapter, &built->nodes[0], built->children, 6) &&
-              PostedAre(@"AXLayoutChanged 1; AXFocusedUIElementChanged 6"),
-          "the focus moved, which may show a hidden node");
+              PostedAre(@"AXFocusedUIElementChanged 6"),
+          "the focus moved between nodes shown anyway: no layout");
+    CHECK(Send(adapter, &built->nodes[0], built->children, 3) &&
+              PostedAre(@"AXLayoutChanged 1; AXFocusedUIElementChanged 3"),
+          "the focus moved to a generic node, shown for it: the layout");
     // A node 10 added, then gone before any client asked for it: the
     // layout only; then the toggle button, which a client saw, gone.
     muiAccessNode root = built->nodes[0];
@@ -325,13 +332,10 @@ static void TestNotifications(muiNsAdapter* adapter, const Built* built)
     muiAccessNode window = root;
     window.links = s_active;
     window.linkCount = 1;
-    // The tree's focus moves too, which may show a hidden node: the
-    // layout first.
-    CHECK(Send(adapter, &window, more, 1) &&
-              PostedAre(@"AXLayoutChanged 1; AXFocusedUIElementChanged 6"),
+    // The tree's focus moves too, between nodes shown anyway: no layout.
+    CHECK(Send(adapter, &window, more, 1) && PostedAre(@"AXFocusedUIElementChanged 6"),
           "an active descendant: the focus shown");
-    CHECK(Send(adapter, &root, more, 2) &&
-              PostedAre(@"AXLayoutChanged 1; AXFocusedUIElementChanged 2"),
+    CHECK(Send(adapter, &root, more, 2) && PostedAre(@"AXFocusedUIElementChanged 2"),
           "none: the focus back");
     [s_posted release];
     adapter->post = saved;

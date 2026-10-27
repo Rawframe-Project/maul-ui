@@ -21,3 +21,5 @@ focus
 expect Subtitles
 expect checked
 expect Sound
+# The radio group, past the switch: a Tab stuck on it fails the walk.
+expect Low

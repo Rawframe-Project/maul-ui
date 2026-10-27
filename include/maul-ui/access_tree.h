@@ -51,10 +51,11 @@ extern "C"
     // what they were; nodes let go, with their subtrees, each with what
     // it was; then shownChanged, once, when the tree as platforms see it
     // (muiAccessTree_GetShownChildren) may differ: nodes came or went,
-    // the root or the focus moved, or a record changed a node's children
-    // or what the view's rules read (hidden, clipping, a generic node's
-    // role or label, a box where it or its parent clips); then the
-    // focus, when it moved. Any of the functions may be NULL. The
+    // the root moved, the focus moved to or from a node shown only for
+    // holding it, or a record changed a node's children or what the
+    // view's rules read (hidden, clipping, a generic node's role or
+    // label, a box where it or its parent clips); then the focus, when
+    // it moved. Any of the functions may be NULL. The
     // records they are given are valid during the call.
     typedef struct muiAccessChanges
     {

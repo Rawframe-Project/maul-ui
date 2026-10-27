@@ -442,12 +442,15 @@ static void Report(muiAccessTree* tree, const muiAccessChanges* changes, uint32_
 {
     if (changes != nullptr)
     {
-        // The root or the focus moves, or a record changes its children or
-        // what the view reads. Nodes come and go only so: a node added is
-        // listed by a parent whose children changed, or is the new root;
-        // one let go was left out by its parent, or went with the old
-        // root; a stray sent and let go was never shown.
-        bool shown = tree->root != oldRoot || tree->focus != oldFocus;
+        // The root moves, the focus moves to or from a node shown only
+        // for holding it, or a record changes its children or what the
+        // view reads. Nodes come and go only so: a node added is listed
+        // by a parent whose children changed, or is the new root; one let
+        // go was left out by its parent, or went with the old root; a
+        // stray sent and let go was never shown.
+        bool shown = tree->root != oldRoot ||
+                     (tree->focus != oldFocus &&
+                      (muiShownForFocus(tree, oldFocus) || muiShownForFocus(tree, tree->focus)));
         for (uint32_t i = 0; i < added && changes->added != nullptr; i++)
         {
             const muiHeldNode* held = &tree->held[tree->added[i] - 1];
