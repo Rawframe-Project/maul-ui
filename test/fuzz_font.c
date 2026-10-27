@@ -10,7 +10,10 @@
 // italic and a larger span making instances; then every glyph painted is
 // rendered as an image, a distance field, a multi-channel field and a
 // colour glyph, each succeeding or refusing as malformed or too large,
-// never touching memory it does not own, and everything freed after.
+// never touching memory it does not own, and everything freed after. The
+// font's first glyph ids are also rendered by id, as an image and a
+// colour glyph, since colour graphs and layers are often glyphs no
+// character maps; the id past the last is refused.
 
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
@@ -33,6 +36,8 @@ enum
 {
     // The glyphs rendered of an input, and the pixels each may take.
     MAX_GLYPHS = 48,
+    // The glyph ids rendered by id, from 0.
+    MAX_IDS = 64,
     PIXEL_BYTES = 1 << 18
 };
 
@@ -87,6 +92,23 @@ static void RenderGlyphs(muiTextService* service, const muiDrawList* list)
                                                  &image, s_pixels, sizeof s_pixels)));
         }
     }
+}
+
+// Renders the default font's first glyph ids, whether or not a
+// character maps them, and checks that the id past the last is refused.
+static void RenderIds(muiTextService* service, uint32_t glyphCount)
+{
+    const muiLinearColor ink = {0.2f, 0.4f, 0.6f, 1.0f};
+    muiGlyphImage image;
+    for (uint32_t glyph = 0; glyph < glyphCount && glyph < MAX_IDS; glyph++)
+    {
+        Expect(IsAllowed(
+            muiRenderGlyph(service, 0, glyph, 24.0f, 0.0f, &image, s_pixels, sizeof s_pixels)));
+        Expect(IsAllowed(muiRenderColorGlyph(service, 0, glyph, 24.0f, 0.0f, 0, ink, &image,
+                                             s_pixels, sizeof s_pixels)));
+    }
+    Expect(muiRenderColorGlyph(service, 0, glyphCount, 24.0f, 0.0f, 0, ink, &image, s_pixels,
+                               sizeof s_pixels) == mui_errorInvalid);
 }
 
 // Lays out and paints the text in the service's default font, spans
@@ -162,6 +184,7 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         Expect(muiFont_GetMetrics(service, font, &metrics) == mui_success &&
                muiSetDefaultFont(service, font) == mui_success);
         Paint(service);
+        RenderIds(service, metrics.glyphCount);
     }
     muiDestroyTextService(service);
     return 0;
