@@ -42,18 +42,25 @@ static void PurgePans(muiContext* context)
 
 // iOS's rubber band, Maul Tween's: how far past a limit the children move
 // for a pan past it by past in a scrollport of port; and the pan past it
-// that moved them by over, its inverse, 0 from the scrollport on.
+// that moved them by over, its inverse, 0 from the scrollport on. A
+// scrollport of no size, which Maul Tween refuses, bands nothing.
 #define MUI_RUBBER_BAND 0.55
 
 static float Band(float past, float port)
 {
-    return (float)mtwnRubberBand((double)past, (double)port, MUI_RUBBER_BAND);
+    double offset = 0.0;
+    return mtwnRubberBand((double)past, (double)port, MUI_RUBBER_BAND, &offset) == mtwn_success
+               ? (float)offset
+               : 0.0f;
 }
 
 static float Unband(float over, float port)
 {
-    return over < port ? (float)mtwnRubberBandInverse((double)over, (double)port, MUI_RUBBER_BAND)
-                       : 0.0f;
+    double drag = 0.0;
+    return over < port && mtwnRubberBandInverse((double)over, (double)port, MUI_RUBBER_BAND,
+                                                &drag) == mtwn_success
+               ? (float)drag
+               : 0.0f;
 }
 
 // No pan shows an overscroll of the scrollport or more, where the band
