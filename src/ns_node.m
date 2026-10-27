@@ -288,7 +288,10 @@ static bool Has(const muiAccessNode* node, muiAccessAction action)
 
 - (BOOL)isAccessibilityFocused
 {
-    return NodeOf(self) != nullptr && muiRecordActiveFocus(adapter->tree) == nodeId;
+    BOOL focused = NodeOf(self) != nullptr && muiRecordActiveFocus(adapter->tree) == nodeId;
+    fprintf(stderr, "%.3f isAccessibilityFocused node=%llu answer=%d\n", Now(),
+            (unsigned long long)nodeId, (int)focused);
+    return focused;
 }
 
 - (void)setAccessibilityFocused:(BOOL)focused

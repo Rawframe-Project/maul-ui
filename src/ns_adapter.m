@@ -18,6 +18,13 @@
 
 static void Post(id element, NSAccessibilityNotificationName name, NSDictionary* info)
 {
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    unsigned long long node = [element isKindOfClass:[MUIAccessibilityNode class]]
+                                  ? ((MUIAccessibilityNode*)element)->nodeId
+                                  : 0;
+    fprintf(stderr, "%lld.%03ld post %s node=%llu\n", (long long)now.tv_sec,
+            now.tv_nsec / 1000000, [name UTF8String], node);
     if (info != nil)
     {
         NSAccessibilityPostNotificationWithUserInfo(element, name, info);
