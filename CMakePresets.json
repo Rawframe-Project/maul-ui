@@ -171,6 +171,7 @@
       "name": "base",
       "hidden": true,
       "output": { "outputOnFailure": true },
+      "filter": { "exclude": { "label": "^quarantine$" } },
       "execution": { "noTestsAction": "error", "timeout": 300, "jobs": 4 }
     },
     {

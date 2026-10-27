@@ -29,12 +29,24 @@ The sanitizer presets build with assertions on at `-O1`, as the sanitizers advis
 Each suite is `test/test_<name>.c` (or `.m`), one executable registered with CTest as `<name>` and labeled `<name>`, so `ctest --preset <preset> -L <name>` runs one. A suite checks behavior through the public headers; the few that include `src/` (marked `WHITEBOX` in `CMakeLists.txt`) test an internal unit against its own specification, such as the inflater against RFC 1951 or the number formatter against the C library, or reach a state a public call cannot, such as a counter at its last value. A shared build leaves those out.
 
 - `integration`: tests that drive a real device or system: the renderer's pixels and the samples on lavapipe or WebGPU, the AT-SPI adapter on a private bus, the ARIA adapter in headless Chrome, and the Windows, macOS, iOS and Android adapters. They may read the clock, take about a second each, and stay out of the `changed` tier.
+- `quarantine`: a test that fails now and then without a fault in the change under test ([Quarantine](#quarantine)). Every test preset and every tier of `tools/check.sh` leave it out.
 
 Some suites are seeded simulations rather than examples: `layout_bound` edits a tree at random and compares the bounded layout with one solved from nothing, `text_fuzz` and `color_glyph` read seeded damaged fonts and random text, and `field_quality` measures distance fields against exact coverage. A seed reproduces a run, so a failure prints its seed and step.
 
 The family's test hygiene check (`tools/check_test_hygiene.py`) rejects a sleep, a wall clock, a retry loop or a skip in the test sources, and a test without a label in a configured build; `check.sh` runs it over the tree and after each preset's configure. A use that must stay, such as an integration test's wait for a browser or a bus, carries `// hygiene: <reason>` (`# hygiene:` in CMake) on its line or the line before.
 
 A test that cannot run exits 77, which CTest reports as skipped, and every CI cell fails on a skipped or unrun test, so a platform that did not start never passes with nothing tested. The renderer's test presets set `MUI_RHI_REQUIRED=1`, so a missing device fails rather than skips, and CTest fails a test whose output holds a Vulkan validation error. A failed test job uploads its CTest logs, kept for a week.
+
+### Quarantine
+
+A failing test is never rerun to pass. One that fails without a fault in the change under test is quarantined, as [maul-conventions.md](../internals/maul-conventions.md) says:
+
+1. An issue records the failure and its run.
+2. The test, or the one check that failed split into a test of its own, takes the `quarantine` label: through `maul_add_test(<name> QUARANTINE)`, or `maul_quarantine(<name>)` for a test registered another way.
+3. The test presets leave the label out, so no required job runs it, and the `quarantine` job runs it at night through the family's `tools/run_quarantine.sh`. There a failure is a warning and a line in the job summary, while a test that is skipped or not run, a sanitizer report or a crash fails the night.
+4. The test leaves quarantine when its issue's fix lands and 14 nights in a row have passed it.
+
+No test is quarantined now.
 
 ## In CI
 
@@ -56,6 +68,7 @@ A test that cannot run exits 77, which CTest reports as skipped, and every CI ce
 | `web-emscripten` | The library, the renderer and the glue built by Emscripten: the tests under Node, the ARIA adapter, the renderer's pixels and the samples in headless Chrome's WebGPU, and the renderer's WGSL. It runs on the runner, which has Emscripten, and hands the built samples to `web-canvas`. |
 | `web-canvas` | Each Emscripten sample presenting into a canvas from the browser's frames, its last frame checked, in the CI image, whose lavapipe gives Chrome's compositor the Vulkan it needs. |
 | `size` | The wasm each part adds to a program at `-Oz` with link-time optimization; a part over its ceiling fails ([Development](development.md#benchmarks-and-size)). |
+| `quarantine` | At night and on a manual run only: the quarantined tests of `linux-clang-20-asan` ([Quarantine](#quarantine)). |
 
 `screen-readers.yml` walks the samples with VoiceOver, NVDA, and NVDA over the ARIA adapter in Chrome every night, outside the required check and never retried; its failures are tracked in one issue ([Test environments](test-environments.md#screen-readers)). `pr-title.yml` checks that the pull request title is a conventional commit with a scope from `AGENTS.md`, and `pr-gate.yml` closes a pull request from outside the organization unless it closes an issue labeled `accepted`. `codeql.yml` runs CodeQL in the CI image, built with GCC 14, on every pull request and on `main`. `scorecard.yml` grades the repository's security practices weekly, and Dependabot proposes updates of the pinned actions and of the browser tests' lockfile once a week.
 
