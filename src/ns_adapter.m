@@ -273,13 +273,13 @@ static muiResult NsAdapterApply(muiNsAdapter* adapter, const muiAccessUpdate* up
         adapter->focusMoved = adapter->focusMoved || shown != adapter->toldFocus;
         adapter->toldFocus = shown;
     }
-    if (status == mui_success && adapter->reshaped)
-    {
-        muiNsTellLayout(adapter);
-    }
     if (status == mui_success && adapter->focusMoved)
     {
         muiNsTellFocus(adapter);
+    }
+    if (status == mui_success && adapter->reshaped)
+    {
+        muiNsTellLayout(adapter);
     }
     return status;
 }
