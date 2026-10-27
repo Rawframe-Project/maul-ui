@@ -130,10 +130,10 @@ static muiResult Embolden(muiContext* context, muiTextService* service, muiNodeI
 // characters, undo keeping the last 100 edits.
 static muiResult MakeField(muiTextService* service, muiTextBlockId block)
 {
-    muiTextEditDef def = muiDefaultTextEditDef();
-    def.maxLength = 64;
-    def.undoLimit = 100;
-    return muiTextBlock_SetEditing(service, block, &def);
+    muiTextEditRules rules = muiDefaultTextEditRules();
+    rules.maxLength = 64;
+    rules.undoLimit = 100;
+    return muiTextBlock_SetEditing(service, block, &rules);
 }
 
 // Section 6: events.

@@ -169,7 +169,7 @@ static void TestThemesAreChecked(void)
           "an alias override");
     // brand aliases surface in the context; in the theme surface aliases
     // brand: a cycle through the theme.
-    CHECK(muiSetTokenAlias(context, brand, surface) == mui_success, "context alias");
+    CHECK(muiToken_SetAlias(context, brand, surface) == mui_success, "context alias");
     muiThemeId other = MakeTheme(context);
     CHECK(muiTheme_SetTokenAlias(context, other, surface, brand) == mui_errorInvalid,
           "a cycle through a theme");
@@ -217,8 +217,8 @@ static void TestCycleThroughTheFirstToken(void)
     muiTokenId first = MakeToken(context, s_light);
     muiTokenId x = MakeToken(context, s_blue);
     muiTokenId y = MakeToken(context, s_red);
-    CHECK(muiSetTokenAlias(context, x, first) == mui_success &&
-              muiSetTokenAlias(context, first, y) == mui_success,
+    CHECK(muiToken_SetAlias(context, x, first) == mui_success &&
+              muiToken_SetAlias(context, first, y) == mui_success,
           "x is the first, the first is y");
     muiThemeId theme = MakeTheme(context);
     CHECK(muiTheme_SetTokenAlias(context, theme, y, x) == mui_errorInvalid, "y may not be x");

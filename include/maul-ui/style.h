@@ -401,8 +401,11 @@ extern "C"
     /// @param context  The context.
     /// @param styleId  The class.
     /// @param variant  The variant.
-    /// @param values   The values; only the fields mask names are read, and
-    ///                 each must be one muiNode_SetLayoutStyle allows.
+    /// @param values   The values; only the fields mask names are read:
+    ///                 finite numbers, grow and shrink, padding, border and
+    ///                 gaps at least 0, known enumerators and edge bits,
+    ///                 alignItems not mui_alignAuto, anchors from 0 to 1, and
+    ///                 an aspect ratio of 0 or more.
     /// @param mask     The properties, within MUI_LAYOUT_PROPERTIES.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
     ///         id, an unknown variant or property bit, a value outside the
@@ -648,12 +651,11 @@ extern "C"
     /// Writes layout properties of a node directly from the fields of
     /// values: they win over every class until reset, at once. The node and
     /// its parent are laid out again at the next muiComputeLayout.
-    /// muiNode_SetLayoutStyle writes every layout property.
+    /// MUI_LAYOUT_PROPERTIES as the mask writes every layout property.
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
-    /// @param values   The values; only the fields mask names are read, and
-    ///                 each must be one muiNode_SetLayoutStyle allows.
+    /// @param values   The values, as muiStyle_SetLayoutValues takes them.
     /// @param mask     The properties, within MUI_LAYOUT_PROPERTIES.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
     ///         id, an unknown property bit or a value outside the above, which

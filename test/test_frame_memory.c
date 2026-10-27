@@ -180,7 +180,7 @@ static void MakeScene(Scene* scene)
     muiTextBlockId block = {0, 0};
     (void)Label(scene, scene->root, "Settings, in a heading", &block);
     scene->field = Label(scene, scene->root, "Name: Ada Lovelace", &block);
-    muiTextEditDef edit = muiDefaultTextEditDef();
+    muiTextEditRules edit = muiDefaultTextEditRules();
     CHECK(muiTextBlock_SetEditing(scene->service, block, &edit) == mui_success, "editing");
     layout.sizing.height = Length(150.0f);
     layout.scrollAxes = mui_scrollVertical;

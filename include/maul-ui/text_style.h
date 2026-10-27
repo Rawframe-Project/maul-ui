@@ -128,7 +128,8 @@ extern "C"
         muiColor color;
         uint64_t font;
         float size;
-        // 0 when the line height is the font's own.
+        // 0 when the line height is the font's own, and when it is
+        // written as 0, which automaticLineHeight tells apart.
         float lineHeight;
         float letterSpacing;
         float weight;

@@ -561,7 +561,7 @@ static muiResult NodeSetItem(muiContext* context, muiNodeId nodeId, uint32_t ind
     return mui_success;
 }
 
-muiResult muiNode_SetItem(muiContext* context, muiNodeId nodeId, uint32_t index)
+muiResult muiNode_BindVirtualItem(muiContext* context, muiNodeId nodeId, uint32_t index)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -587,7 +587,7 @@ static muiResult NodeClearItem(muiContext* context, muiNodeId nodeId)
     return status;
 }
 
-muiResult muiNode_ClearItem(muiContext* context, muiNodeId nodeId)
+muiResult muiNode_UnbindVirtualItem(muiContext* context, muiNodeId nodeId)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)

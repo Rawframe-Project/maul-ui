@@ -116,7 +116,7 @@ bool muiRecordEdit(const muiAllocator* allocator, muiTextEditing* editing, const
     uint32_t kept =
         done != 0 ? entries[done - 1].bytes + entries[done - 1].removed + entries[done - 1].inserted
                   : 0;
-    if (editing->def.undoLimit == 0)
+    if (editing->rules.undoLimit == 0)
     {
         muiClearHistory(editing);
         return true;
@@ -146,7 +146,7 @@ bool muiRecordEdit(const muiAllocator* allocator, muiTextEditing* editing, const
         Join(editing, last, edit, removed, inserted);
         return true;
     }
-    if (editing->entryCount == editing->def.undoLimit)
+    if (editing->entryCount == editing->rules.undoLimit)
     {
         DropOldest(editing);
     }

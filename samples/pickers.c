@@ -512,7 +512,7 @@ static void Build(void* user, SampleApp* app)
     pickers->select.picked = 1;
     MakeCombo(pickers, &pickers->search, "Fruit", "", s_fruits, FRUITS);
     // The searchable combobox edits its text; a drag selects in it.
-    const muiTextEditDef edit = muiDefaultTextEditDef();
+    const muiTextEditRules edit = muiDefaultTextEditRules();
     muiInteractionStyle drags = muiDefaultInteractionStyle();
     drags.drags = true;
     SampleAppCheck(

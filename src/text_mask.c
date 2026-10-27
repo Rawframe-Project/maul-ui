@@ -25,7 +25,7 @@ enum
 
 bool muiIsMasked(const muiTextBlock* block)
 {
-    return block->editing.on && (block->editing.def.flags & mui_editPassword) != 0;
+    return block->editing.on && (block->editing.rules.flags & mui_editPassword) != 0;
 }
 
 // The clusters of a text that end at or before an offset: the index of

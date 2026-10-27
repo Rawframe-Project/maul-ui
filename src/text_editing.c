@@ -25,9 +25,9 @@ enum
     DEFAULT_UNDO_LIMIT = 100
 };
 
-muiTextEditDef muiDefaultTextEditDef(void)
+muiTextEditRules muiDefaultTextEditRules(void)
 {
-    return (muiTextEditDef){0, mui_filterNone, mui_purposeText, 0, DEFAULT_UNDO_LIMIT};
+    return (muiTextEditRules){0, mui_filterNone, mui_purposeText, 0, DEFAULT_UNDO_LIMIT};
 }
 
 // An offset kept within a block's text, at a character's start.
@@ -122,12 +122,12 @@ muiResult muiRefuseEdit(muiTextService* service)
 }
 
 static muiResult TextBlockSetEditing(muiTextService* service, muiTextBlockId blockId,
-                                     const muiTextEditDef* def)
+                                     const muiTextEditRules* rules)
 {
     if (service == nullptr || blockId.index1 == 0 ||
-        (def != nullptr &&
-         ((def->flags & ~(mui_editMultiline | mui_editReadOnly | mui_editPassword)) != 0 ||
-          def->filter > mui_filterDecimal || def->purpose > mui_purposeUrl)))
+        (rules != nullptr &&
+         ((rules->flags & ~(mui_editMultiline | mui_editReadOnly | mui_editPassword)) != 0 ||
+          rules->filter > mui_filterDecimal || rules->purpose > mui_purposeUrl)))
     {
         return muiRefuseText(service);
     }
@@ -138,7 +138,7 @@ static muiResult TextBlockSetEditing(muiTextService* service, muiTextBlockId blo
     }
     muiTextEditing* editing = &block->editing;
     muiClearHistory(editing);
-    if (def == nullptr)
+    if (rules == nullptr)
     {
         muiFreeBuffer(&service->allocator, &editing->entries);
         muiFreeBuffer(&service->allocator, &editing->bytes);
@@ -146,7 +146,7 @@ static muiResult TextBlockSetEditing(muiTextService* service, muiTextBlockId blo
         return mui_success;
     }
     editing->on = true;
-    editing->def = *def;
+    editing->rules = *rules;
     editing->selection = Collapsed(block->length);
     editing->preferredX = -1.0f;
     muiEndPress(editing);
@@ -155,12 +155,12 @@ static muiResult TextBlockSetEditing(muiTextService* service, muiTextBlockId blo
 }
 
 muiResult muiTextBlock_SetEditing(muiTextService* service, muiTextBlockId blockId,
-                                  const muiTextEditDef* def)
+                                  const muiTextEditRules* rules)
 {
     muiResult status = muiEnterText(service);
     if (status == mui_success)
     {
-        status = TextBlockSetEditing(service, blockId, def);
+        status = TextBlockSetEditing(service, blockId, rules);
         muiLeaveText(service);
     }
     return status;
@@ -334,7 +334,7 @@ static muiResult Put(muiTextService* service, muiTextBlockId blockId, const char
     muiTextBlock* block = nullptr;
     muiResult result = text != nullptr || length == 0 ? muiEditBlock(service, blockId, &block)
                                                       : muiRefuseText(service);
-    if (result != mui_success || (block->editing.def.flags & mui_editReadOnly) != 0)
+    if (result != mui_success || (block->editing.rules.flags & mui_editReadOnly) != 0)
     {
         return result;
     }
@@ -426,7 +426,7 @@ muiResult muiTextBlock_Paste(muiTextService* service, muiTextBlockId blockId, co
 static muiResult Remove(muiTextService* service, muiTextBlock* block, uint32_t start, uint32_t end,
                         uint8_t kind, bool* changedOut)
 {
-    if ((block->editing.def.flags & mui_editReadOnly) != 0)
+    if ((block->editing.rules.flags & mui_editReadOnly) != 0)
     {
         return mui_success;
     }
@@ -452,7 +452,7 @@ muiResult muiEraseText(muiTextService* service, muiTextBlockId blockId, muiTextD
                                                      : muiRefuseText(service);
     uint32_t start = 0;
     uint32_t end = 0;
-    result = result == mui_success && (block->editing.def.flags & mui_editReadOnly) == 0
+    result = result == mui_success && (block->editing.rules.flags & mui_editReadOnly) == 0
                  ? EndComposing(service, blockId, block)
                  : result;
     if (result == mui_success)
@@ -570,7 +570,7 @@ static MUI_NOINLINE muiResult TextBlockGetSelectedTextWorker(const muiTextServic
     }
     const muiTextSelection* selection = &block->editing.selection;
     uint32_t start = SelectionStart(selection);
-    bool hidden = (block->editing.def.flags & mui_editPassword) != 0;
+    bool hidden = (block->editing.rules.flags & mui_editPassword) != 0;
     *textOut = (const char*)block->text.data + start;
     *lengthOut = hidden ? 0 : SelectionEnd(selection) - start;
     return mui_success;
@@ -596,7 +596,7 @@ static muiResult Step(muiTextService* service, muiTextBlockId blockId, bool back
     muiTextBlock* block = nullptr;
     muiResult result = muiEditBlock(service, blockId, &block);
     muiTextEditing* editing = result == mui_success ? &block->editing : nullptr;
-    if (editing == nullptr || (editing->def.flags & mui_editReadOnly) != 0 ||
+    if (editing == nullptr || (editing->rules.flags & mui_editReadOnly) != 0 ||
         block->compositionLength != 0 ||
         (back ? editing->done == 0 : editing->done == editing->entryCount))
     {
@@ -703,10 +703,10 @@ static MUI_NOINLINE muiResult TextBlockGetInputPurposeWorker(const muiTextServic
         purposeOut != nullptr ? muiEditingBlock(service, blockId, &block) : mui_errorInvalid;
     if (result == mui_success)
     {
-        const muiTextEditDef* def = &block->editing.def;
-        *purposeOut = (def->flags & mui_editPassword) != 0 ? mui_purposePassword
-                      : def->filter != mui_filterNone      ? mui_purposeNumber
-                                                           : def->purpose;
+        const muiTextEditRules* rules = &block->editing.rules;
+        *purposeOut = (rules->flags & mui_editPassword) != 0 ? mui_purposePassword
+                      : rules->filter != mui_filterNone      ? mui_purposeNumber
+                                                             : rules->purpose;
     }
     return result;
 }
@@ -738,7 +738,7 @@ static MUI_NOINLINE muiResult TextBlockGetUndoStateWorker(const muiTextService* 
                            : mui_errorInvalid;
     if (result == mui_success)
     {
-        bool open = (block->editing.def.flags & mui_editReadOnly) == 0;
+        bool open = (block->editing.rules.flags & mui_editReadOnly) == 0;
         *undoOut = open && block->editing.done != 0;
         *redoOut = open && block->editing.done != block->editing.entryCount;
     }
@@ -766,7 +766,7 @@ static muiResult TextBlockCompose(muiTextService* service, muiTextBlockId blockI
     // A password takes no composition, as platforms turn input methods
     // off in one.
     if (result != mui_success ||
-        (block->editing.def.flags & (mui_editReadOnly | mui_editPassword)) != 0)
+        (block->editing.rules.flags & (mui_editReadOnly | mui_editPassword)) != 0)
     {
         return result;
     }

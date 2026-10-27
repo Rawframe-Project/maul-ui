@@ -85,7 +85,7 @@ static void TestRoundedTotal(void)
     CHECK(muiNode_SetVirtualList(context, list, &items) == mui_success, "list");
     muiNodeId tall = Node(context, list);
     Size(context, tall, 200.0f, 9007199254740992.0f);
-    CHECK(muiNode_SetItem(context, tall, TALL) == mui_success, "bound");
+    CHECK(muiNode_BindVirtualItem(context, tall, TALL) == mui_success, "bound");
     Layout(context, root);
     // Rebuilt with the measured size kept: the total checked again.
     CHECK(muiNode_InsertVirtualItems(context, list, COUNT, 1) == mui_success, "one more");

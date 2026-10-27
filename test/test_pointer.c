@@ -563,8 +563,8 @@ static void TestRing(void)
     CHECK(Next(context, mui_pointerRecordPress, s.b, 5.0f, 5.0f, 0, 2) &&
               Next(context, mui_pointerRecordRelease, s.b, 5.0f, 5.0f, 0, 2) &&
               muiNextPointerRecord(context, &record) == mui_success &&
-              record.kind == mui_pointerRecordDropped && record.clickCount == 1 &&
-              record.node.index1 == 0 && Drained(context),
+              record.kind == mui_pointerRecordDropped && record.dropped == 1 &&
+              record.clickCount == 0 && record.node.index1 == 0 && Drained(context),
           "dropped, counted");
     // Once one is dropped, so are the rest until the ring drains.
     Mouse(context, s.root, mui_pointerPress, 0, 1, 25.0f, 25.0f, 2000 * s_ms);
@@ -573,7 +573,7 @@ static void TestRing(void)
     Mouse(context, s.root, mui_pointerPress, 0, 1, 25.0f, 25.0f, 4000 * s_ms);
     CHECK(Next(context, mui_pointerRecordRelease, s.b, 5.0f, 5.0f, 0, 1) &&
               muiNextPointerRecord(context, &record) == mui_success &&
-              record.kind == mui_pointerRecordDropped && record.clickCount == 2 && Drained(context),
+              record.kind == mui_pointerRecordDropped && record.dropped == 2 && Drained(context),
           "kept in place");
     Mouse(context, s.root, mui_pointerRelease, 0, 0, 25.0f, 25.0f, 4001 * s_ms);
     while (muiNextPointerRecord(context, &record) == mui_success)
@@ -595,7 +595,7 @@ static void TestRing(void)
     Mouse(s.context, s.root, mui_pointerPress, 0, 1, 25.0f, 25.0f, 0);
     Mouse(s.context, s.root, mui_pointerRelease, 0, 0, 25.0f, 25.0f, 1);
     CHECK(muiNextPointerRecord(s.context, &record) == mui_success &&
-              record.kind == mui_pointerRecordDropped && record.clickCount == 3,
+              record.kind == mui_pointerRecordDropped && record.dropped == 3,
           "all dropped");
     muiDestroyContext(s.context);
 }

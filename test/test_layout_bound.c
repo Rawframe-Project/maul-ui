@@ -354,7 +354,8 @@ static void Apply(Tree* tree, const Edit* edit)
         break;
     }
     case kindBind:
-        CHECK(muiNode_SetItem(tree->context, tree->nodes[edit->node], edit->value) == mui_success,
+        CHECK(muiNode_BindVirtualItem(tree->context, tree->nodes[edit->node], edit->value) ==
+                  mui_success,
               "bound");
         break;
     case kindSafe:

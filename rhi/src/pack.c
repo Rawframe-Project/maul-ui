@@ -427,7 +427,8 @@ uint32_t muiRhiPackGradients(const muiDrawList* list, muiRhiGradient* gradients)
         const muiDrawGradient* from = &list->gradients[i];
         muiRhiGradient* to = &gradients[i];
         to->kind = from->kind;
-        to->stopCount = from->stopCount < MUI_MAX_DRAW_STOPS ? from->stopCount : MUI_MAX_DRAW_STOPS;
+        to->stopCount =
+            from->stopCount < MUI_MAX_GRADIENT_STOPS ? from->stopCount : MUI_MAX_GRADIENT_STOPS;
         to->interpolation = from->interpolation;
         to->angle = from->angle;
         memcpy(to->colors, from->colors, sizeof(to->colors));

@@ -317,6 +317,15 @@ static void TestInheritance(void)
     CHECK(leafStyle.size == 16.0f && SameColor(leafStyle.color, s_black) &&
               leafStyle.automaticLineHeight,
           "the new parent's");
+
+    // A written line height of 0 makes lines of no height, as CSS's
+    // line-height: 0 does, so the flag, not the 0, tells the font's own.
+    muiTextStyle flat = muiDefaultTextStyle();
+    flat.lineHeight = Value(0.0f, 0.0f);
+    CHECK(muiNode_SetTextValues(context, leaf, &flat, LINE) == mui_success, "flat");
+    Layout(context, other, T0);
+    leafStyle = Computed(context, leaf);
+    CHECK(leafStyle.lineHeight == 0.0f && !leafStyle.automaticLineHeight, "a written 0");
     muiDestroyContext(context);
 }
 

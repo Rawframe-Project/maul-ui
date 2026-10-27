@@ -880,8 +880,8 @@ static void TestPositionAlone(void)
     Size(context, empty, 200.0f, 0.0f);
     muiNodeId item = Node(context, list);
     Size(context, item, 200.0f, 40.0f);
-    CHECK(muiNode_SetItem(context, empty, 0) == mui_success &&
-              muiNode_SetItem(context, item, 1) == mui_success,
+    CHECK(muiNode_BindVirtualItem(context, empty, 0) == mui_success &&
+              muiNode_BindVirtualItem(context, item, 1) == mui_success,
           "bound");
     CHECK(muiAccess_Enable(context, root) == mui_success, "enabled");
     Layout(context, root);
@@ -924,7 +924,7 @@ static void TestVirtualItems(void)
     for (int i = 0; i < 3; i++)
     {
         items[i] = Node(context, list);
-        CHECK(muiNode_SetItem(context, items[i], indices[i]) == mui_success, "bound");
+        CHECK(muiNode_BindVirtualItem(context, items[i], indices[i]) == mui_success, "bound");
     }
     CHECK(muiAccess_Enable(context, root) == mui_success, "enabled");
     Layout(context, root);
@@ -950,7 +950,7 @@ static void TestVirtualItems(void)
               Sent(&update, items[2])->values.setSize == 0,
           "the host's position");
     // Rebound: the list's order and the item.
-    CHECK(muiNode_SetItem(context, items[0], 5) == mui_success, "rebound");
+    CHECK(muiNode_BindVirtualItem(context, items[0], 5) == mui_success, "rebound");
     Layout(context, root);
     update = Build(context, root);
     CHECK(Sent(&update, items[0]) != NULL && Sent(&update, items[0])->values.setPosition == 6,
@@ -973,8 +973,8 @@ static void TestVirtualItems(void)
     CHECK(muiNode_SetVirtualList(context, pair, &virtualList) == mui_success, "a second list");
     muiNodeId second = Node(context, pair);
     muiNodeId first = Node(context, pair);
-    CHECK(muiNode_SetItem(context, second, 1) == mui_success &&
-              muiNode_SetItem(context, first, 0) == mui_success,
+    CHECK(muiNode_BindVirtualItem(context, second, 1) == mui_success &&
+              muiNode_BindVirtualItem(context, first, 0) == mui_success,
           "bound 1, then 0");
     Layout(context, root);
     update = Build(context, root);
@@ -1082,7 +1082,7 @@ static void TestActions(void)
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled &&
               muiNextNotification(context, &record) == mui_success &&
               record.kind == mui_notificationAccessAction &&
-              record.node.index1 == scene.group.index1 && record.count == mui_actionExpand,
+              record.node.index1 == scene.group.index1 && record.detail == mui_actionExpand,
           "expand posted");
     request.action = mui_actionCollapse;
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_empty, "not expanded");

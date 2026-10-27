@@ -165,7 +165,7 @@ static MUI_NOINLINE muiResult SetTokenValueWorker(muiContext* context, muiTokenI
     return status;
 }
 
-muiResult muiSetTokenValue(muiContext* context, muiTokenId tokenId, const muiTokenValue* value)
+muiResult muiToken_SetValue(muiContext* context, muiTokenId tokenId, const muiTokenValue* value)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = SetTokenValueWorker(context, tokenId, value);
@@ -206,7 +206,7 @@ static muiResult SetTokenAlias(muiContext* context, muiTokenId tokenId, muiToken
     return mui_success;
 }
 
-muiResult muiSetTokenAlias(muiContext* context, muiTokenId tokenId, muiTokenId target)
+muiResult muiToken_SetAlias(muiContext* context, muiTokenId tokenId, muiTokenId target)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -217,8 +217,8 @@ muiResult muiSetTokenAlias(muiContext* context, muiTokenId tokenId, muiTokenId t
     return status;
 }
 
-muiResult muiGetTokenValue(const muiContext* context, muiTokenId tokenId, muiTokenValue* valueOut,
-                           muiTokenId* aliasOut)
+muiResult muiToken_GetValue(const muiContext* context, muiTokenId tokenId, muiTokenValue* valueOut,
+                            muiTokenId* aliasOut)
 {
     if (valueOut != nullptr)
     {

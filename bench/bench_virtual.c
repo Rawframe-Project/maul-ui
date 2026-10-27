@@ -156,7 +156,7 @@ static void Bind(Scene* scene, muiNodeId row, uint32_t index)
 {
     muiContext* context = scene->context;
     Check(muiNode_InsertChild(context, scene->list, row, (muiNodeId){0, 0}), "attach");
-    Check(muiNode_SetItem(context, row, index), "bind");
+    Check(muiNode_BindVirtualItem(context, row, index), "bind");
     muiNodeId child = muiNode_GetFirstChild(context, row);
     if (scene->tree)
     {
@@ -190,13 +190,14 @@ static void Realize(Scene* scene)
     {
         uint32_t index = 0;
         muiNodeId row = scene->bound[i];
-        if (muiNode_GetItem(context, row, &index) == mui_success && index >= first && index < end)
+        if (muiNode_GetBoundVirtualItem(context, row, &index) == mui_success && index >= first &&
+            index < end)
         {
             s_shown[index - first] = true;
             i++;
             continue;
         }
-        Check(muiNode_ClearItem(context, row), "unbind");
+        Check(muiNode_UnbindVirtualItem(context, row), "unbind");
         Check(muiNode_Detach(context, row), "detach");
         scene->pool[scene->poolCount++] = row;
         scene->bound[i] = scene->bound[--scene->boundCount];

@@ -149,7 +149,7 @@ static void Realize(const Scene* scene, uint32_t first, uint32_t end, float widt
     {
         muiNodeId item = Node(scene->context, scene->list);
         Size(scene->context, item, width, height);
-        CHECK(muiNode_SetItem(scene->context, item, i) == mui_success, "bind");
+        CHECK(muiNode_BindVirtualItem(scene->context, item, i) == mui_success, "bind");
         out[i - first] = item;
     }
 }
@@ -242,7 +242,7 @@ static void TestRebound(void)
           "popped");
     list.count = 3;
     CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success &&
-              muiNode_SetItem(context, item[0], 2) == mui_success,
+              muiNode_BindVirtualItem(context, item[0], 2) == mui_success,
           "cut to three, rebound");
     Layout(context, scene.root);
     CHECK(muiNode_GetRect(context, item[0]).y == 40.0f &&
@@ -359,26 +359,26 @@ static void TestBinding(void)
     muiNodeId flow = Node(context, scene.list);
     Size(context, flow, -1.0f, 30.0f);
     uint64_t misuse = muiGetContextMisuse(context);
-    CHECK(muiNode_SetItem(context, item, 10) == mui_errorInvalid &&
-              muiNode_SetItem(context, scene.root, 0) == mui_errorInvalid &&
-              muiNode_SetItem(context, s_nullNode, 0) == mui_errorInvalid &&
-              muiNode_SetItem(NULL, item, 0) == mui_errorInvalid &&
-              muiNode_ClearItem(NULL, item) == mui_errorInvalid &&
-              muiNode_ClearItem(context, s_nullNode) == mui_errorInvalid &&
+    CHECK(muiNode_BindVirtualItem(context, item, 10) == mui_errorInvalid &&
+              muiNode_BindVirtualItem(context, scene.root, 0) == mui_errorInvalid &&
+              muiNode_BindVirtualItem(context, s_nullNode, 0) == mui_errorInvalid &&
+              muiNode_BindVirtualItem(NULL, item, 0) == mui_errorInvalid &&
+              muiNode_UnbindVirtualItem(NULL, item) == mui_errorInvalid &&
+              muiNode_UnbindVirtualItem(context, s_nullNode) == mui_errorInvalid &&
               muiGetContextMisuse(context) == misuse + 4,
           "refused");
-    CHECK(muiNode_SetItem(context, item, 4) == mui_success, "bound");
+    CHECK(muiNode_BindVirtualItem(context, item, 4) == mui_success, "bound");
     Layout(context, scene.root);
     CHECK(muiNode_GetRect(context, item).y == 160.0f && muiNode_GetRect(context, flow).y == 0.0f,
           "out of the flow, at its offset");
-    CHECK(muiNode_ClearItem(context, item) == mui_success &&
-              muiNode_ClearItem(context, item) == mui_success,
+    CHECK(muiNode_UnbindVirtualItem(context, item) == mui_success &&
+              muiNode_UnbindVirtualItem(context, item) == mui_success,
           "unbound, twice");
     Layout(context, scene.root);
     CHECK(muiNode_GetRect(context, item).y == 0.0f && muiNode_GetRect(context, flow).y == 30.0f,
           "back in the flow");
     // A node reusing a destroyed one's slot is not bound.
-    CHECK(muiNode_SetItem(context, item, 2) == mui_success &&
+    CHECK(muiNode_BindVirtualItem(context, item, 2) == mui_success &&
               muiDestroyNode(context, item) == mui_success,
           "destroyed bound");
     muiNodeId fresh = Node(context, scene.list);
@@ -403,7 +403,7 @@ static void TestEdges(void)
     CHECK(ExtentOf(context, scene.list, false) == 170.0f, "four items, one of 50");
     // Set anew smaller: the extent shrinks; an item past the count is
     // left alone, nothing read or written past the list.
-    CHECK(muiNode_SetItem(context, items[0], 3) == mui_success, "item 3");
+    CHECK(muiNode_BindVirtualItem(context, items[0], 3) == mui_success, "item 3");
     list.count = 2;
     CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success, "two");
     muiNodeId other = Node(context, scene.root);
@@ -533,7 +533,7 @@ static void TestOtherRoot(void)
     CHECK(muiNode_Detach(context, scene.list) == mui_success, "its own tree");
     muiNodeId item = Node(context, scene.list);
     Size(context, item, -1.0f, 40.0f);
-    CHECK(muiNode_SetItem(context, item, 2) == mui_success, "item 2");
+    CHECK(muiNode_BindVirtualItem(context, item, 2) == mui_success, "item 2");
     Layout(context, scene.root);
     uint32_t first = 0;
     uint32_t end = 0;
@@ -557,7 +557,7 @@ static float ScrollY(const muiContext* context, muiNodeId node)
 static bool ItemIs(const muiContext* context, muiNodeId node, uint32_t index)
 {
     uint32_t got = 0;
-    return muiNode_GetItem(context, node, &got) == mui_success && got == index;
+    return muiNode_GetBoundVirtualItem(context, node, &got) == mui_success && got == index;
 }
 
 static void TestEdits(void)
@@ -596,9 +596,10 @@ static void TestEdits(void)
               ItemIs(context, items[2], 10),
           "removed across");
     uint32_t index = 0;
-    CHECK(muiNode_GetItem(context, items[0], &index) == mui_empty, "its node placed nowhere");
+    CHECK(muiNode_GetBoundVirtualItem(context, items[0], &index) == mui_empty,
+          "its node placed nowhere");
     CHECK(muiNode_InsertVirtualItems(context, scene.list, 900, 2) == mui_success &&
-              muiNode_GetItem(context, items[0], &index) == mui_empty &&
+              muiNode_GetBoundVirtualItem(context, items[0], &index) == mui_empty &&
               muiNode_RemoveVirtualItems(context, scene.list, 900, 2) == mui_success,
           "still nowhere after an insertion");
     Layout(context, scene.root);
@@ -640,8 +641,8 @@ static void TestAnchoring(void)
     // index, 700: it stays 10 above the viewport's start.
     list.count = 2000;
     CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success &&
-              muiNode_SetItem(context, shown[0], 700) == mui_success &&
-              muiNode_ClearItem(context, above[0]) == mui_success,
+              muiNode_BindVirtualItem(context, shown[0], 700) == mui_success &&
+              muiNode_UnbindVirtualItem(context, above[0]) == mui_success,
           "reloaded");
     Layout(context, scene.root);
     CHECK(ScrollY(context, scene.list) == 28010.0f &&
@@ -649,7 +650,7 @@ static void TestAnchoring(void)
           "where it was");
     // Set anew with its node bound nowhere: the offset stays.
     CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success &&
-              muiNode_ClearItem(context, shown[0]) == mui_success,
+              muiNode_UnbindVirtualItem(context, shown[0]) == mui_success,
           "again");
     Layout(context, scene.root);
     CHECK(ScrollY(context, scene.list) == 28010.0f, "kept");
@@ -698,10 +699,10 @@ static void TestEditContract(void)
               offset == 80.0f && extent == 40.0f,
           "estimated");
     uint32_t index = 0;
-    CHECK(muiNode_GetItem(context, a, NULL) == mui_errorInvalid &&
-              muiNode_GetItem(NULL, a, &index) == mui_errorInvalid &&
-              muiNode_GetItem(context, s_nullNode, &index) == mui_errorInvalid &&
-              muiNode_GetItem(context, a, &index) == mui_empty,
+    CHECK(muiNode_GetBoundVirtualItem(context, a, NULL) == mui_errorInvalid &&
+              muiNode_GetBoundVirtualItem(NULL, a, &index) == mui_errorInvalid &&
+              muiNode_GetBoundVirtualItem(context, s_nullNode, &index) == mui_errorInvalid &&
+              muiNode_GetBoundVirtualItem(context, a, &index) == mui_empty,
           "items read");
     muiDestroyContext(context);
 }
@@ -768,9 +769,9 @@ static void TestAnchorEdges(void)
     // Reloaded, the three bound far apart: item 10 was shown first.
     list.count = 2000;
     CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success &&
-              muiNode_SetItem(context, items[0], 100) == mui_success &&
-              muiNode_SetItem(context, items[1], 700) == mui_success &&
-              muiNode_SetItem(context, items[2], 1500) == mui_success,
+              muiNode_BindVirtualItem(context, items[0], 100) == mui_success &&
+              muiNode_BindVirtualItem(context, items[1], 700) == mui_success &&
+              muiNode_BindVirtualItem(context, items[2], 1500) == mui_success,
           "reloaded");
     Layout(context, scene.root);
     CHECK(ScrollY(context, scene.list) == 28000.0f, "item 10's node, now 700, where it was");
@@ -791,9 +792,9 @@ static void TestAnchorEdges(void)
     MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
     context = scene.context;
     muiNodeId node = Node(context, scene.list);
-    CHECK(muiNode_SetItem(context, node, 5) == mui_success &&
+    CHECK(muiNode_BindVirtualItem(context, node, 5) == mui_success &&
               muiNode_SetVirtualList(context, scene.list, &list) == mui_success &&
-              muiNode_SetItem(context, node, 50) == mui_success,
+              muiNode_BindVirtualItem(context, node, 50) == mui_success,
           "set anew unshown");
     Layout(context, scene.root);
     CHECK(ScrollY(context, scene.list) == 0.0f, "no anchor");
@@ -945,13 +946,14 @@ static int RealizeWork(WorkScene* work)
     {
         uint32_t index = 0;
         muiNodeId row = work->bound[i];
-        if (muiNode_GetItem(context, row, &index) == mui_success && index >= first && index < end)
+        if (muiNode_GetBoundVirtualItem(context, row, &index) == mui_success && index >= first &&
+            index < end)
         {
             shown[index - first] = true;
             i++;
             continue;
         }
-        CHECK(muiNode_ClearItem(context, row) == mui_success &&
+        CHECK(muiNode_UnbindVirtualItem(context, row) == mui_success &&
                   muiNode_Detach(context, row) == mui_success,
               "unbind");
         work->pool[work->poolCount++] = row;
@@ -967,7 +969,7 @@ static int RealizeWork(WorkScene* work)
         muiNodeId row = work->poolCount != 0 ? work->pool[--work->poolCount] : WorkRow(context);
         muiNodeId label = muiNode_GetFirstChild(context, row);
         CHECK(muiNode_InsertChild(context, work->scene.list, row, s_nullNode) == mui_success &&
-                  muiNode_SetItem(context, row, index) == mui_success &&
+                  muiNode_BindVirtualItem(context, row, index) == mui_success &&
                   muiNode_MarkContentChanged(context, label) == mui_success,
               "bind");
         s_workItem[label.index1] = index;

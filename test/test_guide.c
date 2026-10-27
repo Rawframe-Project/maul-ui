@@ -360,7 +360,7 @@ static muiResult Realize(muiContext* context, muiNodeId list)
         }
         if (result == mui_success)
         {
-            result = muiNode_SetItem(context, row, index);
+            result = muiNode_BindVirtualItem(context, row, index);
         }
     }
     return result;
@@ -744,8 +744,8 @@ static uint32_t Rows(const muiContext* context, muiNodeId list, uint32_t* firstO
          row = muiNode_GetNextSibling(context, row))
     {
         uint32_t index = 0;
-        CHECK(muiNode_GetItem(context, row, &index) == mui_success && index >= *firstOut &&
-                  index < end,
+        CHECK(muiNode_GetBoundVirtualItem(context, row, &index) == mui_success &&
+                  index >= *firstOut && index < end,
               "a row in the window");
         rows++;
     }

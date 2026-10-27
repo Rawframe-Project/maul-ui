@@ -61,7 +61,7 @@ static Scene MakeScene(const char* text, muiTextEditFlags flags)
     blockDef.text = text;
     blockDef.length = strlen(text);
     CHECK(muiCreateTextBlock(scene.service, &blockDef, &scene.block) == mui_success, "block");
-    muiTextEditDef edit = muiDefaultTextEditDef();
+    muiTextEditRules edit = muiDefaultTextEditRules();
     edit.flags = flags;
     CHECK(muiTextBlock_SetEditing(scene.service, scene.block, &edit) == mui_success, "editing");
     muiNodeDef node = muiDefaultNodeDef();
@@ -150,7 +150,7 @@ static void Select(Scene* scene, uint32_t anchor, uint32_t caret)
 static void TestCalls(void)
 {
     Scene scene = MakeScene("abc", 0);
-    muiTextEditDef def = muiDefaultTextEditDef();
+    muiTextEditRules def = muiDefaultTextEditRules();
     CHECK(def.flags == 0 && def.filter == mui_filterNone && def.purpose == mui_purposeText &&
               def.maxLength == 0 && def.undoLimit == 100,
           "the default rules");
@@ -173,11 +173,11 @@ static void TestCalls(void)
               muiTextBlock_GetInputPurpose(scene.service, scene.block, &purpose) == mui_success &&
               purpose == mui_purposePassword,
           "a password first");
-    def = muiDefaultTextEditDef();
+    def = muiDefaultTextEditRules();
     def.purpose = 5;
     CHECK(muiTextBlock_SetEditing(scene.service, scene.block, &def) == mui_errorInvalid,
           "a purpose out of range");
-    def = muiDefaultTextEditDef();
+    def = muiDefaultTextEditRules();
     CHECK(muiTextBlock_SetEditing(scene.service, scene.block, &def) == mui_success &&
               Selects(&scene, 3, 3),
           "editing again, the caret at the end");
@@ -296,7 +296,7 @@ static void TestDeleting(void)
 static void TestLimit(void)
 {
     Scene scene = MakeScene("", 0);
-    muiTextEditDef def = muiDefaultTextEditDef();
+    muiTextEditRules def = muiDefaultTextEditRules();
     def.undoLimit = 2;
     CHECK(muiTextBlock_SetEditing(scene.service, scene.block, &def) == mui_success, "limited");
     Paste(&scene, "a");
@@ -345,7 +345,7 @@ static void Filtered(muiTextFilter filter, const char* start, const char* typed,
                      const char* expected)
 {
     Scene scene = MakeScene(start, 0);
-    muiTextEditDef def = muiDefaultTextEditDef();
+    muiTextEditRules def = muiDefaultTextEditRules();
     def.filter = filter;
     CHECK(muiTextBlock_SetEditing(scene.service, scene.block, &def) == mui_success, "a filter");
     Select(&scene, caret, caret);
@@ -366,7 +366,7 @@ static void TestFilters(void)
     Filtered(mui_filterDecimal, "", "-.5", 0, "-.5");
     // A selection nothing typed may replace stays.
     Scene scene = MakeScene("12", 0);
-    muiTextEditDef def = muiDefaultTextEditDef();
+    muiTextEditRules def = muiDefaultTextEditRules();
     def.filter = mui_filterInteger;
     CHECK(muiTextBlock_SetEditing(scene.service, scene.block, &def) == mui_success, "a filter");
     Select(&scene, 0, 2);
@@ -378,7 +378,7 @@ static void TestFilters(void)
 static void TestLength(void)
 {
     Scene scene = MakeScene("", 0);
-    muiTextEditDef def = muiDefaultTextEditDef();
+    muiTextEditRules def = muiDefaultTextEditRules();
     def.maxLength = 3;
     CHECK(muiTextBlock_SetEditing(scene.service, scene.block, &def) == mui_success, "limited");
     // e and a combining acute are one cluster.
@@ -1108,7 +1108,7 @@ static void TestPasswordWithoutMemory(void)
     {
         left = 1000;
         muiTextBlockId block = {0, 0};
-        muiTextEditDef edit = muiDefaultTextEditDef();
+        muiTextEditRules edit = muiDefaultTextEditRules();
         edit.flags = mui_editPassword;
         muiTextBlockDef blockDef = muiDefaultTextBlockDef();
         blockDef.text = "secret";
@@ -1182,7 +1182,7 @@ static void TestTypingWithoutMemory(void)
     {
         left = 1000;
         muiTextBlockId block = {0, 0};
-        muiTextEditDef edit = muiDefaultTextEditDef();
+        muiTextEditRules edit = muiDefaultTextEditRules();
         bool changed = false;
         muiTextBlockDef blockDef = muiDefaultTextBlockDef();
         blockDef.text = "ab";

@@ -116,8 +116,8 @@ extern "C"
     ///         an id whose token is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiSetTokenValue(muiContext* context, muiTokenId tokenId,
-                                                     const muiTokenValue* value);
+    MUI_NODISCARD MUI_API muiResult muiToken_SetValue(muiContext* context, muiTokenId tokenId,
+                                                      const muiTokenValue* value);
 
     /// Makes a token an alias of another of its type, so that it gives
     /// that token's value, and restyles every node.
@@ -131,8 +131,8 @@ extern "C"
     ///         `mui_errorStale` for a token or a target that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiSetTokenAlias(muiContext* context, muiTokenId tokenId,
-                                                     muiTokenId target);
+    MUI_NODISCARD MUI_API muiResult muiToken_SetAlias(muiContext* context, muiTokenId tokenId,
+                                                      muiTokenId target);
 
     /// Reads a token's value, through its aliases, and what it aliases.
     ///
@@ -149,8 +149,9 @@ extern "C"
     ///         token is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiGetTokenValue(const muiContext* context, muiTokenId tokenId,
-                                                     muiTokenValue* valueOut, muiTokenId* aliasOut);
+    MUI_NODISCARD MUI_API muiResult muiToken_GetValue(const muiContext* context, muiTokenId tokenId,
+                                                      muiTokenValue* valueOut,
+                                                      muiTokenId* aliasOut);
 
     /// Names a token for a property in one variant of a class, in place
     /// of a value: resolution reads the token there. A value the property

@@ -671,7 +671,8 @@ static void TestReversalsKeepShortening(void)
     // A node first styled by direct writes alone has a value to move from.
     muiNodeId direct = MakeNode(context);
     muiLayoutStyle all = muiDefaultLayoutStyle();
-    CHECK(muiNode_SetLayoutStyle(context, direct, &all) == mui_success, "all direct");
+    CHECK(muiNode_SetLayoutValues(context, direct, &all, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "all direct");
     (void)PaddingAt(context, direct, T0);
     CHECK(muiNode_SetClasses(context, direct, &style, 1) == mui_success, "class");
     CHECK(muiNode_ResetProperties(context, direct, mui_groupLayout, PADDING_START) == mui_success,

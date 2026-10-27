@@ -125,7 +125,7 @@ static void TestTokensAreChecked(void)
     const muiTokenDef zero = muiDefaultTokenDef();
     muiTokenValue zeroRead = Color(s_red);
     CHECK(muiCreateToken(context, &zero, &token) == mui_success &&
-              muiGetTokenValue(context, token, &zeroRead, NULL) == mui_success &&
+              muiToken_GetValue(context, token, &zeroRead, NULL) == mui_success &&
               zeroRead.type == mui_tokenNumber && zeroRead.number == 0.0f &&
               muiDestroyToken(context, token) == mui_success,
           "the default def, the number 0");
@@ -172,17 +172,17 @@ static void TestTokensAreChecked(void)
     tokenDef.value = value;
     CHECK(muiCreateToken(context, &tokenDef, &token) == mui_success, "a gradient");
     muiTokenValue read;
-    CHECK(muiGetTokenValue(context, token, &read, NULL) == mui_success &&
+    CHECK(muiToken_GetValue(context, token, &read, NULL) == mui_success &&
               read.type == mui_tokenGradient && read.gradient.kind == mui_gradientRadial &&
               SameColor(read.gradient.stops[1].color, s_blue),
           "read back");
-    CHECK(muiGetTokenValue(NULL, token, &read, NULL) == mui_errorInvalid &&
-              muiGetTokenValue(context, token, NULL, NULL) == mui_errorInvalid &&
-              muiGetTokenValue(context, s_nullToken, &read, NULL) == mui_errorInvalid,
+    CHECK(muiToken_GetValue(NULL, token, &read, NULL) == mui_errorInvalid &&
+              muiToken_GetValue(context, token, NULL, NULL) == mui_errorInvalid &&
+              muiToken_GetValue(context, s_nullToken, &read, NULL) == mui_errorInvalid,
           "bad reads");
     CHECK(muiDestroyToken(context, token) == mui_success, "destroy");
     CHECK(muiDestroyToken(context, token) == mui_errorStale &&
-              muiGetTokenValue(context, token, &read, NULL) == mui_errorStale,
+              muiToken_GetValue(context, token, &read, NULL) == mui_errorStale,
           "stale");
     CHECK(muiDestroyToken(NULL, token) == mui_errorInvalid &&
               muiDestroyToken(context, s_nullToken) == mui_errorInvalid,
@@ -209,45 +209,45 @@ static void TestValuesAndAliases(void)
     muiTokenId gap = MakeToken(context, Number(4.0f));
 
     muiTokenValue value = Number(8.0f);
-    CHECK(muiSetTokenValue(context, accent, &value) == mui_errorInvalid, "another type");
+    CHECK(muiToken_SetValue(context, accent, &value) == mui_errorInvalid, "another type");
     value = Color((muiColor){2.0f, 0.0f, 0.0f, 1.0f});
-    CHECK(muiSetTokenValue(context, accent, &value) == mui_errorInvalid, "an invalid value");
-    CHECK(muiSetTokenValue(NULL, accent, &value) == mui_errorInvalid &&
-              muiSetTokenValue(context, accent, NULL) == mui_errorInvalid &&
-              muiSetTokenValue(context, s_nullToken, &value) == mui_errorInvalid,
+    CHECK(muiToken_SetValue(context, accent, &value) == mui_errorInvalid, "an invalid value");
+    CHECK(muiToken_SetValue(NULL, accent, &value) == mui_errorInvalid &&
+              muiToken_SetValue(context, accent, NULL) == mui_errorInvalid &&
+              muiToken_SetValue(context, s_nullToken, &value) == mui_errorInvalid,
           "bad sets");
 
-    CHECK(muiSetTokenAlias(context, accent, gap) == mui_errorInvalid, "an alias of another type");
-    CHECK(muiSetTokenAlias(context, accent, accent) == mui_errorInvalid, "an alias of itself");
-    CHECK(muiSetTokenAlias(context, accent, s_nullToken) == mui_errorInvalid &&
-              muiSetTokenAlias(NULL, accent, blue) == mui_errorInvalid &&
-              muiSetTokenAlias(context, s_nullToken, blue) == mui_errorInvalid,
+    CHECK(muiToken_SetAlias(context, accent, gap) == mui_errorInvalid, "an alias of another type");
+    CHECK(muiToken_SetAlias(context, accent, accent) == mui_errorInvalid, "an alias of itself");
+    CHECK(muiToken_SetAlias(context, accent, s_nullToken) == mui_errorInvalid &&
+              muiToken_SetAlias(NULL, accent, blue) == mui_errorInvalid &&
+              muiToken_SetAlias(context, s_nullToken, blue) == mui_errorInvalid,
           "bad aliases");
-    CHECK(muiSetTokenAlias(context, accent, blue) == mui_success, "accent is blue");
+    CHECK(muiToken_SetAlias(context, accent, blue) == mui_success, "accent is blue");
     muiTokenValue read;
     muiTokenId alias = s_nullToken;
-    CHECK(muiGetTokenValue(context, accent, &read, &alias) == mui_success &&
+    CHECK(muiToken_GetValue(context, accent, &read, &alias) == mui_success &&
               SameColor(read.color, s_blue) && SameId(alias, blue),
           "through the alias");
-    CHECK(muiSetTokenAlias(context, blue, accent) == mui_errorInvalid, "a cycle of two");
+    CHECK(muiToken_SetAlias(context, blue, accent) == mui_errorInvalid, "a cycle of two");
     muiTokenId link = MakeToken(context, Color(s_red));
-    CHECK(muiSetTokenAlias(context, link, accent) == mui_success, "a chain");
-    CHECK(muiSetTokenAlias(context, blue, link) == mui_errorInvalid, "a cycle of three");
-    CHECK(muiGetTokenValue(context, link, &read, NULL) == mui_success &&
+    CHECK(muiToken_SetAlias(context, link, accent) == mui_success, "a chain");
+    CHECK(muiToken_SetAlias(context, blue, link) == mui_errorInvalid, "a cycle of three");
+    CHECK(muiToken_GetValue(context, link, &read, NULL) == mui_success &&
               SameColor(read.color, s_blue),
           "down the chain");
 
     CHECK(muiDestroyToken(context, blue) == mui_success, "the end of the chain goes");
-    CHECK(muiGetTokenValue(context, link, &read, &alias) == mui_empty &&
+    CHECK(muiToken_GetValue(context, link, &read, &alias) == mui_empty &&
               read.type == mui_tokenColor && read.color.a == 0.0f && SameId(alias, accent),
           "no value through it");
-    CHECK(muiSetTokenAlias(context, link, blue) == mui_errorStale, "a gone target");
+    CHECK(muiToken_SetAlias(context, link, blue) == mui_errorStale, "a gone target");
     value = Color(s_red);
-    CHECK(muiSetTokenValue(context, accent, &value) == mui_success, "a value again");
-    CHECK(muiGetTokenValue(context, accent, &read, &alias) == mui_success &&
+    CHECK(muiToken_SetValue(context, accent, &value) == mui_success, "a value again");
+    CHECK(muiToken_GetValue(context, accent, &read, &alias) == mui_success &&
               SameColor(read.color, s_red) && alias.index1 == 0,
           "ends the alias");
-    CHECK(muiGetTokenValue(context, link, &read, NULL) == mui_success &&
+    CHECK(muiToken_GetValue(context, link, &read, NULL) == mui_success &&
               SameColor(read.color, s_red),
           "and the chain gives it");
     (void)red;
@@ -375,7 +375,7 @@ static void TestResolutionReadsTokens(void)
     muiTokenId red = MakeToken(context, Color(s_red));
     muiTokenId blue = MakeToken(context, Color(s_blue));
     muiTokenId surface = MakeToken(context, Color(s_red));
-    CHECK(muiSetTokenAlias(context, surface, red) == mui_success, "surface is red");
+    CHECK(muiToken_SetAlias(context, surface, red) == mui_success, "surface is red");
     CHECK(muiStyle_SetToken(context, style, mui_variantBase, mui_propertyBackground, surface) ==
               mui_success,
           "named");
@@ -391,16 +391,16 @@ static void TestResolutionReadsTokens(void)
     CHECK(muiNode_GetRect(context, node).width == 120.0f, "a token lays out");
 
     // A theme switch: the semantic token points elsewhere.
-    CHECK(muiSetTokenAlias(context, surface, blue) == mui_success, "surface is blue");
+    CHECK(muiToken_SetAlias(context, surface, blue) == mui_success, "surface is blue");
     CHECK(muiIsUpdatePending(context, node), "every node restyles");
     Layout(context, node, T0);
     CHECK(SameColor(Background(context, node), s_blue), "switched");
     muiTokenValue value = Color(s_red);
-    CHECK(muiSetTokenValue(context, blue, &value) == mui_success, "blue made red");
+    CHECK(muiToken_SetValue(context, blue, &value) == mui_success, "blue made red");
     Layout(context, node, T0);
     CHECK(SameColor(Background(context, node), s_red), "a value change reaches it");
     width.dimension.offset = 140.0f;
-    CHECK(muiSetTokenValue(context, wide, &width) == mui_success, "wider");
+    CHECK(muiToken_SetValue(context, wide, &width) == mui_success, "wider");
     Layout(context, node, T0);
     CHECK(muiNode_GetRect(context, node).width == 140.0f, "laid out again");
 
@@ -418,7 +418,7 @@ static void TestResolutionReadsTokens(void)
     Layout(context, node, T0);
     CHECK(PaddingStart(context, node) == 4.0f, "a negative padding leaves the base");
     value = Number(9.0f);
-    CHECK(muiSetTokenValue(context, inset, &value) == mui_success, "9");
+    CHECK(muiToken_SetValue(context, inset, &value) == mui_success, "9");
     Layout(context, node, T0);
     CHECK(PaddingStart(context, node) == 9.0f, "a valid one applies");
     CHECK(muiDestroyToken(context, inset) == mui_success, "gone");
@@ -438,7 +438,7 @@ static void TestThemeSwitchesMove(void)
     muiTokenId light = MakeToken(context, Color((muiColor){1.0f, 1.0f, 1.0f, 1.0f}));
     muiTokenId dark = MakeToken(context, Color((muiColor){0.0f, 0.0f, 0.0f, 1.0f}));
     muiTokenId surface = MakeToken(context, Color(s_red));
-    CHECK(muiSetTokenAlias(context, surface, light) == mui_success, "light");
+    CHECK(muiToken_SetAlias(context, surface, light) == mui_success, "light");
     CHECK(muiStyle_SetToken(context, style, mui_variantBase, mui_propertyBackground, surface) ==
               mui_success,
           "named");
@@ -452,7 +452,7 @@ static void TestThemeSwitchesMove(void)
           "transition named");
     CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
     Layout(context, node, T0);
-    CHECK(muiSetTokenAlias(context, surface, dark) == mui_success, "dark");
+    CHECK(muiToken_SetAlias(context, surface, dark) == mui_success, "dark");
     Layout(context, node, T0);
     Layout(context, node, T0 + 50 * MS);
     muiColor halfway = Background(context, node);
@@ -577,7 +577,7 @@ static void TestNamesAmongTheRest(void)
     CHECK(muiNode_GetVisualStyle(context, node, &visual) == mui_success && visual.opacity == 0.5f,
           "an opacity token");
     muiTokenValue value = Number(1.5f);
-    CHECK(muiSetTokenValue(context, half, &value) == mui_success, "1.5");
+    CHECK(muiToken_SetValue(context, half, &value) == mui_success, "1.5");
     Layout(context, node, T0);
     CHECK(muiNode_GetVisualStyle(context, node, &visual) == mui_success && visual.opacity == 1.0f,
           "too much for an opacity: silent");
