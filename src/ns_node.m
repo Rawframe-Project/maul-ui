@@ -13,6 +13,15 @@
 #include "fpenv.h"
 #include "host_call.h"
 #include "ns.h"
+#include <stdio.h>
+#include <time.h>
+
+static double Now(void)
+{
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    return (double)now.tv_sec + (double)now.tv_nsec / 1e9;
+}
 
 // A node's text as a string, nil for none.
 static NSString* StringOf(const char* text)
@@ -284,6 +293,8 @@ static bool Has(const muiAccessNode* node, muiAccessAction action)
 
 - (void)setAccessibilityFocused:(BOOL)focused
 {
+    fprintf(stderr, "%.3f setAccessibilityFocused node=%llu focused=%d\n", Now(),
+            (unsigned long long)nodeId, (int)focused);
     if (focused && NodeOf(self) != nullptr)
     {
         (void)muiNsAct(adapter, mui_actionFocus, nodeId, 0.0f);
@@ -348,6 +359,9 @@ static bool Has(const muiAccessNode* node, muiAccessAction action)
 
 - (id)accessibilityFocusedUIElement
 {
+    fprintf(stderr, "%.3f accessibilityFocusedUIElement from=%llu answer=%llu\n", Now(),
+            (unsigned long long)nodeId,
+            (unsigned long long)(NodeOf(self) != nullptr ? muiRecordActiveFocus(adapter->tree) : 0));
     return NodeOf(self) != nullptr ? muiNsObjectOf(adapter, muiRecordActiveFocus(adapter->tree))
                                    : nil;
 }

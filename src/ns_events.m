@@ -11,6 +11,8 @@
 
 #include "access_record.h"
 #include "ns.h"
+#include <stdio.h>
+#include <time.h>
 
 static bool ValueChanged(const muiAccessNode* old, const muiAccessNode* node)
 {
@@ -99,6 +101,11 @@ void muiNsTellLayout(muiNsAdapter* adapter)
 void muiNsTellFocus(muiNsAdapter* adapter)
 {
     MUIAccessibilityNode* focus = muiNsObjectOf(adapter, muiRecordActiveFocus(adapter->tree));
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    fprintf(stderr, "%lld.%03ld tell focus=%llu object=%d\n", (long long)now.tv_sec,
+            now.tv_nsec / 1000000, (unsigned long long)muiRecordActiveFocus(adapter->tree),
+            focus != nil);
     if (focus != nil)
     {
         adapter->post(focus, NSAccessibilityFocusedUIElementChangedNotification, nil);

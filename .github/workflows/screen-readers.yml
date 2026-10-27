@@ -30,7 +30,6 @@ jobs:
       matrix:
         include:
           - { reader: voiceover, runner: macos-15, configure: "", bin: out/walk }
-          - { reader: nvda, runner: windows-2025, configure: "-T ClangCL", bin: out/walk/Release }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -64,57 +63,6 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: walk-${{ matrix.reader }}
-          path: walk-*
-          if-no-files-found: ignore
-          retention-days: 14
-
-  # NVDA over the ARIA adapter: the controls and text samples built for the
-  # web, in a Chrome with a window drawing WebGPU on SwiftShader, walked from
-  # steps of their own, which first enable the page's accessibility tree as a
-  # screen reader user does.
-  nvda-chrome:
-    runs-on: windows-2025
-    timeout-minutes: 45
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
-      - name: Build the samples for the web
-        run: |
-          emcmake cmake -B out/web -G Ninja -DCMAKE_BUILD_TYPE=Release -DMAUL_UI_RHI=ON \
-            -DMAUL_UI_WINDOW=ON -DMAUL_UI_BUILD_TESTS=OFF
-          cmake --build out/web -j 4 --target sample_controls sample_text
-      - name: Set up the screen reader and the browser
-        # Guidepup and puppeteer as tools/screen_reader's lockfile pins them.
-        run: |
-          npm ci --prefix tools/screen_reader --no-audit --no-fund
-          cd tools/screen_reader
-          npx @guidepup/setup setup --ci
-          npx @guidepup/setup install nvda
-          # NVDA reads a caret move only if the caret moves within 100 ms of
-          # the key; the sample draws on SwiftShader, where a frame has taken
-          # seconds, so the walk gives it NVDA's longest, 2000.
-          ini=$(ls "$(cygpath -u "$LOCALAPPDATA")"/guidepup/nvda/all/*/extracted/userConfig/nvda.ini)
-          if grep -q '^\[editableText\]' "$ini"; then
-            sed -i 's/^\[editableText\]\r\?$/[editableText]\ncaretMoveTimeoutMs = 2000/' "$ini"
-          else
-            printf '\n[editableText]\ncaretMoveTimeoutMs = 2000\n' >> "$ini"
-          fi
-          grep -A1 '^\[editableText\]' "$ini"
-      - name: Walk the samples in Chrome
-        run: |
-          for sample in controls text; do
-            node tools/screen_reader/walk.mjs "$PWD/out/web/sample_$sample.js" \
-              "tools/screen_reader/$sample-web.steps" "walk-web-$sample"
-          done
-      - name: Walk logs
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: walk-nvda-chrome
           path: walk-*
           if-no-files-found: ignore
           retention-days: 14

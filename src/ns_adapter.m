@@ -11,6 +11,8 @@
 #include "fpenv.h"
 #include "host_call.h"
 #include "ns.h"
+#include <stdio.h>
+#include <time.h>
 
 #include <stdalign.h>
 
@@ -363,7 +365,14 @@ void* muiNsAdapter_GetRoot(muiNsAdapter* adapter)
 bool muiNsAct(const muiNsAdapter* adapter, muiAccessAction action, uint64_t id, float value)
 {
     const muiAccessRequest request = {.action = action, .target = id, .value = value};
-    return muiActMarked(&adapter->busy, adapter->action, adapter->user, &request);
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    fprintf(stderr, "%lld.%03ld act action=%d target=%llu active=%llu\n", (long long)now.tv_sec,
+            now.tv_nsec / 1000000, (int)action, (unsigned long long)id,
+            (unsigned long long)muiRecordActiveFocus(adapter->tree));
+    bool done = muiActMarked(&adapter->busy, adapter->action, adapter->user, &request);
+    fprintf(stderr, "  done=%d\n", done);
+    return done;
 }
 
 // A box in units, in the view's points, flipped or not.

@@ -25,7 +25,7 @@
 
 import { nvda, voiceOver } from "@guidepup/guidepup";
 import { spawn, spawnSync } from "node:child_process";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, openSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { basename, dirname, extname, join } from "node:path";
@@ -178,7 +178,8 @@ const web = sample.endsWith(".js");
 if (web) {
   await reader.start({ capture: true });
 }
-const app = web ? await startWeb(sample) : spawn(sample, [], { stdio: "ignore" });
+const app = web ? await startWeb(sample)
+  : spawn(sample, [], { stdio: ["ignore", "ignore", openSync(`${out}/sample.txt`, "w")] });
 await sleep(web ? 10000 : 5000);
 if (!web) {
   await reader.start({ capture: true });
@@ -209,6 +210,7 @@ for (const line of readFileSync(steps, "utf8").split("\n")) {
     expected.push(rest.join(" "));
     continue;
   }
+  console.error(`${(Date.now() / 1000).toFixed(3)} step ${line.trim()}`);
   if (verb === "key") {
     await reader.press(keyOf(rest[0]));
   } else if (verb === "type") {
@@ -231,6 +233,7 @@ for (const line of readFileSync(steps, "utf8").split("\n")) {
   const log = await reader.spokenPhraseLog();
   const where = web ? ` [${await app.focused()}]`
     : process.platform === "win32" ? ` [uia ${uiaFocus()}]` : "";
+  console.error(`${(Date.now() / 1000).toFixed(3)} settled`);
   told.push(`${line.trim()}\t${log.slice(said).join(" | ")}${where}`);
   said = log.length;
 }

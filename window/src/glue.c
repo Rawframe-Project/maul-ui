@@ -9,6 +9,8 @@
 // erases, and its barrel the secondary, as the W3C's Pointer Events number
 // them.
 
+#include <stdio.h>
+#include <time.h>
 #include "maul-ui-window/glue.h"
 
 #include "allocator.h"
@@ -360,7 +362,13 @@ static muiResult Key(muiWindowGlue* glue, const mwinEvent* event, bool* handledO
         .repeat = key->repeat,
         .player = glue->player,
     };
-    return muiKeyInput(glue->context, glue->root, &input, handledOut);
+    muiResult keyed = muiKeyInput(glue->context, glue->root, &input, handledOut);
+    struct timespec now;
+    clock_gettime(CLOCK_REALTIME, &now);
+    fprintf(stderr, "%lld.%03ld key code=%d down=%d mods=%u handled=%d status=%d\n",
+            (long long)now.tv_sec, now.tv_nsec / 1000000, (int)input.code, (int)input.down,
+            (unsigned)input.modifiers, handledOut != NULL ? (int)*handledOut : -1, (int)keyed);
+    return keyed;
 }
 
 static muiResult Text(muiWindowGlue* glue, const mwinEvent* event, bool* handledOut)
