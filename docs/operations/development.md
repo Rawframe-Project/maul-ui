@@ -63,7 +63,7 @@ After any such change, regenerate on a machine with the tools. Other versions wr
 | Maul RHI | the release `cmake/Rhi.cmake` pins | a clean checkout at its tag |
 
 ```sh
-git clone --depth 1 --branch v0.6.0 https://github.com/Rawframe-Project/maul-rhi /tmp/maul-rhi
+git clone --depth 1 --branch v0.8.0 https://github.com/Rawframe-Project/maul-rhi /tmp/maul-rhi
 PATH=<dxc>/bin:$PATH python3 tools/gen_rhi_shaders.py /tmp/maul-rhi
 python3 tools/gen_rhi_shaders.py --check
 ```
