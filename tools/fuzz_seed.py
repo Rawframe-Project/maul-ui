@@ -11,7 +11,8 @@
 #   bytes fuzz_text reads first (an allocation to fail among them) and
 #   before edits of every kind;
 # - atspi: D-Bus method calls, marshalled as on the wire, of every method
-#   the adapter answers, on the root and each node of fuzz_atspi's tree;
+#   the adapter answers, on the root and each node of fuzz_atspi's tree,
+#   and the Text and EditableText ones on its two nodes with text;
 # - api: sequences of public calls in fuzz_api's encoding, trees made,
 #   styled and moved, then laid out and compared with a solve from
 #   nothing, and one for each further family of calls (destroying,
@@ -171,7 +172,8 @@ class Wire:
             self.signature(v)
         elif kind == "i":
             self.i32(v)
-        elif kind == "u":
+        elif kind in "ub":
+            # A boolean is a 32-bit 0 or 1 on the wire.
             self.u32(v)
         elif kind == "d":
             self.double(v)
@@ -234,12 +236,50 @@ CALLS = [
 ]
 
 
+TEXT = "org.a11y.atspi.Text"
+EDITABLE = "org.a11y.atspi.EditableText"
+# The Text and EditableText calls, for the nodes that have text: offsets
+# inside it, and boundaries of each kind.
+TEXT_CALLS = [
+    (TEXT, "GetText", "ii", (1, 9)),
+    (TEXT, "GetCharacterAtOffset", "i", (2,)),
+] + [(TEXT, m, "iu", (8, boundary)) for m in ("GetStringAtOffset", "GetTextAtOffset",
+                                              "GetTextBeforeOffset", "GetTextAfterOffset")
+     for boundary in (0, 2, 4)] + [
+    (TEXT, "SetCaretOffset", "i", (3,)),
+    (TEXT, "GetNSelections", "", ()),
+    (TEXT, "GetSelection", "i", (0,)),
+    (TEXT, "AddSelection", "ii", (2, 5)),
+    (TEXT, "RemoveSelection", "i", (0,)),
+    (TEXT, "SetSelection", "iii", (0, 1, 12)),
+    (TEXT, "GetCharacterExtents", "iu", (4, 0)),
+    (TEXT, "GetRangeExtents", "iiu", (2, 13, 1)),
+    (TEXT, "GetOffsetAtPoint", "iiu", (30, 45, 1)),
+    (TEXT, "GetAttributeRun", "ib", (3, 1)),
+    (TEXT, "GetDefaultAttributeSet", "", ()),
+    (TEXT, "GetAttributeValue", "is", (3, "weight")),
+    (TEXT, "ScrollSubstringTo", "iiu", (0, 4, 0)),
+    ("org.freedesktop.DBus.Properties", "Get", "ss", (TEXT, "CharacterCount")),
+    ("org.freedesktop.DBus.Properties", "Get", "ss", (TEXT, "CaretOffset")),
+    (EDITABLE, "SetTextContents", "s", ("na\u00efve",)),
+    (EDITABLE, "InsertText", "isi", (2, "x\u20ac", 4)),
+    (EDITABLE, "DeleteText", "ii", (1, 4)),
+    (EDITABLE, "CutText", "ii", (0, 3)),
+    (EDITABLE, "PasteText", "i", (2,)),
+]
+
+
 def atspi_seeds(directory):
     paths = ["root"] + [f"w1n{i}" for i in range(1, 8)]
     for p in paths:
         for i, (interface, member, signature, args) in enumerate(CALLS):
             data = method_call("/org/a11y/atspi/accessible/" + p, interface, member, signature, args)
             write(directory, f"{p}-{i:02d}-{member}", data)
+    # The label's value and the text input's.
+    for p in ("w1n3", "w1n6"):
+        for i, (interface, member, signature, args) in enumerate(TEXT_CALLS):
+            data = method_call("/org/a11y/atspi/accessible/" + p, interface, member, signature, args)
+            write(directory, f"{p}-text{i:02d}-{member}", data)
 
 
 def pick(index, count):
