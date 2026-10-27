@@ -34,17 +34,56 @@
 // therefore does no arithmetic of its own between entering and leaving:
 // it calls a worker marked MUI_NOINLINE, whose body cannot move out of
 // the call.
+//
+// WebAssembly has one environment, the library's, and nothing to switch:
+// there the entries and the host pairs are empty inline functions that
+// keep no depth, and MUI_NOINLINE is nothing, so a wrapper and its worker
+// compile to the worker alone.
 
 #ifndef MAUL_UI_SRC_FPENV_H
 #define MAUL_UI_SRC_FPENV_H
 
 #include <stdint.h>
 
-#if defined(_MSC_VER) && !defined(__clang__)
+#if defined(__wasm__)
+#define MUI_NOINLINE
+#elif defined(_MSC_VER) && !defined(__clang__)
 #define MUI_NOINLINE __declspec(noinline)
 #else
 #define MUI_NOINLINE __attribute__((noinline))
 #endif
+
+// The thread's state outside a call into host code: the register the
+// outermost entry saved and the depth.
+typedef struct muiFloatHost
+{
+    uint64_t saved;
+    uint32_t depth;
+} muiFloatHost;
+
+#if defined(__wasm__)
+
+static inline uint64_t muiFloatEnvEnter(void)
+{
+    return 0;
+}
+
+static inline void muiFloatEnvLeave(uint64_t token)
+{
+    (void)token;
+}
+
+static inline muiFloatHost muiFloatHostEnter(void)
+{
+    return (muiFloatHost){0, 0};
+}
+
+static inline void muiFloatHostLeave(muiFloatHost host)
+{
+    (void)host;
+}
+
+#else
 
 // Enters the library's environment: the outermost entry on a thread (or
 // the first inside host code) saves the host's control register and sets
@@ -60,19 +99,6 @@ uint64_t muiFloatEnvEnter(void);
 // host's control register, writing it only when it differs.
 void muiFloatEnvLeave(uint64_t token);
 
-// Runs body(context) inside an entry: a task body the library hands the
-// host's task hooks, which may run it on a thread in any mode. body is a
-// worker that does the arithmetic, so none moves out of the entry.
-void muiFloatEnvRun(void (*body)(void* context), void* context);
-
-// The thread's state outside a call into host code: the register the
-// outermost entry saved and the depth.
-typedef struct muiFloatHost
-{
-    uint64_t saved;
-    uint32_t depth;
-} muiFloatHost;
-
 // Before host code: inside an entry, writes the host's saved register
 // back and leaves no entry open; outside any, does nothing. Returns what
 // muiFloatHostLeave takes. Each call site puts the pair around the one
@@ -84,6 +110,13 @@ muiFloatHost muiFloatHostEnter(void);
 // inside an entry, the library's environment again, from the host's saved
 // register, whatever host code set.
 void muiFloatHostLeave(muiFloatHost host);
+
+#endif
+
+// Runs body(context) inside an entry: a task body the library hands the
+// host's task hooks, which may run it on a thread in any mode. body is a
+// worker that does the arithmetic, so none moves out of the entry.
+void muiFloatEnvRun(void (*body)(void* context), void* context);
 
 // The thread's control register as it is: MXCSR on x86 (with the x87
 // control word in bits 32 to 47 on 32-bit x86), FPCR on AArch64, 0 on

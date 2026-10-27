@@ -127,11 +127,12 @@ all_c_files() {
         'samples/*.[ch]' 'rhi/*.[ch]' 'window/*.[ch]' | grep -v -E '_container\.h$|^test/generated/'
 }
 
-# Runs the tests of a build tree whose labels match, integration tests
-# left out; by the tree rather than the test preset, whose own filter
-# would replace -LE.
+# Runs the tests of a build tree whose labels match, integration and
+# quarantined tests left out; by the tree rather than the test preset,
+# whose own filter would replace -LE.
 reached_tests() { # tree, label regex or ""
-    local tests=(ctest --test-dir "$out/$1" --output-on-failure --timeout 300 -j "$jobs" -LE '^integration$')
+    local tests=(ctest --test-dir "$out/$1" --output-on-failure --timeout 300 -j "$jobs"
+        -LE '^(integration|quarantine)$')
     [ -n "$2" ] && tests+=(-L "$2")
     if [ "$("${tests[@]}" -N | grep -c 'Test *#' || true)" -gt 0 ]; then
         "${tests[@]}"
