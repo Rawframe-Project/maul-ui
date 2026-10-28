@@ -323,7 +323,8 @@ static bool Reported(muiAccessTree* tree, const muiAccessUpdate* update, const c
 }
 
 // shownChanged: told once, before the focus, when the shown tree may
-// differ, and not otherwise.
+// differ, and not otherwise: a focus moving between nodes shown anyway
+// leaves it as it was.
 static void TestShownChanged(void)
 {
     muiAccessTreeDef def = muiDefaultAccessTreeDef();
@@ -391,7 +392,23 @@ static void TestShownChanged(void)
     two.bounds.height = 30.0f;
     CHECK(Reported(tree, &update, "~2 shown0 "), "the box of a node that clips");
     update = Update(justRoot, 1, grown, 0, 4);
-    CHECK(Reported(tree, &update, "~1 shown0 focus 1>4 "), "the focus moved");
+    CHECK(Reported(tree, &update, "~1 shown0 focus 1>4 "),
+          "the focus moved to a generic node without a label");
+    update = Update(justRoot, 1, grown, 0, 2);
+    CHECK(Reported(tree, &update, "~1 shown0 focus 4>2 "), "the focus moved away from it");
+    four.text[mui_accessLabel] = "four";
+    four.textLength[mui_accessLabel] = 4;
+    const muiAccessNode* justFour[1] = {&four};
+    update = Update(justFour, 1, NULL, 0, 0);
+    CHECK(Reported(tree, &update, "~4 shown0 "), "the generic node given a label");
+    update = Update(justRoot, 1, grown, 0, 4);
+    CHECK(Reported(tree, &update, "~1 focus 2>4 "), "the focus moved between nodes shown anyway");
+    update = Update(justRoot, 1, grown, 0, 2);
+    CHECK(Reported(tree, &update, "~1 focus 4>2 "), "and back");
+    four.flags = mui_accessHidden;
+    update = Update(justFour, 1, NULL, 0, 4);
+    CHECK(Reported(tree, &update, "~4 shown0 focus 2>4 "), "the focus moved to a hidden node");
+    four.flags = 0;
     muiAccessNode above = {.id = 9, .childCount = 1};
     const uint64_t aboveChildren[1] = {1};
     const muiAccessNode* justAbove[1] = {&above};
@@ -791,6 +808,38 @@ static void Focus(muiAccessTree* tree, uint64_t id)
 {
     muiAccessUpdate update = {NULL, 0, NULL, 0, id};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "focused");
+}
+
+// The focus moving through the scene: shownChanged only where it moves
+// to or from a node shown for holding it, a row clipped out, a generic
+// node or a hidden one; a node a hidden one holds is not shown either way.
+static void TestFocusMoves(void)
+{
+    static Built s_built;
+    BuildScene(&s_built);
+    muiAccessTreeDef def = muiDefaultAccessTreeDef();
+    muiAccessTree* tree = NULL;
+    CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
+    muiAccessUpdate update = {s_built.sent, s_built.nodeCount, s_built.children, 1, 1};
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "built");
+    const struct
+    {
+        uint64_t focus;
+        const char* expected;
+    } moves[] = {
+        {11, "focus 1>11 "},         {12, "focus 11>12 "},        {10, "shown0 focus 12>10 "},
+        {3, "shown0 focus 10>3 "},   {17, "focus 3>17 "},         {2, "shown0 focus 17>2 "},
+        {6, "shown0 focus 2>6 "},    {7, "shown0 focus 6>7 "},    {22, "focus 7>22 "},
+        {16, "shown0 focus 22>16 "}, {15, "shown0 focus 16>15 "},
+    };
+    bool all = true;
+    for (size_t i = 0; i < sizeof moves / sizeof moves[0]; i++)
+    {
+        update = (muiAccessUpdate){NULL, 0, NULL, 0, moves[i].focus};
+        all = Reported(tree, &update, moves[i].expected) && all;
+    }
+    CHECK(all, "shownChanged where the focus moves to or from a node shown for it");
+    muiDestroyAccessTree(tree);
 }
 
 static void TestShown(void)
@@ -1267,6 +1316,7 @@ int main(void)
     TestChurn();
     TestLeavingNotARing();
     TestShown();
+    TestFocusMoves();
     TestNamesAndBounds();
     TestTurnedBounds();
     TestMemory();

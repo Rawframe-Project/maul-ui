@@ -143,7 +143,7 @@ public final class TestActivity extends Activity {
         testActions(provider, button, label, field, box, slider);
         testText(provider, label, field, button);
         testLocations(provider, host, label);
-        testEvents(adapter, root, button, label, field, box, slider);
+        testEvents(adapter, button, label, field, box, slider);
         removeButton(adapter);
         check(provider.createAccessibilityNodeInfo(button) == null
                 && provider.createAccessibilityNodeInfo(root).getChildCount() == 5,
@@ -206,16 +206,15 @@ public final class TestActivity extends Activity {
     }
 
     // Content changes (2048) with their types, a focus (8).
-    private void testEvents(long adapter, int root, int button, int label, int field, int box,
-            int slider) {
+    private void testEvents(long adapter, int button, int label, int field, int box, int slider) {
         told(adapter, 1, "2048 " + button + " 4;", "a name as content description");
         told(adapter, 2, "2048 " + label + " 2;", "a label's name as text");
         told(adapter, 3, "2048 " + slider + " 64;", "a value text as state");
         told(adapter, 4, "2048 " + box + " 0;", "a state, unsaid");
         told(adapter, 5, "2048 " + field + " 0;", "a text field's name, its hint, unsaid");
         told(adapter, 6, "", "no change");
-        told(adapter, 7, "2048 " + root + " 1;8 " + field + " 0;",
-                "the focus moved: the subtree, then the view focused");
+        told(adapter, 7, "8 " + field + " 0;",
+                "the focus moved between nodes shown anyway: the view focused, no subtree");
         String got = toldAfter(adapter, 8);
         check(got.contains("8 " + box + " 0;"),
                 "a focused window's active descendant: the view focused, told \"" + got + "\"");

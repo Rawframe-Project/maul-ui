@@ -437,39 +437,58 @@ static MUI_NOINLINE void HostFocusMoved(const muiAccessChanges* changes, const m
     muiFloatHostLeave(host);
 }
 
+// Tells the host of the nodes added, in the update's order.
+static void ReportAdded(const muiAccessTree* tree, const muiAccessChanges* changes, uint32_t added)
+{
+    for (uint32_t i = 0; i < added && changes->added != nullptr; i++)
+    {
+        const muiHeldNode* held = &tree->held[tree->added[i] - 1];
+        if (held->node.id != 0)
+        {
+            HostAdded(changes, tree, held->node.id);
+        }
+    }
+}
+
+// Tells the host of the nodes updated and let go, each with what it was;
+// whether an updated one changed what the view reads.
+static bool ReportRetired(const muiAccessTree* tree, const muiAccessChanges* changes,
+                          uint32_t retired)
+{
+    bool reshaped = false;
+    for (uint32_t i = 0; i < retired; i++)
+    {
+        const muiRetiredNode* node = &tree->retired[i];
+        void (*report)(void*, const muiAccessTree*, const muiAccessNode*) =
+            node->removed ? changes->removed : changes->updated;
+        if (report != nullptr)
+        {
+            HostReport(report, changes->user, tree, &node->held.node);
+        }
+        reshaped =
+            reshaped || (!node->removed &&
+                         muiViewDiffers(tree, &node->held,
+                                        &tree->held[muiHeldSlotOf(tree, node->held.node.id) - 1]));
+    }
+    return reshaped;
+}
+
 static void Report(muiAccessTree* tree, const muiAccessChanges* changes, uint32_t added,
                    uint32_t retired, uint64_t oldRoot, uint64_t oldFocus)
 {
     if (changes != nullptr)
     {
-        // The root or the focus moves, or a record changes its children or
-        // what the view reads. Nodes come and go only so: a node added is
-        // listed by a parent whose children changed, or is the new root;
-        // one let go was left out by its parent, or went with the old
-        // root; a stray sent and let go was never shown.
-        bool shown = tree->root != oldRoot || tree->focus != oldFocus;
-        for (uint32_t i = 0; i < added && changes->added != nullptr; i++)
-        {
-            const muiHeldNode* held = &tree->held[tree->added[i] - 1];
-            if (held->node.id != 0)
-            {
-                HostAdded(changes, tree, held->node.id);
-            }
-        }
-        for (uint32_t i = 0; i < retired; i++)
-        {
-            const muiRetiredNode* node = &tree->retired[i];
-            void (*report)(void*, const muiAccessTree*, const muiAccessNode*) =
-                node->removed ? changes->removed : changes->updated;
-            if (report != nullptr)
-            {
-                HostReport(report, changes->user, tree, &node->held.node);
-            }
-            shown =
-                shown || (!node->removed &&
-                          muiViewDiffers(tree, &node->held,
-                                         &tree->held[muiHeldSlotOf(tree, node->held.node.id) - 1]));
-        }
+        // The root moves, the focus moves to or from a node shown only
+        // for holding it, or a record changes its children or what the
+        // view reads. Nodes come and go only so: a node added is listed
+        // by a parent whose children changed, or is the new root; one let
+        // go was left out by its parent, or went with the old root; a
+        // stray sent and let go was never shown.
+        bool shown = tree->root != oldRoot ||
+                     (tree->focus != oldFocus &&
+                      (muiShownForFocus(tree, oldFocus) || muiShownForFocus(tree, tree->focus)));
+        ReportAdded(tree, changes, added);
+        shown = ReportRetired(tree, changes, retired) || shown;
         if (shown && changes->shownChanged != nullptr)
         {
             HostShownChanged(changes, tree);

@@ -154,6 +154,34 @@ static uint32_t IndexIn(const muiAccessTree* tree, uint32_t parentSlot, uint64_t
     return index;
 }
 
+bool muiShownForFocus(const muiAccessTree* tree, uint64_t id)
+{
+    uint32_t slot = muiHeldSlotOf(tree, id);
+    if (slot == 0)
+    {
+        return false;
+    }
+    // As StatusOf reads it without the focus: hidden or flattened itself,
+    // or it or a node above it clipped out (HoldsFocus).
+    const muiAccessNode* node = &tree->held[slot - 1].node;
+    if ((node->flags & mui_accessHidden) != 0 ||
+        (node->role == mui_roleGeneric && node->text[mui_accessLabel] == nullptr))
+    {
+        return true;
+    }
+    uint32_t steps = 0;
+    for (uint32_t at = slot; tree->held[at - 1].parent != 0 && steps <= tree->count; steps++)
+    {
+        uint32_t parent = tree->held[at - 1].parent;
+        if (IsClippedOut(tree, parent, IndexIn(tree, parent, tree->held[at - 1].node.id)))
+        {
+            return true;
+        }
+        at = parent;
+    }
+    return false;
+}
+
 // Walks from the root down to a node: whether it is shown, and its
 // nearest ancestor shown.
 static bool Trace(const muiAccessTree* tree, uint32_t slot, uint32_t* shownParentOut)
