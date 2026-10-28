@@ -186,8 +186,9 @@ extern "C"
                                                      muiContext** contextOut);
 
     /// Destroys a context, every node in it and its memory. Every id it gave
-    /// out becomes meaningless. A call from host code the context runs, or
-    /// from its event function, destroys nothing and counts one misuse.
+    /// out becomes meaningless. A call while the context is busy, as from
+    /// host code it runs, or from its event function, destroys nothing and
+    /// counts one misuse.
     ///
     /// @param context  The context, or NULL for nothing.
     /// @par Thread safety

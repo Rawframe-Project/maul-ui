@@ -32,8 +32,9 @@ muiResult muiLayText(const muiTextHost* host, muiNodeId nodeId, float width, mui
     }
     out->lines = paragraph->service->lines.data;
     out->width = width;
-    muiFollowCaret(out, muiNode_GetContentRect(host->context, nodeId).height);
-    return mui_success;
+    return muiFollowCaret(out, muiNode_GetContentRect(host->context, nodeId).height)
+               ? mui_success
+               : mui_errorCapacity;
 }
 
 // A scroll kept between the least and the most a text needs.
@@ -53,14 +54,14 @@ static float Show(float scroll, float start, float end, float box)
     return end > scroll + box ? end - box : scroll;
 }
 
-void muiFollowCaret(muiLaidText* laid, float height)
+bool muiFollowCaret(muiLaidText* laid, float height)
 {
     muiParagraph* paragraph = &laid->paragraph;
     muiTextEditing* editing = &paragraph->source->editing;
     paragraph->scrollX = 0.0f;
     if (!editing->on || laid->lineCount == 0)
     {
-        return;
+        return true;
     }
     muiTextPosition caret = editing->selection.caret;
     caret.offset = muiMaskOffset(paragraph->source, caret.offset);
@@ -69,7 +70,7 @@ void muiFollowCaret(muiLaidText* laid, float height)
     bool rtl = false;
     if (!muiCaretX(laid, index, caret, &x, &rtl))
     {
-        return;
+        return false;
     }
     // The text's reach across, unscrolled: a line may start left of the
     // box, as a right-to-left one overflowing does.
@@ -99,6 +100,7 @@ void muiFollowCaret(muiLaidText* laid, float height)
         lines[i].top -= scrollY;
         lines[i].baseline -= scrollY;
     }
+    return true;
 }
 
 enum
