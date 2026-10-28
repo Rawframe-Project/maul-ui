@@ -138,6 +138,23 @@ static void Invalidate(muiContext* context, uint32_t root)
     }
 }
 
+// Marks host content that could not be measured to be measured again by
+// the next layout, as a change of content is; visits the subtree only
+// when some could not be.
+static void MarkUnmeasured(muiContext* context, uint32_t root, uint32_t unmeasured)
+{
+    muiTree* tree = &context->tree;
+    for (uint32_t at = root; at != 0 && unmeasured != 0; at = muiTreeNextIn(tree, root, at))
+    {
+        if (context->layout[at - 1].unmeasured)
+        {
+            context->layout[at - 1].unmeasured = false;
+            muiTreeMarkLayout(tree, at);
+            unmeasured--;
+        }
+    }
+}
+
 // Sizes the root in the host's space and lays its subtree out: a change
 // its subtree's answers bound is laid out there; any other clears every
 // owing node's cache.
@@ -201,6 +218,7 @@ static muiResult ComputeLayout(muiContext* context, muiNodeId rootId, const muiL
     // Exits whose transitions have ended, or never began, are reported.
     muiExitAdvance(context, root);
     NoteSafeArea(context, root, &input->safeArea);
+    uint32_t unmeasured = 0;
     muiSolver solver = {
         .tree = &context->tree,
         .nodes = context->layout,
@@ -216,6 +234,7 @@ static muiResult ComputeLayout(muiContext* context, muiNodeId rootId, const muiL
         .work = &context->work,
         .paddings = context->paddings,
         .safeArea = input->safeArea,
+        .unmeasured = &unmeasured,
     };
     muiSize size = SolveRoot(context, &solver, root, input);
     const muiRect rect = {0.0f, 0.0f, size.width, size.height};
@@ -232,7 +251,8 @@ static muiResult ComputeLayout(muiContext* context, muiNodeId rootId, const muiL
     muiVirtualWindows(context, root);
     // Popups go beside their anchors where layout and scrolling left them.
     muiPlacePopups(context, root);
-    return mui_success;
+    MarkUnmeasured(context, root, unmeasured);
+    return unmeasured != 0 ? mui_errorCapacity : mui_success;
 }
 
 static MUI_NOINLINE muiResult ComputeLayoutWorker(muiContext* context, muiNodeId rootId,

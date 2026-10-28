@@ -302,6 +302,18 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiDrawSink_AddRect(muiDrawSink* sink, muiRect rect,
                                                         muiColor color);
 
+    /// Tells the build that the paint function could not paint all it had
+    /// to, as when memory ran out: muiBuildDrawList keeps what it added
+    /// and answers mui_errorCapacity, and the next build paints the node
+    /// again rather than copying it.
+    ///
+    /// @param sink  The sink the paint function was given.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL sink.
+    /// @par Thread safety
+    /// Safe from any thread; the sink is used by one thread at a time, and
+    /// only during the call of the paint function given it.
+    MUI_NODISCARD MUI_API muiResult muiDrawSink_Fail(muiDrawSink* sink);
+
     /// Gives the part of the content box's plane the paint function's
     /// content can be seen in: within the surface and every clip it is
     /// drawn in, through the scales and scroll offsets above it. Rounded
@@ -346,7 +358,9 @@ extern "C"
     ///         `mui_errorBusy` while the context is busy; `mui_errorStale` for
     ///         a root that is gone; `mui_errorCapacity` when the list needs
     ///         more commands, clips, gradients or glyphs than the context's
-    ///         limits, which leaves the list empty.
+    ///         limits, which leaves the list empty, or when a paint function
+    ///         could not paint (muiDrawSink_Fail), which leaves the rest of the
+    ///         list and paints that node again in the next build.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId,

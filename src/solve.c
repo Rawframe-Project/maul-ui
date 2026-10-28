@@ -153,6 +153,14 @@ static MUI_NOINLINE muiSize HostMeasure(const muiSolver* solver, muiNodeId id, u
     return size;
 }
 
+// Notes host content that could not be measured: laid out as empty now,
+// and measured again by the next layout.
+static void Unmeasured(const muiSolver* solver, uint32_t node)
+{
+    solver->nodes[node - 1].unmeasured = true;
+    (*solver->unmeasured)++;
+}
+
 // The host's baseline function, run in the host's floating-point
 // environment.
 static MUI_NOINLINE float HostBaseline(const muiSolver* solver, muiNodeId id, uint64_t hostKey,
@@ -201,6 +209,10 @@ static muiSize SizeLeaf(const muiSolver* solver, uint32_t node, const muiSizingI
         solver->work->measured++;
         content = HostMeasure(solver, id, hostKey, ContentAxis(across, boxWidth),
                               ContentAxis(input->height, boxHeight));
+        if (isnan(content.width) || isnan(content.height))
+        {
+            Unmeasured(solver, node);
+        }
         content.width = SaneLength(content.width);
         content.height = SaneLength(content.height);
     }
@@ -729,7 +741,13 @@ static float LeafBaseline(const muiSolver* solver, uint32_t node, const muiSizin
     float height = fmaxf(input->height.size - muiBoxSum(&padding, style, false), 0.0f);
     muiNodeId id = muiTreeIdOf(solver->tree, node);
     uint64_t hostKey = muiTreeAt(solver->tree, node)->hostKey;
-    return top + HostBaseline(solver, id, hostKey, width, height);
+    float baseline = HostBaseline(solver, id, hostKey, width, height);
+    if (baseline == INFINITY)
+    {
+        Unmeasured(solver, node);
+        return NAN;
+    }
+    return top + baseline;
 }
 
 // A scroll container's baseline is held within its border box (CSS Box

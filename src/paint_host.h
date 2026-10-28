@@ -10,10 +10,12 @@
 #include "draw_store.h"
 #include "paint.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 
 // Calls the host's paint function for a node whose content is the
-// host's, painted at the origin, clip and opacity in state.
-void muiPaintHostContent(muiPainter* painter, uint32_t slot, const muiPaintState* state);
+// host's, painted at the origin, clip and opacity in state; false when
+// the function could not paint all it had to (muiDrawSink_Fail).
+bool muiPaintHostContent(muiPainter* painter, uint32_t slot, const muiPaintState* state);
 
 #endif // MAUL_UI_SRC_PAINT_HOST_H

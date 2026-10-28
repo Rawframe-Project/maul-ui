@@ -25,6 +25,8 @@ struct muiDrawSink
     // The content box's top left on the surface.
     float x;
     float y;
+    // Set when the paint function could not paint all it had to.
+    bool failed;
 };
 
 static bool IsUnit(float value)
@@ -150,6 +152,16 @@ static MUI_NOINLINE muiResult DrawSinkGetVisibleRectWorker(muiDrawSink* sink, mu
     return mui_success;
 }
 
+muiResult muiDrawSink_Fail(muiDrawSink* sink)
+{
+    if (sink == nullptr)
+    {
+        return mui_errorInvalid;
+    }
+    sink->failed = true;
+    return mui_success;
+}
+
 muiResult muiDrawSink_GetVisibleRect(muiDrawSink* sink, muiRect* rectOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
@@ -202,17 +214,18 @@ static MUI_NOINLINE void HostPaint(const muiPainter* painter, muiNodeId nodeId, 
     muiFloatHostLeave(host);
 }
 
-void muiPaintHostContent(muiPainter* painter, uint32_t slot, const muiPaintState* state)
+bool muiPaintHostContent(muiPainter* painter, uint32_t slot, const muiPaintState* state)
 {
     const muiContext* context = painter->context;
     const muiLayoutNode* layout = &context->layout[slot - 1];
     if (painter->paint == nullptr || layout->style.content != mui_contentHost)
     {
-        return;
+        return true;
     }
     const muiRect content = muiContentBoxOf(layout, &context->paddings[slot - 1]);
-    muiDrawSink sink = {painter, state, state->x + content.x, state->y + content.y};
+    muiDrawSink sink = {painter, state, state->x + content.x, state->y + content.y, false};
     const muiTreeNode* node = muiTreeAt(&context->tree, slot);
     HostPaint(painter, muiTreeIdOf(&context->tree, slot), node->hostKey, content.width,
               content.height, &sink);
+    return !sink.failed;
 }
