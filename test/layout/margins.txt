@@ -1,5 +1,5 @@
 # Automatic margins on flex items.
-# chrome 154.0.8037.57
+# chrome 155.0.8059.79
 
 fixture auto_margin_pushes_to_end available=500x400
 node width=200 height=50 => 0 0 200 50

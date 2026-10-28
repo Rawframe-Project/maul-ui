@@ -1,5 +1,5 @@
 # Host content measured by the host, and the automatic minimum size.
-# chrome 154.0.8037.57
+# chrome 155.0.8059.79
 
 fixture content_sizes_leaf available=500x400
 node => 0 0 69 34

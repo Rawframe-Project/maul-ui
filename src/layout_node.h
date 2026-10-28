@@ -100,6 +100,7 @@ typedef struct muiLayoutCache
     bool finalRtl : 1;
     bool finalContentHeight : 1;
     bool finalRatioPercent : 1;
+    bool finalRatioLines : 1;
     bool finalLooseHeight : 1;
     bool finalEarlyHeight : 1;
     muiSize finalSize;
