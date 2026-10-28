@@ -8,6 +8,7 @@
 #include "fpenv.h"
 #include "text_boxes.h"
 #include "text_entry.h"
+#include "text_host.h"
 #include "text_mask.h"
 
 #include "maul-ui/text_edit.h"
@@ -45,12 +46,12 @@ static MUI_NOINLINE muiResult TextHitTestWorker(const muiTextHost* host, muiNode
                                                 float width, float x, float y,
                                                 muiTextPosition* positionOut)
 {
-    muiTextService* entered = host != nullptr ? host->service : nullptr;
-    muiResult status = muiEnterText(entered);
+    bool held = false;
+    muiResult status = muiEnterTextHost(host, &held);
     if (status == mui_success)
     {
         status = muiHitText(host, nodeId, width, x, y, positionOut);
-        muiLeaveText(entered);
+        muiLeaveTextHost(host, held);
     }
     return status;
 }
@@ -102,12 +103,12 @@ static MUI_NOINLINE muiResult TextGetCaretWorker(const muiTextHost* host, muiNod
                                                  float width, muiTextPosition position,
                                                  muiTextCaret* caretOut)
 {
-    muiTextService* entered = host != nullptr ? host->service : nullptr;
-    muiResult status = muiEnterText(entered);
+    bool held = false;
+    muiResult status = muiEnterTextHost(host, &held);
     if (status == mui_success)
     {
         status = muiCaretOf(host, nodeId, width, position, caretOut);
-        muiLeaveText(entered);
+        muiLeaveTextHost(host, held);
     }
     return status;
 }
@@ -180,12 +181,12 @@ static MUI_NOINLINE muiResult TextGetRangeRectsWorker(const muiTextHost* host, m
                                                       muiRect* rects, uint32_t capacity,
                                                       uint32_t* countOut)
 {
-    muiTextService* entered = host != nullptr ? host->service : nullptr;
-    muiResult status = muiEnterText(entered);
+    bool held = false;
+    muiResult status = muiEnterTextHost(host, &held);
     if (status == mui_success)
     {
         status = TextGetRangeRects(host, nodeId, width, start, end, rects, capacity, countOut);
-        muiLeaveText(entered);
+        muiLeaveTextHost(host, held);
     }
     return status;
 }

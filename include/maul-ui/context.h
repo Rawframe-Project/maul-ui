@@ -10,7 +10,8 @@
 // answers mui_errorBusy and counts one misuse; muiDestroyContext does
 // nothing. The event function is the exception: the context is not busy
 // while it runs, and it may call all but the functions muiEventFunction
-// names.
+// names. A text call given a muiTextHost (maul-ui/text.h) keeps the
+// context busy in the same way while it runs.
 
 #ifndef MAUL_UI_CONTEXT_H
 #define MAUL_UI_CONTEXT_H

@@ -9,6 +9,7 @@
 
 #include "fpenv.h"
 #include "text_boxes.h"
+#include "text_host.h"
 #include "text_lines.h"
 #include "text_paragraph.h"
 #include "text_runs.h"
@@ -38,13 +39,13 @@ static MUI_NOINLINE muiSize MeasureTextWorker(void* user, muiNodeId nodeId, uint
                                               muiMeasureAxis width, muiMeasureAxis height)
 {
     const muiTextHost* host = user;
-    muiTextService* entered = host != nullptr ? host->service : nullptr;
-    if (muiEnterText(entered) != mui_success)
+    bool held = false;
+    if (muiEnterTextHost(host, &held) != mui_success)
     {
         return (muiSize){0.0f, 0.0f};
     }
     muiSize result = MeasureText(user, nodeId, hostKey, width, height);
-    muiLeaveText(entered);
+    muiLeaveTextHost(host, held);
     return result;
 }
 
@@ -299,13 +300,13 @@ static MUI_NOINLINE float TextBaselineWorker(void* user, muiNodeId nodeId, uint6
                                              float width, float height)
 {
     const muiTextHost* host = user;
-    muiTextService* entered = host != nullptr ? host->service : nullptr;
-    if (muiEnterText(entered) != mui_success)
+    bool held = false;
+    if (muiEnterTextHost(host, &held) != mui_success)
     {
         return NAN;
     }
     float result = TextBaseline(user, nodeId, hostKey, width, height);
-    muiLeaveText(entered);
+    muiLeaveTextHost(host, held);
     return result;
 }
 
@@ -424,11 +425,11 @@ static MUI_NOINLINE void PaintTextWorker(void* user, muiNodeId nodeId, uint64_t 
                                          float width, float height, muiDrawSink* sink)
 {
     const muiTextHost* host = user;
-    muiTextService* entered = host != nullptr ? host->service : nullptr;
-    if (muiEnterText(entered) == mui_success)
+    bool held = false;
+    if (muiEnterTextHost(host, &held) == mui_success)
     {
         PaintText(user, nodeId, hostKey, width, height, sink);
-        muiLeaveText(entered);
+        muiLeaveTextHost(host, held);
     }
 }
 
