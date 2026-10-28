@@ -10,10 +10,20 @@
 #define MAUL_UI_SRC_INVARIANT_H
 
 #if defined(NDEBUG)
-// sizeof keeps the operands used without evaluating them.
-#define MUI_ASSERT(cond) ((void)sizeof(cond))
+// sizeof keeps the operands used without evaluating them; the
+// conditional keeps a sizeof among them from reading as a mistake.
+#define MUI_ASSERT(cond) ((void)sizeof((cond) ? 1 : 0))
 #else
 #define MUI_ASSERT(cond) ((cond) ? (void)0 : __builtin_trap())
 #endif
+
+// Asserts that a call the library cannot have made wrong succeeded: the
+// call is made in every build, and what it returned checked where
+// assertions are. A status kept in a variable only an assertion reads
+// would be stored for nothing in a release build.
+static inline void muiAssertCall(bool succeeded)
+{
+    MUI_ASSERT(succeeded);
+}
 
 #endif // MAUL_UI_SRC_INVARIANT_H
