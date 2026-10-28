@@ -97,6 +97,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/color.c
     src/condition.c
     src/context.c
+    src/context_hold.c
     src/draw.c
     src/draw_transform.c
     src/flex.c

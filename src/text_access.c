@@ -12,6 +12,7 @@
 #include "text_boxes.h"
 #include "text_editing.h"
 #include "text_entry.h"
+#include "text_host.h"
 #include "text_mask.h"
 #include "text_service.h"
 
@@ -288,13 +289,13 @@ static MUI_NOINLINE bool AccessTextOfWorker(void* user, muiNodeId nodeId, uint64
                                             const muiRect* shown, muiAccessContent* contentOut)
 {
     const muiTextHost* host = user;
-    muiTextService* entered = host != nullptr ? host->service : nullptr;
-    if (muiEnterText(entered) != mui_success)
+    bool held = false;
+    if (muiEnterTextHost(host, &held) != mui_success)
     {
         return false;
     }
     bool result = AccessTextOf(user, nodeId, hostKey, shown, contentOut);
-    muiLeaveText(entered);
+    muiLeaveTextHost(host, held);
     return result;
 }
 
@@ -379,12 +380,12 @@ static MUI_NOINLINE muiResult TextPerformAccessActionWorker(const muiTextHost* h
                                                             const muiAccessRequest* request,
                                                             muiTextEditOutcome* outcomeOut)
 {
-    muiTextService* entered = host != nullptr ? host->service : nullptr;
-    muiResult status = muiEnterText(entered);
+    bool held = false;
+    muiResult status = muiEnterTextHost(host, &held);
     if (status == mui_success)
     {
         status = TextPerformAccessAction(host, request, outcomeOut);
-        muiLeaveText(entered);
+        muiLeaveTextHost(host, held);
     }
     return status;
 }
