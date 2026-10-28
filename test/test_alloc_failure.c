@@ -53,9 +53,8 @@ static void* Alloc(size_t size, size_t alignment, void* user)
     {
         return NULL;
     }
-    void* block = alignment <= alignof(max_align_t)
-                      ? malloc(size)
-                      : aligned_alloc(alignment, (size + alignment - 1) / alignment * alignment);
+    // The library asks for no more than malloc's alignment.
+    void* block = alignment <= alignof(max_align_t) ? malloc(size) : NULL;
     memory->live += block != NULL;
     return block;
 }
@@ -96,14 +95,29 @@ typedef struct World
     uint64_t output;
 } World;
 
-static uint64_t Hash(uint64_t hash, const void* bytes, size_t size)
+// Mixes a value into a hash, field by field: a struct's padding holds
+// what its storage held before.
+static uint64_t Mix(uint64_t hash, uint64_t value)
 {
-    const unsigned char* at = bytes;
-    for (size_t i = 0; i < size; i++)
-    {
-        hash = (hash ^ at[i]) * 1099511628211u;
-    }
-    return hash;
+    return (hash ^ value) * 1099511628211u;
+}
+
+static uint64_t Bits(float value)
+{
+    uint32_t bits = 0;
+    memcpy(&bits, &value, sizeof bits);
+    return bits;
+}
+
+static uint64_t MixRect(uint64_t hash, muiRect rect)
+{
+    return Mix(Mix(Mix(Mix(hash, Bits(rect.x)), Bits(rect.y)), Bits(rect.width)),
+               Bits(rect.height));
+}
+
+static uint64_t MixPosition(uint64_t hash, muiTextPosition position)
+{
+    return Mix(Mix(hash, position.offset), (uint64_t)position.affinity);
 }
 
 static char s_long[3000];
@@ -441,7 +455,7 @@ static muiResult HitTest(World* world)
 {
     muiTextPosition at = {0, mui_affinityDownstream};
     muiResult status = muiTextHitTest(&world->host, world->node, 300.0f, 50.0f, 50.0f, &at);
-    world->output = Hash(0, &at, sizeof at);
+    world->output = MixPosition(0, at);
     return status;
 }
 
@@ -450,7 +464,8 @@ static muiResult Caret(World* world)
     muiTextCaret caret = {0};
     muiResult status = muiTextGetCaret(&world->host, world->node, 300.0f,
                                        (muiTextPosition){2000, mui_affinityDownstream}, &caret);
-    world->output = Hash(0, &caret, sizeof caret);
+    world->output =
+        Mix(Mix(Mix(Mix(0, Bits(caret.x)), Bits(caret.y)), Bits(caret.height)), caret.rightToLeft);
     return status;
 }
 
@@ -460,7 +475,11 @@ static muiResult RangeRects(World* world)
     uint32_t count = 0;
     muiResult status =
         muiTextGetRangeRects(&world->host, world->node, 300.0f, 0, 30, rects, 64, &count);
-    world->output = Hash(Hash(0, &count, sizeof count), rects, sizeof rects);
+    world->output = Mix(0, count);
+    for (uint32_t i = 0; i < 64; i++)
+    {
+        world->output = MixRect(world->output, rects[i]);
+    }
     return status;
 }
 
@@ -470,7 +489,7 @@ static muiResult Move(World* world)
     muiResult status =
         muiTextMove(&world->host, world->node, 300.0f,
                     (muiTextPosition){1000, mui_affinityDownstream}, mui_moveLineDown, 0.0f, &at);
-    world->output = Hash(0, &at, sizeof at);
+    world->output = MixPosition(0, at);
     return status;
 }
 
@@ -635,8 +654,7 @@ static const Step s_steps[] = {
     {"muiGlyphAtlas_GetMultiField", NULL, AtlasGetMultiField},
 };
 
-// What the step could change: the block's text, selection and undo
-// state, and the context's and service's misuse.
+// What the step could change: the block's text and selection.
 static uint64_t Digest(const World* world)
 {
     const char* text = NULL;
@@ -654,7 +672,13 @@ static uint64_t Digest(const World* world)
     hash = (hash ^ selection.anchor) * 1099511628211u;
     hash = (hash ^ selection.caret.offset) * 1099511628211u;
     hash = (hash ^ length) * 1099511628211u;
-    return Hash(hash, &world->output, sizeof world->output);
+    return hash;
+}
+
+// What the step changed and answered.
+static uint64_t Outcome(const World* world)
+{
+    return Mix(Digest(world), world->output);
 }
 
 // The step's world digest and result with nothing failing.
@@ -669,7 +693,7 @@ static uint64_t Clean(const Step* step, muiResult* resultOut, uint64_t* countOut
     world.memory.count = 0;
     *resultOut = step->run(&world);
     *countOut = world.memory.count;
-    uint64_t digest = Digest(&world);
+    uint64_t digest = Outcome(&world);
     FreeWorld(&world);
     CHECK(world.memory.live == 0, "nothing leaked");
     return digest;
@@ -698,14 +722,15 @@ static void Sweep(const Step* step, bool verbose)
         muiResult result = step->run(&world);
         world.memory.failAt = 0;
         uint64_t after = Digest(&world);
+        uint64_t answered = Outcome(&world);
         muiResult again = result == mui_errorCapacity ? step->run(&world) : result;
-        uint64_t last = Digest(&world);
+        uint64_t last = Outcome(&world);
         FreeWorld(&world);
         // Refused and unchanged, then done as a clean run does it; or the
         // failure absorbed with the clean run's outcome.
         bool good = result == mui_errorCapacity
                         ? after == before && again == mui_success && last == done
-                        : result == mui_success && after == done;
+                        : result == mui_success && answered == done;
         refused += result == mui_errorCapacity && good;
         absorbed += result == mui_success && good;
         wrong += !good;
@@ -713,9 +738,9 @@ static void Sweep(const Step* step, bool verbose)
         {
             fprintf(stderr, "%s: allocation %u of %u failing: %d, %s, then %d, %s\n", step->name,
                     (unsigned)failAt, (unsigned)count, (int)result,
-                    after == before ? "unchanged"
-                    : after == done ? "as done"
-                                    : "changed",
+                    after == before    ? "unchanged"
+                    : answered == done ? "as done"
+                                       : "changed",
                     (int)again, last == done ? "as done" : "not as done");
         }
         if (world.memory.live != 0)
