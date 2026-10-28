@@ -5,9 +5,12 @@
 // FreeType and HarfBuzz read them, and Maul UI's own code reads their
 // metrics, axes, colour layers and paint graphs and their CBLC, CBDT and
 // sbix bitmaps (src/bitmap_glyph.c, src/colr_paint.c, src/png.c). Any
-// bytes are opened as a font or refused. One opened has its metrics read
-// and a text in several scripts laid out and painted in it, a bold, an
-// italic and a larger span making instances; then every glyph painted is
+// bytes are opened as a font or refused. One opened has its metrics read,
+// and its first faces make a family: a face is matched for weights and
+// slants from its axes, weight, width and style (src/font_family.c), and
+// a text in several scripts is laid out and painted in the family, a
+// bold, an italic and a larger span choosing faces and making
+// instances; then every glyph painted is
 // rendered as an image, a distance field, a multi-channel field and a
 // colour glyph, each succeeding or refusing as malformed or too large,
 // never touching memory it does not own, and everything freed after. The
@@ -38,6 +41,8 @@ enum
     MAX_GLYPHS = 48,
     // The glyph ids rendered by id, from 0.
     MAX_IDS = 64,
+    // The faces of a collection opened, the first included.
+    MAX_FACES = 4,
     PIXEL_BYTES = 1 << 18
 };
 
@@ -111,9 +116,56 @@ static void RenderIds(muiTextService* service, uint32_t glyphCount)
                                sizeof s_pixels) == mui_errorInvalid);
 }
 
-// Lays out and paints the text in the service's default font, spans
-// asking for instances of it.
-static void Paint(muiTextService* service)
+// Opens the input's further faces, up to MAX_FACES with the first, in
+// fonts after it; each is opened or refused as malformed. Returns how
+// many fonts there are.
+static uint32_t OpenFaces(muiTextService* service, const uint8_t* data, size_t size, uint32_t faces,
+                          muiFontId* fonts)
+{
+    uint32_t count = 1;
+    for (uint32_t index = 1; index < faces && index < MAX_FACES; index++)
+    {
+        muiFontDef fontDef = muiDefaultFontDef();
+        fontDef.data = data;
+        fontDef.size = size;
+        fontDef.faceIndex = index;
+        muiResult created = muiCreateFont(service, &fontDef, &fonts[count]);
+        Expect(created == mui_success || created == mui_errorFormat ||
+               created == mui_errorCapacity);
+        count += created == mui_success ? 1 : 0;
+    }
+    return count;
+}
+
+// Matches a face of the family for weights at and around CSS's edges in
+// each slant: always one of its faces.
+static void MatchFaces(const muiTextService* service, muiFontFamilyId family,
+                       const muiFontId* fonts, uint32_t count)
+{
+    static const float s_weights[] = {1.0f,   100.0f, 399.0f, 400.0f, 450.0f,
+                                      500.0f, 501.0f, 700.0f, 1000.0f};
+    static const muiFontSlant s_slants[] = {mui_slantNormal, mui_slantItalic, mui_slantOblique};
+    for (size_t w = 0; w < sizeof s_weights / sizeof s_weights[0]; w++)
+    {
+        for (size_t s = 0; s < sizeof s_slants / sizeof s_slants[0]; s++)
+        {
+            muiFontId face = {0, 0};
+            Expect(muiFontFamily_MatchFace(service, family, s_weights[w], s_slants[s], &face) ==
+                   mui_success);
+            bool found = false;
+            for (uint32_t i = 0; i < count; i++)
+            {
+                found = found ||
+                        (face.index1 == fonts[i].index1 && face.generation == fonts[i].generation);
+            }
+            Expect(found);
+        }
+    }
+}
+
+// Lays out and paints the text in a font or family, spans asking for
+// faces and instances of it.
+static void Paint(muiTextService* service, uint64_t fontKey)
 {
     muiContextDef contextDef = muiDefaultContextDef();
     muiContext* context = nullptr;
@@ -139,11 +191,13 @@ static void Paint(muiTextService* service)
     layout.sizing.width = (muiDimension){0.0f, 120.0f, mui_dimensionValue};
     muiTextStyle style = muiDefaultTextStyle();
     style.size = (muiDimension){0.0f, 16.0f, mui_dimensionValue};
+    style.font = fontKey;
     Expect(muiNode_SetLayoutValues(context, node, &layout,
                                    MUI_PROPERTY_BIT(mui_propertyContent) |
                                        MUI_PROPERTY_BIT(mui_propertyWidth)) == mui_success &&
-           muiNode_SetTextValues(context, node, &style, MUI_PROPERTY_BIT(mui_propertyFontSize)) ==
-               mui_success);
+           muiNode_SetTextValues(context, node, &style,
+                                 MUI_PROPERTY_BIT(mui_propertyFontSize) |
+                                     MUI_PROPERTY_BIT(mui_propertyFont)) == mui_success);
     muiTextHost host = {service, context};
     const muiLayoutInput layoutInput = {1000.0f, 1000.0f, muiMeasureText, &host,
                                         0,       nullptr, {0, 0, 0, 0}};
@@ -180,10 +234,24 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
            (size < 12 && created == mui_errorInvalid));
     if (created == mui_success)
     {
+        muiFontId fonts[MAX_FACES] = {font};
+        uint32_t count = OpenFaces(service, data, size, faces, fonts);
+        // The first face is a fallback of the family and of the service
+        // too, which a chain holding it already skips.
+        const uint64_t fallback = muiFont_GetKey(font);
+        muiFontFamilyDef familyDef = muiDefaultFontFamilyDef();
+        familyDef.faces = fonts;
+        familyDef.faceCount = count;
+        familyDef.fallbacks = &fallback;
+        familyDef.fallbackCount = 1;
+        muiFontFamilyId family = {0, 0};
         muiFontMetrics metrics;
         Expect(muiFont_GetMetrics(service, font, &metrics) == mui_success &&
-               muiSetDefaultFont(service, font) == mui_success);
-        Paint(service);
+               muiSetDefaultFont(service, font) == mui_success &&
+               muiCreateFontFamily(service, &familyDef, &family) == mui_success &&
+               muiSetFallbackFonts(service, &fallback, 1) == mui_success);
+        MatchFaces(service, family, fonts, count);
+        Paint(service, muiFontFamily_GetKey(family));
         RenderIds(service, metrics.glyphCount);
     }
     muiDestroyTextService(service);
