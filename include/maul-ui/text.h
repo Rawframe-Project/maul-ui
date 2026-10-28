@@ -10,7 +10,10 @@
 // functions that change it runs. Host code they call then (the
 // allocator, FreeType's memory through it, the clipboard writer) calls
 // none of those: one answers mui_errorBusy, or an empty answer where it
-// returns no status, and counts one misuse.
+// returns no status, and counts one misuse. A call given a muiTextHost
+// also keeps the host's context busy (maul-ui/context.h): host code it
+// calls may read the context, and a change to it is refused with
+// mui_errorBusy and one misuse counted on the context.
 
 #ifndef MAUL_UI_TEXT_H
 #define MAUL_UI_TEXT_H

@@ -658,15 +658,24 @@ static muiSizingInput FinalInput(const muiFlexFrame* frame, uint32_t child)
             !muiFlexIsStretched(frame, style) && style->sizing.aspectRatio <= 0.0f && !given;
         // Its ratio's height holds its percentages unless stretched: a
         // row always, as Firefox; a column when stretching resized it,
-        // laid out again at that size (section 9.4 step 11, as Chrome).
+        // laid out again at that size (section 9.4 step 11, as Chrome),
+        // or when its single line's height is definite, which makes the
+        // stretched size definite from the start (section 9.8, as Chrome;
+        // Firefox too where that height came from stretching).
         muiFlexDirection direction = style->container.direction;
         bool column = direction == mui_flexColumn || direction == mui_flexColumnReverse;
+        bool single = muiFlexIsStretched(frame, style) && !frame->multiLine;
         // A single line of early height lays it out at that height from
-        // the start, whatever it is (as Chrome and Firefox).
-        bool early = muiFlexIsStretched(frame, style) && !frame->multiLine && frame->crossEarly;
-        input.ratioPercent = style->sizing.aspectRatio > 0.0f && !given &&
-                             (!muiFlexIsStretched(frame, style) ||
-                              (column && !ItemOf(frame, child)->resized && !early));
+        // the start, whatever it is, its lines too (as Chrome and Firefox).
+        bool early = single && frame->crossEarly;
+        bool held = style->sizing.aspectRatio > 0.0f && !given &&
+                    (!muiFlexIsStretched(frame, style) ||
+                     (column && !ItemOf(frame, child)->resized && !early));
+        // A definite line takes its percentages, not where a column that
+        // wraps breaks its lines: still at the ratio's height (as Chrome).
+        bool definite = single && frame->extentCross >= 0.0f;
+        input.ratioPercent = held && !definite;
+        input.ratioLines = held && definite;
         input.looseHeight = frame->crossLoose && muiFlexIsStretched(frame, style) && !given;
         input.earlyHeight = early;
     }

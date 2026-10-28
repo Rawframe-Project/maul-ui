@@ -97,6 +97,7 @@ add_library(maul-ui ${MAUL_LIBRARY_KIND}
     src/color.c
     src/condition.c
     src/context.c
+    src/context_hold.c
     src/draw.c
     src/draw_transform.c
     src/flex.c
@@ -539,6 +540,8 @@ if(MAUL_UI_BUILD_TESTS)
         maul_add_test(reentry_text)
         maul_add_test(alloc_failure)
         target_include_directories(test_alloc_failure PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
+        maul_add_test(glyph_bytes)
+        target_include_directories(test_glyph_bytes PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         target_include_directories(test_reentry_text PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(outputs_text)
         maul_add_test(text_fuzz)

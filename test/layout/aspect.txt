@@ -1,5 +1,5 @@
 # Aspect ratio: a definite size on one axis gives the other.
-# chrome 154.0.8037.57
+# chrome 155.0.8059.79
 
 fixture aspect_width_gives_height available=500x400
 node width=300 height=200 align-items=start => 0 0 300 200
@@ -1332,3 +1332,37 @@ fixture ratio_minimum_in_wrapping_row_at_its_height available=500x400
 node height=75%+20 wrap=wrap-reverse => 0 0 220 320
   node content=20x20*8 => 0 0 160 320
   node width=120 basis=60 aspect=0.5 => 160 0 60 320
+
+# A column with a ratio, stretched in a single line whose height is
+# definite (here through stretching in a wrapping row above it), is
+# definite at its stretched height from the start, so its children's
+# percentage heights resolve against it, even where its content already
+# made it that tall and stretching changed nothing (Chrome and Firefox).
+fixture ratio_column_stretched_in_a_stretched_row_resolves_percentages_at_its_stretch available=500x400
+node => 0 0 40 120
+  node wrap=wrap => 0 0 40 120
+    node aspect=2 => 0 0 40 120
+      node width=50% max-height=40 aspect=1 direction=column => 0 0 20 40
+        node height=100% content=30x40*3 => 0 0 20 40
+        node height=30 => 0 40 20 0
+      node height=120 => 20 0 0 120
+
+# The same in a row whose height its own ratio gives. The engines part:
+# Chrome stretches the column and resolves at its stretched height, as
+# here; Firefox keeps the column at its ratio's height.
+fixture ratio_column_stretched_in_a_ratio_row_resolves_percentages_at_its_stretch available=500x400
+node aspect=2 width=40 => 0 0 40 120
+  node width=50% max-height=40 aspect=1 direction=column => 0 0 20 40
+    node width=10 height=100% => 0 0 10 22.859375
+    node height=30 => 0 22.859375 20 17.140625
+  node height=120 => 20 0 0 120
+
+# In a row whose height is its content's, the stretched size is not
+# definite. The engines part: Chrome resolves the percentages against
+# the ratio's height, as here; Firefox against the stretched height.
+fixture ratio_column_stretched_in_a_content_row_resolves_percentages_at_its_ratio available=500x400
+node width=40 => 0 0 40 120
+  node width=50% max-height=40 aspect=1 direction=column => 0 0 20 40
+    node height=100% content=30x40*3 => 0 0 20 20
+    node height=30 => 0 20 20 20
+  node height=120 => 20 0 0 120

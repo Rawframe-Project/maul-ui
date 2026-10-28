@@ -13,6 +13,7 @@
 #include "fpenv.h"
 #include "text_editing.h"
 #include "text_entry.h"
+#include "text_host.h"
 #include "text_service.h"
 
 #include "maul-ui/layout.h"
@@ -121,12 +122,12 @@ muiResult muiEditMove(const muiTextHost* host, muiNodeId nodeId, muiTextMovement
 static MUI_NOINLINE muiResult TextEditMoveWorker(const muiTextHost* host, muiNodeId nodeId,
                                                  muiTextMovement movement, bool extend)
 {
-    muiTextService* entered = host != nullptr ? host->service : nullptr;
-    muiResult status = muiEnterText(entered);
+    bool held = false;
+    muiResult status = muiEnterTextHost(host, &held);
     if (status == mui_success)
     {
         status = muiEditMove(host, nodeId, movement, extend);
-        muiLeaveText(entered);
+        muiLeaveTextHost(host, held);
     }
     return status;
 }
@@ -308,12 +309,12 @@ static MUI_NOINLINE muiResult TextEditPressWorker(const muiTextHost* host, muiNo
                                                   float x, float y, uint32_t clickCount,
                                                   bool extend)
 {
-    muiTextService* entered = host != nullptr ? host->service : nullptr;
-    muiResult status = muiEnterText(entered);
+    bool held = false;
+    muiResult status = muiEnterTextHost(host, &held);
     if (status == mui_success)
     {
         status = muiEditPress(host, nodeId, x, y, clickCount, extend);
-        muiLeaveText(entered);
+        muiLeaveTextHost(host, held);
     }
     return status;
 }
@@ -345,12 +346,12 @@ muiResult muiEditDrag(const muiTextHost* host, muiNodeId nodeId, float x, float 
 static MUI_NOINLINE muiResult TextEditDragWorker(const muiTextHost* host, muiNodeId nodeId, float x,
                                                  float y)
 {
-    muiTextService* entered = host != nullptr ? host->service : nullptr;
-    muiResult status = muiEnterText(entered);
+    bool held = false;
+    muiResult status = muiEnterTextHost(host, &held);
     if (status == mui_success)
     {
         status = muiEditDrag(host, nodeId, x, y);
-        muiLeaveText(entered);
+        muiLeaveTextHost(host, held);
     }
     return status;
 }

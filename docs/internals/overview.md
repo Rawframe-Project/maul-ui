@@ -53,6 +53,8 @@ The library calls into the host only inside the call that needs it:
 
 A function the context is running may read the context but not change it. A change is refused with `mui_errorBusy` and counted as misuse. The event function is the exception: it may edit the tree, focus and capture, but not feed input ([Interaction](interaction.md#routing)).
 
+Host code may also not change another object the running call reads. A text component call given a `muiTextHost` holds the host's context for the whole call ([context_hold.h](../../src/context_hold.h)): the service's allocator, FreeType's memory through it and the clipboard writer may read that context, and a change to it is refused and counted as if the context's own host code made it. Without the hold, an allocator that destroyed the context while the service laid a text out made the call read freed memory. No other call reads a second object across host code: an atlas reads its service's font record only before it allocates, an access tree reads an update only before it reports changes, and an adapter's tree is its own.
+
 ## What lives where
 
 - [Node tree](node-tree.md): the context block, ids, links and dirty tracking.

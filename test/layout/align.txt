@@ -1,5 +1,5 @@
 # Justification along the main axis and alignment across it.
-# chrome 154.0.8037.57
+# chrome 155.0.8059.79
 
 fixture justify_end available=500x400
 node width=200 height=50 justify=end => 0 0 200 50

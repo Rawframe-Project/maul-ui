@@ -167,6 +167,7 @@ static void LayOutAlone(const muiSolver* solver, const Checked* checked)
         .rtl = checked->old.finalRtl,
         .contentHeight = checked->old.finalContentHeight,
         .ratioPercent = checked->old.finalRatioPercent,
+        .ratioLines = checked->old.finalRatioLines,
         .looseHeight = checked->old.finalLooseHeight,
         .earlyHeight = checked->old.finalEarlyHeight,
     };

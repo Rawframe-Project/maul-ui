@@ -1,5 +1,5 @@
 # Reversed directions and gaps.
-# chrome 154.0.8037.57
+# chrome 155.0.8059.79
 
 fixture row_reverse available=500x400
 node width=200 height=50 direction=row-reverse => 0 0 200 50
