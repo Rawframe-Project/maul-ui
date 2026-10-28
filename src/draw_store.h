@@ -47,6 +47,9 @@ typedef struct muiPaintState
     // during its build, how many had before it.
     uint32_t culled;
     uint32_t culledBefore;
+    // Set when its host content could not be painted in the last build,
+    // which then marks it to be painted again.
+    bool unpainted;
 } muiPaintState;
 
 // One list's tables. Entry 0 of the clips and gradients is the

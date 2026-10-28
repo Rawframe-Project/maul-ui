@@ -139,12 +139,19 @@ static void LayOut(Scene* scene, bool paint)
 {
     const muiLayoutInput layoutInput = {scene->width, 1000.0f,     muiMeasureText, &scene->host, 0,
                                         nullptr,      {0, 0, 0, 0}};
-    Expect(muiComputeLayout(scene->context, scene->node, &layoutInput) == mui_success);
+    // mui_errorCapacity exactly when the service ran out of memory.
+    uint64_t failures = muiGetTextServiceFailures(scene->service);
+    muiResult laid = muiComputeLayout(scene->context, scene->node, &layoutInput);
+    Expect(laid == (muiGetTextServiceFailures(scene->service) != failures ? mui_errorCapacity
+                                                                          : mui_success));
     if (paint)
     {
         const muiDrawInput drawInput = {1, 1.0f, muiPaintText, &scene->host};
         muiDrawList list = {0};
-        Expect(muiBuildDrawList(scene->context, scene->node, &drawInput) == mui_success &&
+        failures = muiGetTextServiceFailures(scene->service);
+        muiResult painted = muiBuildDrawList(scene->context, scene->node, &drawInput);
+        Expect(painted == (muiGetTextServiceFailures(scene->service) != failures ? mui_errorCapacity
+                                                                                 : mui_success) &&
                muiGetDrawList(scene->context, &list) == mui_success);
     }
     // The selection stays within the text.

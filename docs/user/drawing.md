@@ -49,7 +49,7 @@ static void PaintGauge(void* user, muiNodeId nodeId, uint64_t hostKey, float wid
 }
 ```
 
-A node 200 units wide and a quarter full is painted as one box 50 units wide, which lands 100 device pixels wide at a scale of 2. For long content, `muiDrawSink_GetVisibleRect` tells the part of the content box that can be seen, so only that is painted.
+A node 200 units wide and a quarter full is painted as one box 50 units wide, which lands 100 device pixels wide at a scale of 2. For long content, `muiDrawSink_GetVisibleRect` tells the part of the content box that can be seen, so only that is painted. A paint function that cannot paint all it has to, as when its memory ran out, calls `muiDrawSink_Fail`: `muiBuildDrawList` keeps what was added and returns `mui_errorCapacity`, and the next build paints the node again rather than copying it from this list.
 
 An image is a visual value: a host key naming the image, with nine-slice insets, a tint and a repeat mode. The library never loads images; the renderer looks the key up.
 

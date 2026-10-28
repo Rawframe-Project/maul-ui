@@ -341,14 +341,18 @@ extern "C"
     // depend on the request alone, and content that fits within a size is
     // to measure the same within any smaller one it still fits, as text
     // broken greedily into lines does: layout keeps answers and gives them
-    // again to such requests.
+    // again to such requests. A width or height of NaN is content that
+    // could not be measured now, as when memory ran out: it is laid out as
+    // empty, not kept, and measured again by the next layout, and
+    // muiComputeLayout answers mui_errorCapacity.
     typedef muiSize (*muiMeasureFunction)(void* user, muiNodeId nodeId, uint64_t hostKey,
                                           muiMeasureAxis width, muiMeasureAxis height);
 
     // Returns the first baseline of a node's host content laid out at a
     // content-box size: its distance down from the content box's top, or
-    // NaN when the content has none. It runs as the measure function does,
-    // with the same user pointer.
+    // NaN when the content has none, or +infinity when it could not be
+    // found now, which layout takes as a measure function's NaN. It runs as
+    // the measure function does, with the same user pointer.
     typedef float (*muiBaselineFunction)(void* user, muiNodeId nodeId, uint64_t hostKey,
                                          float width, float height);
 
@@ -438,7 +442,9 @@ extern "C"
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
     ///         id, a node with a parent or a negative or non-finite space;
     ///         `mui_errorBusy` while the context is busy; `mui_errorStale` for
-    ///         an id whose node is gone.
+    ///         an id whose node is gone; `mui_errorCapacity` when host content
+    ///         could not be measured (muiMeasureFunction), which is laid out
+    ///         as empty and measured again by the next call.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiComputeLayout(muiContext* context, muiNodeId rootId,

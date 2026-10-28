@@ -1871,6 +1871,99 @@ static void TestGlyphRunsRightToLeftAndLimits(void)
     muiDestroyContext(context);
 }
 
+// A paint function that adds one box per node, as wide as its host key;
+// a node of the key that fails tells the build so and adds nothing,
+// and one of the key that floods fills the list past its limit.
+typedef struct FailingHost
+{
+    uint64_t failKey;
+    uint64_t floodKey;
+} FailingHost;
+
+static void PaintFailing(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
+                         muiDrawSink* sink)
+{
+    (void)nodeId;
+    const FailingHost* host = user;
+    if (hostKey == host->failKey)
+    {
+        CHECK(muiDrawSink_Fail(sink) == mui_success, "told failed");
+        return;
+    }
+    (void)width;
+    for (int i = 0; i < (hostKey == host->floodKey ? 64 : 1); i++)
+    {
+        (void)muiDrawSink_AddRect(sink, (muiRect){0.0f, 0.0f, (float)hostKey, height}, s_gray);
+    }
+}
+
+static muiNodeId AddHosted(muiContext* context, muiNodeId root, uint64_t key)
+{
+    muiNodeDef def = muiDefaultNodeDef();
+    def.hostKey = key;
+    muiNodeId node = s_nullNode;
+    CHECK(muiCreateNode(context, &def, &node) == mui_success &&
+              muiNode_InsertChild(context, root, node, s_nullNode) == mui_success,
+          "hosted");
+    muiLayoutStyle layout = muiDefaultLayoutStyle();
+    layout.sizing.width = Length(20.0f);
+    layout.sizing.height = Length(20.0f);
+    layout.content = mui_contentHost;
+    CHECK(muiNode_SetLayoutValues(context, node, &layout, MUI_LAYOUT_PROPERTIES) == mui_success,
+          "host content");
+    return node;
+}
+
+// Whether the last list holds a box as wide as a host key.
+static bool HoldsKey(muiContext* context, uint64_t key)
+{
+    muiDrawList list = {0};
+    CHECK(muiGetDrawList(context, &list) == mui_success, "get");
+    for (uint32_t i = 0; i < list.commandCount; i++)
+    {
+        if (list.commands[i].kind == mui_drawBox && list.commands[i].box.rect.width == (float)key)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+// A paint function that fails is painted again by the next build, and
+// only it: a node that failed in a build too full to keep, then painted
+// fine, leaves nothing behind that takes the place of a later failure.
+static void TestPaintFailedAgain(void)
+{
+    muiLimits limits = muiDefaultContextDef().limits;
+    limits.drawCommands = 16;
+    muiContext* context = MakeContextWith(limits);
+    muiNodeId root = Add(context, s_nullNode, 200.0f, 100.0f, (muiEdges){0});
+    muiNodeId first = AddHosted(context, root, 1);
+    muiNodeId second = AddHosted(context, root, 2);
+    (void)first;
+    const muiLayoutInput layout = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
+    FailingHost host = {1, 2};
+    const muiDrawInput input = {7, 1.0f, PaintFailing, &host};
+    CHECK(muiComputeLayout(context, root, &layout) == mui_success &&
+              muiBuildDrawList(context, root, &input) == mui_errorCapacity,
+          "the first fails in a list too full to keep");
+    host = (FailingHost){0, 0};
+    CHECK(muiBuildDrawList(context, root, &input) == mui_success && HoldsKey(context, 1) &&
+              HoldsKey(context, 2),
+          "both painted the next time");
+    host = (FailingHost){2, 0};
+    CHECK(muiNode_MarkContentChanged(context, second) == mui_success &&
+              muiComputeLayout(context, root, &layout) == mui_success &&
+              muiBuildDrawList(context, root, &input) == mui_errorCapacity &&
+              HoldsKey(context, 1) && !HoldsKey(context, 2),
+          "the second fails");
+    host = (FailingHost){0, 0};
+    CHECK(muiBuildDrawList(context, root, &input) == mui_success && HoldsKey(context, 1) &&
+              HoldsKey(context, 2),
+          "and is painted again the next time");
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestBoxes();
@@ -1889,6 +1982,7 @@ int main(void)
     TestTablePaddingIsZero();
     TestGlyphRunsRightToLeftAndLimits();
     TestVisibleRect();
+    TestPaintFailedAgain();
     if (getenv(UPDATE_VARIABLE) != NULL)
     {
         WriteGolden();

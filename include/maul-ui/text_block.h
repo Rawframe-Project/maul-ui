@@ -287,8 +287,9 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiSetFallbackFonts(muiTextService* service,
                                                         const uint64_t* keys, uint32_t count);
 
-    /// Counts the times a block could not be laid out for want of memory,
-    /// and so measured as empty and painted nothing.
+    /// Counts the times a block could not be laid out for want of memory.
+    /// Its measure then answers NaN and its painting calls
+    /// muiDrawSink_Fail, so that layout and the next build ask again.
     ///
     /// @param service  The service; NULL gives 0.
     /// @return The count.
@@ -309,8 +310,9 @@ extern "C"
     /// @param hostKey  The block's key.
     /// @param width    The width request.
     /// @param height   The height request, which the text does not use.
-    /// @return The content box size; 0 by 0, with one misuse counted,
-    ///         while the service is busy.
+    /// @return The content box size; NaN by NaN when memory runs out,
+    ///         which layout measures again (muiMeasureFunction); 0 by 0, with
+    ///         one misuse counted, while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service and context are used by one
     /// thread at a time.
@@ -328,7 +330,8 @@ extern "C"
     /// @param width    The content box's width.
     /// @param height   The content box's height.
     /// @param sink     Where the runs go. Nothing goes there, and one misuse
-    ///                 is counted, while the service is busy.
+    ///                 is counted, while the service is busy. When memory
+    ///                 runs out the text is told failed (muiDrawSink_Fail).
     /// @par Thread safety
     /// Safe from any thread; the service and context are used by one
     /// thread at a time.
@@ -379,7 +382,8 @@ extern "C"
     /// @return The baseline's distance down from the content box's top;
     ///         NaN for empty text, which has no lines, where
     ///         muiMeasureText measures nothing, and while the service is
-    ///         busy, which counts one misuse.
+    ///         busy, which counts one misuse; +infinity when memory runs
+    ///         out, which layout asks again (muiBaselineFunction).
     /// @par Thread safety
     /// Safe from any thread; the service and context are used by one
     /// thread at a time.

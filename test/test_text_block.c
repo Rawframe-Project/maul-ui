@@ -931,11 +931,28 @@ static void TestBaselines(void)
     FreeScene(&scene);
 }
 
+// Lays out and paints a node whose service's memory may run out: each
+// answers mui_errorCapacity when the service counted a failure in it.
+static void LayOutAndPaint(Scene* scene, muiNodeId node, float width)
+{
+    const muiLayoutInput layout = {width, 1000.0f, muiMeasureText, &scene->host,
+                                   0,     NULL,    {0, 0, 0, 0}};
+    uint64_t failures = muiGetTextServiceFailures(scene->service);
+    muiResult laid = muiComputeLayout(scene->context, node, &layout);
+    bool failed = muiGetTextServiceFailures(scene->service) != failures;
+    CHECK(laid == (failed ? mui_errorCapacity : mui_success), "layout");
+    const muiDrawInput input = {1, 1.0f, muiPaintText, &scene->host};
+    failures = muiGetTextServiceFailures(scene->service);
+    muiResult painted = muiBuildDrawList(scene->context, node, &input);
+    failed = muiGetTextServiceFailures(scene->service) != failures;
+    CHECK(painted == (failed ? mui_errorCapacity : mui_success), "paint");
+}
+
 static void TestMemoryRunningOut(void)
 {
-    // Each allocation of shaping and painting fails in turn: the block
-    // measures as empty, the service counts it, and nothing leaks (the
-    // sanitizers check).
+    // Each allocation of shaping and painting fails in turn: the service
+    // counts it, layout or the build that met it answers
+    // mui_errorCapacity, and nothing leaks (the sanitizers check).
     for (int failAt = 1; failAt < 40; failAt++)
     {
         FailingAllocator failing = {0, 0};
@@ -944,9 +961,7 @@ static void TestMemoryRunningOut(void)
                                  "ab cd\xE2\x80\xAE"
                                  "ef");
         failing = (FailingAllocator){0, failAt};
-        Layout(&scene, node, 1000.0f);
-        const muiDrawInput input = {1, 1.0f, muiPaintText, &scene.host};
-        CHECK(muiBuildDrawList(scene.context, node, &input) == mui_success, "paint");
+        LayOutAndPaint(&scene, node, 1000.0f);
         bool failed = failing.allocations >= failAt;
         CHECK(failed == (muiGetTextServiceFailures(scene.service) != 0), "counted");
         FreeScene(&scene);
@@ -959,9 +974,7 @@ static void TestMemoryRunningOut(void)
         muiNodeId node = AddBreakTest(&scene, "A x A-V");
         SetWidth(&scene, node, 1000.0f);
         failing = (FailingAllocator){0, failAt};
-        Layout(&scene, node, 100000.0f);
-        const muiDrawInput input = {1, 1.0f, muiPaintText, &scene.host};
-        CHECK(muiBuildDrawList(scene.context, node, &input) == mui_success, "paint");
+        LayOutAndPaint(&scene, node, 100000.0f);
         bool failed = failing.allocations >= failAt;
         CHECK(failed == (muiGetTextServiceFailures(scene.service) != 0), "counted");
         FreeScene(&scene);
