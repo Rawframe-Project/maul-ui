@@ -405,6 +405,11 @@ static void TestShownChanged(void)
     CHECK(Reported(tree, &update, "~1 focus 2>4 "), "the focus moved between nodes shown anyway");
     update = Update(justRoot, 1, grown, 0, 2);
     CHECK(Reported(tree, &update, "~1 focus 4>2 "), "and back");
+    // The root is shown whatever it is, generic and without a label here.
+    update = Update(justRoot, 1, grown, 0, 1);
+    CHECK(Reported(tree, &update, "~1 focus 2>1 "), "the focus moved to the root");
+    update = Update(justRoot, 1, grown, 0, 2);
+    CHECK(Reported(tree, &update, "~1 focus 1>2 "), "the focus moved away from the root");
     four.flags = mui_accessHidden;
     update = Update(justFour, 1, NULL, 0, 4);
     CHECK(Reported(tree, &update, "~4 shown0 focus 2>4 "), "the focus moved to a hidden node");

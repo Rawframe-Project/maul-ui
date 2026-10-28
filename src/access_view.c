@@ -157,7 +157,8 @@ static uint32_t IndexIn(const muiAccessTree* tree, uint32_t parentSlot, uint64_t
 bool muiShownForFocus(const muiAccessTree* tree, uint64_t id)
 {
     uint32_t slot = muiHeldSlotOf(tree, id);
-    if (slot == 0)
+    // The root is shown whatever it is (Trace).
+    if (slot == 0 || id == tree->root)
     {
         return false;
     }
