@@ -15,14 +15,15 @@
 // @guidepup/guidepup is installed where Node finds it. The
 // sample, built with a window, starts and is given the keyboard; the
 // screen reader starts; the steps go to it as keys, in the steps files'
-// form (key, type, hold, wait, focus, expect). <out-dir> receives
+// form (key, type, hold, wait, focus, expect, heard). <out-dir> receives
 // speech.txt, a line per utterance, steps.txt, each step with what was
 // said after it (and, on the web, what the page had focused; on Windows,
 // what UI Automation reports focused), on macOS
 // stack.txt, the sample's threads as the walk ends, and on the web
 // tree.json, the browser's accessibility tree at the end. The exit
 // status is 1 when a phrase expected was not said after the one listed
-// before it, or nothing was.
+// before it, a phrase heard was not said in reply to its step, or
+// nothing was.
 
 import { nvda, voiceOver } from "@guidepup/guidepup";
 import { spawn, spawnSync } from "node:child_process";
@@ -200,7 +201,10 @@ if (web) {
 }
 const told = [];
 const expected = [];
+const unheard = [];
 let said = 0;
+// Where the speech in reply to the last key, text or held key starts.
+let acted = 0;
 for (const line of readFileSync(steps, "utf8").split("\n")) {
   const [verb, ...rest] = line.trim().split(/\s+/);
   if (verb === "" || verb.startsWith("#")) {
@@ -209,6 +213,20 @@ for (const line of readFileSync(steps, "utf8").split("\n")) {
   if (verb === "expect") {
     expected.push(rest.join(" "));
     continue;
+  }
+  if (verb === "heard") {
+    // Said in reply to that step or the steps since it (focus, wait),
+    // not before it: a reader reading the page as it loads says a name
+    // a Tab must reach.
+    const phrase = rest.join(" ");
+    const reply = (await reader.spokenPhraseLog()).slice(acted).join("\n").toLowerCase();
+    if (!reply.includes(phrase.toLowerCase())) {
+      unheard.push(phrase);
+    }
+    continue;
+  }
+  if (verb === "key" || verb === "type" || verb === "hold") {
+    acted = said;
   }
   if (verb === "key") {
     await reader.press(keyOf(rest[0]));
@@ -270,4 +288,7 @@ for (const phrase of expected) {
 for (const phrase of missing) {
   console.error(`not said in order: ${phrase}`);
 }
-process.exit(log.length === 0 || missing.length !== 0 ? 1 : 0);
+for (const phrase of unheard) {
+  console.error(`not said in reply to its step: ${phrase}`);
+}
+process.exit(log.length === 0 || missing.length !== 0 || unheard.length !== 0 ? 1 : 0);

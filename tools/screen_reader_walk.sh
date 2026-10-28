@@ -22,6 +22,10 @@
 #   expect Notes      a phrase the reader must have said, in any case,
 #                     after the phrase expected before it; every screen
 #                     reader's walk checks it
+#   heard Notes       a phrase said in reply to the last key, text or
+#                     held key, or the steps since it; checked by
+#                     tools/screen_reader/walk.mjs, which reads the
+#                     speech step by step; skipped here
 #
 # Lines starting with # are skipped. Each key and text waits 1.5 seconds
 # for Orca. The display defaults to :143. Needs Xvfb, xdpyinfo,
@@ -100,7 +104,7 @@ dbus-run-session -- bash -c '
           xdotool keydown "$1"; sleep 0.3; xdotool key "$2"; sleep 1.5
           xdotool keyup "$1"; sleep 0.5 ;;
       wait) sleep "$rest" ;;
-      expect|focus) continue ;;
+      expect|heard|focus) continue ;;
       *) echo "unknown step: $verb" >&2 ;;
       esac
       echo "$verb $rest" >>"$WALK_OUT/steps.txt"

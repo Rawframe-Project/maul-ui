@@ -10,6 +10,8 @@ wait 10
 key Tab
 key Tab
 focus
+# Notes reached by this Tab, not read from the page before it.
+heard Notes
 type hello world
 key Left
 hold ctrl Left
