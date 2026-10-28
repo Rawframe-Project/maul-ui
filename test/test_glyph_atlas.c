@@ -344,11 +344,16 @@ static void TestContract(void)
     bad[9].plotWidth = 16;
     bad[9].plotHeight = 16;
     bad[10].pageHeight = 1000;
+    // Sides, pages and plots past their bounds are limits; the rest is
+    // the def's own shape.
+    const muiResult refusals[11] = {mui_errorInvalid, mui_errorLimit,   mui_errorLimit,
+                                    mui_errorLimit,   mui_errorLimit,   mui_errorInvalid,
+                                    mui_errorInvalid, mui_errorInvalid, mui_errorLimit,
+                                    mui_errorLimit,   mui_errorInvalid};
     muiGlyphAtlas* atlas = (muiGlyphAtlas*)&def;
     for (int i = 0; i < 11; i++)
     {
-        CHECK(muiCreateGlyphAtlas(fixture.service, &bad[i], &atlas) == mui_errorInvalid &&
-                  atlas == NULL,
+        CHECK(muiCreateGlyphAtlas(fixture.service, &bad[i], &atlas) == refusals[i] && atlas == NULL,
               "a def refused");
     }
     CHECK(muiCreateGlyphAtlas(NULL, &def, &atlas) == mui_errorInvalid &&
@@ -369,21 +374,23 @@ static void TestContract(void)
               muiGlyphAtlas_Get(fixture.atlas, fixture.ahem, FIRST_BOX, 10.0f, 0.0f, 0.0f, NULL) ==
                   mui_errorInvalid,
           "NULL arguments to get");
-    const float sizes[] = {0.0f, NAN, 4097.0f};
+    const float sizes[] = {0.0f, NAN, 1.0f / 128.0f, 4097.0f};
     for (size_t i = 0; i < sizeof sizes / sizeof sizes[0]; i++)
     {
         CHECK(muiGlyphAtlas_Get(fixture.atlas, fixture.ahem, FIRST_BOX, sizes[i], 0.0f, 0.0f,
-                                &glyph) == mui_errorInvalid,
+                                &glyph) == (i < 2 ? mui_errorInvalid : mui_errorLimit),
               "a size refused");
     }
+    // Not a number, or past the farthest pen.
     const float pens[] = {NAN, INFINITY, 16777218.0f, -16777218.0f};
     for (size_t i = 0; i < sizeof pens / sizeof pens[0]; i++)
     {
-        CHECK(Get(&fixture, FIRST_BOX, pens[i], 0.0f, &glyph) == mui_errorInvalid &&
-                  Get(&fixture, FIRST_BOX, 0.0f, pens[i], &glyph) == mui_errorInvalid,
+        muiResult refused = i < 2 ? mui_errorInvalid : mui_errorLimit;
+        CHECK(Get(&fixture, FIRST_BOX, pens[i], 0.0f, &glyph) == refused &&
+                  Get(&fixture, FIRST_BOX, 0.0f, pens[i], &glyph) == refused,
               "a pen refused");
     }
-    CHECK(Get(&fixture, FIRST_BOX, 16777216.0f, -16777216.0f, &glyph) == mui_success &&
+    CHECK(Get(&fixture, FIRST_BOX, MUI_MAX_ATLAS_PEN, -MUI_MAX_ATLAS_PEN, &glyph) == mui_success &&
               glyph.x == 16777216 && glyph.y == -16777224,
           "the farthest pen");
     CHECK(Get(&fixture, LAST_BOX + 1, 0.0f, 0.0f, &glyph) == mui_errorInvalid &&
@@ -483,17 +490,17 @@ static void TestFields(void)
               muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem, FIRST_BOX, 0.0f, 2, &other) ==
                   mui_errorInvalid &&
               muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem, FIRST_BOX, 10.0f, 1, &other) ==
-                  mui_errorInvalid &&
+                  mui_errorLimit &&
               muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem, FIRST_BOX, 10.0f, 33, &other) ==
-                  mui_errorInvalid &&
+                  mui_errorLimit &&
               muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem, 100000, 10.0f, 2, &other) ==
                   mui_errorInvalid &&
               muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem + 1, FIRST_BOX, 10.0f, 2,
                                      &other) == mui_errorStale &&
               muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem + 1, FIRST_BOX, 10.0f, 1,
-                                     &other) == mui_errorInvalid &&
+                                     &other) == mui_errorLimit &&
               muiGlyphAtlas_GetField(fixture.atlas, fixture.ahem + 1, FIRST_BOX, 10.0f, 33,
-                                     &other) == mui_errorInvalid,
+                                     &other) == mui_errorLimit,
           "fields outside the contract");
     Free(&fixture);
 }
@@ -565,15 +572,15 @@ static void TestMultiFields(void)
               page.format == mui_atlasOneChannel,
           "coverage in the atlas of one channel");
     CHECK(muiGlyphAtlas_GetMultiField(fixture.atlas, fixture.ahem, FIRST_BOX, 10.0f, 2, &other) ==
-                  mui_errorInvalid &&
+                  mui_errorUnsupported &&
               muiGlyphAtlas_GetField(atlas, fixture.ahem, FIRST_BOX, 10.0f, 2, &other) ==
-                  mui_errorInvalid &&
+                  mui_errorUnsupported &&
               muiGlyphAtlas_Get(atlas, fixture.ahem, FIRST_BOX, 10.0f, 0.0f, 0.0f, &other) ==
-                  mui_errorInvalid &&
+                  mui_errorUnsupported &&
               muiGlyphAtlas_GetMultiField(NULL, fixture.ahem, FIRST_BOX, 10.0f, 2, &other) ==
                   mui_errorInvalid &&
               muiGlyphAtlas_GetMultiField(atlas, fixture.ahem, FIRST_BOX, 10.0f, 1, &other) ==
-                  mui_errorInvalid,
+                  mui_errorLimit,
           "each kind refused by the other atlas");
     // In a later frame, fields of 24 to 27 pixels with their gutters, one
     // to a plot, leave no room: a small one empties a plot, and what the
@@ -673,11 +680,12 @@ static void TestColorGlyphs(void)
     CHECK(muiGlyphAtlas_GetColor(atlas, fixture.ahem, FIRST_BOX, 10.0f, 0.0f, 0.0f, 0, green,
                                  &glyph) == mui_empty,
           "a font without COLR empty");
-    CHECK(muiGlyphAtlas_Get(atlas, color, 1, 10.0f, 0.0f, 0.0f, &glyph) == mui_errorInvalid &&
-              muiGlyphAtlas_GetField(atlas, color, 1, 10.0f, 2, &glyph) == mui_errorInvalid &&
-              muiGlyphAtlas_GetMultiField(atlas, color, 1, 10.0f, 2, &glyph) == mui_errorInvalid &&
+    CHECK(muiGlyphAtlas_Get(atlas, color, 1, 10.0f, 0.0f, 0.0f, &glyph) == mui_errorUnsupported &&
+              muiGlyphAtlas_GetField(atlas, color, 1, 10.0f, 2, &glyph) == mui_errorUnsupported &&
+              muiGlyphAtlas_GetMultiField(atlas, color, 1, 10.0f, 2, &glyph) ==
+                  mui_errorUnsupported &&
               muiGlyphAtlas_GetColor(fixture.atlas, color, 1, 10.0f, 0.0f, 0.0f, 0, green,
-                                     &glyph) == mui_errorInvalid &&
+                                     &glyph) == mui_errorUnsupported &&
               muiGlyphAtlas_GetColor(NULL, color, 1, 10.0f, 0.0f, 0.0f, 0, green, &glyph) ==
                   mui_errorInvalid &&
               muiGlyphAtlas_GetColor(atlas, color, 1, 10.0f, 0.0f, 0.0f, 0, green, NULL) ==

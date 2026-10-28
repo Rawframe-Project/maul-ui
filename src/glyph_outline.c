@@ -14,6 +14,8 @@
 #include FT_MULTIPLE_MASTERS_H
 #include FT_OUTLINE_H
 
+#include <math.h>
+
 muiResult muiGlyphFailed(FT_Error error)
 {
     return FT_ERROR_BASE(error) == FT_Err_Out_Of_Memory ? mui_errorCapacity : mui_errorFormat;
@@ -120,9 +122,21 @@ muiFont* muiGlyphFontOf(const muiTextService* service, uint64_t font, uint32_t g
     return *result == mui_success ? record : nullptr;
 }
 
-bool muiIsGlyphSizeValid(float pixelSize)
+muiResult muiGlyphSizeStatus(float pixelSize)
 {
-    return pixelSize >= 1.0f / 64.0f && pixelSize <= MUI_MAX_GLYPH_PIXEL_SIZE;
+    if (!isfinite(pixelSize) || pixelSize <= 0.0f)
+    {
+        return mui_errorInvalid;
+    }
+    return pixelSize >= MUI_MIN_GLYPH_PIXEL_SIZE && pixelSize <= MUI_MAX_GLYPH_PIXEL_SIZE
+               ? mui_success
+               : mui_errorLimit;
+}
+
+muiResult muiFieldSpreadStatus(uint32_t spread)
+{
+    return spread >= MUI_MIN_FIELD_SPREAD && spread <= MUI_MAX_FIELD_SPREAD ? mui_success
+                                                                            : mui_errorLimit;
 }
 
 muiPixelBox muiPixelBoxOf(FT_BBox box)

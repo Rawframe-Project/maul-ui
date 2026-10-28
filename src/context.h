@@ -105,11 +105,22 @@ struct muiContext
 // Counts one refused call and returns mui_errorInvalid for it.
 muiResult muiRefuse(muiContext* context);
 
-// Counts one call back in and returns mui_errorState for it.
+// Counts one argument past a fixed bound and returns mui_errorLimit for
+// it.
+muiResult muiRefuseLimit(muiContext* context);
+
+// Counts one refused argument and returns status, mui_errorInvalid or
+// mui_errorLimit, for it.
+static inline muiResult muiRefuseAs(muiContext* context, muiResult status)
+{
+    return status == mui_errorLimit ? muiRefuseLimit(context) : muiRefuse(context);
+}
+
+// Counts one call back in and returns mui_errorBusy for it.
 muiResult muiRefuseBusy(muiContext* context);
 
 // Marks the context busy for one of its functions that change it:
-// mui_success, or mui_errorState with one misuse counted when it is busy
+// mui_success, or mui_errorBusy with one misuse counted when it is busy
 // already. A NULL context is left to the function.
 muiResult muiEnter(muiContext* context);
 

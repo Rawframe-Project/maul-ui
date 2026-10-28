@@ -53,7 +53,7 @@ static void Expect(bool condition)
 static bool IsAllowed(muiResult result)
 {
     return result == mui_success || result == mui_errorInvalid || result == mui_errorCapacity ||
-           result == mui_empty;
+           result == mui_errorState || result == mui_empty;
 }
 
 // The service's memory: allocation failAt fails (counting from 1, 0 for

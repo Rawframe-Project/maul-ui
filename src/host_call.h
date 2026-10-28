@@ -21,7 +21,7 @@
 
 // Marks an owner busy for one of its functions that change it: whether it
 // was idle. A busy one counts one misuse, and the call is refused with
-// mui_errorState.
+// mui_errorBusy.
 static inline bool muiEnterMarked(bool* busy, uint64_t* misuse)
 {
     if (*busy)

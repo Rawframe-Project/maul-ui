@@ -801,7 +801,8 @@ static void TestContract(void)
     muiDestroyContext(context);
     muiContextDef def = muiDefaultContextDef();
     def.limits.pointers = 33;
-    CHECK(muiCreateContext(&def, &context) == mui_errorInvalid, "at most 32 pointers");
+    def.limits.pointers = MUI_MAX_POINTERS + 1;
+    CHECK(muiCreateContext(&def, &context) == mui_errorLimit, "at most MUI_MAX_POINTERS");
 }
 
 int main(void)

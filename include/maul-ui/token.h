@@ -83,7 +83,8 @@ extern "C"
     /// @param def         The token: a valid cookie and its value.
     /// @param tokenOut  Receives the token. The null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
-    ///         cookie or a value outside the def's; `mui_errorState` while the
+    ///         cookie or a value outside the def's; `mui_errorLimit` for a gradient of more than
+    ///         MUI_MAX_GRADIENT_STOPS stops; `mui_errorBusy` while the
     ///         context is busy; `mui_errorCapacity` when the context's token
     ///         limit is reached.
     /// @par Thread safety
@@ -97,7 +98,7 @@ extern "C"
     /// @param context  The context.
     /// @param tokenId  The token.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
-    ///         id; `mui_errorState` while the context is busy; `mui_errorStale`
+    ///         id; `mui_errorBusy` while the context is busy; `mui_errorStale`
     ///         for an id whose token is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -112,7 +113,9 @@ extern "C"
     ///                 takes it.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
     ///         id, a value of another type or outside muiCreateToken's;
-    ///         `mui_errorState` while the context is busy; `mui_errorStale` for
+    ///         `mui_errorLimit` for a gradient of more than
+    ///         MUI_MAX_GRADIENT_STOPS stops; `mui_errorBusy` while the
+    ///         context is busy; `mui_errorStale` for
     ///         an id whose token is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -127,7 +130,7 @@ extern "C"
     /// @param target   The token it gives the value of.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, a null id,
     ///         a target of another type or an alias that would lead back to the
-    ///         token; `mui_errorState` while the context is busy;
+    ///         token; `mui_errorBusy` while the context is busy;
     ///         `mui_errorStale` for a token or a target that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -170,7 +173,7 @@ extern "C"
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the null
     ///         class id, an unknown variant or property, a property of no token
     ///         type or another type than the token's or one the variant's
-    ///         condition reads; `mui_errorState` while the context is busy;
+    ///         condition reads; `mui_errorBusy` while the context is busy;
     ///         `mui_errorStale` for a class or a token that is gone;
     ///         `mui_errorCapacity` when the context's limit of token names, or
     ///         of property sets for a variant with nothing set, is reached.

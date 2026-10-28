@@ -46,10 +46,14 @@ static muiResult CreateToken(muiContext* context, const muiTokenDef* def, muiTok
     {
         return mui_errorInvalid;
     }
-    if (def == nullptr || tokenOut == nullptr || def->cookie != TOKEN_DEF_COOKIE ||
-        !muiIsTokenValueValid(&def->value))
+    if (def == nullptr || tokenOut == nullptr || def->cookie != TOKEN_DEF_COOKIE)
     {
         return muiRefuse(context);
+    }
+    muiResult valueStatus = muiTokenValueStatus(&def->value);
+    if (valueStatus != mui_success)
+    {
+        return muiRefuseAs(context, valueStatus);
     }
     muiTokenStore* store = &context->tokens;
     uint32_t slot = muiPoolTake(&store->pool);
@@ -133,9 +137,14 @@ static muiResult SetTokenValue(muiContext* context, muiTokenId tokenId, const mu
     {
         return mui_errorInvalid;
     }
-    if (value == nullptr || !muiIsTokenValueValid(value))
+    if (value == nullptr)
     {
         return muiRefuse(context);
+    }
+    muiResult valueStatus = muiTokenValueStatus(value);
+    if (valueStatus != mui_success)
+    {
+        return muiRefuseAs(context, valueStatus);
     }
     muiResult status = mui_success;
     uint32_t slot = ResolveEdit(context, tokenId, &status);

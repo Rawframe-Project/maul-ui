@@ -310,8 +310,8 @@ static void TestLimits(void)
 
     // A table per theme and token slot past size_t.
     limits = muiDefaultContextDef().limits;
-    limits.themes = 0x7FFFFFFF;
-    limits.tokens = 0x7FFFFFFF;
+    limits.themes = MUI_MAX_CONTEXT_LIMIT;
+    limits.tokens = MUI_MAX_CONTEXT_LIMIT;
     muiContextDef def = muiDefaultContextDef();
     def.limits = limits;
     muiContext* none = NULL;

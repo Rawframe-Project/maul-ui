@@ -51,7 +51,7 @@ static muiTextService* MakeTextService(const void* fontData, size_t fontSize)
 }
 ```
 
-A borrowed font's bytes must stay unchanged until the font is destroyed. Compressed web fonts (WOFF, WOFF2) are refused; decompress them first. The service is used by one thread at a time, like a context, and one service can serve several contexts.
+A borrowed font's bytes must stay unchanged until the font is destroyed. Compressed web fonts (WOFF, WOFF2) are refused with `mui_errorUnsupported`; decompress them first. The service is used by one thread at a time, like a context, and one service can serve several contexts.
 
 ## Labels
 

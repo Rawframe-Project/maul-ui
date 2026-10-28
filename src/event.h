@@ -16,7 +16,7 @@ typedef struct muiContext muiContext;
 
 // Whether the event function is running: what feeds input, dispatches,
 // performs an access action, sets the event function or destroys the
-// context is refused then with mui_errorState.
+// context is refused then with mui_errorBusy.
 bool muiIsRouting(const muiContext* context);
 
 // Routes an event to the node at target, down from the top of its tree

@@ -40,7 +40,7 @@ extern "C"
     /// @param nodeOut  Receives the node's id. The null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a bad
     ///         cookie; `mui_errorCapacity` when the context's node limit is
-    ///         reached; `mui_errorState` while the context is busy.
+    ///         reached; `mui_errorBusy` while the context is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiCreateNode(muiContext* context, const muiNodeDef* def,
@@ -56,7 +56,7 @@ extern "C"
     /// @param nodeId   The node.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
     ///         id; `mui_errorStale` for an id whose node is gone;
-    ///         `mui_errorState` while the context is busy.
+    ///         `mui_errorBusy` while the context is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiDestroyNode(muiContext* context, muiNodeId nodeId);
@@ -83,7 +83,7 @@ extern "C"
     ///         parent or child, a child that has a parent, a child that is the
     ///         parent or one of its ancestors, or a before id that is not the
     ///         parent's child; `mui_errorStale` for an id whose node is gone;
-    ///         `mui_errorState` while the context is busy.
+    ///         `mui_errorBusy` while the context is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_InsertChild(muiContext* context, muiNodeId parentId,
@@ -96,7 +96,7 @@ extern "C"
     /// @param nodeId   The node.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
     ///         id; `mui_errorStale` for an id whose node is gone;
-    ///         `mui_errorState` while the context is busy.
+    ///         `mui_errorBusy` while the context is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_Detach(muiContext* context, muiNodeId nodeId);

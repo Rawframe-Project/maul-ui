@@ -631,7 +631,7 @@ static void TestReplace(void)
               muiTextBlock_Replace(scene.service, scene.block, 11, 12, "x", 1) ==
                   mui_errorInvalid &&
               muiTextBlock_Replace(scene.service, scene.block, 0, 0, "x", 0x7FFFFFFF) ==
-                  mui_errorInvalid &&
+                  mui_errorLimit &&
               muiTextBlock_Replace(scene.service, scene.block, 0, 0, NULL, 1) == mui_errorInvalid &&
               muiTextBlock_Replace(NULL, scene.block, 0, 0, "x", 1) == mui_errorInvalid &&
               muiTextBlock_Replace(scene.service, (muiTextBlockId){0, 0}, 0, 0, "x", 1) ==
@@ -811,7 +811,7 @@ static void TestCompositionContract(void)
               muiTextBlock_SetComposition(scene.service, scene.block, 0, "x", 1, NULL, 1) ==
                   mui_errorInvalid &&
               muiTextBlock_SetComposition(scene.service, scene.block, 0, "xy", 2, many,
-                                          MUI_MAX_COMPOSITION_SEGMENTS + 1) == mui_errorInvalid &&
+                                          MUI_MAX_COMPOSITION_SEGMENTS + 1) == mui_errorLimit &&
               muiTextBlock_SetComposition(scene.service, scene.block, 0, "xy", 2, &past, 1) ==
                   mui_errorInvalid &&
               muiTextBlock_SetComposition(scene.service, scene.block, 0, "xy", 2, &unknown, 1) ==
@@ -819,7 +819,7 @@ static void TestCompositionContract(void)
               muiTextBlock_SetComposition(scene.service, scene.block, 0, "xy", 2, &start, 1) ==
                   mui_errorInvalid &&
               muiTextBlock_SetComposition(scene.service, scene.block, 0, "x", 0x7FFFFFFF, NULL,
-                                          0) == mui_errorInvalid &&
+                                          0) == mui_errorLimit &&
               muiTextBlock_SetComposition(scene.service, scene.block, 0, "xy", 2, many,
                                           MUI_MAX_COMPOSITION_SEGMENTS) == mui_success &&
               TextIs(&scene, "xyab"),

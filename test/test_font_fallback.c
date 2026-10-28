@@ -294,11 +294,11 @@ static void TestContract(void)
     uint64_t nine[9] = {ahem, ahem, ahem, ahem, ahem, ahem, ahem, ahem, ahem};
     CHECK(muiSetFallbackFonts(NULL, &ahem, 1) == mui_errorInvalid &&
               muiSetFallbackFonts(scene.service, NULL, 1) == mui_errorInvalid &&
-              muiSetFallbackFonts(scene.service, nine, 9) == mui_errorInvalid &&
+              muiSetFallbackFonts(scene.service, nine, MUI_MAX_FALLBACKS + 1) == mui_errorLimit &&
               muiSetFallbackFonts(scene.service, (uint64_t[]){0}, 1) == mui_errorInvalid &&
               muiSetFallbackFonts(scene.service, (uint64_t[]){ahem | 1ull << 40}, 1) ==
                   mui_errorInvalid &&
-              muiSetFallbackFonts(scene.service, nine, 8) == mui_success,
+              muiSetFallbackFonts(scene.service, nine, MUI_MAX_FALLBACKS) == mui_success,
           "keys outside the contract");
     muiFontId gone = MakeFont(scene.service, s_ahem, sizeof s_ahem);
     uint64_t goneKey = muiFont_GetKey(gone);
@@ -318,8 +318,8 @@ static void TestContract(void)
     muiFontFamilyId family = {0, 0};
     CHECK(muiCreateFontFamily(scene.service, &def, &family) == mui_errorInvalid, "NULL fallbacks");
     def.fallbacks = nine;
-    def.fallbackCount = 9;
-    CHECK(muiCreateFontFamily(scene.service, &def, &family) == mui_errorInvalid, "too many");
+    def.fallbackCount = MUI_MAX_FALLBACKS + 1;
+    CHECK(muiCreateFontFamily(scene.service, &def, &family) == mui_errorLimit, "too many");
     def.fallbacks = &goneKey;
     def.fallbackCount = 1;
     CHECK(muiCreateFontFamily(scene.service, &def, &family) == mui_errorStale && family.index1 == 0,

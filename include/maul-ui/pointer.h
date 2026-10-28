@@ -105,7 +105,7 @@ extern "C"
     ///                 MUI_MAX_PLAYERS.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
     ///         id or an event outside the above, which changes nothing;
-    ///         `mui_errorState` while the context is busy or its event function
+    ///         `mui_errorBusy` while the context is busy or its event function
     ///         runs; `mui_errorStale` for a root that is gone;
     ///         `mui_errorCapacity` for a new pointer past the context's
     ///         pointers limit.
@@ -195,7 +195,7 @@ extern "C"
     /// @param context    The context.
     /// @param recordOut  Receives the record. Zeroed on failure.
     /// @return `mui_success`; `mui_empty` when none is waiting;
-    ///         `mui_errorInvalid` for a NULL argument; `mui_errorState` while
+    ///         `mui_errorInvalid` for a NULL argument; `mui_errorBusy` while
     ///         the context is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -213,7 +213,7 @@ extern "C"
     /// @param nodeId   The node.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the null
     ///         id, a pointer the context does not know or that holds no button;
-    ///         `mui_errorState` while the context is busy; `mui_errorStale` for
+    ///         `mui_errorBusy` while the context is busy; `mui_errorStale` for
     ///         a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -227,7 +227,7 @@ extern "C"
     /// @param pointer  The host's id of the pointer.
     /// @return `mui_success`, also when it was not captured; `mui_errorInvalid`
     ///         for a NULL context or a pointer the context does not know;
-    ///         `mui_errorState` while the context is busy.
+    ///         `mui_errorBusy` while the context is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiPointer_ReleaseCapture(muiContext* context,
@@ -270,7 +270,7 @@ extern "C"
     /// @param intervalNs  The time between presses, in nanoseconds.
     /// @param distance    The distance on each axis, finite and at least 0.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context or a
-    ///         distance outside the above; `mui_errorState` while the context
+    ///         distance outside the above; `mui_errorBusy` while the context
     ///         is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -291,7 +291,7 @@ extern "C"
     /// @param kind     The kind: not 0.
     /// @param key      The host's key for the thing.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, a pointer
-    ///         not dragging or a kind of 0; `mui_errorState` while the context
+    ///         not dragging or a kind of 0; `mui_errorBusy` while the context
     ///         is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -306,7 +306,7 @@ extern "C"
     /// @param mouse    The distance for a mouse, finite and at least 0.
     /// @param touch    The distance for touch and pens, likewise.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context or a
-    ///         distance outside the above; `mui_errorState` while the context
+    ///         distance outside the above; `mui_errorBusy` while the context
     ///         is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.

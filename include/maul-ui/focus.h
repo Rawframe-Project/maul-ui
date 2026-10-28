@@ -55,7 +55,7 @@ extern "C"
     /// @param cause    What moved it.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, a player
     ///         or cause outside the above or a node that takes no focus, which
-    ///         changes nothing; `mui_errorState` while the context is busy;
+    ///         changes nothing; `mui_errorBusy` while the context is busy;
     ///         `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -87,7 +87,7 @@ extern "C"
     /// @param backward  Whether to go to the previous node.
     /// @return `mui_success`; `mui_empty` when no node there takes focus, which
     ///         leaves it; `mui_errorInvalid` for a NULL context, the null id or
-    ///         a player past MUI_MAX_PLAYERS; `mui_errorState` while the
+    ///         a player past MUI_MAX_PLAYERS; `mui_errorBusy` while the
     ///         context is busy; `mui_errorStale` for a root that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -125,7 +125,7 @@ extern "C"
     /// @return `mui_success`; `mui_empty` when nothing lies that way, which
     ///         leaves the focus; `mui_errorInvalid` for a NULL context, the
     ///         null id, a player past MUI_MAX_PLAYERS or an unknown direction;
-    ///         `mui_errorState` while the context is busy; `mui_errorStale` for
+    ///         `mui_errorBusy` while the context is busy; `mui_errorStale` for
     ///         a root that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -142,7 +142,7 @@ extern "C"
     /// @param direction  The direction.
     /// @param targetId   The node to move to; the null id removes the link.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the null
-    ///         id as the node or an unknown direction; `mui_errorState` while
+    ///         id as the node or an unknown direction; `mui_errorBusy` while
     ///         the context is busy; `mui_errorStale` for a node or target that
     ///         is gone; `mui_errorCapacity` past the context's neighbors limit.
     /// @par Thread safety

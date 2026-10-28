@@ -17,7 +17,7 @@
 #include <string.h>
 
 // Slots fit 32 bits with room for the index's doubling.
-#define MAX_NODES ((uint32_t)1 << 24)
+static_assert(MUI_MAX_ACCESS_NODES <= UINT32_MAX / 4, "the index's size fits 32 bits");
 
 // Where each part of a tree's block starts.
 typedef struct Parts
@@ -76,9 +76,13 @@ muiResult muiCreateAccessTree(const muiAccessTreeDef* def, muiAccessTree** treeO
     {
         return mui_errorVersion;
     }
-    if (!muiIsAllocatorValid(&def->allocator) || def->nodes == 0 || def->nodes > MAX_NODES)
+    if (!muiIsAllocatorValid(&def->allocator) || def->nodes == 0)
     {
         return mui_errorInvalid;
+    }
+    if (def->nodes > MUI_MAX_ACCESS_NODES)
+    {
+        return mui_errorLimit;
     }
     // The index stays at most half full.
     uint32_t indexSize = 2;

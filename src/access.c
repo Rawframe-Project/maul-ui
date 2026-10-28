@@ -17,7 +17,6 @@
 #include <string.h>
 
 // Texts are below 2^31 bytes, so a length and its NUL fit 32 bits.
-#define MAX_TEXT ((size_t)INT32_MAX)
 
 uint64_t muiAccessIdOf(muiNodeId nodeId)
 {
@@ -219,7 +218,11 @@ static muiResult NodeSetAccessText(muiContext* context, muiNodeId nodeId, muiAcc
     {
         return mui_errorInvalid;
     }
-    if (kind >= MUI_ACCESS_TEXTS || (text == nullptr && length != 0) || length > MAX_TEXT ||
+    if (length > MUI_MAX_TEXT_BYTES)
+    {
+        return muiRefuseLimit(context);
+    }
+    if (kind >= MUI_ACCESS_TEXTS || (text == nullptr && length != 0) ||
         !muiAccessIsUtf8((const unsigned char*)text, length))
     {
         return muiRefuse(context);
@@ -583,9 +586,13 @@ static muiResult NodeSetAccessRelation(muiContext* context, muiNodeId nodeId,
     {
         return mui_errorInvalid;
     }
-    if (kind >= MUI_ACCESS_RELATIONS || (targets == nullptr && count != 0) || count > UINT16_MAX)
+    if (kind >= MUI_ACCESS_RELATIONS || (targets == nullptr && count != 0))
     {
         return muiRefuse(context);
+    }
+    if (count > MUI_MAX_RELATION_TARGETS)
+    {
+        return muiRefuseLimit(context);
     }
     muiResult status = mui_success;
     uint32_t slot = muiResolveEdit(context, nodeId, &status);

@@ -160,8 +160,10 @@ static void TestConditionLifetime(void)
         CHECK(variants[i] == mui_variantCondition0 + i, "variants in order");
     }
     muiVariant variant = mui_variantPressed;
-    CHECK(muiStyle_AddCondition(context, style, &condition, &variant) == mui_errorCapacity,
-          "the limit");
+    uint64_t misuse = muiGetContextMisuse(context);
+    CHECK(muiStyle_AddCondition(context, style, &condition, &variant) == mui_errorLimit &&
+              muiGetContextMisuse(context) == misuse + 1,
+          "the limit, counted as misuse");
     CHECK(variant == mui_variantBase, "base on failure");
     muiCondition read;
     CHECK(muiStyle_GetCondition(context, style, variants[3], &read) == mui_success &&

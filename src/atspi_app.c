@@ -326,8 +326,8 @@ bool muiAtspiApp_IsRegistered(const muiAtspiApp* app)
 
 static bool IsValidAdapter(const muiAtspiAdapterDef* def)
 {
-    return def->cookie == ADAPTER_DEF_COOKIE && def->nodes != 0 &&
-           def->nodes <= ((uint32_t)1 << 24) && def->action != nullptr && def->scale > 0.0f;
+    return def->cookie == ADAPTER_DEF_COOKIE && def->nodes != 0 && def->action != nullptr &&
+           def->scale > 0.0f;
 }
 
 // The told records' map is at most half full.
@@ -378,6 +378,10 @@ static muiResult CreateAtspiAdapter(muiAtspiApp* app, const muiAtspiAdapterDef* 
     if (app == nullptr || def == nullptr || adapterOut == nullptr || !IsValidAdapter(def))
     {
         return mui_errorInvalid;
+    }
+    if (def->nodes > MUI_MAX_ACCESS_NODES)
+    {
+        return mui_errorLimit;
     }
     if (app->windowCount == app->windowCapacity)
     {
@@ -430,7 +434,7 @@ static MUI_NOINLINE muiResult CreateAtspiAdapterWorker(muiAtspiApp* app,
     }
     if (!muiEnterMarked(&app->busy, &app->misuse))
     {
-        return mui_errorState;
+        return mui_errorBusy;
     }
     muiResult result = CreateAtspiAdapter(app, def, adapterOut);
     app->misuse += result == mui_errorInvalid;
@@ -510,7 +514,7 @@ static MUI_NOINLINE muiResult AtspiAdapterSetScaleWorker(muiAtspiAdapter* adapte
     }
     if (!muiEnterMarked(&adapter->app->busy, &adapter->app->misuse))
     {
-        return mui_errorState;
+        return mui_errorBusy;
     }
     muiResult result = AtspiAdapterSetScale(adapter, scale);
     adapter->app->misuse += result == mui_errorInvalid;

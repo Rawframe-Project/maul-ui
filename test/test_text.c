@@ -92,9 +92,9 @@ static void TestServiceDefs(void)
     bad = def;
     bad.limits.fonts = 0;
     CHECK(muiCreateTextService(&bad, &service) == mui_errorInvalid, "no fonts");
-    bad.limits.fonts = 65537;
-    CHECK(muiCreateTextService(&bad, &service) == mui_errorInvalid, "too many fonts");
-    bad.limits.fonts = 65536;
+    bad.limits.fonts = MUI_MAX_FONTS + 1;
+    CHECK(muiCreateTextService(&bad, &service) == mui_errorLimit, "too many fonts");
+    bad.limits.fonts = MUI_MAX_FONTS;
     CHECK(muiCreateTextService(&bad, &service) == mui_success, "the most fonts");
     muiDestroyTextService(service);
     bad = def;
@@ -125,12 +125,12 @@ static void TestCountFaces(void)
     CHECK(muiCountFontFaces(cff, sizeof cff, &count) == mui_success && count == 1, "CFF");
     CHECK(muiCountFontFaces(apple, sizeof apple, &count) == mui_success && count == 1, "Apple");
     // A tag of no font, whatever follows it.
-    const unsigned char other[16] = {'w', 'O', 'F', '2', 0, 0, 0, 0, 0, 0, 0, 1};
+    const unsigned char other[16] = {'t', 'y', 'p', '1', 0, 0, 0, 0, 0, 0, 0, 1};
     CHECK(muiCountFontFaces(other, sizeof other, &count) == mui_errorFormat, "another tag");
     const unsigned char woff2[12] = {'w', 'O', 'F', '2'};
     const unsigned char woff[12] = {'w', 'O', 'F', 'F'};
-    CHECK(muiCountFontFaces(woff2, sizeof woff2, &count) == mui_errorFormat, "WOFF2");
-    CHECK(muiCountFontFaces(woff, sizeof woff, &count) == mui_errorFormat, "WOFF");
+    CHECK(muiCountFontFaces(woff2, sizeof woff2, &count) == mui_errorUnsupported, "WOFF2");
+    CHECK(muiCountFontFaces(woff, sizeof woff, &count) == mui_errorUnsupported, "WOFF");
 }
 
 static void TestAhemMetrics(void)

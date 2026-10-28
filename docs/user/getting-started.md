@@ -190,20 +190,23 @@ Layout and drawing are kept between frames. Laying out again revisits only what 
 
 ## Results, ids and defs
 
-Every call that can fail returns a `muiResult`: `mui_success`, or a value that names what happened.
+Every call that can fail returns a `muiResult`: `mui_success`, or a value that names what happened. An error has the same value in every Maul library, so a logged number reads one way in a program that links several.
 
 | Result | Meaning |
 |---|---|
 | `mui_empty` | A queue had nothing to take. |
 | `mui_errorInvalid` | An argument outside the contract: a bug in the program. |
-| `mui_errorStale` | An id whose object is gone. |
 | `mui_errorCapacity` | A limit or a buffer is too small. |
-| `mui_errorFormat` | Damaged data, such as a font. |
+| `mui_errorStale` | An id whose object is gone. |
+| `mui_errorUnsupported` | The object was made without what the call needs, such as a glyph atlas of another format, or data the library does not take, such as a compressed web font. |
 | `mui_errorPlatform` | The platform refused. |
+| `mui_errorState` | A call the object's state does not allow, which another call changes, such as an editor call on a block not editing. |
 | `mui_errorVersion` | A root def built against another release's headers. |
-| `mui_errorState` | A call back into an object from host code it is running, such as a measure function editing the tree. |
+| `mui_errorFormat` | Damaged data, such as a font. |
+| `mui_errorLimit` | An argument past a fixed bound a `MUI_MAX_` or `MUI_MIN_` constant names, such as too many spans: a bug in the program. |
+| `mui_errorBusy` | A call back into an object from host code it is running, such as a measure function editing the tree. |
 
-A call on a context, a text service, an access tree, a glyph atlas or a window glue clears what it writes on any failure, before it looks at its arguments: zeros, the null id, `NULL`. The count or length a too-small buffer needed is the one exception. A `mui_empty` answer, which reads nothing, leaves zeros too, unless the call's header says what it gives, and each header says what a call leaves. `muiResultName` names any of them. Ids name what a context owns: a slot and a generation. A destroyed node's slot is used again with a new generation, so an old id never names its successor. Refusals of invalid input are counted, a number a release build can watch for a program's bugs; stale ids are not:
+A call on a context, a text service, an access tree, a glyph atlas or a window glue clears what it writes on any failure, before it looks at its arguments: zeros, the null id, `NULL`. The count or length a too-small buffer needed is the one exception. A `mui_empty` answer, which reads nothing, leaves zeros too, unless the call's header says what it gives, and each header says what a call leaves. `muiResultName` names any of them. Ids name what a context owns: a slot and a generation. A destroyed node's slot is used again with a new generation, so an old id never names its successor. Refusals of invalid input and of arguments past a limit are counted, a number a release build can watch for a program's bugs; stale ids are not:
 
 ```c
 // What a context says of calls that went wrong.

@@ -9,7 +9,7 @@
 // given a muiTextHost among them, and an atlas while one of its
 // functions that change it runs. Host code they call then (the
 // allocator, FreeType's memory through it, the clipboard writer) calls
-// none of those: one answers mui_errorState, or an empty answer where it
+// none of those: one answers mui_errorBusy, or an empty answer where it
 // returns no status, and counts one misuse.
 
 #ifndef MAUL_UI_TEXT_H
@@ -25,6 +25,14 @@ extern "C"
     // The owner of fonts and text. A service is used by one thread at a
     // time, and is separate from any context, so one service serves many.
     typedef struct muiTextService muiTextService;
+
+    // The largest limits a service takes.
+    enum
+    {
+        MUI_MAX_FONTS = 65536,
+        MUI_MAX_FONT_FAMILIES = 65536,
+        MUI_MAX_TEXT_BLOCKS = 16777216
+    };
 
     // The named limits of a service. A request past one is refused with
     // mui_errorCapacity.
@@ -82,13 +90,16 @@ extern "C"
     ///
     /// @param def         The service: a valid cookie, an allocator with both
     ///                    functions or neither, a font limit from 1 to
-    ///                    65,536 and a family limit up to 65,536.
+    ///                    MUI_MAX_FONTS, a block limit up to
+    ///                    MUI_MAX_TEXT_BLOCKS and a family limit up to
+    ///                    MUI_MAX_FONT_FAMILIES.
     /// @param serviceOut  Receives the service; set to NULL on failure.
     /// @return `mui_success`; `mui_errorVersion` for a def built against
     ///         headers of another binary interface (MUI_ABI_VERSION), before
     ///         the rest of the def is read; `mui_errorInvalid` for a NULL
-    ///         argument, a bad cookie, a half-set allocator or a limit out of
-    ///         range; `mui_errorCapacity` when memory runs out.
+    ///         argument, a bad cookie, a half-set allocator or a font limit of
+    ///         0; `mui_errorLimit` for a limit past its maximum;
+    ///         `mui_errorCapacity` when memory runs out.
     /// @par Thread safety
     /// Safe from any thread.
     MUI_NODISCARD MUI_API muiResult muiCreateTextService(const muiTextServiceDef* def,
@@ -105,7 +116,7 @@ extern "C"
 
     /// Returns how many calls the service has refused as invalid input
     /// (`mui_errorInvalid`) or as calls back in while busy
-    /// (`mui_errorState`), its glyph atlases' and text editing's among
+    /// (`mui_errorBusy`), its glyph atlases' and text editing's among
     /// them: a count release builds can watch to catch a host's bugs.
     /// Stale ids are not misuse, and queries taking the service as const
     /// count nothing.

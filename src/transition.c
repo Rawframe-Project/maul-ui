@@ -225,7 +225,7 @@ static muiResult SetBinding(muiContext* context, muiStyleClass* class, muiVarian
     // A set that is full of bindings existed already, so none is wasted.
     if (!Bind(set, transition, properties))
     {
-        return mui_errorCapacity;
+        return muiRefuseLimit(context);
     }
     return mui_success;
 }

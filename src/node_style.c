@@ -65,9 +65,10 @@ static muiResult NodeSetClasses(muiContext* context, muiNodeId nodeId, const mui
     {
         return mui_errorInvalid;
     }
-    if (!muiIsClassListValid(classes, count))
+    muiResult listStatus = muiClassListStatus(classes, count);
+    if (listStatus != mui_success)
     {
-        return muiRefuse(context);
+        return muiRefuseAs(context, listStatus);
     }
     muiResult status = mui_success;
     uint32_t slot = muiResolveEdit(context, nodeId, &status);
@@ -145,9 +146,14 @@ static muiResult SetDirect(muiContext* context, muiNodeId nodeId, muiConstValues
         return mui_errorInvalid;
     }
     const muiPropertyBits properties = muiPropertiesOf(group, mask);
-    if ((mask & ~allowed) != 0 || !muiArePropertiesValid(values, properties))
+    if ((mask & ~allowed) != 0)
     {
         return muiRefuse(context);
+    }
+    muiResult valuesStatus = muiPropertiesStatus(values, properties);
+    if (valuesStatus != mui_success)
+    {
+        return muiRefuseAs(context, valuesStatus);
     }
     muiResult status = mui_success;
     uint32_t slot = muiResolveEdit(context, nodeId, &status);

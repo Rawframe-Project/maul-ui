@@ -34,8 +34,15 @@ typedef struct muiPixelBox
 // format.
 muiResult muiGlyphFailed(FT_Error error);
 
-// Whether an em in pixels is one images are rendered at.
-bool muiIsGlyphSizeValid(float pixelSize);
+// Whether an em in pixels is one images are rendered at: mui_success,
+// mui_errorInvalid for one that is not a finite number above 0, or
+// mui_errorLimit for one outside MUI_MIN_GLYPH_PIXEL_SIZE to
+// MUI_MAX_GLYPH_PIXEL_SIZE.
+muiResult muiGlyphSizeStatus(float pixelSize);
+
+// Whether a field's spread is in MUI_MIN_FIELD_SPREAD to
+// MUI_MAX_FIELD_SPREAD: mui_success, or mui_errorLimit.
+muiResult muiFieldSpreadStatus(uint32_t spread);
 
 // The font of a key, checked to have the glyph: NULL with the result
 // otherwise; keyOut receives the key with its default resolved.

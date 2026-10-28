@@ -379,7 +379,7 @@ static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* ro
     s_reentry = adapter;
     uint64_t misuse = muiGetAriaAdapterMisuse(adapter);
     CHECK(Ask("press #mui0-2") && s_asked.action == mui_actionClick && s_asked.target == 2 &&
-              s_reentered == mui_errorState && muiGetAriaAdapterMisuse(adapter) == misuse + 2 &&
+              s_reentered == mui_errorBusy && muiGetAriaAdapterMisuse(adapter) == misuse + 2 &&
               muiGetAriaAdapterMisuse(NULL) == 0,
           "a click; a call back in from it refused, it and the destroy counted");
     s_reentry = NULL;
@@ -582,7 +582,7 @@ static void TestFields(void)
     s_allocReentered = mui_success;
     CHECK(InputKept("#mui0-2", "insertText", "x") && AskedText(mui_actionReplaceText, 1, 5, "x") &&
               FieldIs("#mui0-2", "INPUT", NULL, s_emoji) && s_allocReentry == NULL &&
-              s_allocReentered == mui_errorState,
+              s_allocReentered == mui_errorBusy,
           "typing kept from the field, asked of the host over the selection in bytes; the "
           "allocator's call back in for its text refused");
     s_asked = (muiAccessRequest){.action = mui_actionScrollRight};

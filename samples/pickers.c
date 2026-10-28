@@ -231,14 +231,15 @@ static void Pick(Pickers* pickers, Combo* combo, int shown)
     combo->picked = combo->shown[shown];
     const char* name = combo->options[combo->picked];
     SetText(app, combo->node, combo->block, name);
-    // An editing field's caret goes to the picked name's end.
+    // An editing field's caret goes to the picked name's end; a field
+    // that is not editing answers mui_errorState.
     const muiTextPosition end = {(uint32_t)strlen(name), mui_affinityDownstream};
     muiResult selected =
         muiTextBlock_Select(app->text, combo->block, (muiTextSelection){end.offset, end});
     SampleAppCheck(app,
                    muiNode_SetAccessText(app->context, combo->node, mui_accessValue, name,
                                          strlen(name)) == mui_success &&
-                       (selected == mui_success || selected == mui_errorInvalid),
+                       (selected == mui_success || selected == mui_errorState),
                    "the combobox's value");
     Close(app, combo);
 }

@@ -1377,9 +1377,9 @@ static void PaintTwoGlyphs(void* user, muiNodeId nodeId, uint64_t hostKey, float
     {
         muiNodeDef def = muiDefaultNodeDef();
         muiNodeId created = s_nullNode;
-        CHECK(muiCreateNode(host->context, &def, &created) == mui_errorState &&
+        CHECK(muiCreateNode(host->context, &def, &created) == mui_errorBusy &&
                   muiBuildDrawList(host->context, nodeId, &(muiDrawInput){1, 1.0f, NULL, NULL}) ==
-                      mui_errorState,
+                      mui_errorBusy,
               "edits from a paint function are refused");
         const muiGlyph one = {1, 0.0f, 0.0f};
         const muiGlyph far = {1, INFINITY, 0.0f};

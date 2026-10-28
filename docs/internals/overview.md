@@ -51,7 +51,7 @@ The library calls into the host only inside the call that needs it:
 - the event function during routing;
 - the accessibility text function while an update is built.
 
-A function the context is running may read the context but not change it. A change is refused with `mui_errorState` and counted as misuse. The event function is the exception: it may edit the tree, focus and capture, but not feed input ([Interaction](interaction.md#routing)).
+A function the context is running may read the context but not change it. A change is refused with `mui_errorBusy` and counted as misuse. The event function is the exception: it may edit the tree, focus and capture, but not feed input ([Interaction](interaction.md#routing)).
 
 ## What lives where
 

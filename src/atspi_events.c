@@ -581,7 +581,7 @@ static MUI_NOINLINE muiResult AtspiAdapterApplyWorker(muiAtspiAdapter* adapter,
     }
     if (!muiEnterMarked(&adapter->app->busy, &adapter->app->misuse))
     {
-        return mui_errorState;
+        return mui_errorBusy;
     }
     muiResult result = AtspiAdapterApply(adapter, update);
     adapter->app->misuse += result == mui_errorInvalid;

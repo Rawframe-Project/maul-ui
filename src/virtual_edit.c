@@ -123,10 +123,13 @@ static muiResult NodeInsertVirtualItems(muiContext* context, muiNodeId nodeId, u
         return status;
     }
     uint32_t total = entry->list.count;
-    // Bound indices plus 1 stay below MUI_ITEM_REMOVED.
-    if (index > total || count == 0 || count > MUI_ITEM_REMOVED - 1 - total)
+    if (index > total || count == 0)
     {
         return muiRefuse(context);
+    }
+    if (count > MUI_MAX_VIRTUAL_ITEMS - total)
+    {
+        return muiRefuseLimit(context);
     }
     // Read before the storage moves.
     muiVirtualStore* store = &context->lists;

@@ -148,6 +148,9 @@ static void TestTokensAreChecked(void)
     value.gradient = (muiGradient){mui_gradientLinear, 1, 0.0f, {{s_red, 0.0f}}};
     tokenDef.value = value;
     CHECK(muiCreateToken(context, &tokenDef, &token) == mui_errorInvalid, "one stop");
+    value.gradient.stopCount = MUI_MAX_GRADIENT_STOPS + 1;
+    tokenDef.value = value;
+    CHECK(muiCreateToken(context, &tokenDef, &token) == mui_errorLimit, "too many stops");
     value = (muiTokenValue){.type = 0};
     tokenDef.value = value;
     CHECK(muiCreateToken(context, &tokenDef, &token) == mui_errorInvalid, "no type");

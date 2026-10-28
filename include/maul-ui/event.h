@@ -187,7 +187,7 @@ extern "C"
     /// muiNavigationInput, muiWheelInput, muiPointerInput,
     /// muiDispatchPointerRecord, muiPerformAccessAction),
     /// muiSetEventFunction and muiDestroyContext, which answer
-    /// mui_errorState and count one misuse while it runs. The route was
+    /// mui_errorBusy and count one misuse while it runs. The route was
     /// fixed before the first call, so nodes it destroys are passed over
     /// and nodes it adds hear nothing of this event.
     typedef bool (*muiEventFunction)(void* user, muiNodeId nodeId, muiPhase phase,
@@ -200,7 +200,7 @@ extern "C"
     /// @param function  The function, or NULL.
     /// @param user      Passed to the function.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context;
-    ///         `mui_errorState` while the context is busy or its event function
+    ///         `mui_errorBusy` while the context is busy or its event function
     ///         runs.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -233,7 +233,7 @@ extern "C"
     /// @param handledOut  Receives whether the UI handled it; what it did not
     ///                    is the game's. False on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
-    ///         id or an event outside the above; `mui_errorState` while the
+    ///         id or an event outside the above; `mui_errorBusy` while the
     ///         context is busy or its event function runs; `mui_errorStale` for
     ///         a root that is gone.
     /// @par Thread safety
@@ -249,7 +249,7 @@ extern "C"
     /// @param event       The text: non-NULL when its length is not 0, a
     ///                    player below MUI_MAX_PLAYERS.
     /// @param handledOut  Receives whether the UI handled it. False on failure.
-    /// @return As muiKeyInput's; `mui_errorState` while the context is busy or
+    /// @return As muiKeyInput's; `mui_errorBusy` while the context is busy or
     ///         its event function runs.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -267,7 +267,7 @@ extern "C"
     /// @param event       The action: a known one, a player below
     ///                    MUI_MAX_PLAYERS.
     /// @param handledOut  Receives whether the UI handled it. False on failure.
-    /// @return As muiKeyInput's; `mui_errorState` while the context is busy or
+    /// @return As muiKeyInput's; `mui_errorBusy` while the context is busy or
     ///         its event function runs.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -291,7 +291,7 @@ extern "C"
     /// @param event       The turn: a finite point and deltas, a player
     ///                    below MUI_MAX_PLAYERS.
     /// @param handledOut  Receives whether the UI handled it. False on failure.
-    /// @return As muiKeyInput's; `mui_errorState` while the context is busy or
+    /// @return As muiKeyInput's; `mui_errorBusy` while the context is busy or
     ///         its event function runs.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -309,7 +309,7 @@ extern "C"
     /// @param record      The record.
     /// @param handledOut  Receives whether the UI handled it. False on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument;
-    ///         `mui_errorState` while the context is busy or its event function
+    ///         `mui_errorBusy` while the context is busy or its event function
     ///         runs.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.

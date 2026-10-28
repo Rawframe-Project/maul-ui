@@ -103,7 +103,7 @@ extern "C"
     ///                         above 0.
     /// @param transitionOut  Receives the spec. The null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a def
-    ///         outside the above; `mui_errorState` while the context is busy;
+    ///         outside the above; `mui_errorBusy` while the context is busy;
     ///         `mui_errorCapacity` when the context's transition limit is
     ///         reached.
     /// @par Thread safety
@@ -118,7 +118,7 @@ extern "C"
     /// @param context       The context.
     /// @param transitionId  The spec.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
-    ///         id; `mui_errorState` while the context is busy; `mui_errorStale`
+    ///         id; `mui_errorBusy` while the context is busy; `mui_errorStale`
     ///         for an id whose spec is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -136,11 +136,11 @@ extern "C"
     /// @param mask          The properties, within the group's.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the null
     ///         class id, an unknown variant, group or property bit;
-    ///         `mui_errorState` while the context is busy; `mui_errorStale` for
-    ///         a class or a spec that is gone; `mui_errorCapacity` when the
-    ///         variant already names MUI_MAX_VARIANT_TRANSITIONS specs, or has
-    ///         no values yet and the context's limit of property sets is
-    ///         reached.
+    ///         `mui_errorBusy` while the context is busy; `mui_errorStale` for
+    ///         a class or a spec that is gone; `mui_errorLimit` when the
+    ///         variant already names MUI_MAX_VARIANT_TRANSITIONS specs;
+    ///         `mui_errorCapacity` when it has no values yet and the context's
+    ///         limit of property sets is reached.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiStyle_SetTransition(muiContext* context, muiStyleId styleId,
