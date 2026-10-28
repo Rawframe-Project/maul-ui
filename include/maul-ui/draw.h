@@ -88,7 +88,6 @@ extern "C"
         muiCorners radii;
         muiLinearColor fill;
         uint32_t gradient;
-        uint32_t reserved;
         muiSides borderWidths;
         // Top, right, bottom and left.
         muiLinearColor borderColors[4];
@@ -126,7 +125,6 @@ extern "C"
         muiLinearColor tint;
         muiImageRepeat repeatX;
         muiImageRepeat repeatY;
-        uint8_t reserved[6];
     } muiDrawImage;
 
     // A run of glyphs of the glyph table: firstGlyph and glyphCount name
@@ -141,7 +139,6 @@ extern "C"
         float size;
         uint32_t firstGlyph;
         uint32_t glyphCount;
-        uint32_t reserved;
         muiLinearColor color;
     } muiDrawGlyphRun;
 
@@ -162,7 +159,6 @@ extern "C"
         muiDrawKind kind;
         uint32_t clip;
         uint32_t transform;
-        uint32_t reserved;
         union
         {
             muiDrawBox box;
@@ -207,7 +203,6 @@ extern "C"
         float height;
         // Device pixels per logical unit.
         float scale;
-        uint32_t reserved;
     } muiDrawHeader;
 
     // A list, valid until the context's next build. Index 0 of the clip
@@ -227,7 +222,6 @@ extern "C"
         const muiDrawGradient* gradients;
         const muiGlyph* glyphs;
         uint32_t glyphCount;
-        uint32_t reserved;
     } muiDrawList;
 
     // Where a paint function adds what it draws, valid during the call.

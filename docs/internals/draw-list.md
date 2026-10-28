@@ -35,7 +35,7 @@ Commands are fixed-size records: a kind, a clip index, a transform index, and a 
 - An image has the host's key, a uv rectangle, nine-slice insets in image pixels, a tint and how it fills its middle.
 - A glyph run has a font key, a size, a color, an origin on the baseline and a span of the glyph table, whose entries are a glyph id and a position from the origin, as WebRender and Vello carry them.
 
-Records have no padding and are zeroed before they are written, so identical trees give identical bytes. Fixed records waste the bytes a small command does not use, and in exchange need no parsing. Glyph images are not in the list, so a list does not depend on a renderer's atlas ([Glyphs](glyphs.md)).
+Records are zeroed before their fields are written, so the padding of an image, a glyph run and a command is zero and identical trees give identical bytes. Fixed records waste the bytes a small command does not use, and in exchange need no parsing. Glyph images are not in the list, so a list does not depend on a renderer's atlas ([Glyphs](glyphs.md)).
 
 Corners and sides are physical in the list, top left first and top first, resolved from start and end by the node's direction. An image does not mirror under right to left unless its node says it does (`imageMirrors`, as Android's `autoMirrored` and Flutter's `matchTextDirection`). A mirrored image is drawn flipped, its uv rectangle of negative width, and its slice insets are given as drawn. A renderer runs slices the way the uv runs.
 

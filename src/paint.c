@@ -14,12 +14,14 @@
 #include <math.h>
 #include <string.h>
 
-// Records with no padding, so that their bytes are their fields'.
-static_assert(sizeof(muiDrawBox) == 136 && sizeof(muiDrawShadow) == 68 &&
+// Record sizes, so that a change to one is deliberate. An image, a glyph
+// run and a command have padding: muiTakeCommand zeroes a command before
+// its fields are written, so equal trees still give equal bytes.
+static_assert(sizeof(muiDrawBox) == 132 && sizeof(muiDrawShadow) == 68 &&
                   sizeof(muiDrawImage) == 80 && sizeof(muiDrawGlyphRun) == 48 &&
                   sizeof(muiGlyph) == 12 && sizeof(muiDrawCommand) == 152 &&
                   sizeof(muiDrawClip) == 44 && sizeof(muiDrawGradient) == 96,
-              "draw records have no padding");
+              "draw record sizes");
 
 // A color in linear light times opacity, converted from the cache when a
 // node before converted the same bits.
