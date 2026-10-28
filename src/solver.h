@@ -56,6 +56,8 @@ struct muiSolver
     muiSides safeArea;
     // Where sizes solved and measure calls are counted.
     muiWorkCounts* work;
+    // Where host content that could not be measured is counted.
+    uint32_t* unmeasured;
 };
 
 #endif // MAUL_UI_SRC_SOLVER_H

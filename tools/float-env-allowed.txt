@@ -161,6 +161,7 @@ ids, flags, states, links, text and functions stored, no float checked:
     muiAccess_Enable
     muiAtspiAdapter_SetPlace
     muiCountFontFaces
+    muiDrawSink_Fail
     muiFocus_Set
     muiGlyphAtlas_NextFrame
     muiNodeType_SetClasses

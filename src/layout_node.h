@@ -175,6 +175,9 @@ typedef struct muiLayoutNode
     // the flow, stretched across the list, placed along it by
     // src/virtual.c. In padding too.
     bool listed;
+    // Set when the node's host content could not be measured in the last
+    // layout, which then marks it to be measured again. In padding too.
+    bool unmeasured;
     muiSize heldSizes[2];
 } muiLayoutNode;
 

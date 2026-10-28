@@ -38,6 +38,8 @@ typedef struct Build
     muiPaintState top;
     // The nodes painted rather than copied (muiWorkCounts).
     uint64_t painted;
+    // The nodes whose host content could not be painted.
+    uint32_t unpainted;
 } Build;
 
 // Where a copied subtree's indices land: its own clips, gradients and
@@ -267,9 +269,11 @@ static bool Visit(Build* build, const muiPaintState* top, uint32_t root, uint32_
     state->inner = transform;
     state->transforms = (muiDrawRange){out->transformCount, 0};
     bool painted = muiPaintNode(&build->painter, at, state);
-    if (painted && build->painter.paint != nullptr)
+    if (painted && build->painter.paint != nullptr &&
+        !muiPaintHostContent(&build->painter, at, state))
     {
-        muiPaintHostContent(&build->painter, at, state);
+        state->unpainted = true;
+        build->unpainted++;
     }
     // Drawn through its scale, it is painted in its parent's: the state
     // keeps that one, as a copy of it does.
@@ -432,6 +436,22 @@ static void Empty(muiDrawTables* tables)
     tables->transformCount = 1;
 }
 
+// Marks host content that could not be painted to be painted again by
+// the next build; visits the subtree only when some could not be.
+static void MarkUnpainted(muiContext* context, uint32_t root, uint32_t unpainted)
+{
+    muiTree* tree = &context->tree;
+    for (uint32_t at = root; at != 0 && unpainted != 0; at = muiTreeNextIn(tree, root, at))
+    {
+        if (context->draw.states[at - 1].unpainted)
+        {
+            context->draw.states[at - 1].unpainted = false;
+            muiTreeMark(tree, at, mui_stagePaint);
+            unpainted--;
+        }
+    }
+}
+
 // Whether the last list stands for this build: of this root, surface and
 // scale, with no paint requested below the root, nor scrolling where
 // host content culled to what was visible. A failed build left a header
@@ -523,7 +543,8 @@ static muiResult BuildDrawList(muiContext* context, muiNodeId rootId, const muiD
     muiSetTransforms(context, root, build.painter.out, input->scale);
     context->scrolled = false;
     (void)muiTreeSweep(&context->tree, root, mui_stagePaint);
-    return mui_success;
+    MarkUnpainted(context, root, build.unpainted);
+    return build.unpainted != 0 ? mui_errorCapacity : mui_success;
 }
 
 static MUI_NOINLINE muiResult BuildDrawListWorker(muiContext* context, muiNodeId rootId,

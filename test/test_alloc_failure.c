@@ -13,6 +13,7 @@
 #include "maul-ui/access.h"
 #include "maul-ui/access_tree.h"
 #include "maul-ui/context.h"
+#include "maul-ui/draw.h"
 #include "maul-ui/event.h"
 #include "maul-ui/font.h"
 #include "maul-ui/glyph_atlas.h"
@@ -38,18 +39,22 @@
 #include "liberation_sans.inc"
 
 // The memory of every object: allocation failAt fails (from 1, counting
-// from when it was set; 0 for none).
+// from when it was set; 0 for none), and every one after it too when the
+// memory stays out.
 typedef struct Memory
 {
     uint64_t count;
     uint64_t failAt;
+    bool staysOut;
     int64_t live;
 } Memory;
 
 static void* Alloc(size_t size, size_t alignment, void* user)
 {
     Memory* memory = user;
-    if (++memory->count == memory->failAt)
+    ++memory->count;
+    if (memory->failAt != 0 &&
+        (memory->count == memory->failAt || (memory->staysOut && memory->count > memory->failAt)))
     {
         return NULL;
     }
@@ -158,6 +163,8 @@ static void MakeWorld(World* world)
     memset(world, 0, sizeof *world);
     muiContextDef contextDef = muiDefaultContextDef();
     contextDef.allocator = AllocatorOf(world);
+    // Room for a few nodes, quick to make each time.
+    contextDef.limits.nodes = 16;
     CHECK(muiCreateContext(&contextDef, &world->context) == mui_success, "context");
     muiTextServiceDef serviceDef = muiDefaultTextServiceDef();
     serviceDef.allocator = AllocatorOf(world);
@@ -234,6 +241,9 @@ typedef struct Step
     // Prepares a world for the step, outside the failing allocations.
     void (*prepare)(World* world);
     muiResult (*run)(World* world);
+    // Whether a failure keeps what the call did, as a layout or a draw
+    // list does, rather than changing nothing.
+    bool keeps;
 } Step;
 
 // A text longer than any laid out, so the next layout grows the scratch.
@@ -437,6 +447,60 @@ static muiResult Baseline(World* world)
     return Counted(world, failures, !isnan(baseline));
 }
 
+static muiResult Layout(World* world)
+{
+    const muiLayoutInput input = {
+        400.0f, 300.0f, muiMeasureText, &world->host, 0, muiMeasureTextBaseline, {0, 0, 0, 0}};
+    muiResult status = muiComputeLayout(world->context, world->root, &input);
+    const muiRect rects[] = {muiNode_GetRect(world->context, world->node),
+                             muiNode_GetRect(world->context, world->label)};
+    world->output = Hash(0, rects, sizeof rects);
+    return status;
+}
+
+// The text node sized by its text, so a failed measure shows.
+static void Shrunk(World* world)
+{
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    CHECK(muiNode_SetLayoutValues(world->context, world->node, &style,
+                                  MUI_PROPERTY_BIT(mui_propertyWidth) |
+                                      MUI_PROPERTY_BIT(mui_propertyHeight)) == mui_success,
+          "sized by its text");
+    Lengthen(world);
+}
+
+// The root's children aligned by their baselines, so a failed baseline
+// shows in where the label goes.
+static void Aligned(World* world)
+{
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.container.alignItems = mui_alignBaseline;
+    CHECK(muiNode_SetLayoutValues(world->context, world->root, &style,
+                                  MUI_PROPERTY_BIT(mui_propertyAlignItems)) == mui_success,
+          "aligned by baselines");
+    // Minimums of 0 beside its fixed size: the text is never measured, so
+    // its baseline is the first thing that lays it out.
+    style.sizing.minWidth = (muiDimension){0.0f, 0.0f, mui_dimensionValue};
+    style.sizing.minHeight = (muiDimension){0.0f, 0.0f, mui_dimensionValue};
+    CHECK(muiNode_SetLayoutValues(world->context, world->node, &style,
+                                  MUI_PROPERTY_BIT(mui_propertyMinWidth) |
+                                      MUI_PROPERTY_BIT(mui_propertyMinHeight)) == mui_success,
+          "minimums of 0");
+    Lengthen(world);
+}
+
+static muiResult Draw(World* world)
+{
+    const muiDrawInput input = {0, 1.0f, muiPaintText, &world->host};
+    muiResult status = muiBuildDrawList(world->context, world->root, &input);
+    muiDrawList list = {0};
+    if (muiGetDrawList(world->context, &list) == mui_success)
+    {
+        world->output = Hash(0, list.commands, list.commandCount * sizeof *list.commands);
+    }
+    return status;
+}
+
 static muiResult HitTest(World* world)
 {
     muiTextPosition at = {0, mui_affinityDownstream};
@@ -589,50 +653,54 @@ static muiResult AtlasGetMultiField(World* world)
 }
 
 static const Step s_steps[] = {
-    {"muiCreateContext", NULL, CreateContext},
-    {"muiNode_SetAccessText", NULL, SetAccessText},
-    {"muiAccess_Enable", NULL, Enable},
-    {"muiNode_SetAccessRelation", Enabled, SetRelation},
-    {"muiCreateAccessTree", NULL, CreateTree},
-    {"muiAccessTree_Apply", Built, Apply},
-    {"muiCreateTextService", NULL, CreateService},
-    {"muiCreateFont", NULL, CreateFont},
-    {"muiCreateFontFamily", NULL, CreateFamily},
-    {"muiCreateTextBlock", NULL, CreateBlock},
-    {"muiTextBlock_SetText", NULL, SetText},
-    {"muiTextBlock_Replace", NULL, Replace},
-    {"muiTextBlock_SetSpans", NULL, SetSpans},
-    {"muiTextBlock_Type", NULL, Type},
-    {"muiTextBlock_Paste", NULL, Paste},
-    {"muiTextBlock_Erase", Typed, Erase},
-    {"muiTextBlock_Undo", Typed, Undo},
-    {"muiTextBlock_Redo", Undone, Redo},
-    {"muiTextBlock_Compose", NULL, Compose},
-    {"muiTextBlock_SetComposition", NULL, SetComposition},
-    {"muiMeasureText", Lengthen, Measure},
-    {"muiMeasureTextBaseline", Lengthen, Baseline},
-    {"muiTextHitTest", Lengthen, HitTest},
-    {"muiTextGetCaret", Lengthen, Caret},
-    {"muiTextGetRangeRects", Lengthen, RangeRects},
-    {"muiTextMove", Lengthen, Move},
-    {"muiTextHitTest scrolled", Scrolled, HitTest},
-    {"muiTextGetCaret scrolled", Scrolled, Caret},
-    {"muiTextGetRangeRects scrolled", Scrolled, RangeRects},
-    {"muiTextMove scrolled", Scrolled, Move},
-    {"muiTextEditMove", Lengthen, EditMove},
-    {"muiTextEditPress", Lengthen, EditPress},
-    {"muiTextEditDrag", Pressed, Drag},
-    {"muiTextEditEvent", Lengthen, EditEvent},
-    {"muiTextPerformAccessAction", Lengthen, AccessAction},
-    {"muiRenderGlyph", NULL, Render},
-    {"muiRenderColorGlyph", NULL, RenderColor},
-    {"muiRenderGlyphField", NULL, RenderField},
-    {"muiRenderGlyphMultiField", NULL, RenderMultiField},
-    {"muiCreateGlyphAtlas", NULL, CreateAtlas},
-    {"muiGlyphAtlas_Get", NULL, AtlasGet},
-    {"muiGlyphAtlas_GetColor", NULL, AtlasGetColor},
-    {"muiGlyphAtlas_GetField", NULL, AtlasGetField},
-    {"muiGlyphAtlas_GetMultiField", NULL, AtlasGetMultiField},
+    {"muiCreateContext", NULL, CreateContext, false},
+    {"muiNode_SetAccessText", NULL, SetAccessText, false},
+    {"muiAccess_Enable", NULL, Enable, false},
+    {"muiNode_SetAccessRelation", Enabled, SetRelation, false},
+    {"muiCreateAccessTree", NULL, CreateTree, false},
+    {"muiAccessTree_Apply", Built, Apply, false},
+    {"muiCreateTextService", NULL, CreateService, false},
+    {"muiCreateFont", NULL, CreateFont, false},
+    {"muiCreateFontFamily", NULL, CreateFamily, false},
+    {"muiCreateTextBlock", NULL, CreateBlock, false},
+    {"muiTextBlock_SetText", NULL, SetText, false},
+    {"muiTextBlock_Replace", NULL, Replace, false},
+    {"muiTextBlock_SetSpans", NULL, SetSpans, false},
+    {"muiTextBlock_Type", NULL, Type, false},
+    {"muiTextBlock_Paste", NULL, Paste, false},
+    {"muiTextBlock_Erase", Typed, Erase, false},
+    {"muiTextBlock_Undo", Typed, Undo, false},
+    {"muiTextBlock_Redo", Undone, Redo, false},
+    {"muiTextBlock_Compose", NULL, Compose, false},
+    {"muiTextBlock_SetComposition", NULL, SetComposition, false},
+    {"muiMeasureText", Lengthen, Measure, false},
+    {"muiMeasureTextBaseline", Lengthen, Baseline, false},
+    {"muiComputeLayout", Shrunk, Layout, true},
+    {"muiComputeLayout by baselines", Aligned, Layout, true},
+    {"muiBuildDrawList", Lengthen, Draw, true},
+    {"muiBuildDrawList scrolled", Scrolled, Draw, true},
+    {"muiTextHitTest", Lengthen, HitTest, false},
+    {"muiTextGetCaret", Lengthen, Caret, false},
+    {"muiTextGetRangeRects", Lengthen, RangeRects, false},
+    {"muiTextMove", Lengthen, Move, false},
+    {"muiTextHitTest scrolled", Scrolled, HitTest, false},
+    {"muiTextGetCaret scrolled", Scrolled, Caret, false},
+    {"muiTextGetRangeRects scrolled", Scrolled, RangeRects, false},
+    {"muiTextMove scrolled", Scrolled, Move, false},
+    {"muiTextEditMove", Lengthen, EditMove, false},
+    {"muiTextEditPress", Lengthen, EditPress, false},
+    {"muiTextEditDrag", Pressed, Drag, false},
+    {"muiTextEditEvent", Lengthen, EditEvent, false},
+    {"muiTextPerformAccessAction", Lengthen, AccessAction, false},
+    {"muiRenderGlyph", NULL, Render, false},
+    {"muiRenderColorGlyph", NULL, RenderColor, false},
+    {"muiRenderGlyphField", NULL, RenderField, false},
+    {"muiRenderGlyphMultiField", NULL, RenderMultiField, false},
+    {"muiCreateGlyphAtlas", NULL, CreateAtlas, false},
+    {"muiGlyphAtlas_Get", NULL, AtlasGet, false},
+    {"muiGlyphAtlas_GetColor", NULL, AtlasGetColor, false},
+    {"muiGlyphAtlas_GetField", NULL, AtlasGetField, false},
+    {"muiGlyphAtlas_GetMultiField", NULL, AtlasGetMultiField, false},
 };
 
 // What the step could change: the block's text, selection and undo
@@ -675,7 +743,7 @@ static uint64_t Clean(const Step* step, muiResult* resultOut, uint64_t* countOut
     return digest;
 }
 
-static void Sweep(const Step* step, bool verbose)
+static void Sweep(const Step* step, bool staysOut, bool verbose)
 {
     muiResult clean = mui_success;
     uint64_t count = 0;
@@ -695,6 +763,7 @@ static void Sweep(const Step* step, bool verbose)
         uint64_t before = Digest(&world);
         world.memory.count = 0;
         world.memory.failAt = failAt;
+        world.memory.staysOut = staysOut;
         muiResult result = step->run(&world);
         world.memory.failAt = 0;
         uint64_t after = Digest(&world);
@@ -704,7 +773,7 @@ static void Sweep(const Step* step, bool verbose)
         // Refused and unchanged, then done as a clean run does it; or the
         // failure absorbed with the clean run's outcome.
         bool good = result == mui_errorCapacity
-                        ? after == before && again == mui_success && last == done
+                        ? (after == before || step->keeps) && again == mui_success && last == done
                         : result == mui_success && after == done;
         refused += result == mui_errorCapacity && good;
         absorbed += result == mui_success && good;
@@ -728,8 +797,8 @@ static void Sweep(const Step* step, bool verbose)
     }
     if (verbose || wrong != 0)
     {
-        fprintf(stderr, "%s: %u allocations, %u refused, %u absorbed, %u wrong\n", step->name,
-                (unsigned)count, refused, absorbed, wrong);
+        fprintf(stderr, "%s%s: %u allocations, %u refused, %u absorbed, %u wrong\n", step->name,
+                staysOut ? ", memory staying out" : "", (unsigned)count, refused, absorbed, wrong);
     }
 }
 
@@ -744,7 +813,8 @@ int main(int argc, char** argv)
     {
         if (only < 0 || only == i)
         {
-            Sweep(&s_steps[i], only >= 0);
+            Sweep(&s_steps[i], false, only >= 0);
+            Sweep(&s_steps[i], true, only >= 0);
         }
     }
     return s_failures == 0 ? 0 : 1;

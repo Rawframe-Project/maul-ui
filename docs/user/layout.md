@@ -58,6 +58,8 @@ A node whose `content` is `mui_contentHost` is sized by the program. The layout 
 
 The library caches what a function answered and asks again only when the node or its content changed. When the content changes outside the library's view, such as a new string or a reloaded image, `muiNode_MarkContentChanged` has the node measured and painted again at the next frame, and its siblings move if its size changes.
 
+A measure function that cannot measure now, as when its memory ran out, answers NaN for the width or the height; a baseline function answers +infinity. The node is laid out as empty for this frame, the answer is not kept, `muiComputeLayout` returns `mui_errorCapacity`, and the next layout asks again. The text component answers so when it runs out of memory.
+
 ## Reading the results
 
 `muiNode_GetRect` gives a node's border box relative to its parent's, and `muiNode_GetContentRect` its content box, in logical units and unrounded. `muiNode_MapToRoot` carries a point of a node into its root's space, through scrolling and scales. The draw list snaps to device pixels by itself ([Drawing](drawing.md)), so a program reads exact values and draws sharp edges.

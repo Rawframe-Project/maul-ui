@@ -18,6 +18,14 @@
 
 #include <math.h>
 
+// The failures the host's service has counted, to tell memory that ran
+// out from text with nothing to lay out.
+static uint64_t FailuresOf(const void* user)
+{
+    const muiTextHost* host = user;
+    return host != nullptr && host->service != nullptr ? host->service->failures : 0;
+}
+
 static muiSize MeasureText(void* user, muiNodeId nodeId, uint64_t hostKey, muiMeasureAxis width,
                            muiMeasureAxis height)
 {
@@ -25,11 +33,14 @@ static muiSize MeasureText(void* user, muiNodeId nodeId, uint64_t hostKey, muiMe
     muiParagraph paragraph;
     float widest = 0.0f;
     float tall = 0.0f;
+    uint64_t failures = FailuresOf(user);
     if (!muiPrepareParagraph(user, nodeId, hostKey, &paragraph) ||
         !muiMeasureLines(&paragraph, muiParagraphBreakMode(&paragraph, width.mode), width.size,
                          &widest, &tall))
     {
-        return (muiSize){0.0f, 0.0f};
+        // Text that could not be measured is measured again by the next
+        // layout (muiMeasureFunction).
+        return FailuresOf(user) != failures ? (muiSize){NAN, NAN} : (muiSize){0.0f, 0.0f};
     }
     return (muiSize){width.mode == mui_measureExact ? width.size : widest, tall};
 }
@@ -278,9 +289,12 @@ static float TextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float 
 {
     (void)height;
     muiParagraph paragraph;
+    uint64_t failures = FailuresOf(user);
     if (!muiPrepareParagraph(user, nodeId, hostKey, &paragraph) || paragraph.block->length == 0)
     {
-        return NAN;
+        // A baseline that could not be found is found again by the next
+        // layout (muiBaselineFunction).
+        return FailuresOf(user) != failures ? INFINITY : NAN;
     }
     // Spans may make the first line taller: its own baseline, broken at
     // the width.
@@ -290,7 +304,7 @@ static float TextBaseline(void* user, muiNodeId nodeId, uint64_t hostKey, float 
                            &count) ||
         count == 0)
     {
-        return paragraph.baseline;
+        return FailuresOf(user) != failures ? INFINITY : paragraph.baseline;
     }
     return ((const muiTextLine*)paragraph.service->lines.data)[0].baseline;
 }
@@ -433,7 +447,14 @@ static MUI_NOINLINE void PaintTextWorker(void* user, muiNodeId nodeId, uint64_t 
     muiTextService* entered = host != nullptr ? host->service : nullptr;
     if (muiEnterText(entered) == mui_success)
     {
+        // Text that could not be painted all is painted again by the next
+        // build.
+        uint64_t failures = FailuresOf(user);
         PaintText(user, nodeId, hostKey, width, height, sink);
+        if (FailuresOf(user) != failures)
+        {
+            (void)muiDrawSink_Fail(sink);
+        }
         muiLeaveText(entered);
     }
 }
