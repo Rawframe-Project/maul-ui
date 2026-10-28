@@ -96,7 +96,7 @@ muiResult muiEditingBlock(const muiTextService* service, muiTextBlockId blockId,
     muiTextEditing* editing = &block->editing;
     if (!editing->on)
     {
-        return mui_errorInvalid;
+        return mui_errorState;
     }
     if (editing->revision != block->revision)
     {

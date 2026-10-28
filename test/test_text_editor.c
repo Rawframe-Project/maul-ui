@@ -200,7 +200,7 @@ static void TestCalls(void)
     blockDef.length = 2;
     CHECK(muiCreateTextBlock(scene.service, &blockDef, &other) == mui_success, "another");
     muiTextSelection selection;
-    CHECK(muiTextBlock_GetSelection(scene.service, other, &selection) == mui_errorInvalid,
+    CHECK(muiTextBlock_GetSelection(scene.service, other, &selection) == mui_errorState,
           "a block not editing");
     CHECK(muiTextBlock_SetEditing(scene.service, other, &def) == mui_success &&
               muiTextBlock_Select(scene.service, other,
@@ -208,7 +208,7 @@ static void TestCalls(void)
                   mui_errorInvalid,
           "inside a character");
     CHECK(muiTextBlock_SetEditing(scene.service, other, NULL) == mui_success &&
-              muiTextBlock_GetSelection(scene.service, other, &selection) == mui_errorInvalid,
+              muiTextBlock_GetSelection(scene.service, other, &selection) == mui_errorState,
           "editing ended");
     CHECK(muiTextBlock_Type(scene.service, scene.block, NULL, 1, NULL) == mui_errorInvalid,
           "no text");

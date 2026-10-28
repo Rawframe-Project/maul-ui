@@ -453,12 +453,12 @@ static void TestMisuse(void)
     const muiTextBlockDef def = muiDefaultTextBlockDef();
     CHECK(muiCreateTextBlock(service, &def, &block) == mui_success, "a block");
     const muiTextSelection all = {0, {0, mui_affinityDownstream}};
-    CHECK(muiTextBlock_Select(service, block, all) == mui_errorInvalid &&
-              muiGetTextServiceMisuse(service) == 2,
-          "selecting in a block not editing");
+    CHECK(muiTextBlock_Select(service, block, all) == mui_errorState &&
+              muiGetTextServiceMisuse(service) == 1,
+          "selecting in a block not editing: a state, no misuse");
     const uint64_t zero = 0;
     CHECK(muiSetFallbackFonts(service, &zero, 1) == mui_errorInvalid &&
-              muiGetTextServiceMisuse(service) == 3,
+              muiGetTextServiceMisuse(service) == 2,
           "a fallback that names nothing");
     muiGlyphAtlas* atlas = NULL;
     const muiGlyphAtlasDef atlasDef = muiDefaultGlyphAtlasDef();
@@ -467,18 +467,18 @@ static void TestMisuse(void)
     CHECK(muiCreateGlyphAtlas(service, &atlasDef, &atlas) == mui_success &&
               muiGlyphAtlas_GetColor(atlas, 0, 1, 10.0f, 0.0f, 0.0f, 0, black, &glyph) ==
                   mui_errorUnsupported &&
-              muiGetTextServiceMisuse(service) == 3,
+              muiGetTextServiceMisuse(service) == 2,
           "a colour glyph from a one-channel atlas, unsupported and no misuse");
     CHECK(muiGlyphAtlas_Get(atlas, 0, 1, 1.0f / 128.0f, 0.0f, 0.0f, &glyph) == mui_errorLimit &&
-              muiGetTextServiceMisuse(service) == 4,
+              muiGetTextServiceMisuse(service) == 3,
           "a size past the floor, counted on its service");
     muiDestroyGlyphAtlas(atlas);
     CHECK(muiDestroyTextBlock(service, block) == mui_success &&
               muiDestroyTextBlock(service, block) == mui_errorStale &&
-              muiGetTextServiceMisuse(service) == 4,
+              muiGetTextServiceMisuse(service) == 3,
           "a stale id is no misuse");
     CHECK(muiFont_GetMetrics(service, scene.font, NULL) == mui_errorInvalid &&
-              muiGetTextServiceMisuse(service) == 4,
+              muiGetTextServiceMisuse(service) == 3,
           "a const query counts nothing");
     FreeScene(&scene);
 }

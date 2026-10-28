@@ -200,6 +200,7 @@ Every call that can fail returns a `muiResult`: `mui_success`, or a value that n
 | `mui_errorStale` | An id whose object is gone. |
 | `mui_errorUnsupported` | The object was made without what the call needs, such as a glyph atlas of another format, or data the library does not take, such as a compressed web font. |
 | `mui_errorPlatform` | The platform refused. |
+| `mui_errorState` | A call the object's state does not allow, which another call changes, such as an editor call on a block not editing. |
 | `mui_errorVersion` | A root def built against another release's headers. |
 | `mui_errorFormat` | Damaged data, such as a font. |
 | `mui_errorLimit` | An argument past a fixed bound a `MUI_MAX_` or `MUI_MIN_` constant names, such as too many spans: a bug in the program. |

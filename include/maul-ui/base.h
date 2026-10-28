@@ -107,6 +107,10 @@ extern "C"
         // not allow the call, such as a thread outside the apartment the
         // platform requires.
         mui_errorPlatform = -5,
+        // The call is not allowed in the object's state, which only another
+        // call of the program changes, such as an editor call on a text
+        // block not opted into editing. It counts no misuse.
+        mui_errorState = -6,
         // A root def was built against headers of a release whose binary
         // interface differs from the library's (MUI_ABI_VERSION).
         mui_errorVersion = -7,

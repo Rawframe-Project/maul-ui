@@ -163,9 +163,9 @@ extern "C"
     /// @param service       The service.
     /// @param blockId       The block.
     /// @param selectionOut  Receives the selection. Zeroed on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
-    ///         null id or a block not editing; `mui_errorStale` for a block
-    ///         that is gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or the
+    ///         null id; `mui_errorState` for a block not editing;
+    ///         `mui_errorStale` for a block that is gone.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_GetSelection(const muiTextService* service,
@@ -180,8 +180,8 @@ extern "C"
     /// @param selection  The selection: offsets within the text, at the
     ///                   starts of characters.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL service, the null
-    ///         id, a block not editing or an offset out of place;
-    ///         `mui_errorStale` for a block that is gone; `mui_errorBusy`
+    ///         id or an offset out of place; `mui_errorState` for a block not
+    ///         editing; `mui_errorStale` for a block that is gone; `mui_errorBusy`
     ///         while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
@@ -202,7 +202,8 @@ extern "C"
     ///                    on failure.
     /// @return `mui_success`, changed or not (read-only, filtered out, at the
     ///         limit); `mui_errorInvalid` for a NULL service or text, the null
-    ///         id or a block not editing; `mui_errorLimit` for a text that
+    ///         id; `mui_errorState` for a block not editing; `mui_errorLimit`
+    ///         for a text that
     ///         would take the block past MUI_MAX_TEXT_BYTES;
     ///         `mui_errorStale` for a block that is gone; `mui_errorCapacity`
     ///         when memory runs out, which changes nothing; `mui_errorBusy`
@@ -274,9 +275,9 @@ extern "C"
     /// @param textOut    Receives the text, valid until the block changes. NULL
     ///                   on failure.
     /// @param lengthOut  Receives its length in bytes. 0 on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the
-    ///         null id or a block not editing; `mui_errorStale` for a block
-    ///         that is gone.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or the
+    ///         null id; `mui_errorState` for a block not editing;
+    ///         `mui_errorStale` for a block that is gone.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_GetSelectedText(const muiTextService* service,
@@ -413,9 +414,10 @@ extern "C"
     /// @param movement  The movement.
     /// @param extend    Whether the anchor stays.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
-    ///         movement out of range or a block not editing; `mui_errorStale`
-    ///         for a node, block or font that is gone; `mui_errorCapacity` when
-    ///         memory runs out; `mui_errorBusy` while the service is busy.
+    ///         movement out of range; `mui_errorState` for a block not
+    ///         editing; `mui_errorStale` for a node, block or font that is
+    ///         gone; `mui_errorCapacity` when memory runs out; `mui_errorBusy`
+    ///         while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
