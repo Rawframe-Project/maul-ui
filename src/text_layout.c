@@ -401,8 +401,14 @@ static void PaintText(void* user, muiNodeId nodeId, uint64_t hostKey, float widt
     laid.lines = laid.paragraph.service->lines.data;
     laid.lineCount = count;
     laid.width = width;
-    // An editing block is drawn scrolled to its caret.
-    muiFollowCaret(&laid, height);
+    // An editing block is drawn scrolled to its caret; one that cannot be,
+    // for want of memory, is not drawn, its failure counted once.
+    uint64_t failures = laid.paragraph.service->failures;
+    if (!muiFollowCaret(&laid, height))
+    {
+        laid.paragraph.service->failures = failures + 1;
+        return;
+    }
     const muiTextLine* lines = laid.lines;
     uint32_t first = 0;
     uint32_t end = count;

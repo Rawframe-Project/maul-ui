@@ -355,7 +355,8 @@ static muiResult TextPerformAccessAction(const muiTextHost* host, const muiAcces
     {
         return mui_errorFormat;
     }
-    const muiTextSelection before = block->editing.selection;
+    const muiTextEditing kept = block->editing;
+    const muiTextSelection before = kept.selection;
     const muiTextSelection selection = {
         muiUnmaskOffset(block, request->anchor),
         {muiUnmaskOffset(block, request->focus), mui_affinityDownstream}};
@@ -367,6 +368,18 @@ static muiResult TextPerformAccessAction(const muiTextHost* host, const muiAcces
     {
         result =
             muiPasteText(host->service, blockId, request->text, request->length, &outcome.changed);
+        if (result != mui_success)
+        {
+            // A replace refused changes nothing: what placing the selection
+            // for it changed goes back as it was.
+            muiTextEditing* editing = &block->editing;
+            editing->selection = kept.selection;
+            editing->open = kept.open;
+            editing->preferredX = kept.preferredX;
+            editing->grain = kept.grain;
+            editing->pressStart = kept.pressStart;
+            editing->pressEnd = kept.pressEnd;
+        }
     }
     const muiTextSelection* after = &block->editing.selection;
     outcome.selected = after->anchor != before.anchor ||
