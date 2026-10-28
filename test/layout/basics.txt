@@ -1,5 +1,5 @@
 # Sizes, padding, border and margin in a single row or column.
-# chrome 154.0.8037.57
+# chrome 155.0.8059.79
 
 fixture fixed_root available=500x400
 node width=200 height=100 => 0 0 200 100
