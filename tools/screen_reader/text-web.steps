@@ -22,8 +22,11 @@ key Return
 type two
 key Up
 key Down
-# Said by NVDA in Chrome as by the desktop readers.
+# Said by NVDA in Chrome as by the desktop readers, in this order: the field
+# named as the second Tab reaches it, then the words as Control+Left
+# reads them back. Text typed into Name, with Notes said only after it,
+# fails the walk.
 expect Notes
-expect hello
 expect world
+expect hello
 expect two

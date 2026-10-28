@@ -19,8 +19,9 @@
 #   wait 2            seconds to wait
 #   focus             the reader asked what has the focus, where it has
 #                     such a command (NVDA's); nothing here
-#   expect Notes      a phrase the reader must have said by the end,
-#                     in any case; every screen reader's walk checks it
+#   expect Notes      a phrase the reader must have said, in any case,
+#                     after the phrase expected before it; every screen
+#                     reader's walk checks it
 #
 # Lines starting with # are skipped. Each key and text waits 1.5 seconds
 # for Orca. The display defaults to :143. Needs Xvfb, xdpyinfo,
@@ -120,10 +121,18 @@ dbus-run-session -- bash -c '
 sed -n "s/.*SPEECH OUTPUT: '\(.*\)' {.*/\1/p" "$out/orca-debug.txt" >"$out/speech.txt"
 cat "$out/speech.txt"
 status=0
+# Each phrase is looked for past the one before it.
+said=$(cat "$out/speech.txt")
+said=${said,,}
 while read -r verb phrase; do
-    if [ "$verb" = expect ] && ! grep -qiF -- "$phrase" "$out/speech.txt"; then
-        echo "not said: $phrase" >&2
+    [ "$verb" = expect ] || continue
+    phrase=${phrase,,}
+    case $said in
+    *"$phrase"*) said=${said#*"$phrase"} ;;
+    *)
+        echo "not said in order: $phrase" >&2
         status=1
-    fi
+        ;;
+    esac
 done <"$steps"
 exit $status

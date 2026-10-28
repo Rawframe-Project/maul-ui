@@ -21,7 +21,8 @@
 // what UI Automation reports focused), on macOS
 // stack.txt, the sample's threads as the walk ends, and on the web
 // tree.json, the browser's accessibility tree at the end. The exit
-// status is 1 when a phrase expected was not said, or nothing was.
+// status is 1 when a phrase expected was not said after the one listed
+// before it, or nothing was.
 
 import { nvda, voiceOver } from "@guidepup/guidepup";
 import { spawn, spawnSync } from "node:child_process";
@@ -252,9 +253,21 @@ if (!web) {
 writeFileSync(`${out}/speech.txt`, log.join("\n") + "\n");
 writeFileSync(`${out}/steps.txt`, told.join("\n") + "\n");
 console.log(told.join("\n"));
+// Each phrase is looked for past the one before it, so text typed into
+// the wrong field, with the field's name said only later, fails.
 const speech = log.join("\n").toLowerCase();
-const missing = expected.filter((phrase) => !speech.includes(phrase.toLowerCase()));
+const missing = [];
+let from = 0;
+for (const phrase of expected) {
+  const wanted = phrase.toLowerCase();
+  const at = speech.indexOf(wanted, from);
+  if (at < 0) {
+    missing.push(phrase);
+  } else {
+    from = at + wanted.length;
+  }
+}
 for (const phrase of missing) {
-  console.error(`not said: ${phrase}`);
+  console.error(`not said in order: ${phrase}`);
 }
 process.exit(log.length === 0 || missing.length !== 0 ? 1 : 0);
