@@ -47,7 +47,7 @@ MUI_NODE_MODULES=$PWD/out/browser/node_modules ctest --preset web-wasi
 
 ## Screen readers
 
-The samples are walked by screen readers from the steps files in `tools/screen_reader/`, each walk checking that the reader said the phrases its file expects, in the order the file lists them:
+The samples are walked by screen readers from the steps files in `tools/screen_reader/`, each walk checking that the reader said the phrases its file expects, in the order the file lists them, and, where a file says a phrase is heard, that the reader said it in reply to the step before:
 
 - **Orca**, locally: `tools/screen_reader_walk.sh <sample> <steps> <out-dir>` runs a sample built with `MAUL_UI_WINDOW` and `MAUL_UI_ATSPI` under Xvfb on a private session bus, with Orca writing what it would say to its log and xdotool pressing the keys. It needs Xvfb, `dbus-run-session`, `at-spi-bus-launcher`, Orca and xdotool.
 - **VoiceOver and NVDA** on the macOS and Windows runners, and **NVDA over the ARIA adapter** in Chrome, through Guidepup and `tools/screen_reader/walk.mjs`, in the nightly run (`.github/workflows/screen-readers.yml`). `tools/screen_reader/` pins Guidepup and puppeteer in a lockfile: `npm ci --prefix tools/screen_reader`.
