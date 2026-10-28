@@ -9,7 +9,9 @@
 // then each edit (typing, pasting, erasing, selecting, moving, pressing,
 // composing, undoing) is made and the block laid out again; each edit
 // succeeds or is refused, the selection stays within the text, and
-// nothing touches memory it does not own. The input also chooses one of
+// nothing touches memory it does not own. The text edited is then hit
+// tested as a pointer and an input method ask it: points to positions,
+// offsets to carets and ranges to rectangles. The input also chooses one of
 // the service's allocations to fail, or none: every call then fails
 // cleanly or succeeds, and every block comes back.
 
@@ -24,6 +26,7 @@
 #include "maul-ui/text_editor.h"
 #include "maul-ui/text_style.h"
 
+#include <math.h>
 #include <stdalign.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -38,7 +41,11 @@ enum
     HEADER = 6,
     MAX_EDITS = 24,
     // The kinds of edit an input's bytes choose among.
-    EDIT_KINDS = 12
+    EDIT_KINDS = 12,
+    // The offsets hit testing asks carets and short ranges of, from 0.
+    MAX_PROBED = 48,
+    // The rectangles a range's are read into.
+    MAX_RECTS = 8
 };
 
 static void Expect(bool condition)
@@ -251,6 +258,73 @@ static void Edit(Scene* scene, Reader* reader)
     Expect(IsAllowed(result));
 }
 
+// Whether a hit test's rectangle is a box: finite, not negative in size.
+static bool IsBox(muiRect rect)
+{
+    return isfinite(rect.x) && isfinite(rect.y) && rect.width >= 0.0f && rect.height >= 0.0f &&
+           isfinite(rect.width) && isfinite(rect.height);
+}
+
+// Reads a range's rectangles: they number the count, those that fit are
+// boxes, and a range not after its start has none. Memory may run out.
+static void ProbeRange(Scene* scene, float width, uint32_t start, uint32_t end)
+{
+    muiRect rects[MAX_RECTS];
+    uint32_t count = 0;
+    muiResult result = muiTextGetRangeRects(&scene->host, scene->node, width, start, end, rects,
+                                            MAX_RECTS, &count);
+    Expect(result == mui_success || result == mui_errorCapacity);
+    Expect(result != mui_success || count <= MAX_RECTS);
+    Expect(end > start || count == 0);
+    for (uint32_t i = 0; i < count && i < MAX_RECTS; i++)
+    {
+        Expect(IsBox(rects[i]));
+    }
+}
+
+// Hit tests the text: points over and around the content box find
+// positions within it, offsets in it and past it have finite carets, and
+// ranges have boxes. Each call answers or runs out of memory.
+static void Probe(Scene* scene)
+{
+    const char* text = nullptr;
+    size_t length = 0;
+    Expect(muiTextBlock_GetText(scene->service, scene->block, &text, &length) == mui_success);
+    const muiRect box = muiNode_GetContentRect(scene->context, scene->node);
+    for (int row = 0; row < 6; row++)
+    {
+        for (int column = 0; column < 6; column++)
+        {
+            float x = -8.0f + (box.width + 16.0f) * (float)column / 5.0f;
+            float y = -8.0f + (box.height + 16.0f) * (float)row / 5.0f;
+            muiTextPosition at = {0, mui_affinityDownstream};
+            muiResult hit = muiTextHitTest(&scene->host, scene->node, box.width, x, y, &at);
+            Expect(hit == mui_success || hit == mui_errorCapacity);
+            Expect(hit != mui_success || at.offset <= length);
+        }
+    }
+    for (uint32_t offset = 0; offset <= length + 1 && offset < MAX_PROBED; offset++)
+    {
+        for (int affinity = 0; affinity < 2; affinity++)
+        {
+            const muiTextPosition position = {offset, (muiTextAffinity)affinity};
+            muiTextCaret caret;
+            muiResult got = muiTextGetCaret(&scene->host, scene->node, box.width, position, &caret);
+            Expect(got == mui_success || got == mui_errorCapacity);
+            Expect(got != mui_success || (isfinite(caret.x) && isfinite(caret.y) &&
+                                          isfinite(caret.height) && caret.height >= 0.0f));
+        }
+    }
+    const uint32_t end = (uint32_t)length;
+    ProbeRange(scene, box.width, 0, end);
+    ProbeRange(scene, box.width, end / 3, end - end / 3);
+    ProbeRange(scene, box.width, end, 0);
+    for (uint32_t start = 0; start < end && start < MAX_PROBED; start += 3)
+    {
+        ProbeRange(scene, box.width, start, start + 3);
+    }
+}
+
 // Whether a creation's result is one its contract allows, memory
 // running out included; false when it ran out.
 static bool Made(muiResult result)
@@ -338,6 +412,7 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         Expect(IsIdle(&scene));
     }
     LayOut(&scene, true);
+    Probe(&scene);
     Expect(IsIdle(&scene));
     muiDestroyContext(scene.context);
     muiDestroyTextService(scene.service);
