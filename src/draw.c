@@ -268,6 +268,7 @@ static bool Visit(Build* build, const muiPaintState* top, uint32_t root, uint32_
     state->transform = transform;
     state->inner = transform;
     state->transforms = (muiDrawRange){out->transformCount, 0};
+    state->unpainted = false;
     bool painted = muiPaintNode(&build->painter, at, state);
     if (painted && build->painter.paint != nullptr &&
         !muiPaintHostContent(&build->painter, at, state))
