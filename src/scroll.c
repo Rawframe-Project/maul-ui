@@ -396,9 +396,8 @@ static bool Ease(muiContext* context, uint32_t slot, const muiScrollEase* ease, 
 static mtwnSpring BounceSpring(void)
 {
     mtwnSpring spring;
-    mtwnResult made =
-        mtwnMakeSpring(MUI_BOUNCE_STIFFNESS, MUI_BOUNCE_DAMPING, MUI_BOUNCE_MASS, &spring);
-    MUI_ASSERT(made == mtwn_success);
+    muiAssertCall(mtwnMakeSpring(MUI_BOUNCE_STIFFNESS, MUI_BOUNCE_DAMPING, MUI_BOUNCE_MASS,
+                                 &spring) == mtwn_success);
     return spring;
 }
 
@@ -417,8 +416,7 @@ static double CrossingTime(const mtwnDecay* decay, double from, double v, double
 {
     // Never, should Maul Tween refuse: the fling then stops at the limit.
     double seconds = (double)INFINITY;
-    mtwnResult crossed = mtwnDecayCrossingTime(decay, from, v, edge, &seconds);
-    MUI_ASSERT(crossed == mtwn_success);
+    muiAssertCall(mtwnDecayCrossingTime(decay, from, v, edge, &seconds) == mtwn_success);
     return seconds;
 }
 
@@ -431,8 +429,7 @@ static muiFlung FlingAxis(const mtwnDecay* decay, const mtwnSpring* spring, doub
 {
     // Where it began, should Maul Tween refuse the sample.
     double at = from;
-    mtwnResult sampled = mtwnSampleDecay(decay, from, v, seconds, &at, NULL);
-    MUI_ASSERT(sampled == mtwn_success);
+    muiAssertCall(mtwnSampleDecay(decay, from, v, seconds, &at, NULL) == mtwn_success);
     if (at >= 0.0 && at <= limit)
     {
         return (muiFlung){(float)at, 0.0f, v == 0.0};
@@ -450,8 +447,8 @@ static muiFlung FlingAxis(const mtwnDecay* decay, const mtwnSpring* spring, doub
     // At rest on the edge, should Maul Tween refuse the sample.
     double position = edge;
     double moving = 0.0;
-    sampled = mtwnSampleBoundedDecay(&bounded, from, v, seconds, &position, &moving);
-    MUI_ASSERT(sampled == mtwn_success);
+    muiAssertCall(mtwnSampleBoundedDecay(&bounded, from, v, seconds, &position, &moving) ==
+                  mtwn_success);
     double over = position - edge;
     bool rest = fabs(over) < (double)MUI_BOUNCE_REST && fabs(moving) < MUI_FLING_STOP;
     return (muiFlung){(float)edge, rest ? 0.0f : (float)over, rest};
@@ -464,15 +461,13 @@ static muiFlung FlingAxis(const mtwnDecay* decay, const mtwnSpring* spring, doub
 static bool Decay(muiContext* context, uint32_t slot, const muiScrollEase* ease, double elapsed)
 {
     mtwnDecay decay;
-    mtwnResult made =
-        mtwnMakeDecayFromDeceleration((double)context->scrolling.rule.decelerationRate, &decay);
-    MUI_ASSERT(made == mtwn_success);
+    muiAssertCall(mtwnMakeDecayFromDeceleration((double)context->scrolling.rule.decelerationRate,
+                                                &decay) == mtwn_success);
     const mtwnSpring spring = BounceSpring();
     double seconds = elapsed / 1e9;
     // None of the speed, should Maul Tween refuse: the fling then ends.
     double kept = 0.0;
-    mtwnResult sampled = mtwnSampleDecay(&decay, 0.0, 1.0, seconds, NULL, &kept);
-    MUI_ASSERT(sampled == mtwn_success);
+    muiAssertCall(mtwnSampleDecay(&decay, 0.0, 1.0, seconds, NULL, &kept) == mtwn_success);
     const muiLayoutNode* layout = &context->layout[slot - 1];
     muiScrollState* scroll = &context->scrolls[slot - 1];
     const muiSize size = {layout->rect.width, layout->rect.height};
@@ -503,11 +498,10 @@ static bool Bounce(muiContext* context, uint32_t slot, const muiScrollEase* ease
     // None left, should Maul Tween refuse: the bounce then ends.
     double overX = 0.0;
     double overY = 0.0;
-    mtwnResult sampledX =
-        mtwnSampleSpring(&spring, (double)ease->fromX, 0.0, seconds, &overX, NULL);
-    mtwnResult sampledY =
-        mtwnSampleSpring(&spring, (double)ease->fromY, 0.0, seconds, &overY, NULL);
-    MUI_ASSERT(sampledX == mtwn_success && sampledY == mtwn_success);
+    muiAssertCall(mtwnSampleSpring(&spring, (double)ease->fromX, 0.0, seconds, &overX, NULL) ==
+                  mtwn_success);
+    muiAssertCall(mtwnSampleSpring(&spring, (double)ease->fromY, 0.0, seconds, &overY, NULL) ==
+                  mtwn_success);
     muiScrollState* scroll = &context->scrolls[slot - 1];
     scroll->overX = (float)overX;
     scroll->overY = (float)overY;

@@ -12,6 +12,7 @@
 #include "text_block.h"
 #include "text_editing.h"
 #include "text_entry.h"
+#include "text_host.h"
 
 #include "maul-ui/layout.h"
 #include "maul-ui/text_edit.h"
@@ -351,12 +352,12 @@ static MUI_NOINLINE muiResult TextEditEventWorker(const muiTextHost* host, muiNo
                                                   const muiTextEditInput* input,
                                                   muiTextEditOutcome* outcomeOut)
 {
-    muiTextService* entered = host != nullptr ? host->service : nullptr;
-    muiResult status = muiEnterText(entered);
+    bool held = false;
+    muiResult status = muiEnterTextHost(host, &held);
     if (status == mui_success)
     {
         status = TextEditEvent(host, nodeId, event, input, outcomeOut);
-        muiLeaveText(entered);
+        muiLeaveTextHost(host, held);
     }
     return status;
 }

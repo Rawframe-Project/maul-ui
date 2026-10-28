@@ -1,6 +1,6 @@
 # Absolute children: insets in the padding box, sizes, static position
 # and anchor points.
-# chrome 154.0.8037.57
+# chrome 155.0.8059.79
 
 fixture absolute_insets_from_padding_box available=500x400
 node width=200 height=100 padding=10 border=1,2,3,4 => 0 0 200 100

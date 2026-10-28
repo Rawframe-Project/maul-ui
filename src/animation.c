@@ -107,8 +107,7 @@ static double TimedProgress(const muiAnimation* animation, double elapsed)
     // Tween's other curves stay out of the program.
     // The end, should Maul Tween refuse the sample.
     double eased = 1.0;
-    mtwnResult sampled = mtwnEaseCubicBezier(&spec->easing, x, &eased);
-    MUI_ASSERT(sampled == mtwn_success);
+    muiAssertCall(mtwnEaseCubicBezier(&spec->easing, x, &eased) == mtwn_success);
     return eased;
 }
 
@@ -135,8 +134,7 @@ static bool Sample(const muiAnimation* animation, uint64_t nowNs, float value[MU
     double toSpeed = TWO_PI * (double)animation->spec.def.frequency;
     // No motion left, at the target, should Maul Tween refuse.
     mtwnSpringMotion motion = {0};
-    mtwnResult moved = mtwnSpringMotionAt(&animation->spec.spring, elapsed, &motion);
-    MUI_ASSERT(moved == mtwn_success);
+    muiAssertCall(mtwnSpringMotionAt(&animation->spec.spring, elapsed, &motion) == mtwn_success);
     for (uint32_t i = 0; i < animation->channels; i++)
     {
         double offset = (double)animation->from[i] - (double)animation->to[i];

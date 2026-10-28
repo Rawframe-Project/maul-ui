@@ -9,6 +9,7 @@
 #include "text_blocks.h"
 #include "text_boxes.h"
 #include "text_entry.h"
+#include "text_host.h"
 #include "text_mask.h"
 
 #include "maul-ui/text_edit.h"
@@ -217,12 +218,12 @@ static MUI_NOINLINE muiResult TextMoveWorker(const muiTextHost* host, muiNodeId 
                                              muiTextPosition from, muiTextMovement movement,
                                              float preferredX, muiTextPosition* positionOut)
 {
-    muiTextService* entered = host != nullptr ? host->service : nullptr;
-    muiResult status = muiEnterText(entered);
+    bool held = false;
+    muiResult status = muiEnterTextHost(host, &held);
     if (status == mui_success)
     {
         status = muiMoveText(host, nodeId, width, from, movement, preferredX, positionOut);
-        muiLeaveText(entered);
+        muiLeaveTextHost(host, held);
     }
     return status;
 }

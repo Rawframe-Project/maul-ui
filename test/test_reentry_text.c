@@ -6,10 +6,13 @@
 // through it and the clipboard writer, every function that uses the service
 // answers mui_errorBusy, or an empty answer where it returns no status,
 // and counts one misuse; from the allocator while an atlas packs a glyph,
-// every function that changes the atlas does.
+// every function that changes the atlas does. A call given a muiTextHost
+// holds the context too: host code it runs changes it no more than the
+// context's own host code may.
 
 #include "test_harness.h"
 
+#include "maul-ui/access.h"
 #include "maul-ui/context.h"
 #include "maul-ui/event.h"
 #include "maul-ui/font.h"
@@ -132,6 +135,7 @@ struct Scene
     muiGlyphAtlas* atlas;
     Probe alloc;
     Probe free;
+    Probe hold;
 };
 
 // Calls back in and checks every answer: the busy object's functions
@@ -183,9 +187,28 @@ static void CallBack(Probe* probe)
     probe->expected = probe->expected && expected;
 }
 
+// Changes the context a call given a host reads: refused as busy and
+// counted, the destroy doing nothing.
+static void ChangeContext(Probe* probe)
+{
+    if (!probe->armed)
+    {
+        return;
+    }
+    probe->armed = false;
+    probe->runs++;
+    Scene* scene = probe->scene;
+    uint64_t misuse = muiGetContextMisuse(scene->context);
+    muiDestroyContext(scene->context);
+    muiResult destroyed = muiDestroyNode(scene->context, scene->node);
+    probe->expected = probe->expected && destroyed == mui_errorBusy &&
+                      muiGetContextMisuse(scene->context) == misuse + 2;
+}
+
 static void* CallingAlloc(size_t size, size_t alignment, void* user)
 {
     CallBack(&((Scene*)user)->alloc);
+    ChangeContext(&((Scene*)user)->hold);
     return alignment <= alignof(max_align_t) ? malloc(size) : NULL;
 }
 
@@ -273,6 +296,8 @@ typedef struct Clipboard
 {
     Probe probe;
     int writes;
+    // Changing the context instead of calling back in.
+    bool context;
 } Clipboard;
 
 static void WriteClipboard(void* user, const char* text, size_t length)
@@ -281,6 +306,11 @@ static void WriteClipboard(void* user, const char* text, size_t length)
     (void)length;
     Clipboard* clipboard = user;
     clipboard->writes++;
+    if (clipboard->context)
+    {
+        ChangeContext(&clipboard->probe);
+        return;
+    }
     CallBack(&clipboard->probe);
 }
 
@@ -291,7 +321,7 @@ static void TestHostCode(void)
     // The clipboard writer, from a copy.
     const muiTextSelection all = {0, {5, false}};
     CHECK(muiTextBlock_Select(scene.service, scene.block, all) == mui_success, "selected");
-    Clipboard clipboard = {{&scene, true, false, 0, true}, 0};
+    Clipboard clipboard = {{&scene, true, false, 0, true}, 0, false};
     const muiTextEditInput input = {mui_keymapPc, WriteClipboard, &clipboard};
     muiEvent event = {0};
     event.kind = mui_eventKeyDown;
@@ -329,9 +359,138 @@ static void TestHostCode(void)
     CHECK(scene.free.runs == 1 && scene.free.expected, "from a free while the service goes");
 }
 
+// A text longer than any laid out so far, so the next call that lays it
+// out grows the service's scratch through the allocator.
+static void Lengthen(Scene* scene)
+{
+    static char s_text[2000];
+    for (size_t i = 0; i < sizeof s_text; i++)
+    {
+        s_text[i] = i % 7 == 6 ? ' ' : (char)('a' + i % 26);
+    }
+    CHECK(muiTextBlock_SetText(scene->service, scene->block, s_text, sizeof s_text) == mui_success,
+          "a longer text");
+}
+
+// Calls given a host that lay the text out, each with arguments it takes.
+static muiResult CallWithHost(Scene* scene, int call)
+{
+    const muiTextHost* host = &scene->host;
+    muiTextPosition at = {0, mui_affinityDownstream};
+    muiTextCaret caret;
+    muiRect rects[4];
+    uint32_t count = 0;
+    muiTextEditOutcome outcome;
+    const muiMeasureAxis axis = {300.0f, mui_measureAtMost};
+    uint64_t key = muiTextBlock_GetKey(scene->block);
+    muiEvent event = {0};
+    event.kind = mui_eventText;
+    event.text = "z";
+    event.length = 1;
+    const muiTextEditInput input = {mui_keymapPc, NULL, NULL};
+    const muiAccessRequest request = {.action = mui_actionReplaceText,
+                                      .target = muiAccessIdOf(scene->node),
+                                      .focus = 2,
+                                      .text = "hello",
+                                      .length = 5};
+    switch (call)
+    {
+    case 0:
+        return muiTextHitTest(host, scene->node, 300.0f, 5.0f, 5.0f, &at);
+    case 1:
+        return muiTextGetCaret(host, scene->node, 300.0f, at, &caret);
+    case 2:
+        return muiTextGetRangeRects(host, scene->node, 300.0f, 0, 100, rects, 4, &count);
+    case 3:
+        return muiTextMove(host, scene->node, 300.0f, at, mui_moveNextCluster, 0.0f, &at);
+    case 4:
+        return muiTextEditMove(host, scene->node, mui_moveLeft, false);
+    case 5:
+        return muiTextEditPress(host, scene->node, 5.0f, 5.0f, 1, false);
+    case 6:
+        return muiTextEditDrag(host, scene->node, 5.0f, 5.0f);
+    case 7:
+        return muiTextEditEvent(host, scene->node, &event, &input, &outcome);
+    case 8:
+        return muiTextPerformAccessAction(host, &request, &outcome);
+    case 9:
+        return muiMeasureText(&scene->host, scene->node, key, axis, axis).width > 0.0f
+                   ? mui_success
+                   : mui_errorState;
+    default:
+        return isnan(muiMeasureTextBaseline(&scene->host, scene->node, key, 300.0f, 300.0f))
+                   ? mui_errorState
+                   : mui_success;
+    }
+}
+
+static void FreeScene(Scene* scene)
+{
+    muiDestroyGlyphAtlas(scene->atlas);
+    muiDestroyContext(scene->context);
+    muiDestroyTextService(scene->service);
+}
+
+// From the measure function the context runs, calling muiMeasureText:
+// the context still busy after it returns.
+static muiSize MeasureThenChange(void* user, muiNodeId nodeId, uint64_t hostKey,
+                                 muiMeasureAxis width, muiMeasureAxis height)
+{
+    Scene* scene = user;
+    muiSize size = muiMeasureText(&scene->host, nodeId, hostKey, width, height);
+    scene->hold.expected =
+        scene->hold.expected && muiDestroyNode(scene->context, scene->node) == mui_errorBusy;
+    scene->hold.runs++;
+    return size;
+}
+
+// Host code that a call given a host runs, while the call reads the
+// context: the allocator as the text is laid out, the clipboard writer.
+static void TestContextHeld(void)
+{
+    for (int call = 0; call <= 10; call++)
+    {
+        Scene scene;
+        MakeScene(&scene);
+        Lengthen(&scene);
+        Arm(&scene.hold, &scene, false);
+        CHECK(CallWithHost(&scene, call) == mui_success, "the call done");
+        CHECK(scene.hold.runs == 1 && scene.hold.expected, "the context held");
+        CHECK(muiDestroyNode(scene.context, scene.node) == mui_success,
+              "the context free again after");
+        FreeScene(&scene);
+    }
+    Scene scene;
+    MakeScene(&scene);
+    const muiTextSelection all = {0, {5, false}};
+    CHECK(muiTextBlock_Select(scene.service, scene.block, all) == mui_success, "selected");
+    Clipboard clipboard = {{&scene, true, false, 0, true}, 0, true};
+    const muiTextEditInput input = {mui_keymapPc, WriteClipboard, &clipboard};
+    muiEvent event = {0};
+    event.kind = mui_eventKeyDown;
+    event.code = 6;
+    event.key = 'c';
+    event.modifiers = mui_modControl;
+    muiTextEditOutcome outcome;
+    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+              clipboard.probe.runs == 1 && clipboard.probe.expected,
+          "held from the clipboard writer");
+    // Held inside layout too, and still busy once muiMeasureText returns.
+    Lengthen(&scene);
+    CHECK(muiNode_MarkContentChanged(scene.context, scene.node) == mui_success, "measured again");
+    scene.hold = (Probe){&scene, false, false, 0, true};
+    const muiLayoutInput layout = {
+        1000.0f, 100.0f, MeasureThenChange, &scene, 0, muiMeasureTextBaseline, {0, 0, 0, 0}};
+    CHECK(muiComputeLayout(scene.context, scene.node, &layout) == mui_success &&
+              scene.hold.runs != 0 && scene.hold.expected,
+          "busy after muiMeasureText in layout");
+    FreeScene(&scene);
+}
+
 int main(void)
 {
     TestControl();
     TestHostCode();
+    TestContextHeld();
     return s_failures == 0 ? 0 : 1;
 }

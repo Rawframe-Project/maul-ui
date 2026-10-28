@@ -666,6 +666,7 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
         if (cache->finalValid && cache->finalRtl == input->rtl &&
             cache->finalContentHeight == input->contentHeight &&
             cache->finalRatioPercent == input->ratioPercent &&
+            cache->finalRatioLines == input->ratioLines &&
             cache->finalLooseHeight == input->looseHeight &&
             cache->finalEarlyHeight == input->earlyHeight &&
             cache->finalSize.width == input->width.size &&
@@ -713,6 +714,7 @@ muiSize muiSolveNode(const muiSolver* solver, uint32_t node, const muiSizingInpu
         cache->finalRtl = input->rtl;
         cache->finalContentHeight = input->contentHeight;
         cache->finalRatioPercent = input->ratioPercent;
+        cache->finalRatioLines = input->ratioLines;
         cache->finalLooseHeight = input->looseHeight;
         cache->finalEarlyHeight = input->earlyHeight;
         cache->finalSize = size;

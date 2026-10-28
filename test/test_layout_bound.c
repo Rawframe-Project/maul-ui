@@ -670,6 +670,83 @@ static void TestRightToLeftAlone(void)
     muiDestroyContext(tree.context);
 }
 
+// Styles a row whose height its ratio gives (node 0), a column with a
+// ratio that wraps (node 1), stretched in it to its maximum height, and
+// a sibling that grows the row (node 2); the column's items are a host
+// leaf 10 wide (node 3), a box of 5 (node 4) and one of 50 (node 5), which
+// already makes the column as tall as its stretch. Its lines break at its
+// ratio's height, 20, one item each, not at its stretched 40.
+static void StyleRatioLines(Tree* tree)
+{
+    muiLayoutStyle row = muiDefaultLayoutStyle();
+    row.sizing.width = (muiDimension){0.0f, 40.0f, mui_dimensionValue};
+    row.sizing.aspectRatio = 2.0f;
+    muiLayoutStyle column = muiDefaultLayoutStyle();
+    column.sizing.width = (muiDimension){0.5f, 0.0f, mui_dimensionValue};
+    column.sizing.maxHeight = (muiDimension){0.0f, 40.0f, mui_dimensionValue};
+    column.sizing.aspectRatio = 1.0f;
+    column.container.direction = mui_flexColumn;
+    column.container.wrap = mui_wrapWrap;
+    muiLayoutStyle sibling = muiDefaultLayoutStyle();
+    sibling.sizing.height = (muiDimension){0.0f, 120.0f, mui_dimensionValue};
+    muiLayoutStyle leaf = muiDefaultLayoutStyle();
+    leaf.sizing.width = (muiDimension){0.0f, 10.0f, mui_dimensionValue};
+    muiLayoutStyle low = muiDefaultLayoutStyle();
+    low.sizing.width = (muiDimension){0.0f, 10.0f, mui_dimensionValue};
+    low.sizing.height = (muiDimension){0.0f, 5.0f, mui_dimensionValue};
+    muiLayoutStyle tall = muiDefaultLayoutStyle();
+    tall.sizing.width = (muiDimension){0.0f, 10.0f, mui_dimensionValue};
+    tall.sizing.height = (muiDimension){0.0f, 50.0f, mui_dimensionValue};
+    const muiPropertyMask sizing =
+        MUI_PROPERTY_BIT(mui_propertyWidth) | MUI_PROPERTY_BIT(mui_propertyHeight) |
+        MUI_PROPERTY_BIT(mui_propertyMaxHeight) | MUI_PROPERTY_BIT(mui_propertyAspectRatio) |
+        MUI_PROPERTY_BIT(mui_propertyFlexDirection) | MUI_PROPERTY_BIT(mui_propertyFlexWrap);
+    const muiLayoutStyle* styles[] = {&row, &column, &sibling, &leaf, &low, &tall};
+    for (uint32_t i = 0; i < 6; i++)
+    {
+        CHECK(muiNode_SetLayoutValues(tree->context, tree->nodes[i], styles[i], sizing) ==
+                  mui_success,
+              "styled");
+    }
+}
+
+// A wrapping column with a ratio, stretched in a single line of definite
+// height and held at its size while a leaf in it grows from one line to
+// two, is laid out alone with its lines still broken at its ratio's
+// height, as a whole layout breaks them.
+static void TestRatioLinesAlone(void)
+{
+    static Edit edits[16];
+    uint32_t count = 0;
+    Tree tree = MakeTree();
+    const Edit made[] = {
+        {kindCreate, 0, 0, 0, 0},  {kindCreate, 0, 0, 0, 0}, {kindCreate, 0, 0, 0, 0},
+        {kindCreate, 0, 1, 0, 1},  {kindCreate, 0, 1, 0, 0}, {kindCreate, 0, 1, 0, 0},
+        {kindContent, 3, 0, 0, 1},
+    };
+    for (size_t i = 0; i < sizeof made / sizeof made[0]; i++)
+    {
+        Record(edits, &count, &tree, made[i]);
+    }
+    StyleRatioLines(&tree);
+    LayOut(&tree);
+    Record(edits, &count, &tree, (Edit){kindContent, 3, 0, 0, 4});
+    LayOut(&tree);
+    Tree whole = MakeTree();
+    for (uint32_t k = 0; k < count; k++)
+    {
+        Apply(&whole, &edits[k]);
+        if (k == 5)
+        {
+            StyleRatioLines(&whole);
+        }
+    }
+    LayOut(&whole);
+    CHECK(Same(&tree, &whole), "lines broken as a whole layout breaks them");
+    muiDestroyContext(whole.context);
+    muiDestroyContext(tree.context);
+}
+
 // One label's new text in a list of 40 rows that keep their size
 // solves the label and its row, not the list.
 static void TestOneChangeIsBounded(void)
@@ -800,6 +877,7 @@ int main(void)
 {
     TestBaselinesAreRead();
     TestRightToLeftAlone();
+    TestRatioLinesAlone();
     TestBoundedMatchesWhole();
     TestBoundedMatchesFresh();
     TestOneChangeIsBounded();

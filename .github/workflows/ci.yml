@@ -117,12 +117,18 @@ jobs:
       - name: clang-tidy
         # The Linux build's sources with the renderer and the glue; the other
         # platforms' code is compiled with warnings as errors by its own cell.
+        # Twice: in Release, where the assertions compile out, and in Debug,
+        # with them live. Each hides paths from the analyzer the other shows.
         run: |
-          cmake --preset linux-parts -B out/tidy -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -D${PREFIX}_BUILD_TESTS=OFF -D${PREFIX}_BUILD_SAMPLES=OFF -D${PREFIX}_SANITIZE=OFF
-          cmake --build out/tidy
-          python3 tools/tidy_files.py out/tidy/compile_commands.json >out/tidy-files.txt
-          xargs -a out/tidy-files.txt -n 1 clang-tidy-20 -p out/tidy --quiet --warnings-as-errors='*'
+          for build in Release Debug; do
+            cmake --preset linux-parts -B out/tidy-$build -DCMAKE_BUILD_TYPE=$build \
+              -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -D${PREFIX}_BUILD_TESTS=OFF \
+              -D${PREFIX}_BUILD_SAMPLES=OFF -D${PREFIX}_SANITIZE=OFF
+            cmake --build out/tidy-$build
+            python3 tools/tidy_files.py out/tidy-$build/compile_commands.json >out/tidy-files.txt
+            xargs -a out/tidy-files.txt -n 1 clang-tidy-20 -p out/tidy-$build --quiet \
+              --warnings-as-errors='*'
+          done
 
   # Every cell builds with warnings as errors and runs its whole suite, the
   # header tests included. The gcc-14 and shared cells also install the
