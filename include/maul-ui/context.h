@@ -7,7 +7,7 @@
 // A context is busy while one of its functions that changes it runs. Host
 // code it calls then (the measure, baseline, paint and access text
 // functions, the allocator) may read it, and a function that changes it
-// answers mui_errorState and counts one misuse; muiDestroyContext does
+// answers mui_errorBusy and counts one misuse; muiDestroyContext does
 // nothing. The event function is the exception: the context is not busy
 // while it runs, and it may call all but the functions muiEventFunction
 // names.
@@ -24,6 +24,15 @@ extern "C"
 
     // The owner of every node. A context is used by one thread at a time.
     typedef struct muiContext muiContext;
+
+    enum
+    {
+        // The largest value of a context's limit: 2^31 - 2, so a table with
+        // a placeholder entry still counts in 31 bits.
+        MUI_MAX_CONTEXT_LIMIT = 0x7FFFFFFE,
+        // The most pointers a context knows at once.
+        MUI_MAX_POINTERS = 32
+    };
 
     // The named limits of a context. A request past one is refused with
     // mui_errorCapacity.
@@ -61,7 +70,8 @@ extern "C"
         uint32_t drawGlyphs;
         // Nodes that root a layer at once.
         uint32_t layers;
-        // Pointers known at once (at most 32), and pointer records
+        // Pointers known at once (at most MUI_MAX_POINTERS), and pointer
+        // records
         // waiting to be taken; past it, they are counted in a
         // mui_pointerRecordDropped record.
         uint32_t pointers;
@@ -160,15 +170,16 @@ extern "C"
     /// Creates a context and reserves the memory its limits name.
     ///
     /// @param def         The context: a valid cookie, an allocator with both
-    ///                    functions or neither, a node limit from 1 to
-    ///                    2^31 - 1 and other limits from 0 to 2^31 - 1.
+    ///                    functions or neither, a node limit of 1 or more,
+    ///                    and limits up to MUI_MAX_CONTEXT_LIMIT, pointers up
+    ///                    to MUI_MAX_POINTERS.
     /// @param contextOut  Receives the context; set to NULL on failure.
     /// @return `mui_success`; `mui_errorVersion` for a def built against
     ///         headers of another binary interface (MUI_ABI_VERSION), before
     ///         the rest of the def is read; `mui_errorInvalid` for a NULL
-    ///         argument, a bad cookie, a half-set allocator or a limit out of
-    ///         range; `mui_errorCapacity` when the allocator cannot give the
-    ///         memory.
+    ///         argument, a bad cookie, a half-set allocator or a node limit of
+    ///         0; `mui_errorLimit` for a limit past its maximum;
+    ///         `mui_errorCapacity` when the allocator cannot give the memory.
     /// @par Thread safety
     /// Safe from any thread.
     MUI_NODISCARD MUI_API muiResult muiCreateContext(const muiContextDef* def,
@@ -232,7 +243,7 @@ extern "C"
     /// @param context          The context.
     /// @param notificationOut  Receives it. Zeroed on failure.
     /// @return `mui_success`; `mui_empty` when none is waiting;
-    ///         `mui_errorInvalid` for a NULL argument; `mui_errorState` while
+    ///         `mui_errorInvalid` for a NULL argument; `mui_errorBusy` while
     ///         the context is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -241,7 +252,7 @@ extern "C"
 
     /// Returns how many calls the context has refused as invalid input
     /// (`mui_errorInvalid`) or as calls back in while it was busy
-    /// (`mui_errorState`): a count release builds can watch to catch a
+    /// (`mui_errorBusy`): a count release builds can watch to catch a
     /// host's bugs. Stale ids are not misuse, data another program
     /// controls (`mui_errorFormat`) is not, and queries taking the context
     /// as const count nothing.

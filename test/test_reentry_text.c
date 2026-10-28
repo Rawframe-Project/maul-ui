@@ -4,7 +4,7 @@
 // Host code calling back into the text service and the glyph atlas it
 // serves (Maul conventions, Threads): from the allocator, FreeType's memory
 // through it and the clipboard writer, every function that uses the service
-// answers mui_errorState, or an empty answer where it returns no status,
+// answers mui_errorBusy, or an empty answer where it returns no status,
 // and counts one misuse; from the allocator while an atlas packs a glyph,
 // every function that changes the atlas does.
 
@@ -153,7 +153,7 @@ static void CallBack(Probe* probe)
     uint64_t refused = 0;
     for (int i = 0; i < count; i++)
     {
-        bool state = results[i] == mui_errorState;
+        bool state = results[i] == mui_errorBusy;
         refused += state;
         expected = expected && (IsAtlasCall(i) == probe->atlas || !state) &&
                    (IsAtlasCall(i) != probe->atlas || state);
@@ -261,7 +261,7 @@ static void TestControl(void)
     bool none = count == CALLS;
     for (int i = 0; i < count; i++)
     {
-        none = none && results[i] != mui_errorState;
+        none = none && results[i] != mui_errorBusy;
     }
     CHECK(none, "no call refused as busy outside host code");
     muiDestroyGlyphAtlas(scene.atlas);

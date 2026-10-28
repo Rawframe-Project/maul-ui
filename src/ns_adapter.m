@@ -28,9 +28,8 @@ static void Post(id element, NSAccessibilityNotificationName name, NSDictionary*
 
 static bool IsValid(const muiNsAdapterDef* def)
 {
-    return muiIsAllocatorValid(&def->allocator) && def->nodes != 0 &&
-           def->nodes <= ((uint32_t)1 << 24) && def->view != nullptr && def->action != nullptr &&
-           def->scale > 0.0f;
+    return muiIsAllocatorValid(&def->allocator) && def->nodes != 0 && def->view != nullptr &&
+           def->action != nullptr && def->scale > 0.0f;
 }
 
 // The objects' map is at most half full.
@@ -71,6 +70,10 @@ static MUI_NOINLINE muiResult CreateNsAdapterWorker(const muiNsAdapterDef* def,
     if (!IsValid(def))
     {
         return mui_errorInvalid;
+    }
+    if (def->nodes > MUI_MAX_ACCESS_NODES)
+    {
+        return mui_errorLimit;
     }
     size_t size = SizeOf(def->nodes);
     unsigned char* block = muiAllocate(&def->allocator, size, alignof(max_align_t));
@@ -284,7 +287,7 @@ static MUI_NOINLINE muiResult NsAdapterApplyWorker(muiNsAdapter* adapter,
     }
     if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
     {
-        return mui_errorState;
+        return mui_errorBusy;
     }
     muiResult result = NsAdapterApply(adapter, update);
     adapter->misuse += result == mui_errorInvalid;
@@ -323,7 +326,7 @@ static MUI_NOINLINE muiResult NsAdapterSetScaleWorker(muiNsAdapter* adapter, flo
     }
     if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
     {
-        return mui_errorState;
+        return mui_errorBusy;
     }
     muiResult result = NsAdapterSetScale(adapter, scale);
     adapter->misuse += result == mui_errorInvalid;

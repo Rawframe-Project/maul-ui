@@ -18,13 +18,6 @@
 #include <stdint.h>
 #include <string.h>
 
-enum
-{
-    MAX_FONTS = 65536,
-    MAX_FAMILIES = 65536,
-    MAX_BLOCKS = 1 << 24,
-};
-
 // FreeType's memory through the service's allocator. FreeType does not
 // give a block's size when it frees it, so each block starts with a
 // header holding the size it was allocated with; the header keeps the
@@ -190,11 +183,14 @@ static MUI_NOINLINE muiResult CreateTextServiceWorker(const muiTextServiceDef* d
     {
         return mui_errorVersion;
     }
-    if (!muiIsAllocatorValid(&def->allocator) || def->limits.fonts == 0 ||
-        def->limits.fonts > MAX_FONTS || def->limits.textBlocks > MAX_BLOCKS ||
-        def->limits.fontFamilies > MAX_FAMILIES)
+    if (!muiIsAllocatorValid(&def->allocator) || def->limits.fonts == 0)
     {
         return mui_errorInvalid;
+    }
+    if (def->limits.fonts > MUI_MAX_FONTS || def->limits.textBlocks > MUI_MAX_TEXT_BLOCKS ||
+        def->limits.fontFamilies > MUI_MAX_FONT_FAMILIES)
+    {
+        return mui_errorLimit;
     }
     muiLayout layout = {0};
     Parts parts = LayOut(&layout, &def->limits);

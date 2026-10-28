@@ -405,7 +405,7 @@ static uint64_t ReadContent(muiContext* context, uint32_t slot, bool boundaries,
     // Empty text is none, unless it is being edited: an empty field.
     bool edited = content.marks.selected && content.length == 0;
     if (!read || content.text == nullptr || (content.length == 0 && !edited) ||
-        content.length > INT32_MAX ||
+        content.length > MUI_MAX_TEXT_BYTES ||
         !muiAccessIsUtf8((const unsigned char*)content.text, content.length))
     {
         return 0;

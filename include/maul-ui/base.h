@@ -88,40 +88,58 @@ extern "C"
         mui_success = 0,
         // A queue had nothing to take.
         mui_empty = 1,
-        // An argument is invalid: a null pointer where one is required, a
-        // value out of range. A correct program never passes one, so a live
-        // owner object counts it as misuse, but for a query that takes the
-        // object as const.
+        // An argument is invalid: a null pointer where one is required, an
+        // object of the wrong kind, a value outside the range its parameter
+        // documents. A correct program never passes one, so a live owner
+        // object counts it as misuse, but for a query that takes the object
+        // as const.
         mui_errorInvalid = -1,
-        // A caller buffer or a named limit is too small for the result.
+        // A caller buffer, a named limit of a def or the allocator gives too
+        // little room for the result; more room would succeed.
         mui_errorCapacity = -2,
         // An id names an object that no longer exists.
         mui_errorStale = -3,
-        // Data is damaged, or in a format the call does not take, such as
-        // a font that fails validation or a compressed web font, or a
-        // request another program sent does not fit what it names, such as
-        // a number that is not finite. Another program controls such data,
-        // so it counts no misuse.
-        mui_errorFormat = -4,
+        // The object was created without what the call needs, such as a
+        // glyph atlas of another format, or the library does not take the
+        // data, such as a compressed web font. No later call adds it.
+        mui_errorUnsupported = -4,
         // The platform refused: a call of its failed, or its state does
         // not allow the call, such as a thread outside the apartment the
         // platform requires.
         mui_errorPlatform = -5,
         // A root def was built against headers of a release whose binary
         // interface differs from the library's (MUI_ABI_VERSION).
-        mui_errorVersion = -6,
+        mui_errorVersion = -7,
+        // Data is damaged, such as a font that fails validation, or a
+        // request another program sent does not fit what it names, such as
+        // a number that is not finite. Another program controls such data,
+        // so it counts no misuse.
+        mui_errorFormat = -8,
+        // An argument, or its content, passes a fixed bound of the library
+        // that a MUI_MAX_ or MUI_MIN_ constant names, such as
+        // MUI_MAX_TEXT_SPANS; more room would not help. It counts as misuse,
+        // as an invalid argument does.
+        mui_errorLimit = -9,
         // The object is busy: host code it is running (a measure, paint or
         // access text function, the allocator, an action function, the
         // clipboard writer) called one of its functions that changes it,
         // or an event function called one it may not (muiEventFunction).
-        mui_errorState = -7,
+        // The same call succeeds once that code returns.
+        mui_errorBusy = -10,
+    };
+
+    // The longest text the library holds, in bytes: a text block's text, an
+    // accessibility text. Offsets, one past the end included, fit 32 bits.
+    enum
+    {
+        MUI_MAX_TEXT_BYTES = 0x7FFFFFFF
     };
 
     // The allocator an owner object takes in its def and keeps for its
     // lifetime. Alignment is a power of two. A zeroed allocator means the C
     // library's allocation functions. Its functions run inside the object's
     // calls and call no function that changes it: one answers
-    // mui_errorState and counts one misuse.
+    // mui_errorBusy and counts one misuse.
     typedef struct muiAllocator
     {
         void* (*alloc)(size_t size, size_t alignment, void* context);

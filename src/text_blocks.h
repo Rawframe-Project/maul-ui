@@ -26,8 +26,10 @@ bool muiSetBlockText(muiTextService* service, muiTextBlock* block, const char* t
                      uint32_t length);
 
 // Whether replacing the bytes of a block's text from start up to end
-// with length bytes is within the text and keeps it within its limit.
-bool muiFitsBlockText(const muiTextBlock* block, uint32_t start, uint32_t end, size_t length);
+// with length bytes is within the text, mui_errorInvalid if not, and keeps
+// it within MUI_MAX_TEXT_BYTES, mui_errorLimit if not.
+muiResult muiBlockTextStatus(const muiTextBlock* block, uint32_t start, uint32_t end,
+                             size_t length);
 
 // Whether an offset begins a character of a block's text, or is its end,
 // as decoding reads it: a byte past what a sequence's lead takes begins

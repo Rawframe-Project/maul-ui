@@ -378,13 +378,13 @@ static void TestContract(void)
     muiFontFamilyDef empty = def;
     empty.faceCount = 0;
     muiFontFamilyDef many = def;
-    many.faceCount = 257;
+    many.faceCount = MUI_MAX_FAMILY_FACES + 1;
     muiFontId dead = {9, 9};
     muiFontFamilyDef stale = def;
     stale.faces = &dead;
     CHECK(muiCreateFontFamily(service, &bad, &family) == mui_errorInvalid &&
               muiCreateFontFamily(service, &empty, &family) == mui_errorInvalid &&
-              muiCreateFontFamily(service, &many, &family) == mui_errorInvalid &&
+              muiCreateFontFamily(service, &many, &family) == mui_errorLimit &&
               muiCreateFontFamily(service, &stale, &family) == mui_errorStale,
           "faces");
     CHECK(muiCreateFontFamily(service, &def, &family) == mui_success &&
@@ -417,9 +417,9 @@ static void TestContract(void)
               !muiFontFamily_IsValid(service, (muiFontFamilyId){0, 0}),
           "destroyed");
     CHECK(muiCreateFontFamily(service, &def, &second) == mui_success, "its slot again");
-    serviceDef.limits.fontFamilies = 65537;
+    serviceDef.limits.fontFamilies = MUI_MAX_FONT_FAMILIES + 1;
     muiTextService* tooMany = NULL;
-    CHECK(muiCreateTextService(&serviceDef, &tooMany) == mui_errorInvalid, "a family limit past");
+    CHECK(muiCreateTextService(&serviceDef, &tooMany) == mui_errorLimit, "a family limit past");
     muiDestroyTextService(service);
 }
 

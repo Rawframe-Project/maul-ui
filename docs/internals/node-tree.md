@@ -30,4 +30,4 @@ A pass descends only into subtrees whose flag is set. It clears both flags on ev
 
 ## Re-entry
 
-The host's measure, baseline, paint and accessibility text functions run inside the context's own calls. The tree is half-updated at those points, so the context refuses edits made from them with `mui_errorState` ([host_call.h](../../src/host_call.h)). The event function runs between routing steps and may edit the tree; routing writes its route down before the first call, so an edit changes neither who hears the event nor in what order ([Interaction](interaction.md#routing)).
+The host's measure, baseline, paint and accessibility text functions run inside the context's own calls. The tree is half-updated at those points, so the context refuses edits made from them with `mui_errorBusy` ([host_call.h](../../src/host_call.h)). The event function runs between routing steps and may edit the tree; routing writes its route down before the first call, so an edit changes neither who hears the event nor in what order ([Interaction](interaction.md#routing)).

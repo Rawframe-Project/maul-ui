@@ -21,7 +21,6 @@
 
 enum
 {
-    MAX_FACES = 256,
     // The width CSS asks for when none is given, in percent.
     NORMAL_WIDTH = 100,
 };
@@ -174,7 +173,7 @@ static float WeightScore(const muiFont* font, float weight)
 const muiFont* muiMatchFamily(const muiTextService* service, const muiFontFamily* family,
                               float weight, muiFontSlant slant, muiFontId* faceOut)
 {
-    Face faces[MAX_FACES];
+    Face faces[MUI_MAX_FAMILY_FACES];
     uint32_t count = 0;
     for (uint32_t i = 0; i < family->faceCount; i++)
     {
@@ -237,9 +236,13 @@ static muiResult CheckKey(const muiTextService* service, uint64_t key)
 // Checks keys as fallbacks: up to MUI_MAX_FALLBACKS, each live.
 static muiResult CheckFallbacks(const muiTextService* service, const uint64_t* keys, uint32_t count)
 {
-    if ((keys == nullptr && count != 0) || count > MUI_MAX_FALLBACKS)
+    if (keys == nullptr && count != 0)
     {
         return mui_errorInvalid;
+    }
+    if (count > MUI_MAX_FALLBACKS)
+    {
+        return mui_errorLimit;
     }
     muiResult result = mui_success;
     for (uint32_t i = 0; i < count && result == mui_success; i++)
@@ -292,10 +295,13 @@ static muiResult CreateFontFamily(muiTextService* service, const muiFontFamilyDe
                                   muiFontFamilyId* familyOut)
 {
     if (service == nullptr || def == nullptr || familyOut == nullptr ||
-        def->cookie != FONT_FAMILY_DEF_COOKIE || def->faces == nullptr || def->faceCount == 0 ||
-        def->faceCount > MAX_FACES)
+        def->cookie != FONT_FAMILY_DEF_COOKIE || def->faces == nullptr || def->faceCount == 0)
     {
         return muiRefuseText(service);
+    }
+    if (def->faceCount > MUI_MAX_FAMILY_FACES)
+    {
+        return muiCountText(service, mui_errorLimit);
     }
     for (uint32_t i = 0; i < def->faceCount; i++)
     {

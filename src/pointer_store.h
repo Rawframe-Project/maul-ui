@@ -11,12 +11,8 @@
 
 #include <stdint.h>
 
-// The most pointers a context knows at once: an edit's pointers fit a
-// mask.
-enum
-{
-    MUI_MAX_POINTERS = 32
-};
+// An edit's pointers fit a mask.
+static_assert(MUI_MAX_POINTERS <= 32, "a mask holds the pointers");
 
 // A pointer the context knows. hovered and pressed are counted in their
 // chains' nodes; captured is in hovered's place while it lives.

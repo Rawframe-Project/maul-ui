@@ -244,7 +244,7 @@ extern "C"
     // muiBuildDrawList for each node whose content is the host's, with its
     // host key and its content box's size. It may read the context, such
     // as muiNode_GetTextStyle; a function that changes it answers
-    // mui_errorState and counts one misuse.
+    // mui_errorBusy and counts one misuse.
     typedef void (*muiPaintFunction)(void* user, muiNodeId nodeId, uint64_t hostKey, float width,
                                      float height, muiDrawSink* sink);
 
@@ -343,7 +343,7 @@ extern "C"
     /// @param input    The surface, the scale and the paint function.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
     ///         id or a scale that is not a finite number above 0;
-    ///         `mui_errorState` while the context is busy; `mui_errorStale` for
+    ///         `mui_errorBusy` while the context is busy; `mui_errorStale` for
     ///         a root that is gone; `mui_errorCapacity` when the list needs
     ///         more commands, clips, gradients or glyphs than the context's
     ///         limits, which leaves the list empty.

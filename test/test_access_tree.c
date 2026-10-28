@@ -1122,12 +1122,12 @@ static void TestCallingBack(void)
     muiAccessUpdate update = {sent, 1, NULL, 1, 1};
     calling.armed = true;
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success && calling.runs == 1 &&
-              calling.applied == mui_errorState && muiAccessTree_Count(tree) == 1 &&
+              calling.applied == mui_errorBusy && muiAccessTree_Count(tree) == 1 &&
               muiGetAccessTreeMisuse(tree) == 3,
           "a call back in from the allocator refused, the tree kept; it and the destroy counted");
     calling.armed = true;
     muiDestroyAccessTree(tree);
-    CHECK(calling.runs == 2 && calling.applied == mui_errorState, "and from a free while it goes");
+    CHECK(calling.runs == 2 && calling.applied == mui_errorBusy, "and from a free while it goes");
 }
 
 // The def carries the headers' version: another release's, or a zeroed
@@ -1155,6 +1155,8 @@ static void TestContract(void)
     muiAccessTree* tree = NULL;
     def.nodes = 0;
     CHECK(muiCreateAccessTree(&def, &tree) == mui_errorInvalid, "no nodes");
+    def.nodes = MUI_MAX_ACCESS_NODES + 1;
+    CHECK(muiCreateAccessTree(&def, &tree) == mui_errorLimit && tree == NULL, "too many nodes");
     def = muiDefaultAccessTreeDef();
     def.cookie = 0;
     CHECK(muiCreateAccessTree(&def, &tree) == mui_errorInvalid &&

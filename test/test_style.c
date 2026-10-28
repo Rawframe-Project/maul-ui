@@ -121,13 +121,13 @@ static void TestDefaultLimitsAndTheirChecks(void)
     muiContextDef def = muiDefaultContextDef();
     muiContext* context = NULL;
     def.limits.styles = 0x80000000u;
-    CHECK(muiCreateContext(&def, &context) == mui_errorInvalid, "styles over 2^31 - 1");
+    CHECK(muiCreateContext(&def, &context) == mui_errorLimit, "styles past the limit");
     def = muiDefaultContextDef();
     def.limits.nodeTypes = 0x80000000u;
-    CHECK(muiCreateContext(&def, &context) == mui_errorInvalid, "types over 2^31 - 1");
+    CHECK(muiCreateContext(&def, &context) == mui_errorLimit, "types past the limit");
     def = muiDefaultContextDef();
     def.limits.propertySets = 0x80000000u;
-    CHECK(muiCreateContext(&def, &context) == mui_errorInvalid, "sets over 2^31 - 1");
+    CHECK(muiCreateContext(&def, &context) == mui_errorLimit, "sets past the limit");
     context = MakeContextWith((muiLimits){.nodes = 1});
     muiStyleId style = s_nullStyle;
     const muiStyleDef styleDef = muiDefaultStyleDef();
@@ -335,7 +335,7 @@ static void TestTypeClassesComeFirst(void)
     muiStyleId many[MUI_MAX_CLASSES + 1] = {0};
     typeDef.classes = many;
     typeDef.classCount = MUI_MAX_CLASSES + 1;
-    CHECK(muiCreateNodeType(context, &typeDef, &type) == mui_errorInvalid, "too many classes");
+    CHECK(muiCreateNodeType(context, &typeDef, &type) == mui_errorLimit, "too many classes");
     typeDef.classes = NULL;
     typeDef.classCount = 1;
     CHECK(muiCreateNodeType(context, &typeDef, &type) == mui_errorInvalid, "no classes");
@@ -345,11 +345,11 @@ static void TestTypeClassesComeFirst(void)
     typeDef.classes = many;
     typeDef.classCount = MUI_MAX_CLASSES;
     CHECK(muiCreateNodeType(context, &typeDef, &type) == mui_success, "the limit itself");
-    CHECK(muiNodeType_SetClasses(context, type, many, MUI_MAX_CLASSES + 1) == mui_errorInvalid,
+    CHECK(muiNodeType_SetClasses(context, type, many, MUI_MAX_CLASSES + 1) == mui_errorLimit,
           "too many to retype");
     CHECK(muiNodeType_SetClasses(context, s_nullType, NULL, 0) == mui_errorInvalid, "null type");
     CHECK(muiDestroyNodeType(context, s_nullType) == mui_errorInvalid, "null type destroy");
-    CHECK(muiNode_SetClasses(context, node, many, MUI_MAX_CLASSES + 1) == mui_errorInvalid,
+    CHECK(muiNode_SetClasses(context, node, many, MUI_MAX_CLASSES + 1) == mui_errorLimit,
           "too many on a node");
     CHECK(muiNode_SetClasses(context, node, NULL, 1) == mui_errorInvalid, "none given");
     CHECK(muiNode_SetClasses(context, s_nullNode, NULL, 0) == mui_errorInvalid, "null node");
@@ -662,7 +662,7 @@ static void TestStyleEditsAreRefusedWhileMeasuring(void)
     CHECK(muiComputeLayout(context, node, &input) == mui_success, "compute");
     for (int i = 0; i < 4; i++)
     {
-        CHECK(host.refused[i] == mui_errorState, "refused while measuring");
+        CHECK(host.refused[i] == mui_errorBusy, "refused while measuring");
     }
     muiDestroyContext(context);
 }

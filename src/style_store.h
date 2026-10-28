@@ -123,10 +123,17 @@ typedef struct muiStyleStore
     muiPropertyBits reach;
 } muiStyleStore;
 
-// Whether classes and count make a list a node or a type may hold.
-static inline MUI_SIZE_OUTLINE bool muiIsClassListValid(const muiStyleId* classes, uint32_t count)
+// Whether classes and count make a list a node or a type may hold:
+// mui_success, mui_errorInvalid for NULL classes with a count, or
+// mui_errorLimit for more than MUI_MAX_CLASSES.
+static inline MUI_SIZE_OUTLINE muiResult muiClassListStatus(const muiStyleId* classes,
+                                                            uint32_t count)
 {
-    return count <= MUI_MAX_CLASSES && (classes != nullptr || count == 0);
+    if (classes == nullptr && count != 0)
+    {
+        return mui_errorInvalid;
+    }
+    return count <= MUI_MAX_CLASSES ? mui_success : mui_errorLimit;
 }
 
 static inline MUI_SIZE_OUTLINE void muiSetClassList(muiClassList* list, const muiStyleId* classes,

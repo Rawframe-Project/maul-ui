@@ -173,7 +173,7 @@ static void TestChecks(void)
               muiTextBlock_SetSpans(scene.service, block, &lines, 1) == mui_errorInvalid &&
               muiTextBlock_SetSpans(scene.service, block, NULL, 1) == mui_errorInvalid &&
               muiTextBlock_SetSpans(scene.service, block, &span, MUI_MAX_TEXT_SPANS + 1) ==
-                  mui_errorInvalid &&
+                  mui_errorLimit &&
               muiTextBlock_SetSpans(NULL, block, &span, 1) == mui_errorInvalid &&
               muiTextBlock_SetSpans(scene.service, (muiTextBlockId){0, 0}, &span, 1) ==
                   mui_errorInvalid,

@@ -1176,8 +1176,8 @@ static void TestActionsAndValues(void)
     CHECK(PropertyOf(ok, "org.a11y.atspi.Action", "NActions", mui_dbusTypeInt32, &count) &&
               count == 1 && FirstOf(reply, mui_dbusTypeBoolean, &done) && done &&
               s_test.asked.action == mui_actionClick && s_test.asked.target == 2 &&
-              s_test.reentered == mui_errorState &&
-              muiGetAtspiAppMisuse(s_test.app) >= misuse + 3 && muiGetAtspiAppMisuse(NULL) == 0,
+              s_test.reentered == mui_errorBusy && muiGetAtspiAppMisuse(s_test.app) >= misuse + 3 &&
+              muiGetAtspiAppMisuse(NULL) == 0,
           "a click listed and done; a call back in from it refused, it, the pump and the "
           "destroy counted");
     if (reply != NULL)

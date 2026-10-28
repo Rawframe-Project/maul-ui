@@ -452,6 +452,31 @@ static void TestFixedEdges(void)
     muiDestroyContext(context);
 }
 
+// The most items a list has: one more is refused, and the last of as many
+// keeps its binding, an index plus 1 below the mark of a removed item.
+static void TestMostItems(void)
+{
+    Scene scene;
+    muiVirtualList list = ListOf(MUI_MAX_VIRTUAL_ITEMS, 20.0f, true, 0.0f, 0.0f);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
+    muiContext* context = scene.context;
+    muiNodeId child = Node(context, scene.list);
+    uint32_t index = 0;
+    CHECK(muiNode_BindVirtualItem(context, child, MUI_MAX_VIRTUAL_ITEMS - 1) == mui_success &&
+              muiNode_GetBoundVirtualItem(context, child, &index) == mui_success &&
+              index == MUI_MAX_VIRTUAL_ITEMS - 1,
+          "the last item keeps its binding");
+    uint64_t misuse = muiGetContextMisuse(context);
+    CHECK(muiNode_InsertVirtualItems(context, scene.list, 0, 1) == mui_errorLimit &&
+              muiGetContextMisuse(context) == misuse + 1,
+          "one more inserted, counted");
+    list.count = UINT32_MAX;
+    CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_errorLimit &&
+              muiGetContextMisuse(context) == misuse + 2,
+          "one more set, counted");
+    muiDestroyContext(context);
+}
+
 static void TestLargeEstimated(void)
 {
     // 1024 items, a power of two: the tree's full depth.
@@ -670,7 +695,8 @@ static void TestEditContract(void)
     uint64_t misuse = muiGetContextMisuse(context);
     CHECK(muiNode_InsertVirtualItems(context, a, 11, 1) == mui_errorInvalid &&
               muiNode_InsertVirtualItems(context, a, 0, 0) == mui_errorInvalid &&
-              muiNode_InsertVirtualItems(context, a, 0, 0xFFFFFFFFu - 10u) == mui_errorInvalid &&
+              muiNode_InsertVirtualItems(context, a, 0, MUI_MAX_VIRTUAL_ITEMS - 9u) ==
+                  mui_errorLimit &&
               muiNode_RemoveVirtualItems(context, a, 10, 1) == mui_errorInvalid &&
               muiNode_RemoveVirtualItems(context, a, 5, 0) == mui_errorInvalid &&
               muiNode_RemoveVirtualItems(context, a, 5, 6) == mui_errorInvalid &&
@@ -1033,6 +1059,7 @@ int main(void)
     TestBinding();
     TestEdges();
     TestFixedEdges();
+    TestMostItems();
     TestLargeEstimated();
     TestStorageBack();
     TestSetAnew();

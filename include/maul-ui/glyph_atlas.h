@@ -44,6 +44,23 @@ extern "C"
         mui_atlasColor = 2,
     };
 
+    enum
+    {
+        // A page's sides, in pixels.
+        MUI_MIN_ATLAS_PAGE = 64,
+        MUI_MAX_ATLAS_PAGE = 16384,
+        // A plot's sides, in pixels.
+        MUI_MIN_ATLAS_PLOT = 16,
+        MUI_MAX_ATLAS_PLOT = 4096,
+        // The most plots a page is cut into, and pages an atlas has.
+        MUI_MAX_ATLAS_PLOTS = 4096,
+        MUI_MAX_ATLAS_PAGES = 64
+    };
+
+    // The farthest a pen is from 0, in device pixels, so pixel positions
+    // stay exact.
+#define MUI_MAX_ATLAS_PEN 16777216.0f
+
     // How an atlas is made. Build it with muiDefaultGlyphAtlasDef. Pages
     // are pageWidth by pageHeight pixels, cut into plots plotWidth by
     // plotHeight, which divide them; a glyph image larger than a plot,
@@ -110,15 +127,19 @@ extern "C"
     /// memory. It is destroyed before the service.
     ///
     /// @param service   The service.
-    /// @param def       The atlas: a valid cookie; pages from 64 to 16,384
-    ///                  pixels a side; plots from 16 to 4,096 pixels a side
-    ///                  that divide the pages, at most 4,096 of them a
-    ///                  page; from 1 to 64 pages; a format of
+    /// @param def       The atlas: a valid cookie; pages of
+    ///                  MUI_MIN_ATLAS_PAGE to MUI_MAX_ATLAS_PAGE pixels a
+    ///                  side; plots of MUI_MIN_ATLAS_PLOT to
+    ///                  MUI_MAX_ATLAS_PLOT pixels a side that divide the
+    ///                  pages, at most MUI_MAX_ATLAS_PLOTS of them a page;
+    ///                  from 1 to MUI_MAX_ATLAS_PAGES pages; a format of
     ///                  muiAtlasFormat.
     /// @param atlasOut  Receives the atlas. NULL on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
-    ///         cookie, a size out of range or an unknown format;
-    ///         `mui_errorCapacity` when memory runs out; `mui_errorState` while
+    ///         cookie, plots that do not divide the pages, no pages or an
+    ///         unknown format; `mui_errorLimit` for sides, plots or pages
+    ///         past the bounds above;
+    ///         `mui_errorCapacity` when memory runs out; `mui_errorBusy` while
     ///         the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
@@ -153,18 +174,23 @@ extern "C"
     /// @param font       A font key, as a glyph run carries.
     /// @param glyph      A glyph id of the font.
     /// @param pixelSize  The em in device pixels, as muiRenderGlyph takes.
-    /// @param penX       The pen, in device pixels, within 2^24 of 0.
+    /// @param penX       The pen, in device pixels, within MUI_MAX_ATLAS_PEN
+    ///                   of 0.
     /// @param baselineY  The baseline, likewise.
     /// @param glyphOut   Receives the image; when the image is larger than a
     ///                   plot, its width and height only. Zeroed on any other
     ///                   failure.
     /// @return `mui_success`; `mui_errorCapacity` when the image is larger than
     ///         a plot, every plot is in use this frame, or memory runs out;
-    ///         `mui_errorInvalid` for a NULL atlas or glyphOut, an atlas of
-    ///         another format, a size or position out of range, or a glyph id
-    ///         the font lacks; `mui_errorStale` for a key that names no font;
-    ///         `mui_errorFormat` for a glyph that cannot be rendered;
-    ///         `mui_errorState` while the atlas is busy.
+    ///         `mui_errorInvalid` for a NULL atlas or glyphOut, a size that is
+    ///         not a finite number above 0, a position that is not finite, or
+    ///         a glyph id the font lacks; `mui_errorLimit` for a size outside
+    ///         MUI_MIN_GLYPH_PIXEL_SIZE to MUI_MAX_GLYPH_PIXEL_SIZE, or a
+    ///         position past MUI_MAX_ATLAS_PEN;
+    ///         `mui_errorUnsupported` for an atlas of another format;
+    ///         `mui_errorStale` for a key that names no font; `mui_errorFormat`
+    ///         for a glyph that cannot be rendered; `mui_errorBusy` while the
+    ///         atlas is busy.
     /// @par Thread safety
     /// Safe from any thread; the atlas is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_Get(muiGlyphAtlas* atlas, uint64_t font,
@@ -184,7 +210,8 @@ extern "C"
     /// @param font        A font key, as a glyph run carries.
     /// @param glyph       A glyph id of the font.
     /// @param pixelSize   The em in device pixels.
-    /// @param penX        The pen, in device pixels, within 2^24 of 0.
+    /// @param penX        The pen, in device pixels, within MUI_MAX_ATLAS_PEN
+    ///                    of 0.
     /// @param baselineY   The baseline, likewise.
     /// @param palette     The font's palette to fill from.
     /// @param foreground  The text's colour, linear and premultiplied.
@@ -192,8 +219,8 @@ extern "C"
     ///                    plot, its width and height only. Zeroed on any other
     ///                    failure.
     /// @return As muiGlyphAtlas_Get, with `mui_empty` for a glyph without
-    ///         colour layers and an atlas of another format invalid;
-    ///         `mui_errorState` while the atlas is busy.
+    ///         colour layers;
+    ///         `mui_errorBusy` while the atlas is busy.
     /// @par Thread safety
     /// Safe from any thread; the atlas is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_GetColor(
@@ -217,8 +244,9 @@ extern "C"
     /// @param glyphOut   Receives the image; when the image is larger than a
     ///                   plot, its width and height only. Zeroed on any other
     ///                   failure.
-    /// @return As muiGlyphAtlas_Get, with a spread out of range invalid;
-    ///         `mui_errorState` while the atlas is busy.
+    /// @return As muiGlyphAtlas_Get, with `mui_errorLimit` for a spread out of
+    ///         range;
+    ///         `mui_errorBusy` while the atlas is busy.
     /// @par Thread safety
     /// Safe from any thread; the atlas is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_GetField(muiGlyphAtlas* atlas, uint64_t font,
@@ -245,8 +273,8 @@ extern "C"
     /// @param glyphOut   Receives the image; when the image is larger than a
     ///                   plot, its width and height only. Zeroed on any other
     ///                   failure.
-    /// @return As muiGlyphAtlas_GetField, with an atlas of one channel invalid;
-    ///         `mui_errorState` while the atlas is busy.
+    /// @return As muiGlyphAtlas_GetField; `mui_errorBusy` while the atlas is
+    ///         busy.
     /// @par Thread safety
     /// Safe from any thread; the atlas is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_GetMultiField(muiGlyphAtlas* atlas, uint64_t font,
@@ -287,7 +315,7 @@ extern "C"
     ///                  updates is too small. 0 on any other failure.
     /// @return `mui_success`, taking them; `mui_errorCapacity` when updates
     ///         holds fewer, taking none; `mui_errorInvalid` for a NULL atlas or
-    ///         countOut, or NULL updates with a capacity; `mui_errorState`
+    ///         countOut, or NULL updates with a capacity; `mui_errorBusy`
     ///         while the atlas is busy.
     /// @par Thread safety
     /// Safe from any thread; the atlas is used by one thread at a time.

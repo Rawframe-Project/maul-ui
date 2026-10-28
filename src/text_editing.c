@@ -256,9 +256,10 @@ static muiResult Edit(muiTextService* service, muiTextBlock* block, uint32_t sta
     {
         return mui_success;
     }
-    if (!muiFitsBlockText(block, start, end, length))
+    muiResult fits = muiBlockTextStatus(block, start, end, length);
+    if (fits != mui_success)
     {
-        return muiRefuseText(service);
+        return muiCountText(service, fits);
     }
     const muiTextEdit edit = {
         start, end - start, length, 0, editing->selection, Collapsed(start + length), kind};

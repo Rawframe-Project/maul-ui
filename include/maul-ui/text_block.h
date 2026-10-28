@@ -54,7 +54,7 @@ extern "C"
         // U+FFFD for each maximal subpart, as browsers decode it. May be
         // NULL when length is 0.
         const char* text;
-        // Its length in bytes, below 2^31.
+        // Its length in bytes, at most MUI_MAX_TEXT_BYTES.
         size_t length;
     } muiTextBlockDef;
 
@@ -71,9 +71,9 @@ extern "C"
     /// @param def      The block: a valid cookie and its text.
     /// @param blockOut Receives the block's id. The null id on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a bad
-    ///         cookie, text NULL with a length or a length of 2^31 or more;
-    ///         `mui_errorCapacity` when the service's limit of blocks is
-    ///         reached or memory runs out; `mui_errorState` while the service
+    ///         cookie or text NULL with a length; `mui_errorLimit` for a length
+    ///         past MUI_MAX_TEXT_BYTES; `mui_errorCapacity` when the service's limit of blocks is
+    ///         reached or memory runs out; `mui_errorBusy` while the service
     ///         is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
@@ -86,7 +86,7 @@ extern "C"
     /// @param service  The service.
     /// @param blockId  The block.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL service or the null
-    ///         id; `mui_errorStale` for a block that is gone; `mui_errorState`
+    ///         id; `mui_errorStale` for a block that is gone; `mui_errorBusy`
     ///         while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
@@ -100,12 +100,12 @@ extern "C"
     /// @param service  The service.
     /// @param blockId  The block.
     /// @param text     The text; may be NULL when length is 0.
-    /// @param length   Its length in bytes, below 2^31.
+    /// @param length   Its length in bytes, at most MUI_MAX_TEXT_BYTES.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL service, the null
-    ///         id, a NULL text with a length or a length of 2^31 or more;
-    ///         `mui_errorStale` for a block that is gone; `mui_errorCapacity`
-    ///         when memory runs out, which keeps the old text; `mui_errorState`
-    ///         while the service is busy.
+    ///         id or a NULL text with a length; `mui_errorLimit` for a length
+    ///         past MUI_MAX_TEXT_BYTES; `mui_errorStale` for a block that is
+    ///         gone; `mui_errorCapacity` when memory runs out, which keeps the
+    ///         old text; `mui_errorBusy` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_SetText(muiTextService* service,
@@ -126,10 +126,10 @@ extern "C"
     ///                 length is 0, and may be part of the block's text.
     /// @param length   Its length in bytes.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL service, the null
-    ///         id, a NULL text with a length, start after end, end past the
-    ///         text, or a result of 2^31 bytes or more; `mui_errorStale` for a
-    ///         block that is gone; `mui_errorCapacity` when memory runs out,
-    ///         which keeps the old text; `mui_errorState` while the service is
+    ///         id, a NULL text with a length, start after end, or end past the
+    ///         text; `mui_errorLimit` for a result past MUI_MAX_TEXT_BYTES;
+    ///         `mui_errorStale` for a block that is gone; `mui_errorCapacity` when memory runs out,
+    ///         which keeps the old text; `mui_errorBusy` while the service is
     ///         busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
@@ -177,12 +177,13 @@ extern "C"
     /// @param spans    The spans; NULL when count is 0.
     /// @param count    How many, at most MUI_MAX_TEXT_SPANS; 0 clears them.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL service, the null
-    ///         id, NULL spans with a count, too many, a span empty, past the
-    ///         text or with an edge inside a UTF-8 sequence, a mask naming
-    ///         another property, or a value not valid for its property;
+    ///         id, NULL spans with a count, a span empty, past the text or
+    ///         with an edge inside a UTF-8 sequence, a mask naming another
+    ///         property, or a value not valid for its property;
+    ///         `mui_errorLimit` for more than MUI_MAX_TEXT_SPANS;
     ///         `mui_errorStale` for a block that is gone; `mui_errorCapacity`
     ///         when memory runs out, which keeps the old spans;
-    ///         `mui_errorState` while the service is busy.
+    ///         `mui_errorBusy` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_SetSpans(muiTextService* service,
@@ -259,7 +260,7 @@ extern "C"
     /// @param service  The service.
     /// @param fontId   The font, or the null id.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL service;
-    ///         `mui_errorStale` for a font that is gone; `mui_errorState` while
+    ///         `mui_errorStale` for a font that is gone; `mui_errorBusy` while
     ///         the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
@@ -274,11 +275,12 @@ extern "C"
     /// @param service  The service.
     /// @param keys     Keys of fonts and families; may be NULL when count
     ///                 is 0.
-    /// @param count    Up to 8; 0 for none.
+    /// @param count    Up to MUI_MAX_FALLBACKS; 0 for none.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL service, NULL keys
-    ///         with a count, a count past 8 or a key that is no font's or
-    ///         family's; `mui_errorStale` for one that is gone. On failure the
-    ///         fallbacks stay as they were; `mui_errorState` while the service
+    ///         with a count or a key that is no font's or family's;
+    ///         `mui_errorLimit` for more than MUI_MAX_FALLBACKS;
+    ///         `mui_errorStale` for one that is gone. On failure the
+    ///         fallbacks stay as they were; `mui_errorBusy` while the service
     ///         is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.

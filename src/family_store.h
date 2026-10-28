@@ -13,12 +13,6 @@
 
 #include <stdint.h>
 
-enum
-{
-    // The most fallbacks a family, or the service, has.
-    MUI_MAX_FALLBACKS = 8
-};
-
 typedef struct muiFontFamily
 {
     muiFontId* faces;

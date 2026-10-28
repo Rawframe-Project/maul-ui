@@ -340,6 +340,10 @@ static muiResult NodeSetVirtualList(muiContext* context, muiNodeId nodeId,
     {
         return muiRefuse(context);
     }
+    if (list->count > MUI_MAX_VIRTUAL_ITEMS)
+    {
+        return muiRefuseLimit(context);
+    }
     muiResult status = mui_success;
     uint32_t slot = muiResolveEdit(context, nodeId, &status);
     if (slot == 0)

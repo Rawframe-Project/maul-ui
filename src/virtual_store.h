@@ -33,6 +33,7 @@ typedef struct muiVirtualEntry
 
 // A node bound to an item since removed: out of the flow, placed nowhere.
 #define MUI_ITEM_REMOVED UINT32_MAX
+static_assert(MUI_MAX_VIRTUAL_ITEMS == MUI_ITEM_REMOVED - 1, "an item's index plus 1 is no mark");
 
 typedef struct muiVirtualStore
 {

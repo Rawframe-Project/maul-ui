@@ -170,15 +170,16 @@ static void TestContract(void)
     CHECK(muiRenderGlyph(fonts.service, ahem, AHEM_SPACE, 10.0f, 0.0f, &image, NULL, 0) ==
               mui_success,
           "an empty image needs no bytes");
-    const float sizes[] = {0.0f, 1.0f / 128.0f, -1.0f, NAN, INFINITY, 4097.0f};
+    // Not a size at all, or one past the bounds.
+    const float sizes[] = {0.0f, -1.0f, NAN, INFINITY, 1.0f / 128.0f, 4097.0f};
     for (size_t i = 0; i < sizeof sizes / sizeof sizes[0]; i++)
     {
         CHECK(muiRenderGlyph(fonts.service, ahem, AHEM_BOX, sizes[i], 0.0f, &image, s_pixels,
-                             sizeof s_pixels) == mui_errorInvalid,
+                             sizeof s_pixels) == (i < 4 ? mui_errorInvalid : mui_errorLimit),
               "a size refused");
     }
-    CHECK(muiRenderGlyph(fonts.service, ahem, AHEM_BOX, 1.0f / 64.0f, 0.0f, &image, s_pixels,
-                         sizeof s_pixels) == mui_success &&
+    CHECK(muiRenderGlyph(fonts.service, ahem, AHEM_BOX, MUI_MIN_GLYPH_PIXEL_SIZE, 0.0f, &image,
+                         s_pixels, sizeof s_pixels) == mui_success &&
               muiRenderGlyph(fonts.service, ahem, AHEM_BOX, MUI_MAX_GLYPH_PIXEL_SIZE, 0.0f, &image,
                              NULL, 0) == mui_errorCapacity &&
               image.width == 4096,
@@ -406,9 +407,9 @@ static void TestFieldContract(void)
               image.width == 74,
           "the least and most reach");
     CHECK(muiRenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f, MUI_MIN_FIELD_SPREAD - 1,
-                              &image, s_pixels, sizeof s_pixels) == mui_errorInvalid &&
+                              &image, s_pixels, sizeof s_pixels) == mui_errorLimit &&
               muiRenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f, MUI_MAX_FIELD_SPREAD + 1,
-                                  &image, s_pixels, sizeof s_pixels) == mui_errorInvalid &&
+                                  &image, s_pixels, sizeof s_pixels) == mui_errorLimit &&
               muiRenderGlyphField(fonts.service, ahem, AHEM_BOX, 0.0f, 4, &image, s_pixels,
                                   sizeof s_pixels) == mui_errorInvalid &&
               muiRenderGlyphField(NULL, ahem, AHEM_BOX, 10.0f, 4, &image, s_pixels,
@@ -500,7 +501,7 @@ static void TestMultiFieldContract(void)
                                    sizeof s_pixels) == mui_errorInvalid &&
               muiRenderGlyphMultiField(fonts.service, ahem, AHEM_BOX, 10.0f,
                                        MUI_MAX_FIELD_SPREAD + 1, &image, s_pixels,
-                                       sizeof s_pixels) == mui_errorInvalid,
+                                       sizeof s_pixels) == mui_errorLimit,
           "refused as the one-channel field");
     muiDestroyTextService(fonts.service);
 }

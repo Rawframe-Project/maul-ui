@@ -334,7 +334,7 @@ extern "C"
 
     // Returns the content-box size of a node's host content. It runs inside
     // muiComputeLayout, on the calling thread, and may read the context,
-    // not change it: a function that would answers mui_errorState and
+    // not change it: a function that would answers mui_errorBusy and
     // counts one misuse. It is never asked
     // with both axes exact, as the size is then decided: a host lays its
     // content out for painting at the node's rectangle. Its answer is to
@@ -422,7 +422,7 @@ extern "C"
     /// @param context  The context.
     /// @param nodeId   The node.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
-    ///         id; `mui_errorState` while the context is busy; `mui_errorStale`
+    ///         id; `mui_errorBusy` while the context is busy; `mui_errorStale`
     ///         for an id whose node is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -437,7 +437,7 @@ extern "C"
     /// @param input    The space and the measure function.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
     ///         id, a node with a parent or a negative or non-finite space;
-    ///         `mui_errorState` while the context is busy; `mui_errorStale` for
+    ///         `mui_errorBusy` while the context is busy; `mui_errorStale` for
     ///         an id whose node is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.

@@ -489,7 +489,7 @@ static void TestRelationsAndValues(void)
               muiNode_SetAccessRelation(context, scene.button, mui_relationControls, &none, 1) ==
                   mui_errorInvalid &&
               muiNode_SetAccessRelation(context, scene.button, mui_relationControls, described,
-                                        UINT16_MAX + 1) == mui_errorInvalid,
+                                        MUI_MAX_RELATION_TARGETS + 1) == mui_errorLimit,
           "relations refused");
     values = muiDefaultAccessValues();
     values.live = mui_liveAssertive + 1;
@@ -610,8 +610,8 @@ static void TestContentText(void)
               Sent(&update, empty)->text[mui_accessValue] == NULL &&
               Sent(&update, empty)->role == mui_roleGeneric,
           "ill-formed, nothing, not content, not read, empty");
-    CHECK(s_editFromReader == mui_errorState && s_disableFromReader == mui_errorState &&
-              s_functionFromReader == mui_errorState && s_reads == 10,
+    CHECK(s_editFromReader == mui_errorBusy && s_disableFromReader == mui_errorBusy &&
+              s_functionFromReader == mui_errorBusy && s_reads == 10,
           "read once each, again for the boundaries of those sent; editing, disabling and "
           "replacing the reader refused");
     // The host's value wins, unread.
@@ -1027,7 +1027,7 @@ static void TestActions(void)
     CHECK(muiPerformAccessAction(context, &request, &handled) == mui_success && handled &&
               heard.kind == mui_eventNavigation && heard.navigation == mui_navigateActivate &&
               heard.node.index1 == scene.button.index1 && heard.count == 3 &&
-              heard.nested == mui_errorState,
+              heard.nested == mui_errorBusy,
           "clicked");
     // Nothing to click on the label.
     request.target = muiAccessIdOf(scene.label);
@@ -1334,6 +1334,12 @@ static void TestHostData(void)
               muiNode_SetAccessFlags(context, a, mui_accessChecked) == mui_errorInvalid &&
               muiGetContextMisuse(context) == misuse + 14,
           "refused");
+    // A length past the bound, refused before the text is read.
+    misuse = muiGetContextMisuse(context);
+    CHECK(muiNode_SetAccessText(context, a, mui_accessValue, "a", (size_t)MUI_MAX_TEXT_BYTES + 1) ==
+                  mui_errorLimit &&
+              muiGetContextMisuse(context) == misuse + 1,
+          "too long, counted");
     // A sequence cut short by the length, its rest in memory after it.
     CHECK(muiNode_SetAccessText(context, a, mui_accessValue, "\xE2\x82\xAC", 2) == mui_errorInvalid,
           "cut short");

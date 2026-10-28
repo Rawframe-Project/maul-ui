@@ -190,7 +190,7 @@ static void TestBindingsAreCheckedAndRead(void)
     muiPropertyMask fifth = MUI_PROPERTY_BIT(MUI_MAX_VARIANT_TRANSITIONS);
     CHECK(muiStyle_SetTransition(context, style, mui_variantPressed,
                                  specs[MUI_MAX_VARIANT_TRANSITIONS], mui_groupLayout,
-                                 fifth) == mui_errorCapacity,
+                                 fifth) == mui_errorLimit,
           "a fifth spec");
     // Giving the first spec's only property to the second frees a place.
     Bind(context, style, mui_variantPressed, specs[1], MUI_PROPERTY_BIT(0));

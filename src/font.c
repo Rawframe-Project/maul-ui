@@ -75,6 +75,12 @@ muiResult muiCountFontFaces(const void* data, size_t size, uint32_t* countOut)
         *countOut = 1;
         return mui_success;
     }
+    // Compressed web fonts are well formed, but the library does not
+    // decompress them.
+    if (tag == Tag('w', 'O', 'F', 'F') || tag == Tag('w', 'O', 'F', '2'))
+    {
+        return mui_errorUnsupported;
+    }
     if (tag != Tag('t', 't', 'c', 'f'))
     {
         return mui_errorFormat;

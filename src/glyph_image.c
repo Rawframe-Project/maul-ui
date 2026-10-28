@@ -24,9 +24,14 @@ static muiResult RenderGlyph(muiTextService* service, uint64_t font, uint32_t gl
                              unsigned char* pixels, size_t capacity)
 {
     if (service == nullptr || imageOut == nullptr || (pixels == nullptr && capacity != 0) ||
-        !muiIsGlyphSizeValid(pixelSize) || !(offsetX >= 0.0f && offsetX < 1.0f))
+        !(offsetX >= 0.0f && offsetX < 1.0f))
     {
         return muiRefuseText(service);
+    }
+    muiResult size = muiGlyphSizeStatus(pixelSize);
+    if (size != mui_success)
+    {
+        return muiCountText(service, size);
     }
     muiResult result = mui_success;
     uint64_t key = 0;
@@ -184,11 +189,15 @@ static muiResult RenderField(muiTextService* service, uint64_t font, uint32_t gl
                              float pixelSize, uint32_t spread, muiGlyphImage* imageOut,
                              unsigned char* pixels, size_t capacity, bool multi)
 {
-    if (service == nullptr || imageOut == nullptr || (pixels == nullptr && capacity != 0) ||
-        !muiIsGlyphSizeValid(pixelSize) || spread < MUI_MIN_FIELD_SPREAD ||
-        spread > MUI_MAX_FIELD_SPREAD)
+    if (service == nullptr || imageOut == nullptr || (pixels == nullptr && capacity != 0))
     {
         return muiRefuseText(service);
+    }
+    muiResult bounds = muiGlyphSizeStatus(pixelSize);
+    bounds = bounds == mui_success ? muiFieldSpreadStatus(spread) : bounds;
+    if (bounds != mui_success)
+    {
+        return muiCountText(service, bounds);
     }
     muiResult result = mui_success;
     uint64_t key = 0;

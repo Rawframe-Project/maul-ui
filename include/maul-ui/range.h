@@ -67,7 +67,7 @@ extern "C"
     /// @param range    The range: finite numbers as described above.
     /// @return `mui_success`; `mui_errorCapacity` when the context holds its
     ///         limit of ranges; `mui_errorInvalid` for a NULL argument, the
-    ///         null id or a range outside the above; `mui_errorState` while the
+    ///         null id or a range outside the above; `mui_errorBusy` while the
     ///         context is busy; `mui_errorStale` for a node or thumb that is
     ///         gone.
     /// @par Thread safety
@@ -97,7 +97,7 @@ extern "C"
     /// @param value    The value, finite.
     /// @return `mui_success`; `mui_empty` for a node that is not a range;
     ///         `mui_errorInvalid` for a NULL context, the null id or a value
-    ///         not finite; `mui_errorState` while the context is busy;
+    ///         not finite; `mui_errorBusy` while the context is busy;
     ///         `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -109,7 +109,7 @@ extern "C"
     /// @param context  The context.
     /// @param nodeId   The node.
     /// @return `mui_success`, whether or not it was one; `mui_errorInvalid` for
-    ///         a NULL context or the null id; `mui_errorState` while the
+    ///         a NULL context or the null id; `mui_errorBusy` while the
     ///         context is busy; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.

@@ -592,7 +592,7 @@ static MUI_NOINLINE muiResult AccessTreeApplyWorker(muiAccessTree* tree,
     }
     if (!muiEnterMarked(&tree->busy, &tree->misuse))
     {
-        return mui_errorState;
+        return mui_errorBusy;
     }
     muiResult result = AccessTreeApply(tree, update, changes);
     tree->misuse += result == mui_errorInvalid;

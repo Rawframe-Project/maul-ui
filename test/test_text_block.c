@@ -191,13 +191,13 @@ static void TestBlocksAndKeys(void)
     CHECK(muiTextBlock_GetKey(a) != 0 && muiTextBlock_GetKey(a) != muiTextBlock_GetKey(b), "keys");
     blockDef.text = "a";
     const muiTextBlockDef noText = {empty.cookie, NULL, 1};
-    const muiTextBlockDef tooLong = {empty.cookie, "a", (size_t)1 << 31};
+    const muiTextBlockDef tooLong = {empty.cookie, "a", (size_t)MUI_MAX_TEXT_BYTES + 1};
     CHECK(muiCreateTextBlock(NULL, &blockDef, &c) == mui_errorInvalid &&
               muiCreateTextBlock(service, NULL, &c) == mui_errorInvalid &&
               muiCreateTextBlock(service, &(muiTextBlockDef){0, "a", 1}, &c) == mui_errorInvalid &&
               muiCreateTextBlock(service, &noText, &c) == mui_errorInvalid &&
               muiCreateTextBlock(service, &blockDef, NULL) == mui_errorInvalid &&
-              muiCreateTextBlock(service, &tooLong, &c) == mui_errorInvalid,
+              muiCreateTextBlock(service, &tooLong, &c) == mui_errorLimit,
           "arguments: no def, no cookie, no text for a length, too long");
     CHECK(muiTextBlock_SetText(service, a, "abc", 3) == mui_success &&
               muiTextBlock_SetText(service, a, NULL, 1) == mui_errorInvalid &&
@@ -466,9 +466,12 @@ static void TestMisuse(void)
     const muiLinearColor black = {0.0f, 0.0f, 0.0f, 1.0f};
     CHECK(muiCreateGlyphAtlas(service, &atlasDef, &atlas) == mui_success &&
               muiGlyphAtlas_GetColor(atlas, 0, 1, 10.0f, 0.0f, 0.0f, 0, black, &glyph) ==
-                  mui_errorInvalid &&
+                  mui_errorUnsupported &&
+              muiGetTextServiceMisuse(service) == 3,
+          "a colour glyph from a one-channel atlas, unsupported and no misuse");
+    CHECK(muiGlyphAtlas_Get(atlas, 0, 1, 1.0f / 128.0f, 0.0f, 0.0f, &glyph) == mui_errorLimit &&
               muiGetTextServiceMisuse(service) == 4,
-          "a colour glyph from a one-channel atlas, counted on its service");
+          "a size past the floor, counted on its service");
     muiDestroyGlyphAtlas(atlas);
     CHECK(muiDestroyTextBlock(service, block) == mui_success &&
               muiDestroyTextBlock(service, block) == mui_errorStale &&

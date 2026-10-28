@@ -20,9 +20,8 @@
 
 static bool IsValid(const muiAndroidAdapterDef* def)
 {
-    return muiIsAllocatorValid(&def->allocator) && def->nodes != 0 &&
-           def->nodes <= ((uint32_t)1 << 24) && def->env != nullptr && def->view != nullptr &&
-           def->action != nullptr && def->scale > 0.0f;
+    return muiIsAllocatorValid(&def->allocator) && def->nodes != 0 && def->env != nullptr &&
+           def->view != nullptr && def->action != nullptr && def->scale > 0.0f;
 }
 
 // The id map is at most half full.
@@ -186,6 +185,10 @@ static MUI_NOINLINE muiResult CreateAndroidAdapterWorker(const muiAndroidAdapter
     if (!IsValid(def))
     {
         return mui_errorInvalid;
+    }
+    if (def->nodes > MUI_MAX_ACCESS_NODES)
+    {
+        return mui_errorLimit;
     }
     size_t size = SizeOf(def->nodes);
     unsigned char* block = muiAllocate(&def->allocator, size, alignof(max_align_t));
@@ -399,7 +402,7 @@ static MUI_NOINLINE muiResult AndroidAdapterApplyWorker(muiAndroidAdapter* adapt
     }
     if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
     {
-        return mui_errorState;
+        return mui_errorBusy;
     }
     muiResult result = AndroidAdapterApply(adapter, update);
     adapter->misuse += result == mui_errorInvalid;
@@ -438,7 +441,7 @@ static MUI_NOINLINE muiResult AndroidAdapterSetScaleWorker(muiAndroidAdapter* ad
     }
     if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
     {
-        return mui_errorState;
+        return mui_errorBusy;
     }
     muiResult result = AndroidAdapterSetScale(adapter, scale);
     adapter->misuse += result == mui_errorInvalid;

@@ -12,7 +12,7 @@
 // An adapter is busy while one of its functions that change it runs, or
 // its allocator or action function runs, from those or from its
 // platform's calls: a call back into one that changes it answers
-// mui_errorState, NULL or false, or does nothing where it returns no
+// mui_errorBusy, NULL or false, or does nothing where it returns no
 // status, as the destroy does.
 
 #ifndef MAUL_UI_ACCESS_NS_H
@@ -38,7 +38,7 @@ extern "C"
         uint32_t cookie;
         uint32_t version;
         muiAllocator allocator;
-        // The most nodes its tree holds, at least 1.
+        // The most nodes its tree holds, from 1 to MUI_MAX_ACCESS_NODES.
         uint32_t nodes;
         // The NSView the tree lies in, its origin the tree's; the
         // adapter holds a reference to it.
@@ -87,7 +87,8 @@ extern "C"
     ///         the rest of the def is read; `mui_errorInvalid` for a NULL
     ///         argument, a def not from muiDefaultNsAdapterDef, a half-set
     ///         allocator, no nodes, no view, no action function or a scale not
-    ///         above 0; `mui_errorCapacity` when memory runs out.
+    ///         above 0; `mui_errorLimit` for more than
+    ///         MUI_MAX_ACCESS_NODES nodes; `mui_errorCapacity` when memory runs out.
     /// @par Thread safety
     /// Main thread only.
     MUI_NODISCARD MUI_API muiResult muiCreateNsAdapter(const muiNsAdapterDef* def,
@@ -104,7 +105,7 @@ extern "C"
 
     /// Returns how many calls the adapter refused as invalid input
     /// (`mui_errorInvalid`) or as calls back in while busy
-    /// (`mui_errorState`): a count release builds can watch to catch a
+    /// (`mui_errorBusy`): a count release builds can watch to catch a
     /// host's bugs. Queries taking it as const count nothing.
     ///
     /// @param adapter  The adapter.
@@ -118,7 +119,7 @@ extern "C"
     /// @param adapter  The adapter.
     /// @param update   The update.
     /// @return As muiAccessTree_Apply; `mui_errorInvalid` for a NULL adapter;
-    ///         `mui_errorState` while the adapter is busy.
+    ///         `mui_errorBusy` while the adapter is busy.
     /// @par Thread safety
     /// Main thread only.
     MUI_NODISCARD MUI_API muiResult muiNsAdapter_Apply(muiNsAdapter* adapter,
@@ -137,7 +138,7 @@ extern "C"
     /// @param adapter  The adapter.
     /// @param scale    The scale, above 0.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL adapter or a scale
-    ///         not above 0; `mui_errorState` while the adapter is busy.
+    ///         not above 0; `mui_errorBusy` while the adapter is busy.
     /// @par Thread safety
     /// Main thread only.
     MUI_NODISCARD MUI_API muiResult muiNsAdapter_SetScale(muiNsAdapter* adapter, float scale);

@@ -55,9 +55,8 @@ static bool IsApartmentThreaded(void)
 
 static bool IsValid(const muiUiaAdapterDef* def)
 {
-    return muiIsAllocatorValid(&def->allocator) && def->nodes != 0 &&
-           def->nodes <= ((uint32_t)1 << 24) && def->window != nullptr && def->action != nullptr &&
-           def->scale > 0.0f;
+    return muiIsAllocatorValid(&def->allocator) && def->nodes != 0 && def->window != nullptr &&
+           def->action != nullptr && def->scale > 0.0f;
 }
 
 // The adapter's block: the adapter, the map's keys and values, and the
@@ -96,6 +95,10 @@ static MUI_NOINLINE muiResult CreateUiaAdapterWorker(const muiUiaAdapterDef* def
     if (!IsValid(def))
     {
         return mui_errorInvalid;
+    }
+    if (def->nodes > MUI_MAX_ACCESS_NODES)
+    {
+        return mui_errorLimit;
     }
     muiUiaFunctions uia = {0};
     if (!IsApartmentThreaded() || !Load(&uia))
@@ -252,7 +255,7 @@ static MUI_NOINLINE muiResult UiaAdapterApplyWorker(muiUiaAdapter* adapter,
     }
     if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
     {
-        return mui_errorState;
+        return mui_errorBusy;
     }
     muiResult result = UiaAdapterApply(adapter, update);
     adapter->misuse += result == mui_errorInvalid;
@@ -343,7 +346,7 @@ static MUI_NOINLINE muiResult UiaAdapterSetScaleWorker(muiUiaAdapter* adapter, f
     }
     if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
     {
-        return mui_errorState;
+        return mui_errorBusy;
     }
     muiResult result = UiaAdapterSetScale(adapter, scale);
     adapter->misuse += result == mui_errorInvalid;

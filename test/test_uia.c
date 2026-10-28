@@ -525,7 +525,7 @@ static bool Act(void* user, const muiAccessRequest* request)
 {
     Program* program = user;
     program->actions++;
-    program->refused += muiUiaAdapter_Apply(program->adapter, NULL) == mui_errorState;
+    program->refused += muiUiaAdapter_Apply(program->adapter, NULL) == mui_errorBusy;
     if (request->action == mui_actionFocus)
     {
         InterlockedExchange(&program->focusAsked, (LONG)request->target);

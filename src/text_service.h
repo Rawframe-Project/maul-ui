@@ -115,7 +115,7 @@ static inline muiResult muiRefuseText(muiTextService* service)
 }
 
 // Marks the service busy for one of its functions that use it:
-// mui_success, or mui_errorState with one misuse counted when it is busy
+// mui_success, or mui_errorBusy with one misuse counted when it is busy
 // already. A NULL service is left to the function.
 static inline muiResult muiEnterText(muiTextService* service)
 {
@@ -126,7 +126,7 @@ static inline muiResult muiEnterText(muiTextService* service)
     if (service->busy)
     {
         service->misuse++;
-        return mui_errorState;
+        return mui_errorBusy;
     }
     service->busy = true;
     return mui_success;
@@ -145,7 +145,11 @@ static inline void muiLeaveText(muiTextService* service)
 // counted as the service's misuse.
 static inline muiResult muiCountText(muiTextService* service, muiResult status)
 {
-    return status == mui_errorInvalid ? muiRefuseText(service) : status;
+    if (status == mui_errorInvalid || status == mui_errorLimit)
+    {
+        (void)muiRefuseText(service);
+    }
+    return status;
 }
 
 #endif // MAUL_UI_SRC_TEXT_SERVICE_H

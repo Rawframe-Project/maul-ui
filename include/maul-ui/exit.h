@@ -30,7 +30,7 @@ extern "C"
     /// @param nodeId   The node.
     /// @return `mui_success`; `mui_errorCapacity` when the context holds its
     ///         limit of exits; `mui_errorInvalid` for a NULL context or the
-    ///         null id; `mui_errorState` while the context is busy;
+    ///         null id; `mui_errorBusy` while the context is busy;
     ///         `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -42,7 +42,7 @@ extern "C"
     /// @param context  The context.
     /// @param nodeId   The node.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
-    ///         id; `mui_errorState` while the context is busy; `mui_errorStale`
+    ///         id; `mui_errorBusy` while the context is busy; `mui_errorStale`
     ///         for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.

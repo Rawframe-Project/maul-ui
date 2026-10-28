@@ -31,7 +31,7 @@ extern "C"
     /// @param x        The offset from the inline start, finite.
     /// @param y        The offset from the top, finite.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the null
-    ///         id or an offset not finite; `mui_errorState` while the context
+    ///         id or an offset not finite; `mui_errorBusy` while the context
     ///         is busy; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -84,7 +84,7 @@ extern "C"
     /// @param context  The context.
     /// @param nodeId   The node.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context or the null
-    ///         id; `mui_errorState` while the context is busy; `mui_errorStale`
+    ///         id; `mui_errorBusy` while the context is busy; `mui_errorStale`
     ///         for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
@@ -131,7 +131,7 @@ extern "C"
     /// @param context  The context.
     /// @param rule     The rule, as described above.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a rule
-    ///         outside the above; `mui_errorState` while the context is busy.
+    ///         outside the above; `mui_errorBusy` while the context is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiSetScrollRule(muiContext* context,

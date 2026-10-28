@@ -19,8 +19,7 @@
 
 static bool IsValid(const muiAriaAdapterDef* def)
 {
-    return muiIsAllocatorValid(&def->allocator) && def->nodes != 0 &&
-           def->nodes <= ((uint32_t)1 << 24) && def->host != nullptr &&
+    return muiIsAllocatorValid(&def->allocator) && def->nodes != 0 && def->host != nullptr &&
            def->enableLabel != nullptr && def->action != nullptr && def->scale > 0.0f;
 }
 
@@ -85,6 +84,10 @@ static MUI_NOINLINE muiResult CreateAriaAdapterWorker(const muiAriaAdapterDef* d
     if (!IsValid(def))
     {
         return mui_errorInvalid;
+    }
+    if (def->nodes > MUI_MAX_ACCESS_NODES)
+    {
+        return mui_errorLimit;
     }
     size_t size = SizeOf(def->nodes);
     unsigned char* block = muiAllocate(&def->allocator, size, alignof(max_align_t));
@@ -557,7 +560,7 @@ static MUI_NOINLINE muiResult AriaAdapterApplyWorker(muiAriaAdapter* adapter,
     }
     if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
     {
-        return mui_errorState;
+        return mui_errorBusy;
     }
     muiResult result = AriaAdapterApply(adapter, update);
     adapter->misuse += result == mui_errorInvalid;
@@ -600,7 +603,7 @@ static MUI_NOINLINE muiResult AriaAdapterSetScaleWorker(muiAriaAdapter* adapter,
     }
     if (!muiEnterMarked(&adapter->busy, &adapter->misuse))
     {
-        return mui_errorState;
+        return mui_errorBusy;
     }
     muiResult result = AriaAdapterSetScale(adapter, scale);
     adapter->misuse += result == mui_errorInvalid;

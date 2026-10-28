@@ -266,7 +266,7 @@ static muiSize MeasureWhileBusy(void* user, muiNodeId nodeId, uint64_t hostKey,
     if (!busy->ran)
     {
         busy->ran = true;
-        CheckChanges(busy->context, mui_errorState, "a busy context");
+        CheckChanges(busy->context, mui_errorBusy, "a busy context");
     }
     return (muiSize){10.0f, 10.0f};
 }

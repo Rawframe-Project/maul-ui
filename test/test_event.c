@@ -317,8 +317,8 @@ static void TestEdits(void)
     const muiNodeId nodes[2] = {s.root, s.root};
     const muiPhase phases[2] = {mui_phaseTunnel, mui_phaseBubble};
     CHECK(!Key(s.context, s.root, 27, 0, true) && Order(&s.heard, nodes, phases, 2) &&
-              s.heard.nested == mui_errorState && s.heard.nestedPointer == mui_errorState &&
-              s.heard.nestedDispatch == mui_errorState,
+              s.heard.nested == mui_errorBusy && s.heard.nestedPointer == mui_errorBusy &&
+              s.heard.nestedDispatch == mui_errorBusy,
           "the route kept, those gone passed over; no input inside");
     bool handled = false;
     const muiPointerRecord record = {.kind = mui_pointerRecordClick, .node = s.c};
@@ -415,8 +415,8 @@ static void TestFromPainting(void)
     Feeding feeding = {s.context, {mui_success, mui_success, mui_success, mui_success}};
     const muiDrawInput input = {1, 1.0f, FeedingPaint, &feeding};
     CHECK(muiBuildDrawList(s.context, s.root, &input) == mui_success &&
-              feeding.results[0] == mui_errorState && feeding.results[1] == mui_errorState &&
-              feeding.results[2] == mui_errorState && feeding.results[3] == mui_errorState &&
+              feeding.results[0] == mui_errorBusy && feeding.results[1] == mui_errorBusy &&
+              feeding.results[2] == mui_errorBusy && feeding.results[3] == mui_errorBusy &&
               s.heard.count == 0,
           "input from painting");
     muiDestroyContext(s.context);

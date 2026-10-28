@@ -157,9 +157,14 @@ static muiResult ThemeSetTokenValue(muiContext* context, muiThemeId themeId, mui
     {
         return mui_errorInvalid;
     }
-    if (value == nullptr || !muiIsTokenValueValid(value))
+    if (value == nullptr)
     {
         return muiRefuse(context);
+    }
+    muiResult valueStatus = muiTokenValueStatus(value);
+    if (valueStatus != mui_success)
+    {
+        return muiRefuseAs(context, valueStatus);
     }
     uint32_t token = muiFindToken(&context->tokens, tokenId);
     if (token != 0 && context->tokens.tokens[token - 1].value.type != value->type)

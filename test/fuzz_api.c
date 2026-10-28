@@ -53,7 +53,7 @@ static void Expect(bool condition)
 // Whether a result is one of the statuses the library answers with.
 static bool IsStatus(muiResult result)
 {
-    return result >= mui_errorState && result <= mui_empty;
+    return result >= mui_errorBusy && result <= mui_empty;
 }
 
 typedef struct Reader

@@ -334,9 +334,14 @@ static muiResult RenderColorGlyph(muiTextService* service, uint64_t font, uint32
                                   unsigned char* pixels, size_t capacity)
 {
     if (service == nullptr || imageOut == nullptr || (pixels == nullptr && capacity != 0) ||
-        !muiIsGlyphSizeValid(pixelSize) || !(offsetX >= 0.0f && offsetX < 1.0f))
+        !(offsetX >= 0.0f && offsetX < 1.0f))
     {
         return muiRefuseText(service);
+    }
+    muiResult size = muiGlyphSizeStatus(pixelSize);
+    if (size != mui_success)
+    {
+        return muiCountText(service, size);
     }
     muiResult result = mui_success;
     ColorGlyph color = {.glyph = glyph};

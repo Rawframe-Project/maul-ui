@@ -16,8 +16,8 @@
 #include <string.h>
 
 // Slots are 1-based uint32_t values with room for a parent link count.
-#define MAX_SLOTS 0x7FFFFFFFu
-static_assert(MAX_SLOTS < MUI_TRANSFORM_SCALE, "a transform's owner has its slot and a flag");
+static_assert((uint32_t)MUI_MAX_CONTEXT_LIMIT + 1 < MUI_TRANSFORM_SCALE,
+              "a transform's owner has its slot and a flag");
 
 // Every part after the context starts on a cache line, so a record whose
 // size is a multiple of one never has a field split across two, wherever
@@ -31,20 +31,24 @@ static_assert(alignof(max_align_t) <= CACHE_LINE, "a cache line aligns every par
 static_assert(sizeof(muiLimits) % sizeof(uint32_t) == 0 && alignof(muiLimits) == alignof(uint32_t),
               "the limits are counts");
 
-static bool AreLimitsValid(const muiLimits* limits)
+// mui_success, mui_errorInvalid for no nodes, or mui_errorLimit for a
+// limit past MUI_MAX_CONTEXT_LIMIT or pointers past MUI_MAX_POINTERS.
+static muiResult LimitsStatus(const muiLimits* limits)
 {
+    if (limits->nodes == 0)
+    {
+        return mui_errorInvalid;
+    }
     uint32_t counts[sizeof(muiLimits) / sizeof(uint32_t)];
     memcpy(counts, limits, sizeof counts);
     for (size_t i = 0; i < sizeof counts / sizeof counts[0]; i++)
     {
-        if (counts[i] > MAX_SLOTS)
+        if (counts[i] > MUI_MAX_CONTEXT_LIMIT)
         {
-            return false;
+            return mui_errorLimit;
         }
     }
-    return limits->nodes != 0 && limits->drawClips < MAX_SLOTS &&
-           limits->drawGradients < MAX_SLOTS && limits->drawTransforms < MAX_SLOTS &&
-           limits->pointers <= MUI_MAX_POINTERS;
+    return limits->pointers <= MUI_MAX_POINTERS ? mui_success : mui_errorLimit;
 }
 
 // Where each part of the context's block starts.
@@ -371,9 +375,14 @@ muiResult muiCreateContext(const muiContextDef* def, muiContext** contextOut)
     {
         return mui_errorVersion;
     }
-    if (!muiIsAllocatorValid(&def->allocator) || !AreLimitsValid(&def->limits))
+    if (!muiIsAllocatorValid(&def->allocator))
     {
         return mui_errorInvalid;
+    }
+    muiResult limits = LimitsStatus(&def->limits);
+    if (limits != mui_success)
+    {
+        return limits;
     }
     muiLayout layout = {0};
     Parts parts = LayOut(&layout, &def->limits);
@@ -444,10 +453,16 @@ muiResult muiRefuse(muiContext* context)
     return mui_errorInvalid;
 }
 
+muiResult muiRefuseLimit(muiContext* context)
+{
+    context->misuse++;
+    return mui_errorLimit;
+}
+
 muiResult muiRefuseBusy(muiContext* context)
 {
     context->misuse++;
-    return mui_errorState;
+    return mui_errorBusy;
 }
 
 muiResult muiEnter(muiContext* context)

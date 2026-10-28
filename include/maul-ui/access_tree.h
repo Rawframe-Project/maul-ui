@@ -11,7 +11,7 @@
 //
 // A tree is busy while one of its functions that change it runs or its
 // allocator runs, from those or from its const queries: a call back into
-// one that changes it answers mui_errorState, or does nothing where it
+// one that changes it answers mui_errorBusy, or does nothing where it
 // returns no status.
 
 #ifndef MAUL_UI_ACCESS_TREE_H
@@ -32,13 +32,19 @@ extern "C"
 
     typedef struct muiAccessTree muiAccessTree;
 
+    // The most nodes a tree holds.
+    enum
+    {
+        MUI_MAX_ACCESS_NODES = 16777216
+    };
+
     // How a tree is made. Build it with muiDefaultAccessTreeDef.
     typedef struct muiAccessTreeDef
     {
         uint32_t cookie;
         uint32_t version;
         muiAllocator allocator;
-        // The most nodes it holds at once, at least 1.
+        // The most nodes it holds at once, from 1 to MUI_MAX_ACCESS_NODES.
         uint32_t nodes;
     } muiAccessTreeDef;
 
@@ -97,7 +103,8 @@ extern "C"
     ///         headers of another binary interface (MUI_ABI_VERSION), before
     ///         the rest of the def is read; `mui_errorInvalid` for a NULL
     ///         argument, a def not from muiDefaultAccessTreeDef, a half-set
-    ///         allocator or no nodes; `mui_errorCapacity` when memory runs out.
+    ///         allocator or no nodes; `mui_errorLimit` for more than
+    ///         MUI_MAX_ACCESS_NODES; `mui_errorCapacity` when memory runs out.
     /// @par Thread safety
     /// Safe from any thread.
     MUI_NODISCARD MUI_API muiResult muiCreateAccessTree(const muiAccessTreeDef* def,
@@ -112,7 +119,7 @@ extern "C"
 
     /// Returns how many calls the tree refused as invalid input
     /// (`mui_errorInvalid`) or as calls back in while busy
-    /// (`mui_errorState`): a count release builds can watch to catch a
+    /// (`mui_errorBusy`): a count release builds can watch to catch a
     /// host's bugs. Queries taking it as const count nothing.
     ///
     /// @param tree  The tree.
@@ -142,7 +149,7 @@ extern "C"
     ///         root listed, or a node under itself; or a node whose marks do
     ///         not fit its value text: offsets past it or inside a character,
     ///         lines not ascending from 0, words out of order or empty;
-    ///         `mui_errorState` while the tree is busy.
+    ///         `mui_errorBusy` while the tree is busy.
     /// @par Thread safety
     /// Safe from any thread; the tree is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiAccessTree_Apply(muiAccessTree* tree,

@@ -4,7 +4,7 @@
 // Host code calling back into the context it serves (Maul conventions,
 // Threads): from the measure, baseline, paint and access text functions and
 // the allocator, every function that changes the context answers
-// mui_errorState and counts one misuse, its destroy among them. The event
+// mui_errorBusy and counts one misuse, its destroy among them. The event
 // function may call them all but the ones that feed input, dispatch,
 // perform an access action, set the event function or destroy the context,
 // and each call it makes is busy in turn.
@@ -201,7 +201,7 @@ static void CallBack(Probe* probe)
     bool expected = count == CALLS;
     for (int i = 0; i < count; i++)
     {
-        bool state = results[i] == mui_errorState;
+        bool state = results[i] == mui_errorBusy;
         refused += state;
         expected = expected && state == (!probe->routing || IsRefusedInRoute(i));
     }
@@ -258,7 +258,7 @@ static void TestControl(void)
     bool none = count == CALLS;
     for (int i = 0; i < count; i++)
     {
-        none = none && results[i] != mui_errorState;
+        none = none && results[i] != mui_errorBusy;
     }
     CHECK(none, "no call refused as busy outside host code");
     muiDestroyContext(context);

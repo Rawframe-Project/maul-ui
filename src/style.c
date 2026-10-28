@@ -122,9 +122,14 @@ static muiResult SetValues(muiContext* context, muiStyleId styleId, muiVariant v
         return mui_errorInvalid;
     }
     const muiPropertyBits properties = muiPropertiesOf(group, mask);
-    if ((mask & ~allowed) != 0 || !muiArePropertiesValid(values, properties))
+    if ((mask & ~allowed) != 0)
     {
         return muiRefuse(context);
+    }
+    muiResult valuesStatus = muiPropertiesStatus(values, properties);
+    if (valuesStatus != mui_success)
+    {
+        return muiRefuseAs(context, valuesStatus);
     }
     muiResult status = mui_success;
     uint32_t slot = muiResolveClassEdit(context, styleId, &status);
@@ -509,7 +514,7 @@ static muiResult StyleAddCondition(muiContext* context, muiStyleId styleId,
     muiStyleClass* class = &context->style.classes[slot - 1];
     if (class->conditionCount == MUI_MAX_CONDITIONS)
     {
-        return mui_errorCapacity;
+        return muiRefuseLimit(context);
     }
     class->conditions[class->conditionCount] = *condition;
     *variantOut = (muiVariant)(mui_variantCondition0 + class->conditionCount);
@@ -725,10 +730,14 @@ static muiResult CreateNodeType(muiContext* context, const muiNodeTypeDef* def,
     {
         return mui_errorInvalid;
     }
-    if (def == nullptr || typeOut == nullptr || def->cookie != NODE_TYPE_DEF_COOKIE ||
-        !muiIsClassListValid(def->classes, def->classCount))
+    if (def == nullptr || typeOut == nullptr || def->cookie != NODE_TYPE_DEF_COOKIE)
     {
         return muiRefuse(context);
+    }
+    muiResult listStatus = muiClassListStatus(def->classes, def->classCount);
+    if (listStatus != mui_success)
+    {
+        return muiRefuseAs(context, listStatus);
     }
     muiStyleStore* store = &context->style;
     uint32_t slot = muiPoolTake(&store->typePool);
@@ -805,9 +814,10 @@ static muiResult NodeTypeSetClasses(muiContext* context, muiNodeTypeId typeId,
     {
         return mui_errorInvalid;
     }
-    if (!muiIsClassListValid(classes, count))
+    muiResult listStatus = muiClassListStatus(classes, count);
+    if (listStatus != mui_success)
     {
-        return muiRefuse(context);
+        return muiRefuseAs(context, listStatus);
     }
     muiResult status = mui_success;
     uint32_t slot = ResolveTypeEdit(context, typeId, &status);

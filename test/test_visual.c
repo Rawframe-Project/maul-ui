@@ -224,13 +224,18 @@ static void TestVariantsAndConditions(void)
     muiDestroyContext(context);
 }
 
+static void CheckRefusedAs(muiContext* context, muiStyleId style, muiNodeId node,
+                           const muiVisualStyle* values, muiPropertyMask mask, muiResult status,
+                           const char* what)
+{
+    CHECK(muiStyle_SetVisualValues(context, style, mui_variantBase, values, mask) == status, what);
+    CHECK(muiNode_SetVisualValues(context, node, values, mask) == status, what);
+}
+
 static void CheckRefused(muiContext* context, muiStyleId style, muiNodeId node,
                          const muiVisualStyle* values, muiPropertyMask mask, const char* what)
 {
-    CHECK(muiStyle_SetVisualValues(context, style, mui_variantBase, values, mask) ==
-              mui_errorInvalid,
-          what);
-    CHECK(muiNode_SetVisualValues(context, node, values, mask) == mui_errorInvalid, what);
+    CheckRefusedAs(context, style, node, values, mask, mui_errorInvalid, what);
 }
 
 static void TestChecks(void)
@@ -316,7 +321,7 @@ static void TestChecks(void)
     const muiGradientStop gray = {{0.5f, 0.5f, 0.5f, 1.0f}, 0.5f};
     v.gradient = (muiGradient){mui_gradientLinear, 5, 90.0f, {black, gray, gray, white}};
     v.radius.topEnd = (muiDimension){0.0f, 1.0f, mui_dimensionValue};
-    CheckRefused(context, style, node, &v, GRADIENT, "five stops");
+    CheckRefusedAs(context, style, node, &v, GRADIENT, mui_errorLimit, "five stops");
     v.radius = defaults.radius;
     const muiGradientStop bad = {{0.5f, 2.0f, 0.5f, 1.0f}, 0.5f};
     v.gradient = (muiGradient){mui_gradientLinear, 3, 90.0f, {black, bad, white}};

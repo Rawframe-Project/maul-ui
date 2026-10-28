@@ -154,7 +154,7 @@ extern "C"
     /// @param positionOut  Receives the position; unchanged on failure.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a point
     ///         not finite; `mui_errorStale` for a node, block or font that is
-    ///         gone; `mui_errorCapacity` when memory runs out; `mui_errorState`
+    ///         gone; `mui_errorCapacity` when memory runs out; `mui_errorBusy`
     ///         while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
@@ -174,7 +174,7 @@ extern "C"
     /// @param width     The node's content box width.
     /// @param position  The position; an offset past the text is its end.
     /// @param caretOut  Receives the caret; unchanged on failure.
-    /// @return As muiTextHitTest; `mui_errorState` while the service is busy.
+    /// @return As muiTextHitTest; `mui_errorBusy` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
@@ -200,7 +200,7 @@ extern "C"
     ///                  rects holds fewer; unchanged on any other failure.
     /// @return `mui_success`; `mui_errorCapacity` when rects holds fewer,
     ///         writing those that fit, or memory runs out; otherwise as
-    ///         muiTextHitTest; `mui_errorState` while the service is busy.
+    ///         muiTextHitTest; `mui_errorBusy` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
@@ -225,7 +225,7 @@ extern "C"
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a
     ///         movement out of range; `mui_errorStale` for a node, block or
     ///         font that is gone; `mui_errorCapacity` when memory runs out;
-    ///         `mui_errorState` while the service is busy.
+    ///         `mui_errorBusy` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
@@ -276,11 +276,13 @@ extern "C"
     ///                      segmentCount is 0.
     /// @param segmentCount  How many, at most MUI_MAX_COMPOSITION_SEGMENTS.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL service, the null
-    ///         id, a NULL text or segments with a count, too many segments, one
-    ///         past the text or of an unknown style, or a text of 2^31 bytes or
-    ///         more; `mui_errorStale` for a block that is gone;
+    ///         id, a NULL text or segments with a count, a segment past the
+    ///         text or of an unknown style; `mui_errorLimit` for more than
+    ///         MUI_MAX_COMPOSITION_SEGMENTS segments, or a text past
+    ///         MUI_MAX_TEXT_BYTES alone or with the block's;
+    ///         `mui_errorStale` for a block that is gone;
     ///         `mui_errorCapacity` when memory runs out, which keeps the old
-    ///         text and composition; `mui_errorState` while the service is
+    ///         text and composition; `mui_errorBusy` while the service is
     ///         busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
@@ -298,7 +300,7 @@ extern "C"
     /// @param service  The service.
     /// @param blockId  The block.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL service or the null
-    ///         id; `mui_errorStale` for a block that is gone; `mui_errorState`
+    ///         id; `mui_errorStale` for a block that is gone; `mui_errorBusy`
     ///         while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.

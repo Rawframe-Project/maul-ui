@@ -100,11 +100,11 @@ static void TestInvalidDefsAreRefused(void)
     bad.limits.nodes = 0;
     CHECK(muiCreateContext(&bad, &context) == mui_errorInvalid, "zero nodes");
     bad = def;
-    bad.limits.nodes = 0x80000000u;
-    CHECK(muiCreateContext(&bad, &context) == mui_errorInvalid, "too many nodes");
+    bad.limits.nodes = MUI_MAX_CONTEXT_LIMIT + 1u;
+    CHECK(muiCreateContext(&bad, &context) == mui_errorLimit, "too many nodes");
     bad = def;
     bad.limits.drawGlyphs = 0x80000000u;
-    CHECK(muiCreateContext(&bad, &context) == mui_errorInvalid, "too many glyphs");
+    CHECK(muiCreateContext(&bad, &context) == mui_errorLimit, "too many glyphs");
     CountingAllocator counter = {0};
     bad = def;
     bad.allocator = MakeAllocator(&counter);
@@ -183,7 +183,7 @@ static void TestLimitsAtTheirLargest(void)
         size_t offset;
         uint32_t largest;
     } Count;
-    const uint32_t most = 0x7FFFFFFFu;
+    const uint32_t most = MUI_MAX_CONTEXT_LIMIT;
     const Count counts[] = {
         {offsetof(muiLimits, nodes), most},
         {offsetof(muiLimits, styles), most},
@@ -197,14 +197,14 @@ static void TestLimitsAtTheirLargest(void)
         {offsetof(muiLimits, themes), most},
         {offsetof(muiLimits, themeOverrides), most},
         {offsetof(muiLimits, drawCommands), most},
-        {offsetof(muiLimits, drawClips), most - 1},
-        {offsetof(muiLimits, drawGradients), most - 1},
+        {offsetof(muiLimits, drawClips), most},
+        {offsetof(muiLimits, drawGradients), most},
         {offsetof(muiLimits, drawGlyphs), most},
         {offsetof(muiLimits, layers), most},
-        {offsetof(muiLimits, pointers), 32},
+        {offsetof(muiLimits, pointers), MUI_MAX_POINTERS},
         {offsetof(muiLimits, pointerRecords), most},
         {offsetof(muiLimits, neighbors), most},
-        {offsetof(muiLimits, drawTransforms), most - 1},
+        {offsetof(muiLimits, drawTransforms), most},
         {offsetof(muiLimits, ranges), most},
         {offsetof(muiLimits, popups), most},
         {offsetof(muiLimits, exits), most},
@@ -225,14 +225,14 @@ static void TestLimitsAtTheirLargest(void)
         bool largest = muiCreateContext(&def, &context) == mui_errorCapacity;
         value++;
         memcpy((unsigned char*)&def.limits + counts[i].offset, &value, sizeof value);
-        bool past = muiCreateContext(&def, &context) == mui_errorInvalid;
+        bool past = muiCreateContext(&def, &context) == mui_errorLimit;
         if (!largest || !past)
         {
             fprintf(stderr, "count %zu: largest %d, past %d\n", i, largest, past);
         }
         held = held && largest && past;
     }
-    CHECK(held, "the largest asks for memory, one past it is invalid");
+    CHECK(held, "the largest asks for memory, one past it is a limit");
 }
 
 static void TestNullContextIsHarmless(void)
