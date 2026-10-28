@@ -50,7 +50,7 @@ jobs=${JOBS:-8}
 
 step() { printf '\n== %s\n' "$*"; }
 
-# A tree outside the presets (clang-tidy, fuzzing).
+# A tree outside the presets (fuzzing).
 configure() { # name, then cmake arguments
     local name=check-$1
     shift
@@ -194,13 +194,19 @@ python3 tools/gen_layout_fixtures.py --check
 step "the documentation site builds"
 python3 tools/build_docs.py >"$out/site.log"
 
-step "clang-tidy on the Linux build's sources"
-configure tidy -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DMAUL_UI_BUILD_TESTS=OFF -DMAUL_UI_RHI=ON -DMAUL_UI_WINDOW=ON -DMAUL_WINDOW_WAYLAND=OFF -DMAUL_WINDOW_X11=OFF
-cmake --build "$out/check-tidy" -j "$jobs" >>"$out/check-tidy.log"
-python3 tools/tidy_files.py "$out/check-tidy/compile_commands.json" >"$out/tidy-files.txt"
-xargs -P "$jobs" -n 1 clang-tidy-20 -p "$out/check-tidy" --quiet --warnings-as-errors='*' <"$out/tidy-files.txt" \
-    2>/dev/null
+# As CI's checks job: in Release, where the assertions compile out, and
+# in Debug, with them live. Each hides paths from the analyzer the other
+# shows.
+for build in Release Debug; do
+    step "clang-tidy on the Linux build's sources, $build"
+    tree=$out/check-tidy-$build
+    cmake --preset linux-parts -B "$tree" -DCMAKE_BUILD_TYPE=$build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+        -DMAUL_UI_BUILD_TESTS=OFF -DMAUL_UI_BUILD_SAMPLES=OFF -DMAUL_UI_SANITIZE=OFF >"$tree.log"
+    cmake --build "$tree" -j "$jobs" >>"$tree.log"
+    python3 tools/tidy_files.py "$tree/compile_commands.json" >"$out/tidy-files.txt"
+    xargs -P "$jobs" -n 1 clang-tidy-20 -p "$tree" --quiet --warnings-as-errors='*' <"$out/tidy-files.txt" \
+        2>/dev/null
+done
 
 preset linux-clang-20-asan
 preset linux-parts
