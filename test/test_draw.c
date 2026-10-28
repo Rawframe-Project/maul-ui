@@ -1559,6 +1559,91 @@ static void TestGlyphRuns(void)
     muiDestroyContext(context);
 }
 
+// Adds a run from a struct filled with the byte user names before its
+// fields are set.
+static void PaintFilled(void* user, muiNodeId nodeId, uint64_t hostKey, float width, float height,
+                        muiDrawSink* sink)
+{
+    (void)nodeId;
+    (void)hostKey;
+    (void)width;
+    (void)height;
+    muiGlyphRun run;
+    memset(&run, *(const int*)user, sizeof run);
+    run.font = 99;
+    run.size = 12.0f;
+    run.color = s_gray;
+    run.originX = 1.25f;
+    run.originY = 10.0f;
+    const muiGlyph glyph = {7, 0.0f, 0.0f};
+    CHECK(muiDrawSink_AddGlyphRun(sink, &run, &glyph, 1) == mui_success, "a run");
+}
+
+// Builds root, with a repaint between two builds, so both of the
+// context's tables hold its commands.
+static void BuildTwice(muiContext* context, muiNodeId root, const muiDrawInput* input)
+{
+    const muiLayoutInput layout = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
+    for (int build = 0; build < 2; build++)
+    {
+        muiVisualStyle visual = muiDefaultVisualStyle();
+        CHECK(muiNode_GetVisualStyle(context, root, &visual) == mui_success &&
+                  muiNode_SetVisualValues(context, root, &visual,
+                                          MUI_PROPERTY_BIT(mui_propertyOpacity)) == mui_success &&
+                  muiComputeLayout(context, root, &layout) == mui_success &&
+                  muiBuildDrawList(context, root, input) == mui_success,
+              "build");
+    }
+}
+
+// The padding of an image, a glyph run and a command is zero whatever the
+// slots it is written into held and whatever the paint function's struct
+// held: two contexts whose last lists were boxes of two colors, and whose
+// runs start as two byte patterns, give the same bytes for one scene.
+static void TestPaddingIsZero(void)
+{
+    static Snapshot snapshots[2];
+    const int patterns[2] = {0xAA, 0x55};
+    const muiColor colors[2] = {{0.25f, 0.5f, 0.75f, 0.5f}, {0.75f, 0.25f, 0.5f, 1.0f}};
+    for (int i = 0; i < 2; i++)
+    {
+        muiContext* context = MakeContext();
+        muiNodeId root = Add(context, s_nullNode, 200.0f, 100.0f, (muiEdges){0});
+        muiVisualStyle visual = Boxed();
+        visual.background = colors[i];
+        visual.borderColor = (muiEdgeColors){colors[i], colors[i], colors[i], colors[i]};
+        muiNodeId boxes[4];
+        for (int k = 0; k < 4; k++)
+        {
+            boxes[k] = Add(context, root, 20.0f, 20.0f, (muiEdges){0});
+            SetVisual(context, boxes[k], &visual, BOXED);
+            SetBorder(context, boxes[k], (muiEdges){3.0f, 3.0f, 3.0f, 3.0f});
+        }
+        BuildTwice(context, root, &(muiDrawInput){7, 1.0f, NULL, NULL});
+        for (int k = 0; k < 4; k++)
+        {
+            CHECK(muiDestroyNode(context, boxes[k]) == mui_success, "destroy");
+        }
+
+        visual = Boxed();
+        visual.image = 42;
+        visual.imageTint = s_gray;
+        SetVisual(context, root, &visual,
+                  BOXED | MUI_PROPERTY_BIT(mui_propertyImage) |
+                      MUI_PROPERTY_BIT(mui_propertyImageTint));
+        (void)AddLabel(context, root);
+        BuildTwice(context, root, &(muiDrawInput){7, 1.0f, PaintFilled, (void*)&patterns[i]});
+        muiDrawList list = {0};
+        CHECK(muiGetDrawList(context, &list) == mui_success, "get");
+        CHECK(list.commandCount == 4 && list.commands[1].kind == mui_drawImage &&
+                  list.commands[3].kind == mui_drawGlyphRun,
+              "a box and an image, the label's border and its run");
+        Take(&snapshots[i], &list);
+        muiDestroyContext(context);
+    }
+    CHECK(SameTables(&snapshots[0].list, &snapshots[1].list), "the same bytes");
+}
+
 typedef struct SeeingHost
 {
     int calls;
@@ -1747,6 +1832,7 @@ int main(void)
     TestBuildsFromTheLastListMatchWholeOnes();
     TestRetainedEdges();
     TestGlyphRuns();
+    TestPaddingIsZero();
     TestGlyphRunsRightToLeftAndLimits();
     TestVisibleRect();
     if (getenv(UPDATE_VARIABLE) != NULL)
