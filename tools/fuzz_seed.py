@@ -5,7 +5,8 @@
 #   the two bytes of its inflated size, as fuzz_inflate reads them;
 # - png: PNG images of every colour type and bit depth, a palette with
 #   tRNS, Adam7 interlacing and the five filters;
-# - font: the test fonts, TrueType, CFF, variable, COLR, CBDT and sbix;
+# - font: the test fonts, TrueType, CFF, variable, COLR, CBDT and sbix,
+#   and a collection of four of them, faces of one family;
 # - text: texts in several scripts and directions, with marks, emoji,
 #   line and paragraph breaks and ill-formed UTF-8, each after the six
 #   bytes fuzz_text reads first (an allocation to fail among them) and
@@ -86,11 +87,37 @@ def png_seeds(directory):
     write(directory, "adam7.png", png(8, 8, 8, 6, rows, 1))
 
 
+def collection(fonts):
+    """A TrueType collection of whole fonts, each table offset moved to
+    count from the collection's start."""
+    header = 12 + 4 * len(fonts)
+    bases = []
+    body = bytearray()
+    for font in fonts:
+        body.extend(b"\0" * (-(header + len(body)) % 4))
+        base = header + len(body)
+        bases.append(base)
+        moved = bytearray(font)
+        for i in range(struct.unpack(">H", font[4:6])[0]):
+            at = 12 + 16 * i + 8
+            offset = struct.unpack(">I", font[at:at + 4])[0]
+            moved[at:at + 4] = struct.pack(">I", base + offset)
+        body.extend(moved)
+    return (b"ttcf" + struct.pack(">II", 0x00010000, len(fonts)) +
+            b"".join(struct.pack(">I", base) for base in bases) + bytes(body))
+
+
 def font_seeds(directory):
     for font in sorted((ROOT / "test" / "fonts").iterdir()):
         if font.suffix in (".ttf", ".otf"):
             directory.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(font, directory / font.name)
+    # Faces of one family: an italic, and variable faces with weight,
+    # slant and italic axes, for fuzz_font to match among.
+    faces = ["MaulVariable.ttf", "MaulItalic.ttf", "MaulVariableSlant.ttf",
+             "MaulVariableItalic.ttf"]
+    write(directory, "family.ttc",
+          collection([(ROOT / "test" / "fonts" / face).read_bytes() for face in faces]))
 
 
 TEXTS = [
