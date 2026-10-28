@@ -1644,6 +1644,59 @@ static void TestPaddingIsZero(void)
     CHECK(SameTables(&snapshots[0].list, &snapshots[1].list), "the same bytes");
 }
 
+// The padding and unused stops of a gradient, a clip and a shadow are
+// zero whatever the slots they are written into held: two contexts whose
+// last lists held four-stop gradients, clips and shadows of two colors
+// give the same bytes for one scene of two-stop ones.
+static void TestTablePaddingIsZero(void)
+{
+    static Snapshot snapshots[2];
+    const muiColor colors[2] = {{0.25f, 0.5f, 0.75f, 0.5f}, {0.75f, 0.25f, 0.5f, 1.0f}};
+    const muiPropertyMask mask =
+        MUI_PROPERTY_BIT(mui_propertyClip) | MUI_PROPERTY_BIT(mui_propertyGradient) |
+        MUI_PROPERTY_BIT(mui_propertyOuterShadow) | MUI_PROPERTY_BIT(mui_propertyInnerShadow);
+    for (int i = 0; i < 2; i++)
+    {
+        muiContext* context = MakeContext();
+        muiNodeId root = Add(context, s_nullNode, 200.0f, 100.0f, (muiEdges){0});
+        muiVisualStyle visual = muiDefaultVisualStyle();
+        visual.clip = true;
+        visual.gradient = (muiGradient){
+            mui_gradientLinear,
+            4,
+            30.0f + 60.0f * (float)i,
+            {{colors[i], 0.0f}, {colors[1 - i], 0.25f}, {colors[i], 0.75f}, {colors[1 - i], 1.0f}}};
+        visual.outerShadow = (muiShadow){colors[i], 1.0f + (float)i, 2.0f, 3.0f, 1.0f};
+        visual.innerShadow = (muiShadow){colors[1 - i], 2.0f, 1.0f, 1.0f, 0.0f};
+        muiNodeId boxes[4];
+        for (int k = 0; k < 4; k++)
+        {
+            boxes[k] = Add(context, root, 20.0f + (float)(k * i), 20.0f, (muiEdges){0});
+            SetVisual(context, boxes[k], &visual, mask);
+        }
+        BuildTwice(context, root, &(muiDrawInput){7, 1.0f, NULL, NULL});
+        for (int k = 0; k < 4; k++)
+        {
+            CHECK(muiDestroyNode(context, boxes[k]) == mui_success, "destroy");
+        }
+
+        visual.gradient =
+            (muiGradient){mui_gradientRadial, 2, 0.0f, {{s_red, 0.0f}, {s_blue, 1.0f}}};
+        visual.outerShadow = (muiShadow){s_gray, 1.0f, 1.0f, 2.0f, 0.0f};
+        visual.innerShadow = (muiShadow){s_red, 0.0f, 1.0f, 1.0f, 0.0f};
+        muiNodeId clipped = Add(context, root, 50.0f, 40.0f, (muiEdges){0});
+        SetVisual(context, clipped, &visual, mask);
+        (void)Add(context, clipped, 10.0f, 10.0f, (muiEdges){0});
+        BuildTwice(context, root, &(muiDrawInput){7, 1.0f, NULL, NULL});
+        muiDrawList list = {0};
+        CHECK(muiGetDrawList(context, &list) == mui_success, "get");
+        CHECK(list.gradientCount >= 1 && list.clipCount >= 1, "a gradient and a clip");
+        Take(&snapshots[i], &list);
+        muiDestroyContext(context);
+    }
+    CHECK(SameTables(&snapshots[0].list, &snapshots[1].list), "the same bytes");
+}
+
 typedef struct SeeingHost
 {
     int calls;
@@ -1833,6 +1886,7 @@ int main(void)
     TestRetainedEdges();
     TestGlyphRuns();
     TestPaddingIsZero();
+    TestTablePaddingIsZero();
     TestGlyphRunsRightToLeftAndLimits();
     TestVisibleRect();
     if (getenv(UPDATE_VARIABLE) != NULL)
