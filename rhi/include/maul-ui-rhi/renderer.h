@@ -5,7 +5,7 @@
 // drawn with Maul RHI, every command an instance of one pipeline whose
 // fragment shader evaluates it. Each frame, while the host builds it,
 // muiRhiRenderer_AddPasses adds the renderer's upload and draw passes into
-// the host's target; after mrhiCompileFrame, muiRhiRenderer_Record records
+// the host's target; after mrhiDevice_CompileFrame, muiRhiRenderer_Record records
 // them. The core and the text component never depend on it; it is a static
 // library, whose functions MUI_RHI_API marks.
 
@@ -64,7 +64,7 @@ extern "C"
         // need, at least 1.
         uint32_t instances;
         // The share of the device's frameUploadBytes (its
-        // mrhiDeviceLimits) a frame's uploads may take, for a host whose
+        // mrhiDeviceBudgets) a frame's uploads may take, for a host whose
         // own uploads share the frame's budget; 0, the default, for all
         // of it, read from the device. A frame whose uploads would not
         // fit is refused. A frame uploads only the records that changed
@@ -163,7 +163,7 @@ extern "C"
     MUI_RHI_API mrhiRequestId muiRhiRenderer_GetPipelineRequest(const muiRhiRenderer* renderer);
 
     /// Hands the renderer a notification the host took from the
-    /// device's queue (mrhiNextDeviceNotification): the one answering its
+    /// device's queue (mrhiDevice_TakeNotification): the one answering its
     /// pipeline makes it ready, or failed.
     ///
     /// @param renderer      The renderer.

@@ -160,9 +160,9 @@ muiResult muiCreateRhiRenderer(const muiRhiRendererDef* def, muiRhiRenderer** re
         *rendererOut = nullptr;
     }
     // A share of the device's upload budget no larger than the whole.
-    mrhiDeviceLimits limits = {0};
+    mrhiDeviceBudgets limits = {0};
     if (def == nullptr || rendererOut == nullptr || !IsValid(def) ||
-        mrhiGetDeviceOwnLimits(def->device, &limits) != mrhi_success ||
+        mrhiDevice_GetBudgets(def->device, &limits) != mrhi_success ||
         def->uploadBytes > limits.frameUploadBytes)
     {
         return mui_errorInvalid;
@@ -485,8 +485,8 @@ static bool DrawOne(const muiRhiRenderer* renderer, const muiRhiDraw* draw)
          .range = {.mipCount = MRHI_REMAINING, .layerCount = MRHI_REMAINING}},
         {.slot = 1, .sampler = renderer->sampler},
     };
-    return mrhiSetBindings(renderer->device, renderer->draw, 1, bindings, 2) == mrhi_success &&
-           mrhiDraw(renderer->device, renderer->draw, 6, draw->count, 0, draw->first) ==
+    return mrhiPass_SetBindings(renderer->device, renderer->draw, 1, bindings, 2) == mrhi_success &&
+           mrhiPass_Draw(renderer->device, renderer->draw, 6, draw->count, 0, draw->first) ==
                mrhi_success;
 }
 
@@ -501,9 +501,10 @@ static bool Draw(muiRhiRenderer* renderer)
             .slot = i, .resource = renderer->streams[i].resource, .size = MRHI_WHOLE_SIZE};
     }
     mrhiGraphicsPipelineId pipeline = renderer->pipelines[renderer->depthTested ? 1 : 0];
-    if (mrhiSetGraphicsPipeline(device, pass, pipeline) != mrhi_success ||
-        mrhiSetBindings(device, pass, 0, bindings, kStreamCount) != mrhi_success ||
-        mrhiSetRootBlock(device, pass, 0, renderer->frame, sizeof(renderer->frame)) != mrhi_success)
+    if (mrhiPass_SetGraphicsPipeline(device, pass, pipeline) != mrhi_success ||
+        mrhiPass_SetBindings(device, pass, 0, bindings, kStreamCount) != mrhi_success ||
+        mrhiPass_SetRootBlock(device, pass, 0, renderer->frame, sizeof(renderer->frame)) !=
+            mrhi_success)
     {
         return false;
     }
@@ -529,11 +530,11 @@ muiResult muiRhiRenderer_Record(muiRhiRenderer* renderer)
     }
     renderer->added = false;
     mrhiDevice* device = renderer->device;
-    bool recorded = mrhiBeginPass(device, renderer->upload) == mrhi_success && Upload(renderer) &&
-                    mrhiEndPass(device, renderer->upload) == mrhi_success &&
-                    mrhiBeginPass(device, renderer->draw) == mrhi_success &&
+    bool recorded = mrhiPass_Begin(device, renderer->upload) == mrhi_success && Upload(renderer) &&
+                    mrhiPass_End(device, renderer->upload) == mrhi_success &&
+                    mrhiPass_Begin(device, renderer->draw) == mrhi_success &&
                     (renderer->streams[kInstances].count == 0 || Draw(renderer)) &&
-                    mrhiEndPass(device, renderer->draw) == mrhi_success;
+                    mrhiPass_End(device, renderer->draw) == mrhi_success;
     if (!recorded)
     {
         return mui_errorPlatform;

@@ -27,6 +27,7 @@
 # usage: gen_rhi_shaders.py <a Maul RHI source tree, for its tools/>
 #        gen_rhi_shaders.py --check | --self-test
 
+import ast
 import hashlib
 import importlib.util
 import os
@@ -53,7 +54,12 @@ CONTAINER = f"rhi/shaders/{NAME}_container.h"
 # SHA-256, as Maul RHI's stamps do.
 # The commit each Maul RHI release tag names: a local tag of that name on
 # another commit is not the release.
-RHI_COMMITS = {"v0.8.0": "e0d3922db608d1edf195d0e86fa7a3e43b37520f"}
+RHI_COMMITS = {"v0.13.0": "da1a2bfb43371e3361f4dd167f61255043466c09"}
+# The flags every DXC compile of Maul RHI's mrhi_dxil.py passes, read from
+# the release and compared exactly, as the tools are: -Gis keeps the float
+# math as the source writes it, so D3D12 computes what the other APIs do.
+# The stamp names them.
+DXC_FLAGS = ("-Gis", "-Qstrip_reflect", "-Qstrip_debug")
 
 PINNED = {
     "glslang": "glslang 15.1.0",
@@ -110,6 +116,24 @@ def build(work, tools):
         msl, linked, os.path.join(SHADERS, f"{NAME}.wgsl"), reflection, container, cwd=work)
     with open(container, "rb") as file:
         return file.read()
+
+
+def dxc_flags(script):
+    """The DXC_FLAGS a Maul RHI mrhi_dxil.py assigns, read from its source
+    without running it; None when it assigns no tuple of strings."""
+    with open(script, encoding="utf-8") as file:
+        tree = ast.parse(file.read())
+    for node in tree.body:
+        if (isinstance(node, ast.Assign) and len(node.targets) == 1 and
+                isinstance(node.targets[0], ast.Name) and node.targets[0].id == "DXC_FLAGS"):
+            try:
+                flags = ast.literal_eval(node.value)
+            except ValueError:
+                return None
+            if isinstance(flags, tuple) and all(isinstance(flag, str) for flag in flags):
+                return flags
+            return None
+    return None
 
 
 def input_hash(root, path):
@@ -363,10 +387,12 @@ def rhi_release(tree, commits=RHI_COMMITS, export=None):
 
 def stamp(root, rhi, data):
     lines = ["// The stamp tools/gen_rhi_shaders.py --check reads: the SHA-256 of",
-             "// each input with LF line ends, the Maul RHI release, the SHA-256",
-             "// of the container, and the pinned tools that built it."]
+             "// each input with LF line ends, the Maul RHI release, the flags its",
+             "// DXC compiles passed, the SHA-256 of the container, and the pinned",
+             "// tools that built it."]
     lines += [f"//   input {path} {input_hash(root, path)}" for path in INPUTS]
     lines.append(f"//   maul-rhi {rhi}")
+    lines.append(f"//   dxc-flags {' '.join(DXC_FLAGS)}")
     lines.append(f"//   container {hashlib.sha256(data).hexdigest()}")
     lines += [f"//   tool {tool}" for tool in TOOL_LINES]
     return lines
@@ -414,6 +440,10 @@ def problems(root):
     if rhi is None or rhi.group(1) != pinned_rhi(root):
         found.append(f"cmake/Rhi.cmake pins {pinned_rhi(root)}, the container was built with "
                      f"{rhi.group(1) if rhi else 'no release'}")
+    flags = re.search(r"^//   dxc-flags (.*)$", text, re.M)
+    if flags is None or flags.group(1) != " ".join(DXC_FLAGS):
+        found.append(f"{CONTAINER}: its DXIL was not compiled with the pinned DXC flags "
+                     f"({' '.join(DXC_FLAGS)})")
     if tuple(re.findall(r"^//   tool (.*)$", text, re.M)) != TOOL_LINES:
         found.append(f"{CONTAINER}: not built by the pinned tools")
     digest = re.search(r"^//   container ([0-9a-f]{64})$", text, re.M)
@@ -477,6 +507,10 @@ def self_test():
         edit(CONTAINER, lambda data: data.replace(b"spirv-cross 2021", b"spirv-cross 2022", 1))
         if not any("pinned tools" in problem for problem in problems(work)):
             failures.append("a container stamped by other tools passes")
+        copy()
+        edit(CONTAINER, lambda data: data.replace(b"dxc-flags -Gis ", b"dxc-flags ", 1))
+        if not any("DXC flags" in problem for problem in problems(work)):
+            failures.append("a container compiled without -Gis passes")
         failures += self_test_generation(work)
         failures += self_test_isolation(os.path.join(work, "isolation"))
         failures += self_test_links(os.path.join(work, "links"))
@@ -494,6 +528,17 @@ def self_test_generation(work):
     failures = []
     if unpinned(PINNED):
         failures.append("the pinned tools are refused")
+    script = os.path.join(work, "mrhi_dxil.py")
+    for source, expected in (
+            (f"DXC_FLAGS = {DXC_FLAGS!r}\n", DXC_FLAGS),
+            ('DXC_FLAGS = ("-Qstrip_reflect", "-Qstrip_debug")\n',
+             ("-Qstrip_reflect", "-Qstrip_debug")),
+            ("DXC_FLAGS = flags()\n", None),
+            ("FLAGS = ()\n", None)):
+        with open(script, "w", encoding="utf-8") as file:
+            file.write(source)
+        if dxc_flags(script) != expected:
+            failures.append(f"DXC_FLAGS read from {source.strip()!r} as {dxc_flags(script)!r}")
     if not unpinned({**PINNED, "spirv-cross": "spirv-cross 2022.01.01"}):
         failures.append("another spirv-cross is taken")
     tree = os.path.join(work, "maul-rhi")
@@ -810,6 +855,10 @@ def main():
         for script in ("mrhi_dxil.py", "mrhi_msl.py", "mrhi_container.py"):
             if not os.path.isfile(os.path.join(tools, script)):
                 sys.exit(f"gen_rhi_shaders: no {script} in {tree}/tools")
+        flags = dxc_flags(os.path.join(tools, "mrhi_dxil.py"))
+        if flags != DXC_FLAGS:
+            sys.exit(f"gen_rhi_shaders: {tree}/tools/mrhi_dxil.py compiles with DXC flags "
+                     f"{flags}, pinned {DXC_FLAGS}")
         data = build(work, tools)
     path = os.path.join(ROOT, CONTAINER)
     with open(path, "w", encoding="utf-8", newline="\n") as file:

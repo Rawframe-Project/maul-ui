@@ -69,12 +69,12 @@ typedef struct Gpu
 // A device on the first adapter, software ones included.
 static mrhiResult NextInstance(mrhiInstance* instance, mrhiInstanceNotification* recordOut)
 {
-    mrhiResult status = mrhiNextInstanceNotification(instance, recordOut);
+    mrhiResult status = mrhiInstance_TakeNotification(instance, recordOut);
 #ifdef __EMSCRIPTEN__
     for (int slept = 0; status == mrhi_empty && slept < WAIT_SLEEPS; slept++)
     {
         emscripten_sleep(1);
-        status = mrhiNextInstanceNotification(instance, recordOut);
+        status = mrhiInstance_TakeNotification(instance, recordOut);
     }
 #endif
     return status;
@@ -83,12 +83,12 @@ static mrhiResult NextInstance(mrhiInstance* instance, mrhiInstanceNotification*
 // Waits for a frame to finish.
 static mrhiResult WaitFrame(mrhiDevice* device, mrhiRequestId token)
 {
-    mrhiResult status = mrhiWaitFrame(device, token, WAIT_NS);
+    mrhiResult status = mrhiRequest_WaitFrame(device, token, WAIT_NS);
 #ifdef __EMSCRIPTEN__
     for (int slept = 0; status == mrhi_timeout && slept < WAIT_SLEEPS; slept++)
     {
         emscripten_sleep(1);
-        status = mrhiWaitFrame(device, token, 0);
+        status = mrhiRequest_WaitFrame(device, token, 0);
     }
 #endif
     return status;
@@ -114,9 +114,9 @@ static bool Open(Gpu* gpu)
     mrhiAdapterId adapter;
     size_t count = 0;
     if (mrhiCreateInstance(&def, &gpu->instance) != mrhi_success ||
-        mrhiRequestAdapters(gpu->instance, &search, &request) != mrhi_success ||
+        mrhiInstance_RequestAdapters(gpu->instance, &search, &request) != mrhi_success ||
         NextInstance(gpu->instance, &record) != mrhi_success || record.outcome != mrhi_success ||
-        mrhiGetAdapters(gpu->instance, &adapter, 1, &count) != mrhi_success || count == 0)
+        mrhiInstance_GetAdapters(gpu->instance, &adapter, 1, &count) != mrhi_success || count == 0)
     {
         return false;
     }
@@ -142,7 +142,7 @@ static void Close(Gpu* gpu)
 static void Drain(Gpu* gpu, muiRhiRenderer* renderer)
 {
     mrhiDeviceNotification record;
-    while (mrhiNextDeviceNotification(gpu->device, &record) == mrhi_success)
+    while (mrhiDevice_TakeNotification(gpu->device, &record) == mrhi_success)
     {
         (void)muiRhiRenderer_Notify(renderer, &record);
     }
@@ -163,7 +163,7 @@ static bool AwaitReady(Gpu* gpu, muiRhiRenderer* renderer)
     }
 #else
     while (!muiRhiRenderer_IsReady(renderer) &&
-           mrhiWaitDeviceNotification(gpu->device, WAIT_NS) == mrhi_success)
+           mrhiDevice_WaitNotification(gpu->device, WAIT_NS) == mrhi_success)
     {
         Drain(gpu, renderer);
     }
@@ -184,7 +184,7 @@ static bool RenderInDepth(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList*
     targetDef.width = side;
     targetDef.height = side;
     mrhiResourceId target = {0};
-    if (mrhiBeginFrame(gpu->device, &frame) != mrhi_success ||
+    if (mrhiDevice_BeginFrame(gpu->device, &frame) != mrhi_success ||
         mrhiDeclareTexture(gpu->device, &targetDef, &target) != mrhi_success)
     {
         return false;
@@ -207,7 +207,7 @@ static bool RenderInDepth(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList*
         depthDef.format = mrhi_formatDepth32Float;
         if (mrhiDeclareTexture(gpu->device, &depthDef, &into.depth) != mrhi_success)
         {
-            (void)mrhiDropFrame(gpu->device);
+            (void)mrhiDevice_DropFrame(gpu->device);
             return false;
         }
         clearDef.depthTarget = (mrhiDepthTarget){.resource = into.depth,
@@ -233,30 +233,30 @@ static bool RenderInDepth(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList*
     bool recorded =
         cleared && muiRhiRenderer_AddPasses(renderer, list, &into) == mui_success &&
         mrhiAddPass(gpu->device, &readDef, &reading) == mrhi_success &&
-        mrhiCompileFrame(gpu->device) == mrhi_success &&
-        (depth < 0.0f || (mrhiBeginPass(gpu->device, clearing) == mrhi_success &&
-                          mrhiEndPass(gpu->device, clearing) == mrhi_success)) &&
+        mrhiDevice_CompileFrame(gpu->device) == mrhi_success &&
+        (depth < 0.0f || (mrhiPass_Begin(gpu->device, clearing) == mrhi_success &&
+                          mrhiPass_End(gpu->device, clearing) == mrhi_success)) &&
         muiRhiRenderer_Record(renderer) == mui_success &&
-        mrhiBeginPass(gpu->device, reading) == mrhi_success &&
-        mrhiReadTexture(gpu->device, reading, &source, &extent, &readback) == mrhi_success &&
-        mrhiEndPass(gpu->device, reading) == mrhi_success;
+        mrhiPass_Begin(gpu->device, reading) == mrhi_success &&
+        mrhiPass_ReadTexture(gpu->device, reading, &source, &extent, &readback) == mrhi_success &&
+        mrhiPass_End(gpu->device, reading) == mrhi_success;
     if (!recorded)
     {
-        (void)mrhiDropFrame(gpu->device);
+        (void)mrhiDevice_DropFrame(gpu->device);
         return false;
     }
-    if (mrhiSubmitFrame(gpu->device, &token) != mrhi_success ||
+    if (mrhiDevice_SubmitFrame(gpu->device, &token) != mrhi_success ||
         WaitFrame(gpu->device, token) != mrhi_success)
     {
         return false;
     }
     mrhiDeviceNotification record;
-    while (mrhiNextDeviceNotification(gpu->device, &record) == mrhi_success)
+    while (mrhiDevice_TakeNotification(gpu->device, &record) == mrhi_success)
     {
     }
     size_t size = (size_t)side * side * 4;
     size_t taken = 0;
-    return mrhiTakeReadback(gpu->device, readback, pixels, size, &taken) == mrhi_success &&
+    return mrhiRequest_TakeReadback(gpu->device, readback, pixels, size, &taken) == mrhi_success &&
            taken == size;
 }
 
@@ -617,7 +617,7 @@ static bool MakeLevels(Gpu* gpu, uint32_t side, const uint8_t* const* levels, ui
     mrhiFrameDef frame = mrhiDefaultFrameDef();
     mrhiResourceId resource = {0};
     if (mrhiCreateTexture(gpu->device, &def, textureOut) != mrhi_success ||
-        mrhiBeginFrame(gpu->device, &frame) != mrhi_success ||
+        mrhiDevice_BeginFrame(gpu->device, &frame) != mrhi_success ||
         mrhiImportTexture(gpu->device, *textureOut, &resource) != mrhi_success)
     {
         return false;
@@ -633,24 +633,24 @@ static bool MakeLevels(Gpu* gpu, uint32_t side, const uint8_t* const* levels, ui
     mrhiPassId pass = {0};
     mrhiRequestId token = {0};
     bool recorded = mrhiAddPass(gpu->device, &passDef, &pass) == mrhi_success &&
-                    mrhiCompileFrame(gpu->device) == mrhi_success &&
-                    mrhiBeginPass(gpu->device, pass) == mrhi_success;
+                    mrhiDevice_CompileFrame(gpu->device) == mrhi_success &&
+                    mrhiPass_Begin(gpu->device, pass) == mrhi_success;
     for (uint32_t mip = 0; recorded && mip < levelCount; mip++)
     {
         const uint32_t at = side >> mip;
         const mrhiTextureCopy into = {.resource = resource, .mip = mip};
         const mrhiTexelLayout layout = {.bytesPerRow = at * 4};
         const mrhiExtent3d extent = {at, at, 1};
-        recorded = mrhiWriteTexture(gpu->device, pass, &into, levels[mip], (size_t)at * at * 4,
-                                    &layout, &extent) == mrhi_success;
+        recorded = mrhiPass_WriteTexture(gpu->device, pass, &into, levels[mip], (size_t)at * at * 4,
+                                         &layout, &extent) == mrhi_success;
     }
-    recorded = recorded && mrhiEndPass(gpu->device, pass) == mrhi_success;
+    recorded = recorded && mrhiPass_End(gpu->device, pass) == mrhi_success;
     if (!recorded)
     {
-        (void)mrhiDropFrame(gpu->device);
+        (void)mrhiDevice_DropFrame(gpu->device);
         return false;
     }
-    return mrhiSubmitFrame(gpu->device, &token) == mrhi_success &&
+    return mrhiDevice_SubmitFrame(gpu->device, &token) == mrhi_success &&
            WaitFrame(gpu->device, token) == mrhi_success;
 }
 
@@ -1041,7 +1041,7 @@ static bool Refuses(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList* list,
     def.height = 64;
     muiRhiTarget into = {.width = 64, .height = 64, .projected = projected};
     ScreenProjection(into.projection, 1.0f, 64);
-    if (mrhiBeginFrame(gpu->device, &frame) != mrhi_success ||
+    if (mrhiDevice_BeginFrame(gpu->device, &frame) != mrhi_success ||
         mrhiDeclareTexture(gpu->device, &def, &into.resource) != mrhi_success)
     {
         return false;
@@ -1049,7 +1049,7 @@ static bool Refuses(Gpu* gpu, muiRhiRenderer* renderer, const muiDrawList* list,
     def.format = mrhi_formatDepth32Float;
     bool declared = !depth || mrhiDeclareTexture(gpu->device, &def, &into.depth) == mrhi_success;
     bool refused = declared && muiRhiRenderer_AddPasses(renderer, list, &into) == mui_errorInvalid;
-    (void)mrhiDropFrame(gpu->device);
+    (void)mrhiDevice_DropFrame(gpu->device);
     return refused;
 }
 
