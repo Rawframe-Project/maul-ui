@@ -40,7 +40,7 @@ static uint32_t ClustersBefore(const muiTextBlock* block, uint32_t offset)
     }
     uint32_t count = 0;
     size_t at = 0;
-    while (muniNextSegmentBreak(&iterator, &at) == muni_success && at <= offset)
+    while (muniSegmentIterator_NextBreak(&iterator, &at) == muni_success && at <= offset)
     {
         count += at != 0 ? 1u : 0u;
     }
@@ -58,7 +58,7 @@ static uint32_t ClusterStart(const muiTextBlock* block, uint32_t index)
         return 0;
     }
     size_t at = 0;
-    while (index != 0 && muniNextSegmentBreak(&iterator, &at) == muni_success)
+    while (index != 0 && muniSegmentIterator_NextBreak(&iterator, &at) == muni_success)
     {
         index -= at != 0 ? 1u : 0u;
     }

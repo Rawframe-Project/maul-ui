@@ -207,7 +207,7 @@ static bool ChooseFaces(const muiTextBlock* block, const muiRunChains* chains, u
     int64_t before = -1;
     size_t start = 0;
     size_t end = 0;
-    while (muniNextSegmentBreak(&graphemes, &end) == muni_success)
+    while (muniSegmentIterator_NextBreak(&graphemes, &end) == muni_success)
     {
         if (end == 0)
         {

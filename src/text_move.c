@@ -29,7 +29,7 @@ static uint32_t ClusterBoundary(const muiTextBlock* block, uint32_t offset, bool
     (void)muniInitGraphemeIterator(&iterator, block->text.data, block->length, false);
     uint32_t before = 0;
     size_t at = 0;
-    while (muniNextSegmentBreak(&iterator, &at) == muni_success)
+    while (muniSegmentIterator_NextBreak(&iterator, &at) == muni_success)
     {
         if (next ? at > offset : at >= offset)
         {
@@ -55,7 +55,8 @@ static uint32_t WordBoundary(const muiTextBlock* block, uint32_t offset, muiText
     uint32_t found = back ? 0 : block->length;
     size_t start = 0;
     size_t end = 0;
-    while ((!back || start < offset) && muniNextSegmentBreak(&iterator, &end) == muni_success)
+    while ((!back || start < offset) &&
+           muniSegmentIterator_NextBreak(&iterator, &end) == muni_success)
     {
         if (muiIsWordSegment(text, start, end))
         {
