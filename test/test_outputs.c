@@ -190,8 +190,8 @@ static void TestNullContextClearsOutputs(void)
     CHECK(muiDrawSink_GetVisibleRect(NULL, &outputs.rect) == mui_errorInvalid && CLEARED(rect),
           "muiDrawSink_GetVisibleRect clears its output");
     Fill(&outputs);
-    CHECK(muiPointer_GetState(NULL, 1, &outputs.state) == mui_errorInvalid && CLEARED(state),
-          "muiPointer_GetState clears its output");
+    CHECK(muiContext_GetPointerState(NULL, 1, &outputs.state) == mui_errorInvalid && CLEARED(state),
+          "muiContext_GetPointerState clears its output");
 }
 
 // A NULL context, and a context busy in its measure function, refuse

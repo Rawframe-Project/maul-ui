@@ -31,8 +31,9 @@ muiResult muiWindowGlue_RequestPaste(muiWindowGlue* glue)
     return mui_success;
 }
 
-muiResult muiWindowGlue_Paste(muiWindowGlue* glue, muiTextService* service, muiTextBlockId blockId,
-                              const mwinEvent* event, bool* changedOut)
+muiResult muiTextBlock_PasteFromWindow(muiWindowGlue* glue, muiTextService* service,
+                                       muiTextBlockId blockId, const mwinEvent* event,
+                                       bool* changedOut)
 {
     if (changedOut != nullptr)
     {

@@ -164,7 +164,7 @@ static void TestHover(void)
     Mouse(context, s.root, mui_pointerLeave, 0, 0, 160.0f, 160.0f, 2);
     muiPointerState state = {0};
     CHECK(!IsHovered(context, s.d) && !IsHovered(context, s.root) &&
-              muiPointer_GetState(context, 1, &state) == mui_empty && Drained(context),
+              muiContext_GetPointerState(context, 1, &state) == mui_empty && Drained(context),
           "left: forgotten, no records");
     muiDestroyContext(context);
 }
@@ -328,14 +328,14 @@ static void TestTouch(void)
               IsHovered(context, s.b) && !IsHovered(context, s.d),
           "captured hover");
     muiPointerState state = {0};
-    CHECK(muiPointer_GetState(context, 7, &state) == mui_success &&
+    CHECK(muiContext_GetPointerState(context, 7, &state) == mui_success &&
               state.kind == mui_pointerTouch && state.buttons == contact && state.x == 160.0f &&
               Same(state.hovered, s.b) && Same(state.pressed, s.b) && Same(state.captured, s.b),
           "its state");
     CHECK(Send(context, s.root, 7, mui_pointerTouch, mui_pointerRelease, mui_buttonPrimary, 0,
                160.0f, 160.0f, 3) == mui_success &&
               !IsHovered(context, s.b) && !IsPressed(context, s.b) &&
-              muiPointer_GetState(context, 7, &state) == mui_empty,
+              muiContext_GetPointerState(context, 7, &state) == mui_empty,
           "lifted: forgotten");
     CHECK(Next(context, mui_pointerRecordPress, s.b, 5.0f, 5.0f, 0, 1) &&
               Next(context, mui_pointerRecordMove, s.b, 140.0f, 140.0f, 0, 0) &&
@@ -353,17 +353,17 @@ static void TestCapture(void)
     muiContext* context = s.context;
     const muiPointerButtons primary = 1u << mui_buttonPrimary;
     Mouse(context, s.root, mui_pointerMove, 0, 0, 25.0f, 25.0f, 0);
-    CHECK(muiPointer_SetCapture(context, 1, s.c) == mui_errorInvalid,
+    CHECK(muiNode_CapturePointer(context, s.c, 1) == mui_errorInvalid,
           "no capture without a button");
     Mouse(context, s.root, mui_pointerPress, mui_buttonPrimary, primary, 25.0f, 25.0f, 1);
-    CHECK(muiPointer_SetCapture(context, 1, s.c) == mui_success && IsHovered(context, s.c) &&
+    CHECK(muiNode_CapturePointer(context, s.c, 1) == mui_success && IsHovered(context, s.c) &&
               !IsHovered(context, s.b) && IsPressed(context, s.b),
           "captured by c, hovering it at once");
-    CHECK(muiPointer_SetCapture(context, 1, s.c) == mui_success, "again: nothing");
+    CHECK(muiNode_CapturePointer(context, s.c, 1) == mui_success, "again: nothing");
     Mouse(context, s.root, mui_pointerMove, 0, primary, 160.0f, 160.0f, 2);
-    CHECK(muiPointer_SetCapture(context, 1, s.d) == mui_success, "moved to d");
-    CHECK(muiPointer_ReleaseCapture(context, 1) == mui_success &&
-              muiPointer_ReleaseCapture(context, 1) == mui_success,
+    CHECK(muiNode_CapturePointer(context, s.d, 1) == mui_success, "moved to d");
+    CHECK(muiContext_ReleasePointerCapture(context, 1) == mui_success &&
+              muiContext_ReleasePointerCapture(context, 1) == mui_success,
           "released, twice");
     Mouse(context, s.root, mui_pointerMove, 0, primary, 25.0f, 25.0f, 3);
     CHECK(IsHovered(context, s.b) && !IsHovered(context, s.d), "hit testing again");
@@ -377,12 +377,13 @@ static void TestCapture(void)
           "capture records");
     // A captured mouse that leaves the surface keeps hovering its target.
     Mouse(context, s.root, mui_pointerPress, mui_buttonPrimary, primary, 25.0f, 25.0f, 1000 * s_ms);
-    CHECK(muiPointer_SetCapture(context, 1, s.b) == mui_success, "captured");
+    CHECK(muiNode_CapturePointer(context, s.b, 1) == mui_success, "captured");
     Mouse(context, s.root, mui_pointerLeave, 0, primary, -5.0f, 25.0f, 1001 * s_ms);
     CHECK(IsHovered(context, s.b), "still hovering its target");
     Mouse(context, s.root, mui_pointerRelease, mui_buttonPrimary, 0, -5.0f, 25.0f, 1002 * s_ms);
     muiPointerState state = {0};
-    CHECK(!IsHovered(context, s.b) && muiPointer_GetState(context, 1, &state) == mui_success &&
+    CHECK(!IsHovered(context, s.b) &&
+              muiContext_GetPointerState(context, 1, &state) == mui_success &&
               state.hovered.index1 == 0,
           "released outside: hovering nothing");
     CHECK(Next(context, mui_pointerRecordPress, s.b, 5.0f, 5.0f, 0, 1) &&
@@ -393,7 +394,7 @@ static void TestCapture(void)
           "leaving is no move");
     // Pressed over nothing, then captured: the release clicks the target.
     Mouse(context, s.root, mui_pointerPress, mui_buttonPrimary, primary, 500.0f, 5.0f, 2000 * s_ms);
-    CHECK(muiPointer_SetCapture(context, 1, s.c) == mui_success, "captured");
+    CHECK(muiNode_CapturePointer(context, s.c, 1) == mui_success, "captured");
     Mouse(context, s.root, mui_pointerRelease, mui_buttonPrimary, 0, 500.0f, 5.0f, 2001 * s_ms);
     muiPointerRecord record = {0};
     CHECK(muiContext_TakePointerRecord(context, &record) == mui_success &&
@@ -416,7 +417,7 @@ static void TestCancel(void)
           "pressed, cancelled");
     muiPointerState state = {0};
     CHECK(!IsPressed(context, s.c) && !IsHovered(context, s.c) &&
-              muiPointer_GetState(context, 3, &state) == mui_empty &&
+              muiContext_GetPointerState(context, 3, &state) == mui_empty &&
               Next(context, mui_pointerRecordPress, s.c, 5.0f, 5.0f, 0, 1) &&
               Next(context, mui_pointerRecordCancel, s.c, 5.0f, 5.0f, 0, 0) &&
               Next(context, mui_pointerRecordCaptureLost, s.c, 65.0f, 25.0f, 0, 0) &&
@@ -480,13 +481,14 @@ static void TestEdits(void)
               muiDestroyNode(context, e) == mui_success && IsHovered(context, s.root) &&
               IsPressed(context, s.a),
           "other edits");
-    CHECK(muiPointer_SetCapture(context, 1, s.b) == mui_success, "captured");
+    CHECK(muiNode_CapturePointer(context, s.b, 1) == mui_success, "captured");
     // a moved again with b in it: b keeps its capture, though the moved
     // node's own pointers come back.
     muiPointerState moved = {0};
     CHECK(muiNode_Detach(context, s.a) == mui_success &&
               muiNode_InsertChild(context, s.d, s.a, s_nullNode) == mui_success &&
-              muiPointer_GetState(context, 1, &moved) == mui_success && Same(moved.captured, s.b),
+              muiContext_GetPointerState(context, 1, &moved) == mui_success &&
+              Same(moved.captured, s.b),
           "moved, still captured");
     while (muiContext_TakePointerRecord(context, &(muiPointerRecord){0}) == mui_success)
     {
@@ -496,8 +498,9 @@ static void TestEdits(void)
               !IsPressed(context, s.a) && !IsHovered(context, s.root) && !IsPressed(context, s.d),
           "destroyed under the pointer");
     muiPointerState state = {0};
-    CHECK(muiPointer_GetState(context, 1, &state) == mui_success && state.hovered.index1 == 0 &&
-              state.pressed.index1 == 0 && state.captured.index1 == 0 &&
+    CHECK(muiContext_GetPointerState(context, 1, &state) == mui_success &&
+              state.hovered.index1 == 0 && state.pressed.index1 == 0 &&
+              state.captured.index1 == 0 &&
               Next(context, mui_pointerRecordCaptureLost, s.b, 25.0f, 25.0f, 0, 0) &&
               Drained(context),
           "its pointer");
@@ -633,7 +636,7 @@ static bool StatesAgree(const muiContext* context, const muiNodeId* nodes, uint3
     bool known[3];
     for (uint32_t p = 0; p < 3; p++)
     {
-        known[p] = muiPointer_GetState(context, p + 1, &states[p]) == mui_success;
+        known[p] = muiContext_GetPointerState(context, p + 1, &states[p]) == mui_success;
     }
     bool agree = true;
     for (uint32_t i = 0; agree && i < count; i++)
@@ -677,7 +680,7 @@ static void TestRandom(void)
         {
             uint32_t p = NextRandom(&random, 3);
             muiPointerState state = {0};
-            bool known = muiPointer_GetState(context, p + 1, &state) == mui_success;
+            bool known = muiContext_GetPointerState(context, p + 1, &state) == mui_success;
             muiPointerButtons buttons = known ? state.buttons : 0;
             uint8_t button = (uint8_t)NextRandom(&random, 2);
             muiPointerButtons bit = (muiPointerButtons)(1u << button);
@@ -690,10 +693,10 @@ static void TestRandom(void)
             switch (NextRandom(&random, 8))
             {
             case 0:
-                (void)muiPointer_SetCapture(context, p + 1, node);
+                (void)muiNode_CapturePointer(context, node, p + 1);
                 break;
             case 1:
-                (void)muiPointer_ReleaseCapture(context, p + 1);
+                (void)muiContext_ReleasePointerCapture(context, p + 1);
                 break;
             case 2:
             {
@@ -774,29 +777,29 @@ static void TestContract(void)
               muiContext_GetMisuse(context) == misuse + 7,
           "events outside the contract");
     muiPointerState state = {0};
-    CHECK(muiPointer_GetState(context, 1, &state) == mui_empty && Drained(context),
+    CHECK(muiContext_GetPointerState(context, 1, &state) == mui_empty && Drained(context),
           "nothing changed");
     muiPointerRecord record = {0};
     CHECK(muiContext_TakePointerRecord(NULL, &record) == mui_errorInvalid &&
               muiContext_TakePointerRecord(context, NULL) == mui_errorInvalid &&
-              muiPointer_GetState(NULL, 1, &state) == mui_errorInvalid &&
-              muiPointer_GetState(context, 1, NULL) == mui_errorInvalid,
+              muiContext_GetPointerState(NULL, 1, &state) == mui_errorInvalid &&
+              muiContext_GetPointerState(context, 1, NULL) == mui_errorInvalid,
           "reads outside the contract");
     CHECK(muiContext_SetClickRule(NULL, 1, 1.0f) == mui_errorInvalid &&
               muiContext_SetClickRule(context, 1, -1.0f) == mui_errorInvalid &&
               muiContext_SetClickRule(context, 1, NAN) == mui_errorInvalid &&
               muiContext_SetClickRule(context, 0, 0.0f) == mui_success,
           "click rules");
-    CHECK(muiPointer_SetCapture(NULL, 1, s.a) == mui_errorInvalid &&
-              muiPointer_SetCapture(context, 1, s.a) == mui_errorInvalid &&
-              muiPointer_ReleaseCapture(NULL, 1) == mui_errorInvalid &&
-              muiPointer_ReleaseCapture(context, 1) == mui_errorInvalid,
+    CHECK(muiNode_CapturePointer(NULL, s.a, 1) == mui_errorInvalid &&
+              muiNode_CapturePointer(context, s.a, 1) == mui_errorInvalid &&
+              muiContext_ReleasePointerCapture(NULL, 1) == mui_errorInvalid &&
+              muiContext_ReleasePointerCapture(context, 1) == mui_errorInvalid,
           "capture of a pointer unknown");
     Mouse(context, s.root, mui_pointerPress, 0, 1, 25.0f, 25.0f, 0);
     muiNodeId gone = s.d;
     CHECK(muiDestroyNode(context, gone) == mui_success &&
-              muiPointer_SetCapture(context, 1, s_nullNode) == mui_errorInvalid &&
-              muiPointer_SetCapture(context, 1, gone) == mui_errorStale &&
+              muiNode_CapturePointer(context, s_nullNode, 1) == mui_errorInvalid &&
+              muiNode_CapturePointer(context, gone, 1) == mui_errorStale &&
               muiNode_RoutePointer(context, gone, &good) == mui_errorStale,
           "a node gone");
     muiDestroyContext(context);

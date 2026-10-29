@@ -186,7 +186,7 @@ extern "C"
     /// feed input or dispatch (muiNode_RouteKey, muiNode_RouteText,
     /// muiNode_RouteNavigation, muiNode_RouteWheel, muiNode_RoutePointer,
     /// muiContext_DispatchPointerRecord, muiContext_PerformAccessAction),
-    /// muiSetEventFunction and muiDestroyContext, which answer
+    /// muiContext_SetEventFunction and muiDestroyContext, which answer
     /// mui_errorBusy and count one misuse while it runs. The route was
     /// fixed before the first call, so nodes it destroys are passed over
     /// and nodes it adds hear nothing of this event.
@@ -204,8 +204,9 @@ extern "C"
     ///         runs.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiSetEventFunction(muiContext* context,
-                                                        muiEventFunction function, void* user);
+    MUI_NODISCARD MUI_API muiResult muiContext_SetEventFunction(muiContext* context,
+                                                                muiEventFunction function,
+                                                                void* user);
 
     /// Routes a key to the player's focus under the root (a focus a modal
     /// layer covers: the top modal layer under the root; none: the root).

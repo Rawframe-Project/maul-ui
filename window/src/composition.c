@@ -95,7 +95,7 @@ muiResult muiTextBlock_SetPreedit(muiTextService* service, muiTextBlockId blockI
     return status;
 }
 
-muiResult muiWindowGlue_SetTextCaret(muiWindowGlue* glue, const muiTextHost* host, muiNodeId nodeId,
+muiResult muiNode_SetWindowTextCaret(muiWindowGlue* glue, const muiTextHost* host, muiNodeId nodeId,
                                      muiTextPosition position, mwinRect* placedOut)
 {
     if (placedOut != nullptr)
@@ -114,10 +114,10 @@ muiResult muiWindowGlue_SetTextCaret(muiWindowGlue* glue, const muiTextHost* hos
         return status;
     }
     const muiRect rect = {content.x + caret.x, content.y + caret.y, 0.0f, caret.height};
-    return muiWindowGlue_SetCaret(glue, nodeId, rect, placedOut);
+    return muiNode_SetWindowCaret(glue, nodeId, rect, placedOut);
 }
 
-muiResult muiWindowGlue_RequestKeyboard(muiWindowGlue* glue, const muiTextHost* host,
+muiResult muiNode_RequestWindowKeyboard(muiWindowGlue* glue, const muiTextHost* host,
                                         muiNodeId nodeId)
 {
     if (glue == nullptr || host == nullptr)

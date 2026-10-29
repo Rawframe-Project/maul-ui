@@ -113,7 +113,7 @@ static bool Hear(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* e
         heard->nestedDispatch = muiContext_DispatchPointerRecord(heard->context, &record, &handled);
         if (heard->nested == mui_errorInvalid)
         {
-            heard->nested = muiSetEventFunction(heard->context, NULL, NULL);
+            heard->nested = muiContext_SetEventFunction(heard->context, NULL, NULL);
         }
     }
     return Same(nodeId, heard->handleAt) && phase == heard->handlePhase;
@@ -166,7 +166,7 @@ static void MakeScene(Scene* scene)
     scene->d = Box(context, scene->root, 0.0f, 150.0f, 100.0f, mui_focusAll);
     Layout(context, scene->root);
     scene->heard = (Heard){.context = context, .root = scene->root};
-    CHECK(muiSetEventFunction(context, Hear, &scene->heard) == mui_success, "function");
+    CHECK(muiContext_SetEventFunction(context, Hear, &scene->heard) == mui_success, "function");
 }
 
 static void TestOrder(void)
@@ -258,7 +258,7 @@ static void TestDefaults(void)
     CHECK(muiNode_RouteNavigation(s.context, s.root, &nav, &handled) == mui_success && !handled,
           "cancel: no default");
     // Without a function, the defaults still run.
-    CHECK(muiSetEventFunction(s.context, NULL, NULL) == mui_success &&
+    CHECK(muiContext_SetEventFunction(s.context, NULL, NULL) == mui_success &&
               Key(s.context, s.root, mui_codeArrowUp, 0, true) &&
               Same(muiContext_GetFocus(s.context, 0), s.a),
           "no function");
@@ -401,7 +401,7 @@ static void FeedingPaint(void* user, muiNodeId nodeId, uint64_t hostKey, float w
     feeding->results[0] = muiNode_RouteKey(feeding->context, nodeId, &key, &handled);
     feeding->results[1] = muiNode_RouteText(feeding->context, nodeId, &text, &handled);
     feeding->results[2] = muiNode_RouteNavigation(feeding->context, nodeId, &nav, &handled);
-    feeding->results[3] = muiSetEventFunction(feeding->context, NULL, NULL);
+    feeding->results[3] = muiContext_SetEventFunction(feeding->context, NULL, NULL);
 }
 
 static void TestFromPainting(void)
@@ -452,7 +452,7 @@ static void TestContract(void)
               muiContext_DispatchPointerRecord(NULL, &(muiPointerRecord){0}, &handled) ==
                   mui_errorInvalid &&
               muiContext_DispatchPointerRecord(context, NULL, &handled) == mui_errorInvalid &&
-              muiSetEventFunction(NULL, NULL, NULL) == mui_errorInvalid &&
+              muiContext_SetEventFunction(NULL, NULL, NULL) == mui_errorInvalid &&
               muiContext_GetMisuse(context) == misuse + 9 && s.heard.count == 0,
           "outside the contract");
     CHECK(muiDestroyNode(context, s.root) == mui_success &&

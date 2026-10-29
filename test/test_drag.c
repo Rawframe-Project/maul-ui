@@ -131,7 +131,7 @@ static void TestDrag(void)
               !record.cancelled && record.buttons == 1 && None(&scene),
           "a drag starts");
     muiPointerState state = {0};
-    CHECK(muiPointer_GetState(scene.context, 1, &state) == mui_success &&
+    CHECK(muiContext_GetPointerState(scene.context, 1, &state) == mui_success &&
               Same(state.captured, scene.track),
           "captured");
     Mouse(&scene, mui_pointerMove, 1, 220.0f, 40.0f);
@@ -247,7 +247,7 @@ static void TestCancel(void)
     // The capture taken elsewhere.
     Mouse(&scene, mui_pointerPress, 1, 10.0f, 10.0f);
     Mouse(&scene, mui_pointerMove, 1, 30.0f, 10.0f);
-    CHECK(muiPointer_SetCapture(scene.context, 1, scene.b) == mui_success, "elsewhere");
+    CHECK(muiNode_CapturePointer(scene.context, scene.b, 1) == mui_success, "elsewhere");
     Mouse(&scene, mui_pointerMove, 1, 60.0f, 10.0f);
     Mouse(&scene, mui_pointerRelease, 0, 60.0f, 10.0f);
     CHECK(Next(&scene, mui_pointerRecordPress, scene.thumb, NULL) &&
@@ -331,7 +331,7 @@ static void TestRouted(void)
     Scene scene;
     MakeScene(&scene);
     Heard heard = {0};
-    CHECK(muiSetEventFunction(scene.context, Hear, &heard) == mui_success, "function");
+    CHECK(muiContext_SetEventFunction(scene.context, Hear, &heard) == mui_success, "function");
     Mouse(&scene, mui_pointerPress, 1, 10.0f, 10.0f);
     Mouse(&scene, mui_pointerMove, 1, 30.0f, 15.0f);
     muiPointerRecord record = {0};
@@ -446,7 +446,7 @@ static void TestDrop(void)
     muiContext* context = scene->context;
     muiPointerRecord record = {0};
     Lift(&drop);
-    CHECK(muiPointer_Offer(context, 1, 1, 77) == mui_success && None(scene),
+    CHECK(muiContext_OfferDrop(context, 1, 1, 77) == mui_success && None(scene),
           "offered over the item: no target");
     Mouse(scene, mui_pointerMove, 1, 100.0f, 25.0f);
     CHECK(Next(scene, mui_pointerRecordDragMove, drop.item, &record) && record.dropKind == 1 &&
@@ -472,13 +472,13 @@ static void TestDrop(void)
     // A kind of two bits finds the slot through its child; a second
     // offer retargets.
     Lift(&drop);
-    CHECK(muiPointer_Offer(context, 1, 3, 5) == mui_success, "two kinds");
+    CHECK(muiContext_OfferDrop(context, 1, 3, 5) == mui_success, "two kinds");
     Mouse(scene, mui_pointerMove, 1, 175.0f, 25.0f);
     CHECK(Next(scene, mui_pointerRecordDragMove, drop.item, NULL) &&
               Next(scene, mui_pointerRecordDropEnter, drop.slot, &record) && record.x == 25.0f &&
               None(scene),
           "the slot through its child");
-    CHECK(muiPointer_Offer(context, 1, 1, 6) == mui_success &&
+    CHECK(muiContext_OfferDrop(context, 1, 1, 6) == mui_success &&
               Next(scene, mui_pointerRecordDropLeave, drop.slot, &record) && record.dropKey == 6 &&
               None(scene),
           "another offer: not the slot's");
@@ -498,7 +498,7 @@ static void TestDrop(void)
           "the release, no drop");
     // A target gone before the release is left, not dropped on.
     Lift(&drop);
-    CHECK(muiPointer_Offer(context, 1, 2, 9) == mui_success, "offer");
+    CHECK(muiContext_OfferDrop(context, 1, 2, 9) == mui_success, "offer");
     Mouse(scene, mui_pointerMove, 1, 175.0f, 25.0f);
     muiNodeId slot = drop.slot;
     CHECK(muiDestroyNode(context, slot) == mui_success, "gone");
@@ -522,7 +522,7 @@ static void TestDrop(void)
     (void)Next(scene, mui_pointerRecordCaptureLost, drop.item, NULL);
     // A target whose slot a new node takes: left, and the new one entered.
     Lift(&drop);
-    CHECK(muiPointer_Offer(context, 1, 1, 4) == mui_success, "offer");
+    CHECK(muiContext_OfferDrop(context, 1, 1, 4) == mui_success, "offer");
     Mouse(scene, mui_pointerMove, 1, 100.0f, 25.0f);
     muiNodeId bin = drop.bin;
     CHECK(muiDestroyNode(context, bin) == mui_success, "bin gone");
@@ -553,16 +553,16 @@ static void TestOfferContract(void)
     MakeDrop(&drop);
     muiContext* context = drop.scene.context;
     uint64_t misuse = muiContext_GetMisuse(context);
-    CHECK(muiPointer_Offer(NULL, 1, 1, 0) == mui_errorInvalid &&
-              muiPointer_Offer(context, 1, 1, 0) == mui_errorInvalid,
+    CHECK(muiContext_OfferDrop(NULL, 1, 1, 0) == mui_errorInvalid &&
+              muiContext_OfferDrop(context, 1, 1, 0) == mui_errorInvalid,
           "no pointer");
     Mouse(&drop.scene, mui_pointerPress, 1, 25.0f, 25.0f);
-    CHECK(muiPointer_Offer(context, 1, 1, 0) == mui_errorInvalid, "pressed, not dragging");
+    CHECK(muiContext_OfferDrop(context, 1, 1, 0) == mui_errorInvalid, "pressed, not dragging");
     Mouse(&drop.scene, mui_pointerMove, 1, 35.0f, 25.0f);
-    CHECK(muiPointer_Offer(context, 1, 0, 0) == mui_errorInvalid &&
-              muiPointer_Offer(context, 2, 1, 0) == mui_errorInvalid &&
+    CHECK(muiContext_OfferDrop(context, 1, 0, 0) == mui_errorInvalid &&
+              muiContext_OfferDrop(context, 2, 1, 0) == mui_errorInvalid &&
               muiContext_GetMisuse(context) == misuse + 4 &&
-              muiPointer_Offer(context, 1, 1, 0) == mui_success,
+              muiContext_OfferDrop(context, 1, 1, 0) == mui_success,
           "a kind of 0, another pointer");
     muiDestroyContext(context);
 }

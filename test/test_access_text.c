@@ -86,7 +86,7 @@ static void TestRead(void)
     muiContext* context = NULL;
     CHECK(muiCreateContext(&def, &context) == mui_success, "context");
     muiNodeId root = Content(context, s_nullNode);
-    CHECK(muiSetAccessTextFunction(context, ReadMarks, NULL) == mui_success &&
+    CHECK(muiContext_SetAccessTextFunction(context, ReadMarks, NULL) == mui_success &&
               muiNode_EnableAccess(context, root, true) == mui_success,
           "reading");
     muiAccessUpdate update = Build(context, root);
@@ -133,7 +133,7 @@ static void TestUnfit(void)
     muiContext* context = NULL;
     CHECK(muiCreateContext(&def, &context) == mui_success, "context");
     muiNodeId root = Content(context, s_nullNode);
-    CHECK(muiSetAccessTextFunction(context, ReadMarks, NULL) == mui_success &&
+    CHECK(muiContext_SetAccessTextFunction(context, ReadMarks, NULL) == mui_success &&
               muiNode_EnableAccess(context, root, true) == mui_success,
           "reading");
     // Inside é, a line not from 0, words overlapping.
@@ -181,7 +181,7 @@ static void TestActions(void)
     muiContext* context = NULL;
     CHECK(muiCreateContext(&def, &context) == mui_success, "context");
     muiNodeId root = Content(context, s_nullNode);
-    CHECK(muiSetAccessTextFunction(context, ReadMarks, NULL) == mui_success &&
+    CHECK(muiContext_SetAccessTextFunction(context, ReadMarks, NULL) == mui_success &&
               muiNode_EnableAccess(context, root, true) == mui_success,
           "reading");
     muiAccessUpdate update = Build(context, root);
@@ -236,7 +236,7 @@ static void TestEmpty(void)
     muiContext* context = NULL;
     CHECK(muiCreateContext(&def, &context) == mui_success, "context");
     muiNodeId root = Content(context, s_nullNode);
-    CHECK(muiSetAccessTextFunction(context, ReadEmpty, NULL) == mui_success &&
+    CHECK(muiContext_SetAccessTextFunction(context, ReadEmpty, NULL) == mui_success &&
               muiNode_EnableAccess(context, root, true) == mui_success,
           "reading");
     muiAccessUpdate update = Build(context, root);

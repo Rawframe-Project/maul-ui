@@ -714,7 +714,7 @@ static void TestInput(void)
           "a root");
     App app = {Button(context, root), 0};
     muiNodeId cancel = Button(context, root);
-    CHECK(muiSetEventFunction(context, OnEvent, &app) == mui_success, "routed");
+    CHECK(muiContext_SetEventFunction(context, OnEvent, &app) == mui_success, "routed");
     const muiLayoutInput layout = {800.0f, 600.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     CHECK(muiNode_ComputeLayout(context, root, &layout) == mui_success, "laid out");
     muiPointerEvent move = Mouse(mui_pointerMove, 50.0f, 20.0f);
@@ -856,7 +856,7 @@ static void TestAccess(void)
     muiNodeId root = {0, 0};
     CHECK(muiCreateNode(context, &nodeDef, &root) == mui_success, "a root");
     App app = {Button(context, root), 0};
-    CHECK(muiSetEventFunction(context, OnEvent, &app) == mui_success &&
+    CHECK(muiContext_SetEventFunction(context, OnEvent, &app) == mui_success &&
               Describe(context, app.ok, "OK") == mui_success &&
               muiNode_EnableAccess(context, root, true) == mui_success,
           "a described button, its root enabled");

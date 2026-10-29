@@ -791,7 +791,8 @@ static muiResult SetAccessTextFunction(muiContext* context, muiAccessTextFunctio
     return mui_success;
 }
 
-muiResult muiSetAccessTextFunction(muiContext* context, muiAccessTextFunction function, void* user)
+muiResult muiContext_SetAccessTextFunction(muiContext* context, muiAccessTextFunction function,
+                                           void* user)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)

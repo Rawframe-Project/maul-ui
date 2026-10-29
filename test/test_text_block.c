@@ -238,7 +238,8 @@ static void TestAccessText(void)
               !muiReadAccessText(NULL, node, key, NULL, &content) &&
               !muiReadAccessText(&scene.host, node, key, NULL, NULL),
           "no block");
-    CHECK(muiSetAccessTextFunction(scene.context, muiReadAccessText, &scene.host) == mui_success &&
+    CHECK(muiContext_SetAccessTextFunction(scene.context, muiReadAccessText, &scene.host) ==
+                  mui_success &&
               muiNode_EnableAccess(scene.context, node, true) == mui_success,
           "read");
     muiAccessUpdate update;

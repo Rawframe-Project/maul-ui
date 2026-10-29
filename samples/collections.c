@@ -628,9 +628,9 @@ static void Build(void* user, SampleApp* app)
                    mui_roleTree, "Folders");
     MakeTable(collections, app->root);
     SampleAppCheck(app,
-                   muiSetEventFunction(app->context, Hear, collections) == mui_success &&
-                       muiSetAccessTextFunction(app->context, muiReadAccessText, &app->host) ==
-                           mui_success,
+                   muiContext_SetEventFunction(app->context, Hear, collections) == mui_success &&
+                       muiContext_SetAccessTextFunction(app->context, muiReadAccessText,
+                                                        &app->host) == mui_success,
                    "the event and access text functions");
 }
 

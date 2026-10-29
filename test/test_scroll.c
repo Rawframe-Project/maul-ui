@@ -552,7 +552,7 @@ static void TestHits(void)
               Same(record.node, list.items[1]) && record.x == 40.0f && record.y == 25.0f,
           "a pointer record");
     // A captured move: the point in item 0, through the offset.
-    CHECK(muiPointer_SetCapture(context, 1, list.items[0]) == mui_success, "captured");
+    CHECK(muiNode_CapturePointer(context, list.items[0], 1) == mui_success, "captured");
     const muiPointerEvent move = {1, 1, mui_pointerMouse, mui_pointerMove, 0, 1, 50.0f, 25.0f, 0};
     CHECK(muiNode_RoutePointer(context, list.root, &move) == mui_success &&
               muiContext_TakePointerRecord(context, &record) == mui_success &&
@@ -599,7 +599,7 @@ static void TestScaled(void)
               muiContext_TakePointerRecord(context, &record) == mui_success &&
               Same(record.node, list.items[1]) && record.x == 40.0f && record.y == 25.0f,
           "a pointer record");
-    CHECK(muiPointer_SetCapture(context, 1, list.items[0]) == mui_success, "captured");
+    CHECK(muiNode_CapturePointer(context, list.items[0], 1) == mui_success, "captured");
     const muiPointerEvent move = {1, 1, mui_pointerMouse, mui_pointerMove, 0, 1, 100.0f, 50.0f, 0};
     CHECK(muiNode_RoutePointer(context, list.root, &move) == mui_success &&
               muiContext_TakePointerRecord(context, &record) == mui_success &&

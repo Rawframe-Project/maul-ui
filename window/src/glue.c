@@ -417,7 +417,7 @@ muiResult muiWindowGlue_Tick(muiWindowGlue* glue, uint64_t nowNs, bool* handledO
                           : mui_success;
 }
 
-muiResult muiWindowGlue_SetCaret(muiWindowGlue* glue, muiNodeId nodeId, muiRect caret,
+muiResult muiNode_SetWindowCaret(muiWindowGlue* glue, muiNodeId nodeId, muiRect caret,
                                  mwinRect* placedOut)
 {
     if (placedOut != nullptr)

@@ -540,9 +540,9 @@ static void Build(void* user, SampleApp* app)
                        muiNode_SetValueRange(app->context, pickers->number, &range) == mui_success,
                    "the number input");
     SampleAppCheck(app,
-                   muiSetEventFunction(app->context, Hear, pickers) == mui_success &&
-                       muiSetAccessTextFunction(app->context, muiReadAccessText, &app->host) ==
-                           mui_success,
+                   muiContext_SetEventFunction(app->context, Hear, pickers) == mui_success &&
+                       muiContext_SetAccessTextFunction(app->context, muiReadAccessText,
+                                                        &app->host) == mui_success,
                    "the event and access text functions");
 }
 

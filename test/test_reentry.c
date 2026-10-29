@@ -52,7 +52,7 @@ enum
 static int CallAll(muiContext* context, muiResult results[CALLS])
 {
     int count = 0;
-    results[count++] = muiSetAccessTextFunction(context, NULL, NULL);
+    results[count++] = muiContext_SetAccessTextFunction(context, NULL, NULL);
     results[count++] = muiNode_MarkAccessChanged(context, (muiNodeId){0});
     results[count++] = muiNode_EnableAccess(context, (muiNodeId){0}, true);
     results[count++] = muiNode_EnableAccess(context, (muiNodeId){0}, false);
@@ -67,7 +67,7 @@ static int CallAll(muiContext* context, muiResult results[CALLS])
     results[count++] = muiNode_SetAccessValues(context, (muiNodeId){0}, NULL);
     results[count++] = muiContext_TakeNotification(context, NULL);
     results[count++] = muiNode_BuildDrawList(context, (muiNodeId){0}, NULL);
-    results[count++] = muiSetEventFunction(context, NULL, NULL);
+    results[count++] = muiContext_SetEventFunction(context, NULL, NULL);
     results[count++] = muiNode_RouteKey(context, (muiNodeId){0}, NULL, NULL);
     results[count++] = muiNode_RouteText(context, (muiNodeId){0}, NULL, NULL);
     results[count++] = muiNode_RouteNavigation(context, (muiNodeId){0}, NULL, NULL);
@@ -94,10 +94,10 @@ static int CallAll(muiContext* context, muiResult results[CALLS])
     results[count++] = muiNode_Detach(context, (muiNodeId){0});
     results[count++] = muiNode_RoutePointer(context, (muiNodeId){0}, NULL);
     results[count++] = muiContext_TakePointerRecord(context, NULL);
-    results[count++] = muiPointer_SetCapture(context, 0, (muiNodeId){0});
-    results[count++] = muiPointer_ReleaseCapture(context, 0);
+    results[count++] = muiNode_CapturePointer(context, (muiNodeId){0}, 0);
+    results[count++] = muiContext_ReleasePointerCapture(context, 0);
     results[count++] = muiContext_SetClickRule(context, 0, NAN);
-    results[count++] = muiPointer_Offer(context, 0, 0, 0);
+    results[count++] = muiContext_OfferDrop(context, 0, 0, 0);
     results[count++] = muiContext_SetDragThreshold(context, NAN, NAN);
     results[count++] = muiNode_SetPopup(context, (muiNodeId){0}, NULL);
     results[count++] = muiNode_ClearPopup(context, (muiNodeId){0});
@@ -343,7 +343,7 @@ static void TestAccessText(void)
     muiNodeId content = s_null;
     muiNodeId root = MakeScene(context, &content);
     Probe probe = {context, true, false, 0, true};
-    CHECK(muiSetAccessTextFunction(context, ReadText, &probe) == mui_success &&
+    CHECK(muiContext_SetAccessTextFunction(context, ReadText, &probe) == mui_success &&
               muiNode_EnableAccess(context, root, true) == mui_success,
           "reading");
     muiAccessUpdate update = {0};
@@ -436,7 +436,7 @@ static void TestEventFunction(void)
     muiNodeId root = MakeScene(context, &content);
     Routing routing = {
         {context, true, true, 0, true}, &calling, content, mui_errorInvalid, mui_errorInvalid};
-    CHECK(muiSetEventFunction(context, Route, &routing) == mui_success, "listening");
+    CHECK(muiContext_SetEventFunction(context, Route, &routing) == mui_success, "listening");
     const muiNavigationEvent activate = {0, mui_navigateActivate, 0};
     bool handled = false;
     CHECK(muiNode_RouteNavigation(context, root, &activate, &handled) == mui_success && handled,

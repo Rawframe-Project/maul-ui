@@ -127,7 +127,7 @@ static muiResult SetEventFunction(muiContext* context, muiEventFunction function
     return mui_success;
 }
 
-muiResult muiSetEventFunction(muiContext* context, muiEventFunction function, void* user)
+muiResult muiContext_SetEventFunction(muiContext* context, muiEventFunction function, void* user)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)

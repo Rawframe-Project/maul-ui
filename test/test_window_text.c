@@ -179,13 +179,13 @@ static void TestCaret(Test* test)
               caret.x == 10.0f && caret.height > 0.0f,
           "Ahem's caret 10 in");
     mwinRect placed = {0};
-    CHECK(muiWindowGlue_SetTextCaret(test->glue, &test->host, test->field, position, &placed) ==
+    CHECK(muiNode_SetWindowTextCaret(test->glue, &test->host, test->field, position, &placed) ==
                   mui_success &&
               placed.x == 36.0f && placed.y == 36.0f + caret.y && placed.width == 0.0f &&
               placed.height == caret.height,
           "the window's caret past the content and the field's place");
     test->placed = placed;
-    CHECK(muiWindowGlue_SetTextCaret(test->glue, NULL, test->field, position, &placed) ==
+    CHECK(muiNode_SetWindowTextCaret(test->glue, NULL, test->field, position, &placed) ==
               mui_errorInvalid,
           "a NULL host");
 }
@@ -263,30 +263,33 @@ static void TestEditing(Test* test)
               muiWindowGlue_RequestPaste(NULL) == mui_errorInvalid,
           "a paste asked for");
     mwinEvent event = {.type = mwin_eventKeyDown, .window = test->window};
-    CHECK(muiWindowGlue_Paste(test->glue, test->service, test->block, &event, &changed) ==
+    CHECK(muiTextBlock_PasteFromWindow(test->glue, test->service, test->block, &event, &changed) ==
                   mui_empty &&
               !changed,
           "another event passes");
     event.type = mwin_eventRequestCompleted;
     event.data.completion =
         (mwinCompletion){.kind = mwin_requestClipboardRead, .outcome = mwin_outcomeDenied};
-    CHECK(muiWindowGlue_Paste(test->glue, test->service, test->block, &event, NULL) == mui_empty,
+    CHECK(muiTextBlock_PasteFromWindow(test->glue, test->service, test->block, &event, NULL) ==
+              mui_empty,
           "a refused read passes");
     event.data.completion.outcome = mwin_outcomeDone;
-    CHECK(muiWindowGlue_Paste(test->glue, test->service, test->block, &event, &changed) ==
+    CHECK(muiTextBlock_PasteFromWindow(test->glue, test->service, test->block, &event, &changed) ==
                   mui_empty &&
               !changed && TextIs(test, "abc"),
           "a read Maul Window did not answer passes");
-    CHECK(muiWindowGlue_Paste(test->glue, NULL, test->block, &event, NULL) == mui_errorInvalid &&
-              muiWindowGlue_Paste(test->glue, test->service, test->block, NULL, NULL) ==
+    CHECK(muiTextBlock_PasteFromWindow(test->glue, NULL, test->block, &event, NULL) ==
+                  mui_errorInvalid &&
+              muiTextBlock_PasteFromWindow(test->glue, test->service, test->block, NULL, NULL) ==
                   mui_errorInvalid,
           "no service or event");
-    CHECK(muiWindowGlue_Paste(NULL, test->service, test->block, &event, NULL) == mui_errorInvalid,
+    CHECK(muiTextBlock_PasteFromWindow(NULL, test->service, test->block, &event, NULL) ==
+              mui_errorInvalid,
           "no glue");
-    CHECK(muiWindowGlue_RequestKeyboard(test->glue, &test->host, test->field) == mui_success,
+    CHECK(muiNode_RequestWindowKeyboard(test->glue, &test->host, test->field) == mui_success,
           "the keyboard asked for");
-    CHECK(muiWindowGlue_RequestKeyboard(NULL, &test->host, test->field) == mui_errorInvalid &&
-              muiWindowGlue_RequestKeyboard(test->glue, NULL, test->field) == mui_errorInvalid,
+    CHECK(muiNode_RequestWindowKeyboard(NULL, &test->host, test->field) == mui_errorInvalid &&
+              muiNode_RequestWindowKeyboard(test->glue, NULL, test->field) == mui_errorInvalid,
           "the keyboard asked for without a glue or a host");
 }
 
@@ -301,7 +304,7 @@ static void TestPasted(Test* test)
     {
         bool now = false;
         muiResult result =
-            muiWindowGlue_Paste(test->glue, test->service, test->block, &event, &now);
+            muiTextBlock_PasteFromWindow(test->glue, test->service, test->block, &event, &now);
         pasted += result == mui_success ? 1 : 0;
         changed = changed || now;
     }
@@ -334,7 +337,7 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
                       mwin_success &&
                   visible && purpose == mwin_purposeEmail,
               "the keyboard shown for the field's purpose");
-        CHECK(muiWindowGlue_RequestKeyboard(test->glue, &test->host, s_nullNode) == mui_success,
+        CHECK(muiNode_RequestWindowKeyboard(test->glue, &test->host, s_nullNode) == mui_success,
               "the keyboard let go");
         return mwin_frameContinue;
     default:
@@ -363,12 +366,12 @@ static void TestNullOwnersClearOutputs(void)
               !changed,
           "Compose clears changed");
     mwinRect placed = {1, 2, 3, 4};
-    CHECK(muiWindowGlue_SetTextCaret(NULL, NULL, (muiNodeId){0}, (muiTextPosition){0}, &placed) ==
+    CHECK(muiNode_SetWindowTextCaret(NULL, NULL, (muiNodeId){0}, (muiTextPosition){0}, &placed) ==
                   mui_errorInvalid &&
               placed.x == 0 && placed.y == 0 && placed.width == 0 && placed.height == 0,
           "SetTextCaret clears the place");
     changed = true;
-    CHECK(muiWindowGlue_Paste(NULL, NULL, (muiTextBlockId){1, 1}, NULL, &changed) ==
+    CHECK(muiTextBlock_PasteFromWindow(NULL, NULL, (muiTextBlockId){1, 1}, NULL, &changed) ==
                   mui_errorInvalid &&
               !changed,
           "Paste clears changed");

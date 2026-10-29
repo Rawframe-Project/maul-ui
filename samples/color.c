@@ -494,9 +494,9 @@ static void Build(void* user, SampleApp* app)
     SampleFill(app, picker->hex, s_field);
     Labelled(app, picker->hex, mui_roleTextInput, "Hex");
     SampleAppCheck(app,
-                   muiSetEventFunction(app->context, Hear, picker) == mui_success &&
-                       muiSetAccessTextFunction(app->context, muiReadAccessText, &app->host) ==
-                           mui_success,
+                   muiContext_SetEventFunction(app->context, Hear, picker) == mui_success &&
+                       muiContext_SetAccessTextFunction(app->context, muiReadAccessText,
+                                                        &app->host) == mui_success,
                    "the event and access text functions");
 }
 

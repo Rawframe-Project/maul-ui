@@ -220,7 +220,8 @@ static void TakePaste(SampleApp* app, const mwinEvent* event)
         return;
     }
     bool changed = false;
-    muiResult result = muiWindowGlue_Paste(app->glue, app->text, app->pasteBlock, event, &changed);
+    muiResult result =
+        muiTextBlock_PasteFromWindow(app->glue, app->text, app->pasteBlock, event, &changed);
     SampleAppCheck(app, result == mui_success || result == mui_empty, "a paste");
     if (result != mui_success)
     {

@@ -21,11 +21,11 @@ A glue that takes gamepads makes their records navigation for the player a host 
 
 ## Text input
 
-`muiWindowGlue_SetCaret` asks the window to accept text with its caret at a rectangle of a node, carried into the window by `muiNode_MapToRoot`, and hands that rectangle back for a game that draws its own candidates. The null id stops text input.
+`muiNode_SetWindowCaret` asks the window to accept text with its caret at a rectangle of a node, carried into the window by `muiNode_MapToRoot`, and hands that rectangle back for a game that draws its own candidates. The null id stops text input.
 
 With the text component:
 
-- `maul-ui-window/composition.h` sets a preedit into a text block and places the caret at a position of a node's text ([composition.c](../../window/src/composition.c)). Maul Window's preedit segments and styles are Maul UI's composition's, member for member and value for value. Preedit records are not the UI's, since the core has no composition record and the host knows which of its fields edits. `muiWindowGlue_RequestKeyboard`, beside them, shows the on-screen keyboard for an editing field's purpose, or hides it.
+- `maul-ui-window/composition.h` sets a preedit into a text block and places the caret at a position of a node's text ([composition.c](../../window/src/composition.c)). Maul Window's preedit segments and styles are Maul UI's composition's, member for member and value for value. Preedit records are not the UI's, since the core has no composition record and the host knows which of its fields edits. `muiNode_RequestWindowKeyboard`, beside them, shows the on-screen keyboard for an editing field's purpose, or hides it.
 - `maul-ui-window/clipboard.h` gives the text editor the window's clipboard: a writer for copies and cuts, a request for a paste, and the window's answer taken into the block, as Maul Window reads the clipboard by request ([clipboard.c](../../window/src/clipboard.c)).
 
 ## Accessibility

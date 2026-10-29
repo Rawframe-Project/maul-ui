@@ -544,7 +544,7 @@ static bool ReadText(void* user, muiNodeId nodeId, uint64_t hostKey, const muiRe
     s_reads++;
     s_editFromReader = muiNode_SetAccessRole(s_reader, nodeId, mui_roleButton);
     s_disableFromReader = muiNode_EnableAccess(s_reader, nodeId, false);
-    s_functionFromReader = muiSetAccessTextFunction(s_reader, NULL, NULL);
+    s_functionFromReader = muiContext_SetAccessTextFunction(s_reader, NULL, NULL);
     const char* text = hostKey == 1   ? "One"
                        : hostKey == 2 ? s_read
                        : hostKey == 3 ? "\xC0\x80"
@@ -593,7 +593,7 @@ static void TestContentText(void)
     muiNodeId plain = Node(context, root);
     CHECK(muiNode_SetAccessRole(context, own, mui_roleHeading) == mui_success, "a heading");
     Text(context, two, mui_accessLabel, "Second");
-    CHECK(muiSetAccessTextFunction(context, ReadText, NULL) == mui_success &&
+    CHECK(muiContext_SetAccessTextFunction(context, ReadText, NULL) == mui_success &&
               muiNode_EnableAccess(context, root, true) == mui_success,
           "reading");
     muiAccessUpdate update = Build(context, root);
@@ -632,12 +632,12 @@ static void TestContentText(void)
     CHECK(update.nodeCount == 1 && Sent(&update, two)->textLength[mui_accessValue] == 4,
           "a new text");
     // A new function: everything again.
-    CHECK(muiSetAccessTextFunction(context, NULL, NULL) == mui_success, "none");
+    CHECK(muiContext_SetAccessTextFunction(context, NULL, NULL) == mui_success, "none");
     update = Build(context, root);
     CHECK(update.root == muiNode_GetAccessId(root) &&
               Sent(&update, two)->text[mui_accessValue] == NULL,
           "whole, unread");
-    CHECK(muiSetAccessTextFunction(NULL, NULL, NULL) == mui_errorInvalid, "refused");
+    CHECK(muiContext_SetAccessTextFunction(NULL, NULL, NULL) == mui_errorInvalid, "refused");
     s_read = "Two";
     muiDestroyContext(context);
 }
@@ -1021,7 +1021,7 @@ static void TestActions(void)
     MakeScene(&scene);
     muiContext* context = scene.context;
     Heard heard = {.context = context};
-    CHECK(muiSetEventFunction(context, Hear, &heard) == mui_success, "listening");
+    CHECK(muiContext_SetEventFunction(context, Hear, &heard) == mui_success, "listening");
     Layout(context, scene.root);
     // A click: activation routed to the button, which handles it; an
     // action from inside the route is refused.

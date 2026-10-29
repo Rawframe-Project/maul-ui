@@ -327,7 +327,7 @@ static void TestRouted(void)
     MakeNest(&nest);
     muiContext* context = nest.context;
     Handler handler = {.context = context, .take = true};
-    CHECK(muiSetEventFunction(context, Hear, &handler) == mui_success, "function");
+    CHECK(muiContext_SetEventFunction(context, Hear, &handler) == mui_success, "function");
     CHECK(Turn(context, nest.root, 7, 50.0f, 25.0f, 0.0f, -1.0f, mui_modControl) &&
               Y(context, nest.inner) == 0.0f && handler.calls == 1 &&
               handler.last.kind == mui_eventWheel && handler.last.timeNs == 7 &&
@@ -468,7 +468,7 @@ static void TestContract(void)
     bad.player = 8;
     CHECK(muiNode_RouteWheel(context, nest.root, &bad, &handled) == mui_errorInvalid, "a player");
     CHECK(muiContext_GetMisuse(context) == misuse + 8, "counted");
-    CHECK(muiSetEventFunction(context, Refeed, context) == mui_success, "function");
+    CHECK(muiContext_SetEventFunction(context, Refeed, context) == mui_success, "function");
     CHECK(muiNode_RouteWheel(context, nest.root, &good, &handled) == mui_success && handled,
           "refused inside, default after");
     muiScrollRule rule = muiDefaultScrollRule();

@@ -183,7 +183,7 @@ extern "C"
     ///         refuses; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Main thread only. Maul Window's requests are too.
-    MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_SetCaret(muiWindowGlue* glue,
+    MUI_NODISCARD MUI_WINDOW_API muiResult muiNode_SetWindowCaret(muiWindowGlue* glue,
                                                                   muiNodeId nodeId, muiRect caret,
                                                                   mwinRect* placedOut);
 

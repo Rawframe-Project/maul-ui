@@ -116,7 +116,7 @@ extern "C"
         // threshold (maul-ui/pointer.h).
         bool drags;
         // The kinds of thing dropped on the node it takes: a drag offering
-        // a kind in this mask (muiPointer_Offer) over the node, or over a
+        // a kind in this mask (muiContext_OfferDrop) over the node, or over a
         // node below it that takes none of that kind, may drop here. The
         // bits are the application's; 0 takes nothing.
         uint32_t accepts;

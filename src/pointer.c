@@ -637,8 +637,8 @@ static muiResult PointerSetCapture(muiContext* context, uint32_t pointerId, muiN
     return mui_success;
 }
 
-static MUI_NOINLINE muiResult PointerSetCaptureWorker(muiContext* context, uint32_t pointerId,
-                                                      muiNodeId nodeId)
+static MUI_NOINLINE muiResult PointerSetCaptureWorker(muiContext* context, muiNodeId nodeId,
+                                                      uint32_t pointerId)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -649,10 +649,10 @@ static MUI_NOINLINE muiResult PointerSetCaptureWorker(muiContext* context, uint3
     return status;
 }
 
-muiResult muiPointer_SetCapture(muiContext* context, uint32_t pointerId, muiNodeId nodeId)
+muiResult muiNode_CapturePointer(muiContext* context, muiNodeId nodeId, uint32_t pointerId)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
-    muiResult result = PointerSetCaptureWorker(context, pointerId, nodeId);
+    muiResult result = PointerSetCaptureWorker(context, nodeId, pointerId);
     muiFloatEnvLeave(floatEnv);
     return result;
 }
@@ -683,7 +683,7 @@ static MUI_NOINLINE muiResult PointerReleaseCaptureWorker(muiContext* context, u
     return status;
 }
 
-muiResult muiPointer_ReleaseCapture(muiContext* context, uint32_t pointerId)
+muiResult muiContext_ReleasePointerCapture(muiContext* context, uint32_t pointerId)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = PointerReleaseCaptureWorker(context, pointerId);
@@ -691,8 +691,8 @@ muiResult muiPointer_ReleaseCapture(muiContext* context, uint32_t pointerId)
     return result;
 }
 
-muiResult muiPointer_GetState(const muiContext* context, uint32_t pointerId,
-                              muiPointerState* stateOut)
+muiResult muiContext_GetPointerState(const muiContext* context, uint32_t pointerId,
+                                     muiPointerState* stateOut)
 {
     if (stateOut != nullptr)
     {
@@ -781,7 +781,7 @@ static MUI_NOINLINE muiResult PointerOfferWorker(muiContext* context, uint32_t p
     return status;
 }
 
-muiResult muiPointer_Offer(muiContext* context, uint32_t pointerId, uint32_t kind, uint64_t key)
+muiResult muiContext_OfferDrop(muiContext* context, uint32_t pointerId, uint32_t kind, uint64_t key)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = PointerOfferWorker(context, pointerId, kind, key);

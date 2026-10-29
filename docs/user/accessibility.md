@@ -1,6 +1,6 @@
 # Accessibility
 
-Every node of a root is a node of its accessibility tree, with a role, texts, flags and actions. Most of it comes from what the library already holds: rectangles, scrolling, focus, states, value ranges and virtual lists. Text in the UI names itself through the text component (`muiReadAccessText`, set with `muiSetAccessTextFunction`), including an editing field's selection, its lines and words, and where its characters are. The program says the rest:
+Every node of a root is a node of its accessibility tree, with a role, texts, flags and actions. Most of it comes from what the library already holds: rectangles, scrolling, focus, states, value ranges and virtual lists. Text in the UI names itself through the text component (`muiReadAccessText`, set with `muiContext_SetAccessTextFunction`), including an editing field's selection, its lines and words, and where its characters are. The program says the rest:
 
 ```c
 // Tells assistive technology what a node is: a button, and its name.

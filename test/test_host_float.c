@@ -348,8 +348,8 @@ static bool MakeScene(Scene* scene)
                                 MUI_PROPERTY_BIT(mui_propertyFlexWrap) |
                                     MUI_PROPERTY_BIT(mui_propertyAlignItems) |
                                     MUI_PROPERTY_BIT(mui_propertyWidth)) != mui_success ||
-        muiSetEventFunction(scene->context, Event, scene->watch) != mui_success ||
-        muiSetAccessTextFunction(scene->context, AccessText, scene) != mui_success ||
+        muiContext_SetEventFunction(scene->context, Event, scene->watch) != mui_success ||
+        muiContext_SetAccessTextFunction(scene->context, AccessText, scene) != mui_success ||
         !MakeClass(scene, fonts->sans, 15.0f, 400.0f, &plain) ||
         !MakeClass(scene, fonts->cff, 23.5f, 400.0f, &heading) ||
         !MakeClass(scene, fonts->variable, 17.0f, 650.0f, &bold) ||

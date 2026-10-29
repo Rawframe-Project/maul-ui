@@ -95,6 +95,7 @@ stored values and ids read, floats copied as they are:
     muiContext_GetDrawList
     muiContext_GetEnvironment
     muiContext_GetFocus
+    muiContext_GetPointerState
     muiContext_TakeNotification
     muiContext_TakePointerRecord
     muiFontFamily_IsValid
@@ -139,7 +140,6 @@ stored values and ids read, floats copied as they are:
     muiNode_IsValid
     muiNsAdapter_GetRoot
     muiNsAdapter_GetTree
-    muiPointer_GetState
     muiStyle_GetCondition
     muiStyle_GetInteractionValues
     muiStyle_GetLayoutValues
@@ -159,6 +159,8 @@ stored values and ids read, floats copied as they are:
 
 ids, flags, states, links, text and functions stored, no float checked:
     muiAtspiAdapter_SetPlace
+    muiContext_SetAccessTextFunction
+    muiContext_SetEventFunction
     muiContext_SetFocus
     muiCountFontFaces
     muiDrawSink_Fail
@@ -185,8 +187,6 @@ ids, flags, states, links, text and functions stored, no float checked:
     muiNode_SetTheme
     muiNode_SetType
     muiNode_UnbindVirtualItem
-    muiSetAccessTextFunction
-    muiSetEventFunction
     muiStyle_ClearConditions
     muiStyle_ResetProperties
     muiStyle_SetTransition

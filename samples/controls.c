@@ -357,7 +357,7 @@ static void Build(void* user, SampleApp* app)
     MakeSwitch(controls, app);
     MakeRadios(controls, app);
     Choose(controls, 1);
-    SampleAppCheck(app, muiSetEventFunction(app->context, Hear, controls) == mui_success,
+    SampleAppCheck(app, muiContext_SetEventFunction(app->context, Hear, controls) == mui_success,
                    "the event function");
 }
 

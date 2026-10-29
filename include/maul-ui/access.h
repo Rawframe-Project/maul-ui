@@ -565,9 +565,9 @@ extern "C"
     ///         `mui_errorBusy` while the context is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiSetAccessTextFunction(muiContext* context,
-                                                             muiAccessTextFunction function,
-                                                             void* user);
+    MUI_NODISCARD MUI_API muiResult muiContext_SetAccessTextFunction(muiContext* context,
+                                                                     muiAccessTextFunction function,
+                                                                     void* user);
 
     /// Tells the accessibility tree what the host's text function gives
     /// for a node changed while its content did not: its selection

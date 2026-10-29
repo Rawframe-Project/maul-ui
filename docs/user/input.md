@@ -41,7 +41,7 @@ static bool OnEvent(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent
 }
 ```
 
-`muiSetEventFunction(context, OnEvent, &app)` sets it. A button takes its activation too. A gamepad's confirm button (`muiNode_RouteNavigation`) and assistive technology's press arrive as activation, not as a click, so a button that heeds only clicks is one they cannot press.
+`muiContext_SetEventFunction(context, OnEvent, &app)` sets it. A button takes its activation too. A gamepad's confirm button (`muiNode_RouteNavigation`) and assistive technology's press arrive as activation, not as a click, so a button that heeds only clicks is one they cannot press.
 
 The event function may change the tree, the focus and pointer capture, and the event still reaches the nodes it was routed to, in order. It may not feed more input from inside the route.
 
@@ -76,7 +76,7 @@ static bool Pointer(muiContext* context, muiNodeId root, const muiPointerEvent* 
 
 Moving over a node puts it and its ancestors in the hovered state, and a press puts them in the pressed state while the button is held, as CSS's `:hover` and `:active`. A press and release on the same node make a click, and two close in time a double click (`muiContext_SetClickRule`).
 
-- A node can capture a pointer (`muiPointer_SetCapture`) to keep its moves; touches and pens capture to what they pressed.
+- A node can capture a pointer (`muiNode_CapturePointer`) to keep its moves; touches and pens capture to what they pressed.
 - A node whose interaction style lets input pass through, such as a HUD over a game world, is hit and hovered but leaves the press to what lies behind it.
 - A node's hit mode can make it, or its whole subtree, invisible to the pointer.
 - Hit testing follows rounded corners, clips, scrolling and scales, so what is hit is what was drawn at the point.
@@ -123,5 +123,5 @@ Dialogs and menus are layers (`layer` in the interaction style). A modal layer k
 ## Drags, drops and ranges
 
 - **Drags.** A node with `drags` set in its interaction style captures a press that moves past the drag threshold (`muiContext_SetDragThreshold`) and gets drag start, move and end records with the offset from the press. Escape, a cancel or a lost capture cancels the drag.
-- **Drag and drop.** While dragging, the program offers a kind of thing and a key of its own (`muiPointer_Offer`). Nodes that accept that kind (`accepts`) get enter, leave and drop records. The program draws the preview, an overlay node it moves by the drag's offsets.
+- **Drag and drop.** While dragging, the program offers a kind of thing and a key of its own (`muiContext_OfferDrop`). Nodes that accept that kind (`accepts`) get enter, leave and drop records. The program draws the preview, an overlay node it moves by the drag's offsets.
 - **Ranges.** A node with a value range (`muiNode_SetValueRange`) is a slider or a scrollbar: a minimum, a maximum, a step, a page and an axis. Focused, it takes the arrow keys, Page Up and Down, Home and End along its axis; pressing its track pages toward the point; dragging it moves the value with the pointer. Changes from input are reported by `mui_notificationRangeChanged`, and the program places the thumb from the value.
