@@ -207,9 +207,14 @@ static void TestCalls(void)
                                   (muiTextSelection){1, {0, mui_affinityDownstream}}) ==
                   mui_errorInvalid,
           "inside a character");
-    CHECK(muiTextBlock_SetEditing(scene.service, other, NULL) == mui_success &&
-              muiTextBlock_GetSelection(scene.service, other, &selection) == mui_errorState,
-          "editing ended");
+    CHECK(muiTextBlock_SetEditing(scene.service, other, NULL) == mui_errorInvalid, "no rules");
+    CHECK(muiTextBlock_ClearEditing(scene.service, other) == mui_success &&
+              muiTextBlock_GetSelection(scene.service, other, &selection) == mui_errorState &&
+              muiTextBlock_ClearEditing(scene.service, other) == mui_success,
+          "editing ended, and again");
+    CHECK(muiTextBlock_ClearEditing(NULL, other) == mui_errorInvalid &&
+              muiTextBlock_ClearEditing(scene.service, (muiTextBlockId){0}) == mui_errorInvalid,
+          "clearing refused");
     CHECK(muiTextBlock_Type(scene.service, scene.block, NULL, 1, NULL) == mui_errorInvalid,
           "no text");
     CHECK(muiTextBlock_Erase(scene.service, scene.block, 2, NULL) == mui_errorInvalid,
@@ -1405,7 +1410,7 @@ static void TestAccessRequests(void)
     FreeScene(&scene);
     // Not editing: refused.
     scene = MakeScene("abc", 0);
-    CHECK(muiTextBlock_SetEditing(scene.service, scene.block, NULL) == mui_success, "not editing");
+    CHECK(muiTextBlock_ClearEditing(scene.service, scene.block) == mui_success, "not editing");
     (void)Request(&scene, mui_actionSetSelection, 0, 1, NULL, mui_errorFormat);
     FreeScene(&scene);
 }

@@ -37,7 +37,7 @@ Painting underlines a composition after the glyphs, where an underline goes: thi
 
 ## The editor
 
-A block opted into editing with a field's rules (`muiTextBlock_SetEditing`: multi-line, read-only, password, an integer or decimal filter, a maximum length, an undo limit) keeps a selection, the x that vertical moves keep, and an undo history ([text_editor.c](../../src/text_editor.c)).
+A block opted into editing with a field's rules (`muiTextBlock_SetEditing`, and out with `muiTextBlock_ClearEditing`: multi-line, read-only, password, an integer or decimal filter, a maximum length, an undo limit) keeps a selection, the x that vertical moves keep, and an undo history ([text_editor.c](../../src/text_editor.c)).
 
 - **Rules.** Typing, pasting and deleting go through the field's rules ([text_rules.c](../../src/text_rules.c)). Control characters other than tab and line breaks are dropped. On a single line each line break becomes a space, as Firefox's paste does. A number filter keeps a sign at the start and then digits, with at most one point for a decimal, dropping what would break it. A maximum length counts grapheme clusters, as Flutter's does, cutting what goes in.
 - **Undo** takes typing back a word at a time, a run of backspaces or of forward deletions whole, as AppKit does, and anything else alone ([text_history.c](../../src/text_history.c)). An edit after undoing drops what was undone, the oldest past the limit goes, and text changed outside the editor empties the history.

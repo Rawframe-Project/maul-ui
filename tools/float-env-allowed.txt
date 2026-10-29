@@ -190,6 +190,7 @@ ids, flags, states, links, text and functions stored, no float checked:
     muiStyle_ClearConditions
     muiStyle_ResetProperties
     muiStyle_SetTransition
+    muiTextBlock_ClearEditing
     muiTextBlock_EndComposition
     muiTextBlock_SetEditing
     muiTextService_SetDefaultFont
