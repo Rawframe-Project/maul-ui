@@ -329,7 +329,7 @@ bool muiRhiWriteGlyphs(const muiRhiGlyphs* glyphs, mrhiPassId pass)
         const unsigned char* first =
             page.pixels + ((size_t)update->y * page.width + update->x) * pixel;
         size_t bytes = ((size_t)(update->height - 1) * page.width + update->width) * pixel;
-        if (mrhiWriteTexture(glyphs->device, pass, &into, first, bytes, &layout, &size) !=
+        if (mrhiPass_WriteTexture(glyphs->device, pass, &into, first, bytes, &layout, &size) !=
             mrhi_success)
         {
             return false;

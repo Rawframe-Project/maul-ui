@@ -135,9 +135,9 @@ bool muiRhiWriteStream(mrhiDevice* device, mrhiPassId pass, const muiRhiStream* 
     {
         const muiRhiRun* run = &stream->runs[i];
         size_t at = BytesOf(stream, run->first);
-        if (mrhiWriteBuffer(device, pass, stream->resource, at,
-                            (const unsigned char*)stream->staging + at,
-                            BytesOf(stream, run->count)) != mrhi_success)
+        if (mrhiPass_WriteBuffer(device, pass, stream->resource, at,
+                                 (const unsigned char*)stream->staging + at,
+                                 BytesOf(stream, run->count)) != mrhi_success)
         {
             return false;
         }

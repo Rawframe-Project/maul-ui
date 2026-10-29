@@ -24,12 +24,12 @@
 
 static mrhiResult NextInstance(mrhiInstance* instance, mrhiInstanceNotification* recordOut)
 {
-    mrhiResult status = mrhiNextInstanceNotification(instance, recordOut);
+    mrhiResult status = mrhiInstance_TakeNotification(instance, recordOut);
 #ifdef __EMSCRIPTEN__
     for (int slept = 0; status == mrhi_empty && slept < WAIT_SLEEPS; slept++)
     {
         emscripten_sleep(1);
-        status = mrhiNextInstanceNotification(instance, recordOut);
+        status = mrhiInstance_TakeNotification(instance, recordOut);
     }
 #endif
     return status;
@@ -38,12 +38,12 @@ static mrhiResult NextInstance(mrhiInstance* instance, mrhiInstanceNotification*
 // Waits for a frame to finish.
 static mrhiResult WaitFrame(mrhiDevice* device, mrhiRequestId token)
 {
-    mrhiResult status = mrhiWaitFrame(device, token, WAIT_NS);
+    mrhiResult status = mrhiRequest_WaitFrame(device, token, WAIT_NS);
 #ifdef __EMSCRIPTEN__
     for (int slept = 0; status == mrhi_timeout && slept < WAIT_SLEEPS; slept++)
     {
         emscripten_sleep(1);
-        status = mrhiWaitFrame(device, token, 0);
+        status = mrhiRequest_WaitFrame(device, token, 0);
     }
 #endif
     return status;
@@ -58,12 +58,12 @@ int SampleOpen(Sample* sample)
     mrhiRequestId request;
     mrhiInstanceNotification record;
     size_t count = 0;
-    bool found = mrhiCreateInstance(&def, &sample->instance) == mrhi_success &&
-                 mrhiRequestAdapters(sample->instance, &search, &request) == mrhi_success &&
-                 NextInstance(sample->instance, &record) == mrhi_success &&
-                 record.outcome == mrhi_success &&
-                 mrhiGetAdapters(sample->instance, &sample->adapter, 1, &count) == mrhi_success &&
-                 count != 0;
+    bool found =
+        mrhiCreateInstance(&def, &sample->instance) == mrhi_success &&
+        mrhiInstance_RequestAdapters(sample->instance, &search, &request) == mrhi_success &&
+        NextInstance(sample->instance, &record) == mrhi_success && record.outcome == mrhi_success &&
+        mrhiInstance_GetAdapters(sample->instance, &sample->adapter, 1, &count) == mrhi_success &&
+        count != 0;
     if (!found)
     {
         const char* required = getenv("MUI_RHI_REQUIRED");
@@ -113,7 +113,7 @@ bool SampleCheck(Sample* sample, bool condition, const char* what)
 static void Drain(Sample* sample, muiRhiRenderer* renderer)
 {
     mrhiDeviceNotification record;
-    while (mrhiNextDeviceNotification(sample->device, &record) == mrhi_success)
+    while (mrhiDevice_TakeNotification(sample->device, &record) == mrhi_success)
     {
         (void)muiRhiRenderer_Notify(renderer, &record);
     }
@@ -133,7 +133,7 @@ bool SampleAwaitReady(Sample* sample, muiRhiRenderer* renderer)
     }
 #else
     while (!muiRhiRenderer_IsReady(renderer) &&
-           mrhiWaitDeviceNotification(sample->device, WAIT_NS) == mrhi_success)
+           mrhiDevice_WaitNotification(sample->device, WAIT_NS) == mrhi_success)
     {
         Drain(sample, renderer);
     }
@@ -167,7 +167,7 @@ bool SampleTexture(Sample* sample, uint32_t width, uint32_t height, const uint8_
     mrhiFrameDef frame = mrhiDefaultFrameDef();
     mrhiResourceId resource = {0};
     if (mrhiCreateTexture(sample->device, &def, textureOut) != mrhi_success ||
-        mrhiBeginFrame(sample->device, &frame) != mrhi_success ||
+        mrhiDevice_BeginFrame(sample->device, &frame) != mrhi_success ||
         mrhiImportTexture(sample->device, *textureOut, &resource) != mrhi_success)
     {
         return false;
@@ -187,17 +187,17 @@ bool SampleTexture(Sample* sample, uint32_t width, uint32_t height, const uint8_
     mrhiRequestId token = {0};
     bool recorded =
         mrhiAddPass(sample->device, &passDef, &pass) == mrhi_success &&
-        mrhiCompileFrame(sample->device) == mrhi_success &&
-        mrhiBeginPass(sample->device, pass) == mrhi_success &&
-        mrhiWriteTexture(sample->device, pass, &into, texels, (size_t)width * height * 4, &layout,
-                         &extent) == mrhi_success &&
-        mrhiEndPass(sample->device, pass) == mrhi_success;
+        mrhiDevice_CompileFrame(sample->device) == mrhi_success &&
+        mrhiPass_Begin(sample->device, pass) == mrhi_success &&
+        mrhiPass_WriteTexture(sample->device, pass, &into, texels, (size_t)width * height * 4,
+                              &layout, &extent) == mrhi_success &&
+        mrhiPass_End(sample->device, pass) == mrhi_success;
     if (!recorded)
     {
-        (void)mrhiDropFrame(sample->device);
+        (void)mrhiDevice_DropFrame(sample->device);
         return false;
     }
-    return mrhiSubmitFrame(sample->device, &token) == mrhi_success &&
+    return mrhiDevice_SubmitFrame(sample->device, &token) == mrhi_success &&
            WaitFrame(sample->device, token) == mrhi_success;
 }
 
@@ -211,7 +211,7 @@ bool SampleRender(Sample* sample, muiRhiRenderer* renderer, const muiDrawList* l
     targetDef.width = width;
     targetDef.height = height;
     mrhiResourceId target = {0};
-    if (mrhiBeginFrame(device, &frame) != mrhi_success ||
+    if (mrhiDevice_BeginFrame(device, &frame) != mrhi_success ||
         mrhiDeclareTexture(device, &targetDef, &target) != mrhi_success)
     {
         return false;
@@ -234,29 +234,31 @@ bool SampleRender(Sample* sample, muiRhiRenderer* renderer, const muiDrawList* l
     const mrhiExtent3d extent = {width, height, 1};
     mrhiRequestId readback = {0};
     mrhiRequestId token = {0};
-    bool recorded = muiRhiRenderer_AddPasses(renderer, list, &into) == mui_success &&
-                    mrhiAddPass(device, &readDef, &reading) == mrhi_success &&
-                    mrhiCompileFrame(device) == mrhi_success &&
-                    muiRhiRenderer_Record(renderer) == mui_success &&
-                    mrhiBeginPass(device, reading) == mrhi_success &&
-                    mrhiReadTexture(device, reading, &source, &extent, &readback) == mrhi_success &&
-                    mrhiEndPass(device, reading) == mrhi_success;
+    bool recorded =
+        muiRhiRenderer_AddPasses(renderer, list, &into) == mui_success &&
+        mrhiAddPass(device, &readDef, &reading) == mrhi_success &&
+        mrhiDevice_CompileFrame(device) == mrhi_success &&
+        muiRhiRenderer_Record(renderer) == mui_success &&
+        mrhiPass_Begin(device, reading) == mrhi_success &&
+        mrhiPass_ReadTexture(device, reading, &source, &extent, &readback) == mrhi_success &&
+        mrhiPass_End(device, reading) == mrhi_success;
     if (!recorded)
     {
-        (void)mrhiDropFrame(device);
+        (void)mrhiDevice_DropFrame(device);
         return false;
     }
-    if (mrhiSubmitFrame(device, &token) != mrhi_success || WaitFrame(device, token) != mrhi_success)
+    if (mrhiDevice_SubmitFrame(device, &token) != mrhi_success ||
+        WaitFrame(device, token) != mrhi_success)
     {
         return false;
     }
     mrhiDeviceNotification record;
-    while (mrhiNextDeviceNotification(device, &record) == mrhi_success)
+    while (mrhiDevice_TakeNotification(device, &record) == mrhi_success)
     {
     }
     size_t size = (size_t)width * height * 4;
     size_t taken = 0;
-    return mrhiTakeReadback(device, readback, pixels, size, &taken) == mrhi_success &&
+    return mrhiRequest_TakeReadback(device, readback, pixels, size, &taken) == mrhi_success &&
            taken == size;
 }
 
@@ -365,7 +367,7 @@ bool SampleSurfaceOpen(Sample* sample, const mwinNativeHandles* handles, uint32_
     def.next = &source.chain;
     mrhiSurfaceCaps caps;
     if (mrhiCreateSurface(sample->instance, &def, &surfaceOut->surface) != mrhi_success ||
-        mrhiGetSurfaceCaps(sample->instance, surfaceOut->surface, sample->adapter, &caps) !=
+        mrhiSurface_GetCaps(sample->instance, surfaceOut->surface, sample->adapter, &caps) !=
             mrhi_success ||
         !caps.presentable)
     {
@@ -390,7 +392,7 @@ bool SampleSurfaceResize(Sample* sample, SampleSurface* surface, uint32_t width,
 {
     surface->config.width = width;
     surface->config.height = height;
-    mrhiResult result = mrhiConfigureSurface(sample->device, &surface->config);
+    mrhiResult result = mrhiDevice_ConfigureSurface(sample->device, &surface->config);
     if (result != mrhi_success && result != mrhi_errorOutOfDate)
     {
         printf("FAIL: the surface not configured (%d)\n", (int)result);
@@ -405,7 +407,7 @@ void SampleSurfaceClose(Sample* sample, SampleSurface* surface)
     {
         return;
     }
-    (void)mrhiUnconfigureSurface(sample->device, surface->surface);
+    (void)mrhiSurface_Unconfigure(sample->device, surface->surface);
     (void)mrhiDestroySurface(sample->instance, surface->surface);
     *surface = (SampleSurface){0};
 }
@@ -429,13 +431,13 @@ SamplePresented SamplePresent(Sample* sample, SampleSurface* surface, muiRhiRend
     uint32_t height = surface->config.height;
     mrhiFrameDef frame = mrhiDefaultFrameDef();
     mrhiResourceId image = {0};
-    mrhiResult begun = mrhiBeginFrame(device, &frame);
+    mrhiResult begun = mrhiDevice_BeginFrame(device, &frame);
     if (begun != mrhi_success)
     {
         if (begun == mrhi_errorDeviceLost)
         {
             mrhiDeviceLossReport report = {0};
-            (void)mrhiGetDeviceLossReport(device, &report);
+            (void)mrhiDevice_GetLossReport(device, &report);
             printf("FAIL: the device was lost (reason %d): %.*s\n", (int)report.reason,
                    (int)report.messageLength, report.message);
             sample->failures++;
@@ -446,7 +448,7 @@ SamplePresented SamplePresent(Sample* sample, SampleSurface* surface, muiRhiRend
     mrhiResult acquired = mrhiAcquireSurfaceImage(device, surface->surface, &image);
     if (acquired != mrhi_success && acquired != mrhi_suboptimal)
     {
-        (void)mrhiDropFrame(device);
+        (void)mrhiDevice_DropFrame(device);
         return acquired == mrhi_occluded ? sample_occluded
                : acquired == mrhi_errorOutOfDate &&
                        SampleSurfaceResize(sample, surface, width, height)
@@ -471,21 +473,21 @@ SamplePresented SamplePresent(Sample* sample, SampleSurface* surface, muiRhiRend
     const mrhiTextureCopy source = {.resource = image};
     const mrhiExtent3d extent = {width, height, 1};
     mrhiRequestId readback = {0};
-    bool recorded =
-        muiRhiRenderer_AddPasses(renderer, list, &into) == mui_success &&
-        (!reads || mrhiAddPass(device, &readDef, &reading) == mrhi_success) &&
-        mrhiCompileFrame(device) == mrhi_success &&
-        muiRhiRenderer_Record(renderer) == mui_success &&
-        (!reads || (mrhiBeginPass(device, reading) == mrhi_success &&
-                    mrhiReadTexture(device, reading, &source, &extent, &readback) == mrhi_success &&
-                    mrhiEndPass(device, reading) == mrhi_success));
+    bool recorded = muiRhiRenderer_AddPasses(renderer, list, &into) == mui_success &&
+                    (!reads || mrhiAddPass(device, &readDef, &reading) == mrhi_success) &&
+                    mrhiDevice_CompileFrame(device) == mrhi_success &&
+                    muiRhiRenderer_Record(renderer) == mui_success &&
+                    (!reads || (mrhiPass_Begin(device, reading) == mrhi_success &&
+                                mrhiPass_ReadTexture(device, reading, &source, &extent,
+                                                     &readback) == mrhi_success &&
+                                mrhiPass_End(device, reading) == mrhi_success));
     mrhiRequestId token = {0};
     if (!recorded)
     {
-        (void)mrhiDropFrame(device);
+        (void)mrhiDevice_DropFrame(device);
         return sample_failed;
     }
-    if (mrhiSubmitFrame(device, &token) != mrhi_success)
+    if (mrhiDevice_SubmitFrame(device, &token) != mrhi_success)
     {
         return sample_failed;
     }
@@ -508,16 +510,17 @@ SampleTaken SampleTakeFrame(Sample* sample, SampleSurface* surface, uint8_t* pix
     {
         return sample_lost;
     }
-    mrhiResult done = mrhiWaitFrame(device, surface->frame, 0);
+    mrhiResult done = mrhiRequest_WaitFrame(device, surface->frame, 0);
     if (done == mrhi_timeout)
     {
         return sample_waiting;
     }
     size_t size = (size_t)surface->readWidth * surface->readHeight * 4;
     size_t taken = 0;
-    mrhiResult took = done == mrhi_success && size <= capacity
-                          ? mrhiTakeReadback(device, surface->readback, pixels, size, &taken)
-                          : mrhi_errorInvalid;
+    mrhiResult took =
+        done == mrhi_success && size <= capacity
+            ? mrhiRequest_TakeReadback(device, surface->readback, pixels, size, &taken)
+            : mrhi_errorInvalid;
     // Answered once the device's notifications are taken.
     if (took == mrhi_errorState)
     {
