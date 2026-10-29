@@ -309,20 +309,20 @@ extern "C"
     /// plot's changes as one rectangle, for the renderer to copy from the
     /// pages' pixels.
     ///
-    /// @param atlas     The atlas.
-    /// @param updates   Receives the rectangles; may be NULL when capacity
-    ///                  is 0.
-    /// @param capacity  How many updates holds.
-    /// @param countOut  Receives how many rectangles there are, also when
-    ///                  updates is too small. 0 on any other failure.
-    /// @return `mui_success`, taking them; `mui_errorCapacity` when updates
+    /// @param atlas       The atlas.
+    /// @param updatesOut  Receives the rectangles; may be NULL when capacity
+    ///                    is 0.
+    /// @param capacity    How many updatesOut holds.
+    /// @param countOut    Receives how many rectangles there are, also when
+    ///                    updatesOut is too small. 0 on any other failure.
+    /// @return `mui_success`, taking them; `mui_errorCapacity` when updatesOut
     ///         holds fewer, taking none; `mui_errorInvalid` for a NULL atlas or
-    ///         countOut, or NULL updates with a capacity; `mui_errorBusy`
+    ///         countOut, or NULL updatesOut with a capacity; `mui_errorBusy`
     ///         while the atlas is busy.
     /// @par Thread safety
     /// Safe from any thread; the atlas is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_TakeUpdates(muiGlyphAtlas* atlas,
-                                                              muiAtlasUpdate* updates,
+                                                              muiAtlasUpdate* updatesOut,
                                                               uint32_t capacity,
                                                               uint32_t* countOut);
 

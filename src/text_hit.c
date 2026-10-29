@@ -192,12 +192,12 @@ static MUI_NOINLINE muiResult TextGetRangeRectsWorker(const muiTextHost* host, m
 }
 
 muiResult muiNode_GetTextRangeRects(const muiTextHost* host, muiNodeId nodeId, float width,
-                                    uint32_t start, uint32_t end, muiRect* rects, uint32_t capacity,
-                                    uint32_t* countOut)
+                                    uint32_t start, uint32_t end, muiRect* rectsOut,
+                                    uint32_t capacity, uint32_t* countOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result =
-        TextGetRangeRectsWorker(host, nodeId, width, start, end, rects, capacity, countOut);
+        TextGetRangeRectsWorker(host, nodeId, width, start, end, rectsOut, capacity, countOut);
     muiFloatEnvLeave(floatEnv);
     return result;
 }

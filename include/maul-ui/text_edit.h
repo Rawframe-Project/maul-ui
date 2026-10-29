@@ -193,12 +193,12 @@ extern "C"
     /// @param start     The range's first byte.
     /// @param end       The byte after it; no rectangles when not after
     ///                  start.
-    /// @param rects     Receives the rectangles, from the content box's top
+    /// @param rectsOut  Receives the rectangles, from the content box's top
     ///                  left; may be NULL when capacity is 0.
-    /// @param capacity  How many rects holds.
+    /// @param capacity  How many rectsOut holds.
     /// @param countOut  Receives how many rectangles there are, also when
-    ///                  rects holds fewer; unchanged on any other failure.
-    /// @return `mui_success`; `mui_errorCapacity` when rects holds fewer,
+    ///                  rectsOut holds fewer; unchanged on any other failure.
+    /// @return `mui_success`; `mui_errorCapacity` when rectsOut holds fewer,
     ///         writing those that fit, or memory runs out; otherwise as
     ///         muiNode_HitTestText; `mui_errorBusy` while the service is busy.
     /// @par Thread safety
@@ -207,7 +207,7 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiNode_GetTextRangeRects(const muiTextHost* host,
                                                               muiNodeId nodeId, float width,
                                                               uint32_t start, uint32_t end,
-                                                              muiRect* rects, uint32_t capacity,
+                                                              muiRect* rectsOut, uint32_t capacity,
                                                               uint32_t* countOut);
 
     /// Moves a position through a node's text, laid out as muiPaintText
