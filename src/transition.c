@@ -60,17 +60,18 @@ static bool MakeMotion(const muiTransitionDef* def, muiTransitionSpec* spec)
     mtwnResult easing = mtwn_success;
     if (def->easing == mui_easingLinear)
     {
-        spec->easing = mtwnLinearEasing();
+        spec->easing = mtwnMakeLinearEasing();
     }
     else if (def->easing == mui_easingCubicBezier)
     {
-        easing = mtwnMakeCubicBezier((double)def->bezier[0], (double)def->bezier[1],
-                                     (double)def->bezier[2], (double)def->bezier[3], &spec->easing);
+        easing = mtwnMakeCubicBezierEasing((double)def->bezier[0], (double)def->bezier[1],
+                                           (double)def->bezier[2], (double)def->bezier[3],
+                                           &spec->easing);
     }
     else
     {
         const double* p = keywords[def->easing - 1];
-        easing = mtwnMakeCubicBezier(p[0], p[1], p[2], p[3], &spec->easing);
+        easing = mtwnMakeCubicBezierEasing(p[0], p[1], p[2], p[3], &spec->easing);
     }
     return easing == mtwn_success &&
            mtwnMakeSpringFromFrequency((double)def->frequency, (double)def->dampingRatio,

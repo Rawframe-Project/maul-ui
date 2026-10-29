@@ -49,7 +49,7 @@ static void PurgePans(muiContext* context)
 static float Band(float past, float port)
 {
     double offset = 0.0;
-    return mtwnRubberBand((double)past, (double)port, MUI_RUBBER_BAND, &offset) == mtwn_success
+    return mtwnApplyRubberBand((double)past, (double)port, MUI_RUBBER_BAND, &offset) == mtwn_success
                ? (float)offset
                : 0.0f;
 }
@@ -57,8 +57,8 @@ static float Band(float past, float port)
 static float Unband(float over, float port)
 {
     double drag = 0.0;
-    return over < port && mtwnRubberBandInverse((double)over, (double)port, MUI_RUBBER_BAND,
-                                                &drag) == mtwn_success
+    return over < port && mtwnInvertRubberBand((double)over, (double)port, MUI_RUBBER_BAND,
+                                               &drag) == mtwn_success
                ? (float)drag
                : 0.0f;
 }
