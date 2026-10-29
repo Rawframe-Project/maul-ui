@@ -172,7 +172,7 @@ extern "C"
                                                      muiThemeId* themeOut);
 
     /// Reads a token's value as a node reads it, through the themes above
-    /// it as of the last muiComputeLayout that styled it.
+    /// it as of the last muiNode_ComputeLayout that styled it.
     ///
     /// @param context   The context.
     /// @param nodeId    The node.

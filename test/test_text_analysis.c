@@ -241,7 +241,7 @@ static bool LayOut(Shaping* shaping)
     const muiLayoutInput input = {300.0f, 1e9f, muiMeasureText, &host, 0, NULL, {0, 0, 0, 0}};
     return muiNode_MarkContentChanged(shaping->context, shaping->nodes[0]) == mui_success &&
            muiNode_MarkContentChanged(shaping->context, shaping->nodes[1]) == mui_success &&
-           muiComputeLayout(shaping->context, shaping->root, &input) == mui_success;
+           muiNode_ComputeLayout(shaping->context, shaping->root, &input) == mui_success;
 }
 
 static Shaping MakeShaping(void)
@@ -264,8 +264,8 @@ static Shaping MakeShaping(void)
     CHECK(muiCreateFont(shaping.service, &font, &coverage) == mui_success, "the fallback");
     uint64_t fallback = muiFont_GetKey(coverage);
     muiNodeDef nodeDef = muiDefaultNodeDef();
-    CHECK(muiSetDefaultFont(shaping.service, liberation) == mui_success &&
-              muiSetFallbackFonts(shaping.service, &fallback, 1) == mui_success &&
+    CHECK(muiTextService_SetDefaultFont(shaping.service, liberation) == mui_success &&
+              muiTextService_SetFallbackFonts(shaping.service, &fallback, 1) == mui_success &&
               muiCreateNode(shaping.context, &nodeDef, &shaping.root) == mui_success,
           "fonts and a root");
     return shaping;

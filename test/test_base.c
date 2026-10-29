@@ -19,20 +19,20 @@ static void TestVersionMatchesHeader(void)
 
 static void TestResultNames(void)
 {
-    CHECK(strcmp(muiResultName(mui_success), "mui_success") == 0, "success name");
-    CHECK(strcmp(muiResultName(mui_empty), "mui_empty") == 0, "empty name");
-    CHECK(strcmp(muiResultName(mui_errorInvalid), "mui_errorInvalid") == 0, "invalid name");
-    CHECK(strcmp(muiResultName(mui_errorCapacity), "mui_errorCapacity") == 0, "capacity name");
-    CHECK(strcmp(muiResultName(mui_errorStale), "mui_errorStale") == 0, "stale name");
-    CHECK(strcmp(muiResultName(mui_errorUnsupported), "mui_errorUnsupported") == 0,
+    CHECK(strcmp(muiGetResultName(mui_success), "mui_success") == 0, "success name");
+    CHECK(strcmp(muiGetResultName(mui_empty), "mui_empty") == 0, "empty name");
+    CHECK(strcmp(muiGetResultName(mui_errorInvalid), "mui_errorInvalid") == 0, "invalid name");
+    CHECK(strcmp(muiGetResultName(mui_errorCapacity), "mui_errorCapacity") == 0, "capacity name");
+    CHECK(strcmp(muiGetResultName(mui_errorStale), "mui_errorStale") == 0, "stale name");
+    CHECK(strcmp(muiGetResultName(mui_errorUnsupported), "mui_errorUnsupported") == 0,
           "unsupported name");
-    CHECK(strcmp(muiResultName(mui_errorPlatform), "mui_errorPlatform") == 0, "platform name");
-    CHECK(strcmp(muiResultName(mui_errorVersion), "mui_errorVersion") == 0, "version name");
-    CHECK(strcmp(muiResultName(mui_errorFormat), "mui_errorFormat") == 0, "format name");
-    CHECK(strcmp(muiResultName(mui_errorLimit), "mui_errorLimit") == 0, "limit name");
-    CHECK(strcmp(muiResultName(mui_errorBusy), "mui_errorBusy") == 0, "busy name");
-    CHECK(strcmp(muiResultName(mui_errorState), "mui_errorState") == 0, "state name");
-    CHECK(strcmp(muiResultName(12345), "unknown result") == 0, "unknown name");
+    CHECK(strcmp(muiGetResultName(mui_errorPlatform), "mui_errorPlatform") == 0, "platform name");
+    CHECK(strcmp(muiGetResultName(mui_errorVersion), "mui_errorVersion") == 0, "version name");
+    CHECK(strcmp(muiGetResultName(mui_errorFormat), "mui_errorFormat") == 0, "format name");
+    CHECK(strcmp(muiGetResultName(mui_errorLimit), "mui_errorLimit") == 0, "limit name");
+    CHECK(strcmp(muiGetResultName(mui_errorBusy), "mui_errorBusy") == 0, "busy name");
+    CHECK(strcmp(muiGetResultName(mui_errorState), "mui_errorState") == 0, "state name");
+    CHECK(strcmp(muiGetResultName(12345), "unknown result") == 0, "unknown name");
 }
 
 // The values the Maul family gives the errors it shares, so a program

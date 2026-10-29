@@ -86,7 +86,8 @@ static void SetText(SampleApp* app, muiNodeId node, muiTextBlockId block, const 
 
 static void Focus(SampleApp* app, muiNodeId node)
 {
-    SampleAppCheck(app, muiFocus_Set(app->context, 0, node, mui_focusByNavigation) == mui_success,
+    SampleAppCheck(app,
+                   muiContext_SetFocus(app->context, 0, node, mui_focusByNavigation) == mui_success,
                    "the focus moved");
 }
 
@@ -469,8 +470,9 @@ static void Build(void* user, SampleApp* app)
             muiCreateStyle(app->context, &styleDef, &sample->itemStyle) == mui_success &&
             muiStyle_SetVisualValues(app->context, sample->itemStyle, mui_variantFocused, &focused,
                                      MUI_PROPERTY_BIT(mui_propertyBackground)) == mui_success &&
-            muiSetEventFunction(app->context, Hear, sample) == mui_success &&
-            muiSetAccessTextFunction(app->context, muiReadAccessText, &app->host) == mui_success,
+            muiContext_SetEventFunction(app->context, Hear, sample) == mui_success &&
+            muiContext_SetAccessTextFunction(app->context, muiReadAccessText, &app->host) ==
+                mui_success,
         "the area, the items' class and the event function");
 }
 
@@ -480,7 +482,7 @@ static void Update(void* user, SampleApp* app)
 {
     Panels* sample = user;
     muiNotification notification;
-    while (muiNextNotification(app->context, &notification) == mui_success)
+    while (muiContext_TakeNotification(app->context, &notification) == mui_success)
     {
         if (notification.kind == mui_notificationPopupDismissed &&
             SampleSame(notification.node, sample->menu))
@@ -514,7 +516,7 @@ static bool Holds(const SampleApp* app, muiTextBlockId block, const char* expect
 
 static const muiAccessNode* Found(const SampleApp* app, muiNodeId node)
 {
-    return muiAccessTree_Find(muiWindowAccess_GetTree(app->access), muiAccessIdOf(node));
+    return muiAccessTree_Find(muiWindowAccess_GetTree(app->access), muiNode_GetAccessId(node));
 }
 
 static bool Shows(const SampleApp* app, muiNodeId node, float x, float y, const uint8_t rgb[3])
@@ -524,7 +526,7 @@ static bool Shows(const SampleApp* app, muiNodeId node, float x, float y, const 
 
 static bool Focused(const SampleApp* app, muiNodeId node)
 {
-    return SampleSame(muiFocus_Get(app->context, 0), node);
+    return SampleSame(muiContext_GetFocus(app->context, 0), node);
 }
 
 // Whether a tab is the selected one: in its colour, reported selected

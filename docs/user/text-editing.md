@@ -23,7 +23,7 @@ static muiResult MakeField(muiTextService* service, muiTextBlockId block)
 
 ## Feeding events
 
-`muiTextEditEvent` maps a platform's events onto the field: keys under the PC's or the Mac's shortcuts, typed text, and the pointer's presses and drags placing the selection. The clipboard and focus stay the program's. Copying and cutting write through the input's function, and a paste is asked for, the program answering it once its clipboard is read.
+`muiNode_HandleEditEvent` maps a platform's events onto the field: keys under the PC's or the Mac's shortcuts, typed text, and the pointer's presses and drags placing the selection. The clipboard and focus stay the program's. Copying and cutting write through the input's function, and a paste is asked for, the program answering it once its clipboard is read.
 
 ```c
 // What the program's clipboard holds, as the editor copies and cuts.
@@ -46,7 +46,7 @@ static bool FieldEvent(muiContext* context, muiTextService* service, muiNodeId f
     muiTextHost host = {service, context};
     const muiTextEditInput input = {mui_keymapPc, WriteClipboard, NULL};
     muiTextEditOutcome outcome = {false, false, false, false};
-    if (muiTextEditEvent(&host, field, event, &input, &outcome) != mui_success)
+    if (muiNode_HandleEditEvent(&host, field, event, &input, &outcome) != mui_success)
     {
         return false;
     }
@@ -78,7 +78,7 @@ The keymaps follow the platforms: `mui_keymapPc` follows Windows and the Linux t
 
 ## Drawing the caret and selection
 
-The library paints the text, not the caret or the selection, whose look is the program's. The editing primitives give their places in the node's content box as drawn: `muiTextGetCaret` the caret, and `muiTextGetRangeRects` a range's rectangles, one for each stretch of it side by side on a line, since mixed directions split a range.
+The library paints the text, not the caret or the selection, whose look is the program's. The editing primitives give their places in the node's content box as drawn: `muiNode_GetTextCaret` the caret, and `muiNode_GetTextRangeRects` a range's rectangles, one for each stretch of it side by side on a line, since mixed directions split a range.
 
 ```c
 // Where to draw the caret, in the field's content box as laid out.
@@ -89,11 +89,11 @@ static bool CaretOf(muiContext* context, muiTextService* service, muiNodeId fiel
     muiTextSelection selection;
     float width = muiNode_GetContentRect(context, field).width;
     return muiTextBlock_GetSelection(service, block, &selection) == mui_success &&
-           muiTextGetCaret(&host, field, width, selection.caret, caretOut) == mui_success;
+           muiNode_GetTextCaret(&host, field, width, selection.caret, caretOut) == mui_success;
 }
 ```
 
-`muiTextHitTest` finds the position under a point, and `muiTextMove` moves one by cluster, word or line, as the keys do.
+`muiNode_HitTestText` finds the position under a point, and `muiNode_MoveTextPosition` moves one by cluster, word or line, as the keys do.
 
 ## Input methods
 
@@ -106,4 +106,4 @@ An input method's composition is shown in the field with `muiTextBlock_Compose` 
 - A maximum length counts what the user sees as characters (grapheme clusters), not bytes.
 - On a single line, a pasted line break becomes a space.
 - Text changed by the program outside the editor empties the undo history.
-- A screen reader's requests to move the selection or change the text go to `muiTextPerformAccessAction`, which applies them as a paste under the field's rules ([Accessibility](accessibility.md)).
+- A screen reader's requests to move the selection or change the text go to `muiPerformTextAccessAction`, which applies them as a paste under the field's rules ([Accessibility](accessibility.md)).

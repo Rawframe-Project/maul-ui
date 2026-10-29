@@ -540,9 +540,9 @@ static void Build(void* user, SampleApp* app)
                        muiNode_SetValueRange(app->context, pickers->number, &range) == mui_success,
                    "the number input");
     SampleAppCheck(app,
-                   muiSetEventFunction(app->context, Hear, pickers) == mui_success &&
-                       muiSetAccessTextFunction(app->context, muiReadAccessText, &app->host) ==
-                           mui_success,
+                   muiContext_SetEventFunction(app->context, Hear, pickers) == mui_success &&
+                       muiContext_SetAccessTextFunction(app->context, muiReadAccessText,
+                                                        &app->host) == mui_success,
                    "the event and access text functions");
 }
 
@@ -551,7 +551,7 @@ static void Update(void* user, SampleApp* app)
 {
     Pickers* pickers = user;
     muiNotification notification;
-    while (muiNextNotification(app->context, &notification) == mui_success)
+    while (muiContext_TakeNotification(app->context, &notification) == mui_success)
     {
         Combo* combos[2] = {&pickers->select, &pickers->search};
         for (int c = 0; c < 2; c++)
@@ -582,7 +582,7 @@ static void Paint(void* user, muiNodeId nodeId, uint64_t hostKey, float width, f
     SampleApp* app = pickers->app;
     muiPaintText(&app->host, nodeId, hostKey, width, height, sink);
     if (!SampleSame(nodeId, pickers->search.node) ||
-        !SampleSame(muiFocus_Get(app->context, 0), nodeId))
+        !SampleSame(muiContext_GetFocus(app->context, 0), nodeId))
     {
         return;
     }
@@ -598,7 +598,7 @@ static bool Holds(const SampleApp* app, muiTextBlockId block, const char* expect
 
 static const muiAccessNode* Found(const SampleApp* app, muiNodeId node)
 {
-    return muiAccessTree_Find(muiWindowAccess_GetTree(app->access), muiAccessIdOf(node));
+    return muiAccessTree_Find(muiWindowAccess_GetTree(app->access), muiNode_GetAccessId(node));
 }
 
 // Whether the accessibility tree reports a combobox open or closed, its

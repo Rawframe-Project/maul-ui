@@ -1,6 +1,6 @@
 # Accessibility
 
-Every node of a root is a node of its accessibility tree, with a role, texts, flags and actions. Most of it comes from what the library already holds: rectangles, scrolling, focus, states, value ranges and virtual lists. Text in the UI names itself through the text component (`muiReadAccessText`, set with `muiSetAccessTextFunction`), including an editing field's selection, its lines and words, and where its characters are. The program says the rest:
+Every node of a root is a node of its accessibility tree, with a role, texts, flags and actions. Most of it comes from what the library already holds: rectangles, scrolling, focus, states, value ranges and virtual lists. Text in the UI names itself through the text component (`muiReadAccessText`, set with `muiContext_SetAccessTextFunction`), including an editing field's selection, its lines and words, and where its characters are. The program says the rest:
 
 ```c
 // Tells assistive technology what a node is: a button, and its name.
@@ -17,7 +17,7 @@ A node without a role is generic, and a screen reader skips it and reads its chi
 
 ## Updates and requests
 
-Nothing is built until the program enables a root (`muiAccess_Enable`), as when Maul Window reports that an assistive technology asked for one. Then each frame gives an update in AccessKit's shape: the nodes that changed, each whole, the focus with every update, and the root with the first. The program hands it to the platform's adapter, which keeps its own copy and answers the screen reader from it. The adapter queues what assistive technology asks (a press, a focus, a value, a scroll), and the program applies it on its own thread:
+Nothing is built until the program enables a root (`muiNode_EnableAccess`), as when Maul Window reports that an assistive technology asked for one. Then each frame gives an update in AccessKit's shape: the nodes that changed, each whole, the focus with every update, and the root with the first. The program hands it to the platform's adapter, which keeps its own copy and answers the screen reader from it. The adapter queues what assistive technology asks (a press, a focus, a value, a scroll), and the program applies it on its own thread:
 
 ```c
 // A frame's accessibility, once the root is enabled: the update of what
@@ -26,19 +26,19 @@ Nothing is built until the program enables a root (`muiAccess_Enable`), as when 
 static muiResult AccessFrame(muiContext* context, muiNodeId root, muiAccessUpdate* updateOut,
                              const muiAccessRequest* requests, uint32_t requestCount)
 {
-    muiResult result = muiBuildAccessUpdate(context, root, updateOut);
+    muiResult result = muiNode_BuildAccessUpdate(context, root, updateOut);
     for (uint32_t i = 0; result == mui_success && i < requestCount; i++)
     {
         // A node that does not take the action or is gone, and a client's
         // request that does not fit it, are skipped.
-        muiResult applied = muiPerformAccessAction(context, &requests[i], NULL);
+        muiResult applied = muiContext_PerformAccessAction(context, &requests[i], NULL);
         result = applied == mui_errorInvalid ? applied : mui_success;
     }
     return result;
 }
 ```
 
-The first update after enabling holds the whole tree, with the button in it named "OK". A press requested by assistive technology reaches the program as the button's activation ([Input](input.md#routing)). A request to move a text's selection or change its text is not the context's, so this loop skips it. A program with an editing field gives those two to `muiTextPerformAccessAction` instead, as `samples/app.c` does.
+The first update after enabling holds the whole tree, with the button in it named "OK". A press requested by assistive technology reaches the program as the button's activation ([Input](input.md#routing)). A request to move a text's selection or change its text is not the context's, so this loop skips it. A program with an editing field gives those two to `muiPerformTextAccessAction` instead, as `samples/app.c` does.
 
 Expanding and collapsing a node is the program's: a request for it arrives as `mui_notificationAccessAction`.
 

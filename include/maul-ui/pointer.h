@@ -86,16 +86,16 @@ extern "C"
     } muiPointerEvent;
 
     /// Takes a pointer event. Hit testing finds the node at the point, as
-    /// muiHitTest does, unless the pointer is captured; then the pointer's
+    /// muiNode_HitTest does, unless the pointer is captured; then the pointer's
     /// hover is updated, and so is its press and capture, and records are
-    /// posted for muiNextPointerRecord.
+    /// posted for muiContext_TakePointerRecord.
     ///
     /// A node is in mui_stateHovered while a pointer's topmost node is it
     /// or one of its descendants, as CSS's :hover, and in
     /// mui_statePressed while a pointer that pressed it or a descendant
     /// holds a button, wherever the pointer went since, as :active; both
     /// join the states the host sets, and the node is styled again at the
-    /// next muiComputeLayout. A touch hovers only in contact. Hover reads
+    /// next muiNode_ComputeLayout. A touch hovers only in contact. Hover reads
     /// the last layout: after one, a move to the same point updates it.
     ///
     /// @param context  The context.
@@ -111,8 +111,8 @@ extern "C"
     ///         pointers limit.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiPointerInput(muiContext* context, muiNodeId rootId,
-                                                    const muiPointerEvent* event);
+    MUI_NODISCARD MUI_API muiResult muiNode_RoutePointer(muiContext* context, muiNodeId rootId,
+                                                         const muiPointerEvent* event);
 
     // What a pointer record reports.
     typedef uint8_t muiPointerRecordKind;
@@ -144,9 +144,9 @@ extern "C"
         mui_pointerRecordDragMove = 9,
         // The drag ended: its buttons went up, or (cancelled) the
         // pointer was cancelled, the node lost the capture, or Escape
-        // went unhandled (muiKeyInput).
+        // went unhandled (muiNode_RouteKey).
         mui_pointerRecordDragEnd = 10,
-        // A drag offering a thing (muiPointer_Offer) came over a node that
+        // A drag offering a thing (muiContext_OfferDrop) came over a node that
         // takes its kind, and left it; the node is the target.
         mui_pointerRecordDropEnter = 11,
         mui_pointerRecordDropLeave = 12,
@@ -199,8 +199,8 @@ extern "C"
     ///         the context is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiNextPointerRecord(muiContext* context,
-                                                         muiPointerRecord* recordOut);
+    MUI_NODISCARD MUI_API muiResult muiContext_TakePointerRecord(muiContext* context,
+                                                                 muiPointerRecord* recordOut);
 
     /// Sends every later event of a pointer that holds a button to a node,
     /// wherever it is, until its last button is released, it is
@@ -209,16 +209,16 @@ extern "C"
     /// the capture gets a capture-lost record.
     ///
     /// @param context  The context.
-    /// @param pointer  The host's id of the pointer.
     /// @param nodeId   The node.
+    /// @param pointer  The host's id of the pointer.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, the null
     ///         id, a pointer the context does not know or that holds no button;
     ///         `mui_errorBusy` while the context is busy; `mui_errorStale` for
     ///         a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiPointer_SetCapture(muiContext* context, uint32_t pointer,
-                                                          muiNodeId nodeId);
+    MUI_NODISCARD MUI_API muiResult muiNode_CapturePointer(muiContext* context, muiNodeId nodeId,
+                                                           uint32_t pointer);
 
     /// Releases a pointer's capture, with a capture-lost record; its next
     /// event hit tests again.
@@ -230,8 +230,8 @@ extern "C"
     ///         `mui_errorBusy` while the context is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiPointer_ReleaseCapture(muiContext* context,
-                                                              uint32_t pointer);
+    MUI_NODISCARD MUI_API muiResult muiContext_ReleasePointerCapture(muiContext* context,
+                                                                     uint32_t pointer);
 
     // Where a pointer is and what it holds.
     typedef struct muiPointerState
@@ -258,8 +258,9 @@ extern "C"
     ///         `mui_errorInvalid` for a NULL argument.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiPointer_GetState(const muiContext* context, uint32_t pointer,
-                                                        muiPointerState* stateOut);
+    MUI_NODISCARD MUI_API muiResult muiContext_GetPointerState(const muiContext* context,
+                                                               uint32_t pointer,
+                                                               muiPointerState* stateOut);
 
     /// Sets when presses count as one series (a double click): a press
     /// of the same button within intervalNs of the last and within
@@ -274,8 +275,8 @@ extern "C"
     ///         is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiSetClickRule(muiContext* context, uint64_t intervalNs,
-                                                    float distance);
+    MUI_NODISCARD MUI_API muiResult muiContext_SetClickRule(muiContext* context,
+                                                            uint64_t intervalNs, float distance);
 
     /// Offers a thing to drop for a dragging pointer, from its drag start
     /// on: a kind, one or more of the application's bits, and the host's
@@ -295,8 +296,8 @@ extern "C"
     ///         is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiPointer_Offer(muiContext* context, uint32_t pointer,
-                                                     uint32_t kind, uint64_t key);
+    MUI_NODISCARD MUI_API muiResult muiContext_OfferDrop(muiContext* context, uint32_t pointer,
+                                                         uint32_t kind, uint64_t key);
 
     /// Sets how far a press moves before it becomes a drag, on either
     /// axis: for a mouse, and for touch and pens. The defaults are 4,
@@ -310,8 +311,8 @@ extern "C"
     ///         is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiSetDragThreshold(muiContext* context, float mouse,
-                                                        float touch);
+    MUI_NODISCARD MUI_API muiResult muiContext_SetDragThreshold(muiContext* context, float mouse,
+                                                                float touch);
 
 #ifdef __cplusplus
 }

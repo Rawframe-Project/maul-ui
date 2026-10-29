@@ -87,14 +87,15 @@ static void RenderGlyphs(muiTextService* service, const muiDrawList* list)
             uint32_t glyph = list->glyphs[run->firstGlyph + g].id;
             muiGlyphImage image;
             const muiLinearColor ink = {0.2f, 0.4f, 0.6f, 1.0f};
-            Expect(IsAllowed(muiRenderGlyph(service, run->font, glyph, run->size, 0.25f, &image,
-                                            s_pixels, sizeof s_pixels)));
-            Expect(IsAllowed(muiRenderGlyphField(service, run->font, glyph, run->size, 4, &image,
-                                                 s_pixels, sizeof s_pixels)));
-            Expect(IsAllowed(muiRenderGlyphMultiField(service, run->font, glyph, run->size, 4,
-                                                      &image, s_pixels, sizeof s_pixels)));
-            Expect(IsAllowed(muiRenderColorGlyph(service, run->font, glyph, run->size, 0.0f, 0, ink,
-                                                 &image, s_pixels, sizeof s_pixels)));
+            Expect(IsAllowed(muiTextService_RenderGlyph(service, run->font, glyph, run->size, 0.25f,
+                                                        &image, s_pixels, sizeof s_pixels)));
+            Expect(IsAllowed(muiTextService_RenderGlyphField(
+                service, run->font, glyph, run->size, 4, &image, s_pixels, sizeof s_pixels)));
+            Expect(IsAllowed(muiTextService_RenderGlyphMultiField(
+                service, run->font, glyph, run->size, 4, &image, s_pixels, sizeof s_pixels)));
+            Expect(IsAllowed(muiTextService_RenderColorGlyph(service, run->font, glyph, run->size,
+                                                             0.0f, 0, ink, &image, s_pixels,
+                                                             sizeof s_pixels)));
         }
     }
 }
@@ -107,13 +108,13 @@ static void RenderIds(muiTextService* service, uint32_t glyphCount)
     muiGlyphImage image;
     for (uint32_t glyph = 0; glyph < glyphCount && glyph < MAX_IDS; glyph++)
     {
-        Expect(IsAllowed(
-            muiRenderGlyph(service, 0, glyph, 24.0f, 0.0f, &image, s_pixels, sizeof s_pixels)));
-        Expect(IsAllowed(muiRenderColorGlyph(service, 0, glyph, 24.0f, 0.0f, 0, ink, &image,
-                                             s_pixels, sizeof s_pixels)));
+        Expect(IsAllowed(muiTextService_RenderGlyph(service, 0, glyph, 24.0f, 0.0f, &image,
+                                                    s_pixels, sizeof s_pixels)));
+        Expect(IsAllowed(muiTextService_RenderColorGlyph(service, 0, glyph, 24.0f, 0.0f, 0, ink,
+                                                         &image, s_pixels, sizeof s_pixels)));
     }
-    Expect(muiRenderColorGlyph(service, 0, glyphCount, 24.0f, 0.0f, 0, ink, &image, s_pixels,
-                               sizeof s_pixels) == mui_errorInvalid);
+    Expect(muiTextService_RenderColorGlyph(service, 0, glyphCount, 24.0f, 0.0f, 0, ink, &image,
+                                           s_pixels, sizeof s_pixels) == mui_errorInvalid);
 }
 
 // Opens the input's further faces, up to MAX_FACES with the first, in
@@ -203,9 +204,9 @@ static void Paint(muiTextService* service, uint64_t fontKey)
                                         0,       nullptr, {0, 0, 0, 0}};
     const muiDrawInput drawInput = {1, 1.0f, muiPaintText, &host};
     muiDrawList list = {0};
-    Expect(muiComputeLayout(context, node, &layoutInput) == mui_success &&
-           muiBuildDrawList(context, node, &drawInput) == mui_success &&
-           muiGetDrawList(context, &list) == mui_success);
+    Expect(muiNode_ComputeLayout(context, node, &layoutInput) == mui_success &&
+           muiNode_BuildDrawList(context, node, &drawInput) == mui_success &&
+           muiContext_GetDrawList(context, &list) == mui_success);
     RenderGlyphs(service, &list);
     muiDestroyContext(context);
     Expect(muiDestroyTextBlock(service, block) == mui_success);
@@ -247,9 +248,9 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         muiFontFamilyId family = {0, 0};
         muiFontMetrics metrics;
         Expect(muiFont_GetMetrics(service, font, &metrics) == mui_success &&
-               muiSetDefaultFont(service, font) == mui_success &&
+               muiTextService_SetDefaultFont(service, font) == mui_success &&
                muiCreateFontFamily(service, &familyDef, &family) == mui_success &&
-               muiSetFallbackFonts(service, &fallback, 1) == mui_success);
+               muiTextService_SetFallbackFonts(service, &fallback, 1) == mui_success);
         MatchFaces(service, family, fonts, count);
         Paint(service, muiFontFamily_GetKey(family));
         RenderIds(service, metrics.glyphCount);

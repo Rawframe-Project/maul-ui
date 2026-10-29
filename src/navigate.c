@@ -262,8 +262,8 @@ static MUI_NOINLINE muiResult FocusMoveTowardWorker(muiContext* context, muiNode
     return status;
 }
 
-muiResult muiFocus_MoveToward(muiContext* context, muiNodeId rootId, uint8_t player,
-                              muiDirection direction)
+muiResult muiNode_MoveFocusToward(muiContext* context, muiNodeId rootId, uint8_t player,
+                                  muiDirection direction)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = FocusMoveTowardWorker(context, rootId, player, direction);

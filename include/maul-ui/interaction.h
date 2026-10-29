@@ -116,7 +116,7 @@ extern "C"
         // threshold (maul-ui/pointer.h).
         bool drags;
         // The kinds of thing dropped on the node it takes: a drag offering
-        // a kind in this mask (muiPointer_Offer) over the node, or over a
+        // a kind in this mask (muiContext_OfferDrop) over the node, or over a
         // node below it that takes none of that kind, may drop here. The
         // bits are the application's; 0 takes nothing.
         uint32_t accepts;
@@ -199,7 +199,7 @@ extern "C"
 
     /// Reads a node's resolved interaction values: its direct writes, and
     /// for the other properties what its classes and states gave at the
-    /// last muiComputeLayout that reached it.
+    /// last muiNode_ComputeLayout that reached it.
     ///
     /// @param context    The context.
     /// @param nodeId     The node.
@@ -225,7 +225,7 @@ extern "C"
     } muiHit;
 
     /// Finds the topmost node of a root's subtree at a point, as its last
-    /// muiComputeLayout left it: the last in paint order whose rounded
+    /// muiNode_ComputeLayout left it: the last in paint order whose rounded
     /// border box holds the point, inside the rounded clips of every
     /// ancestor that clips and of no node whose hit mode leaves it out.
     /// Layers are tried from the top down, then the content they are
@@ -245,8 +245,8 @@ extern "C"
     ///         that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiHitTest(const muiContext* context, muiNodeId rootId, float x,
-                                               float y, muiHit* hitOut);
+    MUI_NODISCARD MUI_API muiResult muiNode_HitTest(const muiContext* context, muiNodeId rootId,
+                                                    float x, float y, muiHit* hitOut);
 
     /// Raises a layer above the others of its band, as activating a
     /// window brings it to the front: it becomes the latest activated.

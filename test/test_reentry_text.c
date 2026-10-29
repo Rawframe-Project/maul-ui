@@ -53,29 +53,29 @@ static int CallAll(muiTextService* service, const muiTextHost* host, muiGlyphAtl
     results[count++] = muiCreateFontFamily(service, NULL, NULL);
     results[count++] = muiDestroyFontFamily(service, (muiFontFamilyId){0});
     results[count++] = muiCreateGlyphAtlas(service, NULL, NULL);
-    results[count++] = muiGlyphAtlas_Get(atlas, 0, 0, NAN, NAN, NAN, NULL);
+    results[count++] = muiGlyphAtlas_GetGlyph(atlas, 0, 0, NAN, NAN, NAN, NULL);
     results[count++] =
-        muiGlyphAtlas_GetColor(atlas, 0, 0, NAN, NAN, NAN, 0, (muiLinearColor){0}, NULL);
-    results[count++] = muiGlyphAtlas_GetField(atlas, 0, 0, NAN, 0, NULL);
-    results[count++] = muiGlyphAtlas_GetMultiField(atlas, 0, 0, NAN, 0, NULL);
+        muiGlyphAtlas_GetColorGlyph(atlas, 0, 0, NAN, NAN, NAN, 0, (muiLinearColor){0}, NULL);
+    results[count++] = muiGlyphAtlas_GetGlyphField(atlas, 0, 0, NAN, 0, NULL);
+    results[count++] = muiGlyphAtlas_GetGlyphMultiField(atlas, 0, 0, NAN, 0, NULL);
     results[count++] = muiGlyphAtlas_TakeUpdates(atlas, NULL, 0, NULL);
-    results[count++] = muiRenderGlyph(service, 0, 0, NAN, NAN, NULL, NULL, 0);
-    results[count++] =
-        muiRenderColorGlyph(service, 0, 0, NAN, NAN, 0, (muiLinearColor){0}, NULL, NULL, 0);
-    results[count++] = muiRenderGlyphField(service, 0, 0, NAN, 0, NULL, NULL, 0);
-    results[count++] = muiRenderGlyphMultiField(service, 0, 0, NAN, 0, NULL, NULL, 0);
+    results[count++] = muiTextService_RenderGlyph(service, 0, 0, NAN, NAN, NULL, NULL, 0);
+    results[count++] = muiTextService_RenderColorGlyph(service, 0, 0, NAN, NAN, 0,
+                                                       (muiLinearColor){0}, NULL, NULL, 0);
+    results[count++] = muiTextService_RenderGlyphField(service, 0, 0, NAN, 0, NULL, NULL, 0);
+    results[count++] = muiTextService_RenderGlyphMultiField(service, 0, 0, NAN, 0, NULL, NULL, 0);
     results[count++] = muiCreateTextBlock(service, NULL, NULL);
     results[count++] = muiDestroyTextBlock(service, (muiTextBlockId){0});
     results[count++] = muiTextBlock_SetText(service, (muiTextBlockId){0}, NULL, 0);
     results[count++] = muiTextBlock_Replace(service, (muiTextBlockId){0}, 0, 0, NULL, 0);
     results[count++] = muiTextBlock_SetSpans(service, (muiTextBlockId){0}, NULL, 0);
-    results[count++] = muiSetDefaultFont(service, (muiFontId){0});
-    results[count++] = muiSetFallbackFonts(service, NULL, 0);
-    results[count++] = muiTextHitTest(host, (muiNodeId){0}, NAN, NAN, NAN, NULL);
-    results[count++] = muiTextGetCaret(host, (muiNodeId){0}, NAN, (muiTextPosition){0}, NULL);
-    results[count++] = muiTextGetRangeRects(host, (muiNodeId){0}, NAN, 0, 0, NULL, 0, NULL);
-    results[count++] = muiTextMove(host, (muiNodeId){0}, NAN, (muiTextPosition){0},
-                                   (muiTextMovement){0}, NAN, NULL);
+    results[count++] = muiTextService_SetDefaultFont(service, (muiFontId){0});
+    results[count++] = muiTextService_SetFallbackFonts(service, NULL, 0);
+    results[count++] = muiNode_HitTestText(host, (muiNodeId){0}, NAN, NAN, NAN, NULL);
+    results[count++] = muiNode_GetTextCaret(host, (muiNodeId){0}, NAN, (muiTextPosition){0}, NULL);
+    results[count++] = muiNode_GetTextRangeRects(host, (muiNodeId){0}, NAN, 0, 0, NULL, 0, NULL);
+    results[count++] = muiNode_MoveTextPosition(host, (muiNodeId){0}, NAN, (muiTextPosition){0},
+                                                (muiTextMovement){0}, NAN, NULL);
     results[count++] =
         muiTextBlock_SetComposition(service, (muiTextBlockId){0}, 0, NULL, 0, NULL, 0);
     results[count++] = muiTextBlock_EndComposition(service, (muiTextBlockId){0});
@@ -89,11 +89,11 @@ static int CallAll(muiTextService* service, const muiTextHost* host, muiGlyphAtl
     results[count++] = muiTextBlock_Redo(service, (muiTextBlockId){0}, NULL);
     results[count++] =
         muiTextBlock_Compose(service, (muiTextBlockId){0}, NULL, 0, 0, NULL, 0, NULL);
-    results[count++] = muiTextEditEvent(host, (muiNodeId){0}, NULL, NULL, NULL);
-    results[count++] = muiTextEditMove(host, (muiNodeId){0}, (muiTextMovement){0}, false);
-    results[count++] = muiTextEditPress(host, (muiNodeId){0}, NAN, NAN, 0, false);
-    results[count++] = muiTextEditDrag(host, (muiNodeId){0}, NAN, NAN);
-    results[count++] = muiTextPerformAccessAction(host, NULL, NULL);
+    results[count++] = muiNode_HandleEditEvent(host, (muiNodeId){0}, NULL, NULL, NULL);
+    results[count++] = muiNode_MoveEditCaret(host, (muiNodeId){0}, (muiTextMovement){0}, false);
+    results[count++] = muiNode_HandleEditPress(host, (muiNodeId){0}, NAN, NAN, 0, false);
+    results[count++] = muiNode_HandleEditDrag(host, (muiNodeId){0}, NAN, NAN);
+    results[count++] = muiPerformTextAccessAction(host, NULL, NULL);
     return count;
 }
 
@@ -150,7 +150,7 @@ static void CallBack(Probe* probe)
     probe->armed = false;
     probe->runs++;
     Scene* scene = probe->scene;
-    uint64_t misuse = muiGetTextServiceMisuse(scene->service);
+    uint64_t misuse = muiTextService_GetMisuse(scene->service);
     muiResult results[CALLS];
     int count = CallAll(scene->service, &scene->host, scene->atlas, results);
     bool expected = count == CALLS;
@@ -164,7 +164,7 @@ static void CallBack(Probe* probe)
     }
     if (probe->atlas)
     {
-        muiGlyphAtlas_NextFrame(scene->atlas);
+        muiGlyphAtlas_BeginFrame(scene->atlas);
         muiDestroyGlyphAtlas(scene->atlas);
         refused += 2;
     }
@@ -183,7 +183,7 @@ static void CallBack(Probe* probe)
         refused += 5;
     }
     // The calls not refused as busy refuse their arguments, counted too.
-    expected = expected && muiGetTextServiceMisuse(scene->service) >= misuse + refused;
+    expected = expected && muiTextService_GetMisuse(scene->service) >= misuse + refused;
     probe->expected = probe->expected && expected;
 }
 
@@ -198,11 +198,11 @@ static void ChangeContext(Probe* probe)
     probe->armed = false;
     probe->runs++;
     Scene* scene = probe->scene;
-    uint64_t misuse = muiGetContextMisuse(scene->context);
+    uint64_t misuse = muiContext_GetMisuse(scene->context);
     muiDestroyContext(scene->context);
     muiResult destroyed = muiDestroyNode(scene->context, scene->node);
     probe->expected = probe->expected && destroyed == mui_errorBusy &&
-                      muiGetContextMisuse(scene->context) == misuse + 2;
+                      muiContext_GetMisuse(scene->context) == misuse + 2;
 }
 
 static void* CallingAlloc(size_t size, size_t alignment, void* user)
@@ -243,7 +243,7 @@ static void MakeScene(Scene* scene)
     muiFontId fontId = {0, 0};
     Arm(&scene->alloc, scene, false);
     CHECK(muiCreateFont(scene->service, &font, &fontId) == mui_success &&
-              muiSetDefaultFont(scene->service, fontId) == mui_success,
+              muiTextService_SetDefaultFont(scene->service, fontId) == mui_success,
           "the default font");
     CHECK(scene->alloc.runs == 1 && scene->alloc.expected, "from the allocator while a font opens");
     muiTextBlockDef blockDef = muiDefaultTextBlockDef();
@@ -269,7 +269,7 @@ static void MakeScene(Scene* scene)
           "host content");
     const muiLayoutInput input = {
         1000.0f, 100.0f, muiMeasureText, &scene->host, 0, muiMeasureTextBaseline, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(scene->context, scene->node, &input) == mui_success, "laid out");
+    CHECK(muiNode_ComputeLayout(scene->context, scene->node, &input) == mui_success, "laid out");
     muiGlyphAtlasDef atlasDef = muiDefaultGlyphAtlasDef();
     CHECK(muiCreateGlyphAtlas(scene->service, &atlasDef, &scene->atlas) == mui_success, "atlas");
 }
@@ -329,7 +329,8 @@ static void TestHostCode(void)
     event.key = 'c';
     event.modifiers = mui_modControl;
     muiTextEditOutcome outcome;
-    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+    CHECK(muiNode_HandleEditEvent(&scene.host, scene.node, &event, &input, &outcome) ==
+                  mui_success &&
               outcome.handled && clipboard.writes == 1,
           "copied");
     CHECK(clipboard.probe.runs == 1 && clipboard.probe.expected, "from the clipboard writer");
@@ -345,7 +346,7 @@ static void TestHostCode(void)
     // The allocator while the atlas adds a page for its first glyph.
     Arm(&scene.alloc, &scene, true);
     muiAtlasGlyph glyph;
-    CHECK(muiGlyphAtlas_Get(scene.atlas, 0, 1, 10.0f, 0.0f, 0.0f, &glyph) == mui_success,
+    CHECK(muiGlyphAtlas_GetGlyph(scene.atlas, 0, 1, 10.0f, 0.0f, 0.0f, &glyph) == mui_success,
           "a glyph packed");
     CHECK(scene.alloc.runs == 1 && scene.alloc.expected, "from the allocator in the atlas");
     // Destroying is busy to the end.
@@ -389,30 +390,31 @@ static muiResult CallWithHost(Scene* scene, int call)
     event.length = 1;
     const muiTextEditInput input = {mui_keymapPc, NULL, NULL};
     const muiAccessRequest request = {.action = mui_actionReplaceText,
-                                      .target = muiAccessIdOf(scene->node),
+                                      .target = muiNode_GetAccessId(scene->node),
                                       .focus = 2,
                                       .text = "hello",
                                       .length = 5};
     switch (call)
     {
     case 0:
-        return muiTextHitTest(host, scene->node, 300.0f, 5.0f, 5.0f, &at);
+        return muiNode_HitTestText(host, scene->node, 300.0f, 5.0f, 5.0f, &at);
     case 1:
-        return muiTextGetCaret(host, scene->node, 300.0f, at, &caret);
+        return muiNode_GetTextCaret(host, scene->node, 300.0f, at, &caret);
     case 2:
-        return muiTextGetRangeRects(host, scene->node, 300.0f, 0, 100, rects, 4, &count);
+        return muiNode_GetTextRangeRects(host, scene->node, 300.0f, 0, 100, rects, 4, &count);
     case 3:
-        return muiTextMove(host, scene->node, 300.0f, at, mui_moveNextCluster, 0.0f, &at);
+        return muiNode_MoveTextPosition(host, scene->node, 300.0f, at, mui_moveNextCluster, 0.0f,
+                                        &at);
     case 4:
-        return muiTextEditMove(host, scene->node, mui_moveLeft, false);
+        return muiNode_MoveEditCaret(host, scene->node, mui_moveLeft, false);
     case 5:
-        return muiTextEditPress(host, scene->node, 5.0f, 5.0f, 1, false);
+        return muiNode_HandleEditPress(host, scene->node, 5.0f, 5.0f, 1, false);
     case 6:
-        return muiTextEditDrag(host, scene->node, 5.0f, 5.0f);
+        return muiNode_HandleEditDrag(host, scene->node, 5.0f, 5.0f);
     case 7:
-        return muiTextEditEvent(host, scene->node, &event, &input, &outcome);
+        return muiNode_HandleEditEvent(host, scene->node, &event, &input, &outcome);
     case 8:
-        return muiTextPerformAccessAction(host, &request, &outcome);
+        return muiPerformTextAccessAction(host, &request, &outcome);
     case 9:
         return muiMeasureText(&scene->host, scene->node, key, axis, axis).width > 0.0f
                    ? mui_success
@@ -472,7 +474,8 @@ static void TestContextHeld(void)
     event.key = 'c';
     event.modifiers = mui_modControl;
     muiTextEditOutcome outcome;
-    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+    CHECK(muiNode_HandleEditEvent(&scene.host, scene.node, &event, &input, &outcome) ==
+                  mui_success &&
               clipboard.probe.runs == 1 && clipboard.probe.expected,
           "held from the clipboard writer");
     // Held inside layout too, and still busy once muiMeasureText returns.
@@ -481,7 +484,7 @@ static void TestContextHeld(void)
     scene.hold = (Probe){&scene, false, false, 0, true};
     const muiLayoutInput layout = {
         1000.0f, 100.0f, MeasureThenChange, &scene, 0, muiMeasureTextBaseline, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(scene.context, scene.node, &layout) == mui_success &&
+    CHECK(muiNode_ComputeLayout(scene.context, scene.node, &layout) == mui_success &&
               scene.hold.runs != 0 && scene.hold.expected,
           "busy after muiMeasureText in layout");
     FreeScene(&scene);

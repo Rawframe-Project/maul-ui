@@ -52,12 +52,12 @@ enum
 static int CallAll(muiContext* context, muiResult results[CALLS])
 {
     int count = 0;
-    results[count++] = muiSetAccessTextFunction(context, NULL, NULL);
+    results[count++] = muiContext_SetAccessTextFunction(context, NULL, NULL);
     results[count++] = muiNode_MarkAccessChanged(context, (muiNodeId){0});
-    results[count++] = muiAccess_Enable(context, (muiNodeId){0});
-    results[count++] = muiAccess_Disable(context, (muiNodeId){0});
-    results[count++] = muiBuildAccessUpdate(context, (muiNodeId){0}, NULL);
-    results[count++] = muiPerformAccessAction(context, NULL, NULL);
+    results[count++] = muiNode_EnableAccess(context, (muiNodeId){0}, true);
+    results[count++] = muiNode_EnableAccess(context, (muiNodeId){0}, false);
+    results[count++] = muiNode_BuildAccessUpdate(context, (muiNodeId){0}, NULL);
+    results[count++] = muiContext_PerformAccessAction(context, NULL, NULL);
     results[count++] = muiNode_SetAccessRole(context, (muiNodeId){0}, (muiRole){0});
     results[count++] =
         muiNode_SetAccessText(context, (muiNodeId){0}, (muiAccessTextKind){0}, NULL, 0);
@@ -65,19 +65,19 @@ static int CallAll(muiContext* context, muiResult results[CALLS])
     results[count++] =
         muiNode_SetAccessRelation(context, (muiNodeId){0}, (muiAccessRelation){0}, NULL, 0);
     results[count++] = muiNode_SetAccessValues(context, (muiNodeId){0}, NULL);
-    results[count++] = muiNextNotification(context, NULL);
-    results[count++] = muiBuildDrawList(context, (muiNodeId){0}, NULL);
-    results[count++] = muiSetEventFunction(context, NULL, NULL);
-    results[count++] = muiKeyInput(context, (muiNodeId){0}, NULL, NULL);
-    results[count++] = muiTextInput(context, (muiNodeId){0}, NULL, NULL);
-    results[count++] = muiNavigationInput(context, (muiNodeId){0}, NULL, NULL);
-    results[count++] = muiWheelInput(context, (muiNodeId){0}, NULL, NULL);
-    results[count++] = muiDispatchPointerRecord(context, NULL, NULL);
+    results[count++] = muiContext_TakeNotification(context, NULL);
+    results[count++] = muiNode_BuildDrawList(context, (muiNodeId){0}, NULL);
+    results[count++] = muiContext_SetEventFunction(context, NULL, NULL);
+    results[count++] = muiNode_RouteKey(context, (muiNodeId){0}, NULL, NULL);
+    results[count++] = muiNode_RouteText(context, (muiNodeId){0}, NULL, NULL);
+    results[count++] = muiNode_RouteNavigation(context, (muiNodeId){0}, NULL, NULL);
+    results[count++] = muiNode_RouteWheel(context, (muiNodeId){0}, NULL, NULL);
+    results[count++] = muiContext_DispatchPointerRecord(context, NULL, NULL);
     results[count++] = muiNode_BeginExit(context, (muiNodeId){0});
     results[count++] = muiNode_CancelExit(context, (muiNodeId){0});
-    results[count++] = muiFocus_Set(context, 0, (muiNodeId){0}, (muiFocusCause){0});
-    results[count++] = muiFocus_Move(context, (muiNodeId){0}, 0, false);
-    results[count++] = muiFocus_MoveToward(context, (muiNodeId){0}, 0, (muiDirection){0});
+    results[count++] = muiContext_SetFocus(context, 0, (muiNodeId){0}, (muiFocusCause){0});
+    results[count++] = muiNode_MoveFocus(context, (muiNodeId){0}, 0, false);
+    results[count++] = muiNode_MoveFocusToward(context, (muiNodeId){0}, 0, (muiDirection){0});
     results[count++] =
         muiNode_SetNeighbor(context, (muiNodeId){0}, (muiDirection){0}, (muiNodeId){0});
     results[count++] =
@@ -87,18 +87,18 @@ static int CallAll(muiContext* context, muiResult results[CALLS])
     results[count++] =
         muiNode_SetLayoutValues(context, (muiNodeId){0}, NULL, MUI_LAYOUT_PROPERTIES);
     results[count++] = muiNode_MarkContentChanged(context, (muiNodeId){0});
-    results[count++] = muiComputeLayout(context, (muiNodeId){0}, NULL);
+    results[count++] = muiNode_ComputeLayout(context, (muiNodeId){0}, NULL);
     results[count++] = muiCreateNode(context, NULL, NULL);
     results[count++] = muiDestroyNode(context, (muiNodeId){0});
     results[count++] = muiNode_InsertChild(context, (muiNodeId){0}, (muiNodeId){0}, (muiNodeId){0});
     results[count++] = muiNode_Detach(context, (muiNodeId){0});
-    results[count++] = muiPointerInput(context, (muiNodeId){0}, NULL);
-    results[count++] = muiNextPointerRecord(context, NULL);
-    results[count++] = muiPointer_SetCapture(context, 0, (muiNodeId){0});
-    results[count++] = muiPointer_ReleaseCapture(context, 0);
-    results[count++] = muiSetClickRule(context, 0, NAN);
-    results[count++] = muiPointer_Offer(context, 0, 0, 0);
-    results[count++] = muiSetDragThreshold(context, NAN, NAN);
+    results[count++] = muiNode_RoutePointer(context, (muiNodeId){0}, NULL);
+    results[count++] = muiContext_TakePointerRecord(context, NULL);
+    results[count++] = muiNode_CapturePointer(context, (muiNodeId){0}, 0);
+    results[count++] = muiContext_ReleasePointerCapture(context, 0);
+    results[count++] = muiContext_SetClickRule(context, 0, NAN);
+    results[count++] = muiContext_OfferDrop(context, 0, 0, 0);
+    results[count++] = muiContext_SetDragThreshold(context, NAN, NAN);
     results[count++] = muiNode_SetPopup(context, (muiNodeId){0}, NULL);
     results[count++] = muiNode_ClearPopup(context, (muiNodeId){0});
     results[count++] = muiNode_SetValueRange(context, (muiNodeId){0}, NULL);
@@ -106,8 +106,8 @@ static int CallAll(muiContext* context, muiResult results[CALLS])
     results[count++] = muiNode_ClearValueRange(context, (muiNodeId){0});
     results[count++] = muiNode_SetScroll(context, (muiNodeId){0}, NAN, NAN);
     results[count++] = muiNode_ScrollIntoView(context, (muiNodeId){0});
-    results[count++] = muiSetScrollRule(context, NULL);
-    results[count++] = muiSetContextEnvironment(context, NULL);
+    results[count++] = muiContext_SetScrollRule(context, NULL);
+    results[count++] = muiContext_SetEnvironment(context, NULL);
     results[count++] = muiCreateStyle(context, NULL, NULL);
     results[count++] = muiDestroyStyle(context, (muiStyleId){0});
     results[count++] = muiStyle_SetLayoutValues(context, (muiStyleId){0}, (muiVariant){0}, NULL, 0);
@@ -194,7 +194,7 @@ static void CallBack(Probe* probe)
     probe->armed = false;
     probe->runs++;
     muiContext* context = probe->context;
-    uint64_t misuse = muiGetContextMisuse(context);
+    uint64_t misuse = muiContext_GetMisuse(context);
     muiResult results[CALLS];
     int count = CallAll(context, results);
     int refused = 0;
@@ -206,7 +206,7 @@ static void CallBack(Probe* probe)
         expected = expected && state == (!probe->routing || IsRefusedInRoute(i));
     }
     muiDestroyContext(context);
-    expected = expected && muiGetContextMisuse(context) >= misuse + (uint64_t)refused + 1;
+    expected = expected && muiContext_GetMisuse(context) >= misuse + (uint64_t)refused + 1;
     probe->expected = probe->expected && expected;
 }
 
@@ -293,7 +293,7 @@ static void TestLayout(void)
     muiNodeId root = MakeScene(context, &content);
     Probe probes[2] = {{context, true, false, 0, true}, {context, true, false, 0, true}};
     const muiLayoutInput input = {100.0f, 100.0f, Measure, probes, 0, Baseline, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "laid out");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "laid out");
     CHECK(probes[0].runs == 1 && probes[0].expected, "from the measure function");
     CHECK(probes[1].runs == 1 && probes[1].expected, "from the baseline function");
     CHECK(muiNode_IsValid(context, content) && !muiNode_IsValid(context, s_null),
@@ -318,10 +318,10 @@ static void TestPaint(void)
     muiNodeId content = s_null;
     muiNodeId root = MakeScene(context, &content);
     const muiLayoutInput layout = {100.0f, 100.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &layout) == mui_success, "laid out");
+    CHECK(muiNode_ComputeLayout(context, root, &layout) == mui_success, "laid out");
     Probe probe = {context, true, false, 0, true};
     const muiDrawInput input = {1, 1.0f, Paint, &probe};
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success, "drawn");
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success, "drawn");
     CHECK(probe.runs == 1 && probe.expected, "from the paint function");
     muiDestroyContext(context);
 }
@@ -343,11 +343,11 @@ static void TestAccessText(void)
     muiNodeId content = s_null;
     muiNodeId root = MakeScene(context, &content);
     Probe probe = {context, true, false, 0, true};
-    CHECK(muiSetAccessTextFunction(context, ReadText, &probe) == mui_success &&
-              muiAccess_Enable(context, root) == mui_success,
+    CHECK(muiContext_SetAccessTextFunction(context, ReadText, &probe) == mui_success &&
+              muiNode_EnableAccess(context, root, true) == mui_success,
           "reading");
     muiAccessUpdate update = {0};
-    CHECK(muiBuildAccessUpdate(context, root, &update) == mui_success, "built");
+    CHECK(muiNode_BuildAccessUpdate(context, root, &update) == mui_success, "built");
     CHECK(probe.runs == 1 && probe.expected, "from the access text function");
     muiDestroyContext(context);
 }
@@ -436,10 +436,10 @@ static void TestEventFunction(void)
     muiNodeId root = MakeScene(context, &content);
     Routing routing = {
         {context, true, true, 0, true}, &calling, content, mui_errorInvalid, mui_errorInvalid};
-    CHECK(muiSetEventFunction(context, Route, &routing) == mui_success, "listening");
+    CHECK(muiContext_SetEventFunction(context, Route, &routing) == mui_success, "listening");
     const muiNavigationEvent activate = {0, mui_navigateActivate, 0};
     bool handled = false;
-    CHECK(muiNavigationInput(context, root, &activate, &handled) == mui_success && handled,
+    CHECK(muiNode_RouteNavigation(context, root, &activate, &handled) == mui_success && handled,
           "routed");
     CHECK(routing.edit == mui_success && routing.nested == mui_success,
           "the event function edits the tree");

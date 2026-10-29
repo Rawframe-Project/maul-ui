@@ -20,10 +20,10 @@ Each line is read as boxes of grapheme clusters left to right, from the glyphs p
 
 ## Hit testing, carets and moves
 
-- `muiTextHitTest` finds the line at a point's y and the nearer edge of the box at its x.
-- `muiTextGetCaret` gives the edge of a position's box: leading for downstream, trailing for upstream.
-- `muiTextGetRangeRects` gives a rectangle for each stretch of boxes in a range, so a range across a change of direction is several rectangles.
-- `muiTextMove` moves a position ([text_move.c](../../src/text_move.c)): to the next or previous grapheme cluster boundary in the text; a cluster left or right on screen, crossing to the next line or the one before as the paragraph's direction has it; to the start or end of a word (a UAX #29 word segment with a letter or a number); to its line's start or end; up or down a line at an x the caller keeps; or to the text's start or end.
+- `muiNode_HitTestText` finds the line at a point's y and the nearer edge of the box at its x.
+- `muiNode_GetTextCaret` gives the edge of a position's box: leading for downstream, trailing for upstream.
+- `muiNode_GetTextRangeRects` gives a rectangle for each stretch of boxes in a range, so a range across a change of direction is several rectangles.
+- `muiNode_MoveTextPosition` moves a position ([text_move.c](../../src/text_move.c)): to the next or previous grapheme cluster boundary in the text; a cluster left or right on screen, crossing to the next line or the one before as the paragraph's direction has it; to the start or end of a word (a UAX #29 word segment with a letter or a number); to its line's start or end; up or down a line at an x the caller keeps; or to the text's start or end.
 
 ## Deletion
 
@@ -33,7 +33,7 @@ Each line is read as boxes of grapheme clusters left to right, from the glyphs p
 
 Compositions live in the block's text, as browsers and platform controls keep them, so they shape, wrap and reorder with the text around them. `muiTextBlock_SetComposition` replaces the composition, or inserts one at an offset, with the method's text and its styled segments; an empty text removes it. `muiTextBlock_EndComposition` keeps its text as typed. For an editing block that is a change made outside the editor, as the history never recorded it, so it empties the undo history (below); a host that wants the commit undoable takes the composition out with `muiTextBlock_Compose` and types what the method commits. A replacement before or after a composition moves it, and one over it ends it.
 
-Painting underlines a composition after the glyphs, where an underline goes: thin for underlined and converted segments, twice as thick for the target, none for plain, and the whole composition thin when it has no segments. The host maps its window library's compositions to segments and gives the platform the caret rectangle from `muiTextGetCaret` for the candidate window.
+Painting underlines a composition after the glyphs, where an underline goes: thin for underlined and converted segments, twice as thick for the target, none for plain, and the whole composition thin when it has no segments. The host maps its window library's compositions to segments and gives the platform the caret rectangle from `muiNode_GetTextCaret` for the candidate window.
 
 ## The editor
 
@@ -43,7 +43,7 @@ A block opted into editing with a field's rules (`muiTextBlock_SetEditing`: mult
 - **Undo** takes typing back a word at a time, a run of backspaces or of forward deletions whole, as AppKit does, and anything else alone ([text_history.c](../../src/text_history.c)). An edit after undoing drops what was undone, the oldest past the limit goes, and text changed outside the editor empties the history.
 - **Ill-formed bytes.** Each maximal ill-formed subpart of the text is one character, a U+FFFD, so bytes an edit puts beside others can join them into one: a lead byte typed before continuation bytes, or a deletion that brings a truncated sequence and its continuation together. The caret goes after that character, as typing leaves it after what was typed, never inside it, and so does a composition's caret at its end, and the caret an edit leaves where it takes a composition out, since the bytes on the composition's two sides then meet. The history keeps that place for redo, and the run of typing or deleting ends there, so each undo gives back the exact text with the caret on a character's start ([text_editing.c](../../src/text_editing.c)).
 - **Selection by pointer.** One, two and three clicks select an edge, a word and a paragraph, and a drag extends by that unit. A move without Shift over a selection collapses it toward the edge it goes.
-- **Events.** `muiTextEditEvent` takes a listener's events: typed text types; keys act by a keymap (`mui_keymapPc` after Windows and the Linux toolkits, `mui_keymapMac` after AppKit's standard bindings, shortcuts wanting exactly their modifier so AltGr still types); and a first-button press places the selection by its click count ([text_keys.c](../../src/text_keys.c)).
+- **Events.** `muiNode_HandleEditEvent` takes a listener's events: typed text types; keys act by a keymap (`mui_keymapPc` after Windows and the Linux toolkits, `mui_keymapMac` after AppKit's standard bindings, shortcuts wanting exactly their modifier so AltGr still types); and a first-button press places the selection by its click count ([text_keys.c](../../src/text_keys.c)).
 - **Clipboard.** Copies and cuts go to a host function, and a password copies nothing. A paste is asked of the host, whose clipboard may answer later, and arrives as `muiTextBlock_Paste`.
 - **Compositions** go through `muiTextBlock_Compose`: shown at the caret, replacing a selection as an edit, taken out by empty text with the commit arriving as typing. Undo waits until a composition ends, and an edit while one shows takes it out first. One kept by `muiTextBlock_EndComposition` instead empties the history, as text changed outside the editor.
 - **On-screen keyboards.** A field's rules name what it takes (`muiInputPurpose`: text, email, URL and so on), a password's and a number filter's own purposes first, with the values of Maul Window's.

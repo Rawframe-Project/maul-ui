@@ -1272,7 +1272,7 @@ int main(void)
     static Built s_built;
     muiAccessUpdate update = Build(&s_built);
     CHECK(muiUiaAdapter_Apply(s_program.adapter, &update) == mui_success &&
-              muiAccessTree_Count(muiUiaAdapter_GetTree(s_program.adapter)) == 12,
+              muiAccessTree_GetNodeCount(muiUiaAdapter_GetTree(s_program.adapter)) == 12,
           "the tree");
     s_program.removal = CreateEventW(NULL, TRUE, FALSE, NULL);
     s_program.change = CreateEventW(NULL, TRUE, FALSE, NULL);
@@ -1287,8 +1287,8 @@ int main(void)
         CloseHandle(client);
     }
     CHECK(s_program.actions > 0 && s_program.refused == s_program.actions &&
-              muiGetUiaAdapterMisuse(s_program.adapter) >= (uint64_t)s_program.actions &&
-              muiGetUiaAdapterMisuse(NULL) == 0,
+              muiUiaAdapter_GetMisuse(s_program.adapter) >= (uint64_t)s_program.actions &&
+              muiUiaAdapter_GetMisuse(NULL) == 0,
           "every action's call back into the adapter refused and counted");
     muiUiaAdapter* adapter = s_program.adapter;
     s_program.adapter = NULL;

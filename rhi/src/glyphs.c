@@ -69,7 +69,7 @@ void muiRhiNextGlyphFrame(muiRhiGlyphs* glyphs)
 {
     for (uint32_t atlas = 0; atlas < MUI_RHI_ATLASES; atlas++)
     {
-        muiGlyphAtlas_NextFrame(glyphs->atlases[atlas]);
+        muiGlyphAtlas_BeginFrame(glyphs->atlases[atlas]);
     }
 }
 
@@ -118,8 +118,8 @@ bool muiRhiGetGlyph(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixe
     muiGlyphAtlas* atlas = glyphs->atlases[COVERAGE];
     return atlas != nullptr &&
            Found(glyphs, COVERAGE,
-                 muiGlyphAtlas_Get(atlas, font, id, pixelSize, penX, baselineY, &glyph), &glyph,
-                 glyphOut);
+                 muiGlyphAtlas_GetGlyph(atlas, font, id, pixelSize, penX, baselineY, &glyph),
+                 &glyph, glyphOut);
 }
 
 bool muiRhiGetGlyphField(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixelSize,
@@ -129,8 +129,8 @@ bool muiRhiGetGlyphField(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float
     muiGlyphAtlas* atlas = glyphs->atlases[FIELDS];
     return atlas != nullptr &&
            Found(glyphs, FIELDS,
-                 muiGlyphAtlas_GetMultiField(atlas, font, id, pixelSize, spread, &glyph), &glyph,
-                 glyphOut);
+                 muiGlyphAtlas_GetGlyphMultiField(atlas, font, id, pixelSize, spread, &glyph),
+                 &glyph, glyphOut);
 }
 
 muiResult muiRhiGetColorGlyph(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixelSize,
@@ -143,8 +143,8 @@ muiResult muiRhiGetColorGlyph(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, 
     {
         return mui_errorInvalid;
     }
-    muiResult got =
-        muiGlyphAtlas_GetColor(atlas, font, id, pixelSize, penX, baselineY, 0, foreground, &glyph);
+    muiResult got = muiGlyphAtlas_GetColorGlyph(atlas, font, id, pixelSize, penX, baselineY, 0,
+                                                foreground, &glyph);
     if (got == mui_empty)
     {
         return mui_empty;

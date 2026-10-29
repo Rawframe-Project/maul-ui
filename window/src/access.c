@@ -94,7 +94,8 @@ static bool Act(void* user, const muiAccessRequest* request)
         return access->action(access->user, request);
     }
     bool handled = false;
-    return muiPerformAccessAction(access->glue->context, request, &handled) == mui_success &&
+    return muiContext_PerformAccessAction(access->glue->context, request, &handled) ==
+               mui_success &&
            handled;
 }
 
@@ -355,7 +356,7 @@ muiResult muiCreateWindowAccess(const muiWindowAccessDef* def, muiWindowAccess**
         .action = def->action,
         .user = def->user,
     };
-    muiResult status = muiAccess_Enable(glue->context, glue->root);
+    muiResult status = muiNode_EnableAccess(glue->context, glue->root, true);
     if (status != mui_success)
     {
         muiWindowRelease(&def->allocator, access, sizeof(muiWindowAccess),
@@ -365,7 +366,7 @@ muiResult muiCreateWindowAccess(const muiWindowAccessDef* def, muiWindowAccess**
     status = MakeAdapter(access, def, &handles);
     if (status != mui_success)
     {
-        (void)muiAccess_Disable(glue->context, glue->root);
+        (void)muiNode_EnableAccess(glue->context, glue->root, false);
         muiWindowRelease(&def->allocator, access, sizeof(muiWindowAccess),
                          alignof(muiWindowAccess));
         return status;
@@ -389,7 +390,7 @@ void muiDestroyWindowAccess(muiWindowAccess* access)
         (void)mwinRequestAccessibilityRoot(glue->windows, glue->window, nullptr, nullptr);
     }
     DestroyAdapter(access);
-    (void)muiAccess_Disable(glue->context, glue->root);
+    (void)muiNode_EnableAccess(glue->context, glue->root, false);
     muiAllocator allocator = access->allocator;
     muiWindowRelease(&allocator, access, sizeof(muiWindowAccess), alignof(muiWindowAccess));
 }
@@ -447,7 +448,7 @@ muiResult muiWindowAccess_Update(muiWindowAccess* access)
     }
     const muiWindowGlue* glue = access->glue;
     muiAccessUpdate update;
-    muiResult status = muiBuildAccessUpdate(glue->context, glue->root, &update);
+    muiResult status = muiNode_BuildAccessUpdate(glue->context, glue->root, &update);
     void* root = nullptr;
     status = status == mui_success ? Apply(access, &update, &root) : status;
     if (status != mui_success || root == access->root)
@@ -536,7 +537,7 @@ const muiAccessTree* muiWindowAccess_GetTree(const muiWindowAccess* access)
     }
 }
 
-bool muiWindowAccess_HasAdapter(const muiWindowAccess* access)
+bool muiWindowAccess_IsAdapterCreated(const muiWindowAccess* access)
 {
     return access != nullptr && access->kind != kind_tree;
 }

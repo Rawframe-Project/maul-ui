@@ -160,7 +160,7 @@ static void MakeScene(Scene* scene)
     CHECK(muiCreateContext(&contextDef, &scene->context) == mui_success &&
               muiCreateTextService(&serviceDef, &scene->service) == mui_success &&
               muiCreateFont(scene->service, &font, &fontId) == mui_success &&
-              muiSetDefaultFont(scene->service, fontId) == mui_success,
+              muiTextService_SetDefaultFont(scene->service, fontId) == mui_success,
           "a context, a service and a font");
     scene->host = (muiTextHost){scene->service, scene->context};
     muiContext* context = scene->context;
@@ -208,15 +208,15 @@ static void Frame(Scene* scene)
     const muiLayoutInput layoutInput = {400.0f,        300.0f,  muiMeasureText, &scene->host,
                                         scene->timeNs, nullptr, {0, 0, 0, 0}};
     const muiDrawInput drawInput = {1, 1.0f, muiPaintText, &scene->host};
-    CHECK(muiComputeLayout(scene->context, scene->root, &layoutInput) == mui_success &&
-              muiBuildDrawList(scene->context, scene->root, &drawInput) == mui_success,
+    CHECK(muiNode_ComputeLayout(scene->context, scene->root, &layoutInput) == mui_success &&
+              muiNode_BuildDrawList(scene->context, scene->root, &drawInput) == mui_success,
           "a frame");
     muiPointerRecord record;
-    while (muiNextPointerRecord(scene->context, &record) == mui_success)
+    while (muiContext_TakePointerRecord(scene->context, &record) == mui_success)
     {
     }
     muiNotification notification;
-    while (muiNextNotification(scene->context, &notification) == mui_success)
+    while (muiContext_TakeNotification(scene->context, &notification) == mui_success)
     {
     }
 }
@@ -232,7 +232,7 @@ static void Step(Scene* scene, uint32_t i)
                             .action = mui_pointerMove,
                             .x = 20.0f + (float)(i % 5) * 30.0f,
                             .y = 60.0f + (float)(i * 7 % 140)};
-    CHECK(muiPointerInput(context, scene->root, &move) == mui_success, "a move");
+    CHECK(muiNode_RoutePointer(context, scene->root, &move) == mui_success, "a move");
     if (i % 10 == 0)
     {
         muiPointerEvent press = move;
@@ -240,18 +240,19 @@ static void Step(Scene* scene, uint32_t i)
         press.buttons = 1;
         muiPointerEvent release = move;
         release.action = mui_pointerRelease;
-        CHECK(muiPointerInput(context, scene->root, &press) == mui_success &&
-                  muiPointerInput(context, scene->root, &release) == mui_success,
+        CHECK(muiNode_RoutePointer(context, scene->root, &press) == mui_success &&
+                  muiNode_RoutePointer(context, scene->root, &release) == mui_success,
               "a click");
     }
     const muiWheelEvent wheel = {
         .timeNs = scene->timeNs, .x = 50.0f, .y = 120.0f, .deltaY = i % 8 < 4 ? 12.0f : -12.0f};
     const muiNavigationEvent next = {.timeNs = scene->timeNs, .action = mui_navigateNext};
-    CHECK(muiWheelInput(context, scene->root, &wheel, &handled) == mui_success &&
-              muiNavigationInput(context, scene->root, &next, &handled) == mui_success,
+    CHECK(muiNode_RouteWheel(context, scene->root, &wheel, &handled) == mui_success &&
+              muiNode_RouteNavigation(context, scene->root, &next, &handled) == mui_success,
           "a wheel and a tab");
-    CHECK(muiTextEditMove(&scene->host, scene->field, i % 2 == 0 ? mui_moveLeft : mui_moveRight,
-                          i % 4 == 0) == mui_success,
+    CHECK(muiNode_MoveEditCaret(&scene->host, scene->field,
+                                i % 2 == 0 ? mui_moveLeft : mui_moveRight,
+                                i % 4 == 0) == mui_success,
           "the caret moved");
     Frame(scene);
 }

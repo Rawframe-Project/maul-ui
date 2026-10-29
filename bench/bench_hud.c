@@ -9,7 +9,7 @@
 // 250 ms. A frame is a layout and a draw list. Prints the median, 99th
 // percentile and worst frame in microseconds over 2,000 frames, and per
 // frame the nodes styled, sizes solved, host measures and nodes painted
-// (muiGetWorkCounts), which do not depend on the machine.
+// (muiContext_GetWorkCounts), which do not depend on the machine.
 
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
@@ -268,13 +268,13 @@ int main(void)
         const muiLayoutInput input = {
             1280.0f, 720.0f, MeasureLabel, NULL, (uint64_t)frame * 8333333ull, NULL, {0, 0, 0, 0}};
         double start = Seconds();
-        Check(muiComputeLayout(hud.context, hud.root, &input), "layout");
-        Check(muiBuildDrawList(hud.context, hud.root, &draw), "draw");
+        Check(muiNode_ComputeLayout(hud.context, hud.root, &input), "layout");
+        Check(muiNode_BuildDrawList(hud.context, hud.root, &draw), "draw");
         double elapsed = (Seconds() - start) * 1e6;
         // The first frame lays everything out, and is not counted.
         if (frame == 0)
         {
-            before = muiGetWorkCounts(hud.context);
+            before = muiContext_GetWorkCounts(hud.context);
         }
         else
         {
@@ -282,7 +282,7 @@ int main(void)
         }
         Change(&hud, frame, &state);
     }
-    muiWorkCounts after = muiGetWorkCounts(hud.context);
+    muiWorkCounts after = muiContext_GetWorkCounts(hud.context);
     qsort(frames, FRAMES, sizeof(double), Ascending);
     printf("hud, %u panels of %u rows, %u changes a frame, a panel eased every 30 frames:\n",
            PANELS, ROWS, CHANGES);

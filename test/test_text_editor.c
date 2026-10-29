@@ -52,7 +52,7 @@ static Scene MakeScene(const char* text, muiTextEditFlags flags)
     font.size = sizeof s_ahem;
     muiFontId fontId = {0, 0};
     CHECK(muiCreateFont(scene.service, &font, &fontId) == mui_success &&
-              muiSetDefaultFont(scene.service, fontId) == mui_success,
+              muiTextService_SetDefaultFont(scene.service, fontId) == mui_success,
           "the default font");
     muiContextDef context = muiDefaultContextDef();
     CHECK(muiCreateContext(&context, &scene.context) == mui_success, "context");
@@ -91,7 +91,7 @@ static void Layout(Scene* scene)
     const muiLayoutInput layout = {1000.0f, 1000.0f, muiMeasureText, &scene->host,
                                    0,       NULL,    {0, 0, 0, 0}};
     CHECK(muiNode_MarkContentChanged(scene->context, scene->node) == mui_success &&
-              muiComputeLayout(scene->context, scene->node, &layout) == mui_success,
+              muiNode_ComputeLayout(scene->context, scene->node, &layout) == mui_success,
           "laid out");
 }
 
@@ -424,7 +424,7 @@ static void TestParagraphSeparators(void)
                             "c",
                             mui_editMultiline);
     Layout(&scene);
-    CHECK(muiTextEditPress(&scene.host, scene.node, 1.0f, 5.0f, 3, false) == mui_success &&
+    CHECK(muiNode_HandleEditPress(&scene.host, scene.node, 1.0f, 5.0f, 3, false) == mui_success &&
               Selects(&scene, 0, 8),
           "a triple click: a, the euro sign, the dagger and b, up to the line separator");
     FreeScene(&scene);
@@ -574,7 +574,7 @@ static void TestDragAfterAnEdit(void)
 {
     Scene scene = MakeScene("ab cd\nef gh", mui_editMultiline);
     Layout(&scene);
-    CHECK(muiTextEditPress(&scene.host, scene.node, 15.0f, 15.0f, 3, false) == mui_success &&
+    CHECK(muiNode_HandleEditPress(&scene.host, scene.node, 15.0f, 15.0f, 3, false) == mui_success &&
               Selects(&scene, 6, 11),
           "a triple click, the second paragraph");
     Select(&scene, 0, 11);
@@ -584,7 +584,7 @@ static void TestDragAfterAnEdit(void)
               changed,
           "all of it erased");
     Layout(&scene);
-    CHECK(muiTextEditDrag(&scene.host, scene.node, 5.0f, 5.0f) == mui_success &&
+    CHECK(muiNode_HandleEditDrag(&scene.host, scene.node, 5.0f, 5.0f) == mui_success &&
               Selects(&scene, 0, 0),
           "a drag in the empty text");
     FreeScene(&scene);
@@ -597,48 +597,51 @@ static void TestPointer(void)
     Scene scene = MakeScene("ab cd\nef gh", mui_editMultiline);
     Layout(&scene);
     const muiTextHost* host = &scene.host;
-    CHECK(muiTextEditPress(host, scene.node, 21.0f, 5.0f, 1, false) == mui_success &&
+    CHECK(muiNode_HandleEditPress(host, scene.node, 21.0f, 5.0f, 1, false) == mui_success &&
               Selects(&scene, 2, 2),
           "a click between b and the space");
-    CHECK(muiTextEditDrag(host, scene.node, 41.0f, 5.0f) == mui_success && Selects(&scene, 2, 4),
+    CHECK(muiNode_HandleEditDrag(host, scene.node, 41.0f, 5.0f) == mui_success &&
+              Selects(&scene, 2, 4),
           "dragged a cluster at a time");
-    CHECK(muiTextEditPress(host, scene.node, 35.0f, 5.0f, 2, false) == mui_success &&
+    CHECK(muiNode_HandleEditPress(host, scene.node, 35.0f, 5.0f, 2, false) == mui_success &&
               Selects(&scene, 3, 5),
           "a double click, a word");
-    CHECK(muiTextEditDrag(host, scene.node, 5.0f, 5.0f) == mui_success && Selects(&scene, 5, 0),
+    CHECK(muiNode_HandleEditDrag(host, scene.node, 5.0f, 5.0f) == mui_success &&
+              Selects(&scene, 5, 0),
           "dragged back by words, keeping the first");
-    CHECK(muiTextEditDrag(host, scene.node, 31.0f, 5.0f) == mui_success && Selects(&scene, 3, 5),
+    CHECK(muiNode_HandleEditDrag(host, scene.node, 31.0f, 5.0f) == mui_success &&
+              Selects(&scene, 3, 5),
           "back to the word's start, the word again");
-    CHECK(muiTextEditPress(host, scene.node, 29.0f, 5.0f, 2, false) == mui_success &&
+    CHECK(muiNode_HandleEditPress(host, scene.node, 29.0f, 5.0f, 2, false) == mui_success &&
               Selects(&scene, 3, 5),
           "a double click at a word's start, that word");
-    CHECK(muiTextEditPress(host, scene.node, 15.0f, 15.0f, 3, false) == mui_success &&
+    CHECK(muiNode_HandleEditPress(host, scene.node, 15.0f, 15.0f, 3, false) == mui_success &&
               Selects(&scene, 6, 11),
           "a triple click, the second paragraph");
-    CHECK(muiTextEditPress(host, scene.node, 11.0f, 15.0f, 4, false) == mui_success &&
+    CHECK(muiNode_HandleEditPress(host, scene.node, 11.0f, 15.0f, 4, false) == mui_success &&
               Selects(&scene, 7, 7),
           "a fourth, one again");
-    CHECK(muiTextEditPress(host, scene.node, 1.0f, 5.0f, 1, true) == mui_success &&
+    CHECK(muiNode_HandleEditPress(host, scene.node, 1.0f, 5.0f, 1, true) == mui_success &&
               Selects(&scene, 7, 0),
           "Shift and a press extend from the anchor");
-    CHECK(muiTextEditPress(host, scene.node, NAN, 5.0f, 1, false) == mui_errorInvalid &&
-              muiTextEditPress(host, scene.node, 1.0f, 5.0f, 0, false) == mui_errorInvalid,
+    CHECK(muiNode_HandleEditPress(host, scene.node, NAN, 5.0f, 1, false) == mui_errorInvalid &&
+              muiNode_HandleEditPress(host, scene.node, 1.0f, 5.0f, 0, false) == mui_errorInvalid,
           "no point, no click");
     Select(&scene, 1, 4);
-    CHECK(muiTextEditMove(host, scene.node, mui_moveLeft, false) == mui_success &&
+    CHECK(muiNode_MoveEditCaret(host, scene.node, mui_moveLeft, false) == mui_success &&
               Selects(&scene, 1, 1),
           "left collapses to the left edge");
     Select(&scene, 4, 1);
-    CHECK(muiTextEditMove(host, scene.node, mui_moveRight, false) == mui_success &&
+    CHECK(muiNode_MoveEditCaret(host, scene.node, mui_moveRight, false) == mui_success &&
               Selects(&scene, 4, 4),
           "right to the right edge");
-    CHECK(muiTextEditMove(host, scene.node, mui_moveRight, true) == mui_success &&
+    CHECK(muiNode_MoveEditCaret(host, scene.node, mui_moveRight, true) == mui_success &&
               Selects(&scene, 4, 5),
           "Shift extends");
-    CHECK(muiTextEditMove(host, scene.node, mui_moveLineDown, false) == mui_success &&
+    CHECK(muiNode_MoveEditCaret(host, scene.node, mui_moveLineDown, false) == mui_success &&
               Selects(&scene, 11, 11),
           "down a line, at the same x");
-    CHECK(muiTextEditMove(host, scene.node, 13, false) == mui_errorInvalid, "out of range");
+    CHECK(muiNode_MoveEditCaret(host, scene.node, 13, false) == mui_errorInvalid, "out of range");
     FreeScene(&scene);
 }
 
@@ -669,7 +672,8 @@ static muiTextEditOutcome Key(Scene* scene, muiKeymap keymap, Clipboard* clipboa
     event.modifiers = modifiers;
     const muiTextEditInput input = {keymap, WriteClipboard, clipboard};
     muiTextEditOutcome outcome = {true, true, true, true};
-    CHECK(muiTextEditEvent(&scene->host, scene->node, &event, &input, &outcome) == mui_success,
+    CHECK(muiNode_HandleEditEvent(&scene->host, scene->node, &event, &input, &outcome) ==
+              mui_success,
           "an event");
     return outcome;
 }
@@ -865,12 +869,14 @@ static void TestDragAndEmpty(void)
     event.kind = mui_eventPointer;
     event.pointer = &record;
     muiTextEditOutcome outcome;
-    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+    CHECK(muiNode_HandleEditEvent(&scene.host, scene.node, &event, &input, &outcome) ==
+                  mui_success &&
               outcome.handled && Selects(&scene, 0, 0),
           "a press");
     record.kind = mui_pointerRecordDragMove;
     record.x = 31.0f;
-    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+    CHECK(muiNode_HandleEditEvent(&scene.host, scene.node, &event, &input, &outcome) ==
+                  mui_success &&
               outcome.handled && Selects(&scene, 0, 3),
           "a drag extends");
     FreeScene(&scene);
@@ -878,15 +884,16 @@ static void TestDragAndEmpty(void)
     Layout(&scene);
     muiTextCaret caret;
     muiTextPosition at = {5, 0};
-    CHECK(muiTextGetCaret(&scene.host, scene.node, 1000.0f, (muiTextPosition){0, 0}, &caret) ==
+    CHECK(muiNode_GetTextCaret(&scene.host, scene.node, 1000.0f, (muiTextPosition){0, 0}, &caret) ==
                   mui_success &&
               caret.x == 0.0f &&
-              muiTextHitTest(&scene.host, scene.node, 1000.0f, 15.0f, 5.0f, &at) == mui_success &&
+              muiNode_HitTestText(&scene.host, scene.node, 1000.0f, 15.0f, 5.0f, &at) ==
+                  mui_success &&
               at.offset == 0,
           "an empty password: the caret and a hit at its start");
     Type(&scene, "a");
     Layout(&scene);
-    CHECK(muiTextGetCaret(&scene.host, scene.node, 1000.0f, (muiTextPosition){1, 0}, &caret) ==
+    CHECK(muiNode_GetTextCaret(&scene.host, scene.node, 1000.0f, (muiTextPosition){1, 0}, &caret) ==
                   mui_success &&
               caret.x == 10.0f,
           "a bullet once typed");
@@ -910,16 +917,19 @@ static void TestEvents(void)
     event.text = "word";
     event.length = 4;
     muiTextEditOutcome outcome;
-    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+    CHECK(muiNode_HandleEditEvent(&scene.host, scene.node, &event, &input, &outcome) ==
+                  mui_success &&
               outcome.handled && outcome.changed && Holds(&scene, "word"),
           "typed text");
     event.text = "\t";
     event.length = 1;
-    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+    CHECK(muiNode_HandleEditEvent(&scene.host, scene.node, &event, &input, &outcome) ==
+                  mui_success &&
               !outcome.handled && Holds(&scene, "word"),
           "a tab left to focus");
     event.text = "\x7F";
-    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+    CHECK(muiNode_HandleEditEvent(&scene.host, scene.node, &event, &input, &outcome) ==
+                  mui_success &&
               !outcome.handled && Holds(&scene, "word"),
           "DEL left to the keys");
     muiPointerRecord record = {0};
@@ -930,20 +940,24 @@ static void TestEvents(void)
     event = (muiEvent){0};
     event.kind = mui_eventPointer;
     event.pointer = &record;
-    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+    CHECK(muiNode_HandleEditEvent(&scene.host, scene.node, &event, &input, &outcome) ==
+                  mui_success &&
               outcome.handled && Selects(&scene, 0, 4),
           "a double press");
     record.button = 2;
     record.clickCount = 1;
-    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+    CHECK(muiNode_HandleEditEvent(&scene.host, scene.node, &event, &input, &outcome) ==
+                  mui_success &&
               !outcome.handled && Selects(&scene, 0, 4),
           "a secondary press left to the host");
     record.kind = mui_pointerRecordRelease;
-    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &input, &outcome) == mui_success &&
+    CHECK(muiNode_HandleEditEvent(&scene.host, scene.node, &event, &input, &outcome) ==
+                  mui_success &&
               !outcome.handled,
           "a release not taken");
     const muiTextEditInput bad = {2, NULL, NULL};
-    CHECK(muiTextEditEvent(&scene.host, scene.node, &event, &bad, &outcome) == mui_errorInvalid,
+    CHECK(muiNode_HandleEditEvent(&scene.host, scene.node, &event, &bad, &outcome) ==
+              mui_errorInvalid,
           "a keymap out of range");
     FreeScene(&scene);
 }
@@ -1014,33 +1028,34 @@ static void TestPassword(void)
     Layout(&scene);
     const muiTextHost* host = &scene.host;
     muiTextPosition at = {0, 0};
-    CHECK(muiTextHitTest(host, scene.node, 1000.0f, 31.0f, 5.0f, &at) == mui_success &&
+    CHECK(muiNode_HitTestText(host, scene.node, 1000.0f, 31.0f, 5.0f, &at) == mui_success &&
               at.offset == 3,
           "a hit between the third and fourth bullets, before c");
-    CHECK(muiTextHitTest(host, scene.node, 1000.0f, 49.0f, 5.0f, &at) == mui_success &&
+    CHECK(muiNode_HitTestText(host, scene.node, 1000.0f, 49.0f, 5.0f, &at) == mui_success &&
               at.offset == 7,
           "past the last bullet, the text's end");
     muiTextCaret caret;
-    CHECK(muiTextGetCaret(host, scene.node, 1000.0f, (muiTextPosition){4, 0}, &caret) ==
+    CHECK(muiNode_GetTextCaret(host, scene.node, 1000.0f, (muiTextPosition){4, 0}, &caret) ==
                   mui_success &&
               caret.x == 40.0f,
           "a caret before e, after four bullets");
     muiRect rect;
     uint32_t count = 0;
-    CHECK(muiTextGetRangeRects(host, scene.node, 1000.0f, 3, 7, &rect, 1, &count) == mui_success &&
+    CHECK(muiNode_GetTextRangeRects(host, scene.node, 1000.0f, 3, 7, &rect, 1, &count) ==
+                  mui_success &&
               count == 1 && rect.x == 30.0f && rect.width == 20.0f,
           "the last two clusters as two bullets");
-    CHECK(muiTextMove(host, scene.node, 1000.0f, (muiTextPosition){0, 0}, mui_moveNextWordEnd, 0.0f,
-                      &at) == mui_success &&
+    CHECK(muiNode_MoveTextPosition(host, scene.node, 1000.0f, (muiTextPosition){0, 0},
+                                   mui_moveNextWordEnd, 0.0f, &at) == mui_success &&
               at.offset == 7 &&
-              muiTextMove(host, scene.node, 1000.0f, (muiTextPosition){4, 0},
-                          mui_movePreviousWordStart, 0.0f, &at) == mui_success &&
+              muiNode_MoveTextPosition(host, scene.node, 1000.0f, (muiTextPosition){4, 0},
+                                       mui_movePreviousWordStart, 0.0f, &at) == mui_success &&
               at.offset == 0 &&
-              muiTextMove(host, scene.node, 1000.0f, (muiTextPosition){0, 0}, mui_moveRight, 0.0f,
-                          &at) == mui_success &&
+              muiNode_MoveTextPosition(host, scene.node, 1000.0f, (muiTextPosition){0, 0},
+                                       mui_moveRight, 0.0f, &at) == mui_success &&
               at.offset == 1,
           "words to the ends, clusters one at a time");
-    CHECK(muiTextEditPress(host, scene.node, 15.0f, 5.0f, 2, false) == mui_success &&
+    CHECK(muiNode_HandleEditPress(host, scene.node, 15.0f, 5.0f, 2, false) == mui_success &&
               Selects(&scene, 0, 7),
           "a double click, the whole password");
     muiAccessContent content;
@@ -1064,7 +1079,7 @@ static void TestPassword(void)
     Select(&scene, 7, 7);
     Type(&scene, "d");
     Layout(&scene);
-    CHECK(muiTextGetCaret(host, scene.node, 1000.0f, (muiTextPosition){8, 0}, &caret) ==
+    CHECK(muiNode_GetTextCaret(host, scene.node, 1000.0f, (muiTextPosition){8, 0}, &caret) ==
                   mui_success &&
               caret.x == 60.0f,
           "a sixth bullet for what was typed");
@@ -1237,8 +1252,8 @@ static float FirstGlyphX(Scene* scene)
 {
     const muiDrawInput input = {1, 1.0f, muiPaintText, &scene->host};
     muiDrawList list = {0};
-    CHECK(muiBuildDrawList(scene->context, scene->node, &input) == mui_success &&
-              muiGetDrawList(scene->context, &list) == mui_success && list.glyphCount != 0,
+    CHECK(muiNode_BuildDrawList(scene->context, scene->node, &input) == mui_success &&
+              muiContext_GetDrawList(scene->context, &list) == mui_success && list.glyphCount != 0,
           "painted");
     return list.glyphCount != 0 ? list.glyphs[0].x : NAN;
 }
@@ -1252,32 +1267,33 @@ static void TestScroll(void)
     Size(&scene, 50.0f, 10.0f);
     const muiTextHost* host = &scene.host;
     muiTextCaret caret;
-    CHECK(muiTextGetCaret(host, scene.node, 50.0f, (muiTextPosition){8, 0}, &caret) ==
+    CHECK(muiNode_GetTextCaret(host, scene.node, 50.0f, (muiTextPosition){8, 0}, &caret) ==
                   mui_success &&
               caret.x == 49.0f,
           "scrolled to the caret at the end, a unit's room for it");
     CHECK(FirstGlyphX(&scene) == -31.0f, "painted scrolled");
     muiTextPosition at = {0, 0};
-    CHECK(muiTextHitTest(host, scene.node, 50.0f, 8.0f, 5.0f, &at) == mui_success && at.offset == 4,
+    CHECK(muiNode_HitTestText(host, scene.node, 50.0f, 8.0f, 5.0f, &at) == mui_success &&
+              at.offset == 4,
           "a hit at 8, 39 into the text");
     Select(&scene, 5, 5);
-    CHECK(muiTextGetCaret(host, scene.node, 50.0f, (muiTextPosition){5, 0}, &caret) ==
+    CHECK(muiNode_GetTextCaret(host, scene.node, 50.0f, (muiTextPosition){5, 0}, &caret) ==
                   mui_success &&
               caret.x == 19.0f,
           "a caret already shown keeps the scroll");
     Select(&scene, 1, 1);
-    CHECK(muiTextGetCaret(host, scene.node, 50.0f, (muiTextPosition){1, 0}, &caret) ==
+    CHECK(muiNode_GetTextCaret(host, scene.node, 50.0f, (muiTextPosition){1, 0}, &caret) ==
                   mui_success &&
               caret.x == 0.0f,
           "back to a caret left of the box");
     Select(&scene, 8, 8);
-    CHECK(muiTextGetCaret(host, scene.node, 50.0f, (muiTextPosition){8, 0}, &caret) ==
+    CHECK(muiNode_GetTextCaret(host, scene.node, 50.0f, (muiTextPosition){8, 0}, &caret) ==
                   mui_success &&
               caret.x == 49.0f &&
               muiTextBlock_SetText(scene.service, scene.block, "abc", 3) == mui_success,
           "at the end again");
     Layout(&scene);
-    CHECK(muiTextGetCaret(host, scene.node, 50.0f, (muiTextPosition){3, 0}, &caret) ==
+    CHECK(muiNode_GetTextCaret(host, scene.node, 50.0f, (muiTextPosition){3, 0}, &caret) ==
                   mui_success &&
               caret.x == 30.0f && FirstGlyphX(&scene) == 0.0f,
           "a shorter text comes back");
@@ -1285,15 +1301,17 @@ static void TestScroll(void)
 
     scene = MakeScene("a\nb\nc\nd", mui_editMultiline);
     Size(&scene, 50.0f, 20.0f);
-    CHECK(muiTextGetCaret(host = &scene.host, scene.node, 50.0f, (muiTextPosition){7, 0}, &caret) ==
-                  mui_success &&
+    CHECK(muiNode_GetTextCaret(host = &scene.host, scene.node, 50.0f, (muiTextPosition){7, 0},
+                               &caret) == mui_success &&
               caret.y == 10.0f,
           "down to the last line, two lines shown");
-    CHECK(muiTextHitTest(host, scene.node, 50.0f, 1.0f, 1.0f, &at) == mui_success && at.offset == 4,
+    CHECK(muiNode_HitTestText(host, scene.node, 50.0f, 1.0f, 1.0f, &at) == mui_success &&
+              at.offset == 4,
           "the top shows the third line");
     CHECK(muiTextBlock_SetText(scene.service, scene.block, "a\nb", 3) == mui_success, "shorter");
     Layout(&scene);
-    CHECK(muiTextHitTest(host, scene.node, 50.0f, 1.0f, 1.0f, &at) == mui_success && at.offset == 0,
+    CHECK(muiNode_HitTestText(host, scene.node, 50.0f, 1.0f, 1.0f, &at) == mui_success &&
+              at.offset == 0,
           "two lines fit: back to the top");
     FreeScene(&scene);
 }
@@ -1305,13 +1323,13 @@ static muiTextEditOutcome Request(Scene* scene, muiAccessAction action, uint32_t
                                   uint32_t focus, const char* text, muiResult expected)
 {
     const muiAccessRequest request = {.action = action,
-                                      .target = muiAccessIdOf(scene->node),
+                                      .target = muiNode_GetAccessId(scene->node),
                                       .anchor = anchor,
                                       .focus = focus,
                                       .text = text,
                                       .length = text != NULL ? (uint32_t)strlen(text) : 0};
     muiTextEditOutcome outcome = {true, true, true, true};
-    CHECK(muiTextPerformAccessAction(&scene->host, &request, &outcome) == expected, "a request");
+    CHECK(muiPerformTextAccessAction(&scene->host, &request, &outcome) == expected, "a request");
     return outcome;
 }
 
@@ -1328,11 +1346,11 @@ static void TestStaleAccessOffsets(void)
     CHECK(muiTextBlock_SetText(scene.service, scene.block, "\xC3\xA9\xC3\xA9", 4) == mui_success,
           "the text changed after the adapter's update");
     Layout(&scene);
-    uint64_t misuse = muiGetTextServiceMisuse(scene.service);
+    uint64_t misuse = muiTextService_GetMisuse(scene.service);
     (void)Request(&scene, mui_actionSetSelection, 12, 12, NULL, mui_errorFormat);
     (void)Request(&scene, mui_actionSetSelection, 3, 3, NULL, mui_errorFormat);
     (void)Request(&scene, mui_actionReplaceText, 3, 12, "x", mui_errorFormat);
-    CHECK(Holds(&scene, "\xC3\xA9\xC3\xA9") && muiGetTextServiceMisuse(scene.service) == misuse,
+    CHECK(Holds(&scene, "\xC3\xA9\xC3\xA9") && muiTextService_GetMisuse(scene.service) == misuse,
           "past the text and inside a character now: refused, no misuse");
     FreeScene(&scene);
 }
@@ -1359,17 +1377,17 @@ static void TestAccessRequests(void)
     (void)Request(&scene, mui_actionSetSelection, 2, 10, NULL, mui_errorFormat);
     CHECK(Selects(&scene, 0, 0), "past the end refused, the selection kept");
     const muiAccessRequest nulled = {
-        .action = mui_actionReplaceText, .target = muiAccessIdOf(scene.node), .length = 2};
-    CHECK(muiTextPerformAccessAction(&scene.host, &nulled, &outcome) == mui_errorInvalid &&
+        .action = mui_actionReplaceText, .target = muiNode_GetAccessId(scene.node), .length = 2};
+    CHECK(muiPerformTextAccessAction(&scene.host, &nulled, &outcome) == mui_errorInvalid &&
               !outcome.handled,
           "a NULL text with a length refused");
     (void)Request(&scene, mui_actionClick, 0, 0, NULL, mui_empty);
-    CHECK(muiTextPerformAccessAction(NULL, &nulled, &outcome) == mui_errorInvalid &&
-              muiTextPerformAccessAction(&scene.host, NULL, &outcome) == mui_errorInvalid &&
-              muiTextPerformAccessAction(&scene.host, &nulled, NULL) == mui_errorInvalid,
+    CHECK(muiPerformTextAccessAction(NULL, &nulled, &outcome) == mui_errorInvalid &&
+              muiPerformTextAccessAction(&scene.host, NULL, &outcome) == mui_errorInvalid &&
+              muiPerformTextAccessAction(&scene.host, &nulled, NULL) == mui_errorInvalid,
           "NULL arguments refused");
     const muiAccessRequest stray = {.action = mui_actionSetSelection, .target = 1u << 20};
-    CHECK(muiTextPerformAccessAction(&scene.host, &stray, &outcome) == mui_errorStale,
+    CHECK(muiPerformTextAccessAction(&scene.host, &stray, &outcome) == mui_errorStale,
           "a node that is not");
     FreeScene(&scene);
     // Read only: selected, its text kept.

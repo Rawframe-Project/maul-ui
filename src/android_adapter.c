@@ -265,7 +265,7 @@ void muiDestroyAndroidAdapter(muiAndroidAdapter* adapter)
     DestroyAndroidAdapter(adapter);
 }
 
-uint64_t muiGetAndroidAdapterMisuse(const muiAndroidAdapter* adapter)
+uint64_t muiAndroidAdapter_GetMisuse(const muiAndroidAdapter* adapter)
 {
     return adapter != nullptr ? adapter->misuse : 0;
 }

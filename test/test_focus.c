@@ -70,7 +70,7 @@ static muiNodeId Place(muiContext* context, muiNodeId parent, float x, float y, 
 static void Layout(muiContext* context, muiNodeId root)
 {
     const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
 }
 
 static muiContext* MakeContext(void)
@@ -85,20 +85,20 @@ static muiContext* MakeContext(void)
 static bool Noted(muiContext* context, muiNotificationKind kind, muiNodeId node, uint32_t player)
 {
     muiNotification record = {0};
-    return muiNextNotification(context, &record) == mui_success && record.kind == kind &&
+    return muiContext_TakeNotification(context, &record) == mui_success && record.kind == kind &&
            Same(record.node, node) && record.detail == player;
 }
 
 static bool Quiet(muiContext* context)
 {
     muiNotification record = {0};
-    return muiNextNotification(context, &record) == mui_empty;
+    return muiContext_TakeNotification(context, &record) == mui_empty;
 }
 
 static void Drain(muiContext* context)
 {
     muiNotification record = {0};
-    while (muiNextNotification(context, &record) == mui_success)
+    while (muiContext_TakeNotification(context, &record) == mui_success)
     {
     }
 }
@@ -116,42 +116,42 @@ static void TestSet(void)
     muiNodeId b = Place(context, root, 60.0f, 0.0f, 50.0f, mui_focusAll, 0);
     Layout(context, root);
     Drain(context);
-    CHECK(muiFocus_Set(context, 0, a, mui_focusByCode) == mui_success &&
-              Same(muiFocus_Get(context, 0), a) &&
+    CHECK(muiContext_SetFocus(context, 0, a, mui_focusByCode) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), a) &&
               StatesOf(context, a) == (mui_stateFocused | mui_stateFocusVisible) &&
               Noted(context, mui_notificationFocusGained, a, 0) && Quiet(context),
           "code focus, shown before any pointer");
-    CHECK(muiFocus_Set(context, 0, b, mui_focusByPointer) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, b, mui_focusByPointer) == mui_success &&
               StatesOf(context, a) == 0 && StatesOf(context, b) == mui_stateFocused &&
               Noted(context, mui_notificationFocusLost, a, 0) &&
               Noted(context, mui_notificationFocusGained, b, 0) && Quiet(context),
           "a pointer moves it, hidden");
-    CHECK(muiFocus_Set(context, 0, a, mui_focusByCode) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, a, mui_focusByCode) == mui_success &&
               StatesOf(context, a) == mui_stateFocused,
           "code after a pointer: hidden");
-    CHECK(muiFocus_Set(context, 0, a, mui_focusByNavigation) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, a, mui_focusByNavigation) == mui_success &&
               StatesOf(context, a) == (mui_stateFocused | mui_stateFocusVisible) &&
-              muiFocus_Set(context, 0, b, mui_focusByCode) == mui_success &&
+              muiContext_SetFocus(context, 0, b, mui_focusByCode) == mui_success &&
               StatesOf(context, b) == (mui_stateFocused | mui_stateFocusVisible),
           "navigation shows, and code after it");
     Drain(context);
-    CHECK(muiFocus_Set(context, 0, b, mui_focusByPointer) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, b, mui_focusByPointer) == mui_success &&
               StatesOf(context, b) == mui_stateFocused && Quiet(context),
           "the same node hidden: no notification");
     // A second player on b: b stays focused while either is.
-    CHECK(muiFocus_Set(context, 3, b, mui_focusByNavigation) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 3, b, mui_focusByNavigation) == mui_success &&
               StatesOf(context, b) == (mui_stateFocused | mui_stateFocusVisible) &&
               Noted(context, mui_notificationFocusGained, b, 3) &&
-              muiFocus_Set(context, 0, s_nullNode, mui_focusByCode) == mui_success &&
+              muiContext_SetFocus(context, 0, s_nullNode, mui_focusByCode) == mui_success &&
               StatesOf(context, b) == (mui_stateFocused | mui_stateFocusVisible) &&
               Noted(context, mui_notificationFocusLost, b, 0) &&
-              muiFocus_Set(context, 3, s_nullNode, mui_focusByCode) == mui_success &&
-              StatesOf(context, b) == 0 && muiFocus_Get(context, 3).index1 == 0,
+              muiContext_SetFocus(context, 3, s_nullNode, mui_focusByCode) == mui_success &&
+              StatesOf(context, b) == 0 && muiContext_GetFocus(context, 3).index1 == 0,
           "two players");
     // The host's own focused state stays apart.
     CHECK(muiNode_SetStates(context, root, mui_stateFocused) == mui_success &&
-              muiFocus_Set(context, 0, a, mui_focusByCode) == mui_success &&
-              muiFocus_Set(context, 0, s_nullNode, mui_focusByCode) == mui_success &&
+              muiContext_SetFocus(context, 0, a, mui_focusByCode) == mui_success &&
+              muiContext_SetFocus(context, 0, s_nullNode, mui_focusByCode) == mui_success &&
               muiNode_GetStates(context, root) == mui_stateFocused,
           "the host's states");
     muiDestroyContext(context);
@@ -174,11 +174,11 @@ static void TestStyled(void)
           "a class");
     Layout(context, root);
     muiVisualStyle read = muiDefaultVisualStyle();
-    CHECK(muiFocus_Set(context, 0, a, mui_focusByPointer) == mui_success, "focused");
+    CHECK(muiContext_SetFocus(context, 0, a, mui_focusByPointer) == mui_success, "focused");
     Layout(context, root);
     CHECK(muiNode_GetVisualStyle(context, a, &read) == mui_success && read.background.a == 0.0f,
           "hidden: no ring");
-    CHECK(muiFocus_Set(context, 0, a, mui_focusByNavigation) == mui_success, "shown");
+    CHECK(muiContext_SetFocus(context, 0, a, mui_focusByNavigation) == mui_success, "shown");
     Layout(context, root);
     CHECK(muiNode_GetVisualStyle(context, a, &read) == mui_success && read.background.r == 1.0f,
           "shown: the ring");
@@ -204,44 +204,44 @@ static void TestOrder(void)
     bool forward = true;
     for (int i = 0; i < 5; i++)
     {
-        forward = forward && muiFocus_Move(context, root, 0, false) == mui_success &&
-                  Same(muiFocus_Get(context, 0), order[i]);
+        forward = forward && muiNode_MoveFocus(context, root, 0, false) == mui_success &&
+                  Same(muiContext_GetFocus(context, 0), order[i]);
     }
     CHECK(forward && StatesOf(context, n4) == (mui_stateFocused | mui_stateFocusVisible),
           "forward, wrapping, shown");
-    CHECK(muiFocus_Set(context, 0, n4, mui_focusByCode) == mui_success &&
-              muiFocus_Move(context, root, 0, true) == mui_success &&
-              Same(muiFocus_Get(context, 0), n5) &&
-              muiFocus_Move(context, root, 0, true) == mui_success &&
-              Same(muiFocus_Get(context, 0), n1) &&
-              muiFocus_Move(context, root, 0, true) == mui_success &&
-              Same(muiFocus_Get(context, 0), n3) &&
-              muiFocus_Move(context, root, 0, true) == mui_success &&
-              Same(muiFocus_Get(context, 0), n4),
+    CHECK(muiContext_SetFocus(context, 0, n4, mui_focusByCode) == mui_success &&
+              muiNode_MoveFocus(context, root, 0, true) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), n5) &&
+              muiNode_MoveFocus(context, root, 0, true) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), n1) &&
+              muiNode_MoveFocus(context, root, 0, true) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), n3) &&
+              muiNode_MoveFocus(context, root, 0, true) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), n4),
           "backward, wrapping");
     // From n2, out of the order but in tree order after n5: on to n4
     // (wrapping), back to n5.
-    CHECK(muiFocus_Set(context, 0, n2, mui_focusByPointer) == mui_success &&
-              muiFocus_Move(context, root, 0, false) == mui_success &&
-              Same(muiFocus_Get(context, 0), n4) &&
-              muiFocus_Set(context, 0, n2, mui_focusByPointer) == mui_success &&
-              muiFocus_Move(context, root, 0, true) == mui_success &&
-              Same(muiFocus_Get(context, 0), n5),
+    CHECK(muiContext_SetFocus(context, 0, n2, mui_focusByPointer) == mui_success &&
+              muiNode_MoveFocus(context, root, 0, false) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), n4) &&
+              muiContext_SetFocus(context, 0, n2, mui_focusByPointer) == mui_success &&
+              muiNode_MoveFocus(context, root, 0, true) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), n5),
           "from a node Tab passes over");
     // From no focus: backward starts at the last.
-    CHECK(muiFocus_Set(context, 1, s_nullNode, mui_focusByCode) == mui_success &&
-              muiFocus_Move(context, root, 1, true) == mui_success &&
-              Same(muiFocus_Get(context, 1), n5),
+    CHECK(muiContext_SetFocus(context, 1, s_nullNode, mui_focusByCode) == mui_success &&
+              muiNode_MoveFocus(context, root, 1, true) == mui_success &&
+              Same(muiContext_GetFocus(context, 1), n5),
           "backward from nothing");
     // A focus in another tree starts again in this one.
     muiNodeId other = Place(context, s_nullNode, 0.0f, 0.0f, 10.0f, mui_focusAll, 0);
-    CHECK(muiFocus_Set(context, 1, other, mui_focusByCode) == mui_success &&
-              muiFocus_Move(context, root, 1, false) == mui_success &&
-              Same(muiFocus_Get(context, 1), n4) &&
-              muiFocus_Move(context, other, 1, false) == mui_success &&
-              Same(muiFocus_Get(context, 1), other) &&
-              muiFocus_Move(context, other, 1, false) == mui_success &&
-              Same(muiFocus_Get(context, 1), other),
+    CHECK(muiContext_SetFocus(context, 1, other, mui_focusByCode) == mui_success &&
+              muiNode_MoveFocus(context, root, 1, false) == mui_success &&
+              Same(muiContext_GetFocus(context, 1), n4) &&
+              muiNode_MoveFocus(context, other, 1, false) == mui_success &&
+              Same(muiContext_GetFocus(context, 1), other) &&
+              muiNode_MoveFocus(context, other, 1, false) == mui_success &&
+              Same(muiContext_GetFocus(context, 1), other),
           "another tree; a tree of one");
     muiDestroyContext(context);
 }
@@ -273,42 +273,42 @@ static void TestLayers(void)
     Layout(context, root);
     // Tab in the base passes over the dialog; in the dialog, over the
     // menu; in the menu, it stays.
-    CHECK(muiFocus_Set(context, 0, b1, mui_focusByCode) == mui_success &&
-              muiFocus_Move(context, root, 0, false) == mui_success &&
-              Same(muiFocus_Get(context, 0), b2) &&
-              muiFocus_Move(context, root, 0, false) == mui_success &&
-              Same(muiFocus_Get(context, 0), b1),
+    CHECK(muiContext_SetFocus(context, 0, b1, mui_focusByCode) == mui_success &&
+              muiNode_MoveFocus(context, root, 0, false) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), b2) &&
+              muiNode_MoveFocus(context, root, 0, false) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), b1),
           "the base");
-    CHECK(muiFocus_Set(context, 0, d1, mui_focusByCode) == mui_success &&
-              muiFocus_Move(context, root, 0, false) == mui_success &&
-              Same(muiFocus_Get(context, 0), d2) &&
-              muiFocus_Move(context, root, 0, false) == mui_success &&
-              Same(muiFocus_Get(context, 0), d1),
+    CHECK(muiContext_SetFocus(context, 0, d1, mui_focusByCode) == mui_success &&
+              muiNode_MoveFocus(context, root, 0, false) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), d2) &&
+              muiNode_MoveFocus(context, root, 0, false) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), d1),
           "the dialog");
-    CHECK(muiFocus_Set(context, 0, m1, mui_focusByCode) == mui_success &&
-              muiFocus_Move(context, root, 0, false) == mui_success &&
-              Same(muiFocus_Get(context, 0), m1),
+    CHECK(muiContext_SetFocus(context, 0, m1, mui_focusByCode) == mui_success &&
+              muiNode_MoveFocus(context, root, 0, false) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), m1),
           "the menu");
     // The dialog made modal: the base takes no focus, and Tab from it, or
     // from nothing, starts in the dialog.
     SetLayer(context, d, mui_layerModal);
     Layout(context, root);
-    CHECK(muiFocus_Set(context, 1, b1, mui_focusByCode) == mui_errorInvalid &&
-              muiFocus_Set(context, 1, d2, mui_focusByCode) == mui_success &&
-              muiFocus_Set(context, 1, m1, mui_focusByCode) == mui_success,
+    CHECK(muiContext_SetFocus(context, 1, b1, mui_focusByCode) == mui_errorInvalid &&
+              muiContext_SetFocus(context, 1, d2, mui_focusByCode) == mui_success &&
+              muiContext_SetFocus(context, 1, m1, mui_focusByCode) == mui_success,
           "covered nodes refused");
-    CHECK(muiFocus_Set(context, 2, s_nullNode, mui_focusByCode) == mui_success &&
-              muiFocus_Move(context, root, 2, false) == mui_success &&
-              Same(muiFocus_Get(context, 2), d1),
+    CHECK(muiContext_SetFocus(context, 2, s_nullNode, mui_focusByCode) == mui_success &&
+              muiNode_MoveFocus(context, root, 2, false) == mui_success &&
+              Same(muiContext_GetFocus(context, 2), d1),
           "from nothing into the dialog");
     // Player 3 focused b1 before the dialog was modal.
     SetLayer(context, d, mui_layerActivation);
     Layout(context, root);
-    CHECK(muiFocus_Set(context, 3, b1, mui_focusByCode) == mui_success, "b1");
+    CHECK(muiContext_SetFocus(context, 3, b1, mui_focusByCode) == mui_success, "b1");
     SetLayer(context, d, mui_layerModal);
     Layout(context, root);
-    CHECK(muiFocus_Move(context, root, 3, true) == mui_success &&
-              Same(muiFocus_Get(context, 3), d2),
+    CHECK(muiNode_MoveFocus(context, root, 3, true) == mui_success &&
+              Same(muiContext_GetFocus(context, 3), d2),
           "from a covered node into the dialog");
     // A modal layer in another tree covers nothing here.
     muiNodeId other = Place(context, s_nullNode, 0.0f, 0.0f, 10.0f, mui_focusNone, 0);
@@ -317,10 +317,10 @@ static void TestLayers(void)
     SetLayer(context, modal, mui_layerModal);
     Layout(context, root);
     Layout(context, other);
-    CHECK(muiFocus_Set(context, 1, b1, mui_focusByCode) == mui_success &&
-              muiFocus_Set(context, 1, s_nullNode, mui_focusByCode) == mui_success &&
-              muiFocus_Move(context, root, 1, false) == mui_success &&
-              Same(muiFocus_Get(context, 1), b1),
+    CHECK(muiContext_SetFocus(context, 1, b1, mui_focusByCode) == mui_success &&
+              muiContext_SetFocus(context, 1, s_nullNode, mui_focusByCode) == mui_success &&
+              muiNode_MoveFocus(context, root, 1, false) == mui_success &&
+              Same(muiContext_GetFocus(context, 1), b1),
           "another tree's modal");
     muiDestroyContext(context);
 }
@@ -338,17 +338,18 @@ static void TestPointer(void)
     muiPointerEvent release = press;
     release.action = mui_pointerRelease;
     release.buttons = 0;
-    CHECK(muiPointerInput(context, root, &press) == mui_success &&
-              muiPointerInput(context, root, &release) == mui_success &&
-              Same(muiFocus_Get(context, 2), f) && muiFocus_Get(context, 0).index1 == 0 &&
+    CHECK(muiNode_RoutePointer(context, root, &press) == mui_success &&
+              muiNode_RoutePointer(context, root, &release) == mui_success &&
+              Same(muiContext_GetFocus(context, 2), f) &&
+              muiContext_GetFocus(context, 0).index1 == 0 &&
               StatesOf(context, f) == mui_stateFocused && StatesOf(context, c) == 0,
           "a press focuses the nearest focusable, for its player, hidden");
     // Code after a pointer stays hidden; Tab shows.
-    CHECK(muiFocus_Set(context, 2, g, mui_focusByCode) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 2, g, mui_focusByCode) == mui_success &&
               StatesOf(context, g) == mui_stateFocused &&
-              muiFocus_Move(context, root, 2, false) == mui_success &&
+              muiNode_MoveFocus(context, root, 2, false) == mui_success &&
               StatesOf(context, g) == (mui_stateFocused | mui_stateFocusVisible) &&
-              muiFocus_Set(context, 2, f, mui_focusByCode) == mui_success &&
+              muiContext_SetFocus(context, 2, f, mui_focusByCode) == mui_success &&
               StatesOf(context, f) == (mui_stateFocused | mui_stateFocusVisible),
           "then code and Tab, and code after Tab shows");
     // A second button while one is held changes nothing; a press over
@@ -357,39 +358,40 @@ static void TestPointer(void)
     press.y = 280.0f;
     release.x = 280.0f;
     release.y = 280.0f;
-    CHECK(muiPointerInput(context, root, &press) == mui_success &&
-              muiPointerInput(context, root, &release) == mui_success &&
-              muiFocus_Get(context, 2).index1 == 0,
+    CHECK(muiNode_RoutePointer(context, root, &press) == mui_success &&
+              muiNode_RoutePointer(context, root, &release) == mui_success &&
+              muiContext_GetFocus(context, 2).index1 == 0,
           "over nothing");
     press.x = 160.0f;
     press.y = 10.0f;
     press.buttons = 3;
     press.button = 1;
-    CHECK(muiFocus_Set(context, 2, f, mui_focusByCode) == mui_success, "f again");
+    CHECK(muiContext_SetFocus(context, 2, f, mui_focusByCode) == mui_success, "f again");
     muiPointerEvent first = press;
     first.buttons = 1;
     first.button = 0;
     first.x = 15.0f;
     first.y = 15.0f;
-    CHECK(muiPointerInput(context, root, &first) == mui_success &&
-              muiPointerInput(context, root, &press) == mui_success &&
-              Same(muiFocus_Get(context, 2), f),
+    CHECK(muiNode_RoutePointer(context, root, &first) == mui_success &&
+              muiNode_RoutePointer(context, root, &press) == mui_success &&
+              Same(muiContext_GetFocus(context, 2), f),
           "a chord");
     // A modal layer over f: a press beside it is blocked by the layer,
     // which takes no focus, and f, covered, takes none either.
     muiNodeId modal = Place(context, f, 200.0f, 200.0f, 50.0f, mui_focusNone, 0);
     SetLayer(context, modal, mui_layerModal);
     Layout(context, root);
-    CHECK(muiPointerInput(context, root, &release) == mui_success, "all released");
-    CHECK(muiPointerInput(context, root, &first) == mui_success &&
-              muiFocus_Get(context, 2).index1 == 0,
+    CHECK(muiNode_RoutePointer(context, root, &release) == mui_success, "all released");
+    CHECK(muiNode_RoutePointer(context, root, &first) == mui_success &&
+              muiContext_GetFocus(context, 2).index1 == 0,
           "a press under a modal layer");
     // The modal layer destroyed: f takes focus again.
     CHECK(muiDestroyNode(context, modal) == mui_success &&
-              muiFocus_Set(context, 2, f, mui_focusByCode) == mui_success,
+              muiContext_SetFocus(context, 2, f, mui_focusByCode) == mui_success,
           "a modal layer gone");
     first.player = MUI_MAX_PLAYERS;
-    CHECK(muiPointerInput(context, root, &first) == mui_errorInvalid, "a player past the slots");
+    CHECK(muiNode_RoutePointer(context, root, &first) == mui_errorInvalid,
+          "a player past the slots");
     muiDestroyContext(context);
 }
 
@@ -401,38 +403,42 @@ static void TestLoss(void)
     muiNodeId b = Place(context, root, 60.0f, 0.0f, 50.0f, mui_focusAll, 0);
     Layout(context, root);
     // A direct write that makes it unfocusable.
-    CHECK(muiFocus_Set(context, 0, a, mui_focusByCode) == mui_success &&
-              muiFocus_Set(context, 1, a, mui_focusByCode) == mui_success,
+    CHECK(muiContext_SetFocus(context, 0, a, mui_focusByCode) == mui_success &&
+              muiContext_SetFocus(context, 1, a, mui_focusByCode) == mui_success,
           "two players on a");
     Drain(context);
     muiInteractionStyle values = muiDefaultInteractionStyle();
     CHECK(muiNode_SetInteractionValues(context, a, &values,
                                        MUI_PROPERTY_BIT(mui_propertyFocusMode)) == mui_success &&
-              muiFocus_Get(context, 0).index1 == 0 && muiFocus_Get(context, 1).index1 == 0 &&
-              StatesOf(context, a) == 0 && Noted(context, mui_notificationFocusLost, a, 0) &&
+              muiContext_GetFocus(context, 0).index1 == 0 &&
+              muiContext_GetFocus(context, 1).index1 == 0 && StatesOf(context, a) == 0 &&
+              Noted(context, mui_notificationFocusLost, a, 0) &&
               Noted(context, mui_notificationFocusLost, a, 1) && Quiet(context),
           "no longer focusable");
     // Disabled: let go at the next styling.
-    CHECK(muiFocus_Set(context, 0, b, mui_focusByCode) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, b, mui_focusByCode) == mui_success &&
               muiNode_SetStates(context, b, mui_stateDisabled) == mui_success,
           "disabled");
     Drain(context);
     Layout(context, root);
-    CHECK(muiFocus_Get(context, 0).index1 == 0 && Noted(context, mui_notificationFocusLost, b, 0),
+    CHECK(muiContext_GetFocus(context, 0).index1 == 0 &&
+              Noted(context, mui_notificationFocusLost, b, 0),
           "let go");
     CHECK(muiNode_SetStates(context, b, 0) == mui_success &&
               muiNode_BeginExit(context, b) == mui_success &&
-              muiFocus_Set(context, 0, b, mui_focusByCode) == mui_errorInvalid &&
+              muiContext_SetFocus(context, 0, b, mui_focusByCode) == mui_errorInvalid &&
               muiNode_CancelExit(context, b) == mui_success,
           "exiting: refused");
     Layout(context, root);
     // Detached: kept; destroyed: lost.
-    CHECK(muiFocus_Set(context, 0, b, mui_focusByCode) == mui_success &&
-              muiNode_Detach(context, b) == mui_success && Same(muiFocus_Get(context, 0), b) &&
-              muiFocus_Move(context, root, 0, false) == mui_empty,
+    CHECK(muiContext_SetFocus(context, 0, b, mui_focusByCode) == mui_success &&
+              muiNode_Detach(context, b) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), b) &&
+              muiNode_MoveFocus(context, root, 0, false) == mui_empty,
           "detached, kept; nothing else to reach");
     Drain(context);
-    CHECK(muiDestroyNode(context, b) == mui_success && muiFocus_Get(context, 0).index1 == 0 &&
+    CHECK(muiDestroyNode(context, b) == mui_success &&
+              muiContext_GetFocus(context, 0).index1 == 0 &&
               Noted(context, mui_notificationFocusLost, b, 0) && Quiet(context),
           "destroyed");
     muiNodeDef def = muiDefaultNodeDef();
@@ -444,8 +450,9 @@ static void TestLoss(void)
     values.focusMode = mui_focusAll;
     CHECK(muiNode_SetInteractionValues(context, a, &values,
                                        MUI_PROPERTY_BIT(mui_propertyFocusMode)) == mui_success &&
-              muiFocus_Set(context, 0, a, mui_focusByCode) == mui_success &&
-              muiDestroyNode(context, again) == mui_success && Same(muiFocus_Get(context, 0), a),
+              muiContext_SetFocus(context, 0, a, mui_focusByCode) == mui_success &&
+              muiDestroyNode(context, again) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), a),
           "other destructions");
     muiDestroyContext(context);
 }
@@ -582,9 +589,9 @@ static void TestRandomOrder(void)
             uint32_t from = NextRandom(&random, RANDOM_NODES);
             if (NextRandom(&random, 3) == 0)
             {
-                (void)muiFocus_Set(context, 0, tree.nodes[from], mui_focusByPointer);
+                (void)muiContext_SetFocus(context, 0, tree.nodes[from], mui_focusByPointer);
             }
-            muiNodeId focus = muiFocus_Get(context, 0);
+            muiNodeId focus = muiContext_GetFocus(context, 0);
             if (focus.index1 == 0)
             {
                 continue;
@@ -596,14 +603,14 @@ static void TestRandomOrder(void)
             }
             bool backward = NextRandom(&random, 2) == 0;
             uint32_t expected = OracleNext(&tree, at, backward);
-            muiResult result = muiFocus_Move(context, tree.nodes[0], 0, backward);
-            agree =
-                expected == RANDOM_NODES
-                    ? result == mui_empty && Same(muiFocus_Get(context, 0), focus)
-                    : result == mui_success && Same(muiFocus_Get(context, 0), tree.nodes[expected]);
+            muiResult result = muiNode_MoveFocus(context, tree.nodes[0], 0, backward);
+            agree = expected == RANDOM_NODES
+                        ? result == mui_empty && Same(muiContext_GetFocus(context, 0), focus)
+                        : result == mui_success &&
+                              Same(muiContext_GetFocus(context, 0), tree.nodes[expected]);
         }
         // From no focus: the base's first.
-        CHECK(muiFocus_Set(context, 0, s_nullNode, mui_focusByCode) == mui_success, "none");
+        CHECK(muiContext_SetFocus(context, 0, s_nullNode, mui_focusByCode) == mui_success, "none");
         uint32_t list[RANDOM_NODES];
         uint32_t count = Collect(&tree, 0, 0, list, 0);
         uint32_t first = RANDOM_NODES;
@@ -617,11 +624,11 @@ static void TestRandomOrder(void)
                 firstKey = key;
             }
         }
-        muiResult result = muiFocus_Move(context, tree.nodes[0], 0, false);
-        agree = agree &&
-                (first == RANDOM_NODES
-                     ? result == mui_empty
-                     : result == mui_success && Same(muiFocus_Get(context, 0), tree.nodes[first]));
+        muiResult result = muiNode_MoveFocus(context, tree.nodes[0], 0, false);
+        agree = agree && (first == RANDOM_NODES
+                              ? result == mui_empty
+                              : result == mui_success &&
+                                    Same(muiContext_GetFocus(context, 0), tree.nodes[first]));
         CHECK(agree, "moves agree with the order");
         muiDestroyContext(context);
     }
@@ -633,27 +640,31 @@ static void TestContract(void)
     muiNodeId root = Place(context, s_nullNode, 0.0f, 0.0f, 300.0f, mui_focusNone, 0);
     muiNodeId a = Place(context, root, 0.0f, 0.0f, 50.0f, mui_focusAll, 0);
     Layout(context, root);
-    uint64_t misuse = muiGetContextMisuse(context);
-    CHECK(muiFocus_Set(NULL, 0, a, mui_focusByCode) == mui_errorInvalid &&
-              muiFocus_Set(context, MUI_MAX_PLAYERS, a, mui_focusByCode) == mui_errorInvalid &&
-              muiFocus_Set(context, 0, a, mui_focusByNavigation + 1) == mui_errorInvalid &&
-              muiFocus_Set(context, 0, root, mui_focusByCode) == mui_errorInvalid &&
-              muiFocus_Move(NULL, root, 0, false) == mui_errorInvalid &&
-              muiFocus_Move(context, s_nullNode, 0, false) == mui_errorInvalid &&
-              muiFocus_Move(context, root, MUI_MAX_PLAYERS, false) == mui_errorInvalid &&
-              muiGetContextMisuse(context) == misuse + 5 && muiFocus_Get(context, 0).index1 == 0,
+    uint64_t misuse = muiContext_GetMisuse(context);
+    CHECK(muiContext_SetFocus(NULL, 0, a, mui_focusByCode) == mui_errorInvalid &&
+              muiContext_SetFocus(context, MUI_MAX_PLAYERS, a, mui_focusByCode) ==
+                  mui_errorInvalid &&
+              muiContext_SetFocus(context, 0, a, mui_focusByNavigation + 1) == mui_errorInvalid &&
+              muiContext_SetFocus(context, 0, root, mui_focusByCode) == mui_errorInvalid &&
+              muiNode_MoveFocus(NULL, root, 0, false) == mui_errorInvalid &&
+              muiNode_MoveFocus(context, s_nullNode, 0, false) == mui_errorInvalid &&
+              muiNode_MoveFocus(context, root, MUI_MAX_PLAYERS, false) == mui_errorInvalid &&
+              muiContext_GetMisuse(context) == misuse + 5 &&
+              muiContext_GetFocus(context, 0).index1 == 0,
           "outside the contract, nothing changed");
-    CHECK(muiFocus_Get(NULL, 0).index1 == 0 && muiFocus_Get(context, MUI_MAX_PLAYERS).index1 == 0 &&
-              muiFocus_Set(context, MUI_MAX_PLAYERS - 1, a, mui_focusByCode) == mui_success &&
-              Same(muiFocus_Get(context, MUI_MAX_PLAYERS - 1), a),
+    CHECK(muiContext_GetFocus(NULL, 0).index1 == 0 &&
+              muiContext_GetFocus(context, MUI_MAX_PLAYERS).index1 == 0 &&
+              muiContext_SetFocus(context, MUI_MAX_PLAYERS - 1, a, mui_focusByCode) ==
+                  mui_success &&
+              Same(muiContext_GetFocus(context, MUI_MAX_PLAYERS - 1), a),
           "the last player");
     muiNodeId gone = a;
     CHECK(muiDestroyNode(context, gone) == mui_success &&
-              muiFocus_Set(context, 0, gone, mui_focusByCode) == mui_errorStale &&
-              muiFocus_Move(context, root, 0, false) == mui_empty,
+              muiContext_SetFocus(context, 0, gone, mui_focusByCode) == mui_errorStale &&
+              muiNode_MoveFocus(context, root, 0, false) == mui_empty,
           "a node gone; nothing to reach");
     CHECK(muiDestroyNode(context, root) == mui_success &&
-              muiFocus_Move(context, root, 0, false) == mui_errorStale,
+              muiNode_MoveFocus(context, root, 0, false) == mui_errorStale,
           "a root gone");
     muiDestroyContext(context);
 }
@@ -669,17 +680,19 @@ static void TestDestroyedPerPlayer(void)
     muiNodeId b = Place(context, root, 60.0f, 0.0f, 50.0f, mui_focusAll, 0);
     muiNodeId c = Place(context, root, 120.0f, 0.0f, 50.0f, mui_focusAll, 0);
     Layout(context, root);
-    CHECK(muiFocus_Set(context, 0, a, mui_focusByCode) == mui_success &&
-              muiFocus_Set(context, 1, b, mui_focusByCode) == mui_success,
+    CHECK(muiContext_SetFocus(context, 0, a, mui_focusByCode) == mui_success &&
+              muiContext_SetFocus(context, 1, b, mui_focusByCode) == mui_success,
           "player 0 on a, player 1 on b");
-    CHECK(muiDestroyNode(context, a) == mui_success && muiFocus_Get(context, 0).index1 == 0 &&
-              Same(muiFocus_Get(context, 1), b),
+    CHECK(muiDestroyNode(context, a) == mui_success &&
+              muiContext_GetFocus(context, 0).index1 == 0 &&
+              Same(muiContext_GetFocus(context, 1), b),
           "a destroyed: player 0's focus gone, player 1's kept");
-    CHECK(muiFocus_Set(context, 0, c, mui_focusByCode) == mui_success &&
-              muiFocus_Set(context, 0, s_nullNode, mui_focusByCode) == mui_success,
+    CHECK(muiContext_SetFocus(context, 0, c, mui_focusByCode) == mui_success &&
+              muiContext_SetFocus(context, 0, s_nullNode, mui_focusByCode) == mui_success,
           "player 0 on c, then on nothing");
     Drain(context);
-    CHECK(muiDestroyNode(context, b) == mui_success && muiFocus_Get(context, 1).index1 == 0 &&
+    CHECK(muiDestroyNode(context, b) == mui_success &&
+              muiContext_GetFocus(context, 1).index1 == 0 &&
               Noted(context, mui_notificationFocusLost, b, 1),
           "b destroyed: player 1's focus gone, and told");
     muiDestroyContext(context);
@@ -700,30 +713,31 @@ static void TestGivenBack(void)
     muiNodeId m = Place(context, d, 50.0f, 0.0f, 40.0f, mui_focusNone, 0);
     muiNodeId m1 = Place(context, m, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
     Layout(context, root);
-    CHECK(muiFocus_Set(context, 0, a, mui_focusByNavigation) == mui_success &&
-              muiFocus_Set(context, 1, b, mui_focusByCode) == mui_success,
+    CHECK(muiContext_SetFocus(context, 0, a, mui_focusByNavigation) == mui_success &&
+              muiContext_SetFocus(context, 1, b, mui_focusByCode) == mui_success,
           "player 0 on a, player 1 on b");
     SetLayer(context, d, mui_layerModal);
     Layout(context, root);
-    CHECK(muiFocus_Set(context, 0, d1, mui_focusByCode) == mui_success, "into the dialog");
+    CHECK(muiContext_SetFocus(context, 0, d1, mui_focusByCode) == mui_success, "into the dialog");
     SetLayer(context, m, mui_layerActivation);
     Layout(context, root);
-    CHECK(muiFocus_Set(context, 0, m1, mui_focusByCode) == mui_success, "into the menu");
+    CHECK(muiContext_SetFocus(context, 0, m1, mui_focusByCode) == mui_success, "into the menu");
     Drain(context);
     // The menu closes with the focus inside: back to d1, shown as player
     // 0's last cause shows it; player 1's focus was never inside.
-    CHECK(muiDestroyNode(context, m) == mui_success && Same(muiFocus_Get(context, 0), d1) &&
+    CHECK(muiDestroyNode(context, m) == mui_success && Same(muiContext_GetFocus(context, 0), d1) &&
               Noted(context, mui_notificationFocusLost, m1, 0) &&
               Noted(context, mui_notificationFocusGained, d1, 0) && Quiet(context) &&
               StatesOf(context, d1) == (mui_stateFocused | mui_stateFocusVisible) &&
-              Same(muiFocus_Get(context, 1), b),
+              Same(muiContext_GetFocus(context, 1), b),
           "the menu destroyed: back to its opener");
     // The dialog exits: back to a at once, which it no longer covers.
-    CHECK(muiNode_BeginExit(context, d) == mui_success && Same(muiFocus_Get(context, 0), a) &&
+    CHECK(muiNode_BeginExit(context, d) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), a) &&
               Noted(context, mui_notificationFocusLost, d1, 0) &&
               Noted(context, mui_notificationFocusGained, a, 0) && Quiet(context),
           "the dialog exiting: back to its opener");
-    CHECK(muiDestroyNode(context, d) == mui_success && Same(muiFocus_Get(context, 0), a) &&
+    CHECK(muiDestroyNode(context, d) == mui_success && Same(muiContext_GetFocus(context, 0), a) &&
               Quiet(context),
           "the focus outside: nothing to give back");
 
@@ -735,12 +749,12 @@ static void TestGivenBack(void)
     m1 = Place(context, m, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
     SetLayer(context, d, mui_layerModal);
     Layout(context, root);
-    CHECK(muiFocus_Set(context, 0, d1, mui_focusByCode) == mui_success, "into the dialog");
+    CHECK(muiContext_SetFocus(context, 0, d1, mui_focusByCode) == mui_success, "into the dialog");
     SetLayer(context, m, mui_layerActivation);
     // Raised, the menu keeps its opener.
-    CHECK(muiFocus_Set(context, 0, m1, mui_focusByCode) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, m1, mui_focusByCode) == mui_success &&
               muiNode_RaiseLayer(context, m) == mui_success &&
-              muiDestroyNode(context, d) == mui_success && Same(muiFocus_Get(context, 0), a),
+              muiDestroyNode(context, d) == mui_success && Same(muiContext_GetFocus(context, 0), a),
           "the outermost layer's opener");
 
     // The focus taken out first, as a press elsewhere does, leaves nothing
@@ -749,9 +763,10 @@ static void TestGivenBack(void)
     muiNodeId p1 = Place(context, p, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
     SetLayer(context, p, mui_layerOverlay);
     Layout(context, root);
-    CHECK(muiFocus_Set(context, 0, p1, mui_focusByCode) == mui_success &&
-              muiFocus_Set(context, 0, s_nullNode, mui_focusByPointer) == mui_success &&
-              muiDestroyNode(context, p) == mui_success && muiFocus_Get(context, 0).index1 == 0,
+    CHECK(muiContext_SetFocus(context, 0, p1, mui_focusByCode) == mui_success &&
+              muiContext_SetFocus(context, 0, s_nullNode, mui_focusByPointer) == mui_success &&
+              muiDestroyNode(context, p) == mui_success &&
+              muiContext_GetFocus(context, 0).index1 == 0,
           "taken out first");
 
     // An opener gone, or covered by a modal layer opened since, gets
@@ -760,27 +775,28 @@ static void TestGivenBack(void)
     p = Place(context, root, 200.0f, 0.0f, 50.0f, mui_focusNone, 0);
     p1 = Place(context, p, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
     Layout(context, root);
-    CHECK(muiFocus_Set(context, 0, gone, mui_focusByCode) == mui_success, "on gone");
+    CHECK(muiContext_SetFocus(context, 0, gone, mui_focusByCode) == mui_success, "on gone");
     SetLayer(context, p, mui_layerOverlay);
     Layout(context, root);
-    CHECK(muiFocus_Set(context, 0, p1, mui_focusByCode) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, p1, mui_focusByCode) == mui_success &&
               muiDestroyNode(context, gone) == mui_success,
           "the opener destroyed");
     Drain(context);
-    CHECK(muiDestroyNode(context, p) == mui_success && muiFocus_Get(context, 0).index1 == 0 &&
+    CHECK(muiDestroyNode(context, p) == mui_success &&
+              muiContext_GetFocus(context, 0).index1 == 0 &&
               Noted(context, mui_notificationFocusLost, p1, 0) && Quiet(context),
           "an opener gone");
     p = Place(context, root, 200.0f, 0.0f, 50.0f, mui_focusNone, 0);
     p1 = Place(context, p, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
     muiNodeId cover = Place(context, root, 0.0f, 200.0f, 50.0f, mui_focusNone, 0);
     Layout(context, root);
-    CHECK(muiFocus_Set(context, 0, a, mui_focusByCode) == mui_success, "on a");
+    CHECK(muiContext_SetFocus(context, 0, a, mui_focusByCode) == mui_success, "on a");
     SetLayer(context, p, mui_layerActivation);
     Layout(context, root);
-    CHECK(muiFocus_Set(context, 0, p1, mui_focusByCode) == mui_success, "into p");
+    CHECK(muiContext_SetFocus(context, 0, p1, mui_focusByCode) == mui_success, "into p");
     SetLayer(context, cover, mui_layerModal);
     Layout(context, root);
-    CHECK(muiDestroyNode(context, p) == mui_success && muiFocus_Get(context, 0).index1 == 0,
+    CHECK(muiDestroyNode(context, p) == mui_success && muiContext_GetFocus(context, 0).index1 == 0,
           "an opener covered");
     CHECK(muiDestroyNode(context, cover) == mui_success, "the cover gone");
 
@@ -788,10 +804,10 @@ static void TestGivenBack(void)
     p = Place(context, root, 200.0f, 0.0f, 50.0f, mui_focusNone, 0);
     p1 = Place(context, p, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
     Layout(context, root);
-    CHECK(muiFocus_Set(context, 0, p1, mui_focusByCode) == mui_success, "on p1");
+    CHECK(muiContext_SetFocus(context, 0, p1, mui_focusByCode) == mui_success, "on p1");
     SetLayer(context, p, mui_layerActivation);
     Layout(context, root);
-    CHECK(muiDestroyNode(context, p) == mui_success && muiFocus_Get(context, 0).index1 == 0,
+    CHECK(muiDestroyNode(context, p) == mui_success && muiContext_GetFocus(context, 0).index1 == 0,
           "made a layer around the focus");
 
     // A layer whose kind changes keeps its openers, not those of the
@@ -800,14 +816,14 @@ static void TestGivenBack(void)
     p1 = Place(context, p, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
     muiNodeId q = Place(context, root, 200.0f, 100.0f, 50.0f, mui_focusNone, 0);
     Layout(context, root);
-    CHECK(muiFocus_Set(context, 0, a, mui_focusByCode) == mui_success, "on a");
+    CHECK(muiContext_SetFocus(context, 0, a, mui_focusByCode) == mui_success, "on a");
     SetLayer(context, p, mui_layerActivation);
-    CHECK(muiFocus_Set(context, 0, b, mui_focusByCode) == mui_success, "on b");
+    CHECK(muiContext_SetFocus(context, 0, b, mui_focusByCode) == mui_success, "on b");
     SetLayer(context, q, mui_layerActivation);
     SetLayer(context, p, mui_layerModal);
     Layout(context, root);
-    CHECK(muiFocus_Set(context, 0, p1, mui_focusByCode) == mui_success &&
-              muiDestroyNode(context, p) == mui_success && Same(muiFocus_Get(context, 0), a),
+    CHECK(muiContext_SetFocus(context, 0, p1, mui_focusByCode) == mui_success &&
+              muiDestroyNode(context, p) == mui_success && Same(muiContext_GetFocus(context, 0), a),
           "a kind changed: its own opener");
     CHECK(muiDestroyNode(context, q) == mui_success, "q gone");
 
@@ -815,11 +831,12 @@ static void TestGivenBack(void)
     p = Place(context, root, 200.0f, 0.0f, 50.0f, mui_focusNone, 0);
     p1 = Place(context, p, 0.0f, 0.0f, 20.0f, mui_focusAll, 0);
     Layout(context, root);
-    CHECK(muiFocus_Set(context, 0, a, mui_focusByCode) == mui_success, "on a");
+    CHECK(muiContext_SetFocus(context, 0, a, mui_focusByCode) == mui_success, "on a");
     SetLayer(context, p, mui_layerActivation);
     Layout(context, root);
-    CHECK(muiFocus_Set(context, 0, p1, mui_focusByCode) == mui_success &&
-              muiNode_Detach(context, p) == mui_success && Same(muiFocus_Get(context, 0), p1),
+    CHECK(muiContext_SetFocus(context, 0, p1, mui_focusByCode) == mui_success &&
+              muiNode_Detach(context, p) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), p1),
           "detached: kept");
     muiDestroyContext(context);
 }

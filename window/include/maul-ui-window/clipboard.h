@@ -34,10 +34,10 @@ extern "C"
     /// @param length  Its length in bytes.
     /// @par Thread safety
     /// Main thread only. Maul Window's requests are too.
-    MUI_WINDOW_API void muiWindowGlue_WriteClipboard(void* glue, const char* text, size_t length);
+    MUI_WINDOW_API void muiWriteWindowClipboard(void* glue, const char* text, size_t length);
 
     /// Asks the window for its clipboard's text, for a paste
-    /// muiTextEditEvent asked for (outcome.paste); muiWindowGlue_Paste
+    /// muiNode_HandleEditEvent asked for (outcome.paste); muiTextBlock_PasteFromWindow
     /// takes the answer.
     ///
     /// @param glue  The glue.
@@ -64,11 +64,11 @@ extern "C"
     ///         as muiTextBlock_Paste.
     /// @par Thread safety
     /// Main thread only. Maul Window's calls are too.
-    MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_Paste(muiWindowGlue* glue,
-                                                               muiTextService* service,
-                                                               muiTextBlockId blockId,
-                                                               const mwinEvent* event,
-                                                               bool* changedOut);
+    MUI_NODISCARD MUI_WINDOW_API muiResult muiTextBlock_PasteFromWindow(muiWindowGlue* glue,
+                                                                        muiTextService* service,
+                                                                        muiTextBlockId blockId,
+                                                                        const mwinEvent* event,
+                                                                        bool* changedOut);
 
 #ifdef __cplusplus
 }

@@ -62,7 +62,7 @@ static void Interact(muiContext* context, muiNodeId node, bool drags, bool focus
 static void Layout(muiContext* context, muiNodeId root)
 {
     const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
 }
 
 static float Value(const muiContext* context, muiNodeId node)
@@ -77,7 +77,7 @@ static int Changes(muiContext* context, muiNodeId node)
 {
     int count = 0;
     muiNotification note = {0};
-    while (muiNextNotification(context, &note) == mui_success)
+    while (muiContext_TakeNotification(context, &note) == mui_success)
     {
         count += note.kind == mui_notificationRangeChanged && Same(note.node, node);
     }
@@ -122,14 +122,14 @@ static bool Key(const Scene* scene, muiKeyCode code, muiModifiers modifiers)
 {
     const muiKeyEvent event = {.code = code, .modifiers = modifiers, .down = true};
     bool handled = false;
-    CHECK(muiKeyInput(scene->context, scene->root, &event, &handled) == mui_success, "key");
+    CHECK(muiNode_RouteKey(scene->context, scene->root, &event, &handled) == mui_success, "key");
     return handled;
 }
 
 static void Mouse(const Scene* scene, muiPointerAction action, muiPointerButtons buttons, float x)
 {
     const muiPointerEvent event = {0, 1, mui_pointerMouse, action, 0, buttons, x, 10.0f, 0};
-    CHECK(muiPointerInput(scene->context, scene->root, &event) == mui_success, "input");
+    CHECK(muiNode_RoutePointer(scene->context, scene->root, &event) == mui_success, "input");
 }
 
 // Dispatches every waiting record; how many were handled.
@@ -137,10 +137,11 @@ static int Dispatch(const Scene* scene)
 {
     int handled = 0;
     muiPointerRecord record = {0};
-    while (muiNextPointerRecord(scene->context, &record) == mui_success)
+    while (muiContext_TakePointerRecord(scene->context, &record) == mui_success)
     {
         bool taken = false;
-        CHECK(muiDispatchPointerRecord(scene->context, &record, &taken) == mui_success, "dispatch");
+        CHECK(muiContext_DispatchPointerRecord(scene->context, &record, &taken) == mui_success,
+              "dispatch");
         handled += taken;
     }
     return handled;
@@ -193,7 +194,7 @@ static void TestKeys(void)
     MakeScene(&scene, mui_inlineLeftToRight);
     muiContext* context = scene.context;
     muiNodeId slider = scene.slider;
-    CHECK(muiFocus_Set(context, 0, slider, mui_focusByCode) == mui_success, "focus");
+    CHECK(muiContext_SetFocus(context, 0, slider, mui_focusByCode) == mui_success, "focus");
     CHECK(Key(&scene, mui_codeArrowRight, 0) && Value(context, slider) == 1.0f &&
               Changes(context, slider) == 1,
           "right: a step up");
@@ -214,11 +215,11 @@ static void TestKeys(void)
           "modifiers: the game's");
     const muiNavigationEvent right = {0, mui_navigateRight, 0};
     bool handled = false;
-    CHECK(muiNavigationInput(context, scene.root, &right, &handled) == mui_success && handled &&
-              Value(context, slider) == 1.0f,
+    CHECK(muiNode_RouteNavigation(context, scene.root, &right, &handled) == mui_success &&
+              handled && Value(context, slider) == 1.0f,
           "a gamepad's right");
     const muiNavigationEvent up = {0, mui_navigateUp, 0};
-    CHECK(muiNavigationInput(context, scene.root, &up, &handled) == mui_success && !handled,
+    CHECK(muiNode_RouteNavigation(context, scene.root, &up, &handled) == mui_success && !handled,
           "a gamepad's up: navigation, nothing there");
     // Vertical, continuous: up and down a hundredth of the span.
     muiValueRange range = {
@@ -234,7 +235,7 @@ static void TestKeys(void)
     muiDestroyContext(context);
     MakeScene(&scene, mui_inlineRightToLeft);
     context = scene.context;
-    CHECK(muiFocus_Set(context, 0, scene.slider, mui_focusByCode) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, scene.slider, mui_focusByCode) == mui_success &&
               Key(&scene, mui_codeArrowLeft, 0) && Value(context, scene.slider) == 1.0f &&
               Key(&scene, mui_codeArrowRight, 0) && Value(context, scene.slider) == 0.0f,
           "right to left: left is up");
@@ -286,7 +287,8 @@ static void TestPointer(void)
     CHECK(Dispatch(&scene) == 2 && Value(context, slider) == 78.0f, "from the track: 140 of 180");
     const muiKeyEvent escape = {.code = mui_codeEscape, .down = true};
     bool handled = false;
-    CHECK(muiKeyInput(context, scene.root, &escape, &handled) == mui_success && handled, "Escape");
+    CHECK(muiNode_RouteKey(context, scene.root, &escape, &handled) == mui_success && handled,
+          "Escape");
     CHECK(Dispatch(&scene) >= 1 && Value(context, slider) == 10.0f,
           "back to the value the drag began at");
     Mouse(&scene, mui_pointerRelease, 0, 160.0f);
@@ -359,10 +361,10 @@ static void TestVertical(void)
     const muiPointerEvent press = {0,      1, mui_pointerMouse, mui_pointerPress, 0, 1, 10.0f,
                                    100.0f, 0};
     const muiPointerEvent move = {0, 1, mui_pointerMouse, mui_pointerMove, 0, 1, 10.0f, 110.0f, 0};
-    CHECK(muiPointerInput(context, root, &press) == mui_success && Dispatch(&scene) == 1 &&
+    CHECK(muiNode_RoutePointer(context, root, &press) == mui_success && Dispatch(&scene) == 1 &&
               Value(context, slider) == 0.0f,
           "below the thumb: down, at the minimum");
-    CHECK(muiPointerInput(context, root, &move) == mui_success && Dispatch(&scene) == 1 &&
+    CHECK(muiNode_RoutePointer(context, root, &move) == mui_success && Dispatch(&scene) == 1 &&
               Value(context, slider) == 50.0f,
           "the middle");
     muiDestroyContext(context);
@@ -463,7 +465,7 @@ static void TestContract(void)
     muiNodeId b = Sized(context, s_nullNode, 10.0f, 10.0f);
     muiValueRange range = muiDefaultValueRange();
     muiValueRange bad = range;
-    uint64_t misuse = muiGetContextMisuse(context);
+    uint64_t misuse = muiContext_GetMisuse(context);
     CHECK(muiNode_SetValueRange(NULL, a, &range) == mui_errorInvalid &&
               muiNode_SetValueRange(context, a, NULL) == mui_errorInvalid &&
               muiNode_SetValueRange(context, s_nullNode, &range) == mui_errorInvalid,
@@ -495,7 +497,7 @@ static void TestContract(void)
     bad = range;
     bad.axis = mui_axisVertical + 1;
     CHECK(muiNode_SetValueRange(context, a, &bad) == mui_errorInvalid, "an axis");
-    CHECK(muiGetContextMisuse(context) == misuse + 15, "counted");
+    CHECK(muiContext_GetMisuse(context) == misuse + 15, "counted");
     // The limit; a node gone frees its entry.
     CHECK(muiNode_SetValueRange(context, a, &range) == mui_success &&
               muiNode_SetValueRange(context, a, &range) == mui_success &&

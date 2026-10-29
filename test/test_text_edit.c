@@ -83,7 +83,7 @@ static Scene MakeFailingScene(FailingAllocator* failing)
     font.size = sizeof s_ahem;
     font.dataMode = mui_fontDataBorrow;
     CHECK(muiCreateFont(scene.service, &font, &scene.ahem) == mui_success &&
-              muiSetDefaultFont(scene.service, scene.ahem) == mui_success,
+              muiTextService_SetDefaultFont(scene.service, scene.ahem) == mui_success,
           "Ahem");
     font.data = s_breakTest;
     font.size = sizeof s_breakTest;
@@ -130,7 +130,7 @@ static void Show(Scene* scene, const char* text, muiTextStyle style, muiProperty
           "style");
     const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &scene->host,
                                   0,       NULL,    {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(scene->context, scene->node, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(scene->context, scene->node, &input) == mui_success, "layout");
 }
 
 static void ShowPlain(Scene* scene, const char* text)
@@ -143,15 +143,15 @@ static bool Hits(Scene* scene, float width, float x, float y, uint32_t offset,
                  muiTextAffinity affinity)
 {
     muiTextPosition position = {99, 9};
-    return muiTextHitTest(&scene->host, scene->node, width, x, y, &position) == mui_success &&
+    return muiNode_HitTestText(&scene->host, scene->node, width, x, y, &position) == mui_success &&
            position.offset == offset && position.affinity == affinity;
 }
 
 static muiTextCaret Caret(Scene* scene, float width, uint32_t offset, muiTextAffinity affinity)
 {
     muiTextCaret caret = {-1.0f, -1.0f, -1.0f, false};
-    CHECK(muiTextGetCaret(&scene->host, scene->node, width, (muiTextPosition){offset, affinity},
-                          &caret) == mui_success,
+    CHECK(muiNode_GetTextCaret(&scene->host, scene->node, width,
+                               (muiTextPosition){offset, affinity}, &caret) == mui_success,
           "caret");
     return caret;
 }
@@ -183,12 +183,12 @@ static void TestLeftToRight(void)
           "carets between, at the ends and past the text");
     muiRect rects[4];
     uint32_t count = 0;
-    CHECK(muiTextGetRangeRects(&scene.host, scene.node, 100.0f, 1, 3, rects, 4, &count) ==
+    CHECK(muiNode_GetTextRangeRects(&scene.host, scene.node, 100.0f, 1, 3, rects, 4, &count) ==
                   mui_success &&
               count == 1 && rects[0].x == 10.0f && rects[0].width == 20.0f && rects[0].y == 0.0f &&
               rects[0].height == 10.0f,
           "a range as one rectangle");
-    CHECK(muiTextGetRangeRects(&scene.host, scene.node, 100.0f, 2, 2, rects, 4, &count) ==
+    CHECK(muiNode_GetTextRangeRects(&scene.host, scene.node, 100.0f, 2, 2, rects, 4, &count) ==
                   mui_success &&
               count == 0,
           "an empty range");
@@ -226,16 +226,16 @@ static void TestWrapped(void)
           "points on each line");
     muiRect rects[4];
     uint32_t count = 0;
-    CHECK(muiTextGetRangeRects(&scene.host, scene.node, 25.0f, 1, 4, rects, 4, &count) ==
+    CHECK(muiNode_GetTextRangeRects(&scene.host, scene.node, 25.0f, 1, 4, rects, 4, &count) ==
                   mui_success &&
               count == 2 && rects[0].x == 10.0f && rects[0].width == 10.0f && rects[1].x == 0.0f &&
               rects[1].y == 10.0f && rects[1].width == 10.0f,
           "a range over two lines");
-    CHECK(muiTextGetRangeRects(&scene.host, scene.node, 25.0f, 1, 4, rects, 1, &count) ==
+    CHECK(muiNode_GetTextRangeRects(&scene.host, scene.node, 25.0f, 1, 4, rects, 1, &count) ==
                   mui_errorCapacity &&
               count == 2 && rects[0].x == 10.0f,
           "too few rectangles: those that fit, and the count");
-    CHECK(muiTextGetRangeRects(&scene.host, scene.node, 25.0f, 0, 5, rects, 1, &count) ==
+    CHECK(muiNode_GetTextRangeRects(&scene.host, scene.node, 25.0f, 0, 5, rects, 1, &count) ==
                   mui_errorCapacity &&
               count == 2 && rects[0].x == 0.0f && rects[0].width == 20.0f,
           "a stretch of several clusters past the room counted once");
@@ -266,11 +266,11 @@ static void TestInsideClusters(void)
     CHECK(CaretAt(&scene, 100.0f, 2, DOWN, 10.0f, 0.0f), "an offset inside a cluster: its start");
     muiRect rects[2];
     uint32_t count = 0;
-    CHECK(muiTextGetRangeRects(&scene.host, scene.node, 100.0f, 2, 5, rects, 2, &count) ==
+    CHECK(muiNode_GetTextRangeRects(&scene.host, scene.node, 100.0f, 2, 5, rects, 2, &count) ==
                   mui_success &&
               count == 1 && rects[0].x == 20.0f && rects[0].width == 10.0f,
           "a cluster the range starts inside: not covered");
-    CHECK(muiTextGetRangeRects(&scene.host, scene.node, 100.0f, 0, 2, rects, 2, &count) ==
+    CHECK(muiNode_GetTextRangeRects(&scene.host, scene.node, 100.0f, 0, 2, rects, 2, &count) ==
                   mui_success &&
               count == 1 && rects[0].x == 0.0f && rects[0].width == 10.0f,
           "a cluster the range ends inside: not covered");
@@ -300,7 +300,7 @@ static void TestRightToLeft(void)
           "a change of direction: after a, or before the first letter");
     muiRect rects[4];
     uint32_t count = 0;
-    CHECK(muiTextGetRangeRects(&scene.host, scene.node, 100.0f, 0, 3, rects, 4, &count) ==
+    CHECK(muiNode_GetTextRangeRects(&scene.host, scene.node, 100.0f, 0, 3, rects, 4, &count) ==
                   mui_success &&
               count == 2 && rects[0].x == 0.0f && rects[0].width == 10.0f && rects[1].x == 20.0f &&
               rects[1].width == 10.0f,
@@ -308,7 +308,7 @@ static void TestRightToLeft(void)
     // Alef, bet, gimel: gimel at 0, bet at 10, alef at 20; bet alone is
     // the middle, though alef after it on screen ends inside the range.
     ShowPlain(&scene, "\xD7\x90\xD7\x91\xD7\x92");
-    CHECK(muiTextGetRangeRects(&scene.host, scene.node, 100.0f, 2, 4, rects, 4, &count) ==
+    CHECK(muiNode_GetTextRangeRects(&scene.host, scene.node, 100.0f, 2, 4, rects, 4, &count) ==
                   mui_success &&
               count == 1 && rects[0].x == 10.0f && rects[0].width == 10.0f,
           "a right-to-left letter alone");
@@ -327,7 +327,7 @@ static void TestRightToLeft(void)
           "direction");
     const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &scene.host,
                                   0,       NULL,    {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(scene.context, scene.node, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(scene.context, scene.node, &input) == mui_success, "layout");
     caret = Caret(&scene, 100.0f, 0, DOWN);
     CHECK(caret.x == 100.0f && caret.rightToLeft && Hits(&scene, 100.0f, 50.0f, 5.0f, 0, DOWN),
           "an empty right-to-left paragraph");
@@ -363,8 +363,9 @@ static bool Moves(Scene* scene, float width, uint32_t offset, muiTextAffinity af
                   muiTextMovement movement, uint32_t toOffset, muiTextAffinity toAffinity)
 {
     muiTextPosition to = {99, 9};
-    return muiTextMove(&scene->host, scene->node, width, (muiTextPosition){offset, affinity},
-                       movement, NAN, &to) == mui_success &&
+    return muiNode_MoveTextPosition(&scene->host, scene->node, width,
+                                    (muiTextPosition){offset, affinity}, movement, NAN,
+                                    &to) == mui_success &&
            to.offset == toOffset && to.affinity == toAffinity;
 }
 
@@ -453,8 +454,8 @@ static void TestMovingOnScreen(void)
               Moves(&scene, 25.0f, 4, DOWN, mui_moveLineDown, 5, DOWN),
           "up and down at the caret's x");
     muiTextPosition to = {0, 0};
-    CHECK(muiTextMove(&scene.host, scene.node, 25.0f, (muiTextPosition){1, DOWN}, mui_moveLineDown,
-                      19.0f, &to) == mui_success &&
+    CHECK(muiNode_MoveTextPosition(&scene.host, scene.node, 25.0f, (muiTextPosition){1, DOWN},
+                                   mui_moveLineDown, 19.0f, &to) == mui_success &&
               to.offset == 5 && to.affinity == UP,
           "down at the preferred x");
     // An empty line: its end is its start, downstream.
@@ -623,7 +624,7 @@ static void TestReplace(void)
     CHECK(muiNode_MarkContentChanged(scene.context, scene.node) == mui_success, "marked");
     const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &scene.host,
                                   0,       NULL,    {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(scene.context, scene.node, &input) == mui_success &&
+    CHECK(muiNode_ComputeLayout(scene.context, scene.node, &input) == mui_success &&
               muiNode_GetRect(scene.context, scene.node).width == 110.0f,
           "laid out anew");
     CHECK(muiTextBlock_Replace(scene.service, scene.block, 3, 2, "x", 1) == mui_errorInvalid &&
@@ -676,12 +677,12 @@ static muiDrawList PaintAtTen(Scene* scene)
     const muiLayoutInput layout = {1000.0f, 1000.0f, muiMeasureText, &scene->host,
                                    0,       NULL,    {0, 0, 0, 0}};
     CHECK(muiNode_MarkContentChanged(scene->context, scene->node) == mui_success &&
-              muiComputeLayout(scene->context, scene->node, &layout) == mui_success,
+              muiNode_ComputeLayout(scene->context, scene->node, &layout) == mui_success,
           "laid out");
     const muiDrawInput input = {1, 10.0f, muiPaintText, &scene->host};
-    CHECK(muiBuildDrawList(scene->context, scene->node, &input) == mui_success, "paint");
+    CHECK(muiNode_BuildDrawList(scene->context, scene->node, &input) == mui_success, "paint");
     muiDrawList list;
-    CHECK(muiGetDrawList(scene->context, &list) == mui_success, "list");
+    CHECK(muiContext_GetDrawList(scene->context, &list) == mui_success, "list");
     return list;
 }
 
@@ -781,9 +782,9 @@ static void TestComposition(void)
     const muiLayoutInput input = {25.0f, 1000.0f, muiMeasureText, &scene.host,
                                   0,     NULL,    {0, 0, 0, 0}};
     const muiDrawInput draw = {1, 10.0f, muiPaintText, &scene.host};
-    CHECK(muiComputeLayout(scene.context, scene.node, &input) == mui_success &&
-              muiBuildDrawList(scene.context, scene.node, &draw) == mui_success &&
-              muiGetDrawList(scene.context, &list) == mui_success,
+    CHECK(muiNode_ComputeLayout(scene.context, scene.node, &input) == mui_success &&
+              muiNode_BuildDrawList(scene.context, scene.node, &draw) == mui_success &&
+              muiContext_GetDrawList(scene.context, &list) == mui_success,
           "laid out at 25");
     uint32_t boxes = 0;
     for (uint32_t i = 0; i < list.commandCount; i++)
@@ -876,47 +877,50 @@ static void TestContract(void)
     muiRect rects[2];
     uint32_t count = 0;
     muiTextHost noService = {NULL, scene.context};
-    CHECK(muiTextHitTest(NULL, scene.node, 100.0f, 0.0f, 0.0f, &position) == mui_errorInvalid &&
-              muiTextHitTest(&noService, scene.node, 100.0f, 0.0f, 0.0f, &position) ==
+    CHECK(muiNode_HitTestText(NULL, scene.node, 100.0f, 0.0f, 0.0f, &position) ==
                   mui_errorInvalid &&
-              muiTextHitTest(&scene.host, scene.node, 100.0f, 0.0f, 0.0f, NULL) ==
+              muiNode_HitTestText(&noService, scene.node, 100.0f, 0.0f, 0.0f, &position) ==
                   mui_errorInvalid &&
-              muiTextHitTest(&scene.host, scene.node, 100.0f, NAN, 0.0f, &position) ==
+              muiNode_HitTestText(&scene.host, scene.node, 100.0f, 0.0f, 0.0f, NULL) ==
                   mui_errorInvalid &&
-              muiTextHitTest(&scene.host, scene.node, 100.0f, 0.0f, INFINITY, &position) ==
+              muiNode_HitTestText(&scene.host, scene.node, 100.0f, NAN, 0.0f, &position) ==
+                  mui_errorInvalid &&
+              muiNode_HitTestText(&scene.host, scene.node, 100.0f, 0.0f, INFINITY, &position) ==
                   mui_errorInvalid &&
               position.offset == 7,
           "hit testing outside the contract");
-    CHECK(muiTextGetCaret(NULL, scene.node, 100.0f, position, &caret) == mui_errorInvalid &&
-              muiTextGetCaret(&scene.host, scene.node, 100.0f, position, NULL) ==
+    CHECK(muiNode_GetTextCaret(NULL, scene.node, 100.0f, position, &caret) == mui_errorInvalid &&
+              muiNode_GetTextCaret(&scene.host, scene.node, 100.0f, position, NULL) ==
                   mui_errorInvalid &&
-              muiTextGetRangeRects(&scene.host, scene.node, 100.0f, 0, 1, NULL, 1, &count) ==
+              muiNode_GetTextRangeRects(&scene.host, scene.node, 100.0f, 0, 1, NULL, 1, &count) ==
                   mui_errorInvalid &&
-              muiTextGetRangeRects(&scene.host, scene.node, 100.0f, 0, 1, rects, 2, NULL) ==
+              muiNode_GetTextRangeRects(&scene.host, scene.node, 100.0f, 0, 1, rects, 2, NULL) ==
                   mui_errorInvalid &&
               caret.x == 7.0f,
           "carets and ranges outside the contract");
-    CHECK(muiTextMove(NULL, scene.node, 100.0f, position, mui_moveRight, NAN, &position) ==
-                  mui_errorInvalid &&
-              muiTextMove(&scene.host, scene.node, 100.0f, position, mui_moveRight, NAN, NULL) ==
-                  mui_errorInvalid &&
-              muiTextMove(&scene.host, scene.node, 100.0f, position, mui_moveTextEnd + 1, NAN,
-                          &position) == mui_errorInvalid &&
+    CHECK(muiNode_MoveTextPosition(NULL, scene.node, 100.0f, position, mui_moveRight, NAN,
+                                   &position) == mui_errorInvalid &&
+              muiNode_MoveTextPosition(&scene.host, scene.node, 100.0f, position, mui_moveRight,
+                                       NAN, NULL) == mui_errorInvalid &&
+              muiNode_MoveTextPosition(&scene.host, scene.node, 100.0f, position,
+                                       mui_moveTextEnd + 1, NAN, &position) == mui_errorInvalid &&
               position.offset == 7,
           "moving outside the contract");
     ShowPlain(&scene, "");
-    CHECK(muiTextMove(&scene.host, scene.node, 100.0f, position, mui_moveTextEnd, NAN, &position) ==
-                  mui_success &&
+    CHECK(muiNode_MoveTextPosition(&scene.host, scene.node, 100.0f, position, mui_moveTextEnd, NAN,
+                                   &position) == mui_success &&
               position.offset == 0,
           "no text: nowhere to move");
     muiNodeId stale = scene.node;
     CHECK(muiDestroyNode(scene.context, scene.node) == mui_success &&
-              muiTextHitTest(&scene.host, stale, 100.0f, 0.0f, 0.0f, &position) == mui_errorStale &&
-              muiTextGetCaret(&scene.host, stale, 100.0f, position, &caret) == mui_errorStale &&
-              muiTextGetRangeRects(&scene.host, stale, 100.0f, 0, 1, rects, 2, &count) ==
+              muiNode_HitTestText(&scene.host, stale, 100.0f, 0.0f, 0.0f, &position) ==
                   mui_errorStale &&
-              muiTextMove(&scene.host, stale, 100.0f, position, mui_moveLeft, NAN, &position) ==
-                  mui_errorStale,
+              muiNode_GetTextCaret(&scene.host, stale, 100.0f, position, &caret) ==
+                  mui_errorStale &&
+              muiNode_GetTextRangeRects(&scene.host, stale, 100.0f, 0, 1, rects, 2, &count) ==
+                  mui_errorStale &&
+              muiNode_MoveTextPosition(&scene.host, stale, 100.0f, position, mui_moveLeft, NAN,
+                                       &position) == mui_errorStale,
           "a node gone");
     FreeScene(&scene);
 }
@@ -941,10 +945,11 @@ static void TestMemory(void)
         muiTextCaret caret = {0};
         muiRect rects[4];
         uint32_t count = 0;
-        muiResult hit = muiTextHitTest(&scene.host, scene.node, 25.0f, 5.0f, 15.0f, &position);
-        muiResult caretResult = muiTextGetCaret(&scene.host, scene.node, 25.0f, position, &caret);
+        muiResult hit = muiNode_HitTestText(&scene.host, scene.node, 25.0f, 5.0f, 15.0f, &position);
+        muiResult caretResult =
+            muiNode_GetTextCaret(&scene.host, scene.node, 25.0f, position, &caret);
         muiResult range =
-            muiTextGetRangeRects(&scene.host, scene.node, 25.0f, 0, 9, rects, 4, &count);
+            muiNode_GetTextRangeRects(&scene.host, scene.node, 25.0f, 0, 9, rects, 4, &count);
         bool failed = failing.allocations >= failAt;
         CHECK(failAt < 39 || !failed, "every allocation tried");
         CHECK((hit == mui_success || hit == mui_errorCapacity) &&

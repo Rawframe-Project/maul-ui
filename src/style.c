@@ -705,7 +705,7 @@ static MUI_NOINLINE muiResult SetContextEnvironmentWorker(muiContext* context,
     return status;
 }
 
-muiResult muiSetContextEnvironment(muiContext* context, const muiEnvironment* environment)
+muiResult muiContext_SetEnvironment(muiContext* context, const muiEnvironment* environment)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = SetContextEnvironmentWorker(context, environment);
@@ -713,7 +713,7 @@ muiResult muiSetContextEnvironment(muiContext* context, const muiEnvironment* en
     return result;
 }
 
-muiEnvironment muiGetContextEnvironment(const muiContext* context)
+muiEnvironment muiContext_GetEnvironment(const muiContext* context)
 {
     return context != nullptr ? context->environment : muiDefaultEnvironment();
 }

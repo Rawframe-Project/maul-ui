@@ -26,7 +26,7 @@
 - **Pointer record:** an entry of the pointer ring (press, release, click, drag, drop, cancel, lost capture), taken by the host and dispatched.
 - **Player:** one of up to eight focus owners, for local multiplayer.
 - **Route:** the nodes an event visits, from the top of the target's tree down to the target and back up.
-- **Notification:** an entry of the context's queue (oscillation, a window of a virtual list, a popup dismissed, an exit finished, a range changed, a focus change, an access action), drained with `muiNextNotification`.
+- **Notification:** an entry of the context's queue (oscillation, a window of a virtual list, a popup dismissed, an exit finished, a range changed, a focus change, an access action), drained with `muiContext_TakeNotification`.
 - **Virtual list:** a scroll container of many items of which only a window exists as nodes.
 - **Window (of a virtual list):** the indices of the items that should exist as nodes after a layout.
 - **Text block:** UTF-8 text the text service lays out, shown by a node whose host key is the block's key.

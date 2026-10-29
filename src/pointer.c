@@ -186,7 +186,7 @@ static void Retarget(muiContext* context, muiPointer* pointer)
 {
     // A root gone leaves the hit empty.
     muiHit hit = {0};
-    (void)muiHitTest(context, pointer->root, pointer->x, pointer->y, &hit);
+    (void)muiNode_HitTest(context, pointer->root, pointer->x, pointer->y, &hit);
     uint32_t at = SlotOf(context, hit.node);
     while (at != 0 && (context->interaction[at - 1].accepts & pointer->offerKind) == 0)
     {
@@ -517,7 +517,7 @@ static muiResult PointerInput(muiContext* context, muiNodeId rootId, const muiPo
     pointer->timeNs = event->timeNs;
     pointer->root = rootId;
     muiHit found = {0};
-    (void)muiHitTest(context, rootId, event->x, event->y, &found);
+    (void)muiNode_HitTest(context, rootId, event->x, event->y, &found);
     // A point over nothing stays in the root's space.
     uint32_t slot = SlotOf(context, found.node);
     const Target hit = {root, slot, slot != 0 ? found.x : event->x, slot != 0 ? found.y : event->y,
@@ -563,7 +563,7 @@ static MUI_NOINLINE muiResult PointerInputWorker(muiContext* context, muiNodeId 
     return status;
 }
 
-muiResult muiPointerInput(muiContext* context, muiNodeId rootId, const muiPointerEvent* event)
+muiResult muiNode_RoutePointer(muiContext* context, muiNodeId rootId, const muiPointerEvent* event)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = PointerInputWorker(context, rootId, event);
@@ -595,7 +595,7 @@ static muiResult NextPointerRecord(muiContext* context, muiPointerRecord* record
     return mui_empty;
 }
 
-muiResult muiNextPointerRecord(muiContext* context, muiPointerRecord* recordOut)
+muiResult muiContext_TakePointerRecord(muiContext* context, muiPointerRecord* recordOut)
 {
     if (recordOut != nullptr)
     {
@@ -637,8 +637,8 @@ static muiResult PointerSetCapture(muiContext* context, uint32_t pointerId, muiN
     return mui_success;
 }
 
-static MUI_NOINLINE muiResult PointerSetCaptureWorker(muiContext* context, uint32_t pointerId,
-                                                      muiNodeId nodeId)
+static MUI_NOINLINE muiResult PointerSetCaptureWorker(muiContext* context, muiNodeId nodeId,
+                                                      uint32_t pointerId)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -649,10 +649,10 @@ static MUI_NOINLINE muiResult PointerSetCaptureWorker(muiContext* context, uint3
     return status;
 }
 
-muiResult muiPointer_SetCapture(muiContext* context, uint32_t pointerId, muiNodeId nodeId)
+muiResult muiNode_CapturePointer(muiContext* context, muiNodeId nodeId, uint32_t pointerId)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
-    muiResult result = PointerSetCaptureWorker(context, pointerId, nodeId);
+    muiResult result = PointerSetCaptureWorker(context, nodeId, pointerId);
     muiFloatEnvLeave(floatEnv);
     return result;
 }
@@ -683,7 +683,7 @@ static MUI_NOINLINE muiResult PointerReleaseCaptureWorker(muiContext* context, u
     return status;
 }
 
-muiResult muiPointer_ReleaseCapture(muiContext* context, uint32_t pointerId)
+muiResult muiContext_ReleasePointerCapture(muiContext* context, uint32_t pointerId)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = PointerReleaseCaptureWorker(context, pointerId);
@@ -691,8 +691,8 @@ muiResult muiPointer_ReleaseCapture(muiContext* context, uint32_t pointerId)
     return result;
 }
 
-muiResult muiPointer_GetState(const muiContext* context, uint32_t pointerId,
-                              muiPointerState* stateOut)
+muiResult muiContext_GetPointerState(const muiContext* context, uint32_t pointerId,
+                                     muiPointerState* stateOut)
 {
     if (stateOut != nullptr)
     {
@@ -744,7 +744,7 @@ static MUI_NOINLINE muiResult SetClickRuleWorker(muiContext* context, uint64_t i
     return status;
 }
 
-muiResult muiSetClickRule(muiContext* context, uint64_t intervalNs, float distance)
+muiResult muiContext_SetClickRule(muiContext* context, uint64_t intervalNs, float distance)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = SetClickRuleWorker(context, intervalNs, distance);
@@ -781,7 +781,7 @@ static MUI_NOINLINE muiResult PointerOfferWorker(muiContext* context, uint32_t p
     return status;
 }
 
-muiResult muiPointer_Offer(muiContext* context, uint32_t pointerId, uint32_t kind, uint64_t key)
+muiResult muiContext_OfferDrop(muiContext* context, uint32_t pointerId, uint32_t kind, uint64_t key)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = PointerOfferWorker(context, pointerId, kind, key);
@@ -815,7 +815,7 @@ static MUI_NOINLINE muiResult SetDragThresholdWorker(muiContext* context, float 
     return status;
 }
 
-muiResult muiSetDragThreshold(muiContext* context, float mouse, float touch)
+muiResult muiContext_SetDragThreshold(muiContext* context, float mouse, float touch)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = SetDragThresholdWorker(context, mouse, touch);

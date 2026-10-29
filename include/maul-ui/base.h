@@ -182,7 +182,7 @@ extern "C"
     /// @return A static, NUL-terminated string such as "mui_errorCapacity".
     /// @par Thread safety
     /// Safe from any thread.
-    MUI_API const char* muiResultName(muiResult result);
+    MUI_API const char* muiGetResultName(muiResult result);
 
 #ifdef __cplusplus
 }

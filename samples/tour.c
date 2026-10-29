@@ -194,8 +194,9 @@ static bool Named(const Tour* tour, const SampleApp* app)
 {
     char name[8] = {0};
     size_t length = 0;
-    return muiAccessTree_GetName(muiWindowAccess_GetTree(app->access), muiAccessIdOf(tour->button),
-                                 name, sizeof name, &length) == mui_success &&
+    return muiAccessTree_GetName(muiWindowAccess_GetTree(app->access),
+                                 muiNode_GetAccessId(tour->button), name, sizeof name,
+                                 &length) == mui_success &&
            length == 4 && memcmp(name, "Play", 4) == 0;
 }
 

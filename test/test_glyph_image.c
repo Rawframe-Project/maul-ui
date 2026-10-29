@@ -60,8 +60,8 @@ static muiGlyphImage Render(const Fonts* fonts, muiFontId font, uint32_t glyph, 
                             float offset)
 {
     muiGlyphImage image = {-1, -1, 0, 0};
-    CHECK(muiRenderGlyph(fonts->service, muiFont_GetKey(font), glyph, size, offset, &image,
-                         s_pixels, sizeof s_pixels) == mui_success,
+    CHECK(muiTextService_RenderGlyph(fonts->service, muiFont_GetKey(font), glyph, size, offset,
+                                     &image, s_pixels, sizeof s_pixels) == mui_success,
           "rendered");
     return image;
 }
@@ -160,64 +160,65 @@ static void TestContract(void)
     uint64_t ahem = muiFont_GetKey(fonts.ahem);
     muiGlyphImage image = {0, 0, 0, 0};
     // The size first, then the bytes.
-    CHECK(muiRenderGlyph(fonts.service, ahem, AHEM_BOX, 10.0f, 0.0f, &image, NULL, 0) ==
+    CHECK(muiTextService_RenderGlyph(fonts.service, ahem, AHEM_BOX, 10.0f, 0.0f, &image, NULL, 0) ==
                   mui_errorCapacity &&
               SameImage(image, 0, 8, 10, 10),
           "too few bytes, the size told");
-    CHECK(muiRenderGlyph(fonts.service, ahem, AHEM_BOX, 10.0f, 0.0f, &image, s_pixels, 99) ==
-              mui_errorCapacity,
+    CHECK(muiTextService_RenderGlyph(fonts.service, ahem, AHEM_BOX, 10.0f, 0.0f, &image, s_pixels,
+                                     99) == mui_errorCapacity,
           "one byte short");
-    CHECK(muiRenderGlyph(fonts.service, ahem, AHEM_SPACE, 10.0f, 0.0f, &image, NULL, 0) ==
-              mui_success,
+    CHECK(muiTextService_RenderGlyph(fonts.service, ahem, AHEM_SPACE, 10.0f, 0.0f, &image, NULL,
+                                     0) == mui_success,
           "an empty image needs no bytes");
     // Not a size at all, or one past the bounds.
     const float sizes[] = {0.0f, -1.0f, NAN, INFINITY, 1.0f / 128.0f, 4097.0f};
     for (size_t i = 0; i < sizeof sizes / sizeof sizes[0]; i++)
     {
-        CHECK(muiRenderGlyph(fonts.service, ahem, AHEM_BOX, sizes[i], 0.0f, &image, s_pixels,
-                             sizeof s_pixels) == (i < 4 ? mui_errorInvalid : mui_errorLimit),
+        CHECK(muiTextService_RenderGlyph(fonts.service, ahem, AHEM_BOX, sizes[i], 0.0f, &image,
+                                         s_pixels, sizeof s_pixels) ==
+                  (i < 4 ? mui_errorInvalid : mui_errorLimit),
               "a size refused");
     }
-    CHECK(muiRenderGlyph(fonts.service, ahem, AHEM_BOX, MUI_MIN_GLYPH_PIXEL_SIZE, 0.0f, &image,
-                         s_pixels, sizeof s_pixels) == mui_success &&
-              muiRenderGlyph(fonts.service, ahem, AHEM_BOX, MUI_MAX_GLYPH_PIXEL_SIZE, 0.0f, &image,
-                             NULL, 0) == mui_errorCapacity &&
+    CHECK(muiTextService_RenderGlyph(fonts.service, ahem, AHEM_BOX, MUI_MIN_GLYPH_PIXEL_SIZE, 0.0f,
+                                     &image, s_pixels, sizeof s_pixels) == mui_success &&
+              muiTextService_RenderGlyph(fonts.service, ahem, AHEM_BOX, MUI_MAX_GLYPH_PIXEL_SIZE,
+                                         0.0f, &image, NULL, 0) == mui_errorCapacity &&
               image.width == 4096,
           "the smallest and largest sizes");
     const float offsets[] = {-0.01f, 1.0f, NAN};
     for (size_t i = 0; i < sizeof offsets / sizeof offsets[0]; i++)
     {
-        CHECK(muiRenderGlyph(fonts.service, ahem, AHEM_BOX, 10.0f, offsets[i], &image, s_pixels,
-                             sizeof s_pixels) == mui_errorInvalid,
+        CHECK(muiTextService_RenderGlyph(fonts.service, ahem, AHEM_BOX, 10.0f, offsets[i], &image,
+                                         s_pixels, sizeof s_pixels) == mui_errorInvalid,
               "an offset refused");
     }
     muiFontMetrics metrics;
     CHECK(muiFont_GetMetrics(fonts.service, fonts.ahem, &metrics) == mui_success &&
-              muiRenderGlyph(fonts.service, ahem, metrics.glyphCount - 1, 10.0f, 0.0f, &image,
-                             s_pixels, sizeof s_pixels) == mui_success &&
-              muiRenderGlyph(fonts.service, ahem, metrics.glyphCount, 10.0f, 0.0f, &image, s_pixels,
-                             sizeof s_pixels) == mui_errorInvalid,
+              muiTextService_RenderGlyph(fonts.service, ahem, metrics.glyphCount - 1, 10.0f, 0.0f,
+                                         &image, s_pixels, sizeof s_pixels) == mui_success &&
+              muiTextService_RenderGlyph(fonts.service, ahem, metrics.glyphCount, 10.0f, 0.0f,
+                                         &image, s_pixels, sizeof s_pixels) == mui_errorInvalid,
           "the last glyph id and one past it");
-    CHECK(muiRenderGlyph(NULL, ahem, AHEM_BOX, 10.0f, 0.0f, &image, s_pixels, sizeof s_pixels) ==
-                  mui_errorInvalid &&
-              muiRenderGlyph(fonts.service, ahem, AHEM_BOX, 10.0f, 0.0f, NULL, s_pixels,
-                             sizeof s_pixels) == mui_errorInvalid &&
-              muiRenderGlyph(fonts.service, ahem, AHEM_BOX, 10.0f, 0.0f, &image, NULL, 1) ==
-                  mui_errorInvalid,
+    CHECK(muiTextService_RenderGlyph(NULL, ahem, AHEM_BOX, 10.0f, 0.0f, &image, s_pixels,
+                                     sizeof s_pixels) == mui_errorInvalid &&
+              muiTextService_RenderGlyph(fonts.service, ahem, AHEM_BOX, 10.0f, 0.0f, NULL, s_pixels,
+                                         sizeof s_pixels) == mui_errorInvalid &&
+              muiTextService_RenderGlyph(fonts.service, ahem, AHEM_BOX, 10.0f, 0.0f, &image, NULL,
+                                         1) == mui_errorInvalid,
           "NULL arguments");
     // Key 0 names the default font, and a gone font's key is stale.
-    CHECK(muiRenderGlyph(fonts.service, 0, AHEM_BOX, 10.0f, 0.0f, &image, s_pixels,
-                         sizeof s_pixels) == mui_errorStale,
+    CHECK(muiTextService_RenderGlyph(fonts.service, 0, AHEM_BOX, 10.0f, 0.0f, &image, s_pixels,
+                                     sizeof s_pixels) == mui_errorStale,
           "no default font");
-    CHECK(muiSetDefaultFont(fonts.service, fonts.ahem) == mui_success &&
-              muiRenderGlyph(fonts.service, 0, AHEM_BOX, 10.0f, 0.0f, &image, s_pixels,
-                             sizeof s_pixels) == mui_success &&
+    CHECK(muiTextService_SetDefaultFont(fonts.service, fonts.ahem) == mui_success &&
+              muiTextService_RenderGlyph(fonts.service, 0, AHEM_BOX, 10.0f, 0.0f, &image, s_pixels,
+                                         sizeof s_pixels) == mui_success &&
               SameImage(image, 0, 8, 10, 10),
           "the default font");
-    CHECK(muiSetDefaultFont(fonts.service, (muiFontId){0, 0}) == mui_success &&
+    CHECK(muiTextService_SetDefaultFont(fonts.service, (muiFontId){0, 0}) == mui_success &&
               muiDestroyFont(fonts.service, fonts.ahem) == mui_success &&
-              muiRenderGlyph(fonts.service, ahem, AHEM_BOX, 10.0f, 0.0f, &image, s_pixels,
-                             sizeof s_pixels) == mui_errorStale,
+              muiTextService_RenderGlyph(fonts.service, ahem, AHEM_BOX, 10.0f, 0.0f, &image,
+                                         s_pixels, sizeof s_pixels) == mui_errorStale,
           "a gone font");
     muiDestroyTextService(fonts.service);
 }
@@ -234,13 +235,14 @@ static void TestTooLarge(void)
     muiFontId large = {0, 0};
     CHECK(muiCreateFont(fonts.service, &def, &large) == mui_success, "the large font");
     muiGlyphImage image = {0, 0, 0, 0};
-    CHECK(muiRenderGlyph(fonts.service, muiFont_GetKey(large), 1, 100.0f, 0.0f, &image, NULL, 0) ==
-                  mui_errorCapacity &&
+    CHECK(muiTextService_RenderGlyph(fonts.service, muiFont_GetKey(large), 1, 100.0f, 0.0f, &image,
+                                     NULL, 0) == mui_errorCapacity &&
               SameImage(image, 0, 1600, 1600, 1600),
           "16 ems at 100 pixels");
     image = (muiGlyphImage){0, 0, 0, 0};
-    CHECK(muiRenderGlyph(fonts.service, muiFont_GetKey(large), 1, MUI_MAX_GLYPH_PIXEL_SIZE, 0.0f,
-                         &image, NULL, 0) == mui_errorFormat &&
+    CHECK(muiTextService_RenderGlyph(fonts.service, muiFont_GetKey(large), 1,
+                                     MUI_MAX_GLYPH_PIXEL_SIZE, 0.0f, &image, NULL,
+                                     0) == mui_errorFormat &&
               SameImage(image, 0, 0, 0, 0),
           "65,536 pixels a side refused");
     // B is 16 ems wide and 1 tall, C 1 wide and 16 tall: too large one
@@ -248,14 +250,15 @@ static void TestTooLarge(void)
     for (uint32_t glyph = 2; glyph <= 3; glyph++)
     {
         image = (muiGlyphImage){0, 0, 0, 0};
-        CHECK(muiRenderGlyph(fonts.service, muiFont_GetKey(large), glyph, MUI_MAX_GLYPH_PIXEL_SIZE,
-                             0.0f, &image, NULL, 0) == mui_errorFormat &&
+        CHECK(muiTextService_RenderGlyph(fonts.service, muiFont_GetKey(large), glyph,
+                                         MUI_MAX_GLYPH_PIXEL_SIZE, 0.0f, &image, NULL,
+                                         0) == mui_errorFormat &&
                   SameImage(image, 0, 0, 0, 0),
               "65,536 pixels one way refused");
         image = (muiGlyphImage){0, 0, 0, 0};
-        CHECK(muiRenderGlyphField(fonts.service, muiFont_GetKey(large), glyph,
-                                  MUI_MAX_GLYPH_PIXEL_SIZE, 4, &image, NULL,
-                                  0) == mui_errorFormat &&
+        CHECK(muiTextService_RenderGlyphField(fonts.service, muiFont_GetKey(large), glyph,
+                                              MUI_MAX_GLYPH_PIXEL_SIZE, 4, &image, NULL,
+                                              0) == mui_errorFormat &&
                   SameImage(image, 0, 0, 0, 0),
               "a field 65,536 pixels one way refused");
     }
@@ -317,10 +320,11 @@ static void TestDamaged(void)
     muiFontId font = {0, 0};
     CHECK(muiCreateFont(fonts.service, &def, &font) == mui_success, "the damaged font opens");
     muiGlyphImage image = {0, 0, 0, 0};
-    CHECK(muiRenderGlyph(fonts.service, muiFont_GetKey(font), AHEM_BOX, 10.0f, 0.0f, &image,
-                         s_pixels, sizeof s_pixels) == mui_errorFormat &&
-              muiRenderGlyphField(fonts.service, muiFont_GetKey(font), AHEM_BOX, 10.0f, 4, &image,
-                                  s_pixels, sizeof s_pixels) == mui_errorFormat,
+    CHECK(muiTextService_RenderGlyph(fonts.service, muiFont_GetKey(font), AHEM_BOX, 10.0f, 0.0f,
+                                     &image, s_pixels, sizeof s_pixels) == mui_errorFormat &&
+              muiTextService_RenderGlyphField(fonts.service, muiFont_GetKey(font), AHEM_BOX, 10.0f,
+                                              4, &image, s_pixels,
+                                              sizeof s_pixels) == mui_errorFormat,
           "the damaged glyph refused");
     CHECK(SameImage(Render(&fonts, font, AHEM_BOX + 1, 10.0f, 0.0f), 0, 8, 10, 10),
           "the next glyph rendered");
@@ -332,8 +336,8 @@ static muiGlyphImage RenderField(const Fonts* fonts, muiFontId font, uint32_t gl
                                  uint32_t spread)
 {
     muiGlyphImage image = {-1, -1, 0, 0};
-    CHECK(muiRenderGlyphField(fonts->service, muiFont_GetKey(font), glyph, size, spread, &image,
-                              s_pixels, sizeof s_pixels) == mui_success,
+    CHECK(muiTextService_RenderGlyphField(fonts->service, muiFont_GetKey(font), glyph, size, spread,
+                                          &image, s_pixels, sizeof s_pixels) == mui_success,
           "field rendered");
     return image;
 }
@@ -392,39 +396,44 @@ static void TestFieldContract(void)
     Fonts fonts = MakeFonts();
     uint64_t ahem = muiFont_GetKey(fonts.ahem);
     muiGlyphImage image = {0, 0, 0, 0};
-    CHECK(muiRenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f, 4, &image, NULL, 0) ==
-                  mui_errorCapacity &&
+    CHECK(muiTextService_RenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f, 4, &image, NULL,
+                                          0) == mui_errorCapacity &&
               SameImage(image, -4, 12, 18, 18),
           "too few bytes, the size told");
-    CHECK(muiRenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f, 4, &image, s_pixels, 323) ==
-              mui_errorCapacity,
+    CHECK(muiTextService_RenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f, 4, &image, s_pixels,
+                                          323) == mui_errorCapacity,
           "one byte short");
-    CHECK(muiRenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f, MUI_MIN_FIELD_SPREAD, &image,
-                              s_pixels, sizeof s_pixels) == mui_success &&
+    CHECK(muiTextService_RenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f,
+                                          MUI_MIN_FIELD_SPREAD, &image, s_pixels,
+                                          sizeof s_pixels) == mui_success &&
               image.width == 14 &&
-              muiRenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f, MUI_MAX_FIELD_SPREAD,
-                                  &image, s_pixels, sizeof s_pixels) == mui_success &&
+              muiTextService_RenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f,
+                                              MUI_MAX_FIELD_SPREAD, &image, s_pixels,
+                                              sizeof s_pixels) == mui_success &&
               image.width == 74,
           "the least and most reach");
-    CHECK(muiRenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f, MUI_MIN_FIELD_SPREAD - 1,
-                              &image, s_pixels, sizeof s_pixels) == mui_errorLimit &&
-              muiRenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f, MUI_MAX_FIELD_SPREAD + 1,
-                                  &image, s_pixels, sizeof s_pixels) == mui_errorLimit &&
-              muiRenderGlyphField(fonts.service, ahem, AHEM_BOX, 0.0f, 4, &image, s_pixels,
-                                  sizeof s_pixels) == mui_errorInvalid &&
-              muiRenderGlyphField(NULL, ahem, AHEM_BOX, 10.0f, 4, &image, s_pixels,
-                                  sizeof s_pixels) == mui_errorInvalid &&
-              muiRenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f, 4, NULL, s_pixels,
-                                  sizeof s_pixels) == mui_errorInvalid &&
-              muiRenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f, 4, &image, NULL, 1) ==
-                  mui_errorInvalid,
+    CHECK(muiTextService_RenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f,
+                                          MUI_MIN_FIELD_SPREAD - 1, &image, s_pixels,
+                                          sizeof s_pixels) == mui_errorLimit &&
+              muiTextService_RenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f,
+                                              MUI_MAX_FIELD_SPREAD + 1, &image, s_pixels,
+                                              sizeof s_pixels) == mui_errorLimit &&
+              muiTextService_RenderGlyphField(fonts.service, ahem, AHEM_BOX, 0.0f, 4, &image,
+                                              s_pixels, sizeof s_pixels) == mui_errorInvalid &&
+              muiTextService_RenderGlyphField(NULL, ahem, AHEM_BOX, 10.0f, 4, &image, s_pixels,
+                                              sizeof s_pixels) == mui_errorInvalid &&
+              muiTextService_RenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f, 4, NULL,
+                                              s_pixels, sizeof s_pixels) == mui_errorInvalid &&
+              muiTextService_RenderGlyphField(fonts.service, ahem, AHEM_BOX, 10.0f, 4, &image, NULL,
+                                              1) == mui_errorInvalid,
           "a spread, size or argument refused");
     muiFontMetrics metrics;
     CHECK(muiFont_GetMetrics(fonts.service, fonts.ahem, &metrics) == mui_success &&
-              muiRenderGlyphField(fonts.service, ahem, metrics.glyphCount, 10.0f, 4, &image,
-                                  s_pixels, sizeof s_pixels) == mui_errorInvalid &&
-              muiRenderGlyphField(fonts.service, ahem + 7, AHEM_BOX, 10.0f, 4, &image, s_pixels,
-                                  sizeof s_pixels) == mui_errorStale,
+              muiTextService_RenderGlyphField(fonts.service, ahem, metrics.glyphCount, 10.0f, 4,
+                                              &image, s_pixels,
+                                              sizeof s_pixels) == mui_errorInvalid &&
+              muiTextService_RenderGlyphField(fonts.service, ahem + 7, AHEM_BOX, 10.0f, 4, &image,
+                                              s_pixels, sizeof s_pixels) == mui_errorStale,
           "a glyph past the font, a key of no font");
     muiFontDef def = muiDefaultFontDef();
     def.data = s_largeGlyph;
@@ -432,8 +441,9 @@ static void TestFieldContract(void)
     def.dataMode = mui_fontDataBorrow;
     muiFontId large = {0, 0};
     CHECK(muiCreateFont(fonts.service, &def, &large) == mui_success &&
-              muiRenderGlyphField(fonts.service, muiFont_GetKey(large), 1, MUI_MAX_GLYPH_PIXEL_SIZE,
-                                  4, &image, NULL, 0) == mui_errorFormat,
+              muiTextService_RenderGlyphField(fonts.service, muiFont_GetKey(large), 1,
+                                              MUI_MAX_GLYPH_PIXEL_SIZE, 4, &image, NULL,
+                                              0) == mui_errorFormat,
           "too large");
     muiDestroyTextService(fonts.service);
 }
@@ -457,8 +467,9 @@ static void TestMultiFields(void)
         muiGlyphImage one = RenderField(&fonts, faces[k], glyphs[k], sizes[k], spreads[k]);
         memcpy(single, s_pixels, (size_t)one.width * one.height);
         muiGlyphImage image = {-1, -1, 0, 0};
-        CHECK(muiRenderGlyphMultiField(fonts.service, key, glyphs[k], sizes[k], spreads[k], &image,
-                                       s_pixels, sizeof s_pixels) == mui_success &&
+        CHECK(muiTextService_RenderGlyphMultiField(fonts.service, key, glyphs[k], sizes[k],
+                                                   spreads[k], &image, s_pixels,
+                                                   sizeof s_pixels) == mui_success &&
                   SameImage(image, one.left, one.top, one.width, one.height),
               "placed as the one-channel field");
         bool alpha = true;
@@ -488,20 +499,20 @@ static void TestMultiFieldContract(void)
     Fonts fonts = MakeFonts();
     uint64_t ahem = muiFont_GetKey(fonts.ahem);
     muiGlyphImage image = {0, 0, 0, 0};
-    CHECK(muiRenderGlyphMultiField(fonts.service, ahem, AHEM_BOX, 10.0f, 4, &image, NULL, 0) ==
-                  mui_errorCapacity &&
+    CHECK(muiTextService_RenderGlyphMultiField(fonts.service, ahem, AHEM_BOX, 10.0f, 4, &image,
+                                               NULL, 0) == mui_errorCapacity &&
               SameImage(image, -4, 12, 18, 18),
           "too few bytes, the size told");
-    CHECK(muiRenderGlyphMultiField(fonts.service, ahem, AHEM_BOX, 10.0f, 4, &image, s_pixels,
-                                   18 * 18 * 4 - 1) == mui_errorCapacity &&
-              muiRenderGlyphMultiField(fonts.service, ahem, AHEM_BOX, 10.0f, 4, &image, s_pixels,
-                                       18 * 18 * 4) == mui_success,
+    CHECK(muiTextService_RenderGlyphMultiField(fonts.service, ahem, AHEM_BOX, 10.0f, 4, &image,
+                                               s_pixels, 18 * 18 * 4 - 1) == mui_errorCapacity &&
+              muiTextService_RenderGlyphMultiField(fonts.service, ahem, AHEM_BOX, 10.0f, 4, &image,
+                                                   s_pixels, 18 * 18 * 4) == mui_success,
           "four bytes a pixel");
-    CHECK(muiRenderGlyphMultiField(NULL, ahem, AHEM_BOX, 10.0f, 4, &image, s_pixels,
-                                   sizeof s_pixels) == mui_errorInvalid &&
-              muiRenderGlyphMultiField(fonts.service, ahem, AHEM_BOX, 10.0f,
-                                       MUI_MAX_FIELD_SPREAD + 1, &image, s_pixels,
-                                       sizeof s_pixels) == mui_errorLimit,
+    CHECK(muiTextService_RenderGlyphMultiField(NULL, ahem, AHEM_BOX, 10.0f, 4, &image, s_pixels,
+                                               sizeof s_pixels) == mui_errorInvalid &&
+              muiTextService_RenderGlyphMultiField(fonts.service, ahem, AHEM_BOX, 10.0f,
+                                                   MUI_MAX_FIELD_SPREAD + 1, &image, s_pixels,
+                                                   sizeof s_pixels) == mui_errorLimit,
           "refused as the one-channel field");
     muiDestroyTextService(fonts.service);
 }

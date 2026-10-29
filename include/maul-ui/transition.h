@@ -3,7 +3,7 @@
 //
 // Transitions: specs of how a property moves to a new value (timed with an
 // easing, or a spring), shared by the classes whose variants name them,
-// and run against the time the host passes to muiComputeLayout. The spec
+// and run against the time the host passes to muiNode_ComputeLayout. The spec
 // for a change is resolved through the same layers as values, from the
 // state after the change. Numbers, insets, dimensions and radii that are
 // Scale+Offset on both sides, colors (in premultiplied Oklab) and shadows

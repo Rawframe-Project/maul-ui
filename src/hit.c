@@ -232,7 +232,8 @@ static MUI_NOINLINE muiResult HitTestWorker(const muiContext* context, muiNodeId
     return mui_success;
 }
 
-muiResult muiHitTest(const muiContext* context, muiNodeId rootId, float x, float y, muiHit* hitOut)
+muiResult muiNode_HitTest(const muiContext* context, muiNodeId rootId, float x, float y,
+                          muiHit* hitOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = HitTestWorker(context, rootId, x, y, hitOut);

@@ -102,7 +102,7 @@ static void Bind(muiContext* context, muiStyleId style, muiVariant variant,
 static float WidthAt(muiContext* context, muiNodeId node, uint64_t timeNs)
 {
     muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, timeNs, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, node, &input) == mui_success, "compute");
+    CHECK(muiNode_ComputeLayout(context, node, &input) == mui_success, "compute");
     return muiNode_GetRect(context, node).width;
 }
 
@@ -280,13 +280,13 @@ static void TestTimedTransitionFollowsItsCurve(void)
     Hover(&scene, true);
     CHECK(WidthAt(scene.context, scene.node, T0) == 100.0f, "no time has passed");
     CHECK(muiNode_IsTransitioning(scene.context, scene.node, mui_propertyWidth), "moving");
-    CHECK(muiIsUpdatePending(scene.context, scene.node), "a run is owed while it moves");
+    CHECK(muiNode_IsUpdatePending(scene.context, scene.node), "a run is owed while it moves");
     CHECK(WidthAt(scene.context, scene.node, T0 + 25 * MS) == 125.0f, "a quarter of the way");
     CHECK(WidthAt(scene.context, scene.node, T0 + 10 * MS) == 125.0f,
           "time going back counts as none");
     CHECK(WidthAt(scene.context, scene.node, T0 + 100 * MS) == 200.0f, "there");
     CHECK(!muiNode_IsTransitioning(scene.context, scene.node, mui_propertyWidth), "done");
-    CHECK(!muiIsUpdatePending(scene.context, scene.node), "nothing owed");
+    CHECK(!muiNode_IsUpdatePending(scene.context, scene.node), "nothing owed");
     // Leaving hover, the base names no spec: back at once.
     Hover(&scene, false);
     CHECK(WidthAt(scene.context, scene.node, T0 + 200 * MS) == 100.0f, "the after-change spec");
@@ -515,18 +515,18 @@ static void TestReducedMotionAndDirectWritesApplyAtOnce(void)
          MakeTimed(scene.context, 100 * MS, mui_easingLinear, 0), WIDTH);
     muiEnvironment environment = muiDefaultEnvironment();
     environment.reducedMotion = true;
-    CHECK(muiSetContextEnvironment(scene.context, &environment) == mui_success, "reduce");
+    CHECK(muiContext_SetEnvironment(scene.context, &environment) == mui_success, "reduce");
     Hover(&scene, true);
     CHECK(WidthAt(scene.context, scene.node, T0) == 200.0f, "at once");
     environment.reducedMotion = false;
-    CHECK(muiSetContextEnvironment(scene.context, &environment) == mui_success, "full motion");
+    CHECK(muiContext_SetEnvironment(scene.context, &environment) == mui_success, "full motion");
     Hover(&scene, false);
     CHECK(WidthAt(scene.context, scene.node, T0) == 200.0f, "moving again");
     environment.reducedMotion = true;
-    CHECK(muiSetContextEnvironment(scene.context, &environment) == mui_success, "reduce again");
+    CHECK(muiContext_SetEnvironment(scene.context, &environment) == mui_success, "reduce again");
     CHECK(WidthAt(scene.context, scene.node, T0 + MS) == 100.0f, "a running one ends");
     environment.reducedMotion = false;
-    CHECK(muiSetContextEnvironment(scene.context, &environment) == mui_success, "full again");
+    CHECK(muiContext_SetEnvironment(scene.context, &environment) == mui_success, "full again");
     Hover(&scene, true);
     (void)WidthAt(scene.context, scene.node, T0 + 10 * MS);
     CHECK(WidthAt(scene.context, scene.node, T0 + 60 * MS) == 150.0f, "moving");
@@ -575,9 +575,9 @@ static void TestOnlyMovableValuesMove(void)
     wide.sizing.width = Length(600.0f);
     CHECK(muiNode_SetLayoutValues(context, root, &wide, WIDTH) == mui_success, "root width");
     muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, T0 + 200 * MS, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "start");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "start");
     input.timeNs = T0 + 250 * MS;
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "half way");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "half way");
     CHECK(muiNode_GetRect(context, node).width == 250.0f,
           "(0, 200) to (0.5, 0) of 600 halfway: 0.25 of 600 and 100");
     muiDestroyContext(context);
@@ -616,7 +616,7 @@ static void TestRecordLimitAndFreedRecords(void)
     CHECK(WidthAt(scene.context, other, T0) == 200.0f, "no record left: at once");
     CHECK(muiNode_IsTransitioning(scene.context, scene.node, mui_propertyWidth), "the first moves");
     CHECK(muiDestroyNode(scene.context, scene.node) == mui_success, "destroy it");
-    CHECK(!muiIsUpdatePending(scene.context, other), "a gone node's record is not owed");
+    CHECK(!muiNode_IsUpdatePending(scene.context, other), "a gone node's record is not owed");
     CHECK(muiNode_SetStates(scene.context, other, 0) == mui_success, "unhover");
     (void)WidthAt(scene.context, other, T0);
     CHECK(muiNode_IsTransitioning(scene.context, other, mui_propertyWidth),

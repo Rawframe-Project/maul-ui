@@ -183,9 +183,9 @@ static void MakeTree(Test* test)
                                        MUI_PROPERTY_BIT(mui_propertyFocusMode)) == mui_success,
           "the button takes focus");
     const muiLayoutInput input = {640.0f, 480.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(test->context, test->root, &input) == mui_success &&
-              muiSetEventFunction(test->context, Hear, test) == mui_success &&
-              muiFocus_Set(test->context, 0, test->button, mui_focusByCode) == mui_success,
+    CHECK(muiNode_ComputeLayout(test->context, test->root, &input) == mui_success &&
+              muiContext_SetEventFunction(test->context, Hear, test) == mui_success &&
+              muiContext_SetFocus(test->context, 0, test->button, mui_focusByCode) == mui_success,
           "laid out, heard and focused");
 }
 
@@ -209,7 +209,7 @@ static mwinResult Init(mwinContext* windows, void* user)
     def.window = test->window;
     def.context = test->context;
     def.root = test->root;
-    def.gamepads = true;
+    def.enableGamepads = true;
     muiWindowGlueDef stalled = def;
     stalled.repeatIntervalNs = 0;
     muiWindowGlue* refused = NULL;
@@ -561,15 +561,15 @@ static bool AcceptsText(const Test* test, mwinContext* windows)
 static void SetCaret(Test* test)
 {
     mwinRect placed = {0};
-    CHECK(muiWindowGlue_SetCaret(test->glue, test->button, (muiRect){5.0f, 6.0f, 0.0f, 20.0f},
+    CHECK(muiNode_SetWindowCaret(test->glue, test->button, (muiRect){5.0f, 6.0f, 0.0f, 20.0f},
                                  &placed) == mui_success &&
               placed.x == 15.0f && placed.y == 16.0f && placed.width == 0.0f &&
               placed.height == 20.0f,
           "the caret placed in the window");
     placed.x = 7.0f;
-    CHECK(muiWindowGlue_SetCaret(test->glue, test->button, (muiRect){0.0f, 0.0f, -1.0f, 20.0f},
+    CHECK(muiNode_SetWindowCaret(test->glue, test->button, (muiRect){0.0f, 0.0f, -1.0f, 20.0f},
                                  &placed) == mui_errorInvalid &&
-              muiWindowGlue_SetCaret(test->glue, test->button, (muiRect){0.0f, 0.0f, 0.0f, NAN},
+              muiNode_SetWindowCaret(test->glue, test->button, (muiRect){0.0f, 0.0f, 0.0f, NAN},
                                      &placed) == mui_errorInvalid &&
               placed.x == 0.0f && placed.height == 0.0f,
           "a caret of a negative size or not finite refused, the output cleared");
@@ -587,7 +587,7 @@ static void StopCaret(Test* test, mwinContext* windows)
               caret.height == 20.0f,
           "the platform's caret where it was placed");
     mwinRect placed = {1.0f, 1.0f, 1.0f, 1.0f};
-    CHECK(muiWindowGlue_SetCaret(test->glue, s_nullNode, (muiRect){0}, &placed) == mui_success &&
+    CHECK(muiNode_SetWindowCaret(test->glue, s_nullNode, (muiRect){0}, &placed) == mui_success &&
               placed.x == 0.0f && placed.height == 0.0f,
           "the null id stops");
 }
@@ -684,7 +684,7 @@ static void TestNullGlueClearsOutputs(void)
     CHECK(muiWindowGlue_Tick(NULL, 0, &handled) == mui_errorInvalid && !handled,
           "Tick clears handled");
     mwinRect placed = {1, 2, 3, 4};
-    CHECK(muiWindowGlue_SetCaret(NULL, (muiNodeId){0}, (muiRect){0}, &placed) == mui_errorInvalid &&
+    CHECK(muiNode_SetWindowCaret(NULL, (muiNodeId){0}, (muiRect){0}, &placed) == mui_errorInvalid &&
               placed.x == 0 && placed.y == 0 && placed.width == 0 && placed.height == 0,
           "SetCaret clears the place");
 }

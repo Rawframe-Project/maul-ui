@@ -54,11 +54,11 @@ The values are in `muiLayoutStyle` (`maul-ui/layout.h`), set on a node or throug
 
 ## Host content
 
-A node whose `content` is `mui_contentHost` is sized by the program. The layout input names a measure function, called inside `muiComputeLayout` with the node, its host key and the constraint on each axis, and a baseline function for nodes aligned by baseline. The text component provides both for text ([Text](text.md)).
+A node whose `content` is `mui_contentHost` is sized by the program. The layout input names a measure function, called inside `muiNode_ComputeLayout` with the node, its host key and the constraint on each axis, and a baseline function for nodes aligned by baseline. The text component provides both for text ([Text](text.md)).
 
 The library caches what a function answered and asks again only when the node or its content changed. When the content changes outside the library's view, such as a new string or a reloaded image, `muiNode_MarkContentChanged` has the node measured and painted again at the next frame, and its siblings move if its size changes.
 
-A measure function that cannot measure now, as when its memory ran out, answers NaN for the width or the height; a baseline function answers +infinity. The node is laid out as empty for this frame, the answer is not kept, `muiComputeLayout` returns `mui_errorCapacity`, and the next layout asks again. The text component answers so when it runs out of memory.
+A measure function that cannot measure now, as when its memory ran out, answers NaN for the width or the height; a baseline function answers +infinity. The node is laid out as empty for this frame, the answer is not kept, `muiNode_ComputeLayout` returns `mui_errorCapacity`, and the next layout asks again. The text component answers so when it runs out of memory.
 
 ## Reading the results
 

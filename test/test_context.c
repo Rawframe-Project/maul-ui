@@ -59,7 +59,7 @@ static void TestDefaultDefCreatesAContext(void)
     muiContext* context = NULL;
     CHECK(muiCreateContext(&def, &context) == mui_success, "create");
     CHECK(context != NULL, "context set");
-    CHECK(muiGetContextMisuse(context) == 0, "no misuse yet");
+    CHECK(muiContext_GetMisuse(context) == 0, "no misuse yet");
     muiDestroyContext(context);
 }
 
@@ -168,7 +168,7 @@ static void TestAnyMaxAlignedBlockWorks(void)
         muiNodeId id = {0, 0};
         CHECK(muiCreateNode(context, &node, &id) == mui_success, "a node");
         const muiLayoutInput input = {100.0f, 100.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-        CHECK(muiComputeLayout(context, id, &input) == mui_success, "laid out");
+        CHECK(muiNode_ComputeLayout(context, id, &input) == mui_success, "laid out");
         muiDestroyContext(context);
     }
 }
@@ -238,7 +238,7 @@ static void TestLimitsAtTheirLargest(void)
 static void TestNullContextIsHarmless(void)
 {
     muiDestroyContext(NULL);
-    CHECK(muiGetContextMisuse(NULL) == 0, "misuse of NULL");
+    CHECK(muiContext_GetMisuse(NULL) == 0, "misuse of NULL");
 }
 
 int main(void)

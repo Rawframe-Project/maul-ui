@@ -12,7 +12,7 @@
 
 #include "maul-window/clipboard.h"
 
-void muiWindowGlue_WriteClipboard(void* glue, const char* text, size_t length)
+void muiWriteWindowClipboard(void* glue, const char* text, size_t length)
 {
     const muiWindowGlue* own = glue;
     if (own != nullptr)
@@ -31,8 +31,9 @@ muiResult muiWindowGlue_RequestPaste(muiWindowGlue* glue)
     return mui_success;
 }
 
-muiResult muiWindowGlue_Paste(muiWindowGlue* glue, muiTextService* service, muiTextBlockId blockId,
-                              const mwinEvent* event, bool* changedOut)
+muiResult muiTextBlock_PasteFromWindow(muiWindowGlue* glue, muiTextService* service,
+                                       muiTextBlockId blockId, const mwinEvent* event,
+                                       bool* changedOut)
 {
     if (changedOut != nullptr)
     {

@@ -77,7 +77,7 @@ static inline void muiNoteDestroyed(muiContext* context)
     }
 }
 
-// muiFocus_Set and muiFocus_Move without the busy mark, for the library's
+// muiContext_SetFocus and muiNode_MoveFocus without the busy mark, for the library's
 // own calls from inside a call that holds it.
 muiResult muiSetFocus(muiContext* context, uint8_t player, muiNodeId nodeId, muiFocusCause cause);
 muiResult muiMoveFocus(muiContext* context, muiNodeId rootId, uint8_t player, bool backward);

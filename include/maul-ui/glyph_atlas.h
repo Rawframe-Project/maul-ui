@@ -2,9 +2,9 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Glyph atlases: glyph images of a text service's fonts, rendered as
-// muiRenderGlyph, muiRenderGlyphField and muiRenderGlyphMultiField render
-// them and packed into pages a renderer uploads as textures. An atlas's
-// pages are of one format: one byte a pixel, holding coverage and distance
+// muiTextService_RenderGlyph, muiTextService_RenderGlyphField and
+// muiTextService_RenderGlyphMultiField render them and packed into pages a renderer uploads as
+// textures. An atlas's pages are of one format: one byte a pixel, holding coverage and distance
 // fields both, four holding multi-channel fields, or four holding colour
 // glyphs; a renderer wanting several makes an atlas of each, so their
 // pages never share an index space. Pages are split into plots; when no
@@ -33,14 +33,14 @@ extern "C"
 
     enum
     {
-        // A byte a pixel: coverage (muiGlyphAtlas_Get) and distance fields
-        // (muiGlyphAtlas_GetField).
+        // A byte a pixel: coverage (muiGlyphAtlas_GetGlyph) and distance fields
+        // (muiGlyphAtlas_GetGlyphField).
         mui_atlasOneChannel = 0,
         // Four bytes a pixel, red, green, blue and alpha: multi-channel
-        // distance fields (muiGlyphAtlas_GetMultiField).
+        // distance fields (muiGlyphAtlas_GetGlyphMultiField).
         mui_atlasFourChannel = 1,
         // Four bytes a pixel, premultiplied colour as an sRGB texture holds
-        // it: colour glyphs (muiGlyphAtlas_GetColor).
+        // it: colour glyphs (muiGlyphAtlas_GetColorGlyph).
         mui_atlasColor = 2,
     };
 
@@ -162,7 +162,7 @@ extern "C"
     /// @param atlas  The atlas, or NULL for nothing.
     /// @par Thread safety
     /// Safe from any thread; the atlas is used by one thread at a time.
-    MUI_API void muiGlyphAtlas_NextFrame(muiGlyphAtlas* atlas);
+    MUI_API void muiGlyphAtlas_BeginFrame(muiGlyphAtlas* atlas);
 
     /// Gets a glyph's image for a pen in device pixels, rendering and
     /// packing it the first time. The pen's x is taken to the nearest
@@ -173,7 +173,7 @@ extern "C"
     /// @param atlas      The atlas.
     /// @param font       A font key, as a glyph run carries.
     /// @param glyph      A glyph id of the font.
-    /// @param pixelSize  The em in device pixels, as muiRenderGlyph takes.
+    /// @param pixelSize  The em in device pixels, as muiTextService_RenderGlyph takes.
     /// @param penX       The pen, in device pixels, within MUI_MAX_ATLAS_PEN
     ///                   of 0.
     /// @param baselineY  The baseline, likewise.
@@ -193,13 +193,14 @@ extern "C"
     ///         atlas is busy.
     /// @par Thread safety
     /// Safe from any thread; the atlas is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_Get(muiGlyphAtlas* atlas, uint64_t font,
-                                                      uint32_t glyph, float pixelSize, float penX,
-                                                      float baselineY, muiAtlasGlyph* glyphOut);
+    MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_GetGlyph(muiGlyphAtlas* atlas, uint64_t font,
+                                                           uint32_t glyph, float pixelSize,
+                                                           float penX, float baselineY,
+                                                           muiAtlasGlyph* glyphOut);
 
     /// Gets a colour glyph's image from an atlas of colour glyphs for a pen
     /// in device pixels, rendering and packing it the first time, as
-    /// muiRenderColorGlyph renders it and muiGlyphAtlas_Get places coverage.
+    /// muiTextService_RenderColorGlyph renders it and muiGlyphAtlas_GetGlyph places coverage.
     /// The text's colour is kept as 8-bit sRGB with straight alpha, and
     /// the glyph is rendered with it so kept: each palette and text colour
     /// is an image of its own. A glyph without colour layers gives
@@ -218,17 +219,17 @@ extern "C"
     /// @param glyphOut    Receives the image; when the image is larger than a
     ///                    plot, its width and height only. Zeroed on any other
     ///                    failure.
-    /// @return As muiGlyphAtlas_Get, with `mui_empty` for a glyph without
+    /// @return As muiGlyphAtlas_GetGlyph, with `mui_empty` for a glyph without
     ///         colour layers;
     ///         `mui_errorBusy` while the atlas is busy.
     /// @par Thread safety
     /// Safe from any thread; the atlas is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_GetColor(
+    MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_GetColorGlyph(
         muiGlyphAtlas* atlas, uint64_t font, uint32_t glyph, float pixelSize, float penX,
         float baselineY, uint32_t palette, muiLinearColor foreground, muiAtlasGlyph* glyphOut);
 
     /// Gets a glyph's distance field, rendering and packing it the first
-    /// time, as muiRenderGlyphField renders it; the font key 0 is the
+    /// time, as muiTextService_RenderGlyphField renders it; the font key 0 is the
     /// default font's. A renderer draws it at any size s by scaling the
     /// image and its place, x and y from the pen and baseline, by
     /// s / pixelSize. The glyph's plot is kept until a later frame.
@@ -237,27 +238,27 @@ extern "C"
     /// @param font       A font key, as a glyph run carries.
     /// @param glyph      A glyph id of the font.
     /// @param pixelSize  The em in pixels of the field, as
-    ///                   muiRenderGlyphField takes.
+    ///                   muiTextService_RenderGlyphField takes.
     /// @param spread     How far the field reaches past the outline, from
     ///                   MUI_MIN_FIELD_SPREAD to MUI_MAX_FIELD_SPREAD
     ///                   pixels.
     /// @param glyphOut   Receives the image; when the image is larger than a
     ///                   plot, its width and height only. Zeroed on any other
     ///                   failure.
-    /// @return As muiGlyphAtlas_Get, with `mui_errorLimit` for a spread out of
+    /// @return As muiGlyphAtlas_GetGlyph, with `mui_errorLimit` for a spread out of
     ///         range;
     ///         `mui_errorBusy` while the atlas is busy.
     /// @par Thread safety
     /// Safe from any thread; the atlas is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_GetField(muiGlyphAtlas* atlas, uint64_t font,
-                                                           uint32_t glyph, float pixelSize,
-                                                           uint32_t spread,
-                                                           muiAtlasGlyph* glyphOut);
+    MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_GetGlyphField(muiGlyphAtlas* atlas, uint64_t font,
+                                                                uint32_t glyph, float pixelSize,
+                                                                uint32_t spread,
+                                                                muiAtlasGlyph* glyphOut);
 
     /// Gets a glyph's multi-channel distance field from an atlas of four
     /// channels, rendering and packing it the first time, as
-    /// muiRenderGlyphMultiField renders it; the font key 0 is the default
-    /// font's. It is placed and drawn as muiGlyphAtlas_GetField's fields
+    /// muiTextService_RenderGlyphMultiField renders it; the font key 0 is the default
+    /// font's. It is placed and drawn as muiGlyphAtlas_GetGlyphField's fields
     /// are, from the median of its red, green and blue, or from its alpha
     /// as a one-channel field. The glyph's plot is kept until a later
     /// frame.
@@ -266,21 +267,22 @@ extern "C"
     /// @param font       A font key, as a glyph run carries.
     /// @param glyph      A glyph id of the font.
     /// @param pixelSize  The em in pixels of the field, as
-    ///                   muiRenderGlyphMultiField takes.
+    ///                   muiTextService_RenderGlyphMultiField takes.
     /// @param spread     How far the field reaches past the outline, from
     ///                   MUI_MIN_FIELD_SPREAD to MUI_MAX_FIELD_SPREAD
     ///                   pixels.
     /// @param glyphOut   Receives the image; when the image is larger than a
     ///                   plot, its width and height only. Zeroed on any other
     ///                   failure.
-    /// @return As muiGlyphAtlas_GetField; `mui_errorBusy` while the atlas is
+    /// @return As muiGlyphAtlas_GetGlyphField; `mui_errorBusy` while the atlas is
     ///         busy.
     /// @par Thread safety
     /// Safe from any thread; the atlas is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_GetMultiField(muiGlyphAtlas* atlas, uint64_t font,
-                                                                uint32_t glyph, float pixelSize,
-                                                                uint32_t spread,
-                                                                muiAtlasGlyph* glyphOut);
+    MUI_NODISCARD MUI_API muiResult muiGlyphAtlas_GetGlyphMultiField(muiGlyphAtlas* atlas,
+                                                                     uint64_t font, uint32_t glyph,
+                                                                     float pixelSize,
+                                                                     uint32_t spread,
+                                                                     muiAtlasGlyph* glyphOut);
 
     /// Returns how many pages the atlas has made.
     ///
@@ -291,7 +293,7 @@ extern "C"
     MUI_API uint32_t muiGlyphAtlas_GetPageCount(const muiGlyphAtlas* atlas);
 
     /// Reads a page's pixels, which stay valid until the atlas is
-    /// destroyed and change only in calls to muiGlyphAtlas_Get.
+    /// destroyed and change only in calls to muiGlyphAtlas_GetGlyph.
     ///
     /// @param atlas    The atlas.
     /// @param page     A page the atlas has made.

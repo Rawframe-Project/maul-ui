@@ -1171,13 +1171,13 @@ static void TestActionsAndValues(void)
               ReplyIs(label, "org.a11y.atspi.Accessible", "GetInterfaces",
                       "org.a11y.atspi.Accessible org.a11y.atspi.Component org.a11y.atspi.Text"),
           "interfaces as the node has them");
-    uint64_t misuse = muiGetAtspiAppMisuse(s_test.app);
+    uint64_t misuse = muiAtspiApp_GetMisuse(s_test.app);
     DBusMessage* reply = Answer(Indexed(ok, "DoAction", 0));
     CHECK(PropertyOf(ok, "org.a11y.atspi.Action", "NActions", mui_dbusTypeInt32, &count) &&
               count == 1 && FirstOf(reply, mui_dbusTypeBoolean, &done) && done &&
               s_test.asked.action == mui_actionClick && s_test.asked.target == 2 &&
-              s_test.reentered == mui_errorBusy && muiGetAtspiAppMisuse(s_test.app) >= misuse + 3 &&
-              muiGetAtspiAppMisuse(NULL) == 0,
+              s_test.reentered == mui_errorBusy &&
+              muiAtspiApp_GetMisuse(s_test.app) >= misuse + 3 && muiAtspiApp_GetMisuse(NULL) == 0,
           "a click listed and done; a call back in from it refused, it, the pump and the "
           "destroy counted");
     if (reply != NULL)
@@ -1225,10 +1225,10 @@ static void TestActionsAndValues(void)
           "a range's value read and set, a value past its range refused");
     // A client's number that is not finite never reaches the host, and
     // counts no misuse: the client is another program.
-    uint64_t before = muiGetAtspiAppMisuse(s_test.app);
+    uint64_t before = muiAtspiApp_GetMisuse(s_test.app);
     CHECK(!SetValue(slider, (double)NAN) && !SetValue(slider, (double)INFINITY) &&
               !SetValue(slider, -(double)INFINITY) && s_test.asked.value == 55.0f &&
-              muiGetAtspiAppMisuse(s_test.app) == before,
+              muiAtspiApp_GetMisuse(s_test.app) == before,
           "a value not finite refused before the host, no misuse");
     s_test.asked = (muiAccessRequest){0};
     CHECK(
@@ -2106,7 +2106,7 @@ int main(void)
     muiAccessUpdate update = Build(&s_built);
     CHECK(muiCreateAtspiAdapter(s_test.app, &adapterDef, &adapter) == mui_success &&
               muiAtspiAdapter_Apply(adapter, &update) == mui_success &&
-              muiAccessTree_Count(muiAtspiAdapter_GetTree(adapter)) == 9,
+              muiAccessTree_GetNodeCount(muiAtspiAdapter_GetTree(adapter)) == 9,
           "a window");
     s_test.adapter = adapter;
     CHECK(

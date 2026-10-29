@@ -76,7 +76,7 @@ muiResult muiCreateWindowGlue(const muiWindowGlueDef* def, muiWindowGlue** glueO
         .context = def->context,
         .root = def->root,
         .player = def->player,
-        .gamepads = def->gamepads,
+        .gamepads = def->enableGamepads,
         .pads =
             {
                 .player = def->gamepadPlayer,
@@ -118,10 +118,10 @@ static bool IsTheUis(const muiPointerRecord* record, bool handled)
 static muiResult DispatchRecords(muiWindowGlue* glue, bool* handledOut)
 {
     muiPointerRecord record;
-    while (muiNextPointerRecord(glue->context, &record) == mui_success)
+    while (muiContext_TakePointerRecord(glue->context, &record) == mui_success)
     {
         bool handled = false;
-        muiResult status = muiDispatchPointerRecord(glue->context, &record, &handled);
+        muiResult status = muiContext_DispatchPointerRecord(glue->context, &record, &handled);
         if (status != mui_success)
         {
             return status;
@@ -140,7 +140,7 @@ static muiResult DispatchRecords(muiWindowGlue* glue, bool* handledOut)
 static bool Covers(const muiWindowGlue* glue, float x, float y)
 {
     muiHit hit;
-    return muiHitTest(glue->context, glue->root, x, y, &hit) == mui_success &&
+    return muiNode_HitTest(glue->context, glue->root, x, y, &hit) == mui_success &&
            hit.node.index1 != 0 && !hit.passThrough;
 }
 
@@ -148,7 +148,7 @@ static bool Covers(const muiWindowGlue* glue, float x, float y)
 // UI's, by a record, by a press the UI holds, or by where it is.
 static muiResult Feed(muiWindowGlue* glue, const muiPointerEvent* pointer, bool* handledOut)
 {
-    muiResult status = muiPointerInput(glue->context, glue->root, pointer);
+    muiResult status = muiNode_RoutePointer(glue->context, glue->root, pointer);
     status = status == mui_success ? DispatchRecords(glue, handledOut) : status;
     if (status != mui_success)
     {
@@ -360,7 +360,7 @@ static muiResult Key(muiWindowGlue* glue, const mwinEvent* event, bool* handledO
         .repeat = key->repeat,
         .player = glue->player,
     };
-    return muiKeyInput(glue->context, glue->root, &input, handledOut);
+    return muiNode_RouteKey(glue->context, glue->root, &input, handledOut);
 }
 
 static muiResult Text(muiWindowGlue* glue, const mwinEvent* event, bool* handledOut)
@@ -371,7 +371,7 @@ static muiResult Text(muiWindowGlue* glue, const mwinEvent* event, bool* handled
         .length = event->data.text.length,
         .player = glue->player,
     };
-    return muiTextInput(glue->context, glue->root, &input, handledOut);
+    return muiNode_RouteText(glue->context, glue->root, &input, handledOut);
 }
 
 static muiResult Wheel(muiWindowGlue* glue, const mwinEvent* event, bool* handledOut)
@@ -385,13 +385,14 @@ static muiResult Wheel(muiWindowGlue* glue, const mwinEvent* event, bool* handle
         .modifiers = glue->modifiers,
         .player = glue->player,
     };
-    return muiWheelInput(glue->context, glue->root, &input, handledOut);
+    return muiNode_RouteWheel(glue->context, glue->root, &input, handledOut);
 }
 
 static muiResult Navigate(const muiWindowGlue* glue, muiWindowAsk ask, bool* handledOut)
 {
-    return ask.asks ? muiNavigationInput(glue->context, glue->root, &ask.navigation, handledOut)
-                    : mui_success;
+    return ask.asks
+               ? muiNode_RouteNavigation(glue->context, glue->root, &ask.navigation, handledOut)
+               : mui_success;
 }
 
 // A record of the context's own: a gamepad's, for a glue that takes
@@ -416,7 +417,7 @@ muiResult muiWindowGlue_Tick(muiWindowGlue* glue, uint64_t nowNs, bool* handledO
                           : mui_success;
 }
 
-muiResult muiWindowGlue_SetCaret(muiWindowGlue* glue, muiNodeId nodeId, muiRect caret,
+muiResult muiNode_SetWindowCaret(muiWindowGlue* glue, muiNodeId nodeId, muiRect caret,
                                  mwinRect* placedOut)
 {
     if (placedOut != nullptr)

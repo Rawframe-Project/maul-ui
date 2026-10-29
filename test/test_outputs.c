@@ -122,7 +122,7 @@ static void CheckQueries(const muiContext* context, muiNodeId node, muiStyleId s
         CLEARED(count));
     EXPECT(muiNode_GetAccessValues(context, node, &outputs.accessValues), CLEARED(accessValues));
     EXPECT(muiNode_GetInteractionStyle(context, node, &outputs.interaction), CLEARED(interaction));
-    EXPECT(muiHitTest(context, node, 0.0f, 0.0f, &outputs.hit), CLEARED(hit));
+    EXPECT(muiNode_HitTest(context, node, 0.0f, 0.0f, &outputs.hit), CLEARED(hit));
     EXPECT(muiNode_GetLayoutStyle(context, node, &outputs.layout), CLEARED(layout));
     EXPECT(muiNode_MapToRoot(context, node, 0.0f, 0.0f, &outputs.x, &outputs.y),
            CLEARED(x) && CLEARED(y));
@@ -184,14 +184,14 @@ static void TestNullContextClearsOutputs(void)
               CLEARED(value),
           "muiNode_GetTokenValue clears its output");
     Fill(&outputs);
-    CHECK(muiGetDrawList(NULL, &outputs.list) == mui_errorInvalid && CLEARED(list),
-          "muiGetDrawList clears its output");
+    CHECK(muiContext_GetDrawList(NULL, &outputs.list) == mui_errorInvalid && CLEARED(list),
+          "muiContext_GetDrawList clears its output");
     Fill(&outputs);
     CHECK(muiDrawSink_GetVisibleRect(NULL, &outputs.rect) == mui_errorInvalid && CLEARED(rect),
           "muiDrawSink_GetVisibleRect clears its output");
     Fill(&outputs);
-    CHECK(muiPointer_GetState(NULL, 1, &outputs.state) == mui_errorInvalid && CLEARED(state),
-          "muiPointer_GetState clears its output");
+    CHECK(muiContext_GetPointerState(NULL, 1, &outputs.state) == mui_errorInvalid && CLEARED(state),
+          "muiContext_GetPointerState clears its output");
 }
 
 // A NULL context, and a context busy in its measure function, refuse
@@ -232,15 +232,15 @@ static void CheckChanges(muiContext* context, muiResult expected, const char* wh
     EXPECT(muiCreateTransition(context, &transitionDef, &outputs.transition), CLEARED(transition));
     EXPECT(muiStyle_AddCondition(context, (muiStyleId){1, 1}, &condition, &outputs.variant),
            CLEARED(variant));
-    EXPECT(muiNextNotification(context, &outputs.notification), CLEARED(notification));
-    EXPECT(muiNextPointerRecord(context, &outputs.record), CLEARED(record));
-    EXPECT(muiKeyInput(context, root, &key, &outputs.handled), CLEARED(handled));
-    EXPECT(muiTextInput(context, root, &text, &outputs.handled), CLEARED(handled));
-    EXPECT(muiNavigationInput(context, root, &navigation, &outputs.handled), CLEARED(handled));
-    EXPECT(muiWheelInput(context, root, &wheel, &outputs.handled), CLEARED(handled));
-    EXPECT(muiDispatchPointerRecord(context, &record, &outputs.handled), CLEARED(handled));
-    EXPECT(muiBuildAccessUpdate(context, root, &outputs.update), CLEARED(update));
-    EXPECT(muiPerformAccessAction(context, &request, &outputs.handled), CLEARED(handled));
+    EXPECT(muiContext_TakeNotification(context, &outputs.notification), CLEARED(notification));
+    EXPECT(muiContext_TakePointerRecord(context, &outputs.record), CLEARED(record));
+    EXPECT(muiNode_RouteKey(context, root, &key, &outputs.handled), CLEARED(handled));
+    EXPECT(muiNode_RouteText(context, root, &text, &outputs.handled), CLEARED(handled));
+    EXPECT(muiNode_RouteNavigation(context, root, &navigation, &outputs.handled), CLEARED(handled));
+    EXPECT(muiNode_RouteWheel(context, root, &wheel, &outputs.handled), CLEARED(handled));
+    EXPECT(muiContext_DispatchPointerRecord(context, &record, &outputs.handled), CLEARED(handled));
+    EXPECT(muiNode_BuildAccessUpdate(context, root, &outputs.update), CLEARED(update));
+    EXPECT(muiContext_PerformAccessAction(context, &request, &outputs.handled), CLEARED(handled));
 #undef EXPECT
 }
 
@@ -288,7 +288,7 @@ static void TestBusyContextClearsOutputs(void)
                             .availableHeight = 100.0f,
                             .measure = MeasureWhileBusy,
                             .user = &busy};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
     CHECK(busy.ran, "the measure function ran");
     muiDestroyContext(context);
 }

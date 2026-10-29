@@ -138,7 +138,7 @@ typedef struct Scene
 static bool IsIdle(const Scene* scene)
 {
     const muiTextSelection none = {0, {0, false}};
-    return muiNextNotification(scene->context, NULL) == mui_errorInvalid &&
+    return muiContext_TakeNotification(scene->context, NULL) == mui_errorInvalid &&
            muiTextBlock_Select(scene->service, (muiTextBlockId){0, 0}, none) == mui_errorInvalid;
 }
 
@@ -147,19 +147,20 @@ static void LayOut(Scene* scene, bool paint)
     const muiLayoutInput layoutInput = {scene->width, 1000.0f,     muiMeasureText, &scene->host, 0,
                                         nullptr,      {0, 0, 0, 0}};
     // mui_errorCapacity exactly when the service ran out of memory.
-    uint64_t failures = muiGetTextServiceFailures(scene->service);
-    muiResult laid = muiComputeLayout(scene->context, scene->node, &layoutInput);
-    Expect(laid == (muiGetTextServiceFailures(scene->service) != failures ? mui_errorCapacity
-                                                                          : mui_success));
+    uint64_t failures = muiTextService_GetFailures(scene->service);
+    muiResult laid = muiNode_ComputeLayout(scene->context, scene->node, &layoutInput);
+    Expect(laid == (muiTextService_GetFailures(scene->service) != failures ? mui_errorCapacity
+                                                                           : mui_success));
     if (paint)
     {
         const muiDrawInput drawInput = {1, 1.0f, muiPaintText, &scene->host};
         muiDrawList list = {0};
-        failures = muiGetTextServiceFailures(scene->service);
-        muiResult painted = muiBuildDrawList(scene->context, scene->node, &drawInput);
-        Expect(painted == (muiGetTextServiceFailures(scene->service) != failures ? mui_errorCapacity
-                                                                                 : mui_success) &&
-               muiGetDrawList(scene->context, &list) == mui_success);
+        failures = muiTextService_GetFailures(scene->service);
+        muiResult painted = muiNode_BuildDrawList(scene->context, scene->node, &drawInput);
+        Expect(painted == (muiTextService_GetFailures(scene->service) != failures
+                               ? mui_errorCapacity
+                               : mui_success) &&
+               muiContext_GetDrawList(scene->context, &list) == mui_success);
     }
     // The selection stays within the text.
     const char* text = nullptr;
@@ -211,15 +212,15 @@ static void Edit(Scene* scene, Reader* reader)
         break;
     }
     case 4:
-        result =
-            muiTextEditMove(&scene->host, scene->node, (muiTextMovement)(a % 16), (b & 1) != 0);
+        result = muiNode_MoveEditCaret(&scene->host, scene->node, (muiTextMovement)(a % 16),
+                                       (b & 1) != 0);
         break;
     case 5:
-        result = muiTextEditPress(&scene->host, scene->node, (float)a - 8.0f, (float)b - 8.0f,
-                                  1u + b % 4, (a & 1) != 0);
+        result = muiNode_HandleEditPress(&scene->host, scene->node, (float)a - 8.0f,
+                                         (float)b - 8.0f, 1u + b % 4, (a & 1) != 0);
         break;
     case 6:
-        result = muiTextEditDrag(&scene->host, scene->node, (float)a, (float)b);
+        result = muiNode_HandleEditDrag(&scene->host, scene->node, (float)a, (float)b);
         break;
     case 7:
     {
@@ -271,8 +272,8 @@ static void ProbeRange(Scene* scene, float width, uint32_t start, uint32_t end)
 {
     muiRect rects[MAX_RECTS];
     uint32_t count = 0;
-    muiResult result = muiTextGetRangeRects(&scene->host, scene->node, width, start, end, rects,
-                                            MAX_RECTS, &count);
+    muiResult result = muiNode_GetTextRangeRects(&scene->host, scene->node, width, start, end,
+                                                 rects, MAX_RECTS, &count);
     Expect(result == mui_success || result == mui_errorCapacity);
     Expect(result != mui_success || count <= MAX_RECTS);
     Expect(end > start || count == 0);
@@ -298,7 +299,7 @@ static void Probe(Scene* scene)
             float x = -8.0f + (box.width + 16.0f) * (float)column / 5.0f;
             float y = -8.0f + (box.height + 16.0f) * (float)row / 5.0f;
             muiTextPosition at = {0, mui_affinityDownstream};
-            muiResult hit = muiTextHitTest(&scene->host, scene->node, box.width, x, y, &at);
+            muiResult hit = muiNode_HitTestText(&scene->host, scene->node, box.width, x, y, &at);
             Expect(hit == mui_success || hit == mui_errorCapacity);
             Expect(hit != mui_success || at.offset <= length);
         }
@@ -309,7 +310,8 @@ static void Probe(Scene* scene)
         {
             const muiTextPosition position = {offset, (muiTextAffinity)affinity};
             muiTextCaret caret;
-            muiResult got = muiTextGetCaret(&scene->host, scene->node, box.width, position, &caret);
+            muiResult got =
+                muiNode_GetTextCaret(&scene->host, scene->node, box.width, position, &caret);
             Expect(got == mui_success || got == mui_errorCapacity);
             Expect(got != mui_success || (isfinite(caret.x) && isfinite(caret.y) &&
                                           isfinite(caret.height) && caret.height >= 0.0f));
@@ -352,7 +354,7 @@ static bool Make(Scene* scene, Memory* memory, uint8_t flags, const char* text, 
     {
         return false;
     }
-    Expect(muiSetDefaultFont(scene->service, font) == mui_success);
+    Expect(muiTextService_SetDefaultFont(scene->service, font) == mui_success);
     muiContextDef contextDef = muiDefaultContextDef();
     Expect(muiCreateContext(&contextDef, &scene->context) == mui_success);
     scene->host = (muiTextHost){scene->service, scene->context};

@@ -146,12 +146,12 @@ static muiResult Frame(muiContext* context, muiNodeId root, float width, float h
 {
     const muiLayoutInput layout = {width, height, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     const muiDrawInput draw = {1, 1.0f, NULL, NULL};
-    muiResult result = muiComputeLayout(context, root, &layout);
+    muiResult result = muiNode_ComputeLayout(context, root, &layout);
     if (result == mui_success)
     {
-        result = muiBuildDrawList(context, root, &draw);
+        result = muiNode_BuildDrawList(context, root, &draw);
     }
-    return result == mui_success ? muiGetDrawList(context, listOut) : result;
+    return result == mui_success ? muiContext_GetDrawList(context, listOut) : result;
 }
 ```
 
@@ -186,7 +186,7 @@ int main(void)
 }
 ```
 
-Layout and drawing are kept between frames. Laying out again revisits only what changed: an edit, a new size, content marked changed, a running transition. `muiIsUpdatePending` says whether anything is owed. A build reuses what it drew for subtrees that did not change, and a transparent node draws no box.
+Layout and drawing are kept between frames. Laying out again revisits only what changed: an edit, a new size, content marked changed, a running transition. `muiNode_IsUpdatePending` says whether anything is owed. A build reuses what it drew for subtrees that did not change, and a transparent node draws no box.
 
 ## Results, ids and defs
 
@@ -206,7 +206,7 @@ Every call that can fail returns a `muiResult`: `mui_success`, or a value that n
 | `mui_errorLimit` | An argument past a fixed bound a `MUI_MAX_` or `MUI_MIN_` constant names, such as too many spans: a bug in the program. |
 | `mui_errorBusy` | A call back into an object from host code it is running, such as a measure function editing the tree. |
 
-A call on a context, a text service, an access tree, a glyph atlas or a window glue clears what it writes on any failure, before it looks at its arguments: zeros, the null id, `NULL`. The count or length a too-small buffer needed is the one exception. A `mui_empty` answer, which reads nothing, leaves zeros too, unless the call's header says what it gives, and each header says what a call leaves. `muiResultName` names any of them. Ids name what a context owns: a slot and a generation. A destroyed node's slot is used again with a new generation, so an old id never names its successor. Refusals of invalid input and of arguments past a limit are counted, a number a release build can watch for a program's bugs; stale ids are not:
+A call on a context, a text service, an access tree, a glyph atlas or a window glue clears what it writes on any failure, before it looks at its arguments: zeros, the null id, `NULL`. The count or length a too-small buffer needed is the one exception. A `mui_empty` answer, which reads nothing, leaves zeros too, unless the call's header says what it gives, and each header says what a call leaves. `muiGetResultName` names any of them. Ids name what a context owns: a slot and a generation. A destroyed node's slot is used again with a new generation, so an old id never names its successor. Refusals of invalid input and of arguments past a limit are counted, a number a release build can watch for a program's bugs; stale ids are not:
 
 ```c
 // What a context says of calls that went wrong.
@@ -224,8 +224,8 @@ static void Refusals(muiContext* context)
     // A null id where a node is needed is the program's bug: refused,
     // and counted.
     muiResult invalid = muiNode_InsertChild(context, (muiNodeId){0, 0}, node, (muiNodeId){0, 0});
-    printf("%s, %s, %llu refused\n", muiResultName(stale), muiResultName(invalid),
-           (unsigned long long)muiGetContextMisuse(context));
+    printf("%s, %s, %llu refused\n", muiGetResultName(stale), muiGetResultName(invalid),
+           (unsigned long long)muiContext_GetMisuse(context));
 }
 ```
 

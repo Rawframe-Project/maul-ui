@@ -238,7 +238,7 @@ extern "C"
         // Nothing: its content box is empty.
         mui_contentNone = 0,
         // The host's content, sized by the measure function given to
-        // muiComputeLayout. A node with children ignores it.
+        // muiNode_ComputeLayout. A node with children ignores it.
         mui_contentHost = 1,
     };
 
@@ -333,7 +333,7 @@ extern "C"
     } muiMeasureAxis;
 
     // Returns the content-box size of a node's host content. It runs inside
-    // muiComputeLayout, on the calling thread, and may read the context,
+    // muiNode_ComputeLayout, on the calling thread, and may read the context,
     // not change it: a function that would answers mui_errorBusy and
     // counts one misuse. It is never asked
     // with both axes exact, as the size is then decided: a host lays its
@@ -344,7 +344,7 @@ extern "C"
     // again to such requests. A width or height of NaN is content that
     // could not be measured now, as when memory ran out: it is laid out as
     // empty, not kept, and measured again by the next layout, and
-    // muiComputeLayout answers mui_errorCapacity.
+    // muiNode_ComputeLayout answers mui_errorCapacity.
     typedef muiSize (*muiMeasureFunction)(void* user, muiNodeId nodeId, uint64_t hostKey,
                                           muiMeasureAxis width, muiMeasureAxis height);
 
@@ -356,7 +356,7 @@ extern "C"
     typedef float (*muiBaselineFunction)(void* user, muiNodeId nodeId, uint64_t hostKey,
                                          float width, float height);
 
-    // What muiComputeLayout lays a root out in.
+    // What muiNode_ComputeLayout lays a root out in.
     typedef struct muiLayoutInput
     {
         // The space the root fits into, at least 0.
@@ -394,7 +394,7 @@ extern "C"
 
     /// Reads a node's resolved layout values: its direct writes, and for
     /// the other properties what its classes and states gave at the last
-    /// muiComputeLayout that reached it.
+    /// muiNode_ComputeLayout that reached it.
     ///
     /// @param context   The context.
     /// @param nodeId    The node.
@@ -421,7 +421,7 @@ extern "C"
     MUI_API bool muiNode_IsRightToLeft(const muiContext* context, muiNodeId nodeId);
 
     /// Tells the solver a node's host content changed size, so it is
-    /// measured again at the next muiComputeLayout.
+    /// measured again at the next muiNode_ComputeLayout.
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
@@ -447,10 +447,10 @@ extern "C"
     ///         as empty and measured again by the next call.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiComputeLayout(muiContext* context, muiNodeId rootId,
-                                                     const muiLayoutInput* input);
+    MUI_NODISCARD MUI_API muiResult muiNode_ComputeLayout(muiContext* context, muiNodeId rootId,
+                                                          const muiLayoutInput* input);
 
-    /// Returns whether muiComputeLayout on a root has work to do: an edit
+    /// Returns whether muiNode_ComputeLayout on a root has work to do: an edit
     /// below it since its last run, a node whose conditions read a size or
     /// direction that run changed, which a following run styles again, a
     /// transition running below it, or a scroll step easing below it
@@ -462,9 +462,9 @@ extern "C"
     ///         context.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_API bool muiIsUpdatePending(const muiContext* context, muiNodeId rootId);
+    MUI_API bool muiNode_IsUpdatePending(const muiContext* context, muiNodeId rootId);
 
-    /// Returns a node's border box from the last muiComputeLayout that
+    /// Returns a node's border box from the last muiNode_ComputeLayout that
     /// reached it, relative to its parent's border box.
     ///
     /// @param context  The context.
@@ -475,7 +475,7 @@ extern "C"
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_API muiRect muiNode_GetRect(const muiContext* context, muiNodeId nodeId);
 
-    /// Returns a node's content box from the last muiComputeLayout that
+    /// Returns a node's content box from the last muiNode_ComputeLayout that
     /// reached it, relative to its border box: inside its border and
     /// padding, the start's on the right in a right-to-left node, as its
     /// paint function and its text's carets are given it.
@@ -491,7 +491,7 @@ extern "C"
     /// Carries a point of a node's border box into the space its topmost
     /// ancestor's rectangle is in, where pointer events are given, through
     /// its own and its ancestors' places, local scales and scroll
-    /// containers' offsets as the last muiComputeLayout, styling and
+    /// containers' offsets as the last muiNode_ComputeLayout, styling and
     /// scrolling left them: so a host places a
     /// window's candidate box at a caret, or its own popup beside a node.
     ///

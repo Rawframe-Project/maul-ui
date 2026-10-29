@@ -49,7 +49,7 @@ static muiNodeId Sized(muiContext* context, muiNodeId parent, float width, float
 static void Layout(muiContext* context, muiNodeId root, uint64_t timeNs)
 {
     const muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, timeNs, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
 }
 
 static void Focusable(muiContext* context, muiNodeId node)
@@ -65,7 +65,7 @@ static void Focusable(muiContext* context, muiNodeId node)
 static muiNodeId HitAt(const muiContext* context, muiNodeId root, float x, float y)
 {
     muiHit hit = {0};
-    CHECK(muiHitTest(context, root, x, y, &hit) == mui_success, "hit test");
+    CHECK(muiNode_HitTest(context, root, x, y, &hit) == mui_success, "hit test");
     return hit.node;
 }
 
@@ -79,7 +79,7 @@ static int Finished(muiContext* context, muiNodeId* nodeOut)
 {
     int count = 0;
     muiNotification record = {0};
-    while (muiNextNotification(context, &record) == mui_success)
+    while (muiContext_TakeNotification(context, &record) == mui_success)
     {
         if (record.kind == mui_notificationExitFinished)
         {
@@ -127,18 +127,18 @@ static void TestInteraction(void)
     CHECK(Same(HitAt(context, scene.root, 10.0f, 10.0f), scene.child) &&
               Same(HitAt(context, scene.root, 150.0f, 10.0f), scene.panel),
           "hit before");
-    CHECK(muiFocus_Set(context, 0, scene.child, mui_focusByCode) == mui_success, "focused");
+    CHECK(muiContext_SetFocus(context, 0, scene.child, mui_focusByCode) == mui_success, "focused");
     muiNodeId lost = s_nullNode;
     muiNotification record = {0};
-    while (muiNextNotification(context, &record) == mui_success)
+    while (muiContext_TakeNotification(context, &record) == mui_success)
     {
     }
     CHECK(muiNode_BeginExit(context, scene.panel) == mui_success, "exit");
-    while (muiNextNotification(context, &record) == mui_success)
+    while (muiContext_TakeNotification(context, &record) == mui_success)
     {
         lost = record.kind == mui_notificationFocusLost ? record.node : lost;
     }
-    CHECK(Same(lost, scene.child) && muiFocus_Get(context, 0).index1 == 0, "focus given up");
+    CHECK(Same(lost, scene.child) && muiContext_GetFocus(context, 0).index1 == 0, "focus given up");
     CHECK((muiNode_GetStates(context, scene.panel) & mui_stateExiting) != 0 &&
               (muiNode_GetStates(context, scene.child) & mui_stateExiting) == 0,
           "the state on the node alone");
@@ -153,17 +153,17 @@ static void TestInteraction(void)
               Same(HitAt(context, scene.root, 150.0f, 10.0f), scene.root) &&
               Same(HitAt(context, scene.root, 210.0f, 10.0f), scene.beside),
           "out of hit testing, the subtree too: the root behind");
-    uint64_t misuse = muiGetContextMisuse(context);
-    CHECK(muiFocus_Set(context, 0, scene.child, mui_focusByCode) == mui_errorInvalid &&
-              muiGetContextMisuse(context) == misuse + 1,
+    uint64_t misuse = muiContext_GetMisuse(context);
+    CHECK(muiContext_SetFocus(context, 0, scene.child, mui_focusByCode) == mui_errorInvalid &&
+              muiContext_GetMisuse(context) == misuse + 1,
           "nothing under it takes focus");
     const muiKeyEvent tab = {.code = mui_codeTab, .down = true};
     bool handled = false;
-    CHECK(muiKeyInput(context, scene.root, &tab, &handled) == mui_success && handled &&
-              Same(muiFocus_Get(context, 0), scene.beside),
+    CHECK(muiNode_RouteKey(context, scene.root, &tab, &handled) == mui_success && handled &&
+              Same(muiContext_GetFocus(context, 0), scene.beside),
           "Tab passes it over");
-    CHECK(muiFocus_MoveToward(context, scene.root, 0, mui_directionLeft) == mui_empty &&
-              Same(muiFocus_Get(context, 0), scene.beside),
+    CHECK(muiNode_MoveFocusToward(context, scene.root, 0, mui_directionLeft) == mui_empty &&
+              Same(muiContext_GetFocus(context, 0), scene.beside),
           "navigation finds nothing there");
     // Cancelled: back.
     CHECK(muiNode_CancelExit(context, scene.panel) == mui_success &&
@@ -171,7 +171,7 @@ static void TestInteraction(void)
           "cancelled");
     Layout(context, scene.root, 0);
     CHECK(Same(HitAt(context, scene.root, 10.0f, 10.0f), scene.child) &&
-              muiFocus_Set(context, 0, scene.child, mui_focusByCode) == mui_success,
+              muiContext_SetFocus(context, 0, scene.child, mui_focusByCode) == mui_success,
           "input again");
     muiDestroyContext(context);
 }
@@ -241,7 +241,7 @@ static bool Tab(muiContext* context, muiNodeId root)
 {
     const muiKeyEvent tab = {.code = mui_codeTab, .down = true};
     bool handled = false;
-    CHECK(muiKeyInput(context, root, &tab, &handled) == mui_success, "tab");
+    CHECK(muiNode_RouteKey(context, root, &tab, &handled) == mui_success, "tab");
     return handled;
 }
 
@@ -265,22 +265,22 @@ static void TestLayers(void)
     SetLayer(context, scene.child, mui_layerModal);
     Focusable(context, scene.beside);
     Layout(context, scene.root, 0);
-    CHECK(muiFocus_Set(context, 0, scene.beside, mui_focusByCode) == mui_errorInvalid &&
+    CHECK(muiContext_SetFocus(context, 0, scene.beside, mui_focusByCode) == mui_errorInvalid &&
               !Tab(context, scene.root) &&
               Same(HitAt(context, scene.root, 210.0f, 10.0f), scene.child),
           "covered, blocked");
     CHECK(muiNode_BeginExit(context, scene.panel) == mui_success, "exit");
     Layout(context, scene.root, 0);
     CHECK(Same(HitAt(context, scene.root, 210.0f, 10.0f), scene.beside) &&
-              Tab(context, scene.root) && Same(muiFocus_Get(context, 0), scene.beside),
+              Tab(context, scene.root) && Same(muiContext_GetFocus(context, 0), scene.beside),
           "no longer");
-    CHECK(muiFocus_Set(context, 0, (muiNodeId){0, 0}, mui_focusByCode) == mui_success &&
-              muiFocus_Set(context, 0, scene.beside, mui_focusByCode) == mui_success,
+    CHECK(muiContext_SetFocus(context, 0, (muiNodeId){0, 0}, mui_focusByCode) == mui_success &&
+              muiContext_SetFocus(context, 0, scene.beside, mui_focusByCode) == mui_success,
           "focusable by code");
     // The root exiting: nothing in it navigates.
-    CHECK(muiFocus_Set(context, 0, (muiNodeId){0, 0}, mui_focusByCode) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, (muiNodeId){0, 0}, mui_focusByCode) == mui_success &&
               muiNode_BeginExit(context, scene.root) == mui_success && !Tab(context, scene.root) &&
-              muiFocus_Get(context, 0).index1 == 0,
+              muiContext_GetFocus(context, 0).index1 == 0,
           "the root exiting");
     muiDestroyContext(context);
 }
@@ -439,12 +439,12 @@ static void TestContract(void)
     muiNodeId gone = a;
     CHECK(muiDestroyNode(context, a) == mui_success && muiNode_BeginExit(context, b) == mui_success,
           "room after a destroy");
-    uint64_t misuse = muiGetContextMisuse(context);
+    uint64_t misuse = muiContext_GetMisuse(context);
     CHECK(muiNode_BeginExit(NULL, b) == mui_errorInvalid &&
               muiNode_CancelExit(NULL, b) == mui_errorInvalid &&
               muiNode_BeginExit(context, s_nullNode) == mui_errorInvalid &&
               muiNode_CancelExit(context, s_nullNode) == mui_errorInvalid &&
-              muiGetContextMisuse(context) == misuse + 2,
+              muiContext_GetMisuse(context) == misuse + 2,
           "nulls");
     CHECK(muiNode_BeginExit(context, gone) == mui_errorStale &&
               muiNode_CancelExit(context, gone) == mui_errorStale,

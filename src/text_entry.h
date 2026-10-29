@@ -37,7 +37,7 @@ muiResult muiEraseTextTo(muiTextService* service, muiTextBlockId blockId, uint32
 muiResult muiUndoText(muiTextService* service, muiTextBlockId blockId, bool* changedOut);
 muiResult muiRedoText(muiTextService* service, muiTextBlockId blockId, bool* changedOut);
 
-// muiTextHitTest, muiTextGetCaret and muiTextMove.
+// muiNode_HitTestText, muiNode_GetTextCaret and muiNode_MoveTextPosition.
 muiResult muiHitText(const muiTextHost* host, muiNodeId nodeId, float width, float x, float y,
                      muiTextPosition* positionOut);
 muiResult muiCaretOf(const muiTextHost* host, muiNodeId nodeId, float width,
@@ -45,7 +45,7 @@ muiResult muiCaretOf(const muiTextHost* host, muiNodeId nodeId, float width,
 muiResult muiMoveText(const muiTextHost* host, muiNodeId nodeId, float width, muiTextPosition from,
                       muiTextMovement movement, float preferredX, muiTextPosition* positionOut);
 
-// muiTextEditMove, muiTextEditPress and muiTextEditDrag.
+// muiNode_MoveEditCaret, muiNode_HandleEditPress and muiNode_HandleEditDrag.
 muiResult muiEditMove(const muiTextHost* host, muiNodeId nodeId, muiTextMovement movement,
                       bool extend);
 muiResult muiEditPress(const muiTextHost* host, muiNodeId nodeId, float x, float y,

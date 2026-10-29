@@ -78,14 +78,14 @@ static void MakeScene(Scene* scene)
     scene->thumb = Sized(context, scene->track, 20.0f, 20.0f);
     scene->b = Sized(context, scene->root, 50.0f, 50.0f);
     const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, scene->root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, scene->root, &input) == mui_success, "layout");
 }
 
 static void Feed(const Scene* scene, uint32_t pointer, muiPointerKind kind, muiPointerAction action,
                  muiPointerButtons buttons, float x, float y)
 {
     const muiPointerEvent event = {0, pointer, kind, action, 0, buttons, x, y, 0};
-    CHECK(muiPointerInput(scene->context, scene->root, &event) == mui_success, "input");
+    CHECK(muiNode_RoutePointer(scene->context, scene->root, &event) == mui_success, "input");
 }
 
 static void Mouse(const Scene* scene, muiPointerAction action, muiPointerButtons buttons, float x,
@@ -99,7 +99,7 @@ static bool Next(const Scene* scene, muiPointerRecordKind kind, muiNodeId node,
                  muiPointerRecord* recordOut)
 {
     muiPointerRecord record = {0};
-    bool got = muiNextPointerRecord(scene->context, &record) == mui_success;
+    bool got = muiContext_TakePointerRecord(scene->context, &record) == mui_success;
     if (recordOut != NULL)
     {
         *recordOut = record;
@@ -110,7 +110,7 @@ static bool Next(const Scene* scene, muiPointerRecordKind kind, muiNodeId node,
 static bool None(const Scene* scene)
 {
     muiPointerRecord record = {0};
-    return muiNextPointerRecord(scene->context, &record) == mui_empty;
+    return muiContext_TakePointerRecord(scene->context, &record) == mui_empty;
 }
 
 static void TestDrag(void)
@@ -131,7 +131,7 @@ static void TestDrag(void)
               !record.cancelled && record.buttons == 1 && None(&scene),
           "a drag starts");
     muiPointerState state = {0};
-    CHECK(muiPointer_GetState(scene.context, 1, &state) == mui_success &&
+    CHECK(muiContext_GetPointerState(scene.context, 1, &state) == mui_success &&
               Same(state.captured, scene.track),
           "captured");
     Mouse(&scene, mui_pointerMove, 1, 220.0f, 40.0f);
@@ -176,8 +176,8 @@ static void TestButtons(void)
     const muiPointerEvent second = {0,     1, mui_pointerMouse, mui_pointerPress, 1, 3, 30.0f,
                                     10.0f, 0};
     const muiPointerEvent up = {0, 1, mui_pointerMouse, mui_pointerRelease, 1, 1, 30.0f, 10.0f, 0};
-    CHECK(muiPointerInput(scene.context, scene.root, &second) == mui_success &&
-              muiPointerInput(scene.context, scene.root, &up) == mui_success,
+    CHECK(muiNode_RoutePointer(scene.context, scene.root, &second) == mui_success &&
+              muiNode_RoutePointer(scene.context, scene.root, &up) == mui_success,
           "the second button");
     CHECK(Next(&scene, mui_pointerRecordPress, scene.thumb, NULL) &&
               Next(&scene, mui_pointerRecordDragStart, scene.track, NULL) &&
@@ -211,7 +211,7 @@ static bool Escape(const Scene* scene)
 {
     const muiKeyEvent key = {.code = mui_codeEscape, .down = true};
     bool handled = false;
-    CHECK(muiKeyInput(scene->context, scene->root, &key, &handled) == mui_success, "key");
+    CHECK(muiNode_RouteKey(scene->context, scene->root, &key, &handled) == mui_success, "key");
     return handled;
 }
 
@@ -247,7 +247,7 @@ static void TestCancel(void)
     // The capture taken elsewhere.
     Mouse(&scene, mui_pointerPress, 1, 10.0f, 10.0f);
     Mouse(&scene, mui_pointerMove, 1, 30.0f, 10.0f);
-    CHECK(muiPointer_SetCapture(scene.context, 1, scene.b) == mui_success, "elsewhere");
+    CHECK(muiNode_CapturePointer(scene.context, scene.b, 1) == mui_success, "elsewhere");
     Mouse(&scene, mui_pointerMove, 1, 60.0f, 10.0f);
     Mouse(&scene, mui_pointerRelease, 0, 60.0f, 10.0f);
     CHECK(Next(&scene, mui_pointerRecordPress, scene.thumb, NULL) &&
@@ -293,15 +293,15 @@ static void TestTouch(void)
               Next(&scene, mui_pointerRecordCaptureLost, scene.track, NULL) && None(&scene),
           "touch ends");
     // A pen as touch; a threshold of 0 starts at any move.
-    CHECK(muiSetDragThreshold(scene.context, 0.0f, 20.0f) == mui_success, "thresholds");
+    CHECK(muiContext_SetDragThreshold(scene.context, 0.0f, 20.0f) == mui_success, "thresholds");
     Feed(&scene, 6, mui_pointerPen, mui_pointerPress, 1, 10.0f, 10.0f);
     Feed(&scene, 6, mui_pointerPen, mui_pointerMove, 1, 29.0f, 10.0f);
     CHECK(Next(&scene, mui_pointerRecordPress, scene.thumb, NULL) &&
               Next(&scene, mui_pointerRecordMove, scene.thumb, NULL) && None(&scene),
           "a pen within 20");
     Feed(&scene, 6, mui_pointerPen, mui_pointerCancel, 0, 29.0f, 10.0f);
-    (void)muiNextPointerRecord(scene.context, &record);
-    (void)muiNextPointerRecord(scene.context, &record);
+    (void)muiContext_TakePointerRecord(scene.context, &record);
+    (void)muiContext_TakePointerRecord(scene.context, &record);
     Mouse(&scene, mui_pointerPress, 1, 10.0f, 10.0f);
     Mouse(&scene, mui_pointerMove, 1, 10.5f, 10.0f);
     CHECK(Next(&scene, mui_pointerRecordPress, scene.thumb, NULL) &&
@@ -331,14 +331,14 @@ static void TestRouted(void)
     Scene scene;
     MakeScene(&scene);
     Heard heard = {0};
-    CHECK(muiSetEventFunction(scene.context, Hear, &heard) == mui_success, "function");
+    CHECK(muiContext_SetEventFunction(scene.context, Hear, &heard) == mui_success, "function");
     Mouse(&scene, mui_pointerPress, 1, 10.0f, 10.0f);
     Mouse(&scene, mui_pointerMove, 1, 30.0f, 15.0f);
     muiPointerRecord record = {0};
     bool handled = false;
-    CHECK(muiNextPointerRecord(scene.context, &record) == mui_success &&
-              muiNextPointerRecord(scene.context, &record) == mui_success &&
-              muiDispatchPointerRecord(scene.context, &record, &handled) == mui_success &&
+    CHECK(muiContext_TakePointerRecord(scene.context, &record) == mui_success &&
+              muiContext_TakePointerRecord(scene.context, &record) == mui_success &&
+              muiContext_DispatchPointerRecord(scene.context, &record, &handled) == mui_success &&
               handled && heard.last.kind == mui_eventPointer &&
               Same(heard.last.target, scene.track) &&
               heard.record.kind == mui_pointerRecordDragStart && heard.record.offsetX == 20.0f &&
@@ -360,7 +360,7 @@ static void TestPlaced(void)
     scene.track = Sized(context, scene.root, 100.0f, 20.0f);
     Drags(context, scene.track);
     const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, scene.root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, scene.root, &input) == mui_success, "layout");
     Mouse(&scene, mui_pointerPress, 1, 60.0f, 10.0f);
     Mouse(&scene, mui_pointerMove, 1, 70.0f, 12.0f);
     muiPointerRecord record = {0};
@@ -375,13 +375,13 @@ static void TestContract(void)
 {
     Scene scene;
     MakeScene(&scene);
-    uint64_t misuse = muiGetContextMisuse(scene.context);
-    CHECK(muiSetDragThreshold(NULL, 1.0f, 1.0f) == mui_errorInvalid &&
-              muiSetDragThreshold(scene.context, NAN, 1.0f) == mui_errorInvalid &&
-              muiSetDragThreshold(scene.context, -1.0f, 1.0f) == mui_errorInvalid &&
-              muiSetDragThreshold(scene.context, 1.0f, INFINITY) == mui_errorInvalid &&
-              muiSetDragThreshold(scene.context, 1.0f, -0.5f) == mui_errorInvalid &&
-              muiGetContextMisuse(scene.context) == misuse + 4,
+    uint64_t misuse = muiContext_GetMisuse(scene.context);
+    CHECK(muiContext_SetDragThreshold(NULL, 1.0f, 1.0f) == mui_errorInvalid &&
+              muiContext_SetDragThreshold(scene.context, NAN, 1.0f) == mui_errorInvalid &&
+              muiContext_SetDragThreshold(scene.context, -1.0f, 1.0f) == mui_errorInvalid &&
+              muiContext_SetDragThreshold(scene.context, 1.0f, INFINITY) == mui_errorInvalid &&
+              muiContext_SetDragThreshold(scene.context, 1.0f, -0.5f) == mui_errorInvalid &&
+              muiContext_GetMisuse(scene.context) == misuse + 4,
           "thresholds outside the contract");
     muiInteractionStyle values = muiDefaultInteractionStyle();
     CHECK(!values.drags, "no drags by default");
@@ -424,7 +424,7 @@ static void MakeDrop(Drop* drop)
     Accepts(context, drop->slot, 2);
     drop->child = Sized(context, drop->slot, 50.0f, 50.0f);
     const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, drop->scene.root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, drop->scene.root, &input) == mui_success, "layout");
 }
 
 // Presses the item and drags it past the threshold, the records taken.
@@ -433,7 +433,7 @@ static void Lift(const Drop* drop)
     Mouse(&drop->scene, mui_pointerPress, 1, 25.0f, 25.0f);
     Mouse(&drop->scene, mui_pointerMove, 1, 35.0f, 25.0f);
     muiPointerRecord record = {0};
-    while (muiNextPointerRecord(drop->scene.context, &record) == mui_success)
+    while (muiContext_TakePointerRecord(drop->scene.context, &record) == mui_success)
     {
     }
 }
@@ -446,7 +446,7 @@ static void TestDrop(void)
     muiContext* context = scene->context;
     muiPointerRecord record = {0};
     Lift(&drop);
-    CHECK(muiPointer_Offer(context, 1, 1, 77) == mui_success && None(scene),
+    CHECK(muiContext_OfferDrop(context, 1, 1, 77) == mui_success && None(scene),
           "offered over the item: no target");
     Mouse(scene, mui_pointerMove, 1, 100.0f, 25.0f);
     CHECK(Next(scene, mui_pointerRecordDragMove, drop.item, &record) && record.dropKind == 1 &&
@@ -472,13 +472,13 @@ static void TestDrop(void)
     // A kind of two bits finds the slot through its child; a second
     // offer retargets.
     Lift(&drop);
-    CHECK(muiPointer_Offer(context, 1, 3, 5) == mui_success, "two kinds");
+    CHECK(muiContext_OfferDrop(context, 1, 3, 5) == mui_success, "two kinds");
     Mouse(scene, mui_pointerMove, 1, 175.0f, 25.0f);
     CHECK(Next(scene, mui_pointerRecordDragMove, drop.item, NULL) &&
               Next(scene, mui_pointerRecordDropEnter, drop.slot, &record) && record.x == 25.0f &&
               None(scene),
           "the slot through its child");
-    CHECK(muiPointer_Offer(context, 1, 1, 6) == mui_success &&
+    CHECK(muiContext_OfferDrop(context, 1, 1, 6) == mui_success &&
               Next(scene, mui_pointerRecordDropLeave, drop.slot, &record) && record.dropKey == 6 &&
               None(scene),
           "another offer: not the slot's");
@@ -498,7 +498,7 @@ static void TestDrop(void)
           "the release, no drop");
     // A target gone before the release is left, not dropped on.
     Lift(&drop);
-    CHECK(muiPointer_Offer(context, 1, 2, 9) == mui_success, "offer");
+    CHECK(muiContext_OfferDrop(context, 1, 2, 9) == mui_success, "offer");
     Mouse(scene, mui_pointerMove, 1, 175.0f, 25.0f);
     muiNodeId slot = drop.slot;
     CHECK(muiDestroyNode(context, slot) == mui_success, "gone");
@@ -522,7 +522,7 @@ static void TestDrop(void)
     (void)Next(scene, mui_pointerRecordCaptureLost, drop.item, NULL);
     // A target whose slot a new node takes: left, and the new one entered.
     Lift(&drop);
-    CHECK(muiPointer_Offer(context, 1, 1, 4) == mui_success, "offer");
+    CHECK(muiContext_OfferDrop(context, 1, 1, 4) == mui_success, "offer");
     Mouse(scene, mui_pointerMove, 1, 100.0f, 25.0f);
     muiNodeId bin = drop.bin;
     CHECK(muiDestroyNode(context, bin) == mui_success, "bin gone");
@@ -533,9 +533,9 @@ static void TestDrop(void)
     Accepts(context, again, 1);
     CHECK(muiNode_InsertChild(context, scene->root, again, s_nullNode) == mui_success, "placed");
     const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, scene->root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, scene->root, &input) == mui_success, "layout");
     muiHit hit = {0};
-    CHECK(muiHitTest(context, scene->root, 110.0f, 25.0f, &hit) == mui_success, "hit");
+    CHECK(muiNode_HitTest(context, scene->root, 110.0f, 25.0f, &hit) == mui_success, "hit");
     Mouse(scene, mui_pointerMove, 1, 110.0f, 25.0f);
     CHECK(Next(scene, mui_pointerRecordDragMove, drop.item, NULL) &&
               Next(scene, mui_pointerRecordDropEnter, bin, NULL) &&
@@ -552,17 +552,17 @@ static void TestOfferContract(void)
     Drop drop;
     MakeDrop(&drop);
     muiContext* context = drop.scene.context;
-    uint64_t misuse = muiGetContextMisuse(context);
-    CHECK(muiPointer_Offer(NULL, 1, 1, 0) == mui_errorInvalid &&
-              muiPointer_Offer(context, 1, 1, 0) == mui_errorInvalid,
+    uint64_t misuse = muiContext_GetMisuse(context);
+    CHECK(muiContext_OfferDrop(NULL, 1, 1, 0) == mui_errorInvalid &&
+              muiContext_OfferDrop(context, 1, 1, 0) == mui_errorInvalid,
           "no pointer");
     Mouse(&drop.scene, mui_pointerPress, 1, 25.0f, 25.0f);
-    CHECK(muiPointer_Offer(context, 1, 1, 0) == mui_errorInvalid, "pressed, not dragging");
+    CHECK(muiContext_OfferDrop(context, 1, 1, 0) == mui_errorInvalid, "pressed, not dragging");
     Mouse(&drop.scene, mui_pointerMove, 1, 35.0f, 25.0f);
-    CHECK(muiPointer_Offer(context, 1, 0, 0) == mui_errorInvalid &&
-              muiPointer_Offer(context, 2, 1, 0) == mui_errorInvalid &&
-              muiGetContextMisuse(context) == misuse + 4 &&
-              muiPointer_Offer(context, 1, 1, 0) == mui_success,
+    CHECK(muiContext_OfferDrop(context, 1, 0, 0) == mui_errorInvalid &&
+              muiContext_OfferDrop(context, 2, 1, 0) == mui_errorInvalid &&
+              muiContext_GetMisuse(context) == misuse + 4 &&
+              muiContext_OfferDrop(context, 1, 1, 0) == mui_success,
           "a kind of 0, another pointer");
     muiDestroyContext(context);
 }

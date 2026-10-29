@@ -126,7 +126,7 @@ static muiResult PerformAccessAction(muiContext* context, const muiAccessRequest
         return mui_errorFormat;
     }
     muiResult status = mui_success;
-    uint32_t slot = muiResolveEdit(context, muiNodeIdOfAccess(request->target), &status);
+    uint32_t slot = muiResolveEdit(context, muiGetNodeOfAccessId(request->target), &status);
     if (slot == 0)
     {
         return status;
@@ -165,8 +165,8 @@ static MUI_NOINLINE muiResult PerformAccessActionWorker(muiContext* context,
     return status;
 }
 
-muiResult muiPerformAccessAction(muiContext* context, const muiAccessRequest* request,
-                                 bool* handledOut)
+muiResult muiContext_PerformAccessAction(muiContext* context, const muiAccessRequest* request,
+                                         bool* handledOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = PerformAccessActionWorker(context, request, handledOut);

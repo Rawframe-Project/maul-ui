@@ -132,9 +132,9 @@ static const char* Sync(Scene* scene)
 {
     static char s_reported[1024];
     const muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(scene->context, scene->root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(scene->context, scene->root, &input) == mui_success, "layout");
     muiAccessUpdate update;
-    CHECK(muiBuildAccessUpdate(scene->context, scene->root, &update) == mui_success, "build");
+    CHECK(muiNode_BuildAccessUpdate(scene->context, scene->root, &update) == mui_success, "build");
     scene->log.length = 0;
     scene->log.text[0] = '\0';
     CHECK(muiAccessTree_Apply(scene->tree, &update, &scene->changes) == mui_success, "applied");
@@ -163,7 +163,7 @@ static void TestUpdatesApplied(void)
     Text(context, label, mui_accessValue, "Say \"hi\"\n\\\x7F");
     muiNodeId group = Node(context, scene.root, 200.0f, 50.0f);
     muiNodeId leaf = Node(context, group, 50.0f, 50.0f);
-    CHECK(muiAccess_Enable(context, scene.root) == mui_success, "enabled");
+    CHECK(muiNode_EnableAccess(context, scene.root, true) == mui_success, "enabled");
     CHECK(strcmp(Sync(&scene), "+1 +2 +3 +4 +5 focus 0>1 ") == 0,
           "all added, the focus on the root");
     CHECK(strcmp(Written(scene.tree),
@@ -173,29 +173,32 @@ static void TestUpdatesApplied(void)
                  "  generic #4 actions=256 200x50 @0,60\n"
                  "    generic #5 actions=256 50x50 @0,0\n") == 0,
           "the tree");
-    CHECK(muiAccessTree_Count(scene.tree) == 5 &&
-              muiAccessTree_GetRoot(scene.tree) == muiAccessIdOf(scene.root) &&
-              muiAccessTree_GetFocus(scene.tree) == muiAccessIdOf(scene.root) &&
-              muiAccessTree_GetParent(scene.tree, muiAccessIdOf(leaf)) == muiAccessIdOf(group) &&
-              muiAccessTree_GetParent(scene.tree, muiAccessIdOf(scene.root)) == 0,
+    CHECK(muiAccessTree_GetNodeCount(scene.tree) == 5 &&
+              muiAccessTree_GetRoot(scene.tree) == muiNode_GetAccessId(scene.root) &&
+              muiAccessTree_GetFocus(scene.tree) == muiNode_GetAccessId(scene.root) &&
+              muiAccessTree_GetParent(scene.tree, muiNode_GetAccessId(leaf)) ==
+                  muiNode_GetAccessId(group) &&
+              muiAccessTree_GetParent(scene.tree, muiNode_GetAccessId(scene.root)) == 0,
           "read");
     uint32_t count = 0;
     const uint64_t* children =
-        muiAccessTree_GetChildren(scene.tree, muiAccessIdOf(scene.root), &count);
-    CHECK(count == 3 && children[2] == muiAccessIdOf(group) &&
-              muiAccessTree_Find(scene.tree, muiAccessIdOf(group))->firstChild == 0,
+        muiAccessTree_GetChildren(scene.tree, muiNode_GetAccessId(scene.root), &count);
+    CHECK(count == 3 && children[2] == muiNode_GetAccessId(group) &&
+              muiAccessTree_Find(scene.tree, muiNode_GetAccessId(group))->firstChild == 0,
           "children, not where the update had them");
     // A text: that node updated; the old record told.
     Text(context, label, mui_accessValue, "Hi");
     CHECK(strcmp(Sync(&scene), "~3 ") == 0 &&
-              strcmp(muiAccessTree_Find(scene.tree, muiAccessIdOf(label))->text[mui_accessValue],
-                     "Hi") == 0 &&
-              muiAccessTree_GetParent(scene.tree, muiAccessIdOf(label)) ==
-                  muiAccessIdOf(scene.root),
+              strcmp(
+                  muiAccessTree_Find(scene.tree, muiNode_GetAccessId(label))->text[mui_accessValue],
+                  "Hi") == 0 &&
+              muiAccessTree_GetParent(scene.tree, muiNode_GetAccessId(label)) ==
+                  muiNode_GetAccessId(scene.root),
           "updated, its parent kept");
     // Taken out: its list updated, and it removed.
     CHECK(muiNode_Detach(context, leaf) == mui_success, "detached");
-    CHECK(strcmp(Sync(&scene), "~4 -5 ") == 0 && muiAccessTree_Count(scene.tree) == 4, "removed");
+    CHECK(strcmp(Sync(&scene), "~4 -5 ") == 0 && muiAccessTree_GetNodeCount(scene.tree) == 4,
+          "removed");
     // Back, with a child: both added.
     muiNodeId inner = Node(context, leaf, 10.0f, 10.0f);
     CHECK(muiNode_InsertChild(context, group, leaf, s_nullNode) == mui_success, "back");
@@ -205,14 +208,15 @@ static void TestUpdatesApplied(void)
               muiNode_InsertChild(context, scene.root, leaf, s_nullNode) == mui_success,
           "moved");
     (void)Sync(&scene);
-    CHECK(muiAccessTree_Count(scene.tree) == 6 &&
-              muiAccessTree_GetParent(scene.tree, muiAccessIdOf(leaf)) ==
-                  muiAccessIdOf(scene.root) &&
-              muiAccessTree_GetParent(scene.tree, muiAccessIdOf(inner)) == muiAccessIdOf(leaf),
+    CHECK(muiAccessTree_GetNodeCount(scene.tree) == 6 &&
+              muiAccessTree_GetParent(scene.tree, muiNode_GetAccessId(leaf)) ==
+                  muiNode_GetAccessId(scene.root) &&
+              muiAccessTree_GetParent(scene.tree, muiNode_GetAccessId(inner)) ==
+                  muiNode_GetAccessId(leaf),
           "moved whole");
     // Destroyed with its child: both removed.
     CHECK(muiDestroyNode(context, leaf) == mui_success, "destroyed");
-    CHECK(strcmp(Sync(&scene), "~1 -5 -6 ") == 0 && muiAccessTree_Count(scene.tree) == 4,
+    CHECK(strcmp(Sync(&scene), "~1 -5 -6 ") == 0 && muiAccessTree_GetNodeCount(scene.tree) == 4,
           "a subtree removed");
     // The focus.
     muiInteractionStyle interaction = muiDefaultInteractionStyle();
@@ -221,19 +225,19 @@ static void TestUpdatesApplied(void)
                                        MUI_PROPERTY_BIT(mui_propertyFocusMode)) == mui_success,
           "focusable");
     (void)Sync(&scene);
-    CHECK(muiFocus_Set(context, 0, button, mui_focusByCode) == mui_success, "focused");
+    CHECK(muiContext_SetFocus(context, 0, button, mui_focusByCode) == mui_success, "focused");
     CHECK(strcmp(Sync(&scene), "~2 focus 1>2 ") == 0, "focus moved");
     // Enabled again: everything sent, everything updated, none lost.
-    CHECK(muiAccess_Enable(context, scene.root) == mui_success, "again");
-    CHECK(strcmp(Sync(&scene), "~1 ~2 ~3 ~4 ") == 0 && muiAccessTree_Count(scene.tree) == 4,
+    CHECK(muiNode_EnableAccess(context, scene.root, true) == mui_success, "again");
+    CHECK(strcmp(Sync(&scene), "~1 ~2 ~3 ~4 ") == 0 && muiAccessTree_GetNodeCount(scene.tree) == 4,
           "whole again");
     // No changes told: applied all the same.
     Text(context, label, mui_accessValue, "Bye");
     muiAccessUpdate update;
-    CHECK(muiBuildAccessUpdate(context, scene.root, &update) == mui_success &&
+    CHECK(muiNode_BuildAccessUpdate(context, scene.root, &update) == mui_success &&
               muiAccessTree_Apply(scene.tree, &update, NULL) == mui_success &&
-              muiAccessTree_Find(scene.tree, muiAccessIdOf(label))->textLength[mui_accessValue] ==
-                  3,
+              muiAccessTree_Find(scene.tree, muiNode_GetAccessId(label))
+                      ->textLength[mui_accessValue] == 3,
           "untold");
     FreeScene(&scene);
 }
@@ -244,16 +248,16 @@ static void TestNewRoot(void)
     Scene scene;
     MakeScene(&scene);
     (void)Node(scene.context, scene.root, 10.0f, 10.0f);
-    CHECK(muiAccess_Enable(scene.context, scene.root) == mui_success, "enabled");
+    CHECK(muiNode_EnableAccess(scene.context, scene.root, true) == mui_success, "enabled");
     (void)Sync(&scene);
     muiNodeId other = Node(scene.context, s_nullNode, 10.0f, 10.0f);
     muiNodeId old = scene.root;
     scene.root = other;
-    CHECK(muiAccess_Enable(scene.context, other) == mui_success, "the other");
+    CHECK(muiNode_EnableAccess(scene.context, other, true) == mui_success, "the other");
     CHECK(strcmp(Sync(&scene), "+3 -1 -2 focus 1>3 ") == 0 &&
-              muiAccessTree_Count(scene.tree) == 1 &&
-              muiAccessTree_GetRoot(scene.tree) == muiAccessIdOf(other) &&
-              muiAccessTree_Find(scene.tree, muiAccessIdOf(old)) == NULL,
+              muiAccessTree_GetNodeCount(scene.tree) == 1 &&
+              muiAccessTree_GetRoot(scene.tree) == muiNode_GetAccessId(other) &&
+              muiAccessTree_Find(scene.tree, muiNode_GetAccessId(old)) == NULL,
           "the old tree let go");
     FreeScene(&scene);
 }
@@ -289,9 +293,11 @@ static void TestRefused(void)
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "the id 0");
     update = (muiAccessUpdate){sent, 1, NULL, 1, 1};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "children not given");
-    CHECK(muiAccessTree_Count(tree) == 0 && muiAccessTree_GetRoot(tree) == 0, "nothing taken");
+    CHECK(muiAccessTree_GetNodeCount(tree) == 0 && muiAccessTree_GetRoot(tree) == 0,
+          "nothing taken");
     update = (muiAccessUpdate){sent, 2, children, 1, 1};
-    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success && muiAccessTree_Count(tree) == 2,
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success &&
+              muiAccessTree_GetNodeCount(tree) == 2,
           "taken");
     CHECK(muiAccessTree_Apply(NULL, &update, NULL) == mui_errorInvalid &&
               muiAccessTree_Apply(tree, NULL, NULL) == mui_errorInvalid,
@@ -476,7 +482,7 @@ static void TestHandMade(void)
     Log log = {0};
     const muiAccessChanges changes = {&log, Added, Updated, Removed, FocusMoved, NULL};
     CHECK(muiAccessTree_Apply(tree, &update, &changes) == mui_success &&
-              muiAccessTree_Find(tree, 9) == NULL && muiAccessTree_Count(tree) == 2 &&
+              muiAccessTree_Find(tree, 9) == NULL && muiAccessTree_GetNodeCount(tree) == 2 &&
               strcmp(log.text, "-9 ") == 0,
           "a stray let go, told only as gone");
     // New nodes past the room left, though no more are sent than it
@@ -493,7 +499,7 @@ static void TestHandMade(void)
     }
     update = Update(wideSent, 8, wideChildren, 0, 0);
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorCapacity &&
-              muiAccessTree_Count(tree) == 2,
+              muiAccessTree_GetNodeCount(tree) == 2,
           "no room");
     // Lists that would not leave a tree are refused, nothing taken.
     muiAccessNode top = {.id = 1, .childCount = 2};
@@ -504,11 +510,11 @@ static void TestHandMade(void)
     const uint64_t lists[4] = {3, 4, 5, 5};
     update = Update(four, 4, lists, 0, 0);
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid &&
-              muiAccessTree_Count(tree) == 2,
+              muiAccessTree_GetNodeCount(tree) == 2,
           "a child listed twice");
     right.childCount = 0;
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success &&
-              muiAccessTree_Count(tree) == 4 && muiAccessTree_Find(tree, 2) == NULL &&
+              muiAccessTree_GetNodeCount(tree) == 4 && muiAccessTree_Find(tree, 2) == NULL &&
               muiAccessTree_GetFocus(tree) == 1,
           "a tree");
     // Moved from 3 to 4, both sent.
@@ -519,7 +525,7 @@ static void TestHandMade(void)
     right.firstChild = 0;
     update = Update(both34, 2, fives, 0, 0);
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success &&
-              muiAccessTree_GetParent(tree, 5) == 4 && muiAccessTree_Count(tree) == 4,
+              muiAccessTree_GetParent(tree, 5) == 4 && muiAccessTree_GetNodeCount(tree) == 4,
           "moved");
     // Taken by 3 while 4, not sent, still lists it.
     const muiAccessNode* leftOnly[1] = {&left};
@@ -554,7 +560,7 @@ static void TestHandMade(void)
     const uint64_t heldLists[2] = {4, 3};
     update = Update(heldRing, 3, heldLists, 0, 0);
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid &&
-              muiAccessTree_Count(tree) == 4 && muiAccessTree_GetParent(tree, 3) == 1,
+              muiAccessTree_GetNodeCount(tree) == 4 && muiAccessTree_GetParent(tree, 3) == 1,
           "a ring of held nodes");
     // A child made the root: no parent, the old root gone.
     muiAccessNode bare = {.id = 1};
@@ -596,7 +602,8 @@ static void TestLeavingNotARing(void)
     const muiAccessNode* withRoot[3] = {&root, &three, &four};
     root.childCount = 0;
     update = (muiAccessUpdate){withRoot, 3, fourLists, 0, 0};
-    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success && muiAccessTree_Count(tree) == 1,
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success &&
+              muiAccessTree_GetNodeCount(tree) == 1,
           "both gone");
     // A held child listed twice.
     muiAccessNode a = {.id = 5};
@@ -679,7 +686,7 @@ static void TestChurn(void)
         }
         muiAccessUpdate update = {sent, sentCount, children, round == 0 ? 2 : 0, 2};
         ok = muiAccessTree_Apply(tree, &update, NULL) == mui_success &&
-             muiAccessTree_Count(tree) == count + 1;
+             muiAccessTree_GetNodeCount(tree) == count + 1;
         for (uint32_t i = 0; i < count; i++)
         {
             ok = ok && muiAccessTree_Find(tree, children[i]) != NULL;
@@ -1061,7 +1068,7 @@ static void TestMemory(void)
     {
         counter.allowed = allowed;
         CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorCapacity &&
-                  counter.live == created && muiAccessTree_Count(tree) == 0,
+                  counter.live == created && muiAccessTree_GetNodeCount(tree) == 0,
               "out of memory");
     }
     counter.allowed = 3;
@@ -1118,17 +1125,18 @@ static void TestCallingBack(void)
     muiAccessTree* tree = NULL;
     CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
     calling.tree = tree;
-    CHECK(muiGetAccessTreeMisuse(NULL) == 0 && muiGetAccessTreeMisuse(tree) == 0, "no misuse yet");
+    CHECK(muiAccessTree_GetMisuse(NULL) == 0 && muiAccessTree_GetMisuse(tree) == 0,
+          "no misuse yet");
     CHECK(muiAccessTree_Apply(tree, NULL, NULL) == mui_errorInvalid &&
-              muiGetAccessTreeMisuse(tree) == 1,
+              muiAccessTree_GetMisuse(tree) == 1,
           "refused as invalid outside, counted");
     muiAccessNode node = {.id = 1, .text = {"A"}, .textLength = {1}};
     const muiAccessNode* sent[1] = {&node};
     muiAccessUpdate update = {sent, 1, NULL, 1, 1};
     calling.armed = true;
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success && calling.runs == 1 &&
-              calling.applied == mui_errorBusy && muiAccessTree_Count(tree) == 1 &&
-              muiGetAccessTreeMisuse(tree) == 3,
+              calling.applied == mui_errorBusy && muiAccessTree_GetNodeCount(tree) == 1 &&
+              muiAccessTree_GetMisuse(tree) == 3,
           "a call back in from the allocator refused, the tree kept; it and the destroy counted");
     calling.armed = true;
     muiDestroyAccessTree(tree);
@@ -1190,12 +1198,12 @@ static void TestContract(void)
     uint32_t count = 9;
     CHECK(muiAccessTree_Find(tree, 8) == NULL && muiAccessTree_Find(NULL, 7) == NULL &&
               muiAccessTree_GetChildren(tree, 8, &count) == NULL && count == 0 &&
-              muiAccessTree_GetParent(tree, 8) == 0 && muiAccessTree_Count(NULL) == 0 &&
+              muiAccessTree_GetParent(tree, 8) == 0 && muiAccessTree_GetNodeCount(NULL) == 0 &&
               muiAccessTree_GetRoot(NULL) == 0 && muiAccessTree_GetFocus(NULL) == 0,
           "reads");
-    CHECK(strcmp(muiAccessRoleName(mui_roleButton), "button") == 0 &&
-              strcmp(muiAccessRoleName(MUI_ROLE_LAST), "marquee") == 0 &&
-              strcmp(muiAccessRoleName(MUI_ROLE_LAST + 1), "unknown") == 0,
+    CHECK(strcmp(muiGetAccessRoleName(mui_roleButton), "button") == 0 &&
+              strcmp(muiGetAccessRoleName(MUI_ROLE_LAST), "marquee") == 0 &&
+              strcmp(muiGetAccessRoleName(MUI_ROLE_LAST + 1), "unknown") == 0,
           "role names");
     muiDestroyAccessTree(tree);
 }

@@ -5,13 +5,13 @@
 // (maul-ui/text_editor.h), with the roles and keys of the WAI-ARIA Authoring
 // Practices. Each field is one node: its box, its editing block as host content, the
 // text input role, focus and drags. The editor takes the field's events
-// (muiTextEditEvent): typed text, the platform's keys, presses and drags; its copies
+// (muiNode_HandleEditEvent): typed text, the platform's keys, presses and drags; its copies
 // go to the window's clipboard and its pastes come from it (SampleEdit,
 // maul-ui-window/clipboard.h). The paint function draws the selection's rectangles
 // and the caret over the text. An input method's preedit goes into the focused field
-// (muiWindowCompose) and the window's candidate box follows the caret
-// (muiWindowGlue_SetTextCaret), the on-screen keyboard shown for the field's purpose
-// as the focus enters it and hidden as it leaves (muiWindowGlue_RequestKeyboard).
+// (muiTextBlock_ShowPreedit) and the window's candidate box follows the caret
+// (muiNode_SetWindowTextCaret), the on-screen keyboard shown for the field's purpose
+// as the focus enters it and hidden as it leaves (muiNode_RequestWindowKeyboard).
 // Headless, a person's typing, editing, selecting, copying, pasting, undoing and
 // composing is posted and the texts, the caret's pixels, the window's caret and the
 // accessibility tree checked.
@@ -108,8 +108,8 @@ static void Record(void* user, SampleApp* app, const mwinEvent* event)
     if (event->type == mwin_eventImePreedit)
     {
         SampleAppCheck(app,
-                       muiWindowCompose(app->text, field->block, &event->data.preedit, &changed) ==
-                           mui_success,
+                       muiTextBlock_ShowPreedit(app->text, field->block, &event->data.preedit,
+                                                &changed) == mui_success,
                        "a composition");
     }
     Changed(app, field, changed);
@@ -119,12 +119,12 @@ static void Record(void* user, SampleApp* app, const mwinEvent* event)
 static void Update(void* user, SampleApp* app)
 {
     Texts* texts = user;
-    int focused = FieldOf(texts, muiFocus_Get(app->context, 0));
+    int focused = FieldOf(texts, muiContext_GetFocus(app->context, 0));
     if (focused != texts->focused)
     {
         const muiNodeId shown = focused >= 0 ? texts->fields[focused].node : (muiNodeId){0, 0};
         SampleAppCheck(app,
-                       muiWindowGlue_RequestKeyboard(app->glue, &app->host, shown) == mui_success,
+                       muiNode_RequestWindowKeyboard(app->glue, &app->host, shown) == mui_success,
                        "the keyboard asked for");
     }
     if (focused >= 0)
@@ -132,7 +132,7 @@ static void Update(void* user, SampleApp* app)
         Field* field = &texts->fields[focused];
         muiTextPosition caret = SelectionOf(app, field).caret;
         bool moved = focused != texts->focused || caret.offset != texts->placedCaret.offset;
-        if (moved && muiWindowGlue_SetTextCaret(app->glue, &app->host, field->node, caret,
+        if (moved && muiNode_SetWindowTextCaret(app->glue, &app->host, field->node, caret,
                                                 &texts->placed) == mui_success)
         {
             texts->placedCaret = caret;
@@ -141,7 +141,7 @@ static void Update(void* user, SampleApp* app)
     else if (texts->focused >= 0)
     {
         SampleAppCheck(app,
-                       muiWindowGlue_SetCaret(app->glue, (muiNodeId){0, 0}, (muiRect){0},
+                       muiNode_SetWindowCaret(app->glue, (muiNodeId){0, 0}, (muiRect){0},
                                               &texts->placed) == mui_success,
                        "text input stopped");
     }
@@ -232,9 +232,9 @@ static void Build(void* user, SampleApp* app)
     MakeField(texts, app, 0, "Name", "Maul", 32.0f, false);
     MakeField(texts, app, 1, "Notes", "", 80.0f, true);
     SampleAppCheck(app,
-                   muiSetEventFunction(app->context, Hear, texts) == mui_success &&
-                       muiSetAccessTextFunction(app->context, muiReadAccessText, &app->host) ==
-                           mui_success,
+                   muiContext_SetEventFunction(app->context, Hear, texts) == mui_success &&
+                       muiContext_SetAccessTextFunction(app->context, muiReadAccessText,
+                                                        &app->host) == mui_success,
                    "the event and access text functions");
 }
 
@@ -294,7 +294,7 @@ static bool ShowsCaret(const SampleApp* app, const Field* field)
 static bool Reports(const SampleApp* app, const Field* field, const char* expected)
 {
     const muiAccessNode* found =
-        muiAccessTree_Find(muiWindowAccess_GetTree(app->access), muiAccessIdOf(field->node));
+        muiAccessTree_Find(muiWindowAccess_GetTree(app->access), muiNode_GetAccessId(field->node));
     size_t length = strlen(expected);
     return found != NULL && found->textLength[mui_accessValue] == length &&
            (length == 0 || memcmp(found->text[mui_accessValue], expected, length) == 0);

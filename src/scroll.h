@@ -15,7 +15,7 @@
 
 typedef struct muiContext muiContext;
 
-// The default of an unhandled wheel turn over hit (muiWheelInput), under
+// The default of an unhandled wheel turn over hit (muiNode_RouteWheel), under
 // root: whether a scroll container took it.
 bool muiScrollWheel(muiContext* context, uint32_t root, muiNodeId hit, const muiWheelEvent* event);
 

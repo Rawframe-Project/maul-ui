@@ -129,7 +129,7 @@ extern "C"
     /// @return The count; 0 for a NULL application.
     /// @par Thread safety
     /// Main thread only.
-    MUI_API uint64_t muiGetAtspiAppMisuse(const muiAtspiApp* app);
+    MUI_API uint64_t muiAtspiApp_GetMisuse(const muiAtspiApp* app);
 
     /// The descriptor to poll for reading.
     ///

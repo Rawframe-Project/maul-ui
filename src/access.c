@@ -18,12 +18,12 @@
 
 // Texts are below 2^31 bytes, so a length and its NUL fit 32 bits.
 
-uint64_t muiAccessIdOf(muiNodeId nodeId)
+uint64_t muiNode_GetAccessId(muiNodeId nodeId)
 {
     return ((uint64_t)nodeId.generation << 32) | nodeId.index1;
 }
 
-muiNodeId muiNodeIdOfAccess(uint64_t id)
+muiNodeId muiGetNodeOfAccessId(uint64_t id)
 {
     return (muiNodeId){(uint32_t)id, (uint32_t)(id >> 32)};
 }
@@ -475,17 +475,6 @@ static muiResult AccessEnable(muiContext* context, muiNodeId rootId)
     return mui_success;
 }
 
-muiResult muiAccess_Enable(muiContext* context, muiNodeId rootId)
-{
-    muiResult status = muiEnter(context);
-    if (status == mui_success)
-    {
-        status = AccessEnable(context, rootId);
-        muiLeave(context);
-    }
-    return status;
-}
-
 static muiResult AccessDisable(muiContext* context, muiNodeId rootId)
 {
     if (context == nullptr)
@@ -513,15 +502,21 @@ static muiResult AccessDisable(muiContext* context, muiNodeId rootId)
     return entry != nullptr ? mui_success : mui_empty;
 }
 
-muiResult muiAccess_Disable(muiContext* context, muiNodeId rootId)
+muiResult muiNode_EnableAccess(muiContext* context, muiNodeId rootId, bool enable)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
     {
-        status = AccessDisable(context, rootId);
+        status = enable ? AccessEnable(context, rootId) : AccessDisable(context, rootId);
         muiLeave(context);
     }
     return status;
+}
+
+bool muiNode_IsAccessEnabled(const muiContext* context, muiNodeId rootId)
+{
+    uint32_t slot = context != nullptr ? muiTreeResolve(&context->tree, rootId) : 0;
+    return slot != 0 && muiAccessRootOf(context, slot) != nullptr;
 }
 
 // How many of an entry's links are of a kind, and where they begin.
@@ -552,7 +547,7 @@ static bool HasLinks(const muiAccessEntry* entry, muiAccessRelation kind, const 
     }
     for (uint32_t i = 0; i < count; i++)
     {
-        if (entry->links[first + i].target != muiAccessIdOf(targets[i]))
+        if (entry->links[first + i].target != muiNode_GetAccessId(targets[i]))
         {
             return false;
         }
@@ -639,7 +634,7 @@ static muiResult NodeSetAccessRelation(muiContext* context, muiNodeId nodeId,
         }
         for (uint32_t i = 0; i < count; i++)
         {
-            links[first + i] = (muiAccessLink){muiAccessIdOf(targets[i]), kind};
+            links[first + i] = (muiAccessLink){muiNode_GetAccessId(targets[i]), kind};
         }
         for (uint32_t i = first + old; i < entry->linkCount; i++)
         {
@@ -688,7 +683,7 @@ muiResult muiNode_GetAccessRelation(const muiContext* context, muiNodeId nodeId,
     uint32_t count = entry != nullptr ? LinksOf(entry, kind, &first) : 0;
     for (uint32_t i = 0; i < count && i < capacity; i++)
     {
-        targetsOut[i] = muiNodeIdOfAccess(entry->links[first + i].target);
+        targetsOut[i] = muiGetNodeOfAccessId(entry->links[first + i].target);
     }
     *countOut = count;
     return count <= capacity ? mui_success : mui_errorCapacity;
@@ -796,7 +791,8 @@ static muiResult SetAccessTextFunction(muiContext* context, muiAccessTextFunctio
     return mui_success;
 }
 
-muiResult muiSetAccessTextFunction(muiContext* context, muiAccessTextFunction function, void* user)
+muiResult muiContext_SetAccessTextFunction(muiContext* context, muiAccessTextFunction function,
+                                           void* user)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)

@@ -72,7 +72,7 @@ static void MakeScene(Test* test)
     font.dataMode = mui_fontDataBorrow;
     muiFontId ahem = {0};
     CHECK(muiCreateFont(test->service, &font, &ahem) == mui_success &&
-              muiSetDefaultFont(test->service, ahem) == mui_success,
+              muiTextService_SetDefaultFont(test->service, ahem) == mui_success,
           "Ahem");
     muiContextDef context = muiDefaultContextDef();
     CHECK(muiCreateContext(&context, &test->context) == mui_success, "context");
@@ -108,7 +108,7 @@ static void MakeScene(Test* test)
           "the field's text");
     const muiLayoutInput input = {640.0f, 480.0f, muiMeasureText, &test->host,
                                   0,      NULL,   {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(test->context, test->root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(test->context, test->root, &input) == mui_success, "layout");
 }
 
 static bool TextIs(const Test* test, const char* expected)
@@ -135,7 +135,7 @@ static void TestComposition(Test* test)
     int32_t caret = 0;
     uint32_t start = 0;
     uint32_t length = 0;
-    CHECK(muiWindowSetComposition(test->service, test->block, 1, &preedit, &caret) == mui_success &&
+    CHECK(muiTextBlock_SetPreedit(test->service, test->block, 1, &preedit, &caret) == mui_success &&
               TextIs(test, "axyzbc") && caret == 3,
           "the preedit after the a, its caret 2 into it");
     CHECK(muiTextBlock_GetComposition(test->service, test->block, &start, &length) == mui_success &&
@@ -146,23 +146,23 @@ static void TestComposition(Test* test)
     preedit.segments = &unknown;
     preedit.segmentCount = 1;
     caret = 7;
-    CHECK(muiWindowSetComposition(test->service, test->block, 1, &preedit, &caret) ==
+    CHECK(muiTextBlock_SetPreedit(test->service, test->block, 1, &preedit, &caret) ==
                   mui_errorInvalid &&
               caret == 0 && TextIs(test, "axyzbc"),
           "an unknown style refused, the composition kept and the caret cleared");
     preedit = (mwinPreeditEvent){.text = "w", .length = 1, .caret = -1};
-    CHECK(muiWindowSetComposition(test->service, test->block, 1, &preedit, &caret) == mui_success &&
+    CHECK(muiTextBlock_SetPreedit(test->service, test->block, 1, &preedit, &caret) == mui_success &&
               TextIs(test, "awbc") && caret == -1,
           "a hidden caret");
     preedit = (mwinPreeditEvent){.caret = 0};
     caret = 7;
-    CHECK(muiWindowSetComposition(test->service, test->block, 1, &preedit, &caret) == mui_success &&
+    CHECK(muiTextBlock_SetPreedit(test->service, test->block, 1, &preedit, &caret) == mui_success &&
               TextIs(test, "abc") && caret == -1 &&
               muiTextBlock_GetComposition(test->service, test->block, &start, &length) ==
                   mui_success &&
               length == 0,
           "an empty preedit ends the composition");
-    CHECK(muiWindowSetComposition(test->service, test->block, 1, NULL, &caret) == mui_errorInvalid,
+    CHECK(muiTextBlock_SetPreedit(test->service, test->block, 1, NULL, &caret) == mui_errorInvalid,
           "a NULL preedit");
 }
 
@@ -174,18 +174,18 @@ static void TestCaret(Test* test)
     CHECK(content.x == 6.0f && content.y == 6.0f, "the content box 6 in");
     muiTextCaret caret = {0};
     const muiTextPosition position = {1, mui_affinityDownstream};
-    CHECK(muiTextGetCaret(&test->host, test->field, content.width, position, &caret) ==
+    CHECK(muiNode_GetTextCaret(&test->host, test->field, content.width, position, &caret) ==
                   mui_success &&
               caret.x == 10.0f && caret.height > 0.0f,
           "Ahem's caret 10 in");
     mwinRect placed = {0};
-    CHECK(muiWindowGlue_SetTextCaret(test->glue, &test->host, test->field, position, &placed) ==
+    CHECK(muiNode_SetWindowTextCaret(test->glue, &test->host, test->field, position, &placed) ==
                   mui_success &&
               placed.x == 36.0f && placed.y == 36.0f + caret.y && placed.width == 0.0f &&
               placed.height == caret.height,
           "the window's caret past the content and the field's place");
     test->placed = placed;
-    CHECK(muiWindowGlue_SetTextCaret(test->glue, NULL, test->field, position, &placed) ==
+    CHECK(muiNode_SetWindowTextCaret(test->glue, NULL, test->field, position, &placed) ==
               mui_errorInvalid,
           "a NULL host");
 }
@@ -243,49 +243,53 @@ static void TestEditing(Test* test)
     mwinPreeditEvent preedit = {.text = "xy", .length = 2, .caret = -1};
     bool changed = false;
     muiTextSelection selection;
-    CHECK(muiWindowCompose(test->service, test->block, &preedit, &changed) == mui_success &&
+    CHECK(muiTextBlock_ShowPreedit(test->service, test->block, &preedit, &changed) == mui_success &&
               changed && TextIs(test, "abcxy") &&
               muiTextBlock_GetSelection(test->service, test->block, &selection) == mui_success &&
               selection.caret.offset == 5,
           "a preedit, its hidden caret at its end");
     preedit.caret = 3;
-    CHECK(muiWindowCompose(test->service, test->block, &preedit, NULL) == mui_errorInvalid &&
-              muiWindowCompose(test->service, test->block, NULL, NULL) == mui_errorInvalid,
+    CHECK(muiTextBlock_ShowPreedit(test->service, test->block, &preedit, NULL) ==
+                  mui_errorInvalid &&
+              muiTextBlock_ShowPreedit(test->service, test->block, NULL, NULL) == mui_errorInvalid,
           "a caret past the preedit, no preedit");
     preedit = (mwinPreeditEvent){.text = "", .length = 0, .caret = -1};
-    CHECK(muiWindowCompose(test->service, test->block, &preedit, &changed) == mui_success &&
+    CHECK(muiTextBlock_ShowPreedit(test->service, test->block, &preedit, &changed) == mui_success &&
               changed && TextIs(test, "abc"),
           "taken out");
-    muiWindowGlue_WriteClipboard(test->glue, "abc", 3);
-    muiWindowGlue_WriteClipboard(NULL, "abc", 3);
+    muiWriteWindowClipboard(test->glue, "abc", 3);
+    muiWriteWindowClipboard(NULL, "abc", 3);
     CHECK(muiWindowGlue_RequestPaste(test->glue) == mui_success &&
               muiWindowGlue_RequestPaste(NULL) == mui_errorInvalid,
           "a paste asked for");
     mwinEvent event = {.type = mwin_eventKeyDown, .window = test->window};
-    CHECK(muiWindowGlue_Paste(test->glue, test->service, test->block, &event, &changed) ==
+    CHECK(muiTextBlock_PasteFromWindow(test->glue, test->service, test->block, &event, &changed) ==
                   mui_empty &&
               !changed,
           "another event passes");
     event.type = mwin_eventRequestCompleted;
     event.data.completion =
         (mwinCompletion){.kind = mwin_requestClipboardRead, .outcome = mwin_outcomeDenied};
-    CHECK(muiWindowGlue_Paste(test->glue, test->service, test->block, &event, NULL) == mui_empty,
+    CHECK(muiTextBlock_PasteFromWindow(test->glue, test->service, test->block, &event, NULL) ==
+              mui_empty,
           "a refused read passes");
     event.data.completion.outcome = mwin_outcomeDone;
-    CHECK(muiWindowGlue_Paste(test->glue, test->service, test->block, &event, &changed) ==
+    CHECK(muiTextBlock_PasteFromWindow(test->glue, test->service, test->block, &event, &changed) ==
                   mui_empty &&
               !changed && TextIs(test, "abc"),
           "a read Maul Window did not answer passes");
-    CHECK(muiWindowGlue_Paste(test->glue, NULL, test->block, &event, NULL) == mui_errorInvalid &&
-              muiWindowGlue_Paste(test->glue, test->service, test->block, NULL, NULL) ==
+    CHECK(muiTextBlock_PasteFromWindow(test->glue, NULL, test->block, &event, NULL) ==
+                  mui_errorInvalid &&
+              muiTextBlock_PasteFromWindow(test->glue, test->service, test->block, NULL, NULL) ==
                   mui_errorInvalid,
           "no service or event");
-    CHECK(muiWindowGlue_Paste(NULL, test->service, test->block, &event, NULL) == mui_errorInvalid,
+    CHECK(muiTextBlock_PasteFromWindow(NULL, test->service, test->block, &event, NULL) ==
+              mui_errorInvalid,
           "no glue");
-    CHECK(muiWindowGlue_RequestKeyboard(test->glue, &test->host, test->field) == mui_success,
+    CHECK(muiNode_RequestWindowKeyboard(test->glue, &test->host, test->field) == mui_success,
           "the keyboard asked for");
-    CHECK(muiWindowGlue_RequestKeyboard(NULL, &test->host, test->field) == mui_errorInvalid &&
-              muiWindowGlue_RequestKeyboard(test->glue, NULL, test->field) == mui_errorInvalid,
+    CHECK(muiNode_RequestWindowKeyboard(NULL, &test->host, test->field) == mui_errorInvalid &&
+              muiNode_RequestWindowKeyboard(test->glue, NULL, test->field) == mui_errorInvalid,
           "the keyboard asked for without a glue or a host");
 }
 
@@ -300,7 +304,7 @@ static void TestPasted(Test* test)
     {
         bool now = false;
         muiResult result =
-            muiWindowGlue_Paste(test->glue, test->service, test->block, &event, &now);
+            muiTextBlock_PasteFromWindow(test->glue, test->service, test->block, &event, &now);
         pasted += result == mui_success ? 1 : 0;
         changed = changed || now;
     }
@@ -333,7 +337,7 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
                       mwin_success &&
                   visible && purpose == mwin_purposeEmail,
               "the keyboard shown for the field's purpose");
-        CHECK(muiWindowGlue_RequestKeyboard(test->glue, &test->host, s_nullNode) == mui_success,
+        CHECK(muiNode_RequestWindowKeyboard(test->glue, &test->host, s_nullNode) == mui_success,
               "the keyboard let go");
         return mwin_frameContinue;
     default:
@@ -352,21 +356,22 @@ static void TestNullOwnersClearOutputs(void)
 {
     const mwinPreeditEvent preedit = {0};
     int32_t caret = 7;
-    CHECK(muiWindowSetComposition(NULL, (muiTextBlockId){1, 1}, 0, &preedit, &caret) ==
+    CHECK(muiTextBlock_SetPreedit(NULL, (muiTextBlockId){1, 1}, 0, &preedit, &caret) ==
                   mui_errorInvalid &&
               caret == 0,
           "SetComposition clears the caret");
     bool changed = true;
-    CHECK(muiWindowCompose(NULL, (muiTextBlockId){1, 1}, &preedit, &changed) == mui_errorInvalid &&
+    CHECK(muiTextBlock_ShowPreedit(NULL, (muiTextBlockId){1, 1}, &preedit, &changed) ==
+                  mui_errorInvalid &&
               !changed,
           "Compose clears changed");
     mwinRect placed = {1, 2, 3, 4};
-    CHECK(muiWindowGlue_SetTextCaret(NULL, NULL, (muiNodeId){0}, (muiTextPosition){0}, &placed) ==
+    CHECK(muiNode_SetWindowTextCaret(NULL, NULL, (muiNodeId){0}, (muiTextPosition){0}, &placed) ==
                   mui_errorInvalid &&
               placed.x == 0 && placed.y == 0 && placed.width == 0 && placed.height == 0,
           "SetTextCaret clears the place");
     changed = true;
-    CHECK(muiWindowGlue_Paste(NULL, NULL, (muiTextBlockId){1, 1}, NULL, &changed) ==
+    CHECK(muiTextBlock_PasteFromWindow(NULL, NULL, (muiTextBlockId){1, 1}, NULL, &changed) ==
                   mui_errorInvalid &&
               !changed,
           "Paste clears changed");

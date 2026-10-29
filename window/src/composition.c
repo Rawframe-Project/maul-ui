@@ -46,8 +46,8 @@ static const muiCompositionSegment* SegmentsOf(const mwinPreeditEvent* preedit,
     return count != 0 && preedit->segments != nullptr ? segments : nullptr;
 }
 
-muiResult muiWindowCompose(muiTextService* service, muiTextBlockId blockId,
-                           const mwinPreeditEvent* preedit, bool* changedOut)
+muiResult muiTextBlock_ShowPreedit(muiTextService* service, muiTextBlockId blockId,
+                                   const mwinPreeditEvent* preedit, bool* changedOut)
 {
     if (changedOut != nullptr)
     {
@@ -64,7 +64,7 @@ muiResult muiWindowCompose(muiTextService* service, muiTextBlockId blockId,
                                 SegmentsOf(preedit, segments), preedit->segmentCount, changedOut);
 }
 
-muiResult muiWindowSetComposition(muiTextService* service, muiTextBlockId blockId, uint32_t offset,
+muiResult muiTextBlock_SetPreedit(muiTextService* service, muiTextBlockId blockId, uint32_t offset,
                                   const mwinPreeditEvent* preedit, int32_t* caretOut)
 {
     if (caretOut != nullptr)
@@ -95,7 +95,7 @@ muiResult muiWindowSetComposition(muiTextService* service, muiTextBlockId blockI
     return status;
 }
 
-muiResult muiWindowGlue_SetTextCaret(muiWindowGlue* glue, const muiTextHost* host, muiNodeId nodeId,
+muiResult muiNode_SetWindowTextCaret(muiWindowGlue* glue, const muiTextHost* host, muiNodeId nodeId,
                                      muiTextPosition position, mwinRect* placedOut)
 {
     if (placedOut != nullptr)
@@ -108,16 +108,16 @@ muiResult muiWindowGlue_SetTextCaret(muiWindowGlue* glue, const muiTextHost* hos
     }
     muiRect content = muiNode_GetContentRect(host->context, nodeId);
     muiTextCaret caret;
-    muiResult status = muiTextGetCaret(host, nodeId, content.width, position, &caret);
+    muiResult status = muiNode_GetTextCaret(host, nodeId, content.width, position, &caret);
     if (status != mui_success)
     {
         return status;
     }
     const muiRect rect = {content.x + caret.x, content.y + caret.y, 0.0f, caret.height};
-    return muiWindowGlue_SetCaret(glue, nodeId, rect, placedOut);
+    return muiNode_SetWindowCaret(glue, nodeId, rect, placedOut);
 }
 
-muiResult muiWindowGlue_RequestKeyboard(muiWindowGlue* glue, const muiTextHost* host,
+muiResult muiNode_RequestWindowKeyboard(muiWindowGlue* glue, const muiTextHost* host,
                                         muiNodeId nodeId)
 {
     if (glue == nullptr || host == nullptr)

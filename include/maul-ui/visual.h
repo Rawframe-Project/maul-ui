@@ -248,7 +248,7 @@ extern "C"
 
     /// Reads a node's resolved visual values: its direct writes, and for the
     /// other properties what its classes and states gave at the last
-    /// muiComputeLayout that reached it, where its transitions have them.
+    /// muiNode_ComputeLayout that reached it, where its transitions have them.
     ///
     /// @param context    The context.
     /// @param nodeId     The node.

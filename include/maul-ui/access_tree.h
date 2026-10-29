@@ -3,7 +3,7 @@
 //
 // The accessibility tree's consumer, the component MAUL_UI_ACCESS_TREE
 // builds: the copy of a root's accessibility tree that platform adapters
-// read, kept from the updates muiBuildAccessUpdate gives
+// read, kept from the updates muiNode_BuildAccessUpdate gives
 // (maul-ui/access.h). Applying an update reports what it changed, so an
 // adapter can raise its platform's events. A tree is used on one thread,
 // the one its platform calls on: the window's, with UI Automation's COM
@@ -126,7 +126,7 @@ extern "C"
     /// @return The count; 0 for a NULL tree.
     /// @par Thread safety
     /// Safe from any thread; the tree is used by one thread at a time.
-    MUI_API uint64_t muiGetAccessTreeMisuse(const muiAccessTree* tree);
+    MUI_API uint64_t muiAccessTree_GetMisuse(const muiAccessTree* tree);
 
     /// Applies an update whole, or nothing of it: the nodes sent replace
     /// those held, new ones join, and a node a parent sent no longer
@@ -178,7 +178,7 @@ extern "C"
     /// @return The count; 0 for NULL.
     /// @par Thread safety
     /// Safe from any thread; the tree is used by one thread at a time.
-    MUI_API uint32_t muiAccessTree_Count(const muiAccessTree* tree);
+    MUI_API uint32_t muiAccessTree_GetNodeCount(const muiAccessTree* tree);
 
     /// A node the tree holds: its texts and links are the tree's copies,
     /// valid until an update replaces or removes it; its firstChild is 0,
@@ -371,7 +371,7 @@ extern "C"
     /// @return The name; "unknown" for a role past MUI_ROLE_LAST.
     /// @par Thread safety
     /// Safe from any thread.
-    MUI_API const char* muiAccessRoleName(muiRole role);
+    MUI_API const char* muiGetAccessRoleName(muiRole role);
 
 #ifdef __cplusplus
 }

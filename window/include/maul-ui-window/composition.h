@@ -6,8 +6,8 @@
 // text block, and the candidate window placed at a position of a node's
 // text. Maul Window's preedit styles and segment limit are Maul UI's
 // composition styles and limit. An editing block takes a preedit through
-// muiWindowCompose, and its field's purpose picks the on-screen keyboard
-// (muiWindowGlue_RequestKeyboard).
+// muiTextBlock_ShowPreedit, and its field's purpose picks the on-screen keyboard
+// (muiNode_RequestWindowKeyboard).
 
 #ifndef MAUL_UI_WINDOW_COMPOSITION_H
 #define MAUL_UI_WINDOW_COMPOSITION_H
@@ -42,7 +42,7 @@ extern "C"
     ///         a NULL preedit.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
-    MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowSetComposition(muiTextService* service,
+    MUI_NODISCARD MUI_WINDOW_API muiResult muiTextBlock_SetPreedit(muiTextService* service,
                                                                    muiTextBlockId blockId,
                                                                    uint32_t offset,
                                                                    const mwinPreeditEvent* preedit,
@@ -63,25 +63,25 @@ extern "C"
     ///         preedit.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
-    MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowCompose(muiTextService* service,
-                                                            muiTextBlockId blockId,
-                                                            const mwinPreeditEvent* preedit,
-                                                            bool* changedOut);
+    MUI_NODISCARD MUI_WINDOW_API muiResult muiTextBlock_ShowPreedit(muiTextService* service,
+                                                                    muiTextBlockId blockId,
+                                                                    const mwinPreeditEvent* preedit,
+                                                                    bool* changedOut);
 
     /// Asks the window to accept text with its caret at a position of a
-    /// node's text (muiTextGetCaret in the node's content box, then
-    /// muiWindowGlue_SetCaret), the caret a rectangle as tall as its line
+    /// node's text (muiNode_GetTextCaret in the node's content box, then
+    /// muiNode_SetWindowCaret), the caret a rectangle as tall as its line
     /// and of no width.
     ///
     /// @param glue       The glue.
     /// @param host       The text host the node's block is in.
     /// @param nodeId     A node whose host key is a block's.
     /// @param position   The position.
-    /// @param placedOut  As muiWindowGlue_SetCaret's. Zeroed on failure.
-    /// @return As muiTextGetCaret and muiWindowGlue_SetCaret.
+    /// @param placedOut  As muiNode_SetWindowCaret's. Zeroed on failure.
+    /// @return As muiNode_GetTextCaret and muiNode_SetWindowCaret.
     /// @par Thread safety
     /// Main thread only. Maul Window's requests are too.
-    MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_SetTextCaret(muiWindowGlue* glue,
+    MUI_NODISCARD MUI_WINDOW_API muiResult muiNode_SetWindowTextCaret(muiWindowGlue* glue,
                                                                       const muiTextHost* host,
                                                                       muiNodeId nodeId,
                                                                       muiTextPosition position,
@@ -101,7 +101,7 @@ extern "C"
     ///         request Maul Window refuses.
     /// @par Thread safety
     /// Main thread only. Maul Window's requests are too.
-    MUI_NODISCARD MUI_WINDOW_API muiResult muiWindowGlue_RequestKeyboard(muiWindowGlue* glue,
+    MUI_NODISCARD MUI_WINDOW_API muiResult muiNode_RequestWindowKeyboard(muiWindowGlue* glue,
                                                                          const muiTextHost* host,
                                                                          muiNodeId nodeId);
 

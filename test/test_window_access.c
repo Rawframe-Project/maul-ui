@@ -59,14 +59,14 @@ static void MakeTree(Test* test)
 static void Layout(Test* test)
 {
     const muiLayoutInput input = {640.0f, 480.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(test->context, test->root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(test->context, test->root, &input) == mui_success, "layout");
 }
 
 static bool NameIs(const muiWindowAccess* access, muiNodeId node, const char* expected)
 {
     char name[16] = {0};
     size_t length = 0;
-    return muiAccessTree_GetName(muiWindowAccess_GetTree(access), muiAccessIdOf(node), name,
+    return muiAccessTree_GetName(muiWindowAccess_GetTree(access), muiNode_GetAccessId(node), name,
                                  sizeof name, &length) == mui_success &&
            length == strlen(expected) && memcmp(name, expected, length) == 0;
 }
@@ -83,12 +83,12 @@ static muiWindowAccess* Make(Test* test)
 static void TestTree(Test* test)
 {
     muiWindowAccess* access = Make(test);
-    CHECK(!muiWindowAccess_HasAdapter(access), "no platform: the tree alone");
+    CHECK(!muiWindowAccess_IsAdapterCreated(access), "no platform: the tree alone");
     const muiAccessTree* tree = muiWindowAccess_GetTree(access);
-    CHECK(tree != NULL && muiAccessTree_Count(tree) == 0, "empty before an update");
+    CHECK(tree != NULL && muiAccessTree_GetNodeCount(tree) == 0, "empty before an update");
     Layout(test);
-    CHECK(muiWindowAccess_Update(access) == mui_success && muiAccessTree_Count(tree) == 2 &&
-              muiAccessTree_GetRoot(tree) == muiAccessIdOf(test->root) &&
+    CHECK(muiWindowAccess_Update(access) == mui_success && muiAccessTree_GetNodeCount(tree) == 2 &&
+              muiAccessTree_GetRoot(tree) == muiNode_GetAccessId(test->root) &&
               NameIs(access, test->button, "Play"),
           "an update sends the root and the button");
     Name(test, "Stop");
@@ -107,12 +107,12 @@ static void TestTree(Test* test)
           "NULL refused");
     muiDestroyWindowAccess(access);
     muiAccessUpdate update;
-    CHECK(muiBuildAccessUpdate(test->context, test->root, &update) == mui_empty,
+    CHECK(muiNode_BuildAccessUpdate(test->context, test->root, &update) == mui_empty,
           "destroyed, the root's updates stop");
     access = Make(test);
     Layout(test);
     CHECK(muiWindowAccess_Update(access) == mui_success &&
-              muiAccessTree_Count(muiWindowAccess_GetTree(access)) == 2,
+              muiAccessTree_GetNodeCount(muiWindowAccess_GetTree(access)) == 2,
           "another access sends the whole tree");
     muiDestroyWindowAccess(access);
     muiDestroyWindowAccess(NULL);
@@ -136,7 +136,7 @@ static void TestRefused(Test* test)
     def.cookie = 0;
     CHECK(muiCreateWindowAccess(&def, &access) == mui_errorInvalid, "no cookie");
     CHECK(muiCreateWindowAccess(NULL, &access) == mui_errorInvalid &&
-              muiWindowAccess_GetTree(NULL) == NULL && !muiWindowAccess_HasAdapter(NULL),
+              muiWindowAccess_GetTree(NULL) == NULL && !muiWindowAccess_IsAdapterCreated(NULL),
           "NULL refused");
 }
 

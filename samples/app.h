@@ -133,7 +133,7 @@ struct SampleApp
 #define SAMPLE_KEYMAP mui_keymapPc
 #endif
 
-// Gives an editing field's event to the text editor (muiTextEditEvent)
+// Gives an editing field's event to the text editor (muiNode_HandleEditEvent)
 // by the platform's keymap, its copies to the window's clipboard; marks
 // the field when its text changes, and asks the window for a paste,
 // which the app takes into the field when the window answers. Returns

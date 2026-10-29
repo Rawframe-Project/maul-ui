@@ -255,7 +255,7 @@ muiResult muiCreateTextService(const muiTextServiceDef* def, muiTextService** se
     return result;
 }
 
-uint64_t muiGetTextServiceMisuse(const muiTextService* service)
+uint64_t muiTextService_GetMisuse(const muiTextService* service)
 {
     return service != nullptr ? service->misuse : 0;
 }

@@ -48,7 +48,7 @@ static void Check(muiResult status, const char* what)
 {
     if (status != mui_success)
     {
-        fprintf(stderr, "%s failed: %s\n", what, muiResultName(status));
+        fprintf(stderr, "%s failed: %s\n", what, muiGetResultName(status));
     }
 }
 
@@ -276,22 +276,22 @@ static void Frame(Scene* scene, uint64_t frame, Timing* timing)
     const muiDrawInput draw = {1, 1.0f, NULL, NULL};
     uint64_t measures = s_measures;
     double start = Seconds();
-    Check(muiComputeLayout(context, scene->root, &input), "layout");
+    Check(muiNode_ComputeLayout(context, scene->root, &input), "layout");
     bool changed = false;
     muiNotification record = {0};
-    while (muiNextNotification(context, &record) == mui_success)
+    while (muiContext_TakeNotification(context, &record) == mui_success)
     {
         changed |= record.kind == mui_notificationWindowChanged;
     }
     if (changed)
     {
         Realize(scene);
-        Check(muiComputeLayout(context, scene->root, &input), "layout again");
-        while (muiNextNotification(context, &record) == mui_success)
+        Check(muiNode_ComputeLayout(context, scene->root, &input), "layout again");
+        while (muiContext_TakeNotification(context, &record) == mui_success)
         {
         }
     }
-    Check(muiBuildDrawList(context, scene->root, &draw), "draw");
+    Check(muiNode_BuildDrawList(context, scene->root, &draw), "draw");
     double elapsed = (Seconds() - start) * 1e6;
     if (timing->frames < FRAMES)
     {

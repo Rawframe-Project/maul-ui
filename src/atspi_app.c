@@ -267,7 +267,7 @@ void muiDestroyAtspiApp(muiAtspiApp* app)
     DestroyAtspiApp(app);
 }
 
-uint64_t muiGetAtspiAppMisuse(const muiAtspiApp* app)
+uint64_t muiAtspiApp_GetMisuse(const muiAtspiApp* app)
 {
     return app != nullptr ? app->misuse : 0;
 }

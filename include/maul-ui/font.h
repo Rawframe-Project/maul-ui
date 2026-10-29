@@ -178,7 +178,7 @@ extern "C"
         const muiFontId* faces;
         uint32_t faceCount;
         // Keys of fonts and families tried, in order, for characters the
-        // face lacks, before the service's (muiSetFallbackFonts); a
+        // face lacks, before the service's (muiTextService_SetFallbackFonts); a
         // family's face is matched to the style, its own fallbacks not
         // tried.
         const uint64_t* fallbacks;

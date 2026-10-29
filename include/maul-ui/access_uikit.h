@@ -113,7 +113,7 @@ extern "C"
     /// @return The count; 0 for a NULL adapter.
     /// @par Thread safety
     /// Main thread only.
-    MUI_API uint64_t muiGetUikitAdapterMisuse(const muiUikitAdapter* adapter);
+    MUI_API uint64_t muiUikitAdapter_GetMisuse(const muiUikitAdapter* adapter);
 
     /// Applies an update to the adapter's tree (muiAccessTree_Apply).
     ///

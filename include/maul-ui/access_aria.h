@@ -129,7 +129,7 @@ extern "C"
     /// @return The count; 0 for a NULL adapter.
     /// @par Thread safety
     /// Main thread only.
-    MUI_API uint64_t muiGetAriaAdapterMisuse(const muiAriaAdapter* adapter);
+    MUI_API uint64_t muiAriaAdapter_GetMisuse(const muiAriaAdapter* adapter);
 
     /// Applies an update to the adapter's tree (muiAccessTree_Apply) and,
     /// once enabled, brings the elements to it.
@@ -164,7 +164,10 @@ extern "C"
 
     /// Builds the elements, if building was deferred and has not begun,
     /// and takes the enabling button away. The button does the same, and
-    /// gives the program's focused node the DOM focus.
+    /// gives the program's focused node the DOM focus. Building is one way
+    /// by design: deferring only spares a page the elements until someone
+    /// asks for them, and once built they follow the tree until the
+    /// adapter is destroyed, so there is no call to take them away.
     ///
     /// @param adapter  The adapter; NULL is ignored.
     /// @par Thread safety

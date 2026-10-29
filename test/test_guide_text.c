@@ -43,7 +43,7 @@ static muiTextService* MakeTextService(const void* fontData, size_t fontSize)
     font.size = fontSize;
     muiFontId fontId = {0, 0};
     if (muiCreateFont(service, &font, &fontId) != mui_success ||
-        muiSetDefaultFont(service, fontId) != mui_success)
+        muiTextService_SetDefaultFont(service, fontId) != mui_success)
     {
         muiDestroyTextService(service);
         return NULL;
@@ -96,8 +96,8 @@ static muiResult FrameWithText(muiContext* context, muiTextService* service, mui
     const muiLayoutInput layout = {
         width, height, muiMeasureText, &host, 0, muiMeasureTextBaseline, {0, 0, 0, 0}};
     const muiDrawInput draw = {1, 1.0f, muiPaintText, &host};
-    muiResult result = muiComputeLayout(context, root, &layout);
-    return result == mui_success ? muiBuildDrawList(context, root, &draw) : result;
+    muiResult result = muiNode_ComputeLayout(context, root, &layout);
+    return result == mui_success ? muiNode_BuildDrawList(context, root, &draw) : result;
 }
 
 // Section 5: changing a text.
@@ -158,7 +158,7 @@ static bool FieldEvent(muiContext* context, muiTextService* service, muiNodeId f
     muiTextHost host = {service, context};
     const muiTextEditInput input = {mui_keymapPc, WriteClipboard, NULL};
     muiTextEditOutcome outcome = {false, false, false, false};
-    if (muiTextEditEvent(&host, field, event, &input, &outcome) != mui_success)
+    if (muiNode_HandleEditEvent(&host, field, event, &input, &outcome) != mui_success)
     {
         return false;
     }
@@ -193,7 +193,7 @@ static bool CaretOf(muiContext* context, muiTextService* service, muiNodeId fiel
     muiTextSelection selection;
     float width = muiNode_GetContentRect(context, field).width;
     return muiTextBlock_GetSelection(service, block, &selection) == mui_success &&
-           muiTextGetCaret(&host, field, width, selection.caret, caretOut) == mui_success;
+           muiNode_GetTextCaret(&host, field, width, selection.caret, caretOut) == mui_success;
 }
 
 // Section 7: glyph images.
@@ -206,7 +206,7 @@ static uint32_t PackGlyphs(muiGlyphAtlas* atlas, const muiDrawList* list, muiAtl
 {
     uint32_t packed = 0;
     float scale = list->header.scale;
-    muiGlyphAtlas_NextFrame(atlas);
+    muiGlyphAtlas_BeginFrame(atlas);
     for (uint32_t i = 0; i < list->commandCount; i++)
     {
         const muiDrawGlyphRun* run = &list->commands[i].glyphRun;
@@ -218,9 +218,9 @@ static uint32_t PackGlyphs(muiGlyphAtlas* atlas, const muiDrawList* list, muiAtl
         {
             const muiGlyph* glyph = &list->glyphs[run->firstGlyph + g];
             muiAtlasGlyph image;
-            if (muiGlyphAtlas_Get(atlas, run->font, glyph->id, run->size * scale,
-                                  (run->originX + glyph->x) * scale,
-                                  (run->originY + glyph->y) * scale, &image) == mui_success)
+            if (muiGlyphAtlas_GetGlyph(atlas, run->font, glyph->id, run->size * scale,
+                                       (run->originX + glyph->x) * scale,
+                                       (run->originY + glyph->y) * scale, &image) == mui_success)
             {
                 packed++;
             }
@@ -235,7 +235,7 @@ static uint32_t PackGlyphs(muiGlyphAtlas* atlas, const muiDrawList* list, muiAtl
 static uint32_t Runs(const muiContext* context, uint32_t* glyphsOut)
 {
     muiDrawList list = {0};
-    CHECK(muiGetDrawList(context, &list) == mui_success, "a list");
+    CHECK(muiContext_GetDrawList(context, &list) == mui_success, "a list");
     uint32_t runs = 0;
     *glyphsOut = 0;
     for (uint32_t i = 0; i < list.commandCount; i++)
@@ -316,7 +316,7 @@ static void TestAtlas(muiContext* context, muiTextService* service)
     muiAtlasUpdate updates[16];
     uint32_t count = 0;
     CHECK(muiCreateGlyphAtlas(service, &def, &atlas) == mui_success &&
-              muiGetDrawList(context, &list) == mui_success,
+              muiContext_GetDrawList(context, &list) == mui_success,
           "an atlas");
     uint32_t glyphs = 0;
     Runs(context, &glyphs);

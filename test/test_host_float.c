@@ -348,13 +348,13 @@ static bool MakeScene(Scene* scene)
                                 MUI_PROPERTY_BIT(mui_propertyFlexWrap) |
                                     MUI_PROPERTY_BIT(mui_propertyAlignItems) |
                                     MUI_PROPERTY_BIT(mui_propertyWidth)) != mui_success ||
-        muiSetEventFunction(scene->context, Event, scene->watch) != mui_success ||
-        muiSetAccessTextFunction(scene->context, AccessText, scene) != mui_success ||
+        muiContext_SetEventFunction(scene->context, Event, scene->watch) != mui_success ||
+        muiContext_SetAccessTextFunction(scene->context, AccessText, scene) != mui_success ||
         !MakeClass(scene, fonts->sans, 15.0f, 400.0f, &plain) ||
         !MakeClass(scene, fonts->cff, 23.5f, 400.0f, &heading) ||
         !MakeClass(scene, fonts->variable, 17.0f, 650.0f, &bold) ||
         !AddLabel(scene, "Settings", heading) ||
-        muiAccess_Enable(scene->context, scene->root) != mui_success)
+        muiNode_EnableAccess(scene->context, scene->root, true) != mui_success)
     {
         return false;
     }
@@ -406,18 +406,20 @@ static bool Frame(Scene* scene, uint32_t i, Run* run)
                                         scene->timeNs,  Baseline, {0, 0, 0, 0}};
     const muiDrawInput drawInput = {1, 1.25f, Paint, scene};
     muiDrawList list;
-    if (!Returned(watch, muiPointerInput(context, scene->root, &move) == mui_success) ||
-        !Returned(watch, muiComputeLayout(context, scene->root, &layoutInput) == mui_success) ||
-        !Returned(watch, muiBuildDrawList(context, scene->root, &drawInput) == mui_success) ||
-        !Returned(watch, muiGetDrawList(context, &list) == mui_success))
+    if (!Returned(watch, muiNode_RoutePointer(context, scene->root, &move) == mui_success) ||
+        !Returned(watch,
+                  muiNode_ComputeLayout(context, scene->root, &layoutInput) == mui_success) ||
+        !Returned(watch, muiNode_BuildDrawList(context, scene->root, &drawInput) == mui_success) ||
+        !Returned(watch, muiContext_GetDrawList(context, &list) == mui_success))
     {
         return false;
     }
     muiPointerRecord record;
-    while (muiNextPointerRecord(context, &record) == mui_success)
+    while (muiContext_TakePointerRecord(context, &record) == mui_success)
     {
         bool handled = false;
-        (void)Returned(watch, muiDispatchPointerRecord(context, &record, &handled) == mui_success);
+        (void)Returned(watch,
+                       muiContext_DispatchPointerRecord(context, &record, &handled) == mui_success);
     }
     for (muiNodeId node = muiNode_GetFirstChild(context, scene->root); node.index1 != 0;
          node = muiNode_GetNextSibling(context, node))
@@ -433,8 +435,8 @@ static bool Frame(Scene* scene, uint32_t i, Run* run)
     for (uint32_t k = 0; k < 8; k++)
     {
         muiHit hit = {0};
-        if (Returned(watch, muiHitTest(context, scene->root, s_inputs.hitX[k], s_inputs.hitY[k],
-                                       &hit) == mui_success))
+        if (Returned(watch, muiNode_HitTest(context, scene->root, s_inputs.hitX[k],
+                                            s_inputs.hitY[k], &hit) == mui_success))
         {
             run->hits = Mix(run->hits, &hit.node, sizeof hit.node);
             run->hits = Mix(run->hits, &hit.x, sizeof hit.x);
@@ -442,7 +444,7 @@ static bool Frame(Scene* scene, uint32_t i, Run* run)
         }
     }
     muiAccessUpdate update = {0};
-    if (!Returned(watch, muiBuildAccessUpdate(context, scene->root, &update) == mui_success))
+    if (!Returned(watch, muiNode_BuildAccessUpdate(context, scene->root, &update) == mui_success))
     {
         return false;
     }
@@ -479,19 +481,19 @@ static void Render(Scene* scene, unsigned char* pixels, Run* run)
         muiGlyphImage image = {0};
         for (uint32_t k = 0; k < 3; k++)
         {
-            muiResult result = muiRenderGlyph(scene->service, outlines[k], glyph, size, offset,
-                                              &image, pixels, PIXELS);
+            muiResult result = muiTextService_RenderGlyph(scene->service, outlines[k], glyph, size,
+                                                          offset, &image, pixels, PIXELS);
             run->glyphs = Outcome(run->glyphs, result, &image, pixels, 1);
-            result = muiRenderGlyphField(scene->service, outlines[k], glyph, s_inputs.field, 4,
-                                         &image, pixels, PIXELS);
+            result = muiTextService_RenderGlyphField(scene->service, outlines[k], glyph,
+                                                     s_inputs.field, 4, &image, pixels, PIXELS);
             run->glyphs = Outcome(run->glyphs, result, &image, pixels, 1);
             (void)Returned(watch, true);
         }
-        muiResult result = muiRenderGlyphMultiField(scene->service, scene->fonts.sans, glyph, 28.0f,
-                                                    4, &image, pixels, PIXELS);
+        muiResult result = muiTextService_RenderGlyphMultiField(
+            scene->service, scene->fonts.sans, glyph, 28.0f, 4, &image, pixels, PIXELS);
         run->glyphs = Outcome(run->glyphs, result, &image, pixels, 4);
-        result = muiRenderColorGlyph(scene->service, scene->fonts.color, glyph, size, offset, 0,
-                                     ink, &image, pixels, PIXELS);
+        result = muiTextService_RenderColorGlyph(scene->service, scene->fonts.color, glyph, size,
+                                                 offset, 0, ink, &image, pixels, PIXELS);
         run->glyphs = Outcome(run->glyphs, result, &image, pixels, 4);
         (void)Returned(watch, true);
     }

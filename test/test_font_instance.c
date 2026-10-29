@@ -63,7 +63,7 @@ static Scene MakeScene(const unsigned char* data, size_t size, const char* text)
     font.size = size;
     font.dataMode = mui_fontDataBorrow;
     CHECK(muiCreateFont(scene.service, &font, &scene.font) == mui_success &&
-              muiSetDefaultFont(scene.service, scene.font) == mui_success,
+              muiTextService_SetDefaultFont(scene.service, scene.font) == mui_success,
           "the font");
     muiContextDef context = muiDefaultContextDef();
     CHECK(muiCreateContext(&context, &scene.context) == mui_success, "context");
@@ -102,7 +102,7 @@ static float Width(Scene* scene, float size, float weight, muiFontSlant slant)
           "style");
     const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &scene->host,
                                   0,       NULL,    {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(scene->context, scene->node, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(scene->context, scene->node, &input) == mui_success, "layout");
     return muiMeasureText(&scene->host, scene->node,
                           muiNode_GetHostKey(scene->context, scene->node),
                           (muiMeasureAxis){0.0f, mui_measureMaxContent},
@@ -114,9 +114,9 @@ static float Width(Scene* scene, float size, float weight, muiFontSlant slant)
 static uint64_t RunFont(Scene* scene)
 {
     const muiDrawInput input = {1, 1.0f, muiPaintText, &scene->host};
-    CHECK(muiBuildDrawList(scene->context, scene->node, &input) == mui_success, "paint");
+    CHECK(muiNode_BuildDrawList(scene->context, scene->node, &input) == mui_success, "paint");
     muiDrawList list;
-    CHECK(muiGetDrawList(scene->context, &list) == mui_success && list.commandCount == 1,
+    CHECK(muiContext_GetDrawList(scene->context, &list) == mui_success && list.commandCount == 1,
           "one run");
     return list.commands[0].glyphRun.font;
 }
@@ -128,8 +128,8 @@ static unsigned char s_pixels[128 * 128];
 static muiGlyphImage ImageAt(Scene* scene, uint64_t font, uint32_t glyph, float size)
 {
     muiGlyphImage image = {0, 0, 0, 0};
-    CHECK(muiRenderGlyph(scene->service, font, glyph, size, 0.0f, &image, s_pixels,
-                         sizeof s_pixels) == mui_success,
+    CHECK(muiTextService_RenderGlyph(scene->service, font, glyph, size, 0.0f, &image, s_pixels,
+                                     sizeof s_pixels) == mui_success,
           "image");
     return image;
 }
@@ -235,14 +235,14 @@ static void TestMarksSlanted(void)
     (void)Width(&scene, 20.0f, 400.0f, mui_slantNormal);
     const muiDrawInput input = {1, 1.0f, muiPaintText, &scene.host};
     muiDrawList list;
-    CHECK(muiBuildDrawList(scene.context, scene.node, &input) == mui_success &&
-              muiGetDrawList(scene.context, &list) == mui_success && list.glyphCount == 2,
+    CHECK(muiNode_BuildDrawList(scene.context, scene.node, &input) == mui_success &&
+              muiContext_GetDrawList(scene.context, &list) == mui_success && list.glyphCount == 2,
           "x and its mark");
     float upright = list.glyphs[1].x;
     float rise = list.glyphs[0].y - list.glyphs[1].y;
     (void)Width(&scene, 20.0f, 400.0f, mui_slantItalic);
-    CHECK(muiBuildDrawList(scene.context, scene.node, &input) == mui_success &&
-              muiGetDrawList(scene.context, &list) == mui_success && list.glyphCount == 2,
+    CHECK(muiNode_BuildDrawList(scene.context, scene.node, &input) == mui_success &&
+              muiContext_GetDrawList(scene.context, &list) == mui_success && list.glyphCount == 2,
           "slanted");
     CHECK(rise != 0.0f && fabsf(list.glyphs[1].x - upright - rise * 0.25f) <= 0.05f,
           "the mark moved along the slant");
@@ -280,8 +280,8 @@ static void TestSynthesis(void)
           "oblique as italic");
     static unsigned char field[64 * 64];
     muiGlyphImage fieldImage = {0, 0, 0, 0};
-    CHECK(muiRenderGlyphField(scene.service, boldKey, GLYPH_X, 10.0f, 2, &fieldImage, field,
-                              sizeof field) == mui_success &&
+    CHECK(muiTextService_RenderGlyphField(scene.service, boldKey, GLYPH_X, 10.0f, 2, &fieldImage,
+                                          field, sizeof field) == mui_success &&
               fieldImage.width == 15,
           "fields of a made bold");
     // The atlas keeps each instance apart.
@@ -290,12 +290,12 @@ static void TestSynthesis(void)
     CHECK(muiCreateGlyphAtlas(scene.service, &def, &atlas) == mui_success, "atlas");
     muiAtlasGlyph plain = {0};
     muiAtlasGlyph heavy = {0};
-    CHECK(
-        muiGlyphAtlas_Get(atlas, muiFont_GetKey(scene.font), GLYPH_X, 10.0f, 0.0f, 0.0f, &plain) ==
-                mui_success &&
-            muiGlyphAtlas_Get(atlas, boldKey, GLYPH_X, 10.0f, 0.0f, 0.0f, &heavy) == mui_success &&
-            plain.width == 10 && heavy.width == 11 && heavy.u != plain.u,
-        "instances apart in an atlas");
+    CHECK(muiGlyphAtlas_GetGlyph(atlas, muiFont_GetKey(scene.font), GLYPH_X, 10.0f, 0.0f, 0.0f,
+                                 &plain) == mui_success &&
+              muiGlyphAtlas_GetGlyph(atlas, boldKey, GLYPH_X, 10.0f, 0.0f, 0.0f, &heavy) ==
+                  mui_success &&
+              plain.width == 10 && heavy.width == 11 && heavy.u != plain.u,
+          "instances apart in an atlas");
     muiDestroyGlyphAtlas(atlas);
     FreeScene(&scene);
 }
@@ -339,11 +339,11 @@ static void TestKeys(void)
     uint64_t bold = RunFont(&scene);
     static unsigned char pixels[64 * 64];
     muiGlyphImage image = {0, 0, 0, 0};
-    CHECK(muiRenderGlyph(scene.service, bold | 1ull << 63, GLYPH_X, 10.0f, 0.0f, &image, pixels,
-                         sizeof pixels) == mui_errorStale,
+    CHECK(muiTextService_RenderGlyph(scene.service, bold | 1ull << 63, GLYPH_X, 10.0f, 0.0f, &image,
+                                     pixels, sizeof pixels) == mui_errorStale,
           "the top bit names no font");
-    CHECK(muiRenderGlyph(scene.service, bold & ~0xFFFFFFFFFFull, GLYPH_X, 10.0f, 0.0f, &image,
-                         pixels, sizeof pixels) == mui_errorStale,
+    CHECK(muiTextService_RenderGlyph(scene.service, bold & ~0xFFFFFFFFFFull, GLYPH_X, 10.0f, 0.0f,
+                                     &image, pixels, sizeof pixels) == mui_errorStale,
           "an instance alone names no font, not the default");
     muiFontDef font = muiDefaultFontDef();
     font.data = s_ahem;
@@ -351,13 +351,13 @@ static void TestKeys(void)
     muiFontId other = {0, 0};
     CHECK(muiCreateFont(scene.service, &font, &other) == mui_success, "another font");
     uint64_t otherBold = muiFont_GetKey(other) | (bold & ~0xFFFFFFFFFFull);
-    CHECK(muiRenderGlyph(scene.service, otherBold, GLYPH_X, 10.0f, 0.0f, &image, pixels,
-                         sizeof pixels) == mui_success &&
+    CHECK(muiTextService_RenderGlyph(scene.service, otherBold, GLYPH_X, 10.0f, 0.0f, &image, pixels,
+                                     sizeof pixels) == mui_success &&
               image.width == 11,
           "an instance's bits with another font");
     CHECK(muiDestroyFont(scene.service, other) == mui_success &&
-              muiRenderGlyph(scene.service, otherBold, GLYPH_X, 10.0f, 0.0f, &image, pixels,
-                             sizeof pixels) == mui_errorStale,
+              muiTextService_RenderGlyph(scene.service, otherBold, GLYPH_X, 10.0f, 0.0f, &image,
+                                         pixels, sizeof pixels) == mui_errorStale,
           "an instance of a font gone");
     FreeScene(&scene);
 }

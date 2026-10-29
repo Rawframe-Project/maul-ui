@@ -400,7 +400,7 @@ static void Update(void* user, SampleApp* app)
 {
     Picker* picker = user;
     muiNotification notification;
-    while (muiNextNotification(app->context, &notification) == mui_success)
+    while (muiContext_TakeNotification(app->context, &notification) == mui_success)
     {
     }
     picker->hue = ValueOf(app, picker->hueSlider.node);
@@ -435,7 +435,7 @@ static void Update(void* user, SampleApp* app)
                                          strlen(value)) == mui_success,
                    "the area's value");
     // The field shows the colour unless it is being edited.
-    if (!SampleSame(muiFocus_Get(app->context, 0), picker->hex))
+    if (!SampleSame(muiContext_GetFocus(app->context, 0), picker->hex))
     {
         char hex[8];
         snprintf(hex, sizeof hex, "#%02X%02X%02X", bytes[0], bytes[1], bytes[2]);
@@ -494,9 +494,9 @@ static void Build(void* user, SampleApp* app)
     SampleFill(app, picker->hex, s_field);
     Labelled(app, picker->hex, mui_roleTextInput, "Hex");
     SampleAppCheck(app,
-                   muiSetEventFunction(app->context, Hear, picker) == mui_success &&
-                       muiSetAccessTextFunction(app->context, muiReadAccessText, &app->host) ==
-                           mui_success,
+                   muiContext_SetEventFunction(app->context, Hear, picker) == mui_success &&
+                       muiContext_SetAccessTextFunction(app->context, muiReadAccessText,
+                                                        &app->host) == mui_success,
                    "the event and access text functions");
 }
 
@@ -524,7 +524,7 @@ static bool Holds(const SampleApp* app, muiTextBlockId block, const char* expect
 
 static const muiAccessNode* Found(const SampleApp* app, muiNodeId node)
 {
-    return muiAccessTree_Find(muiWindowAccess_GetTree(app->access), muiAccessIdOf(node));
+    return muiAccessTree_Find(muiWindowAccess_GetTree(app->access), muiNode_GetAccessId(node));
 }
 
 // Whether the swatch, the hex field, the area's thumb and its corners

@@ -128,7 +128,7 @@ extern "C"
     /// @return The count; 0 for a NULL service.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
-    MUI_API uint64_t muiGetTextServiceMisuse(const muiTextService* service);
+    MUI_API uint64_t muiTextService_GetMisuse(const muiTextService* service);
 
 #ifdef __cplusplus
 }

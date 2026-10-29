@@ -282,7 +282,7 @@ static MUI_NOINLINE muiResult SetScrollRuleWorker(muiContext* context, const mui
     return status;
 }
 
-muiResult muiSetScrollRule(muiContext* context, const muiScrollRule* rule)
+muiResult muiContext_SetScrollRule(muiContext* context, const muiScrollRule* rule)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = SetScrollRuleWorker(context, rule);

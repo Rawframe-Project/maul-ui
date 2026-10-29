@@ -167,7 +167,7 @@ static void LayOut(World* world)
 {
     const muiLayoutInput input = {
         400.0f, 300.0f, muiMeasureText, &world->host, 0, muiMeasureTextBaseline, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(world->context, world->root, &input) == mui_success, "laid out");
+    CHECK(muiNode_ComputeLayout(world->context, world->root, &input) == mui_success, "laid out");
 }
 
 // A context of a root, a text field and a labelled node, a service with
@@ -187,7 +187,8 @@ static void MakeWorld(World* world)
     world->ahem = Font(world, s_ahem, sizeof s_ahem);
     world->liberation = Font(world, s_liberationSans, sizeof s_liberationSans);
     world->color = Font(world, s_color, sizeof s_color);
-    CHECK(muiSetDefaultFont(world->service, world->ahem) == mui_success, "default font");
+    CHECK(muiTextService_SetDefaultFont(world->service, world->ahem) == mui_success,
+          "default font");
     muiTextBlockDef blockDef = muiDefaultTextBlockDef();
     blockDef.text = "ab cd";
     blockDef.length = 5;
@@ -244,9 +245,9 @@ static void FreeWorld(World* world)
 // counted a failure during it.
 static muiResult Counted(const World* world, uint64_t failures, bool answered)
 {
-    return muiGetTextServiceFailures(world->service) != failures ? mui_errorCapacity
-           : answered                                            ? mui_success
-                                                                 : mui_errorState;
+    return muiTextService_GetFailures(world->service) != failures ? mui_errorCapacity
+           : answered                                             ? mui_success
+                                                                  : mui_errorState;
 }
 
 typedef struct Step
@@ -287,7 +288,7 @@ static void Typed(World* world)
 
 static void Enabled(World* world)
 {
-    CHECK(muiAccess_Enable(world->context, world->root) == mui_success, "enabled");
+    CHECK(muiNode_EnableAccess(world->context, world->root, true) == mui_success, "enabled");
 }
 
 static muiResult CreateContext(World* world)
@@ -305,7 +306,7 @@ static muiResult SetAccessText(World* world)
 
 static muiResult Enable(World* world)
 {
-    return muiAccess_Enable(world->context, world->root);
+    return muiNode_EnableAccess(world->context, world->root, true);
 }
 
 static muiResult SetRelation(World* world)
@@ -328,7 +329,8 @@ static void Built(World* world)
     Enabled(world);
     Lengthen(world);
     LayOut(world);
-    CHECK(muiBuildAccessUpdate(world->context, world->root, &s_update) == mui_success, "built");
+    CHECK(muiNode_BuildAccessUpdate(world->context, world->root, &s_update) == mui_success,
+          "built");
 }
 
 // Applies the update built; the same update applied again after a
@@ -446,7 +448,7 @@ static muiResult SetComposition(World* world)
 
 static muiResult Measure(World* world)
 {
-    uint64_t failures = muiGetTextServiceFailures(world->service);
+    uint64_t failures = muiTextService_GetFailures(world->service);
     const muiMeasureAxis axis = {300.0f, mui_measureAtMost};
     muiSize size =
         muiMeasureText(&world->host, world->node, muiTextBlock_GetKey(world->block), axis, axis);
@@ -455,7 +457,7 @@ static muiResult Measure(World* world)
 
 static muiResult Baseline(World* world)
 {
-    uint64_t failures = muiGetTextServiceFailures(world->service);
+    uint64_t failures = muiTextService_GetFailures(world->service);
     float baseline = muiMeasureTextBaseline(&world->host, world->node,
                                             muiTextBlock_GetKey(world->block), 300.0f, 200.0f);
     return Counted(world, failures, !isnan(baseline));
@@ -465,7 +467,7 @@ static muiResult Layout(World* world)
 {
     const muiLayoutInput input = {
         400.0f, 300.0f, muiMeasureText, &world->host, 0, muiMeasureTextBaseline, {0, 0, 0, 0}};
-    muiResult status = muiComputeLayout(world->context, world->root, &input);
+    muiResult status = muiNode_ComputeLayout(world->context, world->root, &input);
     const muiRect rects[] = {muiNode_GetRect(world->context, world->node),
                              muiNode_GetRect(world->context, world->label)};
     world->output = MixRect(MixRect(0, rects[0]), rects[1]);
@@ -506,9 +508,9 @@ static void Aligned(World* world)
 static muiResult Draw(World* world)
 {
     const muiDrawInput input = {0, 1.0f, muiPaintText, &world->host};
-    muiResult status = muiBuildDrawList(world->context, world->root, &input);
+    muiResult status = muiNode_BuildDrawList(world->context, world->root, &input);
     muiDrawList list = {0};
-    if (muiGetDrawList(world->context, &list) == mui_success)
+    if (muiContext_GetDrawList(world->context, &list) == mui_success)
     {
         // Commands are zeroed before they are written, padding and all.
         const unsigned char* bytes = (const unsigned char*)list.commands;
@@ -524,7 +526,7 @@ static muiResult Draw(World* world)
 static muiResult HitTest(World* world)
 {
     muiTextPosition at = {0, mui_affinityDownstream};
-    muiResult status = muiTextHitTest(&world->host, world->node, 300.0f, 50.0f, 50.0f, &at);
+    muiResult status = muiNode_HitTestText(&world->host, world->node, 300.0f, 50.0f, 50.0f, &at);
     world->output = MixPosition(0, at);
     return status;
 }
@@ -532,8 +534,8 @@ static muiResult HitTest(World* world)
 static muiResult Caret(World* world)
 {
     muiTextCaret caret = {0};
-    muiResult status = muiTextGetCaret(&world->host, world->node, 300.0f,
-                                       (muiTextPosition){2000, mui_affinityDownstream}, &caret);
+    muiResult status = muiNode_GetTextCaret(
+        &world->host, world->node, 300.0f, (muiTextPosition){2000, mui_affinityDownstream}, &caret);
     world->output =
         Mix(Mix(Mix(Mix(0, Bits(caret.x)), Bits(caret.y)), Bits(caret.height)), caret.rightToLeft);
     return status;
@@ -544,7 +546,7 @@ static muiResult RangeRects(World* world)
     muiRect rects[64] = {0};
     uint32_t count = 0;
     muiResult status =
-        muiTextGetRangeRects(&world->host, world->node, 300.0f, 0, 30, rects, 64, &count);
+        muiNode_GetTextRangeRects(&world->host, world->node, 300.0f, 0, 30, rects, 64, &count);
     world->output = Mix(0, count);
     for (uint32_t i = 0; i < 64; i++)
     {
@@ -556,26 +558,26 @@ static muiResult RangeRects(World* world)
 static muiResult Move(World* world)
 {
     muiTextPosition at = {0, mui_affinityDownstream};
-    muiResult status =
-        muiTextMove(&world->host, world->node, 300.0f,
-                    (muiTextPosition){1000, mui_affinityDownstream}, mui_moveLineDown, 0.0f, &at);
+    muiResult status = muiNode_MoveTextPosition(&world->host, world->node, 300.0f,
+                                                (muiTextPosition){1000, mui_affinityDownstream},
+                                                mui_moveLineDown, 0.0f, &at);
     world->output = MixPosition(0, at);
     return status;
 }
 
 static muiResult EditMove(World* world)
 {
-    return muiTextEditMove(&world->host, world->node, mui_moveLeft, false);
+    return muiNode_MoveEditCaret(&world->host, world->node, mui_moveLeft, false);
 }
 
 static muiResult EditPress(World* world)
 {
-    return muiTextEditPress(&world->host, world->node, 50.0f, 50.0f, 2, false);
+    return muiNode_HandleEditPress(&world->host, world->node, 50.0f, 50.0f, 2, false);
 }
 
 static muiResult EditDrag(World* world)
 {
-    CHECK(muiTextEditPress(&world->host, world->node, 5.0f, 5.0f, 1, false) == mui_success,
+    CHECK(muiNode_HandleEditPress(&world->host, world->node, 5.0f, 5.0f, 1, false) == mui_success,
           "pressed");
     return mui_success;
 }
@@ -589,7 +591,7 @@ static void Pressed(World* world)
 
 static muiResult Drag(World* world)
 {
-    return muiTextEditDrag(&world->host, world->node, 80.0f, 80.0f);
+    return muiNode_HandleEditDrag(&world->host, world->node, 80.0f, 80.0f);
 }
 
 static muiResult EditEvent(World* world)
@@ -600,47 +602,48 @@ static muiResult EditEvent(World* world)
     event.length = 1;
     const muiTextEditInput input = {mui_keymapPc, NULL, NULL};
     muiTextEditOutcome outcome;
-    return muiTextEditEvent(&world->host, world->node, &event, &input, &outcome);
+    return muiNode_HandleEditEvent(&world->host, world->node, &event, &input, &outcome);
 }
 
 static muiResult AccessAction(World* world)
 {
     const muiAccessRequest request = {.action = mui_actionReplaceText,
-                                      .target = muiAccessIdOf(world->node),
+                                      .target = muiNode_GetAccessId(world->node),
                                       .focus = 2,
                                       .text = s_long,
                                       .length = 800};
     muiTextEditOutcome outcome;
-    return muiTextPerformAccessAction(&world->host, &request, &outcome);
+    return muiPerformTextAccessAction(&world->host, &request, &outcome);
 }
 
 static muiResult Render(World* world)
 {
     muiGlyphImage image;
-    return muiRenderGlyph(world->service, muiFont_GetKey(world->liberation), 36, 40.0f, 0.25f,
-                          &image, world->pixels, sizeof world->pixels);
+    return muiTextService_RenderGlyph(world->service, muiFont_GetKey(world->liberation), 36, 40.0f,
+                                      0.25f, &image, world->pixels, sizeof world->pixels);
 }
 
 static muiResult RenderColor(World* world)
 {
     muiGlyphImage image;
-    return muiRenderColorGlyph(world->service, muiFont_GetKey(world->color), 1, 40.0f, 0.0f, 0,
-                               (muiLinearColor){1.0f, 1.0f, 1.0f, 1.0f}, &image, world->pixels,
-                               sizeof world->pixels);
+    return muiTextService_RenderColorGlyph(world->service, muiFont_GetKey(world->color), 1, 40.0f,
+                                           0.0f, 0, (muiLinearColor){1.0f, 1.0f, 1.0f, 1.0f},
+                                           &image, world->pixels, sizeof world->pixels);
 }
 
 static muiResult RenderField(World* world)
 {
     muiGlyphImage image;
-    return muiRenderGlyphField(world->service, muiFont_GetKey(world->liberation), 36, 30.0f, 4,
-                               &image, world->pixels, sizeof world->pixels);
+    return muiTextService_RenderGlyphField(world->service, muiFont_GetKey(world->liberation), 36,
+                                           30.0f, 4, &image, world->pixels, sizeof world->pixels);
 }
 
 static muiResult RenderMultiField(World* world)
 {
     muiGlyphImage image;
-    return muiRenderGlyphMultiField(world->service, muiFont_GetKey(world->liberation), 36, 30.0f, 4,
-                                    &image, world->pixels, sizeof world->pixels);
+    return muiTextService_RenderGlyphMultiField(world->service, muiFont_GetKey(world->liberation),
+                                                36, 30.0f, 4, &image, world->pixels,
+                                                sizeof world->pixels);
 }
 
 static muiResult CreateAtlas(World* world)
@@ -652,35 +655,36 @@ static muiResult CreateAtlas(World* world)
 static muiResult AtlasGet(World* world)
 {
     muiAtlasGlyph glyph;
-    return muiGlyphAtlas_Get(world->atlas, muiFont_GetKey(world->liberation), 36, 40.0f, 0.0f, 0.0f,
-                             &glyph);
+    return muiGlyphAtlas_GetGlyph(world->atlas, muiFont_GetKey(world->liberation), 36, 40.0f, 0.0f,
+                                  0.0f, &glyph);
 }
 
 static muiResult AtlasGetColor(World* world)
 {
     muiAtlasGlyph glyph;
-    return muiGlyphAtlas_GetColor(world->colorAtlas, muiFont_GetKey(world->color), 1, 40.0f, 0.0f,
-                                  0.0f, 0, (muiLinearColor){1.0f, 1.0f, 1.0f, 1.0f}, &glyph);
+    return muiGlyphAtlas_GetColorGlyph(world->colorAtlas, muiFont_GetKey(world->color), 1, 40.0f,
+                                       0.0f, 0.0f, 0, (muiLinearColor){1.0f, 1.0f, 1.0f, 1.0f},
+                                       &glyph);
 }
 
 static muiResult AtlasGetField(World* world)
 {
     muiAtlasGlyph glyph;
-    return muiGlyphAtlas_GetField(world->atlas, muiFont_GetKey(world->liberation), 36, 30.0f, 4,
-                                  &glyph);
+    return muiGlyphAtlas_GetGlyphField(world->atlas, muiFont_GetKey(world->liberation), 36, 30.0f,
+                                       4, &glyph);
 }
 
 static muiResult AtlasGetMultiField(World* world)
 {
     muiAtlasGlyph glyph;
-    return muiGlyphAtlas_GetMultiField(world->fieldAtlas, muiFont_GetKey(world->liberation), 36,
-                                       30.0f, 4, &glyph);
+    return muiGlyphAtlas_GetGlyphMultiField(world->fieldAtlas, muiFont_GetKey(world->liberation),
+                                            36, 30.0f, 4, &glyph);
 }
 
 static const Step s_steps[] = {
     {"muiCreateContext", NULL, CreateContext, false},
     {"muiNode_SetAccessText", NULL, SetAccessText, false},
-    {"muiAccess_Enable", NULL, Enable, false},
+    {"muiNode_EnableAccess", NULL, Enable, false},
     {"muiNode_SetAccessRelation", Enabled, SetRelation, false},
     {"muiCreateAccessTree", NULL, CreateTree, false},
     {"muiAccessTree_Apply", Built, Apply, false},
@@ -700,32 +704,32 @@ static const Step s_steps[] = {
     {"muiTextBlock_SetComposition", NULL, SetComposition, false},
     {"muiMeasureText", Lengthen, Measure, false},
     {"muiMeasureTextBaseline", Lengthen, Baseline, false},
-    {"muiComputeLayout", Shrunk, Layout, true},
-    {"muiComputeLayout by baselines", Aligned, Layout, true},
-    {"muiBuildDrawList", Lengthen, Draw, true},
-    {"muiBuildDrawList scrolled", Scrolled, Draw, true},
-    {"muiTextHitTest", Lengthen, HitTest, false},
-    {"muiTextGetCaret", Lengthen, Caret, false},
-    {"muiTextGetRangeRects", Lengthen, RangeRects, false},
-    {"muiTextMove", Lengthen, Move, false},
-    {"muiTextHitTest scrolled", Scrolled, HitTest, false},
-    {"muiTextGetCaret scrolled", Scrolled, Caret, false},
-    {"muiTextGetRangeRects scrolled", Scrolled, RangeRects, false},
-    {"muiTextMove scrolled", Scrolled, Move, false},
-    {"muiTextEditMove", Lengthen, EditMove, false},
-    {"muiTextEditPress", Lengthen, EditPress, false},
-    {"muiTextEditDrag", Pressed, Drag, false},
-    {"muiTextEditEvent", Lengthen, EditEvent, false},
-    {"muiTextPerformAccessAction", Lengthen, AccessAction, false},
-    {"muiRenderGlyph", NULL, Render, false},
-    {"muiRenderColorGlyph", NULL, RenderColor, false},
-    {"muiRenderGlyphField", NULL, RenderField, false},
-    {"muiRenderGlyphMultiField", NULL, RenderMultiField, false},
+    {"muiNode_ComputeLayout", Shrunk, Layout, true},
+    {"muiNode_ComputeLayout by baselines", Aligned, Layout, true},
+    {"muiNode_BuildDrawList", Lengthen, Draw, true},
+    {"muiNode_BuildDrawList scrolled", Scrolled, Draw, true},
+    {"muiNode_HitTestText", Lengthen, HitTest, false},
+    {"muiNode_GetTextCaret", Lengthen, Caret, false},
+    {"muiNode_GetTextRangeRects", Lengthen, RangeRects, false},
+    {"muiNode_MoveTextPosition", Lengthen, Move, false},
+    {"muiNode_HitTestText scrolled", Scrolled, HitTest, false},
+    {"muiNode_GetTextCaret scrolled", Scrolled, Caret, false},
+    {"muiNode_GetTextRangeRects scrolled", Scrolled, RangeRects, false},
+    {"muiNode_MoveTextPosition scrolled", Scrolled, Move, false},
+    {"muiNode_MoveEditCaret", Lengthen, EditMove, false},
+    {"muiNode_HandleEditPress", Lengthen, EditPress, false},
+    {"muiNode_HandleEditDrag", Pressed, Drag, false},
+    {"muiNode_HandleEditEvent", Lengthen, EditEvent, false},
+    {"muiPerformTextAccessAction", Lengthen, AccessAction, false},
+    {"muiTextService_RenderGlyph", NULL, Render, false},
+    {"muiTextService_RenderColorGlyph", NULL, RenderColor, false},
+    {"muiTextService_RenderGlyphField", NULL, RenderField, false},
+    {"muiTextService_RenderGlyphMultiField", NULL, RenderMultiField, false},
     {"muiCreateGlyphAtlas", NULL, CreateAtlas, false},
-    {"muiGlyphAtlas_Get", NULL, AtlasGet, false},
-    {"muiGlyphAtlas_GetColor", NULL, AtlasGetColor, false},
-    {"muiGlyphAtlas_GetField", NULL, AtlasGetField, false},
-    {"muiGlyphAtlas_GetMultiField", NULL, AtlasGetMultiField, false},
+    {"muiGlyphAtlas_GetGlyph", NULL, AtlasGet, false},
+    {"muiGlyphAtlas_GetColorGlyph", NULL, AtlasGetColor, false},
+    {"muiGlyphAtlas_GetGlyphField", NULL, AtlasGetField, false},
+    {"muiGlyphAtlas_GetGlyphMultiField", NULL, AtlasGetMultiField, false},
 };
 
 // What the step could change: the block's text and selection.
