@@ -62,8 +62,8 @@ static muiResult Draw(const Scene* scene, uint32_t glyph, float size, float offs
                       muiGlyphImage* image)
 {
     const muiLinearColor green = {0.0f, 1.0f, 0.0f, 1.0f};
-    return muiRenderColorGlyph(scene->service, scene->font, glyph, size, offset, 0, green, image,
-                               s_pixels, sizeof s_pixels);
+    return muiTextService_RenderColorGlyph(scene->service, scene->font, glyph, size, offset, 0,
+                                           green, image, s_pixels, sizeof s_pixels);
 }
 
 // Whether a glyph draws at a size into this box, left and top, width and
@@ -115,8 +115,8 @@ static void TestFormats(void)
     // Red at half alpha: linear red 0.502 premultiplied, 188 encoded.
     CHECK(BoxIs(&scene, 15, 10.0f, 0.0f, 0, 2, 2, 2, &image) && Is(&image, 0, 0, 188, 0, 0, 128),
           "straight alpha made premultiplied");
-    CHECK(muiRenderGlyph(scene.service, scene.font, 1, 10.0f, 0.0f, &image, s_pixels,
-                         sizeof s_pixels) == mui_success &&
+    CHECK(muiTextService_RenderGlyph(scene.service, scene.font, 1, 10.0f, 0.0f, &image, s_pixels,
+                                     sizeof s_pixels) == mui_success &&
               image.width == 0,
           "no coverage in a font without outlines");
     muiDestroyTextService(scene.service);
@@ -178,8 +178,8 @@ static void TestSbix(void)
           "an outline's box a fraction of a pixel in");
     // FreeType would take the font for one of bitmaps alone; its outlines
     // still draw as coverage, 1 to 5 across and -1 to 3 up.
-    CHECK(muiRenderGlyph(scene.service, scene.font, 1, 10.0f, 0.0f, &image, s_pixels,
-                         sizeof s_pixels) == mui_success &&
+    CHECK(muiTextService_RenderGlyph(scene.service, scene.font, 1, 10.0f, 0.0f, &image, s_pixels,
+                                     sizeof s_pixels) == mui_success &&
               image.left == 1 && image.top == 3 && image.width == 4 && image.height == 4,
           "an sbix font's outlines as coverage");
     muiDestroyTextService(scene.service);

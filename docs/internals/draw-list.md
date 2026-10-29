@@ -17,7 +17,7 @@ Clay's command array clips with a scissor stack, so a renderer flushes at every 
 
 ## The list
 
-`muiBuildDrawList` paints a root's subtree, as its last layout left it, into the context's list, which `muiGetDrawList` shows until the next build ([draw.c](../../src/draw.c)). The list has:
+`muiNode_BuildDrawList` paints a root's subtree, as its last layout left it, into the context's list, which `muiContext_GetDrawList` shows until the next build ([draw.c](../../src/draw.c)). The list has:
 
 - a header: the root's logical size, the scale, the host's surface key, and a generation that counts builds;
 - a clip table, a gradient table and a glyph table;

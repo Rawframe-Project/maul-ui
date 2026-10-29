@@ -362,8 +362,8 @@ static MUI_NOINLINE muiResult TextEditEventWorker(const muiTextHost* host, muiNo
     return status;
 }
 
-muiResult muiTextEditEvent(const muiTextHost* host, muiNodeId nodeId, const muiEvent* event,
-                           const muiTextEditInput* input, muiTextEditOutcome* outcomeOut)
+muiResult muiNode_HandleEditEvent(const muiTextHost* host, muiNodeId nodeId, const muiEvent* event,
+                                  const muiTextEditInput* input, muiTextEditOutcome* outcomeOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = TextEditEventWorker(host, nodeId, event, input, outcomeOut);

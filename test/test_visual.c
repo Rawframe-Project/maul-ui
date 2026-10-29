@@ -79,7 +79,7 @@ static muiStyleId MakeStyle(muiContext* context)
 static void Layout(muiContext* context, muiNodeId node, uint64_t timeNs)
 {
     const muiLayoutInput input = {400.0f, 300.0f, Measure, NULL, timeNs, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, node, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, node, &input) == mui_success, "layout");
 }
 
 static muiVisualStyle Read(const muiContext* context, muiNodeId node)
@@ -94,16 +94,16 @@ static muiVisualStyle Read(const muiContext* context, muiNodeId node)
 static bool Repaints(muiContext* context, muiNodeId root)
 {
     const muiDrawInput input = {1, 1.0f, NULL, NULL};
-    uint64_t painted = muiGetWorkCounts(context).painted;
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success, "drawn");
-    return muiGetWorkCounts(context).painted > painted;
+    uint64_t painted = muiContext_GetWorkCounts(context).painted;
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success, "drawn");
+    return muiContext_GetWorkCounts(context).painted > painted;
 }
 
 // Drawing clears paint marks, and records the rectangles painted.
 static void ClearPaint(muiContext* context, muiNodeId root)
 {
     const muiDrawInput input = {1, 1.0f, NULL, NULL};
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success, "drawn");
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success, "drawn");
 }
 
 static bool SameColor(muiColor a, muiColor b)
@@ -170,7 +170,7 @@ static void TestClassValuesMarkPaintOnly(void)
     ClearPaint(context, node);
 
     SetBackground(context, style, mui_variantBase, s_red);
-    CHECK(muiIsUpdatePending(context, node), "a class edit restyles");
+    CHECK(muiNode_IsUpdatePending(context, node), "a class edit restyles");
     Layout(context, node, T0);
     CHECK(SameColor(Read(context, node).background, s_red), "the class's background");
     CHECK(Repaints(context, node), "paint marked");
@@ -448,7 +448,7 @@ static void TestDirectWrites(void)
     CHECK(muiNode_SetVisualValues(context, node, &values, BACKGROUND) == mui_success, "direct");
     CHECK(SameColor(Read(context, node).background, s_blue) && Repaints(context, node),
           "at once, marking paint");
-    CHECK(!muiIsUpdatePending(context, node), "nothing to lay out");
+    CHECK(!muiNode_IsUpdatePending(context, node), "nothing to lay out");
     Layout(context, node, T0);
     CHECK(SameColor(Read(context, node).background, s_blue), "over the class");
     CHECK(s_measured == measured, "not laid out again");
@@ -538,9 +538,9 @@ static void TestTransitions(void)
               muiNode_IsTransitioning(context, node, mui_propertyBackground),
           "which move");
     CHECK(Repaints(context, node) && s_measured == measured, "moving marks paint only");
-    CHECK(muiIsUpdatePending(context, node), "pending while moving");
+    CHECK(muiNode_IsUpdatePending(context, node), "pending while moving");
     Layout(context, node, T0 + 100 * MS);
-    CHECK(Read(context, node).opacity == 0.0f && !muiIsUpdatePending(context, node), "done");
+    CHECK(Read(context, node).opacity == 0.0f && !muiNode_IsUpdatePending(context, node), "done");
     CHECK(SameColor(Read(context, node).background, s_blue), "exactly on the target");
     muiDestroyContext(context);
 }
@@ -769,7 +769,7 @@ static void TestDrawingClearsPaint(void)
     CHECK(muiNode_SetVisualValues(context, node, &values, BACKGROUND) == mui_success, "red");
     CHECK(Repaints(context, node), "paint marked");
     const muiDrawInput input = {1, 1.0f, NULL, NULL};
-    CHECK(muiBuildDrawList(context, node, &input) == mui_success, "drawn");
+    CHECK(muiNode_BuildDrawList(context, node, &input) == mui_success, "drawn");
     CHECK(!Repaints(context, node), "and cleared");
     muiDestroyContext(context);
 }

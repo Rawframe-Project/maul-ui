@@ -58,7 +58,7 @@ static muiNodeId Place(muiContext* context, muiNodeId parent, float x, float y, 
 static void Layout(muiContext* context, muiNodeId root)
 {
     const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
 }
 
 static muiContext* MakeContext(uint32_t pointers, uint32_t records)
@@ -81,7 +81,7 @@ static muiResult Send(muiContext* context, muiNodeId root, uint32_t pointer, mui
                       float y, uint64_t timeNs)
 {
     const muiPointerEvent event = {timeNs, pointer, kind, action, button, buttons, x, y, 0};
-    return muiPointerInput(context, root, &event);
+    return muiNode_RoutePointer(context, root, &event);
 }
 
 // A mouse event of pointer 1.
@@ -99,7 +99,7 @@ static bool Next(muiContext* context, muiPointerRecordKind kind, muiNodeId node,
                  uint8_t button, uint32_t clickCount)
 {
     muiPointerRecord record = {0};
-    return muiNextPointerRecord(context, &record) == mui_success && record.kind == kind &&
+    return muiContext_TakePointerRecord(context, &record) == mui_success && record.kind == kind &&
            Same(record.node, node) && record.x == x && record.y == y && record.button == button &&
            record.clickCount == clickCount;
 }
@@ -107,7 +107,7 @@ static bool Next(muiContext* context, muiPointerRecordKind kind, muiNodeId node,
 static bool Drained(muiContext* context)
 {
     muiPointerRecord record = {0};
-    return muiNextPointerRecord(context, &record) == mui_empty;
+    return muiContext_TakePointerRecord(context, &record) == mui_empty;
 }
 
 static bool IsHovered(const muiContext* context, muiNodeId node)
@@ -228,7 +228,7 @@ static void TestClicks(void)
     muiPointerRecord record = {0};
     CHECK(Next(context, mui_pointerRecordPress, s.b, 5.0f, 5.0f, mui_buttonPrimary, 1) &&
               Next(context, mui_pointerRecordRelease, s.c, 5.0f, 5.0f, mui_buttonPrimary, 1) &&
-              muiNextPointerRecord(context, &record) == mui_success &&
+              muiContext_TakePointerRecord(context, &record) == mui_success &&
               record.kind == mui_pointerRecordClick && Same(record.node, s.a) &&
               record.x == 55.0f && record.y == 15.0f && !record.passThrough && Drained(context),
           "a click on the common ancestor, blocking");
@@ -236,7 +236,7 @@ static void TestClicks(void)
     Mouse(context, s.root, mui_pointerPress, mui_buttonPrimary, primary, 25.0f, 25.0f, 2000 * s_ms);
     Mouse(context, s.root, mui_pointerRelease, mui_buttonPrimary, 0, 500.0f, 500.0f, 2001 * s_ms);
     CHECK(Next(context, mui_pointerRecordPress, s.b, 5.0f, 5.0f, mui_buttonPrimary, 1) &&
-              muiNextPointerRecord(context, &record) == mui_success &&
+              muiContext_TakePointerRecord(context, &record) == mui_success &&
               record.kind == mui_pointerRecordRelease && record.node.index1 == 0 &&
               record.passThrough && record.x == 500.0f && Drained(context),
           "released over nothing: passes through, no click");
@@ -268,7 +268,7 @@ static uint32_t ClickAt(muiContext* context, muiNodeId root, uint8_t button, flo
     Mouse(context, root, mui_pointerRelease, button, 0, x, y, timeNs + s_ms);
     muiPointerRecord record = {0};
     uint32_t count = 0;
-    while (muiNextPointerRecord(context, &record) == mui_success)
+    while (muiContext_TakePointerRecord(context, &record) == mui_success)
     {
         count = record.kind == mui_pointerRecordPress ? record.clickCount : count;
     }
@@ -287,7 +287,7 @@ static void TestClickCount(void)
                    100 * s_ms) == mui_success &&
               Next(context, mui_pointerRecordCancel, s.root, 1.0f, 1.0f, 0, 0),
           "a touch after a mouse starts again");
-    while (muiNextPointerRecord(context, &(muiPointerRecord){0}) == mui_success)
+    while (muiContext_TakePointerRecord(context, &(muiPointerRecord){0}) == mui_success)
     {
     }
     CHECK(ClickAt(context, s.root, 0, 25.0f, 25.0f, 10000 * s_ms) == 1 &&
@@ -300,7 +300,7 @@ static void TestClickCount(void)
               ClickAt(context, s.root, 1, 30.0f, 25.5f, 11800 * s_ms) == 1 &&
               ClickAt(context, s.root, 1, 30.0f, 25.5f, 11700 * s_ms) == 1,
           "too far on either axis, another button, or back in time");
-    CHECK(muiSetClickRule(context, 100 * s_ms, 10.0f) == mui_success &&
+    CHECK(muiContext_SetClickRule(context, 100 * s_ms, 10.0f) == mui_success &&
               ClickAt(context, s.root, 0, 25.0f, 25.0f, 5000 * s_ms) == 1 &&
               ClickAt(context, s.root, 0, 35.0f, 15.0f, 5100 * s_ms) == 2 &&
               ClickAt(context, s.root, 0, 35.0f, 15.0f, 5201 * s_ms) == 1,
@@ -396,7 +396,8 @@ static void TestCapture(void)
     CHECK(muiPointer_SetCapture(context, 1, s.c) == mui_success, "captured");
     Mouse(context, s.root, mui_pointerRelease, mui_buttonPrimary, 0, 500.0f, 5.0f, 2001 * s_ms);
     muiPointerRecord record = {0};
-    CHECK(muiNextPointerRecord(context, &record) == mui_success && record.node.index1 == 0 &&
+    CHECK(muiContext_TakePointerRecord(context, &record) == mui_success &&
+              record.node.index1 == 0 &&
               Next(context, mui_pointerRecordRelease, s.c, 440.0f, -15.0f, 0, 1) &&
               Next(context, mui_pointerRecordClick, s.c, 440.0f, -15.0f, 0, 1),
           "a click on the capture target");
@@ -487,7 +488,7 @@ static void TestEdits(void)
               muiNode_InsertChild(context, s.d, s.a, s_nullNode) == mui_success &&
               muiPointer_GetState(context, 1, &moved) == mui_success && Same(moved.captured, s.b),
           "moved, still captured");
-    while (muiNextPointerRecord(context, &(muiPointerRecord){0}) == mui_success)
+    while (muiContext_TakePointerRecord(context, &(muiPointerRecord){0}) == mui_success)
     {
     }
     // b destroyed: its chain is let go, its capture lost, nothing clicked.
@@ -544,7 +545,7 @@ static void TestModal(void)
     Layout(context, s.root);
     Mouse(context, s.root, mui_pointerPress, 0, 1, 25.0f, 25.0f, 0);
     muiPointerRecord record = {0};
-    CHECK(muiNextPointerRecord(context, &record) == mui_success && Same(record.node, m) &&
+    CHECK(muiContext_TakePointerRecord(context, &record) == mui_success && Same(record.node, m) &&
               !record.passThrough && record.x == -95.0f && IsPressed(context, m) &&
               !IsPressed(context, s.b) && !IsHovered(context, s.b),
           "blocked by the modal layer");
@@ -562,7 +563,7 @@ static void TestRing(void)
     muiPointerRecord record = {0};
     CHECK(Next(context, mui_pointerRecordPress, s.b, 5.0f, 5.0f, 0, 2) &&
               Next(context, mui_pointerRecordRelease, s.b, 5.0f, 5.0f, 0, 2) &&
-              muiNextPointerRecord(context, &record) == mui_success &&
+              muiContext_TakePointerRecord(context, &record) == mui_success &&
               record.kind == mui_pointerRecordDropped && record.dropped == 1 &&
               record.clickCount == 0 && record.node.index1 == 0 && Drained(context),
           "dropped, counted");
@@ -572,11 +573,11 @@ static void TestRing(void)
     CHECK(Next(context, mui_pointerRecordPress, s.b, 5.0f, 5.0f, 0, 1), "one taken");
     Mouse(context, s.root, mui_pointerPress, 0, 1, 25.0f, 25.0f, 4000 * s_ms);
     CHECK(Next(context, mui_pointerRecordRelease, s.b, 5.0f, 5.0f, 0, 1) &&
-              muiNextPointerRecord(context, &record) == mui_success &&
+              muiContext_TakePointerRecord(context, &record) == mui_success &&
               record.kind == mui_pointerRecordDropped && record.dropped == 2 && Drained(context),
           "kept in place");
     Mouse(context, s.root, mui_pointerRelease, 0, 0, 25.0f, 25.0f, 4001 * s_ms);
-    while (muiNextPointerRecord(context, &record) == mui_success)
+    while (muiContext_TakePointerRecord(context, &record) == mui_success)
     {
     }
     // One pointer at a time.
@@ -594,7 +595,7 @@ static void TestRing(void)
     s = MakeScene(1, 0);
     Mouse(s.context, s.root, mui_pointerPress, 0, 1, 25.0f, 25.0f, 0);
     Mouse(s.context, s.root, mui_pointerRelease, 0, 0, 25.0f, 25.0f, 1);
-    CHECK(muiNextPointerRecord(s.context, &record) == mui_success &&
+    CHECK(muiContext_TakePointerRecord(s.context, &record) == mui_success &&
               record.kind == mui_pointerRecordDropped && record.dropped == 3,
           "all dropped");
     muiDestroyContext(s.context);
@@ -738,7 +739,7 @@ static void TestRandom(void)
             }
             agree = StatesAgree(context, nodes, 12);
             muiPointerRecord record = {0};
-            while (muiNextPointerRecord(context, &record) == mui_success)
+            while (muiContext_TakePointerRecord(context, &record) == mui_success)
             {
                 agree = agree && (record.kind == mui_pointerRecordDropped ||
                                   record.kind == mui_pointerRecordCaptureLost ||
@@ -761,30 +762,30 @@ static void TestContract(void)
     bad[2].button = 8;
     bad[3].x = NAN;
     bad[4].y = INFINITY;
-    uint64_t misuse = muiGetContextMisuse(context);
+    uint64_t misuse = muiContext_GetMisuse(context);
     bool refused = true;
     for (int i = 0; i < 5; i++)
     {
-        refused = refused && muiPointerInput(context, s.root, &bad[i]) == mui_errorInvalid;
+        refused = refused && muiNode_RoutePointer(context, s.root, &bad[i]) == mui_errorInvalid;
     }
-    CHECK(refused && muiPointerInput(NULL, s.root, &good) == mui_errorInvalid &&
-              muiPointerInput(context, s.root, NULL) == mui_errorInvalid &&
-              muiPointerInput(context, s_nullNode, &good) == mui_errorInvalid &&
-              muiGetContextMisuse(context) == misuse + 7,
+    CHECK(refused && muiNode_RoutePointer(NULL, s.root, &good) == mui_errorInvalid &&
+              muiNode_RoutePointer(context, s.root, NULL) == mui_errorInvalid &&
+              muiNode_RoutePointer(context, s_nullNode, &good) == mui_errorInvalid &&
+              muiContext_GetMisuse(context) == misuse + 7,
           "events outside the contract");
     muiPointerState state = {0};
     CHECK(muiPointer_GetState(context, 1, &state) == mui_empty && Drained(context),
           "nothing changed");
     muiPointerRecord record = {0};
-    CHECK(muiNextPointerRecord(NULL, &record) == mui_errorInvalid &&
-              muiNextPointerRecord(context, NULL) == mui_errorInvalid &&
+    CHECK(muiContext_TakePointerRecord(NULL, &record) == mui_errorInvalid &&
+              muiContext_TakePointerRecord(context, NULL) == mui_errorInvalid &&
               muiPointer_GetState(NULL, 1, &state) == mui_errorInvalid &&
               muiPointer_GetState(context, 1, NULL) == mui_errorInvalid,
           "reads outside the contract");
-    CHECK(muiSetClickRule(NULL, 1, 1.0f) == mui_errorInvalid &&
-              muiSetClickRule(context, 1, -1.0f) == mui_errorInvalid &&
-              muiSetClickRule(context, 1, NAN) == mui_errorInvalid &&
-              muiSetClickRule(context, 0, 0.0f) == mui_success,
+    CHECK(muiContext_SetClickRule(NULL, 1, 1.0f) == mui_errorInvalid &&
+              muiContext_SetClickRule(context, 1, -1.0f) == mui_errorInvalid &&
+              muiContext_SetClickRule(context, 1, NAN) == mui_errorInvalid &&
+              muiContext_SetClickRule(context, 0, 0.0f) == mui_success,
           "click rules");
     CHECK(muiPointer_SetCapture(NULL, 1, s.a) == mui_errorInvalid &&
               muiPointer_SetCapture(context, 1, s.a) == mui_errorInvalid &&
@@ -796,7 +797,7 @@ static void TestContract(void)
     CHECK(muiDestroyNode(context, gone) == mui_success &&
               muiPointer_SetCapture(context, 1, s_nullNode) == mui_errorInvalid &&
               muiPointer_SetCapture(context, 1, gone) == mui_errorStale &&
-              muiPointerInput(context, gone, &good) == mui_errorStale,
+              muiNode_RoutePointer(context, gone, &good) == mui_errorStale,
           "a node gone");
     muiDestroyContext(context);
     muiContextDef def = muiDefaultContextDef();

@@ -241,7 +241,7 @@ extern "C"
     } muiGlyphRun;
 
     // Paints a node's host content into sink: called during
-    // muiBuildDrawList for each node whose content is the host's, with its
+    // muiNode_BuildDrawList for each node whose content is the host's, with its
     // host key and its content box's size. It may read the context, such
     // as muiNode_GetTextStyle; a function that changes it answers
     // mui_errorBusy and counts one misuse.
@@ -303,7 +303,7 @@ extern "C"
                                                         muiColor color);
 
     /// Tells the build that the paint function could not paint all it had
-    /// to, as when memory ran out: muiBuildDrawList keeps what it added
+    /// to, as when memory ran out: muiNode_BuildDrawList keeps what it added
     /// and answers mui_errorCapacity, and the next build paints the node
     /// again rather than copying it.
     ///
@@ -337,7 +337,7 @@ extern "C"
     /// only during the call of the paint function given it.
     MUI_NODISCARD MUI_API muiResult muiDrawSink_GetVisibleRect(muiDrawSink* sink, muiRect* rectOut);
 
-    /// Paints a root's subtree, as its last muiComputeLayout left it, into
+    /// Paints a root's subtree, as its last muiNode_ComputeLayout left it, into
     /// the context's list, and clears the subtree's paint requests. When
     /// nothing below the root asked for paint since the last build of the
     /// same root, surface and scale, the list stays as it is, generation
@@ -363,8 +363,8 @@ extern "C"
     ///         list and paints that node again in the next build.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId,
-                                                     const muiDrawInput* input);
+    MUI_NODISCARD MUI_API muiResult muiNode_BuildDrawList(muiContext* context, muiNodeId rootId,
+                                                          const muiDrawInput* input);
 
     /// Shows the context's last list.
     ///
@@ -374,7 +374,8 @@ extern "C"
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiGetDrawList(const muiContext* context, muiDrawList* listOut);
+    MUI_NODISCARD MUI_API muiResult muiContext_GetDrawList(const muiContext* context,
+                                                           muiDrawList* listOut);
 
 #ifdef __cplusplus
 }

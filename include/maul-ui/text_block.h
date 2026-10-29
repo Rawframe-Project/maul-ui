@@ -115,7 +115,7 @@ extern "C"
     /// Replaces the bytes of a block's text from start up to end with a
     /// text, as editing does; its nodes are measured and painted anew
     /// once marked changed. Offsets inside a UTF-8 sequence leave bytes
-    /// that read as U+FFFD; muiTextBlock_FindDeletion and muiTextMove give
+    /// that read as U+FFFD; muiTextBlock_FindDeletion and muiNode_MoveTextPosition give
     /// offsets on grapheme cluster boundaries.
     ///
     /// @param service  The service.
@@ -264,7 +264,8 @@ extern "C"
     ///         the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiSetDefaultFont(muiTextService* service, muiFontId fontId);
+    MUI_NODISCARD MUI_API muiResult muiTextService_SetDefaultFont(muiTextService* service,
+                                                                  muiFontId fontId);
 
     /// Sets the fonts tried, in order, for characters a style's font or
     /// family, and its family's fallbacks, lack: each grapheme cluster is
@@ -284,8 +285,9 @@ extern "C"
     ///         is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiSetFallbackFonts(muiTextService* service,
-                                                        const uint64_t* keys, uint32_t count);
+    MUI_NODISCARD MUI_API muiResult muiTextService_SetFallbackFonts(muiTextService* service,
+                                                                    const uint64_t* keys,
+                                                                    uint32_t count);
 
     /// Counts the times a block could not be laid out for want of memory.
     /// Its measure then answers NaN and its painting calls
@@ -295,7 +297,7 @@ extern "C"
     /// @return The count.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
-    MUI_API uint64_t muiGetTextServiceFailures(const muiTextService* service);
+    MUI_API uint64_t muiTextService_GetFailures(const muiTextService* service);
 
     /// Measures a text block's lines, as a muiMeasureFunction: user is a
     /// muiTextHost, and hostKey a block's key. The width breaks lines:

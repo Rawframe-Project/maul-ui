@@ -15,20 +15,20 @@ A glue (`muiCreateWindowGlue`) belongs to one window and one context root. Each 
 
 ## Gamepads
 
-One glue per Maul Window context can take the gamepads (`gamepads` in its def), turning their records into navigation for the player a function of the program's names for each pad: the d-pad and the left stick past a threshold are the four directions, the south face button activates and the east cancels (the other way with `confirmEast`, where the platform's convention puts confirm east), and the shoulders move to the previous and next control. A held direction repeats after 400 ms and then every 100 ms unless the def says otherwise.
+One glue per Maul Window context can take the gamepads (`enableGamepads` in its def), turning their records into navigation for the player a function of the program's names for each pad: the d-pad and the left stick past a threshold are the four directions, the south face button activates and the east cancels (the other way with `confirmEast`, where the platform's convention puts confirm east), and the shoulders move to the previous and next control. A held direction repeats after 400 ms and then every 100 ms unless the def says otherwise.
 
 ## Text fields
 
 - `muiWindowGlue_SetCaret` tells the window that a node takes text and where its caret is, so the platform places its candidate window there and shows its input method; the null id stops text input. `muiWindowGlue_SetTextCaret` does the same at a position of a node's text.
-- `muiWindowCompose` shows the window's preedit in an editing field, and `muiWindowSetComposition` sets one into any text block.
-- `muiWindowGlue_WriteClipboard` is the text editor's clipboard writer. A paste the editor asks for is requested with `muiWindowGlue_RequestPaste`, and `muiWindowGlue_Paste` takes the window's answer into the block when it arrives, since Maul Window reads the clipboard by request.
+- `muiTextBlock_ShowPreedit` shows the window's preedit in an editing field, and `muiTextBlock_SetPreedit` sets one into any text block.
+- `muiWriteWindowClipboard` is the text editor's clipboard writer. A paste the editor asks for is requested with `muiWindowGlue_RequestPaste`, and `muiWindowGlue_Paste` takes the window's answer into the block when it arrives, since Maul Window reads the clipboard by request.
 - `muiWindowGlue_RequestKeyboard` shows the on-screen keyboard for a field's input purpose, or hides it.
 
 ## Accessibility
 
 A `muiWindowAccess` (`muiCreateWindowAccess`) makes the adapter for the window's platform over Maul Window's native handles, enables the glue's root, and hands the window the adapter's root whenever it changes. Each frame, `muiWindowAccess_Update` sends the update and performs what assistive technology asked, unless the program takes a request itself. `muiWindowAccess_HandleEvent` follows the window's scale and accessibility records.
 
-On Maul Window's test backend there is no adapter (`muiWindowAccess_HasAdapter` is false), and `muiWindowAccess_GetTree` gives the tree a screen reader would read, which tests can check.
+On Maul Window's test backend there is no adapter (`muiWindowAccess_IsAdapterCreated` is false), and `muiWindowAccess_GetTree` gives the tree a screen reader would read, which tests can check.
 
 ## The samples
 

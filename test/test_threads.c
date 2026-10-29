@@ -246,15 +246,15 @@ static bool Frame(Scene* scene, uint32_t i, Run* run)
                                         scene->timeNs, nullptr, {0, 0, 0, 0}};
     const muiDrawInput drawInput = {1, 1.25f, muiPaintText, &scene->host};
     muiDrawList list;
-    if (muiPointerInput(scene->context, scene->root, &move) != mui_success ||
-        muiComputeLayout(scene->context, scene->root, &layoutInput) != mui_success ||
-        muiBuildDrawList(scene->context, scene->root, &drawInput) != mui_success ||
-        muiGetDrawList(scene->context, &list) != mui_success)
+    if (muiNode_RoutePointer(scene->context, scene->root, &move) != mui_success ||
+        muiNode_ComputeLayout(scene->context, scene->root, &layoutInput) != mui_success ||
+        muiNode_BuildDrawList(scene->context, scene->root, &drawInput) != mui_success ||
+        muiContext_GetDrawList(scene->context, &list) != mui_success)
     {
         return false;
     }
     muiPointerRecord record;
-    while (muiNextPointerRecord(scene->context, &record) == mui_success)
+    while (muiContext_TakePointerRecord(scene->context, &record) == mui_success)
     {
     }
     for (muiNodeId node = muiNode_GetFirstChild(scene->context, scene->root); node.index1 != 0;
@@ -296,18 +296,18 @@ static void Render(Scene* scene, unsigned char* pixels, Run* run)
         muiGlyphImage image = {0};
         for (uint32_t k = 0; k < 3; k++)
         {
-            muiResult result = muiRenderGlyph(scene->service, outlines[k], glyph, size, offset,
-                                              &image, pixels, PIXELS);
+            muiResult result = muiTextService_RenderGlyph(scene->service, outlines[k], glyph, size,
+                                                          offset, &image, pixels, PIXELS);
             run->glyphs = Outcome(run->glyphs, result, &image, pixels, 1);
-            result = muiRenderGlyphField(scene->service, outlines[k], glyph, 32.0f, 4, &image,
-                                         pixels, PIXELS);
+            result = muiTextService_RenderGlyphField(scene->service, outlines[k], glyph, 32.0f, 4,
+                                                     &image, pixels, PIXELS);
             run->glyphs = Outcome(run->glyphs, result, &image, pixels, 1);
         }
-        muiResult result = muiRenderGlyphMultiField(scene->service, scene->fonts.sans, glyph, 28.0f,
-                                                    4, &image, pixels, PIXELS);
+        muiResult result = muiTextService_RenderGlyphMultiField(
+            scene->service, scene->fonts.sans, glyph, 28.0f, 4, &image, pixels, PIXELS);
         run->glyphs = Outcome(run->glyphs, result, &image, pixels, 4);
-        result = muiRenderColorGlyph(scene->service, scene->fonts.color, glyph, size, offset, 0,
-                                     ink, &image, pixels, PIXELS);
+        result = muiTextService_RenderColorGlyph(scene->service, scene->fonts.color, glyph, size,
+                                                 offset, 0, ink, &image, pixels, PIXELS);
         run->glyphs = Outcome(run->glyphs, result, &image, pixels, 4);
     }
 }

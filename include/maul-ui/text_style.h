@@ -197,7 +197,7 @@ extern "C"
 
     /// Writes text values to a node directly, over its classes, as
     /// muiNode_SetLayoutValues writes layout ones. Its children inherit
-    /// them at the next muiComputeLayout.
+    /// them at the next muiNode_ComputeLayout.
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
@@ -215,7 +215,7 @@ extern "C"
                                                           muiPropertyMask mask);
 
     /// Reads a node's computed text style, as of its last
-    /// muiComputeLayout; a measure or paint function may read it.
+    /// muiNode_ComputeLayout; a measure or paint function may read it.
     ///
     /// @param context   The context.
     /// @param nodeId    The node.

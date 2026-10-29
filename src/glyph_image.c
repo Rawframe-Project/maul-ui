@@ -88,9 +88,9 @@ static MUI_NOINLINE muiResult RenderGlyphWorker(muiTextService* service, uint64_
     return status;
 }
 
-muiResult muiRenderGlyph(muiTextService* service, uint64_t font, uint32_t glyph, float pixelSize,
-                         float offsetX, muiGlyphImage* imageOut, unsigned char* pixels,
-                         size_t capacity)
+muiResult muiTextService_RenderGlyph(muiTextService* service, uint64_t font, uint32_t glyph,
+                                     float pixelSize, float offsetX, muiGlyphImage* imageOut,
+                                     unsigned char* pixels, size_t capacity)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result =
@@ -284,9 +284,9 @@ static MUI_NOINLINE muiResult RenderGlyphFieldWorker(muiTextService* service, ui
     return status;
 }
 
-muiResult muiRenderGlyphField(muiTextService* service, uint64_t font, uint32_t glyph,
-                              float pixelSize, uint32_t spread, muiGlyphImage* imageOut,
-                              unsigned char* pixels, size_t capacity)
+muiResult muiTextService_RenderGlyphField(muiTextService* service, uint64_t font, uint32_t glyph,
+                                          float pixelSize, uint32_t spread, muiGlyphImage* imageOut,
+                                          unsigned char* pixels, size_t capacity)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result =
@@ -321,9 +321,10 @@ static MUI_NOINLINE muiResult RenderGlyphMultiFieldWorker(muiTextService* servic
     return status;
 }
 
-muiResult muiRenderGlyphMultiField(muiTextService* service, uint64_t font, uint32_t glyph,
-                                   float pixelSize, uint32_t spread, muiGlyphImage* imageOut,
-                                   unsigned char* pixels, size_t capacity)
+muiResult muiTextService_RenderGlyphMultiField(muiTextService* service, uint64_t font,
+                                               uint32_t glyph, float pixelSize, uint32_t spread,
+                                               muiGlyphImage* imageOut, unsigned char* pixels,
+                                               size_t capacity)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = RenderGlyphMultiFieldWorker(service, font, glyph, pixelSize, spread,

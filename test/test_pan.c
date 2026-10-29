@@ -62,7 +62,7 @@ static void Scrolls(muiContext* context, muiNodeId node, muiScrollAxes axes, boo
 static void Layout(muiContext* context, muiNodeId root, uint64_t timeNs)
 {
     const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, timeNs, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
 }
 
 static float X(const muiContext* context, muiNodeId node)
@@ -118,13 +118,14 @@ static int Feed(const Scene* scene, uint32_t pointer, muiPointerKind kind, muiPo
 {
     muiPointerButtons buttons = action == mui_pointerRelease || action == mui_pointerCancel ? 0 : 1;
     const muiPointerEvent event = {timeNs, pointer, kind, action, 0, buttons, x, y, 0};
-    CHECK(muiPointerInput(scene->context, scene->root, &event) == mui_success, "input");
+    CHECK(muiNode_RoutePointer(scene->context, scene->root, &event) == mui_success, "input");
     int handled = 0;
     muiPointerRecord record = {0};
-    while (muiNextPointerRecord(scene->context, &record) == mui_success)
+    while (muiContext_TakePointerRecord(scene->context, &record) == mui_success)
     {
         bool taken = false;
-        CHECK(muiDispatchPointerRecord(scene->context, &record, &taken) == mui_success, "dispatch");
+        CHECK(muiContext_DispatchPointerRecord(scene->context, &record, &taken) == mui_success,
+              "dispatch");
         handled += taken;
         s_clicks += record.kind == mui_pointerRecordClick;
     }
@@ -147,8 +148,9 @@ static float DrawnAt(const Scene* scene, float scale, uint32_t index, bool down)
 {
     const muiDrawInput input = {1, scale, NULL, NULL};
     muiDrawList drawn;
-    CHECK(muiBuildDrawList(scene->context, scene->root, &input) == mui_success &&
-              muiGetDrawList(scene->context, &drawn) == mui_success && drawn.transformCount > index,
+    CHECK(muiNode_BuildDrawList(scene->context, scene->root, &input) == mui_success &&
+              muiContext_GetDrawList(scene->context, &drawn) == mui_success &&
+              drawn.transformCount > index,
           "drawn");
     return down ? drawn.transforms[index].f : drawn.transforms[index].e;
 }
@@ -192,7 +194,7 @@ static void Overscroll(muiContext* context, bool on)
 {
     muiScrollRule rule = muiDefaultScrollRule();
     rule.overscroll = on;
-    CHECK(muiSetScrollRule(context, &rule) == mui_success, "rule");
+    CHECK(muiContext_SetScrollRule(context, &rule) == mui_success, "rule");
 }
 
 static void TestPanAndFling(void)
@@ -231,7 +233,7 @@ static void TestPanAndFling(void)
               Touch(&scene, mui_pointerRelease, 1030 * MS, 10.0f) == 1,
           "a flick");
     Layout(context, scene.root, 3000 * MS);
-    CHECK(Y(context, scene.s) == 400.0f && !muiIsUpdatePending(context, scene.root),
+    CHECK(Y(context, scene.s) == 400.0f && !muiNode_IsUpdatePending(context, scene.root),
           "at the limit, done");
     muiDestroyContext(context);
 }
@@ -270,7 +272,7 @@ static void TestNoFling(void)
     // Reduced motion: a pan, no fling.
     muiEnvironment environment = muiDefaultEnvironment();
     environment.reducedMotion = true;
-    CHECK(muiSetContextEnvironment(context, &environment) == mui_success, "reduced");
+    CHECK(muiContext_SetEnvironment(context, &environment) == mui_success, "reduced");
     Layout(context, scene.root, 2900 * MS);
     CHECK(Touch(&scene, mui_pointerPress, 3000 * MS, 90.0f) == 0 &&
               Touch(&scene, mui_pointerMove, 3010 * MS, 60.0f) == 1 &&
@@ -331,7 +333,7 @@ static void TestFlingThenStep(void)
     muiContext* context = scene.context;
     muiScrollRule rule = muiDefaultScrollRule();
     rule.easeNs = 0;
-    CHECK(muiSetScrollRule(context, &rule) == mui_success, "rule");
+    CHECK(muiContext_SetScrollRule(context, &rule) == mui_success, "rule");
     // Very fast: capped at 8000.
     CHECK(Touch(&scene, mui_pointerPress, 0, 90.0f) == 0 &&
               Touch(&scene, mui_pointerMove, 1 * MS, 70.0f) == 1 &&
@@ -344,9 +346,9 @@ static void TestFlingThenStep(void)
     CHECK(Near(Y(context, scene.s), expected), "capped at 8000");
     const muiWheelEvent wheel = {103 * MS, 50.0f, 50.0f, 0.0f, 1.0f, 0, 0};
     bool handled = false;
-    CHECK(muiWheelInput(context, scene.root, &wheel, &handled) == mui_success && handled &&
+    CHECK(muiNode_RouteWheel(context, scene.root, &wheel, &handled) == mui_success && handled &&
               Near(Y(context, scene.s), expected - 100.0f) &&
-              !muiIsUpdatePending(context, scene.root),
+              !muiNode_IsUpdatePending(context, scene.root),
           "the wheel took over");
     muiDestroyContext(context);
 }
@@ -358,14 +360,15 @@ static void TestMore(void)
     muiContext* context = scene.context;
     const muiDrawInput input = {1, 1.0f, NULL, NULL};
     muiDrawList drawn;
-    CHECK(muiBuildDrawList(context, scene.root, &input) == mui_success, "drawn");
+    CHECK(muiNode_BuildDrawList(context, scene.root, &input) == mui_success, "drawn");
     // Down at the top: nothing past it.
     CHECK(Touch(&scene, mui_pointerPress, 0, 50.0f) == 0 &&
               Touch(&scene, mui_pointerMove, 10 * MS, 70.0f) == 1 && Y(context, scene.s) == 0.0f,
           "not above the top");
     CHECK(Touch(&scene, mui_pointerMove, 20 * MS, 40.0f) == 1 && Y(context, scene.s) == 10.0f &&
-              muiBuildDrawList(context, scene.root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success && drawn.transforms[1].f == -10.0f,
+              muiNode_BuildDrawList(context, scene.root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success &&
+              drawn.transforms[1].f == -10.0f,
           "drawn where it pans");
     CHECK(Touch(&scene, mui_pointerCancel, 30 * MS, 40.0f) == 1, "cancelled");
     // A fast move long before the release is out of the window.
@@ -393,20 +396,20 @@ static void TestMore(void)
               Y(context, scene.s) == 61.0f,
           "a flick up");
     Layout(context, scene.root, 4330 * MS);
-    CHECK(Y(context, scene.s) == 0.0f && !muiIsUpdatePending(context, scene.root),
+    CHECK(Y(context, scene.s) == 0.0f && !muiNode_IsUpdatePending(context, scene.root),
           "at the top, done");
     // A press does not stop a step, only flings; a pan does.
     muiScrollRule rule = muiDefaultScrollRule();
     const muiWheelEvent wheel = {5000 * MS, 50.0f, 50.0f, 0.0f, -1.0f, 0, 0};
     bool handled = false;
-    CHECK(muiWheelInput(context, scene.root, &wheel, &handled) == mui_success && handled &&
+    CHECK(muiNode_RouteWheel(context, scene.root, &wheel, &handled) == mui_success && handled &&
               Touch(&scene, mui_pointerPress, 5010 * MS, 50.0f) == 0,
           "a step, a press");
     Layout(context, scene.root, 5200 * MS);
     CHECK(Y(context, scene.s) == 100.0f, "the step went on");
     CHECK(Touch(&scene, mui_pointerRelease, 5210 * MS, 50.0f) == 0, "released");
     const muiWheelEvent again = {6000 * MS, 50.0f, 50.0f, 0.0f, -1.0f, 0, 0};
-    CHECK(muiWheelInput(context, scene.root, &again, &handled) == mui_success &&
+    CHECK(muiNode_RouteWheel(context, scene.root, &again, &handled) == mui_success &&
               Touch(&scene, mui_pointerPress, 6010 * MS, 50.0f) == 0 &&
               Touch(&scene, mui_pointerMove, 6020 * MS, 30.0f) == 1 &&
               Y(context, scene.s) == 120.0f,
@@ -493,7 +496,7 @@ static void TestTables(void)
         const muiWheelEvent wheel = {1000 * MS, 100.0f * (float)i + 50.0f, 50.0f, 0.0f, -1.0f, 0,
                                      0};
         bool handled = false;
-        CHECK(muiWheelInput(context, scene.root, &wheel, &handled) == mui_success && handled,
+        CHECK(muiNode_RouteWheel(context, scene.root, &wheel, &handled) == mui_success && handled,
               "a step");
     }
     CHECK(Feed(&scene, 40, mui_pointerTouch, mui_pointerPress, 1000 * MS, 850.0f, 90.0f) == 0 &&
@@ -513,7 +516,7 @@ static void TestTables(void)
         const muiWheelEvent wheel = {3000 * MS, 100.0f * (float)i + 50.0f, 50.0f, 0.0f, -1.0f, 0,
                                      0};
         bool handled = false;
-        CHECK(muiWheelInput(context, scene.root, &wheel, &handled) == mui_success && handled,
+        CHECK(muiNode_RouteWheel(context, scene.root, &wheel, &handled) == mui_success && handled,
               "a step");
     }
     CHECK(Feed(&scene, 41, mui_pointerTouch, mui_pointerPress, 3000 * MS, 850.0f, 90.0f) == 0 &&
@@ -547,7 +550,7 @@ static void TestAcrossFling(void)
           "a flick right");
     Layout(context, scene.root, 420 * MS);
     Layout(context, scene.root, 421 * MS);
-    CHECK(X(context, scene.s) == 300.0f && !muiIsUpdatePending(context, scene.root),
+    CHECK(X(context, scene.s) == 300.0f && !muiNode_IsUpdatePending(context, scene.root),
           "at the end, done");
     CHECK(Feed(&scene, 3, mui_pointerTouch, mui_pointerPress, 1000 * MS, 90.0f, 25.0f) == 0 &&
               Feed(&scene, 3, mui_pointerTouch, mui_pointerMove, 1010 * MS, 60.0f, 25.0f) == 1 &&
@@ -587,7 +590,7 @@ static void TestReversedFling(void)
           "a flick down");
     Layout(context, scene.root, 420 * MS);
     Layout(context, scene.root, 421 * MS);
-    CHECK(Y(context, scene.s) == 350.0f && !muiIsUpdatePending(context, scene.root),
+    CHECK(Y(context, scene.s) == 350.0f && !muiNode_IsUpdatePending(context, scene.root),
           "at its top, done");
     muiDestroyContext(context);
 }
@@ -606,7 +609,7 @@ static void TestSlowEnd(void)
     Layout(context, scene.root, 6000 * MS);
     Layout(context, scene.root, 6001 * MS);
     CHECK(Y(context, scene.s) > 500.0f && Y(context, scene.s) < 530.0f &&
-              !muiIsUpdatePending(context, scene.root),
+              !muiNode_IsUpdatePending(context, scene.root),
           "slowed to a stop");
     muiDestroyContext(context);
 }
@@ -672,7 +675,8 @@ static void TestOverscroll(void)
     Layout(context, scene.root, 660 * MS);
     CHECK(Band(40.0) * Kept(0.53) < 0.1 && DrawnAt(&scene, 64.0f, 1, true) == 0.0f, "at rest");
     Layout(context, scene.root, 1130 * MS);
-    CHECK(Drawn(&scene, true) == 0.0f && !muiIsUpdatePending(context, scene.root), "back, done");
+    CHECK(Drawn(&scene, true) == 0.0f && !muiNode_IsUpdatePending(context, scene.root),
+          "back, done");
     // Past the end, the offset at the limit.
     CHECK(muiNode_SetScroll(context, scene.s, 0.0f, 400.0f) == mui_success, "to the end");
     CHECK(Touch(&scene, mui_pointerPress, 2000 * MS, 50.0f) == 0 &&
@@ -701,7 +705,7 @@ static void TestOverscroll(void)
           "past again");
     const muiWheelEvent wheel = {5030 * MS, 50.0f, 50.0f, 0.0f, 1.0f, 0, 0};
     bool handled = false;
-    CHECK(muiWheelInput(context, scene.root, &wheel, &handled) == mui_success && handled &&
+    CHECK(muiNode_RouteWheel(context, scene.root, &wheel, &handled) == mui_success && handled &&
               Drawn(&scene, true) == -400.0f,
           "a wheel turn");
     Layout(context, scene.root, 6000 * MS);
@@ -712,7 +716,7 @@ static void TestOverscroll(void)
               Drawn(&scene, true) == roundf(-400.0f - (float)Band(40.0)),
           "past mid-pan");
     const muiWheelEvent midPan = {6120 * MS, 50.0f, 50.0f, 0.0f, 1.0f, 0, 0};
-    CHECK(muiWheelInput(context, scene.root, &midPan, &handled) == mui_success && handled &&
+    CHECK(muiNode_RouteWheel(context, scene.root, &midPan, &handled) == mui_success && handled &&
               Drawn(&scene, true) == -400.0f,
           "a wheel turn mid-pan");
     CHECK(Touch(&scene, mui_pointerCancel, 6130 * MS, 10.0f) == 1, "cancelled");
@@ -726,7 +730,7 @@ static void TestOverscroll(void)
     CHECK(Touch(&scene, mui_pointerCancel, 7020 * MS, 10.0f) == 1, "cancelled");
     muiEnvironment environment = muiDefaultEnvironment();
     environment.reducedMotion = true;
-    CHECK(muiSetContextEnvironment(context, &environment) == mui_success, "reduced");
+    CHECK(muiContext_SetEnvironment(context, &environment) == mui_success, "reduced");
     CHECK(muiNode_SetScroll(context, scene.s, 0.0f, 0.0f) == mui_success, "to the top");
     Layout(context, scene.root, 7900 * MS);
     CHECK(Touch(&scene, mui_pointerPress, 8000 * MS, 50.0f) == 0 &&
@@ -770,7 +774,7 @@ static void TestOverscrollAcross(void)
     CHECK(Feed(&scene, 3, mui_pointerTouch, mui_pointerCancel, 140 * MS, 40.0f, 25.0f) == 1,
           "cancelled");
     Layout(context, scene.root, 2000 * MS);
-    CHECK(Drawn(&scene, false) == 0.0f && !muiIsUpdatePending(context, scene.root), "back");
+    CHECK(Drawn(&scene, false) == 0.0f && !muiNode_IsUpdatePending(context, scene.root), "back");
     // Flicked toward the end and down: it does not spring along the axis
     // it does not scroll.
     CHECK(Feed(&scene, 3, mui_pointerTouch, mui_pointerPress, 3000 * MS, 10.0f, 25.0f) == 0 &&
@@ -870,10 +874,11 @@ static void TestFlingBounce(void)
     Layout(context, scene.root, 691 * MS);
     over = FlingOver(370.0, 1000.0, 400.0, 0.661);
     CHECK(over > 0.05 && over < 0.1 && DrawnAt(&scene, 64.0f, 1, true) == -400.0f &&
-              !muiIsUpdatePending(context, scene.root),
+              !muiNode_IsUpdatePending(context, scene.root),
           "at rest");
     Layout(context, scene.root, 3000 * MS);
-    CHECK(Drawn(&scene, true) == -400.0f && !muiIsUpdatePending(context, scene.root), "back, done");
+    CHECK(Drawn(&scene, true) == -400.0f && !muiNode_IsUpdatePending(context, scene.root),
+          "back, done");
     // Up from 60: past the top.
     CHECK(muiNode_SetScroll(context, scene.s, 0.0f, 60.0f) == mui_success, "near the top");
     CHECK(Touch(&scene, mui_pointerPress, 4000 * MS, 20.0f) == 0 &&
@@ -892,7 +897,7 @@ static void TestFlingBounce(void)
     Layout(context, scene.root, 4230 * MS);
     CHECK(Drawn(&scene, true) == roundf((float)(-over * Kept(0.1))), "springing back");
     Layout(context, scene.root, 6000 * MS);
-    CHECK(Drawn(&scene, true) == 0.0f && !muiIsUpdatePending(context, scene.root), "at rest");
+    CHECK(Drawn(&scene, true) == 0.0f && !muiNode_IsUpdatePending(context, scene.root), "at rest");
     muiDestroyContext(context);
 }
 
@@ -923,7 +928,7 @@ static void TestFlingShrunk(void)
     Layout(context, scene.root, 40 * MS);
     SetHeight(context, scene.s, 400.0f);
     Layout(context, scene.root, 140 * MS);
-    CHECK(Drawn(&scene, true) == -100.0f && !muiIsUpdatePending(context, scene.root),
+    CHECK(Drawn(&scene, true) == -100.0f && !muiNode_IsUpdatePending(context, scene.root),
           "at the new limit");
     SetHeight(context, scene.s, 100.0f);
     Layout(context, scene.root, 800 * MS);
@@ -939,7 +944,7 @@ static void TestFlingShrunk(void)
     Layout(context, scene.root, 1040 * MS);
     SetHeight(context, scene.s, 400.0f);
     Layout(context, scene.root, 1100 * MS);
-    CHECK(Drawn(&scene, true) == -100.0f && !muiIsUpdatePending(context, scene.root),
+    CHECK(Drawn(&scene, true) == -100.0f && !muiNode_IsUpdatePending(context, scene.root),
           "at the new limit, up");
     SetHeight(context, scene.s, 100.0f);
     Layout(context, scene.root, 1800 * MS);
@@ -956,7 +961,7 @@ static void TestFlingShrunk(void)
     Layout(context, scene.root, 2040 * MS);
     SetHeight(context, scene.s, 400.0f);
     Layout(context, scene.root, 2100 * MS);
-    CHECK(Drawn(&scene, true) == -100.0f && !muiIsUpdatePending(context, scene.root),
+    CHECK(Drawn(&scene, true) == -100.0f && !muiNode_IsUpdatePending(context, scene.root),
           "at the new limit, toward it");
     muiDestroyContext(context);
 }
@@ -1074,10 +1079,11 @@ static void TestSlowBounce(void)
     double over = FlingOver(357.5, 100.0, 400.0, 1.16);
     CHECK(100.0 * exp(log(0.998) * 1160.0) < 10.0 && over > 0.1 &&
               DrawnAt(&scene, 64.0f, 1, true) == roundf((float)((-400.0 - over) * 64.0)) / 64.0f &&
-              muiIsUpdatePending(context, scene.root),
+              muiNode_IsUpdatePending(context, scene.root),
           "slow, still out");
     Layout(context, scene.root, 3030 * MS);
-    CHECK(DrawnAt(&scene, 64.0f, 1, true) == -400.0f && !muiIsUpdatePending(context, scene.root),
+    CHECK(DrawnAt(&scene, 64.0f, 1, true) == -400.0f &&
+              !muiNode_IsUpdatePending(context, scene.root),
           "at rest");
     muiDestroyContext(context);
 }
@@ -1093,10 +1099,10 @@ static void TestRule(void)
     for (int i = 0; i < 4; i++)
     {
         rule.decelerationRate = bad[i];
-        CHECK(muiSetScrollRule(context, &rule) == mui_errorInvalid, "a rate outside");
+        CHECK(muiContext_SetScrollRule(context, &rule) == mui_errorInvalid, "a rate outside");
     }
     rule.decelerationRate = 0.99f;
-    CHECK(muiSetScrollRule(context, &rule) == mui_success, "fast");
+    CHECK(muiContext_SetScrollRule(context, &rule) == mui_success, "fast");
     muiDestroyContext(context);
 }
 

@@ -49,9 +49,9 @@ int main(void)
         const muiLayoutInput layout = {320.0f, 200.0f, muiMeasureText, &host,
                                        0,      NULL,   {0, 0, 0, 0}};
         const muiDrawInput draw = {1, 1.0f, muiPaintText, &host};
-        drawn = muiComputeLayout(context, root, &layout) == mui_success &&
-                muiBuildDrawList(context, root, &draw) == mui_success &&
-                muiGetDrawList(context, &list) == mui_success && list.commandCount == 1;
+        drawn = muiNode_ComputeLayout(context, root, &layout) == mui_success &&
+                muiNode_BuildDrawList(context, root, &draw) == mui_success &&
+                muiContext_GetDrawList(context, &list) == mui_success && list.commandCount == 1;
     }
     muiDestroyTextService(service);
     muiDestroyContext(context);

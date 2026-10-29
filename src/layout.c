@@ -267,7 +267,7 @@ static MUI_NOINLINE muiResult ComputeLayoutWorker(muiContext* context, muiNodeId
     return status;
 }
 
-muiResult muiComputeLayout(muiContext* context, muiNodeId rootId, const muiLayoutInput* input)
+muiResult muiNode_ComputeLayout(muiContext* context, muiNodeId rootId, const muiLayoutInput* input)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = ComputeLayoutWorker(context, rootId, input);
@@ -296,7 +296,7 @@ muiRect muiNode_GetContentRect(const muiContext* context, muiNodeId nodeId)
     return result;
 }
 
-bool muiIsUpdatePending(const muiContext* context, muiNodeId rootId)
+bool muiNode_IsUpdatePending(const muiContext* context, muiNodeId rootId)
 {
     uint32_t slot = context != nullptr ? muiTreeResolve(&context->tree, rootId) : 0;
     return slot != 0 && ((muiTreeAt(&context->tree, slot)->dirty.subtree &

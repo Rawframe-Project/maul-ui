@@ -560,7 +560,7 @@ static MUI_NOINLINE muiResult BuildDrawListWorker(muiContext* context, muiNodeId
     return status;
 }
 
-muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawInput* input)
+muiResult muiNode_BuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawInput* input)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = BuildDrawListWorker(context, rootId, input);
@@ -568,7 +568,7 @@ muiResult muiBuildDrawList(muiContext* context, muiNodeId rootId, const muiDrawI
     return result;
 }
 
-muiResult muiGetDrawList(const muiContext* context, muiDrawList* listOut)
+muiResult muiContext_GetDrawList(const muiContext* context, muiDrawList* listOut)
 {
     if (listOut != nullptr)
     {

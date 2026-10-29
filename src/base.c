@@ -10,7 +10,7 @@ muiVersion muiGetVersion(void)
     return (muiVersion){MUI_VERSION_MAJOR, MUI_VERSION_MINOR, MUI_VERSION_PATCH};
 }
 
-const char* muiResultName(muiResult result)
+const char* muiGetResultName(muiResult result)
 {
     switch (result)
     {

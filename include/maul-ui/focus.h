@@ -59,8 +59,8 @@ extern "C"
     ///         `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiFocus_Set(muiContext* context, uint8_t player,
-                                                 muiNodeId nodeId, muiFocusCause cause);
+    MUI_NODISCARD MUI_API muiResult muiContext_SetFocus(muiContext* context, uint8_t player,
+                                                        muiNodeId nodeId, muiFocusCause cause);
 
     /// Returns the node a player focuses.
     ///
@@ -70,7 +70,7 @@ extern "C"
     ///         past MUI_MAX_PLAYERS.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_API muiNodeId muiFocus_Get(const muiContext* context, uint8_t player);
+    MUI_API muiNodeId muiContext_GetFocus(const muiContext* context, uint8_t player);
 
     /// Moves a player's focus to the next or previous node in sequential
     /// order (Tab and Shift+Tab), shown. The order runs over the nodes
@@ -91,8 +91,8 @@ extern "C"
     ///         context is busy; `mui_errorStale` for a root that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiFocus_Move(muiContext* context, muiNodeId rootId,
-                                                  uint8_t player, bool backward);
+    MUI_NODISCARD MUI_API muiResult muiNode_MoveFocus(muiContext* context, muiNodeId rootId,
+                                                      uint8_t player, bool backward);
 
     // A direction on the screen.
     typedef uint8_t muiDirection;
@@ -114,9 +114,9 @@ extern "C"
     /// layer: nodes overlapping the focus across the direction first, then
     /// the least of 13 times the square of the gap along the direction
     /// plus the square of the distance between centers across it, ties to
-    /// the earlier in tree order. Boxes are as the last muiComputeLayout
+    /// the earlier in tree order. Boxes are as the last muiNode_ComputeLayout
     /// left them. With no focus under the root, or one a modal layer
-    /// covers, it moves as muiFocus_Move does forward.
+    /// covers, it moves as muiNode_MoveFocus does forward.
     ///
     /// @param context    The context.
     /// @param rootId     The root of the subtree the player navigates.
@@ -129,8 +129,8 @@ extern "C"
     ///         a root that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiFocus_MoveToward(muiContext* context, muiNodeId rootId,
-                                                        uint8_t player, muiDirection direction);
+    MUI_NODISCARD MUI_API muiResult muiNode_MoveFocusToward(muiContext* context, muiNodeId rootId,
+                                                            uint8_t player, muiDirection direction);
 
     /// Links a node to the node directional navigation moves to from it
     /// in a direction, over what geometry would find; the node itself

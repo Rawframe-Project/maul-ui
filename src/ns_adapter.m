@@ -158,7 +158,7 @@ void muiDestroyNsAdapter(muiNsAdapter* adapter)
     DestroyNsAdapter(adapter);
 }
 
-uint64_t muiGetNsAdapterMisuse(const muiNsAdapter* adapter)
+uint64_t muiNsAdapter_GetMisuse(const muiNsAdapter* adapter)
 {
     return adapter != nullptr ? adapter->misuse : 0;
 }

@@ -4,7 +4,7 @@
 // Text editing: a block opted into editing keeps a selection, an undo
 // history and its field's rules, and takes typing, pastes, deletions, undo
 // and redo; moves, presses and drags place the selection through a node's
-// laid-out text. muiTextEditEvent maps a platform's keys, typed text and
+// laid-out text. muiNode_HandleEditEvent maps a platform's keys, typed text and
 // the pointer onto these; the clipboard and focus stay the host's. An
 // editing block's text scrolls in its node's content box to keep the caret
 // in view, back as far as the text allows; muiPaintText draws it scrolled
@@ -99,10 +99,10 @@ extern "C"
     };
 
     // Writes copied or cut text to the host's clipboard. It runs inside
-    // muiTextEditEvent, while the service is busy (maul-ui/text.h).
+    // muiNode_HandleEditEvent, while the service is busy (maul-ui/text.h).
     typedef void (*muiClipboardWriteFunction)(void* user, const char* text, size_t length);
 
-    // How muiTextEditEvent reads input: the keymap, and the clipboard
+    // How muiNode_HandleEditEvent reads input: the keymap, and the clipboard
     // writer, NULL to copy nothing.
     typedef struct muiTextEditInput
     {
@@ -250,7 +250,7 @@ extern "C"
                                                        muiTextDeletion deletion, bool* changedOut);
 
     /// Deletes an editing block's selection, or with none, the text from
-    /// the caret to an offset: a word or a line, found with muiTextMove.
+    /// the caret to an offset: a word or a line, found with muiNode_MoveTextPosition.
     ///
     /// @param service     The service.
     /// @param blockId     The block.
@@ -396,17 +396,17 @@ extern "C"
     /// @param event       The event.
     /// @param input       The keymap and the clipboard writer.
     /// @param outcomeOut  Receives what the event did; unchanged on failure.
-    /// @return As muiTextEditMove; `mui_errorBusy` while the service is busy.
+    /// @return As muiNode_MoveEditCaret; `mui_errorBusy` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiTextEditEvent(const muiTextHost* host, muiNodeId nodeId,
-                                                     const muiEvent* event,
-                                                     const muiTextEditInput* input,
-                                                     muiTextEditOutcome* outcomeOut);
+    MUI_NODISCARD MUI_API muiResult muiNode_HandleEditEvent(const muiTextHost* host,
+                                                            muiNodeId nodeId, const muiEvent* event,
+                                                            const muiTextEditInput* input,
+                                                            muiTextEditOutcome* outcomeOut);
 
     /// Moves the caret of a node's editing block through its laid-out
-    /// text (muiTextMove), extending the selection or collapsing it there;
+    /// text (muiNode_MoveTextPosition), extending the selection or collapsing it there;
     /// lines up and down keep the x the first of them started from.
     ///
     /// @param host      The text host.
@@ -421,8 +421,8 @@ extern "C"
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiTextEditMove(const muiTextHost* host, muiNodeId nodeId,
-                                                    muiTextMovement movement, bool extend);
+    MUI_NODISCARD MUI_API muiResult muiNode_MoveEditCaret(const muiTextHost* host, muiNodeId nodeId,
+                                                          muiTextMovement movement, bool extend);
 
     /// Places the caret of a node's editing block where a press is: one
     /// click at the point, two selecting the word there, three the
@@ -437,14 +437,14 @@ extern "C"
     /// @param clickCount  The press's place in a quick series: 1, 2, 3; a
     ///                    fourth goes round to 1, as on every platform.
     /// @param extend      Whether the anchor stays.
-    /// @return As muiTextEditMove; `mui_errorInvalid` for a point not finite or
+    /// @return As muiNode_MoveEditCaret; `mui_errorInvalid` for a point not finite or
     ///         a click count of 0; `mui_errorBusy` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiTextEditPress(const muiTextHost* host, muiNodeId nodeId,
-                                                     float x, float y, uint32_t clickCount,
-                                                     bool extend);
+    MUI_NODISCARD MUI_API muiResult muiNode_HandleEditPress(const muiTextHost* host,
+                                                            muiNodeId nodeId, float x, float y,
+                                                            uint32_t clickCount, bool extend);
 
     /// Extends the selection of a node's editing block to where a drag
     /// is, by the unit its press selected, keeping what the press
@@ -454,12 +454,12 @@ extern "C"
     /// @param nodeId  A node whose host key is an editing block's.
     /// @param x       The point, in the node's border box.
     /// @param y       The point's y.
-    /// @return As muiTextEditPress; `mui_errorBusy` while the service is busy.
+    /// @return As muiNode_HandleEditPress; `mui_errorBusy` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiTextEditDrag(const muiTextHost* host, muiNodeId nodeId,
-                                                    float x, float y);
+    MUI_NODISCARD MUI_API muiResult muiNode_HandleEditDrag(const muiTextHost* host,
+                                                           muiNodeId nodeId, float x, float y);
 
     /// Applies what assistive technology asks of a node's editing block:
     /// its selection set (mui_actionSetSelection) or a range of its text
@@ -468,7 +468,7 @@ extern "C"
     /// starts of characters. Text replaced goes in as a paste does, under
     /// the block's rules, the caret after it; a read-only block keeps its
     /// text. The host tells the accessibility tree what changed, as after
-    /// muiTextEditEvent.
+    /// muiNode_HandleEditEvent.
     ///
     /// @param host        The text host.
     /// @param request     The request; its target a node whose host key is
@@ -488,7 +488,7 @@ extern "C"
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiTextPerformAccessAction(const muiTextHost* host,
+    MUI_NODISCARD MUI_API muiResult muiPerformTextAccessAction(const muiTextHost* host,
                                                                const muiAccessRequest* request,
                                                                muiTextEditOutcome* outcomeOut);
 

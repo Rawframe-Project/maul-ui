@@ -13,7 +13,7 @@
 // a change.
 // Prints the best of five runs in microseconds, how many times the host
 // was asked to measure, and the nodes styled and sizes solved
-// (muiGetWorkCounts), which do not depend on the machine: a static frame
+// (muiContext_GetWorkCounts), which do not depend on the machine: a static frame
 // counts none.
 
 #include "maul-ui/context.h"
@@ -62,7 +62,7 @@ static void Check(muiResult status, const char* what)
 {
     if (status != mui_success)
     {
-        fprintf(stderr, "%s failed: %s\n", what, muiResultName(status));
+        fprintf(stderr, "%s failed: %s\n", what, muiGetResultName(status));
     }
 }
 
@@ -233,11 +233,11 @@ static double Time(Scene* scene, float width, bool changeLeaf)
     muiLayoutInput input = {width, 100000.0f, MeasureLabel, &scene->measured,
                             0,     NULL,      {0, 0, 0, 0}};
     double start = Seconds();
-    muiResult status = muiComputeLayout(scene->context, scene->root, &input);
+    muiResult status = muiNode_ComputeLayout(scene->context, scene->root, &input);
     double elapsed = Seconds() - start;
     if (status != mui_success)
     {
-        fprintf(stderr, "layout failed: %s\n", muiResultName(status));
+        fprintf(stderr, "layout failed: %s\n", muiGetResultName(status));
     }
     return elapsed * 1e6;
 }
@@ -256,15 +256,15 @@ static void DrawFrames(Scene* scene, double best[3], uint32_t* commandsOut)
             // The width of the last frame Run timed, so only the row changes.
             muiLayoutInput layout = {640.0f, 100000.0f, MeasureLabel, &scene->measured,
                                      0,      NULL,      {0, 0, 0, 0}};
-            Check(muiComputeLayout(scene->context, scene->root, &layout), "layout");
+            Check(muiNode_ComputeLayout(scene->context, scene->root, &layout), "layout");
         }
         double start = Seconds();
-        Check(muiBuildDrawList(scene->context, scene->root, &input), "draw");
+        Check(muiNode_BuildDrawList(scene->context, scene->root, &input), "draw");
         double time = (Seconds() - start) * 1e6;
         best[i] = time < best[i] ? time : best[i];
     }
     muiDrawList list;
-    Check(muiGetDrawList(scene->context, &list), "list");
+    Check(muiContext_GetDrawList(scene->context, &list), "list");
     *commandsOut = list.commandCount;
 }
 
@@ -304,9 +304,9 @@ static void Run(const char* name, Kind kind)
         const float widths[4] = {800.0f, 800.0f, 800.0f, 640.0f};
         for (int i = 0; i < 4; i++)
         {
-            muiWorkCounts before = muiGetWorkCounts(scene.context);
+            muiWorkCounts before = muiContext_GetWorkCounts(scene.context);
             double time = Time(&scene, widths[i], i == 2);
-            muiWorkCounts after = muiGetWorkCounts(scene.context);
+            muiWorkCounts after = muiContext_GetWorkCounts(scene.context);
             best[i] = time < best[i] ? time : best[i];
             measured[i] = scene.measured;
             work[i] =

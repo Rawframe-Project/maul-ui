@@ -60,7 +60,7 @@ extern "C"
         uint8_t player;
         // Whether it takes the context's gamepad records, as navigation:
         // one glue a Maul Window context does.
-        bool gamepads;
+        bool enableGamepads;
         // The players gamepads are, or NULL for player 0, and the pointer
         // handed to the function.
         muiWindowPlayerFunction gamepadPlayer;
@@ -107,21 +107,21 @@ extern "C"
 
     /// Takes a record the host drained from Maul Window. A record of its
     /// window goes to the context: a key or text to the player's focus
-    /// (muiKeyInput, muiTextInput); the cursor as the player's mouse
-    /// (muiPointerInput, its records dispatched with
-    /// muiDispatchPointerRecord), Maul Window's button b its index b - 1;
+    /// (muiNode_RouteKey, muiNode_RouteText); the cursor as the player's mouse
+    /// (muiNode_RoutePointer, its records dispatched with
+    /// muiContext_DispatchPointerRecord), Maul Window's button b its index b - 1;
     /// a touch as a touch pointer holding the primary button while in
     /// contact; the pen as a pen pointer, its tip in contact the primary
     /// button or button 5 while it erases, its barrel the secondary, as
     /// the W3C's Pointer Events number them; the wheel at the cursor's
-    /// last place (muiWheelInput); a reset or a lost focus as a cancel of
+    /// last place (muiNode_RouteWheel); a reset or a lost focus as a cancel of
     /// every pointer holding a button. A pointer's records are the UI's
     /// when a record it posts is handled, while the UI holds the pointer
     /// (pressed or captured), or where the point hits a node that does
-    /// not pass input through (muiHitTest); a key, text or wheel is the
+    /// not pass input through (muiNode_HitTest); a key, text or wheel is the
     /// UI's when routing handles it. A glue that takes gamepads takes
     /// their records, which have no window, as navigation for the player
-    /// the host names (muiNavigationInput): the d-pad, and the left stick
+    /// the host names (muiNode_RouteNavigation): the d-pad, and the left stick
     /// past its threshold, the four directions; the south face activate
     /// and the east cancel, or the other way with confirmEast; the left
     /// and right shoulders previous and next. Records of other windows
@@ -145,7 +145,7 @@ extern "C"
 
     /// Continues the directions gamepads hold, for a glue that takes
     /// gamepads: each direction held past the repeat delay navigates
-    /// again (muiNavigationInput) at the repeat interval, one direction
+    /// again (muiNode_RouteNavigation) at the repeat interval, one direction
     /// a call. The host calls it each frame with the time on the
     /// records' clock.
     ///

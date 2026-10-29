@@ -198,7 +198,7 @@ void muiDestroyAccessTree(muiAccessTree* tree)
     DestroyAccessTree(tree);
 }
 
-uint64_t muiGetAccessTreeMisuse(const muiAccessTree* tree)
+uint64_t muiAccessTree_GetMisuse(const muiAccessTree* tree)
 {
     return tree != nullptr ? tree->misuse : 0;
 }
@@ -257,7 +257,7 @@ uint64_t muiAccessTree_GetFocus(const muiAccessTree* tree)
     return tree != nullptr ? tree->focus : 0;
 }
 
-uint32_t muiAccessTree_Count(const muiAccessTree* tree)
+uint32_t muiAccessTree_GetNodeCount(const muiAccessTree* tree)
 {
     return tree != nullptr ? tree->count : 0;
 }
@@ -381,7 +381,7 @@ static const char* const s_roles[] = {
 
 static_assert(sizeof(s_roles) / sizeof(s_roles[0]) == MUI_ROLE_LAST + 1, "a name for every role");
 
-const char* muiAccessRoleName(muiRole role)
+const char* muiGetAccessRoleName(muiRole role)
 {
     return role <= MUI_ROLE_LAST ? s_roles[role] : "unknown";
 }
@@ -470,7 +470,7 @@ static void PutNode(Writer* writer, const muiAccessNode* node, uint32_t depth)
     {
         Put(writer, "  ", 2);
     }
-    PutText(writer, muiAccessRoleName(node->role));
+    PutText(writer, muiGetAccessRoleName(node->role));
     PutCount(writer, " #", (uint32_t)node->id);
     if (node->flags != 0)
     {

@@ -113,8 +113,8 @@ static void TestLayers(void)
     Scene scene = MakeScene();
     const muiLinearColor green = {0.0f, 1.0f, 0.0f, 1.0f};
     muiGlyphImage image = {0};
-    CHECK(muiRenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 0, green, &image,
-                              s_pixels, sizeof s_pixels) == mui_success &&
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 0, green,
+                                          &image, s_pixels, sizeof s_pixels) == mui_success &&
               image.left == 1 && image.top == 8 && image.width == 8 && image.height == 8,
           "the layers' joint box");
     // Blue at alpha 128 over red: linear 0.498 red and 0.502 blue, 187
@@ -126,34 +126,34 @@ static void TestLayers(void)
     CHECK(Is(&image, 3, 2, 0, 255, 0, 255) && Is(&image, 4, 3, 0, 255, 0, 255) &&
               Is(&image, 2, 2, 255, 0, 0, 255),
           "the text's colour");
-    CHECK(muiRenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 1, green, &image,
-                              s_pixels, sizeof s_pixels) == mui_success &&
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 1, green,
+                                          &image, s_pixels, sizeof s_pixels) == mui_success &&
               Is(&image, 1, 7, 0, 255, 0, 255) && Is(&image, 8, 0, 255, 255, 0, 255),
           "the second palette");
-    CHECK(muiRenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 7, green, &image,
-                              s_pixels, sizeof s_pixels) == mui_success &&
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 7, green,
+                                          &image, s_pixels, sizeof s_pixels) == mui_success &&
               Is(&image, 1, 7, 255, 0, 0, 255),
           "a palette past the font's, the first");
     const muiLinearColor clear = {0.0f, 0.0f, 0.0f, 0.0f};
-    CHECK(muiRenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 0, clear, &image,
-                              s_pixels, sizeof s_pixels) == mui_success &&
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 0, clear,
+                                          &image, s_pixels, sizeof s_pixels) == mui_success &&
               Is(&image, 3, 2, 255, 0, 0, 255),
           "a clear text colour shows what is under it");
     // Half a pixel right: the joint box widens by one, its first column
     // half covered by red.
-    CHECK(muiRenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.5f, 0, green, &image,
-                              s_pixels, sizeof s_pixels) == mui_success &&
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.5f, 0, green,
+                                          &image, s_pixels, sizeof s_pixels) == mui_success &&
               image.left == 1 && image.width == 9 && Is(&image, 1, 7, 188, 0, 0, 128),
           "an offset pen");
     unsigned char first[9 * 8 * 4];
     memcpy(first, s_pixels, sizeof first);
-    CHECK(muiRenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.5f, 0, green, &image,
-                              s_pixels, sizeof s_pixels) == mui_success &&
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.5f, 0, green,
+                                          &image, s_pixels, sizeof s_pixels) == mui_success &&
               memcmp(first, s_pixels, sizeof first) == 0,
           "rendered again, the same");
     image = (muiGlyphImage){5, 5, 5, 5};
-    CHECK(muiRenderColorGlyph(scene.service, scene.font, GLYPH_B, 10.0f, 0.0f, 0, green, &image,
-                              s_pixels, sizeof s_pixels) == mui_empty &&
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, GLYPH_B, 10.0f, 0.0f, 0, green,
+                                          &image, s_pixels, sizeof s_pixels) == mui_empty &&
               image.width == 0 && image.height == 0,
           "a glyph without colour is empty");
     muiDestroyTextService(scene.service);
@@ -165,8 +165,9 @@ static bool BoxIs(Scene* scene, uint32_t glyph, float offset, int32_t left, int3
                   uint32_t width, uint32_t height, muiGlyphImage* image)
 {
     const muiLinearColor green = {0.0f, 1.0f, 0.0f, 1.0f};
-    return muiRenderColorGlyph(scene->service, scene->font, glyph, 10.0f, offset, 0, green, image,
-                               s_pixels, sizeof s_pixels) == mui_success &&
+    return muiTextService_RenderColorGlyph(scene->service, scene->font, glyph, 10.0f, offset, 0,
+                                           green, image, s_pixels,
+                                           sizeof s_pixels) == mui_success &&
            image->left == left && image->top == top && image->width == width &&
            image->height == height;
 }
@@ -181,8 +182,8 @@ static void TestPaints(void)
               Is(&image, 3, 2, 188, 188, 0, 255) && Is(&image, 5, 2, 255, 0, 0, 255),
           "layers, a solid's alpha and the text's colour");
     const muiLinearColor green = {0.0f, 1.0f, 0.0f, 1.0f};
-    CHECK(muiRenderColorGlyph(scene.service, scene.font, LAYERED, 10.0f, 0.0f, 1, green, &image,
-                              s_pixels, sizeof s_pixels) == mui_success &&
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, LAYERED, 10.0f, 0.0f, 1, green,
+                                          &image, s_pixels, sizeof s_pixels) == mui_success &&
               Is(&image, 1, 7, 0, 255, 0, 255),
           "a graph in the second palette");
     CHECK(BoxIs(&scene, MOVED, 0.0f, 6, 5, 2, 2, &image) && Is(&image, 6, 3, 255, 0, 0, 255) &&
@@ -217,14 +218,16 @@ static void TestPaints(void)
     CHECK(BoxIs(&scene, NESTED, 0.0f, 4, 3, 3, 1, &image) && Is(&image, 4, 2, 255, 0, 0, 255) &&
               Is(&image, 6, 2, 255, 0, 0, 255),
           "transforms nested, the outer applied last");
-    CHECK(muiRenderColorGlyph(scene.service, scene.font, LOOPED, 10.0f, 0.0f, 0, green, &image,
-                              s_pixels, sizeof s_pixels) == mui_errorFormat,
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, LOOPED, 10.0f, 0.0f, 0, green,
+                                          &image, s_pixels, sizeof s_pixels) == mui_errorFormat,
           "a graph that paints itself");
-    CHECK(muiRenderColorGlyph(scene.service, scene.font, BOXED_LOOP, 10.0f, 0.0f, 0, green, &image,
-                              s_pixels, sizeof s_pixels) == mui_errorFormat,
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, BOXED_LOOP, 10.0f, 0.0f, 0,
+                                          green, &image, s_pixels,
+                                          sizeof s_pixels) == mui_errorFormat,
           "a graph that paints itself, in a clip box");
-    CHECK(muiRenderColorGlyph(scene.service, scene.font, FLATTENED, 10.0f, 0.0f, 0, green, &image,
-                              s_pixels, sizeof s_pixels) == mui_errorFormat,
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, FLATTENED, 10.0f, 0.0f, 0,
+                                          green, &image, s_pixels,
+                                          sizeof s_pixels) == mui_errorFormat,
           "a skew of a quarter turn, its outline without end");
     muiDestroyTextService(scene.service);
 }
@@ -291,8 +294,9 @@ static void TestHardStop(void)
     Scene scene = MakeScene();
     const muiLinearColor green = {0.0f, 1.0f, 0.0f, 1.0f};
     muiGlyphImage image = {0};
-    CHECK(muiRenderColorGlyph(scene.service, scene.font, LINEAR_HARD, 15.625f, 0.0f, 0, green,
-                              &image, s_pixels, sizeof s_pixels) == mui_success &&
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, LINEAR_HARD, 15.625f, 0.0f, 0,
+                                          green, &image, s_pixels,
+                                          sizeof s_pixels) == mui_success &&
               Mixed(&image, 5, 4, 255, 0) && Mixed(&image, 6, 4, 0, 255),
           "a hard stop, the later stop at its offset");
     muiDestroyTextService(scene.service);
@@ -317,11 +321,12 @@ static void TestBranched(void)
     Scene scene = MakeScene();
     const muiLinearColor ink = {0.2f, 0.4f, 0.8f, 0.75f};
     muiGlyphImage image = {0};
-    CHECK(muiRenderColorGlyph(scene.service, scene.font, BRANCHED, 10.0f, 0.0f, 0, ink, &image,
-                              s_pixels, sizeof s_pixels) == mui_errorFormat,
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, BRANCHED, 10.0f, 0.0f, 0, ink,
+                                          &image, s_pixels, sizeof s_pixels) == mui_errorFormat,
           "a graph's box of too many paints refused");
-    CHECK(muiRenderColorGlyph(scene.service, scene.font, BOXED_BRANCHED, 10.0f, 0.0f, 0, ink,
-                              &image, s_pixels, sizeof s_pixels) == mui_errorFormat,
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, BOXED_BRANCHED, 10.0f, 0.0f, 0,
+                                          ink, &image, s_pixels,
+                                          sizeof s_pixels) == mui_errorFormat,
           "a graph of too many paints refused");
     muiDestroyTextService(scene.service);
 }
@@ -331,29 +336,34 @@ static void TestContract(void)
     Scene scene = MakeScene();
     const muiLinearColor green = {0.0f, 1.0f, 0.0f, 1.0f};
     muiGlyphImage image = {0};
-    CHECK(muiRenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 0, green, &image,
-                              NULL, 0) == mui_errorCapacity &&
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 0, green,
+                                          &image, NULL, 0) == mui_errorCapacity &&
               image.width == 8 && image.height == 8,
           "too few bytes, the size told");
-    CHECK(muiRenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 0, green, &image,
-                              s_pixels, 8 * 8 * 4 - 1) == mui_errorCapacity &&
-              muiRenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 0, green, &image,
-                                  s_pixels, 8 * 8 * 4) == mui_success,
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 0, green,
+                                          &image, s_pixels, 8 * 8 * 4 - 1) == mui_errorCapacity &&
+              muiTextService_RenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 0,
+                                              green, &image, s_pixels, 8 * 8 * 4) == mui_success,
           "four bytes a pixel");
-    CHECK(muiRenderColorGlyph(NULL, scene.font, GLYPH_A, 10.0f, 0.0f, 0, green, &image, s_pixels,
-                              sizeof s_pixels) == mui_errorInvalid &&
-              muiRenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 0, green, NULL,
-                                  s_pixels, sizeof s_pixels) == mui_errorInvalid &&
-              muiRenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 0, green, &image,
-                                  NULL, 4) == mui_errorInvalid &&
-              muiRenderColorGlyph(scene.service, scene.font, GLYPH_A, 0.0f, 0.0f, 0, green, &image,
-                                  s_pixels, sizeof s_pixels) == mui_errorInvalid &&
-              muiRenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 1.0f, 0, green, &image,
-                                  s_pixels, sizeof s_pixels) == mui_errorInvalid &&
-              muiRenderColorGlyph(scene.service, scene.font, 100, 10.0f, 0.0f, 0, green, &image,
-                                  s_pixels, sizeof s_pixels) == mui_errorInvalid &&
-              muiRenderColorGlyph(scene.service, scene.font + 1, GLYPH_A, 10.0f, 0.0f, 0, green,
-                                  &image, s_pixels, sizeof s_pixels) == mui_errorStale,
+    CHECK(muiTextService_RenderColorGlyph(NULL, scene.font, GLYPH_A, 10.0f, 0.0f, 0, green, &image,
+                                          s_pixels, sizeof s_pixels) == mui_errorInvalid &&
+              muiTextService_RenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 0,
+                                              green, NULL, s_pixels,
+                                              sizeof s_pixels) == mui_errorInvalid &&
+              muiTextService_RenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 0.0f, 0,
+                                              green, &image, NULL, 4) == mui_errorInvalid &&
+              muiTextService_RenderColorGlyph(scene.service, scene.font, GLYPH_A, 0.0f, 0.0f, 0,
+                                              green, &image, s_pixels,
+                                              sizeof s_pixels) == mui_errorInvalid &&
+              muiTextService_RenderColorGlyph(scene.service, scene.font, GLYPH_A, 10.0f, 1.0f, 0,
+                                              green, &image, s_pixels,
+                                              sizeof s_pixels) == mui_errorInvalid &&
+              muiTextService_RenderColorGlyph(scene.service, scene.font, 100, 10.0f, 0.0f, 0, green,
+                                              &image, s_pixels,
+                                              sizeof s_pixels) == mui_errorInvalid &&
+              muiTextService_RenderColorGlyph(scene.service, scene.font + 1, GLYPH_A, 10.0f, 0.0f,
+                                              0, green, &image, s_pixels,
+                                              sizeof s_pixels) == mui_errorStale,
           "outside the contract");
     muiDestroyTextService(scene.service);
 }
@@ -402,8 +412,8 @@ static bool DrawDamaged(muiTextService* service, uint64_t font, uint32_t glyphCo
         {
             muiGlyphImage image = {0};
             muiResult result =
-                muiRenderColorGlyph(service, font, glyph, i == 0 ? 10.0f : 40.0f, 0.25f, glyph % 2,
-                                    green, &image, s_large, sizeof s_large);
+                muiTextService_RenderColorGlyph(service, font, glyph, i == 0 ? 10.0f : 40.0f, 0.25f,
+                                                glyph % 2, green, &image, s_large, sizeof s_large);
             allowed = allowed &&
                       (result == mui_success || result == mui_empty || result == mui_errorFormat ||
                        (result == mui_errorInvalid && glyph >= glyphCount) ||
@@ -495,12 +505,14 @@ static void TestOnePalette(void)
     CHECK(muiCreateFont(service, &font, &id) == mui_success, "one palette");
     const muiLinearColor green = {0.0f, 1.0f, 0.0f, 1.0f};
     muiGlyphImage image = {0};
-    CHECK(muiRenderColorGlyph(service, muiFont_GetKey(id), GLYPH_A, 10.0f, 0.0f, 0, green, &image,
-                              s_pixels, sizeof s_pixels) == mui_success &&
+    CHECK(muiTextService_RenderColorGlyph(service, muiFont_GetKey(id), GLYPH_A, 10.0f, 0.0f, 0,
+                                          green, &image, s_pixels,
+                                          sizeof s_pixels) == mui_success &&
               Is(&image, 1, 7, 255, 0, 0, 255) && Is(&image, 8, 0, 187, 0, 188, 255),
           "its palette's colours");
-    CHECK(muiRenderColorGlyph(service, muiFont_GetKey(id), GLYPH_A, 10.0f, 0.0f, 1, green, &image,
-                              s_pixels, sizeof s_pixels) == mui_success &&
+    CHECK(muiTextService_RenderColorGlyph(service, muiFont_GetKey(id), GLYPH_A, 10.0f, 0.0f, 1,
+                                          green, &image, s_pixels,
+                                          sizeof s_pixels) == mui_success &&
               Is(&image, 1, 7, 255, 0, 0, 255),
           "the second, past the font's, is the first");
     muiDestroyTextService(service);
@@ -538,12 +550,13 @@ static void TestReversedClipBox(void)
     CHECK(muiCreateFont(service, &font, &id) == mui_success, "a reversed clip box");
     const muiLinearColor green = {0.0f, 1.0f, 0.0f, 1.0f};
     muiGlyphImage image = {7, 7, 7, 7};
-    CHECK(muiRenderColorGlyph(service, muiFont_GetKey(id), CLIPPED, 10.0f, 0.0f, 0, green, &image,
-                              s_pixels, sizeof s_pixels) == mui_errorFormat &&
+    CHECK(muiTextService_RenderColorGlyph(service, muiFont_GetKey(id), CLIPPED, 10.0f, 0.0f, 0,
+                                          green, &image, s_pixels,
+                                          sizeof s_pixels) == mui_errorFormat &&
               image.width == 0 && image.height == 0,
           "refused as malformed, with no image");
-    CHECK(muiRenderColorGlyph(service, muiFont_GetKey(id), MOVED, 10.0f, 0.0f, 0, green, &image,
-                              s_pixels, sizeof s_pixels) == mui_success,
+    CHECK(muiTextService_RenderColorGlyph(service, muiFont_GetKey(id), MOVED, 10.0f, 0.0f, 0, green,
+                                          &image, s_pixels, sizeof s_pixels) == mui_success,
           "the font's other glyphs drawn");
     muiDestroyTextService(service);
 }
@@ -592,9 +605,9 @@ static void TestWholeImages(void)
     for (uint32_t k = 0; k < 4; k++)
     {
         muiGlyphImage image = {0};
-        muiResult result = muiRenderColorGlyph(scene.service, scene.font, GLYPH_A, layers[k].size,
-                                               layers[k].offset, layers[k].palette, ink, &image,
-                                               s_pixels, sizeof s_pixels);
+        muiResult result = muiTextService_RenderColorGlyph(
+            scene.service, scene.font, GLYPH_A, layers[k].size, layers[k].offset, layers[k].palette,
+            ink, &image, s_pixels, sizeof s_pixels);
         got[n++] = Outcome(result, &image);
     }
     for (uint32_t glyph = LAYERED; glyph <= COMPOSITED; glyph++)
@@ -602,9 +615,9 @@ static void TestWholeImages(void)
         for (uint32_t k = 0; k < 2; k++)
         {
             muiGlyphImage image = {0};
-            muiResult result = muiRenderColorGlyph(scene.service, scene.font, glyph,
-                                                   k == 0 ? 16.0f : 27.5f, k == 0 ? 0.0f : 0.25f, 0,
-                                                   ink, &image, s_pixels, sizeof s_pixels);
+            muiResult result = muiTextService_RenderColorGlyph(
+                scene.service, scene.font, glyph, k == 0 ? 16.0f : 27.5f, k == 0 ? 0.0f : 0.25f, 0,
+                ink, &image, s_pixels, sizeof s_pixels);
             got[n++] = Outcome(result, &image);
         }
     }

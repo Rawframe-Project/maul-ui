@@ -120,7 +120,7 @@ extern "C"
     /// @return The count; 0 for a NULL adapter.
     /// @par Thread safety
     /// Main thread only.
-    MUI_API uint64_t muiGetAndroidAdapterMisuse(const muiAndroidAdapter* adapter);
+    MUI_API uint64_t muiAndroidAdapter_GetMisuse(const muiAndroidAdapter* adapter);
 
     /// Applies an update to the adapter's tree (muiAccessTree_Apply).
     ///

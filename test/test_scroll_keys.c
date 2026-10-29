@@ -78,7 +78,7 @@ static void Focusable(muiContext* context, muiNodeId node)
 static void Layout(muiContext* context, muiNodeId root, uint64_t timeNs)
 {
     const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, timeNs, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
 }
 
 static muiContext* MakeContext(bool ease)
@@ -90,7 +90,7 @@ static muiContext* MakeContext(bool ease)
     {
         muiScrollRule rule = muiDefaultScrollRule();
         rule.easeNs = 0;
-        CHECK(muiSetScrollRule(context, &rule) == mui_success, "no easing");
+        CHECK(muiContext_SetScrollRule(context, &rule) == mui_success, "no easing");
     }
     return context;
 }
@@ -115,7 +115,7 @@ static bool Turn(muiContext* context, muiNodeId root, uint64_t timeNs, float del
 {
     const muiWheelEvent event = {timeNs, 50.0f, 25.0f, 0.0f, deltaY, 0, 0};
     bool handled = false;
-    CHECK(muiWheelInput(context, root, &event, &handled) == mui_success, "wheel");
+    CHECK(muiNode_RouteWheel(context, root, &event, &handled) == mui_success, "wheel");
     return handled;
 }
 
@@ -123,7 +123,7 @@ static bool Key(muiContext* context, muiNodeId root, muiKeyCode code, muiModifie
 {
     const muiKeyEvent event = {.timeNs = 0, .code = code, .modifiers = modifiers, .down = true};
     bool handled = false;
-    CHECK(muiKeyInput(context, root, &event, &handled) == mui_success, "key");
+    CHECK(muiNode_RouteKey(context, root, &event, &handled) == mui_success, "key");
     return handled;
 }
 
@@ -161,7 +161,7 @@ static void TestEase(void)
     MakeScene(&scene, true, 5);
     muiContext* context = scene.context;
     CHECK(Turn(context, scene.root, 0, -1.0f) && Y(context, scene.s) == 0.0f &&
-              muiIsUpdatePending(context, scene.root),
+              muiNode_IsUpdatePending(context, scene.root),
           "a detent eases");
     Layout(context, scene.root, 75 * MS);
     CHECK(Y(context, scene.s) == 87.5f, "half the time: a cubic ease out");
@@ -170,10 +170,10 @@ static void TestEase(void)
     Layout(context, scene.root, 150 * MS);
     CHECK(Y(context, scene.s) == 87.5f + 62.5f * 0.875f, "retargeted, within the limit");
     Layout(context, scene.root, 225 * MS);
-    CHECK(Y(context, scene.s) == 150.0f && !muiIsUpdatePending(context, scene.root), "done");
+    CHECK(Y(context, scene.s) == 150.0f && !muiNode_IsUpdatePending(context, scene.root), "done");
     // A fraction applies at once and stops the step.
     CHECK(Turn(context, scene.root, 300 * MS, 1.0f) && Turn(context, scene.root, 310 * MS, 0.5f) &&
-              Y(context, scene.s) == 100.0f && !muiIsUpdatePending(context, scene.root),
+              Y(context, scene.s) == 100.0f && !muiNode_IsUpdatePending(context, scene.root),
           "a fraction at once");
     // Setting the offset stops a step.
     CHECK(Turn(context, scene.root, 400 * MS, -1.0f) &&
@@ -185,7 +185,7 @@ static void TestEase(void)
     // that a shorter list cuts ends at the new limit.
     CHECK(Turn(context, scene.root, 700 * MS, -1.0f), "down");
     Layout(context, scene.root, 600 * MS);
-    CHECK(Y(context, scene.s) == 10.0f && muiIsUpdatePending(context, scene.root),
+    CHECK(Y(context, scene.s) == 10.0f && muiNode_IsUpdatePending(context, scene.root),
           "the time before the step: its start");
     CHECK(muiDestroyNode(context, scene.items[4]) == mui_success, "shorter");
     Layout(context, scene.root, 850 * MS);
@@ -193,10 +193,10 @@ static void TestEase(void)
     // Reduced motion jumps.
     muiEnvironment environment = muiDefaultEnvironment();
     environment.reducedMotion = true;
-    CHECK(muiSetContextEnvironment(context, &environment) == mui_success, "reduced motion set");
+    CHECK(muiContext_SetEnvironment(context, &environment) == mui_success, "reduced motion set");
     Layout(context, scene.root, 880 * MS);
     CHECK(Turn(context, scene.root, 900 * MS, 1.0f) && Y(context, scene.s) == 0.0f &&
-              !muiIsUpdatePending(context, scene.root),
+              !muiNode_IsUpdatePending(context, scene.root),
           "reduced motion");
     muiDestroyContext(context);
 }
@@ -210,23 +210,23 @@ static void TestEaseEnds(void)
     muiContext* context = scene.context;
     muiNodeId other = Sized(context, s_nullNode, 10.0f, 10.0f);
     Layout(context, other, 0);
-    CHECK(Turn(context, scene.root, 0, -1.0f) && muiIsUpdatePending(context, scene.root) &&
-              !muiIsUpdatePending(context, other),
+    CHECK(Turn(context, scene.root, 0, -1.0f) && muiNode_IsUpdatePending(context, scene.root) &&
+              !muiNode_IsUpdatePending(context, other),
           "pending under its own root only");
     muiNodeId s = scene.s;
     CHECK(muiNode_Detach(context, s) == mui_success, "out of the tree");
     CHECK(muiDestroyNode(context, s) == mui_success, "gone");
     Layout(context, scene.root, 50 * MS);
-    CHECK(!muiIsUpdatePending(context, scene.root), "dropped");
+    CHECK(!muiNode_IsUpdatePending(context, scene.root), "dropped");
     muiDestroyContext(context);
     MakeScene(&scene, true, 5);
     context = scene.context;
     CHECK(Turn(context, scene.root, 0, -1.0f), "down");
     muiScrollRule rule = muiDefaultScrollRule();
     rule.easeNs = 0;
-    CHECK(muiSetScrollRule(context, &rule) == mui_success, "no easing");
+    CHECK(muiContext_SetScrollRule(context, &rule) == mui_success, "no easing");
     Layout(context, scene.root, 1);
-    CHECK(Y(context, scene.s) == 100.0f && !muiIsUpdatePending(context, scene.root),
+    CHECK(Y(context, scene.s) == 100.0f && !muiNode_IsUpdatePending(context, scene.root),
           "ended at once");
     muiDestroyContext(context);
 }
@@ -248,13 +248,14 @@ static void TestFull(void)
     {
         const muiWheelEvent event = {0, 100.0f * (float)i + 50.0f, 50.0f, 0.0f, -1.0f, 0, 0};
         bool handled = false;
-        CHECK(muiWheelInput(context, root, &event, &handled) == mui_success && handled, "wheel");
+        CHECK(muiNode_RouteWheel(context, root, &event, &handled) == mui_success && handled,
+              "wheel");
     }
     CHECK(Y(context, lists[7]) == 0.0f && Y(context, lists[8]) == 100.0f, "the ninth jumps");
     // A second step for an easing one retargets it, not a new entry.
     const muiWheelEvent again = {1, 50.0f, 50.0f, 0.0f, -1.0f, 0, 0};
     bool handled = false;
-    CHECK(muiWheelInput(context, root, &again, &handled) == mui_success && handled, "again");
+    CHECK(muiNode_RouteWheel(context, root, &again, &handled) == mui_success && handled, "again");
     Layout(context, root, 500 * MS);
     CHECK(Y(context, lists[0]) == 200.0f && Y(context, lists[7]) == 100.0f, "all done");
     muiDestroyContext(context);
@@ -281,33 +282,34 @@ static void TestArrows(void)
     muiNodeId below = Sized(context, root, 200.0f, 50.0f);
     Focusable(context, below);
     Layout(context, root, 0);
-    CHECK(muiFocus_Set(context, 0, items[0], mui_focusByCode) == mui_success, "focus");
-    CHECK(Key(context, root, mui_codeArrowDown, 0) && Same(muiFocus_Get(context, 0), items[1]) &&
-              Y(context, s) == 0.0f,
+    CHECK(muiContext_SetFocus(context, 0, items[0], mui_focusByCode) == mui_success, "focus");
+    CHECK(Key(context, root, mui_codeArrowDown, 0) &&
+              Same(muiContext_GetFocus(context, 0), items[1]) && Y(context, s) == 0.0f,
           "near: the focus moves");
-    CHECK(Key(context, root, mui_codeArrowDown, 0) && Same(muiFocus_Get(context, 0), items[2]) &&
-              Y(context, s) == 50.0f,
+    CHECK(Key(context, root, mui_codeArrowDown, 0) &&
+              Same(muiContext_GetFocus(context, 0), items[2]) && Y(context, s) == 50.0f,
           "near below: moved and into view");
     // items[3] spans 450 to 500: near once the offset is 300 (450 - 300 - 50
     // is 100, the scrollport's end).
     for (int i = 0; i < 7; i++)
     {
-        CHECK(Key(context, root, mui_codeArrowDown, 0) && Same(muiFocus_Get(context, 0), items[2]),
+        CHECK(Key(context, root, mui_codeArrowDown, 0) &&
+                  Same(muiContext_GetFocus(context, 0), items[2]),
               "far: a line");
     }
     CHECK(Y(context, s) == 330.0f, "seven lines, from 50 to 330");
-    CHECK(Key(context, root, mui_codeArrowDown, 0) && Same(muiFocus_Get(context, 0), items[3]) &&
-              Y(context, s) == 400.0f,
+    CHECK(Key(context, root, mui_codeArrowDown, 0) &&
+              Same(muiContext_GetFocus(context, 0), items[3]) && Y(context, s) == 400.0f,
           "then the focus, into view");
     // At its end with nothing below inside, the focus leaves the list.
-    CHECK(Key(context, root, mui_codeArrowDown, 0) && Same(muiFocus_Get(context, 0), below),
+    CHECK(Key(context, root, mui_codeArrowDown, 0) && Same(muiContext_GetFocus(context, 0), below),
           "out of the list");
     // Up from below: the list is outside the focus's scrollers, so plain
     // navigation; then up inside, far again.
-    CHECK(Key(context, root, mui_codeArrowUp, 0) && Same(muiFocus_Get(context, 0), items[3]),
+    CHECK(Key(context, root, mui_codeArrowUp, 0) && Same(muiContext_GetFocus(context, 0), items[3]),
           "back in");
-    CHECK(Key(context, root, mui_codeArrowUp, 0) && Same(muiFocus_Get(context, 0), items[3]) &&
-              Y(context, s) == 360.0f,
+    CHECK(Key(context, root, mui_codeArrowUp, 0) &&
+              Same(muiContext_GetFocus(context, 0), items[3]) && Y(context, s) == 360.0f,
           "far above: a line up");
     // Across, a vertical list does not scroll: plain navigation, nothing
     // there.
@@ -318,12 +320,13 @@ static void TestArrows(void)
     // A gamepad's directions follow the same rule.
     const muiNavigationEvent up = {0, mui_navigateUp, 0};
     bool handled = false;
-    CHECK(muiNavigationInput(context, root, &up, &handled) == mui_success && handled &&
+    CHECK(muiNode_RouteNavigation(context, root, &up, &handled) == mui_success && handled &&
               Y(context, s) == 320.0f,
           "navigation up: a line");
     // A link out of the list is followed at once.
     CHECK(muiNode_SetNeighbor(context, items[3], mui_directionUp, below) == mui_success &&
-              Key(context, root, mui_codeArrowUp, 0) && Same(muiFocus_Get(context, 0), below),
+              Key(context, root, mui_codeArrowUp, 0) &&
+              Same(muiContext_GetFocus(context, 0), below),
           "a link out");
     muiDestroyContext(context);
 }
@@ -338,7 +341,7 @@ static void TestPages(void)
     CHECK(!Key(context, root, mui_codePageDown, 0), "no focus, a root that does not scroll");
     Focusable(context, scene.items[0]);
     Layout(context, root, 0);
-    CHECK(muiFocus_Set(context, 0, scene.items[0], mui_focusByCode) == mui_success, "focus");
+    CHECK(muiContext_SetFocus(context, 0, scene.items[0], mui_focusByCode) == mui_success, "focus");
     CHECK(Key(context, root, mui_codePageDown, 0) && Y(context, scene.s) == 87.5f, "page down");
     CHECK(Key(context, root, mui_codeSpace, 0) && Y(context, scene.s) == 175.0f, "space");
     CHECK(!Key(context, root, mui_codeSpace, mui_modAlt) && Y(context, scene.s) == 175.0f,
@@ -362,17 +365,17 @@ static void TestPages(void)
     rule.easeNs = 0;
     rule.pageFraction = 0.5f;
     rule.lineStep = 7.0f;
-    CHECK(muiSetScrollRule(context, &rule) == mui_success &&
+    CHECK(muiContext_SetScrollRule(context, &rule) == mui_success &&
               Key(context, root, mui_codePageDown, 0) && Y(context, scene.s) == 50.0f,
           "half a page");
     CHECK(X(context, scene.s) == 0.0f, "across unmoved");
     rule.pageFraction = 0.0f;
-    CHECK(muiSetScrollRule(context, &rule) == mui_errorInvalid, "no page");
+    CHECK(muiContext_SetScrollRule(context, &rule) == mui_errorInvalid, "no page");
     rule.pageFraction = 1.5f;
-    CHECK(muiSetScrollRule(context, &rule) == mui_errorInvalid, "more than a page");
+    CHECK(muiContext_SetScrollRule(context, &rule) == mui_errorInvalid, "more than a page");
     rule.pageFraction = 1.0f;
     rule.lineStep = -1.0f;
-    CHECK(muiSetScrollRule(context, &rule) == mui_errorInvalid, "a negative line");
+    CHECK(muiContext_SetScrollRule(context, &rule) == mui_errorInvalid, "a negative line");
     muiDestroyContext(context);
 }
 
@@ -391,7 +394,7 @@ static void TestReversedPages(void)
                   MUI_PROPERTY_BIT(mui_propertyFlexDirection));
     Focusable(context, scene.items[0]);
     Layout(context, scene.root, 0);
-    CHECK(muiFocus_Set(context, 0, scene.items[0], mui_focusByCode) == mui_success, "focus");
+    CHECK(muiContext_SetFocus(context, 0, scene.items[0], mui_focusByCode) == mui_success, "focus");
     CHECK(!Key(context, scene.root, mui_codePageDown, 0) && Y(context, scene.s) == 0.0f,
           "at its bottom: a page down cannot");
     CHECK(Key(context, scene.root, mui_codePageUp, 0) && Y(context, scene.s) == 87.5f, "a page up");
@@ -409,22 +412,23 @@ static void TestEaseMore(void)
     muiContext* context = scene.context;
     const muiDrawInput input = {1, 1.0f, NULL, NULL};
     muiDrawList drawn;
-    CHECK(muiBuildDrawList(context, scene.root, &input) == mui_success, "drawn");
+    CHECK(muiNode_BuildDrawList(context, scene.root, &input) == mui_success, "drawn");
     CHECK(Turn(context, scene.root, 0, -1.0f), "down");
     Layout(context, scene.root, 75 * MS);
-    CHECK(muiBuildDrawList(context, scene.root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success && drawn.transforms[1].f == -88.0f,
+    CHECK(muiNode_BuildDrawList(context, scene.root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success &&
+              drawn.transforms[1].f == -88.0f,
           "drawn as it eases, at a whole pixel");
     CHECK(muiNode_ScrollIntoView(context, scene.items[0]) == mui_success &&
               Y(context, scene.s) == 0.0f,
           "into view");
     Layout(context, scene.root, 150 * MS);
-    CHECK(Y(context, scene.s) == 0.0f && !muiIsUpdatePending(context, scene.root),
+    CHECK(Y(context, scene.s) == 0.0f && !muiNode_IsUpdatePending(context, scene.root),
           "the step stopped");
     CHECK(Turn(context, scene.root, 200 * MS, -1.0f), "down again");
     muiEnvironment environment = muiDefaultEnvironment();
     environment.reducedMotion = true;
-    CHECK(muiSetContextEnvironment(context, &environment) == mui_success &&
+    CHECK(muiContext_SetEnvironment(context, &environment) == mui_success &&
               Turn(context, scene.root, 201 * MS, -1.0f) && Y(context, scene.s) == 150.0f,
           "jumped past the step");
     Layout(context, scene.root, 202 * MS);
@@ -439,7 +443,7 @@ static void TestEaseMore(void)
     Layout(context, root, 0);
     const muiWheelEvent event = {0, 50.0f, 50.0f, 0.5f, -1.0f, 0, 0};
     bool handled = false;
-    CHECK(muiWheelInput(context, root, &event, &handled) == mui_success && handled &&
+    CHECK(muiNode_RouteWheel(context, root, &event, &handled) == mui_success && handled &&
               X(context, both) == 50.0f && Y(context, both) == 100.0f,
           "a fraction across: at once");
     muiDestroyContext(context);
@@ -463,15 +467,16 @@ static void TestTableReused(void)
     {
         const muiWheelEvent event = {0, 100.0f * (float)i + 50.0f, 50.0f, 0.0f, -1.0f, 0, 0};
         bool handled = false;
-        CHECK(muiWheelInput(context, root, &event, &handled) == mui_success && handled, "wheel");
+        CHECK(muiNode_RouteWheel(context, root, &event, &handled) == mui_success && handled,
+              "wheel");
         CHECK(muiDestroyNode(context, lists[i]) == mui_success, "gone");
     }
     Layout(context, root, 1);
     // The others gone, it is first in the row.
     const muiWheelEvent last = {1, 50.0f, 50.0f, 0.0f, -1.0f, 0, 0};
     bool handled = false;
-    CHECK(muiWheelInput(context, root, &last, &handled) == mui_success && handled &&
-              Y(context, lists[8]) == 0.0f && muiIsUpdatePending(context, root),
+    CHECK(muiNode_RouteWheel(context, root, &last, &handled) == mui_success && handled &&
+              Y(context, lists[8]) == 0.0f && muiNode_IsUpdatePending(context, root),
           "the ninth eases");
     muiDestroyContext(context);
 }
@@ -496,10 +501,10 @@ static void TestBounds(void)
               mui_success,
           "a layer");
     Layout(context, root, 0);
-    CHECK(muiFocus_Set(context, 0, a, mui_focusByCode) == mui_success, "focus");
+    CHECK(muiContext_SetFocus(context, 0, a, mui_focusByCode) == mui_success, "focus");
     CHECK(!Key(context, g, mui_codePageDown, 0) && Y(context, s) == 0.0f, "not past the root");
     CHECK(Key(context, root, mui_codePageDown, 0) && Y(context, s) == 87.5f, "from the root");
-    CHECK(muiFocus_Set(context, 0, b, mui_focusByCode) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, b, mui_focusByCode) == mui_success &&
               !Key(context, root, mui_codePageDown, 0) && Y(context, s) == 87.5f,
           "not past a layer");
     muiDestroyContext(context);
@@ -516,7 +521,7 @@ static void TestBounds(void)
     Focusable(context, a);
     (void)Sized(context, s, 200.0f, 400.0f);
     Layout(context, root, 0);
-    CHECK(muiFocus_Set(context, 0, a, mui_focusByCode) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, a, mui_focusByCode) == mui_success &&
               Key(context, root, mui_codePageDown, 0) && Y(context, s) == 87.5f &&
               X(context, row) == 0.0f,
           "past the row");
@@ -547,12 +552,13 @@ static void TestNearAndAcross(void)
     muiNodeId right = Sized(context, row, 50.0f, 50.0f);
     Focusable(context, right);
     Layout(context, root, 0);
-    CHECK(muiFocus_Set(context, 0, a, mui_focusByCode) == mui_success &&
-              Key(context, root, mui_codeArrowDown, 0) && Same(muiFocus_Get(context, 0), b),
+    CHECK(muiContext_SetFocus(context, 0, a, mui_focusByCode) == mui_success &&
+              Key(context, root, mui_codeArrowDown, 0) && Same(muiContext_GetFocus(context, 0), b),
           "near enough");
-    CHECK(muiFocus_Set(context, 0, left, mui_focusByCode) == mui_success &&
-              Key(context, root, mui_codeArrowRight, 0) && Same(muiFocus_Get(context, 0), left) &&
-              X(context, row) == 40.0f && Y(context, row) == 0.0f,
+    CHECK(muiContext_SetFocus(context, 0, left, mui_focusByCode) == mui_success &&
+              Key(context, root, mui_codeArrowRight, 0) &&
+              Same(muiContext_GetFocus(context, 0), left) && X(context, row) == 40.0f &&
+              Y(context, row) == 0.0f,
           "a line right");
     CHECK(Key(context, root, mui_codeArrowLeft, 0) && X(context, row) == 0.0f, "a line left");
     muiDestroyContext(context);
@@ -566,7 +572,7 @@ static void TestPageMidStep(void)
     muiContext* context = scene.context;
     Focusable(context, scene.items[0]);
     Layout(context, scene.root, 0);
-    CHECK(muiFocus_Set(context, 0, scene.items[0], mui_focusByCode) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, scene.items[0], mui_focusByCode) == mui_success &&
               Key(context, scene.root, mui_codePageDown, 0) && Y(context, scene.s) == 0.0f,
           "easing");
     CHECK(Key(context, scene.root, mui_codeHome, 0), "home before any layout");
@@ -574,7 +580,7 @@ static void TestPageMidStep(void)
     CHECK(Y(context, scene.s) == 0.0f, "at the top");
     muiScrollRule rule = muiDefaultScrollRule();
     rule.lineStep = NAN;
-    CHECK(muiSetScrollRule(context, &rule) == mui_errorInvalid, "a line not finite");
+    CHECK(muiContext_SetScrollRule(context, &rule) == mui_errorInvalid, "a line not finite");
     muiDestroyContext(context);
 }
 

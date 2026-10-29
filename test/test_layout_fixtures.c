@@ -165,7 +165,7 @@ static void RunFixture(const LayoutFixture* fixture)
         .user = (void*)fixture,
         .baseline = BaselineFixture,
     };
-    CHECK(muiComputeLayout(context, ids[0], &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, ids[0], &input) == mui_success, "layout");
     for (int i = 0; i < fixture->count; i++)
     {
         CheckRect(fixture, i, muiNode_GetRect(context, ids[i]));

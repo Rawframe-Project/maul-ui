@@ -82,28 +82,28 @@ static int RenderSome(muiTextService* service, muiFontId font, uint64_t key, uin
         float size = 1.0f + (float)(Next(state) % 2000) / 10.0f;
         float offset = (float)(Next(state) % 4) / 4.0f;
         muiGlyphImage image = {0, 0, 0, 0};
-        muiResult result =
-            muiRenderGlyph(service, key, glyph, size, offset, &image, s_pixels, sizeof s_pixels);
+        muiResult result = muiTextService_RenderGlyph(service, key, glyph, size, offset, &image,
+                                                      s_pixels, sizeof s_pixels);
         CHECK(result == mui_success || result == mui_errorFormat ||
                   (result == mui_errorCapacity &&
                    (size_t)image.width * image.height > sizeof s_pixels),
               "a glyph rendered or refused");
-        result = muiRenderGlyphField(service, key, glyph, size / 4.0f, 4, &image, s_pixels,
-                                     sizeof s_pixels);
+        result = muiTextService_RenderGlyphField(service, key, glyph, size / 4.0f, 4, &image,
+                                                 s_pixels, sizeof s_pixels);
         CHECK(result == mui_success || result == mui_errorFormat ||
                   (result == mui_errorCapacity &&
                    (size_t)image.width * image.height > sizeof s_pixels),
               "a field rendered or refused");
         rendered += result == mui_success && image.width != 0 ? 1 : 0;
-        result = muiRenderGlyphMultiField(service, key, glyph, size / 4.0f, 4, &image, s_pixels,
-                                          sizeof s_pixels);
+        result = muiTextService_RenderGlyphMultiField(service, key, glyph, size / 4.0f, 4, &image,
+                                                      s_pixels, sizeof s_pixels);
         CHECK(result == mui_success || result == mui_errorFormat ||
                   (result == mui_errorCapacity &&
                    (size_t)image.width * image.height * 4 > sizeof s_pixels),
               "a multi-channel field rendered or refused");
         const muiLinearColor black = {0.0f, 0.0f, 0.0f, 1.0f};
-        result = muiRenderColorGlyph(service, key, glyph, size / 4.0f, offset, 0, black, &image,
-                                     s_pixels, sizeof s_pixels);
+        result = muiTextService_RenderColorGlyph(service, key, glyph, size / 4.0f, offset, 0, black,
+                                                 &image, s_pixels, sizeof s_pixels);
         CHECK(result == mui_success || result == mui_empty || result == mui_errorFormat ||
                   (result == mui_errorCapacity &&
                    (size_t)image.width * image.height * 4 > sizeof s_pixels),
@@ -162,7 +162,7 @@ static void TestDamagedFonts(void)
         muiTextStyle style = muiDefaultTextStyle();
         style.weight = 1.0f + (float)(Next(&state) % 1000);
         style.slant = (muiFontSlant)(Next(&state) % 3);
-        CHECK(muiSetDefaultFont(service, font) == mui_success &&
+        CHECK(muiTextService_SetDefaultFont(service, font) == mui_success &&
                   muiNode_SetTextValues(context, node, &style, INSTANCE) == mui_success &&
                   muiNode_MarkContentChanged(context, node) == mui_success,
               "the default");
@@ -170,15 +170,16 @@ static void TestDamagedFonts(void)
         const muiLayoutInput input = {200.0f, 1000.0f, muiMeasureText, &host,
                                       0,      NULL,    {0, 0, 0, 0}};
         const muiDrawInput draw = {1, 1.0f, muiPaintText, &host};
-        CHECK(muiComputeLayout(context, node, &input) == mui_success &&
-                  muiBuildDrawList(context, node, &draw) != mui_errorInvalid,
+        CHECK(muiNode_ComputeLayout(context, node, &input) == mui_success &&
+                  muiNode_BuildDrawList(context, node, &draw) != mui_errorInvalid,
               "laid out");
         muiDrawList list;
-        uint64_t key = muiGetDrawList(context, &list) == mui_success && list.commandCount != 0
-                           ? list.commands[0].glyphRun.font
-                           : muiFont_GetKey(font);
+        uint64_t key =
+            muiContext_GetDrawList(context, &list) == mui_success && list.commandCount != 0
+                ? list.commands[0].glyphRun.font
+                : muiFont_GetKey(font);
         rendered += RenderSome(service, font, key, &state);
-        CHECK(muiSetDefaultFont(service, (muiFontId){0, 0}) == mui_success &&
+        CHECK(muiTextService_SetDefaultFont(service, (muiFontId){0, 0}) == mui_success &&
                   muiDestroyFont(service, font) == mui_success,
               "destroyed");
     }
@@ -261,15 +262,17 @@ static void CheckRightLeft(const muiTextHost* host, muiNodeId node, float width,
     muiTextPosition back = {0, 0};
     muiTextCaret there = {0};
     muiTextCaret again = {0};
-    CHECK(muiTextMove(host, node, width, position, mui_moveRight, NAN, &right) == mui_success &&
-              muiTextGetCaret(host, node, width, right, &there) == mui_success,
+    CHECK(muiNode_MoveTextPosition(host, node, width, position, mui_moveRight, NAN, &right) ==
+                  mui_success &&
+              muiNode_GetTextCaret(host, node, width, right, &there) == mui_success,
           "right");
     if (there.y != caret.y || there.x == caret.x)
     {
         return;
     }
-    CHECK(muiTextMove(host, node, width, right, mui_moveLeft, NAN, &back) == mui_success &&
-              muiTextGetCaret(host, node, width, back, &again) == mui_success &&
+    CHECK(muiNode_MoveTextPosition(host, node, width, right, mui_moveLeft, NAN, &back) ==
+                  mui_success &&
+              muiNode_GetTextCaret(host, node, width, back, &again) == mui_success &&
               fabsf(again.x - caret.x) <= 0.01f && again.y == caret.y,
           "right, then left, back to the same x");
 }
@@ -287,13 +290,14 @@ static void CheckHits(const muiTextHost* host, muiNodeId node, float width, size
         muiTextPosition position = {0, 0};
         muiTextCaret caret = {0};
         muiTextCaret again = {0};
-        CHECK(muiTextHitTest(host, node, width, x, y, &position) == mui_success &&
+        CHECK(muiNode_HitTestText(host, node, width, x, y, &position) == mui_success &&
                   position.offset <= length &&
-                  muiTextGetCaret(host, node, width, position, &caret) == mui_success,
+                  muiNode_GetTextCaret(host, node, width, position, &caret) == mui_success,
               "a hit and its caret");
         muiTextPosition moved = {0, 0};
         muiTextMovement movement = (muiTextMovement)(Next(state) % (mui_moveTextEnd + 1));
-        CHECK(muiTextMove(host, node, width, position, movement, NAN, &moved) == mui_success &&
+        CHECK(muiNode_MoveTextPosition(host, node, width, position, movement, NAN, &moved) ==
+                      mui_success &&
                   moved.offset <= length,
               "a move within the text");
         CHECK(movement != mui_moveNextCluster || moved.offset > position.offset ||
@@ -307,9 +311,9 @@ static void CheckHits(const muiTextHost* host, muiNodeId node, float width, size
         CHECK(caret.x >= -0.01f && caret.x <= fmaxf(width, 0.0f) + 0.01f && caret.height > 0.0f,
               "a caret in the box");
         muiTextPosition second = {0, 0};
-        CHECK(muiTextHitTest(host, node, width, caret.x, caret.y + caret.height * 0.5f, &second) ==
-                      mui_success &&
-                  muiTextGetCaret(host, node, width, second, &again) == mui_success &&
+        CHECK(muiNode_HitTestText(host, node, width, caret.x, caret.y + caret.height * 0.5f,
+                                  &second) == mui_success &&
+                  muiNode_GetTextCaret(host, node, width, second, &again) == mui_success &&
                   fabsf(again.x - caret.x) <= 0.01f && again.y == caret.y,
               "a caret hit where it is drawn");
     }
@@ -348,8 +352,8 @@ static void TestRandomText(void)
         size_t length = RandomText(text, &state);
         int primary = round % 2;
         uint64_t other = muiFont_GetKey(fonts[1 - primary]);
-        CHECK(muiSetDefaultFont(service, fonts[primary]) == mui_success &&
-                  muiSetFallbackFonts(service, &other, 1) == mui_success,
+        CHECK(muiTextService_SetDefaultFont(service, fonts[primary]) == mui_success &&
+                  muiTextService_SetFallbackFonts(service, &other, 1) == mui_success,
               "fonts");
         muiTextBlockId block = {0, 0};
         muiTextBlockDef blockDef = muiDefaultTextBlockDef();
@@ -369,7 +373,7 @@ static void TestRandomText(void)
         float available = 5.0f + (float)(Next(&state) % 300);
         const muiLayoutInput input = {available, 1000.0f, muiMeasureText, &host,
                                       0,         NULL,    {0, 0, 0, 0}};
-        CHECK(muiComputeLayout(context, node, &input) == mui_success, "layout");
+        CHECK(muiNode_ComputeLayout(context, node, &input) == mui_success, "layout");
         const muiMeasureMode modes[4] = {mui_measureExact, mui_measureAtMost, mui_measureMaxContent,
                                          mui_measureMinContent};
         for (int m = 0; m < 4; m++)
@@ -392,9 +396,9 @@ static void TestRandomText(void)
                                : style.lineHeight;
         float lines = lineHeight > 0.0f ? roundf(rect.height / lineHeight) : 0.0f;
         const muiDrawInput draw = {1, 1.0f, muiPaintText, &host};
-        CHECK(muiBuildDrawList(context, node, &draw) == mui_success, "paint");
+        CHECK(muiNode_BuildDrawList(context, node, &draw) == mui_success, "paint");
         muiDrawList list;
-        CHECK(muiGetDrawList(context, &list) == mui_success, "list");
+        CHECK(muiContext_GetDrawList(context, &list) == mui_success, "list");
         float baselines = 0.0f;
         for (uint32_t i = 0; i < list.commandCount; i++)
         {
@@ -417,7 +421,7 @@ static void TestRandomText(void)
                   muiDestroyTextBlock(service, block) == mui_success,
               "destroyed");
     }
-    CHECK(muiGetTextServiceFailures(service) == 0 && drawn > 1000, "glyphs drawn, no failures");
+    CHECK(muiTextService_GetFailures(service) == 0 && drawn > 1000, "glyphs drawn, no failures");
     muiDestroyContext(context);
     muiDestroyTextService(service);
 }
@@ -460,7 +464,7 @@ static void TestRandomEdits(void)
     fontDef.dataMode = mui_fontDataBorrow;
     muiFontId font = {0, 0};
     CHECK(muiCreateFont(service, &fontDef, &font) == mui_success &&
-              muiSetDefaultFont(service, font) == mui_success,
+              muiTextService_SetDefaultFont(service, font) == mui_success,
           "font");
     muiContextDef contextDef = muiDefaultContextDef();
     muiContext* context = NULL;
@@ -535,11 +539,11 @@ static void TestRandomEdits(void)
                                       NULL,
                                       {0, 0, 0, 0}};
         const muiDrawInput draw = {1, 1.0f, muiPaintText, &host};
-        CHECK(muiComputeLayout(context, node, &input) == mui_success &&
-                  muiBuildDrawList(context, node, &draw) == mui_success,
+        CHECK(muiNode_ComputeLayout(context, node, &input) == mui_success &&
+                  muiNode_BuildDrawList(context, node, &draw) == mui_success,
               "laid out and painted");
     }
-    CHECK(muiGetTextServiceFailures(service) == 0, "no failures");
+    CHECK(muiTextService_GetFailures(service) == 0, "no failures");
     muiDestroyContext(context);
     muiDestroyTextService(service);
 }

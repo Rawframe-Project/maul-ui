@@ -63,18 +63,18 @@ static void Frame(muiContext* context, muiNodeId root, Label* label)
     const muiLayoutInput layout = {200.0f, 200.0f, Measure, label, 0, NULL, {0, 0, 0, 0}};
     const muiDrawInput draw = {1, 1.0f, NULL, NULL};
     muiDrawList list;
-    CHECK(muiComputeLayout(context, root, &layout) == mui_success &&
-              muiBuildDrawList(context, root, &draw) == mui_success &&
-              muiGetDrawList(context, &list) == mui_success,
+    CHECK(muiNode_ComputeLayout(context, root, &layout) == mui_success &&
+              muiNode_BuildDrawList(context, root, &draw) == mui_success &&
+              muiContext_GetDrawList(context, &list) == mui_success,
           "a frame");
 }
 
 // The work a frame did.
 static muiWorkCounts Counted(muiContext* context, muiNodeId root, Label* label)
 {
-    muiWorkCounts before = muiGetWorkCounts(context);
+    muiWorkCounts before = muiContext_GetWorkCounts(context);
     Frame(context, root, label);
-    muiWorkCounts after = muiGetWorkCounts(context);
+    muiWorkCounts after = muiContext_GetWorkCounts(context);
     return (muiWorkCounts){after.styled - before.styled, after.sized - before.sized,
                            after.measured - before.measured, after.painted - before.painted};
 }
@@ -95,7 +95,7 @@ int main(void)
     {
         return 1;
     }
-    CHECK(muiGetWorkCounts(NULL).styled == 0 && muiGetWorkCounts(NULL).painted == 0,
+    CHECK(muiContext_GetWorkCounts(NULL).styled == 0 && muiContext_GetWorkCounts(NULL).painted == 0,
           "NULL counts nothing");
     // A column of a panel coloured by a class, a host-measured label and
     // a box.

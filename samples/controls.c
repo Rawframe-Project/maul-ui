@@ -292,8 +292,8 @@ static bool Arrow(Controls* controls, SampleApp* app, int radio, const muiEvent*
     int next = (radio + step) % RADIOS;
     Choose(controls, next);
     SampleAppCheck(app,
-                   muiFocus_Set(app->context, event->player, controls->radios[next],
-                                mui_focusByNavigation) == mui_success,
+                   muiContext_SetFocus(app->context, event->player, controls->radios[next],
+                                       mui_focusByNavigation) == mui_success,
                    "the focus moved to the choice");
     return true;
 }
@@ -387,7 +387,7 @@ static void Finish(void* user, SampleApp* app)
 static bool Reported(const SampleApp* app, muiNodeId node)
 {
     const muiAccessNode* found =
-        muiAccessTree_Find(muiWindowAccess_GetTree(app->access), muiAccessIdOf(node));
+        muiAccessTree_Find(muiWindowAccess_GetTree(app->access), muiNode_GetAccessId(node));
     return found != NULL && (found->flags & mui_accessChecked) != 0;
 }
 
@@ -470,7 +470,7 @@ static bool Script(void* user, SampleApp* app, int frame)
                            Reported(app, controls->radios[2]) &&
                            !Reported(app, controls->radios[1]),
                        "the arrow moved the choice to High");
-        SampleAppCheck(app, SampleSame(muiFocus_Get(app->context, 0), controls->radios[2]),
+        SampleAppCheck(app, SampleSame(muiContext_GetFocus(app->context, 0), controls->radios[2]),
                        "the focus moved with the choice");
         return false;
     }

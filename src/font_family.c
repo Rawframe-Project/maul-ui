@@ -270,7 +270,8 @@ static muiResult SetFallbackFonts(muiTextService* service, const uint64_t* keys,
     return result;
 }
 
-muiResult muiSetFallbackFonts(muiTextService* service, const uint64_t* keys, uint32_t count)
+muiResult muiTextService_SetFallbackFonts(muiTextService* service, const uint64_t* keys,
+                                          uint32_t count)
 {
     muiResult status = muiEnterText(service);
     if (status == mui_success)
@@ -451,7 +452,7 @@ static muiResult SetDefaultFont(muiTextService* service, muiFontId fontId)
     return mui_success;
 }
 
-muiResult muiSetDefaultFont(muiTextService* service, muiFontId fontId)
+muiResult muiTextService_SetDefaultFont(muiTextService* service, muiFontId fontId)
 {
     muiResult status = muiEnterText(service);
     if (status == mui_success)

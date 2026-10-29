@@ -140,47 +140,51 @@ static void TestNullServiceClearsOutputs(void)
               CLEARED(atlas),
           "muiCreateGlyphAtlas clears its output");
     Fill(&outputs);
-    CHECK(muiRenderGlyph(NULL, 0, 0, 16.0f, 0.0f, &outputs.image, NULL, 0) == mui_errorInvalid &&
+    CHECK(muiTextService_RenderGlyph(NULL, 0, 0, 16.0f, 0.0f, &outputs.image, NULL, 0) ==
+                  mui_errorInvalid &&
               CLEARED(image),
-          "muiRenderGlyph clears its output");
+          "muiTextService_RenderGlyph clears its output");
     Fill(&outputs);
     const muiLinearColor black = {0.0f, 0.0f, 0.0f, 1.0f};
-    CHECK(muiRenderColorGlyph(NULL, 0, 0, 16.0f, 0.0f, 0, black, &outputs.image, NULL, 0) ==
+    CHECK(muiTextService_RenderColorGlyph(NULL, 0, 0, 16.0f, 0.0f, 0, black, &outputs.image, NULL,
+                                          0) == mui_errorInvalid &&
+              CLEARED(image),
+          "muiTextService_RenderColorGlyph clears its output");
+    Fill(&outputs);
+    CHECK(muiTextService_RenderGlyphField(NULL, 0, 0, 16.0f, 4, &outputs.image, NULL, 0) ==
                   mui_errorInvalid &&
               CLEARED(image),
-          "muiRenderColorGlyph clears its output");
+          "muiTextService_RenderGlyphField clears its output");
     Fill(&outputs);
-    CHECK(muiRenderGlyphField(NULL, 0, 0, 16.0f, 4, &outputs.image, NULL, 0) == mui_errorInvalid &&
-              CLEARED(image),
-          "muiRenderGlyphField clears its output");
-    Fill(&outputs);
-    CHECK(muiRenderGlyphMultiField(NULL, 0, 0, 16.0f, 4, &outputs.image, NULL, 0) ==
+    CHECK(muiTextService_RenderGlyphMultiField(NULL, 0, 0, 16.0f, 4, &outputs.image, NULL, 0) ==
                   mui_errorInvalid &&
               CLEARED(image),
-          "muiRenderGlyphMultiField clears its output");
+          "muiTextService_RenderGlyphMultiField clears its output");
 }
 
 static void TestNullAtlasClearsOutputs(void)
 {
     Outputs outputs;
     Fill(&outputs);
-    CHECK(muiGlyphAtlas_Get(NULL, 0, 0, 16.0f, 0.0f, 0.0f, &outputs.glyph) == mui_errorInvalid &&
-              CLEARED(glyph),
-          "muiGlyphAtlas_Get clears its output");
-    Fill(&outputs);
-    const muiLinearColor black = {0.0f, 0.0f, 0.0f, 1.0f};
-    CHECK(muiGlyphAtlas_GetColor(NULL, 0, 0, 16.0f, 0.0f, 0.0f, 0, black, &outputs.glyph) ==
+    CHECK(muiGlyphAtlas_GetGlyph(NULL, 0, 0, 16.0f, 0.0f, 0.0f, &outputs.glyph) ==
                   mui_errorInvalid &&
               CLEARED(glyph),
-          "muiGlyphAtlas_GetColor clears its output");
+          "muiGlyphAtlas_GetGlyph clears its output");
     Fill(&outputs);
-    CHECK(muiGlyphAtlas_GetField(NULL, 0, 0, 16.0f, 4, &outputs.glyph) == mui_errorInvalid &&
+    const muiLinearColor black = {0.0f, 0.0f, 0.0f, 1.0f};
+    CHECK(muiGlyphAtlas_GetColorGlyph(NULL, 0, 0, 16.0f, 0.0f, 0.0f, 0, black, &outputs.glyph) ==
+                  mui_errorInvalid &&
               CLEARED(glyph),
-          "muiGlyphAtlas_GetField clears its output");
+          "muiGlyphAtlas_GetColorGlyph clears its output");
     Fill(&outputs);
-    CHECK(muiGlyphAtlas_GetMultiField(NULL, 0, 0, 16.0f, 4, &outputs.glyph) == mui_errorInvalid &&
+    CHECK(muiGlyphAtlas_GetGlyphField(NULL, 0, 0, 16.0f, 4, &outputs.glyph) == mui_errorInvalid &&
               CLEARED(glyph),
-          "muiGlyphAtlas_GetMultiField clears its output");
+          "muiGlyphAtlas_GetGlyphField clears its output");
+    Fill(&outputs);
+    CHECK(muiGlyphAtlas_GetGlyphMultiField(NULL, 0, 0, 16.0f, 4, &outputs.glyph) ==
+                  mui_errorInvalid &&
+              CLEARED(glyph),
+          "muiGlyphAtlas_GetGlyphMultiField clears its output");
     Fill(&outputs);
     CHECK(muiGlyphAtlas_GetPage(NULL, 0, &outputs.page) == mui_errorInvalid && CLEARED(page),
           "muiGlyphAtlas_GetPage clears its output");

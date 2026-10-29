@@ -238,10 +238,11 @@ static void TakePaste(SampleApp* app, const mwinEvent* event)
 
 bool SampleEdit(SampleApp* app, muiNodeId node, const muiEvent* event, bool* changedOut)
 {
-    const muiTextEditInput input = {SAMPLE_KEYMAP, muiWindowGlue_WriteClipboard, app->glue};
+    const muiTextEditInput input = {SAMPLE_KEYMAP, muiWriteWindowClipboard, app->glue};
     muiTextEditOutcome outcome = {false, false, false, false};
-    SampleAppCheck(app, muiTextEditEvent(&app->host, node, event, &input, &outcome) == mui_success,
-                   "an event edited");
+    SampleAppCheck(
+        app, muiNode_HandleEditEvent(&app->host, node, event, &input, &outcome) == mui_success,
+        "an event edited");
     SampleAppCheck(
         app, !outcome.changed || muiNode_MarkContentChanged(app->context, node) == mui_success,
         "an edit shown");
@@ -279,8 +280,8 @@ void SamplePaintEditing(SampleApp* app, muiNodeId node, float width, muiDrawSink
     uint32_t end = selection.anchor > at ? selection.anchor : at;
     muiRect rects[8];
     uint32_t count = 0;
-    if (start != end &&
-        muiTextGetRangeRects(&app->host, node, width, start, end, rects, 8, &count) == mui_success)
+    if (start != end && muiNode_GetTextRangeRects(&app->host, node, width, start, end, rects, 8,
+                                                  &count) == mui_success)
     {
         for (uint32_t i = 0; i < count && i < 8; i++)
         {
@@ -288,7 +289,7 @@ void SamplePaintEditing(SampleApp* app, muiNodeId node, float width, muiDrawSink
         }
     }
     muiTextCaret bar;
-    if (muiTextGetCaret(&app->host, node, width, selection.caret, &bar) == mui_success)
+    if (muiNode_GetTextCaret(&app->host, node, width, selection.caret, &bar) == mui_success)
     {
         const muiRect rect = {bar.x, bar.y, 2.0f, bar.height};
         (void)muiDrawSink_AddRect(sink, rect, SampleColor(caret));
@@ -397,11 +398,12 @@ static bool Act(void* user, const muiAccessRequest* request)
     if (request->action != mui_actionSetSelection && request->action != mui_actionReplaceText)
     {
         bool handled = false;
-        return muiPerformAccessAction(app->context, request, &handled) == mui_success && handled;
+        return muiContext_PerformAccessAction(app->context, request, &handled) == mui_success &&
+               handled;
     }
-    muiNodeId node = muiNodeIdOfAccess(request->target);
+    muiNodeId node = muiGetNodeOfAccessId(request->target);
     muiTextEditOutcome outcome = {false, false, false, false};
-    bool done = muiTextPerformAccessAction(&app->host, request, &outcome) == mui_success;
+    bool done = muiPerformTextAccessAction(&app->host, request, &outcome) == mui_success;
     SampleAppCheck(
         app, !outcome.changed || muiNode_MarkContentChanged(app->context, node) == mui_success,
         "a client's edit shown");
@@ -458,16 +460,16 @@ static bool Step(SampleApp* app)
                                app->def->paint != NULL ? app->def->paint : muiPaintText,
                                app->def->paint != NULL ? app->def->user : (void*)&app->host};
     muiDrawList list;
-    bool built = muiComputeLayout(app->context, app->root, &layout) == mui_success;
+    bool built = muiNode_ComputeLayout(app->context, app->root, &layout) == mui_success;
     for (int pass = 0;
          built && pass < 2 && app->def->settle != NULL && app->def->settle(app->def->user, app);
          pass++)
     {
-        built = muiComputeLayout(app->context, app->root, &layout) == mui_success;
+        built = muiNode_ComputeLayout(app->context, app->root, &layout) == mui_success;
     }
     built = built && muiWindowAccess_Update(app->access) == mui_success &&
-            muiBuildDrawList(app->context, app->root, &draw) == mui_success &&
-            muiGetDrawList(app->context, &list) == mui_success;
+            muiNode_BuildDrawList(app->context, app->root, &draw) == mui_success &&
+            muiContext_GetDrawList(app->context, &list) == mui_success;
     if (app->headless)
     {
         SampleAppCheck(app,
@@ -700,7 +702,7 @@ static bool MakeText(SampleApp* app)
     muiFontId sans = {0};
     return muiCreateTextService(&def, &app->text) == mui_success &&
            muiCreateFont(app->text, &font, &sans) == mui_success &&
-           muiSetDefaultFont(app->text, sans) == mui_success;
+           muiTextService_SetDefaultFont(app->text, sans) == mui_success;
 }
 
 // Lets go of what lives on the window while it still exists: a surface

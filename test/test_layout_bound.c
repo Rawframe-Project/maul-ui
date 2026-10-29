@@ -390,7 +390,7 @@ static void Apply(Tree* tree, const Edit* edit)
 static void LayOut(Tree* tree)
 {
     const muiLayoutInput input = {tree->space, 600.0f, Measure, NULL, 0, Baseline, tree->safe};
-    CHECK(muiComputeLayout(tree->context, tree->nodes[0], &input) == mui_success, "laid out");
+    CHECK(muiNode_ComputeLayout(tree->context, tree->nodes[0], &input) == mui_success, "laid out");
 }
 
 static bool SameRect(muiRect a, muiRect b)
@@ -774,11 +774,11 @@ static void TestOneChangeIsBounded(void)
         s_characters[tree.count] = 3;
     }
     LayOut(&tree);
-    muiWorkCounts before = muiGetWorkCounts(tree.context);
+    muiWorkCounts before = muiContext_GetWorkCounts(tree.context);
     count = 0;
     Record(edits, &count, &tree, (Edit){kindContent, 2, 0, 0, 4});
     LayOut(&tree);
-    muiWorkCounts after = muiGetWorkCounts(tree.context);
+    muiWorkCounts after = muiContext_GetWorkCounts(tree.context);
     // Its queries asked again and the row laid out: a few sizes, fewer
     // than the rows, where the whole list solves 87.
     CHECK(after.measured - before.measured <= 4 && after.sized - before.sized <= 16,
@@ -806,10 +806,10 @@ static void TestDeepChangeIsBounded(void)
     Record(edits, &count, &tree, (Edit){kindCreate, 0, 30, 0, 1});
     Record(edits, &count, &tree, (Edit){kindContent, 31, 0, 0, 3});
     LayOut(&tree);
-    muiWorkCounts before = muiGetWorkCounts(tree.context);
+    muiWorkCounts before = muiContext_GetWorkCounts(tree.context);
     Record(edits, &count, &tree, (Edit){kindContent, 31, 0, 0, 4});
     LayOut(&tree);
-    muiWorkCounts after = muiGetWorkCounts(tree.context);
+    muiWorkCounts after = muiContext_GetWorkCounts(tree.context);
     CHECK(after.sized - before.sized <= 8, "the text and its box alone");
     Tree whole = MakeTree();
     for (uint32_t k = 0; k < count; k++)

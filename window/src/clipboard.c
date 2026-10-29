@@ -12,7 +12,7 @@
 
 #include "maul-window/clipboard.h"
 
-void muiWindowGlue_WriteClipboard(void* glue, const char* text, size_t length)
+void muiWriteWindowClipboard(void* glue, const char* text, size_t length)
 {
     const muiWindowGlue* own = glue;
     if (own != nullptr)

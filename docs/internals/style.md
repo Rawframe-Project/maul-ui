@@ -38,7 +38,7 @@ Direct writes win until reset. The node keeps which properties it writes directl
 
 A condition is a conjunction of typed clauses with its own values, up to eight a class: half-open intervals over the node's border-box width, height and aspect and the text scale; sets of viewport classes and input modalities; and choices for reduced motion and text direction. A clause at its default reads nothing.
 
-Conditions read the state before the pass. Size and direction come from the node's last layout. The viewport class, input modality, text scale and reduced motion are the environment the host sets on the context, and a change to it restyles every node. When a layout changes a size or direction that a node's conditions read, the node's style is requested for the next run and `muiIsUpdatePending` tells the host a run is owed. No stage feeds an earlier one within a run. In exchange a size condition shows its effect one run late, and a node never laid out reads a size of 0.
+Conditions read the state before the pass. Size and direction come from the node's last layout. The viewport class, input modality, text scale and reduced motion are the environment the host sets on the context, and a change to it restyles every node. When a layout changes a size or direction that a node's conditions read, the node's style is requested for the next run and `muiNode_IsUpdatePending` tells the host a run is owed. No stage feeds an earlier one within a run. In exchange a size condition shows its effect one run late, and a node never laid out reads a size of 0.
 
 A condition's values may not set what it reads: the sizes and limits of an axis it reads, the aspect ratio when it reads either axis, and the direction when it reads direction. Such a write is refused.
 
@@ -56,7 +56,7 @@ Transitions run against host time: `muiLayoutInput.timeNs` is nanoseconds on a m
 - A spring starts from the current value and speed, so a new target keeps its momentum, and rests exactly on its target ([animation.c](../../src/animation.c)).
 - Values a property does not allow, such as a spring's overshoot below 0 for a length, are held at its bounds.
 
-Running transitions are pooled records up to a limit ([animation.c](../../src/animation.c)). A change that finds none free applies at once. A direct write stops the transition of its property. A record whose node is gone is freed when transitions next move. While one runs below a root, `muiIsUpdatePending` holds.
+Running transitions are pooled records up to a limit ([animation.c](../../src/animation.c)). A change that finds none free applies at once. A direct write stops the transition of its property. A record whose node is gone is freed when transitions next move. While one runs below a root, `muiNode_IsUpdatePending` holds.
 
 Easing curves and springs are [Maul Tween](https://github.com/Rawframe-Project/maul-tween)'s, which gives the same bits on every platform. Easing keywords and cubic Beziers are CSS Easing Functions Level 1's, solved by Newton's method inside a bracket to 1e-14 (`mtwnMakeCubicBezier`) and sampled by `mtwnEaseCubicBezier`, which links none of Maul Tween's other curves. A spring follows the closed-form solutions of the damped harmonic oscillator, made from its frequency and damping ratio (`mtwnMakeSpringFromFrequency`); one motion per frame (`mtwnSpringMotionAt`) moves every channel from its own start. Scrolling's flings and bounces are Maul Tween's decay and spring too ([Scrolling](scrolling.md#touch-flings-and-overscroll)). Colour fonts' trigonometry and colors' powers stay the library's own ([motion_math.c](../../src/motion_math.c)), with arguments reduced as Cody and Waite's *Software Manual for the Elementary Functions* describes.
 
@@ -85,6 +85,6 @@ A theme overrides tokens with literals or aliases and is set on nodes ([theme.c]
 
 ## The style pass
 
-The style pass runs first in `muiComputeLayout` over the nodes whose style was requested: a change of type, classes or states, a reset, or insertion ([restyle.c](../../src/restyle.c)). Any change to a class or a node type requests every node. Keeping no index from classes to nodes costs a pass over the tree on a class edit, which a theme switch costs anyway.
+The style pass runs first in `muiNode_ComputeLayout` over the nodes whose style was requested: a change of type, classes or states, a reset, or insertion ([restyle.c](../../src/restyle.c)). Any change to a class or a node type requests every node. Keeping no index from classes to nodes costs a pass over the tree on a class edit, which a theme switch costs anyway.
 
 The context keeps the properties any class has given a value or any node has reset. Every other property can hold only its default or a direct write, so resolution does not visit it. A node whose resolved values did not change marks nothing. One whose layout values changed marks its layout and its parent's, and one whose visual values changed marks its paint.

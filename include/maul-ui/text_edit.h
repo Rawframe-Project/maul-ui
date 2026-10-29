@@ -159,9 +159,9 @@ extern "C"
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiTextHitTest(const muiTextHost* host, muiNodeId nodeId,
-                                                   float width, float x, float y,
-                                                   muiTextPosition* positionOut);
+    MUI_NODISCARD MUI_API muiResult muiNode_HitTestText(const muiTextHost* host, muiNodeId nodeId,
+                                                        float width, float x, float y,
+                                                        muiTextPosition* positionOut);
 
     /// Finds where the caret of a position is drawn: at the leading edge
     /// of the cluster after it for downstream, the trailing edge of the
@@ -174,13 +174,13 @@ extern "C"
     /// @param width     The node's content box width.
     /// @param position  The position; an offset past the text is its end.
     /// @param caretOut  Receives the caret; unchanged on failure.
-    /// @return As muiTextHitTest; `mui_errorBusy` while the service is busy.
+    /// @return As muiNode_HitTestText; `mui_errorBusy` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiTextGetCaret(const muiTextHost* host, muiNodeId nodeId,
-                                                    float width, muiTextPosition position,
-                                                    muiTextCaret* caretOut);
+    MUI_NODISCARD MUI_API muiResult muiNode_GetTextCaret(const muiTextHost* host, muiNodeId nodeId,
+                                                         float width, muiTextPosition position,
+                                                         muiTextCaret* caretOut);
 
     /// Finds the rectangles a range of a node's text covers: on each line,
     /// one for each stretch of side by side clusters in the range, left to
@@ -200,14 +200,15 @@ extern "C"
     ///                  rects holds fewer; unchanged on any other failure.
     /// @return `mui_success`; `mui_errorCapacity` when rects holds fewer,
     ///         writing those that fit, or memory runs out; otherwise as
-    ///         muiTextHitTest; `mui_errorBusy` while the service is busy.
+    ///         muiNode_HitTestText; `mui_errorBusy` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiTextGetRangeRects(const muiTextHost* host, muiNodeId nodeId,
-                                                         float width, uint32_t start, uint32_t end,
-                                                         muiRect* rects, uint32_t capacity,
-                                                         uint32_t* countOut);
+    MUI_NODISCARD MUI_API muiResult muiNode_GetTextRangeRects(const muiTextHost* host,
+                                                              muiNodeId nodeId, float width,
+                                                              uint32_t start, uint32_t end,
+                                                              muiRect* rects, uint32_t capacity,
+                                                              uint32_t* countOut);
 
     /// Moves a position through a node's text, laid out as muiPaintText
     /// paints it. Positions moved to are on grapheme cluster boundaries;
@@ -229,14 +230,13 @@ extern "C"
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiTextMove(const muiTextHost* host, muiNodeId nodeId,
-                                                float width, muiTextPosition from,
-                                                muiTextMovement movement, float preferredX,
-                                                muiTextPosition* positionOut);
+    MUI_NODISCARD MUI_API muiResult muiNode_MoveTextPosition(
+        const muiTextHost* host, muiNodeId nodeId, float width, muiTextPosition from,
+        muiTextMovement movement, float preferredX, muiTextPosition* positionOut);
 
     /// Finds the bytes a deletion from an offset of a block's text
     /// removes, for muiTextBlock_Replace; words are deleted by moving
-    /// with muiTextMove and replacing what lies between. Nothing at the
+    /// with muiNode_MoveTextPosition and replacing what lies between. Nothing at the
     /// text's start going back or its end going forward.
     ///
     /// @param service   The service.

@@ -249,8 +249,8 @@ extern "C"
     ///         the context is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiNextNotification(muiContext* context,
-                                                        muiNotification* notificationOut);
+    MUI_NODISCARD MUI_API muiResult muiContext_TakeNotification(muiContext* context,
+                                                                muiNotification* notificationOut);
 
     /// Returns how many calls the context has refused as invalid input
     /// (`mui_errorInvalid`) or as calls back in while it was busy
@@ -263,7 +263,7 @@ extern "C"
     /// @return The count; 0 for a NULL context.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_API uint64_t muiGetContextMisuse(const muiContext* context);
+    MUI_API uint64_t muiContext_GetMisuse(const muiContext* context);
 
     // The work a context has done since it was made, counted where it is
     // done rather than skipped: a host reads it before and after a frame
@@ -288,7 +288,7 @@ extern "C"
     /// @return The counts; all 0 for a NULL context.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_API muiWorkCounts muiGetWorkCounts(const muiContext* context);
+    MUI_API muiWorkCounts muiContext_GetWorkCounts(const muiContext* context);
 
 #ifdef __cplusplus
 }

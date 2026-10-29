@@ -162,7 +162,7 @@ void muiDestroyAriaAdapter(muiAriaAdapter* adapter)
     DestroyAriaAdapter(adapter);
 }
 
-uint64_t muiGetAriaAdapterMisuse(const muiAriaAdapter* adapter)
+uint64_t muiAriaAdapter_GetMisuse(const muiAriaAdapter* adapter)
 {
     return adapter != nullptr ? adapter->misuse : 0;
 }

@@ -75,12 +75,12 @@ static muiResult Frame(muiContext* context, muiNodeId root, float width, float h
 {
     const muiLayoutInput layout = {width, height, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     const muiDrawInput draw = {1, 1.0f, NULL, NULL};
-    muiResult result = muiComputeLayout(context, root, &layout);
+    muiResult result = muiNode_ComputeLayout(context, root, &layout);
     if (result == mui_success)
     {
-        result = muiBuildDrawList(context, root, &draw);
+        result = muiNode_BuildDrawList(context, root, &draw);
     }
-    return result == mui_success ? muiGetDrawList(context, listOut) : result;
+    return result == mui_success ? muiContext_GetDrawList(context, listOut) : result;
 }
 
 int main(void)

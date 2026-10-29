@@ -79,7 +79,7 @@ static muiNodeId Sized(muiContext* context, muiNodeId parent, float width, float
 static void Layout(muiContext* context, muiNodeId root)
 {
     const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
 }
 
 static muiContext* MakeContext(uint32_t transforms)
@@ -269,13 +269,13 @@ static void TestRightToLeft(void)
     // Scrolled 60, b's start shows at the left edge: hit at 5, 25 is b's 5.
     CHECK(muiNode_SetScroll(context, s, 60.0f, 0.0f) == mui_success, "scrolled");
     muiHit hit = {0};
-    CHECK(muiHitTest(context, root, 5.0f, 25.0f, &hit) == mui_success && Same(hit.node, b) &&
+    CHECK(muiNode_HitTest(context, root, 5.0f, 25.0f, &hit) == mui_success && Same(hit.node, b) &&
               hit.x == 5.0f,
           "hit leftward");
     const muiDrawInput input = {1, 1.0f, NULL, NULL};
     muiDrawList drawn;
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success && drawn.transformCount == 2 &&
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success && drawn.transformCount == 2 &&
               drawn.transforms[1].e == 60.0f && drawn.transforms[1].f == 0.0f,
           "a transform rightward");
     (void)a;
@@ -305,8 +305,8 @@ static void TestExtentBelow(void)
     const muiDrawInput input = {1, 1.0f, NULL, NULL};
     muiDrawList drawn;
     CHECK(muiNode_SetScroll(context, s, 200.0f, 0.0f) == mui_success &&
-              muiBuildDrawList(context, root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success && drawn.transformCount == 2 &&
+              muiNode_BuildDrawList(context, root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success && drawn.transformCount == 2 &&
               drawn.transforms[1].e == -200.0f,
           "scrolled to its end");
     muiLayoutStyle narrower = muiDefaultLayoutStyle();
@@ -318,8 +318,8 @@ static void TestExtentBelow(void)
     CHECK(muiNode_GetScrollExtent(context, s, &extent) == mui_success && extent.width == 120.0f &&
               muiNode_GetScroll(context, s, &x, &y) == mui_success && x == 20.0f,
           "the extent follows, the offset within it");
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success && drawn.transformCount == 2 &&
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success && drawn.transformCount == 2 &&
               drawn.transforms[1].e == -20.0f,
           "the transform follows");
     muiDestroyContext(context);
@@ -363,12 +363,12 @@ static void TestReversedOrigin(void)
           "the thumb at the track's start");
     // The item's top, 60 above the container, now shows at 10.
     muiHit hit = {0};
-    CHECK(muiHitTest(context, root, 20.0f, 15.0f, &hit) == mui_success && Same(hit.node, item),
+    CHECK(muiNode_HitTest(context, root, 20.0f, 15.0f, &hit) == mui_success && Same(hit.node, item),
           "hit at the top");
     const muiDrawInput input = {1, 1.0f, NULL, NULL};
     muiDrawList drawn;
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success && drawn.transformCount == 2 &&
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success && drawn.transformCount == 2 &&
               drawn.transforms[1].f == 70.0f,
           "a transform downward");
     // A reversed row scrolls from its right, its thumb at the track's end;
@@ -417,8 +417,8 @@ static void TestPainting(void)
     muiContext* context = list.context;
     const muiDrawInput input = {1, 2.0f, NULL, NULL};
     muiDrawList drawn;
-    CHECK(muiBuildDrawList(context, list.root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success && drawn.transformCount == 2 &&
+    CHECK(muiNode_BuildDrawList(context, list.root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success && drawn.transformCount == 2 &&
               ItemsThrough(&drawn, 1) && drawn.transforms[1].f == 0.0f &&
               drawn.transforms[1].a == 1.0f && drawn.transforms[1].d == 1.0f,
           "items through the container's transform");
@@ -435,23 +435,23 @@ static void TestPainting(void)
     memcpy(kept, drawn.commands, sizeof kept);
     uint64_t generation = drawn.header.generation;
     CHECK(muiNode_SetScroll(context, list.s, 0.0f, 10.3f) == mui_success &&
-              muiBuildDrawList(context, list.root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success &&
+              muiNode_BuildDrawList(context, list.root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success &&
               drawn.header.generation == generation + 1 &&
               memcmp(kept, drawn.commands, sizeof kept) == 0 && drawn.transforms[1].f == -10.5f,
           "scrolling moves the transform alone");
-    CHECK(muiBuildDrawList(context, list.root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success &&
+    CHECK(muiNode_BuildDrawList(context, list.root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success &&
               drawn.header.generation == generation + 1,
           "then nothing to do");
     CHECK(muiNode_SetScroll(context, list.s, 0.0f, 10.3f) == mui_success &&
-              muiBuildDrawList(context, list.root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success &&
+              muiNode_BuildDrawList(context, list.root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success &&
               drawn.header.generation == generation + 1,
           "the same offset: nothing to do");
     CHECK(muiNode_ScrollIntoView(context, list.items[4]) == mui_success &&
-              muiBuildDrawList(context, list.root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success &&
+              muiNode_BuildDrawList(context, list.root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success &&
               drawn.header.generation == generation + 2 && drawn.transforms[1].f == -160.0f,
           "into view, drawn");
     // Repainting an item copies the rest, their transform renumbered.
@@ -461,8 +461,8 @@ static void TestPainting(void)
                                   MUI_PROPERTY_BIT(mui_propertyBackground)) == mui_success,
           "repaint one");
     Layout(context, list.root);
-    CHECK(muiBuildDrawList(context, list.root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success && ItemsThrough(&drawn, 1) &&
+    CHECK(muiNode_BuildDrawList(context, list.root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success && ItemsThrough(&drawn, 1) &&
               drawn.transforms[1].f == -160.0f && drawn.transformCount == 2,
           "copied and repainted alike");
     muiDestroyContext(context);
@@ -499,8 +499,8 @@ static void TestNested(void)
           "both scrolled");
     const muiDrawInput input = {1, 1.0f, NULL, NULL};
     muiDrawList drawn;
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success && drawn.transformCount == 3 &&
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success && drawn.transformCount == 3 &&
               drawn.commandCount == 1 && drawn.commands[0].transform == 2 &&
               drawn.transforms[2].e == -50.0f && drawn.transforms[2].f == -30.0f &&
               drawn.transforms[1].e == 0.0f && drawn.transforms[1].f == -30.0f &&
@@ -508,8 +508,8 @@ static void TestNested(void)
           "composed");
     // A hit at 10, 10 lands on the box at 60, 40.
     muiHit hit = {0};
-    CHECK(muiHitTest(context, root, 10.0f, 10.0f, &hit) == mui_success && Same(hit.node, box) &&
-              hit.x == 60.0f && hit.y == 40.0f,
+    CHECK(muiNode_HitTest(context, root, 10.0f, 10.0f, &hit) == mui_success &&
+              Same(hit.node, box) && hit.x == 60.0f && hit.y == 40.0f,
           "hit through both");
     // Too few transforms: the list does not fit.
     muiDestroyContext(context);
@@ -521,7 +521,8 @@ static void TestNested(void)
     inner = Sized(context, outer, 100.0f, 300.0f);
     SetLayout(context, inner, &style, SCROLL);
     Layout(context, root);
-    CHECK(muiBuildDrawList(context, root, &input) == mui_errorCapacity, "a transform too many");
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_errorCapacity,
+          "a transform too many");
     muiDestroyContext(context);
 }
 
@@ -534,27 +535,27 @@ static void TestHits(void)
     muiContext* context = list.context;
     CHECK(muiNode_SetScroll(context, list.s, 0.0f, 60.0f) == mui_success, "scrolled");
     muiHit hit = {0};
-    CHECK(muiHitTest(context, list.root, 50.0f, 25.0f, &hit) == mui_success &&
+    CHECK(muiNode_HitTest(context, list.root, 50.0f, 25.0f, &hit) == mui_success &&
               Same(hit.node, list.items[1]) && hit.x == 40.0f && hit.y == 25.0f,
           "a scrolled item");
-    CHECK(muiHitTest(context, list.root, 150.0f, 25.0f, &hit) == mui_success &&
+    CHECK(muiNode_HitTest(context, list.root, 150.0f, 25.0f, &hit) == mui_success &&
               Same(hit.node, list.s) && hit.y == 25.0f,
           "beside the items: the container");
-    CHECK(muiHitTest(context, list.root, 50.0f, 150.0f, &hit) == mui_success &&
+    CHECK(muiNode_HitTest(context, list.root, 50.0f, 150.0f, &hit) == mui_success &&
               Same(hit.node, list.root),
           "below the container: item 3 is clipped there");
     // A press there records the item's point.
     const muiPointerEvent press = {0, 1, mui_pointerMouse, mui_pointerPress, 0, 1, 50.0f, 25.0f, 0};
     muiPointerRecord record = {0};
-    CHECK(muiPointerInput(context, list.root, &press) == mui_success &&
-              muiNextPointerRecord(context, &record) == mui_success &&
+    CHECK(muiNode_RoutePointer(context, list.root, &press) == mui_success &&
+              muiContext_TakePointerRecord(context, &record) == mui_success &&
               Same(record.node, list.items[1]) && record.x == 40.0f && record.y == 25.0f,
           "a pointer record");
     // A captured move: the point in item 0, through the offset.
     CHECK(muiPointer_SetCapture(context, 1, list.items[0]) == mui_success, "captured");
     const muiPointerEvent move = {1, 1, mui_pointerMouse, mui_pointerMove, 0, 1, 50.0f, 25.0f, 0};
-    CHECK(muiPointerInput(context, list.root, &move) == mui_success &&
-              muiNextPointerRecord(context, &record) == mui_success &&
+    CHECK(muiNode_RoutePointer(context, list.root, &move) == mui_success &&
+              muiContext_TakePointerRecord(context, &record) == mui_success &&
               record.kind == mui_pointerRecordMove && Same(record.node, list.items[0]) &&
               record.x == 40.0f && record.y == 75.0f,
           "a captured move");
@@ -580,10 +581,10 @@ static void TestScaled(void)
     Layout(context, list.root);
     CHECK(muiNode_GetRect(context, list.s).width == 200.0f, "layout keeps the laid-out box");
     muiHit hit = {0};
-    CHECK(muiHitTest(context, list.root, 100.0f, 50.0f, &hit) == mui_success &&
+    CHECK(muiNode_HitTest(context, list.root, 100.0f, 50.0f, &hit) == mui_success &&
               Same(hit.node, list.items[1]) && hit.x == 40.0f && hit.y == 25.0f,
           "a scaled, scrolled item");
-    CHECK(muiHitTest(context, list.root, 250.0f, 150.0f, &hit) == mui_success &&
+    CHECK(muiNode_HitTest(context, list.root, 250.0f, 150.0f, &hit) == mui_success &&
               Same(hit.node, list.s) && hit.x == 125.0f && hit.y == 75.0f,
           "outside its laid-out box, inside its scaled one: the container");
     float x = 0.0f;
@@ -594,14 +595,14 @@ static void TestScaled(void)
     const muiPointerEvent press = {0,     1, mui_pointerMouse, mui_pointerPress, 0, 1, 100.0f,
                                    50.0f, 0};
     muiPointerRecord record = {0};
-    CHECK(muiPointerInput(context, list.root, &press) == mui_success &&
-              muiNextPointerRecord(context, &record) == mui_success &&
+    CHECK(muiNode_RoutePointer(context, list.root, &press) == mui_success &&
+              muiContext_TakePointerRecord(context, &record) == mui_success &&
               Same(record.node, list.items[1]) && record.x == 40.0f && record.y == 25.0f,
           "a pointer record");
     CHECK(muiPointer_SetCapture(context, 1, list.items[0]) == mui_success, "captured");
     const muiPointerEvent move = {1, 1, mui_pointerMouse, mui_pointerMove, 0, 1, 100.0f, 50.0f, 0};
-    CHECK(muiPointerInput(context, list.root, &move) == mui_success &&
-              muiNextPointerRecord(context, &record) == mui_success &&
+    CHECK(muiNode_RoutePointer(context, list.root, &move) == mui_success &&
+              muiContext_TakePointerRecord(context, &record) == mui_success &&
               record.kind == mui_pointerRecordMove && Same(record.node, list.items[0]) &&
               record.x == 40.0f && record.y == 75.0f,
           "a captured move, its point divided by the scale");
@@ -709,18 +710,20 @@ static void TestIntoView(void)
     // Navigation reveals what it focuses.
     MakeList(&list, 64);
     context = list.context;
-    CHECK(muiFocus_Set(context, 0, list.items[1], mui_focusByCode) == mui_success &&
-              muiFocus_MoveToward(context, list.root, 0, mui_directionDown) == mui_success &&
-              Same(muiFocus_Get(context, 0), list.items[2]) && ScrollY(context, list.s) == 60.0f,
+    CHECK(muiContext_SetFocus(context, 0, list.items[1], mui_focusByCode) == mui_success &&
+              muiNode_MoveFocusToward(context, list.root, 0, mui_directionDown) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), list.items[2]) &&
+              ScrollY(context, list.s) == 60.0f,
           "moved down and into view");
-    CHECK(muiFocus_Move(context, list.root, 0, false) == mui_success &&
-              Same(muiFocus_Get(context, 0), list.items[3]) && ScrollY(context, list.s) == 110.0f,
+    CHECK(muiNode_MoveFocus(context, list.root, 0, false) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), list.items[3]) &&
+              ScrollY(context, list.s) == 110.0f,
           "Tab into view");
     // Code focus does not scroll.
-    CHECK(muiFocus_Set(context, 0, list.items[0], mui_focusByCode) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, list.items[0], mui_focusByCode) == mui_success &&
               ScrollY(context, list.s) == 110.0f,
           "code focus stays");
-    CHECK(muiFocus_MoveToward(context, list.root, 0, mui_directionUp) == mui_empty,
+    CHECK(muiNode_MoveFocusToward(context, list.root, 0, mui_directionUp) == mui_empty,
           "nothing above the first");
     muiDestroyContext(context);
 }
@@ -740,13 +743,13 @@ static void TestLayer(void)
     CHECK(muiNode_SetScroll(context, list.s, 0.0f, 40.0f) == mui_success, "scrolled");
     const muiDrawInput input = {1, 1.0f, NULL, NULL};
     muiDrawList drawn;
-    CHECK(muiBuildDrawList(context, list.root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success && drawn.commandCount == 5 &&
+    CHECK(muiNode_BuildDrawList(context, list.root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success && drawn.commandCount == 5 &&
               drawn.commands[4].transform == 1 && drawn.commands[4].clip == 0 &&
               drawn.commands[4].box.rect.y == 110.0f,
           "through the transform, outside the clip");
     muiHit hit = {0};
-    CHECK(muiHitTest(context, list.root, 50.0f, 75.0f, &hit) == mui_success &&
+    CHECK(muiNode_HitTest(context, list.root, 50.0f, 75.0f, &hit) == mui_success &&
               Same(hit.node, list.items[2]) && hit.y == 5.0f,
           "hit where it shows");
     muiDestroyContext(context);
@@ -760,14 +763,14 @@ static void TestContract(void)
     float x = 0.0f;
     float y = 0.0f;
     muiSize extent = {0};
-    uint64_t misuse = muiGetContextMisuse(context);
+    uint64_t misuse = muiContext_GetMisuse(context);
     CHECK(muiNode_SetScroll(NULL, list.s, 0.0f, 0.0f) == mui_errorInvalid &&
               muiNode_SetScroll(context, s_nullNode, 0.0f, 0.0f) == mui_errorInvalid &&
               muiNode_SetScroll(context, list.s, NAN, 0.0f) == mui_errorInvalid &&
               muiNode_SetScroll(context, list.s, 0.0f, INFINITY) == mui_errorInvalid &&
               muiNode_ScrollIntoView(NULL, list.s) == mui_errorInvalid &&
               muiNode_ScrollIntoView(context, s_nullNode) == mui_errorInvalid &&
-              muiGetContextMisuse(context) == misuse + 4,
+              muiContext_GetMisuse(context) == misuse + 4,
           "edits outside the contract");
     CHECK(muiNode_GetScroll(NULL, list.s, &x, &y) == mui_errorInvalid &&
               muiNode_GetScroll(context, list.s, NULL, &y) == mui_errorInvalid &&
@@ -863,14 +866,14 @@ static void TestExtentEdges(void)
     // follows.
     CHECK(muiNode_SetScroll(context, margined, 0.0f, 80.0f) == mui_success, "to the end");
     const muiDrawInput input = {1, 1.0f, NULL, NULL};
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success, "drawn");
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success, "drawn");
     margin.margin.bottom = 0.0f;
     SetLayout(context, item, &margin, MUI_PROPERTY_BIT(mui_propertyMarginBottom));
     Layout(context, root);
     muiDrawList drawn;
     CHECK(muiNode_GetScroll(context, margined, &x, &y) == mui_success && y == 50.0f &&
-              muiBuildDrawList(context, root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success && drawn.transformCount == 4 &&
+              muiNode_BuildDrawList(context, root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success && drawn.transformCount == 4 &&
               drawn.transforms[2].f == -50.0f,
           "clamped and drawn");
     // A node that stops scrolling drops its offset and extent; scrolling
@@ -880,8 +883,8 @@ static void TestExtentEdges(void)
     CHECK(muiNode_GetScroll(context, margined, &x, &y) == mui_success && x == 0.0f && y == 0.0f &&
               ExtentIs(context, margined, 0.0f, 0.0f),
           "stopped");
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success && drawn.transformCount == 3,
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success && drawn.transformCount == 3,
           "its transform gone");
     Scrolls(context, margined, mui_scrollBoth);
     Layout(context, root);
@@ -914,10 +917,10 @@ static void TestRightToLeftBorders(void)
     float x = 0.0f;
     float y = 0.0f;
     muiHit hit = {0};
-    CHECK(muiHitTest(context, root, 5.0f, 25.0f, &hit) == mui_success && Same(hit.node, items[1]) &&
-              hit.x == 5.0f,
+    CHECK(muiNode_HitTest(context, root, 5.0f, 25.0f, &hit) == mui_success &&
+              Same(hit.node, items[1]) && hit.x == 5.0f,
           "the padding box on the left");
-    CHECK(muiHitTest(context, root, 90.0f, 25.0f, &hit) == mui_success && Same(hit.node, s),
+    CHECK(muiNode_HitTest(context, root, 90.0f, 25.0f, &hit) == mui_success && Same(hit.node, s),
           "the start border on the right");
     CHECK(muiNode_ScrollIntoView(context, items[1]) == mui_success &&
               muiNode_GetScroll(context, s, &x, &y) == mui_success && x == 0.0f,
@@ -975,11 +978,11 @@ static void TestCopiedNest(void)
     muiContext* context = nest.context;
     const muiDrawInput input = {1, 1.0f, NULL, NULL};
     muiDrawList drawn;
-    CHECK(muiBuildDrawList(context, nest.root, &input) == mui_success, "first");
+    CHECK(muiNode_BuildDrawList(context, nest.root, &input) == mui_success, "first");
     Scrolls(context, nest.p, mui_scrollVertical);
     Layout(context, nest.root);
-    CHECK(muiBuildDrawList(context, nest.root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success && drawn.transformCount == 4 &&
+    CHECK(muiNode_BuildDrawList(context, nest.root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success && drawn.transformCount == 4 &&
               drawn.transforms[1].f == 0.0f && drawn.transforms[2].f == -30.0f &&
               drawn.transforms[3].e == -50.0f && drawn.transforms[3].f == -30.0f &&
               drawn.commands[drawn.commandCount - 1].transform == 3,
@@ -988,10 +991,10 @@ static void TestCopiedNest(void)
     // With room for two, the copy does not fit.
     MakeNest(&nest, 2);
     context = nest.context;
-    CHECK(muiBuildDrawList(context, nest.root, &input) == mui_success, "two fit");
+    CHECK(muiNode_BuildDrawList(context, nest.root, &input) == mui_success, "two fit");
     Scrolls(context, nest.p, mui_scrollVertical);
     Layout(context, nest.root);
-    CHECK(muiBuildDrawList(context, nest.root, &input) == mui_errorCapacity, "three do not");
+    CHECK(muiNode_BuildDrawList(context, nest.root, &input) == mui_errorCapacity, "three do not");
     muiDestroyContext(context);
 }
 
@@ -1013,7 +1016,7 @@ static void TestOverlay(void)
     Layout(context, list.root);
     CHECK(muiNode_SetScroll(context, list.s, 0.0f, 60.0f) == mui_success, "scrolled");
     muiHit hit = {0};
-    CHECK(muiHitTest(context, list.root, 25.0f, 25.0f, &hit) == mui_success &&
+    CHECK(muiNode_HitTest(context, list.root, 25.0f, 25.0f, &hit) == mui_success &&
               Same(hit.node, over) && hit.y == 25.0f,
           "the overlay");
     muiDestroyContext(context);
@@ -1044,9 +1047,9 @@ static void TestBeside(void)
     }
     Layout(context, list.root);
     CHECK(muiNode_SetScroll(context, list.s, 0.0f, 110.0f) == mui_success &&
-              muiFocus_Set(context, 0, list.items[3], mui_focusByCode) == mui_success &&
-              muiFocus_MoveToward(context, list.root, 0, mui_directionRight) == mui_success &&
-              Same(muiFocus_Get(context, 0), b[0]),
+              muiContext_SetFocus(context, 0, list.items[3], mui_focusByCode) == mui_success &&
+              muiNode_MoveFocusToward(context, list.root, 0, mui_directionRight) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), b[0]),
           "where it shows");
     muiDestroyContext(context);
 }

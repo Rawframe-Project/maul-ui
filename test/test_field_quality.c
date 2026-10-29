@@ -9,7 +9,7 @@
 // channel bilinearly between texel centers, the median or alpha made a
 // distance in device pixels, and the coverage half a pixel either side of
 // it, msdfgen's expression. Each is compared pixel for pixel with
-// muiRenderGlyph's exact area coverage at the drawn em and the same pen.
+// muiTextService_RenderGlyph's exact area coverage at the drawn em and the same pen.
 // The median is held no worse than alpha in mean error and in pixels off
 // by more than a quarter, and both within bounds just above what they
 // measure (a mean of 0.036 and 0.48% of the pixels). Run with --report for
@@ -182,10 +182,12 @@ int main(int argc, char** argv)
             {
                 muiGlyphImage reference = {0};
                 bool rendered =
-                    muiRenderGlyphMultiField(service, key, glyph, ems[e], field.spread,
-                                             &field.image, s_field, CAPACITY) == mui_success &&
-                    muiRenderGlyph(service, key, glyph, ems[e] * magnifications[k], 0.0f,
-                                   &reference, s_reference, CAPACITY) == mui_success;
+                    muiTextService_RenderGlyphMultiField(service, key, glyph, ems[e], field.spread,
+                                                         &field.image, s_field,
+                                                         CAPACITY) == mui_success &&
+                    muiTextService_RenderGlyph(service, key, glyph, ems[e] * magnifications[k],
+                                               0.0f, &reference, s_reference,
+                                               CAPACITY) == mui_success;
                 CHECK(rendered, "a glyph's field and coverage");
                 if (!rendered || field.image.width == 0)
                 {

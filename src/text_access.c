@@ -328,7 +328,7 @@ static muiResult TextPerformAccessAction(const muiTextHost* host, const muiAcces
     {
         return mui_empty;
     }
-    muiNodeId nodeId = muiNodeIdOfAccess(request->target);
+    muiNodeId nodeId = muiGetNodeOfAccessId(request->target);
     uint64_t key = muiNode_GetHostKey(host->context, nodeId);
     const muiTextBlockId blockId = {(uint32_t)key, (uint32_t)(key >> 32)};
     muiTextBlock* block = key != 0 ? muiResolveTextBlock(host->service, blockId) : nullptr;
@@ -403,7 +403,7 @@ static MUI_NOINLINE muiResult TextPerformAccessActionWorker(const muiTextHost* h
     return status;
 }
 
-muiResult muiTextPerformAccessAction(const muiTextHost* host, const muiAccessRequest* request,
+muiResult muiPerformTextAccessAction(const muiTextHost* host, const muiAccessRequest* request,
                                      muiTextEditOutcome* outcomeOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();

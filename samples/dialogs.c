@@ -67,7 +67,8 @@ typedef struct Dialogs
 
 static void Focus(SampleApp* app, muiNodeId node)
 {
-    SampleAppCheck(app, muiFocus_Set(app->context, 0, node, mui_focusByNavigation) == mui_success,
+    SampleAppCheck(app,
+                   muiContext_SetFocus(app->context, 0, node, mui_focusByNavigation) == mui_success,
                    "the focus moved");
 }
 
@@ -161,7 +162,7 @@ static void CloseModal(Dialogs* dialogs, const char* status)
     SampleApp* app = dialogs->app;
     SampleAppCheck(app,
                    muiDestroyNode(app->context, dialogs->modal) == mui_success &&
-                       SampleSame(muiFocus_Get(app->context, 0), dialogs->opener),
+                       SampleSame(muiContext_GetFocus(app->context, 0), dialogs->opener),
                    "the modal dialog closed, the focus back on its opener");
     dialogs->modal = (muiNodeId){0, 0};
     SetStatus(dialogs, status);
@@ -361,7 +362,7 @@ static bool Shows(const SampleApp* app, muiNodeId node, float x, float y, const 
 
 static bool Focused(const SampleApp* app, muiNodeId node)
 {
-    return SampleSame(muiFocus_Get(app->context, 0), node);
+    return SampleSame(muiContext_GetFocus(app->context, 0), node);
 }
 
 static bool Holds(const SampleApp* app, muiTextBlockId block, const char* expected)
@@ -392,14 +393,14 @@ static bool ModalShows(const Dialogs* dialogs, const SampleApp* app)
     char name[32] = {0};
     size_t length = 0;
     const muiAccessTree* tree = muiWindowAccess_GetTree(app->access);
-    const muiAccessNode* found = muiAccessTree_Find(tree, muiAccessIdOf(dialogs->modal));
+    const muiAccessNode* found = muiAccessTree_Find(tree, muiNode_GetAccessId(dialogs->modal));
     return muiNode_MapToRoot(app->context, dialogs->modal, rect.width / 2.0f, rect.height / 2.0f,
                              &x, &y) == mui_success &&
            x == (float)app->def->width / 2.0f && y == (float)app->def->height / 2.0f &&
            Shows(app, dialogs->modal, 4.0f, rect.height / 2.0f, s_dialog) && found != NULL &&
            (found->flags & mui_accessModal) != 0 &&
-           muiAccessTree_GetName(tree, muiAccessIdOf(dialogs->modal), name, sizeof name, &length) ==
-               mui_success &&
+           muiAccessTree_GetName(tree, muiNode_GetAccessId(dialogs->modal), name, sizeof name,
+                                 &length) == mui_success &&
            length == 16 && memcmp(name, "Discard changes?", 16) == 0;
 }
 
@@ -490,7 +491,7 @@ static bool Script(void* user, SampleApp* app, int frame)
     case 4:
         SampleAppCheck(app,
                        dialogs->baseClicks == 0 && dialogs->modal.index1 != 0 &&
-                           muiFocus_Get(app->context, 0).index1 == 0,
+                           muiContext_GetFocus(app->context, 0).index1 == 0,
                        "presses outside the modal dialog reached nothing");
         Key(app, mwin_codeTab);
         return true;

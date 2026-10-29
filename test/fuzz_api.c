@@ -148,8 +148,8 @@ static muiResult Both(muiResult a, muiResult b)
 
 static void LayOut(World* world, muiNodeId root, const muiLayoutInput* input)
 {
-    (void)Both(muiComputeLayout(world->contexts[0], root, input),
-               muiComputeLayout(world->contexts[1], root, input));
+    (void)Both(muiNode_ComputeLayout(world->contexts[0], root, input),
+               muiNode_ComputeLayout(world->contexts[1], root, input));
 }
 
 // Marks every node of the second context changed, lays both out, and
@@ -165,8 +165,8 @@ static void Compare(World* world, muiNodeId root, const muiLayoutInput* input)
     {
         (void)muiNode_MarkContentChanged(world->contexts[1], world->ids[i]);
     }
-    muiResult result = Both(muiComputeLayout(world->contexts[0], root, input),
-                            muiComputeLayout(world->contexts[1], root, input));
+    muiResult result = Both(muiNode_ComputeLayout(world->contexts[0], root, input),
+                            muiNode_ComputeLayout(world->contexts[1], root, input));
     if (result != mui_success)
     {
         return;
@@ -181,15 +181,15 @@ static void Compare(World* world, muiNodeId root, const muiLayoutInput* input)
     // generation: a build with nothing to repaint keeps the last list,
     // generation and all, and only the second was marked.
     const muiDrawInput draw = {1, 1.0f, nullptr, nullptr};
-    if (Both(muiBuildDrawList(world->contexts[0], root, &draw),
-             muiBuildDrawList(world->contexts[1], root, &draw)) != mui_success)
+    if (Both(muiNode_BuildDrawList(world->contexts[0], root, &draw),
+             muiNode_BuildDrawList(world->contexts[1], root, &draw)) != mui_success)
     {
         return;
     }
     muiDrawList lists[2];
     for (int i = 0; i < 2; i++)
     {
-        Expect(muiGetDrawList(world->contexts[i], &lists[i]) == mui_success);
+        Expect(muiContext_GetDrawList(world->contexts[i], &lists[i]) == mui_success);
     }
     Expect(lists[0].commandCount == lists[1].commandCount &&
            lists[0].clipCount == lists[1].clipCount &&
@@ -306,8 +306,8 @@ static void Call(World* world, Reader* reader)
     {
         muiNodeId root = PickNode(world, reader);
         const muiDrawInput input = {Byte(reader), Number(reader), nullptr, nullptr};
-        (void)Both(muiBuildDrawList(contexts[0], root, &input),
-                   muiBuildDrawList(contexts[1], root, &input));
+        (void)Both(muiNode_BuildDrawList(contexts[0], root, &input),
+                   muiNode_BuildDrawList(contexts[1], root, &input));
         break;
     }
     case 10:
@@ -333,8 +333,8 @@ static void Call(World* world, Reader* reader)
         event.x = Number(reader);
         event.y = Number(reader);
         event.player = Byte(reader) % 10;
-        (void)Both(muiPointerInput(contexts[0], root, &event),
-                   muiPointerInput(contexts[1], root, &event));
+        (void)Both(muiNode_RoutePointer(contexts[0], root, &event),
+                   muiNode_RoutePointer(contexts[1], root, &event));
         break;
     }
     case 12:
@@ -342,8 +342,8 @@ static void Call(World* world, Reader* reader)
         muiNodeId root = PickNode(world, reader);
         uint8_t player = Byte(reader) % 10;
         bool backward = Byte(reader) & 1;
-        (void)Both(muiFocus_Move(contexts[0], root, player, backward),
-                   muiFocus_Move(contexts[1], root, player, backward));
+        (void)Both(muiNode_MoveFocus(contexts[0], root, player, backward),
+                   muiNode_MoveFocus(contexts[1], root, player, backward));
         break;
     }
     case 13:
@@ -352,8 +352,8 @@ static void Call(World* world, Reader* reader)
         float x = Number(reader);
         float y = Number(reader);
         muiHit hits[2] = {{0}, {0}};
-        (void)Both(muiHitTest(contexts[0], root, x, y, &hits[0]),
-                   muiHitTest(contexts[1], root, x, y, &hits[1]));
+        (void)Both(muiNode_HitTest(contexts[0], root, x, y, &hits[0]),
+                   muiNode_HitTest(contexts[1], root, x, y, &hits[1]));
         Expect(memcmp(&hits[0], &hits[1], sizeof hits[0]) == 0);
         break;
     }
@@ -470,7 +470,7 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     {
         Call(&world, &reader);
     }
-    Expect(muiGetContextMisuse(world.contexts[0]) == muiGetContextMisuse(world.contexts[1]));
+    Expect(muiContext_GetMisuse(world.contexts[0]) == muiContext_GetMisuse(world.contexts[1]));
     for (int i = 0; i < 2; i++)
     {
         muiDestroyContext(world.contexts[i]);

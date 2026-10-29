@@ -67,7 +67,7 @@ static muiNodeId Box(muiContext* context, muiNodeId parent, float x, float y, fl
 static void Layout(muiContext* context, muiNodeId root)
 {
     const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
 }
 
 // What the host's function heard, and what it does.
@@ -106,11 +106,11 @@ static bool Hear(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* e
         heard->destroy = s_nullNode;
         const muiKeyEvent key = {0, 'x', 27, 0, true, false, 0};
         bool handled = false;
-        heard->nested = muiKeyInput(heard->context, heard->root, &key, &handled);
+        heard->nested = muiNode_RouteKey(heard->context, heard->root, &key, &handled);
         const muiPointerEvent move = {0, 1, mui_pointerMouse, mui_pointerMove, 0, 0, 1.0f, 1.0f, 0};
-        heard->nestedPointer = muiPointerInput(heard->context, heard->root, &move);
+        heard->nestedPointer = muiNode_RoutePointer(heard->context, heard->root, &move);
         const muiPointerRecord record = {.kind = mui_pointerRecordMove, .node = heard->root};
-        heard->nestedDispatch = muiDispatchPointerRecord(heard->context, &record, &handled);
+        heard->nestedDispatch = muiContext_DispatchPointerRecord(heard->context, &record, &handled);
         if (heard->nested == mui_errorInvalid)
         {
             heard->nested = muiSetEventFunction(heard->context, NULL, NULL);
@@ -136,7 +136,7 @@ static bool Key(muiContext* context, muiNodeId root, muiKeyCode code, muiModifie
 {
     const muiKeyEvent event = {7, MUI_KEY_NAMED | code, code, modifiers, down, false, 0};
     bool handled = false;
-    CHECK(muiKeyInput(context, root, &event, &handled) == mui_success, "key");
+    CHECK(muiNode_RouteKey(context, root, &event, &handled) == mui_success, "key");
     return handled;
 }
 
@@ -173,7 +173,7 @@ static void TestOrder(void)
 {
     Scene s;
     MakeScene(&s);
-    CHECK(muiFocus_Set(s.context, 0, s.b, mui_focusByCode) == mui_success, "focus b");
+    CHECK(muiContext_SetFocus(s.context, 0, s.b, mui_focusByCode) == mui_success, "focus b");
     const muiNodeId nodes[6] = {s.root, s.a, s.b, s.b, s.a, s.root};
     const muiPhase phases[6] = {mui_phaseTunnel, mui_phaseTunnel, mui_phaseTunnel,
                                 mui_phaseBubble, mui_phaseBubble, mui_phaseBubble};
@@ -187,7 +187,7 @@ static void TestOrder(void)
     s.heard.handleAt = s.a;
     s.heard.handlePhase = mui_phaseTunnel;
     CHECK(Key(s.context, s.root, mui_codeTab, 0, true) && Order(&s.heard, nodes, phases, 2) &&
-              Same(muiFocus_Get(s.context, 0), s.b),
+              Same(muiContext_GetFocus(s.context, 0), s.b),
           "handled tunnelling");
     s.heard.count = 0;
     s.heard.handlePhase = mui_phaseBubble;
@@ -205,60 +205,62 @@ static void TestDefaults(void)
     CHECK(!Key(s.context, s.root, 27, 0, true) && Same(s.heard.last.target, s.root) &&
               s.heard.count == 2,
           "no focus: the root");
-    CHECK(Key(s.context, s.root, mui_codeTab, 0, true) && Same(muiFocus_Get(s.context, 0), s.a) &&
+    CHECK(Key(s.context, s.root, mui_codeTab, 0, true) &&
+              Same(muiContext_GetFocus(s.context, 0), s.a) &&
               Key(s.context, s.root, mui_codeTab, mui_modCapsLock, true) &&
-              Same(muiFocus_Get(s.context, 0), s.b) &&
+              Same(muiContext_GetFocus(s.context, 0), s.b) &&
               Key(s.context, s.root, mui_codeTab, mui_modShift, true) &&
-              Same(muiFocus_Get(s.context, 0), s.a),
+              Same(muiContext_GetFocus(s.context, 0), s.a),
           "Tab, with a lock on, and Shift+Tab");
     CHECK(!Key(s.context, s.root, mui_codeTab, mui_modControl, true) &&
               !Key(s.context, s.root, mui_codeTab, 0, false) &&
-              Same(muiFocus_Get(s.context, 0), s.a),
+              Same(muiContext_GetFocus(s.context, 0), s.a),
           "Control+Tab and a key up: no default");
     CHECK(Key(s.context, s.root, mui_codeArrowRight, 0, true) &&
-              Same(muiFocus_Get(s.context, 0), s.c) &&
+              Same(muiContext_GetFocus(s.context, 0), s.c) &&
               !Key(s.context, s.root, mui_codeArrowLeft, mui_modShift, true) &&
               Key(s.context, s.root, mui_codeArrowLeft, mui_modNumLock, true) &&
-              Same(muiFocus_Get(s.context, 0), s.a) &&
+              Same(muiContext_GetFocus(s.context, 0), s.a) &&
               !Key(s.context, s.root, mui_codeArrowUp, 0, true) &&
               Key(s.context, s.root, mui_codeArrowDown, 0, true) &&
-              Same(muiFocus_Get(s.context, 0), s.d) &&
+              Same(muiContext_GetFocus(s.context, 0), s.d) &&
               Key(s.context, s.root, mui_codeArrowUp, 0, true) &&
-              Same(muiFocus_Get(s.context, 0), s.a),
+              Same(muiContext_GetFocus(s.context, 0), s.a),
           "arrows, not with Shift; nothing up from a, d below it");
     // Navigation.
     bool handled = false;
     muiNavigationEvent nav = {3, mui_navigateNext, 0};
-    CHECK(muiNavigationInput(s.context, s.root, &nav, &handled) == mui_success && handled &&
-              Same(muiFocus_Get(s.context, 0), s.b) && s.heard.last.kind == mui_eventNavigation &&
+    CHECK(muiNode_RouteNavigation(s.context, s.root, &nav, &handled) == mui_success && handled &&
+              Same(muiContext_GetFocus(s.context, 0), s.b) &&
+              s.heard.last.kind == mui_eventNavigation &&
               s.heard.last.navigation == mui_navigateNext,
           "next");
     nav.action = mui_navigatePrevious;
-    CHECK(muiNavigationInput(s.context, s.root, &nav, &handled) == mui_success && handled &&
-              Same(muiFocus_Get(s.context, 0), s.a),
+    CHECK(muiNode_RouteNavigation(s.context, s.root, &nav, &handled) == mui_success && handled &&
+              Same(muiContext_GetFocus(s.context, 0), s.a),
           "previous");
     nav.action = mui_navigateRight;
-    CHECK(muiNavigationInput(s.context, s.root, &nav, &handled) == mui_success && handled &&
-              Same(muiFocus_Get(s.context, 0), s.c),
+    CHECK(muiNode_RouteNavigation(s.context, s.root, &nav, &handled) == mui_success && handled &&
+              Same(muiContext_GetFocus(s.context, 0), s.c),
           "right");
     nav.action = mui_navigateUp;
-    CHECK(muiNavigationInput(s.context, s.root, &nav, &handled) == mui_success && !handled,
+    CHECK(muiNode_RouteNavigation(s.context, s.root, &nav, &handled) == mui_success && !handled,
           "nothing above c");
     nav.action = mui_navigateDown;
-    CHECK(muiNavigationInput(s.context, s.root, &nav, &handled) == mui_success && handled &&
-              Same(muiFocus_Get(s.context, 0), s.d),
+    CHECK(muiNode_RouteNavigation(s.context, s.root, &nav, &handled) == mui_success && handled &&
+              Same(muiContext_GetFocus(s.context, 0), s.d),
           "down");
     nav.action = mui_navigateActivate;
-    CHECK(muiNavigationInput(s.context, s.root, &nav, &handled) == mui_success && !handled &&
+    CHECK(muiNode_RouteNavigation(s.context, s.root, &nav, &handled) == mui_success && !handled &&
               s.heard.last.navigation == mui_navigateActivate,
           "activate: no default");
     nav.action = mui_navigateCancel;
-    CHECK(muiNavigationInput(s.context, s.root, &nav, &handled) == mui_success && !handled,
+    CHECK(muiNode_RouteNavigation(s.context, s.root, &nav, &handled) == mui_success && !handled,
           "cancel: no default");
     // Without a function, the defaults still run.
     CHECK(muiSetEventFunction(s.context, NULL, NULL) == mui_success &&
               Key(s.context, s.root, mui_codeArrowUp, 0, true) &&
-              Same(muiFocus_Get(s.context, 0), s.a),
+              Same(muiContext_GetFocus(s.context, 0), s.a),
           "no function");
     muiDestroyContext(s.context);
 }
@@ -267,10 +269,10 @@ static void TestText(void)
 {
     Scene s;
     MakeScene(&s);
-    CHECK(muiFocus_Set(s.context, 2, s.c, mui_focusByCode) == mui_success, "focus c");
+    CHECK(muiContext_SetFocus(s.context, 2, s.c, mui_focusByCode) == mui_success, "focus c");
     const muiTextEvent text = {9, "h\xC3\xA9", 3, 2};
     bool handled = true;
-    CHECK(muiTextInput(s.context, s.root, &text, &handled) == mui_success && !handled &&
+    CHECK(muiNode_RouteText(s.context, s.root, &text, &handled) == mui_success && !handled &&
               s.heard.count == 4 && s.heard.last.kind == mui_eventText &&
               s.heard.last.length == 3 && memcmp(s.heard.last.text, "h\xC3\xA9", 3) == 0 &&
               s.heard.last.player == 2 && Same(s.heard.last.target, s.c),
@@ -278,7 +280,7 @@ static void TestText(void)
     s.heard.handleAt = s.c;
     s.heard.handlePhase = mui_phaseBubble;
     const muiTextEvent empty = {9, NULL, 0, 2};
-    CHECK(muiTextInput(s.context, s.root, &empty, &handled) == mui_success && handled,
+    CHECK(muiNode_RouteText(s.context, s.root, &empty, &handled) == mui_success && handled,
           "empty text, handled");
     muiDestroyContext(s.context);
 }
@@ -291,7 +293,7 @@ static void TestTargets(void)
     muiNodeId m = Box(s.context, s.root, 300.0f, 300.0f, 50.0f, mui_focusNone);
     muiInteractionStyle values = muiDefaultInteractionStyle();
     values.layer = mui_layerModal;
-    CHECK(muiFocus_Set(s.context, 0, s.b, mui_focusByCode) == mui_success &&
+    CHECK(muiContext_SetFocus(s.context, 0, s.b, mui_focusByCode) == mui_success &&
               muiNode_SetInteractionValues(s.context, m, &values,
                                            MUI_PROPERTY_BIT(mui_propertyLayer)) == mui_success,
           "modal");
@@ -300,7 +302,7 @@ static void TestTargets(void)
           "a covered focus: the modal layer");
     // Focus in another tree: the root.
     muiNodeId other = Box(s.context, s_nullNode, 0.0f, 0.0f, 10.0f, mui_focusAll);
-    CHECK(muiFocus_Set(s.context, 0, other, mui_focusByCode) == mui_success &&
+    CHECK(muiContext_SetFocus(s.context, 0, other, mui_focusByCode) == mui_success &&
               !Key(s.context, s.root, 27, 0, true) && Same(s.heard.last.target, m),
           "focus elsewhere: the top modal layer here");
     muiDestroyContext(s.context);
@@ -312,7 +314,7 @@ static void TestEdits(void)
     // the root bubbles; input fed from inside is refused.
     Scene s;
     MakeScene(&s);
-    CHECK(muiFocus_Set(s.context, 0, s.b, mui_focusByCode) == mui_success, "focus b");
+    CHECK(muiContext_SetFocus(s.context, 0, s.b, mui_focusByCode) == mui_success, "focus b");
     s.heard.destroy = s.a;
     const muiNodeId nodes[2] = {s.root, s.root};
     const muiPhase phases[2] = {mui_phaseTunnel, mui_phaseBubble};
@@ -324,8 +326,8 @@ static void TestEdits(void)
     const muiPointerRecord record = {.kind = mui_pointerRecordClick, .node = s.c};
     s.heard.destroy = s.c;
     s.heard.count = 0;
-    CHECK(muiDispatchPointerRecord(s.context, &record, &handled) == mui_success && !handled &&
-              s.heard.count == 2 && s.heard.last.kind == mui_eventPointer &&
+    CHECK(muiContext_DispatchPointerRecord(s.context, &record, &handled) == mui_success &&
+              !handled && s.heard.count == 2 && s.heard.last.kind == mui_eventPointer &&
               s.heard.last.pointer == &record,
           "a pointer record whose node goes");
     muiDestroyContext(s.context);
@@ -337,30 +339,30 @@ static void TestPointerRecords(void)
     MakeScene(&s);
     const muiPointerEvent press = {0, 1, mui_pointerMouse, mui_pointerPress, 0, 1, 15.0f, 15.0f, 0};
     muiPointerRecord record = {0};
-    CHECK(muiPointerInput(s.context, s.root, &press) == mui_success &&
-              muiNextPointerRecord(s.context, &record) == mui_success,
+    CHECK(muiNode_RoutePointer(s.context, s.root, &press) == mui_success &&
+              muiContext_TakePointerRecord(s.context, &record) == mui_success,
           "a press record");
     s.heard.handleAt = s.b;
     s.heard.handlePhase = mui_phaseBubble;
     bool handled = false;
-    CHECK(muiDispatchPointerRecord(s.context, &record, &handled) == mui_success && handled &&
-              s.heard.count == 4 && Same(s.heard.last.target, s.b) &&
+    CHECK(muiContext_DispatchPointerRecord(s.context, &record, &handled) == mui_success &&
+              handled && s.heard.count == 4 && Same(s.heard.last.target, s.b) &&
               s.heard.last.pointer->kind == mui_pointerRecordPress,
           "routed to its node");
     const muiPointerRecord nothing = {.kind = mui_pointerRecordRelease};
     s.heard.count = 0;
-    CHECK(muiDispatchPointerRecord(s.context, &nothing, &handled) == mui_success && !handled &&
-              s.heard.count == 0,
+    CHECK(muiContext_DispatchPointerRecord(s.context, &nothing, &handled) == mui_success &&
+              !handled && s.heard.count == 0,
           "a record over nothing");
     // A press focuses by pointer; a key after it makes code focus shown.
-    CHECK(Same(muiFocus_Get(s.context, 0), s.b) &&
-              muiFocus_Set(s.context, 0, s.c, mui_focusByCode) == mui_success &&
+    CHECK(Same(muiContext_GetFocus(s.context, 0), s.b) &&
+              muiContext_SetFocus(s.context, 0, s.c, mui_focusByCode) == mui_success &&
               (muiNode_GetStates(s.context, s.c) & mui_stateFocusVisible) == 0 &&
               !Key(s.context, s.root, 27, 0, false) &&
-              muiFocus_Set(s.context, 0, s.a, mui_focusByCode) == mui_success &&
+              muiContext_SetFocus(s.context, 0, s.a, mui_focusByCode) == mui_success &&
               (muiNode_GetStates(s.context, s.a) & mui_stateFocusVisible) == 0 &&
               !Key(s.context, s.root, 27, 0, true) &&
-              muiFocus_Set(s.context, 0, s.c, mui_focusByCode) == mui_success &&
+              muiContext_SetFocus(s.context, 0, s.c, mui_focusByCode) == mui_success &&
               (muiNode_GetStates(s.context, s.c) & mui_stateFocusVisible) != 0,
           "a key down after a pointer shows code focus; a key up does not");
     // Navigation does too.
@@ -368,10 +370,10 @@ static void TestPointerRecords(void)
                                      15.0f, 0};
     const muiPointerEvent again = {2, 1, mui_pointerMouse, mui_pointerPress, 0, 1, 15.0f, 15.0f, 0};
     const muiNavigationEvent activate = {3, mui_navigateActivate, 0};
-    CHECK(muiPointerInput(s.context, s.root, &release) == mui_success &&
-              muiPointerInput(s.context, s.root, &again) == mui_success &&
-              muiNavigationInput(s.context, s.root, &activate, &handled) == mui_success &&
-              muiFocus_Set(s.context, 0, s.a, mui_focusByCode) == mui_success &&
+    CHECK(muiNode_RoutePointer(s.context, s.root, &release) == mui_success &&
+              muiNode_RoutePointer(s.context, s.root, &again) == mui_success &&
+              muiNode_RouteNavigation(s.context, s.root, &activate, &handled) == mui_success &&
+              muiContext_SetFocus(s.context, 0, s.a, mui_focusByCode) == mui_success &&
               (muiNode_GetStates(s.context, s.a) & mui_stateFocusVisible) != 0,
           "navigation after a pointer shows code focus");
     muiDestroyContext(s.context);
@@ -396,9 +398,9 @@ static void FeedingPaint(void* user, muiNodeId nodeId, uint64_t hostKey, float w
     const muiTextEvent text = {0, "a", 1, 0};
     const muiNavigationEvent nav = {0, mui_navigateUp, 0};
     bool handled = false;
-    feeding->results[0] = muiKeyInput(feeding->context, nodeId, &key, &handled);
-    feeding->results[1] = muiTextInput(feeding->context, nodeId, &text, &handled);
-    feeding->results[2] = muiNavigationInput(feeding->context, nodeId, &nav, &handled);
+    feeding->results[0] = muiNode_RouteKey(feeding->context, nodeId, &key, &handled);
+    feeding->results[1] = muiNode_RouteText(feeding->context, nodeId, &text, &handled);
+    feeding->results[2] = muiNode_RouteNavigation(feeding->context, nodeId, &nav, &handled);
     feeding->results[3] = muiSetEventFunction(feeding->context, NULL, NULL);
 }
 
@@ -414,7 +416,7 @@ static void TestFromPainting(void)
     Layout(s.context, s.root);
     Feeding feeding = {s.context, {mui_success, mui_success, mui_success, mui_success}};
     const muiDrawInput input = {1, 1.0f, FeedingPaint, &feeding};
-    CHECK(muiBuildDrawList(s.context, s.root, &input) == mui_success &&
+    CHECK(muiNode_BuildDrawList(s.context, s.root, &input) == mui_success &&
               feeding.results[0] == mui_errorBusy && feeding.results[1] == mui_errorBusy &&
               feeding.results[2] == mui_errorBusy && feeding.results[3] == mui_errorBusy &&
               s.heard.count == 0,
@@ -435,28 +437,28 @@ static void TestContract(void)
     const muiNavigationEvent badNav = {0, mui_navigateCancel + 1, 0};
     const muiNavigationEvent nav = {0, mui_navigateUp, 0};
     const muiTextEvent text = {0, "a", 1, 0};
-    uint64_t misuse = muiGetContextMisuse(context);
-    CHECK(muiKeyInput(NULL, s.root, &key, &handled) == mui_errorInvalid &&
-              muiKeyInput(context, s.root, NULL, &handled) == mui_errorInvalid &&
-              muiKeyInput(context, s.root, &key, NULL) == mui_errorInvalid &&
-              muiKeyInput(context, s_nullNode, &key, &handled) == mui_errorInvalid &&
-              muiKeyInput(context, s.root, &badKey, &handled) == mui_errorInvalid &&
-              muiTextInput(NULL, s.root, &text, &handled) == mui_errorInvalid &&
-              muiTextInput(context, s.root, &badText, &handled) == mui_errorInvalid &&
-              muiTextInput(context, s.root, &text, NULL) == mui_errorInvalid &&
-              muiNavigationInput(NULL, s.root, &nav, &handled) == mui_errorInvalid &&
-              muiNavigationInput(context, s.root, &badNav, &handled) == mui_errorInvalid &&
-              muiNavigationInput(context, s.root, &nav, NULL) == mui_errorInvalid &&
-              muiDispatchPointerRecord(NULL, &(muiPointerRecord){0}, &handled) ==
+    uint64_t misuse = muiContext_GetMisuse(context);
+    CHECK(muiNode_RouteKey(NULL, s.root, &key, &handled) == mui_errorInvalid &&
+              muiNode_RouteKey(context, s.root, NULL, &handled) == mui_errorInvalid &&
+              muiNode_RouteKey(context, s.root, &key, NULL) == mui_errorInvalid &&
+              muiNode_RouteKey(context, s_nullNode, &key, &handled) == mui_errorInvalid &&
+              muiNode_RouteKey(context, s.root, &badKey, &handled) == mui_errorInvalid &&
+              muiNode_RouteText(NULL, s.root, &text, &handled) == mui_errorInvalid &&
+              muiNode_RouteText(context, s.root, &badText, &handled) == mui_errorInvalid &&
+              muiNode_RouteText(context, s.root, &text, NULL) == mui_errorInvalid &&
+              muiNode_RouteNavigation(NULL, s.root, &nav, &handled) == mui_errorInvalid &&
+              muiNode_RouteNavigation(context, s.root, &badNav, &handled) == mui_errorInvalid &&
+              muiNode_RouteNavigation(context, s.root, &nav, NULL) == mui_errorInvalid &&
+              muiContext_DispatchPointerRecord(NULL, &(muiPointerRecord){0}, &handled) ==
                   mui_errorInvalid &&
-              muiDispatchPointerRecord(context, NULL, &handled) == mui_errorInvalid &&
+              muiContext_DispatchPointerRecord(context, NULL, &handled) == mui_errorInvalid &&
               muiSetEventFunction(NULL, NULL, NULL) == mui_errorInvalid &&
-              muiGetContextMisuse(context) == misuse + 9 && s.heard.count == 0,
+              muiContext_GetMisuse(context) == misuse + 9 && s.heard.count == 0,
           "outside the contract");
     CHECK(muiDestroyNode(context, s.root) == mui_success &&
-              muiKeyInput(context, s.root, &key, &handled) == mui_errorStale &&
-              muiTextInput(context, s.root, &text, &handled) == mui_errorStale &&
-              muiNavigationInput(context, s.root, &nav, &handled) == mui_errorStale,
+              muiNode_RouteKey(context, s.root, &key, &handled) == mui_errorStale &&
+              muiNode_RouteText(context, s.root, &text, &handled) == mui_errorStale &&
+              muiNode_RouteNavigation(context, s.root, &nav, &handled) == mui_errorStale,
           "a root gone");
     muiDestroyContext(context);
 }

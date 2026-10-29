@@ -122,7 +122,7 @@ extern "C"
     /// @return The count; 0 for a NULL adapter.
     /// @par Thread safety
     /// Main thread only.
-    MUI_API uint64_t muiGetUiaAdapterMisuse(const muiUiaAdapter* adapter);
+    MUI_API uint64_t muiUiaAdapter_GetMisuse(const muiUiaAdapter* adapter);
 
     /// Applies an update to the adapter's tree (muiAccessTree_Apply);
     /// the provider objects of nodes it removes answer

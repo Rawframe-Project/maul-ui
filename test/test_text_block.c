@@ -93,7 +93,7 @@ static Scene MakeScene(FailingAllocator* failing)
     font.data = s_ahem;
     font.size = sizeof s_ahem;
     CHECK(muiCreateFont(scene.service, &font, &scene.font) == mui_success &&
-              muiSetDefaultFont(scene.service, scene.font) == mui_success,
+              muiTextService_SetDefaultFont(scene.service, scene.font) == mui_success,
           "the default font");
     muiContextDef context = muiDefaultContextDef();
     CHECK(muiCreateContext(&context, &scene.context) == mui_success, "context");
@@ -145,7 +145,7 @@ static void Layout(Scene* scene, muiNodeId root, float width)
 {
     const muiLayoutInput input = {width, 1000.0f, muiMeasureText, &scene->host,
                                   0,     NULL,    {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(scene->context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(scene->context, root, &input) == mui_success, "layout");
 }
 
 static muiSize Measure(Scene* scene, muiNodeId node, muiMeasureMode mode, float width)
@@ -158,9 +158,9 @@ static muiSize Measure(Scene* scene, muiNodeId node, muiMeasureMode mode, float 
 static muiDrawList Paint(Scene* scene, muiNodeId root)
 {
     const muiDrawInput input = {1, 1.0f, muiPaintText, &scene->host};
-    CHECK(muiBuildDrawList(scene->context, root, &input) == mui_success, "paint");
+    CHECK(muiNode_BuildDrawList(scene->context, root, &input) == mui_success, "paint");
     muiDrawList list;
-    CHECK(muiGetDrawList(scene->context, &list) == mui_success, "list");
+    CHECK(muiContext_GetDrawList(scene->context, &list) == mui_success, "list");
     return list;
 }
 
@@ -213,11 +213,11 @@ static void TestBlocksAndKeys(void)
     CHECK(muiFont_GetKey((muiFontId){1, 2}) == ((uint64_t)2 << 16) &&
               muiFont_GetKey((muiFontId){0, 0}) == 0,
           "a font's key");
-    CHECK(muiSetDefaultFont(NULL, (muiFontId){0, 0}) == mui_errorInvalid &&
-              muiSetDefaultFont(service, (muiFontId){1, 1}) == mui_errorStale &&
-              muiSetDefaultFont(service, (muiFontId){0, 0}) == mui_success,
+    CHECK(muiTextService_SetDefaultFont(NULL, (muiFontId){0, 0}) == mui_errorInvalid &&
+              muiTextService_SetDefaultFont(service, (muiFontId){1, 1}) == mui_errorStale &&
+              muiTextService_SetDefaultFont(service, (muiFontId){0, 0}) == mui_success,
           "the default font");
-    CHECK(muiGetTextServiceFailures(NULL) == 0 && muiGetTextServiceFailures(service) == 0,
+    CHECK(muiTextService_GetFailures(NULL) == 0 && muiTextService_GetFailures(service) == 0,
           "no failures");
     muiDestroyTextService(service);
 }
@@ -239,10 +239,10 @@ static void TestAccessText(void)
               !muiReadAccessText(&scene.host, node, key, NULL, NULL),
           "no block");
     CHECK(muiSetAccessTextFunction(scene.context, muiReadAccessText, &scene.host) == mui_success &&
-              muiAccess_Enable(scene.context, node) == mui_success,
+              muiNode_EnableAccess(scene.context, node, true) == mui_success,
           "read");
     muiAccessUpdate update;
-    CHECK(muiBuildAccessUpdate(scene.context, node, &update) == mui_success &&
+    CHECK(muiNode_BuildAccessUpdate(scene.context, node, &update) == mui_success &&
               update.nodeCount == 1 && update.nodes[0]->role == mui_roleLabel &&
               update.nodes[0]->textLength[mui_accessValue] == 4 &&
               memcmp(update.nodes[0]->text[mui_accessValue], "Save", 4) == 0 &&
@@ -442,43 +442,45 @@ static void TestMisuse(void)
 {
     Scene scene = MakeScene(NULL);
     muiTextService* service = scene.service;
-    CHECK(muiGetTextServiceMisuse(service) == 0 && muiGetTextServiceMisuse(NULL) == 0, "none yet");
+    CHECK(muiTextService_GetMisuse(service) == 0 && muiTextService_GetMisuse(NULL) == 0,
+          "none yet");
     muiTextBlockId block = {0, 0};
     CHECK(muiCreateTextBlock(service, &(muiTextBlockDef){0}, &block) == mui_errorInvalid &&
-              muiGetTextServiceMisuse(service) == 1,
+              muiTextService_GetMisuse(service) == 1,
           "a def without its cookie");
     CHECK(muiCreateTextBlock(NULL, &(muiTextBlockDef){0}, &block) == mui_errorInvalid &&
-              muiGetTextServiceMisuse(service) == 1,
+              muiTextService_GetMisuse(service) == 1,
           "no service: nowhere to count");
     const muiTextBlockDef def = muiDefaultTextBlockDef();
     CHECK(muiCreateTextBlock(service, &def, &block) == mui_success, "a block");
     const muiTextSelection all = {0, {0, mui_affinityDownstream}};
     CHECK(muiTextBlock_Select(service, block, all) == mui_errorState &&
-              muiGetTextServiceMisuse(service) == 1,
+              muiTextService_GetMisuse(service) == 1,
           "selecting in a block not editing: a state, no misuse");
     const uint64_t zero = 0;
-    CHECK(muiSetFallbackFonts(service, &zero, 1) == mui_errorInvalid &&
-              muiGetTextServiceMisuse(service) == 2,
+    CHECK(muiTextService_SetFallbackFonts(service, &zero, 1) == mui_errorInvalid &&
+              muiTextService_GetMisuse(service) == 2,
           "a fallback that names nothing");
     muiGlyphAtlas* atlas = NULL;
     const muiGlyphAtlasDef atlasDef = muiDefaultGlyphAtlasDef();
     muiAtlasGlyph glyph = {0};
     const muiLinearColor black = {0.0f, 0.0f, 0.0f, 1.0f};
     CHECK(muiCreateGlyphAtlas(service, &atlasDef, &atlas) == mui_success &&
-              muiGlyphAtlas_GetColor(atlas, 0, 1, 10.0f, 0.0f, 0.0f, 0, black, &glyph) ==
+              muiGlyphAtlas_GetColorGlyph(atlas, 0, 1, 10.0f, 0.0f, 0.0f, 0, black, &glyph) ==
                   mui_errorUnsupported &&
-              muiGetTextServiceMisuse(service) == 2,
+              muiTextService_GetMisuse(service) == 2,
           "a colour glyph from a one-channel atlas, unsupported and no misuse");
-    CHECK(muiGlyphAtlas_Get(atlas, 0, 1, 1.0f / 128.0f, 0.0f, 0.0f, &glyph) == mui_errorLimit &&
-              muiGetTextServiceMisuse(service) == 3,
+    CHECK(muiGlyphAtlas_GetGlyph(atlas, 0, 1, 1.0f / 128.0f, 0.0f, 0.0f, &glyph) ==
+                  mui_errorLimit &&
+              muiTextService_GetMisuse(service) == 3,
           "a size past the floor, counted on its service");
     muiDestroyGlyphAtlas(atlas);
     CHECK(muiDestroyTextBlock(service, block) == mui_success &&
               muiDestroyTextBlock(service, block) == mui_errorStale &&
-              muiGetTextServiceMisuse(service) == 3,
+              muiTextService_GetMisuse(service) == 3,
           "a stale id is no misuse");
     CHECK(muiFont_GetMetrics(service, scene.font, NULL) == mui_errorInvalid &&
-              muiGetTextServiceMisuse(service) == 3,
+              muiTextService_GetMisuse(service) == 3,
           "a const query counts nothing");
     FreeScene(&scene);
 }
@@ -770,7 +772,7 @@ static void TestFontsAndChanges(void)
           "no such font");
     style.font = 0;
     SetText(&scene, node, style, FONT);
-    CHECK(muiSetDefaultFont(scene.service, (muiFontId){0, 0}) == mui_success, "none");
+    CHECK(muiTextService_SetDefaultFont(scene.service, (muiFontId){0, 0}) == mui_success, "none");
     Layout(&scene, node, 1000.0f);
     CHECK(SameSize(Measure(&scene, node, mui_measureMaxContent, 0.0f), 0.0f, 0.0f),
           "no default font");
@@ -920,7 +922,7 @@ static void TestBaselines(void)
           "first baselines");
     const muiLayoutInput input = {
         500.0f, 1000.0f, muiMeasureText, &scene.host, 0, muiMeasureTextBaseline, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(scene.context, row, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(scene.context, row, &input) == mui_success, "layout");
     // Empty text has no baseline, so its box's bottom is one.
     muiRect rects[3] = {muiNode_GetRect(scene.context, small),
                         muiNode_GetRect(scene.context, large),
@@ -937,14 +939,14 @@ static void LayOutAndPaint(Scene* scene, muiNodeId node, float width)
 {
     const muiLayoutInput layout = {width, 1000.0f, muiMeasureText, &scene->host,
                                    0,     NULL,    {0, 0, 0, 0}};
-    uint64_t failures = muiGetTextServiceFailures(scene->service);
-    muiResult laid = muiComputeLayout(scene->context, node, &layout);
-    bool failed = muiGetTextServiceFailures(scene->service) != failures;
+    uint64_t failures = muiTextService_GetFailures(scene->service);
+    muiResult laid = muiNode_ComputeLayout(scene->context, node, &layout);
+    bool failed = muiTextService_GetFailures(scene->service) != failures;
     CHECK(laid == (failed ? mui_errorCapacity : mui_success), "layout");
     const muiDrawInput input = {1, 1.0f, muiPaintText, &scene->host};
-    failures = muiGetTextServiceFailures(scene->service);
-    muiResult painted = muiBuildDrawList(scene->context, node, &input);
-    failed = muiGetTextServiceFailures(scene->service) != failures;
+    failures = muiTextService_GetFailures(scene->service);
+    muiResult painted = muiNode_BuildDrawList(scene->context, node, &input);
+    failed = muiTextService_GetFailures(scene->service) != failures;
     CHECK(painted == (failed ? mui_errorCapacity : mui_success), "paint");
 }
 
@@ -963,7 +965,7 @@ static void TestMemoryRunningOut(void)
         failing = (FailingAllocator){0, failAt};
         LayOutAndPaint(&scene, node, 1000.0f);
         bool failed = failing.allocations >= failAt;
-        CHECK(failed == (muiGetTextServiceFailures(scene.service) != 0), "counted");
+        CHECK(failed == (muiTextService_GetFailures(scene.service) != 0), "counted");
         FreeScene(&scene);
     }
     // And lines shaped alone, at an unsafe break.
@@ -976,7 +978,7 @@ static void TestMemoryRunningOut(void)
         failing = (FailingAllocator){0, failAt};
         LayOutAndPaint(&scene, node, 100000.0f);
         bool failed = failing.allocations >= failAt;
-        CHECK(failed == (muiGetTextServiceFailures(scene.service) != 0), "counted");
+        CHECK(failed == (muiTextService_GetFailures(scene.service) != 0), "counted");
         FreeScene(&scene);
     }
     // Setting text keeps the old one when memory runs out.

@@ -29,7 +29,7 @@ static muiRect DeviceRect(const muiDrawList* list, uint32_t index)
 }
 ```
 
-`muiBuildDrawList` builds the list for a root as its last layout left it, at the scale and surface the draw input names, and `muiGetDrawList` shows it until the next build. The header's generation changes only when the list does, so a program that sees the same generation can skip presenting the frame.
+`muiNode_BuildDrawList` builds the list for a root as its last layout left it, at the scale and surface the draw input names, and `muiContext_GetDrawList` shows it until the next build. The header's generation changes only when the list does, so a program that sees the same generation can skip presenting the frame.
 
 ## Content the program draws
 
@@ -49,13 +49,13 @@ static void PaintGauge(void* user, muiNodeId nodeId, uint64_t hostKey, float wid
 }
 ```
 
-A node 200 units wide and a quarter full is painted as one box 50 units wide, which lands 100 device pixels wide at a scale of 2. For long content, `muiDrawSink_GetVisibleRect` tells the part of the content box that can be seen, so only that is painted. A paint function that cannot paint all it has to, as when its memory ran out, calls `muiDrawSink_Fail`: `muiBuildDrawList` keeps what was added and returns `mui_errorCapacity`, and the next build paints the node again rather than copying it from this list.
+A node 200 units wide and a quarter full is painted as one box 50 units wide, which lands 100 device pixels wide at a scale of 2. For long content, `muiDrawSink_GetVisibleRect` tells the part of the content box that can be seen, so only that is painted. A paint function that cannot paint all it has to, as when its memory ran out, calls `muiDrawSink_Fail`: `muiNode_BuildDrawList` keeps what was added and returns `mui_errorCapacity`, and the next build paints the node again rather than copying it from this list.
 
 An image is a visual value: a host key naming the image, with nine-slice insets, a tint and a repeat mode. The library never loads images; the renderer looks the key up.
 
 ## Glyphs
 
-Glyph runs name a font key, a size and glyph ids. A renderer draws their images from an atlas, which renders them once (coverage, distance fields or colour, as `muiRenderGlyph` and its siblings do) and packs them into pages it keeps:
+Glyph runs name a font key, a size and glyph ids. A renderer draws their images from an atlas, which renders them once (coverage, distance fields or colour, as `muiTextService_RenderGlyph` and its siblings do) and packs them into pages it keeps:
 
 ```c
 // Makes sure every glyph of a list is in the atlas, then takes the
@@ -66,7 +66,7 @@ static uint32_t PackGlyphs(muiGlyphAtlas* atlas, const muiDrawList* list, muiAtl
 {
     uint32_t packed = 0;
     float scale = list->header.scale;
-    muiGlyphAtlas_NextFrame(atlas);
+    muiGlyphAtlas_BeginFrame(atlas);
     for (uint32_t i = 0; i < list->commandCount; i++)
     {
         const muiDrawGlyphRun* run = &list->commands[i].glyphRun;
@@ -78,9 +78,9 @@ static uint32_t PackGlyphs(muiGlyphAtlas* atlas, const muiDrawList* list, muiAtl
         {
             const muiGlyph* glyph = &list->glyphs[run->firstGlyph + g];
             muiAtlasGlyph image;
-            if (muiGlyphAtlas_Get(atlas, run->font, glyph->id, run->size * scale,
-                                  (run->originX + glyph->x) * scale,
-                                  (run->originY + glyph->y) * scale, &image) == mui_success)
+            if (muiGlyphAtlas_GetGlyph(atlas, run->font, glyph->id, run->size * scale,
+                                       (run->originX + glyph->x) * scale,
+                                       (run->originY + glyph->y) * scale, &image) == mui_success)
             {
                 packed++;
             }
@@ -92,7 +92,7 @@ static uint32_t PackGlyphs(muiGlyphAtlas* atlas, const muiDrawList* list, muiAtl
 }
 ```
 
-The first frame packs every glyph and gives the rectangles to upload; the next, its glyphs packed already, gives none. A plot of glyphs no frame has used lately is emptied when room runs out. Text drawn scaled or in 3D looks sharp drawn from multi-channel distance fields (`muiGlyphAtlas_GetMultiField`), and colour emoji come from a colour atlas (`muiGlyphAtlas_GetColor`).
+The first frame packs every glyph and gives the rectangles to upload; the next, its glyphs packed already, gives none. A plot of glyphs no frame has used lately is emptied when room runs out. Text drawn scaled or in 3D looks sharp drawn from multi-channel distance fields (`muiGlyphAtlas_GetGlyphMultiField`), and colour emoji come from a colour atlas (`muiGlyphAtlas_GetColorGlyph`).
 
 ## The reference renderer
 

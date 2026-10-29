@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// What one muiComputeLayout works with. Layout algorithms reach their
+// What one muiNode_ComputeLayout works with. Layout algorithms reach their
 // children through solve, so that the modules that size a node and the
 // algorithms that call back into it do not include each other.
 

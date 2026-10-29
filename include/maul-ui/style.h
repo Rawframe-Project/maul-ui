@@ -337,7 +337,7 @@ extern "C"
     MUI_API muiEnvironment muiDefaultEnvironment(void);
 
     /// Sets the environment conditions read. Every node is styled again at
-    /// the next muiComputeLayout when it changes.
+    /// the next muiNode_ComputeLayout when it changes.
     ///
     /// @param context      The context.
     /// @param environment  One viewport class bit, one input modality bit
@@ -346,8 +346,8 @@ extern "C"
     ///         outside the above; `mui_errorBusy` while the context is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiSetContextEnvironment(muiContext* context,
-                                                             const muiEnvironment* environment);
+    MUI_NODISCARD MUI_API muiResult muiContext_SetEnvironment(muiContext* context,
+                                                              const muiEnvironment* environment);
 
     /// Returns the environment conditions read.
     ///
@@ -355,7 +355,7 @@ extern "C"
     /// @return The environment; muiDefaultEnvironment's for a NULL context.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_API muiEnvironment muiGetContextEnvironment(const muiContext* context);
+    MUI_API muiEnvironment muiContext_GetEnvironment(const muiContext* context);
 
     // How a style class is made. Build it with muiDefaultStyleDef.
     typedef struct muiStyleDef
@@ -384,7 +384,7 @@ extern "C"
                                                    muiStyleId* styleOut);
 
     /// Destroys a style class. Nodes and node types that list it skip it,
-    /// and every node is styled again at the next muiComputeLayout.
+    /// and every node is styled again at the next muiNode_ComputeLayout.
     ///
     /// @param context  The context.
     /// @param styleId  The class.
@@ -396,7 +396,7 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiDestroyStyle(muiContext* context, muiStyleId styleId);
 
     /// Sets layout properties in one variant of a class from the fields of
-    /// values. Every node is styled again at the next muiComputeLayout.
+    /// values. Every node is styled again at the next muiNode_ComputeLayout.
     ///
     /// @param context  The context.
     /// @param styleId  The class.
@@ -424,7 +424,7 @@ extern "C"
 
     /// Unsets properties in one variant of a class: their values and the
     /// tokens named for them. Every node is styled again at the next
-    /// muiComputeLayout.
+    /// muiNode_ComputeLayout.
     ///
     /// @param context  The context.
     /// @param styleId  The class.
@@ -462,7 +462,7 @@ extern "C"
 
     /// Adds a condition to a class, after its others. Its values are then
     /// set through the variant it gives. Every node is styled again at the
-    /// next muiComputeLayout.
+    /// next muiNode_ComputeLayout.
     ///
     /// @param context     The context.
     /// @param styleId     The class.
@@ -481,7 +481,7 @@ extern "C"
                                                           muiVariant* variantOut);
 
     /// Replaces one of a class's conditions, keeping its values. Every node
-    /// is styled again at the next muiComputeLayout.
+    /// is styled again at the next muiNode_ComputeLayout.
     ///
     /// @param context    The context.
     /// @param styleId    The class.
@@ -514,7 +514,7 @@ extern "C"
                                                           muiCondition* conditionOut);
 
     /// Removes every condition of a class and its values. Every node is
-    /// styled again at the next muiComputeLayout.
+    /// styled again at the next muiNode_ComputeLayout.
     ///
     /// @param context  The context.
     /// @param styleId  The class.
@@ -561,7 +561,7 @@ extern "C"
                                                       muiNodeTypeId* typeOut);
 
     /// Destroys a node type. Its nodes are left with no type, and every
-    /// node is styled again at the next muiComputeLayout.
+    /// node is styled again at the next muiNode_ComputeLayout.
     ///
     /// @param context  The context.
     /// @param typeId   The type.
@@ -573,7 +573,7 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiDestroyNodeType(muiContext* context, muiNodeTypeId typeId);
 
     /// Replaces a node type's classes. Every node is styled again at the
-    /// next muiComputeLayout.
+    /// next muiNode_ComputeLayout.
     ///
     /// @param context  The context.
     /// @param typeId   The type.
@@ -591,7 +591,7 @@ extern "C"
                                                            uint32_t count);
 
     /// Sets a node's type. The node is styled again at the next
-    /// muiComputeLayout.
+    /// muiNode_ComputeLayout.
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
@@ -605,7 +605,7 @@ extern "C"
                                                     muiNodeTypeId typeId);
 
     /// Replaces a node's own classes, which follow its type's. The node is
-    /// styled again at the next muiComputeLayout.
+    /// styled again at the next muiNode_ComputeLayout.
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
@@ -622,7 +622,7 @@ extern "C"
                                                        const muiStyleId* classes, uint32_t count);
 
     /// Sets the states a node is in. The node is styled again at the next
-    /// muiComputeLayout when they change. Pointer input's hover and press,
+    /// muiNode_ComputeLayout when they change. Pointer input's hover and press,
     /// and the players' focus, join them, apart: setting states leaves
     /// those. The exiting bit is the exits' (maul-ui/exit.h): setting
     /// states keeps it as it is.
@@ -639,8 +639,8 @@ extern "C"
                                                       muiState states);
 
     /// Returns the states a node is in: those the host set, hover and
-    /// press from pointer input (muiPointerInput), and focus and its
-    /// showing from the players' focus (muiFocus_Set).
+    /// press from pointer input (muiNode_RoutePointer), and focus and its
+    /// showing from the players' focus (muiContext_SetFocus).
     ///
     /// @param context  The context.
     /// @param nodeId   The node.
@@ -651,7 +651,7 @@ extern "C"
 
     /// Writes layout properties of a node directly from the fields of
     /// values: they win over every class until reset, at once. The node and
-    /// its parent are laid out again at the next muiComputeLayout.
+    /// its parent are laid out again at the next muiNode_ComputeLayout.
     /// MUI_LAYOUT_PROPERTIES as the mask writes every layout property.
     ///
     /// @param context  The context.
@@ -669,7 +669,7 @@ extern "C"
                                                             muiPropertyMask mask);
 
     /// Ends direct writes of a node's properties: they take their classes'
-    /// values again at the next muiComputeLayout.
+    /// values again at the next muiNode_ComputeLayout.
     ///
     /// @param context  The context.
     /// @param nodeId   The node.

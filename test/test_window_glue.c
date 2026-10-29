@@ -183,9 +183,9 @@ static void MakeTree(Test* test)
                                        MUI_PROPERTY_BIT(mui_propertyFocusMode)) == mui_success,
           "the button takes focus");
     const muiLayoutInput input = {640.0f, 480.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(test->context, test->root, &input) == mui_success &&
+    CHECK(muiNode_ComputeLayout(test->context, test->root, &input) == mui_success &&
               muiSetEventFunction(test->context, Hear, test) == mui_success &&
-              muiFocus_Set(test->context, 0, test->button, mui_focusByCode) == mui_success,
+              muiContext_SetFocus(test->context, 0, test->button, mui_focusByCode) == mui_success,
           "laid out, heard and focused");
 }
 
@@ -209,7 +209,7 @@ static mwinResult Init(mwinContext* windows, void* user)
     def.window = test->window;
     def.context = test->context;
     def.root = test->root;
-    def.gamepads = true;
+    def.enableGamepads = true;
     muiWindowGlueDef stalled = def;
     stalled.repeatIntervalNs = 0;
     muiWindowGlue* refused = NULL;

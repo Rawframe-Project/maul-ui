@@ -64,7 +64,7 @@ static muiNodeId Box(muiContext* context, muiNodeId parent, float x, float y, fl
 static void Layout(muiContext* context, muiNodeId root)
 {
     const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
 }
 
 static muiContext* MakeContext(uint32_t neighbors)
@@ -80,13 +80,13 @@ static muiContext* MakeContext(uint32_t neighbors)
 static bool Moves(muiContext* context, muiNodeId root, muiNodeId from, muiDirection direction,
                   muiNodeId to)
 {
-    if (muiFocus_Set(context, 0, from, mui_focusByCode) != mui_success)
+    if (muiContext_SetFocus(context, 0, from, mui_focusByCode) != mui_success)
     {
         return false;
     }
-    muiResult result = muiFocus_MoveToward(context, root, 0, direction);
-    return to.index1 == 0 ? result == mui_empty && Same(muiFocus_Get(context, 0), from)
-                          : result == mui_success && Same(muiFocus_Get(context, 0), to);
+    muiResult result = muiNode_MoveFocusToward(context, root, 0, direction);
+    return to.index1 == 0 ? result == mui_empty && Same(muiContext_GetFocus(context, 0), from)
+                          : result == mui_success && Same(muiContext_GetFocus(context, 0), to);
 }
 
 static void TestGrid(void)
@@ -111,14 +111,14 @@ static void TestGrid(void)
               Moves(context, root, cells[8], mui_directionRight, s_nullNode) &&
               Moves(context, root, cells[8], mui_directionDown, s_nullNode),
           "edges: no wrap");
-    CHECK(muiFocus_Set(context, 0, cells[4], mui_focusByPointer) == mui_success &&
-              muiFocus_MoveToward(context, root, 0, mui_directionRight) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, cells[4], mui_focusByPointer) == mui_success &&
+              muiNode_MoveFocusToward(context, root, 0, mui_directionRight) == mui_success &&
               (muiNode_GetStates(context, cells[5]) & mui_stateFocusVisible) != 0,
           "shown");
     // No focus: as Tab, the first.
-    CHECK(muiFocus_Set(context, 0, s_nullNode, mui_focusByCode) == mui_success &&
-              muiFocus_MoveToward(context, root, 0, mui_directionUp) == mui_success &&
-              Same(muiFocus_Get(context, 0), cells[0]),
+    CHECK(muiContext_SetFocus(context, 0, s_nullNode, mui_focusByCode) == mui_success &&
+              muiNode_MoveFocusToward(context, root, 0, mui_directionUp) == mui_success &&
+              Same(muiContext_GetFocus(context, 0), cells[0]),
           "from nothing");
     muiDestroyContext(context);
 }
@@ -311,8 +311,8 @@ static void TestLayers(void)
     CHECK(muiNode_SetNeighbor(context, m1, mui_directionDown, b) == mui_success &&
               Moves(context, root, m1, mui_directionDown, m2),
           "a link to a covered node");
-    CHECK(muiFocus_MoveToward(context, root, 1, mui_directionRight) == mui_success &&
-              Same(muiFocus_Get(context, 1), m1),
+    CHECK(muiNode_MoveFocusToward(context, root, 1, mui_directionRight) == mui_success &&
+              Same(muiContext_GetFocus(context, 1), m1),
           "from no focus into the modal layer");
     muiDestroyContext(context);
 }
@@ -514,17 +514,18 @@ static void TestContract(void)
     muiNodeId root = Box(context, s_nullNode, 0.0f, 0.0f, 100.0f, 100.0f, mui_focusNone);
     muiNodeId a = Box(context, root, 0.0f, 0.0f, 10.0f, 10.0f, mui_focusAll);
     Layout(context, root);
-    uint64_t misuse = muiGetContextMisuse(context);
-    CHECK(muiFocus_MoveToward(NULL, root, 0, mui_directionUp) == mui_errorInvalid &&
-              muiFocus_MoveToward(context, s_nullNode, 0, mui_directionUp) == mui_errorInvalid &&
-              muiFocus_MoveToward(context, root, MUI_MAX_PLAYERS, mui_directionUp) ==
-                  mui_errorInvalid &&
-              muiFocus_MoveToward(context, root, 0, mui_directionRight + 1) == mui_errorInvalid &&
-              muiNode_SetNeighbor(NULL, a, mui_directionUp, a) == mui_errorInvalid &&
-              muiNode_SetNeighbor(context, s_nullNode, mui_directionUp, a) == mui_errorInvalid &&
-              muiNode_SetNeighbor(context, a, mui_directionRight + 1, a) == mui_errorInvalid &&
-              muiGetContextMisuse(context) == misuse + 5,
-          "outside the contract");
+    uint64_t misuse = muiContext_GetMisuse(context);
+    CHECK(
+        muiNode_MoveFocusToward(NULL, root, 0, mui_directionUp) == mui_errorInvalid &&
+            muiNode_MoveFocusToward(context, s_nullNode, 0, mui_directionUp) == mui_errorInvalid &&
+            muiNode_MoveFocusToward(context, root, MUI_MAX_PLAYERS, mui_directionUp) ==
+                mui_errorInvalid &&
+            muiNode_MoveFocusToward(context, root, 0, mui_directionRight + 1) == mui_errorInvalid &&
+            muiNode_SetNeighbor(NULL, a, mui_directionUp, a) == mui_errorInvalid &&
+            muiNode_SetNeighbor(context, s_nullNode, mui_directionUp, a) == mui_errorInvalid &&
+            muiNode_SetNeighbor(context, a, mui_directionRight + 1, a) == mui_errorInvalid &&
+            muiContext_GetMisuse(context) == misuse + 5,
+        "outside the contract");
     CHECK(muiNode_GetNeighbor(NULL, a, mui_directionUp).index1 == 0 &&
               muiNode_GetNeighbor(context, s_nullNode, mui_directionUp).index1 == 0 &&
               muiNode_GetNeighbor(context, a, mui_directionRight + 1).index1 == 0,
@@ -538,7 +539,7 @@ static void TestContract(void)
               muiNode_GetNeighbor(context, gone, mui_directionUp).index1 == 0,
           "nodes gone");
     CHECK(muiDestroyNode(context, root) == mui_success &&
-              muiFocus_MoveToward(context, root, 0, mui_directionUp) == mui_errorStale,
+              muiNode_MoveFocusToward(context, root, 0, mui_directionUp) == mui_errorStale,
           "a root gone");
     muiDestroyContext(context);
 }

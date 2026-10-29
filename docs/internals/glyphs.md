@@ -12,11 +12,11 @@ The draw list carries glyph ids, not images, so a list never depends on a render
 
 ## Coverage
 
-`muiRenderGlyph` renders a glyph of a font key at an em in device pixels, and a pen offset right of a pixel boundary, into the caller's bytes as 8-bit linear coverage, and gives its size and bearing ([glyph_image.c](../../src/glyph_image.c)). A size it needs that the bytes lack is reported, not allocated. Outlines are unhinted and drawn without the font's embedded bitmaps, so images sit on the unhinted advances text is laid out with. LCD rendering is not drawn.
+`muiTextService_RenderGlyph` renders a glyph of a font key at an em in device pixels, and a pen offset right of a pixel boundary, into the caller's bytes as 8-bit linear coverage, and gives its size and bearing ([glyph_image.c](../../src/glyph_image.c)). A size it needs that the bytes lack is reported, not allocated. Outlines are unhinted and drawn without the font's embedded bitmaps, so images sit on the unhinted advances text is laid out with. LCD rendering is not drawn.
 
 ## Distance fields
 
-`muiRenderGlyphField` renders a signed distance field that scales: 128 at the outline, changing by 128 / spread a pixel inside and out, reaching the spread past the outline ([distance_field.c](../../src/distance_field.c)). The library draws it itself rather than with FreeType's `sdf` module, which spends most of its time in fixed-point vector lengths and is about 30 times slower.
+`muiTextService_RenderGlyphField` renders a signed distance field that scales: 128 at the outline, changing by 128 / spread a pixel inside and out, reaching the spread past the outline ([distance_field.c](../../src/distance_field.c)). The library draws it itself rather than with FreeType's `sdf` module, which spends most of its time in fixed-point vector lengths and is about 30 times slower.
 
 - The outline is flattened into segments within 1/32 pixel by Wang's formula ([flatten.c](../../src/flatten.c)).
 - Each pixel's center is inside by nonzero winding along its row, or even-odd when the outline says so, and its distance is to the nearest part of a segment on the edge of the union of the contours.
@@ -24,13 +24,13 @@ The draw list carries glyph ids, not images, so a list never depends on a render
 
 ## Multi-channel fields
 
-`muiRenderGlyphMultiField` renders the same field with three more channels (MTSDF), after Chlumský's method and msdfgen ([multi_field.c](../../src/multi_field.c)). The union's edge is followed into loops across the places where it leaves one contour for another, and cut into edges where lines or curves meet turning past msdfgen's threshold of 3 radians. Edges are coloured as msdfgen colours them, so the two edges at a corner share one channel, and each colour channel holds the signed distance to the nearest edge of its colour. The median of the three keeps corners sharp at any scale, where the one-channel field, kept in alpha for outlines and shadows, rounds them. Where the median's side is not the pixel's, the three take the true distance.
+`muiTextService_RenderGlyphMultiField` renders the same field with three more channels (MTSDF), after Chlumský's method and msdfgen ([multi_field.c](../../src/multi_field.c)). The union's edge is followed into loops across the places where it leaves one contour for another, and cut into edges where lines or curves meet turning past msdfgen's threshold of 3 radians. Edges are coloured as msdfgen colours them, so the two edges at a corner share one channel, and each colour channel holds the signed distance to the nearest edge of its colour. The median of the three keeps corners sharp at any scale, where the one-channel field, kept in alpha for outlines and shadows, rounds them. Where the median's side is not the pixel's, the three take the true distance.
 
 `test_field_quality` measures the fields against FreeType's exact coverage at the drawn size, for Liberation Sans's printable ASCII drawn 1.5 to 6 times larger than the field's em. With a spread of 4 field pixels the median's mean error is 0.036 and 0.46% of edge pixels are off by more than a quarter, where the one-channel field's are 0.056 and 3.7%. A spread of an eighth of the em, tried first, measured 0.082 and 7.2%: a byte then steps by an eighth of a field pixel, which a magnified field turns into edges ramped and placed off by a third of a pixel and more.
 
 ## Colour glyphs
 
-`muiRenderColorGlyph` renders a glyph's colour image into premultiplied pixels stored as an sRGB texture holds them, choosing the first form the font has ([color_glyph.c](../../src/color_glyph.c)):
+`muiTextService_RenderColorGlyph` renders a glyph's colour image into premultiplied pixels stored as an sRGB texture holds them, choosing the first form the font has ([color_glyph.c](../../src/color_glyph.c)):
 
 - **COLR version 1.** The paint graph, read through FreeType, is drawn into a premultiplied linear surface over the glyph's clip box (one whose maximum is below its minimum is `mui_errorFormat`), transforms composed down from font units, layers composited source over (Porter and Duff), at most 64 paints deep, so a graph that paints itself is `mui_errorFormat` ([colr_paint.c](../../src/colr_paint.c)). Gradients take each pixel's centre back into font units: linear along p0 to p1 turned by p2, radial as CSS's two-point conical gradient, and sweep counter-clockwise from the x axis. Their colour lines pad, repeat or reflect and interpolate in premultiplied linear light, as CPAL asks. Composites take W3C Compositing and Blending Level 1's modes in linear light ([colr_composite.c](../../src/colr_composite.c)).
 - **COLR version 0.** Each layer, another glyph's outline, is FreeType's coverage filled with its CPAL entry from the palette the caller names, or for entry 0xFFFF the text's colour, composited in order, source over. FreeType's own COLR rendering is not used because it takes no palette and no text colour.

@@ -47,7 +47,7 @@ extern "C"
         bool ariaDeferred;
         const char* ariaEnableLabel;
         // What a client asks of a node; NULL has the context do it
-        // (muiPerformAccessAction).
+        // (muiContext_PerformAccessAction).
         muiAccessActionFunction action;
         void* user;
     } muiWindowAccessDef;
@@ -63,7 +63,7 @@ extern "C"
     MUI_WINDOW_API muiWindowAccessDef muiDefaultWindowAccessDef(void);
 
     /// Makes a glue's access: enables the root's updates
-    /// (muiAccess_Enable) and makes the adapter for the window's platform
+    /// (muiNode_EnableAccess) and makes the adapter for the window's platform
     /// (UI Automation on Win32, NSAccessibility on macOS, UIAccessibility
     /// on iOS, Android's over the activity's view, ARIA in the element
     /// Maul Window keeps over the canvas, AT-SPI on X11 and Wayland with
@@ -85,20 +85,20 @@ extern "C"
                                                                  muiWindowAccess** accessOut);
 
     /// Destroys an access: hands the window no root, lets the adapter
-    /// go and stops the root's updates (muiAccess_Disable).
+    /// go and stops the root's updates (muiNode_EnableAccess).
     ///
     /// @param access  The access, or NULL for nothing.
     /// @par Thread safety
     /// Main thread only.
     MUI_WINDOW_API void muiDestroyWindowAccess(muiWindowAccess* access);
 
-    /// Sends the root's changes since the last call (muiBuildAccessUpdate)
+    /// Sends the root's changes since the last call (muiNode_BuildAccessUpdate)
     /// to the adapter, and hands the window the adapter's root if it
     /// changed. The program calls it each frame after layout.
     ///
     /// @param access  The access.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL access, or a
-    ///         root request Maul Window refuses; as muiBuildAccessUpdate
+    ///         root request Maul Window refuses; as muiNode_BuildAccessUpdate
     ///         and the adapter's update otherwise.
     /// @par Thread safety
     /// Main thread only.
@@ -132,7 +132,7 @@ extern "C"
     /// @return Whether it did; false for a NULL access.
     /// @par Thread safety
     /// Safe from any thread; the access is used by one thread at a time.
-    MUI_WINDOW_API bool muiWindowAccess_HasAdapter(const muiWindowAccess* access);
+    MUI_WINDOW_API bool muiWindowAccess_IsAdapterCreated(const muiWindowAccess* access);
 
 #ifdef __cplusplus
 }

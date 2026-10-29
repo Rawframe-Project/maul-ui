@@ -104,7 +104,7 @@ static float Show(Scene* scene, uint64_t font, const char* text)
           "style");
     const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &scene->host,
                                   0,       NULL,    {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(scene->context, scene->node, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(scene->context, scene->node, &input) == mui_success, "layout");
     return muiMeasureText(&scene->host, scene->node, muiTextBlock_GetKey(scene->block),
                           (muiMeasureAxis){0.0f, mui_measureMaxContent},
                           (muiMeasureAxis){0.0f, mui_measureMaxContent})
@@ -114,9 +114,9 @@ static float Show(Scene* scene, uint64_t font, const char* text)
 static muiDrawList Paint(Scene* scene)
 {
     const muiDrawInput input = {1, 1.0f, muiPaintText, &scene->host};
-    CHECK(muiBuildDrawList(scene->context, scene->node, &input) == mui_success, "paint");
+    CHECK(muiNode_BuildDrawList(scene->context, scene->node, &input) == mui_success, "paint");
     muiDrawList list;
-    CHECK(muiGetDrawList(scene->context, &list) == mui_success, "list");
+    CHECK(muiContext_GetDrawList(scene->context, &list) == mui_success, "list");
     return list;
 }
 
@@ -137,7 +137,7 @@ static void TestServiceFallbacks(void)
     uint64_t maul = muiFont_GetKey(scene.maul);
     uint64_t ahem = muiFont_GetKey(scene.ahem);
     CHECK(Show(&scene, maul, "A") == 5.0f, "the first font alone");
-    CHECK(muiSetFallbackFonts(scene.service, &ahem, 1) == mui_success, "fallbacks");
+    CHECK(muiTextService_SetFallbackFonts(scene.service, &ahem, 1) == mui_success, "fallbacks");
     CHECK(Show(&scene, maul, "AB") == 15.0f, "B from the fallback, the width of both");
     muiDrawList list = Paint(&scene);
     CHECK(RunsIn(&list, (muiFontId[]){scene.maul, scene.ahem}, 2) && list.glyphs[1].x == 5.0f,
@@ -165,7 +165,7 @@ static void TestServiceFallbacks(void)
     list = Paint(&scene);
     CHECK(RunsIn(&list, (muiFontId[]){scene.maul}, 1) && list.glyphs[0].id == 0,
           "none has it: the first font's missing glyph");
-    CHECK(muiSetFallbackFonts(scene.service, NULL, 0) == mui_success &&
+    CHECK(muiTextService_SetFallbackFonts(scene.service, NULL, 0) == mui_success &&
               Show(&scene, maul, "AB") == 10.0f,
           "fallbacks gone: the block shaped again, B missing");
     FreeScene(&scene);
@@ -178,7 +178,8 @@ static void TestClusters(void)
     Scene scene = MakeScene();
     uint64_t ahem = muiFont_GetKey(scene.ahem);
     uint64_t liberation = muiFont_GetKey(scene.liberation);
-    CHECK(muiSetFallbackFonts(scene.service, &liberation, 1) == mui_success, "fallbacks");
+    CHECK(muiTextService_SetFallbackFonts(scene.service, &liberation, 1) == mui_success,
+          "fallbacks");
     float alone = Show(&scene, liberation, "x\xCC\x81");
     float mixed = Show(&scene, ahem, "Ax\xCC\x81");
     muiDrawList list = Paint(&scene);
@@ -208,7 +209,7 @@ static void TestChoosing(void)
     muiDrawList list;
     // Liberation Sans lacks the ideograph; the comma after it, of no one
     // script, stays in the coverage font though Liberation Sans has it.
-    CHECK(muiSetFallbackFonts(scene.service, &coverage, 1) == mui_success &&
+    CHECK(muiTextService_SetFallbackFonts(scene.service, &coverage, 1) == mui_success &&
               Show(&scene, liberation, "\xE4\xB8\x80,") == 10.0f,
           "a comma after a fallback");
     list = Paint(&scene);
@@ -224,7 +225,7 @@ static void TestChoosing(void)
     list = Paint(&scene);
     CHECK(RunsIn(&list, (muiFontId[]){scene.liberation}, 1), "a tab in the font around it");
     // No font has x and the acute: the first with the x.
-    CHECK(muiSetFallbackFonts(scene.service, &ahem, 1) == mui_success, "fallbacks");
+    CHECK(muiTextService_SetFallbackFonts(scene.service, &ahem, 1) == mui_success, "fallbacks");
     (void)Show(&scene, maul, "x\xCC\x81");
     list = Paint(&scene);
     CHECK(RunsIn(&list, (muiFontId[]){scene.ahem}, 1), "the font with the base");
@@ -270,7 +271,8 @@ static void TestFamilyFallbacks(void)
     muiFontFamilyId family = {0, 0};
     CHECK(muiCreateFontFamily(scene.service, &def, &family) == mui_success, "a family");
     // The family's fallbacks come before the service's.
-    CHECK(muiSetFallbackFonts(scene.service, &liberation, 1) == mui_success, "fallbacks");
+    CHECK(muiTextService_SetFallbackFonts(scene.service, &liberation, 1) == mui_success,
+          "fallbacks");
     CHECK(Show(&scene, muiFontFamily_GetKey(family), "AB") == 15.0f, "B from the family's");
     muiDrawList list = Paint(&scene);
     CHECK(RunsIn(&list, (muiFontId[]){scene.maul, scene.ahem}, 2), "Ahem through its family");
@@ -279,7 +281,7 @@ static void TestFamilyFallbacks(void)
     list = Paint(&scene);
     CHECK(RunsIn(&list, (muiFontId[]){scene.maul, scene.liberation}, 2), "the service's alone");
     // The first font among the fallbacks again is tried once.
-    CHECK(muiSetFallbackFonts(scene.service, &ahem, 1) == mui_success &&
+    CHECK(muiTextService_SetFallbackFonts(scene.service, &ahem, 1) == mui_success &&
               Show(&scene, ahem, "AB") == 20.0f,
           "a fallback that is the first font");
     list = Paint(&scene);
@@ -292,22 +294,25 @@ static void TestContract(void)
     Scene scene = MakeScene();
     uint64_t ahem = muiFont_GetKey(scene.ahem);
     uint64_t nine[9] = {ahem, ahem, ahem, ahem, ahem, ahem, ahem, ahem, ahem};
-    CHECK(muiSetFallbackFonts(NULL, &ahem, 1) == mui_errorInvalid &&
-              muiSetFallbackFonts(scene.service, NULL, 1) == mui_errorInvalid &&
-              muiSetFallbackFonts(scene.service, nine, MUI_MAX_FALLBACKS + 1) == mui_errorLimit &&
-              muiSetFallbackFonts(scene.service, (uint64_t[]){0}, 1) == mui_errorInvalid &&
-              muiSetFallbackFonts(scene.service, (uint64_t[]){ahem | 1ull << 40}, 1) ==
+    CHECK(muiTextService_SetFallbackFonts(NULL, &ahem, 1) == mui_errorInvalid &&
+              muiTextService_SetFallbackFonts(scene.service, NULL, 1) == mui_errorInvalid &&
+              muiTextService_SetFallbackFonts(scene.service, nine, MUI_MAX_FALLBACKS + 1) ==
+                  mui_errorLimit &&
+              muiTextService_SetFallbackFonts(scene.service, (uint64_t[]){0}, 1) ==
                   mui_errorInvalid &&
-              muiSetFallbackFonts(scene.service, nine, MUI_MAX_FALLBACKS) == mui_success,
+              muiTextService_SetFallbackFonts(scene.service, (uint64_t[]){ahem | 1ull << 40}, 1) ==
+                  mui_errorInvalid &&
+              muiTextService_SetFallbackFonts(scene.service, nine, MUI_MAX_FALLBACKS) ==
+                  mui_success,
           "keys outside the contract");
     muiFontId gone = MakeFont(scene.service, s_ahem, sizeof s_ahem);
     uint64_t goneKey = muiFont_GetKey(gone);
     CHECK(muiDestroyFont(scene.service, gone) == mui_success &&
-              muiSetFallbackFonts(scene.service, (uint64_t[]){ahem, goneKey}, 2) ==
+              muiTextService_SetFallbackFonts(scene.service, (uint64_t[]){ahem, goneKey}, 2) ==
                   mui_errorStale &&
-              muiSetFallbackFonts(scene.service,
-                                  (uint64_t[]){muiFontFamily_GetKey((muiFontFamilyId){1, 1})},
-                                  1) == mui_errorStale,
+              muiTextService_SetFallbackFonts(
+                  scene.service, (uint64_t[]){muiFontFamily_GetKey((muiFontFamilyId){1, 1})}, 1) ==
+                  mui_errorStale,
           "keys gone");
     // The fallbacks stay as they were after a failure: Ahem still.
     CHECK(Show(&scene, muiFont_GetKey(scene.maul), "AB") == 15.0f, "kept");
@@ -327,7 +332,7 @@ static void TestContract(void)
     // A fallback destroyed later is passed over.
     muiFontId later = MakeFont(scene.service, s_ahem, sizeof s_ahem);
     uint64_t laterKey = muiFont_GetKey(later);
-    CHECK(muiSetFallbackFonts(scene.service, &laterKey, 1) == mui_success &&
+    CHECK(muiTextService_SetFallbackFonts(scene.service, &laterKey, 1) == mui_success &&
               muiDestroyFont(scene.service, later) == mui_success &&
               Show(&scene, muiFont_GetKey(scene.maul), "AB") == 10.0f,
           "a fallback gone later");

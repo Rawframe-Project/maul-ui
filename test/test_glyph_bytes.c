@@ -98,22 +98,22 @@ static int Images(const Font* which, int pass, uint32_t glyph, float size, int k
     switch (kind)
     {
     case 0:
-        result = muiRenderGlyph(service, font, glyph, size, 0.25f, &image, s_pixels[pass],
-                                sizeof s_pixels[pass]);
+        result = muiTextService_RenderGlyph(service, font, glyph, size, 0.25f, &image,
+                                            s_pixels[pass], sizeof s_pixels[pass]);
         break;
     case 1:
-        result = muiRenderColorGlyph(service, font, glyph, size, 0.5f, 0,
-                                     (muiLinearColor){0.2f, 0.4f, 0.6f, 1.0f}, &image,
-                                     s_pixels[pass], sizeof s_pixels[pass]);
+        result = muiTextService_RenderColorGlyph(service, font, glyph, size, 0.5f, 0,
+                                                 (muiLinearColor){0.2f, 0.4f, 0.6f, 1.0f}, &image,
+                                                 s_pixels[pass], sizeof s_pixels[pass]);
         channels = 4;
         break;
     case 2:
-        result = muiRenderGlyphField(service, font, glyph, size, 4, &image, s_pixels[pass],
-                                     sizeof s_pixels[pass]);
+        result = muiTextService_RenderGlyphField(service, font, glyph, size, 4, &image,
+                                                 s_pixels[pass], sizeof s_pixels[pass]);
         break;
     default:
-        result = muiRenderGlyphMultiField(service, font, glyph, size, 4, &image, s_pixels[pass],
-                                          sizeof s_pixels[pass]);
+        result = muiTextService_RenderGlyphMultiField(service, font, glyph, size, 4, &image,
+                                                      s_pixels[pass], sizeof s_pixels[pass]);
         channels = 4;
         break;
     }
@@ -179,18 +179,18 @@ static void Atlas(const Font* which, muiAtlasFormat format, int pass)
             float size = 9.0f + (float)((glyph * 7 + frame * 5) % 23);
             muiLinearColor ink = {0.3f, 0.6f, 0.9f, 1.0f};
             (void)(format == mui_atlasColor
-                       ? muiGlyphAtlas_GetColor(atlas, font, glyph, size, 0.25f * (float)frame,
-                                                0.0f, 0, ink, &out)
+                       ? muiGlyphAtlas_GetColorGlyph(atlas, font, glyph, size, 0.25f * (float)frame,
+                                                     0.0f, 0, ink, &out)
                    : format == mui_atlasFourChannel
-                       ? muiGlyphAtlas_GetMultiField(atlas, font, glyph, size, 3, &out)
-                       : muiGlyphAtlas_Get(atlas, font, glyph, size, 0.25f * (float)frame, 0.0f,
-                                           &out));
+                       ? muiGlyphAtlas_GetGlyphMultiField(atlas, font, glyph, size, 3, &out)
+                       : muiGlyphAtlas_GetGlyph(atlas, font, glyph, size, 0.25f * (float)frame,
+                                                0.0f, &out));
         }
         uint32_t count = 0;
         (void)muiGlyphAtlas_TakeUpdates(atlas, &s_updates[pass][s_updateCount[pass]],
                                         4096 - s_updateCount[pass], &count);
         s_updateCount[pass] += count;
-        muiGlyphAtlas_NextFrame(atlas);
+        muiGlyphAtlas_BeginFrame(atlas);
     }
     for (uint32_t page = 0; page < 8; page++)
     {

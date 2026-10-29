@@ -183,9 +183,9 @@ extern "C"
     /// The host's function for routed events: whether it handled the
     /// event at the node, which ends the route. It may call the context's
     /// functions, editing the tree, focus and style, but for those that
-    /// feed input or dispatch (muiKeyInput, muiTextInput,
-    /// muiNavigationInput, muiWheelInput, muiPointerInput,
-    /// muiDispatchPointerRecord, muiPerformAccessAction),
+    /// feed input or dispatch (muiNode_RouteKey, muiNode_RouteText,
+    /// muiNode_RouteNavigation, muiNode_RouteWheel, muiNode_RoutePointer,
+    /// muiContext_DispatchPointerRecord, muiContext_PerformAccessAction),
     /// muiSetEventFunction and muiDestroyContext, which answer
     /// mui_errorBusy and count one misuse while it runs. The route was
     /// fixed before the first call, so nodes it destroys are passed over
@@ -211,7 +211,7 @@ extern "C"
     /// layer covers: the top modal layer under the root; none: the root).
     /// Unhandled, a key down does what the library does by default: Tab,
     /// with Shift or not and no other modifier, moves the focus as
-    /// muiFocus_Move does. Escape cancels every drag going
+    /// muiNode_MoveFocus does. Escape cancels every drag going
     /// (maul-ui/pointer.h). On a focused range (maul-ui/range.h), the
     /// unmodified keys of ARIA's slider pattern change its value: arrows
     /// along its axis a step, Page Up and Down a page, Home and End the
@@ -221,7 +221,7 @@ extern "C"
     /// if that lies within half a scrollport of the visible part (or a
     /// link leads out), else steps the container a line while it can
     /// move, as Android's ScrollView does; otherwise it moves the focus
-    /// as muiFocus_MoveToward does. Page Up and Down, Home and End
+    /// as muiNode_MoveFocusToward does. Page Up and Down, Home and End
     /// without modifiers, and Space with Shift or not and no other
     /// modifier, step the vertical scroll container holding the focus a
     /// page or to an end. What moves is handled. A key down makes the
@@ -238,10 +238,10 @@ extern "C"
     ///         a root that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiKeyInput(muiContext* context, muiNodeId rootId,
-                                                const muiKeyEvent* event, bool* handledOut);
+    MUI_NODISCARD MUI_API muiResult muiNode_RouteKey(muiContext* context, muiNodeId rootId,
+                                                     const muiKeyEvent* event, bool* handledOut);
 
-    /// Routes text to the player's focus under the root, as muiKeyInput
+    /// Routes text to the player's focus under the root, as muiNode_RouteKey
     /// routes a key; text has no default.
     ///
     /// @param context     The context.
@@ -249,16 +249,16 @@ extern "C"
     /// @param event       The text: non-NULL when its length is not 0, a
     ///                    player below MUI_MAX_PLAYERS.
     /// @param handledOut  Receives whether the UI handled it. False on failure.
-    /// @return As muiKeyInput's; `mui_errorBusy` while the context is busy or
+    /// @return As muiNode_RouteKey's; `mui_errorBusy` while the context is busy or
     ///         its event function runs.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiTextInput(muiContext* context, muiNodeId rootId,
-                                                 const muiTextEvent* event, bool* handledOut);
+    MUI_NODISCARD MUI_API muiResult muiNode_RouteText(muiContext* context, muiNodeId rootId,
+                                                      const muiTextEvent* event, bool* handledOut);
 
     /// Routes a navigation action to the player's focus under the root, as
-    /// muiKeyInput routes a key. Unhandled, the four directions do what
-    /// arrows do, a focused range's included, next and previous move the focus as muiFocus_Move
+    /// muiNode_RouteKey routes a key. Unhandled, the four directions do what
+    /// arrows do, a focused range's included, next and previous move the focus as muiNode_MoveFocus
     /// does; a move is handled. Activate and cancel have no
     /// default. It makes the player's next focus by code shown.
     ///
@@ -267,15 +267,15 @@ extern "C"
     /// @param event       The action: a known one, a player below
     ///                    MUI_MAX_PLAYERS.
     /// @param handledOut  Receives whether the UI handled it. False on failure.
-    /// @return As muiKeyInput's; `mui_errorBusy` while the context is busy or
+    /// @return As muiNode_RouteKey's; `mui_errorBusy` while the context is busy or
     ///         its event function runs.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiNavigationInput(muiContext* context, muiNodeId rootId,
-                                                       const muiNavigationEvent* event,
-                                                       bool* handledOut);
+    MUI_NODISCARD MUI_API muiResult muiNode_RouteNavigation(muiContext* context, muiNodeId rootId,
+                                                            const muiNavigationEvent* event,
+                                                            bool* handledOut);
 
-    /// Routes a wheel turn to the node under its point, as muiHitTest
+    /// Routes a wheel turn to the node under its point, as muiNode_HitTest
     /// finds it; a point over nothing is routed nowhere and not handled.
     /// Unhandled, it scrolls by the scroll rule's step a detent
     /// (maul-ui/scroll.h): the scroll container it scrolled last, while
@@ -291,14 +291,15 @@ extern "C"
     /// @param event       The turn: a finite point and deltas, a player
     ///                    below MUI_MAX_PLAYERS.
     /// @param handledOut  Receives whether the UI handled it. False on failure.
-    /// @return As muiKeyInput's; `mui_errorBusy` while the context is busy or
+    /// @return As muiNode_RouteKey's; `mui_errorBusy` while the context is busy or
     ///         its event function runs.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiWheelInput(muiContext* context, muiNodeId rootId,
-                                                  const muiWheelEvent* event, bool* handledOut);
+    MUI_NODISCARD MUI_API muiResult muiNode_RouteWheel(muiContext* context, muiNodeId rootId,
+                                                       const muiWheelEvent* event,
+                                                       bool* handledOut);
 
-    /// Routes a pointer record (muiNextPointerRecord) to its node; a record
+    /// Routes a pointer record (muiContext_TakePointerRecord) to its node; a record
     /// with no node, or one gone, is routed nowhere and not handled.
     /// Unhandled, a press on a range or inside it, and a drag of one or of
     /// a node inside it, change its value (maul-ui/range.h), and are
@@ -313,9 +314,9 @@ extern "C"
     ///         runs.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiDispatchPointerRecord(muiContext* context,
-                                                             const muiPointerRecord* record,
-                                                             bool* handledOut);
+    MUI_NODISCARD MUI_API muiResult muiContext_DispatchPointerRecord(muiContext* context,
+                                                                     const muiPointerRecord* record,
+                                                                     bool* handledOut);
 
 #ifdef __cplusplus
 }

@@ -259,16 +259,16 @@ static void TestLayout(void)
     style.weight = 700.0f;
     muiDrawList list;
     CHECK(muiNode_SetTextValues(context, node, &style, mask) == mui_success &&
-              muiComputeLayout(context, node, &input) == mui_success &&
-              muiBuildDrawList(context, node, &draw) == mui_success &&
-              muiGetDrawList(context, &list) == mui_success && list.commandCount == 1 &&
+              muiNode_ComputeLayout(context, node, &input) == mui_success &&
+              muiNode_BuildDrawList(context, node, &draw) == mui_success &&
+              muiContext_GetDrawList(context, &list) == mui_success && list.commandCount == 1 &&
               list.commands[0].glyphRun.font == muiFont_GetKey(bold),
           "text in the face the weight chooses, as it is");
     style.font = muiFontFamily_GetKey(lone);
     CHECK(muiNode_SetTextValues(context, node, &style, mask) == mui_success &&
-              muiComputeLayout(context, node, &input) == mui_success &&
-              muiBuildDrawList(context, node, &draw) == mui_success &&
-              muiGetDrawList(context, &list) == mui_success && list.commandCount == 1 &&
+              muiNode_ComputeLayout(context, node, &input) == mui_success &&
+              muiNode_BuildDrawList(context, node, &draw) == mui_success &&
+              muiContext_GetDrawList(context, &list) == mui_success && list.commandCount == 1 &&
               (list.commands[0].glyphRun.font & 0xFFFFFFFFFFull) == muiFont_GetKey(regular) &&
               list.commands[0].glyphRun.font != muiFont_GetKey(regular),
           "a family without bold: its regular face, made bold");
@@ -276,16 +276,16 @@ static void TestLayout(void)
     style.font = muiFontFamily_GetKey(family);
     CHECK(muiDestroyFont(service, bold) == mui_success &&
               muiNode_SetTextValues(context, node, &style, mask) == mui_success &&
-              muiComputeLayout(context, node, &input) == mui_success &&
-              muiBuildDrawList(context, node, &draw) == mui_success &&
-              muiGetDrawList(context, &list) == mui_success && list.commandCount == 1 &&
+              muiNode_ComputeLayout(context, node, &input) == mui_success &&
+              muiNode_BuildDrawList(context, node, &draw) == mui_success &&
+              muiContext_GetDrawList(context, &list) == mui_success && list.commandCount == 1 &&
               (list.commands[0].glyphRun.font & 0xFFFFFFFFFFull) == muiFont_GetKey(regular),
           "a face gone is passed over");
     CHECK(muiDestroyFont(service, regular) == mui_success &&
               muiNode_MarkContentChanged(context, node) == mui_success &&
-              muiComputeLayout(context, node, &input) == mui_success &&
-              muiBuildDrawList(context, node, &draw) == mui_success &&
-              muiGetDrawList(context, &list) == mui_success && list.commandCount == 0,
+              muiNode_ComputeLayout(context, node, &input) == mui_success &&
+              muiNode_BuildDrawList(context, node, &draw) == mui_success &&
+              muiContext_GetDrawList(context, &list) == mui_success && list.commandCount == 0,
           "no face left: nothing drawn");
     muiFontId face = {0, 0};
     CHECK(muiFontFamily_MatchFace(service, family, 400.0f, mui_slantNormal, &face) ==
@@ -296,9 +296,9 @@ static void TestLayout(void)
     muiFontFamilyId keptFamily = Family(service, (muiFontId[]){kept}, 1);
     style.font = muiFontFamily_GetKey(keptFamily) | 1ull << 40;
     CHECK(muiNode_SetTextValues(context, node, &style, mask) == mui_success &&
-              muiComputeLayout(context, node, &input) == mui_success &&
-              muiBuildDrawList(context, node, &draw) == mui_success &&
-              muiGetDrawList(context, &list) == mui_success && list.commandCount == 0,
+              muiNode_ComputeLayout(context, node, &input) == mui_success &&
+              muiNode_BuildDrawList(context, node, &draw) == mui_success &&
+              muiContext_GetDrawList(context, &list) == mui_success && list.commandCount == 0,
           "a family key with an instance names nothing");
     // A family gone draws nothing, though its key's slot is a font's too.
     muiFontId other = Face(service, 400, 5, REGULAR);
@@ -306,9 +306,9 @@ static void TestLayout(void)
     style.font = muiFontFamily_GetKey(gone);
     CHECK(muiDestroyFontFamily(service, gone) == mui_success &&
               muiNode_SetTextValues(context, node, &style, mask) == mui_success &&
-              muiComputeLayout(context, node, &input) == mui_success &&
-              muiBuildDrawList(context, node, &draw) == mui_success &&
-              muiGetDrawList(context, &list) == mui_success && list.commandCount == 0,
+              muiNode_ComputeLayout(context, node, &input) == mui_success &&
+              muiNode_BuildDrawList(context, node, &draw) == mui_success &&
+              muiContext_GetDrawList(context, &list) == mui_success && list.commandCount == 0,
           "a family gone draws nothing");
     muiDestroyContext(context);
     muiDestroyTextService(service);
@@ -346,9 +346,9 @@ static void TestKeysApart(void)
               muiNode_SetTextValues(context, node, &style, MUI_PROPERTY_BIT(mui_propertyFont)) ==
                   mui_success &&
               muiDestroyFontFamily(service, family) == mui_success &&
-              muiComputeLayout(context, node, &input) == mui_success &&
-              muiBuildDrawList(context, node, &draw) == mui_success &&
-              muiGetDrawList(context, &list) == mui_success && list.commandCount == 0,
+              muiNode_ComputeLayout(context, node, &input) == mui_success &&
+              muiNode_BuildDrawList(context, node, &draw) == mui_success &&
+              muiContext_GetDrawList(context, &list) == mui_success && list.commandCount == 0,
           "a family gone is not the font in its slot");
     muiDestroyContext(context);
     muiDestroyTextService(service);

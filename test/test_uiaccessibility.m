@@ -653,9 +653,9 @@ static void TestContract(UIView* view)
     CHECK(muiCreateUikitAdapter(&def, &adapter) == mui_success &&
               muiUikitAdapter_GetRoot(adapter) == NULL,
           "an empty tree has no root");
-    CHECK(muiGetUikitAdapterMisuse(adapter) == 0 &&
+    CHECK(muiUikitAdapter_GetMisuse(adapter) == 0 &&
               muiUikitAdapter_SetScale(adapter, 0.0f) == mui_errorInvalid &&
-              muiGetUikitAdapterMisuse(adapter) == 1 && muiGetUikitAdapterMisuse(NULL) == 0,
+              muiUikitAdapter_GetMisuse(adapter) == 1 && muiUikitAdapter_GetMisuse(NULL) == 0,
           "a scale not above 0 counted as misuse");
     muiDestroyUikitAdapter(adapter);
     CHECK(muiUikitAdapter_Apply(NULL, NULL) == mui_errorInvalid &&

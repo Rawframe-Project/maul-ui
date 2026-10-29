@@ -87,7 +87,7 @@ static void Check(muiResult result, const char* what)
 {
     if (result != mui_success)
     {
-        fprintf(stderr, "%s failed: %s\n", what, muiResultName(result));
+        fprintf(stderr, "%s failed: %s\n", what, muiGetResultName(result));
     }
 }
 
@@ -111,7 +111,7 @@ static Scene MakeScene(void)
     fontDef.dataMode = mui_fontDataBorrow;
     muiFontId font = {0, 0};
     Check(muiCreateFont(scene.service, &fontDef, &font), "font");
-    Check(muiSetDefaultFont(scene.service, font), "default font");
+    Check(muiTextService_SetDefaultFont(scene.service, font), "default font");
     muiContextDef contextDef = muiDefaultContextDef();
     contextDef.limits.drawGlyphs = 1u << 18;
     Check(muiCreateContext(&contextDef, &scene.context), "context");
@@ -155,7 +155,7 @@ static double TimeLayout(Scene* scene, float width)
 {
     const muiLayoutInput input = {width, 1e9f, muiMeasureText, &scene->host, 0, NULL, {0, 0, 0, 0}};
     double start = Seconds();
-    Check(muiComputeLayout(scene->context, scene->root, &input), "layout");
+    Check(muiNode_ComputeLayout(scene->context, scene->root, &input), "layout");
     return (Seconds() - start) * 1e6;
 }
 
@@ -163,7 +163,7 @@ static double TimePaint(Scene* scene)
 {
     const muiDrawInput input = {1, 1.0f, muiPaintText, &scene->host};
     double start = Seconds();
-    Check(muiBuildDrawList(scene->context, scene->root, &input), "paint");
+    Check(muiNode_BuildDrawList(scene->context, scene->root, &input), "paint");
     return (Seconds() - start) * 1e6;
 }
 
@@ -172,7 +172,7 @@ static double TimePaint(Scene* scene)
 static double TimeAtlas(Scene* scene, muiGlyphAtlas* atlas)
 {
     muiDrawList list;
-    Check(muiGetDrawList(scene->context, &list), "list");
+    Check(muiContext_GetDrawList(scene->context, &list), "list");
     double start = Seconds();
     for (uint32_t i = 0; i < list.commandCount; i++)
     {
@@ -180,9 +180,9 @@ static double TimeAtlas(Scene* scene, muiGlyphAtlas* atlas)
         for (uint32_t g = run->firstGlyph; g < run->firstGlyph + run->glyphCount; g++)
         {
             muiAtlasGlyph out;
-            Check(muiGlyphAtlas_Get(atlas, run->font, list.glyphs[g].id, run->size,
-                                    run->originX + list.glyphs[g].x,
-                                    run->originY + list.glyphs[g].y, &out),
+            Check(muiGlyphAtlas_GetGlyph(atlas, run->font, list.glyphs[g].id, run->size,
+                                         run->originX + list.glyphs[g].x,
+                                         run->originY + list.glyphs[g].y, &out),
                   "atlas");
         }
     }
@@ -214,7 +214,7 @@ static void RunLabels(void)
         muiGlyphAtlas* atlas = NULL;
         Check(muiCreateGlyphAtlas(scene.service, &atlasDef, &atlas), "atlas");
         Keep(&best[3], TimeAtlas(&scene, atlas));
-        muiGlyphAtlas_NextFrame(atlas);
+        muiGlyphAtlas_BeginFrame(atlas);
         Keep(&best[4], TimeAtlas(&scene, atlas));
         muiDestroyGlyphAtlas(atlas);
         muiDestroyContext(scene.context);
@@ -322,9 +322,9 @@ static double TimeTyping(uint32_t words)
         Check(muiNode_MarkContentChanged(scene.context, node), "changed");
         const muiLayoutInput input = {600.0f, 1e9f, muiMeasureText, &scene.host,
                                       0,      NULL, {0, 0, 0, 0}};
-        Check(muiComputeLayout(scene.context, scene.root, &input), "layout");
+        Check(muiNode_ComputeLayout(scene.context, scene.root, &input), "layout");
         const muiDrawInput draw = {1, 1.0f, muiPaintText, &scene.host};
-        Check(muiBuildDrawList(scene.context, scene.root, &draw), "paint");
+        Check(muiNode_BuildDrawList(scene.context, scene.root, &draw), "paint");
         total += (Seconds() - start) * 1e6;
     }
     muiDestroyContext(scene.context);
@@ -401,31 +401,31 @@ static double TimeAccessSend(uint32_t* clustersOut)
     const muiTextPosition at = {middle, mui_affinityDownstream};
     Check(muiTextBlock_Select(scene.service, block, (muiTextSelection){middle, at}), "select");
     const muiLayoutInput input = {600.0f, 1e9f, muiMeasureText, &scene.host, 0, NULL, {0, 0, 0, 0}};
-    Check(muiComputeLayout(scene.context, scene.root, &input), "layout");
+    Check(muiNode_ComputeLayout(scene.context, scene.root, &input), "layout");
     Check(muiNode_SetScroll(scene.context, view, 0.0f,
                             muiNode_GetContentRect(scene.context, node).height / 2.0f),
           "scrolled");
     Check(muiSetAccessTextFunction(scene.context, muiReadAccessText, &scene.host), "reader");
-    Check(muiAccess_Enable(scene.context, scene.root), "enabled");
+    Check(muiNode_EnableAccess(scene.context, scene.root, true), "enabled");
     muiAccessTreeDef treeDef = muiDefaultAccessTreeDef();
     treeDef.nodes = 16;
     muiAccessTree* tree = NULL;
     Check(muiCreateAccessTree(&treeDef, &tree), "tree");
     muiAccessUpdate update;
-    Check(muiBuildAccessUpdate(scene.context, scene.root, &update), "first build");
+    Check(muiNode_BuildAccessUpdate(scene.context, scene.root, &update), "first build");
     Check(muiAccessTree_Apply(tree, &update, NULL), "first apply");
     double total = 0.0;
     for (int key = 0; key < 20; key++)
     {
         Check(muiTextBlock_Type(scene.service, block, "a", 1, NULL), "type");
         Check(muiNode_MarkContentChanged(scene.context, node), "changed");
-        Check(muiComputeLayout(scene.context, scene.root, &input), "layout");
+        Check(muiNode_ComputeLayout(scene.context, scene.root, &input), "layout");
         double start = Seconds();
-        Check(muiBuildAccessUpdate(scene.context, scene.root, &update), "build");
+        Check(muiNode_BuildAccessUpdate(scene.context, scene.root, &update), "build");
         Check(muiAccessTree_Apply(tree, &update, NULL), "apply");
         total += (Seconds() - start) * 1e6;
     }
-    const muiAccessNode* held = muiAccessTree_Find(tree, muiAccessIdOf(node));
+    const muiAccessNode* held = muiAccessTree_Find(tree, muiNode_GetAccessId(node));
     *clustersOut = held != NULL ? held->marks.clusterCount : 0;
     muiDestroyAccessTree(tree);
     muiDestroyContext(scene.context);
@@ -456,8 +456,8 @@ static void RunFields(void)
         for (uint32_t glyph = 36; glyph < 88; glyph++)
         {
             muiGlyphImage image;
-            Check(muiRenderGlyphField(scene.service, 0, glyph, 32.0f, 4, &image, pixels,
-                                      sizeof pixels),
+            Check(muiTextService_RenderGlyphField(scene.service, 0, glyph, 32.0f, 4, &image, pixels,
+                                                  sizeof pixels),
                   "field");
         }
         Keep(&best, (Seconds() - start) * 1e6 / 52.0);

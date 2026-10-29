@@ -22,13 +22,13 @@ Painting draws the children unscrolled through a transform per scroll container,
 
 ## Keys and the wheel
 
-- **Wheel.** `muiWheelInput` is routed from the node under its point. Unhandled, it scrolls the nearest scroll container from there up that can move that way, not past the given root or a layer's root, by the scroll rule's step a detent (`muiSetScrollRule`, 100 by default). The container keeps later turns while they come within the rule's latch time (500 ms), as Firefox's wheel transaction, so a list at its end does not hand a turn to the page behind it. Shift turns a vertical-only turn horizontal.
+- **Wheel.** `muiNode_RouteWheel` is routed from the node under its point. Unhandled, it scrolls the nearest scroll container from there up that can move that way, not past the given root or a layer's root, by the scroll rule's step a detent (`muiContext_SetScrollRule`, 100 by default). The container keeps later turns while they come within the rule's latch time (500 ms), as Firefox's wheel transaction, so a list at its end does not hand a turn to the page behind it. Shift turns a vertical-only turn horizontal.
 - **Arrows and directions.** With the focus in a scroll container along its axis, an arrow or navigation direction follows Android's `ScrollView`: the focus moves to the candidate inside when it lies within half a scrollport of the visible part, else the container steps a line (40 units). At its end the focus moves as anywhere else.
 - **Pages.** Page keys and Space step the vertical scroll container holding the focus by 0.875 of a page, and Home and End go to its ends.
 
 ## Motion
 
-Whole detents and key steps move toward a target over 150 ms with a cubic ease out, and a further step retargets from where it is ([scroll.c](../../src/scroll.c)). Fractional deltas, from smooth wheels and touchpads, apply at once. Reduced motion and a time of 0 jump. Steps advance in `muiComputeLayout` with its time and keep `muiIsUpdatePending` true. Setting an offset or scrolling into view stops them. Up to eight containers ease at once; a ninth jumps.
+Whole detents and key steps move toward a target over 150 ms with a cubic ease out, and a further step retargets from where it is ([scroll.c](../../src/scroll.c)). Fractional deltas, from smooth wheels and touchpads, apply at once. Reduced motion and a time of 0 jump. Steps advance in `muiNode_ComputeLayout` with its time and keep `muiNode_IsUpdatePending` true. Setting an offset or scrolling into view stops them. Up to eight containers ease at once; a ninth jumps.
 
 ## Touch, flings and overscroll
 

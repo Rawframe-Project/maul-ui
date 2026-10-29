@@ -5,11 +5,11 @@
 // (maul-ui/text_editor.h), with the roles and keys of the WAI-ARIA Authoring
 // Practices. Each field is one node: its box, its editing block as host content, the
 // text input role, focus and drags. The editor takes the field's events
-// (muiTextEditEvent): typed text, the platform's keys, presses and drags; its copies
+// (muiNode_HandleEditEvent): typed text, the platform's keys, presses and drags; its copies
 // go to the window's clipboard and its pastes come from it (SampleEdit,
 // maul-ui-window/clipboard.h). The paint function draws the selection's rectangles
 // and the caret over the text. An input method's preedit goes into the focused field
-// (muiWindowCompose) and the window's candidate box follows the caret
+// (muiTextBlock_ShowPreedit) and the window's candidate box follows the caret
 // (muiWindowGlue_SetTextCaret), the on-screen keyboard shown for the field's purpose
 // as the focus enters it and hidden as it leaves (muiWindowGlue_RequestKeyboard).
 // Headless, a person's typing, editing, selecting, copying, pasting, undoing and
@@ -108,8 +108,8 @@ static void Record(void* user, SampleApp* app, const mwinEvent* event)
     if (event->type == mwin_eventImePreedit)
     {
         SampleAppCheck(app,
-                       muiWindowCompose(app->text, field->block, &event->data.preedit, &changed) ==
-                           mui_success,
+                       muiTextBlock_ShowPreedit(app->text, field->block, &event->data.preedit,
+                                                &changed) == mui_success,
                        "a composition");
     }
     Changed(app, field, changed);
@@ -119,7 +119,7 @@ static void Record(void* user, SampleApp* app, const mwinEvent* event)
 static void Update(void* user, SampleApp* app)
 {
     Texts* texts = user;
-    int focused = FieldOf(texts, muiFocus_Get(app->context, 0));
+    int focused = FieldOf(texts, muiContext_GetFocus(app->context, 0));
     if (focused != texts->focused)
     {
         const muiNodeId shown = focused >= 0 ? texts->fields[focused].node : (muiNodeId){0, 0};
@@ -294,7 +294,7 @@ static bool ShowsCaret(const SampleApp* app, const Field* field)
 static bool Reports(const SampleApp* app, const Field* field, const char* expected)
 {
     const muiAccessNode* found =
-        muiAccessTree_Find(muiWindowAccess_GetTree(app->access), muiAccessIdOf(field->node));
+        muiAccessTree_Find(muiWindowAccess_GetTree(app->access), muiNode_GetAccessId(field->node));
     size_t length = strlen(expected);
     return found != NULL && found->textLength[mui_accessValue] == length &&
            (length == 0 || memcmp(found->text[mui_accessValue], expected, length) == 0);

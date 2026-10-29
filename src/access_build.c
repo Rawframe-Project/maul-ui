@@ -215,7 +215,7 @@ uint32_t muiAccessDerive(const muiContext* context, uint32_t slot, muiAccessNode
 {
     const muiAccessEntry* entry = muiAccessEntryOf(context, slot);
     *nodeOut = (muiAccessNode){
-        .id = muiAccessIdOf(muiTreeIdOf(&context->tree, slot)),
+        .id = muiNode_GetAccessId(muiTreeIdOf(&context->tree, slot)),
         .role = entry != nullptr ? entry->role : mui_roleGeneric,
         .values = entry != nullptr ? entry->values : muiDefaultAccessValues(),
         .links = entry != nullptr ? entry->links : nullptr,
@@ -507,7 +507,7 @@ static void Visit(Build* build, uint32_t slot)
     for (uint32_t i = 0; i < count; i++)
     {
         store->children[build->childCount++] =
-            muiAccessIdOf(muiTreeIdOf(&context->tree, children[i]));
+            muiNode_GetAccessId(muiTreeIdOf(&context->tree, children[i]));
     }
     *copy = node;
     store->nodes[build->nodeCount++] = copy;
@@ -555,7 +555,7 @@ static uint64_t LayersOf(const muiContext* context, uint32_t root)
         {
             continue;
         }
-        uint64_t word = muiAccessIdOf(muiTreeIdOf(tree, layer)) ^
+        uint64_t word = muiNode_GetAccessId(muiTreeIdOf(tree, layer)) ^
                         (uint64_t)context->interaction[layer - 1].layer << 56 ^
                         (uint64_t)muiTreeIsExiting(tree, layer) << 60;
         print = FoldWord(print, word);
@@ -614,8 +614,8 @@ static muiResult BuildAccessUpdate(muiContext* context, muiNodeId rootId,
         .nodes = context->access.nodes,
         .nodeCount = build.nodeCount,
         .children = context->access.children,
-        .root = build.whole ? muiAccessIdOf(rootId) : 0,
-        .focus = muiAccessIdOf(muiTreeIdOf(tree, focus)),
+        .root = build.whole ? muiNode_GetAccessId(rootId) : 0,
+        .focus = muiNode_GetAccessId(muiTreeIdOf(tree, focus)),
     };
     entry->whole = false;
     return mui_success;
@@ -637,7 +637,8 @@ static MUI_NOINLINE muiResult BuildAccessUpdateWorker(muiContext* context, muiNo
     return status;
 }
 
-muiResult muiBuildAccessUpdate(muiContext* context, muiNodeId rootId, muiAccessUpdate* updateOut)
+muiResult muiNode_BuildAccessUpdate(muiContext* context, muiNodeId rootId,
+                                    muiAccessUpdate* updateOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = BuildAccessUpdateWorker(context, rootId, updateOut);

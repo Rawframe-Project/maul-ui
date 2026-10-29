@@ -228,8 +228,9 @@ static MUI_NOINLINE muiResult TextMoveWorker(const muiTextHost* host, muiNodeId 
     return status;
 }
 
-muiResult muiTextMove(const muiTextHost* host, muiNodeId nodeId, float width, muiTextPosition from,
-                      muiTextMovement movement, float preferredX, muiTextPosition* positionOut)
+muiResult muiNode_MoveTextPosition(const muiTextHost* host, muiNodeId nodeId, float width,
+                                   muiTextPosition from, muiTextMovement movement, float preferredX,
+                                   muiTextPosition* positionOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = TextMoveWorker(host, nodeId, width, from, movement, preferredX, positionOut);

@@ -76,7 +76,7 @@ static void Scrolls(muiContext* context, muiNodeId node, bool horizontal, float 
 static void Layout(muiContext* context, muiNodeId root)
 {
     const muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
 }
 
 // How many windows changed since last asked.
@@ -84,7 +84,7 @@ static int Windows(muiContext* context)
 {
     int count = 0;
     muiNotification record = {0};
-    while (muiNextNotification(context, &record) == mui_success)
+    while (muiContext_TakeNotification(context, &record) == mui_success)
     {
         count += record.kind == mui_notificationWindowChanged;
     }
@@ -358,14 +358,14 @@ static void TestBinding(void)
     Size(context, item, -1.0f, 30.0f);
     muiNodeId flow = Node(context, scene.list);
     Size(context, flow, -1.0f, 30.0f);
-    uint64_t misuse = muiGetContextMisuse(context);
+    uint64_t misuse = muiContext_GetMisuse(context);
     CHECK(muiNode_BindVirtualItem(context, item, 10) == mui_errorInvalid &&
               muiNode_BindVirtualItem(context, scene.root, 0) == mui_errorInvalid &&
               muiNode_BindVirtualItem(context, s_nullNode, 0) == mui_errorInvalid &&
               muiNode_BindVirtualItem(NULL, item, 0) == mui_errorInvalid &&
               muiNode_UnbindVirtualItem(NULL, item) == mui_errorInvalid &&
               muiNode_UnbindVirtualItem(context, s_nullNode) == mui_errorInvalid &&
-              muiGetContextMisuse(context) == misuse + 4,
+              muiContext_GetMisuse(context) == misuse + 4,
           "refused");
     CHECK(muiNode_BindVirtualItem(context, item, 4) == mui_success, "bound");
     Layout(context, scene.root);
@@ -466,13 +466,13 @@ static void TestMostItems(void)
               muiNode_GetBoundVirtualItem(context, child, &index) == mui_success &&
               index == MUI_MAX_VIRTUAL_ITEMS - 1,
           "the last item keeps its binding");
-    uint64_t misuse = muiGetContextMisuse(context);
+    uint64_t misuse = muiContext_GetMisuse(context);
     CHECK(muiNode_InsertVirtualItems(context, scene.list, 0, 1) == mui_errorLimit &&
-              muiGetContextMisuse(context) == misuse + 1,
+              muiContext_GetMisuse(context) == misuse + 1,
           "one more inserted, counted");
     list.count = UINT32_MAX;
     CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_errorLimit &&
-              muiGetContextMisuse(context) == misuse + 2,
+              muiContext_GetMisuse(context) == misuse + 2,
           "one more set, counted");
     muiDestroyContext(context);
 }
@@ -692,7 +692,7 @@ static void TestEditContract(void)
     muiNodeId b = Node(context, s_nullNode);
     muiVirtualList list = ListOf(10, 40.0f, false, 0.0f, 0.0f);
     CHECK(muiNode_SetVirtualList(context, a, &list) == mui_success, "ten");
-    uint64_t misuse = muiGetContextMisuse(context);
+    uint64_t misuse = muiContext_GetMisuse(context);
     CHECK(muiNode_InsertVirtualItems(context, a, 11, 1) == mui_errorInvalid &&
               muiNode_InsertVirtualItems(context, a, 0, 0) == mui_errorInvalid &&
               muiNode_InsertVirtualItems(context, a, 0, MUI_MAX_VIRTUAL_ITEMS - 9u) ==
@@ -702,7 +702,7 @@ static void TestEditContract(void)
               muiNode_RemoveVirtualItems(context, a, 5, 6) == mui_errorInvalid &&
               muiNode_MoveVirtualItem(context, a, 10, 0) == mui_errorInvalid &&
               muiNode_MoveVirtualItem(context, a, 0, 10) == mui_errorInvalid &&
-              muiGetContextMisuse(context) == misuse + 8,
+              muiContext_GetMisuse(context) == misuse + 8,
           "refused");
     CHECK(muiNode_InsertVirtualItems(context, b, 0, 1) == mui_empty &&
               muiNode_RemoveVirtualItems(context, b, 0, 1) == mui_empty &&
@@ -745,9 +745,9 @@ static void TestEditEdges(void)
     Realize(&scene, 10, 13, -1.0f, 40.0f, items);
     Layout(context, scene.root);
     Layout(context, scene.root);
-    CHECK(!muiIsUpdatePending(context, scene.root), "settled");
+    CHECK(!muiNode_IsUpdatePending(context, scene.root), "settled");
     CHECK(muiNode_InsertVirtualItems(context, scene.list, 900, 1) == mui_success &&
-              muiIsUpdatePending(context, scene.root),
+              muiNode_IsUpdatePending(context, scene.root),
           "an edit asks for a layout");
     Layout(context, scene.root);
     // Inserted at the item shown first: no shift, the new items shown, the
@@ -842,7 +842,7 @@ static void TestContract(void)
     CHECK(list.count == 0 && list.axis == mui_axisVertical && list.extent == 40.0f && !list.fixed &&
               list.gap == 0.0f && list.overscan == 200.0f,
           "default");
-    uint64_t misuse = muiGetContextMisuse(context);
+    uint64_t misuse = muiContext_GetMisuse(context);
     muiVirtualList bad = list;
     bad.extent = 0.0f;
     CHECK(muiNode_SetVirtualList(context, a, &bad) == mui_errorInvalid, "no extent");
@@ -860,7 +860,7 @@ static void TestContract(void)
     CHECK(muiNode_SetVirtualList(context, a, NULL) == mui_errorInvalid &&
               muiNode_SetVirtualList(context, s_nullNode, &list) == mui_errorInvalid &&
               muiNode_SetVirtualList(NULL, a, &list) == mui_errorInvalid &&
-              muiGetContextMisuse(context) == misuse + 7,
+              muiContext_GetMisuse(context) == misuse + 7,
           "counted");
     // Items: 60 and 50 do not fit 100 together; fixed lists take none.
     list.count = 60;
@@ -1011,13 +1011,13 @@ static int WorkFrame(WorkScene* work)
 {
     muiContext* context = work->scene.context;
     const muiLayoutInput input = {400.0f, 300.0f, MeasureWork, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, work->scene.root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, work->scene.root, &input) == mui_success, "layout");
     if (Windows(context) == 0)
     {
         return 0;
     }
     int bound = RealizeWork(work);
-    CHECK(muiComputeLayout(context, work->scene.root, &input) == mui_success, "layout again");
+    CHECK(muiNode_ComputeLayout(context, work->scene.root, &input) == mui_success, "layout again");
     (void)Windows(context);
     return bound;
 }
@@ -1034,7 +1034,7 @@ static void TestWork(void)
     const int frames = 30;
     int bound = 0;
     s_workMeasured = 0;
-    muiWorkCounts before = muiGetWorkCounts(work.scene.context);
+    muiWorkCounts before = muiContext_GetWorkCounts(work.scene.context);
     for (int frame = 1; frame <= frames; frame++)
     {
         CHECK(muiNode_SetScroll(work.scene.context, work.scene.list, 0.0f, (float)frame * 97.0f) ==
@@ -1042,7 +1042,7 @@ static void TestWork(void)
               "scroll");
         bound += WorkFrame(&work);
     }
-    uint64_t sized = muiGetWorkCounts(work.scene.context).sized - before.sized;
+    uint64_t sized = muiContext_GetWorkCounts(work.scene.context).sized - before.sized;
     CHECK(bound > frames && s_workMeasured == bound, "each bound label measured once");
     CHECK(sized == 4 * (uint64_t)bound + (uint64_t)frames, "rows sized twice, the list once");
     muiDestroyContext(work.scene.context);

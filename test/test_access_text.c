@@ -65,7 +65,7 @@ static const muiAccessNode* Sent(const muiAccessUpdate* update, muiNodeId node)
 {
     for (uint32_t i = 0; i < update->nodeCount; i++)
     {
-        if (update->nodes[i]->id == muiAccessIdOf(node))
+        if (update->nodes[i]->id == muiNode_GetAccessId(node))
         {
             return update->nodes[i];
         }
@@ -76,7 +76,7 @@ static const muiAccessNode* Sent(const muiAccessUpdate* update, muiNodeId node)
 static muiAccessUpdate Build(muiContext* context, muiNodeId root)
 {
     muiAccessUpdate update;
-    CHECK(muiBuildAccessUpdate(context, root, &update) == mui_success, "build");
+    CHECK(muiNode_BuildAccessUpdate(context, root, &update) == mui_success, "build");
     return update;
 }
 
@@ -87,7 +87,7 @@ static void TestRead(void)
     CHECK(muiCreateContext(&def, &context) == mui_success, "context");
     muiNodeId root = Content(context, s_nullNode);
     CHECK(muiSetAccessTextFunction(context, ReadMarks, NULL) == mui_success &&
-              muiAccess_Enable(context, root) == mui_success,
+              muiNode_EnableAccess(context, root, true) == mui_success,
           "reading");
     muiAccessUpdate update = Build(context, root);
     const muiAccessNode* node = Sent(&update, root);
@@ -134,7 +134,7 @@ static void TestUnfit(void)
     CHECK(muiCreateContext(&def, &context) == mui_success, "context");
     muiNodeId root = Content(context, s_nullNode);
     CHECK(muiSetAccessTextFunction(context, ReadMarks, NULL) == mui_success &&
-              muiAccess_Enable(context, root) == mui_success,
+              muiNode_EnableAccess(context, root, true) == mui_success,
           "reading");
     // Inside é, a line not from 0, words overlapping.
     s_marks.focus = 2;
@@ -182,18 +182,19 @@ static void TestActions(void)
     CHECK(muiCreateContext(&def, &context) == mui_success, "context");
     muiNodeId root = Content(context, s_nullNode);
     CHECK(muiSetAccessTextFunction(context, ReadMarks, NULL) == mui_success &&
-              muiAccess_Enable(context, root) == mui_success,
+              muiNode_EnableAccess(context, root, true) == mui_success,
           "reading");
     muiAccessUpdate update = Build(context, root);
     CHECK(Takes(Sent(&update, root), mui_actionSetSelection) &&
               Takes(Sent(&update, root), mui_actionReplaceText),
           "both taken");
     bool handled = true;
-    muiAccessRequest request = {.action = mui_actionReplaceText, .target = muiAccessIdOf(root)};
-    CHECK(muiPerformAccessAction(context, &request, &handled) == mui_empty && !handled,
+    muiAccessRequest request = {.action = mui_actionReplaceText,
+                                .target = muiNode_GetAccessId(root)};
+    CHECK(muiContext_PerformAccessAction(context, &request, &handled) == mui_empty && !handled,
           "the host's, not the context's");
     request.action = mui_actionSetSelection;
-    CHECK(muiPerformAccessAction(context, &request, &handled) == mui_empty && !handled,
+    CHECK(muiContext_PerformAccessAction(context, &request, &handled) == mui_empty && !handled,
           "a selection too");
     CHECK(muiNode_SetAccessFlags(context, root, mui_accessReadOnly) == mui_success, "read only");
     update = Build(context, root);
@@ -236,7 +237,7 @@ static void TestEmpty(void)
     CHECK(muiCreateContext(&def, &context) == mui_success, "context");
     muiNodeId root = Content(context, s_nullNode);
     CHECK(muiSetAccessTextFunction(context, ReadEmpty, NULL) == mui_success &&
-              muiAccess_Enable(context, root) == mui_success,
+              muiNode_EnableAccess(context, root, true) == mui_success,
           "reading");
     muiAccessUpdate update = Build(context, root);
     const muiAccessNode* node = Sent(&update, root);

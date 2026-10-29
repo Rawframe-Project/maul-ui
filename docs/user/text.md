@@ -42,7 +42,7 @@ static muiTextService* MakeTextService(const void* fontData, size_t fontSize)
     font.size = fontSize;
     muiFontId fontId = {0, 0};
     if (muiCreateFont(service, &font, &fontId) != mui_success ||
-        muiSetDefaultFont(service, fontId) != mui_success)
+        muiTextService_SetDefaultFont(service, fontId) != mui_success)
     {
         muiDestroyTextService(service);
         return NULL;
@@ -103,8 +103,8 @@ static muiResult FrameWithText(muiContext* context, muiTextService* service, mui
     const muiLayoutInput layout = {
         width, height, muiMeasureText, &host, 0, muiMeasureTextBaseline, {0, 0, 0, 0}};
     const muiDrawInput draw = {1, 1.0f, muiPaintText, &host};
-    muiResult result = muiComputeLayout(context, root, &layout);
-    return result == mui_success ? muiBuildDrawList(context, root, &draw) : result;
+    muiResult result = muiNode_ComputeLayout(context, root, &layout);
+    return result == mui_success ? muiNode_BuildDrawList(context, root, &draw) : result;
 }
 ```
 
@@ -142,7 +142,7 @@ static muiResult Embolden(muiContext* context, muiTextService* service, muiNodeI
 
 ## Fallback and families
 
-`muiSetFallbackFonts` names fonts tried for characters the style's font lacks, such as an emoji font or one for another script. Each grapheme cluster is drawn in the first font that has all of it.
+`muiTextService_SetFallbackFonts` names fonts tried for characters the style's font lacks, such as an emoji font or one for another script. Each grapheme cluster is drawn in the first font that has all of it.
 
 A font family (`muiCreateFontFamily`) holds faces and picks one by weight, width and slant as CSS does, setting a variable font's axes from the style. A style with a weight a face cannot reach gets a synthetic bold, and an italic with no italic face gets a slant.
 

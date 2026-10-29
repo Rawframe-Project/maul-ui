@@ -55,7 +55,7 @@ static Scene MakeScene(void)
     font.data = s_ahem;
     font.size = sizeof s_ahem;
     CHECK(muiCreateFont(scene.service, &font, &scene.font) == mui_success &&
-              muiSetDefaultFont(scene.service, scene.font) == mui_success &&
+              muiTextService_SetDefaultFont(scene.service, scene.font) == mui_success &&
               muiFont_GetMetrics(scene.service, scene.font, &scene.metrics) == mui_success,
           "the default font");
     muiContextDef context = muiDefaultContextDef();
@@ -100,9 +100,9 @@ static muiDrawList Paint(Scene* scene, muiNodeId root)
                                    0,       NULL,    {0, 0, 0, 0}};
     const muiDrawInput input = {1, 1.0f, muiPaintText, &scene->host};
     muiDrawList list = {0};
-    CHECK(muiComputeLayout(scene->context, root, &layout) == mui_success &&
-              muiBuildDrawList(scene->context, root, &input) == mui_success &&
-              muiGetDrawList(scene->context, &list) == mui_success,
+    CHECK(muiNode_ComputeLayout(scene->context, root, &layout) == mui_success &&
+              muiNode_BuildDrawList(scene->context, root, &input) == mui_success &&
+              muiContext_GetDrawList(scene->context, &list) == mui_success,
           "painted");
     return list;
 }
@@ -340,13 +340,13 @@ static void TestSizes(void)
           "the first baseline");
     muiTextPosition at = {0, 0};
     muiTextCaret caret = {0};
-    CHECK(muiTextHitTest(&scene.host, node, 60.0f, 45.0f, 5.0f, &at) == mui_success &&
+    CHECK(muiNode_HitTestText(&scene.host, node, 60.0f, 45.0f, 5.0f, &at) == mui_success &&
               at.offset == 3 &&
-              muiTextGetCaret(&scene.host, node, 60.0f, (muiTextPosition){2, 0}, &caret) ==
+              muiNode_GetTextCaret(&scene.host, node, 60.0f, (muiTextPosition){2, 0}, &caret) ==
                   mui_success &&
               caret.x == 30.0f && caret.y == 0.0f && caret.height == tall,
           "hits and carets through the big run");
-    CHECK(muiTextHitTest(&scene.host, node, 60.0f, 2.0f, tall + 1.0f, &at) == mui_success &&
+    CHECK(muiNode_HitTestText(&scene.host, node, 60.0f, 2.0f, tall + 1.0f, &at) == mui_success &&
               at.offset == 5,
           "below the first line's height, the second");
     FreeScene(&scene);
@@ -527,7 +527,7 @@ static void TestGlyphsPastTheCount(void)
     def.dataMode = mui_fontDataBorrow;
     muiFontId font = {0, 0};
     CHECK(muiCreateFont(scene.service, &def, &font) == mui_success &&
-              muiSetDefaultFont(scene.service, font) == mui_success,
+              muiTextService_SetDefaultFont(scene.service, font) == mui_success,
           "the damaged font");
     muiTextBlockId block = {0, 0};
     muiNodeId node = AddText(&scene, "ab", &block);
@@ -536,8 +536,9 @@ static void TestGlyphsPastTheCount(void)
     static unsigned char s_image[4096];
     CHECK(list.commandCount == 1 && list.glyphCount == 2 && list.glyphs[0].id == 0 &&
               list.glyphs[1].id == 0 &&
-              muiRenderGlyph(scene.service, list.commands[0].glyphRun.font, list.glyphs[0].id,
-                             10.0f, 0.0f, &image, s_image, sizeof s_image) == mui_success,
+              muiTextService_RenderGlyph(scene.service, list.commands[0].glyphRun.font,
+                                         list.glyphs[0].id, 10.0f, 0.0f, &image, s_image,
+                                         sizeof s_image) == mui_success,
           "the missing glyph drawn, and rendered");
     FreeScene(&scene);
     free(damaged);

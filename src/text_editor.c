@@ -132,8 +132,8 @@ static MUI_NOINLINE muiResult TextEditMoveWorker(const muiTextHost* host, muiNod
     return status;
 }
 
-muiResult muiTextEditMove(const muiTextHost* host, muiNodeId nodeId, muiTextMovement movement,
-                          bool extend)
+muiResult muiNode_MoveEditCaret(const muiTextHost* host, muiNodeId nodeId, muiTextMovement movement,
+                                bool extend)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = TextEditMoveWorker(host, nodeId, movement, extend);
@@ -319,8 +319,8 @@ static MUI_NOINLINE muiResult TextEditPressWorker(const muiTextHost* host, muiNo
     return status;
 }
 
-muiResult muiTextEditPress(const muiTextHost* host, muiNodeId nodeId, float x, float y,
-                           uint32_t clickCount, bool extend)
+muiResult muiNode_HandleEditPress(const muiTextHost* host, muiNodeId nodeId, float x, float y,
+                                  uint32_t clickCount, bool extend)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = TextEditPressWorker(host, nodeId, x, y, clickCount, extend);
@@ -356,7 +356,7 @@ static MUI_NOINLINE muiResult TextEditDragWorker(const muiTextHost* host, muiNod
     return status;
 }
 
-muiResult muiTextEditDrag(const muiTextHost* host, muiNodeId nodeId, float x, float y)
+muiResult muiNode_HandleEditDrag(const muiTextHost* host, muiNodeId nodeId, float x, float y)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = TextEditDragWorker(host, nodeId, x, y);

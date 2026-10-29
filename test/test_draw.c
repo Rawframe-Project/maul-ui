@@ -315,11 +315,11 @@ static void SetBorder(muiContext* context, muiNodeId node, muiEdges border)
 static muiDrawList Build(muiContext* context, muiNodeId root, float scale)
 {
     const muiLayoutInput layout = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &layout) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &layout) == mui_success, "layout");
     const muiDrawInput input = {7, scale, NULL, NULL};
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success, "build");
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success, "build");
     muiDrawList list;
-    CHECK(muiGetDrawList(context, &list) == mui_success, "get");
+    CHECK(muiContext_GetDrawList(context, &list) == mui_success, "get");
     return list;
 }
 
@@ -711,28 +711,28 @@ static void TestArgumentsAndLimits(void)
     muiContext* context = MakeContext();
     muiNodeId root = Add(context, s_nullNode, 10.0f, 10.0f, (muiEdges){0});
     muiDrawList list;
-    CHECK(muiGetDrawList(context, &list) == mui_success && list.commandCount == 0 &&
+    CHECK(muiContext_GetDrawList(context, &list) == mui_success && list.commandCount == 0 &&
               list.clipCount == 1 && list.gradientCount == 1 && list.transformCount == 1 &&
               list.transforms[0].a == 1.0f && list.transforms[0].d == 1.0f &&
               list.header.generation == 0,
           "empty before any build");
     muiDrawInput input = {1, 1.0f, NULL, NULL};
-    CHECK(muiBuildDrawList(NULL, root, &input) == mui_errorInvalid &&
-              muiBuildDrawList(context, root, NULL) == mui_errorInvalid &&
-              muiBuildDrawList(context, s_nullNode, &input) == mui_errorInvalid &&
-              muiGetDrawList(NULL, &list) == mui_errorInvalid &&
-              muiGetDrawList(context, NULL) == mui_errorInvalid,
+    CHECK(muiNode_BuildDrawList(NULL, root, &input) == mui_errorInvalid &&
+              muiNode_BuildDrawList(context, root, NULL) == mui_errorInvalid &&
+              muiNode_BuildDrawList(context, s_nullNode, &input) == mui_errorInvalid &&
+              muiContext_GetDrawList(NULL, &list) == mui_errorInvalid &&
+              muiContext_GetDrawList(context, NULL) == mui_errorInvalid,
           "null arguments");
     input.scale = 0.0f;
-    CHECK(muiBuildDrawList(context, root, &input) == mui_errorInvalid, "scale 0");
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_errorInvalid, "scale 0");
     input.scale = NAN;
-    CHECK(muiBuildDrawList(context, root, &input) == mui_errorInvalid, "scale NaN");
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_errorInvalid, "scale NaN");
     input.scale = INFINITY;
-    CHECK(muiBuildDrawList(context, root, &input) == mui_errorInvalid, "scale infinite");
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_errorInvalid, "scale infinite");
     muiNodeId gone = Add(context, s_nullNode, 1.0f, 1.0f, (muiEdges){0});
     CHECK(muiDestroyNode(context, gone) == mui_success, "destroy");
     input.scale = 1.0f;
-    CHECK(muiBuildDrawList(context, gone, &input) == mui_errorStale, "a gone root");
+    CHECK(muiNode_BuildDrawList(context, gone, &input) == mui_errorStale, "a gone root");
     muiDestroyContext(context);
 
     // Each table's limit fails the build whole, leaving the list empty.
@@ -756,15 +756,15 @@ static void TestArgumentsAndLimits(void)
         SetVisual(context, child, &visual, mask);
         (void)Build(context, root, 1.0f);
         const muiLayoutInput layout = {100.0f, 100.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-        CHECK(muiComputeLayout(context, root, &layout) == mui_success, "layout");
+        CHECK(muiNode_ComputeLayout(context, root, &layout) == mui_success, "layout");
         // Two nodes' fit; a third's does not.
         muiNodeId more = Add(context, child, 5.0f, 5.0f, (muiEdges){0});
         SetVisual(context, more, &visual, mask);
-        CHECK(muiComputeLayout(context, root, &layout) == mui_success, "layout");
-        CHECK(muiBuildDrawList(context, root, &(muiDrawInput){1, 1.0f, NULL, NULL}) ==
+        CHECK(muiNode_ComputeLayout(context, root, &layout) == mui_success, "layout");
+        CHECK(muiNode_BuildDrawList(context, root, &(muiDrawInput){1, 1.0f, NULL, NULL}) ==
                   mui_errorCapacity,
               names[which]);
-        CHECK(muiGetDrawList(context, &list) == mui_success && list.commandCount == 0 &&
+        CHECK(muiContext_GetDrawList(context, &list) == mui_success && list.commandCount == 0 &&
                   list.clipCount == 1 && list.gradientCount == 1 && list.header.generation > 0,
               "an empty list");
         muiDestroyContext(context);
@@ -1118,9 +1118,9 @@ static void TestBuildsFromTheLastListMatchWholeOnes(void)
     {
         Edit(context, nodes, COUNT, &random, &available);
         const muiLayoutInput layout = {available, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-        CHECK(muiComputeLayout(context, nodes[0], &layout) == mui_success, "layout");
-        CHECK(muiBuildDrawList(context, nodes[0], &(muiDrawInput){7, 1.0f, PaintGlyphs, context}) ==
-                  mui_success,
+        CHECK(muiNode_ComputeLayout(context, nodes[0], &layout) == mui_success, "layout");
+        CHECK(muiNode_BuildDrawList(context, nodes[0],
+                                    &(muiDrawInput){7, 1.0f, PaintGlyphs, context}) == mui_success,
               "build from the last");
         // Builds between checks take from lists that were themselves
         // taken from others.
@@ -1129,16 +1129,18 @@ static void TestBuildsFromTheLastListMatchWholeOnes(void)
             continue;
         }
         muiDrawList list;
-        CHECK(muiGetDrawList(context, &list) == mui_success, "get");
+        CHECK(muiContext_GetDrawList(context, &list) == mui_success, "get");
         Take(&retained, &list);
         // A build at another scale cannot take from the last list, and the
         // one after it at scale 1 cannot take from that one.
-        CHECK(muiBuildDrawList(context, nodes[0], &(muiDrawInput){7, 2.0f, PaintGlyphs, context}) ==
+        CHECK(muiNode_BuildDrawList(context, nodes[0],
+                                    &(muiDrawInput){7, 2.0f, PaintGlyphs, context}) ==
                       mui_success &&
-                  muiBuildDrawList(context, nodes[0],
-                                   &(muiDrawInput){7, 1.0f, PaintGlyphs, context}) == mui_success,
+                  muiNode_BuildDrawList(context, nodes[0],
+                                        &(muiDrawInput){7, 1.0f, PaintGlyphs, context}) ==
+                      mui_success,
               "builds whole");
-        CHECK(muiGetDrawList(context, &list) == mui_success, "get");
+        CHECK(muiContext_GetDrawList(context, &list) == mui_success, "get");
         glyphs += list.glyphCount;
         bool same = SameTables(&retained.list, &list);
         CHECK(same, "taken equals whole");
@@ -1155,12 +1157,12 @@ static void TestBuildsFromTheLastListMatchWholeOnes(void)
 static muiDrawList BuildAt(muiContext* context, muiNodeId root, float available, uint64_t surface)
 {
     const muiLayoutInput layout = {available, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &layout) == mui_success, "layout");
-    CHECK(muiBuildDrawList(context, root, &(muiDrawInput){surface, 1.0f, NULL, NULL}) ==
+    CHECK(muiNode_ComputeLayout(context, root, &layout) == mui_success, "layout");
+    CHECK(muiNode_BuildDrawList(context, root, &(muiDrawInput){surface, 1.0f, NULL, NULL}) ==
               mui_success,
           "build");
     muiDrawList list;
-    CHECK(muiGetDrawList(context, &list) == mui_success, "get");
+    CHECK(muiContext_GetDrawList(context, &list) == mui_success, "get");
     return list;
 }
 
@@ -1170,10 +1172,14 @@ static void CheckRetained(muiContext* context, muiNodeId root, const char* what)
     static Snapshot retained;
     muiDrawList list = BuildAt(context, root, 1000.0f, 7);
     Take(&retained, &list);
-    CHECK(muiBuildDrawList(context, root, &(muiDrawInput){7, 2.0f, NULL, NULL}) == mui_success &&
-              muiBuildDrawList(context, root, &(muiDrawInput){7, 1.0f, NULL, NULL}) == mui_success,
+    CHECK(muiNode_BuildDrawList(context, root, &(muiDrawInput){7, 2.0f, NULL, NULL}) ==
+                  mui_success &&
+              muiNode_BuildDrawList(context, root, &(muiDrawInput){7, 1.0f, NULL, NULL}) ==
+                  mui_success,
           "builds whole");
-    CHECK(muiGetDrawList(context, &list) == mui_success && SameTables(&retained.list, &list), what);
+    CHECK(muiContext_GetDrawList(context, &list) == mui_success &&
+              SameTables(&retained.list, &list),
+          what);
 }
 
 static void Paint(muiContext* context, muiNodeId node, muiColor color)
@@ -1316,13 +1322,13 @@ static void TestRetainedEdges(void)
     SetOpacity(context, faded, 0.5f);
     AddShadowTo(context, root);
     Paint(context, root, s_gray);
-    CHECK(
-        muiComputeLayout(context, root,
-                         &(muiLayoutInput){1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}}) ==
-                mui_success &&
-            muiBuildDrawList(context, root, &(muiDrawInput){7, 1.0f, NULL, NULL}) ==
-                mui_errorCapacity,
-        "four do not fit");
+    CHECK(muiNode_ComputeLayout(
+              context, root,
+              &(muiLayoutInput){1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}}) ==
+                  mui_success &&
+              muiNode_BuildDrawList(context, root, &(muiDrawInput){7, 1.0f, NULL, NULL}) ==
+                  mui_errorCapacity,
+          "four do not fit");
     visual = muiDefaultVisualStyle();
     SetVisual(context, root, &visual, MUI_PROPERTY_BIT(mui_propertyOuterShadow));
     CheckRetained(context, root, "three fit, none taken from the failure");
@@ -1341,8 +1347,8 @@ static void TestRetainedEdges(void)
     (void)BuildAt(context, root, 1000.0f, 7);
     AddShadowTo(context, root);
     const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
-    CHECK(muiBuildDrawList(context, root, &(muiDrawInput){7, 1.0f, NULL, NULL}) ==
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_BuildDrawList(context, root, &(muiDrawInput){7, 1.0f, NULL, NULL}) ==
               mui_errorCapacity,
           "the copy does not fit");
     // Without the shadow it fits again, built from nothing the failure
@@ -1378,8 +1384,8 @@ static void PaintTwoGlyphs(void* user, muiNodeId nodeId, uint64_t hostKey, float
         muiNodeDef def = muiDefaultNodeDef();
         muiNodeId created = s_nullNode;
         CHECK(muiCreateNode(host->context, &def, &created) == mui_errorBusy &&
-                  muiBuildDrawList(host->context, nodeId, &(muiDrawInput){1, 1.0f, NULL, NULL}) ==
-                      mui_errorBusy,
+                  muiNode_BuildDrawList(host->context, nodeId,
+                                        &(muiDrawInput){1, 1.0f, NULL, NULL}) == mui_errorBusy,
               "edits from a paint function are refused");
         const muiGlyph one = {1, 0.0f, 0.0f};
         const muiGlyph far = {1, INFINITY, 0.0f};
@@ -1462,12 +1468,12 @@ static muiNodeId AddLabel(muiContext* context, muiNodeId root)
 static muiDrawList BuildWith(muiContext* context, muiNodeId root, float scale, GlyphHost* host)
 {
     const muiLayoutInput layout = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &layout) == mui_success, "layout");
-    CHECK(muiBuildDrawList(context, root, &(muiDrawInput){7, scale, PaintTwoGlyphs, host}) ==
+    CHECK(muiNode_ComputeLayout(context, root, &layout) == mui_success, "layout");
+    CHECK(muiNode_BuildDrawList(context, root, &(muiDrawInput){7, scale, PaintTwoGlyphs, host}) ==
               mui_success,
           "build");
     muiDrawList list;
-    CHECK(muiGetDrawList(context, &list) == mui_success, "get");
+    CHECK(muiContext_GetDrawList(context, &list) == mui_success, "get");
     return list;
 }
 
@@ -1519,11 +1525,11 @@ static void TestGlyphRuns(void)
           "copied, not painted");
 
     // Refused calls count as misuse and add nothing.
-    uint64_t misuse = muiGetContextMisuse(context);
+    uint64_t misuse = muiContext_GetMisuse(context);
     host.misuse = true;
     CHECK(muiNode_MarkContentChanged(context, label) == mui_success, "changed");
     list = BuildWith(context, root, 2.0f, &host);
-    CHECK(muiGetContextMisuse(context) == misuse + 18 && list.glyphCount == 2,
+    CHECK(muiContext_GetMisuse(context) == misuse + 18 && list.glyphCount == 2,
           "thirteen bad runs, three bad rectangles and two edits; a run or rectangle with no "
           "sink has no context to count it");
     host.misuse = false;
@@ -1552,8 +1558,9 @@ static void TestGlyphRuns(void)
     CHECK(host.calls == calls && list.glyphCount == 0, "an invisible node");
     visual.opacity = 1.0f;
     SetVisual(context, label, &visual, MUI_PROPERTY_BIT(mui_propertyOpacity));
-    CHECK(muiBuildDrawList(context, root, &(muiDrawInput){7, 2.0f, NULL, NULL}) == mui_success &&
-              muiGetDrawList(context, &list) == mui_success && list.glyphCount == 0 &&
+    CHECK(muiNode_BuildDrawList(context, root, &(muiDrawInput){7, 2.0f, NULL, NULL}) ==
+                  mui_success &&
+              muiContext_GetDrawList(context, &list) == mui_success && list.glyphCount == 0 &&
               host.calls == calls,
           "no paint function");
     muiDestroyContext(context);
@@ -1590,8 +1597,8 @@ static void BuildTwice(muiContext* context, muiNodeId root, const muiDrawInput* 
         CHECK(muiNode_GetVisualStyle(context, root, &visual) == mui_success &&
                   muiNode_SetVisualValues(context, root, &visual,
                                           MUI_PROPERTY_BIT(mui_propertyOpacity)) == mui_success &&
-                  muiComputeLayout(context, root, &layout) == mui_success &&
-                  muiBuildDrawList(context, root, input) == mui_success,
+                  muiNode_ComputeLayout(context, root, &layout) == mui_success &&
+                  muiNode_BuildDrawList(context, root, input) == mui_success,
               "build");
     }
 }
@@ -1634,7 +1641,7 @@ static void TestPaddingIsZero(void)
         (void)AddLabel(context, root);
         BuildTwice(context, root, &(muiDrawInput){7, 1.0f, PaintFilled, (void*)&patterns[i]});
         muiDrawList list = {0};
-        CHECK(muiGetDrawList(context, &list) == mui_success, "get");
+        CHECK(muiContext_GetDrawList(context, &list) == mui_success, "get");
         CHECK(list.commandCount == 4 && list.commands[1].kind == mui_drawImage &&
                   list.commands[3].kind == mui_drawGlyphRun,
               "a box and an image, the label's border and its run");
@@ -1689,7 +1696,7 @@ static void TestTablePaddingIsZero(void)
         (void)Add(context, clipped, 10.0f, 10.0f, (muiEdges){0});
         BuildTwice(context, root, &(muiDrawInput){7, 1.0f, NULL, NULL});
         muiDrawList list = {0};
-        CHECK(muiGetDrawList(context, &list) == mui_success, "get");
+        CHECK(muiContext_GetDrawList(context, &list) == mui_success, "get");
         CHECK(list.gradientCount >= 1 && list.clipCount >= 1, "a gradient and a clip");
         Take(&snapshots[i], &list);
         muiDestroyContext(context);
@@ -1729,8 +1736,8 @@ static bool Saw(const SeeingHost* host, float x, float y, float width, float hei
 static void BuildSeeing(muiContext* context, muiNodeId root, SeeingHost* host)
 {
     const muiLayoutInput layout = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &layout) == mui_success &&
-              muiBuildDrawList(context, root, &(muiDrawInput){7, 1.0f, PaintSeeing, host}) ==
+    CHECK(muiNode_ComputeLayout(context, root, &layout) == mui_success &&
+              muiNode_BuildDrawList(context, root, &(muiDrawInput){7, 1.0f, PaintSeeing, host}) ==
                   mui_success,
           "built");
 }
@@ -1764,10 +1771,10 @@ static void TestVisibleRect(void)
     // Scrolling alone paints it again, seeing further down.
     CHECK(muiNode_SetScroll(context, scroller, 0.0f, 30.0f) == mui_success, "scrolled");
     muiDrawList list;
-    CHECK(muiGetDrawList(context, &list) == mui_success, "get");
+    CHECK(muiContext_GetDrawList(context, &list) == mui_success, "get");
     uint64_t generation = list.header.generation;
     BuildSeeing(context, root, &host);
-    CHECK(muiGetDrawList(context, &list) == mui_success &&
+    CHECK(muiContext_GetDrawList(context, &list) == mui_success &&
               list.header.generation == generation + 1 && host.calls == 2 &&
               Saw(&host, 0.0f, 30.0f, 100.0f, 20.0f),
           "scrolled 30");
@@ -1842,12 +1849,12 @@ static void TestGlyphRunsRightToLeftAndLimits(void)
         (void)AddLabel(context, root);
         host = (GlyphHost){context, 0, false, false, 0, 0};
         const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-        CHECK(
-            muiComputeLayout(context, root, &input) == mui_success &&
-                muiBuildDrawList(context, root, &(muiDrawInput){7, 1.0f, PaintTwoGlyphs, &host}) ==
-                    mui_errorCapacity,
-            which == 0 ? "four glyphs in a table of three" : "four commands in three");
-        CHECK(host.count == 1 && muiGetDrawList(context, &list) == mui_success &&
+        CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success &&
+                  muiNode_BuildDrawList(context, root,
+                                        &(muiDrawInput){7, 1.0f, PaintTwoGlyphs, &host}) ==
+                      mui_errorCapacity,
+              which == 0 ? "four glyphs in a table of three" : "four commands in three");
+        CHECK(host.count == 1 && muiContext_GetDrawList(context, &list) == mui_success &&
                   list.commandCount == 0 && list.glyphCount == 0,
               "the first fits, the list is left empty");
         muiDestroyContext(context);
@@ -1864,10 +1871,11 @@ static void TestGlyphRunsRightToLeftAndLimits(void)
     list = BuildWith(context, root, 1.0f, &host);
     CHECK(list.glyphCount == 4, "two runs of two");
     host.wider = first.index1;
-    CHECK(muiNode_MarkContentChanged(context, first) == mui_success &&
-              muiBuildDrawList(context, root, &(muiDrawInput){7, 1.0f, PaintTwoGlyphs, &host}) ==
-                  mui_errorCapacity,
-          "three painted and two copied in a table of four");
+    CHECK(
+        muiNode_MarkContentChanged(context, first) == mui_success &&
+            muiNode_BuildDrawList(context, root, &(muiDrawInput){7, 1.0f, PaintTwoGlyphs, &host}) ==
+                mui_errorCapacity,
+        "three painted and two copied in a table of four");
     muiDestroyContext(context);
 }
 
@@ -1918,7 +1926,7 @@ static muiNodeId AddHosted(muiContext* context, muiNodeId root, uint64_t key)
 static bool HoldsKey(muiContext* context, uint64_t key)
 {
     muiDrawList list = {0};
-    CHECK(muiGetDrawList(context, &list) == mui_success, "get");
+    CHECK(muiContext_GetDrawList(context, &list) == mui_success, "get");
     for (uint32_t i = 0; i < list.commandCount; i++)
     {
         if (list.commands[i].kind == mui_drawBox && list.commands[i].box.rect.width == (float)key)
@@ -1944,21 +1952,21 @@ static void TestPaintFailedAgain(void)
     const muiLayoutInput layout = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     FailingHost host = {1, 2};
     const muiDrawInput input = {7, 1.0f, PaintFailing, &host};
-    CHECK(muiComputeLayout(context, root, &layout) == mui_success &&
-              muiBuildDrawList(context, root, &input) == mui_errorCapacity,
+    CHECK(muiNode_ComputeLayout(context, root, &layout) == mui_success &&
+              muiNode_BuildDrawList(context, root, &input) == mui_errorCapacity,
           "the first fails in a list too full to keep");
     host = (FailingHost){0, 0};
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success && HoldsKey(context, 1) &&
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success && HoldsKey(context, 1) &&
               HoldsKey(context, 2),
           "both painted the next time");
     host = (FailingHost){2, 0};
     CHECK(muiNode_MarkContentChanged(context, second) == mui_success &&
-              muiComputeLayout(context, root, &layout) == mui_success &&
-              muiBuildDrawList(context, root, &input) == mui_errorCapacity &&
+              muiNode_ComputeLayout(context, root, &layout) == mui_success &&
+              muiNode_BuildDrawList(context, root, &input) == mui_errorCapacity &&
               HoldsKey(context, 1) && !HoldsKey(context, 2),
           "the second fails");
     host = (FailingHost){0, 0};
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success && HoldsKey(context, 1) &&
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success && HoldsKey(context, 1) &&
               HoldsKey(context, 2),
           "and is painted again the next time");
     muiDestroyContext(context);

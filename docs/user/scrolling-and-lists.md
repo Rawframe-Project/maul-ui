@@ -8,7 +8,7 @@
 
 ## Scrolling
 
-A node whose layout scrolls on an axis (`scrollAxes`) is a scroll container: its children may reach past its box, and an offset moves them. `muiNode_SetScroll` sets the offset, and `muiNode_ScrollIntoView` brings a node into its containers' view. Unhandled wheel turns, keys and gamepad directions scroll the container under the pointer or holding the focus, eased as the scroll rule says (`muiSetScrollRule`): a wheel step, a latch time, the fling's deceleration and whether to overscroll. `muiNode_GetScrollThumb` gives a scrollbar's thumb along its track. Painting moves the children through a transform, so scrolling redraws nothing else.
+A node whose layout scrolls on an axis (`scrollAxes`) is a scroll container: its children may reach past its box, and an offset moves them. `muiNode_SetScroll` sets the offset, and `muiNode_ScrollIntoView` brings a node into its containers' view. Unhandled wheel turns, keys and gamepad directions scroll the container under the pointer or holding the focus, eased as the scroll rule says (`muiContext_SetScrollRule`): a wheel step, a latch time, the fling's deceleration and whether to overscroll. `muiNode_GetScrollThumb` gives a scrollbar's thumb along its track. Painting moves the children through a transform, so scrolling redraws nothing else.
 
 Touch and pens pan a scroll container by dragging it and fling it when let go, with iOS's deceleration. Overscroll is off by default, as on desktop browsers; turned on, a pan past the end stretches by iOS's rubber band and springs back, and a pan catching it goes on from where it is.
 
@@ -72,10 +72,11 @@ static muiResult Realize(muiContext* context, muiNodeId list)
 static muiResult ListFrame(muiContext* context, muiNodeId root, muiNodeId list,
                            const muiLayoutInput* input)
 {
-    muiResult result = muiComputeLayout(context, root, input);
+    muiResult result = muiNode_ComputeLayout(context, root, input);
     bool changed = false;
     muiNotification notification;
-    while (result == mui_success && muiNextNotification(context, &notification) == mui_success)
+    while (result == mui_success &&
+           muiContext_TakeNotification(context, &notification) == mui_success)
     {
         changed = changed || (notification.kind == mui_notificationWindowChanged &&
                               notification.node.index1 == list.index1);
@@ -83,7 +84,7 @@ static muiResult ListFrame(muiContext* context, muiNodeId root, muiNodeId list,
     if (result == mui_success && changed)
     {
         result = Realize(context, list);
-        result = result == mui_success ? muiComputeLayout(context, root, input) : result;
+        result = result == mui_success ? muiNode_ComputeLayout(context, root, input) : result;
     }
     return result;
 }

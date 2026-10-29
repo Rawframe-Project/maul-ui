@@ -85,7 +85,7 @@ static void TestNodeLimitIsCapacity(void)
     muiNodeId node = {7, 7};
     CHECK(muiCreateNode(context, &def, &node) == mui_errorCapacity, "limit reached");
     CHECK(Same(node, s_null), "out cleared");
-    CHECK(muiGetContextMisuse(context) == 0, "capacity is not misuse");
+    CHECK(muiContext_GetMisuse(context) == 0, "capacity is not misuse");
     muiDestroyContext(context);
 }
 
@@ -163,7 +163,7 @@ static void TestStaleIdsAreRefusedWithoutMisuse(void)
     CHECK(muiNode_InsertChild(context, parent, child, gone) == mui_errorStale, "before stale");
     CHECK(muiNode_GetHostKey(context, gone) == 0, "no key");
     CHECK(Same(muiNode_GetParent(context, gone), s_null), "no parent");
-    CHECK(muiGetContextMisuse(context) == 0, "stale is not misuse");
+    CHECK(muiContext_GetMisuse(context) == 0, "stale is not misuse");
     muiDestroyContext(context);
 }
 
@@ -193,7 +193,7 @@ static void TestBadEditsAreMisuse(void)
     muiNodeId other = MakeNode(context, 3);
     CHECK(muiNode_InsertChild(context, root, child, s_null) == mui_success, "child");
     CHECK(muiNode_InsertChild(context, child, grandchild, s_null) == mui_success, "grandchild");
-    uint64_t misuse = muiGetContextMisuse(context);
+    uint64_t misuse = muiContext_GetMisuse(context);
 
     CHECK(muiNode_InsertChild(context, other, child, s_null) == mui_errorInvalid, "has parent");
     CHECK(muiNode_InsertChild(context, grandchild, root, s_null) == mui_errorInvalid, "cycle");
@@ -209,7 +209,7 @@ static void TestBadEditsAreMisuse(void)
     muiNodeId node = s_null;
     CHECK(muiCreateNode(context, &def, &node) == mui_errorInvalid, "bad cookie");
     CHECK(muiCreateNode(context, NULL, &node) == mui_errorInvalid, "NULL def");
-    CHECK(muiGetContextMisuse(context) == misuse + 10, "each counted once");
+    CHECK(muiContext_GetMisuse(context) == misuse + 10, "each counted once");
 
     const muiNodeId one[] = {child};
     CHECK(ChildrenAre(context, root, one, 1), "tree unchanged");

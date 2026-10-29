@@ -50,8 +50,8 @@ static void Refusals(muiContext* context)
     // A null id where a node is needed is the program's bug: refused,
     // and counted.
     muiResult invalid = muiNode_InsertChild(context, (muiNodeId){0, 0}, node, (muiNodeId){0, 0});
-    printf("%s, %s, %llu refused\n", muiResultName(stale), muiResultName(invalid),
-           (unsigned long long)muiGetContextMisuse(context));
+    printf("%s, %s, %llu refused\n", muiGetResultName(stale), muiGetResultName(invalid),
+           (unsigned long long)muiContext_GetMisuse(context));
 }
 
 // Section 2: defs, allocators and limits.
@@ -278,21 +278,21 @@ static bool OnEvent(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent
 // that does not let input through; the rest is the game's, behind it.
 static bool Pointer(muiContext* context, muiNodeId root, const muiPointerEvent* event)
 {
-    if (muiPointerInput(context, root, event) != mui_success)
+    if (muiNode_RoutePointer(context, root, event) != mui_success)
     {
         return false;
     }
     bool handled = false;
     muiPointerRecord record;
-    while (muiNextPointerRecord(context, &record) == mui_success)
+    while (muiContext_TakePointerRecord(context, &record) == mui_success)
     {
         bool taken = false;
-        (void)muiDispatchPointerRecord(context, &record, &taken);
+        (void)muiContext_DispatchPointerRecord(context, &record, &taken);
         handled = handled || taken;
     }
     muiHit hit;
-    return handled ||
-           (muiHitTest(context, root, event->x, event->y, &hit) == mui_success && !hit.passThrough);
+    return handled || (muiNode_HitTest(context, root, event->x, event->y, &hit) == mui_success &&
+                       !hit.passThrough);
 }
 
 // Section 8: keys and focus.
@@ -315,7 +315,7 @@ static bool Key(muiContext* context, muiNodeId root, muiKeyCode code, muiModifie
     const muiKeyEvent event = {
         .key = MUI_KEY_NAMED | code, .code = code, .modifiers = modifiers, .down = down};
     bool handled = false;
-    return muiKeyInput(context, root, &event, &handled) == mui_success && handled;
+    return muiNode_RouteKey(context, root, &event, &handled) == mui_success && handled;
 }
 
 // Section 9: virtual lists.
@@ -371,10 +371,11 @@ static muiResult Realize(muiContext* context, muiNodeId list)
 static muiResult ListFrame(muiContext* context, muiNodeId root, muiNodeId list,
                            const muiLayoutInput* input)
 {
-    muiResult result = muiComputeLayout(context, root, input);
+    muiResult result = muiNode_ComputeLayout(context, root, input);
     bool changed = false;
     muiNotification notification;
-    while (result == mui_success && muiNextNotification(context, &notification) == mui_success)
+    while (result == mui_success &&
+           muiContext_TakeNotification(context, &notification) == mui_success)
     {
         changed = changed || (notification.kind == mui_notificationWindowChanged &&
                               notification.node.index1 == list.index1);
@@ -382,7 +383,7 @@ static muiResult ListFrame(muiContext* context, muiNodeId root, muiNodeId list,
     if (result == mui_success && changed)
     {
         result = Realize(context, list);
-        result = result == mui_success ? muiComputeLayout(context, root, input) : result;
+        result = result == mui_success ? muiNode_ComputeLayout(context, root, input) : result;
     }
     return result;
 }
@@ -449,7 +450,7 @@ static muiResult MakeFading(muiContext* context, muiStyleId* classOut)
 static void DestroyExited(muiContext* context)
 {
     muiNotification notification;
-    while (muiNextNotification(context, &notification) == mui_success)
+    while (muiContext_TakeNotification(context, &notification) == mui_success)
     {
         if (notification.kind == mui_notificationExitFinished)
         {
@@ -475,12 +476,12 @@ static muiResult Describe(muiContext* context, muiNodeId button, const char* nam
 static muiResult AccessFrame(muiContext* context, muiNodeId root, muiAccessUpdate* updateOut,
                              const muiAccessRequest* requests, uint32_t requestCount)
 {
-    muiResult result = muiBuildAccessUpdate(context, root, updateOut);
+    muiResult result = muiNode_BuildAccessUpdate(context, root, updateOut);
     for (uint32_t i = 0; result == mui_success && i < requestCount; i++)
     {
         // A node that does not take the action or is gone, and a client's
         // request that does not fit it, are skipped.
-        muiResult applied = muiPerformAccessAction(context, &requests[i], NULL);
+        muiResult applied = muiContext_PerformAccessAction(context, &requests[i], NULL);
         result = applied == mui_errorInvalid ? applied : mui_success;
     }
     return result;
@@ -495,18 +496,18 @@ static bool StillFrameIsFree(muiContext* context, muiNodeId root)
 {
     const muiLayoutInput layout = {800.0f, 600.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     const muiDrawInput draw = {1, 1.0f, NULL, NULL};
-    if (muiComputeLayout(context, root, &layout) != mui_success ||
-        muiBuildDrawList(context, root, &draw) != mui_success)
+    if (muiNode_ComputeLayout(context, root, &layout) != mui_success ||
+        muiNode_BuildDrawList(context, root, &draw) != mui_success)
     {
         return false;
     }
-    muiWorkCounts before = muiGetWorkCounts(context);
-    if (muiComputeLayout(context, root, &layout) != mui_success ||
-        muiBuildDrawList(context, root, &draw) != mui_success)
+    muiWorkCounts before = muiContext_GetWorkCounts(context);
+    if (muiNode_ComputeLayout(context, root, &layout) != mui_success ||
+        muiNode_BuildDrawList(context, root, &draw) != mui_success)
     {
         return false;
     }
-    muiWorkCounts after = muiGetWorkCounts(context);
+    muiWorkCounts after = muiContext_GetWorkCounts(context);
     return after.styled == before.styled && after.sized == before.sized &&
            after.measured == before.measured && after.painted == before.painted;
 }
@@ -517,7 +518,7 @@ static void TestRefusals(void)
     muiContext* context = NULL;
     CHECK(muiCreateContext(&def, &context) == mui_success, "a context");
     Refusals(context);
-    CHECK(muiGetContextMisuse(context) == 1, "one refusal counted, the stale id not");
+    CHECK(muiContext_GetMisuse(context) == 1, "one refusal counted, the stale id not");
     muiDestroyContext(context);
 }
 
@@ -539,8 +540,8 @@ static void TestLimits(void)
           "64 nodes, the 65th refused, nothing more taken");
     const muiLayoutInput layout = {800.0f, 600.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     const muiDrawInput draw = {1, 1.0f, NULL, NULL};
-    CHECK(muiComputeLayout(context, root, &layout) == mui_success &&
-              muiBuildDrawList(context, root, &draw) == mui_success && s_held == held,
+    CHECK(muiNode_ComputeLayout(context, root, &layout) == mui_success &&
+              muiNode_BuildDrawList(context, root, &draw) == mui_success && s_held == held,
           "a frame laid out and drawn taking nothing");
     muiDestroyContext(context);
     CHECK(s_held == 0, "everything given back");
@@ -585,7 +586,7 @@ static muiColor Background(muiContext* context, muiNodeId root, muiNodeId node)
 {
     const muiLayoutInput layout = {800.0f, 600.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     muiVisualStyle visual = muiDefaultVisualStyle();
-    CHECK(muiComputeLayout(context, root, &layout) == mui_success &&
+    CHECK(muiNode_ComputeLayout(context, root, &layout) == mui_success &&
               muiNode_GetVisualStyle(context, node, &visual) == mui_success,
           "styled");
     return visual.background;
@@ -632,7 +633,7 @@ static void TestStyles(void)
           "a row on a medium viewport");
     muiEnvironment phone = muiDefaultEnvironment();
     phone.viewport = mui_viewportSmall;
-    CHECK(muiSetContextEnvironment(context, &phone) == mui_success, "a phone");
+    CHECK(muiContext_SetEnvironment(context, &phone) == mui_success, "a phone");
     (void)Background(context, root, row);
     CHECK(muiNode_GetLayoutStyle(context, row, &layout) == mui_success &&
               layout.container.direction == mui_flexColumn,
@@ -664,9 +665,9 @@ static void TestDrawing(void)
     const muiLayoutInput layoutInput = {800.0f, 600.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     const muiDrawInput draw = {1, 2.0f, PaintGauge, NULL};
     muiDrawList list = {0};
-    CHECK(muiComputeLayout(context, gauge, &layoutInput) == mui_success &&
-              muiBuildDrawList(context, gauge, &draw) == mui_success &&
-              muiGetDrawList(context, &list) == mui_success && list.commandCount == 1 &&
+    CHECK(muiNode_ComputeLayout(context, gauge, &layoutInput) == mui_success &&
+              muiNode_BuildDrawList(context, gauge, &draw) == mui_success &&
+              muiContext_GetDrawList(context, &list) == mui_success && list.commandCount == 1 &&
               list.commands[0].kind == mui_drawBox,
           "its bar, a box");
     muiRect device = DeviceRect(&list, 0);
@@ -715,7 +716,7 @@ static void TestInput(void)
     muiNodeId cancel = Button(context, root);
     CHECK(muiSetEventFunction(context, OnEvent, &app) == mui_success, "routed");
     const muiLayoutInput layout = {800.0f, 600.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &layout) == mui_success, "laid out");
+    CHECK(muiNode_ComputeLayout(context, root, &layout) == mui_success, "laid out");
     muiPointerEvent move = Mouse(mui_pointerMove, 50.0f, 20.0f);
     muiPointerEvent press = Mouse(mui_pointerPress, 50.0f, 20.0f);
     muiPointerEvent release = Mouse(mui_pointerRelease, 50.0f, 20.0f);
@@ -724,11 +725,11 @@ static void TestInput(void)
           "hovered");
     CHECK(Pointer(context, root, &press) && Pointer(context, root, &release) && app.clicks == 1,
           "clicked");
-    CHECK(muiFocus_Get(context, 0).index1 == app.ok.index1, "a press focuses");
+    CHECK(muiContext_GetFocus(context, 0).index1 == app.ok.index1, "a press focuses");
     CHECK(Key(context, root, mui_codeTab, 0, true) &&
-              muiFocus_Get(context, 0).index1 == cancel.index1 &&
+              muiContext_GetFocus(context, 0).index1 == cancel.index1 &&
               Key(context, root, mui_codeTab, mui_modShift, true) &&
-              muiFocus_Get(context, 0).index1 == app.ok.index1,
+              muiContext_GetFocus(context, 0).index1 == app.ok.index1,
           "Tab forward, Shift and Tab back");
     muiPointerEvent away = Mouse(mui_pointerMove, 700.0f, 500.0f);
     CHECK(Pointer(context, root, &away), "the root, opaque, uses a pointer over it");
@@ -798,7 +799,7 @@ static void TestLists(void)
     CHECK(Pointer(context, root, &press) && Pointer(context, root, &release), "a press outside");
     muiNotification notification;
     bool dismissed = false;
-    while (muiNextNotification(context, &notification) == mui_success)
+    while (muiContext_TakeNotification(context, &notification) == mui_success)
     {
         dismissed = dismissed || (notification.kind == mui_notificationPopupDismissed &&
                                   notification.node.index1 == menu.index1);
@@ -811,7 +812,7 @@ static float Opacity(muiContext* context, muiNodeId root, muiNodeId node, uint64
 {
     const muiLayoutInput layout = {800.0f, 600.0f, NULL, NULL, timeNs, NULL, {0, 0, 0, 0}};
     muiVisualStyle visual = muiDefaultVisualStyle();
-    CHECK(muiComputeLayout(context, root, &layout) == mui_success, "laid out");
+    CHECK(muiNode_ComputeLayout(context, root, &layout) == mui_success, "laid out");
     if (muiNode_GetVisualStyle(context, node, &visual) != mui_success)
     {
         return -1.0f;
@@ -837,7 +838,7 @@ static void TestExits(void)
               Opacity(context, root, toast, 1000000000) == 1.0f,
           "leaving");
     float half = Opacity(context, root, toast, 1075000000);
-    CHECK(half > 0.0f && half < 1.0f && muiIsUpdatePending(context, root), "half way out");
+    CHECK(half > 0.0f && half < 1.0f && muiNode_IsUpdatePending(context, root), "half way out");
     DestroyExited(context);
     CHECK(muiNode_IsValid(context, toast), "still there");
     CHECK(Opacity(context, root, toast, 1150000000) == 0.0f, "gone from sight");
@@ -857,24 +858,25 @@ static void TestAccess(void)
     App app = {Button(context, root), 0};
     CHECK(muiSetEventFunction(context, OnEvent, &app) == mui_success &&
               Describe(context, app.ok, "OK") == mui_success &&
-              muiAccess_Enable(context, root) == mui_success,
+              muiNode_EnableAccess(context, root, true) == mui_success,
           "a described button, its root enabled");
     const muiLayoutInput layout = {800.0f, 600.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
     muiAccessUpdate update;
-    CHECK(muiComputeLayout(context, root, &layout) == mui_success &&
+    CHECK(muiNode_ComputeLayout(context, root, &layout) == mui_success &&
               AccessFrame(context, root, &update, NULL, 0) == mui_success &&
-              update.root == muiAccessIdOf(root),
+              update.root == muiNode_GetAccessId(root),
           "the first update, the whole tree");
     bool found = false;
     for (uint32_t i = 0; i < update.nodeCount; i++)
     {
         const muiAccessNode* node = update.nodes[i];
-        found = found || (node->id == muiAccessIdOf(app.ok) && node->role == mui_roleButton &&
+        found = found || (node->id == muiNode_GetAccessId(app.ok) && node->role == mui_roleButton &&
                           node->textLength[mui_accessLabel] == 2 &&
                           memcmp(node->text[mui_accessLabel], "OK", 2) == 0);
     }
     CHECK(found, "the button, named OK");
-    const muiAccessRequest click = {.action = mui_actionClick, .target = muiAccessIdOf(app.ok)};
+    const muiAccessRequest click = {.action = mui_actionClick,
+                                    .target = muiNode_GetAccessId(app.ok)};
     CHECK(AccessFrame(context, root, &update, &click, 1) == mui_success && app.clicks == 1,
           "clicked by assistive technology");
     muiDestroyContext(context);

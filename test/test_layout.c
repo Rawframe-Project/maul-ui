@@ -147,7 +147,7 @@ static void TestBadStylesAreMisuse(void)
     }
     CHECK(muiNode_SetLayoutValues(context, node, NULL, MUI_LAYOUT_PROPERTIES) == mui_errorInvalid,
           "NULL style");
-    CHECK(muiGetContextMisuse(context) == 9, "each counted");
+    CHECK(muiContext_GetMisuse(context) == 9, "each counted");
     muiLayoutStyle baseline = muiDefaultLayoutStyle();
     baseline.container.alignItems = mui_alignBaseline;
     baseline.item.alignSelf = mui_alignBaseline;
@@ -169,15 +169,15 @@ static void TestComputeRefusesNonRootsAndBadSpace(void)
     muiNodeId child = MakeNode(context, NULL);
     CHECK(muiNode_InsertChild(context, root, child, s_null) == mui_success, "insert");
     muiLayoutInput input = Input(&host);
-    CHECK(muiComputeLayout(context, child, &input) == mui_errorInvalid, "not a root");
+    CHECK(muiNode_ComputeLayout(context, child, &input) == mui_errorInvalid, "not a root");
     input.availableWidth = -1.0f;
-    CHECK(muiComputeLayout(context, root, &input) == mui_errorInvalid, "negative space");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_errorInvalid, "negative space");
     input.availableWidth = INFINITY;
-    CHECK(muiComputeLayout(context, root, &input) == mui_errorInvalid, "infinite space");
-    CHECK(muiComputeLayout(context, root, NULL) == mui_errorInvalid, "NULL input");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_errorInvalid, "infinite space");
+    CHECK(muiNode_ComputeLayout(context, root, NULL) == mui_errorInvalid, "NULL input");
     CHECK(muiDestroyNode(context, child) == mui_success, "destroy child");
     input = Input(&host);
-    CHECK(muiComputeLayout(context, child, &input) == mui_errorStale, "stale root");
+    CHECK(muiNode_ComputeLayout(context, child, &input) == mui_errorStale, "stale root");
     muiDestroyContext(context);
 }
 
@@ -189,7 +189,7 @@ static void TestEditsFromMeasureAreRefused(void)
     leaf.content = mui_contentHost;
     muiNodeId root = MakeNode(context, &leaf);
     muiLayoutInput input = Input(&host);
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
     CHECK(host.measured > 0, "measured");
     CHECK(host.editStatus == mui_errorBusy, "edit refused inside measure");
     muiNodeDef def = muiDefaultNodeDef();
@@ -208,17 +208,17 @@ static void TestUnchangedTreeIsNotMeasuredAgain(void)
     muiNodeId text = MakeNode(context, &leaf);
     CHECK(muiNode_InsertChild(context, root, text, s_null) == mui_success, "insert");
     muiLayoutInput input = Input(&host);
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "first layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "first layout");
     CHECK(host.measured > 0, "measured once laid out");
     host.measured = 0;
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "second layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "second layout");
     CHECK(host.measured == 0, "a static frame measures nothing");
     muiRect rect = muiNode_GetRect(context, text);
     CHECK(rect.width == 30.0f && rect.height == 12.0f, "content size");
 
     host.content = (muiSize){50.0f, 12.0f};
     CHECK(muiNode_MarkContentChanged(context, text) == mui_success, "mark");
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "third layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "third layout");
     CHECK(host.measured > 0, "changed content is measured");
     CHECK(muiNode_GetRect(context, text).width == 50.0f, "new size");
     CHECK(muiNode_GetRect(context, root).width == 50.0f, "the root fits it");
@@ -243,7 +243,7 @@ static void TestDecidedSizesAreNotMeasured(void)
               muiNode_InsertChild(context, root, sized, s_null) == mui_success,
           "insert");
     muiLayoutInput input = Input(&host);
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
     CHECK(host.measured > 0 && host.decided == 0, "nothing decided asked");
     muiRect rect = muiNode_GetRect(context, text);
     muiRect fixed = muiNode_GetRect(context, sized);
@@ -273,7 +273,7 @@ static void TestLooseRowLabelIsMeasuredOnce(void)
               muiNode_InsertChild(context, row, label, s_null) == mui_success,
           "insert");
     muiLayoutInput input = Input(&host);
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
     CHECK(host.measured == 1, "the label measured once");
     muiRect rect = muiNode_GetRect(context, label);
     CHECK(rect.width == 30.0f && rect.height == 12.0f, "its size");
@@ -303,8 +303,8 @@ static void TestLooseRowLabelIsMeasuredOnce(void)
               muiNode_InsertChild(context, column, label, s_null) == mui_success,
           "insert the column");
     input = Input(&host);
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout the column");
-    CHECK(muiGetWorkCounts(context).sized == 8, "the column sized once a query");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout the column");
+    CHECK(muiContext_GetWorkCounts(context).sized == 8, "the column sized once a query");
     muiDestroyContext(context);
 }
 
@@ -323,15 +323,15 @@ static void TestStyleChangeRelaysTheParent(void)
     CHECK(muiNode_InsertChild(context, root, first, s_null) == mui_success, "first");
     CHECK(muiNode_InsertChild(context, root, second, s_null) == mui_success, "second");
     muiLayoutInput input = Input(&host);
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
     CHECK(muiNode_GetRect(context, second).x == 30.0f, "after the first");
     fixed.sizing.width = Length(45.0f);
     CHECK(muiNode_SetLayoutValues(context, first, &fixed, MUI_LAYOUT_PROPERTIES) == mui_success,
           "widen first");
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout again");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout again");
     CHECK(muiNode_GetRect(context, second).x == 45.0f, "the sibling moved");
     CHECK(muiNode_Detach(context, first) == mui_success, "detach");
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout once more");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout once more");
     CHECK(muiNode_GetRect(context, second).x == 0.0f, "the sibling took its place");
     muiDestroyContext(context);
 }
@@ -349,10 +349,10 @@ static void TestNewSpaceRelaysAnUnchangedTree(void)
     muiNodeId child = MakeNode(context, &grow);
     CHECK(muiNode_InsertChild(context, root, child, s_null) == mui_success, "insert");
     muiLayoutInput input = Input(&host);
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
     CHECK(muiNode_GetRect(context, child).width == 400.0f, "fills the space");
     input.availableWidth = 250.0f;
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout in less space");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout in less space");
     CHECK(muiNode_GetRect(context, root).width == 250.0f, "the root follows the space");
     CHECK(muiNode_GetRect(context, child).width == 250.0f, "and so does its child");
     muiDestroyContext(context);
@@ -374,10 +374,10 @@ static void TestScaledLimitFollowsTheParent(void)
     CHECK(muiNode_InsertChild(context, root, box, s_null) == mui_success, "box");
     CHECK(muiNode_InsertChild(context, box, text, s_null) == mui_success, "text");
     muiLayoutInput input = Input(&host);
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
     CHECK(muiNode_GetRect(context, box).width == 200.0f, "half of 400");
     input.availableWidth = 800.0f;
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "wider");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "wider");
     CHECK(muiNode_GetRect(context, box).width == 300.0f, "its content, under half of 800");
     muiDestroyContext(context);
 }
@@ -418,7 +418,7 @@ static void CheckShrunkTexts(bool nested)
     // The row takes its min-content width, 50, and shrinks the texts to
     // it by their natural widths.
     muiLayoutInput input = {10.0f, 300.0f, MeasureText, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
     muiRect a = muiNode_GetRect(context, wide);
     muiRect b = muiNode_GetRect(context, narrow);
     CHECK(muiNode_GetRect(context, line).width == 50.0f, "min-content width");
@@ -447,10 +447,10 @@ static void CheckTextFollowsSpace(float first, float second)
     muiNodeId root = MakeNode(context, &column);
     muiNodeId text = MakeText(context, root, TextKey(100, 10));
     muiLayoutInput input = {first, 300.0f, MeasureText, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
     CHECK(muiNode_GetRect(context, text).width == fminf(first, 100.0f), "first space");
     input.availableWidth = second;
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout again");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout again");
     CHECK(muiNode_GetRect(context, text).width == fminf(second, 100.0f), "second space");
     muiDestroyContext(context);
 }
@@ -482,7 +482,7 @@ static void TestScaledChildWrapsInItsBox(void)
     CHECK(muiNode_SetLayoutValues(context, text, &half, MUI_LAYOUT_PROPERTIES) == mui_success,
           "half");
     muiLayoutInput input = {400.0f, 300.0f, MeasureText, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
     muiRect inner = muiNode_GetRect(context, text);
     CHECK(muiNode_GetRect(context, box).width == 100.0f && inner.width == 50.0f &&
               inner.height == 20.0f,
@@ -512,13 +512,13 @@ static void TestScaledChildKeepsItsRootsHeight(void)
     CHECK(muiNode_InsertChild(context, root, wrapper, s_null) == mui_success, "wrapper");
     muiNodeId other = MakeText(context, wrapper, TextKey(20, 10));
     muiLayoutInput input = {400.0f, 300.0f, MeasureText, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
     muiRect first = muiNode_GetRect(context, root);
     CHECK(first.width == 120.0f && muiNode_GetRect(context, box).width == 12.0f &&
               muiNode_GetRect(context, text).height == 90.0f && first.height == 90.0f,
           "a tenth of 120, the text on nine lines");
     CHECK(muiNode_MarkContentChanged(context, other) == mui_success, "the other text");
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "again");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "again");
     muiRect second = muiNode_GetRect(context, root);
     CHECK(second.width == 120.0f && second.height == 90.0f, "the same root");
     muiDestroyContext(context);
@@ -541,7 +541,7 @@ static void TestLimitedTextWrapsAtItsLimit(void)
     CHECK(muiNode_SetLayoutValues(context, text, &limited, MUI_LAYOUT_PROPERTIES) == mui_success,
           "limited");
     muiLayoutInput input = {400.0f, 300.0f, MeasureText, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
     muiRect rect = muiNode_GetRect(context, text);
     CHECK(rect.width == 50.0f && rect.height == 20.0f, "two lines at its limit");
     CHECK(muiNode_GetRect(context, root).height == 20.0f, "the row as tall");
@@ -565,12 +565,12 @@ static void TestDirectionChangeReachesInheritingDescendants(void)
     CHECK(muiNode_InsertChild(context, root, inner, s_null) == mui_success, "inner");
     CHECK(muiNode_InsertChild(context, inner, first, s_null) == mui_success, "first");
     muiLayoutInput input = Input(&host);
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "left to right");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "left to right");
     CHECK(muiNode_GetRect(context, first).x == 0.0f, "at the left of inner");
     row.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutValues(context, root, &row, MUI_LAYOUT_PROPERTIES) == mui_success,
           "right to left");
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "again");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "again");
     CHECK(muiNode_GetRect(context, inner).x == 100.0f, "inner at the right of root");
     CHECK(muiNode_GetRect(context, first).x == 70.0f, "and its child at its right, inherited");
     muiDestroyContext(context);
@@ -596,14 +596,14 @@ static void TestSafeArea(void)
     muiNodeId root = MakeNode(context, &style);
     muiLayoutInput input = Input(&host);
     input.safeArea = (muiSides){20.0f, 30.0f, 5.0f, 0.0f};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "laid out");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "laid out");
     CHECK(RectIs(muiNode_GetContentRect(context, root), 10.0f, 20.0f, 360.0f, 270.0f),
           "start 10 over a left of 0, end 30 from the right, top 20, bottom its own 10");
     // Right to left, start is the right: 30 there, the end's 0 on the left.
     style.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutValues(context, root, &style, MUI_LAYOUT_PROPERTIES) == mui_success,
           "right to left");
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "laid out");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "laid out");
     CHECK(RectIs(muiNode_GetContentRect(context, root), 0.0f, 20.0f, 370.0f, 270.0f),
           "the insets fall on the physical sides");
     // The bottom alone.
@@ -612,16 +612,16 @@ static void TestSafeArea(void)
     input.safeArea.bottom = 40.0f;
     CHECK(muiNode_SetLayoutValues(context, root, &style, MUI_LAYOUT_PROPERTIES) == mui_success,
           "the bottom");
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "laid out");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "laid out");
     CHECK(RectIs(muiNode_GetContentRect(context, root), 10.0f, 10.0f, 390.0f, 250.0f),
           "the bottom's 40, the rest its own");
     // The same insets cost nothing; new ones lay the node out again.
-    muiWorkCounts before = muiGetWorkCounts(context);
-    CHECK(muiComputeLayout(context, root, &input) == mui_success &&
-              muiGetWorkCounts(context).sized == before.sized,
+    muiWorkCounts before = muiContext_GetWorkCounts(context);
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success &&
+              muiContext_GetWorkCounts(context).sized == before.sized,
           "the same insets: no work");
     input.safeArea.bottom = 50.0f;
-    CHECK(muiComputeLayout(context, root, &input) == mui_success &&
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success &&
               RectIs(muiNode_GetContentRect(context, root), 10.0f, 10.0f, 390.0f, 240.0f),
           "new insets: laid out again");
     // An absolute child across the root's padding box, padded at its top
@@ -633,14 +633,14 @@ static void TestSafeArea(void)
     muiNodeId overlay = MakeNode(context, &over);
     input.safeArea.left = 15.0f;
     CHECK(muiNode_InsertChild(context, root, overlay, s_null) == mui_success &&
-              muiComputeLayout(context, root, &input) == mui_success &&
+              muiNode_ComputeLayout(context, root, &input) == mui_success &&
               RectIs(muiNode_GetRect(context, overlay), 0.0f, 0.0f, 400.0f, 300.0f) &&
               RectIs(muiNode_GetContentRect(context, overlay), 15.0f, 20.0f, 385.0f, 280.0f),
           "an absolute child pads by the top and the left");
     input.safeArea.left = -1.0f;
-    CHECK(muiComputeLayout(context, root, &input) == mui_errorInvalid, "a negative inset");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_errorInvalid, "a negative inset");
     input.safeArea.left = NAN;
-    CHECK(muiComputeLayout(context, root, &input) == mui_errorInvalid, "a NaN inset");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_errorInvalid, "a NaN inset");
     muiDestroyContext(context);
 }
 
@@ -666,13 +666,13 @@ static void TestSafeAreaSizeFollowsDirection(void)
           "a box holding a padded leaf");
     muiLayoutInput input = Input(&host);
     input.safeArea = (muiSides){0.0f, 30.0f, 0.0f, 0.0f};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success &&
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success &&
               muiNode_GetRect(context, inner).width == 0.0f,
           "left to right, start is the left, of 0");
     row.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutValues(context, root, &row, MUI_LAYOUT_PROPERTIES) == mui_success,
           "right to left");
-    CHECK(muiComputeLayout(context, root, &input) == mui_success &&
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success &&
               muiNode_GetRect(context, inner).width == 30.0f &&
               muiNode_GetRect(context, inner).x == 370.0f,
           "right to left, start is the right, of 30: the box grows");
@@ -706,7 +706,7 @@ static void TestStretchedRatioRowResolvesAgainstItsHeight(void)
         CHECK(muiNode_InsertChild(context, box, sibling, s_null) == mui_success, "sibling");
         Host host = {0};
         muiLayoutInput input = Input(&host);
-        CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+        CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
         CHECK(muiNode_GetRect(context, box).height == 60.0f, "grown to its content");
         CHECK(muiNode_GetRect(context, child).height == (stretched ? 30.0f : 10.0f),
               "against its height stretched, else its ratio's");
@@ -747,20 +747,20 @@ static void TestEarlyStretchLaysOutAgainWhenLate(void)
           "insert");
     Host host = {0};
     muiLayoutInput input = Input(&host);
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
     muiRect rect = muiNode_GetRect(context, last);
     CHECK(rect.x == 0.0f && rect.y == 100.0f, "on the first line");
     // Laid out again from within, it stays there.
     narrow.sizing.width = Length(25.0f);
     CHECK(muiNode_SetLayoutValues(context, last, &narrow, MUI_LAYOUT_PROPERTIES) == mui_success,
           "widen the last");
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout from within");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout from within");
     rect = muiNode_GetRect(context, last);
     CHECK(rect.x == 0.0f && rect.y == 100.0f && rect.width == 25.0f, "still on the first line");
     outer.container.wrap = mui_wrapWrap;
     CHECK(muiNode_SetLayoutValues(context, root, &outer, MUI_LAYOUT_PROPERTIES) == mui_success,
           "wrap the parent");
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout again");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout again");
     CHECK(muiNode_GetRect(context, row).height == 100.0f, "the row's size kept");
     rect = muiNode_GetRect(context, last);
     CHECK(rect.x > 0.0f && rect.y == 0.0f, "on a line of its own");
@@ -802,13 +802,13 @@ static void TestBaselineItemFittedToItsLineFromItsLineLeft(void)
     }
     Host host = {0};
     muiLayoutInput input = Input(&host);
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
     muiRect rect = muiNode_GetRect(context, item);
     CHECK(rect.x == 0.0f && rect.width == 14.0f, "fitted to its line");
     outer.textDirection = mui_inlineRightToLeft;
     CHECK(muiNode_SetLayoutValues(context, root, &outer, MUI_LAYOUT_PROPERTIES) == mui_success,
           "right to left");
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout right to left");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout right to left");
     rect = muiNode_GetRect(context, item);
     CHECK(rect.x == -10.0f && rect.width == 10.0f, "its width and place kept");
     muiDestroyContext(context);
@@ -831,7 +831,7 @@ static void TestShrinkOntoAMinimumFarBelowTheBaseEnds(void)
     muiNodeId child = MakeNode(context, &wide);
     CHECK(muiNode_InsertChild(context, root, child, s_null) == mui_success, "child");
     const muiLayoutInput input = {184.0f, 160.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "laid out");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "laid out");
     muiRect rect = muiNode_GetRect(context, child);
     CHECK(isfinite(rect.width) && rect.width >= 0x1.e001fep+5f, "finite, at its minimum or more");
     muiDestroyContext(context);

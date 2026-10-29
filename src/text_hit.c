@@ -56,8 +56,8 @@ static MUI_NOINLINE muiResult TextHitTestWorker(const muiTextHost* host, muiNode
     return status;
 }
 
-muiResult muiTextHitTest(const muiTextHost* host, muiNodeId nodeId, float width, float x, float y,
-                         muiTextPosition* positionOut)
+muiResult muiNode_HitTestText(const muiTextHost* host, muiNodeId nodeId, float width, float x,
+                              float y, muiTextPosition* positionOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = TextHitTestWorker(host, nodeId, width, x, y, positionOut);
@@ -113,8 +113,8 @@ static MUI_NOINLINE muiResult TextGetCaretWorker(const muiTextHost* host, muiNod
     return status;
 }
 
-muiResult muiTextGetCaret(const muiTextHost* host, muiNodeId nodeId, float width,
-                          muiTextPosition position, muiTextCaret* caretOut)
+muiResult muiNode_GetTextCaret(const muiTextHost* host, muiNodeId nodeId, float width,
+                               muiTextPosition position, muiTextCaret* caretOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = TextGetCaretWorker(host, nodeId, width, position, caretOut);
@@ -191,9 +191,9 @@ static MUI_NOINLINE muiResult TextGetRangeRectsWorker(const muiTextHost* host, m
     return status;
 }
 
-muiResult muiTextGetRangeRects(const muiTextHost* host, muiNodeId nodeId, float width,
-                               uint32_t start, uint32_t end, muiRect* rects, uint32_t capacity,
-                               uint32_t* countOut)
+muiResult muiNode_GetTextRangeRects(const muiTextHost* host, muiNodeId nodeId, float width,
+                                    uint32_t start, uint32_t end, muiRect* rects, uint32_t capacity,
+                                    uint32_t* countOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result =

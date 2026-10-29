@@ -241,8 +241,8 @@ extern "C"
         mui_actionSetScrollOffset = 13,
         // A value text's selection set, or a range of it replaced with
         // text: offered while the host's text function gives a selection,
-        // and applied by the host, not muiPerformAccessAction (the text
-        // component's muiTextPerformAccessAction, maul-ui/text_editor.h).
+        // and applied by the host, not muiContext_PerformAccessAction (the text
+        // component's muiPerformTextAccessAction, maul-ui/text_editor.h).
         mui_actionSetSelection = 14,
         mui_actionReplaceText = 15,
     };
@@ -434,7 +434,7 @@ extern "C"
     typedef struct muiAccessNode
     {
         // Its node's id, generation in the high half and index in the
-        // low (muiAccessIdOf).
+        // low (muiNode_GetAccessId).
         uint64_t id;
         muiRole role;
         muiAccessFlags flags;
@@ -507,7 +507,7 @@ extern "C"
         uint32_t length;
     } muiAccessRequest;
 
-    // Performs an action a client asked for, by muiPerformAccessAction or
+    // Performs an action a client asked for, by muiContext_PerformAccessAction or
     // its own means; true when it did. Each adapter's def says when it is
     // called. It may call the context, not the adapter's functions that
     // change it.
@@ -528,7 +528,7 @@ extern "C"
     /// its scrolling ancestors, in its own space, its lines, words and
     /// clusters too, valid as long; clusters may be left out of lines far
     /// from shown, so a long text costs what is near the screen. It runs
-    /// inside muiBuildAccessUpdate, as the measure function runs inside
+    /// inside muiNode_BuildAccessUpdate, as the measure function runs inside
     /// layout, and may read the context, not change it (a function that
     /// would answers mui_errorBusy); shown is given only for a
     /// node the update sends, NULL otherwise. The text must be well-formed
@@ -543,7 +543,7 @@ extern "C"
     /// @return Its id.
     /// @par Thread safety
     /// Safe from any thread.
-    MUI_API uint64_t muiAccessIdOf(muiNodeId nodeId);
+    MUI_API uint64_t muiNode_GetAccessId(muiNodeId nodeId);
 
     /// The node of an accessibility id.
     ///
@@ -551,7 +551,7 @@ extern "C"
     /// @return Its node.
     /// @par Thread safety
     /// Safe from any thread.
-    MUI_API muiNodeId muiNodeIdOfAccess(uint64_t id);
+    MUI_API muiNodeId muiGetNodeOfAccessId(uint64_t id);
 
     /// Sets the function host content's text comes from: a node whose
     /// content is the host's (maul-ui/layout.h's mui_contentHost) and
@@ -585,33 +585,34 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiNode_MarkAccessChanged(muiContext* context,
                                                               muiNodeId nodeId);
 
-    /// Builds updates for a root's tree from now on, the next one whole.
-    /// Enabling an enabled root makes its next update whole again, as
-    /// when an adapter starts over. The first root enabled allocates a
-    /// copy of each node as last sent and the update's buffers.
+    /// Starts or stops building updates for a root's tree. Started, the
+    /// next update is whole; starting a started root makes its next update
+    /// whole again, as when an adapter starts over. The first root started
+    /// allocates a copy of each node as last sent and the update's
+    /// buffers, and the last root stopped frees them.
     ///
     /// @param context  The context.
     /// @param rootId   A node without a parent.
-    /// @return `mui_success`; `mui_errorCapacity` when `limits.accessRoots`
-    ///         roots are enabled or memory runs out; `mui_errorInvalid` for a
-    ///         NULL context, the null id or a node with a parent;
-    ///         `mui_errorBusy` while the context is busy; `mui_errorStale` for
-    ///         a node that is gone.
+    /// @param enable   Whether to build its updates.
+    /// @return `mui_success`; `mui_empty` when stopping a root not started;
+    ///         `mui_errorCapacity` when starting one while `limits.accessRoots`
+    ///         roots are, or when memory runs out; `mui_errorInvalid` for a
+    ///         NULL context, the null id, or starting a node with a parent;
+    ///         `mui_errorBusy` while the context is busy; `mui_errorStale` when
+    ///         starting a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiAccess_Enable(muiContext* context, muiNodeId rootId);
+    MUI_NODISCARD MUI_API muiResult muiNode_EnableAccess(muiContext* context, muiNodeId rootId,
+                                                         bool enable);
 
-    /// Stops building updates for a root; the last root disabled frees
-    /// what enabling allocated.
+    /// Returns whether updates are built for a root's tree.
     ///
     /// @param context  The context.
     /// @param rootId   The root.
-    /// @return `mui_success`; `mui_empty` for a root not enabled;
-    ///         `mui_errorInvalid` for a NULL context or the null id;
-    ///         `mui_errorBusy` while the context is busy.
+    /// @return Whether they are; false for a NULL context or a stale id.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiAccess_Disable(muiContext* context, muiNodeId rootId);
+    MUI_API bool muiNode_IsAccessEnabled(const muiContext* context, muiNodeId rootId);
 
     /// Builds the update for an enabled root after its layout: the nodes
     /// whose role, texts, flags, actions, bounds, transform, values or
@@ -626,8 +627,8 @@ extern "C"
     ///         a root that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiBuildAccessUpdate(muiContext* context, muiNodeId rootId,
-                                                         muiAccessUpdate* updateOut);
+    MUI_NODISCARD MUI_API muiResult muiNode_BuildAccessUpdate(muiContext* context, muiNodeId rootId,
+                                                              muiAccessUpdate* updateOut);
 
     /// Applies a request to a node that takes its action.
     ///
@@ -646,9 +647,9 @@ extern "C"
     ///         runs; `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiPerformAccessAction(muiContext* context,
-                                                           const muiAccessRequest* request,
-                                                           bool* handledOut);
+    MUI_NODISCARD MUI_API muiResult muiContext_PerformAccessAction(muiContext* context,
+                                                                   const muiAccessRequest* request,
+                                                                   bool* handledOut);
 
     /// Sets a node's role.
     ///

@@ -102,7 +102,7 @@ static void SetWidth(muiContext* context, muiStyleId style, muiVariant variant, 
 static void Compute(muiContext* context, muiNodeId root, Host* host)
 {
     muiLayoutInput input = {400.0f, 300.0f, Measure, host, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "compute");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "compute");
 }
 
 // The node's width after a layout of root.
@@ -162,10 +162,10 @@ static void TestStyleLifetime(void)
     second = MakeStyle(context);
     CHECK(second.index1 == first.index1 && second.generation != first.generation,
           "the slot is reused with a new generation");
-    CHECK(muiGetContextMisuse(context) == 0, "no misuse so far");
+    CHECK(muiContext_GetMisuse(context) == 0, "no misuse so far");
     CHECK(muiDestroyStyle(context, s_nullStyle) == mui_errorInvalid, "null id");
     CHECK(muiCreateStyle(context, &styleDef, NULL) == mui_errorInvalid, "no out pointer");
-    CHECK(muiGetContextMisuse(context) == 2, "both counted");
+    CHECK(muiContext_GetMisuse(context) == 2, "both counted");
     CHECK(muiCreateStyle(NULL, &styleDef, &second) == mui_errorInvalid, "no context");
     CHECK(muiCreateStyle(context, NULL, &second) == mui_errorInvalid &&
               muiCreateStyle(context, &(muiStyleDef){0}, &second) == mui_errorInvalid,
@@ -413,9 +413,9 @@ static void TestStatesLayerAboveEveryBase(void)
           "only checked");
     CHECK(WidthAfterLayout(context, node, node) == 100.0f, "the variant of the state held");
     CHECK(muiNode_SetStates(context, s_nullNode, 0) == mui_errorInvalid, "null node");
-    uint64_t misuse = muiGetContextMisuse(context);
+    uint64_t misuse = muiContext_GetMisuse(context);
     CHECK(muiNode_SetStates(context, node, (muiState)(mui_stateExiting << 1)) == mui_errorInvalid &&
-              muiGetContextMisuse(context) == misuse + 1 &&
+              muiContext_GetMisuse(context) == misuse + 1 &&
               muiNode_GetStates(context, node) == mui_stateChecked,
           "a bit that names no state refused, as misuse, the states kept");
     CHECK(muiNode_SetStates(NULL, node, 0) == mui_errorInvalid, "no context");
@@ -659,7 +659,7 @@ static void TestStyleEditsAreRefusedWhileMeasuring(void)
     CHECK(muiNode_SetLayoutValues(context, node, &content, MUI_LAYOUT_PROPERTIES) == mui_success,
           "host content");
     muiLayoutInput input = {100.0f, 100.0f, MeasureAndEdit, &host, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, node, &input) == mui_success, "compute");
+    CHECK(muiNode_ComputeLayout(context, node, &input) == mui_success, "compute");
     for (int i = 0; i < 4; i++)
     {
         CHECK(host.refused[i] == mui_errorBusy, "refused while measuring");

@@ -387,10 +387,10 @@ static MUI_NOINLINE muiResult RenderColorGlyphWorker(muiTextService* service, ui
     return status;
 }
 
-muiResult muiRenderColorGlyph(muiTextService* service, uint64_t font, uint32_t glyph,
-                              float pixelSize, float offsetX, uint32_t palette,
-                              muiLinearColor foreground, muiGlyphImage* imageOut,
-                              unsigned char* pixels, size_t capacity)
+muiResult muiTextService_RenderColorGlyph(muiTextService* service, uint64_t font, uint32_t glyph,
+                                          float pixelSize, float offsetX, uint32_t palette,
+                                          muiLinearColor foreground, muiGlyphImage* imageOut,
+                                          unsigned char* pixels, size_t capacity)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = RenderColorGlyphWorker(service, font, glyph, pixelSize, offsetX, palette,

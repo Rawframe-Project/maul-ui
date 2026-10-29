@@ -73,7 +73,7 @@ static void Scrolls(muiContext* context, muiNodeId node, muiScrollAxes axes, boo
 static void Layout(muiContext* context, muiNodeId root)
 {
     const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
 }
 
 static muiContext* MakeContext(void)
@@ -84,7 +84,7 @@ static muiContext* MakeContext(void)
     // Steps at once: TestEase eases them.
     muiScrollRule rule = muiDefaultScrollRule();
     rule.easeNs = 0;
-    CHECK(muiSetScrollRule(context, &rule) == mui_success, "no easing");
+    CHECK(muiContext_SetScrollRule(context, &rule) == mui_success, "no easing");
     return context;
 }
 
@@ -110,7 +110,7 @@ static bool Turn(muiContext* context, muiNodeId root, uint64_t timeNs, float x, 
 {
     const muiWheelEvent event = {timeNs, x, y, deltaX, deltaY, modifiers, 0};
     bool handled = false;
-    CHECK(muiWheelInput(context, root, &event, &handled) == mui_success, "wheel");
+    CHECK(muiNode_RouteWheel(context, root, &event, &handled) == mui_success, "wheel");
     return handled;
 }
 
@@ -162,11 +162,12 @@ static void TestChain(void)
     // At the latch time, the turn chains to outer, and the list follows.
     const muiDrawInput input = {1, 1.0f, NULL, NULL};
     muiDrawList drawn;
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success, "drawn");
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success, "drawn");
     CHECK(Turn(context, root, 600 * MS, 50.0f, 25.0f, 0.0f, -1.0f, 0) &&
               Y(context, nest.outer) == 100.0f &&
-              muiBuildDrawList(context, root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success && drawn.transforms[1].f == -100.0f,
+              muiNode_BuildDrawList(context, root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success &&
+              drawn.transforms[1].f == -100.0f,
           "chained outward");
     // Over the filler while still latched to outer: outer.
     CHECK(Turn(context, root, 800 * MS, 50.0f, 80.0f, 0.0f, -1.0f, 0) &&
@@ -219,7 +220,7 @@ static void TestTime(void)
     rule.easeNs = 0;
     rule.wheelStep = 10.0f;
     rule.latchNs = 0;
-    CHECK(muiSetScrollRule(context, &rule) == mui_success, "set the rule");
+    CHECK(muiContext_SetScrollRule(context, &rule) == mui_success, "set the rule");
     CHECK(Turn(context, nest.root, 1000 * MS, 50.0f, 25.0f, 0.0f, -1.0f, 0) &&
               Y(context, nest.outer) == 110.0f,
           "a step of 10, not latched");
@@ -433,7 +434,7 @@ static bool Refeed(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent*
     muiContext* context = user;
     const muiWheelEvent again = *event->wheel;
     bool handled = false;
-    CHECK(muiWheelInput(context, event->target, &again, &handled) == mui_errorBusy,
+    CHECK(muiNode_RouteWheel(context, event->target, &again, &handled) == mui_errorBusy,
           "no input while dispatching");
     return false;
 }
@@ -446,41 +447,41 @@ static void TestContract(void)
     bool handled = false;
     const muiWheelEvent good = {0, 50.0f, 25.0f, 0.0f, -1.0f, 0, 0};
     muiWheelEvent bad = good;
-    uint64_t misuse = muiGetContextMisuse(context);
-    CHECK(muiWheelInput(NULL, nest.root, &good, &handled) == mui_errorInvalid &&
-              muiWheelInput(context, nest.root, NULL, &handled) == mui_errorInvalid &&
-              muiWheelInput(context, nest.root, &good, NULL) == mui_errorInvalid &&
-              muiWheelInput(context, s_nullNode, &good, &handled) == mui_errorInvalid,
+    uint64_t misuse = muiContext_GetMisuse(context);
+    CHECK(muiNode_RouteWheel(NULL, nest.root, &good, &handled) == mui_errorInvalid &&
+              muiNode_RouteWheel(context, nest.root, NULL, &handled) == mui_errorInvalid &&
+              muiNode_RouteWheel(context, nest.root, &good, NULL) == mui_errorInvalid &&
+              muiNode_RouteWheel(context, s_nullNode, &good, &handled) == mui_errorInvalid,
           "missing arguments");
     bad.x = NAN;
-    CHECK(muiWheelInput(context, nest.root, &bad, &handled) == mui_errorInvalid, "a point");
+    CHECK(muiNode_RouteWheel(context, nest.root, &bad, &handled) == mui_errorInvalid, "a point");
     bad = good;
     bad.y = INFINITY;
-    CHECK(muiWheelInput(context, nest.root, &bad, &handled) == mui_errorInvalid, "a point y");
+    CHECK(muiNode_RouteWheel(context, nest.root, &bad, &handled) == mui_errorInvalid, "a point y");
     bad = good;
     bad.deltaX = NAN;
-    CHECK(muiWheelInput(context, nest.root, &bad, &handled) == mui_errorInvalid, "a delta");
+    CHECK(muiNode_RouteWheel(context, nest.root, &bad, &handled) == mui_errorInvalid, "a delta");
     bad = good;
     bad.deltaY = -INFINITY;
-    CHECK(muiWheelInput(context, nest.root, &bad, &handled) == mui_errorInvalid, "a delta y");
+    CHECK(muiNode_RouteWheel(context, nest.root, &bad, &handled) == mui_errorInvalid, "a delta y");
     bad = good;
     bad.player = 8;
-    CHECK(muiWheelInput(context, nest.root, &bad, &handled) == mui_errorInvalid, "a player");
-    CHECK(muiGetContextMisuse(context) == misuse + 8, "counted");
+    CHECK(muiNode_RouteWheel(context, nest.root, &bad, &handled) == mui_errorInvalid, "a player");
+    CHECK(muiContext_GetMisuse(context) == misuse + 8, "counted");
     CHECK(muiSetEventFunction(context, Refeed, context) == mui_success, "function");
-    CHECK(muiWheelInput(context, nest.root, &good, &handled) == mui_success && handled,
+    CHECK(muiNode_RouteWheel(context, nest.root, &good, &handled) == mui_success && handled,
           "refused inside, default after");
     muiScrollRule rule = muiDefaultScrollRule();
     rule.wheelStep = NAN;
-    CHECK(muiSetScrollRule(NULL, &rule) == mui_errorInvalid &&
-              muiSetScrollRule(context, NULL) == mui_errorInvalid &&
-              muiSetScrollRule(context, &rule) == mui_errorInvalid,
+    CHECK(muiContext_SetScrollRule(NULL, &rule) == mui_errorInvalid &&
+              muiContext_SetScrollRule(context, NULL) == mui_errorInvalid &&
+              muiContext_SetScrollRule(context, &rule) == mui_errorInvalid,
           "a rule outside the contract");
     rule.wheelStep = -1.0f;
-    CHECK(muiSetScrollRule(context, &rule) == mui_errorInvalid, "a negative step");
+    CHECK(muiContext_SetScrollRule(context, &rule) == mui_errorInvalid, "a negative step");
     muiNodeId root = nest.root;
     CHECK(muiDestroyNode(context, root) == mui_success, "gone");
-    CHECK(muiWheelInput(context, root, &good, &handled) == mui_errorStale, "a root gone");
+    CHECK(muiNode_RouteWheel(context, root, &good, &handled) == mui_errorStale, "a root gone");
     muiDestroyContext(context);
 }
 

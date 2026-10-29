@@ -94,7 +94,7 @@ struct muiContext
     muiAnimationStore animations;
     uint64_t lastTimeNs;
     uint64_t misuse;
-    // The work done since the context was made (muiGetWorkCounts).
+    // The work done since the context was made (muiContext_GetWorkCounts).
     muiWorkCounts work;
     // Set while one of the context's functions that change it runs: host
     // code it calls then may not call back in (Maul conventions, Threads).

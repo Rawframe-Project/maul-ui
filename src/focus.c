@@ -165,7 +165,8 @@ muiResult muiSetFocus(muiContext* context, uint8_t player, muiNodeId nodeId, mui
     return mui_success;
 }
 
-muiResult muiFocus_Set(muiContext* context, uint8_t player, muiNodeId nodeId, muiFocusCause cause)
+muiResult muiContext_SetFocus(muiContext* context, uint8_t player, muiNodeId nodeId,
+                              muiFocusCause cause)
 {
     muiResult status = muiEnter(context);
     if (status == mui_success)
@@ -176,7 +177,7 @@ muiResult muiFocus_Set(muiContext* context, uint8_t player, muiNodeId nodeId, mu
     return status;
 }
 
-muiNodeId muiFocus_Get(const muiContext* context, uint8_t player)
+muiNodeId muiContext_GetFocus(const muiContext* context, uint8_t player)
 {
     if (context == nullptr || player >= MUI_MAX_PLAYERS)
     {
@@ -383,7 +384,7 @@ static MUI_NOINLINE muiResult FocusMoveWorker(muiContext* context, muiNodeId roo
     return status;
 }
 
-muiResult muiFocus_Move(muiContext* context, muiNodeId rootId, uint8_t player, bool backward)
+muiResult muiNode_MoveFocus(muiContext* context, muiNodeId rootId, uint8_t player, bool backward)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = FocusMoveWorker(context, rootId, player, backward);

@@ -437,12 +437,12 @@ void muiDestroyContext(muiContext* context)
     muiRelease(&allocator, context, context->blockSize, alignof(max_align_t));
 }
 
-uint64_t muiGetContextMisuse(const muiContext* context)
+uint64_t muiContext_GetMisuse(const muiContext* context)
 {
     return context != nullptr ? context->misuse : 0;
 }
 
-muiWorkCounts muiGetWorkCounts(const muiContext* context)
+muiWorkCounts muiContext_GetWorkCounts(const muiContext* context)
 {
     return context != nullptr ? context->work : (muiWorkCounts){0};
 }
@@ -508,7 +508,7 @@ static muiResult NextNotification(muiContext* context, muiNotification* notifica
     return muiNotifyTake(&context->notifications, notificationOut) ? mui_success : mui_empty;
 }
 
-muiResult muiNextNotification(muiContext* context, muiNotification* notificationOut)
+muiResult muiContext_TakeNotification(muiContext* context, muiNotification* notificationOut)
 {
     if (notificationOut != nullptr)
     {

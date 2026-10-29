@@ -63,7 +63,7 @@ static void At(muiContext* context, muiNodeId node, float x, float y)
 static void Layout(muiContext* context, muiNodeId root)
 {
     const muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
 }
 
 // A root of 400 by 300, an anchor of 100 by 40, and a popup of 120 by 60
@@ -290,15 +290,15 @@ static void TestScrolledAndNested(void)
           "below the scrolled anchor, from the box");
     const muiDrawInput input = {1, 1.0f, NULL, NULL};
     muiDrawList drawn;
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success && drawn.commandCount == 1 &&
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success && drawn.commandCount == 1 &&
               drawn.commands[0].box.rect.y == 94.0f,
           "drawn there");
     CHECK(muiNode_SetScroll(context, list, 0.0f, 120.0f) == mui_success, "scrolled on");
     Layout(context, root);
     CHECK(muiNode_GetRect(context, popup).y == 54.0f, "following it");
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success &&
-              muiGetDrawList(context, &drawn) == mui_success && drawn.commandCount == 1 &&
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &drawn) == mui_success && drawn.commandCount == 1 &&
               drawn.commands[0].box.rect.y == 74.0f,
           "drawn where it follows");
     // A popup anchored inside that popup, set first: placed after it.
@@ -387,11 +387,11 @@ static void Click(muiContext* context, muiNodeId root, float x, float y)
     const muiPointerEvent press = {s_time, 1, mui_pointerMouse, mui_pointerPress, 0, 1, x, y, 0};
     const muiPointerEvent release = {s_time + 1, 1, mui_pointerMouse, mui_pointerRelease, 0, 0, x,
                                      y,          0};
-    CHECK(muiPointerInput(context, root, &press) == mui_success &&
-              muiPointerInput(context, root, &release) == mui_success,
+    CHECK(muiNode_RoutePointer(context, root, &press) == mui_success &&
+              muiNode_RoutePointer(context, root, &release) == mui_success,
           "click");
     muiPointerRecord record = {0};
-    while (muiNextPointerRecord(context, &record) == mui_success)
+    while (muiContext_TakePointerRecord(context, &record) == mui_success)
     {
     }
 }
@@ -400,7 +400,7 @@ static bool Key(muiContext* context, muiNodeId root, muiKeyCode code)
 {
     const muiKeyEvent event = {.code = code, .down = true};
     bool handled = false;
-    CHECK(muiKeyInput(context, root, &event, &handled) == mui_success, "key");
+    CHECK(muiNode_RouteKey(context, root, &event, &handled) == mui_success, "key");
     return handled;
 }
 
@@ -410,7 +410,7 @@ static int Dismissed(muiContext* context, muiNodeId* nodes, muiDismissReason* re
 {
     int count = 0;
     muiNotification record = {0};
-    while (muiNextNotification(context, &record) == mui_success)
+    while (muiContext_TakeNotification(context, &record) == mui_success)
     {
         if (record.kind == mui_notificationPopupDismissed && count < 4)
         {
@@ -561,22 +561,22 @@ static void TestFocusDismiss(void)
     CHECK(muiNode_SetPopup(context, scene.popup, &p) == mui_success, "set");
     Layout(context, scene.root);
     (void)Dismissed(context, nodes, reasons);
-    CHECK(muiFocus_Set(context, 0, inside, mui_focusByCode) == mui_success &&
-              muiFocus_Set(context, 0, scene.anchor, mui_focusByNavigation) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, inside, mui_focusByCode) == mui_success &&
+              muiContext_SetFocus(context, 0, scene.anchor, mui_focusByNavigation) == mui_success &&
               Dismissed(context, nodes, reasons) == 0,
           "inside, and to the anchor: kept");
-    CHECK(muiFocus_Set(context, 0, outside, mui_focusByPointer) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, outside, mui_focusByPointer) == mui_success &&
               Dismissed(context, nodes, reasons) == 0,
           "by a pointer: the press decides");
-    CHECK(muiFocus_Set(context, 0, (muiNodeId){0, 0}, mui_focusByCode) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, (muiNodeId){0, 0}, mui_focusByCode) == mui_success &&
               Dismissed(context, nodes, reasons) == 0,
           "cleared: kept");
-    CHECK(muiFocus_Set(context, 0, outside, mui_focusByCode) == mui_success &&
+    CHECK(muiContext_SetFocus(context, 0, outside, mui_focusByCode) == mui_success &&
               Dismissed(context, nodes, reasons) == 1 && reasons[0] == mui_dismissFocus,
           "by code, outside: dismissed");
     // Tab from inside to the next, outside.
     CHECK(muiNode_SetPopup(context, scene.popup, &p) == mui_success &&
-              muiFocus_Set(context, 0, inside, mui_focusByCode) == mui_success,
+              muiContext_SetFocus(context, 0, inside, mui_focusByCode) == mui_success,
           "again, focused inside");
     (void)Dismissed(context, nodes, reasons);
     CHECK(Key(context, scene.root, mui_codeTab) && Dismissed(context, nodes, reasons) == 1 &&
@@ -606,7 +606,7 @@ static void TestContract(void)
               muiNode_GetPopup(context, a, &read) == mui_success && read.side == mui_popupCenter &&
               read.anchor.index1 == root.index1,
           "read back");
-    uint64_t misuse = muiGetContextMisuse(context);
+    uint64_t misuse = muiContext_GetMisuse(context);
     muiPopup bad = p;
     bad.anchor = s_nullNode;
     CHECK(muiNode_SetPopup(context, b, &bad) == mui_errorInvalid, "no anchor");
@@ -633,7 +633,7 @@ static void TestContract(void)
               muiNode_SetPopup(context, s_nullNode, &p) == mui_errorInvalid &&
               muiNode_SetPopup(NULL, b, &p) == mui_errorInvalid,
           "nulls");
-    CHECK(muiGetContextMisuse(context) == misuse + 12, "counted, the context's NULL aside");
+    CHECK(muiContext_GetMisuse(context) == misuse + 12, "counted, the context's NULL aside");
     muiPopupSide side = mui_popupBelow;
     CHECK(muiNode_GetPopup(context, a, NULL) == mui_errorInvalid &&
               muiNode_GetPopup(NULL, a, &read) == mui_errorInvalid &&

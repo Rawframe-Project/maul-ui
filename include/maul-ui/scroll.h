@@ -22,7 +22,7 @@ extern "C"
 
     /// Scrolls a node to an offset at once, stopping any step easing it:
     /// within 0 and its extent less its padding box along each axis it
-    /// scrolls (0 along any other), as its last muiComputeLayout measured
+    /// scrolls (0 along any other), as its last muiNode_ComputeLayout measured
     /// them; layout keeps it within them as sizes change. The next draw
     /// list moves the children.
     ///
@@ -53,7 +53,7 @@ extern "C"
                                                       float* xOut, float* yOut);
 
     /// Reads the extent a scroll container's children reach, as its last
-    /// muiComputeLayout measured it: from its padding box's start to the
+    /// muiNode_ComputeLayout measured it: from its padding box's start to the
     /// furthest end of its in-flow children's margin boxes plus its end
     /// padding, or of any border box below it with an area that no nested
     /// scroll container clips, at least its padding box, as CSS's scrollable
@@ -90,7 +90,7 @@ extern "C"
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_ScrollIntoView(muiContext* context, muiNodeId nodeId);
 
-    // How input scrolls (muiWheelInput, muiKeyInput, muiNavigationInput).
+    // How input scrolls (muiNode_RouteWheel, muiNode_RouteKey, muiNode_RouteNavigation).
     typedef struct muiScrollRule
     {
         // The distance a wheel detent scrolls, finite and at least 0.
@@ -134,8 +134,8 @@ extern "C"
     ///         outside the above; `mui_errorBusy` while the context is busy.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiSetScrollRule(muiContext* context,
-                                                     const muiScrollRule* rule);
+    MUI_NODISCARD MUI_API muiResult muiContext_SetScrollRule(muiContext* context,
+                                                             const muiScrollRule* rule);
 
     // A scrollbar thumb along its track.
     typedef struct muiScrollThumb
@@ -146,7 +146,7 @@ extern "C"
     } muiScrollThumb;
 
     /// Places a scrollbar thumb for a node along an axis, as its last
-    /// muiComputeLayout and its offset leave it: the track times the
+    /// muiNode_ComputeLayout and its offset leave it: the track times the
     /// padding box over the extent, at least minimum (at most the track),
     /// and placed as the offset is between 0 and its limit. A node that
     /// cannot scroll that way fills the track.

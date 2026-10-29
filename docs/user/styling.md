@@ -69,7 +69,7 @@ static muiResult MakeButtonType(muiContext* context, muiStyleId* classOut, muiNo
 }
 ```
 
-A node of that type is blue. `muiNode_SetStates(context, node, mui_stateHovered)` makes it lighter, and pressed as well, darker, as pressed is the stronger state. Pointer input sets hover and press itself, and focus sets the focus states ([Input](input.md)); a program sets the others. Nodes are styled again at the next `muiComputeLayout`.
+A node of that type is blue. `muiNode_SetStates(context, node, mui_stateHovered)` makes it lighter, and pressed as well, darker, as pressed is the stronger state. Pointer input sets hover and press itself, and focus sets the focus states ([Input](input.md)); a program sets the others. Nodes are styled again at the next `muiNode_ComputeLayout`.
 
 ## Conditions
 
@@ -97,7 +97,7 @@ static muiResult MakeStacking(muiContext* context, muiStyleId* classOut)
 }
 ```
 
-`muiSetContextEnvironment` tells the context where its interface is shown: on a small viewport the row stacks. A condition on the node's own size reads its last layout, so a frame that changes the size needs one more layout to show the result; `muiIsUpdatePending` says when. A condition may not set what it reads, such as the width when it reads the width.
+`muiContext_SetEnvironment` tells the context where its interface is shown: on a small viewport the row stacks. A condition on the node's own size reads its last layout, so a frame that changes the size needs one more layout to show the result; `muiNode_IsUpdatePending` says when. A condition may not set what it reads, such as the width when it reads the width.
 
 A rule that feeds itself through layout, such as a narrow node made wider, would flicker. The context notices four runs alternating between two sizes, holds the node's conditions, and reports `mui_notificationOscillation` for the node.
 
@@ -152,7 +152,7 @@ Colors are sRGB with straight alpha, as a design tool gives them. The draw list 
 
 ## Transitions and exits
 
-A transition says how a property moves to a new value: over a duration along an easing curve, as CSS names them, or as a spring that keeps its speed when the target changes. A class's variants name transitions for properties as they name values, and the spec for a change resolves through the same layers, from the state after the change. Numbers, dimensions, radii, colors and shadows move; enumerators, image keys and gradients change at once, as does everything under reduced motion. Transitions run against the time each frame hands to layout (`timeNs`, on a monotonic clock), so a program that renders only when something changes keeps drawing while `muiIsUpdatePending` says one runs.
+A transition says how a property moves to a new value: over a duration along an easing curve, as CSS names them, or as a spring that keeps its speed when the target changes. A class's variants name transitions for properties as they name values, and the spec for a change resolves through the same layers, from the state after the change. Numbers, dimensions, radii, colors and shadows move; enumerators, image keys and gradients change at once, as does everything under reduced motion. Transitions run against the time each frame hands to layout (`timeNs`, on a monotonic clock), so a program that renders only when something changes keeps drawing while `muiNode_IsUpdatePending` says one runs.
 
 ```c
 // A class whose nodes' opacity moves over 150 ms, easing out, and which
@@ -193,7 +193,7 @@ A node that leaves plays its way out before it goes. `muiNode_BeginExit` puts it
 static void DestroyExited(muiContext* context)
 {
     muiNotification notification;
-    while (muiNextNotification(context, &notification) == mui_success)
+    while (muiContext_TakeNotification(context, &notification) == mui_success)
     {
         if (notification.kind == mui_notificationExitFinished)
         {

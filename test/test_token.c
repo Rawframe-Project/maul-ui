@@ -92,7 +92,7 @@ static bool SameColor(muiColor a, muiColor b)
 static void Layout(muiContext* context, muiNodeId node, uint64_t timeNs)
 {
     const muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, timeNs, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, node, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, node, &input) == mui_success, "layout");
 }
 
 static muiColor Background(const muiContext* context, muiNodeId node)
@@ -395,7 +395,7 @@ static void TestResolutionReadsTokens(void)
 
     // A theme switch: the semantic token points elsewhere.
     CHECK(muiToken_SetAlias(context, surface, blue) == mui_success, "surface is blue");
-    CHECK(muiIsUpdatePending(context, node), "every node restyles");
+    CHECK(muiNode_IsUpdatePending(context, node), "every node restyles");
     Layout(context, node, T0);
     CHECK(SameColor(Background(context, node), s_blue), "switched");
     muiTokenValue value = Color(s_red);
@@ -630,7 +630,7 @@ static void TestNamesAmongTheRest(void)
     CHECK(muiNode_SetClasses(context, other, &scaled, 1) == mui_success, "class");
     muiEnvironment environment = muiDefaultEnvironment();
     environment.textScale = 2.0f;
-    CHECK(muiSetContextEnvironment(context, &environment) == mui_success, "large text");
+    CHECK(muiContext_SetEnvironment(context, &environment) == mui_success, "large text");
     Layout(context, other, T0);
     CHECK(muiNode_GetVisualStyle(context, other, &visual) == mui_success &&
               SameColor(visual.borderColor.top, s_blue),

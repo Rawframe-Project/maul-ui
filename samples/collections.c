@@ -356,7 +356,7 @@ static bool Settle(void* user, SampleApp* app)
 {
     Collections* collections = user;
     muiNotification notification;
-    while (muiNextNotification(app->context, &notification) == mui_success)
+    while (muiContext_TakeNotification(app->context, &notification) == mui_success)
     {
     }
     bool list = Realize(collections, &collections->list);
@@ -636,7 +636,7 @@ static void Build(void* user, SampleApp* app)
 
 static const muiAccessNode* Found(const SampleApp* app, muiNodeId node)
 {
-    return muiAccessTree_Find(muiWindowAccess_GetTree(app->access), muiAccessIdOf(node));
+    return muiAccessTree_Find(muiWindowAccess_GetTree(app->access), muiNode_GetAccessId(node));
 }
 
 // Whether a collection's row for an item exists, shows a text, lies whole

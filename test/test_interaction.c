@@ -61,7 +61,7 @@ static muiNodeId Place(muiContext* context, muiNodeId parent, float x, float y, 
 static void Layout(muiContext* context, muiNodeId root)
 {
     const muiLayoutInput input = {1000.0f, 1000.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "layout");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout");
 }
 
 // Whether a point hits a node at a point in its border box.
@@ -69,8 +69,8 @@ static bool Hits(muiContext* context, muiNodeId root, float x, float y, muiNodeI
                  float nodeY)
 {
     muiHit hit = {{9, 9}, -1.0f, -1.0f, false};
-    return muiHitTest(context, root, x, y, &hit) == mui_success && hit.node.index1 == node.index1 &&
-           hit.node.generation == node.generation &&
+    return muiNode_HitTest(context, root, x, y, &hit) == mui_success &&
+           hit.node.index1 == node.index1 && hit.node.generation == node.generation &&
            (node.index1 == 0 || (hit.x == nodeX && hit.y == nodeY));
 }
 
@@ -110,8 +110,8 @@ static void TestOrder(void)
               Hits(context, root, -0.5f, 5.0f, s_nullNode, 0.0f, 0.0f),
           "boxes half open; nothing outside the root");
     muiHit miss = {{9, 9}, 1.0f, 1.0f, false};
-    CHECK(muiHitTest(context, root, 200.0f, 200.0f, &miss) == mui_success && miss.passThrough &&
-              miss.x == 0.0f,
+    CHECK(muiNode_HitTest(context, root, 200.0f, 200.0f, &miss) == mui_success &&
+              miss.passThrough && miss.x == 0.0f,
           "nothing hit passes through");
     // A subtree root of its own: b at its own rectangle; the walk keeps
     // inside it, though b's parent has a sibling after it.
@@ -148,8 +148,9 @@ static void TestOrder(void)
     values.passThrough = true;
     muiHit hit = {{0, 0}, 0.0f, 0.0f, false};
     CHECK(muiNode_SetInteractionValues(context, a, &values, PASS_THROUGH) == mui_success &&
-              muiHitTest(context, root, 20.0f, 20.0f, &hit) == mui_success && hit.passThrough &&
-              muiHitTest(context, root, 55.0f, 55.0f, &hit) == mui_success && !hit.passThrough,
+              muiNode_HitTest(context, root, 20.0f, 20.0f, &hit) == mui_success &&
+              hit.passThrough &&
+              muiNode_HitTest(context, root, 55.0f, 55.0f, &hit) == mui_success && !hit.passThrough,
           "passing through");
     muiDestroyContext(context);
 }
@@ -322,8 +323,8 @@ static void TestAgainstPainting(void)
         Layout(context, nodes[0]);
         const muiDrawInput input = {1, 1.0f, NULL, NULL};
         muiDrawList list;
-        CHECK(muiBuildDrawList(context, nodes[0], &input) == mui_success &&
-                  muiGetDrawList(context, &list) == mui_success,
+        CHECK(muiNode_BuildDrawList(context, nodes[0], &input) == mui_success &&
+                  muiContext_GetDrawList(context, &list) == mui_success,
               "painted");
         for (int k = 0; k < 50; k++)
         {
@@ -353,7 +354,7 @@ static void TestAgainstPainting(void)
                 }
             }
             muiHit hit = {{0, 0}, 0.0f, 0.0f, false};
-            CHECK(muiHitTest(context, nodes[0], x, y, &hit) == mui_success &&
+            CHECK(muiNode_HitTest(context, nodes[0], x, y, &hit) == mui_success &&
                       (box == NULL ? hit.node.index1 == 0
                                    : hit.node.index1 != 0 && fabsf(boxX - hit.x - box->x) < 1e-3f &&
                                          fabsf(boxY - hit.y - box->y) < 1e-3f &&
@@ -387,8 +388,8 @@ static muiDrawList Build(muiContext* context, muiNodeId root, float scale)
 {
     const muiDrawInput input = {1, scale, NULL, NULL};
     muiDrawList list = {0};
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success &&
-              muiGetDrawList(context, &list) == mui_success,
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success &&
+              muiContext_GetDrawList(context, &list) == mui_success,
           "painted");
     return list;
 }
@@ -464,12 +465,12 @@ static void TestLayerRetained(void)
     Layout(context, root);
     int calls = 0;
     const muiDrawInput input = {1, 1.0f, CountPaint, &calls};
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success && calls == 1, "painted");
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success && calls == 1, "painted");
     Paint(context, s, 0.5f);
     Layout(context, root);
-    CHECK(muiBuildDrawList(context, root, &input) == mui_success && calls == 1, "copied");
+    CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success && calls == 1, "copied");
     CHECK(muiNode_RaiseLayer(context, l) == mui_success &&
-              muiBuildDrawList(context, root, &input) == mui_success && calls == 2,
+              muiNode_BuildDrawList(context, root, &input) == mui_success && calls == 2,
           "raised: painted again");
     muiDestroyContext(context);
 }
@@ -526,7 +527,7 @@ static void TestLayerOrder(void)
     Layout(context, root);
     muiHit hit = {{0, 0}, 0.0f, 0.0f, true};
     CHECK(Hits(context, root, 160.0f, 160.0f, m, 10.0f, 10.0f) &&
-              muiHitTest(context, root, 25.0f, 25.0f, &hit) == mui_success &&
+              muiNode_HitTest(context, root, 25.0f, 25.0f, &hit) == mui_success &&
               hit.node.index1 == m.index1 && hit.x == -125.0f && !hit.passThrough &&
               Hits(context, root, 5.0f, 5.0f, overlay, 5.0f, 5.0f),
           "a modal layer blocks below it, not the overlay band");
@@ -627,11 +628,11 @@ static void TestContract(void)
     muiNodeId root = Place(context, s_nullNode, 0.0f, 0.0f, 10.0f, 10.0f);
     Layout(context, root);
     muiHit hit = {{9, 9}, 9.0f, 9.0f, false};
-    CHECK(muiHitTest(NULL, root, 1.0f, 1.0f, &hit) == mui_errorInvalid &&
-              muiHitTest(context, s_nullNode, 1.0f, 1.0f, &hit) == mui_errorInvalid &&
-              muiHitTest(context, root, NAN, 1.0f, &hit) == mui_errorInvalid &&
-              muiHitTest(context, root, 1.0f, INFINITY, &hit) == mui_errorInvalid &&
-              muiHitTest(context, root, 1.0f, 1.0f, NULL) == mui_errorInvalid &&
+    CHECK(muiNode_HitTest(NULL, root, 1.0f, 1.0f, &hit) == mui_errorInvalid &&
+              muiNode_HitTest(context, s_nullNode, 1.0f, 1.0f, &hit) == mui_errorInvalid &&
+              muiNode_HitTest(context, root, NAN, 1.0f, &hit) == mui_errorInvalid &&
+              muiNode_HitTest(context, root, 1.0f, INFINITY, &hit) == mui_errorInvalid &&
+              muiNode_HitTest(context, root, 1.0f, 1.0f, NULL) == mui_errorInvalid &&
               hit.node.index1 == 0 && hit.x == 0.0f,
           "hit tests outside the contract, which clear the hit");
     muiInteractionStyle values = muiDefaultInteractionStyle();
@@ -663,7 +664,7 @@ static void TestContract(void)
           "raising outside the contract");
     muiNodeId gone = root;
     CHECK(muiDestroyNode(context, root) == mui_success &&
-              muiHitTest(context, gone, 1.0f, 1.0f, &hit) == mui_errorStale &&
+              muiNode_HitTest(context, gone, 1.0f, 1.0f, &hit) == mui_errorStale &&
               muiNode_GetInteractionStyle(context, gone, &values) == mui_errorStale &&
               muiNode_SetInteractionValues(context, gone, &values, PASS_THROUGH) == mui_errorStale,
           "a node gone");

@@ -202,7 +202,7 @@ static void Update(void* user, SampleApp* app)
 {
     Ranges* ranges = user;
     muiNotification notification;
-    while (muiNextNotification(app->context, &notification) == mui_success)
+    while (muiContext_TakeNotification(app->context, &notification) == mui_success)
     {
         if (notification.kind != mui_notificationRangeChanged)
         {
@@ -264,7 +264,7 @@ static bool Shows(const SampleApp* app, muiNodeId node, float x, float y, const 
 static float Reported(const SampleApp* app, muiNodeId node)
 {
     const muiAccessNode* found =
-        muiAccessTree_Find(muiWindowAccess_GetTree(app->access), muiAccessIdOf(node));
+        muiAccessTree_Find(muiWindowAccess_GetTree(app->access), muiNode_GetAccessId(node));
     return found != NULL && (found->flags & mui_accessNumeric) != 0 ? found->value : -1.0f;
 }
 

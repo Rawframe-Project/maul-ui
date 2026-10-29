@@ -80,7 +80,7 @@ static muiVariant AddPadding(muiContext* context, muiStyleId style, const muiCon
 static void Compute(muiContext* context, muiNodeId root)
 {
     muiLayoutInput input = {400.0f, 300.0f, NULL, NULL, 0, NULL, {0, 0, 0, 0}};
-    CHECK(muiComputeLayout(context, root, &input) == mui_success, "compute");
+    CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "compute");
 }
 
 static float PaddingOf(const muiContext* context, muiNodeId node)
@@ -109,9 +109,9 @@ static void TestDefaults(void)
           "medium, pointer");
     CHECK(environment.textScale == 1.0f && !environment.reducedMotion, "scale 1, full motion");
     muiContext* context = MakeContext();
-    muiEnvironment read = muiGetContextEnvironment(context);
+    muiEnvironment read = muiContext_GetEnvironment(context);
     CHECK(read.viewport == mui_viewportMedium && read.textScale == 1.0f, "a new context's");
-    read = muiGetContextEnvironment(NULL);
+    read = muiContext_GetEnvironment(NULL);
     CHECK(read.input == mui_inputPointer, "no context gives the default");
     muiDestroyContext(context);
 }
@@ -132,16 +132,16 @@ static void TestEnvironmentIsChecked(void)
     bad[5].textScale = INFINITY;
     for (int i = 0; i < 6; i++)
     {
-        CHECK(muiSetContextEnvironment(context, &bad[i]) == mui_errorInvalid, "refused");
+        CHECK(muiContext_SetEnvironment(context, &bad[i]) == mui_errorInvalid, "refused");
     }
-    CHECK(muiSetContextEnvironment(context, NULL) == mui_errorInvalid, "no environment");
-    CHECK(muiGetContextMisuse(context) == 7, "each counted");
+    CHECK(muiContext_SetEnvironment(context, NULL) == mui_errorInvalid, "no environment");
+    CHECK(muiContext_GetMisuse(context) == 7, "each counted");
     muiEnvironment environment = muiDefaultEnvironment();
-    CHECK(muiSetContextEnvironment(NULL, &environment) == mui_errorInvalid, "no context");
+    CHECK(muiContext_SetEnvironment(NULL, &environment) == mui_errorInvalid, "no context");
     environment.input = mui_inputGamepad;
     environment.textScale = 1.25f;
-    CHECK(muiSetContextEnvironment(context, &environment) == mui_success, "set");
-    muiEnvironment read = muiGetContextEnvironment(context);
+    CHECK(muiContext_SetEnvironment(context, &environment) == mui_success, "set");
+    muiEnvironment read = muiContext_GetEnvironment(context);
     CHECK(read.input == mui_inputGamepad && read.textScale == 1.25f, "read back");
     muiDestroyContext(context);
 }
@@ -160,9 +160,9 @@ static void TestConditionLifetime(void)
         CHECK(variants[i] == mui_variantCondition0 + i, "variants in order");
     }
     muiVariant variant = mui_variantPressed;
-    uint64_t misuse = muiGetContextMisuse(context);
+    uint64_t misuse = muiContext_GetMisuse(context);
     CHECK(muiStyle_AddCondition(context, style, &condition, &variant) == mui_errorLimit &&
-              muiGetContextMisuse(context) == misuse + 1,
+              muiContext_GetMisuse(context) == misuse + 1,
           "the limit, counted as misuse");
     CHECK(variant == mui_variantBase, "base on failure");
     muiCondition read;
@@ -393,7 +393,7 @@ static void TestEnvironmentClauses(void)
         environment.input = steps[i].input;
         environment.reducedMotion = steps[i].reducedMotion;
         environment.textScale = steps[i].textScale;
-        CHECK(muiSetContextEnvironment(context, &environment) == mui_success, "environment");
+        CHECK(muiContext_SetEnvironment(context, &environment) == mui_success, "environment");
         CHECK(PaddingAfterLayout(context, node, node) == steps[i].padding,
               "the last condition that holds wins");
     }
@@ -441,16 +441,16 @@ static void TestSizeClausesReadTheLastLayout(void)
     narrow.width = (muiInterval){100.0f, 250.0f};
     AddPadding(context, style, &narrow, 10.0f);
     CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
-    CHECK(muiIsUpdatePending(context, root), "a new tree is pending");
+    CHECK(muiNode_IsUpdatePending(context, root), "a new tree is pending");
     CHECK(PaddingAfterLayout(context, root, node) == 0.0f, "before any layout the width is 0");
-    CHECK(muiIsUpdatePending(context, root), "the layout changed what the condition read");
+    CHECK(muiNode_IsUpdatePending(context, root), "the layout changed what the condition read");
     CHECK(PaddingAfterLayout(context, root, node) == 10.0f, "the next run reads 200");
-    CHECK(!muiIsUpdatePending(context, root), "and nothing changed it since");
+    CHECK(!muiNode_IsUpdatePending(context, root), "and nothing changed it since");
     SetWidth(context, node, 250.0f);
     CHECK(PaddingAfterLayout(context, root, node) == 10.0f, "the run that widens reads 200");
-    CHECK(muiIsUpdatePending(context, root), "so another is owed");
+    CHECK(muiNode_IsUpdatePending(context, root), "so another is owed");
     CHECK(PaddingAfterLayout(context, root, node) == 0.0f, "250 is past the range's end");
-    CHECK(!muiIsUpdatePending(context, root), "settled");
+    CHECK(!muiNode_IsUpdatePending(context, root), "settled");
     muiLayoutStyle tall = muiDefaultLayoutStyle();
     tall.sizing.height = Length(0.0f);
     CHECK(muiNode_SetLayoutValues(context, node, &tall, MUI_PROPERTY_BIT(mui_propertyHeight)) ==
@@ -462,7 +462,7 @@ static void TestSizeClausesReadTheLastLayout(void)
     Compute(context, root);
     CHECK(PaddingAfterLayout(context, root, node) == 20.0f,
           "a zero height is an infinite aspect, which an unbounded range holds");
-    CHECK(!muiIsUpdatePending(NULL, root) && !muiIsUpdatePending(context, s_nullNode),
+    CHECK(!muiNode_IsUpdatePending(NULL, root) && !muiNode_IsUpdatePending(context, s_nullNode),
           "nothing pending without a context or root");
     muiDestroyContext(context);
 }
@@ -488,9 +488,9 @@ static void TestDirectionClauseReadsTheLastLayout(void)
                                   MUI_PROPERTY_BIT(mui_propertyTextDirection)) == mui_success,
           "the root turns right to left");
     CHECK(PaddingAfterLayout(context, root, node) == 3.0f, "the run that turns it reads ltr");
-    CHECK(muiIsUpdatePending(context, root), "another is owed");
+    CHECK(muiNode_IsUpdatePending(context, root), "another is owed");
     CHECK(PaddingAfterLayout(context, root, node) == 6.0f, "the inherited direction");
-    CHECK(!muiIsUpdatePending(context, root), "settled");
+    CHECK(!muiNode_IsUpdatePending(context, root), "settled");
     muiDestroyContext(context);
 }
 
@@ -507,11 +507,11 @@ static void SetSize(muiContext* context, muiNodeId node, float width, float heig
 // Lays root out until nothing is pending, at most three times.
 static void Settle(muiContext* context, muiNodeId root)
 {
-    for (int i = 0; i < 3 && muiIsUpdatePending(context, root); i++)
+    for (int i = 0; i < 3 && muiNode_IsUpdatePending(context, root); i++)
     {
         Compute(context, root);
     }
-    CHECK(!muiIsUpdatePending(context, root), "settles");
+    CHECK(!muiNode_IsUpdatePending(context, root), "settles");
 }
 
 static void TestAspectAndHeightClausesFollowLayout(void)
@@ -555,7 +555,7 @@ static void TestOnlyConditionsThatApplyAreWatched(void)
     Settle(context, node);
     SetSize(context, node, 200.0f, 100.0f);
     Compute(context, node);
-    CHECK(!muiIsUpdatePending(context, node), "a condition without values reads nothing");
+    CHECK(!muiNode_IsUpdatePending(context, node), "a condition without values reads nothing");
     // A node whose every property is direct reads nothing either, once
     // it is styled again.
     muiStyleId watched = MakeStyle(context);
@@ -570,7 +570,7 @@ static void TestOnlyConditionsThatApplyAreWatched(void)
     Settle(context, node);
     SetSize(context, node, 130.0f, 0.0f);
     Compute(context, node);
-    CHECK(!muiIsUpdatePending(context, node), "an all-direct node is not watched");
+    CHECK(!muiNode_IsUpdatePending(context, node), "an all-direct node is not watched");
     // Nor when its class leaves visual values to resolve: the condition's
     // values reach only properties it writes.
     muiVisualStyle visual = muiDefaultVisualStyle();
@@ -581,7 +581,7 @@ static void TestOnlyConditionsThatApplyAreWatched(void)
     Settle(context, node);
     SetSize(context, node, 140.0f, 0.0f);
     Compute(context, node);
-    CHECK(!muiIsUpdatePending(context, node), "still not watched");
+    CHECK(!muiNode_IsUpdatePending(context, node), "still not watched");
     muiDestroyContext(context);
 }
 
@@ -634,7 +634,7 @@ static muiStyleId MakeWidening(muiContext* context)
 static int RunWhilePending(muiContext* context, muiNodeId root)
 {
     int runs = 0;
-    while (runs < 10 && muiIsUpdatePending(context, root))
+    while (runs < 10 && muiNode_IsUpdatePending(context, root))
     {
         Compute(context, root);
         runs++;
@@ -645,11 +645,11 @@ static int RunWhilePending(muiContext* context, muiNodeId root)
 static void ExpectOscillation(muiContext* context, muiNodeId node)
 {
     muiNotification record = {0};
-    CHECK(muiNextNotification(context, &record) == mui_success, "a record");
+    CHECK(muiContext_TakeNotification(context, &record) == mui_success, "a record");
     CHECK(record.kind == mui_notificationOscillation, "an oscillation");
     CHECK(record.node.index1 == node.index1 && record.node.generation == node.generation,
           "of the node");
-    CHECK(muiNextNotification(context, &record) == mui_empty, "only one");
+    CHECK(muiContext_TakeNotification(context, &record) == mui_empty, "only one");
 }
 
 static void TestOscillationIsReportedAndHeld(void)
@@ -662,7 +662,7 @@ static void TestOscillationIsReportedAndHeld(void)
     ExpectOscillation(context, node);
     float width = muiNode_GetRect(context, node).width;
     Compute(context, root);
-    CHECK(!muiIsUpdatePending(context, root), "held");
+    CHECK(!muiNode_IsUpdatePending(context, root), "held");
     CHECK(muiNode_GetRect(context, node).width == width, "at one of its two widths");
     // A host edit of the node releases it.
     CHECK(muiNode_SetStates(context, node, mui_stateHovered) == mui_success, "edit");
@@ -671,7 +671,7 @@ static void TestOscillationIsReportedAndHeld(void)
     ExpectOscillation(context, node);
     // So does an exit begun and cancelled.
     Compute(context, root);
-    CHECK(!muiIsUpdatePending(context, root), "held again");
+    CHECK(!muiNode_IsUpdatePending(context, root), "held again");
     CHECK(muiNode_BeginExit(context, node) == mui_success &&
               muiNode_CancelExit(context, node) == mui_success,
           "an exit begun and cancelled");
@@ -701,7 +701,7 @@ static void TestHostEditsAreNotOscillation(void)
         Compute(context, node);
     }
     muiNotification record;
-    CHECK(muiNextNotification(context, &record) == mui_empty,
+    CHECK(muiContext_TakeNotification(context, &record) == mui_empty,
           "widths the host writes in turn are its own doing");
     muiDestroyContext(context);
 }
@@ -718,17 +718,17 @@ static void TestNotificationsPastTheLimitAreCounted(void)
     MakeOscillator(context, root, style);
     RunWhilePending(context, root);
     muiNotification record = {0};
-    CHECK(muiNextNotification(context, &record) == mui_success &&
+    CHECK(muiContext_TakeNotification(context, &record) == mui_success &&
               record.kind == mui_notificationOscillation && record.node.index1 == first.index1,
           "the first, in tree order");
-    CHECK(muiNextNotification(context, &record) == mui_success &&
+    CHECK(muiContext_TakeNotification(context, &record) == mui_success &&
               record.kind == mui_notificationDropped && record.detail == 2 &&
               record.node.index1 == 0,
           "then a count of the rest");
-    CHECK(muiNextNotification(context, &record) == mui_empty, "then nothing");
-    CHECK(muiNextNotification(context, NULL) == mui_errorInvalid, "no out pointer");
-    CHECK(muiNextNotification(NULL, &record) == mui_errorInvalid, "no context");
-    CHECK(muiResultName(mui_empty)[4] == 'e', "mui_empty has a name");
+    CHECK(muiContext_TakeNotification(context, &record) == mui_empty, "then nothing");
+    CHECK(muiContext_TakeNotification(context, NULL) == mui_errorInvalid, "no out pointer");
+    CHECK(muiContext_TakeNotification(NULL, &record) == mui_errorInvalid, "no context");
+    CHECK(muiGetResultName(mui_empty)[4] == 'e', "mui_empty has a name");
     muiDestroyContext(context);
     limits.notifications = 0;
     context = MakeContextWith(limits);
@@ -736,7 +736,7 @@ static void TestNotificationsPastTheLimitAreCounted(void)
     style = MakeWidening(context);
     MakeOscillator(context, root, style);
     RunWhilePending(context, root);
-    CHECK(muiNextNotification(context, &record) == mui_success &&
+    CHECK(muiContext_TakeNotification(context, &record) == mui_success &&
               record.kind == mui_notificationDropped && record.detail == 1,
           "with no room, only the count");
     muiDestroyContext(context);
@@ -751,10 +751,10 @@ static void TestNotificationsKeepTheirOrder(void)
     muiNodeId second = MakeOscillator(context, root, style);
     RunWhilePending(context, root);
     muiNotification record = {0};
-    CHECK(muiNextNotification(context, &record) == mui_success &&
+    CHECK(muiContext_TakeNotification(context, &record) == mui_success &&
               record.node.index1 == first.index1,
           "the first");
-    CHECK(muiNextNotification(context, &record) == mui_success &&
+    CHECK(muiContext_TakeNotification(context, &record) == mui_success &&
               record.node.index1 == second.index1,
           "then the second");
     muiDestroyContext(context);
@@ -769,15 +769,15 @@ static void TestNotificationsKeepTheirOrder(void)
     RunWhilePending(context, root);
     MakeOscillator(context, root, style);
     RunWhilePending(context, root);
-    CHECK(muiNextNotification(context, &record) == mui_success &&
+    CHECK(muiContext_TakeNotification(context, &record) == mui_success &&
               record.node.index1 == first.index1,
           "the one kept");
     MakeOscillator(context, root, style);
     RunWhilePending(context, root);
-    CHECK(muiNextNotification(context, &record) == mui_success &&
+    CHECK(muiContext_TakeNotification(context, &record) == mui_success &&
               record.kind == mui_notificationDropped && record.detail == 2,
           "the later one counts with the lost one, though there was room");
-    CHECK(muiNextNotification(context, &record) == mui_empty, "nothing after");
+    CHECK(muiContext_TakeNotification(context, &record) == mui_empty, "nothing after");
     muiDestroyContext(context);
 }
 
@@ -806,7 +806,7 @@ static void TestAlternatingSizesWithOneOutcomeAreNotOscillation(void)
         Compute(context, root);
     }
     muiNotification record;
-    CHECK(muiNextNotification(context, &record) == mui_empty,
+    CHECK(muiContext_TakeNotification(context, &record) == mui_empty,
           "sizes in turn with no flip of the outcome");
     muiDestroyContext(context);
 }
