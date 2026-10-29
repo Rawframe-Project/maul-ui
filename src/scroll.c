@@ -416,7 +416,7 @@ static double CrossingTime(const mtwnDecay* decay, double from, double v, double
 {
     // Never, should Maul Tween refuse: the fling then stops at the limit.
     double seconds = (double)INFINITY;
-    muiAssertCall(mtwnDecayCrossingTime(decay, from, v, edge, &seconds) == mtwn_success);
+    muiAssertCall(mtwnComputeDecayCrossingTime(decay, from, v, edge, &seconds) == mtwn_success);
     return seconds;
 }
 
