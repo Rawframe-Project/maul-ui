@@ -561,11 +561,11 @@ static MUI_NOINLINE muiResult AccessTreeWriteWorker(const muiAccessTree* tree, c
     return writer.length < capacity ? mui_success : mui_errorCapacity;
 }
 
-muiResult muiAccessTree_Write(const muiAccessTree* tree, char* buffer, size_t capacity,
+muiResult muiAccessTree_Write(const muiAccessTree* tree, char* bufferOut, size_t capacity,
                               size_t* lengthOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
-    muiResult result = AccessTreeWriteWorker(tree, buffer, capacity, lengthOut);
+    muiResult result = AccessTreeWriteWorker(tree, bufferOut, capacity, lengthOut);
     muiFloatEnvLeave(floatEnv);
     return result;
 }

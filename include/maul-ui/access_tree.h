@@ -269,18 +269,18 @@ extern "C"
     ///
     /// @param tree       The tree.
     /// @param id         The node's id.
-    /// @param buffer     Receives the name, NUL-terminated; may be NULL
+    /// @param bufferOut  Receives the name, NUL-terminated; may be NULL
     ///                   when capacity is 0.
     /// @param capacity   Its size in bytes.
     /// @param lengthOut  Receives the name's length. 0 on any other failure.
     /// @return `mui_success`; `mui_empty` for no name or a node not held;
     ///         `mui_errorCapacity` when it does not fit, as much written
     ///         as fits on a whole character; `mui_errorInvalid` for a NULL
-    ///         tree or length, or a NULL buffer with room.
+    ///         tree or length, or a NULL bufferOut with room.
     /// @par Thread safety
     /// Safe from any thread; the tree is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiAccessTree_GetName(const muiAccessTree* tree, uint64_t id,
-                                                          char* buffer, size_t capacity,
+                                                          char* bufferOut, size_t capacity,
                                                           size_t* lengthOut);
 
     /// A node's bounds where the root is placed (the window's client area,
@@ -351,17 +351,17 @@ extern "C"
     /// it has them. Tests compare it.
     ///
     /// @param tree       The tree.
-    /// @param buffer     Receives the text, NUL-terminated; may be NULL
+    /// @param bufferOut  Receives the text, NUL-terminated; may be NULL
     ///                   when capacity is 0.
     /// @param capacity   Its size in bytes.
     /// @param lengthOut  Receives the text's length without its NUL. 0 on any
     ///                   other failure.
     /// @return `mui_success`; `mui_errorCapacity` when it does not fit,
     ///         as much written as fits; `mui_errorInvalid` for a NULL tree
-    ///         or length, or a NULL buffer with room.
+    ///         or length, or a NULL bufferOut with room.
     /// @par Thread safety
     /// Safe from any thread; the tree is used by one thread at a time.
-    MUI_NODISCARD MUI_API muiResult muiAccessTree_Write(const muiAccessTree* tree, char* buffer,
+    MUI_NODISCARD MUI_API muiResult muiAccessTree_Write(const muiAccessTree* tree, char* bufferOut,
                                                         size_t capacity, size_t* lengthOut);
 
     /// A role's name, as its constant's after mui_role with a lower-case

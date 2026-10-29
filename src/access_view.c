@@ -664,18 +664,18 @@ static void JoinContents(Name* name, const muiAccessTree* tree, uint32_t slot)
     }
 }
 
-muiResult muiAccessTree_GetName(const muiAccessTree* tree, uint64_t id, char* buffer,
+muiResult muiAccessTree_GetName(const muiAccessTree* tree, uint64_t id, char* bufferOut,
                                 size_t capacity, size_t* lengthOut)
 {
     if (lengthOut != nullptr)
     {
         *lengthOut = 0;
     }
-    if (tree == nullptr || lengthOut == nullptr || (buffer == nullptr && capacity != 0))
+    if (tree == nullptr || lengthOut == nullptr || (bufferOut == nullptr && capacity != 0))
     {
         return mui_errorInvalid;
     }
-    Name name = {buffer, capacity, 0, 0};
+    Name name = {bufferOut, capacity, 0, 0};
     uint32_t slot = muiHeldSlotOf(tree, id);
     if (slot != 0)
     {
@@ -697,15 +697,15 @@ muiResult muiAccessTree_GetName(const muiAccessTree* tree, uint64_t id, char* bu
     if (name.length >= capacity && capacity != 0 && (name.dropped & 0xC0) == 0x80)
     {
         // A character cut short: back to its first byte, and before it.
-        while (end > 0 && ((unsigned char)buffer[end - 1] & 0xC0) == 0x80)
+        while (end > 0 && ((unsigned char)bufferOut[end - 1] & 0xC0) == 0x80)
         {
             end--;
         }
-        end -= end > 0 && ((unsigned char)buffer[end - 1] & 0xC0) == 0xC0 ? 1 : 0;
+        end -= end > 0 && ((unsigned char)bufferOut[end - 1] & 0xC0) == 0xC0 ? 1 : 0;
     }
     if (capacity != 0)
     {
-        buffer[end] = '\0';
+        bufferOut[end] = '\0';
     }
     *lengthOut = name.length;
     return name.length == 0 ? mui_empty : name.length < capacity ? mui_success : mui_errorCapacity;

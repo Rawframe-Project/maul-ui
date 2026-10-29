@@ -886,7 +886,7 @@ static muiResult GlyphAtlasTakeUpdates(muiGlyphAtlas* atlas, muiAtlasUpdate* upd
     return mui_success;
 }
 
-muiResult muiGlyphAtlas_TakeUpdates(muiGlyphAtlas* atlas, muiAtlasUpdate* updates,
+muiResult muiGlyphAtlas_TakeUpdates(muiGlyphAtlas* atlas, muiAtlasUpdate* updatesOut,
                                     uint32_t capacity, uint32_t* countOut)
 {
     if (countOut != nullptr)
@@ -896,7 +896,7 @@ muiResult muiGlyphAtlas_TakeUpdates(muiGlyphAtlas* atlas, muiAtlasUpdate* update
     muiResult status = EnterAtlas(atlas);
     if (status == mui_success)
     {
-        status = GlyphAtlasTakeUpdates(atlas, updates, capacity, countOut);
+        status = GlyphAtlasTakeUpdates(atlas, updatesOut, capacity, countOut);
         LeaveAtlas(atlas);
     }
     return status;
