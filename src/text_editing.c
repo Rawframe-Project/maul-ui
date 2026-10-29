@@ -124,10 +124,9 @@ muiResult muiRefuseEdit(muiTextService* service)
 static muiResult TextBlockSetEditing(muiTextService* service, muiTextBlockId blockId,
                                      const muiTextEditRules* rules)
 {
-    if (service == nullptr || blockId.index1 == 0 ||
-        (rules != nullptr &&
-         ((rules->flags & ~(mui_editMultiline | mui_editReadOnly | mui_editPassword)) != 0 ||
-          rules->filter > mui_filterDecimal || rules->purpose > mui_purposeUrl)))
+    if (service == nullptr || blockId.index1 == 0 || rules == nullptr ||
+        (rules->flags & ~(mui_editMultiline | mui_editReadOnly | mui_editPassword)) != 0 ||
+        rules->filter > mui_filterDecimal || rules->purpose > mui_purposeUrl)
     {
         return muiRefuseText(service);
     }
@@ -138,13 +137,6 @@ static muiResult TextBlockSetEditing(muiTextService* service, muiTextBlockId blo
     }
     muiTextEditing* editing = &block->editing;
     muiClearHistory(editing);
-    if (rules == nullptr)
-    {
-        muiFreeBuffer(&service->allocator, &editing->entries);
-        muiFreeBuffer(&service->allocator, &editing->bytes);
-        *editing = (muiTextEditing){0};
-        return mui_success;
-    }
     editing->on = true;
     editing->rules = *rules;
     editing->selection = Collapsed(block->length);
@@ -161,6 +153,36 @@ muiResult muiTextBlock_SetEditing(muiTextService* service, muiTextBlockId blockI
     if (status == mui_success)
     {
         status = TextBlockSetEditing(service, blockId, rules);
+        muiLeaveText(service);
+    }
+    return status;
+}
+
+static muiResult TextBlockClearEditing(muiTextService* service, muiTextBlockId blockId)
+{
+    if (service == nullptr || blockId.index1 == 0)
+    {
+        return muiRefuseText(service);
+    }
+    muiTextBlock* block = muiResolveTextBlock(service, blockId);
+    if (block == nullptr)
+    {
+        return mui_errorStale;
+    }
+    muiTextEditing* editing = &block->editing;
+    muiClearHistory(editing);
+    muiFreeBuffer(&service->allocator, &editing->entries);
+    muiFreeBuffer(&service->allocator, &editing->bytes);
+    *editing = (muiTextEditing){0};
+    return mui_success;
+}
+
+muiResult muiTextBlock_ClearEditing(muiTextService* service, muiTextBlockId blockId)
+{
+    muiResult status = muiEnterText(service);
+    if (status == mui_success)
+    {
+        status = TextBlockClearEditing(service, blockId);
         muiLeaveText(service);
     }
     return status;

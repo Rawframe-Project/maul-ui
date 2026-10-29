@@ -139,16 +139,16 @@ extern "C"
     /// Safe from any thread.
     MUI_API muiTextEditRules muiDefaultTextEditRules(void);
 
-    /// Opts a block into editing with a field's rules, or out with NULL.
-    /// Either way the history empties and the caret goes to the text's
-    /// end. Changing the text otherwise (muiTextBlock_SetText,
-    /// muiTextBlock_Replace, a composition) empties the history too, the
-    /// selection kept within the text.
+    /// Opts a block into editing with a field's rules, or sets an editing
+    /// block's rules anew. Either way the history empties and the caret
+    /// goes to the text's end. Changing the text otherwise
+    /// (muiTextBlock_SetText, muiTextBlock_Replace, a composition) empties
+    /// the history too, the selection kept within the text.
     ///
     /// @param service  The service.
     /// @param blockId  The block.
-    /// @param rules    The rules, or NULL.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL service, the null
+    /// @param rules    The rules.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
     ///         id, or a flag, filter or purpose out of range; `mui_errorStale`
     ///         for a block that is gone; `mui_errorBusy` while the service is
     ///         busy.
@@ -157,6 +157,20 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiTextBlock_SetEditing(muiTextService* service,
                                                             muiTextBlockId blockId,
                                                             const muiTextEditRules* rules);
+
+    /// Opts a block out of editing: its selection and history go, and
+    /// the memory its history held is freed.
+    ///
+    /// @param service  The service.
+    /// @param blockId  The block.
+    /// @return `mui_success`, whether or not it was editing;
+    ///         `mui_errorInvalid` for a NULL service or the null id;
+    ///         `mui_errorStale` for a block that is gone; `mui_errorBusy` while
+    ///         the service is busy.
+    /// @par Thread safety
+    /// Safe from any thread; the service is used by one thread at a time.
+    MUI_NODISCARD MUI_API muiResult muiTextBlock_ClearEditing(muiTextService* service,
+                                                              muiTextBlockId blockId);
 
     /// Reads an editing block's selection.
     ///

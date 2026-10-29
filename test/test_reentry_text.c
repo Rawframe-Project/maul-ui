@@ -38,7 +38,7 @@ enum
 {
     // The functions that use a service or change an atlas and return a
     // status.
-    CALLS = 41,
+    CALLS = 42,
 };
 
 // Calls every function that uses a service or changes an atlas and
@@ -80,6 +80,7 @@ static int CallAll(muiTextService* service, const muiTextHost* host, muiGlyphAtl
         muiTextBlock_SetComposition(service, (muiTextBlockId){0}, 0, NULL, 0, NULL, 0);
     results[count++] = muiTextBlock_EndComposition(service, (muiTextBlockId){0});
     results[count++] = muiTextBlock_SetEditing(service, (muiTextBlockId){0}, NULL);
+    results[count++] = muiTextBlock_ClearEditing(service, (muiTextBlockId){0});
     results[count++] = muiTextBlock_Select(service, (muiTextBlockId){0}, (muiTextSelection){0});
     results[count++] = muiTextBlock_Type(service, (muiTextBlockId){0}, NULL, 0, NULL);
     results[count++] = muiTextBlock_Paste(service, (muiTextBlockId){0}, NULL, 0, NULL);
