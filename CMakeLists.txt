@@ -74,6 +74,7 @@ endif()
 # Dependencies come before the family modules (cmake/Tween.cmake says
 # why): Maul Tween for the core, and the text component's.
 include(cmake/Tween.cmake)
+include(cmake/Unicode.cmake)
 if(MAUL_UI_TEXT)
     include(cmake/TextDependencies.cmake)
 endif()

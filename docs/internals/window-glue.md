@@ -1,6 +1,6 @@
 # Window glue
 
-`maul-ui-window` (the option `MAUL_UI_WINDOW`, off by default) connects a context to a Maul Window window. It is a static library of its own beside the core, in `window/`, with Maul Window found installed or fetched at its release tag ([Window.cmake](../../cmake/Window.cmake)). The core and the text component never see it. A host that uses another window library writes the same translation itself; the glue is the reference for it.
+`maul-ui-window` (the option `MAUL_UI_WINDOW`, off by default) connects a context to a Maul Window window. It is a static library of its own beside the core, in `window/`, with Maul Window found installed or fetched at its release tag ([Window.cmake](../../cmake/Window.cmake)). Maul Window names the Maul Unicode release it is built and tested with, and configuring stops when that differs from Maul UI's own pin ([Unicode.cmake](../../cmake/Unicode.cmake)): with the text component, the fetched Maul Window builds against Maul UI's Maul Unicode, and without it, against its own. The core and the text component never see it. A host that uses another window library writes the same translation itself; the glue is the reference for it.
 
 ## Input
 

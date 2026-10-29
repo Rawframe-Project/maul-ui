@@ -1,8 +1,9 @@
 # The text component's dependencies: FreeType and
 # HarfBuzz at pinned releases, fetched by hash and built here in reduced
 # configurations, or the installed ones with
-# MAUL_UI_TEXT_SYSTEM_LIBRARIES; and Maul Unicode at its tag, its
-# HarfBuzz functions built against the HarfBuzz chosen here.
+# MAUL_UI_TEXT_SYSTEM_LIBRARIES; and Maul Unicode at its tag
+# (cmake/Unicode.cmake), its HarfBuzz functions built against the
+# HarfBuzz chosen here.
 #
 # Included before the family modules: Maul Unicode brings its own
 # copies of them, and ours, included after, then serve this project.
@@ -13,7 +14,6 @@ include(FetchContent)
 
 set(MAUL_UI_FREETYPE_VERSION 2.14.3)
 set(MAUL_UI_HARFBUZZ_VERSION 14.5.1)
-set(MAUL_UI_UNICODE_VERSION 0.8.0)
 
 if(MAUL_UI_TEXT_SYSTEM_LIBRARIES)
     find_package(Freetype REQUIRED)
