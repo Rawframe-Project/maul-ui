@@ -563,10 +563,111 @@ static void TestContextHeld(void)
     FreeScene(&scene);
 }
 
+// What a free reads back of the text service while one of its objects
+// goes: the one being destroyed is stale from the first free on, so host
+// code never reads what is being freed.
+typedef struct Readback
+{
+    muiTextService* service;
+    muiFontId font;
+    muiFontFamilyId family;
+    muiTextBlockId block;
+    // 1 the font is going, 2 the family, 3 the block.
+    int going;
+    uint32_t reads;
+    bool expected;
+} Readback;
+
+static void* PlainAlloc(size_t size, size_t alignment, void* user)
+{
+    (void)user;
+    return alignment <= alignof(max_align_t) ? malloc(size) : NULL;
+}
+
+static void ReadingFree(void* memory, size_t size, size_t alignment, void* user)
+{
+    (void)size;
+    (void)alignment;
+    Readback* back = user;
+    free(memory);
+    if (back->going == 0)
+    {
+        return;
+    }
+    back->reads++;
+    muiFontMetrics metrics;
+    muiFontId face;
+    const char* text = NULL;
+    size_t length = 0;
+    muiResult font = muiFont_GetMetrics(back->service, back->font, &metrics);
+    muiResult family =
+        muiFontFamily_MatchFace(back->service, back->family, 400.0f, mui_slantNormal, &face);
+    muiResult block = muiTextBlock_GetText(back->service, back->block, &text, &length);
+    switch (back->going)
+    {
+    case 1:
+        back->expected =
+            back->expected && font == mui_errorStale && !muiFont_IsValid(back->service, back->font);
+        break;
+    case 2:
+        back->expected = back->expected && family == mui_errorStale;
+        break;
+    default:
+        back->expected = back->expected && block == mui_errorStale && text == NULL;
+        break;
+    }
+}
+
+static void TestDestroyedStale(void)
+{
+    Readback back = {.expected = true};
+    muiTextServiceDef def = muiDefaultTextServiceDef();
+    def.allocator = (muiAllocator){PlainAlloc, ReadingFree, &back};
+    CHECK(muiCreateTextService(&def, &back.service) == mui_success, "service");
+    for (int going = 1; going <= 3; going++)
+    {
+        muiFontDef font = muiDefaultFontDef();
+        font.data = s_ahem;
+        font.size = sizeof s_ahem;
+        CHECK(muiCreateFont(back.service, &font, &back.font) == mui_success, "font");
+        muiFontFamilyDef family = muiDefaultFontFamilyDef();
+        family.faces = &back.font;
+        family.faceCount = 1;
+        CHECK(muiCreateFontFamily(back.service, &family, &back.family) == mui_success, "family");
+        muiTextBlockDef block = muiDefaultTextBlockDef();
+        block.text = "ab cd";
+        block.length = 5;
+        CHECK(muiCreateTextBlock(back.service, &block, &back.block) == mui_success, "block");
+        back.reads = 0;
+        back.going = going;
+        switch (going)
+        {
+        case 1:
+            CHECK(muiDestroyFont(back.service, back.font) == mui_success, "the font gone");
+            break;
+        case 2:
+            CHECK(muiDestroyFontFamily(back.service, back.family) == mui_success,
+                  "the family gone");
+            break;
+        default:
+            CHECK(muiDestroyTextBlock(back.service, back.block) == mui_success, "the block gone");
+            break;
+        }
+        back.going = 0;
+        CHECK(back.reads != 0 && back.expected, "stale to the frees it runs");
+        // What this round left goes before the next makes its own.
+        (void)muiDestroyTextBlock(back.service, back.block);
+        (void)muiDestroyFontFamily(back.service, back.family);
+        (void)muiDestroyFont(back.service, back.font);
+    }
+    muiDestroyTextService(back.service);
+}
+
 int main(void)
 {
     TestControl();
     TestHostCode();
     TestContextHeld();
+    TestDestroyedStale();
     return s_failures == 0 ? 0 : 1;
 }

@@ -82,6 +82,14 @@ uint32_t muiParagraphEnd(const char* text, uint32_t length, uint32_t from)
     return length;
 }
 
+void muiDropTextBlock(const muiAllocator* allocator, muiTextBlockStore* store, uint32_t slot)
+{
+    muiTextBlock block = store->blocks[slot - 1];
+    store->blocks[slot - 1] = (muiTextBlock){0};
+    muiPoolGive(&store->pool, slot);
+    muiReleaseTextBlock(allocator, &block);
+}
+
 void muiReleaseTextBlock(const muiAllocator* allocator, muiTextBlock* block)
 {
     muiBuffer* buffers[] = {&block->text,
