@@ -4,7 +4,7 @@
 // What a failure leaves in a call's outputs (Maul conventions, Errors and
 // assertions): a call whose first parameter is the context clears every
 // output on any failure, before it checks the context, so a NULL context,
-// a busy one and a stale id all leave zeros; a count a too-small array
+// and a stale id leave zeros, a busy one writes none of them; a count a too-small array
 // needs is the one output a failure defines, and a caller's array is
 // zeroed over its capacity whenever the call answers anything but
 // mui_success.
@@ -98,6 +98,24 @@ static bool IsZero(const void* memory, size_t size)
 }
 
 #define CLEARED(field) IsZero(&outputs.field, sizeof outputs.field)
+
+static bool IsFill(const void* memory, size_t size)
+{
+    const unsigned char* bytes = memory;
+    for (size_t i = 0; i < size; i++)
+    {
+        if (bytes[i] != 0xA5)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Cleared on a failure, left on a refusal as busy: host code the context
+// runs made the call, and the call in progress may have written the output.
+#define ANSWERED(field)                                                                            \
+    (expected == mui_errorBusy ? IsFill(&outputs.field, sizeof outputs.field) : CLEARED(field))
 
 // Calls every query of a node or a class that writes outputs, on a node
 // and a class that may be gone, and checks each failure clears them.
@@ -197,7 +215,9 @@ static void TestNullContextClearsOutputs(void)
 }
 
 // A NULL context, and a context busy in its measure function, refuse
-// every call that changes it; each clears its outputs first.
+// every call that changes it. On a NULL context each clears its outputs
+// first; on a busy one each writes none, but a creation's id, which a
+// failed creation always clears.
 static void CheckChanges(muiContext* context, muiResult expected, const char* why)
 {
     Outputs outputs;
@@ -233,16 +253,17 @@ static void CheckChanges(muiContext* context, muiResult expected, const char* wh
     EXPECT(muiCreateToken(context, &tokenDef, &outputs.token), CLEARED(token));
     EXPECT(muiCreateTransition(context, &transitionDef, &outputs.transition), CLEARED(transition));
     EXPECT(muiStyle_AddCondition(context, (muiStyleId){1, 1}, &condition, &outputs.variant),
-           CLEARED(variant));
-    EXPECT(muiContext_TakeNotification(context, &outputs.notification), CLEARED(notification));
-    EXPECT(muiContext_TakePointerRecord(context, &outputs.record), CLEARED(record));
-    EXPECT(muiNode_RouteKey(context, root, &key, &outputs.handled), CLEARED(handled));
-    EXPECT(muiNode_RouteText(context, root, &text, &outputs.handled), CLEARED(handled));
-    EXPECT(muiNode_RouteNavigation(context, root, &navigation, &outputs.handled), CLEARED(handled));
-    EXPECT(muiNode_RouteWheel(context, root, &wheel, &outputs.handled), CLEARED(handled));
-    EXPECT(muiContext_DispatchPointerRecord(context, &record, &outputs.handled), CLEARED(handled));
-    EXPECT(muiNode_BuildAccessUpdate(context, root, &outputs.update), CLEARED(update));
-    EXPECT(muiContext_PerformAccessAction(context, &request, &outputs.handled), CLEARED(handled));
+           ANSWERED(variant));
+    EXPECT(muiContext_TakeNotification(context, &outputs.notification), ANSWERED(notification));
+    EXPECT(muiContext_TakePointerRecord(context, &outputs.record), ANSWERED(record));
+    EXPECT(muiNode_RouteKey(context, root, &key, &outputs.handled), ANSWERED(handled));
+    EXPECT(muiNode_RouteText(context, root, &text, &outputs.handled), ANSWERED(handled));
+    EXPECT(muiNode_RouteNavigation(context, root, &navigation, &outputs.handled),
+           ANSWERED(handled));
+    EXPECT(muiNode_RouteWheel(context, root, &wheel, &outputs.handled), ANSWERED(handled));
+    EXPECT(muiContext_DispatchPointerRecord(context, &record, &outputs.handled), ANSWERED(handled));
+    EXPECT(muiNode_BuildAccessUpdate(context, root, &outputs.update), ANSWERED(update));
+    EXPECT(muiContext_PerformAccessAction(context, &request, &outputs.handled), ANSWERED(handled));
 #undef EXPECT
 }
 
@@ -273,7 +294,7 @@ static muiSize MeasureWhileBusy(void* user, muiNodeId nodeId, uint64_t hostKey,
     return (muiSize){10.0f, 10.0f};
 }
 
-static void TestBusyContextClearsOutputs(void)
+static void TestBusyContextLeavesOutputs(void)
 {
     muiContextDef def = muiDefaultContextDef();
     muiContext* context = NULL;
@@ -357,7 +378,7 @@ int main(void)
 {
     TestNullContextClearsOutputs();
     TestNullContextClearsChangesOutputs();
-    TestBusyContextClearsOutputs();
+    TestBusyContextLeavesOutputs();
     TestStaleIdsClearOutputs();
     TestCapacityFailureGivesTheCount();
     return s_failures == 0 ? 0 : 1;
