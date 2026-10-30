@@ -59,7 +59,8 @@ extern "C"
     /// @param imageOut   Receives the image's place and size, also when pixelsOut
     ///                   holds too few bytes. Zeroed on any other failure.
     /// @param pixelsOut  Receives width * height bytes; may be NULL when
-    ///                   capacity is 0.
+    ///                   capacity is 0. Zeroed over capacity unless the call
+    ///                   answers `mui_success` or `mui_errorBusy`.
     /// @param capacity   How many bytes pixelsOut holds.
     /// @return `mui_success`; `mui_errorCapacity` when pixelsOut holds fewer bytes
     ///         than imageOut asks for, or memory runs out; `mui_errorInvalid`
@@ -105,7 +106,8 @@ extern "C"
     /// @param imageOut    Receives the image's place and size, also when pixelsOut
     ///                    holds too few bytes. Zeroed on any other failure.
     /// @param pixelsOut   Receives width * height * 4 bytes; may be NULL
-    ///                    when capacity is 0.
+    ///                    when capacity is 0. Zeroed over capacity unless the
+    ///                    call answers `mui_success` or `mui_errorBusy`.
     /// @param capacity    How many bytes pixelsOut holds.
     /// @return `mui_success`; `mui_empty` for a glyph without colour;
     ///         `mui_errorFormat` for a paint graph more than 64 paints deep, as
@@ -142,7 +144,8 @@ extern "C"
     ///                   baseline at pixelSize, also when pixelsOut holds too few
     ///                   bytes. Zeroed on any other failure.
     /// @param pixelsOut  Receives width * height bytes; may be NULL when
-    ///                   capacity is 0.
+    ///                   capacity is 0. Zeroed over capacity unless the call
+    ///                   answers `mui_success` or `mui_errorBusy`.
     /// @param capacity   How many bytes pixelsOut holds.
     /// @return `mui_success`; `mui_errorCapacity` when pixelsOut holds fewer bytes
     ///         than imageOut asks for, or memory runs out; `mui_errorInvalid`
@@ -183,6 +186,8 @@ extern "C"
     ///                   holds too few bytes. Zeroed on any other failure.
     /// @param pixelsOut  Receives width * height * 4 bytes, red, green, blue
     ///                   and alpha a pixel; may be NULL when capacity is 0.
+    ///                   Zeroed over capacity unless the call answers
+    ///                   `mui_success` or `mui_errorBusy`.
     /// @param capacity   How many bytes pixelsOut holds.
     /// @return As muiTextService_RenderGlyphField; `mui_errorBusy` while the service is
     ///         busy.

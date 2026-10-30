@@ -772,15 +772,15 @@ extern "C"
     /// @param context     The context.
     /// @param nodeId      The node.
     /// @param kind        The relation.
-    /// @param targetsOut  Receives the nodes, up to capacity; may be NULL when
-    ///                    capacity is 0. Nothing is written to it on any other
-    ///                    failure.
+    /// @param targetsOut  Receives the nodes; may be NULL when capacity is 0.
+    ///                    Zeroed over capacity unless the call answers
+    ///                    `mui_success` or `mui_errorBusy`.
     /// @param capacity    Room in targetsOut.
     /// @param countOut    Receives how many it names, whatever the room. 0 on
     ///                    any other failure.
-    /// @return `mui_success`; `mui_errorCapacity` when they do not fit,
-    ///         those that fit written; `mui_errorInvalid` for a NULL
-    ///         argument, the null id or an unknown kind; `mui_errorStale`
+    /// @return `mui_success`; `mui_errorCapacity` when they do not fit;
+    ///         `mui_errorInvalid` for a NULL argument, the null id or an
+    ///         unknown kind; `mui_errorStale`
     ///         for a node that is gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.

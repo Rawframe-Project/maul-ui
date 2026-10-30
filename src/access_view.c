@@ -12,6 +12,7 @@
 #include "allocator.h"
 #include "fpenv.h"
 #include "host_call.h"
+#include "outputs.h"
 
 #include "maul-ui/access_tree.h"
 
@@ -245,10 +246,9 @@ uint64_t muiAccessTree_GetShownParent(const muiAccessTree* tree, uint64_t id)
     return result;
 }
 
-static MUI_NOINLINE muiResult AccessTreeGetShownChildrenWorker(const muiAccessTree* tree,
-                                                               uint64_t id, uint64_t* childrenOut,
-                                                               uint32_t capacity,
-                                                               uint32_t* countOut)
+static muiResult AccessTreeGetShownChildren(const muiAccessTree* tree, uint64_t id,
+                                            uint64_t* childrenOut, uint32_t capacity,
+                                            uint32_t* countOut)
 {
     if (countOut != nullptr)
     {
@@ -298,6 +298,16 @@ static MUI_NOINLINE muiResult AccessTreeGetShownChildrenWorker(const muiAccessTr
     }
     *countOut = count;
     return count <= capacity ? mui_success : mui_errorCapacity;
+}
+
+static MUI_NOINLINE muiResult AccessTreeGetShownChildrenWorker(const muiAccessTree* tree,
+                                                               uint64_t id, uint64_t* childrenOut,
+                                                               uint32_t capacity,
+                                                               uint32_t* countOut)
+{
+    muiResult result = AccessTreeGetShownChildren(tree, id, childrenOut, capacity, countOut);
+    muiZeroOutputs(result, childrenOut, capacity, sizeof *childrenOut);
+    return result;
 }
 
 muiResult muiAccessTree_GetShownChildren(const muiAccessTree* tree, uint64_t id,
@@ -357,10 +367,9 @@ muiResult muiAccessTree_GetBounds(const muiAccessTree* tree, uint64_t id, muiRec
     return result;
 }
 
-static MUI_NOINLINE muiResult AccessTreeGetTextRectsWorker(const muiAccessTree* tree, uint64_t id,
-                                                           uint32_t start, uint32_t end,
-                                                           muiRect* rectsOut, uint32_t capacity,
-                                                           uint32_t* countOut)
+static muiResult AccessTreeGetTextRects(const muiAccessTree* tree, uint64_t id, uint32_t start,
+                                        uint32_t end, muiRect* rectsOut, uint32_t capacity,
+                                        uint32_t* countOut)
 {
     if (countOut != nullptr)
     {
@@ -385,6 +394,16 @@ static MUI_NOINLINE muiResult AccessTreeGetTextRectsWorker(const muiAccessTree* 
     }
     *countOut = count;
     return count <= capacity ? mui_success : mui_errorCapacity;
+}
+
+static MUI_NOINLINE muiResult AccessTreeGetTextRectsWorker(const muiAccessTree* tree, uint64_t id,
+                                                           uint32_t start, uint32_t end,
+                                                           muiRect* rectsOut, uint32_t capacity,
+                                                           uint32_t* countOut)
+{
+    muiResult result = AccessTreeGetTextRects(tree, id, start, end, rectsOut, capacity, countOut);
+    muiZeroOutputs(result, rectsOut, capacity, sizeof *rectsOut);
+    return result;
 }
 
 muiResult muiAccessTree_GetTextRects(const muiAccessTree* tree, uint64_t id, uint32_t start,
@@ -664,8 +683,8 @@ static void JoinContents(Name* name, const muiAccessTree* tree, uint32_t slot)
     }
 }
 
-muiResult muiAccessTree_GetName(const muiAccessTree* tree, uint64_t id, char* bufferOut,
-                                size_t capacity, size_t* lengthOut)
+static muiResult AccessTreeGetName(const muiAccessTree* tree, uint64_t id, char* bufferOut,
+                                   size_t capacity, size_t* lengthOut)
 {
     if (lengthOut != nullptr)
     {
@@ -709,4 +728,12 @@ muiResult muiAccessTree_GetName(const muiAccessTree* tree, uint64_t id, char* bu
     }
     *lengthOut = name.length;
     return name.length == 0 ? mui_empty : name.length < capacity ? mui_success : mui_errorCapacity;
+}
+
+muiResult muiAccessTree_GetName(const muiAccessTree* tree, uint64_t id, char* bufferOut,
+                                size_t capacity, size_t* lengthOut)
+{
+    muiResult result = AccessTreeGetName(tree, id, bufferOut, capacity, lengthOut);
+    muiZeroOutputs(result, bufferOut, capacity, 1);
+    return result;
 }

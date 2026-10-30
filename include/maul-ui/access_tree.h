@@ -224,14 +224,14 @@ extern "C"
     ///
     /// @param tree        The tree.
     /// @param id          A node shown.
-    /// @param childrenOut Receives the ids, up to capacity; may be NULL when
-    ///                    capacity is 0. Nothing is written to it on any other
-    ///                    failure.
+    /// @param childrenOut Receives the ids; may be NULL when capacity is 0.
+    ///                    Zeroed over capacity unless the call answers
+    ///                    `mui_success` or `mui_errorBusy`.
     /// @param capacity    Room in childrenOut.
     /// @param countOut    Receives how many there are, whatever the room. 0 on
     ///                    any other failure.
-    /// @return `mui_success`; `mui_errorCapacity` when they do not fit,
-    ///         those that fit written; `mui_empty` for a node not held;
+    /// @return `mui_success`; `mui_errorCapacity` when they do not fit;
+    ///         `mui_empty` for a node not held;
     ///         `mui_errorInvalid` for a NULL tree or count.
     /// @par Thread safety
     /// Safe from any thread; the tree is used by one thread at a time.
@@ -270,12 +270,13 @@ extern "C"
     /// @param tree       The tree.
     /// @param id         The node's id.
     /// @param bufferOut  Receives the name, NUL-terminated; may be NULL
-    ///                   when capacity is 0.
+    ///                   when capacity is 0. Zeroed over capacity unless the
+    ///                   call answers `mui_success` or `mui_errorBusy`.
     /// @param capacity   Its size in bytes.
     /// @param lengthOut  Receives the name's length. 0 on any other failure.
     /// @return `mui_success`; `mui_empty` for no name or a node not held;
-    ///         `mui_errorCapacity` when it does not fit, as much written
-    ///         as fits on a whole character; `mui_errorInvalid` for a NULL
+    ///         `mui_errorCapacity` when it does not fit, lengthOut giving
+    ///         the length; `mui_errorInvalid` for a NULL
     ///         tree or length, or a NULL bufferOut with room.
     /// @par Thread safety
     /// Safe from any thread; the tree is used by one thread at a time.
@@ -308,9 +309,9 @@ extern "C"
     /// @param id        The node's id.
     /// @param start     The range's first byte.
     /// @param end       The byte after its last.
-    /// @param rectsOut  Receives the rectangles, as many as capacity; NULL with
-    ///                  a capacity of 0 to count them. Nothing is written to it
-    ///                  on any other failure.
+    /// @param rectsOut  Receives the rectangles; NULL with a capacity of 0 to
+    ///                  count them. Zeroed over capacity unless the call
+    ///                  answers `mui_success` or `mui_errorBusy`.
     /// @param capacity  How many rectsOut holds.
     /// @param countOut  Receives how many there are. 0 on any other failure.
     /// @return `mui_success`; `mui_empty` for a node not held or whose text
@@ -352,12 +353,13 @@ extern "C"
     ///
     /// @param tree       The tree.
     /// @param bufferOut  Receives the text, NUL-terminated; may be NULL
-    ///                   when capacity is 0.
+    ///                   when capacity is 0. Zeroed over capacity unless the
+    ///                   call answers `mui_success` or `mui_errorBusy`.
     /// @param capacity   Its size in bytes.
     /// @param lengthOut  Receives the text's length without its NUL. 0 on any
     ///                   other failure.
     /// @return `mui_success`; `mui_errorCapacity` when it does not fit,
-    ///         as much written as fits; `mui_errorInvalid` for a NULL tree
+    ///         lengthOut giving the length; `mui_errorInvalid` for a NULL tree
     ///         or length, or a NULL bufferOut with room.
     /// @par Thread safety
     /// Safe from any thread; the tree is used by one thread at a time.

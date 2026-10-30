@@ -311,7 +311,8 @@ extern "C"
     ///
     /// @param atlas       The atlas.
     /// @param updatesOut  Receives the rectangles; may be NULL when capacity
-    ///                    is 0.
+    ///                    is 0. Zeroed over capacity unless the call answers
+    ///                    `mui_success` or `mui_errorBusy`.
     /// @param capacity    How many updatesOut holds.
     /// @param countOut    Receives how many rectangles there are, also when
     ///                    updatesOut is too small. 0 on any other failure.

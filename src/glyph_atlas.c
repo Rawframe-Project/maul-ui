@@ -16,6 +16,7 @@
 #include "glyph_outline.h"
 #include "glyph_table.h"
 #include "invariant.h"
+#include "outputs.h"
 #include "skyline.h"
 #include "text_service.h"
 
@@ -899,5 +900,6 @@ muiResult muiGlyphAtlas_TakeUpdates(muiGlyphAtlas* atlas, muiAtlasUpdate* update
         status = GlyphAtlasTakeUpdates(atlas, updatesOut, capacity, countOut);
         LeaveAtlas(atlas);
     }
+    muiZeroOutputs(status, updatesOut, capacity, sizeof *updatesOut);
     return status;
 }

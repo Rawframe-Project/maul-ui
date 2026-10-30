@@ -139,6 +139,20 @@ struct Scene
     Probe hold;
 };
 
+// Whether every byte of a buffer is value.
+static bool Holds(const void* memory, size_t size, unsigned char value)
+{
+    const unsigned char* bytes = memory;
+    for (size_t i = 0; i < size; i++)
+    {
+        if (bytes[i] != value)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 // Calls back in and checks every answer: the busy object's functions
 // refused, the other's not as busy; then the busy object's destroy, and
 // for the service the four functions that return no status.
@@ -183,6 +197,28 @@ static void CallBack(Probe* probe)
             expected && size.width == 0.0f && size.height == 0.0f && isnan(baseline) && !read;
         refused += 5;
     }
+    // A call refused as busy leaves a caller's buffer, which may be the one
+    // the call in progress is filling.
+    if (probe->atlas)
+    {
+        muiAtlasUpdate updates[2];
+        memset(updates, 0xA5, sizeof updates);
+        uint32_t taken = 0;
+        expected = expected &&
+                   muiGlyphAtlas_TakeUpdates(scene->atlas, updates, 2, &taken) == mui_errorBusy &&
+                   Holds(updates, sizeof updates, 0xA5);
+    }
+    else
+    {
+        unsigned char pixels[8];
+        memset(pixels, 0xA5, sizeof pixels);
+        muiGlyphImage image;
+        expected = expected &&
+                   muiTextService_RenderGlyph(scene->service, 0, 0, 16.0f, 0.0f, &image, pixels,
+                                              sizeof pixels) == mui_errorBusy &&
+                   Holds(pixels, sizeof pixels, 0xA5);
+    }
+    refused++;
     // The calls not refused as busy refuse their arguments, counted too.
     expected = expected && muiTextService_GetMisuse(scene->service) >= misuse + refused;
     probe->expected = probe->expected && expected;
