@@ -181,8 +181,10 @@ jobs:
           cmake --build out/headers --config Release
 
   # Each fuzz target runs over the bytes the library reads from fonts,
-  # images and the AT-SPI bus, from tools/fuzz_seed.py's seeds: briefly on a
-  # pull request, longer on main and at night.
+  # images and the AT-SPI bus, from tools/fuzz_seed.py's seeds and the
+  # corpus the cache carries: briefly on a pull request, longer on main and
+  # at night. The targets share one job, so their corpora share one cache
+  # entry; docs/operations/checks.md says how it is kept.
   fuzz:
     needs: changes
     if: needs.changes.outputs.code == 'true'
@@ -195,6 +197,9 @@ jobs:
       contents: read
     env:
       FUZZ_SECONDS: ${{ github.event_name == 'pull_request' && 20 || 120 }}
+      # A target's minimized corpus may not pass this, so one target's
+      # growth cannot crowd the others out of the cache.
+      CORPUS_LIMIT_MB: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -204,9 +209,20 @@ jobs:
           cmake -B out/fuzz -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 \
             -D${PREFIX}_FUZZ=ON -D${PREFIX}_BUILD_TESTS=OFF -D${PREFIX}_BUILD_BENCH=OFF -D${PREFIX}_WERROR=ON
           cmake --build out/fuzz
+      # Caches are immutable: each clean run on main saves a new entry, and
+      # every run restores the latest, a pull request's included, so a
+      # change that breaks a harness's promise fails on its own pull
+      # request. A pull request's run only reads the cache.
+      - name: Restore the corpus
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: out/corpus
+          key: fuzz-corpus-${{ github.run_id }}
+          restore-keys: fuzz-corpus-
       - name: Run
         # Four targets at a time, one per core of the runner; each keeps its
-        # full time. tools/fuzz_target.sh keeps each target's log and
+        # full time. The seeds join whatever corpus the cache brought, as
+        # its floor. tools/fuzz_target.sh keeps each target's log and
         # findings on the runner and reports a finding without its input;
         # the reports print once every target has finished. Nothing is
         # uploaded.
@@ -223,6 +239,52 @@ jobs:
             status=$?
           cat out/fuzz-reports/*.txt 2>/dev/null || true
           exit "$status"
+      # Each corpus is merged into a fresh directory through
+      # tools/fuzz_target.sh --merge, which reruns every input, keeps the
+      # log on the runner and fails on a finding as a run does. The merged
+      # corpora are swapped in only when every merge passed, so a failed
+      # merge leaves the old ones, and the save is skipped. This step and
+      # the save run only on main and only when every target found
+      # nothing: a run that found something keeps its corpus, which holds
+      # inputs near the finding, out of the cache.
+      - name: Minimize the corpus
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          rm -rf out/merged out/fuzz-reports
+          status=0
+          targets=(out/fuzz/fuzz_*)
+          printf '%s\n' "${targets[@]##*/}" |
+            xargs -P 4 -I {} \
+              tools/fuzz_target.sh --merge out/fuzz/{} out/merged/corpus-{} out/corpus/corpus-{} ||
+            status=$?
+          cat out/fuzz-reports/*.txt 2>/dev/null || true
+          [ "$status" -eq 0 ] || exit "$status"
+          for d in out/merged/*/; do
+            name=$(basename "$d")
+            rm -rf "out/corpus/$name" && mv "$d" "out/corpus/$name"
+          done
+          over=0
+          {
+            echo "| Target | Inputs | MB |"
+            echo "|---|---|---|"
+            for d in out/corpus/*/; do
+              name=$(basename "$d")
+              # The bytes the cache holds, not the disk blocks they take.
+              mb=$(du -sm --apparent-size "$d" | cut -f1)
+              echo "| ${name#corpus-} | $(find "$d" -type f | wc -l) | $mb |"
+              if [ "$mb" -gt "$CORPUS_LIMIT_MB" ]; then
+                echo "::error::${name#corpus-}: corpus of $mb MB passes $CORPUS_LIMIT_MB MB" >&2
+                over=1
+              fi
+            done
+          } >>"$GITHUB_STEP_SUMMARY"
+          exit "$over"
+      - name: Save the corpus
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: out/corpus
+          key: fuzz-corpus-${{ github.run_id }}
 
   # The samples presented on an X11 window's surface under Xvfb, through
   # Maul Window's X11 backend, on lavapipe under the validation layer: each

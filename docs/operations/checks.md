@@ -8,6 +8,7 @@ What verifies a change, locally and in CI, and the time each may take.
 - [Tests and labels](#tests-and-labels)
 - [In CI](#in-ci)
 - [Fuzzing](#fuzzing)
+  - [Fuzz corpus](#fuzz-corpus)
 - [Budgets](#budgets)
 
 ## Locally
@@ -60,7 +61,7 @@ No test is quarantined now.
 | `checks` | `clang-format`, the family's rules (the float environment rule among them), the text header list, the litmus check, test hygiene and the labels of `linux-clang-20-asan`'s and `linux-parts`' tests, the layout fixture tables, the shader container's stamp, that the documentation site builds, and clang-tidy in a Release build, where the assertions compile out, and a Debug build, with them live. It runs on documentation changes too. |
 | `build` | One call of the organization's `cpp.yml` per preset: GCC 14 on x86-64 and on arm64, Clang 20 in Release, Clang with AddressSanitizer and UBSan (each test repeated up to three times on a pull request, so a flaky one fails before it merges), Clang with ThreadSanitizer, the shared library, the core without the text component, the renderer and the glue on lavapipe with Clang and the sanitizers, with GCC 14, and without text, macOS on its runner and `clang-cl` on Windows. All build with warnings as errors. |
 | `msvc-headers` | Every public header compiled by MSVC's `cl` as C17 and C++17 with `/W4 /WX`. |
-| `fuzz` | Every fuzz target: 20 seconds each on a pull request, 120 on `main` and at night. |
+| `fuzz` | Every fuzz target from its seeds and the cached corpus: 20 seconds each on a pull request, 120 on `main` and at night. On `main` the corpus is then minimized and saved ([Fuzz corpus](#fuzz-corpus)). |
 | `samples-x11` | Each sample presented on an X11 window under Xvfb through Maul Window's X11 backend, on lavapipe under the validation layer, its last frame read back and checked. |
 | `ios-simulator` | The iOS adapter and its tests built on every pull request; on `main` and at night, run in a booted simulator of the newest runtime. A simulator's boot and first launch take longer than the pull request budget leaves. |
 | `android-emulator` | Every test in an Android 11 emulator on the Linux runner with KVM, the accessibility adapter's as an application. |
@@ -75,6 +76,10 @@ No test is quarantined now.
 ## Fuzzing
 
 The fuzz targets (`test/fuzz_<area>.c`, built with `-DMAUL_UI_FUZZ=ON` and Clang, the library instrumented too) cover the bytes the library reads from outside: zlib streams, PNG images, font files, text with edits of every kind, and D-Bus calls to the AT-SPI adapter. `fuzz_api` covers the API's own untrusted input: sequences of public calls with ids that may be stale or made up and layout and visual values written raw, given to two contexts alike. Both must answer every call with the same status, and when the second's nodes are all marked changed, the first's bounded layout must give the same rectangles and the same draw list bytes. Each target runs with assertions on and checks properties that hold for any input: no crash, no read or write past a buffer, no undefined behavior, no broken invariant. The first breach of any of them stops the run with the input that caused it. `tools/fuzz_seed.py` writes their seeds; `fuzz_api`'s include one for each family of calls, each ending in that comparison on a painted tree. A crash a fuzzer finds becomes a test in its module's suite ([Development](development.md#a-fuzz-finding)).
+
+### Fuzz corpus
+
+The targets run in one job, so their corpora carry over from run to run in one Actions cache entry, `fuzz-corpus-<run id>`, holding a directory per target. Every run restores the latest entry, a pull request's included, so a change that breaks a harness's promise fails on its own pull request and not later on `main`, and `tools/fuzz_seed.py` adds the seeds as the floor. A pull request's run only reads the cache. Runs on `main` (a push, the night, a manual run) then minimize each target's corpus into a fresh directory through `tools/fuzz_target.sh --merge`, which reruns every input and fails on a finding as a run does (libFuzzer's own merge exits 0 on a crash). They swap the merged corpora in only when every merge passed, and save a new entry. A run in which a target found something saves nothing, since its corpus holds inputs near the finding. The cache is not secret, since a fork's pull request can run its own workflow and restore it, so it holds nothing the seeds would not lead to. A target whose minimized corpus passes 10 MB fails the step, and the corpora are not saved, so one target cannot crowd the others out of the cache. The step's summary lists each target's inputs and size.
 
 ## Budgets
 
