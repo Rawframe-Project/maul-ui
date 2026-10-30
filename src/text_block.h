@@ -271,4 +271,9 @@ typedef struct muiTextBlockStore
 // Frees what a block holds and zeroes it.
 void muiReleaseTextBlock(const muiAllocator* allocator, muiTextBlock* block);
 
+// Destroys block slot of a store, then frees what it held:
+// its id goes stale first, so host code the release runs (the allocator's
+// free) finds it gone rather than half freed (Maul conventions, Threads).
+void muiDropTextBlock(const muiAllocator* allocator, muiTextBlockStore* store, uint32_t slot);
+
 #endif // MAUL_UI_SRC_TEXT_BLOCK_H

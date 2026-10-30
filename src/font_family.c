@@ -369,8 +369,7 @@ static muiResult DestroyFontFamily(muiTextService* service, muiFontFamilyId fami
     {
         return mui_errorStale;
     }
-    muiReleaseFontFamily(&service->allocator, &service->families.families[slot - 1]);
-    muiPoolGive(&service->families.pool, slot);
+    muiDropFontFamily(&service->allocator, &service->families, slot);
     return mui_success;
 }
 

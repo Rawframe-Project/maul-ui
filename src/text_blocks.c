@@ -299,8 +299,7 @@ static muiResult DestroyTextBlock(muiTextService* service, muiTextBlockId blockI
     {
         return mui_errorStale;
     }
-    muiReleaseTextBlock(&service->allocator, &service->blocks.blocks[slot - 1]);
-    muiPoolGive(&service->blocks.pool, slot);
+    muiDropTextBlock(&service->allocator, &service->blocks, slot);
     return mui_success;
 }
 
