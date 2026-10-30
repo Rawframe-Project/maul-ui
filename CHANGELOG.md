@@ -5,6 +5,282 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.4.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.3.3...v0.4.0) (2026-10-30)
+
+Maul UI now follows the Maul family's rules for names, results and
+outputs, and builds against the latest Maul Tween, Maul Unicode, Maul
+RHI and Maul Window. A program written for 0.3 has to change the names
+and result checks listed under Changed and Removed. Apart from the
+fixes below, layouts, shaped text and glyph images are the same as in
+0.3.3. Draw lists have the same content, but a box record is now 132
+bytes.
+
+### Changed
+
+- **Breaking:** public functions are renamed by the family's naming
+  rule. A call on one object is now `muiObject_Verb`, where the object
+  is the kind of the call's first id, or the context or service the call
+  acts on. Creation, defaults and calls that act on no object keep
+  `muiVerbNoun`. Parameters and behaviour are the same unless noted.
+  `muiNode_CapturePointer` takes the node before the pointer, and
+  `muiNode_EnableAccess` takes a bool in place of the old enable and
+  disable pair
+  ([#149](https://github.com/Rawframe-Project/maul-ui/pull/149)). Every
+  new name in this release, with those of the changes below:
+
+  | 0.3 | 0.4 |
+  |---|---|
+  | `muiResultName` | `muiGetResultName` |
+  | `muiAccessRoleName` | `muiGetAccessRoleName` |
+  | `muiNodeIdOfAccess` | `muiGetNodeOfAccessId` |
+  | `muiAccessIdOf` | `muiNode_GetAccessId` |
+  | `muiGetContextMisuse` | `muiContext_GetMisuse` |
+  | `muiGetWorkCounts` | `muiContext_GetWorkCounts` |
+  | `muiNextNotification` | `muiContext_TakeNotification` |
+  | `muiNextPointerRecord` | `muiContext_TakePointerRecord` |
+  | `muiDispatchPointerRecord` | `muiContext_DispatchPointerRecord` |
+  | `muiPerformAccessAction` | `muiContext_PerformAccessAction` |
+  | `muiGetDrawList` | `muiContext_GetDrawList` |
+  | `muiSetClickRule` | `muiContext_SetClickRule` |
+  | `muiSetDragThreshold` | `muiContext_SetDragThreshold` |
+  | `muiSetScrollRule` | `muiContext_SetScrollRule` |
+  | `muiSetContextEnvironment` | `muiContext_SetEnvironment` |
+  | `muiGetContextEnvironment` | `muiContext_GetEnvironment` |
+  | `muiSetAccessTextFunction` | `muiContext_SetAccessTextFunction` |
+  | `muiSetEventFunction` | `muiContext_SetEventFunction` |
+  | `muiFocus_Set` | `muiContext_SetFocus` |
+  | `muiFocus_Get` | `muiContext_GetFocus` |
+  | `muiPointer_ReleaseCapture` | `muiContext_ReleasePointerCapture` |
+  | `muiPointer_GetState` | `muiContext_GetPointerState` |
+  | `muiPointer_Offer` | `muiContext_OfferDrop` |
+  | `muiPointer_SetCapture(context, pointer, nodeId)` | `muiNode_CapturePointer(context, nodeId, pointer)` |
+  | `muiComputeLayout` | `muiNode_ComputeLayout` |
+  | `muiIsUpdatePending` | `muiNode_IsUpdatePending` |
+  | `muiBuildDrawList` | `muiNode_BuildDrawList` |
+  | `muiBuildAccessUpdate` | `muiNode_BuildAccessUpdate` |
+  | `muiHitTest` | `muiNode_HitTest` |
+  | `muiFocus_Move` | `muiNode_MoveFocus` |
+  | `muiFocus_MoveToward` | `muiNode_MoveFocusToward` |
+  | `muiKeyInput` | `muiNode_RouteKey` |
+  | `muiTextInput` | `muiNode_RouteText` |
+  | `muiNavigationInput` | `muiNode_RouteNavigation` |
+  | `muiWheelInput` | `muiNode_RouteWheel` |
+  | `muiPointerInput` | `muiNode_RoutePointer` |
+  | `muiAccess_Enable(context, rootId)` | `muiNode_EnableAccess(context, rootId, true)` |
+  | `muiAccess_Disable(context, rootId)` | `muiNode_EnableAccess(context, rootId, false)` |
+  | `muiNode_SetItem` | `muiNode_BindVirtualItem` |
+  | `muiNode_ClearItem` | `muiNode_UnbindVirtualItem` |
+  | `muiNode_GetItem` | `muiNode_GetBoundVirtualItem` |
+  | `muiSetTokenValue` | `muiToken_SetValue` |
+  | `muiSetTokenAlias` | `muiToken_SetAlias` |
+  | `muiGetTokenValue` | `muiToken_GetValue` |
+  | `muiTextHitTest` | `muiNode_HitTestText` |
+  | `muiTextGetCaret` | `muiNode_GetTextCaret` |
+  | `muiTextGetRangeRects` | `muiNode_GetTextRangeRects` |
+  | `muiTextMove` | `muiNode_MoveTextPosition` |
+  | `muiTextEditEvent` | `muiNode_HandleEditEvent` |
+  | `muiTextEditMove` | `muiNode_MoveEditCaret` |
+  | `muiTextEditPress` | `muiNode_HandleEditPress` |
+  | `muiTextEditDrag` | `muiNode_HandleEditDrag` |
+  | `muiTextPerformAccessAction` | `muiPerformTextAccessAction` |
+  | `muiTextEditDef`, `muiDefaultTextEditDef` | `muiTextEditRules`, `muiDefaultTextEditRules` |
+  | `muiTextBaseline` | `muiMeasureTextBaseline` |
+  | `muiAccessTextOf` | `muiReadAccessText` |
+  | `muiGetTextServiceMisuse` | `muiTextService_GetMisuse` |
+  | `muiGetTextServiceFailures` | `muiTextService_GetFailures` |
+  | `muiSetDefaultFont` | `muiTextService_SetDefaultFont` |
+  | `muiSetFallbackFonts` | `muiTextService_SetFallbackFonts` |
+  | `muiRenderGlyph` | `muiTextService_RenderGlyph` |
+  | `muiRenderColorGlyph` | `muiTextService_RenderColorGlyph` |
+  | `muiRenderGlyphField` | `muiTextService_RenderGlyphField` |
+  | `muiRenderGlyphMultiField` | `muiTextService_RenderGlyphMultiField` |
+  | `muiGlyphAtlas_Get` | `muiGlyphAtlas_GetGlyph` |
+  | `muiGlyphAtlas_GetColor` | `muiGlyphAtlas_GetColorGlyph` |
+  | `muiGlyphAtlas_GetField` | `muiGlyphAtlas_GetGlyphField` |
+  | `muiGlyphAtlas_GetMultiField` | `muiGlyphAtlas_GetGlyphMultiField` |
+  | `muiGlyphAtlas_NextFrame` | `muiGlyphAtlas_BeginFrame` |
+  | `muiGetAccessTreeMisuse` | `muiAccessTree_GetMisuse` |
+  | `muiAccessTree_Count` | `muiAccessTree_GetNodeCount` |
+  | `muiGetAndroidAdapterMisuse` | `muiAndroidAdapter_GetMisuse` |
+  | `muiGetAriaAdapterMisuse` | `muiAriaAdapter_GetMisuse` |
+  | `muiGetAtspiAppMisuse` | `muiAtspiApp_GetMisuse` |
+  | `muiGetNsAdapterMisuse` | `muiNsAdapter_GetMisuse` |
+  | `muiGetUiaAdapterMisuse` | `muiUiaAdapter_GetMisuse` |
+  | `muiGetUikitAdapterMisuse` | `muiUikitAdapter_GetMisuse` |
+  | `muiAriaActionFunction`, `muiAtspiActionFunction`, `muiAndroidActionFunction`, `muiNsActionFunction`, `muiUiaActionFunction`, `muiUikitActionFunction`, `muiWindowAccessActionFunction` | `muiAccessActionFunction` |
+  | `muiRangeAxis`, `muiListAxis` (`mui_rangeHorizontal`, `mui_listVertical`, ...) | `muiAxis` (`mui_axisHorizontal`, `mui_axisVertical`) |
+  | `muiTextDirection` (`mui_textInherit`, `mui_textLeftToRight`, `mui_textRightToLeft`), `muiDirectionMatch` (`mui_directionAny`, ...) | `muiInlineDirection` (`mui_inlineInherit`, `mui_inlineLeftToRight`, `mui_inlineRightToLeft`) |
+  | `mui_popupNone`, `mui_popupMenu`, `mui_popupListBox`, `mui_popupTree`, `mui_popupGrid`, `mui_popupDialog` (aria-haspopup) | `mui_hasPopupNone`, `mui_hasPopupMenu`, `mui_hasPopupListBox`, `mui_hasPopupTree`, `mui_hasPopupGrid`, `mui_hasPopupDialog` |
+  | `muiRange` (a condition's interval) | `muiInterval` |
+  | `muiWindowSetComposition` | `muiTextBlock_SetPreedit` |
+  | `muiWindowCompose` | `muiTextBlock_ShowPreedit` |
+  | `muiWindowGlue_Paste` | `muiTextBlock_PasteFromWindow` |
+  | `muiWindowGlue_WriteClipboard` | `muiWriteWindowClipboard` |
+  | `muiWindowGlue_SetCaret` | `muiNode_SetWindowCaret` |
+  | `muiWindowGlue_SetTextCaret` | `muiNode_SetWindowTextCaret` |
+  | `muiWindowGlue_RequestKeyboard` | `muiNode_RequestWindowKeyboard` |
+  | `muiWindowAccess_HasAdapter` | `muiWindowAccess_IsAdapterCreated` |
+
+- **Breaking:** fields renamed. `muiWindowGlueDef.gamepads` is now
+  `enableGamepads`
+  ([#149](https://github.com/Rawframe-Project/maul-ui/pull/149)).
+  `muiRhiRendererDef.imageContext` is now `imageUser`,
+  `muiWindowGlueDef.gamepadContext` is now `gamepadUser`, and
+  `muiLayoutInput.measureUser` is now `user`, which goes to both the
+  measure and the baseline functions
+  ([#104](https://github.com/Rawframe-Project/maul-ui/pull/104)).
+  `muiNotification.count` is now `detail`. A dropped pointer record
+  gives its count in the new `muiPointerRecord.dropped`, and its
+  `clickCount` is 0
+  ([#108](https://github.com/Rawframe-Project/maul-ui/pull/108)).
+- **Breaking:** a value range's and a virtual list's `axis` take
+  `muiAxis`. `muiNode_GetScrollThumb` takes a `muiAxis` in place of
+  `bool horizontal`, and refuses an unknown axis. A layout style's
+  `textDirection` and a condition's `direction` take
+  `muiInlineDirection`. For a condition, inherit holds for either
+  direction, as "any" did
+  ([#95](https://github.com/Rawframe-Project/maul-ui/pull/95)).
+- **Breaking:** results take the family's values. `mui_errorFormat` is
+  now -8, `mui_errorVersion` is -7, and `mui_errorState` is -6. What
+  `mui_errorState` used to mean, host code calling back into the object
+  it serves, is now `mui_errorBusy` (-10). `mui_errorState` now answers
+  the editor's calls on a block that is not editing, which used to be
+  `mui_errorInvalid`, and counts no misuse. `mui_errorUnsupported` (-4)
+  is new. It answers an atlas getter on an atlas of another format,
+  which used to be `mui_errorInvalid`, and a WOFF or WOFF2 font, which
+  used to be `mui_errorFormat`. `mui_errorLimit` (-9) is new too. It
+  answers a count or size past a published bound, which used to be
+  `mui_errorInvalid`, and counts one misuse. Each such bound is now a
+  `MUI_MAX_` or `MUI_MIN_` constant, and a context limit can be at most
+  2^31 - 2
+  ([#126](https://github.com/Rawframe-Project/maul-ui/pull/126)).
+- **Breaking:** a call whose first parameter is a context, text service,
+  access tree, glyph atlas, draw sink, adapter, AT-SPI application or
+  window glue now clears its outputs when it fails, before checking
+  anything: zeros, null ids, NULL, false or 0. It also leaves zeros with
+  `mui_empty`, unless its header says otherwise. A count, length or
+  image size that a capacity failure reports is still given. The class
+  getters copy their result only on success. Each output's documentation
+  says what a failure leaves
+  ([#87](https://github.com/Rawframe-Project/maul-ui/pull/87)).
+- **Breaking:** `muiTextBlock_SetEditing` refuses NULL rules with
+  `mui_errorInvalid`. End editing with the new
+  `muiTextBlock_ClearEditing`
+  ([#150](https://github.com/Rawframe-Project/maul-ui/pull/150)).
+- **Breaking:** a measure function's NaN width or height, and a baseline
+  function's +infinity, now mean content that could not be measured.
+  They used to be read as 0 and as no baseline. `muiNode_ComputeLayout`
+  lays such content out as empty, measures it again on the next layout,
+  and answers `mui_errorCapacity`. A paint function that could not paint
+  calls the new `muiDrawSink_Fail`, so the node is painted again on the
+  next build, which answers `mui_errorCapacity`. The text component does
+  both when memory runs out
+  ([#136](https://github.com/Rawframe-Project/maul-ui/pull/136)).
+- **Breaking:** while a text call given a `muiTextHost` runs, host code
+  it calls (the service's allocator, FreeType's memory through it, the
+  clipboard writer) may read the host's context but not change it. A
+  change answers `mui_errorBusy` and counts one misuse, and
+  `muiDestroyContext` does nothing
+  ([#130](https://github.com/Rawframe-Project/maul-ui/pull/130)).
+- **Breaking:** style: `muiState` is a `uint16_t`, so eight states can
+  be added later without moving anything. The conditions' variants start
+  at 17 (`mui_variantCondition0`), and variants 9 to 16 are refused.
+  `muiNode_SetStates` refuses a bit that names no state
+  ([#91](https://github.com/Rawframe-Project/maul-ui/pull/91)).
+- **Breaking:** draw list: the records lose their reserved fields, so a
+  box record is 132 bytes. The other records keep their sizes
+  ([#122](https://github.com/Rawframe-Project/maul-ui/pull/122)).
+- **Breaking:** glyphs: `muiAtlasFormat` is a `uint8_t`, so a glyph
+  atlas def's and an atlas page's `format` are one byte. The constants
+  keep their names and values
+  ([#88](https://github.com/Rawframe-Project/maul-ui/pull/88)).
+- **Breaking:** the dependencies move to Maul Tween 0.12.0, Maul Unicode
+  0.8.0, Maul RHI 0.13.0 and Maul Window 0.7.0. A program that builds
+  Maul UI against its own copy of one of them has to provide the same
+  release. Each one's own changelog says what changed in its API
+  ([#152](https://github.com/Rawframe-Project/maul-ui/pull/152),
+  [#155](https://github.com/Rawframe-Project/maul-ui/pull/155),
+  [#156](https://github.com/Rawframe-Project/maul-ui/pull/156)).
+  - The renderer: a host that hands the renderer its device uses Maul
+    RHI 0.13.0. Its own shader containers have to be version 2, and
+    pipeline caches written by an older Maul RHI are refused. New
+    buffers and textures read as zeros in the first frame that uses
+    them, cleared in a pass of Maul RHI's own, so the host's pass ids
+    start at 2
+    ([#109](https://github.com/Rawframe-Project/maul-ui/pull/109)). On
+    D3D12, the quad shader's float math now runs as written, as it does
+    on the other APIs, so a pixel can differ from 0.3 by rounding
+    ([#156](https://github.com/Rawframe-Project/maul-ui/pull/156)).
+  - The window glue: configuring stops, with a message naming both
+    releases, when the Maul Unicode release that Maul Window names
+    differs from Maul UI's
+    ([#155](https://github.com/Rawframe-Project/maul-ui/pull/155)).
+- The library is smaller on WebAssembly, where entering the float
+  environment now costs nothing
+  ([#115](https://github.com/Rawframe-Project/maul-ui/pull/115)). On
+  32-bit x86 it is built with SSE math, as the rest of the family is
+  ([#69](https://github.com/Rawframe-Project/maul-ui/pull/69)).
+
+### Added
+
+- `muiTextBlock_ClearEditing` ends a block's editing
+  ([#150](https://github.com/Rawframe-Project/maul-ui/pull/150)).
+- `muiNode_IsAccessEnabled` tells whether a root's accessibility is on
+  ([#149](https://github.com/Rawframe-Project/maul-ui/pull/149)).
+- `muiDrawSink_Fail` lets a paint function report that it could not
+  paint ([#136](https://github.com/Rawframe-Project/maul-ui/pull/136)).
+- `mui_errorUnsupported`, `mui_errorLimit` and the `MUI_MAX_` and
+  `MUI_MIN_` bounds they answer for
+  ([#126](https://github.com/Rawframe-Project/maul-ui/pull/126)).
+
+### Fixed
+
+- Accessibility, macOS: with VoiceOver on, Tab could move the focus back
+  to the control it had just left, or stop moving it. A focus move
+  between nodes that are shown anyway no longer reports a shown change,
+  so VoiceOver is no longer told that the layout changed. Android sends
+  no subtree change for such a move, as Android's own views do
+  ([#121](https://github.com/Rawframe-Project/maul-ui/pull/121),
+  [#142](https://github.com/Rawframe-Project/maul-ui/pull/142)).
+- Text component: a host's allocator that destroyed or changed the
+  context during a text call (a hit test, caret, range or editor call)
+  could make the call read freed memory
+  ([#130](https://github.com/Rawframe-Project/maul-ui/pull/130)).
+- Glyphs: a colour font with a reversed COLR clip box, or with a CBDT or
+  sbix bitmap of 2^28 pixels or more, could make
+  `muiTextService_RenderColorGlyph` and a colour atlas write past their
+  memory. Such a glyph is now refused with `mui_errorFormat`, and the
+  font's other glyphs draw as before. The PNG decoder counts its sizes
+  in 64 bits
+  ([#120](https://github.com/Rawframe-Project/maul-ui/pull/120)).
+- Text component: when memory runs out, an editing field scrolled to its
+  caret answered hit tests, carets and range rectangles for the
+  unscrolled text. These calls now answer `mui_errorCapacity`. A replace
+  from a screen reader whose paste failed left the selection moved; it
+  now restores the selection
+  ([#135](https://github.com/Rawframe-Project/maul-ui/pull/135)).
+- Text component: text that could not be measured or painted for lack of
+  memory stayed empty until the host marked it changed. Now it is
+  measured and painted again on the next frame
+  ([#136](https://github.com/Rawframe-Project/maul-ui/pull/136)).
+- Editing: after an edit took out a composition whose two sides join
+  into one character (ill-formed UTF-8), the caret could land inside
+  that character. It now goes to the next character start
+  ([#97](https://github.com/Rawframe-Project/maul-ui/pull/97)).
+- Layout: a flex column with an aspect ratio, stretched in a single-line
+  row of definite height, resolved its children's percentage heights
+  against its ratio's height instead of its stretched height, as Chrome
+  and Firefox do
+  ([#128](https://github.com/Rawframe-Project/maul-ui/pull/128)).
+
+### Removed
+
+- `muiNode_SetLayoutStyle`. Call `muiNode_SetLayoutValues` with
+  `MUI_LAYOUT_PROPERTIES`
+  ([#108](https://github.com/Rawframe-Project/maul-ui/pull/108)).
+- `MUI_MAX_DRAW_STOPS`. Use `MUI_MAX_GRADIENT_STOPS`, which is also 4
+  ([#108](https://github.com/Rawframe-Project/maul-ui/pull/108)).
+
 ## [0.3.3](https://github.com/Rawframe-Project/maul-ui/releases/tag/v0.3.3) (2026-10-25)
 
 ### Fixed
