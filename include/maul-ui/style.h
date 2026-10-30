@@ -469,7 +469,7 @@ extern "C"
     /// @param condition   Intervals with a finite minimum of 0 or more and a
     ///                    maximum not below it, known bits and choices.
     /// @param variantOut  Receives the condition's variant; mui_variantBase
-    ///                    on failure.
+    ///                    on failure but `mui_errorBusy`, which leaves it.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
     ///         id or a condition outside the above; `mui_errorBusy` while the
     ///         context is busy; `mui_errorStale` for an id whose class is gone;

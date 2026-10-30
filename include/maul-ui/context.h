@@ -243,7 +243,8 @@ extern "C"
     /// Takes the oldest notification.
     ///
     /// @param context          The context.
-    /// @param notificationOut  Receives it. Zeroed on failure.
+    /// @param notificationOut  Receives it. Zeroed on failure but
+    ///                         `mui_errorBusy`, which leaves it.
     /// @return `mui_success`; `mui_empty` when none is waiting;
     ///         `mui_errorInvalid` for a NULL argument; `mui_errorBusy` while
     ///         the context is busy.

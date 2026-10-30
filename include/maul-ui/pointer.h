@@ -193,7 +193,8 @@ extern "C"
     /// Takes the oldest pointer record.
     ///
     /// @param context    The context.
-    /// @param recordOut  Receives the record. Zeroed on failure.
+    /// @param recordOut  Receives the record. Zeroed on failure but
+    ///                   `mui_errorBusy`, which leaves it.
     /// @return `mui_success`; `mui_empty` when none is waiting;
     ///         `mui_errorInvalid` for a NULL argument; `mui_errorBusy` while
     ///         the context is busy.

@@ -139,6 +139,9 @@ struct Scene
     Probe hold;
 };
 
+// How many times an atlas call was refused through its busy service.
+static int s_atlasThroughService;
+
 // Whether every byte of a buffer is value.
 static bool Holds(const void* memory, size_t size, unsigned char value)
 {
@@ -197,28 +200,58 @@ static void CallBack(Probe* probe)
             expected && size.width == 0.0f && size.height == 0.0f && isnan(baseline) && !read;
         refused += 5;
     }
-    // A call refused as busy leaves a caller's buffer, which may be the one
-    // the call in progress is filling.
+    // A call refused as busy writes none of its outputs, buffers and single
+    // values alike, which may be ones the call in progress has written or
+    // is filling (Maul conventions, Errors and assertions).
     if (probe->atlas)
     {
         muiAtlasUpdate updates[2];
+        uint32_t taken;
+        muiAtlasGlyph glyph;
         memset(updates, 0xA5, sizeof updates);
-        uint32_t taken = 0;
+        memset(&taken, 0xA5, sizeof taken);
+        memset(&glyph, 0xA5, sizeof glyph);
         expected = expected &&
                    muiGlyphAtlas_TakeUpdates(scene->atlas, updates, 2, &taken) == mui_errorBusy &&
-                   Holds(updates, sizeof updates, 0xA5);
+                   muiGlyphAtlas_GetGlyph(scene->atlas, 0, 0, 16.0f, 0.0f, 0.0f, &glyph) ==
+                       mui_errorBusy &&
+                   Holds(updates, sizeof updates, 0xA5) && Holds(&taken, sizeof taken, 0xA5) &&
+                   Holds(&glyph, sizeof glyph, 0xA5);
+        refused += 2;
     }
     else
     {
         unsigned char pixels[8];
-        memset(pixels, 0xA5, sizeof pixels);
         muiGlyphImage image;
-        expected = expected &&
-                   muiTextService_RenderGlyph(scene->service, 0, 0, 16.0f, 0.0f, &image, pixels,
-                                              sizeof pixels) == mui_errorBusy &&
-                   Holds(pixels, sizeof pixels, 0xA5);
+        bool changed;
+        memset(pixels, 0xA5, sizeof pixels);
+        memset(&image, 0xA5, sizeof image);
+        memset(&changed, 0xA5, sizeof changed);
+        expected =
+            expected &&
+            muiTextService_RenderGlyph(scene->service, 0, 0, 16.0f, 0.0f, &image, pixels,
+                                       sizeof pixels) == mui_errorBusy &&
+            muiTextBlock_Type(scene->service, scene->block, "a", 1, &changed) == mui_errorBusy &&
+            muiTextBlock_Undo(scene->service, scene->block, &changed) == mui_errorBusy &&
+            muiTextBlock_Compose(scene->service, scene->block, "a", 1, 0, NULL, 0, &changed) ==
+                mui_errorBusy &&
+            Holds(pixels, sizeof pixels, 0xA5) && Holds(&image, sizeof image, 0xA5) &&
+            Holds(&changed, sizeof changed, 0xA5);
+        // The atlas, once made, renders a glyph it has not packed through
+        // the busy service, and is refused with it.
+        if (scene->atlas != NULL)
+        {
+            muiAtlasGlyph glyph;
+            memset(&glyph, 0xA5, sizeof glyph);
+            expected = expected &&
+                       muiGlyphAtlas_GetGlyph(scene->atlas, 0, 1, 37.0f, 0.0f, 0.0f, &glyph) ==
+                           mui_errorBusy &&
+                       Holds(&glyph, sizeof glyph, 0xA5);
+            refused++;
+            s_atlasThroughService++;
+        }
+        refused += 4;
     }
-    refused++;
     // The calls not refused as busy refuse their arguments, counted too.
     expected = expected && muiTextService_GetMisuse(scene->service) >= misuse + refused;
     probe->expected = probe->expected && expected;
@@ -377,6 +410,9 @@ static void TestHostCode(void)
               mui_success,
           "a longer text");
     CHECK(scene.alloc.runs == 1 && scene.alloc.expected, "from the allocator");
+    CHECK(s_atlasThroughService == 2,
+          "an atlas glyph refused through the service the clipboard writer and the allocator "
+          "made busy");
     Arm(&scene.free, &scene, false);
     CHECK(muiDestroyTextBlock(scene.service, scene.block) == mui_success, "the block gone");
     CHECK(scene.free.runs == 1 && scene.free.expected, "from the free");

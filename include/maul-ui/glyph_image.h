@@ -56,8 +56,9 @@ extern "C"
     /// @param offsetX    How far the pen is right of a pixel boundary,
     ///                   from 0 up to 1; the image's left is counted
     ///                   from that boundary.
-    /// @param imageOut   Receives the image's place and size, also when pixelsOut
-    ///                   holds too few bytes. Zeroed on any other failure.
+    /// @param imageOut   Receives the image's place and size, also when
+    ///                   pixelsOut holds too few bytes. Zeroed on any other
+    ///                   failure but `mui_errorBusy`, which leaves it.
     /// @param pixelsOut  Receives width * height bytes; may be NULL when
     ///                   capacity is 0. Zeroed over capacity unless the call
     ///                   answers `mui_success` or `mui_errorBusy`.
@@ -103,8 +104,9 @@ extern "C"
     /// @param palette     The font's palette to fill from; the first for one
     ///                    the font does not have.
     /// @param foreground  The text's colour, linear and premultiplied.
-    /// @param imageOut    Receives the image's place and size, also when pixelsOut
-    ///                    holds too few bytes. Zeroed on any other failure.
+    /// @param imageOut    Receives the image's place and size, also when
+    ///                    pixelsOut holds too few bytes. Zeroed on any other
+    ///                    failure but `mui_errorBusy`, which leaves it.
     /// @param pixelsOut   Receives width * height * 4 bytes; may be NULL
     ///                    when capacity is 0. Zeroed over capacity unless the
     ///                    call answers `mui_success` or `mui_errorBusy`.
@@ -141,8 +143,9 @@ extern "C"
     ///                   MUI_MIN_FIELD_SPREAD to MUI_MAX_FIELD_SPREAD
     ///                   pixels.
     /// @param imageOut   Receives the image's place and size, from the pen and
-    ///                   baseline at pixelSize, also when pixelsOut holds too few
-    ///                   bytes. Zeroed on any other failure.
+    ///                   baseline at pixelSize, also when pixelsOut holds too
+    ///                   few bytes. Zeroed on any other failure but
+    ///                   `mui_errorBusy`, which leaves it.
     /// @param pixelsOut  Receives width * height bytes; may be NULL when
     ///                   capacity is 0. Zeroed over capacity unless the call
     ///                   answers `mui_success` or `mui_errorBusy`.
@@ -182,8 +185,9 @@ extern "C"
     /// @param spread     How far the field reaches past the outline, from
     ///                   MUI_MIN_FIELD_SPREAD to MUI_MAX_FIELD_SPREAD
     ///                   pixels.
-    /// @param imageOut   Receives the image's place and size, also when pixelsOut
-    ///                   holds too few bytes. Zeroed on any other failure.
+    /// @param imageOut   Receives the image's place and size, also when
+    ///                   pixelsOut holds too few bytes. Zeroed on any other
+    ///                   failure but `mui_errorBusy`, which leaves it.
     /// @param pixelsOut  Receives width * height * 4 bytes, red, green, blue
     ///                   and alpha a pixel; may be NULL when capacity is 0.
     ///                   Zeroed over capacity unless the call answers

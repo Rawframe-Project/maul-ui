@@ -37,7 +37,8 @@ extern "C"
     /// @param preedit   The record's preedit (data.preedit).
     /// @param caretOut  Receives where the input method's caret is in the
     ///                  block, or -1 where it hides it or the composition
-    ///                  ended. May be NULL. 0 on failure.
+    ///                  ended. May be NULL. 0 on failure but `mui_errorBusy`,
+    ///                  which leaves it.
     /// @return As muiTextBlock_SetComposition, with `mui_errorInvalid` for
     ///         a NULL preedit.
     /// @par Thread safety
@@ -62,7 +63,7 @@ extern "C"
     /// @param blockId     The block.
     /// @param preedit     The record's preedit (data.preedit).
     /// @param changedOut  Receives whether the text changed; may be NULL. False
-    ///                    on failure.
+    ///                    on failure but `mui_errorBusy`, which leaves it.
     /// @return As muiTextBlock_Compose, with `mui_errorInvalid` for a NULL
     ///         preedit.
     /// @par Thread safety
@@ -81,7 +82,8 @@ extern "C"
     /// @param host       The text host the node's block is in.
     /// @param nodeId     A node whose host key is a block's.
     /// @param position   The position.
-    /// @param placedOut  As muiNode_SetWindowCaret's. Zeroed on failure.
+    /// @param placedOut  As muiNode_SetWindowCaret's. Zeroed on failure but
+    ///                   `mui_errorBusy`, which leaves it.
     /// @return As muiNode_GetTextCaret and muiNode_SetWindowCaret.
     /// @par Thread safety
     /// Main thread only. Maul Window's requests are too.

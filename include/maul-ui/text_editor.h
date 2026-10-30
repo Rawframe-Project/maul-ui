@@ -213,7 +213,7 @@ extern "C"
     /// @param text        UTF-8 text; may be NULL when length is 0.
     /// @param length      Its length in bytes.
     /// @param changedOut  Receives whether the text changed; may be NULL. False
-    ///                    on failure.
+    ///                    on failure but `mui_errorBusy`, which leaves it.
     /// @return `mui_success`, changed or not (read-only, filtered out, at the
     ///         limit); `mui_errorInvalid` for a NULL service or text, the null
     ///         id; `mui_errorState` for a block not editing; `mui_errorLimit`
@@ -236,7 +236,7 @@ extern "C"
     /// @param text        UTF-8 text; may be NULL when length is 0.
     /// @param length      Its length in bytes.
     /// @param changedOut  Receives whether the text changed; may be NULL. False
-    ///                    on failure.
+    ///                    on failure but `mui_errorBusy`, which leaves it.
     /// @return As muiTextBlock_Type; `mui_errorBusy` while the service is
     ///         busy.
     /// @par Thread safety
@@ -254,7 +254,7 @@ extern "C"
     /// @param blockId     The block.
     /// @param deletion    Which way.
     /// @param changedOut  Receives whether the text changed; may be NULL. False
-    ///                    on failure.
+    ///                    on failure but `mui_errorBusy`, which leaves it.
     /// @return As muiTextBlock_Type; `mui_errorInvalid` for a deletion out of
     ///         range; `mui_errorBusy` while the service is busy.
     /// @par Thread safety
@@ -271,7 +271,7 @@ extern "C"
     /// @param offset      The other end, at the start of a character;
     ///                    past the text is its end.
     /// @param changedOut  Receives whether the text changed; may be NULL. False
-    ///                    on failure.
+    ///                    on failure but `mui_errorBusy`, which leaves it.
     /// @return As muiTextBlock_Type; `mui_errorInvalid` for an offset inside a
     ///         character; `mui_errorBusy` while the service is busy.
     /// @par Thread safety
@@ -305,7 +305,7 @@ extern "C"
     /// @param service     The service.
     /// @param blockId     The block.
     /// @param changedOut  Receives whether the text changed; may be NULL. False
-    ///                    on failure.
+    ///                    on failure but `mui_errorBusy`, which leaves it.
     /// @return As muiTextBlock_Type; `mui_errorBusy` while the service is
     ///         busy.
     /// @par Thread safety
@@ -320,7 +320,7 @@ extern "C"
     /// @param service     The service.
     /// @param blockId     The block.
     /// @param changedOut  Receives whether the text changed; may be NULL. False
-    ///                    on failure.
+    ///                    on failure but `mui_errorBusy`, which leaves it.
     /// @return As muiTextBlock_Type; `mui_errorBusy` while the service is
     ///         busy.
     /// @par Thread safety
@@ -375,7 +375,8 @@ extern "C"
     ///                      may be NULL when segmentCount is 0.
     /// @param segmentCount  How many.
     /// @param changedOut    Receives whether the text changed; may be NULL.
-    ///                      False on failure.
+    ///                      False on failure but `mui_errorBusy`, which leaves
+    ///                      it.
     /// @return As muiTextBlock_Type; `mui_errorInvalid` for a caret out of
     ///         place or segments out of the text; `mui_errorBusy` while the
     ///         service is busy.
