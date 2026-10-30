@@ -6,11 +6,12 @@
 #
 #   tools/check.sh changed   the files changed against origin/main: the
 #                            source rules, formatting, the documentation
-#                            checks, and the tests the changes reach,
-#                            integration tests left out: the core's in the
-#                            linux-clang-20-asan preset, the renderer's and
-#                            the glue's in linux-parts. Under two minutes;
-#                            run it before every push.
+#                            checks, clang-tidy in Release and in Debug on
+#                            the changed sources, and the tests the
+#                            changes reach, integration tests left out:
+#                            the core's in the linux-clang-20-asan preset,
+#                            the renderer's and the glue's in linux-parts.
+#                            Under two minutes; run it before every push.
 #   tools/check.sh pr        what the pull request check runs on Linux:
 #                            every rule, the layout fixture tables, the
 #                            documentation site, clang-tidy, the whole
@@ -141,6 +142,33 @@ reached_tests() { # tree, label regex or ""
     fi
 }
 
+# clang-tidy as CI's checks job runs it: in Release, where the assertions
+# compile out, and in Debug, with them live. Each hides paths from the
+# analyzer the other shows. "every" checks every source tools/tidy_files.py
+# lists, on built trees as CI does. Otherwise only the files given that it
+# lists are checked, on trees that are only configured, which is all
+# clang-tidy reads; no file given checks none.
+tidy() { # every, or the files to check
+    local build tree count
+    [ $# -gt 0 ] || return 0
+    for build in Release Debug; do
+        tree=$out/check-tidy-$build
+        cmake --preset linux-parts -B "$tree" -DCMAKE_BUILD_TYPE=$build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DMAUL_UI_BUILD_TESTS=OFF -DMAUL_UI_BUILD_SAMPLES=OFF -DMAUL_UI_SANITIZE=OFF >"$tree.log"
+        if [ "$1" = every ]; then
+            cmake --build "$tree" -j "$jobs" >>"$tree.log"
+            python3 tools/tidy_files.py "$tree/compile_commands.json" >"$out/tidy-files.txt"
+        else
+            python3 tools/tidy_files.py "$tree/compile_commands.json" "$@" >"$out/tidy-files.txt"
+        fi
+        count=$(wc -l <"$out/tidy-files.txt")
+        step "clang-tidy, $build, on $count files"
+        [ "$count" -gt 0 ] || continue
+        xargs -P "$jobs" -n 1 clang-tidy-20 -p "$tree" --quiet --warnings-as-errors='*' <"$out/tidy-files.txt" \
+            2>/dev/null
+    done
+}
+
 if [ "$tier" = changed ]; then
     base=$(git merge-base HEAD origin/main 2>/dev/null || echo HEAD)
     mapfile -t changed < <({
@@ -160,6 +188,13 @@ if [ "$tier" = changed ]; then
         step "clang-format on ${#present[@]} changed files"
         clang-format --dry-run -Werror "${present[@]}"
     fi
+    # The changed sources of the pr tier's clang-tidy list; a deleted one
+    # is not among those present.
+    sources=()
+    for f in "${present[@]+"${present[@]}"}"; do
+        [[ $f =~ ^(src|rhi/src|window/src)/.*\.c$ ]] && sources+=("$f")
+    done
+    tidy "${sources[@]+"${sources[@]}"}"
     labels=""
     for f in "${changed[@]}"; do labels="$labels $(labels_for "$f")"; done
     core=$(printf '%s\n' $labels | grep -v '^parts$' | sort -u || true)
@@ -194,19 +229,7 @@ python3 tools/gen_layout_fixtures.py --check
 step "the documentation site builds"
 python3 tools/build_docs.py >"$out/site.log"
 
-# As CI's checks job: in Release, where the assertions compile out, and
-# in Debug, with them live. Each hides paths from the analyzer the other
-# shows.
-for build in Release Debug; do
-    step "clang-tidy on the Linux build's sources, $build"
-    tree=$out/check-tidy-$build
-    cmake --preset linux-parts -B "$tree" -DCMAKE_BUILD_TYPE=$build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-        -DMAUL_UI_BUILD_TESTS=OFF -DMAUL_UI_BUILD_SAMPLES=OFF -DMAUL_UI_SANITIZE=OFF >"$tree.log"
-    cmake --build "$tree" -j "$jobs" >>"$tree.log"
-    python3 tools/tidy_files.py "$tree/compile_commands.json" >"$out/tidy-files.txt"
-    xargs -P "$jobs" -n 1 clang-tidy-20 -p "$tree" --quiet --warnings-as-errors='*' <"$out/tidy-files.txt" \
-        2>/dev/null
-done
+tidy every
 
 preset linux-clang-20-asan
 preset linux-parts

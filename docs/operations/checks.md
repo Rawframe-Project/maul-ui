@@ -16,7 +16,7 @@ What verifies a change, locally and in CI, and the time each may take.
 
 | Tier | Runs | Budget |
 |---|---|---|
-| `changed` | The source, module, length, API documentation, snippet, text header, litmus, float environment and test hygiene rules, the shader container's stamp, the organization's documentation check, `clang-format` on the changed C and Objective-C files, and the tests whose labels the changed files reach, integration tests left out: the core's in `linux-clang-20-asan`, the renderer's and the glue's in `linux-parts`. | under 2 minutes |
+| `changed` | The source, module, length, API documentation, snippet, text header, litmus, float environment and test hygiene rules, the shader container's stamp, the organization's documentation check, `clang-format` on the changed C and Objective-C files, clang-tidy in a Release and a Debug build on the changed C sources of the core, the renderer and the glue that the `pr` tier checks, and the tests whose labels the changed files reach, integration tests left out: the core's in `linux-clang-20-asan`, the renderer's and the glue's in `linux-parts`. | under 2 minutes |
 | `pr` | Every rule on every file, the layout fixture tables against the corpus, that the documentation site builds, clang-tidy over the core's, the renderer's and the glue's sources in a Release and a Debug build, the whole `linux-clang-20-asan` and `linux-parts` suites, and 10 seconds of fuzzing per target. | under 10 minutes |
 | `full` | Also the other Linux presets (ThreadSanitizer, shared, the core alone, the parts without text and with GCC, Clang and GCC Release) and 60 seconds per fuzz target. | under 20 minutes |
 
