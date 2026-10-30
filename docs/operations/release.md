@@ -9,6 +9,7 @@ Releases are made by release-please from the conventional commit titles on `main
 3. Check that the `required` CI job passed on the release pull request, including every platform cell, and that the wasm sizes are within their ceilings.
 4. Mark the pull request ready and merge it. release-please tags the merge commit and publishes the GitHub release with the changelog entry as its notes. The Pages workflow publishes the documentation from `main`.
 5. The `assets` job of `.github/workflows/release.yml` attaches the source archive `maul-ui-X.Y.Z.tar.gz`, its `SHA256SUMS`, an SPDX SBOM and a build provenance attestation. A user verifies a download with `sha256sum -c SHA256SUMS` and `gh attestation verify maul-ui-X.Y.Z.tar.gz -R Rawframe-Project/maul-ui`.
+6. If release-please fails to create the release (the Release app cannot create one on a commit whose workflows differ from `main`'s head), create the release for the tag by hand, then run the release workflow from `main` by hand with that tag as `tag`. The `assets` job builds, attests and attaches the files of the commit the tag names, which it checks before building. It refuses a tag that is not `vX.Y.Z`, a tag whose commit `main` does not hold, a release that already has files, and a run in which release-please created a different release. It never replaces a published file.
 
 ## Notes
 

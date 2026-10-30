@@ -20,7 +20,7 @@ One glue per Maul Window context can take the gamepads (`enableGamepads` in its 
 ## Text fields
 
 - `muiNode_SetWindowCaret` tells the window that a node takes text and where its caret is, so the platform places its candidate window there and shows its input method; the null id stops text input. `muiNode_SetWindowTextCaret` does the same at a position of a node's text.
-- `muiTextBlock_ShowPreedit` shows the window's preedit in an editing field, and `muiTextBlock_SetPreedit` sets one into any text block.
+- `muiTextBlock_ShowPreedit` shows the window's preedit in an editing field, and `muiTextBlock_SetPreedit` sets one into any text block. After its `mwin_eventInputStateReset` a window shows no composition, so at a reset of the field's own window give the field an empty preedit, as Maul Window asks of a program. A reset of another window, or a gamepad's, which carries the null window, leaves the composition. The input method's next preedit shows its composition again, and its committed text still arrives as text input.
 - `muiWriteWindowClipboard` is the text editor's clipboard writer. A paste the editor asks for is requested with `muiWindowGlue_RequestPaste`, and `muiTextBlock_PasteFromWindow` takes the window's answer into the block when it arrives, since Maul Window reads the clipboard by request.
 - `muiNode_RequestWindowKeyboard` shows the on-screen keyboard for a field's input purpose, or hides it.
 
