@@ -241,12 +241,13 @@ jobs:
           exit "$status"
       # Each corpus is merged into a fresh directory through
       # tools/fuzz_target.sh --merge, which reruns every input, keeps the
-      # log on the runner and fails on a finding as a run does. The merged
-      # corpora are swapped in only when every merge passed, so a failed
-      # merge leaves the old ones, and the save is skipped. This step and
-      # the save run only on main and only when every target found
-      # nothing: a run that found something keeps its corpus, which holds
-      # inputs near the finding, out of the cache.
+      # log on the runner and fails on a finding as a run does; it takes
+      # the run's memory limit, so an input the run kept is not refused
+      # here as out of memory. The merged corpora are swapped in only when
+      # every merge passed, so a failed merge leaves the old ones, and the
+      # save is skipped. This step and the save run only on main and only
+      # when every target found nothing: a run that found something keeps
+      # its corpus, which holds inputs near the finding, out of the cache.
       - name: Minimize the corpus
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
@@ -255,7 +256,8 @@ jobs:
           targets=(out/fuzz/fuzz_*)
           printf '%s\n' "${targets[@]##*/}" |
             xargs -P 4 -I {} \
-              tools/fuzz_target.sh --merge out/fuzz/{} out/merged/corpus-{} out/corpus/corpus-{} ||
+              tools/fuzz_target.sh --merge out/fuzz/{} out/merged/corpus-{} out/corpus/corpus-{} \
+                -rss_limit_mb=4096 ||
             status=$?
           cat out/fuzz-reports/*.txt 2>/dev/null || true
           [ "$status" -eq 0 ] || exit "$status"
