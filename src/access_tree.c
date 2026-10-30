@@ -12,6 +12,7 @@
 #include "chars.h"
 #include "fpenv.h"
 #include "host_call.h"
+#include "outputs.h"
 
 #include <stdalign.h>
 #include <string.h>
@@ -513,8 +514,8 @@ static void PutNode(Writer* writer, const muiAccessNode* node, uint32_t depth)
     Put(writer, "\n", 1);
 }
 
-static MUI_NOINLINE muiResult AccessTreeWriteWorker(const muiAccessTree* tree, char* buffer,
-                                                    size_t capacity, size_t* lengthOut)
+static muiResult AccessTreeWrite(const muiAccessTree* tree, char* buffer, size_t capacity,
+                                 size_t* lengthOut)
 {
     if (lengthOut != nullptr)
     {
@@ -559,6 +560,14 @@ static MUI_NOINLINE muiResult AccessTreeWriteWorker(const muiAccessTree* tree, c
     }
     *lengthOut = writer.length;
     return writer.length < capacity ? mui_success : mui_errorCapacity;
+}
+
+static MUI_NOINLINE muiResult AccessTreeWriteWorker(const muiAccessTree* tree, char* buffer,
+                                                    size_t capacity, size_t* lengthOut)
+{
+    muiResult result = AccessTreeWrite(tree, buffer, capacity, lengthOut);
+    muiZeroOutputs(result, buffer, capacity, 1);
+    return result;
 }
 
 muiResult muiAccessTree_Write(const muiAccessTree* tree, char* bufferOut, size_t capacity,

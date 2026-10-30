@@ -42,15 +42,15 @@ exit: animation context exit_store focus notify tree layout_node
 virtual: context invariant layout_node notify scroll_store tree virtual_store fpenv
 virtual_edit: context tree virtual virtual_store fpenv
 access_store: allocator outline
-access: access_store allocator context tree fpenv
+access: access_store allocator context tree outputs fpenv
 access_build: access access_store access_text context focus layer place range scroll_store style_store tree virtual virtual_store fpenv
 access_record:
 access_text: allocator
 access_tree_store:
 chars:
-access_tree: access_tree_store allocator chars host_call fpenv
+access_tree: access_tree_store allocator chars host_call outputs fpenv
 access_apply: access_text access_tree access_tree_store allocator host_call fpenv
-access_view: access_text access_tree_store allocator host_call fpenv
+access_view: access_text access_tree_store allocator host_call outputs fpenv
 id_map: invariant
 dbus_api:
 android: id_map
@@ -111,6 +111,7 @@ tree: invariant outline
 solver: layout_node tree draw_store scroll_store
 context: access_store allocator animation inherit invariant layer_store layout_node notify pointer_store pool style_store tree token_store theme_store draw_store focus_store event_store scroll_store range_store popup_store exit_store virtual_store
 context_hold: context
+outputs:
 node: context inherit layout_node pointer style_store tree focus fpenv
 node_style: animation context layout_node pool property style_store tree inherit layer focus scroll_store fpenv
 style: condition context pool property style_edit style_store tree fpenv
@@ -153,9 +154,9 @@ font: allocator font_store pool text_service fpenv
 distance_field:
 flatten: distance_field
 multi_field: distance_field
-glyph_image: distance_field flatten glyph_outline multi_field text_service fpenv
+glyph_image: distance_field flatten glyph_outline multi_field text_service outputs fpenv
 bitmap_glyph: font_store
-color_glyph: bitmap_glyph color colr_paint glyph_outline image_scale paint_source png text_block text_service fpenv
+color_glyph: bitmap_glyph color colr_paint glyph_outline image_scale paint_source png text_block text_service outputs fpenv
 image_scale:
 colr_gradient: motion_math paint_source text_block text_service
 colr_composite:
@@ -166,6 +167,6 @@ png: inflate text_block
 glyph_outline: font_instance font_store text_block text_service
 skyline: invariant
 glyph_table: allocator
-glyph_atlas: allocator bitmap_glyph color font_store glyph_outline glyph_table invariant skyline text_service fpenv
+glyph_atlas: allocator bitmap_glyph color font_store glyph_outline glyph_table invariant skyline text_service outputs fpenv
 property_bits: outline
 inherit: layout_node property tree

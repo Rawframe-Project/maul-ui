@@ -905,11 +905,11 @@ static void TestShown(void)
           "a hidden focus, shown with what is in it");
     Focus(tree, 7);
     CHECK(!muiAccessTree_IsShown(tree, 7), "a focus a hidden node holds");
-    // Room for some.
+    // Too little room: the count, and none of the ids.
     uint64_t two[2];
     uint32_t count = 0;
     CHECK(muiAccessTree_GetShownChildren(tree, 1, two, 2, &count) == mui_errorCapacity &&
-              count == 6 && two[0] == 3 && two[1] == 4 &&
+              count == 6 && two[0] == 0 && two[1] == 0 &&
               muiAccessTree_GetShownChildren(tree, 1, NULL, 0, &count) == mui_errorCapacity &&
               count == 6 && muiAccessTree_GetShownChildren(tree, 99, two, 2, &count) == mui_empty &&
               count == 0 &&
@@ -961,7 +961,7 @@ static void TestNamesAndBounds(void)
               muiAccessTree_GetName(tree, 8, name, sizeof(name), &length) == mui_empty &&
               muiAccessTree_GetName(tree, 99, name, sizeof(name), &length) == mui_empty,
           "no name");
-    // Cut short on a whole character.
+    // Too short: the length, and nothing of the name.
     muiAccessNode accented = {.id = 30, .text = {"a\xC3\xA9"}, .textLength = {3}};
     const muiAccessNode* sent[2] = {&accented, s_built.sent[0]};
     uint64_t children[7] = {2, 6, 8, 17, 22, 23, 30};
@@ -972,13 +972,13 @@ static void TestNamesAndBounds(void)
     update = (muiAccessUpdate){sent, 2, children, 0, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "accented");
     CHECK(muiAccessTree_GetName(tree, 30, name, 3, &length) == mui_errorCapacity && length == 3 &&
-              strcmp(name, "a") == 0 &&
+              name[0] == '\0' && name[2] == '\0' &&
               muiAccessTree_GetName(tree, 30, name, 4, &length) == mui_success &&
               strcmp(name, "a\xC3\xA9") == 0 &&
               muiAccessTree_GetName(tree, 17, name, 6, &length) == mui_errorCapacity &&
-              length == 9 && strcmp(name, "Save ") == 0 &&
+              length == 9 && name[0] == '\0' && name[5] == '\0' &&
               muiAccessTree_GetName(tree, 17, NULL, 0, &length) == mui_errorCapacity && length == 9,
-          "cut");
+          "too short");
     CHECK(muiAccessTree_GetName(NULL, 3, name, 8, &length) == mui_errorInvalid &&
               muiAccessTree_GetName(tree, 3, name, 8, NULL) == mui_errorInvalid &&
               muiAccessTree_GetName(tree, 3, NULL, 8, &length) == mui_errorInvalid,
@@ -1188,8 +1188,8 @@ static void TestContract(void)
     muiAccessUpdate update = {sent, 1, NULL, 7, 7};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "one");
     CHECK(muiAccessTree_Write(tree, small, sizeof(small), &length) == mui_errorCapacity &&
-              length == strlen("marquee #7 0x0 @0,0\n") && strcmp(small, "mar") == 0,
-          "cut short");
+              length == strlen("marquee #7 0x0 @0,0\n") && small[0] == '\0' && small[3] == '\0',
+          "too short: the length, and none of the text");
     CHECK(muiAccessTree_Write(tree, NULL, 0, &length) == mui_errorCapacity &&
               muiAccessTree_Write(tree, NULL, 1, &length) == mui_errorInvalid &&
               muiAccessTree_Write(NULL, small, 4, &length) == mui_errorInvalid &&
@@ -1320,6 +1320,77 @@ static void TestNullTreeClearsOutputs(void)
           "Write clears its length");
 }
 
+static bool IsZero(const void* memory, size_t size)
+{
+    const unsigned char* bytes = memory;
+    for (size_t i = 0; i < size; i++)
+    {
+        if (bytes[i] != 0)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// A caller's array or buffer is zeroed over its whole capacity whenever a
+// query answers anything but mui_success, a failure or a "no" alike, so
+// nothing an earlier call left there, and no cut part of an answer, is
+// read as the answer (Maul conventions, Errors and assertions).
+static void TestArraysZeroedUnlessSuccess(void)
+{
+    static Built s_built;
+    BuildScene(&s_built);
+    muiAccessTreeDef def = muiDefaultAccessTreeDef();
+    muiAccessTree* tree = NULL;
+    CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
+    muiAccessUpdate update = {s_built.sent, s_built.nodeCount, s_built.children, 1, 1};
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "built");
+    char name[8];
+    size_t length = 0;
+    memset(name, 0xA5, sizeof name);
+    CHECK(muiAccessTree_GetName(tree, 99, name, sizeof name, &length) == mui_empty &&
+              IsZero(name, sizeof name),
+          "GetName: a node not held zeroes the buffer");
+    memset(name, 0xA5, sizeof name);
+    CHECK(muiAccessTree_GetName(tree, 17, name, 6, &length) == mui_errorCapacity && length == 9 &&
+              IsZero(name, 6) && (unsigned char)name[6] == 0xA5,
+          "GetName: a buffer too short is zeroed over its capacity, and only there");
+    memset(name, 0xA5, sizeof name);
+    CHECK(muiAccessTree_GetName(NULL, 3, name, sizeof name, &length) == mui_errorInvalid &&
+              IsZero(name, sizeof name),
+          "GetName: a NULL tree zeroes the buffer");
+    uint64_t children[2];
+    uint32_t count = 0;
+    memset(children, 0xA5, sizeof children);
+    CHECK(muiAccessTree_GetShownChildren(tree, 99, children, 2, &count) == mui_empty &&
+              IsZero(children, sizeof children),
+          "GetShownChildren: a node not held zeroes the ids");
+    memset(children, 0xA5, sizeof children);
+    CHECK(muiAccessTree_GetShownChildren(tree, 1, children, 1, &count) == mui_errorCapacity &&
+              count > 1 && IsZero(children, sizeof children[0]),
+          "GetShownChildren: too little room zeroes the ids");
+    muiRect rects[2];
+    memset(rects, 0xA5, sizeof rects);
+    CHECK(muiAccessTree_GetTextRects(tree, 99, 0, 1, rects, 2, &count) == mui_empty &&
+              IsZero(rects, sizeof rects),
+          "GetTextRects: a node not held zeroes the rectangles");
+    memset(rects, 0xA5, sizeof rects);
+    CHECK(muiAccessTree_GetTextRects(NULL, 1, 0, 1, rects, 2, &count) == mui_errorInvalid &&
+              IsZero(rects, sizeof rects),
+          "GetTextRects: a NULL tree zeroes the rectangles");
+    char text[16];
+    memset(text, 0xA5, sizeof text);
+    CHECK(muiAccessTree_Write(tree, text, sizeof text, &length) == mui_errorCapacity &&
+              IsZero(text, sizeof text),
+          "Write: a buffer too short is zeroed");
+    memset(text, 0xA5, sizeof text);
+    CHECK(muiAccessTree_Write(NULL, text, sizeof text, &length) == mui_errorInvalid &&
+              IsZero(text, sizeof text),
+          "Write: a NULL tree zeroes the buffer");
+    muiDestroyAccessTree(tree);
+}
+
 int main(void)
 {
     TestNamesFromContent();
@@ -1340,5 +1411,6 @@ int main(void)
     TestContract();
     TestFullTreeUpdated();
     TestNullTreeClearsOutputs();
+    TestArraysZeroedUnlessSuccess();
     return s_failures == 0 ? 0 : 1;
 }

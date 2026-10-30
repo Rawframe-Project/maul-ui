@@ -5,7 +5,9 @@
 // assertions): a call whose first parameter is the context clears every
 // output on any failure, before it checks the context, so a NULL context,
 // a busy one and a stale id all leave zeros; a count a too-small array
-// needs is the one output a failure defines.
+// needs is the one output a failure defines, and a caller's array is
+// zeroed over its capacity whenever the call answers anything but
+// mui_success.
 
 #include "test_harness.h"
 
@@ -324,12 +326,30 @@ static void TestCapacityFailureGivesTheCount(void)
     CHECK(muiNode_SetAccessRelation(context, nodes[0], mui_relationControls, &nodes[1], 2) ==
               mui_success,
           "relation");
-    muiNodeId targets[1] = {0};
+    muiNodeId targets[3];
     uint32_t count = 0;
+    memset(targets, 0xA5, sizeof targets);
     CHECK(muiNode_GetAccessRelation(context, nodes[0], mui_relationControls, targets, 1, &count) ==
                   mui_errorCapacity &&
-              count == 2,
-          "a capacity failure gives the count needed");
+              count == 2 && IsZero(targets, sizeof targets[0]),
+          "a capacity failure gives the count needed, and zeroes the array");
+    memset(targets, 0xA5, sizeof targets);
+    CHECK(muiNode_GetAccessRelation(context, nodes[0], mui_relationControls, targets, 3, &count) ==
+                  mui_success &&
+              count == 2 && targets[0].index1 == nodes[1].index1 &&
+              targets[1].index1 == nodes[2].index1,
+          "a success writes the nodes");
+    CHECK(muiDestroyNode(context, nodes[0]) == mui_success, "node gone");
+    memset(targets, 0xA5, sizeof targets);
+    CHECK(muiNode_GetAccessRelation(context, nodes[0], mui_relationControls, targets, 3, &count) ==
+                  mui_errorStale &&
+              IsZero(targets, sizeof targets),
+          "a stale node zeroes the array over its capacity");
+    memset(targets, 0xA5, sizeof targets);
+    CHECK(muiNode_GetAccessRelation(NULL, nodes[1], mui_relationControls, targets, 3, &count) ==
+                  mui_errorInvalid &&
+              IsZero(targets, sizeof targets),
+          "a NULL context zeroes the array over its capacity");
     muiDestroyContext(context);
 }
 

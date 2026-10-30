@@ -4,7 +4,9 @@
 // What a failure leaves in the text component's outputs (Maul
 // conventions, Errors and assertions): a call whose first parameter is the
 // text service or a glyph atlas clears every output on any failure, before
-// it checks that owner, so a NULL owner and a stale id both leave zeros.
+// it checks that owner, so a NULL owner and a stale id both leave zeros,
+// and a caller's buffer is zeroed over its capacity whenever the call
+// answers anything but mui_success.
 
 #include "test_harness.h"
 
@@ -213,10 +215,56 @@ static void TestStaleIdsClearOutputs(void)
     muiDestroyTextService(service);
 }
 
+// A caller's buffer is zeroed over its capacity whenever the call answers
+// anything but mui_success, so nothing an earlier call left there is read
+// as the answer.
+static void TestBuffersZeroedUnlessSuccess(void)
+{
+    unsigned char pixels[16];
+    muiGlyphImage image;
+    memset(pixels, 0xA5, sizeof pixels);
+    CHECK(muiTextService_RenderGlyph(NULL, 0, 0, 16.0f, 0.0f, &image, pixels, sizeof pixels) ==
+                  mui_errorInvalid &&
+              IsZero(pixels, sizeof pixels),
+          "muiTextService_RenderGlyph zeroes its pixels");
+    memset(pixels, 0xA5, sizeof pixels);
+    const muiLinearColor black = {0.0f, 0.0f, 0.0f, 1.0f};
+    CHECK(muiTextService_RenderColorGlyph(NULL, 0, 0, 16.0f, 0.0f, 0, black, &image, pixels,
+                                          sizeof pixels) == mui_errorInvalid &&
+              IsZero(pixels, sizeof pixels),
+          "muiTextService_RenderColorGlyph zeroes its pixels");
+    memset(pixels, 0xA5, sizeof pixels);
+    CHECK(muiTextService_RenderGlyphField(NULL, 0, 0, 16.0f, 4, &image, pixels, sizeof pixels) ==
+                  mui_errorInvalid &&
+              IsZero(pixels, sizeof pixels),
+          "muiTextService_RenderGlyphField zeroes its pixels");
+    memset(pixels, 0xA5, sizeof pixels);
+    CHECK(muiTextService_RenderGlyphMultiField(NULL, 0, 0, 16.0f, 4, &image, pixels,
+                                               sizeof pixels) == mui_errorInvalid &&
+              IsZero(pixels, sizeof pixels),
+          "muiTextService_RenderGlyphMultiField zeroes its pixels");
+    muiTextServiceDef def = muiDefaultTextServiceDef();
+    muiTextService* service = NULL;
+    CHECK(muiCreateTextService(&def, &service) == mui_success, "service");
+    memset(pixels, 0xA5, sizeof pixels);
+    CHECK(muiTextService_RenderGlyph(service, 1, 0, 16.0f, 0.0f, &image, pixels, sizeof pixels) ==
+                  mui_errorStale &&
+              IsZero(pixels, sizeof pixels),
+          "a font not loaded: muiTextService_RenderGlyph zeroes its pixels");
+    muiDestroyTextService(service);
+    muiAtlasUpdate updates[2];
+    uint32_t count = 0;
+    memset(updates, 0xA5, sizeof updates);
+    CHECK(muiGlyphAtlas_TakeUpdates(NULL, updates, 2, &count) == mui_errorInvalid &&
+              IsZero(updates, sizeof updates),
+          "muiGlyphAtlas_TakeUpdates zeroes its updates");
+}
+
 int main(void)
 {
     TestNullServiceClearsOutputs();
     TestNullAtlasClearsOutputs();
     TestStaleIdsClearOutputs();
+    TestBuffersZeroedUnlessSuccess();
     return s_failures == 0 ? 0 : 1;
 }

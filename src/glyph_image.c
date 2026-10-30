@@ -13,6 +13,7 @@
 #include "fpenv.h"
 #include "glyph_outline.h"
 #include "multi_field.h"
+#include "outputs.h"
 #include "text_service.h"
 
 #include <math.h>
@@ -85,6 +86,7 @@ static MUI_NOINLINE muiResult RenderGlyphWorker(muiTextService* service, uint64_
         status = RenderGlyph(service, font, glyph, pixelSize, offsetX, imageOut, pixels, capacity);
         muiLeaveText(service);
     }
+    muiZeroOutputs(status, pixels, capacity, 1);
     return status;
 }
 
@@ -281,6 +283,7 @@ static MUI_NOINLINE muiResult RenderGlyphFieldWorker(muiTextService* service, ui
             RenderGlyphField(service, font, glyph, pixelSize, spread, imageOut, pixels, capacity);
         muiLeaveText(service);
     }
+    muiZeroOutputs(status, pixels, capacity, 1);
     return status;
 }
 
@@ -318,6 +321,7 @@ static MUI_NOINLINE muiResult RenderGlyphMultiFieldWorker(muiTextService* servic
                                        capacity);
         muiLeaveText(service);
     }
+    muiZeroOutputs(status, pixels, capacity, 1);
     return status;
 }
 

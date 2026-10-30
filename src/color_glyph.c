@@ -17,6 +17,7 @@
 #include "colr_paint.h"
 #include "fpenv.h"
 #include "image_scale.h"
+#include "outputs.h"
 #include "png.h"
 #include "text_service.h"
 
@@ -384,6 +385,7 @@ static MUI_NOINLINE muiResult RenderColorGlyphWorker(muiTextService* service, ui
                                   imageOut, pixels, capacity);
         muiLeaveText(service);
     }
+    muiZeroOutputs(status, pixels, capacity, 1);
     return status;
 }
 

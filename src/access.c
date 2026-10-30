@@ -11,6 +11,7 @@
 #include "allocator.h"
 #include "context.h"
 #include "fpenv.h"
+#include "outputs.h"
 #include "tree.h"
 
 #include <stdalign.h>
@@ -660,9 +661,9 @@ muiResult muiNode_SetAccessRelation(muiContext* context, muiNodeId nodeId, muiAc
     return status;
 }
 
-muiResult muiNode_GetAccessRelation(const muiContext* context, muiNodeId nodeId,
-                                    muiAccessRelation kind, muiNodeId* targetsOut,
-                                    uint32_t capacity, uint32_t* countOut)
+static muiResult GetAccessRelation(const muiContext* context, muiNodeId nodeId,
+                                   muiAccessRelation kind, muiNodeId* targetsOut, uint32_t capacity,
+                                   uint32_t* countOut)
 {
     if (countOut != nullptr)
     {
@@ -687,6 +688,15 @@ muiResult muiNode_GetAccessRelation(const muiContext* context, muiNodeId nodeId,
     }
     *countOut = count;
     return count <= capacity ? mui_success : mui_errorCapacity;
+}
+
+muiResult muiNode_GetAccessRelation(const muiContext* context, muiNodeId nodeId,
+                                    muiAccessRelation kind, muiNodeId* targetsOut,
+                                    uint32_t capacity, uint32_t* countOut)
+{
+    muiResult result = GetAccessRelation(context, nodeId, kind, targetsOut, capacity, countOut);
+    muiZeroOutputs(result, targetsOut, capacity, sizeof *targetsOut);
+    return result;
 }
 
 muiAccessValues muiDefaultAccessValues(void)
