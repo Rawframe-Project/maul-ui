@@ -308,7 +308,7 @@ static muiResult CreateFont(muiTextService* service, const muiFontDef* def, muiF
 {
     if (service == nullptr || def == nullptr || fontOut == nullptr ||
         def->cookie != FONT_DEF_COOKIE || def->data == nullptr ||
-        def->dataMode > mui_fontDataBorrow)
+        (uint32_t)def->dataMode > mui_fontDataBorrow)
     {
         return muiRefuseText(service);
     }

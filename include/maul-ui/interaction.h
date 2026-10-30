@@ -22,7 +22,7 @@ extern "C"
 #endif
 
     // Which of a node and its children a point can hit.
-    typedef uint8_t muiHitMode;
+    typedef int32_t muiHitMode;
 
     enum
     {
@@ -38,7 +38,7 @@ extern "C"
 
     // Whether a node roots a layer: painted, and hit, apart from the
     // content around it, above it.
-    typedef uint8_t muiLayerKind;
+    typedef int32_t muiLayerKind;
 
     enum
     {
@@ -56,7 +56,7 @@ extern "C"
     };
 
     // Where an exiting node (maul-ui/exit.h) stays in its parent's layout.
-    typedef uint8_t muiExitLayout;
+    typedef int32_t muiExitLayout;
 
     enum
     {
@@ -68,7 +68,7 @@ extern "C"
     };
 
     // Whether a node takes a player's focus, and how.
-    typedef uint8_t muiFocusMode;
+    typedef int32_t muiFocusMode;
 
     enum
     {

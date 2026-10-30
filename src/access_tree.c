@@ -384,7 +384,7 @@ static_assert(sizeof(s_roles) / sizeof(s_roles[0]) == MUI_ROLE_LAST + 1, "a name
 
 const char* muiGetAccessRoleName(muiRole role)
 {
-    return role <= MUI_ROLE_LAST ? s_roles[role] : "unknown";
+    return (uint32_t)role <= MUI_ROLE_LAST ? s_roles[role] : "unknown";
 }
 
 // Text written so far, past the end counted but not written.

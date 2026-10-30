@@ -464,7 +464,7 @@ static void TestRelationsAndValues(void)
         uint32_t* counts[9] = {&next.level,       &next.setPosition, &next.setSize,
                                &next.rowCount,    &next.columnCount, &next.rowIndex,
                                &next.columnIndex, &next.rowSpan,     &next.columnSpan};
-        uint8_t* kinds[6] = {&next.live, &next.popup,   &next.orientation,
+        int32_t* kinds[6] = {&next.live, &next.popup,   &next.orientation,
                              &next.sort, &next.invalid, &next.current};
         if (field < 9)
         {

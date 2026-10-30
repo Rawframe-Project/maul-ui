@@ -282,7 +282,7 @@ static const RoleName s_names[] = {
 
 uint32_t muiAtspiRoleOf(const muiAccessTree* tree, const muiAccessNode* node)
 {
-    uint32_t role = node->role <= MUI_ROLE_LAST ? s_roles[node->role] : ROLE_UNKNOWN;
+    uint32_t role = (uint32_t)node->role <= MUI_ROLE_LAST ? s_roles[node->role] : ROLE_UNKNOWN;
     // A window's root is its top-level object, which clients look for
     // as a frame or a dialog to follow focus within: no other window
     // stands for it on the bus.

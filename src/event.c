@@ -214,7 +214,9 @@ static muiResult KeyInput(muiContext* context, muiNodeId rootId, const muiKeyEve
         return mui_errorInvalid;
     }
     muiResult status = mui_success;
-    bool valid = event != nullptr && handledOut != nullptr;
+    // A code is a usage, 0 to 0xFFFF; read unsigned, a negative one is
+    // past it.
+    bool valid = event != nullptr && handledOut != nullptr && (uint32_t)event->code <= 0xFFFFu;
     uint32_t root = Admit(context, rootId, valid ? event->player : 0, valid, &status);
     if (root == 0)
     {
@@ -359,7 +361,8 @@ static muiResult NavigationInput(muiContext* context, muiNodeId rootId,
         return mui_errorInvalid;
     }
     muiResult status = mui_success;
-    bool valid = event != nullptr && handledOut != nullptr && event->action <= mui_navigateCancel;
+    bool valid =
+        event != nullptr && handledOut != nullptr && (uint32_t)event->action <= mui_navigateCancel;
     uint32_t root = Admit(context, rootId, valid ? event->player : 0, valid, &status);
     if (root == 0)
     {

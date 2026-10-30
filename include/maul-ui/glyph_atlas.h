@@ -29,7 +29,7 @@ extern "C"
     typedef struct muiGlyphAtlas muiGlyphAtlas;
 
     // The pixels of an atlas's pages.
-    typedef uint8_t muiAtlasFormat;
+    typedef int32_t muiAtlasFormat;
 
     enum
     {

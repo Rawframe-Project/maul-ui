@@ -189,7 +189,7 @@ const muiFont* muiMatchFamily(const muiTextService* service, const muiFontFamily
         return nullptr;
     }
     count = MatchWidth(faces, count);
-    count = MatchSlant(faces, count, slant <= mui_slantOblique ? slant : mui_slantNormal);
+    count = MatchSlant(faces, count, (uint32_t)slant <= mui_slantOblique ? slant : mui_slantNormal);
     uint32_t best = 0;
     float bestScore = WeightScore(faces[0].font, weight);
     for (uint32_t i = 1; i < count; i++)
@@ -399,7 +399,7 @@ static MUI_NOINLINE muiResult FontFamilyMatchFaceWorker(const muiTextService* se
         memset(faceOut, 0, sizeof *faceOut);
     }
     if (service == nullptr || faceOut == nullptr || familyId.index1 == 0 ||
-        !(weight >= 1.0f && weight <= 1000.0f) || slant > mui_slantOblique)
+        !(weight >= 1.0f && weight <= 1000.0f) || (uint32_t)slant > mui_slantOblique)
     {
         return mui_errorInvalid;
     }

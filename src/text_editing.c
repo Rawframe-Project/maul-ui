@@ -126,7 +126,7 @@ static muiResult TextBlockSetEditing(muiTextService* service, muiTextBlockId blo
 {
     if (service == nullptr || blockId.index1 == 0 || rules == nullptr ||
         (rules->flags & ~(mui_editMultiline | mui_editReadOnly | mui_editPassword)) != 0 ||
-        rules->filter > mui_filterDecimal || rules->purpose > mui_purposeUrl)
+        (uint32_t)rules->filter > mui_filterDecimal || (uint32_t)rules->purpose > mui_purposeUrl)
     {
         return muiRefuseText(service);
     }
@@ -225,7 +225,7 @@ muiResult muiSelectText(muiTextService* service, muiTextBlockId blockId, muiText
     }
     if (!muiIsCharacterStart(block, selection.anchor) ||
         !muiIsCharacterStart(block, selection.caret.offset) ||
-        selection.caret.affinity > mui_affinityUpstream)
+        (uint32_t)selection.caret.affinity > mui_affinityUpstream)
     {
         return muiRefuseText(service);
     }
@@ -479,8 +479,9 @@ muiResult muiEraseText(muiTextService* service, muiTextBlockId blockId, muiTextD
         *changedOut = false;
     }
     muiTextBlock* block = nullptr;
-    muiResult result = deletion <= mui_deleteForward ? muiEditBlock(service, blockId, &block)
-                                                     : muiRefuseText(service);
+    muiResult result = (uint32_t)deletion <= mui_deleteForward
+                           ? muiEditBlock(service, blockId, &block)
+                           : muiRefuseText(service);
     uint32_t start = 0;
     uint32_t end = 0;
     result = result == mui_success && (block->editing.rules.flags & mui_editReadOnly) == 0

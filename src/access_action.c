@@ -114,7 +114,7 @@ static muiResult PerformAccessAction(muiContext* context, const muiAccessRequest
     {
         return muiRefuseBusy(context);
     }
-    if (request == nullptr || request->action > mui_actionReplaceText)
+    if (request == nullptr || (uint32_t)request->action > mui_actionReplaceText)
     {
         return muiRefuse(context);
     }

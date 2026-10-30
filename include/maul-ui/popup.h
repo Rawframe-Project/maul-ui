@@ -38,7 +38,7 @@ extern "C"
     // Where a popup goes from its anchor. Start and end follow the
     // anchor's direction: start is the left, or the right under right to
     // left.
-    typedef uint8_t muiPopupSide;
+    typedef int32_t muiPopupSide;
 
     enum
     {
@@ -53,7 +53,7 @@ extern "C"
     // How a popup lines up with its anchor along the side: their start
     // edges, centers, or end edges; for above and below, start and end in
     // the anchor's direction.
-    typedef uint8_t muiPopupAlign;
+    typedef int32_t muiPopupAlign;
 
     enum
     {
@@ -79,7 +79,7 @@ extern "C"
     } muiPopup;
 
     // Why a popup was dismissed.
-    typedef uint8_t muiDismissReason;
+    typedef int32_t muiDismissReason;
 
     enum
     {
