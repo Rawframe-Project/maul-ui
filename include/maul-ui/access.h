@@ -620,7 +620,8 @@ extern "C"
     ///
     /// @param context    The context.
     /// @param rootId     The root.
-    /// @param updateOut  Receives the update. Zeroed on failure.
+    /// @param updateOut  Receives the update. Zeroed on failure but
+    ///                   `mui_errorBusy`, which leaves it.
     /// @return `mui_success`; `mui_empty` for a root not enabled;
     ///         `mui_errorInvalid` for a NULL argument or the null id;
     ///         `mui_errorBusy` while the context is busy; `mui_errorStale` for
@@ -636,7 +637,8 @@ extern "C"
     /// @param request     The request.
     /// @param handledOut  Receives whether it did anything: a click a widget
     ///                    handled, a focus or value or offset that moved, a
-    ///                    request posted. May be NULL. False on failure.
+    ///                    request posted. May be NULL. False on failure but
+    ///                    `mui_errorBusy`, which leaves it.
     /// @return `mui_success`; `mui_empty` for a node that does not take the
     ///         action, and for the text actions, which the host applies;
     ///         `mui_errorInvalid` for a NULL context or request or an unknown

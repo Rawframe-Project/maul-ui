@@ -197,28 +197,45 @@ static void CallBack(Probe* probe)
             expected && size.width == 0.0f && size.height == 0.0f && isnan(baseline) && !read;
         refused += 5;
     }
-    // A call refused as busy leaves a caller's buffer, which may be the one
-    // the call in progress is filling.
+    // A call refused as busy writes none of its outputs, buffers and single
+    // values alike, which may be ones the call in progress has written or
+    // is filling (Maul conventions, Errors and assertions).
     if (probe->atlas)
     {
         muiAtlasUpdate updates[2];
+        uint32_t taken;
+        muiAtlasGlyph glyph;
         memset(updates, 0xA5, sizeof updates);
-        uint32_t taken = 0;
+        memset(&taken, 0xA5, sizeof taken);
+        memset(&glyph, 0xA5, sizeof glyph);
         expected = expected &&
                    muiGlyphAtlas_TakeUpdates(scene->atlas, updates, 2, &taken) == mui_errorBusy &&
-                   Holds(updates, sizeof updates, 0xA5);
+                   muiGlyphAtlas_GetGlyph(scene->atlas, 0, 0, 16.0f, 0.0f, 0.0f, &glyph) ==
+                       mui_errorBusy &&
+                   Holds(updates, sizeof updates, 0xA5) && Holds(&taken, sizeof taken, 0xA5) &&
+                   Holds(&glyph, sizeof glyph, 0xA5);
+        refused += 2;
     }
     else
     {
         unsigned char pixels[8];
-        memset(pixels, 0xA5, sizeof pixels);
         muiGlyphImage image;
+        bool changed;
+        memset(pixels, 0xA5, sizeof pixels);
+        memset(&image, 0xA5, sizeof image);
+        memset(&changed, 0xA5, sizeof changed);
         expected = expected &&
                    muiTextService_RenderGlyph(scene->service, 0, 0, 16.0f, 0.0f, &image, pixels,
                                               sizeof pixels) == mui_errorBusy &&
-                   Holds(pixels, sizeof pixels, 0xA5);
+                   muiTextBlock_Type(scene->service, scene->block, "a", 1, &changed) ==
+                       mui_errorBusy &&
+                   muiTextBlock_Undo(scene->service, scene->block, &changed) == mui_errorBusy &&
+                   muiTextBlock_Compose(scene->service, scene->block, "a", 1, 0, NULL, 0,
+                                        &changed) == mui_errorBusy &&
+                   Holds(pixels, sizeof pixels, 0xA5) && Holds(&image, sizeof image, 0xA5) &&
+                   Holds(&changed, sizeof changed, 0xA5);
+        refused += 4;
     }
-    refused++;
     // The calls not refused as busy refuse their arguments, counted too.
     expected = expected && muiTextService_GetMisuse(scene->service) >= misuse + refused;
     probe->expected = probe->expected && expected;

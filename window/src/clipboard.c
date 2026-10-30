@@ -31,9 +31,8 @@ muiResult muiWindowGlue_RequestPaste(muiWindowGlue* glue)
     return mui_success;
 }
 
-muiResult muiTextBlock_PasteFromWindow(muiWindowGlue* glue, muiTextService* service,
-                                       muiTextBlockId blockId, const mwinEvent* event,
-                                       bool* changedOut)
+static muiResult PasteFromWindowOf(muiWindowGlue* glue, muiTextService* service,
+                                   muiTextBlockId blockId, const mwinEvent* event, bool* changedOut)
 {
     if (changedOut != nullptr)
     {
@@ -76,4 +75,21 @@ muiResult muiTextBlock_PasteFromWindow(muiWindowGlue* glue, muiTextService* serv
     }
     muiWindowRelease(&glue->allocator, text, size, 1);
     return result;
+}
+
+muiResult muiTextBlock_PasteFromWindow(muiWindowGlue* glue, muiTextService* service,
+                                       muiTextBlockId blockId, const mwinEvent* event,
+                                       bool* changedOut)
+{
+    bool value = false;
+    muiResult status = PasteFromWindowOf(glue, service, blockId, event,
+                                         (changedOut != nullptr ? &value : nullptr));
+    // Refused as busy, the call writes no output (Maul conventions, Errors
+    // and assertions): host code made it, and the call in progress may
+    // have written or be filling the caller's.
+    if (changedOut != nullptr && status != mui_errorBusy)
+    {
+        *changedOut = value;
+    }
+    return status;
 }

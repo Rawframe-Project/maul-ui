@@ -92,6 +92,20 @@ struct muiGlyphAtlas
 // Marks the atlas busy for one of its functions that change it:
 // mui_success, or mui_errorBusy with one misuse counted on its service
 // when it is busy already. A NULL atlas is left to the function.
+// Refuses a call that host code the atlas runs made while it is busy: one
+// misuse counted on its service, and true, for the call to return
+// mui_errorBusy before it writes any output. A NULL atlas is left to the
+// call.
+static bool RefusesBusy(muiGlyphAtlas* atlas)
+{
+    if (atlas == nullptr || !atlas->busy)
+    {
+        return false;
+    }
+    atlas->service->misuse++;
+    return true;
+}
+
 static muiResult EnterAtlas(muiGlyphAtlas* atlas)
 {
     if (atlas == nullptr)
@@ -681,6 +695,10 @@ static MUI_NOINLINE muiResult GlyphAtlasGetWorker(muiGlyphAtlas* atlas, uint64_t
                                                   uint32_t glyph, float pixelSize, float penX,
                                                   float baselineY, muiAtlasGlyph* glyphOut)
 {
+    if (RefusesBusy(atlas))
+    {
+        return mui_errorBusy;
+    }
     if (glyphOut != nullptr)
     {
         memset(glyphOut, 0, sizeof *glyphOut);
@@ -721,6 +739,10 @@ static MUI_NOINLINE muiResult GlyphAtlasGetColorWorker(muiGlyphAtlas* atlas, uin
                                                        muiLinearColor foreground,
                                                        muiAtlasGlyph* glyphOut)
 {
+    if (RefusesBusy(atlas))
+    {
+        return mui_errorBusy;
+    }
     if (glyphOut != nullptr)
     {
         memset(glyphOut, 0, sizeof *glyphOut);
@@ -784,6 +806,10 @@ static MUI_NOINLINE muiResult GlyphAtlasGetFieldWorker(muiGlyphAtlas* atlas, uin
                                                        uint32_t glyph, float pixelSize,
                                                        uint32_t spread, muiAtlasGlyph* glyphOut)
 {
+    if (RefusesBusy(atlas))
+    {
+        return mui_errorBusy;
+    }
     if (glyphOut != nullptr)
     {
         memset(glyphOut, 0, sizeof *glyphOut);
@@ -819,6 +845,10 @@ static MUI_NOINLINE muiResult GlyphAtlasGetMultiFieldWorker(muiGlyphAtlas* atlas
                                                             uint32_t spread,
                                                             muiAtlasGlyph* glyphOut)
 {
+    if (RefusesBusy(atlas))
+    {
+        return mui_errorBusy;
+    }
     if (glyphOut != nullptr)
     {
         memset(glyphOut, 0, sizeof *glyphOut);
@@ -890,6 +920,10 @@ static muiResult GlyphAtlasTakeUpdates(muiGlyphAtlas* atlas, muiAtlasUpdate* upd
 muiResult muiGlyphAtlas_TakeUpdates(muiGlyphAtlas* atlas, muiAtlasUpdate* updatesOut,
                                     uint32_t capacity, uint32_t* countOut)
 {
+    if (RefusesBusy(atlas))
+    {
+        return mui_errorBusy;
+    }
     if (countOut != nullptr)
     {
         *countOut = 0;

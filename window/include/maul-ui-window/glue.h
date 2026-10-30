@@ -129,7 +129,8 @@ extern "C"
     ///
     /// @param glue        The glue.
     /// @param event       The record.
-    /// @param handledOut  Receives whether the UI handled it. False on failure.
+    /// @param handledOut  Receives whether the UI handled it. False on failure
+    ///                    but `mui_errorBusy`, which leaves it.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
     ///         call from a measure, paint or event function, or a record
     ///         Maul UI refuses (its own checks pass it on);
@@ -153,7 +154,7 @@ extern "C"
     /// @param nowNs       The time, in nanoseconds on Maul Window's
     ///                    monotonic clock.
     /// @param handledOut  Receives whether the UI handled what repeated. False
-    ///                    on failure.
+    ///                    on failure but `mui_errorBusy`, which leaves it.
     /// @return As muiWindowGlue_HandleEvent.
     /// @par Thread safety
     /// Safe from any thread; the glue and its context are used by one

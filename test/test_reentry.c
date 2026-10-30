@@ -182,6 +182,56 @@ typedef struct Probe
     bool expected;
 } Probe;
 
+// Whether every byte of an output still holds the pattern a refused call
+// must leave.
+static bool Untouched(const void* output, size_t size)
+{
+    const unsigned char* bytes = output;
+    for (size_t i = 0; i < size; i++)
+    {
+        if (bytes[i] != 0xA5)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// A call refused as busy writes none of its outputs, which may be ones the
+// call in progress has written or is filling (Maul conventions, Errors and
+// assertions). Calls each one that writes an output and is refused here:
+// all of them from host code, the input calls from the event function.
+static bool LeavesOutputs(muiContext* context, bool routing)
+{
+    bool handled;
+    muiAccessUpdate update;
+    muiNotification notification;
+    muiPointerRecord record;
+    muiVariant variant;
+    memset(&handled, 0xA5, sizeof handled);
+    memset(&update, 0xA5, sizeof update);
+    memset(&notification, 0xA5, sizeof notification);
+    memset(&record, 0xA5, sizeof record);
+    memset(&variant, 0xA5, sizeof variant);
+    bool left = muiContext_PerformAccessAction(context, NULL, &handled) == mui_errorBusy &&
+                muiNode_RouteKey(context, s_null, NULL, &handled) == mui_errorBusy &&
+                muiNode_RouteText(context, s_null, NULL, &handled) == mui_errorBusy &&
+                muiNode_RouteNavigation(context, s_null, NULL, &handled) == mui_errorBusy &&
+                muiNode_RouteWheel(context, s_null, NULL, &handled) == mui_errorBusy &&
+                muiContext_DispatchPointerRecord(context, NULL, &handled) == mui_errorBusy &&
+                Untouched(&handled, sizeof handled);
+    if (!routing)
+    {
+        left = left && muiNode_BuildAccessUpdate(context, s_null, &update) == mui_errorBusy &&
+               muiContext_TakeNotification(context, &notification) == mui_errorBusy &&
+               muiContext_TakePointerRecord(context, &record) == mui_errorBusy &&
+               muiStyle_AddCondition(context, (muiStyleId){0}, NULL, &variant) == mui_errorBusy &&
+               Untouched(&update, sizeof update) && Untouched(&notification, sizeof notification) &&
+               Untouched(&record, sizeof record) && Untouched(&variant, sizeof variant);
+    }
+    return left;
+}
+
 // Calls back in and checks every answer, and that destroying is refused:
 // the context stays alive and the misuse count grows by each refusal.
 static void CallBack(Probe* probe)
@@ -205,6 +255,7 @@ static void CallBack(Probe* probe)
         refused += state;
         expected = expected && state == (!probe->routing || IsRefusedInRoute(i));
     }
+    expected = expected && LeavesOutputs(context, probe->routing);
     muiDestroyContext(context);
     expected = expected && muiContext_GetMisuse(context) >= misuse + (uint64_t)refused + 1;
     probe->expected = probe->expected && expected;

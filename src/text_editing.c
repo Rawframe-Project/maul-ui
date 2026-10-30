@@ -391,6 +391,10 @@ muiResult muiTypeText(muiTextService* service, muiTextBlockId blockId, const cha
 static MUI_NOINLINE muiResult TextBlockTypeWorker(muiTextService* service, muiTextBlockId blockId,
                                                   const char* text, size_t length, bool* changedOut)
 {
+    if (muiRefusesBusyText(service))
+    {
+        return mui_errorBusy;
+    }
     if (changedOut != nullptr)
     {
         *changedOut = false;
@@ -423,6 +427,10 @@ static MUI_NOINLINE muiResult TextBlockPasteWorker(muiTextService* service, muiT
                                                    const char* text, size_t length,
                                                    bool* changedOut)
 {
+    if (muiRefusesBusyText(service))
+    {
+        return mui_errorBusy;
+    }
     if (changedOut != nullptr)
     {
         *changedOut = false;
@@ -494,6 +502,10 @@ muiResult muiEraseText(muiTextService* service, muiTextBlockId blockId, muiTextD
 static MUI_NOINLINE muiResult TextBlockEraseWorker(muiTextService* service, muiTextBlockId blockId,
                                                    muiTextDeletion deletion, bool* changedOut)
 {
+    if (muiRefusesBusyText(service))
+    {
+        return mui_errorBusy;
+    }
     if (changedOut != nullptr)
     {
         *changedOut = false;
@@ -548,6 +560,10 @@ static MUI_NOINLINE muiResult TextBlockEraseToWorker(muiTextService* service,
                                                      muiTextBlockId blockId, uint32_t offset,
                                                      bool* changedOut)
 {
+    if (muiRefusesBusyText(service))
+    {
+        return mui_errorBusy;
+    }
     if (changedOut != nullptr)
     {
         *changedOut = false;
@@ -663,6 +679,10 @@ muiResult muiUndoText(muiTextService* service, muiTextBlockId blockId, bool* cha
 static MUI_NOINLINE muiResult TextBlockUndoWorker(muiTextService* service, muiTextBlockId blockId,
                                                   bool* changedOut)
 {
+    if (muiRefusesBusyText(service))
+    {
+        return mui_errorBusy;
+    }
     if (changedOut != nullptr)
     {
         *changedOut = false;
@@ -692,6 +712,10 @@ muiResult muiRedoText(muiTextService* service, muiTextBlockId blockId, bool* cha
 static MUI_NOINLINE muiResult TextBlockRedoWorker(muiTextService* service, muiTextBlockId blockId,
                                                   bool* changedOut)
 {
+    if (muiRefusesBusyText(service))
+    {
+        return mui_errorBusy;
+    }
     if (changedOut != nullptr)
     {
         *changedOut = false;
@@ -840,6 +864,10 @@ static MUI_NOINLINE muiResult TextBlockComposeWorker(muiTextService* service,
                                                      const muiCompositionSegment* segments,
                                                      uint32_t segmentCount, bool* changedOut)
 {
+    if (muiRefusesBusyText(service))
+    {
+        return mui_errorBusy;
+    }
     if (changedOut != nullptr)
     {
         *changedOut = false;

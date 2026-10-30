@@ -624,6 +624,10 @@ static muiResult BuildAccessUpdate(muiContext* context, muiNodeId rootId,
 static MUI_NOINLINE muiResult BuildAccessUpdateWorker(muiContext* context, muiNodeId rootId,
                                                       muiAccessUpdate* updateOut)
 {
+    if (muiRefusesBusy(context, false))
+    {
+        return mui_errorBusy;
+    }
     if (updateOut != nullptr)
     {
         memset(updateOut, 0, sizeof *updateOut);

@@ -232,7 +232,8 @@ extern "C"
     /// @param rootId      The root of the subtree the player's input is for.
     /// @param event       The key: a player below MUI_MAX_PLAYERS.
     /// @param handledOut  Receives whether the UI handled it; what it did not
-    ///                    is the game's. False on failure.
+    ///                    is the game's. False on failure but `mui_errorBusy`,
+    ///                    which leaves it.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, the null
     ///         id or an event outside the above; `mui_errorBusy` while the
     ///         context is busy or its event function runs; `mui_errorStale` for
@@ -249,7 +250,8 @@ extern "C"
     /// @param rootId      The root.
     /// @param event       The text: non-NULL when its length is not 0, a
     ///                    player below MUI_MAX_PLAYERS.
-    /// @param handledOut  Receives whether the UI handled it. False on failure.
+    /// @param handledOut  Receives whether the UI handled it. False on failure
+    ///                    but `mui_errorBusy`, which leaves it.
     /// @return As muiNode_RouteKey's; `mui_errorBusy` while the context is busy or
     ///         its event function runs.
     /// @par Thread safety
@@ -267,7 +269,8 @@ extern "C"
     /// @param rootId      The root.
     /// @param event       The action: a known one, a player below
     ///                    MUI_MAX_PLAYERS.
-    /// @param handledOut  Receives whether the UI handled it. False on failure.
+    /// @param handledOut  Receives whether the UI handled it. False on failure
+    ///                    but `mui_errorBusy`, which leaves it.
     /// @return As muiNode_RouteKey's; `mui_errorBusy` while the context is busy or
     ///         its event function runs.
     /// @par Thread safety
@@ -291,7 +294,8 @@ extern "C"
     /// @param rootId      The root.
     /// @param event       The turn: a finite point and deltas, a player
     ///                    below MUI_MAX_PLAYERS.
-    /// @param handledOut  Receives whether the UI handled it. False on failure.
+    /// @param handledOut  Receives whether the UI handled it. False on failure
+    ///                    but `mui_errorBusy`, which leaves it.
     /// @return As muiNode_RouteKey's; `mui_errorBusy` while the context is busy or
     ///         its event function runs.
     /// @par Thread safety
@@ -309,7 +313,8 @@ extern "C"
     ///
     /// @param context     The context.
     /// @param record      The record.
-    /// @param handledOut  Receives whether the UI handled it. False on failure.
+    /// @param handledOut  Receives whether the UI handled it. False on failure
+    ///                    but `mui_errorBusy`, which leaves it.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL argument;
     ///         `mui_errorBusy` while the context is busy or its event function
     ///         runs.

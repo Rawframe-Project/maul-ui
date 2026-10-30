@@ -403,7 +403,7 @@ static muiResult Gamepad(muiWindowGlue* glue, const mwinEvent* event, bool* hand
                           : mui_success;
 }
 
-muiResult muiWindowGlue_Tick(muiWindowGlue* glue, uint64_t nowNs, bool* handledOut)
+static muiResult TickOf(muiWindowGlue* glue, uint64_t nowNs, bool* handledOut)
 {
     if (handledOut != nullptr)
     {
@@ -415,6 +415,20 @@ muiResult muiWindowGlue_Tick(muiWindowGlue* glue, uint64_t nowNs, bool* handledO
     }
     return glue->gamepads ? Navigate(glue, muiWindowPadTick(&glue->pads, nowNs), handledOut)
                           : mui_success;
+}
+
+muiResult muiWindowGlue_Tick(muiWindowGlue* glue, uint64_t nowNs, bool* handledOut)
+{
+    bool value = false;
+    muiResult status = TickOf(glue, nowNs, (handledOut != nullptr ? &value : nullptr));
+    // Refused as busy, the call writes no output (Maul conventions, Errors
+    // and assertions): host code made it, and the call in progress may
+    // have written or be filling the caller's.
+    if (handledOut != nullptr && status != mui_errorBusy)
+    {
+        *handledOut = value;
+    }
+    return status;
 }
 
 muiResult muiNode_SetWindowCaret(muiWindowGlue* glue, muiNodeId nodeId, muiRect caret,
@@ -454,7 +468,7 @@ muiResult muiNode_SetWindowCaret(muiWindowGlue* glue, muiNodeId nodeId, muiRect 
     return mui_success;
 }
 
-muiResult muiWindowGlue_HandleEvent(muiWindowGlue* glue, const mwinEvent* event, bool* handledOut)
+static muiResult HandleEventOf(muiWindowGlue* glue, const mwinEvent* event, bool* handledOut)
 {
     if (handledOut != nullptr)
     {
@@ -504,4 +518,18 @@ muiResult muiWindowGlue_HandleEvent(muiWindowGlue* glue, const mwinEvent* event,
     default:
         return mui_success;
     }
+}
+
+muiResult muiWindowGlue_HandleEvent(muiWindowGlue* glue, const mwinEvent* event, bool* handledOut)
+{
+    bool value = false;
+    muiResult status = HandleEventOf(glue, event, (handledOut != nullptr ? &value : nullptr));
+    // Refused as busy, the call writes no output (Maul conventions, Errors
+    // and assertions): host code made it, and the call in progress may
+    // have written or be filling the caller's.
+    if (handledOut != nullptr && status != mui_errorBusy)
+    {
+        *handledOut = value;
+    }
+    return status;
 }

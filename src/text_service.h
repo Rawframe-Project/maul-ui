@@ -117,6 +117,21 @@ static inline muiResult muiRefuseText(muiTextService* service)
 // Marks the service busy for one of its functions that use it:
 // mui_success, or mui_errorBusy with one misuse counted when it is busy
 // already. A NULL service is left to the function.
+// Refuses a call that host code the service runs made while it is busy:
+// one misuse counted, and true, for the call to return mui_errorBusy before
+// it writes any output, which may be one the call in progress has written
+// or is filling (maul-conventions.md, Errors and assertions). A NULL
+// service is left to the call.
+static inline bool muiRefusesBusyText(muiTextService* service)
+{
+    if (service == nullptr || !service->busy)
+    {
+        return false;
+    }
+    service->misuse++;
+    return true;
+}
+
 static inline muiResult muiEnterText(muiTextService* service)
 {
     if (service == nullptr)

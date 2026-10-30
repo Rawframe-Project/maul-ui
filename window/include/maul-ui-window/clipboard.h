@@ -56,7 +56,7 @@ extern "C"
     /// @param blockId     The editing block.
     /// @param event       The window's event.
     /// @param changedOut  Receives whether the text changed; may be NULL. False
-    ///                    on failure.
+    ///                    on failure but `mui_errorBusy`, which leaves it.
     /// @return `mui_success` for a paste, changed or not; `mui_empty` for
     ///         another event or a read a later one replaced;
     ///         `mui_errorInvalid` for a NULL argument;

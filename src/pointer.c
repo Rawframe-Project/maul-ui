@@ -597,6 +597,10 @@ static muiResult NextPointerRecord(muiContext* context, muiPointerRecord* record
 
 muiResult muiContext_TakePointerRecord(muiContext* context, muiPointerRecord* recordOut)
 {
+    if (muiRefusesBusy(context, false))
+    {
+        return mui_errorBusy;
+    }
     if (recordOut != nullptr)
     {
         memset(recordOut, 0, sizeof *recordOut);

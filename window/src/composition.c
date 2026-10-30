@@ -46,8 +46,8 @@ static const muiCompositionSegment* SegmentsOf(const mwinPreeditEvent* preedit,
     return count != 0 && preedit->segments != nullptr ? segments : nullptr;
 }
 
-muiResult muiTextBlock_ShowPreedit(muiTextService* service, muiTextBlockId blockId,
-                                   const mwinPreeditEvent* preedit, bool* changedOut)
+static muiResult ShowPreeditOf(muiTextService* service, muiTextBlockId blockId,
+                               const mwinPreeditEvent* preedit, bool* changedOut)
 {
     if (changedOut != nullptr)
     {
@@ -64,8 +64,24 @@ muiResult muiTextBlock_ShowPreedit(muiTextService* service, muiTextBlockId block
                                 SegmentsOf(preedit, segments), preedit->segmentCount, changedOut);
 }
 
-muiResult muiTextBlock_SetPreedit(muiTextService* service, muiTextBlockId blockId, uint32_t offset,
-                                  const mwinPreeditEvent* preedit, int32_t* caretOut)
+muiResult muiTextBlock_ShowPreedit(muiTextService* service, muiTextBlockId blockId,
+                                   const mwinPreeditEvent* preedit, bool* changedOut)
+{
+    bool value = false;
+    muiResult status =
+        ShowPreeditOf(service, blockId, preedit, (changedOut != nullptr ? &value : nullptr));
+    // Refused as busy, the call writes no output (Maul conventions, Errors
+    // and assertions): host code made it, and the call in progress may
+    // have written or be filling the caller's.
+    if (changedOut != nullptr && status != mui_errorBusy)
+    {
+        *changedOut = value;
+    }
+    return status;
+}
+
+static muiResult SetPreeditOf(muiTextService* service, muiTextBlockId blockId, uint32_t offset,
+                              const mwinPreeditEvent* preedit, int32_t* caretOut)
 {
     if (caretOut != nullptr)
     {
@@ -95,8 +111,24 @@ muiResult muiTextBlock_SetPreedit(muiTextService* service, muiTextBlockId blockI
     return status;
 }
 
-muiResult muiNode_SetWindowTextCaret(muiWindowGlue* glue, const muiTextHost* host, muiNodeId nodeId,
-                                     muiTextPosition position, mwinRect* placedOut)
+muiResult muiTextBlock_SetPreedit(muiTextService* service, muiTextBlockId blockId, uint32_t offset,
+                                  const mwinPreeditEvent* preedit, int32_t* caretOut)
+{
+    int32_t value = 0;
+    muiResult status =
+        SetPreeditOf(service, blockId, offset, preedit, (caretOut != nullptr ? &value : nullptr));
+    // Refused as busy, the call writes no output (Maul conventions, Errors
+    // and assertions): host code made it, and the call in progress may
+    // have written or be filling the caller's.
+    if (caretOut != nullptr && status != mui_errorBusy)
+    {
+        *caretOut = value;
+    }
+    return status;
+}
+
+static muiResult SetTextCaretOf(muiWindowGlue* glue, const muiTextHost* host, muiNodeId nodeId,
+                                muiTextPosition position, mwinRect* placedOut)
 {
     if (placedOut != nullptr)
     {
@@ -115,6 +147,22 @@ muiResult muiNode_SetWindowTextCaret(muiWindowGlue* glue, const muiTextHost* hos
     }
     const muiRect rect = {content.x + caret.x, content.y + caret.y, 0.0f, caret.height};
     return muiNode_SetWindowCaret(glue, nodeId, rect, placedOut);
+}
+
+muiResult muiNode_SetWindowTextCaret(muiWindowGlue* glue, const muiTextHost* host, muiNodeId nodeId,
+                                     muiTextPosition position, mwinRect* placedOut)
+{
+    mwinRect value = {0};
+    muiResult status =
+        SetTextCaretOf(glue, host, nodeId, position, (placedOut != nullptr ? &value : nullptr));
+    // Refused as busy, the call writes no output (Maul conventions, Errors
+    // and assertions): host code made it, and the call in progress may
+    // have written or be filling the caller's.
+    if (placedOut != nullptr && status != mui_errorBusy)
+    {
+        *placedOut = value;
+    }
+    return status;
 }
 
 muiResult muiNode_RequestWindowKeyboard(muiWindowGlue* glue, const muiTextHost* host,

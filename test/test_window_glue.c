@@ -77,6 +77,9 @@ typedef struct Test
     int navigationCount;
     mwinGamepadId gamepad;
     uint64_t start;
+    // Whether a record fed again from the event function was refused as
+    // busy with its output left as it was.
+    bool refeedLeft;
 } Test;
 
 static const muiNodeId s_null = {0, 0};
@@ -106,8 +109,19 @@ static bool Hear(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* e
         test->keys++;
         return event->key == 'a';
     case mui_eventText:
+    {
         test->texts++;
+        // Fed again from the event function, a record is refused as busy
+        // and its output left: the call in progress may have written it.
+        mwinEvent key = {.type = mwin_eventKeyDown, .window = test->window};
+        key.data.key.code = mwin_codeKeyA;
+        bool handled;
+        memset(&handled, 0xA5, sizeof handled);
+        unsigned char left = 0xA5;
+        test->refeedLeft = muiWindowGlue_HandleEvent(test->glue, &key, &handled) == mui_errorBusy &&
+                           memcmp(&handled, &left, sizeof left) == 0;
         return true;
+    }
     case mui_eventWheel:
         test->wheels++;
         test->wheelX = event->wheel->x;
@@ -327,6 +341,7 @@ static void CheckInput(const Test* test)
               test->pressedButton == mui_buttonPrimary,
           "a press, its release and its click of the primary button at the button");
     CHECK(test->keys == 2 && test->texts == 1, "two keys and text at the focus");
+    CHECK(test->refeedLeft, "a record fed again from the event function left its output");
     CHECK(test->wheels == 1 && test->wheelX == 60.0f && test->wheelY == 40.0f &&
               test->wheelModifiers == mui_modShift,
           "the wheel at the cursor's last place, with the modifiers last reported");
