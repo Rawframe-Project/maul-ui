@@ -6,7 +6,10 @@ glue's C files in a build's compile_commands.json, generated files and
 fetched dependencies left out. Fails when there are none, so a check over
 an empty list never passes.
 
-Usage: tidy_files.py BUILD_DIR/compile_commands.json
+With files named after it, lists only those of them that are in that set
+(the changed tier's), and none is not a failure.
+
+Usage: tidy_files.py BUILD_DIR/compile_commands.json [FILE...]
 """
 
 import json
@@ -17,7 +20,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
 def main():
-    if len(sys.argv) != 2:
+    if len(sys.argv) < 2:
         sys.exit(__doc__)
     mine = tuple(str(ROOT / part) + "/" for part in ("src", "rhi/src", "window/src"))
     entries = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
@@ -25,7 +28,11 @@ def main():
     files = [f for f in files if f.startswith(mine) and "/generated/" not in f]
     if not files:
         sys.exit("tidy_files: no source of the library in the compile commands")
-    print("\n".join(files))
+    if len(sys.argv) > 2:
+        named = {str((ROOT / name).resolve()) for name in sys.argv[2:]}
+        files = [f for f in files if f in named]
+    if files:
+        print("\n".join(files))
 
 
 if __name__ == "__main__":
