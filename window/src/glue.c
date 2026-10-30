@@ -442,7 +442,8 @@ muiResult muiNode_SetWindowCaret(muiWindowGlue* glue, muiNodeId nodeId, muiRect 
         rect.width = caret.width;
         rect.height = caret.height;
     }
-    if (mwinRequestTextInput(glue->windows, glue->window, enabled, rect, nullptr) != mwin_success)
+    if (mwinWindow_RequestTextInput(glue->windows, glue->window, enabled, rect, nullptr) !=
+        mwin_success)
     {
         return mui_errorInvalid;
     }

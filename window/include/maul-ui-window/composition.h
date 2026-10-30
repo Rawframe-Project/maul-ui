@@ -91,7 +91,7 @@ extern "C"
     /// one, laid out for what a node's editing block takes
     /// (muiTextBlock_GetInputPurpose; plain text for a block not
     /// editing), or, with the null id, to hide it
-    /// (mwinRequestVirtualKeyboard). Ask as the focus enters and leaves a
+    /// (mwinWindow_RequestVirtualKeyboard). Ask as the focus enters and leaves a
     /// field.
     ///
     /// @param glue    The glue.

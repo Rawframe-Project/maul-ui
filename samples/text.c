@@ -304,7 +304,8 @@ static void PostText(SampleApp* app, const char* text)
 {
     mwinEvent typed = {.type = mwin_eventTextInput, .window = app->window};
     typed.data.text = (mwinTextEvent){text, (uint32_t)strlen(text)};
-    SampleAppCheck(app, mwinTestPost(app->windows, &typed) == mwin_success, "text posted");
+    SampleAppCheck(app, mwinContext_PostTestEvent(app->windows, &typed) == mwin_success,
+                   "text posted");
 }
 
 static void PostNamed(SampleApp* app, mwinKeyCode code, mwinModifiers modifiers)
@@ -315,8 +316,8 @@ static void PostNamed(SampleApp* app, mwinKeyCode code, mwinModifiers modifiers)
     mwinEvent up = down;
     up.type = mwin_eventKeyUp;
     SampleAppCheck(app,
-                   mwinTestPost(app->windows, &down) == mwin_success &&
-                       mwinTestPost(app->windows, &up) == mwin_success,
+                   mwinContext_PostTestEvent(app->windows, &down) == mwin_success &&
+                       mwinContext_PostTestEvent(app->windows, &up) == mwin_success,
                    "a key posted");
 }
 
@@ -329,8 +330,8 @@ static void PostShortcut(SampleApp* app, mwinKeyCode code, char letter)
     mwinEvent up = down;
     up.type = mwin_eventKeyUp;
     SampleAppCheck(app,
-                   mwinTestPost(app->windows, &down) == mwin_success &&
-                       mwinTestPost(app->windows, &up) == mwin_success,
+                   mwinContext_PostTestEvent(app->windows, &down) == mwin_success &&
+                       mwinContext_PostTestEvent(app->windows, &up) == mwin_success,
                    "a shortcut posted");
 }
 
@@ -351,7 +352,7 @@ static bool ClipboardHolds(const SampleApp* app, const char* expected)
 {
     char text[64];
     size_t length = 0;
-    return mwinTestGetClipboard(app->windows, text, sizeof text, &length) == mwin_success &&
+    return mwinContext_GetTestClipboard(app->windows, text, sizeof text, &length) == mwin_success &&
            length == strlen(expected) && memcmp(text, expected, length) == 0;
 }
 
@@ -360,7 +361,8 @@ static void PostPreedit(SampleApp* app, const char* text, int32_t caret)
     mwinEvent preedit = {.type = mwin_eventImePreedit, .window = app->window};
     preedit.data.preedit =
         (mwinPreeditEvent){.text = text, .length = (uint32_t)strlen(text), .caret = caret};
-    SampleAppCheck(app, mwinTestPost(app->windows, &preedit) == mwin_success, "a preedit posted");
+    SampleAppCheck(app, mwinContext_PostTestEvent(app->windows, &preedit) == mwin_success,
+                   "a preedit posted");
 }
 
 static void Click(SampleApp* app, muiNodeId node)
