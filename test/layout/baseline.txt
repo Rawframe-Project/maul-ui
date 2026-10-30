@@ -2,7 +2,7 @@
 # baselines (section 8.5 as Chrome reads it). Host content's baseline is
 # the bottom of its content; a node without one has the bottom of its
 # border box.
-# chrome 155.0.8059.79
+# chrome 156.0.8078.47
 
 fixture baseline_basic available=500x400
 node align-items=baseline => 0 0 60 33

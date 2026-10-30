@@ -1,7 +1,7 @@
 # Random layouts that agree with Chrome: seed 28 of tools/random_layouts.py
 # (generate 28 200), less those that still part from it. One that parts
 # after a change is a regression; reduce it with random_layouts.py reduce.
-# chrome 155.0.8059.79
+# chrome 156.0.8078.47
 
 fixture random_28_0 available=500x400
 node width=400 height=30 align-content=space-between => 0 0 400 30

@@ -1,5 +1,5 @@
 # Aspect ratio: a definite size on one axis gives the other.
-# chrome 155.0.8059.79
+# chrome 156.0.8078.47
 
 fixture aspect_width_gives_height available=500x400
 node width=300 height=200 align-items=start => 0 0 300 200
