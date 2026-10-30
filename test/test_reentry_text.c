@@ -139,6 +139,9 @@ struct Scene
     Probe hold;
 };
 
+// How many times an atlas call was refused through its busy service.
+static int s_atlasThroughService;
+
 // Whether every byte of a buffer is value.
 static bool Holds(const void* memory, size_t size, unsigned char value)
 {
@@ -234,6 +237,19 @@ static void CallBack(Probe* probe)
                 mui_errorBusy &&
             Holds(pixels, sizeof pixels, 0xA5) && Holds(&image, sizeof image, 0xA5) &&
             Holds(&changed, sizeof changed, 0xA5);
+        // The atlas, once made, renders a glyph it has not packed through
+        // the busy service, and is refused with it.
+        if (scene->atlas != NULL)
+        {
+            muiAtlasGlyph glyph;
+            memset(&glyph, 0xA5, sizeof glyph);
+            expected = expected &&
+                       muiGlyphAtlas_GetGlyph(scene->atlas, 0, 1, 37.0f, 0.0f, 0.0f, &glyph) ==
+                           mui_errorBusy &&
+                       Holds(&glyph, sizeof glyph, 0xA5);
+            refused++;
+            s_atlasThroughService++;
+        }
         refused += 4;
     }
     // The calls not refused as busy refuse their arguments, counted too.
@@ -394,6 +410,9 @@ static void TestHostCode(void)
               mui_success,
           "a longer text");
     CHECK(scene.alloc.runs == 1 && scene.alloc.expected, "from the allocator");
+    CHECK(s_atlasThroughService == 2,
+          "an atlas glyph refused through the service the clipboard writer and the allocator "
+          "made busy");
     Arm(&scene.free, &scene, false);
     CHECK(muiDestroyTextBlock(scene.service, scene.block) == mui_success, "the block gone");
     CHECK(scene.free.runs == 1 && scene.free.expected, "from the free");

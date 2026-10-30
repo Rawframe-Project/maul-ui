@@ -699,15 +699,20 @@ static MUI_NOINLINE muiResult GlyphAtlasGetWorker(muiGlyphAtlas* atlas, uint64_t
     {
         return mui_errorBusy;
     }
-    if (glyphOut != nullptr)
-    {
-        memset(glyphOut, 0, sizeof *glyphOut);
-    }
+    // A glyph not yet packed is rendered through the service, which answers
+    // busy when host code it runs made this call. Refused so, the call
+    // writes no output, as when the atlas itself refuses it.
+    muiAtlasGlyph found = {0};
     muiResult status = EnterAtlas(atlas);
     if (status == mui_success)
     {
-        status = GlyphAtlasGet(atlas, font, glyph, pixelSize, penX, baselineY, glyphOut);
+        status = GlyphAtlasGet(atlas, font, glyph, pixelSize, penX, baselineY,
+                               glyphOut != nullptr ? &found : nullptr);
         LeaveAtlas(atlas);
+    }
+    if (glyphOut != nullptr && status != mui_errorBusy)
+    {
+        *glyphOut = found;
     }
     return status;
 }
@@ -743,16 +748,20 @@ static MUI_NOINLINE muiResult GlyphAtlasGetColorWorker(muiGlyphAtlas* atlas, uin
     {
         return mui_errorBusy;
     }
-    if (glyphOut != nullptr)
-    {
-        memset(glyphOut, 0, sizeof *glyphOut);
-    }
+    // A glyph not yet packed is rendered through the service, which answers
+    // busy when host code it runs made this call. Refused so, the call
+    // writes no output, as when the atlas itself refuses it.
+    muiAtlasGlyph found = {0};
     muiResult status = EnterAtlas(atlas);
     if (status == mui_success)
     {
         status = GlyphAtlasGetColor(atlas, font, glyph, pixelSize, penX, baselineY, palette,
-                                    foreground, glyphOut);
+                                    foreground, glyphOut != nullptr ? &found : nullptr);
         LeaveAtlas(atlas);
+    }
+    if (glyphOut != nullptr && status != mui_errorBusy)
+    {
+        *glyphOut = found;
     }
     return status;
 }
@@ -810,15 +819,20 @@ static MUI_NOINLINE muiResult GlyphAtlasGetFieldWorker(muiGlyphAtlas* atlas, uin
     {
         return mui_errorBusy;
     }
-    if (glyphOut != nullptr)
-    {
-        memset(glyphOut, 0, sizeof *glyphOut);
-    }
+    // A glyph not yet packed is rendered through the service, which answers
+    // busy when host code it runs made this call. Refused so, the call
+    // writes no output, as when the atlas itself refuses it.
+    muiAtlasGlyph found = {0};
     muiResult status = EnterAtlas(atlas);
     if (status == mui_success)
     {
-        status = GlyphAtlasGetField(atlas, font, glyph, pixelSize, spread, glyphOut);
+        status = GlyphAtlasGetField(atlas, font, glyph, pixelSize, spread,
+                                    glyphOut != nullptr ? &found : nullptr);
         LeaveAtlas(atlas);
+    }
+    if (glyphOut != nullptr && status != mui_errorBusy)
+    {
+        *glyphOut = found;
     }
     return status;
 }
@@ -849,15 +863,20 @@ static MUI_NOINLINE muiResult GlyphAtlasGetMultiFieldWorker(muiGlyphAtlas* atlas
     {
         return mui_errorBusy;
     }
-    if (glyphOut != nullptr)
-    {
-        memset(glyphOut, 0, sizeof *glyphOut);
-    }
+    // A glyph not yet packed is rendered through the service, which answers
+    // busy when host code it runs made this call. Refused so, the call
+    // writes no output, as when the atlas itself refuses it.
+    muiAtlasGlyph found = {0};
     muiResult status = EnterAtlas(atlas);
     if (status == mui_success)
     {
-        status = GlyphAtlasGetMultiField(atlas, font, glyph, pixelSize, spread, glyphOut);
+        status = GlyphAtlasGetMultiField(atlas, font, glyph, pixelSize, spread,
+                                         glyphOut != nullptr ? &found : nullptr);
         LeaveAtlas(atlas);
+    }
+    if (glyphOut != nullptr && status != mui_errorBusy)
+    {
+        *glyphOut = found;
     }
     return status;
 }
