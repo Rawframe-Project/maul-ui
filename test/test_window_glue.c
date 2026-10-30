@@ -113,13 +113,15 @@ static bool Hear(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* e
         test->texts++;
         // Fed again from the event function, a record is refused as busy
         // and its output left: the call in progress may have written it.
-        mwinEvent key = {.type = mwin_eventKeyDown, .window = test->window};
-        key.data.key.code = mwin_codeKeyA;
+        mwinEvent typed = {.type = mwin_eventTextInput, .window = test->window};
+        typed.data.text.text = "b";
+        typed.data.text.length = 1;
         bool handled;
         memset(&handled, 0xA5, sizeof handled);
         unsigned char left = 0xA5;
-        test->refeedLeft = muiWindowGlue_HandleEvent(test->glue, &key, &handled) == mui_errorBusy &&
-                           memcmp(&handled, &left, sizeof left) == 0;
+        test->refeedLeft =
+            muiWindowGlue_HandleEvent(test->glue, &typed, &handled) == mui_errorBusy &&
+            memcmp(&handled, &left, sizeof left) == 0;
         return true;
     }
     case mui_eventWheel:
