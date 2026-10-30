@@ -28,7 +28,7 @@ static void ClusterAround(const muiTextBlock* block, uint32_t offset, uint32_t* 
     (void)muniInitGraphemeIterator(&iterator, block->text.data, block->length, false);
     uint32_t before = 0;
     size_t at = 0;
-    while (muniNextSegmentBreak(&iterator, &at) == muni_success && at <= offset)
+    while (muniSegmentIterator_NextBreak(&iterator, &at) == muni_success && at <= offset)
     {
         before = (uint32_t)at;
     }

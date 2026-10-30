@@ -180,7 +180,7 @@ static void MakeContext(SampleApp* app)
 static muiSides SafeAreaOf(const SampleApp* app)
 {
     mwinWindowState state;
-    if (app->headless || mwinGetWindowState(app->windows, app->window, &state) != mwin_success)
+    if (app->headless || mwinWindow_GetState(app->windows, app->window, &state) != mwin_success)
     {
         return (muiSides){0};
     }
@@ -302,7 +302,7 @@ void SamplePaintEditing(SampleApp* app, muiNodeId node, float width, muiDrawSink
 static void Drain(SampleApp* app)
 {
     mwinEvent event;
-    while (mwinNextEvent(app->windows, &event) == mwin_success)
+    while (mwinContext_NextEvent(app->windows, &event) == mwin_success)
     {
         TakePaste(app, &event);
         if (app->def->record != NULL)
@@ -327,7 +327,7 @@ static void Drain(SampleApp* app)
 static bool Surface(SampleApp* app)
 {
     mwinWindowState state;
-    if (mwinGetWindowState(app->windows, app->window, &state) != mwin_success || !state.created ||
+    if (mwinWindow_GetState(app->windows, app->window, &state) != mwin_success || !state.created ||
         state.surfaceLost)
     {
         SampleSurfaceClose(&app->sample, &app->surface);
@@ -350,9 +350,10 @@ static bool Surface(SampleApp* app)
     if (app->surface.surface.index1 == 0)
     {
         mwinNativeHandles handles;
-        if (!SampleAppCheck(
-                app, mwinGetNativeHandles(app->windows, app->window, &handles) == mwin_success,
-                "the window's handles") ||
+        if (!SampleAppCheck(app,
+                            mwinWindow_GetNativeHandles(app->windows, app->window, &handles) ==
+                                mwin_success,
+                            "the window's handles") ||
             !SampleAppCheck(app,
                             SampleSurfaceOpen(&app->sample, &handles, width, height, &app->surface),
                             "a surface") ||
@@ -533,7 +534,8 @@ bool SampleNear(const uint8_t* pixel, const uint8_t rgb[3])
 // Posts a record, stamped now.
 static void PostRecord(SampleApp* app, const mwinEvent* event)
 {
-    SampleAppCheck(app, mwinTestPost(app->windows, event) == mwin_success, "a record posted");
+    SampleAppCheck(app, mwinContext_PostTestEvent(app->windows, event) == mwin_success,
+                   "a record posted");
 }
 
 void SamplePost(SampleApp* app, mwinEventType type, muiNodeId node, uint8_t buttons)
@@ -593,7 +595,8 @@ void SamplePostKey(SampleApp* app, mwinKeyCode code, mwinKey key, const char* te
 static mwinFrameResult Scripted(SampleApp* app)
 {
     app->now += app->def->frameNs != 0 ? app->def->frameNs : 1000000000u;
-    SampleAppCheck(app, mwinTestSetTime(app->windows, app->now) == mwin_success, "the clock");
+    SampleAppCheck(app, mwinContext_SetTestTime(app->windows, app->now) == mwin_success,
+                   "the clock");
     Step(app);
     bool going = app->def->script(app->def->user, app, app->frame++);
     return going && app->frame < 64 ? mwin_frameContinue : mwin_frameStop;

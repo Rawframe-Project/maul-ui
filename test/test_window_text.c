@@ -300,7 +300,7 @@ static void TestPasted(Test* test)
     mwinEvent event;
     int pasted = 0;
     bool changed = false;
-    while (mwinNextEvent(test->windows, &event) == mwin_success)
+    while (mwinContext_NextEvent(test->windows, &event) == mwin_success)
     {
         bool now = false;
         muiResult result =
@@ -329,11 +329,12 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
         return mwin_frameContinue;
     case 1:
         TestPasted(test);
-        CHECK(mwinTestGetTextInput(windows, test->window, &enabled, &caret) == mwin_success &&
+        CHECK(mwinWindow_GetTestTextInput(windows, test->window, &enabled, &caret) ==
+                      mwin_success &&
                   enabled && caret.x == test->placed.x && caret.y == test->placed.y &&
                   caret.height == test->placed.height,
               "the platform's caret where the field's is");
-        CHECK(mwinTestGetVirtualKeyboard(windows, test->window, &visible, &purpose) ==
+        CHECK(mwinWindow_GetTestVirtualKeyboard(windows, test->window, &visible, &purpose) ==
                       mwin_success &&
                   visible && purpose == mwin_purposeEmail,
               "the keyboard shown for the field's purpose");
@@ -341,7 +342,7 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
               "the keyboard let go");
         return mwin_frameContinue;
     default:
-        CHECK(mwinTestGetVirtualKeyboard(windows, test->window, &visible, &purpose) ==
+        CHECK(mwinWindow_GetTestVirtualKeyboard(windows, test->window, &visible, &purpose) ==
                       mwin_success &&
                   !visible,
               "the keyboard hidden");

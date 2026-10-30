@@ -1,6 +1,6 @@
 # Window glue
 
-`maul-ui-window` (the option `MAUL_UI_WINDOW`, off by default) connects a context to a Maul Window window. It is a static library of its own beside the core, in `window/`, with Maul Window found installed or fetched at its release tag ([Window.cmake](../../cmake/Window.cmake)). The core and the text component never see it. A host that uses another window library writes the same translation itself; the glue is the reference for it.
+`maul-ui-window` (the option `MAUL_UI_WINDOW`, off by default) connects a context to a Maul Window window. It is a static library of its own beside the core, in `window/`, with Maul Window found installed or fetched at its release tag ([Window.cmake](../../cmake/Window.cmake)). Maul Window names the Maul Unicode release it is built and tested with, and configuring stops when that differs from Maul UI's own pin ([Unicode.cmake](../../cmake/Unicode.cmake)): with the text component, the fetched Maul Window builds against Maul UI's Maul Unicode, and without it, against its own. The core and the text component never see it. A host that uses another window library writes the same translation itself; the glue is the reference for it.
 
 ## Input
 
@@ -30,6 +30,6 @@ With the text component:
 
 ## Accessibility
 
-With the consumer tree, one `muiWindowAccess` makes the adapter built for the window's platform over Maul Window's native handles ([access.c](../../window/src/access.c)): UI Automation over the HWND, NSAccessibility and UIAccessibility over the view, Android's over the activity's view with the activity's JNIEnv, ARIA in the element Maul Window keeps over the canvas, and AT-SPI for X11 and Wayland in the program's application. It enables the glue's root, sends its updates each frame, has the context perform what clients ask unless the host takes a request, rescales on the window's scale changes, and hands the window the adapter's root (`mwinRequestAccessibilityRoot`) whenever it changes.
+With the consumer tree, one `muiWindowAccess` makes the adapter built for the window's platform over Maul Window's native handles ([access.c](../../window/src/access.c)): UI Automation over the HWND, NSAccessibility and UIAccessibility over the view, Android's over the activity's view with the activity's JNIEnv, ARIA in the element Maul Window keeps over the canvas, and AT-SPI for X11 and Wayland in the program's application. It enables the glue's root, sends its updates each frame, has the context perform what clients ask unless the host takes a request, rescales on the window's scale changes, and hands the window the adapter's root (`mwinWindow_RequestAccessibilityRoot`) whenever it changes.
 
 A window with no adapter, Maul Window's test backend's among them, keeps the tree alone, which tests read. The glue's tests run on that headless backend, with the text component and without it.

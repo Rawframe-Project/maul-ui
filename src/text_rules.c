@@ -90,7 +90,7 @@ static uint32_t CountClusters(const char* text, uint32_t length)
     uint32_t count = 0;
     size_t at = 0;
     // Every boundary ends a cluster: the text's start is never one.
-    while (muniNextSegmentBreak(&iterator, &at) == muni_success)
+    while (muniSegmentIterator_NextBreak(&iterator, &at) == muni_success)
     {
         count++;
     }
@@ -107,7 +107,7 @@ static uint32_t ClustersLength(const char* text, uint32_t length, uint32_t clust
         return 0;
     }
     size_t at = 0;
-    while (clusters != 0 && muniNextSegmentBreak(&iterator, &at) == muni_success)
+    while (clusters != 0 && muniSegmentIterator_NextBreak(&iterator, &at) == muni_success)
     {
         clusters -= at != 0 ? 1u : 0u;
     }

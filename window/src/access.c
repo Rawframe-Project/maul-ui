@@ -103,7 +103,7 @@ static bool Act(void* user, const muiAccessRequest* request)
 static float ScaleOf(const muiWindowGlue* glue)
 {
     mwinWindowState state;
-    return mwinGetWindowState(glue->windows, glue->window, &state) == mwin_success &&
+    return mwinWindow_GetState(glue->windows, glue->window, &state) == mwin_success &&
                    state.scale > 0.0f
                ? state.scale
                : 1.0f;
@@ -116,7 +116,7 @@ static void Place(const muiWindowAccess* access)
     mwinWindowState state;
     const muiWindowGlue* glue = access->glue;
     if (access->kind == kind_atspi && access->placed &&
-        mwinGetWindowState(glue->windows, glue->window, &state) == mwin_success)
+        mwinWindow_GetState(glue->windows, glue->window, &state) == mwin_success)
     {
         muiAtspiAdapter_SetPlace(access->adapter, (int32_t)lroundf(state.position.x * state.scale),
                                  (int32_t)lroundf(state.position.y * state.scale));
@@ -340,7 +340,7 @@ muiResult muiCreateWindowAccess(const muiWindowAccessDef* def, muiWindowAccess**
     }
     const muiWindowGlue* glue = def->glue;
     mwinNativeHandles handles;
-    if (mwinGetNativeHandles(glue->windows, glue->window, &handles) != mwin_success)
+    if (mwinWindow_GetNativeHandles(glue->windows, glue->window, &handles) != mwin_success)
     {
         return mui_errorInvalid;
     }
@@ -387,7 +387,7 @@ void muiDestroyWindowAccess(muiWindowAccess* access)
     const muiWindowGlue* glue = access->glue;
     if (access->root != nullptr)
     {
-        (void)mwinRequestAccessibilityRoot(glue->windows, glue->window, nullptr, nullptr);
+        (void)mwinWindow_RequestAccessibilityRoot(glue->windows, glue->window, nullptr, nullptr);
     }
     DestroyAdapter(access);
     (void)muiNode_EnableAccess(glue->context, glue->root, false);
@@ -455,7 +455,8 @@ muiResult muiWindowAccess_Update(muiWindowAccess* access)
     {
         return status;
     }
-    if (mwinRequestAccessibilityRoot(glue->windows, glue->window, root, nullptr) != mwin_success)
+    if (mwinWindow_RequestAccessibilityRoot(glue->windows, glue->window, root, nullptr) !=
+        mwin_success)
     {
         return mui_errorInvalid;
     }

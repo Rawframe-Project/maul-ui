@@ -141,7 +141,7 @@ static bool SegmentWords(const muiAllocator* allocator, const char* text, uint32
     uint32_t count = *countInOut;
     size_t start = 0;
     size_t end = 0;
-    while (muniNextSegmentBreak(&iterator, &end) == muni_success)
+    while (muniSegmentIterator_NextBreak(&iterator, &end) == muni_success)
     {
         if (end > start && muiIsWordSegment(text + from, start, end))
         {

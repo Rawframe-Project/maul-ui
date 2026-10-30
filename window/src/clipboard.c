@@ -17,14 +17,14 @@ void muiWriteWindowClipboard(void* glue, const char* text, size_t length)
     const muiWindowGlue* own = glue;
     if (own != nullptr)
     {
-        (void)mwinRequestClipboardWrite(own->windows, own->window, text, length, nullptr);
+        (void)mwinWindow_RequestClipboardWrite(own->windows, own->window, text, length, nullptr);
     }
 }
 
 muiResult muiWindowGlue_RequestPaste(muiWindowGlue* glue)
 {
     if (glue == nullptr ||
-        mwinRequestClipboardRead(glue->windows, glue->window, nullptr) != mwin_success)
+        mwinWindow_RequestClipboardRead(glue->windows, glue->window, nullptr) != mwin_success)
     {
         return mui_errorInvalid;
     }
@@ -53,7 +53,7 @@ muiResult muiTextBlock_PasteFromWindow(muiWindowGlue* glue, muiTextService* serv
     // answer brings the clipboard's text.
     size_t length = 0;
     mwinResult status =
-        mwinGetClipboardText(glue->windows, completion->request, nullptr, 0, &length);
+        mwinRequest_GetClipboardText(glue->windows, completion->request, nullptr, 0, &length);
     if (status == mwin_errorStale)
     {
         return mui_empty;
@@ -69,7 +69,7 @@ muiResult muiTextBlock_PasteFromWindow(muiWindowGlue* glue, muiTextService* serv
         return mui_errorCapacity;
     }
     muiResult result = mui_errorInvalid;
-    if (mwinGetClipboardText(glue->windows, completion->request, text, size, &length) ==
+    if (mwinRequest_GetClipboardText(glue->windows, completion->request, text, size, &length) ==
         mwin_success)
     {
         result = muiTextBlock_Paste(service, blockId, text, length, changedOut);

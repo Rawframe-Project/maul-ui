@@ -224,7 +224,7 @@ static void Feed(Test* test, mwinContext* windows)
 {
     test->count = 0;
     mwinEvent event;
-    while (mwinNextEvent(windows, &event) == mwin_success)
+    while (mwinContext_NextEvent(windows, &event) == mwin_success)
     {
         bool handled = true;
         CHECK(muiWindowGlue_HandleEvent(test->glue, &event, &handled) == mui_success,
@@ -278,7 +278,7 @@ static void Post(mwinContext* windows, const mwinEvent* events, int count)
 {
     for (int i = 0; i < count; i++)
     {
-        CHECK(mwinTestPost(windows, &events[i]) == mwin_success, "posted");
+        CHECK(mwinContext_PostTestEvent(windows, &events[i]) == mwin_success, "posted");
     }
 }
 
@@ -473,7 +473,8 @@ static void TickAt(Test* test, uint64_t ms)
 // Moves the test clock to a time after the start, in milliseconds.
 static void ClockAt(Test* test, mwinContext* windows, uint64_t ms)
 {
-    CHECK(mwinTestSetTime(windows, test->start + ms * 1000000u) == mwin_success, "the clock");
+    CHECK(mwinContext_SetTestTime(windows, test->start + ms * 1000000u) == mwin_success,
+          "the clock");
 }
 
 static void PostDpad(Test* test, mwinContext* windows)
@@ -481,8 +482,9 @@ static void PostDpad(Test* test, mwinContext* windows)
     mwinGamepadInfo info = {.mapped = true};
     test->start = 1000000000u;
     ClockAt(test, windows, 0);
-    CHECK(mwinTestAddGamepad(windows, &info, &test->gamepad) == mwin_success &&
-              mwinTestGamepadButton(windows, test->gamepad, mwin_padDpadDown, true) == mwin_success,
+    CHECK(mwinAddTestGamepad(windows, &info, &test->gamepad) == mwin_success &&
+              mwinGamepad_SetTestButton(windows, test->gamepad, mwin_padDpadDown, true) ==
+                  mwin_success,
           "a gamepad, its d-pad down");
     test->navigationCount = 0;
 }
@@ -499,9 +501,9 @@ static void RepeatDpad(Test* test, mwinContext* windows)
     CHECK(test->navigationCount == 3, "again at the interval");
     ClockAt(test, windows, 600);
     mwinGamepadId pad = test->gamepad;
-    CHECK(mwinTestGamepadButton(windows, pad, mwin_padDpadDown, false) == mwin_success &&
-              mwinTestGamepadAxis(windows, pad, mwin_padStickLeftY, 0.8f) == mwin_success &&
-              mwinTestGamepadAxis(windows, pad, mwin_padStickLeftY, 0.4f) == mwin_success,
+    CHECK(mwinGamepad_SetTestButton(windows, pad, mwin_padDpadDown, false) == mwin_success &&
+              mwinGamepad_SetTestAxis(windows, pad, mwin_padStickLeftY, 0.8f) == mwin_success &&
+              mwinGamepad_SetTestAxis(windows, pad, mwin_padStickLeftY, 0.4f) == mwin_success,
           "the d-pad let go, the stick down and eased to 0.4");
 }
 
@@ -513,14 +515,14 @@ static void EaseStick(Test* test, mwinContext* windows)
     CHECK(test->navigationCount == 5, "eased, it still repeats");
     ClockAt(test, windows, 1100);
     mwinGamepadId pad = test->gamepad;
-    CHECK(mwinTestGamepadAxis(windows, pad, mwin_padStickLeftY, 0.2f) == mwin_success &&
-              mwinTestGamepadAxis(windows, pad, mwin_padStickLeftX, -0.9f) == mwin_success,
+    CHECK(mwinGamepad_SetTestAxis(windows, pad, mwin_padStickLeftY, 0.2f) == mwin_success &&
+              mwinGamepad_SetTestAxis(windows, pad, mwin_padStickLeftX, -0.9f) == mwin_success,
           "the stick let go, then left");
     static const uint8_t buttons[] = {mwin_padFaceSouth, mwin_padFaceEast, mwin_padShoulderLeft,
                                       mwin_padShoulderRight};
     for (int i = 0; i < 4; i++)
     {
-        CHECK(mwinTestGamepadButton(windows, pad, buttons[i], true) == mwin_success,
+        CHECK(mwinGamepad_SetTestButton(windows, pad, buttons[i], true) == mwin_success,
               "a face or a shoulder");
     }
 }
@@ -554,7 +556,7 @@ static const muiNodeId s_nullNode = {0, 0};
 static bool AcceptsText(const Test* test, mwinContext* windows)
 {
     mwinWindowState state;
-    return mwinGetWindowState(windows, test->window, &state) == mwin_success && state.textInput;
+    return mwinWindow_GetState(windows, test->window, &state) == mwin_success && state.textInput;
 }
 
 // A caret 20 tall at the button's 5, 6: in the window at 15, 16.
@@ -582,7 +584,7 @@ static void StopCaret(Test* test, mwinContext* windows)
     CHECK(AcceptsText(test, windows), "the window accepts text");
     bool enabled = false;
     mwinRect caret = {0};
-    CHECK(mwinTestGetTextInput(windows, test->window, &enabled, &caret) == mwin_success &&
+    CHECK(mwinWindow_GetTestTextInput(windows, test->window, &enabled, &caret) == mwin_success &&
               enabled && caret.x == 15.0f && caret.y == 16.0f && caret.width == 0.0f &&
               caret.height == 20.0f,
           "the platform's caret where it was placed");
@@ -664,7 +666,8 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
         CHECK(!AcceptsText(test, windows), "the window no longer accepts text");
         bool enabled = true;
         mwinRect caret = {1.0f, 1.0f, 1.0f, 1.0f};
-        CHECK(mwinTestGetTextInput(windows, test->window, &enabled, &caret) == mwin_success &&
+        CHECK(mwinWindow_GetTestTextInput(windows, test->window, &enabled, &caret) ==
+                      mwin_success &&
                   !enabled && caret.x == 0.0f && caret.height == 0.0f,
               "the platform takes no text, its caret empty");
         test->done = true;

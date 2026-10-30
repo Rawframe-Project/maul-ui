@@ -7,7 +7,7 @@
 // (java/maul/ui/AccessProvider.java, which the host builds into its
 // application, adding java/proguard-rules.pro to its rules when it shrinks
 // its code), a provider whose virtual views are the shown nodes. The
-// provider is the host view's (Maul Window's mwinRequestAccessibilityRoot
+// provider is the host view's (Maul Window's mwinWindow_RequestAccessibilityRoot
 // gives it); clients' actions come back through a function of the host's.
 // The header is C: the JNI's types pass as void*.
 //
@@ -154,7 +154,7 @@ extern "C"
 
     /// The provider (a global reference to a maul.ui.AccessProvider),
     /// for the view to give as its accessibility node provider
-    /// (mwinRequestAccessibilityRoot); the adapter keeps it until
+    /// (mwinWindow_RequestAccessibilityRoot); the adapter keeps it until
     /// destroyed.
     ///
     /// @param adapter  The adapter.

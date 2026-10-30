@@ -6,7 +6,7 @@
 // accessibility, an element object a shown node, and a container object a
 // shown node with shown children whose elements are its node's element and
 // then its children. The root's object is given to the view the tree lies
-// in (Maul Window's mwinRequestAccessibilityRoot does that), its
+// in (Maul Window's mwinWindow_RequestAccessibilityRoot does that), its
 // container; clients' actions come back through a function of the host's.
 // The header is C: UIKit's objects pass as void*.
 //
@@ -145,7 +145,7 @@ extern "C"
     MUI_NODISCARD MUI_API muiResult muiUikitAdapter_SetScale(muiUikitAdapter* adapter, float scale);
 
     /// The root's object, for the view to give as its element
-    /// (mwinRequestAccessibilityRoot): its container when it has shown
+    /// (mwinWindow_RequestAccessibilityRoot): its container when it has shown
     /// children, else its element. The adapter keeps it while it is the
     /// root's object; ask again after an update.
     ///

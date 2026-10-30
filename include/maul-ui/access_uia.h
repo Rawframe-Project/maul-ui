@@ -4,7 +4,7 @@
 // The UI Automation adapter, the component MAUL_UI_UIA builds on Windows:
 // the accessibility tree's consumer shown to UI Automation through a
 // provider object per node. The host hands the adapter's root to its
-// window (mwinRequestAccessibilityRoot of Maul Window, or its own
+// window (mwinWindow_RequestAccessibilityRoot of Maul Window, or its own
 // WM_GETOBJECT through muiUiaAdapter_HandleGetObject) and applies the
 // core's updates through the adapter. Clients' actions come back through a
 // function of the host's.
@@ -146,7 +146,7 @@ extern "C"
     MUI_API const muiAccessTree* muiUiaAdapter_GetTree(const muiUiaAdapter* adapter);
 
     /// The root's provider, an IRawElementProviderSimple*, for
-    /// mwinRequestAccessibilityRoot; it stands for whatever node is the
+    /// mwinWindow_RequestAccessibilityRoot; it stands for whatever node is the
     /// tree's root, and lives while the adapter does. No reference is
     /// added for the caller.
     ///

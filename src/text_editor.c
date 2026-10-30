@@ -151,7 +151,7 @@ static void WordAround(const muiTextBlock* block, uint32_t at, uint32_t* startOu
     if (muniInitWordIterator(&iterator, block->text.data, block->length, false) == muni_success)
     {
         size_t next = 0;
-        while (muniNextSegmentBreak(&iterator, &next) == muni_success)
+        while (muniSegmentIterator_NextBreak(&iterator, &next) == muni_success)
         {
             if (next > at || next == block->length)
             {

@@ -135,7 +135,7 @@ muiResult muiNode_RequestWindowKeyboard(muiWindowGlue* glue, const muiTextHost* 
             purpose = mui_purposeText;
         }
     }
-    if (mwinRequestVirtualKeyboard(glue->windows, glue->window, visible, purpose, nullptr) !=
+    if (mwinWindow_RequestVirtualKeyboard(glue->windows, glue->window, visible, purpose, nullptr) !=
         mwin_success)
     {
         return mui_errorInvalid;

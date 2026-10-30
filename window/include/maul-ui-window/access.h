@@ -5,7 +5,7 @@
 // UI builds its accessibility tree's consumer: one access a glue makes the
 // adapter built for its window's platform over the window's native
 // handles, feeds it the root's updates and hands its root to the window
-// (mwinRequestAccessibilityRoot) as it changes. A window of a platform
+// (mwinWindow_RequestAccessibilityRoot) as it changes. A window of a platform
 // with no adapter built, or of Maul Window's test backend, keeps the tree
 // alone, so a program can check what its clients would be told without
 // them.
