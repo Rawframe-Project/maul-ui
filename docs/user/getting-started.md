@@ -48,10 +48,10 @@ Maul Tween and the text component's dependencies are built into the library, so 
 | `MAUL_UI_BUILD_SHARED` | off | A shared library instead of a static one. |
 | `MAUL_UI_TEXT_SYSTEM_LIBRARIES` | off | Links the installed FreeType and HarfBuzz instead of building the pinned releases. Results then depend on their versions. |
 
-The core fetches Maul Tween, and the text component FreeType, HarfBuzz and Maul Unicode, at configure time, each checked by its hash or tag. To build offline, point `FETCHCONTENT_SOURCE_DIR_MAUL-TWEEN`, `FETCHCONTENT_SOURCE_DIR_MAUL_UI_FREETYPE`, `FETCHCONTENT_SOURCE_DIR_MAUL_UI_HARFBUZZ` and `FETCHCONTENT_SOURCE_DIR_MAUL-UNICODE` at local copies of the same releases; the core alone needs only Maul Tween's:
+The core fetches Maul Tween, and the text component FreeType, HarfBuzz and Maul Unicode, at configure time, each checked by its hash or tag. To build offline, point `FETCHCONTENT_SOURCE_DIR_MAUL-TWEEN`, `FETCHCONTENT_SOURCE_DIR_MAUL_UI_FREETYPE`, `FETCHCONTENT_SOURCE_DIR_MAUL_UI_HARFBUZZ` and `FETCHCONTENT_SOURCE_DIR_MAUL-UNICODE` at local copies of the same releases; the core alone needs only Maul Tween's, at the release `cmake/Tween.cmake` pins:
 
 ```sh
-git clone --depth 1 --branch v0.5.0 https://github.com/Rawframe-Project/maul-tween.git ../maul-tween
+git clone --depth 1 --branch v0.12.0 https://github.com/Rawframe-Project/maul-tween.git ../maul-tween
 cmake -B build -DMAUL_UI_TEXT=OFF -DFETCHCONTENT_SOURCE_DIR_MAUL-TWEEN=$PWD/../maul-tween
 ```
 
