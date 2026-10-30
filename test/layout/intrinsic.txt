@@ -1,6 +1,6 @@
 # A flex container's size from its content along its main axis (section
 # 9.9.1's sum of contributions, section 9.9.3 as Chrome reads it).
-# chrome 155.0.8059.79
+# chrome 156.0.8078.47
 
 # An item that cannot grow counts its content, capped by its basis.
 fixture row_basis_caps_item_that_cannot_grow available=500x400

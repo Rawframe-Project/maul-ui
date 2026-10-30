@@ -11,7 +11,7 @@
 # within its border box.
 # A reversed container scrolls from its flex start: the extent is
 # measured from there.
-# chrome 155.0.8059.79
+# chrome 156.0.8078.47
 
 fixture scroll_ratio_width_floor_none available=500x400
 node direction=column align-items=start => 0 0 80 20

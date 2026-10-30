@@ -1,6 +1,6 @@
 # Host content that wraps: words, boxes of one size that break greedily
 # into lines, as text does (content=<width>x<height>*<count>).
-# chrome 155.0.8059.79
+# chrome 156.0.8078.47
 
 # A row item shrinks to its row and wraps to its width.
 fixture words_row_item_wraps_to_its_row available=500x400
