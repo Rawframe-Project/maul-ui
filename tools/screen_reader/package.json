@@ -3,8 +3,8 @@
   "private": true,
   "description": "Guidepup, which walk.mjs drives the screen readers with, and puppeteer for the walks in Chrome, installed with npm ci.",
   "dependencies": {
-    "@guidepup/guidepup": "0.36.3",
+    "@guidepup/guidepup": "0.36.4",
     "@guidepup/setup": "0.29.3",
-    "puppeteer": "25.14.0"
+    "puppeteer": "25.16.0"
   }
 }
