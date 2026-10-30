@@ -224,16 +224,16 @@ static void CallBack(Probe* probe)
         memset(pixels, 0xA5, sizeof pixels);
         memset(&image, 0xA5, sizeof image);
         memset(&changed, 0xA5, sizeof changed);
-        expected = expected &&
-                   muiTextService_RenderGlyph(scene->service, 0, 0, 16.0f, 0.0f, &image, pixels,
-                                              sizeof pixels) == mui_errorBusy &&
-                   muiTextBlock_Type(scene->service, scene->block, "a", 1, &changed) ==
-                       mui_errorBusy &&
-                   muiTextBlock_Undo(scene->service, scene->block, &changed) == mui_errorBusy &&
-                   muiTextBlock_Compose(scene->service, scene->block, "a", 1, 0, NULL, 0,
-                                        &changed) == mui_errorBusy &&
-                   Holds(pixels, sizeof pixels, 0xA5) && Holds(&image, sizeof image, 0xA5) &&
-                   Holds(&changed, sizeof changed, 0xA5);
+        expected =
+            expected &&
+            muiTextService_RenderGlyph(scene->service, 0, 0, 16.0f, 0.0f, &image, pixels,
+                                       sizeof pixels) == mui_errorBusy &&
+            muiTextBlock_Type(scene->service, scene->block, "a", 1, &changed) == mui_errorBusy &&
+            muiTextBlock_Undo(scene->service, scene->block, &changed) == mui_errorBusy &&
+            muiTextBlock_Compose(scene->service, scene->block, "a", 1, 0, NULL, 0, &changed) ==
+                mui_errorBusy &&
+            Holds(pixels, sizeof pixels, 0xA5) && Holds(&image, sizeof image, 0xA5) &&
+            Holds(&changed, sizeof changed, 0xA5);
         refused += 4;
     }
     // The calls not refused as busy refuse their arguments, counted too.
