@@ -52,7 +52,10 @@ extern "C"
     /// (muiTextBlock_Compose): its text, its caret, at the end where the
     /// method hides it, and its segments as they come; an empty preedit
     /// takes the composition out, the committed text arriving as text
-    /// input after it.
+    /// input after it. The window shows no composition after
+    /// mwin_eventInputStateReset, so at that record give the block an empty
+    /// preedit too: the input method's next preedit shows its composition
+    /// again.
     ///
     /// @param service     The service.
     /// @param blockId     The block.

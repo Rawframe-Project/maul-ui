@@ -13,8 +13,8 @@
 // (muiNode_SetWindowTextCaret), the on-screen keyboard shown for the field's purpose
 // as the focus enters it and hidden as it leaves (muiNode_RequestWindowKeyboard).
 // Headless, a person's typing, editing, selecting, copying, pasting, undoing and
-// composing is posted and the texts, the caret's pixels, the window's caret and the
-// accessibility tree checked.
+// composing, with a composition a focus loss ends, is posted and the texts, the
+// caret's pixels, the window's caret and the accessibility tree checked.
 
 #include "app.h"
 
@@ -95,7 +95,8 @@ static bool Hear(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* e
            SampleEdit(texts->app, nodeId, event, NULL);
 }
 
-// An input method's preedit goes into the focused field.
+// An input method's preedit goes into the focused field, and a reset, after
+// which the window shows no composition, takes the field's out.
 static void Record(void* user, SampleApp* app, const mwinEvent* event)
 {
     Texts* texts = user;
@@ -111,6 +112,13 @@ static void Record(void* user, SampleApp* app, const mwinEvent* event)
                        muiTextBlock_ShowPreedit(app->text, field->block, &event->data.preedit,
                                                 &changed) == mui_success,
                        "a composition");
+    }
+    else if (event->type == mwin_eventInputStateReset)
+    {
+        const mwinPreeditEvent none = {.text = "", .caret = -1};
+        SampleAppCheck(
+            app, muiTextBlock_ShowPreedit(app->text, field->block, &none, &changed) == mui_success,
+            "a composition dropped");
     }
     Changed(app, field, changed);
 }
@@ -365,6 +373,13 @@ static void PostPreedit(SampleApp* app, const char* text, int32_t caret)
                    "a preedit posted");
 }
 
+static void PostFocus(SampleApp* app, mwinEventType type)
+{
+    const mwinEvent focus = {.type = type, .window = app->window};
+    SampleAppCheck(app, mwinContext_PostTestEvent(app->windows, &focus) == mwin_success,
+                   "the window's focus posted");
+}
+
 static void Click(SampleApp* app, muiNodeId node)
 {
     SamplePost(app, mwin_eventCursorMoved, node, 0);
@@ -439,11 +454,38 @@ static bool Script(void* user, SampleApp* app, int frame)
                            texts->placed.x > x && texts->placed.x < x + field.width &&
                            texts->placed.y >= y && texts->placed.y < y + field.height,
                        "the window's caret inside the notes");
+        // The window loses its focus, and the reset that follows ends the
+        // composition the field shows.
+        PostFocus(app, mwin_eventFocusLost);
+        return true;
+    }
+    case 6:
+    {
+        uint32_t start = 0;
+        uint32_t length = 7;
+        SampleAppCheck(app,
+                       muiTextBlock_GetComposition(app->text, notes->block, &start, &length) ==
+                               mui_success &&
+                           length == 0 && Holds(app, notes, "one\ntwo"),
+                       "the reset took the composition out");
+        PostFocus(app, mwin_eventFocusGained);
+        PostPreedit(app, "e", 1);
+        return true;
+    }
+    case 7:
+    {
+        uint32_t start = 0;
+        uint32_t length = 0;
+        SampleAppCheck(app,
+                       muiTextBlock_GetComposition(app->text, notes->block, &start, &length) ==
+                               mui_success &&
+                           start == 3 && length == 1 && Holds(app, notes, "onee\ntwo"),
+                       "the input method's next preedit composes again");
         PostPreedit(app, "", -1);
         PostText(app, "\xc3\xa9");
         return true;
     }
-    case 6:
+    case 8:
         SampleAppCheck(
             app, Holds(app, notes, "one\xc3\xa9\ntwo") && Reports(app, notes, "one\xc3\xa9\ntwo"),
             "the composition committed as \xc3\xa9");
@@ -454,10 +496,10 @@ static bool Script(void* user, SampleApp* app, int frame)
         PostNamed(app, mwin_codeArrowRight, 0);
         PostShortcut(app, mwin_codeKeyV, 'v');
         return true;
-    case 7:
+    case 9:
         // The window answers the copy and the paste a frame later.
         return true;
-    case 8:
+    case 10:
         SampleAppCheck(app, ClipboardHolds(app, "MaXY"), "copied to the clipboard");
         SampleAppCheck(app, Holds(app, name, "MaXYMaXY"), "pasted after itself");
         PostShortcut(app, mwin_codeKeyZ, 'z');
