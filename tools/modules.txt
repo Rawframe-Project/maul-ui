@@ -25,7 +25,7 @@ draw_transform: context draw_store layout_node scroll_store tree
 paint_host: context draw_store draw_transform layout_node paint tree fpenv
 draw: context draw_store draw_transform layer paint paint_host tree fpenv
 hit: context layer layout_node paint place tree fpenv
-layer: context layer_store tree outline
+layer: context invariant layer_store tree outline
 layer_store:
 place: context layout_node scroll_store tree outline
 focus: context focus_store layer notify style_store tree scroll popup outline fpenv
@@ -104,7 +104,7 @@ scroll_query: context layout_node scroll_store tree fpenv
 navigate: context focus tree scroll fpenv
 pointer: context pointer_store style_store tree focus scroll popup place fpenv
 pointer_store:
-notify:
+notify: invariant
 style_store: pool property outline
 sizing: outline
 tree: invariant outline
