@@ -213,8 +213,8 @@ extern "C"
         // last outcome until the host edits the node or its size leaves
         // those two.
         mui_notificationOscillation = 1,
-        // Notifications were dropped here, past the limit; dropped says
-        // how many.
+        // Notifications were dropped here, past the limit;
+        // notificationsDropped says how many.
         mui_notificationDropped = 2,
         // A player's focus came to the node, or left it; player says
         // whose.
@@ -244,7 +244,7 @@ extern "C"
         muiNodeId node;
         // Each field below is set by one kind and 0 for the others.
         // For mui_notificationDropped, how many were dropped.
-        uint32_t dropped;
+        uint32_t notificationsDropped;
         // For mui_notificationFocusGained and mui_notificationFocusLost, the
         // player whose focus moved.
         uint8_t player;
