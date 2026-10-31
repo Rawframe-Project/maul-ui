@@ -577,6 +577,27 @@ static void TestJoinedBytes(void)
         }
         FreeScene(&scene);
     }
+    // A composition that is the whole text, a deletion beside it: the
+    // text without it is empty, and the deletion takes the composition
+    // alone (found by fuzz_text: a copy into scratch never reserved).
+    for (int forward = 0; forward < 2; forward++)
+    {
+        scene = MakeScene("", 0);
+        bool changed = true;
+        uint32_t start = 1;
+        uint32_t shown = 1;
+        muiTextDeletion deletion = forward != 0 ? mui_deleteForward : mui_deleteBackward;
+        CHECK(muiTextBlock_Compose(scene.service, scene.block, "x", 1, 1, NULL, 0, NULL) ==
+                      mui_success &&
+                  muiTextBlock_Erase(scene.service, scene.block, deletion, &changed) ==
+                      mui_success &&
+                  !changed && Holds(&scene, "") && Selects(&scene, 0, 0) &&
+                  muiTextBlock_GetComposition(scene.service, scene.block, &start, &shown) ==
+                      mui_success &&
+                  shown == 0,
+              "a deletion beside a composition that is the whole text");
+        FreeScene(&scene);
+    }
 }
 
 // An edit ends a press: a drag after the text changed extends from the
