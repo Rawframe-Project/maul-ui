@@ -964,6 +964,16 @@ static void TestEvents(void)
     CHECK(muiNode_HandleEditEvent(&scene.host, scene.node, &event, &bad, &outcome) ==
               mui_errorInvalid,
           "a keymap out of range");
+    // A text event's text is read for its first byte: one without text
+    // but with a length is refused before that.
+    event = (muiEvent){0};
+    event.kind = mui_eventText;
+    event.length = 1;
+    uint64_t misuse = muiTextService_GetMisuse(scene.service);
+    CHECK(muiNode_HandleEditEvent(&scene.host, scene.node, &event, &input, &outcome) ==
+                  mui_errorInvalid &&
+              muiTextService_GetMisuse(scene.service) == misuse + 1 && Holds(&scene, "word"),
+          "a text event without its text");
     FreeScene(&scene);
 }
 
