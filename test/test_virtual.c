@@ -217,6 +217,64 @@ static void TestShrunk(void)
     muiDestroyContext(context);
 }
 
+// An item estimated far above what it measures: the change, 10 - 1e30,
+// rounds to -1e30 in the sums, which then lose the item; the item after
+// it still begins where it ends.
+static void TestMeasuredFarBelow(void)
+{
+    Scene scene;
+    muiVirtualList list = ListOf(3, 1e30f, false, 0.0f, 0.0f);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
+    muiContext* context = scene.context;
+    Layout(context, scene.root);
+    muiNodeId items[1];
+    Realize(&scene, 0, 1, -1.0f, 10.0f, items);
+    Layout(context, scene.root);
+    float offset = -1.0f;
+    float extent = -1.0f;
+    CHECK(muiNode_GetVirtualItem(context, scene.list, 0, &offset, &extent) == mui_success &&
+              offset == 0.0f && extent == 10.0f,
+          "the measured item");
+    CHECK(muiNode_GetVirtualItem(context, scene.list, 1, &offset, &extent) == mui_success &&
+              offset == 10.0f && extent == 1e30f,
+          "the next begins where it ends");
+    CHECK(muiNode_GetVirtualItem(context, scene.list, 2, &offset, &extent) == mui_success &&
+              offset == 1e30f,
+          "and the one after that");
+    muiDestroyContext(context);
+}
+
+// Four items estimated at 1e30, then item 2 measured at 10 and items 0
+// and 1 at 0. Each measure keeps its own item's place, but a sum above
+// them, which item 3's offset reads, lost item 2's 10 to rounding.
+static void TestMeasuredFarBelowAbove(void)
+{
+    Scene scene;
+    muiVirtualList list = ListOf(4, 1e30f, false, 0.0f, 0.0f);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
+    muiContext* context = scene.context;
+    Layout(context, scene.root);
+    // Bound in this order, they are measured in this order.
+    const uint32_t indexes[3] = {2, 0, 1};
+    const float heights[3] = {10.0f, 0.0f, 0.0f};
+    for (uint32_t i = 0; i < 3; i++)
+    {
+        muiNodeId item = Node(context, scene.list);
+        Size(context, item, -1.0f, heights[i]);
+        CHECK(muiNode_BindVirtualItem(context, item, indexes[i]) == mui_success, "bind");
+    }
+    Layout(context, scene.root);
+    float offset = -1.0f;
+    float extent = -1.0f;
+    CHECK(muiNode_GetVirtualItem(context, scene.list, 2, &offset, &extent) == mui_success &&
+              offset == 0.0f && extent == 10.0f,
+          "item 2 after two empty items");
+    CHECK(muiNode_GetVirtualItem(context, scene.list, 3, &offset, &extent) == mui_success &&
+              offset == 10.0f && extent == 1e30f,
+          "item 3 where item 2 ends");
+    muiDestroyContext(context);
+}
+
 // A list's extent is its items' length, not where its bound nodes were
 // placed before: one bound to the last of ten items and popped by its
 // exit, which keeps the rectangle it had through layout, then rebound
@@ -1052,6 +1110,8 @@ int main(void)
 {
     TestEstimated();
     TestShrunk();
+    TestMeasuredFarBelow();
+    TestMeasuredFarBelowAbove();
     TestRebound();
     TestFixed();
     TestGapAndOverscan();

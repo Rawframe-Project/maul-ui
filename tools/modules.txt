@@ -25,7 +25,7 @@ draw_transform: context draw_store layout_node scroll_store tree
 paint_host: context draw_store draw_transform layout_node paint tree fpenv
 draw: context draw_store draw_transform layer paint paint_host tree fpenv
 hit: context layer layout_node paint place tree fpenv
-layer: context layer_store tree outline
+layer: context invariant layer_store tree outline
 layer_store:
 place: context layout_node scroll_store tree outline
 focus: context focus_store layer notify style_store tree scroll popup outline fpenv
@@ -104,7 +104,7 @@ scroll_query: context layout_node scroll_store tree fpenv
 navigate: context focus tree scroll fpenv
 pointer: context pointer_store style_store tree focus scroll popup place fpenv
 pointer_store:
-notify:
+notify: invariant
 style_store: pool property outline
 sizing: outline
 tree: invariant outline
@@ -115,14 +115,14 @@ outputs:
 node: context inherit layout_node pointer style_store tree focus fpenv
 node_style: animation context layout_node pool property style_store tree inherit layer focus scroll_store fpenv
 style: condition context pool property style_edit style_store tree fpenv
-restyle: animation condition context inherit layout_node notify pool property style_store tree token_store theme_store layer focus scroll_store
+restyle: animation condition context inherit invariant layout_node notify pool property style_store tree token_store theme_store layer focus scroll_store
 flex_item: layout_node sizing solver tree outline
-flex_resolve: layout_node tree
+flex_resolve: invariant layout_node tree
 flex: flex_item flex_resolve invariant layout_node sizing solver tree
 absolute: invariant layout_node sizing solver tree
 solve: absolute condition flex invariant layout_node sizing solver tree draw_store scroll_store fpenv
 layout_bound: layout_node solver tree
-layout: animation context layout_bound layout_node property restyle solve solver tree scroll popup exit virtual fpenv
+layout: animation context invariant layout_bound layout_node property restyle solve solver tree scroll popup exit virtual fpenv
 font_store: allocator pool
 font_instance: font_store
 family_store: allocator pool
@@ -138,14 +138,14 @@ text_editing: invariant text_block text_blocks text_delete text_entry text_histo
 text_editor: text_block text_editing text_entry text_service text_host fpenv
 text_keys: text_block text_editing text_entry text_host fpenv
 text_mask: allocator text_block text_blocks text_service
-text_history: allocator text_block
+text_history: allocator invariant text_block
 text_rules: text_block text_service
 text_shape: font_chain font_instance font_store invariant text_block text_blocks text_runs text_service
 line_break: text_block
 text_paragraph: font_chain line_break text_block text_runs text_service text_shape text_mask
 text_layout: font_chain line_break text_block text_boxes text_lines text_paragraph text_runs text_service text_shape text_host fpenv
 text_boxes: font_chain line_break text_block text_lines text_paragraph text_service text_shape text_mask
-text_lines: line_break text_block text_paragraph text_service
+text_lines: invariant line_break text_block text_paragraph text_service
 text_hit: font_chain line_break text_block text_boxes text_entry text_mask text_paragraph text_service text_shape text_host fpenv
 text_delete: text_block text_blocks text_service fpenv
 text_move: font_chain invariant line_break text_block text_blocks text_boxes text_entry text_mask text_paragraph text_service text_shape text_host fpenv

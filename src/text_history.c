@@ -11,6 +11,8 @@
 
 #include "text_history.h"
 
+#include "invariant.h"
+
 #include "maul-unicode/encoding.h"
 #include "maul-unicode/properties.h"
 
@@ -73,6 +75,10 @@ static void Join(muiTextEditing* editing, muiTextEdit* last, const muiTextEdit* 
                  const char* removed, const char* inserted)
 {
     char* bytes = editing->bytes.data;
+    // The last edit's bytes end the buffer, and muiReserveEdit made room
+    // for this one's after them.
+    MUI_ASSERT(last->bytes + last->removed + last->inserted == editing->byteCount &&
+               (size_t)editing->byteCount + edit->removed + edit->inserted <= editing->bytes.bytes);
     if (edit->kind == MUI_EDIT_BACKWARD)
     {
         // What a backspace removed came before what the run had.
@@ -95,6 +101,8 @@ static void Join(muiTextEditing* editing, muiTextEdit* last, const muiTextEdit* 
 static void DropOldest(muiTextEditing* editing)
 {
     muiTextEdit* entries = editing->entries.data;
+    // Dropped only from a full history whose edits are all done.
+    MUI_ASSERT(editing->entryCount != 0 && editing->done == editing->entryCount);
     size_t shift = (size_t)entries[0].removed + entries[0].inserted;
     char* bytes = editing->bytes.data;
     memmove(bytes, bytes + shift, editing->byteCount - shift);
@@ -113,6 +121,7 @@ static size_t KeptBytes(const muiTextEditing* editing)
 {
     const muiTextEdit* entries = editing->entries.data;
     uint32_t done = editing->done;
+    MUI_ASSERT(done <= editing->entryCount);
     return done != 0
                ? entries[done - 1].bytes + entries[done - 1].removed + entries[done - 1].inserted
                : 0;
@@ -180,6 +189,9 @@ bool muiRecordEdit(const muiAllocator* allocator, muiTextEditing* editing, const
     {
         DropOldest(editing);
     }
+    // muiReserveEdit made room for one more edit and its bytes.
+    MUI_ASSERT(((size_t)editing->entryCount + 1) * sizeof(muiTextEdit) <= editing->entries.bytes &&
+               (size_t)editing->byteCount + edit->removed + edit->inserted <= editing->bytes.bytes);
     muiTextEdit* added = &entries[editing->entryCount++];
     *added = *edit;
     added->bytes = editing->byteCount;
