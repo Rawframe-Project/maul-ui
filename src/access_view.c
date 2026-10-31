@@ -561,8 +561,6 @@ typedef struct Name
     char* buffer;
     size_t capacity;
     size_t length;
-    // The first byte with no room, kept to cut on a whole character.
-    unsigned char dropped;
 } Name;
 
 static void Join(Name* name, const char* text, uint32_t length)
@@ -577,10 +575,6 @@ static void Join(Name* name, const char* text, uint32_t length)
         if (name->length + 1 < name->capacity)
         {
             name->buffer[name->length] = byte;
-        }
-        else if (name->length + 1 == name->capacity)
-        {
-            name->dropped = (unsigned char)byte;
         }
         name->length++;
     }
@@ -694,7 +688,7 @@ static muiResult AccessTreeGetName(const muiAccessTree* tree, uint64_t id, char*
     {
         return mui_errorInvalid;
     }
-    Name name = {bufferOut, capacity, 0, 0};
+    Name name = {bufferOut, capacity, 0};
     uint32_t slot = muiHeldSlotOf(tree, id);
     if (slot != 0)
     {
@@ -712,19 +706,11 @@ static muiResult AccessTreeGetName(const muiAccessTree* tree, uint64_t id, char*
             JoinContents(&name, tree, slot);
         }
     }
-    size_t end = name.length < capacity ? name.length : capacity - 1;
-    if (name.length >= capacity && capacity != 0 && (name.dropped & 0xC0) == 0x80)
+    // A name that does not fit is not cut: muiAccessTree_GetName zeroes
+    // the buffer.
+    if (name.length < capacity)
     {
-        // A character cut short: back to its first byte, and before it.
-        while (end > 0 && ((unsigned char)bufferOut[end - 1] & 0xC0) == 0x80)
-        {
-            end--;
-        }
-        end -= end > 0 && ((unsigned char)bufferOut[end - 1] & 0xC0) == 0xC0 ? 1 : 0;
-    }
-    if (capacity != 0)
-    {
-        bufferOut[end] = '\0';
+        bufferOut[name.length] = '\0';
     }
     *lengthOut = name.length;
     return name.length == 0 ? mui_empty : name.length < capacity ? mui_success : mui_errorCapacity;
