@@ -78,9 +78,8 @@ extern "C"
         bool lightDismiss;
     } muiPopup;
 
-    // Why a popup was dismissed.
-    typedef int32_t muiDismissReason;
-
+    // Why a popup was dismissed: the values of muiDismissReason
+    // (maul-ui/context.h).
     enum
     {
         // A pointer pressed outside it and its anchor.

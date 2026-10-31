@@ -406,7 +406,8 @@ static bool IsOpen(const muiContext* context, const muiPopupEntry* entry)
 static void Dismiss(muiContext* context, muiPopupEntry* entry, muiDismissReason reason)
 {
     entry->dismissed = true;
-    const muiNotification record = {mui_notificationPopupDismissed, entry->node, reason};
+    const muiNotification record = {
+        .kind = mui_notificationPopupDismissed, .node = entry->node, .reason = reason};
     muiNotifyPost(&context->notifications, &record);
 }
 

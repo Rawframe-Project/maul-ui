@@ -1092,7 +1092,8 @@ static void TestActions(void)
     CHECK(muiContext_PerformAccessAction(context, &request, &handled) == mui_success && handled &&
               muiContext_TakeNotification(context, &record) == mui_success &&
               record.kind == mui_notificationAccessAction &&
-              record.node.index1 == scene.group.index1 && record.detail == mui_actionExpand,
+              record.node.index1 == scene.group.index1 && record.action == mui_actionExpand &&
+              record.dropped == 0 && record.player == 0 && record.reason == 0,
           "expand posted");
     request.action = mui_actionCollapse;
     CHECK(muiContext_PerformAccessAction(context, &request, &handled) == mui_empty, "not expanded");

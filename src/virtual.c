@@ -773,7 +773,8 @@ void muiVirtualWindows(muiContext* context, uint32_t root)
             entry->first = first;
             entry->end = end;
             entry->windowed = true;
-            const muiNotification record = {mui_notificationWindowChanged, entry->node, 0};
+            const muiNotification record = {.kind = mui_notificationWindowChanged,
+                                            .node = entry->node};
             muiNotifyPost(&context->notifications, &record);
         }
     }

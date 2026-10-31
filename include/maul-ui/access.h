@@ -214,9 +214,8 @@ extern "C"
         MUI_ACCESS_HOST_FLAGS = 0x7FFu
     };
 
-    // What assistive technology asks a node to do.
-    typedef int32_t muiAccessAction;
-
+    // What assistive technology asks a node to do: the values of
+    // muiAccessAction (maul-ui/context.h).
     enum
     {
         // Routed to the node as a navigation event, mui_navigateActivate.

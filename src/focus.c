@@ -80,7 +80,7 @@ bool muiFocusIsCovered(const muiContext* context, uint32_t slot)
 
 static void Notify(muiContext* context, muiNotificationKind kind, muiNodeId nodeId, uint8_t player)
 {
-    const muiNotification record = {kind, nodeId, player};
+    const muiNotification record = {.kind = kind, .node = nodeId, .player = player};
     muiNotifyPost(&context->notifications, &record);
 }
 
