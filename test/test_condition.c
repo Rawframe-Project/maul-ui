@@ -722,7 +722,7 @@ static void TestNotificationsPastTheLimitAreCounted(void)
               record.kind == mui_notificationOscillation && record.node.index1 == first.index1,
           "the first, in tree order");
     CHECK(muiContext_TakeNotification(context, &record) == mui_success &&
-              record.kind == mui_notificationDropped && record.dropped == 2 &&
+              record.kind == mui_notificationDropped && record.notificationsDropped == 2 &&
               record.node.index1 == 0 && record.player == 0 && record.reason == 0 &&
               record.action == 0,
           "then a count of the rest");
@@ -738,7 +738,7 @@ static void TestNotificationsPastTheLimitAreCounted(void)
     MakeOscillator(context, root, style);
     RunWhilePending(context, root);
     CHECK(muiContext_TakeNotification(context, &record) == mui_success &&
-              record.kind == mui_notificationDropped && record.dropped == 1,
+              record.kind == mui_notificationDropped && record.notificationsDropped == 1,
           "with no room, only the count");
     muiDestroyContext(context);
 }
@@ -776,7 +776,7 @@ static void TestNotificationsKeepTheirOrder(void)
     MakeOscillator(context, root, style);
     RunWhilePending(context, root);
     CHECK(muiContext_TakeNotification(context, &record) == mui_success &&
-              record.kind == mui_notificationDropped && record.dropped == 2,
+              record.kind == mui_notificationDropped && record.notificationsDropped == 2,
           "the later one counts with the lost one, though there was room");
     CHECK(muiContext_TakeNotification(context, &record) == mui_empty, "nothing after");
     muiDestroyContext(context);

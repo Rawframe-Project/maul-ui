@@ -87,7 +87,7 @@ static bool Noted(muiContext* context, muiNotificationKind kind, muiNodeId node,
 {
     muiNotification record = {0};
     return muiContext_TakeNotification(context, &record) == mui_success && record.kind == kind &&
-           Same(record.node, node) && record.player == player && record.dropped == 0 &&
+           Same(record.node, node) && record.player == player && record.notificationsDropped == 0 &&
            record.reason == 0 && record.action == 0;
 }
 
