@@ -92,7 +92,9 @@ typedef struct muiTextEdit
     uint32_t start;
     uint32_t removed;
     uint32_t inserted;
-    uint32_t bytes;
+    // Where its bytes begin in the history's buffer, which may pass 4 GiB:
+    // a text and its replacement each hold up to MUI_MAX_TEXT_BYTES.
+    size_t bytes;
     muiTextSelection before;
     muiTextSelection after;
     uint8_t kind;
@@ -121,7 +123,7 @@ typedef struct muiTextEditing
     uint32_t entryCount;
     uint32_t done;
     muiBuffer bytes;
-    uint32_t byteCount;
+    size_t byteCount;
     uint8_t open;
     uint64_t revision;
 } muiTextEditing;

@@ -16,6 +16,7 @@
 #include "maul-unicode/encoding.h"
 #include "maul-unicode/properties.h"
 
+#include <stdckdint.h>
 #include <string.h>
 
 void muiClearHistory(muiTextEditing* editing)
@@ -94,7 +95,7 @@ static void Join(muiTextEditing* editing, muiTextEdit* last, const muiTextEdit* 
     last->removed += edit->removed;
     last->inserted += edit->inserted;
     last->after = edit->after;
-    editing->byteCount += edit->removed + edit->inserted;
+    editing->byteCount += (size_t)edit->removed + edit->inserted;
 }
 
 static void DropOldest(muiTextEditing* editing)
@@ -102,7 +103,7 @@ static void DropOldest(muiTextEditing* editing)
     muiTextEdit* entries = editing->entries.data;
     // Dropped only from a full history whose edits are all done.
     MUI_ASSERT(editing->entryCount != 0 && editing->done == editing->entryCount);
-    uint32_t shift = entries[0].removed + entries[0].inserted;
+    size_t shift = (size_t)entries[0].removed + entries[0].inserted;
     char* bytes = editing->bytes.data;
     memmove(bytes, bytes + shift, editing->byteCount - shift);
     memmove(entries, entries + 1, (editing->entryCount - 1) * sizeof *entries);
@@ -116,7 +117,7 @@ static void DropOldest(muiTextEditing* editing)
 }
 
 // The bytes the edits not undone hold.
-static uint32_t KeptBytes(const muiTextEditing* editing)
+static size_t KeptBytes(const muiTextEditing* editing)
 {
     const muiTextEdit* entries = editing->entries.data;
     uint32_t done = editing->done;
@@ -131,15 +132,24 @@ bool muiReserveEdit(const muiAllocator* allocator, muiTextEditing* editing, uint
 {
     // Every edit is kept, those undone too, as an edit reserved for may
     // not be recorded.
+    if (editing->rules.undoLimit == 0)
+    {
+        return true;
+    }
     size_t entries = (size_t)editing->entryCount * sizeof(muiTextEdit);
     size_t entriesNeeded = ((size_t)editing->done + 1) * sizeof(muiTextEdit);
     size_t bytes = editing->byteCount;
-    size_t bytesNeeded = (size_t)KeptBytes(editing) + removed + inserted;
-    return editing->rules.undoLimit == 0 ||
-           (muiReserveKeeping(allocator, &editing->entries,
-                              entriesNeeded > entries ? entriesNeeded : entries, entries) &&
-            muiReserveKeeping(allocator, &editing->bytes, bytesNeeded > bytes ? bytesNeeded : bytes,
-                              bytes));
+    // Past SIZE_MAX, which only a 32-bit size_t reaches, no buffer holds
+    // the history.
+    size_t bytesNeeded = 0;
+    if (ckd_add(&bytesNeeded, KeptBytes(editing), (size_t)removed + inserted))
+    {
+        return false;
+    }
+    return muiReserveKeeping(allocator, &editing->entries,
+                             entriesNeeded > entries ? entriesNeeded : entries, entries) &&
+           muiReserveKeeping(allocator, &editing->bytes, bytesNeeded > bytes ? bytesNeeded : bytes,
+                             bytes);
 }
 
 bool muiRecordEdit(const muiAllocator* allocator, muiTextEditing* editing, const muiTextEdit* edit,
@@ -147,7 +157,7 @@ bool muiRecordEdit(const muiAllocator* allocator, muiTextEditing* editing, const
 {
     // What was undone goes.
     uint32_t done = editing->done;
-    uint32_t kept = KeptBytes(editing);
+    size_t kept = KeptBytes(editing);
     if (editing->rules.undoLimit == 0)
     {
         muiClearHistory(editing);
@@ -194,7 +204,7 @@ bool muiRecordEdit(const muiAllocator* allocator, muiTextEditing* editing, const
     {
         memcpy(bytes + editing->byteCount + edit->removed, inserted, edit->inserted);
     }
-    editing->byteCount += edit->removed + edit->inserted;
+    editing->byteCount += (size_t)edit->removed + edit->inserted;
     editing->done = editing->entryCount;
     return true;
 }
