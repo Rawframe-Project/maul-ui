@@ -22,7 +22,7 @@ extern "C"
 #define MUI_VERSION_MAJOR 0
 // x-release-please-end
 // x-release-please-start-minor
-#define MUI_VERSION_MINOR 5
+#define MUI_VERSION_MINOR 6
 // x-release-please-end
 // x-release-please-start-patch
 #define MUI_VERSION_PATCH 0
