@@ -224,7 +224,7 @@ static muiResult ThemeSetTokenAlias(muiContext* context, muiThemeId themeId, mui
         return mui_errorStale;
     }
     if (tokens->tokens[targetSlot - 1].value.type != tokens->tokens[token - 1].value.type ||
-        muiAliasLeadsTo(&context->tokens, &context->themes, theme, target, tokenId))
+        muiAliasLeadsTo(&context->tokens, &context->themes, target, tokenId))
     {
         return muiRefuse(context);
     }

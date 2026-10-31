@@ -258,6 +258,31 @@ static void TestCycleClosedByTheContext(void)
     muiDestroyContext(context);
 }
 
+// An alias a reset would expose: the context's X is Y, and a theme that
+// gives X a literal may not make Y X, since ending that literal would
+// leave X following the context's Y back to it.
+static void TestCycleClosedByAReset(void)
+{
+    muiContext* context = MakeContext();
+    muiTokenId x = MakeToken(context, s_red);
+    muiTokenId y = MakeToken(context, s_blue);
+    muiThemeId theme = MakeTheme(context);
+    muiNodeId node = MakeChild(context, s_nullNode);
+    CHECK(muiToken_SetAlias(context, x, y) == mui_success &&
+              muiNode_SetTheme(context, node, theme) == mui_success,
+          "the context's X is Y");
+    Override(context, theme, x, s_dark);
+    uint64_t misuse = muiContext_GetMisuse(context);
+    CHECK(muiTheme_SetTokenAlias(context, theme, y, x) == mui_errorInvalid &&
+              muiContext_GetMisuse(context) == misuse + 1,
+          "the theme's Y may not be X, though X is a literal there");
+    CHECK(muiTheme_ResetToken(context, theme, x) == mui_success, "the literal ends");
+    Layout(context, node);
+    CHECK(SameColor(Read(context, node, x), s_blue) && SameColor(Read(context, node, y), s_blue),
+          "both give Y's value under the theme");
+    muiDestroyContext(context);
+}
+
 // Every theme at the limit overrides every token, each its own colour,
 // and each reads back as set, the last theme's too.
 static void TestEveryOverride(void)
@@ -461,16 +486,12 @@ static void TestNestedThemes(void)
     CHECK(SameColor(Background(context, leaf), s_light),
           "the outer alias, read where the inner theme makes the brand light");
 
-    // A cycle only the two themes close: the outer accent is the brand,
-    // the inner brand the accent.
-    CHECK(muiTheme_SetTokenAlias(context, inner, brand, accent) == mui_success,
-          "allowed: through the inner theme and the context alone, no cycle");
+    // A cycle only the two themes would close, nested: the outer accent is
+    // the brand, so the inner brand may not be the accent.
+    CHECK(muiTheme_SetTokenAlias(context, inner, brand, accent) == mui_errorInvalid,
+          "a cycle through two nested themes");
     Layout(context, root);
-    muiTokenValue value = Color(s_red);
-    CHECK(muiNode_GetTokenValue(context, leaf, accent, &value) == mui_empty &&
-              value.type == mui_tokenColor && value.color.a == 0.0f,
-          "no value through the cycle");
-    CHECK(Background(context, leaf).a == 0.0f, "and the class's layer is silent");
+    CHECK(SameColor(Background(context, leaf), s_light), "the brand stays light");
     muiDestroyContext(context);
 }
 
@@ -507,6 +528,7 @@ int main(void)
     TestLimits();
     TestCycleThroughTheFirstToken();
     TestCycleClosedByTheContext();
+    TestCycleClosedByAReset();
     TestEveryOverride();
     TestSubtreesReadTheirTheme();
     TestNestedThemes();

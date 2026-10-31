@@ -22,42 +22,6 @@
 
 #define TOKEN_DEF_COOKIE 0x6D75746Bu // "mutk"
 
-// Whether the aliases from target lead to slot.
-static bool LeadsTo(const muiTokenStore* store, muiTokenId target, uint32_t slot)
-{
-    for (uint32_t at = muiFindToken(store, target); at != 0;
-         at = muiFindToken(store, store->tokens[at - 1].alias))
-    {
-        if (at == slot)
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
-// Whether the aliases from target lead to token, at slot, through the
-// context's tokens alone or through any one theme and them: an alias of
-// token to target would close a cycle in one of them.
-static bool LeadsToThroughThemes(const muiContext* context, muiTokenId target, muiTokenId token,
-                                 uint32_t slot)
-{
-    if (LeadsTo(&context->tokens, target, slot))
-    {
-        return true;
-    }
-    const muiThemeStore* themes = &context->themes;
-    for (uint32_t theme = 1; theme <= themes->pool.used; theme++)
-    {
-        if (themes->pool.slots[theme - 1].live &&
-            muiAliasLeadsTo(&context->tokens, themes, theme, target, token))
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
 muiTokenDef muiDefaultTokenDef(void)
 {
     return (muiTokenDef){.cookie = TOKEN_DEF_COOKIE, .value = {.type = mui_tokenNumber}};
@@ -229,7 +193,7 @@ static muiResult SetTokenAlias(muiContext* context, muiTokenId tokenId, muiToken
     }
     muiToken* token = &store->tokens[slot - 1];
     if (store->tokens[targetSlot - 1].value.type != token->value.type ||
-        LeadsToThroughThemes(context, target, tokenId, slot))
+        muiAliasLeadsTo(store, &context->themes, target, tokenId))
     {
         return muiRefuse(context);
     }
