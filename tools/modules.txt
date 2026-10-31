@@ -122,7 +122,7 @@ flex: flex_item flex_resolve invariant layout_node sizing solver tree
 absolute: invariant layout_node sizing solver tree
 solve: absolute condition flex invariant layout_node sizing solver tree draw_store scroll_store fpenv
 layout_bound: layout_node solver tree
-layout: animation context layout_bound layout_node property restyle solve solver tree scroll popup exit virtual fpenv
+layout: animation context invariant layout_bound layout_node property restyle solve solver tree scroll popup exit virtual fpenv
 font_store: allocator pool
 font_instance: font_store
 family_store: allocator pool
