@@ -299,6 +299,8 @@ void muiGlyphAtlas_BeginFrame(muiGlyphAtlas* atlas)
 // A plot's top left in its page.
 static void PlotOrigin(const muiGlyphAtlas* atlas, uint32_t plot, uint32_t* xOut, uint32_t* yOut)
 {
+    // A plot of a page made: Pack finds plots only there.
+    MUI_ASSERT(plot != 0 && plot <= atlas->pageCount * atlas->plotsPerPage);
     uint32_t within = (plot - 1) % atlas->plotsPerPage;
     *xOut = within % atlas->plotsAcross * atlas->plotWidth;
     *yOut = within / atlas->plotsAcross * atlas->plotHeight;
@@ -328,6 +330,8 @@ static bool AddPage(muiGlyphAtlas* atlas)
         return false;
     }
     memset(pixels, 0, pixelBytes);
+    // Pack adds a page only below the def's maximum.
+    MUI_ASSERT(atlas->pageCount < atlas->maxPages);
     uint32_t page = atlas->pageCount++;
     atlas->pages[page] = pixels;
     atlas->pageNodes[page] = nodes;
@@ -423,8 +427,8 @@ static muiResult Pack(muiGlyphAtlas* atlas, uint32_t width, uint32_t height, uin
         }
         Evict(atlas, plot);
     }
-    // An empty plot holds any image that fits a plot.
-    (void)TryPlot(atlas, plot, width, height, xOut, yOut);
+    // An empty plot holds any image that fits a plot, as Add's only are.
+    muiAssertCall(TryPlot(atlas, plot, width, height, xOut, yOut));
     *plotOut = plot;
     return mui_success;
 }
@@ -439,6 +443,8 @@ static void MarkChanged(muiGlyphAtlas* atlas, uint32_t plot, uint32_t x, uint32_
     uint16_t y1 = (uint16_t)(y + height);
     if (!record->listed)
     {
+        // A plot is listed once, so the list holds at most every plot.
+        MUI_ASSERT(atlas->dirtyCount < atlas->maxPages * atlas->plotsPerPage);
         atlas->dirty[atlas->dirtyCount++] = plot - 1;
         record->listed = true;
         record->dirtyX0 = x0;

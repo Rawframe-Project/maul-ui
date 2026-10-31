@@ -166,7 +166,7 @@ inflate:
 png: inflate text_block
 glyph_outline: font_instance font_store text_block text_service
 skyline: invariant
-glyph_table: allocator
+glyph_table: allocator invariant
 glyph_atlas: allocator bitmap_glyph color font_store glyph_outline glyph_table invariant skyline text_service outputs fpenv
 property_bits: outline
 inherit: layout_node property tree
