@@ -236,7 +236,7 @@ static void MakeScene(Scene* scene, Kind kind)
                           MUI_PROPERTY_BIT(mui_propertyScrollAxes) |
                           MUI_PROPERTY_BIT(mui_propertyFlexDirection));
     muiVirtualList virtualList = muiDefaultVirtualList();
-    virtualList.count = ROWS;
+    virtualList.itemCount = ROWS;
     virtualList.extent = kind == kindTable ? 24.0f : 28.0f;
     virtualList.fixed = kind == kindTable;
     virtualList.overscan = 200.0f;

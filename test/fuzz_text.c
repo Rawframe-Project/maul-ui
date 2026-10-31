@@ -147,17 +147,18 @@ static void LayOut(Scene* scene, bool paint)
     const muiLayoutInput layoutInput = {scene->width, 1000.0f,     muiMeasureText, &scene->host, 0,
                                         nullptr,      {0, 0, 0, 0}};
     // mui_errorCapacity exactly when the service ran out of memory.
-    uint64_t failures = muiTextService_GetFailures(scene->service);
+    uint64_t failures = muiTextService_GetLayoutFailureCount(scene->service);
     muiResult laid = muiNode_ComputeLayout(scene->context, scene->node, &layoutInput);
-    Expect(laid == (muiTextService_GetFailures(scene->service) != failures ? mui_errorCapacity
-                                                                           : mui_success));
+    Expect(laid == (muiTextService_GetLayoutFailureCount(scene->service) != failures
+                        ? mui_errorCapacity
+                        : mui_success));
     if (paint)
     {
         const muiDrawInput drawInput = {1, 1.0f, muiPaintText, &scene->host};
         muiDrawList list = {0};
-        failures = muiTextService_GetFailures(scene->service);
+        failures = muiTextService_GetLayoutFailureCount(scene->service);
         muiResult painted = muiNode_BuildDrawList(scene->context, scene->node, &drawInput);
-        Expect(painted == (muiTextService_GetFailures(scene->service) != failures
+        Expect(painted == (muiTextService_GetLayoutFailureCount(scene->service) != failures
                                ? mui_errorCapacity
                                : mui_success) &&
                muiContext_GetDrawList(scene->context, &list) == mui_success);

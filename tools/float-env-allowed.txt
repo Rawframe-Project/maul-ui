@@ -45,7 +45,7 @@ names, versions, counts and keys of ids:
     muiNode_GetAccessId
     muiNsAdapter_GetMisuse
     muiTextBlock_GetKey
-    muiTextService_GetFailures
+    muiTextService_GetLayoutFailureCount
     muiTextService_GetMisuse
     muiUiaAdapter_GetMisuse
     muiUikitAdapter_GetMisuse

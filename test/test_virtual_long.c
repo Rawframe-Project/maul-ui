@@ -79,7 +79,7 @@ static void TestRoundedTotal(void)
                                       MUI_PROPERTY_BIT(mui_propertyFlexDirection)) == mui_success,
           "scrolls");
     muiVirtualList items = muiDefaultVirtualList();
-    items.count = COUNT;
+    items.itemCount = COUNT;
     items.extent = 1.0f;
     items.overscan = 0.0f;
     CHECK(muiNode_SetVirtualList(context, list, &items) == mui_success, "list");

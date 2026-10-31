@@ -541,7 +541,7 @@ static void MakeCollection(Collections* collections, Collection* collection, Kin
     SampleSetLayout(app, collection->list, &layout, MUI_PROPERTY_BIT(mui_propertyScrollAxes));
     SampleFill(app, collection->list, s_field);
     muiVirtualList list = muiDefaultVirtualList();
-    list.count = count;
+    list.itemCount = count;
     list.extent = ROW;
     list.fixed = true;
     list.overscan = 2.0f * ROW;

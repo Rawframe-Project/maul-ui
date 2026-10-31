@@ -217,7 +217,8 @@ static void TestBlocksAndKeys(void)
               muiTextService_SetDefaultFont(service, (muiFontId){1, 1}) == mui_errorStale &&
               muiTextService_SetDefaultFont(service, (muiFontId){0, 0}) == mui_success,
           "the default font");
-    CHECK(muiTextService_GetFailures(NULL) == 0 && muiTextService_GetFailures(service) == 0,
+    CHECK(muiTextService_GetLayoutFailureCount(NULL) == 0 &&
+              muiTextService_GetLayoutFailureCount(service) == 0,
           "no failures");
     muiDestroyTextService(service);
 }
@@ -940,14 +941,14 @@ static void LayOutAndPaint(Scene* scene, muiNodeId node, float width)
 {
     const muiLayoutInput layout = {width, 1000.0f, muiMeasureText, &scene->host,
                                    0,     NULL,    {0, 0, 0, 0}};
-    uint64_t failures = muiTextService_GetFailures(scene->service);
+    uint64_t failures = muiTextService_GetLayoutFailureCount(scene->service);
     muiResult laid = muiNode_ComputeLayout(scene->context, node, &layout);
-    bool failed = muiTextService_GetFailures(scene->service) != failures;
+    bool failed = muiTextService_GetLayoutFailureCount(scene->service) != failures;
     CHECK(laid == (failed ? mui_errorCapacity : mui_success), "layout");
     const muiDrawInput input = {1, 1.0f, muiPaintText, &scene->host};
-    failures = muiTextService_GetFailures(scene->service);
+    failures = muiTextService_GetLayoutFailureCount(scene->service);
     muiResult painted = muiNode_BuildDrawList(scene->context, node, &input);
-    failed = muiTextService_GetFailures(scene->service) != failures;
+    failed = muiTextService_GetLayoutFailureCount(scene->service) != failures;
     CHECK(painted == (failed ? mui_errorCapacity : mui_success), "paint");
 }
 
@@ -966,7 +967,7 @@ static void TestMemoryRunningOut(void)
         failing = (FailingAllocator){0, failAt};
         LayOutAndPaint(&scene, node, 1000.0f);
         bool failed = failing.allocations >= failAt;
-        CHECK(failed == (muiTextService_GetFailures(scene.service) != 0), "counted");
+        CHECK(failed == (muiTextService_GetLayoutFailureCount(scene.service) != 0), "counted");
         FreeScene(&scene);
     }
     // And lines shaped alone, at an unsafe break.
@@ -979,7 +980,7 @@ static void TestMemoryRunningOut(void)
         failing = (FailingAllocator){0, failAt};
         LayOutAndPaint(&scene, node, 100000.0f);
         bool failed = failing.allocations >= failAt;
-        CHECK(failed == (muiTextService_GetFailures(scene.service) != 0), "counted");
+        CHECK(failed == (muiTextService_GetLayoutFailureCount(scene.service) != 0), "counted");
         FreeScene(&scene);
     }
     // Setting text keeps the old one when memory runs out.

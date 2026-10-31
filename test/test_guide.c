@@ -327,7 +327,7 @@ static muiResult MakeList(muiContext* context, muiNodeId list)
     muiLayoutStyle layout = muiDefaultLayoutStyle();
     layout.scrollAxes = mui_scrollVertical;
     muiVirtualList items = muiDefaultVirtualList();
-    items.count = 10000;
+    items.itemCount = 10000;
     items.extent = 24.0f;
     items.fixed = true;
     muiResult result =
