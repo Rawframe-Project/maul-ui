@@ -35,7 +35,7 @@ bool muiNotifyTake(muiNotifyQueue* queue, muiNotification* recordOut)
     {
         *recordOut = (muiNotification){
             .kind = mui_notificationDropped,
-            .detail = queue->dropped,
+            .dropped = queue->dropped,
         };
         queue->dropped = 0;
         return true;

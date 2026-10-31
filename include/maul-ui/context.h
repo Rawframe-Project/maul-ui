@@ -199,6 +199,13 @@ extern "C"
     // What a notification reports.
     typedef int32_t muiNotificationKind;
 
+    // Why a popup was dismissed; the values are in maul-ui/popup.h.
+    typedef int32_t muiDismissReason;
+
+    // What assistive technology asks a node to do; the values are in
+    // maul-ui/access.h.
+    typedef int32_t muiAccessAction;
+
     enum
     {
         // A node's conditions flipped back and forth with its own layout,
@@ -206,16 +213,16 @@ extern "C"
         // last outcome until the host edits the node or its size leaves
         // those two.
         mui_notificationOscillation = 1,
-        // detail notifications were dropped here, past the limit.
+        // Notifications were dropped here, past the limit; dropped says
+        // how many.
         mui_notificationDropped = 2,
-        // A player's focus came to the node, or left it; detail is the
-        // player.
+        // A player's focus came to the node, or left it; player says
+        // whose.
         mui_notificationFocusGained = 3,
         mui_notificationFocusLost = 4,
         // Input changed a range's value (maul-ui/range.h).
         mui_notificationRangeChanged = 5,
-        // A popup should close (maul-ui/popup.h); detail is the reason, a
-        // muiDismissReason.
+        // A popup should close (maul-ui/popup.h); reason says why.
         mui_notificationPopupDismissed = 6,
         // The node's exit (maul-ui/exit.h) has no transition running in
         // its subtree any more.
@@ -224,7 +231,7 @@ extern "C"
         // (maul-ui/virtual.h).
         mui_notificationWindowChanged = 8,
         // Assistive technology asked the node to do what the host does
-        // (maul-ui/access.h); detail is the muiAccessAction.
+        // (maul-ui/access.h); action says what.
         mui_notificationAccessAction = 9,
     };
 
@@ -235,9 +242,17 @@ extern "C"
         muiNotificationKind kind;
         // The node it is about; the null id for mui_notificationDropped.
         muiNodeId node;
-        // What its kind says above: how many were dropped, the player, the
-        // reason or the action; 0 for the other kinds.
-        uint32_t detail;
+        // Each field below is set by one kind and 0 for the others.
+        // For mui_notificationDropped, how many were dropped.
+        uint32_t dropped;
+        // For mui_notificationFocusGained and mui_notificationFocusLost, the
+        // player whose focus moved.
+        uint8_t player;
+        // For mui_notificationPopupDismissed, why it was dismissed.
+        muiDismissReason reason;
+        // For mui_notificationAccessAction, the action asked for. 0 is
+        // also mui_actionClick, so read it only for that kind.
+        muiAccessAction action;
     } muiNotification;
 
     /// Takes the oldest notification.

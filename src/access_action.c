@@ -92,7 +92,8 @@ static bool Perform(muiContext* context, uint32_t slot, const muiAccessRequest* 
     default:
     {
         // Expand and collapse are the host's.
-        const muiNotification record = {mui_notificationAccessAction, nodeId, request->action};
+        const muiNotification record = {
+            .kind = mui_notificationAccessAction, .node = nodeId, .action = request->action};
         muiNotifyPost(&context->notifications, &record);
         return true;
     }

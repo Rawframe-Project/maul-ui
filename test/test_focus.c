@@ -81,12 +81,14 @@ static muiContext* MakeContext(void)
     return context;
 }
 
-// Whether the next notification reports a focus change.
+// Whether the next notification reports a focus change, and only the
+// player of its fields for one kind.
 static bool Noted(muiContext* context, muiNotificationKind kind, muiNodeId node, uint32_t player)
 {
     muiNotification record = {0};
     return muiContext_TakeNotification(context, &record) == mui_success && record.kind == kind &&
-           Same(record.node, node) && record.detail == player;
+           Same(record.node, node) && record.player == player && record.dropped == 0 &&
+           record.reason == 0 && record.action == 0;
 }
 
 static bool Quiet(muiContext* context)

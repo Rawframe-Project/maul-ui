@@ -261,7 +261,7 @@ static bool Change(muiContext* context, muiRangeEntry* entry, float value)
     }
     entry->range.value = value;
     muiNoteAccess(context, entry->node.index1);
-    const muiNotification record = {mui_notificationRangeChanged, entry->node, 0};
+    const muiNotification record = {.kind = mui_notificationRangeChanged, .node = entry->node};
     muiNotifyPost(&context->notifications, &record);
     return true;
 }
