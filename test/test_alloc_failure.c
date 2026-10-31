@@ -397,6 +397,36 @@ static muiResult SetSpans(World* world)
     return muiTextBlock_SetSpans(world->service, world->block, spans, 3);
 }
 
+// The long text with sizes of its own over its first characters, so it
+// is shaped and broken in run styles.
+static void Spanned(World* world)
+{
+    Lengthen(world);
+    CHECK(SetSpans(world) == mui_success, "spans");
+}
+
+// The long text as a password, shown as bullets.
+static void Masked(World* world)
+{
+    Lengthen(world);
+    muiTextEditRules rules = muiDefaultTextEditRules();
+    rules.flags |= mui_editMultiline | mui_editPassword;
+    CHECK(muiTextBlock_SetEditing(world->service, world->block, &rules) == mui_success,
+          "a password");
+}
+
+// The long text with a composition shown at its start, underlined when
+// it is painted.
+static void Composing(World* world)
+{
+    Lengthen(world);
+    CHECK(muiTextBlock_Select(world->service, world->block,
+                              (muiTextSelection){0, {0, mui_affinityDownstream}}) == mui_success &&
+              muiTextBlock_Compose(world->service, world->block, "\xE3\x81\x8B", 3, 3, NULL, 0,
+                                   NULL) == mui_success,
+          "composing");
+}
+
 static muiResult Type(World* world)
 {
     bool changed;
@@ -592,6 +622,11 @@ static muiResult EditMove(World* world)
     return muiNode_MoveEditCaret(&world->host, world->node, mui_moveLeft, false);
 }
 
+static muiResult EditMoveDown(World* world)
+{
+    return muiNode_MoveEditCaret(&world->host, world->node, mui_moveLineDown, false);
+}
+
 static muiResult EditPress(World* world)
 {
     return muiNode_HandleEditPress(&world->host, world->node, 50.0f, 50.0f, 2, false);
@@ -632,6 +667,19 @@ static muiResult AccessAction(World* world)
     const muiAccessRequest request = {.action = mui_actionReplaceText,
                                       .target = muiNode_GetAccessId(world->node),
                                       .focus = 2,
+                                      .text = s_long,
+                                      .length = 800};
+    muiTextEditOutcome outcome;
+    return muiPerformTextAccessAction(&world->host, &request, &outcome);
+}
+
+// The same on a password, its offsets in the bullets it is shown as,
+// three bytes each: the caret after the first.
+static muiResult AccessActionMasked(World* world)
+{
+    const muiAccessRequest request = {.action = mui_actionReplaceText,
+                                      .target = muiNode_GetAccessId(world->node),
+                                      .focus = 3,
                                       .text = s_long,
                                       .length = 800};
     muiTextEditOutcome outcome;
@@ -732,8 +780,13 @@ static const Step s_steps[] = {
     {"muiMeasureTextBaseline", Lengthen, Baseline, false},
     {"muiNode_ComputeLayout", Shrunk, Layout, true},
     {"muiNode_ComputeLayout by baselines", Aligned, Layout, true},
+    {"muiNode_ComputeLayout in run styles", Spanned, Layout, true},
+    {"muiNode_ComputeLayout of a password", Masked, Layout, true},
     {"muiNode_BuildDrawList", Lengthen, Draw, true},
     {"muiNode_BuildDrawList scrolled", Scrolled, Draw, true},
+    {"muiNode_BuildDrawList in run styles", Spanned, Draw, true},
+    {"muiNode_BuildDrawList of a password", Masked, Draw, true},
+    {"muiNode_BuildDrawList of a composition", Composing, Draw, true},
     {"muiNode_HitTestText", Lengthen, HitTest, false},
     {"muiNode_GetTextCaret", Lengthen, Caret, false},
     {"muiNode_GetTextRangeRects", Lengthen, RangeRects, false},
@@ -743,10 +796,14 @@ static const Step s_steps[] = {
     {"muiNode_GetTextRangeRects scrolled", Scrolled, RangeRects, false},
     {"muiNode_MoveTextPosition scrolled", Scrolled, Move, false},
     {"muiNode_MoveEditCaret", Lengthen, EditMove, false},
+    {"muiNode_MoveEditCaret from the end", Scrolled, EditMove, false},
+    {"muiNode_MoveEditCaret down", Lengthen, EditMoveDown, false},
+    {"muiNode_MoveEditCaret in run styles", Spanned, EditMove, false},
     {"muiNode_HandleEditPress", Lengthen, EditPress, false},
     {"muiNode_HandleEditDrag", Pressed, Drag, false},
     {"muiNode_HandleEditEvent", Lengthen, EditEvent, false},
     {"muiPerformTextAccessAction", Lengthen, AccessAction, false},
+    {"muiPerformTextAccessAction on a password", Masked, AccessActionMasked, false},
     {"muiTextService_RenderGlyph", NULL, Render, false},
     {"muiTextService_RenderColorGlyph", NULL, RenderColor, false},
     {"muiTextService_RenderGlyphField", NULL, RenderField, false},
@@ -873,6 +930,64 @@ static void Sweep(const Step* step, bool staysOut, bool verbose)
     }
 }
 
+// What a read of the long text gives: its length, its lines, clusters
+// and words, and whether it was read.
+typedef struct Read
+{
+    bool read;
+    size_t length;
+    uint32_t lines;
+    uint32_t clusters;
+    uint32_t words;
+    uint64_t allocations;
+} Read;
+
+static Read ReadText(uint64_t failAt)
+{
+    World world;
+    MakeWorld(&world);
+    Lengthen(&world);
+    LayOut(&world);
+    world.memory.count = 0;
+    world.memory.failAt = failAt;
+    muiAccessContent content = {0};
+    const muiRect shown = {0.0f, 0.0f, 300.0f, 200.0f};
+    Read read = {0};
+    read.read = muiReadAccessText(&world.host, world.node, muiTextBlock_GetKey(world.block), &shown,
+                                  &content);
+    read.allocations = world.memory.count;
+    world.memory.failAt = 0;
+    read.length = content.length;
+    read.lines = content.marks.lineCount;
+    read.clusters = content.marks.clusterCount;
+    read.words = content.marks.wordCount;
+    FreeWorld(&world);
+    CHECK(world.memory.live == 0, "nothing leaked");
+    return read;
+}
+
+// muiReadAccessText reads the text whatever memory there is, and leaves
+// out the lines and words it has no memory for, as its header says: with
+// each of its allocations failing in turn, the text is whole, and its
+// lines, with their clusters, and its words are whole or none.
+static void SweepAccessText(void)
+{
+    const Read clean = ReadText(0);
+    CHECK(clean.read && clean.length == sizeof s_long && clean.lines > 1 && clean.clusters > 0 &&
+              clean.words > 0,
+          "the long text read");
+    bool held = true;
+    for (uint64_t failAt = 1; failAt <= clean.allocations; failAt++)
+    {
+        Read read = ReadText(failAt);
+        held = held && read.read && read.length == clean.length &&
+               ((read.lines == clean.lines && read.clusters == clean.clusters) ||
+                (read.lines == 0 && read.clusters == 0)) &&
+               (read.words == clean.words || read.words == 0);
+    }
+    CHECK(clean.allocations > 0 && held, "the text read; lines and words whole or none");
+}
+
 int main(int argc, char** argv)
 {
     for (size_t i = 0; i < sizeof s_long; i++)
@@ -887,6 +1002,10 @@ int main(int argc, char** argv)
             Sweep(&s_steps[i], false, only >= 0);
             Sweep(&s_steps[i], true, only >= 0);
         }
+    }
+    if (only < 0)
+    {
+        SweepAccessText();
     }
     return s_failures == 0 ? 0 : 1;
 }
