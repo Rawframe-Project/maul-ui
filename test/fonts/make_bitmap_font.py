@@ -22,15 +22,21 @@
 #                    glyph 10 has no image;
 #   glyph 14         its PNG's length three bytes past its image, to be
 #                    refused;
-#   glyph 15         2 by 2 red at half alpha, at 0, 2.
+#   glyph 15         2 by 2 red at half alpha, at 0, 2;
+#   glyph 17         index format 1, image format 19, whose metrics only
+#                    an index of formats 2 and 5 holds: refused;
+#   glyph 18         image format 17, its PNG's image data checksum
+#                    wrong: refused as malformed.
 #
 # A 15 ppem strike of 8 bits a pixel, not colour, has glyph 1 all blue,
 # to be passed over.
 #
 # In the 20 ppem strike: glyph 1 at twice the size (16 by 16 at 2, 16),
 # green on its right half where the 10 ppem strike's is blue, and glyph
-# 12, only here: 4 by 4, its top row red, the rest clear, at 0, 4. Glyph 13 has no bitmap. Needs fontTools and Pillow;
-# fixed timestamps, so it writes the same bytes each time.
+# 12, only here: 4 by 4, its top row red, the rest clear, at 0, 4. Glyph 13 has no bitmap.
+# Last in the table, glyph 16's index of format 1 holds its first offset
+# but not the one past, to be refused. Needs fontTools and Pillow; fixed
+# timestamps, so it writes the same bytes each time.
 #
 #     python3 make_bitmap_font.py
 
@@ -80,6 +86,14 @@ def bare(png_bytes, length):
     """Image format 19 padded to length, for the fixed-size index formats."""
     data = struct.pack(">I", len(png_bytes)) + png_bytes
     return data + bytes(length - len(data))
+
+
+def bad_checksum(png_bytes):
+    """The PNG with its image data chunk's CRC changed."""
+    at = png_bytes.index(b"IDAT")
+    length = struct.unpack(">I", png_bytes[at - 4 : at])[0]
+    crc = at + 4 + length
+    return png_bytes[:crc] + bytes([png_bytes[crc] ^ 0xFF]) + png_bytes[crc + 1 :]
 
 
 def big_metrics(width, height, left, top):
@@ -148,6 +162,16 @@ def strike_10(cbdt):
     cbdt.add(fifteen)
     offsets = struct.pack(">III", 0, len(fourteen), len(fourteen) + len(fifteen))
     out.append((14, 15, subtable(1, 17, base, offsets)))
+    # Format 1, image 19: glyph 17, with no metrics for it.
+    base = len(cbdt.data)
+    seventeen = struct.pack(">I", len(solid(RED))) + solid(RED)
+    cbdt.add(seventeen)
+    out.append((17, 17, subtable(1, 19, base, struct.pack(">II", 0, len(seventeen)))))
+    # Format 1, image 17: glyph 18, its PNG's checksum wrong.
+    base = len(cbdt.data)
+    eighteen = small(bad_checksum(solid(GREEN)), 2, 2, 0, 2)
+    cbdt.add(eighteen)
+    out.append((18, 18, subtable(1, 17, base, struct.pack(">II", 0, len(eighteen)))))
     return out
 
 
@@ -169,6 +193,8 @@ def strike_20(cbdt):
     twelve = small(png(4, 4, lambda x, y: RED if y < 1 else CLEAR), 4, 4, 0, 4)
     cbdt.add(twelve)
     out.append((12, 12, subtable(1, 17, base, struct.pack(">II", 0, len(twelve)))))
+    # Format 1: glyph 16's first offset, the table's last bytes.
+    out.append((16, 16, subtable(1, 17, len(cbdt.data), struct.pack(">I", 0))))
     return out
 
 
@@ -198,7 +224,7 @@ def cblc(strikes):
 
 
 def main():
-    names = [".notdef", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen"]
+    names = [".notdef", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen"]
     builder = FontBuilder(1000, isTTF=True)
     builder.setupGlyphOrder(names)
     builder.setupCharacterMap({0x41 + i: name for i, name in enumerate(names[1:])})

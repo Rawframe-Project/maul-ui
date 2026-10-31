@@ -4,8 +4,10 @@
 # Writes MaulOverlap.ttf, the font the distance field tests render
 # overlapping contours in: 1000 units per em and an A made of two boxes
 # that overlap, as variable fonts' glyphs often are, marked with the
-# TrueType overlap flag. Needs fontTools (pip install fonttools); its
-# timestamps are fixed, so it writes the same bytes each time.
+# TrueType overlap flag; and a B, a box from 100 to 800 units across and
+# 0 to 700 up whose top right corner is two points in one place, a line
+# of no length. Needs fontTools (pip install fonttools); its timestamps
+# are fixed, so it writes the same bytes each time.
 #
 #     python3 make_overlap_font.py
 
@@ -33,14 +35,25 @@ def boxes(*rectangles):
     return pen.glyph()
 
 
+def doubled_corner():
+    pen = TTGlyphPen(None)
+    pen.moveTo((100, 0))
+    pen.lineTo((100, 700))
+    pen.lineTo((800, 700))
+    pen.lineTo((800, 700))
+    pen.lineTo((800, 0))
+    pen.closePath()
+    return pen.glyph()
+
+
 def main():
     builder = FontBuilder(1000, isTTF=True)
-    builder.setupGlyphOrder([".notdef", "A"])
-    builder.setupCharacterMap({0x41: "A"})
+    builder.setupGlyphOrder([".notdef", "A", "B"])
+    builder.setupCharacterMap({0x41: "A", 0x42: "B"})
     glyph = boxes((0, 0, 600, 700), (300, 0, 900, 700))
     glyph.flags[0] |= OVERLAP_SIMPLE
-    builder.setupGlyf({".notdef": boxes(), "A": glyph})
-    builder.setupHorizontalMetrics({".notdef": (500, 0), "A": (900, 0)})
+    builder.setupGlyf({".notdef": boxes(), "A": glyph, "B": doubled_corner()})
+    builder.setupHorizontalMetrics({".notdef": (500, 0), "A": (900, 0), "B": (900, 100)})
     builder.setupHorizontalHeader(ascent=800, descent=-200)
     builder.setupNameTable({
         "familyName": "Maul Overlap",

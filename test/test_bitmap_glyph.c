@@ -27,7 +27,7 @@
 
 enum
 {
-    GLYPHS = 16,
+    GLYPHS = 19,
     DAMAGE_ROUNDS = 400
 };
 
@@ -112,6 +112,12 @@ static void TestFormats(void)
           "a glyph without a bitmap is empty");
     CHECK(Draw(&scene, 14, 10.0f, 0.0f, &image) == mui_empty,
           "a PNG longer than its image is refused");
+    CHECK(Draw(&scene, 16, 20.0f, 0.0f, &image) == mui_empty && image.width == 0,
+          "an index whose offsets run past the table");
+    CHECK(Draw(&scene, 17, 10.0f, 0.0f, &image) == mui_empty && image.width == 0,
+          "image format 19 in an index without metrics");
+    CHECK(Draw(&scene, 18, 10.0f, 0.0f, &image) == mui_errorFormat && image.width == 0,
+          "a PNG whose image data fails its checksum");
     // Red at half alpha: linear red 0.502 premultiplied, 188 encoded.
     CHECK(BoxIs(&scene, 15, 10.0f, 0.0f, 0, 2, 2, 2, &image) && Is(&image, 0, 0, 188, 0, 0, 128),
           "straight alpha made premultiplied");

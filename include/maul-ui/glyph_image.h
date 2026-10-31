@@ -111,12 +111,16 @@ extern "C"
     ///                    when capacity is 0. Zeroed over capacity unless the
     ///                    call answers `mui_success` or `mui_errorBusy`.
     /// @param capacity    How many bytes pixelsOut holds.
-    /// @return `mui_success`; `mui_empty` for a glyph without colour;
+    /// @return `mui_success`; `mui_empty` for a glyph without colour, as one
+    ///         whose CBLC index or CBDT record is malformed is;
     ///         `mui_errorFormat` for a paint graph more than 64 paints deep, as
-    ///         one that paints itself is, a clip box whose maximum is below
-    ///         its minimum, or a bitmap of 2^28 pixels or more, as 16384 by
-    ///         16384 is; otherwise as muiTextService_RenderGlyph;
-    ///         `mui_errorBusy` while the service is busy.
+    ///         one that paints itself is, a transform that places a glyph's
+    ///         box past where an outline may reach, a clip box whose maximum
+    ///         is below its minimum, a bitmap of 2^28 pixels or more, as 16384
+    ///         by 16384 is, or a bitmap's PNG that does not decode, as one
+    ///         failing a checksum does; otherwise as
+    ///         muiTextService_RenderGlyph; `mui_errorBusy` while the service
+    ///         is busy.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextService_RenderColorGlyph(
