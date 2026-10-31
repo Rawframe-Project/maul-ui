@@ -408,10 +408,13 @@ extern "C"
     ///
     /// @param host        The text host.
     /// @param nodeId      A node whose host key is an editing block's.
-    /// @param event       The event.
+    /// @param event       The event; for a text event, non-NULL text when its
+    ///                    length is not 0.
     /// @param input       The keymap and the clipboard writer.
     /// @param outcomeOut  Receives what the event did; unchanged on failure.
-    /// @return As muiNode_MoveEditCaret; `mui_errorBusy` while the service is busy.
+    /// @return As muiNode_MoveEditCaret; `mui_errorInvalid` also for a text
+    ///         event with NULL text and a length; `mui_errorBusy` while the
+    ///         service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.

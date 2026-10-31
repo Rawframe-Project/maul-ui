@@ -98,6 +98,8 @@ typedef struct World
     unsigned char pixels[64 * 64 * 4];
     // What the step answered, beside its status.
     uint64_t output;
+    // Whether the block's history is among what the step must leave.
+    bool history;
 } World;
 
 // Mixes a value into a hash, field by field: a struct's padding holds
@@ -441,6 +443,16 @@ static muiResult Compose(World* world)
     return muiTextBlock_Compose(world->service, world->block, s_long, 300, 3, NULL, 0, &changed);
 }
 
+// Typed text, then part of it selected, so that a composition replaces
+// the selection with a history to keep: a failure must leave it too.
+static void SelectedAfterTyping(World* world)
+{
+    world->history = true;
+    Typed(world);
+    const muiTextSelection some = {2, {6, mui_affinityDownstream}};
+    CHECK(muiTextBlock_Select(world->service, world->block, some) == mui_success, "selected");
+}
+
 static muiResult SetComposition(World* world)
 {
     return muiTextBlock_SetComposition(world->service, world->block, 1, s_long, 300, NULL, 0);
@@ -701,6 +713,7 @@ static const Step s_steps[] = {
     {"muiTextBlock_Undo", Typed, Undo, false},
     {"muiTextBlock_Redo", Undone, Redo, false},
     {"muiTextBlock_Compose", NULL, Compose, false},
+    {"muiTextBlock_Compose over a selection", SelectedAfterTyping, Compose, false},
     {"muiTextBlock_SetComposition", NULL, SetComposition, false},
     {"muiMeasureText", Lengthen, Measure, false},
     {"muiMeasureTextBaseline", Lengthen, Baseline, false},
@@ -732,7 +745,8 @@ static const Step s_steps[] = {
     {"muiGlyphAtlas_GetGlyphMultiField", NULL, AtlasGetMultiField, false},
 };
 
-// What the step could change: the block's text and selection.
+// What the step could change: the block's text and selection, and its
+// history where the step says so.
 static uint64_t Digest(const World* world)
 {
     const char* text = NULL;
@@ -750,6 +764,13 @@ static uint64_t Digest(const World* world)
     hash = (hash ^ selection.anchor) * 1099511628211u;
     hash = (hash ^ selection.caret.offset) * 1099511628211u;
     hash = (hash ^ length) * 1099511628211u;
+    bool undo = false;
+    bool redo = false;
+    if (world->history)
+    {
+        (void)muiTextBlock_GetUndoState(world->service, world->block, &undo, &redo);
+    }
+    hash = (hash ^ ((uint64_t)undo << 1 | (uint64_t)redo)) * 1099511628211u;
     return hash;
 }
 

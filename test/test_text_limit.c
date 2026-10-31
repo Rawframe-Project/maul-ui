@@ -154,10 +154,58 @@ static void TestLength(Scene* s, size_t length)
     free(one);
 }
 
+// A composition refused for its segments, or for not fitting the block
+// once it replaces the selection, leaves the selection and the text: the
+// checks come before the selection is taken out.
+static void TestComposeRefused(Scene* s)
+{
+    muiCompositionSegment segments[MUI_MAX_COMPOSITION_SEGMENTS + 1] = {0};
+    for (uint32_t i = 0; i <= MUI_MAX_COMPOSITION_SEGMENTS; i++)
+    {
+        segments[i] = (muiCompositionSegment){0, 1, mui_compositionPlain};
+    }
+    const muiCompositionSegment past = {5, 1, mui_compositionPlain};
+    bool changed = true;
+    SelectAll(s);
+    CHECK(muiTextBlock_Compose(s->service, s->block, "x", 1, 0, &past, 1, &changed) ==
+                  mui_errorInvalid &&
+              !changed && Kept(s),
+          "a segment past the composition");
+    changed = true;
+    SelectAll(s);
+    CHECK(muiTextBlock_Compose(s->service, s->block, "x", 1, 0, segments,
+                               MUI_MAX_COMPOSITION_SEGMENTS + 1, &changed) == mui_errorLimit &&
+              !changed && Kept(s),
+          "too many segments");
+    // The longest text there is, over one byte of two: within the bound
+    // alone, past it with the byte left.
+    char* one = malloc(1);
+    CHECK(one != NULL, "a byte");
+    if (one == NULL)
+    {
+        return;
+    }
+    one[0] = 'x';
+    changed = true;
+    CHECK(muiTextBlock_Select(s->service, s->block,
+                              (muiTextSelection){0, {1, mui_affinityDownstream}}) == mui_success &&
+              muiTextBlock_Compose(s->service, s->block, one, MUI_MAX_TEXT_BYTES, 0, NULL, 0,
+                                   &changed) == mui_errorLimit &&
+              !changed && Kept(s),
+          "a composition the block cannot hold");
+    free(one);
+    bool undo = true;
+    bool redo = true;
+    CHECK(muiTextBlock_GetUndoState(s->service, s->block, &undo, &redo) == mui_success && !undo &&
+              !redo,
+          "nothing to undo");
+}
+
 int main(void)
 {
     Scene scene = MakeScene();
     TestLength(&scene, (size_t)MUI_MAX_TEXT_BYTES + 1);
+    TestComposeRefused(&scene);
 #if SIZE_MAX > UINT32_MAX
     TestLength(&scene, ((size_t)1 << 32) + 1);
 #endif

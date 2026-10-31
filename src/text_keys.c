@@ -304,7 +304,8 @@ static muiResult TextEditEvent(const muiTextHost* host, muiNodeId nodeId, const 
 {
     if (host == nullptr || host->service == nullptr || host->context == nullptr ||
         event == nullptr || input == nullptr || outcomeOut == nullptr ||
-        (uint32_t)input->keymap > mui_keymapMac)
+        (uint32_t)input->keymap > mui_keymapMac ||
+        (event->kind == mui_eventText && event->text == nullptr && event->length != 0))
     {
         return muiRefuseEdit(host != nullptr ? host->service : nullptr);
     }
