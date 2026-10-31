@@ -46,3 +46,28 @@ const muiTokenValue* muiResolveTokenIn(const muiTokenStore* tokens, const muiThe
     }
     return nullptr;
 }
+
+bool muiAliasLeadsTo(const muiTokenStore* tokens, const muiThemeStore* themes, uint32_t theme,
+                     muiTokenId target, muiTokenId token)
+{
+    muiTokenId id = target;
+    for (uint32_t steps = 0; steps <= tokens->pool.capacity; steps++)
+    {
+        if (id.index1 == token.index1 && id.generation == token.generation)
+        {
+            return true;
+        }
+        uint32_t slot = muiFindToken(tokens, id);
+        if (slot == 0)
+        {
+            return false;
+        }
+        const muiThemeOverride* found = muiFindOverride(themes, theme, id);
+        id = found != nullptr ? found->alias : tokens->tokens[slot - 1].alias;
+        if (id.index1 == 0)
+        {
+            return false;
+        }
+    }
+    return true;
+}

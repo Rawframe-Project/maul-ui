@@ -130,8 +130,10 @@ extern "C"
     /// @param target   The token it gives the value of.
     /// @return `mui_success`; `mui_errorInvalid` for a NULL context, a null id,
     ///         a target of another type or an alias that would lead back to the
-    ///         token; `mui_errorBusy` while the context is busy;
-    ///         `mui_errorStale` for a token or a target that is gone.
+    ///         token, through the context's tokens alone or through any one
+    ///         theme's overrides and them; `mui_errorBusy` while the context
+    ///         is busy; `mui_errorStale` for a token or a target that is
+    ///         gone.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiToken_SetAlias(muiContext* context, muiTokenId tokenId,
