@@ -114,11 +114,16 @@ static MUI_NOINLINE muiResult DrawSinkGetVisibleRectWorker(const muiDrawSink* si
     {
         memset(rectOut, 0, sizeof *rectOut);
     }
-    if (sink == nullptr || rectOut == nullptr)
+    if (sink == nullptr)
     {
         return mui_errorInvalid;
     }
     muiPainter* painter = sink->painter;
+    if (rectOut == nullptr)
+    {
+        painter->misuse++;
+        return mui_errorInvalid;
+    }
     const muiContext* context = painter->context;
     const muiDrawTables* out = painter->out;
     const muiRect* surface = &context->layout[painter->root - 1].rect;

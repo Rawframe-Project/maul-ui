@@ -1766,9 +1766,12 @@ static void TestVisibleRect(void)
               mui_success,
           "host content");
     SeeingHost host = {0, {0}};
+    uint64_t misuse = muiContext_GetMisuse(context);
     BuildSeeing(context, root, &host);
     CHECK(host.calls == 1 && Saw(&host, 0.0f, 0.0f, 100.0f, 20.0f),
           "the container's port down to the surface's bottom");
+    CHECK(muiContext_GetMisuse(context) == misuse + 1,
+          "no rectangle to fill is misuse; no sink has no context to count it");
 
     // Scrolling alone paints it again, seeing further down.
     CHECK(muiNode_SetScroll(context, scroller, 0.0f, 30.0f) == mui_success, "scrolled");
