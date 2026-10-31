@@ -875,7 +875,7 @@ static void TestPositionAlone(void)
     Column(context, list, true);
     Size(context, list, 200.0f, 100.0f);
     muiVirtualList virtualList = muiDefaultVirtualList();
-    virtualList.count = 10;
+    virtualList.itemCount = 10;
     virtualList.overscan = 0.0f;
     CHECK(muiNode_SetVirtualList(context, list, &virtualList) == mui_success, "list");
     muiNodeId empty = Node(context, list);
@@ -913,7 +913,7 @@ static void TestVirtualItems(void)
     Column(context, list, true);
     Size(context, list, 200.0f, 100.0f);
     muiVirtualList virtualList = muiDefaultVirtualList();
-    virtualList.count = 1000;
+    virtualList.itemCount = 1000;
     virtualList.extent = 40.0f;
     virtualList.fixed = true;
     virtualList.overscan = 0.0f;
@@ -959,7 +959,7 @@ static void TestVirtualItems(void)
           "sixth");
     // Fewer items than an index bound: that node has no place, and is
     // read with the unbound.
-    virtualList.count = 3;
+    virtualList.itemCount = 3;
     CHECK(muiNode_SetVirtualList(context, list, &virtualList) == mui_success, "three");
     Layout(context, root);
     update = Build(context, root);
@@ -972,7 +972,7 @@ static void TestVirtualItems(void)
     muiNodeId pair = Node(context, root);
     Column(context, pair, true);
     Size(context, pair, 200.0f, 100.0f);
-    virtualList.count = 10;
+    virtualList.itemCount = 10;
     CHECK(muiNode_SetVirtualList(context, pair, &virtualList) == mui_success, "a second list");
     muiNodeId second = Node(context, pair);
     muiNodeId first = Node(context, pair);

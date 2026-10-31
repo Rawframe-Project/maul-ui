@@ -421,7 +421,8 @@ static void TestRandomText(void)
                   muiDestroyTextBlock(service, block) == mui_success,
               "destroyed");
     }
-    CHECK(muiTextService_GetFailures(service) == 0 && drawn > 1000, "glyphs drawn, no failures");
+    CHECK(muiTextService_GetLayoutFailureCount(service) == 0 && drawn > 1000,
+          "glyphs drawn, no failures");
     muiDestroyContext(context);
     muiDestroyTextService(service);
 }
@@ -543,7 +544,7 @@ static void TestRandomEdits(void)
                   muiNode_BuildDrawList(context, node, &draw) == mui_success,
               "laid out and painted");
     }
-    CHECK(muiTextService_GetFailures(service) == 0, "no failures");
+    CHECK(muiTextService_GetLayoutFailureCount(service) == 0, "no failures");
     muiDestroyContext(context);
     muiDestroyTextService(service);
 }

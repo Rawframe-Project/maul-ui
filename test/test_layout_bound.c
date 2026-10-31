@@ -344,13 +344,13 @@ static void Apply(Tree* tree, const Edit* edit)
     case kindList:
     {
         muiVirtualList list = muiDefaultVirtualList();
-        list.count = 1 + edit->value % 12;
+        list.itemCount = 1 + edit->value % 12;
         list.extent = (float)(16 + edit->value % 24);
         list.fixed = edit->property == 0;
         list.overscan = 0.0f;
         CHECK(muiNode_SetVirtualList(tree->context, tree->nodes[edit->node], &list) == mui_success,
               "a list");
-        tree->items[edit->node] = list.count;
+        tree->items[edit->node] = list.itemCount;
         break;
     }
     case kindBind:

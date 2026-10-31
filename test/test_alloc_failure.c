@@ -245,9 +245,9 @@ static void FreeWorld(World* world)
 // counted a failure during it.
 static muiResult Counted(const World* world, uint64_t failures, bool answered)
 {
-    return muiTextService_GetFailures(world->service) != failures ? mui_errorCapacity
-           : answered                                             ? mui_success
-                                                                  : mui_errorState;
+    return muiTextService_GetLayoutFailureCount(world->service) != failures ? mui_errorCapacity
+           : answered                                                       ? mui_success
+                                                                            : mui_errorState;
 }
 
 typedef struct Step
@@ -448,7 +448,7 @@ static muiResult SetComposition(World* world)
 
 static muiResult Measure(World* world)
 {
-    uint64_t failures = muiTextService_GetFailures(world->service);
+    uint64_t failures = muiTextService_GetLayoutFailureCount(world->service);
     const muiMeasureAxis axis = {300.0f, mui_measureAtMost};
     muiSize size =
         muiMeasureText(&world->host, world->node, muiTextBlock_GetKey(world->block), axis, axis);
@@ -457,7 +457,7 @@ static muiResult Measure(World* world)
 
 static muiResult Baseline(World* world)
 {
-    uint64_t failures = muiTextService_GetFailures(world->service);
+    uint64_t failures = muiTextService_GetLayoutFailureCount(world->service);
     float baseline = muiMeasureTextBaseline(&world->host, world->node,
                                             muiTextBlock_GetKey(world->block), 300.0f, 200.0f);
     return Counted(world, failures, !isnan(baseline));

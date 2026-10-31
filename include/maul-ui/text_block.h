@@ -297,7 +297,7 @@ extern "C"
     /// @return The count.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
-    MUI_API uint64_t muiTextService_GetFailures(const muiTextService* service);
+    MUI_API uint64_t muiTextService_GetLayoutFailureCount(const muiTextService* service);
 
     /// Measures a text block's lines, as a muiMeasureFunction: user is a
     /// muiTextHost, and hostKey a block's key. The width breaks lines:

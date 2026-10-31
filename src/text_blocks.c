@@ -989,7 +989,7 @@ uint64_t muiTextBlock_GetKey(muiTextBlockId blockId)
     return (uint64_t)blockId.generation << 32 | blockId.index1;
 }
 
-uint64_t muiTextService_GetFailures(const muiTextService* service)
+uint64_t muiTextService_GetLayoutFailureCount(const muiTextService* service)
 {
     return service != nullptr ? service->failures : 0;
 }

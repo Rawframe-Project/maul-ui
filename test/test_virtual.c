@@ -132,7 +132,7 @@ static void MakeScene(Scene* scene, bool horizontal, float padding, muiInlineDir
 static muiVirtualList ListOf(uint32_t count, float extent, bool fixed, float gap, float overscan)
 {
     muiVirtualList list = muiDefaultVirtualList();
-    list.count = count;
+    list.itemCount = count;
     list.extent = extent;
     list.fixed = fixed;
     list.gap = gap;
@@ -240,7 +240,7 @@ static void TestRebound(void)
                                        MUI_PROPERTY_BIT(mui_propertyExitLayout)) == mui_success &&
               muiNode_BeginExit(context, item[0]) == mui_success,
           "popped");
-    list.count = 3;
+    list.itemCount = 3;
     CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success &&
               muiNode_BindVirtualItem(context, item[0], 2) == mui_success,
           "cut to three, rebound");
@@ -404,7 +404,7 @@ static void TestEdges(void)
     // Set anew smaller: the extent shrinks; an item past the count is
     // left alone, nothing read or written past the list.
     CHECK(muiNode_BindVirtualItem(context, items[0], 3) == mui_success, "item 3");
-    list.count = 2;
+    list.itemCount = 2;
     CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success, "two");
     muiNodeId other = Node(context, scene.root);
     muiVirtualList others = ListOf(10, 40.0f, false, 0.0f, 0.0f);
@@ -422,7 +422,7 @@ static void TestEdges(void)
     Layout(context, scene.root);
     CHECK(ExtentOf(context, scene.list, false) == 100.0f, "the padding box");
     // No items: an empty window, still reported.
-    list.count = 0;
+    list.itemCount = 0;
     (void)Windows(context);
     CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success, "empty");
     Layout(context, scene.root);
@@ -470,7 +470,7 @@ static void TestMostItems(void)
     CHECK(muiNode_InsertVirtualItems(context, scene.list, 0, 1) == mui_errorLimit &&
               muiContext_GetMisuse(context) == misuse + 1,
           "one more inserted, counted");
-    list.count = UINT32_MAX;
+    list.itemCount = UINT32_MAX;
     CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_errorLimit &&
               muiContext_GetMisuse(context) == misuse + 2,
           "one more set, counted");
@@ -532,11 +532,11 @@ static void TestSetAnew(void)
     Realize(&scene, 0, 1, -1.0f, 40.0f, item);
     Layout(context, scene.root);
     CHECK(ExtentOf(context, scene.list, false) == 400.0f, "ten");
-    list.count = 1;
+    list.itemCount = 1;
     CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success, "one");
     Layout(context, scene.root);
     CHECK(ExtentOf(context, scene.list, false) == 100.0f, "the padding box");
-    list.count = 10;
+    list.itemCount = 10;
     CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success, "ten again");
     Layout(context, scene.root);
     CHECK(ExtentOf(context, scene.list, false) == 400.0f &&
@@ -664,7 +664,7 @@ static void TestAnchoring(void)
           "20 more above: moved by 20");
     // Set anew, as after a reload; the shown item's node bound to its new
     // index, 700: it stays 10 above the viewport's start.
-    list.count = 2000;
+    list.itemCount = 2000;
     CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success &&
               muiNode_BindVirtualItem(context, shown[0], 700) == mui_success &&
               muiNode_UnbindVirtualItem(context, above[0]) == mui_success,
@@ -713,7 +713,7 @@ static void TestEditContract(void)
           "not a list");
     // Grown in place, then moved past another list, then out of room.
     CHECK(muiNode_InsertVirtualItems(context, a, 10, 5) == mui_success, "fifteen in place");
-    list.count = 3;
+    list.itemCount = 3;
     CHECK(muiNode_SetVirtualList(context, b, &list) == mui_success, "three after");
     CHECK(muiNode_InsertVirtualItems(context, a, 0, 3) == mui_errorCapacity, "no room");
     CHECK(muiNode_RemoveVirtualItems(context, a, 0, 13) == mui_success &&
@@ -768,11 +768,11 @@ static void TestEditEdges(void)
     muiNodeId a = Node(context, s_nullNode);
     muiNodeId b = Node(context, s_nullNode);
     muiNodeId c = Node(context, s_nullNode);
-    list.count = 10;
+    list.itemCount = 10;
     CHECK(muiNode_SetVirtualList(context, a, &list) == mui_success &&
               muiNode_SetVirtualList(context, b, &list) == mui_success,
           "a and b");
-    list.count = 5;
+    list.itemCount = 5;
     CHECK(muiNode_SetVirtualList(context, c, &list) == mui_success &&
               muiDestroyNode(context, b) == mui_success &&
               muiNode_InsertVirtualItems(context, a, 10, 10) == mui_success,
@@ -793,7 +793,7 @@ static void TestAnchorEdges(void)
     Realize(&scene, 9, 12, -1.0f, 40.0f, items);
     Layout(context, scene.root);
     // Reloaded, the three bound far apart: item 10 was shown first.
-    list.count = 2000;
+    list.itemCount = 2000;
     CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success &&
               muiNode_BindVirtualItem(context, items[0], 100) == mui_success &&
               muiNode_BindVirtualItem(context, items[1], 700) == mui_success &&
@@ -808,7 +808,7 @@ static void TestAnchorEdges(void)
     // Its node bound past the new count: no anchor; layout clamps.
     CHECK(muiNode_SetScroll(context, scene.list, 0.0f, 28000.0f) == mui_success, "back");
     Layout(context, scene.root);
-    list.count = 100;
+    list.itemCount = 100;
     CHECK(muiNode_SetVirtualList(context, scene.list, &list) == mui_success, "fewer");
     Layout(context, scene.root);
     Layout(context, scene.root);
@@ -839,8 +839,8 @@ static void TestContract(void)
     muiNodeId b = Node(context, s_nullNode);
     muiNodeId c = Node(context, s_nullNode);
     muiVirtualList list = muiDefaultVirtualList();
-    CHECK(list.count == 0 && list.axis == mui_axisVertical && list.extent == 40.0f && !list.fixed &&
-              list.gap == 0.0f && list.overscan == 200.0f,
+    CHECK(list.itemCount == 0 && list.axis == mui_axisVertical && list.extent == 40.0f &&
+              !list.fixed && list.gap == 0.0f && list.overscan == 200.0f,
           "default");
     uint64_t misuse = muiContext_GetMisuse(context);
     muiVirtualList bad = list;
@@ -863,32 +863,32 @@ static void TestContract(void)
               muiContext_GetMisuse(context) == misuse + 7,
           "counted");
     // Items: 60 and 50 do not fit 100 together; fixed lists take none.
-    list.count = 60;
+    list.itemCount = 60;
     CHECK(muiNode_SetVirtualList(context, a, &list) == mui_success, "60");
-    list.count = 50;
+    list.itemCount = 50;
     CHECK(muiNode_SetVirtualList(context, b, &list) == mui_errorCapacity, "50 more");
-    list.count = 40;
+    list.itemCount = 40;
     CHECK(muiNode_SetVirtualList(context, b, &list) == mui_success, "40 more");
     muiVirtualList fixed = ListOf(1000000, 10.0f, true, 0.0f, 0.0f);
     CHECK(muiNode_SetVirtualList(context, c, &fixed) == mui_errorCapacity, "lists full");
     CHECK(muiNode_ClearVirtualList(context, a) == mui_success &&
               muiNode_SetVirtualList(context, c, &fixed) == mui_success,
           "fixed takes no items");
-    list.count = 60;
+    list.itemCount = 60;
     CHECK(muiNode_ClearVirtualList(context, c) == mui_success &&
               muiNode_SetVirtualList(context, a, &list) == mui_success,
           "the room a cleared list left");
     // Set anew larger: it moves where it fits.
-    list.count = 50;
+    list.itemCount = 50;
     CHECK(muiNode_SetVirtualList(context, b, &list) == mui_errorCapacity, "b cannot grow");
-    list.count = 30;
+    list.itemCount = 30;
     CHECK(muiNode_SetVirtualList(context, b, &list) == mui_success, "b shrinks");
     // A destroyed list's room and entry are taken back.
     CHECK(muiDestroyNode(context, a) == mui_success, "a destroyed");
-    list.count = 70;
+    list.itemCount = 70;
     CHECK(muiNode_SetVirtualList(context, c, &list) == mui_errorCapacity,
           "70 does not fit around b");
-    list.count = 60;
+    list.itemCount = 60;
     CHECK(muiNode_SetVirtualList(context, c, &list) == mui_success, "c takes a's room");
     float offset = 0.0f;
     float extent = 0.0f;
