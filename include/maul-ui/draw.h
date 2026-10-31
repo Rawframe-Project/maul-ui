@@ -335,7 +335,8 @@ extern "C"
     /// @par Thread safety
     /// Safe from any thread; the sink is used by one thread at a time, and
     /// only during the call of the paint function given it.
-    MUI_NODISCARD MUI_API muiResult muiDrawSink_GetVisibleRect(muiDrawSink* sink, muiRect* rectOut);
+    MUI_NODISCARD MUI_API muiResult muiDrawSink_GetVisibleRect(const muiDrawSink* sink,
+                                                               muiRect* rectOut);
 
     /// Paints a root's subtree, as its last muiNode_ComputeLayout left it, into
     /// the context's list, and clears the subtree's paint requests. When
