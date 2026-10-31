@@ -12,7 +12,7 @@ mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/LiberationSans-Regular.ttf
 # the harness.
 function(mui_add_sample name)
     set(target sample_${name})
-    add_executable(${target} ${name}.c app.c harness.c)
+    add_executable(${target} ${name}.c app.c harness.c surface_color.c)
     target_link_libraries(${target} PRIVATE maul-ui maul-ui-rhi maul-ui-window)
     target_include_directories(${target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
                                                  ${CMAKE_CURRENT_BINARY_DIR}/fonts)
@@ -53,3 +53,12 @@ mui_add_sample(tabs_menus)
 mui_add_sample(dialogs)
 mui_add_sample(collections)
 mui_add_sample(color)
+
+# The colour a window surface is configured in, from caps written by hand;
+# it needs no device.
+if(MAUL_UI_BUILD_TESTS)
+    maul_add_test(surface_color)
+    target_sources(test_surface_color PRIVATE surface_color.c)
+    target_link_libraries(test_surface_color PRIVATE maul-ui-rhi maul-ui-window)
+    target_include_directories(test_surface_color PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+endif()

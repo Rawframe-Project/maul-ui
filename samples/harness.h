@@ -104,9 +104,19 @@ typedef enum SamplePresented
     sample_failed,
 } SamplePresented;
 
+// Picks the colour to configure a surface in from its caps: 8-bit sRGB
+// in Rec. 709 as Maul RHI suggests it (mrhiSuggestSurfaceColor), BGRA
+// first, then RGBA, never another transfer or range a surface lists
+// before it. Frames draw in the colour's sRGB twin: the images' own
+// format where the surface allows it, else a view of them (a WebGPU
+// canvas's twin), which drawFormatOut receives. False when the caps have
+// no such colour, the config and drawFormatOut then as they were.
+bool SampleSurfaceColor(const mrhiSurfaceCaps* caps, mrhiSurfaceConfig* config,
+                        mrhiFormat* drawFormatOut);
+
 // Makes a surface from a window's handles and configures it at a size,
-// its images in the sRGB twin of the colour the platform prefers: true,
-// or false after printing why.
+// its images in the colour SampleSurfaceColor picks: true, or false after
+// printing why.
 bool SampleSurfaceOpen(Sample* sample, const mwinNativeHandles* handles, uint32_t width,
                        uint32_t height, SampleSurface* surfaceOut);
 
