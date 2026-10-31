@@ -5,6 +5,89 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.5.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.4.0...v0.5.0) (2026-10-31)
+
+Maul UI now follows the Maul family's rules for enumeration types,
+counter names and the outputs of a call that does not succeed, and
+builds against Maul RHI 0.14.0. A program written for 0.4 has to
+rebuild against the new headers, rename the counters listed below, and
+stop reading the part of an answer a call wrote before it failed.
+Layouts, draw lists, shaped text and glyph images have the same content
+as in 0.4.0, but a draw command's image record lays out its repeat
+fields differently.
+
+### Changed
+
+- **Breaking:** every public enumeration type is `int32_t` for a kind,
+  mode or choice, and `uint32_t` for a set of bits. Before, most were
+  `uint8_t` or `uint16_t`, so the structs that hold them change layout:
+  among others `muiLayoutStyle`, `muiVisualStyle`, `muiTextStyle`,
+  `muiEvent`, `muiPointerRecord`, `muiAccessNode`, `muiCondition`,
+  `muiEnvironment` and `muiTextEditRules` grow. `muiDrawCommand` keeps
+  its 152 bytes, but an image command's `repeatX` is four bytes, so its
+  `repeatY` moves from offset 89 to 92. `muiPropertyMask` stays
+  `uint64_t`. Every check of a kind refuses -1 and `INT32_MIN` as well
+  as values past the last. `muiNode_RouteKey` refuses a key code above
+  0xFFFF, and `muiNode_MoveTextPosition` refuses a starting position
+  whose affinity is neither value
+  ([#192](https://github.com/Rawframe-Project/maul-ui/pull/192)).
+- **Breaking:** counters are named for what they count.
+  `muiWorkCounts`' `styled`, `sized`, `measured` and `painted` are now
+  `styleCount`, `sizeCount`, `measureCount` and `paintCount`, and
+  `muiPointerRecord.dropped` is now `recordsDropped`. What each counts
+  is the same
+  ([#193](https://github.com/Rawframe-Project/maul-ui/pull/193)).
+- **Breaking:** a call whose first parameter is an owner object now
+  zeroes the caller's array or buffer over its whole capacity whenever
+  it answers anything but `mui_success` or `mui_errorBusy`: a failure,
+  `mui_empty` and a capacity failure alike. Before, it left the array as
+  it was, or wrote the part of the answer that fit. This covers
+  `muiNode_GetAccessRelation`, `muiAccessTree_GetShownChildren`,
+  `muiAccessTree_GetName`, `muiAccessTree_GetTextRects`,
+  `muiAccessTree_Write`, the four `muiTextService_Render` calls and
+  `muiGlyphAtlas_TakeUpdates`. After a capacity failure, ask again with
+  the count or length the call gives
+  ([#166](https://github.com/Rawframe-Project/maul-ui/pull/166)).
+- **Breaking:** a call refused with `mui_errorBusy`, because host code
+  its owner was running made it, writes none of its outputs, single
+  values and buffers alike. Before, it cleared them, though the call in
+  progress may have been filling them: for example an allocator calling
+  `muiTextBlock_Undo` while text was typed set the outer call's
+  `changed` to false. A creation still clears the id it gives on any
+  failure. A program that read a cleared output after a busy refusal
+  now reads what was there before the call
+  ([#173](https://github.com/Rawframe-Project/maul-ui/pull/173)).
+- **Breaking:** the renderer builds against Maul RHI 0.14.0. A host that
+  hands the renderer its device, or builds Maul UI against its own copy
+  of Maul RHI, has to use that release. Maul RHI's own changelog says
+  what changed in its API. The renderer's shaders and pixels are the
+  same
+  ([#195](https://github.com/Rawframe-Project/maul-ui/pull/195)).
+- The window glue: at a Maul Window input reset of the window that holds
+  a field, a host now takes the field's composition out with an empty
+  preedit (`muiTextBlock_ShowPreedit`), as Maul Window asks since its
+  0.6.0. A reset of another window, or a gamepad's, leaves it. The glue
+  cannot do this itself, because the host hands preedits to its field.
+  The headers, the user guide and the text sample say and do so
+  ([#161](https://github.com/Rawframe-Project/maul-ui/pull/161)).
+
+### Fixed
+
+- Text component: `muiDestroyFont`, `muiDestroyFontFamily` and
+  `muiDestroyTextBlock` freed the object's memory before its id went
+  stale. An allocator's free that read the object back could read freed
+  memory: `muiFontFamily_MatchFace` on the family being destroyed read
+  its freed faces, and `muiTextBlock_GetText` answered a pointer into
+  freed text. The id is now stale before any free runs, and such a call
+  answers `mui_errorStale`
+  ([#189](https://github.com/Rawframe-Project/maul-ui/pull/189)).
+- Samples: a window's surface took the first 8-bit color in Rec. 709 it
+  listed, whatever its transfer and range, so on a display whose driver
+  lists a linear or extended color first the samples showed wrong
+  colors. They now ask Maul RHI for 8-bit sRGB
+  (`mrhiSuggestSurfaceColor`)
+  ([#197](https://github.com/Rawframe-Project/maul-ui/pull/197)).
+
 ## [0.4.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.3.3...v0.4.0) (2026-10-30)
 
 Maul UI now follows the Maul family's rules for names, results and
