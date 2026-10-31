@@ -48,8 +48,8 @@ access_record:
 access_text: allocator
 access_tree_store:
 chars:
-access_tree: access_tree_store allocator chars host_call outputs fpenv
-access_apply: access_text access_tree access_tree_store allocator host_call fpenv
+access_tree: access_tree_store allocator chars host_call invariant outputs fpenv
+access_apply: access_text access_tree access_tree_store allocator host_call invariant fpenv
 access_view: access_text access_tree_store allocator host_call outputs fpenv
 id_map: invariant
 dbus_api:

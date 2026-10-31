@@ -12,6 +12,7 @@
 #include "allocator.h"
 #include "fpenv.h"
 #include "host_call.h"
+#include "invariant.h"
 
 #include "maul-ui/access_tree.h"
 
@@ -349,12 +350,16 @@ static void Remove(muiAccessTree* tree, uint32_t top, uint32_t* retiredCount)
             uint32_t child = muiHeldSlotOf(tree, held->children[k]);
             if (child != 0 && tree->held[child - 1].parent == slot)
             {
+                // Each held node has one parent, so it is pushed once.
+                MUI_ASSERT(count < tree->capacity);
                 tree->stack[count++] = child;
             }
         }
         tree->retired[(*retiredCount)++] = (muiRetiredNode){*held, true};
         muiAccessUnindex(tree, slot);
         *held = (muiHeldNode){0};
+        // A held slot is not free; held and free slots make the capacity.
+        MUI_ASSERT(tree->count != 0 && tree->count + tree->freeCount == tree->capacity);
         tree->free[tree->freeCount++] = slot;
         tree->count--;
     }
@@ -379,6 +384,9 @@ static uint32_t Commit(muiAccessTree* tree, const muiAccessUpdate* update, uint3
             *old = held;
             continue;
         }
+        // Staging refused an update whose new nodes the tree has no room
+        // for.
+        MUI_ASSERT(tree->freeCount != 0 && tree->count + tree->freeCount == tree->capacity);
         slot = tree->free[--tree->freeCount];
         tree->held[slot - 1] = held;
         muiAccessIndex(tree, slot);

@@ -12,6 +12,7 @@
 #include "chars.h"
 #include "fpenv.h"
 #include "host_call.h"
+#include "invariant.h"
 #include "outputs.h"
 
 #include <stdalign.h>
@@ -542,6 +543,8 @@ static muiResult AccessTreeWrite(const muiAccessTree* tree, char* buffer, size_t
         uint32_t depth = 0;
         for (uint32_t at = held->parent; at != 0; at = tree->held[at - 1].parent)
         {
+            // Parents form no cycle, so the walk up meets each node once.
+            MUI_ASSERT(depth < tree->capacity);
             depth++;
         }
         PutNode(&writer, &held->node, depth);
