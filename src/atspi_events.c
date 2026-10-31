@@ -13,6 +13,7 @@
 #include "atspi.h"
 #include "fpenv.h"
 #include "host_call.h"
+#include "invariant.h"
 
 #include <string.h>
 
@@ -390,6 +391,8 @@ static uint32_t Walk(muiAtspiAdapter* adapter)
 static uint64_t ParentAt(const muiAtspiAdapter* adapter, uint32_t at)
 {
     uint32_t parent = adapter->places[at].parent;
+    // The walk puts a node after its parent.
+    MUI_ASSERT(parent == UINT32_MAX || parent < at);
     return parent != UINT32_MAX ? adapter->walk[parent] : 0;
 }
 
@@ -464,6 +467,8 @@ static void Forget(muiAtspiAdapter* adapter)
         {
             (void)muiIdMapRemove(&adapter->toldById, told->id);
             *told = (muiAtspiTold){0};
+            // A told slot is not free; told and free slots make the nodes.
+            MUI_ASSERT(adapter->freeCount < adapter->nodes);
             adapter->freeTold[adapter->freeCount++] = i;
         }
     }
@@ -484,7 +489,9 @@ static void Learn(muiAtspiAdapter* adapter, uint32_t count)
         {
             told = &adapter->told[adapter->freeTold[--adapter->freeCount]];
             *told = (muiAtspiTold){.id = id, .born = adapter->pass};
-            (void)muiIdMapInsert(&adapter->toldById, id, told);
+            // The map, of twice the nodes, holds every told node, and
+            // this one is not yet in it.
+            muiAssertCall(muiIdMapInsert(&adapter->toldById, id, told));
         }
         if (told == nullptr)
         {

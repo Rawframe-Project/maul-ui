@@ -167,9 +167,14 @@ static void TestThemesAreChecked(void)
               muiTheme_GetToken(context, theme, surface, &read, &alias) == mui_success &&
               alias.index1 == brand.index1,
           "an alias override");
-    // brand aliases surface in the context; in the theme surface aliases
-    // brand: a cycle through the theme.
-    CHECK(muiToken_SetAlias(context, brand, surface) == mui_success, "context alias");
+    // In the theme surface aliases brand, so brand may not alias surface in
+    // the context: a cycle through the theme.
+    CHECK(muiToken_SetAlias(context, brand, surface) == mui_errorInvalid,
+          "a context alias that closes a cycle through the theme");
+    // Without that override it may; then no theme may make surface brand.
+    CHECK(muiTheme_ResetToken(context, theme, surface) == mui_success &&
+              muiToken_SetAlias(context, brand, surface) == mui_success,
+          "context alias");
     muiThemeId other = MakeTheme(context);
     CHECK(muiTheme_SetTokenAlias(context, other, surface, brand) == mui_errorInvalid,
           "a cycle through a theme");
@@ -232,6 +237,59 @@ static void TestCycleThroughTheFirstToken(void)
           "x is the first, the first is y");
     muiThemeId theme = MakeTheme(context);
     CHECK(muiTheme_SetTokenAlias(context, theme, y, x) == mui_errorInvalid, "y may not be x");
+    muiDestroyContext(context);
+}
+
+// A cycle the context's alias would close through one theme: there B is
+// A, so the context's A may not be B. Under the theme both would give no
+// value.
+static void TestCycleClosedByTheContext(void)
+{
+    muiContext* context = MakeContext();
+    muiTokenId a = MakeToken(context, s_red);
+    muiTokenId b = MakeToken(context, s_blue);
+    muiThemeId theme = MakeTheme(context);
+    muiNodeId node = MakeChild(context, s_nullNode);
+    CHECK(muiTheme_SetTokenAlias(context, theme, b, a) == mui_success &&
+              muiNode_SetTheme(context, node, theme) == mui_success,
+          "in the theme, B is A");
+    uint64_t misuse = muiContext_GetMisuse(context);
+    CHECK(muiToken_SetAlias(context, a, b) == mui_errorInvalid &&
+              muiContext_GetMisuse(context) == misuse + 1,
+          "the context's A may not be B");
+    Layout(context, node);
+    CHECK(SameColor(Read(context, node, a), s_red) && SameColor(Read(context, node, b), s_red),
+          "both give A's value under the theme");
+    // Another theme that does not send B back to A takes no part.
+    muiThemeId other = MakeTheme(context);
+    muiTokenId c = MakeToken(context, s_light);
+    CHECK(muiTheme_SetTokenAlias(context, other, b, c) == mui_success, "elsewhere B is C");
+    CHECK(muiToken_SetAlias(context, c, a) == mui_success, "the context's C may be A");
+    muiDestroyContext(context);
+}
+
+// An alias a reset would expose: the context's X is Y, and a theme that
+// gives X a literal may not make Y X, since ending that literal would
+// leave X following the context's Y back to it.
+static void TestCycleClosedByAReset(void)
+{
+    muiContext* context = MakeContext();
+    muiTokenId x = MakeToken(context, s_red);
+    muiTokenId y = MakeToken(context, s_blue);
+    muiThemeId theme = MakeTheme(context);
+    muiNodeId node = MakeChild(context, s_nullNode);
+    CHECK(muiToken_SetAlias(context, x, y) == mui_success &&
+              muiNode_SetTheme(context, node, theme) == mui_success,
+          "the context's X is Y");
+    Override(context, theme, x, s_dark);
+    uint64_t misuse = muiContext_GetMisuse(context);
+    CHECK(muiTheme_SetTokenAlias(context, theme, y, x) == mui_errorInvalid &&
+              muiContext_GetMisuse(context) == misuse + 1,
+          "the theme's Y may not be X, though X is a literal there");
+    CHECK(muiTheme_ResetToken(context, theme, x) == mui_success, "the literal ends");
+    Layout(context, node);
+    CHECK(SameColor(Read(context, node, x), s_blue) && SameColor(Read(context, node, y), s_blue),
+          "both give Y's value under the theme");
     muiDestroyContext(context);
 }
 
@@ -440,16 +498,12 @@ static void TestNestedThemes(void)
     CHECK(SameColor(Background(context, leaf), s_light),
           "the outer alias, read where the inner theme makes the brand light");
 
-    // A cycle only the two themes close: the outer accent is the brand,
-    // the inner brand the accent.
-    CHECK(muiTheme_SetTokenAlias(context, inner, brand, accent) == mui_success,
-          "allowed: through the inner theme and the context alone, no cycle");
+    // A cycle only the two themes would close, nested: the outer accent is
+    // the brand, so the inner brand may not be the accent.
+    CHECK(muiTheme_SetTokenAlias(context, inner, brand, accent) == mui_errorInvalid,
+          "a cycle through two nested themes");
     Layout(context, root);
-    muiTokenValue value = Color(s_red);
-    CHECK(muiNode_GetTokenValue(context, leaf, accent, &value) == mui_empty &&
-              value.type == mui_tokenColor && value.color.a == 0.0f,
-          "no value through the cycle");
-    CHECK(Background(context, leaf).a == 0.0f, "and the class's layer is silent");
+    CHECK(SameColor(Background(context, leaf), s_light), "the brand stays light");
     muiDestroyContext(context);
 }
 
@@ -485,6 +539,8 @@ int main(void)
     TestThemesAreChecked();
     TestLimits();
     TestCycleThroughTheFirstToken();
+    TestCycleClosedByTheContext();
+    TestCycleClosedByAReset();
     TestEveryOverride();
     TestSubtreesReadTheirTheme();
     TestNestedThemes();

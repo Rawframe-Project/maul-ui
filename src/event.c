@@ -93,15 +93,11 @@ static uint32_t TargetOf(const muiContext* context, uint32_t root, uint8_t playe
 }
 
 // Checks what every input call checks; the root's slot, or 0 with the
-// status to return.
+// status to return. Its worker refused a call made while the event
+// function runs (muiRefusesBusy).
 static uint32_t Admit(muiContext* context, muiNodeId rootId, uint8_t player, bool valid,
                       muiResult* statusOut)
 {
-    if (muiIsRouting(context))
-    {
-        *statusOut = muiRefuseBusy(context);
-        return 0;
-    }
     if (!valid || IsNull(rootId) || player >= MUI_MAX_PLAYERS)
     {
         *statusOut = muiRefuse(context);
@@ -499,10 +495,6 @@ static muiResult DispatchPointerRecord(muiContext* context, const muiPointerReco
     if (context == nullptr)
     {
         return mui_errorInvalid;
-    }
-    if (muiIsRouting(context))
-    {
-        return muiRefuseBusy(context);
     }
     if (record == nullptr || handledOut == nullptr)
     {

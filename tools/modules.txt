@@ -18,7 +18,7 @@ color: motion_math
 animation: inherit invariant layout_node pool property style_store tree
 style_edit: context pool style_store tree
 transition: animation context pool property style_edit style_store fpenv
-token: condition context pool property style_edit style_store token_store fpenv
+token: condition context pool property style_edit style_store theme_store token_store fpenv
 theme: context pool property restyle style_edit style_store theme_store token_store tree fpenv
 paint: color context draw_store layout_node
 draw_transform: context draw_store layout_node scroll_store tree
@@ -77,7 +77,7 @@ uikit_events: access_record uikit
 uikit_node: uikit fpenv
 uikit_text: access_record access_text host_call uikit fpenv
 uikit_traits: uikit
-atspi_events: access_record access_text allocator atspi host_call fpenv
+atspi_events: access_record access_text allocator atspi host_call invariant fpenv
 atspi_actions: atspi host_call
 atspi_app: allocator atspi dbus_api host_call fpenv
 atspi_component: atspi host_call
