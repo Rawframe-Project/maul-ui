@@ -315,8 +315,8 @@ static void TestClassesNameTokens(void)
     muiTokenId end = s_nullToken;
     CHECK(muiStyle_SetToken(context, style, mui_variantBase, mui_propertyPaddingEnd, gap) ==
                   mui_success &&
-              muiStyle_SetToken(context, style, mui_variantBase, mui_propertyPaddingStart,
-                                wider) == mui_success &&
+              muiStyle_SetToken(context, style, mui_variantBase, mui_propertyPaddingStart, wider) ==
+                  mui_success &&
               muiStyle_SetToken(context, style, mui_variantBase, mui_propertyPaddingEnd, wider) ==
                   mui_success &&
               muiStyle_GetToken(context, style, mui_variantBase, mui_propertyPaddingStart,

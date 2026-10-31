@@ -673,14 +673,14 @@ static void TestMarginMoves(void)
     const muiPropertyMask margin = MUI_PROPERTY_BIT(mui_propertyMarginStart);
     muiLayoutStyle values = muiDefaultLayoutStyle();
     values.margin.start = 20.0f;
-    CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, &values, margin) ==
-              mui_success,
+    CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, &values, margin) == mui_success,
           "base margin");
     values.margin.start = -20.0f;
     CHECK(muiStyle_SetLayoutValues(context, style, mui_variantHovered, &values, margin) ==
               mui_success,
           "hovered margin");
-    Bind(context, style, mui_variantBase, MakeTimed(context, 100 * MS, mui_easingLinear, 0), margin);
+    Bind(context, style, mui_variantBase, MakeTimed(context, 100 * MS, mui_easingLinear, 0),
+         margin);
     CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
     (void)WidthAt(context, node, T0);
     CHECK(muiNode_SetStates(context, node, mui_stateHovered) == mui_success, "hover");
