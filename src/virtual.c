@@ -137,11 +137,13 @@ static double* SumsOf(const muiVirtualStore* store, const muiVirtualEntry* entry
     return store->sums + entry->base - 1;
 }
 
+// Read only by MUI_ASSERT, which Release builds compile out.
 // Whether the tree's place of item i, its extent and the gap after it,
 // is what its stored size says, within the rounding of the double sums.
 // Sums that overflowed are not compared: finite sizes a caller gave can
 // add up past the doubles' range.
-static bool PlaceAgrees(const muiVirtualStore* store, const muiVirtualEntry* entry, uint32_t i)
+[[maybe_unused]] static bool PlaceAgrees(const muiVirtualStore* store, const muiVirtualEntry* entry,
+                                         uint32_t i)
 {
     double end = muiVirtualOffset(store, entry, i + 1);
     double place = end - muiVirtualOffset(store, entry, i);
@@ -172,35 +174,41 @@ static bool PlaceAgrees(const muiVirtualStore* store, const muiVirtualEntry* ent
     return !isfinite(sum) || !isfinite(total) || !isfinite(bound) || fabs(total - sum) <= bound;
 }
 
+// Place k of the tree, from the places under it and item k - 1: the sums
+// of the places k - 2^j below its lowest set bit, in rising order, then
+// the item's extent and gap. Every place is always this, so a measure
+// that sets the places above its item gives the tree a build from the
+// sizes would: no change is ever added to a sum, so none is lost to
+// rounding.
+static double SumAt(const muiVirtualStore* store, const muiVirtualEntry* entry, uint32_t k)
+{
+    const double* sums = SumsOf(store, entry);
+    double sum = 0.0;
+    for (uint32_t step = (k & (0u - k)) >> 1; step != 0; step >>= 1)
+    {
+        sum += sums[k - step];
+    }
+    return sum + ((double)store->sizes[entry->base + k - 1] + (double)entry->list.gap);
+}
+
 void muiVirtualBuild(muiVirtualStore* store, const muiVirtualEntry* entry)
 {
-    uint32_t count = entry->list.itemCount;
-    const float* sizes = store->sizes + entry->base;
     double* sums = SumsOf(store, entry);
-    for (uint32_t k = 1; k <= count; k++)
+    for (uint32_t k = 1; k <= entry->list.itemCount; k++)
     {
-        sums[k] = 0.0;
-    }
-    for (uint32_t k = 1; k <= count; k++)
-    {
-        sums[k] += (double)sizes[k - 1] + (double)entry->list.gap;
-        uint32_t up = k + (k & (0u - k));
-        if (up <= count)
-        {
-            sums[up] += sums[k];
-        }
+        sums[k] = SumAt(store, entry, k);
     }
     MUI_ASSERT(TotalAgrees(store, entry));
 }
 
-// Adds delta to item i's extent in its entry's tree.
-static void Add(const muiVirtualStore* store, const muiVirtualEntry* entry, uint32_t i,
-                double delta)
+// Sets the places of the tree that hold item i, after its size changed:
+// O(log^2 n).
+static void SetPath(const muiVirtualStore* store, const muiVirtualEntry* entry, uint32_t i)
 {
     double* sums = SumsOf(store, entry);
     for (uint32_t k = i + 1; k <= entry->list.itemCount; k += k & (0u - k))
     {
-        sums[k] += delta;
+        sums[k] = SumAt(store, entry, k);
     }
 }
 
@@ -624,15 +632,8 @@ static double Measure(muiContext* context, uint32_t slot, const muiVirtualEntry*
         if (size != *known)
         {
             double delta = (double)size - (double)*known;
-            Add(store, entry, item - 1, delta);
             *known = size;
-            if (!PlaceAgrees(store, entry, item - 1))
-            {
-                // The change was lost to rounding, as when an item
-                // estimated far above its measure cancels the sums it is
-                // in: they are built again from the sizes.
-                muiVirtualBuild(store, entry);
-            }
+            SetPath(store, entry, item - 1);
             MUI_ASSERT(PlaceAgrees(store, entry, item - 1));
             shift += muiVirtualOffset(store, entry, item - 1) < viewStart ? delta : 0.0;
         }
