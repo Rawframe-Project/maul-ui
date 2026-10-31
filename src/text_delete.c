@@ -173,7 +173,8 @@ bool muiFindEditDeletion(muiTextService* service, const muiTextBlock* block,
     }
     uint32_t composition = block->compositionStart;
     uint32_t length = block->length - shown;
-    if (!muiReserve(&service->allocator, &service->removedScratch, length))
+    // At least a byte, so a text that is all composition has a buffer too.
+    if (!muiReserve(&service->allocator, &service->removedScratch, (size_t)length + 1u))
     {
         return false;
     }
