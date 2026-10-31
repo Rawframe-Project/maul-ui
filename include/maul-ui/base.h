@@ -25,7 +25,7 @@ extern "C"
 #define MUI_VERSION_MINOR 6
 // x-release-please-end
 // x-release-please-start-patch
-#define MUI_VERSION_PATCH 0
+#define MUI_VERSION_PATCH 1
 // x-release-please-end
 
 // The binary interface a program is built for: the whole version before

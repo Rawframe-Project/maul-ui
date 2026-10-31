@@ -5,6 +5,13 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.6.1](https://github.com/Rawframe-Project/maul-ui/compare/v0.6.0...v0.6.1) (2026-10-31)
+
+
+### Fixed
+
+* **virtual:** set a measured item's sums from their parts ([#232](https://github.com/Rawframe-Project/maul-ui/issues/232)) ([8f6e7c9](https://github.com/Rawframe-Project/maul-ui/commit/8f6e7c9d121358c83b23eee582721fe81021312a)), closes [#231](https://github.com/Rawframe-Project/maul-ui/issues/231)
+
 ## [0.6.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.5.0...v0.6.0) (2026-10-31)
 
 This release finishes the review of Maul UI's API before 1.0.0
