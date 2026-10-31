@@ -27,8 +27,8 @@ static bool IsLength(float value)
 
 static bool IsValid(const muiVirtualList* list)
 {
-    return list->axis <= mui_axisVertical && isfinite(list->extent) && list->extent > 0.0f &&
-           IsLength(list->gap) && IsLength(list->overscan);
+    return (uint32_t)list->axis <= mui_axisVertical && isfinite(list->extent) &&
+           list->extent > 0.0f && IsLength(list->gap) && IsLength(list->overscan);
 }
 
 muiVirtualList muiDefaultVirtualList(void)

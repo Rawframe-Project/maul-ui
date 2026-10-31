@@ -537,7 +537,7 @@ static void TestMultiFields(void)
     def.maxPages = 1;
     // A fixed width, so the defs and pages that hold it have one layout
     // in every compiler (Maul conventions, Language and headers).
-    CHECK(sizeof(muiAtlasFormat) == 1, "a format is a byte");
+    CHECK(sizeof(muiAtlasFormat) == sizeof(int32_t), "a format is an int32_t");
     def.format = (muiAtlasFormat)3;
     muiGlyphAtlas* atlas = NULL;
     CHECK(muiCreateGlyphAtlas(fixture.service, &def, &atlas) == mui_errorInvalid,

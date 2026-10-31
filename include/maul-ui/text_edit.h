@@ -25,7 +25,7 @@ extern "C"
     // Which side of an offset a position keeps to, where the offset has
     // two places: the end of a wrapped line or the start of the next, and
     // either side of a change of direction.
-    typedef uint8_t muiTextAffinity;
+    typedef int32_t muiTextAffinity;
 
     enum
     {
@@ -45,7 +45,7 @@ extern "C"
 
     // Where a position moves to. Words are UAX #29 word segments with a
     // letter or a number in them.
-    typedef uint8_t muiTextMovement;
+    typedef int32_t muiTextMovement;
 
     enum
     {
@@ -83,7 +83,7 @@ extern "C"
     };
 
     // Which way a deletion from a position goes.
-    typedef uint8_t muiTextDeletion;
+    typedef int32_t muiTextDeletion;
 
     enum
     {
@@ -97,7 +97,7 @@ extern "C"
     };
 
     // How a part of an input method's composition is drawn.
-    typedef uint8_t muiCompositionStyle;
+    typedef int32_t muiCompositionStyle;
 
     enum
     {
@@ -223,10 +223,10 @@ extern "C"
     ///                     the caret had before the first vertical move;
     ///                     NaN for from's own caret x. Not read otherwise.
     /// @param positionOut  Receives the position; unchanged on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a
-    ///         movement out of range; `mui_errorStale` for a node, block or
-    ///         font that is gone; `mui_errorCapacity` when memory runs out;
-    ///         `mui_errorBusy` while the service is busy.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
+    ///         movement or an affinity out of range; `mui_errorStale` for a
+    ///         node, block or font that is gone; `mui_errorCapacity` when
+    ///         memory runs out; `mui_errorBusy` while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.

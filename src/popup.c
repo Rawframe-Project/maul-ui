@@ -77,8 +77,9 @@ static muiResult NodeSetPopup(muiContext* context, muiNodeId nodeId, const muiPo
     {
         return mui_errorInvalid;
     }
-    if (popup == nullptr || popup->anchor.index1 == 0 || popup->side > mui_popupCenter ||
-        popup->align > mui_popupAlignEnd || !IsLength(popup->gap) || !IsLength(popup->margin))
+    if (popup == nullptr || popup->anchor.index1 == 0 || (uint32_t)popup->side > mui_popupCenter ||
+        (uint32_t)popup->align > mui_popupAlignEnd || !IsLength(popup->gap) ||
+        !IsLength(popup->margin))
     {
         return muiRefuse(context);
     }

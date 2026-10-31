@@ -872,7 +872,7 @@ static void TestContract(void)
 {
     Scene scene = MakeScene();
     ShowPlain(&scene, "abc");
-    muiTextPosition position = {7, 7};
+    muiTextPosition position = {7, mui_affinityUpstream};
     muiTextCaret caret = {7.0f, 7.0f, 7.0f, false};
     muiRect rects[2];
     uint32_t count = 0;

@@ -18,6 +18,7 @@
 
 #include <stdalign.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -1203,7 +1204,9 @@ static void TestContract(void)
           "reads");
     CHECK(strcmp(muiGetAccessRoleName(mui_roleButton), "button") == 0 &&
               strcmp(muiGetAccessRoleName(MUI_ROLE_LAST), "marquee") == 0 &&
-              strcmp(muiGetAccessRoleName(MUI_ROLE_LAST + 1), "unknown") == 0,
+              strcmp(muiGetAccessRoleName(MUI_ROLE_LAST + 1), "unknown") == 0 &&
+              strcmp(muiGetAccessRoleName(-1), "unknown") == 0 &&
+              strcmp(muiGetAccessRoleName(INT32_MIN), "unknown") == 0,
           "role names");
     muiDestroyAccessTree(tree);
 }

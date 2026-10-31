@@ -30,7 +30,7 @@ extern "C"
 #endif
 
     // A field's rules, as bits.
-    typedef uint8_t muiTextEditFlags;
+    typedef uint32_t muiTextEditFlags;
 
     enum
     {
@@ -47,7 +47,7 @@ extern "C"
     };
 
     // What a field's text may be, checked as it is typed or pasted.
-    typedef uint8_t muiTextFilter;
+    typedef int32_t muiTextFilter;
 
     enum
     {
@@ -59,7 +59,7 @@ extern "C"
     };
 
     // What a field takes, which picks an on-screen keyboard's layout.
-    typedef uint8_t muiInputPurpose;
+    typedef int32_t muiInputPurpose;
 
     enum
     {
@@ -90,7 +90,7 @@ extern "C"
 
     // Whose shortcuts keys follow: Control and Home and End, or Command
     // and Option.
-    typedef uint8_t muiKeymap;
+    typedef int32_t muiKeymap;
 
     enum
     {

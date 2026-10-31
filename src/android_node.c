@@ -101,7 +101,7 @@ static int ClassOf(const muiAccessNode* node)
     {
         return C_TOGGLE_BUTTON;
     }
-    return node->role <= MUI_ROLE_LAST ? s_classes[node->role] : C_VIEW;
+    return (uint32_t)node->role <= MUI_ROLE_LAST ? s_classes[node->role] : C_VIEW;
 }
 
 static jint FlagsOf(const muiAndroidAdapter* adapter, const muiAccessNode* node)

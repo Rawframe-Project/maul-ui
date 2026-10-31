@@ -687,7 +687,7 @@ static muiResult SegmentsStatus(const muiCompositionSegment* segments, uint32_t 
     {
         const muiCompositionSegment* segment = &segments[i];
         if (segment->start > length || segment->length > length - segment->start ||
-            segment->style > mui_compositionConverted)
+            (uint32_t)segment->style > mui_compositionConverted)
         {
             return mui_errorInvalid;
         }

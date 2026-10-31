@@ -76,7 +76,7 @@ muiResult muiEditMove(const muiTextHost* host, muiNodeId nodeId, muiTextMovement
 {
     muiTextBlock* block = nullptr;
     muiRect content;
-    muiResult result = movement <= mui_moveTextEnd
+    muiResult result = (uint32_t)movement <= mui_moveTextEnd
                            ? EditingOf(host, nodeId, &block, &content)
                            : muiRefuseText(host != nullptr ? host->service : nullptr);
     if (result != mui_success)

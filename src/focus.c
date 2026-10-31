@@ -133,7 +133,7 @@ muiResult muiSetFocus(muiContext* context, uint8_t player, muiNodeId nodeId, mui
     {
         return mui_errorInvalid;
     }
-    if (player >= MUI_MAX_PLAYERS || cause > mui_focusByNavigation)
+    if (player >= MUI_MAX_PLAYERS || (uint32_t)cause > mui_focusByNavigation)
     {
         return muiRefuse(context);
     }

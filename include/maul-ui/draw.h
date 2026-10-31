@@ -42,7 +42,7 @@ extern "C"
     } muiCorners;
 
     // What a command draws.
-    typedef uint32_t muiDrawKind;
+    typedef int32_t muiDrawKind;
 
     enum
     {
@@ -57,7 +57,7 @@ extern "C"
     };
 
     // The color space a gradient's colors move through between stops.
-    typedef uint32_t muiDrawInterpolation;
+    typedef int32_t muiDrawInterpolation;
 
     enum
     {
