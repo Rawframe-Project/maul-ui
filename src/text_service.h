@@ -62,6 +62,9 @@ struct muiTextService
     muiBuffer hitBoxes;
     // What an editing block's rules let in of text going in.
     muiBuffer editScratch;
+    // The bytes an edit takes out, kept for its history until the text has
+    // changed.
+    muiBuffer removedScratch;
     // Scratch for distance fields: the outline's segments, their pieces
     // with the segment of each, the row starts and crossings, the cell
     // starts and pieces, the edge, and each pixel's squared distance.
