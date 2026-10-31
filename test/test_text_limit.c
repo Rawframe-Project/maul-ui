@@ -136,10 +136,12 @@ static void TestLength(Scene* s, size_t length)
     event.text = one;
     event.length = length;
     const muiTextEditInput input = {mui_keymapPc, NULL, NULL};
-    muiTextEditOutcome outcome;
+    // A refused event leaves the outcome as it was; a refused request
+    // writes it.
+    muiTextEditOutcome outcome = {true, true, true, true};
     SelectAll(s);
     CHECK(muiNode_HandleEditEvent(&s->host, s->node, &event, &input, &outcome) == mui_errorLimit &&
-              !outcome.changed && Kept(s),
+              outcome.handled && outcome.changed && Kept(s),
           "a text event");
     muiAccessRequest request = {0};
     request.action = mui_actionReplaceText;
