@@ -397,7 +397,7 @@ static bool AppendRelations(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiO
     const muiAccessNode* node = object->node;
     muiDBusIter array;
     bool ok = dbus->openContainer(iter, mui_dbusTypeArray, "(ua(so))", &array);
-    for (uint32_t kind = 0; kind < MUI_ACCESS_RELATIONS && node != nullptr && ok; kind++)
+    for (muiAccessRelation kind = 0; kind < MUI_ACCESS_RELATIONS && node != nullptr && ok; kind++)
     {
         bool any = false;
         for (uint32_t i = 0; i < node->linkCount; i++)

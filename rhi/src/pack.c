@@ -157,7 +157,7 @@ static float Fit(float length, float low, float high)
 // A repeat the renderer knows, stretch for any other.
 static muiImageRepeat Repeat(muiImageRepeat repeat)
 {
-    return repeat <= mui_imageSpace ? repeat : mui_imageStretch;
+    return (uint32_t)repeat <= mui_imageSpace ? repeat : mui_imageStretch;
 }
 
 static muiRhiInstance ImageOf(const muiDrawList* list, const muiDrawCommand* command,

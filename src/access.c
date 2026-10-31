@@ -158,7 +158,7 @@ static muiResult NodeSetAccessRole(muiContext* context, muiNodeId nodeId, muiRol
     {
         return mui_errorInvalid;
     }
-    if (role > MUI_ROLE_LAST)
+    if ((uint32_t)role > MUI_ROLE_LAST)
     {
         return muiRefuse(context);
     }
@@ -223,7 +223,7 @@ static muiResult NodeSetAccessText(muiContext* context, muiNodeId nodeId, muiAcc
     {
         return muiRefuseLimit(context);
     }
-    if (kind >= MUI_ACCESS_TEXTS || (text == nullptr && length != 0) ||
+    if ((uint32_t)kind >= MUI_ACCESS_TEXTS || (text == nullptr && length != 0) ||
         !muiAccessIsUtf8((const unsigned char*)text, length))
     {
         return muiRefuse(context);
@@ -302,7 +302,7 @@ muiResult muiNode_GetAccessText(const muiContext* context, muiNodeId nodeId, mui
         *lengthOut = 0;
     }
     if (context == nullptr || textOut == nullptr || lengthOut == nullptr || nodeId.index1 == 0 ||
-        kind >= MUI_ACCESS_TEXTS)
+        (uint32_t)kind >= MUI_ACCESS_TEXTS)
     {
         return mui_errorInvalid;
     }
@@ -582,7 +582,7 @@ static muiResult NodeSetAccessRelation(muiContext* context, muiNodeId nodeId,
     {
         return mui_errorInvalid;
     }
-    if (kind >= MUI_ACCESS_RELATIONS || (targets == nullptr && count != 0))
+    if ((uint32_t)kind >= MUI_ACCESS_RELATIONS || (targets == nullptr && count != 0))
     {
         return muiRefuse(context);
     }
@@ -670,7 +670,7 @@ static muiResult GetAccessRelation(const muiContext* context, muiNodeId nodeId,
         *countOut = 0;
     }
     if (context == nullptr || countOut == nullptr || (targetsOut == nullptr && capacity != 0) ||
-        nodeId.index1 == 0 || kind >= MUI_ACCESS_RELATIONS)
+        nodeId.index1 == 0 || (uint32_t)kind >= MUI_ACCESS_RELATIONS)
     {
         return mui_errorInvalid;
     }
@@ -706,9 +706,12 @@ muiAccessValues muiDefaultAccessValues(void)
 
 static bool AreValuesValid(const muiAccessValues* values)
 {
-    return values->live <= mui_liveAssertive && values->popup <= mui_hasPopupDialog &&
-           values->orientation <= mui_orientationVertical && values->sort <= mui_sortOther &&
-           values->invalid <= mui_invalidSpelling && values->current <= mui_currentTime;
+    return (uint32_t)values->live <= mui_liveAssertive &&
+           (uint32_t)values->popup <= mui_hasPopupDialog &&
+           (uint32_t)values->orientation <= mui_orientationVertical &&
+           (uint32_t)values->sort <= mui_sortOther &&
+           (uint32_t)values->invalid <= mui_invalidSpelling &&
+           (uint32_t)values->current <= mui_currentTime;
 }
 
 bool muiAccessSameValues(const muiAccessValues* a, const muiAccessValues* b)

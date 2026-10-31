@@ -197,7 +197,7 @@ extern "C"
     MUI_API void muiDestroyContext(muiContext* context);
 
     // What a notification reports.
-    typedef uint8_t muiNotificationKind;
+    typedef int32_t muiNotificationKind;
 
     enum
     {

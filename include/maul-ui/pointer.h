@@ -21,7 +21,7 @@ extern "C"
 #endif
 
     // The device a pointer is.
-    typedef uint8_t muiPointerKind;
+    typedef int32_t muiPointerKind;
 
     enum
     {
@@ -34,7 +34,7 @@ extern "C"
     };
 
     // The buttons a pointer holds, as bits: 1 << the button's index.
-    typedef uint8_t muiPointerButtons;
+    typedef uint32_t muiPointerButtons;
 
     enum
     {
@@ -48,7 +48,7 @@ extern "C"
     };
 
     // What happened to a pointer.
-    typedef uint8_t muiPointerAction;
+    typedef int32_t muiPointerAction;
 
     enum
     {
@@ -115,7 +115,7 @@ extern "C"
                                                          const muiPointerEvent* event);
 
     // What a pointer record reports.
-    typedef uint8_t muiPointerRecordKind;
+    typedef int32_t muiPointerRecordKind;
 
     enum
     {

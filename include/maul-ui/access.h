@@ -32,7 +32,7 @@ extern "C"
 
     // What a node is to assistive technology: AccessKit's roles less the
     // browser's document internals. Closed, and only ever appended to.
-    typedef uint8_t muiRole;
+    typedef int32_t muiRole;
 
     enum
     {
@@ -139,7 +139,7 @@ extern "C"
     };
 
     // A node's texts. Each is UTF-8.
-    typedef uint8_t muiAccessTextKind;
+    typedef int32_t muiAccessTextKind;
 
     enum
     {
@@ -215,7 +215,7 @@ extern "C"
     };
 
     // What assistive technology asks a node to do.
-    typedef uint8_t muiAccessAction;
+    typedef int32_t muiAccessAction;
 
     enum
     {
@@ -248,7 +248,7 @@ extern "C"
     };
 
     // How one node names others.
-    typedef uint8_t muiAccessRelation;
+    typedef int32_t muiAccessRelation;
 
     enum
     {
@@ -278,7 +278,7 @@ extern "C"
     } muiAccessLink;
 
     // Whether and how a node's changes are announced, as aria-live.
-    typedef uint8_t muiAccessLive;
+    typedef int32_t muiAccessLive;
 
     enum
     {
@@ -288,7 +288,7 @@ extern "C"
     };
 
     // What a node opens, as aria-haspopup.
-    typedef uint8_t muiAccessPopup;
+    typedef int32_t muiAccessPopup;
 
     enum
     {
@@ -301,7 +301,7 @@ extern "C"
     };
 
     // Which way a node's items or values run; none says nothing.
-    typedef uint8_t muiAccessOrientation;
+    typedef int32_t muiAccessOrientation;
 
     enum
     {
@@ -311,7 +311,7 @@ extern "C"
     };
 
     // How a column header's column is sorted, as aria-sort.
-    typedef uint8_t muiAccessSort;
+    typedef int32_t muiAccessSort;
 
     enum
     {
@@ -322,7 +322,7 @@ extern "C"
     };
 
     // Whether a node's value is invalid, as aria-invalid.
-    typedef uint8_t muiAccessInvalid;
+    typedef int32_t muiAccessInvalid;
 
     enum
     {
@@ -333,7 +333,7 @@ extern "C"
     };
 
     // Which current thing a node is among related ones, as aria-current.
-    typedef uint8_t muiAccessCurrent;
+    typedef int32_t muiAccessCurrent;
 
     enum
     {

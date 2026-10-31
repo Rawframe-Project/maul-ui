@@ -86,7 +86,7 @@ static MUI_NOINLINE muiResult TextBlockFindDeletionWorker(const muiTextService* 
     {
         *endOut = 0;
     }
-    if (service == nullptr || blockId.index1 == 0 || deletion > mui_deleteForward ||
+    if (service == nullptr || blockId.index1 == 0 || (uint32_t)deletion > mui_deleteForward ||
         startOut == nullptr || endOut == nullptr)
     {
         return mui_errorInvalid;

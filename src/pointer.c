@@ -312,7 +312,7 @@ static uint32_t CountPress(muiPointerStore* store, const muiPointerEvent* event)
 
 static bool IsValidEvent(const muiPointerEvent* event)
 {
-    return event->kind <= mui_pointerPen && event->action <= mui_pointerLeave &&
+    return (uint32_t)event->kind <= mui_pointerPen && (uint32_t)event->action <= mui_pointerLeave &&
            event->player < MUI_MAX_PLAYERS && event->button < 8 && isfinite(event->x) &&
            isfinite(event->y);
 }

@@ -157,7 +157,7 @@ static void TestConditionLifetime(void)
         condition.textScale.min = (float)i;
         CHECK(muiStyle_AddCondition(context, style, &condition, &variants[i]) == mui_success,
               "add");
-        CHECK(variants[i] == mui_variantCondition0 + i, "variants in order");
+        CHECK(variants[i] == mui_variantCondition0 + (muiVariant)i, "variants in order");
     }
     muiVariant variant = mui_variantPressed;
     uint64_t misuse = muiContext_GetMisuse(context);

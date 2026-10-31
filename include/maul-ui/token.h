@@ -29,7 +29,7 @@ extern "C"
     } muiTokenId;
 
     // What a token holds, and so the properties it can feed.
-    typedef uint8_t muiTokenType;
+    typedef int32_t muiTokenType;
 
     enum
     {
