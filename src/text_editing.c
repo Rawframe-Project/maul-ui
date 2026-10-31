@@ -806,6 +806,36 @@ muiResult muiTextBlock_GetUndoState(const muiTextService* service, muiTextBlockI
     return result;
 }
 
+// Puts a composition over the selection in one change, the selection's
+// removal recorded as an edit of its own. The history's room and a copy
+// of the removed bytes are found first, so running out of memory leaves
+// the text, the selection and the history as they were.
+static muiResult ComposeOverSelection(muiTextService* service, muiTextBlock* block, uint32_t start,
+                                      uint32_t end, const char* text, uint32_t length,
+                                      const muiCompositionSegment* segments, uint32_t segmentCount)
+{
+    muiTextEditing* editing = &block->editing;
+    const muiTextEdit edit = {
+        start, end - start, 0, 0, editing->selection, Collapsed(start), MUI_EDIT_OTHER};
+    if (!muiReserveEdit(&service->allocator, editing, edit.removed, 0) ||
+        !muiReserve(&service->allocator, &service->editScratch, edit.removed))
+    {
+        return mui_errorCapacity;
+    }
+    memcpy(service->editScratch.data, (const char*)block->text.data + start, edit.removed);
+    muiResult result =
+        muiComposeOver(service, block, start, end, text, length, segments, segmentCount);
+    if (result == mui_success)
+    {
+        bool recorded =
+            muiRecordEdit(&service->allocator, editing, &edit, service->editScratch.data, nullptr);
+        MUI_ASSERT(recorded);
+        (void)recorded;
+        editing->preferredX = -1.0f;
+    }
+    return result;
+}
+
 static muiResult TextBlockCompose(muiTextService* service, muiTextBlockId blockId, const char* text,
                                   size_t length, uint32_t caret,
                                   const muiCompositionSegment* segments, uint32_t segmentCount,
@@ -854,14 +884,11 @@ static muiResult TextBlockCompose(muiTextService* service, muiTextBlockId blockI
     {
         return muiCountText(service, result);
     }
-    if (block->compositionLength == 0 && selection->anchor != selection->caret.offset)
-    {
-        result = Edit(service, block, SelectionStart(selection), SelectionEnd(selection), nullptr,
-                      0, MUI_EDIT_OTHER, nullptr);
-    }
-    result = result == mui_success ? muiSetComposition(service, blockId, selection->caret.offset,
-                                                       text, length, segments, segmentCount)
-                                   : result;
+    result = block->compositionLength == 0 && start != end
+                 ? ComposeOverSelection(service, block, start, end, text, (uint32_t)length,
+                                        segments, segmentCount)
+                 : muiSetComposition(service, blockId, selection->caret.offset, text, length,
+                                     segments, segmentCount);
     if (result != mui_success)
     {
         return result;

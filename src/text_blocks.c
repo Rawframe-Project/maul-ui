@@ -703,33 +703,41 @@ muiResult muiSetComposition(muiTextService* service, muiTextBlockId blockId, uin
     {
         return muiCountText(service, status);
     }
-    uint32_t slot = ResolveBlock(service, blockId);
-    if (slot == 0)
+    muiTextBlock* block = muiResolveTextBlock(service, blockId);
+    if (block == nullptr)
     {
         return mui_errorStale;
     }
-    muiTextBlock* block = &service->blocks.blocks[slot - 1];
     uint32_t start = block->compositionLength != 0 ? block->compositionStart
                      : offset < block->length      ? offset
                                                    : block->length;
     uint32_t end = start + block->compositionLength;
-    if (!Fits(block, start, end, length))
-    {
-        return muiCountText(service, mui_errorLimit);
-    }
-    if (!muiReserve(&service->allocator, &block->segments,
-                    segmentCount * sizeof(muiCompositionSegment)) ||
-        !ReplaceRange(service, block, start, end, text, (uint32_t)length))
+    return Fits(block, start, end, length)
+               ? muiComposeOver(service, block, start, end, text, (uint32_t)length, segments,
+                                segmentCount)
+               : muiCountText(service, mui_errorLimit);
+}
+
+muiResult muiComposeOver(muiTextService* service, muiTextBlock* block, uint32_t start, uint32_t end,
+                         const char* text, uint32_t length, const muiCompositionSegment* segments,
+                         uint32_t segmentCount)
+{
+    // The segments shown stay while memory for the new ones is found.
+    size_t kept = block->segmentCount * sizeof(muiCompositionSegment);
+    size_t needed = segmentCount * sizeof(muiCompositionSegment);
+    if (!muiReserveKeeping(&service->allocator, &block->segments, needed > kept ? needed : kept,
+                           kept) ||
+        !ReplaceRange(service, block, start, end, text, length))
     {
         return mui_errorCapacity;
     }
-    MoveSpans(block, start, end, (uint32_t)length);
+    MoveSpans(block, start, end, length);
     if (segmentCount != 0)
     {
         memcpy(block->segments.data, segments, segmentCount * sizeof *segments);
     }
     block->compositionStart = start;
-    block->compositionLength = (uint32_t)length;
+    block->compositionLength = length;
     block->segmentCount = segmentCount;
     return mui_success;
 }
