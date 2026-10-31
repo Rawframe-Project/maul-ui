@@ -77,7 +77,7 @@ uikit_events: access_record uikit
 uikit_node: uikit fpenv
 uikit_text: access_record access_text host_call uikit fpenv
 uikit_traits: uikit
-atspi_events: access_record access_text allocator atspi host_call fpenv
+atspi_events: access_record access_text allocator atspi host_call invariant fpenv
 atspi_actions: atspi host_call
 atspi_app: allocator atspi dbus_api host_call fpenv
 atspi_component: atspi host_call
