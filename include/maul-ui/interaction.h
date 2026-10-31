@@ -12,6 +12,7 @@
 #include "maul-ui/base.h"
 #include "maul-ui/context.h"
 #include "maul-ui/node.h"
+#include "maul-ui/pointer.h"
 #include "maul-ui/style.h"
 
 #include <stdbool.h>
@@ -119,7 +120,7 @@ extern "C"
         // a kind in this mask (muiContext_OfferDrop) over the node, or over a
         // node below it that takes none of that kind, may drop here. The
         // bits are the application's; 0 takes nothing.
-        uint32_t accepts;
+        muiDropKinds accepts;
         // Where the node stays in layout while it exits, read when its
         // exit begins.
         muiExitLayout exitLayout;

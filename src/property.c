@@ -194,7 +194,7 @@ static const Row s_interactionRows[] = {
     INTERACTION(tabOrder, uint8_t, 0, 255),
     INTERACTION(drags, bool, 0, 1),
     // A mask: any value.
-    {(uint16_t)offsetof(muiInteractionStyle, accepts), (uint8_t)sizeof(uint32_t), kindKey,
+    {(uint16_t)offsetof(muiInteractionStyle, accepts), (uint8_t)sizeof(muiDropKinds), kindKey,
      groupInteraction, 0, 0},
     INTERACTION(exitLayout, muiExitLayout, mui_exitKeep, mui_exitPop),
 };
