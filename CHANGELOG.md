@@ -7,27 +7,86 @@ may change the API, the ABI and every data format.
 
 ## [0.5.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.4.0...v0.5.0) (2026-10-31)
 
-
-### ⚠ BREAKING CHANGES
-
-* muiWorkCounts' fields are renamed styleCount, sizeCount, measureCount and paintCount, and muiPointerRecord.dropped is renamed recordsDropped.
-* every public enumeration typedef is now `int32_t` (kinds) or `uint32_t` (sets of bits), so the structs that hold them change layout. `muiNode_RouteKey` refuses a key code above 0xFFFF, and `muiNode_MoveTextPosition` refuses an unknown affinity.
-* a call refused with `mui_errorBusy` no longer clears its outputs; it writes none of them, single values and buffers alike. A creation still clears the id it gives. A program that read a cleared output after a busy refusal reads what was there before the call.
-* a call whose first parameter is an owner object now zeroes the caller's array or buffer over its whole capacity whenever it answers anything but `mui_success` or `mui_errorBusy`, a capacity failure included. `muiNode_GetAccessRelation`, `muiAccessTree_GetShownChildren`, `muiAccessTree_GetName`, `muiAccessTree_GetTextRects`, `muiAccessTree_Write`, the four `muiTextService_Render` calls and `muiGlyphAtlas_TakeUpdates` no longer write the part of an answer that fits. Ask again with the count or length the call gives.
-
-### Fixed
-
-* **samples:** configure a surface in the sRGB color Maul RHI suggests ([#197](https://github.com/Rawframe-Project/maul-ui/issues/197)) ([a03d790](https://github.com/Rawframe-Project/maul-ui/commit/a03d790b93a91a0a486458891cd0b9a60f0f6a9c)), closes [#196](https://github.com/Rawframe-Project/maul-ui/issues/196)
-* **text:** make a destroyed font, family or block stale before its frees ([#189](https://github.com/Rawframe-Project/maul-ui/issues/189)) ([3d76938](https://github.com/Rawframe-Project/maul-ui/commit/3d76938db4e3530269a9d5eaf6f71aa87289cc1e)), closes [#185](https://github.com/Rawframe-Project/maul-ui/issues/185)
-* **window:** drop a field's composition at a Maul Window input reset ([#161](https://github.com/Rawframe-Project/maul-ui/issues/161)) ([ce72abc](https://github.com/Rawframe-Project/maul-ui/commit/ce72abc2703c9bb423e35c4c91c7eab16aec36e4))
-* write no output when a call is refused as busy ([#173](https://github.com/Rawframe-Project/maul-ui/issues/173)) ([2a88670](https://github.com/Rawframe-Project/maul-ui/commit/2a88670550dc5ec1ed7bc8b8dd3866a61c5175ac)), closes [#170](https://github.com/Rawframe-Project/maul-ui/issues/170)
-* zero caller buffers when a call does not succeed ([#166](https://github.com/Rawframe-Project/maul-ui/issues/166)) ([36df930](https://github.com/Rawframe-Project/maul-ui/commit/36df930ee9f5672a481652cabd419f92cb7524ec)), closes [#163](https://github.com/Rawframe-Project/maul-ui/issues/163)
-
+Maul UI now follows the Maul family's rules for enumeration types,
+counter names and the outputs of a call that does not succeed, and
+builds against Maul RHI 0.14.0. A program written for 0.4 has to
+rebuild against the new headers, rename the counters listed below, and
+stop reading the part of an answer a call wrote before it failed.
+Layouts, draw lists, shaped text and glyph images have the same content
+as in 0.4.0, but a draw command's image record lays out its repeat
+fields differently.
 
 ### Changed
 
-* name the work and dropped-record counters for what they count ([#193](https://github.com/Rawframe-Project/maul-ui/issues/193)) ([8552dda](https://github.com/Rawframe-Project/maul-ui/commit/8552ddab3311645dd4b2a4f533bfa9bf61bbb815)), closes [#187](https://github.com/Rawframe-Project/maul-ui/issues/187)
-* widen the public enumerations to int32_t and uint32_t ([#192](https://github.com/Rawframe-Project/maul-ui/issues/192)) ([8f1cb37](https://github.com/Rawframe-Project/maul-ui/commit/8f1cb37e96b5cf18dee657b489463090f922646f)), closes [#188](https://github.com/Rawframe-Project/maul-ui/issues/188) [#190](https://github.com/Rawframe-Project/maul-ui/issues/190) [#191](https://github.com/Rawframe-Project/maul-ui/issues/191)
+- **Breaking:** every public enumeration type is `int32_t` for a kind,
+  mode or choice, and `uint32_t` for a set of bits. Before, most were
+  `uint8_t` or `uint16_t`, so the structs that hold them change layout:
+  among others `muiLayoutStyle`, `muiVisualStyle`, `muiTextStyle`,
+  `muiEvent`, `muiPointerRecord`, `muiAccessNode`, `muiCondition`,
+  `muiEnvironment` and `muiTextEditRules` grow. `muiDrawCommand` keeps
+  its 152 bytes, but an image command's `repeatX` is four bytes, so its
+  `repeatY` moves from offset 89 to 92. `muiPropertyMask` stays
+  `uint64_t`. Every check of a kind refuses -1 and `INT32_MIN` as well
+  as values past the last. `muiNode_RouteKey` refuses a key code above
+  0xFFFF, and `muiNode_MoveTextPosition` refuses a starting position
+  whose affinity is neither value
+  ([#192](https://github.com/Rawframe-Project/maul-ui/pull/192)).
+- **Breaking:** counters are named for what they count.
+  `muiWorkCounts`' `styled`, `sized`, `measured` and `painted` are now
+  `styleCount`, `sizeCount`, `measureCount` and `paintCount`, and
+  `muiPointerRecord.dropped` is now `recordsDropped`. What each counts
+  is the same
+  ([#193](https://github.com/Rawframe-Project/maul-ui/pull/193)).
+- **Breaking:** a call whose first parameter is an owner object now
+  zeroes the caller's array or buffer over its whole capacity whenever
+  it answers anything but `mui_success` or `mui_errorBusy`: a failure,
+  `mui_empty` and a capacity failure alike. Before, it left the array as
+  it was, or wrote the part of the answer that fit. This covers
+  `muiNode_GetAccessRelation`, `muiAccessTree_GetShownChildren`,
+  `muiAccessTree_GetName`, `muiAccessTree_GetTextRects`,
+  `muiAccessTree_Write`, the four `muiTextService_Render` calls and
+  `muiGlyphAtlas_TakeUpdates`. After a capacity failure, ask again with
+  the count or length the call gives
+  ([#166](https://github.com/Rawframe-Project/maul-ui/pull/166)).
+- **Breaking:** a call refused with `mui_errorBusy`, because host code
+  its owner was running made it, writes none of its outputs, single
+  values and buffers alike. Before, it cleared them, though the call in
+  progress may have been filling them: for example an allocator calling
+  `muiTextBlock_Undo` while text was typed set the outer call's
+  `changed` to false. A creation still clears the id it gives on any
+  failure. A program that read a cleared output after a busy refusal
+  now reads what was there before the call
+  ([#173](https://github.com/Rawframe-Project/maul-ui/pull/173)).
+- **Breaking:** the renderer builds against Maul RHI 0.14.0. A host that
+  hands the renderer its device, or builds Maul UI against its own copy
+  of Maul RHI, has to use that release. Maul RHI's own changelog says
+  what changed in its API. The renderer's shaders and pixels are the
+  same
+  ([#195](https://github.com/Rawframe-Project/maul-ui/pull/195)).
+- The window glue: at a Maul Window input reset of the window that holds
+  a field, a host now takes the field's composition out with an empty
+  preedit (`muiTextBlock_ShowPreedit`), as Maul Window asks since its
+  0.6.0. A reset of another window, or a gamepad's, leaves it. The glue
+  cannot do this itself, because the host hands preedits to its field.
+  The headers, the user guide and the text sample say and do so
+  ([#161](https://github.com/Rawframe-Project/maul-ui/pull/161)).
+
+### Fixed
+
+- Text component: `muiDestroyFont`, `muiDestroyFontFamily` and
+  `muiDestroyTextBlock` freed the object's memory before its id went
+  stale. An allocator's free that read the object back could read freed
+  memory: `muiFontFamily_MatchFace` on the family being destroyed read
+  its freed faces, and `muiTextBlock_GetText` answered a pointer into
+  freed text. The id is now stale before any free runs, and such a call
+  answers `mui_errorStale`
+  ([#189](https://github.com/Rawframe-Project/maul-ui/pull/189)).
+- Samples: a window's surface took the first 8-bit color in Rec. 709 it
+  listed, whatever its transfer and range, so on a display whose driver
+  lists a linear or extended color first the samples showed wrong
+  colors. They now ask Maul RHI for 8-bit sRGB
+  (`mrhiSuggestSurfaceColor`)
+  ([#197](https://github.com/Rawframe-Project/maul-ui/pull/197)).
 
 ## [0.4.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.3.3...v0.4.0) (2026-10-30)
 
