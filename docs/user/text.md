@@ -123,6 +123,8 @@ static muiResult SetLabel(muiContext* context, muiTextService* service, muiNodeI
 }
 ```
 
+Text crosses the API as UTF-8 with a byte length. A string passed with a pointer, as a parameter or in a record such as `muiTextEvent` or `muiAccessRequest`, has a `size_t` length. An offset or a range inside a text (a `muiTextPosition`, a span, a composition, a selection) is a `uint32_t` byte offset. Every text Maul UI holds is at most `MUI_MAX_TEXT_BYTES` (2^31 - 1) bytes, so every offset, one past the end included, fits. A call that would take a text past it is refused with `mui_errorLimit` before it reads a byte, in every build: creating or setting a block, a replacement, typing, a paste, a composition, an accessibility text, a routed text event, and a replacement an assistive technology asks for.
+
 ## Spans
 
 Spans style parts of a block's text over the node's style: color, decoration, font, size, weight, slant and baseline shift, each by byte range. A span's text is drawn as glyph runs of its own. Spans are what a program's own markup turns into; the library parses no markup.

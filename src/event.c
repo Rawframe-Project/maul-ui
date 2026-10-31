@@ -312,6 +312,10 @@ static muiResult TextInput(muiContext* context, muiNodeId rootId, const muiTextE
     {
         return mui_errorInvalid;
     }
+    if (event != nullptr && event->length > MUI_MAX_TEXT_BYTES)
+    {
+        return muiRefuseLimit(context);
+    }
     muiResult status = mui_success;
     bool valid =
         event != nullptr && handledOut != nullptr && (event->text != nullptr || event->length == 0);

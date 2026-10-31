@@ -2,13 +2,14 @@
 // Copyright (c) 2026 Sirac Ozmen
 //
 // Every text Maul UI holds is at most MUI_MAX_TEXT_BYTES, so its offsets
-// fit 32 bits. Each call that takes a string refuses one past that bound
-// with mui_errorLimit before it reads a byte or changes the block: the
-// strings here are one byte long, so a call that read them would trip
-// AddressSanitizer, and the block's text is all selected, so a call that
-// took the selection out first would change it. Where size_t is wider
-// than 32 bits, a length of 2^32 + 1 checks that no call cuts the length
-// to 32 bits first, where it would read as 1.
+// fit 32 bits. Each call that takes a string, as a parameter or in a
+// record, refuses one past that bound with mui_errorLimit before it reads
+// a byte or changes the block: the strings here are one byte long, so a
+// call that read them would trip AddressSanitizer, and the block's text
+// is all selected, so a call that took the selection out first would
+// change it. Where size_t is wider than 32 bits, a length of 2^32 + 1
+// checks that no call cuts the length to 32 bits first, where it would
+// read as 1.
 
 #include "test_harness.h"
 
@@ -124,32 +125,32 @@ static void TestLength(Scene* s, size_t length)
     CHECK(muiNode_SetAccessText(s->context, s->node, mui_accessValue, one, length) ==
               mui_errorLimit,
           "an accessibility text");
-    // A text event and a replacement an assistive technology asks for
-    // carry their length in 32 bits.
-    if (length <= UINT32_MAX)
-    {
-        muiEvent event = {0};
-        event.kind = mui_eventText;
-        event.text = one;
-        event.length = (uint32_t)length;
-        const muiTextEditInput input = {mui_keymapPc, NULL, NULL};
-        muiTextEditOutcome outcome;
-        SelectAll(s);
-        CHECK(muiNode_HandleEditEvent(&s->host, s->node, &event, &input, &outcome) ==
-                      mui_errorLimit &&
-                  !outcome.changed && Kept(s),
-              "a text event");
-        muiAccessRequest request = {0};
-        request.action = mui_actionReplaceText;
-        request.target = muiNode_GetAccessId(s->node);
-        request.anchor = 0;
-        request.focus = 2;
-        request.text = one;
-        request.length = (uint32_t)length;
-        CHECK(muiPerformTextAccessAction(&s->host, &request, &outcome) == mui_errorLimit &&
-                  !outcome.changed && Kept(s),
-              "a replacement asked for");
-    }
+    const muiTextEvent routed = {0, one, length, 0};
+    bool handled = true;
+    CHECK(muiNode_RouteText(s->context, s->node, &routed, &handled) == mui_errorLimit && !handled,
+          "a routed text");
+    // The editor handed a text event, and a replacement an assistive
+    // technology asks for.
+    muiEvent event = {0};
+    event.kind = mui_eventText;
+    event.text = one;
+    event.length = length;
+    const muiTextEditInput input = {mui_keymapPc, NULL, NULL};
+    muiTextEditOutcome outcome;
+    SelectAll(s);
+    CHECK(muiNode_HandleEditEvent(&s->host, s->node, &event, &input, &outcome) == mui_errorLimit &&
+              !outcome.changed && Kept(s),
+          "a text event");
+    muiAccessRequest request = {0};
+    request.action = mui_actionReplaceText;
+    request.target = muiNode_GetAccessId(s->node);
+    request.anchor = 0;
+    request.focus = 2;
+    request.text = one;
+    request.length = length;
+    CHECK(muiPerformTextAccessAction(&s->host, &request, &outcome) == mui_errorLimit &&
+              !outcome.changed && Kept(s),
+          "a replacement asked for");
     free(one);
 }
 

@@ -88,7 +88,7 @@ extern "C"
     {
         uint64_t timeNs;
         const char* text;
-        uint32_t length;
+        size_t length;
         uint8_t player;
     } muiTextEvent;
 
@@ -159,12 +159,12 @@ extern "C"
         muiModifiers modifiers;
         muiKeyCode code;
         muiKey key;
-        uint32_t length;
         uint64_t timeNs;
         // The node the event is for: the end of the tunnel, the start of
         // the bubble.
         muiNodeId target;
         const char* text;
+        size_t length;
         const muiPointerRecord* pointer;
         const muiWheelEvent* wheel;
     } muiEvent;
@@ -250,10 +250,12 @@ extern "C"
     /// @param context     The context.
     /// @param rootId      The root.
     /// @param event       The text: non-NULL when its length is not 0, a
-    ///                    player below MUI_MAX_PLAYERS.
+    ///                    length of at most MUI_MAX_TEXT_BYTES, a player below
+    ///                    MUI_MAX_PLAYERS.
     /// @param handledOut  Receives whether the UI handled it. False on failure
     ///                    but `mui_errorBusy`, which leaves it.
-    /// @return As muiNode_RouteKey's; `mui_errorBusy` while the context is busy or
+    /// @return As muiNode_RouteKey's; `mui_errorLimit` for a length past
+    ///         MUI_MAX_TEXT_BYTES; `mui_errorBusy` while the context is busy or
     ///         its event function runs.
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.

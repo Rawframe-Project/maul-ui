@@ -80,7 +80,7 @@ static HRESULT STDMETHODCALLTYPE SetText(muiUiaValue* self, LPCWSTR text)
                                       .anchor = 0,
                                       .focus = muiAccessValueOf(held).length,
                                       .text = utf8,
-                                      .length = (uint32_t)bytes};
+                                      .length = (size_t)bytes};
     HRESULT result = muiUiaPerformRequest(adapter, &request);
     muiReleaseMarked(&adapter->busy, &adapter->allocator, utf8, (size_t)bytes + 1, 1);
     return result;

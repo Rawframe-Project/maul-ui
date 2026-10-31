@@ -279,7 +279,7 @@ bool muiAndroidSetText(const muiAndroidAdapter* adapter, const muiAccessNode* no
                                       .anchor = 0,
                                       .focus = muiAccessValueOf(node).length,
                                       .text = bytes,
-                                      .length = (uint32_t)length};
+                                      .length = length};
     bool done = muiActMarked(&adapter->busy, adapter->action, adapter->user, &request);
     muiReleaseMarked(&adapter->busy, &adapter->allocator, bytes, room, 1);
     return done;

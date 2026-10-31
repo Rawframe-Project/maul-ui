@@ -318,7 +318,7 @@ static bool Replace(const MUIAccessibilityElement* element, const muiAccessNode*
                                       .anchor = start,
                                       .focus = end,
                                       .text = bytes,
-                                      .length = (uint32_t)strlen(bytes)};
+                                      .length = strlen(bytes)};
     return muiActMarked(&element->adapter->busy, element->adapter->action, element->adapter->user,
                         &request);
 }
