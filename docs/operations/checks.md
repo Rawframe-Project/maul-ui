@@ -73,6 +73,8 @@ No test is quarantined now.
 | `quarantine` | At night and on a manual run only: the quarantined tests of `linux-clang-20-asan` ([Quarantine](#quarantine)). |
 | `prune-caches` | On `main` only, last: the organization's `cache-prune.yml` deletes every cache entry of `main` that a newer one replaced. Those are the build cells' `ccache-` and `mesa-` entries, keyed by commit, and the fuzz corpus, keyed by run. The repository's 10 GB then holds one entry per cache, and GitHub never evicts the corpus to make room. |
 
+A pull request skips the walks, so one that changes them or their steps files (`tools/screen_reader/`, Dependabot's `screen-readers` group included) is checked before it merges by dispatching `ci.yml` on its branch: `gh workflow run ci.yml --ref <branch>`.
+
 `pr-title.yml` checks that the pull request title is a conventional commit with a scope from `AGENTS.md`, and `pr-gate.yml` closes a pull request from outside the organization unless it closes an issue labeled `accepted`. `codeql.yml` runs CodeQL in the CI image, built with GCC 14, on every pull request and on `main`. `scorecard.yml` grades the repository's security practices weekly, and Dependabot proposes updates of the pinned actions and of the browser tests' lockfile once a week.
 
 ## Fuzzing
