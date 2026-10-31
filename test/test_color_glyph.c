@@ -361,7 +361,8 @@ static void TestEdgeGraphs(void)
               Is(&image, 5, 4, 0, 0, 0, 0),
           "a gradient flattened to a line paints nothing");
     CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, SATURATED, 10.0f, 0.0f, 0,
-                                          white, &image, s_pixels, sizeof s_pixels) == mui_success &&
+                                          white, &image, s_pixels,
+                                          sizeof s_pixels) == mui_success &&
               Is(&image, 4, 3, 255, 255, 255, 255) && Is(&image, 7, 3, 255, 255, 255, 255),
           "a saturation over a gray, the gray");
     muiDestroyTextService(scene.service);
