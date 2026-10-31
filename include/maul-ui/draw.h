@@ -71,7 +71,7 @@ extern "C"
     // a conic one starts.
     typedef struct muiDrawGradient
     {
-        uint32_t kind;
+        muiGradientKind kind;
         uint32_t stopCount;
         muiDrawInterpolation interpolation;
         float angle;
