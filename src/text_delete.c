@@ -5,8 +5,11 @@
 // a code point, but emoji, flags and keycaps whole, as Blink's and
 // Android's Backspace delete.
 
+#include "text_delete.h"
+
 #include "fpenv.h"
 #include "text_block.h"
+#include "text_blocks.h"
 #include "text_service.h"
 
 #include "maul-ui/text_edit.h"
@@ -14,18 +17,20 @@
 #include "maul-unicode/properties.h"
 #include "maul-unicode/segment.h"
 
+#include <string.h>
+
 enum
 {
     COMBINING_KEYCAP = 0x20E3,
 };
 
-// The grapheme cluster boundaries around offset: the last at or before
-// it, and the first after it.
-static void ClusterAround(const muiTextBlock* block, uint32_t offset, uint32_t* beforeOut,
+// The grapheme cluster boundaries around offset in a text: the last at or
+// before it, and the first after it.
+static void ClusterAround(const char* text, uint32_t length, uint32_t offset, uint32_t* beforeOut,
                           uint32_t* afterOut)
 {
     muniSegmentIterator iterator;
-    (void)muniInitGraphemeIterator(&iterator, block->text.data, block->length, false);
+    (void)muniInitGraphemeIterator(&iterator, text, length, false);
     uint32_t before = 0;
     size_t at = 0;
     while (muniSegmentIterator_NextBreak(&iterator, &at) == muni_success && at <= offset)
@@ -33,7 +38,7 @@ static void ClusterAround(const muiTextBlock* block, uint32_t offset, uint32_t* 
         before = (uint32_t)at;
     }
     *beforeOut = before;
-    *afterOut = at > offset ? (uint32_t)at : block->length;
+    *afterOut = at > offset ? (uint32_t)at : length;
 }
 
 static bool IsVariationSelector(uint32_t point)
@@ -97,15 +102,22 @@ static MUI_NOINLINE muiResult TextBlockFindDeletionWorker(const muiTextService* 
         return mui_errorStale;
     }
     const muiTextBlock* block = &service->blocks.blocks[slot - 1];
-    offset = offset < block->length ? offset : block->length;
+    muiFindDeletionIn(block->text.data, block->length, offset, deletion, startOut, endOut);
+    return mui_success;
+}
+
+void muiFindDeletionIn(const char* text, uint32_t length, uint32_t offset, muiTextDeletion deletion,
+                       uint32_t* startOut, uint32_t* endOut)
+{
+    offset = offset < length ? offset : length;
     uint32_t before = 0;
     uint32_t after = 0;
-    ClusterAround(block, offset, &before, &after);
+    ClusterAround(text, length, offset, &before, &after);
     if (deletion == mui_deleteForward)
     {
         *startOut = offset;
         *endOut = after;
-        return mui_success;
+        return;
     }
     // Back from inside a cluster deletes back to its start.
     uint32_t start = before;
@@ -113,12 +125,11 @@ static MUI_NOINLINE muiResult TextBlockFindDeletionWorker(const muiTextService* 
     {
         uint32_t previous = 0;
         uint32_t ignored = 0;
-        ClusterAround(block, offset - 1, &previous, &ignored);
-        start = BackspaceStart(block->text.data, previous, offset);
+        ClusterAround(text, length, offset - 1, &previous, &ignored);
+        start = BackspaceStart(text, previous, offset);
     }
     *startOut = start;
     *endOut = offset;
-    return mui_success;
 }
 
 muiResult muiTextBlock_FindDeletion(const muiTextService* service, muiTextBlockId blockId,
@@ -130,4 +141,46 @@ muiResult muiTextBlock_FindDeletion(const muiTextService* service, muiTextBlockI
         TextBlockFindDeletionWorker(service, blockId, offset, deletion, startOut, endOut);
     muiFloatEnvLeave(floatEnv);
     return result;
+}
+
+uint32_t muiAfterComposition(const muiTextBlock* block)
+{
+    const char* text = block->text.data;
+    uint32_t start = block->compositionStart;
+    uint32_t end = start + block->compositionLength;
+    uint32_t before = start < 4 ? start : 4;
+    uint32_t after = block->length - end < 4 ? block->length - end : 4;
+    char near[8];
+    memcpy(near, text + start - before, before);
+    memcpy(near + before, text + end, after);
+    uint32_t at = before;
+    while (!muiIsCharacterStartIn(near, before + after, at))
+    {
+        at++;
+    }
+    return start + at - before;
+}
+
+bool muiFindEditDeletion(muiTextService* service, const muiTextBlock* block,
+                         muiTextDeletion deletion, uint32_t* startOut, uint32_t* endOut)
+{
+    uint32_t shown = block->compositionLength;
+    if (shown == 0)
+    {
+        muiFindDeletionIn(block->text.data, block->length, block->editing.selection.caret.offset,
+                          deletion, startOut, endOut);
+        return true;
+    }
+    uint32_t composition = block->compositionStart;
+    uint32_t length = block->length - shown;
+    if (!muiReserve(&service->allocator, &service->removedScratch, length))
+    {
+        return false;
+    }
+    char* without = service->removedScratch.data;
+    const char* text = block->text.data;
+    memcpy(without, text, composition);
+    memcpy(without + composition, text + composition + shown, length - composition);
+    muiFindDeletionIn(without, length, muiAfterComposition(block), deletion, startOut, endOut);
+    return true;
 }

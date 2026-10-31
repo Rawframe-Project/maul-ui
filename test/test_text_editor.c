@@ -547,17 +547,24 @@ static void TestJoinedBytes(void)
     // A composition between E3 and 81 8B, the E3 put before it by the
     // host, taken out by an edit: E3 81 8B is one character, 0 to 3, and
     // the edit lands after it (found by fuzz_text: the caret inside it).
-    for (int erase = 0; erase < 2; erase++)
+    for (int erase = 0; erase < 3; erase++)
     {
-        scene = MakeScene("a\x81\x8B", 0);
+        scene = MakeScene(erase == 2 ? "a\x81\x8Bz" : "a\x81\x8B", 0);
         Select(&scene, 1, 1);
         CHECK(muiTextBlock_Compose(scene.service, scene.block, "x", 1, 1, NULL, 0, NULL) ==
                       mui_success &&
                   muiTextBlock_Replace(scene.service, scene.block, 0, 1, "\xE3", 1) ==
                       mui_success &&
-                  Holds(&scene, "\xE3x\x81\x8B"),
+                  Holds(&scene, erase == 2 ? "\xE3x\x81\x8Bz" : "\xE3x\x81\x8B"),
               "a lead put before the composition");
-        if (erase != 0)
+        if (erase == 2)
+        {
+            CHECK(Erases(&scene, mui_deleteForward) && Holds(&scene, "\xE3\x81\x8B") &&
+                      Selects(&scene, 3, 3) && Undo(&scene) && Holds(&scene, "\xE3\x81\x8Bz") &&
+                      Selects(&scene, 3, 3),
+                  "a deletion forward after the joined character");
+        }
+        else if (erase != 0)
         {
             CHECK(Erases(&scene, mui_deleteBackward) && Holds(&scene, "") && Selects(&scene, 0, 0),
                   "a backspace erasing the joined character");

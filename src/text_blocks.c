@@ -768,12 +768,12 @@ muiResult muiTextBlock_SetComposition(muiTextService* service, muiTextBlockId bl
     return result;
 }
 
-bool muiIsCharacterStart(const muiTextBlock* block, uint32_t at)
+bool muiIsCharacterStartIn(const char* bytes, uint32_t length, uint32_t at)
 {
-    const unsigned char* text = block->text.data;
-    if (at >= block->length || (text[at] & 0xC0u) != 0x80u)
+    const unsigned char* text = (const unsigned char*)bytes;
+    if (at >= length || (text[at] & 0xC0u) != 0x80u)
     {
-        return at <= block->length;
+        return at <= length;
     }
     // A continuation byte: inside the sequence of the lead before it, if
     // that lead's sequence reaches it, as no sequence is over four bytes.
@@ -789,7 +789,7 @@ bool muiIsCharacterStart(const muiTextBlock* block, uint32_t at)
     lead--;
     uint32_t point = 0;
     size_t size = 1;
-    (void)muniDecodeUtf8((const char*)text + lead, block->length - lead, &point, &size);
+    (void)muniDecodeUtf8(bytes + lead, length - lead, &point, &size);
     return lead + size <= at;
 }
 
