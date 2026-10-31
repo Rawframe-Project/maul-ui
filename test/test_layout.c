@@ -175,6 +175,10 @@ static void TestComputeRefusesNonRootsAndBadSpace(void)
     input.availableWidth = INFINITY;
     CHECK(muiNode_ComputeLayout(context, root, &input) == mui_errorInvalid, "infinite space");
     CHECK(muiNode_ComputeLayout(context, root, NULL) == mui_errorInvalid, "NULL input");
+    input = Input(&host);
+    CHECK(muiNode_ComputeLayout(NULL, root, &input) == mui_errorInvalid &&
+              muiNode_MarkContentChanged(NULL, root) == mui_errorInvalid,
+          "no context");
     CHECK(muiDestroyNode(context, child) == mui_success, "destroy child");
     input = Input(&host);
     CHECK(muiNode_ComputeLayout(context, child, &input) == mui_errorStale, "stale root");

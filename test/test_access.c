@@ -714,6 +714,35 @@ static void TestDerived(void)
     muiDestroyContext(context);
 }
 
+// A modal layer in another tree covers nothing in this one.
+static void TestLayerInAnotherTree(void)
+{
+    muiContextDef def = muiDefaultContextDef();
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_success, "context");
+    muiNodeId root = Node(context, s_nullNode);
+    muiNodeId button = Node(context, root);
+    muiNodeId other = Node(context, s_nullNode);
+    muiNodeId dialog = Node(context, other);
+    muiInteractionStyle interaction = muiDefaultInteractionStyle();
+    interaction.focusMode = mui_focusAll;
+    CHECK(muiNode_SetInteractionValues(context, button, &interaction,
+                                       MUI_PROPERTY_BIT(mui_propertyFocusMode)) == mui_success,
+          "focusable");
+    interaction.layer = mui_layerModal;
+    CHECK(muiNode_SetInteractionValues(context, dialog, &interaction,
+                                       MUI_PROPERTY_BIT(mui_propertyLayer)) == mui_success,
+          "a modal layer elsewhere");
+    CHECK(muiNode_EnableAccess(context, root, true) == mui_success, "enabled");
+    Layout(context, other);
+    Layout(context, root);
+    muiAccessUpdate update = Build(context, root);
+    CHECK(Sent(&update, button) != NULL &&
+              (Sent(&update, button)->flags & mui_accessFocusable) != 0,
+          "not covered");
+    muiDestroyContext(context);
+}
+
 static void TestDerivedMore(void)
 {
     // One layer at most: the second modal node roots none.
@@ -1106,6 +1135,13 @@ static void TestActions(void)
               muiContext_PerformAccessAction(NULL, &request, NULL) == mui_errorInvalid &&
               muiContext_GetMisuse(context) == misuse + 2,
           "refused as misuse");
+    // A target whose node is gone, as a client may still name it.
+    muiNodeId gone = Node(context, s_nullNode);
+    request = (muiAccessRequest){.action = mui_actionClick, .target = muiNode_GetAccessId(gone)};
+    CHECK(muiDestroyNode(context, gone) == mui_success &&
+              muiContext_PerformAccessAction(context, &request, &handled) == mui_errorStale &&
+              !handled,
+          "a target that is gone");
     // Numbers a client sent that are not finite: refused, but not counted,
     // since the host passes on what the client asked.
     misuse = muiContext_GetMisuse(context);
@@ -1316,9 +1352,13 @@ static void TestHostData(void)
     CHECK(muiNode_SetAccessRole(context, a, mui_roleMarquee) == mui_success &&
               muiNode_SetAccessFlags(context, b, mui_accessBusy) == mui_success,
           "two");
+    const muiAccessValues values = muiDefaultAccessValues();
     CHECK(muiNode_SetAccessRole(context, c, mui_roleButton) == mui_errorCapacity &&
               muiNode_SetAccessFlags(context, c, 0) == mui_errorCapacity &&
-              muiNode_SetAccessText(context, c, mui_accessLabel, "x", 1) == mui_errorCapacity,
+              muiNode_SetAccessText(context, c, mui_accessLabel, "x", 1) == mui_errorCapacity &&
+              muiNode_SetAccessRelation(context, c, mui_relationControls, &a, 1) ==
+                  mui_errorCapacity &&
+              muiNode_SetAccessValues(context, c, &values) == mui_errorCapacity,
           "full");
     // A destroyed node's room, and its texts, come back.
     Text(context, b, mui_accessDescription, "gone soon");
@@ -1487,7 +1527,8 @@ static void TestRoots(void)
               muiNode_BuildAccessUpdate(context, other, &update) == mui_errorStale,
           "a gone root's place");
     CHECK(muiNode_BuildAccessUpdate(context, root, NULL) == mui_errorInvalid &&
-              muiNode_BuildAccessUpdate(NULL, root, &update) == mui_errorInvalid,
+              muiNode_BuildAccessUpdate(NULL, root, &update) == mui_errorInvalid &&
+              muiNode_BuildAccessUpdate(context, s_nullNode, &update) == mui_errorInvalid,
           "refused");
     muiDestroyContext(context);
 }
@@ -1585,6 +1626,7 @@ int main(void)
     TestContentText();
     TestDerived();
     TestDerivedMore();
+    TestLayerInAnotherTree();
     TestScrollAndRange();
     TestVirtualItems();
     TestPositionAlone();

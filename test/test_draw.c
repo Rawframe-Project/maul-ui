@@ -1358,6 +1358,33 @@ static void TestRetainedEdges(void)
     list = BuildAt(context, root, 1000.0f, 7);
     CHECK(list.commandCount == 3 && list.commands[2].box.fill.b == 1.0f, "rebuilt after it");
     muiDestroyContext(context);
+
+    // With room for one command, a sibling's box leaves none for a
+    // shadow, or for an image.
+    for (int which = 0; which < 2; which++)
+    {
+        limits = muiDefaultContextDef().limits;
+        limits.drawCommands = 1;
+        context = MakeContextWith(limits);
+        root = Add(context, s_nullNode, 100.0f, 100.0f, none);
+        Paint(context, Add(context, root, 20.0f, 20.0f, none), s_red);
+        muiNodeId second = Add(context, root, 20.0f, 20.0f, none);
+        if (which == 0)
+        {
+            AddShadowTo(context, second);
+        }
+        else
+        {
+            visual = muiDefaultVisualStyle();
+            visual.image = 9;
+            SetVisual(context, second, &visual, MUI_PROPERTY_BIT(mui_propertyImage));
+        }
+        CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success &&
+                  muiNode_BuildDrawList(context, root, &(muiDrawInput){7, 1.0f, NULL, NULL}) ==
+                      mui_errorCapacity,
+              which == 0 ? "no room for the shadow" : "no room for the image");
+        muiDestroyContext(context);
+    }
 }
 
 typedef struct GlyphHost
@@ -1725,7 +1752,7 @@ static void PaintSeeing(void* user, muiNodeId nodeId, uint64_t hostKey, float wi
     CHECK(muiDrawSink_GetVisibleRect(reading, &host->seen) == mui_success &&
               muiDrawSink_GetVisibleRect(sink, NULL) == mui_errorInvalid &&
               muiDrawSink_GetVisibleRect(NULL, &refused) == mui_errorInvalid && refused.x == 0.0f &&
-              refused.width == 0.0f,
+              refused.width == 0.0f && muiDrawSink_Fail(NULL) == mui_errorInvalid,
           "asked");
 }
 

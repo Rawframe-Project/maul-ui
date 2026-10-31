@@ -208,8 +208,18 @@ static void TestThemesAreChecked(void)
           "stale theme");
     CHECK(muiDestroyToken(context, gap) == mui_success, "a token goes");
     CHECK(muiTheme_SetTokenValue(context, other, gap, &number) == mui_errorStale &&
-              muiTheme_GetToken(context, other, gap, &read, NULL) == mui_errorStale,
+              muiTheme_GetToken(context, other, gap, &read, NULL) == mui_errorStale &&
+              muiTheme_ResetToken(context, other, gap) == mui_errorStale,
           "stale token");
+    CHECK(muiDestroyTheme(NULL, other) == mui_errorInvalid, "no context");
+    // An alias whose target leads to a token that is gone closes no
+    // cycle: the walk ends there.
+    muiTokenId gone = MakeToken(context, s_red);
+    muiTokenId through = MakeToken(context, s_red);
+    CHECK(muiToken_SetAlias(context, through, gone) == mui_success &&
+              muiDestroyToken(context, gone) == mui_success &&
+              muiTheme_SetTokenAlias(context, other, accent, through) == mui_success,
+          "an alias to a chain that ends at a token gone");
     muiDestroyContext(context);
 }
 
@@ -349,6 +359,8 @@ static void TestLimits(void)
     muiTokenValue value = Color(s_dark);
     CHECK(muiTheme_SetTokenValue(context, theme, next, &value) == mui_errorCapacity,
           "the override limit");
+    CHECK(muiTheme_SetTokenAlias(context, theme, next, first) == mui_errorCapacity,
+          "an alias past the override limit too");
     // A token in a slot used again is not the one overridden; the record
     // is taken over.
     CHECK(muiDestroyToken(context, first) == mui_success, "the overridden token goes");

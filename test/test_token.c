@@ -219,6 +219,14 @@ static void TestValuesAndAliases(void)
               muiToken_SetValue(context, accent, NULL) == mui_errorInvalid &&
               muiToken_SetValue(context, s_nullToken, &value) == mui_errorInvalid,
           "bad sets");
+    // A valid value for a null or stale token: the token is checked after
+    // the value.
+    muiTokenValue valid = Color(s_blue);
+    muiTokenId gone = MakeToken(context, Color(s_red));
+    CHECK(muiDestroyToken(context, gone) == mui_success &&
+              muiToken_SetValue(context, gone, &valid) == mui_errorStale &&
+              muiToken_SetValue(context, s_nullToken, &valid) == mui_errorInvalid,
+          "a valid value for a token that is gone or null");
 
     CHECK(muiToken_SetAlias(context, accent, gap) == mui_errorInvalid, "an alias of another type");
     CHECK(muiToken_SetAlias(context, accent, accent) == mui_errorInvalid, "an alias of itself");
@@ -302,6 +310,27 @@ static void TestClassesNameTokens(void)
                   mui_success &&
               mask == 0,
           "the literal is gone");
+    // A second name in the set, then each named again: each finds its own.
+    muiTokenId wider = MakeToken(context, Number(12.0f));
+    muiTokenId end = s_nullToken;
+    CHECK(muiStyle_SetToken(context, style, mui_variantBase, mui_propertyPaddingEnd, gap) ==
+                  mui_success &&
+              muiStyle_SetToken(context, style, mui_variantBase, mui_propertyPaddingStart, wider) ==
+                  mui_success &&
+              muiStyle_SetToken(context, style, mui_variantBase, mui_propertyPaddingEnd, wider) ==
+                  mui_success &&
+              muiStyle_GetToken(context, style, mui_variantBase, mui_propertyPaddingStart,
+                                &named) == mui_success &&
+              SameId(named, wider) &&
+              muiStyle_GetToken(context, style, mui_variantBase, mui_propertyPaddingEnd, &end) ==
+                  mui_success &&
+              SameId(end, wider),
+          "two names, each renamed");
+    CHECK(muiStyle_SetToken(context, style, mui_variantBase, mui_propertyPaddingStart, gap) ==
+                  mui_success &&
+              muiStyle_SetToken(context, style, mui_variantBase, mui_propertyPaddingEnd, gap) ==
+                  mui_success,
+          "named as before");
     CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, &layout, padding) ==
               mui_success,
           "a literal again");
@@ -407,6 +436,29 @@ static void TestResolutionReadsTokens(void)
     Layout(context, node, T0);
     CHECK(muiNode_GetRect(context, node).width == 140.0f, "laid out again");
 
+    // A shadow and a gradient, each from a token of its type.
+    muiTokenValue shadow = {.type = mui_tokenShadow};
+    shadow.shadow = (muiShadow){.color = s_blue, .offsetX = 2.0f, .offsetY = 3.0f, .blur = 4.0f};
+    muiTokenValue gradient = {.type = mui_tokenGradient};
+    gradient.gradient = (muiGradient){
+        .kind = mui_gradientLinear,
+        .stopCount = 2,
+        .angle = 90.0f,
+        .stops = {{s_red, 0.0f}, {s_blue, 1.0f}},
+    };
+    CHECK(muiStyle_SetToken(context, style, mui_variantBase, mui_propertyOuterShadow,
+                            MakeToken(context, shadow)) == mui_success &&
+              muiStyle_SetToken(context, style, mui_variantBase, mui_propertyGradient,
+                                MakeToken(context, gradient)) == mui_success,
+          "a shadow and a gradient named");
+    Layout(context, node, T0);
+    muiVisualStyle visual = muiDefaultVisualStyle();
+    CHECK(muiNode_GetVisualStyle(context, node, &visual) == mui_success &&
+              SameColor(visual.outerShadow.color, s_blue) && visual.outerShadow.blur == 4.0f &&
+              visual.gradient.stopCount == 2 && visual.gradient.angle == 90.0f &&
+              SameColor(visual.gradient.stops[1].color, s_blue),
+          "both read from their tokens");
+
     // A layer whose token gives nothing the property allows is silent.
     muiLayoutStyle layout = muiDefaultLayoutStyle();
     layout.padding.start = 4.0f;
@@ -462,6 +514,29 @@ static void TestThemeSwitchesMove(void)
     CHECK(halfway.r > 0.05f && halfway.r < 0.95f && halfway.r == halfway.g, "a gray halfway");
     Layout(context, node, T0 + 100 * MS);
     CHECK(SameColor(Background(context, node), (muiColor){0.0f, 0.0f, 0.0f, 1.0f}), "dark");
+    muiDestroyContext(context);
+}
+
+// A variant with nothing set takes a property set for its first name:
+// with none left, the name is refused, though names are.
+static void TestSetLimit(void)
+{
+    muiLimits limits = muiDefaultContextDef().limits;
+    limits.propertySets = 1;
+    muiContext* context = MakeContextWith(limits);
+    muiStyleId style = MakeStyle(context);
+    muiTokenId gap = MakeToken(context, Number(4.0f));
+    CHECK(muiStyle_SetToken(context, style, mui_variantBase, mui_propertyPaddingStart, gap) ==
+              mui_success,
+          "the one set");
+    CHECK(muiStyle_SetToken(context, style, mui_variantHovered, mui_propertyPaddingEnd, gap) ==
+              mui_errorCapacity,
+          "no set for another variant");
+    muiTokenId read = s_nullToken;
+    CHECK(muiStyle_GetToken(context, style, mui_variantHovered, mui_propertyPaddingEnd, &read) ==
+                  mui_success &&
+              read.index1 == 0,
+          "nothing named there");
     muiDestroyContext(context);
 }
 
@@ -646,6 +721,7 @@ int main(void)
     TestResolutionReadsTokens();
     TestThemeSwitchesMove();
     TestNameLimit();
+    TestSetLimit();
     TestOneNameOfThree();
     TestNamesAmongTheRest();
     return s_failures == 0 ? 0 : 1;

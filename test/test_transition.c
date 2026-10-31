@@ -629,6 +629,69 @@ static void TestRecordLimitAndFreedRecords(void)
     muiDestroyContext(scene.context);
 }
 
+// A subtree is owed an update while any record under it runs, though a
+// record before it was freed: the first child's transition ends while the
+// second child's, started later, runs on.
+static void TestPendingPastAFreedRecord(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId root = MakeNode(context);
+    muiNodeId first = MakeNode(context);
+    muiNodeId second = MakeNode(context);
+    CHECK(muiNode_InsertChild(context, root, first, s_nullNode) == mui_success &&
+              muiNode_InsertChild(context, root, second, s_nullNode) == mui_success,
+          "two children");
+    muiStyleId style = MakeStyle(context);
+    SetWidth(context, style, mui_variantBase, Length(100.0f));
+    SetWidth(context, style, mui_variantHovered, Length(200.0f));
+    Bind(context, style, mui_variantBase, MakeTimed(context, 100 * MS, mui_easingLinear, 0), WIDTH);
+    CHECK(muiNode_SetClasses(context, first, &style, 1) == mui_success &&
+              muiNode_SetClasses(context, second, &style, 1) == mui_success,
+          "classes");
+    (void)WidthAt(context, root, T0);
+    CHECK(muiNode_SetStates(context, first, mui_stateHovered) == mui_success, "hover the first");
+    (void)WidthAt(context, root, T0);
+    CHECK(muiNode_SetStates(context, second, mui_stateHovered) == mui_success, "hover the second");
+    (void)WidthAt(context, root, T0 + 80 * MS);
+    (void)WidthAt(context, root, T0 + 120 * MS);
+    CHECK(!muiNode_IsTransitioning(context, first, mui_propertyWidth) &&
+              muiNode_IsTransitioning(context, second, mui_propertyWidth),
+          "the first has arrived, the second runs");
+    CHECK(muiNode_IsUpdatePending(context, root), "the root is owed the second's update");
+    (void)WidthAt(context, root, T0 + 180 * MS);
+    CHECK(!muiNode_IsUpdatePending(context, root), "both arrived");
+    muiDestroyContext(context);
+}
+
+// A margin may be negative, so it moves as any finite number, below 0
+// too.
+static void TestMarginMoves(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId node = MakeNode(context);
+    muiStyleId style = MakeStyle(context);
+    const muiPropertyMask margin = MUI_PROPERTY_BIT(mui_propertyMarginStart);
+    muiLayoutStyle values = muiDefaultLayoutStyle();
+    values.margin.start = 20.0f;
+    CHECK(muiStyle_SetLayoutValues(context, style, mui_variantBase, &values, margin) == mui_success,
+          "base margin");
+    values.margin.start = -20.0f;
+    CHECK(muiStyle_SetLayoutValues(context, style, mui_variantHovered, &values, margin) ==
+              mui_success,
+          "hovered margin");
+    Bind(context, style, mui_variantBase, MakeTimed(context, 100 * MS, mui_easingLinear, 0),
+         margin);
+    CHECK(muiNode_SetClasses(context, node, &style, 1) == mui_success, "class");
+    (void)WidthAt(context, node, T0);
+    CHECK(muiNode_SetStates(context, node, mui_stateHovered) == mui_success, "hover");
+    (void)WidthAt(context, node, T0);
+    (void)WidthAt(context, node, T0 + 75 * MS);
+    CHECK(muiNode_GetLayoutStyle(context, node, &values) == mui_success &&
+              values.margin.start == -10.0f,
+          "three quarters of the way, below 0");
+    muiDestroyContext(context);
+}
+
 static void TestDelayBeforeNoLength(void)
 {
     Scene scene = MakeScene(muiDefaultContextDef().limits);
@@ -788,6 +851,8 @@ int main(void)
     TestOnlyMovableValuesMove();
     TestSpecsResolveThroughLayers();
     TestRecordLimitAndFreedRecords();
+    TestPendingPastAFreedRecord();
+    TestMarginMoves();
     TestDelayBeforeNoLength();
     TestReversalsKeepShortening();
     TestOvershootingReversalTakesNoLonger();

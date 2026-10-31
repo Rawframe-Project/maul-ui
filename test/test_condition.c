@@ -12,6 +12,7 @@
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
 #include "maul-ui/style.h"
+#include "maul-ui/transition.h"
 #include "maul-ui/visual.h"
 
 #include <math.h>
@@ -556,6 +557,27 @@ static void TestOnlyConditionsThatApplyAreWatched(void)
     SetSize(context, node, 200.0f, 100.0f);
     Compute(context, node);
     CHECK(!muiNode_IsUpdatePending(context, node), "a condition without values reads nothing");
+    // A condition that names only a transition, for an opacity the base
+    // gives, reaches that property, so it reads the size.
+    muiStyleId timed = MakeStyle(context);
+    muiVisualStyle faded = muiDefaultVisualStyle();
+    faded.opacity = 0.5f;
+    CHECK(muiStyle_SetVisualValues(context, timed, mui_variantBase, &faded,
+                                   MUI_PROPERTY_BIT(mui_propertyOpacity)) == mui_success &&
+              muiStyle_AddCondition(context, timed, &narrow, &variant) == mui_success,
+          "a condition for a transition");
+    const muiTransitionDef transitionDef = muiDefaultTransitionDef();
+    muiTransitionId transition = {0, 0};
+    CHECK(muiCreateTransition(context, &transitionDef, &transition) == mui_success &&
+              muiStyle_SetTransition(context, timed, variant, transition, mui_groupVisual,
+                                     MUI_PROPERTY_BIT(mui_propertyOpacity)) == mui_success,
+          "its transition alone");
+    CHECK(muiNode_SetClasses(context, node, &timed, 1) == mui_success, "timed class");
+    Settle(context, node);
+    SetSize(context, node, 100.0f, 100.0f);
+    Compute(context, node);
+    CHECK(muiNode_IsUpdatePending(context, node), "a condition with a transition alone is read");
+    Settle(context, node);
     // A node whose every property is direct reads nothing either, once
     // it is styled again.
     muiStyleId watched = MakeStyle(context);

@@ -822,6 +822,43 @@ static void TestDeepChangeIsBounded(void)
     muiDestroyContext(tree.context);
 }
 
+// A change wider than the bound checks at once, forty texts each in its
+// own box changed in one layout, solves the whole tree, as a tree built
+// from nothing does.
+static void TestWideChangeSolvesTheWhole(void)
+{
+    enum
+    {
+        TEXTS = 40
+    };
+    static Edit edits[1 + 3 * TEXTS];
+    uint32_t count = 0;
+    Tree tree = MakeTree();
+    Record(edits, &count, &tree, (Edit){kindCreate, 0, 0, 0, 0});
+    for (uint32_t i = 0; i < TEXTS; i++)
+    {
+        uint32_t box = tree.count;
+        Record(edits, &count, &tree, (Edit){kindCreate, 0, 0, 0, 0});
+        Record(edits, &count, &tree, (Edit){kindCreate, 0, box, 0, 1});
+        s_characters[box + 2] = 3;
+    }
+    LayOut(&tree);
+    for (uint32_t i = 0; i < TEXTS; i++)
+    {
+        Record(edits, &count, &tree, (Edit){kindContent, 2 + 2 * i, 0, 0, 30 + i});
+    }
+    LayOut(&tree);
+    Tree whole = MakeTree();
+    for (uint32_t k = 0; k < count; k++)
+    {
+        Apply(&whole, &edits[k]);
+    }
+    LayOut(&whole);
+    CHECK(Same(&tree, &whole), "as the whole tree laid out");
+    muiDestroyContext(whole.context);
+    muiDestroyContext(tree.context);
+}
+
 // A node of fixed size keeps its answers when its first child's text
 // moves its baseline; a container aligning by baselines still places it
 // anew. By its items' alignment, then by its own.
@@ -882,5 +919,6 @@ int main(void)
     TestBoundedMatchesFresh();
     TestOneChangeIsBounded();
     TestDeepChangeIsBounded();
+    TestWideChangeSolvesTheWhole();
     return s_failures == 0 ? 0 : 1;
 }
