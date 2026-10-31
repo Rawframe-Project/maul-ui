@@ -450,6 +450,19 @@ static void SelectedAfterTyping(World* world)
     CHECK(muiTextBlock_Select(world->service, world->block, some) == mui_success, "selected");
 }
 
+// Typed text, then an input method's composition shown at the caret:
+// typing or deleting takes it out in the same change, so a failure must
+// leave it shown.
+static void ComposedAfterTyping(World* world)
+{
+    Typed(world);
+    bool changed = false;
+    CHECK(muiTextBlock_Compose(world->service, world->block, "\xE3\x81\x8B", 3, 3, NULL, 0,
+                               &changed) == mui_success &&
+              changed,
+          "composing");
+}
+
 static muiResult SetComposition(World* world)
 {
     return muiTextBlock_SetComposition(world->service, world->block, 1, s_long, 300, NULL, 0);
@@ -711,6 +724,9 @@ static const Step s_steps[] = {
     {"muiTextBlock_Redo", Undone, Redo, false},
     {"muiTextBlock_Compose", NULL, Compose, false},
     {"muiTextBlock_Compose over a selection", SelectedAfterTyping, Compose, false},
+    {"muiTextBlock_Type over a composition", ComposedAfterTyping, Type, false},
+    {"muiTextBlock_Paste over a composition", ComposedAfterTyping, Paste, false},
+    {"muiTextBlock_Erase beside a composition", ComposedAfterTyping, Erase, false},
     {"muiTextBlock_SetComposition", NULL, SetComposition, false},
     {"muiMeasureText", Lengthen, Measure, false},
     {"muiMeasureTextBaseline", Lengthen, Baseline, false},
@@ -742,7 +758,8 @@ static const Step s_steps[] = {
     {"muiGlyphAtlas_GetGlyphMultiField", NULL, AtlasGetMultiField, false},
 };
 
-// What the step could change: the block's text, selection and history.
+// What the step could change: the block's text, selection, history and
+// composition.
 static uint64_t Digest(const World* world)
 {
     const char* text = NULL;
@@ -764,6 +781,11 @@ static uint64_t Digest(const World* world)
     bool redo = false;
     (void)muiTextBlock_GetUndoState(world->service, world->block, &undo, &redo);
     hash = (hash ^ ((uint64_t)undo << 1 | (uint64_t)redo)) * 1099511628211u;
+    uint32_t start = 0;
+    uint32_t shown = 0;
+    (void)muiTextBlock_GetComposition(world->service, world->block, &start, &shown);
+    hash = (hash ^ start) * 1099511628211u;
+    hash = (hash ^ shown) * 1099511628211u;
     return hash;
 }
 
