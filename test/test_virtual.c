@@ -703,6 +703,33 @@ static void TestEdits(void)
     muiDestroyContext(context);
 }
 
+// A child of the list bound to no item is passed over by every edit, and
+// stays bound to none.
+static void TestEditsPassUnboundChildren(void)
+{
+    Scene scene;
+    muiVirtualList list = ListOf(100, 40.0f, false, 0.0f, 0.0f);
+    MakeScene(&scene, false, 0.0f, mui_inlineInherit, &list);
+    muiContext* context = scene.context;
+    muiNodeId unbound = Node(context, scene.list);
+    muiNodeId items[2];
+    Realize(&scene, 0, 2, -1.0f, 40.0f, items);
+    uint32_t index = 0;
+    CHECK(muiNode_InsertVirtualItems(context, scene.list, 0, 1) == mui_success &&
+              ItemIs(context, items[0], 1) &&
+              muiNode_GetBoundVirtualItem(context, unbound, &index) == mui_empty,
+          "inserted");
+    CHECK(muiNode_RemoveVirtualItems(context, scene.list, 0, 1) == mui_success &&
+              ItemIs(context, items[0], 0) &&
+              muiNode_GetBoundVirtualItem(context, unbound, &index) == mui_empty,
+          "removed");
+    CHECK(muiNode_MoveVirtualItem(context, scene.list, 0, 1) == mui_success &&
+              ItemIs(context, items[0], 1) && ItemIs(context, items[1], 0) &&
+              muiNode_GetBoundVirtualItem(context, unbound, &index) == mui_empty,
+          "moved");
+    muiDestroyContext(context);
+}
+
 static void TestAnchoring(void)
 {
     // Items above the viewport measured larger move it on; a list set
@@ -1125,6 +1152,7 @@ int main(void)
     TestSetAnew();
     TestOtherRoot();
     TestEdits();
+    TestEditsPassUnboundChildren();
     TestAnchoring();
     TestEditContract();
     TestEditEdges();
