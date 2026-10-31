@@ -354,6 +354,10 @@ static muiResult Put(muiTextService* service, muiTextBlockId blockId, const char
     {
         *changedOut = false;
     }
+    if (length > MUI_MAX_TEXT_BYTES)
+    {
+        return muiCountText(service, mui_errorLimit);
+    }
     muiTextBlock* block = nullptr;
     muiResult result = text != nullptr || length == 0 ? muiEditBlock(service, blockId, &block)
                                                       : muiRefuseText(service);
@@ -807,6 +811,10 @@ static muiResult TextBlockCompose(muiTextService* service, muiTextBlockId blockI
                                   const muiCompositionSegment* segments, uint32_t segmentCount,
                                   bool* changedOut)
 {
+    if (length > MUI_MAX_TEXT_BYTES)
+    {
+        return muiCountText(service, mui_errorLimit);
+    }
     muiTextBlock* block = nullptr;
     muiResult result = (text != nullptr || length == 0) && caret <= length
                            ? muiEditBlock(service, blockId, &block)
