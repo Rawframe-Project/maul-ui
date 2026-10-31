@@ -54,7 +54,11 @@ enum
     LINEAR_HARD,
     COMPOSITED,
     BRANCHED,
-    BOXED_BRANCHED = BRANCHED + 30
+    BOXED_BRANCHED = BRANCHED + 30,
+    FAR_FLUNG,
+    LINEAR_DEGENERATE,
+    SATURATED,
+    LINEAR_FLATTENED
 };
 
 enum
@@ -328,6 +332,38 @@ static void TestBranched(void)
                                           ink, &image, s_pixels,
                                           sizeof s_pixels) == mui_errorFormat,
           "a graph of too many paints refused");
+    muiDestroyTextService(scene.service);
+}
+
+// A transform that places the box past where an outline may reach is
+// refused; a linear gradient with no direction, or flattened to a line,
+// paints nothing; red's
+// saturation over a gray leaves the gray, as the W3C's set-saturation of
+// a gray is.
+static void TestEdgeGraphs(void)
+{
+    Scene scene = MakeScene();
+    const muiLinearColor white = {1.0f, 1.0f, 1.0f, 1.0f};
+    muiGlyphImage image = {0};
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, FAR_FLUNG, 200.0f, 0.0f, 0,
+                                          white, &image, s_pixels,
+                                          sizeof s_pixels) == mui_errorFormat &&
+              image.width == 0,
+          "a box placed too far refused");
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, LINEAR_DEGENERATE, 10.0f, 0.0f,
+                                          0, white, &image, s_pixels,
+                                          sizeof s_pixels) == mui_success &&
+              Is(&image, 5, 4, 0, 0, 0, 0),
+          "a gradient with no direction paints nothing");
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, LINEAR_FLATTENED, 10.0f, 0.0f,
+                                          0, white, &image, s_pixels,
+                                          sizeof s_pixels) == mui_success &&
+              Is(&image, 5, 4, 0, 0, 0, 0),
+          "a gradient flattened to a line paints nothing");
+    CHECK(muiTextService_RenderColorGlyph(scene.service, scene.font, SATURATED, 10.0f, 0.0f, 0,
+                                          white, &image, s_pixels, sizeof s_pixels) == mui_success &&
+              Is(&image, 4, 3, 255, 255, 255, 255) && Is(&image, 7, 3, 255, 255, 255, 255),
+          "a saturation over a gray, the gray");
     muiDestroyTextService(scene.service);
 }
 
@@ -640,6 +676,7 @@ int main(void)
     TestHardStop();
     TestComposite();
     TestBranched();
+    TestEdgeGraphs();
     TestContract();
     TestReversedClipBox();
     TestDamage();

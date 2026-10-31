@@ -35,6 +35,7 @@
 #include <string.h>
 
 #include "ahem.inc"
+#include "bitmap.inc"
 #include "color.inc"
 #include "liberation_sans.inc"
 
@@ -82,6 +83,7 @@ typedef struct World
     muiFontId ahem;
     muiFontId liberation;
     muiFontId color;
+    muiFontId bitmap;
     muiTextBlockId block;
     muiNodeId root;
     muiNodeId node;
@@ -187,6 +189,7 @@ static void MakeWorld(World* world)
     world->ahem = Font(world, s_ahem, sizeof s_ahem);
     world->liberation = Font(world, s_liberationSans, sizeof s_liberationSans);
     world->color = Font(world, s_color, sizeof s_color);
+    world->bitmap = Font(world, s_bitmap, sizeof s_bitmap);
     CHECK(muiTextService_SetDefaultFont(world->service, world->ahem) == mui_success,
           "default font");
     muiTextBlockDef blockDef = muiDefaultTextBlockDef();
@@ -653,6 +656,35 @@ static muiResult RenderColor(World* world)
                                            &image, world->pixels, sizeof world->pixels);
 }
 
+// MaulColor's glyph 33, a composite of two shapes, and 22, a linear
+// gradient: surfaces, masks and stops of the service's own scratch.
+static muiResult RenderPainted(World* world, uint32_t glyph)
+{
+    muiGlyphImage image;
+    return muiTextService_RenderColorGlyph(world->service, muiFont_GetKey(world->color), glyph,
+                                           10.0f, 0.0f, 0, (muiLinearColor){1.0f, 1.0f, 1.0f, 1.0f},
+                                           &image, world->pixels, sizeof world->pixels);
+}
+
+static muiResult RenderComposite(World* world)
+{
+    return RenderPainted(world, 33);
+}
+
+static muiResult RenderGradient(World* world)
+{
+    return RenderPainted(world, 22);
+}
+
+// MaulBitmap's glyph 1, a PNG decoded into the service's scratch.
+static muiResult RenderBitmap(World* world)
+{
+    muiGlyphImage image;
+    return muiTextService_RenderColorGlyph(world->service, muiFont_GetKey(world->bitmap), 1, 10.0f,
+                                           0.0f, 0, (muiLinearColor){1.0f, 1.0f, 1.0f, 1.0f},
+                                           &image, world->pixels, sizeof world->pixels);
+}
+
 static muiResult RenderField(World* world)
 {
     muiGlyphImage image;
@@ -749,6 +781,9 @@ static const Step s_steps[] = {
     {"muiPerformTextAccessAction", Lengthen, AccessAction, false},
     {"muiTextService_RenderGlyph", NULL, Render, false},
     {"muiTextService_RenderColorGlyph", NULL, RenderColor, false},
+    {"muiTextService_RenderColorGlyph, a composite", NULL, RenderComposite, false},
+    {"muiTextService_RenderColorGlyph, a gradient", NULL, RenderGradient, false},
+    {"muiTextService_RenderColorGlyph, a bitmap", NULL, RenderBitmap, false},
     {"muiTextService_RenderGlyphField", NULL, RenderField, false},
     {"muiTextService_RenderGlyphMultiField", NULL, RenderMultiField, false},
     {"muiCreateGlyphAtlas", NULL, CreateAtlas, false},

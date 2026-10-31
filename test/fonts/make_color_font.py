@@ -255,6 +255,41 @@ def branched():
 
 GRAPHS.update(branched())
 
+# Graphs after "boxedBranched", in this order.
+GRAPHS.update(
+    {
+        # The whole box stretched 30000 times across: drawn at 200 pixels,
+        # its right edge lies past where a placed outline may reach, so it
+        # is refused.
+        "farFlung": {
+            "Format": PaintFormat.PaintTransform,
+            "Paint": shape("whole", solid(0)),
+            "Transform": {"xx": 30000.0, "yx": 0.0, "xy": 0.0, "yy": 1.0, "dx": 0, "dy": 0},
+        },
+        # p2 on p0: a linear gradient with no direction, which paints
+        # nothing.
+        "linearDegenerate": linear("pad", p2=(300, 0)),
+        # Red's saturation over the text's colour across the box: over a
+        # gray, the gray.
+        "saturated": {
+            "Format": PaintFormat.PaintComposite,
+            "SourcePaint": shape("dot", solid(0)),
+            "CompositeMode": CompositeMode.HSL_SATURATION,
+            "BackdropPaint": shape("whole", solid(0xFFFF)),
+        },
+        # linearPad's gradient flattened to a line by a transform of no
+        # area inside the whole box: no colour to read back, so nothing.
+        "linearFlattened": shape(
+            "whole",
+            {
+                "Format": PaintFormat.PaintTransform,
+                "Paint": linear("pad")["Paint"],
+                "Transform": {"xx": 1.0, "yx": 0.0, "xy": 1.0, "yy": 0.0, "dx": 0, "dy": 0},
+            },
+        ),
+    }
+)
+
 
 def main():
     names = [".notdef", "A", "B", "whole", "half", "dot", "empty", "stray", "bar", "left"]

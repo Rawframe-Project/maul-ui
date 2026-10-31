@@ -491,6 +491,32 @@ static void TestMultiFields(void)
         }
         CHECK(hash == hashes[k], "the same bytes everywhere");
     }
+    // A box with a corner of two points, a line of no length between
+    // them: still one box, each median on its side.
+    muiFontDef def = muiDefaultFontDef();
+    def.data = s_overlap;
+    def.size = sizeof s_overlap;
+    def.dataMode = mui_fontDataBorrow;
+    muiFontId overlap = {0, 0};
+    CHECK(muiCreateFont(fonts.service, &def, &overlap) == mui_success, "the overlap font");
+    muiGlyphImage one = RenderField(&fonts, overlap, 2, 20.0f, 4);
+    memcpy(single, s_pixels, (size_t)one.width * one.height);
+    muiGlyphImage image = {-1, -1, 0, 0};
+    CHECK(muiTextService_RenderGlyphMultiField(fonts.service, muiFont_GetKey(overlap), 2, 20.0f, 4,
+                                               &image, s_pixels, sizeof s_pixels) == mui_success &&
+              SameImage(image, one.left, one.top, one.width, one.height) && image.width > 8,
+          "a corner of two points");
+    bool sides = true;
+    for (size_t at = 0; at < (size_t)image.width * image.height; at++)
+    {
+        const unsigned char* p = &s_pixels[at * 4];
+        int low = p[0] < p[1] ? p[0] : p[1];
+        int high = p[0] < p[1] ? p[1] : p[0];
+        int median = p[2] < low ? low : p[2] > high ? high : p[2];
+        sides = sides && p[3] == single[at] &&
+                (abs(p[3] - 128) <= 1 || (median >= 128) == (p[3] >= 128));
+    }
+    CHECK(sides, "its alpha the one-channel field, each median on its side");
     muiDestroyTextService(fonts.service);
 }
 
