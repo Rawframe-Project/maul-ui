@@ -102,7 +102,7 @@ scroll: context invariant scroll_store tree layer fpenv
 scroll_pan: context layout_node scroll scroll_store tree
 scroll_query: context layout_node scroll_store tree fpenv
 navigate: context focus tree scroll fpenv
-pointer: context pointer_store style_store tree focus scroll popup place fpenv
+pointer: context invariant pointer_store style_store tree focus scroll popup place fpenv
 pointer_store:
 notify: invariant
 style_store: pool property outline
