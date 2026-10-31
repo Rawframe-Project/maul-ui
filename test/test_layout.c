@@ -304,7 +304,7 @@ static void TestLooseRowLabelIsMeasuredOnce(void)
           "insert the column");
     input = Input(&host);
     CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success, "layout the column");
-    CHECK(muiContext_GetWorkCounts(context).sized == 8, "the column sized once a query");
+    CHECK(muiContext_GetWorkCounts(context).sizeCount == 8, "the column sized once a query");
     muiDestroyContext(context);
 }
 
@@ -618,7 +618,7 @@ static void TestSafeArea(void)
     // The same insets cost nothing; new ones lay the node out again.
     muiWorkCounts before = muiContext_GetWorkCounts(context);
     CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success &&
-              muiContext_GetWorkCounts(context).sized == before.sized,
+              muiContext_GetWorkCounts(context).sizeCount == before.sizeCount,
           "the same insets: no work");
     input.safeArea.bottom = 50.0f;
     CHECK(muiNode_ComputeLayout(context, root, &input) == mui_success &&

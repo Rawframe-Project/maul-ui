@@ -309,9 +309,9 @@ static void Run(const char* name, Kind kind)
             muiWorkCounts after = muiContext_GetWorkCounts(scene.context);
             best[i] = time < best[i] ? time : best[i];
             measured[i] = scene.measured;
-            work[i] =
-                (muiWorkCounts){after.styled - before.styled, after.sized - before.sized,
-                                after.measured - before.measured, after.painted - before.painted};
+            work[i] = (muiWorkCounts){
+                after.styleCount - before.styleCount, after.sizeCount - before.sizeCount,
+                after.measureCount - before.measureCount, after.paintCount - before.paintCount};
         }
         if (kind == kindPainted)
         {
@@ -323,8 +323,8 @@ static void Run(const char* name, Kind kind)
     for (int i = 0; i < 4; i++)
     {
         printf("%-7s %-10s %12.1f us %8ld measured %8llu styled %8llu sized\n", name, labels[i],
-               best[i], measured[i], (unsigned long long)work[i].styled,
-               (unsigned long long)work[i].sized);
+               best[i], measured[i], (unsigned long long)work[i].styleCount,
+               (unsigned long long)work[i].sizeCount);
     }
     if (kind == kindPainted)
     {

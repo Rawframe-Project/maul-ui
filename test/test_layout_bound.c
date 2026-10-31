@@ -781,7 +781,7 @@ static void TestOneChangeIsBounded(void)
     muiWorkCounts after = muiContext_GetWorkCounts(tree.context);
     // Its queries asked again and the row laid out: a few sizes, fewer
     // than the rows, where the whole list solves 87.
-    CHECK(after.measured - before.measured <= 4 && after.sized - before.sized <= 16,
+    CHECK(after.measureCount - before.measureCount <= 4 && after.sizeCount - before.sizeCount <= 16,
           "the label and its row alone");
     muiDestroyContext(tree.context);
 }
@@ -810,7 +810,7 @@ static void TestDeepChangeIsBounded(void)
     Record(edits, &count, &tree, (Edit){kindContent, 31, 0, 0, 4});
     LayOut(&tree);
     muiWorkCounts after = muiContext_GetWorkCounts(tree.context);
-    CHECK(after.sized - before.sized <= 8, "the text and its box alone");
+    CHECK(after.sizeCount - before.sizeCount <= 8, "the text and its box alone");
     Tree whole = MakeTree();
     for (uint32_t k = 0; k < count; k++)
     {

@@ -289,10 +289,10 @@ int main(void)
     printf("  %u frames, median %.1f, 99th %.1f, worst %.1f us\n", FRAMES, frames[FRAMES / 2],
            frames[FRAMES - 1 - FRAMES / 100], frames[FRAMES - 1]);
     printf("  a frame: %.1f styled, %.1f sized, %.1f measured, %.1f painted\n",
-           (double)(after.styled - before.styled) / FRAMES,
-           (double)(after.sized - before.sized) / FRAMES,
-           (double)(after.measured - before.measured) / FRAMES,
-           (double)(after.painted - before.painted) / FRAMES);
+           (double)(after.styleCount - before.styleCount) / FRAMES,
+           (double)(after.sizeCount - before.sizeCount) / FRAMES,
+           (double)(after.measureCount - before.measureCount) / FRAMES,
+           (double)(after.paintCount - before.paintCount) / FRAMES);
     muiDestroyContext(hud.context);
     return 0;
 }

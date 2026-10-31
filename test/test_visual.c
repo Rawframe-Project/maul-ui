@@ -94,9 +94,9 @@ static muiVisualStyle Read(const muiContext* context, muiNodeId node)
 static bool Repaints(muiContext* context, muiNodeId root)
 {
     const muiDrawInput input = {1, 1.0f, NULL, NULL};
-    uint64_t painted = muiContext_GetWorkCounts(context).painted;
+    uint64_t painted = muiContext_GetWorkCounts(context).paintCount;
     CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success, "drawn");
-    return muiContext_GetWorkCounts(context).painted > painted;
+    return muiContext_GetWorkCounts(context).paintCount > painted;
 }
 
 // Drawing clears paint marks, and records the rectangles painted.

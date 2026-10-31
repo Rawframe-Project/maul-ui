@@ -56,9 +56,9 @@ static void Count(muiContext* context, uint32_t node, bool press, int delta)
 static void Post(muiPointerStore* store, const muiPointerRecord* record)
 {
     // Once one is lost, later ones are too, so the count keeps its place.
-    if (store->dropped != 0 || store->recordCount == store->recordCapacity)
+    if (store->recordsDropped != 0 || store->recordCount == store->recordCapacity)
     {
-        store->dropped++;
+        store->recordsDropped++;
         return;
     }
     // The sum stays below 2 * capacity, so it does not wrap.
@@ -585,11 +585,12 @@ static muiResult NextPointerRecord(muiContext* context, muiPointerRecord* record
         store->recordCount--;
         return mui_success;
     }
-    if (store->dropped != 0)
+    if (store->recordsDropped != 0)
     {
-        *recordOut = (muiPointerRecord){
-            .kind = mui_pointerRecordDropped, .passThrough = true, .dropped = store->dropped};
-        store->dropped = 0;
+        *recordOut = (muiPointerRecord){.kind = mui_pointerRecordDropped,
+                                        .passThrough = true,
+                                        .recordsDropped = store->recordsDropped};
+        store->recordsDropped = 0;
         return mui_success;
     }
     return mui_empty;

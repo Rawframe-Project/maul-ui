@@ -451,7 +451,7 @@ static void Inherit(muiContext* context, uint32_t slot, muiPropertyMask given, b
 
 static void Resolve(muiContext* context, uint32_t slot, uint64_t nowNs)
 {
-    context->work.styled++;
+    context->work.styleCount++;
     NoteHostEdit(context, slot);
     UpdateScope(context, slot);
     const muiStyleStore* store = &context->style;

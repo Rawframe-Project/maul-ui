@@ -172,7 +172,7 @@ extern "C"
         // belongs to: 2 for a double click.
         uint32_t clickCount;
         // For a dropped record, how many were dropped.
-        uint32_t dropped;
+        uint32_t recordsDropped;
         // The node; the null id for a dropped record.
         muiNodeId node;
         // The point in the node's border box.
