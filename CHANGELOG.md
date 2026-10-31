@@ -7,33 +7,99 @@ may change the API, the ABI and every data format.
 
 ## [0.6.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.5.0...v0.6.0) (2026-10-31)
 
-
-### ⚠ BREAKING CHANGES
-
-* muiNotification.dropped is renamed notificationsDropped.
-* muiNotification.detail is replaced by dropped, player, reason and action, each set by one kind and 0 for the others. muiDismissReason and muiAccessAction are declared in maul-ui/context.h.
-* muiDrawGradient.kind is a muiGradientKind (int32_t), not a uint32_t.
-* muiTextService_GetFailures is muiTextService_GetLayoutFailureCount, and muiVirtualList.count is itemCount.
-* muiTextEvent.length, muiEvent.length and muiAccessRequest.length are size_t.
-
-### Fixed
-
-* **draw:** count a NULL output to muiDrawSink_GetVisibleRect as misuse ([#228](https://github.com/Rawframe-Project/maul-ui/issues/228)) ([71671cc](https://github.com/Rawframe-Project/maul-ui/commit/71671cc065f18fa31dde0ef6bc20f5398345483b)), closes [#227](https://github.com/Rawframe-Project/maul-ui/issues/227)
-* **draw:** let muiDrawSink_GetVisibleRect take a const sink ([#222](https://github.com/Rawframe-Project/maul-ui/issues/222)) ([925f40b](https://github.com/Rawframe-Project/maul-ui/commit/925f40b8335145fe65701612f5d932ef06fcc9a0)), closes [#218](https://github.com/Rawframe-Project/maul-ui/issues/218)
-* **edit:** keep a buffer for a text that is all composition ([#226](https://github.com/Rawframe-Project/maul-ui/issues/226)) ([cef90c0](https://github.com/Rawframe-Project/maul-ui/commit/cef90c0c37404559939aa91822de04251d773c7b)), closes [#224](https://github.com/Rawframe-Project/maul-ui/issues/224)
-* **edit:** keep the undo history when an edit runs out of memory ([#215](https://github.com/Rawframe-Project/maul-ui/issues/215)) ([8e87db1](https://github.com/Rawframe-Project/maul-ui/commit/8e87db1c705bb42a2c888b06f82003902f39e660)), closes [#214](https://github.com/Rawframe-Project/maul-ui/issues/214)
-* **edit:** refuse a text event with no text before reading it ([#210](https://github.com/Rawframe-Project/maul-ui/issues/210)) ([4901273](https://github.com/Rawframe-Project/maul-ui/commit/4901273f6fdd9044f9ccf48e7cd0d497f1929712)), closes [#209](https://github.com/Rawframe-Project/maul-ui/issues/209)
-* **edit:** refuse a text past MUI_MAX_TEXT_BYTES before reading it ([#202](https://github.com/Rawframe-Project/maul-ui/issues/202)) ([5a689b8](https://github.com/Rawframe-Project/maul-ui/commit/5a689b8c1581c93bbff0ba357dc324c70eef15d1)), closes [#201](https://github.com/Rawframe-Project/maul-ui/issues/201)
-* **edit:** take a composition out in the same change as the edit ([#220](https://github.com/Rawframe-Project/maul-ui/issues/220)) ([dce2e48](https://github.com/Rawframe-Project/maul-ui/commit/dce2e48e9e8778a53de2fb3b04780bbee94aecba)), closes [#217](https://github.com/Rawframe-Project/maul-ui/issues/217)
-
+This release finishes the review of Maul UI's API before 1.0.0
+([#199](https://github.com/Rawframe-Project/maul-ui/issues/199)) and
+builds against Maul RHI 0.15.0. A program written for 0.5 has to
+rebuild against the new headers, rename the counters listed below, read
+a notification's typed fields instead of its `detail`, and give a
+string's length in event and request records as `size_t`. Typing,
+pasting and deleting beside a composition, and edits that run out of
+memory, no longer lose text or undo history. Layouts, draw lists,
+shaped text and glyph images are the same as in 0.5.0.
 
 ### Changed
 
-* give a string's length in event and request records as size_t ([#203](https://github.com/Rawframe-Project/maul-ui/issues/203)) ([9804026](https://github.com/Rawframe-Project/maul-ui/commit/9804026014613ae8abd70bcae71ca9499610e0c5)), closes [#200](https://github.com/Rawframe-Project/maul-ui/issues/200)
-* name a notification's dropped count notificationsDropped ([#230](https://github.com/Rawframe-Project/maul-ui/issues/230)) ([9e7476e](https://github.com/Rawframe-Project/maul-ui/commit/9e7476e20277f96a6f453b08f901a74ecf3d5740)), closes [#229](https://github.com/Rawframe-Project/maul-ui/issues/229)
-* name the layout failure and virtual item counters thingCount ([#212](https://github.com/Rawframe-Project/maul-ui/issues/212)) ([d52eea1](https://github.com/Rawframe-Project/maul-ui/commit/d52eea1debda03a49de868a24ec871139f9d3bbd)), closes [#207](https://github.com/Rawframe-Project/maul-ui/issues/207)
-* replace a notification's detail with typed fields ([#225](https://github.com/Rawframe-Project/maul-ui/issues/225)) ([c741482](https://github.com/Rawframe-Project/maul-ui/commit/c741482bc69f57b43a272fe311190bedd8688d0c)), closes [#221](https://github.com/Rawframe-Project/maul-ui/issues/221)
-* type a draw gradient's kind as muiGradientKind ([#216](https://github.com/Rawframe-Project/maul-ui/issues/216)) ([a872fd8](https://github.com/Rawframe-Project/maul-ui/commit/a872fd89336e0382ced1220b03b3248dcbf4c9e6)), closes [#208](https://github.com/Rawframe-Project/maul-ui/issues/208)
+- **Breaking:** a string's byte length is `size_t` in
+  `muiTextEvent.length`, `muiEvent.length` and
+  `muiAccessRequest.length`, as it already was in every parameter.
+  Code that fills or reads these fields as `uint32_t` has to use
+  `size_t`. On 64-bit, `muiTextEvent` grows from 24 to 32 bytes and
+  `muiEvent` from 72 to 80, with `length` now right after `text`;
+  `muiAccessRequest` keeps its 56. Offsets and ranges inside a text stay
+  `uint32_t`. `muiNode_RouteText` refuses a text longer than
+  `MUI_MAX_TEXT_BYTES` with `mui_errorLimit`, and the text guide states
+  the rule
+  ([#203](https://github.com/Rawframe-Project/maul-ui/pull/203)).
+- **Breaking:** `muiNotification.detail` is replaced by four typed
+  fields: `notificationsDropped` for `mui_notificationDropped`, `player`
+  (`uint8_t`) for the focus kinds, `reason` (`muiDismissReason`) for
+  `mui_notificationPopupDismissed` and `action` (`muiAccessAction`) for
+  `mui_notificationAccessAction`. Each is 0 for the other kinds. Code
+  that read `detail` reads the field of its kind, with no cast.
+  `muiDismissReason` and `muiAccessAction` are now declared in
+  `maul-ui/context.h`; their values stay in `maul-ui/popup.h` and
+  `maul-ui/access.h`. The record grows from 16 to 28 bytes, so a
+  context takes 12 bytes more for each notification its limit allows
+  ([#225](https://github.com/Rawframe-Project/maul-ui/pull/225),
+  [#230](https://github.com/Rawframe-Project/maul-ui/pull/230)).
+- **Breaking:** counters are named for what they count.
+  `muiTextService_GetFailures` is now
+  `muiTextService_GetLayoutFailureCount`, and `muiVirtualList.count` is
+  now `itemCount`. What each counts is the same
+  ([#212](https://github.com/Rawframe-Project/maul-ui/pull/212)).
+- **Breaking:** `muiDrawGradient.kind` is a `muiGradientKind`, an
+  `int32_t`, instead of a `uint32_t`. Code that stores or compares it as
+  `uint32_t` takes the type instead. The record keeps its 96 bytes and
+  its layout, and draw lists have the same bytes
+  ([#216](https://github.com/Rawframe-Project/maul-ui/pull/216)).
+- **Breaking:** the renderer builds against Maul RHI 0.15.0. A host that
+  hands the renderer its device, or builds Maul UI against its own copy
+  of Maul RHI, has to use that release. Maul RHI's own changelog says
+  what changed in its API. The renderer's shaders and pixels are the
+  same
+  ([#211](https://github.com/Rawframe-Project/maul-ui/pull/211)).
+- `muiDrawSink_GetVisibleRect` takes a `const muiDrawSink*`, so a paint
+  function holding a const sink can call it without a cast. Callers
+  with a non-const sink compile unchanged
+  ([#222](https://github.com/Rawframe-Project/maul-ui/pull/222)).
+- The kinds a drag offers and a node accepts have a type of their own,
+  `muiDropKinds`, declared in `maul-ui/pointer.h` and used by
+  `muiInteractionStyle.accepts`, `muiContext_OfferDrop` and
+  `muiPointerRecord.dropKind`. It is still `uint32_t`, so no caller
+  changes
+  ([#223](https://github.com/Rawframe-Project/maul-ui/pull/223)).
+
+### Fixed
+
+- Text component: `muiTextBlock_Type` and `muiTextBlock_Paste` read a
+  text past `MUI_MAX_TEXT_BYTES`, and grew the service's scratch to its
+  size, before they refused it; a string shorter than the length given
+  with it was read past its end. Every way a text comes in now refuses
+  such a length with `mui_errorLimit` before reading a byte. A
+  `muiTextBlock_Compose` refused for its segments, its length or its
+  fit, or for want of memory, took the selection out anyway; it now
+  keeps the text, the selection and the undo history. A composition
+  over a selection goes at the selection's start
+  ([#202](https://github.com/Rawframe-Project/maul-ui/pull/202)).
+- Text component: `muiNode_HandleEditEvent` read through a NULL pointer
+  for a text event with no text and a nonzero length. It now answers
+  `mui_errorInvalid` and counts one misuse
+  ([#210](https://github.com/Rawframe-Project/maul-ui/pull/210)).
+- Text component: an edit that ran out of memory emptied the block's
+  whole undo history. It now answers `mui_errorCapacity` with the text,
+  the selection and the history as they were
+  ([#215](https://github.com/Rawframe-Project/maul-ui/pull/215)).
+- Text component: typing, pasting or deleting while a composition was
+  shown took the composition out as a change of its own first, so a
+  call then refused for its limit or for want of memory lost the
+  composition's text. The composition now goes in the same change as
+  the edit, and a refused edit leaves it shown
+  ([#220](https://github.com/Rawframe-Project/maul-ui/pull/220),
+  [#226](https://github.com/Rawframe-Project/maul-ui/pull/226)).
+- `muiDrawSink_GetVisibleRect` with a NULL output on a live sink counted
+  no misuse, while the other sink calls count one for a bad argument. It
+  now counts one on the sink's context
+  ([#228](https://github.com/Rawframe-Project/maul-ui/pull/228)).
 
 ## [0.5.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.4.0...v0.5.0) (2026-10-31)
 
