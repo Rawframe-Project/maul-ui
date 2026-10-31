@@ -1042,7 +1042,7 @@ static void TestWork(void)
               "scroll");
         bound += WorkFrame(&work);
     }
-    uint64_t sized = muiContext_GetWorkCounts(work.scene.context).sized - before.sized;
+    uint64_t sized = muiContext_GetWorkCounts(work.scene.context).sizeCount - before.sizeCount;
     CHECK(bound > frames && s_workMeasured == bound, "each bound label measured once");
     CHECK(sized == 4 * (uint64_t)bound + (uint64_t)frames, "rows sized twice, the list once");
     muiDestroyContext(work.scene.context);

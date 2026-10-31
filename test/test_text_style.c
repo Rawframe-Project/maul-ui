@@ -102,9 +102,9 @@ static void Layout(muiContext* context, muiNodeId root, uint64_t timeNs)
 static bool Repaints(muiContext* context, muiNodeId root)
 {
     const muiDrawInput input = {1, 1.0f, NULL, NULL};
-    uint64_t painted = muiContext_GetWorkCounts(context).painted;
+    uint64_t painted = muiContext_GetWorkCounts(context).paintCount;
     CHECK(muiNode_BuildDrawList(context, root, &input) == mui_success, "drawn");
-    return muiContext_GetWorkCounts(context).painted > painted;
+    return muiContext_GetWorkCounts(context).paintCount > painted;
 }
 
 static muiComputedTextStyle Computed(const muiContext* context, muiNodeId node)
@@ -453,10 +453,10 @@ static void TestWhatAChangeCosts(void)
     muiTextStyle values = muiDefaultTextStyle();
     values.color = s_red;
     int measured = s_measured;
-    uint64_t sized = muiContext_GetWorkCounts(context).sized;
+    uint64_t sized = muiContext_GetWorkCounts(context).sizeCount;
     CHECK(muiNode_SetTextValues(context, root, &values, COLOR) == mui_success, "color");
     Layout(context, root, T0);
-    CHECK(s_measured == measured && muiContext_GetWorkCounts(context).sized == sized &&
+    CHECK(s_measured == measured && muiContext_GetWorkCounts(context).sizeCount == sized &&
               Repaints(context, root),
           "a color paints the label, no more");
     values.decoration = mui_decorationUnderline;
@@ -467,7 +467,7 @@ static void TestWhatAChangeCosts(void)
               mui_success,
           "decoration");
     Layout(context, root, T0);
-    CHECK(s_measured == measured && muiContext_GetWorkCounts(context).sized == sized &&
+    CHECK(s_measured == measured && muiContext_GetWorkCounts(context).sizeCount == sized &&
               Repaints(context, root),
           "a decoration paints the label, no more");
     CHECK(Computed(context, label).decoration == mui_decorationUnderline &&
@@ -476,7 +476,7 @@ static void TestWhatAChangeCosts(void)
     values.size = Value(0.0f, 30.0f);
     CHECK(muiNode_SetTextValues(context, root, &values, SIZE) == mui_success, "size");
     Layout(context, root, T0);
-    CHECK(s_measured > measured && muiContext_GetWorkCounts(context).sized > sized,
+    CHECK(s_measured > measured && muiContext_GetWorkCounts(context).sizeCount > sized,
           "a size measures the label and lays it out again");
     measured = s_measured;
     values.font = 9;

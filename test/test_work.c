@@ -75,15 +75,16 @@ static muiWorkCounts Counted(muiContext* context, muiNodeId root, Label* label)
     muiWorkCounts before = muiContext_GetWorkCounts(context);
     Frame(context, root, label);
     muiWorkCounts after = muiContext_GetWorkCounts(context);
-    return (muiWorkCounts){after.styled - before.styled, after.sized - before.sized,
-                           after.measured - before.measured, after.painted - before.painted};
+    return (muiWorkCounts){after.styleCount - before.styleCount, after.sizeCount - before.sizeCount,
+                           after.measureCount - before.measureCount,
+                           after.paintCount - before.paintCount};
 }
 
 static void Print(const char* what, muiWorkCounts counts)
 {
     printf("%s: styled %llu, sized %llu, measured %llu, painted %llu\n", what,
-           (unsigned long long)counts.styled, (unsigned long long)counts.sized,
-           (unsigned long long)counts.measured, (unsigned long long)counts.painted);
+           (unsigned long long)counts.styleCount, (unsigned long long)counts.sizeCount,
+           (unsigned long long)counts.measureCount, (unsigned long long)counts.paintCount);
 }
 
 int main(void)
@@ -95,7 +96,8 @@ int main(void)
     {
         return 1;
     }
-    CHECK(muiContext_GetWorkCounts(NULL).styled == 0 && muiContext_GetWorkCounts(NULL).painted == 0,
+    CHECK(muiContext_GetWorkCounts(NULL).styleCount == 0 &&
+              muiContext_GetWorkCounts(NULL).paintCount == 0,
           "NULL counts nothing");
     // A column of a panel coloured by a class, a host-measured label and
     // a box.
@@ -134,12 +136,14 @@ int main(void)
 
     muiWorkCounts first = Counted(context, root, &content);
     Print("first frame", first);
-    CHECK(first.styled == 4 && first.sized > 0 && first.measured > 0 && first.painted == 4,
+    CHECK(first.styleCount == 4 && first.sizeCount > 0 && first.measureCount > 0 &&
+              first.paintCount == 4,
           "the first frame styles and paints every node");
 
     muiWorkCounts still = Counted(context, root, &content);
     Print("static frame", still);
-    CHECK(still.styled == 0 && still.sized == 0 && still.measured == 0 && still.painted == 0,
+    CHECK(still.styleCount == 0 && still.sizeCount == 0 && still.measureCount == 0 &&
+              still.paintCount == 0,
           "a static frame does no work");
 
     content.width = 90.0f;
@@ -147,9 +151,9 @@ int main(void)
     int calls = content.calls;
     muiWorkCounts relabel = Counted(context, root, &content);
     Print("label changed", relabel);
-    CHECK(relabel.styled == 0 && relabel.sized > 0 &&
-              relabel.measured == (uint64_t)(content.calls - calls) && relabel.measured > 0 &&
-              relabel.painted > 0 && relabel.painted < 4,
+    CHECK(relabel.styleCount == 0 && relabel.sizeCount > 0 &&
+              relabel.measureCount == (uint64_t)(content.calls - calls) &&
+              relabel.measureCount > 0 && relabel.paintCount > 0 && relabel.paintCount < 4,
           "a changed label measures and lays out, styles nothing, paints a part");
 
     visual.background = (muiColor){0.0f, 0.0f, 1.0f, 1.0f};
@@ -158,8 +162,8 @@ int main(void)
           "the class recoloured");
     muiWorkCounts recolour = Counted(context, root, &content);
     Print("class recoloured", recolour);
-    CHECK(recolour.styled > 0 && recolour.sized == 0 && recolour.measured == 0 &&
-              recolour.painted > 0 && recolour.painted < 4,
+    CHECK(recolour.styleCount > 0 && recolour.sizeCount == 0 && recolour.measureCount == 0 &&
+              recolour.paintCount > 0 && recolour.paintCount < 4,
           "a recoloured class styles and paints, without layout");
 
     muiDestroyContext(context);

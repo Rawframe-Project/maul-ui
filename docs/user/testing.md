@@ -22,8 +22,8 @@ static bool StillFrameIsFree(muiContext* context, muiNodeId root)
         return false;
     }
     muiWorkCounts after = muiContext_GetWorkCounts(context);
-    return after.styled == before.styled && after.sized == before.sized &&
-           after.measured == before.measured && after.painted == before.painted;
+    return after.styleCount == before.styleCount && after.sizeCount == before.sizeCount &&
+           after.measureCount == before.measureCount && after.paintCount == before.paintCount;
 }
 ```
 
