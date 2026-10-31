@@ -786,7 +786,8 @@ static MUI_NOINLINE muiResult PointerOfferWorker(muiContext* context, uint32_t p
     return status;
 }
 
-muiResult muiContext_OfferDrop(muiContext* context, uint32_t pointerId, uint32_t kind, uint64_t key)
+muiResult muiContext_OfferDrop(muiContext* context, uint32_t pointerId, muiDropKinds kind,
+                               uint64_t key)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = PointerOfferWorker(context, pointerId, kind, key);

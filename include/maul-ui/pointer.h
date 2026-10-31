@@ -36,6 +36,10 @@ extern "C"
     // The buttons a pointer holds, as bits: 1 << the button's index.
     typedef uint32_t muiPointerButtons;
 
+    // The kinds of thing a drag offers and a node takes, as bits: the
+    // application's own, a thing of one kind having one or more of them.
+    typedef uint32_t muiDropKinds;
+
     enum
     {
         // The index of a button: the primary (a mouse's left, a touch's
@@ -186,7 +190,7 @@ extern "C"
         // For a drag's end, whether it was cancelled.
         bool cancelled;
         // For drop records, the kind and the host's key offered.
-        uint32_t dropKind;
+        muiDropKinds dropKind;
         uint64_t dropKey;
     } muiPointerRecord;
 
@@ -298,7 +302,7 @@ extern "C"
     /// @par Thread safety
     /// Safe from any thread; the context is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiContext_OfferDrop(muiContext* context, uint32_t pointer,
-                                                         uint32_t kind, uint64_t key);
+                                                         muiDropKinds kind, uint64_t key);
 
     /// Sets how far a press moves before it becomes a drag, on either
     /// axis: for a mouse, and for touch and pens. The defaults are 4,
