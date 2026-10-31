@@ -5,6 +5,36 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.6.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.5.0...v0.6.0) (2026-10-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* muiNotification.dropped is renamed notificationsDropped.
+* muiNotification.detail is replaced by dropped, player, reason and action, each set by one kind and 0 for the others. muiDismissReason and muiAccessAction are declared in maul-ui/context.h.
+* muiDrawGradient.kind is a muiGradientKind (int32_t), not a uint32_t.
+* muiTextService_GetFailures is muiTextService_GetLayoutFailureCount, and muiVirtualList.count is itemCount.
+* muiTextEvent.length, muiEvent.length and muiAccessRequest.length are size_t.
+
+### Fixed
+
+* **draw:** count a NULL output to muiDrawSink_GetVisibleRect as misuse ([#228](https://github.com/Rawframe-Project/maul-ui/issues/228)) ([71671cc](https://github.com/Rawframe-Project/maul-ui/commit/71671cc065f18fa31dde0ef6bc20f5398345483b)), closes [#227](https://github.com/Rawframe-Project/maul-ui/issues/227)
+* **draw:** let muiDrawSink_GetVisibleRect take a const sink ([#222](https://github.com/Rawframe-Project/maul-ui/issues/222)) ([925f40b](https://github.com/Rawframe-Project/maul-ui/commit/925f40b8335145fe65701612f5d932ef06fcc9a0)), closes [#218](https://github.com/Rawframe-Project/maul-ui/issues/218)
+* **edit:** keep a buffer for a text that is all composition ([#226](https://github.com/Rawframe-Project/maul-ui/issues/226)) ([cef90c0](https://github.com/Rawframe-Project/maul-ui/commit/cef90c0c37404559939aa91822de04251d773c7b)), closes [#224](https://github.com/Rawframe-Project/maul-ui/issues/224)
+* **edit:** keep the undo history when an edit runs out of memory ([#215](https://github.com/Rawframe-Project/maul-ui/issues/215)) ([8e87db1](https://github.com/Rawframe-Project/maul-ui/commit/8e87db1c705bb42a2c888b06f82003902f39e660)), closes [#214](https://github.com/Rawframe-Project/maul-ui/issues/214)
+* **edit:** refuse a text event with no text before reading it ([#210](https://github.com/Rawframe-Project/maul-ui/issues/210)) ([4901273](https://github.com/Rawframe-Project/maul-ui/commit/4901273f6fdd9044f9ccf48e7cd0d497f1929712)), closes [#209](https://github.com/Rawframe-Project/maul-ui/issues/209)
+* **edit:** refuse a text past MUI_MAX_TEXT_BYTES before reading it ([#202](https://github.com/Rawframe-Project/maul-ui/issues/202)) ([5a689b8](https://github.com/Rawframe-Project/maul-ui/commit/5a689b8c1581c93bbff0ba357dc324c70eef15d1)), closes [#201](https://github.com/Rawframe-Project/maul-ui/issues/201)
+* **edit:** take a composition out in the same change as the edit ([#220](https://github.com/Rawframe-Project/maul-ui/issues/220)) ([dce2e48](https://github.com/Rawframe-Project/maul-ui/commit/dce2e48e9e8778a53de2fb3b04780bbee94aecba)), closes [#217](https://github.com/Rawframe-Project/maul-ui/issues/217)
+
+
+### Changed
+
+* give a string's length in event and request records as size_t ([#203](https://github.com/Rawframe-Project/maul-ui/issues/203)) ([9804026](https://github.com/Rawframe-Project/maul-ui/commit/9804026014613ae8abd70bcae71ca9499610e0c5)), closes [#200](https://github.com/Rawframe-Project/maul-ui/issues/200)
+* name a notification's dropped count notificationsDropped ([#230](https://github.com/Rawframe-Project/maul-ui/issues/230)) ([9e7476e](https://github.com/Rawframe-Project/maul-ui/commit/9e7476e20277f96a6f453b08f901a74ecf3d5740)), closes [#229](https://github.com/Rawframe-Project/maul-ui/issues/229)
+* name the layout failure and virtual item counters thingCount ([#212](https://github.com/Rawframe-Project/maul-ui/issues/212)) ([d52eea1](https://github.com/Rawframe-Project/maul-ui/commit/d52eea1debda03a49de868a24ec871139f9d3bbd)), closes [#207](https://github.com/Rawframe-Project/maul-ui/issues/207)
+* replace a notification's detail with typed fields ([#225](https://github.com/Rawframe-Project/maul-ui/issues/225)) ([c741482](https://github.com/Rawframe-Project/maul-ui/commit/c741482bc69f57b43a272fe311190bedd8688d0c)), closes [#221](https://github.com/Rawframe-Project/maul-ui/issues/221)
+* type a draw gradient's kind as muiGradientKind ([#216](https://github.com/Rawframe-Project/maul-ui/issues/216)) ([a872fd8](https://github.com/Rawframe-Project/maul-ui/commit/a872fd89336e0382ced1220b03b3248dcbf4c9e6)), closes [#208](https://github.com/Rawframe-Project/maul-ui/issues/208)
+
 ## [0.5.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.4.0...v0.5.0) (2026-10-31)
 
 Maul UI now follows the Maul family's rules for enumeration types,
