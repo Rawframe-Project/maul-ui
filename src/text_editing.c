@@ -841,8 +841,19 @@ static muiResult TextBlockCompose(muiTextService* service, muiTextBlockId blockI
         return muiRefuseText(service);
     }
     // A composition starting over a selection takes its place, as typing
-    // would: undone as an edit of its own.
+    // would: undone as an edit of its own. Everything the composition
+    // needs is checked first, so a refused one leaves the selection.
     const muiTextSelection* selection = &block->editing.selection;
+    uint32_t start =
+        block->compositionLength != 0 ? block->compositionStart : SelectionStart(selection);
+    uint32_t end =
+        block->compositionLength != 0 ? start + block->compositionLength : SelectionEnd(selection);
+    result = muiSegmentsStatus(segments, segmentCount, length);
+    result = result == mui_success ? muiBlockTextStatus(block, start, end, length) : result;
+    if (result != mui_success)
+    {
+        return muiCountText(service, result);
+    }
     if (block->compositionLength == 0 && selection->anchor != selection->caret.offset)
     {
         result = Edit(service, block, SelectionStart(selection), SelectionEnd(selection), nullptr,

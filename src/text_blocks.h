@@ -31,6 +31,10 @@ bool muiSetBlockText(muiTextService* service, muiTextBlock* block, const char* t
 muiResult muiBlockTextStatus(const muiTextBlock* block, uint32_t start, uint32_t end,
                              size_t length);
 
+// mui_success, mui_errorInvalid or mui_errorLimit for a composition's
+// segments over length bytes of text.
+muiResult muiSegmentsStatus(const muiCompositionSegment* segments, uint32_t count, size_t length);
+
 // Whether an offset begins a character of a block's text, or is its end,
 // as decoding reads it: a byte past what a sequence's lead takes begins
 // one of its own, as the U+FFFD it is laid out as. The text's start

@@ -674,10 +674,7 @@ muiResult muiReplaceBlockText(muiTextService* service, muiTextBlock* block, uint
     return mui_success;
 }
 
-// mui_success, mui_errorInvalid or mui_errorLimit for a composition's
-// segments.
-static muiResult SegmentsStatus(const muiCompositionSegment* segments, uint32_t count,
-                                size_t length)
+muiResult muiSegmentsStatus(const muiCompositionSegment* segments, uint32_t count, size_t length)
 {
     if (count > MUI_MAX_COMPOSITION_SEGMENTS || (segments == nullptr && count != 0))
     {
@@ -701,7 +698,7 @@ muiResult muiSetComposition(muiTextService* service, muiTextBlockId blockId, uin
 {
     muiResult status =
         service == nullptr || blockId.index1 == 0 ? mui_errorInvalid : TextStatus(text, length);
-    status = status == mui_success ? SegmentsStatus(segments, segmentCount, length) : status;
+    status = status == mui_success ? muiSegmentsStatus(segments, segmentCount, length) : status;
     if (status != mui_success)
     {
         return muiCountText(service, status);
