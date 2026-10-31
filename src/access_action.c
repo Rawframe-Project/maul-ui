@@ -111,10 +111,6 @@ static muiResult PerformAccessAction(muiContext* context, const muiAccessRequest
     {
         *handledOut = false;
     }
-    if (muiIsRouting(context))
-    {
-        return muiRefuseBusy(context);
-    }
     if (request == nullptr || (uint32_t)request->action > mui_actionReplaceText)
     {
         return muiRefuse(context);
