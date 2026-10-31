@@ -523,7 +523,7 @@ static bool Replace(const muiAtspiObject* object, const muiAccessText* text, int
                                       .anchor = ByteOf(text, start),
                                       .focus = ByteOf(text, end),
                                       .text = with,
-                                      .length = (uint32_t)length};
+                                      .length = length};
     return length <= INT32_MAX && Ask(object, &request);
 }
 

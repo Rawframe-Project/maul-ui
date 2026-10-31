@@ -504,7 +504,7 @@ extern "C"
         uint32_t anchor;
         uint32_t focus;
         const char* text;
-        uint32_t length;
+        size_t length;
     } muiAccessRequest;
 
     // Performs an action a client asked for, by muiContext_PerformAccessAction or

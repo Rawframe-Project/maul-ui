@@ -14,7 +14,7 @@ Editing is built in two layers. The editing primitives answer questions about la
 
 ## Positions
 
-The primitives work on a node's text laid out as painting lays it out, at the content width the caller gives ([text_hit.c](../../src/text_hit.c)). A position is a byte offset between grapheme clusters and an affinity, downstream or upstream. The affinity picks the place of an offset that has two: the end of a wrapped line or the start of the next, and either side of a change of direction.
+The primitives work on a node's text laid out as painting lays it out, at the content width the caller gives ([text_hit.c](../../src/text_hit.c)). A position is a byte offset between grapheme clusters and an affinity, downstream or upstream. Offsets are `uint32_t`, since no text the library holds passes `MUI_MAX_TEXT_BYTES` (2^31 - 1): `TextStatus` and `muiBlockTextStatus` ([text_blocks.c](../../src/text_blocks.c)) check every block's creation, setting and replacement, `Put` and `TextBlockCompose` ([text_editing.c](../../src/text_editing.c)) check typing, pastes and compositions before the edit rules read a byte, `NodeSetAccessText` ([access.c](../../src/access.c)) checks accessibility texts, and `TextInput` ([event.c](../../src/event.c)) checks a routed text event. A string's own length is `size_t` wherever it crosses the API. The affinity picks the place of an offset that has two: the end of a wrapped line or the start of the next, and either side of a change of direction.
 
 Each line is read as boxes of grapheme clusters left to right, from the glyphs painting draws ([text_boxes.c](../../src/text_boxes.c)). The letter spacing after each cluster is included, and a glyph several clusters share, such as a ligature, is cut into equal parts.
 

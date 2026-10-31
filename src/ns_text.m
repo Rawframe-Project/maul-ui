@@ -112,7 +112,7 @@ bool muiNsReplaceAll(const MUIAccessibilityNode* object, NSString* value)
                                       .anchor = 0,
                                       .focus = muiAccessValueOf(node).length,
                                       .text = bytes,
-                                      .length = (uint32_t)strlen(bytes)};
+                                      .length = strlen(bytes)};
     return Ask(object, &request);
 }
 
@@ -188,7 +188,7 @@ bool muiNsReplaceAll(const MUIAccessibilityNode* object, NSString* value)
                                       .anchor = node->marks.anchor,
                                       .focus = node->marks.focus,
                                       .text = bytes,
-                                      .length = (uint32_t)strlen(bytes)};
+                                      .length = strlen(bytes)};
     (void)Ask(self, &request);
 }
 
