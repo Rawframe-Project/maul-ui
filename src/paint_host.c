@@ -107,7 +107,8 @@ static void Meet(float* low, float* high, float otherLow, float otherHigh)
     *high = fminf(*high, otherHigh);
 }
 
-static MUI_NOINLINE muiResult DrawSinkGetVisibleRectWorker(muiDrawSink* sink, muiRect* rectOut)
+static MUI_NOINLINE muiResult DrawSinkGetVisibleRectWorker(const muiDrawSink* sink,
+                                                           muiRect* rectOut)
 {
     if (rectOut != nullptr)
     {
@@ -162,7 +163,7 @@ muiResult muiDrawSink_Fail(muiDrawSink* sink)
     return mui_success;
 }
 
-muiResult muiDrawSink_GetVisibleRect(muiDrawSink* sink, muiRect* rectOut)
+muiResult muiDrawSink_GetVisibleRect(const muiDrawSink* sink, muiRect* rectOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = DrawSinkGetVisibleRectWorker(sink, rectOut);

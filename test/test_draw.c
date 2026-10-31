@@ -1720,7 +1720,9 @@ static void PaintSeeing(void* user, muiNodeId nodeId, uint64_t hostKey, float wi
     SeeingHost* host = user;
     host->calls++;
     muiRect refused = {1.0f, 1.0f, 1.0f, 1.0f};
-    CHECK(muiDrawSink_GetVisibleRect(sink, &host->seen) == mui_success &&
+    // Asking only reads the sink.
+    const muiDrawSink* reading = sink;
+    CHECK(muiDrawSink_GetVisibleRect(reading, &host->seen) == mui_success &&
               muiDrawSink_GetVisibleRect(sink, NULL) == mui_errorInvalid &&
               muiDrawSink_GetVisibleRect(NULL, &refused) == mui_errorInvalid && refused.x == 0.0f &&
               refused.width == 0.0f,
