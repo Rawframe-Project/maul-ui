@@ -430,8 +430,17 @@ static void TestParagraphSeparators(void)
                             mui_editMultiline);
     Layout(&scene);
     CHECK(muiNode_HandleEditPress(&scene.host, scene.node, 1.0f, 5.0f, 3, false) == mui_success &&
-              Selects(&scene, 0, 8),
-          "a triple click: a, the euro sign, the dagger and b, up to the line separator");
+              Selects(&scene, 0, 12),
+          "a triple click: the line separator inside the paragraph, to the text's end");
+    FreeScene(&scene);
+    // U+2029 ends a paragraph; VT and FF break a line inside one.
+    scene = MakeScene("a\vb\fc\xE2\x80\xA9"
+                      "d",
+                      mui_editMultiline);
+    Layout(&scene);
+    CHECK(muiNode_HandleEditPress(&scene.host, scene.node, 1.0f, 5.0f, 3, false) == mui_success &&
+              Selects(&scene, 0, 5),
+          "a triple click up to the paragraph separator, past VT and FF");
     FreeScene(&scene);
 }
 
