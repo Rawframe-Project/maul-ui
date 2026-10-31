@@ -88,7 +88,8 @@ labels_for() {
     test/fuzz_* | tools/fuzz_seed.py) ;;
     src/uia_* | src/ns_* | src/uikit_* | src/android_* | src/aria_* | src/web_js.h) ;;
     test/test_uia.c | test/test_*.m | test/test_android_* | test/test_aria.c | test/test_windows_*) ;;
-    rhi/* | window/* | samples/* | test/test_rhi_* | test/test_window_* | test/draw_golden.inc) echo parts ;;
+    rhi/* | window/* | samples/* | test/test_rhi_* | test/test_window_*) echo parts ;;
+    test/test_surface_color.c | test/draw_golden.inc) echo parts ;;
     src/atspi_* | src/dbus_api.*) echo "^atspi$" ;;
     test/layout/* | test/generated/* | test/layout_fixture.h | tools/gen_layout_fixtures.py)
         echo "^layout_fixtures$"
@@ -212,7 +213,7 @@ if [ "$tier" = changed ]; then
     if [[ " $labels " == *" parts "* || " $labels " == *" all "* ]]; then
         step "preset linux-parts, integration tests left out"
         build_preset linux-parts
-        reached_tests linux-parts "^(rhi_|window_)"
+        reached_tests linux-parts "^(rhi_|window_|surface_color$)"
     fi
     [ -n "${labels// /}" ] || echo "no Linux test reached by the changes"
     exit 0

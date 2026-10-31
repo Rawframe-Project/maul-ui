@@ -312,47 +312,6 @@ static bool SourceOf(const mwinNativeHandles* handles, Source* source)
     }
 }
 
-// The sRGB twin of an 8-bit unorm format, or none.
-static mrhiFormat TwinOf(mrhiFormat format)
-{
-    switch (format)
-    {
-    case mrhi_formatRgba8Unorm:
-        return mrhi_formatRgba8UnormSrgb;
-    case mrhi_formatBgra8Unorm:
-        return mrhi_formatBgra8UnormSrgb;
-    default:
-        return mrhi_formatNone;
-    }
-}
-
-// The surface's colour and the format frames draw in, the sRGB twin of
-// the first 8-bit colour it reports: the images' own format where the
-// surface allows it, else a view of them (a WebGPU canvas's twin).
-static bool ColorOf(const mrhiSurfaceCaps* caps, mrhiSurfaceConfig* config,
-                    mrhiFormat* drawFormatOut)
-{
-    for (uint32_t i = 0; i < caps->colorCount; i++)
-    {
-        mrhiFormat twin = TwinOf(caps->colors[i].format);
-        if (twin != mrhi_formatNone && caps->colors[i].primaries == mrhi_primariesBt709)
-        {
-            config->color = caps->colors[i];
-            if (caps->twinImages)
-            {
-                config->color.format = twin;
-            }
-            else
-            {
-                config->viewFormats[0] = twin;
-            }
-            *drawFormatOut = twin;
-            return true;
-        }
-    }
-    return false;
-}
-
 bool SampleSurfaceOpen(Sample* sample, const mwinNativeHandles* handles, uint32_t width,
                        uint32_t height, SampleSurface* surfaceOut)
 {
@@ -376,7 +335,7 @@ bool SampleSurfaceOpen(Sample* sample, const mwinNativeHandles* handles, uint32_
     }
     mrhiSurfaceConfig config = mrhiDefaultSurfaceConfig();
     config.surface = surfaceOut->surface;
-    if (!ColorOf(&caps, &config, &surfaceOut->drawFormat))
+    if (!SampleSurfaceColor(&caps, &config, &surfaceOut->drawFormat))
     {
         printf("FAIL: the surface offers no 8-bit colour with sRGB images\n");
         return false;
