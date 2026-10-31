@@ -5,6 +5,30 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.5.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.4.0...v0.5.0) (2026-10-31)
+
+
+### ⚠ BREAKING CHANGES
+
+* muiWorkCounts' fields are renamed styleCount, sizeCount, measureCount and paintCount, and muiPointerRecord.dropped is renamed recordsDropped.
+* every public enumeration typedef is now `int32_t` (kinds) or `uint32_t` (sets of bits), so the structs that hold them change layout. `muiNode_RouteKey` refuses a key code above 0xFFFF, and `muiNode_MoveTextPosition` refuses an unknown affinity.
+* a call refused with `mui_errorBusy` no longer clears its outputs; it writes none of them, single values and buffers alike. A creation still clears the id it gives. A program that read a cleared output after a busy refusal reads what was there before the call.
+* a call whose first parameter is an owner object now zeroes the caller's array or buffer over its whole capacity whenever it answers anything but `mui_success` or `mui_errorBusy`, a capacity failure included. `muiNode_GetAccessRelation`, `muiAccessTree_GetShownChildren`, `muiAccessTree_GetName`, `muiAccessTree_GetTextRects`, `muiAccessTree_Write`, the four `muiTextService_Render` calls and `muiGlyphAtlas_TakeUpdates` no longer write the part of an answer that fits. Ask again with the count or length the call gives.
+
+### Fixed
+
+* **samples:** configure a surface in the sRGB color Maul RHI suggests ([#197](https://github.com/Rawframe-Project/maul-ui/issues/197)) ([a03d790](https://github.com/Rawframe-Project/maul-ui/commit/a03d790b93a91a0a486458891cd0b9a60f0f6a9c)), closes [#196](https://github.com/Rawframe-Project/maul-ui/issues/196)
+* **text:** make a destroyed font, family or block stale before its frees ([#189](https://github.com/Rawframe-Project/maul-ui/issues/189)) ([3d76938](https://github.com/Rawframe-Project/maul-ui/commit/3d76938db4e3530269a9d5eaf6f71aa87289cc1e)), closes [#185](https://github.com/Rawframe-Project/maul-ui/issues/185)
+* **window:** drop a field's composition at a Maul Window input reset ([#161](https://github.com/Rawframe-Project/maul-ui/issues/161)) ([ce72abc](https://github.com/Rawframe-Project/maul-ui/commit/ce72abc2703c9bb423e35c4c91c7eab16aec36e4))
+* write no output when a call is refused as busy ([#173](https://github.com/Rawframe-Project/maul-ui/issues/173)) ([2a88670](https://github.com/Rawframe-Project/maul-ui/commit/2a88670550dc5ec1ed7bc8b8dd3866a61c5175ac)), closes [#170](https://github.com/Rawframe-Project/maul-ui/issues/170)
+* zero caller buffers when a call does not succeed ([#166](https://github.com/Rawframe-Project/maul-ui/issues/166)) ([36df930](https://github.com/Rawframe-Project/maul-ui/commit/36df930ee9f5672a481652cabd419f92cb7524ec)), closes [#163](https://github.com/Rawframe-Project/maul-ui/issues/163)
+
+
+### Changed
+
+* name the work and dropped-record counters for what they count ([#193](https://github.com/Rawframe-Project/maul-ui/issues/193)) ([8552dda](https://github.com/Rawframe-Project/maul-ui/commit/8552ddab3311645dd4b2a4f533bfa9bf61bbb815)), closes [#187](https://github.com/Rawframe-Project/maul-ui/issues/187)
+* widen the public enumerations to int32_t and uint32_t ([#192](https://github.com/Rawframe-Project/maul-ui/issues/192)) ([8f1cb37](https://github.com/Rawframe-Project/maul-ui/commit/8f1cb37e96b5cf18dee657b489463090f922646f)), closes [#188](https://github.com/Rawframe-Project/maul-ui/issues/188) [#190](https://github.com/Rawframe-Project/maul-ui/issues/190) [#191](https://github.com/Rawframe-Project/maul-ui/issues/191)
+
 ## [0.4.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.3.3...v0.4.0) (2026-10-30)
 
 Maul UI now follows the Maul family's rules for names, results and
