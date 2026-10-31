@@ -137,13 +137,11 @@ static double* SumsOf(const muiVirtualStore* store, const muiVirtualEntry* entry
     return store->sums + entry->base - 1;
 }
 
-// Read only by MUI_ASSERT, which Release builds compile out.
 // Whether the tree's place of item i, its extent and the gap after it,
 // is what its stored size says, within the rounding of the double sums.
 // Sums that overflowed are not compared: finite sizes a caller gave can
 // add up past the doubles' range.
-[[maybe_unused]] static bool PlaceAgrees(const muiVirtualStore* store, const muiVirtualEntry* entry,
-                                         uint32_t i)
+static bool PlaceAgrees(const muiVirtualStore* store, const muiVirtualEntry* entry, uint32_t i)
 {
     double end = muiVirtualOffset(store, entry, i + 1);
     double place = end - muiVirtualOffset(store, entry, i);
@@ -628,6 +626,13 @@ static double Measure(muiContext* context, uint32_t slot, const muiVirtualEntry*
             double delta = (double)size - (double)*known;
             Add(store, entry, item - 1, delta);
             *known = size;
+            if (!PlaceAgrees(store, entry, item - 1))
+            {
+                // The change was lost to rounding, as when an item
+                // estimated far above its measure cancels the sums it is
+                // in: they are built again from the sizes.
+                muiVirtualBuild(store, entry);
+            }
             MUI_ASSERT(PlaceAgrees(store, entry, item - 1));
             shift += muiVirtualOffset(store, entry, item - 1) < viewStart ? delta : 0.0;
         }

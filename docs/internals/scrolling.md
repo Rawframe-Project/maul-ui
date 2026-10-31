@@ -48,7 +48,7 @@ Without overscroll a fling stops at the limit. So does a fling that began outsid
 
 ## Virtual lists
 
-A scroll container may be a list of many items, each fixed in extent or estimated until measured, with a gap and an overscan ([virtual.c](../../src/virtual.c)). Estimated extents live in a Fenwick tree per list, out of `limits.virtualItems`, so the offset of an item and the item at an offset each cost O(log n).
+A scroll container may be a list of many items, each fixed in extent or estimated until measured, with a gap and an overscan ([virtual.c](../../src/virtual.c)). Estimated extents live in a Fenwick tree per list, out of `limits.virtualItems`, so the offset of an item and the item at an offset each cost O(log n). A measure adds its change to the tree in doubles. When that change is lost to rounding, as when an item estimated far above its measure cancels the sums it is in, the item's place no longer matches its size, and the tree is built again from the sizes.
 
 - After each layout the window of items that should exist is found from the scroll offset and reported by `mui_notificationWindowChanged` when it changes. The host realizes it, binding child nodes to indices (`muiNode_BindVirtualItem`).
 - Bound items leave the flow, stretch across the list's content box, are measured into their extents and placed at their offsets. The list's extent covers every item, realized or not, so scrolling is not clamped to what exists.
