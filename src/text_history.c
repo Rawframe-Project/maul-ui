@@ -107,28 +107,48 @@ static void DropOldest(muiTextEditing* editing)
     }
 }
 
+// The bytes the edits not undone hold.
+static uint32_t KeptBytes(const muiTextEditing* editing)
+{
+    const muiTextEdit* entries = editing->entries.data;
+    uint32_t done = editing->done;
+    return done != 0
+               ? entries[done - 1].bytes + entries[done - 1].removed + entries[done - 1].inserted
+               : 0;
+}
+
+bool muiReserveEdit(const muiAllocator* allocator, muiTextEditing* editing, uint32_t removed,
+                    uint32_t inserted)
+{
+    // Every edit is kept, those undone too, as an edit reserved for may
+    // not be recorded.
+    size_t entries = (size_t)editing->entryCount * sizeof(muiTextEdit);
+    size_t entriesNeeded = ((size_t)editing->done + 1) * sizeof(muiTextEdit);
+    size_t bytes = editing->byteCount;
+    size_t bytesNeeded = (size_t)KeptBytes(editing) + removed + inserted;
+    return editing->rules.undoLimit == 0 ||
+           (muiReserveKeeping(allocator, &editing->entries,
+                              entriesNeeded > entries ? entriesNeeded : entries, entries) &&
+            muiReserveKeeping(allocator, &editing->bytes, bytesNeeded > bytes ? bytesNeeded : bytes,
+                              bytes));
+}
+
 bool muiRecordEdit(const muiAllocator* allocator, muiTextEditing* editing, const muiTextEdit* edit,
                    const char* removed, const char* inserted)
 {
     // What was undone goes.
-    muiTextEdit* entries = editing->entries.data;
     uint32_t done = editing->done;
-    uint32_t kept =
-        done != 0 ? entries[done - 1].bytes + entries[done - 1].removed + entries[done - 1].inserted
-                  : 0;
+    uint32_t kept = KeptBytes(editing);
     if (editing->rules.undoLimit == 0)
     {
         muiClearHistory(editing);
         return true;
     }
-    if (!muiReserveKeeping(allocator, &editing->entries, (done + 1u) * sizeof(muiTextEdit),
-                           done * sizeof(muiTextEdit)) ||
-        !muiReserveKeeping(allocator, &editing->bytes,
-                           (size_t)kept + edit->removed + edit->inserted, kept))
+    if (!muiReserveEdit(allocator, editing, edit->removed, edit->inserted))
     {
         return false;
     }
-    entries = editing->entries.data;
+    muiTextEdit* entries = editing->entries.data;
     if (entries == nullptr || editing->bytes.data == nullptr)
     {
         // Reserved above; said again for the analyzer.
