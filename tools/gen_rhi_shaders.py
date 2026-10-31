@@ -54,7 +54,7 @@ CONTAINER = f"rhi/shaders/{NAME}_container.h"
 # SHA-256, as Maul RHI's stamps do.
 # The commit each Maul RHI release tag names: a local tag of that name on
 # another commit is not the release.
-RHI_COMMITS = {"v0.13.0": "da1a2bfb43371e3361f4dd167f61255043466c09"}
+RHI_COMMITS = {"v0.14.0": "79dd369c91836dc96500c1f6738a6c0b20ee3fa6"}
 # The flags every DXC compile of Maul RHI's mrhi_dxil.py passes, read from
 # the release and compared exactly, as the tools are: -Gis keeps the float
 # math as the source writes it, so D3D12 computes what the other APIs do.
