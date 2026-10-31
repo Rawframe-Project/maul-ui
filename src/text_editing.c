@@ -285,19 +285,27 @@ static muiResult Edit(muiTextService* service, muiTextBlock* block, uint32_t sta
     }
     const muiTextEdit edit = {
         start, end - start, length, 0, editing->selection, Collapsed(start + length), kind};
-    const char* removed = (const char*)block->text.data + start;
-    if (!muiRecordEdit(&service->allocator, editing, &edit, removed, text))
+    // The history's room and a copy of the bytes taken out are found
+    // first, and the edit recorded once the text has changed, so running
+    // out of memory leaves the text and the history as they were.
+    if (!muiReserveEdit(&service->allocator, editing, edit.removed, length) ||
+        !muiReserve(&service->allocator, &service->removedScratch, edit.removed))
     {
         return mui_errorCapacity;
+    }
+    if (edit.removed != 0)
+    {
+        memcpy(service->removedScratch.data, (const char*)block->text.data + start, edit.removed);
     }
     muiResult result = muiReplaceBlockText(service, block, start, end, text, length);
     if (result != mui_success)
     {
-        // Out of memory, the text kept: the history keeps no edit that
-        // did not happen.
-        muiClearHistory(editing);
         return result;
     }
+    bool recorded =
+        muiRecordEdit(&service->allocator, editing, &edit, service->removedScratch.data, text);
+    MUI_ASSERT(recorded);
+    (void)recorded;
     // An ill-formed end of what went in can join the bytes after it into
     // one character, or a deletion join the bytes on either side: the
     // caret goes after that character, as typing leaves it after what was
@@ -818,17 +826,17 @@ static muiResult ComposeOverSelection(muiTextService* service, muiTextBlock* blo
     const muiTextEdit edit = {
         start, end - start, 0, 0, editing->selection, Collapsed(start), MUI_EDIT_OTHER};
     if (!muiReserveEdit(&service->allocator, editing, edit.removed, 0) ||
-        !muiReserve(&service->allocator, &service->editScratch, edit.removed))
+        !muiReserve(&service->allocator, &service->removedScratch, edit.removed))
     {
         return mui_errorCapacity;
     }
-    memcpy(service->editScratch.data, (const char*)block->text.data + start, edit.removed);
+    memcpy(service->removedScratch.data, (const char*)block->text.data + start, edit.removed);
     muiResult result =
         muiComposeOver(service, block, start, end, text, length, segments, segmentCount);
     if (result == mui_success)
     {
-        bool recorded =
-            muiRecordEdit(&service->allocator, editing, &edit, service->editScratch.data, nullptr);
+        bool recorded = muiRecordEdit(&service->allocator, editing, &edit,
+                                      service->removedScratch.data, nullptr);
         MUI_ASSERT(recorded);
         (void)recorded;
         editing->preferredX = -1.0f;

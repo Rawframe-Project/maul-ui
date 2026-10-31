@@ -98,8 +98,6 @@ typedef struct World
     unsigned char pixels[64 * 64 * 4];
     // What the step answered, beside its status.
     uint64_t output;
-    // Whether the block's history is among what the step must leave.
-    bool history;
 } World;
 
 // Mixes a value into a hash, field by field: a struct's padding holds
@@ -444,10 +442,9 @@ static muiResult Compose(World* world)
 }
 
 // Typed text, then part of it selected, so that a composition replaces
-// the selection with a history to keep: a failure must leave it too.
+// the selection with a history to keep.
 static void SelectedAfterTyping(World* world)
 {
-    world->history = true;
     Typed(world);
     const muiTextSelection some = {2, {6, mui_affinityDownstream}};
     CHECK(muiTextBlock_Select(world->service, world->block, some) == mui_success, "selected");
@@ -745,8 +742,7 @@ static const Step s_steps[] = {
     {"muiGlyphAtlas_GetGlyphMultiField", NULL, AtlasGetMultiField, false},
 };
 
-// What the step could change: the block's text and selection, and its
-// history where the step says so.
+// What the step could change: the block's text, selection and history.
 static uint64_t Digest(const World* world)
 {
     const char* text = NULL;
@@ -766,10 +762,7 @@ static uint64_t Digest(const World* world)
     hash = (hash ^ length) * 1099511628211u;
     bool undo = false;
     bool redo = false;
-    if (world->history)
-    {
-        (void)muiTextBlock_GetUndoState(world->service, world->block, &undo, &redo);
-    }
+    (void)muiTextBlock_GetUndoState(world->service, world->block, &undo, &redo);
     hash = (hash ^ ((uint64_t)undo << 1 | (uint64_t)redo)) * 1099511628211u;
     return hash;
 }
