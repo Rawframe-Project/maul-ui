@@ -235,6 +235,83 @@ static void TestLimitsAtTheirLargest(void)
     CHECK(held, "the largest asks for memory, one past it is a limit");
 }
 
+#if SIZE_MAX == UINT32_MAX
+// An allocator that refuses every block, keeping the size last asked.
+typedef struct Asked
+{
+    uint32_t calls;
+    size_t size;
+} Asked;
+
+static void* RefuseAndKeep(size_t size, size_t alignment, void* context)
+{
+    (void)alignment;
+    Asked* asked = context;
+    asked->calls++;
+    asked->size = size;
+    return NULL;
+}
+
+static void FreeNothing(void* memory, size_t size, size_t alignment, void* context)
+{
+    (void)memory;
+    (void)size;
+    (void)alignment;
+    (void)context;
+}
+
+// The block a def of items and roots asks for, or 0 when it asks for
+// none.
+static size_t AskedFor(uint32_t items, uint32_t roots)
+{
+    Asked asked = {0};
+    muiContextDef def = muiDefaultContextDef();
+    def.allocator = (muiAllocator){RefuseAndKeep, FreeNothing, &asked};
+    def.limits.virtualItems = items;
+    def.limits.accessRoots = roots;
+    muiContext* context = NULL;
+    CHECK(muiCreateContext(&def, &context) == mui_errorCapacity && context == NULL &&
+              asked.calls <= 1,
+          "refused, after one block at most");
+    return asked.calls != 0 ? asked.size : 0;
+}
+
+// With 32 bits of size, a def's parts can end within the slack the block
+// adds to reach a cache line, so the block's size would wrap. The items
+// whose parts end nearest the top, then one root more at a time: each def
+// asks for more than the last, until one is refused without asking.
+static void TestBlockSizeDoesNotWrap(void)
+{
+    uint32_t low = 0;
+    uint32_t high = MUI_MAX_CONTEXT_LIMIT;
+    CHECK(AskedFor(low, 1) != 0 && AskedFor(high, 1) == 0, "the bounds");
+    while (high - low > 1)
+    {
+        uint32_t middle = low + (high - low) / 2;
+        if (AskedFor(middle, 1) != 0)
+        {
+            low = middle;
+        }
+        else
+        {
+            high = middle;
+        }
+    }
+    size_t last = AskedFor(low, 1);
+    CHECK(last > SIZE_MAX / 2, "near the top");
+    bool refused = false;
+    bool grew = true;
+    for (uint32_t roots = 2; !refused && roots < 64; roots++)
+    {
+        size_t size = AskedFor(low, roots);
+        refused = size == 0;
+        grew = grew && (refused || size > last);
+        last = refused ? last : size;
+    }
+    CHECK(grew && refused, "more each time, then refused");
+}
+#endif
+
 static void TestNullContextIsHarmless(void)
 {
     muiDestroyContext(NULL);
@@ -250,5 +327,8 @@ int main(void)
     TestNullContextIsHarmless();
     TestAnyMaxAlignedBlockWorks();
     TestLimitsAtTheirLargest();
+#if SIZE_MAX == UINT32_MAX
+    TestBlockSizeDoesNotWrap();
+#endif
     return s_failures == 0 ? 0 : 1;
 }
