@@ -5,6 +5,8 @@
 
 #include "theme_store.h"
 
+#include "invariant.h"
+
 uint32_t* muiThemeEntry(const muiThemeStore* store, uint32_t theme, uint32_t tokenSlot)
 {
     return &store->tables[(size_t)(theme - 1) * store->tokenCapacity + (tokenSlot - 1)];
@@ -44,6 +46,7 @@ const muiTokenValue* muiResolveTokenIn(const muiTokenStore* tokens, const muiThe
         }
         id = alias;
     }
+    MUI_ASSERT(false);
     return nullptr;
 }
 
