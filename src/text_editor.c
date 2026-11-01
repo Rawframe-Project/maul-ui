@@ -165,28 +165,23 @@ static void WordAround(const muiTextBlock* block, uint32_t at, uint32_t* startOu
     *endOut = end;
 }
 
-static bool IsBreakByte(unsigned char byte)
-{
-    return byte >= '\n' && byte <= '\r';
-}
-
-// The length of the paragraph separator starting at a byte, or 0: LF,
-// VT, FF and CR alone, NEL, and the line and paragraph separators
-// U+2028 and U+2029.
+// The length of the paragraph separator starting at a byte, or 0: UAX
+// #9's paragraph separators (bidi class B), LF and CR alone, the
+// information separators U+001C to U+001E, NEL and U+2029, as Cocoa's
+// paragraph ranges end at LF, CR and U+2029. A line separator, U+2028,
+// and VT and FF break a line inside a paragraph.
 static uint32_t SeparatorAt(const unsigned char* text, uint32_t length, uint32_t at)
 {
-    if (IsBreakByte(text[at]))
+    unsigned char byte = text[at];
+    if (byte == '\n' || byte == '\r' || (byte >= 0x1C && byte <= 0x1E))
     {
         return 1;
     }
-    if (text[at] == 0xC2 && at + 1 < length && text[at + 1] == 0x85)
+    if (byte == 0xC2 && at + 1 < length && text[at + 1] == 0x85)
     {
         return 2;
     }
-    return text[at] == 0xE2 && at + 2 < length && text[at + 1] == 0x80 &&
-                   (text[at + 2] == 0xA8 || text[at + 2] == 0xA9)
-               ? 3
-               : 0;
+    return byte == 0xE2 && at + 2 < length && text[at + 1] == 0x80 && text[at + 2] == 0xA9 ? 3 : 0;
 }
 
 // The paragraph at an offset, without the separator ending it.
