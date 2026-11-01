@@ -103,6 +103,18 @@ static void SendError(muiAtspiApp* app, DBusMessage* call, const char* name, con
     muiAtspiSend(app, call, app->dbus.newError(call, name, text));
 }
 
+bool muiAtspiTaken(muiAtspiApp* app, bool taken)
+{
+    app->refused = app->refused || !taken;
+    return taken;
+}
+
+void muiAtspiFail(muiAtspiApp* app, DBusMessage* call, const char* member)
+{
+    muiAtspiSend(app, call,
+                 app->refused ? app->dbus.newError(call, ERROR_INVALID_ARGS, member) : nullptr);
+}
+
 bool muiAtspiAppendString(muiAtspiApp* app, muiDBusIter* iter, const char* text)
 {
     return app->dbus.appendBasic(iter, mui_dbusTypeString, (const void*)&text);
@@ -479,7 +491,7 @@ static bool AppendAttributes(muiAtspiApp* app, muiDBusIter* iter, const muiAtspi
 }
 
 // Writes the answer of an Accessible method; false for an unknown one,
-// with *ok false when memory ran out.
+// with *ok false when it is refused or memory ran out.
 static bool AppendAccessible(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
                              const muiAtspiObject* object, const char* member, bool* ok)
 {
@@ -489,8 +501,8 @@ static bool AppendAccessible(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* c
     muiAtspiObject child;
     if (strcmp(member, "GetChildAtIndex") == 0)
     {
-        *ok = ReadFirst(&app->dbus, call, mui_dbusTypeInt32, &index) && index >= 0 &&
-              ChildAt(app, object, (uint32_t)index, &child) &&
+        *ok = muiAtspiTaken(app, ReadFirst(&app->dbus, call, mui_dbusTypeInt32, &index) &&
+                                     index >= 0 && ChildAt(app, object, (uint32_t)index, &child)) &&
               muiAtspiAppendReference(app, iter, &child);
     }
     else if (strcmp(member, "GetChildren") == 0)
@@ -549,12 +561,18 @@ static void AnswerAccessible(muiAtspiApp* app, DBusMessage* call, const muiAtspi
     muiDBusIter iter;
     app->dbus.iterInitAppend(reply, &iter);
     bool ok = true;
-    if (!AppendAccessible(app, &iter, call, object, member, &ok) || !ok)
+    bool known = AppendAccessible(app, &iter, call, object, member, &ok);
+    if (!known || !ok)
     {
         app->dbus.unrefMessage(reply);
-        bool known = !ok;
-        SendError(app, call, known ? ERROR_INVALID_ARGS : ERROR_UNKNOWN_METHOD,
-                  known ? "invalid arguments" : member);
+        if (known)
+        {
+            muiAtspiFail(app, call, member);
+        }
+        else
+        {
+            SendError(app, call, ERROR_UNKNOWN_METHOD, member);
+        }
         return;
     }
     muiAtspiSend(app, call, reply);
@@ -572,6 +590,7 @@ bool muiAtspiAnswer(muiAtspiApp* app, DBusMessage* call)
     muiAtspiObject object;
     const char* interface = dbus->interface(call);
     const char* member = dbus->member(call);
+    app->refused = false;
     if (!muiAtspiFind(app, path, &object))
     {
         SendError(app, call, ERROR_UNKNOWN_OBJECT, path);

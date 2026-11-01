@@ -1003,8 +1003,9 @@ static void TestComponent(muiAtspiAdapter* adapter)
     }
 }
 
-// A reply's strings, each array or struct inside taken in order, joined
-// with spaces: names of actions, attributes, interfaces.
+// A reply's strings, unsigned numbers and booleans, each array or
+// struct inside taken in order, joined with spaces: names of actions,
+// attributes, interfaces.
 static void Flatten(muiDBusIter* iter, char* out, size_t size, size_t* length)
 {
     for (int type = s_test.dbus.argType(iter); type != mui_dbusTypeInvalid;
@@ -1028,6 +1029,12 @@ static void Flatten(muiDBusIter* iter, char* out, size_t size, size_t* length)
         {
             s_test.dbus.getBasic(iter, &number);
             Append(out, size, length, "%s%u", *length != 0 ? " " : "", number);
+        }
+        else if (type == mui_dbusTypeBoolean)
+        {
+            muiDBusBool truth = 0;
+            s_test.dbus.getBasic(iter, &truth);
+            Append(out, size, length, "%s%s", *length != 0 ? " " : "", truth ? "true" : "false");
         }
         else if (type == mui_dbusTypeInt32 && s_flattenInts)
         {
@@ -1785,7 +1792,7 @@ static void TestTextChanges(muiAtspiAdapter* adapter, Built* built, muiAccessNod
                      "h\xC3\xA9llo w\xC3\xB6rld! 0 12") &&
               TextIs("GetStringAtOffset", "iu", (const int32_t[]){3, 1}, "3 3"),
           "an edit, then one line and no words given");
-    CHECK(TextIs("SetCaretOffset", "i", (const int32_t[]){2}, "") &&
+    CHECK(TextIs("SetCaretOffset", "i", (const int32_t[]){2}, "false") &&
               TextIs("GetAttributes", "i", (const int32_t[]){2}, "0 12") &&
               TextIs("GetAttributeValue", "i", (const int32_t[]){2}, ""),
           "attributes not given, the caret not set");
@@ -1793,8 +1800,8 @@ static void TestTextChanges(muiAtspiAdapter* adapter, Built* built, muiAccessNod
         TextIs("GetDefaultAttributes", "", NULL, "") &&
             TextIs("GetDefaultAttributeSet", "", NULL, "") &&
             TextIs("GetBoundedRanges", "iiiiuuu", (const int32_t[]){0, 0, 100, 100, 0, 0, 0}, "") &&
-            TextIs("ScrollSubstringTo", "iiu", (const int32_t[]){0, 2, 0}, "") &&
-            TextIs("ScrollSubstringToPoint", "iiuii", (const int32_t[]){0, 2, 0, 5, 5}, ""),
+            TextIs("ScrollSubstringTo", "iiu", (const int32_t[]){0, 2, 0}, "false") &&
+            TextIs("ScrollSubstringToPoint", "iiuii", (const int32_t[]){0, 2, 0, 5, 5}, "false"),
         "no default attributes or bounded ranges; no scrolling to a substring");
     CHECK(IsError(Answer(Call("/org/a11y/atspi/accessible/w1n7", "org.a11y.atspi.Text", "GetText")),
                   "org.freedesktop.DBus.Error.InvalidArgs") &&
@@ -1864,7 +1871,13 @@ static void TestTextChanges(muiAtspiAdapter* adapter, Built* built, muiAccessNod
                   EventsAre(s_told[i]),
               "a change inside a character");
     }
-    // With no memory to copy the text deleted into, the edit is not told.
+    // With no memory to copy text into, reading it answers that memory
+    // ran out, and an edit is not told.
+    s_test.rationed = true;
+    s_test.ration = 0;
+    CHECK(TextIs("GetText", "ii", (const int32_t[]){0, -1}, "out of memory") &&
+              TextIs("GetTextAtOffset", "iu", (const int32_t[]){0, 0}, "out of memory"),
+          "text read with no memory");
     *input = built->nodes[6];
     CHECK(SendStarved(adapter, (const muiAccessNode*[]){input}, 1, built->children) &&
               EventsAre(""),
@@ -1939,19 +1952,22 @@ static void TestTextRequests(muiAtspiAdapter* adapter, Built* built, muiAccessNo
           "editable text");
     CHECK(EventsAre("TextChanged insert 0/5 w1n7 h\xC3\xA9llo; TextCaretMoved  1 w1n7"),
           "the text told, the caret after it");
-    CHECK(TextIs("SetCaretOffset", "i", (const int32_t[]){2}, "") &&
+    CHECK(TextIs("SetCaretOffset", "i", (const int32_t[]){2}, "true") &&
               AskedText(mui_actionSetSelection, 3, 3, "") &&
-              TextIs("SetSelection", "iii", (const int32_t[]){0, 4, 1}, "") &&
+              TextIs("SetSelection", "iii", (const int32_t[]){0, 4, 1}, "true") &&
               AskedText(mui_actionSetSelection, 5, 1, "") &&
-              TextIs("SetSelection", "iii", (const int32_t[]){1, 0, 2}, "") &&
-              AskedText(0, 0, 0, "") && TextIs("AddSelection", "ii", (const int32_t[]){0, 9}, "") &&
+              TextIs("SetSelection", "iii", (const int32_t[]){1, 0, 2}, "false") &&
+              AskedText(0, 0, 0, "") &&
+              TextIs("AddSelection", "ii", (const int32_t[]){0, 9}, "true") &&
               AskedText(mui_actionSetSelection, 0, 6, "") &&
-              TextIs("RemoveSelection", "i", (const int32_t[]){0}, "") && AskedText(0, 0, 0, ""),
+              TextIs("RemoveSelection", "i", (const int32_t[]){0}, "false") &&
+              AskedText(0, 0, 0, ""),
           "the caret and a selection asked in bytes, none to remove");
     input->marks.anchor = 3;
     CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
-              TextIs("AddSelection", "ii", (const int32_t[]){0, 1}, "") && AskedText(0, 0, 0, "") &&
-              TextIs("RemoveSelection", "i", (const int32_t[]){0}, "") &&
+              TextIs("AddSelection", "ii", (const int32_t[]){0, 1}, "false") &&
+              AskedText(0, 0, 0, "") &&
+              TextIs("RemoveSelection", "i", (const int32_t[]){0}, "true") &&
               AskedText(mui_actionSetSelection, 1, 1, ""),
           "one selection: none added, removed to the caret");
     CHECK(EventsAre("TextSelectionChanged  0 w1n7"), "the selection removed told");
@@ -1968,7 +1984,7 @@ static void TestTextRequests(muiAtspiAdapter* adapter, Built* built, muiAccessNo
           "text set, inserted and deleted, asked in bytes");
     s_test.refuse = true;
     CHECK(Edited("SetTextContents", "s", NULL, "abc", "false") &&
-              TextIs("SetCaretOffset", "i", (const int32_t[]){2}, "") &&
+              TextIs("SetCaretOffset", "i", (const int32_t[]){2}, "false") &&
               Edited("CutText", "ii", (const int32_t[]){0, 1}, NULL, "false") &&
               Edited("PasteText", "i", (const int32_t[]){0}, NULL, "false") &&
               Edited("CopyText", "ii", (const int32_t[]){0, 1}, NULL, "none") &&
@@ -1983,7 +1999,8 @@ static void TestTextRequests(muiAtspiAdapter* adapter, Built* built, muiAccessNo
               IsError(Answer(Call("/org/a11y/atspi/accessible/w1n7", "org.a11y.atspi.EditableText",
                                   "DeleteText")),
                       "org.freedesktop.DBus.Error.UnknownMethod") &&
-              TextIs("SetCaretOffset", "i", (const int32_t[]){2}, "") && AskedText(0, 0, 0, ""),
+              TextIs("SetCaretOffset", "i", (const int32_t[]){2}, "false") &&
+              AskedText(0, 0, 0, ""),
           "not editable: no EditableText, the caret not asked");
     *input = built->nodes[6];
     // Both events awaited: one left on the bus would be read by the next

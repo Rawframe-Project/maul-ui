@@ -215,7 +215,7 @@ static bool AppendPlace(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
     int32_t y = 0;
     if (strcmp(member, "GetExtents") == 0 || strcmp(member, "GetPosition") == 0)
     {
-        *ok = ReadCoordinates(&app->dbus, call, &coordinates);
+        *ok = muiAtspiTaken(app, ReadCoordinates(&app->dbus, call, &coordinates));
         Extents(object, coordinates, extents);
         *ok = *ok && AppendInts(app, iter, extents, member[3] == 'E' ? 4 : 2);
     }
@@ -226,7 +226,7 @@ static bool AppendPlace(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
     }
     else if (strcmp(member, "Contains") == 0 || strcmp(member, "GetAccessibleAtPoint") == 0)
     {
-        *ok = ReadPoint(&app->dbus, call, &x, &y, &coordinates);
+        *ok = muiAtspiTaken(app, ReadPoint(&app->dbus, call, &x, &y, &coordinates));
         ToWindow(object, coordinates, &x, &y);
         muiAtspiObject at = NodeAt(object, x, y);
         muiDBusBool holds = at.node != nullptr;
@@ -295,7 +295,8 @@ bool muiAtspiAnswerComponent(muiAtspiApp* app, DBusMessage* call, const muiAtspi
     if (!ok)
     {
         app->dbus.unrefMessage(reply);
-        reply = app->dbus.newError(call, "org.freedesktop.DBus.Error.InvalidArgs", member);
+        muiAtspiFail(app, call, member);
+        return true;
     }
     muiAtspiSend(app, call, reply);
     return true;
