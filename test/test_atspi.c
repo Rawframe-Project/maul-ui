@@ -1872,7 +1872,8 @@ static void TestTextRequests(muiAtspiAdapter* adapter, Built* built, muiAccessNo
                       "org.a11y.atspi.Accessible org.a11y.atspi.Component "
                       "org.a11y.atspi.Text org.a11y.atspi.EditableText"),
           "editable text");
-    (void)EventsAre("TextChanged insert 0/5 w1n7 h\xC3\xA9llo; TextCaretMoved  1 w1n7");
+    CHECK(EventsAre("TextChanged insert 0/5 w1n7 h\xC3\xA9llo; TextCaretMoved  1 w1n7"),
+          "the text told, the caret after it");
     CHECK(TextIs("SetCaretOffset", "i", (const int32_t[]){2}, "") &&
               AskedText(mui_actionSetSelection, 3, 3, "") &&
               TextIs("SetSelection", "iii", (const int32_t[]){0, 4, 1}, "") &&
@@ -1888,7 +1889,7 @@ static void TestTextRequests(muiAtspiAdapter* adapter, Built* built, muiAccessNo
               TextIs("RemoveSelection", "i", (const int32_t[]){0}, "") &&
               AskedText(mui_actionSetSelection, 1, 1, ""),
           "one selection: none added, removed to the caret");
-    (void)EventsAre("TextSelectionChanged  0 w1n7");
+    CHECK(EventsAre("TextSelectionChanged  0 w1n7"), "the selection removed told");
     CHECK(Edited("SetTextContents", "s", NULL, "abc", "true") &&
               AskedText(mui_actionReplaceText, 0, 6, "abc") &&
               Edited("InsertText", "isi", (const int32_t[]){2, 2}, "x\xC3\xA9z", "true") &&
@@ -1920,8 +1921,11 @@ static void TestTextRequests(muiAtspiAdapter* adapter, Built* built, muiAccessNo
               TextIs("SetCaretOffset", "i", (const int32_t[]){2}, "") && AskedText(0, 0, 0, ""),
           "not editable: no EditableText, the caret not asked");
     *input = built->nodes[6];
-    CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0), "back");
-    (void)EventsAre("TextChanged delete 0/5 w1n7 h\xC3\xA9llo");
+    // Both events awaited: one left on the bus would be read by the next
+    // check.
+    CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
+              EventsAre("TextChanged delete 0/5 w1n7 h\xC3\xA9llo; TextSelectionChanged  0 w1n7"),
+          "back, the text and the selection told");
 }
 
 static void TestText(muiAtspiAdapter* adapter, Built* built)
