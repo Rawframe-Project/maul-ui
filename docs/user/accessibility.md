@@ -49,7 +49,7 @@ Each adapter is its own build option, on by default on its platform, with its he
 | Platform | Adapter | Notes |
 |---|---|---|
 | Windows | UI Automation | Call it on a thread in a single-threaded apartment, the window's thread. |
-| Linux | AT-SPI | The program polls its D-Bus connection each frame; no thread is started. libdbus-1 is opened at run time. |
+| Linux | AT-SPI | The program polls its D-Bus connection each frame; no thread is started. libdbus-1, 1.12 or later, is opened at run time. |
 | macOS | NSAccessibility | The root's parent is the program's view. |
 | iOS | UIAccessibility | |
 | Android | Android accessibility | Partly Java, see below. |

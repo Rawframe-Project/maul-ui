@@ -140,6 +140,12 @@ bool muiAtspiAppendReference(muiAtspiApp* app, muiDBusIter* iter, const muiAtspi
 bool muiAtspiAppendString(muiAtspiApp* app, muiDBusIter* iter, const char* text);
 bool muiAtspiAppendVariant(muiAtspiApp* app, muiDBusIter* iter, int type, const void* value);
 
+// Ends a container opened in iter: closed when ok, and abandoned when
+// not or when closing fails, since libdbus frees an open container's
+// memory only then. Every iterator starts zeroed, libdbus's closed
+// state, so one never opened is let be. Whether it closed.
+bool muiAtspiClose(muiAtspiApp* app, muiDBusIter* iter, muiDBusIter* sub, bool ok);
+
 // The Action interface: how many actions a node has, the methods, and
 // the NActions property; the Value interface's properties, and setting
 // the current value through the host. The property writers are false
