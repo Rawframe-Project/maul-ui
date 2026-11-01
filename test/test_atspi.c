@@ -304,6 +304,30 @@ static bool EventsAre(const char* expected)
     return same;
 }
 
+// Pumps until the events received end with the last one expected, which
+// the last change sent tells: one sender's messages keep their order on
+// the bus, so every event before it has come too. Whether it came; the
+// events are dropped either way.
+static bool EventsEndWith(const char* last)
+{
+    size_t length = strlen(last);
+    bool ended = false;
+    for (int i = 0; i < 2000 && !ended; i++)
+    {
+        PumpBoth();
+        Wait();
+        ended = s_test.eventsLength >= length &&
+                strcmp(s_test.events + s_test.eventsLength - length, last) == 0;
+    }
+    if (!ended)
+    {
+        fprintf(stderr, "events: %s\n", s_test.events);
+    }
+    s_test.events[0] = '\0';
+    s_test.eventsLength = 0;
+    return ended;
+}
+
 // Whether Flatten writes signed integers too.
 static bool s_flattenInts;
 
@@ -1591,6 +1615,44 @@ static void TestEvents(muiAtspiAdapter* adapter, Built* built)
           "and back");
 }
 
+// Every role has a name: the slider 8 given each in turn, labeled so a
+// generic one is shown, and its role's name read. A role with no name
+// would trap in muiAtspiRoleName's assertion where assertions are on.
+static void TestRoleNames(muiAtspiAdapter* adapter, Built* built)
+{
+    const char* slider = "/org/a11y/atspi/accessible/w1n8";
+    muiAccessNode any = built->nodes[8];
+    any.text[mui_accessLabel] = "Any";
+    any.textLength[mui_accessLabel] = 3;
+    // After each role, a new label: its event, the last, waits out the
+    // ones the role sent.
+    muiAccessNode marked = any;
+    marked.text[mui_accessLabel] = "Marked";
+    marked.textLength[mui_accessLabel] = 6;
+    bool named = true;
+    for (uint32_t role = 0; role <= MUI_ROLE_LAST && named; role++)
+    {
+        any.role = (muiRole)role;
+        marked.role = (muiRole)role;
+        named = Send(adapter, (const muiAccessNode*[]){&any}, 1, built->children, 0);
+        DBusMessage* reply = Answer(Call(slider, "org.a11y.atspi.Accessible", "GetRoleName"));
+        const char* name = NULL;
+        named = named && FirstOf(reply, mui_dbusTypeString, (void*)&name) && name[0] != '\0';
+        if (reply != NULL)
+        {
+            s_test.dbus.unrefMessage(reply);
+        }
+        named = named && Send(adapter, (const muiAccessNode*[]){&marked}, 1, built->children, 0) &&
+                EventsEndWith("PropertyChange accessible-name 0 w1n8 Marked");
+    }
+    CHECK(named, "every role named");
+    CHECK(Send(adapter, (const muiAccessNode*[]){&built->nodes[8]}, 1, built->children, 0) &&
+              EventsAre("PropertyChange accessible-name 0 w1n8 Volume; PropertyChange "
+                        "accessible-role 0 w1n8 51") &&
+              ReplyIs(slider, "org.a11y.atspi.Accessible", "GetRoleName", "slider"),
+          "back to a slider");
+}
+
 // A focused container's active descendant is the focus clients see:
 // told focused in its place, with active-descendant-changed on the
 // container; another one moves it, and none gives it back.
@@ -1888,7 +1950,8 @@ static void TestTextRequests(muiAtspiAdapter* adapter, Built* built, muiAccessNo
                       "org.a11y.atspi.Accessible org.a11y.atspi.Component "
                       "org.a11y.atspi.Text org.a11y.atspi.EditableText"),
           "editable text");
-    (void)EventsAre("TextChanged insert 0/5 w1n7 h\xC3\xA9llo; TextCaretMoved  1 w1n7");
+    CHECK(EventsAre("TextChanged insert 0/5 w1n7 h\xC3\xA9llo; TextCaretMoved  1 w1n7"),
+          "the text told, the caret after it");
     CHECK(TextIs("SetCaretOffset", "i", (const int32_t[]){2}, "true") &&
               AskedText(mui_actionSetSelection, 3, 3, "") &&
               TextIs("SetSelection", "iii", (const int32_t[]){0, 4, 1}, "true") &&
@@ -1907,7 +1970,7 @@ static void TestTextRequests(muiAtspiAdapter* adapter, Built* built, muiAccessNo
               TextIs("RemoveSelection", "i", (const int32_t[]){0}, "true") &&
               AskedText(mui_actionSetSelection, 1, 1, ""),
           "one selection: none added, removed to the caret");
-    (void)EventsAre("TextSelectionChanged  0 w1n7");
+    CHECK(EventsAre("TextSelectionChanged  0 w1n7"), "the selection removed told");
     CHECK(Edited("SetTextContents", "s", NULL, "abc", "true") &&
               AskedText(mui_actionReplaceText, 0, 6, "abc") &&
               Edited("InsertText", "isi", (const int32_t[]){2, 2}, "x\xC3\xA9z", "true") &&
@@ -1940,8 +2003,11 @@ static void TestTextRequests(muiAtspiAdapter* adapter, Built* built, muiAccessNo
               AskedText(0, 0, 0, ""),
           "not editable: no EditableText, the caret not asked");
     *input = built->nodes[6];
-    CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0), "back");
-    (void)EventsAre("TextChanged delete 0/5 w1n7 h\xC3\xA9llo");
+    // Both events awaited: one left on the bus would be read by the next
+    // check.
+    CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
+              EventsAre("TextChanged delete 0/5 w1n7 h\xC3\xA9llo; TextSelectionChanged  0 w1n7"),
+          "back, the text and the selection told");
 }
 
 static void TestText(muiAtspiAdapter* adapter, Built* built)
@@ -2333,6 +2399,7 @@ int main(void)
     TestComponentReads();
     TestActionsAndValues();
     TestEvents(adapter, &s_built);
+    TestRoleNames(adapter, &s_built);
     TestActiveDescendant(adapter, &s_built);
     TestText(adapter, &s_built);
     TestGone(adapter, &s_built);

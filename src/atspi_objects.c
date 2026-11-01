@@ -8,6 +8,7 @@
 #include "allocator.h"
 #include "atspi.h"
 #include "chars.h"
+#include "invariant.h"
 
 #include <string.h>
 
@@ -203,11 +204,9 @@ uint32_t muiAtspiChildrenOf(const muiAtspiObject* object, const uint64_t** idsOu
 {
     muiAtspiAdapter* adapter = object->adapter;
     uint32_t count = 0;
-    if (muiAccessTree_GetShownChildren(adapter->tree, object->node->id, adapter->scratch,
-                                       adapter->nodes, &count) != mui_success)
-    {
-        count = 0;
-    }
+    // An object's node is held, and the scratch holds every node.
+    muiAssertCall(muiAccessTree_GetShownChildren(adapter->tree, object->node->id, adapter->scratch,
+                                                 adapter->nodes, &count) == mui_success);
     *idsOut = adapter->scratch;
     return count;
 }

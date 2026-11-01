@@ -364,21 +364,18 @@ static void TellChild(muiAtspiAdapter* adapter, uint64_t parent, uint64_t child,
 static uint32_t Walk(muiAtspiAdapter* adapter)
 {
     uint64_t root = muiAccessTree_GetRoot(adapter->tree);
-    if (root == 0)
-    {
-        return 0;
-    }
+    // Walked only after an update applied, which leaves a root.
+    MUI_ASSERT(root != 0);
     uint32_t count = 0;
     adapter->walk[count] = root;
     adapter->places[count++] = (muiAtspiPlace){UINT32_MAX, (uint32_t)WindowIndex(adapter), false};
     for (uint32_t at = 0; at < count; at++)
     {
         uint32_t children = 0;
-        if (muiAccessTree_GetShownChildren(adapter->tree, adapter->walk[at], adapter->scratch,
-                                           adapter->nodes, &children) != mui_success)
-        {
-            children = 0;
-        }
+        // Every node walked is held, and the scratch holds every node.
+        muiAssertCall(muiAccessTree_GetShownChildren(adapter->tree, adapter->walk[at],
+                                                     adapter->scratch, adapter->nodes,
+                                                     &children) == mui_success);
         for (uint32_t i = 0; i < children && count < adapter->nodes; i++)
         {
             adapter->walk[count] = adapter->scratch[i];
@@ -485,17 +482,16 @@ static void Learn(muiAtspiAdapter* adapter, uint32_t count)
         const muiAtspiPlace* place = &adapter->places[at];
         uint64_t parent = ParentAt(adapter, at);
         muiAtspiTold* told = muiIdMapFind(&adapter->toldById, id);
-        if (told == nullptr && adapter->freeCount != 0)
+        if (told == nullptr)
         {
+            // Forget freed the slot of every node this walk did not see,
+            // and the walk holds each node once, at most the nodes.
+            MUI_ASSERT(adapter->freeCount != 0);
             told = &adapter->told[adapter->freeTold[--adapter->freeCount]];
             *told = (muiAtspiTold){.id = id, .born = adapter->pass};
             // The map, of twice the nodes, holds every told node, and
             // this one is not yet in it.
             muiAssertCall(muiIdMapInsert(&adapter->toldById, id, told));
-        }
-        if (told == nullptr)
-        {
-            continue;
         }
         if (place->tell && IsKnown(adapter, parent))
         {

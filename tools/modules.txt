@@ -81,9 +81,9 @@ atspi_events: access_record access_text allocator atspi host_call invariant fpen
 atspi_actions: atspi host_call
 atspi_app: allocator atspi dbus_api host_call fpenv
 atspi_component: atspi host_call
-atspi_objects: allocator atspi chars
+atspi_objects: allocator atspi chars invariant
 atspi_properties: allocator atspi chars host_call
-atspi_roles: access_record atspi
+atspi_roles: access_record atspi invariant
 atspi_text: access_text allocator atspi host_call
 uia: id_map uia_com uia_ids
 uia_com:
