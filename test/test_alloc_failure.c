@@ -645,24 +645,28 @@ static muiResult Move(World* world)
     return status;
 }
 
-// One cluster right on screen, the move's own boxes the first laid out.
+// One cluster right on screen, at a width that lays each paragraph on
+// one line, on the last: longer than the first, the caret's, whose boxes
+// the layout makes to follow it, so the move grows the boxes itself.
 static muiResult MoveRight(World* world)
 {
     muiTextPosition at = {0, mui_affinityDownstream};
-    muiResult status = muiNode_MoveTextPosition(&world->host, world->node, 300.0f,
-                                                (muiTextPosition){5, mui_affinityDownstream},
-                                                mui_moveRight, 0.0f, &at);
+    muiResult status = muiNode_MoveTextPosition(
+        &world->host, world->node, 100000.0f,
+        (muiTextPosition){sizeof s_long - 5, mui_affinityDownstream}, mui_moveRight, 0.0f, &at);
     world->output = MixPosition(0, at);
     return status;
 }
 
-// A line down from where the caret is drawn, no x given.
-static muiResult MoveDownFromCaret(World* world)
+// A line up from where the caret is drawn, no x given, from the line
+// MoveRight moves on.
+static muiResult MoveUpFromCaret(World* world)
 {
     muiTextPosition at = {0, mui_affinityDownstream};
-    muiResult status = muiNode_MoveTextPosition(&world->host, world->node, 300.0f,
-                                                (muiTextPosition){5, mui_affinityDownstream},
-                                                mui_moveLineDown, (float)NAN, &at);
+    muiResult status =
+        muiNode_MoveTextPosition(&world->host, world->node, 100000.0f,
+                                 (muiTextPosition){sizeof s_long - 5, mui_affinityDownstream},
+                                 mui_moveLineUp, (float)NAN, &at);
     world->output = MixPosition(0, at);
     return status;
 }
@@ -881,7 +885,7 @@ static const Step s_steps[] = {
     {"muiNode_GetTextRangeRects scrolled", Scrolled, RangeRects, false},
     {"muiNode_MoveTextPosition scrolled", Scrolled, Move, false},
     {"muiNode_MoveTextPosition right", Lengthen, MoveRight, false},
-    {"muiNode_MoveTextPosition down from the caret", Lengthen, MoveDownFromCaret, false},
+    {"muiNode_MoveTextPosition up from the caret", Lengthen, MoveUpFromCaret, false},
     {"muiNode_MoveEditCaret right over a selection", Selected, EditMoveRight, false},
     {"muiNode_MoveEditCaret", Lengthen, EditMove, false},
     {"muiNode_MoveEditCaret from the end", Scrolled, EditMove, false},
