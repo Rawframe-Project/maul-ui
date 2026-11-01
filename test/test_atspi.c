@@ -73,10 +73,16 @@ typedef struct Test
     muiAccessRequest asked;
     char askedText[64];
     bool refuse;
+    // Whether the application's allocations are rationed, and how many
+    // are left before they fail.
+    bool rationed;
+    int ration;
     // The main window's adapter, and what calling back into it from its
     // action function answered (Maul conventions, Threads).
     muiAtspiAdapter* adapter;
     muiResult reentered;
+    muiResult rescaled;
+    muiResult recreated;
     // The events received, "member kind detail1 from data; ..." with
     // paths cut to what follows /accessible/.
     char events[2048];
@@ -325,6 +331,17 @@ static void Unpoisoned(void* memory, size_t size, size_t alignment, void* contex
     free(memory);
 }
 
+// Poisoned, while the ration of the Test in context lasts.
+static void* Rationed(size_t size, size_t alignment, void* context)
+{
+    Test* test = context;
+    if (test->rationed && test->ration-- <= 0)
+    {
+        return NULL;
+    }
+    return Poisoned(size, alignment, NULL);
+}
+
 static bool Act(void* user, const muiAccessRequest* request)
 {
     // From the main window's: a call back in is refused, the pump and the
@@ -332,6 +349,12 @@ static bool Act(void* user, const muiAccessRequest* request)
     if (user == &s_test && s_test.adapter != NULL)
     {
         s_test.reentered = muiAtspiAdapter_Apply(s_test.adapter, NULL);
+        s_test.rescaled = muiAtspiAdapter_SetScale(s_test.adapter, 2.0f);
+        const muiAtspiAdapterDef def = muiDefaultAtspiAdapterDef();
+        muiAtspiAdapter* another = NULL;
+        s_test.recreated = muiCreateAtspiAdapter(s_test.app, &def, &another);
+        muiAtspiAdapter_SetPlace(s_test.adapter, 1, 2);
+        muiDestroyAtspiApp(s_test.app);
         muiAtspiApp_Pump(s_test.app);
         muiDestroyAtspiAdapter(s_test.adapter);
     }
@@ -942,6 +965,8 @@ static void TestComponent(muiAtspiAdapter* adapter)
     CHECK(ReferenceIs(Answer(PointCall(130, 175, 0)), s_test.plugName, label) &&
               !Holds(ok, 100 + 230, 50 + 40) && Holds(ok, 100 + 210, 50 + 40),
           "screen points taken into the window, a point past a box's edge");
+    CHECK(ReferenceIs(Answer(PointCall(-500, -500, 1)), s_test.plugName, "/org/a11y/atspi/null"),
+          "nothing under a point outside the window");
     muiDBusBool done = 0;
     DBusMessage* reply =
         Answer(Call("/org/a11y/atspi/accessible/w1n1a", "org.a11y.atspi.Component", "GrabFocus"));
@@ -1070,6 +1095,12 @@ static void TestProperties(void)
               PropertyOf(window, accessible, "Description", mui_dbusTypeString, text) &&
               strcmp(text, "") == 0,
           "none, empty");
+    CHECK(NameIs("/org/a11y/atspi/accessible/w1n3", ""), "a node of no name, its name empty");
+    CHECK(IsError(Answer(Call(window, "org.freedesktop.DBus.Properties", "Watch")),
+                  "org.freedesktop.DBus.Error.UnknownMethod") &&
+              IsError(Answer(Call(window, NULL, "GetRole")),
+                      "org.freedesktop.DBus.Error.UnknownMethod"),
+          "an unknown method, and a call of no interface");
     bool empty = true;
     const char* none[] = {"Locale", "AccessibleId", "HelpText"};
     for (int i = 0; i < 3; i++)
@@ -1119,6 +1150,34 @@ static void TestProperties(void)
               GetFails(ok, "org.a11y.atspi.Application", "ToolkitName",
                        "org.freedesktop.DBus.Error.UnknownProperty"),
           "an unknown property, a range's of a button, the application's of a node");
+    const char* unknown = "org.freedesktop.DBus.Error.UnknownProperty";
+    const char* invalid = "org.freedesktop.DBus.Error.InvalidArgs";
+    CHECK(
+        GetFails(ok, "org.a11y.atspi.Action", "Colour", unknown) &&
+            GetFails(slider, "org.a11y.atspi.Value", "Colour", unknown) &&
+            GetFails("/org/a11y/atspi/accessible/w1n7", "org.a11y.atspi.Text", "Colour", unknown) &&
+            GetFails(ROOT_PATH, "org.a11y.atspi.Application", "Colour", unknown),
+        "an unknown property of each interface");
+    // Calls without the arguments they take, or with others.
+    DBusMessage* get = Call(ok, "org.freedesktop.DBus.Properties", "Get");
+    muiDBusIter iter;
+    s_test.dbus.iterInitAppend(get, &iter);
+    (void)s_test.dbus.appendBasic(&iter, mui_dbusTypeString, (const void*)&accessible);
+    DBusMessage* child = Call(window, accessible, "GetChildAtIndex");
+    s_test.dbus.iterInitAppend(child, &iter);
+    (void)s_test.dbus.appendBasic(&iter, mui_dbusTypeString, (const void*)&accessible);
+    DBusMessage* extents = Call(ok, "org.a11y.atspi.Component", "GetExtents");
+    s_test.dbus.iterInitAppend(extents, &iter);
+    const int32_t signed32 = 0;
+    (void)s_test.dbus.appendBasic(&iter, mui_dbusTypeInt32, &signed32);
+    CHECK(IsError(Answer(get), invalid) && IsError(Answer(child), invalid) &&
+              IsError(Answer(extents), invalid),
+          "a property of no name, a child by a string, extents by a signed number");
+    // A node id past 64 bits names no object.
+    CHECK(IsError(Answer(Call("/org/a11y/atspi/accessible/w1n123456789abcdef01", accessible,
+                              "GetRole")),
+                  "org.freedesktop.DBus.Error.UnknownObject"),
+          "an id too long");
     CHECK(IsError(Answer(Call(ok, "org.freedesktop.DBus.Properties", "GetAll")),
                   "org.freedesktop.DBus.Error.InvalidArgs"),
           "GetAll without an interface refused");
@@ -1176,10 +1235,12 @@ static void TestActionsAndValues(void)
     CHECK(PropertyOf(ok, "org.a11y.atspi.Action", "NActions", mui_dbusTypeInt32, &count) &&
               count == 1 && FirstOf(reply, mui_dbusTypeBoolean, &done) && done &&
               s_test.asked.action == mui_actionClick && s_test.asked.target == 2 &&
-              s_test.reentered == mui_errorBusy &&
-              muiAtspiApp_GetMisuse(s_test.app) >= misuse + 3 && muiAtspiApp_GetMisuse(NULL) == 0,
-          "a click listed and done; a call back in from it refused, it, the pump and the "
-          "destroy counted");
+              s_test.reentered == mui_errorBusy && s_test.rescaled == mui_errorBusy &&
+              s_test.recreated == mui_errorBusy &&
+              muiAtspiApp_GetMisuse(s_test.app) >= misuse + 7 && muiAtspiApp_GetMisuse(NULL) == 0,
+          "a click listed and done; calls back in from it refused and counted: applying, "
+          "scaling, placing, making a window, pumping, and destroying the window and the "
+          "application");
     if (reply != NULL)
     {
         s_test.dbus.unrefMessage(reply);
@@ -1257,6 +1318,26 @@ static bool Send(muiAtspiAdapter* adapter, const muiAccessNode* const* nodes, ui
 {
     const muiAccessUpdate update = {nodes, count, children, 0, focus};
     return muiAtspiAdapter_Apply(adapter, &update) == mui_success;
+}
+
+// Send with the fewest allocations the tree takes to hold the nodes:
+// refused with each fewer, and nothing told. The ration stays spent, so
+// what the adapter allocates after fails.
+static bool SendStarved(muiAtspiAdapter* adapter, const muiAccessNode* const* nodes, uint32_t count,
+                        const uint64_t* children)
+{
+    const muiAccessUpdate update = {nodes, count, children, 0, 0};
+    s_test.rationed = true;
+    for (int ration = 0; ration < 8; ration++)
+    {
+        s_test.ration = ration;
+        muiResult result = muiAtspiAdapter_Apply(adapter, &update);
+        if (result != mui_errorCapacity || !EventsAre(""))
+        {
+            return result == mui_success;
+        }
+    }
+    return false;
 }
 
 static void TestEvents(muiAtspiAdapter* adapter, Built* built)
@@ -1346,6 +1427,32 @@ static void TestEvents(muiAtspiAdapter* adapter, Built* built)
     CHECK(Send(adapter, (const muiAccessNode*[]){&scroller}, 1, groupChildren, 0) &&
               EventsAre("ChildrenChanged add 0 w1nb w1nc"),
           "and grown");
+    // Focused, the button 12 stays in the tree out of the scroller, but
+    // is not showing.
+    inner.bounds.x = 500.0f;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&inner}, 1, groupChildren, 12) &&
+              EventsAre("StateChanged focused 0 w1n2; StateChanged focused 1 w1nc"),
+          "a focused node clipped out");
+    CHECK(HasState("/org/a11y/atspi/accessible/w1nc", 30) &&
+              !HasState("/org/a11y/atspi/accessible/w1nc", 25) &&
+              HasState("/org/a11y/atspi/accessible/w1nb", 25),
+          "visible, not showing, its scroller showing");
+    inner.bounds.x = 10.0f;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&inner}, 1, groupChildren, 2) &&
+              EventsAre("StateChanged focused 0 w1nc; StateChanged focused 1 w1n2") &&
+              HasState("/org/a11y/atspi/accessible/w1nc", 25),
+          "and back, showing");
+    // The button 10 placed so far that both its edges pass float's range
+    // at the scale of 2: its extents are the largest place, of no size.
+    const muiAccessNode before = added;
+    added.bounds = (muiRect){3e38f, 3e38f, 3e38f, 3e38f};
+    added.transform = inner.transform;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&added}, 1, groupChildren, 0) && EventsAre("") &&
+              ExtentsAre("/org/a11y/atspi/accessible/w1na", 1, INT32_MAX, INT32_MAX, 0, 0),
+          "a box past float's range");
+    added = before;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&added}, 1, groupChildren, 0) && EventsAre(""),
+          "and back");
     // The generic 3 named, so shown: the label 4 moves under it.
     muiAccessNode generic = built->nodes[2];
     generic.text[mui_accessLabel] = "Greeting";
@@ -1428,6 +1535,49 @@ static void TestEvents(muiAtspiAdapter* adapter, Built* built)
           "siblings reordered");
     CHECK(Send(adapter, (const muiAccessNode*[]){&built->nodes[0]}, 1, built->children, 0) &&
               EventsAre("ChildrenChanged remove -1 w1n1 w1n8; ChildrenChanged add 4 w1n1 w1n8"),
+          "and back");
+    // A name longer than the adapter reads at first is read whole.
+    // 280 bytes: past the 256 it reads into first, within what this
+    // test's listener keeps of an event.
+    static char s_long[281];
+    memset(s_long, 'x', 280);
+    muiAccessNode named = built->nodes[5];
+    named.text[mui_accessLabel] = s_long;
+    named.textLength[mui_accessLabel] = 280;
+    static char s_told[1024];
+    snprintf(s_told, sizeof s_told,
+             "PropertyChange accessible-name 0 w1n6 %s; Announcement  1 w1n6 %s", s_long, s_long);
+    CHECK(Send(adapter, (const muiAccessNode*[]){&named}, 1, built->children, 0) &&
+              EventsAre(s_told),
+          "a long name told whole");
+    CHECK(Send(adapter, (const muiAccessNode*[]){&built->nodes[5]}, 1, built->children, 0) &&
+              EventsAre("PropertyChange accessible-name 0 w1n6 Box; Announcement  1 w1n6 Box"),
+          "and back");
+    // With no memory to read it into, the long name is not told, and
+    // reading it answers that memory ran out.
+    CHECK(SendStarved(adapter, (const muiAccessNode*[]){&named}, 1, built->children) &&
+              EventsAre("") &&
+              GetFails("/org/a11y/atspi/accessible/w1n6", "org.a11y.atspi.Accessible", "Name",
+                       "org.freedesktop.DBus.Error.NoMemory"),
+          "a long name with no memory");
+    s_test.rationed = false;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&built->nodes[5]}, 1, built->children, 0) &&
+              EventsAre("PropertyChange accessible-name 0 w1n6 Box; Announcement  1 w1n6 Box"),
+          "and back with memory");
+    // A new description is told; a placeholder is read in the attributes.
+    muiAccessNode described = built->nodes[5];
+    described.text[mui_accessDescription] = "Options";
+    described.textLength[mui_accessDescription] = 7;
+    described.text[mui_accessPlaceholder] = "Type";
+    described.textLength[mui_accessPlaceholder] = 4;
+    CHECK(Send(adapter, (const muiAccessNode*[]){&described}, 1, built->children, 0) &&
+              EventsAre("PropertyChange accessible-description 0 w1n6 Options"),
+          "a new description told");
+    CHECK(ReplyIs("/org/a11y/atspi/accessible/w1n6", "org.a11y.atspi.Accessible", "GetAttributes",
+                  "level 2 posinset 2 setsize 3 live polite placeholder-text Type"),
+          "the placeholder an attribute");
+    CHECK(Send(adapter, (const muiAccessNode*[]){&built->nodes[5]}, 1, built->children, 0) &&
+              EventsAre("PropertyChange accessible-description 0 w1n6 Settings"),
           "and back");
 }
 
@@ -1574,6 +1724,18 @@ static void TestTextChanges(muiAtspiAdapter* adapter, Built* built, muiAccessNod
               TextIs("GetAttributes", "i", (const int32_t[]){2}, "0 12") &&
               TextIs("GetAttributeValue", "i", (const int32_t[]){2}, ""),
           "attributes not given, the caret not set");
+    CHECK(
+        TextIs("GetDefaultAttributes", "", NULL, "") &&
+            TextIs("GetDefaultAttributeSet", "", NULL, "") &&
+            TextIs("GetBoundedRanges", "iiiiuuu", (const int32_t[]){0, 0, 100, 100, 0, 0, 0}, "") &&
+            TextIs("ScrollSubstringTo", "iiu", (const int32_t[]){0, 2, 0}, "") &&
+            TextIs("ScrollSubstringToPoint", "iiuii", (const int32_t[]){0, 2, 0, 5, 5}, ""),
+        "no default attributes or bounded ranges; no scrolling to a substring");
+    CHECK(IsError(Answer(Call("/org/a11y/atspi/accessible/w1n7", "org.a11y.atspi.Text", "GetText")),
+                  "org.freedesktop.DBus.Error.InvalidArgs") &&
+              AllAre("/org/a11y/atspi/accessible/w1n7", "org.a11y.atspi.Text",
+                     "CharacterCount CaretOffset"),
+          "a call without its arguments refused; the text's properties");
     CHECK(TextIs("GetCharacterExtents", "iu", (const int32_t[]){2, 0}, "520 270 100 40") &&
               TextIs("GetOffsetAtPoint", "iiu", (const int32_t[]){5, 5, 0}, "-1") &&
               TextIs("GetOffsetAtPoint", "iiu", (const int32_t[]){530, 280, 0}, "0"),
@@ -1620,6 +1782,30 @@ static void TestTextChanges(muiAtspiAdapter* adapter, Built* built, muiAccessNod
     CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
               EventsAre("TextChanged delete 0/12 w1n7 h\xC3\xA9llo w\xC3\xB6rld!"),
           "emptied, no caret");
+    // A change whose bytes part inside a character, after a shared first
+    // byte or before a shared last one, is told from that character's
+    // start to its end.
+    static const char* const s_texts[4] = {"h\xC3\xA9", "h\xC3\xA8", "\xC3\xA9", "\xC4\xA9"};
+    static const char* const s_told[4] = {
+        "TextChanged insert 0/2 w1n7 h\xC3\xA9",
+        "TextChanged delete 1/1 w1n7 \xC3\xA9; TextChanged insert 1/1 w1n7 \xC3\xA8",
+        "TextChanged delete 0/2 w1n7 h\xC3\xA8; TextChanged insert 0/1 w1n7 \xC3\xA9",
+        "TextChanged delete 0/1 w1n7 \xC3\xA9; TextChanged insert 0/1 w1n7 \xC4\xA9"};
+    for (int i = 0; i < 4; i++)
+    {
+        input->text[mui_accessValue] = s_texts[i];
+        input->textLength[mui_accessValue] = (uint32_t)strlen(s_texts[i]);
+        CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
+                  EventsAre(s_told[i]),
+              "a change inside a character");
+    }
+    // With no memory to copy the text deleted into, the edit is not told.
+    *input = built->nodes[6];
+    CHECK(SendStarved(adapter, (const muiAccessNode*[]){input}, 1, built->children) &&
+              EventsAre(""),
+          "emptied with no memory, not told");
+    s_test.rationed = false;
+    CHECK(TextIs("GetText", "ii", (const int32_t[]){0, -1}, ""), "emptied");
 }
 
 // Whether the host was last asked to select or replace, at bytes, with
@@ -1814,8 +2000,9 @@ static void TestGone(muiAtspiAdapter* adapter, Built* built)
     CHECK(EventsAre("ChildrenChanged remove -1 root w1n1; StateChanged defunct 1 w1n1") &&
               ChildrenAre(ROOT_PATH, "w3n9") && RoleOf("/org/a11y/atspi/accessible/w3n9") == 23,
           "the first window taken out, the third kept");
-    muiDestroyAtspiAdapter(second);
+    // The third, behind the second in the application's list, first.
     muiDestroyAtspiAdapter(third);
+    muiDestroyAtspiAdapter(second);
     CHECK(EventsAre("ChildrenChanged remove -1 root w3n9; StateChanged defunct 1 w3n9") &&
               ChildrenAre(ROOT_PATH, "") &&
               IsError(Answer(Call("/org/a11y/atspi/accessible/w1n1", "org.a11y.atspi.Accessible",
@@ -1931,6 +2118,10 @@ static void TestLimits(const char* address)
     left = 1;
     CHECK(muiCreateAtspiAdapter(app, &adapterDef, &first) == mui_errorCapacity && first == NULL,
           "no memory for its tree");
+    adapterDef.nodes = MUI_MAX_ACCESS_NODES + 1;
+    CHECK(muiCreateAtspiAdapter(app, &adapterDef, &first) == mui_errorLimit && first == NULL,
+          "a tree past the most nodes");
+    adapterDef.nodes = muiDefaultAtspiAdapterDef().nodes;
     left = 1000;
     CHECK(muiCreateAtspiAdapter(app, &adapterDef, &first) == mui_success &&
               muiCreateAtspiAdapter(app, &adapterDef, &second) == mui_errorCapacity &&
@@ -2088,7 +2279,7 @@ int main(void)
                          NULL);
     muiAtspiAppDef def = muiDefaultAtspiAppDef();
     def.name = "maul test";
-    def.allocator = (muiAllocator){Poisoned, Unpoisoned, NULL};
+    def.allocator = (muiAllocator){Rationed, Unpoisoned, &s_test};
     CHECK(muiCreateAtspiApp(&def, &s_test.app) == mui_success, "the application");
     for (int i = 0; i < 5000 && !muiAtspiApp_IsRegistered(s_test.app); i++)
     {
