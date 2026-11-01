@@ -12,6 +12,7 @@
 
 #include <stdalign.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -102,6 +103,74 @@ static void TestServiceDefs(void)
     CHECK(muiCreateTextService(&bad, &service) == mui_errorInvalid, "half an allocator");
     muiDestroyTextService(NULL);
 }
+
+#if SIZE_MAX == UINT32_MAX
+// An allocator that refuses every block, keeping the size last asked.
+typedef struct Asked
+{
+    uint32_t calls;
+    size_t size;
+} Asked;
+
+static void* RefuseAndKeep(size_t size, size_t alignment, void* context)
+{
+    (void)alignment;
+    Asked* asked = context;
+    asked->calls++;
+    asked->size = size;
+    return NULL;
+}
+
+static void FreeNothing(void* memory, size_t size, size_t alignment, void* context)
+{
+    (void)memory;
+    (void)size;
+    (void)alignment;
+    (void)context;
+}
+
+// The block a service of the most fonts and families and of blocks text
+// blocks asks for, or 0 when it asks for none.
+static size_t AskedFor(uint32_t blocks)
+{
+    Asked asked = {0};
+    muiTextServiceDef def = muiDefaultTextServiceDef();
+    def.allocator = (muiAllocator){RefuseAndKeep, FreeNothing, &asked};
+    def.limits.fonts = MUI_MAX_FONTS;
+    def.limits.fontFamilies = MUI_MAX_FONT_FAMILIES;
+    def.limits.textBlocks = blocks;
+    muiTextService* service = NULL;
+    CHECK(muiCreateTextService(&def, &service) == mui_errorCapacity && service == NULL &&
+              asked.calls <= 1,
+          "refused, after one block at most");
+    return asked.calls != 0 ? asked.size : 0;
+}
+
+// With 32 bits of size, the parts of a service of the most fonts,
+// families and text blocks overflow it: the most blocks that still ask
+// for one ask for most of the address space, and one more is refused
+// without asking, rather than asking for the wrapped size.
+static void TestServiceSizeDoesNotWrap(void)
+{
+    uint32_t low = 1;
+    uint32_t high = MUI_MAX_TEXT_BLOCKS;
+    CHECK(AskedFor(low) != 0 && AskedFor(high) == 0, "the bounds");
+    while (high - low > 1)
+    {
+        uint32_t middle = low + (high - low) / 2;
+        if (AskedFor(middle) != 0)
+        {
+            low = middle;
+        }
+        else
+        {
+            high = middle;
+        }
+    }
+    CHECK(AskedFor(low) > SIZE_MAX / 2 && AskedFor(low + 1) == 0,
+          "the most blocks near the top, one more refused without asking");
+}
+#endif
 
 static void TestCountFaces(void)
 {
@@ -462,6 +531,9 @@ static void TestMetricsChoice(void)
 int main(void)
 {
     TestServiceDefs();
+#if SIZE_MAX == UINT32_MAX
+    TestServiceSizeDoesNotWrap();
+#endif
     TestCountFaces();
     TestAhemMetrics();
     TestFontArguments();
