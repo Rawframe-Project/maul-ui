@@ -5,6 +5,19 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.6.1](https://github.com/Rawframe-Project/maul-ui/compare/v0.6.0...v0.6.1) (2026-11-01)
+
+
+### Fixed
+
+* **atspi:** answer NoMemory, not InvalidArgs, when memory runs out ([#278](https://github.com/Rawframe-Project/maul-ui/issues/278)) ([d260c9c](https://github.com/Rawframe-Project/maul-ui/commit/d260c9cf6bad4c2eb16ceffc7b7d6d9681726fdb)), closes [#274](https://github.com/Rawframe-Project/maul-ui/issues/274)
+* **atspi:** let go of the containers a failed reply opened ([#277](https://github.com/Rawframe-Project/maul-ui/issues/277)) ([0169daf](https://github.com/Rawframe-Project/maul-ui/commit/0169daf3499b6b99b9f5ce5afd0b74e9df59ad3c)), closes [#273](https://github.com/Rawframe-Project/maul-ui/issues/273)
+* **build:** configure again when an embedded test font changes ([#264](https://github.com/Rawframe-Project/maul-ui/issues/264)) ([ec981bb](https://github.com/Rawframe-Project/maul-ui/commit/ec981bb5a577f207863f1408c68d758fd4b779c5)), closes [#263](https://github.com/Rawframe-Project/maul-ui/issues/263)
+* **edit:** count an undo history's bytes in size_t ([#246](https://github.com/Rawframe-Project/maul-ui/issues/246)) ([a8e182a](https://github.com/Rawframe-Project/maul-ui/commit/a8e182acaf28933d2405480c0ac2203ced00f519)), closes [#244](https://github.com/Rawframe-Project/maul-ui/issues/244)
+* **edit:** end a triple click's paragraph at paragraph separators only ([#270](https://github.com/Rawframe-Project/maul-ui/issues/270)) ([014bff7](https://github.com/Rawframe-Project/maul-ui/commit/014bff7b9c84f7bba385db14f70a8cdf8c1495a1)), closes [#269](https://github.com/Rawframe-Project/maul-ui/issues/269)
+* **style:** refuse any token alias that could close a cycle ([#255](https://github.com/Rawframe-Project/maul-ui/issues/255)) ([6116291](https://github.com/Rawframe-Project/maul-ui/commit/6116291281df6c93cbb10cd2336cd27de8b1caaf)), closes [#253](https://github.com/Rawframe-Project/maul-ui/issues/253)
+* **virtual:** set a measured item's sums from their parts ([#232](https://github.com/Rawframe-Project/maul-ui/issues/232)) ([8f6e7c9](https://github.com/Rawframe-Project/maul-ui/commit/8f6e7c9d121358c83b23eee582721fe81021312a)), closes [#231](https://github.com/Rawframe-Project/maul-ui/issues/231)
+
 ## [0.6.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.5.0...v0.6.0) (2026-10-31)
 
 This release finishes the review of Maul UI's API before 1.0.0
