@@ -69,6 +69,30 @@ static void TestSinCosAreAccurate(void)
     }
 }
 
+// The angle of a point, around the circle at radii from 1e-6 to 1e9; the
+// axes exact, and the origin 0, as a sweep gradient takes its centre.
+static void TestAtan2IsAccurate(void)
+{
+    const double pi = 3.14159265358979323846;
+    double worst = 0.0;
+    for (int i = 0; i <= 2000; i++)
+    {
+        double angle = -pi + 2.0 * pi * (double)i / 2000.0;
+        for (int m = 0; m < 6; m++)
+        {
+            double radius = pow(10.0, (double)(m * 3 - 6));
+            double y = radius * sin(angle);
+            double x = radius * cos(angle);
+            worst = fmax(worst, fabs(muiAtan2(y, x) - atan2(y, x)));
+        }
+    }
+    CHECK(worst <= 1e-15, "within 1e-15 around the circle");
+    CHECK(muiAtan2(0.0, 1.0) == 0.0 && muiAtan2(1.0, 0.0) == atan2(1.0, 0.0) &&
+              muiAtan2(0.0, -1.0) == atan2(0.0, -1.0) && muiAtan2(-1.0, 0.0) == atan2(-1.0, 0.0),
+          "the axes");
+    CHECK(muiAtan2(0.0, 0.0) == 0.0, "the origin");
+}
+
 // How far muiCbrt is from the cube root in long double, in units in the
 // last place: the C library's cbrt is itself off by more than one.
 static double UlpsFromCbrt(double x)
@@ -185,6 +209,7 @@ int main(void)
 {
     TestExpIsAccurate();
     TestSinCosAreAccurate();
+    TestAtan2IsAccurate();
     TestLogPowCbrtAreAccurate();
     TestColorsThroughOklab();
     return s_failures == 0 ? 0 : 1;

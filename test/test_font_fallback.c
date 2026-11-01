@@ -339,12 +339,73 @@ static void TestContract(void)
     FreeScene(&scene);
 }
 
+// A family of a new copy of MaulItalic, its fallbacks new copies too but
+// for Liberation Sans at sansAt (none past 8).
+static uint64_t ItalicFamily(Scene* scene, uint32_t sansAt)
+{
+    muiFontId face = MakeFont(scene->service, s_italic, sizeof s_italic);
+    uint64_t fallbacks[8];
+    for (uint32_t i = 0; i < 8; i++)
+    {
+        fallbacks[i] = i == sansAt
+                           ? muiFont_GetKey(scene->liberation)
+                           : muiFont_GetKey(MakeFont(scene->service, s_italic, sizeof s_italic));
+    }
+    muiFontFamilyDef def = muiDefaultFontFamilyDef();
+    def.faces = &face;
+    def.faceCount = 1;
+    def.fallbacks = fallbacks;
+    def.fallbackCount = 8;
+    muiFontFamilyId family = {0, 0};
+    CHECK(muiCreateFontFamily(scene->service, &def, &family) == mui_success, "a family");
+    return muiFontFamily_GetKey(family);
+}
+
+// Whether B of "AAAB" is drawn in Liberation Sans, each byte in a span
+// naming a family of nine faces of its own, in MaulItalic: the fourth
+// family's fallbacks have Liberation Sans at sansAt. Four runs either way.
+static bool FourthFamilysB(uint32_t sansAt)
+{
+    Scene scene = MakeScene();
+    (void)Show(&scene, muiFont_GetKey(scene.maul), "AAAB");
+    muiTextSpan spans[4];
+    for (uint32_t i = 0; i < 4; i++)
+    {
+        spans[i] = (muiTextSpan){i, 1, FONT, muiDefaultTextStyle()};
+        spans[i].style.font = ItalicFamily(&scene, i == 3 ? sansAt : 8);
+    }
+    CHECK(muiTextBlock_SetSpans(scene.service, scene.block, spans, 4) == mui_success &&
+              muiNode_MarkContentChanged(scene.context, scene.node) == mui_success,
+          "four families");
+    const muiLayoutInput input = {1000.0f, 1000.0f, muiMeasureText, &scene.host,
+                                  0,       NULL,    {0, 0, 0, 0}};
+    CHECK(muiNode_ComputeLayout(scene.context, scene.node, &input) == mui_success, "layout");
+    muiDrawList list = Paint(&scene);
+    CHECK(list.commandCount == 4 && list.commands[3].glyphRun.glyphCount == 1, "four runs");
+    bool sans = list.commandCount == 4 &&
+                list.commands[3].glyphRun.font == muiFont_GetKey(scene.liberation);
+    FreeScene(&scene);
+    return sans;
+}
+
+// A paragraph tries at most 32 faces: the node's MaulItalic, then the
+// nine of each family in turn. The fourth family's last five fallbacks
+// are left out, so a B only Liberation Sans among them has is drawn
+// missing in the family's own face; one place earlier, the 32nd face,
+// Liberation draws it.
+static void TestThirtyTwoFaces(void)
+{
+    CHECK(FourthFamilysB(2), "the 32nd face tried");
+    CHECK(!FourthFamilysB(3), "the 33rd left out");
+}
+
 int main(void)
 {
     TestServiceFallbacks();
     TestClusters();
     TestChoosing();
     TestFamilyFallbacks();
+    TestThirtyTwoFaces();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }

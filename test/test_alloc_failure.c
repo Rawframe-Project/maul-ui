@@ -430,6 +430,31 @@ static void Composing(World* world)
           "composing");
 }
 
+// A composition at the start of a short first line, the caret in it,
+// longer lines below: painting the composition's lines needs more boxes
+// than following the caret did.
+static void ComposingShortLine(World* world)
+{
+    char text[502] = "x\n";
+    memcpy(text + 2, s_long, 500);
+    CHECK(muiTextBlock_SetText(world->service, world->block, text, sizeof text) == mui_success &&
+              muiNode_MarkContentChanged(world->context, world->node) == mui_success &&
+              muiTextBlock_Select(world->service, world->block,
+                                  (muiTextSelection){0, {0, mui_affinityDownstream}}) ==
+                  mui_success &&
+              muiTextBlock_Compose(world->service, world->block, "\xE3\x81\x8B", 3, 3, NULL, 0,
+                                   NULL) == mui_success,
+          "composing on a short line");
+}
+
+// The long text with its first ten bytes selected.
+static void Selected(World* world)
+{
+    Lengthen(world);
+    const muiTextSelection some = {0, {10, mui_affinityDownstream}};
+    CHECK(muiTextBlock_Select(world->service, world->block, some) == mui_success, "selected");
+}
+
 static muiResult Type(World* world)
 {
     bool changed;
@@ -618,6 +643,37 @@ static muiResult Move(World* world)
                                                 mui_moveLineDown, 0.0f, &at);
     world->output = MixPosition(0, at);
     return status;
+}
+
+// One cluster right on screen, at a width that lays each paragraph on
+// one line, on the last: longer than the first, the caret's, whose boxes
+// the layout makes to follow it, so the move grows the boxes itself.
+static muiResult MoveRight(World* world)
+{
+    muiTextPosition at = {0, mui_affinityDownstream};
+    muiResult status = muiNode_MoveTextPosition(
+        &world->host, world->node, 100000.0f,
+        (muiTextPosition){sizeof s_long - 5, mui_affinityDownstream}, mui_moveRight, 0.0f, &at);
+    world->output = MixPosition(0, at);
+    return status;
+}
+
+// A line up from where the caret is drawn, no x given, from the line
+// MoveRight moves on.
+static muiResult MoveUpFromCaret(World* world)
+{
+    muiTextPosition at = {0, mui_affinityDownstream};
+    muiResult status =
+        muiNode_MoveTextPosition(&world->host, world->node, 100000.0f,
+                                 (muiTextPosition){sizeof s_long - 5, mui_affinityDownstream},
+                                 mui_moveLineUp, (float)NAN, &at);
+    world->output = MixPosition(0, at);
+    return status;
+}
+
+static muiResult EditMoveRight(World* world)
+{
+    return muiNode_MoveEditCaret(&world->host, world->node, mui_moveRight, false);
 }
 
 static muiResult EditMove(World* world)
@@ -819,6 +875,7 @@ static const Step s_steps[] = {
     {"muiNode_BuildDrawList in run styles", Spanned, Draw, true},
     {"muiNode_BuildDrawList of a password", Masked, Draw, true},
     {"muiNode_BuildDrawList of a composition", Composing, Draw, true},
+    {"muiNode_BuildDrawList of a composition on a short line", ComposingShortLine, Draw, true},
     {"muiNode_HitTestText", Lengthen, HitTest, false},
     {"muiNode_GetTextCaret", Lengthen, Caret, false},
     {"muiNode_GetTextRangeRects", Lengthen, RangeRects, false},
@@ -827,6 +884,9 @@ static const Step s_steps[] = {
     {"muiNode_GetTextCaret scrolled", Scrolled, Caret, false},
     {"muiNode_GetTextRangeRects scrolled", Scrolled, RangeRects, false},
     {"muiNode_MoveTextPosition scrolled", Scrolled, Move, false},
+    {"muiNode_MoveTextPosition right", Lengthen, MoveRight, false},
+    {"muiNode_MoveTextPosition up from the caret", Lengthen, MoveUpFromCaret, false},
+    {"muiNode_MoveEditCaret right over a selection", Selected, EditMoveRight, false},
     {"muiNode_MoveEditCaret", Lengthen, EditMove, false},
     {"muiNode_MoveEditCaret from the end", Scrolled, EditMove, false},
     {"muiNode_MoveEditCaret down", Lengthen, EditMoveDown, false},

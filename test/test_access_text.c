@@ -429,6 +429,23 @@ static void TestGeometry(void)
     wrong.marks.clusterCount = 11;
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid,
           "clusters on a line said to have none");
+    // The first line's clusters left out: a range over both lines takes it
+    // across the node up to where the second starts; a range on the second
+    // alone does not touch it.
+    badBoxes[0] = (muiAccessLineBox){0.0f, 10.0f, 0, true};
+    badBoxes[1] = (muiAccessLineBox){10.0f, 20.0f, 0, false};
+    wrong.marks.clusters = s_clusters + 6;
+    wrong.marks.clusterCount = 5;
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success &&
+              muiAccessTree_GetTextRects(tree, 1, 2, 9, rects, 2, &count) == mui_success &&
+              count == 2 && rects[0].x == 100.0f && rects[0].width == 80.0f &&
+              rects[0].y == 50.0f && rects[1].x == 100.0f && rects[1].width == 28.0f &&
+              rects[1].y == 70.0f &&
+              muiAccessTree_GetTextRects(tree, 1, 8, 10, rects, 2, &count) == mui_success &&
+              count == 1 && rects[0].y == 70.0f &&
+              muiAccessTree_GetTextOffsetAt(tree, 1, 150.0f, 55.0f, &offset) == mui_success &&
+              offset == 0,
+          "a first line whose clusters are left out");
     // Without geometry: nothing to answer by.
     node.marks = (muiAccessTextMarks){0};
     sent[0] = &node;

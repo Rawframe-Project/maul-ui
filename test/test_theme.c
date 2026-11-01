@@ -466,6 +466,42 @@ static void TestSubtreesReadTheirTheme(void)
     muiDestroyContext(context);
 }
 
+// A token whose alias leads to a token that is gone gives a node no
+// value: its type, a zero member and mui_empty, through the context's
+// alias or a theme's.
+static void TestAliasToAGoneToken(void)
+{
+    muiContext* context = MakeContext();
+    muiNodeId root = MakeChild(context, s_nullNode);
+    muiNodeId themed = MakeChild(context, root);
+    muiNodeId item = MakeChild(context, themed);
+    muiTokenId target = MakeToken(context, s_red);
+    muiTokenId link = MakeToken(context, s_light);
+    muiTokenId accent = MakeToken(context, s_light);
+    muiTokenId other = MakeToken(context, s_blue);
+    muiThemeId theme = MakeTheme(context);
+    CHECK(muiToken_SetAlias(context, link, target) == mui_success &&
+              muiTheme_SetTokenAlias(context, theme, accent, other) == mui_success &&
+              muiNode_SetTheme(context, themed, theme) == mui_success,
+          "aliases set");
+    CHECK(muiDestroyToken(context, target) == mui_success &&
+              muiDestroyToken(context, other) == mui_success,
+          "their targets go");
+    Layout(context, root);
+    muiTokenValue value = Color(s_dark);
+    CHECK(muiNode_GetTokenValue(context, root, link, &value) == mui_empty &&
+              value.type == mui_tokenColor && SameColor(value.color, (muiColor){0}),
+          "the context's alias to a token gone");
+    value = Color(s_dark);
+    CHECK(muiNode_GetTokenValue(context, item, accent, &value) == mui_empty &&
+              value.type == mui_tokenColor && SameColor(value.color, (muiColor){0}),
+          "a theme's alias to a token gone");
+    CHECK(muiNode_GetTokenValue(context, root, accent, &value) == mui_success &&
+              SameColor(value.color, s_light),
+          "outside the theme, the token's own value");
+    muiDestroyContext(context);
+}
+
 static void TestNestedThemes(void)
 {
     muiContext* context = MakeContext();
@@ -543,6 +579,7 @@ int main(void)
     TestCycleClosedByAReset();
     TestEveryOverride();
     TestSubtreesReadTheirTheme();
+    TestAliasToAGoneToken();
     TestNestedThemes();
     TestDepth();
     return s_failures == 0 ? 0 : 1;
