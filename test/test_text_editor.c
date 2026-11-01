@@ -220,8 +220,14 @@ static void TestCalls(void)
     CHECK(muiTextBlock_Erase(scene.service, scene.block, 2, NULL) == mui_errorInvalid,
           "a deletion out of range");
     CHECK(muiDestroyTextBlock(scene.service, other) == mui_success &&
-              muiTextBlock_Type(scene.service, other, "a", 1, NULL) == mui_errorStale,
+              muiTextBlock_Type(scene.service, other, "a", 1, NULL) == mui_errorStale &&
+              muiTextBlock_SetEditing(scene.service, other, &def) == mui_errorStale &&
+              muiTextBlock_ClearEditing(scene.service, other) == mui_errorStale &&
+              muiTextBlock_SetSpans(scene.service, other, NULL, 0) == mui_errorStale,
           "a block gone");
+    const muiTextHost noContext = {scene.service, NULL};
+    CHECK(muiNode_MoveEditCaret(&noContext, scene.node, mui_moveRight, false) == mui_errorInvalid,
+          "a host without its context");
     FreeScene(&scene);
 }
 
@@ -260,6 +266,23 @@ static void TestTyping(void)
     Type(&scene, "X");
     CHECK(Holds(&scene, "X cdq"), "replaced");
     CHECK(Undo(&scene) && Holds(&scene, "ab cdq") && Selects(&scene, 0, 2), "the selection back");
+    FreeScene(&scene);
+    // After a character of more than one byte, as after any letter, typing
+    // goes on in the same word; after a no-break space, U+00A0, it starts
+    // a new one.
+    scene = MakeScene("", 0);
+    Type(&scene, "\xC3\xA9");
+    Type(&scene, "b");
+    Type(&scene, "\xC2\xA0");
+    Type(&scene, "c");
+    CHECK(Holds(&scene, "\xC3\xA9"
+                        "b\xC2\xA0"
+                        "c") &&
+              Undo(&scene) &&
+              Holds(&scene, "\xC3\xA9"
+                            "b\xC2\xA0") &&
+              Undo(&scene) && Holds(&scene, ""),
+          "words after characters of two bytes");
     FreeScene(&scene);
 }
 
@@ -432,6 +455,15 @@ static void TestParagraphSeparators(void)
     CHECK(muiNode_HandleEditPress(&scene.host, scene.node, 1.0f, 5.0f, 3, false) == mui_success &&
               Selects(&scene, 0, 8),
           "a triple click: a, the euro sign, the dagger and b, up to the line separator");
+    FreeScene(&scene);
+    // NEL, U+0085, separates paragraphs too.
+    scene = MakeScene("ab\xC2\x85"
+                      "cd",
+                      mui_editMultiline);
+    Layout(&scene);
+    CHECK(muiNode_HandleEditPress(&scene.host, scene.node, 1.0f, 5.0f, 3, false) == mui_success &&
+              Selects(&scene, 0, 2),
+          "a triple click up to NEL");
     FreeScene(&scene);
 }
 
@@ -772,6 +804,9 @@ static void TestPcKeys(void)
               !Key(&scene, mui_keymapPc, &clipboard, CODE_F1, 0, 0).handled &&
               !Key(&scene, mui_keymapPc, &clipboard, mui_codeArrowLeft, 0, mui_modAlt).handled,
           "AltGr, F1 and Alt and left not taken");
+    // On AZERTY the key at A types q: Control and q is no shortcut.
+    CHECK(!Key(&scene, mui_keymapPc, &clipboard, CODE_A, 'q', ctrl).handled,
+          "Control and a letter of no shortcut");
     FreeScene(&scene);
 }
 
@@ -809,6 +844,7 @@ static void TestMacKeys(void)
     CHECK(!Key(&scene, mui_keymapMac, &clipboard, CODE_A, 'a', mui_modControl).handled &&
               !Key(&scene, mui_keymapMac, &clipboard, mui_codeArrowLeft, 0, mui_modControl).handled,
           "Control left to the host");
+    CHECK(!Key(&scene, mui_keymapMac, &clipboard, CODE_F1, 0, 0).handled, "F1 left to the host");
     FreeScene(&scene);
 }
 

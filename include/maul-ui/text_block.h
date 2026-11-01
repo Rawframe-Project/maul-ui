@@ -363,8 +363,10 @@ extern "C"
     /// @return Whether the key names a block; false, too, when memory
     ///         for a password's bullets runs out, for a NULL contentOut
     ///         or while the service is busy, which counts one misuse.
-    ///         Lines and words that cannot be read for want of memory or
-    ///         a font are left out.
+    ///         Lines and words are given whole or not at all: when any
+    ///         line, or its clusters, cannot be read for want of memory or
+    ///         a font, no lines are given, and when any word cannot, no
+    ///         words; the text is given still.
     /// @par Thread safety
     /// Safe from any thread; the service and context are used by one
     /// thread at a time.
