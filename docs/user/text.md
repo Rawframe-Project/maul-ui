@@ -148,6 +148,8 @@ static muiResult Embolden(muiContext* context, muiTextService* service, muiNodeI
 
 A font family (`muiCreateFontFamily`) holds faces and picks one by weight, width and slant as CSS does, setting a variable font's axes from the style. A style with a weight a face cannot reach gets a synthetic bold, and an italic with no italic face gets a slant.
 
+A paragraph tries at most 32 faces in all: its node's style's own, then the ones its spans' fonts add, a face they share counted once. A face past the 32nd is never tried, so a paragraph whose spans name many families can miss a character only such a face has.
+
 ## What to expect
 
 - Text measures the same on every machine and at every device scale, since nothing is hinted and the dependencies are pinned.
