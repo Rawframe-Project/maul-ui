@@ -167,7 +167,7 @@ static bool AppendSpanAt(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
                          const muiAccessText* text, const char* member, bool* ok)
 {
     int32_t args[2] = {0, 0};
-    *ok = ReadInts(&app->dbus, call, "iu", args);
+    *ok = muiAtspiTaken(app, ReadInts(&app->dbus, call, "iu", args));
     bool string = strcmp(member, "GetStringAtOffset") == 0;
     uint32_t grain = string ? (uint32_t)args[1] : GrainOfBoundary((uint32_t)args[1]);
     uint32_t at = ByteOf(text, args[0]);
@@ -227,7 +227,7 @@ static bool AppendRead(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
     int32_t args[2] = {0, 0};
     if (strcmp(member, "GetText") == 0)
     {
-        *ok = ReadInts(dbus, call, "ii", args);
+        *ok = muiAtspiTaken(app, ReadInts(dbus, call, "ii", args));
         uint32_t start = ByteOf(text, args[0]);
         uint32_t end = args[1] < 0 ? text->length : ByteOf(text, args[1]);
         Span span = {start, end > start ? end : start};
@@ -244,7 +244,7 @@ static bool AppendRead(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
     }
     else if (strcmp(member, "GetCharacterAtOffset") == 0)
     {
-        *ok = ReadInts(dbus, call, "i", args);
+        *ok = muiAtspiTaken(app, ReadInts(dbus, call, "i", args));
         const int32_t point = args[0] < 0 ? 0 : PointAt(text, ByteOf(text, args[0]));
         *ok = *ok && dbus->appendBasic(iter, mui_dbusTypeInt32, &point);
     }
@@ -284,29 +284,29 @@ static bool Select(const muiAtspiObject* object, const muiAccessText* text, int3
 
 // The answers that set the selection: the caret placed, the one
 // selection set, added where there is none, or taken back to the caret.
-static muiDBusBool SetSelection(DBusMessage* call, const muiAtspiObject* object,
-                                const muiAccessText* text, const char* member,
-                                const muiDBusApi* dbus, bool* ok)
+static muiDBusBool SetSelection(muiAtspiApp* app, DBusMessage* call, const muiAtspiObject* object,
+                                const muiAccessText* text, const char* member, bool* ok)
 {
+    const muiDBusApi* dbus = &app->dbus;
     int32_t args[3] = {0, 0, 0};
     Span selection = SelectionOf(text);
     bool none = selection.start == selection.end;
     if (strcmp(member, "SetCaretOffset") == 0)
     {
-        *ok = ReadInts(dbus, call, "i", args);
+        *ok = muiAtspiTaken(app, ReadInts(dbus, call, "i", args));
         return *ok && Select(object, text, args[0], args[0]);
     }
     if (strcmp(member, "SetSelection") == 0)
     {
-        *ok = ReadInts(dbus, call, "iii", args);
+        *ok = muiAtspiTaken(app, ReadInts(dbus, call, "iii", args));
         return *ok && args[0] == 0 && Select(object, text, args[1], args[2]);
     }
     if (strcmp(member, "AddSelection") == 0)
     {
-        *ok = ReadInts(dbus, call, "ii", args);
+        *ok = muiAtspiTaken(app, ReadInts(dbus, call, "ii", args));
         return *ok && none && Select(object, text, args[0], args[1]);
     }
-    *ok = ReadInts(dbus, call, "i", args);
+    *ok = muiAtspiTaken(app, ReadInts(dbus, call, "i", args));
     int32_t caret = PointsBefore(text, text->marks->focus);
     return *ok && args[0] == 0 && !none && Select(object, text, caret, caret);
 }
@@ -327,7 +327,7 @@ static bool AppendSelection(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* ca
     }
     else if (strcmp(member, "GetSelection") == 0)
     {
-        *ok = ReadInts(dbus, call, "i", args);
+        *ok = muiAtspiTaken(app, ReadInts(dbus, call, "i", args));
         Span chosen = args[0] == 0 ? selection : (Span){0, 0};
         const int32_t start = PointsBefore(text, chosen.start);
         const int32_t end = PointsBefore(text, chosen.end);
@@ -337,7 +337,7 @@ static bool AppendSelection(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* ca
     else if (strcmp(member, "SetCaretOffset") == 0 || strcmp(member, "SetSelection") == 0 ||
              strcmp(member, "AddSelection") == 0 || strcmp(member, "RemoveSelection") == 0)
     {
-        const muiDBusBool done = SetSelection(call, object, text, member, dbus, ok);
+        const muiDBusBool done = SetSelection(app, call, object, text, member, ok);
         *ok = *ok && dbus->appendBasic(iter, mui_dbusTypeBoolean, &done);
     }
     else if (strcmp(member, "ScrollSubstringTo") == 0 ||
@@ -396,18 +396,18 @@ static bool AppendGeometry(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* cal
     {
         // The character to the next; the last offset a client can name
         // is past any text's end.
-        *ok = ReadInts(&app->dbus, call, "iu", args) &&
+        *ok = muiAtspiTaken(app, ReadInts(&app->dbus, call, "iu", args)) &&
               AppendRangeExtents(app, iter, object, text, args[0],
                                  args[0] < INT32_MAX ? args[0] + 1 : args[0], (uint32_t)args[1]);
     }
     else if (strcmp(member, "GetRangeExtents") == 0)
     {
-        *ok = ReadInts(&app->dbus, call, "iiu", args) &&
+        *ok = muiAtspiTaken(app, ReadInts(&app->dbus, call, "iiu", args)) &&
               AppendRangeExtents(app, iter, object, text, args[0], args[1], (uint32_t)args[2]);
     }
     else if (strcmp(member, "GetOffsetAtPoint") == 0)
     {
-        *ok = ReadInts(&app->dbus, call, "iiu", args);
+        *ok = muiAtspiTaken(app, ReadInts(&app->dbus, call, "iiu", args));
         float x = 0.0f;
         float y = 0.0f;
         uint32_t at = 0;
@@ -486,7 +486,8 @@ bool muiAtspiAnswerText(muiAtspiApp* app, DBusMessage* call, const muiAtspiObjec
     if (!ok)
     {
         app->dbus.unrefMessage(reply);
-        reply = app->dbus.newError(call, ERROR_INVALID_ARGS, member);
+        muiAtspiFail(app, call, member);
+        return true;
     }
     muiAtspiSend(app, call, reply);
     return true;
