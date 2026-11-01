@@ -9,7 +9,7 @@ host_call: allocator fpenv
 layout_node: tree outline
 pool: invariant
 token_store: invariant pool
-theme_store: pool token_store
+theme_store: invariant pool token_store
 draw_store:
 property: color invariant property_bits outline
 condition: property_bits
