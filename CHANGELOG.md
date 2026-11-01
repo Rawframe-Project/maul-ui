@@ -5,6 +5,71 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.6.1](https://github.com/Rawframe-Project/maul-ui/compare/v0.6.0...v0.6.1) (2026-11-01)
+
+This release fixes what the 1.0.0 hardening pass
+([#233](https://github.com/Rawframe-Project/maul-ui/issues/233)) found.
+A virtual list no longer hides items after one estimated far above its
+measure, token aliases can no longer form a cycle through themes, an
+undo history past 4 GiB no longer overwrites itself, and the AT-SPI
+adapter no longer leaks or answers `InvalidArgs` when memory runs out.
+The API and ABI are the same as in 0.6.0. Layouts, draw lists, shaped
+text and glyph images are the same, except a virtual list's offsets as
+said below. Debug and sanitizer builds now check more of the library's
+internal invariants; Release builds do not.
+
+### Changed
+
+- The AT-SPI adapter needs libdbus 1.12 or later, which it loads when
+  the application is created. With an older libdbus,
+  `muiCreateAtspiApp` answers `mui_errorPlatform`, as it does when the
+  accessibility bus cannot be reached
+  ([#277](https://github.com/Rawframe-Project/maul-ui/pull/277)).
+
+### Fixed
+
+- Virtual lists: measuring an item estimated far above its size lost
+  the change to rounding, so the items after it could be placed on top
+  of it. With three items estimated at 1e30 and item 0 measured at 10,
+  item 1 began at 0 instead of 10, and a Debug build stopped at an
+  assertion. Every offset is now exactly what a fresh build from the
+  sizes gives; elsewhere offsets can differ from 0.6.0's in the last
+  bits of a double
+  ([#232](https://github.com/Rawframe-Project/maul-ui/pull/232)).
+- Style: token aliases could form a cycle through a theme, after a
+  theme's reset, or across nested themes, which left the tokens in it
+  `mui_empty` on the nodes under the theme. The aliases of the context
+  and of every live theme, taken together, now never form a cycle:
+  `muiToken_SetAlias` and `muiTheme_SetTokenAlias` refuse an alias that
+  could close one with `mui_errorInvalid` and count one misuse. This
+  also refuses some aliases that no nesting of themes would close
+  ([#255](https://github.com/Rawframe-Project/maul-ui/pull/255)).
+- Text component: an editing block's undo history counted its bytes in
+  32 bits. Past 4 GiB of recorded edits it wrapped, wrote new edits over
+  older ones, and an undo put back the wrong bytes. A 64-bit history now
+  grows past 4 GiB, given the memory; a 32-bit one refuses the edit that
+  would not fit with `mui_errorCapacity` and keeps the text and the
+  history
+  ([#246](https://github.com/Rawframe-Project/maul-ui/pull/246)).
+- Text component: a triple click selected a paragraph up to any
+  mandatory line break. It now ends at the paragraph separators of
+  UAX #9 only (LF, CR, U+001C to U+001E, NEL and U+2029), as AppKit
+  does, so it selects across U+2028, a vertical tab or a form feed
+  ([#270](https://github.com/Rawframe-Project/maul-ui/pull/270)).
+- AT-SPI: a reply or event that failed part-way through, for want of
+  memory, leaked the D-Bus containers it had opened. They are now let
+  go
+  ([#277](https://github.com/Rawframe-Project/maul-ui/pull/277)).
+- AT-SPI: a call on the `Accessible`, `Component`, `Action` or `Text`
+  interface that ran out of memory answered
+  `org.freedesktop.DBus.Error.InvalidArgs`, telling the screen reader
+  its call was wrong. It now answers `NoMemory`, as `Properties`
+  already did; `InvalidArgs` is kept for bad arguments
+  ([#278](https://github.com/Rawframe-Project/maul-ui/pull/278)).
+- Building the tests: a regenerated test font now makes CMake configure
+  again, so the tests embed its new bytes
+  ([#264](https://github.com/Rawframe-Project/maul-ui/pull/264)).
+
 ## [0.6.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.5.0...v0.6.0) (2026-10-31)
 
 This release finishes the review of Maul UI's API before 1.0.0
