@@ -189,13 +189,13 @@ static bool ReadCoordinates(const muiDBusApi* dbus, DBusMessage* call, uint32_t*
 // Writes (ii...) of some of the extents.
 static bool AppendInts(muiAtspiApp* app, muiDBusIter* iter, const int32_t* values, int count)
 {
-    muiDBusIter tuple;
+    muiDBusIter tuple = {0};
     bool ok = app->dbus.openContainer(iter, mui_dbusTypeStruct, nullptr, &tuple);
     for (int i = 0; i < count && ok; i++)
     {
         ok = app->dbus.appendBasic(&tuple, mui_dbusTypeInt32, &values[i]);
     }
-    return ok && app->dbus.closeContainer(iter, &tuple);
+    return muiAtspiClose(app, iter, &tuple, ok);
 }
 
 static bool Act(const muiAtspiObject* object, muiAccessAction action)

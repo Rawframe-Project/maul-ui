@@ -1578,12 +1578,15 @@ static void TestEvents(muiAtspiAdapter* adapter, Built* built)
               EventsAre("PropertyChange accessible-name 0 w1n6 Box; Announcement  1 w1n6 Box"),
           "and back");
     // With no memory to read it into, the long name is not told, and
-    // reading it answers that memory ran out.
-    CHECK(SendStarved(adapter, (const muiAccessNode*[]){&named}, 1, built->children) &&
-              EventsAre("") &&
-              GetFails("/org/a11y/atspi/accessible/w1n6", "org.a11y.atspi.Accessible", "Name",
-                       "org.freedesktop.DBus.Error.NoMemory"),
-          "a long name with no memory");
+    // reading it answers that memory ran out. GetAll fails inside the
+    // array and the entry it opened, which are let go whole.
+    CHECK(
+        SendStarved(adapter, (const muiAccessNode*[]){&named}, 1, built->children) &&
+            EventsAre("") &&
+            GetFails("/org/a11y/atspi/accessible/w1n6", "org.a11y.atspi.Accessible", "Name",
+                     "org.freedesktop.DBus.Error.NoMemory") &&
+            AllAre("/org/a11y/atspi/accessible/w1n6", "org.a11y.atspi.Accessible", "out of memory"),
+        "a long name with no memory");
     s_test.rationed = false;
     CHECK(Send(adapter, (const muiAccessNode*[]){&built->nodes[5]}, 1, built->children, 0) &&
               EventsAre("PropertyChange accessible-name 0 w1n6 Box; Announcement  1 w1n6 Box"),

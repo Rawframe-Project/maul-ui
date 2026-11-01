@@ -76,18 +76,18 @@ static bool AppendActions(muiAtspiApp* app, muiDBusIter* iter, const muiAccessNo
     const char* keys = node->text[mui_accessKeyboardShortcut] != nullptr
                            ? node->text[mui_accessKeyboardShortcut]
                            : "";
-    muiDBusIter array;
+    muiDBusIter array = {0};
     bool ok = dbus->openContainer(iter, mui_dbusTypeArray, "(sss)", &array);
     for (uint32_t i = 0; ok && ActionAt(node, i) != nullptr; i++)
     {
-        muiDBusIter entry;
+        muiDBusIter entry = {0};
         ok = dbus->openContainer(&array, mui_dbusTypeStruct, nullptr, &entry) &&
              muiAtspiAppendString(app, &entry, ActionAt(node, i)->name) &&
              muiAtspiAppendString(app, &entry, none) &&
-             muiAtspiAppendString(app, &entry, i == 0 ? keys : none) &&
-             dbus->closeContainer(&array, &entry);
+             muiAtspiAppendString(app, &entry, i == 0 ? keys : none);
+        ok = muiAtspiClose(app, &array, &entry, ok);
     }
-    return ok && dbus->closeContainer(iter, &array);
+    return muiAtspiClose(app, iter, &array, ok);
 }
 
 // Writes the answer of an Action method; false for an unknown one, with

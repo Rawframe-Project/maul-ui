@@ -356,9 +356,9 @@ static bool AppendSelection(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* ca
 // Writes an empty a{ss}.
 static bool AppendNoAttributes(muiAtspiApp* app, muiDBusIter* iter)
 {
-    muiDBusIter array;
-    return app->dbus.openContainer(iter, mui_dbusTypeArray, "{ss}", &array) &&
-           app->dbus.closeContainer(iter, &array);
+    muiDBusIter array = {0};
+    bool ok = app->dbus.openContainer(iter, mui_dbusTypeArray, "{ss}", &array);
+    return muiAtspiClose(app, iter, &array, ok);
 }
 
 // Writes the extents of characters from one to another in a coordinate
@@ -451,9 +451,9 @@ static bool AppendOther(muiAtspiApp* app, muiDBusIter* iter, const muiAccessText
     }
     else if (strcmp(member, "GetBoundedRanges") == 0)
     {
-        muiDBusIter array;
-        *ok = dbus->openContainer(iter, mui_dbusTypeArray, "(iisv)", &array) &&
-              dbus->closeContainer(iter, &array);
+        muiDBusIter array = {0};
+        *ok = muiAtspiClose(app, iter, &array,
+                            dbus->openContainer(iter, mui_dbusTypeArray, "(iisv)", &array));
     }
     else
     {

@@ -44,8 +44,8 @@ static void EmitOf(muiAtspiApp* app, const muiAtspiObject* from, const char* int
     }
     const int32_t none = 0;
     muiDBusIter iter;
-    muiDBusIter variant;
-    muiDBusIter properties;
+    muiDBusIter variant = {0};
+    muiDBusIter properties = {0};
     dbus->iterInitAppend(signal, &iter);
     bool ok = muiAtspiAppendString(app, &iter, kind) &&
               dbus->appendBasic(&iter, mui_dbusTypeInt32, &details[0]) &&
@@ -53,16 +53,16 @@ static void EmitOf(muiAtspiApp* app, const muiAtspiObject* from, const char* int
     if (ok && any != nullptr && any->object != nullptr)
     {
         ok = dbus->openContainer(&iter, mui_dbusTypeVariant, "(so)", &variant) &&
-             muiAtspiAppendReference(app, &variant, any->object) &&
-             dbus->closeContainer(&iter, &variant);
+             muiAtspiAppendReference(app, &variant, any->object);
+        ok = muiAtspiClose(app, &iter, &variant, ok);
     }
     else if (ok)
     {
         ok = any != nullptr ? muiAtspiAppendVariant(app, &iter, any->type, any->value)
                             : muiAtspiAppendVariant(app, &iter, mui_dbusTypeInt32, &none);
     }
-    ok = ok && dbus->openContainer(&iter, mui_dbusTypeArray, "{sv}", &properties) &&
-         dbus->closeContainer(&iter, &properties);
+    ok = muiAtspiClose(app, &iter, &properties,
+                       ok && dbus->openContainer(&iter, mui_dbusTypeArray, "{sv}", &properties));
     if (ok)
     {
         (void)dbus->send(app->connection, signal, nullptr);
