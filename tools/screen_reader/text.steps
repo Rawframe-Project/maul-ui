@@ -20,6 +20,9 @@ key Return
 type two
 key Up
 key Down
+# The line the caret reached, read when asked: the reader's own reading
+# after Down came before the caret's move on a busy runner.
+line
 hold shift Tab
 # Said by Orca, NVDA and VoiceOver alike, in this order: the field
 # named as the second Tab reaches it, then the words as Control+Left
