@@ -70,10 +70,16 @@ static Span UnitAt(const muiAccessText* text, muiAccessUnit unit, uint32_t at)
 }
 
 // The word at a byte, or the one before: from its start to the next
-// word's, or the text's end; none before the first.
+// word's, or the text's end. The text's start is a word start too, as
+// GTK, Chrome and Firefox read it, so the bytes before the first word
+// are one; none when no words are given.
 static Span WordAt(const muiAccessText* text, uint32_t at)
 {
     const muiAccessTextMarks* marks = text->marks;
+    if (marks->wordCount == 0)
+    {
+        return (Span){at, at};
+    }
     uint32_t found = UINT32_MAX;
     for (uint32_t i = 0; i < marks->wordCount && marks->words[i].start <= at; i++)
     {
@@ -81,7 +87,7 @@ static Span WordAt(const muiAccessText* text, uint32_t at)
     }
     if (found == UINT32_MAX)
     {
-        return (Span){at, at};
+        return (Span){0, marks->words[0].start};
     }
     uint32_t end = found + 1 < marks->wordCount ? marks->words[found + 1].start : text->length;
     return (Span){marks->words[found].start, end};
