@@ -413,7 +413,8 @@ static void Spanned(World* world)
 // own, so the text is broken in run styles, a hyphen, then more Vs than
 // a line holds. The line breaks after the hyphen, where shaping is
 // unsafe, so each line is shaped alone, the second longer than the
-// first.
+// first. The node keeps its width and, at the root's start, takes its
+// height from its text, so a layout shows a measure that failed.
 static void UnsafeBreak(World* world)
 {
     static char text[2 + 120];
@@ -422,7 +423,12 @@ static void UnsafeBreak(World* world)
     muiFontId font = Font(world, s_breakTest, sizeof s_breakTest);
     muiTextSpan span = {0, 1, MUI_PROPERTY_BIT(mui_propertyFontSize), muiDefaultTextStyle()};
     span.style.size = (muiDimension){0.0f, 12.0f, mui_dimensionValue};
-    CHECK(muiTextService_SetDefaultFont(world->service, font) == mui_success &&
+    muiLayoutStyle style = muiDefaultLayoutStyle();
+    style.item.alignSelf = mui_alignStart;
+    CHECK(muiNode_SetLayoutValues(world->context, world->node, &style,
+                                  MUI_PROPERTY_BIT(mui_propertyHeight) |
+                                      MUI_PROPERTY_BIT(mui_propertyAlignSelf)) == mui_success &&
+              muiTextService_SetDefaultFont(world->service, font) == mui_success &&
               muiTextBlock_SetText(world->service, world->block, text, sizeof text) ==
                   mui_success &&
               muiTextBlock_SetSpans(world->service, world->block, &span, 1) == mui_success &&
