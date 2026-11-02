@@ -36,6 +36,7 @@
 
 #include "ahem.inc"
 #include "bitmap.inc"
+#include "break_test.inc"
 #include "color.inc"
 #include "liberation_sans.inc"
 
@@ -406,6 +407,27 @@ static void Spanned(World* world)
 {
     Lengthen(world);
     CHECK(SetSpans(world) == mui_success, "spans");
+}
+
+// In the font that kerns a hyphen against a V: an A in a size of its
+// own, so the text is broken in run styles, a hyphen, then more Vs than
+// a line holds. The line breaks after the hyphen, where shaping is
+// unsafe, so each line is shaped alone, the second longer than the
+// first.
+static void UnsafeBreak(World* world)
+{
+    static char text[2 + 120];
+    memcpy(text, "A-", 2);
+    memset(text + 2, 'V', sizeof text - 2);
+    muiFontId font = Font(world, s_breakTest, sizeof s_breakTest);
+    muiTextSpan span = {0, 1, MUI_PROPERTY_BIT(mui_propertyFontSize), muiDefaultTextStyle()};
+    span.style.size = (muiDimension){0.0f, 12.0f, mui_dimensionValue};
+    CHECK(muiTextService_SetDefaultFont(world->service, font) == mui_success &&
+              muiTextBlock_SetText(world->service, world->block, text, sizeof text) ==
+                  mui_success &&
+              muiTextBlock_SetSpans(world->service, world->block, &span, 1) == mui_success &&
+              muiNode_MarkContentChanged(world->context, world->node) == mui_success,
+          "an unsafe break in run styles");
 }
 
 // The long text as a password, shown as bullets.
@@ -870,6 +892,7 @@ static const Step s_steps[] = {
     {"muiNode_ComputeLayout by baselines", Aligned, Layout, true},
     {"muiNode_ComputeLayout in run styles", Spanned, Layout, true},
     {"muiNode_ComputeLayout of a password", Masked, Layout, true},
+    {"muiNode_ComputeLayout at an unsafe break", UnsafeBreak, Layout, true},
     {"muiNode_BuildDrawList", Lengthen, Draw, true},
     {"muiNode_BuildDrawList scrolled", Scrolled, Draw, true},
     {"muiNode_BuildDrawList in run styles", Spanned, Draw, true},
@@ -884,6 +907,7 @@ static const Step s_steps[] = {
     {"muiNode_GetTextCaret scrolled", Scrolled, Caret, false},
     {"muiNode_GetTextRangeRects scrolled", Scrolled, RangeRects, false},
     {"muiNode_MoveTextPosition scrolled", Scrolled, Move, false},
+    {"muiNode_HitTestText at an unsafe break", UnsafeBreak, HitTest, false},
     {"muiNode_MoveTextPosition right", Lengthen, MoveRight, false},
     {"muiNode_MoveTextPosition up from the caret", Lengthen, MoveUpFromCaret, false},
     {"muiNode_MoveEditCaret right over a selection", Selected, EditMoveRight, false},
