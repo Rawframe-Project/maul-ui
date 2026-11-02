@@ -5,6 +5,29 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.6.2](https://github.com/Rawframe-Project/maul-ui/compare/v0.6.1...v0.6.2) (2026-11-02)
+
+This release fixes what the 1.0.0 hardening pass
+([#233](https://github.com/Rawframe-Project/maul-ui/issues/233)) found
+in the text queries a host calls with a content box width: they now
+refuse a width that is no size instead of answering NaN or infinite
+positions. The API and ABI are the same as in 0.6.1. Layouts, draw
+lists, shaped text and glyph images are the same.
+
+### Fixed
+
+- Text component: `muiNode_HitTestText`, `muiNode_GetTextCaret`,
+  `muiNode_GetTextRangeRects` and `muiNode_MoveTextPosition` laid out
+  a NaN, infinite or negative width as a size. They answered
+  `mui_success` with a NaN or infinite caret x or rectangles, and moved
+  an editing block's scroll to follow a caret laid out at that width.
+  Each now refuses such a width with `mui_errorInvalid` before laying
+  anything out, so its outputs and the editing scroll stay as they
+  were. `muiNode_GetTextCaret` also refuses an affinity out of range,
+  as `muiNode_MoveTextPosition` already did, where it read one as
+  downstream
+  ([#290](https://github.com/Rawframe-Project/maul-ui/pull/290)).
+
 ## [0.6.1](https://github.com/Rawframe-Project/maul-ui/compare/v0.6.0...v0.6.1) (2026-11-01)
 
 This release fixes what the 1.0.0 hardening pass
