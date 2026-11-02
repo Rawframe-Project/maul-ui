@@ -1720,7 +1720,8 @@ static bool TextIs(const char* member, const char* types, const int32_t* args, c
 
 // The text input 7 given "héllo wörld\nnext", the caret after h: two
 // lines, three words. Characters, words, lines, paragraphs; the older
-// boundary methods; no sentences.
+// boundary methods; no sentences. Then two spaces before a word, and the
+// text put back.
 static void TestTextReads(muiAtspiAdapter* adapter, Built* built, muiAccessNode* input)
 {
     static const char s_value[] = "h\xC3\xA9llo w\xC3\xB6rld\nnext";
@@ -1764,6 +1765,28 @@ static void TestTextReads(muiAtspiAdapter* adapter, Built* built, muiAccessNode*
               TextIs("GetTextAfterOffset", "iu", (const int32_t[]){13, 5}, "16 16") &&
               TextIs("GetTextAtOffset", "iu", (const int32_t[]){7, 2}, "0 0"),
           "the older boundaries: word and line starts");
+    static const char s_spaced[] = "  h\xC3\xA9llo";
+    static const muiAccessWord s_spacedWords[1] = {{2, 8}};
+    input->text[mui_accessValue] = s_spaced;
+    input->textLength[mui_accessValue] = sizeof s_spaced - 1;
+    input->marks = (muiAccessTextMarks){1, 1, true, s_lines, 1, s_spacedWords, 1, NULL, NULL, 0};
+    CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
+              EventsAre("TextChanged delete 0/16 w1n7 h\xC3\xA9llo w\xC3\xB6rld\nnext; "
+                        "TextChanged insert 0/7 w1n7   h\xC3\xA9llo; TextCaretMoved  1 w1n7") &&
+              TextIs("GetStringAtOffset", "iu", (const int32_t[]){0, 1}, "   0 2") &&
+              TextIs("GetStringAtOffset", "iu", (const int32_t[]){1, 1}, "   0 2") &&
+              TextIs("GetStringAtOffset", "iu", (const int32_t[]){2, 1}, "h\xC3\xA9llo 2 7") &&
+              TextIs("GetTextAfterOffset", "iu", (const int32_t[]){0, 1}, "h\xC3\xA9llo 2 7") &&
+              TextIs("GetTextBeforeOffset", "iu", (const int32_t[]){3, 1}, "   0 2") &&
+              TextIs("GetTextBeforeOffset", "iu", (const int32_t[]){1, 1}, "0 0"),
+          "the bytes before the first word: a word from the text's start");
+    input->text[mui_accessValue] = s_value;
+    input->textLength[mui_accessValue] = sizeof s_value - 1;
+    input->marks = (muiAccessTextMarks){1, 1, true, s_lines, 2, s_words, 3, NULL, NULL, 0};
+    CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
+              EventsAre("TextChanged delete 0/7 w1n7   h\xC3\xA9llo; TextChanged insert 0/16 w1n7 "
+                        "h\xC3\xA9llo w\xC3\xB6rld\nnext; TextCaretMoved  1 w1n7"),
+          "the text put back");
 }
 
 // Selecting, editing and the rest of the interface: selections; text
