@@ -5,6 +5,13 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.6.2](https://github.com/Rawframe-Project/maul-ui/compare/v0.6.1...v0.6.2) (2026-11-02)
+
+
+### Fixed
+
+* **text:** refuse a width that is no size in the text queries ([#290](https://github.com/Rawframe-Project/maul-ui/issues/290)) ([91efa5f](https://github.com/Rawframe-Project/maul-ui/commit/91efa5f980a80e5527ad6aa741825aa0a644ff4f)), closes [#289](https://github.com/Rawframe-Project/maul-ui/issues/289)
+
 ## [0.6.1](https://github.com/Rawframe-Project/maul-ui/compare/v0.6.0...v0.6.1) (2026-11-01)
 
 This release fixes what the 1.0.0 hardening pass
