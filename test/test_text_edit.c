@@ -898,6 +898,23 @@ static void TestContract(void)
                   mui_errorInvalid &&
               caret.x == 7.0f,
           "carets and ranges outside the contract");
+    // A content box's width is a size: finite, not negative.
+    muiTextPosition sideways = {0, (muiTextAffinity)2};
+    count = 7;
+    CHECK(muiNode_HitTestText(&scene.host, scene.node, NAN, 0.0f, 0.0f, &position) ==
+                  mui_errorInvalid &&
+              muiNode_HitTestText(&scene.host, scene.node, -1.0f, 0.0f, 0.0f, &position) ==
+                  mui_errorInvalid &&
+              muiNode_GetTextCaret(&scene.host, scene.node, INFINITY, position, &caret) ==
+                  mui_errorInvalid &&
+              muiNode_GetTextCaret(&scene.host, scene.node, 100.0f, sideways, &caret) ==
+                  mui_errorInvalid &&
+              muiNode_GetTextRangeRects(&scene.host, scene.node, NAN, 0, 1, rects, 2, &count) ==
+                  mui_errorInvalid &&
+              muiNode_MoveTextPosition(&scene.host, scene.node, -INFINITY, position, mui_moveRight,
+                                       NAN, &position) == mui_errorInvalid &&
+              position.offset == 7 && caret.x == 7.0f && count == 7,
+          "a width that is no size, or an affinity out of range");
     CHECK(muiNode_MoveTextPosition(NULL, scene.node, 100.0f, position, mui_moveRight, NAN,
                                    &position) == mui_errorInvalid &&
               muiNode_MoveTextPosition(&scene.host, scene.node, 100.0f, position, mui_moveRight,

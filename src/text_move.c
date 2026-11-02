@@ -180,7 +180,7 @@ static bool Move(const muiLaidText* laid, muiTextPosition from, muiTextMovement 
 muiResult muiMoveText(const muiTextHost* host, muiNodeId nodeId, float width, muiTextPosition from,
                       muiTextMovement movement, float preferredX, muiTextPosition* positionOut)
 {
-    if (!muiIsTextHostValid(host) || positionOut == nullptr ||
+    if (!muiIsTextHostValid(host) || !muiIsTextWidthValid(width) || positionOut == nullptr ||
         (uint32_t)movement > mui_moveTextEnd || (uint32_t)from.affinity > mui_affinityUpstream)
     {
         return mui_errorInvalid;
