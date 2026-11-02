@@ -152,9 +152,10 @@ extern "C"
     /// @param x            The point, from the content box's top left.
     /// @param y            Likewise.
     /// @param positionOut  Receives the position; unchanged on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a point
-    ///         not finite; `mui_errorStale` for a node, block or font that is
-    ///         gone; `mui_errorCapacity` when memory runs out; `mui_errorBusy`
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a width
+    ///         not finite or negative, or a point not finite;
+    ///         `mui_errorStale` for a node, block or font that is gone;
+    ///         `mui_errorCapacity` when memory runs out; `mui_errorBusy`
     ///         while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
@@ -174,7 +175,9 @@ extern "C"
     /// @param width     The node's content box width.
     /// @param position  The position; an offset past the text is its end.
     /// @param caretOut  Receives the caret; unchanged on failure.
-    /// @return As muiNode_HitTestText; `mui_errorBusy` while the service is busy.
+    /// @return As muiNode_HitTestText, `mui_errorInvalid` also for an
+    ///         affinity out of range; `mui_errorBusy` while the service is
+    ///         busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.
@@ -223,10 +226,11 @@ extern "C"
     ///                     the caret had before the first vertical move;
     ///                     NaN for from's own caret x. Not read otherwise.
     /// @param positionOut  Receives the position; unchanged on failure.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
-    ///         movement or an affinity out of range; `mui_errorStale` for a
-    ///         node, block or font that is gone; `mui_errorCapacity` when
-    ///         memory runs out; `mui_errorBusy` while the service is busy.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a width
+    ///         not finite or negative, a movement or an affinity out of
+    ///         range; `mui_errorStale` for a node, block or font that is
+    ///         gone; `mui_errorCapacity` when memory runs out; `mui_errorBusy`
+    ///         while the service is busy.
     /// @par Thread safety
     /// Safe from any thread; the host's context and service are used by
     /// one thread at a time.

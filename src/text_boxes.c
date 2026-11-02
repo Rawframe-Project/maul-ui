@@ -235,6 +235,11 @@ bool muiIsTextHostValid(const muiTextHost* host)
     return host != nullptr && host->service != nullptr && host->context != nullptr;
 }
 
+bool muiIsTextWidthValid(float width)
+{
+    return isfinite(width) && width >= 0.0f;
+}
+
 // The line a position is on: the first whose next line starts after it,
 // or the one before when it keeps upstream to that line's end.
 uint32_t muiLineOfPosition(const muiLaidText* laid, muiTextPosition position)

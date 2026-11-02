@@ -18,7 +18,8 @@
 muiResult muiHitText(const muiTextHost* host, muiNodeId nodeId, float width, float x, float y,
                      muiTextPosition* positionOut)
 {
-    if (!muiIsTextHostValid(host) || positionOut == nullptr || !isfinite(x) || !isfinite(y))
+    if (!muiIsTextHostValid(host) || !muiIsTextWidthValid(width) || positionOut == nullptr ||
+        !isfinite(x) || !isfinite(y))
     {
         return mui_errorInvalid;
     }
@@ -68,7 +69,8 @@ muiResult muiNode_HitTestText(const muiTextHost* host, muiNodeId nodeId, float w
 muiResult muiCaretOf(const muiTextHost* host, muiNodeId nodeId, float width,
                      muiTextPosition position, muiTextCaret* caretOut)
 {
-    if (!muiIsTextHostValid(host) || caretOut == nullptr)
+    if (!muiIsTextHostValid(host) || !muiIsTextWidthValid(width) || caretOut == nullptr ||
+        (uint32_t)position.affinity > mui_affinityUpstream)
     {
         return mui_errorInvalid;
     }
@@ -145,7 +147,8 @@ static muiResult TextGetRangeRects(const muiTextHost* host, muiNodeId nodeId, fl
                                    uint32_t start, uint32_t end, muiRect* rects, uint32_t capacity,
                                    uint32_t* countOut)
 {
-    if (!muiIsTextHostValid(host) || countOut == nullptr || (rects == nullptr && capacity != 0))
+    if (!muiIsTextHostValid(host) || !muiIsTextWidthValid(width) || countOut == nullptr ||
+        (rects == nullptr && capacity != 0))
     {
         return mui_errorInvalid;
     }
