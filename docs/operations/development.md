@@ -33,6 +33,8 @@ ctest --test-dir out/linux-clang-20-asan -LE integration   # what needs no devic
 
 Add a CI cell as a preset, never as commands in a workflow. `linux-parts` builds the reference renderer and the window glue with the samples, on Maul Window's headless test backend, and runs the renderer's pixels and the samples on lavapipe. [Test environments](test-environments.md) covers the presets of the other platforms. `tools/check.sh` runs the Linux checks in tiers ([Checks](checks.md)): `changed` before every push, `pr` and `full` through the workspace's heavy-job wrapper on the shared development machine.
 
+No preset or CI job measures coverage. To see which lines the tests run, configure a tree with gcc-14 and `-DMAUL_UI_COVERAGE=ON` and run its tests one at a time (`ctest -j1`). Tests run side by side write the same `.gcda` files, and a run with `-j4` has reported lines as unrun that a serial run of the same tree shows run.
+
 ## Generated files
 
 These are committed, because a build must not need their generators' tools:
