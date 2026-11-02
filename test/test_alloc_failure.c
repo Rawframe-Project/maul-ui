@@ -389,6 +389,15 @@ static muiResult Replace(World* world)
     return muiTextBlock_Replace(world->service, world->block, 1, 2, s_long, 500);
 }
 
+// Bytes put in the middle of the shaped text, so the next layout shapes
+// again only their paragraph, its tables grown past the text before.
+static void Replaced(World* world)
+{
+    CHECK(Replace(world) == mui_success &&
+              muiNode_MarkContentChanged(world->context, world->node) == mui_success,
+          "replaced");
+}
+
 static muiResult SetSpans(World* world)
 {
     muiTextSpan spans[3];
@@ -894,6 +903,7 @@ static const Step s_steps[] = {
     {"muiTextBlock_SetComposition", NULL, SetComposition, false},
     {"muiMeasureText", Lengthen, Measure, false},
     {"muiMeasureTextBaseline", Lengthen, Baseline, false},
+    {"muiMeasureText after a replacement", Replaced, Measure, false},
     {"muiNode_ComputeLayout", Shrunk, Layout, true},
     {"muiNode_ComputeLayout by baselines", Aligned, Layout, true},
     {"muiNode_ComputeLayout in run styles", Spanned, Layout, true},
