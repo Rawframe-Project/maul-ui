@@ -15,7 +15,7 @@
 // @guidepup/guidepup is installed where Node finds it. The
 // sample, built with a window, starts and is given the keyboard; the
 // screen reader starts; the steps go to it as keys, in the steps files'
-// form (key, type, hold, wait, focus, expect, heard). <out-dir> receives
+// form (key, type, hold, wait, focus, line, expect, heard). <out-dir> receives
 // speech.txt, a line per utterance, steps.txt, each step with what was
 // said after it (and, on the web, what the page had focused; on Windows,
 // what UI Automation reports focused), on macOS
@@ -238,6 +238,16 @@ for (const line of readFileSync(steps, "utf8").split("\n")) {
     // The reader asked to say what has the focus (NVDA's Insert+Tab), as
     // a user does; where the reader has no such command, nothing.
     const command = reader.keyboardCommands?.reportCurrentFocus;
+    if (command) {
+      await reader.perform(command);
+    }
+  } else if (verb === "line") {
+    // The reader asked to read the line at the caret (NVDA's Insert+Up,
+    // VoiceOver's VO+L) once the key before it has settled. NVDA reads
+    // the line after Up or Down only once the caret has moved, and waits
+    // for the move only briefly: on a busy runner it read the line the
+    // caret had left.
+    const command = reader.keyboardCommands?.readLine;
     if (command) {
       await reader.perform(command);
     }

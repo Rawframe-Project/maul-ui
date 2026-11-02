@@ -19,6 +19,8 @@
 #   wait 2            seconds to wait
 #   focus             the reader asked what has the focus, where it has
 #                     such a command (NVDA's); nothing here
+#   line              the reader asked to read the line at the caret
+#                     (NVDA's and VoiceOver's); nothing here
 #   expect Notes      a phrase the reader must have said, in any case,
 #                     after the phrase expected before it; every screen
 #                     reader's walk checks it
@@ -104,7 +106,7 @@ dbus-run-session -- bash -c '
           xdotool keydown "$1"; sleep 0.3; xdotool key "$2"; sleep 1.5
           xdotool keyup "$1"; sleep 0.5 ;;
       wait) sleep "$rest" ;;
-      expect|heard|focus) continue ;;
+      expect|heard|focus|line) continue ;;
       *) echo "unknown step: $verb" >&2 ;;
       esac
       echo "$verb $rest" >>"$WALK_OUT/steps.txt"

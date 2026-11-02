@@ -18,8 +18,13 @@ hold shift Left
 key BackSpace
 key Return
 type two
+# After each line move, the line the caret reached, read when asked:
+# the reader's own reading after Up or Down came before the caret's
+# move on a busy runner.
 key Up
+line
 key Down
+line
 hold shift Tab
 # Said by Orca, NVDA and VoiceOver alike, in this order: the field
 # named as the second Tab reaches it, then the words as Control+Left
