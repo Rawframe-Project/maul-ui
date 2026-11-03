@@ -529,10 +529,10 @@ static void TestIllFormed(void)
 // Whether a deletion from an offset of the block's text removes the
 // bytes from start up to end.
 static bool Deletes(Scene* scene, const char* text, uint32_t offset, muiTextDeletion deletion,
-                    uint32_t start, uint32_t end)
+                    size_t start, uint32_t end)
 {
-    uint32_t from = 99;
-    uint32_t to = 99;
+    size_t from = 99;
+    size_t to = 99;
     return muiTextBlock_SetText(scene->service, scene->block, text, strlen(text)) == mui_success &&
            muiTextBlock_FindDeletion(scene->service, scene->block, offset, deletion, &from, &to) ==
                mui_success &&
@@ -573,8 +573,8 @@ static void TestDeletion(void)
               Deletes(&scene, "a\xF3\xA0\x84\x80", 5, back, 0, 5) &&
               Deletes(&scene, "a\r\n", 3, back, 1, 3) && Deletes(&scene, "a\n", 2, back, 1, 2),
           "a variation selector, a CR LF");
-    uint32_t start = 7;
-    uint32_t end = 7;
+    size_t start = 7;
+    size_t end = 7;
     muiTextBlockId none = {0, 0};
     CHECK(muiTextBlock_FindDeletion(NULL, scene.block, 0, back, &start, &end) == mui_errorInvalid &&
               muiTextBlock_FindDeletion(scene.service, none, 0, back, &start, &end) ==
@@ -639,13 +639,25 @@ static void TestReplace(void)
                   mui_errorInvalid &&
               TextIs(&scene, "therethere!"),
           "replacing outside the contract");
+    // Where size_t has 64 bits, an offset past 32 bits is past the text,
+    // not the offset its low bits name: 2^32 + 1 is not 1.
+    if (sizeof(size_t) > sizeof(uint32_t))
+    {
+        const size_t far = (size_t)UINT32_MAX + 2;
+        CHECK(muiTextBlock_Replace(scene.service, scene.block, far, far, "x", 1) ==
+                      mui_errorInvalid &&
+                  muiTextBlock_Replace(scene.service, scene.block, 1, far, "x", 1) ==
+                      mui_errorInvalid &&
+                  TextIs(&scene, "therethere!"),
+              "an offset past 32 bits");
+    }
     CHECK(muiTextBlock_GetText(NULL, scene.block, &own, &length) == mui_errorInvalid &&
               muiTextBlock_GetText(scene.service, scene.block, NULL, &length) == mui_errorInvalid &&
               muiTextBlock_GetText(scene.service, scene.block, &own, NULL) == mui_errorInvalid,
           "reading outside the contract");
     muiTextBlockId gone = scene.block;
-    uint32_t start = 0;
-    uint32_t end = 0;
+    size_t start = 0;
+    size_t end = 0;
     CHECK(muiDestroyTextBlock(scene.service, gone) == mui_success &&
               muiTextBlock_Replace(scene.service, gone, 0, 0, "x", 1) == mui_errorStale &&
               muiTextBlock_GetText(scene.service, gone, &own, &length) == mui_errorStale &&
@@ -711,8 +723,8 @@ static bool UnderlinesAre(const muiDrawList* list, const float* spans, uint32_t 
 
 static bool CompositionIs(Scene* scene, uint32_t start, uint32_t length)
 {
-    uint32_t at = 99;
-    uint32_t size = 99;
+    size_t at = 99;
+    size_t size = 99;
     return muiTextBlock_GetComposition(scene->service, scene->block, &at, &size) == mui_success &&
            at == start && size == length;
 }
@@ -825,8 +837,8 @@ static void TestCompositionContract(void)
                                           MUI_MAX_COMPOSITION_SEGMENTS) == mui_success &&
               TextIs(&scene, "xyab"),
           "compositions outside the contract");
-    uint32_t at = 7;
-    uint32_t size = 7;
+    size_t at = 7;
+    size_t size = 7;
     CHECK(muiTextBlock_EndComposition(NULL, scene.block) == mui_errorInvalid &&
               muiTextBlock_EndComposition(scene.service, none) == mui_errorInvalid &&
               muiTextBlock_GetComposition(NULL, scene.block, &at, &size) == mui_errorInvalid &&

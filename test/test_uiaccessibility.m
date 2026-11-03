@@ -69,7 +69,7 @@ static muiAccessNode* Add(Built* built, uint64_t id, muiRole role, const char* l
     {
         muiAccessTextKind kind = role == mui_roleLabel ? mui_accessValue : mui_accessLabel;
         node->text[kind] = label;
-        node->textLength[kind] = (uint32_t)strlen(label);
+        node->textLength[kind] = strlen(label);
     }
     built->sent[built->nodeCount++] = node;
     return node;
@@ -571,7 +571,7 @@ static void TestTextPlaces(muiUikitAdapter* adapter, id<UITextInput> field, muiA
 static void TestText(muiUikitAdapter* adapter, id root, const Built* built)
 {
     static const char s_value[] = "h\xC3\xA9llo \xF0\x9D\x84\x9E\nnext";
-    static const uint32_t s_lines[2] = {0, 12};
+    static const size_t s_lines[2] = {0, 12};
     static const muiAccessWord s_words[2] = {{0, 6}, {12, 16}};
     muiAccessNode input = built->nodes[7];
     input.role = mui_roleTextInput;

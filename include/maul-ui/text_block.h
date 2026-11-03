@@ -134,8 +134,8 @@ extern "C"
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_Replace(muiTextService* service,
-                                                         muiTextBlockId blockId, uint32_t start,
-                                                         uint32_t end, const char* text,
+                                                         muiTextBlockId blockId, size_t start,
+                                                         size_t end, const char* text,
                                                          size_t length);
 
     enum
@@ -151,8 +151,8 @@ extern "C"
     // turns into; Maul UI parses none.
     typedef struct muiTextSpan
     {
-        uint32_t start;
-        uint32_t length;
+        size_t start;
+        size_t length;
         muiPropertyMask mask;
         muiTextStyle style;
     } muiTextSpan;

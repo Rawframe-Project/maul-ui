@@ -99,7 +99,7 @@ static HRESULT STDMETHODCALLTYPE Text(muiUiaValue* self, BSTR* out)
         return ELEMENT_GONE;
     }
     const char* text = held->text[mui_accessValue];
-    uint32_t length = held->textLength[mui_accessValue];
+    size_t length = held->textLength[mui_accessValue];
     int wide = text != nullptr && length != 0 && length <= INT32_MAX
                    ? MultiByteToWideChar(CP_UTF8, 0, text, (int)length, nullptr, 0)
                    : 0;

@@ -149,7 +149,8 @@ extern "C"
     ///         root listed, or a node under itself; or a node whose marks do
     ///         not fit its value text: offsets past it or inside a character,
     ///         lines not ascending from 0, words out of order or empty;
-    ///         `mui_errorBusy` while the tree is busy.
+    ///         `mui_errorLimit` for a node with a text longer than
+    ///         MUI_MAX_TEXT_BYTES; `mui_errorBusy` while the tree is busy.
     /// @par Thread safety
     /// Safe from any thread; the tree is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiAccessTree_Apply(muiAccessTree* tree,
@@ -322,8 +323,8 @@ extern "C"
     /// @par Thread safety
     /// Safe from any thread; the tree is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiAccessTree_GetTextRects(const muiAccessTree* tree,
-                                                               uint64_t id, uint32_t start,
-                                                               uint32_t end, muiRect* rectsOut,
+                                                               uint64_t id, size_t start,
+                                                               size_t end, muiRect* rectsOut,
                                                                uint32_t capacity,
                                                                uint32_t* countOut);
 
@@ -344,7 +345,7 @@ extern "C"
     /// Safe from any thread; the tree is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiAccessTree_GetTextOffsetAt(const muiAccessTree* tree,
                                                                   uint64_t id, float x, float y,
-                                                                  uint32_t* offsetOut);
+                                                                  size_t* offsetOut);
 
     /// Writes the tree as text, a node a line in tree order, indented by
     /// depth: its role's name, its id's index, and its flags, actions,

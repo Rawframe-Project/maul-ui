@@ -200,8 +200,10 @@ static bool TellEdits(muiAtspiApp* app, const muiAtspiObject* object, const muiA
     const muiAccessNode* now = object->node;
     const char* a = old->text[mui_accessValue] != nullptr ? old->text[mui_accessValue] : "";
     const char* b = now->text[mui_accessValue] != nullptr ? now->text[mui_accessValue] : "";
-    uint32_t aLength = old->text[mui_accessValue] != nullptr ? old->textLength[mui_accessValue] : 0;
-    uint32_t bLength = now->text[mui_accessValue] != nullptr ? now->textLength[mui_accessValue] : 0;
+    uint32_t aLength =
+        (uint32_t)(old->text[mui_accessValue] != nullptr ? old->textLength[mui_accessValue] : 0);
+    uint32_t bLength =
+        (uint32_t)(now->text[mui_accessValue] != nullptr ? now->textLength[mui_accessValue] : 0);
     if (aLength == bLength && memcmp(a, b, aLength) == 0)
     {
         return false;
@@ -250,8 +252,8 @@ static void SelectionOf(const muiAccessNode* node, int32_t endsOut[2])
     endsOut[1] = -1;
     if (text != nullptr && marks->selected && marks->anchor != marks->focus)
     {
-        int32_t anchor = (int32_t)muiAccessPointsBefore(text, marks->anchor);
-        int32_t focus = (int32_t)muiAccessPointsBefore(text, marks->focus);
+        int32_t anchor = (int32_t)muiAccessPointsBefore(text, (uint32_t)marks->anchor);
+        int32_t focus = (int32_t)muiAccessPointsBefore(text, (uint32_t)marks->focus);
         endsOut[0] = anchor < focus ? anchor : focus;
         endsOut[1] = anchor < focus ? focus : anchor;
     }
@@ -271,9 +273,11 @@ static void TellText(muiAtspiApp* app, const muiAtspiObject* object, const muiAc
     bool edited = muiAccessIsEdited(now) && TellEdits(app, object, old);
     const char* oldText = old->text[mui_accessValue] != nullptr ? old->text[mui_accessValue] : "";
     const char* text = now->text[mui_accessValue] != nullptr ? now->text[mui_accessValue] : "";
-    int32_t was =
-        old->marks.selected ? (int32_t)muiAccessPointsBefore(oldText, old->marks.focus) : -1;
-    int32_t is = now->marks.selected ? (int32_t)muiAccessPointsBefore(text, now->marks.focus) : -1;
+    int32_t was = old->marks.selected
+                      ? (int32_t)muiAccessPointsBefore(oldText, (uint32_t)old->marks.focus)
+                      : -1;
+    int32_t is =
+        now->marks.selected ? (int32_t)muiAccessPointsBefore(text, (uint32_t)now->marks.focus) : -1;
     if (is >= 0 && (is != was || edited))
     {
         Emit(app, object, "TextCaretMoved", "", is, nullptr);

@@ -123,7 +123,7 @@ static muiResult SetLabel(muiContext* context, muiTextService* service, muiNodeI
 }
 ```
 
-Text crosses the API as UTF-8 with a byte length. A string passed with a pointer, as a parameter or in a record such as `muiTextEvent` or `muiAccessRequest`, has a `size_t` length. An offset or a range inside a text (a `muiTextPosition`, a span, a composition, a selection) is a `uint32_t` byte offset. Every text Maul UI holds is at most `MUI_MAX_TEXT_BYTES` (2^31 - 1) bytes, so every offset, one past the end included, fits. A call that would take a text past it is refused with `mui_errorLimit` before it reads a byte, in every build: creating or setting a block, a replacement, typing, a paste, a composition, an accessibility text, a routed text event, and a replacement an assistive technology asks for.
+Text crosses the API as UTF-8 with a byte length. A string passed with a pointer, as a parameter or in a record such as `muiTextEvent` or `muiAccessRequest`, has a `size_t` length, and an offset or a range inside a text (a `muiTextPosition`, a span, a composition, a selection, an accessibility text's marks) is a `size_t` byte offset too, the type Maul Unicode and Maul Window give theirs. An offset that can be absent is `MUI_NO_OFFSET`. Every text Maul UI holds is at most `MUI_MAX_TEXT_BYTES` (2^31 - 1) bytes; an offset past a text is refused as any offset out of it is. A call that would take a text past it is refused with `mui_errorLimit` before it reads a byte, in every build: creating or setting a block, a replacement, typing, a paste, a composition, an accessibility text, a routed text event, and a replacement an assistive technology asks for.
 
 ## Spans
 
@@ -132,7 +132,7 @@ Spans style parts of a block's text over the node's style: color, decoration, fo
 ```c
 // Makes bytes from start up to end of a label's text bold.
 static muiResult Embolden(muiContext* context, muiTextService* service, muiNodeId label,
-                          muiTextBlockId block, uint32_t start, uint32_t end)
+                          muiTextBlockId block, size_t start, size_t end)
 {
     muiTextSpan bold = {start, end - start, MUI_PROPERTY_BIT(mui_propertyFontWeight),
                         muiDefaultTextStyle()};

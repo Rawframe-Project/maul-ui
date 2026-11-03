@@ -444,7 +444,7 @@ static muiAccessUpdate Build(Built* built)
     muiAccessNode* input = Add(built, 7, mui_roleTextInput, "Name", 10, 150, 200, 24);
     input->flags = mui_accessFocusable;
     // Edited, the caret before its second word.
-    static const uint32_t s_lines[1] = {0};
+    static const size_t s_lines[1] = {0};
     static const muiAccessWord s_words[2] = {{0, 3}, {4, 12}};
     input->text[mui_accessValue] = "Ada Lovelace";
     input->textLength[mui_accessValue] = 12;

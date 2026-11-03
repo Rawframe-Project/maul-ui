@@ -102,7 +102,7 @@ static void Show(muiAtspiAdapter* adapter)
                                    .bounds = {0.0f, 0.0f, 100.0f, 20.0f},
                                    .transform = {1.0f, 0.0f, 0.0f, 1.0f, 10.0f, 30.0f * (float)i}};
         nodes[i].text[kind] = labels[i];
-        nodes[i].textLength[kind] = (uint32_t)strlen(labels[i]);
+        nodes[i].textLength[kind] = strlen(labels[i]);
     }
     nodes[0].childCount = 4;
     nodes[0].firstChild = 0;
@@ -119,7 +119,7 @@ static void Show(muiAtspiAdapter* adapter)
     // of three words, its characters placed 6 wide, for the Text
     // interface's offsets and extents.
     static const char value[] = "h\xC3\xA9llo w\xE2\x82\xACrld\nnext";
-    static const uint32_t lines[2] = {0, 15};
+    static const size_t lines[2] = {0, 15};
     static const muiAccessWord words[3] = {{0, 6}, {7, 14}, {15, 19}};
     static const muiAccessLineBox boxes[2] = {{0.0f, 10.0f, 0, false}, {10.0f, 20.0f, 11, false}};
     static const uint32_t starts[16] = {0, 1, 3, 4, 5, 6, 7, 8, 11, 12, 13, 15, 16, 17, 18, 19};

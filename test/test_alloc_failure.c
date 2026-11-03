@@ -973,8 +973,8 @@ static uint64_t Digest(const World* world)
     bool redo = false;
     (void)muiTextBlock_GetUndoState(world->service, world->block, &undo, &redo);
     hash = (hash ^ ((uint64_t)undo << 1 | (uint64_t)redo)) * 1099511628211u;
-    uint32_t start = 0;
-    uint32_t shown = 0;
+    size_t start = 0;
+    size_t shown = 0;
     (void)muiTextBlock_GetComposition(world->service, world->block, &start, &shown);
     hash = (hash ^ start) * 1099511628211u;
     hash = (hash ^ shown) * 1099511628211u;

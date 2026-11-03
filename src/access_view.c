@@ -367,8 +367,8 @@ muiResult muiAccessTree_GetBounds(const muiAccessTree* tree, uint64_t id, muiRec
     return result;
 }
 
-static muiResult AccessTreeGetTextRects(const muiAccessTree* tree, uint64_t id, uint32_t start,
-                                        uint32_t end, muiRect* rectsOut, uint32_t capacity,
+static muiResult AccessTreeGetTextRects(const muiAccessTree* tree, uint64_t id, size_t start,
+                                        size_t end, muiRect* rectsOut, uint32_t capacity,
                                         uint32_t* countOut)
 {
     if (countOut != nullptr)
@@ -397,7 +397,7 @@ static muiResult AccessTreeGetTextRects(const muiAccessTree* tree, uint64_t id, 
 }
 
 static MUI_NOINLINE muiResult AccessTreeGetTextRectsWorker(const muiAccessTree* tree, uint64_t id,
-                                                           uint32_t start, uint32_t end,
+                                                           size_t start, size_t end,
                                                            muiRect* rectsOut, uint32_t capacity,
                                                            uint32_t* countOut)
 {
@@ -406,8 +406,8 @@ static MUI_NOINLINE muiResult AccessTreeGetTextRectsWorker(const muiAccessTree* 
     return result;
 }
 
-muiResult muiAccessTree_GetTextRects(const muiAccessTree* tree, uint64_t id, uint32_t start,
-                                     uint32_t end, muiRect* rectsOut, uint32_t capacity,
+muiResult muiAccessTree_GetTextRects(const muiAccessTree* tree, uint64_t id, size_t start,
+                                     size_t end, muiRect* rectsOut, uint32_t capacity,
                                      uint32_t* countOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
@@ -445,8 +445,8 @@ static void MapClusters(const muiAccessTextMarks* marks, uint32_t from, uint32_t
     for (uint32_t i = 0; i < marks->clusterCount; i++)
     {
         const muiAccessCluster* cluster = &marks->clusters[i];
-        uint32_t start = cluster->start > from ? cluster->start : from;
-        uint32_t end = cluster->end < to ? cluster->end : to;
+        uint32_t start = cluster->start > from ? (uint32_t)cluster->start : from;
+        uint32_t end = cluster->end < to ? (uint32_t)cluster->end : to;
         for (uint32_t b = start; b < end; b++)
         {
             map[b - from] = i + 1;
@@ -520,7 +520,7 @@ bool muiAccessUnitRects(const muiAccessTree* tree, uint64_t id, uint32_t first, 
 
 static MUI_NOINLINE muiResult AccessTreeGetTextOffsetAtWorker(const muiAccessTree* tree,
                                                               uint64_t id, float x, float y,
-                                                              uint32_t* offsetOut)
+                                                              size_t* offsetOut)
 {
     if (offsetOut != nullptr)
     {
@@ -546,7 +546,7 @@ static MUI_NOINLINE muiResult AccessTreeGetTextOffsetAtWorker(const muiAccessTre
 }
 
 muiResult muiAccessTree_GetTextOffsetAt(const muiAccessTree* tree, uint64_t id, float x, float y,
-                                        uint32_t* offsetOut)
+                                        size_t* offsetOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = AccessTreeGetTextOffsetAtWorker(tree, id, x, y, offsetOut);
@@ -563,13 +563,13 @@ typedef struct Name
     size_t length;
 } Name;
 
-static void Join(Name* name, const char* text, uint32_t length)
+static void Join(Name* name, const char* text, size_t length)
 {
     if (text == nullptr || length == 0)
     {
         return;
     }
-    for (uint32_t i = name->length != 0 ? 0 : 1; i <= length; i++)
+    for (size_t i = name->length != 0 ? 0 : 1; i <= length; i++)
     {
         char byte = i == 0 ? ' ' : text[i - 1];
         if (name->length + 1 < name->capacity)

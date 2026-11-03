@@ -641,7 +641,7 @@ static muiAccessNode* Add(Built* built, uint64_t id, muiRole role, const char* l
     {
         muiAccessTextKind kind = role == mui_roleLabel ? mui_accessValue : mui_accessLabel;
         node->text[kind] = label;
-        node->textLength[kind] = (uint32_t)strlen(label);
+        node->textLength[kind] = strlen(label);
     }
     built->sent[built->nodeCount++] = node;
     return node;
@@ -1725,7 +1725,7 @@ static bool TextIs(const char* member, const char* types, const int32_t* args, c
 static void TestTextReads(muiAtspiAdapter* adapter, Built* built, muiAccessNode* input)
 {
     static const char s_value[] = "h\xC3\xA9llo w\xC3\xB6rld\nnext";
-    static const uint32_t s_lines[2] = {0, 14};
+    static const size_t s_lines[2] = {0, 14};
     static const muiAccessWord s_words[3] = {{0, 6}, {7, 13}, {14, 18}};
     input->text[mui_accessValue] = s_value;
     input->textLength[mui_accessValue] = sizeof s_value - 1;
@@ -1838,7 +1838,7 @@ static void TestTextChanges(muiAtspiAdapter* adapter, Built* built, muiAccessNod
     // Clusters 4 wide from the node's left, a line from 2 to 12 down;
     // the node at 420, 220 in the window, which is at 100, 50, at twice
     // the size.
-    static const uint32_t s_one[1] = {0};
+    static const size_t s_one[1] = {0};
     static const muiAccessLineBox s_box[1] = {{2.0f, 12.0f, 0, false}};
     static const uint32_t s_starts[12] = {0, 1, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13};
     muiAccessCluster clusters[12];
@@ -1889,7 +1889,7 @@ static void TestTextChanges(muiAtspiAdapter* adapter, Built* built, muiAccessNod
     for (int i = 0; i < 4; i++)
     {
         input->text[mui_accessValue] = s_texts[i];
-        input->textLength[mui_accessValue] = (uint32_t)strlen(s_texts[i]);
+        input->textLength[mui_accessValue] = strlen(s_texts[i]);
         CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) &&
                   EventsAre(s_told[i]),
               "a change inside a character");

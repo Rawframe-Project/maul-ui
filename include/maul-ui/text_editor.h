@@ -127,7 +127,7 @@ extern "C"
     // A selection: from the anchor to the caret, empty where they meet.
     typedef struct muiTextSelection
     {
-        uint32_t anchor;
+        size_t anchor;
         muiTextPosition caret;
     } muiTextSelection;
 
@@ -277,7 +277,7 @@ extern "C"
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_EraseTo(muiTextService* service,
-                                                         muiTextBlockId blockId, uint32_t offset,
+                                                         muiTextBlockId blockId, size_t offset,
                                                          bool* changedOut);
 
     /// Reads the selected text of an editing block, for the host's
@@ -384,7 +384,7 @@ extern "C"
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_Compose(muiTextService* service,
                                                          muiTextBlockId blockId, const char* text,
-                                                         size_t length, uint32_t caret,
+                                                         size_t length, size_t caret,
                                                          const muiCompositionSegment* segments,
                                                          uint32_t segmentCount, bool* changedOut);
 

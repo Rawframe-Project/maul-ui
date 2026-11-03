@@ -39,7 +39,7 @@ extern "C"
     // into its block's UTF-8 text, and its affinity.
     typedef struct muiTextPosition
     {
-        uint32_t offset;
+        size_t offset;
         muiTextAffinity affinity;
     } muiTextPosition;
 
@@ -120,8 +120,8 @@ extern "C"
     // A styled part of a composition, in bytes of its text.
     typedef struct muiCompositionSegment
     {
-        uint32_t start;
-        uint32_t length;
+        size_t start;
+        size_t length;
         muiCompositionStyle style;
     } muiCompositionSegment;
 
@@ -209,7 +209,7 @@ extern "C"
     /// one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiNode_GetTextRangeRects(const muiTextHost* host,
                                                               muiNodeId nodeId, float width,
-                                                              uint32_t start, uint32_t end,
+                                                              size_t start, size_t end,
                                                               muiRect* rectsOut, uint32_t capacity,
                                                               uint32_t* countOut);
 
@@ -256,10 +256,9 @@ extern "C"
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_FindDeletion(const muiTextService* service,
-                                                              muiTextBlockId blockId,
-                                                              uint32_t offset,
+                                                              muiTextBlockId blockId, size_t offset,
                                                               muiTextDeletion deletion,
-                                                              uint32_t* startOut, uint32_t* endOut);
+                                                              size_t* startOut, size_t* endOut);
 
     /// Sets a block's input method composition, the text being composed
     /// before it is committed: the text replaces the composition there is,
@@ -291,7 +290,7 @@ extern "C"
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_SetComposition(
-        muiTextService* service, muiTextBlockId blockId, uint32_t offset, const char* text,
+        muiTextService* service, muiTextBlockId blockId, size_t offset, const char* text,
         size_t length, const muiCompositionSegment* segments, uint32_t segmentCount);
 
     /// Ends a block's composition, keeping its text as typed text: what an
@@ -324,8 +323,8 @@ extern "C"
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_API muiResult muiTextBlock_GetComposition(const muiTextService* service,
                                                                 muiTextBlockId blockId,
-                                                                uint32_t* startOut,
-                                                                uint32_t* lengthOut);
+                                                                size_t* startOut,
+                                                                size_t* lengthOut);
 
 #ifdef __cplusplus
 }

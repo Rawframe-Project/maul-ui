@@ -35,6 +35,19 @@ bool muiReserve(const muiAllocator* allocator, muiBuffer* buffer, size_t bytes);
 
 void muiFreeBuffer(const muiAllocator* allocator, muiBuffer* buffer);
 
+// A caller's byte offset as the text component counts offsets, in 32
+// bits: one past UINT32_MAX becomes UINT32_MAX, which is past every
+// text as it is (MUI_MAX_TEXT_BYTES), so a check against a text answers
+// the same.
+static inline uint32_t muiTextOffsetOf(size_t offset)
+{
+    return offset < UINT32_MAX ? (uint32_t)offset : UINT32_MAX;
+}
+
+// mui_success, mui_errorInvalid or mui_errorLimit for a composition's
+// segments over length bytes of text.
+muiResult muiSegmentsStatus(const muiCompositionSegment* segments, uint32_t count, size_t length);
+
 // Whether a word segment (UAX #29), text from start up to end, is a word:
 // it has a letter or a number.
 bool muiIsWordSegment(const char* text, size_t start, size_t end);

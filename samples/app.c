@@ -276,9 +276,9 @@ void SamplePaintEditing(SampleApp* app, muiNodeId node, float width, muiDrawSink
     {
         return;
     }
-    uint32_t at = selection.caret.offset;
-    uint32_t start = selection.anchor < at ? selection.anchor : at;
-    uint32_t end = selection.anchor > at ? selection.anchor : at;
+    size_t at = selection.caret.offset;
+    size_t start = selection.anchor < at ? selection.anchor : at;
+    size_t end = selection.anchor > at ? selection.anchor : at;
     muiRect rects[8];
     uint32_t count = 0;
     if (start != end && muiNode_GetTextRangeRects(&app->host, node, width, start, end, rects, 8,

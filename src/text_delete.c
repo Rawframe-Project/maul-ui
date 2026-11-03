@@ -79,9 +79,9 @@ static uint32_t BackspaceStart(const char* text, uint32_t start, uint32_t end)
 }
 
 static MUI_NOINLINE muiResult TextBlockFindDeletionWorker(const muiTextService* service,
-                                                          muiTextBlockId blockId, uint32_t offset,
+                                                          muiTextBlockId blockId, size_t offset,
                                                           muiTextDeletion deletion,
-                                                          uint32_t* startOut, uint32_t* endOut)
+                                                          size_t* startOut, size_t* endOut)
 {
     if (startOut != nullptr)
     {
@@ -102,7 +102,12 @@ static MUI_NOINLINE muiResult TextBlockFindDeletionWorker(const muiTextService* 
         return mui_errorStale;
     }
     const muiTextBlock* block = &service->blocks.blocks[slot - 1];
-    muiFindDeletionIn(block->text.data, block->length, offset, deletion, startOut, endOut);
+    uint32_t start = 0;
+    uint32_t end = 0;
+    muiFindDeletionIn(block->text.data, block->length, muiTextOffsetOf(offset), deletion, &start,
+                      &end);
+    *startOut = start;
+    *endOut = end;
     return mui_success;
 }
 
@@ -133,8 +138,8 @@ void muiFindDeletionIn(const char* text, uint32_t length, uint32_t offset, muiTe
 }
 
 muiResult muiTextBlock_FindDeletion(const muiTextService* service, muiTextBlockId blockId,
-                                    uint32_t offset, muiTextDeletion deletion, uint32_t* startOut,
-                                    uint32_t* endOut)
+                                    size_t offset, muiTextDeletion deletion, size_t* startOut,
+                                    size_t* endOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result =
@@ -167,8 +172,9 @@ bool muiFindEditDeletion(muiTextService* service, const muiTextBlock* block,
     uint32_t shown = block->compositionLength;
     if (shown == 0)
     {
-        muiFindDeletionIn(block->text.data, block->length, block->editing.selection.caret.offset,
-                          deletion, startOut, endOut);
+        muiFindDeletionIn(block->text.data, block->length,
+                          (uint32_t)block->editing.selection.caret.offset, deletion, startOut,
+                          endOut);
         return true;
     }
     uint32_t composition = block->compositionStart;

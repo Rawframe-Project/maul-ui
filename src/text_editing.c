@@ -61,8 +61,8 @@ static muiTextSelection Collapsed(uint32_t at)
 void muiEndPress(muiTextEditing* editing)
 {
     editing->grain = MUI_GRAIN_CLUSTER;
-    editing->pressStart = editing->selection.anchor;
-    editing->pressEnd = editing->selection.anchor;
+    editing->pressStart = (uint32_t)editing->selection.anchor;
+    editing->pressEnd = (uint32_t)editing->selection.anchor;
 }
 
 // Read only by MUI_ASSERT, which Release builds compile out.
@@ -71,8 +71,8 @@ void muiEndPress(muiTextEditing* editing)
 // not be cluster boundaries: a host may place them inside a cluster.
 [[maybe_unused]] static bool EndsAtCharacters(const muiTextBlock* block, muiTextSelection selection)
 {
-    return muiIsCharacterStart(block, selection.anchor) &&
-           muiIsCharacterStart(block, selection.caret.offset);
+    return muiIsCharacterStart(block, muiTextOffsetOf(selection.anchor)) &&
+           muiIsCharacterStart(block, muiTextOffsetOf(selection.caret.offset));
 }
 
 void muiPlaceSelection(muiTextBlock* block, muiTextSelection selection)
@@ -102,8 +102,8 @@ muiResult muiEditingBlock(const muiTextService* service, muiTextBlockId blockId,
     if (editing->revision != block->revision)
     {
         muiClearHistory(editing);
-        editing->selection.anchor = Within(block, editing->selection.anchor);
-        editing->selection.caret.offset = Within(block, editing->selection.caret.offset);
+        editing->selection.anchor = Within(block, (uint32_t)editing->selection.anchor);
+        editing->selection.caret.offset = Within(block, (uint32_t)editing->selection.caret.offset);
         editing->preferredX = -1.0f;
         muiEndPress(editing);
         editing->revision = block->revision;
@@ -224,8 +224,8 @@ muiResult muiSelectText(muiTextService* service, muiTextBlockId blockId, muiText
     {
         return result;
     }
-    if (!muiIsCharacterStart(block, selection.anchor) ||
-        !muiIsCharacterStart(block, selection.caret.offset) ||
+    if (!muiIsCharacterStart(block, muiTextOffsetOf(selection.anchor)) ||
+        !muiIsCharacterStart(block, muiTextOffsetOf(selection.caret.offset)) ||
         (uint32_t)selection.caret.affinity > mui_affinityUpstream)
     {
         return muiRefuseText(service);
@@ -259,14 +259,14 @@ muiResult muiTextBlock_Select(muiTextService* service, muiTextBlockId blockId,
 
 static uint32_t SelectionStart(const muiTextSelection* selection)
 {
-    return selection->anchor < selection->caret.offset ? selection->anchor
-                                                       : selection->caret.offset;
+    return (uint32_t)(selection->anchor < selection->caret.offset ? selection->anchor
+                                                                  : selection->caret.offset);
 }
 
 static uint32_t SelectionEnd(const muiTextSelection* selection)
 {
-    return selection->anchor > selection->caret.offset ? selection->anchor
-                                                       : selection->caret.offset;
+    return (uint32_t)(selection->anchor > selection->caret.offset ? selection->anchor
+                                                                  : selection->caret.offset);
 }
 
 // Takes an input method's composition out of the text, the caret where it
@@ -611,13 +611,13 @@ muiResult muiEraseTextTo(muiTextService* service, muiTextBlockId blockId, uint32
         // The offset was found in text the composition is part of.
         return mui_success;
     }
-    uint32_t caret = block->editing.selection.caret.offset;
+    uint32_t caret = (uint32_t)block->editing.selection.caret.offset;
     return Remove(service, block, caret < offset ? caret : offset, caret > offset ? caret : offset,
                   MUI_EDIT_OTHER, changedOut);
 }
 
 static MUI_NOINLINE muiResult TextBlockEraseToWorker(muiTextService* service,
-                                                     muiTextBlockId blockId, uint32_t offset,
+                                                     muiTextBlockId blockId, size_t offset,
                                                      bool* changedOut)
 {
     if (muiRefusesBusyText(service))
@@ -631,13 +631,13 @@ static MUI_NOINLINE muiResult TextBlockEraseToWorker(muiTextService* service,
     muiResult status = muiEnterText(service);
     if (status == mui_success)
     {
-        status = muiEraseTextTo(service, blockId, offset, changedOut);
+        status = muiEraseTextTo(service, blockId, muiTextOffsetOf(offset), changedOut);
         muiLeaveText(service);
     }
     return status;
 }
 
-muiResult muiTextBlock_EraseTo(muiTextService* service, muiTextBlockId blockId, uint32_t offset,
+muiResult muiTextBlock_EraseTo(muiTextService* service, muiTextBlockId blockId, size_t offset,
                                bool* changedOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
@@ -892,7 +892,7 @@ static muiResult ComposeOverSelection(muiTextService* service, muiTextBlock* blo
 }
 
 static muiResult TextBlockCompose(muiTextService* service, muiTextBlockId blockId, const char* text,
-                                  size_t length, uint32_t caret,
+                                  size_t length, size_t caret,
                                   const muiCompositionSegment* segments, uint32_t segmentCount,
                                   bool* changedOut)
 {
@@ -950,7 +950,7 @@ static muiResult TextBlockCompose(muiTextService* service, muiTextBlockId blockI
     }
     // A caret at the composition's end can be inside a character its last
     // bytes make with those after it: it goes after that character.
-    muiPlaceSelection(block, Collapsed(Onward(block, block->compositionStart + caret)));
+    muiPlaceSelection(block, Collapsed(Onward(block, block->compositionStart + (uint32_t)caret)));
     muiEndPress(&block->editing);
     block->editing.revision = block->revision;
     if (changedOut != nullptr)
@@ -962,7 +962,7 @@ static muiResult TextBlockCompose(muiTextService* service, muiTextBlockId blockI
 
 static MUI_NOINLINE muiResult TextBlockComposeWorker(muiTextService* service,
                                                      muiTextBlockId blockId, const char* text,
-                                                     size_t length, uint32_t caret,
+                                                     size_t length, size_t caret,
                                                      const muiCompositionSegment* segments,
                                                      uint32_t segmentCount, bool* changedOut)
 {
@@ -985,7 +985,7 @@ static MUI_NOINLINE muiResult TextBlockComposeWorker(muiTextService* service,
 }
 
 muiResult muiTextBlock_Compose(muiTextService* service, muiTextBlockId blockId, const char* text,
-                               size_t length, uint32_t caret, const muiCompositionSegment* segments,
+                               size_t length, size_t caret, const muiCompositionSegment* segments,
                                uint32_t segmentCount, bool* changedOut)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
