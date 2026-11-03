@@ -11,6 +11,7 @@ Maul UI is a retained UI core. The host keeps its interface as a tree of nodes i
   - Time enters only as the timestamps the host passes in.
   - No result depends on pointer values, hash iteration or allocation order. Children are visited in the order the host gave them.
   - FreeType and HarfBuzz are pinned releases whose results are integers ([Text](text.md#dependencies)).
+- **Versions.** From 1.0.0 the API holds across 1.x, the ABI within a minor version, and every result above within a minor version too: results change only in a minor release, whose notes say what changes, or in a patch release that corrects one to what the documentation promised. The reference renderer and the window glue follow Maul RHI and Maul Window and sit outside this until both reach 1.0 ([Versions](../user/getting-started.md#versions)).
 - **Threads.** The library starts no thread. A context or a text service is used by one thread at a time. Separate contexts on separate threads give the same results as on one, which `test_threads` checks under ThreadSanitizer. The accessibility adapters answer their platform on the thread the platform calls on, from their own copy of the tree ([Accessibility](accessibility.md)).
 - **Memory.** The context is the owner object. It takes the caller's allocator and reserves everything its limits name at creation ([context.c](../../src/context.c)):
   - Memory is allocated when the host creates nodes, styles or fonts, sets an accessibility text, or enables accessibility for a first root.

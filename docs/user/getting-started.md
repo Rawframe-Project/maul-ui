@@ -4,6 +4,7 @@
 
 - [Requirements](#requirements)
 - [Building and installing](#building-and-installing)
+- [Versions](#versions)
 - [Build options](#build-options)
 - [The model](#the-model)
 - [A first screen](#a-first-screen)
@@ -32,9 +33,18 @@ find_package(maul-ui REQUIRED CONFIG)   # or: add_subdirectory(maul-ui)
 target_link_libraries(app PRIVATE maul-ui::maul-ui)
 ```
 
-or through pkg-config as `maul-ui`. Before 1.0 the package accepts only its exact version, since any release may change the interface. [samples/minimal](../../samples/minimal) is a program built against an install alone.
+or through pkg-config as `maul-ui`. The package accepts any 1.y release at or after the one a program asks for ([Versions](#versions)). [samples/minimal](../../samples/minimal) is a program built against an install alone.
 
 Maul Tween and the text component's dependencies are built into the library, so an installed library links with nothing more than the C library and libm. A program that links the static library through CMake links as C, though the library holds HarfBuzz's C++ objects; this build sets `LINKER_LANGUAGE C` for its own programs, and a program in a Visual Studio project should do the same to keep its C standard.
+
+## Versions
+
+Maul UI follows [Semantic Versioning](https://semver.org/) and ships minor and patch releases of 1.x only. No 2.0.0 is planned, so a change that would break 1.x is made additive or not made.
+
+- **Source.** A program that builds against 1.y builds against any later 1.z and means the same. Functions, types, enum values and fields are added, never removed or renamed, and a field is added only at the end of its struct. The CMake package accepts any 1.z at or after the version a program asks for.
+- **Binary.** A program runs with any patch release of the minor version whose headers it was built with. The shared library's `SOVERSION` is the major and minor version, and a root creation refuses a def built against another minor version's headers with `mui_errorVersion`. A minor release may grow a def, so a program moving to it is built again.
+- **Results.** Layouts, styles, draw-list bytes, accessibility trees, line breaks, shaped text, glyph images and motion curves keep the same bits across the patch releases of a minor version. They change only in a minor release, whose notes say what changes, for example when its pin of Maul Unicode, Maul Tween, FreeType or HarfBuzz moves. A patch release changes a result only to correct it to what this documentation already promises, and its notes say so too. A build with `MAUL_UI_TEXT_SYSTEM_LIBRARIES` takes its results from the installed FreeType and HarfBuzz instead.
+- **The optional parts.** `maul-ui-rhi` and `maul-ui-window` follow Maul RHI and Maul Window, whose types they take and give, and sit outside this promise until both reach 1.0. A minor release may change their API and behavior, and its notes say what a program changes. They are static libraries a program builds from source; neither is installed.
 
 ## Build options
 
@@ -201,7 +211,7 @@ Every call that can fail returns a `muiResult`: `mui_success`, or a value that n
 | `mui_errorUnsupported` | The object was made without what the call needs, such as a glyph atlas of another format, or data the library does not take, such as a compressed web font. |
 | `mui_errorPlatform` | The platform refused. |
 | `mui_errorState` | A call the object's state does not allow, which another call changes, such as an editor call on a block not editing. |
-| `mui_errorVersion` | A root def built against another release's headers. |
+| `mui_errorVersion` | A root def built against another minor version's headers. |
 | `mui_errorFormat` | Damaged data, such as a font. |
 | `mui_errorLimit` | An argument past a fixed bound a `MUI_MAX_` or `MUI_MIN_` constant names, such as too many spans: a bug in the program. |
 | `mui_errorBusy` | A call back into an object from host code it is running, such as a measure function editing the tree. |

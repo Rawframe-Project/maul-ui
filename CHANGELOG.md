@@ -1,9 +1,14 @@
 # Changelog
 
-All notable changes to this project are recorded here, grouped as
-Added, Changed, Fixed, Removed and Security. The project uses
-[Semantic Versioning](https://semver.org/). Before 1.0.0, any release
-may change the API, the ABI and every data format.
+All notable changes to this project are recorded here, grouped as Added,
+Changed, Fixed, Removed and Security. The project uses [Semantic
+Versioning](https://semver.org/). From 1.0.0 a program that builds
+against 1.y builds against any later 1.z, the ABI holds within a minor
+version, and results change only in a minor release, whose entry says
+what changes, or in a patch release correcting one to what the
+documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
+that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
+release could change the API, the ABI and every data format.
 
 ## [0.7.1](https://github.com/Rawframe-Project/maul-ui/compare/v0.7.0...v0.7.1) (2026-11-03)
 
