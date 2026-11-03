@@ -12,10 +12,35 @@ release could change the API, the ABI and every data format.
 
 ## [1.2.0](https://github.com/Rawframe-Project/maul-ui/compare/v1.1.0...v1.2.0) (2026-11-03)
 
+This release changes which text segments count as words, for word
+movement and for the words a screen reader steps through, to follow
+Unicode's word properties as ICU does, and takes Maul Tween 1.0.0. The
+API and ABI are those of 1.1.0, and so are layouts, styles, draw lists,
+line breaks, shaped text, glyph images and motion curves.
 
-### Added
+### Changed
 
-* **edit:** words follow Maul Unicode's word kinds ([#331](https://github.com/Rawframe-Project/maul-ui/issues/331)) ([0c548e6](https://github.com/Rawframe-Project/maul-ui/commit/0c548e65ccfb4c31ed6fe200ac81c6742f19a995)), closes [#329](https://github.com/Rawframe-Project/maul-ui/issues/329)
+- Words are the word segments Maul Unicode's
+  `muniSegmentIterator_GetWordKind` calls words, as ICU's rule status
+  does, in place of Maul UI's own test for a letter or a number. Word
+  movements (`muiNode_MoveTextPosition`, and the keys that move or
+  delete by word) and `muiAccessWord` change for segments that hold
+  these code points and no other letter or number
+  ([#331](https://github.com/Rawframe-Project/maul-ui/pull/331)):
+  - No longer words: 912 of the 915 General_Category No code points,
+    such as superscripts (²), fractions (¼), enclosed digits (① ❶ ⒈),
+    CJK enclosed numbers (㈠ ㊀), Ethiopic (፲), Tamil (௰), Kanbun (㆒)
+    and counting rods (𝍠); and the halfwidth katakana voiced sound marks
+    U+FF9E and U+FF9F when no letter or kana comes before them.
+  - Now words: the circled and squared letters (Ⓐ ⓐ 🄰 🅰 🅿), modifier
+    and tone letters, some Armenian, Hebrew and Syriac punctuation, the
+    symbols and punctuation of Myanmar, New Tai Lue, Ahom, Tai Tham and
+    Tai Viet, katakana and hiragana symbols, and the Arabic and Kaithi
+    number signs.
+- Maul Tween is pinned at 1.0.0, from 0.16.0. Maul UI calls none of the
+  player and path functions whose results 0.17.0 changed, and its
+  springs, decays, easings and rubber band give the same results
+  ([#330](https://github.com/Rawframe-Project/maul-ui/pull/330)).
 
 ## [1.1.0](https://github.com/Rawframe-Project/maul-ui/compare/v1.0.0...v1.1.0) (2026-11-03)
 
