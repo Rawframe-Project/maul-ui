@@ -19,13 +19,13 @@ extern "C"
 // The library version. CMake reads it from here, and release-please
 // moves it between the markers.
 // x-release-please-start-major
-#define MUI_VERSION_MAJOR 0
+#define MUI_VERSION_MAJOR 1
 // x-release-please-end
 // x-release-please-start-minor
-#define MUI_VERSION_MINOR 7
+#define MUI_VERSION_MINOR 0
 // x-release-please-end
 // x-release-please-start-patch
-#define MUI_VERSION_PATCH 1
+#define MUI_VERSION_PATCH 0
 // x-release-please-end
 
 // The binary interface a program is built for: the major and minor

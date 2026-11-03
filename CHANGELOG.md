@@ -10,6 +10,19 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.0.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.7.1...v1.0.0) (2026-11-03)
+
+
+### Fixed
+
+* **rhi:** bind a texture for a draw of boxes alone after glyphs ([#322](https://github.com/Rawframe-Project/maul-ui/issues/322)) ([621b145](https://github.com/Rawframe-Project/maul-ui/commit/621b145d54261ce514f22cfa523e986aa14b61fa)), closes [#321](https://github.com/Rawframe-Project/maul-ui/issues/321)
+* **rhi:** count a draw list's instances past 32 bits ([#317](https://github.com/Rawframe-Project/maul-ui/issues/317)) ([db7d890](https://github.com/Rawframe-Project/maul-ui/commit/db7d8904acd51f142e591714bd3859c4eb0e3250)), closes [#314](https://github.com/Rawframe-Project/maul-ui/issues/314)
+
+
+### Documentation
+
+* state the 1.x promise for the 1.0.0 release ([#319](https://github.com/Rawframe-Project/maul-ui/issues/319)) ([c972106](https://github.com/Rawframe-Project/maul-ui/commit/c972106bb0a206bc94859f08e34507214d726dca)), closes [#318](https://github.com/Rawframe-Project/maul-ui/issues/318)
+
 ## [0.7.1](https://github.com/Rawframe-Project/maul-ui/compare/v0.7.0...v0.7.1) (2026-11-03)
 
 This release fixes two checks in the Maul Window glue and takes Maul
