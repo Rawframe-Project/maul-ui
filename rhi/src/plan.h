@@ -17,8 +17,9 @@
 
 #include <stdint.h>
 
-// Instances drawn with one texture bound: an image's or a glyph page's,
-// or the placeholder for a list that samples nothing.
+// Instances drawn with one texture bound: an image's or a glyph page's;
+// for boxes and shadows alone, the first texture the pass reads, or the
+// placeholder where it reads none.
 typedef struct muiRhiDraw
 {
     uint32_t first;
@@ -55,7 +56,7 @@ void muiRhiFreePlan(muiRhiPlan* plan);
 
 // Plans a frame's passes: the instances' draws; the draw pass's
 // accesses, the buffers' storage reads and each distinct texture and
-// page sampled (the placeholder where a draw samples nothing); and the
+// page sampled (the placeholder where nothing else is); and the
 // upload pass's, the buffers and the changed pages as copy destinations.
 muiResult muiRhiMakePlan(muiRhiPlan* plan, const muiRhiInstance* instances, uint32_t count,
                          const muiRhiSources* sources);
