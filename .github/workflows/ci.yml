@@ -181,10 +181,11 @@ jobs:
           cmake --build out/headers --config Release
 
   # Each fuzz target runs over the bytes the library reads from fonts,
-  # images and the AT-SPI bus, from tools/fuzz_seed.py's seeds and the
-  # corpus the cache carries: briefly on a pull request, longer on main and
-  # at night. The targets share one job, so their corpora share one cache
-  # entry; docs/operations/checks.md says how it is kept.
+  # images and the AT-SPI bus, or the draw lists the renderer reads, from
+  # tools/fuzz_seed.py's seeds and the corpus the cache carries: briefly on
+  # a pull request, longer on main and at night. The targets share one
+  # job, so their corpora share one cache entry; docs/operations/checks.md
+  # says how it is kept.
   fuzz:
     needs: changes
     if: needs.changes.outputs.code == 'true'
@@ -207,7 +208,7 @@ jobs:
       - name: Build
         run: |
           cmake -B out/fuzz -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 \
-            -D${PREFIX}_FUZZ=ON -D${PREFIX}_BUILD_TESTS=OFF -D${PREFIX}_BUILD_BENCH=OFF -D${PREFIX}_WERROR=ON
+            -D${PREFIX}_FUZZ=ON -D${PREFIX}_RHI=ON -D${PREFIX}_BUILD_TESTS=OFF -D${PREFIX}_BUILD_BENCH=OFF -D${PREFIX}_WERROR=ON
           cmake --build out/fuzz
       # Caches are immutable: each clean run on main saves a new entry, and
       # every run restores the latest, a pull request's included, so a

@@ -670,6 +670,19 @@ if(MAUL_UI_FUZZ AND MAUL_UI_TEXT)
                                                   -fno-sanitize-recover=all)
         target_link_options(fuzz_atspi PRIVATE -fsanitize=fuzzer,address,undefined)
     endif()
+    # Draw lists a host builds, drawn by the reference renderer on Maul
+    # RHI's test driver; the renderer is instrumented as the library is.
+    if(MAUL_UI_RHI)
+        target_compile_options(maul-ui-rhi PRIVATE -fsanitize=fuzzer-no-link,address,undefined
+                                                   -fno-sanitize-recover=all)
+        add_executable(fuzz_rhi test/fuzz_rhi.c)
+        target_link_libraries(fuzz_rhi PRIVATE maul-ui-rhi)
+        target_include_directories(fuzz_rhi PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
+        maul_apply_flags(fuzz_rhi)
+        target_compile_options(fuzz_rhi PRIVATE -fsanitize=fuzzer,address,undefined
+                                                -fno-sanitize-recover=all)
+        target_link_options(fuzz_rhi PRIVATE -fsanitize=fuzzer,address,undefined)
+    endif()
 endif()
 
 if(MAUL_UI_TEXT)
