@@ -187,6 +187,14 @@ muiResult muiNode_RequestWindowKeyboard(muiWindowGlue* glue, const muiTextHost* 
     muiInputPurpose purpose = mui_purposeText;
     if (visible)
     {
+        if (host->context == nullptr)
+        {
+            return mui_errorInvalid;
+        }
+        if (!muiNode_IsValid(host->context, nodeId))
+        {
+            return mui_errorStale;
+        }
         uint64_t key = muiNode_GetHostKey(host->context, nodeId);
         const muiTextBlockId blockId = {(uint32_t)key, (uint32_t)(key >> 32)};
         if (muiTextBlock_GetInputPurpose(host->service, blockId, &purpose) != mui_success)

@@ -311,6 +311,20 @@ static void TestEditing(Test* test)
           "no glue");
     CHECK(muiNode_RequestWindowKeyboard(test->glue, &test->host, test->field) == mui_success,
           "the keyboard asked for");
+    // A node that is gone, and a host without a context: refused before
+    // anything is asked, so the field's keyboard is the one shown next
+    // frame.
+    muiNodeDef def = muiDefaultNodeDef();
+    def.hostKey = muiTextBlock_GetKey(test->block);
+    muiNodeId gone = s_nullNode;
+    CHECK(muiCreateNode(test->context, &def, &gone) == mui_success &&
+              muiDestroyNode(test->context, gone) == mui_success &&
+              muiNode_RequestWindowKeyboard(test->glue, &test->host, gone) == mui_errorStale,
+          "the keyboard for a node that is gone");
+    muiTextHost bare = test->host;
+    bare.context = NULL;
+    CHECK(muiNode_RequestWindowKeyboard(test->glue, &bare, test->field) == mui_errorInvalid,
+          "the keyboard for a host without a context");
     CHECK(muiNode_RequestWindowKeyboard(NULL, &test->host, test->field) == mui_errorInvalid &&
               muiNode_RequestWindowKeyboard(test->glue, NULL, test->field) == mui_errorInvalid,
           "the keyboard asked for without a glue or a host");
