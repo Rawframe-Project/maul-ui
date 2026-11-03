@@ -96,7 +96,7 @@ The first frame packs every glyph and gives the rectangles to upload; the next, 
 
 ## The reference renderer
 
-The reference renderer, `maul-ui-rhi` (`MAUL_UI_RHI`), does all of this with Maul RHI on Vulkan, Direct3D 12, Metal and WebGPU: each command is an instance of one pipeline, its glyphs come from atlases it keeps, and images from a function the program gives it. Each frame, `muiRhiRenderer_AddPasses` adds its upload and draw passes into the program's frame, and `muiRhiRenderer_Record` records them once the frame is compiled. Its target takes an optional projection, which draws a panel in 3D, tested against the scene's depth. The samples (`samples/`) run it in a window with Maul Window.
+The reference renderer, `maul-ui-rhi` (`MAUL_UI_RHI`), does all of this with Maul RHI on Vulkan, Direct3D 12, Metal and WebGPU: each command is an instance of one pipeline, its glyphs come from atlases it keeps, and images from a function the program gives it. Each frame, `muiRhiRenderer_AddPasses` adds its upload and draw passes into the program's frame, and `muiRhiRenderer_Record` records them once the frame is compiled. Its target takes an optional projection, which draws a panel in 3D, tested against the scene's depth. The samples (`samples/`) run it in a window with Maul Window. It follows Maul RHI and sits outside Maul UI's 1.x promise until Maul RHI reaches 1.0 ([Versions](getting-started.md#versions)).
 
 ## Writing a renderer
 

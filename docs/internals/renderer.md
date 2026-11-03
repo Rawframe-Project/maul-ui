@@ -1,6 +1,6 @@
 # Reference renderer
 
-`maul-ui-rhi` (the option `MAUL_UI_RHI`, off by default) draws draw lists with Maul RHI. It is a static library of its own beside the core, in `rhi/`, with Maul RHI found installed or fetched at its release tag ([Rhi.cmake](../../cmake/Rhi.cmake)). The core and the text component never see it. It exists so that a host has a renderer that draws every command exactly as the list means it, and so that the list's promises are tested on real GPUs.
+`maul-ui-rhi` (the option `MAUL_UI_RHI`, off by default) draws draw lists with Maul RHI. It is a static library of its own beside the core, in `rhi/`, with Maul RHI found installed or fetched at its release tag ([Rhi.cmake](../../cmake/Rhi.cmake)). The core and the text component never see it. It exists so that a host has a renderer that draws every command exactly as the list means it, and so that the list's promises are tested on real GPUs. Its API takes and gives Maul RHI's types, so it follows Maul RHI and sits outside Maul UI's 1.x promise until Maul RHI reaches 1.0 ([Versions](../user/getting-started.md#versions)).
 
 ## Contents
 
