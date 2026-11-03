@@ -61,7 +61,7 @@ Maul UI follows [Semantic Versioning](https://semver.org/) and ships minor and p
 The core fetches Maul Tween, and the text component FreeType, HarfBuzz and Maul Unicode, at configure time, each checked by its hash or tag. To build offline, point `FETCHCONTENT_SOURCE_DIR_MAUL-TWEEN`, `FETCHCONTENT_SOURCE_DIR_MAUL_UI_FREETYPE`, `FETCHCONTENT_SOURCE_DIR_MAUL_UI_HARFBUZZ` and `FETCHCONTENT_SOURCE_DIR_MAUL-UNICODE` at local copies of the same releases; the core alone needs only Maul Tween's, at the release `cmake/Tween.cmake` pins:
 
 ```sh
-git clone --depth 1 --branch v0.16.0 https://github.com/Rawframe-Project/maul-tween.git ../maul-tween
+git clone --depth 1 --branch v1.0.0 https://github.com/Rawframe-Project/maul-tween.git ../maul-tween
 cmake -B build -DMAUL_UI_TEXT=OFF -DFETCHCONTENT_SOURCE_DIR_MAUL-TWEEN=$PWD/../maul-tween
 ```
 
