@@ -40,6 +40,24 @@ static const muiCompositionSegment* SegmentsOf(const mwinPreeditEvent* preedit,
     return count != 0 && preedit->segments != nullptr ? segments : nullptr;
 }
 
+// Whether a preedit's caret is -1, hidden, or a character boundary of
+// its text, which may end it.
+static bool CaretFits(const mwinPreeditEvent* preedit)
+{
+    if (preedit->caret == -1)
+    {
+        return true;
+    }
+    if (preedit->caret < 0 || (uint32_t)preedit->caret > preedit->length)
+    {
+        return false;
+    }
+    uint32_t caret = (uint32_t)preedit->caret;
+    return caret == preedit->length ||
+           (preedit->text != nullptr &&
+            (((const unsigned char*)preedit->text)[caret] & 0xC0u) != 0x80u);
+}
+
 static muiResult ShowPreeditOf(muiTextService* service, muiTextBlockId blockId,
                                const mwinPreeditEvent* preedit, bool* changedOut)
 {
@@ -47,7 +65,7 @@ static muiResult ShowPreeditOf(muiTextService* service, muiTextBlockId blockId,
     {
         *changedOut = false;
     }
-    if (preedit == nullptr || preedit->caret > (int32_t)preedit->length)
+    if (preedit == nullptr || !CaretFits(preedit))
     {
         return mui_errorInvalid;
     }
@@ -81,7 +99,7 @@ static muiResult SetPreeditOf(muiTextService* service, muiTextBlockId blockId, s
     {
         *caretOut = 0;
     }
-    if (preedit == nullptr)
+    if (preedit == nullptr || !CaretFits(preedit))
     {
         return mui_errorInvalid;
     }
