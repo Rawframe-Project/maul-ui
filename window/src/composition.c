@@ -48,11 +48,11 @@ static bool CaretFits(const mwinPreeditEvent* preedit)
     {
         return true;
     }
-    if (preedit->caret < 0 || (uint32_t)preedit->caret > preedit->length)
+    if (preedit->caret < 0 || (size_t)preedit->caret > preedit->length)
     {
         return false;
     }
-    uint32_t caret = (uint32_t)preedit->caret;
+    size_t caret = (size_t)preedit->caret;
     return caret == preedit->length ||
            (preedit->text != nullptr &&
             (((const unsigned char*)preedit->text)[caret] & 0xC0u) != 0x80u);

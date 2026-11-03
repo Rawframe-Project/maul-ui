@@ -193,14 +193,14 @@ bool SampleNear(const uint8_t* pixel, const uint8_t rgb[3]);
 // Posts a cursor record at a node's centre, as a platform reports it:
 // a move (no button), or a button going down or up with the buttons
 // held after it.
-void SamplePost(SampleApp* app, mwinEventType type, muiNodeId node, uint8_t buttons);
+void SamplePost(SampleApp* app, mwinEventKind type, muiNodeId node, uint8_t buttons);
 
 // Posts a cursor record at a point of the root, as SamplePost does.
-void SamplePostAt(SampleApp* app, mwinEventType type, float x, float y, uint8_t buttons);
+void SamplePostAt(SampleApp* app, mwinEventKind type, float x, float y, uint8_t buttons);
 
 // As SamplePostAt for a button other than the left, buttons holding bit
 // b - 1 while button b is held.
-void SamplePostButton(SampleApp* app, mwinEventType type, float x, float y, mwinMouseButton button,
+void SamplePostButton(SampleApp* app, mwinEventKind type, float x, float y, mwinMouseButton button,
                       uint8_t buttons);
 
 // Posts a wheel turn of detents over a node, the cursor moved there.

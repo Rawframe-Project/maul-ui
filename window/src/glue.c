@@ -222,7 +222,7 @@ static muiResult Touch(muiWindowGlue* glue, const mwinEvent* event, bool* handle
 {
     const mwinTouchEvent* touch = &event->data.touch;
     uint32_t slot = FindTouch(glue, touch->id);
-    if (event->type == mwin_eventTouchDown && slot == TOUCHES)
+    if (event->kind == mwin_eventTouchDown && slot == TOUCHES)
     {
         for (slot = 0; slot < TOUCHES && glue->touching[slot]; slot++)
         {
@@ -240,9 +240,9 @@ static muiResult Touch(muiWindowGlue* glue, const mwinEvent* event, bool* handle
     }
     glue->touchX[slot] = touch->position.x;
     glue->touchY[slot] = touch->position.y;
-    muiPointerAction action = event->type == mwin_eventTouchDown    ? mui_pointerPress
-                              : event->type == mwin_eventTouchMoved ? mui_pointerMove
-                              : event->type == mwin_eventTouchUp    ? mui_pointerRelease
+    muiPointerAction action = event->kind == mwin_eventTouchDown    ? mui_pointerPress
+                              : event->kind == mwin_eventTouchMoved ? mui_pointerMove
+                              : event->kind == mwin_eventTouchUp    ? mui_pointerRelease
                                                                     : mui_pointerCancel;
     return TouchAt(glue, slot, event->timeNs, action, handledOut);
 }
@@ -275,7 +275,7 @@ static muiResult Pen(muiWindowGlue* glue, const mwinEvent* event, bool* handledO
     glue->penButtons =
         (muiPointerButtons)(((pen->flags & mwin_penContact) != 0 ? 1u << tip : 0u) |
                             ((pen->flags & mwin_penBarrel) != 0 ? 1u << mui_buttonSecondary : 0u));
-    switch (event->type)
+    switch (event->kind)
     {
     case mwin_eventPenDown:
         return PenAt(glue, event->timeNs, mui_pointerPress, tip, handledOut);
@@ -288,7 +288,7 @@ static muiResult Pen(muiWindowGlue* glue, const mwinEvent* event, bool* handledO
             return mui_success;
         }
         return PenAt(glue, event->timeNs,
-                     event->type == mwin_eventPenButtonDown ? mui_pointerPress : mui_pointerRelease,
+                     event->kind == mwin_eventPenButtonDown ? mui_pointerPress : mui_pointerRelease,
                      mui_buttonSecondary, handledOut);
     default:
         return PenAt(glue, event->timeNs, mui_pointerMove, 0, handledOut);
@@ -301,11 +301,11 @@ static muiResult Cursor(muiWindowGlue* glue, const mwinEvent* event, bool* handl
     glue->x = cursor->position.x;
     glue->y = cursor->position.y;
     glue->modifiers = cursor->modifiers;
-    if (event->type == mwin_eventCursorLeft)
+    if (event->kind == mwin_eventCursorLeft)
     {
         return Mouse(glue, event->timeNs, mui_pointerLeave, 0, handledOut);
     }
-    if (event->type == mwin_eventCursorMoved || event->type == mwin_eventCursorEntered)
+    if (event->kind == mwin_eventCursorMoved || event->kind == mwin_eventCursorEntered)
     {
         glue->buttons = cursor->buttons;
         return Mouse(glue, event->timeNs, mui_pointerMove, 0, handledOut);
@@ -316,7 +316,7 @@ static muiResult Cursor(muiWindowGlue* glue, const mwinEvent* event, bool* handl
     }
     glue->buttons = cursor->buttons;
     muiPointerAction action =
-        event->type == mwin_eventButtonDown ? mui_pointerPress : mui_pointerRelease;
+        event->kind == mwin_eventButtonDown ? mui_pointerPress : mui_pointerRelease;
     return Mouse(glue, event->timeNs, action, (uint8_t)(cursor->button - 1), handledOut);
 }
 
@@ -356,7 +356,7 @@ static muiResult Key(muiWindowGlue* glue, const mwinEvent* event, bool* handledO
         .key = key->key,
         .code = key->code,
         .modifiers = key->modifiers,
-        .down = event->type == mwin_eventKeyDown,
+        .down = event->kind == mwin_eventKeyDown,
         .repeat = key->repeat,
         .player = glue->player,
     };
@@ -456,8 +456,11 @@ muiResult muiNode_SetWindowCaret(muiWindowGlue* glue, muiNodeId nodeId, muiRect 
         rect.width = caret.width;
         rect.height = caret.height;
     }
-    if (mwinWindow_RequestTextInput(glue->windows, glue->window, enabled, rect, nullptr) !=
-        mwin_success)
+    // The caret is a request of its own, which the window keeps while text
+    // input is off.
+    if ((enabled && mwinWindow_RequestTextInputCaret(glue->windows, glue->window, rect, nullptr) !=
+                        mwin_success) ||
+        mwinWindow_RequestTextInput(glue->windows, glue->window, enabled, nullptr) != mwin_success)
     {
         return mui_errorInvalid;
     }
@@ -486,7 +489,7 @@ static muiResult HandleEventOf(muiWindowGlue* glue, const mwinEvent* event, bool
     {
         return mui_success;
     }
-    switch (event->type)
+    switch (event->kind)
     {
     case mwin_eventKeyDown:
     case mwin_eventKeyUp:

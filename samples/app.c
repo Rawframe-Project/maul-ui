@@ -316,7 +316,7 @@ static void Drain(SampleApp* app)
                        app->access == NULL ||
                            muiWindowAccess_HandleEvent(app->access, &event) == mui_success,
                        "a record seen by the access");
-        app->closing = app->closing || event.type == mwin_eventCloseRequested;
+        app->closing = app->closing || event.kind == mwin_eventCloseRequested;
         app->now = event.timeNs > app->now ? event.timeNs : app->now;
     }
 }
@@ -538,7 +538,7 @@ static void PostRecord(SampleApp* app, const mwinEvent* event)
                    "a record posted");
 }
 
-void SamplePost(SampleApp* app, mwinEventType type, muiNodeId node, uint8_t buttons)
+void SamplePost(SampleApp* app, mwinEventKind type, muiNodeId node, uint8_t buttons)
 {
     float x = 0.0f;
     float y = 0.0f;
@@ -550,15 +550,15 @@ void SamplePost(SampleApp* app, mwinEventType type, muiNodeId node, uint8_t butt
     SamplePostAt(app, type, x, y, buttons);
 }
 
-void SamplePostAt(SampleApp* app, mwinEventType type, float x, float y, uint8_t buttons)
+void SamplePostAt(SampleApp* app, mwinEventKind type, float x, float y, uint8_t buttons)
 {
     SamplePostButton(app, type, x, y, mwin_buttonLeft, buttons);
 }
 
-void SamplePostButton(SampleApp* app, mwinEventType type, float x, float y, mwinMouseButton button,
+void SamplePostButton(SampleApp* app, mwinEventKind type, float x, float y, mwinMouseButton button,
                       uint8_t buttons)
 {
-    mwinEvent event = {.type = type, .window = app->window};
+    mwinEvent event = {.kind = type, .window = app->window};
     event.data.pointer.position = (mwinPosition){x, y};
     event.data.pointer.button = type == mwin_eventCursorMoved ? 0 : button;
     event.data.pointer.buttons = buttons;
@@ -568,24 +568,24 @@ void SamplePostButton(SampleApp* app, mwinEventType type, float x, float y, mwin
 void SamplePostWheel(SampleApp* app, muiNodeId node, float detents)
 {
     SamplePost(app, mwin_eventCursorMoved, node, 0);
-    mwinEvent wheel = {.type = mwin_eventWheel, .window = app->window};
+    mwinEvent wheel = {.kind = mwin_eventWheel, .window = app->window};
     wheel.data.wheel.y = detents;
     PostRecord(app, &wheel);
 }
 
 void SamplePostKey(SampleApp* app, mwinKeyCode code, mwinKey key, const char* text)
 {
-    mwinEvent down = {.type = mwin_eventKeyDown, .window = app->window};
+    mwinEvent down = {.kind = mwin_eventKeyDown, .window = app->window};
     down.data.key = (mwinKeyEvent){.code = code, .key = key};
     PostRecord(app, &down);
     if (text != NULL)
     {
-        mwinEvent typed = {.type = mwin_eventTextInput, .window = app->window};
+        mwinEvent typed = {.kind = mwin_eventTextInput, .window = app->window};
         typed.data.text = (mwinTextEvent){text, (uint32_t)strlen(text)};
         PostRecord(app, &typed);
     }
     mwinEvent up = down;
-    up.type = mwin_eventKeyUp;
+    up.kind = mwin_eventKeyUp;
     PostRecord(app, &up);
 }
 

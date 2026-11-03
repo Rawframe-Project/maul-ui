@@ -43,7 +43,7 @@ static muiResult PasteFromWindowOf(muiWindowGlue* glue, muiTextService* service,
         return mui_errorInvalid;
     }
     const mwinCompletion* completion = &event->data.completion;
-    if (event->type != mwin_eventRequestCompleted ||
+    if (event->kind != mwin_eventRequestCompleted ||
         completion->kind != mwin_requestClipboardRead || completion->outcome != mwin_outcomeDone)
     {
         return mui_empty;
