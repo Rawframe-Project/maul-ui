@@ -10,6 +10,13 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.1.0](https://github.com/Rawframe-Project/maul-ui/compare/v1.0.0...v1.1.0) (2026-11-03)
+
+
+### Added
+
+* **window:** take Maul Window 0.8.0 and Maul Unicode 0.13.0 ([#324](https://github.com/Rawframe-Project/maul-ui/issues/324)) ([83605ab](https://github.com/Rawframe-Project/maul-ui/commit/83605abe3b087c7415f75e6ca344d166bf1040fc)), closes [#323](https://github.com/Rawframe-Project/maul-ui/issues/323)
+
 ## [1.0.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.7.1...v1.0.0) (2026-11-03)
 
 This is the first stable release. From here a program that builds
