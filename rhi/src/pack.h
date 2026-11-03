@@ -74,7 +74,8 @@ typedef struct muiRhiClip
     uint32_t reserved;
 } muiRhiClip;
 
-// The instances a list's commands make at most.
+// The instances a list's commands make at most, UINT32_MAX for more:
+// runs may name the same glyphs, so the total can pass 32 bits.
 uint32_t muiRhiCountInstances(const muiDrawList* list);
 
 // The image commands of a list.
