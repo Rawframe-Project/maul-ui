@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Compositions and text carets of the Maul Window glue, on Maul Window's
-// headless test backend, in Ahem at 10: a field at 20, 30 in the root,
-// its content 6 in past its padding and border, holding "abc". A preedit
-// goes into the block with its caret and segments, a style Maul UI does
-// not know refused, a hidden caret reported, an empty preedit ending
-// the composition, a caret that does not fit its text refused; then the window's caret at a position of the text,
+// Compositions and text carets of the Maul Window glue, on Maul
+// Window's headless test backend, in Ahem at 10: a field at 20, 30 in
+// the root, its content 6 in past its padding and border, holding
+// "abc". A preedit goes into the block with its caret and segments, a
+// style Maul UI does not know refused, a hidden caret reported, an
+// empty preedit ending the composition, a caret that does not fit its
+// text refused; then the window's caret at a position of the text,
 // carried through the content box and the field's place. Then the block
-// edits: a preedit shown at its caret, at the end where the method hides
-// it, refused for its caret or its length, taken out by an empty one; a paste asked for, other events and a
-// read Maul Window did not answer passing the paste by, and the read
-// answered the next frame pasting the text written.
+// edits: a preedit shown at its caret, at the end where the method
+// hides it, refused for its caret or its length, taken out by an empty
+// one; a paste asked for, other events and a read Maul Window did not
+// answer passing the paste by, and the read answered the next frame
+// pasting the text written.
 
 #include "test_harness.h"
 
@@ -266,8 +268,7 @@ static void TestEditing(Test* test)
               muiTextBlock_ShowPreedit(test->service, test->block, NULL, NULL) == mui_errorInvalid,
           "a caret past the preedit, no preedit");
     preedit.caret = -2;
-    CHECK(muiTextBlock_ShowPreedit(test->service, test->block, &preedit, NULL) ==
-              mui_errorInvalid,
+    CHECK(muiTextBlock_ShowPreedit(test->service, test->block, &preedit, NULL) == mui_errorInvalid,
           "a negative caret that is not -1");
     // Past INT32_MAX, the length still compares as itself: the text is
     // refused for its length, where the caret was refused before.

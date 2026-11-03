@@ -54,7 +54,8 @@ static bool CaretFits(const mwinPreeditEvent* preedit)
     }
     uint32_t caret = (uint32_t)preedit->caret;
     return caret == preedit->length ||
-           (preedit->text != nullptr && (((const unsigned char*)preedit->text)[caret] & 0xC0u) != 0x80u);
+           (preedit->text != nullptr &&
+            (((const unsigned char*)preedit->text)[caret] & 0xC0u) != 0x80u);
 }
 
 static muiResult ShowPreeditOf(muiTextService* service, muiTextBlockId blockId,
