@@ -19,6 +19,11 @@
 #   nothing, and one for each further family of calls (destroying,
 #   content changed, scrolling, hit tests, classes, states and
 #   gradients).
+# - rhi: draw lists in fuzz_rhi's encoding: boxes under nested, inverted
+#   and turned clips with a gradient, outer and inset shadows, images of
+#   every key with slices, mirrored and repeated, glyph runs that only
+#   move and ones a transform scales, a list drawn through a projection,
+#   and commands of unknown kinds.
 # The standard library only.
 #
 # Usage: python3 tools/fuzz_seed.py [DIRECTORY]  (from the repository root;
@@ -442,6 +447,85 @@ def api_seeds(directory):
     write(directory, "states", bytes(out))
 
 
+# fuzz_rhi's records, little-endian as the structs lay them out: a clip
+# is 44 bytes, a transform 24, a gradient 96, a glyph 12 and a command
+# 152, its union at 16.
+def rhi_clip(x, y, w, h, radius=0.0, parent=0, transform=0, invert=0):
+    return struct.pack("<8f3I", x, y, w, h, radius, radius, radius, radius, parent, transform, invert)
+
+
+def rhi_transform(a=1.0, b=0.0, c=0.0, d=1.0, e=0.0, f=0.0):
+    return struct.pack("<6f", a, b, c, d, e, f)
+
+
+def rhi_gradient(kind=1, angle=0.5):
+    colors = struct.pack("<16f", 1, 0, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1)
+    return struct.pack("<IIif", kind, 2, 1, angle) + colors + struct.pack("<4f", 0, 1, 0, 0)
+
+
+def rhi_command(kind, union, clip=0, transform=0):
+    return struct.pack("<iIII", kind, clip, transform, 0) + union.ljust(136, b"\0")
+
+
+def rhi_box(x, y, w, h, gradient=0, clip=0, transform=0):
+    union = (struct.pack("<4f4f4fI4f", x, y, w, h, 4, 4, 4, 4, 0.2, 0.4, 0.8, 1, gradient, 1, 1, 1, 1) +
+             struct.pack("<16f", *([0, 0, 0, 1] * 4)))
+    return rhi_command(1, union, clip, transform)
+
+
+def rhi_shadow(x, y, w, h, blur, spread, inset):
+    union = struct.pack("<4f4f4f4fI", x, y, w, h, 3, 3, 3, 3, 0, 0, 0, 0.5, 2, 2, blur, spread, inset)
+    return rhi_command(2, union)
+
+
+def rhi_image(key, x, y, w, h, uv=(0, 0, 1, 1), slice_=(0, 0, 0, 0), repeat=(0, 0)):
+    union = (struct.pack("<4fQ", x, y, w, h, key) + struct.pack("<4f", *uv) + struct.pack("<4f", *slice_) +
+             struct.pack("<4f2i", 1, 1, 1, 1, *repeat))
+    return rhi_command(3, union)
+
+
+def rhi_run(first, count, size, x, y, font=0, transform=0):
+    union = struct.pack("<Q3f2I4f", font, x, y, size, first, count, 1, 1, 1, 1)
+    return rhi_command(4, union, 0, transform)
+
+
+def rhi_list(commands, clips=(), transforms=(), gradients=(), glyphs=(), scale=1.0, width=64,
+             height=64, projection=None):
+    flags = 1 if projection is not None else 0
+    head = bytes([flags, width - 1, height - 1]) + struct.pack("<f", scale)
+    head += bytes([len(clips), len(transforms), len(gradients), len(glyphs), len(commands)])
+    if projection is not None:
+        head += struct.pack("<16f", *projection)
+    return head + b"".join(clips) + b"".join(transforms) + b"".join(gradients) + b"".join(glyphs) + b"".join(commands)
+
+
+def rhi_seeds(directory):
+    turn = 0.70710678
+    clips = [rhi_clip(0, 0, 0, 0), rhi_clip(4, 4, 40, 40, 6), rhi_clip(8, 8, 20, 20, 0, 1),
+             rhi_clip(0, 0, 16, 16, 0, 0, 0, 1), rhi_clip(10, 0, 30, 30, 2, 5, 1)]
+    transforms = [rhi_transform(), rhi_transform(turn, turn, -turn, turn, 32, 0), rhi_transform(0.5, 0, 0, 0.5)]
+    boxes = [rhi_box(0, 0, 30, 30, 0, 1), rhi_box(10, 10, 30, 30, 1, 2, 1), rhi_box(-20, -20, 10, 10, 0, 3),
+             rhi_box(50, 50, 40, 40, 0, 4, 2), rhi_box(0, 0, 64, 64, 1)]
+    write(directory, "boxes", rhi_list(boxes, clips, transforms, [rhi_gradient(1), rhi_gradient(2)]))
+    shadows = [rhi_shadow(10, 10, 20, 20, 8, 2, 0), rhi_shadow(30, 30, 20, 10, 4, -2, 1),
+               rhi_shadow(70, 70, 10, 10, 30, 0, 0)]
+    write(directory, "shadows", rhi_list(shadows, scale=2.0))
+    images = [rhi_image(1, 0, 0, 16, 16), rhi_image(2, 16, 0, 32, 16, slice_=(2, 2, 2, 2), repeat=(1, 2)),
+              rhi_image(3, 0, 16, 16, 16, uv=(1, 1, -1, -1)), rhi_image(4, 16, 16, 8, 8),
+              rhi_image(9, 32, 32, 8, 8), rhi_image(1, 40, 0, 4, 4, slice_=(3, 3, 3, 3), repeat=(3, 3))]
+    write(directory, "images", rhi_list(images))
+    # Liberation Sans's glyph ids for "Maul": M a u l.
+    glyphs = [struct.pack("<I2f", gid, 8.0 * i, 0) for i, gid in enumerate((48, 68, 88, 79))]
+    runs = [rhi_run(0, 4, 12, 4, 20), rhi_run(1, 3, 20, 4, 44, 0, 1), rhi_run(0, 4, 40, 0, 60, 0, 2),
+            rhi_run(2, 9, 12, 0, 0), rhi_run(0, 2, 12, 0, 10, 7)]
+    write(directory, "runs", rhi_list(runs, (), transforms, (), glyphs, scale=1.5))
+    projection = (1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0.1, -0.5, -0.5, 0, 1)
+    write(directory, "projected", rhi_list(boxes[:2] + runs[:1], clips[:3], transforms[:2],
+                                           [rhi_gradient(3)], glyphs, projection=projection))
+    unknown = [rhi_command(0, b""), rhi_command(5, b"\xff" * 136), rhi_command(-1, b"")]
+    write(directory, "unknown", rhi_list(unknown + boxes[:1], width=1, height=1, scale=0.0))
+
+
 def main():
     base = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else pathlib.Path.cwd()
     inflate_seeds(base / "corpus-fuzz_inflate")
@@ -450,6 +534,7 @@ def main():
     text_seeds(base / "corpus-fuzz_text")
     atspi_seeds(base / "corpus-fuzz_atspi")
     api_seeds(base / "corpus-fuzz_api")
+    rhi_seeds(base / "corpus-fuzz_rhi")
 
 
 if __name__ == "__main__":

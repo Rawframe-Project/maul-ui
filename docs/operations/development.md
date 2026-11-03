@@ -87,7 +87,7 @@ The layout corpus in `test/layout/` holds fixtures with the rectangles Chrome gi
 Build the fuzz targets with Clang:
 
 ```sh
-cmake -B out/fuzz -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 -DMAUL_UI_FUZZ=ON -DMAUL_UI_BUILD_TESTS=OFF
+cmake -B out/fuzz -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 -DMAUL_UI_FUZZ=ON -DMAUL_UI_RHI=ON -DMAUL_UI_BUILD_TESTS=OFF
 cmake --build out/fuzz
 python3 tools/fuzz_seed.py out/corpus
 ./out/fuzz/fuzz_text -max_total_time=60 out/corpus/corpus-fuzz_text

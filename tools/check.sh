@@ -238,7 +238,7 @@ preset linux-parts
 fuzz_seconds=10
 [ "$tier" = full ] && fuzz_seconds=60
 step "fuzzing, $fuzz_seconds seconds per target"
-configure fuzz -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 -DMAUL_UI_FUZZ=ON \
+configure fuzz -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 -DMAUL_UI_FUZZ=ON -DMAUL_UI_RHI=ON \
     -DMAUL_UI_BUILD_TESTS=OFF -DMAUL_UI_BUILD_BENCH=OFF
 cmake --build "$out/check-fuzz" -j "$jobs" >>"$out/check-fuzz.log"
 python3 tools/fuzz_seed.py "$out/corpus"
