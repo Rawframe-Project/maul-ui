@@ -148,7 +148,9 @@ reached_tests() { # tree, label regex or ""
 # analyzer the other shows. "every" checks every source tools/tidy_files.py
 # lists, on built trees as CI does. Otherwise only the files given that it
 # lists are checked, on trees that are only configured, which is all
-# clang-tidy reads; no file given checks none.
+# clang-tidy reads; no file given checks none. The header filter is given,
+# as CI gives it: run from the root, clang-tidy 20 does not apply the one
+# in .clang-tidy and drops every finding in a header.
 tidy() { # every, or the files to check
     local build tree count
     [ $# -gt 0 ] || return 0
@@ -165,8 +167,8 @@ tidy() { # every, or the files to check
         count=$(wc -l <"$out/tidy-files.txt")
         step "clang-tidy, $build, on $count files"
         [ "$count" -gt 0 ] || continue
-        xargs -P "$jobs" -n 1 clang-tidy-20 -p "$tree" --quiet --warnings-as-errors='*' <"$out/tidy-files.txt" \
-            2>/dev/null
+        xargs -P "$jobs" -n 1 clang-tidy-20 -p "$tree" --quiet --warnings-as-errors='*' \
+            --header-filter="^$root/((rhi|window)/)?(src|include)/" <"$out/tidy-files.txt" 2>/dev/null
     done
 }
 
