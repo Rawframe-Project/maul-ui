@@ -376,8 +376,8 @@ extern "C"
     // word segment with a letter or a number in it.
     typedef struct muiAccessWord
     {
-        uint32_t start;
-        uint32_t end;
+        size_t start;
+        size_t end;
     } muiAccessWord;
 
     // A grapheme cluster of a value text as shown: its bytes from start up
@@ -385,8 +385,8 @@ extern "C"
     // its bounds are, before its transform).
     typedef struct muiAccessCluster
     {
-        uint32_t start;
-        uint32_t end;
+        size_t start;
+        size_t end;
         float left;
         float right;
     } muiAccessCluster;
@@ -411,12 +411,12 @@ extern "C"
     {
         // The selection, the caret at its focus, when selected says so:
         // the text is being edited.
-        uint32_t anchor;
-        uint32_t focus;
+        size_t anchor;
+        size_t focus;
         bool selected;
         // Where each line starts, ascending from 0, as the text is shown;
         // NULL for none given.
-        const uint32_t* lineStarts;
+        const size_t* lineStarts;
         uint32_t lineCount;
         // Its words, in order, none overlapping; NULL for none.
         const muiAccessWord* words;
@@ -459,7 +459,7 @@ extern "C"
         // Its texts by muiAccessTextKind with their lengths, NULL for
         // none: the host's end in a NUL, the text function's need not.
         const char* text[MUI_ACCESS_TEXTS];
-        uint32_t textLength[MUI_ACCESS_TEXTS];
+        size_t textLength[MUI_ACCESS_TEXTS];
         // Its value text's selection, lines and words, as the host's text
         // function gives them; none for a value the host set.
         muiAccessTextMarks marks;
@@ -500,8 +500,8 @@ extern "C"
         // focus; for mui_actionReplaceText, the range replaced, either
         // way round, and the UTF-8 text put there, valid while the
         // request is applied. Byte offsets into the value text.
-        uint32_t anchor;
-        uint32_t focus;
+        size_t anchor;
+        size_t focus;
         const char* text;
         size_t length;
     } muiAccessRequest;

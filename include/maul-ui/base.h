@@ -133,11 +133,15 @@ extern "C"
     };
 
     // The longest text the library holds, in bytes: a text block's text, an
-    // accessibility text. Offsets, one past the end included, fit 32 bits.
+    // accessibility text. Byte offsets into a text, like its length, are
+    // size_t.
     enum
     {
         MUI_MAX_TEXT_BYTES = 0x7FFFFFFF
     };
+
+// A byte offset that is absent: no position in any text.
+#define MUI_NO_OFFSET SIZE_MAX
 
     // The allocator an owner object takes in its def and keeps for its
     // lifetime. Alignment is a power of two. A zeroed allocator means the C

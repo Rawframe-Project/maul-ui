@@ -64,7 +64,7 @@ bool muiFollowCaret(muiLaidText* laid, float height)
         return true;
     }
     muiTextPosition caret = editing->selection.caret;
-    caret.offset = muiMaskOffset(paragraph->source, caret.offset);
+    caret.offset = muiMaskOffset(paragraph->source, (uint32_t)caret.offset);
     uint32_t index = muiLineOfPosition(laid, caret);
     float x = 0.0f;
     bool rtl = false;

@@ -46,7 +46,7 @@ static muiAccessNode* Add(uint32_t* count, uint64_t id, muiRole role, const char
     {
         muiAccessTextKind kind = role == mui_roleLabel ? mui_accessValue : mui_accessLabel;
         node->text[kind] = label;
-        node->textLength[kind] = (uint32_t)strlen(label);
+        node->textLength[kind] = strlen(label);
     }
     s_sent[(*count)++] = node;
     return node;
@@ -55,7 +55,7 @@ static muiAccessNode* Add(uint32_t* count, uint64_t id, muiRole role, const char
 static void SetText(muiAccessNode* node, muiAccessTextKind kind, const char* text)
 {
     node->text[kind] = text;
-    node->textLength[kind] = (uint32_t)strlen(text);
+    node->textLength[kind] = strlen(text);
 }
 
 static uint32_t Build(void)
@@ -70,7 +70,7 @@ static uint32_t Build(void)
     static const muiAccessWord s_fieldWords[1] = {{0, 3}};
     // The label's characters: H 10 wide, i and the space 5, the emoji 20,
     // on one line 20 high.
-    static const uint32_t s_labelLines[1] = {0};
+    static const size_t s_labelLines[1] = {0};
     static const muiAccessLineBox s_labelBox[1] = {{0.0f, 20.0f, 0, false}};
     static const muiAccessCluster s_labelClusters[4] = {
         {0, 1, 0.0f, 10.0f}, {1, 2, 10.0f, 15.0f}, {2, 3, 15.0f, 20.0f}, {3, 7, 20.0f, 40.0f}};

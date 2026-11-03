@@ -25,7 +25,7 @@ static const muiNodeId s_nullNode = {0, 0};
 // What the reader gives: "héllo wörld" with its selection, two lines and
 // two words; how often it was read, and how often for boundaries.
 static const char s_text[] = "h\xC3\xA9llo w\xC3\xB6rld";
-static uint32_t s_lines[2] = {0, 7};
+static size_t s_lines[2] = {0, 7};
 static muiAccessWord s_words[2] = {{0, 6}, {7, 13}};
 static muiAccessTextMarks s_marks = {1, 1, true, s_lines, 2, s_words, 2, NULL, NULL, 0};
 static uint32_t s_reads;
@@ -161,6 +161,15 @@ static void TestUnfit(void)
     CHECK(node != NULL && node->marks.selected && node->marks.focus == 13 &&
               node->marks.lineCount == 0 && node->marks.wordCount == 0,
           "the selection kept alone");
+    // Where size_t has 64 bits, 2^32 + 1 is past the text, not 1.
+    if (sizeof(size_t) > sizeof(uint32_t))
+    {
+        s_marks.focus = (size_t)UINT32_MAX + 2;
+        CHECK(muiNode_MarkAccessChanged(context, root) == mui_success, "marked past 32 bits");
+        update = Build(context, root);
+        node = Sent(&update, root);
+        CHECK(node != NULL && !node->marks.selected, "a focus past 32 bits left out");
+    }
     s_marks.focus = 1;
     s_lines[1] = 7;
     s_words[1] = (muiAccessWord){7, 13};
@@ -268,7 +277,7 @@ static void TestTree(void)
     def.nodes = 4;
     muiAccessTree* tree = NULL;
     CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
-    uint32_t lines[2] = {0, 7};
+    size_t lines[2] = {0, 7};
     muiAccessWord words[2] = {{0, 6}, {7, 13}};
     muiAccessNode node = {.id = 1, .role = mui_roleTextInput};
     node.text[mui_accessValue] = s_text;
@@ -305,6 +314,21 @@ static void TestTree(void)
     words[0].end = 8;
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "words overlapping");
     words[0].end = 6;
+    // A text past the limit is refused before a byte of it is read.
+    bad = node;
+    bad.textLength[mui_accessValue] = (size_t)MUI_MAX_TEXT_BYTES + 1;
+    uint64_t misuse = muiAccessTree_GetMisuse(tree);
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorLimit &&
+              muiAccessTree_GetMisuse(tree) == misuse + 1,
+          "a text past the limit, counted");
+    // Where size_t has 64 bits, 2^32 + 3 is past the text, not 3.
+    if (sizeof(size_t) > sizeof(uint32_t))
+    {
+        bad = node;
+        bad.marks.anchor = (size_t)UINT32_MAX + 4;
+        CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid,
+              "an anchor past 32 bits");
+    }
     bad = node;
     bad.marks.words = NULL;
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "no words");
@@ -329,7 +353,7 @@ static void TestTree(void)
 // does not fit refused.
 static void TestGeometry(void)
 {
-    static const uint32_t s_starts[2] = {0, 7};
+    static const size_t s_starts[2] = {0, 7};
     static const muiAccessLineBox s_boxes[2] = {{0.0f, 10.0f, 0, false}, {10.0f, 20.0f, 6, false}};
     static const muiAccessCluster s_clusters[11] = {
         {0, 1, 0.0f, 5.0f},     {1, 3, 5.0f, 10.0f},    {3, 4, 10.0f, 13.0f},  {4, 5, 13.0f, 16.0f},
@@ -370,7 +394,7 @@ static void TestGeometry(void)
               muiAccessTree_GetTextRects(tree, 1, 0, 13, NULL, 0, &count) == mui_errorCapacity &&
               count == 2,
           "counted past the capacity");
-    uint32_t offset = 99;
+    size_t offset = 99;
     CHECK(muiAccessTree_GetTextOffsetAt(tree, 1, 124.0f, 60.0f, &offset) == mui_success &&
               offset == 3 &&
               muiAccessTree_GetTextOffsetAt(tree, 1, 1000.0f, 75.0f, &offset) == mui_success &&
@@ -469,7 +493,7 @@ static void TestGeometry(void)
 static void TestBoundaries(void)
 {
     static const char s_value[] = "h\xC3\xA9llo w\xC3\xB6rld\r\nnext \xF0\x9D\x84\x9E";
-    static const uint32_t s_starts[3] = {0, 7, 15};
+    static const size_t s_starts[3] = {0, 7, 15};
     static const muiAccessWord s_three[3] = {{0, 6}, {7, 13}, {15, 19}};
     muiAccessNode node = {.id = 1};
     node.text[mui_accessValue] = s_value;

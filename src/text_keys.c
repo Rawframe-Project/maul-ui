@@ -225,8 +225,9 @@ static muiResult EraseToward(const muiTextHost* host, muiNodeId nodeId, muiTextB
     result = result == mui_success
                  ? muiMoveText(host, nodeId, width, selection.caret, movement, 0.0f, &to)
                  : result;
-    return result == mui_success ? muiEraseTextTo(host->service, blockId, to.offset, changedOut)
-                                 : result;
+    return result == mui_success
+               ? muiEraseTextTo(host->service, blockId, muiTextOffsetOf(to.offset), changedOut)
+               : result;
 }
 
 // Cuts the selection: copied, then deleted; nothing on a read-only or

@@ -132,9 +132,9 @@ static void TestComposition(Test* test)
         .segments = segments,
         .segmentCount = 2,
     };
-    int32_t caret = 0;
-    uint32_t start = 0;
-    uint32_t length = 0;
+    size_t caret = 0;
+    size_t start = 0;
+    size_t length = 0;
     CHECK(muiTextBlock_SetPreedit(test->service, test->block, 1, &preedit, &caret) == mui_success &&
               TextIs(test, "axyzbc") && caret == 3,
           "the preedit after the a, its caret 2 into it");
@@ -152,12 +152,12 @@ static void TestComposition(Test* test)
           "an unknown style refused, the composition kept and the caret cleared");
     preedit = (mwinPreeditEvent){.text = "w", .length = 1, .caret = -1};
     CHECK(muiTextBlock_SetPreedit(test->service, test->block, 1, &preedit, &caret) == mui_success &&
-              TextIs(test, "awbc") && caret == -1,
+              TextIs(test, "awbc") && caret == MUI_NO_OFFSET,
           "a hidden caret");
     preedit = (mwinPreeditEvent){.caret = 0};
     caret = 7;
     CHECK(muiTextBlock_SetPreedit(test->service, test->block, 1, &preedit, &caret) == mui_success &&
-              TextIs(test, "abc") && caret == -1 &&
+              TextIs(test, "abc") && caret == MUI_NO_OFFSET &&
               muiTextBlock_GetComposition(test->service, test->block, &start, &length) ==
                   mui_success &&
               length == 0,
@@ -356,7 +356,7 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
 static void TestNullOwnersClearOutputs(void)
 {
     const mwinPreeditEvent preedit = {0};
-    int32_t caret = 7;
+    size_t caret = 7;
     CHECK(muiTextBlock_SetPreedit(NULL, (muiTextBlockId){1, 1}, 0, &preedit, &caret) ==
                   mui_errorInvalid &&
               caret == 0,

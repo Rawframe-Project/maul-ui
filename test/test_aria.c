@@ -288,7 +288,7 @@ static muiAccessNode* Add(Built* built, uint64_t id, muiRole role, const char* l
     {
         muiAccessTextKind kind = role == mui_roleLabel ? mui_accessValue : mui_accessLabel;
         node->text[kind] = label;
-        node->textLength[kind] = (uint32_t)strlen(label);
+        node->textLength[kind] = strlen(label);
     }
     built->sent[built->nodeCount++] = node;
     return node;

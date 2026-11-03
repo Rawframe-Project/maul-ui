@@ -401,8 +401,8 @@ static void MoveSpans(muiTextBlock* block, uint32_t start, uint32_t end, uint32_
     for (uint32_t i = 0; i < block->spanCount; i++)
     {
         muiTextSpan span = spans[i];
-        uint32_t first = Moved(span.start, start, end, length, true);
-        uint32_t last = Moved(span.start + span.length, start, end, length, false);
+        uint32_t first = Moved((uint32_t)span.start, start, end, length, true);
+        uint32_t last = Moved((uint32_t)(span.start + span.length), start, end, length, false);
         if (last > first)
         {
             span.start = first;
@@ -611,20 +611,21 @@ static muiResult TextBlockReplace(muiTextService* service, muiTextBlockId blockI
 }
 
 static MUI_NOINLINE muiResult TextBlockReplaceWorker(muiTextService* service,
-                                                     muiTextBlockId blockId, uint32_t start,
-                                                     uint32_t end, const char* text, size_t length)
+                                                     muiTextBlockId blockId, size_t start,
+                                                     size_t end, const char* text, size_t length)
 {
     muiResult status = muiEnterText(service);
     if (status == mui_success)
     {
-        status = TextBlockReplace(service, blockId, start, end, text, length);
+        status = TextBlockReplace(service, blockId, muiTextOffsetOf(start), muiTextOffsetOf(end),
+                                  text, length);
         muiLeaveText(service);
     }
     return status;
 }
 
-muiResult muiTextBlock_Replace(muiTextService* service, muiTextBlockId blockId, uint32_t start,
-                               uint32_t end, const char* text, size_t length)
+muiResult muiTextBlock_Replace(muiTextService* service, muiTextBlockId blockId, size_t start,
+                               size_t end, const char* text, size_t length)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
     muiResult result = TextBlockReplaceWorker(service, blockId, start, end, text, length);
@@ -674,25 +675,7 @@ muiResult muiReplaceBlockText(muiTextService* service, muiTextBlock* block, uint
     return mui_success;
 }
 
-muiResult muiSegmentsStatus(const muiCompositionSegment* segments, uint32_t count, size_t length)
-{
-    if (count > MUI_MAX_COMPOSITION_SEGMENTS || (segments == nullptr && count != 0))
-    {
-        return count > MUI_MAX_COMPOSITION_SEGMENTS ? mui_errorLimit : mui_errorInvalid;
-    }
-    for (uint32_t i = 0; i < count; i++)
-    {
-        const muiCompositionSegment* segment = &segments[i];
-        if (segment->start > length || segment->length > length - segment->start ||
-            (uint32_t)segment->style > mui_compositionConverted)
-        {
-            return mui_errorInvalid;
-        }
-    }
-    return mui_success;
-}
-
-muiResult muiSetComposition(muiTextService* service, muiTextBlockId blockId, uint32_t offset,
+muiResult muiSetComposition(muiTextService* service, muiTextBlockId blockId, size_t offset,
                             const char* text, size_t length, const muiCompositionSegment* segments,
                             uint32_t segmentCount)
 {
@@ -709,7 +692,7 @@ muiResult muiSetComposition(muiTextService* service, muiTextBlockId blockId, uin
         return mui_errorStale;
     }
     uint32_t start = block->compositionLength != 0 ? block->compositionStart
-                     : offset < block->length      ? offset
+                     : offset < block->length      ? (uint32_t)offset
                                                    : block->length;
     uint32_t end = start + block->compositionLength;
     return Fits(block, start, end, length)
@@ -743,7 +726,7 @@ muiResult muiComposeOver(muiTextService* service, muiTextBlock* block, uint32_t 
 }
 
 static MUI_NOINLINE muiResult TextBlockSetCompositionWorker(muiTextService* service,
-                                                            muiTextBlockId blockId, uint32_t offset,
+                                                            muiTextBlockId blockId, size_t offset,
                                                             const char* text, size_t length,
                                                             const muiCompositionSegment* segments,
                                                             uint32_t segmentCount)
@@ -758,7 +741,7 @@ static MUI_NOINLINE muiResult TextBlockSetCompositionWorker(muiTextService* serv
 }
 
 muiResult muiTextBlock_SetComposition(muiTextService* service, muiTextBlockId blockId,
-                                      uint32_t offset, const char* text, size_t length,
+                                      size_t offset, const char* text, size_t length,
                                       const muiCompositionSegment* segments, uint32_t segmentCount)
 {
     uint64_t floatEnv = muiFloatEnvEnter();
@@ -814,8 +797,8 @@ static muiResult SpansStatus(const muiTextBlock* block, const muiTextSpan* spans
         const muiTextSpan* span = &spans[i];
         if (span->length == 0 || span->start > block->length ||
             span->length > block->length - span->start ||
-            !muiIsCharacterStart(block, span->start) ||
-            !muiIsCharacterStart(block, span->start + span->length) ||
+            !muiIsCharacterStart(block, (uint32_t)span->start) ||
+            !muiIsCharacterStart(block, (uint32_t)(span->start + span->length)) ||
             (span->mask & ~(muiPropertyMask)SPAN_PROPERTIES) != 0 ||
             !muiArePropertiesValid((muiConstValuesRef){nullptr, nullptr, &span->style, nullptr},
                                    muiPropertiesOf(mui_groupText, span->mask)))
@@ -938,7 +921,7 @@ muiResult muiTextBlock_EndComposition(muiTextService* service, muiTextBlockId bl
 }
 
 muiResult muiTextBlock_GetComposition(const muiTextService* service, muiTextBlockId blockId,
-                                      uint32_t* startOut, uint32_t* lengthOut)
+                                      size_t* startOut, size_t* lengthOut)
 {
     if (startOut != nullptr)
     {

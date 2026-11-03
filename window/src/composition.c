@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Compositions and carets of the Maul Window glue. The segments pass as
-// they are: Maul Window's preedit segments are Maul UI's composition
-// segments, member for member.
+// Compositions and carets of the Maul Window glue. Maul Window's preedit
+// segments become Maul UI's composition segments member for member.
 
 #include "maul-ui-window/composition.h"
 
@@ -27,11 +26,6 @@ static_assert((int)mwin_purposeText == (int)mui_purposeText &&
                   (int)mwin_purposePassword == (int)mui_purposePassword &&
                   (int)mwin_purposeUrl == (int)mui_purposeUrl,
               "the purposes");
-static_assert(sizeof(mwinPreeditSegment) == sizeof(muiCompositionSegment) &&
-                  offsetof(mwinPreeditSegment, start) == offsetof(muiCompositionSegment, start) &&
-                  offsetof(mwinPreeditSegment, length) == offsetof(muiCompositionSegment, length) &&
-                  offsetof(mwinPreeditSegment, style) == offsetof(muiCompositionSegment, style),
-              "the segments");
 
 // A preedit's segments as a composition's; NULL for none.
 static const muiCompositionSegment* SegmentsOf(const mwinPreeditEvent* preedit,
@@ -59,7 +53,7 @@ static muiResult ShowPreeditOf(muiTextService* service, muiTextBlockId blockId,
     }
     muiCompositionSegment segments[MUI_MAX_COMPOSITION_SEGMENTS];
     // A caret the method hides goes to the composition's end.
-    uint32_t caret = preedit->caret >= 0 ? (uint32_t)preedit->caret : preedit->length;
+    size_t caret = preedit->caret >= 0 ? (size_t)preedit->caret : preedit->length;
     return muiTextBlock_Compose(service, blockId, preedit->text, preedit->length, caret,
                                 SegmentsOf(preedit, segments), preedit->segmentCount, changedOut);
 }
@@ -80,8 +74,8 @@ muiResult muiTextBlock_ShowPreedit(muiTextService* service, muiTextBlockId block
     return status;
 }
 
-static muiResult SetPreeditOf(muiTextService* service, muiTextBlockId blockId, uint32_t offset,
-                              const mwinPreeditEvent* preedit, int32_t* caretOut)
+static muiResult SetPreeditOf(muiTextService* service, muiTextBlockId blockId, size_t offset,
+                              const mwinPreeditEvent* preedit, size_t* caretOut)
 {
     if (caretOut != nullptr)
     {
@@ -96,25 +90,24 @@ static muiResult SetPreeditOf(muiTextService* service, muiTextBlockId blockId, u
     muiResult status =
         muiTextBlock_SetComposition(service, blockId, offset, preedit->text, preedit->length,
                                     SegmentsOf(preedit, segments), count);
-    uint32_t start = 0;
-    uint32_t length = 0;
+    size_t start = 0;
+    size_t length = 0;
     if (status == mui_success && caretOut != nullptr)
     {
         status = muiTextBlock_GetComposition(service, blockId, &start, &length);
         if (status == mui_success)
         {
-            *caretOut = length != 0 && preedit->caret >= 0
-                            ? (int32_t)(start + (uint32_t)preedit->caret)
-                            : -1;
+            *caretOut =
+                length != 0 && preedit->caret >= 0 ? start + (size_t)preedit->caret : MUI_NO_OFFSET;
         }
     }
     return status;
 }
 
-muiResult muiTextBlock_SetPreedit(muiTextService* service, muiTextBlockId blockId, uint32_t offset,
-                                  const mwinPreeditEvent* preedit, int32_t* caretOut)
+muiResult muiTextBlock_SetPreedit(muiTextService* service, muiTextBlockId blockId, size_t offset,
+                                  const mwinPreeditEvent* preedit, size_t* caretOut)
 {
-    int32_t value = 0;
+    size_t value = 0;
     muiResult status =
         SetPreeditOf(service, blockId, offset, preedit, (caretOut != nullptr ? &value : nullptr));
     // Refused as busy, the call writes no output (Maul conventions, Errors

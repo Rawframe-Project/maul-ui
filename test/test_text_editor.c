@@ -193,6 +193,16 @@ static void TestCalls(void)
                               (muiTextSelection){4, {0, mui_affinityDownstream}}) ==
               mui_errorInvalid,
           "past the text");
+    // Where size_t has 64 bits, 2^32 + 1 is past the text, not 1.
+    if (sizeof(size_t) > sizeof(uint32_t))
+    {
+        const size_t far = (size_t)UINT32_MAX + 2;
+        CHECK(muiTextBlock_Select(scene.service, scene.block,
+                                  (muiTextSelection){far, {far, mui_affinityDownstream}}) ==
+                      mui_errorInvalid &&
+                  Selects(&scene, 3, 3),
+              "past 32 bits");
+    }
     def.filter = mui_filterNone;
     muiTextBlockId other = {0, 0};
     muiTextBlockDef blockDef = muiDefaultTextBlockDef();
@@ -625,8 +635,8 @@ static void TestJoinedBytes(void)
     {
         scene = MakeScene("", 0);
         bool changed = true;
-        uint32_t start = 1;
-        uint32_t shown = 1;
+        size_t start = 1;
+        size_t shown = 1;
         muiTextDeletion deletion = forward != 0 ? mui_deleteForward : mui_deleteBackward;
         CHECK(muiTextBlock_Compose(scene.service, scene.block, "x", 1, 1, NULL, 0, NULL) ==
                       mui_success &&

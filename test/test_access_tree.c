@@ -733,7 +733,7 @@ static void List(Built* built, muiAccessNode* parent, const uint64_t* ids, uint3
 static void Label(muiAccessNode* node, muiAccessTextKind kind, const char* text)
 {
     node->text[kind] = text;
-    node->textLength[kind] = (uint32_t)strlen(text);
+    node->textLength[kind] = strlen(text);
 }
 
 // The window 1 placed at 10,20: 2 generic around a button 3, with a
@@ -1314,7 +1314,7 @@ static void TestNullTreeClearsOutputs(void)
     CHECK(muiAccessTree_GetTextRects(NULL, 1, 0, 1, NULL, 0, &count) == mui_errorInvalid &&
               count == 0,
           "GetTextRects clears its count");
-    uint32_t offset = 7;
+    size_t offset = 7;
     CHECK(muiAccessTree_GetTextOffsetAt(NULL, 1, 0.0f, 0.0f, &offset) == mui_errorInvalid &&
               offset == 0,
           "GetTextOffsetAt clears its offset");

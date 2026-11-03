@@ -87,10 +87,11 @@ static Span WordAt(const muiAccessText* text, uint32_t at)
     }
     if (found == UINT32_MAX)
     {
-        return (Span){0, marks->words[0].start};
+        return (Span){0, (uint32_t)marks->words[0].start};
     }
-    uint32_t end = found + 1 < marks->wordCount ? marks->words[found + 1].start : text->length;
-    return (Span){marks->words[found].start, end};
+    uint32_t end =
+        found + 1 < marks->wordCount ? (uint32_t)marks->words[found + 1].start : text->length;
+    return (Span){(uint32_t)marks->words[found].start, end};
 }
 
 static Span SpanAt(const muiAccessText* text, uint32_t at, uint32_t grain)
@@ -221,8 +222,9 @@ static Span SelectionOf(const muiAccessText* text)
     {
         return (Span){0, 0};
     }
-    return marks->anchor < marks->focus ? (Span){marks->anchor, marks->focus}
-                                        : (Span){marks->focus, marks->anchor};
+    uint32_t anchor = (uint32_t)marks->anchor;
+    uint32_t focus = (uint32_t)marks->focus;
+    return anchor < focus ? (Span){anchor, focus} : (Span){focus, anchor};
 }
 
 // Writes the answers that read the text.
@@ -313,7 +315,7 @@ static muiDBusBool SetSelection(muiAtspiApp* app, DBusMessage* call, const muiAt
         return *ok && none && Select(object, text, args[0], args[1]);
     }
     *ok = muiAtspiTaken(app, ReadInts(dbus, call, "i", args));
-    int32_t caret = PointsBefore(text, text->marks->focus);
+    int32_t caret = PointsBefore(text, (uint32_t)text->marks->focus);
     return *ok && args[0] == 0 && !none && Select(object, text, caret, caret);
 }
 
@@ -416,13 +418,13 @@ static bool AppendGeometry(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* cal
         *ok = muiAtspiTaken(app, ReadInts(&app->dbus, call, "iiu", args));
         float x = 0.0f;
         float y = 0.0f;
-        uint32_t at = 0;
+        size_t at = 0;
         int32_t offset = -1;
         if (*ok && muiAtspiPointIn(object, (uint32_t)args[2], args[0], args[1], &x, &y))
         {
             muiResult status =
                 muiAccessTree_GetTextOffsetAt(object->adapter->tree, object->node->id, x, y, &at);
-            offset = status == mui_success ? PointsBefore(text, at) : 0;
+            offset = status == mui_success ? PointsBefore(text, (uint32_t)at) : 0;
         }
         *ok = *ok && app->dbus.appendBasic(iter, mui_dbusTypeInt32, &offset);
     }
@@ -510,7 +512,7 @@ bool muiAtspiAppendTextProperty(muiAtspiApp* app, muiDBusIter* iter, const muiAt
     }
     else if (strcmp(name, "CaretOffset") == 0)
     {
-        value = text.marks->selected ? PointsBefore(&text, text.marks->focus) : -1;
+        value = text.marks->selected ? PointsBefore(&text, (uint32_t)text.marks->focus) : -1;
     }
     else
     {

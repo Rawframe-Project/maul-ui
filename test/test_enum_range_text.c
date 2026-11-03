@@ -89,8 +89,8 @@ static void TestKinds(Scene* s)
         muiGlyphAtlas* atlas = NULL;
         CHECK(muiCreateGlyphAtlas(s->service, &atlasDef, &atlas) == mui_errorInvalid,
               "an atlas's format");
-        uint32_t start = 0;
-        uint32_t end = 0;
+        size_t start = 0;
+        size_t end = 0;
         CHECK(muiTextBlock_FindDeletion(s->service, s->block, 1, v, &start, &end) ==
                   mui_errorInvalid,
               "a deletion to find");

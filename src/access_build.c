@@ -411,7 +411,7 @@ static uint64_t ReadContent(muiContext* context, uint32_t slot, bool boundaries,
         return 0;
     }
     node->text[mui_accessValue] = content.text;
-    node->textLength[mui_accessValue] = (uint32_t)content.length;
+    node->textLength[mui_accessValue] = content.length;
     node->marks = MarksOf(&content, boundaries);
     node->role = node->role == mui_roleGeneric ? mui_roleLabel : node->role;
     // Text being edited takes its selection set and, unless read only,

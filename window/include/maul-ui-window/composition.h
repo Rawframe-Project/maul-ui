@@ -36,8 +36,8 @@ extern "C"
     ///                  muiTextBlock_SetComposition takes it.
     /// @param preedit   The record's preedit (data.preedit).
     /// @param caretOut  Receives where the input method's caret is in the
-    ///                  block, or -1 where it hides it or the composition
-    ///                  ended. May be NULL. 0 on failure but `mui_errorBusy`,
+    ///                  block, or MUI_NO_OFFSET where it hides it or the
+    ///                  composition ended. May be NULL. 0 on failure but `mui_errorBusy`,
     ///                  which leaves it.
     /// @return As muiTextBlock_SetComposition, with `mui_errorInvalid` for
     ///         a NULL preedit.
@@ -45,9 +45,9 @@ extern "C"
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_WINDOW_API muiResult muiTextBlock_SetPreedit(muiTextService* service,
                                                                    muiTextBlockId blockId,
-                                                                   uint32_t offset,
+                                                                   size_t offset,
                                                                    const mwinPreeditEvent* preedit,
-                                                                   int32_t* caretOut);
+                                                                   size_t* caretOut);
 
     /// Shows an input method's preedit in an editing block
     /// (muiTextBlock_Compose): its text, its caret, at the end where the

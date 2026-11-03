@@ -132,13 +132,13 @@ void muiFreeHeld(muiAccessTree* tree, const muiHeldNode* held)
         if (node->text[kind] != nullptr)
         {
             muiReleaseMarked(&tree->busy, &tree->allocator, (void*)node->text[kind],
-                             (size_t)node->textLength[kind] + 1, 1);
+                             node->textLength[kind] + 1, 1);
         }
     }
     if (node->marks.lineStarts != nullptr)
     {
         muiReleaseMarked(&tree->busy, &tree->allocator, (void*)node->marks.lineStarts,
-                         node->marks.lineCount * sizeof(uint32_t), alignof(uint32_t));
+                         node->marks.lineCount * sizeof(size_t), alignof(size_t));
     }
     if (node->marks.words != nullptr)
     {
@@ -413,7 +413,7 @@ static void PutText(Writer* writer, const char* text)
     Put(writer, text, strlen(text));
 }
 
-static void PutCount(Writer* writer, const char* prefix, uint32_t value)
+static void PutCount(Writer* writer, const char* prefix, uint64_t value)
 {
     char number[32];
     muiChars chars = muiCharsIn(number, sizeof number);
@@ -435,10 +435,10 @@ static void PutPair(Writer* writer, const char* prefix, double a, const char* be
 }
 
 // A text in quotes, a quote, a backslash or a control byte escaped.
-static void PutQuoted(Writer* writer, const char* text, uint32_t length)
+static void PutQuoted(Writer* writer, const char* text, size_t length)
 {
     Put(writer, "\"", 1);
-    for (uint32_t i = 0; i < length; i++)
+    for (size_t i = 0; i < length; i++)
     {
         unsigned char byte = (unsigned char)text[i];
         if (byte == '"' || byte == '\\')

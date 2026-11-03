@@ -157,11 +157,25 @@ static bool Ends(muiAccessTree* tree, const muiAccessUpdate* update, uint64_t id
     return true;
 }
 
-// Whether a node's marks fit its value text (src/access_text.h).
+// Whether a node's texts are no longer than the library holds.
+static bool LengthsFit(const muiAccessNode* node)
+{
+    for (uint32_t kind = 0; kind < MUI_ACCESS_TEXTS; kind++)
+    {
+        if (node->text[kind] != nullptr && node->textLength[kind] > MUI_MAX_TEXT_BYTES)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Whether a node's marks fit its value text (src/access_text.h), its
+// length checked first.
 static bool MarksFit(const muiAccessNode* node)
 {
     const char* text = node->text[mui_accessValue];
-    uint32_t length = text != nullptr ? node->textLength[mui_accessValue] : 0;
+    uint32_t length = text != nullptr ? (uint32_t)node->textLength[mui_accessValue] : 0;
     return muiAccessSelectionFits(&node->marks, text, length) &&
            muiAccessLinesFit(&node->marks, text, length) &&
            muiAccessWordsFit(&node->marks, text, length) &&
@@ -179,6 +193,10 @@ static muiResult CheckLists(muiAccessTree* tree, const muiAccessUpdate* update, 
     {
         const muiAccessNode* node = update->nodes[i];
         added += muiHeldSlotOf(tree, node->id) == 0 ? 1 : 0;
+        if (!LengthsFit(node))
+        {
+            return mui_errorLimit;
+        }
         if ((node->childCount != 0 && update->children == nullptr) || !MarksFit(node))
         {
             return mui_errorInvalid;
@@ -293,8 +311,8 @@ static bool Stage(muiAccessTree* tree, const muiAccessNode* node, const uint64_t
         }
     }
     const muiAccessTextMarks* marks = &node->marks;
-    staged->lineStarts = Copy(tree, marks->lineStarts, marks->lineCount * sizeof(uint32_t),
-                              alignof(uint32_t), &fits);
+    staged->lineStarts =
+        Copy(tree, marks->lineStarts, marks->lineCount * sizeof(size_t), alignof(size_t), &fits);
     staged->words = Copy(tree, marks->words, marks->wordCount * sizeof(muiAccessWord),
                          alignof(muiAccessWord), &fits);
     staged->lineBoxes =
@@ -603,7 +621,7 @@ static MUI_NOINLINE muiResult AccessTreeApplyWorker(muiAccessTree* tree,
         return mui_errorBusy;
     }
     muiResult result = AccessTreeApply(tree, update, changes);
-    tree->misuse += result == mui_errorInvalid;
+    tree->misuse += result == mui_errorInvalid || result == mui_errorLimit;
     tree->busy = false;
     return result;
 }

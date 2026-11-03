@@ -491,8 +491,8 @@ static void TestRandomEdits(void)
     for (int round = 0; round < TEXT_ROUNDS; round++)
     {
         uint32_t offset = Next(&state) % ((uint32_t)length + 2u);
-        uint32_t start = 0;
-        uint32_t end = 0;
+        size_t start = 0;
+        size_t end = 0;
         size_t inserted = 0;
         if (Next(&state) % 3 == 0 && length < 400)
         {
@@ -525,8 +525,8 @@ static void TestRandomEdits(void)
                   (composing || nowLength == length - (end - start) + inserted),
               "the length after");
         length = nowLength;
-        uint32_t composed = 0;
-        uint32_t composedLength = 0;
+        size_t composed = 0;
+        size_t composedLength = 0;
         CHECK(muiTextBlock_GetComposition(service, block, &composed, &composedLength) ==
                       mui_success &&
                   composed + composedLength <= length,

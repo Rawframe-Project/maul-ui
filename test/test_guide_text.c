@@ -115,7 +115,7 @@ static muiResult SetLabel(muiContext* context, muiTextService* service, muiNodeI
 
 // Makes bytes from start up to end of a label's text bold.
 static muiResult Embolden(muiContext* context, muiTextService* service, muiNodeId label,
-                          muiTextBlockId block, uint32_t start, uint32_t end)
+                          muiTextBlockId block, size_t start, size_t end)
 {
     muiTextSpan bold = {start, end - start, MUI_PROPERTY_BIT(mui_propertyFontWeight),
                         muiDefaultTextStyle()};

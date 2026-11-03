@@ -443,8 +443,8 @@ static bool Script(void* user, SampleApp* app, int frame)
         return true;
     case 5:
     {
-        uint32_t start = 0;
-        uint32_t length = 0;
+        size_t start = 0;
+        size_t length = 0;
         muiRect field = muiNode_GetRect(app->context, notes->node);
         float x = 0.0f;
         float y = 0.0f;
@@ -472,8 +472,8 @@ static bool Script(void* user, SampleApp* app, int frame)
     }
     case 6:
     {
-        uint32_t start = 0;
-        uint32_t length = 0;
+        size_t start = 0;
+        size_t length = 0;
         SampleAppCheck(app,
                        muiTextBlock_GetComposition(app->text, notes->block, &start, &length) ==
                                mui_success &&
@@ -488,8 +488,8 @@ static bool Script(void* user, SampleApp* app, int frame)
     }
     case 7:
     {
-        uint32_t start = 0;
-        uint32_t length = 7;
+        size_t start = 0;
+        size_t length = 7;
         SampleAppCheck(app,
                        muiTextBlock_GetComposition(app->text, notes->block, &start, &length) ==
                                mui_success &&
@@ -501,8 +501,8 @@ static bool Script(void* user, SampleApp* app, int frame)
     }
     case 8:
     {
-        uint32_t start = 0;
-        uint32_t length = 0;
+        size_t start = 0;
+        size_t length = 0;
         SampleAppCheck(app,
                        muiTextBlock_GetComposition(app->text, notes->block, &start, &length) ==
                                mui_success &&

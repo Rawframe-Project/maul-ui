@@ -236,7 +236,7 @@ static void ExtendTo(muiTextBlock* block, muiTextPosition position)
     muiTextEditing* editing = &block->editing;
     uint32_t start = 0;
     uint32_t end = 0;
-    UnitAround(block, editing->grain, position.offset, &start, &end);
+    UnitAround(block, editing->grain, (uint32_t)position.offset, &start, &end);
     muiTextSelection selection;
     if (position.offset < editing->pressStart)
     {
@@ -287,12 +287,13 @@ muiResult muiEditPress(const muiTextHost* host, muiNodeId nodeId, float x, float
     if (extend)
     {
         // From the anchor, as Shift and a press extend on every platform.
-        editing->pressStart = editing->selection.anchor;
-        editing->pressEnd = editing->selection.anchor;
+        editing->pressStart = (uint32_t)editing->selection.anchor;
+        editing->pressEnd = (uint32_t)editing->selection.anchor;
         ExtendTo(block, position);
         return mui_success;
     }
-    UnitAround(block, editing->grain, position.offset, &editing->pressStart, &editing->pressEnd);
+    UnitAround(block, editing->grain, (uint32_t)position.offset, &editing->pressStart,
+               &editing->pressEnd);
     muiPlaceSelection(block, editing->grain == MUI_GRAIN_CLUSTER
                                  ? Collapsed(position)
                                  : (muiTextSelection){editing->pressStart,

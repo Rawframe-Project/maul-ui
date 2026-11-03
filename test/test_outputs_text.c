@@ -39,8 +39,8 @@ typedef struct Outputs
     const muiTextSpan* spans;
     const char* text;
     size_t length;
-    uint32_t start;
-    uint32_t end;
+    size_t start;
+    size_t end;
     uint32_t count;
     bool changed;
     bool redo;

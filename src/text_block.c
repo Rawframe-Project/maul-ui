@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// Text block records and the buffers they grow.
+// Text block records, the buffers they grow, and checks of a text's parts.
 
 #include "text_block.h"
 
@@ -145,4 +145,22 @@ bool muiIsWordSegment(const char* text, size_t start, size_t end)
         at += size;
     }
     return false;
+}
+
+muiResult muiSegmentsStatus(const muiCompositionSegment* segments, uint32_t count, size_t length)
+{
+    if (count > MUI_MAX_COMPOSITION_SEGMENTS || (segments == nullptr && count != 0))
+    {
+        return count > MUI_MAX_COMPOSITION_SEGMENTS ? mui_errorLimit : mui_errorInvalid;
+    }
+    for (uint32_t i = 0; i < count; i++)
+    {
+        const muiCompositionSegment* segment = &segments[i];
+        if (segment->start > length || segment->length > length - segment->start ||
+            (uint32_t)segment->style > mui_compositionConverted)
+        {
+            return mui_errorInvalid;
+        }
+    }
+    return mui_success;
 }
