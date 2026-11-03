@@ -10,6 +10,42 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.0.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.7.1...v1.0.0) (2026-11-03)
+
+This is the first stable release. From here a program that builds
+against 1.y builds against any later 1.z and means the same, the ABI
+holds within a minor version, and results (layouts, styles, draw-list
+bytes, accessibility trees, line breaks, shaped text, glyph images and
+motion curves) change only in a minor release whose notes say so, or in
+a patch release correcting one to what the documentation promised. The
+reference renderer, `maul-ui-rhi`, and the window glue,
+`maul-ui-window`, follow Maul RHI and Maul Window and sit outside that
+promise until both reach 1.0. The API is that of 0.7.1, and so are
+layouts, styles, draw lists, shaped text and glyph images; a program
+built against 0.7.1 is built again, as against any release before 1.0.
+The two fixes below are the renderer's.
+
+### Changed
+
+- The version promise above is stated in Getting started's Versions
+  section and in the release rules. The CMake package now accepts any
+  later 1.y release, where it accepted only its exact version, and a
+  shared library's `SOVERSION` is the major and minor version
+  ([#319](https://github.com/Rawframe-Project/maul-ui/pull/319)).
+
+### Fixed
+
+- Renderer: once the glyph atlas had pages, a frame of boxes and
+  shadows alone failed to record (`muiRhiRenderer_Record` answered
+  `mui_errorPlatform`) and drew nothing, for example after a screen's
+  last text went away. Such a frame now draws
+  ([#322](https://github.com/Rawframe-Project/maul-ui/pull/322)).
+- Renderer: a hand-built draw list whose glyph runs named the same
+  glyphs many times could wrap the instance count past 32 bits, and
+  packing then wrote past the instance buffer. Such a list is now
+  refused with `mui_errorCapacity`
+  ([#317](https://github.com/Rawframe-Project/maul-ui/pull/317)).
+
 ## [0.7.1](https://github.com/Rawframe-Project/maul-ui/compare/v0.7.0...v0.7.1) (2026-11-03)
 
 This release fixes two checks in the Maul Window glue and takes Maul
