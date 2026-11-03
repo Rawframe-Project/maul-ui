@@ -23,7 +23,7 @@ Each line is read as boxes of grapheme clusters left to right, from the glyphs p
 - `muiNode_HitTestText` finds the line at a point's y and the nearer edge of the box at its x.
 - `muiNode_GetTextCaret` gives the edge of a position's box: leading for downstream, trailing for upstream.
 - `muiNode_GetTextRangeRects` gives a rectangle for each stretch of boxes in a range, so a range across a change of direction is several rectangles.
-- `muiNode_MoveTextPosition` moves a position ([text_move.c](../../src/text_move.c)): to the next or previous grapheme cluster boundary in the text; a cluster left or right on screen, crossing to the next line or the one before as the paragraph's direction has it; to the start or end of a word (a UAX #29 word segment with a letter or a number); to its line's start or end; up or down a line at an x the caller keeps; or to the text's start or end.
+- `muiNode_MoveTextPosition` moves a position ([text_move.c](../../src/text_move.c)): to the next or previous grapheme cluster boundary in the text; a cluster left or right on screen, crossing to the next line or the one before as the paragraph's direction has it; to the start or end of a word (a UAX #29 word segment of letters, numbers, kana or ideographs, which Maul Unicode's `muniSegmentIterator_GetWordKind` tells apart from spaces, punctuation and symbols as ICU's rule status does); to its line's start or end; up or down a line at an x the caller keeps; or to the text's start or end.
 
 ## Deletion
 

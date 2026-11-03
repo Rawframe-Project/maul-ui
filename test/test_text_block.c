@@ -251,7 +251,7 @@ static void TestAccessText(void)
               update.nodes[0]->marks.lineCount == 1 && update.nodes[0]->marks.wordCount == 1,
           "a label reading Save, a line and a word");
     // Laid out 35 wide, a word a line, as painted; its words are the
-    // segments with letters.
+    // segments that are not spaces or punctuation.
     muiNodeId wrapped = AddText(&scene, s_nullNode, "ab cd, ef");
     Layout(&scene, wrapped, 35.0f);
     key = muiNode_GetHostKey(scene.context, wrapped);
@@ -278,6 +278,17 @@ static void TestAccessText(void)
               marks->lineBoxes[1].omitted && marks->lineBoxes[2].omitted &&
               marks->lineBoxes[1].firstCluster == marks->clusterCount,
           "near what is shown: the first line's clusters alone");
+    // The words are the segments Unicode's word breaks call words, as
+    // ICU's rule status does: "x" at 0 to 1 and the circled A at 9 to 12,
+    // not the superscript two, the circled one or the half between.
+    muiNodeId symbols =
+        AddText(&scene, s_nullNode, "x \xC2\xB2 \xE2\x91\xA0 \xE2\x92\xB6 \xC2\xBD");
+    Layout(&scene, symbols, 1000.0f);
+    key = muiNode_GetHostKey(scene.context, symbols);
+    CHECK(muiReadAccessText(&scene.host, symbols, key, &all, &content) && marks->wordCount == 2 &&
+              marks->words[0].start == 0 && marks->words[0].end == 1 &&
+              marks->words[1].start == 9 && marks->words[1].end == 12,
+          "words as the word breaks tell them");
     FreeScene(&scene);
 }
 
