@@ -48,7 +48,7 @@ static bool IsRunValid(const muiDrawList* list, const muiDrawGlyphRun* run)
 
 uint32_t muiRhiCountInstances(const muiDrawList* list)
 {
-    uint32_t count = 0;
+    uint64_t count = 0;
     for (uint32_t i = 0; i < list->commandCount; i++)
     {
         const muiDrawCommand* command = &list->commands[i];
@@ -61,7 +61,7 @@ uint32_t muiRhiCountInstances(const muiDrawList* list)
             count += command->kind >= mui_drawBox && command->kind <= mui_drawImage ? 1 : 0;
         }
     }
-    return count;
+    return count < UINT32_MAX ? (uint32_t)count : UINT32_MAX;
 }
 
 uint32_t muiRhiCountImages(const muiDrawList* list)
