@@ -31,6 +31,7 @@ Each suite is `test/test_<name>.c` (or `.m`), one executable registered with CTe
 
 - `integration`: tests that drive a real device or system: the renderer's pixels and the samples on lavapipe or WebGPU, the AT-SPI adapter on a private bus, the ARIA adapter in headless Chrome, and the Windows, macOS, iOS and Android adapters. They may read the clock, take about a second each, and stay out of the `changed` tier.
 - `quarantine`: a test that fails now and then without a fault in the change under test ([Quarantine](#quarantine)). Every test preset and every tier of `tools/check.sh` leave it out.
+- `large`: a test that needs gigabytes or minutes at the library's own limits, such as `text_mask_limit`, a password of 716 MB whose mask would pass `MUI_MAX_TEXT_BYTES`. Every test preset and the `changed` and `pr` tiers leave it out; the `full` tier and the `large` job run it, one at a time. Each one has a smaller test of the same bound, run in every cell: `text_mask` makes masks under limits of a few bytes.
 
 Some suites are seeded simulations rather than examples: `layout_bound` edits a tree at random and compares the bounded layout with one solved from nothing, `text_fuzz` and `color_glyph` read seeded damaged fonts and random text, and `field_quality` measures distance fields against exact coverage. A seed reproduces a run, so a failure prints its seed and step.
 
@@ -71,6 +72,7 @@ No test is quarantined now.
 | `voiceover`, `nvda`, `nvda-chrome` | On `main` and at night only: VoiceOver on the macOS runner, NVDA on the Windows runner, and NVDA over the ARIA adapter in Chrome walk the controls and text samples through Guidepup, each walk checking the phrases its steps file expects in order ([Test environments](test-environments.md#screen-readers)). A walk is never retried; a miss turns `main` red and is investigated as a bug. |
 | `size` | The wasm each part adds to a program at `-Oz` with link-time optimization; a part over its ceiling fails ([Development](development.md#benchmarks-and-size)). |
 | `quarantine` | At night and on a manual run only: the quarantined tests of `linux-clang-20-asan` ([Quarantine](#quarantine)). |
+| `large` | On `main`, at night and on a manual run: the tests labeled `large` in `linux-clang-20-asan`, one at a time ([Tests and labels](#tests-and-labels)). |
 | `prune-caches` | On `main` only, last: the organization's `cache-prune.yml` deletes every cache entry of `main` that a newer one replaced. Those are the build cells' `ccache-` and `mesa-` entries, keyed by commit, and the fuzz corpus, keyed by run. The repository's 10 GB then holds one entry per cache, and GitHub never evicts the corpus to make room. |
 
 A pull request skips the walks, so one that changes them or their steps files (`tools/screen_reader/`, Dependabot's `screen-readers` group included) is checked before it merges by dispatching `ci.yml` on its branch: `gh workflow run ci.yml --ref <branch>`.

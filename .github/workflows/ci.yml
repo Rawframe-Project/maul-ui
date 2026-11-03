@@ -758,6 +758,33 @@ jobs:
         # beyond its 300 seconds a test, which the script gives too.
         run: tools/run_quarantine.sh out/linux-clang-20-asan
 
+  # The tests labeled large (docs/operations/checks.md#tests-and-labels),
+  # which the test presets leave out for their memory and time, under
+  # AddressSanitizer and UBSan, one at a time: on main, at night and on a
+  # manual run. A pull request meets their bounds in smaller tests.
+  large:
+    needs: changes
+    if: needs.changes.outputs.code == 'true' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container:
+      image: ghcr.io/rawframe-project/ci-cpp:2026.10.7@sha256:08c846597243dc000c83d6c008d078a8c3fabf8633d83963d46c0e6d02c2577e
+      options: --init
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build
+        run: |
+          cmake --preset linux-clang-20-asan
+          cmake --build --preset linux-clang-20-asan
+      - name: The large tests
+        run: |
+          ctest --test-dir out/linux-clang-20-asan -L '^large$' --output-on-failure --no-tests=error \
+            --timeout 600 -j 1
+
   # Main's last job: deletes the cache entries a newer save replaced (the
   # build cells' ccache and Mesa entries, keyed by commit, and the fuzz
   # corpus, keyed by run), so the repository's 10 GB keeps one entry per
@@ -792,6 +819,7 @@ jobs:
       - nvda-chrome
       - size
       - quarantine
+      - large
       - prune-caches
     runs-on: ubuntu-24.04
     timeout-minutes: 2

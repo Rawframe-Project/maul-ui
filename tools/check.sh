@@ -19,8 +19,8 @@
 #                            a short fuzzing pass.
 #   tools/check.sh full      also the other Linux presets (ThreadSanitizer,
 #                            shared, the core alone, the parts without
-#                            text and with GCC, Clang and GCC Release) and
-#                            longer fuzzing.
+#                            text and with GCC, Clang and GCC Release),
+#                            longer fuzzing and the tests labeled large.
 #
 # The builds are the CI cells' CMake presets (CMakePresets.json), in
 # out/<preset>; the other trees go to out/check-*. Needs what the
@@ -129,12 +129,12 @@ all_c_files() {
         'samples/*.[ch]' 'rhi/*.[ch]' 'window/*.[ch]' | grep -v -E '_container\.h$|^test/generated/'
 }
 
-# Runs the tests of a build tree whose labels match, integration and
-# quarantined tests left out; by the tree rather than the test preset,
-# whose own filter would replace -LE.
+# Runs the tests of a build tree whose labels match, integration,
+# quarantined and large tests left out; by the tree rather than the test
+# preset, whose own filter would replace -LE.
 reached_tests() { # tree, label regex or ""
     local tests=(ctest --test-dir "$out/$1" --output-on-failure --timeout 300 -j "$jobs"
-        -LE '^(integration|quarantine)$')
+        -LE '^(integration|quarantine|large)$')
     [ -n "$2" ] && tests+=(-L "$2")
     if [ "$("${tests[@]}" -N | grep -c 'Test *#' || true)" -gt 0 ]; then
         "${tests[@]}"
@@ -257,5 +257,10 @@ done
 for name in linux-clang-20-tsan linux-shared linux-core linux-parts-core linux-parts-gcc-14 linux-clang-20 linux-gcc-14; do
     preset "$name"
 done
+
+# The tests every preset leaves out for their memory and time, one at a
+# time, as CI's large job runs them.
+step "the large tests in linux-clang-20-asan"
+ctest --test-dir "$out/linux-clang-20-asan" -L '^large$' --output-on-failure --no-tests=error --timeout 600 -j 1
 
 step "all checks passed"

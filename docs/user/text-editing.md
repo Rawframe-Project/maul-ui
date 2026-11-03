@@ -101,7 +101,7 @@ An input method's composition is shown in the field with `muiTextBlock_Compose` 
 
 ## Things to know
 
-- A password field is laid out, painted and read by accessibility as a bullet per character. Copying it gives nothing, and input methods are refused in it, as platforms turn them off there.
+- A password field is laid out, painted and read by accessibility as a bullet per character. Copying it gives nothing, and input methods are refused in it, as platforms turn them off there. A bullet takes three bytes, so a password of more than a third of `MUI_MAX_TEXT_BYTES` characters is not laid out or read, as when memory runs out.
 - Backspace deletes one code point, as Android and browsers do, so an accent can be taken back alone, but a whole emoji or flag goes at once.
 - A maximum length counts what the user sees as characters (grapheme clusters), not bytes.
 - On a single line, a pasted line break becomes a space.
