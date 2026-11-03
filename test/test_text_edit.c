@@ -414,6 +414,14 @@ static void TestMovingInText(void)
               Moves(&scene, 1000.0f, 3, DOWN, mui_moveNextWordStart, 12, DOWN) &&
               Moves(&scene, 1000.0f, 11, DOWN, mui_moveNextWordEnd, 14, DOWN),
           "words of any letters, and numbers");
+    // As ICU's rule status has it, a superscript two (2 to 4), a circled
+    // one (5 to 8) and a half (13 to 15) are no words, and a circled A (9
+    // to 12) is one.
+    ShowPlain(&scene, "x \xC2\xB2 \xE2\x91\xA0 \xE2\x92\xB6 \xC2\xBD");
+    CHECK(Moves(&scene, 1000.0f, 0, DOWN, mui_moveNextWordStart, 9, DOWN) &&
+              Moves(&scene, 1000.0f, 1, DOWN, mui_moveNextWordEnd, 12, DOWN) &&
+              Moves(&scene, 1000.0f, 15, DOWN, mui_movePreviousWordStart, 9, DOWN),
+          "words as the word breaks tell them");
     FreeScene(&scene);
 }
 
