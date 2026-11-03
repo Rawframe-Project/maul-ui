@@ -21,7 +21,7 @@ A glue that takes gamepads makes their records navigation for the player a host 
 
 ## Text input
 
-`muiNode_SetWindowCaret` asks the window to accept text with its caret at a rectangle of a node, carried into the window by `muiNode_MapToRoot`, and hands that rectangle back for a game that draws its own candidates. The null id stops text input.
+`muiNode_SetWindowCaret` asks the window to accept text with its caret at a rectangle of a node, carried into the window by `muiNode_MapToRoot`, and hands that rectangle back for a game that draws its own candidates. The caret and text input are two requests to Maul Window, the caret first. The null id stops text input, and the window keeps its caret.
 
 With the text component:
 

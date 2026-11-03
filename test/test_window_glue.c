@@ -20,7 +20,7 @@
 // holding a direction past its threshold, keeping it above seven tenths
 // of it and letting go below; its faces and shoulders. Then the caret:
 // text input on with the caret placed in the window, off with the null
-// id, and carets refused.
+// id, the window keeping the caret, and carets refused.
 
 #include "test_harness.h"
 
@@ -595,7 +595,8 @@ static void SetCaret(Test* test)
 }
 
 // The platform carries out a request as its frame ends: the caret the
-// last frame placed, then none.
+// last frame placed, then no text input, the window keeping the caret
+// (Maul Window 0.8.0).
 static void StopCaret(Test* test, mwinContext* windows)
 {
     CHECK(AcceptsText(test, windows), "the window accepts text");
@@ -685,8 +686,8 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
         mwinRect caret = {1.0f, 1.0f, 1.0f, 1.0f};
         CHECK(mwinWindow_GetTestTextInput(windows, test->window, &enabled, &caret) ==
                       mwin_success &&
-                  !enabled && caret.x == 0.0f && caret.height == 0.0f,
-              "the platform takes no text, its caret empty");
+                  !enabled && caret.x == 15.0f && caret.y == 16.0f && caret.height == 20.0f,
+              "the platform takes no text, keeping its caret");
         test->done = true;
         break;
     }
