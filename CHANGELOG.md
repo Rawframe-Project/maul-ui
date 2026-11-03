@@ -5,6 +5,19 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.7.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.6.2...v0.7.0) (2026-11-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* byte offsets and byte lengths into a text are size_t in every public record and function that took them as uint32_t, and muiTextBlock_SetPreedit gives its caret as a size_t, MUI_NO_OFFSET for none, in place of an int32_t with -1. muiAccessTree_Apply refuses a node whose text is longer than MUI_MAX_TEXT_BYTES with mui_errorLimit and counts it as misuse, where it took any uint32_t length before.
+
+### Fixed
+
+* **atspi:** read the characters before a text's first word as a word ([#299](https://github.com/Rawframe-Project/maul-ui/issues/299)) ([34d1974](https://github.com/Rawframe-Project/maul-ui/commit/34d1974a9e5f4ce66cd70959f92df9c07412e61e)), closes [#298](https://github.com/Rawframe-Project/maul-ui/issues/298)
+* give byte offsets into a text the size_t of its length ([#302](https://github.com/Rawframe-Project/maul-ui/issues/302)) ([ebf42fc](https://github.com/Rawframe-Project/maul-ui/commit/ebf42fc86c7fe27f2bfdf76830e586e859d82f13)), closes [#297](https://github.com/Rawframe-Project/maul-ui/issues/297)
+* **tools:** ask the reader for the line after Up and Down in walks ([#300](https://github.com/Rawframe-Project/maul-ui/issues/300)) ([dc3c55f](https://github.com/Rawframe-Project/maul-ui/commit/dc3c55fca626052e57fd3d9740952ce601072017)), closes [#296](https://github.com/Rawframe-Project/maul-ui/issues/296)
+
 ## [0.6.2](https://github.com/Rawframe-Project/maul-ui/compare/v0.6.1...v0.6.2) (2026-11-02)
 
 This release fixes what the 1.0.0 hardening pass
