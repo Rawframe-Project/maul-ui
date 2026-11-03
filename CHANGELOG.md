@@ -10,6 +10,32 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.1.0](https://github.com/Rawframe-Project/maul-ui/compare/v1.0.0...v1.1.0) (2026-11-03)
+
+This release moves Maul UI to Maul Window 0.8.0 and Maul Unicode
+0.13.0. The API and ABI are those of 1.0.0, and so are layouts, styles,
+draw lists, line breaks, shaped text and glyph images: Maul Unicode
+0.13.0 carries the same Unicode 18.0.0 data, and the one result it
+changes, Greek and Armenian case conversion, is one Maul UI does not
+use. The window glue, `maul-ui-window`, sits outside the 1.x promise
+until Maul Window reaches 1.0 and follows Maul Window 0.8.0's API; its
+one change in behavior is the caret below.
+
+### Changed
+
+- Maul Window is pinned at 0.8.0, from 0.7.0, and Maul Unicode at
+  0.13.0, from 0.8.0. A program on the window glue builds against Maul
+  Window 0.8.0, with that release's renames in its own code
+  (`mwinEvent.kind` and `mwinEventKind` for `type` and
+  `mwinEventType`), and against Maul Unicode 0.13.0 when it provides
+  its own
+  ([#324](https://github.com/Rawframe-Project/maul-ui/pull/324)).
+- Window glue: when `muiNode_SetWindowCaret` stops text input with the
+  null id, the window now keeps its caret, where it was cleared before,
+  as Maul Window 0.8.0 does. Text and compositions arrive without
+  control characters, which Maul Window 0.8.0 drops
+  ([#324](https://github.com/Rawframe-Project/maul-ui/pull/324)).
+
 ## [1.0.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.7.1...v1.0.0) (2026-11-03)
 
 This is the first stable release. From here a program that builds
