@@ -103,8 +103,9 @@ extern "C"
     /// @param glue    The glue.
     /// @param host    The text host the node's block is in.
     /// @param nodeId  The node, or the null id to hide the keyboard.
-    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument or a
-    ///         request Maul Window refuses.
+    /// @return `mui_success`; `mui_errorInvalid` for a NULL argument, a
+    ///         host without a context, or a request Maul Window refuses;
+    ///         `mui_errorStale` for a node that is gone.
     /// @par Thread safety
     /// Main thread only. Maul Window's requests are too.
     MUI_NODISCARD MUI_WINDOW_API muiResult muiNode_RequestWindowKeyboard(muiWindowGlue* glue,
