@@ -1,6 +1,6 @@
 # Maul Window
 
-`maul-ui-window` (`MAUL_UI_WINDOW`) connects a context to a [Maul Window](https://github.com/Rawframe-Project/maul-window) window: its input, its text input and clipboard, its gamepads and its accessibility. It is a static library of its own, `maul-ui-window::maul-ui-window`, built against an installed Maul Window or one fetched at its release tag. A program on another window library does the same translation itself, and this page lists what that takes.
+`maul-ui-window` (`MAUL_UI_WINDOW`) connects a context to a [Maul Window](https://github.com/Rawframe-Project/maul-window) window: its input, its text input and clipboard, its gamepads and its accessibility. It is a static library of its own, `maul-ui-window::maul-ui-window`, built against an installed Maul Window or one fetched at its release tag. It follows Maul Window and sits outside Maul UI's 1.x promise until Maul Window reaches 1.0 ([Versions](getting-started.md#versions)). A program on another window library does the same translation itself, and this page lists what that takes.
 
 ## Input
 

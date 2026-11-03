@@ -12,8 +12,8 @@
 // forgotten, and a frame past the upload budget refused; images, the
 // host asked once a key a frame, a key it has no image for not drawn,
 // and a draw a texture, keys of one texture drawn together; glyphs, their
-// texels uploaded the frame they are packed and not again, and runs whose
-// instances pass 32 bits refused.
+// texels uploaded the frame they are packed and not again, a box alone
+// drawn after them, and runs whose instances pass 32 bits refused.
 
 #include "test_harness.h"
 
@@ -527,6 +527,10 @@ static void TestGlyphs(void)
     run.glyphRun.firstGlyph = 1;
     CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes == 0,
           "a run past the glyph table not drawn");
+    // A box alone, with the atlas's pages kept from the frames before,
+    // samples nothing but still binds a texture its pass reads.
+    CHECK(DrawFrame(&gpu, renderer, &one) == mui_success,
+          "a box alone drawn after glyphs, their pages kept");
     // Runs that each name the whole table of 65,536 glyphs, 65,537 of
     // them: 2^32 + 65,536 instances, refused, not counted as 65,536.
     const uint32_t tableCount = 65536;

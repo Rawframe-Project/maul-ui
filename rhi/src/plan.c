@@ -148,11 +148,20 @@ muiResult muiRhiMakePlan(muiRhiPlan* plan, const muiRhiInstance* instances, uint
         plan->accesses[plan->accessCount++] = Reading(glyphs->resources[i], mrhi_accessSampled);
     }
     AddWrites(plan, glyphs);
-    // A list that samples nothing draws with the placeholder bound.
-    if (images->textureCount == 0 && glyphs->pageCount == 0 && plan->drawCount > 0)
+    // The first draw may hold boxes and shadows alone, which sample
+    // nothing (every later one starts at a texture); it still binds one:
+    // the first the pass reads, such as a glyph page kept from an earlier
+    // frame, or the placeholder where it reads none.
+    const mrhiResourceId bound = images->textureCount > 0 ? images->textures[0]
+                                 : glyphs->pageCount > 0  ? glyphs->resources[0]
+                                                          : sources->placeholder;
+    if (plan->drawCount > 0 && plan->draws[0].texture.index1 == 0)
     {
-        plan->draws[0].texture = sources->placeholder;
-        plan->accesses[plan->accessCount++] = Reading(sources->placeholder, mrhi_accessSampled);
+        plan->draws[0].texture = bound;
+        if (images->textureCount == 0 && glyphs->pageCount == 0)
+        {
+            plan->accesses[plan->accessCount++] = Reading(bound, mrhi_accessSampled);
+        }
     }
     return mui_success;
 }

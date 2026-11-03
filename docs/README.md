@@ -2,7 +2,7 @@
 
 ## Using the library
 
-- [Getting started](user/getting-started.md): requirements, building and installing, the build options, the model, a first screen, results, ids, defs and limits.
+- [Getting started](user/getting-started.md): requirements, building and installing, versions, the build options, the model, a first screen, results, ids, defs and limits.
 - [Nodes and layout](user/layout.md): the tree, flexbox, sizes, absolute placement, direction, the safe area and host content.
 - [Styling](user/styling.md): layers, classes and states, conditions, tokens and themes, visual values, transitions and exits.
 - [Text](user/text.md): fonts, labels, spans, fallback and families.
