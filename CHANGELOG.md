@@ -5,6 +5,14 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.7.1](https://github.com/Rawframe-Project/maul-ui/compare/v0.7.0...v0.7.1) (2026-11-03)
+
+
+### Fixed
+
+* **window:** check a preedit's caret once, without narrowing ([#304](https://github.com/Rawframe-Project/maul-ui/issues/304)) ([3de5bf8](https://github.com/Rawframe-Project/maul-ui/commit/3de5bf88864958d843d491eb07920dae1c7166fa)), closes [#303](https://github.com/Rawframe-Project/maul-ui/issues/303)
+* **window:** refuse the keyboard for a node that is gone ([#308](https://github.com/Rawframe-Project/maul-ui/issues/308)) ([bf236f5](https://github.com/Rawframe-Project/maul-ui/commit/bf236f5257bc04ac2ad36c564fc621a8cf57ee89)), closes [#305](https://github.com/Rawframe-Project/maul-ui/issues/305)
+
 ## [0.7.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.6.2...v0.7.0) (2026-11-03)
 
 This release gives every byte offset into a text the `size_t` of the
