@@ -5,6 +5,43 @@ Added, Changed, Fixed, Removed and Security. The project uses
 [Semantic Versioning](https://semver.org/). Before 1.0.0, any release
 may change the API, the ABI and every data format.
 
+## [0.7.1](https://github.com/Rawframe-Project/maul-ui/compare/v0.7.0...v0.7.1) (2026-11-03)
+
+This release fixes two checks in the Maul Window glue and takes Maul
+Tween 0.16.0. A preedit's caret is now checked the same way in both
+calls that take one, and asking for the keyboard for a node that is
+gone is refused. The API and ABI are the same as in 0.7.0, and so are
+layouts, styles, draw lists, shaped text and glyph images. A context
+reserves 8 bytes more for each transition and animation its limits
+allow.
+
+### Changed
+
+- Maul Tween is pinned at 0.16.0, from 0.12.0. Maul UI's springs,
+  decays, bezier easings and rubber band give the same results. Its
+  easing records grow from 72 to 80 bytes on 64-bit, so a context
+  reserves 2,560 bytes more at the default limits of 64 transitions and
+  256 animations
+  ([#312](https://github.com/Rawframe-Project/maul-ui/pull/312)).
+
+### Fixed
+
+- Window glue: `muiTextBlock_SetPreedit` took a preedit's caret
+  unchecked, so a caret past the preedit or inside a character named an
+  offset outside the composition or inside a character.
+  `muiTextBlock_ShowPreedit` refused every caret of a preedit longer
+  than `INT32_MAX` with `mui_errorInvalid`, where the text is refused
+  for its length with `mui_errorLimit`. Both calls now take a caret of
+  -1 (hidden) or a character boundary of the text, and refuse anything
+  else with `mui_errorInvalid` before the block changes
+  ([#304](https://github.com/Rawframe-Project/maul-ui/pull/304)).
+- Window glue: `muiNode_RequestWindowKeyboard` asked for a plain-text
+  keyboard for a node that is gone, or for a host without a context,
+  and answered `mui_success`. It now refuses them with
+  `mui_errorStale` and `mui_errorInvalid` before it asks Maul Window
+  for anything; the null id still hides the keyboard
+  ([#308](https://github.com/Rawframe-Project/maul-ui/pull/308)).
+
 ## [0.7.0](https://github.com/Rawframe-Project/maul-ui/compare/v0.6.2...v0.7.0) (2026-11-03)
 
 This release gives every byte offset into a text the `size_t` of the
