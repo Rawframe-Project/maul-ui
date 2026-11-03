@@ -40,7 +40,8 @@ extern "C"
     ///                  composition ended. May be NULL. 0 on failure but `mui_errorBusy`,
     ///                  which leaves it.
     /// @return As muiTextBlock_SetComposition, with `mui_errorInvalid` for
-    ///         a NULL preedit.
+    ///         a NULL preedit, or a caret neither -1 nor a character
+    ///         boundary of its text, which leaves the block.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_WINDOW_API muiResult muiTextBlock_SetPreedit(muiTextService* service,
@@ -65,7 +66,8 @@ extern "C"
     /// @param changedOut  Receives whether the text changed; may be NULL. False
     ///                    on failure but `mui_errorBusy`, which leaves it.
     /// @return As muiTextBlock_Compose, with `mui_errorInvalid` for a NULL
-    ///         preedit.
+    ///         preedit, or a caret neither -1 nor a character boundary of
+    ///         its text.
     /// @par Thread safety
     /// Safe from any thread; the service is used by one thread at a time.
     MUI_NODISCARD MUI_WINDOW_API muiResult muiTextBlock_ShowPreedit(muiTextService* service,
