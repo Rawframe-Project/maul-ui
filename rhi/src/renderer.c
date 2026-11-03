@@ -295,10 +295,14 @@ static muiResult Pack(muiRhiRenderer* renderer, const muiDrawList* list, const m
     {
         return reset;
     }
+    // The projection's two records follow the list's, a total past 32
+    // bits standing as UINT32_MAX, which the reserve refuses.
+    uint64_t transformCount =
+        (uint64_t)muiRhiPackTransforms(list, nullptr) + (target->projected ? 2u : 0u);
     const uint32_t counts[kStreamCount] = {
         [kInstances] = muiRhiCountInstances(list),
         [kGradients] = muiRhiPackGradients(list, nullptr),
-        [kTransforms] = muiRhiPackTransforms(list, nullptr) + (target->projected ? 2u : 0u),
+        [kTransforms] = transformCount < UINT32_MAX ? (uint32_t)transformCount : UINT32_MAX,
         [kClips] = muiRhiPackClips(list, nullptr),
     };
     for (uint32_t i = 0; i < kStreamCount; i++)

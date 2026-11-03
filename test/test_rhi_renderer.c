@@ -12,7 +12,8 @@
 // forgotten, and a frame past the upload budget refused; images, the
 // host asked once a key a frame, a key it has no image for not drawn,
 // and a draw a texture, keys of one texture drawn together; glyphs, their
-// texels uploaded the frame they are packed and not again.
+// texels uploaded the frame they are packed and not again, and runs whose
+// instances pass 32 bits refused.
 
 #include "test_harness.h"
 
@@ -526,6 +527,30 @@ static void TestGlyphs(void)
     run.glyphRun.firstGlyph = 1;
     CHECK(DrawFrame(&gpu, renderer, &list) == mui_success && s_log.stagingBytes == 0,
           "a run past the glyph table not drawn");
+    // Runs that each name the whole table of 65,536 glyphs, 65,537 of
+    // them: 2^32 + 65,536 instances, refused, not counted as 65,536.
+    const uint32_t tableCount = 65536;
+    const uint32_t runCount = 65537;
+    muiGlyph* table = malloc(tableCount * sizeof(muiGlyph));
+    muiDrawCommand* runs = malloc(runCount * sizeof(muiDrawCommand));
+    for (uint32_t i = 0; table != NULL && i < tableCount; i++)
+    {
+        table[i] = (muiGlyph){4, 0, 0};
+    }
+    for (uint32_t i = 0; runs != NULL && i < runCount; i++)
+    {
+        runs[i] = run;
+        runs[i].glyphRun.firstGlyph = 0;
+        runs[i].glyphRun.glyphCount = tableCount;
+    }
+    muiDrawList repeated = ListOf(runs, runs != NULL ? runCount : 0);
+    repeated.glyphs = table;
+    repeated.glyphCount = table != NULL ? tableCount : 0;
+    CHECK(table != NULL && runs != NULL &&
+              DrawFrame(&gpu, renderer, &repeated) == mui_errorCapacity,
+          "runs whose instances pass 32 bits refused");
+    free(runs);
+    free(table);
     muiDestroyRhiRenderer(renderer);
     muiDestroyTextService(service);
     CHECK(memory.live == 0, "the service's memory all given back");
