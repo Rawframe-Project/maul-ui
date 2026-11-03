@@ -165,7 +165,8 @@ extern "C"
     /// Asks the window to accept text with its caret at a rectangle of a
     /// node's border box, carried into the window (muiNode_MapToRoot),
     /// so the platform places its candidate window there
-    /// (mwinWindow_RequestTextInput); or, with the null id, to stop. Ask again
+    /// (mwinWindow_RequestTextInputCaret, then mwinWindow_RequestTextInput);
+    /// or, with the null id, to stop, the window keeping its caret. Ask again
     /// as the caret moves, or as layout or scrolling moves the node.
     /// mwin_eventImePreedit records then report what an input method
     /// composes; they are not the UI's, and the host hands them to its

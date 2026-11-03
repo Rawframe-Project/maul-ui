@@ -285,12 +285,12 @@ static void TestEditing(Test* test)
     CHECK(muiWindowGlue_RequestPaste(test->glue) == mui_success &&
               muiWindowGlue_RequestPaste(NULL) == mui_errorInvalid,
           "a paste asked for");
-    mwinEvent event = {.type = mwin_eventKeyDown, .window = test->window};
+    mwinEvent event = {.kind = mwin_eventKeyDown, .window = test->window};
     CHECK(muiTextBlock_PasteFromWindow(test->glue, test->service, test->block, &event, &changed) ==
                   mui_empty &&
               !changed,
           "another event passes");
-    event.type = mwin_eventRequestCompleted;
+    event.kind = mwin_eventRequestCompleted;
     event.data.completion =
         (mwinCompletion){.kind = mwin_requestClipboardRead, .outcome = mwin_outcomeDenied};
     CHECK(muiTextBlock_PasteFromWindow(test->glue, test->service, test->block, &event, NULL) ==

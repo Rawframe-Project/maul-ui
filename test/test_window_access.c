@@ -95,9 +95,9 @@ static void TestTree(Test* test)
     Layout(test);
     CHECK(muiWindowAccess_Update(access) == mui_success && NameIs(access, test->button, "Stop"),
           "a rename sent again");
-    mwinEvent scale = {.type = mwin_eventScaleChanged, .window = test->window};
+    mwinEvent scale = {.kind = mwin_eventScaleChanged, .window = test->window};
     scale.data.scale.scale = 2.0f;
-    const mwinEvent moved = {.type = mwin_eventMoved, .window = test->window};
+    const mwinEvent moved = {.kind = mwin_eventMoved, .window = test->window};
     CHECK(muiWindowAccess_HandleEvent(access, &scale) == mui_success &&
               muiWindowAccess_HandleEvent(access, &moved) == mui_success,
           "a scale and a move taken");

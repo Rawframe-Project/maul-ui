@@ -75,7 +75,7 @@ static void Release(muiWindowPad* pad, int8_t direction)
 static muiWindowAsk Button(muiWindowPads* pads, muiWindowPad* pad, const mwinEvent* event)
 {
     const muiWindowAsk none = {0};
-    bool down = event->type == mwin_eventGamepadButtonDown;
+    bool down = event->kind == mwin_eventGamepadButtonDown;
     uint8_t button = event->data.gamepadButton.button;
     if (button <= mwin_padDpadRight)
     {
@@ -165,7 +165,7 @@ static muiWindowAsk Axis(muiWindowPads* pads, muiWindowPad* pad, const mwinEvent
 muiWindowAsk muiWindowPadRecord(muiWindowPads* pads, const mwinEvent* event)
 {
     const muiWindowAsk none = {0};
-    switch (event->type)
+    switch (event->kind)
     {
     case mwin_eventGamepadButtonDown:
     case mwin_eventGamepadButtonUp:
@@ -185,9 +185,9 @@ muiWindowAsk muiWindowPadRecord(muiWindowPads* pads, const mwinEvent* event)
     default:
         return none;
     }
-    bool raw = event->type == mwin_eventGamepadAxisMoved ? event->data.gamepadAxis.raw
+    bool raw = event->kind == mwin_eventGamepadAxisMoved ? event->data.gamepadAxis.raw
                                                          : event->data.gamepadButton.raw;
-    mwinGamepadId id = event->type == mwin_eventGamepadAxisMoved
+    mwinGamepadId id = event->kind == mwin_eventGamepadAxisMoved
                            ? event->data.gamepadAxis.gamepad
                            : event->data.gamepadButton.gamepad;
     muiWindowPad* pad = raw ? nullptr : Find(pads, id);
@@ -195,7 +195,7 @@ muiWindowAsk muiWindowPadRecord(muiWindowPads* pads, const mwinEvent* event)
     {
         return none;
     }
-    return event->type == mwin_eventGamepadAxisMoved ? Axis(pads, pad, event)
+    return event->kind == mwin_eventGamepadAxisMoved ? Axis(pads, pad, event)
                                                      : Button(pads, pad, event);
 }
 

@@ -20,7 +20,7 @@
 // holding a direction past its threshold, keeping it above seven tenths
 // of it and letting go below; its faces and shoulders. Then the caret:
 // text input on with the caret placed in the window, off with the null
-// id, and carets refused.
+// id, the window keeping the caret, and carets refused.
 
 #include "test_harness.h"
 
@@ -56,7 +56,7 @@ typedef struct Test
     muiNodeId panel;
     muiWindowGlue* glue;
     // What the glue said of each record fed, by type.
-    mwinEventType types[MAX_RECORDS];
+    mwinEventKind types[MAX_RECORDS];
     bool handled[MAX_RECORDS];
     int count;
     // What the host's function heard at the button.
@@ -113,7 +113,7 @@ static bool Hear(void* user, muiNodeId nodeId, muiPhase phase, const muiEvent* e
         test->texts++;
         // Fed again from the event function, a record is refused as busy
         // and its output left: the call in progress may have written it.
-        mwinEvent typed = {.type = mwin_eventTextInput, .window = test->window};
+        mwinEvent typed = {.kind = mwin_eventTextInput, .window = test->window};
         typed.data.text.text = "b";
         typed.data.text.length = 1;
         bool handled;
@@ -245,19 +245,19 @@ static void Feed(Test* test, mwinContext* windows)
         bool handled = true;
         CHECK(muiWindowGlue_HandleEvent(test->glue, &event, &handled) == mui_success,
               "a record taken");
-        bool input = event.type >= mwin_eventInputStateReset && event.type <= mwin_eventPenButtonUp;
-        if ((input || event.type == mwin_eventFocusLost) && test->count < MAX_RECORDS)
+        bool input = event.kind >= mwin_eventInputStateReset && event.kind <= mwin_eventPenButtonUp;
+        if ((input || event.kind == mwin_eventFocusLost) && test->count < MAX_RECORDS)
         {
-            test->types[test->count] = event.type;
+            test->types[test->count] = event.kind;
             test->handled[test->count++] = handled;
         }
     }
 }
 
-static mwinEvent Cursor(mwinWindowId window, mwinEventType type, float x, float y, uint8_t button,
+static mwinEvent Cursor(mwinWindowId window, mwinEventKind type, float x, float y, uint8_t button,
                         uint8_t buttons)
 {
-    mwinEvent event = {.type = type, .window = window};
+    mwinEvent event = {.kind = type, .window = window};
     event.data.pointer.position = (mwinPosition){x, y};
     event.data.pointer.button = button;
     event.data.pointer.buttons = buttons;
@@ -266,24 +266,24 @@ static mwinEvent Cursor(mwinWindowId window, mwinEventType type, float x, float 
 
 static mwinEvent Key(mwinWindowId window, mwinKeyCode code, mwinKey key, mwinModifiers modifiers)
 {
-    mwinEvent event = {.type = mwin_eventKeyDown, .window = window};
+    mwinEvent event = {.kind = mwin_eventKeyDown, .window = window};
     event.data.key.code = code;
     event.data.key.key = key;
     event.data.key.modifiers = modifiers;
     return event;
 }
 
-static mwinEvent Touch(mwinWindowId window, mwinEventType type, uint64_t id, float x, float y)
+static mwinEvent Touch(mwinWindowId window, mwinEventKind type, uint64_t id, float x, float y)
 {
-    mwinEvent event = {.type = type, .window = window};
+    mwinEvent event = {.kind = type, .window = window};
     event.data.touch.id = id;
     event.data.touch.position = (mwinPosition){x, y};
     return event;
 }
 
-static mwinEvent Pen(mwinWindowId window, mwinEventType type, mwinPenFlags flags, uint8_t button)
+static mwinEvent Pen(mwinWindowId window, mwinEventKind type, mwinPenFlags flags, uint8_t button)
 {
-    mwinEvent event = {.type = type, .window = window};
+    mwinEvent event = {.kind = type, .window = window};
     event.data.pen.position = (mwinPosition){50, 50};
     event.data.pen.flags = flags;
     event.data.pen.button = button;
@@ -300,10 +300,10 @@ static void Post(mwinContext* windows, const mwinEvent* events, int count)
 
 static void PostInput(Test* test, mwinContext* windows)
 {
-    mwinEvent text = {.type = mwin_eventTextInput, .window = test->window};
+    mwinEvent text = {.kind = mwin_eventTextInput, .window = test->window};
     text.data.text.text = "x";
     text.data.text.length = 1;
-    mwinEvent wheel = {.type = mwin_eventWheel, .window = test->window};
+    mwinEvent wheel = {.kind = mwin_eventWheel, .window = test->window};
     wheel.data.wheel.y = 1.0f;
     const mwinEvent events[] = {
         Cursor(test->window, mwin_eventCursorMoved, 50, 50, 0, 0),
@@ -323,7 +323,7 @@ static void PostInput(Test* test, mwinContext* windows)
 
 static void CheckInput(const Test* test)
 {
-    static const mwinEventType types[] = {
+    static const mwinEventKind types[] = {
         mwin_eventCursorMoved, mwin_eventCursorMoved, mwin_eventCursorMoved, mwin_eventButtonDown,
         mwin_eventButtonUp,    mwin_eventKeyDown,     mwin_eventKeyDown,     mwin_eventTextInput,
         mwin_eventWheel,       mwin_eventKeyDown,     mwin_eventCursorLeft,
@@ -391,7 +391,7 @@ static void PostMany(Test* test, mwinContext* windows)
         const mwinEvent down = Touch(test->window, mwin_eventTouchDown, 100 + i, 20, 20);
         Post(windows, &down, 1);
     }
-    const mwinEvent lost = {.type = mwin_eventFocusLost, .window = test->window};
+    const mwinEvent lost = {.kind = mwin_eventFocusLost, .window = test->window};
     Post(windows, &lost, 1);
 }
 
@@ -595,7 +595,8 @@ static void SetCaret(Test* test)
 }
 
 // The platform carries out a request as its frame ends: the caret the
-// last frame placed, then none.
+// last frame placed, then no text input, the window keeping the caret
+// (Maul Window 0.8.0).
 static void StopCaret(Test* test, mwinContext* windows)
 {
     CHECK(AcceptsText(test, windows), "the window accepts text");
@@ -628,7 +629,7 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
              (const mwinEvent[]){
                  Cursor(test->window, mwin_eventCursorMoved, 50, 50, 0, 0),
                  Cursor(test->window, mwin_eventButtonDown, 50, 50, mwin_buttonLeft, 1),
-                 {.type = mwin_eventFocusLost, .window = test->window}},
+                 {.kind = mwin_eventFocusLost, .window = test->window}},
              3);
         break;
     case 2:
@@ -685,8 +686,8 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
         mwinRect caret = {1.0f, 1.0f, 1.0f, 1.0f};
         CHECK(mwinWindow_GetTestTextInput(windows, test->window, &enabled, &caret) ==
                       mwin_success &&
-                  !enabled && caret.x == 0.0f && caret.height == 0.0f,
-              "the platform takes no text, its caret empty");
+                  !enabled && caret.x == 15.0f && caret.y == 16.0f && caret.height == 20.0f,
+              "the platform takes no text, keeping its caret");
         test->done = true;
         break;
     }

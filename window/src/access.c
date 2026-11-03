@@ -198,8 +198,13 @@ static muiResult MakeAndroid(muiWindowAccess* access, const muiWindowAccessDef* 
 static muiResult MakeAria(muiWindowAccess* access, const muiWindowAccessDef* def,
                           const mwinNativeHandles* handles)
 {
-    uint32_t length = handles->handles.web.accessibilityLength;
-    char* host = muiWindowAllocate(&def->allocator, (size_t)length + 1, 1);
+    size_t length = handles->handles.web.accessibilityLength;
+    // Room for its NUL as well.
+    if (length == SIZE_MAX)
+    {
+        return mui_errorCapacity;
+    }
+    char* host = muiWindowAllocate(&def->allocator, length + 1, 1);
     if (host == nullptr)
     {
         return mui_errorCapacity;
@@ -216,7 +221,7 @@ static muiResult MakeAria(muiWindowAccess* access, const muiWindowAccessDef* def
     aria.user = access;
     access->kind = kind_aria;
     muiResult status = muiCreateAriaAdapter(&aria, (muiAriaAdapter**)&access->adapter);
-    muiWindowRelease(&def->allocator, host, (size_t)length + 1, 1);
+    muiWindowRelease(&def->allocator, host, length + 1, 1);
     return status;
 }
 #endif
@@ -476,7 +481,7 @@ muiResult muiWindowAccess_HandleEvent(muiWindowAccess* access, const mwinEvent* 
     {
         return mui_success;
     }
-    float scale = event->type == mwin_eventScaleChanged ? event->data.scale.scale : 0.0f;
+    float scale = event->kind == mwin_eventScaleChanged ? event->data.scale.scale : 0.0f;
     (void)scale;
     switch (access->kind)
     {
@@ -490,7 +495,7 @@ muiResult muiWindowAccess_HandleEvent(muiWindowAccess* access, const mwinEvent* 
 #endif
 #if MUI_WINDOW_ATSPI
     case kind_atspi:
-        if (event->type == mwin_eventScaleChanged || event->type == mwin_eventMoved)
+        if (event->kind == mwin_eventScaleChanged || event->kind == mwin_eventMoved)
         {
             Place(access);
         }

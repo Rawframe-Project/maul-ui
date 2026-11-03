@@ -109,14 +109,14 @@ static void Record(void* user, SampleApp* app, const mwinEvent* event)
     }
     Field* field = &texts->fields[texts->focused];
     bool changed = false;
-    if (event->type == mwin_eventImePreedit)
+    if (event->kind == mwin_eventImePreedit)
     {
         SampleAppCheck(app,
                        muiTextBlock_ShowPreedit(app->text, field->block, &event->data.preedit,
                                                 &changed) == mui_success,
                        "a composition");
     }
-    else if (event->type == mwin_eventInputStateReset &&
+    else if (event->kind == mwin_eventInputStateReset &&
              event->window.index1 == app->window.index1 &&
              event->window.generation == app->window.generation)
     {
@@ -315,7 +315,7 @@ static bool Reports(const SampleApp* app, const Field* field, const char* expect
 
 static void PostText(SampleApp* app, const char* text)
 {
-    mwinEvent typed = {.type = mwin_eventTextInput, .window = app->window};
+    mwinEvent typed = {.kind = mwin_eventTextInput, .window = app->window};
     typed.data.text = (mwinTextEvent){text, (uint32_t)strlen(text)};
     SampleAppCheck(app, mwinContext_PostTestEvent(app->windows, &typed) == mwin_success,
                    "text posted");
@@ -323,11 +323,11 @@ static void PostText(SampleApp* app, const char* text)
 
 static void PostNamed(SampleApp* app, mwinKeyCode code, mwinModifiers modifiers)
 {
-    mwinEvent down = {.type = mwin_eventKeyDown, .window = app->window};
+    mwinEvent down = {.kind = mwin_eventKeyDown, .window = app->window};
     down.data.key =
         (mwinKeyEvent){.code = code, .modifiers = modifiers, .key = MWIN_KEY_NAMED | code};
     mwinEvent up = down;
-    up.type = mwin_eventKeyUp;
+    up.kind = mwin_eventKeyUp;
     SampleAppCheck(app,
                    mwinContext_PostTestEvent(app->windows, &down) == mwin_success &&
                        mwinContext_PostTestEvent(app->windows, &up) == mwin_success,
@@ -337,11 +337,11 @@ static void PostNamed(SampleApp* app, mwinKeyCode code, mwinModifiers modifiers)
 // A letter with the platform's command modifier.
 static void PostShortcut(SampleApp* app, mwinKeyCode code, char letter)
 {
-    mwinEvent down = {.type = mwin_eventKeyDown, .window = app->window};
+    mwinEvent down = {.kind = mwin_eventKeyDown, .window = app->window};
     mwinModifiers command = s_keymap == mui_keymapMac ? mwin_modMeta : mwin_modControl;
     down.data.key = (mwinKeyEvent){.code = code, .modifiers = command, .key = (uint32_t)letter};
     mwinEvent up = down;
-    up.type = mwin_eventKeyUp;
+    up.kind = mwin_eventKeyUp;
     SampleAppCheck(app,
                    mwinContext_PostTestEvent(app->windows, &down) == mwin_success &&
                        mwinContext_PostTestEvent(app->windows, &up) == mwin_success,
@@ -371,16 +371,16 @@ static bool ClipboardHolds(const SampleApp* app, const char* expected)
 
 static void PostPreedit(SampleApp* app, const char* text, int32_t caret)
 {
-    mwinEvent preedit = {.type = mwin_eventImePreedit, .window = app->window};
+    mwinEvent preedit = {.kind = mwin_eventImePreedit, .window = app->window};
     preedit.data.preedit =
         (mwinPreeditEvent){.text = text, .length = (uint32_t)strlen(text), .caret = caret};
     SampleAppCheck(app, mwinContext_PostTestEvent(app->windows, &preedit) == mwin_success,
                    "a preedit posted");
 }
 
-static void PostFocus(SampleApp* app, mwinEventType type)
+static void PostFocus(SampleApp* app, mwinEventKind type)
 {
-    const mwinEvent focus = {.type = type, .window = app->window};
+    const mwinEvent focus = {.kind = type, .window = app->window};
     SampleAppCheck(app, mwinContext_PostTestEvent(app->windows, &focus) == mwin_success,
                    "the window's focus posted");
 }
@@ -465,7 +465,7 @@ static bool Script(void* user, SampleApp* app, int frame)
         SampleAppCheck(app,
                        mwinCreateWindow(app->windows, &def, &texts->other, NULL) == mwin_success,
                        "another window");
-        const mwinEvent lost = {.type = mwin_eventFocusLost, .window = texts->other};
+        const mwinEvent lost = {.kind = mwin_eventFocusLost, .window = texts->other};
         SampleAppCheck(app, mwinContext_PostTestEvent(app->windows, &lost) == mwin_success,
                        "the other window's focus posted");
         return true;
