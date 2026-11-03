@@ -12,6 +12,7 @@
 - [World space](#world-space)
 - [Culling and uploads](#culling-and-uploads)
 - [Shaders](#shaders)
+- [Determinism](#determinism)
 
 ## One pipeline of quads
 
@@ -58,3 +59,7 @@ As the list is packed, an instance whose quad, through its transform, misses its
 The shaders are GLSL and WGSL in `rhi/shaders/`, made into a Maul RHI shader container offline by [gen_rhi_shaders.py](../../tools/gen_rhi_shaders.py), which needs a Maul RHI source tree for its cross-compilers. The container is committed as `rhi/shaders/quad_container.h`, because CI has none of those tools. A stamp of its inputs' hashes lets CI check that it is current without them ([Development](../operations/development.md#the-shader-container)).
 
 Its tests run on Maul RHI's test driver everywhere, and on lavapipe and headless Chrome's WebGPU where those exist, comparing probed pixels with what the list says, under the Vulkan validation layer ([Test environments](../operations/test-environments.md)).
+
+## Determinism
+
+The renderer is outside the core's promise of the same bits everywhere ([Overview](overview.md)). Its pixels come from the GPU, whose rasterization and arithmetic differ between devices, so its tests probe pixels against what the list says rather than compare bits. What it computes on the CPU runs in the host's floating-point environment and is not bit-exact across platforms, compilers or the host's rounding and flush-to-zero settings: the culling bounds of each quad through its transform ([cull.c](../../rhi/src/cull.c)), and a shadow's spread corners and blur reach and an image's nine-slice fit ([pack.c](../../rhi/src/pack.c)). The draw list it reads stays the core's, the same bits everywhere. `tools/check_float_env.py` checks the public functions marked `MUI_API` only, on purpose, so the renderer's `MUI_RHI_API` functions are not wrappers.

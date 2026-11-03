@@ -28,6 +28,16 @@ With the text component:
 - `maul-ui-window/composition.h` sets a preedit into a text block and places the caret at a position of a node's text ([composition.c](../../window/src/composition.c)). Maul Window's preedit segments and styles are Maul UI's composition's, member for member and value for value. Preedit records are not the UI's, since the core has no composition record and the host knows which of its fields edits. For the same reason a reset, after which Maul Window shows no composition (maul-window#194), is the host's to pass to its field as an empty preedit, when the reset is the field's own window's: the glue cancels the pointers at a reset, but it cannot reach a field's composition. A gamepad's reset carries the null window and ends no composition. `muiNode_RequestWindowKeyboard`, beside them, shows the on-screen keyboard for an editing field's purpose, or hides it.
 - `maul-ui-window/clipboard.h` gives the text editor the window's clipboard: a writer for copies and cuts, a request for a paste, and the window's answer taken into the block, as Maul Window reads the clipboard by request ([clipboard.c](../../window/src/clipboard.c)).
 
+## Determinism
+
+The glue is outside the core's promise of the same bits everywhere ([Overview](overview.md)). It computes in the host's floating-point environment, and its float results are not bit-exact across platforms, compilers or the host's rounding and flush-to-zero settings. There are three:
+
+- the stick's release threshold, seven tenths of the threshold ([gamepads.c](../../window/src/gamepads.c));
+- the caret rectangle placed in the window, the content box's corner plus the caret's ([composition.c](../../window/src/composition.c));
+- the place AT-SPI is told for an X11 window, its position times its scale, rounded ([access.c](../../window/src/access.c)).
+
+Each goes to the platform or decides a navigation at a threshold, and none is a result the core promises. `tools/check_float_env.py` checks the public functions marked `MUI_API` only, on purpose, so the glue's `MUI_WINDOW_API` functions are not wrappers. If one of these results ever becomes a promised one, the functions that compute it enter the library's environment and the check learns their marker.
+
 ## Accessibility
 
 With the consumer tree, one `muiWindowAccess` makes the adapter built for the window's platform over Maul Window's native handles ([access.c](../../window/src/access.c)): UI Automation over the HWND, NSAccessibility and UIAccessibility over the view, Android's over the activity's view with the activity's JNIEnv, ARIA in the element Maul Window keeps over the canvas, and AT-SPI for X11 and Wayland in the program's application. It enables the glue's root, sends its updates each frame, has the context perform what clients ask unless the host takes a request, rescales on the window's scale changes, and hands the window the adapter's root (`mwinWindow_RequestAccessibilityRoot`) whenever it changes.
