@@ -59,11 +59,16 @@ static void Begin(muiAccessTree* tree)
     }
 }
 
-// Indexes the nodes sent: false for the id 0 or a node sent twice.
+// Indexes the nodes sent: false for a NULL node, the id 0 or a node sent
+// twice.
 static bool IndexSent(muiAccessTree* tree, const muiAccessUpdate* update)
 {
     for (uint32_t i = 0; i < update->nodeCount; i++)
     {
+        if (update->nodes[i] == nullptr)
+        {
+            return false;
+        }
         uint64_t id = update->nodes[i]->id;
         uint32_t at = UpdatePlace(tree, id);
         if (id == 0 || tree->updates[at].apply == tree->apply)
@@ -197,7 +202,8 @@ static muiResult CheckLists(muiAccessTree* tree, const muiAccessUpdate* update, 
         {
             return mui_errorLimit;
         }
-        if ((node->childCount != 0 && update->children == nullptr) || !MarksFit(node))
+        if ((node->childCount != 0 && update->children == nullptr) ||
+            (node->linkCount != 0 && node->links == nullptr) || !MarksFit(node))
         {
             return mui_errorInvalid;
         }
