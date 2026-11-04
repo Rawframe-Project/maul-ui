@@ -10,6 +10,20 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.3.0](https://github.com/Rawframe-Project/maul-ui/compare/v1.2.0...v1.3.0) (2026-11-04)
+
+
+### Added
+
+* **access:** state an update's children length and check it ([#344](https://github.com/Rawframe-Project/maul-ui/issues/344)) ([ca75881](https://github.com/Rawframe-Project/maul-ui/commit/ca75881e9bf0413c0f37c249d513b3e0a3611c63)), closes [#339](https://github.com/Rawframe-Project/maul-ui/issues/339)
+
+
+### Fixed
+
+* **access:** refuse a NULL node or link array in an update ([#341](https://github.com/Rawframe-Project/maul-ui/issues/341)) ([3304c85](https://github.com/Rawframe-Project/maul-ui/commit/3304c850eeaa3e04e4187b74d350cd6222583046)), closes [#340](https://github.com/Rawframe-Project/maul-ui/issues/340)
+* **access:** tell a node sent and let go at once only as removed ([#348](https://github.com/Rawframe-Project/maul-ui/issues/348)) ([b145da2](https://github.com/Rawframe-Project/maul-ui/commit/b145da26ec3f69e525d093340c311b8c8e195758)), closes [#347](https://github.com/Rawframe-Project/maul-ui/issues/347)
+* **edit:** make no password mask past the text limit ([#336](https://github.com/Rawframe-Project/maul-ui/issues/336)) ([b563650](https://github.com/Rawframe-Project/maul-ui/commit/b56365065be5b048517cbb561bcff01f51153db6)), closes [#333](https://github.com/Rawframe-Project/maul-ui/issues/333)
+
 ## [1.2.0](https://github.com/Rawframe-Project/maul-ui/compare/v1.1.0...v1.2.0) (2026-11-03)
 
 This release changes which text segments count as words, for word
