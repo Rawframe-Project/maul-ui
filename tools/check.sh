@@ -149,10 +149,11 @@ reached_tests() { # tree, label regex or ""
 # lists, on built trees as CI does. Otherwise only the files given that it
 # lists are checked, on trees that are only configured, which is all
 # clang-tidy reads; no file given checks none. The header filter is given,
-# as CI gives it: run from the root, clang-tidy 20 does not apply the one
-# in .clang-tidy and drops every finding in a header.
+# as CI gives it, from tools/tidy_filter.sh: run from the root, clang-tidy
+# 20 does not apply the one in .clang-tidy and drops every finding in a
+# header.
 tidy() { # every, or the files to check
-    local build tree count
+    local build tree count filter
     [ $# -gt 0 ] || return 0
     for build in Release Debug; do
         tree=$out/check-tidy-$build
@@ -167,8 +168,9 @@ tidy() { # every, or the files to check
         count=$(wc -l <"$out/tidy-files.txt")
         step "clang-tidy, $build, on $count files"
         [ "$count" -gt 0 ] || continue
+        filter=$(tools/tidy_filter.sh "$tree" rhi window)
         xargs -P "$jobs" -n 1 clang-tidy-20 -p "$tree" --quiet --warnings-as-errors='*' \
-            --header-filter="^$root/((rhi|window)/)?(src|include)/" <"$out/tidy-files.txt" 2>/dev/null
+            --header-filter="$filter" <"$out/tidy-files.txt" 2>/dev/null
     done
 }
 
@@ -192,10 +194,15 @@ if [ "$tier" = changed ]; then
         clang-format --dry-run -Werror "${present[@]}"
     fi
     # The changed sources of the pr tier's clang-tidy list; a deleted one
-    # is not among those present.
+    # is not among those present. A changed or deleted header of the
+    # library may change what any source reads, so it checks them all.
     sources=()
-    for f in "${present[@]+"${present[@]}"}"; do
-        [[ $f =~ ^(src|rhi/src|window/src)/.*\.c$ ]] && sources+=("$f")
+    for f in "${c_files[@]+"${c_files[@]}"}"; do
+        if [[ $f =~ ^((rhi|window)/)?(src|include)/.*\.h$ ]]; then
+            mapfile -t sources < <(git ls-files 'src/*.c' 'rhi/src/*.c' 'window/src/*.c')
+            break
+        fi
+        [[ -f $f && $f =~ ^(src|rhi/src|window/src)/.*\.c$ ]] && sources+=("$f")
     done
     tidy "${sources[@]+"${sources[@]}"}"
     labels=""

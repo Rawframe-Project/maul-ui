@@ -145,7 +145,7 @@ JNIEXPORT jlong JNICALL Java_maul_ui_tests_TestActivity_make(JNIEnv* env, jclass
     {
         return 0;
     }
-    const muiAccessUpdate update = {s_sent, Build(), s_children, 1, 2};
+    const muiAccessUpdate update = {s_sent, Build(), s_children, 1, 2, 0};
     if (muiAndroidAdapter_Apply(adapter, &update) != mui_success)
     {
         muiDestroyAndroidAdapter(adapter);
@@ -298,10 +298,8 @@ static void Step(muiAndroidAdapter* adapter, jint step)
         node.links = s_active;
         node.linkCount = 1;
     }
-    const muiAccessUpdate update = {(const muiAccessNode*[]){&node}, 1, s_children, 0,
-                                    step == 7   ? 5
-                                    : step == 8 ? 1
-                                                : 0};
+    const muiAccessUpdate update = {(const muiAccessNode*[]){&node},   1, s_children, 0,
+                                    step == 7 ? 5 : step == 8 ? 1 : 0, 0};
     (void)muiAndroidAdapter_Apply(adapter, &update);
 }
 
@@ -333,7 +331,7 @@ JNIEXPORT void JNICALL Java_maul_ui_tests_TestActivity_removeButton(JNIEnv* env,
     muiAccessNode root = s_nodes[0];
     root.firstChild = 1;
     root.childCount = 5;
-    const muiAccessUpdate update = {(const muiAccessNode*[]){&root}, 1, s_children, 0, 0};
+    const muiAccessUpdate update = {(const muiAccessNode*[]){&root}, 1, s_children, 0, 0, 0};
     (void)muiAndroidAdapter_Apply((muiAndroidAdapter*)(intptr_t)adapter, &update);
 }
 

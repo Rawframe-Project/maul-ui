@@ -116,7 +116,7 @@ static muiAccessUpdate Build(Built* built)
     List(built, generic, (const uint64_t[]){4}, 1);
     List(built, group, (const uint64_t[]){6, 9}, 2);
     List(built, pane, (const uint64_t[]){11}, 1);
-    return (muiAccessUpdate){built->sent, built->nodeCount, built->children, 1, 2};
+    return (muiAccessUpdate){built->sent, built->nodeCount, built->children, 1, 2, 0};
 }
 
 static bool Same(CGRect a, CGRect b)
@@ -311,7 +311,7 @@ static bool PostedAre(NSString* expected)
 static bool Send(muiUikitAdapter* adapter, const muiAccessNode* const* nodes, uint32_t count,
                  const uint64_t* children, uint64_t focus)
 {
-    const muiAccessUpdate update = {nodes, count, children, 0, focus};
+    const muiAccessUpdate update = {nodes, count, children, 0, focus, 0};
     return muiUikitAdapter_Apply(adapter, &update) == mui_success;
 }
 
@@ -694,7 +694,8 @@ static void RunTests(UIView* view)
     muiAccessNode rootNode = s_built.nodes[0];
     rootNode.firstChild = 1;
     rootNode.childCount = 5;
-    const muiAccessUpdate gone = {(const muiAccessNode*[]){&rootNode}, 1, s_built.children, 0, 0};
+    const muiAccessUpdate gone = {
+        (const muiAccessNode*[]){&rootNode}, 1, s_built.children, 0, 0, 0};
     CHECK(muiUikitAdapter_Apply(adapter, &gone) == mui_success &&
               [[root accessibilityElements] count] == 6 && ![button isAccessibilityElement] &&
               [button accessibilityContainer] == nil && [button accessibilityLabel] == nil &&

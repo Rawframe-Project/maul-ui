@@ -151,7 +151,7 @@ static void Show(muiAtspiAdapter* adapter)
     {
         sent[i] = &nodes[i];
     }
-    const muiAccessUpdate update = {sent, 7, children, 1, 2};
+    const muiAccessUpdate update = {sent, 7, children, 1, 2, 0};
     Expect(muiAtspiAdapter_Apply(adapter, &update) == mui_success);
 }
 

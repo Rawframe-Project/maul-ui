@@ -133,7 +133,8 @@ text_entry:
 text_service: allocator family_store font_instance font_store pool text_block fpenv
 text_host: context_hold text_service
 text_block: allocator pool
-text_blocks: property text_block text_entry text_service fpenv
+text_analysis: invariant text_block
+text_blocks: invariant property text_analysis text_block text_entry text_service fpenv
 text_editing: invariant text_block text_blocks text_delete text_entry text_history text_rules text_service fpenv
 text_editor: text_block text_editing text_entry text_service text_host fpenv
 text_keys: text_block text_editing text_entry text_host fpenv
