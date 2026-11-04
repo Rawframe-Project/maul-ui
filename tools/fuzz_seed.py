@@ -19,6 +19,11 @@
 #   nothing, and one for each further family of calls (destroying,
 #   content changed, scrolling, hit tests, classes, states and
 #   gradients).
+# - access: updates in fuzz_access's encoding: a tree built whole with
+#   a label, a value text with its selection, lines, words, line boxes
+#   and clusters, and links; then edited, a node left out; and updates
+#   the tree must refuse, a NULL node, links counted with no array and
+#   children past the length stated.
 # - rhi: draw lists in fuzz_rhi's encoding: boxes under nested, inverted
 #   and turned clips with a gradient, outer and inset shadows, images of
 #   every key with slices, mirrored and repeated, glyph runs that only
@@ -301,6 +306,62 @@ TEXT_CALLS = [
 ]
 
 
+# fuzz_access's encoding: the pool index of no text, and the bytes each
+# update's queries read after it, which seeds give as zeros.
+ACCESS_NO_TEXT = 8
+ACCESS_ASK = 24 * 13
+
+
+def access_node(node_id, children=(0, 0), links=(), links_null=False, label=ACCESS_NO_TEXT,
+                value=ACCESS_NO_TEXT, marks=b"\0" * 7, none=False, role=0):
+    """A node in fuzz_access's encoding: children as (first, count)."""
+    out = bytes([255 if none else 0, node_id, role])
+    out += struct.pack("<II", 0, 0) + struct.pack("<5f", 0, 0, 100, 20, 0)
+    out += bytes([children[0], children[1], len(links) | (0x80 if links_null else 0)])
+    for target, kind in links:
+        out += bytes([target, kind])
+    return out + bytes([label, value]) + marks
+
+
+def access_marks(selected, anchor, focus, lines, words, clusters, boxes=True):
+    """Marks: lines as (start, first cluster), words and clusters as (start, end)."""
+    out = bytes([(1 if selected else 0) | (4 if boxes else 0), anchor, focus, len(lines)])
+    for start, first in lines:
+        out += bytes([start]) + struct.pack("<2f", 0, 20) + bytes([first, 0])
+    out += bytes([len(words)]) + b"".join(bytes([a, b]) for a, b in words)
+    out += bytes([len(clusters)])
+    for i, (a, b) in enumerate(clusters):
+        out += bytes([a, b]) + struct.pack("<2f", i * 10, i * 10 + 10)
+    return out
+
+
+def access_update(nodes, children=(), root=True, stated=True, focus=0):
+    flags = (1 if root else 0) | (2 if stated else 0) | (4 if focus else 0)
+    ids = list(children) + [0] * (32 - len(children))
+    return (bytes([flags, len(nodes)]) + bytes(ids) + b"".join(nodes) + bytes([focus]) +
+            b"\0" * ACCESS_ASK)
+
+
+def access_seeds(directory):
+    value = access_marks(True, 0, 4, [(0, 0), (9, 2)], [(0, 4), (5, 8), (9, 13), (14, 17)],
+                         [(0, 4), (5, 8), (9, 13), (14, 17)])
+    whole = access_update([
+        access_node(1, children=(0, 2), links=[(2, 0)]),
+        access_node(2, label=1),
+        access_node(3, label=2, value=5, marks=value),
+    ], children=[2, 3], focus=3)
+    write(directory, "whole", whole)
+    edited = access_update([
+        access_node(1, children=(0, 1)),
+        access_node(3, value=7, marks=access_marks(True, 2, 2, [(0, 0)], [(2, 5), (6, 11)], [])),
+    ], children=[3], root=False, focus=3)
+    write(directory, "edited", whole + edited)
+    refused = (access_update([access_node(1), access_node(2, none=True)]) +
+               access_update([access_node(1, links=[(2, 0)], links_null=True)]) +
+               access_update([access_node(1, children=(31, 2))], children=[2]))
+    write(directory, "refused", whole + refused)
+
+
 def atspi_seeds(directory):
     paths = ["root"] + [f"w1n{i}" for i in range(1, 8)]
     for p in paths:
@@ -533,6 +594,7 @@ def main():
     font_seeds(base / "corpus-fuzz_font")
     text_seeds(base / "corpus-fuzz_text")
     atspi_seeds(base / "corpus-fuzz_atspi")
+    access_seeds(base / "corpus-fuzz_access")
     api_seeds(base / "corpus-fuzz_api")
     rhi_seeds(base / "corpus-fuzz_rhi")
 
