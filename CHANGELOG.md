@@ -10,6 +10,14 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.3.2](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.1...v1.3.2) (2026-11-04)
+
+
+### Fixed
+
+* widen five 32-bit serials that read as current again after a wrap ([#367](https://github.com/Rawframe-Project/maul-ui/issues/367)) ([163f26f](https://github.com/Rawframe-Project/maul-ui/commit/163f26f43d1eb9bfa7e71df55d9be111a1b9dff9)), closes [#364](https://github.com/Rawframe-Project/maul-ui/issues/364) [#366](https://github.com/Rawframe-Project/maul-ui/issues/366)
+* **window:** take Maul Window 0.12.0 ([#369](https://github.com/Rawframe-Project/maul-ui/issues/369)) ([c6698d6](https://github.com/Rawframe-Project/maul-ui/commit/c6698d624d33c13ed7e7955006cd016fa232d5c8)), closes [#368](https://github.com/Rawframe-Project/maul-ui/issues/368)
+
 ## [1.3.1](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.0...v1.3.1) (2026-11-04)
 
 This release moves maul-ui-window to Maul Window 0.11.0, from 0.8.0,
