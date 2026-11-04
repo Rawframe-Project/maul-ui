@@ -12,10 +12,50 @@ release could change the API, the ABI and every data format.
 
 ## [1.3.1](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.0...v1.3.1) (2026-11-04)
 
+This release moves maul-ui-window to Maul Window 0.11.0, from 0.8.0,
+and the text component to Maul Unicode 1.0.0, from 0.13.0. The glue's
+gamepad navigation now reaches Windows HID pads with many controls, and
+Window's fixes to clipboard reads, input method text and compositions
+reach the glue. The API and the ABI are those of 1.3.0, and so are
+layouts, styles, draw lists, line breaks, shaped text, glyph images,
+motion curves and the accessibility tree. maul-ui-window follows Maul
+Window and sits outside the 1.x promise until Window reaches 1.0.
+
+### Changed
+
+- Maul Unicode is pinned at 1.0.0, from 0.13.0. No source file changed
+  from 0.13.0 and its data is still Unicode 18.0.0, so the text
+  component compiles the same code and no result moves. Maul Window
+  0.11.0 builds against Unicode 1.0.0, so the two pins move together
+  ([#358](https://github.com/Rawframe-Project/maul-ui/pull/358)).
 
 ### Fixed
 
-* **window:** take Maul Window 0.11.0 and Maul Unicode 1.0.0 ([#358](https://github.com/Rawframe-Project/maul-ui/issues/358)) ([6046891](https://github.com/Rawframe-Project/maul-ui/commit/6046891aedb9c35c8d45ac4d0ceb2e74814e0b31)), closes [#357](https://github.com/Rawframe-Project/maul-ui/issues/357)
+- On Windows, maul-ui-window's gamepad navigation reaches a generic HID
+  pad whose descriptor has more than 32 button or more than 32 value
+  capabilities, as `docs/user/maul-window.md` says it does: d-pad and
+  stick directions, confirm and cancel, and the shoulders. Window 0.10.0
+  gave such a pad no buttons, or no axes and hats, and did not add a
+  pad left with neither; 0.11.0 takes its controls from the first 32
+  capabilities of the Button and Generic Desktop pages
+  ([#358](https://github.com/Rawframe-Project/maul-ui/pull/358)).
+- maul-ui-window takes Maul Window 0.10.0, whose input fixes reach the
+  glue ([#353](https://github.com/Rawframe-Project/maul-ui/pull/353)):
+  - On X11, a paste takes only the answer to its own clipboard read, not
+    a late answer to an earlier read that ran out of time.
+  - On X11, input method text past `textBytesPerWindow` posts an input
+    state reset; before, it was dropped or ended with no reset. On X11
+    and Wayland, a compose sequence of 64 bytes or more types its text
+    when it fits, then resets, instead of typing nothing. On a reset the
+    glue lets go of held modifiers, buttons, pen buttons and touches,
+    and tells the host to give the block an empty preedit.
+  - On Windows, a composition's caret, selection or clause inside a
+    surrogate pair ends before the pair, and a composition string whose
+    second read fails is refused.
+  - On the web, a lone surrogate in pushed text or a typed character
+    becomes U+FFFD instead of losing the text.
+  - On Windows, a HID gamepad whose reports cannot be read is turned
+    away instead of being added and never moving.
 
 ## [1.3.0](https://github.com/Rawframe-Project/maul-ui/compare/v1.2.0...v1.3.0) (2026-11-04)
 
