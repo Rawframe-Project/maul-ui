@@ -35,13 +35,26 @@ again() {
     done
 }
 
+# An idempotent adb step's output, tried up to three times while adb
+# fails: only the try that succeeded is kept, so an answer a lost try
+# printed before its connection dropped is not given twice.
+ask() {
+    tries=1
+    until output=$("$adb" "$@"); do
+        [ "$tries" -lt 3 ] || return 1
+        tries=$((tries + 1))
+        sleep 1
+    done
+    printf '%s\n' "$output"
+}
+
 start=$(date +%s)
 again install -r "$apk" > /dev/null
 again shell pm clear "$package" > /dev/null
 again shell run-as "$package" rm -f files/out
 # The device tests for the file itself: a check that reads a failure as
 # the file's absence would pass when run-as fails.
-if ! left=$(again shell "run-as $package sh -c 'if [ -e files/out ]; then echo present; else echo absent; fi'"); then
+if ! left=$(ask shell "run-as $package sh -c 'if [ -e files/out ]; then echo present; else echo absent; fi'"); then
     echo "run_android_app.sh: no check that an earlier result is gone: it failed 3 times" >&2
     exit 1
 fi
