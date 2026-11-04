@@ -12,17 +12,46 @@ release could change the API, the ABI and every data format.
 
 ## [1.3.0](https://github.com/Rawframe-Project/maul-ui/compare/v1.2.0...v1.3.0) (2026-11-04)
 
+This release states the length of an accessibility update's children
+array, so the access tree checks every update the library builds
+against it, and fixes a password's mask past the text limit and two
+ways the access tree read through or outside an update. The API grows
+by one field at the end of `muiAccessUpdate`. Layouts, styles, draw
+lists, line breaks, shaped text, glyph images and motion curves are
+those of 1.2.0.
 
-### Added
+### Changed
 
-* **access:** state an update's children length and check it ([#344](https://github.com/Rawframe-Project/maul-ui/issues/344)) ([ca75881](https://github.com/Rawframe-Project/maul-ui/commit/ca75881e9bf0413c0f37c249d513b3e0a3611c63)), closes [#339](https://github.com/Rawframe-Project/maul-ui/issues/339)
-
+- `muiAccessUpdate` gains `childCount`, the length of its `children`
+  array. `muiNode_BuildAccessUpdate` sets it, and `muiAccessTree_Apply`,
+  which every adapter's `Apply` calls, refuses a node whose children
+  reach past it, a wrapping sum included. With `childCount` 0 the
+  length is not stated, so `Apply` cannot check the children against
+  it and keeping them in range is the caller's, as before. Positional
+  initializers of `muiAccessUpdate` get a missing-field warning
+  (`-Wmissing-field-initializers`) until they add `childCount`; 0
+  keeps their behaviour
+  ([#344](https://github.com/Rawframe-Project/maul-ui/pull/344)).
 
 ### Fixed
 
-* **access:** refuse a NULL node or link array in an update ([#341](https://github.com/Rawframe-Project/maul-ui/issues/341)) ([3304c85](https://github.com/Rawframe-Project/maul-ui/commit/3304c850eeaa3e04e4187b74d350cd6222583046)), closes [#340](https://github.com/Rawframe-Project/maul-ui/issues/340)
-* **access:** tell a node sent and let go at once only as removed ([#348](https://github.com/Rawframe-Project/maul-ui/issues/348)) ([b145da2](https://github.com/Rawframe-Project/maul-ui/commit/b145da26ec3f69e525d093340c311b8c8e195758)), closes [#347](https://github.com/Rawframe-Project/maul-ui/issues/347)
-* **edit:** make no password mask past the text limit ([#336](https://github.com/Rawframe-Project/maul-ui/issues/336)) ([b563650](https://github.com/Rawframe-Project/maul-ui/commit/b56365065be5b048517cbb561bcff01f51153db6)), closes [#333](https://github.com/Rawframe-Project/maul-ui/issues/333)
+- A password of more than 715,827,882 grapheme clusters, a third of
+  `MUI_MAX_TEXT_BYTES`, is no longer laid out with a wrong mask. Up to
+  1,431,655,765 clusters its mask passed the text limit, and past that
+  its 32-bit length wrapped (2 bytes at 1,431,655,766 clusters). Such
+  a password now measures and paints as when memory runs out, counted
+  by `muiTextService_GetLayoutFailureCount`, and accessibility does not
+  read it
+  ([#336](https://github.com/Rawframe-Project/maul-ui/pull/336)).
+- `muiAccessTree_Apply` refuses, with `mui_errorInvalid` and no change,
+  a NULL entry in an update's nodes and a node whose links are counted
+  with no array. It read through both
+  ([#341](https://github.com/Rawframe-Project/maul-ui/pull/341)).
+- `muiAccessTree_Apply` with change callbacks no longer reads outside
+  the tree when an update sends a node again and lets it go in the
+  same apply: the old root sent with no parent, or a child its parent
+  stops listing. Such a node is told once, as removed
+  ([#348](https://github.com/Rawframe-Project/maul-ui/pull/348)).
 
 ## [1.2.0](https://github.com/Rawframe-Project/maul-ui/compare/v1.1.0...v1.2.0) (2026-11-03)
 
