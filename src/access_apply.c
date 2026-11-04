@@ -491,16 +491,21 @@ static bool ReportRetired(const muiAccessTree* tree, const muiAccessChanges* cha
     for (uint32_t i = 0; i < retired; i++)
     {
         const muiRetiredNode* node = &tree->retired[i];
+        uint32_t slot = node->removed ? 0 : muiHeldSlotOf(tree, node->held.node.id);
+        if (!node->removed && slot == 0)
+        {
+            // Replaced, then let go in the same update: told only as
+            // removed, by the entry its removal added.
+            continue;
+        }
         void (*report)(void*, const muiAccessTree*, const muiAccessNode*) =
             node->removed ? changes->removed : changes->updated;
         if (report != nullptr)
         {
             HostReport(report, changes->user, tree, &node->held.node);
         }
-        reshaped =
-            reshaped || (!node->removed &&
-                         muiViewDiffers(tree, &node->held,
-                                        &tree->held[muiHeldSlotOf(tree, node->held.node.id) - 1]));
+        reshaped = reshaped ||
+                   (!node->removed && muiViewDiffers(tree, &node->held, &tree->held[slot - 1]));
     }
     return reshaped;
 }
