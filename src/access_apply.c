@@ -55,6 +55,7 @@ static void Begin(muiAccessTree* tree)
         for (uint32_t i = 0; i < tree->capacity; i++)
         {
             tree->held[i].listed = 0;
+            tree->held[i].ended = 0;
         }
         tree->apply = 1;
     }
