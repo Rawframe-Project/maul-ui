@@ -10,6 +10,50 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.3.2](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.1...v1.3.2) (2026-11-04)
+
+This release moves maul-ui-window to Maul Window 0.12.0, from 0.11.0,
+and fixes five internal counters that, after 2^32 events, read an old
+stamp as current again. The API and the ABI are those of 1.3.1, and so
+are layouts, styles, draw lists, line breaks, shaped text, glyph images,
+motion curves and the accessibility tree. maul-ui-window follows Maul
+Window and sits outside the 1.x promise until Window reaches 1.0.
+
+### Changed
+
+- maul-ui-window takes Maul Window 0.12.0, from 0.11.0. Before 1.0
+  Window's package matches its version exactly, so a program on Window
+  0.12.0 could not use maul-ui-window without linking two releases of
+  it. Window 0.12.0 changes `mwinRequest_GetDialogFiles`, which takes a
+  `truncatedOut` argument, and how Android and iOS drops end. The glue
+  reads neither dialog files nor Window's drops, so what it does is
+  unchanged
+  ([#369](https://github.com/Rawframe-Project/maul-ui/pull/369)).
+
+### Fixed
+
+- After 2^32 calls of `muiAccessTree_Apply`, an update in which two
+  nodes list each other could be accepted instead of refused with
+  `mui_errorInvalid`. The two nodes then stayed held, each the other's
+  parent and reached from no root, until the tree was destroyed, and
+  the host was never told they were removed
+  ([#367](https://github.com/Rawframe-Project/maul-ui/pull/367)).
+- Four more internal stamps no longer read as current again after 2^32
+  events ([#367](https://github.com/Rawframe-Project/maul-ui/pull/367)):
+  - AT-SPI: nodes new or moved under a node told 2^32 structure passes
+    earlier are told to clients.
+  - Accessibility updates: a child its parent lists again after 2^32
+    child lists without it is sent again.
+  - Popups: after 2^32 sets, Escape closes the newest open popup, not an
+    older one.
+  - Glyph atlas: an entry whose plot was evicted 2^32 times since it was
+    placed no longer reads as live, so it no longer draws whatever glyph
+    the plot holds now.
+
+  The stamps are now 64-bit, so the records that keep them in the
+  access tree, the AT-SPI adapter, popups and the glyph table take 4 to
+  8 bytes more each, and each atlas plot 4.
+
 ## [1.3.1](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.0...v1.3.1) (2026-11-04)
 
 This release moves maul-ui-window to Maul Window 0.11.0, from 0.8.0,
