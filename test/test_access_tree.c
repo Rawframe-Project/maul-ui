@@ -313,7 +313,7 @@ static void TestRefused(void)
     muiAccessNode nodes[3] = {{.id = 1, .childCount = 1}, {.id = 2}, {.id = 3}};
     const muiAccessNode* sent[3] = {&nodes[0], &nodes[1], &nodes[2]};
     const uint64_t children[1] = {2};
-    muiAccessUpdate update = {sent, 2, children, 0, 1};
+    muiAccessUpdate update = {sent, 2, children, 0, 1, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "no root first");
     update.root = 3;
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "a root not sent");
@@ -326,26 +326,26 @@ static void TestRefused(void)
     update.nodeCount = 3;
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorCapacity, "three of two");
     const muiAccessNode* twice[2] = {&nodes[0], &nodes[0]};
-    update = (muiAccessUpdate){twice, 2, children, 1, 1};
+    update = (muiAccessUpdate){twice, 2, children, 1, 1, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "sent twice");
     muiAccessNode zero = {.id = 0};
     const muiAccessNode* none[1] = {&zero};
-    update = (muiAccessUpdate){none, 1, NULL, 1, 1};
+    update = (muiAccessUpdate){none, 1, NULL, 1, 1, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "the id 0");
-    update = (muiAccessUpdate){sent, 1, NULL, 1, 1};
+    update = (muiAccessUpdate){sent, 1, NULL, 1, 1, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "children not given");
     // A NULL among the nodes, and links counted with no array: refused,
     // not read through.
     const muiAccessNode* withNull[2] = {&nodes[1], NULL};
-    update = (muiAccessUpdate){withNull, 2, NULL, 2, 2};
+    update = (muiAccessUpdate){withNull, 2, NULL, 2, 2, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "a NULL node");
     muiAccessNode linked = {.id = 2, .linkCount = 1};
     const muiAccessNode* withLinks[1] = {&linked};
-    update = (muiAccessUpdate){withLinks, 1, NULL, 2, 2};
+    update = (muiAccessUpdate){withLinks, 1, NULL, 2, 2, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "links not given");
     CHECK(muiAccessTree_GetNodeCount(tree) == 0 && muiAccessTree_GetRoot(tree) == 0,
           "nothing taken");
-    update = (muiAccessUpdate){sent, 2, children, 1, 1};
+    update = (muiAccessUpdate){sent, 2, children, 1, 1, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success &&
               muiAccessTree_GetNodeCount(tree) == 2,
           "taken");
@@ -360,7 +360,7 @@ static void TestRefused(void)
 static muiAccessUpdate Update(const muiAccessNode* const* nodes, uint32_t count,
                               const uint64_t* children, uint64_t root, uint64_t focus)
 {
-    return (muiAccessUpdate){nodes, count, children, root, focus};
+    return (muiAccessUpdate){nodes, count, children, root, focus, 0};
 }
 
 // Applies an update to a tree, logging its changes; whether they were
@@ -640,18 +640,18 @@ static void TestLeavingNotARing(void)
     muiAccessNode four = {.id = 4};
     const muiAccessNode* sent[3] = {&root, &three, &four};
     const uint64_t lists[2] = {3, 4};
-    muiAccessUpdate update = {sent, 3, lists, 1, 1};
+    muiAccessUpdate update = {sent, 3, lists, 1, 1, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "built");
     three.childCount = 0;
     four.childCount = 1;
     four.firstChild = 0;
     const uint64_t fourLists[1] = {3};
     const muiAccessNode* turned[2] = {&three, &four};
-    update = (muiAccessUpdate){turned, 2, fourLists, 0, 0};
+    update = (muiAccessUpdate){turned, 2, fourLists, 0, 0, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "3 still listed by 1");
     const muiAccessNode* withRoot[3] = {&root, &three, &four};
     root.childCount = 0;
-    update = (muiAccessUpdate){withRoot, 3, fourLists, 0, 0};
+    update = (muiAccessUpdate){withRoot, 3, fourLists, 0, 0, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success &&
               muiAccessTree_GetNodeCount(tree) == 1,
           "both gone");
@@ -661,12 +661,12 @@ static void TestLeavingNotARing(void)
     root.childCount = 2;
     const muiAccessNode* pair[3] = {&root, &a, &b};
     const uint64_t pairList[2] = {5, 6};
-    update = (muiAccessUpdate){pair, 3, pairList, 0, 0};
+    update = (muiAccessUpdate){pair, 3, pairList, 0, 0, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "two");
     a.childCount = 1;
     a.firstChild = 2;
     const uint64_t twice[3] = {5, 6, 6};
-    update = (muiAccessUpdate){pair, 3, twice, 0, 0};
+    update = (muiAccessUpdate){pair, 3, twice, 0, 0, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid &&
               muiAccessTree_GetParent(tree, 6) == 1,
           "a held child listed twice");
@@ -675,7 +675,7 @@ static void TestLeavingNotARing(void)
     muiAccessNode stray = {.id = 11, .childCount = 1};
     const muiAccessNode* rerooted[2] = {&newRoot, &stray};
     const uint64_t strayList[1] = {10};
-    update = (muiAccessUpdate){rerooted, 2, strayList, 10, 10};
+    update = (muiAccessUpdate){rerooted, 2, strayList, 10, 10, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid &&
               muiAccessTree_GetRoot(tree) == 1,
           "a root listed by a stray");
@@ -734,7 +734,7 @@ static void TestChurn(void)
         {
             sent[i] = &nodes[i];
         }
-        muiAccessUpdate update = {sent, sentCount, children, round == 0 ? 2 : 0, 2};
+        muiAccessUpdate update = {sent, sentCount, children, round == 0 ? 2 : 0, 2, 0};
         ok = muiAccessTree_Apply(tree, &update, NULL) == mui_success &&
              muiAccessTree_GetNodeCount(tree) == count + 1;
         for (uint32_t i = 0; i < count; i++)
@@ -868,7 +868,7 @@ static bool ShownAre(const muiAccessTree* tree, uint64_t id, const uint64_t* exp
 
 static void Focus(muiAccessTree* tree, uint64_t id)
 {
-    muiAccessUpdate update = {NULL, 0, NULL, 0, id};
+    muiAccessUpdate update = {NULL, 0, NULL, 0, id, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "focused");
 }
 
@@ -882,7 +882,7 @@ static void TestFocusMoves(void)
     muiAccessTreeDef def = muiDefaultAccessTreeDef();
     muiAccessTree* tree = NULL;
     CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
-    muiAccessUpdate update = {s_built.sent, s_built.nodeCount, s_built.children, 1, 1};
+    muiAccessUpdate update = {s_built.sent, s_built.nodeCount, s_built.children, 1, 1, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "built");
     const struct
     {
@@ -897,7 +897,7 @@ static void TestFocusMoves(void)
     bool all = true;
     for (size_t i = 0; i < sizeof moves / sizeof moves[0]; i++)
     {
-        update = (muiAccessUpdate){NULL, 0, NULL, 0, moves[i].focus};
+        update = (muiAccessUpdate){NULL, 0, NULL, 0, moves[i].focus, 0};
         all = Reported(tree, &update, moves[i].expected) && all;
     }
     CHECK(all, "shownChanged where the focus moves to or from a node shown for it");
@@ -911,7 +911,7 @@ static void TestShown(void)
     muiAccessTreeDef def = muiDefaultAccessTreeDef();
     muiAccessTree* tree = NULL;
     CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
-    muiAccessUpdate update = {s_built.sent, s_built.nodeCount, s_built.children, 1, 1};
+    muiAccessUpdate update = {s_built.sent, s_built.nodeCount, s_built.children, 1, 1, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "built");
     // The generic 2 flattened, the hidden 6 out, the labelled 4 kept;
     // rows wholly out of the port out but the first past each edge.
@@ -995,7 +995,7 @@ static void TestNamesAndBounds(void)
     muiAccessTreeDef def = muiDefaultAccessTreeDef();
     muiAccessTree* tree = NULL;
     CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
-    muiAccessUpdate update = {s_built.sent, s_built.nodeCount, s_built.children, 1, 1};
+    muiAccessUpdate update = {s_built.sent, s_built.nodeCount, s_built.children, 1, 1, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "built");
     // A label, before labelling nodes and contents; a label node's value;
     // what is inside a button, the hidden left out; the nodes that label,
@@ -1019,7 +1019,7 @@ static void TestNamesAndBounds(void)
     window.firstChild = 0;
     window.childCount = 7;
     sent[1] = &window;
-    update = (muiAccessUpdate){sent, 2, children, 0, 0};
+    update = (muiAccessUpdate){sent, 2, children, 0, 0, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "accented");
     CHECK(muiAccessTree_GetName(tree, 30, name, 3, &length) == mui_errorCapacity && length == 3 &&
               name[0] == '\0' && name[2] == '\0' &&
@@ -1113,7 +1113,7 @@ static void TestMemory(void)
                               {.id = 2, .text = {"B"}, .textLength = {1}}};
     const muiAccessNode* sent[2] = {&nodes[0], &nodes[1]};
     const uint64_t children[1] = {2};
-    muiAccessUpdate update = {sent, 2, children, 1, 1};
+    muiAccessUpdate update = {sent, 2, children, 1, 1, 0};
     for (int allowed = 0; allowed < 3; allowed++)
     {
         counter.allowed = allowed;
@@ -1182,7 +1182,7 @@ static void TestCallingBack(void)
           "refused as invalid outside, counted");
     muiAccessNode node = {.id = 1, .text = {"A"}, .textLength = {1}};
     const muiAccessNode* sent[1] = {&node};
-    muiAccessUpdate update = {sent, 1, NULL, 1, 1};
+    muiAccessUpdate update = {sent, 1, NULL, 1, 1, 0};
     calling.armed = true;
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success && calling.runs == 1 &&
               calling.applied == mui_errorBusy && muiAccessTree_GetNodeCount(tree) == 1 &&
@@ -1235,7 +1235,7 @@ static void TestContract(void)
           "empty");
     muiAccessNode node = {.id = 7, .role = mui_roleMarquee};
     const muiAccessNode* sent[1] = {&node};
-    muiAccessUpdate update = {sent, 1, NULL, 7, 7};
+    muiAccessUpdate update = {sent, 1, NULL, 7, 7, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "one");
     CHECK(muiAccessTree_Write(tree, small, sizeof(small), &length) == mui_errorCapacity &&
               length == strlen("marquee #7 0x0 @0,0\n") && small[0] == '\0' && small[3] == '\0',
@@ -1330,7 +1330,7 @@ static void TestNamesFromContent(void)
     nodes[7].textLength[mui_accessValue] = 2;
     const muiAccessNode* sent[10] = {&nodes[0], &nodes[1], &nodes[2], &nodes[3], &nodes[4],
                                      &nodes[5], &nodes[6], &nodes[7], &nodes[8], &nodes[9]};
-    const muiAccessUpdate update = {sent, 10, children, 1, 1};
+    const muiAccessUpdate update = {sent, 10, children, 1, 1, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "built");
     char name[16];
     size_t length = 0;
@@ -1396,7 +1396,7 @@ static void TestArraysZeroedUnlessSuccess(void)
     muiAccessTreeDef def = muiDefaultAccessTreeDef();
     muiAccessTree* tree = NULL;
     CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
-    muiAccessUpdate update = {s_built.sent, s_built.nodeCount, s_built.children, 1, 1};
+    muiAccessUpdate update = {s_built.sent, s_built.nodeCount, s_built.children, 1, 1, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "built");
     char name[8];
     size_t length = 0;

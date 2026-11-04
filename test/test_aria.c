@@ -330,13 +330,13 @@ static muiAccessUpdate Build(Built* built)
     progress->maximum = 1.0f;
     List(built, root, (const uint64_t[]){2, 3, 6, 7, 8, 9}, 6);
     List(built, generic, (const uint64_t[]){4}, 1);
-    return (muiAccessUpdate){built->sent, built->nodeCount, built->children, 1, 2};
+    return (muiAccessUpdate){built->sent, built->nodeCount, built->children, 1, 2, 0};
 }
 
 static bool Send(muiAriaAdapter* adapter, const muiAccessNode* const* nodes, uint32_t count,
                  const uint64_t* children)
 {
-    const muiAccessUpdate update = {nodes, count, children, 0, 0};
+    const muiAccessUpdate update = {nodes, count, children, 0, 0, 0};
     return muiAriaAdapter_Apply(adapter, &update) == mui_success;
 }
 
@@ -420,7 +420,7 @@ static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* ro
     CHECK(KeyKept("#mui0-2", "Tab") && !KeyKept("#mui0-2", "a"),
           "Tab kept from the browser, which would move the focus out; other keys not");
     s_asked = (muiAccessRequest){.action = mui_actionScrollRight};
-    const muiAccessUpdate focus = {(const muiAccessNode*[]){root}, 1, rootChildren, 0, 8};
+    const muiAccessUpdate focus = {(const muiAccessNode*[]){root}, 1, rootChildren, 0, 8, 0};
     CHECK(muiAriaAdapter_Apply(adapter, &focus) == mui_success && IsActive("#mui0-8") &&
               s_asked.action == mui_actionScrollRight,
           "the program's focus moved, asking nothing");
@@ -492,7 +492,7 @@ static void TestEnablingFocus(void)
     muiAccessNode root = {.id = 1, .role = mui_roleWindow, .childCount = 1};
     muiAccessNode button = {.id = 5, .role = mui_roleButton, .flags = mui_accessFocusable};
     const uint64_t children[1] = {5};
-    const muiAccessUpdate update = {(const muiAccessNode*[]){&root, &button}, 2, children, 1, 5};
+    const muiAccessUpdate update = {(const muiAccessNode*[]){&root, &button}, 2, children, 1, 5, 0};
     CHECK(muiCreateAriaAdapter(&def, &adapter) == mui_success &&
               muiAriaAdapter_Apply(adapter, &update) == mui_success,
           "a second adapter");
@@ -565,8 +565,8 @@ static void TestFields(void)
                            .textLength = {[mui_accessLabel] = 5, [mui_accessValue] = 7}};
     muiAccessNode secret = {.id = 4, .role = mui_rolePasswordInput, .actions = edits};
     const uint64_t children[3] = {2, 3, 4};
-    const muiAccessUpdate update = {(const muiAccessNode*[]){&root, &name, &notes, &secret}, 4,
-                                    children, 1, 2};
+    const muiAccessUpdate update = {
+        (const muiAccessNode*[]){&root, &name, &notes, &secret}, 4, children, 1, 2, 0};
     CHECK(muiCreateAriaAdapter(&def, &adapter) == mui_success &&
               muiAriaAdapter_Apply(adapter, &update) == mui_success,
           "an adapter of fields");

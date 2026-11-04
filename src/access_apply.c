@@ -17,6 +17,7 @@
 #include "maul-ui/access_tree.h"
 
 #include <stdalign.h>
+#include <stdckdint.h>
 #include <string.h>
 
 // Where an id sits in this apply's index of the update, or would go;
@@ -187,6 +188,16 @@ static bool MarksFit(const muiAccessNode* node)
            muiAccessGeometryFits(&node->marks, text, length);
 }
 
+// Whether a node's children lie within the update's children array, when
+// the update states its length; 0 states none, and the caller keeps them
+// within it.
+static bool ChildrenFit(const muiAccessUpdate* update, const muiAccessNode* node)
+{
+    uint32_t end = 0;
+    return update->childCount == 0 ||
+           (!ckd_add(&end, node->firstChild, node->childCount) && end <= update->childCount);
+}
+
 // Checks the lists sent leave a tree: every child known and listed once,
 // the root listed by none, no node above itself; and that marks fit
 // their texts; counts the nodes new.
@@ -203,7 +214,8 @@ static muiResult CheckLists(muiAccessTree* tree, const muiAccessUpdate* update, 
             return mui_errorLimit;
         }
         if ((node->childCount != 0 && update->children == nullptr) ||
-            (node->linkCount != 0 && node->links == nullptr) || !MarksFit(node))
+            (node->linkCount != 0 && node->links == nullptr) || !ChildrenFit(update, node) ||
+            !MarksFit(node))
         {
             return mui_errorInvalid;
         }
