@@ -294,6 +294,15 @@ static void TestRefused(void)
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "the id 0");
     update = (muiAccessUpdate){sent, 1, NULL, 1, 1};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "children not given");
+    // A NULL among the nodes, and links counted with no array: refused,
+    // not read through.
+    const muiAccessNode* withNull[2] = {&nodes[1], NULL};
+    update = (muiAccessUpdate){withNull, 2, NULL, 2, 2};
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "a NULL node");
+    muiAccessNode linked = {.id = 2, .linkCount = 1};
+    const muiAccessNode* withLinks[1] = {&linked};
+    update = (muiAccessUpdate){withLinks, 1, NULL, 2, 2};
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid, "links not given");
     CHECK(muiAccessTree_GetNodeCount(tree) == 0 && muiAccessTree_GetRoot(tree) == 0,
           "nothing taken");
     update = (muiAccessUpdate){sent, 2, children, 1, 1};
