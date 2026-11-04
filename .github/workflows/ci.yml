@@ -123,8 +123,8 @@ jobs:
         # the root, clang-tidy 20 does not apply the one in .clang-tidy and
         # drops every finding in a header. Anchored at the tree's source
         # directory, so fetched dependencies' headers stay out. One file per
-        # call, JOBS calls at once, as tools/check.sh runs them: the runner's
-        # four cores here, at most 4 through heavy.sh locally.
+        # call, JOBS calls at once, the variable tools/check.sh runs them by;
+        # here it is the runner's four cores.
         env:
           JOBS: 4
         run: |
