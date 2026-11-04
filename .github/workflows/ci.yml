@@ -122,7 +122,11 @@ jobs:
         # The header filter is given here, from tools/tidy_filter.sh: run from
         # the root, clang-tidy 20 does not apply the one in .clang-tidy and
         # drops every finding in a header. Anchored at the tree's source
-        # directory, so fetched dependencies' headers stay out.
+        # directory, so fetched dependencies' headers stay out. One file per
+        # call, JOBS calls at once, the variable tools/check.sh runs them by;
+        # here it is the runner's four cores.
+        env:
+          JOBS: 4
         run: |
           for build in Release Debug; do
             cmake --preset linux-parts -B out/tidy-$build -DCMAKE_BUILD_TYPE=$build \
@@ -131,7 +135,7 @@ jobs:
             cmake --build out/tidy-$build
             python3 tools/tidy_files.py out/tidy-$build/compile_commands.json >out/tidy-files.txt
             filter=$(tools/tidy_filter.sh out/tidy-$build rhi window)
-            xargs -a out/tidy-files.txt -n 1 clang-tidy-20 -p out/tidy-$build --quiet \
+            xargs -a out/tidy-files.txt -n 1 -P "$JOBS" clang-tidy-20 -p out/tidy-$build --quiet \
               --warnings-as-errors='*' --header-filter="$filter"
           done
 
