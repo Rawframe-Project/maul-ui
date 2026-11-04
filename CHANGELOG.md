@@ -10,6 +10,49 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.3.0](https://github.com/Rawframe-Project/maul-ui/compare/v1.2.0...v1.3.0) (2026-11-04)
+
+This release states the length of an accessibility update's children
+array, so the access tree checks every update the library builds
+against it, and fixes a password's mask past the text limit and two
+ways the access tree read through or outside an update. The API grows
+by one field at the end of `muiAccessUpdate`. Layouts, styles, draw
+lists, line breaks, shaped text, glyph images and motion curves are
+those of 1.2.0.
+
+### Changed
+
+- `muiAccessUpdate` gains `childCount`, the length of its `children`
+  array. `muiNode_BuildAccessUpdate` sets it, and `muiAccessTree_Apply`,
+  which every adapter's `Apply` calls, refuses a node whose children
+  reach past it, a wrapping sum included. With `childCount` 0 the
+  length is not stated, so `Apply` cannot check the children against
+  it and keeping them in range is the caller's, as before. Positional
+  initializers of `muiAccessUpdate` get a missing-field warning
+  (`-Wmissing-field-initializers`) until they add `childCount`; 0
+  keeps their behaviour
+  ([#344](https://github.com/Rawframe-Project/maul-ui/pull/344)).
+
+### Fixed
+
+- A password of more than 715,827,882 grapheme clusters, a third of
+  `MUI_MAX_TEXT_BYTES`, is no longer laid out with a wrong mask. Up to
+  1,431,655,765 clusters its mask passed the text limit, and past that
+  its 32-bit length wrapped (2 bytes at 1,431,655,766 clusters). Such
+  a password now measures and paints as when memory runs out, counted
+  by `muiTextService_GetLayoutFailureCount`, and accessibility does not
+  read it
+  ([#336](https://github.com/Rawframe-Project/maul-ui/pull/336)).
+- `muiAccessTree_Apply` refuses, with `mui_errorInvalid` and no change,
+  a NULL entry in an update's nodes and a node whose links are counted
+  with no array. It read through both
+  ([#341](https://github.com/Rawframe-Project/maul-ui/pull/341)).
+- `muiAccessTree_Apply` with change callbacks no longer reads outside
+  the tree when an update sends a node again and lets it go in the
+  same apply: the old root sent with no parent, or a child its parent
+  stops listing. Such a node is told once, as removed
+  ([#348](https://github.com/Rawframe-Project/maul-ui/pull/348)).
+
 ## [1.2.0](https://github.com/Rawframe-Project/maul-ui/compare/v1.1.0...v1.2.0) (2026-11-03)
 
 This release changes which text segments count as words, for word
