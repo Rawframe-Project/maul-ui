@@ -487,9 +487,10 @@ extern "C"
         uint64_t focus;
         // How many ids children holds: muiAccessTree_Apply refuses a node
         // whose children reach past it. muiNode_BuildAccessUpdate sets it,
-        // and a host building an update should too. 0 states no length,
-        // and then each node's children are the caller's to keep within
-        // the array.
+        // and a host building an update should too. With childCount 0 the
+        // children array's length is not stated, so Apply cannot check
+        // firstChild and childCount against it, and keeping them in range
+        // is the caller's.
         uint32_t childCount;
     } muiAccessUpdate;
 
