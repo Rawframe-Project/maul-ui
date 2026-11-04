@@ -272,12 +272,12 @@ static void TestReplacedThenRemoved(void)
     MakeScene(&scene);
     muiAccessNode root = {.id = 15};
     const muiAccessNode* first[1] = {&root};
-    muiAccessUpdate update = {first, 1, NULL, 15, 0};
+    muiAccessUpdate update = {first, 1, NULL, 15, 0, 0};
     CHECK(muiAccessTree_Apply(scene.tree, &update, &scene.changes) == mui_success,
           "the first root");
     muiAccessNode other = {.id = 1};
     const muiAccessNode* second[2] = {&other, &root};
-    update = (muiAccessUpdate){second, 2, NULL, 1, 0};
+    update = (muiAccessUpdate){second, 2, NULL, 1, 0, 0};
     scene.log.length = 0;
     scene.log.text[0] = '\0';
     CHECK(muiAccessTree_Apply(scene.tree, &update, &scene.changes) == mui_success &&
@@ -289,7 +289,7 @@ static void TestReplacedThenRemoved(void)
     muiAccessNode child = {.id = 2};
     const muiAccessNode* listed[2] = {&parent, &child};
     const uint64_t children[1] = {2};
-    update = (muiAccessUpdate){listed, 2, children, 0, 0};
+    update = (muiAccessUpdate){listed, 2, children, 0, 0, 0};
     CHECK(muiAccessTree_Apply(scene.tree, &update, &scene.changes) == mui_success &&
               muiAccessTree_GetNodeCount(scene.tree) == 2,
           "a child listed");
