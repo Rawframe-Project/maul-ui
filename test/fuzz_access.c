@@ -23,11 +23,19 @@
 // within the children array, as the header leaves to the caller. The
 // values in those ranges are anything the bytes give.
 //
+// Every field is read into a local in the order above before it goes into
+// a compound literal or a call: the order C gives the expressions of an
+// initializer list or the arguments of a call is unspecified, and a seed
+// must decode the same with every compiler.
+//
 // An update is applied whole or not at all: a refused one leaves the tree
-// as its text (muiAccessTree_Write) was. After each update every query
-// is asked of every id, and the change callbacks ask the tree too while it
-// applies. Nothing is read or written past a buffer, and the library's
-// assertions hold.
+// as its text (muiAccessTree_Write) was, and tells nothing. The change
+// callbacks check what Apply promises while it reports: an added node is
+// held, a removed one is gone, no node is both updated and removed, and
+// the focus moves from the tree's focus before the update to its focus
+// after, told once when it moved. After each update every query is asked
+// of every id. Nothing is read or written past a buffer, and the
+// library's assertions hold.
 
 #include "maul-ui/access.h"
 #include "maul-ui/access_tree.h"
@@ -136,22 +144,31 @@ static void ReadMarks(Reader* reader, Sent* sent)
     for (uint32_t i = 0; i < marks->lineCount; i++)
     {
         sent->lineStarts[i] = Byte(reader);
-        sent->lineBoxes[i] = (muiAccessLineBox){
-            Float(reader), Float(reader), Byte(reader) % (MAX_MARKS + 2), (Byte(reader) & 1) != 0};
+        float top = Float(reader);
+        float bottom = Float(reader);
+        uint8_t first = Byte(reader);
+        uint8_t last = Byte(reader);
+        sent->lineBoxes[i] =
+            (muiAccessLineBox){top, bottom, first % (MAX_MARKS + 2), (last & 1) != 0};
     }
     marks->lineStarts = (flags & 2) != 0 ? nullptr : sent->lineStarts;
     marks->lineBoxes = (flags & 4) != 0 ? sent->lineBoxes : nullptr;
     marks->wordCount = Byte(reader) % (MAX_MARKS + 1);
     for (uint32_t i = 0; i < marks->wordCount; i++)
     {
-        sent->words[i] = (muiAccessWord){Byte(reader), Byte(reader)};
+        uint8_t start = Byte(reader);
+        uint8_t end = Byte(reader);
+        sent->words[i] = (muiAccessWord){start, end};
     }
     marks->words = (flags & 8) != 0 ? nullptr : sent->words;
     marks->clusterCount = Byte(reader) % (MAX_MARKS + 1);
     for (uint32_t i = 0; i < marks->clusterCount; i++)
     {
-        sent->clusters[i] =
-            (muiAccessCluster){Byte(reader), Byte(reader), Float(reader), Float(reader)};
+        uint8_t start = Byte(reader);
+        uint8_t end = Byte(reader);
+        float left = Float(reader);
+        float right = Float(reader);
+        sent->clusters[i] = (muiAccessCluster){start, end, left, right};
     }
     marks->clusters = (flags & 16) != 0 ? nullptr : sent->clusters;
 }
@@ -164,7 +181,11 @@ static void ReadNode(Reader* reader, Sent* sent, bool stated)
     node->role = (muiRole)Byte(reader);
     Read(reader, &node->flags, sizeof node->flags);
     Read(reader, &node->actions, sizeof node->actions);
-    node->bounds = (muiRect){Float(reader), Float(reader), Float(reader), Float(reader)};
+    float x = Float(reader);
+    float y = Float(reader);
+    float width = Float(reader);
+    float height = Float(reader);
+    node->bounds = (muiRect){x, y, width, height};
     node->value = Float(reader);
     node->firstChild = Byte(reader);
     node->childCount = Byte(reader) % 5;
@@ -179,7 +200,9 @@ static void ReadNode(Reader* reader, Sent* sent, bool stated)
     node->linkCount = links % (MAX_LINKS + 1);
     for (uint32_t i = 0; i < node->linkCount; i++)
     {
-        sent->links[i] = (muiAccessLink){Byte(reader) % IDS, (muiAccessRelation)Byte(reader)};
+        uint8_t target = Byte(reader);
+        uint8_t relation = Byte(reader);
+        sent->links[i] = (muiAccessLink){target % IDS, (muiAccessRelation)relation};
     }
     node->links = (links & 0x80) != 0 ? nullptr : sent->links;
     PickText(reader, node, mui_accessLabel);
@@ -187,34 +210,73 @@ static void ReadNode(Reader* reader, Sent* sent, bool stated)
     ReadMarks(reader, sent);
 }
 
-// The change callbacks ask the tree about what changed while it applies.
+// What one apply told: the focus before it, the ids updated and removed,
+// and every call.
+typedef struct Told
+{
+    uint64_t focus;
+    bool updated[IDS];
+    bool removed[IDS];
+    uint32_t focusMoves;
+    uint32_t calls;
+} Told;
+
+// The change callbacks check what Apply promises while it reports, and
+// ask the tree about what changed. Every id the tree holds came from the
+// input, so it is below IDS.
 static void Added(void* user, const muiAccessTree* tree, uint64_t id)
 {
-    (void)user;
+    Told* told = user;
+    told->calls++;
     char name[64];
     size_t length = 0;
     (void)muiAccessTree_GetName(tree, id, name, sizeof name, &length);
-    (void)muiAccessTree_Find(tree, id);
+    if (id == 0 || id >= IDS || muiAccessTree_Find(tree, id) == nullptr)
+    {
+        // An added node the tree does not hold.
+        __builtin_trap();
+    }
 }
 
 static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* old)
 {
-    (void)user;
-    (void)muiAccessTree_Find(tree, old->id);
+    Told* told = user;
+    told->calls++;
     (void)muiAccessTree_GetParent(tree, old->id);
+    if (old->id == 0 || old->id >= IDS || told->removed[old->id] ||
+        muiAccessTree_Find(tree, old->id) == nullptr)
+    {
+        // An updated node the tree does not hold, or one also removed.
+        __builtin_trap();
+    }
+    told->updated[old->id] = true;
 }
 
 static void Removed(void* user, const muiAccessTree* tree, const muiAccessNode* old)
 {
-    (void)user;
-    (void)muiAccessTree_Find(tree, old->id);
+    Told* told = user;
+    told->calls++;
+    if (old->id == 0 || old->id >= IDS || told->updated[old->id] ||
+        muiAccessTree_Find(tree, old->id) != nullptr)
+    {
+        // A removed node the tree still holds, or one also updated.
+        __builtin_trap();
+    }
+    told->removed[old->id] = true;
 }
 
 static void FocusMoved(void* user, const muiAccessTree* tree, uint64_t old, uint64_t focus)
 {
-    (void)user;
-    (void)old;
+    Told* told = user;
+    told->calls++;
+    told->focusMoves++;
     (void)muiAccessTree_IsShown(tree, focus);
+    if (old != told->focus || focus != muiAccessTree_GetFocus(tree) || old == focus)
+    {
+        // A move from another focus than the tree had, or to another than
+        // it has.
+        __builtin_trap();
+    }
 }
 
 // Every query of every id, with places and ranges from the input.
@@ -223,6 +285,11 @@ static void Ask(Reader* reader, const muiAccessTree* tree)
     for (uint64_t id = 0; id < IDS; id++)
     {
         uint32_t count = 0;
+        uint8_t capacity = Byte(reader);
+        uint8_t nameCapacity = Byte(reader);
+        size_t start = Byte(reader);
+        size_t end = Byte(reader);
+        uint8_t rectCapacity = Byte(reader);
         (void)muiAccessTree_Find(tree, id);
         (void)muiAccessTree_GetParent(tree, id);
         (void)muiAccessTree_GetShownParent(tree, id);
@@ -233,20 +300,20 @@ static void Ask(Reader* reader, const muiAccessTree* tree)
             (void)muiAccessTree_Find(tree, children[i]);
         }
         uint64_t shown[MAX_CHILDREN];
-        (void)muiAccessTree_GetShownChildren(tree, id, shown, Byte(reader) % (MAX_CHILDREN + 1),
+        (void)muiAccessTree_GetShownChildren(tree, id, shown, capacity % (MAX_CHILDREN + 1),
                                              &count);
         char name[64];
         size_t length = 0;
-        (void)muiAccessTree_GetName(tree, id, name, Byte(reader) % sizeof name, &length);
+        (void)muiAccessTree_GetName(tree, id, name, nameCapacity % sizeof name, &length);
         muiRect bounds;
         (void)muiAccessTree_GetBounds(tree, id, &bounds);
         muiRect rects[MAX_MARKS];
-        size_t start = Byte(reader);
-        size_t end = Byte(reader);
         (void)muiAccessTree_GetTextRects(tree, id, start, end, rects,
-                                         Byte(reader) % (MAX_MARKS + 1), &count);
+                                         rectCapacity % (MAX_MARKS + 1), &count);
         size_t offset = 0;
-        (void)muiAccessTree_GetTextOffsetAt(tree, id, Float(reader), Float(reader), &offset);
+        float x = Float(reader);
+        float y = Float(reader);
+        (void)muiAccessTree_GetTextOffsetAt(tree, id, x, y, &offset);
     }
 }
 
@@ -269,7 +336,8 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     {
         __builtin_trap();
     }
-    const muiAccessChanges changes = {nullptr, Added, Updated, Removed, FocusMoved, nullptr};
+    static Told s_told;
+    const muiAccessChanges changes = {&s_told, Added, Updated, Removed, FocusMoved, nullptr};
     static Sent s_sent[MAX_NODES];
     for (int u = 0; u < MAX_UPDATES && reader.size > 0; u++)
     {
@@ -299,10 +367,20 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         };
         size_t before = 0;
         bool wrote = Written(tree, s_before, &before);
-        muiResult applied = muiAccessTree_Apply(tree, &update, (u & 1) != 0 ? &changes : nullptr);
+        s_told = (Told){.focus = muiAccessTree_GetFocus(tree)};
+        bool telling = (u & 1) != 0;
+        muiResult applied = muiAccessTree_Apply(tree, &update, telling ? &changes : nullptr);
         if (applied != mui_success && applied != mui_errorInvalid && applied != mui_errorCapacity &&
             applied != mui_errorLimit)
         {
+            __builtin_trap();
+        }
+        bool moved = applied == mui_success && muiAccessTree_GetFocus(tree) != s_told.focus;
+        if ((applied != mui_success && s_told.calls != 0) ||
+            s_told.focusMoves != (telling && moved ? 1u : 0u))
+        {
+            // A refused update told something, or a focus that moved was
+            // not told once.
             __builtin_trap();
         }
         size_t after = 0;
