@@ -3,7 +3,8 @@
 //
 // The atlas's glyph table: keys alike but for their palette, or but for
 // their tint, each found as its own entry, so a key's every part tells it
-// apart where keys share a probe chain.
+// apart where keys share a probe chain; and an entry stays stale however
+// many times its plot was evicted since.
 
 #include "glyph_table.h"
 #include "test_harness.h"
@@ -18,7 +19,7 @@ static bool EachOwn(void (*vary)(muiGlyphKey* key, uint32_t k))
 {
     const muiAllocator allocator = {0};
     // One plot, never evicted.
-    const uint32_t generations[1] = {0};
+    const uint64_t generations[1] = {0};
     muiGlyphTable table = {0};
     bool own = true;
     for (uint32_t k = 0; k < KEYS && own; k++)
@@ -55,9 +56,23 @@ static void ByTint(muiGlyphKey* key, uint32_t k)
     key->tint = 0x01010101u * k;
 }
 
+// An entry placed at generation 0, its plot evicted 2^32 times since, or
+// once, or not at all; and a glyph with no image, never stale.
+static bool StaleAcrossEvictions(void)
+{
+    const uint64_t generations[3] = {(uint64_t)UINT32_MAX + 1, 1, 0};
+    const muiAtlasEntry far = {.plot = 1};
+    const muiAtlasEntry once = {.plot = 2};
+    const muiAtlasEntry kept = {.plot = 3};
+    const muiAtlasEntry bare = {.plot = MUI_NO_PLOT, .generation = 7};
+    return muiIsEntryStale(&far, generations) && muiIsEntryStale(&once, generations) &&
+           !muiIsEntryStale(&kept, generations) && !muiIsEntryStale(&bare, generations);
+}
+
 int main(void)
 {
     CHECK(EachOwn(ByPalette), "keys apart by their palette");
     CHECK(EachOwn(ByTint), "keys apart by their tint");
+    CHECK(StaleAcrossEvictions(), "an entry stale after 2^32 evictions of its plot");
     return s_failures == 0 ? 0 : 1;
 }
