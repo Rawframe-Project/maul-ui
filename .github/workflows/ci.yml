@@ -119,6 +119,10 @@ jobs:
         # platforms' code is compiled with warnings as errors by its own cell.
         # Twice: in Release, where the assertions compile out, and in Debug,
         # with them live. Each hides paths from the analyzer the other shows.
+        # The header filter is given here: run from the root, clang-tidy 20
+        # does not apply the one in .clang-tidy and drops every finding in a
+        # header. Anchored at the root, so fetched dependencies' headers stay
+        # out.
         run: |
           for build in Release Debug; do
             cmake --preset linux-parts -B out/tidy-$build -DCMAKE_BUILD_TYPE=$build \
@@ -127,7 +131,7 @@ jobs:
             cmake --build out/tidy-$build
             python3 tools/tidy_files.py out/tidy-$build/compile_commands.json >out/tidy-files.txt
             xargs -a out/tidy-files.txt -n 1 clang-tidy-20 -p out/tidy-$build --quiet \
-              --warnings-as-errors='*'
+              --warnings-as-errors='*' --header-filter="^$PWD/((rhi|window)/)?(src|include)/"
           done
 
   # Every cell builds with warnings as errors and runs its whole suite, the
