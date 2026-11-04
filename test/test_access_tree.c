@@ -263,6 +263,46 @@ static void TestNewRoot(void)
     FreeScene(&scene);
 }
 
+// A node sent again and let go by the same update, as the old root sent
+// with no parent, or a child its parent stopped listing: told only as
+// removed, never as updated, and the tree read where it holds it.
+static void TestReplacedThenRemoved(void)
+{
+    Scene scene;
+    MakeScene(&scene);
+    muiAccessNode root = {.id = 15};
+    const muiAccessNode* first[1] = {&root};
+    muiAccessUpdate update = {first, 1, NULL, 15, 0};
+    CHECK(muiAccessTree_Apply(scene.tree, &update, &scene.changes) == mui_success,
+          "the first root");
+    muiAccessNode other = {.id = 1};
+    const muiAccessNode* second[2] = {&other, &root};
+    update = (muiAccessUpdate){second, 2, NULL, 1, 0};
+    scene.log.length = 0;
+    scene.log.text[0] = '\0';
+    CHECK(muiAccessTree_Apply(scene.tree, &update, &scene.changes) == mui_success &&
+              strcmp(scene.log.text, "+1 -15 focus 15>1 ") == 0 &&
+              muiAccessTree_Find(scene.tree, 15) == NULL &&
+              muiAccessTree_GetNodeCount(scene.tree) == 1,
+          "the old root sent with no parent");
+    muiAccessNode parent = {.id = 1, .childCount = 1};
+    muiAccessNode child = {.id = 2};
+    const muiAccessNode* listed[2] = {&parent, &child};
+    const uint64_t children[1] = {2};
+    update = (muiAccessUpdate){listed, 2, children, 0, 0};
+    CHECK(muiAccessTree_Apply(scene.tree, &update, &scene.changes) == mui_success &&
+              muiAccessTree_GetNodeCount(scene.tree) == 2,
+          "a child listed");
+    parent.childCount = 0;
+    child.value = 1.0f;
+    scene.log.length = 0;
+    scene.log.text[0] = '\0';
+    CHECK(muiAccessTree_Apply(scene.tree, &update, &scene.changes) == mui_success &&
+              strcmp(scene.log.text, "~1 -2 ") == 0 && muiAccessTree_Find(scene.tree, 2) == NULL,
+          "a child sent and no longer listed");
+    FreeScene(&scene);
+}
+
 // Updates made by hand: nodes 1 to 3, 1 listing 2.
 static void TestRefused(void)
 {
@@ -1408,6 +1448,7 @@ int main(void)
     TestNamesFromContent();
     TestUpdatesApplied();
     TestNewRoot();
+    TestReplacedThenRemoved();
     TestRefused();
     TestHandMade();
     TestShownChanged();
