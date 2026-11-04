@@ -114,7 +114,7 @@ static muiAccessUpdate Build(Built* built)
     Add(built, 9, mui_roleButton, "Bold", 10, 170, 50, 20)->flags = mui_accessCheckable;
     List(built, root, (const uint64_t[]){2, 3, 6, 7, 8, 9}, 6);
     List(built, generic, (const uint64_t[]){4}, 1);
-    return (muiAccessUpdate){built->sent, built->nodeCount, built->children, 1, 2};
+    return (muiAccessUpdate){built->sent, built->nodeCount, built->children, 1, 2, 0};
 }
 
 // The screen rectangle of a rectangle in the view's points.
@@ -256,7 +256,7 @@ static bool PostedAre(NSString* expected)
 static bool Send(muiNsAdapter* adapter, const muiAccessNode* node, const uint64_t* children,
                  uint64_t focus)
 {
-    const muiAccessUpdate update = {(const muiAccessNode*[]){node}, 1, children, 0, focus};
+    const muiAccessUpdate update = {(const muiAccessNode*[]){node}, 1, children, 0, focus, 0};
     return muiNsAdapter_Apply(adapter, &update) == mui_success;
 }
 
@@ -311,7 +311,7 @@ static void TestNotifications(muiNsAdapter* adapter, const Built* built)
     const uint64_t more[7] = {2, 3, 6, 7, 8, 9, 10};
     root.firstChild = 0;
     root.childCount = 7;
-    const muiAccessUpdate grow = {(const muiAccessNode*[]){&root, &added}, 2, more, 0, 0};
+    const muiAccessUpdate grow = {(const muiAccessNode*[]){&root, &added}, 2, more, 0, 0, 0};
     CHECK(muiNsAdapter_Apply(adapter, &grow) == mui_success && PostedAre(@"AXLayoutChanged 1"),
           "a node added: the layout");
     root.childCount = 6;
@@ -322,7 +322,7 @@ static void TestNotifications(muiNsAdapter* adapter, const Built* built)
           "a node a client saw gone: destroyed");
     root.childCount = 6;
     muiAccessNode toggle = built->nodes[7];
-    const muiAccessUpdate back = {(const muiAccessNode*[]){&root, &toggle}, 2, more, 0, 2};
+    const muiAccessUpdate back = {(const muiAccessNode*[]){&root, &toggle}, 2, more, 0, 2, 0};
     CHECK(muiNsAdapter_Apply(adapter, &back) == mui_success &&
               PostedAre(@"AXLayoutChanged 1; AXFocusedUIElementChanged 2"),
           "back, the layout before the focus");
@@ -390,7 +390,7 @@ static void TestText(muiNsAdapter* adapter, id root, const Built* built)
     input.marks = (muiAccessTextMarks){
         .anchor = 3, .focus = 3, .selected = true, .lineStarts = s_lines, .lineCount = 2};
     input.actions = 1u << mui_actionSetSelection | 1u << mui_actionReplaceText;
-    const muiAccessUpdate update = {(const muiAccessNode*[]){&input}, 1, built->children, 0, 0};
+    const muiAccessUpdate update = {(const muiAccessNode*[]){&input}, 1, built->children, 0, 0, 0};
     muiNsPostFunction saved = adapter->post;
     adapter->post = Record;
     s_posted = [[NSMutableArray alloc] init];
@@ -494,8 +494,8 @@ int main(void)
         muiAccessNode rootNode = s_built.nodes[0];
         rootNode.firstChild = 1;
         rootNode.childCount = 5;
-        const muiAccessUpdate gone = {(const muiAccessNode*[]){&rootNode}, 1, s_built.children, 0,
-                                      0};
+        const muiAccessUpdate gone = {
+            (const muiAccessNode*[]){&rootNode}, 1, s_built.children, 0, 0, 0};
         CHECK(muiNsAdapter_Apply(adapter, &gone) == mui_success &&
                   [[root accessibilityChildren] count] == 5 && ![button isAccessibilityElement] &&
                   [button accessibilityParent] == nil &&

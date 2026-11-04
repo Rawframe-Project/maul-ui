@@ -25,13 +25,13 @@ int main(void)
     muiAccessNode root = {.id = 1, .childCount = 1};
     const muiAccessNode* sent[2] = {&child, &root};
     const uint64_t children[1] = {2};
-    muiAccessUpdate update = {sent, 2, children, 1, 1};
+    muiAccessUpdate update = {sent, 2, children, 1, 1, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success && tree->apply == 1 &&
               tree->held[0].listed == 1,
           "the first slot marked at the first apply");
     tree->apply = UINT32_MAX;
     const muiAccessNode* again[1] = {&root};
-    update = (muiAccessUpdate){again, 1, children, 0, 1};
+    update = (muiAccessUpdate){again, 1, children, 0, 1, 0};
     CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success && tree->apply == 1,
           "the serial wrapped: the root lists its child again, once");
     muiDestroyAccessTree(tree);

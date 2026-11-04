@@ -487,7 +487,7 @@ static muiAccessUpdate Build(Built* built)
     List(built, root, (const uint64_t[]){2, 3, 5, 6, 7, 8, 9, 10, 11}, 9);
     List(built, generic, (const uint64_t[]){4}, 1);
     List(built, list, (const uint64_t[]){12}, 1);
-    return (muiAccessUpdate){built->sent, built->nodeCount, built->children, 1, 7};
+    return (muiAccessUpdate){built->sent, built->nodeCount, built->children, 1, 7, 0};
 }
 
 typedef struct Program
@@ -1155,7 +1155,7 @@ static void Change(const Built* built)
     muiAccessNode check = built->nodes[7];
     check.flags = mui_accessCheckable;
     const muiAccessNode* sent[1] = {&check};
-    const muiAccessUpdate update = {sent, 1, NULL, 0, 8};
+    const muiAccessUpdate update = {sent, 1, NULL, 0, 8, 0};
     CHECK(muiUiaAdapter_Apply(s_program.adapter, &update) == mui_success, "changed");
     // The list focused, its item the active descendant: the item is the
     // focus shown, as browsers show aria-activedescendant.
@@ -1164,7 +1164,7 @@ static void Change(const Built* built)
     list.links = s_active;
     list.linkCount = 1;
     const muiAccessNode* listSent[1] = {&list};
-    const muiAccessUpdate active = {listSent, 1, built->children, 0, 11};
+    const muiAccessUpdate active = {listSent, 1, built->children, 0, 11, 0};
     CHECK(muiUiaAdapter_Apply(s_program.adapter, &active) == mui_success, "an active descendant");
 }
 
@@ -1193,7 +1193,7 @@ static void Pump(Built* built)
             root.firstChild = 1;
             root.childCount = 8;
             const muiAccessNode* sent[1] = {&root};
-            const muiAccessUpdate update = {sent, 1, built->children, 0, 0};
+            const muiAccessUpdate update = {sent, 1, built->children, 0, 0, 0};
             CHECK(muiUiaAdapter_Apply(s_program.adapter, &update) == mui_success, "removed");
             SetEvent(s_program.removed);
         }

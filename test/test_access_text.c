@@ -266,7 +266,7 @@ static void TestEmpty(void)
 
 static muiAccessUpdate One(const muiAccessNode* const* node)
 {
-    return (muiAccessUpdate){node, 1, NULL, 1, 1};
+    return (muiAccessUpdate){node, 1, NULL, 1, 1, 0};
 }
 
 // The tree copies marks that fit, refuses an update with marks that do

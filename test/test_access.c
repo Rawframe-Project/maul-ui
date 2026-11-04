@@ -338,6 +338,59 @@ static void TestChildren(void)
 // A node made in the slot of one that was painted where it now lies, and
 // read before a layout gave it a box: the box the layout gives it is sent,
 // though the last node painted in its slot had the same.
+// An update states its children array's length, and a tree refuses a
+// node whose children reach past it, with or without wrapping. With no
+// length stated, 0, an update applies as a host-built one always did.
+static void TestChildCount(void)
+{
+    Scene scene;
+    MakeScene(&scene);
+    muiContext* context = scene.context;
+    CHECK(muiNode_EnableAccess(context, scene.root, true) == mui_success, "enabled");
+    Layout(context, scene.root);
+    muiAccessUpdate update = Build(context, scene.root);
+    uint32_t children = 0;
+    uint32_t parent = UINT32_MAX;
+    const muiAccessNode* nodes[16] = {0};
+    CHECK(update.nodeCount <= 16, "a small tree");
+    for (uint32_t i = 0; i < update.nodeCount && i < 16; i++)
+    {
+        nodes[i] = update.nodes[i];
+        children += nodes[i]->childCount;
+        parent = nodes[i]->childCount != 0 && parent == UINT32_MAX ? i : parent;
+    }
+    CHECK(update.childCount == children && children != 0 && parent != UINT32_MAX,
+          "the children counted");
+    if (parent == UINT32_MAX)
+    {
+        muiDestroyContext(context);
+        return;
+    }
+    muiAccessTreeDef def = muiDefaultAccessTreeDef();
+    muiAccessTree* tree = NULL;
+    CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "a tree");
+    // One past the array, and a first child whose sum wraps.
+    muiAccessNode moved = *nodes[parent];
+    moved.firstChild = update.childCount - moved.childCount + 1;
+    nodes[parent] = &moved;
+    muiAccessUpdate forged = update;
+    forged.nodes = nodes;
+    CHECK(muiAccessTree_Apply(tree, &forged, NULL) == mui_errorInvalid &&
+              muiAccessTree_GetNodeCount(tree) == 0,
+          "children one past the array");
+    moved.firstChild = UINT32_MAX;
+    CHECK(muiAccessTree_Apply(tree, &forged, NULL) == mui_errorInvalid &&
+              muiAccessTree_GetNodeCount(tree) == 0,
+          "children past the array by wrapping");
+    // The update as built, with no length stated, applies.
+    update.childCount = 0;
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success &&
+              muiAccessTree_GetNodeCount(tree) == update.nodeCount,
+          "no length stated");
+    muiDestroyAccessTree(tree);
+    muiDestroyContext(context);
+}
+
 static void TestReusedSlot(void)
 {
     Scene scene;
@@ -1621,6 +1674,7 @@ int main(void)
     TestWholeThenChanged();
     TestPasswordValue();
     TestChildren();
+    TestChildCount();
     TestReusedSlot();
     TestRelationsAndValues();
     TestContentText();

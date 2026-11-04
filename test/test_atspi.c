@@ -700,7 +700,7 @@ static muiAccessUpdate Build(Built* built)
     List(built, root, (const uint64_t[]){2, 3, 0x1a, 6, 8}, 5);
     List(built, generic, (const uint64_t[]){4}, 1);
     List(built, group, (const uint64_t[]){7, 9}, 2);
-    return (muiAccessUpdate){built->sent, built->nodeCount, built->children, 1, 2};
+    return (muiAccessUpdate){built->sent, built->nodeCount, built->children, 1, 2, 0};
 }
 
 static DBusMessage* GetChild(const char* path, int32_t index)
@@ -1347,7 +1347,7 @@ static void TestActionsAndValues(void)
 static bool Send(muiAtspiAdapter* adapter, const muiAccessNode* const* nodes, uint32_t count,
                  const uint64_t* children, uint64_t focus)
 {
-    const muiAccessUpdate update = {nodes, count, children, 0, focus};
+    const muiAccessUpdate update = {nodes, count, children, 0, focus, 0};
     return muiAtspiAdapter_Apply(adapter, &update) == mui_success;
 }
 
@@ -1357,7 +1357,7 @@ static bool Send(muiAtspiAdapter* adapter, const muiAccessNode* const* nodes, ui
 static bool SendStarved(muiAtspiAdapter* adapter, const muiAccessNode* const* nodes, uint32_t count,
                         const uint64_t* children)
 {
-    const muiAccessUpdate update = {nodes, count, children, 0, 0};
+    const muiAccessUpdate update = {nodes, count, children, 0, 0, 0};
     s_test.rationed = true;
     for (int ration = 0; ration < 8; ration++)
     {
@@ -1509,9 +1509,9 @@ static void TestEvents(muiAtspiAdapter* adapter, Built* built)
     // A new root above the window's old one, and back.
     muiAccessNode above = {.id = 20, .role = mui_roleWindow, .childCount = 1};
     const uint64_t aboveChildren[1] = {1};
-    const muiAccessUpdate raise = {(const muiAccessNode*[]){&above}, 1, aboveChildren, 20, 0};
-    const muiAccessUpdate lower = {(const muiAccessNode*[]){&built->nodes[0]}, 1, built->children,
-                                   1, 0};
+    const muiAccessUpdate raise = {(const muiAccessNode*[]){&above}, 1, aboveChildren, 20, 0, 0};
+    const muiAccessUpdate lower = {
+        (const muiAccessNode*[]){&built->nodes[0]}, 1, built->children, 1, 0, 0};
     muiResult raised = muiAtspiAdapter_Apply(adapter, &raise);
     CHECK(raised == mui_success &&
               EventsAre("ChildrenChanged remove -1 root w1n1; ChildrenChanged add 0 root w1n14; "
@@ -1530,7 +1530,7 @@ static void TestEvents(muiAtspiAdapter* adapter, Built* built)
     CHECK(Send(adapter, (const muiAccessNode*[]){&root}, 1, rootChildren, 0) && EventsAre(expected),
           "a subtree removed, its top told");
     // Back as it was built, for the tests after.
-    const muiAccessUpdate update = {built->sent, built->nodeCount, built->children, 1, 2};
+    const muiAccessUpdate update = {built->sent, built->nodeCount, built->children, 1, 2, 0};
     CHECK(muiAtspiAdapter_Apply(adapter, &update) == mui_success &&
               EventsAre("PropertyChange accessible-role 0 w1n3 39; StateChanged checked 1 w1n1a; "
                         "PropertyChange accessible-name 0 w1n1a Agree; PropertyChange "
@@ -2059,7 +2059,7 @@ static void TestGone(muiAtspiAdapter* adapter, Built* built)
     root.firstChild = 1;
     root.childCount = 4;
     const muiAccessNode* sent[1] = {&root};
-    const muiAccessUpdate update = {sent, 1, built->children, 0, 0};
+    const muiAccessUpdate update = {sent, 1, built->children, 0, 0, 0};
     CHECK(muiAtspiAdapter_Apply(adapter, &update) == mui_success &&
               EventsAre("ChildrenChanged remove -1 w1n1 w1n2; StateChanged defunct 1 w1n2") &&
               IsError(Answer(Call("/org/a11y/atspi/accessible/w1n2", "org.a11y.atspi.Accessible",
@@ -2085,7 +2085,7 @@ static void TestGone(muiAtspiAdapter* adapter, Built* built)
                             .bounds = {0.0f, 0.0f, 10.0f, 10.0f},
                             .transform = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f}};
     const muiAccessNode* aloneSent[2] = {&alone, &toggle};
-    const muiAccessUpdate aloneUpdate = {aloneSent, 2, aloneChildren, 9, 9};
+    const muiAccessUpdate aloneUpdate = {aloneSent, 2, aloneChildren, 9, 9, 0};
     CHECK(muiCreateAtspiAdapter(s_test.app, &def, &second) == mui_success &&
               ChildrenAre(ROOT_PATH, "w1n1"),
           "a window with no tree is no child");
