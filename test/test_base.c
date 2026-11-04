@@ -1,13 +1,20 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 Sirac Ozmen
 //
-// The version and result names.
+// The version, result names, and the result attribute.
 
 #include "test_harness.h"
 
 #include "maul-ui/base.h"
 
 #include <string.h>
+
+// The suites build as C23, where every compiler the family takes has
+// [[nodiscard]], so MUI_NODISCARD expands to it and a dropped status
+// warns (GCC 14 reports its C23 as 202000L).
+#define TEXT(x)     #x
+#define EXPANDED(x) TEXT(x)
+static_assert(sizeof(EXPANDED(MUI_NODISCARD)) > 1, "MUI_NODISCARD is the attribute in C23");
 
 static void TestVersionMatchesHeader(void)
 {
