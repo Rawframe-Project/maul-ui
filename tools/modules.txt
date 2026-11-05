@@ -60,7 +60,7 @@ android_jni: access_record access_text allocator android host_call fpenv
 android_node: access_record access_text android host_call
 android_text: access_text allocator android host_call
 aria: id_map
-aria_adapter: access_text allocator aria host_call fpenv
+aria_adapter: access_text allocator aria host_call invariant fpenv
 aria_elements: access_text aria chars
 web_js:
 aria_page: allocator aria host_call web_js
