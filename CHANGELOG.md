@@ -10,6 +10,19 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.3.5](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.4...v1.3.5) (2026-11-05)
+
+
+### Fixed
+
+* **access:** refuse a node whose copies' bytes do not fit a size_t ([#399](https://github.com/Rawframe-Project/maul-ui/issues/399)) ([4caddad](https://github.com/Rawframe-Project/maul-ui/commit/4caddad71b8538bdebf90db458024214cba6c469)), closes [#396](https://github.com/Rawframe-Project/maul-ui/issues/396)
+* **android:** check the room a client's text takes as UTF-8 ([#400](https://github.com/Rawframe-Project/maul-ui/issues/400)) ([b47b921](https://github.com/Rawframe-Project/maul-ui/commit/b47b921f9ece12380018cf23eb0d3de88570eceb)), closes [#398](https://github.com/Rawframe-Project/maul-ui/issues/398)
+* **atspi:** refuse a text call's coordinate type past the parent's ([#410](https://github.com/Rawframe-Project/maul-ui/issues/410)) ([1ec2ff9](https://github.com/Rawframe-Project/maul-ui/commit/1ec2ff9ae6b0910eaa1826f86a69992219389a78)), closes [#403](https://github.com/Rawframe-Project/maul-ui/issues/403)
+* **ios:** refuse a text position's extreme offset or unknown direction ([#408](https://github.com/Rawframe-Project/maul-ui/issues/408)) ([d761ae2](https://github.com/Rawframe-Project/maul-ui/commit/d761ae2ee7e67e71dad2ede2583c3e84d2915eaa)), closes [#405](https://github.com/Rawframe-Project/maul-ui/issues/405)
+* **uia:** refuse a range's rectangles past what a SAFEARRAY counts ([#402](https://github.com/Rawframe-Project/maul-ui/issues/402)) ([bf4963e](https://github.com/Rawframe-Project/maul-ui/commit/bf4963e306374c99bfed1fa19cb8bea094d00771)), closes [#401](https://github.com/Rawframe-Project/maul-ui/issues/401)
+* **uia:** refuse units, endpoints and amounts UI Automation lacks ([#407](https://github.com/Rawframe-Project/maul-ui/issues/407)) ([f8f762b](https://github.com/Rawframe-Project/maul-ui/commit/f8f762b57bb2129ad1d3b1354a117f7ab69ca174)), closes [#404](https://github.com/Rawframe-Project/maul-ui/issues/404)
+* **window:** pin Maul Window 0.14.0 and Maul Unicode 1.1.2 ([#413](https://github.com/Rawframe-Project/maul-ui/issues/413)) ([89e488b](https://github.com/Rawframe-Project/maul-ui/commit/89e488bfa57c67ffb566b336ff3c80e7d1b99386)), closes [#411](https://github.com/Rawframe-Project/maul-ui/issues/411)
+
 ## [1.3.4](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.3...v1.3.4) (2026-11-05)
 
 This release makes the accessibility tree refuse node texts that are
