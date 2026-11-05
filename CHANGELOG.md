@@ -10,6 +10,67 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.3.5](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.4...v1.3.5) (2026-11-05)
+
+This release makes the accessibility tree and the platform adapters
+refuse sizes and values they took unchecked: on a 32-bit target some
+sizes wrapped and let a copy or a conversion write past its buffer, and
+some values an assistive technology client sends were read as others.
+It also moves maul-ui-window to Maul Window 0.14.0 and the library to
+Maul Unicode 1.1.2. The API and the ABI are those of 1.3.4, and so are
+layouts, styles, draw lists, line breaks, shaped text, glyph images,
+motion curves and the accessibility tree built from a context.
+maul-ui-window follows Maul Window and sits outside the 1.x promise
+until Window reaches 1.0.
+
+### Changed
+
+- maul-ui-window takes Maul Window 0.14.0, from 0.13.0, and the library
+  Maul Unicode 1.1.2, from 1.0.0, as Window 0.14.0 is built on it.
+  Window 0.14.0 renames the `mwinMouseButton` constants, with the same
+  values. The glue names none of them and reads a button by its number,
+  so what it does is unchanged. Maul Unicode 1.1.2 gives the results
+  1.0.0 gave: it now refuses an iterator no init call set up, and Maul
+  UI sets up every one it uses. Line breaking costs 1 to 2% more
+  ([#413](https://github.com/Rawframe-Project/maul-ui/pull/413)).
+
+### Fixed
+
+- `muiAccessTree_Apply` sized its copy of each array a node points at
+  as a count times an item's size, unchecked. On a 32-bit target a
+  count large enough wrapped that size, so the tree copied a few bytes
+  but kept the whole count, and every adapter that walked the array
+  read past the copy. Such an update is now refused with
+  `mui_errorCapacity`, as for memory run out, and changes nothing
+  ([#399](https://github.com/Rawframe-Project/maul-ui/pull/399)).
+- On 32-bit Android, the room for the text a client sets on a field
+  (`ACTION_SET_TEXT`), as UTF-8, could wrap for a text past
+  1,431,655,764 UTF-16 units, and the conversion wrote past it. Such a
+  text is now refused as memory run out, and the host is asked nothing
+  ([#400](https://github.com/Rawframe-Project/maul-ui/pull/400)).
+- On Windows, `GetBoundingRectangles` on a text range over 2^30 lines
+  or more wrapped its array's 32-bit element count and wrote past the
+  array. It now answers `E_OUTOFMEMORY`, as when the array cannot be
+  made ([#402](https://github.com/Rawframe-Project/maul-ui/pull/402)).
+- The UI Automation adapter took values UI Automation does not name: a
+  text unit outside character to document was read as the document,
+  an endpoint other than the start as the end, a `GetText` length below
+  -1 as no limit, and a scroll amount outside the five named ones was
+  answered `S_OK`, scrolling the other axis alone. Each is now refused
+  with `E_INVALIDARG`, as `Navigate` already refused an unknown
+  direction, and changes nothing. UI Automation's own client passes
+  none of these on, so a screen reader through it is unaffected
+  ([#407](https://github.com/Rawframe-Project/maul-ui/pull/407)).
+- The AT-SPI adapter's `GetCharacterExtents`, `GetRangeExtents` and
+  `GetOffsetAtPoint` read a coordinate type past the parent's as the
+  window's. They now answer `InvalidArgs`, as the Component methods do
+  ([#410](https://github.com/Rawframe-Project/maul-ui/pull/410)).
+- On iOS, `positionFromPosition:inDirection:offset:` negated or added
+  an extreme offset in signed arithmetic that overflowed, which is
+  undefined behaviour, and read a direction UIKit does not name as
+  down. It now gives nil for both, as for a position outside the text
+  ([#408](https://github.com/Rawframe-Project/maul-ui/pull/408)).
+
 ## [1.3.4](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.3...v1.3.4) (2026-11-05)
 
 This release makes the accessibility tree refuse node texts that are
