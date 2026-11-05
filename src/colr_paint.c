@@ -320,8 +320,7 @@ static float* Surface(Surfaces* surfaces, uint32_t level)
         return nullptr;
     }
     size_t bytes = surfaces->count * 4 * sizeof(float);
-    if (!muiReserveKeeping(&service->allocator, &service->paintSurfaces, (size_t)level * bytes,
-                           (size_t)(level - 1) * bytes))
+    if (!muiReserveItems(&service->allocator, &service->paintSurfaces, level, level - 1, bytes))
     {
         return nullptr;
     }

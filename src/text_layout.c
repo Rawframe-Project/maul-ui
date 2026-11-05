@@ -266,8 +266,8 @@ static void PaintLine(const muiParagraph* paragraph, const muiTextLine* line, fl
     {
         return;
     }
-    if (!muiReserve(&paragraph->service->allocator, &paragraph->service->glyphs,
-                    ((size_t)source.glyphCount + 1u) * sizeof(muiGlyph)))
+    if (!muiReserveItems(&paragraph->service->allocator, &paragraph->service->glyphs,
+                         (uint64_t)source.glyphCount + 1u, 0, sizeof(muiGlyph)))
     {
         paragraph->service->failures++;
         return;

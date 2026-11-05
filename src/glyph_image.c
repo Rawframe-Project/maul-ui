@@ -115,11 +115,12 @@ MUI_NODISCARD static bool PrepareMulti(muiTextService* service, const muiFieldGr
 {
     const muiAllocator* allocator = &service->allocator;
     size_t pixels = (size_t)grid->width * grid->height;
-    if (!muiReserve(allocator, &service->fieldEdgeOrigins, room * sizeof(uint32_t)) ||
+    if (!muiReserveItems(allocator, &service->fieldEdgeOrigins, room, 0, sizeof(uint32_t)) ||
         !muiReserve(allocator, &service->fieldEdgeSides, room) ||
         !muiReserve(allocator, &service->fieldEdgeColors, room) ||
-        !muiReserve(allocator, &service->fieldLoops, (room * 3 + 1) * sizeof(uint32_t)) ||
-        !muiReserve(allocator, &service->fieldChannels, pixels * 9 * sizeof(float)) ||
+        !muiReserveItems(allocator, &service->fieldLoops, (uint64_t)room * 3u + 1u, 0,
+                         sizeof(uint32_t)) ||
+        !muiReserveItems(allocator, &service->fieldChannels, pixels, 0, 9 * sizeof(float)) ||
         !muiReserve(allocator, &service->fieldInside, pixels))
     {
         return false;
@@ -146,9 +147,10 @@ static muiResult Prepare(muiTextService* service, const FT_Outline* outline,
     {
         return mui_errorFormat;
     }
-    if (!muiReserve(allocator, &service->fieldSegments, ((size_t)count + 1) * sizeof(muiSegment)) ||
-        (multi != nullptr &&
-         !muiReserve(allocator, &service->fieldCurves, ((size_t)count + 1) * sizeof(uint32_t))))
+    if (!muiReserveItems(allocator, &service->fieldSegments, (uint64_t)count + 1u, 0,
+                         sizeof(muiSegment)) ||
+        (multi != nullptr && !muiReserveItems(allocator, &service->fieldCurves,
+                                              (uint64_t)count + 1u, 0, sizeof(uint32_t))))
     {
         return mui_errorCapacity;
     }
@@ -157,11 +159,14 @@ static muiResult Prepare(muiTextService* service, const FT_Outline* outline,
                             multi != nullptr ? service->fieldCurves.data : nullptr, count, &count);
     size_t pieces = muiCountPieces(segments, count);
     if (pieces > UINT32_MAX - 1 ||
-        !muiReserve(allocator, &service->fieldPieces, (pieces + 1) * sizeof(muiSegment)) ||
-        !muiReserve(allocator, &service->fieldOrigins, (pieces + 1) * sizeof(uint32_t)) ||
-        !muiReserve(allocator, &service->fieldCellPieces, (pieces + 1) * sizeof(uint32_t)) ||
-        !muiReserve(allocator, &service->fieldEdge,
-                    muiEdgeRoom((uint32_t)pieces) * sizeof(muiSegment)))
+        !muiReserveItems(allocator, &service->fieldPieces, (uint64_t)pieces + 1u, 0,
+                         sizeof(muiSegment)) ||
+        !muiReserveItems(allocator, &service->fieldOrigins, (uint64_t)pieces + 1u, 0,
+                         sizeof(uint32_t)) ||
+        !muiReserveItems(allocator, &service->fieldCellPieces, (uint64_t)pieces + 1u, 0,
+                         sizeof(uint32_t)) ||
+        !muiReserveItems(allocator, &service->fieldEdge, muiEdgeRoom((uint32_t)pieces), 0,
+                         sizeof(muiSegment)))
     {
         return mui_errorCapacity;
     }
@@ -169,11 +174,13 @@ static muiResult Prepare(muiTextService* service, const FT_Outline* outline,
         muiCutPieces(segments, count, service->fieldPieces.data, service->fieldOrigins.data);
     size_t crossings = muiCountCrossings(service->fieldPieces.data, cut, grid);
     size_t pixels = (size_t)grid->width * grid->height;
-    if (!muiReserve(allocator, &service->fieldRows,
-                    ((size_t)grid->height + 1) * sizeof(uint32_t)) ||
-        !muiReserve(allocator, &service->fieldCrossings, (crossings + 1) * sizeof(muiCrossing)) ||
-        !muiReserve(allocator, &service->fieldCells, (pixels + 1) * sizeof(uint32_t)) ||
-        !muiReserve(allocator, &service->fieldDistances, pixels * sizeof(float)))
+    if (!muiReserveItems(allocator, &service->fieldRows, (uint64_t)grid->height + 1u, 0,
+                         sizeof(uint32_t)) ||
+        !muiReserveItems(allocator, &service->fieldCrossings, (uint64_t)crossings + 1u, 0,
+                         sizeof(muiCrossing)) ||
+        !muiReserveItems(allocator, &service->fieldCells, (uint64_t)pixels + 1u, 0,
+                         sizeof(uint32_t)) ||
+        !muiReserveItems(allocator, &service->fieldDistances, pixels, 0, sizeof(float)))
     {
         return mui_errorCapacity;
     }

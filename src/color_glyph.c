@@ -206,7 +206,7 @@ static muiResult Prepare(muiTextService* service, const muiPixelBox* box, muiGly
     {
         return mui_success;
     }
-    if (!muiReserve(&service->allocator, &service->colorPixels, count * 4 * sizeof(float)))
+    if (!muiReserveItems(&service->allocator, &service->colorPixels, count, 0, 4 * sizeof(float)))
     {
         return mui_errorCapacity;
     }
@@ -261,8 +261,8 @@ static muiResult DecodeBitmap(muiTextService* service, const muiBitmapGlyph* bit
         return mui_errorFormat;
     }
     size_t count = (size_t)width * height;
-    if (!muiReserve(&service->allocator, &service->bitmapRgba, count * 4) ||
-        !muiReserve(&service->allocator, &service->bitmapLinear, count * 4 * sizeof(float)))
+    if (!muiReserveItems(&service->allocator, &service->bitmapRgba, count, 0, 4) ||
+        !muiReserveItems(&service->allocator, &service->bitmapLinear, count, 0, 4 * sizeof(float)))
     {
         return mui_errorCapacity;
     }

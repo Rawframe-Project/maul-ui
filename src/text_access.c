@@ -33,9 +33,8 @@ MUI_NODISCARD static bool ReadClusters(const muiLaidText* laid, uint32_t index, 
     muiTextService* service = laid->paragraph.service;
     uint32_t kept = *countInOut;
     if (!muiGetLineBoxes(laid, index, &boxes) ||
-        !muiReserveKeeping(&service->allocator, &block->accessClusters,
-                           (kept + boxes.count) * sizeof(muiAccessCluster),
-                           kept * sizeof(muiAccessCluster)))
+        !muiReserveItems(&service->allocator, &block->accessClusters, (uint64_t)kept + boxes.count,
+                         kept, sizeof(muiAccessCluster)))
     {
         return false;
     }
@@ -96,8 +95,9 @@ MUI_NODISCARD static bool ReadLines(const muiTextHost* host, muiNodeId nodeId, m
     muiLaidText laid;
     muiAllocator* allocator = &host->service->allocator;
     if (muiLayText(host, nodeId, content.width, &laid) != mui_success || laid.lineCount == 0 ||
-        !muiReserve(allocator, &block->accessLines, laid.lineCount * sizeof(size_t)) ||
-        !muiReserve(allocator, &block->accessLineBoxes, laid.lineCount * sizeof(muiAccessLineBox)))
+        !muiReserveItems(allocator, &block->accessLines, laid.lineCount, 0, sizeof(size_t)) ||
+        !muiReserveItems(allocator, &block->accessLineBoxes, laid.lineCount, 0,
+                         sizeof(muiAccessLineBox)))
     {
         return false;
     }
@@ -149,8 +149,8 @@ MUI_NODISCARD static bool SegmentWords(const muiAllocator* allocator, const char
         if (end > start && muniSegmentIterator_GetWordKind(&iterator, &kind) == muni_success &&
             kind != muni_wordNone)
         {
-            if (!muiReserveKeeping(allocator, buffer, (count + 1) * sizeof(muiAccessWord),
-                                   count * sizeof(muiAccessWord)))
+            if (!muiReserveItems(allocator, buffer, (uint64_t)count + 1u, count,
+                                 sizeof(muiAccessWord)))
             {
                 return false;
             }
@@ -195,8 +195,8 @@ MUI_NODISCARD static bool SpliceWords(const muiAllocator* allocator, const char*
     uint32_t tail = cache->count - after;
     size_t size = sizeof(muiAccessWord);
     bool fits = SegmentWords(allocator, text, from, to, &region, &added) &&
-                muiReserveKeeping(allocator, &cache->words, (first + added + tail) * size,
-                                  cache->count * size);
+                muiReserveItems(allocator, &cache->words, (uint64_t)first + added + tail,
+                                cache->count, size);
     if (fits)
     {
         muiAccessWord* words = cache->words.data;
