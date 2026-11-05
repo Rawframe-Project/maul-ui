@@ -54,13 +54,13 @@ access_view: access_text access_tree_store allocator host_call outputs fpenv
 id_map: invariant
 dbus_api:
 android: id_map
-android_adapter: access_record allocator android host_call fpenv
+android_adapter: access_record allocator android host_call invariant fpenv
 android_events: access_record access_text android
-android_jni: access_record access_text allocator android host_call fpenv
+android_jni: access_record access_text allocator android host_call invariant fpenv
 android_node: access_record access_text android host_call
-android_text: access_text allocator android host_call
+android_text: access_text allocator android host_call invariant
 aria: id_map
-aria_adapter: access_text allocator aria host_call fpenv
+aria_adapter: access_text allocator aria host_call invariant fpenv
 aria_elements: access_text aria chars
 web_js:
 aria_page: allocator aria host_call web_js
@@ -70,12 +70,12 @@ ns_adapter: access_record allocator host_call ns fpenv
 ns_events: access_record ns
 ns_node: access_record access_text allocator host_call ns fpenv
 ns_roles: ns
-ns_text: access_text host_call ns fpenv
+ns_text: access_text host_call invariant ns fpenv
 uikit: id_map
 uikit_adapter: access_record access_text allocator host_call uikit fpenv
 uikit_events: access_record uikit
 uikit_node: uikit fpenv
-uikit_text: access_record access_text host_call uikit fpenv
+uikit_text: access_record access_text host_call invariant uikit fpenv
 uikit_traits: uikit
 atspi_events: access_record access_text allocator atspi host_call invariant fpenv
 atspi_actions: atspi host_call
@@ -93,9 +93,9 @@ uia_events: access_record access_text uia fpenv
 uia_node: access_record uia fpenv
 uia_patterns: access_text uia
 uia_props: access_record allocator host_call uia
-uia_range: access_text uia fpenv
+uia_range: access_text invariant uia fpenv
 uia_text: access_record uia fpenv
-uia_values: access_text allocator host_call uia fpenv
+uia_values: access_text allocator host_call invariant uia fpenv
 access_action: access context event focus layout_node notify range scroll scroll_store tree fpenv
 popup: context layout_node popup_store scroll tree notify fpenv
 scroll: context invariant scroll_store tree layer fpenv
