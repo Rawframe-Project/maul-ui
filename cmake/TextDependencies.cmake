@@ -34,7 +34,10 @@ else()
     set(hb_version ${MAUL_UI_HARFBUZZ_VERSION})
     set(kept)
     if(DEFINED ENV{MAUL_DOWNLOAD_DIR})
-        set(kept DOWNLOAD_DIR $ENV{MAUL_DOWNLOAD_DIR})
+        # Forward slashes: FetchContent writes the folder into a
+        # CMakeLists.txt, where a Windows path's backslashes are escapes.
+        cmake_path(SET kept_dir "$ENV{MAUL_DOWNLOAD_DIR}")
+        set(kept DOWNLOAD_DIR ${kept_dir})
     endif()
     # Both are only populated (their SOURCE_SUBDIR has no CMakeLists.txt):
     # they are built below, not by their own build.
