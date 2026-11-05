@@ -13,6 +13,7 @@
 #include "aria.h"
 #include "fpenv.h"
 #include "host_call.h"
+#include "invariant.h"
 
 #include <stdalign.h>
 #include <string.h>
@@ -236,6 +237,9 @@ static void Forget(muiAriaAdapter* adapter, uint32_t slot)
     muiAriaPageRemove(adapter->page, slot);
     (void)muiIdMapRemove(&adapter->elementById, element->id);
     *element = (muiAriaElement){0};
+    // A made element's slot is not free; made and free slots make the
+    // nodes.
+    MUI_ASSERT(adapter->freeCount < adapter->nodes);
     adapter->freeElements[adapter->freeCount++] = slot;
 }
 
@@ -255,12 +259,17 @@ static void RemoveUnseen(muiAriaAdapter* adapter)
 // Makes a node's element with all its attributes.
 static uint32_t Make(muiAriaAdapter* adapter, const muiAccessNode* node)
 {
+    // The walk reads its ids from the tree, and sees at most the nodes:
+    // the elements it did not see were removed before any is made.
+    MUI_ASSERT(node != nullptr && adapter->freeCount > 0);
     uint32_t slot = adapter->freeElements[--adapter->freeCount];
     muiAriaElement* element = &adapter->elements[slot];
     *element = (muiAriaElement){.id = node->id, .parent = ARIA_NO_SLOT, .seen = adapter->pass};
     // An impossible box, so the first placing writes it.
     element->box[2] = -1.0f;
-    (void)muiIdMapInsert(&adapter->elementById, node->id, element);
+    // The map, of twice the nodes, holds every made element, and this
+    // node had none.
+    muiAssertCall(muiIdMapInsert(&adapter->elementById, node->id, element));
     char id[ARIA_ID_SIZE];
     muiAriaIdOf(adapter->page, node->id, id);
     muiAriaPageMake(adapter->page, slot, muiAriaKindOf(node), muiAriaInputTypeOf(node), id);
@@ -284,9 +293,13 @@ static void Restructure(muiAriaAdapter* adapter)
     for (uint32_t at = 0; at < count; at++)
     {
         const muiAriaPlace* place = &adapter->places[at];
+        // The walk puts a node after its parent, whose element this loop
+        // has already made.
+        MUI_ASSERT(place->parent == ARIA_NO_SLOT || place->parent < at);
         uint32_t parent = place->parent != ARIA_NO_SLOT
                               ? muiAriaSlotOf(adapter, adapter->walk[place->parent])
                               : ARIA_NO_SLOT;
+        MUI_ASSERT(place->parent == ARIA_NO_SLOT || parent != ARIA_NO_SLOT);
         uint32_t slot = muiAriaSlotOf(adapter, adapter->walk[at]);
         if (slot == ARIA_NO_SLOT)
         {
@@ -382,6 +395,8 @@ static void Updated(void* user, const muiAccessTree* tree, const muiAccessNode* 
 {
     muiAriaAdapter* adapter = user;
     const muiAccessNode* node = muiAccessTree_Find(tree, old->id);
+    // The tree tells of an update only for a node it still holds.
+    MUI_ASSERT(node != nullptr);
     uint32_t slot = muiAriaSlotOf(adapter, old->id);
     if (!adapter->enabled)
     {
