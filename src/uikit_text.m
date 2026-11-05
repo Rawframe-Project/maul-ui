@@ -541,11 +541,17 @@ static uint32_t ByteAtPoint(const MUIAccessibilityElement* element, CGPoint poin
 }
 
 // Left and right by UTF-16 units; up and down by lines, at the same
-// count of units into the line, or its end.
+// count of units into the line, or its end. An offset past what a text
+// can hold is outside it, as a direction UIKit does not name is.
 - (UITextPosition*)positionFromPosition:(UITextPosition*)position
                             inDirection:(UITextLayoutDirection)direction
                                  offset:(NSInteger)offset
 {
+    if (direction < UITextLayoutDirectionRight || direction > UITextLayoutDirectionDown ||
+        offset < -(NSInteger)UINT32_MAX || offset > (NSInteger)UINT32_MAX)
+    {
+        return nil;
+    }
     bool back = direction == UITextLayoutDirectionLeft || direction == UITextLayoutDirectionUp;
     NSInteger step = back ? -offset : offset;
     if (direction == UITextLayoutDirectionLeft || direction == UITextLayoutDirectionRight)
