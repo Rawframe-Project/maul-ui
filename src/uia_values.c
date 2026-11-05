@@ -346,6 +346,12 @@ static ULONG STDMETHODCALLTYPE ScrollRelease(muiUiaScroll* self)
     return left;
 }
 
+// Whether a client's amount is one UI Automation names, none among them.
+MUI_NODISCARD static bool IsAmount(int amount)
+{
+    return amount >= AMOUNT_LARGE_BACK && amount <= AMOUNT_SMALL_FORWARD;
+}
+
 // The page action an amount asks for on an axis, or none. A small step
 // scrolls a page too: the tree knows no line height.
 MUI_NODISCARD static bool PageAction(int amount, bool horizontal, muiAccessAction* actionOut)
@@ -364,6 +370,10 @@ static HRESULT STDMETHODCALLTYPE ScrollBy(muiUiaScroll* self, int horizontal, in
     if (held == nullptr)
     {
         return ELEMENT_GONE;
+    }
+    if (!IsAmount(horizontal) || !IsAmount(vertical))
+    {
+        return E_INVALIDARG;
     }
     HRESULT result = S_OK;
     muiAccessAction action = mui_actionScrollRight;
