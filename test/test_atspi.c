@@ -1687,9 +1687,9 @@ static void TestActiveDescendant(muiAtspiAdapter* adapter, Built* built)
           "the focus back where it was");
 }
 
-// A Text method's reply, its integers too, flattened; its arguments
-// integers of the types named, 'i' or 'u'.
-static bool TextIs(const char* member, const char* types, const int32_t* args, const char* expected)
+// A call of a Text method of node 7, its arguments integers of the types
+// named, 'i' or 'u'.
+static DBusMessage* TextCall(const char* member, const char* types, const int32_t* args)
 {
     DBusMessage* call = Call("/org/a11y/atspi/accessible/w1n7", "org.a11y.atspi.Text", member);
     muiDBusIter iter;
@@ -1699,7 +1699,14 @@ static bool TextIs(const char* member, const char* types, const int32_t* args, c
         int type = types[i] == 'i' ? mui_dbusTypeInt32 : mui_dbusTypeUint32;
         (void)s_test.dbus.appendBasic(&iter, type, &args[i]);
     }
-    DBusMessage* reply = Answer(call);
+    return call;
+}
+
+// A Text method's reply, its integers too, flattened.
+static bool TextIs(const char* member, const char* types, const int32_t* args, const char* expected)
+{
+    muiDBusIter iter;
+    DBusMessage* reply = Answer(TextCall(member, types, args));
     char got[512] = "";
     size_t length = 0;
     s_flattenInts = true;
@@ -1865,6 +1872,16 @@ static void TestTextChanges(muiAtspiAdapter* adapter, Built* built, muiAccessNod
               TextIs("GetOffsetAtPoint", "iiu", (const int32_t[]){537, 280, 0}, "2") &&
               TextIs("GetOffsetAtPoint", "iiu", (const int32_t[]){437, 230, 1}, "2"),
           "a character's extents and a range's, the character at a point");
+    // A coordinate type past the parent's is refused, as the Component
+    // methods refuse it, rather than read as the window's.
+    const char* invalid = "org.freedesktop.DBus.Error.InvalidArgs";
+    CHECK(
+        IsError(Answer(TextCall("GetCharacterExtents", "iu", (const int32_t[]){1, 3})), invalid) &&
+            IsError(Answer(TextCall("GetRangeExtents", "iiu", (const int32_t[]){0, 3, 3})),
+                    invalid) &&
+            IsError(Answer(TextCall("GetOffsetAtPoint", "iiu", (const int32_t[]){537, 280, 3})),
+                    invalid),
+        "an unknown coordinate type refused");
     input->marks = (muiAccessTextMarks){.anchor = 14, .focus = 14, .selected = true};
     CHECK(Send(adapter, (const muiAccessNode*[]){input}, 1, built->children, 0) && EventsAre(""),
           "the clusters gone");

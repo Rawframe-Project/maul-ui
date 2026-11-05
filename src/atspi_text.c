@@ -407,18 +407,21 @@ MUI_NODISCARD static bool AppendGeometry(muiAtspiApp* app, muiDBusIter* iter, DB
     {
         // The character to the next; the last offset a client can name
         // is past any text's end.
-        *ok = muiAtspiTaken(app, ReadInts(&app->dbus, call, "iu", args)) &&
+        *ok = muiAtspiTaken(app, ReadInts(&app->dbus, call, "iu", args) &&
+                                     (uint32_t)args[1] <= COORD_PARENT) &&
               AppendRangeExtents(app, iter, object, text, args[0],
                                  args[0] < INT32_MAX ? args[0] + 1 : args[0], (uint32_t)args[1]);
     }
     else if (strcmp(member, "GetRangeExtents") == 0)
     {
-        *ok = muiAtspiTaken(app, ReadInts(&app->dbus, call, "iiu", args)) &&
+        *ok = muiAtspiTaken(app, ReadInts(&app->dbus, call, "iiu", args) &&
+                                     (uint32_t)args[2] <= COORD_PARENT) &&
               AppendRangeExtents(app, iter, object, text, args[0], args[1], (uint32_t)args[2]);
     }
     else if (strcmp(member, "GetOffsetAtPoint") == 0)
     {
-        *ok = muiAtspiTaken(app, ReadInts(&app->dbus, call, "iiu", args));
+        *ok = muiAtspiTaken(app, ReadInts(&app->dbus, call, "iiu", args) &&
+                                     (uint32_t)args[2] <= COORD_PARENT);
         float x = 0.0f;
         float y = 0.0f;
         size_t at = 0;

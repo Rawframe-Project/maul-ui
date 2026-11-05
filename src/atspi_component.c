@@ -11,10 +11,7 @@
 #include <math.h>
 #include <string.h>
 
-// AT-SPI's coordinate types and the widget layer.
-#define COORD_SCREEN 0
-#define COORD_WINDOW 1
-#define COORD_PARENT 2
+// The widget layer.
 #define LAYER_WIDGET 3
 
 // A sum kept within int32's range: a client's point past it is held by
