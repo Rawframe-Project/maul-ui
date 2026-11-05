@@ -28,8 +28,8 @@ typedef struct muiAxisSizing
 // Resolves a dimension against an extent, negative when indefinite;
 // returns false for an automatic value or a scale against an indefinite
 // extent.
-static inline MUI_SIZE_OUTLINE bool muiResolveDimension(muiDimension dimension, float extent,
-                                                        float* valueOut)
+MUI_NODISCARD static inline MUI_SIZE_OUTLINE bool muiResolveDimension(muiDimension dimension,
+                                                                      float extent, float* valueOut)
 {
     if (dimension.kind != mui_dimensionValue)
     {
@@ -104,7 +104,8 @@ static inline float muiEdgeSum(const muiEdges* edges, bool horizontal)
 // Whether a node's own direction runs against its parent's, which lays
 // it out: its logical margins and insets then map to the other physical
 // sides, as CSS Logical maps a box's properties by its own direction.
-static inline MUI_SIZE_OUTLINE bool muiAgainstParent(const muiLayoutStyle* style, bool parentRtl)
+MUI_NODISCARD static inline MUI_SIZE_OUTLINE bool muiAgainstParent(const muiLayoutStyle* style,
+                                                                   bool parentRtl)
 {
     return style->textDirection != mui_inlineInherit &&
            (style->textDirection == mui_inlineRightToLeft) != parentRtl;
@@ -112,15 +113,15 @@ static inline MUI_SIZE_OUTLINE bool muiAgainstParent(const muiLayoutStyle* style
 
 // Whether the start or end margin along an axis is automatic, in the
 // parent's direction.
-static inline MUI_SIZE_OUTLINE bool muiIsMarginAutoStart(const muiLayoutStyle* style,
-                                                         bool horizontal, bool parentRtl)
+MUI_NODISCARD static inline MUI_SIZE_OUTLINE bool
+muiIsMarginAutoStart(const muiLayoutStyle* style, bool horizontal, bool parentRtl)
 {
     muiEdgeMask start = muiAgainstParent(style, parentRtl) ? mui_edgeEnd : mui_edgeStart;
     return (style->marginAuto & (horizontal ? start : mui_edgeTop)) != 0;
 }
 
-static inline MUI_SIZE_OUTLINE bool muiIsMarginAutoEnd(const muiLayoutStyle* style, bool horizontal,
-                                                       bool parentRtl)
+MUI_NODISCARD static inline MUI_SIZE_OUTLINE bool
+muiIsMarginAutoEnd(const muiLayoutStyle* style, bool horizontal, bool parentRtl)
 {
     muiEdgeMask end = muiAgainstParent(style, parentRtl) ? mui_edgeStart : mui_edgeEnd;
     return (style->marginAuto & (horizontal ? end : mui_edgeBottom)) != 0;
@@ -147,7 +148,8 @@ static inline MUI_SIZE_OUTLINE muiEdges muiMarginsOf(const muiLayoutStyle* style
 
 // Whether a node lays out right to left: its own direction, or the one
 // it inherits.
-static inline MUI_SIZE_OUTLINE bool muiIsRtl(const muiLayoutStyle* style, bool inherited)
+MUI_NODISCARD static inline MUI_SIZE_OUTLINE bool muiIsRtl(const muiLayoutStyle* style,
+                                                           bool inherited)
 {
     return style->textDirection == mui_inlineInherit
                ? inherited
@@ -205,7 +207,7 @@ static inline MUI_SIZE_OUTLINE float muiClampSize(float size, float minimum, flo
 // gives that axis the content's min-content size as an automatic
 // minimum. A scroll container, which scrolling on either axis makes it,
 // has none.
-static inline MUI_SIZE_OUTLINE bool muiRatioWidthMinimum(const muiLayoutStyle* style)
+MUI_NODISCARD static inline MUI_SIZE_OUTLINE bool muiRatioWidthMinimum(const muiLayoutStyle* style)
 {
     return style->sizing.aspectRatio > 0.0f && style->sizing.minWidth.kind == mui_dimensionAuto &&
            style->sizing.height.kind != mui_dimensionAuto && style->scrollAxes == mui_scrollNone;

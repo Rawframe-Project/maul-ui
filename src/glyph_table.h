@@ -59,7 +59,7 @@ typedef struct muiGlyphTable
 
 // Whether an entry's plot was evicted since it was placed: generations
 // holds each plot's, plot 1 at index 0.
-bool muiIsEntryStale(const muiAtlasEntry* entry, const uint64_t* generations);
+MUI_NODISCARD bool muiIsEntryStale(const muiAtlasEntry* entry, const uint64_t* generations);
 
 // The entry with key, live or stale, or the empty slot it would take;
 // the table has room for one more (muiReserveEntry).
@@ -68,8 +68,8 @@ muiAtlasEntry* muiFindEntry(const muiGlyphTable* table, const muiGlyphKey* key);
 // Makes room for one more entry, rebuilding the table without stale
 // entries, larger when the live ones need it; false when memory runs
 // out, leaving the table as it was.
-bool muiReserveEntry(const muiAllocator* allocator, muiGlyphTable* table,
-                     const uint64_t* generations);
+MUI_NODISCARD bool muiReserveEntry(const muiAllocator* allocator, muiGlyphTable* table,
+                                   const uint64_t* generations);
 
 void muiFreeGlyphTable(const muiAllocator* allocator, muiGlyphTable* table);
 

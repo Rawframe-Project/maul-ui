@@ -112,8 +112,8 @@ static float Distribute(const muiTree* tree, muiLayoutNode* nodes, uint32_t firs
 // Freezes every unfrozen child when the total violation is zero, the
 // ones raised to their minimum when it is positive, and the ones lowered
 // to their maximum when it is negative. Returns whether it froze one.
-static bool FreezeViolators(const muiTree* tree, muiLayoutNode* nodes, uint32_t first,
-                            uint32_t count, float violation)
+MUI_NODISCARD static bool FreezeViolators(const muiTree* tree, muiLayoutNode* nodes, uint32_t first,
+                                          uint32_t count, float violation)
 {
     int8_t sign = violation > 0.0f ? 1 : (violation < 0.0f ? -1 : 0);
     bool froze = false;

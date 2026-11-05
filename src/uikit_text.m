@@ -140,7 +140,8 @@ static uint32_t ByteAt(const muiAccessText* text, NSUInteger units)
 }
 
 // A position's byte; false for one not the adapter's.
-static bool ByteOf(const muiAccessText* text, UITextPosition* position, uint32_t* byteOut)
+MUI_NODISCARD static bool ByteOf(const muiAccessText* text, UITextPosition* position,
+                                 uint32_t* byteOut)
 {
     if (![position isKindOfClass:[MUITextPosition class]])
     {
@@ -150,8 +151,8 @@ static bool ByteOf(const muiAccessText* text, UITextPosition* position, uint32_t
     return true;
 }
 
-static bool BytesOf(const muiAccessText* text, UITextRange* range, uint32_t* startOut,
-                    uint32_t* endOut)
+MUI_NODISCARD static bool BytesOf(const muiAccessText* text, UITextRange* range, uint32_t* startOut,
+                                  uint32_t* endOut)
 {
     if (![range isKindOfClass:[MUITextRange class]])
     {
@@ -189,7 +190,7 @@ static muiAccessUnit UnitOf(UITextGranularity granularity)
 
 // Forward, right and down go after a position; backward, left and up
 // before it.
-static bool Onward(UITextDirection direction)
+MUI_NODISCARD static bool Onward(UITextDirection direction)
 {
     return direction == (UITextDirection)UITextStorageDirectionForward ||
            direction == (UITextDirection)UITextLayoutDirectionRight ||
@@ -198,7 +199,7 @@ static bool Onward(UITextDirection direction)
 
 // Whether a byte is a boundary of a unit: a unit runs to the next one's
 // start, so one either way.
-static bool IsBoundary(const muiAccessText* text, muiAccessUnit unit, uint32_t at)
+MUI_NODISCARD static bool IsBoundary(const muiAccessText* text, muiAccessUnit unit, uint32_t at)
 {
     return at == 0 || at == text->length ||
            muiAccessBoundaryAfter(text, unit, muiAccessBoundaryBefore(text, unit, at)) == at;
@@ -206,8 +207,8 @@ static bool IsBoundary(const muiAccessText* text, muiAccessUnit unit, uint32_t a
 
 // The character on a side of a byte, by its start; false for none, or
 // for one in no unit: before the first word, or any word when none are.
-static bool CharacterBeside(const muiAccessText* text, muiAccessUnit unit, uint32_t at, bool onward,
-                            uint32_t* startOut)
+MUI_NODISCARD static bool CharacterBeside(const muiAccessText* text, muiAccessUnit unit,
+                                          uint32_t at, bool onward, uint32_t* startOut)
 {
     if (onward ? at >= text->length : at == 0)
     {
@@ -299,14 +300,14 @@ static bool CharacterBeside(const muiAccessText* text, muiAccessUnit unit, uint3
 
 @end
 
-static bool Has(const muiAccessNode* node, muiAccessAction action)
+MUI_NODISCARD static bool Has(const muiAccessNode* node, muiAccessAction action)
 {
     return (node->actions & (1u << action)) != 0;
 }
 
 // Asks the host to put text in place of a byte range; whether it did.
-static bool Replace(const MUIAccessibilityElement* element, const muiAccessNode* node,
-                    uint32_t start, uint32_t end, NSString* value)
+MUI_NODISCARD static bool Replace(const MUIAccessibilityElement* element, const muiAccessNode* node,
+                                  uint32_t start, uint32_t end, NSString* value)
 {
     const char* bytes = [value UTF8String];
     if (bytes == nullptr || !Has(node, mui_actionReplaceText))

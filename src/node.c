@@ -23,7 +23,7 @@
 
 #define NODE_DEF_COOKIE 0x6D756E64u // "mund"
 
-static bool IsNull(muiNodeId nodeId)
+MUI_NODISCARD static bool IsNull(muiNodeId nodeId)
 {
     return nodeId.index1 == 0;
 }

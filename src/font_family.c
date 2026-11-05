@@ -68,7 +68,7 @@ static Range RangeOf(const muiFont* font, uint32_t tag, float value)
                : (Range){value, value};
 }
 
-static bool CanSlant(const muiFont* font, muiFontSlant slant)
+MUI_NODISCARD static bool CanSlant(const muiFont* font, muiFontSlant slant)
 {
     Range ital = RangeOf(font, Tag('i', 't', 'a', 'l'), -1.0f);
     Range slnt = RangeOf(font, Tag('s', 'l', 'n', 't'), 1.0f);

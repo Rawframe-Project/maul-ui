@@ -170,7 +170,7 @@ uint64_t muiAndroidNodeOf(const muiAndroidAdapter* adapter, jint virtualId);
 
 // The provider's native methods (android_jni.c), bound to its class;
 // a UTF-8 text as a Java string, nullptr for an empty one.
-bool muiAndroidRegister(JNIEnv* env, jclass providerClass);
+MUI_NODISCARD bool muiAndroidRegister(JNIEnv* env, jclass providerClass);
 jstring muiAndroidStringOf(JNIEnv* env, const muiAndroidAdapter* adapter, const char* text,
                            size_t length);
 
@@ -189,29 +189,31 @@ typedef struct muiAndroidText
 muiAndroidText muiAndroidTextOf(const muiAccessNode* node, int kind);
 
 // The provider's action at an index as the host's, asked of it.
-bool muiAndroidAct(const muiAndroidAdapter* adapter, const muiAccessNode* node, int action,
-                   float value);
+MUI_NODISCARD bool muiAndroidAct(const muiAndroidAdapter* adapter, const muiAccessNode* node,
+                                 int action, float value);
 
 // The text a node's info gives and its granularities move through: an
 // edit text's value, a text view's when its name is its value text;
 // whether it has one (android_text.c). The granularities it is moved
 // by, 0 for none.
-bool muiAndroidIsTraversable(const muiAndroidAdapter* adapter, const muiAccessNode* node);
+MUI_NODISCARD bool muiAndroidIsTraversable(const muiAndroidAdapter* adapter,
+                                           const muiAccessNode* node);
 jint muiAndroidGranularitiesOf(const muiAndroidAdapter* adapter, const muiAccessNode* node);
 
 // A move through a node's text by a granularity, from a cursor (a
 // UTF-16 offset, -1 for none) or the caret of text being edited, which
 // the host is asked to move: the segment passed and the selection
 // after, in UTF-16; false for no move.
-bool muiAndroidTraverse(const muiAndroidAdapter* adapter, const muiAccessNode* node,
-                        jint granularity, bool forward, bool extend, jint cursor, jint moved[4]);
+MUI_NODISCARD bool muiAndroidTraverse(const muiAndroidAdapter* adapter, const muiAccessNode* node,
+                                      jint granularity, bool forward, bool extend, jint cursor,
+                                      jint moved[4]);
 
 // A selection asked for in UTF-16 (start -1 for the caret where it is),
 // a whole new text in UTF-16; whether the host did it.
-bool muiAndroidSelect(const muiAndroidAdapter* adapter, const muiAccessNode* node, jint start,
-                      jint end);
-bool muiAndroidSetText(const muiAndroidAdapter* adapter, const muiAccessNode* node,
-                       const jchar* units, jsize count);
+MUI_NODISCARD bool muiAndroidSelect(const muiAndroidAdapter* adapter, const muiAccessNode* node,
+                                    jint start, jint end);
+MUI_NODISCARD bool muiAndroidSetText(const muiAndroidAdapter* adapter, const muiAccessNode* node,
+                                     const jchar* units, jsize count);
 
 // The events (android_events.c): an updated record, and what the update
 // changed once applied; muiAndroidTell sends one through the provider.

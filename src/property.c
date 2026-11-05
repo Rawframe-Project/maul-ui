@@ -395,36 +395,36 @@ static muiDimension DimensionAt(const void* at)
     return value;
 }
 
-static bool IsUnit(float value)
+MUI_NODISCARD static bool IsUnit(float value)
 {
     return value >= 0.0f && value <= 1.0f;
 }
 
-static bool IsLength(float value)
+MUI_NODISCARD static bool IsLength(float value)
 {
     return isfinite(value) && value >= 0.0f;
 }
 
-static bool IsColorValid(muiColor color)
+MUI_NODISCARD static bool IsColorValid(muiColor color)
 {
     return IsUnit(color.r) && IsUnit(color.g) && IsUnit(color.b) && IsUnit(color.a);
 }
 
-static bool IsDimensionValid(muiDimension value)
+MUI_NODISCARD static bool IsDimensionValid(muiDimension value)
 {
     return (uint32_t)value.kind <= mui_dimensionValue && isfinite(value.scale) &&
            isfinite(value.offset);
 }
 
 // Whether a gradient names more stops than MUI_MAX_GRADIENT_STOPS.
-static bool HasTooManyStops(const muiGradient* gradient)
+MUI_NODISCARD static bool HasTooManyStops(const muiGradient* gradient)
 {
     return gradient->kind != mui_gradientNone && gradient->stopCount > MUI_MAX_GRADIENT_STOPS;
 }
 
 // None with no stops, or a linear, radial or conic gradient with 2 or
 // more stops in order from 0 to 1.
-static bool IsGradientValid(const muiGradient* gradient)
+MUI_NODISCARD static bool IsGradientValid(const muiGradient* gradient)
 {
     if (gradient->kind == mui_gradientNone)
     {
@@ -448,14 +448,14 @@ static bool IsGradientValid(const muiGradient* gradient)
     return true;
 }
 
-static bool IsShadowValid(const muiShadow* shadow)
+MUI_NODISCARD static bool IsShadowValid(const muiShadow* shadow)
 {
     return IsColorValid(shadow->color) && isfinite(shadow->offsetX) && isfinite(shadow->offsetY) &&
            IsLength(shadow->blur) && isfinite(shadow->spread);
 }
 
 // The visual kinds, which a struct of their own holds.
-static bool IsCompoundValid(const void* at, const Row* row)
+MUI_NODISCARD static bool IsCompoundValid(const void* at, const Row* row)
 {
     switch (row->kind)
     {
@@ -491,7 +491,7 @@ static bool IsCompoundValid(const void* at, const Row* row)
 }
 
 // Whether the value at at is one the property of row allows.
-static bool IsValid(const void* at, const Row* row)
+MUI_NODISCARD static bool IsValid(const void* at, const Row* row)
 {
     switch (row->kind)
     {
@@ -548,7 +548,7 @@ static bool IsValid(const void* at, const Row* row)
 }
 
 // Whether count floats at a and b are equal by value, as 0 and -0 are.
-static bool AreFloatsEqual(const void* a, const void* b, uint32_t count)
+MUI_NODISCARD static bool AreFloatsEqual(const void* a, const void* b, uint32_t count)
 {
     for (uint32_t i = 0; i < count; i++)
     {
@@ -564,7 +564,7 @@ static bool AreFloatsEqual(const void* a, const void* b, uint32_t count)
     return true;
 }
 
-static bool AreGradientsEqual(const muiGradient* a, const muiGradient* b)
+MUI_NODISCARD static bool AreGradientsEqual(const muiGradient* a, const muiGradient* b)
 {
     if (a->kind != b->kind || a->stopCount != b->stopCount || a->angle != b->angle)
     {
@@ -580,7 +580,7 @@ static bool AreGradientsEqual(const muiGradient* a, const muiGradient* b)
     return true;
 }
 
-static bool AreEqual(const void* a, const void* b, const Row* row)
+MUI_NODISCARD static bool AreEqual(const void* a, const void* b, const Row* row)
 {
     switch (row->kind)
     {

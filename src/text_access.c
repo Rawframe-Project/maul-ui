@@ -26,8 +26,8 @@
 
 // A line's clusters, after those kept, in the node's own space: the
 // content box's place added; false when memory runs out.
-static bool ReadClusters(const muiLaidText* laid, uint32_t index, muiRect content,
-                         muiTextBlock* block, uint32_t* countInOut)
+MUI_NODISCARD static bool ReadClusters(const muiLaidText* laid, uint32_t index, muiRect content,
+                                       muiTextBlock* block, uint32_t* countInOut)
 {
     muiTextBoxes boxes;
     muiTextService* service = laid->paragraph.service;
@@ -89,8 +89,8 @@ static void OmitFar(const muiLaidText* laid, muiRect content, muiRect shown,
 // Where the lines of a node's text start and where the clusters of those
 // near what is shown are, as painting lays them out in its content box,
 // kept in the block; false when they cannot be laid out.
-static bool ReadLines(const muiTextHost* host, muiNodeId nodeId, muiRect shown, muiTextBlock* block,
-                      muiAccessTextMarks* marks)
+MUI_NODISCARD static bool ReadLines(const muiTextHost* host, muiNodeId nodeId, muiRect shown,
+                                    muiTextBlock* block, muiAccessTextMarks* marks)
 {
     muiRect content = muiNode_GetContentRect(host->context, nodeId);
     muiLaidText laid;
@@ -130,8 +130,9 @@ static bool ReadLines(const muiTextHost* host, muiNodeId nodeId, muiRect shown, 
 // count words, the count moved past them; false when memory runs out. A
 // paragraph's start and end are word breaks, so whole paragraphs are
 // segmented alone.
-static bool SegmentWords(const muiAllocator* allocator, const char* text, uint32_t from,
-                         uint32_t to, muiBuffer* buffer, uint32_t* countInOut)
+MUI_NODISCARD static bool SegmentWords(const muiAllocator* allocator, const char* text,
+                                       uint32_t from, uint32_t to, muiBuffer* buffer,
+                                       uint32_t* countInOut)
 {
     muniSegmentIterator iterator;
     if (to == from ||
@@ -180,8 +181,8 @@ static uint32_t WordFrom(const muiAccessWord* words, uint32_t count, uint32_t of
 
 // The words of the paragraphs edits changed in place of those they had,
 // segmented apart; those after moved by the change in length.
-static bool SpliceWords(const muiAllocator* allocator, const char* text, uint32_t length,
-                        muiWordCache* cache)
+MUI_NODISCARD static bool SpliceWords(const muiAllocator* allocator, const char* text,
+                                      uint32_t length, muiWordCache* cache)
 {
     uint32_t from = cache->stale.start;
     uint32_t to = cache->stale.end;
@@ -219,7 +220,8 @@ static bool SpliceWords(const muiAllocator* allocator, const char* text, uint32_
 // first time and after a change they did not follow, else only in the
 // paragraphs edits changed since. False when memory runs out, the words
 // then segmented whole the next time.
-static bool ReadWords(muiTextService* service, muiTextBlock* block, muiAccessTextMarks* marks)
+MUI_NODISCARD static bool ReadWords(muiTextService* service, muiTextBlock* block,
+                                    muiAccessTextMarks* marks)
 {
     muiWordCache* cache = &block->accessWords;
     const char* text = block->text.data;
@@ -248,8 +250,8 @@ static bool ReadWords(muiTextService* service, muiTextBlock* block, muiAccessTex
     return true;
 }
 
-static bool AccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, const muiRect* shown,
-                         muiAccessContent* contentOut)
+MUI_NODISCARD static bool AccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey,
+                                       const muiRect* shown, muiAccessContent* contentOut)
 {
     const muiTextHost* host = user;
     const muiTextBlockId blockId = {(uint32_t)hostKey, (uint32_t)(hostKey >> 32)};
@@ -288,8 +290,9 @@ static bool AccessTextOf(void* user, muiNodeId nodeId, uint64_t hostKey, const m
     return true;
 }
 
-static MUI_NOINLINE bool AccessTextOfWorker(void* user, muiNodeId nodeId, uint64_t hostKey,
-                                            const muiRect* shown, muiAccessContent* contentOut)
+MUI_NODISCARD static MUI_NOINLINE bool AccessTextOfWorker(void* user, muiNodeId nodeId,
+                                                          uint64_t hostKey, const muiRect* shown,
+                                                          muiAccessContent* contentOut)
 {
     const muiTextHost* host = user;
     bool held = false;
@@ -312,7 +315,7 @@ bool muiReadAccessText(void* user, muiNodeId nodeId, uint64_t hostKey, const mui
 }
 
 // Whether an offset of the text as shown lies at a character's start.
-static bool IsShownStart(const muiTextBlock* shown, size_t offset)
+MUI_NODISCARD static bool IsShownStart(const muiTextBlock* shown, size_t offset)
 {
     const unsigned char* text = shown->text.data;
     return offset == shown->length || (offset < shown->length && (text[offset] & 0xC0u) != 0x80u);

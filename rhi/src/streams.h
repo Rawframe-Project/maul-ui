@@ -57,7 +57,8 @@ void muiRhiDiffStream(muiRhiStream* stream);
 uint64_t muiRhiStreamUploadBytes(const muiRhiStream* stream);
 
 // Writes the runs in a pass that declares the buffer a copy destination.
-bool muiRhiWriteStream(mrhiDevice* device, mrhiPassId pass, const muiRhiStream* stream);
+MUI_NODISCARD bool muiRhiWriteStream(mrhiDevice* device, mrhiPassId pass,
+                                     const muiRhiStream* stream);
 
 // After the runs are written: the buffer holds this frame's records.
 void muiRhiKeepStream(muiRhiStream* stream);

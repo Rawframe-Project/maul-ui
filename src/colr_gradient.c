@@ -157,7 +157,7 @@ typedef struct Geometry
     double a;
 } Geometry;
 
-static bool LinearOf(const FT_PaintLinearGradient* g, Geometry* out)
+MUI_NODISCARD static bool LinearOf(const FT_PaintLinearGradient* g, Geometry* out)
 {
     double x0 = Fixed(g->p0.x);
     double y0 = Fixed(g->p0.y);
@@ -177,7 +177,7 @@ static bool LinearOf(const FT_PaintLinearGradient* g, Geometry* out)
     return out->a > 0.0;
 }
 
-static bool RadialOf(const FT_PaintRadialGradient* g, Geometry* out)
+MUI_NODISCARD static bool RadialOf(const FT_PaintRadialGradient* g, Geometry* out)
 {
     double x0 = Fixed(g->c0.x);
     double y0 = Fixed(g->c0.y);
@@ -191,7 +191,7 @@ static bool RadialOf(const FT_PaintRadialGradient* g, Geometry* out)
     return dx != 0.0 || dy != 0.0 || dr != 0.0;
 }
 
-static bool SweepOf(const FT_PaintSweepGradient* g, Geometry* out)
+MUI_NODISCARD static bool SweepOf(const FT_PaintSweepGradient* g, Geometry* out)
 {
     double start = (Fixed(g->start_angle) + 1.0) * 180.0;
     double span = (Fixed(g->end_angle) + 1.0) * 180.0 - start;
@@ -208,7 +208,7 @@ static bool SweepOf(const FT_PaintSweepGradient* g, Geometry* out)
 
 // The largest t whose circle, its radius not below 0, passes through a
 // point.
-static bool RadialAt(const Geometry* g, double x, double y, double* tOut)
+MUI_NODISCARD static bool RadialAt(const Geometry* g, double x, double y, double* tOut)
 {
     double px = x - g->x;
     double py = y - g->y;
@@ -233,7 +233,7 @@ static bool RadialAt(const Geometry* g, double x, double y, double* tOut)
     return g->r + *tOut * g->dr >= 0.0;
 }
 
-static bool At(const Geometry* g, double x, double y, double* tOut)
+MUI_NODISCARD static bool At(const Geometry* g, double x, double y, double* tOut)
 {
     switch (g->format)
     {
@@ -253,7 +253,7 @@ static bool At(const Geometry* g, double x, double y, double* tOut)
     }
 }
 
-static bool GeometryOf(const FT_COLR_Paint* paint, Geometry* out)
+MUI_NODISCARD static bool GeometryOf(const FT_COLR_Paint* paint, Geometry* out)
 {
     switch (paint->format)
     {
@@ -293,7 +293,7 @@ typedef struct Inverse
     double offset;
 } Inverse;
 
-static bool InverseOf(const muiPaintSource* source, muiPaintMatrix m, Inverse* out)
+MUI_NODISCARD static bool InverseOf(const muiPaintSource* source, muiPaintMatrix m, Inverse* out)
 {
     double det = m.xx * m.yy - m.xy * m.yx;
     if (!(fabs(det) > 0.0) || !isfinite(det))

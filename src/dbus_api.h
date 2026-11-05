@@ -112,6 +112,6 @@ typedef struct muiDBusApi
 
 // Opens the library and finds its functions: false where there is no
 // libdbus-1.
-bool muiLoadDBus(muiDBusApi* api);
+MUI_NODISCARD bool muiLoadDBus(muiDBusApi* api);
 
 #endif // MAUL_UI_SRC_DBUS_API_H

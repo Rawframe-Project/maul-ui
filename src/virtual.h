@@ -21,7 +21,7 @@ muiVirtualEntry* muiVirtualFind(const muiContext* context, muiNodeId nodeId, mui
 void muiVirtualPurge(muiContext* context);
 
 // Whether an entry holds item storage: an estimated list with items.
-bool muiVirtualStores(const muiVirtualEntry* entry);
+MUI_NODISCARD bool muiVirtualStores(const muiVirtualEntry* entry);
 
 // The first start from which count items fit in the item storage, apart
 // from every entry's but self's; the capacity when none does.

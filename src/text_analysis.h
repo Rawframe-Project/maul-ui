@@ -30,8 +30,8 @@ void muiFreeTextAnalysis(const muiAllocator* allocator, muiTextAnalysis* analysi
 
 // Analyzes a text of at most MUI_MAX_TEXT_BYTES, copied first; false when
 // memory runs out, with nothing held.
-bool muiAnalyzeText(const muiAllocator* allocator, const char* text, uint32_t length,
-                    muiTextAnalysis* analysis);
+MUI_NODISCARD bool muiAnalyzeText(const muiAllocator* allocator, const char* text, uint32_t length,
+                                  muiTextAnalysis* analysis);
 
 // Analyzes a block's text with its bytes from start up to end replaced by
 // a text of length bytes, which may be part of the old, as
@@ -41,8 +41,9 @@ bool muiAnalyzeText(const muiAllocator* allocator, const char* text, uint32_t le
 // it was, and the rest of the block's tables move by the change. Writes
 // where the paragraphs found again lie in the new text; false when memory
 // runs out, with nothing held.
-bool muiAnalyzeReplace(const muiAllocator* allocator, const muiTextBlock* block, uint32_t start,
-                       uint32_t end, const char* text, uint32_t length, muiTextAnalysis* analysis,
-                       uint32_t* fromOut, uint32_t* toOut);
+MUI_NODISCARD bool muiAnalyzeReplace(const muiAllocator* allocator, const muiTextBlock* block,
+                                     uint32_t start, uint32_t end, const char* text,
+                                     uint32_t length, muiTextAnalysis* analysis, uint32_t* fromOut,
+                                     uint32_t* toOut);
 
 #endif // MAUL_UI_SRC_TEXT_ANALYSIS_H

@@ -30,8 +30,8 @@ enum
 
 // The bidi levels of a paragraph's bytes from start up to end, each of
 // Maul Unicode's paragraphs within them with the base direction.
-static bool ResolveLevels(muiTextService* service, muiTextBlock* block, uint32_t start,
-                          uint32_t end, bool rtl)
+MUI_NODISCARD static bool ResolveLevels(muiTextService* service, muiTextBlock* block,
+                                        uint32_t start, uint32_t end, bool rtl)
 {
     if (!muiReserve(&service->allocator, &service->workspace, end - start + 1u))
     {
@@ -118,7 +118,7 @@ static uint32_t SplitItems(const muiTextBlock* block, const muiFontChain* chain,
 
 // Whether a font has a glyph for every character of a cluster that
 // draws: default ignorables and controls are passed over.
-static bool Covers(const muiFont* font, const uint32_t* points, uint32_t count)
+MUI_NODISCARD static bool Covers(const muiFont* font, const uint32_t* points, uint32_t count)
 {
     for (uint32_t i = 0; i < count; i++)
     {
@@ -132,7 +132,7 @@ static bool Covers(const muiFont* font, const uint32_t* points, uint32_t count)
 }
 
 // Whether a run style's order holds a face.
-static bool Holds(const uint8_t* order, uint32_t count, int64_t face)
+MUI_NODISCARD static bool Holds(const uint8_t* order, uint32_t count, int64_t face)
 {
     for (uint32_t i = 0; i < count; i++)
     {
@@ -187,8 +187,8 @@ static uint32_t ChooseFace(const muiFontChain* chain, const uint8_t* order, uint
 // Writes the place in the chain of the font of each byte of a paragraph
 // from first up to last, the font before its first cluster none; faces
 // are kept unless the chain has one font and the block one style.
-static bool ChooseFaces(const muiTextBlock* block, const muiRunChains* chains, uint32_t first,
-                        uint32_t last)
+MUI_NODISCARD static bool ChooseFaces(const muiTextBlock* block, const muiRunChains* chains,
+                                      uint32_t first, uint32_t last)
 {
     const muiFontChain* chain = &chains->chain;
     if (chain->count == 1 && block->runStyleCount == 0)
@@ -272,9 +272,10 @@ static uint32_t Decode(const char* text, uint32_t at, uint32_t end, uint32_t mos
 // with clusters as offsets in the whole text, which starts offset bytes
 // before the piece; an item starting at begins or ending at ends starts
 // or ends the text for HarfBuzz.
-static bool ShapeWithin(muiTextService* service, hb_buffer_t* buffer, hb_font_t* font,
-                        const muiTextBlock* block, uint32_t offset, uint32_t length,
-                        uint32_t begins, uint32_t ends, const muiTextItem* range, Output* out)
+MUI_NODISCARD static bool ShapeWithin(muiTextService* service, hb_buffer_t* buffer, hb_font_t* font,
+                                      const muiTextBlock* block, uint32_t offset, uint32_t length,
+                                      uint32_t begins, uint32_t ends, const muiTextItem* range,
+                                      Output* out)
 {
     hb_buffer_clear_contents(buffer);
     hb_buffer_set_direction(buffer, (range->level & 1) != 0 ? HB_DIRECTION_RTL : HB_DIRECTION_LTR);
@@ -347,9 +348,9 @@ static bool ShapeWithin(muiTextService* service, hb_buffer_t* buffer, hb_font_t*
 }
 
 // ShapeWithin for a line of the whole text.
-static bool ShapeRange(muiTextService* service, hb_buffer_t* buffer, hb_font_t* font,
-                       const muiTextBlock* block, uint32_t offset, uint32_t length,
-                       const muiTextItem* range, Output* out)
+MUI_NODISCARD static bool ShapeRange(muiTextService* service, hb_buffer_t* buffer, hb_font_t* font,
+                                     const muiTextBlock* block, uint32_t offset, uint32_t length,
+                                     const muiTextItem* range, Output* out)
 {
     return ShapeWithin(service, buffer, font, block, offset, length, 0, block->length, range, out);
 }
@@ -420,9 +421,9 @@ static void FreeRegion(const muiAllocator* allocator, Region* region)
 // Shapes a paragraph from first up to last on its own: its levels,
 // fonts, items and glyphs, HarfBuzz taking it as the whole text, and its
 // sums, appended to a region.
-static bool ShapeParagraph(muiTextService* service, muiTextBlock* block, const muiRunChains* chains,
-                           bool rtl, uint32_t first, uint32_t last, hb_buffer_t* buffer,
-                           Region* region)
+MUI_NODISCARD static bool ShapeParagraph(muiTextService* service, muiTextBlock* block,
+                                         const muiRunChains* chains, bool rtl, uint32_t first,
+                                         uint32_t last, hb_buffer_t* buffer, Region* region)
 {
     const muiFontChain* chain = &chains->chain;
     if (!ResolveLevels(service, block, first, last, rtl) ||
@@ -461,8 +462,9 @@ static bool ShapeParagraph(muiTextService* service, muiTextBlock* block, const m
 
 // Shapes the paragraphs from start up to end into a region; the block's
 // per-byte tables hold room for its whole text.
-static bool ShapeRegion(muiTextService* service, muiTextBlock* block, const muiRunChains* chains,
-                        bool rtl, uint32_t start, uint32_t end, Region* region)
+MUI_NODISCARD static bool ShapeRegion(muiTextService* service, muiTextBlock* block,
+                                      const muiRunChains* chains, bool rtl, uint32_t start,
+                                      uint32_t end, Region* region)
 {
     hb_buffer_t* buffer = MakeBuffer(service);
     bool shaped = buffer != nullptr;
@@ -487,8 +489,8 @@ static bool ShapeRegion(muiTextService* service, muiTextBlock* block, const muiR
 }
 
 // Room in the block's per-byte tables for its text, keeping kept entries.
-static bool ReserveTables(muiTextService* service, muiTextBlock* block, const muiFontChain* chain,
-                          size_t kept)
+MUI_NODISCARD static bool ReserveTables(muiTextService* service, muiTextBlock* block,
+                                        const muiFontChain* chain, size_t kept)
 {
     const muiAllocator* allocator = &service->allocator;
     size_t entries = (size_t)block->length + 1u;
@@ -503,8 +505,8 @@ static bool ReserveTables(muiTextService* service, muiTextBlock* block, const mu
 }
 
 // Shapes the block's whole text.
-static bool Shape(muiTextService* service, muiTextBlock* block, const muiRunChains* chains,
-                  bool rtl)
+MUI_NODISCARD static bool Shape(muiTextService* service, muiTextBlock* block,
+                                const muiRunChains* chains, bool rtl)
 {
     block->shapings++;
     block->glyphCount = 0;
@@ -540,8 +542,8 @@ static void MoveEntries(muiBuffer* buffer, size_t size, uint32_t from, uint32_t 
 // The block's items and glyphs with the region's in place of those from
 // start up to oldEnd of the text it was shaped for, those after moved by
 // delta bytes.
-static bool SpliceItems(muiTextService* service, muiTextBlock* block, uint32_t start,
-                        uint32_t oldEnd, int64_t delta, const Region* region)
+MUI_NODISCARD static bool SpliceItems(muiTextService* service, muiTextBlock* block, uint32_t start,
+                                      uint32_t oldEnd, int64_t delta, const Region* region)
 {
     muiTextItem* items = block->items.data;
     uint32_t before = 0;
@@ -605,8 +607,8 @@ static bool SpliceItems(muiTextService* service, muiTextBlock* block, uint32_t s
 // entries after them move by the change in length, and the items and
 // glyphs of the paragraphs between are replaced, as shaping the whole
 // text would make them, paragraph by paragraph.
-static bool Reshape(muiTextService* service, muiTextBlock* block, const muiRunChains* chains,
-                    bool rtl)
+MUI_NODISCARD static bool Reshape(muiTextService* service, muiTextBlock* block,
+                                  const muiRunChains* chains, bool rtl)
 {
     uint32_t start = block->stale.start;
     uint32_t end = block->stale.end;

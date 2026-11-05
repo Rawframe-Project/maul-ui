@@ -9,6 +9,8 @@
 #ifndef MAUL_UI_SRC_SKYLINE_H
 #define MAUL_UI_SRC_SKYLINE_H
 
+#include "maul-ui/base.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -35,7 +37,7 @@ void muiSkylineReset(muiSkyline* skyline);
 
 // Places a width by height rectangle and gives its top left; false,
 // placing nothing, when it does not fit.
-bool muiSkylineInsert(muiSkyline* skyline, uint32_t width, uint32_t height, uint32_t* xOut,
-                      uint32_t* yOut);
+MUI_NODISCARD bool muiSkylineInsert(muiSkyline* skyline, uint32_t width, uint32_t height,
+                                    uint32_t* xOut, uint32_t* yOut);
 
 #endif // MAUL_UI_SRC_SKYLINE_H

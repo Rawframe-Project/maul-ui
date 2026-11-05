@@ -53,7 +53,7 @@ static const Pattern s_patterns[] = {
     {PATTERN_TEXT2, &s_text2, offsetof(muiUiaNode, text)},
 };
 
-static bool Can(const muiAccessNode* node, muiAccessAction action)
+MUI_NODISCARD static bool Can(const muiAccessNode* node, muiAccessAction action)
 {
     return (node->actions & (1u << action)) != 0;
 }
@@ -61,7 +61,7 @@ static bool Can(const muiAccessNode* node, muiAccessAction action)
 // Whether a node has a pattern: what it needs is in its flags, actions
 // or texts. A node that toggles or is selected by a click does not also
 // invoke.
-static bool Has(const muiAccessNode* node, int pattern)
+MUI_NODISCARD static bool Has(const muiAccessNode* node, int pattern)
 {
     uint32_t flags = node->flags;
     switch (pattern)
@@ -376,7 +376,7 @@ static HRESULT STDMETHODCALLTYPE IsSelected(muiUiaSelectionItem* self, BOOL* out
 }
 
 // Whether a role holds items one selects.
-static bool IsSelectionContainer(muiRole role)
+MUI_NODISCARD static bool IsSelectionContainer(muiRole role)
 {
     switch (role)
     {

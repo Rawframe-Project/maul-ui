@@ -15,11 +15,12 @@
 
 // As muiBreakParagraph: a paragraph's lines in the service's scratch,
 // placed down it; false when memory runs out.
-bool muiLayLines(muiParagraph* paragraph, muiBreakMode mode, float width, uint32_t* countOut);
+MUI_NODISCARD bool muiLayLines(muiParagraph* paragraph, muiBreakMode mode, float width,
+                               uint32_t* countOut);
 
 // The widest of a paragraph's lines' glyphs and the lines' height, the
 // lines broken as muiLayLines breaks them; false when memory runs out.
-bool muiMeasureLines(muiParagraph* paragraph, muiBreakMode mode, float width, float* widestOut,
-                     float* heightOut);
+MUI_NODISCARD bool muiMeasureLines(muiParagraph* paragraph, muiBreakMode mode, float width,
+                                   float* widestOut, float* heightOut);
 
 #endif // MAUL_UI_SRC_TEXT_LINES_H

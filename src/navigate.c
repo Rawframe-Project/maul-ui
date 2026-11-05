@@ -19,7 +19,7 @@
 
 #include <math.h>
 
-static bool IsNull(muiNodeId nodeId)
+MUI_NODISCARD static bool IsNull(muiNodeId nodeId)
 {
     return nodeId.index1 == 0;
 }
@@ -44,7 +44,7 @@ static Box BoxOf(const muiContext* context, uint32_t slot)
 }
 
 // Whether dest lies in the direction from source.
-static bool IsCandidate(const Box* source, const Box* dest, muiDirection direction)
+MUI_NODISCARD static bool IsCandidate(const Box* source, const Box* dest, muiDirection direction)
 {
     switch (direction)
     {
@@ -63,13 +63,13 @@ static bool IsCandidate(const Box* source, const Box* dest, muiDirection directi
     }
 }
 
-static bool IsHorizontal(muiDirection direction)
+MUI_NODISCARD static bool IsHorizontal(muiDirection direction)
 {
     return direction == mui_directionLeft || direction == mui_directionRight;
 }
 
 // Whether two boxes overlap across the direction.
-static bool BeamsOverlap(muiDirection direction, const Box* a, const Box* b)
+MUI_NODISCARD static bool BeamsOverlap(muiDirection direction, const Box* a, const Box* b)
 {
     return IsHorizontal(direction) ? b->bottom > a->top && b->top < a->bottom
                                    : b->right > a->left && b->left < a->right;
@@ -77,7 +77,8 @@ static bool BeamsOverlap(muiDirection direction, const Box* a, const Box* b)
 
 // Whether dest lies wholly past source going up or down: only those
 // directions ask.
-static bool IsToDirectionOf(muiDirection direction, const Box* source, const Box* dest)
+MUI_NODISCARD static bool IsToDirectionOf(muiDirection direction, const Box* source,
+                                          const Box* dest)
 {
     return direction == mui_directionUp ? source->top >= dest->bottom : source->bottom <= dest->top;
 }
@@ -129,7 +130,8 @@ static double WeightedDistance(muiDirection direction, const Box* source, const 
 }
 
 // Whether a, in source's beam, beats b, outside it.
-static bool BeamBeats(muiDirection direction, const Box* source, const Box* a, const Box* b)
+MUI_NODISCARD static bool BeamBeats(muiDirection direction, const Box* source, const Box* a,
+                                    const Box* b)
 {
     if (BeamsOverlap(direction, source, b) || !BeamsOverlap(direction, source, a))
     {
@@ -143,7 +145,8 @@ static bool BeamBeats(muiDirection direction, const Box* source, const Box* a, c
 }
 
 // Whether a beats the best so far, b (a candidate, or none).
-static bool IsBetter(muiDirection direction, const Box* source, const Box* a, const Box* b)
+MUI_NODISCARD static bool IsBetter(muiDirection direction, const Box* source, const Box* a,
+                                   const Box* b)
 {
     if (!IsCandidate(source, a, direction))
     {

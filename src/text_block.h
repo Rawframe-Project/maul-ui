@@ -28,10 +28,11 @@ typedef struct muiBuffer
 // Whether buffer holds at least bytes; false, keeping it, when memory
 // runs out. Its first kept bytes stay as they were; the rest are
 // undefined.
-bool muiReserveKeeping(const muiAllocator* allocator, muiBuffer* buffer, size_t bytes, size_t kept);
+MUI_NODISCARD bool muiReserveKeeping(const muiAllocator* allocator, muiBuffer* buffer, size_t bytes,
+                                     size_t kept);
 
 // As muiReserveKeeping, keeping nothing.
-bool muiReserve(const muiAllocator* allocator, muiBuffer* buffer, size_t bytes);
+MUI_NODISCARD bool muiReserve(const muiAllocator* allocator, muiBuffer* buffer, size_t bytes);
 
 void muiFreeBuffer(const muiAllocator* allocator, muiBuffer* buffer);
 

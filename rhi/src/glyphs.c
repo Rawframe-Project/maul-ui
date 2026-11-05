@@ -75,7 +75,8 @@ void muiRhiNextGlyphFrame(muiRhiGlyphs* glyphs)
 
 // An atlas page's number here, numbering it and the atlas's pages before
 // it first; false when the pages here are all used.
-static bool Number(muiRhiGlyphs* glyphs, uint32_t atlas, uint32_t page, uint32_t* numberOut)
+MUI_NODISCARD static bool Number(muiRhiGlyphs* glyphs, uint32_t atlas, uint32_t page,
+                                 uint32_t* numberOut)
 {
     while (glyphs->numbered[atlas] <= page)
     {
@@ -94,8 +95,8 @@ static bool Number(muiRhiGlyphs* glyphs, uint32_t atlas, uint32_t page, uint32_t
 
 // A glyph an atlas gave, its page numbered here, with the page's size;
 // one of no width has no image and no page.
-static bool Found(muiRhiGlyphs* glyphs, uint32_t atlas, muiResult got, const muiAtlasGlyph* glyph,
-                  muiRhiGlyph* glyphOut)
+MUI_NODISCARD static bool Found(muiRhiGlyphs* glyphs, uint32_t atlas, muiResult got,
+                                const muiAtlasGlyph* glyph, muiRhiGlyph* glyphOut)
 {
     muiAtlasPage page = {0};
     uint32_t number = 0;
@@ -191,7 +192,7 @@ static muiResult MakePages(muiRhiGlyphs* glyphs)
 }
 
 // Room for a number of changed rectangles, those pending kept.
-static bool Reserve(muiRhiGlyphs* glyphs, uint32_t needed)
+MUI_NODISCARD static bool Reserve(muiRhiGlyphs* glyphs, uint32_t needed)
 {
     if (needed <= glyphs->updateCapacity)
     {

@@ -115,8 +115,8 @@ static double TimedProgress(const muiAnimation* animation, double elapsed)
 }
 
 // A record's channels and velocity at nowNs; whether it has arrived.
-static bool Sample(const muiAnimation* animation, uint64_t nowNs, float value[MUI_MAX_CHANNELS],
-                   double velocity[MUI_MAX_CHANNELS])
+MUI_NODISCARD static bool Sample(const muiAnimation* animation, uint64_t nowNs,
+                                 float value[MUI_MAX_CHANNELS], double velocity[MUI_MAX_CHANNELS])
 {
     for (uint32_t i = 0; i < MUI_MAX_CHANNELS; i++)
     {
@@ -165,8 +165,8 @@ static double Shortening(const muiAnimation* old, uint64_t nowNs)
     return fmin(fabs(share), 1.0);
 }
 
-static bool IsSame(const float a[MUI_MAX_CHANNELS], const float b[MUI_MAX_CHANNELS],
-                   uint32_t channels)
+MUI_NODISCARD static bool IsSame(const float a[MUI_MAX_CHANNELS], const float b[MUI_MAX_CHANNELS],
+                                 uint32_t channels)
 {
     for (uint32_t i = 0; i < channels; i++)
     {

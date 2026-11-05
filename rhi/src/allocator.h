@@ -13,7 +13,7 @@
 #include <stddef.h>
 
 // Whether an allocator is valid: both functions, or neither.
-bool muiRhiIsAllocatorValid(const muiAllocator* allocator);
+MUI_NODISCARD bool muiRhiIsAllocatorValid(const muiAllocator* allocator);
 
 // Memory of a size and alignment, or NULL.
 void* muiRhiAllocate(const muiAllocator* allocator, size_t size, size_t alignment);

@@ -115,7 +115,7 @@ bool muiAtspiPointIn(const muiAtspiObject* object, uint32_t coordinates, int32_t
            (int64_t)y < (int64_t)extents[1] + extents[3];
 }
 
-static bool Holds(const int32_t extents[4], int32_t x, int32_t y)
+MUI_NODISCARD static bool Holds(const int32_t extents[4], int32_t x, int32_t y)
 {
     return x >= extents[0] && (int64_t)x < (int64_t)extents[0] + extents[2] && y >= extents[1] &&
            (int64_t)y < (int64_t)extents[1] + extents[3];
@@ -153,8 +153,8 @@ static muiAtspiObject NodeAt(const muiAtspiObject* object, int32_t x, int32_t y)
 }
 
 // Reads the arguments (i x, i y, u coordinates).
-static bool ReadPoint(const muiDBusApi* dbus, DBusMessage* call, int32_t* x, int32_t* y,
-                      uint32_t* coordinates)
+MUI_NODISCARD static bool ReadPoint(const muiDBusApi* dbus, DBusMessage* call, int32_t* x,
+                                    int32_t* y, uint32_t* coordinates)
 {
     muiDBusIter iter;
     bool ok = dbus->iterInit(call, &iter) && dbus->argType(&iter) == mui_dbusTypeInt32;
@@ -175,7 +175,8 @@ static bool ReadPoint(const muiDBusApi* dbus, DBusMessage* call, int32_t* x, int
     return ok && *coordinates <= COORD_PARENT;
 }
 
-static bool ReadCoordinates(const muiDBusApi* dbus, DBusMessage* call, uint32_t* coordinates)
+MUI_NODISCARD static bool ReadCoordinates(const muiDBusApi* dbus, DBusMessage* call,
+                                          uint32_t* coordinates)
 {
     muiDBusIter iter;
     if (!dbus->iterInit(call, &iter) || dbus->argType(&iter) != mui_dbusTypeUint32)
@@ -187,7 +188,8 @@ static bool ReadCoordinates(const muiDBusApi* dbus, DBusMessage* call, uint32_t*
 }
 
 // Writes (ii...) of some of the extents.
-static bool AppendInts(muiAtspiApp* app, muiDBusIter* iter, const int32_t* values, int count)
+MUI_NODISCARD static bool AppendInts(muiAtspiApp* app, muiDBusIter* iter, const int32_t* values,
+                                     int count)
 {
     muiDBusIter tuple = {0};
     bool ok = app->dbus.openContainer(iter, mui_dbusTypeStruct, nullptr, &tuple);
@@ -198,7 +200,7 @@ static bool AppendInts(muiAtspiApp* app, muiDBusIter* iter, const int32_t* value
     return muiAtspiClose(app, iter, &tuple, ok);
 }
 
-static bool Act(const muiAtspiObject* object, muiAccessAction action)
+MUI_NODISCARD static bool Act(const muiAtspiObject* object, muiAccessAction action)
 {
     const muiAccessRequest request = {.action = action, .target = object->node->id};
     return muiActMarked(&object->adapter->app->busy, object->adapter->action, object->adapter->user,
@@ -206,8 +208,8 @@ static bool Act(const muiAtspiObject* object, muiAccessAction action)
 }
 
 // Writes the answer of a method that reads where the node is.
-static bool AppendPlace(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
-                        const muiAtspiObject* object, const char* member, bool* ok)
+MUI_NODISCARD static bool AppendPlace(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
+                                      const muiAtspiObject* object, const char* member, bool* ok)
 {
     uint32_t coordinates = COORD_WINDOW;
     int32_t extents[4];
@@ -243,8 +245,8 @@ static bool AppendPlace(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
 
 // Writes the answer of a method that reads how the node is drawn, or asks
 // the host to act.
-static bool AppendOther(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object,
-                        const char* member, bool* ok)
+MUI_NODISCARD static bool AppendOther(muiAtspiApp* app, muiDBusIter* iter,
+                                      const muiAtspiObject* object, const char* member, bool* ok)
 {
     uint32_t layer = LAYER_WIDGET;
     int16_t order = -1;

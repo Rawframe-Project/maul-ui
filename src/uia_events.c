@@ -100,7 +100,7 @@ static HRESULT ValueOf(const muiAccessNode* node, int property, VARIANT* out)
     }
 }
 
-static bool Same(const VARIANT* a, const VARIANT* b)
+MUI_NODISCARD static bool Same(const VARIANT* a, const VARIANT* b)
 {
     if (a->vt != b->vt)
     {
@@ -149,7 +149,7 @@ static void RaiseChange(muiUiaAdapter* adapter, const muiAccessNode* now, int pr
 }
 
 // Whether a text's selection or caret moved.
-static bool SelectionMoved(const muiAccessNode* old, const muiAccessNode* now)
+MUI_NODISCARD static bool SelectionMoved(const muiAccessNode* old, const muiAccessNode* now)
 {
     return old->marks.selected != now->marks.selected ||
            (now->marks.selected &&

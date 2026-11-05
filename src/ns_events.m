@@ -12,7 +12,7 @@
 #include "access_record.h"
 #include "ns.h"
 
-static bool ValueChanged(const muiAccessNode* old, const muiAccessNode* node)
+MUI_NODISCARD static bool ValueChanged(const muiAccessNode* old, const muiAccessNode* node)
 {
     const uint32_t state = mui_accessChecked | mui_accessMixed;
     bool numeric = (node->flags & mui_accessNumeric) != 0;
@@ -40,7 +40,7 @@ static void Announce(const muiNsAdapter* adapter, const muiAccessNode* node)
 }
 
 // Whether an edited text's selection or caret moved.
-static bool SelectionMoved(const muiAccessNode* old, const muiAccessNode* node)
+MUI_NODISCARD static bool SelectionMoved(const muiAccessNode* old, const muiAccessNode* node)
 {
     return old->marks.selected != node->marks.selected ||
            (node->marks.selected &&

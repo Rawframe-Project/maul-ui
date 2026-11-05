@@ -22,7 +22,7 @@
 // Marks an owner busy for one of its functions that change it: whether it
 // was idle. A busy one counts one misuse, and the call is refused with
 // mui_errorBusy.
-static inline bool muiEnterMarked(bool* busy, uint64_t* misuse)
+MUI_NODISCARD static inline bool muiEnterMarked(bool* busy, uint64_t* misuse)
 {
     if (*busy)
     {
@@ -65,7 +65,7 @@ static inline void muiReleaseMarked(const bool* busy, const muiAllocator* alloca
 
 // Whether a value a client asks a range for is one it holds: finite, from
 // its minimum to its maximum. NaN fails both comparisons.
-static inline bool muiAccessValueFits(const muiAccessNode* node, double value)
+MUI_NODISCARD static inline bool muiAccessValueFits(const muiAccessNode* node, double value)
 {
     return value >= (double)node->minimum && value <= (double)node->maximum;
 }
@@ -76,7 +76,7 @@ static inline bool muiAccessValueFits(const muiAccessNode* node, double value)
 // the host one that would be refused. Not inline, so none of its
 // caller's arithmetic moves across the switch; unused where an adapter
 // takes no action.
-[[maybe_unused]] static MUI_NOINLINE bool
+MUI_NODISCARD [[maybe_unused]] static MUI_NOINLINE bool
 muiActMarked(const bool* busy, bool (*action)(void*, const muiAccessRequest*), void* user,
              const muiAccessRequest* request)
 {

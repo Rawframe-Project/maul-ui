@@ -190,7 +190,7 @@ typedef struct muiLayoutNode
 static_assert(sizeof(muiLayoutNode) % 64 == 0, "a layout node is whole cache lines");
 
 // Whether a dimension scales its parent's extent.
-static inline bool muiIsScaled(muiDimension dimension)
+MUI_NODISCARD static inline bool muiIsScaled(muiDimension dimension)
 {
     return dimension.kind == mui_dimensionValue && dimension.scale != 0.0f;
 }
@@ -201,7 +201,7 @@ static inline bool muiIsScaled(muiDimension dimension)
 // those sizes indefinite where an exact or limited one may give them, so
 // a content size then answers content queries alone. Kept in the cache
 // and cleared with it, as any change below clears it.
-bool muiScaledBelow(const muiTree* tree, muiLayoutNode* nodes, uint32_t node);
+MUI_NODISCARD bool muiScaledBelow(const muiTree* tree, muiLayoutNode* nodes, uint32_t node);
 
 // A node's content box in its border box, as layout sized it: inside the
 // border and the padding it was laid out with, whose start is the right in
@@ -220,7 +220,7 @@ static inline MUI_SIZE_OUTLINE muiRect muiContentBoxOf(const muiLayoutNode* layo
                      height > 0.0f ? height : 0.0f};
 }
 
-static inline bool muiIsSameRect(muiRect a, muiRect b)
+MUI_NODISCARD static inline bool muiIsSameRect(muiRect a, muiRect b)
 {
     return a.x == b.x && a.y == b.y && a.width == b.width && a.height == b.height;
 }

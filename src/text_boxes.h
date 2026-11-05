@@ -53,10 +53,10 @@ typedef struct muiTextEdge
 } muiTextEdge;
 
 // Whether a host has its service and context.
-bool muiIsTextHostValid(const muiTextHost* host);
+MUI_NODISCARD bool muiIsTextHostValid(const muiTextHost* host);
 
 // Whether a width is a content box's: finite and not negative.
-bool muiIsTextWidthValid(float width);
+MUI_NODISCARD bool muiIsTextWidthValid(float width);
 
 // Lays a node's text out as painting does at a width, scrolled as
 // muiFollowCaret leaves an editing block.
@@ -68,11 +68,11 @@ muiResult muiLayText(const muiTextHost* host, muiNodeId nodeId, float width, mui
 // comes back; the lines and the paragraph laid out scrolled with it.
 // Text not editing stays where it is. False when memory runs out, the
 // text then left unscrolled.
-bool muiFollowCaret(muiLaidText* laid, float height);
+MUI_NODISCARD bool muiFollowCaret(muiLaidText* laid, float height);
 
 // Writes a line's boxes left to right into the service's scratch, valid
 // until the next call; false when memory runs out.
-bool muiGetLineBoxes(const muiLaidText* laid, uint32_t index, muiTextBoxes* out);
+MUI_NODISCARD bool muiGetLineBoxes(const muiLaidText* laid, uint32_t index, muiTextBoxes* out);
 
 // The position at a box's left or right edge.
 muiTextPosition muiEdgePosition(const muiTextBox* box, bool right);
@@ -83,23 +83,24 @@ uint32_t muiLineOfPosition(const muiLaidText* laid, muiTextPosition position);
 
 // The position nearest x on a line: the nearer edge of the box at x;
 // false when memory runs out.
-bool muiHitLine(const muiLaidText* laid, uint32_t index, float x, muiTextPosition* out);
+MUI_NODISCARD bool muiHitLine(const muiLaidText* laid, uint32_t index, float x,
+                              muiTextPosition* out);
 
 // The edge a position's caret is at on its line's boxes; false when the
 // line has none.
-bool muiFindEdge(const muiLaidText* laid, uint32_t line, const muiTextBoxes* boxes,
-                 muiTextPosition position, muiTextEdge* out);
+MUI_NODISCARD bool muiFindEdge(const muiLaidText* laid, uint32_t line, const muiTextBoxes* boxes,
+                               muiTextPosition position, muiTextEdge* out);
 
 // The x of a position's caret on its line, and whether the text there
 // runs right to left; on a line with no boxes, where the line starts.
 // False when memory runs out.
-bool muiCaretX(const muiLaidText* laid, uint32_t line, muiTextPosition position, float* xOut,
-               bool* rtlOut);
+MUI_NODISCARD bool muiCaretX(const muiLaidText* laid, uint32_t line, muiTextPosition position,
+                             float* xOut, bool* rtlOut);
 
 // Finds the next stretch of side by side boxes wholly from start up to
 // end, from box *at on: its left and right edges, *at moved past it;
 // false when there is none.
-bool muiNextStretch(const muiTextBoxes* boxes, uint32_t* at, uint32_t start, uint32_t end,
-                    float* leftOut, float* rightOut);
+MUI_NODISCARD bool muiNextStretch(const muiTextBoxes* boxes, uint32_t* at, uint32_t start,
+                                  uint32_t end, float* leftOut, float* rightOut);
 
 #endif // MAUL_UI_SRC_TEXT_BOXES_H

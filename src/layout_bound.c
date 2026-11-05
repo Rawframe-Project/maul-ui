@@ -53,7 +53,7 @@ static uint32_t DepthOf(const muiTree* tree, uint32_t node)
 }
 
 // Clears a node's cache, keeping what it held; false when too many are.
-static bool Clear(Bound* bound, uint32_t node)
+MUI_NODISCARD static bool Clear(Bound* bound, uint32_t node)
 {
     if (bound->count == MAX_CHECKED)
     {
@@ -66,7 +66,7 @@ static bool Clear(Bound* bound, uint32_t node)
     return true;
 }
 
-static bool IsCleared(const Bound* bound, uint32_t node)
+MUI_NODISCARD static bool IsCleared(const Bound* bound, uint32_t node)
 {
     for (uint32_t i = 0; i < bound->count; i++)
     {
@@ -80,7 +80,7 @@ static bool IsCleared(const Bound* bound, uint32_t node)
 
 // Whether a node's baseline may be read: aligned by its parent, or the
 // parent's, which follows its first child's, read above it.
-static bool BaselineRead(const muiSolver* solver, uint32_t node)
+MUI_NODISCARD static bool BaselineRead(const muiSolver* solver, uint32_t node)
 {
     for (uint32_t at = node; muiTreeAt(solver->tree, at)->links.parent != 0;
          at = muiTreeAt(solver->tree, at)->links.parent)
@@ -96,7 +96,7 @@ static bool BaselineRead(const muiSolver* solver, uint32_t node)
 }
 
 // Whether a cleared node answers every query its cache held as it did.
-static bool Holds(const muiSolver* solver, const Checked* checked)
+MUI_NODISCARD static bool Holds(const muiSolver* solver, const Checked* checked)
 {
     const muiLayoutNode* layout = &solver->nodes[checked->node - 1];
     if (checked->old.replaced || !checked->old.finalValid || layout->listed || layout->popped ||

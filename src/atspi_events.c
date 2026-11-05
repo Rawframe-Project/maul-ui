@@ -168,7 +168,7 @@ static void TellProperties(muiAtspiApp* app, const muiAtspiObject* object, const
     }
 }
 
-static bool IsLead(char byte)
+MUI_NODISCARD static bool IsLead(char byte)
 {
     return ((unsigned char)byte & 0xC0u) != 0x80u;
 }
@@ -195,7 +195,8 @@ static void TellEdit(muiAtspiApp* app, const muiAtspiObject* object, const char*
 // A value text changed: what was deleted, then what was inserted, the
 // start and end they share kept, as Chromium tells an edit; whether it
 // did.
-static bool TellEdits(muiAtspiApp* app, const muiAtspiObject* object, const muiAccessNode* old)
+MUI_NODISCARD static bool TellEdits(muiAtspiApp* app, const muiAtspiObject* object,
+                                    const muiAccessNode* old)
 {
     const muiAccessNode* now = object->node;
     const char* a = old->text[mui_accessValue] != nullptr ? old->text[mui_accessValue] : "";
@@ -399,7 +400,7 @@ static uint64_t ParentAt(const muiAtspiAdapter* adapter, uint32_t at)
 
 // Whether clients know a node: the application's root, or one told
 // before this walk.
-static bool IsKnown(const muiAtspiAdapter* adapter, uint64_t id)
+MUI_NODISCARD static bool IsKnown(const muiAtspiAdapter* adapter, uint64_t id)
 {
     const muiAtspiTold* told = muiIdMapFind(&adapter->toldById, id);
     return id == 0 || (told != nullptr && told->born != adapter->pass);

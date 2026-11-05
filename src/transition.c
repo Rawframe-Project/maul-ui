@@ -32,12 +32,12 @@ muiTransitionDef muiDefaultTransitionDef(void)
     };
 }
 
-static bool IsUnit(float value)
+MUI_NODISCARD static bool IsUnit(float value)
 {
     return value >= 0.0f && value <= 1.0f;
 }
 
-static bool IsDefValid(const muiTransitionDef* def)
+MUI_NODISCARD static bool IsDefValid(const muiTransitionDef* def)
 {
     return def->cookie == TRANSITION_DEF_COOKIE && (uint32_t)def->kind <= mui_transitionSpring &&
            (uint32_t)def->easing <= mui_easingCubicBezier && IsUnit(def->bezier[0]) &&
@@ -49,7 +49,7 @@ static bool IsDefValid(const muiTransitionDef* def)
 // A def's easing and spring, made by Maul Tween: the easing from CSS
 // Easing Functions' keywords or the def's curve. Whether Maul Tween takes
 // them, as it does every def IsDefValid passes.
-static bool MakeMotion(const muiTransitionDef* def, muiTransitionSpec* spec)
+MUI_NODISCARD static bool MakeMotion(const muiTransitionDef* def, muiTransitionSpec* spec)
 {
     static const double keywords[][4] = {
         {0.25, 0.1, 0.25, 1.0},
@@ -183,7 +183,8 @@ static void Unbind(muiPropertySet* set, muiPropertyBits properties)
 
 // Gives a spec to properties of a set: added to its binding of that spec,
 // or a new binding. False when the set names its most specs already.
-static bool Bind(muiPropertySet* set, muiTransitionId transition, muiPropertyBits properties)
+MUI_NODISCARD static bool Bind(muiPropertySet* set, muiTransitionId transition,
+                               muiPropertyBits properties)
 {
     Unbind(set, properties);
     for (uint32_t i = 0; i < set->bindingCount; i++)

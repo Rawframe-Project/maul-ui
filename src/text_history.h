@@ -26,14 +26,15 @@ enum
 // Records an edit, its removed and inserted bytes, after those not undone
 // and joining the last where it continues it, the oldest dropped past
 // the limit; false when memory runs out, which keeps the history.
-bool muiRecordEdit(const muiAllocator* allocator, muiTextEditing* editing, const muiTextEdit* edit,
-                   const char* removed, const char* inserted);
+MUI_NODISCARD bool muiRecordEdit(const muiAllocator* allocator, muiTextEditing* editing,
+                                 const muiTextEdit* edit, const char* removed,
+                                 const char* inserted);
 
 // Reserves what recording an edit that removes and inserts so many bytes
 // takes, so that muiRecordEdit then cannot fail; false when memory runs
 // out, which keeps the history.
-bool muiReserveEdit(const muiAllocator* allocator, muiTextEditing* editing, uint32_t removed,
-                    uint32_t inserted);
+MUI_NODISCARD bool muiReserveEdit(const muiAllocator* allocator, muiTextEditing* editing,
+                                  uint32_t removed, uint32_t inserted);
 
 // Empties a history, its memory kept.
 void muiClearHistory(muiTextEditing* editing);

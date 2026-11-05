@@ -24,7 +24,7 @@
 
 #include <math.h>
 
-static bool IsNull(muiNodeId nodeId)
+MUI_NODISCARD static bool IsNull(muiNodeId nodeId)
 {
     return nodeId.index1 == 0;
 }
@@ -36,8 +36,8 @@ bool muiIsRouting(const muiContext* context)
 
 // The host's event function, run in the host's floating-point
 // environment.
-static MUI_NOINLINE bool HostEvent(const muiEventStore* store, muiNodeId nodeId, muiPhase phase,
-                                   const muiEvent* event)
+MUI_NODISCARD static MUI_NOINLINE bool HostEvent(const muiEventStore* store, muiNodeId nodeId,
+                                                 muiPhase phase, const muiEvent* event)
 {
     muiFloatHost host = muiFloatHostEnter();
     bool handled = store->function(store->user, nodeId, phase, event);
@@ -136,8 +136,8 @@ muiResult muiContext_SetEventFunction(muiContext* context, muiEventFunction func
 
 // Moves a player's focus as an unhandled key or action asks: sequentially
 // or toward a direction; whether it moved.
-static bool MoveFocus(muiContext* context, muiNodeId rootId, uint8_t player, bool sequential,
-                      bool backward, muiDirection direction)
+MUI_NODISCARD static bool MoveFocus(muiContext* context, muiNodeId rootId, uint8_t player,
+                                    bool sequential, bool backward, muiDirection direction)
 {
     muiResult result = sequential ? muiMoveFocus(context, rootId, player, backward)
                                   : muiMoveFocusToward(context, rootId, player, direction);
@@ -150,8 +150,8 @@ static bool MoveFocus(muiContext* context, muiNodeId rootId, uint8_t player, boo
 // visible part (or one a link leads out to), else a line's step while the
 // container can move; otherwise, or at its end, a focus move as
 // muiNode_MoveFocusToward makes.
-static bool Toward(muiContext* context, muiNodeId rootId, uint32_t root, uint8_t player,
-                   muiDirection direction, uint64_t timeNs)
+MUI_NODISCARD static bool Toward(muiContext* context, muiNodeId rootId, uint32_t root,
+                                 uint8_t player, muiDirection direction, uint64_t timeNs)
 {
     uint32_t focus = 0;
     uint32_t scope = muiFocusScope(context, root, player, &focus);
@@ -176,8 +176,8 @@ static bool Toward(muiContext* context, muiNodeId rootId, uint32_t root, uint8_t
 
 // A page key's default: a step of the scroll container holding the
 // player's focus (or its scope's), vertically.
-static bool Page(muiContext* context, uint32_t root, uint8_t player, muiKeyCode code, bool backward,
-                 uint64_t timeNs)
+MUI_NODISCARD static bool Page(muiContext* context, uint32_t root, uint8_t player, muiKeyCode code,
+                               bool backward, uint64_t timeNs)
 {
     uint32_t focus = 0;
     uint32_t scope = muiFocusScope(context, root, player, &focus);

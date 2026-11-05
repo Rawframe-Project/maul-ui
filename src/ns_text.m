@@ -30,7 +30,8 @@ static NSRange RangeOf(const muiAccessText* text, uint32_t start, uint32_t end)
 }
 
 // An AppKit range's bytes, kept within the text; false for one past it.
-static bool BytesOf(const muiAccessText* text, NSRange range, uint32_t* startOut, uint32_t* endOut)
+MUI_NODISCARD static bool BytesOf(const muiAccessText* text, NSRange range, uint32_t* startOut,
+                                  uint32_t* endOut)
 {
     NSUInteger units = muiAccessUtf16Before(text->bytes, text->length);
     if (range.location > units || range.length > units - range.location)
@@ -61,7 +62,7 @@ static NSInteger LineOf(const muiAccessText* text, uint32_t at)
     return line;
 }
 
-static bool Ask(const MUIAccessibilityNode* object, const muiAccessRequest* request)
+MUI_NODISCARD static bool Ask(const MUIAccessibilityNode* object, const muiAccessRequest* request)
 {
     const muiNsAdapter* adapter = object->adapter;
     return adapter != nullptr &&

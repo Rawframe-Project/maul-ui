@@ -33,15 +33,16 @@ typedef struct muiConditionSample
     const muiEnvironment* environment;
 } muiConditionSample;
 
-bool muiIsConditionValid(const muiCondition* condition);
+MUI_NODISCARD bool muiIsConditionValid(const muiCondition* condition);
 
-bool muiIsEnvironmentValid(const muiEnvironment* environment);
+MUI_NODISCARD bool muiIsEnvironmentValid(const muiEnvironment* environment);
 
 muiConditionReads muiConditionReadsOf(const muiCondition* condition);
 
 // The properties a condition's values may not set: those it reads.
 muiPropertyBits muiForbiddenProperties(const muiCondition* condition);
 
-bool muiConditionHolds(const muiCondition* condition, const muiConditionSample* sample);
+MUI_NODISCARD bool muiConditionHolds(const muiCondition* condition,
+                                     const muiConditionSample* sample);
 
 #endif // MAUL_UI_SRC_CONDITION_H

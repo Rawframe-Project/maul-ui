@@ -20,12 +20,12 @@
 #include <float.h>
 #include <math.h>
 
-static bool IsLength(float value)
+MUI_NODISCARD static bool IsLength(float value)
 {
     return isfinite(value) && value >= 0.0f;
 }
 
-static bool IsValid(const muiVirtualList* list)
+MUI_NODISCARD static bool IsValid(const muiVirtualList* list)
 {
     return (uint32_t)list->axis <= mui_axisVertical && isfinite(list->extent) &&
            list->extent > 0.0f && IsLength(list->gap) && IsLength(list->overscan);
@@ -89,8 +89,8 @@ bool muiVirtualStores(const muiVirtualEntry* entry)
 // every other entry's that overlaps; the capacity when none does.
 // Whether count items from start fit the capacity and every entry's but
 // self's.
-static bool Fits(const muiVirtualStore* store, const muiVirtualEntry* self, uint32_t start,
-                 uint32_t count)
+MUI_NODISCARD static bool Fits(const muiVirtualStore* store, const muiVirtualEntry* self,
+                               uint32_t start, uint32_t count)
 {
     // Every entry's items lie within the capacity, so start does too.
     bool fits = store->itemCapacity - start >= count;
@@ -142,8 +142,8 @@ static double* SumsOf(const muiVirtualStore* store, const muiVirtualEntry* entry
 // is what its stored size says, within the rounding of the double sums.
 // Sums that overflowed are not compared: finite sizes a caller gave can
 // add up past the doubles' range.
-[[maybe_unused]] static bool PlaceAgrees(const muiVirtualStore* store, const muiVirtualEntry* entry,
-                                         uint32_t i)
+MUI_NODISCARD [[maybe_unused]] static bool PlaceAgrees(const muiVirtualStore* store,
+                                                       const muiVirtualEntry* entry, uint32_t i)
 {
     double end = muiVirtualOffset(store, entry, i + 1);
     double place = end - muiVirtualOffset(store, entry, i);
@@ -159,7 +159,8 @@ static double* SumsOf(const muiVirtualStore* store, const muiVirtualEntry* entry
 // Accuracy and Stability of Numerical Algorithms, section 4.2), so they
 // differ by at most 2(n + 1) epsilon times that magnitude: a tolerance
 // that grows with the count, as a long list's rounding does.
-[[maybe_unused]] static bool TotalAgrees(const muiVirtualStore* store, const muiVirtualEntry* entry)
+MUI_NODISCARD [[maybe_unused]] static bool TotalAgrees(const muiVirtualStore* store,
+                                                       const muiVirtualEntry* entry)
 {
     double sum = 0.0;
     double magnitude = 0.0;
@@ -306,8 +307,9 @@ void muiVirtualShift(muiContext* context, uint32_t slot, const muiVirtualEntry* 
 
 // The bound item of the list at slot that the viewport shows first, and
 // how far it begins past the viewport's start; false for none.
-static bool FirstShown(const muiContext* context, uint32_t slot, const muiVirtualEntry* entry,
-                       muiNodeId* nodeOut, double* shiftOut)
+MUI_NODISCARD static bool FirstShown(const muiContext* context, uint32_t slot,
+                                     const muiVirtualEntry* entry, muiNodeId* nodeOut,
+                                     double* shiftOut)
 {
     const muiVirtualStore* store = &context->lists;
     const muiTree* tree = &context->tree;

@@ -61,7 +61,7 @@ static muiPopupEntry* Find(const muiContext* context, muiNodeId nodeId, muiResul
     return entry;
 }
 
-static bool IsLength(float value)
+MUI_NODISCARD static bool IsLength(float value)
 {
     return isfinite(value) && value >= 0.0f;
 }
@@ -351,7 +351,7 @@ static uint32_t HolderOf(const muiContext* context, uint32_t slot)
 
 // One pass over the entries waiting: places those whose holders are
 // done, or with any, every one; whether it placed one.
-static bool Pass(muiContext* context, uint32_t root, bool any)
+MUI_NODISCARD static bool Pass(muiContext* context, uint32_t root, bool any)
 {
     muiPopupStore* store = &context->popups;
     bool progress = false;
@@ -397,7 +397,7 @@ void muiPlacePopups(muiContext* context, uint32_t root)
 }
 
 // Whether an entry can be dismissed: live, light, not yet dismissed.
-static bool IsOpen(const muiContext* context, const muiPopupEntry* entry)
+MUI_NODISCARD static bool IsOpen(const muiContext* context, const muiPopupEntry* entry)
 {
     return entry->popup.lightDismiss && !entry->dismissed &&
            muiTreeResolve(&context->tree, entry->node) != 0;

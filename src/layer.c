@@ -15,7 +15,7 @@
 
 // Whether an entry's node still exists: a node that stops being a layer
 // is taken out at once, one destroyed leaves its entry behind.
-static bool IsLive(const muiContext* context, const muiLayerEntry* entry)
+MUI_NODISCARD static bool IsLive(const muiContext* context, const muiLayerEntry* entry)
 {
     const muiTree* tree = &context->tree;
     muiNodeId id = muiTreeIdOf(tree, entry->slot);

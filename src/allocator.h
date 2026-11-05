@@ -14,7 +14,7 @@
 #include <stdbool.h>
 
 // Whether an allocator is usable: both functions set, or neither.
-bool muiIsAllocatorValid(const muiAllocator* allocator);
+MUI_NODISCARD bool muiIsAllocatorValid(const muiAllocator* allocator);
 
 // size bytes aligned to alignment, a power of two, or NULL.
 void* muiAllocate(const muiAllocator* allocator, size_t size, size_t alignment);

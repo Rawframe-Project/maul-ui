@@ -126,7 +126,7 @@ muiResult muiRefuseBusy(muiContext* context);
 // be ones the call in progress has written or is filling
 // (maul-conventions.md, Errors and assertions). A NULL context is left to
 // the call.
-static inline bool muiRefusesBusy(muiContext* context, bool feedsInput)
+MUI_NODISCARD static inline bool muiRefusesBusy(muiContext* context, bool feedsInput)
 {
     if (context == nullptr || !(context->busy || (feedsInput && context->events.dispatching)))
     {

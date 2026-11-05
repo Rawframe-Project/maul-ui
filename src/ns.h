@@ -69,7 +69,8 @@ void muiNsRootPointOf(const muiNsAdapter* adapter, NSPoint screen, float* xOut, 
 uint64_t muiNsNodeAt(const muiNsAdapter* adapter, NSPoint screen);
 
 // Asks the host for an action on a node; whether it did it.
-bool muiNsAct(const muiNsAdapter* adapter, muiAccessAction action, uint64_t id, float value);
+MUI_NODISCARD bool muiNsAct(const muiNsAdapter* adapter, muiAccessAction action, uint64_t id,
+                            float value);
 
 // A node's whole name, as clients read it; nil for none.
 NSString* muiNsNameOf(const muiNsAdapter* adapter, uint64_t id);
@@ -84,9 +85,9 @@ void muiNsTellFocus(muiNsAdapter* adapter);
 // The text methods (ns_text.m): whether a selector is one of them;
 // whether a text node answers it (the setters while the host takes the
 // request); replacing all of a text through the host.
-bool muiNsIsTextSelector(SEL selector);
-bool muiNsAllowsText(const muiAccessNode* node, SEL selector);
-bool muiNsReplaceAll(const MUIAccessibilityNode* object, NSString* value);
+MUI_NODISCARD bool muiNsIsTextSelector(SEL selector);
+MUI_NODISCARD bool muiNsAllowsText(const muiAccessNode* node, SEL selector);
+MUI_NODISCARD bool muiNsReplaceAll(const MUIAccessibilityNode* object, NSString* value);
 
 // A node's AppKit role and subrole (nil for none).
 NSAccessibilityRole muiNsRoleOf(const muiAccessNode* node);

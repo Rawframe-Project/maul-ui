@@ -21,7 +21,7 @@ void muiRestyleAll(muiContext* context);
 uint32_t muiResolveClassEdit(muiContext* context, muiStyleId styleId, muiResult* statusOut);
 
 // Whether variant is the base, a state or one of the class's conditions.
-bool muiHasVariant(const muiStyleClass* class, muiVariant variant);
+MUI_NODISCARD bool muiHasVariant(const muiStyleClass* class, muiVariant variant);
 
 // The property set of a class's variant, made empty if it has none, or
 // NULL when the context has no set left.

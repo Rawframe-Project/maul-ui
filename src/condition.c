@@ -40,26 +40,26 @@ muiEnvironment muiDefaultEnvironment(void)
     };
 }
 
-static bool IsIntervalValid(muiInterval interval)
+MUI_NODISCARD static bool IsIntervalValid(muiInterval interval)
 {
     return isfinite(interval.min) && interval.min >= 0.0f && !isnan(interval.max) &&
            interval.max >= interval.min;
 }
 
 // Whether an interval is the default one, which holds for every value.
-static bool IsEverything(muiInterval interval)
+MUI_NODISCARD static bool IsEverything(muiInterval interval)
 {
     return interval.min == 0.0f && interval.max == INFINITY;
 }
 
 // An unbounded interval holds an infinite value too.
-static bool IsIn(muiInterval interval, float value)
+MUI_NODISCARD static bool IsIn(muiInterval interval, float value)
 {
     return value >= interval.min && (value < interval.max || interval.max == INFINITY);
 }
 
 // A single bit of mask.
-static bool IsOneOf(uint32_t value, uint32_t mask)
+MUI_NODISCARD static bool IsOneOf(uint32_t value, uint32_t mask)
 {
     return value != 0 && (value & (value - 1)) == 0 && (value & ~mask) == 0;
 }
@@ -124,12 +124,12 @@ static float AspectOf(float width, float height)
     return width > 0.0f ? INFINITY : 0.0f;
 }
 
-static bool MatchesDirection(muiInlineDirection match, bool rtl)
+MUI_NODISCARD static bool MatchesDirection(muiInlineDirection match, bool rtl)
 {
     return match == mui_inlineInherit || (match == mui_inlineRightToLeft) == rtl;
 }
 
-static bool MatchesMotion(muiMotionMatch match, bool reduced)
+MUI_NODISCARD static bool MatchesMotion(muiMotionMatch match, bool reduced)
 {
     return match == mui_motionAny || (match == mui_motionReduced) == reduced;
 }

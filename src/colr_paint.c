@@ -114,7 +114,7 @@ static Matrix TransformOf(const FT_COLR_Paint* paint, FT_OpaquePaint* childOut)
     }
 }
 
-static bool IsTransform(FT_PaintFormat format)
+MUI_NODISCARD static bool IsTransform(FT_PaintFormat format)
 {
     return format == FT_COLR_PAINTFORMAT_TRANSFORM || format == FT_COLR_PAINTFORMAT_TRANSLATE ||
            format == FT_COLR_PAINTFORMAT_SCALE || format == FT_COLR_PAINTFORMAT_ROTATE ||
@@ -134,7 +134,7 @@ static const double FARTHEST = 268435456.0;
 // Whether a matrix places a box within FARTHEST, its linear part within
 // 16.16: an affine map keeps each point of an outline within the image of
 // its box. False for a damaged font's, NaN or infinite parts too.
-static bool PlacesNear(Matrix m, FT_BBox box)
+MUI_NODISCARD static bool PlacesNear(Matrix m, FT_BBox box)
 {
     const double limit = 32767.0;
     if (!(fabs(m.xx) < limit && fabs(m.xy) < limit && fabs(m.yx) < limit && fabs(m.yy) < limit &&
@@ -195,7 +195,7 @@ typedef struct Walk
     muiResult result;
 } Walk;
 
-static bool Fail(Walk* walk, muiResult result)
+MUI_NODISCARD static bool Fail(Walk* walk, muiResult result)
 {
     walk->result = result;
     return false;
@@ -203,13 +203,13 @@ static bool Fail(Walk* walk, muiResult result)
 
 // Whether a walk may visit one more paint: within MUI_MAX_PAINT_DEPTH of
 // its root and MUI_MAX_PAINT_VISITS in all.
-static bool MayVisit(Walk* walk)
+MUI_NODISCARD static bool MayVisit(Walk* walk)
 {
     return walk->depth < MUI_MAX_PAINT_DEPTH && walk->visits++ < MUI_MAX_PAINT_VISITS;
 }
 
 // Adds the boxes of a paint's outlines, under their transforms, to box.
-static bool Bounds(Walk* walk, FT_OpaquePaint opaque, Matrix m, muiPixelBox* box)
+MUI_NODISCARD static bool Bounds(Walk* walk, FT_OpaquePaint opaque, Matrix m, muiPixelBox* box)
 {
     FT_Face face = walk->source->font->face;
     FT_COLR_Paint paint;
@@ -261,8 +261,8 @@ static bool Bounds(Walk* walk, FT_OpaquePaint opaque, Matrix m, muiPixelBox* box
 // A glyph's clip box in 64ths of a pixel, with the pen's offset, at the
 // source's size; false when the font gives the glyph none. Maul sets no
 // transform on a face, so the box's corners are its own.
-static bool ClipOf(const muiPaintSource* source, uint32_t glyph, FT_BBox* clipOut,
-                   muiResult* result)
+MUI_NODISCARD static bool ClipOf(const muiPaintSource* source, uint32_t glyph, FT_BBox* clipOut,
+                                 muiResult* result)
 {
     // The base glyph's outline sets the face to the size the clip box is
     // given at.
@@ -343,10 +343,12 @@ static void Over(const float* source, float* destination, size_t count)
     }
 }
 
-static bool Render(Surfaces* surfaces, FT_OpaquePaint opaque, Matrix m, uint32_t level);
+MUI_NODISCARD static bool Render(Surfaces* surfaces, FT_OpaquePaint opaque, Matrix m,
+                                 uint32_t level);
 
 // Renders each layer a level down and composites it over.
-static bool Layers(Surfaces* surfaces, FT_LayerIterator layers, Matrix m, uint32_t level)
+MUI_NODISCARD static bool Layers(Surfaces* surfaces, FT_LayerIterator layers, Matrix m,
+                                 uint32_t level)
 {
     FT_Face face = surfaces->walk.source->font->face;
     FT_OpaquePaint layer = {nullptr, 0};
@@ -367,7 +369,7 @@ static bool Layers(Surfaces* surfaces, FT_LayerIterator layers, Matrix m, uint32
 }
 
 // Masks a level's surface by an outline's coverage.
-static bool MaskBy(Surfaces* surfaces, FT_Outline* outline, uint32_t level)
+MUI_NODISCARD static bool MaskBy(Surfaces* surfaces, FT_Outline* outline, uint32_t level)
 {
     muiTextService* service = surfaces->walk.source->service;
     if (!muiReserve(&service->allocator, &service->colorCoverage, surfaces->count))
@@ -397,7 +399,7 @@ static bool MaskBy(Surfaces* surfaces, FT_Outline* outline, uint32_t level)
 }
 
 // Masks a level's surface by a glyph's outline under a matrix.
-static bool Mask(Surfaces* surfaces, uint32_t glyph, Matrix m, uint32_t level)
+MUI_NODISCARD static bool Mask(Surfaces* surfaces, uint32_t glyph, Matrix m, uint32_t level)
 {
     const muiPaintSource* source = surfaces->walk.source;
     muiResult result = PlaceOutline(source, glyph, m);
@@ -405,7 +407,7 @@ static bool Mask(Surfaces* surfaces, uint32_t glyph, Matrix m, uint32_t level)
                                  : Fail(&surfaces->walk, result);
 }
 
-static bool Fill(Surfaces* surfaces, muiLinearColor color, uint32_t level)
+MUI_NODISCARD static bool Fill(Surfaces* surfaces, muiLinearColor color, uint32_t level)
 {
     // Render took this level's surface before the fill.
     float* pixels = Surface(surfaces, level);
@@ -421,7 +423,8 @@ static bool Fill(Surfaces* surfaces, muiLinearColor color, uint32_t level)
 }
 
 // Renders a paint of the formats beyond layers, fills and glyphs.
-static bool RenderOther(Surfaces* surfaces, const FT_COLR_Paint* paint, Matrix m, uint32_t level)
+MUI_NODISCARD static bool RenderOther(Surfaces* surfaces, const FT_COLR_Paint* paint, Matrix m,
+                                      uint32_t level)
 {
     FT_Face face = surfaces->walk.source->font->face;
     if (paint->format == FT_COLR_PAINTFORMAT_COLR_GLYPH)
@@ -454,7 +457,8 @@ static bool RenderOther(Surfaces* surfaces, const FT_COLR_Paint* paint, Matrix m
     return true;
 }
 
-static bool Render(Surfaces* surfaces, FT_OpaquePaint opaque, Matrix m, uint32_t level)
+MUI_NODISCARD static bool Render(Surfaces* surfaces, FT_OpaquePaint opaque, Matrix m,
+                                 uint32_t level)
 {
     Walk* walk = &surfaces->walk;
     FT_Face face = walk->source->font->face;

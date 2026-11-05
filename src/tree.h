@@ -84,7 +84,8 @@ typedef struct muiTree
 
 // Whether the node at slot or one above it exits: it and its subtree
 // take no input.
-static inline MUI_SIZE_OUTLINE bool muiTreeIsExiting(const muiTree* tree, uint32_t slot)
+MUI_NODISCARD static inline MUI_SIZE_OUTLINE bool muiTreeIsExiting(const muiTree* tree,
+                                                                   uint32_t slot)
 {
     for (uint32_t at = slot; at != 0; at = tree->nodes[at - 1].links.parent)
     {
@@ -117,7 +118,7 @@ static inline MUI_SIZE_OUTLINE muiTreeNode* muiTreeAt(const muiTree* tree, uint3
 uint32_t muiTreeCreate(muiTree* tree, uint64_t hostKey);
 
 // Whether ancestor is node or one of its ancestors.
-bool muiTreeIsAncestor(const muiTree* tree, uint32_t ancestor, uint32_t node);
+MUI_NODISCARD bool muiTreeIsAncestor(const muiTree* tree, uint32_t ancestor, uint32_t node);
 
 // Links a root child into parent before one of parent's children, or
 // last for 0, and marks what the edit affects.

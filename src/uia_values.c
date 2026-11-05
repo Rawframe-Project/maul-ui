@@ -345,7 +345,7 @@ static ULONG STDMETHODCALLTYPE ScrollRelease(muiUiaScroll* self)
 
 // The page action an amount asks for on an axis, or none. A small step
 // scrolls a page too: the tree knows no line height.
-static bool PageAction(int amount, bool horizontal, muiAccessAction* actionOut)
+MUI_NODISCARD static bool PageAction(int amount, bool horizontal, muiAccessAction* actionOut)
 {
     bool back = amount == AMOUNT_LARGE_BACK || amount == AMOUNT_SMALL_BACK;
     bool forward = amount == AMOUNT_LARGE_FORWARD || amount == AMOUNT_SMALL_FORWARD;
@@ -376,7 +376,7 @@ static HRESULT STDMETHODCALLTYPE ScrollBy(muiUiaScroll* self, int horizontal, in
 }
 
 // An offset from a percent, or the offset as it is for SCROLL_NONE.
-static bool OffsetOf(double percent, float offset, float limit, double* out)
+MUI_NODISCARD static bool OffsetOf(double percent, float offset, float limit, double* out)
 {
     if (percent == SCROLL_NONE)
     {

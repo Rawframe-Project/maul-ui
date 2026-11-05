@@ -22,8 +22,8 @@ muiTextBlock* muiResolveTextBlock(const muiTextService* service, muiTextBlockId 
 // Sets a block's text, valid UTF-8 of the block's limit, as
 // muiTextBlock_SetText does but keeping its spans and composition; false
 // when memory runs out, which keeps the old text.
-bool muiSetBlockText(muiTextService* service, muiTextBlock* block, const char* text,
-                     uint32_t length);
+MUI_NODISCARD bool muiSetBlockText(muiTextService* service, muiTextBlock* block, const char* text,
+                                   uint32_t length);
 
 // Whether replacing the bytes of a block's text from start up to end
 // with length bytes is within the text, mui_errorInvalid if not, and keeps
@@ -42,10 +42,10 @@ muiResult muiComposeOver(muiTextService* service, muiTextBlock* block, uint32_t 
 // decoding reads it: a byte past what a sequence's lead takes begins one
 // of its own, as the U+FFFD it is laid out as. The text's start always
 // does.
-bool muiIsCharacterStartIn(const char* text, uint32_t length, uint32_t at);
+MUI_NODISCARD bool muiIsCharacterStartIn(const char* text, uint32_t length, uint32_t at);
 
 // The same of a block's text.
-static inline bool muiIsCharacterStart(const muiTextBlock* block, uint32_t at)
+MUI_NODISCARD static inline bool muiIsCharacterStart(const muiTextBlock* block, uint32_t at)
 {
     return muiIsCharacterStartIn(block->text.data, block->length, at);
 }

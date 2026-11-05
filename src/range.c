@@ -16,7 +16,7 @@
 #include <math.h>
 #include <string.h>
 
-static bool IsNull(muiNodeId nodeId)
+MUI_NODISCARD static bool IsNull(muiNodeId nodeId)
 {
     return nodeId.index1 == 0;
 }
@@ -66,7 +66,7 @@ static float Snap(const muiValueRange* range, float value)
     return value;
 }
 
-static bool IsValid(const muiValueRange* range)
+MUI_NODISCARD static bool IsValid(const muiValueRange* range)
 {
     return isfinite(range->minimum) && isfinite(range->maximum) && isfinite(range->value) &&
            range->maximum >= range->minimum && isfinite(range->step) && range->step >= 0.0f &&
@@ -252,7 +252,7 @@ muiResult muiNode_ClearValueRange(muiContext* context, muiNodeId nodeId)
 
 // Moves a range's value for input, on a step, reporting a change;
 // whether it moved.
-static bool Change(muiContext* context, muiRangeEntry* entry, float value)
+MUI_NODISCARD static bool Change(muiContext* context, muiRangeEntry* entry, float value)
 {
     value = Snap(&entry->range, value);
     if (value == entry->range.value)
@@ -336,7 +336,7 @@ bool muiRangeKey(muiContext* context, uint32_t slot, muiKeyCode code)
     default:
         return false;
     }
-    Change(context, entry, value);
+    (void)Change(context, entry, value);
     return true;
 }
 
@@ -437,7 +437,7 @@ static void Press(muiContext* context, muiRangeEntry* entry, uint32_t slot, uint
     {
         larger = !larger;
     }
-    Change(context, entry, range->value + (larger ? range->page : -range->page));
+    (void)Change(context, entry, range->value + (larger ? range->page : -range->page));
 }
 
 // A drag of a range moves its value with the pointer, keeping where it
@@ -468,7 +468,7 @@ static void Follow(muiContext* context, muiRangeEntry* entry, uint32_t slot, flo
     {
         share = 1.0f - share;
     }
-    Change(context, entry, range->minimum + share * (range->maximum - range->minimum));
+    (void)Change(context, entry, range->minimum + share * (range->maximum - range->minimum));
 }
 
 bool muiRangePointer(muiContext* context, const muiPointerRecord* record)
@@ -505,7 +505,7 @@ bool muiRangePointer(muiContext* context, const muiPointerRecord* record)
     }
     else if (record->cancelled)
     {
-        Change(context, entry, entry->startValue);
+        (void)Change(context, entry, entry->startValue);
     }
     return true;
 }

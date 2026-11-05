@@ -20,7 +20,7 @@
 // automatic. In a column the cross axis is the inline axis, where a box
 // has no baseline: one is synthesized from its line-left border edge, so
 // the group lines those edges up, as in Chrome.
-static bool IsBaselineAligned(const muiFlexFrame* frame, const muiLayoutStyle* child)
+MUI_NODISCARD static bool IsBaselineAligned(const muiFlexFrame* frame, const muiLayoutStyle* child)
 {
     return muiFlexAlignOf(frame, child) == mui_alignBaseline &&
            !muiIsMarginAutoStart(child, !frame->row, frame->rtl) &&
@@ -78,7 +78,8 @@ static void ResolvePendingMinimums(const muiFlexFrame* frame, uint32_t first, ui
 // column of no definite height, without a definite basis, nor a ratio
 // giving it from the width it fits, its height given counting only under
 // an automatic basis, which a given one replaces (as in Chrome).
-static bool ColumnContentHeight(const muiFlexFrame* frame, const muiLayoutStyle* style)
+MUI_NODISCARD static bool ColumnContentHeight(const muiFlexFrame* frame,
+                                              const muiLayoutStyle* style)
 {
     float base = 0.0f;
     return frame->extentMain < 0.0f && style->sizing.aspectRatio <= 0.0f &&
@@ -833,7 +834,7 @@ static float FirstBaseline(const muiFlexFrame* frame)
 }
 
 // Whether a child sizes its width by the container's.
-static bool ScaledWidths(const muiFlexFrame* frame)
+MUI_NODISCARD static bool ScaledWidths(const muiFlexFrame* frame)
 {
     for (uint32_t c = muiFirstFlowChild(frame->solver->tree, frame->solver->nodes, frame->node);
          c != 0; c = muiNextFlowChild(frame->solver->tree, frame->solver->nodes, c))
@@ -850,7 +851,7 @@ static bool ScaledWidths(const muiFlexFrame* frame)
 
 // Whether a child not stretched, its width automatic, fit its width to
 // the space the column measured it in, its outer width wider than wider.
-static bool Unfitted(const muiFlexFrame* frame, float wider)
+MUI_NODISCARD static bool Unfitted(const muiFlexFrame* frame, float wider)
 {
     for (uint32_t c = muiFirstFlowChild(frame->solver->tree, frame->solver->nodes, frame->node);
          c != 0; c = muiNextFlowChild(frame->solver->tree, frame->solver->nodes, c))
@@ -869,7 +870,7 @@ static bool Unfitted(const muiFlexFrame* frame, float wider)
 // Whether a column grew wider than the space it measured its items in, a
 // child sizing its width to fit there, which fits a wider column
 // otherwise.
-static bool Outgrew(const muiFlexFrame* frame)
+MUI_NODISCARD static bool Outgrew(const muiFlexFrame* frame)
 {
     return frame->innerCross > frame->crossIn.size - frame->boxCross && Unfitted(frame, -INFINITY);
 }
@@ -879,7 +880,7 @@ static bool Outgrew(const muiFlexFrame* frame)
 // narrowed, one not stretched, its width automatic, wider than the
 // column's inside, which then fits it narrower, or a wrapping column
 // narrower than its lines, whose items then fit its width.
-static bool Squeezed(const muiFlexFrame* frame)
+MUI_NODISCARD static bool Squeezed(const muiFlexFrame* frame)
 {
     return frame->narrowed || frame->clamped || Unfitted(frame, frame->innerCross);
 }
@@ -892,7 +893,7 @@ static bool Squeezed(const muiFlexFrame* frame)
 // to another width than it was measured at, sizes by its width or fits
 // the space the column outgrew; a column at fit-content or asked an
 // intrinsic width that ended narrower than a child was measured at.
-static bool WidthMatters(const muiFlexFrame* frame, const muiSizingInput* fitted)
+MUI_NODISCARD static bool WidthMatters(const muiFlexFrame* frame, const muiSizingInput* fitted)
 {
     if (frame->row)
     {

@@ -54,12 +54,13 @@ typedef struct muiLineGlyphs
 
 // Sets up a node's paragraph; false when there is nothing to lay out or
 // its shaping found no memory, which the service counts.
-bool muiPrepareParagraph(const muiTextHost* host, muiNodeId nodeId, uint64_t hostKey,
-                         muiParagraph* out);
+MUI_NODISCARD bool muiPrepareParagraph(const muiTextHost* host, muiNodeId nodeId, uint64_t hostKey,
+                                       muiParagraph* out);
 
 // Breaks a paragraph's lines into the service's scratch; false when
 // there is no memory for them.
-bool muiBreakParagraph(muiParagraph* paragraph, muiBreakMode mode, float width, uint32_t* countOut);
+MUI_NODISCARD bool muiBreakParagraph(muiParagraph* paragraph, muiBreakMode mode, float width,
+                                     uint32_t* countOut);
 
 // How far a run's text reaches above and below its baseline: the
 // font's ascent and descent at the run's size (its scale times the
@@ -71,8 +72,8 @@ void muiRunReach(const muiParagraph* paragraph, const muiFontMetrics* metrics, f
 // Raises how far a line reaches above and below its baseline to what the
 // spans' runs on it reach, shifted as they are; whether any reached past. Lines are taken in
 // order, cursor (0 for the first) the first item not behind them.
-bool muiLineReach(const muiParagraph* paragraph, const muiTextLine* line, uint32_t* cursor,
-                  float* above, float* below);
+MUI_NODISCARD bool muiLineReach(const muiParagraph* paragraph, const muiTextLine* line,
+                                uint32_t* cursor, float* above, float* below);
 
 // The height of a paragraph's lines, broken: the last one's bottom.
 float muiParagraphHeight(const muiTextLine* lines, uint32_t count);
@@ -90,7 +91,8 @@ float muiItemScale(const muiParagraph* paragraph, const muiTextItem* item);
 
 // A line's glyphs; false when shaping it alone found no memory, which the
 // service counts.
-bool muiGetLineGlyphs(const muiParagraph* paragraph, const muiTextLine* line, muiLineGlyphs* out);
+MUI_NODISCARD bool muiGetLineGlyphs(const muiParagraph* paragraph, const muiTextLine* line,
+                                    muiLineGlyphs* out);
 
 // Where a line starts across a content box of the width.
 float muiAlignLine(const muiParagraph* paragraph, float lineWidth, float width);
@@ -102,6 +104,7 @@ void muiSegmentGlyphs(const muiShapedGlyph* glyphs, const muiTextItem* item, uin
 
 // A line's bidi runs left to right (UAX #9 L1 and L2), into the service's
 // runs; false when memory runs out, which the service counts.
-bool muiReorderLine(const muiParagraph* paragraph, const muiTextLine* line, size_t* countOut);
+MUI_NODISCARD bool muiReorderLine(const muiParagraph* paragraph, const muiTextLine* line,
+                                  size_t* countOut);
 
 #endif // MAUL_UI_SRC_TEXT_PARAGRAPH_H

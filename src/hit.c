@@ -25,7 +25,7 @@
 
 // Whether a point, from a rounded box's top left, is in it: in the box,
 // half open, and inside the circle of any corner whose square it is in.
-static bool IsInside(float x, float y, float width, float height, muiCorners radii)
+MUI_NODISCARD static bool IsInside(float x, float y, float width, float height, muiCorners radii)
 {
     if (!(x >= 0.0f && y >= 0.0f && x < width && y < height))
     {
@@ -53,7 +53,8 @@ static bool IsInside(float x, float y, float width, float height, muiCorners rad
 // Whether a point, from a box's top left, is in its rounded padding box:
 // the border box less the borders, its corners' radii less the wider
 // border at each.
-static bool IsInsidePadding(const muiLayoutNode* layout, float x, float y, muiCorners radii)
+MUI_NODISCARD static bool IsInsidePadding(const muiLayoutNode* layout, float x, float y,
+                                          muiCorners radii)
 {
     const muiEdges* border = &layout->style.border;
     float left = layout->rtl ? border->end : border->start;
@@ -82,7 +83,7 @@ typedef struct Walk
 
 // Tests a node at the point in its own space; whether the point may hit
 // its children. A node scaled to nothing on an axis is hit nowhere.
-static bool Visit(Walk* walk, uint32_t slot, double localX, double localY)
+MUI_NODISCARD static bool Visit(Walk* walk, uint32_t slot, double localX, double localY)
 {
     const muiContext* context = walk->context;
     muiHitMode mode = context->interaction[slot - 1].hitMode;
@@ -158,7 +159,7 @@ static void WalkSubtree(Walk* walk, uint32_t root, double x, double y)
 
 // Tries the layers below the root from the top; true when one decides
 // the walk: a node of it is hit, or it is modal.
-static bool WalkLayers(Walk* walk, uint32_t root, bool* blockedOut)
+MUI_NODISCARD static bool WalkLayers(Walk* walk, uint32_t root, bool* blockedOut)
 {
     const muiContext* context = walk->context;
     for (uint32_t i = context->layers.count; i > 0; i--)

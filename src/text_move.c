@@ -90,8 +90,8 @@ static muiTextPosition CrossLine(const muiLaidText* laid, uint32_t line, bool fo
 
 // One cluster left or right on screen: from a box's one edge to its
 // other, or from the edge the boxes share to the next box's far edge.
-static bool MoveOnScreen(const muiLaidText* laid, muiTextPosition from, bool right,
-                         muiTextPosition* out)
+MUI_NODISCARD static bool MoveOnScreen(const muiLaidText* laid, muiTextPosition from, bool right,
+                                       muiTextPosition* out)
 {
     uint32_t line = muiLineOfPosition(laid, from);
     bool forward = right != laid->paragraph.rtl;
@@ -121,8 +121,8 @@ static bool MoveOnScreen(const muiLaidText* laid, muiTextPosition from, bool rig
 }
 
 // The line above or below at an x: from's caret x when x is NaN.
-static bool MoveVertically(const muiLaidText* laid, muiTextPosition from, bool down, float x,
-                           muiTextPosition* out)
+MUI_NODISCARD static bool MoveVertically(const muiLaidText* laid, muiTextPosition from, bool down,
+                                         float x, muiTextPosition* out)
 {
     uint32_t line = muiLineOfPosition(laid, from);
     if (down ? line + 1 >= laid->lineCount : line == 0)
@@ -148,8 +148,8 @@ static muiTextPosition LineEdge(const muiLaidText* laid, muiTextPosition from, b
                                           : Downstream(end ? line->end : line->start);
 }
 
-static bool Move(const muiLaidText* laid, muiTextPosition from, muiTextMovement movement,
-                 float preferredX, muiTextPosition* out)
+MUI_NODISCARD static bool Move(const muiLaidText* laid, muiTextPosition from,
+                               muiTextMovement movement, float preferredX, muiTextPosition* out)
 {
     const muiTextBlock* block = laid->paragraph.block;
     switch (movement)

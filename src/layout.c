@@ -31,7 +31,7 @@ muiLayoutStyle muiDefaultLayoutStyle(void)
     return *muiLayoutDefaults();
 }
 
-static bool IsLength(float value)
+MUI_NODISCARD static bool IsLength(float value)
 {
     return isfinite(value) && value >= 0.0f;
 }
@@ -101,7 +101,7 @@ muiResult muiNode_MarkContentChanged(muiContext* context, muiNodeId nodeId)
 }
 
 // Whether a safe area is one: finite insets of 0 or more.
-static bool IsSafeArea(const muiSides* safe)
+MUI_NODISCARD static bool IsSafeArea(const muiSides* safe)
 {
     return IsLength(safe->top) && IsLength(safe->right) && IsLength(safe->bottom) &&
            IsLength(safe->left);

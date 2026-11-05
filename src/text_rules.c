@@ -24,13 +24,13 @@ enum
     PARAGRAPH_SEPARATOR = 0x2029,
 };
 
-static bool IsLineBreak(uint32_t point)
+MUI_NODISCARD static bool IsLineBreak(uint32_t point)
 {
     return (point >= '\n' && point <= '\r') || point == NEXT_LINE || point == LINE_SEPARATOR ||
            point == PARAGRAPH_SEPARATOR;
 }
 
-static bool IsControl(uint32_t point)
+MUI_NODISCARD static bool IsControl(uint32_t point)
 {
     return (point < 0x20 && point != '\t' && !IsLineBreak(point)) || point == 0x7F;
 }
@@ -59,7 +59,7 @@ static Number NumberAround(const muiTextBlock* block, uint32_t start, uint32_t e
 }
 
 // Whether a character going in keeps the value a number, noting it.
-static bool KeepsNumber(Number* number, muiTextFilter filter, uint32_t point)
+MUI_NODISCARD static bool KeepsNumber(Number* number, muiTextFilter filter, uint32_t point)
 {
     bool keeps = false;
     if (point == '+' || point == '-')

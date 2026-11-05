@@ -19,10 +19,10 @@ typedef struct muiContext muiContext;
 muiAccessEntry* muiAccessEntryOf(const muiContext* context, uint32_t slot);
 
 // Whether text is well-formed UTF-8 without a NUL.
-bool muiAccessIsUtf8(const unsigned char* text, size_t length);
+MUI_NODISCARD bool muiAccessIsUtf8(const unsigned char* text, size_t length);
 
 // Whether two sets of typed values agree.
-bool muiAccessSameValues(const muiAccessValues* a, const muiAccessValues* b);
+MUI_NODISCARD bool muiAccessSameValues(const muiAccessValues* a, const muiAccessValues* b);
 
 // The enabled root at slot; NULL for one not enabled.
 muiAccessRoot* muiAccessRootOf(const muiContext* context, uint32_t slot);

@@ -96,7 +96,7 @@ struct muiGlyphAtlas
 // misuse counted on its service, and true, for the call to return
 // mui_errorBusy before it writes any output. A NULL atlas is left to the
 // call.
-static bool RefusesBusy(muiGlyphAtlas* atlas)
+MUI_NODISCARD static bool RefusesBusy(muiGlyphAtlas* atlas)
 {
     if (atlas == nullptr || !atlas->busy)
     {
@@ -311,7 +311,7 @@ static unsigned char* PageOf(const muiGlyphAtlas* atlas, uint32_t plot)
     return atlas->pages[(plot - 1) / atlas->plotsPerPage];
 }
 
-static bool AddPage(muiGlyphAtlas* atlas)
+MUI_NODISCARD static bool AddPage(muiGlyphAtlas* atlas)
 {
     size_t pixelBytes = PageBytes(atlas);
     unsigned char* pixels = muiAllocate(&atlas->allocator, pixelBytes, 1);
@@ -363,8 +363,8 @@ static void Evict(muiGlyphAtlas* atlas, uint32_t plot)
     }
 }
 
-static bool TryPlot(muiGlyphAtlas* atlas, uint32_t plot, uint32_t width, uint32_t height,
-                    uint32_t* xOut, uint32_t* yOut)
+MUI_NODISCARD static bool TryPlot(muiGlyphAtlas* atlas, uint32_t plot, uint32_t width,
+                                  uint32_t height, uint32_t* xOut, uint32_t* yOut)
 {
     uint32_t x = 0;
     uint32_t y = 0;

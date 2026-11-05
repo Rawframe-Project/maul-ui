@@ -24,7 +24,7 @@
 #include <math.h>
 #include <string.h>
 
-static bool IsNull(muiNodeId nodeId)
+MUI_NODISCARD static bool IsNull(muiNodeId nodeId)
 {
     return nodeId.index1 == 0;
 }
@@ -316,7 +316,7 @@ static uint32_t CountPress(muiPointerStore* store, const muiPointerEvent* event)
     return series->count;
 }
 
-static bool IsValidEvent(const muiPointerEvent* event)
+MUI_NODISCARD static bool IsValidEvent(const muiPointerEvent* event)
 {
     return (uint32_t)event->kind <= mui_pointerPen && (uint32_t)event->action <= mui_pointerLeave &&
            event->player < MUI_MAX_PLAYERS && event->button < 8 && isfinite(event->x) &&
@@ -419,7 +419,7 @@ static void Cancel(muiContext* context, muiPointer* pointer, const Target* hit,
 }
 
 // Starts or moves a pointer's drag; whether it posted a record.
-static bool Drag(muiContext* context, muiPointer* pointer)
+MUI_NODISCARD static bool Drag(muiContext* context, muiPointer* pointer)
 {
     uint32_t slot = SlotOf(context, pointer->dragged);
     if (slot == 0 || (pointer->dragStarted && !pointer->dragging))

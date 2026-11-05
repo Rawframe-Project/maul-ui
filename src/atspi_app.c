@@ -34,7 +34,8 @@ muiAtspiAdapterDef muiDefaultAtspiAdapterDef(void)
 // Copies a string a message holds; false for none, or one too long.
 // Reads a string of a type, a string or an object path: what libdbus
 // checked as that type is all that may later be sent as it.
-static bool ReadString(const muiDBusApi* dbus, muiDBusIter* iter, int type, char* out, size_t size)
+MUI_NODISCARD static bool ReadString(const muiDBusApi* dbus, muiDBusIter* iter, int type, char* out,
+                                     size_t size)
 {
     if (dbus->argType(iter) != type)
     {
@@ -53,7 +54,7 @@ static bool ReadString(const muiDBusApi* dbus, muiDBusIter* iter, int type, char
 
 // The accessibility bus's address: AT_SPI_BUS_ADDRESS, else the answer
 // of the session bus's org.a11y.Bus.
-static bool AddressOf(const muiDBusApi* dbus, char* out, size_t size)
+MUI_NODISCARD static bool AddressOf(const muiDBusApi* dbus, char* out, size_t size)
 {
     const char* named = getenv("AT_SPI_BUS_ADDRESS");
     if (named != nullptr && named[0] != '\0' && strlen(named) < size)
@@ -146,14 +147,14 @@ static void TakeEmbedding(muiAtspiApp* app)
     }
 }
 
-static bool IsValidApp(const muiAtspiAppDef* def)
+MUI_NODISCARD static bool IsValidApp(const muiAtspiAppDef* def)
 {
     return muiIsAllocatorValid(&def->allocator) && def->name != nullptr && def->windows != 0 &&
            def->windows <= 4096;
 }
 
 // Joins the bus and serves the root; false when it cannot.
-static bool Connect(muiAtspiApp* app)
+MUI_NODISCARD static bool Connect(muiAtspiApp* app)
 {
     char address[ADDRESS_SIZE];
     if (!muiLoadDBus(&app->dbus) || !AddressOf(&app->dbus, address, sizeof(address)))
@@ -324,7 +325,7 @@ bool muiAtspiApp_IsRegistered(const muiAtspiApp* app)
     return app != nullptr && app->registered;
 }
 
-static bool IsValidAdapter(const muiAtspiAdapterDef* def)
+MUI_NODISCARD static bool IsValidAdapter(const muiAtspiAdapterDef* def)
 {
     return def->cookie == ADAPTER_DEF_COOKIE && def->nodes != 0 && def->action != nullptr &&
            def->scale > 0.0f;

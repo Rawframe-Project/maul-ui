@@ -141,7 +141,8 @@ bool muiAtspiAppendVariant(muiAtspiApp* app, muiDBusIter* iter, int type, const 
 }
 
 // A reference by bus name and path.
-static bool AppendNamed(muiAtspiApp* app, muiDBusIter* iter, const char* name, const char* path)
+MUI_NODISCARD static bool AppendNamed(muiAtspiApp* app, muiDBusIter* iter, const char* name,
+                                      const char* path)
 {
     const muiDBusApi* dbus = &app->dbus;
     muiDBusIter reference = {0};
@@ -175,7 +176,7 @@ bool muiAtspiAppendReference(muiAtspiApp* app, muiDBusIter* iter, const muiAtspi
 
 // The desktop the root is embedded in, or the null object before the
 // registry answers.
-static bool AppendDesktop(muiAtspiApp* app, muiDBusIter* iter)
+MUI_NODISCARD static bool AppendDesktop(muiAtspiApp* app, muiDBusIter* iter)
 {
     return app->registered
                ? AppendNamed(app, iter, app->desktopName, app->desktopPath)
@@ -239,8 +240,8 @@ uint32_t muiAtspiChildCount(muiAtspiApp* app, const muiAtspiObject* object)
 }
 
 // The child at an index; false past the last.
-static bool ChildAt(muiAtspiApp* app, const muiAtspiObject* object, uint32_t index,
-                    muiAtspiObject* childOut)
+MUI_NODISCARD static bool ChildAt(muiAtspiApp* app, const muiAtspiObject* object, uint32_t index,
+                                  muiAtspiObject* childOut)
 {
     if (object->node == nullptr)
     {
@@ -349,7 +350,8 @@ static void Introspect(muiAtspiApp* app, DBusMessage* call, const muiAtspiObject
 }
 
 // Reads a call's first argument of a type; false for another.
-static bool ReadFirst(const muiDBusApi* dbus, DBusMessage* call, int type, void* value)
+MUI_NODISCARD static bool ReadFirst(const muiDBusApi* dbus, DBusMessage* call, int type,
+                                    void* value)
 {
     muiDBusIter iter;
     if (!dbus->iterInit(call, &iter) || dbus->argType(&iter) != type)
@@ -360,7 +362,8 @@ static bool ReadFirst(const muiDBusApi* dbus, DBusMessage* call, int type, void*
     return true;
 }
 
-static bool AppendChildren(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object)
+MUI_NODISCARD static bool AppendChildren(muiAtspiApp* app, muiDBusIter* iter,
+                                         const muiAtspiObject* object)
 {
     const muiDBusApi* dbus = &app->dbus;
     muiDBusIter array = {0};
@@ -374,7 +377,8 @@ static bool AppendChildren(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiOb
     return muiAtspiClose(app, iter, &array, ok);
 }
 
-static bool AppendInterfaces(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object)
+MUI_NODISCARD static bool AppendInterfaces(muiAtspiApp* app, muiDBusIter* iter,
+                                           const muiAtspiObject* object)
 {
     const muiDBusApi* dbus = &app->dbus;
     muiDBusIter array = {0};
@@ -388,7 +392,8 @@ static bool AppendInterfaces(muiAtspiApp* app, muiDBusIter* iter, const muiAtspi
     return muiAtspiClose(app, iter, &array, ok);
 }
 
-static bool AppendStates(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object)
+MUI_NODISCARD static bool AppendStates(muiAtspiApp* app, muiDBusIter* iter,
+                                       const muiAtspiObject* object)
 {
     const muiDBusApi* dbus = &app->dbus;
     uint32_t states[2] = {0, 0};
@@ -413,7 +418,8 @@ static const uint32_t s_relations[MUI_ACCESS_RELATIONS] = {
 
 // The relations a node has, a(ua(so)): for each kind, its targets that
 // the window holds.
-static bool AppendRelations(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object)
+MUI_NODISCARD static bool AppendRelations(muiAtspiApp* app, muiDBusIter* iter,
+                                          const muiAtspiObject* object)
 {
     const muiDBusApi* dbus = &app->dbus;
     const muiAccessNode* node = object->node;
@@ -448,8 +454,8 @@ static bool AppendRelations(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiO
     return muiAtspiClose(app, iter, &array, ok);
 }
 
-static bool AppendAttribute(muiAtspiApp* app, muiDBusIter* array, const char* name,
-                            const char* value)
+MUI_NODISCARD static bool AppendAttribute(muiAtspiApp* app, muiDBusIter* array, const char* name,
+                                          const char* value)
 {
     muiDBusIter entry = {0};
     bool ok = app->dbus.openContainer(array, mui_dbusTypeDictEntry, nullptr, &entry) &&
@@ -457,7 +463,8 @@ static bool AppendAttribute(muiAtspiApp* app, muiDBusIter* array, const char* na
     return muiAtspiClose(app, array, &entry, ok);
 }
 
-static bool AppendNumber(muiAtspiApp* app, muiDBusIter* array, const char* name, uint32_t value)
+MUI_NODISCARD static bool AppendNumber(muiAtspiApp* app, muiDBusIter* array, const char* name,
+                                       uint32_t value)
 {
     char text[16];
     muiChars chars = muiCharsIn(text, sizeof text);
@@ -467,7 +474,8 @@ static bool AppendNumber(muiAtspiApp* app, muiDBusIter* array, const char* name,
 
 // A node's attributes, a{ss}: its level and place in a set, how it is
 // live, and its placeholder, where it has them.
-static bool AppendAttributes(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object)
+MUI_NODISCARD static bool AppendAttributes(muiAtspiApp* app, muiDBusIter* iter,
+                                           const muiAtspiObject* object)
 {
     const muiDBusApi* dbus = &app->dbus;
     const muiAccessNode* node = object->node;
@@ -492,8 +500,9 @@ static bool AppendAttributes(muiAtspiApp* app, muiDBusIter* iter, const muiAtspi
 
 // Writes the answer of an Accessible method; false for an unknown one,
 // with *ok false when it is refused or memory ran out.
-static bool AppendAccessible(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
-                             const muiAtspiObject* object, const char* member, bool* ok)
+MUI_NODISCARD static bool AppendAccessible(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
+                                           const muiAtspiObject* object, const char* member,
+                                           bool* ok)
 {
     uint32_t role = object->node != nullptr ? muiAtspiRoleOf(object->adapter->tree, object->node)
                                             : ROLE_APPLICATION;

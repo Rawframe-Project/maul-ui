@@ -13,7 +13,7 @@
 #include <string.h>
 
 // Loads what the adapter calls of uiautomationcore.dll.
-static bool Load(muiUiaFunctions* uia)
+MUI_NODISCARD static bool Load(muiUiaFunctions* uia)
 {
     uia->module = LoadLibraryW(L"uiautomationcore.dll");
     if (uia->module == nullptr)
@@ -45,7 +45,7 @@ static bool Load(muiUiaFunctions* uia)
 }
 
 // Whether the thread is in a single-threaded apartment.
-static bool IsApartmentThreaded(void)
+MUI_NODISCARD static bool IsApartmentThreaded(void)
 {
     APTTYPE type = APTTYPE_CURRENT;
     APTTYPEQUALIFIER qualifier = APTTYPEQUALIFIER_NONE;
@@ -53,7 +53,7 @@ static bool IsApartmentThreaded(void)
            (type == APTTYPE_STA || type == APTTYPE_MAINSTA);
 }
 
-static bool IsValid(const muiUiaAdapterDef* def)
+MUI_NODISCARD static bool IsValid(const muiUiaAdapterDef* def)
 {
     return muiIsAllocatorValid(&def->allocator) && def->nodes != 0 && def->window != nullptr &&
            def->action != nullptr && def->scale > 0.0f;
@@ -296,8 +296,8 @@ void* muiUiaAdapter_GetRoot(muiUiaAdapter* adapter)
     return result;
 }
 
-static bool UiaAdapterHandleGetObject(muiUiaAdapter* adapter, uintptr_t wParam, intptr_t lParam,
-                                      intptr_t* resultOut)
+MUI_NODISCARD static bool UiaAdapterHandleGetObject(muiUiaAdapter* adapter, uintptr_t wParam,
+                                                    intptr_t lParam, intptr_t* resultOut)
 {
     if (adapter == nullptr || resultOut == nullptr || (LONG)lParam != ROOT_OBJECT_ID)
     {
