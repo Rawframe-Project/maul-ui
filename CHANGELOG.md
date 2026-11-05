@@ -10,6 +10,14 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.3.4](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.3...v1.3.4) (2026-11-05)
+
+
+### Fixed
+
+* **access:** refuse an update whose texts are not UTF-8 ([#393](https://github.com/Rawframe-Project/maul-ui/issues/393)) ([5aa3443](https://github.com/Rawframe-Project/maul-ui/commit/5aa3443cd6291b4e3235937dc9bc0f67bbb3349b)), closes [#392](https://github.com/Rawframe-Project/maul-ui/issues/392)
+* **window:** take Maul Window 0.13.0 ([#395](https://github.com/Rawframe-Project/maul-ui/issues/395)) ([5ef43d8](https://github.com/Rawframe-Project/maul-ui/commit/5ef43d8483d1f35b1b1209562e3a1ed947ea7c23)), closes [#394](https://github.com/Rawframe-Project/maul-ui/issues/394)
+
 ## [1.3.3](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.2...v1.3.3) (2026-11-05)
 
 This release makes a C program built with GCC 14 in its C23 mode warn
