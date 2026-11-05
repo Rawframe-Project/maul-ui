@@ -54,6 +54,8 @@ else()
         ${kept}
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
         SOURCE_SUBDIR maul-ui-builds-it)
+    # Trial only: log where each tarball goes.
+    set(FETCHCONTENT_QUIET OFF)
     FetchContent_MakeAvailable(maul_ui_freetype maul_ui_harfbuzz)
 
     # FreeType: the modules maul-ui-ftmodule.h lists, with the options of
