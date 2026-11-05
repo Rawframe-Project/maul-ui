@@ -504,6 +504,18 @@ static void TestTextReading(id<UITextInput> field)
                                                           inDirection:UITextLayoutDirectionRight])
                   isEqualToString:@"\U0001D11E"],
           "sentences as paragraphs, lines, a surrogate pair whole");
+    CHECK([field positionFromPosition:At(field, 2) inDirection:(UITextLayoutDirection)7
+                               offset:0] == nil &&
+              [field positionFromPosition:At(field, 11)
+                              inDirection:UITextLayoutDirectionLeft
+                                   offset:NSIntegerMin] == nil &&
+              [field positionFromPosition:At(field, 11)
+                              inDirection:UITextLayoutDirectionDown
+                                   offset:NSIntegerMax] == nil &&
+              [field positionFromPosition:At(field, 2)
+                              inDirection:UITextLayoutDirectionUp
+                                   offset:NSIntegerMin] == nil,
+          "no position in a direction UIKit does not name, or past what a text holds");
 }
 
 static void TestTextRequests(id<UITextInput> field)
