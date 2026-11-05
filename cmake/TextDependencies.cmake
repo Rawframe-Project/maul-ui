@@ -50,6 +50,7 @@ else()
         SOURCE_SUBDIR maul-ui-builds-it)
     FetchContent_Declare(maul_ui_harfbuzz
         URL https://github.com/harfbuzz/harfbuzz/releases/download/${hb_version}/harfbuzz-${hb_version}.tar.xz
+            https://ftp.osuosl.org/pub/blfs/conglomeration/harfbuzz/harfbuzz-${hb_version}.tar.xz
         URL_HASH SHA256=7e2fa4e8c7c98e8d8140671f5772542afaaa6acccfbd746506886b6d85f7f8d6
         ${kept}
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
