@@ -10,6 +10,37 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.3.4](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.3...v1.3.4) (2026-11-05)
+
+This release makes the accessibility tree refuse node texts that are
+not UTF-8, which could end a program through D-Bus, and moves
+maul-ui-window to Maul Window 0.13.0, from 0.12.0. The API and the ABI
+are those of 1.3.3, and so are layouts, styles, draw lists, line
+breaks, shaped text, glyph images, motion curves and the accessibility
+tree built from a context. maul-ui-window follows Maul Window and sits
+outside the 1.x promise until Window reaches 1.0.
+
+### Changed
+
+- maul-ui-window takes Maul Window 0.13.0, from 0.12.0. Before 1.0
+  Window's package matches its version exactly, so a program on Window
+  0.13.0 could not use maul-ui-window without linking two releases of
+  it. Window 0.13.0 changes how a drop is read on macOS, iOS and
+  Android, and how an Android drag meets a drop still being copied.
+  The glue reads no drop or drag, so what it does is unchanged
+  ([#395](https://github.com/Rawframe-Project/maul-ui/pull/395)).
+
+### Fixed
+
+- `muiAccessTree_Apply` accepted node texts that are not UTF-8, or
+  that hold a NUL, though `maul-ui/access.h` says each is UTF-8. The
+  AT-SPI adapter passes node texts to D-Bus, and libdbus ends the
+  whole program on a string that is not UTF-8. So a host that sent a
+  broken label could have its process aborted when an assistive
+  technology read it. Such an update is now refused with
+  `mui_errorInvalid`, counted as misuse, and changes nothing
+  ([#393](https://github.com/Rawframe-Project/maul-ui/pull/393)).
+
 ## [1.3.3](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.2...v1.3.3) (2026-11-05)
 
 This release makes a C program built with GCC 14 in its C23 mode warn
