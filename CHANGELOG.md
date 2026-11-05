@@ -10,6 +10,13 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.3.3](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.2...v1.3.3) (2026-11-05)
+
+
+### Fixed
+
+* make MUI_NODISCARD the attribute under GCC 14's C23 too ([#374](https://github.com/Rawframe-Project/maul-ui/issues/374)) ([6158d5a](https://github.com/Rawframe-Project/maul-ui/commit/6158d5a28a62fbcd621596586ba006faf6a8294b)), closes [#373](https://github.com/Rawframe-Project/maul-ui/issues/373)
+
 ## [1.3.2](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.1...v1.3.2) (2026-11-04)
 
 This release moves maul-ui-window to Maul Window 0.12.0, from 0.11.0,
