@@ -10,6 +10,7 @@
 #include "access_text.h"
 #include "fpenv.h"
 #include "host_call.h"
+#include "invariant.h"
 #include "ns.h"
 
 #include <string.h>
@@ -25,6 +26,9 @@ static const muiAccessNode* TextNodeOf(const MUIAccessibilityNode* object)
 // A byte range of a text as AppKit's, in UTF-16.
 static NSRange RangeOf(const muiAccessText* text, uint32_t start, uint32_t end)
 {
+    // Bytes from BytesOf, from marks the tree checked, or from the text's
+    // own boundaries.
+    MUI_ASSERT(start <= end && end <= text->length);
     NSUInteger from = muiAccessUtf16Before(text->bytes, start);
     return NSMakeRange(from, muiAccessUtf16Before(text->bytes, end) - from);
 }
@@ -40,11 +44,16 @@ MUI_NODISCARD static bool BytesOf(const muiAccessText* text, NSRange range, uint
     }
     *startOut = muiAccessByteOfUtf16(text, (uint32_t)range.location);
     *endOut = muiAccessByteOfUtf16(text, (uint32_t)(range.location + range.length));
+    // The range was refused unless it ends within the text, and the
+    // conversion keeps order and stays within it.
+    MUI_ASSERT(*startOut <= *endOut && *endOut <= text->length);
     return true;
 }
 
 static NSString* StringOfBytes(const muiAccessText* text, uint32_t start, uint32_t end)
 {
+    // Bytes from BytesOf, or the selection's, which the tree checked.
+    MUI_ASSERT(start <= end && end <= text->length);
     NSString* string = [[NSString alloc] initWithBytes:text->bytes + start
                                                 length:end - start
                                               encoding:NSUTF8StringEncoding];
