@@ -68,8 +68,8 @@ static jintArray NodeOf(JNIEnv* env, jclass type, jlong handle, jint virtualId)
     return result;
 }
 
-// UTF-8, which the tree holds valid, as UTF-16: never more units than
-// bytes.
+// UTF-8 as UTF-16: never more units than bytes, though the UTF-8 be
+// broken.
 static jsize Utf16Of(const unsigned char* text, size_t length, jchar* out)
 {
     jsize units = 0;
@@ -96,9 +96,10 @@ static jsize Utf16Of(const unsigned char* text, size_t length, jchar* out)
         {
             out[units++] = (jchar)point;
         }
-        // The tree's text is whole UTF-8, so a sequence ends within it,
-        // and gives no more units than it has bytes.
-        MUI_ASSERT(i <= length && (size_t)units <= i);
+        // Two units come only from a sequence of four bytes read whole,
+        // and one from any other, a broken one too: never more units than
+        // the bytes there, the room the caller allocates.
+        MUI_ASSERT((size_t)units <= (i < length ? i : length));
     }
     return units;
 }
