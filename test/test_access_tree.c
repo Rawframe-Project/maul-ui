@@ -484,6 +484,36 @@ static void TestShownChanged(void)
     muiDestroyAccessTree(tree);
 }
 
+// On a 32-bit target, a count whose bytes do not fit a size_t is
+// refused as memory run out, before anything is copied: a smaller copy
+// than the count the tree keeps would be read past. A 64-bit target
+// cannot reach it with a count of 32 bits, and would read the caller's
+// array past its one link, so only the 32-bit cells run it.
+static void TestCopySizesWrap(void)
+{
+    if (sizeof(size_t) >= 8)
+    {
+        return;
+    }
+    muiAccessTreeDef def = muiDefaultAccessTreeDef();
+    def.nodes = 4;
+    muiAccessTree* tree = NULL;
+    CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
+    muiAccessNode root = {.id = 1};
+    const muiAccessNode* sent[1] = {&root};
+    muiAccessUpdate update = Update(sent, 1, NULL, 1, 1);
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "a first update");
+    // 2^28 + 1 links of 16 bytes: 16 bytes once the product wraps.
+    static const muiAccessLink one[1] = {{1, mui_relationLabelledBy}};
+    muiAccessNode linked = {.id = 1, .links = one, .linkCount = 0x10000001u};
+    const muiAccessNode* refused[1] = {&linked};
+    update = Update(refused, 1, NULL, 0, 0);
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorCapacity &&
+              muiAccessTree_Find(tree, 1)->linkCount == 0,
+          "links past the address space refused, the tree as it was");
+    muiDestroyAccessTree(tree);
+}
+
 static void TestHandMade(void)
 {
     muiAccessTreeDef def = muiDefaultAccessTreeDef();
@@ -1451,6 +1481,7 @@ int main(void)
     TestReplacedThenRemoved();
     TestRefused();
     TestHandMade();
+    TestCopySizesWrap();
     TestShownChanged();
     TestChurn();
     TestLeavingNotARing();

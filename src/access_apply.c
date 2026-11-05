@@ -297,6 +297,21 @@ static void* Copy(muiAccessTree* tree, const void* from, size_t size, size_t ali
     return copy;
 }
 
+// A copy of count items of size bytes each, as Copy. Bytes that do not
+// fit a size_t, which a count past a 32-bit target's memory gives, are
+// taken as memory run out, rather than a smaller copy than the count.
+static void* CopyItems(muiAccessTree* tree, const void* from, uint32_t count, size_t size,
+                       size_t align, bool* fits)
+{
+    size_t bytes = 0;
+    if (ckd_mul(&bytes, (size_t)count, size))
+    {
+        *fits = false;
+        return nullptr;
+    }
+    return Copy(tree, from, bytes, align, fits);
+}
+
 // Copies what a node sent points at; false when memory runs out, with
 // nothing kept.
 MUI_NODISCARD static bool Stage(muiAccessTree* tree, const muiAccessNode* node,
@@ -319,20 +334,20 @@ MUI_NODISCARD static bool Stage(muiAccessTree* tree, const muiAccessNode* node,
         }
     }
     const muiAccessTextMarks* marks = &node->marks;
-    staged->lineStarts =
-        Copy(tree, marks->lineStarts, marks->lineCount * sizeof(size_t), alignof(size_t), &fits);
-    staged->words = Copy(tree, marks->words, marks->wordCount * sizeof(muiAccessWord),
-                         alignof(muiAccessWord), &fits);
+    staged->lineStarts = CopyItems(tree, marks->lineStarts, marks->lineCount, sizeof(size_t),
+                                   alignof(size_t), &fits);
+    staged->words = CopyItems(tree, marks->words, marks->wordCount, sizeof(muiAccessWord),
+                              alignof(muiAccessWord), &fits);
     staged->lineBoxes =
-        Copy(tree, marks->lineBoxes,
-             marks->lineBoxes != nullptr ? marks->lineCount * sizeof(muiAccessLineBox) : 0,
-             alignof(muiAccessLineBox), &fits);
-    staged->clusters = Copy(tree, marks->clusters, marks->clusterCount * sizeof(muiAccessCluster),
-                            alignof(muiAccessCluster), &fits);
-    staged->links = Copy(tree, node->links, node->linkCount * sizeof(muiAccessLink),
-                         alignof(muiAccessLink), &fits);
-    staged->children = Copy(tree, node->childCount != 0 ? children + node->firstChild : nullptr,
-                            node->childCount * sizeof(uint64_t), alignof(uint64_t), &fits);
+        CopyItems(tree, marks->lineBoxes, marks->lineBoxes != nullptr ? marks->lineCount : 0,
+                  sizeof(muiAccessLineBox), alignof(muiAccessLineBox), &fits);
+    staged->clusters = CopyItems(tree, marks->clusters, marks->clusterCount,
+                                 sizeof(muiAccessCluster), alignof(muiAccessCluster), &fits);
+    staged->links = CopyItems(tree, node->links, node->linkCount, sizeof(muiAccessLink),
+                              alignof(muiAccessLink), &fits);
+    staged->children =
+        CopyItems(tree, node->childCount != 0 ? children + node->firstChild : nullptr,
+                  node->childCount, sizeof(uint64_t), alignof(uint64_t), &fits);
     if (!fits)
     {
         FreeStaged(tree, node, staged);
