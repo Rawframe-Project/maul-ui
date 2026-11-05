@@ -9,6 +9,7 @@
 #include "allocator.h"
 #include "fpenv.h"
 #include "host_call.h"
+#include "invariant.h"
 #include "uia.h"
 
 #include <stddef.h>
@@ -219,6 +220,8 @@ static HRESULT Read(muiUiaRangeValue* self, Number number, double* out)
     double large = span / 10.0 > step ? span / 10.0 : step;
     const double numbers[] = {(double)held->value, (double)held->minimum, (double)held->maximum,
                               step, large};
+    // Each getter passes one of the Number constants.
+    MUI_ASSERT((size_t)number < sizeof(numbers) / sizeof(numbers[0]));
     *out = numbers[number];
     return S_OK;
 }
