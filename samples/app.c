@@ -552,7 +552,7 @@ void SamplePost(SampleApp* app, mwinEventKind type, muiNodeId node, uint8_t butt
 
 void SamplePostAt(SampleApp* app, mwinEventKind type, float x, float y, uint8_t buttons)
 {
-    SamplePostButton(app, type, x, y, mwin_buttonLeft, buttons);
+    SamplePostButton(app, type, x, y, mwin_mouseButtonLeft, buttons);
 }
 
 void SamplePostButton(SampleApp* app, mwinEventKind type, float x, float y, mwinMouseButton button,
