@@ -122,7 +122,7 @@ static size_t Trailing(unsigned char lead)
 // Whether the bytes after a lead byte are in range: 0x80 to 0xBF, the
 // first narrower after E0, ED, F0 and F4, which would otherwise start
 // overlong forms, surrogates, or code points past U+10FFFF.
-static bool AreTrailing(const unsigned char* bytes, unsigned char lead, size_t count)
+MUI_NODISCARD static bool AreTrailing(const unsigned char* bytes, unsigned char lead, size_t count)
 {
     unsigned char low = lead == 0xE0 ? 0xA0 : lead == 0xF0 ? 0x90 : 0x80;
     unsigned char high = lead == 0xED ? 0x9F : lead == 0xF4 ? 0x8F : 0xBF;
@@ -411,7 +411,7 @@ static void PurgeRoots(muiAccessStore* store, const muiTree* tree)
 // Allocates the buffers for every slot: copies, the update's node
 // pointers and children (8-aligned), then the places and the scratch
 // order (4-aligned); false when memory runs out.
-static bool AllocateBuffers(muiContext* context)
+MUI_NODISCARD static bool AllocateBuffers(muiContext* context)
 {
     muiAccessStore* store = &context->access;
     uint32_t slots = context->tree.capacity;
@@ -538,8 +538,8 @@ static uint32_t LinksOf(const muiAccessEntry* entry, muiAccessRelation kind, uin
 }
 
 // Whether a relation's targets are those an entry names by it.
-static bool HasLinks(const muiAccessEntry* entry, muiAccessRelation kind, const muiNodeId* targets,
-                     uint32_t count)
+MUI_NODISCARD static bool HasLinks(const muiAccessEntry* entry, muiAccessRelation kind,
+                                   const muiNodeId* targets, uint32_t count)
 {
     uint32_t first = 0;
     if (LinksOf(entry, kind, &first) != count)
@@ -704,7 +704,7 @@ muiAccessValues muiDefaultAccessValues(void)
     return (muiAccessValues){0};
 }
 
-static bool AreValuesValid(const muiAccessValues* values)
+MUI_NODISCARD static bool AreValuesValid(const muiAccessValues* values)
 {
     return (uint32_t)values->live <= mui_liveAssertive &&
            (uint32_t)values->popup <= mui_hasPopupDialog &&

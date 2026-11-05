@@ -40,7 +40,7 @@ static uint32_t Index(uint32_t index, uint32_t count)
 }
 
 // Whether a glyph run's span lies in the list's glyph table.
-static bool IsRunValid(const muiDrawList* list, const muiDrawGlyphRun* run)
+MUI_NODISCARD static bool IsRunValid(const muiDrawList* list, const muiDrawGlyphRun* run)
 {
     return run->firstGlyph <= list->glyphCount &&
            run->glyphCount <= list->glyphCount - run->firstGlyph;
@@ -231,9 +231,9 @@ static float FieldEm(float drawn)
 }
 
 // A glyph from its distance field, at a pen in the run's units.
-static bool FieldGlyph(const muiDrawList* list, const muiDrawCommand* command, muiRhiGlyphs* glyphs,
-                       uint32_t id, float penX, float penY, float drawn,
-                       muiRhiInstance* instanceOut)
+MUI_NODISCARD static bool FieldGlyph(const muiDrawList* list, const muiDrawCommand* command,
+                                     muiRhiGlyphs* glyphs, uint32_t id, float penX, float penY,
+                                     float drawn, muiRhiInstance* instanceOut)
 {
     const muiDrawGlyphRun* run = &command->glyphRun;
     float em = FieldEm(drawn);
@@ -268,9 +268,9 @@ static muiLinearColor Opaque(muiLinearColor color)
 // the run only moves, else from an image at the em drawn, scaled back.
 // False for a glyph without colour layers, or one that cannot be packed,
 // to be drawn as coverage or from its field.
-static bool ColorGlyph(const muiDrawList* list, const muiDrawCommand* command, muiRhiGlyphs* glyphs,
-                       uint32_t id, float penX, float penY, bool moves, float drawn,
-                       muiRhiInstance* instanceOut)
+MUI_NODISCARD static bool ColorGlyph(const muiDrawList* list, const muiDrawCommand* command,
+                                     muiRhiGlyphs* glyphs, uint32_t id, float penX, float penY,
+                                     bool moves, float drawn, muiRhiInstance* instanceOut)
 {
     const muiDrawGlyphRun* run = &command->glyphRun;
     const muiDrawTransform moved =
@@ -310,7 +310,8 @@ static bool ColorGlyph(const muiDrawList* list, const muiDrawCommand* command, m
 }
 
 // Whether an instance meets its clip's bounds.
-static bool Kept(const muiRhiCull* cull, const muiDrawList* list, const muiRhiInstance* instance)
+MUI_NODISCARD static bool Kept(const muiRhiCull* cull, const muiDrawList* list,
+                               const muiRhiInstance* instance)
 {
     return !muiRhiIsCulled(cull, list, instance->rect, instance->clip, instance->transform);
 }
@@ -366,8 +367,8 @@ static uint32_t PackRun(const muiDrawList* list, const muiDrawCommand* command,
 }
 
 // An image's instance, its image found unless it is culled first.
-static bool PackImage(const muiDrawList* list, const muiDrawCommand* command,
-                      const muiRhiPacking* packing, muiRhiInstance* instanceOut)
+MUI_NODISCARD static bool PackImage(const muiDrawList* list, const muiDrawCommand* command,
+                                    const muiRhiPacking* packing, muiRhiInstance* instanceOut)
 {
     if (muiRhiIsCulled(packing->cull, list, command->image.rect,
                        Index(command->clip, list->clipCount),

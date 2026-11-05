@@ -71,8 +71,8 @@ uint32_t muiCutPieces(const muiSegment* segments, uint32_t count, muiSegment* pi
 // The rows whose center lines cross a piece, its lower end included and
 // its upper end not, so a shared end is counted once; false for none.
 // Row r's center line is at top - r - 0.5.
-static bool Crossed(const muiSegment* s, const muiFieldGrid* grid, int64_t* firstOut,
-                    int64_t* lastOut)
+MUI_NODISCARD static bool Crossed(const muiSegment* s, const muiFieldGrid* grid, int64_t* firstOut,
+                                  int64_t* lastOut)
 {
     float low = s->y0 < s->y1 ? s->y0 : s->y1;
     float high = s->y0 < s->y1 ? s->y1 : s->y0;
@@ -182,7 +182,7 @@ static void Cross(const muiSegment* pieces, uint32_t count, const muiFieldGrid* 
     Sort(starts, grid->height, crossings);
 }
 
-static bool IsInside(const muiFieldGrid* grid, int32_t winding)
+MUI_NODISCARD static bool IsInside(const muiFieldGrid* grid, int32_t winding)
 {
     return grid->evenOdd ? (winding & 1) != 0 : winding != 0;
 }
@@ -312,7 +312,7 @@ static void Meet(const muiSegment* p, const muiSegment* q, int joined, Hits* hit
     }
 }
 
-static bool IsJoined(const muiSegment* a, const muiSegment* b)
+MUI_NODISCARD static bool IsJoined(const muiSegment* a, const muiSegment* b)
 {
     return a->x1 == b->x0 && a->y1 == b->y0;
 }
@@ -326,7 +326,7 @@ typedef struct Box
     float maxY;
 } Box;
 
-static bool IsApart(const muiSegment* s, const Box* box)
+MUI_NODISCARD static bool IsApart(const muiSegment* s, const Box* box)
 {
     return (s->x0 < box->minX && s->x1 < box->minX) || (s->x0 > box->maxX && s->x1 > box->maxX) ||
            (s->y0 < box->minY && s->y1 < box->minY) || (s->y0 > box->maxY && s->y1 > box->maxY);
@@ -381,8 +381,8 @@ static void FindHits(const muiSegment* pieces, uint32_t count, const muiFieldGri
 
 // Whether a point is inside, by the winding of the pieces a ray from it
 // to the left crosses.
-static bool IsPointInside(const muiSegment* pieces, uint32_t count, const muiFieldGrid* grid,
-                          float x, float y)
+MUI_NODISCARD static bool IsPointInside(const muiSegment* pieces, uint32_t count,
+                                        const muiFieldGrid* grid, float x, float y)
 {
     int32_t winding = 0;
     for (uint32_t i = 0; i < count; i++)
@@ -534,7 +534,7 @@ typedef struct Reach
     int64_t r1;
 } Reach;
 
-static bool ReachOf(const muiSegment* s, const muiFieldGrid* grid, Reach* out)
+MUI_NODISCARD static bool ReachOf(const muiSegment* s, const muiFieldGrid* grid, Reach* out)
 {
     float reach = (float)grid->spread;
     float left = (float)grid->left + 0.5f;

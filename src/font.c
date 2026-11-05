@@ -187,7 +187,7 @@ static void ReadMetrics(muiFont* font)
 // Reads the face's variation axes, up to MUI_MAX_FONT_AXES, the weight,
 // width and slant OS/2 gives it, and whether it has colour layers; false
 // when memory runs out.
-static bool ReadStyle(FT_Library library, muiFont* font)
+MUI_NODISCARD static bool ReadStyle(FT_Library library, muiFont* font)
 {
     FT_Face face = font->face;
     const TT_OS2* os2 = FT_Get_Sfnt_Table(face, FT_SFNT_OS2);

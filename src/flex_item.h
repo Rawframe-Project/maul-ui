@@ -109,7 +109,8 @@ static inline MUI_SIZE_OUTLINE muiAlign muiFlexAlignOf(const muiFlexFrame* frame
 // Whether a child takes its line's cross size: it aligns by stretch, its
 // cross size is automatic (a percentage that cannot resolve is not,
 // section 9.4 step 11) and neither cross margin is automatic.
-static inline bool muiFlexIsStretched(const muiFlexFrame* frame, const muiLayoutStyle* child)
+MUI_NODISCARD static inline bool muiFlexIsStretched(const muiFlexFrame* frame,
+                                                    const muiLayoutStyle* child)
 {
     muiDimension cross = frame->row ? child->sizing.height : child->sizing.width;
     return muiFlexAlignOf(frame, child) == mui_alignStretch && cross.kind == mui_dimensionAuto &&

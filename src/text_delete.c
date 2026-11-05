@@ -41,13 +41,13 @@ static void ClusterAround(const char* text, uint32_t length, uint32_t offset, ui
     *afterOut = at > offset ? (uint32_t)at : length;
 }
 
-static bool IsVariationSelector(uint32_t point)
+MUI_NODISCARD static bool IsVariationSelector(uint32_t point)
 {
     return (point >= 0xFE00 && point <= 0xFE0F) || (point >= 0xE0100 && point <= 0xE01EF);
 }
 
 // Whether a code point makes its cluster go whole.
-static bool IsWhole(uint32_t point)
+MUI_NODISCARD static bool IsWhole(uint32_t point)
 {
     return muniIsExtendedPictographic(point) ||
            muniGetGraphemeBreak(point) == muni_gcbRegionalIndicator || point == COMBINING_KEYCAP ||

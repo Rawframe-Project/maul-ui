@@ -52,13 +52,13 @@ typedef struct muiRunChains
 // Makes a block's run styles, and each byte's, for a node's computed
 // style, unless they are those last made; none when no span sets what
 // shapes. False when memory runs out.
-bool muiPrepareRuns(muiTextService* service, muiTextBlock* block,
-                    const muiComputedTextStyle* style);
+MUI_NODISCARD bool muiPrepareRuns(muiTextService* service, muiTextBlock* block,
+                                  const muiComputedTextStyle* style);
 
 // The chains of a block's run styles, or of the node's style alone;
 // false when the node's font names no face.
-bool muiBuildRunChains(const muiTextService* service, const muiTextBlock* block,
-                       const muiComputedTextStyle* style, muiRunChains* out);
+MUI_NODISCARD bool muiBuildRunChains(const muiTextService* service, const muiTextBlock* block,
+                                     const muiComputedTextStyle* style, muiRunChains* out);
 
 // A byte's run style; 0, the node's, in a block without run styles.
 static inline uint32_t muiRunOf(const muiTextBlock* block, uint32_t offset)

@@ -32,7 +32,7 @@ static jint SeenOf(const muiAndroidAdapter* adapter, uint64_t id)
 
 // Whether anything of a record but its name and value text changed, as
 // clients would read it.
-static bool OtherDiffers(const muiAccessNode* old, const muiAccessNode* node)
+MUI_NODISCARD static bool OtherDiffers(const muiAccessNode* old, const muiAccessNode* node)
 {
     const uint32_t read = mui_accessCheckable | mui_accessMixed | mui_accessChecked |
                           mui_accessSelected | mui_accessDisabled | mui_accessExpanded |
@@ -82,7 +82,7 @@ static jint ChangesOf(const muiAccessNode* old, const muiAccessNode* node)
     return changes != 0 ? changes : -1;
 }
 
-static bool IsTrail(char byte)
+MUI_NODISCARD static bool IsTrail(char byte)
 {
     return ((unsigned char)byte & 0xC0u) == 0x80u;
 }

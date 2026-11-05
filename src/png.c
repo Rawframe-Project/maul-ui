@@ -69,7 +69,8 @@ static uint32_t Crc32(const uint8_t* data, size_t size)
     return ~crc;
 }
 
-static bool ReadHeader(const uint8_t* p, uint32_t length, uint32_t maxExtent, Header* h)
+MUI_NODISCARD static bool ReadHeader(const uint8_t* p, uint32_t length, uint32_t maxExtent,
+                                     Header* h)
 {
     if (length != 13)
     {
@@ -88,7 +89,7 @@ static bool ReadHeader(const uint8_t* p, uint32_t length, uint32_t maxExtent, He
            p[12] <= 1;
 }
 
-static bool ReadPalette(const uint8_t* p, uint32_t length, Colors* c)
+MUI_NODISCARD static bool ReadPalette(const uint8_t* p, uint32_t length, Colors* c)
 {
     if (length == 0 || length % 3 != 0 || length / 3 > 256)
     {
@@ -105,7 +106,8 @@ static bool ReadPalette(const uint8_t* p, uint32_t length, Colors* c)
     return true;
 }
 
-static bool ReadTransparency(const uint8_t* p, uint32_t length, const Header* h, Colors* c)
+MUI_NODISCARD static bool ReadTransparency(const uint8_t* p, uint32_t length, const Header* h,
+                                           Colors* c)
 {
     if (h->type == PALETTE)
     {
@@ -242,7 +244,7 @@ static void UnfilterRow(uint8_t filter, uint8_t* row, const uint8_t* prior, size
 }
 
 // Unfilters a pass's rows in place; false for an unknown filter.
-static bool Unfilter(uint8_t* rows, size_t rowBytes, uint32_t height, size_t bpp)
+MUI_NODISCARD static bool Unfilter(uint8_t* rows, size_t rowBytes, uint32_t height, size_t bpp)
 {
     const uint8_t* prior = nullptr;
     for (uint32_t y = 0; y < height; y++)
@@ -292,7 +294,8 @@ static uint8_t Scale(uint32_t sample, uint32_t depth)
 }
 
 // Expands one pixel; false for a palette index past the palette.
-static bool Expand(const Header* h, const Colors* c, const uint8_t* row, uint32_t x, uint8_t* out)
+MUI_NODISCARD static bool Expand(const Header* h, const Colors* c, const uint8_t* row, uint32_t x,
+                                 uint8_t* out)
 {
     size_t first = (size_t)x * h->channels;
     uint32_t s[4] = {0, 0, 0, 0};
@@ -335,7 +338,7 @@ static bool Expand(const Header* h, const Colors* c, const uint8_t* row, uint32_
 }
 
 // Unfilters and expands the inflated rows into the image.
-static bool Develop(const Header* h, const Colors* c, uint8_t* raw, uint8_t* pixels)
+MUI_NODISCARD static bool Develop(const Header* h, const Colors* c, uint8_t* raw, uint8_t* pixels)
 {
     size_t bpp = (h->channels * h->depth + 7) / 8;
     for (uint32_t pass = 0; pass < (h->interlaced ? 7u : 1u); pass++)
@@ -383,7 +386,7 @@ static uint32_t Tag(const char name[4])
 }
 
 // The chunk at *at, its CRC checked, *at moved past it.
-static bool NextChunk(const uint8_t* data, size_t size, size_t* at, Chunk* chunk)
+MUI_NODISCARD static bool NextChunk(const uint8_t* data, size_t size, size_t* at, Chunk* chunk)
 {
     if (size - *at < 12)
     {
@@ -412,7 +415,7 @@ typedef struct Reading
 } Reading;
 
 // Takes one chunk in order; *ended set at IEND.
-static bool Take(Reading* r, const Chunk* chunk, uint32_t maxExtent, bool* ended)
+MUI_NODISCARD static bool Take(Reading* r, const Chunk* chunk, uint32_t maxExtent, bool* ended)
 {
     if (!r->seenHeader)
     {
@@ -454,7 +457,8 @@ static bool Take(Reading* r, const Chunk* chunk, uint32_t maxExtent, bool* ended
 static const uint8_t SIGNATURE[8] = {137, 80, 78, 71, 13, 10, 26, 10};
 
 // Reads every chunk, checking their order.
-static bool ReadChunks(const uint8_t* data, size_t size, uint32_t maxExtent, Reading* r)
+MUI_NODISCARD static bool ReadChunks(const uint8_t* data, size_t size, uint32_t maxExtent,
+                                     Reading* r)
 {
     size_t at = sizeof SIGNATURE;
     bool ended = false;

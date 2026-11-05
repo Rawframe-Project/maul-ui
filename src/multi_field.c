@@ -36,13 +36,13 @@ enum
 // unit directions is past sin 3, or which turns back.
 static const float CORNER_CROSS = 0.14112000806f;
 
-static bool IsJoined(const muiSegment* a, const muiSegment* b)
+MUI_NODISCARD static bool IsJoined(const muiSegment* a, const muiSegment* b)
 {
     return a->x1 == b->x0 && a->y1 == b->y0;
 }
 
 // Whether the joint from one edge segment to the next turns at a corner.
-static bool Turns(const muiSegment* a, const muiSegment* b)
+MUI_NODISCARD static bool Turns(const muiSegment* a, const muiSegment* b)
 {
     float ax = a->x1 - a->x0;
     float ay = a->y1 - a->y0;
@@ -60,8 +60,8 @@ static bool Turns(const muiSegment* a, const muiSegment* b)
 
 // Whether the joint from edge segment a to b is a corner: they are parts
 // of different lines or curves that turn there.
-static bool IsCorner(const muiFieldScratch* scratch, const muiMultiScratch* multi, uint32_t a,
-                     uint32_t b)
+MUI_NODISCARD static bool IsCorner(const muiFieldScratch* scratch, const muiMultiScratch* multi,
+                                   uint32_t a, uint32_t b)
 {
     return multi->curves[scratch->edgeOrigins[a]] != multi->curves[scratch->edgeOrigins[b]] &&
            Turns(&scratch->edge[a], &scratch->edge[b]);
@@ -79,7 +79,8 @@ static uint8_t NextColor(uint8_t color, uint8_t banned)
 
 // Whether chain a's start comes before chain b's, by x, then y, then
 // index: a total order, so the sort is the same everywhere.
-static bool StartsBefore(const muiSegment* edge, const uint32_t* chains, uint32_t a, uint32_t b)
+MUI_NODISCARD static bool StartsBefore(const muiSegment* edge, const uint32_t* chains, uint32_t a,
+                                       uint32_t b)
 {
     const muiSegment* p = &edge[chains[a]];
     const muiSegment* q = &edge[chains[b]];
@@ -294,8 +295,8 @@ static void Color(const muiFieldScratch* scratch, const muiMultiScratch* multi, 
 
 // The pixels whose centers are within the spread of a segment's box:
 // columns c0 to c1 and rows r0 to r1; false for none.
-static bool ReachOf(const muiSegment* s, const muiFieldGrid* grid, int64_t* c0, int64_t* c1,
-                    int64_t* r0, int64_t* r1)
+MUI_NODISCARD static bool ReachOf(const muiSegment* s, const muiFieldGrid* grid, int64_t* c0,
+                                  int64_t* c1, int64_t* r0, int64_t* r1)
 {
     float reach = (float)grid->spread;
     float left = (float)grid->left + 0.5f;

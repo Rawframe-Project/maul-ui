@@ -89,7 +89,7 @@ static const uint8_t s_classes[MUI_ROLE_LAST + 1] = {
 // type.
 #define RANGE_FLOAT 1
 
-static bool Has(const muiAccessNode* node, muiAccessAction action)
+MUI_NODISCARD static bool Has(const muiAccessNode* node, muiAccessAction action)
 {
     return (node->actions & (1u << action)) != 0;
 }
@@ -124,8 +124,8 @@ static jint FlagsOf(const muiAndroidAdapter* adapter, const muiAccessNode* node)
 }
 
 // The first of three actions the node has, or none.
-static bool FirstOf(const muiAccessNode* node, const muiAccessAction* actions,
-                    muiAccessAction* actionOut)
+MUI_NODISCARD static bool FirstOf(const muiAccessNode* node, const muiAccessAction* actions,
+                                  muiAccessAction* actionOut)
 {
     for (int i = 0; i < 3; i++)
     {
@@ -146,8 +146,8 @@ static const muiAccessAction s_forward[3] = {mui_actionScrollDown, mui_actionScr
 // The host's action for the provider's at an index; whether there is
 // one. A click on a focusable node without one of its own is still a
 // click, which activates it.
-static bool HostActionOf(const muiAndroidAdapter* adapter, const muiAccessNode* node, int action,
-                         muiAccessAction* actionOut)
+MUI_NODISCARD static bool HostActionOf(const muiAndroidAdapter* adapter, const muiAccessNode* node,
+                                       int action, muiAccessAction* actionOut)
 {
     uint32_t flags = node->flags;
     bool focused = muiRecordActiveFocus(adapter->tree) == node->id;
@@ -310,7 +310,7 @@ muiAndroidText muiAndroidTextOf(const muiAccessNode* node, int kind)
     }
 }
 
-static bool Holds(const muiAccessTree* tree, uint64_t id, float x, float y)
+MUI_NODISCARD static bool Holds(const muiAccessTree* tree, uint64_t id, float x, float y)
 {
     muiRect box = {0};
     return muiAccessTree_GetBounds(tree, id, &box) == mui_success && x >= box.x &&

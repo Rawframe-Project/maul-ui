@@ -18,16 +18,20 @@
 // Whether each part of marks fits a text of length bytes: offsets within
 // it at the starts of characters; lines ascending from 0, words in order
 // and apart, each with bytes in it. None given fits.
-bool muiAccessSelectionFits(const muiAccessTextMarks* marks, const char* text, uint32_t length);
-bool muiAccessLinesFit(const muiAccessTextMarks* marks, const char* text, uint32_t length);
-bool muiAccessWordsFit(const muiAccessTextMarks* marks, const char* text, uint32_t length);
+MUI_NODISCARD bool muiAccessSelectionFits(const muiAccessTextMarks* marks, const char* text,
+                                          uint32_t length);
+MUI_NODISCARD bool muiAccessLinesFit(const muiAccessTextMarks* marks, const char* text,
+                                     uint32_t length);
+MUI_NODISCARD bool muiAccessWordsFit(const muiAccessTextMarks* marks, const char* text,
+                                     uint32_t length);
 
 // Whether where marks show a text fits it: a box each line, tops above
 // bottoms, first clusters ascending from 0, none for a line whose
 // clusters are left out; clusters with bytes in them
 // at the starts of characters, left edges before right ones; all finite.
 // None given fits; clusters without line boxes do not.
-bool muiAccessGeometryFits(const muiAccessTextMarks* marks, const char* text, uint32_t length);
+MUI_NODISCARD bool muiAccessGeometryFits(const muiAccessTextMarks* marks, const char* text,
+                                         uint32_t length);
 
 // The rectangles of a byte range of a shown text in its node's own
 // space, whose bounds are given: one each line, around its clusters with
@@ -64,14 +68,15 @@ void muiAccessFreeRects(muiAccessRects* rects);
 // width of -1 for a unit no cluster holds or past the text. False for a
 // node not held, text without clusters, or memory run out. The allocator
 // is its owner's, which busy marks while it runs.
-bool muiAccessUnitRects(const muiAccessTree* tree, uint64_t id, uint32_t first, uint32_t count,
-                        const muiAllocator* allocator, const bool* busy, muiRect* rectsOut);
+MUI_NODISCARD bool muiAccessUnitRects(const muiAccessTree* tree, uint64_t id, uint32_t first,
+                                      uint32_t count, const muiAllocator* allocator,
+                                      const bool* busy, muiRect* rectsOut);
 
 // The box around a range's rectangles where the root is placed: the
 // node's bounds when its text has no clusters and the range is not
 // empty; false for none.
-bool muiAccessTextBox(const muiAccessTree* tree, uint64_t id, uint32_t start, uint32_t end,
-                      const muiAllocator* allocator, muiRect* boxOut);
+MUI_NODISCARD bool muiAccessTextBox(const muiAccessTree* tree, uint64_t id, uint32_t start,
+                                    uint32_t end, const muiAllocator* allocator, muiRect* boxOut);
 
 // The units a value text is read and moved by.
 typedef enum muiAccessUnit
@@ -96,8 +101,8 @@ muiAccessText muiAccessValueOf(const muiAccessNode* node);
 // Whether a node is a text input (a text input's roles, an editable
 // combo box); whether the adapters give its value as text being edited:
 // a text input's, or one with a selection.
-bool muiAccessIsTextInput(const muiAccessNode* node);
-bool muiAccessIsEdited(const muiAccessNode* node);
+MUI_NODISCARD bool muiAccessIsTextInput(const muiAccessNode* node);
+MUI_NODISCARD bool muiAccessIsEdited(const muiAccessNode* node);
 
 // The first boundary of a unit after a byte offset, the text's end past
 // the last; the last before it, 0 before the first. A character is a

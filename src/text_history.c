@@ -51,7 +51,8 @@ static uint32_t LastPoint(const char* text, uint32_t length)
 }
 
 // Whether text going in after other text starts a word after white space.
-static bool StartsWord(const char* before, uint32_t beforeLength, const char* text, uint32_t length)
+MUI_NODISCARD static bool StartsWord(const char* before, uint32_t beforeLength, const char* text,
+                                     uint32_t length)
 {
     uint32_t first = 0;
     size_t size = 1;
@@ -63,8 +64,8 @@ static bool StartsWord(const char* before, uint32_t beforeLength, const char* te
 // the selection anywhere closes a run (muiPlaceSelection), so an edit of
 // that kind starts where the last left the caret: typing joins unless it
 // starts a word, deletions always.
-static bool Continues(const muiTextEditing* editing, const muiTextEdit* last,
-                      const muiTextEdit* edit, const char* inserted)
+MUI_NODISCARD static bool Continues(const muiTextEditing* editing, const muiTextEdit* last,
+                                    const muiTextEdit* edit, const char* inserted)
 {
     return edit->kind != MUI_EDIT_TYPING || !StartsWord(muiEditBytes(editing, last) + last->removed,
                                                         last->inserted, inserted, edit->inserted);

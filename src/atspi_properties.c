@@ -31,7 +31,8 @@ static const char* const s_application[] = {"ToolkitName",  "Version",          
 
 // A node's name, or the application's, as a variant: a window's root
 // without a name of its own takes the application's, as its title.
-static bool AppendName(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object)
+MUI_NODISCARD static bool AppendName(muiAtspiApp* app, muiDBusIter* iter,
+                                     const muiAtspiObject* object)
 {
     const muiAccessTree* tree = object->node != nullptr ? object->adapter->tree : nullptr;
     size_t length = 0;
@@ -60,8 +61,8 @@ static bool AppendName(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject
 
 // A text of a node's as a variant, empty for none. The record's texts
 // end in a NUL.
-static bool AppendText(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object,
-                       muiAccessTextKind kind)
+MUI_NODISCARD static bool AppendText(muiAtspiApp* app, muiDBusIter* iter,
+                                     const muiAtspiObject* object, muiAccessTextKind kind)
 {
     const char* text = object->node != nullptr && object->node->text[kind] != nullptr
                            ? object->node->text[kind]
@@ -69,7 +70,8 @@ static bool AppendText(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject
     return muiAtspiAppendVariant(app, iter, mui_dbusTypeString, (const void*)&text);
 }
 
-static bool AppendParent(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object)
+MUI_NODISCARD static bool AppendParent(muiAtspiApp* app, muiDBusIter* iter,
+                                       const muiAtspiObject* object)
 {
     muiDBusIter variant = {0};
     bool ok = app->dbus.openContainer(iter, mui_dbusTypeVariant, "(so)", &variant) &&
@@ -79,8 +81,8 @@ static bool AppendParent(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObje
 
 // Writes an Accessible property as a variant; false for an unknown one,
 // with *ok false when memory ran out.
-static bool AppendAccessible(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object,
-                             const char* name, bool* ok)
+MUI_NODISCARD static bool AppendAccessible(muiAtspiApp* app, muiDBusIter* iter,
+                                           const muiAtspiObject* object, const char* name, bool* ok)
 {
     const char* none = "";
     if (strcmp(name, "Name") == 0)
@@ -113,7 +115,8 @@ static bool AppendAccessible(muiAtspiApp* app, muiDBusIter* iter, const muiAtspi
 }
 
 // Writes an Application property as a variant; false for an unknown one.
-static bool AppendApplication(muiAtspiApp* app, muiDBusIter* iter, const char* name, bool* ok)
+MUI_NODISCARD static bool AppendApplication(muiAtspiApp* app, muiDBusIter* iter, const char* name,
+                                            bool* ok)
 {
     char version[32];
     muiChars chars = muiCharsIn(version, sizeof version);
@@ -150,7 +153,7 @@ static bool AppendApplication(muiAtspiApp* app, muiDBusIter* iter, const char* n
 }
 
 // Whether an object has an interface.
-static bool Has(const muiAtspiObject* object, const char* interface)
+MUI_NODISCARD static bool Has(const muiAtspiObject* object, const char* interface)
 {
     const char* interfaces[MUI_ATSPI_INTERFACES];
     uint32_t count = muiAtspiInterfacesOf(object, interfaces);
@@ -164,8 +167,9 @@ static bool Has(const muiAtspiObject* object, const char* interface)
     return false;
 }
 
-static bool AppendProperty(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object,
-                           const char* interface, const char* name, bool* ok)
+MUI_NODISCARD static bool AppendProperty(muiAtspiApp* app, muiDBusIter* iter,
+                                         const muiAtspiObject* object, const char* interface,
+                                         const char* name, bool* ok)
 {
     if (strcmp(interface, INTERFACE_ACCESSIBLE) == 0)
     {
@@ -188,8 +192,8 @@ static bool AppendProperty(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiOb
 }
 
 // Reads a call's strings, as many as asked; false for fewer.
-static bool ReadStrings(const muiDBusApi* dbus, DBusMessage* call, const char** first,
-                        const char** second, muiDBusIter* restOut)
+MUI_NODISCARD static bool ReadStrings(const muiDBusApi* dbus, DBusMessage* call, const char** first,
+                                      const char** second, muiDBusIter* restOut)
 {
     muiDBusIter iter;
     if (!dbus->iterInit(call, &iter) || dbus->argType(&iter) != mui_dbusTypeString)
@@ -241,8 +245,8 @@ static void Get(muiAtspiApp* app, DBusMessage* call, const muiAtspiObject* objec
     muiAtspiSend(app, call, reply);
 }
 
-static bool AppendAll(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object,
-                      const char* interface)
+MUI_NODISCARD static bool AppendAll(muiAtspiApp* app, muiDBusIter* iter,
+                                    const muiAtspiObject* object, const char* interface)
 {
     const muiDBusApi* dbus = &app->dbus;
     const char* const* names = nullptr;
@@ -311,8 +315,8 @@ static void GetAll(muiAtspiApp* app, DBusMessage* call, const muiAtspiObject* ob
 // The two properties set: the application's id, which the registry
 // gives, and a range's current value, asked of the host. Every other
 // property is read only.
-static bool SetProperty(muiAtspiApp* app, const muiAtspiObject* object, const char* interface,
-                        const char* name, muiDBusIter* inside)
+MUI_NODISCARD static bool SetProperty(muiAtspiApp* app, const muiAtspiObject* object,
+                                      const char* interface, const char* name, muiDBusIter* inside)
 {
     const muiDBusApi* dbus = &app->dbus;
     double value = 0.0;

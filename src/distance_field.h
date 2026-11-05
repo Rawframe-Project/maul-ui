@@ -15,6 +15,8 @@
 #ifndef MAUL_UI_SRC_DISTANCE_FIELD_H
 #define MAUL_UI_SRC_DISTANCE_FIELD_H
 
+#include "maul-ui/base.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>

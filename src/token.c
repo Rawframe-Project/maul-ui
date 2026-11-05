@@ -251,7 +251,8 @@ muiResult muiToken_GetValue(const muiContext* context, muiTokenId tokenId, muiTo
 
 // Names token for property in set, replacing its value or name; false
 // when the context has no name left.
-static bool Name(muiStyleStore* store, muiPropertySet* set, muiProperty property, muiTokenId token)
+MUI_NODISCARD static bool Name(muiStyleStore* store, muiPropertySet* set, muiProperty property,
+                               muiTokenId token)
 {
     const muiPropertyBits bit = muiPropertyOf(property);
     for (uint32_t at = set->firstTokenName; muiIntersects(set->tokens, bit) && at != 0;
@@ -277,8 +278,8 @@ static bool Name(muiStyleStore* store, muiPropertySet* set, muiProperty property
 
 // Whether a variant of a class may read token for property: a property
 // of the token's type that the variant's condition does not read.
-static bool MayName(const muiContext* context, const muiStyleClass* class, muiVariant variant,
-                    muiProperty property, muiTokenId token)
+MUI_NODISCARD static bool MayName(const muiContext* context, const muiStyleClass* class,
+                                  muiVariant variant, muiProperty property, muiTokenId token)
 {
     muiTokenType type = muiPropertyTokenType(property);
     if (type == 0)

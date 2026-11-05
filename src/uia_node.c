@@ -395,7 +395,7 @@ static ULONG STDMETHODCALLTYPE RootRelease(muiUiaFragmentRoot* fragmentRoot)
     return ReleaseReference(FromFragmentRoot(fragmentRoot));
 }
 
-static bool Contains(const muiUiaRect* rect, double x, double y)
+MUI_NODISCARD static bool Contains(const muiUiaRect* rect, double x, double y)
 {
     return x >= rect->left && x < rect->left + rect->width && y >= rect->top &&
            y < rect->top + rect->height;

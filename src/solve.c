@@ -15,7 +15,7 @@
 
 #include <math.h>
 
-static bool IsSized(muiMeasureMode mode)
+MUI_NODISCARD static bool IsSized(muiMeasureMode mode)
 {
     return mode == mui_measureExact || mode == mui_measureAtMost;
 }
@@ -26,7 +26,8 @@ static bool IsSized(muiMeasureMode mode)
 // space; or a smaller space the old size still fits. The two that take a
 // content size for an exact or limited one hold only while it is the
 // content's own (loose).
-static bool AxisAnswers(muiMeasureAxis next, muiMeasureAxis old, float result, bool loose)
+MUI_NODISCARD static bool AxisAnswers(muiMeasureAxis next, muiMeasureAxis old, float result,
+                                      bool loose)
 {
     if (next.mode == old.mode && (!IsSized(next.mode) || next.size == old.size))
     {
@@ -49,7 +50,7 @@ static bool AxisAnswers(muiMeasureAxis next, muiMeasureAxis old, float result, b
 // limit, which the node resolves against the extents in its input (a
 // parent resolves a scaled size too, but a query it leaves open, as with
 // an aspect ratio, still reaches the node's own).
-static bool ReadsParentExtent(const muiSizing* sizing)
+MUI_NODISCARD static bool ReadsParentExtent(const muiSizing* sizing)
 {
     return muiIsScaled(sizing->width) || muiIsScaled(sizing->height) ||
            muiIsScaled(sizing->minWidth) || muiIsScaled(sizing->maxWidth) ||
@@ -57,7 +58,7 @@ static bool ReadsParentExtent(const muiSizing* sizing)
 }
 
 // Whether a node's own minimum or maximum limits it along an axis.
-static bool IsLimited(const muiSizing* sizing, bool horizontal)
+MUI_NODISCARD static bool IsLimited(const muiSizing* sizing, bool horizontal)
 {
     return horizontal ? sizing->minWidth.kind != mui_dimensionAuto ||
                             sizing->maxWidth.kind != mui_dimensionAuto
@@ -503,7 +504,7 @@ static float RatioContentHeight(const muiSolver* solver, uint32_t node, const mu
 }
 
 // Whether a node is a column that wraps, with items to wrap.
-static bool IsWrappingColumn(const muiSolver* solver, uint32_t node)
+MUI_NODISCARD static bool IsWrappingColumn(const muiSolver* solver, uint32_t node)
 {
     const muiFlexContainer* container = &solver->nodes[node - 1].style.container;
     return muiTreeAt(solver->tree, node)->links.firstChild != 0 &&
@@ -617,7 +618,7 @@ static muiSizingInput OwnDirection(const muiLayoutStyle* style, const muiSizingI
     return own;
 }
 
-static bool IsSameSize(muiSize a, muiSize b)
+MUI_NODISCARD static bool IsSameSize(muiSize a, muiSize b)
 {
     return a.width == b.width && a.height == b.height;
 }

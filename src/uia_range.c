@@ -66,7 +66,7 @@ static muiAccessUnit UnitOf(int unit)
 
 // The text a range reads, its offsets kept within it at the starts of
 // characters; false for a node gone.
-static bool TextOf(muiUiaRange* range, muiAccessText* textOut)
+MUI_NODISCARD static bool TextOf(muiUiaRange* range, muiAccessText* textOut)
 {
     const muiAccessNode* held = muiUiaNodeFor(range->node);
     if (held == nullptr)
@@ -82,7 +82,7 @@ static bool TextOf(muiUiaRange* range, muiAccessText* textOut)
     return true;
 }
 
-static bool IsBoundary(const muiAccessText* text, muiAccessUnit unit, uint32_t at)
+MUI_NODISCARD static bool IsBoundary(const muiAccessText* text, muiAccessUnit unit, uint32_t at)
 {
     return at == 0 || at == text->length ||
            muiAccessBoundaryAfter(text, unit, muiAccessBoundaryBefore(text, unit, at)) == at;
@@ -175,7 +175,7 @@ static HRESULT STDMETHODCALLTYPE Clone(muiUiaRange* self, muiUiaRange** out)
 }
 
 // Whether another range is one of the same node's text.
-static bool IsSameText(const muiUiaRange* range, const muiUiaRange* other)
+MUI_NODISCARD static bool IsSameText(const muiUiaRange* range, const muiUiaRange* other)
 {
     return other != nullptr && other->lpVtbl == &s_rangeTable && other->node == range->node;
 }

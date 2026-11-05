@@ -57,8 +57,9 @@ jobs:
 
   # The rules no compiler checks: formatting, the family's source, module,
   # length, API documentation and snippet checks, the text component's
-  # header list, the litmus check on the API, test hygiene and labels, the
-  # layout fixtures' tables, the documentation site, and clang-tidy over
+  # header list, the litmus check on the API, the nodiscard marks, test
+  # hygiene and labels, the layout fixtures' tables, the documentation
+  # site, and clang-tidy over
   # the core's, the renderer's
   # and the glue's sources. It runs on documentation changes too, since the
   # snippet check and the site read docs/.
@@ -96,6 +97,8 @@ jobs:
           python3 tools/check_text_headers.py
           python3 tools/check_litmus.py
           python3 tools/check_float_env.py
+          python3 tools/check_nodiscard.py --self-test
+          python3 tools/check_nodiscard.py
       # Every test registration, in the two Linux cells the pull request
       # check runs: the core and text component's, and the renderer's,
       # glue's and samples'.

@@ -10,7 +10,7 @@
 
 // A function of the library by name. The pointer comes back as data
 // from dlsym and is copied, not cast, into the function pointer.
-static bool Find(void* library, const char* name, void* function, size_t size)
+MUI_NODISCARD static bool Find(void* library, const char* name, void* function, size_t size)
 {
     void* symbol = dlsym(library, name);
     if (symbol == nullptr)
@@ -23,7 +23,7 @@ static bool Find(void* library, const char* name, void* function, size_t size)
 
 #define FIND(field, name) Find(api->library, #name, (void*)&api->field, sizeof(api->field))
 
-static bool FindConnection(muiDBusApi* api)
+MUI_NODISCARD static bool FindConnection(muiDBusApi* api)
 {
     return FIND(busGetPrivate, dbus_bus_get_private) &&
            FIND(openPrivate, dbus_connection_open_private) &&
@@ -43,7 +43,7 @@ static bool FindConnection(muiDBusApi* api)
            FIND(cancel, dbus_pending_call_cancel) && FIND(unrefPending, dbus_pending_call_unref);
 }
 
-static bool FindMessage(muiDBusApi* api)
+MUI_NODISCARD static bool FindMessage(muiDBusApi* api)
 {
     return FIND(newMethodCall, dbus_message_new_method_call) &&
            FIND(newMethodReturn, dbus_message_new_method_return) &&

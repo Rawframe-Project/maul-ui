@@ -96,7 +96,7 @@ static uint32_t Bits(Stream* s, uint32_t n)
 // Builds a code from its symbols' lengths; false for one with more codes
 // of a length than there are; an incomplete code is kept, its missing
 // codes failing when met.
-static bool Build(Huffman* h, const uint8_t* lengths, uint32_t n)
+MUI_NODISCARD static bool Build(Huffman* h, const uint8_t* lengths, uint32_t n)
 {
     memset(h->count, 0, sizeof h->count);
     for (uint32_t i = 0; i < n; i++)
@@ -372,7 +372,7 @@ static Next Fast(Stream* s, const Huffman* literals, const Huffman* distances)
 }
 
 // Inflates one block's codes until its end.
-static bool Codes(Stream* s, const Huffman* literals, const Huffman* distances)
+MUI_NODISCARD static bool Codes(Stream* s, const Huffman* literals, const Huffman* distances)
 {
     for (;;)
     {
@@ -388,7 +388,7 @@ static bool Codes(Stream* s, const Huffman* literals, const Huffman* distances)
     }
 }
 
-static bool Stored(Stream* s)
+MUI_NODISCARD static bool Stored(Stream* s)
 {
     // To the next whole byte.
     s->bits >>= s->bitCount % 8;
@@ -413,7 +413,7 @@ static bool Stored(Stream* s)
     return true;
 }
 
-static bool Fixed(Stream* s)
+MUI_NODISCARD static bool Fixed(Stream* s)
 {
     return Codes(s, &FIXED_LITERALS, &FIXED_DISTANCES);
 }
@@ -422,7 +422,7 @@ static bool Fixed(Stream* s)
 static const uint8_t ORDER[19] = {16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
 
 // Reads the lengths of a dynamic block's two codes.
-static bool ReadLengths(Stream* s, uint8_t* lengths, uint32_t total)
+MUI_NODISCARD static bool ReadLengths(Stream* s, uint8_t* lengths, uint32_t total)
 {
     uint32_t codes = Bits(s, 4) + 4;
     uint8_t codeLengths[19] = {0};
@@ -464,7 +464,7 @@ static bool ReadLengths(Stream* s, uint8_t* lengths, uint32_t total)
     return true;
 }
 
-static bool Dynamic(Stream* s)
+MUI_NODISCARD static bool Dynamic(Stream* s)
 {
     uint32_t literalCount = Bits(s, 5) + 257;
     uint32_t distanceCount = Bits(s, 5) + 1;

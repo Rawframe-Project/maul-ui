@@ -7,6 +7,8 @@
 #ifndef MAUL_UI_SRC_ID_MAP_H
 #define MAUL_UI_SRC_ID_MAP_H
 
+#include "maul-ui/base.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -27,7 +29,7 @@ void* muiIdMapFind(const muiIdMap* map, uint64_t id);
 
 // Puts a value under an id not in the map: false for the id 0 or a map
 // half full.
-bool muiIdMapInsert(muiIdMap* map, uint64_t id, void* value);
+MUI_NODISCARD bool muiIdMapInsert(muiIdMap* map, uint64_t id, void* value);
 
 // Takes an id out: the value it had, or NULL.
 void* muiIdMapRemove(muiIdMap* map, uint64_t id);

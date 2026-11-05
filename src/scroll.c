@@ -293,7 +293,7 @@ muiResult muiContext_SetScrollRule(muiContext* context, const muiScrollRule* rul
 // Whether a scroll container can move by right and down along either
 // axis, from where a step easing it goes or else from its offsets, which
 // are always within its limits (overscroll is kept apart).
-static bool CanMove(const muiContext* context, uint32_t slot, float right, float down)
+MUI_NODISCARD static bool CanMove(const muiContext* context, uint32_t slot, float right, float down)
 {
     const muiScrollStore* store = &context->scrolling;
     const muiScrollState* scroll = &context->scrolls[slot - 1];
@@ -369,7 +369,8 @@ static void Step(muiContext* context, uint32_t slot, float right, float down, ui
 
 // Moves a step's offsets to where elapsed nanoseconds take them, a cubic
 // ease out within the limits layout left; whether it is done.
-static bool Ease(muiContext* context, uint32_t slot, const muiScrollEase* ease, double elapsed)
+MUI_NODISCARD static bool Ease(muiContext* context, uint32_t slot, const muiScrollEase* ease,
+                               double elapsed)
 {
     // A time of 0 gives an infinity or a NaN, which fmin takes as 1.
     double t = fmin(elapsed / (double)context->scrolling.rule.easeNs, 1.0);
@@ -458,7 +459,8 @@ static muiFlung FlingAxis(const mtwnDecay* decay, const mtwnSpring* spring, doub
 // its start at its velocity, keeping the rule's rate of it a millisecond;
 // past a limit with overscroll, on past it. Whether it is done: slow
 // enough with nothing past a limit, or settled along each axis.
-static bool Decay(muiContext* context, uint32_t slot, const muiScrollEase* ease, double elapsed)
+MUI_NODISCARD static bool Decay(muiContext* context, uint32_t slot, const muiScrollEase* ease,
+                                double elapsed)
 {
     mtwnDecay decay;
     muiAssertCall(mtwnMakeDecayFromDeceleration((double)context->scrolling.rule.decelerationRate,
@@ -491,7 +493,8 @@ static bool Decay(muiContext* context, uint32_t slot, const muiScrollEase* ease,
 
 // Moves a bounce's overscroll along the spring from where it began at
 // rest toward none; whether it is done, the overscroll then none.
-static bool Bounce(muiContext* context, uint32_t slot, const muiScrollEase* ease, double elapsed)
+MUI_NODISCARD static bool Bounce(muiContext* context, uint32_t slot, const muiScrollEase* ease,
+                                 double elapsed)
 {
     const mtwnSpring spring = BounceSpring();
     double seconds = elapsed / 1e9;

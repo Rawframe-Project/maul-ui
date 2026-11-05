@@ -49,7 +49,7 @@ muiResult muiRhiPrepareCullWithin(muiRhiCull* cull, const muiDrawList* list, mui
 
 // Whether a quad, in the units of a transform of the list, misses the
 // bounds of a clip; both indices are the list's own, checked.
-bool muiRhiIsCulled(const muiRhiCull* cull, const muiDrawList* list, muiRect quad, uint32_t clip,
-                    uint32_t transform);
+MUI_NODISCARD bool muiRhiIsCulled(const muiRhiCull* cull, const muiDrawList* list, muiRect quad,
+                                  uint32_t clip, uint32_t transform);
 
 #endif // MAUL_UI_RHI_CULL_H

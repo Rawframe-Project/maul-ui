@@ -125,7 +125,7 @@ static inline muiResult muiRefuseText(muiTextService* service)
 // it writes any output, which may be one the call in progress has written
 // or is filling (maul-conventions.md, Errors and assertions). A NULL
 // service is left to the call.
-static inline bool muiRefusesBusyText(muiTextService* service)
+MUI_NODISCARD static inline bool muiRefusesBusyText(muiTextService* service)
 {
     if (service == nullptr || !service->busy)
     {

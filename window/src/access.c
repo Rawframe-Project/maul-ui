@@ -86,7 +86,7 @@ muiWindowAccessDef muiDefaultWindowAccessDef(void)
 }
 
 // What a client asks, done by the host's function or the context.
-static bool Act(void* user, const muiAccessRequest* request)
+MUI_NODISCARD static bool Act(void* user, const muiAccessRequest* request)
 {
     const muiWindowAccess* access = user;
     if (access->action != nullptr)

@@ -42,7 +42,7 @@ static const muiCompositionSegment* SegmentsOf(const mwinPreeditEvent* preedit,
 
 // Whether a preedit's caret is -1, hidden, or a character boundary of
 // its text, which may end it.
-static bool CaretFits(const mwinPreeditEvent* preedit)
+MUI_NODISCARD static bool CaretFits(const mwinPreeditEvent* preedit)
 {
     if (preedit->caret == -1)
     {

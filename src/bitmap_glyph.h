@@ -25,13 +25,13 @@ typedef struct muiBitmapGlyph
 } muiBitmapGlyph;
 
 // Whether the font has colour bitmaps at all.
-bool muiHasColorBitmaps(const muiFont* font);
+MUI_NODISCARD bool muiHasColorBitmaps(const muiFont* font);
 
 // Finds a glyph's colour bitmap for an em of pixelSize, from CBDT, else
 // from sbix: from the smallest strike that reaches it, else the largest,
 // passing over strikes without the glyph's PNG; false for none, or for
 // tables that do not hold together.
-bool muiFindBitmapGlyph(const muiFont* font, uint32_t glyph, float pixelSize,
-                        muiBitmapGlyph* glyphOut);
+MUI_NODISCARD bool muiFindBitmapGlyph(const muiFont* font, uint32_t glyph, float pixelSize,
+                                      muiBitmapGlyph* glyphOut);
 
 #endif // MAUL_UI_SRC_BITMAP_GLYPH_H

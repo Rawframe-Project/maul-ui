@@ -69,7 +69,8 @@ void muiEndPress(muiTextEditing* editing)
 // Whether a selection's ends are offsets of the block's text at a
 // character's start, as every edit and placement leaves them. They need
 // not be cluster boundaries: a host may place them inside a cluster.
-[[maybe_unused]] static bool EndsAtCharacters(const muiTextBlock* block, muiTextSelection selection)
+MUI_NODISCARD [[maybe_unused]] static bool EndsAtCharacters(const muiTextBlock* block,
+                                                            muiTextSelection selection)
 {
     return muiIsCharacterStart(block, muiTextOffsetOf(selection.anchor)) &&
            muiIsCharacterStart(block, muiTextOffsetOf(selection.caret.offset));

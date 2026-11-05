@@ -188,7 +188,7 @@ static HRESULT SetName(VARIANT* out, muiUiaAdapter* adapter, uint64_t id)
 }
 
 // Whether a clipping ancestor shows none of a node.
-static bool IsOffscreen(const muiUiaAdapter* adapter, uint64_t id)
+MUI_NODISCARD static bool IsOffscreen(const muiUiaAdapter* adapter, uint64_t id)
 {
     const muiAccessTree* tree = adapter->tree;
     muiRect box = {0};
@@ -210,7 +210,8 @@ static bool IsOffscreen(const muiUiaAdapter* adapter, uint64_t id)
 }
 
 // The properties taken from a node's texts.
-static bool TextProperty(VARIANT* out, const muiAccessNode* node, int property, HRESULT* result)
+MUI_NODISCARD static bool TextProperty(VARIANT* out, const muiAccessNode* node, int property,
+                                       HRESULT* result)
 {
     const char* landmark = nullptr;
     switch (property)
@@ -240,8 +241,8 @@ static bool TextProperty(VARIANT* out, const muiAccessNode* node, int property, 
 }
 
 // The properties taken from a node's flags.
-static bool StateProperty(VARIANT* out, const muiUiaAdapter* adapter, const muiAccessNode* node,
-                          int property)
+MUI_NODISCARD static bool StateProperty(VARIANT* out, const muiUiaAdapter* adapter,
+                                        const muiAccessNode* node, int property)
 {
     switch (property)
     {
@@ -273,7 +274,7 @@ static bool StateProperty(VARIANT* out, const muiUiaAdapter* adapter, const muiA
 
 // The properties taken from a node's typed values; none for a value the
 // node lacks.
-static bool ValueProperty(VARIANT* out, const muiAccessNode* node, int property)
+MUI_NODISCARD static bool ValueProperty(VARIANT* out, const muiAccessNode* node, int property)
 {
     const muiAccessValues* values = &node->values;
     const char* custom = nullptr;

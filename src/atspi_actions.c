@@ -48,7 +48,7 @@ uint32_t muiAtspiActionCount(const muiAccessNode* node)
     return count;
 }
 
-static bool Perform(const muiAtspiObject* object, muiAccessAction action, float value)
+MUI_NODISCARD static bool Perform(const muiAtspiObject* object, muiAccessAction action, float value)
 {
     const muiAccessRequest request = {.action = action, .target = object->node->id, .value = value};
     return muiActMarked(&object->adapter->app->busy, object->adapter->action, object->adapter->user,
@@ -69,7 +69,8 @@ static const Named* IndexedAction(const muiDBusApi* dbus, DBusMessage* call,
     return index >= 0 ? ActionAt(node, (uint32_t)index) : nullptr;
 }
 
-static bool AppendActions(muiAtspiApp* app, muiDBusIter* iter, const muiAccessNode* node)
+MUI_NODISCARD static bool AppendActions(muiAtspiApp* app, muiDBusIter* iter,
+                                        const muiAccessNode* node)
 {
     const muiDBusApi* dbus = &app->dbus;
     const char* none = "";
@@ -92,8 +93,8 @@ static bool AppendActions(muiAtspiApp* app, muiDBusIter* iter, const muiAccessNo
 
 // Writes the answer of an Action method; false for an unknown one, with
 // *ok false for a bad index, refused, or no memory.
-static bool AppendAction(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
-                         const muiAtspiObject* object, const char* member, bool* ok)
+MUI_NODISCARD static bool AppendAction(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
+                                       const muiAtspiObject* object, const char* member, bool* ok)
 {
     const muiAccessNode* node = object->node;
     const Named* named = IndexedAction(&app->dbus, call, node);

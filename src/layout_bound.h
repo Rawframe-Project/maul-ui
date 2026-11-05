@@ -16,6 +16,6 @@
 // not solved; true when it did, and the root's own solve then finds its
 // cache. False, having laid out nothing, when the change reaches the
 // root or is too wide: then every owing node's cache is to be cleared.
-bool muiBoundLayout(const muiSolver* solver, uint32_t root);
+MUI_NODISCARD bool muiBoundLayout(const muiSolver* solver, uint32_t root);
 
 #endif // MAUL_UI_SRC_LAYOUT_BOUND_H

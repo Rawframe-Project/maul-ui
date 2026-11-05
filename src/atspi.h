@@ -123,22 +123,23 @@ typedef struct muiAtspiObject
 } muiAtspiObject;
 
 // The object a path names; false for one that does not exist (any more).
-bool muiAtspiFind(const muiAtspiApp* app, const char* path, muiAtspiObject* objectOut);
+MUI_NODISCARD bool muiAtspiFind(const muiAtspiApp* app, const char* path,
+                                muiAtspiObject* objectOut);
 
 // Answers a method call to one of the adapter's objects; false for a
 // message that is not one.
-bool muiAtspiAnswer(muiAtspiApp* app, DBusMessage* call);
+MUI_NODISCARD bool muiAtspiAnswer(muiAtspiApp* app, DBusMessage* call);
 
 // Answers the Component interface's methods; false for another member.
-bool muiAtspiAnswerComponent(muiAtspiApp* app, DBusMessage* call, const muiAtspiObject* object,
-                             const char* member);
+MUI_NODISCARD bool muiAtspiAnswerComponent(muiAtspiApp* app, DBusMessage* call,
+                                           const muiAtspiObject* object, const char* member);
 
 // Sends a reply and lets it go; an error reply when it is NULL.
 void muiAtspiSend(muiAtspiApp* app, DBusMessage* call, DBusMessage* reply);
 
 // Notes whether a call's arguments read and name what the call needs;
 // when not, the call is refused. Returns taken.
-bool muiAtspiTaken(muiAtspiApp* app, bool taken);
+MUI_NODISCARD bool muiAtspiTaken(muiAtspiApp* app, bool taken);
 
 // Answers a call that could not be answered: InvalidArgs when its
 // arguments were refused, NoMemory otherwise.
@@ -147,28 +148,32 @@ void muiAtspiFail(muiAtspiApp* app, DBusMessage* call, const char* member);
 // Writing: an object reference (so), a string, a variant holding a
 // basic value, and the start and end of a container. Each is false
 // when memory runs out.
-bool muiAtspiAppendReference(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object);
-bool muiAtspiAppendString(muiAtspiApp* app, muiDBusIter* iter, const char* text);
-bool muiAtspiAppendVariant(muiAtspiApp* app, muiDBusIter* iter, int type, const void* value);
+MUI_NODISCARD bool muiAtspiAppendReference(muiAtspiApp* app, muiDBusIter* iter,
+                                           const muiAtspiObject* object);
+MUI_NODISCARD bool muiAtspiAppendString(muiAtspiApp* app, muiDBusIter* iter, const char* text);
+MUI_NODISCARD bool muiAtspiAppendVariant(muiAtspiApp* app, muiDBusIter* iter, int type,
+                                         const void* value);
 
 // Ends a container opened in iter: closed when ok, and abandoned when
 // not or when closing fails, since libdbus frees an open container's
 // memory only then. Every iterator starts zeroed, libdbus's closed
 // state, so one never opened is let be. Whether it closed.
-bool muiAtspiClose(muiAtspiApp* app, muiDBusIter* iter, muiDBusIter* sub, bool ok);
+MUI_NODISCARD bool muiAtspiClose(muiAtspiApp* app, muiDBusIter* iter, muiDBusIter* sub, bool ok);
 
 // The Action interface: how many actions a node has, the methods, and
 // the NActions property; the Value interface's properties, and setting
 // the current value through the host. The property writers are false
 // for a name they do not know.
 uint32_t muiAtspiActionCount(const muiAccessNode* node);
-bool muiAtspiAnswerAction(muiAtspiApp* app, DBusMessage* call, const muiAtspiObject* object,
-                          const char* member);
-bool muiAtspiAppendActionProperty(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object,
-                                  const char* name, bool* ok);
-bool muiAtspiAppendValueProperty(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object,
-                                 const char* name, bool* ok);
-bool muiAtspiSetValue(const muiAtspiObject* object, double value);
+MUI_NODISCARD bool muiAtspiAnswerAction(muiAtspiApp* app, DBusMessage* call,
+                                        const muiAtspiObject* object, const char* member);
+MUI_NODISCARD bool muiAtspiAppendActionProperty(muiAtspiApp* app, muiDBusIter* iter,
+                                                const muiAtspiObject* object, const char* name,
+                                                bool* ok);
+MUI_NODISCARD bool muiAtspiAppendValueProperty(muiAtspiApp* app, muiDBusIter* iter,
+                                               const muiAtspiObject* object, const char* name,
+                                               bool* ok);
+MUI_NODISCARD bool muiAtspiSetValue(const muiAtspiObject* object, double value);
 
 // The states a node's record alone decides (not visible, showing,
 // focused or active, which the tree decides); a state's AT-SPI name, ""
@@ -181,13 +186,14 @@ const char* muiAtspiStateName(uint32_t state);
 // methods, and the CharacterCount and CaretOffset properties; the
 // EditableText interface's methods, on a node whose text may be
 // replaced.
-bool muiAtspiHasText(const muiAccessNode* node);
-bool muiAtspiAnswerText(muiAtspiApp* app, DBusMessage* call, const muiAtspiObject* object,
-                        const char* member);
-bool muiAtspiAppendTextProperty(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object,
-                                const char* name, bool* ok);
-bool muiAtspiAnswerEditableText(muiAtspiApp* app, DBusMessage* call, const muiAtspiObject* object,
-                                const char* member);
+MUI_NODISCARD bool muiAtspiHasText(const muiAccessNode* node);
+MUI_NODISCARD bool muiAtspiAnswerText(muiAtspiApp* app, DBusMessage* call,
+                                      const muiAtspiObject* object, const char* member);
+MUI_NODISCARD bool muiAtspiAppendTextProperty(muiAtspiApp* app, muiDBusIter* iter,
+                                              const muiAtspiObject* object, const char* name,
+                                              bool* ok);
+MUI_NODISCARD bool muiAtspiAnswerEditableText(muiAtspiApp* app, DBusMessage* call,
+                                              const muiAtspiObject* object, const char* member);
 
 // An object's path.
 void muiAtspiPathOf(const muiAtspiObject* object, char pathOut[ATSPI_PATH_SIZE]);
@@ -205,8 +211,9 @@ void muiAtspiAnswerProperties(muiAtspiApp* app, DBusMessage* call, const muiAtsp
 // parent, and the null object.
 uint32_t muiAtspiChildCount(muiAtspiApp* app, const muiAtspiObject* object);
 int32_t muiAtspiIndexInParent(muiAtspiApp* app, const muiAtspiObject* object);
-bool muiAtspiAppendParent(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object);
-bool muiAtspiAppendNull(muiAtspiApp* app, muiDBusIter* iter);
+MUI_NODISCARD bool muiAtspiAppendParent(muiAtspiApp* app, muiDBusIter* iter,
+                                        const muiAtspiObject* object);
+MUI_NODISCARD bool muiAtspiAppendNull(muiAtspiApp* app, muiDBusIter* iter);
 
 // The object a node is, and its shown parent's: the application root
 // for a window's root. A window's root may be NULL for an empty tree.
@@ -244,7 +251,7 @@ void muiAtspiExtentsOf(const muiAtspiAdapter* adapter, uint64_t id, bool screen,
 // object's extents hold it.
 void muiAtspiRectIn(const muiAtspiObject* object, muiRect bounds, uint32_t coordinates,
                     int32_t extentsOut[4]);
-bool muiAtspiPointIn(const muiAtspiObject* object, uint32_t coordinates, int32_t x, int32_t y,
-                     float* xOut, float* yOut);
+MUI_NODISCARD bool muiAtspiPointIn(const muiAtspiObject* object, uint32_t coordinates, int32_t x,
+                                   int32_t y, float* xOut, float* yOut);
 
 #endif // MAUL_UI_SRC_ATSPI_H

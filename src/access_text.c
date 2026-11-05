@@ -12,7 +12,7 @@
 
 // Whether offset is within the text at a character's start: the end, or
 // a byte that does not continue a UTF-8 sequence.
-static bool IsStart(const char* text, size_t length, size_t offset)
+MUI_NODISCARD static bool IsStart(const char* text, size_t length, size_t offset)
 {
     return offset == length || (offset < length && ((unsigned char)text[offset] & 0xC0u) != 0x80u);
 }
@@ -65,12 +65,12 @@ bool muiAccessWordsFit(const muiAccessTextMarks* marks, const char* text, uint32
 }
 
 // Two edges, finite and in order.
-static bool IsSpan(float low, float high)
+MUI_NODISCARD static bool IsSpan(float low, float high)
 {
     return isfinite(low) && isfinite(high) && low <= high;
 }
 
-static bool LineBoxesFit(const muiAccessTextMarks* marks)
+MUI_NODISCARD static bool LineBoxesFit(const muiAccessTextMarks* marks)
 {
     uint32_t first = 0;
     for (uint32_t i = 0; i < marks->lineCount; i++)
@@ -120,7 +120,8 @@ static uint32_t EndOfLine(const muiAccessTextMarks* marks, uint32_t line)
 }
 
 // Whether a range has bytes of a line.
-static bool Touches(const muiAccessTextMarks* marks, uint32_t line, size_t start, size_t end)
+MUI_NODISCARD static bool Touches(const muiAccessTextMarks* marks, uint32_t line, size_t start,
+                                  size_t end)
 {
     size_t from = marks->lineStarts != nullptr ? marks->lineStarts[line] : 0;
     size_t to = line + 1 < marks->lineCount && marks->lineStarts != nullptr
@@ -290,7 +291,7 @@ bool muiAccessIsEdited(const muiAccessNode* node)
     return muiAccessIsTextInput(node) || node->marks.selected;
 }
 
-static bool IsLead(char byte)
+MUI_NODISCARD static bool IsLead(char byte)
 {
     return ((unsigned char)byte & 0xC0u) != 0x80u;
 }
@@ -349,7 +350,8 @@ static uint32_t BreakAt(const muiAccessText* text, uint32_t at)
 
 // A boundary of a unit given by starts (words' or lines'), from the
 // marks: the nth start; whether there is one.
-static bool StartOf(const muiAccessText* text, muiAccessUnit unit, uint32_t n, uint32_t* startOut)
+MUI_NODISCARD static bool StartOf(const muiAccessText* text, muiAccessUnit unit, uint32_t n,
+                                  uint32_t* startOut)
 {
     const muiAccessTextMarks* marks = text->marks;
     if (unit == mui_unitWord && n < marks->wordCount)

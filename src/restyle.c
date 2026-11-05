@@ -198,7 +198,7 @@ static muiConditionRun ApplyConditions(muiContext* context, uint32_t slot, const
     return run;
 }
 
-static bool IsSameSize(const muiConditionRun* a, const muiConditionRun* b)
+MUI_NODISCARD static bool IsSameSize(const muiConditionRun* a, const muiConditionRun* b)
 {
     return a->width == b->width && a->height == b->height;
 }
@@ -271,8 +271,8 @@ static muiValuesRef NodeValues(muiContext* context, uint32_t slot)
 
 // Whether a node's property is to change: its new value differs from
 // where it is going, the target of its running transition or its value.
-static bool IsChange(const muiMotion* motion, uint32_t slot, const muiStyleValues* values,
-                     muiProperty property)
+MUI_NODISCARD static bool IsChange(const muiMotion* motion, uint32_t slot,
+                                   const muiStyleValues* values, muiProperty property)
 {
     uint32_t record = muiFindAnimation(motion, slot, property);
     if (record == 0)
@@ -300,8 +300,9 @@ static bool IsChange(const muiMotion* motion, uint32_t slot, const muiStyleValue
 
 // Moves a changed property with its transition when it has one that can
 // move it; false when the change is to apply at once.
-static bool Transition(muiContext* context, uint32_t slot, const Resolution* resolution,
-                       muiProperty property, uint64_t nowNs)
+MUI_NODISCARD static bool Transition(muiContext* context, uint32_t slot,
+                                     const Resolution* resolution, muiProperty property,
+                                     uint64_t nowNs)
 {
     if (!muiHasProperty(resolution->named, property) || context->environment.reducedMotion ||
         !context->style.nodes[slot - 1].styled)
@@ -327,8 +328,8 @@ static bool Transition(muiContext* context, uint32_t slot, const Resolution* res
 // Gives a node its resolved values: at once, or through the transitions
 // the changes take. A layout change lays the node out again; a visual one
 // only paints it again; whether a text one happened is returned.
-static bool Commit(muiContext* context, uint32_t slot, const Resolution* resolution,
-                   muiPropertyBits free, uint64_t nowNs)
+MUI_NODISCARD static bool Commit(muiContext* context, uint32_t slot, const Resolution* resolution,
+                                 muiPropertyBits free, uint64_t nowNs)
 {
     muiLayerKind layer = context->interaction[slot - 1].layer;
     muiLayoutNode* layout = &context->layout[slot - 1];

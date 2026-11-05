@@ -18,7 +18,7 @@
 #include <stdalign.h>
 #include <string.h>
 
-static bool IsValid(const muiAriaAdapterDef* def)
+MUI_NODISCARD static bool IsValid(const muiAriaAdapterDef* def)
 {
     return muiIsAllocatorValid(&def->allocator) && def->nodes != 0 && def->host != nullptr &&
            def->enableLabel != nullptr && def->action != nullptr && def->scale > 0.0f;
@@ -340,7 +340,7 @@ static void PlaceUnder(muiAriaAdapter* adapter, uint64_t id)
     }
 }
 
-static bool BoxMoved(const muiAccessNode* old, const muiAccessNode* now)
+MUI_NODISCARD static bool BoxMoved(const muiAccessNode* old, const muiAccessNode* now)
 {
     const muiRect* a = &old->bounds;
     const muiRect* b = &now->bounds;

@@ -84,14 +84,14 @@ void muiRhiNextGlyphFrame(muiRhiGlyphs* glyphs);
 // A glyph's coverage for a pen in device pixels, packed the first time,
 // of no width for a glyph without an image: false when there is no atlas
 // or it cannot be packed.
-bool muiRhiGetGlyph(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixelSize, float penX,
-                    float baselineY, muiRhiGlyph* glyphOut);
+MUI_NODISCARD bool muiRhiGetGlyph(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixelSize,
+                                  float penX, float baselineY, muiRhiGlyph* glyphOut);
 
 // A glyph's multi-channel distance field at an em of pixelSize field
 // pixels and a spread, packed the first time, its top left from the pen
 // and baseline in field pixels: false as muiRhiGetGlyph.
-bool muiRhiGetGlyphField(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id, float pixelSize,
-                         uint32_t spread, muiRhiGlyph* glyphOut);
+MUI_NODISCARD bool muiRhiGetGlyphField(muiRhiGlyphs* glyphs, uint64_t font, uint32_t id,
+                                       float pixelSize, uint32_t spread, muiRhiGlyph* glyphOut);
 
 // A colour glyph's image for a pen in device pixels, rendered with the
 // run's colour and its first palette and packed the first time:
@@ -122,6 +122,6 @@ void muiRhiForgetGlyphs(muiRhiGlyphs* glyphs);
 
 // Writes the changed rectangles in a pass that declares their pages as
 // copy destinations.
-bool muiRhiWriteGlyphs(const muiRhiGlyphs* glyphs, mrhiPassId pass);
+MUI_NODISCARD bool muiRhiWriteGlyphs(const muiRhiGlyphs* glyphs, mrhiPassId pass);
 
 #endif // MAUL_UI_RHI_GLYPHS_H

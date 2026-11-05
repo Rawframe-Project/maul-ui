@@ -33,12 +33,12 @@ static uint32_t UpdatePlace(const muiAccessTree* tree, uint64_t id)
 }
 
 // Whether the update sends a node.
-static bool IsSent(const muiAccessTree* tree, uint64_t id)
+MUI_NODISCARD static bool IsSent(const muiAccessTree* tree, uint64_t id)
 {
     return tree->updates[UpdatePlace(tree, id)].apply == tree->apply;
 }
 
-static bool IsKnown(const muiAccessTree* tree, uint64_t id)
+MUI_NODISCARD static bool IsKnown(const muiAccessTree* tree, uint64_t id)
 {
     return muiHeldSlotOf(tree, id) != 0 || IsSent(tree, id);
 }
@@ -52,7 +52,7 @@ static void Begin(muiAccessTree* tree)
 
 // Indexes the nodes sent: false for a NULL node, the id 0 or a node sent
 // twice.
-static bool IndexSent(muiAccessTree* tree, const muiAccessUpdate* update)
+MUI_NODISCARD static bool IndexSent(muiAccessTree* tree, const muiAccessUpdate* update)
 {
     for (uint32_t i = 0; i < update->nodeCount; i++)
     {
@@ -74,7 +74,7 @@ static bool IndexSent(muiAccessTree* tree, const muiAccessUpdate* update)
 // Records that the node sent at index1 lists a child: false for a child
 // neither held nor sent, one another node sent lists too, or one a node
 // not sent lists now.
-static bool Claim(muiAccessTree* tree, uint64_t id, uint32_t index1)
+MUI_NODISCARD static bool Claim(muiAccessTree* tree, uint64_t id, uint32_t index1)
 {
     uint32_t slot = muiHeldSlotOf(tree, id);
     if (slot != 0)
@@ -99,7 +99,7 @@ static bool Claim(muiAccessTree* tree, uint64_t id, uint32_t index1)
     return true;
 }
 
-static bool IsClaimed(const muiAccessTree* tree, uint64_t id)
+MUI_NODISCARD static bool IsClaimed(const muiAccessTree* tree, uint64_t id)
 {
     uint32_t slot = muiHeldSlotOf(tree, id);
     return slot != 0 ? tree->held[slot - 1].listed == tree->apply
@@ -132,7 +132,7 @@ static uint64_t* EndedOf(muiAccessTree* tree, uint64_t id)
 
 // Whether the parents above a node end rather than come round again;
 // those found to end are marked, so each node is walked once an apply.
-static bool Ends(muiAccessTree* tree, const muiAccessUpdate* update, uint64_t id)
+MUI_NODISCARD static bool Ends(muiAccessTree* tree, const muiAccessUpdate* update, uint64_t id)
 {
     // A path with no cycle passes each node once.
     uint32_t limit = tree->count + update->nodeCount;
@@ -154,7 +154,7 @@ static bool Ends(muiAccessTree* tree, const muiAccessUpdate* update, uint64_t id
 }
 
 // Whether a node's texts are no longer than the library holds.
-static bool LengthsFit(const muiAccessNode* node)
+MUI_NODISCARD static bool LengthsFit(const muiAccessNode* node)
 {
     for (uint32_t kind = 0; kind < MUI_ACCESS_TEXTS; kind++)
     {
@@ -168,7 +168,7 @@ static bool LengthsFit(const muiAccessNode* node)
 
 // Whether a node's marks fit its value text (src/access_text.h), its
 // length checked first.
-static bool MarksFit(const muiAccessNode* node)
+MUI_NODISCARD static bool MarksFit(const muiAccessNode* node)
 {
     const char* text = node->text[mui_accessValue];
     uint32_t length = text != nullptr ? (uint32_t)node->textLength[mui_accessValue] : 0;
@@ -181,7 +181,7 @@ static bool MarksFit(const muiAccessNode* node)
 // Whether a node's children lie within the update's children array, when
 // the update states its length; 0 states none, and the caller keeps them
 // within it.
-static bool ChildrenFit(const muiAccessUpdate* update, const muiAccessNode* node)
+MUI_NODISCARD static bool ChildrenFit(const muiAccessUpdate* update, const muiAccessNode* node)
 {
     uint32_t end = 0;
     return update->childCount == 0 ||
@@ -299,8 +299,8 @@ static void* Copy(muiAccessTree* tree, const void* from, size_t size, size_t ali
 
 // Copies what a node sent points at; false when memory runs out, with
 // nothing kept.
-static bool Stage(muiAccessTree* tree, const muiAccessNode* node, const uint64_t* children,
-                  muiStagedNode* staged)
+MUI_NODISCARD static bool Stage(muiAccessTree* tree, const muiAccessNode* node,
+                                const uint64_t* children, muiStagedNode* staged)
 {
     *staged = (muiStagedNode){0};
     bool fits = true;
@@ -486,8 +486,8 @@ static void ReportAdded(const muiAccessTree* tree, const muiAccessChanges* chang
 
 // Tells the host of the nodes updated and let go, each with what it was;
 // whether an updated one changed what the view reads.
-static bool ReportRetired(const muiAccessTree* tree, const muiAccessChanges* changes,
-                          uint32_t retired)
+MUI_NODISCARD static bool ReportRetired(const muiAccessTree* tree, const muiAccessChanges* changes,
+                                        uint32_t retired)
 {
     bool reshaped = false;
     for (uint32_t i = 0; i < retired; i++)

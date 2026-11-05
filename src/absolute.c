@@ -61,8 +61,9 @@ static Insets InsetsOf(const muiInsets* inset, bool horizontal, float extent, bo
 
 // The child's size along an axis when its own value or both insets fix
 // it; returns false when it comes from content.
-static bool FixedSize(const muiLayoutStyle* style, const muiEdges* padding, bool horizontal,
-                      const Span* spanX, const Span* spanY, const Insets* insets, float* sizeOut)
+MUI_NODISCARD static bool FixedSize(const muiLayoutStyle* style, const muiEdges* padding,
+                                    bool horizontal, const Span* spanX, const Span* spanY,
+                                    const Insets* insets, float* sizeOut)
 {
     const Span* span = horizontal ? spanX : spanY;
     muiAxisSizing axis = muiResolveAxis(&style->sizing, horizontal, span->paddingSize);
@@ -258,9 +259,9 @@ static float Offset(const muiLayoutStyle* container, const muiLayoutStyle* child
 // through the ratio clamping it (CSS Sizing 4, as Chrome). A width from
 // both insets is clamped likewise by the height's limits; a height the
 // style gives sets the width through the ratio instead of the insets.
-static bool RatioTakesHeight(const muiLayoutStyle* style, const muiEdges* padding,
-                             const Span* spanX, const Span* spanY, bool* fixedWidth,
-                             bool fixedHeight, float* width, float* height)
+MUI_NODISCARD static bool RatioTakesHeight(const muiLayoutStyle* style, const muiEdges* padding,
+                                           const Span* spanX, const Span* spanY, bool* fixedWidth,
+                                           bool fixedHeight, float* width, float* height)
 {
     float ratio = style->sizing.aspectRatio;
     if (ratio <= 0.0f)
@@ -310,8 +311,9 @@ static bool RatioTakesHeight(const muiLayoutStyle* style, const muiEdges* paddin
 // given (both as Chrome). Returns whether its content grew it past the
 // insets', which holds its children's percentages at its ratio's height,
 // the insets' (as Chrome and Firefox).
-static bool RatioHeightFloor(const muiSolver* solver, uint32_t child, muiSizingInput* input,
-                             const Span* spanY, float width, float* height)
+MUI_NODISCARD static bool RatioHeightFloor(const muiSolver* solver, uint32_t child,
+                                           muiSizingInput* input, const Span* spanY, float width,
+                                           float* height)
 {
     const muiLayoutStyle* style = &solver->nodes[child - 1].style;
     if (style->sizing.aspectRatio <= 0.0f || style->item.alignSelf == mui_alignStretch ||

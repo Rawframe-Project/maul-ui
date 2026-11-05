@@ -109,8 +109,9 @@ muiResult muiTextService_RenderGlyph(muiTextService* service, uint64_t font, uin
 // field's work memory, all in the service's memory.
 // Reserves a multi-channel field's work memory beside the one-channel
 // field's, for room edge segments.
-static bool PrepareMulti(muiTextService* service, const muiFieldGrid* grid, size_t room,
-                         muiFieldScratch* scratch, muiMultiScratch* multi)
+MUI_NODISCARD static bool PrepareMulti(muiTextService* service, const muiFieldGrid* grid,
+                                       size_t room, muiFieldScratch* scratch,
+                                       muiMultiScratch* multi)
 {
     const muiAllocator* allocator = &service->allocator;
     size_t pixels = (size_t)grid->width * grid->height;

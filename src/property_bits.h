@@ -40,12 +40,12 @@ static inline muiPropertyBits muiPropertyOf(muiProperty property)
     return muiPropertiesOf(MUI_PROPERTY_GROUP(property), MUI_PROPERTY_BIT(property));
 }
 
-static inline bool muiHasProperty(muiPropertyBits bits, muiProperty property)
+MUI_NODISCARD static inline bool muiHasProperty(muiPropertyBits bits, muiProperty property)
 {
     return (bits.words[MUI_PROPERTY_GROUP(property)] & MUI_PROPERTY_BIT(property)) != 0;
 }
 
-static inline MUI_SIZE_OUTLINE bool muiAnyProperty(muiPropertyBits bits)
+MUI_NODISCARD static inline MUI_SIZE_OUTLINE bool muiAnyProperty(muiPropertyBits bits)
 {
     uint64_t any = 0;
     for (uint32_t i = 0; i < MUI_PROPERTY_GROUPS; i++)
@@ -83,7 +83,8 @@ static inline MUI_SIZE_OUTLINE muiPropertyBits muiWithout(muiPropertyBits a, mui
     return a;
 }
 
-static inline MUI_SIZE_OUTLINE bool muiIntersects(muiPropertyBits a, muiPropertyBits b)
+MUI_NODISCARD static inline MUI_SIZE_OUTLINE bool muiIntersects(muiPropertyBits a,
+                                                                muiPropertyBits b)
 {
     return muiAnyProperty(muiIntersection(a, b));
 }

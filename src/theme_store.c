@@ -52,7 +52,8 @@ const muiTokenValue* muiResolveTokenIn(const muiTokenStore* tokens, const muiThe
 
 // True when id is token; else puts a live token not yet reached on the
 // stack at top.
-static bool Reach(muiTokenStore* tokens, muiTokenId id, muiTokenId token, uint32_t* top)
+MUI_NODISCARD static bool Reach(muiTokenStore* tokens, muiTokenId id, muiTokenId token,
+                                uint32_t* top)
 {
     if (id.index1 == token.index1 && id.generation == token.generation)
     {

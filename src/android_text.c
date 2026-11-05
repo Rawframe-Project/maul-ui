@@ -16,13 +16,13 @@
 
 #include <string.h>
 
-static bool Has(const muiAccessNode* node, muiAccessAction action)
+MUI_NODISCARD static bool Has(const muiAccessNode* node, muiAccessAction action)
 {
     return (node->actions & (1u << action)) != 0;
 }
 
 // Whether a node's name is its value text, byte for byte.
-static bool NameIsValue(const muiAndroidAdapter* adapter, const muiAccessNode* node)
+MUI_NODISCARD static bool NameIsValue(const muiAndroidAdapter* adapter, const muiAccessNode* node)
 {
     muiAccessText text = muiAccessValueOf(node);
     char small[256];
@@ -77,8 +77,8 @@ static jint UnitsBefore(const muiAccessText* text, uint32_t byte)
 // give one: the unit starting at it or ending at it, else the next or
 // the one before, when it is inside one. False past the text's end that
 // way.
-static bool UnitSegment(const muiAccessText* text, muiAccessUnit unit, bool forward, uint32_t at,
-                        uint32_t* startOut, uint32_t* endOut)
+MUI_NODISCARD static bool UnitSegment(const muiAccessText* text, muiAccessUnit unit, bool forward,
+                                      uint32_t at, uint32_t* startOut, uint32_t* endOut)
 {
     bool boundary =
         at == 0 || at == text->length ||
@@ -106,8 +106,8 @@ static bool UnitSegment(const muiAccessText* text, muiAccessUnit unit, bool forw
 
 // The word following a byte offset, from the offset when it is inside
 // one; or the word preceding it, to the offset.
-static bool WordSegment(const muiAccessTextMarks* marks, bool forward, uint32_t at,
-                        uint32_t* startOut, uint32_t* endOut)
+MUI_NODISCARD static bool WordSegment(const muiAccessTextMarks* marks, bool forward, uint32_t at,
+                                      uint32_t* startOut, uint32_t* endOut)
 {
     if (forward)
     {
@@ -134,8 +134,8 @@ static bool WordSegment(const muiAccessTextMarks* marks, bool forward, uint32_t 
     return false;
 }
 
-static bool Segment(const muiAccessText* text, jint granularity, bool forward, uint32_t at,
-                    uint32_t* startOut, uint32_t* endOut)
+MUI_NODISCARD static bool Segment(const muiAccessText* text, jint granularity, bool forward,
+                                  uint32_t at, uint32_t* startOut, uint32_t* endOut)
 {
     switch (granularity)
     {
@@ -152,8 +152,8 @@ static bool Segment(const muiAccessText* text, jint granularity, bool forward, u
     }
 }
 
-static bool AskSelection(const muiAndroidAdapter* adapter, const muiAccessNode* node, size_t anchor,
-                         size_t focus)
+MUI_NODISCARD static bool AskSelection(const muiAndroidAdapter* adapter, const muiAccessNode* node,
+                                       size_t anchor, size_t focus)
 {
     const muiAccessRequest request = {
         .action = mui_actionSetSelection, .target = node->id, .anchor = anchor, .focus = focus};

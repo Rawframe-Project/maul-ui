@@ -85,14 +85,14 @@ void muiAriaWriteAttributes(const muiAriaAdapter* adapter, uint32_t slot, const 
                             const muiAccessNode* node);
 
 // Whether the text a node names itself by differs between two records.
-bool muiAriaNameChanged(const muiAccessNode* old, const muiAccessNode* node);
+MUI_NODISCARD bool muiAriaNameChanged(const muiAccessNode* old, const muiAccessNode* node);
 
 // Writes an element's id: the adapter's page, then the node's id.
 void muiAriaIdOf(int page, uint64_t id, char out[ARIA_ID_SIZE]);
 
 // Whether a node's element is an input of type range: a range the host
 // sets.
-bool muiAriaIsRange(const muiAccessNode* node);
+MUI_NODISCARD bool muiAriaIsRange(const muiAccessNode* node);
 
 // The element a node is shown by: a div; an input of type range, for a
 // range the host sets; an input, or a textarea, for a text being edited,
@@ -144,7 +144,7 @@ void muiAriaTextFromPage(muiAriaAdapter* adapter, uint32_t slot, uint32_t start,
 // The page's calls (aria_page.c). Strings are UTF-8, NUL-terminated.
 int muiAriaPageOpen(const char* host, bool deferred, const char* label, muiAriaAdapter* adapter);
 void muiAriaPageClose(int page);
-bool muiAriaPageDropButton(int page);
+MUI_NODISCARD bool muiAriaPageDropButton(int page);
 void muiAriaPageFocus(int page, uint32_t slot, bool always);
 void muiAriaPageAnnounce(int page, const char* text, bool assertive);
 void muiAriaPageMake(int page, uint32_t slot, muiAriaKind kind, const char* inputType,
