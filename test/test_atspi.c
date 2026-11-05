@@ -1553,6 +1553,7 @@ static void TestEvents(muiAtspiAdapter* adapter, Built* built)
     // its rows would send a flood of them.
     label = built->nodes[3];
     label.text[mui_accessValue] = "Help";
+    label.textLength[mui_accessValue] = 4;
     CHECK(Send(adapter, (const muiAccessNode*[]){&label}, 1, built->children, 0) &&
               EventsAre("PropertyChange accessible-name 0 w1n4 Help") &&
               Send(adapter, (const muiAccessNode*[]){&built->nodes[3]}, 1, built->children, 0) &&

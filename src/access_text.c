@@ -468,3 +468,55 @@ uint32_t muiAccessByteOfUtf16(const muiAccessText* text, uint32_t units)
 {
     return ByteOfCount(text, units, true);
 }
+
+// How many bytes follow a UTF-8 lead byte; 4 for a byte that leads
+// nothing well-formed.
+static size_t Trailing(unsigned char lead)
+{
+    if (lead < 0x80)
+    {
+        return 0;
+    }
+    if (lead >= 0xC2 && lead <= 0xDF)
+    {
+        return 1;
+    }
+    if ((lead & 0xF0) == 0xE0)
+    {
+        return 2;
+    }
+    return lead >= 0xF0 && lead <= 0xF4 ? 3 : 4;
+}
+
+// Whether the bytes after a lead byte are in range: 0x80 to 0xBF, the
+// first narrower after E0, ED, F0 and F4, which would otherwise start
+// overlong forms, surrogates, or code points past U+10FFFF.
+MUI_NODISCARD static bool AreTrailing(const unsigned char* bytes, unsigned char lead, size_t count)
+{
+    unsigned char low = lead == 0xE0 ? 0xA0 : lead == 0xF0 ? 0x90 : 0x80;
+    unsigned char high = lead == 0xED ? 0x9F : lead == 0xF4 ? 0x8F : 0xBF;
+    bool valid = count == 0 || (bytes[0] >= low && bytes[0] <= high);
+    for (size_t k = 1; k < count && valid; k++)
+    {
+        valid = bytes[k] >= 0x80 && bytes[k] <= 0xBF;
+    }
+    return valid;
+}
+
+// Whether text is well-formed UTF-8, by Unicode's table of well-formed
+// byte sequences, without a NUL.
+bool muiAccessIsUtf8(const unsigned char* text, size_t length)
+{
+    size_t i = 0;
+    while (i < length)
+    {
+        unsigned char lead = text[i];
+        size_t more = Trailing(lead);
+        if (lead == 0 || more == 4 || length - i <= more || !AreTrailing(text + i + 1, lead, more))
+        {
+            return false;
+        }
+        i += more + 1;
+    }
+    return true;
+}

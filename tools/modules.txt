@@ -42,7 +42,7 @@ exit: animation context exit_store focus notify tree layout_node
 virtual: context invariant layout_node notify scroll_store tree virtual_store fpenv
 virtual_edit: context tree virtual virtual_store fpenv
 access_store: allocator outline
-access: access_store allocator context tree outputs fpenv
+access: access_store access_text allocator context tree outputs fpenv
 access_build: access access_store access_text context focus layer place range scroll_store style_store tree virtual virtual_store fpenv
 access_record:
 access_text: allocator
