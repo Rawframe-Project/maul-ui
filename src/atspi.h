@@ -24,6 +24,11 @@
 // "n" and a 64-bit id in hexadecimal.
 #define ATSPI_PATH_SIZE 72
 
+// AT-SPI's coordinate types; a client's past COORD_PARENT is refused.
+#define COORD_SCREEN 0
+#define COORD_WINDOW 1
+#define COORD_PARENT 2
+
 // Room for the desktop's bus name and path, which the registry gives.
 #define ATSPI_NAME_SIZE 256
 
