@@ -9,17 +9,17 @@
 # the log.
 #
 # adb can lose its connection to the device ("error: closed"). Installing,
-# clearing the application's data and the log, removing its result file,
-# starting the activity, stopping it and uninstalling are idempotent, so
-# each is tried up to three times; the result line is read again until
-# the minute is up.
+# clearing the log, removing the result file, starting the activity,
+# stopping it and uninstalling are idempotent, so each is tried up to
+# three times; the result line is read again until the minute is up.
 #
-# Before the start the data is cleared, the result file is removed by
-# name, and the device must answer that the file is absent, since some
-# Android versions answer a failed pm clear with "Failed" and status 0.
-# So a result line an earlier run left (its uninstall lost) cannot be
-# read as this run's. The verdict stands whether or not the stop and the
-# uninstall go through.
+# Before the start the result file is removed by name, and the device
+# must answer that the file is absent, so a result line an earlier run
+# left (its uninstall lost) cannot be read as this run's. The
+# application's data is not cleared with pm clear: the system finishes
+# a clearing late, after the new run has started, and a provider such
+# as MediaProvider then drops what the run had made. The verdict stands
+# whether or not the stop and the uninstall go through.
 set -eu
 adb=${ADB:-adb}
 apk=$1
@@ -50,7 +50,6 @@ ask() {
 
 start=$(date +%s)
 again install -r "$apk" > /dev/null
-again shell pm clear "$package" > /dev/null
 again shell run-as "$package" rm -f files/out
 # The device tests for the file itself: a check that reads a failure as
 # the file's absence would pass when run-as fails.
