@@ -14,6 +14,7 @@
 #include "access_text.h"
 #include "fpenv.h"
 #include "host_call.h"
+#include "invariant.h"
 #include "uikit.h"
 
 #include <string.h>
@@ -160,6 +161,9 @@ MUI_NODISCARD static bool BytesOf(const muiAccessText* text, UITextRange* range,
     }
     *startOut = ByteAt(text, ((MUITextRange*)range)->from);
     *endOut = ByteAt(text, ((MUITextRange*)range)->to);
+    // RangeFrom orders a range's ends, and ByteAt keeps the order and
+    // clamps to the text.
+    MUI_ASSERT(*startOut <= *endOut && *endOut <= text->length);
     return true;
 }
 
@@ -350,6 +354,8 @@ static void LineBytes(const muiAccessText* text, uint32_t line, uint32_t* startO
                       uint32_t* lastOut)
 {
     const muiAccessTextMarks* marks = text->marks;
+    // The caller refused a line past the text's.
+    MUI_ASSERT(line < (marks->lineCount != 0 ? marks->lineCount : 1));
     *startOut = marks->lineCount != 0 ? (uint32_t)marks->lineStarts[line] : 0;
     *lastOut = line + 1 < marks->lineCount
                    ? muiAccessBoundaryBefore(text, mui_unitCharacter,
@@ -567,6 +573,9 @@ static uint32_t ByteAtPoint(const MUIAccessibilityElement* element, CGPoint poin
     uint32_t start = 0;
     uint32_t last = 0;
     LineBytes(&text, line, &start, &last);
+    // LineOf takes the last line starting at or before the byte, and the
+    // first starts at 0.
+    MUI_ASSERT(start <= at);
     NSUInteger column = UnitsBefore(&text, at) - UnitsBefore(&text, start);
     LineBytes(&text, (uint32_t)target, &start, &last);
     NSUInteger first = UnitsBefore(&text, start);

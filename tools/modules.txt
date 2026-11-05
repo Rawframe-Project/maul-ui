@@ -75,7 +75,7 @@ uikit: id_map
 uikit_adapter: access_record access_text allocator host_call uikit fpenv
 uikit_events: access_record uikit
 uikit_node: uikit fpenv
-uikit_text: access_record access_text host_call uikit fpenv
+uikit_text: access_record access_text host_call invariant uikit fpenv
 uikit_traits: uikit
 atspi_events: access_record access_text allocator atspi host_call invariant fpenv
 atspi_actions: atspi host_call
