@@ -379,7 +379,15 @@ static HRESULT Empty(VARTYPE type, SAFEARRAY** out)
 static HRESULT PutRects(const muiUiaAdapter* adapter, const muiRect* rects, uint32_t count,
                         SAFEARRAY** out)
 {
-    *out = SafeArrayCreateVector(VT_R8, 0, count * 4);
+    // Four doubles a rectangle, counted in 32 bits: past 2^30 lines the
+    // count would wrap to a shorter array than the loop below fills, so
+    // it is taken as memory run out.
+    if (count > UINT32_MAX / 4)
+    {
+        *out = nullptr;
+        return E_OUTOFMEMORY;
+    }
+    *out = SafeArrayCreateVector(VT_R8, 0, (ULONG)count * 4);
     double* values = nullptr;
     HRESULT result = *out == nullptr ? E_OUTOFMEMORY
                      : count == 0    ? S_OK
