@@ -45,6 +45,18 @@ muiUiaRange* muiUiaMakeRange(muiUiaNode* node, uint32_t start, uint32_t end)
     return range;
 }
 
+// Whether a client's unit is one UI Automation names.
+MUI_NODISCARD static bool IsUnit(int unit)
+{
+    return unit >= UNIT_CHARACTER && unit <= UNIT_DOCUMENT;
+}
+
+// Whether a client's endpoint is one UI Automation names.
+MUI_NODISCARD static bool IsEndpoint(int endpoint)
+{
+    return endpoint == ENDPOINT_START || endpoint == ENDPOINT_END;
+}
+
 // The unit of the shared boundaries a UI Automation unit is: format is
 // words (runs carry no attributes yet), a page the document.
 static muiAccessUnit UnitOf(int unit)
@@ -229,7 +241,7 @@ static HRESULT STDMETHODCALLTYPE CompareEndpoints(muiUiaRange* self, int endpoin
     {
         return E_POINTER;
     }
-    if (!IsSameText(self, target))
+    if (!IsSameText(self, target) || !IsEndpoint(endpoint) || !IsEndpoint(targetEndpoint))
     {
         return E_INVALIDARG;
     }
@@ -246,6 +258,10 @@ static HRESULT STDMETHODCALLTYPE CompareEndpoints(muiUiaRange* self, int endpoin
 static HRESULT STDMETHODCALLTYPE Expand(muiUiaRange* self, int unit)
 {
     muiAccessText text;
+    if (!IsUnit(unit))
+    {
+        return E_INVALIDARG;
+    }
     if (!TextOf(self, &text))
     {
         return ELEMENT_GONE;
@@ -481,6 +497,10 @@ static HRESULT STDMETHODCALLTYPE GetText(muiUiaRange* self, int maxLength, BSTR*
         return E_POINTER;
     }
     *out = nullptr;
+    if (maxLength < -1)
+    {
+        return E_INVALIDARG;
+    }
     if (!TextOf(self, &text))
     {
         return ELEMENT_GONE;
@@ -509,6 +529,10 @@ static HRESULT STDMETHODCALLTYPE Move(muiUiaRange* self, int unit, int count, in
         return E_POINTER;
     }
     *out = 0;
+    if (!IsUnit(unit))
+    {
+        return E_INVALIDARG;
+    }
     if (!TextOf(self, &text))
     {
         return ELEMENT_GONE;
@@ -539,6 +563,10 @@ static HRESULT STDMETHODCALLTYPE MoveEndpointByUnit(muiUiaRange* self, int endpo
         return E_POINTER;
     }
     *out = 0;
+    if (!IsEndpoint(endpoint) || !IsUnit(unit))
+    {
+        return E_INVALIDARG;
+    }
     if (!TextOf(self, &text))
     {
         return ELEMENT_GONE;
@@ -553,7 +581,7 @@ static HRESULT STDMETHODCALLTYPE MoveEndpointByRange(muiUiaRange* self, int endp
                                                      muiUiaRange* target, int targetEndpoint)
 {
     muiAccessText text;
-    if (!IsSameText(self, target))
+    if (!IsSameText(self, target) || !IsEndpoint(endpoint) || !IsEndpoint(targetEndpoint))
     {
         return E_INVALIDARG;
     }

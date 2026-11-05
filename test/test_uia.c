@@ -1251,6 +1251,97 @@ static void TestNullAdapterClearsResult(void)
           "HandleGetObject clears its result");
 }
 
+// The first of the root's children that offers a pattern, that pattern's
+// provider, its reference the caller's; NULL for none.
+static IUnknown* ChildPattern(PATTERNID pattern)
+{
+    IRawElementProviderSimple* root = muiUiaAdapter_GetRoot(s_program.adapter);
+    IRawElementProviderFragment* child = NULL;
+    IRawElementProviderFragment* fragment = NULL;
+    if (root != NULL && SUCCEEDED(IRawElementProviderSimple_QueryInterface(
+                            root, &IID_IRawElementProviderFragment, (void**)&fragment)))
+    {
+        (void)IRawElementProviderFragment_Navigate(fragment, NavigateDirection_FirstChild, &child);
+        IRawElementProviderFragment_Release(fragment);
+    }
+    IUnknown* found = NULL;
+    while (child != NULL && found == NULL)
+    {
+        IRawElementProviderSimple* simple = NULL;
+        if (SUCCEEDED(IRawElementProviderFragment_QueryInterface(
+                child, &IID_IRawElementProviderSimple, (void**)&simple)))
+        {
+            (void)IRawElementProviderSimple_GetPatternProvider(simple, pattern, &found);
+            IRawElementProviderSimple_Release(simple);
+        }
+        IRawElementProviderFragment* next = NULL;
+        (void)IRawElementProviderFragment_Navigate(child, NavigateDirection_NextSibling, &next);
+        IRawElementProviderFragment_Release(child);
+        child = next;
+    }
+    if (child != NULL)
+    {
+        IRawElementProviderFragment_Release(child);
+    }
+    return found;
+}
+
+// Values UI Automation does not name, sent to the providers themselves:
+// UI Automation's client checks some before they reach a provider, but
+// another client may send them.
+static void CheckUnnamedValues(void)
+{
+    ITextProvider* text = (ITextProvider*)ChildPattern(UIA_TextPatternId);
+    ITextRangeProvider* range = NULL;
+    ITextRangeProvider* other = NULL;
+    int moved = 0;
+    BSTR none = NULL;
+    BSTR whole = NULL;
+    CHECK(text != NULL && SUCCEEDED(ITextProvider_get_DocumentRange(text, &range)) &&
+              range != NULL && SUCCEEDED(ITextRangeProvider_Clone(range, &other)) &&
+              ITextRangeProvider_ExpandToEnclosingUnit(range, (enum TextUnit)7) == E_INVALIDARG &&
+              ITextRangeProvider_Move(range, (enum TextUnit) - 1, 1, &moved) == E_INVALIDARG &&
+              ITextRangeProvider_MoveEndpointByUnit(range, (enum TextPatternRangeEndpoint)2,
+                                                    TextUnit_Character, 1,
+                                                    &moved) == E_INVALIDARG &&
+              ITextRangeProvider_CompareEndpoints(range, TextPatternRangeEndpoint_Start, other,
+                                                  (enum TextPatternRangeEndpoint)2,
+                                                  &moved) == E_INVALIDARG &&
+              ITextRangeProvider_MoveEndpointByRange(range, (enum TextPatternRangeEndpoint) - 1,
+                                                     other, TextPatternRangeEndpoint_Start) ==
+                  E_INVALIDARG &&
+              ITextRangeProvider_GetText(range, -2, &none) == E_INVALIDARG && none == NULL &&
+              SUCCEEDED(ITextRangeProvider_GetText(range, -1, &whole)) && whole != NULL &&
+              wcscmp(whole, L"Ada Lovelace") == 0,
+          "a unit or endpoint UI Automation does not name, or a length below -1, refused");
+    SysFreeString(whole);
+    if (other != NULL)
+    {
+        ITextRangeProvider_Release(other);
+    }
+    if (range != NULL)
+    {
+        ITextRangeProvider_Release(range);
+    }
+    if (text != NULL)
+    {
+        ITextProvider_Release(text);
+    }
+    IScrollProvider* scroll = (IScrollProvider*)ChildPattern(UIA_ScrollPatternId);
+    int actions = s_program.actions;
+    CHECK(scroll != NULL &&
+              IScrollProvider_Scroll(scroll, ScrollAmount_NoAmount, (enum ScrollAmount)5) ==
+                  E_INVALIDARG &&
+              IScrollProvider_Scroll(scroll, (enum ScrollAmount) - 1,
+                                     ScrollAmount_LargeIncrement) == E_INVALIDARG &&
+              s_program.actions == actions,
+          "an amount UI Automation does not name refused, nothing asked");
+    if (scroll != NULL)
+    {
+        IScrollProvider_Release(scroll);
+    }
+}
+
 int main(void)
 {
     CHECK(SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED)), "an STA");
@@ -1274,6 +1365,7 @@ int main(void)
     CHECK(muiUiaAdapter_Apply(s_program.adapter, &update) == mui_success &&
               muiAccessTree_GetNodeCount(muiUiaAdapter_GetTree(s_program.adapter)) == 12,
           "the tree");
+    CheckUnnamedValues();
     s_program.removal = CreateEventW(NULL, TRUE, FALSE, NULL);
     s_program.change = CreateEventW(NULL, TRUE, FALSE, NULL);
     s_program.removed = CreateEventW(NULL, TRUE, FALSE, NULL);
