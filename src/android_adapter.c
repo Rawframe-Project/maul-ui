@@ -12,6 +12,7 @@
 #include "android.h"
 #include "fpenv.h"
 #include "host_call.h"
+#include "invariant.h"
 
 #include <stdalign.h>
 #include <string.h>
@@ -282,6 +283,9 @@ jint muiAndroidVirtualOf(muiAndroidAdapter* adapter, uint64_t id)
         return MUI_ANDROID_NO_ID;
     }
     uint32_t virtualId = adapter->freeVirtuals[adapter->freeHead];
+    // The queue holds the ids 1 to nodes no node has.
+    MUI_ASSERT(virtualId >= 1 && virtualId <= adapter->nodes &&
+               adapter->nodeOfVirtual[virtualId - 1] == 0);
     if (!muiIdMapInsert(&adapter->virtualById, id, (void*)(uintptr_t)virtualId))
     {
         return MUI_ANDROID_NO_ID;
@@ -311,6 +315,10 @@ static MUI_NOINLINE void RemovedWorker(void* user, const muiAccessTree* tree,
         return;
     }
     uint32_t virtualId = (uint32_t)(uintptr_t)held;
+    // A held id came from the queue, which it has left: the queue has
+    // room for it.
+    MUI_ASSERT(virtualId >= 1 && virtualId <= adapter->nodes &&
+               adapter->freeCount < adapter->nodes);
     adapter->nodeOfVirtual[virtualId - 1] = 0;
     adapter->freeVirtuals[(adapter->freeHead + adapter->freeCount) % adapter->nodes] = virtualId;
     adapter->freeCount++;

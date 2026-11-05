@@ -13,6 +13,7 @@
 #include "allocator.h"
 #include "android.h"
 #include "host_call.h"
+#include "invariant.h"
 
 #include <string.h>
 
@@ -256,6 +257,8 @@ static size_t Utf8Of(const jchar* units, jsize count, char* out)
             out[written++] = (char)(0x80 | ((point >> 6) & 0x3F));
             out[written++] = (char)(0x80 | (point & 0x3F));
         }
+        // Four bytes only from a pair of units: at most 3 a unit read.
+        MUI_ASSERT(written <= 3 * (size_t)(i + 1));
     }
     return written;
 }

@@ -9,6 +9,7 @@
 
 #include "access_text.h"
 #include "fpenv.h"
+#include "invariant.h"
 #include "uia.h"
 
 #include <string.h>
@@ -79,6 +80,8 @@ MUI_NODISCARD static bool TextOf(muiUiaRange* range, muiAccessText* textOut)
     range->start = muiAccessByteOfPoints(textOut, muiAccessPointsBefore(textOut->bytes, start));
     range->end = muiAccessByteOfPoints(textOut, muiAccessPointsBefore(textOut->bytes, end));
     range->end = range->end > range->start ? range->end : range->start;
+    // Both offsets were held to the text, and a character's start is in it.
+    MUI_ASSERT(range->start <= range->end && range->end <= textOut->length);
     return true;
 }
 
@@ -104,6 +107,8 @@ static uint32_t UnitStart(const muiAccessText* text, muiAccessUnit unit, uint32_
 // where no unit starts; how many it moved.
 static int Step(const muiAccessText* text, muiAccessUnit unit, uint32_t* at, int count, bool units)
 {
+    // An endpoint TextOf has just held to the text.
+    MUI_ASSERT(*at <= text->length);
     int moved = 0;
     while (moved < count)
     {
@@ -270,6 +275,8 @@ static HRESULT STDMETHODCALLTYPE FindAttribute(muiUiaRange* self, int attribute,
 // for none or no memory.
 static WCHAR* WideOf(const muiAccessText* text, uint32_t start, uint32_t end, int* lengthOut)
 {
+    // A range's offsets, which TextOf has just held to the text.
+    MUI_ASSERT(start <= end && end <= text->length);
     int wide = end > start ? MultiByteToWideChar(CP_UTF8, 0, text->bytes + start,
                                                  (int)(end - start), nullptr, 0)
                            : 0;
