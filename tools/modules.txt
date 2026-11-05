@@ -93,9 +93,9 @@ uia_events: access_record access_text uia fpenv
 uia_node: access_record uia fpenv
 uia_patterns: access_text uia
 uia_props: access_record allocator host_call uia
-uia_range: access_text uia fpenv
+uia_range: access_text invariant uia fpenv
 uia_text: access_record uia fpenv
-uia_values: access_text allocator host_call uia fpenv
+uia_values: access_text allocator host_call invariant uia fpenv
 access_action: access context event focus layout_node notify range scroll scroll_store tree fpenv
 popup: context layout_node popup_store scroll tree notify fpenv
 scroll: context invariant scroll_store tree layer fpenv
