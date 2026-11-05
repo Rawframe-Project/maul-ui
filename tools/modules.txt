@@ -70,7 +70,7 @@ ns_adapter: access_record allocator host_call ns fpenv
 ns_events: access_record ns
 ns_node: access_record access_text allocator host_call ns fpenv
 ns_roles: ns
-ns_text: access_text host_call ns fpenv
+ns_text: access_text host_call invariant ns fpenv
 uikit: id_map
 uikit_adapter: access_record access_text allocator host_call uikit fpenv
 uikit_events: access_record uikit
