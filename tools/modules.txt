@@ -54,11 +54,11 @@ access_view: access_text access_tree_store allocator host_call outputs fpenv
 id_map: invariant
 dbus_api:
 android: id_map
-android_adapter: access_record allocator android host_call fpenv
+android_adapter: access_record allocator android host_call invariant fpenv
 android_events: access_record access_text android
-android_jni: access_record access_text allocator android host_call fpenv
+android_jni: access_record access_text allocator android host_call invariant fpenv
 android_node: access_record access_text android host_call
-android_text: access_text allocator android host_call
+android_text: access_text allocator android host_call invariant
 aria: id_map
 aria_adapter: access_text allocator aria host_call invariant fpenv
 aria_elements: access_text aria chars
