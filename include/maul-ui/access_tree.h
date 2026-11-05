@@ -148,9 +148,10 @@ extern "C"
     ///         child neither held nor sent, a root, or focus, that is
     ///         neither, or lists that do not leave a tree: a child listed
     ///         twice, or by a node sent while a node not sent lists it, the
-    ///         root listed, or a node under itself; or a node whose marks do
-    ///         not fit its value text: offsets past it or inside a character,
-    ///         lines not ascending from 0, words out of order or empty;
+    ///         root listed, or a node under itself; a node with a text that
+    ///         is not UTF-8 or holds a NUL; or a node whose marks do not fit
+    ///         its value text: offsets past it or inside a character, lines
+    ///         not ascending from 0, words out of order or empty;
     ///         `mui_errorLimit` for a node with a text longer than
     ///         MUI_MAX_TEXT_BYTES; `mui_errorBusy` while the tree is busy.
     /// @par Thread safety

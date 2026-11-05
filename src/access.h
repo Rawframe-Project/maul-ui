@@ -18,9 +18,6 @@ typedef struct muiContext muiContext;
 // The entry of the live node at slot; NULL for one without data.
 muiAccessEntry* muiAccessEntryOf(const muiContext* context, uint32_t slot);
 
-// Whether text is well-formed UTF-8 without a NUL.
-MUI_NODISCARD bool muiAccessIsUtf8(const unsigned char* text, size_t length);
-
 // Whether two sets of typed values agree.
 MUI_NODISCARD bool muiAccessSameValues(const muiAccessValues* a, const muiAccessValues* b);
 

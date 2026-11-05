@@ -484,6 +484,53 @@ static void TestShownChanged(void)
     muiDestroyAccessTree(tree);
 }
 
+// A text that is not UTF-8, or holds a NUL, is refused whole: platforms
+// take only UTF-8, and D-Bus ends the program on any other string.
+static void TestTextsNotUtf8(void)
+{
+    muiAccessTreeDef def = muiDefaultAccessTreeDef();
+    def.nodes = 4;
+    muiAccessTree* tree = NULL;
+    CHECK(muiCreateAccessTree(&def, &tree) == mui_success, "tree");
+    muiAccessNode root = {.id = 1, .text = {"ok"}, .textLength = {2}};
+    const muiAccessNode* sent[1] = {&root};
+    muiAccessUpdate update = Update(sent, 1, NULL, 1, 1);
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "a first update");
+    static const struct
+    {
+        const char* text;
+        size_t length;
+        const char* what;
+    } bad[] = {
+        {"a\xFF", 2, "a byte that leads nothing"},   {"a\0b", 3, "a NUL"},
+        {"\xC0\x80", 2, "an overlong form"},         {"\xED\xA0\x80", 3, "a surrogate"},
+        {"\xF0\x9F\x98", 3, "a sequence cut short"},
+    };
+    for (size_t i = 0; i < sizeof(bad) / sizeof(bad[0]); i++)
+    {
+        for (uint32_t kind = 0; kind < MUI_ACCESS_TEXTS; kind++)
+        {
+            muiAccessNode changed = {.id = 1};
+            changed.text[kind] = bad[i].text;
+            changed.textLength[kind] = bad[i].length;
+            const muiAccessNode* refused[1] = {&changed};
+            update = Update(refused, 1, NULL, 0, 0);
+            uint64_t misuse = muiAccessTree_GetMisuse(tree);
+            CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_errorInvalid &&
+                      muiAccessTree_GetMisuse(tree) == misuse + 1,
+                  bad[i].what);
+        }
+    }
+    const muiAccessNode* held = muiAccessTree_Find(tree, 1);
+    CHECK(held != NULL && held->textLength[0] == 2 && memcmp(held->text[0], "ok", 2) == 0,
+          "the tree as it was");
+    muiAccessNode wide = {.id = 1, .text = {"\xC3\xA9\xF0\x9F\x98\x80"}, .textLength = {6}};
+    const muiAccessNode* accepted[1] = {&wide};
+    update = Update(accepted, 1, NULL, 0, 0);
+    CHECK(muiAccessTree_Apply(tree, &update, NULL) == mui_success, "two and four bytes taken");
+    muiDestroyAccessTree(tree);
+}
+
 static void TestHandMade(void)
 {
     muiAccessTreeDef def = muiDefaultAccessTreeDef();
@@ -1451,6 +1498,7 @@ int main(void)
     TestReplacedThenRemoved();
     TestRefused();
     TestHandMade();
+    TestTextsNotUtf8();
     TestShownChanged();
     TestChurn();
     TestLeavingNotARing();
