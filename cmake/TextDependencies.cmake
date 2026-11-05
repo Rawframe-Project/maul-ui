@@ -8,7 +8,9 @@
 # Included before the family modules: Maul Unicode brings its own
 # copies of them, and ours, included after, then serve this project.
 # FETCHCONTENT_SOURCE_DIR_MAUL_UI_FREETYPE, ..._MAUL_UI_HARFBUZZ and
-# ..._MAUL-UNICODE build from local copies instead, offline.
+# ..._MAUL-UNICODE build from local copies instead, offline. With
+# MAUL_DOWNLOAD_DIR in the environment, the tarballs are kept in that
+# folder, and one there with the pinned hash is not downloaded again.
 
 include(FetchContent)
 
@@ -30,17 +32,26 @@ else()
     enable_language(CXX)
     set(ft_version ${MAUL_UI_FREETYPE_VERSION})
     set(hb_version ${MAUL_UI_HARFBUZZ_VERSION})
+    set(kept)
+    if(DEFINED ENV{MAUL_DOWNLOAD_DIR})
+        # Forward slashes: FetchContent writes the folder into a
+        # CMakeLists.txt, where a Windows path's backslashes are escapes.
+        cmake_path(SET kept_dir "$ENV{MAUL_DOWNLOAD_DIR}")
+        set(kept DOWNLOAD_DIR ${kept_dir})
+    endif()
     # Both are only populated (their SOURCE_SUBDIR has no CMakeLists.txt):
     # they are built below, not by their own build.
     FetchContent_Declare(maul_ui_freetype
         URL https://downloads.sourceforge.net/project/freetype/freetype2/${ft_version}/freetype-${ft_version}.tar.xz
             https://download.savannah.gnu.org/releases/freetype/freetype-${ft_version}.tar.xz
         URL_HASH SHA256=36bc4f1cc413335368ee656c42afca65c5a3987e8768cc28cf11ba775e785a5f
+        ${kept}
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
         SOURCE_SUBDIR maul-ui-builds-it)
     FetchContent_Declare(maul_ui_harfbuzz
         URL https://github.com/harfbuzz/harfbuzz/releases/download/${hb_version}/harfbuzz-${hb_version}.tar.xz
         URL_HASH SHA256=7e2fa4e8c7c98e8d8140671f5772542afaaa6acccfbd746506886b6d85f7f8d6
+        ${kept}
         DOWNLOAD_EXTRACT_TIMESTAMP TRUE
         SOURCE_SUBDIR maul-ui-builds-it)
     FetchContent_MakeAvailable(maul_ui_freetype maul_ui_harfbuzz)

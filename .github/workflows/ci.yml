@@ -33,7 +33,7 @@ env:
 jobs:
   # Whether anything beyond documentation changed; the builds skip when not.
   changes:
-    uses: Rawframe-Project/.github/.github/workflows/changes.yml@972ea41c6abf2652d3b067e57bf0713f1661cf0e # v0.0.51
+    uses: Rawframe-Project/.github/.github/workflows/changes.yml@b25a960c381f28b6c4266b1cceb3af4f8c9feec1 # v0.0.56
     permissions:
       pull-requests: read
 
@@ -48,10 +48,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: Rawframe-Project/.github/.github/actions/docs-check@972ea41c6abf2652d3b067e57bf0713f1661cf0e # v0.0.51
+      - uses: Rawframe-Project/.github/.github/actions/docs-check@b25a960c381f28b6c4266b1cceb3af4f8c9feec1 # v0.0.56
 
   zizmor:
-    uses: Rawframe-Project/.github/.github/workflows/zizmor.yml@972ea41c6abf2652d3b067e57bf0713f1661cf0e # v0.0.51
+    uses: Rawframe-Project/.github/.github/workflows/zizmor.yml@b25a960c381f28b6c4266b1cceb3af4f8c9feec1 # v0.0.56
     permissions:
       contents: read
 
@@ -166,12 +166,13 @@ jobs:
           - { preset: linux-parts-gcc-14 }
           - { preset: macos-clang, runner: macos-15 }
           - { preset: windows-clang-cl, runner: windows-2025 }
-    uses: Rawframe-Project/.github/.github/workflows/cpp.yml@972ea41c6abf2652d3b067e57bf0713f1661cf0e # v0.0.51
+    uses: Rawframe-Project/.github/.github/workflows/cpp.yml@b25a960c381f28b6c4266b1cceb3af4f8c9feec1 # v0.0.56
     permissions:
       contents: read
     with:
       preset: ${{ matrix.preset }}
       runner: ${{ matrix.runner || 'ubuntu-24.04' }}
+      download-keys: cmake/TextDependencies.cmake
       repeat: ${{ matrix.repeat || 1 }}
 
   # The public headers alone under MSVC's cl, as C17 and C++17 with /W4 /WX:
@@ -804,7 +805,7 @@ jobs:
   prune-caches:
     needs: [build, fuzz]
     if: always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-    uses: Rawframe-Project/.github/.github/workflows/cache-prune.yml@972ea41c6abf2652d3b067e57bf0713f1661cf0e # v0.0.51
+    uses: Rawframe-Project/.github/.github/workflows/cache-prune.yml@b25a960c381f28b6c4266b1cceb3af4f8c9feec1 # v0.0.56
     permissions:
       actions: write
 
