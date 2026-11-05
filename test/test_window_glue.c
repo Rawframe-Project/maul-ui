@@ -309,8 +309,8 @@ static void PostInput(Test* test, mwinContext* windows)
         Cursor(test->window, mwin_eventCursorMoved, 50, 50, 0, 0),
         Cursor(test->window, mwin_eventCursorMoved, 300, 300, 0, 0),
         Cursor(test->window, mwin_eventCursorMoved, 60, 40, 0, 0),
-        Cursor(test->window, mwin_eventButtonDown, 60, 40, mwin_buttonLeft, 1),
-        Cursor(test->window, mwin_eventButtonUp, 60, 40, mwin_buttonLeft, 0),
+        Cursor(test->window, mwin_eventButtonDown, 60, 40, mwin_mouseButtonLeft, 1),
+        Cursor(test->window, mwin_eventButtonUp, 60, 40, mwin_mouseButtonLeft, 0),
         Key(test->window, mwin_codeKeyA, 'a', 0),
         Key(test->window, mwin_codeKeyB, 'b', mwin_modShift),
         text,
@@ -460,9 +460,9 @@ static void PostHold(Test* test, mwinContext* windows)
 {
     const mwinEvent events[] = {
         Cursor(test->window, mwin_eventCursorMoved, 250, 50, 0, 0),
-        Cursor(test->window, mwin_eventButtonDown, 250, 50, mwin_buttonLeft, 1),
+        Cursor(test->window, mwin_eventButtonDown, 250, 50, mwin_mouseButtonLeft, 1),
         Cursor(test->window, mwin_eventCursorMoved, 400, 300, 0, 1),
-        Cursor(test->window, mwin_eventButtonUp, 400, 300, mwin_buttonLeft, 0),
+        Cursor(test->window, mwin_eventButtonUp, 400, 300, mwin_mouseButtonLeft, 0),
         Cursor(test->window, mwin_eventCursorMoved, 410, 300, 0, 0),
     };
     Post(windows, events, 5);
@@ -628,7 +628,7 @@ static mwinFrameResult Frame(mwinContext* windows, void* user)
         Post(windows,
              (const mwinEvent[]){
                  Cursor(test->window, mwin_eventCursorMoved, 50, 50, 0, 0),
-                 Cursor(test->window, mwin_eventButtonDown, 50, 50, mwin_buttonLeft, 1),
+                 Cursor(test->window, mwin_eventButtonDown, 50, 50, mwin_mouseButtonLeft, 1),
                  {.kind = mwin_eventFocusLost, .window = test->window}},
              3);
         break;

@@ -645,9 +645,9 @@ static bool Script(void* user, SampleApp* app, int frame)
         SampleAppCheck(
             app, muiNode_MapToRoot(app->context, sample->area, 40.0f, 20.0f, &x, &y) == mui_success,
             "the area's place");
-        SamplePostButton(app, mwin_eventCursorMoved, x, y, mwin_buttonRight, 0);
-        SamplePostButton(app, mwin_eventButtonDown, x, y, mwin_buttonRight, 2);
-        SamplePostButton(app, mwin_eventButtonUp, x, y, mwin_buttonRight, 0);
+        SamplePostButton(app, mwin_eventCursorMoved, x, y, mwin_mouseButtonRight, 0);
+        SamplePostButton(app, mwin_eventButtonDown, x, y, mwin_mouseButtonRight, 2);
+        SamplePostButton(app, mwin_eventButtonUp, x, y, mwin_mouseButtonRight, 0);
         return true;
     }
     case 7:
