@@ -13,7 +13,11 @@
 #include "maul-ui/access_tree.h"
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
+
+// Whether text is well-formed UTF-8 without a NUL.
+MUI_NODISCARD bool muiAccessIsUtf8(const unsigned char* text, size_t length);
 
 // Whether each part of marks fits a text of length bytes: offsets within
 // it at the starts of characters; lines ascending from 0, words in order

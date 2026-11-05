@@ -166,6 +166,21 @@ MUI_NODISCARD static bool LengthsFit(const muiAccessNode* node)
     return true;
 }
 
+// Whether each of a node's texts is UTF-8 without a NUL, as a platform
+// takes it: D-Bus, for one, ends the program on a string that is not.
+MUI_NODISCARD static bool TextsAreUtf8(const muiAccessNode* node)
+{
+    for (uint32_t kind = 0; kind < MUI_ACCESS_TEXTS; kind++)
+    {
+        if (node->text[kind] != nullptr &&
+            !muiAccessIsUtf8((const unsigned char*)node->text[kind], node->textLength[kind]))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 // Whether a node's marks fit its value text (src/access_text.h), its
 // length checked first.
 MUI_NODISCARD static bool MarksFit(const muiAccessNode* node)
@@ -205,7 +220,7 @@ static muiResult CheckLists(muiAccessTree* tree, const muiAccessUpdate* update, 
         }
         if ((node->childCount != 0 && update->children == nullptr) ||
             (node->linkCount != 0 && node->links == nullptr) || !ChildrenFit(update, node) ||
-            !MarksFit(node))
+            !TextsAreUtf8(node) || !MarksFit(node))
         {
             return mui_errorInvalid;
         }
