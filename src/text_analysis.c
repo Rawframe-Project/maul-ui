@@ -41,8 +41,9 @@ static void FreeScratch(const muiAllocator* allocator, Scratch* scratch)
 }
 
 // Appends a paragraph's line break opportunities, its offsets from at.
-static bool FindBreaks(const muiAllocator* allocator, Scratch* scratch, const char* text,
-                       uint32_t at, uint32_t length, muiTextAnalysis* analysis)
+MUI_NODISCARD static bool FindBreaks(const muiAllocator* allocator, Scratch* scratch,
+                                     const char* text, uint32_t at, uint32_t length,
+                                     muiTextAnalysis* analysis)
 {
     size_t count = 0;
     if (muniFindLineBreaks(text + at, length, nullptr, nullptr, 0, &count) != muni_errorCapacity ||
@@ -73,8 +74,9 @@ static bool FindBreaks(const muiAllocator* allocator, Scratch* scratch, const ch
 }
 
 // Appends a paragraph's script runs, their ends from at.
-static bool FindScripts(const muiAllocator* allocator, Scratch* scratch, const char* text,
-                        uint32_t at, uint32_t length, muiTextAnalysis* analysis)
+MUI_NODISCARD static bool FindScripts(const muiAllocator* allocator, Scratch* scratch,
+                                      const char* text, uint32_t at, uint32_t length,
+                                      muiTextAnalysis* analysis)
 {
     size_t count = 0;
     if (muniFindScriptRuns(text + at, length, nullptr, 0, &count) != muni_errorCapacity ||
@@ -105,8 +107,8 @@ static bool FindScripts(const muiAllocator* allocator, Scratch* scratch, const c
 // up to end, each paragraph found alone (UAX #14 breaks and UAX #24
 // runs never reach across a mandatory break), so that an edit finds a
 // paragraph's again as a whole text's analysis does.
-static bool AnalyzeParagraphs(const muiAllocator* allocator, const char* text, uint32_t start,
-                              uint32_t end, muiTextAnalysis* analysis)
+MUI_NODISCARD static bool AnalyzeParagraphs(const muiAllocator* allocator, const char* text,
+                                            uint32_t start, uint32_t end, muiTextAnalysis* analysis)
 {
     Scratch scratch = {0};
     bool fits = true;
@@ -130,8 +132,8 @@ typedef struct Piece
 
 // Copies the text the pieces make in turn into an analysis, so a piece
 // may be the block's own old text.
-static bool Join(const muiAllocator* allocator, const Piece* pieces, uint32_t count,
-                 muiTextAnalysis* analysis)
+MUI_NODISCARD static bool Join(const muiAllocator* allocator, const Piece* pieces, uint32_t count,
+                               muiTextAnalysis* analysis)
 {
     uint32_t length = 0;
     for (uint32_t i = 0; i < count; i++)
@@ -215,8 +217,9 @@ static void Copy(void* to, const void* from, size_t bytes)
 
 // The block's tables with its old paragraphs from 0 up to from and from
 // oldTo on, moved by delta, around a region's: in analysis, made whole.
-static bool Splice(const muiAllocator* allocator, const muiTextBlock* block, uint32_t from,
-                   uint32_t oldTo, int64_t delta, muiTextAnalysis* analysis)
+MUI_NODISCARD static bool Splice(const muiAllocator* allocator, const muiTextBlock* block,
+                                 uint32_t from, uint32_t oldTo, int64_t delta,
+                                 muiTextAnalysis* analysis)
 {
     // The region lies within the old text, from its start, so the
     // tables' entries up to from and past oldTo are apart.

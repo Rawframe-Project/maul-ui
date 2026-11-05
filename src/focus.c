@@ -20,7 +20,7 @@
 
 #include "maul-ui/interaction.h"
 
-static bool IsNull(muiNodeId nodeId)
+MUI_NODISCARD static bool IsNull(muiNodeId nodeId)
 {
     return nodeId.index1 == 0;
 }

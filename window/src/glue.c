@@ -45,7 +45,7 @@ muiWindowGlueDef muiDefaultWindowGlueDef(void)
     };
 }
 
-static bool IsValid(const muiWindowGlueDef* def)
+MUI_NODISCARD static bool IsValid(const muiWindowGlueDef* def)
 {
     return def->cookie == DEF_COOKIE && muiWindowIsAllocatorValid(&def->allocator) &&
            def->windows != nullptr && def->context != nullptr && def->root.index1 != 0 &&
@@ -101,14 +101,14 @@ void muiDestroyWindowGlue(muiWindowGlue* glue)
     muiWindowRelease(&allocator, glue, sizeof(muiWindowGlue), alignof(muiWindowGlue));
 }
 
-static bool IsMine(const muiWindowGlue* glue, mwinWindowId window)
+MUI_NODISCARD static bool IsMine(const muiWindowGlue* glue, mwinWindowId window)
 {
     return window.index1 == glue->window.index1 && window.generation == glue->window.generation;
 }
 
 // Whether a record is the UI's: handled, or at a node that does not
 // pass input through (the host hands the game only what is neither).
-static bool IsTheUis(const muiPointerRecord* record, bool handled)
+MUI_NODISCARD static bool IsTheUis(const muiPointerRecord* record, bool handled)
 {
     return handled || !record->passThrough;
 }
@@ -137,7 +137,7 @@ static muiResult DispatchRecords(muiWindowGlue* glue, bool* handledOut)
 }
 
 // Whether a point hits a node that does not pass input through.
-static bool Covers(const muiWindowGlue* glue, float x, float y)
+MUI_NODISCARD static bool Covers(const muiWindowGlue* glue, float x, float y)
 {
     muiHit hit;
     return muiNode_HitTest(glue->context, glue->root, x, y, &hit) == mui_success &&

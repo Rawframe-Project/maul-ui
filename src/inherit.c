@@ -59,14 +59,14 @@ muiTextRecord muiRootTextRecord(void)
     return s_root;
 }
 
-static bool SameDimension(muiDimension a, muiDimension b)
+MUI_NODISCARD static bool SameDimension(muiDimension a, muiDimension b)
 {
     return a.kind == b.kind && a.scale == b.scale && a.offset == b.offset;
 }
 
 // Whether what lays text out differs: everything but color and
 // alignment.
-static bool SizesDiffer(const muiComputedTextStyle* a, const muiComputedTextStyle* b)
+MUI_NODISCARD static bool SizesDiffer(const muiComputedTextStyle* a, const muiComputedTextStyle* b)
 {
     return a->font != b->font || a->size != b->size || a->lineHeight != b->lineHeight ||
            a->letterSpacing != b->letterSpacing || a->weight != b->weight || a->slant != b->slant ||
@@ -74,12 +74,12 @@ static bool SizesDiffer(const muiComputedTextStyle* a, const muiComputedTextStyl
            a->automaticLineHeight != b->automaticLineHeight;
 }
 
-static bool SameColor(muiColor a, muiColor b)
+MUI_NODISCARD static bool SameColor(muiColor a, muiColor b)
 {
     return a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a;
 }
 
-static bool PaintDiffers(const muiComputedTextStyle* a, const muiComputedTextStyle* b)
+MUI_NODISCARD static bool PaintDiffers(const muiComputedTextStyle* a, const muiComputedTextStyle* b)
 {
     return !SameColor(a->color, b->color) || a->align != b->align ||
            a->decoration != b->decoration || !SameColor(a->decorationColor, b->decorationColor);
@@ -87,7 +87,8 @@ static bool PaintDiffers(const muiComputedTextStyle* a, const muiComputedTextSty
 
 // Computes one node's record; true when what its children inherit
 // changed.
-static bool Update(const muiTextNodes* nodes, uint32_t node, const muiTextRecord* root)
+MUI_NODISCARD static bool Update(const muiTextNodes* nodes, uint32_t node,
+                                 const muiTextRecord* root)
 {
     uint32_t parent = muiTreeAt(nodes->tree, node)->links.parent;
     muiTextRecord* record = &nodes->records[node - 1];

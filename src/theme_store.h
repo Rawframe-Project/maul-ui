@@ -49,8 +49,8 @@ const muiThemeOverride* muiFindOverride(const muiThemeStore* store, uint32_t the
 // follow the context's alias or any live theme's: an alias from token to
 // target would close a cycle under some nesting of themes. Marks the
 // tokens it reaches in their records.
-bool muiAliasLeadsTo(muiTokenStore* tokens, const muiThemeStore* themes, muiTokenId target,
-                     muiTokenId token);
+MUI_NODISCARD bool muiAliasLeadsTo(muiTokenStore* tokens, const muiThemeStore* themes,
+                                   muiTokenId target, muiTokenId token);
 
 // A token's value as a scope reads it: each step takes the nearest
 // override, or the context's token, and follows an alias on. NULL when a

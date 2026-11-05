@@ -16,7 +16,7 @@
 #include <stdint.h>
 
 // Whether a block is laid out as its mask: an editing password.
-bool muiIsMasked(const muiTextBlock* block);
+MUI_NODISCARD bool muiIsMasked(const muiTextBlock* block);
 
 // The block laid out for a block: its mask, made again when its text
 // changed, for a password; the block itself otherwise. NULL when memory

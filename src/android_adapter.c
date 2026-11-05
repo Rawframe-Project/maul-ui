@@ -18,7 +18,7 @@
 
 #define PROVIDER "maul.ui.AccessProvider"
 
-static bool IsValid(const muiAndroidAdapterDef* def)
+MUI_NODISCARD static bool IsValid(const muiAndroidAdapterDef* def)
 {
     return muiIsAllocatorValid(&def->allocator) && def->nodes != 0 && def->env != nullptr &&
            def->view != nullptr && def->action != nullptr && def->scale > 0.0f;
@@ -71,7 +71,7 @@ JNIEnv* muiAndroidEnv(const muiAndroidAdapter* adapter)
 }
 
 // Whether Java threw; the exception is cleared.
-static bool Threw(JNIEnv* env)
+MUI_NODISCARD static bool Threw(JNIEnv* env)
 {
     if ((*env)->ExceptionCheck(env))
     {

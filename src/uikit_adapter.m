@@ -20,7 +20,7 @@ static void Post(UIAccessibilityNotifications notification, id argument)
     UIAccessibilityPostNotification(notification, argument);
 }
 
-static bool IsValid(const muiUikitAdapterDef* def)
+MUI_NODISCARD static bool IsValid(const muiUikitAdapterDef* def)
 {
     return muiIsAllocatorValid(&def->allocator) && def->nodes != 0 && def->view != nullptr &&
            def->action != nullptr && def->scale > 0.0f;
@@ -234,7 +234,7 @@ uint32_t muiUikitChildrenOf(const muiUikitAdapter* adapter, uint64_t id)
     return count;
 }
 
-static bool HasChildren(const muiUikitAdapter* adapter, uint64_t id)
+MUI_NODISCARD static bool HasChildren(const muiUikitAdapter* adapter, uint64_t id)
 {
     uint32_t count = 0;
     muiResult status = muiAccessTree_GetShownChildren(adapter->tree, id, nullptr, 0, &count);

@@ -29,8 +29,8 @@ void muiRhiFreePlan(muiRhiPlan* plan)
 
 // Room for a number of items of a size in an array, grown to the next
 // power of 2 and its contents dropped.
-static bool Reserve(const muiAllocator* allocator, void** items, uint32_t* capacity,
-                    uint32_t needed, size_t size, size_t alignment)
+MUI_NODISCARD static bool Reserve(const muiAllocator* allocator, void** items, uint32_t* capacity,
+                                  uint32_t needed, size_t size, size_t alignment)
 {
     if (needed <= *capacity)
     {
@@ -53,7 +53,7 @@ static bool Reserve(const muiAllocator* allocator, void** items, uint32_t* capac
     return true;
 }
 
-static bool Same(mrhiResourceId a, mrhiResourceId b)
+MUI_NODISCARD static bool Same(mrhiResourceId a, mrhiResourceId b)
 {
     return a.index1 == b.index1 && a.generation == b.generation;
 }

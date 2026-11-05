@@ -51,7 +51,8 @@ static muiRect BoxOf(const muiDrawTransform* t, muiRect rect)
 }
 
 // Whether a parent's child, by place, lies wholly outside the parent.
-static bool IsOutside(const muiAccessTree* tree, const muiHeldNode* parent, uint32_t index)
+MUI_NODISCARD static bool IsOutside(const muiAccessTree* tree, const muiHeldNode* parent,
+                                    uint32_t index)
 {
     uint32_t slot = muiHeldSlotOf(tree, parent->children[index]);
     const muiAccessNode* child = &tree->held[slot - 1].node;
@@ -64,7 +65,8 @@ static bool IsOutside(const muiAccessTree* tree, const muiHeldNode* parent, uint
 // Whether a child is clipped out of view: outside a parent that clips,
 // and so are its neighbours, so the first child past each edge stays to
 // be scrolled to.
-static bool IsClippedOut(const muiAccessTree* tree, uint32_t parentSlot, uint32_t index)
+MUI_NODISCARD static bool IsClippedOut(const muiAccessTree* tree, uint32_t parentSlot,
+                                       uint32_t index)
 {
     const muiHeldNode* parent = &tree->held[parentSlot - 1];
     if ((parent->node.flags & mui_accessClipsChildren) == 0 || !IsOutside(tree, parent, index))
@@ -77,7 +79,7 @@ static bool IsClippedOut(const muiAccessTree* tree, uint32_t parentSlot, uint32_
 }
 
 // Whether a node is the focus or above it.
-static bool HoldsFocus(const muiAccessTree* tree, uint32_t slot)
+MUI_NODISCARD static bool HoldsFocus(const muiAccessTree* tree, uint32_t slot)
 {
     uint32_t steps = 0;
     for (uint32_t at = muiHeldSlotOf(tree, tree->focus); at != 0 && steps <= tree->count;
@@ -109,7 +111,7 @@ static Status StatusOf(const muiAccessTree* tree, uint32_t parentSlot, uint32_t 
     return flattened ? Status_flattened : Status_shown;
 }
 
-static bool BoxDiffers(const muiAccessNode* old, const muiAccessNode* now)
+MUI_NODISCARD static bool BoxDiffers(const muiAccessNode* old, const muiAccessNode* now)
 {
     const muiRect* a = &old->bounds;
     const muiRect* b = &now->bounds;
@@ -186,7 +188,7 @@ bool muiShownForFocus(const muiAccessTree* tree, uint64_t id)
 
 // Walks from the root down to a node: whether it is shown, and its
 // nearest ancestor shown.
-static bool Trace(const muiAccessTree* tree, uint32_t slot, uint32_t* shownParentOut)
+MUI_NODISCARD static bool Trace(const muiAccessTree* tree, uint32_t slot, uint32_t* shownParentOut)
 {
     uint32_t depth = 0;
     for (uint32_t at = slot; at != 0 && depth < tree->capacity; at = tree->held[at - 1].parent)
@@ -212,7 +214,8 @@ static bool Trace(const muiAccessTree* tree, uint32_t slot, uint32_t* shownParen
     return true;
 }
 
-static MUI_NOINLINE bool AccessTreeIsShownWorker(const muiAccessTree* tree, uint64_t id)
+MUI_NODISCARD static MUI_NOINLINE bool AccessTreeIsShownWorker(const muiAccessTree* tree,
+                                                               uint64_t id)
 {
     uint32_t slot = tree != nullptr ? muiHeldSlotOf(tree, id) : 0;
     uint32_t parent = 0;
@@ -611,7 +614,7 @@ static void JoinLabellers(Name* name, const muiAccessTree* tree, const muiAccess
 // Whether a role takes its name from what is inside it: ARIA 1.2's roles
 // supporting name from content (accname 1.2, step 2F). A list item's
 // name is its author's alone.
-static bool IsNamedByContents(muiRole role)
+MUI_NODISCARD static bool IsNamedByContents(muiRole role)
 {
     switch (role)
     {

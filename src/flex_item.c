@@ -91,7 +91,8 @@ static float ContentBase(const muiFlexFrame* frame, uint32_t child, const muiAxi
 // whenever the item's own height at its base does not reach the line: a
 // sibling or a row above gave the line, which does not hang on the item
 // (as Chrome and Firefox).
-static bool LooseMinimum(const muiFlexFrame* frame, uint32_t child, muiMeasureAxis cross)
+MUI_NODISCARD static bool LooseMinimum(const muiFlexFrame* frame, uint32_t child,
+                                       muiMeasureAxis cross)
 {
     const muiSizing* sizing = &frame->solver->nodes[child - 1].style.sizing;
     bool loose =
@@ -113,7 +114,7 @@ static bool LooseMinimum(const muiFlexFrame* frame, uint32_t child, muiMeasureAx
 // minimum: a wrapping column without a ratio whose maximum height is a
 // percentage, which does not break its lines there (as Chrome and
 // Firefox) but caps the content after.
-static bool OneLineMinimum(const muiFlexFrame* frame, const muiLayoutStyle* own)
+MUI_NODISCARD static bool OneLineMinimum(const muiFlexFrame* frame, const muiLayoutStyle* own)
 {
     bool column = own->container.direction == mui_flexColumn ||
                   own->container.direction == mui_flexColumnReverse;

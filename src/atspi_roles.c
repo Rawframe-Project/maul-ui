@@ -314,14 +314,14 @@ static void Set(uint32_t states[2], uint32_t state, bool set)
 }
 
 // Whether a role edits text.
-static bool IsTextInput(muiRole role)
+MUI_NODISCARD static bool IsTextInput(muiRole role)
 {
     return (role >= mui_roleTextInput && role <= mui_roleDateTimeInput) ||
            role == mui_roleEditableComboBox;
 }
 
 // Whether a clipping ancestor shows none of a node.
-static bool IsClipped(const muiAccessTree* tree, uint64_t id, uint32_t limit)
+MUI_NODISCARD static bool IsClipped(const muiAccessTree* tree, uint64_t id, uint32_t limit)
 {
     muiRect box = {0};
     (void)muiAccessTree_GetBounds(tree, id, &box);

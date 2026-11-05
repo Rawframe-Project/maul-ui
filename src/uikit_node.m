@@ -17,7 +17,7 @@ static NSString* StringOf(const char* text)
     return text != nullptr ? [NSString stringWithUTF8String:text] : nil;
 }
 
-static bool Has(const muiAccessNode* node, muiAccessAction action)
+MUI_NODISCARD static bool Has(const muiAccessNode* node, muiAccessAction action)
 {
     return (node->actions & (1u << action)) != 0;
 }
@@ -28,7 +28,7 @@ static const muiAccessNode* Find(const muiUikitAdapter* adapter, uint64_t id)
     return adapter != nullptr ? muiAccessTree_Find(adapter->tree, id) : nullptr;
 }
 
-static bool IsToggle(const muiAccessNode* node)
+MUI_NODISCARD static bool IsToggle(const muiAccessNode* node)
 {
     return node->role == mui_roleSwitch ||
            (node->role == mui_roleButton && (node->flags & mui_accessCheckable) != 0);

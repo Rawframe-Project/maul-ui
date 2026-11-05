@@ -142,7 +142,7 @@ typedef struct ColorGlyph
 } ColorGlyph;
 
 // Whether the glyph has colour of either version, and which.
-static bool FindColor(ColorGlyph* color)
+MUI_NODISCARD static bool FindColor(ColorGlyph* color)
 {
     FT_Face face = color->source.font->face;
 #if MUI_COLR_PAINT

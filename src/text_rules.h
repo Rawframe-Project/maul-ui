@@ -18,8 +18,8 @@
 // Writes into out what of a text going in over the bytes of an editing
 // block from start up to end its rules let in, and its length; false
 // when memory runs out.
-bool muiApplyEditRules(muiTextService* service, const muiTextBlock* block, uint32_t start,
-                       uint32_t end, const char* text, size_t length, muiBuffer* out,
-                       uint32_t* lengthOut);
+MUI_NODISCARD bool muiApplyEditRules(muiTextService* service, const muiTextBlock* block,
+                                     uint32_t start, uint32_t end, const char* text, size_t length,
+                                     muiBuffer* out, uint32_t* lengthOut);
 
 #endif // MAUL_UI_SRC_TEXT_RULES_H

@@ -20,7 +20,7 @@ void muiPopupPress(muiContext* context, uint32_t slot);
 
 // An Escape no handler took: dismisses the popup set last; whether there
 // was one.
-bool muiPopupEscape(muiContext* context);
+MUI_NODISCARD bool muiPopupEscape(muiContext* context);
 
 // Focus moved by code or navigation to the node at slot: dismisses the
 // popups it left.

@@ -87,7 +87,7 @@ muiResult muiRhiReserveStream(mrhiDevice* device, const muiAllocator* allocator,
     return capacity != stream->capacity ? Grow(device, allocator, stream, capacity) : mui_success;
 }
 
-static bool Differs(const muiRhiStream* stream, uint32_t record)
+MUI_NODISCARD static bool Differs(const muiRhiStream* stream, uint32_t record)
 {
     size_t at = BytesOf(stream, record);
     return record >= stream->heldCount ||

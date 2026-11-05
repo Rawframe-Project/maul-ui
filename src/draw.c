@@ -75,8 +75,8 @@ static uint32_t TransformOf(const Renumbering* renumbering, uint32_t transform)
 }
 
 // Whether a node's subtree can be taken from the last list.
-static bool CanCopy(const Build* build, uint32_t slot, const muiPaintState* old, float x, float y,
-                    float inherited)
+MUI_NODISCARD static bool CanCopy(const Build* build, uint32_t slot, const muiPaintState* old,
+                                  float x, float y, float inherited)
 {
     const muiTree* tree = &build->painter.context->tree;
     return build->previous != nullptr && old->build == build->previousBuild &&
@@ -87,7 +87,8 @@ static bool CanCopy(const Build* build, uint32_t slot, const muiPaintState* old,
 // Copies a subtree's commands, clips, gradients and glyphs; false when
 // its glyphs do not fit. A subtree's glyph runs name one contiguous span
 // of glyphs, in order, so the span is found from them as they are copied.
-static bool CopyCommands(Build* build, const muiPaintState* old, const Renumbering* renumbering)
+MUI_NODISCARD static bool CopyCommands(Build* build, const muiPaintState* old,
+                                       const Renumbering* renumbering)
 {
     const muiDrawTables* from = build->previous;
     muiDrawTables* to = build->painter.out;
@@ -194,8 +195,8 @@ static void Renumber(Build* build, uint32_t node, const muiPaintState* old,
 // Takes a node's subtree, painted in entryClip and through
 // entryTransform now, from the last list into state; false when it does
 // not fit.
-static bool Copy(Build* build, uint32_t node, muiPaintState* state, uint32_t entryClip,
-                 uint32_t entryTransform)
+MUI_NODISCARD static bool Copy(Build* build, uint32_t node, muiPaintState* state,
+                               uint32_t entryClip, uint32_t entryTransform)
 {
     const muiPaintState old = *state;
     muiDrawTables* to = build->painter.out;
@@ -232,7 +233,7 @@ static bool Copy(Build* build, uint32_t node, muiPaintState* state, uint32_t ent
 
 // Paints or copies a node from its parent's state; true when its
 // children are to be visited.
-static bool Visit(Build* build, const muiPaintState* top, uint32_t root, uint32_t at)
+MUI_NODISCARD static bool Visit(Build* build, const muiPaintState* top, uint32_t root, uint32_t at)
 {
     const muiContext* context = build->painter.context;
     const muiTree* tree = &context->tree;
@@ -458,7 +459,8 @@ static void MarkUnpainted(muiContext* context, uint32_t root, uint32_t unpainted
 // host content culled to what was visible. A failed build left a header
 // of scale 0, which no build has. A new node in the root's slot is
 // requested every stage until a build of it, which records it.
-static bool IsUnchanged(const muiContext* context, uint32_t root, const muiDrawInput* input)
+MUI_NODISCARD static bool IsUnchanged(const muiContext* context, uint32_t root,
+                                      const muiDrawInput* input)
 {
     const muiDrawStore* store = &context->draw;
     return store->rootIndex == root && store->header.surface == input->surface &&

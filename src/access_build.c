@@ -26,7 +26,7 @@
 #include <string.h>
 
 // Roles that take a click without saying so.
-static bool IsClicked(muiRole role)
+MUI_NODISCARD static bool IsClicked(muiRole role)
 {
     switch (role)
     {
@@ -244,7 +244,7 @@ uint32_t muiAccessDerive(const muiContext* context, uint32_t slot, muiAccessNode
 // Whether two records of a node agree in all but their texts and links,
 // which the host data's version stands for, and their place in an
 // update.
-static bool IsSame(const muiAccessNode* a, const muiAccessNode* b)
+MUI_NODISCARD static bool IsSame(const muiAccessNode* a, const muiAccessNode* b)
 {
     return a->id == b->id && a->role == b->role && a->flags == b->flags &&
            a->actions == b->actions && a->bounds.x == b->bounds.x && a->bounds.y == b->bounds.y &&
@@ -371,9 +371,9 @@ static muiRect ShownOf(const muiContext* context, uint32_t slot)
 
 // The host's access text function, run in the host's floating-point
 // environment.
-static MUI_NOINLINE bool HostAccessText(const muiAccessStore* store, muiNodeId nodeId,
-                                        uint64_t hostKey, const muiRect* shown,
-                                        muiAccessContent* contentOut)
+MUI_NODISCARD static MUI_NOINLINE bool HostAccessText(const muiAccessStore* store, muiNodeId nodeId,
+                                                      uint64_t hostKey, const muiRect* shown,
+                                                      muiAccessContent* contentOut)
 {
     muiFloatHost host = muiFloatHostEnter();
     bool read = store->textFunction(store->textUser, nodeId, hostKey, shown, contentOut);
@@ -453,8 +453,8 @@ static void Resend(muiContext* context, uint32_t node)
 
 // Whether a node's children are those last sent, in order; children it
 // lists anew, which left the adapters' tree, are marked to be resent.
-static bool HasSameChildren(muiContext* context, uint32_t slot, const uint32_t* children,
-                            uint32_t count, bool sentBefore)
+MUI_NODISCARD static bool HasSameChildren(muiContext* context, uint32_t slot,
+                                          const uint32_t* children, uint32_t count, bool sentBefore)
 {
     const muiAccessSent* sent = context->access.sent;
     const muiTree* tree = &context->tree;

@@ -273,8 +273,8 @@ static void MarkStale(muiStale* stale, uint32_t start, uint32_t end, uint32_t le
 // alone: from past the last mandatory break before it up to the first
 // paragraph's end past it, whose separator the edit leaves as it was;
 // the rest moves by the change.
-static bool ReplaceRange(muiTextService* service, muiTextBlock* block, uint32_t start, uint32_t end,
-                         const char* text, uint32_t length)
+MUI_NODISCARD static bool ReplaceRange(muiTextService* service, muiTextBlock* block, uint32_t start,
+                                       uint32_t end, const char* text, uint32_t length)
 {
     const muiAllocator* allocator = &service->allocator;
     muiTextAnalysis analysis;
@@ -311,7 +311,8 @@ static bool ReplaceRange(muiTextService* service, muiTextBlock* block, uint32_t 
 
 // Whether replacing start up to end with length bytes keeps the text
 // within its limit.
-static bool Fits(const muiTextBlock* block, uint32_t start, uint32_t end, size_t length)
+MUI_NODISCARD static bool Fits(const muiTextBlock* block, uint32_t start, uint32_t end,
+                               size_t length)
 {
     return block->length - (end - start) <= MUI_MAX_TEXT_BYTES - length;
 }

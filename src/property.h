@@ -112,7 +112,8 @@ muiResult muiPropertiesStatus(muiConstValuesRef values, muiPropertyBits properti
 void muiApplyProperties(muiValuesRef target, muiConstValuesRef source, muiPropertyBits properties);
 
 // Whether a property named has different values in a and b.
-bool muiDoPropertiesDiffer(muiConstValuesRef a, muiConstValuesRef b, muiPropertyBits properties);
+MUI_NODISCARD bool muiDoPropertiesDiffer(muiConstValuesRef a, muiConstValuesRef b,
+                                         muiPropertyBits properties);
 
 enum
 {
@@ -156,6 +157,7 @@ muiResult muiTokenValueStatus(const muiTokenValue* value);
 
 // Writes a token's value, of the property's type, to the property when
 // the property allows it; false, writing nothing, when it does not.
-bool muiApplyTokenValue(muiValuesRef values, muiProperty property, const muiTokenValue* value);
+MUI_NODISCARD bool muiApplyTokenValue(muiValuesRef values, muiProperty property,
+                                      const muiTokenValue* value);
 
 #endif // MAUL_UI_SRC_PROPERTY_H

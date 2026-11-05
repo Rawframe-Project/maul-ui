@@ -13,7 +13,7 @@
 
 #define NONE (-1)
 
-static bool SameId(mwinGamepadId a, mwinGamepadId b)
+MUI_NODISCARD static bool SameId(mwinGamepadId a, mwinGamepadId b)
 {
     return a.index1 == b.index1 && a.generation == b.generation;
 }

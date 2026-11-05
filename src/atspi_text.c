@@ -43,7 +43,7 @@ bool muiAtspiHasText(const muiAccessNode* node)
            (node->text[mui_accessValue] != nullptr && (node->flags & mui_accessNumeric) == 0);
 }
 
-static bool IsLead(char byte)
+MUI_NODISCARD static bool IsLead(char byte)
 {
     return ((unsigned char)byte & 0xC0u) != 0x80u;
 }
@@ -112,7 +112,8 @@ static Span SpanAt(const muiAccessText* text, uint32_t at, uint32_t grain)
 }
 
 // Writes a span's text and its offsets in characters, (sii).
-static bool AppendSpan(muiAtspiApp* app, muiDBusIter* iter, const muiAccessText* text, Span span)
+MUI_NODISCARD static bool AppendSpan(muiAtspiApp* app, muiDBusIter* iter, const muiAccessText* text,
+                                     Span span)
 {
     uint32_t size = span.end - span.start;
     char* copy = muiAllocateMarked(&app->busy, &app->allocator, (size_t)size + 1, 1);
@@ -134,8 +135,8 @@ static bool AppendSpan(muiAtspiApp* app, muiDBusIter* iter, const muiAccessText*
 // Reads a call's arguments of the types named, 'i', 'u' or 's': the
 // integers into values and the strings into strings, each in order;
 // false for others.
-static bool ReadArgs(const muiDBusApi* dbus, DBusMessage* call, const char* types, int32_t* values,
-                     const char** strings)
+MUI_NODISCARD static bool ReadArgs(const muiDBusApi* dbus, DBusMessage* call, const char* types,
+                                   int32_t* values, const char** strings)
 {
     muiDBusIter iter;
     bool ok = dbus->iterInit(call, &iter);
@@ -153,7 +154,8 @@ static bool ReadArgs(const muiDBusApi* dbus, DBusMessage* call, const char* type
     return ok;
 }
 
-static bool ReadInts(const muiDBusApi* dbus, DBusMessage* call, const char* types, int32_t* values)
+MUI_NODISCARD static bool ReadInts(const muiDBusApi* dbus, DBusMessage* call, const char* types,
+                                   int32_t* values)
 {
     return ReadArgs(dbus, call, types, values, nullptr);
 }
@@ -170,8 +172,8 @@ static uint32_t GrainOfBoundary(uint32_t boundary)
 
 // GetStringAtOffset and the older Get{Before,At,After}Offset: the span at
 // the offset, or the one before or after it.
-static bool AppendSpanAt(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
-                         const muiAccessText* text, const char* member, bool* ok)
+MUI_NODISCARD static bool AppendSpanAt(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
+                                       const muiAccessText* text, const char* member, bool* ok)
 {
     int32_t args[2] = {0, 0};
     *ok = muiAtspiTaken(app, ReadInts(&app->dbus, call, "iu", args));
@@ -228,8 +230,8 @@ static Span SelectionOf(const muiAccessText* text)
 }
 
 // Writes the answers that read the text.
-static bool AppendRead(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
-                       const muiAccessText* text, const char* member, bool* ok)
+MUI_NODISCARD static bool AppendRead(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
+                                     const muiAccessText* text, const char* member, bool* ok)
 {
     const muiDBusApi* dbus = &app->dbus;
     int32_t args[2] = {0, 0};
@@ -271,7 +273,7 @@ static bool AppendRead(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
 
 // Asks the host for a request on a node that takes its action; whether
 // it was done.
-static bool Ask(const muiAtspiObject* object, const muiAccessRequest* request)
+MUI_NODISCARD static bool Ask(const muiAtspiObject* object, const muiAccessRequest* request)
 {
     return (object->node->actions & (1u << request->action)) != 0 &&
            muiActMarked(&object->adapter->app->busy, object->adapter->action, object->adapter->user,
@@ -280,8 +282,8 @@ static bool Ask(const muiAtspiObject* object, const muiAccessRequest* request)
 
 // Asks the host to select from one character to another, the caret at
 // the second.
-static bool Select(const muiAtspiObject* object, const muiAccessText* text, int32_t anchor,
-                   int32_t focus)
+MUI_NODISCARD static bool Select(const muiAtspiObject* object, const muiAccessText* text,
+                                 int32_t anchor, int32_t focus)
 {
     const muiAccessRequest request = {.action = mui_actionSetSelection,
                                       .target = object->node->id,
@@ -321,9 +323,9 @@ static muiDBusBool SetSelection(muiAtspiApp* app, DBusMessage* call, const muiAt
 
 // Writes the answers about the selection, and about scrolling to text,
 // which is not offered.
-static bool AppendSelection(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
-                            const muiAtspiObject* object, const muiAccessText* text,
-                            const char* member, bool* ok)
+MUI_NODISCARD static bool AppendSelection(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
+                                          const muiAtspiObject* object, const muiAccessText* text,
+                                          const char* member, bool* ok)
 {
     const muiDBusApi* dbus = &app->dbus;
     Span selection = SelectionOf(text);
@@ -362,7 +364,7 @@ static bool AppendSelection(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* ca
 }
 
 // Writes an empty a{ss}.
-static bool AppendNoAttributes(muiAtspiApp* app, muiDBusIter* iter)
+MUI_NODISCARD static bool AppendNoAttributes(muiAtspiApp* app, muiDBusIter* iter)
 {
     muiDBusIter array = {0};
     bool ok = app->dbus.openContainer(iter, mui_dbusTypeArray, "{ss}", &array);
@@ -371,9 +373,10 @@ static bool AppendNoAttributes(muiAtspiApp* app, muiDBusIter* iter)
 
 // Writes the extents of characters from one to another in a coordinate
 // type, all zero for none.
-static bool AppendRangeExtents(muiAtspiApp* app, muiDBusIter* iter, const muiAtspiObject* object,
-                               const muiAccessText* text, int32_t start, int32_t end,
-                               uint32_t coordinates)
+MUI_NODISCARD static bool AppendRangeExtents(muiAtspiApp* app, muiDBusIter* iter,
+                                             const muiAtspiObject* object,
+                                             const muiAccessText* text, int32_t start, int32_t end,
+                                             uint32_t coordinates)
 {
     int32_t extents[4] = {0, 0, 0, 0};
     muiRect box = {0};
@@ -395,9 +398,9 @@ static bool AppendRangeExtents(muiAtspiApp* app, muiDBusIter* iter, const muiAts
 // Writes the answers about geometry: a character's extents, a range's,
 // the character at a point (-1 outside the node; the text's start when
 // it has no clusters).
-static bool AppendGeometry(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
-                           const muiAtspiObject* object, const muiAccessText* text,
-                           const char* member, bool* ok)
+MUI_NODISCARD static bool AppendGeometry(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* call,
+                                         const muiAtspiObject* object, const muiAccessText* text,
+                                         const char* member, bool* ok)
 {
     int32_t args[3] = {0, 0, 0};
     if (strcmp(member, "GetCharacterExtents") == 0)
@@ -437,8 +440,8 @@ static bool AppendGeometry(muiAtspiApp* app, muiDBusIter* iter, DBusMessage* cal
 
 // Writes the answers about attributes: none yet, the whole text one run
 // of no attributes.
-static bool AppendOther(muiAtspiApp* app, muiDBusIter* iter, const muiAccessText* text,
-                        const char* member, bool* ok)
+MUI_NODISCARD static bool AppendOther(muiAtspiApp* app, muiDBusIter* iter,
+                                      const muiAccessText* text, const char* member, bool* ok)
 {
     const muiDBusApi* dbus = &app->dbus;
     const int32_t zero = 0;
@@ -524,8 +527,8 @@ bool muiAtspiAppendTextProperty(muiAtspiApp* app, muiDBusIter* iter, const muiAt
 
 // Asks the host to replace text from one character to another; whether
 // it was done.
-static bool Replace(const muiAtspiObject* object, const muiAccessText* text, int32_t start,
-                    int32_t end, const char* with, size_t length)
+MUI_NODISCARD static bool Replace(const muiAtspiObject* object, const muiAccessText* text,
+                                  int32_t start, int32_t end, const char* with, size_t length)
 {
     const muiAccessRequest request = {.action = mui_actionReplaceText,
                                       .target = object->node->id,

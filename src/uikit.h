@@ -105,7 +105,8 @@ CGRect muiUikitViewRectOfBox(const muiUikitAdapter* adapter, muiRect box);
 CGRect muiUikitScreenRectOf(const muiUikitAdapter* adapter, uint64_t id);
 
 // Asks the host for an action on a node; whether it did it.
-bool muiUikitAct(const muiUikitAdapter* adapter, muiAccessAction action, uint64_t id, float value);
+MUI_NODISCARD bool muiUikitAct(const muiUikitAdapter* adapter, muiAccessAction action, uint64_t id,
+                               float value);
 
 // A node's whole name, as clients read it; nil for none.
 NSString* muiUikitNameOf(const muiUikitAdapter* adapter, uint64_t id);
@@ -126,12 +127,12 @@ void muiUikitTellText(MUIAccessibilityTextElement* element, const muiAccessNode*
 // A node's traits (uikit_traits.m), whether it is an element, and its
 // container's type.
 UIAccessibilityTraits muiUikitTraitsOf(const muiAccessNode* node);
-bool muiUikitSays(const muiUikitAdapter* adapter, const muiAccessNode* node);
+MUI_NODISCARD bool muiUikitSays(const muiUikitAdapter* adapter, const muiAccessNode* node);
 UIAccessibilityContainerType muiUikitContainerTypeOf(const muiAccessNode* node);
 
 // A scroll by VoiceOver's direction as the node's action; whether the
 // host did it.
-bool muiUikitScroll(const muiUikitAdapter* adapter, const muiAccessNode* node,
-                    UIAccessibilityScrollDirection direction);
+MUI_NODISCARD bool muiUikitScroll(const muiUikitAdapter* adapter, const muiAccessNode* node,
+                                  UIAccessibilityScrollDirection direction);
 
 #endif // MAUL_UI_SRC_UIKIT_H

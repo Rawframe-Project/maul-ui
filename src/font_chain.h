@@ -39,7 +39,7 @@ typedef struct muiFontChain
 
 // The chain of a style; false when its font or family names none, or
 // leaves no face.
-bool muiBuildChain(const muiTextService* service, const muiComputedTextStyle* style,
-                   muiFontChain* out);
+MUI_NODISCARD bool muiBuildChain(const muiTextService* service, const muiComputedTextStyle* style,
+                                 muiFontChain* out);
 
 #endif // MAUL_UI_SRC_FONT_CHAIN_H

@@ -29,19 +29,19 @@ struct muiDrawSink
     bool failed;
 };
 
-static bool IsUnit(float value)
+MUI_NODISCARD static bool IsUnit(float value)
 {
     return value >= 0.0f && value <= 1.0f;
 }
 
-static bool IsRunValid(const muiGlyphRun* run)
+MUI_NODISCARD static bool IsRunValid(const muiGlyphRun* run)
 {
     return isfinite(run->size) && run->size > 0.0f && IsUnit(run->color.r) &&
            IsUnit(run->color.g) && IsUnit(run->color.b) && IsUnit(run->color.a) &&
            isfinite(run->originX) && isfinite(run->originY);
 }
 
-static bool AreGlyphsValid(const muiGlyph* glyphs, uint32_t count)
+MUI_NODISCARD static bool AreGlyphsValid(const muiGlyph* glyphs, uint32_t count)
 {
     for (uint32_t i = 0; i < count; i++)
     {

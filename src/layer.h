@@ -27,7 +27,7 @@ void muiNoteLayer(muiContext* context, uint32_t slot, muiLayerKind before);
 
 // Whether a node roots a layer: it has a layer kind and the store holds
 // it.
-static inline MUI_SIZE_OUTLINE bool muiIsLayerRoot(const muiTree* tree, uint32_t slot)
+MUI_NODISCARD static inline MUI_SIZE_OUTLINE bool muiIsLayerRoot(const muiTree* tree, uint32_t slot)
 {
     return (muiTreeAt(tree, slot)->flags & MUI_TREE_APART) != 0;
 }

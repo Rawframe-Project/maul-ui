@@ -16,6 +16,7 @@
 // Calls the host's paint function for a node whose content is the
 // host's, painted at the origin, clip and opacity in state; false when
 // the function could not paint all it had to (muiDrawSink_Fail).
-bool muiPaintHostContent(muiPainter* painter, uint32_t slot, const muiPaintState* state);
+MUI_NODISCARD bool muiPaintHostContent(muiPainter* painter, uint32_t slot,
+                                       const muiPaintState* state);
 
 #endif // MAUL_UI_SRC_PAINT_HOST_H

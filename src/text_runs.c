@@ -93,7 +93,7 @@ static muiRunStyle Apply(muiRunStyle under, const muiTextSpan* span, float nodeS
     return under;
 }
 
-static bool IsSameRun(const muiRunStyle* a, const muiRunStyle* b)
+MUI_NODISCARD static bool IsSameRun(const muiRunStyle* a, const muiRunStyle* b)
 {
     return a->font == b->font && a->weight == b->weight && a->slant == b->slant &&
            a->size == b->size && a->shift == b->shift;

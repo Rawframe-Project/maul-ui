@@ -28,7 +28,7 @@ enum
 };
 
 // Whether a glyph has a version 1 graph, and its root.
-bool muiFindColorPaint(FT_Face face, uint32_t glyph, FT_OpaquePaint* rootOut);
+MUI_NODISCARD bool muiFindColorPaint(FT_Face face, uint32_t glyph, FT_OpaquePaint* rootOut);
 
 // The box of whole pixels a glyph's graph paints: its clip box where the
 // font has one, else the joint box of its outlines under their transforms;

@@ -71,7 +71,7 @@ static const UIAccessibilityContainerType s_containers[MUI_ROLE_LAST + 1] = {
     [mui_roleForm] = UIAccessibilityContainerTypeLandmark,
 };
 
-static bool Has(const muiAccessNode* node, muiAccessAction action)
+MUI_NODISCARD static bool Has(const muiAccessNode* node, muiAccessAction action)
 {
     return (node->actions & (1u << action)) != 0;
 }

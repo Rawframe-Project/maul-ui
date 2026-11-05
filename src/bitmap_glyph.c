@@ -34,7 +34,7 @@ typedef struct Span
     size_t size;
 } Span;
 
-static bool Has(Span s, size_t at, size_t length)
+MUI_NODISCARD static bool Has(Span s, size_t at, size_t length)
 {
     return at <= s.size && length <= s.size - at;
 }
@@ -106,7 +106,7 @@ static uint32_t Search(Span s, size_t at, uint32_t count, size_t stride, uint32_
 
 // Offsets of each glyph of the range and one past: 32 bits (format 1) or
 // 16 (format 3).
-static bool ByOffsets(Span t, size_t at, uint32_t i, uint32_t width, Image* image)
+MUI_NODISCARD static bool ByOffsets(Span t, size_t at, uint32_t i, uint32_t width, Image* image)
 {
     size_t first = at + (size_t)i * width;
     if (!Has(t, first, (size_t)width * 2))
@@ -122,7 +122,8 @@ static bool ByOffsets(Span t, size_t at, uint32_t i, uint32_t width, Image* imag
 
 // Images of one size: one after another (format 2), or for a sorted list
 // of glyphs (format 5); both with big metrics shared.
-static bool BySize(Span t, size_t at, uint32_t i, uint32_t glyph, bool listed, Image* image)
+MUI_NODISCARD static bool BySize(Span t, size_t at, uint32_t i, uint32_t glyph, bool listed,
+                                 Image* image)
 {
     uint32_t size = U32(t, at);
     image->hasMetrics = true;
@@ -147,7 +148,7 @@ static bool BySize(Span t, size_t at, uint32_t i, uint32_t glyph, bool listed, I
 }
 
 // Glyph and offset pairs, sorted, and one past (format 4).
-static bool ByPairs(Span t, size_t at, uint32_t glyph, Image* image)
+MUI_NODISCARD static bool ByPairs(Span t, size_t at, uint32_t glyph, Image* image)
 {
     uint32_t count = U32(t, at);
     size_t pairs = at + 4;
@@ -168,7 +169,8 @@ static bool ByPairs(Span t, size_t at, uint32_t glyph, Image* image)
 }
 
 // Finds a glyph in one index subtable, whose range holds it.
-static bool InSubtable(Span t, size_t at, uint32_t first, uint32_t glyph, Image* image)
+MUI_NODISCARD static bool InSubtable(Span t, size_t at, uint32_t first, uint32_t glyph,
+                                     Image* image)
 {
     uint32_t indexFormat = U16(t, at);
     *image = (Image){U32(t, at + 4), 0, U16(t, at + 2), false, 0, t};
@@ -195,7 +197,7 @@ static bool InSubtable(Span t, size_t at, uint32_t first, uint32_t glyph, Image*
 }
 
 // Finds a glyph's image in one strike.
-static bool InStrike(Span t, size_t record, uint32_t glyph, Image* image)
+MUI_NODISCARD static bool InStrike(Span t, size_t record, uint32_t glyph, Image* image)
 {
     if (glyph < U16(t, record + SIZE_START) || glyph > U16(t, record + SIZE_END) ||
         U8(t, record + SIZE_DEPTH) != 32)
@@ -221,7 +223,8 @@ static bool InStrike(Span t, size_t record, uint32_t glyph, Image* image)
 }
 
 // Reads an image's metrics and PNG from CBDT.
-static bool ReadImage(Span cbdt, const Image* image, uint32_t ppem, muiBitmapGlyph* out)
+MUI_NODISCARD static bool ReadImage(Span cbdt, const Image* image, uint32_t ppem,
+                                    muiBitmapGlyph* out)
 {
     if (!Has(cbdt, image->offset, image->length))
     {
@@ -271,8 +274,8 @@ static uint32_t Rank(uint32_t ppem, float pixelSize)
 }
 
 // Finds a glyph's bitmap in CBLC and CBDT.
-static bool FindInCbdt(const muiFont* font, uint32_t glyph, float pixelSize,
-                       muiBitmapGlyph* glyphOut)
+MUI_NODISCARD static bool FindInCbdt(const muiFont* font, uint32_t glyph, float pixelSize,
+                                     muiBitmapGlyph* glyphOut)
 {
     if (font->cblc.size == 0 || font->cbdt.size == 0)
     {
@@ -327,8 +330,8 @@ enum
 };
 
 // A glyph's graphic in one strike: its PNG and its origin offsets.
-static bool InSbixStrike(Span t, size_t strike, uint32_t glyphCount, uint32_t glyph, Span* pngOut,
-                         int32_t* xOut, int32_t* yOut)
+MUI_NODISCARD static bool InSbixStrike(Span t, size_t strike, uint32_t glyphCount, uint32_t glyph,
+                                       Span* pngOut, int32_t* xOut, int32_t* yOut)
 {
     for (uint32_t hop = 0; hop <= SBIX_DUPES && glyph < glyphCount; hop++)
     {
@@ -374,8 +377,8 @@ static void SbixOrigin(const muiFont* font, uint32_t glyph, double* xOut, double
     }
 }
 
-static bool FindInSbix(const muiFont* font, uint32_t glyph, float pixelSize,
-                       muiBitmapGlyph* glyphOut)
+MUI_NODISCARD static bool FindInSbix(const muiFont* font, uint32_t glyph, float pixelSize,
+                                     muiBitmapGlyph* glyphOut)
 {
     Span t = {font->sbix.data, font->sbix.size};
     uint32_t strikes = U32(t, 4);

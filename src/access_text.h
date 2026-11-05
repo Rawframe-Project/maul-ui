@@ -68,14 +68,15 @@ void muiAccessFreeRects(muiAccessRects* rects);
 // width of -1 for a unit no cluster holds or past the text. False for a
 // node not held, text without clusters, or memory run out. The allocator
 // is its owner's, which busy marks while it runs.
-bool muiAccessUnitRects(const muiAccessTree* tree, uint64_t id, uint32_t first, uint32_t count,
-                        const muiAllocator* allocator, const bool* busy, muiRect* rectsOut);
+MUI_NODISCARD bool muiAccessUnitRects(const muiAccessTree* tree, uint64_t id, uint32_t first,
+                                      uint32_t count, const muiAllocator* allocator,
+                                      const bool* busy, muiRect* rectsOut);
 
 // The box around a range's rectangles where the root is placed: the
 // node's bounds when its text has no clusters and the range is not
 // empty; false for none.
-bool muiAccessTextBox(const muiAccessTree* tree, uint64_t id, uint32_t start, uint32_t end,
-                      const muiAllocator* allocator, muiRect* boxOut);
+MUI_NODISCARD bool muiAccessTextBox(const muiAccessTree* tree, uint64_t id, uint32_t start,
+                                    uint32_t end, const muiAllocator* allocator, muiRect* boxOut);
 
 // The units a value text is read and moved by.
 typedef enum muiAccessUnit
@@ -100,8 +101,8 @@ muiAccessText muiAccessValueOf(const muiAccessNode* node);
 // Whether a node is a text input (a text input's roles, an editable
 // combo box); whether the adapters give its value as text being edited:
 // a text input's, or one with a selection.
-bool muiAccessIsTextInput(const muiAccessNode* node);
-bool muiAccessIsEdited(const muiAccessNode* node);
+MUI_NODISCARD bool muiAccessIsTextInput(const muiAccessNode* node);
+MUI_NODISCARD bool muiAccessIsEdited(const muiAccessNode* node);
 
 // The first boundary of a unit after a byte offset, the text's end past
 // the last; the last before it, 0 before the first. A character is a

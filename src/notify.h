@@ -30,6 +30,6 @@ void muiNotifyInit(muiNotifyQueue* queue, muiNotification* records, uint32_t cap
 void muiNotifyPost(muiNotifyQueue* queue, const muiNotification* record);
 
 // Takes the oldest record; false when none waits.
-bool muiNotifyTake(muiNotifyQueue* queue, muiNotification* recordOut);
+MUI_NODISCARD bool muiNotifyTake(muiNotifyQueue* queue, muiNotification* recordOut);
 
 #endif // MAUL_UI_SRC_NOTIFY_H

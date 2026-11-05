@@ -26,7 +26,7 @@ static uint32_t Hash(const muiGlyphKey* key)
     return (uint32_t)(h * 0x165667B19E3779F9u >> 32);
 }
 
-static bool SameKey(const muiGlyphKey* a, const muiGlyphKey* b)
+MUI_NODISCARD static bool SameKey(const muiGlyphKey* a, const muiGlyphKey* b)
 {
     return a->font == b->font && a->glyph == b->glyph && a->sizeBin == b->sizeBin &&
            a->palette == b->palette && a->tint == b->tint;

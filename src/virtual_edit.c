@@ -57,7 +57,8 @@ static muiVirtualEntry* Edited(muiContext* context, muiNodeId nodeId, uint32_t* 
 
 // Gives an estimated list at slot room for count items, its extents moved
 // if they must be; false when they do not fit.
-static bool Resize(muiContext* context, uint32_t slot, muiVirtualEntry** entryInOut, uint32_t count)
+MUI_NODISCARD static bool Resize(muiContext* context, uint32_t slot, muiVirtualEntry** entryInOut,
+                                 uint32_t count)
 {
     muiVirtualStore* store = &context->lists;
     muiVirtualEntry* entry = *entryInOut;

@@ -277,7 +277,7 @@ static const char* NameOf(const muiAccessNode* node)
 // Whether a node's name is its element's text, as ARIA takes the name
 // from content for these roles: a leaf only, as the text would replace
 // children.
-static bool NameIsText(const muiAccessNode* node)
+MUI_NODISCARD static bool NameIsText(const muiAccessNode* node)
 {
     muiRole role = node->role;
     bool fromContent = role == mui_roleLabel || role == mui_roleHeading ||
@@ -352,7 +352,7 @@ static const char* Checked(const muiAccessNode* node)
     return (flags & mui_accessMixed) != 0 ? "mixed" : Either((flags & mui_accessChecked) != 0);
 }
 
-static bool IsToggleButton(const muiAccessNode* node)
+MUI_NODISCARD static bool IsToggleButton(const muiAccessNode* node)
 {
     return node->role == mui_roleButton || node->role == mui_roleDefaultButton;
 }
@@ -496,7 +496,7 @@ static const char* ValueOf(const muiAriaAdapter* adapter, const muiAccessNode* n
     return state != nullptr ? state : NumberOf(node, which, buffer);
 }
 
-static bool Same(const char* a, const char* b)
+MUI_NODISCARD static bool Same(const char* a, const char* b)
 {
     return a == b || (a != nullptr && b != nullptr && strcmp(a, b) == 0);
 }

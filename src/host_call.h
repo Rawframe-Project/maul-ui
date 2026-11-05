@@ -22,7 +22,7 @@
 // Marks an owner busy for one of its functions that change it: whether it
 // was idle. A busy one counts one misuse, and the call is refused with
 // mui_errorBusy.
-static inline bool muiEnterMarked(bool* busy, uint64_t* misuse)
+MUI_NODISCARD static inline bool muiEnterMarked(bool* busy, uint64_t* misuse)
 {
     if (*busy)
     {
@@ -76,7 +76,7 @@ MUI_NODISCARD static inline bool muiAccessValueFits(const muiAccessNode* node, d
 // the host one that would be refused. Not inline, so none of its
 // caller's arithmetic moves across the switch; unused where an adapter
 // takes no action.
-[[maybe_unused]] static MUI_NOINLINE bool
+MUI_NODISCARD [[maybe_unused]] static MUI_NOINLINE bool
 muiActMarked(const bool* busy, bool (*action)(void*, const muiAccessRequest*), void* user,
              const muiAccessRequest* request)
 {

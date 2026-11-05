@@ -42,6 +42,7 @@ muiConditionReads muiConditionReadsOf(const muiCondition* condition);
 // The properties a condition's values may not set: those it reads.
 muiPropertyBits muiForbiddenProperties(const muiCondition* condition);
 
-bool muiConditionHolds(const muiCondition* condition, const muiConditionSample* sample);
+MUI_NODISCARD bool muiConditionHolds(const muiCondition* condition,
+                                     const muiConditionSample* sample);
 
 #endif // MAUL_UI_SRC_CONDITION_H

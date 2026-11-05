@@ -90,7 +90,7 @@ muiRhiRendererDef muiDefaultRhiRendererDef(void)
     };
 }
 
-static bool IsValid(const muiRhiRendererDef* def)
+MUI_NODISCARD static bool IsValid(const muiRhiRendererDef* def)
 {
     return def->cookie == DEF_COOKIE && muiRhiIsAllocatorValid(&def->allocator) &&
            def->device != nullptr && def->instances != 0 && def->instances <= (1u << 24);
@@ -98,8 +98,8 @@ static bool IsValid(const muiRhiRendererDef* def)
 
 // A pipeline drawing into targets of a format, testing depth in a depth
 // format with a compare function unless it is mrhi_formatNone.
-static bool MakePipeline(muiRhiRenderer* renderer, mrhiFormat format, mrhiFormat depthFormat,
-                         mrhiCompareFunction compare)
+MUI_NODISCARD static bool MakePipeline(muiRhiRenderer* renderer, mrhiFormat format,
+                                       mrhiFormat depthFormat, mrhiCompareFunction compare)
 {
     uint32_t at = renderer->pipelineCount;
     mrhiGraphicsPipelineDef def = mrhiDefaultGraphicsPipelineDef();
@@ -129,7 +129,7 @@ static bool MakePipeline(muiRhiRenderer* renderer, mrhiFormat format, mrhiFormat
     return true;
 }
 
-static bool MakeShader(muiRhiRenderer* renderer)
+MUI_NODISCARD static bool MakeShader(muiRhiRenderer* renderer)
 {
     mrhiShaderDef shaderDef = mrhiDefaultShaderDef();
     shaderDef.bytes = s_quadContainer;
@@ -138,7 +138,7 @@ static bool MakeShader(muiRhiRenderer* renderer)
 }
 
 // The sampler of images and the placeholder texture.
-static bool MakeTextures(muiRhiRenderer* renderer)
+MUI_NODISCARD static bool MakeTextures(muiRhiRenderer* renderer)
 {
     mrhiSamplerDef samplerDef = mrhiDefaultSamplerDef();
     samplerDef.magFilter = mrhi_filterLinear;
@@ -356,7 +356,7 @@ static uint64_t Diff(muiRhiRenderer* renderer)
     return bytes;
 }
 
-static bool Upload(const muiRhiRenderer* renderer)
+MUI_NODISCARD static bool Upload(const muiRhiRenderer* renderer)
 {
     for (uint32_t i = 0; i < kStreamCount; i++)
     {
@@ -480,7 +480,7 @@ muiResult muiRhiRenderer_AddPasses(muiRhiRenderer* renderer, const muiDrawList* 
 }
 
 // Binds a draw's texture and the sampler in table 1, and draws it.
-static bool DrawOne(const muiRhiRenderer* renderer, const muiRhiDraw* draw)
+MUI_NODISCARD static bool DrawOne(const muiRhiRenderer* renderer, const muiRhiDraw* draw)
 {
     const mrhiBinding bindings[2] = {
         {.slot = 0,
@@ -494,7 +494,7 @@ static bool DrawOne(const muiRhiRenderer* renderer, const muiRhiDraw* draw)
                mrhi_success;
 }
 
-static bool Draw(muiRhiRenderer* renderer)
+MUI_NODISCARD static bool Draw(muiRhiRenderer* renderer)
 {
     mrhiDevice* device = renderer->device;
     mrhiPassId pass = renderer->draw;

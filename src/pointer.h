@@ -19,7 +19,7 @@ muiPointersTaken muiTakePointersOff(muiContext* context, uint32_t node);
 
 // Ends every drag going, cancelled, and its capture (Escape's default);
 // whether there was one.
-bool muiCancelDrags(muiContext* context);
+MUI_NODISCARD bool muiCancelDrags(muiContext* context);
 void muiPutPointersOn(muiContext* context, muiPointersTaken taken);
 
 // Takes off the counts of the pointers whose hovered or pressed node is

@@ -25,7 +25,7 @@
 
 // Scrolls a container a page toward a direction, at once: a page as its
 // page keys step one; whether it moved.
-static bool Page(muiContext* context, uint32_t slot, muiAccessAction action)
+MUI_NODISCARD static bool Page(muiContext* context, uint32_t slot, muiAccessAction action)
 {
     const muiLayoutNode* layout = &context->layout[slot - 1];
     const muiScrollState* scroll = &context->scrolls[slot - 1];
@@ -48,7 +48,8 @@ static bool Page(muiContext* context, uint32_t slot, muiAccessAction action)
 
 // Does what a request asks of the node at slot, which takes its action;
 // whether anything happened.
-static bool Perform(muiContext* context, uint32_t slot, const muiAccessRequest* request)
+MUI_NODISCARD static bool Perform(muiContext* context, uint32_t slot,
+                                  const muiAccessRequest* request)
 {
     muiNodeId nodeId = muiTreeIdOf(&context->tree, slot);
     switch (request->action)

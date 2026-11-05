@@ -31,7 +31,7 @@ static void Announce(const muiUikitAdapter* adapter, const muiAccessNode* node)
     [text release];
 }
 
-static bool IsModal(const muiAccessNode* node)
+MUI_NODISCARD static bool IsModal(const muiAccessNode* node)
 {
     return (node->flags & mui_accessModal) != 0;
 }

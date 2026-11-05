@@ -82,6 +82,6 @@ uint32_t muiAddTransform(muiPainter* painter, uint32_t owner, uint32_t parent);
 // which its host content goes through too, until the caller puts back the
 // one it is painted in. False when the node, and so its subtree, draws
 // nothing.
-bool muiPaintNode(muiPainter* painter, uint32_t slot, muiPaintState* state);
+MUI_NODISCARD bool muiPaintNode(muiPainter* painter, uint32_t slot, muiPaintState* state);
 
 #endif // MAUL_UI_SRC_PAINT_H

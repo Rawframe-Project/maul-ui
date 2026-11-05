@@ -41,7 +41,8 @@ muiTextRecord muiRootTextRecord(void);
 
 // Whether a node's record may be out of date: it was computed with
 // other given properties or under another parent.
-bool muiIsTextRecordStale(const muiTextNodes* nodes, uint32_t node, muiPropertyMask given);
+MUI_NODISCARD bool muiIsTextRecordStale(const muiTextNodes* nodes, uint32_t node,
+                                        muiPropertyMask given);
 
 // Computes a node's record, and its descendants' while theirs change.
 // A node with host content whose record changes is marked to be measured

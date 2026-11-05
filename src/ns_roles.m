@@ -134,7 +134,7 @@ static const char* const s_subroles[MUI_ROLE_LAST + 1] = {
 };
 
 // A button that toggles is a check box with the toggle subrole.
-static bool IsToggle(const muiAccessNode* node)
+MUI_NODISCARD static bool IsToggle(const muiAccessNode* node)
 {
     return node->role == mui_roleButton && (node->flags & mui_accessCheckable) != 0;
 }

@@ -18,7 +18,7 @@
 // Holds a context, NULL being left alone; what muiReleaseContext is given
 // back. A context busy already, as while layout runs muiMeasureText,
 // stays busy until its own call ends.
-bool muiHoldContext(const muiContext* context);
+MUI_NODISCARD bool muiHoldContext(const muiContext* context);
 
 // Ends what muiHoldContext began.
 void muiReleaseContext(const muiContext* context, bool held);

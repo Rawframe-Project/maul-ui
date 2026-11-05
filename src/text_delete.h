@@ -29,7 +29,8 @@ uint32_t muiAfterComposition(const muiTextBlock* block);
 // What a deletion from the caret of an editing block takes, in the text
 // without a composition shown, deleting from where it leaves the caret;
 // false when memory for that text runs out. It uses the removed scratch.
-bool muiFindEditDeletion(muiTextService* service, const muiTextBlock* block,
-                         muiTextDeletion deletion, uint32_t* startOut, uint32_t* endOut);
+MUI_NODISCARD bool muiFindEditDeletion(muiTextService* service, const muiTextBlock* block,
+                                       muiTextDeletion deletion, uint32_t* startOut,
+                                       uint32_t* endOut);
 
 #endif // MAUL_UI_SRC_TEXT_DELETE_H

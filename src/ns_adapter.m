@@ -26,7 +26,7 @@ static void Post(id element, NSAccessibilityNotificationName name, NSDictionary*
     }
 }
 
-static bool IsValid(const muiNsAdapterDef* def)
+MUI_NODISCARD static bool IsValid(const muiNsAdapterDef* def)
 {
     return muiIsAllocatorValid(&def->allocator) && def->nodes != 0 && def->view != nullptr &&
            def->action != nullptr && def->scale > 0.0f;
@@ -407,7 +407,7 @@ void muiNsRootPointOf(const muiNsAdapter* adapter, NSPoint screen, float* xOut, 
     *yOut = (float)(top / scale);
 }
 
-static bool Holds(const muiNsAdapter* adapter, uint64_t id, NSPoint point)
+MUI_NODISCARD static bool Holds(const muiNsAdapter* adapter, uint64_t id, NSPoint point)
 {
     return NSPointInRect(point, muiNsScreenRectOf(adapter, id));
 }

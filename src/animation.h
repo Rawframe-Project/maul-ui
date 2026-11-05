@@ -94,8 +94,9 @@ uint32_t muiFindAnimation(const muiMotion* motion, uint32_t node, muiProperty pr
 // target with spec, from now; a running record of it is retargeted, keeping a
 // spring's speed or shortening a reversal. Returns false when no record
 // is free, and the caller applies the change at once.
-bool muiStartAnimation(const muiMotion* motion, uint32_t node, muiProperty property,
-                       muiConstValuesRef target, const muiTransitionSpec* spec, uint64_t nowNs);
+MUI_NODISCARD bool muiStartAnimation(const muiMotion* motion, uint32_t node, muiProperty property,
+                                     muiConstValuesRef target, const muiTransitionSpec* spec,
+                                     uint64_t nowNs);
 
 // Ends the transition of a node's property, if one runs, leaving the
 // property where it is.
@@ -106,6 +107,7 @@ void muiStopAnimation(const muiMotion* motion, uint32_t node, muiProperty proper
 void muiAdvanceAnimations(const muiMotion* motion, uint64_t nowNs, bool finish);
 
 // Whether a transition runs on root or below it.
-bool muiIsAnimatingUnder(const muiAnimationStore* store, const muiTree* tree, uint32_t root);
+MUI_NODISCARD bool muiIsAnimatingUnder(const muiAnimationStore* store, const muiTree* tree,
+                                       uint32_t root);
 
 #endif // MAUL_UI_SRC_ANIMATION_H

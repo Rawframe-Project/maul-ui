@@ -16,8 +16,8 @@
 #include <math.h>
 #include <string.h>
 
-static bool Matches(const muiLineCache* cache, const muiTextBlock* block, const muiLineScale* scale,
-                    muiBreakMode mode, float width)
+MUI_NODISCARD static bool Matches(const muiLineCache* cache, const muiTextBlock* block,
+                                  const muiLineScale* scale, muiBreakMode mode, float width)
 {
     return cache->shaping == block->shapings && cache->size == scale->size &&
            cache->spacing == scale->spacing && (mode != mui_breakWrap || cache->width == width);
@@ -39,8 +39,9 @@ static uint32_t LineFrom(const muiTextLine* lines, uint32_t count, uint32_t offs
 
 // Makes room for count lines at first in a cache whose lines from after
 // on (tail of them) move there, by delta bytes.
-static bool MakeRoom(const muiAllocator* allocator, muiLineCache* cache, uint32_t first,
-                     uint32_t count, uint32_t after, uint32_t tail, int64_t delta)
+MUI_NODISCARD static bool MakeRoom(const muiAllocator* allocator, muiLineCache* cache,
+                                   uint32_t first, uint32_t count, uint32_t after, uint32_t tail,
+                                   int64_t delta)
 {
     size_t total = (size_t)first + count + tail;
     if (!muiReserveKeeping(allocator, &cache->lines, (total + 1u) * sizeof(muiTextLine),
@@ -71,7 +72,8 @@ static bool MakeRoom(const muiAllocator* allocator, muiLineCache* cache, uint32_
 
 // Breaks again the cache's stale paragraphs, all of them when it was
 // made for another shaping, line scale or width.
-static bool Refresh(muiParagraph* paragraph, muiLineCache* cache, muiBreakMode mode, float width)
+MUI_NODISCARD static bool Refresh(muiParagraph* paragraph, muiLineCache* cache, muiBreakMode mode,
+                                  float width)
 {
     const muiTextBlock* block = paragraph->block;
     muiTextService* service = paragraph->service;

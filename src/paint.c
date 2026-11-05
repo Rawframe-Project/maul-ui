@@ -194,7 +194,7 @@ static Borders BordersOf(const muiLayoutNode* layout, const muiVisualStyle* visu
     return borders;
 }
 
-static bool HasVisibleBorder(const Borders* borders)
+MUI_NODISCARD static bool HasVisibleBorder(const Borders* borders)
 {
     const float widths[4] = {borders->widths.top, borders->widths.right, borders->widths.bottom,
                              borders->widths.left};
