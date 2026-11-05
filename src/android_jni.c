@@ -13,6 +13,7 @@
 #include "android.h"
 #include "fpenv.h"
 #include "host_call.h"
+#include "invariant.h"
 
 #include <math.h>
 #include <stdalign.h>
@@ -95,6 +96,9 @@ static jsize Utf16Of(const unsigned char* text, size_t length, jchar* out)
         {
             out[units++] = (jchar)point;
         }
+        // The tree's text is whole UTF-8, so a sequence ends within it,
+        // and gives no more units than it has bytes.
+        MUI_ASSERT(i <= length && (size_t)units <= i);
     }
     return units;
 }
