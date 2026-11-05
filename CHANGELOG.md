@@ -10,6 +10,23 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.3.3](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.2...v1.3.3) (2026-11-05)
+
+This release makes a C program built with GCC 14 in its C23 mode warn
+when it drops a status Maul UI returns, as Clang and C++17 compilers
+already did. The API and the ABI are those of 1.3.2, and so are
+layouts, styles, draw lists, line breaks, shaped text, glyph images,
+motion curves and the accessibility tree.
+
+### Fixed
+
+- `MUI_NODISCARD`, which marks every function that returns a status,
+  expanded to nothing under GCC 14 in C23 mode (`-std=c23`), because
+  GCC 14 reports its C23 as `__STDC_VERSION__` 202000L, not 202311L.
+  It is now `[[nodiscard]]` there too, so a host that drops a status
+  gets a warning, and a host that builds with `-Werror` gets an error
+  ([#374](https://github.com/Rawframe-Project/maul-ui/pull/374)).
+
 ## [1.3.2](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.1...v1.3.2) (2026-11-04)
 
 This release moves maul-ui-window to Maul Window 0.12.0, from 0.11.0,
