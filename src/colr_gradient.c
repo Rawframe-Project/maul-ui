@@ -62,7 +62,7 @@ static muiResult ReadLine(const muiPaintSource* source, FT_ColorLine colorline, 
     muiTextService* service = source->service;
     FT_ColorStopIterator iterator = colorline.color_stop_iterator;
     uint32_t count = iterator.num_color_stops;
-    if (!muiReserve(&service->allocator, &service->paintStops, (size_t)count * sizeof(Stop)))
+    if (!muiReserveItems(&service->allocator, &service->paintStops, count, 0, sizeof(Stop)))
     {
         return mui_errorCapacity;
     }

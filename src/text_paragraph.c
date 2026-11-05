@@ -81,8 +81,8 @@ bool muiBreakParagraph(muiParagraph* paragraph, muiBreakMode mode, float width, 
     muiTextService* service = paragraph->service;
     const muiTextBlock* block = paragraph->block;
     // An opportunity per line, and the empty line after a last break.
-    size_t capacity = (size_t)block->breakCount + 1u;
-    if (!muiReserve(&service->allocator, &service->lines, capacity * sizeof(muiTextLine)))
+    uint64_t capacity = (uint64_t)block->breakCount + 1u;
+    if (!muiReserveItems(&service->allocator, &service->lines, capacity, 0, sizeof(muiTextLine)))
     {
         service->failures++;
         return false;
@@ -298,8 +298,8 @@ bool muiReorderLine(const muiParagraph* paragraph, const muiTextLine* line, size
     const muiTextBlock* block = paragraph->block;
     uint32_t length = line->end - line->start;
     *countOut = 0;
-    if (!muiReserve(&service->allocator, &service->runs,
-                    ((size_t)length + 1u) * sizeof(muniBidiRun)))
+    if (!muiReserveItems(&service->allocator, &service->runs, (uint64_t)length + 1u, 0,
+                         sizeof(muniBidiRun)))
     {
         service->failures++;
         return false;

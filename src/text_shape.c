@@ -291,8 +291,9 @@ MUI_NODISCARD static bool ShapeWithin(muiTextService* service, hb_buffer_t* buff
     // the code points the rest of the library reads, with the context
     // before and after it that the piece has.
     uint32_t itemBytes = range->end - range->start;
-    if (!muiReserve(&service->allocator, &service->shapePoints,
-                    ((size_t)itemBytes + CONTEXT_BYTES + CONTEXT_POINTS) * 2u * sizeof(uint32_t)))
+    if (!muiReserveItems(&service->allocator, &service->shapePoints,
+                         ((uint64_t)itemBytes + CONTEXT_BYTES + CONTEXT_POINTS) * 2u, 0,
+                         sizeof(uint32_t)))
     {
         return false;
     }
@@ -316,9 +317,8 @@ MUI_NODISCARD static bool ShapeWithin(muiTextService* service, hb_buffer_t* buff
         return false;
     }
     unsigned int count = hb_buffer_get_length(buffer);
-    if (!muiReserveKeeping(&service->allocator, out->glyphs,
-                           ((size_t)*out->count + count) * sizeof(muiShapedGlyph),
-                           (size_t)*out->count * sizeof(muiShapedGlyph)))
+    if (!muiReserveItems(&service->allocator, out->glyphs, (uint64_t)*out->count + count,
+                         *out->count, sizeof(muiShapedGlyph)))
     {
         return false;
     }
@@ -434,9 +434,8 @@ MUI_NODISCARD static bool ShapeParagraph(muiTextService* service, muiTextBlock* 
     memset((uint8_t*)block->unsafe.data + first, 0, last - first);
     uint32_t count = SplitItems(block, chain, first, last, nullptr);
     uint32_t kept = region->itemCount;
-    if (!muiReserveKeeping(&service->allocator, &region->items,
-                           ((size_t)kept + count + 1u) * sizeof(muiTextItem),
-                           (size_t)kept * sizeof(muiTextItem)))
+    if (!muiReserveItems(&service->allocator, &region->items, (uint64_t)kept + count + 1u, kept,
+                         sizeof(muiTextItem)))
     {
         return false;
     }
@@ -498,10 +497,8 @@ MUI_NODISCARD static bool ReserveTables(muiTextService* service, muiTextBlock* b
     return muiReserveKeeping(allocator, &block->levels, entries, kept) &&
            (!faces || muiReserveKeeping(allocator, &block->faces, entries, kept)) &&
            muiReserveKeeping(allocator, &block->unsafe, entries, kept) &&
-           muiReserveKeeping(allocator, &block->advances, entries * sizeof(double),
-                             kept * sizeof(double)) &&
-           muiReserveKeeping(allocator, &block->clusters, entries * sizeof(uint32_t),
-                             kept * sizeof(uint32_t));
+           muiReserveItems(allocator, &block->advances, entries, kept, sizeof(double)) &&
+           muiReserveItems(allocator, &block->clusters, entries, kept, sizeof(uint32_t));
 }
 
 // Shapes the block's whole text.
@@ -564,11 +561,10 @@ MUI_NODISCARD static bool SpliceItems(muiTextService* service, muiTextBlock* blo
     uint32_t itemCount = before + region->itemCount + tailItems;
     uint32_t glyphCount = glyphsBefore + region->glyphCount + tailGlyphs;
     const muiAllocator* allocator = &service->allocator;
-    if (!muiReserveKeeping(allocator, &block->items, ((size_t)itemCount + 1u) * sizeof(muiTextItem),
-                           (size_t)block->itemCount * sizeof(muiTextItem)) ||
-        !muiReserveKeeping(allocator, &block->glyphs,
-                           ((size_t)glyphCount + 1u) * sizeof(muiShapedGlyph),
-                           (size_t)block->glyphCount * sizeof(muiShapedGlyph)))
+    if (!muiReserveItems(allocator, &block->items, (uint64_t)itemCount + 1u, block->itemCount,
+                         sizeof(muiTextItem)) ||
+        !muiReserveItems(allocator, &block->glyphs, (uint64_t)glyphCount + 1u, block->glyphCount,
+                         sizeof(muiShapedGlyph)))
     {
         return false;
     }
@@ -675,7 +671,8 @@ bool muiShapeTextLine(muiTextService* service, const muiTextBlock* block, const 
     {
         pieces += items[i].end > start && items[i].start < end ? 1u : 0u;
     }
-    if (!muiReserve(&service->allocator, out->items, (pieces + 1u) * sizeof(muiTextItem)))
+    if (!muiReserveItems(&service->allocator, out->items, (uint64_t)pieces + 1u, 0,
+                         sizeof(muiTextItem)))
     {
         return false;
     }

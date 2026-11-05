@@ -435,10 +435,10 @@ muiResult muiComposeOver(muiTextService* service, muiTextBlock* block, uint32_t 
                          uint32_t segmentCount)
 {
     // The segments shown stay while memory for the new ones is found.
-    size_t kept = block->segmentCount * sizeof(muiCompositionSegment);
-    size_t needed = segmentCount * sizeof(muiCompositionSegment);
-    if (!muiReserveKeeping(&service->allocator, &block->segments, needed > kept ? needed : kept,
-                           kept) ||
+    uint32_t kept = block->segmentCount;
+    if (!muiReserveItems(&service->allocator, &block->segments,
+                         segmentCount > kept ? segmentCount : kept, kept,
+                         sizeof(muiCompositionSegment)) ||
         !ReplaceRange(service, block, start, end, text, length))
     {
         return mui_errorCapacity;
@@ -556,7 +556,7 @@ static muiResult TextBlockSetSpans(muiTextService* service, muiTextBlockId block
     {
         return muiCountText(service, spansStatus);
     }
-    if (!muiReserve(&service->allocator, &block->spans, count * sizeof(muiTextSpan)))
+    if (!muiReserveItems(&service->allocator, &block->spans, count, 0, sizeof(muiTextSpan)))
     {
         return mui_errorCapacity;
     }

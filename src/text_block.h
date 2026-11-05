@@ -34,6 +34,13 @@ MUI_NODISCARD bool muiReserveKeeping(const muiAllocator* allocator, muiBuffer* b
 // As muiReserveKeeping, keeping nothing.
 MUI_NODISCARD bool muiReserve(const muiAllocator* allocator, muiBuffer* buffer, size_t bytes);
 
+// As muiReserveKeeping, for count items of size bytes each, the first
+// kept of them kept; false, asking the allocator for nothing, when the
+// bytes do not fit a size_t, as when memory runs out. The count is 64
+// bits so that a sum of 32-bit counts reaches here whole.
+MUI_NODISCARD bool muiReserveItems(const muiAllocator* allocator, muiBuffer* buffer, uint64_t count,
+                                   size_t kept, size_t size);
+
 void muiFreeBuffer(const muiAllocator* allocator, muiBuffer* buffer);
 
 // A caller's byte offset as the text component counts offsets, in 32
