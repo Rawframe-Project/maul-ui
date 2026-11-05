@@ -359,6 +359,7 @@ static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* ro
     // them: each sent copy names texts of its own.
     muiAccessNode check = *muiAccessTree_Find(tree, 6);
     check.text[mui_accessLabel] = "Agreed";
+    check.textLength[mui_accessLabel] = 6;
     static const muiAccessLink s_links[4] = {{4, mui_relationLabelledBy},
                                              {7, mui_relationDescribedBy},
                                              {8, mui_relationControls},
@@ -385,6 +386,7 @@ static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* ro
     s_reentry = NULL;
     muiAccessNode added = *muiAccessTree_Find(tree, 10);
     added.text[mui_accessLabel] = "New";
+    added.textLength[mui_accessLabel] = 3;
     added.flags = mui_accessExpandable;
     added.actions = 1u << mui_actionExpand | 1u << mui_actionCollapse;
     CHECK(Send(adapter, (const muiAccessNode*[]){&added}, 1, rootChildren) &&
@@ -447,6 +449,7 @@ static void TestActions(muiAriaAdapter* adapter, Built* built, muiAccessNode* ro
     HookNotify(0);
     heading.values.live = mui_liveAssertive;
     heading.text[mui_accessLabel] = "Topic 3";
+    heading.textLength[mui_accessLabel] = 7;
     CHECK(Send(adapter, (const muiAccessNode*[]){&heading}, 1, rootChildren), "renamed");
     // The region is written as the browser runs its tasks: waited for, up
     // to a second.
