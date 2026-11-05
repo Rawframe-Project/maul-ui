@@ -53,10 +53,10 @@ typedef struct muiTextEdge
 } muiTextEdge;
 
 // Whether a host has its service and context.
-bool muiIsTextHostValid(const muiTextHost* host);
+MUI_NODISCARD bool muiIsTextHostValid(const muiTextHost* host);
 
 // Whether a width is a content box's: finite and not negative.
-bool muiIsTextWidthValid(float width);
+MUI_NODISCARD bool muiIsTextWidthValid(float width);
 
 // Lays a node's text out as painting does at a width, scrolled as
 // muiFollowCaret leaves an editing block.

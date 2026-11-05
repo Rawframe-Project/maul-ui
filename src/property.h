@@ -94,15 +94,15 @@ const muiTextStyle* muiTextDefaults(void);
 const muiInteractionStyle* muiInteractionDefaults(void);
 
 // Whether an id names a property, and every property there is.
-bool muiIsPropertyKnown(muiProperty property);
+MUI_NODISCARD bool muiIsPropertyKnown(muiProperty property);
 muiPropertyBits muiKnownProperties(void);
 
 // Whether a group is one and a mask names only its known properties.
-bool muiIsGroupMaskKnown(muiPropertyGroup group, muiPropertyMask mask);
+MUI_NODISCARD bool muiIsGroupMaskKnown(muiPropertyGroup group, muiPropertyMask mask);
 
 // Whether every property named has a value in values it allows, and only
 // known properties are named.
-bool muiArePropertiesValid(muiConstValuesRef values, muiPropertyBits properties);
+MUI_NODISCARD bool muiArePropertiesValid(muiConstValuesRef values, muiPropertyBits properties);
 
 // muiArePropertiesValid as a status: mui_success, mui_errorLimit for a
 // gradient of more than MUI_MAX_GRADIENT_STOPS stops, or mui_errorInvalid.
@@ -148,7 +148,7 @@ void muiWritePropertyValue(muiValuesRef values, muiProperty property,
 muiTokenType muiPropertyTokenType(muiProperty property);
 
 // Whether a token's literal is valid for its type.
-bool muiIsTokenValueValid(const muiTokenValue* value);
+MUI_NODISCARD bool muiIsTokenValueValid(const muiTokenValue* value);
 
 // muiIsTokenValueValid as a status: mui_success, mui_errorLimit for a
 // gradient of more than MUI_MAX_GRADIENT_STOPS stops, or mui_errorInvalid.

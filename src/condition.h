@@ -33,9 +33,9 @@ typedef struct muiConditionSample
     const muiEnvironment* environment;
 } muiConditionSample;
 
-bool muiIsConditionValid(const muiCondition* condition);
+MUI_NODISCARD bool muiIsConditionValid(const muiCondition* condition);
 
-bool muiIsEnvironmentValid(const muiEnvironment* environment);
+MUI_NODISCARD bool muiIsEnvironmentValid(const muiEnvironment* environment);
 
 muiConditionReads muiConditionReadsOf(const muiCondition* condition);
 

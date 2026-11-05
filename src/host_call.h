@@ -65,7 +65,7 @@ static inline void muiReleaseMarked(const bool* busy, const muiAllocator* alloca
 
 // Whether a value a client asks a range for is one it holds: finite, from
 // its minimum to its maximum. NaN fails both comparisons.
-static inline bool muiAccessValueFits(const muiAccessNode* node, double value)
+MUI_NODISCARD static inline bool muiAccessValueFits(const muiAccessNode* node, double value)
 {
     return value >= (double)node->minimum && value <= (double)node->maximum;
 }

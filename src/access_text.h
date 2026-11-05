@@ -18,16 +18,20 @@
 // Whether each part of marks fits a text of length bytes: offsets within
 // it at the starts of characters; lines ascending from 0, words in order
 // and apart, each with bytes in it. None given fits.
-bool muiAccessSelectionFits(const muiAccessTextMarks* marks, const char* text, uint32_t length);
-bool muiAccessLinesFit(const muiAccessTextMarks* marks, const char* text, uint32_t length);
-bool muiAccessWordsFit(const muiAccessTextMarks* marks, const char* text, uint32_t length);
+MUI_NODISCARD bool muiAccessSelectionFits(const muiAccessTextMarks* marks, const char* text,
+                                          uint32_t length);
+MUI_NODISCARD bool muiAccessLinesFit(const muiAccessTextMarks* marks, const char* text,
+                                     uint32_t length);
+MUI_NODISCARD bool muiAccessWordsFit(const muiAccessTextMarks* marks, const char* text,
+                                     uint32_t length);
 
 // Whether where marks show a text fits it: a box each line, tops above
 // bottoms, first clusters ascending from 0, none for a line whose
 // clusters are left out; clusters with bytes in them
 // at the starts of characters, left edges before right ones; all finite.
 // None given fits; clusters without line boxes do not.
-bool muiAccessGeometryFits(const muiAccessTextMarks* marks, const char* text, uint32_t length);
+MUI_NODISCARD bool muiAccessGeometryFits(const muiAccessTextMarks* marks, const char* text,
+                                         uint32_t length);
 
 // The rectangles of a byte range of a shown text in its node's own
 // space, whose bounds are given: one each line, around its clusters with
