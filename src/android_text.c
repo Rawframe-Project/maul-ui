@@ -15,6 +15,7 @@
 #include "host_call.h"
 #include "invariant.h"
 
+#include <stdckdint.h>
 #include <string.h>
 
 MUI_NODISCARD static bool Has(const muiAccessNode* node, muiAccessAction action)
@@ -270,7 +271,13 @@ bool muiAndroidSetText(const muiAndroidAdapter* adapter, const muiAccessNode* no
     {
         return false;
     }
-    size_t room = (size_t)count * 3 + 1;
+    // At most 3 bytes a unit and a NUL; a count whose room does not fit a
+    // size_t, past a 32-bit process's memory, is refused as memory run out.
+    size_t room = 0;
+    if (ckd_mul(&room, (size_t)count, (size_t)3) || ckd_add(&room, room, (size_t)1))
+    {
+        return false;
+    }
     char* bytes = muiAllocateMarked(&adapter->busy, &adapter->allocator, room, 1);
     if (bytes == nullptr)
     {
