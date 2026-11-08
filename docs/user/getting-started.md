@@ -65,7 +65,7 @@ git clone --depth 1 --branch v1.0.0 https://github.com/Rawframe-Project/maul-twe
 cmake -B build -DMAUL_UI_TEXT=OFF -DFETCHCONTENT_SOURCE_DIR_MAUL-TWEEN=$PWD/../maul-tween
 ```
 
-With `MAUL_DOWNLOAD_DIR` set in the environment, FreeType's and HarfBuzz's tarballs are kept in that folder, and one there whose SHA-256 matches the pin is used instead of downloaded again; one that does not match is downloaded anew.
+With `MAUL_DOWNLOAD_DIR` set in the environment, FreeType's and HarfBuzz's tarballs are kept in that folder (a relative path is taken from Maul UI's source folder), and one there whose SHA-256 matches the pin is used instead of downloaded again; one that does not match is downloaded anew.
 
 `MAUL_UI_RHI` and `MAUL_UI_WINDOW` find Maul RHI and Maul Window installed, or fetch them at their release tags.
 
