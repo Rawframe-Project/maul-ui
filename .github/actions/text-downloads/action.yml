@@ -1,0 +1,66 @@
+# The text component's downloads, kept between runs for the jobs that
+# configure Maul UI outside the shared cpp.yml, as its download-keys
+# input keeps them for the build cells: FreeType's and HarfBuzz's
+# tarballs, in a cache keyed by the runner's system and
+# cmake/TextDependencies.cmake, which pins them by version and SHA-256.
+# CMake reads them from MAUL_DOWNLOAD_DIR and downloads only one that is
+# missing or has another hash, so a kept tarball never depends on the
+# download hosts.
+#
+# A job uses it twice: before its first configure, and as its last step
+# with save: true and if: always(). The second saves the folder on a push
+# to main or a scheduled run when the first found no entry, so a pull
+# request only reads what main kept.
+name: Text downloads
+description: Keep FreeType's and HarfBuzz's tarballs between runs.
+inputs:
+  save:
+    description: "true in the job's last step: save the folder when the first step found no entry."
+    default: "false"
+runs:
+  using: composite
+  steps:
+    # Inside a container the workspace has another path than the
+    # runner's github.workspace, so the folder is set by a step.
+    - name: Download folder
+      if: inputs.save != 'true'
+      shell: bash
+      run: echo "MAUL_DOWNLOAD_DIR=$GITHUB_WORKSPACE/.cache/downloads" >> "$GITHUB_ENV"
+
+    - name: Restore downloads
+      id: restore
+      if: inputs.save != 'true'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: .cache/downloads
+        key: text-downloads-${{ runner.os }}-${{ hashFiles('cmake/TextDependencies.cmake') }}
+
+    # The second step cannot read the first's outputs, so they pass
+    # through the job's environment.
+    - name: Remember the entry
+      if: inputs.save != 'true'
+      shell: bash
+      env:
+        KEY: ${{ steps.restore.outputs.cache-primary-key }}
+        HIT: ${{ steps.restore.outputs.cache-hit }}
+      run: |
+        echo "MUI_DOWNLOADS_KEY=$KEY" >> "$GITHUB_ENV"
+        echo "MUI_DOWNLOADS_HIT=$HIT" >> "$GITHUB_ENV"
+
+    - name: Check downloads
+      id: kept
+      if: >-
+        always() && inputs.save == 'true' && env.MUI_DOWNLOADS_KEY != '' && env.MUI_DOWNLOADS_HIT != 'true' &&
+        github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      shell: bash
+      run: |
+        if [ -n "$(find .cache/downloads -type f -print -quit 2>/dev/null)" ]; then
+          echo "save=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Save downloads
+      if: always() && steps.kept.outputs.save == 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: .cache/downloads
+        key: ${{ env.MUI_DOWNLOADS_KEY }}

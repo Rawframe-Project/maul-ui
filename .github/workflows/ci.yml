@@ -78,6 +78,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: ./.github/actions/text-downloads
       - name: clang-format
         # The renderer's shader containers and the layout fixtures' tables
         # are generated.
@@ -141,6 +142,10 @@ jobs:
             xargs -a out/tidy-files.txt -n 1 -P "$JOBS" clang-tidy-20 -p out/tidy-$build --quiet \
               --warnings-as-errors='*' --header-filter="$filter"
           done
+      - if: always()
+        uses: ./.github/actions/text-downloads
+        with:
+          save: "true"
 
   # Every cell builds with warnings as errors and runs its whole suite, the
   # header tests included. The gcc-14 and shared cells also install the
@@ -218,6 +223,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: ./.github/actions/text-downloads
       - name: Build
         run: |
           cmake -B out/fuzz -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 \
@@ -301,6 +307,10 @@ jobs:
         with:
           path: out/corpus
           key: fuzz-corpus-${{ github.run_id }}
+      - if: always()
+        uses: ./.github/actions/text-downloads
+        with:
+          save: "true"
 
   # The samples presented on an X11 window's surface under Xvfb, through
   # Maul Window's X11 backend, on lavapipe under the validation layer: each
@@ -322,6 +332,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: ./.github/actions/text-downloads
       - name: Build
         run: |
           cmake --preset linux-parts-core -B out/x11 -D${PREFIX}_TEXT=ON -DMAUL_WINDOW_X11=ON \
@@ -338,6 +349,10 @@ jobs:
             grep -q "the presented frame checked" out/window.log
             ! grep -qiE "validation error|VUID" out/window.log
           done
+      - if: always()
+        uses: ./.github/actions/text-downloads
+        with:
+          save: "true"
 
   # The iOS adapter and the glue: built with their tests on every pull
   # request, the only cell that compiles them, and run in the simulator on
@@ -354,6 +369,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: ./.github/actions/text-downloads
       - name: Build
         run: |
           cmake --preset ios-simulator
@@ -387,6 +403,10 @@ jobs:
           path: out/ios-simulator/Testing/Temporary/
           if-no-files-found: ignore
           retention-days: 7
+      - if: always()
+        uses: ./.github/actions/text-downloads
+        with:
+          save: "true"
 
   # Every test in the Android emulator, Android 11 on x86_64 with KVM,
   # through adb, the accessibility adapter's as an application. The runner
@@ -408,6 +428,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: ./.github/actions/text-downloads
       - name: Boot the emulator
         timeout-minutes: 15
         run: |
@@ -462,6 +483,10 @@ jobs:
           path: out/android-emulator/Testing/Temporary/
           if-no-files-found: ignore
           retention-days: 7
+      - if: always()
+        uses: ./.github/actions/text-downloads
+        with:
+          save: "true"
 
   # The web without Emscripten: Clang's wasm32-wasi, every test under Node's
   # WASI and the ARIA test in headless Chrome through puppeteer. The text
@@ -522,6 +547,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: ./.github/actions/text-downloads
       - uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
       - name: Build
         run: |
@@ -562,6 +588,10 @@ jobs:
             out/web-emscripten/sample_*.wasm
           if-no-files-found: error
           retention-days: 1
+      - if: always()
+        uses: ./.github/actions/text-downloads
+        with:
+          save: "true"
 
   # Each sample built by web-emscripten presenting into a canvas from the
   # browser's frames, its last frame read back and checked. Chrome's
@@ -629,6 +659,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: ./.github/actions/text-downloads
       - name: Build the samples
         env:
           CONFIGURE: ${{ matrix.configure }}
@@ -661,6 +692,10 @@ jobs:
           path: walk-*
           if-no-files-found: ignore
           retention-days: 14
+      - if: always()
+        uses: ./.github/actions/text-downloads
+        with:
+          save: "true"
 
   # NVDA over the ARIA adapter: the controls and text samples built for the
   # web, in a Chrome with a window drawing WebGPU on SwiftShader, walked from
@@ -677,6 +712,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: ./.github/actions/text-downloads
       - uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
       - name: Build the samples for the web
         run: |
@@ -714,6 +750,10 @@ jobs:
           path: walk-*
           if-no-files-found: ignore
           retention-days: 14
+      - if: always()
+        uses: ./.github/actions/text-downloads
+        with:
+          save: "true"
 
   # The wasm each part adds to a program at -Oz with link-time optimization,
   # against its ceiling (tools/size_report.py): over a ceiling fails. The
@@ -730,6 +770,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: ./.github/actions/text-downloads
       - uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
         with:
           version: 6.0.13
@@ -744,6 +785,10 @@ jobs:
           cmake --build out/size -j 4
       - name: Size against the ceilings
         run: python3 tools/size_report.py out/size --check
+      - if: always()
+        uses: ./.github/actions/text-downloads
+        with:
+          save: "true"
 
   # The quarantined tests (docs/operations/checks.md#quarantine), which the
   # test presets leave out, under AddressSanitizer and UBSan: at night and
@@ -762,6 +807,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: ./.github/actions/text-downloads
       - name: Build
         run: |
           cmake --preset linux-clang-20-asan
@@ -770,6 +816,10 @@ jobs:
         # By build directory, not the preset; the preset sets nothing
         # beyond its 300 seconds a test, which the script gives too.
         run: tools/run_quarantine.sh out/linux-clang-20-asan
+      - if: always()
+        uses: ./.github/actions/text-downloads
+        with:
+          save: "true"
 
   # The tests labeled large (docs/operations/checks.md#tests-and-labels),
   # which the test presets leave out for their memory and time, under
@@ -789,6 +839,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - uses: ./.github/actions/text-downloads
       - name: Build
         run: |
           cmake --preset linux-clang-20-asan
@@ -797,6 +848,10 @@ jobs:
         run: |
           ctest --test-dir out/linux-clang-20-asan -L '^large$' --output-on-failure --no-tests=error \
             --timeout 600 -j 1
+      - if: always()
+        uses: ./.github/actions/text-downloads
+        with:
+          save: "true"
 
   # Main's last job: deletes the cache entries a newer save replaced (the
   # build cells' ccache and Mesa entries, keyed by commit, and the fuzz
