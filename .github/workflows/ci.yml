@@ -29,6 +29,9 @@ defaults:
 
 env:
   PREFIX: MAUL_UI
+  # Where the jobs outside cpp.yml keep the text component's tarballs,
+  # from the source folder (.github/actions/text-downloads).
+  MAUL_DOWNLOAD_DIR: .cache/downloads
 
 jobs:
   # Whether anything beyond documentation changed; the builds skip when not.

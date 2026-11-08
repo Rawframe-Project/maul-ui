@@ -10,7 +10,8 @@
 # FETCHCONTENT_SOURCE_DIR_MAUL_UI_FREETYPE, ..._MAUL_UI_HARFBUZZ and
 # ..._MAUL-UNICODE build from local copies instead, offline. With
 # MAUL_DOWNLOAD_DIR in the environment, the tarballs are kept in that
-# folder, and one there with the pinned hash is not downloaded again.
+# folder (a relative one is taken from this project's source folder),
+# and one there with the pinned hash is not downloaded again.
 
 include(FetchContent)
 
@@ -37,6 +38,7 @@ else()
         # Forward slashes: FetchContent writes the folder into a
         # CMakeLists.txt, where a Windows path's backslashes are escapes.
         cmake_path(SET kept_dir "$ENV{MAUL_DOWNLOAD_DIR}")
+        cmake_path(ABSOLUTE_PATH kept_dir BASE_DIRECTORY "${PROJECT_SOURCE_DIR}")
         set(kept DOWNLOAD_DIR ${kept_dir})
     endif()
     # Both are only populated (their SOURCE_SUBDIR has no CMakeLists.txt):
