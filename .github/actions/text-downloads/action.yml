@@ -1,10 +1,12 @@
 # The text component's downloads, kept between runs for the jobs that
 # configure Maul UI outside the shared cpp.yml, as its download-keys
 # input keeps them for the build cells: FreeType's and HarfBuzz's
-# tarballs, in a cache keyed by the runner's system and
-# cmake/TextDependencies.cmake, which pins them by version and SHA-256.
-# CMake reads them from MAUL_DOWNLOAD_DIR and downloads only one that is
-# missing or has another hash, so a kept tarball never depends on the
+# tarballs, in a cache keyed by the runner (its system and
+# architecture), the job and cmake/TextDependencies.cmake, which pins
+# them by version and SHA-256. CMake reads them from MAUL_DOWNLOAD_DIR
+# and checks each against its pinned SHA-256 before it is used: one that
+# is missing or has another hash is downloaded again, so a kept file is
+# never trusted on its name, and a kept tarball never depends on the
 # download hosts.
 #
 # A job uses it twice: before its first configure, and as its last step
@@ -33,7 +35,7 @@ runs:
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: .cache/downloads
-        key: text-downloads-${{ runner.os }}-${{ hashFiles('cmake/TextDependencies.cmake') }}
+        key: text-downloads-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ hashFiles('cmake/TextDependencies.cmake') }}
 
     # The second step cannot read the first's outputs, so they pass
     # through the job's environment.
