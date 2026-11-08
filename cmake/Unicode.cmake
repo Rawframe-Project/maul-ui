@@ -3,4 +3,4 @@
 # Window was built and tested with the same release (cmake/Window.cmake),
 # so it is set whether or not the text component is built.
 
-set(MAUL_UI_UNICODE_VERSION 1.1.2)
+set(MAUL_UI_UNICODE_VERSION 1.2.0)
