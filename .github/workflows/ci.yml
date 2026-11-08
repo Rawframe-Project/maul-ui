@@ -81,7 +81,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/text-downloads
+      - uses: $/.github/actions/text-downloads
       - name: clang-format
         # The renderer's shader containers and the layout fixtures' tables
         # are generated.
@@ -146,7 +146,7 @@ jobs:
               --warnings-as-errors='*' --header-filter="$filter"
           done
       - if: always()
-        uses: ./.github/actions/text-downloads
+        uses: $/.github/actions/text-downloads
         with:
           save: "true"
 
@@ -226,7 +226,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/text-downloads
+      - uses: $/.github/actions/text-downloads
       - name: Build
         run: |
           cmake -B out/fuzz -G Ninja -DCMAKE_C_COMPILER=clang-20 -DCMAKE_CXX_COMPILER=clang++-20 \
@@ -311,7 +311,7 @@ jobs:
           path: out/corpus
           key: fuzz-corpus-${{ github.run_id }}
       - if: always()
-        uses: ./.github/actions/text-downloads
+        uses: $/.github/actions/text-downloads
         with:
           save: "true"
 
@@ -335,7 +335,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/text-downloads
+      - uses: $/.github/actions/text-downloads
       - name: Build
         run: |
           cmake --preset linux-parts-core -B out/x11 -D${PREFIX}_TEXT=ON -DMAUL_WINDOW_X11=ON \
@@ -353,7 +353,7 @@ jobs:
             ! grep -qiE "validation error|VUID" out/window.log
           done
       - if: always()
-        uses: ./.github/actions/text-downloads
+        uses: $/.github/actions/text-downloads
         with:
           save: "true"
 
@@ -372,7 +372,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/text-downloads
+      - uses: $/.github/actions/text-downloads
       - name: Build
         run: |
           cmake --preset ios-simulator
@@ -407,7 +407,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - if: always()
-        uses: ./.github/actions/text-downloads
+        uses: $/.github/actions/text-downloads
         with:
           save: "true"
 
@@ -431,7 +431,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/text-downloads
+      - uses: $/.github/actions/text-downloads
       - name: Boot the emulator
         timeout-minutes: 15
         run: |
@@ -487,7 +487,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
       - if: always()
-        uses: ./.github/actions/text-downloads
+        uses: $/.github/actions/text-downloads
         with:
           save: "true"
 
@@ -550,7 +550,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/text-downloads
+      - uses: $/.github/actions/text-downloads
       - uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
       - name: Build
         run: |
@@ -592,7 +592,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - if: always()
-        uses: ./.github/actions/text-downloads
+        uses: $/.github/actions/text-downloads
         with:
           save: "true"
 
@@ -662,7 +662,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/text-downloads
+      - uses: $/.github/actions/text-downloads
       - name: Build the samples
         env:
           CONFIGURE: ${{ matrix.configure }}
@@ -696,7 +696,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
       - if: always()
-        uses: ./.github/actions/text-downloads
+        uses: $/.github/actions/text-downloads
         with:
           save: "true"
 
@@ -715,7 +715,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/text-downloads
+      - uses: $/.github/actions/text-downloads
       - uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
       - name: Build the samples for the web
         run: |
@@ -754,7 +754,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
       - if: always()
-        uses: ./.github/actions/text-downloads
+        uses: $/.github/actions/text-downloads
         with:
           save: "true"
 
@@ -773,7 +773,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/text-downloads
+      - uses: $/.github/actions/text-downloads
       - uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
         with:
           version: 6.0.13
@@ -789,7 +789,7 @@ jobs:
       - name: Size against the ceilings
         run: python3 tools/size_report.py out/size --check
       - if: always()
-        uses: ./.github/actions/text-downloads
+        uses: $/.github/actions/text-downloads
         with:
           save: "true"
 
@@ -810,7 +810,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/text-downloads
+      - uses: $/.github/actions/text-downloads
       - name: Build
         run: |
           cmake --preset linux-clang-20-asan
@@ -820,7 +820,7 @@ jobs:
         # beyond its 300 seconds a test, which the script gives too.
         run: tools/run_quarantine.sh out/linux-clang-20-asan
       - if: always()
-        uses: ./.github/actions/text-downloads
+        uses: $/.github/actions/text-downloads
         with:
           save: "true"
 
@@ -842,7 +842,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: ./.github/actions/text-downloads
+      - uses: $/.github/actions/text-downloads
       - name: Build
         run: |
           cmake --preset linux-clang-20-asan
@@ -852,7 +852,7 @@ jobs:
           ctest --test-dir out/linux-clang-20-asan -L '^large$' --output-on-failure --no-tests=error \
             --timeout 600 -j 1
       - if: always()
-        uses: ./.github/actions/text-downloads
+        uses: $/.github/actions/text-downloads
         with:
           save: "true"
 
