@@ -29,6 +29,15 @@ runs:
       shell: bash
       run: echo "MAUL_DOWNLOAD_DIR=$GITHUB_WORKSPACE/.cache/downloads" >> "$GITHUB_ENV"
 
+    # A key file that is gone (renamed or moved) gives hashFiles '', and
+    # the key would stop following the pins without a word.
+    - name: Check download keys
+      if: inputs.save != 'true' && hashFiles('cmake/TextDependencies.cmake') == ''
+      shell: bash
+      run: |
+        echo "::error::cmake/TextDependencies.cmake is missing, so the text downloads have no key"
+        exit 1
+
     - name: Restore downloads
       id: restore
       if: inputs.save != 'true'
