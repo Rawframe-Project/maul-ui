@@ -10,6 +10,14 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.3.6](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.5...v1.3.6) (2026-11-08)
+
+
+### Fixed
+
+* **text:** refuse buffer sizes that do not fit a 32-bit size_t ([#416](https://github.com/Rawframe-Project/maul-ui/issues/416)) ([469405d](https://github.com/Rawframe-Project/maul-ui/commit/469405d2dd10287a4d07b1bd51c0e0903f49990b)), closes [#415](https://github.com/Rawframe-Project/maul-ui/issues/415)
+* **window:** pin Maul Window 0.15.0 and Maul Unicode 1.2.0 ([#421](https://github.com/Rawframe-Project/maul-ui/issues/421)) ([91df14e](https://github.com/Rawframe-Project/maul-ui/commit/91df14e30ad06ec0f6f95e526863a2782da042c9)), closes [#420](https://github.com/Rawframe-Project/maul-ui/issues/420)
+
 ## [1.3.5](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.4...v1.3.5) (2026-11-05)
 
 This release makes the accessibility tree and the platform adapters
