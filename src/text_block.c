@@ -6,6 +6,7 @@
 #include "text_block.h"
 
 #include "allocator.h"
+#include "invariant.h"
 
 #include <stdalign.h>
 #include <stddef.h>
@@ -38,6 +39,21 @@ bool muiReserveKeeping(const muiAllocator* allocator, muiBuffer* buffer, size_t 
     muiFreeBuffer(allocator, buffer);
     *buffer = (muiBuffer){data, size};
     return true;
+}
+
+bool muiReserveItems(const muiAllocator* allocator, muiBuffer* buffer, uint64_t count, size_t kept,
+                     size_t size)
+{
+    // Past SIZE_MAX, which only a 32-bit size_t reaches, no buffer holds
+    // the items.
+    if (size != 0 && count > SIZE_MAX / size)
+    {
+        return false;
+    }
+    // The items kept are in the buffer, so their bytes fit; they may
+    // outnumber those asked for, which the buffer then already holds.
+    MUI_ASSERT(size == 0 || kept <= buffer->bytes / size);
+    return muiReserveKeeping(allocator, buffer, (size_t)count * size, kept * size);
 }
 
 void muiFreeBuffer(const muiAllocator* allocator, muiBuffer* buffer)

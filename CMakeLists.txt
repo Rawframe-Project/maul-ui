@@ -549,6 +549,7 @@ if(MAUL_UI_BUILD_TESTS)
         target_include_directories(test_enum_range_text PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         maul_add_test(text_limit)
         maul_add_test(text_history WHITEBOX)
+        maul_add_test(text_buffer WHITEBOX)
         target_include_directories(test_text_limit PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
         # The mask under small limits; the block's headers reach
         # FreeType's and HarfBuzz's.

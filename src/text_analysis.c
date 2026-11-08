@@ -52,10 +52,10 @@ MUI_NODISCARD static bool FindBreaks(const muiAllocator* allocator, Scratch* scr
         return true;
     }
     size_t kept = analysis->breakCount;
-    if (!muiReserve(allocator, &scratch->offsets, count * sizeof(size_t)) ||
-        !muiReserve(allocator, &scratch->mandatory, count * sizeof(bool)) ||
-        !muiReserveKeeping(allocator, &analysis->breaks, (kept + count) * sizeof(muiTextBreak),
-                           kept * sizeof(muiTextBreak)))
+    if (!muiReserveItems(allocator, &scratch->offsets, count, 0, sizeof(size_t)) ||
+        !muiReserveItems(allocator, &scratch->mandatory, count, 0, sizeof(bool)) ||
+        !muiReserveItems(allocator, &analysis->breaks, (uint64_t)kept + count, kept,
+                         sizeof(muiTextBreak)))
     {
         return false;
     }
@@ -85,9 +85,9 @@ MUI_NODISCARD static bool FindScripts(const muiAllocator* allocator, Scratch* sc
         return true;
     }
     size_t kept = analysis->scriptCount;
-    if (!muiReserve(allocator, &scratch->runs, count * sizeof(muniScriptRun)) ||
-        !muiReserveKeeping(allocator, &analysis->scripts, (kept + count) * sizeof(muiTextScript),
-                           kept * sizeof(muiTextScript)))
+    if (!muiReserveItems(allocator, &scratch->runs, count, 0, sizeof(muniScriptRun)) ||
+        !muiReserveItems(allocator, &analysis->scripts, (uint64_t)kept + count, kept,
+                         sizeof(muiTextScript)))
     {
         return false;
     }
@@ -237,10 +237,10 @@ MUI_NODISCARD static bool Splice(const muiAllocator* allocator, const muiTextBlo
                scriptsBefore + scriptsAfter <= block->scriptCount);
     analysis->breakCount = breaksBefore + region.breakCount + breaksAfter;
     analysis->scriptCount = scriptsBefore + region.scriptCount + scriptsAfter;
-    bool fits =
-        muiReserve(allocator, &analysis->breaks, analysis->breakCount * sizeof(muiTextBreak) + 1) &&
-        muiReserve(allocator, &analysis->scripts,
-                   analysis->scriptCount * sizeof(muiTextScript) + 1);
+    bool fits = muiReserveItems(allocator, &analysis->breaks, (uint64_t)analysis->breakCount + 1u,
+                                0, sizeof(muiTextBreak)) &&
+                muiReserveItems(allocator, &analysis->scripts, (uint64_t)analysis->scriptCount + 1u,
+                                0, sizeof(muiTextScript));
     if (fits)
     {
         muiTextBreak* outBreaks = analysis->breaks.data;

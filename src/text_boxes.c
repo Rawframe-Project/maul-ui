@@ -184,12 +184,12 @@ bool muiGetLineBoxes(const muiLaidText* laid, uint32_t index, muiTextBoxes* out)
     muiLineGlyphs source;
     size_t runCount = 0;
     // A box for each byte at most, as each holds one or more.
-    size_t capacity = (size_t)(line->end - line->start) + 1u;
+    uint64_t capacity = (uint64_t)(line->end - line->start) + 1u;
     if (!muiGetLineGlyphs(paragraph, line, &source))
     {
         return false;
     }
-    if (!muiReserve(&service->allocator, &service->hitBoxes, capacity * sizeof(muiTextBox)))
+    if (!muiReserveItems(&service->allocator, &service->hitBoxes, capacity, 0, sizeof(muiTextBox)))
     {
         service->failures++;
         return false;

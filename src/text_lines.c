@@ -43,11 +43,9 @@ MUI_NODISCARD static bool MakeRoom(const muiAllocator* allocator, muiLineCache* 
                                    uint32_t first, uint32_t count, uint32_t after, uint32_t tail,
                                    int64_t delta)
 {
-    size_t total = (size_t)first + count + tail;
-    if (!muiReserveKeeping(allocator, &cache->lines, (total + 1u) * sizeof(muiTextLine),
-                           (size_t)cache->count * sizeof(muiTextLine)) ||
-        !muiReserveKeeping(allocator, &cache->widths, (total + 1u) * sizeof(float),
-                           (size_t)cache->count * sizeof(float)))
+    uint64_t total = (uint64_t)first + count + tail;
+    if (!muiReserveItems(allocator, &cache->lines, total + 1u, cache->count, sizeof(muiTextLine)) ||
+        !muiReserveItems(allocator, &cache->widths, total + 1u, cache->count, sizeof(float)))
     {
         return false;
     }
@@ -97,8 +95,8 @@ MUI_NODISCARD static bool Refresh(muiParagraph* paragraph, muiLineCache* cache, 
     uint32_t start = cache->stale.start;
     uint32_t end = cache->stale.end;
     int64_t delta = (int64_t)block->length - (int64_t)cache->length;
-    size_t capacity = (size_t)muiCountBreaksWithin(block, start, end) + 1u;
-    if (!muiReserve(&service->allocator, &service->lines, capacity * sizeof(muiTextLine)))
+    uint64_t capacity = (uint64_t)muiCountBreaksWithin(block, start, end) + 1u;
+    if (!muiReserveItems(&service->allocator, &service->lines, capacity, 0, sizeof(muiTextLine)))
     {
         return false;
     }
@@ -166,8 +164,8 @@ bool muiLayLines(muiParagraph* paragraph, muiBreakMode mode, float width, uint32
     }
     muiTextService* service = paragraph->service;
     const muiLineCache* cache = Kept(paragraph, mode, width);
-    if (cache == nullptr || !muiReserve(&service->allocator, &service->lines,
-                                        ((size_t)cache->count + 1u) * sizeof(muiTextLine)))
+    if (cache == nullptr || !muiReserveItems(&service->allocator, &service->lines,
+                                             (uint64_t)cache->count + 1u, 0, sizeof(muiTextLine)))
     {
         service->failures += cache != nullptr ? 1u : 0u;
         return false;

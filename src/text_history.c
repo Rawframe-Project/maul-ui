@@ -137,8 +137,8 @@ bool muiReserveEdit(const muiAllocator* allocator, muiTextEditing* editing, uint
     {
         return true;
     }
-    size_t entries = (size_t)editing->entryCount * sizeof(muiTextEdit);
-    size_t entriesNeeded = ((size_t)editing->done + 1) * sizeof(muiTextEdit);
+    uint64_t entries = editing->entryCount;
+    uint64_t entriesNeeded = (uint64_t)editing->done + 1u;
     size_t bytes = editing->byteCount;
     // Past SIZE_MAX, which only a 32-bit size_t reaches, no buffer holds
     // the history.
@@ -147,8 +147,9 @@ bool muiReserveEdit(const muiAllocator* allocator, muiTextEditing* editing, uint
     {
         return false;
     }
-    return muiReserveKeeping(allocator, &editing->entries,
-                             entriesNeeded > entries ? entriesNeeded : entries, entries) &&
+    return muiReserveItems(allocator, &editing->entries,
+                           entriesNeeded > entries ? entriesNeeded : entries, editing->entryCount,
+                           sizeof(muiTextEdit)) &&
            muiReserveKeeping(allocator, &editing->bytes, bytesNeeded > bytes ? bytesNeeded : bytes,
                              bytes);
 }

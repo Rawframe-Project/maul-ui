@@ -80,7 +80,7 @@ Their objects are built into the library, so an installed library links with not
 
 The service's memory and FreeType's come from the service's allocator. HarfBuzz allocates from the C library: its allocator is chosen at build time for the whole process, and objects it creates lazily and shares would otherwise land in the first service's allocator and outlive it. This is the one exception to the family's allocator rule in the text component.
 
-The service grows its scratch buffers to the largest text it has laid out, shaped and painted, and then allocates nothing more for frames of it.
+The service grows its scratch buffers to the largest text it has laid out, shaped and painted, and then allocates nothing more for frames of it. Every buffer sized by a count of items, the service's and a block's, is reserved through one call that multiplies the count by the item's size with the count in 64 bits, so sums of 32-bit counts arrive whole, and refuses a product past `SIZE_MAX` as memory run out without asking the allocator: where a `size_t` is 32 bits, as on wasm32, a text of a few hundred megabytes would otherwise wrap a glyph buffer's size.
 
 ## Hostile input
 
