@@ -12,11 +12,45 @@ release could change the API, the ABI and every data format.
 
 ## [1.3.6](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.5...v1.3.6) (2026-11-20)
 
+This release makes the text service refuse a text whose buffers would
+wrap a 32-bit size: on a 32-bit target such as wasm32, a text of some
+hundreds of megabytes reserved buffers smaller than it then filled and
+wrote past them. It also moves maul-ui-window to Maul Window 0.15.0 and
+the library to Maul Unicode 1.2.0. The API and the ABI are those of
+1.3.5, and so are layouts, styles, draw lists, line breaks, shaped
+text, glyph images, motion curves and the accessibility tree built from
+a context. maul-ui-window follows Maul Window and sits outside the 1.x
+promise until Window reaches 1.0.
+
+### Changed
+
+- maul-ui-window takes Maul Window 0.15.0, from 0.14.0, and the library
+  Maul Unicode 1.2.0, from 1.1.2, as Window 0.15.0 is built on it.
+  Window 0.15.0 renames `mwinMessageButtons` to `mwinMessageChoice`; the
+  glue opens no message box, so it names neither. On Windows, a generic
+  HID pad with more than 64 buttons down at once now reads its buttons,
+  so the glue gets the d-pad, face and shoulder presses it turns into
+  navigation from such a pad, and navigates on them as for any pad.
+  Maul Unicode 1.2.0 adds a call Maul UI does not use yet and gives the
+  results 1.1.2 gave
+  ([#421](https://github.com/Rawframe-Project/maul-ui/pull/421)).
+- A build that downloads HarfBuzz tries the BLFS mirror at OSU OSL when
+  GitHub's release download fails. The tarball is checked against the
+  same pinned SHA-256 whichever URL serves it, so what is built is the
+  same
+  ([#418](https://github.com/Rawframe-Project/maul-ui/pull/418)).
 
 ### Fixed
 
-* **text:** refuse buffer sizes that do not fit a 32-bit size_t ([#416](https://github.com/Rawframe-Project/maul-ui/issues/416)) ([469405d](https://github.com/Rawframe-Project/maul-ui/commit/469405d2dd10287a4d07b1bd51c0e0903f49990b)), closes [#415](https://github.com/Rawframe-Project/maul-ui/issues/415)
-* **window:** pin Maul Window 0.15.0 and Maul Unicode 1.2.0 ([#421](https://github.com/Rawframe-Project/maul-ui/issues/421)) ([91df14e](https://github.com/Rawframe-Project/maul-ui/commit/91df14e30ad06ec0f6f95e526863a2782da042c9)), closes [#420](https://github.com/Rawframe-Project/maul-ui/issues/420)
+- The text service sized its scratch and its blocks' buffers as a count
+  times an item's size, unchecked. Where `size_t` is 32 bits, a text
+  large enough (about 215 MB of one-byte characters for the glyph
+  buffer, an item past 512 MB for the shaping scratch) wrapped such a
+  size, and the service wrote past the buffer it got. Such a text is now
+  refused as memory run out, with `mui_errorCapacity` from the public
+  calls. Every result on a 64-bit target and for smaller texts is
+  unchanged
+  ([#416](https://github.com/Rawframe-Project/maul-ui/pull/416)).
 
 ## [1.3.5](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.4...v1.3.5) (2026-11-05)
 
