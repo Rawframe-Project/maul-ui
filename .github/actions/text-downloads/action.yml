@@ -1,0 +1,68 @@
+# The text component's downloads, kept between runs for the jobs that
+# configure Maul UI outside the shared cpp.yml, as its download-keys
+# input keeps them for the build cells: FreeType's and HarfBuzz's
+# tarballs, in a cache keyed by the runner (its system and
+# architecture), the job and cmake/TextDependencies.cmake, which pins
+# them by version and SHA-256. ci.yml sets MAUL_DOWNLOAD_DIR to the
+# folder, and CMake checks each tarball there against its pinned SHA-256
+# before it is used: one that is missing or has another hash is
+# downloaded again, so a kept file is never trusted on its name, and a
+# kept tarball never depends on the download hosts.
+#
+# A job uses it twice: before its first configure, and as its last step
+# with save: true and if: always(). The second saves the folder on a push
+# to main or a scheduled run when no entry has the key yet, so a pull
+# request only reads what main kept.
+name: Text downloads
+description: Keep FreeType's and HarfBuzz's tarballs between runs.
+inputs:
+  save:
+    description: "true in the job's last step: save the folder when no entry has the key yet."
+    default: "false"
+runs:
+  using: composite
+  steps:
+    # A key file that is gone (renamed or moved) gives hashFiles '', and
+    # the key would stop following the pins without a word.
+    - name: Check download keys
+      if: inputs.save != 'true' && hashFiles('cmake/TextDependencies.cmake') == ''
+      shell: bash
+      run: |
+        echo "::error::cmake/TextDependencies.cmake is missing, so the text downloads have no key"
+        exit 1
+
+    - name: Restore downloads
+      if: inputs.save != 'true'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: .cache/downloads
+        key: text-downloads-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ hashFiles('cmake/TextDependencies.cmake') }}
+
+    # Whether an entry has the key already, asked again rather than passed
+    # from the first call, which is another step of the job.
+    - name: Look up downloads
+      id: lookup
+      if: >-
+        always() && inputs.save == 'true' && hashFiles('cmake/TextDependencies.cmake') != '' &&
+        github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: .cache/downloads
+        key: text-downloads-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ hashFiles('cmake/TextDependencies.cmake') }}
+        lookup-only: true
+
+    - name: Check downloads
+      id: kept
+      if: always() && steps.lookup.outputs.cache-primary-key != '' && steps.lookup.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        if [ -n "$(find .cache/downloads -type f -print -quit 2>/dev/null)" ]; then
+          echo "save=true" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Save downloads
+      if: always() && steps.kept.outputs.save == 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: .cache/downloads
+        key: ${{ steps.lookup.outputs.cache-primary-key }}
