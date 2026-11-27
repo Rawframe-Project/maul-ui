@@ -12,6 +12,7 @@
 #include "context.h"
 #include "focus.h"
 #include "fpenv.h"
+#include "invariant.h"
 #include "scroll.h"
 #include "tree.h"
 
@@ -198,6 +199,8 @@ uint32_t muiNavigateFind(const muiContext* context, uint32_t scope, uint32_t foc
                          muiDirection direction)
 {
     const muiTree* tree = &context->tree;
+    // Both callers move from a player's focus, which they checked is set.
+    MUI_ASSERT(focus != 0 && scope != 0);
     uint32_t next = Linked(context, focus, direction);
     if (next == 0)
     {
@@ -310,6 +313,8 @@ static muiResult NodeSetNeighbor(muiContext* context, muiNodeId nodeId, muiDirec
         return mui_errorStale;
     }
     muiFocusStore* store = &context->focus;
+    // A link is added only below the capacity.
+    MUI_ASSERT(store->neighborCount <= store->neighborCapacity);
     muiNeighbor* link = (muiNeighbor*)LinkOf(context, slot, direction);
     if (IsNull(targetId))
     {

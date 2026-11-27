@@ -9,6 +9,7 @@
 
 #include "context.h"
 #include "fpenv.h"
+#include "invariant.h"
 #include "layout_node.h"
 #include "notify.h"
 #include "popup.h"
@@ -99,6 +100,8 @@ static muiResult NodeSetPopup(muiContext* context, muiNodeId nodeId, const muiPo
         return muiRefuse(context);
     }
     muiPopupStore* store = &context->popups;
+    // An entry is added only below the capacity.
+    MUI_ASSERT(store->count <= store->capacity);
     muiPopupEntry* entry = EntryOf(context, slot);
     if (entry == nullptr)
     {
@@ -363,8 +366,12 @@ MUI_NODISCARD static bool Pass(muiContext* context, uint32_t root, bool any)
         {
             continue;
         }
-        Place(context, root, entry, muiTreeResolve(&context->tree, entry->node),
-              muiTreeResolve(&context->tree, entry->popup.anchor));
+        uint32_t popup = muiTreeResolve(&context->tree, entry->node);
+        uint32_t anchor = muiTreeResolve(&context->tree, entry->popup.anchor);
+        // An entry left waiting was placeable, popup and anchor live, and
+        // placing popups edits no tree; its holder is an entry or none.
+        MUI_ASSERT(popup != 0 && anchor != 0 && entry->holder <= store->count);
+        Place(context, root, entry, popup, anchor);
         entry->mark = MARK_DONE;
         progress = true;
     }
