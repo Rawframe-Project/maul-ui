@@ -5,6 +5,8 @@
 
 #include "text_runs.h"
 
+#include "invariant.h"
+
 #include "maul-ui/style.h"
 #include "maul-ui/text_block.h"
 
@@ -154,6 +156,9 @@ bool muiPrepareRuns(muiTextService* service, muiTextBlock* block, const muiCompu
         }
         // Bytes in a span mostly share the style under it: the last one
         // found stands until that changes.
+        // Spans are checked against the text when set and moved with each
+        // edit, which keeps them inside it.
+        MUI_ASSERT(span->length <= length && span->start <= length - span->length);
         uint32_t from = MUI_MAX_RUN_STYLES;
         uint32_t to = 0;
         for (uint32_t at = (uint32_t)span->start; at < span->start + span->length; at++)
@@ -161,6 +166,8 @@ bool muiPrepareRuns(muiTextService* service, muiTextBlock* block, const muiCompu
             if (runs[at] != from)
             {
                 from = runs[at];
+                // Every byte holds 0 or a style Find returned.
+                MUI_ASSERT(from < count);
                 const muiRunStyle want = Apply(styles[from], span, style->size);
                 to = Find(styles, &count, &want, from);
             }
@@ -177,6 +184,8 @@ bool muiPrepareRuns(muiTextService* service, muiTextBlock* block, const muiCompu
 static uint32_t Merge(const muiFontChain* own, muiFontChain* chain, uint8_t* order)
 {
     uint32_t count = 0;
+    // A style's own chain fits a row of order.
+    MUI_ASSERT(own->count <= MUI_MAX_CHAIN);
     for (uint32_t i = 0; i < own->count; i++)
     {
         uint32_t at = 0;
@@ -206,6 +215,8 @@ bool muiBuildRunChains(const muiTextService* service, const muiTextBlock* block,
     {
         return false;
     }
+    // Find adds no style past the table's size.
+    MUI_ASSERT(block->runStyleCount <= MUI_MAX_RUN_STYLES);
     out->chain = own;
     out->styleCount = block->runStyleCount != 0 ? block->runStyleCount : 1;
     out->orderCount[0] = (uint8_t)own.count;
