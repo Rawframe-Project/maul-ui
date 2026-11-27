@@ -51,17 +51,37 @@ static void Purge(muiContext* context)
 
 // A value within a range and on a step: the minimum plus whole steps,
 // the last at or below the maximum, as HTML's range input.
+// Snap where the count of steps from the minimum is past a float's
+// range, from a span wider than a float holds or a step too small for the
+// value's distance from the minimum: counted in doubles, rounding half up
+// as roundf does above 0. More steps than a double counts exactly (2^53)
+// leave the value as it is, as no step near it can be told apart.
+static float SnapWide(const muiValueRange* range, float value)
+{
+    double count = ((double)value - (double)range->minimum) / (double)range->step;
+    if (!(count <= 9007199254740992.0))
+    {
+        return value;
+    }
+    double whole = floor(count);
+    whole += count - whole >= 0.5 ? 1.0 : 0.0;
+    double snapped = (double)range->minimum + whole * (double)range->step;
+    if (snapped > (double)range->maximum)
+    {
+        snapped -= (double)range->step;
+    }
+    return (float)snapped;
+}
+
 static float Snap(const muiValueRange* range, float value)
 {
     value = fminf(fmaxf(value, range->minimum), range->maximum);
     if (range->step > 0.0f)
     {
-        // Steps too many to count in a float, from a step too small for
-        // the value's distance from the minimum, leave the value as it is.
         float steps = roundf((value - range->minimum) / range->step);
         if (!isfinite(steps))
         {
-            return value;
+            return SnapWide(range, value);
         }
         value = range->minimum + steps * range->step;
         if (value > range->maximum)

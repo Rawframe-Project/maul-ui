@@ -539,7 +539,20 @@ static void TestWide(void)
               Value(context, slider) == 0.0f &&
               muiNode_SetRangeValue(context, slider, 12345.0f) == mui_success &&
               Value(context, slider) == 12345.0f,
-          "a step too small to count from the minimum leaves the value");
+          "a step too small to tell values near it apart leaves the value");
+    // Steps counted in doubles where the value is more than a float's
+    // largest span from the minimum: 2.6e38 is 5.6 steps of 1e38 from
+    // -3e38, so it goes to the sixth, at the maximum as floats round it,
+    // and 1.4e38, 4.4 steps, to the fourth.
+    range.step = 1e38f;
+    const float sixth = (float)((double)range.minimum + 6.0 * (double)range.step);
+    const float fourth = (float)((double)range.minimum + 4.0 * (double)range.step);
+    CHECK(muiNode_SetValueRange(context, slider, &range) == mui_success &&
+              muiNode_SetRangeValue(context, slider, 2.6e38f) == mui_success &&
+              Value(context, slider) == sixth && sixth <= range.maximum && sixth > 2.9999e38f &&
+              muiNode_SetRangeValue(context, slider, 1.4e38f) == mui_success &&
+              Value(context, slider) == fourth,
+          "steps counted past a float's span");
     // No step: the keys move a hundredth of the span, 6e36.
     range.step = 0.0f;
     range.value = 0.0f;
