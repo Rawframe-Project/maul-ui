@@ -97,11 +97,11 @@ uia_range: access_text invariant uia fpenv
 uia_text: access_record uia fpenv
 uia_values: access_text allocator host_call invariant uia fpenv
 access_action: access context event focus layout_node notify range scroll scroll_store tree fpenv
-popup: context layout_node popup_store scroll tree notify fpenv
+popup: context invariant layout_node popup_store scroll tree notify fpenv
 scroll: context invariant scroll_store tree layer fpenv
 scroll_pan: context invariant layout_node scroll scroll_store tree
 scroll_query: context layout_node scroll_store tree fpenv
-navigate: context focus tree scroll fpenv
+navigate: context focus invariant tree scroll fpenv
 pointer: context invariant pointer_store style_store tree focus scroll popup place fpenv
 pointer_store:
 notify: invariant
