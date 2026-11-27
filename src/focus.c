@@ -11,6 +11,7 @@
 #include "context.h"
 #include "focus.h"
 #include "fpenv.h"
+#include "invariant.h"
 #include "layer.h"
 #include "notify.h"
 #include "popup.h"
@@ -103,8 +104,17 @@ static void SetBits(muiContext* context, uint32_t slot, uint8_t player, bool foc
 void muiFocusAssign(muiContext* context, uint8_t player, uint32_t slot, bool shown)
 {
     muiFocusStore* store = &context->focus;
+    // Public calls refuse a player past the last.
+    MUI_ASSERT(player < MUI_MAX_PLAYERS);
     muiNodeId was = store->nodes[player];
+    // A player's holder bit is set with its node and cleared with it, which
+    // muiNoteDestroyed relies on to skip the players' walk.
+    MUI_ASSERT(((store->holders >> player) & 1u) == (IsNull(was) ? 0u : 1u));
     uint32_t wasSlot = SlotOf(context, was);
+    // The focused node carries its player's bit, which muiNoteFocus relies
+    // on to recheck only focused nodes; a new node in its slot has another
+    // generation, so was no longer resolves.
+    MUI_ASSERT(wasSlot == 0 || ((context->style.nodes[wasSlot - 1].focusedBy >> player) & 1u) != 0);
     if (wasSlot != 0)
     {
         SetBits(context, wasSlot, player, false, false);
@@ -191,6 +201,8 @@ static uint32_t LayerOf(const muiTree* tree, uint32_t root, uint32_t slot)
 {
     for (uint32_t at = slot; at != root; at = muiTreeAt(tree, at)->links.parent)
     {
+        // slot is in root's subtree, so its ancestors reach root.
+        MUI_ASSERT(at != 0);
         if (muiIsLayerRoot(tree, at))
         {
             return at;
@@ -278,6 +290,8 @@ uint32_t muiFocusFollowing(const muiTree* tree, uint32_t scope, uint32_t at)
             while (at != scope && muiTreeAt(tree, at)->links.next == 0)
             {
                 at = muiTreeAt(tree, at)->links.parent;
+                // The walk went down from scope, so going up reaches it.
+                MUI_ASSERT(at != 0);
             }
             if (at == scope)
             {
@@ -419,6 +433,9 @@ void muiFocusRecheck(muiContext* context, uint32_t slot)
     {
         if ((focusedBy >> player & 1u) != 0)
         {
+            // A node's bit for a player is set only while the player
+            // focuses it.
+            MUI_ASSERT(SlotOf(context, context->focus.nodes[player]) == slot);
             muiFocusAssign(context, (uint8_t)player, 0, false);
         }
     }
@@ -440,6 +457,8 @@ void muiFocusReturns(const muiContext* context, uint32_t closing,
         // own closing with it.
         for (uint32_t at = focus;; at = muiTreeAt(tree, at)->links.parent)
         {
+            // closing is above the focus, so going up reaches it.
+            MUI_ASSERT(at != 0);
             if (muiIsLayerRoot(tree, at))
             {
                 returns[player] = muiLayerOpener(context, at, (uint8_t)player);

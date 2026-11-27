@@ -24,11 +24,11 @@ paint: color context draw_store layout_node
 draw_transform: context draw_store layout_node scroll_store tree
 paint_host: context draw_store draw_transform layout_node paint tree fpenv
 draw: context draw_store draw_transform layer paint paint_host tree fpenv
-hit: context layer layout_node paint place tree fpenv
+hit: context invariant layer layout_node paint place tree fpenv
 layer: context invariant layer_store tree outline
 layer_store:
-place: context layout_node scroll_store tree outline
-focus: context focus_store layer notify style_store tree scroll popup outline fpenv
+place: context invariant layout_node scroll_store tree outline
+focus: context focus_store invariant layer notify style_store tree scroll popup outline fpenv
 focus_store:
 event: context focus tree scroll navigate pointer range popup fpenv
 event_store:
