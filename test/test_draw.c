@@ -1231,6 +1231,31 @@ static void TestRetainedEdges(void)
     CheckRetained(context, root, "shown again");
     muiDestroyContext(context);
 
+    // A build after one of scrolling alone takes from the list scrolling
+    // kept: a scroll container's clipped, scaled content and a sibling
+    // repainted beside it.
+    context = MakeContext();
+    root = Add(context, s_nullNode, 300.0f, 100.0f, none);
+    muiNodeId scroller = Add(context, root, 60.0f, 50.0f, none);
+    muiNodeId content = Add(context, scroller, 60.0f, 80.0f, none);
+    muiNodeId sibling = Add(context, root, 20.0f, 20.0f, none);
+    layout.scrollAxes = mui_scrollVertical;
+    CHECK(muiNode_SetLayoutValues(context, scroller, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyScrollAxes)) == mui_success,
+          "a scroll container");
+    Paint(context, scroller, s_gray);
+    Paint(context, content, s_red);
+    Paint(context, Add(context, content, 10.0f, 10.0f, none), s_blue);
+    SetScale(context, content, (muiLocalScale){0.5f, 0.5f, 0.0f, 0.0f});
+    Paint(context, sibling, s_gray);
+    (void)BuildAt(context, root, 1000.0f, 7);
+    CHECK(muiNode_SetScroll(context, scroller, 0.0f, 15.0f) == mui_success, "scrolled");
+    (void)BuildAt(context, root, 1000.0f, 7);
+    Paint(context, sibling, s_blue);
+    CheckRetained(context, root, "taken after scrolling alone");
+    muiDestroyContext(context);
+    layout = muiDefaultLayoutStyle();
+
     // A hidden node inside a copied subtree keeps no spans it never had.
     context = MakeContext();
     root = Add(context, s_nullNode, 300.0f, 100.0f, none);

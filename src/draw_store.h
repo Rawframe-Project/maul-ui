@@ -83,6 +83,10 @@ typedef struct muiDrawStore
     // The list shown, and the other, which the next build writes.
     muiDrawTables tables[2];
     uint32_t current;
+    // The build that wrote the shown list's tables, whose number the paint
+    // states it left carry: the header's generation, or less once scrolling
+    // alone gave the same tables a generation of their own.
+    uint64_t painted;
     // Capacities; those of clips and gradients count the placeholder.
     uint32_t commandCapacity;
     uint32_t clipCapacity;

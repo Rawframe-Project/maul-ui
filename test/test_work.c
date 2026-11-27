@@ -12,6 +12,7 @@
 #include "maul-ui/draw.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
+#include "maul-ui/scroll.h"
 #include "maul-ui/style.h"
 #include "maul-ui/visual.h"
 
@@ -165,6 +166,38 @@ int main(void)
     CHECK(recolour.styleCount > 0 && recolour.sizeCount == 0 && recolour.measureCount == 0 &&
               recolour.paintCount > 0 && recolour.paintCount < 4,
           "a recoloured class styles and paints, without layout");
+
+    // The root made a scroll container shorter than the panel and box,
+    // which keep their heights: scrolling alone builds a list of the same
+    // commands, and the box recoloured after it paints the box and its
+    // ancestor, as before the scroll, copying the panel and the label.
+    layout = muiDefaultLayoutStyle();
+    layout.sizing.height = Length(40.0f);
+    layout.scrollAxes = mui_scrollVertical;
+    muiLayoutStyle kept = muiDefaultLayoutStyle();
+    kept.sizing.height = Length(30.0f);
+    kept.item.shrink = 0.0f;
+    const muiPropertyMask keptMask =
+        MUI_PROPERTY_BIT(mui_propertyHeight) | MUI_PROPERTY_BIT(mui_propertyShrink);
+    CHECK(muiNode_SetLayoutValues(context, root, &layout,
+                                  MUI_PROPERTY_BIT(mui_propertyHeight) |
+                                      MUI_PROPERTY_BIT(mui_propertyScrollAxes)) == mui_success &&
+              muiNode_SetLayoutValues(context, panel, &kept, keptMask) == mui_success &&
+              muiNode_SetLayoutValues(context, box, &kept, keptMask) == mui_success,
+          "the root scrolls its children");
+    Frame(context, root, &content);
+    float scrollX = -1.0f;
+    float scrollY = -1.0f;
+    CHECK(muiNode_SetScroll(context, root, 0.0f, 10.0f) == mui_success &&
+              Counted(context, root, &content).paintCount == 0 &&
+              muiNode_GetScroll(context, root, &scrollX, &scrollY) == mui_success &&
+              scrollX == 0.0f && scrollY == 10.0f,
+          "scrolling alone paints nothing");
+    visual.background = (muiColor){0.0f, 1.0f, 0.0f, 1.0f};
+    CHECK(muiNode_SetVisualValues(context, box, &visual, background) == mui_success, "the box");
+    muiWorkCounts scrolled = Counted(context, root, &content);
+    Print("box recoloured after scrolling", scrolled);
+    CHECK(scrolled.paintCount == 2, "a build after scrolling alone copies what it did not change");
 
     muiDestroyContext(context);
     return s_failures == 0 ? 0 : 1;
