@@ -6,6 +6,7 @@
 // and its release flings it or springs its overscroll back.
 
 #include "context.h"
+#include "invariant.h"
 #include "layout_node.h"
 #include "scroll.h"
 #include "scroll_store.h"
@@ -146,6 +147,8 @@ static void Pan(muiContext* context, uint32_t slot, const muiScrollPan* pan,
 // 100 ms, per axis, in units a second; 0 with fewer than two.
 static void VelocityOf(const muiScrollPan* pan, double* xOut, double* yOut)
 {
+    // The drag's end was recorded as a sample before its fling starts.
+    MUI_ASSERT(pan->count > 0);
     uint32_t count = pan->count < MUI_SCROLL_SAMPLES ? pan->count : MUI_SCROLL_SAMPLES;
     const muiScrollSample* last = &pan->samples[(pan->count - 1) % MUI_SCROLL_SAMPLES];
     double sumT = 0.0;
@@ -165,6 +168,9 @@ static void VelocityOf(const muiScrollPan* pan, double* xOut, double* yOut)
         sumY += (double)sample->y;
         used++;
     }
+    // The last sample lies in its own window, so the means below divide by
+    // at least one.
+    MUI_ASSERT(used > 0);
     // One move, or moves at one time, give no spread: no velocity.
     *xOut = 0.0;
     *yOut = 0.0;
@@ -253,6 +259,8 @@ bool muiScrollPointer(muiContext* context, const muiPointerRecord* record)
     {
         return false;
     }
+    // A pan is added only below the table's size.
+    MUI_ASSERT(store->panCount <= MUI_SCROLL_PANS);
     uint32_t i = PanOf(store, record->pointer);
     if (record->kind == mui_pointerRecordDragStart)
     {
@@ -284,6 +292,8 @@ bool muiScrollPointer(muiContext* context, const muiPointerRecord* record)
                                         .startY = startY,
                                         .caughtX = caughtX,
                                         .caughtY = caughtY};
+        // The pointer's pan was found or added.
+        MUI_ASSERT(i < store->panCount);
     }
     if (i == store->panCount)
     {
