@@ -8,6 +8,7 @@
 // input method's composition underlined after.
 
 #include "fpenv.h"
+#include "invariant.h"
 #include "text_boxes.h"
 #include "text_host.h"
 #include "text_lines.h"
@@ -176,6 +177,10 @@ static float PaintSegment(const muiParagraph* paragraph, const muiLineGlyphs* so
     // A span's shift raises its glyphs and their decorations.
     baseline -= muiRunShift(paragraph->block, item->style);
     float left = pen;
+    // An item's glyphs lie in the line's, for which PaintLine reserved
+    // the glyph scratch.
+    MUI_ASSERT(item->firstGlyph <= source->glyphCount &&
+               item->glyphCount <= source->glyphCount - item->firstGlyph);
     const muiShapedGlyph* shaped = source->glyphs + item->firstGlyph;
     muiGlyph* glyphs = paragraph->service->glyphs.data;
     float scale = muiItemScale(paragraph, item);
@@ -200,6 +205,8 @@ static float PaintSegment(const muiParagraph* paragraph, const muiLineGlyphs* so
              baseline, sink);
     if (count != 0)
     {
+        // Shaping gave the item a face of the chain it shaped with.
+        MUI_ASSERT(item->face < paragraph->chain.count);
         const muiGlyphRun run = {paragraph->chain.keys[item->face],
                                  paragraph->style.size * item->scale, ink->color, 0.0f, baseline};
         (void)muiDrawSink_AddGlyphRun(sink, &run, glyphs, count);
@@ -281,6 +288,9 @@ static void PaintLine(const muiParagraph* paragraph, const muiTextLine* line, fl
     float pen = muiAlignLine(paragraph, source.width, width);
     for (size_t i = 0; i < found; i++)
     {
+        // Maul Unicode's runs lie in the line they were reordered from.
+        MUI_ASSERT(runs[i].start <= line->end - line->start &&
+                   runs[i].length <= line->end - line->start - runs[i].start);
         uint32_t start = line->start + (uint32_t)runs[i].start;
         pen = PaintRun(paragraph, &source, start, start + (uint32_t)runs[i].length,
                        (runs[i].level & 1) != 0, pen, baseline, sink);
