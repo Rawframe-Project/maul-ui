@@ -12,6 +12,7 @@
 
 #include "context.h"
 #include "fpenv.h"
+#include "invariant.h"
 #include "layer.h"
 #include "layout_node.h"
 #include "paint.h"
@@ -149,6 +150,8 @@ static void WalkSubtree(Walk* walk, uint32_t root, double x, double y)
         while (at != root && muiTreeAt(tree, at)->links.next == 0)
         {
             at = muiTreeAt(tree, at)->links.parent;
+            // The walk went down from root, so going up reaches it first.
+            MUI_ASSERT(at != 0);
             const muiPlace up = muiPlaceStep(context, at);
             x = muiPlaceX(&up, x + (double)ShiftX(context, at));
             y = muiPlaceY(&up, y + (double)ShiftY(context, at));
@@ -173,8 +176,10 @@ MUI_NODISCARD static bool WalkLayers(Walk* walk, uint32_t root, bool* blockedOut
         // The point in the space of the layer's parent's children,
         // through its ancestors' places, scrolling and scales; below one
         // scaled to nothing, the layer is hit nowhere.
-        const muiPlace parent =
-            muiPlaceOfChildren(context, root, muiTreeAt(&context->tree, layer)->links.parent);
+        // root is above the layer, so the layer has a parent.
+        uint32_t above = muiTreeAt(&context->tree, layer)->links.parent;
+        MUI_ASSERT(above != 0);
+        const muiPlace parent = muiPlaceOfChildren(context, root, above);
         if (parent.scaleX == 0.0 || parent.scaleY == 0.0)
         {
             continue;

@@ -6,12 +6,15 @@
 #include "place.h"
 
 #include "context.h"
+#include "invariant.h"
 #include "layout_node.h"
 #include "scroll_store.h"
 #include "tree.h"
 
 muiPlace muiPlaceStep(const muiContext* context, uint32_t slot)
 {
+    // Callers step through live nodes: a resolved id, or an ancestor of one.
+    MUI_ASSERT(slot != 0);
     const muiLayoutNode* layout = &context->layout[slot - 1];
     const muiLocalScale* scale = &context->visual[slot - 1].scale;
     if (scale->x == 1.0f && scale->y == 1.0f)
