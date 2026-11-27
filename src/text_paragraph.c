@@ -8,6 +8,7 @@
 
 #include "text_paragraph.h"
 
+#include "invariant.h"
 #include "text_mask.h"
 #include "text_runs.h"
 
@@ -63,6 +64,8 @@ bool muiPrepareParagraph(const muiTextHost* host, muiNodeId nodeId, uint64_t hos
         return false;
     }
     out->chain = chains.chain;
+    // A chain is built only around a face of the style's font.
+    MUI_ASSERT(out->chain.count > 0);
     const muiFontMetrics* metrics = &out->chain.fonts[0]->metrics;
     float size = out->style.size;
     out->scale = (muiLineScale){size, out->style.letterSpacing};
@@ -90,6 +93,8 @@ bool muiBreakParagraph(muiParagraph* paragraph, muiBreakMode mode, float width, 
     muiTextLine* lines = service->lines.data;
     uint32_t count =
         muiBreakLines(block, &paragraph->scale, mode, width, lines, (uint32_t)capacity);
+    // A line ends at a break opportunity, or is the empty one after the last.
+    MUI_ASSERT(count <= capacity);
     // Each line below the one before, as tall as the node's own text and
     // the spans' runs on it reach.
     bool uniform = true;
@@ -143,6 +148,9 @@ bool muiLineReach(const muiParagraph* paragraph, const muiTextLine* line, uint32
         {
             continue;
         }
+        // Shaping gave the item a run style of the block's and a face of the
+        // chain it was shaped with.
+        MUI_ASSERT(item->style < block->runStyleCount && item->face < paragraph->chain.count);
         float up = 0.0f;
         float down = 0.0f;
         muiRunReach(paragraph, &paragraph->chain.fonts[item->face]->metrics, item->scale, &up,
@@ -223,6 +231,8 @@ static float WidthBefore(const muiParagraph* paragraph, const muiLineGlyphs* sou
 bool muiGetLineGlyphs(const muiParagraph* paragraph, const muiTextLine* line, muiLineGlyphs* out)
 {
     const muiTextBlock* block = paragraph->block;
+    // Breaking gave the line its bounds in order, within the text.
+    MUI_ASSERT(line->start <= line->end && line->end <= line->next && line->next <= block->length);
     if (!muiIsBreakUnsafe(block, line->start) && !muiIsBreakUnsafe(block, line->next))
     {
         *out = (muiLineGlyphs){block->items.data, block->itemCount, block->glyphs.data,
@@ -296,6 +306,7 @@ bool muiReorderLine(const muiParagraph* paragraph, const muiTextLine* line, size
 {
     muiTextService* service = paragraph->service;
     const muiTextBlock* block = paragraph->block;
+    MUI_ASSERT(line->start <= line->end && line->end <= block->length);
     uint32_t length = line->end - line->start;
     *countOut = 0;
     if (!muiReserveItems(&service->allocator, &service->runs, (uint64_t)length + 1u, 0,
