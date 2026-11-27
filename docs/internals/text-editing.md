@@ -27,7 +27,7 @@ Each line is read as boxes of grapheme clusters left to right, from the glyphs p
 
 ## Deletion
 
-`muiTextBlock_FindDeletion` gives what a deletion removes ([text_delete.c](../../src/text_delete.c)). Forward it is the next grapheme cluster. Backward it is one code point, as Blink and Android delete, so a user can take back an accent without its letter, except where that would leave a broken cluster: a cluster with an emoji, a regional indicator or a keycap goes whole, a variation selector goes with the code point before it, and CR goes with its LF.
+`muiTextBlock_FindDeletion` gives what a deletion removes ([text_delete.c](../../src/text_delete.c)). Forward it is the next grapheme cluster. Backward it is one code point, as Blink and Android delete, so a user can take back an accent without its letter, except where that would leave a broken cluster: a cluster with an emoji, a regional indicator or a keycap goes whole, a variation selector goes with the code point before it, and CR goes with its LF. The cluster around the offset comes from Maul Unicode's `muniSegmentIterator_FindBreaksAround`, which reads back from the offset to a boundary that holds whatever came before, so in ordinary text a deletion reads a few code points wherever it is; a run of regional indicators, or a base with many marks, is read back to its start.
 
 ## Input method compositions
 

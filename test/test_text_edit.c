@@ -581,6 +581,21 @@ static void TestDeletion(void)
               Deletes(&scene, "a\xF3\xA0\x84\x80", 5, back, 0, 5) &&
               Deletes(&scene, "a\r\n", 3, back, 1, 3) && Deletes(&scene, "a\n", 2, back, 1, 2),
           "a variation selector, a CR LF");
+    // Three flags in a row, whose clusters only a count of the regional
+    // indicators from the start tells apart, and marks after letters: the
+    // cluster around the offset, wherever in the text it is.
+    const char* flags = "\xF0\x9F\x87\xB9\xF0\x9F\x87\xB7\xF0\x9F\x87\xB9\xF0\x9F\x87\xB7"
+                        "\xF0\x9F\x87\xB9\xF0\x9F\x87\xB7";
+    CHECK(Deletes(&scene, flags, 16, back, 8, 16) && Deletes(&scene, flags, 8, forward, 8, 16) &&
+              Deletes(&scene, flags, 12, back, 8, 12) &&
+              Deletes(&scene, flags, 12, forward, 12, 16) &&
+              Deletes(&scene, flags, 24, back, 16, 24) && Deletes(&scene, flags, 20, back, 16, 20),
+          "the flag around the offset in a run of flags");
+    const char* marks = "ab x\xCC\x81y\xCC\x81\xCC\x81 z";
+    CHECK(Deletes(&scene, marks, 3, forward, 3, 6) && Deletes(&scene, marks, 6, forward, 6, 11) &&
+              Deletes(&scene, marks, 9, forward, 9, 11) && Deletes(&scene, marks, 9, back, 6, 9) &&
+              Deletes(&scene, marks, 11, back, 9, 11),
+          "the cluster around the offset after others");
     size_t start = 7;
     size_t end = 7;
     muiTextBlockId none = {0, 0};

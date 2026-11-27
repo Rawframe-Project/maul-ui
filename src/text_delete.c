@@ -8,6 +8,7 @@
 #include "text_delete.h"
 
 #include "fpenv.h"
+#include "invariant.h"
 #include "text_block.h"
 #include "text_blocks.h"
 #include "text_service.h"
@@ -25,20 +26,21 @@ enum
 };
 
 // The grapheme cluster boundaries around offset in a text: the last at or
-// before it, and the first after it.
+// before it, and the first after it, or the length at the end. Found from
+// the offset, so a deletion near the end of a long text does not read it
+// from its start.
 static void ClusterAround(const char* text, uint32_t length, uint32_t offset, uint32_t* beforeOut,
                           uint32_t* afterOut)
 {
     muniSegmentIterator iterator;
     (void)muniInitGraphemeIterator(&iterator, text, length, false);
-    uint32_t before = 0;
-    size_t at = 0;
-    while (muniSegmentIterator_NextBreak(&iterator, &at) == muni_success && at <= offset)
-    {
-        before = (uint32_t)at;
-    }
-    *beforeOut = before;
-    *afterOut = at > offset ? (uint32_t)at : length;
+    size_t before = 0;
+    size_t after = length;
+    // The iterator holds the whole text and offset is at most its length.
+    muiAssertCall(muniSegmentIterator_FindBreaksAround(&iterator, offset, &before, &after) ==
+                  muni_success);
+    *beforeOut = (uint32_t)before;
+    *afterOut = (uint32_t)after;
 }
 
 MUI_NODISCARD static bool IsVariationSelector(uint32_t point)
