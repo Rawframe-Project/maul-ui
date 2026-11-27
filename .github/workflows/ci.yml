@@ -552,6 +552,11 @@ jobs:
           persist-credentials: false
       - uses: $/.github/actions/text-downloads
       - uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
+        with:
+          version: 7.0.1
+          # emsdk's own scripts at the commit of its 7.0.1 tag; left
+          # unset, they would come from that tag, which can move.
+          emsdk-version: a7c808831a666cc903fedb906c171a718cd97341 # 7.0.1
       - name: Build
         run: |
           cmake --preset web-emscripten
@@ -717,6 +722,11 @@ jobs:
           persist-credentials: false
       - uses: $/.github/actions/text-downloads
       - uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
+        with:
+          version: 7.0.1
+          # emsdk's own scripts at the commit of its 7.0.1 tag; left
+          # unset, they would come from that tag, which can move.
+          emsdk-version: a7c808831a666cc903fedb906c171a718cd97341 # 7.0.1
       - name: Build the samples for the web
         run: |
           emcmake cmake -B out/web -G Ninja -DCMAKE_BUILD_TYPE=Release -DMAUL_UI_RHI=ON \
@@ -776,10 +786,10 @@ jobs:
       - uses: $/.github/actions/text-downloads
       - uses: emscripten-core/setup-emsdk@4528d102f7230f0e7b276855c01ea1159be0e984 # v16
         with:
-          version: 6.0.13
-          # emsdk's own scripts at the commit of its 6.0.13 tag; left
+          version: 7.0.1
+          # emsdk's own scripts at the commit of its 7.0.1 tag; left
           # unset, they would come from that tag, which can move.
-          emsdk-version: 35659964bc2762fffec0d257997fb61475f765b7 # 6.0.13
+          emsdk-version: a7c808831a666cc903fedb906c171a718cd97341 # 7.0.1
       - name: Build
         run: |
           emcmake cmake -B out/size -DCMAKE_BUILD_TYPE=MinSizeRel \
