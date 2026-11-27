@@ -17,7 +17,7 @@ export MUI_NODE_MODULES=$PWD/out/browser/node_modules
 npx --prefix out/browser puppeteer browsers install firefox   # prints the Firefox executable's path
 ```
 
-The reducer also builds the fixture test itself, so it needs CMake and a C23 compiler (`CC=clang-20` or `CC=gcc-14` on the shared machine). Run long reductions through the workspace's heavy-job wrapper.
+The reducer also builds the fixture test itself, so it needs CMake and a C23 compiler (`CC=clang-20` or `CC=gcc-14` on Ubuntu). Run long reductions through the workspace's heavy-job wrapper.
 
 ## Steps
 

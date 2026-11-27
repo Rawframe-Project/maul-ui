@@ -21,7 +21,7 @@ What verifies a change, locally and in CI, and the time each may take.
 | `pr` | Every rule on every file, the layout fixture tables against the corpus, that the documentation site builds, clang-tidy over the core's, the renderer's and the glue's sources in a Release and a Debug build, the whole `linux-clang-20-asan` and `linux-parts` suites, and 10 seconds of fuzzing per target. | under 10 minutes |
 | `full` | Also the other Linux presets (ThreadSanitizer, shared, the core alone, the parts without text and with GCC, Clang and GCC Release) and 60 seconds per fuzz target. | under 20 minutes |
 
-Run `changed` before every push. On the shared development machine, run `pr` and `full` through the workspace's heavy-job wrapper. The macOS, iOS, Android, Windows and web cells run in CI; [Test environments](test-environments.md) says how to run each by hand.
+Run `changed` before every push. In the workspace, run `pr` and `full` through the workspace's heavy-job wrapper. The macOS, iOS, Android, Windows and web cells run in CI; [Test environments](test-environments.md) says how to run each by hand.
 
 The sanitizer presets build with assertions on at `-O1`, as the sanitizers advise: the seeded simulations and measurements below run several times faster than at `-O0`, and nothing is compiled out.
 
