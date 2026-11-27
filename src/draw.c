@@ -15,6 +15,7 @@
 #include "draw_store.h"
 #include "draw_transform.h"
 #include "fpenv.h"
+#include "invariant.h"
 #include "layer.h"
 #include "paint.h"
 #include "paint_host.h"
@@ -63,6 +64,42 @@ static uint32_t Moved(muiDrawRange own, uint32_t base, uint32_t entry, uint32_t 
     return index >= own.first && index < own.end ? index - own.first + base : entry;
 }
 
+// Whether a span runs forward and ends within a table of count entries.
+MUI_NODISCARD [[maybe_unused]] static bool IsSpanIn(muiDrawRange span, uint32_t count)
+{
+    return span.first <= span.end && span.end <= count;
+}
+
+// Whether an entry lies within a span, or a span within another.
+MUI_NODISCARD [[maybe_unused]] static bool IsIn(uint32_t index, muiDrawRange span)
+{
+    return index >= span.first && index < span.end;
+}
+
+MUI_NODISCARD [[maybe_unused]] static bool IsWithin(muiDrawRange inner, muiDrawRange outer)
+{
+    return inner.first >= outer.first && inner.end <= outer.end;
+}
+
+// Whether a node's spans end within a list's tables.
+MUI_NODISCARD [[maybe_unused]] static bool AreSpansIn(const muiPaintState* state,
+                                                      const muiDrawTables* tables)
+{
+    return IsSpanIn(state->commands, tables->commandCount) &&
+           IsSpanIn(state->clips, tables->clipCount) &&
+           IsSpanIn(state->gradients, tables->gradientCount) &&
+           IsSpanIn(state->transforms, tables->transformCount);
+}
+
+// Whether a node's spans lie within another's.
+MUI_NODISCARD [[maybe_unused]] static bool AreSpansWithin(const muiPaintState* inner,
+                                                          const muiPaintState* outer)
+{
+    return IsWithin(inner->commands, outer->commands) && IsWithin(inner->clips, outer->clips) &&
+           IsWithin(inner->gradients, outer->gradients) &&
+           IsWithin(inner->transforms, outer->transforms);
+}
+
 static uint32_t ClipOf(const Renumbering* renumbering, uint32_t clip)
 {
     return Moved(renumbering->clips, renumbering->clipBase, renumbering->entryClip, clip);
@@ -92,6 +129,9 @@ MUI_NODISCARD static bool CopyCommands(Build* build, const muiPaintState* old,
 {
     const muiDrawTables* from = build->previous;
     muiDrawTables* to = build->painter.out;
+    // The spans were recorded by the build that wrote the last list, from
+    // its counts as it went.
+    MUI_ASSERT(AreSpansIn(old, from));
     uint32_t glyphFirst = 0;
     uint32_t glyphEnd = 0;
     bool glyphs = false;
@@ -103,12 +143,18 @@ MUI_NODISCARD static bool CopyCommands(Build* build, const muiPaintState* old,
         command->transform = TransformOf(renumbering, command->transform);
         if (command->kind == mui_drawBox && command->box.gradient != 0)
         {
+            // A box's gradient was added while its node was painted, inside
+            // the subtree's span.
+            MUI_ASSERT(IsIn(command->box.gradient, renumbering->gradients));
             command->box.gradient =
                 command->box.gradient - renumbering->gradients.first + renumbering->gradientBase;
         }
         if (command->kind == mui_drawGlyphRun)
         {
             muiDrawGlyphRun* run = &command->glyphRun;
+            // Runs take their glyphs at the table's end, a copy's too, so
+            // each starts where the one before it ended.
+            MUI_ASSERT(!glyphs || run->firstGlyph == glyphEnd);
             if (!glyphs)
             {
                 glyphFirst = run->firstGlyph;
@@ -135,6 +181,7 @@ MUI_NODISCARD static bool CopyCommands(Build* build, const muiPaintState* old,
     memcpy(&to->gradients[to->gradientCount], &from->gradients[old->gradients.first],
            gradients * sizeof(muiDrawGradient));
     to->gradientCount += gradients;
+    MUI_ASSERT(glyphEnd <= from->glyphCount);
     uint32_t glyphCount = glyphEnd - glyphFirst;
     if (glyphCount > build->painter.glyphCapacity - to->glyphCount)
     {
@@ -168,6 +215,9 @@ static void Renumber(Build* build, uint32_t node, const muiPaintState* old,
         bool apart = muiIsLayerRoot(tree, at);
         if (!apart && state->build == build->previousBuild)
         {
+            // Painted by the same build as node, below it and outside any
+            // layer, so within node's spans.
+            MUI_ASSERT(AreSpansWithin(state, old));
             state->build = build->build;
             Shift(&state->commands, old->commands.first, now->commands.first);
             Shift(&state->clips, old->clips.first, now->clips.first);
@@ -239,6 +289,10 @@ MUI_NODISCARD static bool Visit(Build* build, const muiPaintState* top, uint32_t
     const muiTree* tree = &context->tree;
     uint32_t parent = at == root ? 0 : muiTreeAt(tree, at)->links.parent;
     const muiPaintState* above = parent != 0 ? &build->store->states[parent - 1] : top;
+    // The walk goes down only from a node it visited, so a parent below
+    // the root was visited by this build and left its state for its
+    // children.
+    MUI_ASSERT(parent == 0 || above->build == build->build);
     const muiRect* rect = &context->layout[at - 1].rect;
     muiPaintState* state = &build->store->states[at - 1];
     float x = above->x + rect->x;
@@ -380,6 +434,9 @@ static uint32_t ParentTransform(Build* build, uint32_t root, uint32_t parent)
     out->transformCount = next;
     for (at = parent; next > first; at = muiTreeAt(tree, at)->links.parent)
     {
+        // count added the transforms of these nodes, up to one painted now
+        // or past the root, so they run out at or before it.
+        MUI_ASSERT(at != 0);
         const muiLocalScale* scale = &context->visual[at - 1].scale;
         const uint32_t owners[2] = {
             context->layout[at - 1].style.scrollAxes != mui_scrollNone ? at : 0,

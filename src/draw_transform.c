@@ -7,6 +7,7 @@
 
 #include "draw_transform.h"
 
+#include "invariant.h"
 #include "layout_node.h"
 #include "scroll_store.h"
 #include "tree.h"
@@ -24,6 +25,8 @@ void muiParentOrigin(const muiContext* context, uint32_t root, uint32_t node, fl
     for (uint32_t at = node; at != root;)
     {
         at = muiTreeAt(tree, at)->links.parent;
+        // node is below root, so its ancestors reach root before 0.
+        MUI_ASSERT(at != 0);
         x += (double)context->layout[at - 1].rect.x;
         y += (double)context->layout[at - 1].rect.y;
     }
@@ -64,6 +67,8 @@ muiDrawTransform muiTransformAfter(const muiContext* context, uint32_t root, uin
     {
         return ScaledOf(context, root, slot, parent);
     }
+    // Entry 0, the identity, has no owner; every other names a node.
+    MUI_ASSERT(slot != 0);
     const muiScrollState* scroll = &context->scrolls[slot - 1];
     const muiLayoutNode* layout = &context->layout[slot - 1];
     float x = roundf(muiScrollShiftX(layout, scroll) * scale) / scale;
@@ -78,6 +83,9 @@ void muiSetTransforms(const muiContext* context, uint32_t root, muiDrawTables* t
 {
     for (uint32_t i = 1; i < tables->transformCount; i++)
     {
+        // Each parent entry comes before its children, so its value is
+        // given first.
+        MUI_ASSERT(tables->transformParents[i] < i);
         tables->transforms[i] =
             muiTransformAfter(context, root, tables->transformOwners[i],
                               &tables->transforms[tables->transformParents[i]], scale);
@@ -87,6 +95,7 @@ void muiSetTransforms(const muiContext* context, uint32_t root, muiDrawTables* t
 muiDrawTransform muiTransformOf(const muiContext* context, uint32_t root,
                                 const muiDrawTables* tables, uint32_t index, float scale)
 {
+    MUI_ASSERT(index < tables->transformCount);
     muiDrawTransform value = {1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f};
     // From the outermost entry in, each the one whose parent was the last
     // applied: chains are short, a node's scales and scrolls above it.
@@ -95,6 +104,8 @@ muiDrawTransform muiTransformOf(const muiContext* context, uint32_t root,
         uint32_t at = index;
         while (tables->transformParents[at] != done)
         {
+            // Parents come first, so the chain falls to done.
+            MUI_ASSERT(tables->transformParents[at] < at);
             at = tables->transformParents[at];
         }
         value = muiTransformAfter(context, root, tables->transformOwners[at], &value, scale);

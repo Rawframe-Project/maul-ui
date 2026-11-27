@@ -7,6 +7,7 @@
 #include "paint.h"
 
 #include "color.h"
+#include "invariant.h"
 #include "layout_node.h"
 
 #include "maul-ui/draw.h"
@@ -109,6 +110,8 @@ muiCorners muiCornersOf(const muiCornerRadii* radii, muiRect rect, bool rtl)
 muiDrawCommand* muiTakeCommand(muiPainter* painter, muiDrawKind kind, const muiPaintState* state)
 {
     muiDrawTables* out = painter->out;
+    // Every write checks the room first, a copy for its whole span.
+    MUI_ASSERT(out->commandCount <= painter->commandCapacity);
     if (out->commandCount == painter->commandCapacity)
     {
         painter->full = true;
@@ -125,6 +128,9 @@ muiDrawCommand* muiTakeCommand(muiPainter* painter, muiDrawKind kind, const muiP
 static uint32_t AddGradient(muiPainter* painter, const muiGradient* gradient, float opacity)
 {
     muiDrawTables* out = painter->out;
+    // Style refuses a gradient of more stops than an entry holds.
+    MUI_ASSERT(out->gradientCount <= painter->gradientCapacity &&
+               gradient->stopCount <= MUI_MAX_GRADIENT_STOPS);
     if (out->gradientCount == painter->gradientCapacity)
     {
         painter->full = true;
@@ -288,6 +294,8 @@ static uint32_t AddClip(muiPainter* painter, muiRect rect, muiCorners radii,
                         const muiPaintState* state)
 {
     muiDrawTables* out = painter->out;
+    // The clip a node is drawn in was added before it.
+    MUI_ASSERT(out->clipCount <= painter->clipCapacity && state->clip < out->clipCount);
     if (out->clipCount == painter->clipCapacity)
     {
         painter->full = true;
@@ -306,6 +314,9 @@ static uint32_t AddClip(muiPainter* painter, muiRect rect, muiCorners radii,
 uint32_t muiAddTransform(muiPainter* painter, uint32_t owner, uint32_t parent)
 {
     muiDrawTables* out = painter->out;
+    // A parent entry was added before its children, which muiSetTransforms
+    // relies on to give each value after its parent's.
+    MUI_ASSERT(out->transformCount <= painter->transformCapacity && parent < out->transformCount);
     if (out->transformCount == painter->transformCapacity)
     {
         painter->full = true;
