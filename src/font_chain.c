@@ -7,6 +7,7 @@
 
 #include "font_family.h"
 #include "font_instance.h"
+#include "invariant.h"
 
 #include "maul-ui/text_block.h"
 
@@ -48,6 +49,9 @@ static void Add(const muiTextService* service, uint64_t key, const muiComputedTe
             return;
         }
     }
+    // A chain takes the style's font and at most MUI_MAX_FALLBACKS each of
+    // its family's and the service's, which their calls refuse past that.
+    MUI_ASSERT(chain->count < MUI_MAX_CHAIN);
     chain->fonts[chain->count] = font;
     chain->keys[chain->count++] = faceKey;
     // FNV-1a over the keys.

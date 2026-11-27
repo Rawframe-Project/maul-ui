@@ -127,8 +127,8 @@ font_store: allocator pool
 font_instance: font_store
 family_store: allocator pool
 font_family: allocator family_store font_instance font_store pool text_service fpenv
-font_chain: family_store font_family font_instance font_store text_service
-text_runs: font_chain text_block text_service
+font_chain: family_store font_family font_instance font_store invariant text_service
+text_runs: font_chain invariant text_block text_service
 text_entry:
 text_service: allocator family_store font_instance font_store pool text_block fpenv
 text_host: context_hold text_service
