@@ -85,6 +85,6 @@ The context keeps two of each table, the list shown and the one the next build w
 - A build with no paint requested below the root, of the same root, surface and scale as the last, keeps the list and its generation. A host can skip presenting a frame whose generation did not change.
 - Otherwise each node's spans of the tables are recorded. A subtree no paint request reaches, at the origin and opacity it was painted at, copies its spans from the last list, renumbering its clips, gradients, transforms and glyphs and its descendants' spans.
 - Layout requests paint on every node whose rectangle or direction is not what was last painted, so a copy is never stale. `test_draw` checks over hundreds of random edits that a list built from the last equals one built whole.
-- A build whose only change is scroll offsets rewrites the transform table and keeps the commands.
+- A build whose only change is scroll offsets rewrites the transform table and keeps the commands. The list gets a generation of its own, but the paint states still name the build that wrote its tables, so the next build takes from it as from any other.
 
 Memory is the two lists the limits reserve, so nothing is evicted. A frame with one change still copies the rest of the list, which takes time in proportion to it: about a third of a full build for the benchmark's 40,001 nodes.

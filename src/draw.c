@@ -519,7 +519,7 @@ static muiResult BuildDrawList(muiContext* context, muiNodeId rootId, const muiD
     build.painter.root = root;
     build.store = store;
     build.previous = takes ? &store->tables[store->current] : nullptr;
-    build.previousBuild = store->header.generation;
+    build.previousBuild = store->painted;
     build.build = store->header.generation + 1;
     build.top.opacity = 1.0f;
     Empty(build.painter.out);
@@ -527,6 +527,7 @@ static muiResult BuildDrawList(muiContext* context, muiNodeId rootId, const muiD
     context->misuse += build.painter.misuse;
     context->work.paintCount += build.paintCount;
     store->current = next;
+    store->painted = build.build;
     if (build.painter.full)
     {
         Empty(build.painter.out);
