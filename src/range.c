@@ -56,7 +56,13 @@ static float Snap(const muiValueRange* range, float value)
     value = fminf(fmaxf(value, range->minimum), range->maximum);
     if (range->step > 0.0f)
     {
+        // Steps too many to count in a float, from a step too small for
+        // the value's distance from the minimum, leave the value as it is.
         float steps = roundf((value - range->minimum) / range->step);
+        if (!isfinite(steps))
+        {
+            return value;
+        }
         value = range->minimum + steps * range->step;
         if (value > range->maximum)
         {
@@ -64,6 +70,19 @@ static float Snap(const muiValueRange* range, float value)
         }
     }
     return value;
+}
+
+// A range's minimum plus a share of its span, or of a span too wide for a
+// float (beyond FLT_MAX), worked in doubles.
+static float AtShare(const muiValueRange* range, float share)
+{
+    float span = range->maximum - range->minimum;
+    if (isfinite(span))
+    {
+        return range->minimum + share * span;
+    }
+    return (float)((double)range->minimum +
+                   (double)share * ((double)range->maximum - (double)range->minimum));
 }
 
 MUI_NODISCARD static bool IsValid(const muiValueRange* range)
@@ -269,7 +288,13 @@ MUI_NODISCARD static bool Change(muiContext* context, muiRangeEntry* entry, floa
 // The step keys move a range by: its step, or a hundredth of it.
 static float SmallStep(const muiValueRange* range)
 {
-    return range->step > 0.0f ? range->step : (range->maximum - range->minimum) / 100.0f;
+    if (range->step > 0.0f)
+    {
+        return range->step;
+    }
+    float span = range->maximum - range->minimum;
+    return isfinite(span) ? span / 100.0f
+                          : (float)(((double)range->maximum - (double)range->minimum) / 100.0);
 }
 
 const muiValueRange* muiRangeOf(const muiContext* context, uint32_t slot)
@@ -378,6 +403,11 @@ static float Share(const muiContext* context, uint32_t slot, const muiValueRange
 {
     float span = range->maximum - range->minimum;
     float share = span > 0.0f ? (range->value - range->minimum) / span : 0.0f;
+    if (!isfinite(span))
+    {
+        share = (float)(((double)range->value - (double)range->minimum) /
+                        ((double)range->maximum - (double)range->minimum));
+    }
     bool forward = range->axis == mui_axisHorizontal && !context->layout[slot - 1].rtl;
     return forward ? share : 1.0f - share;
 }
@@ -468,7 +498,7 @@ static void Follow(muiContext* context, muiRangeEntry* entry, uint32_t slot, flo
     {
         share = 1.0f - share;
     }
-    (void)Change(context, entry, range->minimum + share * (range->maximum - range->minimum));
+    (void)Change(context, entry, AtShare(range, share));
 }
 
 bool muiRangePointer(muiContext* context, const muiPointerRecord* record)
