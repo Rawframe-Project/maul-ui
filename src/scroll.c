@@ -31,6 +31,8 @@ static uint32_t EaseOf(const muiScrollStore* store, uint32_t slot)
 
 static void Drop(muiScrollStore* store, uint32_t i)
 {
+    // Callers drop an entry EaseOf found or the walk is at.
+    MUI_ASSERT(i < store->easeCount);
     store->eases[i] = store->eases[--store->easeCount];
 }
 
@@ -171,6 +173,8 @@ static Spans SpansOf(const muiContext* context, uint32_t container, uint32_t nod
         const muiRect* rect = &context->layout[at - 1].rect;
         start += (double)(horizontal ? rect->x : rect->y);
         at = muiTreeAt(tree, at)->links.parent;
+        // muiScrollReveal passes only scroll containers above the node.
+        MUI_ASSERT(at != 0);
         const muiLayoutNode* parent = &context->layout[at - 1];
         const muiScrollState* scroll = &context->scrolls[at - 1];
         start += (double)(horizontal ? muiScrollShiftX(parent, scroll)
@@ -357,6 +361,8 @@ static void Step(muiContext* context, uint32_t slot, float right, float down, ui
     }
     if (!easing)
     {
+        // A full table jumped above instead.
+        MUI_ASSERT(store->easeCount < MUI_SCROLL_EASES);
         store->easeCount++;
     }
     store->eases[i] = (muiScrollEase){.node = muiTreeIdOf(&context->tree, slot),
