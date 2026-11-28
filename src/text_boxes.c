@@ -7,6 +7,7 @@
 
 #include "text_boxes.h"
 
+#include "invariant.h"
 #include "text_lines.h"
 #include "text_mask.h"
 
@@ -133,6 +134,8 @@ static void AddCluster(muiTextBoxes* boxes, float x0, float x1, uint32_t start, 
             bounds[k + 1] = start + (uint32_t)breaks[k];
         }
     }
+    // Maul Unicode writes every boundary after the start, the end included.
+    MUI_ASSERT(bounds[parts] == end);
     float share = (x1 - x0) / (float)parts;
     for (uint32_t v = 0; v < parts && boxes->count < boxes->capacity; v++)
     {
@@ -149,6 +152,9 @@ static float AddSegment(const muiParagraph* paragraph, const muiLineGlyphs* sour
                         const muiTextItem* item, uint32_t start, uint32_t end, float pen,
                         muiTextBoxes* boxes)
 {
+    // An item's glyphs lie in the line's.
+    MUI_ASSERT(item->firstGlyph <= source->glyphCount &&
+               item->glyphCount <= source->glyphCount - item->firstGlyph);
     const muiShapedGlyph* shaped = source->glyphs + item->firstGlyph;
     float scale = muiItemScale(paragraph, item);
     bool rtl = (item->level & 1) != 0;
@@ -203,6 +209,9 @@ bool muiGetLineBoxes(const muiLaidText* laid, uint32_t index, muiTextBoxes* out)
     float pen = muiAlignLine(paragraph, source.width, laid->width);
     for (size_t r = 0; r < runCount; r++)
     {
+        // Maul Unicode's runs lie in the line they were reordered from.
+        MUI_ASSERT(runs[r].start <= line->end - line->start &&
+                   runs[r].length <= line->end - line->start - runs[r].start);
         uint32_t start = line->start + (uint32_t)runs[r].start;
         uint32_t end = start + (uint32_t)runs[r].length;
         bool odd = (runs[r].level & 1) != 0;
