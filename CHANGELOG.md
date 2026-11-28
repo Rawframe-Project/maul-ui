@@ -12,14 +12,70 @@ release could change the API, the ABI and every data format.
 
 ## [1.3.6](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.5...v1.3.6) (2026-11-28)
 
+This release makes the text service refuse a text whose buffers would
+wrap a 32-bit size: on a 32-bit target such as wasm32, a text of some
+hundreds of megabytes reserved buffers smaller than it then filled and
+wrote past them. It keeps a value range's value finite when the range is
+wider than a float holds, stops the first draw list after a scroll from
+painting every node again, and finds what a Backspace or Delete removes
+without reading the text before the caret. It also moves maul-ui-window
+to Maul Window 0.15.0 and the library to Maul Unicode 1.2.0. The API and
+the ABI are those of 1.3.5, and so are layouts, styles, draw lists, line
+breaks, shaped text, glyph images, motion curves and the accessibility
+tree built from a context. maul-ui-window follows Maul Window and sits
+outside the 1.x promise until Window reaches 1.0.
+
+### Changed
+
+- maul-ui-window takes Maul Window 0.15.0, from 0.14.0, and the library
+  Maul Unicode 1.2.0, from 1.1.2, as Window 0.15.0 is built on it.
+  Window 0.15.0 renames `mwinMessageButtons` to `mwinMessageChoice`; the
+  glue opens no message box, so it names neither. On Windows, a generic
+  HID pad with more than 64 buttons down at once now reads its buttons,
+  so the glue gets the d-pad, face and shoulder presses it turns into
+  navigation from such a pad, and navigates on them as for any pad.
+  Maul Unicode 1.2.0 gives the results 1.1.2 gave, and adds the call
+  deletions now find their cluster with (below)
+  ([#421](https://github.com/Rawframe-Project/maul-ui/pull/421)).
+- A build that downloads HarfBuzz tries the BLFS mirror at OSU OSL when
+  GitHub's release download fails. The tarball is checked against the
+  same pinned SHA-256 whichever URL serves it, so what is built is the
+  same
+  ([#418](https://github.com/Rawframe-Project/maul-ui/pull/418)).
 
 ### Fixed
 
-* **draw:** copy unchanged subtrees in the build after scrolling alone ([#435](https://github.com/Rawframe-Project/maul-ui/issues/435)) ([2976ca8](https://github.com/Rawframe-Project/maul-ui/commit/2976ca89d1108e89b1ce0c5afbdba858bf057b00)), closes [#434](https://github.com/Rawframe-Project/maul-ui/issues/434)
-* **edit:** find the cluster around a deletion from its offset ([#439](https://github.com/Rawframe-Project/maul-ui/issues/439)) ([6c57205](https://github.com/Rawframe-Project/maul-ui/commit/6c57205f02afd4481b7da5c406063c3098944e13)), closes [#438](https://github.com/Rawframe-Project/maul-ui/issues/438)
-* **input:** keep a range's value finite past a float's span ([#447](https://github.com/Rawframe-Project/maul-ui/issues/447)) ([2e216b7](https://github.com/Rawframe-Project/maul-ui/commit/2e216b7bb9e56ee86f2c6568e10b317afdd14d1c)), closes [#446](https://github.com/Rawframe-Project/maul-ui/issues/446)
-* **text:** refuse buffer sizes that do not fit a 32-bit size_t ([#416](https://github.com/Rawframe-Project/maul-ui/issues/416)) ([469405d](https://github.com/Rawframe-Project/maul-ui/commit/469405d2dd10287a4d07b1bd51c0e0903f49990b)), closes [#415](https://github.com/Rawframe-Project/maul-ui/issues/415)
-* **window:** pin Maul Window 0.15.0 and Maul Unicode 1.2.0 ([#421](https://github.com/Rawframe-Project/maul-ui/issues/421)) ([91df14e](https://github.com/Rawframe-Project/maul-ui/commit/91df14e30ad06ec0f6f95e526863a2782da042c9)), closes [#420](https://github.com/Rawframe-Project/maul-ui/issues/420)
+- The text service sized its scratch and its blocks' buffers as a count
+  times an item's size, unchecked. Where `size_t` is 32 bits, a text
+  large enough (about 215 MB of one-byte characters for the glyph
+  buffer, an item past 512 MB for the shaping scratch) wrapped such a
+  size, and the service wrote past the buffer it got. Such a text is now
+  refused as memory run out, with `mui_errorCapacity` from the public
+  calls. Every result on a 64-bit target and for smaller texts is
+  unchanged
+  ([#416](https://github.com/Rawframe-Project/maul-ui/pull/416)).
+- A value range whose span is wider than a float holds, as from -3e38 to
+  3e38, could take an infinite value: with a step too small to count
+  from the minimum in a float, `muiNode_SetValueRange` and
+  `muiNode_SetRangeValue` stored `inf`. Without a step, an arrow key
+  jumped to an end; without a thumb, a press on the track paged the
+  wrong way; and a drag landed on an end. Such a range's steps, key
+  step, track share and drag are now worked in doubles, and a value more
+  than 2^53 steps from the minimum is left as given. A range whose span
+  fits a float gives the results it gave
+  ([#447](https://github.com/Rawframe-Project/maul-ui/pull/447)).
+- The draw list build after one whose only change was a scroll offset
+  painted every node again instead of copying the subtrees no edit
+  reached, which `muiWorkCounts.paintCount` shows. It now copies them,
+  as after any other build. The list's bytes are unchanged
+  ([#435](https://github.com/Rawframe-Project/maul-ui/pull/435)).
+- `muiTextBlock_FindDeletion`, and the editor's Backspace and Delete,
+  read the text from its start to find the grapheme cluster around the
+  caret, so a deletion near the end of a long text took time in
+  proportion to the whole text. They now find it from the caret with
+  Maul Unicode's `muniSegmentIterator_FindBreaksAround`. What a deletion
+  removes is unchanged
+  ([#439](https://github.com/Rawframe-Project/maul-ui/pull/439)).
 
 ## [1.3.5](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.4...v1.3.5) (2026-11-05)
 
