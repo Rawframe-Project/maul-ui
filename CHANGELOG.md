@@ -20,7 +20,8 @@ edit and from finding a glyph whose sbix graphic claims 2^31 rows, and
 refuses an alias set in a null theme as misuse. The API and the ABI are
 those of 1.3.6, and so are layouts, styles, draw lists, line breaks,
 shaped text, glyph images, motion curves and the accessibility tree
-built from a context.
+built from a context, apart from the value of a range whose nearest
+step overflowed a float.
 
 ### Fixed
 
