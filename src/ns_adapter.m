@@ -10,6 +10,7 @@
 #include "allocator.h"
 #include "fpenv.h"
 #include "host_call.h"
+#include "invariant.h"
 #include "ns.h"
 
 #include <stdalign.h>
@@ -175,7 +176,11 @@ MUIAccessibilityNode* muiNsObjectOf(muiNsAdapter* adapter, uint64_t id)
         object = [[MUIAccessibilityNode alloc] init];
         object->adapter = adapter;
         object->nodeId = id;
-        if (!muiIdMapInsert(&adapter->objectById, id, object))
+        bool inserted = muiIdMapInsert(&adapter->objectById, id, object);
+        // One object for each node the tree holds, a nonzero id, and room
+        // for twice the nodes (MapSizeOf).
+        MUI_ASSERT(inserted);
+        if (!inserted)
         {
             Forget(object);
             return nil;
@@ -423,8 +428,12 @@ uint64_t muiNsNodeAt(const muiNsAdapter* adapter, NSPoint screen)
     for (uint32_t depth = 0; depth < adapter->nodes; depth++)
     {
         uint32_t count = 0;
-        if (muiAccessTree_GetShownChildren(adapter->tree, at, adapter->scratch, adapter->nodes,
-                                           &count) != mui_success)
+        muiResult listed = muiAccessTree_GetShownChildren(adapter->tree, at, adapter->scratch,
+                                                          adapter->nodes, &count);
+        // The root or a shown child is held, and the scratch holds every
+        // node.
+        MUI_ASSERT(listed == mui_success);
+        if (listed != mui_success)
         {
             count = 0;
         }

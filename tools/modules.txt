@@ -66,9 +66,9 @@ web_js:
 aria_page: allocator aria host_call web_js
 atspi: dbus_api id_map
 ns: id_map
-ns_adapter: access_record allocator host_call ns fpenv
+ns_adapter: access_record allocator host_call invariant ns fpenv
 ns_events: access_record ns
-ns_node: access_record access_text allocator host_call ns fpenv
+ns_node: access_record access_text allocator host_call invariant ns fpenv
 ns_roles: ns
 ns_text: access_text host_call invariant ns fpenv
 uikit: id_map

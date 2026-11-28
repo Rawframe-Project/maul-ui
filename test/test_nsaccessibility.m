@@ -341,6 +341,30 @@ static void TestNotifications(muiNsAdapter* adapter, const Built* built)
     adapter->post = saved;
 }
 
+// A name past the adapter's 256-byte buffer is read again into memory of
+// its length, whole.
+static void TestLongTitle(muiNsAdapter* adapter, id root, const Built* built)
+{
+    char longName[301];
+    for (size_t i = 0; i < 300; i++)
+    {
+        longName[i] = (char)('a' + i % 26);
+    }
+    longName[300] = '\0';
+    muiAccessNode ok = built->nodes[1];
+    ok.text[mui_accessLabel] = longName;
+    ok.textLength[mui_accessLabel] = 300;
+    bool sent = Send(adapter, &ok, built->children, 0);
+    NSString* title = [[[root accessibilityChildren] firstObject] accessibilityTitle];
+    CHECK(sent && [title length] == 300 &&
+              [title isEqualToString:[NSString stringWithUTF8String:longName]],
+          "a name of 300 bytes, whole");
+    CHECK(
+        Send(adapter, &built->nodes[1], built->children, 0) &&
+            [[[[root accessibilityChildren] firstObject] accessibilityTitle] isEqualToString:@"OK"],
+        "the short name back");
+}
+
 // The def carries the headers' version: another release's, or a zeroed
 // one, is refused before anything past it is read (the default has no view), the
 // cookie first.
@@ -486,6 +510,7 @@ int main(void)
         TestActions(root);
         TestNotifications(adapter, &s_built);
         TestText(adapter, root, &s_built);
+        TestLongTitle(adapter, root, &s_built);
         id button = [[[root accessibilityChildren] firstObject] retain];
         CHECK(muiNsAdapter_SetScale(adapter, 2.0f) == mui_success &&
                   Same([button accessibilityFrame], OnScreen(view, NSMakeRect(40, 40, 200, 80))),
