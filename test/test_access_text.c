@@ -567,7 +567,7 @@ static void TestParagraphBreaks(void)
     }
     CHECK(backward && muiAccessBoundaryBefore(&text, mui_unitParagraph, 2) == 0,
           "paragraphs start after each break, backward");
-    CHECK(muiAccessBoundaryAfter(&text, mui_unitParagraph, 9) == 11 &&
+    CHECK(muiAccessBoundaryAfter(&text, mui_unitParagraph, 10) == 11 &&
               muiAccessBoundaryBefore(&text, mui_unitParagraph, 13) == 11 &&
               muiAccessBoundaryBefore(&text, mui_unitParagraph, 17) == 15,
           "inside a break of two or three bytes, its paragraphs' edges");
