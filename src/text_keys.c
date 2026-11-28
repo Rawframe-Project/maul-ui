@@ -9,6 +9,7 @@
 // read shortcuts.
 
 #include "fpenv.h"
+#include "invariant.h"
 #include "text_block.h"
 #include "text_editing.h"
 #include "text_entry.h"
@@ -275,6 +276,8 @@ static muiResult Act(const muiTextHost* host, muiNodeId nodeId, muiTextBlockId b
     case OP_UNDO:
         return muiUndoText(service, blockId, &outcome->changed);
     default:
+        // OP_NONE is not acted on (TextEditEvent).
+        MUI_ASSERT(action.op == OP_REDO);
         return muiRedoText(service, blockId, &outcome->changed);
     }
 }
