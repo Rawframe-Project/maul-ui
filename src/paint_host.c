@@ -10,6 +10,7 @@
 
 #include "draw_transform.h"
 #include "fpenv.h"
+#include "invariant.h"
 #include "layout_node.h"
 #include "tree.h"
 
@@ -136,6 +137,8 @@ static MUI_NOINLINE muiResult DrawSinkGetVisibleRectWorker(const muiDrawSink* si
     for (uint32_t at = sink->state->clip; at != 0; at = out->clips[at].parent)
     {
         const muiDrawClip* clip = &out->clips[at];
+        // A clip's parent was added before it, so the walk ends at 0.
+        MUI_ASSERT(clip->parent < at);
         muiDrawTransform t =
             muiTransformOf(context, painter->root, out, clip->transform, painter->scale);
         Meet(&left, &right, t.a * clip->rect.x + t.e,
