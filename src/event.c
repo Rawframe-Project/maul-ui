@@ -12,6 +12,7 @@
 #include "event.h"
 #include "focus.h"
 #include "fpenv.h"
+#include "invariant.h"
 #include "navigate.h"
 #include "pointer.h"
 #include "popup.h"
@@ -48,6 +49,10 @@ MUI_NODISCARD static MUI_NOINLINE bool HostEvent(const muiEventStore* store, mui
 bool muiRouteTo(muiContext* context, uint32_t target, const muiEvent* event)
 {
     muiEventStore* store = &context->events;
+    // Every call that routes refuses while the event function runs
+    // (muiRefusesBusy feeding input), so a route is never written over
+    // while it is heard.
+    MUI_ASSERT(!store->dispatching);
     // A target of 0 has an empty route.
     if (store->function == nullptr)
     {
@@ -57,6 +62,9 @@ bool muiRouteTo(muiContext* context, uint32_t target, const muiEvent* event)
     uint32_t count = 0;
     for (uint32_t at = target; at != 0; at = muiTreeAt(tree, at)->links.parent)
     {
+        // A path up the tree passes each node once, and the route holds one
+        // id per node the context can hold.
+        MUI_ASSERT(count < tree->capacity);
         store->route[count++] = muiTreeIdOf(tree, at);
     }
     store->dispatching = true;
