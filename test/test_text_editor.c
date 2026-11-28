@@ -674,6 +674,36 @@ static void TestDragAfterAnEdit(void)
     FreeScene(&scene);
 }
 
+// Words and paragraphs around a press anywhere in the text, its end
+// included, where the unit is the one that ends there.
+static void TestUnitsAround(void)
+{
+    Scene scene = MakeScene("ab cd ef\ngh ij\r\nkl", mui_editMultiline);
+    Layout(&scene);
+    const muiTextHost* host = &scene.host;
+    // A press right of a letter's middle places the caret after it: the
+    // line break follows "ef", and the space comes before "cd".
+    CHECK(muiNode_HandleEditPress(host, scene.node, 75.0f, 5.0f, 2, false) == mui_success &&
+              Selects(&scene, 8, 9),
+          "a double click after a line's last letter, the line break");
+    CHECK(muiNode_HandleEditPress(host, scene.node, 25.0f, 5.0f, 2, false) == mui_success &&
+              Selects(&scene, 3, 5),
+          "a double click after a space, the word it leads");
+    CHECK(muiNode_HandleEditPress(host, scene.node, 200.0f, 25.0f, 2, false) == mui_success &&
+              Selects(&scene, 16, 18),
+          "a double click past the text's end, the last word");
+    CHECK(muiNode_HandleEditPress(host, scene.node, 200.0f, 25.0f, 3, false) == mui_success &&
+              Selects(&scene, 16, 18),
+          "a triple click past the end, the paragraph after CR LF");
+    CHECK(muiNode_HandleEditPress(host, scene.node, 41.0f, 15.0f, 3, false) == mui_success &&
+              Selects(&scene, 9, 14),
+          "a triple click in the middle paragraph, up to its CR");
+    CHECK(muiNode_HandleEditPress(host, scene.node, 1.0f, 5.0f, 3, false) == mui_success &&
+              Selects(&scene, 0, 8),
+          "a triple click in the first paragraph");
+    FreeScene(&scene);
+}
+
 // Presses place the caret, select words and paragraphs, and drags extend
 // by the same unit; moves collapse a selection to the edge they go to.
 static void TestPointer(void)
@@ -1518,6 +1548,7 @@ int main(void)
     TestFilters();
     TestLength();
     TestElsewhere();
+    TestUnitsAround();
     TestPointer();
     TestParagraphSeparators();
     TestDragAfterAnEdit();
