@@ -13,6 +13,7 @@
 #include "png.h"
 
 #include "inflate.h"
+#include "invariant.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -263,6 +264,8 @@ MUI_NODISCARD static bool Unfilter(uint8_t* rows, size_t rowBytes, uint32_t heig
 // A sample of a row: depths below 8 packed from the high bits.
 static uint32_t Sample(const uint8_t* row, size_t index, uint32_t depth)
 {
+    // ReadHeader took only the specification's depths.
+    MUI_ASSERT(depth == 1 || depth == 2 || depth == 4 || depth == 8 || depth == 16);
     if (depth == 16)
     {
         return Big16(row + index * 2);
@@ -297,6 +300,8 @@ static uint8_t Scale(uint32_t sample, uint32_t depth)
 MUI_NODISCARD static bool Expand(const Header* h, const Colors* c, const uint8_t* row, uint32_t x,
                                  uint8_t* out)
 {
+    // ReadHeader took only the five colour types, of 1 to 4 samples.
+    MUI_ASSERT(h->channels >= 1 && h->channels <= 4);
     size_t first = (size_t)x * h->channels;
     uint32_t s[4] = {0, 0, 0, 0};
     for (uint32_t i = 0; i < h->channels; i++)
@@ -358,6 +363,8 @@ MUI_NODISCARD static bool Develop(const Header* h, const Colors* c, uint8_t* raw
             const uint8_t* row = raw + (size_t)y * (1 + rowBytes) + 1;
             for (uint32_t x = 0; x < p.width; x++)
             {
+                // PassOf counts a pass's pixels inside the image.
+                MUI_ASSERT(p.x + (size_t)x * p.dx < h->width && p.y + (size_t)y * p.dy < h->height);
                 size_t at =
                     (((size_t)p.y + (size_t)y * p.dy) * h->width + p.x + (size_t)x * p.dx) * 4;
                 if (!Expand(h, c, row, x, pixels + at))
@@ -474,19 +481,21 @@ MUI_NODISCARD static bool ReadChunks(const uint8_t* data, size_t size, uint32_t 
     return true;
 }
 
-// Joins the image data chunks into one stream at dst.
-static void JoinData(const uint8_t* data, size_t size, uint8_t* dst)
+// Joins the image data chunks into one stream at dst; how many bytes.
+static size_t JoinData(const uint8_t* data, size_t size, uint8_t* dst)
 {
     size_t at = sizeof SIGNATURE;
+    size_t joined = 0;
     Chunk chunk;
     while (NextChunk(data, size, &at, &chunk) && chunk.type != Tag("IEND"))
     {
         if (chunk.type == Tag("IDAT"))
         {
-            memcpy(dst, chunk.data, chunk.length);
-            dst += chunk.length;
+            memcpy(dst + joined, chunk.data, chunk.length);
+            joined += chunk.length;
         }
     }
+    return joined;
 }
 
 muiResult muiDecodePng(const muiAllocator* allocator, muiBuffer* scratch, const uint8_t* data,
@@ -520,7 +529,9 @@ muiResult muiDecodePng(const muiAllocator* allocator, muiBuffer* scratch, const 
         return mui_errorCapacity;
     }
     uint8_t* joined = scratch->data;
-    JoinData(data, size, joined);
+    // ReadChunks counted the same chunks, each read whole and its CRC
+    // checked, so the stream fills what was reserved for it.
+    muiAssertCall(JoinData(data, size, joined) == r.dataSize);
     if (muiInflateZlib(joined, r.dataSize, joined + r.dataSize, raw) != mui_success ||
         !Develop(h, &r.colors, joined + r.dataSize, pixels))
     {

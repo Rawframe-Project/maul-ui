@@ -7,6 +7,8 @@
 
 #include "distance_field.h"
 
+#include "invariant.h"
+
 #include <math.h>
 #include <string.h>
 
@@ -174,6 +176,9 @@ static void Cross(const muiSegment* pieces, uint32_t count, const muiFieldGrid* 
     {
         Place(&pieces[i], grid, starts, crossings);
     }
+    // Place takes the rows Count counted, by the same Crossed, so the
+    // last row filled up to the end.
+    MUI_ASSERT(grid->height == 0 || starts[grid->height - 1] == starts[grid->height]);
     for (uint32_t row = grid->height; row > 0; row--)
     {
         starts[row] = starts[row - 1];
@@ -213,11 +218,22 @@ static void Fill(const muiFieldGrid* grid, const uint32_t* starts, const muiCros
 // is flooring once held at zero.
 static size_t CellOf(const muiFieldGrid* grid, float x, float y)
 {
+    // A grid reaches its spread, at least MUI_MIN_FIELD_SPREAD, past the
+    // outline on every side.
+    MUI_ASSERT(grid->width > 0 && grid->height > 0);
     float c = x - (float)grid->left;
     float r = (float)grid->top - y;
     uint32_t column = !(c >= 1.0f) ? 0 : (c >= (float)grid->width ? grid->width - 1 : (uint32_t)c);
     uint32_t row = !(r >= 1.0f) ? 0 : (r >= (float)grid->height ? grid->height - 1 : (uint32_t)r);
     return (size_t)row * grid->width + column;
+}
+
+// Whether cells first and last are the top left and bottom right corners
+// of a rectangle of cells.
+MUI_NODISCARD [[maybe_unused]] static bool IsRectangle(const muiFieldGrid* grid, size_t first,
+                                                       size_t last)
+{
+    return first <= last && first % grid->width <= last % grid->width;
 }
 
 // The cell of the top left corner of a piece's box.
@@ -245,6 +261,9 @@ static void Bucket(const muiSegment* pieces, uint32_t count, const muiFieldGrid*
     {
         order[starts[CornerCell(grid, &pieces[i])]++] = i;
     }
+    // Each piece's cell counted once and taken once: the last cell
+    // filled up to the end.
+    MUI_ASSERT(starts[cells - 1] == starts[cells]);
     for (size_t k = cells; k > 0; k--)
     {
         starts[k] = starts[k - 1];
@@ -363,6 +382,9 @@ static void FindHits(const muiSegment* pieces, uint32_t count, const muiFieldGri
                (p->y0 < p->y1 ? p->y0 : p->y1) - margin, (p->y0 < p->y1 ? p->y1 : p->y0) + margin};
     size_t first = CellOf(grid, box.minX - 1.0f, box.maxY + 1.0f);
     size_t last = CellOf(grid, box.maxX, box.minY);
+    // CellOf never decreases along x or down y, and the corners are of
+    // one box of finite outline coordinates: the cells span a rectangle.
+    MUI_ASSERT(IsRectangle(grid, first, last));
     size_t columns = last % grid->width - first % grid->width + 1;
     for (size_t row = first; row <= last; row += grid->width)
     {
@@ -487,6 +509,9 @@ static uint32_t FindEdge(const muiSegment* pieces, const uint32_t* origins, uint
     int side = 0;
     for (uint32_t i = 0; i < count; i++)
     {
+        // Each piece before adds at most one segment, or its parts only
+        // when they leave one for each piece after: room for the rest.
+        MUI_ASSERT((size_t)found + (count - i) <= room);
         const muiSegment* p = &pieces[i];
         if (p->x0 == p->x1 && p->y0 == p->y1)
         {

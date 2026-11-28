@@ -17,6 +17,7 @@
 #include "colr_paint.h"
 #include "fpenv.h"
 #include "image_scale.h"
+#include "invariant.h"
 #include "outputs.h"
 #include "png.h"
 #include "text_service.h"
@@ -267,12 +268,16 @@ static muiResult DecodeBitmap(muiTextService* service, const muiBitmapGlyph* bit
         return mui_errorCapacity;
     }
     unsigned char* rgba = service->bitmapRgba.data;
+    uint32_t decodedWidth = 0;
+    uint32_t decodedHeight = 0;
     result = muiDecodePng(&service->allocator, &service->bitmapScratch, bitmap->png, bitmap->size,
-                          MUI_MAX_IMAGE_EXTENT, &width, &height, rgba, count * 4);
+                          MUI_MAX_IMAGE_EXTENT, &decodedWidth, &decodedHeight, rgba, count * 4);
     if (result != mui_success)
     {
         return result;
     }
+    // The same bytes read again: the pixels fill what was reserved.
+    MUI_ASSERT(decodedWidth == width && decodedHeight == height);
     // sRGB's 256 levels in linear light.
     float levels[256];
     for (int v = 0; v < 256; v++)
@@ -302,6 +307,8 @@ static muiResult RenderBitmap(muiTextService* service, const muiBitmapGlyph* bit
                               float pixelSize, float offsetX, muiGlyphImage* imageOut,
                               unsigned char* pixels, size_t capacity)
 {
+    // Strikes of no ppem are passed over where a bitmap is found.
+    MUI_ASSERT(bitmap->ppem > 0);
     muiScaleSource source = {nullptr, 0, 0};
     muiResult result = DecodeBitmap(service, bitmap, &source);
     if (result != mui_success)

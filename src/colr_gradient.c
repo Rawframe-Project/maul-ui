@@ -16,6 +16,7 @@
 
 #include "colr_gradient.h"
 
+#include "invariant.h"
 #include "motion_math.h"
 #include "text_block.h"
 #include "text_service.h"
@@ -85,6 +86,8 @@ static muiResult ReadLine(const muiPaintSource* source, FT_ColorLine colorline, 
 // Where t falls on the line's interval once extended past its ends.
 static double Extend(const Line* line, double t)
 {
+    // muiPaintGradient paints nothing from a line without stops.
+    MUI_ASSERT(line->count > 0);
     double low = line->stops[0].offset;
     double span = line->stops[line->count - 1].offset - low;
     if (!(span > 0.0) || line->extend == FT_COLR_PAINT_EXTEND_PAD)
@@ -136,6 +139,9 @@ static muiLinearColor ColorAt(const Line* line, double t)
     }
     const Stop* before = &line->stops[low - 1];
     const Stop* after = &line->stops[low];
+    // The search over stops sorted by offset brackets t, so the stops'
+    // offsets differ.
+    MUI_ASSERT(before->offset <= t && t < after->offset);
     float k = (float)((t - before->offset) / (after->offset - before->offset));
     return Mix(before->color, after->color, k);
 }
