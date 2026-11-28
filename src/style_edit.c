@@ -3,6 +3,7 @@
 
 #include "style_edit.h"
 
+#include "invariant.h"
 #include "pool.h"
 #include "tree.h"
 
@@ -33,6 +34,9 @@ bool muiHasVariant(const muiStyleClass* class, muiVariant variant)
 
 muiPropertySet* muiTakeVariantSet(muiStyleStore* store, muiStyleClass* class, muiVariant variant)
 {
+    // Every caller refuses a variant the class lacks, and a class has at
+    // most MUI_MAX_CONDITIONS: the variant has its slot of sets.
+    MUI_ASSERT(class->conditionCount <= MUI_MAX_CONDITIONS && muiHasVariant(class, variant));
     uint32_t* set = &class->sets[variant];
     if (*set == 0)
     {
@@ -71,12 +75,16 @@ void muiDropTokenNames(muiStyleStore* store, muiPropertySet* set, muiPropertyBit
 
 void muiFreeSet(muiStyleStore* store, uint32_t set)
 {
+    // Callers free only a set a variant holds.
+    MUI_ASSERT(set != 0);
     muiDropTokenNames(store, &store->sets[set - 1], muiKnownProperties());
     muiPoolGive(&store->setPool, set);
 }
 
 void muiReleaseEmptySet(muiStyleStore* store, muiStyleClass* class, muiVariant variant)
 {
+    // As in muiTakeVariantSet.
+    MUI_ASSERT(class->conditionCount <= MUI_MAX_CONDITIONS && muiHasVariant(class, variant));
     uint32_t* set = &class->sets[variant];
     if (*set != 0 && !muiAnyProperty(store->sets[*set - 1].properties) &&
         !muiAnyProperty(store->sets[*set - 1].tokens) && store->sets[*set - 1].bindingCount == 0)
