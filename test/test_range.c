@@ -525,6 +525,58 @@ static void TestContract(void)
     muiDestroyContext(context);
 }
 
+// A range wider than a float's largest span, beyond FLT_MAX: its value
+// stays finite and on what was asked, and keys, presses and drags move it
+// by its span as for any range.
+static void TestWide(void)
+{
+    Scene scene;
+    MakeScene(&scene, mui_inlineLeftToRight);
+    muiContext* context = scene.context;
+    muiNodeId slider = scene.slider;
+    muiValueRange range = {.minimum = -3e38f, .maximum = 3e38f, .step = 1e-30f, .page = 1e38f};
+    CHECK(muiNode_SetValueRange(context, slider, &range) == mui_success &&
+              Value(context, slider) == 0.0f &&
+              muiNode_SetRangeValue(context, slider, 12345.0f) == mui_success &&
+              Value(context, slider) == 12345.0f,
+          "a step too small to tell values near it apart leaves the value");
+    // Steps counted in doubles where the value is more than a float's
+    // largest span from the minimum: 2.6e38 is 5.6 steps of 1e38 from
+    // -3e38, so it goes to the sixth, at the maximum as floats round it,
+    // and 1.4e38, 4.4 steps, to the fourth.
+    range.step = 1e38f;
+    const float sixth = (float)((double)range.minimum + 6.0 * (double)range.step);
+    const float fourth = (float)((double)range.minimum + 4.0 * (double)range.step);
+    CHECK(muiNode_SetValueRange(context, slider, &range) == mui_success &&
+              muiNode_SetRangeValue(context, slider, 2.6e38f) == mui_success &&
+              Value(context, slider) == sixth && sixth <= range.maximum && sixth > 2.9999e38f &&
+              muiNode_SetRangeValue(context, slider, 1.4e38f) == mui_success &&
+              Value(context, slider) == fourth,
+          "steps counted past a float's span");
+    // No step: the keys move a hundredth of the span, 6e36.
+    range.step = 0.0f;
+    range.value = 0.0f;
+    const float hundredth = (float)(((double)range.maximum - (double)range.minimum) / 100.0);
+    CHECK(muiNode_SetValueRange(context, slider, &range) == mui_success &&
+              muiContext_SetFocus(context, 0, slider, mui_focusByCode) == mui_success &&
+              Key(&scene, mui_codeArrowRight, 0) && Value(context, slider) == hundredth,
+          "a key's step, a hundredth of the span");
+    // Without a thumb, the value 0 sits in the middle of the track (10 to
+    // 210): a press at 50 pages down.
+    CHECK(muiNode_SetRangeValue(context, slider, 0.0f) == mui_success, "to 0");
+    Mouse(&scene, mui_pointerPress, 1, 50.0f);
+    Mouse(&scene, mui_pointerRelease, 0, 50.0f);
+    CHECK(Dispatch(&scene) == 1 && Value(context, slider) == -1e38f, "left of the middle: down");
+    // A drag to the middle of the track lands on the middle of the span.
+    CHECK(muiNode_SetRangeValue(context, slider, range.minimum) == mui_success, "to the start");
+    Mouse(&scene, mui_pointerPress, 1, 50.0f);
+    Mouse(&scene, mui_pointerMove, 1, 110.0f);
+    CHECK(Dispatch(&scene) == 2 && Value(context, slider) == 0.0f, "the middle");
+    Mouse(&scene, mui_pointerRelease, 0, 110.0f);
+    (void)Dispatch(&scene);
+    muiDestroyContext(context);
+}
+
 int main(void)
 {
     TestModel();
@@ -533,6 +585,7 @@ int main(void)
     TestShapes();
     TestVertical();
     TestEdges();
+    TestWide();
     TestContract();
     return s_failures == 0 ? 0 : 1;
 }
