@@ -37,7 +37,7 @@ range_store:
 popup_store:
 exit_store:
 virtual_store:
-range: context range_store tree notify fpenv
+range: context invariant range_store tree notify fpenv
 exit: animation context exit_store focus notify tree layout_node
 virtual: context invariant layout_node notify scroll_store tree virtual_store fpenv
 virtual_edit: context invariant tree virtual virtual_store fpenv
