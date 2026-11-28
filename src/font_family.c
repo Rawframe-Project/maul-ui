@@ -10,6 +10,7 @@
 #include "allocator.h"
 #include "font_instance.h"
 #include "fpenv.h"
+#include "invariant.h"
 #include "text_service.h"
 
 #include "maul-ui/text_block.h"
@@ -84,6 +85,14 @@ MUI_NODISCARD static bool CanSlant(const muiFont* font, muiFontSlant slant)
     }
 }
 
+// A face's width class in percent. Loading kept usWidthClass when it is 1
+// to 9 and gave 5 otherwise.
+static float WidthOf(const muiFont* font)
+{
+    MUI_ASSERT(font->widthClass >= 1 && font->widthClass <= 9);
+    return s_widths[font->widthClass - 1];
+}
+
 // Keeps the faces whose width range holds normal; else the narrower ones
 // nearest it; else the wider ones nearest it. Returns how many are kept.
 static uint32_t MatchWidth(Face* faces, uint32_t count)
@@ -92,8 +101,7 @@ static uint32_t MatchWidth(Face* faces, uint32_t count)
     int tier = 3;
     for (uint32_t i = 0; i < count; i++)
     {
-        Range width = RangeOf(faces[i].font, Tag('w', 'd', 't', 'h'),
-                              s_widths[faces[i].font->widthClass - 1]);
+        Range width = RangeOf(faces[i].font, Tag('w', 'd', 't', 'h'), WidthOf(faces[i].font));
         int own = width.low <= NORMAL_WIDTH && width.high >= NORMAL_WIDTH ? 0
                   : width.high < NORMAL_WIDTH                             ? 1
                                                                           : 2;
@@ -107,8 +115,7 @@ static uint32_t MatchWidth(Face* faces, uint32_t count)
     uint32_t kept = 0;
     for (uint32_t i = 0; i < count; i++)
     {
-        Range width = RangeOf(faces[i].font, Tag('w', 'd', 't', 'h'),
-                              s_widths[faces[i].font->widthClass - 1]);
+        Range width = RangeOf(faces[i].font, Tag('w', 'd', 't', 'h'), WidthOf(faces[i].font));
         bool keep = tier == 0   ? width.low <= NORMAL_WIDTH && width.high >= NORMAL_WIDTH
                     : tier == 1 ? width.high < NORMAL_WIDTH && NORMAL_WIDTH - width.high == best
                                 : width.low > NORMAL_WIDTH && width.low - NORMAL_WIDTH == best;
@@ -190,6 +197,9 @@ const muiFont* muiMatchFamily(const muiTextService* service, const muiFontFamily
     }
     count = MatchWidth(faces, count);
     count = MatchSlant(faces, count, (uint32_t)slant <= mui_slantOblique ? slant : mui_slantNormal);
+    // MatchWidth keeps the faces of the best tier it found, one at least,
+    // and MatchSlant keeps them all when no face takes a style it tries.
+    MUI_ASSERT(count > 0);
     uint32_t best = 0;
     float bestScore = WeightScore(faces[0].font, weight);
     for (uint32_t i = 1; i < count; i++)

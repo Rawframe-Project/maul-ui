@@ -9,6 +9,8 @@
 
 #include "font_instance.h"
 
+#include "invariant.h"
+
 enum
 {
     GENERATION_BITS = 24,
@@ -150,6 +152,9 @@ static FT_Fixed ToFixed(float value)
 uint32_t muiInstanceCoordinates(const muiFont* font, const muiInstance* instance,
                                 FT_Fixed* coordinates)
 {
+    // Loading kept at most MUI_MAX_FONT_AXES, the size of every caller's
+    // coordinates.
+    MUI_ASSERT(font->axisCount <= MUI_MAX_FONT_AXES);
     for (uint32_t i = 0; i < font->axisCount; i++)
     {
         const muiFontAxis* axis = &font->axes[i];
@@ -230,6 +235,8 @@ hb_font_t* muiShapingFontOf(muiFont* font, uint64_t key)
         return nullptr;
     }
     uint32_t slot = font->nextShaper;
+    // The next slot is always taken modulo the table's size.
+    MUI_ASSERT(slot < MUI_SHAPING_SLOTS);
     font->nextShaper = (slot + 1) % MUI_SHAPING_SLOTS;
     if (font->shapers[slot] != nullptr)
     {
