@@ -8,8 +8,10 @@
 // graphics by them. Glyphs drawn at their strike's size match its pixels;
 // others are scaled, the strike chosen as the smallest reaching the size.
 // A PNG claiming 16384 by 16384 pixels is refused before memory is asked
-// for it. Then both fonts damaged at random, their glyphs drawn or refused without
-// harm under the sanitizers; the seed is fixed, so a failure repeats.
+// for it, and an sbix one claiming 2^31 - 1 rows without overflowing its
+// top. Then both fonts damaged at random, their glyphs drawn or refused
+// without harm under the sanitizers; the seed is fixed, so a failure
+// repeats.
 
 #include "test_harness.h"
 
@@ -271,6 +273,34 @@ static void TestOversizedBitmap(void)
     muiDestroyTextService(scene.service);
 }
 
+// A copy of MaulSbix.ttf whose first graphic, glyph 1's at 20 pixels,
+// has its origin 1 up and a PNG saying it is 2^31 - 1 pixels tall, its
+// header's checksum made again: the graphic's top, the origin's offset
+// plus the height, is past an int32_t. Refused as malformed, as a PNG
+// past the largest image is, without overflowing on the way.
+static void TestTallSbixGraphic(void)
+{
+    memcpy(s_font, s_sbix, sizeof s_sbix);
+    size_t header = 0;
+    for (size_t at = 20; at + 21 <= sizeof s_sbix && header == 0; at++)
+    {
+        header = memcmp(s_font + at, "IHDR", 4) == 0 ? at : 0;
+    }
+    CHECK(header != 0 && memcmp(s_font + header - 16, "png ", 4) == 0 && s_font[header - 18] == 0 &&
+              s_font[header - 17] == 0,
+          "glyph 1's graphic, its origin's y offset 0");
+    s_font[header - 17] = 1;
+    PutBig32(s_font + header + 8, 0x7FFFFFFFu);
+    PutBig32(s_font + header + 17, Crc32(s_font + header, 17));
+    Scene scene;
+    CHECK(MakeScene(&scene, s_font, sizeof s_sbix), "a graphic 2^31 - 1 pixels tall");
+    muiGlyphImage image = {0};
+    CHECK(Draw(&scene, 1, 20.0f, 0.0f, &image) == mui_errorFormat && image.width == 0,
+          "refused as malformed");
+    CHECK(BoxIs(&scene, 2, 10.0f, 0.0f, 1, 4, 2, 2, &image), "the font's other glyphs drawn");
+    muiDestroyTextService(scene.service);
+}
+
 static uint32_t Next(uint32_t* state)
 {
     *state ^= *state << 13;
@@ -381,6 +411,7 @@ int main(void)
     TestWholeImages();
     TestSbix();
     TestOversizedBitmap();
+    TestTallSbixGraphic();
     TestDamage();
     return s_failures == 0 ? 0 : 1;
 }

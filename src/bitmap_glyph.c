@@ -399,8 +399,10 @@ MUI_NODISCARD static bool FindInSbix(const muiFont* font, uint32_t glyph, float 
         if (ppem > 0 && rank < best &&
             InSbixStrike(t, strike, font->metrics.glyphCount, glyph, &png, &x, &y))
         {
+            // The top in 64 bits: a PNG's height is the font's 32-bit
+            // field, which a decoder refuses later but may be 2^31 or more.
             *glyphOut = (muiBitmapGlyph){png.data, (uint32_t)png.size, ppem, (float)x,
-                                         (float)(y + (int32_t)PngHeight(png))};
+                                         (float)((int64_t)y + PngHeight(png))};
             best = rank;
             found = true;
         }
