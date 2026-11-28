@@ -7,6 +7,7 @@
 
 #include "context.h"
 #include "fpenv.h"
+#include "invariant.h"
 #include "tree.h"
 #include "virtual.h"
 #include "virtual_store.h"
@@ -68,6 +69,8 @@ MUI_NODISCARD static bool Resize(muiContext* context, uint32_t slot, muiVirtualE
         // A purge reorders the entries.
         muiVirtualPurge(context);
         entry = muiVirtualEntryOf(context, slot);
+        // A purge drops the entries of destroyed nodes; this one is live.
+        MUI_ASSERT(entry != nullptr);
         *entryInOut = entry;
         base = muiVirtualRoom(store, entry, count);
     }
@@ -104,6 +107,11 @@ static void Rebind(muiContext* context, uint32_t slot, uint32_t first, uint32_t 
         }
         else if (item - 1 >= first && item - 1 < end)
         {
+            // A shifted index stays an item's: an insert checked the count
+            // it grows to, and a removal or move shifts into the room it
+            // made.
+            MUI_ASSERT((int64_t)item + delta >= 1 &&
+                       (int64_t)item + delta <= (int64_t)MUI_MAX_VIRTUAL_ITEMS);
             items[c - 1] = (uint32_t)((int64_t)item + delta);
         }
     }
