@@ -11,6 +11,7 @@
 #include "exit.h"
 #include "exit_store.h"
 #include "focus.h"
+#include "invariant.h"
 #include "layout_node.h"
 #include "notify.h"
 #include "tree.h"
@@ -126,6 +127,11 @@ static muiResult NodeCancelExit(muiContext* context, muiNodeId nodeId)
     }
     muiExitStore* store = &context->exits;
     uint32_t i = IndexOf(context, slot);
+    // A node is flagged exiting exactly while it has an entry: they are
+    // set together, cleared together, and a purge takes only the entries
+    // of nodes destroyed.
+    MUI_ASSERT((i < store->count) ==
+               ((muiTreeAt(&context->tree, slot)->flags & MUI_TREE_EXITING) != 0));
     if (i < store->count)
     {
         store->entries[i] = store->entries[--store->count];

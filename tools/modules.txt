@@ -30,7 +30,7 @@ layer_store:
 place: context invariant layout_node scroll_store tree outline
 focus: context focus_store invariant layer notify style_store tree scroll popup outline fpenv
 focus_store:
-event: context focus tree scroll navigate pointer range popup fpenv
+event: context focus invariant tree scroll navigate pointer range popup fpenv
 event_store:
 scroll_store: layout_node outline
 range_store:
@@ -38,7 +38,7 @@ popup_store:
 exit_store:
 virtual_store:
 range: context invariant range_store tree notify fpenv
-exit: animation context exit_store focus notify tree layout_node
+exit: animation context exit_store focus invariant notify tree layout_node
 virtual: context invariant layout_node notify scroll_store tree virtual_store fpenv
 virtual_edit: context invariant tree virtual virtual_store fpenv
 access_store: allocator outline
