@@ -84,7 +84,7 @@ atspi_component: atspi host_call
 atspi_objects: allocator atspi chars invariant
 atspi_properties: allocator atspi chars host_call
 atspi_roles: access_record atspi invariant
-atspi_text: access_text allocator atspi host_call
+atspi_text: access_text allocator atspi host_call invariant
 uia: id_map uia_com uia_ids
 uia_com:
 uia_ids:

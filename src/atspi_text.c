@@ -10,6 +10,7 @@
 #include "allocator.h"
 #include "atspi.h"
 #include "host_call.h"
+#include "invariant.h"
 
 #include <string.h>
 
@@ -115,6 +116,10 @@ static Span SpanAt(const muiAccessText* text, uint32_t at, uint32_t grain)
 MUI_NODISCARD static bool AppendSpan(muiAtspiApp* app, muiDBusIter* iter, const muiAccessText* text,
                                      Span span)
 {
+    // Every span is cut from the text at offsets clamped to it, at the
+    // boundaries it gives, or at words the tree checked lie in order
+    // within it (muiAccessWordsFit).
+    MUI_ASSERT(span.start <= span.end && span.end <= text->length);
     uint32_t size = span.end - span.start;
     char* copy = muiAllocateMarked(&app->busy, &app->allocator, (size_t)size + 1, 1);
     if (copy == nullptr)
@@ -207,6 +212,9 @@ static int32_t PointAt(const muiAccessText* text, uint32_t at)
     }
     const unsigned char* bytes = (const unsigned char*)text->bytes + at;
     uint32_t size = muiAccessBoundaryAfter(text, mui_unitCharacter, at) - at;
+    // The tree takes only well-formed UTF-8 (TextsAreUtf8 in
+    // access_apply.c), whose characters are 1 to 4 bytes.
+    MUI_ASSERT(size >= 1 && size <= 4);
     uint32_t point = size == 1 ? bytes[0] : bytes[0] & (0x7Fu >> size);
     for (uint32_t i = 1; i < size; i++)
     {
