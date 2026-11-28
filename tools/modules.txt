@@ -142,7 +142,7 @@ text_mask: allocator text_block text_blocks text_service
 text_history: allocator invariant text_block
 text_rules: text_block text_service
 text_shape: font_chain font_instance font_store invariant text_block text_blocks text_runs text_service
-line_break: text_block
+line_break: invariant text_block
 text_paragraph: font_chain invariant line_break text_block text_runs text_service text_shape text_mask
 text_layout: font_chain invariant line_break text_block text_boxes text_lines text_paragraph text_runs text_service text_shape text_host fpenv
 text_boxes: font_chain invariant line_break text_block text_lines text_paragraph text_service text_shape text_mask
@@ -150,7 +150,7 @@ text_lines: invariant line_break text_block text_paragraph text_service
 text_hit: font_chain line_break text_block text_boxes text_entry text_mask text_paragraph text_service text_shape text_host fpenv
 text_delete: invariant text_block text_blocks text_service fpenv
 text_move: font_chain invariant line_break text_block text_blocks text_boxes text_entry text_mask text_paragraph text_service text_shape text_host fpenv
-text_access: allocator line_break text_block text_blocks text_boxes text_editing text_entry text_mask text_service text_host fpenv
+text_access: allocator invariant line_break text_block text_blocks text_boxes text_editing text_entry text_mask text_service text_host fpenv
 font: allocator font_store pool text_service fpenv
 distance_field: invariant
 flatten: distance_field
