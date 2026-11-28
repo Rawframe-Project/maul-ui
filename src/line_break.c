@@ -8,6 +8,8 @@
 
 #include "line_break.h"
 
+#include "invariant.h"
+
 #include <stdbool.h>
 
 enum
@@ -19,6 +21,9 @@ enum
 float muiTextWidth(const muiTextBlock* block, const muiLineScale* scale, uint32_t start,
                    uint32_t end)
 {
+    // Shaping writes an advance and a cluster count at every offset of
+    // the text and its end, and callers measure a span of it.
+    MUI_ASSERT(start <= end && end <= block->length);
     const double* advances = block->advances.data;
     const uint32_t* clusters = block->clusters.data;
     return (float)((advances[end] - advances[start]) * (double)scale->size) +
@@ -72,6 +77,10 @@ typedef struct Lines
 
 static void Emit(Lines* out, uint32_t start, uint32_t next)
 {
+    // A line runs from where the last one ended to an opportunity after
+    // it, the opportunities' offsets rising, or is the empty one after a
+    // last line break.
+    MUI_ASSERT(start <= next && next <= out->block->length);
     if (out->count < out->capacity)
     {
         uint32_t end = VisibleEnd(out->block->text.data, start, next);
@@ -112,6 +121,8 @@ uint32_t muiBreakLinesWithin(const muiTextBlock* block, const muiLineScale* scal
                              muiBreakMode mode, float width, uint32_t from, uint32_t to,
                              muiTextLine* lines, uint32_t capacity)
 {
+    // Callers break a block whole or one of its paragraphs.
+    MUI_ASSERT(from <= to && to <= block->length);
     Lines out = {block, scale, lines, capacity, 0};
     const muiTextBreak* breaks = block->breaks.data;
     const unsigned char* text = block->text.data;
