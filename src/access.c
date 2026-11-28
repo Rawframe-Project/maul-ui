@@ -12,6 +12,7 @@
 #include "allocator.h"
 #include "context.h"
 #include "fpenv.h"
+#include "invariant.h"
 #include "outputs.h"
 #include "tree.h"
 
@@ -64,6 +65,9 @@ static void Purge(muiContext* context)
         *entry = store->entries[--store->count];
         if (i - 1 < store->count)
         {
+            // The walk runs down from the last entry, so the one moved
+            // here was kept: its node is live.
+            MUI_ASSERT(muiTreeResolve(&context->tree, entry->node) != 0);
             store->entryOf[entry->node.index1 - 1] = i;
         }
     }

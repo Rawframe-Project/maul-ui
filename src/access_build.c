@@ -11,6 +11,7 @@
 #include "context.h"
 #include "focus.h"
 #include "fpenv.h"
+#include "invariant.h"
 #include "layer.h"
 #include "place.h"
 #include "range.h"
@@ -187,6 +188,9 @@ static uint32_t ChildrenOf(const muiContext* context, uint32_t slot, uint32_t* c
     for (uint32_t c = muiTreeAt(tree, slot)->links.firstChild; c != 0;
          c = muiTreeAt(tree, c)->links.next)
     {
+        // Visit lists into the store's order, one slot per node the
+        // context holds, and a node's children are distinct nodes.
+        MUI_ASSERT(count < context->access.slots);
         childrenOut[count++] = c;
     }
     const muiVirtualEntry* list = muiVirtualEntryOf(context, slot);
@@ -502,6 +506,9 @@ static void Visit(Build* build, uint32_t slot)
     {
         content = ReadContent(context, slot, true, &node);
     }
+    // A build visits each node once, and every node is the child of one
+    // parent: the update's nodes and children fit one slot per node.
+    MUI_ASSERT(build->nodeCount < store->slots && count <= store->slots - build->childCount);
     node.firstChild = build->childCount;
     node.childCount = count;
     for (uint32_t i = 0; i < count; i++)

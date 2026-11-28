@@ -12,6 +12,7 @@
 #include "allocator.h"
 #include "fpenv.h"
 #include "host_call.h"
+#include "invariant.h"
 #include "outputs.h"
 
 #include "maul-ui/access_tree.h"
@@ -28,6 +29,16 @@ typedef enum Status
     Status_hidden,
     Status_flattened,
 } Status;
+
+// The slot of a child a held node lists: every child an update lists is
+// known and listed once (CheckLists), and a node leaves only when no node
+// lists it, so a listed child is held.
+static uint32_t ChildSlot(const muiAccessTree* tree, uint64_t id)
+{
+    uint32_t slot = muiHeldSlotOf(tree, id);
+    MUI_ASSERT(slot != 0);
+    return slot;
+}
 
 // The box around a rectangle carried through a transform.
 static muiRect BoxOf(const muiDrawTransform* t, muiRect rect)
@@ -54,7 +65,7 @@ static muiRect BoxOf(const muiDrawTransform* t, muiRect rect)
 MUI_NODISCARD static bool IsOutside(const muiAccessTree* tree, const muiHeldNode* parent,
                                     uint32_t index)
 {
-    uint32_t slot = muiHeldSlotOf(tree, parent->children[index]);
+    uint32_t slot = ChildSlot(tree, parent->children[index]);
     const muiAccessNode* child = &tree->held[slot - 1].node;
     const muiRect box = BoxOf(&child->transform, child->bounds);
     const muiRect clip = parent->node.bounds;
@@ -96,7 +107,7 @@ MUI_NODISCARD static bool HoldsFocus(const muiAccessTree* tree, uint32_t slot)
 // How filtering treats the child at index of the node at parentSlot.
 static Status StatusOf(const muiAccessTree* tree, uint32_t parentSlot, uint32_t index)
 {
-    uint32_t slot = muiHeldSlotOf(tree, tree->held[parentSlot - 1].children[index]);
+    uint32_t slot = ChildSlot(tree, tree->held[parentSlot - 1].children[index]);
     const muiAccessNode* node = &tree->held[slot - 1].node;
     bool focus = node->id == tree->focus;
     if ((!focus && (node->flags & mui_accessHidden) != 0) ||
@@ -294,7 +305,7 @@ static muiResult AccessTreeGetShownChildren(const muiAccessTree* tree, uint64_t 
         }
         else if (status == Status_flattened && top < tree->capacity)
         {
-            tree->stack[top] = muiHeldSlotOf(tree, held->children[index]);
+            tree->stack[top] = ChildSlot(tree, held->children[index]);
             tree->walk[top] = 0;
             top++;
         }
@@ -652,7 +663,10 @@ static void JoinContents(Name* name, const muiAccessTree* tree, uint32_t slot)
     const muiHeldNode* top = &tree->held[slot - 1];
     for (uint32_t k = top->node.childCount; k > 0; k--)
     {
-        tree->stack[count++] = muiHeldSlotOf(tree, top->children[k - 1]);
+        // A node lists distinct held nodes, at most as many as the tree
+        // holds.
+        MUI_ASSERT(count < tree->capacity);
+        tree->stack[count++] = ChildSlot(tree, top->children[k - 1]);
     }
     while (count != 0)
     {
@@ -675,7 +689,7 @@ static void JoinContents(Name* name, const muiAccessTree* tree, uint32_t slot)
         }
         for (uint32_t k = node->childCount; k > 0 && count < tree->capacity; k--)
         {
-            tree->stack[count++] = muiHeldSlotOf(tree, held->children[k - 1]);
+            tree->stack[count++] = ChildSlot(tree, held->children[k - 1]);
         }
     }
 }
