@@ -7,6 +7,7 @@
 
 #include "atspi.h"
 #include "host_call.h"
+#include "invariant.h"
 
 #include <math.h>
 #include <string.h>
@@ -145,6 +146,10 @@ static muiAtspiObject NodeAt(const muiAtspiObject* object, int32_t x, int32_t y)
             break;
         }
         at = muiAtspiObjectOf(at.adapter, next);
+        // The tree holds every child a node lists (CheckLists in
+        // access_apply.c), so the walk never falls back to the
+        // application.
+        MUI_ASSERT(at.node != nullptr);
     }
     return at;
 }

@@ -9,6 +9,7 @@
 #include "atspi.h"
 #include "fpenv.h"
 #include "host_call.h"
+#include "invariant.h"
 
 #include <stdalign.h>
 #include <stdlib.h>
@@ -465,6 +466,8 @@ static void DestroyAtspiAdapter(muiAtspiAdapter* adapter)
     {
         at++;
     }
+    // An adapter is listed from its creation to its destruction.
+    MUI_ASSERT(at < app->windowCount);
     for (; at + 1 < app->windowCount; at++)
     {
         app->windows[at] = app->windows[at + 1];
