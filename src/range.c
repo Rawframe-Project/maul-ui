@@ -78,12 +78,15 @@ static float Snap(const muiValueRange* range, float value)
     value = fminf(fmaxf(value, range->minimum), range->maximum);
     if (range->step > 0.0f)
     {
+        // Past a float where the count of steps is, or where the nearest
+        // step is, as a step above half a float's largest can put it.
         float steps = roundf((value - range->minimum) / range->step);
-        if (!isfinite(steps))
+        float snapped = range->minimum + steps * range->step;
+        if (!isfinite(snapped))
         {
             return SnapWide(range, value);
         }
-        value = range->minimum + steps * range->step;
+        value = snapped;
         if (value > range->maximum)
         {
             value -= range->step;

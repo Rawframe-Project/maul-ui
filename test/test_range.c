@@ -553,6 +553,18 @@ static void TestWide(void)
               muiNode_SetRangeValue(context, slider, 1.4e38f) == mui_success &&
               Value(context, slider) == fourth,
           "steps counted past a float's span");
+    // A step past half a float's largest: from 0, the maximum 3.4e38 is
+    // 1.7 steps of 2e38, whose nearest, the second, is past a float. The
+    // value goes to the last step at or below the maximum, the first.
+    const muiValueRange big = {.maximum = 3.4e38f, .step = 2e38f, .page = 1e38f};
+    CHECK(muiNode_SetValueRange(context, slider, &big) == mui_success &&
+              muiNode_SetRangeValue(context, slider, 3.4e38f) == mui_success &&
+              Value(context, slider) == 2e38f,
+          "a step whose next is past a float, set");
+    CHECK(muiNode_SetRangeValue(context, slider, 0.0f) == mui_success &&
+              muiContext_SetFocus(context, 0, slider, mui_focusByCode) == mui_success &&
+              Key(&scene, mui_codeEnd, 0) && Value(context, slider) == 2e38f,
+          "a step whose next is past a float, the End key");
     // No step: the keys move a hundredth of the span, 6e36.
     range.step = 0.0f;
     range.value = 0.0f;
