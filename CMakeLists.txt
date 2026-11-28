@@ -674,6 +674,9 @@ if(MAUL_UI_FUZZ AND MAUL_UI_TEXT)
     mui_embed_file(${PROJECT_SOURCE_DIR}/test/fonts/LiberationSans-Regular.ttf
         ${PROJECT_BINARY_DIR}/test_fonts/liberation_sans.inc s_liberationSans)
     target_include_directories(fuzz_text PRIVATE ${PROJECT_BINARY_DIR}/test_fonts)
+    # It segments words itself, to check those the block keeps.
+    target_include_directories(fuzz_text SYSTEM PRIVATE
+        $<TARGET_PROPERTY:maul-unicode,INTERFACE_INCLUDE_DIRECTORIES>)
     # Updates a host builds by hand, applied to an access tree.
     if(MAUL_UI_ACCESS_TREE)
         add_executable(fuzz_access test/fuzz_access.c)

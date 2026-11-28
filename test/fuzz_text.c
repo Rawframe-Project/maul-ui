@@ -11,10 +11,14 @@
 // succeeds or is refused, the selection stays within the text, and
 // nothing touches memory it does not own. The text edited is then hit
 // tested as a pointer and an input method ask it: points to positions,
-// offsets to carets and ranges to rectangles. The input also chooses one of
+// offsets to carets and ranges to rectangles. After every edit the text is
+// read as assistive technology reads it, and the words the block keeps
+// across edits are those Maul Unicode finds in the whole text. The input
+// also chooses one of
 // the service's allocations to fail, or none: every call then fails
 // cleanly or succeeds, and every block comes back.
 
+#include "maul-ui/access.h"
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
 #include "maul-ui/font.h"
@@ -25,6 +29,7 @@
 #include "maul-ui/text_edit.h"
 #include "maul-ui/text_editor.h"
 #include "maul-ui/text_style.h"
+#include "maul-unicode/segment.h"
 
 #include <math.h>
 #include <stdalign.h>
@@ -130,6 +135,7 @@ typedef struct Scene
     muiNodeId node;
     muiTextHost host;
     float width;
+    Memory* memory;
 } Scene;
 
 // Whether the context and the service are left busy by no call that
@@ -170,6 +176,46 @@ static void LayOut(Scene* scene, bool paint)
     Expect(muiTextBlock_GetText(scene->service, scene->block, &text, &length) == mui_success &&
            muiTextBlock_GetSelection(scene->service, scene->block, &selection) == mui_success &&
            selection.anchor <= length && selection.caret.offset <= length);
+}
+
+// Reads the text as assistive technology does, all of it shown: the
+// words, which the block keeps across edits and segments again only in
+// the paragraphs an edit changed, are the word segments of the whole
+// text, unless memory ran out on the way.
+static void ReadWords(Scene* scene)
+{
+    const muiRect all = {0.0f, 0.0f, 1e6f, 1e6f};
+    muiAccessContent content;
+    uint32_t before = scene->memory->allocations;
+    bool read = muiReadAccessText(&scene->host, scene->node, muiTextBlock_GetKey(scene->block),
+                                  &all, &content);
+    uint32_t failAt = scene->memory->failAt;
+    if (!read || (failAt > before && failAt <= scene->memory->allocations))
+    {
+        return;
+    }
+    const muiAccessTextMarks* marks = &content.marks;
+    muniSegmentIterator iterator;
+    uint32_t found = 0;
+    if (content.length != 0 &&
+        muniInitWordIterator(&iterator, content.text, content.length, false) == muni_success)
+    {
+        size_t start = 0;
+        size_t end = 0;
+        while (muniSegmentIterator_NextBreak(&iterator, &end) == muni_success)
+        {
+            muniWordKind kind = muni_wordNone;
+            if (end > start && muniSegmentIterator_GetWordKind(&iterator, &kind) == muni_success &&
+                kind != muni_wordNone)
+            {
+                Expect(found < marks->wordCount && marks->words[found].start == start &&
+                       marks->words[found].end == end);
+                found++;
+            }
+            start = end;
+        }
+    }
+    Expect(found == marks->wordCount);
 }
 
 // An offset in the text, or one past it, from two bytes.
@@ -380,6 +426,7 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     uint8_t flags = Byte(&reader);
     size_t textLength = (size_t)Byte(&reader) | (size_t)Byte(&reader) << 8;
     Memory memory = {.failAt = (uint32_t)Byte(&reader) | (uint32_t)Byte(&reader) << 8};
+    scene.memory = &memory;
     size_t length = 0;
     const char* text = Take(&reader, textLength, &length);
     if (!Make(&scene, &memory, flags, text, length))
@@ -408,10 +455,12 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
                                      MUI_PROPERTY_BIT(mui_propertyTextWrap) |
                                      MUI_PROPERTY_BIT(mui_propertyLetterSpacing)) == mui_success);
     LayOut(&scene, true);
+    ReadWords(&scene);
     for (uint32_t i = 0; i < MAX_EDITS && reader.size != 0; i++)
     {
         Edit(&scene, &reader);
         LayOut(&scene, false);
+        ReadWords(&scene);
         Expect(IsIdle(&scene));
     }
     LayOut(&scene, true);

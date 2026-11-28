@@ -221,8 +221,11 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     uint32_t faces = 0;
     muiResult counted = muiCountFontFaces(data, size, &faces);
     // A compressed web font (WOFF, WOFF2) is refused as unsupported, not
-    // malformed (muiCountFontFaces's and muiCreateFont's contracts).
-    Expect(counted == mui_success || counted == mui_errorFormat || counted == mui_errorUnsupported);
+    // malformed, once it holds a header, and nothing else is
+    // (muiCountFontFaces's and muiCreateFont's contracts).
+    bool compressed = size >= 12 && (memcmp(data, "wOFF", 4) == 0 || memcmp(data, "wOF2", 4) == 0);
+    Expect(compressed ? counted == mui_errorUnsupported
+                      : counted == mui_success || counted == mui_errorFormat);
     muiTextServiceDef serviceDef = muiDefaultTextServiceDef();
     muiTextService* service = nullptr;
     Expect(muiCreateTextService(&serviceDef, &service) == mui_success);
@@ -233,8 +236,10 @@ int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     muiResult created = muiCreateFont(service, &fontDef, &font);
     // A size under a font's 12-byte header is out of the def's range, not
     // a malformed font (muiCreateFont's contract).
-    Expect(created == mui_success || created == mui_errorFormat || created == mui_errorCapacity ||
-           created == mui_errorUnsupported || (size < 12 && created == mui_errorInvalid));
+    Expect(compressed
+               ? created == mui_errorUnsupported
+               : created == mui_success || created == mui_errorFormat ||
+                     created == mui_errorCapacity || (size < 12 && created == mui_errorInvalid));
     if (created == mui_success)
     {
         muiFontId fonts[MAX_FACES] = {font};
