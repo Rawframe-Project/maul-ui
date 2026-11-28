@@ -42,15 +42,15 @@ exit: animation context exit_store focus notify tree layout_node
 virtual: context invariant layout_node notify scroll_store tree virtual_store fpenv
 virtual_edit: context invariant tree virtual virtual_store fpenv
 access_store: allocator outline
-access: access_store access_text allocator context tree outputs fpenv
-access_build: access access_store access_text context focus layer place range scroll_store style_store tree virtual virtual_store fpenv
+access: access_store access_text allocator context invariant tree outputs fpenv
+access_build: access access_store access_text context focus invariant layer place range scroll_store style_store tree virtual virtual_store fpenv
 access_record:
 access_text: allocator
 access_tree_store:
 chars:
 access_tree: access_tree_store allocator chars host_call invariant outputs fpenv
 access_apply: access_text access_tree access_tree_store allocator host_call invariant fpenv
-access_view: access_text access_tree_store allocator host_call outputs fpenv
+access_view: access_text access_tree_store allocator host_call invariant outputs fpenv
 id_map: invariant
 dbus_api:
 android: id_map
