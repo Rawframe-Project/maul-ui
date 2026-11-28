@@ -150,7 +150,7 @@ text_lines: invariant line_break text_block text_paragraph text_service
 text_hit: font_chain line_break text_block text_boxes text_entry text_mask text_paragraph text_service text_shape text_host fpenv
 text_delete: invariant text_block text_blocks text_service fpenv
 text_move: font_chain invariant line_break text_block text_blocks text_boxes text_entry text_mask text_paragraph text_service text_shape text_host fpenv
-text_access: allocator line_break text_block text_blocks text_boxes text_editing text_entry text_mask text_service text_host fpenv
+text_access: allocator invariant line_break text_block text_blocks text_boxes text_editing text_entry text_mask text_service text_host fpenv
 font: allocator font_store pool text_service fpenv
 distance_field:
 flatten: distance_field

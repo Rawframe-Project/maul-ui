@@ -7,6 +7,7 @@
 
 #include "allocator.h"
 #include "fpenv.h"
+#include "invariant.h"
 #include "text_block.h"
 #include "text_blocks.h"
 #include "text_boxes.h"
@@ -187,9 +188,18 @@ MUI_NODISCARD static bool SpliceWords(const muiAllocator* allocator, const char*
     uint32_t from = cache->stale.start;
     uint32_t to = cache->stale.end;
     int64_t delta = (int64_t)length - (int64_t)cache->length;
+    // The stale region covers every edit since the words were read
+    // (MarkStale in text_blocks.c): the text before it and after it is
+    // the old text's, so the region lies in the text and, ended where it
+    // ended before the edits, in the old one.
+    MUI_ASSERT(from <= to && to <= length && (int64_t)from <= (int64_t)to - delta &&
+               (int64_t)to - delta <= (int64_t)cache->length);
     uint32_t first = WordFrom(cache->words.data, cache->count, from, false);
     uint32_t after =
         WordFrom(cache->words.data, cache->count, (uint32_t)((int64_t)to - delta), true);
+    // A word that starts at the old region's end or past it ends past its
+    // start.
+    MUI_ASSERT(first <= after);
     muiBuffer region = {0};
     uint32_t added = 0;
     uint32_t tail = cache->count - after;
