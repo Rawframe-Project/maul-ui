@@ -10,6 +10,54 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.3.7](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.6...v1.3.7) (2026-11-28)
+
+This release keeps a value range's value finite when its nearest step is
+past a float, and finds a double- or triple-clicked word or paragraph
+from the press instead of reading the text from its start. It also
+removes undefined behaviour from reading a node's access text after an
+edit and from finding a glyph whose sbix graphic claims 2^31 rows, and
+refuses an alias set in a null theme as misuse. The API and the ABI are
+those of 1.3.6, and so are layouts, styles, draw lists, line breaks,
+shaped text, glyph images, motion curves and the accessibility tree
+built from a context, apart from the value of a range whose nearest
+step overflowed a float.
+
+### Fixed
+
+- A value range whose step is above half a float's largest could still
+  take an infinite value: a range from 0 to 3.4e38 with a step of 2e38
+  snapped 3.4e38, or End, to two steps, 4e38, which is `inf` as a float,
+  and `muiNode_SetRangeValue`, the keys and the accessibility tree
+  carried `inf`. Such a value is now snapped in doubles, as a span wider
+  than a float has been since 1.3.6, and lands on 2e38. A range whose
+  nearest step is a finite float gives the results it gave
+  ([#461](https://github.com/Rawframe-Project/maul-ui/pull/461)).
+- A double or triple click, and every drag move after one, read the
+  text from its start to find the word or paragraph around the pointer,
+  so selecting by words or paragraphs near the end of a long text took
+  time in proportion to the whole text on each move. Both are now found
+  from the press, the word with Maul Unicode's
+  `muniSegmentIterator_FindBreaksAround`. What each selects is unchanged
+  ([#450](https://github.com/Rawframe-Project/maul-ui/pull/450)).
+- Reading a node's access text after an edit that left a text without
+  words, as `muiNode_BuildAccessUpdate` and every adapter do, passed a
+  null pointer to `memmove`, undefined behaviour even for no bytes. The
+  words kept are now moved only when there are some. The words read are
+  unchanged
+  ([#468](https://github.com/Rawframe-Project/maul-ui/pull/468)).
+- A font whose sbix graphic claims 2^31 - 1 rows, with its origin above
+  the baseline, overflowed a signed 32-bit sum while the glyph was
+  found, before its PNG was refused as past the largest image. The sum
+  is now made in 64 bits; such a graphic is still refused as malformed,
+  and no glyph image changes
+  ([#453](https://github.com/Rawframe-Project/maul-ui/pull/453)).
+- `muiTheme_SetTokenAlias` answered `mui_errorStale` for a null theme,
+  as for a destroyed one, without counting misuse. It now refuses it as
+  `mui_errorInvalid` and counts it in `muiContext_GetMisuse`, as every
+  other theme edit does
+  ([#455](https://github.com/Rawframe-Project/maul-ui/pull/455)).
+
 ## [1.3.6](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.5...v1.3.6) (2026-11-28)
 
 This release makes the text service refuse a text whose buffers would
