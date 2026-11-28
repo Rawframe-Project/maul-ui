@@ -136,8 +136,8 @@ text_block: allocator invariant pool
 text_analysis: invariant text_block
 text_blocks: invariant property text_analysis text_block text_entry text_service fpenv
 text_editing: invariant text_block text_blocks text_delete text_entry text_history text_rules text_service fpenv
-text_editor: text_block text_editing text_entry text_service text_host fpenv
-text_keys: text_block text_editing text_entry text_host fpenv
+text_editor: invariant text_block text_editing text_entry text_service text_host fpenv
+text_keys: invariant text_block text_editing text_entry text_host fpenv
 text_mask: allocator text_block text_blocks text_service
 text_history: allocator invariant text_block
 text_rules: text_block text_service

@@ -11,6 +11,7 @@
 #include "maul-ui/text_editor.h"
 
 #include "fpenv.h"
+#include "invariant.h"
 #include "text_editing.h"
 #include "text_entry.h"
 #include "text_host.h"
@@ -170,6 +171,8 @@ static void WordAround(const muiTextBlock* block, uint32_t at, uint32_t* startOu
 // and VT and FF break a line inside a paragraph.
 static uint32_t SeparatorAt(const unsigned char* text, uint32_t length, uint32_t at)
 {
+    // Both scans of ParagraphAround stay before the text's end.
+    MUI_ASSERT(at < length);
     unsigned char byte = text[at];
     if (byte == '\n' || byte == '\r' || (byte >= 0x1C && byte <= 0x1E))
     {
@@ -212,6 +215,9 @@ static void ParagraphAround(const muiTextBlock* block, uint32_t at, uint32_t* st
 static void UnitAround(const muiTextBlock* block, uint8_t grain, uint32_t at, uint32_t* startOut,
                        uint32_t* endOut)
 {
+    // A hit answers an offset of the text it laid out, the editing block's
+    // own (muiHitText).
+    MUI_ASSERT(at <= block->length);
     if (grain == MUI_GRAIN_WORD && (block->editing.rules.flags & mui_editPassword) != 0)
     {
         // A password is one word: its words stay unseen.
@@ -238,6 +244,9 @@ static void UnitAround(const muiTextBlock* block, uint8_t grain, uint32_t at, ui
 static void ExtendTo(muiTextBlock* block, muiTextPosition position)
 {
     muiTextEditing* editing = &block->editing;
+    // What a press selected is a unit around an offset, or the anchor; an
+    // edit, or a change of the text, ends the press (muiEndPress).
+    MUI_ASSERT(editing->pressStart <= editing->pressEnd && editing->pressEnd <= block->length);
     uint32_t start = 0;
     uint32_t end = 0;
     UnitAround(block, editing->grain, (uint32_t)position.offset, &start, &end);
