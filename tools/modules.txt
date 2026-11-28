@@ -130,7 +130,7 @@ font_family: allocator family_store font_instance font_store invariant pool text
 font_chain: family_store font_family font_instance font_store invariant text_service
 text_runs: font_chain invariant text_block text_service
 text_entry:
-text_service: allocator family_store font_instance font_store pool text_block fpenv
+text_service: allocator family_store font_instance font_store invariant pool text_block fpenv
 text_host: context_hold text_service
 text_block: allocator invariant pool
 text_analysis: invariant text_block
@@ -155,7 +155,7 @@ font: allocator font_store pool text_service fpenv
 distance_field: invariant
 flatten: distance_field
 multi_field: distance_field invariant
-glyph_image: distance_field flatten glyph_outline multi_field text_service outputs fpenv
+glyph_image: distance_field flatten glyph_outline invariant multi_field text_service outputs fpenv
 bitmap_glyph: font_store
 color_glyph: bitmap_glyph color colr_paint glyph_outline image_scale invariant paint_source png text_block text_service outputs fpenv
 image_scale:
