@@ -539,9 +539,44 @@ static void TestBoundaries(void)
           "no text");
 }
 
+// Every mandatory break ends a paragraph: a CR alone, LF, VT, FF, NEL,
+// LS and PS, each whole.
+static void TestParagraphBreaks(void)
+{
+    static const char s_value[] = "a\rb\nc\vd\fe\xC2\x85"
+                                  "f\xE2\x80\xA8"
+                                  "g\xE2\x80\xA9h";
+    static const uint32_t s_ends[] = {2, 4, 6, 8, 11, 15, 19, 20};
+    muiAccessNode node = {.id = 1};
+    node.text[mui_accessValue] = s_value;
+    node.textLength[mui_accessValue] = sizeof s_value - 1;
+    muiAccessText text = muiAccessValueOf(&node);
+    bool forward = text.length == 20;
+    uint32_t at = 0;
+    for (size_t i = 0; i < sizeof s_ends / sizeof s_ends[0]; i++)
+    {
+        forward = forward && muiAccessBoundaryAfter(&text, mui_unitParagraph, at) == s_ends[i];
+        at = s_ends[i];
+    }
+    CHECK(forward, "paragraphs end after each break, forward");
+    bool backward = true;
+    for (size_t i = sizeof s_ends / sizeof s_ends[0] - 1; i > 0; i--)
+    {
+        backward = backward &&
+                   muiAccessBoundaryBefore(&text, mui_unitParagraph, s_ends[i]) == s_ends[i - 1];
+    }
+    CHECK(backward && muiAccessBoundaryBefore(&text, mui_unitParagraph, 2) == 0,
+          "paragraphs start after each break, backward");
+    CHECK(muiAccessBoundaryAfter(&text, mui_unitParagraph, 9) == 11 &&
+              muiAccessBoundaryBefore(&text, mui_unitParagraph, 13) == 11 &&
+              muiAccessBoundaryBefore(&text, mui_unitParagraph, 17) == 15,
+          "inside a break of two or three bytes, its paragraphs' edges");
+}
+
 int main(void)
 {
     TestBoundaries();
+    TestParagraphBreaks();
     TestGeometry();
     TestRead();
     TestUnfit();
