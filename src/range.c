@@ -8,6 +8,7 @@
 
 #include "context.h"
 #include "fpenv.h"
+#include "invariant.h"
 #include "notify.h"
 #include "range.h"
 #include "range_store.h"
@@ -296,7 +297,13 @@ muiResult muiNode_ClearValueRange(muiContext* context, muiNodeId nodeId)
 // whether it moved.
 MUI_NODISCARD static bool Change(muiContext* context, muiRangeEntry* entry, float value)
 {
+    // muiNode_SetValueRange stores only a valid range, and values come
+    // only from Snap.
+    MUI_ASSERT(IsValid(&entry->range));
     value = Snap(&entry->range, value);
+    // Snap holds the value within the range's finite limits, a NaN at the
+    // minimum, and counts steps past a float's span in doubles.
+    MUI_ASSERT(isfinite(value));
     if (value == entry->range.value)
     {
         return false;
@@ -329,13 +336,20 @@ const muiValueRange* muiRangeOf(const muiContext* context, uint32_t slot)
 bool muiRangeStep(muiContext* context, uint32_t slot, bool up)
 {
     muiRangeEntry* entry = EntryOf(context, slot);
+    // An access request's actions are derived when it comes, and only a
+    // range's node is numeric and takes increment, decrement or a value:
+    // the flag is the library's, outside MUI_ACCESS_HOST_FLAGS.
+    MUI_ASSERT(entry != nullptr);
     float step = SmallStep(&entry->range);
     return Change(context, entry, entry->range.value + (up ? step : -step));
 }
 
 bool muiRangeSet(muiContext* context, uint32_t slot, float value)
 {
-    return Change(context, EntryOf(context, slot), value);
+    muiRangeEntry* entry = EntryOf(context, slot);
+    // As in muiRangeStep.
+    MUI_ASSERT(entry != nullptr);
+    return Change(context, entry, value);
 }
 
 bool muiRangeKey(muiContext* context, uint32_t slot, muiKeyCode code)
@@ -392,6 +406,8 @@ bool muiRangeDirection(muiContext* context, uint32_t slot, muiDirection directio
 {
     static const muiKeyCode arrows[] = {mui_codeArrowUp, mui_codeArrowDown, mui_codeArrowLeft,
                                         mui_codeArrowRight};
+    // The event router passes only the four directions.
+    MUI_ASSERT((uint32_t)direction < sizeof arrows / sizeof arrows[0]);
     return muiRangeKey(context, slot, arrows[direction]);
 }
 
