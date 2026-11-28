@@ -10,6 +10,17 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.3.6](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.5...v1.3.6) (2026-11-28)
+
+
+### Fixed
+
+* **draw:** copy unchanged subtrees in the build after scrolling alone ([#435](https://github.com/Rawframe-Project/maul-ui/issues/435)) ([2976ca8](https://github.com/Rawframe-Project/maul-ui/commit/2976ca89d1108e89b1ce0c5afbdba858bf057b00)), closes [#434](https://github.com/Rawframe-Project/maul-ui/issues/434)
+* **edit:** find the cluster around a deletion from its offset ([#439](https://github.com/Rawframe-Project/maul-ui/issues/439)) ([6c57205](https://github.com/Rawframe-Project/maul-ui/commit/6c57205f02afd4481b7da5c406063c3098944e13)), closes [#438](https://github.com/Rawframe-Project/maul-ui/issues/438)
+* **input:** keep a range's value finite past a float's span ([#447](https://github.com/Rawframe-Project/maul-ui/issues/447)) ([2e216b7](https://github.com/Rawframe-Project/maul-ui/commit/2e216b7bb9e56ee86f2c6568e10b317afdd14d1c)), closes [#446](https://github.com/Rawframe-Project/maul-ui/issues/446)
+* **text:** refuse buffer sizes that do not fit a 32-bit size_t ([#416](https://github.com/Rawframe-Project/maul-ui/issues/416)) ([469405d](https://github.com/Rawframe-Project/maul-ui/commit/469405d2dd10287a4d07b1bd51c0e0903f49990b)), closes [#415](https://github.com/Rawframe-Project/maul-ui/issues/415)
+* **window:** pin Maul Window 0.15.0 and Maul Unicode 1.2.0 ([#421](https://github.com/Rawframe-Project/maul-ui/issues/421)) ([91df14e](https://github.com/Rawframe-Project/maul-ui/commit/91df14e30ad06ec0f6f95e526863a2782da042c9)), closes [#420](https://github.com/Rawframe-Project/maul-ui/issues/420)
+
 ## [1.3.5](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.4...v1.3.5) (2026-11-05)
 
 This release makes the accessibility tree and the platform adapters
