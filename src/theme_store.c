@@ -9,6 +9,10 @@
 
 uint32_t* muiThemeEntry(const muiThemeStore* store, uint32_t theme, uint32_t tokenSlot)
 {
+    // Callers pass a theme slot the pool gave and a live token's slot, of
+    // a pool as large as the tables' rows.
+    MUI_ASSERT(theme > 0 && theme <= store->pool.capacity && tokenSlot > 0 &&
+               tokenSlot <= store->tokenCapacity);
     return &store->tables[(size_t)(theme - 1) * store->tokenCapacity + (tokenSlot - 1)];
 }
 

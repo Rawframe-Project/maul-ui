@@ -9,6 +9,7 @@
 #include "animation.h"
 #include "context.h"
 #include "fpenv.h"
+#include "invariant.h"
 #include "pool.h"
 #include "property.h"
 #include "style_edit.h"
@@ -168,6 +169,8 @@ muiResult muiDestroyTransition(muiContext* context, muiTransitionId transitionId
 // ones.
 static void Unbind(muiPropertySet* set, muiPropertyBits properties)
 {
+    // Bind adds no binding past MUI_MAX_VARIANT_TRANSITIONS.
+    MUI_ASSERT(set->bindingCount <= MUI_MAX_VARIANT_TRANSITIONS);
     uint32_t kept = 0;
     for (uint32_t i = 0; i < set->bindingCount; i++)
     {
