@@ -189,6 +189,12 @@ static void TestThemesAreChecked(void)
     CHECK(muiTheme_SetTokenAlias(context, other, surface, s_nullToken) == mui_errorInvalid &&
               muiTheme_SetTokenAlias(NULL, other, surface, brand) == mui_errorInvalid,
           "bad aliases");
+    // A null theme is refused and counted as misuse, as by every other
+    // theme edit, not answered as one that is gone.
+    uint64_t misuse = muiContext_GetMisuse(context);
+    CHECK(muiTheme_SetTokenAlias(context, s_nullTheme, accent, brand) == mui_errorInvalid &&
+              muiContext_GetMisuse(context) == misuse + 1,
+          "an alias in a null theme");
     CHECK(muiTheme_ResetToken(context, theme, surface) == mui_success &&
               muiTheme_GetToken(context, theme, surface, &read, NULL) == mui_empty,
           "reset");

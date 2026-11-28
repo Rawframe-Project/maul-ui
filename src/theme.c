@@ -210,7 +210,7 @@ static muiResult ThemeSetTokenAlias(muiContext* context, muiThemeId themeId, mui
     {
         return mui_errorInvalid;
     }
-    if (target.index1 == 0 || tokenId.index1 == 0)
+    if (themeId.index1 == 0 || target.index1 == 0 || tokenId.index1 == 0)
     {
         return muiRefuse(context);
     }
