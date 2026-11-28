@@ -124,9 +124,9 @@ solve: absolute condition flex invariant layout_node sizing solver tree draw_sto
 layout_bound: layout_node solver tree
 layout: animation context invariant layout_bound layout_node property restyle solve solver tree scroll popup exit virtual fpenv
 font_store: allocator pool
-font_instance: font_store
+font_instance: font_store invariant
 family_store: allocator pool
-font_family: allocator family_store font_instance font_store pool text_service fpenv
+font_family: allocator family_store font_instance font_store invariant pool text_service fpenv
 font_chain: family_store font_family font_instance font_store invariant text_service
 text_runs: font_chain invariant text_block text_service
 text_entry:
