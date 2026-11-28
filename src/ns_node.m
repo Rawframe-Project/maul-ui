@@ -12,6 +12,7 @@
 #include "allocator.h"
 #include "fpenv.h"
 #include "host_call.h"
+#include "invariant.h"
 #include "ns.h"
 
 // A node's text as a string, nil for none.
@@ -41,8 +42,12 @@ NSString* muiNsNameOf(const muiNsAdapter* adapter, uint64_t id)
     }
     char* name = muiAllocateMarked(&adapter->busy, &adapter->allocator, length + 1, 1);
     NSString* string = nil;
-    if (name != nullptr &&
-        muiAccessTree_GetName(adapter->tree, id, name, length + 1, &length) == mui_success)
+    muiResult named = name != nullptr
+                          ? muiAccessTree_GetName(adapter->tree, id, name, length + 1, &length)
+                          : mui_errorCapacity;
+    // The tree is the one that gave the length: the name fits.
+    MUI_ASSERT(name == nullptr || named == mui_success);
+    if (named == mui_success)
     {
         string = [NSString stringWithUTF8String:name];
     }
@@ -79,9 +84,15 @@ MUI_NODISCARD static bool Has(const muiAccessNode* node, muiAccessAction action)
 - (NSArray*)accessibilityChildren
 {
     uint32_t count = 0;
-    if (NodeOf(self) == nullptr ||
-        muiAccessTree_GetShownChildren(adapter->tree, nodeId, adapter->scratch, adapter->nodes,
-                                       &count) != mui_success)
+    if (NodeOf(self) == nullptr)
+    {
+        return @[];
+    }
+    muiResult listed = muiAccessTree_GetShownChildren(adapter->tree, nodeId, adapter->scratch,
+                                                      adapter->nodes, &count);
+    // The node is held, and the scratch holds every node.
+    MUI_ASSERT(listed == mui_success);
+    if (listed != mui_success)
     {
         return @[];
     }
