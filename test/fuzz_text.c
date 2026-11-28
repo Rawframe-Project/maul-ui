@@ -21,6 +21,7 @@
 #include "maul-ui/access.h"
 #include "maul-ui/context.h"
 #include "maul-ui/draw.h"
+#include "maul-ui/event.h"
 #include "maul-ui/font.h"
 #include "maul-ui/layout.h"
 #include "maul-ui/node.h"
@@ -46,7 +47,7 @@ enum
     HEADER = 6,
     MAX_EDITS = 24,
     // The kinds of edit an input's bytes choose among.
-    EDIT_KINDS = 12,
+    EDIT_KINDS = 13,
     // The offsets hit testing asks carets and short ranges of, from 0.
     MAX_PROBED = 48,
     // The rectangles a range's are read into.
@@ -227,6 +228,57 @@ static uint32_t Offset(const Scene* scene, uint8_t low, uint8_t high)
     return (uint32_t)(((size_t)low | (size_t)high << 8) % (length + 2));
 }
 
+// A copy or a cut writes the selection, never nothing.
+static void WriteClipboard(void* user, const char* text, size_t length)
+{
+    (void)user;
+    Expect(text != nullptr && length != 0);
+}
+
+// A key or typed text through the editor, under either keymap: the keys
+// it acts on, letters with every modifier, and text with control
+// characters. What it did is the editor's to say; a paste it asks for is
+// answered.
+static muiResult Key(Scene* scene, Reader* reader, uint8_t a, uint8_t b)
+{
+    static const muiKeyCode s_codes[] = {
+        mui_codeEnter,   mui_codeBackspace, mui_codeDelete,    mui_codeInsert,
+        mui_codeHome,    mui_codeEnd,       mui_codeArrowLeft, mui_codeArrowRight,
+        mui_codeArrowUp, mui_codeArrowDown, mui_codeTab,       mui_codeSpace,
+        mui_codePageUp,  mui_codePageDown,  mui_codeEscape,    0};
+    static const char s_letters[] = "acxvzyAZ";
+    muiEvent event = {.kind = mui_eventKeyDown, .modifiers = (muiModifiers)(a & 15)};
+    size_t length = 0;
+    if ((a & 0x80) != 0)
+    {
+        event.kind = mui_eventText;
+        event.text = Take(reader, b % 9, &length);
+        event.length = length;
+    }
+    else
+    {
+        event.code = s_codes[b % (sizeof s_codes / sizeof s_codes[0])];
+        event.key = (b & 0x80) != 0 ? (muiKey)(MUI_KEY_NAMED | (uint32_t)event.code)
+                                    : (muiKey)s_letters[(b >> 4) % 8];
+    }
+    const muiTextEditInput input = {(muiKeymap)((a >> 4) & 1), WriteClipboard, scene};
+    muiTextEditOutcome outcome = {true, true, true, true};
+    muiResult result = muiNode_HandleEditEvent(&scene->host, scene->node, &event, &input, &outcome);
+    if (result != mui_success)
+    {
+        return result;
+    }
+    // An event the editor did not take changes nothing.
+    Expect(outcome.handled || (!outcome.changed && !outcome.paste && !outcome.selected));
+    if (outcome.paste)
+    {
+        bool changed = false;
+        const char* text = Take(reader, a % 17, &length);
+        result = muiTextBlock_Paste(scene->service, scene->block, text, length, &changed);
+    }
+    return result;
+}
+
 static void Edit(Scene* scene, Reader* reader)
 {
     muiTextService* service = scene->service;
@@ -291,6 +343,9 @@ static void Edit(Scene* scene, Reader* reader)
         text = Take(reader, b % 9, &length);
         result = muiTextBlock_Replace(service, block, Offset(scene, a, 0), Offset(scene, a, b),
                                       text, length);
+        break;
+    case 11:
+        result = Key(scene, reader, a, b);
         break;
     default:
     {
