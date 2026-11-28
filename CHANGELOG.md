@@ -10,6 +10,17 @@ documentation promised. `maul-ui-rhi` and `maul-ui-window` sit outside
 that promise until Maul RHI and Maul Window reach 1.0. Before 1.0.0, any
 release could change the API, the ABI and every data format.
 
+## [1.3.7](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.6...v1.3.7) (2026-11-28)
+
+
+### Fixed
+
+* **edit:** find a pressed word or paragraph from the press ([#450](https://github.com/Rawframe-Project/maul-ui/issues/450)) ([a3bce3f](https://github.com/Rawframe-Project/maul-ui/commit/a3bce3f4c6585b0fa0f5d696d7f43b804e910c69)), closes [#449](https://github.com/Rawframe-Project/maul-ui/issues/449)
+* **glyph:** sum an sbix graphic's top where a tall PNG cannot overflow ([#453](https://github.com/Rawframe-Project/maul-ui/issues/453)) ([70cadc3](https://github.com/Rawframe-Project/maul-ui/commit/70cadc328589aa27abdef6f9da528e153cef488f))
+* **input:** keep a range's value finite when its next step overflows ([#461](https://github.com/Rawframe-Project/maul-ui/issues/461)) ([7c002e9](https://github.com/Rawframe-Project/maul-ui/commit/7c002e9fced82525a46182fcb916fb7bb957bc23))
+* **style:** refuse an alias in a null theme as every theme edit does ([#455](https://github.com/Rawframe-Project/maul-ui/issues/455)) ([081c45f](https://github.com/Rawframe-Project/maul-ui/commit/081c45f76c72a8d5fb219b00a0d13600486a196a))
+* **text:** keep a wordless text's words without passing NULL to memmove ([#468](https://github.com/Rawframe-Project/maul-ui/issues/468)) ([e474856](https://github.com/Rawframe-Project/maul-ui/commit/e47485696fd3d26d195d937c4f47bcf69eee2852))
+
 ## [1.3.6](https://github.com/Rawframe-Project/maul-ui/compare/v1.3.5...v1.3.6) (2026-11-28)
 
 This release makes the text service refuse a text whose buffers would
