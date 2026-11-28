@@ -12,6 +12,7 @@
 #include "flatten.h"
 #include "fpenv.h"
 #include "glyph_outline.h"
+#include "invariant.h"
 #include "multi_field.h"
 #include "outputs.h"
 #include "text_service.h"
@@ -155,8 +156,12 @@ static muiResult Prepare(muiTextService* service, const FT_Outline* outline,
         return mui_errorCapacity;
     }
     muiSegment* segments = service->fieldSegments.data;
-    (void)muiFlattenOutline(outline, segments,
-                            multi != nullptr ? service->fieldCurves.data : nullptr, count, &count);
+    uint32_t flattened = 0;
+    // The walk that counted the segments, now with room for all of them.
+    muiAssertCall(muiFlattenOutline(outline, segments,
+                                    multi != nullptr ? service->fieldCurves.data : nullptr, count,
+                                    &flattened));
+    MUI_ASSERT(flattened == count);
     size_t pieces = muiCountPieces(segments, count);
     if (pieces > UINT32_MAX - 1 ||
         !muiReserveItems(allocator, &service->fieldPieces, (uint64_t)pieces + 1u, 0,
@@ -172,6 +177,9 @@ static muiResult Prepare(muiTextService* service, const FT_Outline* outline,
     }
     uint32_t cut =
         muiCutPieces(segments, count, service->fieldPieces.data, service->fieldOrigins.data);
+    // The pieces fill what muiCountPieces reserved, the edge's room
+    // included.
+    MUI_ASSERT(cut == pieces);
     size_t crossings = muiCountCrossings(service->fieldPieces.data, cut, grid);
     size_t pixels = (size_t)grid->width * grid->height;
     if (!muiReserveItems(allocator, &service->fieldRows, (uint64_t)grid->height + 1u, 0,

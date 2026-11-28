@@ -8,6 +8,7 @@
 #include "allocator.h"
 #include "font_instance.h"
 #include "fpenv.h"
+#include "invariant.h"
 #include "pool.h"
 
 #include "maul-unicode/harfbuzz.h"
@@ -57,6 +58,9 @@ static void FreeTypeFree(FT_Memory memory, void* block)
     unsigned char* start = (unsigned char*)block - HEADER;
     size_t total = 0;
     memcpy(&total, start, sizeof total);
+    // FreeType frees only what FreeTypeAlloc gave it, whose header holds
+    // the whole block's size, a byte or more past the header.
+    MUI_ASSERT(total > HEADER);
     muiRelease(&service->allocator, start, total, HEADER);
 }
 
