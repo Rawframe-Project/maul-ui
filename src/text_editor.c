@@ -142,27 +142,25 @@ muiResult muiNode_MoveEditCaret(const muiTextHost* host, muiNodeId nodeId, muiTe
 }
 
 // The word, or the white space between words, at an offset: a segment of
-// Unicode's word boundaries; at the text's end, the one before it.
+// Unicode's word boundaries; at the text's end, the one before it. Found
+// from the offset, so a selection by words in a long text does not read
+// it from its start on every move.
 static void WordAround(const muiTextBlock* block, uint32_t at, uint32_t* startOut, uint32_t* endOut)
 {
     muniSegmentIterator iterator;
-    uint32_t start = 0;
-    uint32_t end = block->length;
-    if (muniInitWordIterator(&iterator, block->text.data, block->length, false) == muni_success)
+    size_t start = 0;
+    size_t end = block->length;
+    // At the end, the segment that ends there: the one around its last
+    // byte, which stands for the last code point.
+    size_t offset = at < block->length || at == 0 ? at : (size_t)at - 1u;
+    if (muniInitWordIterator(&iterator, block->text.data, block->length, false) != muni_success ||
+        muniSegmentIterator_FindBreaksAround(&iterator, offset, &start, &end) != muni_success)
     {
-        size_t next = 0;
-        while (muniSegmentIterator_NextBreak(&iterator, &next) == muni_success)
-        {
-            if (next > at || next == block->length)
-            {
-                end = (uint32_t)next;
-                break;
-            }
-            start = (uint32_t)next;
-        }
+        start = 0;
+        end = block->length;
     }
-    *startOut = start;
-    *endOut = end;
+    *startOut = (uint32_t)start;
+    *endOut = (uint32_t)end;
 }
 
 // The length of the paragraph separator starting at a byte, or 0: UAX
@@ -194,12 +192,18 @@ static void ParagraphAround(const muiTextBlock* block, uint32_t at, uint32_t* st
     {
         end++;
     }
+    // Back from the offset to the last separator starting before it: no
+    // byte of a separator starts another, so the first found is the one a
+    // scan from the text's start would end on.
     uint32_t start = 0;
-    for (uint32_t i = 0; i < at;)
+    for (uint32_t i = at; i > 0; i--)
     {
-        uint32_t size = SeparatorAt(text, block->length, i);
-        i += size != 0 ? size : 1u;
-        start = size != 0 ? i : start;
+        uint32_t size = SeparatorAt(text, block->length, i - 1);
+        if (size != 0)
+        {
+            start = i - 1 + size;
+            break;
+        }
     }
     *startOut = start < at ? start : at;
     *endOut = end;
