@@ -15,6 +15,8 @@
 
 #include "multi_field.h"
 
+#include "invariant.h"
+
 #include <math.h>
 
 enum
@@ -72,6 +74,8 @@ MUI_NODISCARD static bool IsCorner(const muiFieldScratch* scratch, const muiMult
 static uint8_t NextColor(uint8_t color, uint8_t banned)
 {
     static const uint8_t order[3] = {CYAN, MAGENTA, YELLOW};
+    // ColorLoop starts from cyan and takes only what this returns.
+    MUI_ASSERT(color == CYAN || color == MAGENTA || color == YELLOW);
     uint32_t at = color == CYAN ? 0u : color == MAGENTA ? 1u : 2u;
     uint8_t next = order[(at + 1) % 3];
     return next != banned ? next : order[(at + 2) % 3];
@@ -232,8 +236,11 @@ static void ColorLoop(const muiFieldScratch* scratch, const muiMultiScratch* mul
     static const uint8_t parts[3] = {MAGENTA, WHITE, YELLOW};
     const uint32_t* loop = multi->loop;
     uint8_t* colors = multi->edgeColors;
+    // A loop takes at least its first chain, which starts at a segment.
+    MUI_ASSERT(n > 0);
     uint32_t first = 0;
     uint32_t corners = MarkCorners(scratch, multi, n, closed, &first);
+    MUI_ASSERT(first < n);
     uint8_t color = CYAN;
     uint32_t seen = 0;
     for (uint32_t step = 0; step < n; step++)
@@ -280,6 +287,11 @@ static void Color(const muiFieldScratch* scratch, const muiMultiScratch* multi, 
         bool closed = false;
         for (uint32_t d = c; d != chainCount && !closed;)
         {
+            // Successor gives only a chain not yet taken, or the loop's
+            // first, which ends it: each chain goes into one loop once, so
+            // a loop holds at most every segment.
+            MUI_ASSERT(colors[chains[d]] == 0 && chains[d] < chains[d + 1]);
+            MUI_ASSERT(n + (chains[d + 1] - chains[d]) <= count);
             // Taken: a chain's first colour is not 0 from here on.
             colors[chains[d]] = WHITE;
             for (uint32_t i = chains[d]; i < chains[d + 1]; i++)
@@ -364,6 +376,8 @@ static void MeasureSegment(const muiSegment* s, uint8_t colors, int side, const 
     int64_t c1 = 0;
     int64_t r0 = 0;
     int64_t r1 = 0;
+    // An edge segment is kept only with the side the inside is on.
+    MUI_ASSERT(side == 1 || side == -1);
     if (!ReachOf(s, grid, &c0, &c1, &r0, &r1))
     {
         return;
@@ -410,6 +424,8 @@ void muiDrawMultiField(const muiSegment* pieces, const uint32_t* origins, uint32
                        const muiMultiScratch* multi, unsigned char* pixels)
 {
     unsigned char* inside = multi->inside;
+    // PrepareMulti gives the edge segments' origins and sides room.
+    MUI_ASSERT(scratch->edgeOrigins != nullptr && scratch->edgeSides != nullptr);
     uint32_t edges = muiFindFieldEdge(pieces, origins, count, grid, scratch, inside);
     muiMeasureField(scratch->edge, edges, grid, scratch->distances);
     Color(scratch, multi, edges);

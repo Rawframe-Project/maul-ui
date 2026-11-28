@@ -152,19 +152,19 @@ text_delete: invariant text_block text_blocks text_service fpenv
 text_move: font_chain invariant line_break text_block text_blocks text_boxes text_entry text_mask text_paragraph text_service text_shape text_host fpenv
 text_access: allocator line_break text_block text_blocks text_boxes text_editing text_entry text_mask text_service text_host fpenv
 font: allocator font_store pool text_service fpenv
-distance_field:
+distance_field: invariant
 flatten: distance_field
-multi_field: distance_field
+multi_field: distance_field invariant
 glyph_image: distance_field flatten glyph_outline multi_field text_service outputs fpenv
 bitmap_glyph: font_store
-color_glyph: bitmap_glyph color colr_paint glyph_outline image_scale paint_source png text_block text_service outputs fpenv
+color_glyph: bitmap_glyph color colr_paint glyph_outline image_scale invariant paint_source png text_block text_service outputs fpenv
 image_scale:
-colr_gradient: motion_math paint_source text_block text_service
+colr_gradient: invariant motion_math paint_source text_block text_service
 colr_composite:
 colr_paint: colr_composite colr_gradient glyph_outline invariant motion_math paint_source text_block text_service
 paint_source: color glyph_outline
 inflate:
-png: inflate text_block
+png: inflate invariant text_block
 glyph_outline: font_instance font_store text_block text_service
 skyline: invariant
 glyph_table: allocator invariant
