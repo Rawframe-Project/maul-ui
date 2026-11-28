@@ -17,9 +17,10 @@ past a float, and finds a double- or triple-clicked word or paragraph
 from the press instead of reading the text from its start. It also
 removes undefined behaviour from reading a node's access text after an
 edit and from finding a glyph whose sbix graphic claims 2^31 rows, and
-refuses an alias set in a null theme as misuse. The API and the ABI are those of 1.3.6, and so are
-layouts, styles, draw lists, line breaks, shaped text, glyph images,
-motion curves and the accessibility tree built from a context.
+refuses an alias set in a null theme as misuse. The API and the ABI are
+those of 1.3.6, and so are layouts, styles, draw lists, line breaks,
+shaped text, glyph images, motion curves and the accessibility tree
+built from a context.
 
 ### Fixed
 
