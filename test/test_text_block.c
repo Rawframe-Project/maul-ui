@@ -399,6 +399,21 @@ static void TestKeptWords(void)
     }
     CHECK(wordless && found, "no words when memory runs out, found whole the next time");
     FreeScene(&scene);
+    // A text read with no words keeps none, nor room for any: an edit
+    // that leaves it without words, and one that adds one, follow.
+    scene = MakeScene(NULL);
+    node = AddText(&scene, s_nullNode, "- ");
+    key = muiNode_GetHostKey(scene.context, node);
+    const muiTextBlockId bare = {(uint32_t)key, (uint32_t)(key >> 32)};
+    CHECK(muiReadAccessText(&scene.host, node, key, &all, &content) && content.marks.wordCount == 0,
+          "no words");
+    CHECK(muiTextBlock_Replace(scene.service, bare, 0, 1, ".", 1) == mui_success &&
+              SameWords(&scene, node, key, ". ", 2),
+          "still no words after an edit");
+    CHECK(muiTextBlock_Replace(scene.service, bare, 2, 2, "ab", 2) == mui_success &&
+              SameWords(&scene, node, key, ". ab", 4),
+          "a word added after none");
+    FreeScene(&scene);
 }
 
 static void TestMeasuring(void)

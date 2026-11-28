@@ -200,7 +200,12 @@ MUI_NODISCARD static bool SpliceWords(const muiAllocator* allocator, const char*
     if (fits)
     {
         muiAccessWord* words = cache->words.data;
-        memmove(words + first + added, words + after, tail * size);
+        // With no words kept and none added there may be no buffer, which
+        // memmove may not be given, even for no bytes.
+        if (tail != 0)
+        {
+            memmove(words + first + added, words + after, tail * size);
+        }
         if (added != 0)
         {
             memcpy(words + first, region.data, added * size);
